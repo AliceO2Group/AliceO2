@@ -167,6 +167,12 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   // reset the buffer size
   TH1::SetDefaultBufferSize(bufferSize);
 
+  // associate histograms to canvas
+  hAside1D->SetBit(TObject::kCanDelete);
+  hCside1D->SetBit(TObject::kCanDelete);
+  hAside2D->SetBit(TObject::kCanDelete);
+  hCside2D->SetBit(TObject::kCanDelete);
+
   return c;
 }
 
@@ -180,6 +186,9 @@ TCanvas* painter::draw(const CalArray<T>& calArray)
   auto c = new TCanvas(fmt::format("c_{}", name).data(), hist->GetTitle());
 
   hist->Draw("colz");
+
+  // associate histograms to canvas
+  hist->SetBit(TObject::kCanDelete);
 
   return c;
 }
@@ -342,13 +351,13 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const CalDet<T>& calDet, int 
     cROCs1D = new TCanvas(fmt::format("c_ROCs_{}_1D", calName).data(), fmt::format("{} values for each ROC", calName).data(), 1400, 1000);
     cROCs2D = new TCanvas(fmt::format("c_ROCs_{}_2D", calName).data(), fmt::format("{} values for each ROC", calName).data(), 1400, 1000);
   }
-  vecCanvases.emplace_back(cSides);
-  vecCanvases.emplace_back(cROCs1D);
-  vecCanvases.emplace_back(cROCs2D);
-
   cSides = draw(calDet, nbins1D, xMin1D, xMax1D, cSides);
   cROCs1D->DivideSquare(nROCs);
   cROCs2D->DivideSquare(nROCs);
+
+  vecCanvases.emplace_back(cSides);
+  vecCanvases.emplace_back(cROCs1D);
+  vecCanvases.emplace_back(cROCs2D);
 
   // ===| produce plots for each ROC |===
   size_t pad = 1;
@@ -381,6 +390,10 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const CalDet<T>& calDet, int 
     h2D->Draw("colz");
 
     ++pad;
+
+    // associate histograms to canvas
+    h1D->SetBit(TObject::kCanDelete);
+    h2D->SetBit(TObject::kCanDelete);
   }
 
   return vecCanvases;
