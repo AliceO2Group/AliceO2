@@ -37,7 +37,7 @@ struct ZDCEnergy {
   }
   inline void set(uint8_t ch, float energy)
   {
-    float escaled = (energy + EnergyOffset) / EnergyUnit;
+    double escaled = (energy + EnergyOffset) / EnergyUnit;
     value = 0;
     if (escaled > 0) {
       if (escaled > EnergyMask) {
