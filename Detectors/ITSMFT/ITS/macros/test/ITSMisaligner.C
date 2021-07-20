@@ -45,7 +45,7 @@ void ITSMisaligner(const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080"
     pars = generateMisalignment(xLay, yLay, zLay, psiLay, thetaLay, phiLay);
     params.emplace_back(symname.c_str(), -1, pars[0], pars[1], pars[2], pars[3], pars[4], pars[5], glo);
 
-    for (int ihb = 0; ihb < geom->getNumberOfHalfBarrels(ilr); ihb++) {
+    for (int ihb = 0; ihb < geom->getNumberOfHalfBarrels(); ihb++) {
       symname = geom->composeSymNameHalfBarrel(ilr, ihb);
       pars = generateMisalignment(xSta, ySta, zSta, psiSta, thetaSta, phiSta);
       params.emplace_back(symname.c_str(), -1, pars[0], pars[1], pars[2], pars[3], pars[4], pars[5], glo);

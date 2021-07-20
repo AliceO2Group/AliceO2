@@ -108,7 +108,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   int getNumberOfModules(int lay) const { return mNumberOfModules[lay]; }
   int getNumberOfHalfStaves(int lay) const { return mNumberOfHalfStaves[lay]; }
   int getNumberOfStaves(int lay) const { return mNumberOfStaves[lay]; }
-  int getNumberOfHalfBarrels(int lay) const { return mNumberOfHalfBarrels[lay]; }
+  int getNumberOfHalfBarrels() const { return mNumberOfHalfBarrels; }
   int getNumberOfLayers() const { return mNumberOfLayers; }
   int getChipIndex(int lay, int detInLay) const { return getFirstChipIndex(lay) + detInLay; }
   /// This routine computes the chip index number from the layer, stave, and chip number in stave
@@ -313,7 +313,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
 
   /// Determines the number of halfbarrels in the layer
   /// \param lay: layer number, starting from 0
-  int extractNumberOfHalfBarrels(int lay) const;
+  int extractNumberOfHalfBarrels() const;
 
   /// Determines the number of layers in the Geometry
   /// \param lay: layer number, starting from 0
@@ -351,7 +351,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static constexpr int MAXLAYERS = 15; ///< max number of active layers
 
   Int_t mNumberOfLayers;                        ///< number of layers
-  std::vector<int> mNumberOfHalfBarrels;        ///< the number of halfbarrels/layer(layer)
+  Int_t mNumberOfHalfBarrels;                   ///< number of halfbarrels
   std::vector<int> mNumberOfStaves;             ///< number of staves/layer(layer)
   std::vector<int> mNumberOfHalfStaves;         ///< the number of substaves/stave(layer)
   std::vector<int> mNumberOfModules;            ///< number of modules/substave(layer)
