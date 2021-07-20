@@ -28,10 +28,39 @@ void CalibLaserTracks::fill(std::vector<TrackTPC> const& tracks)
 //______________________________________________________________________________
 void CalibLaserTracks::fill(const gsl::span<const TrackTPC> tracks)
 {
+  // ===| clean up TF data |===
+  mZmatchPairsTFA.clear();
+  mZmatchPairsTFC.clear();
+  mCalibDataTF.reset();
+
+  if (!tracks.size()) {
+    return;
+  }
+
+  // ===| associate tracks with ideal laser track positions |===
   for (const auto& track : tracks) {
     processTrack(track);
   }
 
+  // ===| set TF start and end times |===
+  if (mCalibData.firstTime == 0 && mCalibData.lastTime == 0) {
+    mCalibData.firstTime = mTFstart;
+  }
+
+  auto tfEnd = mTFend;
+  if (tfEnd == 0) {
+    tfEnd = mTFstart;
+  }
+  mCalibData.lastTime = tfEnd;
+
+  mCalibDataTF.firstTime = mTFstart;
+  mCalibDataTF.lastTime = tfEnd;
+
+  // ===| TF counters |===
+  ++mCalibData.processedTFs;
+  ++mCalibDataTF.processedTFs;
+
+  // ===| finalize TF processing |===
   endTF();
 }
 
@@ -42,6 +71,7 @@ void CalibLaserTracks::processTrack(const TrackTPC& track)
     return;
   }
 
+  // use outer parameters which are closest to the laser mirrors
   auto parOutAtLtr = track.getOuterParam();
 
   // track should have been alreay propagated close to the laser mirrors
@@ -49,7 +79,7 @@ void CalibLaserTracks::processTrack(const TrackTPC& track)
     return;
   }
 
-  // recalculate z position based on trigger or CE position
+  // recalculate z position based on trigger or CE position if needed
   float zTrack = parOutAtLtr.getZ();
 
   // TODO: calculation has to be improved
@@ -69,24 +99,39 @@ void CalibLaserTracks::processTrack(const TrackTPC& track)
   // try association with ideal laser track and rotate parameters
   const int side = track.hasCSideClusters();
   const int laserTrackID = findLaserTrackID(parOutAtLtr, side);
+
   if (laserTrackID < 0 || laserTrackID >= LaserTrack::NumberOfTracks) {
     return;
   }
 
-  LaserTrack ltr = mLaserTracks.getTrack(laserTrackID);
+  auto ltr = mLaserTracks.getTrack(laserTrackID);
   parOutAtLtr.rotateParam(ltr.getAlpha());
   parOutAtLtr.propagateParamTo(ltr.getX(), mBz);
 
-  mZmatchPairsTF.emplace_back(TimePair{ltr.getZ(), parOutAtLtr.getZ(), mTFtime});
+  if (ltr.getSide() == 0) {
+    mZmatchPairsA.emplace_back(TimePair{ltr.getZ(), parOutAtLtr.getZ(), mTFstart});
+    mZmatchPairsTFA.emplace_back(TimePair{ltr.getZ(), parOutAtLtr.getZ(), mTFstart});
+  } else {
+    mZmatchPairsC.emplace_back(TimePair{ltr.getZ(), parOutAtLtr.getZ(), mTFstart});
+    mZmatchPairsTFC.emplace_back(TimePair{ltr.getZ(), parOutAtLtr.getZ(), mTFstart});
+  }
 
+  mCalibData.matchedLtrIDs.emplace_back(laserTrackID);
+  mCalibDataTF.matchedLtrIDs.emplace_back(laserTrackID);
+
+  // ===| debug output |========================================================
   if (mWriteDebugTree) {
     if (!mDebugStream) {
-      mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>("CalibLaserTracks_debug.root", "recreate");
+      mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>(mDebugOutputName.data(), "recreate");
     }
 
+    auto writeTrack = track;
     *mDebugStream << "ltrMatch"
+                  << "tfStart=" << mTFstart
+                  << "tfEnd=" << mTFend
                   << "ltr=" << ltr              // matched ideal laser track
                   << "trOutLtr=" << parOutAtLtr // track rotated and propagated to ideal track position
+                  << "TPCTracks=" << writeTrack // original TPC track
                   << "\n";
   }
 }
@@ -94,7 +139,7 @@ void CalibLaserTracks::processTrack(const TrackTPC& track)
 //______________________________________________________________________________
 int CalibLaserTracks::findLaserTrackID(TrackPar outerParam, int side)
 {
-  //const auto phisec = getPhiNearbySectorEdge(outerParam);
+  // ===| rotate outer param to closes laser rod |===
   const auto phisec = getPhiNearbyLaserRod(outerParam, side);
   if (!outerParam.rotateParam(phisec)) {
     return -1;
@@ -103,21 +148,18 @@ int CalibLaserTracks::findLaserTrackID(TrackPar outerParam, int side)
   if (side < 0) {
     side = outerParam.getZ() < 0;
   }
+
+  // ===| laser rod |===
   const int rod = std::nearbyint((phisec - LaserTrack::FirstRodPhi[side]) / LaserTrack::RodDistancePhi);
-  //printf("\n\nside: %i\n", side);
-  const auto xyzGlo = outerParam.getXYZGlo();
-  auto phi = std::atan2(xyzGlo.Y(), xyzGlo.X());
-  o2::math_utils::bringTo02Pi(phi);
-  //printf("rod:  %d (phisec: %.2f, phi: %.2f\n", rod, phisec, phi);
-  int bundle = -1;
-  int beam = -1;
+
+  // ===| laser bundle |===
   float mindist = 1000;
 
   const auto outerParamZ = std::abs(outerParam.getZ());
-  //printf("outerParamZ: %.2f\n", outerParamZ);
+
+  int bundle = -1;
   for (size_t i = 0; i < LaserTrack::CoarseBundleZPos.size(); ++i) {
     const float dist = std::abs(outerParamZ - LaserTrack::CoarseBundleZPos[i]);
-    //printf("laserZ: %.2f (%.2f, %.2f)\n", LaserTrack::CoarseBundleZPos[i], dist, mindist);
     if (dist < mindist) {
       mindist = dist;
       bundle = i;
@@ -128,10 +170,11 @@ int CalibLaserTracks::findLaserTrackID(TrackPar outerParam, int side)
     return -1;
   }
 
-  //printf("bundle: %i\n", bundle);
-
+  // ===| laser beam |===
   const auto outerParamsInBundle = mLaserTracks.getTracksInBundle(side, rod, bundle);
   mindist = 1000;
+
+  int beam = -1;
   for (int i = 0; i < outerParamsInBundle.size(); ++i) {
     const auto louterParam = outerParamsInBundle[i];
     if (i == 0) {
@@ -144,31 +187,17 @@ int CalibLaserTracks::findLaserTrackID(TrackPar outerParam, int side)
     }
   }
 
-  //printf("beam: %i (%.4f)\n", beam, mindist);
   if (mindist > 0.01) {
     return -1;
   }
 
+  // ===| track ID from side, rod, bundle and beam |===
   const int trackID = LaserTrack::NumberOfTracks / 2 * side +
                       LaserTrack::BundlesPerRod * LaserTrack::TracksPerBundle * rod +
                       LaserTrack::TracksPerBundle * bundle +
                       beam;
 
-  //printf("trackID: %d\n", trackID);
-
   return trackID;
-}
-
-//______________________________________________________________________________
-float CalibLaserTracks::getPhiNearbySectorEdge(const TrackPar& param)
-{
-  // rotate to nearest laser bundle
-  const auto xyzGlo = param.getXYZGlo();
-  auto phi = std::atan2(xyzGlo.Y(), xyzGlo.X());
-  o2::math_utils::bringTo02PiGen(phi);
-  const auto phisec = std::nearbyint(phi / LaserTrack::SectorSpanRad) * LaserTrack::SectorSpanRad;
-  //printf("%.2f : %.2f\n", phi, phisec);
-  return (phisec);
 }
 
 //______________________________________________________________________________
@@ -179,8 +208,19 @@ float CalibLaserTracks::getPhiNearbyLaserRod(const TrackPar& param, int side)
   o2::math_utils::bringTo02PiGen(phi);
   phi = std::nearbyint(phi / LaserTrack::RodDistancePhi) * LaserTrack::RodDistancePhi + LaserTrack::FirstRodPhi[side % 2];
   o2::math_utils::bringTo02PiGen(phi);
-  //printf("%.2f : %.2f\n", phi, phisec);
   return phi;
+}
+
+//______________________________________________________________________________
+bool CalibLaserTracks::hasNearbyLaserRod(const TrackPar& param, int side)
+{
+  const auto xyzGlo = param.getXYZGlo();
+  const auto phiTrack = std::atan2(xyzGlo.Y(), xyzGlo.X());
+  auto phi = phiTrack - LaserTrack::FirstRodPhi[side % 2];
+  o2::math_utils::bringTo02PiGen(phi);
+  phi = std::nearbyint(phi / LaserTrack::RodDistancePhi) * LaserTrack::RodDistancePhi + LaserTrack::FirstRodPhi[side % 2];
+  o2::math_utils::bringTo02PiGen(phi);
+  return std::abs(phi - phiTrack) < LaserTrack::SectorSpanRad / 4.;
 }
 
 //______________________________________________________________________________
@@ -198,51 +238,83 @@ void CalibLaserTracks::merge(const CalibLaserTracks* other)
   if (!other) {
     return;
   }
-  mZmatchPairs.insert(mZmatchPairs.end(), mZmatchPairsTF.begin(), mZmatchPairsTF.end());
-  mDVperTF.insert(mDVperTF.end(), other->mDVperTF.begin(), other->mDVperTF.end());
+  mCalibData.processedTFs += other->mCalibData.processedTFs;
 
-  sort(mZmatchPairs);
-  sort(mDVperTF);
+  const auto sizeAthis = mZmatchPairsA.size();
+  const auto sizeCthis = mZmatchPairsC.size();
+  const auto sizeAother = other->mZmatchPairsA.size();
+  const auto sizeCother = other->mZmatchPairsC.size();
+
+  mZmatchPairsA.insert(mZmatchPairsA.end(), other->mZmatchPairsA.begin(), other->mZmatchPairsA.end());
+  mZmatchPairsC.insert(mZmatchPairsC.end(), other->mZmatchPairsC.begin(), other->mZmatchPairsC.end());
+
+  auto& ltrIDs = mCalibData.matchedLtrIDs;
+  auto& ltrIDsOther = other->mCalibData.matchedLtrIDs;
+  ltrIDs.insert(ltrIDs.end(), ltrIDsOther.begin(), ltrIDsOther.end());
+
+  mCalibData.firstTime = std::min(mCalibData.firstTime, other->mCalibData.firstTime);
+  mCalibData.lastTime = std::max(mCalibData.lastTime, other->mCalibData.lastTime);
+
+  sort(mZmatchPairsA);
+  sort(mZmatchPairsC);
+
+  LOGP(info, "Merged CalibLaserTracks with mached pairs {} / {} + {} / {} = {} / {} (this +_other A- / C-Side)", sizeAthis, sizeCthis, sizeAother, sizeCother, mZmatchPairsA.size(), mZmatchPairsC.size());
 }
 
 //______________________________________________________________________________
 void CalibLaserTracks::endTF()
 {
-  if (!mZmatchPairsTF.size()) {
-    return;
-  }
-
-  mZmatchPairs.insert(mZmatchPairs.end(), mZmatchPairsTF.begin(), mZmatchPairsTF.end());
-
-  auto fitResult = fit(mZmatchPairsTF);
-  mDVperTF.emplace_back(fitResult);
+  LOGP(info, "Ending time frame {} - {} with {} / {} matched laser tracks (total: {} / {}) on the A / C-Side", mTFstart, mTFend, mZmatchPairsTFA.size(), mZmatchPairsTFC.size(), mZmatchPairsA.size(), mZmatchPairsC.size());
+  fillCalibData(mCalibDataTF, mZmatchPairsTFA, mZmatchPairsTFC);
 
   if (mDebugStream) {
     (*mDebugStream) << "tfData"
-                    << "tfTime=" << mTFtime
-                    << "zPairs=" << mZmatchPairsTF
-                    << "dvFit=" << fitResult
+                    << "tfStart=" << mTFstart
+                    << "tfEnf=" << mTFend
+                    << "zPairsA=" << mZmatchPairsTFA
+                    << "zPairsC=" << mZmatchPairsTFC
+                    << "calibData=" << mCalibDataTF
                     << "\n";
   }
-
-  mZmatchPairsTF.clear();
 }
 
 //______________________________________________________________________________
 void CalibLaserTracks::finalize()
 {
-  mDVall = fit(mZmatchPairs);
+  mFinalized = true;
+  sort(mZmatchPairsA);
+  sort(mZmatchPairsC);
+
+  fillCalibData(mCalibData, mZmatchPairsA, mZmatchPairsC);
+
+  //auto& ltrIDs = mCalibData.matchedLtrIDs;
+  //std::sort(ltrIDs.begin(), ltrIDs.end());
+  //ltrIDs.erase(std::unique(ltrIDs.begin(), ltrIDs.end()), ltrIDs.end());
 
   if (mDebugStream) {
     (*mDebugStream) << "finalData"
-                    << "zPairs=" << mZmatchPairs
-                    << "fitPairs=" << mDVperTF
-                    << "fullFit=" << mDVall
+                    << "zPairsA=" << mZmatchPairsA
+                    << "zPairsC=" << mZmatchPairsC
+                    << "calibData=" << mCalibData
                     << "\n";
-  }
 
-  sort(mZmatchPairs);
-  sort(mDVperTF);
+    mDebugStream->Close();
+  }
+}
+
+//______________________________________________________________________________
+void CalibLaserTracks::fillCalibData(LtrCalibData& calibData, const std::vector<TimePair>& pairsA, const std::vector<TimePair>& pairsC)
+{
+  auto dvA = fit(pairsA);
+  auto dvC = fit(pairsC);
+
+  calibData.dvOffsetA = dvA.x1;
+  calibData.dvCorrectionA = dvA.x2;
+  calibData.nTracksA = uint16_t(pairsA.size());
+
+  calibData.dvOffsetC = dvC.x1;
+  calibData.dvCorrectionC = dvC.x2;
+  calibData.nTracksC = uint16_t(pairsC.size());
 }
 
 //______________________________________________________________________________
@@ -256,7 +328,7 @@ TimePair CalibLaserTracks::fit(const std::vector<TimePair>& trackMatches) const
   fit.StoreData(false);
   fit.ClearPoints();
 
-  float meanTime = 0;
+  uint64_t meanTime = 0;
   for (const auto& point : trackMatches) {
     double x = point.x1;
     double y = point.x2;
@@ -265,7 +337,7 @@ TimePair CalibLaserTracks::fit(const std::vector<TimePair>& trackMatches) const
     meanTime += point.time;
   }
 
-  meanTime /= float(trackMatches.size());
+  meanTime /= uint64_t(trackMatches.size());
 
   const float robustFraction = 0.9;
   const int minPoints = 6;
@@ -288,10 +360,40 @@ TimePair CalibLaserTracks::fit(const std::vector<TimePair>& trackMatches) const
 //______________________________________________________________________________
 void CalibLaserTracks::sort(std::vector<TimePair>& trackMatches)
 {
-  std::sort(mZmatchPairs.begin(), mZmatchPairs.end(), [](const auto& first, const auto& second) { return first.time < second.time; });
+  std::sort(trackMatches.begin(), trackMatches.end(), [](const auto& first, const auto& second) { return first.time < second.time; });
 }
 
 //______________________________________________________________________________
 void CalibLaserTracks::print() const
 {
+  if (mFinalized) {
+    LOGP(info,
+         "Processed {} TFs from {} - {}; found tracks: {} / {}; T0 offsets: {} / {}; dv correction factors: {} / {} for A- / C-Side",
+         mCalibData.processedTFs,
+         mCalibData.firstTime,
+         mCalibData.lastTime,
+         mCalibData.nTracksA,
+         mCalibData.nTracksC,
+         mCalibData.dvOffsetA,
+         mCalibData.dvOffsetC,
+         mCalibData.dvCorrectionA,
+         mCalibData.dvCorrectionC);
+  } else {
+    LOGP(info,
+         "Processed {} TFs from {} - {}; **Not finalized**",
+         mCalibData.processedTFs,
+         mCalibData.firstTime,
+         mCalibData.lastTime);
+
+    LOGP(info,
+         "Last processed TF from {} - {}; found tracks: {} / {}; T0 offsets: {} / {}; dv correction factors: {} / {} for A- / C-Side",
+         mCalibDataTF.firstTime,
+         mCalibDataTF.lastTime,
+         mCalibDataTF.nTracksA,
+         mCalibDataTF.nTracksC,
+         mCalibDataTF.dvOffsetA,
+         mCalibDataTF.dvOffsetC,
+         mCalibDataTF.dvCorrectionA,
+         mCalibDataTF.dvCorrectionC);
+  }
 }

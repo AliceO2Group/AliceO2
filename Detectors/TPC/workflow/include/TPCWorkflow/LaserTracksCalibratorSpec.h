@@ -9,10 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_CALIBRATION_LHCCLOCK_CALIBRATOR_H
-#define O2_CALIBRATION_LHCCLOCK_CALIBRATOR_H
+#ifndef O2_TPC_LaserTracksCalibratorSpec_H
+#define O2_TPC_LaserTracksCalibratorSpec_H
 
-/// @file   CalibLaserTracksSpec.h
+/// @file   LaserTracksCalibratorSpec.h
 /// @brief  Device to run tpc laser track calibration
 
 #include "TPCCalibration/LaserTracksCalibrator.h"
@@ -35,28 +35,35 @@ class LaserTracksCalibratorDevice : public o2::framework::Task
  public:
   void init(o2::framework::InitContext& ic) final
   {
-    int minEnt = std::max(300, ic.options().get<int>("min-entries"));
-    int slotL = ic.options().get<int>("tf-per-slot");
-    int delay = ic.options().get<int>("max-delay");
+    const int minEnt = ic.options().get<int>("min-tfs");
+    const int slotL = ic.options().get<int>("tf-per-slot");
+    const int delay = ic.options().get<int>("max-delay");
+    const bool debug = ic.options().get<bool>("write-debug");
+
     mCalibrator = std::make_unique<LaserTracksCalibrator>(minEnt);
     mCalibrator->setSlotLength(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
+    mCalibrator->setWriteDebug(debug);
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
-    auto data = pc.inputs().get<gsl::span<TrackTPC>>("input");
-    LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
-    mCalibrator->process(tfcounter, data);
-    sendOutput(pc.outputs());
-    //const auto& infoVec = mCalibrator->getLHCphaseInfoVector();
-    //LOG(INFO) << "Created " << infoVec.size() << " objects for TF " << tfcounter;
+    const auto dph = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("laserTracks").header);
+    const auto startTime = dph->startTime;
+    const auto endTime = dph->startTime + dph->duration - 1;
+
+    auto data = pc.inputs().get<gsl::span<TrackTPC>>("laserTracks");
+    LOGP(info, "Processing TF with start time {} and {} tracks", startTime, data.size());
+
+    mCalibrator->getSlotForTF(startTime).getContainer()->setTFtimes(startTime, endTime);
+    mCalibrator->process(startTime, data);
+
+    //sendOutput(pc.outputs());
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    LOG(INFO) << "Finalizing calibration";
+    LOGP(info, "LaserTracksCalibratorDevice::endOfStream: Finalizing calibration");
     constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
     mCalibrator->checkSlotsToFinalize(INFINITE_TF);
     sendOutput(ec.outputs());
@@ -68,27 +75,30 @@ class LaserTracksCalibratorDevice : public o2::framework::Task
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
   {
-    // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
-    // TODO in principle, this routine is generic, can be moved to Utils.h
     using clbUtils = o2::calibration::Utils;
-    const auto& object = mCalibrator->getDVperSlot();
+    // TODO: save vector of objects or single objects
+    const auto& object = mCalibrator->getCalibPerSlot();
+
+    if (!object.size()) {
+      LOGP(error, "drift velocity calibration vector is empty");
+      return;
+    }
 
     o2::ccdb::CcdbObjectInfo w;
     auto image = o2::ccdb::CcdbApi::createObjectImage(&object, &w);
 
     w.setPath("TPC/Calib/LaserTracks");
-    w.setStartValidityTimestamp(object.front().time);
-    w.setEndValidityTimestamp(object.back().time);
+    w.setStartValidityTimestamp(object.front().firstTime);
+    w.setEndValidityTimestamp(object.back().lastTime);
 
-    LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
-              << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibLtr", 0}, *image.get()); // vector<char>
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibLtr", 0}, w);            // root-serialized
+    LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", w.getPath(), w.getFileName(), image->size(), w.getStartValidityTimestamp(), w.getEndValidityTimestamp());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibLtr", 0}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibLtr", 0}, w);
     mCalibrator->initOutput();
   }
 };
 
-DataProcessorSpec getCalibLaserTracks()
+DataProcessorSpec getLaserTracksCalibrator()
 {
   using device = o2::tpc::LaserTracksCalibratorDevice;
   using clbUtils = o2::calibration::Utils;
@@ -97,14 +107,15 @@ DataProcessorSpec getCalibLaserTracks()
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibLtr"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibLtr"});
   return DataProcessorSpec{
-    "tpc-calib-laser-tracks",
-    Inputs{{"input", "TPC", "TRACKS"}},
+    "tpc-laser-tracks-calibrator",
+    Inputs{{"laserTracks", "TPC", "LASERTRACKS"}},
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{
-      {"tf-per-slot", VariantType::Int, 5, {"number of TFs per calibration time slot"}},
+      {"tf-per-slot", VariantType::Int, 5000, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}},
-      {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}},
+      {"min-tfs", VariantType::Int, 100, {"minimum number of TFs with enough laser tracks to finalize a slot"}},
+      {"write-debug", VariantType::Bool, false, {"write a debug output tree."}},
     }};
 }
 
