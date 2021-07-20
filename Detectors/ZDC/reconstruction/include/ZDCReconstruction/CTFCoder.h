@@ -87,6 +87,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& trigData, const 
   using ECB = CTF::base;
 
   ec->setHeader(helper.createHeader());
+  assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
@@ -116,6 +117,7 @@ template <typename VTRG, typename VCHAN, typename VPED>
 void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& pedVec)
 {
   auto header = ec.getHeader();
+  checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix());
   std::vector<uint16_t> bcIncTrig, moduleTrig, nchanTrig, chanData, pedData, scalerInc, triggersHL, channelsHL;
   std::vector<uint32_t> orbitIncTrig, orbitIncEOD;

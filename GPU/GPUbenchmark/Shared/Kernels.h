@@ -50,10 +50,10 @@ class GPUbenchmark final
                                     int nStreams, int nLaunches, int blocks, int threads, T&... args);
 
   // Main interface
-  void globalInit(const int deviceId); // Allocate scratch buffers and compute runtime parameters
-  void run();                          // Execute all specified callbacks
-  void globalFinalize();               // Cleanup
-  void printDevices();                 // Dump info
+  void globalInit();     // Allocate scratch buffers and compute runtime parameters
+  void run();            // Execute all specified callbacks
+  void globalFinalize(); // Cleanup
+  void printDevices();   // Dump info
 
   // Initializations/Finalizations of tests. Not to be measured, in principle used for report
   void readInit();

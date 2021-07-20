@@ -302,7 +302,7 @@ CaloRawFitterGS::FitStatus CaloRawFitterGS::evalFit(gsl::span<short unsigned int
       }
 
       //Check modification and quit if ready
-      if (abs(mTime - timeOld) < mTimeAccuracy && abs(mAmp - ampOld) < ampOld * mAmpAccuracy) {
+      if (std::abs(mTime - timeOld) < mTimeAccuracy && std::abs(mAmp - ampOld) < ampOld * mAmpAccuracy) {
         break;
       }
 

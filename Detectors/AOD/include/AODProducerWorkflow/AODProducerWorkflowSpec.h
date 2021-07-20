@@ -14,29 +14,30 @@
 #ifndef O2_AODPRODUCER_WORKFLOW_SPEC
 #define O2_AODPRODUCER_WORKFLOW_SPEC
 
-#include "DataFormatsFT0/RecPoints.h"
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/AnalysisHelpers.h"
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
-#include "TStopwatch.h"
 #include "CCDB/BasicCCDBManager.h"
-#include "Steer/MCKinematicsReader.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "ReconstructionDataFormats/PrimaryVertex.h"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTRD/TrackTRD.h"
+#include "Framework/AnalysisDataModel.h"
+#include "Framework/AnalysisHelpers.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/Task.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "ReconstructionDataFormats/VtxTrackIndex.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "Steer/MCKinematicsReader.h"
+#include "TStopwatch.h"
 
-#include <string>
-#include <vector>
+#include <boost/functional/hash.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/unordered_map.hpp>
-#include <boost/functional/hash.hpp>
+#include <string>
+#include <vector>
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -147,7 +148,7 @@ typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> Triple
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, bool fillSVertices) : mInputSources(src), mDataRequest(dataRequest), mFillSVertices(fillSVertices) {}
+  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest) : mInputSources(src), mDataRequest(dataRequest) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -160,8 +161,12 @@ class AODProducerWorkflowDPL : public Task
   int64_t mTFNumber{-1};
   int mTruncate{1};
   int mRecoOnly{0};
-  bool mFillSVertices{false};
   TStopwatch mTimer;
+
+  // unordered map connects global indices and table indices of barrel tracks
+  // the map is used for V0s and cascades
+  std::unordered_map<GIndex, int> mGIDToTableID;
+  int mTableTrID{0};
 
   std::shared_ptr<DataRequest> mDataRequest;
 
@@ -249,8 +254,8 @@ class AODProducerWorkflowDPL : public Task
   void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, const o2::mft::TrackMFT& track, int collisionID);
 
   // helper for track tables
-  // fills tables collision by collision
-  // interaction time is for TOF information
+  // * fills tables collision by collision
+  // * interaction time is for TOF information
   template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename mftTracksCursorType>
   void fillTrackTablesPerCollision(int collisionID,
                                    double interactionTime,
@@ -282,7 +287,7 @@ class AODProducerWorkflowDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, bool fillSVertices);
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC);
 
 } // namespace o2::aodproducer
 

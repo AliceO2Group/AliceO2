@@ -81,6 +81,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofData, cons
   using ECB = CTF::base;
 
   ec->setHeader(helper.createHeader());
+  assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
@@ -103,6 +104,7 @@ template <typename VROF, typename VCOL>
 void CTFCoder::decode(const CTF::base& ec, VROF& rofVec, VCOL& colVec)
 {
   auto header = ec.getHeader();
+  checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix());
   std::vector<uint16_t> bcInc, entries, pattern;
   std::vector<uint32_t> orbitInc;

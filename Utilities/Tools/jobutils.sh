@@ -184,6 +184,7 @@ taskwrapper() {
              -e \"libc++abi.*terminating\"          \
              -e \"There was a crash.\"              \
              -e \"arrow.*Check failed\"             \
+             -e \"terminate called after\"          \
              -e \"\*\*\* Error in\""                  # <--- LIBC fatal error messages
 
     grepcommand="grep -a -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"

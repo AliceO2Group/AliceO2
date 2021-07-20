@@ -891,7 +891,7 @@ void MatchTPCITS::doMatching(int sec)
     // estimate ITS 1st ROframe bin this track may match to: TPC track are sorted according to their
     // timeMax, hence the timeMax - MaxmNTPCBinsFullDrift are non-decreasing
     auto tmn = trefTPC.tBracket.getMax() - maxTDriftSafe;
-    int itsROBin = mITSTriggered ? time2ITSROFrameTrig(tmn, itsROBin) : time2ITSROFrameCont(tmn);
+    itsROBin = mITSTriggered ? time2ITSROFrameTrig(tmn, itsROBin) : time2ITSROFrameCont(tmn);
 
     if (itsROBin >= int(timeStartITS.size())) { // time of TPC track exceeds the max time of ITS in the cache
       break;

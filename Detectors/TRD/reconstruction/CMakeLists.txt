@@ -23,6 +23,7 @@ o2_add_library(TRDReconstruction
                PUBLIC_LINK_LIBRARIES O2::TRDBase
                                      O2::DataFormatsTRD
                                      O2::DataFormatsTPC
+                                     O2::TRDWorkflowIO
                                      O2::ReconstructionDataFormats
                                      O2::DetectorsRaw
                                      O2::rANS

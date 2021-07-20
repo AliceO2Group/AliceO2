@@ -103,9 +103,10 @@ DataSamplingPolicy DataSamplingPolicy::fromConfiguration(const ptree& config)
   return policy;
 }
 
-bool DataSamplingPolicy::match(const ConcreteDataMatcher& input) const
+const framework::OutputSpec* DataSamplingPolicy::match(const ConcreteDataMatcher& input) const
 {
-  return mPaths.find(input) != mPaths.end();
+  const auto it = mPaths.find(input);
+  return it != mPaths.end() ? &(it->second) : nullptr;
 }
 
 bool DataSamplingPolicy::decide(const o2::framework::DataRef& dataRef)

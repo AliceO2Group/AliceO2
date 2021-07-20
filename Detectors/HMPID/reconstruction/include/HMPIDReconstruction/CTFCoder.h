@@ -81,6 +81,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Trigger>& trigData, const
   using ECB = CTF::base;
 
   ec->setHeader(helper.createHeader());
+  assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
@@ -89,7 +90,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Trigger>& trigData, const
   ENCODEHMP(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
   ENCODEHMP(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
   ENCODEHMP(helper.begin_entriesDig(),   helper.end_entriesDig(),    CTF::BLC_entriesDig,   0);
-  
+
   ENCODEHMP(helper.begin_ChID(),         helper.end_ChID(),          CTF::BLC_ChID,         0);
   ENCODEHMP(helper.begin_Q(),            helper.end_Q(),             CTF::BLC_Q,            0);
   ENCODEHMP(helper.begin_Ph(),           helper.end_Ph(),            CTF::BLC_Ph,           0);
@@ -105,6 +106,7 @@ template <typename VTRG, typename VDIG>
 void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VDIG& digVec)
 {
   auto header = ec.getHeader();
+  checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix());
   std::vector<uint16_t> bcInc, q;
   std::vector<uint32_t> orbitInc, entriesDig;
