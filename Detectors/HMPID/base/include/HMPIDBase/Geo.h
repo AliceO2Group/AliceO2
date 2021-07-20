@@ -118,9 +118,6 @@ class Geo
   static constexpr int MAXXPHOTO = 79;
   static constexpr int MAXYPHOTO = 47;
 
-  static void Module2Equipment(int Mod, int Row, int Col, int* Equi, int* Colu, int* Dilo, int* Chan);
-  static void Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int* Mod, int* Row, int* Col);
-
   // from
   //static constexpr Bool_t FEAWITHMASKS[NSECTORS] =
   //  // TOF sectors with Nino masks: 0, 8, 9, 10, 16

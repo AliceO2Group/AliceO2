@@ -212,7 +212,9 @@ void CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
   if (mCombineColumns) {
     flags |= CTFHeader::CombinedColumns;
   }
-  ec->setHeader(CTFHeader{reinterpret_cast<const CompressedClustersCounters&>(ccl), flags});
+  ec->setHeader(CTFHeader{0, 1, 0, // dummy timestamp, version 1.0
+                          ccl, flags});
+  assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
 
@@ -295,8 +297,9 @@ void CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
   CompressedClusters cc;
   CompressedClustersCounters& ccCount = cc;
   auto& header = ec.getHeader();
+  checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   checkDataDictionaryConsistency(header);
-  ccCount = reinterpret_cast<const CompressedClustersCounters&>(header);
+  ccCount = static_cast<const CompressedClustersCounters&>(header);
   CompressedClustersFlat* ccFlat = nullptr;
   size_t sizeCFlatBody = alignSize(ccFlat);
   size_t sz = sizeCFlatBody + estimateSize(cc);                                             // total size of the buffVec accounting for the alignment

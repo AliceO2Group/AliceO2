@@ -80,6 +80,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   using ECB = CTF::base;
 
   ec->setHeader(helper.createHeader());
+  assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
@@ -88,7 +89,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   ENCODEEMC(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
   ENCODEEMC(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
   ENCODEEMC(helper.begin_entriesTrig(),  helper.end_entriesTrig(),   CTF::BLC_entriesTrig,  0);
-  
+
   ENCODEEMC(helper.begin_towerID(),     helper.end_towerID(),      CTF::BLC_towerID,     0);
   ENCODEEMC(helper.begin_time(),        helper.end_time(),         CTF::BLC_time,        0);
   ENCODEEMC(helper.begin_energy(),      helper.end_energy(),       CTF::BLC_energy,      0);
@@ -101,7 +102,8 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
 template <typename VTRG, typename VCELL>
 void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& cellVec)
 {
-  auto header = ec.getHeader();
+  const auto& header = ec.getHeader();
+  checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix());
   std::vector<uint16_t> bcInc, entries, energy, cellTime, tower;
   std::vector<uint32_t> orbitInc;

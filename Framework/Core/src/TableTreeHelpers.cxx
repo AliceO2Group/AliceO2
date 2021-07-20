@@ -13,6 +13,7 @@
 #include "Framework/Logger.h"
 
 #include "arrow/type_traits.h"
+#include <arrow/util/key_value_metadata.h>
 
 namespace o2::framework
 {
@@ -837,6 +838,11 @@ void ColumnIterator::finish()
   }
 }
 
+void TreeToTable::setLabel(const char* label)
+{
+  mTableLabel = label;
+}
+
 void TreeToTable::addColumn(const char* colname)
 {
   mColumnNames.push_back(colname);
@@ -898,7 +904,7 @@ void TreeToTable::fill(TTree* tree)
     array_vector.push_back(colit->getArray());
     schema_vector.push_back(colit->getSchema());
   }
-  auto fields = std::make_shared<arrow::Schema>(schema_vector);
+  auto fields = std::make_shared<arrow::Schema>(schema_vector, std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{mTableLabel}));
 
   // create the final table
   // ta is of type std::shared_ptr<arrow::Table>

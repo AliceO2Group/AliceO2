@@ -201,6 +201,19 @@ using ReducedMuon = ReducedMuons::iterator;
 using ReducedMuonExtra = ReducedMuonsExtra::iterator;
 using ReducedMuonCov = ReducedMuonsCov::iterator;
 using Dilepton = Dileptons::iterator;
+
+namespace v0bits
+{
+DECLARE_SOA_COLUMN(PIDBit, pidbit, uint8_t); //!
+} // namespace v0bits
+
+// bit information for particle species.
+DECLARE_SOA_TABLE(V0Bits, "AOD", "V0BITS", //!
+                  v0bits::PIDBit);
+
+// iterators
+using V0Bit = V0Bits::iterator;
+
 } // namespace o2::aod
 
 #endif // O2_Analysis_ReducedInfoTables_H_

@@ -154,7 +154,7 @@ struct AnalysisDataProcessorBuilder {
     if constexpr (soa::is_type_with_metadata_v<aod::MetadataTrait<T>>) {
       auto table = record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::tableLabel())->asArrowTable();
       if (table->num_rows() == 0) {
-        table = makeEmptyTable<T>();
+        table = makeEmptyTable<T>(aod::MetadataTrait<T>::metadata::tableLabel());
       }
       return table;
     } else if constexpr (soa::is_type_with_originals_v<T>) {

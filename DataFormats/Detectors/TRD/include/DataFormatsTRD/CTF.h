@@ -26,7 +26,7 @@ namespace trd
 {
 
 /// Header for a single CTF
-struct CTFHeader {
+struct CTFHeader : public o2::ctf::CTFDictHeader {
   uint32_t nTriggers = 0;  /// number of triggers
   uint32_t nTracklets = 0; /// number of tracklets
   uint32_t nDigits = 0;    /// number of digits
@@ -34,7 +34,7 @@ struct CTFHeader {
   uint16_t firstBC = 0;    /// bc of 1st trigger
   uint16_t format = 0;     /// format word to be added to tracklet
 
-  ClassDefNV(CTFHeader, 1);
+  ClassDefNV(CTFHeader, 2);
 };
 
 /// wrapper for the Entropy-encoded triggers and cells of the TF

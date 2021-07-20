@@ -26,12 +26,12 @@ namespace ft0
 {
 
 /// Header for a single CTF
-struct CTFHeader {
+struct CTFHeader : public o2::ctf::CTFDictHeader {
   uint32_t nTriggers = 0;     /// number of triggers in TF
   uint32_t firstOrbit = 0;    /// 1st orbit of TF
   uint16_t firstBC = 0;       /// 1st BC of TF
   uint16_t triggerGate = 192; // trigger gate used at encoding
-  ClassDefNV(CTFHeader, 2);
+  ClassDefNV(CTFHeader, 3);
 };
 
 /// Intermediate, compressed but not yet entropy-encoded digits

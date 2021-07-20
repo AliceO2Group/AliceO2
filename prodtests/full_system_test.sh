@@ -131,6 +131,10 @@ if [ $ENABLE_GPU_TEST != "0" ]; then
   STAGES+=" WITHGPU"
 fi
 STAGES+=" ASYNC"
+
+# give a possibility to run the FST with external existing dictionary (i.e. with CREATECTFDICT=0 full_system_test.sh)
+[ ! -z "$CREATECTFDICT" ] && SYNCMODEDOCTFDICT="$CREATECTFDICT" || SYNCMODEDOCTFDICT=1
+
 for STAGE in $STAGES; do
   logfile=reco_${STAGE}.log
 
@@ -151,7 +155,7 @@ for STAGE in $STAGES; do
     export CTFINPUT=1
     export SAVECTF=0
   else
-    export CREATECTFDICT=1
+    export CREATECTFDICT=$SYNCMODEDOCTFDICT
     export GPUTYPE=CPU
     export SYNCMODE=1
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY

@@ -46,7 +46,7 @@ struct JetSpectraAnalyser {
   {
     registry.fill(HIST("hJetPt"), jet.pt());
     registry.fill(HIST("hNJetConstituents"), constituents.size());
-    for (const auto constituent : constituents) {
+    for (const auto& constituent : constituents) {
       registry.fill(HIST("hConstituentPt"), constituent.pt());
     }
   }

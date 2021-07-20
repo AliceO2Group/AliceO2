@@ -35,7 +35,8 @@ class CTFHelper
 
   CTFHeader createHeader()
   {
-    CTFHeader h{uint32_t(mROFData.size()), uint32_t(mColData.size()), 0, 0};
+    CTFHeader h{0, 1, 0, // dummy timestamp, version 1.0
+                uint32_t(mROFData.size()), uint32_t(mColData.size()), 0, 0};
     if (mROFData.size()) {
       h.firstOrbit = mROFData[0].interactionRecord.orbit;
       h.firstBC = mROFData[0].interactionRecord.bc;

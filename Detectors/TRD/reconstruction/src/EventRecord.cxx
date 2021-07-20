@@ -243,11 +243,8 @@ std::vector<Digit>& EventStorage::getDigits(InteractionRecord& ir)
 
 void EventStorage::printIR()
 {
-  std::string records;
-  int count = 0;
   for (int count = 0; count < mEventRecords.size(); ++count) {
     LOG(info) << "[" << count << "]" << mEventRecords[count].getBCData() << " ";
-    count++;
   }
 }
 

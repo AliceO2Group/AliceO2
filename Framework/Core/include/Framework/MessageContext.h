@@ -8,8 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_MESSAGECONTEXT_H
-#define FRAMEWORK_MESSAGECONTEXT_H
+#ifndef O2_FRAMEWORK_MESSAGECONTEXT_H_
+#define O2_FRAMEWORK_MESSAGECONTEXT_H_
 
 #include "Framework/DispatchControl.h"
 #include "Framework/FairMQDeviceProxy.h"
@@ -32,10 +32,9 @@
 
 #include <fairmq/FwdDecls.h>
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
+
 class Output;
 
 class MessageContext
@@ -472,7 +471,7 @@ class MessageContext
       if (mDispatchControl.trigger == nullptr || mDispatchControl.trigger(*header)) {
         std::unordered_map<std::string const*, FairMQParts> outputs;
         for (auto& message : mScheduledMessages) {
-          FairMQParts parts = std::move(message->finalize());
+          FairMQParts parts = message->finalize();
           assert(message->empty());
           assert(parts.Size() == 2);
           for (auto& part : parts) {
@@ -551,6 +550,5 @@ class MessageContext
   DispatchControl mDispatchControl;
   std::unordered_map<std::string, std::unique_ptr<std::string>> mChannelRefs;
 };
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_MESSAGECONTEXT_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_MESSAGECONTEXT_H_
