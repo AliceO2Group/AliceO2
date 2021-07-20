@@ -60,6 +60,10 @@ struct MFTTrackingParam : public o2::conf::ConfigurableParamHelper<MFTTrackingPa
   Int_t LTFinterBinWin = 3;
   /// Special version for TED shots and cosmics, with full scan of the clusters
   bool FullClusterScan = false;
+  /// road for LTF algo : cylinder or cone (default)
+  Bool_t LTFConeRadius = kFALSE;
+  /// road for CA algo : cylinder or cone (default)
+  Bool_t CAConeRadius = kFALSE;
 
   O2ParamDef(MFTTrackingParam, "MFTTracking");
 };
