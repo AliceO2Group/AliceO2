@@ -60,8 +60,8 @@ bool isStable(int pdg)
 }
 
 // Ported from AliRoot AliStack::IsPhysicalPrimary
-template <typename TMCParticle, typename TMCParticles>
-bool isPhysicalPrimary(TMCParticles& mcParticles, TMCParticle const& particle)
+template <typename Particles, typename Particle>
+bool isPhysicalPrimary(Particle& particle)
 {
   // Test if a particle is a physical primary according to the following definition:
   // Particles produced in the collision including products of strong and
@@ -77,53 +77,61 @@ bool isPhysicalPrimary(TMCParticles& mcParticles, TMCParticle const& particle)
   // Solution for K0L decayed by Pythia6
   // ->
   if ((ist > 1) && (pdg != 130) && particle.producedByGenerator()) {
+    LOGF(debug, "isPhysicalPrimary F1");
     return false;
   }
   if ((ist > 1) && !particle.producedByGenerator()) {
+    LOGF(debug, "isPhysicalPrimary F2");
     return false;
   }
   // <-
 
   if (!isStable(pdg)) {
+    LOGF(debug, "isPhysicalPrimary F3");
     return false;
   }
 
   if (particle.producedByGenerator()) {
     // Solution for K0L decayed by Pythia6
     // ->
-    if (particle.mother0() != -1) {
-      auto mother = mcParticles.iteratorAt(particle.mother0());
+    if (particle.has_mother0()) {
+      auto mother = particle.template mother0_as<Particles>();
       if (std::abs(mother.pdgCode()) == 130) {
+        LOGF(debug, "isPhysicalPrimary F4");
         return false;
       }
     }
     // <-
     // check for direct photon in parton shower
     // ->
-    if (pdg == 22 && particle.daughter0() != -1) {
-      LOGF(debug, "D %d", particle.daughter0());
-      auto daughter = mcParticles.iteratorAt(particle.daughter0());
+    if (pdg == 22 && particle.has_daughter0()) {
+      LOGF(debug, "D %d", particle.daughter0Id());
+      auto daughter = particle.template daughter0_as<Particles>();
       if (daughter.pdgCode() == 22) {
+        LOGF(debug, "isPhysicalPrimary F5");
         return false;
       }
     }
     // <-
+    LOGF(debug, "isPhysicalPrimary T1");
     return true;
   }
 
   // Particle produced during transport
 
-  LOGF(debug, "M0 %d %d", particle.producedByGenerator(), particle.mother0());
-  auto mother = mcParticles.iteratorAt(particle.mother0());
+  LOGF(debug, "M0 %d %d", particle.producedByGenerator(), particle.mother0Id());
+  auto mother = particle.template mother0_as<Particles>();
   int mpdg = std::abs(mother.pdgCode());
 
   // Check for Sigma0
   if ((mpdg == 3212) && mother.producedByGenerator()) {
+    LOGF(debug, "isPhysicalPrimary T2");
     return true;
   }
 
   // Check if it comes from a pi0 decay
   if ((mpdg == kPi0) && mother.producedByGenerator()) {
+    LOGF(debug, "isPhysicalPrimary T3");
     return true;
   }
 
@@ -132,27 +140,31 @@ bool isPhysicalPrimary(TMCParticles& mcParticles, TMCParticle const& particle)
 
   // Light hadron
   if (mfl < 4) {
+    LOGF(debug, "isPhysicalPrimary F6");
     return false;
   }
 
   // Heavy flavor hadron produced by generator
   if (mother.producedByGenerator()) {
+    LOGF(debug, "isPhysicalPrimary T4");
     return true;
   }
 
   // To be sure that heavy flavor has not been produced in a secondary interaction
   // Loop back to the generated mother
-  LOGF(debug, "M0 %d %d", mother.producedByGenerator(), mother.mother0());
-  while (mother.mother0() != -1 && !mother.producedByGenerator()) {
-    mother = mcParticles.iteratorAt(mother.mother0());
-    LOGF(debug, "M+ %d %d", mother.producedByGenerator(), mother.mother0());
+  LOGF(debug, "M0 %d %d", mother.producedByGenerator(), mother.mother0Id());
+  while (mother.has_mother0() && !mother.producedByGenerator()) {
+    mother = mother.template mother0_as<Particles>();
+    LOGF(debug, "M+ %d %d", mother.producedByGenerator(), mother.mother0Id());
     mpdg = std::abs(mother.pdgCode());
     mfl = int(mpdg / std::pow(10, int(std::log10(mpdg))));
   }
 
   if (mfl < 4) {
+    LOGF(debug, "isPhysicalPrimary F7");
     return false;
   } else {
+    LOGF(debug, "isPhysicalPrimary T5");
     return true;
   }
 }

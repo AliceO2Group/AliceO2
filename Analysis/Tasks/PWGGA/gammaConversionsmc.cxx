@@ -189,9 +189,9 @@ struct GammaConversionsmc {
     auto lTrackNeg = theV0.template negTrack_as<tracksAndTPCInfoMC>(); //negative daughter
 
     // todo: verify it is enough to check only mother0 being equal
-    if (lTrackPos.mcParticle().mother0() > -1 &&
-        lTrackPos.mcParticle().mother0() == lTrackNeg.mcParticle().mother0()) {
-      auto lMother = theMcParticles.iteratorAt(lTrackPos.mcParticle().mother0());
+    if (lTrackPos.mcParticle().has_mother0() &&
+        lTrackPos.mcParticle().mother0Id() == lTrackNeg.mcParticle().mother0Id()) {
+      auto lMother = lTrackPos.mcParticle().template mother0_as<TMC>();
 
       if (lMother.pdgCode() == 22) {
 
