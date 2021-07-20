@@ -393,6 +393,28 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       if (item != toStore.end()) {
         daughterL = item->second;
       }
+      float pX = (float)mcParticles[particle].Px();
+      float pY = (float)mcParticles[particle].Py();
+      float pZ = (float)mcParticles[particle].Pz();
+      float energy = (float)mcParticles[particle].GetEnergy();
+      // HACK to avoid FPE in expression columns. Affect only particles in the Beam Pipe.
+      // TO BE REMOVED asap
+      {
+        const float limit = 1e-4;
+        const float mom = TMath::Sqrt(pX * pX + pY * pY + pZ * pZ);
+        const float eta = 0.5f * TMath::Log((mom + pZ) / (mom - pZ));
+        if (TMath::Abs(eta) > 0.9) {
+          if (TMath::Abs((mom - pZ) / pZ) <= limit) {
+            pX = truncateFloatFraction(TMath::Sqrt((1.f + limit) * (1.f + limit) - 1.f) * pZ * 0.5, mMcParticleMom);
+            pY = truncateFloatFraction(TMath::Sqrt((1.f + limit) * (1.f + limit) - 1.f) * pZ * 0.5, mMcParticleMom);
+          }
+          if (TMath::Abs(energy - pZ) < limit) {
+            energy = truncateFloatFraction(pZ + limit, mMcParticleMom);
+          }
+        }
+      }
+      // End of HACK
+
       mcParticlesCursor(0,
                         mccolid,
                         mcParticles[particle].GetPdgCode(),
@@ -403,10 +425,10 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                         daughter0,
                         daughterL,
                         truncateFloatFraction(weight, mMcParticleW),
-                        truncateFloatFraction((float)mcParticles[particle].Px(), mMcParticleMom),
-                        truncateFloatFraction((float)mcParticles[particle].Py(), mMcParticleMom),
-                        truncateFloatFraction((float)mcParticles[particle].Pz(), mMcParticleMom),
-                        truncateFloatFraction((float)mcParticles[particle].GetEnergy(), mMcParticleMom),
+                        truncateFloatFraction(pX, mMcParticleMom),
+                        truncateFloatFraction(pY, mMcParticleMom),
+                        truncateFloatFraction(pZ, mMcParticleMom),
+                        truncateFloatFraction(energy, mMcParticleMom),
                         truncateFloatFraction((float)mcParticles[particle].Vx(), mMcParticlePos),
                         truncateFloatFraction((float)mcParticles[particle].Vy(), mMcParticlePos),
                         truncateFloatFraction((float)mcParticles[particle].Vz(), mMcParticlePos),
