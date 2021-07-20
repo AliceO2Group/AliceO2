@@ -54,6 +54,8 @@ class TrackerConfig
   Float_t mPhiBinSize = constants::index_table::PhiMax / 50.;
   Float_t mInverseRBinSize = 50. / (constants::index_table::RMax - constants::index_table::RMin);
   Float_t mInversePhiBinSize = 50. / constants::index_table::PhiMax;
+  Bool_t mLTFConeRadius = kFALSE;
+  Bool_t mCAConeRadius = kFALSE;
 
  private:
   ClassDefNV(TrackerConfig, 1);
