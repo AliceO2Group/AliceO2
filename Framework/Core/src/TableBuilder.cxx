@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,6 +21,7 @@
 #include <arrow/table.h>
 #include <arrow/type_traits.h>
 #include <arrow/status.h>
+#include <arrow/util/key_value_metadata.h>
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
@@ -46,6 +48,13 @@ void ArrayFromVector(const std::vector<C_TYPE>& values, std::shared_ptr<arrow::A
 
 namespace o2::framework
 {
+void addLabelToSchema(std::shared_ptr<arrow::Schema>& schema, const char* label)
+{
+  schema = schema->WithMetadata(
+    std::make_shared<arrow::KeyValueMetadata>(
+      std::vector{std::string{"label"}},
+      std::vector{std::string{label}}));
+}
 
 std::shared_ptr<arrow::Table>
   TableBuilder::finalize()
@@ -71,6 +80,11 @@ void TableBuilder::validate(const int nColumns, std::vector<std::string> const& 
   if (mHolders != nullptr) {
     throwError(runtime_error("TableBuilder::persist can only be invoked once per instance"));
   }
+}
+
+void TableBuilder::setLabel(const char* label)
+{
+  mSchema = mSchema->WithMetadata(std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{std::string{label}}));
 }
 
 } // namespace o2::framework

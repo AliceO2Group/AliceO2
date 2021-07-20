@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,20 +20,37 @@ namespace o2
 namespace zdc
 {
 
-ZDCDataReaderDPLSpec::ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL, const bool verifyTrigger)
-  : mRawReader(rawReader), mccdbHost(ccdbURL), mVerifyTrigger(verifyTrigger)
+ZDCDataReaderDPLSpec::ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger)
+  : mRawReader(rawReader), mVerifyTrigger(verifyTrigger)
 {
 }
 
 void ZDCDataReaderDPLSpec::init(InitContext& ic)
 {
+  mccdbHost = ic.options().get<std::string>("ccdb-url");
   o2::ccdb::BasicCCDBManager::instance().setURL(mccdbHost);
 }
 
 void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
 {
-  DPLRawParser parser(pc.inputs());
   mRawReader.clear();
+
+  // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
+  // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+  {
+    std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{o2::header::gDataOriginZDC, o2::header::gDataDescriptionRawData, 0xDEADBEEF}}};
+    for (const auto& ref : InputRecordWalker(pc.inputs(), dummy)) {
+      const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      if (dh->payloadSize == 0) {
+        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+        mRawReader.makeSnapshot(pc); // send empty output
+        return;
+      }
+    }
+  }
+
+  DPLRawParser parser(pc.inputs(), o2::framework::select("zdc:ZDC/RAWDATA"));
 
   //>> update Time-dependent CCDB stuff, at the moment set the moduleconfig only once
   if (!mRawReader.getModuleConfig()) {
@@ -48,7 +66,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     }
     mRawReader.setModuleConfig(moduleConfig);
     mRawReader.setTriggerMask();
-    mRawReader.mVerifyTrigger = mVerifyTrigger;
+    mRawReader.setVerifyTrigger(mVerifyTrigger);
     LOG(INFO) << "Check of trigger condition during conversion is " << (mVerifyTrigger ? "ON" : "OFF");
   }
   uint64_t count = 0;
@@ -64,17 +82,21 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   mRawReader.makeSnapshot(pc);
 }
 
-framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL, const bool verifyTrigger)
+framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger, const bool askSTFDist)
 {
   LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderZDC";
   std::vector<OutputSpec> outputSpec;
   RawReaderZDC::prepareOutputSpec(outputSpec);
+  std::vector<InputSpec> inputSpec{{"STF", ConcreteDataTypeMatcher{o2::header::gDataOriginZDC, "RAWDATA"}, Lifetime::Optional}};
+  if (askSTFDist) {
+    inputSpec.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     "zdc-datareader-dpl",
-    o2::framework::select("TF:ZDC/RAWDATA"),
+    inputSpec,
     outputSpec,
-    adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, ccdbURL, verifyTrigger),
-    Options{}};
+    adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, verifyTrigger),
+    Options{{"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}}}};
 }
 } // namespace zdc
 } // namespace o2

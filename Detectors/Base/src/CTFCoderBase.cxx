@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -60,8 +61,15 @@ std::unique_ptr<TFile> CTFCoderBase::loadDictionaryTreeFile(const std::string& d
     if (!mayFail) {
       throw std::runtime_error("did not find CTFHeader with needed detector");
     }
-  } else {
-    LOG(INFO) << "Found CTF dictionary for " << mDet.getName() << " in " << dictPath;
   }
   return fileDict;
+}
+
+void CTFCoderBase::checkDictVersion(const CTFDictHeader& h) const
+{
+  if (h.isValidDictTimeStamp()) { // external dictionary was used
+    if (h.isValidDictTimeStamp() && h != mExtHeader) {
+      throw std::runtime_error(fmt::format("Mismatch in {} CTF dictionary: need {}, provided {}", mDet.getName(), h.asString(), mExtHeader.asString()));
+    }
+  }
 }

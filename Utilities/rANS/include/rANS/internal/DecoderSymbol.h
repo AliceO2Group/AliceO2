@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -17,6 +18,8 @@
 #define RANS_INTERNAL_DECODERSYMBOL_H
 
 #include <cstdint>
+#include <cstring>
+#include <cassert>
 
 namespace o2
 {
@@ -26,18 +29,27 @@ namespace internal
 {
 
 // Decoder symbols are straightforward.
-struct DecoderSymbol {
-  // Initialize a decoder symbol to start "start" and frequency "freq"
-  DecoderSymbol(uint32_t start, uint32_t freq, uint32_t probabilityBits)
-    : start(start), freq(freq)
-  {
-    (void)probabilityBits; // silence compiler warnings if assert not compiled.
-    assert(start <= (1 << probabilityBits));
-    assert(freq <= (1 << probabilityBits) - start);
-  };
+class DecoderSymbol
+{
+ public:
+  using count_t = uint32_t;
 
-  uint32_t start; // Start of range.
-  uint32_t freq;  // Symbol frequency.
+  //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  constexpr DecoderSymbol() noexcept {}; //NOLINT
+  // Initialize a decoder symbol to start "start" and frequency "freq"
+  constexpr DecoderSymbol(count_t frequency, count_t cumulative, size_t symbolTablePrecision)
+    : mCumulative(cumulative), mFrequency(frequency)
+  {
+    (void)symbolTablePrecision; // silence compiler warnings if assert not compiled.
+    assert(mCumulative <= pow2(symbolTablePrecision));
+    assert(mFrequency <= pow2(symbolTablePrecision) - mCumulative);
+  };
+  inline constexpr count_t getFrequency() const noexcept { return mFrequency; };
+  inline constexpr count_t getCumulative() const noexcept { return mCumulative; };
+
+ private:
+  count_t mCumulative{}; // Start of range.
+  count_t mFrequency{};  // Symbol frequency.
 };
 } // namespace internal
 } // namespace rans

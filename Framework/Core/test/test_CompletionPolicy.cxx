@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -17,6 +18,8 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Headers/DataHeader.h"
 #include "Headers/NameHeader.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/InputSpan.h"
 #include "Headers/Stack.h"
 
 using namespace o2::framework;
@@ -40,7 +43,7 @@ BOOST_AUTO_TEST_CASE(TestCompletionPolicy_callback)
     return true;
   };
 
-  auto callback = [&stack](CompletionPolicy::InputSet inputRefs) {
+  auto callback = [&stack](InputSpan const& inputRefs) {
     for (auto const& ref : inputRefs) {
       auto const* header = CompletionPolicyHelpers::getHeader<o2::header::DataHeader>(ref);
       BOOST_CHECK_EQUAL(header, reinterpret_cast<o2::header::DataHeader*>(stack.data()));
@@ -54,7 +57,7 @@ BOOST_AUTO_TEST_CASE(TestCompletionPolicy_callback)
   policies.emplace_back("test", matcher, callback);
 
   CompletionPolicy::InputSetElement ref{nullptr, reinterpret_cast<const char*>(stack.data()), nullptr};
-  CompletionPolicy::InputSet inputs{[&ref](size_t) { return ref; }, 1};
+  InputSpan const& inputs{[&ref](size_t) { return ref; }, 1};
   for (auto& policy : policies) {
     policy.callback(inputs);
   }

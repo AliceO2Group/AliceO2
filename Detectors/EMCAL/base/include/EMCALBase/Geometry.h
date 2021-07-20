@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -391,12 +392,14 @@ class Geometry
   int SuperModuleNumberFromEtaPhi(Double_t eta, Double_t phi) const;
 
   /// \brief Get cell absolute ID number from location module (2 times 2 cells) of a super module
-  /// \param nSupMod super module number
-  /// \param nModule module number
-  /// \param nIphi index of cell in module in phi direction 0 or 1
-  /// \param nIeta index of cell in module in eta direction 0 or 1
+  /// \param supermoduleID super module number
+  /// \param moduleID module number
+  /// \param phiInModule index of cell in module in phi direction 0 or 1
+  /// \param etaInModule index of cell in module in eta direction 0 or 1
   /// \return cell absolute ID number
-  Int_t GetAbsCellId(Int_t nSupMod, Int_t nModule, Int_t nIphi, Int_t nIeta) const;
+  /// \throw InvalidSupermoduleTypeException
+  /// \throw InvalidCellIDException
+  int GetAbsCellId(int supermoduleID, int moduleID, int phiInModule, int etaInModule) const;
 
   /// \brief Check whether a cell number is valid
   /// \param absId input absolute cell ID number to check
@@ -410,17 +413,18 @@ class Geometry
   std::tuple<int, int, int, int> GetCellIndex(Int_t absId) const;
 
   /// \brief Get eta-phi indexes of module in SM
-  /// \param nSupMod super module number, input
-  /// \param nModule module number, input
+  /// \param supermoduleID super module number, input
+  /// \param moduleID module number, input
   /// \return tuple (index in phi direction of module, index in eta direction of module)
-  std::tuple<int, int> GetModulePhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule) const;
+  std::tuple<int, int> GetModulePhiEtaIndexInSModule(int supermoduleID, int moduleID) const;
 
   /// \brief Get eta-phi indexes of cell in SM
-  /// \param nSupMod super module number
-  /// \param nModule module number
-  /// \param nIphi index in phi direction in module
-  /// \param nIeta index in phi direction in module
-  std::tuple<int, int> GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule, Int_t nIphi, Int_t nIeta) const;
+  /// \param supermoduleID super module number
+  /// \param moduleID module number
+  /// \param phiInModule index in phi direction in module
+  /// \param etaInModule index in phi direction in module
+  /// \return Position (0 - phi, 1 - eta) of the cell inside teh supermodule
+  std::tuple<int, int> GetCellPhiEtaIndexInSModule(int supermoduleID, int moduleID, int phiInModule, int etaInModule) const;
 
   /// \brief Adapt cell indices in supermodule to online indexing
   /// \param supermoduleID super module number of the channel/cell
@@ -468,15 +472,15 @@ class Geometry
   }
 
   /// \brief Transition from cell indexes (iphi, ieta) to module indexes (iphim, ietam, nModule)
-  /// \param nSupMod super module number
-  /// \param iphi index of cell in phi direction inside super module
-  /// \param ieta index of cell in eta direction inside super module
+  /// \param supermoduleID super module number
+  /// \param phiInSupermodule index of cell in phi direction inside super module
+  /// \param etaInSupermodule index of cell in eta direction inside super module
   /// \return tuple:
   ///               iphim: index of cell in module in phi direction: 0 or 1
   ///               ietam: index of cell in module in eta direction: 0 or 1
   ///               nModule: module number
   ///
-  std::tuple<Int_t, Int_t, Int_t> GetModuleIndexesFromCellIndexesInSModule(Int_t nSupMod, Int_t iphi, Int_t ieta) const;
+  std::tuple<int, int, int> GetModuleIndexesFromCellIndexesInSModule(int supermoduleID, int phiInSupermodule, int etaInSupermodule) const;
 
   /// \brief Transition from super module number (nSupMod) and cell indexes (ieta,iphi) to cell absolute ID number.
   /// \param nSupMod super module number

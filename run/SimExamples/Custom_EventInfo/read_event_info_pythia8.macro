@@ -1,0 +1,27 @@
+void
+read_event_info(const char *fname)
+{
+
+  auto fin = TFile::Open(fname);
+  auto tin = (TTree*)fin->Get("o2sim");
+  auto head = new o2::dataformats::MCEventHeader;
+  tin->SetBranchAddress("MCEventHeader.", &head);
+
+  bool isvalid;
+
+  for (int iev = 0; iev < tin->GetEntries(); ++iev) {
+
+    tin->GetEntry(iev);
+
+    std::cout << " ---------------" << std::endl;
+    auto name = head->getInfo<std::string>("generator", isvalid);
+    if (isvalid) std::cout << "   generator = " << name << std::endl;
+    auto version = head->getInfo<int>("version", isvalid);
+    if (isvalid) std::cout << "     version = " << version << std::endl;
+    auto pname = head->getInfo<std::string>("processName", isvalid);
+    if (isvalid) std::cout << "process name = " << pname << std::endl;
+    auto pcode = head->getInfo<int>("processCode", isvalid);
+    if (isvalid) std::cout << "process code = " << pcode << std::endl;
+  }
+
+}

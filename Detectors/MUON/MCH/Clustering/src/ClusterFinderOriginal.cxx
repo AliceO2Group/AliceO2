@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -34,6 +35,7 @@
 
 #include <FairMQLogger.h>
 
+#include "MCHClustering/ClusterizerParam.h"
 #include "PadOriginal.h"
 #include "ClusterOriginal.h"
 #include "MathiesonOriginal.h"
@@ -88,19 +90,19 @@ void ClusterFinderOriginal::init(bool run2Config)
   } else {
 
     // minimum charge of pad, pixel and cluster
-    mLowestPadCharge = 4.f * 0.22875f;
+    mLowestPadCharge = ClusterizerParam::Instance().lowestPadCharge;
     mLowestPixelCharge = mLowestPadCharge / 12.;
     mLowestClusterCharge = 2. * mLowestPadCharge;
 
     // Mathieson function for station 1
-    mMathiesons[0].setPitch(0.21);
-    mMathiesons[0].setSqrtKx3AndDeriveKx2Kx4(0.7000);
-    mMathiesons[0].setSqrtKy3AndDeriveKy2Ky4(0.7550);
+    mMathiesons[0].setPitch(ClusterizerParam::Instance().pitchSt1);
+    mMathiesons[0].setSqrtKx3AndDeriveKx2Kx4(ClusterizerParam::Instance().mathiesonSqrtKx3St1);
+    mMathiesons[0].setSqrtKy3AndDeriveKy2Ky4(ClusterizerParam::Instance().mathiesonSqrtKy3St1);
 
     // Mathieson function for other stations
-    mMathiesons[1].setPitch(0.25);
-    mMathiesons[1].setSqrtKx3AndDeriveKx2Kx4(0.7131);
-    mMathiesons[1].setSqrtKy3AndDeriveKy2Ky4(0.7642);
+    mMathiesons[1].setPitch(ClusterizerParam::Instance().pitchSt2345);
+    mMathiesons[1].setSqrtKx3AndDeriveKx2Kx4(ClusterizerParam::Instance().mathiesonSqrtKx3St2345);
+    mMathiesons[1].setSqrtKy3AndDeriveKy2Ky4(ClusterizerParam::Instance().mathiesonSqrtKy3St2345);
   }
 }
 
@@ -2061,8 +2063,8 @@ void ClusterFinderOriginal::setClusterResolution(ClusterStruct& cluster) const
   if (cluster.getChamberId() < 4) {
 
     // do not consider mono-cathode clusters in stations 1 and 2
-    cluster.ex = SDefaultClusterResolution;
-    cluster.ey = SDefaultClusterResolution;
+    cluster.ex = ClusterizerParam::Instance().defaultClusterResolution;
+    cluster.ey = ClusterizerParam::Instance().defaultClusterResolution;
 
   } else {
 
@@ -2083,8 +2085,10 @@ void ClusterFinderOriginal::setClusterResolution(ClusterStruct& cluster) const
     }
 
     // set the cluster resolution accordingly
-    cluster.ex = (itPadNB == mUsedDigits.end()) ? SBadClusterResolution : SDefaultClusterResolution;
-    cluster.ey = (itPadB == mUsedDigits.end()) ? SBadClusterResolution : SDefaultClusterResolution;
+    cluster.ex = (itPadNB == mUsedDigits.end()) ? ClusterizerParam::Instance().badClusterResolution
+                                                : ClusterizerParam::Instance().defaultClusterResolution;
+    cluster.ey = (itPadB == mUsedDigits.end()) ? ClusterizerParam::Instance().badClusterResolution
+                                               : ClusterizerParam::Instance().defaultClusterResolution;
   }
 }
 

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -48,7 +49,7 @@ class BareElinkDecoder
   /// handle the Sampa packets and decoding errors
   BareElinkDecoder(DsElecId dsId, DecodedDataHandlers decodedDataHandlers);
 
-  /** @name Main interface 
+  /** @name Main interface
   */
   ///@{
 
@@ -134,24 +135,7 @@ class BareElinkDecoder
 
 constexpr int HEADERSIZE = 50;
 
-namespace
-{
-std::string bitBufferString(const std::bitset<50>& bs, int imax)
-{
-  std::string s;
-  for (int i = 0; i < 64; i++) {
-    if ((static_cast<uint64_t>(1) << i) > imax) {
-      break;
-    }
-    if (bs.test(i)) {
-      s += "1";
-    } else {
-      s += "0";
-    }
-  }
-  return s;
-}
-} // namespace
+std::string bitBufferString(const std::bitset<50>& bs, int imax);
 
 template <typename CHARGESUM>
 BareElinkDecoder<CHARGESUM>::BareElinkDecoder(DsElecId dsId,
@@ -424,27 +408,6 @@ std::ostream& operator<<(std::ostream& os, const o2::mch::raw::BareElinkDecoder<
   return os;
 }
 
-template <>
-void BareElinkDecoder<ChargeSumMode>::sendCluster()
-{
-  SampaChannelHandler handler = mDecodedDataHandlers.sampaChannelHandler;
-  if (handler) {
-    handler(mDsId, channelNumber64(mSampaHeader),
-            SampaCluster(mTimestamp, mSampaHeader.bunchCrossingCounter(), mClusterSum, mClusterSize));
-  }
-}
-
-template <>
-void BareElinkDecoder<SampleMode>::sendCluster()
-{
-  SampaChannelHandler handler = mDecodedDataHandlers.sampaChannelHandler;
-  if (handler) {
-    handler(mDsId, channelNumber64(mSampaHeader),
-            SampaCluster(mTimestamp, mSampaHeader.bunchCrossingCounter(), mSamples));
-  }
-  mSamples.clear();
-}
-
 template <typename CHARGESUM>
 void BareElinkDecoder<CHARGESUM>::sendHBPacket()
 {
@@ -452,18 +415,6 @@ void BareElinkDecoder<CHARGESUM>::sendHBPacket()
   if (handler) {
     handler(mDsId, mSampaHeader.chipAddress() % 2, mSampaHeader.bunchCrossingCounter());
   }
-}
-
-template <>
-void BareElinkDecoder<ChargeSumMode>::changeToReadingData()
-{
-  changeState(State::ReadingClusterSum, 20);
-}
-
-template <>
-void BareElinkDecoder<SampleMode>::changeToReadingData()
-{
-  changeState(State::ReadingSample, 10);
 }
 
 } // namespace o2::mch::raw

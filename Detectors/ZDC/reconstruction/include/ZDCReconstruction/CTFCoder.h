@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -86,6 +87,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& trigData, const 
   using ECB = CTF::base;
 
   ec->setHeader(helper.createHeader());
+  assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
@@ -100,7 +102,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& trigData, const 
   ENCODEZDC(helper.begin_nchanTrig(),    helper.end_nchanTrig(),     CTF::BLC_nchanTrig,    0);
   //
   ENCODEZDC(helper.begin_chanID(),       helper.end_chanID(),        CTF::BLC_chanID,       0);
-  ENCODEZDC(helper.begin_chanData(),     helper.end_chanData(),      CTF::BLC_chanData,     0);  
+  ENCODEZDC(helper.begin_chanData(),     helper.end_chanData(),      CTF::BLC_chanData,     0);
   //
   ENCODEZDC(helper.begin_orbitIncEOD(),  helper.end_orbitIncEOD(),   CTF::BLC_orbitIncEOD,  0);
   ENCODEZDC(helper.begin_pedData(),      helper.end_pedData(),       CTF::BLC_pedData,      0);
@@ -115,6 +117,7 @@ template <typename VTRG, typename VCHAN, typename VPED>
 void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& pedVec)
 {
   auto header = ec.getHeader();
+  checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix());
   std::vector<uint16_t> bcIncTrig, moduleTrig, nchanTrig, chanData, pedData, scalerInc, triggersHL, channelsHL;
   std::vector<uint32_t> orbitIncTrig, orbitIncEOD;

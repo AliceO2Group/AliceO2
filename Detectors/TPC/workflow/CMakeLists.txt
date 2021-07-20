@@ -1,13 +1,14 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
-                     
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
+
 o2_add_library(TPCWorkflow
                SOURCES src/RecoWorkflow.cxx
                        src/ClustererSpec.cxx
@@ -19,9 +20,11 @@ o2_add_library(TPCWorkflow
                        src/ZSSpec.cxx
                        src/CalibProcessingHelper.cxx
                        src/ClusterSharingMapSpec.cxx
-                       src/FileReaderWorkflow.cxx
                        src/CalDetMergerPublisherSpec.cxx
                        src/KryptonClustererSpec.cxx
+                       src/IDCToVectorSpec.cxx
+                       src/CalibdEdxSpec.cxx
+                       src/MIPTrackFilterSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
@@ -61,6 +64,26 @@ o2_add_executable(calib-pedestal
                   SOURCES src/tpc-calib-pedestal.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(calib-laser-tracks
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-calib-laser-tracks.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(integrate-idc
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-integrate-idc.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(averagegroup-idc
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-averagegroup-idc.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(aggregate-idc
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-aggregate-grouped-idc.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_executable(track-reader
                   COMPONENT_NAME tpc
                   SOURCES src/TrackReaderWorkflow.cxx
@@ -74,6 +97,21 @@ o2_add_executable(file-reader
 o2_add_executable(krypton-clusterer
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-krypton-clusterer.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(idc-to-vector
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-idc-to-vector.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(calib-dedx
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-calib-dEdx.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(miptrack-filter
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-miptrack-filter.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_test(workflow

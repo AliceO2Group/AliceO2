@@ -1,43 +1,43 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file digi2raw.cxx
+/// \file digit2raw.cxx
 /// \author ruben.shahoyan@cern.ch
 
 #include <boost/program_options.hpp>
 #include <filesystem>
 #include <TFile.h>
 #include <TStopwatch.h>
+#include "Framework/Logger.h"
 #include <string>
 #include <iomanip>
-#include "Framework/Logger.h"
-#include "FairLogger.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsRaw/HBFUtils.h"
-#include "FDDSimulation/Digits2Raw.h"
+#include "FDDRaw/RawWriterFDD.h"
 #include "DataFormatsParameters/GRPObject.h"
 
-/// MC->raw conversion for FDD
+/// MC->raw conversion for FT0
 
 namespace bpo = boost::program_options;
 
-void digi2raw(const std::string& inpName, const std::string& outDir, bool filePerLink, uint32_t rdhV = 6, bool noEmptyHBF = false,
-              int superPageSizeInB = 1024 * 1024);
+void digit2raw(const std::string& inpName, const std::string& outDir, int verbosity, bool filePerLink, uint32_t rdhV = 4, bool noEmptyHBF = false,
+               int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
 {
   bpo::variables_map vm;
   bpo::options_description opt_general("Usage:\n  " + std::string(argv[0]) +
-                                       " (Convert FDD digits to CRU raw data)\n");
+                                       "Convert FDD digits to CRU raw data\n");
   bpo::options_description opt_hidden("");
   bpo::options_description opt_all;
   bpo::positional_options_description opt_pos;
@@ -45,6 +45,7 @@ int main(int argc, char** argv)
   try {
     auto add_option = opt_general.add_options();
     add_option("help,h", "Print this help message");
+    add_option("verbosity,v", bpo::value<int>()->default_value(0), "verbosity level");
     //    add_option("input-file,i", bpo::value<std::string>()->default_value(o2::base::NameConf::getDigitsFileName(o2::detectors::DetID::FDD)),"input FDD digits file"); // why not used?
     add_option("input-file,i", bpo::value<std::string>()->default_value("fdddigits.root"), "input FDD digits file");
     add_option("file-per-link,l", bpo::value<bool>()->default_value(false)->implicit_value(true), "create output file per CRU (default: per layer)");
@@ -79,23 +80,25 @@ int main(int argc, char** argv)
     o2::conf::ConfigurableParam::updateFromFile(confDig, "HBFUtils");
   }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
-  digi2raw(vm["input-file"].as<std::string>(),
-           vm["output-dir"].as<std::string>(),
-           vm["file-per-link"].as<bool>(),
-           vm["rdh-version"].as<uint32_t>(),
-           vm["no-empty-hbf"].as<bool>());
+  digit2raw(vm["input-file"].as<std::string>(),
+            vm["output-dir"].as<std::string>(),
+            vm["verbosity"].as<int>(),
+            vm["file-per-link"].as<bool>(),
+            vm["rdh-version"].as<uint32_t>(),
+            vm["no-empty-hbf"].as<bool>());
 
   o2::raw::HBFUtils::Instance().print();
 
   return 0;
 }
 
-void digi2raw(const std::string& inpName, const std::string& outDir, bool filePerLink, uint32_t rdhV, bool noEmptyHBF, int superPageSizeInB)
+void digit2raw(const std::string& inpName, const std::string& outDir, int verbosity, bool filePerLink, uint32_t rdhV, bool noEmptyHBF, int superPageSizeInB)
 {
   TStopwatch swTot;
   swTot.Start();
-  o2::fdd::Digits2Raw m2r;
+  o2::fdd::RawWriterFDD m2r;
   m2r.setFilePerLink(filePerLink);
+  m2r.setVerbosity(verbosity);
   auto& wr = m2r.getWriter();
   std::string inputGRP = o2::base::NameConf::getGRPFileName();
   const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
@@ -104,23 +107,15 @@ void digi2raw(const std::string& inpName, const std::string& outDir, bool filePe
   wr.useRDHVersion(rdhV);
   wr.setDontFillEmptyHBF(noEmptyHBF);
 
+  o2::raw::assertOutputDirectory(outDir);
+
   std::string outDirName(outDir);
   if (outDirName.back() != '/') {
     outDirName += '/';
   }
 
-  // if needed, create output directory
-  if (!std::filesystem::exists(outDirName)) {
-    if (!std::filesystem::create_directories(outDirName)) {
-      LOG(FATAL) << "could not create output directory " << outDirName;
-    } else {
-      LOG(INFO) << "created output directory " << outDirName;
-    }
-  }
-
-  m2r.readDigits(outDirName, inpName);
+  m2r.convertDigitsToRaw(outDirName, inpName);
   wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
-  //LOG(INFO)<<o2::utils::Str::concat_string(outDirName, wr.getOrigin().str)<<"\n";
   //
   swTot.Stop();
   swTot.Print();

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -60,7 +61,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
   std::string processorName = "tpc-zsEncoder";
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   constexpr static size_t NEndpoints = o2::gpu::GPUTrackingInOutZS::NENDPOINTS;
-  using DigitArray = std::array<gsl::span<const o2::tpc::Digit>, o2::tpc::Sector::MAXSECTOR>;
+  using DigitArray = std::array<gsl::span<const o2::tpc::Digit>, NSectors>;
 
   struct ProcessAttributes {
     std::unique_ptr<unsigned long long int[]> zsoutput;
@@ -90,8 +91,6 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
       auto& sizes = processAttributes->sizes;
       auto& verbosity = processAttributes->verbosity;
 
-      std::array<gsl::span<const o2::tpc::Digit>, NSectors> inputDigits;
-
       GPUParam _GPUParam;
       GPUO2InterfaceConfiguration config;
       config.configGRP.solenoidBz = 5.00668;
@@ -100,7 +99,8 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
 
       const auto& inputs = getWorkflowTPCInput(pc, 0, false, false, tpcSectorMask, true);
       sizes.resize(NSectors * NEndpoints);
-      o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
+      const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
+      o2::InteractionRecord ir{0, dh->firstTForbit};
       o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit, DigitArray>(inputs->inputDigits, &zsoutput, sizes.data(), nullptr, &ir, _GPUParam, true, verify, config.configReconstruction.tpc.zsThreshold);
       ZeroSuppressedContainer8kb* page = reinterpret_cast<ZeroSuppressedContainer8kb*>(zsoutput.get());
       unsigned int offset = 0;
@@ -122,7 +122,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
         // ===| set up raw writer |===================================================
         std::string inputGRP = o2::base::NameConf::getGRPFileName();
         const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
-        o2::raw::RawFileWriter writer{"TPC"}; // to set the RDHv6.sourceID if V6 is used
+        o2::raw::RawFileWriter writer{"TPC"};                                                // to set the RDHv6.sourceID if V6 is used
         writer.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)); // must be set explicitly
         uint32_t rdhV = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
         writer.useRDHVersion(rdhV);
@@ -153,12 +153,12 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
         if (useGrouping != LinksGrouping::Link) {
           writer.useCaching();
         }
-        o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, _GPUParam, true, false, config.configReconstruction.tpc.zsThreshold);
+        ir = o2::raw::HBFUtils::Instance().getFirstIR();
+        o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(inputs->inputDigits, nullptr, nullptr, &writer, &ir, _GPUParam, true, false, config.configReconstruction.tpc.zsThreshold);
         writer.writeConfFile("TPC", "RAWDATA", fmt::format("{}tpcraw.cfg", outDir));
       }
       zsoutput.reset(nullptr);
       sizes = {};
-      inputDigits = {};
     };
     return processingFct;
   };
@@ -261,34 +261,23 @@ DataProcessorSpec getZStoDigitsSpec(std::vector<int> const& tpcSectors)
         o2::framework::RawParser parser(raw.data(), raw.size());
 
         const unsigned char* ptr = nullptr;
-        int count = 0;
         int cruID = 0;
-        rdh_utils::FEEIDType lastFEE = -1;
+        rdh_utils::FEEIDType FEEID = -1;
         size_t totalSize = 0;
         for (auto it = parser.begin(); it != parser.end(); it++) {
           const unsigned char* current = it.raw();
           const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)current;
-          if (current == nullptr || it.size() == 0 || (current - ptr) % TPCZSHDR::TPC_ZS_PAGE_SIZE || o2::raw::RDHUtils::getFEEID(*rdh) != lastFEE) {
-            if (count) {
-              unsigned int sector = cruID / 10;
-              gsl::span<const ZeroSuppressedContainer8kb> z0in(reinterpret_cast<const ZeroSuppressedContainer8kb*>(ptr), count);
-              decoder->DecodeZSPages(&z0in, &outDigits[sector], firstOrbit);
-            }
-            count = 0;
-            lastFEE = o2::raw::RDHUtils::getFEEID(*rdh);
-            cruID = int(o2::raw::RDHUtils::getCRUID(*rdh));
-            if (it.size() == 0) {
-              ptr = nullptr;
-              continue;
-            }
+          if (it.size() == 0) {
+            ptr = nullptr;
+            continue;
+          } else {
             ptr = current;
+            FEEID = o2::raw::RDHUtils::getFEEID(*rdh);
+            cruID = int(o2::raw::RDHUtils::getCRUID(*rdh));
+            unsigned int sector = cruID / 10;
+            gsl::span<const ZeroSuppressedContainer8kb> z0in(reinterpret_cast<const ZeroSuppressedContainer8kb*>(ptr), 1);
+            decoder->DecodeZSPages(&z0in, &outDigits[sector], firstOrbit);
           }
-          count++;
-        }
-        if (count) {
-          unsigned int sector = cruID / 10;
-          gsl::span<const ZeroSuppressedContainer8kb> z0in(reinterpret_cast<const ZeroSuppressedContainer8kb*>(ptr), count);
-          decoder->DecodeZSPages(&z0in, &outDigits[sector], firstOrbit);
         }
       }
       for (int i = 0; i < NSectors; i++) {

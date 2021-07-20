@@ -1,43 +1,60 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include <iomanip>
 #include "FT0Base/Geometry.h"
 #include "TSystem.h"
 #include "Framework/Logger.h"
 #include <sstream>
+#include <iomanip>
 #include <string>
 #include <iostream>
 
 ClassImp(o2::ft0::Geometry);
 
+using namespace TMath;
+using namespace o2::detectors;
 using namespace o2::ft0;
 
 Geometry::Geometry() : mMCP{{0, 0, 0}}
 {
 
-  Float_t zDetA = 333;
-  Float_t xa[24] = {-11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8, -12.8, -6.9,
-                    6.9, 12.8, -11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8};
+  setAsideModules();
+  setCsideModules();
+}
 
-  Float_t ya[24] = {11.9, 11.9, 12.9, 11.9, 11.9, 6.0, 6.0, 7.0, 6.0, 6.0, -0., -0.,
-                    0., 0., -6.0, -6.0, -7.0, -6.0, -6.0, -11.9, -11.9, -12.9, -11.9, -11.9};
+void Geometry::setAsideModules()
+{
+  Float_t mPosModuleAx[Geometry::NCellsA] = {-12.2, -6.1, 0, 6.1, 12.2, -12.2, -6.1, 0,
+                                             6.1, 12.2, -13.3743, -7.274299999999999,
+                                             7.274299999999999, 13.3743, -12.2, -6.1, 0,
+                                             6.1, 12.2, -12.2, -6.1, 0, 6.1, 12.2};
 
-  Float_t pmcp[3] = {2.949, 2.949, 2.8}; // MCP
+  Float_t mPosModuleAy[Geometry::NCellsA] = {12.2, 12.2, 13.53, 12.2, 12.2, 6.1, 6.1,
+                                             7.43, 6.1, 6.1, 0, 0, 0, 0, -6.1, -6.1,
+                                             -7.43, -6.1, -6.1, -12.2, -12.2, -13.53,
+                                             -12.2, -12.2};
 
-  // Matrix(idrotm[901], 90., 0., 90., 90., 180., 0.);
-
+  // A side Translations
+  for (Int_t ipmt = 0; ipmt < NCellsA; ipmt++) {
+    mMCP[ipmt].SetXYZ(mPosModuleAx[ipmt], mPosModuleAy[ipmt], ZdetA);
+  }
+}
+void Geometry::setCsideModules()
+{
   // C side Concave Geometry
+  Float_t mInStart[3] = {2.9491, 2.9491, 2.5};
+  Float_t mStartC[3] = {20., 20, 5.5};
 
-  Double_t crad = 82.; // define concave c-side radius here
+  Double_t crad = ZdetC; // define concave c-side radius here
 
-  Double_t dP = pmcp[0]; // side length of mcp divided by 2
+  Double_t dP = mInStart[0]; // side length of mcp divided by 2
 
   // uniform angle between detector faces==
   Double_t btta = 2 * TMath::ATan(dP / crad);
@@ -48,25 +65,35 @@ Geometry::Geometry() : mMCP{{0, 0, 0}}
   for (Int_t i = 0; i < 6; i++) {
     gridpoints[i] = crad * TMath::Sin((1 - 1 / (2 * TMath::Abs(grdin[i]))) * grdin[i] * btta);
   }
+  Double_t xi[NCellsC] = {-15.038271418735729, 15.038271418735729,
+                          -15.003757581112167, 15.003757581112167, -9.02690018974363,
+                          9.02690018974363, -9.026897413747076, 9.026897413747076,
+                          -9.026896531935773, 9.026896531935773, -3.0004568618531313,
+                          3.0004568618531313, -3.0270795197907225, 3.0270795197907225,
+                          3.0003978432927543, -3.0003978432927543, 3.0270569670429572,
+                          -3.0270569670429572, 9.026750365564254, -9.026750365564254,
+                          9.026837450695885, -9.026837450695885, 9.026849243816981,
+                          -9.026849243816981, 15.038129472387304, -15.038129472387304,
+                          15.003621961057961, -15.003621961057961};
+  Double_t yi[NCellsC] = {3.1599494336464455, -3.1599494336464455,
+                          9.165191680982874, -9.165191680982874, 3.1383331772537426,
+                          -3.1383331772537426, 9.165226363918643, -9.165226363918643,
+                          15.141616002932361, -15.141616002932361, 9.16517861649866,
+                          -9.16517861649866, 15.188854859073416, -15.188854859073416,
+                          9.165053319552113, -9.165053319552113, 15.188703787345304,
+                          -15.188703787345304, 3.138263189805292, -3.138263189805292,
+                          9.165104089644917, -9.165104089644917, 15.141494417823818,
+                          -15.141494417823818, 3.1599158563428644, -3.1599158563428644,
+                          9.165116302773846, -9.165116302773846};
 
-  Double_t xi[28] = {gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[0], gridpoints[1],
-                     gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5], gridpoints[0], gridpoints[1],
-                     gridpoints[4], gridpoints[5], gridpoints[0], gridpoints[1], gridpoints[4], gridpoints[5],
-                     gridpoints[0], gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5],
-                     gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4]};
-  Double_t yi[28] = {gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[4], gridpoints[4],
-                     gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[3], gridpoints[3],
-                     gridpoints[3], gridpoints[3], gridpoints[2], gridpoints[2], gridpoints[2], gridpoints[2],
-                     gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1],
-                     gridpoints[0], gridpoints[0], gridpoints[0], gridpoints[0]};
-  Double_t zi[28];
-  for (Int_t i = 0; i < 28; i++) {
+  Double_t zi[NCellsC];
+  for (Int_t i = 0; i < NCellsC; i++) {
     zi[i] = TMath::Sqrt(TMath::Power(crad, 2) - TMath::Power(xi[i], 2) - TMath::Power(yi[i], 2));
   }
 
   // get rotation data
-  Double_t ac[28], bc[28], gc[28];
-  for (Int_t i = 0; i < 28; i++) {
+  Double_t ac[NCellsC], bc[NCellsC], gc[NCellsC];
+  for (Int_t i = 0; i < NCellsC; i++) {
     ac[i] = TMath::ATan(yi[i] / xi[i]) - TMath::Pi() / 2 + 2 * TMath::Pi();
     if (xi[i] < 0) {
       bc[i] = TMath::ACos(zi[i] / crad);
@@ -74,12 +101,12 @@ Geometry::Geometry() : mMCP{{0, 0, 0}}
       bc[i] = -1 * TMath::ACos(zi[i] / crad);
     }
   }
-  Double_t xc2[28], yc2[28], zc2[28];
+  Double_t xc2[NCellsC], yc2[NCellsC], zc2[NCellsC];
 
   // compensation based on node position within individual detector geometries
   // determine compensated radius
-  Double_t rcomp = crad /*+ pstartC[2] / 2.0*/; //
-  for (Int_t i = 0; i < 28; i++) {
+  Double_t rcomp = crad + mStartC[2] / 2.0; //
+  for (Int_t i = 0; i < NCellsC; i++) {
     // Get compensated translation data
     xc2[i] = rcomp * TMath::Cos(ac[i] + TMath::Pi() / 2) * TMath::Sin(-1 * bc[i]);
     yc2[i] = rcomp * TMath::Sin(ac[i] + TMath::Pi() / 2) * TMath::Sin(-1 * bc[i]);
@@ -89,12 +116,7 @@ Geometry::Geometry() : mMCP{{0, 0, 0}}
     ac[i] *= 180 / TMath::Pi();
     bc[i] *= 180 / TMath::Pi();
     gc[i] = -1 * ac[i];
-  }
-  // Set coordinate
-  for (int ipmt = 0; ipmt < 24; ipmt++) {
-    mMCP[ipmt].SetXYZ(xa[ipmt], xa[ipmt], zDetA);
-  }
-  for (int ipmt = 24; ipmt < 52; ipmt++) {
-    mMCP[ipmt].SetXYZ(xc2[ipmt - 24], yc2[ipmt - 24], zc2[ipmt - 24]);
+    mAngles[i].SetXYZ(ac[i], bc[i], gc[i]);
+    mMCP[i + NCellsA].SetXYZ(xc2[i], yc2[i], zc2[i]);
   }
 }

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,7 +21,6 @@
 #include "GPUQA.h"
 #include "GPUDisplayBackend.h"
 #include "genEvents.h"
-#include "GPUMemorySizeScalers.h"
 
 #include <iostream>
 #include <fstream>
@@ -120,7 +120,7 @@ int ReadConfiguration(int argc, char** argv)
     }
     return 1;
   }
-  if (configStandalone.printSettings) {
+  if (configStandalone.printSettings > 1) {
     qConfigPrint();
   }
   if (configStandalone.proc.debugLevel < 0) {
@@ -273,6 +273,11 @@ int ReadConfiguration(int argc, char** argv)
 #endif
 
   configStandalone.proc.showOutputStat = true;
+
+  if (configStandalone.printSettings) {
+    qConfigPrint();
+  }
+
   return (0);
 }
 
@@ -488,7 +493,6 @@ int SetupReconstruction()
   if (configStandalone.proc.debugLevel >= 4) {
     rec->PrintKernelOccupancies();
   }
-  rec->MemoryScalers()->factor *= configStandalone.memoryBufferScaleFactor;
   return (0);
 }
 
@@ -580,6 +584,7 @@ int LoadEvent(int iEvent, int x)
 
   ioPtrEvents[x] = chainTracking->mIOPtrs;
   ioMemEvents[x] = std::move(chainTracking->mIOMem);
+  chainTracking->mIOMem = decltype(chainTracking->mIOMem)();
   return 0;
 }
 
@@ -691,7 +696,9 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
       configStandalone.continueOnError = 0; // Forced exit from event display loop
       configStandalone.noprompt = 1;
     }
-    if (tmpRetVal && !configStandalone.continueOnError) {
+    if (tmpRetVal == 3 && configStandalone.proc.ignoreNonFatalGPUErrors) {
+      printf("Non-FATAL GPU error occured, ignoring\n");
+    } else if (tmpRetVal && !configStandalone.continueOnError) {
       if (tmpRetVal != 2) {
         printf("Error occured\n");
       }

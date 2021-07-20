@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -10,16 +11,18 @@
 
 #include <array>
 
+#include "CommonConstants/LHCConstants.h"
 #include "Framework/Logger.h"
 #include "TPCBase/Mapper.h"
 #include "DataFormatsTPC/ZeroSuppressionLinkBased.h"
+#include "DataFormatsTPC/Constants.h"
 
 #include "TPCReconstruction/RawProcessingHelpers.h"
 
 using namespace o2::tpc;
 
 //______________________________________________________________________________
-bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_utils::FEEIDType feeId, uint32_t globalBCoffset, ADCCallback fillADC, bool useTimeBin)
+bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_utils::FEEIDType feeId, uint32_t orbit, uint32_t referenceOrbit, ADCCallback fillADC, bool useTimeBin)
 {
   const auto& mapper = Mapper::instance();
 
@@ -35,6 +38,10 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
   const int globalLinkID = int(link) + int(endPoint * 12);
   const int tpcGlobalLinkID = cruID * 24 + globalLinkID;
   static std::array<uint32_t, 360 * 24> syncOffsetLinks;
+
+  const uint32_t maxBunches = (uint32_t)o2::constants::lhc::LHCMaxBunches;
+  int globalBCOffset = int(orbit - referenceOrbit) * o2::constants::lhc::LHCMaxBunches;
+  static int triggerBCOffset = 0;
 
   bool hasData{false};
 
@@ -54,6 +61,18 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
       continue;
     }
 
+    // set trigger offset and skip trigger info
+    if (header.isTriggerInfo()) {
+      // for the moment only skip the trigger info
+      const auto triggerInfo = (zerosupp_link_based::TriggerContainer*)zsdata;
+      const auto triggerOrbit = triggerInfo->triggerInfo.getOrbit();
+      const auto triggerBC = triggerInfo->triggerInfo.bunchCrossing;
+      triggerBCOffset = (int(triggerOrbit) - int(referenceOrbit)) * maxBunches + triggerBC;
+      LOGP(debug, "orbit: {}, triggerOrbit: {}, triggerBC: {}, triggerBCOffset: {}\n", orbit, triggerOrbit, triggerBC, triggerBCOffset);
+      zsdata = (zerosupp_link_based::ContainerZS*)((const char*)zsdata + sizeof(zerosupp_link_based::Header) * (1 + header.numWordsPayload));
+      continue;
+    }
+
     const auto channelBits = zsdata->getChannelBits();
     const uint32_t expectedWords = std::ceil(channelBits.count() * 0.1f);
     const uint32_t numberOfWords = zsdata->getDataWords();
@@ -65,14 +84,15 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
     if (useTimeBin) {
       const uint32_t timebinHeader = (header.syncOffsetCRUCycles << 8) | header.syncOffsetBC;
       if (syncOffsetLinks[tpcGlobalLinkID] == 0) {
-        syncOffsetLinks[tpcGlobalLinkID] = (bunchCrossingHeader + 3564 - (timebinHeader * 8) % 3564) % 3564 % 16;
+        syncOffsetLinks[tpcGlobalLinkID] = (bunchCrossingHeader + maxBunches - (timebinHeader * 8) % maxBunches) % maxBunches % 16;
       }
       syncOffset = syncOffsetLinks[tpcGlobalLinkID];
     }
 
-    const int timebin = (int(globalBCoffset) + int(bunchCrossingHeader) - int(syncOffset)) / 8;
-    if (timebin < 0) {
-      LOGP(debug, "skipping negative time bin with (globalBCoffset ({}) + bunchCrossingHeader ({}) - syncOffset({})) / 8 = {}", globalBCoffset, bunchCrossingHeader, syncOffset, timebin);
+    const int bcOffset = (int(globalBCOffset) + int(bunchCrossingHeader) - int(syncOffset)) - triggerBCOffset;
+    const int timebin = bcOffset / constants::LHCBCPERTIMEBIN;
+    if (bcOffset < 0) {
+      LOGP(debug, "skipping time bin with negative BC offset (globalBCoffset (({} - {}) * {} = {}) + bunchCrossingHeader ({}) - syncOffset({}) - triggerBCOffset({})) = {}", orbit, referenceOrbit, o2::constants::lhc::LHCMaxBunches, globalBCOffset, bunchCrossingHeader, syncOffset, triggerBCOffset, bcOffset);
 
       // go to next time bin
       zsdata = zsdata->next();

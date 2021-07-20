@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -18,9 +19,9 @@
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 #include "ZDCWorkflow/DigitReaderSpec.h"
-#include "DataFormatsZDC/ChannelData.h"
-#include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/OrbitData.h"
+#include "DataFormatsZDC/BCData.h"
+#include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
@@ -50,29 +51,32 @@ void DigitReader::init(InitContext& ic)
 
 void DigitReader::run(ProcessingContext& pc)
 {
-  std::vector<o2::zdc::ChannelData> digitsCh, *digitsChPtr = &digitsCh;
-  std::vector<o2::zdc::BCData> digitsBC, *digitsBCPtr = &digitsBC;
-  std::vector<o2::zdc::OrbitData> orbitData, *orbitDataPtr = &orbitData;
-  mTree->SetBranchAddress("ZDCDigitBC", &digitsBCPtr);
-  mTree->SetBranchAddress("ZDCDigitCh", &digitsChPtr);
-  mTree->SetBranchAddress("ZDCDigitOrbit", &orbitDataPtr);
 
+  std::vector<o2::zdc::OrbitData> zdcOrbitData, *zdcOrbitDataPtr = &zdcOrbitData;
+  std::vector<o2::zdc::BCData> zdcBCData, *zdcBCDataPtr = &zdcBCData;
+  std::vector<o2::zdc::ChannelData> zdcChData, *zdcChDataPtr = &zdcChData;
+
+  mTree->SetBranchAddress("ZDCDigitOrbit", &zdcOrbitDataPtr);
+  mTree->SetBranchAddress("ZDCDigitBC", &zdcBCDataPtr);
+  mTree->SetBranchAddress("ZDCDigitCh", &zdcChDataPtr);
   o2::dataformats::MCTruthContainer<o2::zdc::MCLabel> labels, *plabels = &labels;
   if (mUseMC) {
     mTree->SetBranchAddress("ZDCDigitLabels", &plabels);
   }
-  mTree->GetEntry(0);
-
-  LOG(INFO) << "ZDCDigitReader pushed " << digitsCh.size() << " channels in " << digitsBC.size() << " digits";
-
-  pc.outputs().snapshot(Output{"ZDC", "DIGITSBC", 0, Lifetime::Timeframe}, digitsBC);
-  pc.outputs().snapshot(Output{"ZDC", "DIGITSCH", 0, Lifetime::Timeframe}, digitsCh);
-  pc.outputs().snapshot(Output{"ZDC", "DIGITSPD", 0, Lifetime::Timeframe}, orbitData);
+  auto ent = mTree->GetReadEntry() + 1;
+  assert(ent < mTree->GetEntries()); // this should not happen
+  mTree->GetEntry(ent);
+  LOG(INFO) << "ZDCDigitReader pushed " << zdcOrbitData.size() << " orbits with " << zdcBCData.size() << " bcs and " << zdcChData.size() << " digits";
+  pc.outputs().snapshot(Output{"ZDC", "DIGITSPD", 0, Lifetime::Timeframe}, zdcOrbitData);
+  pc.outputs().snapshot(Output{"ZDC", "DIGITSBC", 0, Lifetime::Timeframe}, zdcBCData);
+  pc.outputs().snapshot(Output{"ZDC", "DIGITSCH", 0, Lifetime::Timeframe}, zdcChData);
   if (mUseMC) {
     pc.outputs().snapshot(Output{"ZDC", "DIGITSLBL", 0, Lifetime::Timeframe}, labels);
   }
-  pc.services().get<ControlService>().endOfStream();
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  }
 }
 
 DataProcessorSpec getDigitReaderSpec(bool useMC)
@@ -84,7 +88,6 @@ DataProcessorSpec getDigitReaderSpec(bool useMC)
   if (useMC) {
     outputs.emplace_back("ZDC", "DIGITSLBL", 0, Lifetime::Timeframe);
   }
-
   return DataProcessorSpec{
     "zdc-digit-reader",
     Inputs{},

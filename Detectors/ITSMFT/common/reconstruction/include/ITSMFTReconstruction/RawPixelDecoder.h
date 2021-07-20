@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -155,6 +156,32 @@ int RawPixelDecoder<Mapping>::fillDecodedDigits(DigitContainer& digits, ROFConta
         digits.emplace_back(chip.getChipID(), hit.getRow(), hit.getCol());
       }
     }
+  }
+  int nFilled = digits.size() - ref;
+  rofs.emplace_back(mInteractionRecord, mROFCounter, ref, nFilled);
+  mTimerFetchData.Stop();
+  return nFilled;
+}
+
+///______________________________________________________________
+/// Fill decoded digits to global vector
+template <>
+template <class DigitContainer, class ROFContainer>
+int RawPixelDecoder<ChipMappingMFT>::fillDecodedDigits(DigitContainer& digits, ROFContainer& rofs)
+{
+  if (mInteractionRecord.isDummy()) {
+    return 0; // nothing was decoded
+  }
+  mTimerFetchData.Start(false);
+  int ref = digits.size();
+  while (!mOrderedChipsPtr.empty()) {
+    const auto& chipData = *mOrderedChipsPtr.back();
+    assert(mLastReadChipID < chipData.getChipID());
+    mLastReadChipID = chipData.getChipID();
+    for (const auto& hit : chipData.getData()) {
+      digits.emplace_back(mLastReadChipID, hit.getRow(), hit.getCol());
+    }
+    mOrderedChipsPtr.pop_back();
   }
   int nFilled = digits.size() - ref;
   rofs.emplace_back(mInteractionRecord, mROFCounter, ref, nFilled);

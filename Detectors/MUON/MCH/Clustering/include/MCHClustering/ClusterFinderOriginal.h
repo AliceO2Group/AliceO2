@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -67,8 +68,6 @@ class ClusterFinderOriginal
   static constexpr int SNFitClustersMax = 3;                     ///< maximum number of clusters fitted at the same time
   static constexpr int SNFitParamMax = 3 * SNFitClustersMax - 1; ///< maximum number of fit parameters
   static constexpr double SLowestCoupling = 1.e-2;               ///< minimum coupling between clusters of pixels and pads
-  static constexpr float SDefaultClusterResolution = 0.2f;       ///< default cluster resolution (cm)
-  static constexpr float SBadClusterResolution = 10.f;           ///< bad (e.g. mono-cathode) cluster resolution (cm)
 
   void resetPreCluster(gsl::span<const Digit>& digits);
   void simplifyPreCluster(std::vector<int>& removedDigits);

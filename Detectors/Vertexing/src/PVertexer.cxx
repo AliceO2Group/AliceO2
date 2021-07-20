@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -535,7 +536,7 @@ void PVertexer::reduceDebris(std::vector<PVertex>& vertices, std::vector<int>& t
 
   for (int im = 0; im < nv; im++) { // loop from highest multiplicity to lowest one
     int it = multSort[im];
-    if (it < 0) { // if <0, the vertex was already discarded
+    if (timeSort[it] < 0) { // if <0, the vertex was already discarded
       continue;
     }
 
@@ -951,6 +952,15 @@ SeedHistoTZ PVertexer::buildHistoTZ(const VertexingInput& input)
   }
 
   return std::move(seedHistoTZ);
+}
+
+//______________________________________________
+bool PVertexer::relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxErr2) const
+{
+  o2d::DCA dca;
+  return o2::base::Propagator::Instance()->propagateToDCA(mMeanVertex, trc, mBz, 2.0f,
+                                                          o2::base::Propagator::MatCorrType::USEMatCorrLUT, &dca, nullptr, 0, mPVParams->dcaTolerance) &&
+         (dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) < mPVParams->pullIniCut);
 }
 
 //______________________________________________

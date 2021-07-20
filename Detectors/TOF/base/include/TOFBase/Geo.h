@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -41,7 +42,7 @@ class Geo
   static void getVolumeIndices(Int_t index, Int_t* detId); // Get volume index from channel index
 
   static void getPos(Int_t* det, Float_t* pos);
-  static void getVolumePath(const Int_t* ind, Char_t* path);
+  static std::string getVolumePath(const Int_t* ind);
   static Int_t getStripNumberPerSM(Int_t iplate, Int_t istrip);
   static void getStripAndModule(Int_t iStripPerSM, Int_t& iplate, Int_t& istrip); // Return the module and strip per module corresponding to the strip number per SM
 

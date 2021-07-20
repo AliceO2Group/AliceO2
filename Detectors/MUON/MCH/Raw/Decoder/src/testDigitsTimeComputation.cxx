@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -82,10 +83,9 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTime)
   uint32_t tfOrbit = 1;
   uint32_t tfBunchCrossing = 0;
 
-  std::unordered_map<uint32_t, std::optional<DataDecoder::SampaTimeFrameStart>> sampaTimeFrameStarts;
-  sampaTimeFrameStarts[digits[0].info.id].emplace(tfOrbit, tfBunchCrossing);
+  DataDecoder::SampaTimeFrameStart sampaTimeFrameStart{tfOrbit, tfBunchCrossing};
 
-  DataDecoder::computeDigitsTime_(digits, sampaTimeFrameStarts, false);
+  DataDecoder::computeDigitsTime(digits, sampaTimeFrameStart, false);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
                       static_cast<int32_t>(tfBunchCrossing);
@@ -104,10 +104,9 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTimeWithRollover)
   uint32_t tfOrbit = 1;
   uint32_t tfBunchCrossing = BCROLLOVER - 100;
 
-  std::unordered_map<uint32_t, std::optional<DataDecoder::SampaTimeFrameStart>> sampaTimeFrameStarts;
-  sampaTimeFrameStarts[digits[0].info.id].emplace(tfOrbit, tfBunchCrossing);
+  DataDecoder::SampaTimeFrameStart sampaTimeFrameStart{tfOrbit, tfBunchCrossing};
 
-  DataDecoder::computeDigitsTime_(digits, sampaTimeFrameStarts, false);
+  DataDecoder::computeDigitsTime(digits, sampaTimeFrameStart, false);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
                       static_cast<int32_t>(tfBunchCrossing) + BCROLLOVER;
@@ -126,37 +125,14 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTimeWithRollover2)
   uint32_t tfOrbit = 1;
   uint32_t tfBunchCrossing = 100;
 
-  std::unordered_map<uint32_t, std::optional<DataDecoder::SampaTimeFrameStart>> sampaTimeFrameStarts;
-  sampaTimeFrameStarts[digits[0].info.id].emplace(tfOrbit, tfBunchCrossing);
+  DataDecoder::SampaTimeFrameStart sampaTimeFrameStart{tfOrbit, tfBunchCrossing};
 
-  DataDecoder::computeDigitsTime_(digits, sampaTimeFrameStarts, false);
+  DataDecoder::computeDigitsTime(digits, sampaTimeFrameStart, false);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
                       static_cast<int32_t>(tfBunchCrossing) - BCROLLOVER;
 
   BOOST_CHECK_EQUAL(digits[0].getTime(), digitTime);
-}
-
-BOOST_AUTO_TEST_CASE(ComputeDigitsTimeNoTFStart)
-{
-  uint32_t sampaTime = 10;
-  uint32_t bunchCrossing = BCINORBIT - 100;
-  uint32_t orbit = 1;
-
-  std::vector<RawDigit> digits = makeDigitsVector(sampaTime, bunchCrossing, orbit);
-
-  uint32_t tfOrbit = 1;
-  uint32_t tfBunchCrossing = 0;
-
-  std::unordered_map<uint32_t, std::optional<DataDecoder::SampaTimeFrameStart>> sampaTimeFrameStarts;
-  sampaTimeFrameStarts[digits[0].info.id + 1].emplace(tfOrbit, tfBunchCrossing);
-
-  DataDecoder::computeDigitsTime_(digits, sampaTimeFrameStarts, false);
-
-  int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
-                      static_cast<int32_t>(tfBunchCrossing);
-
-  BOOST_CHECK_EQUAL(digits[0].getTime(), DataDecoder::tfTimeInvalid);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -13,7 +13,7 @@
 #include "FairSystemInfo.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CPVBase/Geometry.h"
-#include "CPVBase/Hit.h"
+#include "DataFormatsCPV/Hit.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #endif

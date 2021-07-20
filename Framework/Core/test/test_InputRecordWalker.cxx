@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -13,6 +14,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "Framework/InputRecord.h"
+#include "Framework/InputSpan.h"
 #include "Framework/InputRecordWalker.h"
 #include "Framework/WorkflowSpec.h" // o2::framework::select
 #include "Framework/DataRefUtils.h"
@@ -38,14 +40,15 @@ struct DataSet {
   using Messages = std::vector<TaggedSet>;
   using CheckType = std::vector<std::string>;
   DataSet(std::vector<InputRoute>&& s, Messages&& m, CheckType&& v)
-    : schema{std::move(s)}, messages{std::move(m)}, record{schema, {[this](size_t i, size_t part) {
-                                                                      BOOST_REQUIRE(i < this->messages.size());
-                                                                      BOOST_REQUIRE(part < this->messages[i].second.size() / 2);
-                                                                      auto header = static_cast<char const*>(this->messages[i].second.at(2 * part)->data());
-                                                                      auto payload = static_cast<char const*>(this->messages[i].second.at(2 * part + 1)->data());
-                                                                      return DataRef{nullptr, header, payload};
-                                                                    },
-                                                                    [this](size_t i) { return i < this->messages.size() ? messages[i].second.size() / 2 : 0; }, this->messages.size()}},
+    : schema{std::move(s)}, messages{std::move(m)}, span{[this](size_t i, size_t part) {
+                                                           BOOST_REQUIRE(i < this->messages.size());
+                                                           BOOST_REQUIRE(part < this->messages[i].second.size() / 2);
+                                                           auto header = static_cast<char const*>(this->messages[i].second.at(2 * part)->data());
+                                                           auto payload = static_cast<char const*>(this->messages[i].second.at(2 * part + 1)->data());
+                                                           return DataRef{nullptr, header, payload};
+                                                         },
+                                                         [this](size_t i) { return i < this->messages.size() ? messages[i].second.size() / 2 : 0; }, this->messages.size()},
+      record{schema, span},
       values{std::move(v)}
   {
     BOOST_REQUIRE(messages.size() == schema.size());
@@ -53,6 +56,7 @@ struct DataSet {
 
   std::vector<InputRoute> schema;
   Messages messages;
+  InputSpan span;
   InputRecord record;
   CheckType values;
 };

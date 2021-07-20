@@ -1,18 +1,53 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
-o2_add_library(rANS  
+o2_add_library(rANS
                SOURCES src/SymbolStatistics.cxx
                        src/FrequencyTable.cxx
                PUBLIC_LINK_LIBRARIES FairLogger::FairLogger)
 
+o2_add_test(Iterators
+            NAME Iterators
+            SOURCES test/test_ransIterators.cxx
+            PUBLIC_LINK_LIBRARIES O2::rANS
+            COMPONENT_NAME rANS
+            LABELS utils)
+
+o2_add_test(FrequencyTable
+            NAME FrequencyTable
+            SOURCES test/test_ransFrequencyTable.cxx
+            PUBLIC_LINK_LIBRARIES O2::rANS
+            COMPONENT_NAME rANS
+            LABELS utils)
+
+o2_add_test(SymbolStatistics
+            NAME SymbolStatistics
+            SOURCES test/test_ransSymbolStatistics.cxx
+            PUBLIC_LINK_LIBRARIES O2::rANS
+            COMPONENT_NAME rANS
+            LABELS utils)
+
+o2_add_test(SymbolTable
+            NAME SymbolTable
+            SOURCES test/test_ransSymbolTable.cxx
+            PUBLIC_LINK_LIBRARIES O2::rANS
+            COMPONENT_NAME rANS
+            LABELS utils)
+
+o2_add_test(ReverseSymbolLookupTable
+            NAME ReverseSymbolLookupTable
+            SOURCES test/test_ransReverseSymbolLookupTable.cxx
+            PUBLIC_LINK_LIBRARIES O2::rANS
+            COMPONENT_NAME rANS
+            LABELS utils)
 
 o2_add_test(EncodeDecode
             NAME EncodeDecode
@@ -20,21 +55,7 @@ o2_add_test(EncodeDecode
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS
             LABELS utils)
-            
-o2_add_test(FrequencyTable
-            NAME FrequencyTable
-            SOURCES test/test_ransFrequencyTable.cxx
-            PUBLIC_LINK_LIBRARIES O2::rANS
-            COMPONENT_NAME rANS
-            LABELS utils)
-            
-o2_add_test(CombinedIterator
-            NAME CombinedIterator
-            SOURCES test/test_ransCombinedIterator.cxx
-            PUBLIC_LINK_LIBRARIES O2::rANS
-            COMPONENT_NAME rANS
-            LABELS utils)
-            
+
 if (TARGET benchmark::benchmark)
 o2_add_executable(CombinedIterator
                     SOURCES benchmarks/bench_ransCombinedIterator.cxx
@@ -42,7 +63,7 @@ o2_add_executable(CombinedIterator
               IS_BENCHMARK
                     PUBLIC_LINK_LIBRARIES O2::rANS benchmark::benchmark)
 endif()
-            
+
 o2_add_executable(rans-encode-decode-8
                   TARGETVARNAME targetName
                   SOURCES run/bin-encode-decode.cxx

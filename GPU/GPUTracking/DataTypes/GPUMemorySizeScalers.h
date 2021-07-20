@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -28,6 +29,7 @@ struct GPUMemorySizeScalers {
 
   // General scaling factor
   double factor = 1;
+  double temporaryFactor = 1;
 
   // Offset
   double offset = 1000.;
@@ -46,29 +48,30 @@ struct GPUMemorySizeScalers {
   size_t tpcCompressedUnattachedHitsBase1024[3] = {900, 900, 500}; // No ratio, but integer fraction of 1024 for exact computation
 
   // Upper limits
-  size_t tpcMaxPeaks = 1000000000;
+  size_t tpcMaxPeaks = 20000000;
   size_t tpcMaxClusters = 320000000;
+  size_t tpcMaxSectorClusters = 30000000;
   size_t tpcMaxStartHits = 650000;
-  size_t tpcMaxRowStartHits = 1000000000;
+  size_t tpcMaxRowStartHits = 100000;
   size_t tpcMaxTracklets = 520000;
   size_t tpcMaxTrackletHits = 35000000;
   size_t tpcMaxSectorTracks = 130000;
   size_t tpcMaxSectorTrackHits = 5900000;
   size_t tpcMaxMergedTracks = 3000000;
   size_t tpcMaxMergedTrackHits = 200000000;
-  size_t availableMemory = 22000000000;
+  size_t availableMemory = 20500000000;
   bool returnMaxVal = false;
 
   void rescaleMaxMem(size_t newAvailableMemory);
   inline size_t getValue(size_t maxVal, size_t val)
   {
-    return returnMaxVal ? maxVal : (std::min<size_t>(maxVal, offset + val) * factor);
+    return returnMaxVal ? maxVal : (std::min<size_t>(maxVal, offset + val) * factor * temporaryFactor);
   }
 
-  inline size_t NTPCPeaks(size_t tpcDigits) { return getValue(tpcMaxPeaks, hitOffset + tpcDigits * tpcPeaksPerDigit); }
-  inline size_t NTPCClusters(size_t tpcDigits) { return getValue(tpcMaxClusters, tpcClustersPerPeak * NTPCPeaks(tpcDigits)); }
+  inline size_t NTPCPeaks(size_t tpcDigits, bool perSector = false) { return getValue(perSector ? tpcMaxPeaks : (GPUCA_NSLICES * tpcMaxPeaks), hitOffset + tpcDigits * tpcPeaksPerDigit); }
+  inline size_t NTPCClusters(size_t tpcDigits, bool perSector = false) { return getValue(perSector ? tpcMaxSectorClusters : tpcMaxClusters, tpcClustersPerPeak * NTPCPeaks(tpcDigits, perSector)); }
   inline size_t NTPCStartHits(size_t tpcHits) { return getValue(tpcMaxStartHits, tpcHits * tpcStartHitsPerHit); }
-  inline size_t NTPCRowStartHits(size_t tpcHits) { return getValue(tpcMaxRowStartHits, NTPCStartHits(tpcHits) / GPUCA_ROW_COUNT * 4.); }
+  inline size_t NTPCRowStartHits(size_t tpcHits) { return getValue(tpcMaxRowStartHits, NTPCStartHits(tpcHits) * 4 / GPUCA_ROW_COUNT); }
   inline size_t NTPCTracklets(size_t tpcHits) { return getValue(tpcMaxTracklets, NTPCStartHits(tpcHits) * tpcTrackletsPerStartHit); }
   inline size_t NTPCTrackletHits(size_t tpcHits) { return getValue(tpcMaxTrackletHits, hitOffset + tpcHits * tpcTrackletHitsPerHit); }
   inline size_t NTPCSectorTracks(size_t tpcHits) { return getValue(tpcMaxSectorTracks, tpcHits * tpcSectorTracksPerHit); }

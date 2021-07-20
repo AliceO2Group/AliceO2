@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 o2_add_library(CommonDataFormat
                SOURCES src/InteractionRecord.cxx
@@ -15,13 +16,14 @@ o2_add_library(CommonDataFormat
                        src/FlatHisto2D.cxx
                        src/AbstractRefAccessor.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonConstants O2::GPUCommon
-                                     ROOT::Core FairRoot::Base Microsoft.GSL::GSL)
+                                     ROOT::Core FairRoot::Base O2::MathUtils Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(CommonDataFormat
                           HEADERS include/CommonDataFormat/TimeStamp.h
                                   include/CommonDataFormat/EvIndex.h
                                   include/CommonDataFormat/RangeReference.h
                                   include/CommonDataFormat/InteractionRecord.h
+                                  include/CommonDataFormat/IRFrame.h
                                   include/CommonDataFormat/BunchFilling.h
                                   include/CommonDataFormat/AbstractRef.h
                                   include/CommonDataFormat/FlatHisto1D.h

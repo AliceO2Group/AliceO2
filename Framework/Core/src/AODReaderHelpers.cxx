@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -13,7 +14,7 @@
 #include "Framework/AnalysisHelpers.h"
 #include "AnalysisDataModelHelpers.h"
 #include "DataProcessingHelpers.h"
-#include "ExpressionHelpers.h"
+#include "Framework/ExpressionHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -107,11 +108,11 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requ
           using index_pack_t = typename metadata_t::index_pack_t;
           using sources = typename metadata_t::originals;
           if constexpr (metadata_t::exclusive == true) {
-            return o2::framework::IndexExclusive::indexBuilder(index_pack_t{},
+            return o2::framework::IndexExclusive::indexBuilder(input.binding.c_str(), index_pack_t{},
                                                                extractTypedOriginal<Key>(pc),
                                                                extractOriginalsTuple(sources{}, pc));
           } else {
-            return o2::framework::IndexSparse::indexBuilder(index_pack_t{},
+            return o2::framework::IndexSparse::indexBuilder(input.binding.c_str(), index_pack_t{},
                                                             extractTypedOriginal<Key>(pc),
                                                             extractOriginalsTuple(sources{}, pc));
           }

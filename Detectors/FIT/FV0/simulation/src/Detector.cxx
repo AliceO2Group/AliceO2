@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -275,6 +276,32 @@ void Detector::ConstructGeometry()
   // mGeometry->enableComponent(Geometry::eRods, false);
   // mGeometry->enableComponent(Geometry::eAluminiumContainer, false);
   mGeometry->buildGeometry();
+}
+void Detector::addAlignableVolumes() const
+{
+  //
+  // Creates entries for alignable volumes associating the symbolic volume
+  // name with the corresponding volume path.
+  //
+  //  First version (mainly ported from AliRoot)
+  //
+
+  LOG(INFO) << "Add FV0 alignable volumes";
+
+  if (!gGeoManager) {
+    LOG(FATAL) << "TGeoManager doesn't exist !";
+    return;
+  }
+
+  TString volPath, symName;
+  for (int ihalf = 1; ihalf < 3; ihalf++) {
+    volPath = Form("/cave_1/barrel_1/FV0_1/FV0CONTAINER_%i", ihalf);
+    symName = Form("FV0half_%i", ihalf);
+    LOG(INFO) << symName << " <-> " << volPath;
+    if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data())) {
+      LOG(FATAL) << "Unable to set alignable entry ! " << symName << " : " << volPath;
+    }
+  }
 }
 
 o2::fv0::Hit* Detector::addHit(Int_t trackId, Int_t cellId,

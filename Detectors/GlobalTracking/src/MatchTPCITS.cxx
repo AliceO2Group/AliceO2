@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -420,12 +421,6 @@ void MatchTPCITS::updateTimeDependentParams()
   mTPCZMax = detParam.TPClength;
   mTPCTBinMUSInv = 1. / mTPCTBinMUS;
   assert(mITSROFrameLengthMUS > 0.0f);
-  if (mITSTriggered) {
-    mITSROFrame2TPCBin = mITSROFrameLengthMUS * mTPCTBinMUSInv;
-  } else {
-    mITSROFrame2TPCBin = mITSROFrameLengthMUS * mTPCTBinMUSInv; // RSTODO use both ITS and TPC times BCs once will be available for TPC also
-  }
-  mTPCBin2ITSROFrame = 1. / mITSROFrame2TPCBin;
   mTPCBin2Z = mTPCTBinMUS * mTPCVDrift0;
   mZ2TPCBin = 1. / mTPCBin2Z;
   mTPCVDrift0Inv = 1. / mTPCVDrift0;
@@ -656,7 +651,7 @@ bool MatchTPCITS::prepareTPCData()
     if (maxTime < tmax) {
       maxTime = tmax;
     }
-    int nbins = 1 + time2ITSROFrame(tmax);
+    int nbins = 1 + (mITSTriggered ? time2ITSROFrameTrig(tmax, 0) : time2ITSROFrameCont(tmax));
     auto& timeStart = mTPCTimeStart[sec];
     timeStart.resize(nbins, -1);
     int itsROF = 0;
@@ -679,14 +674,12 @@ bool MatchTPCITS::prepareTPCData()
     }
   } // loop over tracks of single sector
 
-  // create mapping from TPC time-bins to ITS ROFs
-
+  // FIXME
+  /*
+  // create mapping from TPC time to ITS ROFs
   if (mITSROFTimes.back() < maxTime) {
     maxTime = mITSROFTimes.back().getMax();
   }
-
-  // FIXME
-  /*
   int nb = int(maxTime) + 1;
   mITSROFofTPCBin.resize(nb, -1);
   int itsROF = 0;
@@ -892,11 +885,13 @@ void MatchTPCITS::doMatching(int sec)
   auto t2nbs = tpcTimeBin2MUS(mZ2TPCBin * mParams->tpcTimeICMatchingNSigma); // FIXME work directly with time in \mus
   bool checkInteractionCandidates = mUseFT0 && mParams->validateMatchByFIT != MatchTPCITSParams::Disable;
 
+  int itsROBin = 0;
   for (int itpc = idxMinTPC; itpc < nTracksTPC; itpc++) {
     auto& trefTPC = mTPCWork[cacheTPC[itpc]];
     // estimate ITS 1st ROframe bin this track may match to: TPC track are sorted according to their
     // timeMax, hence the timeMax - MaxmNTPCBinsFullDrift are non-decreasing
-    int itsROBin = time2ITSROFrame(trefTPC.tBracket.getMax() - maxTDriftSafe);
+    auto tmn = trefTPC.tBracket.getMax() - maxTDriftSafe;
+    itsROBin = mITSTriggered ? time2ITSROFrameTrig(tmn, itsROBin) : time2ITSROFrameCont(tmn);
 
     if (itsROBin >= int(timeStartITS.size())) { // time of TPC track exceeds the max time of ITS in the cache
       break;
@@ -1235,12 +1230,12 @@ float MatchTPCITS::getPredictedChi2NoZ(const o2::track::TrackParCov& trITS, cons
 
   //  if (std::abs(trITS.getAlpha() - trTPC.getAlpha()) > FLT_EPSILON) {
   //    LOG(ERROR) << "The reference Alpha of the tracks differ: "
-  //	       << trITS.getAlpha() << " : " << trTPC.getAlpha();
+  //        << trITS.getAlpha() << " : " << trTPC.getAlpha();
   //    return 2. * o2::track::HugeF;
   //  }
   //  if (std::abs(trITS.getX() - trTPC.getX()) > FLT_EPSILON) {
   //    LOG(ERROR) << "The reference X of the tracks differ: "
-  //	       << trITS.getX() << " : " << trTPC.getX();
+  //        << trITS.getX() << " : " << trTPC.getX();
   //    return 2. * o2::track::HugeF;
   //  }
   MatrixDSym4 covMat;
@@ -1455,10 +1450,13 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     return false;
   }
 
-  // we need to update the LTOF integral by the distance to the "primary vertex"
+  // We need to update the LTOF integral by the distance to the "primary vertex"
+  // We want to leave the track at the the position of its last update, so we do a fast propagation on the TrackPar copy of trfit,
+  // and since for the LTOF calculation the material effects are irrelevant, we skip material corrections
   const o2::dataformats::VertexBase vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
-  if (!propagator->propagateToDCA(vtxDummy, trfit, propagator->getNominalBz(),
-                                  maxStep, mUseMatCorrFlag, nullptr, &trfit.getLTIntegralOut())) {
+  o2::track::TrackPar trpar(trfit);
+  if (!propagator->propagateToDCA(vtxDummy.getXYZ(), trpar, propagator->getNominalBz(),
+                                  maxStep, MatCorrType::USEMatCorrNONE, nullptr, &trfit.getLTIntegralOut())) {
     LOG(ERROR) << "LTOF integral might be incorrect";
   }
 
@@ -1865,7 +1863,7 @@ int MatchTPCITS::checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& lli
         /*
         const auto lab = mITSClsLabels->getLabels(clID)[0];                                           // tmp
         LOG(INFO) << "cl " << cntc++ << " ClLbl:" << lab << " TrcLbl" << lblTrc << " chi2 = " << chi2 << " chipGID: " << lad.chips[chipID].id; // tmp
-	*/
+ */
         if (chi2 > mParams->cutABTrack2ClChi2) {
           continue;
         }
@@ -1883,7 +1881,7 @@ int MatchTPCITS::checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& lli
           if (lrTgt < llist.lowestLayer) {
             llist.lowestLayer = lrTgt; // update lowest layer reached
           }
-          //	  printf("Added chi2 %.3f @ lr %d as %d\n",link.chi2, lrTgt, lnkID); // tmp tmp
+          //   printf("Added chi2 %.3f @ lr %d as %d\n",link.chi2, lrTgt, lnkID); // tmp tmp
         }
       }
     }
@@ -2140,7 +2138,7 @@ float MatchTPCITS::correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTP
     float xTgt;
     auto propagator = o2::base::Propagator::Instance();
     if (!trc.getXatLabR(r, xTgt, propagator->getNominalBz(), o2::track::DirInward) ||
-	!propagator->PropagateToXBxByBz(trc, xTgt, MaxSnp, 2., mUseMatCorrFlag)) {
+ !propagator->PropagateToXBxByBz(trc, xTgt, MaxSnp, 2., mUseMatCorrFlag)) {
       return -1;
     }
   }
@@ -2443,6 +2441,14 @@ void MatchTPCITS::refitABTrack(int ibest) const
     }
     ibest = lnk.parentID;
   }
+}
+
+//______________________________________________
+void MatchTPCITS::setITSROFrameLengthMUS(float fums)
+{
+  mITSROFrameLengthMUS = fums;
+  mITSROFrameLengthMUSInv = 1. / mITSROFrameLengthMUS;
+  mITSROFrameLengthInBC = std::max(1, int(mITSROFrameLengthMUS / (o2::constants::lhc::LHCBunchSpacingNS * 1e-3)));
 }
 
 //______________________________________________

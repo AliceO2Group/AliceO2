@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -13,9 +14,16 @@
 ////////////////////////////////////////////////
 // Full geomrtry  hits classes for detector: FIT    //
 ////////////////////////////////////////////////
-
+#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "FT0Base/Constants.h"
+#include "Framework/Logger.h"
 #include <Rtypes.h>
+#include <TGeoPhysicalNode.h>
 #include <TVector3.h>
+#include <string>
+
+class TGeoPNEntry;
 
 namespace o2
 {
@@ -36,22 +44,31 @@ class Geometry
 
   ///
   TVector3 centerMCP(int imcp) { return mMCP[imcp]; }
+  TVector3 tiltMCP(int imcp) { return mAngles[imcp]; }
 
-  static constexpr int Nchannels = 208;                     // number od channels
+  static constexpr int Nchannels = o2::ft0::Constants::sNCHANNELS_PM; // number of PM channels
+  static constexpr int Nsensors = 208;                      // number of channels
   static constexpr int NCellsA = 24;                        // number of radiatiors on A side
   static constexpr int NCellsC = 28;                        // number of radiatiors on C side
-  static constexpr float ZdetA = 335.5;                     // number of radiatiors on A side
-  static constexpr float ZdetC = 82;                        // number of radiatiors on C side
+  static constexpr float ZdetA = 335.5;                     // Z position of center volume  on A side
+  static constexpr float ZdetC = 82;                        //  Z position of center volume on C side
   static constexpr float ChannelWidth = 13.02;              // channel width in ps
   static constexpr float ChannelWidthInverse = 0.076804916; // channel width in ps inverse
-                                                            // static constexpr float MV_2_Nchannels = 2.2857143;          //amplitude channel 7 mV ->16channels
-                                                            //  static constexpr float MV_2_NchannelsInverse = 0.437499997; //inverse amplitude channel 7 mV ->16channels
-                                                            //  static constexpr int mTime_trg_gate = 192;                  // #channels
+  static constexpr o2::detectors::DetID::ID getDetID() { return o2::detectors::DetID::FT0; }
+  void setAsideModules();
+  void setCsideModules();
+  TGeoPNEntry* getPNEntry(int index) const
+  {
+    /// Get a pointer to the TGeoPNEntry of a chip identified by 'index'
+    /// Returns NULL in case of invalid index, missing TGeoManager or invalid symbolic name
+    return o2::base::GeometryManager::getPNEntry(getDetID(), index);
+  }
 
  private:
   TVector3 mMCP[52];
+  TVector3 mAngles[28];
 
-  ClassDefNV(Geometry, 1);
+  ClassDefNV(Geometry, 2);
 };
 } // namespace ft0
 } // namespace o2

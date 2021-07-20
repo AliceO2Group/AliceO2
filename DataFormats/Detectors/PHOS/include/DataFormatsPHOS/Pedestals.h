@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -36,7 +37,7 @@ class Pedestals
   // module numbering:
   //  start from module 0 (non-existing), 1 (half-module), 2 (bottom),... 4(highest)
   // absId:
-  // start from 1 till 5*64*56. Numbering in each module starts at bottom left and first go in z direction:
+  // start from 1 till 5*64*56 =14336. Numbering in each module starts at bottom left and first go in z direction:
   //  56   112   3584
   //  ...  ...    ...
   //  1    57 ...3529
@@ -56,7 +57,7 @@ class Pedestals
   /// \brief Get pedestal
   /// \param cellID Absolute ID of cell
   /// \return pedestal for the cell
-  short getHGPedestal(short cellID) const { return short(mHGPedestals.at(cellID - OFFSET)); }
+  short getHGPedestal(short cellID) const { return short(mHGPedestals[cellID - OFFSET]); }
 
   /// \brief Set pedestal
   /// \param cellID Absolute ID of cell
@@ -66,7 +67,7 @@ class Pedestals
   /// \brief Get pedestal
   /// \param cellID Absolute ID of cell
   /// \return pedestal for the cell
-  short getLGPedestal(short cellID) const { return short(mLGPedestals.at(cellID - OFFSET)); }
+  short getLGPedestal(short cellID) const { return short(mLGPedestals[cellID - OFFSET]); }
 
   /// \brief Set pedestal
   /// \param cellID Absolute ID of cell
@@ -86,7 +87,7 @@ class Pedestals
   /// \brief Get pedestal RMS
   /// \param cellID Absolute ID of cell
   /// \return pedestal RMS for the cell
-  float getHGRMS(short cellID) const { return float(mHGRMS.at(cellID - OFFSET)) / RMSCOMPRESS; }
+  float getHGRMS(short cellID) const { return float(mHGRMS[cellID - OFFSET]) / RMSCOMPRESS; }
 
   /// \brief Set pedestal RMS
   /// \param cellID Absolute ID of cell
@@ -96,7 +97,7 @@ class Pedestals
   /// \brief Get pedestal
   /// \param cellID Absolute ID of cell
   /// \return pedestal RMS for the LG cell
-  float getLGRMS(short cellID) const { return float(mLGRMS.at(cellID - OFFSET)) / RMSCOMPRESS; }
+  float getLGRMS(short cellID) const { return float(mLGRMS[cellID - OFFSET]) / RMSCOMPRESS; }
 
   /// \brief Set LG pedestal RMS
   /// \param cellID Absolute ID of cell
@@ -104,7 +105,7 @@ class Pedestals
   void setLGRMS(short cellID, float c) { mLGRMS[cellID - OFFSET] = static_cast<unsigned char>(c * RMSCOMPRESS); }
 
  private:
-  static constexpr short NCHANNELS = 14337;          ///< Number of channels starting from 1
+  static constexpr short NCHANNELS = 12544;          ///< Number of channels = 14336-1792
   static constexpr short OFFSET = 1793;              ///< Non-existing channels 56*64*1.5+1
   static constexpr short RMSCOMPRESS = 50;           ///< Conversion to store float RMS in range ~[0..5] in uchar
   std::array<unsigned char, NCHANNELS> mHGPedestals; ///< Container for HG pedestals

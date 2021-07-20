@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -100,7 +101,28 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     mOutputFitChi.clear();
   }
 
-  for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
+  // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
+  // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+  std::vector<o2::framework::InputSpec> dummy{o2::framework::InputSpec{"dummy", o2::framework::ConcreteDataMatcher{"PHS", o2::header::gDataDescriptionRawData, 0xDEADBEEF}}};
+  for (const auto& ref : framework::InputRecordWalker(ctx.inputs(), dummy)) {
+    const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    if (dh->payloadSize == 0) { // send empty output
+      mOutputCells.clear();
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
+      mOutputTriggerRecords.clear();
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
+      mOutputHWErrors.clear();
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
+      if (mFillChi2) {
+        mOutputFitChi.clear();
+        ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0, o2::framework::Lifetime::Timeframe}, mOutputFitChi);
+      }
+      return; //empty TF, nothing to process
+    }
+  }
+
+  std::vector<o2::framework::InputSpec> inputFilter{o2::framework::InputSpec{"filter", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Timeframe}};
+  for (const auto& rawData : framework::InputRecordWalker(ctx.inputs(), inputFilter)) {
 
     o2::phos::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
 
@@ -155,6 +177,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 
       // use the altro decoder to decode the raw data, and extract the RCU trailer
       mDecoder->decode(rawreader, mRawFitter.get(), currentCellContainer, currentTRUContainer);
+      const std::vector<o2::phos::RawReaderError>& errs = mDecoder->hwerrors();
+      for (auto a : errs) {
+        mOutputHWErrors.emplace_back(a);
+      }
       // Sort cells according to cell ID
       (*rangeIter)[2 * ddl + 1] = currentCellContainer.size();
       auto itBegin = currentCellContainer.begin() + (*rangeIter)[2 * ddl];
@@ -237,7 +263,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterSpec(int flpId)
 {
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Optional);
+  //receive at least 1 guaranteed input (which will allow to acknowledge the TF)
+  inputs.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("PHS", "CELLS", flpId, o2::framework::Lifetime::Timeframe);

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -12,6 +13,7 @@
 #define O2_MCH_RAW_DATA_FORMATS_H
 
 #include <cstdint>
+#include <iosfwd>
 
 namespace o2::mch::raw
 {
@@ -29,6 +31,38 @@ struct ChargeSumMode {
 struct SampleMode {
   bool operator()() const { return false; }
 };
+
+template <typename FORMAT>
+struct isUserLogicFormat; // only defined (on purpose) for two types below
+
+template <>
+struct isUserLogicFormat<UserLogicFormat> {
+  static constexpr bool value = true;
+};
+
+template <>
+struct isUserLogicFormat<BareFormat> {
+  static constexpr bool value = false;
+};
+
+template <typename CHARGESUM>
+struct isChargeSumMode; // only defined (on purpose) for two types below
+
+template <>
+struct isChargeSumMode<ChargeSumMode> {
+  static constexpr bool value = true;
+};
+
+template <>
+struct isChargeSumMode<SampleMode> {
+  static constexpr bool value = false;
+};
+
+using uint5_t = uint8_t;
+using uint6_t = uint8_t;
+
+using SampaChannelAddress = uint5_t; // 0..31 channel of a Sampa
+using DualSampaChannelId = uint6_t;  // 0..63 channel of a *Dual* Sampa
 
 using uint10_t = uint16_t;
 using uint20_t = uint32_t;
@@ -82,6 +116,16 @@ struct FEEID {
   };
 };
 
-}; // namespace o2::mch::raw
+template <typename CHARGESUM>
+uint16_t extraFeeIdChargeSumMask();
+
+template <int VERSION>
+uint16_t extraFeeIdVersionMask();
+
+template <typename FORMAT>
+uint8_t linkRemapping(uint8_t linkID);
+
+std::ostream& operator<<(std::ostream& os, const FEEID& f);
+} // namespace o2::mch::raw
 
 #endif

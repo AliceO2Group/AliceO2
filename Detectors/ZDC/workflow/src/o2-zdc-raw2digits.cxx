@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -23,8 +24,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"dump-blocks-process", VariantType::Bool, false, {"enable dumping of event blocks at processor side"}},
     {"dump-blocks-reader", VariantType::Bool, false, {"enable dumping of event blocks at reader side"}},
     {"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}},
-    {"ccdb-url", VariantType::String, "http://ccdb-test.cern.ch:8080", {"url of CCDB"}},
     {"not-check-trigger", VariantType::Bool, false, {"avoid to check trigger condition during conversion"}},
+    {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
@@ -41,17 +42,22 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto dumpProcessor = configcontext.options().get<bool>("dump-blocks-process");
   auto dumpReader = configcontext.options().get<bool>("dump-blocks-reader");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
-  auto ccdbURL = configcontext.options().get<std::string>("ccdb-url");
   auto checkTrigger = true;
   auto notCheckTrigger = configcontext.options().get<bool>("not-check-trigger");
   if (notCheckTrigger) {
     LOG(INFO) << "Not checking trigger condition during conversion";
     checkTrigger = false;
   }
+  auto askSTFDist = true;
+  auto notaskSTFDist = configcontext.options().get<bool>("ignore-dist-stf");
+  if (notaskSTFDist) {
+    LOG(INFO) << "Not subscribing to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)";
+    askSTFDist = false;
+  }
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   WorkflowSpec specs;
-  specs.emplace_back(o2::zdc::getZDCDataReaderDPLSpec(o2::zdc::RawReaderZDC{dumpReader}, ccdbURL, checkTrigger));
+  specs.emplace_back(o2::zdc::getZDCDataReaderDPLSpec(o2::zdc::RawReaderZDC{dumpReader}, checkTrigger, askSTFDist));
   //  if (useProcess) {
   //    specs.emplace_back(o2::zdc::getZDCDataProcessDPLSpec(dumpProcessor));
   //  }

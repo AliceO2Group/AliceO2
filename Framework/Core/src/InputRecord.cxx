@@ -1,13 +1,15 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/InputRecord.h"
+#include "Framework/InputSpan.h"
 #include "Framework/InputSpec.h"
 #include <fairmq/FairMQMessage.h>
 #include <cassert>
@@ -30,9 +32,9 @@ namespace o2::framework
 {
 
 InputRecord::InputRecord(std::vector<InputRoute> const& inputsSchema,
-                         InputSpan&& span)
+                         InputSpan& span)
   : mInputsSchema{inputsSchema},
-    mSpan{std::move(span)}
+    mSpan{span}
 {
 }
 
@@ -55,6 +57,34 @@ int InputRecord::getPos(const char* binding) const
 int InputRecord::getPos(std::string const& binding) const
 {
   return this->getPos(binding.c_str());
+}
+
+DataRef InputRecord::getByPos(int pos, int part) const
+{
+  if (pos >= mSpan.size() || pos < 0) {
+    throw runtime_error_f("Unknown message requested at position %d", pos);
+  }
+  if (part > 0 && part >= getNofParts(pos)) {
+    throw runtime_error_f("Invalid message part index at %d:%d", pos, part);
+  }
+  if (pos >= mInputsSchema.size()) {
+    throw runtime_error_f("Unknown schema at position %d", pos);
+  }
+  auto ref = mSpan.get(pos, part);
+  ref.spec = &mInputsSchema[pos].matcher;
+  return ref;
+}
+
+size_t InputRecord::getNofParts(int pos) const
+{
+  if (pos < 0 || pos >= mSpan.size()) {
+    return 0;
+  }
+  return mSpan.getNofParts(pos);
+}
+size_t InputRecord::size() const
+{
+  return mSpan.size();
 }
 
 bool InputRecord::isValid(char const* s) const

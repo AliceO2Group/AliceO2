@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -39,7 +40,7 @@ class PairCuts
   {
     LOGF(info, "Enabled pair cut for %d with value %f", static_cast<int>(particle), cut);
     mCuts[particle] = cut;
-    if (histogramRegistry != nullptr && histogramRegistry->contains("ControlConvResonances") == false) {
+    if (histogramRegistry != nullptr && histogramRegistry->contains(HIST("ControlConvResonances")) == false) {
       histogramRegistry->add("ControlConvResonances", "", {HistType::kTH2F, {{6, -0.5, 5.5, "id"}, {500, -0.5, 0.5, "delta mass"}}});
     }
   }
@@ -50,7 +51,7 @@ class PairCuts
     mTwoTrackDistance = distance;
     mTwoTrackRadius = radius;
 
-    if (histogramRegistry != nullptr && histogramRegistry->contains("TwoTrackDistancePt_0") == false) {
+    if (histogramRegistry != nullptr && histogramRegistry->contains(HIST("TwoTrackDistancePt_0")) == false) {
       histogramRegistry->add("TwoTrackDistancePt_0", "", {HistType::kTH3F, {{100, -0.15, 0.15, "#Delta#eta"}, {100, -0.05, 0.05, "#Delta#varphi^{*}_{min}"}, {20, 0, 10, "#Delta p_{T}"}}});
       histogramRegistry->addClone("TwoTrackDistancePt_0", "TwoTrackDistancePt_1");
     }

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,7 +21,7 @@
 //////////////////////////////////////////////
 
 #include "CCDB/BasicCCDBManager.h"
-
+#include "FT0Base/Constants.h"
 #include <Rtypes.h>
 #include <cassert>
 #include <exception>
@@ -106,8 +107,8 @@ class LookUpTable
 {
   using CcdbManager = o2::ccdb::BasicCCDBManager;
   using CcdbApi = o2::ccdb::CcdbApi;
-  static constexpr int NUMBER_OF_MCPs = 12;
-  static constexpr int NUMBER_OF_PMs = 19;
+  static constexpr int NUMBER_OF_MCPs = o2::ft0::Constants::sNCHANNELS_PER_PM;
+  static constexpr int NUMBER_OF_PMs = o2::ft0::Constants::sNTOTAL_PM;
   static constexpr int TCM_channel = 228;
 
  public:
@@ -136,14 +137,14 @@ class LookUpTable
   void printFullMap() const
   {
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
-      std::cout << channel << "\t :  PM \t" << mTopoVector[channel].mPM
-                << " MCP \t" << mTopoVector[channel].mMCP << " EP \t " << mTopoVector[channel].mEP << std::endl;
+      LOG(INFO) << channel << "\t :  PM \t" << mTopoVector[channel].mPM
+                << " MCP \t" << mTopoVector[channel].mMCP << " EP \t " << mTopoVector[channel].mEP;
     }
   }
 
   int getChannel(int link, int mcp, int ep) const
   {
-    if ((ep == 0 && (link > 7 && link < 11)) ||
+    if ((ep == 0 && (link > 7 && link < 11 && link != 9)) ||
         (ep == 1 && link == 8 && mcp > 8) ||
         (ep == 1 && link == 9 && mcp > 8)) {
       LOG(INFO) << " channel is not conneted "
@@ -225,11 +226,13 @@ class LookUpTable
       o2::ft0::Topo topo = chan.pm;
       lut_data[chan.channel] = topo;
     }
-    std::cout << "lut_data.size " << lut_data.size() << std::endl;
+    LOG(INFO) << "lut_data.size " << lut_data.size();
     return o2::ft0::LookUpTable{lut_data};
   }
   bool isTCM(int link, int ep) const { return getChannel(link, 1, ep) == TCM_channel; }
-
+  Topo getTopoPM(int globalChannelID) const { return mTopoVector[globalChannelID]; }
+  Topo getTopoTCM() const { return mTopoVector[TCM_channel]; }
+  std::size_t getNchannels() const { return TCM_channel; } //get number of global PM channels
  private:
   std::vector<Topo> mTopoVector;
   std::vector<int> mInvTopo;
@@ -278,10 +281,76 @@ class SingleLUT : public LookUpTable
   SingleLUT& operator=(SingleLUT&) = delete;
 
  public:
+  typedef Topo Topo_t;
+  static constexpr char sDetectorName[] = "FT0";
   static SingleLUT& Instance()
   {
     static SingleLUT instanceLUT;
     return instanceLUT;
+  }
+  //Temporary
+  //Making topo for FEE recognizing(Local channelID is supressed)
+  static Topo_t makeGlobalTopo(const Topo_t& topo)
+  {
+    return Topo_t{topo.mPM, 0, topo.mEP};
+  }
+  static int getLocalChannelID(const Topo_t& topo)
+  {
+    return topo.mMCP;
+  }
+  //Prepare full map for FEE metadata
+  template <typename RDHtype, typename RDHhelper = void>
+  auto makeMapFEEmetadata() -> std::map<Topo_t, RDHtype>
+  {
+    std::map<Topo_t, RDHtype> mapResult;
+    const uint16_t cruID = 0;      //constant
+    const uint32_t endPointID = 0; //constant
+    uint64_t feeID = 0;            //increments
+    //PM
+    for (int iCh = 0; iCh < Instance().getNchannels(); iCh++) {
+      auto pairInserted = mapResult.insert({makeGlobalTopo(Instance().getTopoPM(iCh)), RDHtype{}});
+      if (pairInserted.second) {
+        auto& rdhObj = pairInserted.first->second;
+        const auto& topoObj = pairInserted.first->first;
+        if constexpr (std::is_same<RDHhelper, void>::value) {
+          rdhObj.linkID = topoObj.mPM;
+          rdhObj.endPointID = topoObj.mEP;
+          rdhObj.feeId = feeID;
+          rdhObj.cruID = cruID;
+        } else //Using RDHUtils
+        {
+          RDHhelper::setLinkID(&rdhObj, topoObj.mPM);
+          RDHhelper::setEndPointID(&rdhObj, topoObj.mEP);
+          RDHhelper::setFEEID(&rdhObj, feeID);
+          RDHhelper::setCRUID(&rdhObj, cruID);
+        }
+        feeID++;
+      }
+    }
+    //TCM
+    {
+      auto pairInserted = mapResult.insert({Instance().getTopoTCM(), RDHtype{}});
+      if (pairInserted.second) {
+        auto& rdhObj = pairInserted.first->second;
+        const auto& topoObj = pairInserted.first->first;
+        if constexpr (std::is_same<RDHhelper, void>::value) {
+          rdhObj.linkID = topoObj.mPM;
+          rdhObj.endPointID = topoObj.mEP;
+          rdhObj.feeId = feeID;
+          rdhObj.cruID = cruID;
+        } else //Using RDHUtils
+        {
+          RDHhelper::setLinkID(&rdhObj, topoObj.mPM);
+          RDHhelper::setEndPointID(&rdhObj, topoObj.mEP);
+          RDHhelper::setFEEID(&rdhObj, feeID);
+          RDHhelper::setCRUID(&rdhObj, cruID);
+        }
+      } else {
+        LOG(INFO) << "WARNING! CHECK LUT! TCM METADATA IS INCORRECT!";
+      }
+    }
+    assert(mapResult.size() > 0);
+    return mapResult;
   }
 };
 } // namespace ft0

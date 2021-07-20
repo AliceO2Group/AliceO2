@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -23,12 +24,13 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
-
+#include "CommonDataFormat/IRFrame.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
@@ -125,6 +127,10 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
   auto& tracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe});
   auto& clusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
+  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0, Lifetime::Timeframe});
+
+  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
+  int nBCPerTF = mTracker.getContinuousMode() ? alpParams.roFrameLengthInBC : alpParams.roFrameLengthTrig;
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
   for (auto& rof : rofs) {
@@ -178,6 +184,9 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     }
     mTracker.setVertices(vtxVecLoc);
     mTracker.process(compClusters, it, mDict, tracks, clusIdx, rof);
+    if (tracks.size()) {
+      irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
+    }
   }
 
   LOG(INFO) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
@@ -208,6 +217,7 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
   outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "IRFRAMES", 0, Lifetime::Timeframe);
 
   if (useMC) {
     inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);

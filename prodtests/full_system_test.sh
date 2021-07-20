@@ -35,6 +35,7 @@ NJOBS=${NJOBS:-"${NCPUS}"}
 SHMSIZE=${SHMSIZE:-8000000000} # Size of shared memory for messages (use 128 GB for 550 event full TF)
 TPCTRACKERSCRATCHMEMORY=${SHMSIZE:-4000000000} # Size of memory allocated by TPC tracker. (Use 24 GB for 550 event full TF)
 ENABLE_GPU_TEST=${ENABLE_GPU_TEST:-0} # Run the full system test also on the GPU
+GPUMEMSIZE=${GPUMEMSIZE:-6000000000} # Size of GPU memory to use in case ENABBLE_GPU_TEST=1
 NTIMEFRAMES=${NTIMEFRAMES:-1} # Number of time frames to process
 TFDELAY=${TFDELAY:-100} # Delay in seconds between publishing time frames
 NOMCLABELS="--disable-mc"
@@ -43,6 +44,8 @@ SPLITTRDDIGI=${SPLITTRDDIGI:-1}
 NHBPERTF=${NHBPERTF:-128}
 RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
 FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
+FST_GENERATOR=${FST_GENERATOR:-pythia8hi}
+FST_MC_ENGINE=${FST_MC_ENGINE:-TGeant4}
 
 [ "$FIRSTSAMPLEDORBIT" -lt "$RUNFIRSTORBIT" ] && FIRSTSAMPLEDORBIT=$RUNFIRSTORBIT
 
@@ -71,7 +74,7 @@ ulimit -n 4096 # Make sure we can open sufficiently many files
 mkdir -p qed
 cd qed
 PbPbXSec="8."
-taskwrapper qedsim.log o2-sim --seed $O2SIMSEED -j $NJOBS -n$NEventsQED -m PIPE ITS MFT FT0 FV0 FDD -g extgen --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-7;QEDGenParam.yMax=7;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;Diamond.width[2]=6."'
+taskwrapper qedsim.log o2-sim --seed $O2SIMSEED -j $NJOBS -n $NEventsQED -m PIPE ITS MFT FT0 FV0 FDD -g extgen -e ${FST_MC_ENGINE} --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-7;QEDGenParam.yMax=7;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;Diamond.width[2]=6."'
 QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d'=' -f 2`/$PbPbXSec}")
 echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
 cd ..
@@ -83,7 +86,7 @@ else
   DIGITRDOPT=$DIGITRDOPTREAL
 fi
 
-taskwrapper sim.log o2-sim --seed $O2SIMSEED -n $NEvents --configKeyValues "Diamond.width[2]=6." -g pythia8hi -j $NJOBS
+taskwrapper sim.log o2-sim --seed $O2SIMSEED -n $NEvents --configKeyValues "Diamond.width[2]=6." -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS
 taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT}
 [ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
 touch digiTRD.log_done
@@ -92,10 +95,11 @@ if [ "0$GENERATE_ITSMFT_DICTIONARIES" == "01" ]; then
   taskwrapper itsmftdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500"'
   cp ~/alice/O2/Detectors/ITSMFT/ITS/macros/test/CreateDictionaries.C .
   taskwrapper itsmftdict2.log root -b -q CreateDictionaries.C++
+  rm -f CreateDictionaries_C* CreateDictionaries.C
   taskwrapper itsmftdict3.log o2-mft-reco-workflow --disable-mc
-  cp ~/alice/O2/Detectors/ITSMFT/MFT/macros/test/CheckTopologies.C .
-  taskwrapper itsmftdict4.log root -b -q CheckTopologies.C++
-  rm -f CheckTopologies_C*
+  cp ~/alice/O2/Detectors/ITSMFT/MFT/macros/test/CreateDictionaries.C .
+  taskwrapper itsmftdict4.log root -b -q CreateDictionaries.C++
+  rm -f CreateDictionaries_C* CreateDictionaries.C
 fi
 
 mkdir -p raw
@@ -107,11 +111,13 @@ taskwrapper fddraw.log o2-fdd-digit2raw --file-per-link  -o raw/FDD
 taskwrapper tpcraw.log o2-tpc-digits-to-rawzs  --file-for link  -i tpcdigits.root -o raw/TPC
 taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --output-type raw --tof-raw-outdir raw/TOF
 taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink
+taskwrapper mchraw.log o2-mch-digits-to-raw --input-file mchdigits.root --output-dir raw/MCH --file-per-link
 taskwrapper emcraw.log o2-emcal-rawcreator --file-for link -o raw/EMC
 taskwrapper phsraw.log o2-phos-digi2raw  --file-for link -o raw/PHS
 taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link -o raw/CPV
 taskwrapper zdcraw.log o2-zdc-digi2raw  --file-per-link -o raw/ZDC
 taskwrapper hmpraw.log o2-hmpid-digits-to-raw-workflow --file-for link --outdir raw/HMP
+taskwrapper trdraw.log o2-trd-trap2raw -o raw/TRD --fileper halfcru
 cat raw/*/*.cfg > rawAll.cfg
 
 if [ "0$DISABLE_PROCESSING" == "01" ]; then
@@ -125,6 +131,10 @@ if [ $ENABLE_GPU_TEST != "0" ]; then
   STAGES+=" WITHGPU"
 fi
 STAGES+=" ASYNC"
+
+# give a possibility to run the FST with external existing dictionary (i.e. with CREATECTFDICT=0 full_system_test.sh)
+[ ! -z "$CREATECTFDICT" ] && SYNCMODEDOCTFDICT="$CREATECTFDICT" || SYNCMODEDOCTFDICT=1
+
 for STAGE in $STAGES; do
   logfile=reco_${STAGE}.log
 
@@ -133,7 +143,6 @@ for STAGE in $STAGES; do
   if [[ "$STAGE" = "WITHGPU" ]]; then
     export CREATECTFDICT=0
     export GPUTYPE=CUDA
-    export GPUMEMSIZE=6000000000
     export HOSTMEMSIZE=1000000000
     export SYNCMODE=1
     export CTFINPUT=0
@@ -146,7 +155,7 @@ for STAGE in $STAGES; do
     export CTFINPUT=1
     export SAVECTF=0
   else
-    export CREATECTFDICT=1
+    export CREATECTFDICT=$SYNCMODEDOCTFDICT
     export GPUTYPE=CPU
     export SYNCMODE=1
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
@@ -158,6 +167,7 @@ for STAGE in $STAGES; do
   export NTIMEFRAMES
   export TFDELAY
   export GLOBALDPLOPT
+  export GPUMEMSIZE
 
   taskwrapper ${logfile} "$O2_ROOT/prodtests/full-system-test/dpl-workflow.sh"
 

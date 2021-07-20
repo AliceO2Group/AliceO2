@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -15,6 +16,7 @@
 #include <string_view>
 #include <algorithm>
 #include <cassert>
+#include <regex>
 
 using namespace o2::framework;
 
@@ -69,10 +71,14 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
     boost::property_tree::ptree deviceRoot;
 
     for (size_t mi = 0; mi < deviceMetrics.metricLabels.size(); mi++) {
-      char const* metricLabel = deviceMetrics.metricLabels[mi].label;
+      std::string metricLabel = deviceMetrics.metricLabels[mi].label;
 
+      auto same = [metricLabel](std::string const& matcher) -> bool {
+        std::regex r{matcher};
+        return std::regex_match(metricLabel, r);
+      };
       //check if we are interested
-      if (std::find(std::begin(performanceMetrics), std::end(performanceMetrics), metricLabel) == std::end(performanceMetrics)) {
+      if (std::find_if(std::begin(performanceMetrics), std::end(performanceMetrics), same) == performanceMetrics.end()) {
         continue;
       }
 

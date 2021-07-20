@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -12,6 +13,7 @@
 #include "Framework/Logger.h"
 
 #include "arrow/type_traits.h"
+#include <arrow/util/key_value_metadata.h>
 
 namespace o2::framework
 {
@@ -836,6 +838,11 @@ void ColumnIterator::finish()
   }
 }
 
+void TreeToTable::setLabel(const char* label)
+{
+  mTableLabel = label;
+}
+
 void TreeToTable::addColumn(const char* colname)
 {
   mColumnNames.push_back(colname);
@@ -897,7 +904,7 @@ void TreeToTable::fill(TTree* tree)
     array_vector.push_back(colit->getArray());
     schema_vector.push_back(colit->getSchema());
   }
-  auto fields = std::make_shared<arrow::Schema>(schema_vector);
+  auto fields = std::make_shared<arrow::Schema>(schema_vector, std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{mTableLabel}));
 
   // create the final table
   // ta is of type std::shared_ptr<arrow::Table>

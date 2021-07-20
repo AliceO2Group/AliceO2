@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -92,6 +93,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRe
   using ECB = CTF::base;
 
   ec->setHeader(cc.header);
+  assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
@@ -120,6 +122,7 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VDIG& cdigVec, VPAT&
   CompressedInfos cc;
   ec.print(getPrefix());
   cc.header = ec.getHeader();
+  checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(cc.header));
 #define DECODETOF(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
   DECODETOF(cc.bcIncROF,     CTF::BLCbcIncROF);
@@ -127,7 +130,7 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VDIG& cdigVec, VPAT&
   DECODETOF(cc.ndigROF,      CTF::BLCndigROF);
   DECODETOF(cc.ndiaROF,      CTF::BLCndiaROF);
   DECODETOF(cc.ndiaCrate,    CTF::BLCndiaCrate);
-  
+
   DECODETOF(cc.timeFrameInc, CTF::BLCtimeFrameInc);
   DECODETOF(cc.timeTDCInc,   CTF::BLCtimeTDCInc);
   DECODETOF(cc.stripID,      CTF::BLCstripID);

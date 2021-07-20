@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -43,7 +44,7 @@
 
 // for TOF
 #include "TOFDigitizerSpec.h"
-#include "TOFWorkflowUtils/TOFDigitWriterSpec.h"
+#include "TOFWorkflowIO/TOFDigitWriterSpec.h"
 
 // for FT0
 #include "FT0DigitizerSpec.h"
@@ -51,7 +52,7 @@
 
 // for CTP
 #include "CTPDigitizerSpec.h"
-#include "CTPWorkflow/CTPDigitWriterSpec.h"
+#include "CTPWorkflowIO/DigitWriterSpec.h"
 
 // for FV0
 #include "FV0DigitizerSpec.h"
@@ -62,8 +63,8 @@
 #include "FDDWorkflow/DigitWriterSpec.h"
 
 // for EMCal
-#include "EMCALDigitizerSpec.h"
-#include "EMCALDigitWriterSpec.h"
+#include "EMCALWorkflow/EMCALDigitizerSpec.h"
+#include "EMCALWorkflow/EMCALDigitWriterSpec.h"
 
 // for HMPID
 #include "HMPIDDigitizerSpec.h"
@@ -626,7 +627,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // connect the CTP digitization
     specs.emplace_back(o2::ctp::getCTPDigitizerSpec(fanoutsize++, detList));
     // connect the CTP digit writer
-    specs.emplace_back(o2::ctp::getCTPDigitWriterSpec(false));
+    specs.emplace_back(o2::ctp::getDigitWriterSpec(false));
   }
   // GRP updater: must come after all detectors since requires their list
   specs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));

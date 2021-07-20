@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -67,8 +68,6 @@ struct CHECKNOFBITS {
     }
     if (PARITY_NOFBITS != 1) {
       throw std::invalid_argument(fmt::format("PARITY_NOFBITS is {0}. Should be 1", PARITY_NOFBITS));
-
-      throw;
     }
   }
 };
@@ -374,6 +373,19 @@ SampaHeader sampaSync()
     0);
 }
 
+SampaHeader sampaHeartbeat(uint8_t chipAddress, uint20_t bunchCrossing)
+{
+  SampaHeader sh;
+  sh.packetType(SampaPacketType::HeartBeat);
+  sh.nof10BitWords(0);
+  sh.chipAddress(chipAddress);
+  sh.channelAddress(21);
+  sh.bunchCrossingCounter(bunchCrossing);
+  sh.hammingCode(computeHammingCode(sh.uint64()));
+  sh.headerParity(computeHeaderParity(sh.uint64()));
+  return sh;
+}
+
 std::string asString(const SampaHeader& sh)
 {
   std::stringstream os;
@@ -387,7 +399,7 @@ std::string asString(const SampaHeader& sh)
     }
   }
   os << "\n";
-  os << fmt::sprintf("%6x %d %3x %10x %4x %5x %20x %d (0x%x) | %s %s",
+  os << fmt::sprintf("%6x %d %3x %10x %4x %5x %20x %d (0x%x) | HeaderType: %s %s",
                      sh.hammingCode(),
                      sh.headerParity(),
                      static_cast<uint8_t>(sh.packetType()),
@@ -398,7 +410,8 @@ std::string asString(const SampaHeader& sh)
                      sh.payloadParity(),
                      sh.uint64(),
                      packetTypeName(sh.packetType()),
-                     sh.hasError() ? "ERROR" : "")
+                     sh.hasHammingError() ? " | HAMMING_ERROR" : "",
+                     sh.hasParityError() ? "| PARITY ERROR" : "")
      << "\n";
   return os.str();
 }
@@ -620,7 +633,7 @@ int computeHeaderParity4(uint64_t no)
   return computeParity(no);
 }
 
-uint8_t channelNumber64(const SampaHeader& sh)
+DualSampaChannelId getDualSampaChannelId(const SampaHeader& sh)
 {
   return sh.channelAddress() + (sh.chipAddress() % 2) * 32;
 }

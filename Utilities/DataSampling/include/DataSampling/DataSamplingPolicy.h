@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -72,7 +73,7 @@ class DataSamplingPolicy
   void setFairMQOutputChannel(std::string);
 
   /// \brief Returns true if this policy requires data with given InputSpec.
-  bool match(const framework::ConcreteDataMatcher& input) const;
+  const framework::OutputSpec* match(const framework::ConcreteDataMatcher& input) const;
   /// \brief Returns true if user-defined conditions of sampling are fulfilled.
   bool decide(const o2::framework::DataRef&);
   /// \brief Returns Output for given InputSpec to pass data forward.

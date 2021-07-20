@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -50,6 +51,7 @@ void RawReaderMemory::init()
   mPayloadInitialized = false;
   mCurrentHBFOrbit = 0;
   mStopBitWasNotFound = false;
+  mIsJustInited = true;
 }
 
 //Read the next pages until the stop bit is found or new HBF reached
@@ -94,11 +96,12 @@ RawErrorType_t RawReaderMemory::nextPage()
     mCurrentPosition += RDHDecoder::getOffsetToNext(rawHeader); //moving on
     return RawErrorType_t::kNOT_CPV_RDH;
   }
-  if (mCurrentHBFOrbit != 0 || mStopBitWasNotFound) { //reading first time after init() or stopbit was not found
+  if (mIsJustInited || mStopBitWasNotFound) { //reading first time after init() or stopbit was not found
     mCurrentHBFOrbit = RDHDecoder::getHeartBeatOrbit(rawHeader);
     mRawHeader = rawHeader; //save RDH of first page as mRawHeader
     mRawHeaderInitialized = true;
     mStopBitWasNotFound = false; //reset this flag as we start to read again
+    mIsJustInited = false;
   } else if (mCurrentHBFOrbit != RDHDecoder::getHeartBeatOrbit(rawHeader)) {
     //next HBF started but we didn't find stop bit.
     mStopBitWasNotFound = true;

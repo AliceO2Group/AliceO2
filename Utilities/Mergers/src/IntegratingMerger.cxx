@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -22,11 +23,8 @@
 
 #include "Framework/InputRecordWalker.h"
 #include "Framework/Logger.h"
-//#include "Framework/DataRef.h"
 
-//using namespace o2;
 using namespace o2::framework;
-//using namespace std::chrono;
 
 namespace o2::mergers
 {
@@ -35,12 +33,13 @@ IntegratingMerger::IntegratingMerger(const MergerConfig& config, const header::D
   : mConfig(config),
     mSubSpec(subSpec)
 {
-  mCollector = monitoring::MonitoringFactory::Get("infologger:///debug?qc");
-  //  mCollector->enableProcessMonitoring();
 }
 
 void IntegratingMerger::init(framework::InitContext& ictx)
 {
+  mCyclesSinceReset = 0;
+  mCollector = monitoring::MonitoringFactory::Get(mConfig.monitoringUrl);
+  mCollector->addGlobalTag(monitoring::tags::Key::Subsystem, monitoring::tags::Value::Mergers);
 }
 
 void IntegratingMerger::run(framework::ProcessingContext& ctx)
@@ -66,38 +65,54 @@ void IntegratingMerger::run(framework::ProcessingContext& ctx)
       } else {
         throw std::runtime_error("mMergedObject' variant has no value.");
       }
-      mObjectsMerged++;
+      mDeltasMerged++;
     }
   }
 
   if (ctx.inputs().isValid("timer-publish")) {
-
+    mCyclesSinceReset++;
     publish(ctx.outputs());
 
-    if (mConfig.mergedObjectTimespan.value == MergedObjectTimespan::LastDifference) {
-      mMergedObject = std::monostate{};
+    if (mConfig.mergedObjectTimespan.value == MergedObjectTimespan::LastDifference ||
+        mConfig.mergedObjectTimespan.value == MergedObjectTimespan::NCycles && mConfig.mergedObjectTimespan.param == mCyclesSinceReset) {
+      clear();
     }
   }
 }
 
+// I am not calling it reset(), because it does not have to be performed during the FairMQs reset.
+void IntegratingMerger::clear()
+{
+  mMergedObject = std::monostate{};
+  mCyclesSinceReset = 0;
+  mTotalDeltasMerged = 0;
+  mDeltasMerged = 0;
+}
+
 void IntegratingMerger::publish(framework::DataAllocator& allocator)
 {
+  mTotalDeltasMerged += mDeltasMerged;
+
   if (std::holds_alternative<std::monostate>(mMergedObject)) {
-    LOG(INFO) << "Nothing to publish yet";
+    LOG(INFO) << "No objects received since start or reset, nothing to publish";
   } else if (std::holds_alternative<MergeInterfacePtr>(mMergedObject)) {
     allocator.snapshot(framework::OutputRef{MergerBuilder::mergerOutputBinding(), mSubSpec},
                        *std::get<MergeInterfacePtr>(mMergedObject));
+    LOG(INFO) << "Published the merged object with " << mTotalDeltasMerged << " deltas in total,"
+              << " including " << mDeltasMerged << " in the last cycle.";
   } else if (std::holds_alternative<TObjectPtr>(mMergedObject)) {
     allocator.snapshot(framework::OutputRef{MergerBuilder::mergerOutputBinding(), mSubSpec},
                        *std::get<TObjectPtr>(mMergedObject));
+    LOG(INFO) << "Published the merged object with " << mTotalDeltasMerged << " deltas in total,"
+              << " including " << mDeltasMerged << " in the last cycle.";
   } else {
     throw std::runtime_error("mMergedObject' variant has no value.");
   }
 
-  mTotalObjectsMerged += mObjectsMerged;
-  mCollector->send({mTotalObjectsMerged, "total_objects_merged"}, monitoring::DerivedMetricMode::RATE);
-  mCollector->send({mObjectsMerged, "objects_merged_since_last_publication"});
-  mObjectsMerged = 0;
+  mCollector->send({mTotalDeltasMerged, "total_deltas_merged"}, monitoring::DerivedMetricMode::RATE);
+  mCollector->send({mDeltasMerged, "deltas_merged_since_last_publication"});
+  mCollector->send({mCyclesSinceReset, "cycles_since_reset"});
+  mDeltasMerged = 0;
 }
 
 } // namespace o2::mergers

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -28,6 +29,10 @@ BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest)
 
   auto specs = std::vector<ConfigParamSpec>{
     {"someInt", VariantType::Int, 2, {"some int option"}},
+    {"someUInt8", VariantType::UInt8, static_cast<uint8_t>(2u), {"some uint8 option"}},
+    {"someUInt16", VariantType::UInt16, static_cast<uint16_t>(2u), {"some uint16 option"}},
+    {"someUInt32", VariantType::UInt32, 2u, {"some uint32 option"}},
+    {"someUInt64", VariantType::UInt64, static_cast<uint64_t>(2ul), {"some uint64 option"}},
     {"someInt64", VariantType::Int64, 4ll, {"some int64 option"}},
     {"someBool", VariantType::Bool, false, {"some bool option"}},
     {"someFloat", VariantType::Float, 2.0f, {"some float option"}},
@@ -37,6 +42,10 @@ BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest)
     "test",
     "--someBool",
     "--someInt", "1",
+    "--someUInt8", "1",
+    "--someUInt16", "1",
+    "--someUInt32", "1",
+    "--someUInt64", "1",
     "--someInt64", "50000000000000",
     "--someFloat", "0.5",
     "--someDouble", "0.5",
@@ -49,6 +58,10 @@ BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest)
   bpo::store(parse_command_line(sizeof(args) / sizeof(char*), args, opts), vm);
   bpo::notify(vm);
   BOOST_CHECK(vm["someInt"].as<int>() == 1);
+  BOOST_CHECK(vm["someUInt8"].as<uint8_t>() == '1');
+  BOOST_CHECK(vm["someUInt16"].as<uint16_t>() == 1);
+  BOOST_CHECK(vm["someUInt32"].as<uint32_t>() == 1);
+  BOOST_CHECK(vm["someUInt64"].as<uint64_t>() == 1);
   BOOST_CHECK(vm["someInt64"].as<int64_t>() == 50000000000000ll);
   BOOST_CHECK(vm["someBool"].as<bool>() == true);
   BOOST_CHECK(vm["someString"].as<std::string>() == "foobar");

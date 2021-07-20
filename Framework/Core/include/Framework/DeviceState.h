@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -22,6 +23,7 @@ typedef struct uv_loop_s uv_loop_t;
 typedef struct uv_timer_s uv_timer_t;
 typedef struct uv_poll_s uv_poll_t;
 typedef struct uv_signal_s uv_signal_t;
+typedef struct uv_async_s uv_async_t;
 
 namespace o2::framework
 {
@@ -30,11 +32,11 @@ namespace o2::framework
 /// device.
 enum struct StreamingState {
   /// Data is being processed
-  Streaming,
+  Streaming = 0,
   /// End of streaming requested, but not notified
-  EndOfStreaming,
+  EndOfStreaming = 1,
   /// End of streaming notified
-  Idle,
+  Idle = 2,
 };
 
 /// Running state information of a given device
@@ -77,6 +79,9 @@ struct DeviceState {
   std::vector<uv_poll_t*> activeOutputPollers;
   /// The list of active signal handlers
   std::vector<uv_signal_t*> activeSignals;
+
+  uv_async_t* awakeMainThread = nullptr;
+
   int loopReason = 0;
 };
 

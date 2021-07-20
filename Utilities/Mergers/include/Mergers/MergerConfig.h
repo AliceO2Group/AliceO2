@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -15,6 +16,8 @@
 /// \brief Definition of O2 MergerConfig, v0.1
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
+
+#include <string>
 
 namespace o2::mergers
 {
@@ -32,8 +35,11 @@ enum class MergedObjectTimespan {
   FullHistory,
   // Merged object should be an sum of differences received after last publication.
   // Merged object is reset after published. It won't produce meaningful results
-  // when InputObjectsTimespan::FullHstory is set.
-  LastDifference
+  // when InputObjectsTimespan::FullHistory is set.
+  LastDifference,
+  // Generalisation of the two above. Resets all objects in Mergers after n cycles (0 - infinite).
+  // The the above will be removed once we switch to NCycles in QC.
+  NCycles
 };
 
 enum class PublicationDecision {
@@ -54,9 +60,10 @@ struct ConfigEntry {
 // \brief MergerAlgorithm configuration structure. Default configuration should work in most cases, out of the box.
 struct MergerConfig {
   ConfigEntry<InputObjectsTimespan> inputObjectTimespan = {InputObjectsTimespan::FullHistory};
-  ConfigEntry<MergedObjectTimespan> mergedObjectTimespan = {MergedObjectTimespan::FullHistory};
+  ConfigEntry<MergedObjectTimespan, int> mergedObjectTimespan = {MergedObjectTimespan::FullHistory};
   ConfigEntry<PublicationDecision> publicationDecision = {PublicationDecision::EachNSeconds, 10};
   ConfigEntry<TopologySize, int> topologySize = {TopologySize::NumberOfLayers, 1};
+  std::string monitoringUrl = "infologger:///debug?qc";
 };
 
 } // namespace o2::mergers

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -62,6 +63,20 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     cut->AddCut(GetAnalysisCut("electronStandardQuality"));
     cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
     cut->AddCut(GetAnalysisCut("electronPIDnsigma"));
+    return cut;
+  }
+
+  if (!nameStr.compare("PIDCalib")) {
+    cut->AddCut(GetAnalysisCut("PIDStandardKine")); // standard kine cuts usually are applied via Filter in the task
+    cut->AddCut(GetAnalysisCut("electronStandardQuality"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
+    cut->AddCut(GetAnalysisCut("pidcalib_ele"));
+    return cut;
+  }
+  if (!nameStr.compare("NoPID")) {
+    cut->AddCut(GetAnalysisCut("PIDStandardKine")); // standard kine cuts usually are applied via Filter in the task
+    cut->AddCut(GetAnalysisCut("electronStandardQuality"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
     return cut;
   }
 
@@ -247,6 +262,16 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("eventDimuonStandard")) {
+    cut->AddCut(VarManager::kIsMuonUnlikeLowPt7, 0.5, 1.5);
+    return cut;
+  }
+
+  if (!nameStr.compare("eventMuonStandard")) {
+    cut->AddCut(VarManager::kIsMuonSingleLowPt7, 0.5, 1.5);
+    return cut;
+  }
+
   if (!nameStr.compare("int7vtxZ5")) {
     cut->AddCut(VarManager::kVtxZ, -5.0, 5.0);
     cut->AddCut(VarManager::kIsINT7, 0.5, 1.5);
@@ -268,6 +293,11 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
   if (!nameStr.compare("lmeeLowBKine")) {
     cut->AddCut(VarManager::kPt, 0.075, 10.0);
     cut->AddCut(VarManager::kEta, -0.8, 0.8);
+    return cut;
+  }
+  if (!nameStr.compare("PIDStandardKine")) {
+    cut->AddCut(VarManager::kPt, 0.1, 1000.0);
+    cut->AddCut(VarManager::kEta, -0.9, 0.9);
     return cut;
   }
 
@@ -404,10 +434,17 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("pidcalib_ele")) {
+    cut->AddCut(VarManager::kIsLegFromGamma, 0.5, 1.5, false);
+    return cut;
+  }
+
   if (!nameStr.compare("muonQualityCuts")) {
     cut->AddCut(VarManager::kEta, -4.0, -2.5);
-    cut->AddCut(VarManager::kMuonRAtAbsorberEnd, 25.0, 90.0);
-    cut->AddCut(VarManager::kMuonPDca, 0.0, 300.0);
+    cut->AddCut(VarManager::kMuonRAtAbsorberEnd, 17.6, 89.5);
+    cut->AddCut(VarManager::kMuonPDca, 0.0, 594.0, false, VarManager::kMuonRAtAbsorberEnd, 17.6, 26.5);
+    cut->AddCut(VarManager::kMuonPDca, 0.0, 324.0, false, VarManager::kMuonRAtAbsorberEnd, 26.5, 89.5);
+    cut->AddCut(VarManager::kMuonChi2, 0.0, 1e6);
     return cut;
   }
 

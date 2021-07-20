@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -162,11 +163,11 @@ void CTFCoder::buildCoder(ctf::CTFCoderBase::OpType coderType, const CTF::contai
     frequencyTable.addFrequencies(block.getDict(), block.getDict() + block.getNDict(), metaData.min, metaData.max);
     return frequencyTable;
   };
-  auto getProbabilityBits = [](const CTF::container_t& ctf, CTF::Slots slot) -> int {
+  auto getSymbolTablePrecision = [](const CTF::container_t& ctf, CTF::Slots slot) -> int {
     return ctf.getMetadata(slot).probabilityBits;
   };
 
-  this->createCoder<source_T>(coderType, buildFrequencyTable(ctf, slot), getProbabilityBits(ctf, slot), static_cast<int>(slot));
+  this->createCoder<source_T>(coderType, buildFrequencyTable(ctf, slot), getSymbolTablePrecision(ctf, slot), static_cast<int>(slot));
 }
 
 /// entropy-encode clusters to buffer with CTF
@@ -211,7 +212,9 @@ void CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
   if (mCombineColumns) {
     flags |= CTFHeader::CombinedColumns;
   }
-  ec->setHeader(CTFHeader{reinterpret_cast<const CompressedClustersCounters&>(ccl), flags});
+  ec->setHeader(CTFHeader{0, 1, 0, // dummy timestamp, version 1.0
+                          ccl, flags});
+  assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
 
@@ -294,8 +297,9 @@ void CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
   CompressedClusters cc;
   CompressedClustersCounters& ccCount = cc;
   auto& header = ec.getHeader();
+  checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   checkDataDictionaryConsistency(header);
-  ccCount = reinterpret_cast<const CompressedClustersCounters&>(header);
+  ccCount = static_cast<const CompressedClustersCounters&>(header);
   CompressedClustersFlat* ccFlat = nullptr;
   size_t sizeCFlatBody = alignSize(ccFlat);
   size_t sz = sizeCFlatBody + estimateSize(cc);                                             // total size of the buffVec accounting for the alignment

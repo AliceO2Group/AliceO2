@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -115,6 +116,7 @@ class PVertexer
   void initMeanVertexConstraint();
   void applyConstraint(VertexSeed& vtxSeed) const;
   bool upscaleSigma(VertexSeed& vtxSeed) const;
+  bool relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxErr2) const;
 
   template <typename TR>
   void createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTrackID> gids);
@@ -216,8 +218,7 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
   for (uint32_t i = 0; i < ntGlo; i++) {
     int id = sortedTrackID[i];
     o2::track::TrackParCov trc = tracks[id];
-    if (!trc.propagateToDCA(mMeanVertex, mBz, &dca, mPVParams->dcaTolerance) ||
-        dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) > mPVParams->pullIniCut) {
+    if (!relateTrackToMeanVertex(trc, vtxErr2)) {
       continue;
     }
     auto& tvf = mTracksPool.emplace_back(trc, tracks[id].getTimeMUS(), id, gids[id], mPVParams->addTimeSigma2, mPVParams->addZSigma2);

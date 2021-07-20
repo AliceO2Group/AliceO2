@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -28,10 +29,12 @@ using RawHeaderPM = o2::fdd::EventHeader;
 using RawDataPM = o2::fdd::EventData;
 using RawHeaderTCM = o2::fdd::EventHeader;
 using RawDataTCM = o2::fdd::TCMdata;
+using RawHeaderTCMext = o2::fdd::EventHeader;
+using RawDataTCMext = o2::fdd::TCMdataExtended;
 //Data block for FDD modules
 using DataBlockPM = o2::fit::DataBlockPM<RawHeaderPM, RawDataPM>;
 using DataBlockTCM = o2::fit::DataBlockTCM<RawHeaderTCM, RawDataTCM>;
-//using DataBlockTCMext = o2::fit::DataBlockTCMext<RawHeaderTCMext,RawDataTCM,RawDataTCMext>;
+using DataBlockTCMext = o2::fit::DataBlockTCMext<RawHeaderTCMext, RawDataTCM, RawDataTCMext>;
 } // namespace fdd
 } // namespace o2
 #endif

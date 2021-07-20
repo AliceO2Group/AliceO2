@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,12 +21,12 @@ struct DigitizationParameters
   : o2::conf::ConfigurableParamHelper<DigitizationParameters> {
   float mBunchWidth = 25;                                    //ns
   float mChannelWidthInverse = 0.076804916;                  // channel width in ps inverse
-  float mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4; //number of MCPs
+
+  float mMCPs = Geometry::Nchannels;                         //number of MCPs
   float mCFD_trsh = 3.;                                      // [mV]
   float mAmp_trsh = 100;                                     // [ph.e]
   float mAmpRecordLow = -4;                                  // integrate charge from
   float mAmpRecordUp = 15;                                   // to [ns]
-  //  float mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   float mC_side_cable_cmps = 2.86;   //ns
   float mA_side_cable_cmps = 11.110; //ns
   int mtrg_central_trh = 600.;       // channels

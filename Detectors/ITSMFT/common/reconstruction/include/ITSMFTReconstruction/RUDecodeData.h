@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -80,16 +81,19 @@ int RUDecodeData::decodeROF(const Mapping& mp)
     auto chIdGetter = [this, &mp, cabHW](int cid) {
       return mp.getGlobalChipID(cid, cabHW, *this->ruInfo);
     };
-    while (AlpideCoder::decodeChip(*chipData, cableData[icab], chIdGetter) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
+    int ret = 0;
+    while ((ret = AlpideCoder::decodeChip(*chipData, cableData[icab], chIdGetter)) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
       setROFInfo(chipData, cableLinkPtr[icab]);
-      ntot += chipData->getData().size();
 #ifdef ALPIDE_DECODING_STAT
       fillChipStatistics(icab, chipData);
 #endif
-      if (++nChipsFired < chipsData.size()) { // fetch next free chip
-        chipData = &chipsData[nChipsFired];
-      } else {
-        break; // last chip decoded
+      if (ret >= 0 && !chipData->isErrorSet()) { // make sure there was no error
+        ntot += chipData->getData().size();
+        if (++nChipsFired < chipsData.size()) { // fetch next free chip
+          chipData = &chipsData[nChipsFired];
+        } else {
+          break; // last chip decoded
+        }
       }
     }
   }

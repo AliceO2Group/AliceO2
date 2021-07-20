@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 # Comments
 #
@@ -25,6 +26,7 @@ o2_add_library(
           src/ClusterNativeHelper.cxx
           src/WorkflowHelper.cxx
           src/CompressedClusters.cxx
+          src/TrackCuts.cxx
   PUBLIC_LINK_LIBRARIES O2::GPUCommon
                         O2::SimulationDataFormat
                         O2::CommonDataFormat
@@ -48,7 +50,8 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/CTF.h
           include/DataFormatsTPC/IDC.h
           include/DataFormatsTPC/ZeroSuppression.h
-          include/DataFormatsTPC/ZeroSuppressionLinkBased.h)
+          include/DataFormatsTPC/ZeroSuppressionLinkBased.h
+          include/DataFormatsTPC/TrackCuts.h)
 
 o2_add_test(
   ClusterNative
@@ -67,6 +70,13 @@ o2_add_test(
 o2_add_test(
   CompressedClusters
   SOURCES test/testCompressedClusters.cxx
+  COMPONENT_NAME DataFormats-TPC
+  PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
+  LABELS tpc dataformats)
+
+o2_add_test(
+  TrackCuts
+  SOURCES test/test_TrackCuts.cxx
   COMPONENT_NAME DataFormats-TPC
   PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
   LABELS tpc dataformats)

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -29,12 +30,15 @@ namespace o2::framework
 /// @a offset the offset in the original table at which the corresponding
 /// slice was split.
 template <typename T>
-auto sliceByColumn(char const* key,
-                   std::shared_ptr<arrow::Table> const& input,
-                   T fullSize,
-                   std::vector<arrow::Datum>* slices,
-                   std::vector<int32_t>* vals = nullptr,
-                   std::vector<uint64_t>* offsets = nullptr)
+auto sliceByColumn(
+  char const* key,
+  std::shared_ptr<arrow::Table> const& input,
+  T fullSize,
+  std::vector<arrow::Datum>* slices,
+  std::vector<uint64_t>* offsets = nullptr,
+  std::vector<int>* sizes = nullptr,
+  std::vector<arrow::Datum>* unassignedSlices = nullptr,
+  std::vector<uint64_t>* unassignedOffsets = nullptr)
 {
   arrow::Datum value_counts;
   auto options = arrow::compute::CountOptions::Defaults();
@@ -46,53 +50,60 @@ auto sliceByColumn(char const* key,
   auto counts = static_cast<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
 
   // create slices and offsets
-  auto offset = 0;
+  uint64_t offset = 0;
   auto count = 0;
-
   auto size = values.length();
-  if (vals != nullptr) {
-    for (auto i = 0; i < size; ++i) {
-      vals->push_back(values.Value(i));
-    }
-  }
 
-  auto makeSlice = [&](T count) {
-    slices->emplace_back(arrow::Datum{input->Slice(offset, count)});
+  auto makeSlice = [&](uint64_t offset_, T count_) {
+    slices->emplace_back(arrow::Datum{input->Slice(offset_, count_)});
     if (offsets) {
-      offsets->emplace_back(offset);
+      offsets->emplace_back(offset_);
+    }
+    if (sizes) {
+      sizes->emplace_back(count_);
     }
   };
 
-  auto current = 0;
-  auto v = values.Value(0);
-  while (v - current >= 1) {
-    makeSlice(0);
-    ++current;
-  }
-
-  for (auto r = 0; r < size - 1; ++r) {
-    count = counts.Value(r);
-    makeSlice(count);
-    offset += count;
-    auto nextValue = values.Value(r + 1);
-    auto value = values.Value(r);
-    while (nextValue - value > 1) {
-      makeSlice(0);
-      ++value;
+  auto makeUnassignedSlice = [&](uint64_t offset_, T count_) {
+    if (unassignedSlices) {
+      unassignedSlices->emplace_back(arrow::Datum{input->Slice(offset_, count_)});
     }
+    if (unassignedOffsets) {
+      unassignedOffsets->emplace_back(offset_);
+    }
+  };
+
+  auto v = 0;
+  auto vprev = v;
+  auto nzeros = 0;
+
+  for (auto i = 0; i < size; ++i) {
+    count = counts.Value(i);
+    if (v >= 0) {
+      vprev = v;
+    }
+    v = values.Value(i);
+    if (v < 0) {
+      makeUnassignedSlice(offset, count);
+      offset += count;
+      continue;
+    }
+    nzeros = v - vprev - ((i == 0 || slices->empty() == true) ? 0 : 1);
+    for (auto z = 0; z < nzeros; ++z) {
+      makeSlice(offset, 0);
+    }
+    makeSlice(offset, count);
+    offset += count;
   }
-  makeSlice(counts.Value(size - 1));
-  offset += counts.Value(size - 1);
 
   if (values.Value(size - 1) < fullSize - 1) {
     for (auto v = values.Value(size - 1) + 1; v < fullSize; ++v) {
-      makeSlice(0);
+      makeSlice(offset, 0);
     }
   }
 
   return arrow::Status::OK();
 }
-
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_KERNELS_H_

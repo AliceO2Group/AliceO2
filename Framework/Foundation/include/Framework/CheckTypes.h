@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -21,14 +22,23 @@ constexpr bool is_type_complete_v = false;
 template <typename T>
 constexpr bool is_type_complete_v<T, std::void_t<decltype(sizeof(T))>> = true;
 
-/// Helper which will invoke lambda if the type T is actually available.
+/// Helper which will invoke @a onDefined if the type T is actually available
+/// or @a onUndefined if the type T is a forward declaration.
 /// Can be used to check for existence or not of a given type.
-template <typename T, typename TLambda>
-void call_if_defined(TLambda&& lambda)
+template <typename T, typename TDefined, typename TUndefined>
+void call_if_defined_full(TDefined&& onDefined, TUndefined&& onUndefined)
 {
   if constexpr (is_type_complete_v<T>) {
-    lambda(static_cast<T*>(nullptr));
+    onDefined(static_cast<T*>(nullptr));
+  } else {
+    onUndefined();
   }
+}
+
+template <typename T, typename TDefined>
+void call_if_defined(TDefined&& onDefined)
+{
+  call_if_defined_full<T>(onDefined, []() -> void {});
 }
 
 } // namespace o2::framework

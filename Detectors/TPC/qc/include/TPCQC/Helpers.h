@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -17,6 +18,7 @@
 #define AliceO2_TPC_HELPERS_H
 
 #include <vector>
+#include "TPCBase/CalDet.h"
 
 class TH1F;
 class TH2F;
@@ -47,6 +49,13 @@ void setStyleHistogram2D(TH2& histo);
 
 /// Set nice style for vector of 2D histograms
 void setStyleHistogram2D(std::vector<TH2F>& histos);
+
+/// Check if at least one pad in refPedestal and pedestal differs by 3*refNoise to see if new ZS calibration data should be uploaded to the FECs.
+/// @param refPedestal
+/// @param refNoise
+/// @param pedestal
+/// @return true if refPedestal - pedestal > 3*refNoise on at least one pad
+bool newZSCalib(const o2::tpc::CalDet<float>& refPedestal, const o2::tpc::CalDet<float>& refNoise, const o2::tpc::CalDet<float>& pedestal);
 
 } // namespace helpers
 } // namespace qc

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,6 +15,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
+#include "ITSWorkflow/IRFrameReaderSpec.h"
 #include "MFTWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/ClusterReaderSpec.h"
@@ -22,8 +24,8 @@
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackCosmicsReaderSpec.h"
-#include "TOFWorkflowUtils/ClusterReaderSpec.h"
-#include "TOFWorkflow/TOFMatchedReaderSpec.h"
+#include "TOFWorkflowIO/ClusterReaderSpec.h"
+#include "TOFWorkflowIO/TOFMatchedReaderSpec.h"
 #include "FT0Workflow/RecPointReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackReaderSpec.h"
@@ -119,5 +121,15 @@ int InputHelper::addInputSpecsCosmics(const o2::framework::ConfigContext& config
     return 0;
   }
   specs.emplace_back(o2::globaltracking::getTrackCosmicsReaderSpec(mc));
+  return 0;
+}
+
+// attach vector of ITS reconstructed IRFrames
+int InputHelper::addInputSpecsIRFramesITS(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs)
+{
+  if (configcontext.options().get<bool>("disable-root-input")) {
+    return 0;
+  }
+  specs.emplace_back(o2::its::getIRFrameReaderSpec());
   return 0;
 }

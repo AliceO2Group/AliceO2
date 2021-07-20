@@ -19,7 +19,7 @@ intRatePbPb=50
 # default collision system
 collSyst="pp"
 
-generPP="pythia8"
+generPP="pythia8pp"
 generPbPb="pythia8hi"
 
 # default sim engine
@@ -37,7 +37,7 @@ simWorker=""
 # option to set the number of tpc-lanes
 tpcLanes=""
 
-Usage() 
+Usage()
 {
   echo "Usage: ${0##*/} [-s system /pp[Def] or pbpb/] [-r IR(kHz) /Def = $intRatePP(pp)/$intRatePbPb(pbpb)] [-n Number of events /Def = $nevPP(pp) or $nevPbPb(pbpb)/] [-e TGeant3|TGeant4] [-f fromstage sim|digi|reco /Def = sim]"
   exit
@@ -45,17 +45,17 @@ Usage()
 
 fromstage="sim"
 while [ $# -gt 0 ] ; do
-    case $1 in
-	-n) nev=$2;  shift 2 ;;
-	-s) collSyst=$2; shift 2 ;;
-	-r) intRate=$2; shift 2 ;;
-	-e) engine=$2; shift 2 ;;
-	-f) fromstage=$2; shift 2 ;;
-        -j) simWorker="-j $2"; shift 2 ;;
-        -l) tpcLanes="--tpc-lanes $2"; shift 2 ;;
-	-h) Usage ;;
-	*) echo "Wrong input"; Usage;
-    esac
+  case $1 in
+    -n) nev=$2;  shift 2 ;;
+    -s) collSyst=$2; shift 2 ;;
+    -r) intRate=$2; shift 2 ;;
+    -e) engine=$2; shift 2 ;;
+    -f) fromstage=$2; shift 2 ;;
+    -j) simWorker="-j $2"; shift 2 ;;
+    -l) tpcLanes="--tpc-lanes $2"; shift 2 ;;
+    -h) Usage ;;
+    *) echo "Wrong input"; Usage;
+  esac
 done
 
 # convert to lower case (the bash construct ${collSyst,,} is less portable)
@@ -76,15 +76,18 @@ fi
 
 dosim="0"
 dodigi="0"
+dotrdtrap="0"
 doreco="0"
 # convert to lowercase
 fromstage=`echo "$fromstage" | awk '{print tolower($0)}'`
 if [ "$fromstage" == "sim" ]; then
   dosim="1"
   dodigi="1"
+  dotrdtrap="1"
   doreco="1"
 elif [ "$fromstage" == "digi" ]; then
   dodigi="1"
+  dotrdtrap="1"
   doreco="1"
 elif [ "$fromstage" == "reco" ]; then
   doreco="1"
@@ -111,6 +114,13 @@ if [ "$dodigi" == "1" ]; then
   # existing checks
   #root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckDigits.C+
 fi
+
+if [ "$dotrdtrap" == "1" ]; then
+  echo "Running TRD trap simulator"
+  taskwrapper trdtrap.log o2-trd-trap-sim $gloOpt
+  echo "Return status of trd trap sim: $?"
+fi
+
 
 if [ "$doreco" == "1" ]; then
   echo "Running TPC reco flow"
@@ -141,25 +151,42 @@ if [ "$doreco" == "1" ]; then
   taskwrapper itstpcMatch.log o2-tpcits-match-workflow $gloOpt
   echo "Return status of itstpcMatch: $?"
 
-  echo "Running ITSTPC-TOF macthing flow"
-  #needs results of TOF digitized data and results of o2-tpcits-match-workflow
-  taskwrapper tofMatch.log o2-tof-reco-workflow $gloOpt
-  echo "Return status of its-tpc-tof match: $?"
+  echo "Running TRD matching to ITS-TPC and TPC"
+  #needs results of o2-tpc-reco-workflow, o2-tpcits-match-workflow and o2-trd-tracklet-transformer
+  taskwrapper trdTrkltTransf.log o2-trd-tracklet-transformer $gloOpt
+  echo "Return status of trdTrkltTransf: $?"
+  taskwrapper trdMatch.log o2-trd-global-tracking $gloOpt
+  echo "Return status of trdTracker: $?"
 
-  echo "Running TPC-TOF macthing flow"
-  #needs results of TOF clusters data from o2-tof-reco-workflow and results of o2-tpc-reco-workflow
-  taskwrapper tofMatchTPC.log o2-tof-matcher-tpc $gloOpt
-  echo "Return status of o2-tof-matcher-tpc: $?"
+  echo "Running TOF reco flow to produce clusters"
+  #needs results of TOF digitized data and results of o2-tpcits-match-workflow
+  taskwrapper tofReco.log o2-tof-reco-workflow $gloOpt
+  echo "Return status of tof cluster reco : $?"
+
+  echo "Running Track-TOF macthing flow"
+  #needs results of TOF clusters data from o2-tof-reco-workflow and results of o2-tpc-reco-workflow and ITS-TPC matching
+  taskwrapper tofMatchTracks.log o2-tof-matcher-workflow $gloOpt
+  echo "Return status of o2-tof-matcher-workflow: $?"
+
+  echo "Running TOF matching QA"
+  #need results of ITSTPC-TOF matching (+ TOF clusters and ITS-TPC tracks)
+  taskwrapper tofmatch_qa.log root -b -q -l $O2_ROOT/share/macro/checkTOFMatching.C
+  echo "Return status of TOF matching qa: $?"
 
   echo "Running primary vertex finding flow"
   #needs results of TPC-ITS matching and FIT workflows
   taskwrapper pvfinder.log o2-primary-vertexing-workflow $gloOpt
   echo "Return status of primary vertexing: $?"
 
-  echo "Running TOF matching QA"
-  #need results of ITSTPC-TOF matching (+ TOF clusters and ITS-TPC tracks)
-  taskwrapper tofmatch_qa.log root -b -q -l $O2_ROOT/share/macro/checkTOFMatching.C
-  echo "Return status of TOF matching qa: $?"
+  echo "Running secondary vertex finding flow"
+  #needs results of all trackers + P.Vertexer
+  taskwrapper svfinder.log o2-secondary-vertexing-workflow $gloOpt
+  echo "Return status of secondary vertexing: $?"
+
+  echo "Running ZDC reconstruction"
+  #need ZDC digits
+  taskwrapper zdcreco.log o2-zdc-digits-reco $gloOpt
+  echo "Return status of ZDC reconstruction: $?"
 
   echo "Producing AOD"
   taskwrapper aod.log o2-aod-producer-workflow --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1

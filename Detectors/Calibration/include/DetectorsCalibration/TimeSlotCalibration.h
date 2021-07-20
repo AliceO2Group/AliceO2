@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -180,7 +181,7 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
     }
   } else {
     // check if some slots are done
-    for (auto slot = mSlots.begin(); slot != mSlots.end(); slot++) {
+    for (auto slot = mSlots.begin(); slot != mSlots.end();) {
       //if (maxDelay == 0 || (slot->getTFEnd() + maxDelay) < tf) {
       if ((slot->getTFEnd() + maxDelay) < tf) {
         if (hasEnoughData(*slot)) {
@@ -196,12 +197,9 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
         }
         mLastClosedTF = slot->getTFEnd() + 1; // will not accept any TF below this
         LOG(INFO) << "closing slot " << slot->getTFStart() << " <= TF <= " << slot->getTFEnd();
-        mSlots.erase(slot);
+        slot = mSlots.erase(slot);
       } else {
-        break;
-      }
-      if (mSlots.empty()) { // since erasing the very last entry may invalidate mSlots.end()
-        break;
+        break; // all following slots will be even closer to the new TF
       }
     }
   }

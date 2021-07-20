@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -88,16 +89,24 @@ class DataDecoder
     }
 
     bool operator==(const SampaInfo&) const;
+    bool operator<(const SampaInfo& rhs) const
+    {
+      if (id < rhs.id) {
+        return true;
+      } else if (time < rhs.time) {
+        return true;
+      }
+      return false;
+    }
   };
 
   struct SampaTimeFrameStart {
+    SampaTimeFrameStart() = default;
     SampaTimeFrameStart(uint32_t orbit, uint32_t bunchCrossing) : mOrbit(orbit), mBunchCrossing(bunchCrossing) {}
 
     uint32_t mOrbit{0};
-    int32_t mBunchCrossing{0};
+    uint32_t mBunchCrossing{0};
   };
-
-  using SampaTimeFrameStarts = std::unordered_map<uint32_t, std::optional<SampaTimeFrameStart>>;
 
   struct RawDigit {
     o2::mch::Digit digit;
@@ -117,17 +126,26 @@ class DataDecoder
 
   using RawDigitVector = std::vector<RawDigit>;
 
-  DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler, std::string mapCRUfile, std::string mapFECfile, bool ds2manu, bool verbose);
+  DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler,
+              uint32_t sampaBcOffset,
+              std::string mapCRUfile, std::string mapFECfile,
+              bool ds2manu, bool verbose, bool useDummyElecMap);
 
   void reset();
-  void setFirstTForbit(uint32_t orbit) { mFirstTForbit = orbit; }
   void decodeBuffer(gsl::span<const std::byte> buf);
 
+  void setFirstOrbitInRun(uint32_t orbit) { mFirstOrbitInRun = orbit; }
+  std::optional<uint32_t> getFirstOrbitInRun() { return mFirstOrbitInRun; }
+  void setFirstOrbitInTF(uint32_t orbit);
+
+  void setSampaBcOffset(uint32_t offset) { mSampaTimeOffset = offset; }
+  uint32_t getSampaBcOffset() const { return mSampaTimeOffset; }
+
   static int32_t digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbit2, uint32_t bc2);
-  static void computeDigitsTime_(RawDigitVector& digits, SampaTimeFrameStarts& sampaTimeFrameStarts, bool debug);
+  static void computeDigitsTime(RawDigitVector& digits, SampaTimeFrameStart& sampaTimeFrameStart, bool debug);
   void computeDigitsTime()
   {
-    computeDigitsTime_(mDigits, mSampaTimeFrameStarts, mDebug);
+    computeDigitsTime(mDigits, mSampaTimeFrameStart, mDebug);
   }
 
   const RawDigitVector& getDigits() const { return mDigits; }
@@ -139,6 +157,23 @@ class DataDecoder
   void init();
   void decodePage(gsl::span<const std::byte> page);
   void dumpDigits();
+  bool getPadMapping(const DsElecId& dsElecId, DualSampaChannelId channel, int& deId, int& dsIddet, int& padId);
+  bool addDigit(const DsElecId& dsElecId, DualSampaChannelId channel, const o2::mch::raw::SampaCluster& sc);
+  int32_t getMergerChannelId(const DsElecId& dsElecId, DualSampaChannelId channel);
+  void updateMergerRecord(uint32_t mergerChannelId, uint32_t digitId);
+  bool mergeDigits(uint32_t mergerChannelId, o2::mch::raw::SampaCluster& sc);
+
+  // structure that stores the index of the last decoded digit for a given readout channel,
+  // as well as the time stamp of the last ADC sample of the digit
+  struct MergerChannelRecord {
+    MergerChannelRecord() = default;
+    int32_t digitId{-1};
+    int32_t bcEnd{-1};
+  };
+  static constexpr uint32_t sMaxSolarId = 200 * 8 - 1;
+  static constexpr uint32_t sReadoutChannelsNum = (sMaxSolarId + 1) * 40 * 64;
+  // table storing the digits merging information for each readout channel in the MCH system
+  std::vector<MergerChannelRecord> mMergerRecords{sReadoutChannelsNum}; ///< merger records for all MCH readout channels
 
   Elec2DetMapper mElec2Det{nullptr};       ///< front-end electronics mapping
   FeeLink2SolarMapper mFee2Solar{nullptr}; ///< CRU electronics mapping
@@ -147,24 +182,28 @@ class DataDecoder
 
   o2::mch::raw::PageDecoder mDecoder; ///< CRU page decoder
 
-  RawDigitVector mDigits; ///< vector of decoded digits
-
+  RawDigitVector mDigits;                               ///< vector of decoded digits
   std::unordered_set<OrbitInfo, OrbitInfoHash> mOrbits; ///< list of orbits in the processed buffer
-  SampaTimeFrameStarts mSampaTimeFrameStarts;           ///< time stamps of the TimeFrames in the processed buffer
+
+  std::optional<uint32_t> mFirstOrbitInRun; ///< first orbit in the processed run
+  SampaTimeFrameStart mSampaTimeFrameStart; ///< SAMPA bunch-crossing counter at the beiginning of the TF
+
+  uint32_t mSampaTimeOffset{339986}; ///< SAMPA BC counter value at the beginning of the first orbit in the run
 
   SampaChannelHandler mChannelHandler;                  ///< optional user function to be called for each decoded SAMPA hit
   std::function<void(o2::header::RDHAny*)> mRdhHandler; ///< optional user function to be called for each RDH
 
   bool mDebug{false};
   bool mDs2manu{false};
-  uint32_t mFirstTForbit{0};
   uint32_t mOrbit{0};
-  uint32_t mOrbitId{0};
+  bool mUseDummyElecMap{false};
 };
 
 bool operator<(const DataDecoder::RawDigit& d1, const DataDecoder::RawDigit& d2);
 
 std::ostream& operator<<(std::ostream& os, const DataDecoder::RawDigit& d);
+
+std::string asString(const DataDecoder::RawDigit& d);
 
 } // namespace raw
 } // namespace mch

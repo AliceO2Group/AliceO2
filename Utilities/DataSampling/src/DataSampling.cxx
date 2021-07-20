@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -168,18 +169,19 @@ std::vector<OutputSpec> DataSampling::OutputSpecsForPolicy(ConfigurationInterfac
   return outputs;
 }
 
-uint16_t DataSampling::PortForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName)
+std::optional<uint16_t> DataSampling::PortForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName)
 {
   auto policiesTree = config->getRecursive("dataSamplingPolicies");
   for (auto&& policyConfig : policiesTree) {
     if (policyConfig.second.get<std::string>("id") == policyName) {
-      return policyConfig.second.get<uint16_t>("port");
+      auto boostOptionalPort = policyConfig.second.get_optional<uint16_t>("port");
+      return boostOptionalPort.has_value() ? std::optional<uint16_t>(boostOptionalPort.value()) : std::nullopt;
     }
   }
   throw std::runtime_error("Could not find the policy '" + policyName + "'");
 }
 
-uint16_t DataSampling::PortForPolicy(const std::string& policiesSource, const std::string& policyName)
+std::optional<uint16_t> DataSampling::PortForPolicy(const std::string& policiesSource, const std::string& policyName)
 {
   std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);
   return PortForPolicy(config.get(), policyName);
@@ -191,8 +193,10 @@ std::vector<std::string> DataSampling::MachinesForPolicy(configuration::Configur
   auto policiesTree = config->getRecursive("dataSamplingPolicies");
   for (auto&& policyConfig : policiesTree) {
     if (policyConfig.second.get<std::string>("id") == policyName) {
-      for (const auto& machine : policyConfig.second.get_child("machines")) {
-        machines.emplace_back(machine.second.get<std::string>(""));
+      if (policyConfig.second.count("machines") > 0) {
+        for (const auto& machine : policyConfig.second.get_child("machines")) {
+          machines.emplace_back(machine.second.get<std::string>(""));
+        }
       }
       return machines;
     }

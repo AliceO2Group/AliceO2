@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -117,6 +118,19 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   std::vector<GBTCalibData> calVec;
   std::vector<ROFRecord> digROFVec;
 
+  if (mDoDigits) {
+    digVec.reserve(mEstNDig);
+    digROFVec.reserve(mEstNROF);
+  }
+  if (mDoClusters) {
+    clusCompVec.reserve(mEstNClus);
+    clusROFVec.reserve(mEstNROF);
+    clusPattVec.reserve(mEstNClusPatt);
+  }
+  if (mDoCalibData) {
+    calVec.reserve(mEstNCalib);
+  }
+
   mDecoder->setDecodeNextAuto(false);
   while (mDecoder->decodeNextTrigger()) {
     if (mDoDigits) {                                    // call before clusterization, since the latter will hide the digits
@@ -125,7 +139,6 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
         mDecoder->fillCalibData(calVec);
       }
     }
-
     if (mDoClusters) { // !!! THREADS !!!
       mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
     }
@@ -134,8 +147,11 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   if (mDoDigits) {
     pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVec);
     pc.outputs().snapshot(Output{orig, "DIGITSROF", 0, Lifetime::Timeframe}, digROFVec);
+    mEstNDig = std::max(mEstNDig, size_t(digVec.size() * 1.2));
+    mEstNROF = std::max(mEstNROF, size_t(digROFVec.size() * 1.2));
     if (mDoCalibData) {
       pc.outputs().snapshot(Output{orig, "GBTCALIB", 0, Lifetime::Timeframe}, calVec);
+      mEstNCalib = std::max(mEstNCalib, size_t(calVec.size() * 1.2));
     }
   }
 
@@ -143,6 +159,9 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
     pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
     pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);
+    mEstNClus = std::max(mEstNClus, size_t(clusCompVec.size() * 1.2));
+    mEstNClusPatt = std::max(mEstNClusPatt, size_t(clusPattVec.size() * 1.2));
+    mEstNROF = std::max(mEstNROF, size_t(clusROFVec.size() * 1.2));
   }
 
   if (mDoClusters) {

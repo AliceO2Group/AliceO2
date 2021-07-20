@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -53,9 +54,9 @@ class GPUReconstruction;
 struct GPUSettingsO2;
 
 struct GPUInterfaceQAOutputs {
-  const std::vector<TH1F>* hist1;
-  const std::vector<TH2F>* hist2;
-  const std::vector<TH1D>* hist3;
+  const std::vector<TH1F>* hist1 = nullptr;
+  const std::vector<TH2F>* hist2 = nullptr;
+  const std::vector<TH1D>* hist3 = nullptr;
 };
 
 struct GPUInterfaceOutputs : public GPUTrackingOutputs {
@@ -72,7 +73,6 @@ struct GPUO2InterfaceConfiguration {
   struct GPUInterfaceSettings {
     int dumpEvents = 0;
     bool outputToExternalBuffers = false;
-    float memoryBufferScaleFactor = 1.f;
     // These constants affect GPU memory allocation only and do not limit the CPU processing
     unsigned long maxTPCZS = 8192ul * 1024 * 1024;
     unsigned int maxTPCHits = 1024 * 1024 * 1024;
@@ -91,10 +91,12 @@ struct GPUO2InterfaceConfiguration {
   GPUCalibObjectsConst configCalib;
 
   GPUSettingsO2 ReadConfigurableParam();
+  void PrintParam();
 
  private:
   friend class GPUReconstruction;
   GPUSettingsO2 ReadConfigurableParam_internal();
+  void PrintParam_internal();
 };
 
 } // namespace gpu

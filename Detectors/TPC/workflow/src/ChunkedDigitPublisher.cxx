@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -23,6 +24,7 @@
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include <SimulationDataFormat/ConstMCTruthContainer.h>
+#include <CommonUtils/FileSystemUtils.h>
 #include "Algorithm/RangeTokenizer.h"
 #include "TPCBase/Sector.h"
 #include <TFile.h>
@@ -140,19 +142,17 @@ void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> con
   }
 
   ROOT::EnableThreadSafety();
+  // we determine the exact input list of files
+  auto digitfilelist = o2::utils::listFiles("tpc_driftime_digits_lane.*.root$");
 #ifdef WITH_OPENMP
-  omp_set_num_threads(lanes.size());
+  omp_set_num_threads(std::min(lanes.size(), digitfilelist.size()));
   LOG(INFO) << "Running digit publisher with OpenMP enabled";
 #pragma omp parallel for schedule(dynamic)
 #endif
-  for (int i = 0; i < lanes.size(); ++i) {
-    auto l = lanes[i];
-
-    LOG(DEBUG) << "MERGING CHUNKED DIGITS FOR LANE " << l;
-    // merging the data
-    std::stringstream tmp;
-    tmp << "tpc_driftime_digits_lane" << l << ".root";
-    auto originfile = new TFile(tmp.str().c_str(), "OPEN");
+  for (size_t fi = 0; fi < digitfilelist.size(); ++fi) {
+    auto& filename = digitfilelist[fi];
+    LOG(DEBUG) << "MERGING CHUNKED DIGITS FROM FILE " << filename;
+    auto originfile = new TFile(filename.c_str(), "OPEN");
     assert(originfile);
 
     auto merge = [&tpcsectors, activeSectors, originfile, &pc](auto data, auto brprefix) {

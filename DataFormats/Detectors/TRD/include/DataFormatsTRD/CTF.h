@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -25,7 +26,7 @@ namespace trd
 {
 
 /// Header for a single CTF
-struct CTFHeader {
+struct CTFHeader : public o2::ctf::CTFDictHeader {
   uint32_t nTriggers = 0;  /// number of triggers
   uint32_t nTracklets = 0; /// number of tracklets
   uint32_t nDigits = 0;    /// number of digits
@@ -33,7 +34,7 @@ struct CTFHeader {
   uint16_t firstBC = 0;    /// bc of 1st trigger
   uint16_t format = 0;     /// format word to be added to tracklet
 
-  ClassDefNV(CTFHeader, 1);
+  ClassDefNV(CTFHeader, 2);
 };
 
 /// wrapper for the Entropy-encoded triggers and cells of the TF

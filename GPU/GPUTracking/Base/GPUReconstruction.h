@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -103,10 +104,11 @@ class GPUReconstruction
                                          CLUSTER_NATIVE_MC = 15,
                                          TPC_DIGIT_MC = 16,
                                          TRD_SPACEPOINT = 17,
-                                         TRD_TRIGGERRECORDS = 18 };
+                                         TRD_TRIGGERRECORDS = 18,
+                                         TF_SETTINGS = 19 };
   static constexpr const char* const IOTYPENAMES[] = {"TPC HLT Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets",
                                                       "TPC Raw Clusters", "TPC Native Clusters", "TRD Tracklet MC Labels", "TPC Compressed Clusters", "TPC Digit", "TPC ZS Page", "TPC Native Clusters MC Labels", "TPC Digit MC Labeels",
-                                                      "TRD Spacepoints", "TRD Triggerrecords"};
+                                                      "TRD Spacepoints", "TRD Triggerrecords", "TF Settings"};
   static unsigned int getNIOTypeMultiplicity(InOutPointerType type) { return (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS || type == TPC_DIGIT || type == TPC_DIGIT_MC) ? NSLICES : 1; }
 
   // Functionality to create an instance of GPUReconstruction for the desired device

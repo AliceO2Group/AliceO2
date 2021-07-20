@@ -1,14 +1,18 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <string>
+#include <string_view>
+
 #include "TROOT.h"
 #include "TMath.h"
 #include "TH2.h"
@@ -47,10 +51,15 @@ TObjArray* drawNoiseAndPedestal(std::string_view pedestalFile, int mode = 0, std
 
   if (pedestalFile.find("cdb") != std::string::npos) {
     auto& cdb = CDBInterface::instance();
-    if (pedestalFile == "cdb-test") {
+    if (pedestalFile.find("cdb-test") == 0) {
       cdb.setURL("http://ccdb-test.cern.ch:8080");
-    } else if (pedestalFile == "cdb-prod") {
+    } else if (pedestalFile.find("cdb-prod") == 0) {
       cdb.setURL("");
+    }
+    const auto timePos = pedestalFile.find("@");
+    if (timePos != std::string_view::npos) {
+      std::cout << "set time stamp " << std::stol(pedestalFile.substr(timePos + 1).data()) << "\n";
+      cdb.setTimeStamp(std::stol(pedestalFile.substr(timePos + 1).data()));
     }
     calPedestal = &cdb.getPedestals();
     calNoise = &cdb.getNoise();

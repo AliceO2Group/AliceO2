@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -105,6 +106,12 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   // CTF Dictionary
   static std::string getCTFDictFileName();
 
+  // The alignment object path in CCDB
+  static std::string getAlignmentPath(o2::detectors::DetID d)
+  {
+    return o2::utils::Str::concat_string(d.getName(), "/", ALIGNPATH);
+  }
+
  private:
   // helper method to build filenames
   static std::string buildFileName(const std::string_view prefix, const std::string_view delimiter, const std::string_view defPrefix, const std::string_view defName,
@@ -125,6 +132,7 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   static constexpr std::string_view ALPIDECLUSDICTFILENAME = "dictionary";
   static constexpr std::string_view MATBUDLUT = "matbud";
   static constexpr std::string_view COLLISIONCONTEXT = "collisioncontext";
+  static constexpr std::string_view ALIGNPATH = "Align";
 
   // these are configurable paths for some commonly used files
   std::string mDirGRP = "none";    // directory for GRP file ("none" == "")

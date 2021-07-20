@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -79,20 +80,18 @@ class LookUpTable
   int getPmChannel(int channel) const { return mTopoVector[channel].pmCh; }
   int getTcmLink() const { return mLinkTCM; }
   bool isTCM(int link, int ep) const { return link == getTcmLink() && ep == 0; }
+  Topo getTopoPM(int globalChannelID) const { return mTopoVector[globalChannelID]; }
+  Topo getTopoTCM() const { return Topo{getTcmLink(), 0}; }
+  std::size_t getNchannels() const { return mTopoVector.size(); } //get number of global PM channels
   void printFullMap() const
   {
-    std::cout << "o2::fv0::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  pmCh]" << std::endl;
+    LOG(INFO) << "o2::fv0::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  pmCh]";
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
-      std::cout << "  " << std::right << std::setw(2) << channel << "  ";
-      std::cout << std::right << std::setw(2) << mTopoVector[channel].pmLink << "  ";
-      std::cout << std::right << std::setw(3) << mTopoVector[channel].pmCh << std::endl;
+      LOG(INFO) << channel << "  " << mTopoVector[channel].pmLink << "  " << mTopoVector[channel].pmCh;
     }
-    std::cout << "o2::fv0::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  pmCh]" << std::endl;
+    LOG(INFO) << "o2::fv0::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  pmCh]";
     for (size_t idx = 0; idx < mInvTopo.size(); ++idx) {
-      std::cout << "  " << std::right << std::setw(3) << idx << "  ";
-      std::cout << std::right << std::setw(3) << mInvTopo[idx] << "    ";
-      std::cout << std::right << std::setw(2) << getLinkFromIdx(mInvTopo[idx]) << "  ";
-      std::cout << std::right << std::setw(2) << getPmChannelFromIdx(mInvTopo[idx]) << std::endl;
+      LOG(INFO) << idx << "  " << mInvTopo[idx] << "    " << getLinkFromIdx(mInvTopo[idx]) << "  " << getPmChannelFromIdx(mInvTopo[idx]);
     }
   }
 
@@ -121,10 +120,76 @@ class SingleLUT : public LookUpTable
   SingleLUT& operator=(SingleLUT&) = delete;
 
  public:
+  typedef Topo Topo_t;
+  static constexpr char sDetectorName[] = "FV0";
   static SingleLUT& Instance()
   {
     static SingleLUT instanceLUT;
     return instanceLUT;
+  }
+  //Temporary
+  //Making Topo for FEE recognizing(Local channelID is supressed)
+  static Topo_t makeGlobalTopo(const Topo_t& topo)
+  {
+    return Topo_t{topo.pmLink, 0};
+  }
+  static int getLocalChannelID(const Topo_t& topo)
+  {
+    return topo.pmCh;
+  }
+  //Prepare full map for FEE metadata
+  template <typename RDHtype, typename RDHhelper = void>
+  auto makeMapFEEmetadata() -> std::map<Topo_t, RDHtype>
+  {
+    std::map<Topo_t, RDHtype> mapResult;
+    const uint16_t cruID = 0;      //constant
+    const uint32_t endPointID = 0; //constant
+    uint64_t feeID = 0;            //increments
+    //PM
+    for (int iCh = 0; iCh < Instance().getNchannels(); iCh++) {
+      auto pairInserted = mapResult.insert({makeGlobalTopo(Instance().getTopoPM(iCh)), RDHtype{}});
+      if (pairInserted.second) {
+        auto& rdhObj = pairInserted.first->second;
+        const auto& topoObj = pairInserted.first->first;
+        if constexpr (std::is_same<RDHhelper, void>::value) {
+          rdhObj.linkID = topoObj.pmLink;
+          rdhObj.endPointID = endPointID;
+          rdhObj.feeId = feeID;
+          rdhObj.cruID = cruID;
+        } else //Using RDHUtils
+        {
+          RDHhelper::setLinkID(&rdhObj, topoObj.pmLink);
+          RDHhelper::setEndPointID(&rdhObj, endPointID);
+          RDHhelper::setFEEID(&rdhObj, feeID);
+          RDHhelper::setCRUID(&rdhObj, cruID);
+        }
+        feeID++;
+      }
+    }
+    //TCM
+    {
+      auto pairInserted = mapResult.insert({makeGlobalTopo(Instance().getTopoTCM()), RDHtype{}});
+      if (pairInserted.second) {
+        auto& rdhObj = pairInserted.first->second;
+        const auto& topoObj = pairInserted.first->first;
+        if constexpr (std::is_same<RDHhelper, void>::value) {
+          rdhObj.linkID = topoObj.pmLink;
+          rdhObj.endPointID = endPointID;
+          rdhObj.feeId = feeID;
+          rdhObj.cruID = cruID;
+        } else //Using RDHUtils
+        {
+          RDHhelper::setLinkID(&rdhObj, topoObj.pmLink);
+          RDHhelper::setEndPointID(&rdhObj, endPointID);
+          RDHhelper::setFEEID(&rdhObj, feeID);
+          RDHhelper::setCRUID(&rdhObj, cruID);
+        }
+      } else {
+        LOG(INFO) << "WARNING! CHECK LUT! TCM METADATA IS INCORRECT!";
+      }
+    }
+    assert(mapResult.size() > 0);
+    return mapResult;
   }
 };
 } // namespace fv0

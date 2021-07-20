@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -16,7 +17,8 @@
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsCTP/Digits.h"
-
+#include "DataFormatsCTP/Configuration.h"
+#include "CCDB/BasicCCDBManager.h"
 #include <gsl/span>
 
 namespace o2
@@ -28,12 +30,15 @@ class Digitizer
  public:
   Digitizer() = default;
   ~Digitizer() = default;
-  std::vector<CTPDigit> process(const gsl::span<o2::ctp::CTPInputDigit> digits);
-  void calculateClassMask(std::vector<const CTPInputDigit*> inputs, std::bitset<CTP_NCLASSES>& classmask);
+  void setCCDBServer(const std::string& server) { mCCDBServer = server; }
+  std::vector<CTPDigit> process(const gsl::span<o2::ctp::CTPInputDigit> detinputs);
+  void calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, std::bitset<CTP_NCLASSES>& classmask);
   void init();
-
  private:
-  ClassDefNV(Digitizer, 1);
+  // CTP configuration
+  std::string mCCDBServer = "http://ccdb-test.cern.ch:8080";
+  CTPConfiguration* mCTPConfiguration = nullptr;
+  ClassDefNV(Digitizer, 2);
 };
 } // namespace ctp
 } // namespace o2
