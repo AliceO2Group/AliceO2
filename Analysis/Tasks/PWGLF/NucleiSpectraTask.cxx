@@ -65,7 +65,6 @@ struct NucleiSpectraTask {
 
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
-  
 
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended, aod::pidTPCFullHe, aod::pidTOFFullHe, aod::TrackSelection>>;
 
@@ -101,7 +100,8 @@ struct NucleiSpectraTask {
       //
       if (nSigmaHe3 > nsigmacutLow && nSigmaHe3 < nsigmacutHigh) {
         keepEvent = kTRUE;
-        if (track.sign() < 0) spectra.fill(HIST("histDcaVsPtData"), track.pt(), track.dcaXY());
+        if (track.sign() < 0)
+          spectra.fill(HIST("histDcaVsPtData"), track.pt(), track.dcaXY());
         //
         // store tracks for invariant mass calculation
         //
