@@ -138,6 +138,26 @@ class ADCRawData
   /// overloading output stream operator to output ADCRawData
   friend std::ostream& operator<<(std::ostream& output, const ADCRawData& rawData);
 
+  /// reset
+  void reset()
+  {
+    mOutputStream = 0;
+    mNumTimeBins = 0;
+    for (auto& data : mADCRaw) {
+      data.clear();
+    }
+  }
+
+  bool hasData() const
+  {
+    for (auto& data : mADCRaw) {
+      if (data.size()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
  private:
   uint32_t mOutputStream{0};           // variable to set the output stream for the << operator
   uint32_t mNumTimeBins{0};            // variable to set the number of timebins for the << operator
@@ -357,12 +377,15 @@ class RawReaderCRUEventSync
           return false;
         }
         if (rawDataType == RAWDataType::GBT) {
-          return link.isComplete();
+          if (!link.isComplete()) {
+            return false;
+          }
         }
         if (rawDataType == RAWDataType::LinkZS) {
-          return link.HBEndSeen;
+          if (link.IsPresent && !link.HBEndSeen) {
+            return false;
+          }
         }
-        return false;
       }
       return true;
     }
