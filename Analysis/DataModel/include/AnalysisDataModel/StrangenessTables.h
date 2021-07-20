@@ -104,6 +104,19 @@ DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, //!
 DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, //!
                            [](float Px, float Py) -> float { return RecoDecay::Phi(Px, Py); });
 
+DECLARE_SOA_DYNAMIC_COLUMN(NegativePt, negativept, //!
+                           [](float pxneg, float pyneg) -> float { return RecoDecay::sqrtSumOfSquares(pxneg, pyneg); });
+DECLARE_SOA_DYNAMIC_COLUMN(PositivePt, positivept, //!
+                           [](float pxpos, float pypos) -> float { return RecoDecay::sqrtSumOfSquares(pxpos, pypos); });
+DECLARE_SOA_DYNAMIC_COLUMN(NegativeEta, negativeeta, //!
+                           [](float PxNeg, float PyNeg, float PzNeg) -> float { return RecoDecay::Eta(array{PxNeg, PyNeg, PzNeg}); });
+DECLARE_SOA_DYNAMIC_COLUMN(NegativePhi, negativephi, //!
+                           [](float PxNeg, float PyNeg) -> float { return RecoDecay::Phi(PxNeg, PyNeg); });
+DECLARE_SOA_DYNAMIC_COLUMN(PositiveEta, positiveeta, //!
+                           [](float PxPos, float PyPos, float PzPos) -> float { return RecoDecay::Eta(array{PxPos, PyPos, PzPos}); });
+DECLARE_SOA_DYNAMIC_COLUMN(PositivePhi, positivephi, //!
+                           [](float PxPos, float PyPos) -> float { return RecoDecay::Phi(PxPos, PyPos); });
+  
 DECLARE_SOA_EXPRESSION_COLUMN(Px, px, //!
                               float, 1.f * aod::v0data::pxpos + 1.f * aod::v0data::pxneg);
 DECLARE_SOA_EXPRESSION_COLUMN(Py, py, //!
@@ -139,7 +152,15 @@ DECLARE_SOA_TABLE_FULL(StoredV0Datas, "V0Datas", "AOD", "V0DATA", //!
                        v0data::YK0Short<v0data::Px, v0data::Py, v0data::Pz>,
                        v0data::YLambda<v0data::Px, v0data::Py, v0data::Pz>,
                        v0data::Eta<v0data::Px, v0data::Py, v0data::Pz>,
-                       v0data::Phi<v0data::Px, v0data::Py>);
+                       v0data::Phi<v0data::Px, v0data::Py>,
+                       
+                       //Daughter helpers
+                       v0data::NegativePt<v0data::PxNeg, v0data::PyNeg>,
+                       v0data::PositivePt<v0data::PxPos, v0data::PyPos>,
+                       v0data::NegativeEta<v0data::NegPx, v0data::NegPy, v0data::NegPz>,
+                       v0data::NegativePhi<v0data::NegPx, v0data::NegPy>,
+                       v0data::PositiveEta<v0data::PosPx, v0data::PosPy, v0data::PosPz>,
+                       v0data::PositivePhi<v0data::PosPx, v0data::PosPy>);
 
 // extended table with expression columns that can be used as arguments of dynamic columns
 DECLARE_SOA_EXTENDED_TABLE_USER(V0Datas, StoredV0Datas, "V0DATAEXT", //!
