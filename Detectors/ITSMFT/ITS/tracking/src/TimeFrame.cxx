@@ -253,12 +253,44 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     if (iLayer < mCells.size()) {
       mCells[iLayer].clear();
       mTrackletsLookupTable[iLayer].clear();
+      mTrackletsLookupTable[iLayer].resize(mClusters[iLayer + 1].size(), 0);
       mCellLabels[iLayer].clear();
     }
 
     if (iLayer < mCells.size() - 1) {
       mCellsLookupTable[iLayer].clear();
       mCellsNeighbours[iLayer].clear();
+    }
+  }
+}
+
+void TimeFrame::checkTrackletLUTs() {
+  for (uint32_t iLayer{0}; iLayer < getTracklets().size(); ++iLayer) {
+    int prev{-1};
+    int count{0};
+    for (uint32_t iTracklet{0}; iTracklet < getTracklets()[iLayer].size(); ++iTracklet) {
+      auto& trk = getTracklets()[iLayer][iTracklet];
+      int currentId{trk.firstClusterIndex};
+      if (currentId < prev) {
+        std::cout << "First Cluster Index not increasing monotonically on L:T:ID:Prev " << iLayer << "\t" << iTracklet << "\t" << currentId << "\t" << prev << std::endl;
+      } else if (currentId == prev) {
+        count++;
+      } else {
+        if (iLayer > 0) {
+          auto& lut{getTrackletsLookupTable()[iLayer - 1]};
+          if (count != lut[prev + 1] - lut[prev]) {
+            std::cout << "LUT count broken " << iLayer - 1 << "\t" << prev << "\t" << count << "\t" << lut[prev + 1] << "\t" << lut[prev] << std::endl;
+          }
+        }
+        count = 1;
+      }
+      prev = currentId;
+      if (iLayer > 0) {
+        auto& lut{getTrackletsLookupTable()[iLayer - 1]};
+        if (iTracklet >= lut[currentId + 1] || iTracklet < lut[currentId]) {
+          std::cout << "LUT broken: " << iLayer - 1 << "\t" << currentId << "\t" << iTracklet << std::endl;
+        }
+      }
     }
   }
 }

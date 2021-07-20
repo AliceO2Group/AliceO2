@@ -119,6 +119,7 @@ class TimeFrame final
   void clear();
 
   /// Debug and printing
+  void checkTrackletLUTs();
   void printROFoffsets();
   void printVertices();
   void printTrackletLUTonLayer(int i);

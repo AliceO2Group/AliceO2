@@ -32,6 +32,8 @@ namespace o2
 namespace its
 {
 
+constexpr int debugLevel{0};
+
 void TrackerTraitsCPU::computeLayerTracklets()
 {
   TimeFrame* tf = mTimeFrame;
@@ -74,7 +76,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
 
           int minRof = (rof0 >= mTrkParams.DeltaROF) ? rof0 - mTrkParams.DeltaROF : 0;
           int maxRof = (rof0 == tf->getNrof() - mTrkParams.DeltaROF) ? rof0 : rof0 + mTrkParams.DeltaROF;
-          for (int rof1{minRof}; rof1 < maxRof; ++rof1) {
+          for (int rof1{minRof}; rof1 <= maxRof; ++rof1) {
             gsl::span<const Cluster> layer1 = tf->getClustersOnLayer(rof1, iLayer + 1);
             if (layer1.empty()) {
               continue;
@@ -84,13 +86,15 @@ void TrackerTraitsCPU::computeLayerTracklets()
                  iPhiBin = (++iPhiBin == tf->mIndexTableUtils.getNphiBins()) ? 0 : iPhiBin, iPhiCount++) {
               const int firstBinIndex{tf->mIndexTableUtils.getBinIndex(selectedBinsRect.x, iPhiBin)};
               const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
-              if (firstBinIndex < 0 || firstBinIndex > tf->getIndexTables(rof1)[iLayer].size() ||
-                  maxBinIndex < 0 || maxBinIndex > tf->getIndexTables(rof1)[iLayer].size()) {
-                std::cout << iLayer << "\t" << iCluster << "\t" << zAtRmin << "\t" << zAtRmax << "\t" << mTrkParams.TrackletMaxDeltaZ[iLayer] << "\t" << mTrkParams.TrackletMaxDeltaPhi << std::endl;
-                std::cout << currentCluster.zCoordinate << "\t" << primaryVertex.getZ() << "\t" << currentCluster.radius << std::endl;
-                std::cout << tf->getMinR(iLayer + 1) << "\t" << currentCluster.radius << "\t" << currentCluster.zCoordinate << std::endl;
-                std::cout << "Illegal access to IndexTable " << firstBinIndex << "\t" << maxBinIndex << "\t" << selectedBinsRect.z << "\t" << selectedBinsRect.x << std::endl;
-                exit(1);
+              if constexpr (debugLevel) {
+                if (firstBinIndex < 0 || firstBinIndex > tf->getIndexTables(rof1)[iLayer].size() ||
+                    maxBinIndex < 0 || maxBinIndex > tf->getIndexTables(rof1)[iLayer].size()) {
+                  std::cout << iLayer << "\t" << iCluster << "\t" << zAtRmin << "\t" << zAtRmax << "\t" << mTrkParams.TrackletMaxDeltaZ[iLayer] << "\t" << mTrkParams.TrackletMaxDeltaPhi << std::endl;
+                  std::cout << currentCluster.zCoordinate << "\t" << primaryVertex.getZ() << "\t" << currentCluster.radius << std::endl;
+                  std::cout << tf->getMinR(iLayer + 1) << "\t" << currentCluster.radius << "\t" << currentCluster.zCoordinate << std::endl;
+                  std::cout << "Illegal access to IndexTable " << firstBinIndex << "\t" << maxBinIndex << "\t" << selectedBinsRect.z << "\t" << selectedBinsRect.x << std::endl;
+                  exit(1);
+                }
               }
               const int firstRowClusterIndex = tf->getIndexTables(rof1)[iLayer][firstBinIndex];
               const int maxRowClusterIndex = tf->getIndexTables(rof1)[iLayer][maxBinIndex];
@@ -112,25 +116,72 @@ void TrackerTraitsCPU::computeLayerTracklets()
                 if (deltaZ < mTrkParams.TrackletMaxDeltaZ[iLayer] &&
                     (deltaPhi < mTrkParams.TrackletMaxDeltaPhi ||
                      gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < mTrkParams.TrackletMaxDeltaPhi)) {
-                  if (iLayer > 0 && tf->getTrackletsLookupTable()[iLayer - 1].size() <= currentSortedIndex) {
-                    tf->getTrackletsLookupTable()[iLayer - 1].resize(currentSortedIndex + 1, tf->getTracklets()[iLayer].size());
+                  if (iLayer > 0) {
+                    tf->getTrackletsLookupTable()[iLayer - 1][currentSortedIndex]++;
                   }
-
                   tf->getTracklets()[iLayer].emplace_back(currentSortedIndex, tf->getSortedIndex(rof1, iLayer + 1, iNextCluster), currentCluster,
                                                           nextCluster, rof0, rof1);
-                  if (tf->hasMCinformation()) {
-                    MCCompLabel currentLab{tf->getClusterLabels(iLayer, currentCluster.clusterId)};
-                    MCCompLabel nextLab{tf->getClusterLabels(iLayer + 1, nextCluster.clusterId)};
-                    tf->getTrackletsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
-                  }
                 }
               }
             }
           }
         }
       }
-      if (iLayer > 0) {
-        tf->getTrackletsLookupTable()[iLayer - 1].resize(tf->getSortedIndex(rof0, iLayer, currentLayerClustersNum - 1), tf->getTracklets()[iLayer].size());
+    }
+  }
+  /// Cold code, fixups
+
+  for (int iLayer{0}; iLayer < mTrkParams.CellsPerRoad(); ++iLayer) {
+    /// Sort tracklets
+    auto& trkl{tf->getTracklets()[iLayer + 1]};
+    std::sort(trkl.begin(), trkl.end(), [](const Tracklet& a, const Tracklet& b) {
+      return a.firstClusterIndex < b.firstClusterIndex || (a.firstClusterIndex == b.firstClusterIndex && a.secondClusterIndex < b.secondClusterIndex);
+    });
+    /// Remove duplicates
+    auto& lut{tf->getTrackletsLookupTable()[iLayer]};
+    int id0{-1}, id1{-1};
+    std::vector<Tracklet> newTrk;
+    newTrk.reserve(trkl.size());
+    for (auto& trk : trkl) {
+      if (trk.firstClusterIndex == id0 && trk.secondClusterIndex == id1) {
+        lut[id0]--;
+      } else {
+        id0 = trk.firstClusterIndex;
+        id1 = trk.secondClusterIndex;
+        newTrk.push_back(trk);
+      }
+    }
+    trkl.swap(newTrk);
+
+    /// Compute LUT
+    std::exclusive_scan(lut.begin(), lut.end(), lut.begin(), 0);
+    lut.push_back(trkl.size());
+  }
+  /// Layer 0 is done outside the loop
+  std::sort(tf->getTracklets()[0].begin(), tf->getTracklets()[0].end(), [](const Tracklet& a, const Tracklet& b) {
+    return a.firstClusterIndex < b.firstClusterIndex || (a.firstClusterIndex == b.firstClusterIndex && a.secondClusterIndex < b.secondClusterIndex);
+  });
+  int id0{-1}, id1{-1};
+  std::vector<Tracklet> newTrk;
+  newTrk.reserve(tf->getTracklets()[0].size());
+  for (auto& trk : tf->getTracklets()[0]) {
+    if (trk.firstClusterIndex != id0 || trk.secondClusterIndex != id1) {
+      id0 = trk.firstClusterIndex;
+      id1 = trk.secondClusterIndex;
+      newTrk.push_back(trk);
+    }
+  }
+  tf->getTracklets()[0].swap(newTrk);
+
+  /// Create tracklets labels
+  if (tf->hasMCinformation()) {
+    for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
+      for (auto& trk : tf->getTracklets()[iLayer]) {
+        int currentId{tf->getClusters()[iLayer][trk.firstClusterIndex].clusterId};
+        int nextId{tf->getClusters()[iLayer + 1][trk.secondClusterIndex].clusterId};
+        MCCompLabel currentLab{tf->getClusterLabels(iLayer, currentId)};
+        MCCompLabel nextLab{tf->getClusterLabels(iLayer + 1, nextId)};
+        tf->getTrackletsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
       }
     }
   }
@@ -245,6 +296,23 @@ void TrackerTraitsCPU::computeLayerCells()
     }
     if (iLayer > 0) {
       tf->getCellsLookupTable()[iLayer - 1].resize(currentLayerTrackletsNum + 1, currentLayerTrackletsNum);
+    }
+  }
+
+  /// Create cells labels
+  if (tf->hasMCinformation()) {
+    for (int iLayer{0}; iLayer < mTrkParams.CellsPerRoad(); ++iLayer) {
+      for (auto& cell : tf->getCells()[iLayer]) {
+        MCCompLabel currentLab{tf->getTrackletsLabel(iLayer)[cell.getFirstTrackletIndex()]};
+        MCCompLabel nextLab{tf->getTrackletsLabel(iLayer + 1)[cell.getSecondTrackletIndex()]};
+        tf->getCellsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
+      }
+    }
+  }
+
+  if constexpr (debugLevel) {
+    for (int iLayer{0}; iLayer < mTrkParams.CellsPerRoad(); ++iLayer) {
+      std::cout << "Cells on layer " << iLayer << " " << tf->getCells()[iLayer].size() << std::endl;
     }
   }
 }
