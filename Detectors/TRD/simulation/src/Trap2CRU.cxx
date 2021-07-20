@@ -97,10 +97,16 @@ void Trap2CRU::sortDataToLinks()
       if (mVerbosity) {
         LOG(debug) << " sorting digits from : " << trig.getFirstTracklet() << " till " << trig.getFirstTracklet() + trig.getNumberOfTracklets();
       }
+      // sort to link order *NOT* hcid order ...
+      // link is defined by stack,layer,halfchamberside.
+      // tracklet data we have hcid,padrow,colum.
+      // hcid/2 = detector, detector implies stack and layer, and hcid odd/even gives side.
       std::stable_sort(std::begin(mTracklets) + trig.getFirstTracklet(), std::begin(mTracklets) + trig.getNumberOfTracklets() + trig.getFirstTracklet(),
                        [this](auto&& t1, auto&& t2) {
-                         if (t1.getHCID() != t2.getHCID()) {
-                           return t1.getHCID() < t2.getHCID();
+                         int link1 = HelperMethods::getLinkIDfromHCID(t1.getHCID());
+                         int link2 = HelperMethods::getLinkIDfromHCID(t2.getHCID());
+                         if (link1 != link2) {
+                           return link1 < link2;
                          }
                          if (t1.getPadRow() != t2.getPadRow()) {
                            return t1.getPadRow() < t2.getPadRow();
@@ -114,9 +120,9 @@ void Trap2CRU::sortDataToLinks()
       }
       std::stable_sort(mDigitsIndex.begin() + trig.getFirstDigit(), mDigitsIndex.begin() + trig.getNumberOfDigits() + trig.getFirstDigit(), //,digitcompare);
                        [this](const uint32_t i, const uint32_t j) {
-             uint32_t hcida = mDigits[i].getDetector() * 2 + (mDigits[i].getROB() % 2);
-             uint32_t hcidb = mDigits[j].getDetector() * 2 + (mDigits[j].getROB() % 2);
-             if(hcida!=hcidb){return hcida<hcidb;}
+             int link1=HelperMethods::getLinkIDfromHCID(mDigits[i].getDetector() * 2 + (mDigits[i].getROB() % 2));
+             int link2=HelperMethods::getLinkIDfromHCID(mDigits[j].getDetector() * 2 + (mDigits[j].getROB() % 2));
+             if(link1!=link2){return link1<link2;}
              if(mDigits[i].getROB() != mDigits[j].getROB()){return (mDigits[i].getROB() < mDigits[j].getROB());}
              if(mDigits[i].getMCM() != mDigits[j].getMCM()){return (mDigits[i].getMCM() < mDigits[j].getMCM());}
              return (mDigits[i].getChannel() < mDigits[j].getChannel()); });
@@ -139,7 +145,7 @@ void Trap2CRU::sortDataToLinks()
         int firsttracklet = trig.getFirstTracklet();
         int numtracklets = trig.getNumberOfTracklets();
         for (int trackletcount = firsttracklet; trackletcount < firsttracklet + numtracklets; ++trackletcount) {
-          LOG(info) << "Tracklet : " << trackletcount << " details : hcid=" << mTracklets[trackletcount];
+          LOG(info) << "Tracklet : " << trackletcount << " details : supermodule:" << std::dec << mTracklets[trackletcount].getHCID() << std::hex << " tracklet:" << mTracklets[trackletcount];
         }
       } else {
         LOG(info) << "No Tracklets for this trigger";
@@ -330,8 +336,8 @@ uint32_t Trap2CRU::buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, 
 bool Trap2CRU::isTrackletOnLink(const int linkid, const int currenttrackletpos)
 {
   //hcid is simply the halfcru*15+linkid
-  int hcid = mTracklets[currenttrackletpos].getHCID();
-  if (linkid == hcid) {
+  int link = HelperMethods::getLinkIDfromHCID(mTracklets[currenttrackletpos].getHCID());
+  if (linkid == link) {
     // this tracklet is on this link.
     return true;
   }
@@ -341,7 +347,8 @@ bool Trap2CRU::isTrackletOnLink(const int linkid, const int currenttrackletpos)
 bool Trap2CRU::isDigitOnLink(const int linkid, const int currentdigitpos)
 {
   Digit* digit = &mDigits[mDigitsIndex[currentdigitpos]];
-  if ((digit->getDetector() * 2 + (digit->getROB() % 2)) == linkid) {
+  int link = HelperMethods::getLinkIDfromHCID(digit->getDetector() * 2 + (digit->getROB() % 2));
+  if (link == linkid) {
     return true;
   }
   return false;
@@ -435,7 +442,7 @@ int Trap2CRU::buildTrackletRawData(const int trackletindex, const int linkid)
   if (mVerbosity) {
     LOG(info) << header;
   }
-  while (linkid == mTracklets[trackletindex + trackletcounter].getHCID() && header.col == mTracklets[trackletindex + trackletcounter].getColumn() && header.padrow == mTracklets[trackletindex + trackletcounter].getPadRow()) {
+  while (linkid == HelperMethods::getLinkIDfromHCID(mTracklets[trackletindex + trackletcounter].getHCID()) && header.col == mTracklets[trackletindex + trackletcounter].getColumn() && header.padrow == mTracklets[trackletindex + trackletcounter].getPadRow()) {
     buildTrackletMCMData(trackletdata[trackletcounter], mTracklets[trackletindex + trackletcounter].getSlope(),
                          mTracklets[trackletindex + trackletcounter].getPosition(), mTracklets[trackletindex + trackletcounter].getQ0(),
                          mTracklets[trackletindex + trackletcounter].getQ1(), mTracklets[trackletindex + trackletcounter].getQ2());
@@ -529,11 +536,18 @@ int Trap2CRU::writeTrackletHCHeader(const int eventcount, const uint32_t linkid)
   trackletheader.stack = (detector % (o2::trd::constants::NLAYER * o2::trd::constants::NSTACK)) / o2::trd::constants::NLAYER;
   trackletheader.layer = (detector % o2::trd::constants::NLAYER);
   trackletheader.one = 1;
+  if (mVerbosity) {
+    LOG(info) << "Tracklet linkid : " << linkid << ":"
+              << " " << trackletheader.supermodule << ":" << trackletheader.stack << ":" << trackletheader.layer << ":" << trackletheader.side;
+  }
   trackletheader.side = (linkid % 2) ? 1 : 0;
   trackletheader.MCLK = eventcount * 42; // just has to be a constant increasing number per event for our purposes in sim to raw.
   trackletheader.format = 12;
   if (mUseTrackletHCHeader) { // run 3 we also have a TrackletHalfChamber.
     memcpy(mRawDataPtr, (char*)&trackletheader, sizeof(TrackletHCHeader));
+    if (mVerbosity) {
+      LOG(info) << "writing tracklethcheader of 0x" << std::hex << trackletheader.word;
+    }
     mRawDataPtr += 4;
     wordswritten++;
   }
@@ -664,17 +678,15 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
         rawwords += trackletendmarker;
         adccounter = 0;
         rawwordsbefore = rawwords;
+        //always write the digit hc header
+        hcheaderwords = writeDigitHCHeader(triggercount, linkid);
+        linkwordswritten += hcheaderwords;
+        rawwords += hcheaderwords;
         //although if there are trackelts there better be some digits unless the digits are switched off.
         if (mCurrentDigit < mDigits.size()) {
           while (isDigitOnLink(linkid, mCurrentDigit) && mCurrentDigit < enddigitindex && mEventDigitCount % mDigitRate == 0) {
             if (mVerbosity) {
               LOG(info) << "at top of digit while loop calc linkid :" << linkid << " : " << mDigits[mDigitsIndex[mCurrentDigit]].getDetector() * 2 + mDigits[mDigitsIndex[mCurrentDigit]].getROB() % 2 << " actual link=" << linkid;
-            }
-            if (isFirstDigit) {
-              int hcheaderwords = writeDigitHCHeader(triggercount, linkid);
-              linkwordswritten += hcheaderwords;
-              rawwords += hcheaderwords;
-              isFirstDigit = false;
             }
             //while we are on a single mcm, copy the digits timebins to the array.
             int digitcounter = 0;

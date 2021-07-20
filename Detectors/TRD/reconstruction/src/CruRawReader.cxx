@@ -237,9 +237,8 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
     int oriindex = currentlinkindex + constants::NLINKSPERHALFCRU * endpoint; // endpoint denotes the pci side, upper or lower for the pair of 15 fibres.
     FeeParam::unpackORI(oriindex, side, stack, layer, halfchamberside);
     int currentdetector = stack * constants::NLAYER + layer + supermodule * constants::NLAYER * constants::NSTACK;
-    int ori = 1;
     if (mVerbose) {
-      LOG(info) << "******* LINK # " << currentlinkindex << " and ORI:" << ori << " unpackORI(" << oriindex << "," << side << "," << stack << "," << layer << "," << halfchamberside << ") and an FEEID:" << std::hex << mFEEID << " det:" << std::dec << currentdetector;
+      LOG(info) << "******* LINK # " << currentlinkindex << " and  unpackORI(" << oriindex << "," << side << "," << stack << "," << layer << "," << halfchamberside << ") and an FEEID:" << std::hex << mFEEID << " det:" << std::dec << currentdetector;
     }
     // tracklet first then digit ??
     // tracklets end with tracklet end marker(0x10001000 0x10001000), digits end with digit endmarker (0x0 0x0)
@@ -265,9 +264,6 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
         LOG(info) << "parse digits";
       }
       //linkstart and linkend already have the multiple cruheaderoffsets built in
-      if (mVerbose) {
-        LOG(info) << "mem copy with offset of : " << cruhbfstartoffset << " parsing digits with linkstart: " << linkstart << " ending at : " << linkend;
-      }
       digitwordsread = mDigitsParser.Parse(&mHBFPayload, linkstart, linkend, currentdetector, cleardigits, mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
       if (digitwordsread != std::distance(linkstart, linkend)) {
         //we have the data corruption problem of a pile of stuff at the end of a link, jump over it.
