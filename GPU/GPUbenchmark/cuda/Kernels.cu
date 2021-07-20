@@ -344,6 +344,7 @@ std::vector<float> GPUbenchmark<chunk_type>::benchmarkAsync(void (*kernel)(int, 
     GPUCHECK(cudaEventElapsedTime(&(results.at(iStream)), starts[iStream], stops[iStream]));
     GPUCHECK(cudaEventDestroy(starts[iStream]));
     GPUCHECK(cudaEventDestroy(stops[iStream]));
+    GPUCHECK(cudaStreamDestroy(streams[iStream]));
   }
 
   return results;
