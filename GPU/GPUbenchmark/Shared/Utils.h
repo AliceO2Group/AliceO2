@@ -125,7 +125,6 @@ class ResultWriter
   explicit ResultWriter(const std::string resultsTreeFilename = "benchmark_results.root");
   ~ResultWriter() = default;
   void storeBenchmarkEntry(int chunk, float entry);
-  void storeEntryForRegion(std::string benchmarkName, std::string region, std::string type, float entry);
   void addBenchmarkEntry(const std::string bName, const std::string type, const int nChunks);
   void snapshotBenchmark();
   void saveToFile();
@@ -166,14 +165,6 @@ inline void ResultWriter::saveToFile()
     t->Write();
   }
   mOutfile->Close();
-}
-
-inline void ResultWriter::storeEntryForRegion(std::string benchmarkName, std::string region, std::string type, float entry)
-{
-  // (*mTree)
-  //   << (benchmarkName + "_" + type + "_region_" + region).data()
-  //   << "elapsed=" << entry
-  //   << "\n";
 }
 
 } // namespace benchmark
