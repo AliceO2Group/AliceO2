@@ -54,7 +54,7 @@ struct SelectPhysicalPrimaries {
       if constexpr (RUN3) {
         prims(MC::isPhysicalPrimaryRun3(particle), charge);
       } else {
-        prims(MC::isPhysicalPrimary(particle, particles), charge);
+        prims(MC::isPhysicalPrimary(particles, particle), charge);
       }
     }
     delete pdg;
