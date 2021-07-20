@@ -41,14 +41,14 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 
 /// B± analysis task
-struct TaskBplus {
+struct HfTaskBplus {
   HistogramRegistry registry{
     "registry",
     {{"hPtProng0", "B+ candidates;prong 0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hPtProng1", "B+ candidates;prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hPtCand", "B+ candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}}}};
 
-  Configurable<int> d_selectionFlagBPlus{"d_selectionFlagBPlus", 1, "Selection Flag for B+"};
+  Configurable<int> selectionFlagBPlus{"selectionFlagBPlus", 1, "Selection Flag for B+"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<std::vector<double>> bins{"pTBins", std::vector<double>{hf_cuts_bplus_tod0pi::pTBins_v}, "pT bin limits"};
 
@@ -66,7 +66,7 @@ struct TaskBplus {
     registry.add("hDecLenXYErr", "B+ candidates;candidate decay length xy error (cm);entries", {HistType::kTH2F, {{100, 0., 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_bplus::isSelBPlusToD0Pi >= d_selectionFlagBPlus);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_bplus::isSelBPlusToD0Pi >= selectionFlagBPlus);
 
   void process(soa::Filtered<soa::Join<aod::HfCandBPlus, aod::HFSelBPlusToD0PiCandidate>> const& candidates)
   {
@@ -74,11 +74,11 @@ struct TaskBplus {
       if (!(candidate.hfflag() & 1 << hf_cand_bplus::DecayType::BPlusToD0Pi)) {
         continue;
       }
-      if (cutYCandMax >= 0. && std::abs(YBplus(candidate)) > cutYCandMax) {
+      if (cutYCandMax >= 0. && std::abs(YBPlus(candidate)) > cutYCandMax) {
         continue;
       }
 
-      registry.fill(HIST("hMass"), InvMassBplus(candidate), candidate.pt());
+      registry.fill(HIST("hMass"), InvMassBPlus(candidate), candidate.pt());
       registry.fill(HIST("hPtCand"), candidate.pt());
       registry.fill(HIST("hPtProng0"), candidate.ptProng0());
       registry.fill(HIST("hPtProng1"), candidate.ptProng1());
@@ -97,7 +97,7 @@ struct TaskBplus {
 };    // struct
 
 /// BPlus MC analysis and fill histograms
-struct TaskBplusMc {
+struct HfTaskBplusMc {
   HistogramRegistry registry{
     "registry",
     {{"hPtRecSig", "B+ candidates (matched);candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{300, 0., 30.}}}},
@@ -105,7 +105,7 @@ struct TaskBplusMc {
      {"hPtGenSig", "B+ candidates (matched);candidate #it{p}_{T}^{gen.} (GeV/#it{c});entries", {HistType::kTH1F, {{300, 0., 10.}}}},
      {"hPtGen", "MC particles (matched);candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{300, 0., 30.}}}}}};
 
-  Configurable<int> d_selectionFlagBPlus{"d_selectionFlagBPlus", 1, "Selection Flag for B+"};
+  Configurable<int> selectionFlagBPlus{"selectionFlagBPlus", 1, "Selection Flag for B+"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<std::vector<double>> bins{"pTBins", std::vector<double>{hf_cuts_bplus_tod0pi::pTBins_v}, "pT bin limits"};
 
@@ -148,7 +148,7 @@ struct TaskBplusMc {
     registry.add("hImpParProdBPlusRecBg", "B+ candidates (unmatched);candidate impact parameter product ;entries", {HistType::kTH2F, {{100, -0.5, 0.5}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_bplus::isSelBPlusToD0Pi >= d_selectionFlagBPlus);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_bplus::isSelBPlusToD0Pi >= selectionFlagBPlus);
 
   void process(soa::Filtered<soa::Join<aod::HfCandBPlus, aod::HFSelBPlusToD0PiCandidate, aod::HfCandBPMCRec>> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandBPMCGen> const& particlesMC, aod::BigTracksMC const& tracks, aod::HfCandProng2 const&)
@@ -158,7 +158,7 @@ struct TaskBplusMc {
       if (!(candidate.hfflag() & 1 << hf_cand_bplus::DecayType::BPlusToD0Pi)) {
         continue;
       }
-      if (cutYCandMax >= 0. && std::abs(YBplus(candidate)) > cutYCandMax) {
+      if (cutYCandMax >= 0. && std::abs(YBPlus(candidate)) > cutYCandMax) {
         continue;
       }
       auto candD0 = candidate.index0_as<aod::HfCandProng2>();
@@ -172,7 +172,7 @@ struct TaskBplusMc {
         registry.fill(HIST("hCPAxyRecSig"), candidate.cpa(), candidate.pt());
         registry.fill(HIST("hEtaRecSig"), candidate.eta(), candidate.pt());
         registry.fill(HIST("hDecLengthRecSig"), candidate.decayLength(), candidate.pt());
-        registry.fill(HIST("hMassRecSig"), InvMassBplus(candidate), candidate.pt());
+        registry.fill(HIST("hMassRecSig"), InvMassBPlus(candidate), candidate.pt());
         registry.fill(HIST("hd0Prong0RecSig"), candidate.impactParameter0(), candidate.pt());
         registry.fill(HIST("hd0Prong1RecSig"), candidate.impactParameter1(), candidate.pt());
         registry.fill(HIST("hPtProng0RecSig"), candidate.ptProng0(), candidate.pt());
@@ -187,7 +187,7 @@ struct TaskBplusMc {
         registry.fill(HIST("hCPAxyRecBg"), candidate.cpa(), candidate.pt());
         registry.fill(HIST("hEtaRecBg"), candidate.eta(), candidate.pt());
         registry.fill(HIST("hDecLengthRecBg"), candidate.decayLength(), candidate.pt());
-        registry.fill(HIST("hMassRecBg"), InvMassBplus(candidate), candidate.pt());
+        registry.fill(HIST("hMassRecBg"), InvMassBPlus(candidate), candidate.pt());
         registry.fill(HIST("hd0Prong0RecBg"), candidate.impactParameter0(), candidate.pt());
         registry.fill(HIST("hd0Prong1RecBg"), candidate.impactParameter1(), candidate.pt());
         registry.fill(HIST("hPtProng0RecBg"), candidate.ptProng0(), candidate.pt());
@@ -239,9 +239,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{};
   const bool doMC = cfgc.options().get<bool>("doMC");
-  workflow.push_back(adaptAnalysisTask<TaskBplus>(cfgc));
+  workflow.push_back(adaptAnalysisTask<HfTaskBplus>(cfgc));
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<TaskBplusMc>(cfgc));
+    workflow.push_back(adaptAnalysisTask<HfTaskBplusMc>(cfgc));
   }
   return workflow;
 }

@@ -485,31 +485,31 @@ enum DecayType { BPlusToD0Pi = 0 };
 // B± → D0bar(D0) π±
 
 template <typename T>
-auto CtBplus(const T& candidate)
+auto CtBPlus(const T& candidate)
 {
   return candidate.ct(RecoDecay::getMassPDG(pdg::Code::kBPlus));
 }
 
 template <typename T>
-auto YBplus(const T& candidate)
+auto YBPlus(const T& candidate)
 {
   return candidate.y(RecoDecay::getMassPDG(pdg::Code::kBPlus));
 }
 
 template <typename T>
-auto EBplus(const T& candidate)
+auto EBPlus(const T& candidate)
 {
   return candidate.e(RecoDecay::getMassPDG(pdg::Code::kBPlus));
 }
 
 template <typename T>
-auto InvMassBplus(const T& candidate)
+auto InvMassBPlus(const T& candidate)
 {
   return candidate.m(array{RecoDecay::getMassPDG(pdg::Code::kD0), RecoDecay::getMassPDG(kPiPlus)});
 }
 
 template <typename T>
-auto CosThetaStarBplus(const T& candidate)
+auto CosThetaStarBPlus(const T& candidate)
 {
   return candidate.cosThetaStar(array{RecoDecay::getMassPDG(pdg::Code::kD0), RecoDecay::getMassPDG(kPiPlus)}, RecoDecay::getMassPDG(pdg::Code::kBPlus), 1);
 }

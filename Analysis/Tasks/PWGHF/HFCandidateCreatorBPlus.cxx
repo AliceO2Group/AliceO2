@@ -47,24 +47,24 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 struct HfCandidateCreatorBplus {
   Produces<aod::HfCandBPlusBase> rowCandidateBase;
   // vertexing parameters
-  Configurable<double> d_bz{"d_bz", 5., "magnetic field"};
-  Configurable<bool> b_propdca{"b_propdca", true, "create tracks version propagated to PCA"};
-  Configurable<double> d_maxr{"d_maxr", 5., "reject PCA's above this radius"};
-  Configurable<double> d_maxdzini{"d_maxdzini", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
-  Configurable<double> d_minparamchange{"d_minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
-  Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations if chi2/chi2old > this"};
-  Configurable<bool> d_UseAbsDCA{"d_UseAbsDCA", true, "Use Abs DCAs"};
+  Configurable<double> bz{"bz", 5., "magnetic field"};
+  Configurable<bool> propdca{"propdca", true, "create tracks version propagated to PCA"};
+  Configurable<double> maxr{"maxr", 5., "reject PCA's above this radius"};
+  Configurable<double> maxdzini{"maxdzini", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
+  Configurable<double> minparamchange{"minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
+  Configurable<double> minrelchi2change{"minrelchi2change", 0.9, "stop iterations if chi2/chi2old > this"};
+  Configurable<bool> UseAbsDCA{"UseAbsDCA", true, "Use Abs DCAs"};
 
   OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "2-prong candidates;XX element of cov. matrix of prim. vtx. position (cm^{2});entries", 100, 0., 1.e-4)};
   OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "2-prong candidates;XX element of cov. matrix of sec. vtx. position (cm^{2});entries", 100, 0., 0.2)};
   OutputObj<TH1F> hNevents{TH1F("hNevents", "Number of events;Nevents;entries", 1, 0., 1)};
 
-  Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
-  Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
+  Configurable<int> selectionFlagD0{"selectionFlagD0", 1, "Selection Flag for D0"};
+  Configurable<int> selectionFlagD0bar{"selectionFlagD0bar", 1, "Selection Flag for D0bar"};
   Configurable<double> cutYCandMax{"cutYCandMax", 1., "max. cand. rapidity"};
   Configurable<double> cutEtaTrkMax{"cutEtaTrkMax", 1.44, "max. bach track. pseudorapidity"};
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= selectionFlagD0bar);
 
   void process(aod::Collision const& collisions,
                soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates, aod::BigTracks const& tracks)
@@ -73,21 +73,21 @@ struct HfCandidateCreatorBplus {
 
     //Initialise fitter for B vertex
     o2::vertexing::DCAFitterN<2> bfitter;
-    bfitter.setBz(d_bz);
-    bfitter.setPropagateToPCA(b_propdca);
-    bfitter.setMaxR(d_maxr);
-    bfitter.setMinParamChange(d_minparamchange);
-    bfitter.setMinRelChi2Change(d_minrelchi2change);
-    bfitter.setUseAbsDCA(d_UseAbsDCA);
+    bfitter.setBz(bz);
+    bfitter.setPropagateToPCA(propdca);
+    bfitter.setMaxR(maxr);
+    bfitter.setMinParamChange(minparamchange);
+    bfitter.setMinRelChi2Change(minrelchi2change);
+    bfitter.setUseAbsDCA(UseAbsDCA);
 
     //Initial fitter to redo D-vertex to get extrapolated daughter tracks
     o2::vertexing::DCAFitterN<2> df;
-    df.setBz(d_bz);
-    df.setPropagateToPCA(b_propdca);
-    df.setMaxR(d_maxr);
-    df.setMinParamChange(d_minparamchange);
-    df.setMinRelChi2Change(d_minrelchi2change);
-    df.setUseAbsDCA(d_UseAbsDCA);
+    df.setBz(bz);
+    df.setPropagateToPCA(propdca);
+    df.setMaxR(maxr);
+    df.setMinParamChange(minparamchange);
+    df.setMinRelChi2Change(minrelchi2change);
+    df.setUseAbsDCA(UseAbsDCA);
 
     // loop over pairs of track indices
     for (auto& candidate : candidates) {
@@ -115,8 +115,8 @@ struct HfCandidateCreatorBplus {
         continue;
       }
 
-      prong0TrackParCov.propagateTo(candidate.xSecondaryVertex(), d_bz);
-      prong1TrackParCov.propagateTo(candidate.xSecondaryVertex(), d_bz);
+      prong0TrackParCov.propagateTo(candidate.xSecondaryVertex(), bz);
+      prong1TrackParCov.propagateTo(candidate.xSecondaryVertex(), bz);
       //std::cout << df.getTrack(0).getX() << " "<< "secVx=" << candidate.xSecondaryVertex() << std::endl;
 
       const std::array<float, 6> pCovMatrixD0 = df.calcPCACovMatrixFlat();
@@ -140,7 +140,7 @@ struct HfCandidateCreatorBplus {
         }
 
         //Select D0pi- and D0(bar)pi+ pairs only
-        if (!((candidate.isSelD0() >= d_selectionFlagD0 && track.sign() < 0) || (candidate.isSelD0bar() >= d_selectionFlagD0bar && track.sign() > 0))) {
+        if (!((candidate.isSelD0() >= selectionFlagD0 && track.sign() < 0) || (candidate.isSelD0bar() >= selectionFlagD0bar && track.sign() > 0))) {
           //Printf("D0: %d, D0bar%d, sign: %d", candidate.isSelD0(), candidate.isSelD0bar(), track.sign());
           continue;
         }
@@ -173,8 +173,8 @@ struct HfCandidateCreatorBplus {
         o2::dataformats::DCA impactParameter0;
         o2::dataformats::DCA impactParameter1;
 
-        bfitter.getTrack(0).propagateToDCA(primaryVertex, d_bz, &impactParameter0);
-        bfitter.getTrack(1).propagateToDCA(primaryVertex, d_bz, &impactParameter1);
+        bfitter.getTrack(0).propagateToDCA(primaryVertex, bz, &impactParameter0);
+        bfitter.getTrack(1).propagateToDCA(primaryVertex, bz, &impactParameter1);
 
         // get uncertainty of the decay length
         double phi, theta;
@@ -182,7 +182,6 @@ struct HfCandidateCreatorBplus {
         auto errorDecayLength = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, theta) + getRotatedCovMatrixXX(covMatrixPCA, phi, theta));
         auto errorDecayLengthXY = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, 0.) + getRotatedCovMatrixXX(covMatrixPCA, phi, 0.));
 
-        int hfFlag = 1 << hf_cand_bplus::DecayType::BPlusToD0Pi;
 
         // fill candidate table rows
         rowCandidateBase(collision.globalIndex(),

@@ -33,24 +33,24 @@ struct HfBplusTod0piCandidateSelector {
 
   Produces<aod::HFSelBPlusToD0PiCandidate> hfSelBPlusToD0PiCandidate;
 
-  Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
-  Configurable<double> d_pTCandMax{"d_pTCandMax", 50., "Upper bound of candidate pT"};
+  Configurable<double> pTCandMin{"pTCandMin", 0., "Lower bound of candidate pT"};
+  Configurable<double> pTCandMax{"pTCandMax", 50., "Upper bound of candidate pT"};
 
-  Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
-  Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 10., "Upper bound of track pT for TPC PID"};
-  Configurable<double> d_pidTOFMinpT{"d_pidTOFMinpT", 0.15, "Lower bound of track pT for TOF PID"};
-  Configurable<double> d_pidTOFMaxpT{"d_pidTOFMaxpT", 10., "Upper bound of track pT for TOF PID"};
+  Configurable<double> pidTPCMinpT{"pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
+  Configurable<double> pidTPCMaxpT{"pidTPCMaxpT", 10., "Upper bound of track pT for TPC PID"};
+  Configurable<double> pidTOFMinpT{"pidTOFMinpT", 0.15, "Lower bound of track pT for TOF PID"};
+  Configurable<double> pidTOFMaxpT{"pidTOFMaxpT", 10., "Upper bound of track pT for TOF PID"};
 
-  Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
-  Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 5., "Nsigma cut on TPC only"};
-  Configurable<double> d_nSigmaTPCCombined{"d_nSigmaTPCCombined", 5., "Nsigma cut on TPC combined with TOF"};
-  Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 2., "Nsigma cut on TOF only"};
-  Configurable<double> d_nSigmaTOFCombined{"d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
+  Configurable<double> TPCNClsFindablePIDCut{"TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
+  Configurable<double> nSigmaTPC{"nSigmaTPC", 5., "Nsigma cut on TPC only"};
+  Configurable<double> nSigmaTPCCombined{"nSigmaTPCCombined", 5., "Nsigma cut on TPC combined with TOF"};
+  Configurable<double> nSigmaTOF{"nSigmaTOF", 2., "Nsigma cut on TOF only"};
+  Configurable<double> nSigmaTOFCombined{"nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
 
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_bplus_tod0pi::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"BPlus_to_d0pi_cuts", {hf_cuts_bplus_tod0pi::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "B+ candidate selection per pT bin"};
-  Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
-  Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
+  Configurable<int> selectionFlagD0{"selectionFlagD0", 1, "Selection Flag for D0"};
+  Configurable<int> selectionFlagD0bar{"selectionFlagD0bar", 1, "Selection Flag for D0bar"};
 
   // Apply topological cuts as defined in HFSelectorCuts.h; return true if candidate passes all cuts
   template <typename T1, typename T2, typename T3>
@@ -95,13 +95,13 @@ struct HfBplusTod0piCandidateSelector {
       return false;
     }
 
-    //if (candpT < d_pTCandMin || candpT >= d_pTCandMax) {
+    //if (candpT < pTCandMin || candpT >= pTCandMax) {
     // Printf("B+ topol selection failed at cand pT check");
     // return false;
     // }
 
     //B+ mass cut
-    //if (std::abs(InvMassBplus(hfCandBPlus) - RecoDecay::getMassPDG(521)) > cuts->get(pTBin, "m")) {
+    //if (std::abs(InvMassBPlus(hfCandBPlus) - RecoDecay::getMassPDG(521)) > cuts->get(pTBin, "m")) {
     // Printf("B+ topol selection failed at mass diff check");
     //  return false;
     // }
