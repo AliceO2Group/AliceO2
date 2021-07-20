@@ -9,14 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "FV0Calibration/FV0ChannelTimeCalibrationObject.h"
+#include "FV0Calibration/FV0ChannelTimeTimeSlotContainer.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::fv0;
 
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::ft0::FT0CalibrationInfoObject, o2::ft0::FT0ChannelTimeTimeSlotContainer>;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::fv0::FV0CalibrationInfoObject, o2::fv0::FV0ChannelTimeTimeSlotContainer>;
-//#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::ft0::FT0CalibrationInfoObject, o2::ft0::FT0SlewingCalibContainer >;
+FV0ChannelTimeCalibrationObject FV0TimeChannelOffsetCalibrationObjectAlgorithm::generateCalibrationObject(const FV0ChannelTimeTimeSlotContainer& container)
+{
+  FV0ChannelTimeCalibrationObject calibrationObject;
 
-#endif
+  for (unsigned int iCh = 0; iCh < Constants::nFv0Channels; ++iCh) {
+    calibrationObject.mTimeOffsets[iCh] = container.getMeanGaussianFitValue(iCh);
+  }
+
+  return calibrationObject;
+}

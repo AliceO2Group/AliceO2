@@ -1,11 +1,9 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-//#define ENABLE_UPGRADES
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "CCDB/CcdbApi.h"
-#include "FT0Base/Geometry.h"
 #include <TRandom.h>
 #include <TFile.h>
 #include <vector>
@@ -23,11 +21,10 @@ void FV0Misaligner(const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080"
 {
   std::vector<o2::detectors::AlignParam> params;
   o2::base::GeometryManager::loadGeometry("", false);
-  //  auto geom = o2::ft0::Geometry::Instance();
   AlgPar pars;
   bool glo = true;
 
-  o2::detectors::DetID detFT0("FV0");
+  o2::detectors::DetID detFV0("FV0");
 
   // FV0 detector
   for (int ihalf = 1; ihalf < 3; ihalf++) {
@@ -37,7 +34,7 @@ void FV0Misaligner(const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080"
   }
 
   if (!ccdbHost.empty()) {
-    std::string path = objectPath.empty() ? o2::base::NameConf::getAlignmentPath(detFT0) : objectPath;
+    std::string path = objectPath.empty() ? o2::base::NameConf::getAlignmentPath(detFV0) : objectPath;
     LOGP(INFO, "Storing alignment object on {}/{}", ccdbHost, path);
     o2::ccdb::CcdbApi api;
     map<string, string> metadata; // can be empty
