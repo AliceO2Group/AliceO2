@@ -1,9 +1,8 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
-// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
-// All rights not expressly granted are reserved.
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
 //
-// This software is distributed under the terms of the GNU General Public
-// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -73,18 +72,6 @@ DECLARE_SOA_DYNAMIC_COLUMN(QtArm, qtarm, //!
                              return std::sqrt(RecoDecay::P2(pxneg, pyneg, pzneg) - dp * dp / momTot); //qtarm
                            });
 
-// Psi pair angle: angle between the plane defined by the electron and positron momenta and the xy plane
-DECLARE_SOA_DYNAMIC_COLUMN(PsiPair, psipair, //!
-                           [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) {
-                             auto clipToPM1 = [](float x) { return x < -1.f ? -1.f : (x > 1.f ? 1.f : x); };
-                             float ptot2 = RecoDecay::P2(pxpos, pypos, pzpos) * RecoDecay::P2(pxneg, pyneg, pzneg);
-                             float argcos = RecoDecay::dotProd(array{pxpos, pypos, pzpos}, array{pxneg, pyneg, pzneg}) / std::sqrt(ptot2);
-                             float thetaPos = std::atan2(RecoDecay::sqrtSumOfSquares(pxpos, pypos), pzpos);
-                             float thetaNeg = std::atan2(RecoDecay::sqrtSumOfSquares(pxneg, pyneg), pzneg);
-                             float argsin = (thetaNeg - thetaPos) / std::acos(clipToPM1(argcos));
-                             return std::asin(clipToPM1(argsin));
-                           });
-
 //Calculated on the fly with mass assumption + dynamic tables
 DECLARE_SOA_DYNAMIC_COLUMN(MLambda, mLambda, //!
                            [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) -> float { return RecoDecay::M(array{array{pxpos, pypos, pzpos}, array{pxneg, pyneg, pzneg}}, array{RecoDecay::getMassPDG(kProton), RecoDecay::getMassPDG(kPiPlus)}); });
@@ -113,10 +100,10 @@ DECLARE_SOA_DYNAMIC_COLUMN(NegativeEta, negativeeta, //!
 DECLARE_SOA_DYNAMIC_COLUMN(NegativePhi, negativephi, //!
                            [](float PxNeg, float PyNeg) -> float { return RecoDecay::Phi(PxNeg, PyNeg); });
 DECLARE_SOA_DYNAMIC_COLUMN(PositiveEta, positiveeta, //!
-                           [](float PxPos, float PyPos, float PzPos) -> float { return RecoDecay::Eta(array{PxPos, PyPos, PzPos}); });
+                           [](float PxPos, float PyPos, float PzPos) -> float { return RecoDecay::Eta(array{PxPos, PyPos, PzPos}); });
 DECLARE_SOA_DYNAMIC_COLUMN(PositivePhi, positivephi, //!
-                           [](float PxPos, float PyPos) -> float { return RecoDecay::Phi(PxPos, PyPos); });
-  
+                           [](float PxPos, float PyPos) -> float { return RecoDecay::Phi(PxPos, PyPos); });
+
 DECLARE_SOA_EXPRESSION_COLUMN(Px, px, //!
                               float, 1.f * aod::v0data::pxpos + 1.f * aod::v0data::pxneg);
 DECLARE_SOA_EXPRESSION_COLUMN(Py, py, //!
@@ -140,7 +127,6 @@ DECLARE_SOA_TABLE_FULL(StoredV0Datas, "V0Datas", "AOD", "V0DATA", //!
                        v0data::DCAV0ToPV<v0data::X, v0data::Y, v0data::Z, v0data::Px, v0data::Py, v0data::Pz>,
                        v0data::Alpha<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
                        v0data::QtArm<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
-                       v0data::PsiPair<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
 
                        //Invariant masses
                        v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
@@ -152,11 +138,9 @@ DECLARE_SOA_TABLE_FULL(StoredV0Datas, "V0Datas", "AOD", "V0DATA", //!
                        v0data::YK0Short<v0data::Px, v0data::Py, v0data::Pz>,
                        v0data::YLambda<v0data::Px, v0data::Py, v0data::Pz>,
                        v0data::Eta<v0data::Px, v0data::Py, v0data::Pz>,
-                       v0data::Phi<v0data::Px, v0data::Py>,
-                       
-                       //Daughter helpers
+                       v0data::Phi<v0data::Px, v0data::Py>
                        v0data::NegativePt<v0data::PxNeg, v0data::PyNeg>,
-                       v0data::PositivePt<v0data::PxPos, v0data::PyPos>,
+                       v0data::PositivePt<v0data::PxPos, v0data::PyPos>,
                        v0data::NegativeEta<v0data::NegPx, v0data::NegPy, v0data::NegPz>,
                        v0data::NegativePhi<v0data::NegPx, v0data::NegPy>,
                        v0data::PositiveEta<v0data::PosPx, v0data::PosPy, v0data::PosPz>,
