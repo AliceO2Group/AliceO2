@@ -120,16 +120,7 @@ int TrackletsParser::Parse()
       std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator hchword = word;
       std::advance(hchword, 2);
       uint32_t halfchamberheaderint = *hchword;
-      if ((((*hchword) & (0x1 << 11)) != 0) && !mIgnoreTrackletHCHeader) { //TrackletHCHeader has bit 11 set to 1 always. Check for state because raw data can have bit 11 set!
-        //read the header
-        //we actually have an header word.
-        mTrackletHCHeader = (TrackletHCHeader*)&word;
-        if (mHeaderVerbose) {
-          LOG(info) << "state mcmheader and word : 0x" << std::hex << *word << " sanity check : " << trackletHCHeaderSanityCheck(*mTrackletHCHeader);
-        }
-        mWordsRead++;
-        mState = StateTrackletEndMarker;
-      }
+      mState = StateTrackletEndMarker;
       return mWordsRead;
     }
     if (*word == o2::trd::constants::CRUPADDING32) {
@@ -140,15 +131,15 @@ int TrackletsParser::Parse()
     } else {
       //now for Tracklet hc header
       if ((((*word) & (0x1 << 11)) != 0) && !mIgnoreTrackletHCHeader && mState == StateTrackletHCHeader) { //TrackletHCHeader has bit 11 set to 1 always. Check for state because raw data can have bit 11 set!
-        if (mHeaderVerbose) {
-          LOG(info) << "mTrackletHCHeader is has value 0x" << std::hex << *word;
-        }
         if (mState != StateTrackletHCHeader) {
           LOG(warn) << "Something wrong with TrackletHCHeader bit 11 is set but state is not " << StateTrackletMCMHeader << " its :" << mState;
         }
         //read the header
         //we actually have a header word.
         mTrackletHCHeader = (TrackletHCHeader*)&word;
+        if (mHeaderVerbose) {
+          LOG(info) << "state trackletHCheader and word : 0x" << std::hex << *word << " sanity check : " << trackletHCHeaderSanityCheck(*mTrackletHCHeader);
+        }
         //sanity check of trackletheader ??
         mWordsRead++;
         mState = StateTrackletMCMHeader;                                // now we should read a MCMHeader next time through loop
@@ -202,7 +193,7 @@ int TrackletsParser::Parse()
           int slope = mTrackletMCMData->slope;
           int hcid = mDetector * 2 + mRobSide;
           if (mDataVerbose) {
-            LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mRobSide;
+            LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mRobSide << " " << mTrackletMCMHeader->padrow << ":" << mTrackletMCMHeader->col << " ---- " << mTrackletHCHeader->supermodule << ":" << mTrackletHCHeader->stack << ":" << mTrackletHCHeader->layer << ":" << mTrackletHCHeader->side << " rawhcheader : 0x" << std::hex << std::hex << mTrackletHCHeader->word;
           }
           //TODO cross reference hcid to somewhere for a check. mDetector is assigned at the time of parser init.
           //

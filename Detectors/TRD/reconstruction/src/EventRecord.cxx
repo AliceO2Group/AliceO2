@@ -56,12 +56,12 @@ void EventRecord::addTracklets(std::vector<Tracklet64>::iterator& start, std::ve
 {
   mTracklets.insert(std::end(mTracklets), start, end);
 }
+
 void EventRecord::addTracklets(std::vector<Tracklet64>& tracklets)
 {
   for (auto tracklet : tracklets) {
     mTracklets.push_back(tracklet);
   }
-  //mTracklets.insert(mTracklets.back(), tracklets.begin(),tracklets.back());
 }
 
 void EventRecord::sortByHCID()
