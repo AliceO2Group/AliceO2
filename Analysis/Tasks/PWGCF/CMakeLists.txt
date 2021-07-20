@@ -10,6 +10,7 @@
 # or submit itself to any jurisdiction.
 
 add_subdirectory(FemtoDream)
+add_subdirectory(GenericFramework)
 
 o2_add_library(PWGCFCore
                SOURCES  AnalysisConfigurableCuts.cxx
