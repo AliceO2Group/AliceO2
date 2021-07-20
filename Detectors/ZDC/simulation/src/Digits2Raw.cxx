@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -23,7 +24,6 @@
 
 using namespace o2::zdc;
 
-//ClassImp(Digits2Raw);
 //______________________________________________________________________________
 void Digits2Raw::processDigits(const std::string& outDir, const std::string& fileDigitsName)
 {
@@ -59,10 +59,11 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
   mLinkID = uint32_t(0);
   mCruID = uint16_t(0);
   mEndPointID = uint32_t(0);
+  // TODO: assign FeeID from configuration object
   for (int ilink = 0; ilink < NLinks; ilink++) {
-    mFeeID = uint64_t(ilink);
+    uint64_t FeeID = uint64_t(ilink);
     std::string outFileLink = mOutputPerLink ? o2::utils::Str::concat_string(outd, "zdc_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, "zdc.raw");
-    mWriter.registerLink(mFeeID, mCruID, mLinkID, mEndPointID, outFileLink);
+    mWriter.registerLink(FeeID, mCruID, mLinkID, mEndPointID, outFileLink);
   }
 
   std::unique_ptr<TFile> digiFile(TFile::Open(fileDigitsName.c_str()));
@@ -428,6 +429,7 @@ void Digits2Raw::convertDigits(int ibc)
 void Digits2Raw::writeDigits()
 {
   constexpr static int data_size = sizeof(uint32_t) * NWPerGBTW;
+  constexpr static gsl::span<char> empty;
   // Local interaction record (true and empty bunches)
   o2::InteractionRecord ir(mZDC.data[0][0].f.bc, mZDC.data[0][0].f.orbit);
   for (uint32_t im = 0; im < o2::zdc::NModules; im++) {
@@ -447,15 +449,27 @@ void Digits2Raw::writeDigits()
     bool tcond_triggered = A0 || A1 || (A2 && (T0 || TM)) || (A3 && T0);
     bool tcond_last = mZDC.data[im][0].f.bc == 3563;
     // Condition to write GBT data
+    bool addedChData[NChPerModule] = {false, false, false, false};
     if (tcond_triggered || (mIsContinuous && tcond_continuous) || (mZDC.data[im][0].f.bc == 3563)) {
       for (uint32_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
+        uint64_t FeeID = 2 * im + ic / 2;
         if (mModuleConfig->modules[im].readChannel[ic]) {
           for (int32_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
             gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
-            mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, payload);
+            mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
           }
+          addedChData[ic] = true;
         }
       }
+    }
+    // All links are registered, we add explicitly zero payload
+    if (addedChData[0] == false && addedChData[1] == false) {
+      uint64_t FeeID = 2 * im;
+      mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, empty);
+    }
+    if (addedChData[2] == false && addedChData[3] == false) {
+      uint64_t FeeID = 2 * im + 1;
+      mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, empty);
     }
     if (mVerbosity > 1) {
       if (tcond_continuous) {
@@ -577,13 +591,12 @@ void Digits2Raw::emptyBunches(std::bitset<3564>& bunchPattern)
   const int LHCMaxBunches = o2::constants::lhc::LHCMaxBunches;
   mNEmpty = 0;
   for (int32_t ib = 0; ib < LHCMaxBunches; ib++) {
-    int32_t mb = (ib + 31) % LHCMaxBunches; // beam gas from back of calorimeter
-    int32_t m1 = (ib + 1) % LHCMaxBunches;  // previous bunch
-    int32_t cb = ib;                        // current bunch crossing
-    int32_t p1 = (ib - 1) % LHCMaxBunches;  // colliding + 1
-    int32_t p2 = (ib + 1) % LHCMaxBunches;  // colliding + 2
-    int32_t p3 = (ib + 1) % LHCMaxBunches;  // colliding + 3
-    if (bunchPattern[mb] || bunchPattern[m1] || bunchPattern[cb] || bunchPattern[p1] || bunchPattern[p2] || bunchPattern[p3]) {
+    int32_t mb = (ib + 31) % LHCMaxBunches;                // beam gas from back of calorimeter (31 bc earlier than a colliding bunch)
+    int32_t m1 = (ib + 1) % LHCMaxBunches;                 // next bunch is colliding (position -1)
+    int32_t p1 = (ib - 1 + LHCMaxBunches) % LHCMaxBunches; // current bc is 1 bc after colliding (position +1)
+    int32_t p2 = (ib - 2 + LHCMaxBunches) % LHCMaxBunches; // current bc is 2 bc after colliding
+    int32_t p3 = (ib - 3 + LHCMaxBunches) % LHCMaxBunches; // current bc is 3 bc after colliding
+    if (bunchPattern[mb] || bunchPattern[m1] || bunchPattern[ib] || bunchPattern[p1] || bunchPattern[p2] || bunchPattern[p3]) {
       mEmpty[ib] = mNEmpty;
     } else {
       mNEmpty++;

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -81,12 +82,7 @@ class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
   const My_Float* getPar() const { return GetParameter(); }
   const My_Float* getCov() const { return GetCovariance(); }
   void resetCovariance(float s) { ResetCovariance(10.); }
-  float getTime() const { return -1.f; }
-  float getTimeMax() const { return 0.f; }
-  float getTimeMin() const { return 0.f; }
-  short getSide() const { return 0; }
-  void setZShift(float) {}
-  float getZShift() const { return 0.f; }
+  void updateCovZ2(float) {}
   bool CheckNumericalQuality() const { return true; }
 
   // parameter manipulation
@@ -243,7 +239,7 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
   };
 #endif
 #if defined(GPUCA_O2_LIB) && !defined(GPUCA_GPUCODE)
-  trackInterface<GPUTPCGMTrackParam>(const o2::dataformats::TrackTPCITS& param, float) : GPUTPCGMTrackParam(), mAlpha(param.getParamOut().getAlpha())
+  trackInterface<GPUTPCGMTrackParam>(const o2::dataformats::TrackTPCITS& param) : GPUTPCGMTrackParam(), mAlpha(param.getParamOut().getAlpha())
   {
     SetX(param.getParamOut().getX());
     SetPar(0, param.getParamOut().getY());
@@ -254,13 +250,8 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
     for (int i = 0; i < 15; i++) {
       SetCov(i, param.getParamOut().getCov()[i]);
     }
-    mTime = param.getTimeMUS().getTimeStamp();
-    mTimeAddMax = param.getTimeMUS().getTimeStampError();
-    mTimeSubMax = param.getTimeMUS().getTimeStampError();
-    float tmp = param.getTimeMUS().getTimeStampError() * 2.58f; // TPCvDrift = 2.58 cm/us fixed for now, should come from CCDB
-    Cov()[2] += tmp * tmp;                                      // account for time uncertainty by increasing sigmaZ2
   }
-  trackInterface<GPUTPCGMTrackParam>(const o2::tpc::TrackTPC& param, float, float, unsigned int) : GPUTPCGMTrackParam(), mAlpha(param.getParamOut().getAlpha())
+  trackInterface<GPUTPCGMTrackParam>(const o2::tpc::TrackTPC& param) : GPUTPCGMTrackParam(), mAlpha(param.getParamOut().getAlpha())
   {
     SetX(param.getParamOut().getX());
     SetPar(0, param.getParamOut().getY());
@@ -270,20 +261,6 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
     SetPar(4, param.getParamOut().getQ2Pt());
     for (int i = 0; i < 15; i++) {
       SetCov(i, param.getParamOut().getCov()[i]);
-    }
-    const float tpcZBinWidth = 0.199606f;
-    mTime = param.getTime0() * tpcZBinWidth;
-    mTimeAddMax = param.getDeltaTFwd() * tpcZBinWidth;
-    mTimeSubMax = param.getDeltaTBwd() * tpcZBinWidth;
-    if (param.hasASideClustersOnly()) {
-      mSide = -1;
-    } else if (param.hasCSideClustersOnly()) {
-      mSide = 1;
-    } else {
-      // CE-crossing tracks are not shifted along z, but the time uncertainty is taken into account by increasing sigmaZ2
-      float timeWindow = (mTimeAddMax + mTimeSubMax) * .5f;
-      float tmp = timeWindow * 2.58f; // TPCvDrift = 2.58 cm/us fixed for now, should come from CCDB
-      Cov()[2] += tmp * tmp;
     }
   }
 #endif
@@ -305,13 +282,8 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
 
   GPUd() const float* getPar() const { return GetPar(); }
   GPUd() const float* getCov() const { return GetCov(); }
-  GPUd() float getTime() const { return mTime; }
-  GPUd() float getTimeMax() const { return mTime + mTimeAddMax; }
-  GPUd() float getTimeMin() const { return mTime - mTimeSubMax; }
-  GPUd() short getSide() const { return mSide; }
-  GPUd() void setZShift(float zShift) { mZShift = zShift; }
-  GPUd() float getZShift() const { return mZShift; }
   GPUd() void resetCovariance(float s) { ResetCovariance(); }
+  GPUd() void updateCovZ2(float addZerror) { SetCov(2, GetErr2Z() + addZerror); }
   GPUd() void setAlpha(float alpha) { mAlpha = alpha; }
   GPUd() void set(float x, float alpha, const float param[5], const float cov[15])
   {
@@ -328,12 +300,7 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
   typedef GPUTPCGMTrackParam baseClass;
 
  private:
-  float mAlpha = 0.f;      // rotation along phi wrt global coordinate system
-  float mTime = -1.f;      // time estimate for this track in us
-  float mTimeAddMax = 0.f; // max. time that can be added to this track in us
-  float mTimeSubMax = 0.f; // max. time that can be subtracted to this track in us
-  short mSide = 0;         // -1 : A-side, +1 : C-side (relevant only for TPC-only tracks)
-  float mZShift = 0.f;     // calculated new for each TRD trigger candidate for this track
+  float mAlpha = 0.f; // rotation along phi wrt global coordinate system
 };
 
 template <>

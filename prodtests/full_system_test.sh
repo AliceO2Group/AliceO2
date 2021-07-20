@@ -74,7 +74,7 @@ ulimit -n 4096 # Make sure we can open sufficiently many files
 mkdir -p qed
 cd qed
 PbPbXSec="8."
-taskwrapper qedsim.log o2-sim --seed $O2SIMSEED -j $NJOBS -n$NEventsQED -m PIPE ITS MFT FT0 FV0 FDD -g extgen -e ${FST_MC_ENGINE} --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-7;QEDGenParam.yMax=7;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;Diamond.width[2]=6."'
+taskwrapper qedsim.log o2-sim --seed $O2SIMSEED -j $NJOBS -n $NEventsQED -m PIPE ITS MFT FT0 FV0 FDD -g extgen -e ${FST_MC_ENGINE} --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-7;QEDGenParam.yMax=7;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;Diamond.width[2]=6."'
 QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d'=' -f 2`/$PbPbXSec}")
 echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
 cd ..
@@ -111,6 +111,7 @@ taskwrapper fddraw.log o2-fdd-digit2raw --file-per-link  -o raw/FDD
 taskwrapper tpcraw.log o2-tpc-digits-to-rawzs  --file-for link  -i tpcdigits.root -o raw/TPC
 taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --output-type raw --tof-raw-outdir raw/TOF
 taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink
+taskwrapper mchraw.log o2-mch-digits-to-raw --input-file mchdigits.root --output-dir raw/MCH --file-per-link
 taskwrapper emcraw.log o2-emcal-rawcreator --file-for link -o raw/EMC
 taskwrapper phsraw.log o2-phos-digi2raw  --file-for link -o raw/PHS
 taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link -o raw/CPV
@@ -130,6 +131,10 @@ if [ $ENABLE_GPU_TEST != "0" ]; then
   STAGES+=" WITHGPU"
 fi
 STAGES+=" ASYNC"
+
+# give a possibility to run the FST with external existing dictionary (i.e. with CREATECTFDICT=0 full_system_test.sh)
+[ ! -z "$CREATECTFDICT" ] && SYNCMODEDOCTFDICT="$CREATECTFDICT" || SYNCMODEDOCTFDICT=1
+
 for STAGE in $STAGES; do
   logfile=reco_${STAGE}.log
 
@@ -150,7 +155,7 @@ for STAGE in $STAGES; do
     export CTFINPUT=1
     export SAVECTF=0
   else
-    export CREATECTFDICT=1
+    export CREATECTFDICT=$SYNCMODEDOCTFDICT
     export GPUTYPE=CPU
     export SYNCMODE=1
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY

@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 foreach(impl RANGE 3 4)
 
@@ -20,7 +21,6 @@ foreach(impl RANGE 3 4)
                 NAME o2-test-mchmapping-pad-indices-impl${impl}
                 SOURCES src/testPadIndices.cxx
                 COMPONENT_NAME mchmapping
-                MAX_ATTEMPTS 1
                 COMMAND_LINE_ARGS --filepattern ${CMAKE_CURRENT_LIST_DIR}/data/test_pad_indices_de{}.json
                 --de 100
                 --de 300
@@ -55,7 +55,6 @@ o2_add_test(StressTest3
         SOURCES src/CathodeSegmentation.cxx src/CathodeSegmentationLong.cxx
         src/Segmentation.cxx src/TestParameters.cxx
         COMPONENT_NAME mchmapping
-        MAX_ATTEMPTS 1
         COMMAND_LINE_ARGS --testpos ${CMAKE_CURRENT_LIST_DIR}/data/test_random_pos.json --run2 --manunumbering
         PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl3 O2::MCHMappingSegContour
         RapidJSON::RapidJSON
@@ -67,7 +66,6 @@ o2_add_test(StressTest4
         SOURCES src/CathodeSegmentation.cxx src/CathodeSegmentationLong.cxx
         src/Segmentation.cxx src/TestParameters.cxx
         COMPONENT_NAME mchmapping
-        MAX_ATTEMPTS 1
         COMMAND_LINE_ARGS --testpos ${CMAKE_CURRENT_LIST_DIR}/data/test_random_pos.json --manunumbering
         PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl4 O2::MCHMappingSegContour
         RapidJSON::RapidJSON

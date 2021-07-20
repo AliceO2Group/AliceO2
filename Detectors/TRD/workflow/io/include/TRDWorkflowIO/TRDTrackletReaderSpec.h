@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -49,6 +50,7 @@ class TRDTrackletReader : public o2::framework::Task
   std::string mInFileNameTrklt{"trdtracklets.root"};
   std::string mInTreeNameTrklt{"o2sim"};
   std::vector<o2::trd::CalibratedTracklet> mTrackletsCal, *mTrackletsCalPtr = &mTrackletsCal;
+  std::vector<char> mTrigRecMask, *mTrigRecMaskPtr = &mTrigRecMask;
   std::vector<o2::trd::Tracklet64> mTracklets, *mTrackletsPtr = &mTracklets;
   std::vector<o2::trd::TriggerRecord> mTriggerRecords, *mTriggerRecordsPtr = &mTriggerRecords;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels, *mLabelsPtr = &mLabels;

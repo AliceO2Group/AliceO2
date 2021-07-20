@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -265,10 +266,10 @@ void RawReaderZDC::setTriggerMask()
     }
     printTriggerMask += "]";
     uint32_t mytmask = mTriggerMask >> (im * NChPerModule);
-    LOGF(INFO, "Trigger mask for module %d 0123 %c%c%c%c\n", im,
+    LOGF(INFO, "Trigger mask for module %d 0123 %c%c%c%c", im,
          mytmask & 0x1 ? 'T' : 'N', mytmask & 0x2 ? 'T' : 'N', mytmask & 0x4 ? 'T' : 'N', mytmask & 0x8 ? 'T' : 'N');
   }
-  LOGF(INFO, "trigger_mask=0x%08x %s\n", mTriggerMask, printTriggerMask.c_str());
+  LOGF(INFO, "trigger_mask=0x%08x %s", mTriggerMask, printTriggerMask.c_str());
 }
 } // namespace zdc
 } // namespace o2

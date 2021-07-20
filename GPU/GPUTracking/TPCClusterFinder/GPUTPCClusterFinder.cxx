@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -118,6 +119,9 @@ void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
     unsigned int threshold = 300000 * io.settingsTF->nHBFPerTF / 128;                                                            // TODO: Probably one would need to do this on a row-basis for a better estimate, but currently not supported
     mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, std::min<unsigned int>(threshold, mNMaxClusterPerRow * 10)); // Relative increased value up until a threshold, for noisy pads
     mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, io.settingsTF->nHBFPerTF * 20000 / 256);                     // Absolute increased value, to have a minimum for noisy pads
+  }
+  if (mRec->GetProcessingSettings().tpcIncreasedMinClustersPerRow) {
+    mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, mRec->GetProcessingSettings().tpcIncreasedMinClustersPerRow);
   }
 
   mBufSize = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN, mScanWorkGroupSize)>(mNMaxDigitsFragment);

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -54,9 +55,9 @@ class Digit
   Digit& operator=(const Digit&) = default;
   // Modifiers
   void setROB(int rob) { mROB = rob; }
-  void setROB(int row, int pad) { mROB = HelperMethods::getROBfromPad(row, pad); }
   void setMCM(int mcm) { mMCM = mcm; }
-  void setMCM(int row, int pad) { mMCM = HelperMethods::getMCMfromPad(row, pad); }
+  void setROB(int row, int col) { mROB = HelperMethods::getROBfromPad(row, col); } // set ROB from pad row, column
+  void setMCM(int row, int col) { mMCM = HelperMethods::getMCMfromPad(row, col); } // set MCM from pad row, column
   void setChannel(int channel) { mChannel = channel; }
   void setDetector(int det) { mDetector = det; }
   void setADC(ArrayADC const& adc) { mADC = adc; }
@@ -64,8 +65,8 @@ class Digit
   // Get methods
   int getDetector() const { return mDetector; }
   int getHCId() const { return mDetector * 2 + (mROB % 2); }
-  int getRow() const { return HelperMethods::getPadRowFromMCM(mROB, mMCM); }
-  int getPad() const { return HelperMethods::getPadColFromADC(mROB, mMCM, mChannel); }
+  int getPadRow() const { return HelperMethods::getPadRowFromMCM(mROB, mMCM); }
+  int getPadCol() const { return HelperMethods::getPadColFromADC(mROB, mMCM, mChannel); }
   int getROB() const { return mROB; }
   int getMCM() const { return mMCM; }
   int getChannel() const { return mChannel; }

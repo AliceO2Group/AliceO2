@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -163,7 +164,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
           //CTPInput *inp = const_cast<CTPInput*> (isInputInConfig(item));
           CTPInput* inp = isInputInConfig(item);
           if (inp == nullptr) {
-            LOG(FATAL) << "DESCRIPTOR:" << tokens[0] << ": input not in INPUTD:" << item;
+            LOG(FATAL) << "DESCRIPTOR: input not in INPUTS:" << item << " LINE:" << line;
           } else {
             desc.inputs.push_back(inp);
           }
@@ -257,27 +258,27 @@ void CTPConfiguration::printStream(std::ostream& stream) const
 {
   stream << "Configuration:" << mName << "\n Version:" << mVersion << std::endl;
   stream << "CTP BC  masks:" << std::endl;
-  for (const auto i : mBCMasks) {
+  for (const auto& i : mBCMasks) {
     i.printStream(stream);
   }
   stream << "CTP inputs:" << std::endl;
-  for (const auto i : mInputs) {
+  for (const auto& i : mInputs) {
     i.printStream(stream);
   }
   stream << "CTP descriptors:" << std::endl;
-  for (const auto i : mDescriptors) {
+  for (const auto& i : mDescriptors) {
     i.printStream(stream);
   }
   stream << "CTP detectors:" << std::endl;
-  for (const auto i : mDetectors) {
+  for (const auto& i : mDetectors) {
     i.printStream(stream);
   }
   stream << "CTP clusters:" << std::endl;
-  for (const auto i : mClusters) {
+  for (const auto& i : mClusters) {
     i.printStream(stream);
   }
   stream << "CTP classes:" << std::endl;
-  for (const auto i : mCTPClasses) {
+  for (const auto& i : mCTPClasses) {
     i.printStream(stream);
   }
 }

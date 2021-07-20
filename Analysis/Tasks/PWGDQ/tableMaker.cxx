@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -49,7 +50,7 @@ using MyBarrelTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, 
                                  aod::pidTPCFullEl, aod::pidTPCFullMu, aod::pidTPCFullPi,
                                  aod::pidTPCFullKa, aod::pidTPCFullPr,
                                  aod::pidTOFFullEl, aod::pidTOFFullMu, aod::pidTOFFullPi,
-                                 aod::pidTOFFullKa, aod::pidTOFFullPr, aod::pidTOFbeta>;
+                                 aod::pidTOFFullKa, aod::pidTOFFullPr, aod::pidTOFbeta, aod::V0Bits>;
 using MyEvents = soa::Join<aod::Collisions, aod::EvSels, aod::Cents>;
 using MyEventsNoCent = soa::Join<aod::Collisions, aod::EvSels>;
 //using MyMuons = aod::Muons;
@@ -186,6 +187,24 @@ struct TableMaker {
       if (track.isGlobalTrackSDD()) {
         trackFilteringTag |= (uint64_t(1) << 1);
       }
+
+      //printf("track.pidbit() = %d\n",track.pidbit());
+      if (bool(track.pidbit() & (1 << 0))) { //gamma->ee
+        trackFilteringTag |= (uint64_t(1) << 2);
+      }
+      if (bool(track.pidbit() & (1 << 1))) { //K0S->pipi
+        trackFilteringTag |= (uint64_t(1) << 3);
+      }
+      if (bool(track.pidbit() & (1 << 2))) { //Lambda->p pi-
+        trackFilteringTag |= (uint64_t(1) << 4);
+      }
+      if (bool(track.pidbit() & (1 << 3))) { //AntiLambda->bar{p} pi+
+        trackFilteringTag |= (uint64_t(1) << 5);
+      }
+      if (bool(track.pidbit() & (1 << 4))) { //Omega->Lambda K
+        trackFilteringTag |= (uint64_t(1) << 6);
+      }
+
       trackBasic(event.lastIndex(), track.globalIndex(), trackFilteringTag, track.pt(), track.eta(), track.phi(), track.sign());
       trackBarrel(track.tpcInnerParam(), track.flags(), track.itsClusterMap(), track.itsChi2NCl(),
                   track.tpcNClsFindable(), track.tpcNClsFindableMinusFound(), track.tpcNClsFindableMinusCrossedRows(),
@@ -219,8 +238,8 @@ struct TableMaker {
 
       muonBasic(event.lastIndex(), trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.sign());
       muonExtra(muon.nClusters(), muon.pDca(), muon.rAtAbsorberEnd(),
-                   muon.chi2(), muon.chi2MatchMCHMID(), muon.chi2MatchMCHMFT(),
-                   muon.matchScoreMCHMFT(), muon.matchMFTTrackID(), muon.matchMCHTrackID());
+                muon.chi2(), muon.chi2MatchMCHMID(), muon.chi2MatchMCHMFT(),
+                muon.matchScoreMCHMFT(), muon.matchMFTTrackID(), muon.matchMCHTrackID());
       muonCov(muon.x(), muon.y(), muon.z(), muon.phi(), muon.tgl(), muon.signed1Pt(),
               muon.cXX(), muon.cXY(), muon.cYY(), muon.cPhiX(), muon.cPhiY(), muon.cPhiPhi(),
               muon.cTglX(), muon.cTglY(), muon.cTglPhi(), muon.cTglTgl(), muon.c1PtX(), muon.c1PtY(),

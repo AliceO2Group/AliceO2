@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -628,10 +629,10 @@ void RawFileWriter::LinkData::fillEmptyHBHs(const IR& ir, bool dataAdded)
     for (const auto& irdummy : irw) {
       if (writer->mDontFillEmptyHBF &&
           writer->mHBFUtils.getTFandHBinTF(irdummy).second != 0 &&
-          (!dataAdded || irdummy < ir)) {
+          (!dataAdded || irdummy.orbit < ir.orbit)) {
         // even if requested, we skip empty HBF filling only if
         // 1) we are not at the new TF start
-        // 2) method was called from addData and the current IR is the one for which it was called (then it is not empty HB/trigger!)
+        // 2) method was called from addData and the current IR orbit is the one for which it was called (then it is not empty HB/trigger!)
         continue;
       }
       if (writer->mVerbosity > 2) {

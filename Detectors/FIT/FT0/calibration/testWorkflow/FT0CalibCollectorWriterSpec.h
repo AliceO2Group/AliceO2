@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -45,7 +46,7 @@ class FT0CalibCollectorWriter : public o2::framework::Task
   {
     mCount = 0;
     createAndOpenFileAndTree();
-    mFT0CalibInfoOut.reserve(1000000 * Geo::Nchannels); // tree size  208ch * 10^6 entries * 12 byte
+    mFT0CalibInfoOut.reserve(1000000 * Geo::Nchannels); // tree size  216ch * 10^6 entries * 12 byte
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -107,7 +108,7 @@ namespace framework
 
 DataProcessorSpec getFT0CalibCollectorWriterSpec()
 {
-  LOG(INFO) << " @@@@ getFT0CalibCollectorWriterSpec ";
+  LOG(DEBUG) << " @@@@ getFT0CalibCollectorWriterSpec ";
   using device = o2::calibration::FT0CalibCollectorWriter;
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collectedInfo", o2::header::gDataOriginFT0, "COLLECTEDINFO");

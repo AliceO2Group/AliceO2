@@ -30,11 +30,12 @@ def gencode_close_generated(out):
 
 def gencode_generated_code(out):
     """ Add full O2 Copyright to out"""
-    out.write('''// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+    out.write('''// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -135,7 +136,7 @@ def gs_read_sheet_cru(credential_file, workbook, sheet_name):
 
     data = wks.get_all_values()
 
-# LINK ID	CRU ID	CRU LINK	DWP	CRU ADDR	DW ADDR   FEE ID
+# LINK ID  CRU ID  CRU LINK  DWP  CRU ADDR  DW ADDR   FEE ID
 
     cols = np.array([0, 1, 2, 3, 4, 5,6,7])
     df = pd.DataFrame(np.asarray(data)[:, cols],
@@ -181,7 +182,7 @@ def _simplify_dataframe(df):
     solar_map = {}
 
     for row in df.itertuples():
-        # print(row)
+        #print(row)
         crate = int(str(row.crate).strip('C '))
         solar_pos = int(row.solar.split('-')[2].strip('S '))-1
         group_id = int(row.solar.split('-')[3].strip('J '))-1
@@ -253,6 +254,7 @@ if args.excel_filename:
 
 if args.gs_name:
     df = df.append(gs_read_sheet(args.credentials, args.gs_name, args.sheet))
+    print(df)
     df, solar_map = _simplify_dataframe(df)
     df_cru = df_cru.append(gs_read_sheet_cru(args.credentials, args.gs_name,
                                              args.sheet+" CRU map"))

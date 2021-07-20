@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -192,8 +193,10 @@ struct HfCorrelatorDplusDminusMcRec {
 
   void init(o2::framework::InitContext&)
   {
-    registry.add("hMassDplusMCRec", "Dplus,Dminus candidates - MC reco;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hMassDminusMCRec", "Dplus,Dminus candidates - MC reco;inv. mass D0 only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassDplusMCRecSig", "Dplus signal candidates - MC reco;inv. mass D+ only (#pi K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassDminusMCRecSig", "Dminus signal candidates - MC reco;inv. mass D- only (#pi K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassDplusMCRecBkg", "Dplus background candidates - MC reco;inv. mass D+ only (#pi K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassDminusMCRecBkg", "Dminus background candidates - MC reco;inv. mass D- only (#pi K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_dplus::isSelDplusToPiKPi >= selectionFlagDplus);
@@ -220,11 +223,11 @@ struct HfCorrelatorDplusDminusMcRec {
         outerParticleSign = -1; //Dminus (second daughter track is positive)
       }
       if (std::abs(candidate1.flagMCMatchRec()) == 1 << DecayType::DPlusToPiKPi) {
-        //fill invariant mass plots and generic info from all Dplus/Dminus candidates
-        if (outerParticleSign == 1) { //matched as Dplus
-          registry.fill(HIST("hMassDplusMCRec"), InvMassDPlus(candidate1), candidate1.pt());
-        } else { //matched as Dminus
-          registry.fill(HIST("hMassDminusMCRec"), InvMassDPlus(candidate1), candidate1.pt());
+        //fill invariant mass plots and per-candidate distributions from Dplus/Dminus signal candidates
+        if (outerParticleSign == 1) { //reco and matched as Dplus
+          registry.fill(HIST("hMassDplusMCRecSig"), InvMassDPlus(candidate1), candidate1.pt());
+        } else { //reco and matched as Dminus
+          registry.fill(HIST("hMassDminusMCRecSig"), InvMassDPlus(candidate1), candidate1.pt());
         }
         registry.fill(HIST("hPtCandMCRec"), candidate1.pt());
         registry.fill(HIST("hPtProng0MCRec"), candidate1.ptProng0());
@@ -234,6 +237,13 @@ struct HfCorrelatorDplusDminusMcRec {
         registry.fill(HIST("hPhiMCRec"), candidate1.phi());
         registry.fill(HIST("hYMCRec"), YDPlus(candidate1));
         registry.fill(HIST("hSelectionStatusMCRec"), candidate1.isSelDplusToPiKPi());
+      } else {
+        //fill invariant mass plots from Dplus/Dminus background candidates
+        if (outerParticleSign == 1) { //reco as Dplus
+          registry.fill(HIST("hMassDplusMCRecBkg"), InvMassDPlus(candidate1), candidate1.pt());
+        } else { //reco as Dminus
+          registry.fill(HIST("hMassDminusMCRecBkg"), InvMassDPlus(candidate1), candidate1.pt());
+        }
       }
 
       //D-Dbar correlation dedicated section
@@ -257,12 +267,12 @@ struct HfCorrelatorDplusDminusMcRec {
           continue;
         }
         //choice of options (Dplus/Dminus signal/bkg)
-        int pairSignalStatus = 0; //0 = bkg/bkg, 1 = bkg/sig, 2 = sig/bkg, 3 = sig/sig
+        int pairSignalStatus = 0; //0 = bkg/bkg, 1 = bkg/ref, 2 = bkg/sig, 3 = ref/bkg, 4 = ref/ref, 5 = ref/sig, 6 = sig/bkg, 7 = sig/ref, 8 = sig/sig. Of course only 0,2,6,8 are relevant for D+D-
         if (flagDplusSignal) {
-          pairSignalStatus += 2;
+          pairSignalStatus += 6;
         }
         if (flagDminusSignal) {
-          pairSignalStatus += 1;
+          pairSignalStatus += 2;
         }
         entryDplusDminusPair(getDeltaPhi(candidate2.phi(), candidate1.phi()),
                              candidate2.eta() - candidate1.eta(),

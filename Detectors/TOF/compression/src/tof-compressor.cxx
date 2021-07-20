@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -33,12 +34,14 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   auto rdhVersion = ConfigParamSpec{"tof-compressor-rdh-version", VariantType::Int, o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>(), {"Raw Data Header version"}};
   auto verbose = ConfigParamSpec{"tof-compressor-verbose", VariantType::Bool, false, {"Enable verbose compressor"}};
   auto paranoid = ConfigParamSpec{"tof-compressor-paranoid", VariantType::Bool, false, {"Enable paranoid compressor"}};
+  auto ignoreStf = ConfigParamSpec{"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}};
 
   workflowOptions.push_back(config);
   workflowOptions.push_back(outputDesc);
   workflowOptions.push_back(rdhVersion);
   workflowOptions.push_back(verbose);
   workflowOptions.push_back(paranoid);
+  workflowOptions.push_back(ignoreStf);
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
@@ -53,6 +56,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto rdhVersion = cfgc.options().get<int>("tof-compressor-rdh-version");
   auto verbose = cfgc.options().get<bool>("tof-compressor-verbose");
   auto paranoid = cfgc.options().get<bool>("tof-compressor-paranoid");
+  auto ignoreStf = cfgc.options().get<bool>("ignore-dist-stf");
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TOF", "CRAWDATA"}));
 
@@ -94,9 +98,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   int idevice = 0;
 
   while (getline(ssconfig, iconfig, ',')) {
+    std::vector<InputSpec> inputs = select(iconfig.c_str());
+    if (!ignoreStf) {
+      inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+    }
     workflow.emplace_back(DataProcessorSpec{
       std::string("tof-compressor-") + std::to_string(idevice),
-      select(iconfig.c_str()),
+      //      select(iconfig.c_str()),
+      inputs,
       outputs,
       algoSpec,
       Options{

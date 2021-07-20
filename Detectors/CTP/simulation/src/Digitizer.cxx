@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -24,7 +25,9 @@ ClassImp(Digitizer);
 std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit> detinputs)
 {
   std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> det2ctpinp = mCTPConfiguration->getDet2InputMap();
-  std::map<std::string, uint64_t> detInputName2Mask = {{"V0A", 1}, {"V0B", 2}, {"T0A", 1}, {"T0A", 2}}; // To be taken from det database
+  // To be taken from config database ?
+  std::map<std::string, uint64_t> detInputName2Mask =
+    {{"MFV0MB", 1}, {"MFV0MBInner", 2}, {"MFV0MBOuter", 4}, {"MFV0HM", 8}, {"MFT0A", 1}, {"MFT0C", 2}, {"MFT0Vertex", 4}, {"MFT0Cent", 8}, {"MFT0SemiCent", 0x10}};
   std::map<o2::InteractionRecord, std::vector<const CTPInputDigit*>> predigits;
   for (auto const& inp : detinputs) {
     predigits[inp.intRecord].push_back(&inp);

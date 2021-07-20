@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -80,6 +81,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Trigger>& trigData, const
   using ECB = CTF::base;
 
   ec->setHeader(helper.createHeader());
+  assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
@@ -88,7 +90,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Trigger>& trigData, const
   ENCODEHMP(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
   ENCODEHMP(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
   ENCODEHMP(helper.begin_entriesDig(),   helper.end_entriesDig(),    CTF::BLC_entriesDig,   0);
-  
+
   ENCODEHMP(helper.begin_ChID(),         helper.end_ChID(),          CTF::BLC_ChID,         0);
   ENCODEHMP(helper.begin_Q(),            helper.end_Q(),             CTF::BLC_Q,            0);
   ENCODEHMP(helper.begin_Ph(),           helper.end_Ph(),            CTF::BLC_Ph,           0);
@@ -104,6 +106,7 @@ template <typename VTRG, typename VDIG>
 void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VDIG& digVec)
 {
   auto header = ec.getHeader();
+  checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix());
   std::vector<uint16_t> bcInc, q;
   std::vector<uint32_t> orbitInc, entriesDig;

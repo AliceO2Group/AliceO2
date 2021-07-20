@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,6 +21,7 @@
 #include <TTree.h>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/CTFDictHeader.h"
 #include "rANS/rans.h"
 
 namespace o2
@@ -52,6 +54,10 @@ class CTFCoderBase
     if (fileDict) {
       std::unique_ptr<TTree> tree((TTree*)fileDict->Get(std::string(o2::base::NameConf::CTFDICT).c_str()));
       CTF::readFromTree(bufVec, *tree.get(), mDet.getName());
+      if (bufVec.size()) {
+        mExtHeader = static_cast<CTFDictHeader&>(CTF::get(bufVec.data())->getHeader());
+        LOGP(INFO, "Found {} {} in {}", mDet.getName(), mExtHeader.asString(), dictPath);
+      }
     }
     return bufVec;
   }
@@ -82,9 +88,17 @@ class CTFCoderBase
 
  protected:
   std::string getPrefix() const { return o2::utils::Str::concat_string(mDet.getName(), "_CTF: "); }
+  void assignDictVersion(CTFDictHeader& h) const
+  {
+    if (mExtHeader.isValidDictTimeStamp()) {
+      h = mExtHeader;
+    }
+  }
+  void checkDictVersion(const CTFDictHeader& h) const;
 
   std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders
   DetID mDet;
+  CTFDictHeader mExtHeader; // external dictionary header
 
   ClassDefNV(CTFCoderBase, 1);
 };

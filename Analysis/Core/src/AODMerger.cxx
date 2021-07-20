@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -18,6 +19,7 @@
 #include "TDirectory.h"
 #include "TObjString.h"
 #include <TGrid.h>
+#include <TMap.h>
 
 // AOD merger with correct index rewriting
 // No need to know the datamodel because the branch names follow a canonical standard (identified by fIndex)
@@ -73,6 +75,7 @@ int main(int argc, char* argv[])
   in.open(inputCollection);
   TString line;
   bool connectedToAliEn = false;
+  TMap* metaData = nullptr;
   int mergedDFs = 0;
   while (in.good()) {
     in >> line;
@@ -94,6 +97,29 @@ int main(int argc, char* argv[])
     keyList->Sort();
 
     for (auto key1 : *keyList) {
+      if (((TObjString*)key1)->GetString().EqualTo("metaData")) {
+        auto metaDataCurrentFile = (TMap*)inputFile->Get("metaData");
+        if (metaData == nullptr) {
+          metaData = metaDataCurrentFile;
+          outputFile->cd();
+          metaData->Write("metaData", TObject::kSingleKey);
+        } else {
+          for (auto metaDataPair : *metaData) {
+            auto metaDataKey = ((TPair*)metaDataPair)->Key();
+            if (metaDataCurrentFile->Contains(((TObjString*)metaDataKey)->GetString())) {
+              auto value = (TObjString*)metaData->GetValue(((TObjString*)metaDataKey)->GetString());
+              auto valueCurrentFile = (TObjString*)metaDataCurrentFile->GetValue(((TObjString*)metaDataKey)->GetString());
+              if (!value->GetString().EqualTo(valueCurrentFile->GetString())) {
+                printf("WARNING: Metadata differs between input files. Key %s : %s vs. %s\n", ((TObjString*)metaDataKey)->GetString().Data(),
+                       value->GetString().Data(), valueCurrentFile->GetString().Data());
+              }
+            } else {
+              printf("WARNING: Metadata differs between input files. Key %s is not present in current file\n", ((TObjString*)metaDataKey)->GetString().Data());
+            }
+          }
+        }
+      }
+
       if (!((TObjString*)key1)->GetString().BeginsWith("DF_")) {
         continue;
       }

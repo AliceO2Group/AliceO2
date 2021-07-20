@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -183,6 +184,29 @@ BOOST_AUTO_TEST_CASE(InputSpecsForPolicy)
   inputs = DataSampling::InputSpecsForPolicy(config.get(), "tpcclusters");
 
   BOOST_CHECK_EQUAL(inputs.size(), 2);
+}
+
+BOOST_AUTO_TEST_CASE(MultinodeUtilities)
+{
+  std::string configFilePath = "json:/" + std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
+
+  {
+    BOOST_CHECK_THROW(DataSampling::PortForPolicy(configFilePath, "no such policy"), std::runtime_error);
+    BOOST_CHECK_THROW(DataSampling::MachinesForPolicy(configFilePath, "no such policy"), std::runtime_error);
+  }
+  {
+    auto port = DataSampling::PortForPolicy(configFilePath, "tpcclusters");
+    BOOST_CHECK(!port.has_value());
+    auto machines = DataSampling::MachinesForPolicy(configFilePath, "tpcclusters");
+    BOOST_CHECK(machines.empty());
+  }
+  {
+    auto port = DataSampling::PortForPolicy(configFilePath, "tpcraw");
+    BOOST_REQUIRE(port.has_value());
+    BOOST_CHECK_EQUAL(port.value(), 1234);
+    auto machines = DataSampling::MachinesForPolicy(configFilePath, "tpcraw");
+    BOOST_CHECK_EQUAL(machines.size(), 2);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(DataSamplingEmptyConfig)

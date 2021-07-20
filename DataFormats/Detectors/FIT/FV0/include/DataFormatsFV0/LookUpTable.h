@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -84,18 +85,13 @@ class LookUpTable
   std::size_t getNchannels() const { return mTopoVector.size(); } //get number of global PM channels
   void printFullMap() const
   {
-    std::cout << "o2::fv0::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  pmCh]" << std::endl;
+    LOG(INFO) << "o2::fv0::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  pmCh]";
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
-      std::cout << "  " << std::right << std::setw(2) << channel << "  ";
-      std::cout << std::right << std::setw(2) << mTopoVector[channel].pmLink << "  ";
-      std::cout << std::right << std::setw(3) << mTopoVector[channel].pmCh << std::endl;
+      LOG(INFO) << channel << "  " << mTopoVector[channel].pmLink << "  " << mTopoVector[channel].pmCh;
     }
-    std::cout << "o2::fv0::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  pmCh]" << std::endl;
+    LOG(INFO) << "o2::fv0::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  pmCh]";
     for (size_t idx = 0; idx < mInvTopo.size(); ++idx) {
-      std::cout << "  " << std::right << std::setw(3) << idx << "  ";
-      std::cout << std::right << std::setw(3) << mInvTopo[idx] << "    ";
-      std::cout << std::right << std::setw(2) << getLinkFromIdx(mInvTopo[idx]) << "  ";
-      std::cout << std::right << std::setw(2) << getPmChannelFromIdx(mInvTopo[idx]) << std::endl;
+      LOG(INFO) << idx << "  " << mInvTopo[idx] << "    " << getLinkFromIdx(mInvTopo[idx]) << "  " << getPmChannelFromIdx(mInvTopo[idx]);
     }
   }
 

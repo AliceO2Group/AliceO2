@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -35,7 +36,7 @@ class Digitizer
 
  public:
   Digitizer()
-    : mTimeStamp(0), mIntRecord(), mEventId(-1), mSrcId(-1), mMCLabels(), mCache(), mPmtChargeVsTime(), mNBins(), mNTimeBinsPerBC(), mPmtResponseGlobal(), mPmtResponseTemp(), mLastBCCache(), mCfdStartIndex()
+    : mTimeStamp(0), mIntRecord(), mEventId(-1), mSrcId(-1), mMCLabels(), mCache(), mPmtChargeVsTime(), mNBins(), mNTimeBinsPerBC(), mPmtResponseGlobalRing5(), mPmtResponseGlobalRingA1ToA4(), mPmtResponseTemp(), mLastBCCache(), mCfdStartIndex()
   {
   }
 
@@ -109,6 +110,7 @@ class Digitizer
                std::vector<o2::fv0::ChannelData>& digitsCh,
                std::vector<o2::fv0::DetTrigInput>& digitsTrig,
                o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels);
+  bool isRing5(int detID);
 
   std::array<std::vector<Float_t>, Constants::nFv0Channels> mPmtChargeVsTime; // Charge time series aka analogue signal pulse from PM
   UInt_t mNBins;                                                              //
@@ -116,7 +118,8 @@ class Digitizer
   Float_t mBinSize; // Time width of the pulse bin - HPTDC resolution
 
   /// vectors to store the PMT signal from cosmic muons
-  std::vector<Double_t> mPmtResponseGlobal;
+  std::vector<Double_t> mPmtResponseGlobalRing5;
+  std::vector<Double_t> mPmtResponseGlobalRingA1ToA4;
   std::vector<Double_t> mPmtResponseTemp;
 
   /// for CFD

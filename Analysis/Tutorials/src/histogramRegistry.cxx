@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -16,6 +17,8 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
 #include <TParameter.h>
+
+#include "Framework/StaticFor.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -174,9 +177,17 @@ struct RealisticExample {
     // clone single histograms
     spectra.addClone("sigmas", "cascades");
     spectra.addClone("neutral/pions", "strange/funny/particles");
+
+    // add some histograms for different trigger settings
+    spectra.add("INT7/pt", "pt", kTH1F, {ptAxis});
+    spectra.add("INT7/eta", "eta", kTH1F, {etaAxis});
+    spectra.add("INT7/phi", "phi", kTH1F, {phiAxis});
+    spectra.addClone("INT7/", "V0HM/");
+    spectra.addClone("INT7/", "EMC7/");
+    spectra.addClone("INT7/", "EMC8/");
   }
 
-  template <bool mode, typename T>
+  template <int mode, typename T>
   void fillHistos(const T& track)
   {
     static constexpr std::string_view subDir[] = {"before_cuts/", "after_cuts/"};
@@ -202,14 +213,27 @@ struct RealisticExample {
       spectra.fill(HIST("sigmas"), track.pt(), track.eta(), 50., 0.);
       spectra.fill(HIST("lambdas"), track.pt(), track.eta(), 50., 0.);
 
-      // fill histograms before and after cuts
-      fillHistos<false>(track);
+      // fill histograms before and after cuts with a helper function
+      fillHistos<0>(track);
       if (std::rand() > (RAND_MAX / 2)) {
-        fillHistos<true>(track);
+        fillHistos<1>(track);
       }
 
       spectra.fill(HIST("cascades"), track.pt(), track.eta(), 50., 0.);
       spectra.fill(HIST("strange/funny/particles"), track.pt(), track.eta(), 50., 0.);
+
+      // loop for filling multiple histograms with different naming patterns
+      static constexpr std::string_view triggers[] = {"INT7/", "V0HM/", "EMC7/", "EMC8/"};
+      static_for<0, 3>([&](auto i) {
+        constexpr int index = i.value;
+
+        if (std::rand() > (RAND_MAX / 2)) {
+          return; // dummy decision if trigger actually fired
+        }
+        spectra.fill(HIST(triggers[index]) + HIST("pt"), track.pt());
+        spectra.fill(HIST(triggers[index]) + HIST("eta"), track.eta());
+        spectra.fill(HIST(triggers[index]) + HIST("phi"), track.phi());
+      });
     }
   }
 };

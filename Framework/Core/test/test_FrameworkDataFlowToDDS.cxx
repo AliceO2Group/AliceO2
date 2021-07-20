@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -114,16 +115,16 @@ BOOST_AUTO_TEST_CASE(TestDDS)
   dumpDeviceSpec2DDS(ss, devices, executions, command);
   auto expected = R"EXPECTED(<topology name="o2-dataflow">
    <decltask name="A">
-       <exe reachable="true">foo | foo --id A --shm-monitor false --log-color false --color false --jobs 4 --severity info --shm-mlock-segment false --shm-segment-id 0 --shm-throw-bad-alloc true --shm-zero-segment false --stacktrace-on-signal all --channel-config "name=from_A_to_B,type=push,method=bind,address=ipc://@localhostworkflow-id_22000,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --channel-config "name=from_A_to_C,type=push,method=bind,address=ipc://@localhostworkflow-id_22001,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --session dpl_workflow-id --plugin dds</exe>
+       <exe reachable="true">foo | LD_PRELOAD=libSegFault.so SEGFAULT_SIGNALS="all" foo --id A --shm-monitor false --log-color false --color false --jobs 4 --severity info --shm-mlock-segment false --shm-segment-id 0 --shm-throw-bad-alloc true --shm-zero-segment false --stacktrace-on-signal all --channel-config "name=from_A_to_B,type=push,method=bind,address=ipc://@localhostworkflow-id_22000,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --channel-config "name=from_A_to_C,type=push,method=bind,address=ipc://@localhostworkflow-id_22001,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --session dpl_workflow-id --plugin dds</exe>
    </decltask>
    <decltask name="B">
-       <exe reachable="true">foo | foo --id B --shm-monitor false --log-color false --color false --jobs 4 --severity info --shm-mlock-segment false --shm-segment-id 0 --shm-throw-bad-alloc true --shm-zero-segment false --stacktrace-on-signal all --channel-config "name=from_B_to_D,type=push,method=bind,address=ipc://@localhostworkflow-id_22002,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --channel-config "name=from_A_to_B,type=pull,method=connect,address=ipc://@localhostworkflow-id_22000,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --session dpl_workflow-id --plugin dds</exe>
+       <exe reachable="true">foo | LD_PRELOAD=libSegFault.so SEGFAULT_SIGNALS="all" foo --id B --shm-monitor false --log-color false --color false --jobs 4 --severity info --shm-mlock-segment false --shm-segment-id 0 --shm-throw-bad-alloc true --shm-zero-segment false --stacktrace-on-signal all --channel-config "name=from_B_to_D,type=push,method=bind,address=ipc://@localhostworkflow-id_22002,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --channel-config "name=from_A_to_B,type=pull,method=connect,address=ipc://@localhostworkflow-id_22000,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --session dpl_workflow-id --plugin dds</exe>
    </decltask>
    <decltask name="C">
-       <exe reachable="true">foo | foo --id C --shm-monitor false --log-color false --color false --jobs 4 --severity info --shm-mlock-segment false --shm-segment-id 0 --shm-throw-bad-alloc true --shm-zero-segment false --stacktrace-on-signal all --channel-config "name=from_C_to_D,type=push,method=bind,address=ipc://@localhostworkflow-id_22003,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --channel-config "name=from_A_to_C,type=pull,method=connect,address=ipc://@localhostworkflow-id_22001,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --session dpl_workflow-id --plugin dds</exe>
+       <exe reachable="true">foo | LD_PRELOAD=libSegFault.so SEGFAULT_SIGNALS="all" foo --id C --shm-monitor false --log-color false --color false --jobs 4 --severity info --shm-mlock-segment false --shm-segment-id 0 --shm-throw-bad-alloc true --shm-zero-segment false --stacktrace-on-signal all --channel-config "name=from_C_to_D,type=push,method=bind,address=ipc://@localhostworkflow-id_22003,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --channel-config "name=from_A_to_C,type=pull,method=connect,address=ipc://@localhostworkflow-id_22001,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --session dpl_workflow-id --plugin dds</exe>
    </decltask>
    <decltask name="D">
-       <exe reachable="true">foo | foo --id D --shm-monitor false --log-color false --color false --jobs 4 --severity info --shm-mlock-segment false --shm-segment-id 0 --shm-throw-bad-alloc true --shm-zero-segment false --stacktrace-on-signal all --a-param 1 --b-param "" --c-param "foo;bar" --channel-config "name=from_B_to_D,type=pull,method=connect,address=ipc://@localhostworkflow-id_22002,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --channel-config "name=from_C_to_D,type=pull,method=connect,address=ipc://@localhostworkflow-id_22003,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --session dpl_workflow-id --plugin dds</exe>
+       <exe reachable="true">foo | LD_PRELOAD=libSegFault.so SEGFAULT_SIGNALS="all" foo --id D --shm-monitor false --log-color false --color false --jobs 4 --severity info --shm-mlock-segment false --shm-segment-id 0 --shm-throw-bad-alloc true --shm-zero-segment false --stacktrace-on-signal all --a-param 1 --b-param "" --c-param "foo;bar" --channel-config "name=from_B_to_D,type=pull,method=connect,address=ipc://@localhostworkflow-id_22002,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --channel-config "name=from_C_to_D,type=pull,method=connect,address=ipc://@localhostworkflow-id_22003,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --session dpl_workflow-id --plugin dds</exe>
    </decltask>
    <declcollection name="DPL">
        <tasks>

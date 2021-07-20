@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -215,6 +216,16 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kTOFnSigmaKa] = "";
   fgVariableNames[kTOFnSigmaPr] = "n #sigma_{p}^{TOF}";
   fgVariableUnits[kTOFnSigmaPr] = "";
+  fgVariableNames[kIsLegFromGamma] = "is leg from #gamma #rightarror e^{+}e^{-}";
+  fgVariableUnits[kIsLegFromGamma] = "";
+  fgVariableNames[kIsLegFromK0S] = "is leg from K_{S}^{0} #rightarror #pi^{+}#pi^{-}";
+  fgVariableUnits[kIsLegFromK0S] = "";
+  fgVariableNames[kIsLegFromLambda] = "is leg from #Lambda #rightarror p#pi^{-}";
+  fgVariableUnits[kIsLegFromLambda] = "";
+  fgVariableNames[kIsLegFromAntiLambda] = "is leg from #bar{#Lambda} #rightarrow #bar{p}#pi^{+}";
+  fgVariableUnits[kIsLegFromAntiLambda] = "";
+  fgVariableNames[kIsLegFromOmega] = "is leg from #Omega^{#mp} #rightarrow #LambdaKi^{#pm}";
+  fgVariableUnits[kIsLegFromOmega] = "";
   fgVariableNames[kMuonNClusters] = "muon n-clusters";
   fgVariableUnits[kMuonNClusters] = "";
   fgVariableNames[kMuonRAtAbsorberEnd] = "R at the end of the absorber";

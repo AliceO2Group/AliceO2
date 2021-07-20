@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -34,6 +35,7 @@
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CalArray.h"
+#include "TPCBase/Painter.h"
 #include "FairLogger.h"
 #include <iostream>
 #include <fstream>
@@ -168,7 +170,7 @@ void MonitorGui()
   mCheckFFT->SetTextColor(200);
   mCheckFFT->SetToolTipText("Switch on FFT calculation");
   mCheckFFT->MoveResize(10, 10 + ysize * 4, xsize, (UInt_t)ysize);
-  mCheckFFT->SetDown(1);
+  mCheckFFT->SetDown(0);
   ToggleFFT();
 
   //---------------------------
@@ -345,17 +347,19 @@ void DrawPadSignal(TString type)
         const bool init = (hFFT == nullptr);
         const double maxTime = h2->GetNbinsX() * 200.e-6;
         hFFT = h2->FFT(hFFT, "MAG M");
-        hFFT->SetStats(0);
-        const auto nbinsx = hFFT->GetNbinsX();
-        auto xax = hFFT->GetXaxis();
-        xax->SetRange(2, nbinsx / 2);
-        if (init) {
-          xax->Set(nbinsx, xax->GetXmin() / maxTime, xax->GetXmax() / maxTime);
-          hFFT->SetNameTitle(Form("hFFT_%sROC", (roc < 36) ? "I" : "O"), "FFT magnitude;frequency (kHz);amplitude");
+        if (hFFT) {
+          hFFT->SetStats(0);
+          const auto nbinsx = hFFT->GetNbinsX();
+          auto xax = hFFT->GetXaxis();
+          xax->SetRange(2, nbinsx / 2);
+          if (init) {
+            xax->Set(nbinsx, xax->GetXmin() / maxTime, xax->GetXmax() / maxTime);
+            hFFT->SetNameTitle(Form("hFFT_%sROC", (roc < 36) ? "I" : "O"), "FFT magnitude;frequency (kHz);amplitude");
+          }
+          hFFT->Scale(2. / (nbinsx - 1));
+          cFFT->cd();
+          hFFT->Draw();
         }
-        hFFT->Scale(2. / (nbinsx - 1));
-        cFFT->cd();
-        hFFT->Draw();
       }
     }
     Update(Form("%s;%sFFT", type.Data(), type.Data()));
@@ -519,6 +523,7 @@ void InitGUI()
     mHMaxA->SetStats(kFALSE);
     mHMaxA->SetUniqueID(0); //A-Side
     mHMaxA->Draw("colz");
+    painter::drawSectorsXY(Side::A);
     //histograms and canvases for max values C-Side
     c = new TCanvas("MaxValsC", "MaxValsC", 0 * w, 1 * h, w, h);
     c->AddExec("findSec", "SelectSectorExec()");
@@ -526,6 +531,7 @@ void InitGUI()
     mHMaxC->SetStats(kFALSE);
     mHMaxC->SetUniqueID(1); //C-Side
     mHMaxC->Draw("colz");
+    painter::drawSectorsXY(Side::C);
   }
 
   //histograms and canvases for max values IROC

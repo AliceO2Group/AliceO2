@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -92,6 +93,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, co
   using ECB = CTF::base;
 
   ec->setHeader(cc.header);
+  assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
@@ -118,6 +120,7 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPA
 {
   CompressedClusters cc;
   cc.header = ec.getHeader();
+  checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(cc.header));
   ec.print(getPrefix());
 #define DECODEITSMFT(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
@@ -125,7 +128,7 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPA
   DECODEITSMFT(cc.bcIncROF,     CTF::BLCbcIncROF);
   DECODEITSMFT(cc.orbitIncROF,  CTF::BLCorbitIncROF);
   DECODEITSMFT(cc.nclusROF,     CTF::BLCnclusROF);
-  //    
+  //
   DECODEITSMFT(cc.chipInc,      CTF::BLCchipInc);
   DECODEITSMFT(cc.chipMul,      CTF::BLCchipMul);
   DECODEITSMFT(cc.row,          CTF::BLCrow);
@@ -186,7 +189,7 @@ void CTFCoder::decompress(const CompressedClusters& cc, VROF& rofRecVec, VCLUS& 
     }
     // << this is the version with chipInc stored once per new chip
 
-    /* 
+    /*
     // >> this is the version with chipInc stored for every pixel, requires entropy compression dealing with repeating symbols
     for (uint32_t icl = 0; icl < cc.nclusROF[irof]; icl++) {
     auto& clus = cclusVec[clCount];

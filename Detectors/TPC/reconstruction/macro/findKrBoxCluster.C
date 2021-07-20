@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -39,8 +40,10 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1, std::
   TFile* fOut = new TFile(outputFile.c_str(), "RECREATE");
   TTree* tClusters = new TTree("Clusters", "Clusters");
 
+  // Create KrBoxClusterFinder object, memory is only allocated once
+  auto clFinder = std::make_unique<o2::tpc::KrBoxClusterFinder>();
+  auto& clusters = clFinder->getClusters();
   // Create a Branch for each sector:
-  std::vector<o2::tpc::KrCluster> clusters;
   tClusters->Branch("cls", &clusters);
   tClusters->Branch("run", &run);
   tClusters->Branch("time", &time);
@@ -51,18 +54,19 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1, std::
     tree->SetBranchAddress(Form("TPCDigit_%zu", iSec), &digitizedSignal[iSec]);
   }
 
-  // Create KrBoxClusterFinder object, memory is only allocated once
-  auto clFinder = std::make_unique<o2::tpc::KrBoxClusterFinder>();
   if (gainMapFile.size()) {
     clFinder->loadGainMapFromFile(gainMapFile);
   }
+
+  // clFinder->setMinNumberOfNeighbours(0);
+  // clFinder->setMinQTreshold(0);
+  clFinder->setMaxTimes(lastTimeBin);
 
   // Now everything can get processed
   // Loop over all events
   for (int iEvent = 0; iEvent < nEntries; ++iEvent) {
     std::cout << iEvent + 1 << "/" << nEntries << std::endl;
     tree->GetEntry(iEvent);
-    // Each event consists of sectors (atm only two)
 
     for (int i = 0; i < 36; i++) {
       auto sector = digitizedSignal[i];
@@ -70,27 +74,7 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1, std::
         continue;
       }
 
-      // Fill map and (if specified) correct with existing gain map
-      clFinder->fillAndCorrectMap(*sector, i);
-
-      // Find all local maxima in sector
-      std::vector<std::tuple<int, int, int>> localMaxima = clFinder->findLocalMaxima();
-
-      // Loop over cluster centers = local maxima
-      for (const std::tuple<int, int, int>& coords : localMaxima) {
-        int padMax = std::get<0>(coords);
-        int rowMax = std::get<1>(coords);
-        int timeMax = std::get<2>(coords);
-
-        if (timeMax >= lastTimeBin) {
-          continue;
-        }
-        // Build total cluster
-        o2::tpc::KrCluster tempCluster = clFinder->buildCluster(padMax, rowMax, timeMax);
-        tempCluster.sector = i;
-
-        clusters.emplace_back(tempCluster);
-      }
+      clFinder->loopOverSector(*sector, i);
     }
     // Fill Tree
     tClusters->Fill();

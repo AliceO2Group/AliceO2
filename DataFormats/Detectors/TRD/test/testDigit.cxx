@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -31,8 +32,8 @@ using namespace o2::trd::constants;
 
 void testDigitDetRowPad(Digit& test, int det, int row, int pad)
 {
-  BOOST_CHECK(test.getPad() == pad);
-  BOOST_CHECK(test.getRow() == row);
+  BOOST_CHECK(test.getPadCol() == pad);
+  BOOST_CHECK(test.getPadRow() == row);
   BOOST_CHECK(test.getDetector() == det);
 }
 
@@ -86,7 +87,7 @@ BOOST_AUTO_TEST_CASE(TRDDigit_test)
   //test block 1.
   Digit e(0, 0, 0, 0);
   //first channel of the first mcm, this is in fact the 19 pad of the first row, and connected to the 18th adc of the second trap ...
-  Digit f(0, e.getRow(), e.getPad()); // createa digit based on the above digits pad and row.
+  Digit f(0, e.getPadRow(), e.getPadCol()); // createa digit based on the above digits pad and row.
   // we *shoulud* end up with a rob:mcm of 0:1 and channel 18
   testDigitDetROBMCM(f, 0, 0, 1, NCOLMCM);
 
@@ -152,11 +153,11 @@ BOOST_AUTO_TEST_CASE(TRDDigit_test)
  for(int rob=0;rob<8;rob++)for(int mcm=0;mcm<16;mcm++)for(int channel=0;channel<21;channel++){
   std::cout << "Digit e(0,"<<rob<<"," << mcm <<","<< channel<<");" << std::endl;
   Digit e(0,rob,mcm,channel);
-    std::cout << " e is " << e.getRow() << " " << e.getPad();
+    std::cout << " e is " << e.getPadRow() << " " << e.getPadCol();
     std::cout << " for an rob:mcm combo of " << e.getROB() << ":"<< e.getMCM() << " and adc channel:" << e.getChannel() <<std::endl;
-  std::cout << "Digit f(0,e.getRow(),e.getPad())" << std::endl;;
-  Digit f(0,e.getRow(),e.getPad());
-    std::cout << " f is " << f.getRow() << " " << f.getPad();
+  std::cout << "Digit f(0,e.getPadRow(),e.getPadCol())" << std::endl;;
+  Digit f(0,e.getPadRow(),e.getPadCol());
+    std::cout << " f is " << f.getPadRow() << " " << f.getPadCol();
     std::cout << " for an rob:mcm combo of " << f.getROB() << ":"<< f.getMCM() << " and adc channel:" << f.getChannel() <<std::endl;
     std::cout << "*********************************************************************" << std::endl;
   }

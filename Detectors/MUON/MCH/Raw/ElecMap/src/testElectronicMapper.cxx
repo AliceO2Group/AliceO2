@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -248,15 +249,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(CheckNumberOfSolarsPerDetectionElement, T, realTyp
   BOOST_CHECK_EQUAL(getSolarUIDs<T>(616).size(), 4);
   BOOST_CHECK_EQUAL(getSolarUIDs<T>(617).size(), 4);
   // 6L = 6O
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(605).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(606).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(607).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(608).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(609).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(610).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(611).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(612).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(613).size(), 0);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(605).size(), 1);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(606).size(), 2);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(607).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(608).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(609).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(610).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(611).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(612).size(), 2);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(613).size(), 1);
 
   // Chamber 7
   // 7R = 7I
@@ -390,7 +391,7 @@ int expectedNumberOfSolars<ElectronicMapperDummy>()
 template <>
 int expectedNumberOfSolars<ElectronicMapperGenerated>()
 {
-  return 362;
+  return 388;
 }
 
 template <typename T>
@@ -405,7 +406,7 @@ int expectedNumberOfDs<ElectronicMapperDummy>()
 template <>
 int expectedNumberOfDs<ElectronicMapperGenerated>()
 {
-  return 8112;
+  return 8726;
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(AllSolarsMustGetAFeeLinkAndTheReverse, T, testTypes)

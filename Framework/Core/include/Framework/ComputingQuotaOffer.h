@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -50,7 +51,8 @@ struct ComputingQuotaOffer {
   int user = -1;
   /// The score for the given offer
   OfferScore score = OfferScore::Unneeded;
-  /// Whether or not the offer is valid
+  /// Whether or not the offer is valid, invalid offers can
+  /// be reused whe we get some more quota from the system.
   bool valid = false;
 };
 
@@ -70,7 +72,7 @@ using ComputingQuotaRequest = std::function<OfferScore(ComputingQuotaOffer const
 
 /// A consumer is a function which updates a given function removing the
 /// amount of resources which are considered as consumed.
-using ComputingQuotaConsumer = std::function<void(int id, std::array<ComputingQuotaOffer, 16>&)>;
+using ComputingQuotaConsumer = std::function<void(int id, std::array<ComputingQuotaOffer, 16>&, std::function<void(ComputingQuotaOffer const&)>)>;
 
 } // namespace o2::framework
 

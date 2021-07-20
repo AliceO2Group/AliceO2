@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -16,13 +17,17 @@
 
 #ifndef ALICEO2_FV0_GEOMETRY_H_
 #define ALICEO2_FV0_GEOMETRY_H_
-
+#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include <Rtypes.h>
+#include <TGeoPhysicalNode.h>
 #include <vector>
 #include <array>
-
 #include <TGeoMatrix.h>
 #include <TGeoVolume.h>
 #include <TVirtualMC.h>
+
+class TGeoPNEntry;
 
 namespace o2
 {
@@ -118,6 +123,14 @@ class Geometry
   /// \param  cellId  Id of the cell in range from 0 to 39.
   /// \return True if cellId belongs to ring 5.
   bool isRing5(UInt_t cellId);
+
+  static constexpr o2::detectors::DetID::ID getDetID() { return o2::detectors::DetID::FV0; }
+  TGeoPNEntry* getPNEntry(int index) const
+  {
+    /// Get a pointer to the TGeoPNEntry of a chip identified by 'index'
+    /// Returns NULL in case of invalid index, missing TGeoManager or invalid symbolic name
+    return o2::base::GeometryManager::getPNEntry(getDetID(), index);
+  }
 
  private:
   explicit Geometry(EGeoType initType);

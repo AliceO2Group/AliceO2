@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -58,6 +59,11 @@ struct WritingCursor<soa::Table<PC...>> {
     cursor = std::move(FFL(builder.cursor<persistent_table_t>()));
     mCount = -1;
     return true;
+  }
+
+  void setLabel(const char* label)
+  {
+    mBuilder->setLabel(label);
   }
 
   /// reserve @a size rows when filling, so that we do not
@@ -205,7 +211,7 @@ struct Spawns : TableTransform<typename aod::MetadataTrait<framework::pack_head_
 struct IndexExclusive {
   /// Generic builder for in index table
   template <typename... Cs, typename Key, typename T1, typename... T>
-  static auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
+  static auto indexBuilder(const char* label, framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
   {
     static_assert(sizeof...(Cs) == sizeof...(T) + 1, "Number of columns does not coincide with number of supplied tables");
     using tables_t = framework::pack<T...>;
@@ -263,6 +269,7 @@ struct IndexExclusive {
         cursor(0, row.globalIndex(), values[framework::has_type_at_v<T>(tables_t{})]...);
       }
     }
+    builder.setLabel(label);
     return builder.finalize();
   }
 };
@@ -270,7 +277,7 @@ struct IndexExclusive {
 /// to T1
 struct IndexSparse {
   template <typename... Cs, typename Key, typename T1, typename... T>
-  static auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
+  static auto indexBuilder(const char* label, framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
   {
     static_assert(sizeof...(Cs) == sizeof...(T) + 1, "Number of columns does not coincide with number of supplied tables");
     using tables_t = framework::pack<T...>;
@@ -328,6 +335,7 @@ struct IndexSparse {
 
       cursor(0, row.globalIndex(), values[framework::has_type_at_v<T>(tables_t{})]...);
     }
+    builder.setLabel(label);
     return builder.finalize();
   }
 };
@@ -363,7 +371,7 @@ struct Builds : TableTransform<typename aod::MetadataTrait<T>::metadata> {
   template <typename... Cs, typename Key, typename T1, typename... Ts>
   auto build(framework::pack<Cs...>, Key const& key, std::tuple<T1, Ts...> tables)
   {
-    this->table = std::make_shared<T>(IP::indexBuilder(framework::pack<Cs...>{}, key, tables));
+    this->table = std::make_shared<T>(IP::indexBuilder(aod::MetadataTrait<T>::metadata::tableLabel(), framework::pack<Cs...>{}, key, tables));
     return (this->table != nullptr);
   }
 };

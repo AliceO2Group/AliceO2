@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -69,30 +70,48 @@ void Dispatcher::init(InitContext& ctx)
                 << policyConfig.second.get_optional<std::string>("id").value_or("") << "'";
     }
   }
+
+  auto spec = ctx.services().get<const DeviceSpec>();
+  mDeviceID.runtimeInit(spec.id.substr(0, DataSamplingHeader::deviceIDTypeSize).c_str());
 }
 
 void Dispatcher::run(ProcessingContext& ctx)
 {
-  for (const auto& input : InputRecordWalker(ctx.inputs())) {
+  // todo: consider matching (and deciding) in completion policy to save some time
+  //  it is not trivial though, we would have to share state with the customize() method,
+  //  which is not possible atm.
 
-    const auto* inputHeader = header::get<header::DataHeader*>(input.header);
+  for (auto inputIt = ctx.inputs().begin(); inputIt != ctx.inputs().end(); inputIt++) {
+
+    const DataRef& firstPart = inputIt.getByPos(0);
+    if (firstPart.header == nullptr) {
+      continue;
+    }
+    const auto* inputHeader = header::get<header::DataHeader*>(firstPart.header);
     ConcreteDataMatcher inputMatcher{inputHeader->dataOrigin, inputHeader->dataDescription, inputHeader->subSpecification};
 
     for (auto& policy : mPolicies) {
-      // todo: consider getting the outputSpec in match to improve performance
-      // todo: consider matching (and deciding) in completion policy to save some time
+      if (auto route = policy->match(inputMatcher); route != nullptr && policy->decide(firstPart)) {
+        auto dsheader = prepareDataSamplingHeader(*policy);
+        for (const auto& part : inputIt) {
+          if (part.header != nullptr) {
+            // We copy every header which is not DataHeader or DataProcessingHeader,
+            // so that custom data-dependent headers are passed forward,
+            // and we add a DataSamplingHeader.
+            header::Stack headerStack{
+              std::move(extractAdditionalHeaders(part.header)),
+              dsheader};
 
-      if (policy->match(inputMatcher) && policy->decide(input)) {
-        // We copy every header which is not DataHeader or DataProcessingHeader,
-        // so that custom data-dependent headers are passed forward,
-        // and we add a DataSamplingHeader.
-        header::Stack headerStack{
-          std::move(extractAdditionalHeaders(input.header)),
-          std::move(prepareDataSamplingHeader(*policy.get(), ctx.services().get<const DeviceSpec>()))};
-
-        Output output = policy->prepareOutput(inputMatcher, input.spec->lifetime);
-        output.metaHeader = std::move(header::Stack{std::move(output.metaHeader), std::move(headerStack)});
-        send(ctx.outputs(), input, std::move(output));
+            auto routeAsConcreteDataType = DataSpecUtils::asConcreteDataTypeMatcher(*route);
+            Output output{
+              routeAsConcreteDataType.origin,
+              routeAsConcreteDataType.description,
+              inputMatcher.subSpec,
+              part.spec->lifetime,
+              std::move(headerStack)};
+            send(ctx.outputs(), part, output);
+          }
+        }
       }
     }
   }
@@ -116,18 +135,15 @@ void Dispatcher::reportStats(Monitoring& monitoring) const
   monitoring.send({dispatcherTotalAcceptedMessages, "Dispatcher_messages_passed"});
 }
 
-DataSamplingHeader Dispatcher::prepareDataSamplingHeader(const DataSamplingPolicy& policy, const DeviceSpec& spec)
+DataSamplingHeader Dispatcher::prepareDataSamplingHeader(const DataSamplingPolicy& policy)
 {
   uint64_t sampleTime = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-
-  DataSamplingHeader::DeviceIDType id;
-  id.runtimeInit(spec.id.substr(0, DataSamplingHeader::deviceIDTypeSize).c_str());
 
   return {
     sampleTime,
     policy.getTotalAcceptedMessages(),
     policy.getTotalEvaluatedMessages(),
-    id};
+    mDeviceID};
 }
 
 header::Stack Dispatcher::extractAdditionalHeaders(const char* inputHeaderStack) const
@@ -145,7 +161,7 @@ header::Stack Dispatcher::extractAdditionalHeaders(const char* inputHeaderStack)
   return headerStack;
 }
 
-void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, Output&& output) const
+void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, const Output& output) const
 {
   const auto* inputHeader = header::get<header::DataHeader*>(inputData.header);
   dataAllocator.snapshot(output, inputData.payload, inputHeader->payloadSize, inputHeader->payloadSerializationMethod);
