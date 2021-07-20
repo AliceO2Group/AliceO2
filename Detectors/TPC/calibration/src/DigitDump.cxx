@@ -186,6 +186,9 @@ void DigitDump::checkDuplicates(bool removeDuplicates)
 
   for (size_t iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
     auto& digits = mDigits[iSec];
+    if (!digits.size()) {
+      continue;
+    }
 
     size_t nDuplicates = 0;
     if (removeDuplicates) {

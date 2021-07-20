@@ -82,7 +82,11 @@ if [[ $fileInfo =~ : ]]; then
   timeBins=${fileInfo#*:}
   timeBins=${timeBins%%:*}
 else
-  fileInfo=${fileInfo}:${timeBins}
+  fileInfo=${fileInfo}:${lastTimeBin}
+fi
+
+if [[ $lastTimeBin -gt $timeBins ]]; then
+  timeBins=$lastTimeBin
 fi
 
 # ===| command building and execution |=========================================
