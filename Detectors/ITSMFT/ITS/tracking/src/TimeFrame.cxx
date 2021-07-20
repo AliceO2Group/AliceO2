@@ -264,7 +264,8 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
   }
 }
 
-void TimeFrame::checkTrackletLUTs() {
+void TimeFrame::checkTrackletLUTs()
+{
   for (uint32_t iLayer{0}; iLayer < getTracklets().size(); ++iLayer) {
     int prev{-1};
     int count{0};

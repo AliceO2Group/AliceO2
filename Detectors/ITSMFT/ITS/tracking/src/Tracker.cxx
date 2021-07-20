@@ -81,7 +81,6 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger)
     computeTracksMClabels();
   }
   rectifyClusterIndices();
-
 }
 
 void Tracker::computeTracklets()
