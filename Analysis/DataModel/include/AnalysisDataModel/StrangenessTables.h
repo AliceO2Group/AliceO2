@@ -116,7 +116,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(PositiveEta, positiveeta, //!
                            [](float PxPos, float PyPos, float PzPos) -> float { return RecoDecay::Eta(array{PxPos, PyPos, PzPos}); });
 DECLARE_SOA_DYNAMIC_COLUMN(PositivePhi, positivephi, //!
                            [](float PxPos, float PyPos) -> float { return RecoDecay::Phi(PxPos, PyPos); });
-  
+
 DECLARE_SOA_EXPRESSION_COLUMN(Px, px, //!
                               float, 1.f * aod::v0data::pxpos + 1.f * aod::v0data::pxneg);
 DECLARE_SOA_EXPRESSION_COLUMN(Py, py, //!
@@ -147,7 +147,7 @@ DECLARE_SOA_TABLE_FULL(StoredV0Datas, "V0Datas", "AOD", "V0DATA", //!
                        v0data::MAntiLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
                        v0data::MK0Short<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
                        v0data::MGamma<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
-                       
+
                        //Longitudinal
                        v0data::YK0Short<v0data::Px, v0data::Py, v0data::Pz>,
                        v0data::YLambda<v0data::Px, v0data::Py, v0data::Pz>,
