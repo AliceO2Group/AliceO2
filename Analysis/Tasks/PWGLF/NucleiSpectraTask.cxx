@@ -46,17 +46,17 @@ struct NucleiSpectraTask {
     AxisSpec ptAxis = {ptBinning, "#it{p}_{T} (GeV/#it{c})"};
     AxisSpec centAxis = {centBinning, "V0M (%)"};
 
-    spectra.add("fCollZpos", "collision z position", HistType::kTH1F, {{600, -20., +20., "z position (cm)"}});
-    spectra.add("fKeepEvent", "skimming histogram", HistType::kTH1F, {{2, -0.5, +1.5, "true: keep event, false: reject event"}});
-    spectra.add("fTPCsignal", "Specific energy loss", HistType::kTH2F, {{600, -6., 6., "#it{p} (GeV/#it{c})"}, {1400, 0, 1400, "d#it{E} / d#it{X} (a. u.)"}});
-    spectra.add("fTOFsignal", "TOF signal", HistType::kTH2F, {{600, -6., 6., "#it{p} (GeV/#it{c})"}, {500, 0.0, 1.0, "#beta (TOF)"}});
-    spectra.add("fTPCcounts", "n-sigma TPC", HistType::kTH2F, {ptAxis, {200, -100., +100., "n#sigma_{He} (a. u.)"}});
-    spectra.add("fDcaVsPt", "dca vs Pt", HistType::kTH2F, {ptAxis, {400, -0.2, 0.2, "dca"}});
-    spectra.add("fInvMass", "Invariant mass", HistType::kTH1F, {{600, 5.0, +15., "inv. mass GeV/c^{2}"}});
+    spectra.add("histRecVtxZData", "collision z position", HistType::kTH1F, {{600, -20., +20., "z position (cm)"}});
+    spectra.add("histKeepEventData", "skimming histogram", HistType::kTH1F, {{2, -0.5, +1.5, "true: keep event, false: reject event"}});
+    spectra.add("histTpcSignalData", "Specific energy loss", HistType::kTH2F, {{600, -6., 6., "#it{p} (GeV/#it{c})"}, {1400, 0, 1400, "d#it{E} / d#it{X} (a. u.)"}});
+    spectra.add("histTofSignalData", "TOF signal", HistType::kTH2F, {{600, -6., 6., "#it{p} (GeV/#it{c})"}, {500, 0.0, 1.0, "#beta (TOF)"}});
+    spectra.add("histTpcNsigmaData", "n-sigma TPC", HistType::kTH2F, {ptAxis, {200, -100., +100., "n#sigma_{He} (a. u.)"}});
+    spectra.add("histDcaVsPtData", "dca vs Pt", HistType::kTH2F, {ptAxis, {400, -0.2, 0.2, "dca"}});
+    spectra.add("histInvMassData", "Invariant mass", HistType::kTH1F, {{600, 5.0, +15., "inv. mass GeV/c^{2}"}});
   }
 
-  Configurable<float> yMin{"yMin", -0.8, "Maximum rapidity"};
-  Configurable<float> yMax{"yMax", 0.8, "Minimum rapidity"};
+  Configurable<float> yMin{"yMin", -0.5, "Maximum rapidity"};
+  Configurable<float> yMax{"yMax", 0.5, "Minimum rapidity"};
 
   Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
   Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};
@@ -76,7 +76,7 @@ struct NucleiSpectraTask {
     //
     bool keepEvent = kFALSE;
     //
-    spectra.fill(HIST("fCollZpos"), collision.posZ());
+    spectra.fill(HIST("histRecVtxZData"), collision.posZ());
     //
     std::vector<TLorentzVector> posTracks;
     std::vector<TLorentzVector> negTracks;
@@ -94,14 +94,14 @@ struct NucleiSpectraTask {
       float nSigmaHe3 = track.tpcNSigmaHe();
       nSigmaHe3 += 94.222101 * TMath::Exp(-0.905203 * track.tpcInnerParam());
       //
-      spectra.fill(HIST("fTPCsignal"), track.tpcInnerParam() * track.sign(), track.tpcSignal());
-      spectra.fill(HIST("fTPCcounts"), track.tpcInnerParam(), nSigmaHe3);
+      spectra.fill(HIST("histTpcSignalData"), track.tpcInnerParam() * track.sign(), track.tpcSignal());
+      spectra.fill(HIST("histTpcNsigmaData"), track.tpcInnerParam(), nSigmaHe3);
       //
       // check offline-trigger (skimming) condidition
       //
       if (nSigmaHe3 > nsigmacutLow && nSigmaHe3 < nsigmacutHigh) {
         keepEvent = kTRUE;
-        if (track.sign() < 0) spectra.fill(HIST("fDcaVsPt"), track.pt(), track.dcaXY());
+        if (track.sign() < 0) spectra.fill(HIST("histDcaVsPtData"), track.pt(), track.dcaXY());
         //
         // store tracks for invariant mass calculation
         //
@@ -117,14 +117,14 @@ struct NucleiSpectraTask {
         Float_t tofTime = track.tofSignal();
         Float_t tofLength = track.length();
         Float_t beta = tofLength / (TMath::C() * 1e-10 * tofTime);
-        spectra.fill(HIST("fTOFsignal"), track.tpcInnerParam() * track.sign(), beta);
+        spectra.fill(HIST("histTofSignalData"), track.tpcInnerParam() * track.sign(), beta);
       }
 
     } // end loop over tracks
     //
     // fill trigger (skimming) results
     //
-    spectra.fill(HIST("fKeepEvent"), keepEvent);
+    spectra.fill(HIST("histKeepEventData"), keepEvent);
     //
     // calculate invariant mass
     //
@@ -133,7 +133,7 @@ struct NucleiSpectraTask {
       for (Int_t jNeg = 0; jNeg < negTracks.size(); jNeg++) {
         TLorentzVector& vecNeg = negTracks[jNeg];
         TLorentzVector vecMother = vecPos + vecNeg;
-        spectra.fill(HIST("fInvMass"), vecMother.M());
+        spectra.fill(HIST("histInvMassData"), vecMother.M());
       }
     }
   }
