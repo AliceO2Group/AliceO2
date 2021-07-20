@@ -48,6 +48,7 @@ static const double massPi = RecoDecay::getMassPDG(kPiPlus);
 static const double massK = RecoDecay::getMassPDG(kKPlus);
 static const double massProton = RecoDecay::getMassPDG(kProton);
 static const double massElectron = RecoDecay::getMassPDG(kElectron);
+static const double massMuon = RecoDecay::getMassPDG(kMuonPlus);
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -511,6 +512,9 @@ struct HfTrackIndexSkimsCreator {
 
     arrMass2Prong[hf_cand_prong2::DecayType::JpsiToEE] = array{array{massElectron, massElectron},
                                                                array{massElectron, massElectron}};
+
+    arrMass2Prong[hf_cand_prong2::DecayType::JpsiToMuMu] = array{array{massMuon, massMuon},
+                                                                 array{massMuon, massMuon}};
 
     arrMass3Prong[hf_cand_prong3::DecayType::DPlusToPiKPi] = array{array{massPi, massK, massPi},
                                                                    array{massPi, massK, massPi}};
