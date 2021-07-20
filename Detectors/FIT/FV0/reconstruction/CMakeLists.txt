@@ -18,6 +18,7 @@ o2_add_library(FV0Reconstruction
                               O2::Framework
                               O2::FV0Base
                               O2::FV0Simulation
+                              O2::FV0Calibration
                               O2::DataFormatsFV0
                               O2::DetectorsRaw
                               O2::CommonDataFormat

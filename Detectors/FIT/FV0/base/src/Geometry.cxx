@@ -58,7 +58,7 @@ Geometry::~Geometry()
   }
 }
 
-const int Geometry::getCurrentCellId(const TVirtualMC* fMC) const
+int Geometry::getCurrentCellId(const TVirtualMC* fMC) const
 {
   int detectorHalfID = -1;
   int sectorID = -1;
@@ -82,7 +82,7 @@ const int Geometry::getCurrentCellId(const TVirtualMC* fMC) const
   return sectorID + 8 * ringID;
 }
 
-const bool Geometry::enableComponent(const EGeoComponent component, const bool enable)
+bool Geometry::enableComponent(const EGeoComponent component, const bool enable)
 {
   if (mEnabledComponents.find(component) == mEnabledComponents.end()) {
     LOG(DEBUG) << "FV0 Geometry::enableComponent(): Component not initialized and cannot be enabled/disabled!";
