@@ -34,9 +34,11 @@ Int_t ROframe::getTotalClusters() const
   return Int_t(totalClusters);
 }
 
-void ROframe::initialize()
+void ROframe::initialize(bool fullClusterScan)
 {
-  sortClusters();
+  if (!fullClusterScan) {
+    sortClusters();
+  }
 }
 
 void ROframe::sortClusters()

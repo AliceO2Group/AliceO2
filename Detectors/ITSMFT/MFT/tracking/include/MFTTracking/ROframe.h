@@ -77,7 +77,7 @@ class ROframe
 
   void addRoad();
 
-  void initialize();
+  void initialize(bool fullClusterScan = false);
 
   void sortClusters();
 
