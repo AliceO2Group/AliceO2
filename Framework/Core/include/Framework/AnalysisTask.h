@@ -31,7 +31,6 @@
 
 #include <arrow/compute/kernel.h>
 #include <arrow/table.h>
-#include <arrow/util/key_value_metadata.h>
 #include <gandiva/node.h>
 #include <type_traits>
 #include <utility>
@@ -155,7 +154,7 @@ struct AnalysisDataProcessorBuilder {
     if constexpr (soa::is_type_with_metadata_v<aod::MetadataTrait<T>>) {
       auto table = record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::tableLabel())->asArrowTable();
       if (table->num_rows() == 0) {
-        table = makeEmptyTable<T>();
+        table = makeEmptyTable<T>(aod::MetadataTrait<T>::metadata::tableLabel());
       }
       return table;
     } else if constexpr (soa::is_type_with_originals_v<T>) {

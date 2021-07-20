@@ -48,6 +48,13 @@ void ArrayFromVector(const std::vector<C_TYPE>& values, std::shared_ptr<arrow::A
 
 namespace o2::framework
 {
+void addLabelToSchema(std::shared_ptr<arrow::Schema>& schema, const char* label)
+{
+  schema = schema->WithMetadata(
+    std::make_shared<arrow::KeyValueMetadata>(
+      std::vector{std::string{"label"}},
+      std::vector{std::string{label}}));
+}
 
 std::shared_ptr<arrow::Table>
   TableBuilder::finalize()
