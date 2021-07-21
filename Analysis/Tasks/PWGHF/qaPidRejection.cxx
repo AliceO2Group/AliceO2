@@ -1,18 +1,20 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
 /// \author Peter Hristov <Peter.Hristov@cern.ch>, CERN
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
 /// \author Henrique J C Zanoli <henrique.zanoli@cern.ch>, Utrecht University
 /// \author Nicolo' Jacazio <nicolo.jacazio@cern.ch>, CERN
 
-// O2 inlcudes
+// O2 includes
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
 #include "ReconstructionDataFormats/DCA.h"
@@ -356,18 +358,23 @@ struct QaRejectionGeneral {
 
     for (const auto& track : tracks) {
 
-      if (std::abs(track.eta()) > etaMaxSel || track.pt() < ptMinSel)
+      if (std::abs(track.eta()) > etaMaxSel || track.pt() < ptMinSel) {
         continue;
+      }
       const auto mcParticle = track.mcParticle();
       histos.fill(HIST("hAllNoSel/pteta"), track.pt(), track.eta());
-      if (mcParticle.pdgCode() == kElectron)
+      if (mcParticle.pdgCode() == kElectron) {
         histos.fill(HIST("hElectronNoSel/pteta"), track.pt(), track.eta());
-      if (mcParticle.pdgCode() == kMuonPlus)
+      }
+      if (mcParticle.pdgCode() == kMuonPlus) {
         histos.fill(HIST("hMuonNoSel/pteta"), track.pt(), track.eta());
-      if (mcParticle.pdgCode() == kPiPlus)
+      }
+      if (mcParticle.pdgCode() == kPiPlus) {
         histos.fill(HIST("hPionNoSel/pteta"), track.pt(), track.eta());
-      if (mcParticle.pdgCode() == kKPlus)
+      }
+      if (mcParticle.pdgCode() == kKPlus) {
         histos.fill(HIST("hKaonNoSel/pteta"), track.pt(), track.eta());
+      }
 
       bool isRICHhpElectron = !(selectorElectron.getStatusTrackPIDRICH(track) == TrackSelectorPID::Status::PIDRejected);
       bool isRICHhpPion = !(selectorPion.getStatusTrackPIDRICH(track) == TrackSelectorPID::Status::PIDRejected);
@@ -401,68 +408,92 @@ struct QaRejectionGeneral {
 
       if (isRICHElLoose) {
         histos.fill(HIST("hAllRICHSelHpElLoose/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kElectron)
+        if (mcParticle.pdgCode() == kElectron) {
           histos.fill(HIST("hElectronRICHSelHpElLoose/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kMuonPlus)
+        }
+        if (mcParticle.pdgCode() == kMuonPlus) {
           histos.fill(HIST("hMuonRICHSelHpElLoose/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kPiPlus)
+        }
+        if (mcParticle.pdgCode() == kPiPlus) {
           histos.fill(HIST("hPionRICHSelHpElLoose/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kKPlus)
+        }
+        if (mcParticle.pdgCode() == kKPlus) {
           histos.fill(HIST("hKaonRICHSelHpElLoose/pteta"), track.pt(), track.eta());
+        }
       }
       if (isRICHElTight) {
         histos.fill(HIST("hAllRICHSelHpElTight/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kElectron)
+        if (mcParticle.pdgCode() == kElectron) {
           histos.fill(HIST("hElectronRICHSelHpElTight/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kMuonPlus)
+        }
+        if (mcParticle.pdgCode() == kMuonPlus) {
           histos.fill(HIST("hMuonRICHSelHpElTight/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kPiPlus)
+        }
+        if (mcParticle.pdgCode() == kPiPlus) {
           histos.fill(HIST("hPionRICHSelHpElTight/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kKPlus)
+        }
+        if (mcParticle.pdgCode() == kKPlus) {
           histos.fill(HIST("hKaonRICHSelHpElTight/pteta"), track.pt(), track.eta());
+        }
       }
       if (isRICHElTightAlt) {
         histos.fill(HIST("hAllRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kElectron)
+        if (mcParticle.pdgCode() == kElectron) {
           histos.fill(HIST("hElectronRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kMuonPlus)
+        }
+        if (mcParticle.pdgCode() == kMuonPlus) {
           histos.fill(HIST("hMuonRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kPiPlus)
+        }
+        if (mcParticle.pdgCode() == kPiPlus) {
           histos.fill(HIST("hPionRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kKPlus)
+        }
+        if (mcParticle.pdgCode() == kKPlus) {
           histos.fill(HIST("hKaonRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
+        }
       }
       if (isRICHElTightAlt != isRICHElTight) {
         histos.fill(HIST("hAllRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kElectron)
+        if (mcParticle.pdgCode() == kElectron) {
           histos.fill(HIST("hElectronRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kMuonPlus)
+        }
+        if (mcParticle.pdgCode() == kMuonPlus) {
           histos.fill(HIST("hMuonRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kPiPlus)
+        }
+        if (mcParticle.pdgCode() == kPiPlus) {
           histos.fill(HIST("hPionRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kKPlus)
+        }
+        if (mcParticle.pdgCode() == kKPlus) {
           histos.fill(HIST("hKaonRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
+        }
       }
       if (isMIDhpMuon) {
         histos.fill(HIST("hAllMID/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kElectron)
+        if (mcParticle.pdgCode() == kElectron) {
           histos.fill(HIST("hElectronMID/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kMuonPlus)
+        }
+        if (mcParticle.pdgCode() == kMuonPlus) {
           histos.fill(HIST("hMuonMID/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kPiPlus)
+        }
+        if (mcParticle.pdgCode() == kPiPlus) {
           histos.fill(HIST("hPionMID/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kKPlus)
+        }
+        if (mcParticle.pdgCode() == kKPlus) {
           histos.fill(HIST("hKaonMID/pteta"), track.pt(), track.eta());
+        }
 
         histos.fill(HIST("hAllMID/peta"), track.p(), track.eta());
-        if (mcParticle.pdgCode() == kElectron)
+        if (mcParticle.pdgCode() == kElectron) {
           histos.fill(HIST("hElectronMID/peta"), track.p(), track.eta());
-        if (mcParticle.pdgCode() == kMuonPlus)
+        }
+        if (mcParticle.pdgCode() == kMuonPlus) {
           histos.fill(HIST("hMuonMID/peta"), track.p(), track.eta());
-        if (mcParticle.pdgCode() == kPiPlus)
+        }
+        if (mcParticle.pdgCode() == kPiPlus) {
           histos.fill(HIST("hPionMID/peta"), track.p(), track.eta());
-        if (mcParticle.pdgCode() == kKPlus)
+        }
+        if (mcParticle.pdgCode() == kKPlus) {
           histos.fill(HIST("hKaonMID/peta"), track.p(), track.eta());
+        }
       }
     }
   }

@@ -80,11 +80,13 @@ struct TaskJpsi {
       }
       if (d_selectionFlagJpsi > 0) {
         if (d_modeJpsiToMuMu) {
-          if (candidate.isSelJpsiToMuMuTopol() <= 0)
+          if (candidate.isSelJpsiToMuMuTopol() <= 0) {
             continue;
+          }
         } else {
-          if (candidate.isSelJpsiToEETopol() <= 0)
+          if (candidate.isSelJpsiToEETopol() <= 0) {
             continue;
+          }
         }
       }
       if (cutYCandMax >= 0. && std::abs(YJpsi(candidate)) > cutYCandMax) {
@@ -180,11 +182,13 @@ struct TaskJpsiMC {
       }
       if (d_selectionFlagJpsi > 0) {
         if (d_modeJpsiToMuMu) {
-          if (candidate.isSelJpsiToMuMuTopol() <= 0)
+          if (candidate.isSelJpsiToMuMuTopol() <= 0) {
             continue;
+          }
         } else {
-          if (candidate.isSelJpsiToEETopol() <= 0)
+          if (candidate.isSelJpsiToEETopol() <= 0) {
             continue;
+          }
         }
       }
 

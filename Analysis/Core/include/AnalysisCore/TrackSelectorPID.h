@@ -445,11 +445,13 @@ class TrackSelectorPID
     // TOF
     if (useTOF && hasTOF && (p < 0.6)) {
       if (p > 0.4 && hasRICH) {
-        if ((std::abs(nSigmaTOFEl) < mNSigmaTOFMax) && (std::abs(nSigmaRICHEl) < mNSigmaRICHMax))
+        if ((std::abs(nSigmaTOFEl) < mNSigmaTOFMax) && (std::abs(nSigmaRICHEl) < mNSigmaRICHMax)) {
           isSelTOF = true; // is selected as electron by TOF and RICH
+        }
       } else if (p <= 0.4) {
-        if (std::abs(nSigmaTOFEl) < mNSigmaTOFMax)
+        if (std::abs(nSigmaTOFEl) < mNSigmaTOFMax) {
           isSelTOF = true; // is selected as electron by TOF
+        }
       } else {
         isSelTOF = false; // This is rejecting all the heavier particles which do not have a RICH signal in the p area of 0.4-0.6 GeV/c
       }
