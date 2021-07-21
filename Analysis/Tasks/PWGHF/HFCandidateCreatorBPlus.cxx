@@ -182,6 +182,8 @@ struct HfCandidateCreatorBplus {
         auto errorDecayLength = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, theta) + getRotatedCovMatrixXX(covMatrixPCA, phi, theta));
         auto errorDecayLengthXY = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, 0.) + getRotatedCovMatrixXX(covMatrixPCA, phi, 0.));
 
+        int hfFlag = 1 << hf_cand_bplus::DecayType::BPlusToD0Pi;
+
         // fill candidate table rows
         rowCandidateBase(collision.globalIndex(),
                          collision.posX(), collision.posY(), collision.posZ(),
@@ -256,8 +258,7 @@ struct HfCandidateCreatorBplusMc {
         //Printf("Checking D0(bar) → π± K∓");
         for (auto iD : arrayDaughterB) {
           auto candDaughterMC = particlesMC.iteratorAt(iD);
-          auto PDGCandDaughterMC = candDaughterMC.pdgCode();
-          if (std::abs(PDGCandDaughterMC) == kD0pdg) {
+          if (std::abs(candDaughterMC.pdgCode()) == kD0pdg) {
             indexGenD0 = RecoDecay::isMatchedMCGen(particlesMC, candDaughterMC, pdg::Code::kD0, array{-kKPlus, +kPiPlus}, true, &signD0, 1);
           }
         }
