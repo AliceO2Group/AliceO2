@@ -16,6 +16,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/ComputingQuotaEvaluator.h"
+#include "CommonDriverServices.h"
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Plugins.h"
@@ -1301,6 +1302,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   std::vector<ServicePreSchedule> preScheduleCallbacks;
   std::vector<ServicePostSchedule> postScheduleCallbacks;
   std::vector<ServiceDriverInit> driverInitCallbacks;
+  std::vector<ServiceSpec> driverServices = CommonDriverServices::defaultServices();
+  for (auto& service : driverServices) {
+    service.driverStartup(serviceRegistry, varmap);
+  }
 
   serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DevicesManager>(devicesManager));
 
