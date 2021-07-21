@@ -36,6 +36,12 @@ enum class IDCType { IDC = 0,     ///< integrated and grouped IDCs
                      IDCDelta = 3 ///< IDCDelta: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
 };
 
+/// IDC Delta IDC Compression types
+enum class IDCDeltaCompression { NO = 0,     ///< no compression using floats
+                                 MEDIUM = 1, ///< medium compression using short (data compression ratio 2 when stored in CCDB)
+                                 HIGH = 2    ///< high compression using char (data compression ratio ~5.5 when stored in CCDB)
+};
+
 /// struct containing the IDC delta values
 template <typename DataT>
 struct IDCDeltaContainer {
@@ -130,11 +136,17 @@ struct IDCDelta<float> {
   /// \param side side of the TPC
   auto& getIDCDelta(const o2::tpc::Side side) { return mIDCDelta.mIDCDeltaCont[side]; }
 
+  /// \return returns vector of Delta IDCs for given side
+  /// \param side side of the TPC
+  auto getIDCDeltaContainer() && { return std::move(mIDCDelta); }
+
   /// set IDCDelta value
   /// \param side side of the TPC
   /// \param index index in the storage (see: getIndexUngrouped int IDCGroupHelperSector)
   /// \param val value of IDCDelta which will be stored
   void setIDCDelta(const o2::tpc::Side side, const unsigned int index, const float val) { mIDCDelta.mIDCDeltaCont[side][index] = val; }
+
+  void resize(const o2::tpc::Side side, const unsigned int size) { mIDCDelta.mIDCDeltaCont[side].resize(size); }
 
   IDCDeltaContainer<float> mIDCDelta{}; ///< storage for uncompressed Delta IDCs
   ClassDefNV(IDCDelta, 1)
@@ -156,7 +168,7 @@ class IDCDeltaCompressionHelper
     IDCDelta<DataT> idcCompressed{};
     compress(idcDeltaUncompressed, idcCompressed, o2::tpc::Side::A);
     compress(idcDeltaUncompressed, idcCompressed, o2::tpc::Side::C);
-    return std::move(idcCompressed);
+    return idcCompressed;
   }
 
  private:
@@ -206,19 +218,39 @@ struct IDCZero {
   /// \param index index in the storage
   float getValueIDCZero(const o2::tpc::Side side, const unsigned int index) const { return mIDCZero[side][index]; }
 
-  /// set all values back to 0
+  /// clear values
+  void clear()
+  {
+    clear(Side::A);
+    clear(Side::C);
+  }
+
   /// \param side side of the TPC
-  void reset(const o2::tpc::Side side) { std::fill(mIDCZero[side].begin(), mIDCZero[side].end(), 0.f); }
+  void clear(const o2::tpc::Side side) { mIDCZero[side].clear(); }
+
+  /// resize vector
+  void resize(const unsigned int size)
+  {
+    resize(Side::A, size);
+    resize(Side::C, size);
+  }
+
+  /// returns false if both sides containes values. returns true if one side is empty
+  bool empty() const { return mIDCZero[Side::A].empty() + mIDCZero[Side::C].empty(); }
 
   /// resize vector
   /// \param side side of the TPC
   void resize(const o2::tpc::Side side, const unsigned int size) { mIDCZero[side].resize(size); }
 
+  /// get number of IDC0 values
+  /// \param side side of the TPC
+  auto getNIDC0(const o2::tpc::Side side) const { return mIDCZero[side].size(); }
+
   std::array<std::vector<float>, o2::tpc::SIDES> mIDCZero{}; ///< I_0(r,\phi) = <I(r,\phi,t)>_t
   ClassDefNV(IDCZero, 1)
 };
 
-///<struct containing the IDC0
+///<struct containing the IDC1
 struct IDCOne {
   /// set IDC one for given index
   /// \param idcOne Delta IDC value which will be set
@@ -231,9 +263,22 @@ struct IDCOne {
   /// \param index index in the storage
   float getValueIDCOne(const o2::tpc::Side side, const unsigned int index) const { return mIDCOne[side][index]; }
 
-  /// set all values back to 0
+  /// clear values
+  void clear()
+  {
+    clear(Side::A);
+    clear(Side::C);
+  }
+
   /// \param side side of the TPC
-  void reset(const o2::tpc::Side side) { std::fill(mIDCOne[side].begin(), mIDCOne[side].end(), 0.f); }
+  void clear(const o2::tpc::Side side) { mIDCOne[side].clear(); }
+
+  /// resize vector
+  void resize(const unsigned int size)
+  {
+    resize(Side::A, size);
+    resize(Side::C, size);
+  }
 
   /// resize vector
   /// \param side side of the TPC

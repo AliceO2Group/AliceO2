@@ -25,12 +25,16 @@ o2_add_library(TPCCalibration
                        src/CalibLaserTracks.cxx
                        src/LaserTracksCalibrator.cxx
                        src/IDCAverageGroup.cxx
+                       src/IDCAverageGroupBase.cxx
+                       src/IDCAverageGroupHelper.cxx
                        src/IDCGroup.cxx
                        src/IDCGroupHelperRegion.cxx
+                       src/IDCGroupHelperSector.cxx
                        src/IDCGroupingParameter.cxx
                        src/IDCFactorization.cxx
                        src/IDCFourierTransformBase.cxx
                        src/IDCFourierTransform.cxx
+                       src/IDCDrawHelper.cxx
                        src/RobustAverage.cxx
                        src/IDCCCDBHelper.cxx
                        src/CalibdEdx.cxx
@@ -57,6 +61,8 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/CalibLaserTracks.h
                                   include/TPCCalibration/LaserTracksCalibrator.h
                                   include/TPCCalibration/IDCAverageGroup.h
+                                  include/TPCCalibration/IDCAverageGroupBase.h
+                                  include/TPCCalibration/IDCAverageGroupHelper.h
                                   include/TPCCalibration/IDCGroup.h
                                   include/TPCCalibration/IDCGroupHelperRegion.h
                                   include/TPCCalibration/IDCGroupHelperSector.h
@@ -69,7 +75,8 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/IDCCCDBHelper.h
                                   include/TPCCalibration/CalibdEdx.h
                                   include/TPCCalibration/CalibratordEdx.h
-                                  include/TPCCalibration/TrackDump.h)
+                                  include/TPCCalibration/TrackDump.h
+                                  include/TPCCalibration/IDCDrawHelper.h)
 
 o2_add_executable(dcs-sim-workflow
                   COMPONENT_NAME tpc

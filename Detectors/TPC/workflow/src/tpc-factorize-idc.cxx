@@ -20,6 +20,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "TPCWorkflow/TPCFactorizeIDCSpec.h"
 #include "TPCCalibration/IDCFactorization.h"
+#include "TPCCalibration/IDCAverageGroup.h"
 
 using namespace o2::framework;
 
@@ -37,9 +38,11 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
   std::vector<ConfigParamSpec> options{
     {"configFile", VariantType::String, "o2tpcaveragegroupidc_configuration.ini", {"configuration file for configurable parameters"}},
+    {"groupIDCs", VariantType::Bool, false, {"IDCDelta will be additionally grouped (only makes sense with propagateIDCs=true in idc-flp workflow)."}},
     {"timeframes", VariantType::Int, 2000, {"Number of TFs which will be aggregated per aggregation interval."}},
     {"timeframesDeltaIDC", VariantType::Int, 100, {"Number of TFs used for storing the IDCDelta struct in the CCDB."}},
     {"nthreads-IDC-factorization", VariantType::Int, 1, {"Number of threads which will be used during the factorization of the IDCs."}},
+    {"nthreads-grouping", VariantType::Int, 1, {"Number of threads which will be used during the grouping of IDCDelta."}},
     {"debug", VariantType::Bool, false, {"create debug files"}},
     {"sendOutput", VariantType::Bool, false, {"send IDC0, IDC1, IDCDelta, fourier coefficients (for debugging)"}},
     {"crus", VariantType::String, cruDefault.c_str(), {"List of CRUs, comma separated ranges, e.g. 0-3,7,9-15"}},
@@ -66,9 +69,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto timeframes = static_cast<unsigned int>(config.options().get<int>("timeframes"));
   const auto timeframesDeltaIDC = static_cast<unsigned int>(config.options().get<int>("timeframesDeltaIDC"));
   const auto debug = config.options().get<bool>("debug");
+  const auto groupIDCs = config.options().get<bool>("groupIDCs");
   const auto sendOutput = config.options().get<bool>("sendOutput");
   const auto nthreadsFactorization = static_cast<unsigned long>(config.options().get<int>("nthreads-IDC-factorization"));
   IDCFactorization::setNThreads(nthreadsFactorization);
+  const auto nthreadsGrouping = static_cast<unsigned long>(config.options().get<int>("nthreads-grouping"));
+  IDCAverageGroup<IDCAverageGroupTPC>::setNThreads(nthreadsGrouping);
   const auto nLanes = static_cast<unsigned int>(config.options().get<int>("input-lanes"));
 
   const int compressionTmp = config.options().get<int>("compression");
@@ -92,7 +98,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   WorkflowSpec workflow;
   workflow.reserve(nLanes);
   for (int ilane = 0; ilane < nLanes; ++ilane) {
-    workflow.emplace_back(getTPCFactorizeIDCSpec(ilane, rangeCRUs, timeframes, timeframesDeltaIDC, compression, debug, sendOutput));
+    groupIDCs ? workflow.emplace_back(getTPCFactorizeIDCSpec<TPCFactorizeIDCSpecGroup>(ilane, rangeCRUs, timeframes, timeframesDeltaIDC, compression, debug, sendOutput)) : workflow.emplace_back(getTPCFactorizeIDCSpec<TPCFactorizeIDCSpecNoGroup>(ilane, rangeCRUs, timeframes, timeframesDeltaIDC, compression, debug, sendOutput));
   }
   return workflow;
 }

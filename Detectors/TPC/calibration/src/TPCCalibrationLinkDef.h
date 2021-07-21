@@ -40,7 +40,10 @@
 #pragma link C++ class o2::tpc::IDCGroupHelperSector +;
 #pragma link C++ struct o2::tpc::ParameterIDCGroup;
 #pragma link C++ struct o2::tpc::ParameterIDCCompression;
-#pragma link C++ class o2::tpc::IDCAverageGroup +;
+#pragma link C++ class o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupCRU> + ;
+#pragma link C++ class o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupTPC> + ;
+#pragma link C++ class o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupCRU> + ;
+#pragma link C++ class o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC> + ;
 #pragma link C++ class o2::tpc::IDCFactorization +;
 #pragma link C++ struct o2::tpc::IDCDelta<float> +;
 #pragma link C++ struct o2::tpc::IDCDelta<short> +;
@@ -79,5 +82,6 @@
 #pragma link C++ class std::vector < std::vector < o2::tpc::TrackDump::ClusterGlobal>> + ;
 #pragma link C++ class o2::tpc::TrackDump::TrackInfo + ;
 #pragma link C++ class std::vector < o2::tpc::TrackDump::TrackInfo> + ;
+#pragma link C++ class o2::tpc::CalDet<o2::tpc::PadFlags> +;
 
 #endif

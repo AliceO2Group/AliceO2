@@ -87,3 +87,8 @@ void o2::tpc::IDCGroupHelperRegion::dumpToFile(const char* outFileName, const ch
   fOut.WriteObject(this, outName);
   fOut.Close();
 }
+
+unsigned int o2::tpc::IDCGroupHelperRegion::getIndexUngroupedGlob(const unsigned int ugrow, const unsigned int upad, unsigned int integrationInterval) const
+{
+  return getIndexUngrouped(ugrow - o2::tpc::Mapper::ROWOFFSET[mRegion], upad, integrationInterval);
+}
