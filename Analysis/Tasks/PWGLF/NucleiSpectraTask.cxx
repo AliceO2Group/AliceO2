@@ -100,20 +100,24 @@ struct NucleiSpectraTask {
       //
       if (nSigmaHe3 > nsigmacutLow && nSigmaHe3 < nsigmacutHigh) {
         keepEvent = kTRUE;
-        if (track.sign() < 0)
+        if (track.sign() < 0) {
           spectra.fill(HIST("histDcaVsPtData"), track.pt(), track.dcaXY());
+        }
         //
         // store tracks for invariant mass calculation
         //
-        if (track.sign() < 0)
+        if (track.sign() < 0) {
           negTracks.push_back(lorentzVector);
-        if (track.sign() > 0)
+        }
+        if (track.sign() > 0) {
           posTracks.push_back(lorentzVector);
+        }
         //
         // calculate beta
         //
-        if (!track.hasTOF())
+        if (!track.hasTOF()) {
           continue;
+        }
         Float_t tofTime = track.tofSignal();
         Float_t tofLength = track.length();
         Float_t beta = tofLength / (TMath::C() * 1e-10 * tofTime);

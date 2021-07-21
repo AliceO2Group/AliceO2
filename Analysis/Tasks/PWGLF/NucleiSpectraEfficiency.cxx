@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -75,12 +76,15 @@ struct NucleiSpectraEfficiencyGen {
     // loop over generated particles and fill generated particles
     //
     for (auto& mcParticleGen : mcParticles) {
-      if (mcParticleGen.pdgCode() != -1000020030)
+      if (mcParticleGen.pdgCode() != -1000020030) {
         continue;
-      if (!MC::isPhysicalPrimary(mcParticles, mcParticleGen))
+      }
+      if (!MC::isPhysicalPrimary(mcParticles, mcParticleGen)) {
         continue;
-      if (abs(mcParticleGen.y()) > 0.5)
+      }
+      if (abs(mcParticleGen.y()) > 0.5) {
         continue;
+      }
       spectra.fill(HIST("histGenPt"), mcParticleGen.pt());
     }
   }
