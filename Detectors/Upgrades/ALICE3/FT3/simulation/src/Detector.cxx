@@ -463,6 +463,7 @@ void Detector::createGeometry()
   mGeometryTGeo = GeometryTGeo::Instance();
 
   TGeoVolume* volFT3 = new TGeoVolumeAssembly(GeometryTGeo::getFT3VolPattern());
+  TGeoVolume* volIFT3 = new TGeoVolumeAssembly(GeometryTGeo::getFT3InnerVolPattern());
 
   LOG(INFO) << "GeometryBuilder::buildGeometry volume name = " << GeometryTGeo::getFT3VolPattern();
 
@@ -471,18 +472,39 @@ void Detector::createGeometry()
     LOG(FATAL) << "Could not find the top volume";
   }
 
+  TGeoVolume* A3IPvac = gGeoManager->GetVolume("OUT_PIPEVACUUM");
+  if (!A3IPvac) {
+    LOG(INFO) << "Running simulation with no beam pipe.";
+  }
+
   LOG(DEBUG) << "FT3 createGeometry: "
              << Form("gGeoManager name is %s title is %s", gGeoManager->GetName(), gGeoManager->GetTitle());
 
-  if (mLayers.size() == 2) {
-    for (Int_t direction : {0, 1}) { // Backward layers at mLayers[0]; Forward layers at mLayers[1]
-      std::string directionString = direction ? "Forward" : "Backward";
-      LOG(INFO) << "Creating FT3 " << directionString << " layers:";
-      for (Int_t iLayer = 0; iLayer < mLayers[direction].size(); iLayer++) {
-        mLayers[direction][iLayer].createLayer(volFT3);
+  if (mLayers.size() == 2) { // V1 and telescope
+    if (!A3IPvac) {
+      for (Int_t direction : {0, 1}) { // Backward layers at mLayers[0]; Forward layers at mLayers[1]
+        std::string directionString = direction ? "Forward" : "Backward";
+        LOG(INFO) << "Creating FT3 " << directionString << " layers:";
+        for (Int_t iLayer = 0; iLayer < mLayers[direction].size(); iLayer++) {
+          mLayers[direction][iLayer].createLayer(volFT3);
+        }
       }
+      vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
+    } else { // If beampipe is enabled append inner disks to beampipe filling volume, this should be temporary.
+      for (Int_t direction : {0, 1}) {
+        std::string directionString = direction ? "Forward" : "Backward";
+        LOG(INFO) << "Creating FT3 " << directionString << " layers:";
+        for (Int_t iLayer = 0; iLayer < mLayers[direction].size(); iLayer++) {
+          if (iLayer < 3) {
+            mLayers[direction][iLayer].createLayer(volIFT3);
+          } else {
+            mLayers[direction][iLayer].createLayer(volFT3);
+          }
+        }
+      }
+      A3IPvac->AddNode(volIFT3, 2, new TGeoTranslation(0., 0., 0.));
+      vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
     }
-    vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
 
     for (auto direction : {0, 1}) {
       std::string directionString = direction ? "Forward" : "Backward";
@@ -495,7 +517,8 @@ void Detector::createGeometry()
     }
   }
 
-  if (mLayers.size() == 1) { // All layers registered at mLayers[0]
+  // Unsupported with beampipe
+  if (mLayers.size() == 1) { // All layers registered at mLayers[0], used when building from file
     LOG(INFO) << "Creating FT3 layers:";
     for (Int_t iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
       mLayers[0][iLayer].createLayer(volFT3);
