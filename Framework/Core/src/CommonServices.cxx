@@ -264,6 +264,14 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
                            ConfigurationFactory::getConfiguration(backend).release()};
     },
     .configure = noConfiguration(),
+    .driverStartup = [](ServiceRegistry& registry, boost::program_options::variables_map const& vmap) {
+      if (vmap.count("configuration") == 0) {
+        registry.registerService(ServiceHandle{0, nullptr});
+        return;
+      }
+      auto backend = vmap["configuration"].as<std::string>();
+      registry.registerService(ServiceHandle{TypeIdHelpers::uniqueId<ConfigurationInterface>(),
+                                             ConfigurationFactory::getConfiguration(backend).release()}); },
     .kind = ServiceKind::Global};
 }
 

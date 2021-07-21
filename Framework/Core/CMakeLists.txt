@@ -25,6 +25,7 @@ o2_add_library(Framework
                        src/CommonDataProcessors.cxx
                        src/CommonServices.cxx
                        src/CommonMessageBackends.cxx
+                       src/CommonDriverServices.cxx
                        src/CompletionPolicy.cxx
                        src/CompletionPolicyHelpers.cxx
                        src/ComputingQuotaEvaluator.cxx
