@@ -148,8 +148,9 @@ struct NucleiSpectraEfficiencyRec {
       //
       if (nSigmaHe3 > nsigmacutLow && nSigmaHe3 < nsigmacutHigh) {
         // check on perfect PID
-        if (track.mcParticle().pdgCode() != -1000020030)
+        if (track.mcParticle().pdgCode() != -1000020030) {
           continue;
+        }
         // fill reconstructed histogram
         spectra.fill(HIST("histRecPt"), track.pt() * 2.0);
       }
