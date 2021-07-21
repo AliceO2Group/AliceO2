@@ -345,7 +345,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        if (vm.count("aod-memory-rate-limit")) {
                          config->maxMemory = std::stoll(vm["aod-memory-rate-limit"].as<std::string>()) / 1000000;
                        } else {
-                         config->maxMemory = readers * 400;
+                         config->maxMemory = readers * 500;
                        }
                        static bool once = false;
                        // Until we guarantee this is called only once...
