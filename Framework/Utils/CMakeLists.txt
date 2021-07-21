@@ -88,6 +88,7 @@ endforeach()
 if (TARGET benchmark::benchmark)
 foreach(b
         RawParser
+        DPLRawPageSequencer
         )
   o2_add_test(benchmark_${b} NAME test_Framework_benchmark_${b}
               SOURCES test/benchmark_${b}.cxx
