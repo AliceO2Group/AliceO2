@@ -168,6 +168,8 @@ class AODProducerWorkflowDPL : public Task
   std::unordered_map<GIndex, int> mGIDToTableID;
   int mTableTrID{0};
 
+  TripletsMap_t mToStore;
+
   std::shared_ptr<DataRequest> mDataRequest;
 
   // truncation is enabled by default
@@ -228,10 +230,11 @@ class AODProducerWorkflowDPL : public Task
   };
 
   // helper struct for mc track labels
+  // using -1 as dummies for AOD
   struct MCLabels {
-    uint32_t labelID = std::numeric_limits<uint32_t>::max();
-    uint32_t labelITS = std::numeric_limits<uint32_t>::max();
-    uint32_t labelTPC = std::numeric_limits<uint32_t>::max();
+    uint32_t labelID = -1;
+    uint32_t labelITS = -1;
+    uint32_t labelTPC = -1;
     uint16_t labelMask = 0;
     uint8_t mftLabelMask = 0;
   };
@@ -268,12 +271,12 @@ class AODProducerWorkflowDPL : public Task
                                    mftTracksCursorType& mftTracksCursor);
 
   template <typename MCParticlesCursorType>
-  void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
-                            gsl::span<const o2::MCCompLabel>& mcTruthITS,
-                            gsl::span<const o2::MCCompLabel>& mcTruthMFT,
-                            gsl::span<const o2::MCCompLabel>& mcTruthTPC,
-                            TripletsMap_t& toStore,
-                            std::vector<std::pair<int, int>> const& mccolidtoeventsource);
+  void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
+                            const MCParticlesCursorType& mcParticlesCursor,
+                            gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
+                            gsl::span<const GIndex>& GIndices,
+                            o2::globaltracking::RecoContainer& data,
+                            std::vector<std::pair<int, int>> const& mccolid_to_eventandsource);
 
   // helper for tpc clusters
   void countTPCClusters(const o2::tpc::TrackTPC& track,

@@ -277,43 +277,50 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
 }
 
 template <typename MCParticlesCursorType>
-void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
-                                                  gsl::span<const o2::MCCompLabel>& mcTruthITS,
-                                                  gsl::span<const o2::MCCompLabel>& mcTruthMFT,
-                                                  gsl::span<const o2::MCCompLabel>& mcTruthTPC,
-                                                  TripletsMap_t& toStore,
+void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
+                                                  const MCParticlesCursorType& mcParticlesCursor,
+                                                  gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
+                                                  gsl::span<const GIndex>& GIndices,
+                                                  o2::globaltracking::RecoContainer& data,
                                                   std::vector<std::pair<int, int>> const& mccolid_to_eventandsource)
 {
   // mark reconstructed MC particles to store them into the table
-  for (int i = 0; i < mcTruthITS.size(); i++) {
-    auto& mcTruth = mcTruthITS[i];
-    if (!mcTruth.isValid()) {
-      continue;
+  for (auto& trackRef : primVer2TRefs) {
+    for (int src = GIndex::NSources; src--;) {
+      int start = trackRef.getFirstEntryOfSource(src);
+      int end = start + trackRef.getEntriesOfSource(src);
+      for (int ti = start; ti < end; ti++) {
+        auto& trackIndex = GIndices[ti];
+        if (GIndex::includesSource(src, mInputSources)) {
+          auto mcTruth = data.getTrackMCLabel(trackIndex);
+          if (!mcTruth.isValid()) {
+            continue;
+          }
+          int source = mcTruth.getSourceID();
+          int event = mcTruth.getEventID();
+          int particle = mcTruth.getTrackID();
+          mToStore[Triplet_t(source, event, particle)] = 1;
+          // treating contributors of global tracks
+          auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
+          if (contributorsGID[GIndex::Source::ITS].isIndexSet() && contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+            auto mcTruthITS = data.getTrackMCLabel(contributorsGID[GIndex::Source::ITS]);
+            if (mcTruthITS.isValid()) {
+              source = mcTruthITS.getSourceID();
+              event = mcTruthITS.getEventID();
+              particle = mcTruthITS.getTrackID();
+              mToStore[Triplet_t(source, event, particle)] = 1;
+            }
+            auto mcTruthTPC = data.getTrackMCLabel(contributorsGID[GIndex::Source::TPC]);
+            if (mcTruthTPC.isValid()) {
+              source = mcTruthTPC.getSourceID();
+              event = mcTruthTPC.getEventID();
+              particle = mcTruthTPC.getTrackID();
+              mToStore[Triplet_t(source, event, particle)] = 1;
+            }
+          }
+        }
+      }
     }
-    int source = mcTruth.getSourceID();
-    int event = mcTruth.getEventID();
-    int particle = mcTruth.getTrackID();
-    toStore[Triplet_t(source, event, particle)] = 1;
-  }
-  for (int i = 0; i < mcTruthMFT.size(); i++) {
-    auto& mcTruth = mcTruthMFT[i];
-    if (!mcTruth.isValid()) {
-      continue;
-    }
-    int source = mcTruth.getSourceID();
-    int event = mcTruth.getEventID();
-    int particle = mcTruth.getTrackID();
-    toStore[Triplet_t(source, event, particle)] = 1;
-  }
-  for (int i = 0; i < mcTruthTPC.size(); i++) {
-    auto& mcTruth = mcTruthTPC[i];
-    if (!mcTruth.isValid()) {
-      continue;
-    }
-    int source = mcTruth.getSourceID();
-    int event = mcTruth.getEventID();
-    int particle = mcTruth.getTrackID();
-    toStore[Triplet_t(source, event, particle)] = 1;
   }
   int tableIndex = 1;
   for (int mccolid = 0; mccolid < mccolid_to_eventandsource.size(); ++mccolid) {
@@ -326,31 +333,31 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       for (int particle = mcParticles.size() - 1; particle >= 0; particle--) {
         int mother0 = mcParticles[particle].getMotherTrackId();
         if (mother0 == -1) {
-          toStore[Triplet_t(source, event, particle)] = 1;
+          mToStore[Triplet_t(source, event, particle)] = 1;
         }
-        if (toStore.find(Triplet_t(source, event, particle)) == toStore.end()) {
+        if (mToStore.find(Triplet_t(source, event, particle)) == mToStore.end()) {
           continue;
         }
         if (mother0 != -1) {
-          toStore[Triplet_t(source, event, mother0)] = 1;
+          mToStore[Triplet_t(source, event, mother0)] = 1;
         }
         int mother1 = mcParticles[particle].getSecondMotherTrackId();
         if (mother1 != -1) {
-          toStore[Triplet_t(source, particle, mother1)] = 1;
+          mToStore[Triplet_t(source, particle, mother1)] = 1;
         }
         int daughter0 = mcParticles[particle].getFirstDaughterTrackId();
         if (daughter0 != -1) {
-          toStore[Triplet_t(source, event, daughter0)] = 1;
+          mToStore[Triplet_t(source, event, daughter0)] = 1;
         }
         int daughterL = mcParticles[particle].getLastDaughterTrackId();
         if (daughterL != -1) {
-          toStore[Triplet_t(source, event, daughterL)] = 1;
+          mToStore[Triplet_t(source, event, daughterL)] = 1;
         }
       }
       // enumerate reconstructed mc particles and their relatives to get mother/daughter relations
       for (int particle = 0; particle < mcParticles.size(); particle++) {
-        auto mapItem = toStore.find(Triplet_t(source, event, particle));
-        if (mapItem != toStore.end()) {
+        auto mapItem = mToStore.find(Triplet_t(source, event, particle));
+        if (mapItem != mToStore.end()) {
           mapItem->second = tableIndex - 1;
           tableIndex++;
         }
@@ -359,40 +366,40 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
     // if all mc particles are stored, all mc particles will be enumerated
     if (!mRecoOnly) {
       for (int particle = 0; particle < mcParticles.size(); particle++) {
-        toStore[Triplet_t(source, event, particle)] = tableIndex - 1;
+        mToStore[Triplet_t(source, event, particle)] = tableIndex - 1;
         tableIndex++;
       }
     }
     // fill survived mc tracks into the table
     for (int particle = 0; particle < mcParticles.size(); particle++) {
-      if (toStore.find(Triplet_t(source, event, particle)) == toStore.end()) {
+      if (mToStore.find(Triplet_t(source, event, particle)) == mToStore.end()) {
         continue;
       }
       int statusCode = 0;
       uint8_t flags = 0;
       float weight = 0.f;
       int mcMother0 = mcParticles[particle].getMotherTrackId();
-      auto item = toStore.find(Triplet_t(source, event, mcMother0));
+      auto item = mToStore.find(Triplet_t(source, event, mcMother0));
       int mother0 = -1;
-      if (item != toStore.end()) {
+      if (item != mToStore.end()) {
         mother0 = item->second;
       }
       int mcMother1 = mcParticles[particle].getSecondMotherTrackId();
       int mother1 = -1;
-      item = toStore.find(Triplet_t(source, event, mcMother1));
-      if (item != toStore.end()) {
+      item = mToStore.find(Triplet_t(source, event, mcMother1));
+      if (item != mToStore.end()) {
         mother1 = item->second;
       }
       int mcDaughter0 = mcParticles[particle].getFirstDaughterTrackId();
       int daughter0 = -1;
-      item = toStore.find(Triplet_t(source, event, mcDaughter0));
-      if (item != toStore.end()) {
+      item = mToStore.find(Triplet_t(source, event, mcDaughter0));
+      if (item != mToStore.end()) {
         daughter0 = item->second;
       }
       int mcDaughterL = mcParticles[particle].getLastDaughterTrackId();
       int daughterL = -1;
-      item = toStore.find(Triplet_t(source, event, mcDaughterL));
-      if (item != toStore.end()) {
+      item = mToStore.find(Triplet_t(source, event, mcDaughterL));
+      if (item != mToStore.end()) {
         daughterL = item->second;
       }
       mcParticlesCursor(0,
@@ -543,14 +550,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto ft0ChData = recoData.getFT0ChannelsData();
   auto ft0RecPoints = recoData.getFT0RecPoints();
 
-  auto tracksTPCMCTruth = recoData.getTPCTracksMCLabels();
-  auto tracksITSMCTruth = recoData.getITSTracksMCLabels();
-  auto tracksMFTMCTruth = recoData.getMFTTracksMCLabels();
-
   LOG(DEBUG) << "FOUND " << primVertices.size() << " primary vertices";
-  LOG(DEBUG) << "FOUND " << tracksTPCMCTruth.size() << " TPC labels";
-  LOG(DEBUG) << "FOUND " << tracksMFTMCTruth.size() << " MFT labels";
-  LOG(DEBUG) << "FOUND " << tracksITSMCTruth.size() << " ITS labels";
   LOG(DEBUG) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
 
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
@@ -859,12 +859,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   bcsMap.clear();
 
   // filling mc particles table
-  TripletsMap_t toStore;
-  fillMCParticlesTable(mcReader, mcParticlesCursor,
-                       tracksITSMCTruth,
-                       tracksMFTMCTruth,
-                       tracksTPCMCTruth,
-                       toStore,
+  fillMCParticlesTable(mcReader,
+                       mcParticlesCursor,
+                       primVer2TRefs,
+                       primVerGIs,
+                       recoData,
                        mccolid_to_eventandsource);
 
   // ------------------------------------------------------
@@ -874,104 +873,68 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   //   bit 13 -- ITS and TPC labels are not equal
   //   bit 14 -- isNoise() == true
   //   bit 15 -- isFake() == true
-  // labelID = std::numeric_limits<uint32_t>::max() -- label is not set
+  // labelID = -1 -- label is not set
 
   // need to go through labels in the same order as for tracks
-  // todo: fill labels in the same way as tracks, using reco container
   for (auto& trackRef : primVer2TRefs) {
     for (int src = GIndex::NSources; src--;) {
       int start = trackRef.getFirstEntryOfSource(src);
       int end = start + trackRef.getEntriesOfSource(src);
       for (int ti = start; ti < end; ti++) {
         auto& trackIndex = primVerGIs[ti];
-        MCLabels labelHolder;
-        // its labels
-        if (src == GIndex::Source::ITS) {
-          auto& mcTruthITS = tracksITSMCTruth[trackIndex.getIndex()];
-          if (mcTruthITS.isValid()) {
-            labelHolder.labelID = toStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
-          }
-          if (mcTruthITS.isFake()) {
-            labelHolder.labelMask |= (0x1 << 15);
-          }
-          if (mcTruthITS.isNoise()) {
-            labelHolder.labelMask |= (0x1 << 14);
-          }
-          mcTrackLabelCursor(0,
-                             labelHolder.labelID,
-                             labelHolder.labelMask);
-        }
-        // tpc labels
-        if (src == GIndex::Source::TPC) {
-          auto& mcTruthTPC = tracksTPCMCTruth[trackIndex.getIndex()];
-          if (mcTruthTPC.isValid()) {
-            labelHolder.labelID = toStore.at(Triplet_t(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
-          }
-          if (mcTruthTPC.isFake()) {
-            labelHolder.labelMask |= (0x1 << 15);
-          }
-          if (mcTruthTPC.isNoise()) {
-            labelHolder.labelMask |= (0x1 << 14);
-          }
-          mcTrackLabelCursor(0,
-                             labelHolder.labelID,
-                             labelHolder.labelMask);
-        }
-        // its-tpc and its-tpc-tof labels
-        // todo:
-        //  probably need to store both its and tpc labels
-        //  for now filling only TPC label
-        if ((src == GIndex::Source::ITSTPC || src == GIndex::Source::ITSTPCTOF)) {
-          auto contributorsGID = recoData.getSingleDetectorRefs(trackIndex);
-          auto& mcTruthITS = tracksITSMCTruth[contributorsGID[GIndex::Source::ITS].getIndex()];
-          auto& mcTruthTPC = tracksTPCMCTruth[contributorsGID[GIndex::Source::TPC].getIndex()];
-          // its-contributor label
-          if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
-            if (mcTruthITS.isValid()) {
-              labelHolder.labelITS = toStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+        if (GIndex::includesSource(src, mInputSources)) {
+          auto mcTruth = recoData.getTrackMCLabel(trackIndex);
+          MCLabels labelHolder;
+          if (src == GIndex::Source::MFT) { // treating mft labels separately
+            if (mcTruth.isValid()) {        // if not set, -1 will be stored
+              labelHolder.labelID = mToStore.at(Triplet_t(mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID()));
             }
-          }
-          if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-            if (mcTruthTPC.isValid()) {
-              labelHolder.labelTPC = toStore.at(Triplet_t(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
+            if (mcTruth.isFake()) {
+              labelHolder.mftLabelMask |= (0x1 << 7);
             }
+            if (mcTruth.isNoise()) {
+              labelHolder.mftLabelMask |= (0x1 << 6);
+            }
+            mcMFTTrackLabelCursor(0,
+                                  labelHolder.labelID,
+                                  labelHolder.mftLabelMask);
+          } else {
+            if (mcTruth.isValid()) { // if not set, -1 will be stored
+              labelHolder.labelID = mToStore.at(Triplet_t(mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID()));
+            }
+            // treating possible mismatches for global tracks
+            auto contributorsGID = recoData.getSingleDetectorRefs(trackIndex);
+            if (contributorsGID[GIndex::Source::ITS].isIndexSet() && contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+              auto mcTruthITS = recoData.getTrackMCLabel(contributorsGID[GIndex::Source::ITS]);
+              if (mcTruthITS.isValid()) {
+                labelHolder.labelITS = mToStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+              }
+              auto mcTruthTPC = recoData.getTrackMCLabel(contributorsGID[GIndex::Source::TPC]);
+              if (mcTruthTPC.isValid()) {
+                labelHolder.labelTPC = mToStore.at(Triplet_t(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
+                labelHolder.labelID = labelHolder.labelTPC;
+              }
+              if (labelHolder.labelITS != labelHolder.labelTPC) {
+                LOG(DEBUG) << "ITS-TPC MCTruth: labelIDs do not match at " << trackIndex.getIndex() << ", src = " << src;
+                labelHolder.labelMask |= (0x1 << 13);
+              }
+            }
+            if (mcTruth.isFake()) {
+              labelHolder.labelMask |= (0x1 << 15);
+            }
+            if (mcTruth.isNoise()) {
+              labelHolder.labelMask |= (0x1 << 14);
+            }
+            mcTrackLabelCursor(0,
+                               labelHolder.labelID,
+                               labelHolder.labelMask);
           }
-          labelHolder.labelID = labelHolder.labelTPC;
-          if (mcTruthITS.isFake() || mcTruthTPC.isFake()) {
-            labelHolder.labelMask |= (0x1 << 15);
-          }
-          if (mcTruthITS.isNoise() || mcTruthTPC.isNoise()) {
-            labelHolder.labelMask |= (0x1 << 14);
-          }
-          if (labelHolder.labelITS != labelHolder.labelTPC) {
-            LOG(DEBUG) << "ITS-TPC MCTruth: labelIDs do not match at " << trackIndex.getIndex();
-            labelHolder.labelMask |= (0x1 << 13);
-          }
-          mcTrackLabelCursor(0,
-                             labelHolder.labelID,
-                             labelHolder.labelMask);
-        }
-        // mft labels
-        if (src == GIndex::Source::MFT) {
-          auto& mcTruthMFT = tracksMFTMCTruth[trackIndex.getIndex()];
-          if (mcTruthMFT.isValid()) {
-            labelHolder.labelID = toStore.at(Triplet_t(mcTruthMFT.getSourceID(), mcTruthMFT.getEventID(), mcTruthMFT.getTrackID()));
-          }
-          if (mcTruthMFT.isFake()) {
-            labelHolder.mftLabelMask |= (0x1 << 7);
-          }
-          if (mcTruthMFT.isNoise()) {
-            labelHolder.mftLabelMask |= (0x1 << 6);
-          }
-          mcMFTTrackLabelCursor(0,
-                                labelHolder.labelID,
-                                labelHolder.mftLabelMask);
         }
       }
     }
   }
 
-  toStore.clear();
+  mToStore.clear();
 
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
 
