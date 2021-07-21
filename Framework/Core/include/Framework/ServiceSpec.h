@@ -98,11 +98,11 @@ using ServiceDriverInit = std::function<void(ServiceRegistry&, boost::program_op
 /// messages after a computation happended).
 struct ServiceSpec {
   /// Name of the service
-  std::string name;
+  std::string name = "please specify name";
   /// Callback to initialise the service.
-  ServiceInit init;
+  ServiceInit init = nullptr;
   /// Callback to configure the service.
-  ServiceConfigureCallback configure;
+  ServiceConfigureCallback configure = nullptr;
   /// Callback executed before actual processing happens.
   ServiceProcessingCallback preProcessing = nullptr;
   /// Callback executed once actual processing happened.
@@ -144,7 +144,7 @@ struct ServiceSpec {
   ServiceDriverInit driverInit = nullptr;
 
   /// Kind of service being specified.
-  ServiceKind kind;
+  ServiceKind kind = ServiceKind::Serial;
 };
 
 struct ServiceConfigureHandle {
