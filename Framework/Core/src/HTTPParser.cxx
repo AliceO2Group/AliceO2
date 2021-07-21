@@ -66,14 +66,14 @@ void encode_websocket_frames(std::vector<uv_buf_t>& outputs, char const* src, si
     WebSocketFrameShort* header = (WebSocketFrameShort*)buffer;
     memset(buffer, 0, headerSize);
     header->len = 126;
-    header->len16 = size;
+    header->len16 = htons(size);
   } else {
     headerSize = sizeof(WebSocketFrameHuge);
     buffer = (char*)malloc(headerSize + size);
     WebSocketFrameHuge* header = (WebSocketFrameHuge*)buffer;
     memset(buffer, 0, headerSize);
     header->len = 127;
-    header->len64 = size;
+    header->len64 = htonll(size);
   }
   size_t fullHeaderSize = (mask ? 4 : 0) + headerSize;
   startPayload = buffer + fullHeaderSize;
@@ -150,11 +150,11 @@ void decode_websocket(char* start, size_t size, WebSocketHandler& handler)
       headerSize = 2 + (header->mask ? 4 : 0);
     } else if (header->len == 126) {
       WebSocketFrameShort* headerSmall = (WebSocketFrameShort*)cur;
-      payloadSize = headerSmall->len16;
+      payloadSize = ntohs(headerSmall->len16);
       headerSize = 2 + 2 + (header->mask ? 4 : 0);
     } else if (header->len == 127) {
       WebSocketFrameHuge* headerSmall = (WebSocketFrameHuge*)cur;
-      payloadSize = headerSmall->len64;
+      payloadSize = ntohs(headerSmall->len64);
       headerSize = 2 + 8 + (header->mask ? 4 : 0);
     }
     size_t availableSize = size - (cur - start);
