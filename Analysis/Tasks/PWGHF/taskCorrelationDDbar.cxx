@@ -124,7 +124,7 @@ struct HfTaskCorrelationDDbar {
   Configurable<std::vector<double>> sidebandRightInner{"sidebandRightInner", std::vector<double>{sidebandRightInner_v}, "Inner values of right sideband vs pT"};
   Configurable<std::vector<double>> sidebandRightOuter{"sidebandRightOuter", std::vector<double>{sidebandRightOuter_v}, "Outer values of right sideband vs pT"};
   Configurable<std::vector<double>> efficiencyDmeson{"efficiencyDmeson", std::vector<double>{efficiencyDmeson_v}, "Efficiency values for D meson specie under study"};
-  Configurable<int> flagApplyEfficiency{"efficiencyFlagD0", 1, "Flag for applying efficiency weights"};  
+  Configurable<int> flagApplyEfficiency{"efficiencyFlagD0", 1, "Flag for applying efficiency weights"};
 
   void init(o2::framework::InitContext&)
   {
@@ -158,7 +158,7 @@ struct HfTaskCorrelationDDbar {
 
       double efficiencyWeight = 1.;
       if (flagApplyEfficiency) {
-        efficiencyWeight = 1./(efficiencyDmeson->at(o2::analysis::findBin(binsEfficiency, ptD))*efficiencyDmeson->at(o2::analysis::findBin(binsEfficiency, ptDbar)));
+        efficiencyWeight = 1. / (efficiencyDmeson->at(o2::analysis::findBin(binsEfficiency, ptD)) * efficiencyDmeson->at(o2::analysis::findBin(binsEfficiency, ptDbar)));
       }
 
       //fill 2D invariant mass plots
@@ -335,7 +335,7 @@ struct HfTaskCorrelationDDbarMcRec {
 
       double efficiencyWeight = 1.;
       if (flagApplyEfficiency) {
-        efficiencyWeight = 1./(efficiencyDmeson->at(o2::analysis::findBin(binsEfficiency, ptD))*efficiencyDmeson->at(o2::analysis::findBin(binsEfficiency, ptDbar)));
+        efficiencyWeight = 1. / (efficiencyDmeson->at(o2::analysis::findBin(binsEfficiency, ptD)) * efficiencyDmeson->at(o2::analysis::findBin(binsEfficiency, ptDbar)));
       }
 
       //fill 2D invariant mass plots
