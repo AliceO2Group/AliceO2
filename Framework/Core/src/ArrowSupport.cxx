@@ -355,6 +355,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          once = true;
                        }
                      },
+                     nullptr,
                      ServiceKind::Global};
 }
 
