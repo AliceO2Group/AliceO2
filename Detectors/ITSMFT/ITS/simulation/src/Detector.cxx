@@ -343,12 +343,13 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     TLorentzVector positionStop;
     fMC->TrackPosition(positionStop);
     // Retrieve the indices with the volume path
-    int stave(0), halfstave(0), chipinmodule(0), module;
+    int halfbarrel(0), stave(0), halfstave(0), chipinmodule(0), module;
     fMC->CurrentVolOffID(1, chipinmodule);
     fMC->CurrentVolOffID(2, module);
     fMC->CurrentVolOffID(3, halfstave);
     fMC->CurrentVolOffID(4, stave);
-    int chipindex = mGeometryTGeo->getChipIndex(lay, stave, halfstave, module, chipinmodule);
+    fMC->CurrentVolOffID(5, halfbarrel);
+    int chipindex = mGeometryTGeo->getChipIndex(lay, halfbarrel, stave, halfstave, module, chipinmodule);
 
     Hit* p = addHit(stack->GetCurrentTrackNumber(), chipindex, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
                     mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),

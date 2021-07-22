@@ -91,15 +91,15 @@ void GeometryTGeo::adopt(GeometryTGeo* raw)
 }
 
 //__________________________________________________________________________
-int GeometryTGeo::getChipIndex(int lay, int sta, int chipInStave) const
+int GeometryTGeo::getChipIndex(int lay, int hba, int sta, int chipInStave) const
 {
-  return getFirstChipIndex(lay) + mNumberOfChipsPerStave[lay] * sta + chipInStave;
+  return getFirstChipIndex(lay) + mNumberOfChipsPerHalfBarrel[lay] * hba + mNumberOfChipsPerStave[lay] * sta + chipInStave;
 }
 
 //__________________________________________________________________________
-int GeometryTGeo::getChipIndex(int lay, int sta, int substa, int chipInSStave) const
+int GeometryTGeo::getChipIndex(int lay, int hba, int sta, int substa, int chipInSStave) const
 {
-  int n = getFirstChipIndex(lay) + mNumberOfChipsPerStave[lay] * sta + chipInSStave;
+  int n = getFirstChipIndex(lay) + mNumberOfChipsPerHalfBarrel[lay] * hba + mNumberOfChipsPerStave[lay] * sta + chipInSStave;
   if (mNumberOfHalfStaves[lay] && substa > 0) {
     n += mNumberOfChipsPerHalfStave[lay] * substa;
   }
@@ -107,12 +107,12 @@ int GeometryTGeo::getChipIndex(int lay, int sta, int substa, int chipInSStave) c
 }
 
 //__________________________________________________________________________
-int GeometryTGeo::getChipIndex(int lay, int sta, int substa, int md, int chipInMod) const
+int GeometryTGeo::getChipIndex(int lay, int hba, int sta, int substa, int md, int chipInMod) const
 {
   if (mNumberOfHalfStaves[lay] == 0) {
-    return getChipIndex(lay, md, chipInMod);
+    return getChipIndex(lay, substa, md, chipInMod);
   } else {
-    int n = getFirstChipIndex(lay) + mNumberOfChipsPerStave[lay] * sta + chipInMod;
+    int n = getFirstChipIndex(lay) + mNumberOfChipsPerHalfBarrel[lay] * hba + mNumberOfChipsPerStave[lay] * sta + chipInMod;
     if (mNumberOfHalfStaves[lay] && substa > 0) {
       n += mNumberOfChipsPerHalfStave[lay] * substa;
     }

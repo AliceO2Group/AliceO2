@@ -113,26 +113,29 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   int getChipIndex(int lay, int detInLay) const { return getFirstChipIndex(lay) + detInLay; }
   /// This routine computes the chip index number from the layer, stave, and chip number in stave
   /// \param int lay The layer number. Starting from 0.
+  /// \param int hba The halfbarrel number. Starting from 0
   /// \param int sta The stave number. Starting from 0
   /// \param int chipInStave The chip number in the stave. Starting from 0
-  int getChipIndex(int lay, int sta, int detInSta) const;
+  int getChipIndex(int lay, int hba, int sta, int detInSta) const;
 
   /// This routine computes the chip index number from the layer, stave, substave and chip number
   /// in substave
   /// \param int lay The layer number. Starting from 0.
+  /// \param int hba The halfbarrel number. Starting from 0
   /// \param int sta The stave number. Starting from 0
   /// \param int substa The substave number. Starting from 0
   /// \param int chipInSStave The chip number in the sub stave. Starting from 0
-  int getChipIndex(int lay, int sta, int subSta, int detInSubSta) const;
+  int getChipIndex(int lay, int hba, int sta, int subSta, int detInSubSta) const;
 
   /// This routine computes the chip index number from the layer,stave, substave module and
   /// chip number in module.
   /// \param int lay The layer number. Starting from 0.
+  /// \param int hba The halfbarrel number. Starting from 0
   /// \param int sta The stave number. Starting from 0
   /// \param int substa The substave number. Starting from 0
   /// \param int module The module number ...
   /// \param int chipInSStave The chip number in the module. Starting from 0
-  int getChipIndex(int lay, int sta, int subSta, int md, int detInMod) const;
+  int getChipIndex(int lay, int hba, int sta, int subSta, int md, int detInMod) const;
 
   /// This routine computes the layer, stave, substave, module and chip number
   /// given the chip index number
@@ -190,15 +193,15 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
     return o2::base::GeometryManager::getSymbolicName(getDetID(), index);
   }
 
-  const char* getSymbolicName(int lay, int sta, int det) const
+  const char* getSymbolicName(int lay, int hba, int sta, int det) const
   {
     /// return symbolic name of sensor
-    return getSymbolicName(getChipIndex(lay, sta, det));
+    return getSymbolicName(getChipIndex(lay, hba, sta, det));
   }
 
   /// Get the transformation matrix for a given chip (NOT A SENSOR!!!) 'index' by quering the TGeoManager
   TGeoHMatrix* getMatrix(int index) const { return o2::base::GeometryManager::getMatrix(getDetID(), index); }
-  TGeoHMatrix* getMatrix(int lay, int sta, int sens) const { return getMatrix(getChipIndex(lay, sta, sens)); }
+  TGeoHMatrix* getMatrix(int lay, int hba, int sta, int sens) const { return getMatrix(getChipIndex(lay, hba, sta, sens)); }
   bool getOriginalMatrix(int index, TGeoHMatrix& m) const
   {
     /// Get the original (ideal geometry) TGeo matrix for a given chip identified by 'index'
@@ -206,25 +209,25 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
     return o2::base::GeometryManager::getOriginalMatrix(getDetID(), index, m);
   }
 
-  bool getOriginalMatrix(int lay, int sta, int det, TGeoHMatrix& m) const
+  bool getOriginalMatrix(int lay, int hba, int sta, int det, TGeoHMatrix& m) const
   {
     /// Get the original (ideal geometry) TGeo matrix for a given chip identified by 'index'
     /// The method is slow, so it should be used with great care (for caching only)
-    return getOriginalMatrix(getChipIndex(lay, sta, det), m);
+    return getOriginalMatrix(getChipIndex(lay, hba, sta, det), m);
   }
 
-  const Mat3D& getMatrixT2L(int lay, int sta, int det) const { return getMatrixT2L(getChipIndex(lay, sta, det)); }
+  const Mat3D& getMatrixT2L(int lay, int hba, int sta, int det) const { return getMatrixT2L(getChipIndex(lay, hba, sta, det)); }
   const Mat3D& getMatrixSensor(int index) const { return getMatrixL2G(index); }
-  const Mat3D& getMatrixSensor(int lay, int sta, int det)
+  const Mat3D& getMatrixSensor(int lay, int hba, int sta, int det)
   {
     // get positioning matrix of the sensor, alias to getMatrixL2G
-    return getMatrixSensor(getChipIndex(lay, sta, det));
+    return getMatrixSensor(getChipIndex(lay, hba, sta, det));
   }
 
-  const Rot2D& getMatrixT2GRot(int lay, int sta, int sens)
+  const Rot2D& getMatrixT2GRot(int lay, int hba, int sta, int sens)
   {
     /// get matrix for tracking to global frame transformation
-    return getMatrixT2GRot(getChipIndex(lay, sta, sens));
+    return getMatrixT2GRot(getChipIndex(lay, hba, sta, sens));
   }
 
   bool isTrackingFrameCached() const { return !mCacheRefX.empty(); }
