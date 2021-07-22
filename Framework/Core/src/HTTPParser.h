@@ -12,6 +12,7 @@
 #ifndef O2_FRAMEWORK_HTTPPARSER_H_
 #define O2_FRAMEWORK_HTTPPARSER_H_
 
+#include "Framework/Endian.h"
 #include <fmt/format.h>
 #include <uv.h>
 #include <string>
@@ -22,6 +23,15 @@ namespace o2::framework
 {
 
 struct __attribute__((__packed__)) WebSocketFrameTiny {
+#if O2_HOST_BYTE_ORDER == O2_LITTLE_ENDIAN
+  unsigned char opcode : 4;
+  unsigned char rsv3 : 1;
+  unsigned char rsv2 : 1;
+  unsigned char rsv1 : 1;
+  unsigned char fin : 1;
+  unsigned char len : 7;
+  unsigned char mask : 1;
+#elif O2_HOST_BYTE_ORDER == O2_BIG_ENDIAN
   unsigned char fin : 1;
   unsigned char rsv1 : 1;
   unsigned char rsv2 : 1;
@@ -29,9 +39,21 @@ struct __attribute__((__packed__)) WebSocketFrameTiny {
   unsigned char opcode : 4;
   unsigned char mask : 1;
   unsigned char len : 7;
+#else
+#error Uknown endiannes
+#endif
 };
 
 struct __attribute__((__packed__)) WebSocketFrameShort {
+#if O2_HOST_BYTE_ORDER == O2_LITTLE_ENDIAN
+  unsigned char opcode : 4;
+  unsigned char rsv3 : 1;
+  unsigned char rsv2 : 1;
+  unsigned char rsv1 : 1;
+  unsigned char fin : 1;
+  unsigned char len : 7;
+  unsigned char mask : 1;
+#elif O2_HOST_BYTE_ORDER == O2_BIG_ENDIAN
   unsigned char fin : 1;
   unsigned char rsv1 : 1;
   unsigned char rsv2 : 1;
@@ -39,10 +61,22 @@ struct __attribute__((__packed__)) WebSocketFrameShort {
   unsigned char opcode : 4;
   unsigned char mask : 1;
   unsigned char len : 7;
+#else
+#error Uknown endiannes
+#endif
   uint16_t len16;
 };
 
 struct __attribute__((__packed__)) WebSocketFrameHuge {
+#if O2_HOST_BYTE_ORDER == O2_LITTLE_ENDIAN
+  unsigned char opcode : 4;
+  unsigned char rsv3 : 1;
+  unsigned char rsv2 : 1;
+  unsigned char rsv1 : 1;
+  unsigned char fin : 1;
+  unsigned char len : 7;
+  unsigned char mask : 1;
+#elif O2_HOST_BYTE_ORDER == O2_BIG_ENDIAN
   unsigned char fin : 1;
   unsigned char rsv1 : 1;
   unsigned char rsv2 : 1;
@@ -50,6 +84,9 @@ struct __attribute__((__packed__)) WebSocketFrameHuge {
   unsigned char opcode : 4;
   unsigned char mask : 1;
   unsigned char len : 7;
+#else
+#error Uknown endiannes
+#endif
   uint64_t len64;
 };
 
