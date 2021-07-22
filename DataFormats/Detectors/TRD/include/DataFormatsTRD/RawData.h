@@ -171,7 +171,7 @@ struct TrackletMCMHeader {
     uint32_t word;
     struct {
       uint32_t oneb : 1;   //
-      uint32_t pid0 : 8;   // part of pid for tracklet 0
+      uint32_t pid0 : 8;   // part of pid for tracklet 0 // 6 bits of Q2 and 2 bits of Q1
       uint32_t pid1 : 8;   // part of pid for tracklet 1
       uint32_t pid2 : 8;   // part of pid for tracklet 2
       uint32_t col : 2;    //  2 bits for position in pad direction.
@@ -190,7 +190,7 @@ struct TrackletMCMData {
     struct {
       uint8_t checkbit : 1; //
       uint16_t slope : 8;   // Deflection angle of tracklet
-      uint16_t pid : 12;    // Particle Identity
+      uint16_t pid : 12;    // Particle Identity 7 bits of Q0 and 5 bits of Q1
       uint16_t pos : 11;    // Position of tracklet, signed 11 bits, granularity 1/80 pad widths, -12.80 to +12.80, relative to centre of pad 10
     } __attribute__((__packed__));
   };

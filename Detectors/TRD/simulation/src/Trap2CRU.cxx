@@ -118,7 +118,7 @@ void Trap2CRU::sortDataToLinks()
       if (mVerbosity) {
         LOG(debug) << " sorting digits from : " << trig.getFirstDigit() << " till " << trig.getFirstDigit() + trig.getNumberOfDigits();
       }
-      std::stable_sort(mDigitsIndex.begin() + trig.getFirstDigit(), mDigitsIndex.begin() + trig.getNumberOfDigits() + trig.getFirstDigit(), //,digitcompare);
+      std::stable_sort(mDigitsIndex.begin() + trig.getFirstDigit(), mDigitsIndex.begin() + trig.getNumberOfDigits() + trig.getFirstDigit(),
                        [this](const uint32_t i, const uint32_t j) {
              int link1=HelperMethods::getLinkIDfromHCID(mDigits[i].getDetector() * 2 + (mDigits[i].getROB() % 2));
              int link2=HelperMethods::getLinkIDfromHCID(mDigits[j].getDetector() * 2 + (mDigits[j].getROB() % 2));
@@ -132,9 +132,6 @@ void Trap2CRU::sortDataToLinks()
   std::chrono::duration<double> duration = std::chrono::high_resolution_clock::now() - sortstart;
   if (mVerbosity) {
     LOG(info) << "TRD Digit/Tracklet Sorting took " << duration.count() << " s";
-  }
-  if (mVerbosity) {
-    LOG(info) << "@@@@@@@@@@@@@@@@@ pre sort tracklets then digits @@@@@@@@@@@@@@@@@@@@@@@@@@@";
     int triggercount = 0;
     for (auto& trig : mTrackletTriggerRecords) {
 
@@ -438,23 +435,30 @@ int Trap2CRU::buildTrackletRawData(const int trackletindex, const int linkid)
   header.padrow = mTracklets[trackletindex].getPadRow();
   header.onea = 1;
   header.oneb = 1;
-  int trackletcounter = 0;
+  header.pid0 = 0xff;
+  header.pid1 = 0xff;
+  header.pid2 = 0xff;
+  unsigned int trackletcounter = 0;
   if (mVerbosity) {
-    LOG(info) << header;
+    LOG(info) << "After instantiation header is : 0x" << header.word << "  " << header;
   }
   while (linkid == HelperMethods::getLinkIDfromHCID(mTracklets[trackletindex + trackletcounter].getHCID()) && header.col == mTracklets[trackletindex + trackletcounter].getColumn() && header.padrow == mTracklets[trackletindex + trackletcounter].getPadRow()) {
-    buildTrackletMCMData(trackletdata[trackletcounter], mTracklets[trackletindex + trackletcounter].getSlope(),
-                         mTracklets[trackletindex + trackletcounter].getPosition(), mTracklets[trackletindex + trackletcounter].getQ0(),
-                         mTracklets[trackletindex + trackletcounter].getQ1(), mTracklets[trackletindex + trackletcounter].getQ2());
-    int headerqpart = ((mTracklets[trackletindex + trackletcounter].getQ2()) << 2) + ((mTracklets[trackletindex + trackletcounter].getQ1()) >> 5);
-    if (headerqpart == 0xff) {
-      LOG(warn) << mTracklets[trackletindex + trackletcounter].getQ2() << 2 + ((mTracklets[trackletindex + trackletcounter].getQ1()) >> 5)
-                << " <--- headerqpart calculation : part 2shit :" << mTracklets[trackletindex + trackletcounter].getQ2() << 2
-                << " part 5 shift : " << ((mTracklets[trackletindex + trackletcounter].getQ1()) >> 5)
-                << " Q0:" << mTracklets[trackletindex + trackletcounter].getQ0()
-                << " Q1:" << mTracklets[trackletindex + trackletcounter].getQ1()
-                << " Q2:" << mTracklets[trackletindex + trackletcounter].getQ2();
-      LOG(warn) << " header part of pid is 0xff which is a no tracklet definition";
+    int trackletoffset = trackletindex + trackletcounter;
+    buildTrackletMCMData(trackletdata[trackletcounter], mTracklets[trackletoffset].getSlope(),
+                         mTracklets[trackletoffset].getPosition(), mTracklets[trackletoffset].getQ0(),
+                         mTracklets[trackletoffset].getQ1(), mTracklets[trackletoffset].getQ2());
+    unsigned int headerqpart = ((mTracklets[trackletoffset].getQ2() & 0x2f) << 2) + ((mTracklets[trackletoffset].getQ1() >> 6) & 0x3);
+    //all 6 bits of Q1 and 2 upper bits of 7bit Q1
+    if (mVerbosity) {
+      if (mTracklets[trackletoffset].getQ2() > 0x2f) {
+        LOGP(warning, "Tracklet Q2 out of range for raw data {0:#x}", mTracklets[trackletoffset].getQ2());
+      }
+      if (mTracklets[trackletoffset].getQ1() > 0x7f) {
+        LOGP(warning, "Tracklet Q1 out of range for raw data {0:#x}", mTracklets[trackletoffset].getQ1());
+      }
+      if (mTracklets[trackletoffset].getQ0() > 0x7f) {
+        LOGP(warning, "Tracklet Q0 out of range for raw data {0:#x}", mTracklets[trackletoffset].getQ0());
+      }
     }
     switch (trackletcounter) {
       case 0:
@@ -462,14 +466,14 @@ int Trap2CRU::buildTrackletRawData(const int trackletindex, const int linkid)
         break;
       case 1:
         header.pid1 = headerqpart;
-        if (header.pid1 == 0xff) {
-          LOG(warn) << "ZZ we are setting pid1 but pid0 is not set, a second tracklet but no first one?";
+        if (header.pid0 == 0xff) {
+          LOG(warn) << "we are setting pid1 but pid0 is not set, a second tracklet but no first one?";
         }
         break;
       case 2:
         header.pid2 = headerqpart;
         if (header.pid1 == 0xff || header.pid0 == 0xff) {
-          LOG(warn) << "ZZ we are setting pid2 but pid0/1 is not set, a second tracklet but no first one?" << header.pid0 << " " << header.pid1;
+          LOG(warn) << "we are setting pid2 but pid0/1 is not set, a second tracklet but no first one?" << header.pid0 << " " << header.pid1;
         }
         break;
       default:
@@ -652,7 +656,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
       bool isFirstDigit = true;
       int trackletcounter = 0;
       if (mVerbosity) {
-        LOG(info) << __func__ << " " << __LINE__ << " is tracklet on link : " << linkid << " mcurrentdigit:" << mCurrentTracklet << " endtrackletindex:" << endtrackletindex << " is on link: " << isTrackletOnLink(linkid, mCurrentTracklet) << " and digits current digit:" << mCurrentDigit << " enddigitindex:" << enddigitindex << "is digit on link:" << isDigitOnLink(linkid, mCurrentDigit);
+        LOG(info) << "tracklet on link : " << linkid << " mcurrentdigit:" << mCurrentTracklet << " endtrackletindex:" << endtrackletindex << " is on link: " << isTrackletOnLink(linkid, mCurrentTracklet) << " and digits current digit:" << mCurrentDigit << " enddigitindex:" << enddigitindex << "is digit on link:" << isDigitOnLink(linkid, mCurrentDigit);
       }
       if (isTrackletOnLink(linkid, mCurrentTracklet) || isDigitOnLink(linkid, mCurrentDigit)) {
         // we have some data somewhere for this link
