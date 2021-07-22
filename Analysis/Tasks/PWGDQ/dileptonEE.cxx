@@ -77,6 +77,7 @@ constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::ReducedEvent | 
 constexpr static uint32_t gkTrackFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackBarrel | VarManager::ObjTypes::ReducedTrackBarrelCov | VarManager::ObjTypes::ReducedTrackBarrelPID;
 
 struct DQEventSelection {
+
   Produces<aod::EventCuts> eventSel;
   Produces<aod::MixingHashes> hash;
   OutputObj<THashList> fOutputList{"output"};
@@ -141,6 +142,7 @@ struct DQEventSelection {
     } else {
       eventSel(0);
     }
+
     int hh = getHash(fValues[VarManager::kCentVZERO]);
     hash(hh);
   }
@@ -177,12 +179,17 @@ struct DQBarrelTrackSelection {
 
   void DefineCuts()
   {
+
+    AnalysisCut* cut = new AnalysisCut("dcaCut", "dcaCut");
+    cut->AddCut(VarManager::kTrackDCAsigXY, 0., 5.);
+
     // available cuts: jpsiKineAndQuality, jpsiPID1, jpsiPID2
     TString cutNamesStr = fConfigCuts.value;
     if (!cutNamesStr.IsNull()) {
       std::unique_ptr<TObjArray> objArray(cutNamesStr.Tokenize(","));
       for (int icut = 0; icut < objArray->GetEntries(); ++icut) {
         fTrackCuts.push_back(*dqcuts::GetCompositeCut(objArray->At(icut)->GetName()));
+        fTrackCuts[icut].AddCut(cut);
       }
     }
 
@@ -248,6 +255,7 @@ struct DileptonEE {
     if (fNPairCuts) {
       for (int icut = 0; icut < fNPairCuts; ++icut) {
         fPairCuts.push_back(*dqcuts::GetCompositeCut(objArray->At(icut)->GetName()));
+        std::cout << "$$$$$$$ pair cut: " << icut << "  " << objArray->At(icut)->GetName() << std::endl;
       }
     }
 
@@ -297,6 +305,7 @@ struct DileptonEE {
       fHistMan->FillHistClass("PairsBarrelULS", VarManager::fgValues);
     }
     */
+    constexpr static int pairType = VarManager::kJpsiToEE;
     uint8_t filter = 0;
     for (auto tpos : posTracks) {
       for (auto tneg : negTracks) { // +- pairs
@@ -304,7 +313,7 @@ struct DileptonEE {
         if (!filter) { // the tracks must have at least one filter bit in common to continue
           continue;
         }
-        VarManager::FillPair(tpos, tneg, fValues);
+        VarManager::FillPair<pairType>(tpos, tneg, fValues);
         dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], 0, filter);
         for (int i = 0; i < fNTrackCuts; ++i) {
           if (filter & (uint8_t(1) << i)) {
@@ -317,7 +326,7 @@ struct DileptonEE {
         if (!filter) { // the tracks must have at least one filter bit in common to continue
           continue;
         }
-        VarManager::FillPair(tpos, tpos2, fValues);
+        VarManager::FillPair<pairType>(tpos, tpos2, fValues);
         dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], 2, filter);
         for (int i = 0; i < fNTrackCuts; ++i) {
           if (filter & (uint8_t(1) << i)) {
@@ -332,7 +341,7 @@ struct DileptonEE {
         if (!filter) { // the tracks must have at least one filter bit in common to continue
           continue;
         }
-        VarManager::FillPair(tneg, tneg2, fValues);
+        VarManager::FillPair<pairType>(tneg, tneg2, fValues);
         dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], -2, filter);
         for (int i = 0; i < fNTrackCuts; ++i) {
           if (filter & (uint8_t(1) << i)) {
@@ -421,7 +430,7 @@ struct DQEventMixing {
           if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
             continue;
           }
-          VarManager::FillPair(track1, track2, fValues);
+          VarManager::FillPairEE(track1, track2, fValues);
 
           for (int i = 0; i < fCutNames.size(); ++i) {
             if (twoTrackFilter & (uint8_t(1) << i)) {
@@ -489,7 +498,7 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
     }
 
     if (classStr.Contains("Track")) {
-      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "track", "tpc,its,tpcpid,tofpid,dca");
+      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "track", "kine,tpc,its,tpcpid,tofpid,dca");
     }
 
     if (classStr.Contains("Pairs")) {
