@@ -333,7 +333,7 @@ std::vector<float> GPUbenchmark<chunk_type>::benchmarkAsync(void (*kernel)(int, 
   for (auto iStream{0}; iStream < nStreams; ++iStream) {
     GPUCHECK(cudaEventRecord(starts[iStream], streams[iStream]));
 
-    for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) { // consecutive launches on the same stream
+    for (auto iLaunch{0}; iLaunch < 10 * nLaunches; ++iLaunch) { // 10x consecutive launches on the same stream
       (*kernel)<<<blocks, threads, 0, streams[iStream]>>>(iStream, args...);
     }
     GPUCHECK(cudaEventRecord(stops[iStream], streams[iStream]));
