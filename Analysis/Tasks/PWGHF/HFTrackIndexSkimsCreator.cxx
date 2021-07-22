@@ -540,7 +540,7 @@ struct HfTrackIndexSkimsCreator {
       array{hfTracks[0].px(), hfTracks[0].py(), hfTracks[0].pz()},
       array{hfTracks[1].px(), hfTracks[1].py(), hfTracks[1].pz()}};
 
-    auto pT = RecoDecay::Pt(arrMom[0], arrMom[1]) - pTTolerance; // add tolerance because of no reco decay vertex
+    auto pT = RecoDecay::Pt(arrMom[0], arrMom[1]) + pTTolerance; // add tolerance because of no reco decay vertex
 
     for (int iDecay2P = 0; iDecay2P < n2ProngDecays; iDecay2P++) {
 
@@ -601,7 +601,7 @@ struct HfTrackIndexSkimsCreator {
       array{hfTracks[1].px(), hfTracks[1].py(), hfTracks[1].pz()},
       array{hfTracks[2].px(), hfTracks[2].py(), hfTracks[2].pz()}};
 
-    auto pT = RecoDecay::Pt(arrMom[0], arrMom[1], arrMom[2]) - pTTolerance; // add tolerance because of no reco decay vertex
+    auto pT = RecoDecay::Pt(arrMom[0], arrMom[1], arrMom[2]) + pTTolerance; // add tolerance because of no reco decay vertex
 
     for (int iDecay3P = 0; iDecay3P < n3ProngDecays; iDecay3P++) {
 
