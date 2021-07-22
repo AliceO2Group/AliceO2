@@ -55,6 +55,9 @@ RawErrorType_t RawDecoder::readChannels()
   while (b != e) { //payload must start with cpvheader folowed by cpvwords and finished with cpvtrailer
     CpvHeader header(b, e);
     if (header.isOK()) {
+      LOG(DEBUG) << "RawDecoder::readChannels() : "
+                 << "I read cpv header for orbit = " << header.orbit()
+                 << " and BC = " << header.bc();
       if (!isHeaderExpected) { //actually, header was not expected
         LOG(ERROR) << "RawDecoder::readChannels() : "
                    << "header was not expected";

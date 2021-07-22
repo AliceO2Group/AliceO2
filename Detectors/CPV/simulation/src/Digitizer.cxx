@@ -12,7 +12,8 @@
 #include "CPVSimulation/Digitizer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CPVBase/CPVSimParams.h"
-#include "CCDB/CcdbApi.h"
+#include "CCDB/CCDBTimeStampUtils.h"
+#include "CCDB/BasicCCDBManager.h"
 
 #include <TRandom.h>
 #include "FairLogger.h" // for LOG
@@ -27,53 +28,48 @@ using namespace o2::cpv;
 //_______________________________________________________________________
 void Digitizer::init()
 {
-  if (!mCalibParams) {
-    if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mCalibParams.reset(new CalibParams(1)); // test default calibration
-      LOG(INFO) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
-    } else {
-      LOG(INFO) << "[CPVDigitizer] can not get calibration object from ccdb yet. Using default";
-      mCalibParams.reset(new CalibParams(1)); // test default calibration
-      //      o2::ccdb::CcdbApi ccdb;
-      //      std::map<std::string, std::string> metadata; // do we want to store any meta data?
-      //      ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
-      //      mCalibParams = ccdb.retrieveFromTFileAny<o2::cpv::CalibParams>("CPV/Calib", metadata, mEventTime);
-      //      if (!mCalibParams) {
-      //        LOG(FATAL) << "[CPVDigitizer] can not get calibration object from ccdb";
-      //      }
+  LOG(INFO) << "CPVDigitizer::init() : CCDB Url = " << o2::cpv::CPVSimParams::Instance().mCCDBPath.data();
+  if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
+    mCalibParams = new CalibParams(1); // test default calibration
+    mPedestals = new Pedestals(1);     // test default pedestals
+    mBadMap = new BadChannelMap(1);    // test default bad channels
+    LOG(INFO) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
+  } else {
+    auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
+    ccdbMgr.setURL(o2::cpv::CPVSimParams::Instance().mCCDBPath.data());
+    bool isCcdbReachable = ccdbMgr.isHostReachable(); //if host is not reachable we can use only dummy calibration
+    if (!isCcdbReachable) {
+      LOG(FATAL) << "[CPVDigitizer] CCDB Host is not reachable!!!";
+      return;
     }
-  }
-  if (!mPedestals) {
-    if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mPedestals.reset(new Pedestals(1)); // test default calibration
-      LOG(INFO) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
-    } else {
-      LOG(INFO) << "[CPVDigitizer] can not get pedestal object from ccdb yet. Using default";
-      mPedestals.reset(new Pedestals(1)); // test default calibration
-      //      o2::ccdb::CcdbApi ccdb;
-      //      std::map<std::string, std::string> metadata; // do we want to store any meta data?
-      //      ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
-      //      mPedestals = ccdb.retrieveFromTFileAny<o2::cpv::Pedestals>("CPV/Calib", metadata, mEventTime);
-      //      if (!mPedestals) {
-      //        LOG(FATAL) << "[CPVDigitizer] can not get calibration object from ccdb";
-      //      }
+    ccdbMgr.setCaching(true);                     //make local cache of remote objects
+    ccdbMgr.setLocalObjectValidityChecking(true); //query objects from remote site only when local one is not valid
+    //read calibration from ccdb (for now do it only at the beginning of dataprocessing)
+    //TODO: setup timestam according to anchors
+    ccdbMgr.setTimestamp(o2::ccdb::getCurrentTimestamp());
+
+    LOG(INFO) << "CCDB: Reading o2::cpv::CalibParams from CPV/Calib/Gains";
+    mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");
+    if (!mCalibParams) {
+      LOG(ERROR) << "Cannot get o2::cpv::CalibParams from CCDB. using dummy calibration!";
+      mCalibParams = new CalibParams(1);
     }
-  }
-  if (!mBadMap) {
-    if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mBadMap.reset(new BadChannelMap(1)); // test default calibration
-      LOG(INFO) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
-    } else {
-      LOG(INFO) << "[CPVDigitizer] can not get bad channel map object from ccdb yet. Using default";
-      mBadMap.reset(new BadChannelMap(1)); // test default calibration
-      //      o2::ccdb::CcdbApi ccdb;
-      //      std::map<std::string, std::string> metadata; // do we want to store any meta data?
-      //      ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
-      //      mBadMap = ccdb.retrieveFromTFileAny<o2::cpv::BadChannelMap>("CPV/Calib", metadata, mEventTime);
-      //      if (!mBadMap) {
-      //        LOG(FATAL) << "[CPVDigitizer] can not get calibration object from ccdb";
-      //      }
+
+    LOG(INFO) << "CCDB: Reading o2::cpv::Pedestals from CPV/Calib/Pedestals";
+    mPedestals = ccdbMgr.get<o2::cpv::Pedestals>("CPV/Calib/Pedestals");
+    if (!mPedestals) {
+      LOG(ERROR) << "Cannot get o2::cpv::Pedestals from CCDB. using dummy calibration!";
+      mPedestals = new Pedestals(1);
     }
+
+    LOG(INFO) << "CCDB: Reading o2::cpv::BadChannelMap from CPV/Calib/BadChannelMap";
+    mBadMap = ccdbMgr.get<o2::cpv::BadChannelMap>("CPV/Calib/BadChannelMap");
+    if (!mBadMap) {
+      LOG(ERROR) << "Cannot get o2::cpv::BadChannelMap from CCDB. using dummy calibration!";
+      mBadMap = new BadChannelMap(1);
+    }
+
+    LOG(INFO) << "Task configuration is done.";
   }
 
   //signal thresolds for digits
