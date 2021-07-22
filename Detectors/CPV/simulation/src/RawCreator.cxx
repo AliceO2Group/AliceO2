@@ -118,6 +118,11 @@ int main(int argc, const char** argv)
 
   // Loop over all entries in the tree, where each tree entry corresponds to a time frame
   for (auto en : *treereader) {
+    LOG(DEBUG) << "RawCreator::main() : I call rawwriter.digitsToRaw(). "
+               << "Sending following tree: ";
+    for (int i = 0; i < (*triggerbranch).size(); i++) {
+      LOG(DEBUG) << (*triggerbranch)[i];
+    }
     rawwriter.digitsToRaw(*digitbranch, *triggerbranch);
   }
   rawwriter.getWriter().writeConfFile("CPV", "RAWDATA", o2::utils::Str::concat_string(outputdir, "/CPVraw.cfg"));
