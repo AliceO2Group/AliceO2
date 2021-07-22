@@ -22,6 +22,7 @@
 #include <uv.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <iostream>
 
 namespace o2::framework
 {
@@ -105,14 +106,9 @@ void WSDPLHandler::method(std::string_view const& s)
 
 void WSDPLHandler::target(std::string_view const& s)
 {
-  if (s == "/") {
-    return;
+  if (s != "/") {
+    throw WSError{404, "Unknown"};
   }
-  if (s == "/gui") {
-    mGUI = true;
-    return;
-  }
-  throw WSError{404, "Unknown"};
 }
 
 void populateHeader(std::map<std::string, std::string>& headers, std::string_view const& k, std::string_view const& v)
@@ -139,7 +135,8 @@ void WSDPLHandler::endHeaders()
   if (mHeaders["upgrade"] != "websocket") {
     throw WSError{400, "Bad Request: not a websocket upgrade"};
   }
-  if (mHeaders["connection"] != "upgrade") {
+  // find is used to account for multiple options
+  if (mHeaders["connection"].find("upgrade") == std::string::npos) {
     throw WSError{400, "Bad Request: connection not for upgrade"};
   }
   if (mHeaders["sec-websocket-protocol"] != "dpl") {
@@ -171,12 +168,21 @@ void WSDPLHandler::endHeaders()
     }
   } else {
     LOG(INFO) << "Connection not bound to a PID";
+    mGUI = true;
+    mHandler->isGUI = true;
   }
 }
 
 /// Actual handling of WS frames happens inside here.
 void WSDPLHandler::body(char* data, size_t s)
 {
+  if (mGUI) {
+    std::cout << "GUI RECEIVED: " << std::string(data, s) << std::endl;
+    //char const *message = "hello gui";
+    //std::vector<uv_buf_t> outputs;
+    //encode_websocket_frames(outputs, message, s, WebSocketOpCode::Binary, 0);
+    //write(outputs);
+  }
   decode_websocket(data, s, *mHandler.get());
 }
 

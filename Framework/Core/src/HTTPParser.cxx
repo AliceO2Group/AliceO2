@@ -16,6 +16,7 @@
 #include "Base64.h"
 #include <regex>
 #include <cassert>
+#include <iostream>
 
 using namespace o2::framework::internal;
 namespace o2::framework
@@ -88,8 +89,14 @@ void encode_websocket_frames(std::vector<uv_buf_t>& outputs, char const* src, si
   outputs.push_back(uv_buf_init(buffer, size + fullHeaderSize));
 }
 
+#define ISGUI (handler.get)
+
 void decode_websocket(char* start, size_t size, WebSocketHandler& handler)
 {
+  if (handler.isGUI) {
+    std::cout << "DECODING GUI" << std::endl;
+    handler.isGUI = true;
+  }
   // Handle the case in whiche the header is cut
   if (handler.pendingHeaderSize) {
     assert(handler.pendingHeader);
