@@ -168,7 +168,7 @@ Double_t fitGaus(const size_t nBins, const T* arr, const T xMin, const T xMax, s
   param[2] = 0.;
   param[3] = 0.;
 
-  for (Int_t i = 0; i < nBins; i++) {
+  for (size_t i = 0; i < nBins; i++) {
     entries += arr[i];
     if (arr[i] > 0) {
       nfilled++;
@@ -190,7 +190,7 @@ Double_t fitGaus(const size_t nBins, const T* arr, const T xMin, const T xMax, s
   param[3] = entries;
 
   Int_t npoints = 0;
-  for (Int_t ibin = 0; ibin < nBins; ibin++) {
+  for (size_t ibin = 0; ibin < nBins; ibin++) {
     Float_t entriesI = arr[ibin];
     if (entriesI > 1) {
       Double_t xcenter = xMin + (ibin + 0.5) * binWidth;
@@ -278,7 +278,7 @@ double fitGaus(size_t nBins, const T* arr, const T xMin, const T xMax, std::arra
     if (v < 0) {
       throw std::runtime_error("Log-normal fit is possible only with non-negative data");
     }
-    if (v > 0) {
+    if (v > 1) {
       double y = std::log(v), err2i = v, err2iX = err2i, err2iY = err2i * y;
       s0 += err2iX;
       s1 += (err2iX *= x);
