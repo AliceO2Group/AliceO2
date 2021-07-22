@@ -143,7 +143,6 @@ int TrackletsParser::Parse()
         //sanity check of trackletheader ??
         mWordsRead++;
         mState = StateTrackletMCMHeader;                                // now we should read a MCMHeader next time through loop
-                                                                        //    TRDStatCounters.LinkPadWordCounts[mHCID]++; // keep track off all the padding words.
       } else {                                                          //not TrackletMCMHeader
         if ((*word) & 0x80000001 && mState == StateTrackletMCMHeader) { //TrackletMCMHeader has the bits on either end always 1
           //mcmheader
@@ -223,7 +222,7 @@ int TrackletsParser::Parse()
     } // else
     trackletloopcount++;
   } //end of for loop
-  //sanity check, we should now see a digit Half Chamber Header in the following 2 32bit words.
+  //sanity check
   LOG(warn) << " end of Trackelt parsing but we are exiting with out a tracklet end marker with " << mWordsRead << " 32bit words read";
   return mWordsRead;
 }
