@@ -139,8 +139,11 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   mMatching.run(recoData);
 
   pc.outputs().snapshot(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe}, mMatching.getMatchedTracks());
+  pc.outputs().snapshot(Output{"GLO", "TPCITSAB_REFS", 0, Lifetime::Timeframe}, mMatching.getABTrackletRefs());
+  pc.outputs().snapshot(Output{"GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe}, mMatching.getABTrackletClusterIDs());
   if (mUseMC) {
     pc.outputs().snapshot(Output{"GLO", "TPCITS_MC", 0, Lifetime::Timeframe}, mMatching.getMatchLabels());
+    pc.outputs().snapshot(Output{"GLO", "TPCITSAB_MC", 0, Lifetime::Timeframe}, mMatching.getMatchLabels());
   }
 
   if (mCalibMode) {
@@ -164,20 +167,22 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
   auto dataRequest = std::make_shared<DataRequest>();
 
   dataRequest->requestTracks(src, useMC);
-  dataRequest->requestClusters(GTrackID::getSourcesMask("ITS,TPC"), false); // Only ITS and TPC and no MC labels for clusters needed: refit only
-
+  dataRequest->requestTPCClusters(false);
+  dataRequest->requestITSClusters(useMC); // Only ITS clusters labels are needed for the afterburner
   if (useFT0) {
     dataRequest->requestFT0RecPoints(false);
   }
   outputs.emplace_back("GLO", "TPCITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "TPCITSAB_REFS", 0, Lifetime::Timeframe); // AftetBurner ITS tracklet references (referred by GlobalTrackID::ITSAB) on cluster indices
+  outputs.emplace_back("GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe); // cluster indices of ITS tracklets attached by the AfterBurner
 
   if (calib) {
     outputs.emplace_back("GLO", "TPCITS_VDHDTGL", 0, Lifetime::Timeframe);
   }
 
   if (useMC) {
-    dataRequest->inputs.emplace_back("clusITSMCTR", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe); // for afterburner
     outputs.emplace_back("GLO", "TPCITS_MC", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "TPCITSAB_MC", 0, Lifetime::Timeframe); // AfterBurner ITS tracklet MC
   }
 
   return DataProcessorSpec{

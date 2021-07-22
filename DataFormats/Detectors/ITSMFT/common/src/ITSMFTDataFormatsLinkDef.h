@@ -38,6 +38,9 @@
 #pragma link C++ class o2::itsmft::TopologyDictionary + ;
 #pragma link C++ class o2::itsmft::GroupStruct + ;
 
+#pragma link C++ class o2::itsmft::TrkClusRef + ;
+#pragma link C++ class std::vector < o2::itsmft::TrkClusRef> + ;
+
 #pragma link C++ class o2::itsmft::CTFHeader + ;
 #pragma link C++ class o2::itsmft::CompressedClusters + ;
 #pragma link C++ class o2::itsmft::CTF + ;
