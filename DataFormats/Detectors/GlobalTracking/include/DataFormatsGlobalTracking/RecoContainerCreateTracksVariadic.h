@@ -62,6 +62,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
 
   // create only for those data types which are used
   const auto tracksITS = getITSTracks();
+  const auto trkITABRefs = getITSABRefs();
   const auto tracksMFT = getMFTTracks();
   const auto tracksTPC = getTPCTracks();
   const auto tracksTPCITS = getTPCITSTracks();
@@ -154,13 +155,13 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     for (unsigned i = 0; i < tracksTPCITS.size(); i++) {
       const auto& matchTr = tracksTPCITS[i];
       if (isUsed2(i, GTrackID::ITSTPC)) {
-        flagUsed(matchTr.getRefITS()); // flag used ITS tracks
+        flagUsed(matchTr.getRefITS()); // flag used ITS tracks or AB tracklets (though the latter is not really necessary)
         flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
         continue;
       }
       if (creator(matchTr, {i, GTrackID::ITSTPC}, matchTr.getTimeMUS().getTimeStamp(), matchTr.getTimeMUS().getTimeStampError())) {
         flagUsed2(i, GTrackID::ITSTPC);
-        flagUsed(matchTr.getRefITS()); // flag used ITS tracks
+        flagUsed(matchTr.getRefITS()); // flag used ITS tracks or AB tracklets (though the latter is not really necessary)
         flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
       }
     }
@@ -245,6 +246,12 @@ template <class T>
 inline constexpr auto isITSTrack()
 {
   return std::is_same_v<std::decay_t<T>, o2::its::TrackITS>;
+}
+
+template <class T>
+inline constexpr auto isITSABRef()
+{
+  return std::is_same_v<std::decay_t<T>, o2::itsmft::TrkClusRef>;
 }
 
 template <class T>

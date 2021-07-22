@@ -70,6 +70,7 @@ namespace o2::itsmft
 {
 class ROFRecord;
 class CompClusterExt;
+class TrkClusRef;
 } // namespace o2::itsmft
 
 namespace o2::tof
@@ -322,6 +323,11 @@ struct RecoContainer {
   auto getITSTracksROFRecords() const { return getSpan<o2::itsmft::ROFRecord>(GTrackID::ITS, TRACKREFS); }
   auto getITSTracksClusterRefs() const { return getSpan<int>(GTrackID::ITS, INDICES); }
   auto getITSTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::ITS, MCLABELS); }
+  auto getITSABRefs() const { return getSpan<o2::itsmft::TrkClusRef>(GTrackID::ITSAB, TRACKREFS); }
+  const o2::itsmft::TrkClusRef& getITSABRef(GTrackID gid) const { return getObject<o2::itsmft::TrkClusRef>(gid, TRACKREFS); }
+  auto getITSABClusterRefs() const { return getSpan<int>(GTrackID::ITSAB, INDICES); }
+  auto getITSABMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::ITSAB, MCLABELS); }
+
   // ITS clusters
   auto getITSClustersROFRecords() const { return getSpan<o2::itsmft::ROFRecord>(GTrackID::ITS, CLUSREFS); }
   auto getITSClusters() const { return getSpan<o2::itsmft::CompClusterExt>(GTrackID::ITS, CLUSTERS); }
