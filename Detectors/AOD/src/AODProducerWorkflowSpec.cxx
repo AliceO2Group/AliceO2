@@ -254,7 +254,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             }
             const float mass = o2::constants::physics::MassPionCharged; // default pid = pion
             if (tofInt.getTOF(o2::track::PID::Pion) > 0.f) {
-              const float expBeta = (intLen / tofInt.getTOF(o2::track::PID::Pion) / cSpeed);
+              const float expBeta = (intLen / (tofInt.getTOF(o2::track::PID::Pion) * cSpeed));
               extraInfoHolder.tofExpMom = mass * expBeta / std::sqrt(1.f - expBeta * expBeta);
             }
           }
