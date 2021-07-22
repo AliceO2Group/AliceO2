@@ -66,6 +66,9 @@ class RawToCellConverterSpec : public framework::Task
   int getNoiseThreshold() { return mNoiseThreshold; }
 
  private:
+  bool isLostTimeframe(framework::ProcessingContext& ctx) const;
+  void sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors) const;
+
   int mNoiseThreshold = 0;                                      ///< Noise threshold in raw fit
   int mNumErrorMessages = 0;                                    ///< Current number of error messages
   int mErrorMessagesSuppressed = 0;                             ///< Counter of suppressed error messages
@@ -81,7 +84,7 @@ class RawToCellConverterSpec : public framework::Task
 /// \brief Creating DataProcessorSpec for the EMCAL Cell Converter Spec
 ///
 /// Refer to RawToCellConverterSpec::run for input and output specs
-framework::DataProcessorSpec getRawToCellConverterSpec();
+framework::DataProcessorSpec getRawToCellConverterSpec(bool askDISTSTF);
 
 } // namespace reco_workflow
 
