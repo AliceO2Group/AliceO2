@@ -17,6 +17,8 @@
 #include <machine/endian.h>
 #else
 #include <endian.h>
+#define ntohll be64toh
+#define htonll htobe64
 #endif
 #define O2_HOST_BYTE_ORDER __BYTE_ORDER
 #define O2_BIG_ENDIAN __BIG_ENDIAN
