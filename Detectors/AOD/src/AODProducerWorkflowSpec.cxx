@@ -405,8 +405,8 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
         const float eta = 0.5f * TMath::Log((mom + pZ) / (mom - pZ));
         if (TMath::Abs(eta) > 0.9) {
           if (TMath::Abs((mom - pZ) / pZ) <= limit) {
-            pX = truncateFloatFraction(TMath::Sqrt((1.f + limit) * (1.f + limit) - 1.f) * pZ * 0.5, mMcParticleMom);
-            pY = truncateFloatFraction(TMath::Sqrt((1.f + limit) * (1.f + limit) - 1.f) * pZ * 0.5, mMcParticleMom);
+            pX = truncateFloatFraction(TMath::Sqrt((1.f + limit) * (1.f + limit) - 1.f) * pZ * 0.70710678, mMcParticleMom);
+            pY = truncateFloatFraction(TMath::Sqrt((1.f + limit) * (1.f + limit) - 1.f) * pZ * 0.70710678, mMcParticleMom);
           }
           if (TMath::Abs(energy - pZ) < limit) {
             energy = truncateFloatFraction(pZ + limit, mMcParticleMom);
