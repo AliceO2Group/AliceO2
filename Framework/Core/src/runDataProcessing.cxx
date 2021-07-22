@@ -101,6 +101,7 @@
 #include <utility>
 #include <numeric>
 #include <functional>
+#include <iostream>
 
 #include <fcntl.h>
 #include <netinet/ip.h>
@@ -537,6 +538,8 @@ struct ControlWebSocketHandler : public WebSocketHandler {
   /// not free the memory.
   void frame(char const* frame, size_t s) override
   {
+    if (!mPid)
+      std::cout << "FRAME: " << frame << std::endl;
     bool hasNewMetric = false;
     auto updateMetricsViews = Metric2DViewIndex::getUpdater({&(*mContext.infos)[mIndex].dataRelayerViewIndex,
                                                              &(*mContext.infos)[mIndex].variablesViewIndex,
@@ -572,7 +575,7 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     } else if (doParseConfig(token, configMatch, (*mContext.infos)[mIndex]) && mContext.infos) {
       LOG(debug2) << "Found configuration information for pid " << mPid;
     } else {
-      LOG(error) << "Unexpected control data: " << std::string_view(frame, s);
+      LOG(error) << "Unexpected control data of size " << s << ": " << std::string_view(frame, s);
     }
   }
 
@@ -585,6 +588,7 @@ struct ControlWebSocketHandler : public WebSocketHandler {
   /// reset actions which need to happen on a per chunk basis.
   void beginChunk() override
   {
+    if (!mPid) std::cout << "BEGINNING CHUNK" << std::endl;
     didProcessMetric = false;
     didHaveNewMetric = false;
   }
@@ -594,6 +598,7 @@ struct ControlWebSocketHandler : public WebSocketHandler {
   /// needed.
   void endChunk() override
   {
+    if (!mPid) std::cout << "ENDING CHUNK" << std::endl;
     if (!didProcessMetric) {
       return;
     }
