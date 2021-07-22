@@ -16,7 +16,7 @@ using namespace o2::zdc;
 
 void ZDCEnergyParam::setEnergyCalib(uint32_t ich, float val)
 {
-  bool in_list = in_list;
+  bool in_list = false;
   for (int il = 0; il < ChEnergyCalib.size(); il++) {
     if (ich == ChEnergyCalib[il]) {
       in_list = true;

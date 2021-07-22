@@ -96,6 +96,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
   using ECB = CTF::base;
 
   ec->setHeader(cd.header);
+  assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
@@ -120,6 +121,7 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
 {
   CompressedDigits cd;
   cd.header = ec.getHeader();
+  checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(cd.header));
   ec.print(getPrefix());
 #define DECODEFT0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off

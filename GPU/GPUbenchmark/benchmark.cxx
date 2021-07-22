@@ -21,11 +21,13 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
   bpo::options_description options("Benchmark options");
   options.add_options()(
     "help,h", "Print help message.")(
+    "device,d", bpo::value<int>()->default_value(0), "Id of the device to run test on, EPN targeted.")(
+    "test,t", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"read", "write", "copy"}, "read, write, copy"), "Tests to be performed.")(
     "chunkSize,c", bpo::value<float>()->default_value(1.f), "Size of scratch partitions (GB).")(
     "regions,r", bpo::value<int>()->default_value(2), "Number of memory regions to partition RAM in.")(
     "freeMemFraction,f", bpo::value<float>()->default_value(0.95f), "Fraction of free memory to be allocated (min: 0.f, max: 1.f).")(
     "launches,l", bpo::value<int>()->default_value(10), "Number of iterations in reading kernels.")(
-    "ntests,n", bpo::value<int>()->default_value(1), "Number of times each test is run.");
+    "nruns,n", bpo::value<int>()->default_value(1), "Number of times each test is run.");
   try {
     bpo::store(parse_command_line(argc, argv, options), vm);
     if (vm.count("help")) {
@@ -42,11 +44,26 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
     return false;
   }
 
+  conf.deviceId = vm["device"].as<int>();
   conf.freeMemoryFractionToAllocate = vm["freeMemFraction"].as<float>();
   conf.chunkReservedGB = vm["chunkSize"].as<float>();
   conf.nRegions = vm["regions"].as<int>();
   conf.kernelLaunches = vm["launches"].as<int>();
-  conf.nTests = vm["ntests"].as<int>();
+  conf.nTests = vm["nruns"].as<int>();
+
+  conf.tests.clear();
+  for (auto& test : vm["test"].as<std::vector<std::string>>()) {
+    if (test == "read") {
+      conf.tests.push_back(Test::Read);
+    } else if (test == "write") {
+      conf.tests.push_back(Test::Write);
+    } else if (test == "copy") {
+      conf.tests.push_back(Test::Copy);
+    } else {
+      std::cerr << "Unkonwn test: " << test << std::endl;
+      exit(1);
+    }
+  }
 
   return true;
 }
@@ -62,7 +79,7 @@ int main(int argc, const char* argv[])
     return -1;
   }
 
-  std::shared_ptr<ResultWriter> writer = std::make_shared<ResultWriter>();
+  std::shared_ptr<ResultWriter> writer = std::make_shared<ResultWriter>(std::to_string(opts.deviceId) + "_benchmark_results.root");
 
   o2::benchmark::GPUbenchmark<char> bm_char{opts, writer};
   bm_char.run();

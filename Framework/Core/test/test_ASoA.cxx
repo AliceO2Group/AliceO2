@@ -17,11 +17,12 @@
 #include "Framework/ASoAHelpers.h"
 #include "Framework/Expressions.h"
 #include "Framework/AnalysisHelpers.h"
-#include "../src/ExpressionHelpers.h"
+#include "Framework/ExpressionHelpers.h"
 #include "gandiva/tree_expr_builder.h"
 #include "arrow/status.h"
 #include "gandiva/filter.h"
 #include <boost/test/unit_test.hpp>
+#include <arrow/util/key_value_metadata.h>
 
 using namespace o2::framework;
 using namespace arrow;

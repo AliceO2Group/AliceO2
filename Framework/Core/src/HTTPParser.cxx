@@ -69,7 +69,7 @@ void encode_websocket_frames(std::vector<uv_buf_t>& outputs, char const* src, si
   } else {
     headerSize = sizeof(WebSocketFrameHuge);
     buffer = (char*)malloc(headerSize + size);
-    WebSocketFrameHuge* header;
+    WebSocketFrameHuge* header = (WebSocketFrameHuge*)buffer;
     memset(buffer, 0, headerSize);
     header->len = 127;
     header->len64 = size;

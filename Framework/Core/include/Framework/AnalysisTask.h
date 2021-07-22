@@ -12,14 +12,14 @@
 #ifndef FRAMEWORK_ANALYSIS_TASK_H_
 #define FRAMEWORK_ANALYSIS_TASK_H_
 
-#include "../../src/AnalysisManagers.h"
+#include "Framework/AnalysisManagers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Expressions.h"
-#include "../src/ExpressionHelpers.h"
+#include "Framework/ExpressionHelpers.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Logger.h"
 #include "Framework/StructToTuple.h"
@@ -154,7 +154,7 @@ struct AnalysisDataProcessorBuilder {
     if constexpr (soa::is_type_with_metadata_v<aod::MetadataTrait<T>>) {
       auto table = record.get<TableConsumer>(aod::MetadataTrait<T>::metadata::tableLabel())->asArrowTable();
       if (table->num_rows() == 0) {
-        table = makeEmptyTable<T>();
+        table = makeEmptyTable<T>(aod::MetadataTrait<T>::metadata::tableLabel());
       }
       return table;
     } else if constexpr (soa::is_type_with_originals_v<T>) {

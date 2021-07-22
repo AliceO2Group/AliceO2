@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
 
   o2::mid::ElectronicsDelay electronicsDelay;
   if (vm.count("electronics-delay-file")) {
-    o2::mid::ElectronicsDelay electronicsDelay = o2::mid::readElectronicsDelay(vm["electronics-delay-file"].as<std::string>().c_str());
+    electronicsDelay = o2::mid::readElectronicsDelay(vm["electronics-delay-file"].as<std::string>().c_str());
   }
 
   auto bareDecoder = o2::mid::Decoder(true, true, electronicsDelay, crateMasks, feeIdConfig);

@@ -287,7 +287,7 @@ GPUdi() bool IntervalXY<T>::seenByLine(const IntervalXY<T>& other, T eps) const
   other.getLineCoefs(a, b, c);
   T x0, y0, x1, y1;
   eval(-eps, x0, y0);
-  eval(1.f + eps, x0, y0);
+  eval(1.f + eps, x1, y1);
 
   return (a * x0 + b * y0 + c) * (a * x1 + b * y1 + c) < 0;
 }

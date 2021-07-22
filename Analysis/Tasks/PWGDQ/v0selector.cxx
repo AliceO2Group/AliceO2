@@ -34,6 +34,7 @@
 #include "AnalysisDataModel/Centrality.h"
 #include "AnalysisCore/RecoDecay.h"
 #include "DetectorsVertexing/DCAFitterN.h"
+#include "AnalysisDataModel/ReducedInfoTables.h"
 
 #include <Math/Vector4D.h>
 #include <array>
@@ -71,18 +72,6 @@ DECLARE_SOA_TABLE(ReducedV0s, "AOD", "REDUCEDV0", //!
 // iterators
 using ReducedV0 = ReducedV0s::iterator;
 
-namespace v0bits
-{
-DECLARE_SOA_COLUMN(PIDBit, pidbit, uint8_t); //!
-} // namespace v0bits
-
-// basic track information
-DECLARE_SOA_TABLE(V0Bits, "AOD", "V0BITS", //!
-                  o2::soa::Index<>, v0bits::PIDBit);
-
-// iterators
-using V0Bit = V0Bits::iterator;
-
 } // namespace o2::aod
 
 struct v0selector {
@@ -96,8 +85,8 @@ struct v0selector {
     kOmega = 4
   };
 
-  Produces<aod::ReducedV0s> v0Gamma;
-  Produces<aod::V0Bits> v0bits;
+  Produces<o2::aod::ReducedV0s> v0Gamma;
+  Produces<o2::aod::V0Bits> v0bits;
 
   float alphav0(const array<float, 3>& ppos, const array<float, 3>& pneg)
   {
@@ -682,7 +671,6 @@ struct trackPIDQA {
 
   void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& collision, soa::Join<aod::V0Bits, FullTracksExt> const& tracks)
   {
-    //printf("begining of process\n");
     registry.fill(HIST("hEventCounter"), 1.0); //all
 
     if (!collision.alias()[kINT7]) {
@@ -764,7 +752,6 @@ struct v0gammaQA {
 
   void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& collision, aod::ReducedV0s const& v0Gammas)
   {
-    //printf("begining of process\n");
     registry.fill(HIST("hEventCounter"), 1.0); //all
 
     if (!collision.alias()[kINT7]) {
@@ -779,7 +766,6 @@ struct v0gammaQA {
     }
 
     for (auto& [g1, g2] : combinations(v0Gammas, v0Gammas)) {
-      //printf("fill 2 gammas\n");
       ROOT::Math::PtEtaPhiMVector v1(g1.pt(), g1.eta(), g1.phi(), g1.mass());
       ROOT::Math::PtEtaPhiMVector v2(g2.pt(), g2.eta(), g2.phi(), g2.mass());
       ROOT::Math::PtEtaPhiMVector v12 = v1 + v2;

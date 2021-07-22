@@ -23,7 +23,7 @@ using namespace o2::steer;
 void DigitizationContext::printCollisionSummary(bool withQED) const
 {
   std::cout << "Summary of DigitizationContext --\n";
-  std::cout << "Parts per collision " << mMaxPartNumber << "\n";
+  std::cout << "Maximal parts per collision " << mMaxPartNumber << "\n";
   std::cout << "Collision parts taken from simulations specified by prefix:\n";
   for (int p = 0; p < mSimPrefixes.size(); ++p) {
     std::cout << "Part " << p << " : " << mSimPrefixes[p] << "\n";
@@ -54,10 +54,6 @@ void DigitizationContext::printCollisionSummary(bool withQED) const
 void DigitizationContext::setSimPrefixes(std::vector<std::string> const& prefixes)
 {
   mSimPrefixes = prefixes;
-  // the number should correspond to the number of parts
-  if (mSimPrefixes.size() != mMaxPartNumber) {
-    std::cerr << "Inconsistent number of simulation prefixes and part numbers";
-  }
 }
 
 bool DigitizationContext::initSimChains(o2::detectors::DetID detid, std::vector<TChain*>& simchains) const
