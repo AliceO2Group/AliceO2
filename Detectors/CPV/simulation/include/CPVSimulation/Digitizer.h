@@ -45,11 +45,11 @@ class Digitizer : public TObject
   float simulatePedestalNoise(int absId);
 
  private:
-  static constexpr short NCHANNELS = 23040;  //128*60*3:  toatl number of CPV channels
-  std::unique_ptr<CalibParams> mCalibParams; /// Calibration coefficients
-  std::unique_ptr<Pedestals> mPedestals;     /// Pedestals
-  std::unique_ptr<BadChannelMap> mBadMap;    /// Bad channel map
-  std::array<Digit, NCHANNELS> mArrayD;      ///array of digits (for inner use)
+  static constexpr short NCHANNELS = 23040; //128*60*3:  toatl number of CPV channels
+  CalibParams* mCalibParams;                /// Calibration coefficients
+  Pedestals* mPedestals;                    /// Pedestals
+  BadChannelMap* mBadMap;                   /// Bad channel map
+  std::array<Digit, NCHANNELS> mArrayD;     ///array of digits (for inner use)
   std::array<float, NCHANNELS> mDigitThresholds;
   ClassDefOverride(Digitizer, 3);
 };
