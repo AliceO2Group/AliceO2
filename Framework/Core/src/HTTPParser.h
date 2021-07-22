@@ -152,6 +152,8 @@ struct WebSocketHandler {
   /// Bytes from an incomplete header
   size_t pendingHeaderSize = 0;
   char* pendingHeader = nullptr;
+
+  bool isGUI = false;
 };
 
 /// Decoder for websocket data. For now we assume that the frame was not split. However multiple
