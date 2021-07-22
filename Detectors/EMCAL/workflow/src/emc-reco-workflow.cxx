@@ -37,7 +37,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not initialize root file writers"}},
     {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information"}},
-  };
+    {"ignore-dist-stf", o2::framework::VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}}};
 
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
@@ -60,9 +60,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 /// This function hooks up the the workflow specifications into the DPL driver.
 o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& cfgc)
 {
-  //bla
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  auto wf = o2::emcal::reco_workflow::getWorkflow(not cfgc.options().get<bool>("disable-mc"),        //
+  auto wf = o2::emcal::reco_workflow::getWorkflow(!cfgc.options().get<bool>("disable-mc"), //
+                                                  !cfgc.options().get<bool>("ignore-dist-stf"),
                                                   cfgc.options().get<bool>("enable-digits-printer"), //
                                                   cfgc.options().get<std::string>("input-type"),     //
                                                   cfgc.options().get<std::string>("output-type"),    //
