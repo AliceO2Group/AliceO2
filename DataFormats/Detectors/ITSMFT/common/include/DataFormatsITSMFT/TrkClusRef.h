@@ -9,24 +9,28 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TrackTPCITSReader.h
+/// \file TrkClusRef.h
+/// \brief Reference on ITS/MFT clusters set
 
-#ifndef O2_GLOBAL_TRACKITSTPCREADER
-#define O2_GLOBAL_TRACKITSTPCREADER
+#ifndef ALICEO2_ITSMFT_TRKCLUSREF_H
+#define ALICEO2_ITSMFT_TRKCLUSREF_H
 
-#include "Framework/DataProcessorSpec.h"
-
-using namespace o2::framework;
+#include "CommonDataFormat/RangeReference.h"
 
 namespace o2
 {
-namespace globaltracking
+namespace itsmft
 {
 
-/// create a processor spec
-framework::DataProcessorSpec getTrackTPCITSReaderSpec(bool useMC);
+// can refer to max 15 indices in the vector of total length <268435456, i.e. 17895697 tracks in worst case
+struct TrkClusRef : public o2::dataformats::RangeRefComp<4> {
+  using o2::dataformats::RangeRefComp<4>::RangeRefComp;
+  GPUd() int getNClusters() const { return getEntries(); }
 
-} // namespace globaltracking
+  ClassDefNV(TrkClusRef, 1);
+};
+
+} // namespace itsmft
 } // namespace o2
 
-#endif /* O2_GLOBAL_TRACKITSTPCREADER */
+#endif
