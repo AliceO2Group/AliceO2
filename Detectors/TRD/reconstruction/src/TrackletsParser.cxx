@@ -77,7 +77,27 @@ int TrackletsParser::Parse()
   mCurrentLink = 0;
   mWordsRead = 0;
   mTrackletsFound = 0;
-  mState = StateTrackletHCHeader; // we start with a trackletMCMHeader
+  if (mTrackletHCHeaderState == 0) {
+    // tracklet hc header is never present
+    mState = StateTrackletMCMHeader;
+  } else {
+    if (mTrackletHCHeaderState == 1) {
+      auto nextword = std::next(mStartParse);
+      if (*nextword != constants::TRACKLETENDMARKER) {
+        //we have tracklet data so no TracletHCHeader
+        mState = StateTrackletHCHeader;
+      } else {
+        //we have no tracklet data so no TracletHCHeader
+        mState = StateTrackletMCMHeader;
+      }
+    } else {
+      if (mTrackletHCHeaderState != 2) {
+        LOG(warn) << "unknwon TrackletHCHeaderState of " << mIgnoreTrackletHCHeader;
+      }
+      // tracklet hc header is always present
+      mState = StateTrackletHCHeader; // we start with a trackletMCMHeader
+    }
+  }
 
   int currentLinkStart = 0;
   int mcmtrackletcount = 0;
@@ -141,6 +161,9 @@ int TrackletsParser::Parse()
           LOG(info) << "state trackletHCheader and word : 0x" << std::hex << *word << " sanity check : " << trackletHCHeaderSanityCheck(*mTrackletHCHeader);
         }
         //sanity check of trackletheader ??
+        if (!trackletHCHeaderSanityCheck(*mTrackletHCHeader)) {
+          LOG(warn) << "Sanity check Failure HCHeader : " << std::hex << *word;
+        }
         mWordsRead++;
         mState = StateTrackletMCMHeader;                                // now we should read a MCMHeader next time through loop
       } else {                                                          //not TrackletMCMHeader
