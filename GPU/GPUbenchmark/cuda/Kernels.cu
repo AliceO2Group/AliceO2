@@ -816,51 +816,54 @@ void GPUbenchmark<chunk_type>::run()
 {
   globalInit();
 
-  for (auto& test : mOptions.tests) {
-    switch (test) {
-      case Test::Read: {
-        readInit();
-        // Reading in whole memory
-        readSequential(SplitLevel::Blocks);
-        readSequential(SplitLevel::Threads);
+  for (auto& sl : mOptions.pools) {
+    for (auto& test : mOptions.tests) {
+      switch (test) {
+        case Test::Read: {
+          readInit();
 
-        // Reading in memory regions
-        readConcurrent(SplitLevel::Blocks);
-        readConcurrent(SplitLevel::Threads);
-        readFinalize();
+          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Sequential) != mOptions.modes.end()) {
+            readSequential(sl);
+          }
+          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Concurrent) != mOptions.modes.end()) {
+            readConcurrent(sl);
+          }
 
-        break;
-      }
-      case Test::Write: {
-        writeInit();
-        // Write on whole memory
-        writeSequential(SplitLevel::Blocks);
-        writeSequential(SplitLevel::Threads);
+          readFinalize();
 
-        // Write on memory regions
-        writeConcurrent(SplitLevel::Blocks);
-        writeConcurrent(SplitLevel::Threads);
-        writeFinalize();
+          break;
+        }
+        case Test::Write: {
+          writeInit();
+          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Sequential) != mOptions.modes.end()) {
+            writeSequential(sl);
+          }
+          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Concurrent) != mOptions.modes.end()) {
+            writeConcurrent(sl);
+          }
 
-        break;
-      }
-      case Test::Copy: {
-        copyInit();
-        // Copy from input buffer (size = nChunks) on whole memory
-        copySequential(SplitLevel::Blocks);
-        copySequential(SplitLevel::Threads);
+          writeFinalize();
 
-        // Copy from input buffer (size = nChunks) on memory regions
-        copyConcurrent(SplitLevel::Blocks);
-        copyConcurrent(SplitLevel::Threads);
-        copyFinalize();
+          break;
+        }
+        case Test::Copy: {
+          copyInit();
+          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Sequential) != mOptions.modes.end()) {
+            copySequential(sl);
+          }
+          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Concurrent) != mOptions.modes.end()) {
+            copyConcurrent(sl);
+          }
 
-        break;
+          copyFinalize();
+
+          break;
+        }
       }
     }
   }
 
-  GPUbenchmark<chunk_type>::globalFinalize();
+  globalFinalize();
 }
 
 template class GPUbenchmark<char>;
