@@ -538,6 +538,10 @@ struct ControlWebSocketHandler : public WebSocketHandler {
   /// not free the memory.
   void frame(char const* frame, size_t s) override
   {
+    // do nothing if not associated with any process
+    if (!mPid) {
+      return;
+    }
     bool hasNewMetric = false;
     auto updateMetricsViews = Metric2DViewIndex::getUpdater({&(*mContext.infos)[mIndex].dataRelayerViewIndex,
                                                              &(*mContext.infos)[mIndex].variablesViewIndex,
@@ -595,6 +599,10 @@ struct ControlWebSocketHandler : public WebSocketHandler {
   /// needed.
   void endChunk() override
   {
+    // do nothing if not associated with any process
+    if (!mPid) {
+      return;
+    }
     if (!didProcessMetric) {
       return;
     }
@@ -638,6 +646,7 @@ void ws_connect_callback(uv_stream_t* server, int status)
   uv_tcp_t* client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
   uv_tcp_init(serverContext->loop, client);
   if (uv_accept(server, (uv_stream_t*)client) == 0) {
+    /// FIXME: ControlWebSocketHandler useless if the connection comes from a browser
     auto handler = std::make_unique<ControlWebSocketHandler>(*serverContext);
     client->data = new WSDPLHandler((uv_stream_t*)client, serverContext, std::move(handler));
     uv_read_start((uv_stream_t*)client, (uv_alloc_cb)my_alloc_cb, websocket_callback);
@@ -1177,7 +1186,12 @@ void gui_callback(uv_timer_s* ctx)
   uint64_t remoteFrameLatency = frameStart - gui->remoteFrameLast;
   if (gui->plugin->pollGUI_gl_init(gui->window)) {
     void *draw_data = gui->plugin->pollGUI_render(gui->callback);
-    if (remoteFrameLatency > 1000000*1000) {
+    bool is_empty;
+    {
+        std::lock_guard<std::mutex> lock(gui->lock);
+        is_empty = gui->drawCallbacks.empty();
+    }
+    if (!is_empty && remoteFrameLatency > 1000000*200) {
       gui->remoteFrameLast = frameStart;
       std::stringstream ss;
       gui->plugin->getFrameJSON(draw_data, ss);
