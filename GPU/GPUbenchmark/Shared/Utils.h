@@ -40,21 +40,28 @@ enum class Test {
   Copy
 };
 
-namespace o2
-{
-namespace benchmark
-{
+enum class Mode {
+  Sequential,
+  Concurrent
+};
 
 enum class SplitLevel {
   Blocks,
   Threads
 };
 
+namespace o2
+{
+namespace benchmark
+{
+
 struct benchmarkOpts {
   benchmarkOpts() = default;
 
   int deviceId = 0;
   std::vector<Test> tests = {Test::Read, Test::Write, Test::Copy};
+  std::vector<Mode> modes = {Mode::Sequential, Mode::Concurrent};
+  std::vector<SplitLevel> pools = {SplitLevel::Blocks, SplitLevel::Threads};
   float chunkReservedGB = 1.f;
   int nRegions = 2;
   float freeMemoryFractionToAllocate = 0.95f;
