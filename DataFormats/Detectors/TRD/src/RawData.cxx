@@ -324,12 +324,22 @@ bool trackletHCHeaderSanityCheck(o2::trd::TrackletHCHeader& header)
 {
   bool goodheader = true;
   if (header.one != 1) {
+    LOG(warn) << "Sanity check tracklethcheader.one is not 1";
     goodheader = false;
   }
   if (header.supermodule > 17) {
+    LOG(warn) << "Sanity check tracklethcheader.supermodule>17";
     goodheader = false;
   }
   //if(header.format != )  only certain format versions are permitted come back an fill in if needed.
+  if (header.layer > 6) {
+    LOG(warn) << "Sanity check tracklethcheader.laywer>6";
+    goodheader = false;
+  }
+  if (header.stack > 5) {
+    LOG(warn) << "Sanity check tracklethcheader.stack>5";
+    goodheader = false;
+  }
   return goodheader;
 }
 

@@ -39,6 +39,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"trd-datareader-fixdigitcorruptdata", VariantType::Bool, false, {"Fix the erroneous data at the end of digits"}},
     {"enable-root-output", VariantType::Bool, false, {"Write the data to file"}},
+    {"tracklethcheader", VariantType::Int, 0, {"Status of TrackletHalfChamberHeader 0 off always, 1 iff tracklet data, 2 on always"}},
     {"trd-datareader-enablebyteswapdata", VariantType::Bool, false, {"byteswap the incoming data, raw data needs it and simulation does not."}}};
 
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -63,6 +64,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto dataverbose = cfgc.options().get<bool>("trd-datareader-dataverbose");
   auto askSTFDist = !cfgc.options().get<bool>("ignore-dist-stf");
   auto fixdigitcorruption = cfgc.options().get<bool>("trd-datareader-fixdigitcorruptdata");
+  auto tracklethcheader = cfgc.options().get<int>("tracklethcheader");
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("TRD", "TRACKLETS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
@@ -70,7 +72,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   //outputs.emplace_back("TRD", "FLPSTAT", 0, Lifetime::Timeframe);
   LOG(info) << "enablebyteswap :" << byteswap;
   AlgorithmSpec algoSpec;
-  algoSpec = AlgorithmSpec{adaptFromTask<o2::trd::DataReaderTask>(compresseddata, byteswap, fixdigitcorruption, verbose, headerverbose, dataverbose)};
+  algoSpec = AlgorithmSpec{adaptFromTask<o2::trd::DataReaderTask>(compresseddata, byteswap, fixdigitcorruption, tracklethcheader, verbose, headerverbose, dataverbose)};
 
   WorkflowSpec workflow;
 
