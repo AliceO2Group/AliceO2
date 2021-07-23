@@ -12,6 +12,7 @@
 /// @brief ALICE detectors ID's, names, masks
 ///
 /// @author Ruben Shahoyan, ruben.shahoyan@cern.ch
+
 /*!
   Example of class usage:
   using namespace o2::base;
@@ -23,7 +24,9 @@
   }
   printf("joint mask: 0x%lx\n",mskTot.to_ulong());
  */
-
+//
+#ifndef O2_BASE_DETID_
+#define O2_BASE_DETID_
 #ifndef 
 #ifndef O2_BASE_DETID_
 #define O2_BASE_DETID_
