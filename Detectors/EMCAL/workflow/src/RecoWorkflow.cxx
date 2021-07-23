@@ -48,6 +48,7 @@ namespace reco_workflow
 o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                         bool askDISTSTF,
                                         bool enableDigitsPrinter,
+                                        int subspecification,
                                         std::string const& cfgInput,
                                         std::string const& cfgOutput,
                                         bool disableRootInput,
@@ -169,7 +170,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       specs.emplace_back(o2::emcal::reco_workflow::getCellConverterSpec(propagateMC));
     } else if (inputType == InputType::Raw) {
       // raw data will come from upstream
-      specs.emplace_back(o2::emcal::reco_workflow::getRawToCellConverterSpec(askDISTSTF));
+      specs.emplace_back(o2::emcal::reco_workflow::getRawToCellConverterSpec(askDISTSTF, subspecification));
     }
   }
 
