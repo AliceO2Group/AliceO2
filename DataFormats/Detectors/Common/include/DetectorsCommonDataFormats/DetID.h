@@ -13,7 +13,6 @@
 ///
 /// @author Ruben Shahoyan, ruben.shahoyan@cern.ch
 //
-//
 #ifndef O2_BASE_DETID_
 #define O2_BASE_DETID_
 
