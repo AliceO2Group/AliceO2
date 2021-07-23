@@ -13,6 +13,18 @@
 ///
 /// @author Ruben Shahoyan, ruben.shahoyan@cern.ch
 //
+/*!
+  Example of class usage:
+  using namespace o2::base;
+  DetID det[3] = {DetID(DetID::ITS), DetID(DetID::TPC), DetID(DetID::TRD)};
+  DetID::mask_t mskTot;
+  for (int i=0;i<3;i++) {
+    printf("detID: %2d %10s 0x%lx\n",det[i].getID(),det[i].getName(),det[i].getMask().to_ulong());
+    mskTot |= det[i].getMask();
+  }
+  printf("joint mask: 0x%lx\n",mskTot.to_ulong());
+ */
+#ifndef 
 #ifndef O2_BASE_DETID_
 #define O2_BASE_DETID_
 
