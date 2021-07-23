@@ -249,16 +249,14 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             const auto& tofInt = tofMatch.getLTIntegralOut();
             float intLen = tofInt.getL();
             extraInfoHolder.length = intLen;
-            extraInfoHolder.tofSignal = tofMatch.getSignal();
-            float mass = o2::constants::physics::MassPionCharged; // default pid = pion
-            float expSig = tofInt.getTOF(o2::track::PID::Pion);
-            float expMom = 0.f;
-            if (expSig > 0 && interactionTime > 0) {
-              float tof = expSig - interactionTime;
-              float expBeta = (intLen / tof / cSpeed);
-              expMom = mass * expBeta / std::sqrt(1.f - expBeta * expBeta);
+            if (interactionTime > 0) {
+              extraInfoHolder.tofSignal = static_cast<float>(tofMatch.getSignal() - interactionTime);
             }
-            extraInfoHolder.tofExpMom = expMom;
+            const float mass = o2::constants::physics::MassPionCharged; // default pid = pion
+            if (tofInt.getTOF(o2::track::PID::Pion) > 0.f) {
+              const float expBeta = (intLen / (tofInt.getTOF(o2::track::PID::Pion) * cSpeed));
+              extraInfoHolder.tofExpMom = mass * expBeta / std::sqrt(1.f - expBeta * expBeta);
+            }
           }
           if (src == GIndex::Source::TPCTRD || src == GIndex::Source::ITSTPCTRD) {
             const auto& trdOrig = data.getTrack<o2::trd::TrackTRD>(src, contributorsGID[src].getIndex());
@@ -402,6 +400,28 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       if (item != mToStore.end()) {
         daughterL = item->second;
       }
+      float pX = (float)mcParticles[particle].Px();
+      float pY = (float)mcParticles[particle].Py();
+      float pZ = (float)mcParticles[particle].Pz();
+      float energy = (float)mcParticles[particle].GetEnergy();
+      // HACK to avoid FPE in expression columns. Affect only particles in the Beam Pipe.
+      // TO BE REMOVED asap
+      {
+        const float limit = 1e-4;
+        const float mom = TMath::Sqrt(pX * pX + pY * pY + pZ * pZ);
+        const float eta = 0.5f * TMath::Log((mom + pZ) / (mom - pZ));
+        if (TMath::Abs(eta) > 0.9) {
+          if (TMath::Abs((mom - pZ) / pZ) <= limit) {
+            pX = truncateFloatFraction(TMath::Sqrt((1.f + limit) * (1.f + limit) - 1.f) * pZ * 0.70710678, mMcParticleMom);
+            pY = truncateFloatFraction(TMath::Sqrt((1.f + limit) * (1.f + limit) - 1.f) * pZ * 0.70710678, mMcParticleMom);
+          }
+          if (TMath::Abs(energy - pZ) < limit) {
+            energy = truncateFloatFraction(pZ + limit, mMcParticleMom);
+          }
+        }
+      }
+      // End of HACK
+
       mcParticlesCursor(0,
                         mccolid,
                         mcParticles[particle].GetPdgCode(),
@@ -412,10 +432,10 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                         daughter0,
                         daughterL,
                         truncateFloatFraction(weight, mMcParticleW),
-                        truncateFloatFraction((float)mcParticles[particle].Px(), mMcParticleMom),
-                        truncateFloatFraction((float)mcParticles[particle].Py(), mMcParticleMom),
-                        truncateFloatFraction((float)mcParticles[particle].Pz(), mMcParticleMom),
-                        truncateFloatFraction((float)mcParticles[particle].GetEnergy(), mMcParticleMom),
+                        truncateFloatFraction(pX, mMcParticleMom),
+                        truncateFloatFraction(pY, mMcParticleMom),
+                        truncateFloatFraction(pZ, mMcParticleMom),
+                        truncateFloatFraction(energy, mMcParticleMom),
                         truncateFloatFraction((float)mcParticles[particle].Vx(), mMcParticlePos),
                         truncateFloatFraction((float)mcParticles[particle].Vy(), mMcParticlePos),
                         truncateFloatFraction((float)mcParticles[particle].Vz(), mMcParticlePos),
@@ -743,8 +763,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               bcID,
               aAmplitudesA,
               aAmplitudesC,
-              truncateFloatFraction(ft0RecPoint.getCollisionTimeA() / 1E3, mT0Time), // ps to ns
-              truncateFloatFraction(ft0RecPoint.getCollisionTimeC() / 1E3, mT0Time), // ps to ns
+              truncateFloatFraction(ft0RecPoint.getCollisionTimeA() * 1E-3, mT0Time), // ps to ns
+              truncateFloatFraction(ft0RecPoint.getCollisionTimeC() * 1E-3, mT0Time), // ps to ns
               ft0RecPoint.getTrigger().triggersignals);
   }
 
@@ -770,11 +790,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   for (auto& vertex : primVertices) {
     auto& cov = vertex.getCov();
     auto& timeStamp = vertex.getTimeStamp();
-    double tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
-    uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
-    LOG(DEBUG) << globalBC << " " << tsTimeStamp;
+    const double interactionTime = timeStamp.getTimeStamp() * 1E3; // mus to ns
+    uint64_t globalBC = std::round(interactionTime / o2::constants::lhc::LHCBunchSpacingNS);
+    LOG(DEBUG) << globalBC << " " << interactionTime;
     // collision timestamp in ns wrt the beginning of collision BC
-    tsTimeStamp = globalBC * o2::constants::lhc::LHCBunchSpacingNS - tsTimeStamp;
+    const float relInteractionTime = static_cast<float>(globalBC * o2::constants::lhc::LHCBunchSpacingNS - interactionTime);
     auto item = bcsMap.find(globalBC);
     int bcID = -1;
     if (item != bcsMap.end()) {
@@ -798,12 +818,12 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                      vertex.getFlags(),
                      truncateFloatFraction(vertex.getChi2(), mCollisionPositionCov),
                      vertex.getNContributors(),
-                     truncateFloatFraction(tsTimeStamp, mCollisionPosition),
+                     truncateFloatFraction(relInteractionTime, mCollisionPosition),
                      truncateFloatFraction(timeStamp.getTimeStampError() * 1E3, mCollisionPositionCov),
                      collisionTimeMask);
     auto& trackRef = primVer2TRefs[collisionID];
     // passing interaction time in [ps]
-    fillTrackTablesPerCollision(collisionID, tsTimeStamp * 1E3, trackRef, primVerGIs, recoData,
+    fillTrackTablesPerCollision(collisionID, interactionTime * 1E3, trackRef, primVerGIs, recoData,
                                 tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor);
     collisionID++;
   }
