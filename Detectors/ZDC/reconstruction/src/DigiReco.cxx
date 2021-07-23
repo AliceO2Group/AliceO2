@@ -456,6 +456,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
           // TODO: compare event pedestal with orbit pedestal to detect pile-up
           // from previous bunch. If this is the case we use orbit pedestal
           // instead of event pedestal
+          hasEvPed = false;
           if (hasEvPed) {
             myPed = evPed;
             rec.adcPedEv[ich] = true;

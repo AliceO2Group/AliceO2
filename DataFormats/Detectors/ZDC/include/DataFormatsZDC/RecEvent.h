@@ -63,16 +63,23 @@ struct RecEvent {
   // Add event information
   inline void addInfo(uint16_t info)
   {
+#ifdef O2_ZDC_DEBUG
+  printf("addInfo info=%u 0x%04x\n", info, info);
+#endif
     mInfo.emplace_back(info);
     mRecBC.back().addInfo();
   }
+
   inline void addInfo(uint8_t ch, uint16_t code)
   {
-    if (ch >= NChannels) {
+    if (ch >= NChannels && ch != 0x1f) {
       LOGF(ERROR, "Adding info (0x%x) for not existent channel %u", code, ch);
       return;
     }
     uint16_t info = (code & 0x03ff) | ((ch & 0x1f) << 10);
+#ifdef O2_ZDC_DEBUG
+  printf("addInfo ch=%u code=%u info=%u 0x%04x\n", ch, code, info, info);
+#endif
     mInfo.emplace_back(info);
     mRecBC.back().addInfo();
   }
@@ -98,9 +105,8 @@ struct RecEvent {
     } else {
       // Transmission of pattern
       uint16_t ch = 0x1f;
-      uint16_t info = (code & 0x03ff) | ((ch & 0x1f) << 10);
-      addInfo(info);
-      info = 0x8000;
+      addInfo(ch, code);
+      uint16_t info = 0x8000;
       for (uint8_t ich = 0; ich < 15; ich++) {
         if (vec[ich]) {
           info = info | (0x1 << ich);

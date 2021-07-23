@@ -226,8 +226,16 @@ enum Msg { MsgGeneric = 0,
            MsgTDCPedMissing = 2,
            MsgADCPedOr = 3,
            MsgADCPedQC = 4,
-           MsgADCPedMissing = 5 };
+           MsgADCPedMissing = 5,
+           MsgEnd};
 
+constexpr std::string_view MsgText[] = {
+  "generic error",
+  "TDC QC ped",
+  "TDC missing ped",
+  "ADC Orbit ped",
+  "ADC QC ped",
+  "ADC missing ped"};
 
 // List of channels that can be calibrated
 constexpr std::array<int, 10> ChEnergyCalib{IdZNAC, IdZNASum, IdZPAC, IdZPASum,

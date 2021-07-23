@@ -53,15 +53,16 @@ int RecEventFlat::next()
   uint32_t map = 0;
   for (int i = istart; i < istop; i++) {
     uint16_t info = mInfo->at(i);
+    printf("0x%04x\n", info);
     if (infoState == 0) {
-      uint8_t ch = (info >> 10) & 0x1f;
       if (info & 0x8000) {
         LOGF(ERROR, "Inconsistent info stream at word %d: 0x%4u", i, info);
         break;
       }
+      code = info & 0x03ff;
+      uint8_t ch = (info >> 10) & 0x1f;
       if (ch == 0x1f) {
         infoState = 1;
-        code = info & 0x03ff;
       } else if (ch < NChannels) {
         decodeInfo(ch, code);
       } else {
@@ -125,7 +126,9 @@ int RecEventFlat::next()
 
 void RecEventFlat::decodeMapInfo(uint32_t map, uint16_t code)
 {
-  printf("%08x %u\n", map, code);
+#ifdef O2_ZDC_DEBUG
+  printf("decodeMapInfo%08x code=%u\n", map, code);
+#endif
   for (uint8_t ch = 0; ch < NChannels; ch++) {
     if (map & (0x1 << ch)) {
       decodeInfo(ch, code);
@@ -135,7 +138,9 @@ void RecEventFlat::decodeMapInfo(uint32_t map, uint16_t code)
 
 void RecEventFlat::decodeInfo(uint8_t ch, uint16_t code)
 {
-  printf("%d %u\n", ch, code);
+  if (mVerbosity != DbgZero) {
+    printf("Info: ch=%2d code=%4u %s\n", ch, code, code < MsgEnd ? MsgText[code].data() : "undefined");
+  }
   if (code == MsgTDCPedQC) {
     tdcPedQC[ch] = true;
   }

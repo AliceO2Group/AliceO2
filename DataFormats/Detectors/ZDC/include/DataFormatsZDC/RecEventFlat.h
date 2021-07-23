@@ -52,7 +52,7 @@ struct RecEventFlat {
   std::array<bool, NChannels> adcPedOr;       /// Orbit pedestal for ADC
   std::array<bool, NChannels> adcPedQC;       /// QC pedestal for ADC
   std::array<bool, NChannels> adcPedMissing;  /// Missing pedestal for ADC
-
+  uint8_t mVerbosity = DbgZero;               //! Verbosity level
   void init(std::vector<o2::zdc::BCRecData>* RecBC, std::vector<o2::zdc::ZDCEnergy>* Energy, std::vector<o2::zdc::ZDCTDCData>* TDCData, std::vector<uint16_t>* Info);
 
   int next();
