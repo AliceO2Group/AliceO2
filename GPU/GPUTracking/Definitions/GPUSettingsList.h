@@ -401,6 +401,7 @@ AddOption(dump, int, 0, "", 0, "Dump events for standalone benchmark: 1 = dump e
 AddOption(display, bool, false, "", 0, "Enable standalone gpu tracking visualizaion")
 AddOption(rundEdx, int, -1, "", 0, "Enable/disable dEdx processing (-1 for autoselect)")
 AddOption(dEdxFile, std::string, "", "", 0, "File name of dEdx Splines file")
+AddOption(dEdxCorrFile, std::string, "", "", 0, "File name of dEdx residual correction file")
 AddOption(transformationFile, std::string, "", "", 0, "File name of TPC fast transformation map")
 AddOption(matLUTFile, std::string, "", "", 0, "File name of material LUT file")
 AddOption(gainCalibFile, std::string, "", "", 0, "File name of TPC pad gain calibration")

@@ -24,6 +24,7 @@ o2_add_library(TPCWorkflow
                        src/KryptonClustererSpec.cxx
                        src/IDCToVectorSpec.cxx
                        src/CalibdEdxSpec.cxx
+                       src/CalibratordEdxSpec.cxx
                        src/MIPTrackFilterSpec.cxx
                        src/LaserTrackFilterSpec.cxx
                        src/ApplyCCDBCalibSpec.cxx
@@ -144,10 +145,15 @@ o2_add_executable(calib-dedx
                   SOURCES src/tpc-calib-dEdx.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
-o2_add_executable(idc-test-ft
+o2_add_executable(calibrator-dedx
                   COMPONENT_NAME tpc
-                  SOURCES test/test_ft_EPN_Aggregator.cxx
+                  SOURCES src/tpc-calibrator-dEdx.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(idc-test-ft
+                COMPONENT_NAME tpc
+                SOURCES test/test_ft_EPN_Aggregator.cxx
+                PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_executable(miptrack-filter
                   COMPONENT_NAME tpc

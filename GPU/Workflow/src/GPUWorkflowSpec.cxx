@@ -37,6 +37,7 @@
 #include "DataFormatsTPC/Digit.h"
 #include "TPCFastTransform.h"
 #include "TPCdEdxCalibrationSplines.h"
+#include "DataFormatsTPC/CalibdEdxCorrection.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "DPLUtils/DPLRawPageSequencer.h"
 #include "DetectorsBase/MatLayerCylSet.h"
@@ -99,7 +100,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
   static TStopwatch timer;
 
   constexpr static size_t NSectors = Sector::MAXSECTOR;
-  constexpr static size_t NEndpoints = 20; //TODO: get from mapper?
+  constexpr static size_t NEndpoints = 20; // TODO: get from mapper?
   using ClusterGroupParser = o2::algorithm::ForwardParser<ClusterGroupHeader>;
   struct ProcessAttributes {
     std::unique_ptr<ClusterGroupParser> parser;
@@ -108,6 +109,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
     std::unique_ptr<TPCFastTransform> fastTransform;
     std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
     std::unique_ptr<TPCPadGainCalib> tpcPadGainCalib;
+    std::unique_ptr<o2::tpc::CalibdEdxCorrection> dEdxCorrection;
     std::unique_ptr<o2::trd::GeometryFlat> trdGeometry;
     std::unique_ptr<GPUO2InterfaceConfiguration> config;
     int qaTaskMask = 0;
@@ -251,12 +253,21 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         config.configCalib.matLUT = o2::base::MatLayerCylSet::loadFromFile(confParam.matLUTFile.c_str());
       }
 
+      // load from file
       if (confParam.dEdxFile.size()) {
         processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines(confParam.dEdxFile.c_str()));
       } else {
         processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines);
       }
       config.configCalib.dEdxSplines = processAttributes->dEdxSplines.get();
+
+      if (!confParam.dEdxCorrFile.empty()) {
+        LOGP(info, "Loading dEdx correction file: {}", confParam.dEdxCorrFile);
+        processAttributes->dEdxCorrection.reset(new o2::tpc::CalibdEdxCorrection(confParam.dEdxCorrFile));
+      } else {
+        processAttributes->dEdxCorrection.reset(new o2::tpc::CalibdEdxCorrection());
+      }
+      config.configCalib.dEdxCorrection = processAttributes->dEdxCorrection.get();
 
       if (std::filesystem::exists(confParam.gainCalibFile)) {
         LOG(INFO) << "Loading tpc gain correction from file " << confParam.gainCalibFile;
@@ -532,7 +543,8 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
               if (verbosity) {
                 end = std::chrono::high_resolution_clock::now();
                 std::chrono::duration<double> elapsed_seconds = end - start;
-                LOG(INFO) << "Allocation time for " << name << " (" << size << " bytes)" << ": " << elapsed_seconds.count() << "s";
+                LOG(INFO) << "Allocation time for " << name << " (" << size << " bytes)"
+                          << ": " << elapsed_seconds.count() << "s";
               }
               return (buffer.second = buffer.first->get().data()) + offset;
             };

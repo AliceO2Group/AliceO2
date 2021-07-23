@@ -55,5 +55,6 @@
 #pragma link C++ class std::vector<o2::tpc::KrCluster> + ;
 #pragma link C++ class o2::tpc::LtrCalibData +;
 #pragma link C++ class std::vector<o2::tpc::LtrCalibData> +;
+#pragma link C++ class o2::tpc::CalibdEdxCorrection + ;
 
 #endif
