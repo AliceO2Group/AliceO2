@@ -110,6 +110,23 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
     .name = "datataking-contex",
     .init = simpleServiceInit<DataTakingContext, DataTakingContext>(),
     .configure = noConfiguration(),
+    .preProcessing = [](ProcessingContext& processingContext, void* service) {
+      auto& context = processingContext.services().get<DataTakingContext>();
+      // Only on the first message
+      if (context.source == OrbitResetTimeSource::Data) {
+        return;
+      }
+      context.source = OrbitResetTimeSource::Data;
+      context.orbitResetTime = -1;
+      for (auto const& ref : processingContext.inputs()) {
+        const o2::framework::DataProcessingHeader *dph = o2::header::get<DataProcessingHeader*>(ref.header);
+        if (!dph) {
+          continue;
+        }
+        LOGP(DEBUG, "Orbit reset time from data: {} ", dph->creation);
+        context.orbitResetTime = dph->creation;
+        break;
+      } },
     .start = [](ServiceRegistry& services, void* service) {
       auto& context = services.get<DataTakingContext>();
       context.runNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
@@ -131,8 +148,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
       } else {
         context.orbitResetTime = 490917600;
       }
-      context.nOrbitsPerTF = services.get<RawDeviceService>().device()->fConfig->GetProperty<uint64_t>("Norbits_per_TF", 128);
-    },
+      context.nOrbitsPerTF = services.get<RawDeviceService>().device()->fConfig->GetProperty<uint64_t>("Norbits_per_TF", 128); },
     .kind = ServiceKind::Serial};
 }
 
