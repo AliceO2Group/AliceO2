@@ -77,7 +77,7 @@ bool CTPConfiguration::isDetector(const o2::detectors::DetID& det)
 }
 int CTPConfiguration::loadConfiguration(const std::string& ctpconfiguration)
 {
-  std::cout << "Loading CTP configuration." << std::endl;
+  LOG(INFO) << "Loading CTP configuration.";
   std::istringstream iss(ctpconfiguration);
   int ret = 0;
   int level = 0;

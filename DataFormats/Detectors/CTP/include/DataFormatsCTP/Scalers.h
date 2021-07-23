@@ -29,7 +29,7 @@ namespace ctp
 /// - CTPreadout to FLP
 struct  CTPScalerRaw {
   CTPScalerRaw() = default;
-  uint8_t classIndex;
+  uint32_t classIndex;
   uint32_t lmBefore;
   uint32_t lmAfter;
   uint32_t l0Before;
@@ -42,7 +42,7 @@ struct  CTPScalerRaw {
 /// Scalers produced from raw scalers corrected for overflow
 struct  CTPScalerO2 {
   CTPScalerO2() = default;
-  uint8_t classIndex;
+  uint32_t classIndex;
   uint64_t lmBefore;
   uint64_t lmAfter;
   uint64_t l0Before;
@@ -56,6 +56,8 @@ struct CTPScalerRecordRaw
 {
   CTPScalerRecordRaw() = default;
   o2::InteractionRecord intRecord;
+  uint32_t seconds;
+  uint32_t microSeconds;
   std::vector<CTPScalerRaw> scalers;
   void printStream(std::ostream& stream) const;
   ClassDefNV(CTPScalerRecordRaw, 1);
@@ -64,6 +66,8 @@ struct CTPScalerRecordO2
 {
   CTPScalerRecordO2() = default;
   o2::InteractionRecord intRecord;
+  uint32_t seconds;
+  uint32_t microSeconds;
   std::vector<CTPScalerO2> scalers;
   void printStream(std::ostream& stream) const;
   ClassDefNV(CTPScalerRecordO2, 1);
@@ -74,14 +78,17 @@ class CTPRunScalers
   CTPRunScalers() = default;
   void printStream(std::ostream& stream) const;
   void printClasses(std::ostream& stream) const;
+  std::vector<uint32_t> getClassIndexes();
+  int readScalers(const std::string& rawscalers);
  private:
-  uint8_t mVersion;
+  int mVersion;
   uint32_t mRunNumber;
   std::bitset<CTP_NCLASSES> mClassMask;
   std::vector<CTPScalerRecordRaw> mScalerRecordRaw;
   std::vector<CTPScalerRecordO2> mScalerRecordO2;
+  int processScalerLine(std::string& line,int& level);
   ClassDefNV(CTPRunScalers, 1);
 };
 } // namespace ctp
 } // namespace o2
-#endif //_CTP_DIGITS_H
+#endif //_CTP_SCALERS_H
