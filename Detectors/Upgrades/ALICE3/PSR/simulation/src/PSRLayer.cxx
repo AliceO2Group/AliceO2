@@ -105,7 +105,7 @@ void PSRLayer::createLayer(TGeoVolume* motherVolume)
     LOG(INFO) << "Inserting " << chipVol->GetName() << " inside " << layerVol->GetName();
     layerVol->AddNode(chipVol, 1, nullptr);
 
-    LOG(INFO) << "Inserting "<< showerlayerVol->GetName() << " inside " << layerVol->GetName();
+    LOG(INFO) << "Inserting " << showerlayerVol->GetName() << " inside " << layerVol->GetName();
     layerVol->AddNode(showerlayerVol, 2, nullptr);
 
     LOG(INFO) << "Inserting " << showerlayerVol->GetName() << " inside " << layerVol->GetName();
