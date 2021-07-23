@@ -26,7 +26,7 @@
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "TPCCalibration/CalibdEdx.h"
+#include "TPCCalibration/CalibratordEdx.h"
 
 using namespace o2::framework;
 
@@ -42,6 +42,8 @@ class CalibdEdxDevice : public Task
     const int maxDelay = ic.options().get<int>("max-delay");
     const int minEntries = std::max(50, ic.options().get<int>("min-entries"));
     const int nbins = std::max(10, ic.options().get<int>("nbins"));
+    const int mindEdx = std::max(0.0f, ic.options().get<float>("min-dedx"));
+    const int maxdEdx = std::max(10.0f, ic.options().get<float>("max-dedx"));
     const bool applyCuts = ic.options().get<bool>("apply-cuts");
     const float minP = ic.options().get<float>("min-momentum");
     const float maxP = ic.options().get<float>("max-momentum");
@@ -50,7 +52,7 @@ class CalibdEdxDevice : public Task
 
     assert(minP < maxP);
 
-    mCalibrator = std::make_unique<tpc::CalibdEdx>(nbins, minEntries, minP, maxP, minClusters);
+    mCalibrator = std::make_unique<tpc::CalibratordEdx>(nbins, mindEdx, maxdEdx, minEntries, minP, maxP, minClusters);
     mCalibrator->setApplyCuts(applyCuts);
 
     mCalibrator->setSlotLength(slotLength);
@@ -110,7 +112,7 @@ class CalibdEdxDevice : public Task
     }
   }
 
-  std::unique_ptr<CalibdEdx> mCalibrator;
+  std::unique_ptr<CalibratordEdx> mCalibrator;
 };
 
 DataProcessorSpec getCalibdEdxSpec()
@@ -134,7 +136,9 @@ DataProcessorSpec getCalibdEdxSpec()
       {"min-momentum", VariantType::Float, 0.4f, {"minimum momentum cut"}},
       {"max-momentum", VariantType::Float, 0.6f, {"maximum momentum cut"}},
       {"min-clusters", VariantType::Int, 60, {"minimum number of clusters in a track"}},
-      {"nbins", VariantType::Int, 200, {"number of bins for stored"}},
+      {"nbins", VariantType::Int, 100, {"number of bins for the dEdx histograms"}},
+      {"min-dedx", VariantType::Int, 10, {"minimum value for the dEdx histograms"}},
+      {"max-dedx", VariantType::Int, 100, {"maximum value for the dEdx histograms"}},
       {"direct-file-dump", VariantType::Bool, false, {"directly dump calibration to file"}}}};
 }
 

@@ -32,8 +32,9 @@ o2_add_library(TPCCalibration
                        src/IDCFourierTransform.cxx
                        src/RobustAverage.cxx
                        src/IDCCCDBHelper.cxx
-                       src/dEdxHistos.cxx
                        src/CalibdEdx.cxx
+                       src/CalibdEdxHistos.cxx
+                       src/CalibratordEdx.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBase
                                      O2::TPCReconstruction ROOT::Minuit
                                      Microsoft.GSL::GSL
@@ -63,8 +64,9 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/RobustAverage.h
                                   include/TPCCalibration/IDCFourierTransform.h
                                   include/TPCCalibration/IDCCCDBHelper.h
-                                  include/TPCCalibration/dEdxHistos.h
-                                  include/TPCCalibration/CalibdEdx.h)
+                                  include/TPCCalibration/CalibdEdx.h
+                                  include/TPCCalibration/CalibdEdxHistos.h
+                                  include/TPCCalibration/CalibratordEdx.h)
 
 o2_add_test_root_macro(macro/comparePedestalsAndNoise.C
                        PUBLIC_LINK_LIBRARIES O2::TPCBase

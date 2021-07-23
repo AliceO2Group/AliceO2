@@ -8,4 +8,5 @@ This is a top page for the TPC detector documentation.
 
 <!-- doxy
 * \subpage refTPCworkflow
+* \subpage refTPCcalibration
 /doxy -->
