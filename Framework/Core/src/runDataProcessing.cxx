@@ -49,6 +49,7 @@
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/TopologyPolicy.h"
 #include "DriverServerContext.h"
+#include "GuiCallbackContext.h"
 #include "ControlServiceHelpers.h"
 #include "HTTPParser.h"
 #include "DPLWebSocket.h"
@@ -101,7 +102,6 @@
 #include <utility>
 #include <numeric>
 #include <functional>
-#include <iostream>
 #include <sstream>
 
 #include <fcntl.h>
@@ -539,8 +539,6 @@ struct ControlWebSocketHandler : public WebSocketHandler {
   /// not free the memory.
   void frame(char const* frame, size_t s) override
   {
-    if (!mPid)
-      std::cout << "FRAME: " << frame << std::endl;
     bool hasNewMetric = false;
     auto updateMetricsViews = Metric2DViewIndex::getUpdater({&(*mContext.infos)[mIndex].dataRelayerViewIndex,
                                                              &(*mContext.infos)[mIndex].variablesViewIndex,
@@ -576,7 +574,7 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     } else if (doParseConfig(token, configMatch, (*mContext.infos)[mIndex]) && mContext.infos) {
       LOG(debug2) << "Found configuration information for pid " << mPid;
     } else {
-      LOG(error) << "Unexpected control data of size " << s << ": " << std::string_view(frame, s);
+      LOG(error) << "Unexpected control data: " << std::string_view(frame, s);
     }
   }
 
@@ -589,7 +587,6 @@ struct ControlWebSocketHandler : public WebSocketHandler {
   /// reset actions which need to happen on a per chunk basis.
   void beginChunk() override
   {
-    if (!mPid) std::cout << "BEGINNING CHUNK" << std::endl;
     didProcessMetric = false;
     didHaveNewMetric = false;
   }
@@ -599,7 +596,6 @@ struct ControlWebSocketHandler : public WebSocketHandler {
   /// needed.
   void endChunk() override
   {
-    if (!mPid) std::cout << "ENDING CHUNK" << std::endl;
     if (!didProcessMetric) {
       return;
     }
@@ -1170,15 +1166,6 @@ struct WorkflowInfo {
   std::vector<ConfigParamSpec> options;
 };
 
-struct GuiCallbackContext {
-  uint64_t frameLast;
-  float* frameLatency;
-  float* frameCost;
-  DebugGUI* plugin;
-  void* window;
-  bool* guiQuitRequested;
-  std::function<void(void)> callback;
-};
 
 void gui_callback(uv_timer_s* ctx)
 {
@@ -1188,8 +1175,21 @@ void gui_callback(uv_timer_s* ctx)
   }
   uint64_t frameStart = uv_hrtime();
   uint64_t frameLatency = frameStart - gui->frameLast;
+  uint64_t remoteFrameLatency = frameStart - gui->remoteFrameLast;
   if (gui->plugin->pollGUI_gl_init(gui->window)) {
     void *draw_data = gui->plugin->pollGUI_render(gui->callback);
+    if (remoteFrameLatency > 1000000*1000) {
+      gui->remoteFrameLast = frameStart;
+      std::stringstream ss;
+      gui->plugin->getFrameJSON(draw_data, ss);
+      std::string json_string = ss.str();
+      {
+        std::lock_guard<std::mutex> lock(gui->lock);
+        for (const auto& [key, callback] : gui->drawCallbacks) {
+          callback(json_string);
+        }
+      }
+    }
     gui->plugin->pollGUI_gl_end(gui->window, draw_data);
   } else {
     *(gui->guiQuitRequested) = true;
@@ -1320,6 +1320,15 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DevicesManager>(devicesManager));
 
+  GuiCallbackContext guiContext;
+  guiContext.plugin = debugGUI;
+  guiContext.frameLast = uv_hrtime();
+  guiContext.remoteFrameLast = uv_hrtime();
+  guiContext.frameLatency = &driverInfo.frameLatency;
+  guiContext.frameCost = &driverInfo.frameCost;
+  guiContext.guiQuitRequested = &guiQuitRequested;
+  auto inputProcessingLast = guiContext.frameLast;
+
   // This is to make sure we can process metrics, commands, configuration
   // changes coming from websocket (or even via any standard uv_stream_t, I guess).
   DriverServerContext serverContext;
@@ -1331,6 +1340,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   serverContext.metrics = &metricsInfos;
   serverContext.driver = &driverInfo;
   serverContext.metricProcessingCallbacks = &metricProcessingCallbacks;
+  serverContext.gui = &guiContext;
 
   uv_tcp_t serverHandle;
   serverHandle.data = &serverContext;
@@ -1368,14 +1378,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       }
     } while (result != 0);
   }
-
-  GuiCallbackContext guiContext;
-  guiContext.plugin = debugGUI;
-  guiContext.frameLast = uv_hrtime();
-  guiContext.frameLatency = &driverInfo.frameLatency;
-  guiContext.frameCost = &driverInfo.frameCost;
-  guiContext.guiQuitRequested = &guiQuitRequested;
-  auto inputProcessingLast = guiContext.frameLast;
 
   uv_timer_t force_step_timer;
   uv_timer_init(loop, &force_step_timer);
