@@ -160,7 +160,7 @@ void Detector::buildBasicFT3(const FT3BaseParam& param)
   mLayerID.clear();
   mLayers.resize(2);
 
-  for (Int_t direction : {1}) {
+  for (Int_t direction : {0, 1}) {
     for (Int_t layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
       std::string layerName = GeometryTGeo::getFT3LayerPattern() + std::to_string(layerNumber + mNumberOfLayers * direction);
       mLayerName[direction][layerNumber] = layerName;
