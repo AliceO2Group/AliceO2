@@ -1,5 +1,5 @@
 <!-- doxy
-\page refDetectorsUpgradesALICE3FT3 EndCaps
+\page refDetectorsUpgradesALICE3PSR Preshower
 /doxy -->
 
 # PostLS4Preshower
