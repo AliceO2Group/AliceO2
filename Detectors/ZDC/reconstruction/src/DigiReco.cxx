@@ -424,12 +424,15 @@ int DigiReco::reconstruct(int ibeg, int iend)
              fired[IdZNCC], fired[IdZNC1], fired[IdZNC2], fired[IdZNC3], fired[IdZNC4], fired[IdZNCSum],
              fired[IdZPCC], fired[IdZPC1], fired[IdZPC2], fired[IdZPC3], fired[IdZPC4], fired[IdZPCSum]);
     }
+    // Get Orbit pedestals
+    updateOffsets(ibun);
     for (int ich = 0; ich < NChannels; ich++) {
       // Check if the corresponding TDC is fired
       if (fired[ich]) {
         // Check if channel data are present in payload
         auto ref = mReco[ibun].ref[ich];
         if (ref < ZDCRefInitVal) {
+          // Energy reconstruction Assignment of TDCs
           // Compute event by event pedestal
           bool hasEvPed = false;
           float evPed = 0;
@@ -450,13 +453,13 @@ int DigiReco::reconstruct(int ibeg, int iend)
             }
           }
           float myPed = std::numeric_limits<float>::infinity();
-          // TODO: compare orbit pedestal with orbit pedestal to detect pile-up
+          // TODO: compare event pedestal with orbit pedestal to detect pile-up
           // from previous bunch. If this is the case we use orbit pedestal
           // instead of event pedestal
           if (hasEvPed) {
             myPed = evPed;
             rec.ped[ich] = PedEv;
-          } else if (mSource[ich] != PedND) {
+          } else if (mSource[ich] == PedOr || mSource[ich] == PedQC) {
             myPed = mOffset[ich];
             rec.ped[ich] = mSource[ich];
           } else {
@@ -485,11 +488,14 @@ int DigiReco::reconstruct(int ibeg, int iend)
         }
       }
     } // Loop on channels
-    if (mTreeDbg) {
+  }   // Loop on bunches
+  if (mTreeDbg) {
+    for (int ibun = ibeg; ibun <= iend; ibun++) {
+      auto& rec = mReco[ibun];
       mRec = rec;
       mTDbg->Fill();
     }
-  } // Loop on bunches
+  }
   return 0;
 } //reconstruct
 
@@ -507,7 +513,8 @@ void DigiReco::updateOffsets(int ibun)
     mOffset[ich] = std::numeric_limits<float>::infinity();
   }
 
-  // Look for pedestal offset
+  // Default TDC pedestal is from orbit
+  // Look for Orbit pedestal offset
   std::map<uint32_t, int>::iterator it = mOrbit.find(orbit);
   if (it != mOrbit.end()) {
     auto& orbitdata = mOrbitData[it->second];
@@ -593,7 +600,8 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
   interpolate(itdc, ibeg, iend);
 } // processTrigger
 
-O2_ZDC_DIGIRECO_FLT DigiReco::getPoint(int itdc, int ibeg, int iend, int i){
+O2_ZDC_DIGIRECO_FLT DigiReco::getPoint(int itdc, int ibeg, int iend, int i)
+{
   constexpr int nsbun = TSN * NTimeBinsPerBC; // Total number of interpolated points per bunch crossing
   if (i >= mNtot || i < 0) {
     LOG(FATAL) << "Error addressing TDC itdc=" << itdc << " i=" << i << " mNtot=" << mNtot;
@@ -705,7 +713,7 @@ void DigiReco::setPoint(int itdc, int ibeg, int iend, int i)
       mReco[ibun].inter[itdc][isam] = y;
     }
   }
-}
+} // setPoint
 #endif
 
 void DigiReco::interpolate(int itdc, int ibeg, int iend)
@@ -942,24 +950,39 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
     LOG(ERROR) << "TDC " << itdc << " " << tdc_cor << " is out of range";
     tdc_cor = kMaxShort;
   }
+
+  auto& rec = mReco[ibun];
+
   // Assign to correct bunch
   auto myamp = std::nearbyint(amp / FTDCAmp);
 #ifdef O2_ZDC_DEBUG
   LOG(INFO) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
             << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp << " -> " << myamp;
 #endif
-  mReco[ibun].TDCVal[itdc].push_back(tdc_cor);
-  mReco[ibun].TDCAmp[itdc].push_back(myamp);
+  rec.TDCVal[itdc].push_back(tdc_cor);
+  rec.TDCAmp[itdc].push_back(myamp);
   int& ihit = mReco[ibun].ntdc[itdc];
 #ifdef O2_ZDC_TDC_C_ARRAY
   if (ihit < MaxTDCValues) {
-    mReco[ibun].tdcVal[itdc][ihit] = tdc_cor;
-    mReco[ibun].tdcAmp[itdc][ihit] = myamp;
+    rec.tdcVal[itdc][ihit] = tdc_cor;
+    rec.tdcAmp[itdc][ihit] = myamp;
   } else {
-    LOG(ERROR) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
+    LOG(ERROR) << rec.ir.orbit << "." << rec.ir.bc << " "
                << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp << " OVERFLOW";
   }
 #endif
+  int ich = TDCSignal[itdc];
+  // Assign info about pedestal subtration
+  if (mSource[ich] == PedOr) {
+    rec.tdcPedOr[ich] = true;
+  } else if (mSource[ich] == PedQC) {
+    rec.tdcPedQC[ich] = true;
+  } else if (mSource[ich] == PedEv) {
+    // In present implementation this never happens
+    rec.tdcPedEv[ich] = true;
+  } else {
+    rec.tdcPedMissing[ich] = true;
+  }
   ihit++;
 } // assignTDC
 

@@ -32,6 +32,14 @@ namespace zdc
 
 struct RecEventAux : public RecEventFlat {
   uint32_t flags; /// reconstruction flags
+  std::array<bool, NChannels> tdcPedEv;
+  std::array<bool, NChannels> tdcPedOr;
+  std::array<bool, NChannels> tdcPedQC;
+  std::array<bool, NChannels> tdcPedMissing;
+  std::array<bool, NChannels> adcPedEv;
+  std::array<bool, NChannels> adcPedOr;
+  std::array<bool, NChannels> adcPedQC;
+  std::array<bool, NChannels> adcPedMissing;
 #ifdef O2_ZDC_TDC_C_ARRAY
   int16_t tdcVal[NTDCChannels][MaxTDCValues]; /// TdcChannels
   int16_t tdcAmp[NTDCChannels][MaxTDCValues]; /// TdcAmplitudes

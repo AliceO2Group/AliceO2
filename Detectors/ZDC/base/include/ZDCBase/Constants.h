@@ -215,12 +215,18 @@ const std::string CCDBPathTDCCalib = "ZDC/Calib/TDCCalib";
 const std::string CCDBPathEnergyCalib = "ZDC/Calib/EnergyCalib";
 const std::string CCDBPathTowerCalib = "ZDC/Calib/TowerCalib";
 
-enum Msg { PedND = 0,
+enum Ped { PedND = 0,
            PedEv = 1,
            PedOr = 2,
            PedQC = 3,
            PedMissing = 4 };
 
+enum Msg { MsgGeneric = 0,
+           MsgTDCPedQC = 1,
+           MsgTDCPedMissing = 2,
+           MsgADCPedOr = 3,
+           MsgADCPedQC = 4,
+           MsgADCPedMissing = 5 };
 
 
 // List of channels that can be calibrated

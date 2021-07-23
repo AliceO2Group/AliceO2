@@ -165,6 +165,10 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     if (mVerbosity > 0 && (nt > 0 || ne > 0)) {
       printf("Orbit %9u bc %4u ntdc %2d ne %2d\n", reca.ir.orbit, reca.ir.bc, nt, ne);
     }
+    // Event information
+    recEvent.addInfo(reca.tdcPedQC, MsgTDCPedQC);
+    recEvent.addInfo(reca.tdcPedMissing, MsgTDCPedMissing);
+    
   }
   LOG(INFO) << "Reconstructed " << ntt << " signal TDCs and " << nte << " energies";
   // TODO: rate information for all channels

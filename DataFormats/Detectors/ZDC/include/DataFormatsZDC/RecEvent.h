@@ -12,6 +12,7 @@
 #ifndef _ZDC_RECEVENT_H_
 #define _ZDC_RECEVENT_H_
 
+#include "Framework/Logger.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsZDC/BCRecData.h"
 #include "DataFormatsZDC/ZDCEnergy.h"
@@ -60,15 +61,62 @@ struct RecEvent {
     mRecBC.back().addTDC();
   }
   // Add event information
-  inline void addInfo(uint8_t ch, uint16_t info)
+  inline void addInfo(uint16_t info)
   {
-    if (ch >= NChannels) {
-      ch = 0x1f;
-    }
-    info = (info & 0x07ff) | ch << 11;
     mInfo.emplace_back(info);
     mRecBC.back().addInfo();
   }
+  inline void addInfo(uint8_t ch, uint16_t code)
+  {
+    if (ch >= NChannels) {
+      LOGF(ERROR, "Adding info (0x%x) for not existent channel %u", code, ch);
+      return;
+    }
+    uint16_t info = (code & 0x03ff) | ((ch & 0x1f) << 10);
+    mInfo.emplace_back(info);
+    mRecBC.back().addInfo();
+  }
+
+  void addInfo(const std::array<bool, NChannels>& vec, const uint16_t code)
+  {
+    int cnt = 0;
+    for (uint8_t ich = 0; ich < NChannels; ich++) {
+      if (vec[ich]) {
+        cnt++;
+      }
+    }
+    if (cnt == 0) {
+      return;
+    }
+    if (cnt < 3) {
+      // Transmission for single channel
+      for (uint8_t ich = 0; ich < NChannels; ich++) {
+        if (vec[ich]) {
+          addInfo(ich, code);
+        }
+      }
+    } else {
+      // Transmission of pattern
+      uint16_t ch = 0x1f;
+      uint16_t info = (code & 0x03ff) | ((ch & 0x1f) << 10);
+      addInfo(info);
+      info = 0x8000;
+      for (uint8_t ich = 0; ich < 15; ich++) {
+        if (vec[ich]) {
+          info = info | (0x1 << ich);
+        }
+      }
+      addInfo(info);
+      info = 0x8000;
+      for (uint8_t ich = 15; ich < NChannels; ich++) {
+        if (vec[ich]) {
+          info = info | (0x1 << (ich - 15));
+        }
+      }
+      addInfo(info);
+    }
+  }
+
   void print() const;
   // TODO: remove persitency of this object (here for debugging)
   ClassDefNV(RecEvent, 1);
