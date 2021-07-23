@@ -14,8 +14,6 @@
 #include "ZDCReconstruction/DigiReco.h"
 #include "ZDCReconstruction/RecoParamZDC.h"
 
-//#define O2_ZDC_FULL_INTERPOLATION
-
 namespace o2
 {
 namespace zdc
@@ -595,6 +593,62 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
   interpolate(itdc, ibeg, iend);
 } // processTrigger
 
+O2_ZDC_DIGIRECO_FLT DigiReco::getPoint(int itdc, int ibeg, int iend, int i){
+  constexpr int nsbun = TSN * NTimeBinsPerBC; // Total number of interpolated points per bunch crossing
+  if (i >= mNtot || i < 0) {
+    LOG(FATAL) << "Error addressing TDC itdc=" << itdc << " i=" << i << " mNtot=" << mNtot;
+    return std::numeric_limits<float>::infinity();
+  }
+  // Constant extrapolation at the beginning and at the end of the array
+  if (i < TSNH) {
+    // Return value of first sample
+    return mFirstSample;
+  } else if (i >= mIlast) {
+    // Return value of last sample
+    return mLastSample;
+  } else {
+    // Identification of the point to be assigned
+    int ibun = ibeg + i / nsbun;
+    // Interpolation between acquired points (N.B. from 0 to mNint)
+    i = i - TSNH;
+    int im = i % TSN;
+    if (im == 0) {
+      // This is an acquired point
+      int ip = (i / TSN) % NTimeBinsPerBC;
+      int ib = ibeg + (i / TSN) / NTimeBinsPerBC;
+      if (ib != ibun) {
+        LOG(FATAL) << "ib=" << ib << " ibun=" << ibun;
+        return std::numeric_limits<float>::infinity();
+      }
+      return mChData[mReco[ibun].ref[TDCSignal[itdc]]].data[ip];
+    } else {
+      // Do the actual interpolation
+      O2_ZDC_DIGIRECO_FLT y = 0;
+      int ip = i / TSN;
+      O2_ZDC_DIGIRECO_FLT sum = 0;
+      for (int is = TSN - im, ii = ip - TSL + 1; is < NTS; is += TSN, ii++) {
+        // Default is first point in the array
+        O2_ZDC_DIGIRECO_FLT yy = mFirstSample;
+        if (ii > 0) {
+          if (ii < mNsam) {
+            int ip = ii % NTimeBinsPerBC;
+            int ib = ibeg + ii / NTimeBinsPerBC;
+            yy = mChData[mReco[ib].ref[TDCSignal[itdc]]].data[ip];
+          } else {
+            // Last acquired point
+            yy = mLastSample;
+          }
+        }
+        sum += mTS[is];
+        y += yy * mTS[is];
+      }
+      y = y / sum;
+      return y;
+    }
+  }
+}
+
+#ifdef O2_ZDC_INTERP_DEBUG
 void DigiReco::setPoint(int itdc, int ibeg, int iend, int i)
 {
   constexpr int nsbun = TSN * NTimeBinsPerBC; // Total number of interpolated points per bunch crossing
@@ -652,6 +706,7 @@ void DigiReco::setPoint(int itdc, int ibeg, int iend, int i)
     }
   }
 }
+#endif
 
 void DigiReco::interpolate(int itdc, int ibeg, int iend)
 {
@@ -692,7 +747,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   mLastSample = mChData[ref_end].data[NTimeBinsPerBC - 1];
 
   // Full interpolation
-#ifdef O2_ZDC_FULL_INTERPOLATION
+#ifdef O2_ZDC_INTERP_DEBUG
   for (int i = 0; i < mNtot; i++) {
     setPoint(itdc, ibeg, iend, i);
   }
@@ -829,12 +884,15 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
     }
     if (is_searchable) {
       int mysam = isam % nsbun;
-#ifndef O2_ZDC_FULL_INTERPOLATION
+#ifndef O2_ZDC_INTERP_DEBUG
       // Perform interpolation for the searched point
-      setPoint(itdc, ibeg, iend, isam);
+      //setPoint(itdc, ibeg, iend, isam);
+      float myval = getPoint(itdc, ibeg, iend, isam);
+#else
+      float myval = mReco[ib_cur].inter[itdc][mysam];
 #endif
-      if (mReco[ib_cur].inter[itdc][mysam] < amp) {
-        amp = mReco[ib_cur].inter[itdc][mysam];
+      if (myval < amp) {
+        amp = myval;
         isam_amp = isam;
       }
     }

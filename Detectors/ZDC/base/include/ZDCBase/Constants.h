@@ -24,6 +24,8 @@
 //#define O2_ZDC_DEBUG
 // TDC arrays in debug output
 //#define O2_ZDC_TDC_C_ARRAY
+// Debug output of full interpolated function
+//#define O2_ZDC_INTERP_DEBUG
 
 namespace o2
 {

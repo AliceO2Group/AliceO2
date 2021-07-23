@@ -172,6 +172,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, recEvent.mRecBC);
   pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0, Lifetime::Timeframe}, recEvent.mEnergy);
   pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0, Lifetime::Timeframe}, recEvent.mTDCData);
+  pc.outputs().snapshot(Output{"ZDC", "INFO", 0, Lifetime::Timeframe}, recEvent.mInfo);
   mTimer.Stop();
   LOG(INFO) << "Reconstructed ZDC data for " << recEvent.mRecBC.size() << " b.c. in " << mTimer.CpuTime() - cput << " s";
 }
@@ -194,6 +195,7 @@ framework::DataProcessorSpec getDigitRecoSpec(const int verbosity = 0, const boo
   outputs.emplace_back("ZDC", "BCREC", 0, Lifetime::Timeframe);
   outputs.emplace_back("ZDC", "ENERGY", 0, Lifetime::Timeframe);
   outputs.emplace_back("ZDC", "TDCDATA", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "INFO", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "zdc-digi-reco",
