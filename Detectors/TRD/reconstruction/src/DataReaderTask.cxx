@@ -122,7 +122,7 @@ void DataReaderTask::run(ProcessingContext& pc)
           }
           mReader.setDataBuffer(payloadIn);
           mReader.setDataBufferSize(payloadInSize);
-          mReader.configure(mByteSwap, mFixDigitEndCorruption, mVerbose, mHeaderVerbose, mDataVerbose);
+          mReader.configure(mByteSwap, mFixDigitEndCorruption, mTrackletHCHeaderState, mVerbose, mHeaderVerbose, mDataVerbose);
           mReader.run();
           if (mVerbose) {
             LOG(info) << "relevant vectors to read : " << mReader.sumTrackletsFound() << " tracklets and " << mReader.sumDigitsFound() << " compressed digits";

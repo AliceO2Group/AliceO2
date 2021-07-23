@@ -35,7 +35,7 @@ namespace o2::trd
 class DataReaderTask : public Task
 {
  public:
-  DataReaderTask(bool compresseddata, bool byteswap, bool fixdigitendcorruption, bool verbose, bool headerverbose, bool dataverbose) : mCompressedData(compresseddata), mByteSwap(byteswap), mFixDigitEndCorruption(fixdigitendcorruption), mVerbose(verbose), mHeaderVerbose(headerverbose), mDataVerbose(dataverbose) {}
+  DataReaderTask(bool compresseddata, bool byteswap, bool fixdigitendcorruption, int tracklethcheader, bool verbose, bool headerverbose, bool dataverbose) : mCompressedData(compresseddata), mByteSwap(byteswap), mFixDigitEndCorruption(fixdigitendcorruption), mTrackletHCHeaderState(tracklethcheader), mVerbose(verbose), mHeaderVerbose(headerverbose), mDataVerbose(dataverbose) {}
   ~DataReaderTask() override = default;
   void init(InitContext& ic) final;
   void sendData(ProcessingContext& pc, bool blankframe = false);
@@ -49,12 +49,14 @@ class DataReaderTask : public Task
                                          // they will internally produce a vector of digits and a vector tracklets and associated indexing.
                                          // TODO templatise this and 2 versions of datareadertask, instantiated with the relevant parser.
 
-  bool mVerbose{false};        // verbos output general debuggign and info output.
-  bool mDataVerbose{false};    // verbose output of data unpacking
-  bool mHeaderVerbose{false};  // verbose output of headers
-  bool mCompressedData{false}; // are we dealing with the compressed data from the flp (send via option)
-  bool mByteSwap{true};        // whether we are to byteswap the incoming data, mc is not byteswapped, raw data is (too be changed in cru at some point)
-                               //  o2::header::DataDescription mDataDesc; // Data description of the incoming data
+  bool mVerbose{false};          // verbos output general debuggign and info output.
+  bool mDataVerbose{false};      // verbose output of data unpacking
+  bool mHeaderVerbose{false};    // verbose output of headers
+  bool mCompressedData{false};   // are we dealing with the compressed data from the flp (send via option)
+  bool mByteSwap{true};          // whether we are to byteswap the incoming data, mc is not byteswapped, raw data is (too be changed in cru at some point)
+                                 //  o2::header::DataDescription mDataDesc; // Data description of the incoming data
+  int mTrackletHCHeaderState{0}; // what to do about tracklethcheader, 0 never there, 2 always there, 1 there iff tracklet data, i.e. only there if next word is *not* endmarker 10001000.
+
   std::string mDataDesc;
   o2::header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
   bool mFixDigitEndCorruption{false};                                                     // fix the parsing of corrupt end of digit data. bounce over it.

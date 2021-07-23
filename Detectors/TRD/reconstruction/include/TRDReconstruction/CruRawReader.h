@@ -58,13 +58,14 @@ class CruRawReader
 
   void checkSummary();
   void resetCounters();
-  void configure(bool byteswap, bool fixdigitcorruption, bool verbose, bool headerverbose, bool dataverbose)
+  void configure(bool byteswap, bool fixdigitcorruption, int tracklethcheader, bool verbose, bool headerverbose, bool dataverbose)
   {
     mByteSwap = byteswap;
     mVerbose = verbose;
     mHeaderVerbose = headerverbose;
     mDataVerbose = dataverbose;
     mFixDigitEndCorruption = fixdigitcorruption;
+    mTrackletHCHeaderState = tracklethcheader;
   }
   void setBlob(bool returnblob) { mReturnBlob = returnblob; }; //set class to produce blobs and not vectors. (compress vs pass through)`
   void setDataBuffer(const char* val)
@@ -130,6 +131,8 @@ class CruRawReader
   bool mDataVerbose{false};
   bool mByteSwap{false};
   bool mFixDigitEndCorruption{false};
+  int mTrackletHCHeaderState{0};
+
   const char* mDataBuffer = nullptr;
   static const uint32_t mMaxHBFBufferSize = o2::trd::constants::HBFBUFFERMAX;
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX> mHBFPayload; //this holds the O2 payload held with in the HBFs to pass to parsing.
