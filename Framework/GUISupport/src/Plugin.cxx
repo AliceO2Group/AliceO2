@@ -41,6 +41,22 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
   {
     return o2::framework::pollGUI(context, guiCallback);
   }
+  void getFrameJSON(void *data, std::ostream& json_data) override
+  {
+    o2::framework::getFrameJSON(data, json_data);
+  }
+  bool pollGUI_gl_init(void* context) override
+  {
+    return o2::framework::pollGUI_gl_init(context);
+  }
+  void* pollGUI_render(std::function<void(void)> guiCallback) override
+  {
+    return o2::framework::pollGUI_render(guiCallback);
+  }
+  void pollGUI_gl_end(void* context, void* draw_data) override
+  {
+    o2::framework::pollGUI_gl_end(context, draw_data);
+  }
   void disposeGUI() override
   {
     o2::framework::disposeGUI();

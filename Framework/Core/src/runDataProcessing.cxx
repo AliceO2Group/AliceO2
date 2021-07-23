@@ -101,6 +101,7 @@
 #include <numeric>
 #include <functional>
 #include <iostream>
+#include <sstream>
 
 #include <fcntl.h>
 #include <netinet/ip.h>
@@ -1186,7 +1187,12 @@ void gui_callback(uv_timer_s* ctx)
   }
   uint64_t frameStart = uv_hrtime();
   uint64_t frameLatency = frameStart - gui->frameLast;
-  *(gui->guiQuitRequested) = (gui->plugin->pollGUI(gui->window, gui->callback) == false);
+  if (gui->plugin->pollGUI_gl_init(gui->window)) {
+    void *draw_data = gui->plugin->pollGUI_render(gui->callback);
+    gui->plugin->pollGUI_gl_end(gui->window, draw_data);
+  } else {
+    *(gui->guiQuitRequested) = true;
+  }
   uint64_t frameEnd = uv_hrtime();
   *(gui->frameCost) = (frameEnd - frameStart) / 1000000;
   *(gui->frameLatency) = frameLatency / 1000000;

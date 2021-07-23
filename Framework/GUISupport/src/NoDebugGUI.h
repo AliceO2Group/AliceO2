@@ -30,7 +30,26 @@ static inline bool pollGUI(void* context, std::function<void(void)> guiCallback)
   // returns whether quit is requested, we return 'no'
   return false;
 }
+
 static inline void disposeGUI()
+{
+}
+
+static inline void getFrameJSON(void *data, std::ostream& json_data) override
+{
+}
+
+static inline bool pollGUI_gl_init(void* context) override
+{
+  return true;
+}
+
+static inline void* pollGUI_render(std::function<void(void)> guiCallback) override
+{
+  return nullptr;
+}
+
+static inline void pollGUI_gl_end(void* context, void* draw_data) override
 {
 }
 
