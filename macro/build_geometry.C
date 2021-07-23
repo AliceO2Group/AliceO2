@@ -203,11 +203,7 @@ void build_geometry(FairRunSim* run = nullptr)
     auto ft3 = new o2::ft3::Detector(true);
     run->AddModule(ft3);
   }
-  if (isActivated("PSR")) {
-    // ALICE 3 PSR
-    auto psr = new o2::psr::Detector(true);
-    run->AddModule(psr);
-  }
+
   if (isActivated("PSR")) {
     // ALICE 3 PSR
     auto psr = new o2::psr::Detector(true);
