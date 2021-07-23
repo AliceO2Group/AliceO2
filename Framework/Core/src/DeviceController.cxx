@@ -15,7 +15,6 @@
 #include "Framework/Logger.h"
 #include <uv.h>
 #include <vector>
-#include <iostream>
 
 namespace o2::framework
 {

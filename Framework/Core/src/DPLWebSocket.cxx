@@ -22,7 +22,6 @@
 #include <uv.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <iostream>
 
 namespace o2::framework
 {
@@ -97,6 +96,14 @@ WSDPLHandler::WSDPLHandler(uv_stream_t* s, DriverServerContext* context, std::un
 {
 }
 
+WSDPLHandler::~WSDPLHandler()
+{
+  if (mGUI) {
+    const std::lock_guard<std::mutex> lock(mServerContext->gui->lock);
+    mServerContext->gui->drawCallbacks.erase(mHeaders["sec-websocket-key"]);
+  }
+}
+
 void WSDPLHandler::method(std::string_view const& s)
 {
   if (s != "GET") {
@@ -169,20 +176,19 @@ void WSDPLHandler::endHeaders()
   } else {
     LOG(INFO) << "Connection not bound to a PID";
     mGUI = true;
-    mHandler->isGUI = true;
+    auto drawCallback = [this](std::string& json) {
+      std::vector<uv_buf_t> outputs;
+      encode_websocket_frames(outputs, json.c_str(), json.length(), WebSocketOpCode::Text, 0);
+      write(outputs);
+    };
+    const std::lock_guard<std::mutex> lock(mServerContext->gui->lock);
+    mServerContext->gui->drawCallbacks.insert(std::pair<std::string, std::function<void(std::string&)>>(mHeaders["sec-websocket-key"], drawCallback));
   }
 }
 
 /// Actual handling of WS frames happens inside here.
 void WSDPLHandler::body(char* data, size_t s)
 {
-  if (mGUI) {
-    std::cout << "GUI RECEIVED: " << std::string(data, s) << std::endl;
-    //char const *message = "hello gui";
-    //std::vector<uv_buf_t> outputs;
-    //encode_websocket_frames(outputs, message, s, WebSocketOpCode::Text, 0);
-    //write(outputs);
-  }
   decode_websocket(data, s, *mHandler.get());
 }
 
