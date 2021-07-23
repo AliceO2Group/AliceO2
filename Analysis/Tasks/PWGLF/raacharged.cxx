@@ -178,14 +178,15 @@ struct raacharged {
       if (!isMC) {
         continue;
       }
-      if (MC::isPhysicalPrimary(mcParticles, track.mcParticle())) {
+      const auto particle = track.mcParticle();
+      if (MC::isPhysicalPrimary<aod::McParticles>(particle)) {
         mcInfoVal = 0.0;
       } else {
         mcInfoVal = 1.0;
       }
 
-      Double_t MCpt = track.mcParticle().pt();
-      Double_t parType = (Double_t)WhichParticle(track.mcParticle().pdgCode());
+      Double_t MCpt = particle.pt();
+      Double_t parType = (Double_t)WhichParticle(particle.pdgCode());
       Double_t MCcharge = (Double_t)track.sign();
       Double_t MCvalues[4] = {MCpt, parType, mcInfoVal, MCcharge};
 
@@ -197,7 +198,7 @@ struct raacharged {
         if (abs(mcParticle.eta()) > 0.8) {
           continue;
         }
-        if (!MC::isPhysicalPrimary(mcParticles, mcParticle)) {
+        if (!MC::isPhysicalPrimary<aod::McParticles>(mcParticle)) {
           continue;
         }
 

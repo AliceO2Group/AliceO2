@@ -319,6 +319,8 @@ struct HfCorrelatorDplusDminusMcRec {
   }
 };
 
+using MCParticlesPlus = soa::Join<aod::McParticles, aod::HfCandProng3MCGen>;
+
 /// Dplus-Dminus correlation pair builder - for MC gen-level analysis (no filter/selection, only true signal)
 struct HfCorrelatorDplusDminusMcGen {
 
@@ -344,7 +346,7 @@ struct HfCorrelatorDplusDminusMcGen {
     registry.add("hcountDplustriggersMCGen", "Dplus trigger particles - MC gen;;N of trigger D0", {HistType::kTH2F, {{1, -0.5, 0.5}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  void process(aod::McCollision const& mccollision, soa::Join<aod::McParticles, aod::HfCandProng3MCGen> const& particlesMC)
+  void process(aod::McCollision const& mccollision, MCParticlesPlus const& particlesMC)
   {
     int counterDplusDminus = 0;
     registry.fill(HIST("hMCEvtCount"), 0);
@@ -403,12 +405,12 @@ struct HfCorrelatorDplusDminusMcGen {
               registry.fill(HIST("hDDbarVsEtaCut"), etaCut - epsilon, ptCut + epsilon);
             }
             if (rightDecayChannels) { //fill with D and Dbar daughter particls acceptance checks
-              double etaCandidate1Daughter1 = particlesMC.iteratorAt(particle1.daughter0()).eta();
-              double etaCandidate1Daughter2 = particlesMC.iteratorAt(particle1.daughter0() + 1).eta();
-              double etaCandidate1Daughter3 = particlesMC.iteratorAt(particle1.daughter0() + 2).eta();
-              double etaCandidate2Daughter1 = particlesMC.iteratorAt(particle2.daughter0()).eta();
-              double etaCandidate2Daughter2 = particlesMC.iteratorAt(particle2.daughter0() + 1).eta();
-              double etaCandidate2Daughter3 = particlesMC.iteratorAt(particle2.daughter0() + 2).eta();
+              double etaCandidate1Daughter1 = particle1.daughter0_as<MCParticlesPlus>().eta();
+              double etaCandidate1Daughter2 = (particle1.daughter0_as<MCParticlesPlus>() + 1).eta();
+              double etaCandidate1Daughter3 = (particle1.daughter0_as<MCParticlesPlus>() + 2).eta();
+              double etaCandidate2Daughter1 = particle2.daughter0_as<MCParticlesPlus>().eta();
+              double etaCandidate2Daughter2 = (particle2.daughter0_as<MCParticlesPlus>() + 1).eta();
+              double etaCandidate2Daughter3 = (particle2.daughter0_as<MCParticlesPlus>() + 2).eta();
               if (std::abs(etaCandidate1Daughter1) < etaCut && std::abs(etaCandidate1Daughter2) < etaCut && std::abs(etaCandidate1Daughter3) < etaCut &&
                   std::abs(etaCandidate2Daughter1) < etaCut && std::abs(etaCandidate2Daughter2) < etaCut && std::abs(etaCandidate2Daughter3) < etaCut &&
                   particle1.pt() > ptCut && particle2.pt() > ptCut) {
@@ -715,6 +717,8 @@ struct HfCorrelatorDplusDminusMcGenLs {
   }
 };
 
+using MCParticlesPlus2 = soa::Join<aod::McParticles, aod::HfCandProng2MCGen>;
+
 /// c-cbar correlator table builder - for MC gen-level analysis
 struct HfCorrelatorCCbarMcGen {
 
@@ -739,7 +743,7 @@ struct HfCorrelatorCCbarMcGen {
     registry.add("hcountCtriggersMCGen", "c trigger particles - MC gen;;N of trigger c quark", {HistType::kTH2F, {{1, -0.5, 0.5}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  void process(aod::McCollision const& mccollision, soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particlesMC)
+  void process(aod::McCollision const& mccollision, MCParticlesPlus2 const& particlesMC)
   {
     registry.fill(HIST("hMCEvtCount"), 0);
     int counterccbar = 0, counterccbarPreEtasel = 0;
@@ -749,7 +753,7 @@ struct HfCorrelatorCCbarMcGen {
       if (std::abs(particle1.pdgCode()) != PDG_t::kCharm) { //search c or cbar particles
         continue;
       }
-      int partMothPDG = particlesMC.iteratorAt(particle1.mother0()).pdgCode();
+      int partMothPDG = particle1.mother0_as<MCParticlesPlus2>().pdgCode();
       //check whether mothers of quark c/cbar are still '4'/'-4' particles - in that case the c/cbar quark comes from its own fragmentation, skip it
       if (partMothPDG == particle1.pdgCode()) {
         continue;
@@ -786,7 +790,7 @@ struct HfCorrelatorCCbarMcGen {
           continue;
         }
         //check whether mothers of quark cbar (from associated loop) are still '-4' particles - in that case the cbar quark comes from its own fragmentation, skip it
-        if (particlesMC.iteratorAt(particle2.mother0()).pdgCode() == PDG_t::kCharmBar) {
+        if (particle2.mother0_as<MCParticlesPlus2>().pdgCode() == PDG_t::kCharmBar) {
           continue;
         }
         entryccbarPair(getDeltaPhi(particle2.phi(), particle1.phi()),
@@ -824,7 +828,7 @@ struct HfCorrelatorCCbarMcGenLs {
     registry.add("hcountCtriggersMCGen", "c trigger particles - MC gen;;N of trigger c quark", {HistType::kTH2F, {{1, -0.5, 0.5}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  void process(aod::McCollision const& mccollision, soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particlesMC)
+  void process(aod::McCollision const& mccollision, MCParticlesPlus2 const& particlesMC)
   {
     registry.fill(HIST("hMCEvtCount"), 0);
     int counterccbar = 0, counterccbarPreEtasel = 0;
@@ -834,7 +838,7 @@ struct HfCorrelatorCCbarMcGenLs {
       if (std::abs(particle1.pdgCode()) != PDG_t::kCharm) { //search c or cbar particles
         continue;
       }
-      int partMothPDG = particlesMC.iteratorAt(particle1.mother0()).pdgCode();
+      int partMothPDG = particle1.mother0_as<MCParticlesPlus2>().pdgCode();
       //check whether mothers of quark c/cbar are still '4'/'-4' particles - in that case the c/cbar quark comes from its own fragmentation, skip it
       if (partMothPDG == particle1.pdgCode()) {
         continue;
@@ -868,7 +872,7 @@ struct HfCorrelatorCCbarMcGenLs {
         }
         if (particle2.pdgCode() == particle1.pdgCode()) {
           //check whether mothers of quark cbar (from associated loop) are still '-4' particles - in that case the cbar quark comes from its own fragmentation, skip it
-          if (particlesMC.iteratorAt(particle2.mother0()).pdgCode() == particle2.pdgCode()) {
+          if (particle2.mother0_as<MCParticlesPlus2>().pdgCode() == particle2.pdgCode()) {
             continue;
           }
           //Excluding self-correlations (in principle not possible due to the '<' condition, but could rounding break it?)

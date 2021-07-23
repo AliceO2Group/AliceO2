@@ -554,11 +554,11 @@ class RecoDecay
     if (sign) {
       *sign = sgn;
     }
-    while (particleMother.mother0() > -1) {
+    while (particleMother.has_mother0()) {
       if (depthMax > -1 && -stage >= depthMax) { // Maximum depth has been reached.
         return -1;
       }
-      auto indexMotherTmp = particleMother.mother0();
+      auto indexMotherTmp = particleMother.mother0Id();
       particleMother = particlesMC.iteratorAt(indexMotherTmp);
       // Check mother's PDG code.
       auto PDGParticleIMother = particleMother.pdgCode(); // PDG code of the mother
@@ -609,8 +609,8 @@ class RecoDecay
       isFinal = true;
     }
     // Get the range of daughter indices.
-    int indexDaughterFirst = particle.daughter0();
-    int indexDaughterLast = particle.daughter1();
+    int indexDaughterFirst = particle.daughter0Id();
+    int indexDaughterLast = particle.daughter1Id();
     // Check whether there are any daughters.
     if (!isFinal && indexDaughterFirst <= -1 && indexDaughterLast <= -1) {
       // If the original particle has no daughters, we do nothing and exit.
@@ -709,8 +709,8 @@ class RecoDecay
         }
         //Printf("MC Rec: Good mother: %d", indexMother);
         auto particleMother = particlesMC.iteratorAt(indexMother);
-        int indexDaughterFirst = particleMother.daughter0(); // index of the first direct daughter
-        int indexDaughterLast = particleMother.daughter1();  // index of the last direct daughter
+        int indexDaughterFirst = particleMother.daughter0Id(); // index of the first direct daughter
+        int indexDaughterLast = particleMother.daughter1Id();  // index of the last direct daughter
         // Check the daughter indices.
         if (indexDaughterFirst <= -1 && indexDaughterLast <= -1) {
           //Printf("MC Rec: Rejected: bad daughter index range: %d-%d", indexDaughterFirst, indexDaughterLast);
@@ -828,9 +828,9 @@ class RecoDecay
     // Check the PDG codes of the decay products.
     if (N > 0) {
       //Printf("MC Gen: Checking %d daughters", N);
-      std::vector<int> arrAllDaughtersIndex;          // vector of indices of all daughters
-      int indexDaughterFirst = candidate.daughter0(); // index of the first direct daughter
-      int indexDaughterLast = candidate.daughter1();  // index of the last direct daughter
+      std::vector<int> arrAllDaughtersIndex;            // vector of indices of all daughters
+      int indexDaughterFirst = candidate.daughter0Id(); // index of the first direct daughter
+      int indexDaughterLast = candidate.daughter1Id();  // index of the last direct daughter
       // Check the daughter indices.
       if (indexDaughterFirst <= -1 && indexDaughterLast <= -1) {
         //Printf("MC Gen: Rejected: bad daughter index range: %d-%d", indexDaughterFirst, indexDaughterLast);
