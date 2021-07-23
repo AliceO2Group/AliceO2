@@ -49,10 +49,11 @@ ClassImp(o2::ft3::GeometryTGeo);
 
 std::unique_ptr<o2::ft3::GeometryTGeo> GeometryTGeo::sInstance;
 
-std::string GeometryTGeo::sVolumeName = "FT3V";      ///< Mother volume name
-std::string GeometryTGeo::sLayerName = "FT3Layer";   ///< Layer name
-std::string GeometryTGeo::sChipName = "FT3Chip";     ///< Sensor name
-std::string GeometryTGeo::sSensorName = "FT3Sensor"; ///< Sensor name
+std::string GeometryTGeo::sVolumeName = "FT3V";          ///< Mother volume name
+std::string GeometryTGeo::sInnerVolumeName = "FT3Inner"; ///< Mother inner volume name
+std::string GeometryTGeo::sLayerName = "FT3Layer";       ///< Layer name
+std::string GeometryTGeo::sChipName = "FT3Chip";         ///< Sensor name
+std::string GeometryTGeo::sSensorName = "FT3Sensor";     ///< Sensor name
 
 //__________________________________________________________________________
 GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo(DetID::FT3)

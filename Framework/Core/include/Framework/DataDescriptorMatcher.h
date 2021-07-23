@@ -265,7 +265,7 @@ class DataDescriptorMatcher
   DataDescriptorMatcher& operator=(DataDescriptorMatcher&& other) = default;
 
   /// Unary operator on a node
-  DataDescriptorMatcher(Op op, Node&& lhs, Node&& rhs = std::move(ConstantValueMatcher{false}));
+  DataDescriptorMatcher(Op op, Node&& lhs, Node&& rhs = ConstantValueMatcher{false});
 
   inline ~DataDescriptorMatcher() = default;
 

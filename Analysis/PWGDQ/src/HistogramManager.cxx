@@ -76,7 +76,7 @@ HistogramManager::~HistogramManager()
   // De-constructor
   //
   delete fMainList;
-  delete fUsedVars;
+  delete[] fUsedVars;
 }
 
 //_______________________________________________________________________________
