@@ -458,12 +458,15 @@ int DigiReco::reconstruct(int ibeg, int iend)
           // instead of event pedestal
           if (hasEvPed) {
             myPed = evPed;
-            rec.ped[ich] = PedEv;
-          } else if (mSource[ich] == PedOr || mSource[ich] == PedQC) {
+            rec.adcPedEv[ich] = true;
+          } else if (mSource[ich] == PedOr) {
             myPed = mOffset[ich];
-            rec.ped[ich] = mSource[ich];
+            rec.adcPedOr[ich] = true;
+          } else if (mSource[ich] == PedQC) {
+            myPed = mOffset[ich];
+            rec.adcPedQC[ich] = true;
           } else {
-            rec.ped[ich] = PedMissing;
+            rec.adcPedMissing[ich] = true;
           }
           if (myPed < std::numeric_limits<float>::infinity()) {
             float sum = 0;
@@ -472,15 +475,9 @@ int DigiReco::reconstruct(int ibeg, int iend)
               // TODO: manage signal positioned across boundary
               sum += (myPed - float(mChData[ref].data[is]));
             }
-            // #ifdef O2_ZDC_DEBUG
-            //             printf("CH %2d %s: %8.3f %sped=%8.3f %soff=%8.3f %sQC=%8.3f\n", ich, ChannelNames[ich].data(), sum,
-            //                    rec.ped[ich] == PedEv ? "*" : "", evPed,
-            //                    rec.ped[ich] == PedOr ? "*" : "", pbun[ich],
-            //                    rec.ped[ich] == PedQC ? "*" : "", QCPed);
-            // #endif
             rec.ezdc[ich] = sum * ropt.energy_calib[ich];
           } else {
-            LOGF(WARN, "%d.%-4d CH %2d %s missing pedestal", rec.ir.orbit, rec.ir.bc, ich, ChannelNames[ich].data(), rec.ped[ich]);
+            LOGF(WARN, "%d.%-4d CH %2d %s missing pedestal", rec.ir.orbit, rec.ir.bc, ich, ChannelNames[ich].data());
           }
         } else {
           LOG(FATAL) << "Serious mess in reconstruction code";

@@ -32,14 +32,6 @@ namespace zdc
 
 struct RecEventAux : public RecEventFlat {
   uint32_t flags; /// reconstruction flags
-  std::array<bool, NChannels> tdcPedEv;
-  std::array<bool, NChannels> tdcPedOr;
-  std::array<bool, NChannels> tdcPedQC;
-  std::array<bool, NChannels> tdcPedMissing;
-  std::array<bool, NChannels> adcPedEv;
-  std::array<bool, NChannels> adcPedOr;
-  std::array<bool, NChannels> adcPedQC;
-  std::array<bool, NChannels> adcPedMissing;
 #ifdef O2_ZDC_TDC_C_ARRAY
   int16_t tdcVal[NTDCChannels][MaxTDCValues]; /// TdcChannels
   int16_t tdcAmp[NTDCChannels][MaxTDCValues]; /// TdcAmplitudes
@@ -49,7 +41,6 @@ struct RecEventAux : public RecEventFlat {
   uint16_t fired[NTDCChannels] = {0};     /// Position at which the trigger algorithm is fired
   uint32_t ref[NChannels];                /// Cache of references
   std::array<bool, NChannels> err;        /// Generic error condition
-  std::array<uint8_t, NChannels> ped;     /// Pedestal subtraction employed
 #ifdef O2_ZDC_INTERP_DEBUG
   float inter[NTDCChannels][NTimeBinsPerBC * TSN] = {0}; /// Interpolated samples
 #endif

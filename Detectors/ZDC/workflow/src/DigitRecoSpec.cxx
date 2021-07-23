@@ -168,7 +168,9 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     // Event information
     recEvent.addInfo(reca.tdcPedQC, MsgTDCPedQC);
     recEvent.addInfo(reca.tdcPedMissing, MsgTDCPedMissing);
-    
+    recEvent.addInfo(reca.adcPedOr, MsgADCPedOr);
+    recEvent.addInfo(reca.adcPedQC, MsgADCPedQC);
+    recEvent.addInfo(reca.adcPedMissing, MsgADCPedMissing);
   }
   LOG(INFO) << "Reconstructed " << ntt << " signal TDCs and " << nte << " energies";
   // TODO: rate information for all channels

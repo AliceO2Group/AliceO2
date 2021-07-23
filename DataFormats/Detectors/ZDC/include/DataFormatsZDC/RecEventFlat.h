@@ -44,6 +44,14 @@ struct RecEventFlat {
   std::vector<uint16_t>* mInfo;               //! Event quality information
   uint64_t mEntry = 0;                        //! Current entry
   uint64_t mNEntries = 0;                     //! Number of entries
+  std::array<bool, NChannels> tdcPedEv;       /// Event pedestal for TDC
+  std::array<bool, NChannels> tdcPedOr;       /// Orbit pedestal for TDC
+  std::array<bool, NChannels> tdcPedQC;       /// QC pedestal for TDC
+  std::array<bool, NChannels> tdcPedMissing;  /// Missing pedestal for ADC
+  std::array<bool, NChannels> adcPedEv;       /// Event pedestal for ADC
+  std::array<bool, NChannels> adcPedOr;       /// Orbit pedestal for ADC
+  std::array<bool, NChannels> adcPedQC;       /// QC pedestal for ADC
+  std::array<bool, NChannels> adcPedMissing;  /// Missing pedestal for ADC
 
   void init(std::vector<o2::zdc::BCRecData>* RecBC, std::vector<o2::zdc::ZDCEnergy>* Energy, std::vector<o2::zdc::ZDCTDCData>* TDCData, std::vector<uint16_t>* Info);
 
@@ -127,6 +135,9 @@ struct RecEventFlat {
   float EZPC3() { return EZDC(IdZPC3); }
   float EZPC4() { return EZDC(IdZPC4); }
   float EZPCSum() { return EZDC(IdZPCSum); }
+
+  void decodeInfo(uint8_t ch, uint16_t code);
+  void decodeMapInfo(uint32_t ch, uint16_t code);
 
   void print() const;
   ClassDefNV(RecEventFlat, 1);
