@@ -180,7 +180,7 @@ void WSDPLHandler::body(char* data, size_t s)
     std::cout << "GUI RECEIVED: " << std::string(data, s) << std::endl;
     //char const *message = "hello gui";
     //std::vector<uv_buf_t> outputs;
-    //encode_websocket_frames(outputs, message, s, WebSocketOpCode::Binary, 0);
+    //encode_websocket_frames(outputs, message, s, WebSocketOpCode::Text, 0);
     //write(outputs);
   }
   decode_websocket(data, s, *mHandler.get());
