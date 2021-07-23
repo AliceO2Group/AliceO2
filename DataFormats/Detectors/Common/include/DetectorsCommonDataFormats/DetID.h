@@ -12,7 +12,6 @@
 /// @brief ALICE detectors ID's, names, masks
 ///
 /// @author Ruben Shahoyan, ruben.shahoyan@cern.ch
-//
 /*!
   Example of class usage:
   using namespace o2::base;
