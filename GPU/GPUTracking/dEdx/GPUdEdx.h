@@ -22,6 +22,8 @@
 #include "GPUdEdxInfo.h"
 #if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_OPENCL1)
 #include "TPCdEdxCalibrationSplines.h"
+#include "DataFormatsTPC/Defs.h"
+#include "DataFormatsTPC/CalibdEdxCorrection.h"
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -34,7 +36,7 @@ class GPUdEdx
 {
  public:
   GPUd() void clear() {}
-  GPUd() void fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& param, const TPCdEdxCalibrationSplines* splines, float z) {}
+  GPUd() void fillCluster(float qtot, float qmax, int padRow, unsigned char slice, float trackSnp, float trackTgl, const GPUParam& param, const GPUCalibObjectsConst& calib, float z) {}
   GPUd() void fillSubThreshold(int padRow, const GPUParam& param) {}
   GPUd() void computedEdx(GPUdEdxInfo& output, const GPUParam& param) {}
 };
@@ -46,7 +48,7 @@ class GPUdEdx
  public:
   // The driver must call clear(), fill clusters row by row outside-in, then run computedEdx() to get the result
   GPUd() void clear();
-  GPUd() void fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& param, const TPCdEdxCalibrationSplines* splines, float z);
+  GPUd() void fillCluster(float qtot, float qmax, int padRow, unsigned char slice, float trackSnp, float trackTgl, const GPUParam& param, const GPUCalibObjectsConst& calib, float z);
   GPUd() void fillSubThreshold(int padRow, const GPUParam& param);
   GPUd() void computedEdx(GPUdEdxInfo& output, const GPUParam& param);
 
@@ -106,7 +108,7 @@ GPUdi() void GPUdEdx::checkSubThresh(int roc)
   mLastROC = roc;
 }
 
-GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float trackSnp, float trackTgl, const GPUParam& GPUrestrict() param, const TPCdEdxCalibrationSplines* splines, float z)
+GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned char slice, float trackSnp, float trackTgl, const GPUParam& GPUrestrict() param, const GPUCalibObjectsConst& calib, float z)
 {
   if (mCount >= MAX_NCL) {
     return;
@@ -134,10 +136,23 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, float tr
   z = CAMath::Abs(z);
 
   // get the correction for qMax and qTot from the splines for given angle and drift length
+  auto splines = calib.dEdxSplines;
   const float qMaxCorr = splines->interpolateqMax(region, angleZ, z);
   const float qTotCorr = splines->interpolateqTot(region, angleZ, z);
   qmax /= qMaxCorr;
   qtot /= qTotCorr;
+
+  auto residualCalib = calib.dEdxCorrection;
+  if (residualCalib != nullptr) {
+    tpc::StackID stack{
+      slice,
+      static_cast<tpc::GEMstack>(roc)};
+
+    const float qMaxResidualCorr = residualCalib->getCorrection(stack, tpc::ChargeType::Max, z, trackTgl);
+    const float qTotResidualCorr = residualCalib->getCorrection(stack, tpc::ChargeType::Tot, z, trackTgl);
+    qmax /= qMaxResidualCorr;
+    qtot /= qTotResidualCorr;
+  }
 
   mChargeTot[mCount] = (GPUCA_DEDX_STORAGE_TYPE)(qtot * scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::factor + scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::round);
   mChargeMax[mCount++] = (GPUCA_DEDX_STORAGE_TYPE)(qmax * scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::factor + scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::round);
