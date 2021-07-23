@@ -18,6 +18,7 @@
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/ServiceSpec.h"
+#include "GuiCallbackContext.h"
 
 #include <uv.h>
 #include <vector>
@@ -36,6 +37,7 @@ struct DriverServerContext {
   std::vector<DeviceMetricsInfo>* metrics = nullptr;
   std::vector<ServiceMetricHandling>* metricProcessingCallbacks;
   DriverInfo* driver;
+  GuiCallbackContext* gui;
 };
 } // namespace o2::framework
 
