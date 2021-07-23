@@ -338,12 +338,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         requestedAODs.emplace_back(input);
       }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"DYN"})) {
-        if (std::find_if(requestedDYNs.begin(), requestedDYNs.end(), [&](InputSpec const& spec) { return input.binding == spec.binding; }) == requestedDYNs.end()) {
+        if (std::find_if(requestedDYNs.begin(), requestedDYNs.end(), [&](InputSpec const& spec) { return DataSpecUtils::includes(input, spec); }) == requestedDYNs.end()) {
           requestedDYNs.emplace_back(input);
         }
       }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"IDX"})) {
-        if (std::find_if(requestedIDXs.begin(), requestedIDXs.end(), [&](InputSpec const& spec) { return input.binding == spec.binding; }) == requestedIDXs.end()) {
+        if (std::find_if(requestedIDXs.begin(), requestedIDXs.end(), [&](InputSpec const& spec) { return DataSpecUtils::includes(input, spec); }) == requestedIDXs.end()) {
           requestedIDXs.emplace_back(input);
         }
       }
@@ -371,7 +371,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       }
     }
   }
-  auto sortingEquals = [](InputSpec const& a, InputSpec const& b) { return DataSpecUtils::describe(a) == DataSpecUtils::describe(b); };
+  auto sortingEquals = [](InputSpec const& a, InputSpec const& b) { return DataSpecUtils::includes(a, b); };
   std::sort(requestedDYNs.begin(), requestedDYNs.end(), sortingEquals);
   auto last = std::unique(requestedDYNs.begin(), requestedDYNs.end());
   requestedDYNs.erase(last, requestedDYNs.end());
