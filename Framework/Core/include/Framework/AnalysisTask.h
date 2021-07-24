@@ -95,7 +95,18 @@ struct AnalysisDataProcessorBuilder {
       inputSources.erase(last, inputSources.end());
       inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
     }
-    inputs.push_back(InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), Lifetime::Timeframe, inputMetadata});
+    auto locate = std::find_if(inputs.begin(), inputs.end(), [](InputSpec& input) { return input.binding == metadata::tableLabel(); });
+    if (locate != inputs.end()) {
+      // amend entry
+      auto entryMetadata = locate->metadata;
+      entryMetadata.insert(entryMetadata.begin(), inputMetadata.front());
+      entryMetadata.insert(entryMetadata.end(), inputMetadata.begin() + 1, inputMetadata.end());
+      auto new_end = std::unique(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
+      entryMetadata.erase(new_end, entryMetadata.end());
+    } else {
+      // add entry
+      inputs.push_back(InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), Lifetime::Timeframe, inputMetadata});
+    }
   }
 
   template <typename... Args>
@@ -622,60 +633,20 @@ struct TaskName {
   std::string value;
 };
 
-///
-template <typename... Ts>
-struct Processes {
-  Processes(Ts&&... args) : processes{std::make_tuple(args...)}
-  {
-  }
-  std::tuple<Ts...> processes;
-};
-
-template <typename T, typename... S, typename... A>
-auto getNameTaskProcesses(TaskName first, Processes<S...> second, A... args)
+template <typename T, typename... A>
+auto getTaskName(TaskName first, A... args)
 {
   auto task = std::make_shared<T>(std::forward<A>(args)...);
-  return std::make_tuple(first.value, task, second.processes);
-}
-
-template <typename T, typename... S, typename... A>
-auto getNameTaskProcesses(Processes<S...> first, TaskName second, A... args)
-{
-  auto task = std::make_shared<T>(std::forward<A>(args)...);
-  return std::make_tuple(second.value, task, first.processes);
+  return std::make_tuple(first.value, task);
 }
 
 template <typename T, typename... A>
-auto getNameTaskProcesses(TaskName first, A... args)
+auto getTaskName(A... args)
 {
   auto task = std::make_shared<T>(std::forward<A>(args)...);
-  if constexpr (has_process_v<T>) {
-    return std::make_tuple(first.value, task, std::make_tuple(&T::process));
-  } else {
-    return std::make_tuple(first.value, task, std::make_tuple());
-  }
-}
-
-template <typename T, typename... S, typename... A>
-auto getNameTaskProcesses(Processes<S...> first, A... args)
-{
   auto type_name_str = type_name<T>();
   std::string name = type_to_task_name(type_name_str);
-  auto task = std::make_shared<T>(std::forward<A>(args)...);
-  return std::make_tuple(name, task, first.processes);
-}
-
-template <typename T>
-auto getNameTaskProcesses()
-{
-  auto type_name_str = type_name<T>();
-  std::string name = type_to_task_name(type_name_str);
-  auto task = std::make_shared<T>();
-  if constexpr (has_process_v<T>) {
-    return std::make_tuple(name, task, std::make_tuple(&T::process));
-  } else {
-    return std::make_tuple(name, task, std::make_tuple());
-  }
+  return std::make_tuple(name, task);
 }
 
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
@@ -685,7 +656,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 {
   TH1::AddDirectory(false);
 
-  auto [name_str, task, processTuple] = getNameTaskProcesses<T>(args...);
+  auto [name_str, task] = getTaskName<T>(args...);
 
   auto suffix = ctx.options().get<std::string>("workflow-suffix");
   if (!suffix.empty()) {
@@ -744,7 +715,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
   homogeneous_apply_refs([&outputs, &hash](auto& x) { return OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x, hash); }, *task.get());
 
-  auto algo = AlgorithmSpec::InitCallback{[task = task, processTuple = processTuple, expressionInfos](InitContext& ic) mutable {
+  auto algo = AlgorithmSpec::InitCallback{[task = task, expressionInfos](InitContext& ic) mutable {
     homogeneous_apply_refs([&ic](auto&& x) { return OptionManager<std::decay_t<decltype(x)>>::prepare(ic, x); }, *task.get());
     homogeneous_apply_refs([&ic](auto&& x) { return ServiceManager<std::decay_t<decltype(x)>>::prepare(ic, x); }, *task.get());
 
@@ -773,7 +744,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       task->init(ic);
     }
 
-    return [task, processTuple, expressionInfos](ProcessingContext& pc) {
+    return [task, expressionInfos](ProcessingContext& pc) {
       homogeneous_apply_refs([&pc](auto&& x) { return OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x); }, *task.get());
       if constexpr (has_run_v<T>) {
         task->run(pc);

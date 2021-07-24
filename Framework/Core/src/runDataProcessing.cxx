@@ -1479,7 +1479,68 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (driverInfo.batch == true && workflowState == WorkflowParsingState::Empty) {
             throw runtime_error("Empty workflow provided while running in batch mode.");
           }
-          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
+
+          /// extract and apply process switches
+          /// prune device inputs
+          auto altered_workflow = workflow;
+
+          auto confNameFromParam = [](std::string const& paramName) {
+            std::regex name_regex(R"(^control:([\w-]+)\/(\w+))");
+            auto match = std::sregex_token_iterator(paramName.begin(), paramName.end(), name_regex, 0);
+            if (match == std::sregex_token_iterator()) {
+              throw runtime_error_f("Malformed process control spec: %s", paramName.c_str());
+            }
+            std::string task = std::sregex_token_iterator(paramName.begin(), paramName.end(), name_regex, 1)->str();
+            std::string conf = std::sregex_token_iterator(paramName.begin(), paramName.end(), name_regex, 2)->str();
+            return std::pair{task, conf};
+          };
+
+          for (auto& device : altered_workflow) {
+            LOGF(DEBUG, "Adjusting device %s", device.name.c_str());
+            // ignore internal devices
+            if (device.name.find("internal") != std::string::npos) {
+              continue;
+            }
+            // ignore devices with no inputs
+            if (device.inputs.empty() == true) {
+              continue;
+            }
+
+            auto configStore = DeviceConfigurationHelpers::getConfiguration(serviceRegistry, device.name.c_str(), device.options);
+            if (configStore != nullptr) {
+              auto reg = std::make_unique<ConfigParamRegistry>(std::move(configStore));
+              for (auto& input : device.inputs) {
+                for (auto& param : input.metadata) {
+                  if (param.type == VariantType::Bool && param.name.find("control:") != std::string::npos) {
+                    auto confName = confNameFromParam(param.name).second;
+                    param.defaultValue = reg->get<bool>(confName.c_str());
+                  }
+                }
+              }
+            }
+            /// FIXME: use commandline arguments as alternative
+
+            LOGF(DEBUG, "Original inputs: ");
+            for (auto& input : device.inputs) {
+              LOGF(DEBUG, "-> %s", input.binding);
+            }
+            auto end = device.inputs.end();
+            auto new_end = std::remove_if(device.inputs.begin(), device.inputs.end(), [](InputSpec& input) {
+              return !std::any_of(input.metadata.begin(), input.metadata.end(), [](ConfigParamSpec& param) {
+                if (param.type == VariantType::Bool && param.name.find("control:") != std::string::npos) {
+                  return param.defaultValue.get<bool>() == true;
+                }
+                return true;
+              });
+            });
+            device.inputs.erase(new_end, end);
+            LOGF(DEBUG, "Adjusted inputs: ");
+            for (auto& input : device.inputs) {
+              LOGF(DEBUG, "-> %s", input.binding);
+            }
+          }
+
+          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(altered_workflow,
                                                             driverInfo.channelPolicies,
                                                             driverInfo.completionPolicies,
                                                             driverInfo.dispatchPolicies,
