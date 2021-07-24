@@ -183,17 +183,17 @@ enum TrackPairs {
 SystemType getSystemType(std::string const& sysstr)
 {
   /* we have to figure out how extract the system type */
-  if (sysstr.empty() or (sysstr.compare("PbPb") == 0)) {
+  if (sysstr.empty() or (sysstr == "PbPb")) {
     return kPbPb;
-  } else if (sysstr.compare("pp") == 0) {
+  } else if (sysstr == "pp") {
     return kpp;
-  } else if (sysstr.compare("pPb") == 0) {
+  } else if (sysstr == "pPb") {
     return kpPb;
-  } else if (sysstr.compare("Pbp") == 0) {
+  } else if (sysstr == "Pbp") {
     return kPbp;
-  } else if (sysstr.compare("pPb") == 0) {
+  } else if (sysstr == "pPb") {
     return kpPb;
-  } else if (sysstr.compare("XeXe") == 0) {
+  } else if (sysstr == "XeXe") {
     return kXeXe;
   } else {
     LOGF(fatal, "DptDptCorrelations::getSystemType(). Wrong system type: %d", sysstr.c_str());
@@ -207,13 +207,13 @@ SystemType getSystemType(std::string const& sysstr)
 GenType getGenType(std::string const& datastr)
 {
   /* we have to figure out how extract the type of data*/
-  if (datastr.empty() or (datastr.compare("data") == 0)) {
+  if (datastr.empty() or (datastr == "data")) {
     return kData;
-  } else if (datastr.compare("MC") == 0) {
+  } else if (datastr == "MC") {
     return kMC;
-  } else if (datastr.compare("FastMC") == 0) {
+  } else if (datastr == "FastMC") {
     return kFastMC;
-  } else if (datastr.compare("OnTheFlyMC") == 0) {
+  } else if (datastr == "OnTheFlyMC") {
     return kOnTheFly;
   } else {
     LOGF(fatal, "DptDptCorrelations::getGenType(). Wrong type of dat: %d", datastr.c_str());
@@ -1064,7 +1064,7 @@ struct TracksAndEventClassificationQA {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   std::string multest = cfgc.options().get<std::string>("wfcentmultestimator");
-  if (multest.compare("NOCM") == 0) {
+  if (multest == "NOCM") {
     /* no centrality/multiplicity classes available */
     WorkflowSpec workflow{
       adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, Processes{&DptDptCorrelationsFilterAnalysisTask::processWithoutCent}),
