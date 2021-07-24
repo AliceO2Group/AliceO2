@@ -45,17 +45,17 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
   {
     o2::framework::getFrameJSON(data, json_data);
   }
-  bool pollGUI_gl_init(void* context) override
+  bool pollGUIPreRender(void* context) override
   {
-    return o2::framework::pollGUI_gl_init(context);
+    return o2::framework::pollGUIPreRender(context);
   }
-  void* pollGUI_render(std::function<void(void)> guiCallback) override
+  void* pollGUIRender(std::function<void(void)> guiCallback) override
   {
-    return o2::framework::pollGUI_render(guiCallback);
+    return o2::framework::pollGUIRender(guiCallback);
   }
-  void pollGUI_gl_end(void* context, void* draw_data) override
+  void pollGUIPostRender(void* context, void* draw_data) override
   {
-    o2::framework::pollGUI_gl_end(context, draw_data);
+    o2::framework::pollGUIPostRender(context, draw_data);
   }
   void disposeGUI() override
   {
