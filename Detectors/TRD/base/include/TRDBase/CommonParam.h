@@ -79,7 +79,7 @@ class CommonParam
   /// This is a singleton, constructor is private!
   CommonParam() = default;
 
-  ClassDef(CommonParam, 1); // The constant parameters common to simulation and reconstruction
+  ClassDefNV(CommonParam, 1); // The constant parameters common to simulation and reconstruction
 };
 } // namespace trd
 } // namespace o2

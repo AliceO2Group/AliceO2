@@ -35,7 +35,7 @@ class HitType : public o2::BasicXYZEHit<float>
  public:
   using BasicXYZEHit<float>::BasicXYZEHit;
 
-  ClassDef(HitType, 1);
+  ClassDefNV(HitType, 1);
 };
 
 } // namespace hmpid

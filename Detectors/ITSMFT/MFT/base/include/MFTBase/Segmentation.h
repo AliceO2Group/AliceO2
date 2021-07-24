@@ -61,7 +61,7 @@ class Segmentation
  private:
   TClonesArray* mHalves; ///< \brief Array of pointer to HalfSegmentation
 
-  ClassDef(Segmentation, 1);
+  ClassDefNV(Segmentation, 1);
 };
 } // namespace mft
 } // namespace o2
