@@ -1185,8 +1185,8 @@ void gui_callback(uv_timer_s* ctx)
   uint64_t frameStart = uv_hrtime();
   uint64_t frameLatency = frameStart - gui->frameLast;
   uint64_t remoteFrameLatency = frameStart - gui->remoteFrameLast;
-  if (gui->plugin->pollGUI_gl_init(gui->window)) {
-    void *draw_data = gui->plugin->pollGUI_render(gui->callback);
+  if (gui->plugin->pollGUIPreRender(gui->window)) {
+    void *draw_data = gui->plugin->pollGUIRender(gui->callback);
     bool is_empty;
     {
         std::lock_guard<std::mutex> lock(gui->lock);
@@ -1204,7 +1204,7 @@ void gui_callback(uv_timer_s* ctx)
         }
       }
     }
-    gui->plugin->pollGUI_gl_end(gui->window, draw_data);
+    gui->plugin->pollGUIPostRender(gui->window, draw_data);
   } else {
     *(gui->guiQuitRequested) = true;
   }

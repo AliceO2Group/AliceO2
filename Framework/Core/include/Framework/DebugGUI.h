@@ -36,9 +36,9 @@ struct DebugGUI {
   virtual void* initGUI(char const* windowTitle) = 0;
   virtual bool pollGUI(void* context, std::function<void(void)> guiCallback) = 0;
   virtual void getFrameJSON(void *data, std::ostream& json_data) = 0;
-  virtual bool pollGUI_gl_init(void* context) = 0;
-  virtual void* pollGUI_render(std::function<void(void)> guiCallback) = 0;
-  virtual void pollGUI_gl_end(void* context, void* draw_data) = 0;
+  virtual bool pollGUIPreRender(void* context) = 0;
+  virtual void* pollGUIRender(std::function<void(void)> guiCallback) = 0;
+  virtual void pollGUIPostRender(void* context, void* draw_data) = 0;
   virtual void disposeGUI() = 0;
 };
 } // namespace o2::framework

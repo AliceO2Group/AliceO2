@@ -39,17 +39,17 @@ static inline void getFrameJSON(void *data, std::ostream& json_data) override
 {
 }
 
-static inline bool pollGUI_gl_init(void* context) override
+static inline bool pollGUIPreRender(void* context) override
 {
   return true;
 }
 
-static inline void* pollGUI_render(std::function<void(void)> guiCallback) override
+static inline void* pollGUIRender(std::function<void(void)> guiCallback) override
 {
   return nullptr;
 }
 
-static inline void pollGUI_gl_end(void* context, void* draw_data) override
+static inline void pollGUIPostRender(void* context, void* draw_data) override
 {
 }
 
