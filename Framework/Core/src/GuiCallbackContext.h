@@ -28,7 +28,7 @@ struct GuiCallbackContext {
   bool* guiQuitRequested;
   std::function<void(void)> callback;
   std::mutex lock;
-  std::map<std::string, std::function<void(std::string&)>> drawCallbacks;
+  std::map<std::string, std::function<void(void*,int)>> drawCallbacks;
 };
 } // namespace o2::framework
 

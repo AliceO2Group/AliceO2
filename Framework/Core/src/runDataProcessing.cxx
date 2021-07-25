@@ -1191,17 +1191,18 @@ void gui_callback(uv_timer_s* ctx)
         std::lock_guard<std::mutex> lock(gui->lock);
         is_empty = gui->drawCallbacks.empty();
     }
-    if (!is_empty && remoteFrameLatency > 1000000*200) {
+    if (!is_empty && remoteFrameLatency > 1000000*100) {
       gui->remoteFrameLast = frameStart;
-      std::stringstream ss;
-      gui->plugin->getFrameJSON(draw_data, ss);
-      std::string json_string = ss.str();
+      void *frame;
+      int size;
+      gui->plugin->getFrameRaw(draw_data, &frame, &size);
       {
         std::lock_guard<std::mutex> lock(gui->lock);
         for (const auto& [key, callback] : gui->drawCallbacks) {
-          callback(json_string);
+          callback(frame, size);
         }
       }
+      free(frame);
     }
     gui->plugin->pollGUIPostRender(gui->window, draw_data);
   } else {
