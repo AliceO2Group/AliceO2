@@ -46,7 +46,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h" // important to declare after the options
 
 struct NucleiSpectraEfficienctyVtx {
-  OutputObj<TH1F> histVertexTrueZ{TH1F("histVertexTrueZ", "MC true z position of z-vertex; vertex z (cm)", 100, -20., 20.)};
+  OutputObj<TH1F> histVertexTrueZ{TH1F("histVertexTrueZ", "MC true z position of z-vertex; vertex z (cm)", 200, -20., 20.)};
 
   void process(aod::McCollision const& mcCollision)
   {
@@ -103,7 +103,7 @@ struct NucleiSpectraEfficiencyRec {
     AxisSpec ptAxis = {ptBinning, "#it{p}_{T} (GeV/#it{c})"};
     AxisSpec centAxis = {centBinning, "V0M (%)"};
     //
-    spectra.add("histRecVtxZ", "collision z position", HistType::kTH1F, {{600, -20., +20., "z position (cm)"}});
+    spectra.add("histRecVtxZ", "collision z position", HistType::kTH1F, {{200, -20., +20., "z position (cm)"}});
     spectra.add("histRecPt", "reconstructed particles", HistType::kTH1F, {ptAxis});
     spectra.add("histTpcSignal", "Specific energy loss", HistType::kTH2F, {{600, -6., 6., "#it{p} (GeV/#it{c})"}, {1400, 0, 1400, "d#it{E} / d#it{X} (a. u.)"}});
     spectra.add("histTpcNsigma", "n-sigma TPC", HistType::kTH2F, {ptAxis, {200, -100., +100., "n#sigma_{He} (a. u.)"}});
