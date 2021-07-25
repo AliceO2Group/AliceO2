@@ -176,13 +176,13 @@ void WSDPLHandler::endHeaders()
   } else {
     LOG(INFO) << "Connection not bound to a PID";
     mGUI = true;
-    auto drawCallback = [this](std::string& json) {
+    auto drawCallback = [this](void *data, int size) {
       std::vector<uv_buf_t> outputs;
-      encode_websocket_frames(outputs, json.c_str(), json.length(), WebSocketOpCode::Text, 0);
+      encode_websocket_frames(outputs, (const char*)data, size, WebSocketOpCode::Binary, 0);
       write(outputs);
     };
     const std::lock_guard<std::mutex> lock(mServerContext->gui->lock);
-    mServerContext->gui->drawCallbacks.insert(std::pair<std::string, std::function<void(std::string&)>>(mHeaders["sec-websocket-key"], drawCallback));
+    mServerContext->gui->drawCallbacks.insert(std::pair<std::string, std::function<void(void*,int)>>(mHeaders["sec-websocket-key"], drawCallback));
   }
 }
 

@@ -45,6 +45,10 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
   {
     o2::framework::getFrameJSON(data, json_data);
   }
+  void getFrameRaw(void *data, void **raw_data, int *size) override
+  {
+    o2::framework::getFrameRaw(data, raw_data, size);
+  }
   bool pollGUIPreRender(void* context) override
   {
     return o2::framework::pollGUIPreRender(context);
