@@ -16,7 +16,6 @@ o2_add_library(FV0Workflow
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
                        src/DigitReaderSpec.cxx
-                       src/FV0DataReaderDPLSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsFV0
                                      O2::FV0Reconstruction

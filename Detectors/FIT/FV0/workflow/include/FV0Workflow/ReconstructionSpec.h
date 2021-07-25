@@ -16,7 +16,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "FV0Reconstruction/CollisionTimeRecoTask.h"
+#include "FV0Reconstruction/BaseRecoTask.h"
 #include "DataFormatsFV0/RecPoints.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "FV0Base/Constants.h"
@@ -44,7 +44,7 @@ class ReconstructionDPL : public Task
   bool mUseMC = true;
   std::vector<o2::fv0::RecPoints> mRecPoints;
   std::vector<o2::fv0::ChannelDataFloat> mRecChData;
-  o2::fv0::CollisionTimeRecoTask mReco;
+  o2::fv0::BaseRecoTask mReco;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFV0;
   TStopwatch mTimer;
 };

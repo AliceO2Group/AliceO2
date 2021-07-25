@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(FV0Reconstruction
-        SOURCES src/CollisionTimeRecoTask.cxx
+        SOURCES src/BaseRecoTask.cxx
                 src/ReadRaw.cxx
                 src/CTFCoder.cxx
 
@@ -25,7 +25,7 @@ o2_add_library(FV0Reconstruction
                               O2::Headers)
 
 o2_target_root_dictionary(FV0Reconstruction
-        HEADERS include/FV0Reconstruction/CollisionTimeRecoTask.h
+        HEADERS include/FV0Reconstruction/BaseRecoTask.h
                 include/FV0Reconstruction/ReadRaw.h
                 include/FV0Reconstruction/CTFCoder.h)
 

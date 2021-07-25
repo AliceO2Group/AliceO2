@@ -57,45 +57,35 @@ class RecPoints
   enum TimeTypeIndex : int { TimeFirst,
                              TimeGlobalMean,
                              TimeSelectedMean };
-
-  o2::dataformats::RangeReference<int, int> ref;
-  o2::InteractionRecord mIntRecord;
   RecPoints() = default;
-  RecPoints(const std::array<Float_t, 3>& collisiontime,
-            int first, int ne, o2::InteractionRecord iRec, o2::fv0::Triggers triggers)
-    : mCollisionTime(collisiontime)
+  RecPoints(const std::array<short, 3>& collisiontime, int first, int ne,
+            o2::InteractionRecord iRec, o2::fv0::Triggers triggers)
+    : mCollisionTimePs(collisiontime)
   {
-    ref.setFirstEntry(first);
-    ref.setEntries(ne);
+    mRef.setFirstEntry(first);
+    mRef.setEntries(ne);
     mIntRecord = iRec;
     mTriggers = triggers;
   }
   ~RecPoints() = default;
 
-  void print() const;
-
-  o2::fv0::Triggers mTriggers; // pattern of triggers  in this BC
-
-  float getCollisionTime(TimeTypeIndex type) const { return mCollisionTime[type]; }
+  float getCollisionTime(TimeTypeIndex type) const { return mCollisionTimePs[type]; }
   float getCollisionFirstTime() const { return getCollisionTime(TimeFirst); }
   float getCollisionGlobalMeanTime() const { return getCollisionTime(TimeGlobalMean); }
   float getCollisionSelectedMeanTime() const { return getCollisionTime(TimeSelectedMean); }
-  bool isValidTime(TimeTypeIndex type) const { return getCollisionTime(type) < o2::InteractionRecord::DummyTime; }
-  void setCollisionTime(Float_t time, TimeTypeIndex type) { mCollisionTime[type] = time; }
+  bool isValidTime(TimeTypeIndex type) const { return getCollisionTime(type) < sDummyCollissionTime; }
+  void setCollisionTime(Float_t time, TimeTypeIndex type) { mCollisionTimePs[type] = time; }
 
   o2::fv0::Triggers getTrigger() const { return mTriggers; }
-
   o2::InteractionRecord getInteractionRecord() const { return mIntRecord; };
-
-  void SetMgrEventTime(Double_t time) { mTimeStamp = time; }
-
   gsl::span<const ChannelDataFloat> getBunchChannelData(const gsl::span<const ChannelDataFloat> tfdata) const;
+  short static constexpr sDummyCollissionTime = 32767;
 
  private:
-  std::array<Float_t, 3> mCollisionTime = {2 * o2::InteractionRecord::DummyTime,
-                                           2 * o2::InteractionRecord::DummyTime,
-                                           2 * o2::InteractionRecord::DummyTime};
-  Double_t mTimeStamp = 2 * o2::InteractionRecord::DummyTime; //event time from Fair for continuous
+  o2::dataformats::RangeReference<int, int> mRef;
+  o2::InteractionRecord mIntRecord;
+  o2::fv0::Triggers mTriggers;                                                                                // pattern of triggers  in this BC
+  std::array<short, 3> mCollisionTimePs = {sDummyCollissionTime, sDummyCollissionTime, sDummyCollissionTime}; // in picoseconds
 
   ClassDefNV(RecPoints, 1);
 };

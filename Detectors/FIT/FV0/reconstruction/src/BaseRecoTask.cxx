@@ -9,10 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file  CollisionTimeRecoTask.cxx
-/// \brief Implementation of the FIT reconstruction task
+/// \file  BaseRecoTask.cxx
+/// \brief Implementation of the FV0 reconstruction task
 
-#include "FV0Reconstruction/CollisionTimeRecoTask.h"
+#include "FV0Reconstruction/BaseRecoTask.h"
 #include "FairLogger.h" // for LOG
 #include "DataFormatsFV0/RecPoints.h"
 #include "FV0Base/Geometry.h"
@@ -29,10 +29,11 @@
 #include <Framework/Logger.h>
 
 using namespace o2::fv0;
+using RP = o2::fv0::RecPoints;
 
-o2::fv0::RecPoints CollisionTimeRecoTask::process(o2::fv0::BCData const& bcd,
-                                                  gsl::span<const o2::fv0::ChannelData> inChData,
-                                                  gsl::span<o2::fv0::ChannelDataFloat> outChData)
+RP BaseRecoTask::process(o2::fv0::BCData const& bcd,
+                         gsl::span<const o2::fv0::ChannelData> inChData,
+                         gsl::span<o2::fv0::ChannelDataFloat> outChData)
 {
   LOG(INFO) << "Running reconstruction on new event";
 
@@ -69,17 +70,16 @@ o2::fv0::RecPoints CollisionTimeRecoTask::process(o2::fv0::BCData const& bcd,
       ndigitsASelected++;
     }
   }
-  std::array<Float_t, 3> mCollisionTime = {2 * o2::InteractionRecord::DummyTime,
-                                           2 * o2::InteractionRecord::DummyTime,
-                                           2 * o2::InteractionRecord::DummyTime};
-  mCollisionTime[RecPoints::TimeFirst] = (ndigitsA > 0) ? sideAtimeFirst / Float_t(ndigitsA) : 2 * o2::InteractionRecord::DummyTime;
-  mCollisionTime[RecPoints::TimeGlobalMean] = (ndigitsA > 0) ? sideAtimeAvg / Float_t(ndigitsA) : 2 * o2::InteractionRecord::DummyTime;
-  mCollisionTime[RecPoints::TimeSelectedMean] = (ndigitsASelected > 0) ? sideAtimeAvgSelected / Float_t(ndigitsA) : 2 * o2::InteractionRecord::DummyTime;
+  const int nsToPs = 1e3;
+  std::array<short, 3> mCollisionTime = {RP::sDummyCollissionTime, RP::sDummyCollissionTime, RP::sDummyCollissionTime};
+  mCollisionTime[RP::TimeFirst] = (ndigitsA > 0) ? round(sideAtimeFirst * nsToPs) : RP::sDummyCollissionTime;
+  mCollisionTime[RP::TimeGlobalMean] = (ndigitsA > 0) ? round(sideAtimeAvg * nsToPs / Float_t(ndigitsA)) : RP::sDummyCollissionTime;
+  mCollisionTime[RP::TimeSelectedMean] = (ndigitsASelected > 0) ? round(sideAtimeAvgSelected * nsToPs / Float_t(ndigitsASelected)) : RP::sDummyCollissionTime;
 
   return RecPoints{mCollisionTime, bcd.ref.getFirstEntry(), bcd.ref.getEntries(), bcd.getIntRecord(), bcd.mTriggers};
 }
 //______________________________________________________
-void CollisionTimeRecoTask::FinishTask()
+void BaseRecoTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits
   // if (!mContinuous)   return;

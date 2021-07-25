@@ -18,7 +18,7 @@ using namespace o2::fv0;
 gsl::span<const ChannelDataFloat> RecPoints::getBunchChannelData(const gsl::span<const ChannelDataFloat> tfdata) const
 {
   // extract the span of channel data for this bunch from the whole TF data
-  return ref.getEntries() ? gsl::span<const ChannelDataFloat>(tfdata).subspan(ref.getFirstEntry(), ref.getEntries()) : gsl::span<const ChannelDataFloat>();
+  return mRef.getEntries() ? gsl::span<const ChannelDataFloat>(tfdata).subspan(mRef.getFirstEntry(), mRef.getEntries()) : gsl::span<const ChannelDataFloat>();
 }
 
 void ChannelDataFloat::print() const

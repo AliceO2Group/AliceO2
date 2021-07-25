@@ -9,10 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CollisionTimeRecoTask.h
-/// \brief Definition of the FV0 collision time reconstruction task
-#ifndef ALICEO2_FV0_COLLISIONTIMERECOTASK_H
-#define ALICEO2_FV0_COLLISIONTIMERECOTASK_H
+/// \file BaseRecoTask.h
+/// \brief Definition of the FV0 reconstruction task
+#ifndef ALICEO2_FV0_BASERECOTASK_H
+#define ALICEO2_FV0_BASERECOTASK_H
 
 #include "DataFormatsFV0/BCData.h"
 #include "DataFormatsFV0/ChannelData.h"
@@ -31,13 +31,13 @@ namespace o2
 {
 namespace fv0
 {
-class CollisionTimeRecoTask
+class BaseRecoTask
 {
   //  using offsetCalib = o2::fv0::FV0ChannelTimeCalibrationObject;
 
  public:
-  CollisionTimeRecoTask() = default;
-  ~CollisionTimeRecoTask() = default;
+  BaseRecoTask() = default;
+  ~BaseRecoTask() = default;
   o2::fv0::RecPoints process(o2::fv0::BCData const& bcd,
                              gsl::span<const o2::fv0::ChannelData> inChData,
                              gsl::span<o2::fv0::ChannelDataFloat> outChData);
@@ -50,7 +50,7 @@ class CollisionTimeRecoTask
   //  o2::fv0::FV0ChannelTimeCalibrationObject* mCalibOffset;
   //  std::array<TGraph, Constants::nFv0Channels>* mCalibSlew;
 
-  ClassDefNV(CollisionTimeRecoTask, 3);
+  ClassDefNV(BaseRecoTask, 3);
 };
 } // namespace fv0
 } // namespace o2
