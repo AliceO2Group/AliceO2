@@ -510,14 +510,22 @@ namespace aod
 using FullFwdTracks = soa::Join<FwdTracks, FwdTracksCov>;
 using FullFwdTrack = FullFwdTracks::iterator;
 
+// Some tracks cannot be uniquely identified with a collision. Some tracks cannot be assigned to a collision at all.
+// Those tracks have -1 as collision index and have an entry in the following table. Either of the two following then applies:
+// If a track has several matching collisions these are listed in the Collision array. In this case the BC slice is not filled
+// If on the contrary, a track has no matching collision and can only be assigned through its estimated time, it is assigned all
+//   BCs which are compatible with this time. As the BCs are time ordered, a slice is used to store the relation. In this case
+//   no entry is found in the collision member.
 namespace ambiguoustracks
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision); //! Collision index
-DECLARE_SOA_INDEX_COLUMN(Track, track);         //! Track index
+DECLARE_SOA_INDEX_COLUMN(Track, track); //! Track index
+DECLARE_SOA_SLICE_INDEX_COLUMN(BC, bc); //! BC index (slice for 1 to N entries)
+// TODO to be replaced by a variable length array
+DECLARE_SOA_ARRAY_INDEX_COLUMN(Collision, collision, 2); //! Collision index
 } // namespace ambiguoustracks
 
 DECLARE_SOA_TABLE(AmbiguousTracks, "AOD", "AMBIGUOUSTRACK", //! Table for tracks which are not uniquely associated with a collision
-                  ambiguoustracks::CollisionId, ambiguoustracks::TrackId);
+                  ambiguoustracks::TrackId, ambiguoustracks::BCIdSlice, ambiguoustracks::CollisionIds);
 
 using AmbiguousTrack = AmbiguousTracks::iterator;
 
