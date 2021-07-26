@@ -553,8 +553,8 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
   int is1 = 0, is2 = 1;
   int isfired[3] = {0};
 #ifdef O2_ZDC_DEBUG
-  int16_t m[3]={0};
-  int16_t s[3]={0};
+  int16_t m[3] = {0};
+  int16_t s[3] = {0};
 #endif
   int it1 = 0, it2 = 0, ib1 = -1, ib2 = -1;
   for (;;) {
@@ -593,12 +593,12 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
         mReco[b2].fired[itdc] |= mMask[s2];
 #ifdef O2_ZDC_DEBUG
         LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " Fired @ " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc << ".s" << s2
-                  << " (" << m[2] << " - (" << s[2] << ")) = " << (m[2]-s[2]) << " > " << thr
-                  << " && (" << m[1] << " - (" << s[1] << ")) = " << (m[1]-s[1]) << " > " << thr
+                  << " (" << m[2] << " - (" << s[2] << ")) = " << (m[2] - s[2]) << " > " << thr
+                  << " && (" << m[1] << " - (" << s[1] << ")) = " << (m[1] - s[1]) << " > " << thr
                   << " && (s" << s1 << ":" << m[0] << " - (s" << s2 << ":" << s[0] << ")) = " << diff << " > " << thr;
 #endif
       }
-    }else{
+    } else {
       isfired[0] = 0;
     }
     if (is2 >= shift) {

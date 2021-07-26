@@ -86,7 +86,7 @@ constexpr uint32_t ZDCRefInitVal = 0xffffffff;
 // Parameters of interpolating function
 constexpr int TSL = 6;                      // number of zeros on the right (and on the left) of central peak
 constexpr int TSN = 200;                    // Number of interpolated points between each pair = TSN-1
-constexpr int TSNH = TSN/2;                 // Half of TSN
+constexpr int TSNH = TSN / 2;               // Half of TSN
 constexpr int TSNS = 96;                    // Number of interpolated points per ns
 constexpr int NTS = 2 * TSL * TSN + 1;      // Tapered sinc function array size
 constexpr static float FTDCAmp = 1. / 8.;   // Multiplication factor in conversion from integer
@@ -227,7 +227,7 @@ enum Msg { MsgGeneric = 0,
            MsgADCPedOr = 3,
            MsgADCPedQC = 4,
            MsgADCPedMissing = 5,
-           MsgEnd};
+           MsgEnd };
 
 constexpr std::string_view MsgText[] = {
   "generic error",

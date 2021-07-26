@@ -64,7 +64,7 @@ struct RecEvent {
   inline void addInfo(uint16_t info)
   {
 #ifdef O2_ZDC_DEBUG
-  printf("addInfo info=%u 0x%04x\n", info, info);
+    printf("addInfo info=%u 0x%04x\n", info, info);
 #endif
     mInfo.emplace_back(info);
     mRecBC.back().addInfo();
@@ -78,7 +78,7 @@ struct RecEvent {
     }
     uint16_t info = (code & 0x03ff) | ((ch & 0x1f) << 10);
 #ifdef O2_ZDC_DEBUG
-  printf("addInfo ch=%u code=%u info=%u 0x%04x\n", ch, code, info, info);
+    printf("addInfo ch=%u code=%u info=%u 0x%04x\n", ch, code, info, info);
 #endif
     mInfo.emplace_back(info);
     mRecBC.back().addInfo();
