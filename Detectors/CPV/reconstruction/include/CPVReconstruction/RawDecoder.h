@@ -104,7 +104,7 @@ class RawDecoder
   RawErrorType_t readChannels();
 
  private:
-  void addDigit(uint32_t padWord, short ddl, uint16_t bc);
+  bool addDigit(uint32_t padWord, short ddl, uint16_t bc);
   void removeLastNDigits(int n);
 
   RawReaderMemory& mRawReader;               ///< underlying raw reader
