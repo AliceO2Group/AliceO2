@@ -594,8 +594,8 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
 #ifdef O2_ZDC_DEBUG
         LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " Fired @ " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc << ".s" << s2
                   << " (" << m[2] << " - (" << s[2] << ")) = " << (m[2]-s[2]) << " > " << thr
-                  << "&& (" << m[1] << " - (" << s[1] << ")) = " << (m[1]-s[1]) << " > " << thr
-                  << "&& (" << m[0] << " - (" << s[0] << ")) = " << diff << " > " << thr;
+                  << " && (" << m[1] << " - (" << s[1] << ")) = " << (m[1]-s[1]) << " > " << thr
+                  << " && (s" << s1 << ":" << m[0] << " - (s" << s2 << ":" << s[0] << ")) = " << diff << " > " << thr;
 #endif
       }
     }else{
