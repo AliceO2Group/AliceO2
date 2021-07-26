@@ -12,6 +12,7 @@
 #ifndef _ZDC_RECEVENTFLAT_H_
 #define _ZDC_RECEVENTFLAT_H_
 
+#include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsZDC/BCRecData.h"
 #include "DataFormatsZDC/ZDCEnergy.h"
@@ -31,6 +32,9 @@ namespace o2
 {
 namespace zdc
 {
+using FirstEntry = int;
+using NElem = int;
+
 struct RecEventFlat {
   o2::InteractionRecord ir;
   uint32_t channels = 0;                      /// pattern of channels acquired
@@ -44,6 +48,16 @@ struct RecEventFlat {
   std::vector<uint16_t>* mInfo;               //! Event quality information
   uint64_t mEntry = 0;                        //! Current entry
   uint64_t mNEntries = 0;                     //! Number of entries
+  FirstEntry mFirstE = 0;                     //! First energy
+  FirstEntry mFirstT = 0;                     //! First TDC
+  FirstEntry mFirstI = 0;                     //! First info
+  FirstEntry mStopE = 0;                      //! Last + 1 energy
+  FirstEntry mStopT = 0;                      //! Last + 1 TDC
+  FirstEntry mStopI = 0;                      //! Last + 1 info
+  NElem mNE = 0;                              //! N energy
+  NElem mNT = 0;                              //! N TDC
+  NElem mNI = 0;                              //! N info
+  o2::zdc::BCRecData mCurB;                   //! Current BC
   std::array<bool, NChannels> tdcPedEv;       /// Event pedestal for TDC
   std::array<bool, NChannels> tdcPedOr;       /// Orbit pedestal for TDC
   std::array<bool, NChannels> tdcPedQC;       /// QC pedestal for TDC
@@ -53,9 +67,26 @@ struct RecEventFlat {
   std::array<bool, NChannels> adcPedQC;       /// QC pedestal for ADC
   std::array<bool, NChannels> adcPedMissing;  /// Missing pedestal for ADC
   uint8_t mVerbosity = DbgZero;               //! Verbosity level
+  uint32_t mTriggerMask = 0;                  //! Trigger mask for printout
+
   void init(std::vector<o2::zdc::BCRecData>* RecBC, std::vector<o2::zdc::ZDCEnergy>* Energy, std::vector<o2::zdc::ZDCTDCData>* TDCData, std::vector<uint16_t>* Info);
 
   int next();
+
+  inline NElem getNEnergy()
+  {
+    return mNE;
+  }
+
+  inline NElem getNTDC()
+  {
+    return mNT;
+  }
+
+  inline NElem getNInfo()
+  {
+    return mNI;
+  }
 
   float tdcV(uint8_t ich, uint64_t ipos)
   {

@@ -43,17 +43,24 @@ int RecEventFlat::next()
     TDCVal[itdc].clear();
     TDCAmp[itdc].clear();
   }
-  auto& curb = mRecBC->at(mEntry);
+
+  // Get References
+  mCurB = mRecBC->at(mEntry);
+  mCurB.getRef(mFirstE, mNE, mFirstT, mNT, mFirstI, mNI);
+  mStopE = mFirstE + mNE;
+  mStopT = mFirstT + mNT;
+  mStopI = mFirstI + mNI;
+
+  ir = mCurB.ir;
+  channels = mCurB.channels;
+  triggers = mCurB.triggers;
 
   // Decode event info
-  int istart = curb.refi.getFirstEntry();
-  int istop = istart + curb.refi.getEntries();
   int infoState = 0;
   uint16_t code = 0;
   uint32_t map = 0;
-  for (int i = istart; i < istop; i++) {
+  for (int i = mFirstI; i < mStopI; i++) {
     uint16_t info = mInfo->at(i);
-    printf("0x%04x\n", info);
     if (infoState == 0) {
       if (info & 0x8000) {
         LOGF(ERROR, "Inconsistent info stream at word %d: 0x%4u", i, info);
@@ -89,13 +96,8 @@ int RecEventFlat::next()
     }
   }
 
-  ir = curb.ir;
-  channels = curb.channels;
-  triggers = curb.triggers;
   // Decode energy
-  istart = curb.refe.getFirstEntry();
-  istop = istart + curb.refe.getEntries();
-  for (int i = istart; i < istop; i++) {
+  for (int i = mFirstE; i < mStopE; i++) {
     auto myenergy = mEnergy->at(i);
     auto ch = myenergy.ch();
     ezdc[ch] = myenergy.energy();
@@ -105,9 +107,7 @@ int RecEventFlat::next()
     }
   }
   // Decode TDCs
-  istart = curb.reft.getFirstEntry();
-  istop = istart + curb.reft.getEntries();
-  for (int i = istart; i < istop; i++) {
+  for (int i = mFirstT; i < mStopT; i++) {
     auto mytdc = mTDCData->at(i);
     auto ch = mytdc.ch();
     if (ch < NTDCChannels) {
@@ -139,7 +139,8 @@ void RecEventFlat::decodeMapInfo(uint32_t map, uint16_t code)
 void RecEventFlat::decodeInfo(uint8_t ch, uint16_t code)
 {
   if (mVerbosity != DbgZero) {
-    printf("Info: ch=%2d code=%4u %s\n", ch, code, code < MsgEnd ? MsgText[code].data() : "undefined");
+    printf("%9u.%04u Info: ch=%2d (%s) code=%-4u (%s)\n", ir.orbit, ir.bc, ch, ch < NChannels ? ChannelNames[ch].data() : "N.D.",
+           code, code < MsgEnd ? MsgText[code].data() : "undefined");
   }
   if (code == MsgTDCPedQC) {
     tdcPedQC[ch] = true;
@@ -160,5 +161,50 @@ void RecEventFlat::decodeInfo(uint8_t ch, uint16_t code)
 
 void RecEventFlat::print() const
 {
-  ir.print();
+  printf("%9u.%04u ", ir.orbit, ir.bc);
+  printf("nE %2d pos %d nT %2d pos %d  nI %2d pos %d\n", mNE, mFirstE, mNT, mFirstT, mNI, mFirstI);
+  printf("%9u.%04u ", ir.orbit, ir.bc);
+  printf("Read:");
+  for (int ic = 0; ic < NDigiChannels; ic++) {
+    if (ic % NChPerModule == 0) {
+      if (ic == 0) {
+        printf(" %d[", ic / NChPerModule);
+      } else {
+        printf("] %d[", ic / NChPerModule);
+      }
+    }
+    if (channels & (0x1 << ic)) {
+      printf("R");
+    } else {
+      printf(" ");
+    }
+  }
+  printf("]\n");
+  printf("%9u.%04u ", ir.orbit, ir.bc);
+  printf("Hits:");
+  for (int ic = 0; ic < NDigiChannels; ic++) {
+    if (ic % NChPerModule == 0) {
+      if (ic == 0) {
+        printf(" %d[", ic / NChPerModule);
+      } else {
+        printf("] %d[", ic / NChPerModule);
+      }
+    }
+    bool is_hit = triggers & (0x1 << ic);
+    bool is_trig = mTriggerMask & (0x1 << ic);
+    if (is_trig) {
+      if (is_hit) {
+        printf("T");
+      } else {
+        printf(".");
+      }
+    } else {
+      if (is_hit) {
+        printf("H");
+      } else {
+        printf(" ");
+      }
+    }
+  }
+  printf("]\n");
 }

@@ -456,7 +456,6 @@ int DigiReco::reconstruct(int ibeg, int iend)
           // TODO: compare event pedestal with orbit pedestal to detect pile-up
           // from previous bunch. If this is the case we use orbit pedestal
           // instead of event pedestal
-          hasEvPed = false;
           if (hasEvPed) {
             myPed = evPed;
             rec.adcPedEv[ich] = true;
@@ -553,19 +552,27 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
 
   int is1 = 0, is2 = 1;
   int isfired[3] = {0};
+#ifdef O2_ZDC_DEBUG
+  int16_t m[3]={0};
+  int16_t s[3]={0};
+#endif
   int it1 = 0, it2 = 0, ib1 = -1, ib2 = -1;
   for (;;) {
     // Shift data
     for (int i = 1; i < 3; i++) {
       isfired[i] = isfired[i - 1];
+#ifdef O2_ZDC_DEBUG
+      m[i] = m[i - 1];
+      s[i] = s[i - 1];
+#endif
     }
     // Bunches and samples that are used in the difference
     int b1 = ibeg + is1 / NTimeBinsPerBC;
     int b2 = ibeg + is2 / NTimeBinsPerBC;
     int s1 = is1 % NTimeBinsPerBC;
     int s2 = is2 % NTimeBinsPerBC;
-    auto ref_m = mReco[b1].ref[TDCSignal[itdc]];
-    auto ref_s = mReco[b2].ref[TDCSignal[itdc]];
+    auto ref_m = mReco[b1].ref[TDCSignal[itdc]]; // reference to minuend
+    auto ref_s = mReco[b2].ref[TDCSignal[itdc]]; // reference to subtrahend
     // Check data consistency before computing difference
     if (ref_m == ZDCRefInitVal || ref_s == ZDCRefInitVal) {
       LOG(FATAL) << "Missing information for bunch crossing";
@@ -574,6 +581,10 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
     // TODO: More checks that bunch crossings are indeed consecutive
     int diff = mChData[ref_m].data[s1] - mChData[ref_s].data[s2];
     // Triple trigger condition
+#ifdef O2_ZDC_DEBUG
+    m[0] = mChData[ref_m].data[s1];
+    s[0] = mChData[ref_s].data[s2];
+#endif
     if (diff > thr) {
       isfired[0] = 1;
       if (isfired[1] == 1 && isfired[2] == 1) {
@@ -581,9 +592,14 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
         // signal peak position
         mReco[b2].fired[itdc] |= mMask[s2];
 #ifdef O2_ZDC_DEBUG
-        LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " Fired @ " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc << ".s" << s2;
+        LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " Fired @ " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc << ".s" << s2
+                  << " (" << m[2] << " - (" << s[2] << ")) = " << (m[2]-s[2]) << " > " << thr
+                  << "&& (" << m[1] << " - (" << s[1] << ")) = " << (m[1]-s[1]) << " > " << thr
+                  << "&& (" << m[0] << " - (" << s[0] << ")) = " << diff << " > " << thr;
 #endif
       }
+    }else{
+      isfired[0] = 0;
     }
     if (is2 >= shift) {
       is1++;
