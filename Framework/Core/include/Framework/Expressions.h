@@ -356,19 +356,19 @@ inline Node ifnode(Node condition_, Node then_, Node else_)
   return Node{ConditionalNode{}, std::move(then_), std::move(else_), std::move(condition_)};
 }
 
-template <typename L>
+template <typename L, std::enable_if_t<std::is_integral<L>::value || std::is_floating_point<L>::value, bool> = true>
 inline Node ifnode(Node condition_, Node then_, L else_)
 {
   return Node{ConditionalNode{}, std::move(then_), LiteralNode{else_}, std::move(condition_)};
 }
 
-template <typename L>
+template <typename L, std::enable_if_t<std::is_integral<L>::value || std::is_floating_point<L>::value, bool> = true>
 inline Node ifnode(Node condition_, L then_, Node else_)
 {
   return Node{ConditionalNode{}, LiteralNode{then_}, std::move(else_), std::move(condition_)};
 }
 
-template <typename L1, typename L2>
+template <typename L1, typename L2, std::enable_if_t<(std::is_integral<L1>::value || std::is_floating_point<L1>::value) && (std::is_integral<L2>::value || std::is_floating_point<L2>::value), bool> = true>
 inline Node ifnode(Node condition_, L1 then_, L2 else_)
 {
   return Node{ConditionalNode{}, LiteralNode{then_}, LiteralNode{else_}, std::move(condition_)};
