@@ -38,14 +38,14 @@ struct AccessMcData {
   OutputObj<TH1F> etaH{TH1F("eta", "eta", 102, -2.01, 2.01)};
 
   // group according to McCollisions
-  void process(aod::McCollision const& mcCollision, aod::McParticles& mcParticles)
+  void process(aod::McCollision const& mcCollision, aod::McParticles const& mcParticles)
   {
     // access MC truth information with mcCollision() and mcParticle() methods
     LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
     LOGF(info, "First: %d | Length: %d", mcParticles.begin().index(), mcParticles.size());
     int count = 0;
     for (auto& mcParticle : mcParticles) {
-      if (MC::isPhysicalPrimary<aod::McParticles>(mcParticle)) {
+      if (MC::isPhysicalPrimary(mcParticle)) {
         phiH->Fill(mcParticle.phi());
         etaH->Fill(mcParticle.eta());
         count++;

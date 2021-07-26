@@ -229,7 +229,7 @@ struct QaTrackingEfficiency {
         return true;
       }
       histos.fill(h, 5);
-      if ((selPrim == 1) && (!MC::isPhysicalPrimary<o2::aod::McParticles>(p))) { // Requiring is physical primary
+      if ((selPrim == 1) && (!MC::isPhysicalPrimary(p))) { // Requiring is physical primary
         return true;
       }
       histos.fill(h, 6);
