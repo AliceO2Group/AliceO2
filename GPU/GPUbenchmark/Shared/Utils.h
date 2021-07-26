@@ -34,6 +34,14 @@
 
 #define GB (1024 * 1024 * 1024)
 
+#define failed(...)                       \
+  printf("%serror: ", KRED);              \
+  printf(__VA_ARGS__);                    \
+  printf("\n");                           \
+  printf("error: TEST FAILED\n%s", KNRM); \
+  exit(EXIT_FAILURE);
+#endif
+
 enum class Test {
   Read,
   Write,
@@ -84,7 +92,7 @@ struct gpuState {
     }
   }
 
-  size_t getPartitionCapacity()
+  size_t getChunkCapacity()
   {
     return static_cast<size_t>(GB * chunkReservedGB / sizeof(T));
   }
@@ -131,14 +139,16 @@ class ResultWriter
  public:
   explicit ResultWriter(const std::string resultsTreeFilename = "benchmark_results.root");
   ~ResultWriter() = default;
-  void storeBenchmarkEntry(int chunk, float entry);
+  void storeBenchmarkEntry(int chunk, float entry, float chunkSizeGB);
   void addBenchmarkEntry(const std::string bName, const std::string type, const int nChunks);
   void snapshotBenchmark();
   void saveToFile();
 
  private:
-  std::vector<float> mBenchmarkResults;
-  std::vector<TTree*> mBenchmarkTrees;
+  std::vector<float> mTimeResults;
+  std::vector<TTree*> mTimeTrees;
+  std::vector<float> mThroughputResults;
+  std::vector<TTree*> mThroughputTrees;
   TFile* mOutfile;
 };
 
@@ -149,26 +159,36 @@ inline ResultWriter::ResultWriter(const std::string resultsTreeFilename)
 
 inline void ResultWriter::addBenchmarkEntry(const std::string bName, const std::string type, const int nChunks)
 {
-  mBenchmarkTrees.emplace_back(new TTree((bName + "_" + type).data(), (bName + "_" + type).data()));
-  mBenchmarkResults.clear();
-  mBenchmarkResults.resize(nChunks);
-  mBenchmarkTrees.back()->Branch("elapsed", &mBenchmarkResults);
+  mTimeTrees.emplace_back(new TTree((bName + "_" + type).data(), (bName + "_" + type).data()));
+  mTimeResults.clear();
+  mTimeResults.resize(nChunks);
+  mTimeTrees.back()->Branch("elapsed", &mTimeResults);
+
+  mThroughputTrees.emplace_back(new TTree((bName + "_" + type).data(), (bName + "_" + type + "_TP").data()));
+  mThroughputResults.clear();
+  mThroughputResults.resize(nChunks);
+  mThroughputTrees.back()->Branch("throughput", &mTimeResults);
 }
 
-inline void ResultWriter::storeBenchmarkEntry(int chunk, float entry)
+inline void ResultWriter::storeBenchmarkEntry(int chunk, float entry, float chunkSizeGB)
 {
-  mBenchmarkResults[chunk] = entry;
+  mTimeResults[chunk] = entry;
+  mThroughputResults[chunk] = 1e3 * chunkSizeGB / entry;
 }
 
 inline void ResultWriter::snapshotBenchmark()
 {
-  mBenchmarkTrees.back()->Fill();
+  mTimeTrees.back()->Fill();
+  mThroughputTrees.back()->Fill();
 }
 
 inline void ResultWriter::saveToFile()
 {
   mOutfile->cd();
-  for (auto t : mBenchmarkTrees) {
+  for (auto t : mTimeTrees) {
+    t->Write();
+  }
+  for (auto t : mThroughputTrees) {
     t->Write();
   }
   mOutfile->Close();
@@ -176,11 +196,3 @@ inline void ResultWriter::saveToFile()
 
 } // namespace benchmark
 } // namespace o2
-
-#define failed(...)                       \
-  printf("%serror: ", KRED);              \
-  printf(__VA_ARGS__);                    \
-  printf("\n");                           \
-  printf("error: TEST FAILED\n%s", KNRM); \
-  exit(EXIT_FAILURE);
-#endif

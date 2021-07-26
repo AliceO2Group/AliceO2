@@ -34,11 +34,6 @@
 double bytesToKB(size_t s) { return (double)s / (1024.0); }
 double bytesToGB(size_t s) { return (double)s / GB; }
 
-int getCorrespondingRegionId(int Id, int nChunks, int nRegions = 1)
-{
-  return Id * nRegions / nChunks;
-}
-
 template <class T>
 std::string getType()
 {
@@ -61,67 +56,60 @@ namespace o2
 {
 namespace benchmark
 {
-namespace gpu
-{
 
-///////////////////////////
-// Device functions go here
 template <class chunk_type>
-__host__ __device__ inline chunk_type* getPartPtrOnScratch(chunk_type* scratchPtr, float chunkReservedGB, size_t partNumber)
+inline chunk_type* getPartPtr(chunk_type* scratchPtr, float chunkReservedGB, int partNumber)
 {
   return reinterpret_cast<chunk_type*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * chunkReservedGB) * partNumber);
 }
 
+namespace gpu
+{
 //////////////////
 // Kernels go here
-// Reading
+// Read
 template <class chunk_type>
 __global__ void readChunkSBKernel(
   int chunkId,
+  chunk_type* chunkPtr,
   chunk_type* results,
-  chunk_type* scratch,
-  size_t chunkSize,
-  float chunkReservedGB = 1.f)
+  size_t chunkSize)
 {
   if (chunkId == blockIdx.x) { // runs only if blockIdx.x is allowed in given split
     chunk_type sink{0};
-    chunk_type* ptr = getPartPtrOnScratch(scratch, chunkReservedGB, chunkId);
     for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
-      sink += ptr[i];
+      sink += chunkPtr[i];
     }
-    if (sink == static_cast<chunk_type>(1)) {
-      results[chunkId] = sink;
-    }
+    results[chunkId] = sink;
   }
 }
 
 template <class chunk_type>
 __global__ void readChunkMBKernel(
   int chunkId,
+  chunk_type* chunkPtr,
   chunk_type* results,
-  chunk_type* scratch,
-  size_t chunkSize,
-  float chunkReservedGB = 1.f)
+  size_t chunkSize)
 {
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
-    if (getPartPtrOnScratch(scratch, chunkReservedGB, chunkId)[i] == static_cast<chunk_type>(1)) { // actual read operation is performed here
-      results[chunkId] += getPartPtrOnScratch(scratch, chunkReservedGB, chunkId)[i];               // this case should never happen and waves should be always in sync
+    if (chunkPtr[i] == static_cast<chunk_type>(1)) { // actual read operation is performed here
+      results[chunkId] += chunkPtr[i];               // this case should never happen and waves should be always in sync
+      printf("Should never happen\n");
     }
   }
 }
 
-// Writing
+// Write
 template <class chunk_type>
 __global__ void writeChunkSBKernel(
   int chunkId,
+  chunk_type* chunkPtr,
   chunk_type* results,
-  chunk_type* scratch,
-  size_t chunkSize,
-  float chunkReservedGB = 1.f)
+  size_t chunkSize)
 {
   if (chunkId == blockIdx.x) { // runs only if blockIdx.x is allowed in given split
     for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
-      getPartPtrOnScratch(scratch, chunkReservedGB, chunkId)[i] = 1;
+      chunkPtr[i] = 1;
     }
   }
 }
@@ -129,28 +117,26 @@ __global__ void writeChunkSBKernel(
 template <class chunk_type>
 __global__ void writeChunkMBKernel(
   int chunkId,
+  chunk_type* chunkPtr,
   chunk_type* results,
-  chunk_type* scratch,
-  size_t chunkSize,
-  float chunkReservedGB = 1.f)
+  size_t chunkSize)
 {
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
-    getPartPtrOnScratch(scratch, chunkReservedGB, chunkId)[i] = 1;
+    chunkPtr[i] = 1;
   }
 }
 
-// Copying
+// Copy
 template <class chunk_type>
 __global__ void copyChunkSBKernel(
   int chunkId,
+  chunk_type* chunkPtr,
   chunk_type* inputs,
-  chunk_type* scratch,
-  size_t chunkSize,
-  float chunkReservedGB = 1.f)
+  size_t chunkSize)
 {
   if (chunkId == blockIdx.x) { // runs only if blockIdx.x is allowed in given split
     for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
-      getPartPtrOnScratch(scratch, chunkReservedGB, chunkId)[i] = inputs[chunkId];
+      chunkPtr[i] = inputs[chunkId];
     }
   }
 }
@@ -158,13 +144,12 @@ __global__ void copyChunkSBKernel(
 template <class chunk_type>
 __global__ void copyChunkMBKernel(
   int chunkId,
+  chunk_type* chunkPtr,
   chunk_type* inputs,
-  chunk_type* scratch,
-  size_t chunkSize,
-  float chunkReservedGB = 1.f)
+  size_t chunkSize)
 {
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
-    getPartPtrOnScratch(scratch, chunkReservedGB, chunkId)[i] = inputs[chunkId];
+    chunkPtr[i] = inputs[chunkId];
   }
 }
 
@@ -292,20 +277,26 @@ void printDeviceProp(int deviceId)
 
 template <class chunk_type>
 template <typename... T>
-float GPUbenchmark<chunk_type>::benchmarkSync(void (*kernel)(T...),
-                                              int nLaunches, int blocks, int threads, T&... args) // run for each chunk (id is passed in variadic args)
+float GPUbenchmark<chunk_type>::benchmarkSync(void (*kernel)(int, chunk_type*, T...),
+                                              int nLaunches,
+                                              int chunkId,
+                                              int blocks,
+                                              int threads,
+                                              T&... args) // run for each chunk
 {
   cudaEvent_t start, stop;
   GPUCHECK(cudaSetDevice(mOptions.deviceId));
+  chunk_type* chunkPtr = getPartPtr<chunk_type>(mState.scratchPtr, mState.chunkReservedGB, chunkId);
+
   // Warm up
-  (*kernel)<<<blocks, threads, 0, 0>>>(args...);
+  (*kernel)<<<blocks, threads, 0, 0>>>(0, chunkPtr, args...);
 
   GPUCHECK(cudaEventCreate(&start));
   GPUCHECK(cudaEventCreate(&stop));
 
   GPUCHECK(cudaEventRecord(start));
-  for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) { // Schedule all the requested kernel launches
-    (*kernel)<<<blocks, threads, 0, 0>>>(args...);        // NOLINT: clang-tidy false-positive
+  for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {             // Schedule all the requested kernel launches
+    (*kernel)<<<blocks, threads, 0, 0>>>(chunkId, chunkPtr, args...); // NOLINT: clang-tidy false-positive
   }
   GPUCHECK(cudaEventRecord(stop)); // record checkpoint
 
@@ -320,7 +311,7 @@ float GPUbenchmark<chunk_type>::benchmarkSync(void (*kernel)(T...),
 
 template <class chunk_type>
 template <typename... T>
-std::vector<float> GPUbenchmark<chunk_type>::benchmarkAsync(void (*kernel)(int, T...),
+std::vector<float> GPUbenchmark<chunk_type>::benchmarkAsync(void (*kernel)(int, chunk_type*, T...),
                                                             int nStreams, int nLaunches, int blocks, int threads, T&... args)
 {
   std::vector<cudaEvent_t> starts(nStreams), stops(nStreams);
@@ -334,14 +325,15 @@ std::vector<float> GPUbenchmark<chunk_type>::benchmarkAsync(void (*kernel)(int, 
   }
   // Warm up on every stream
   for (auto iStream{0}; iStream < nStreams; ++iStream) {
-    (*kernel)<<<blocks, threads, 0, streams[iStream]>>>(iStream, args...);
+    chunk_type* chunkPtr = getPartPtr<chunk_type>(mState.scratchPtr, mState.chunkReservedGB, iStream);
+    (*kernel)<<<blocks, threads, 0, streams[iStream]>>>(iStream, chunkPtr, args...);
   }
 
   for (auto iStream{0}; iStream < nStreams; ++iStream) {
+    chunk_type* chunkPtr = getPartPtr<chunk_type>(mState.scratchPtr, mState.chunkReservedGB, iStream);
     GPUCHECK(cudaEventRecord(starts[iStream], streams[iStream]));
-
     for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {
-      (*kernel)<<<blocks, threads, 0, streams[iStream]>>>(iStream, args...);
+      (*kernel)<<<blocks, threads, 0, streams[iStream]>>>(iStream, chunkPtr, args...);
     }
     GPUCHECK(cudaEventRecord(stops[iStream], streams[iStream]));
   }
@@ -398,7 +390,7 @@ void GPUbenchmark<chunk_type>::globalInit()
             << "    ├ Allocated: " << std::setprecision(2) << bytesToGB(mState.scratchSize) << "/" << std::setprecision(2) << bytesToGB(mState.totalMemory)
             << "(GB) [" << std::setprecision(3) << (100.f) * (mState.scratchSize / (float)mState.totalMemory) << "%]\n"
             << "    ├ Number of scratch chunks: " << mState.getMaxChunks() << " of " << mOptions.chunkReservedGB << "GB each\n"
-            << "    └ Each chunk can store up to: " << mState.getPartitionCapacity() << " elements" << std::endl
+            << "    └ Each chunk can store up to: " << mState.getChunkCapacity() << " elements" << std::endl
             << std::endl;
 }
 
@@ -420,21 +412,19 @@ void GPUbenchmark<chunk_type>::readSequential(SplitLevel sl)
       mResultWriter.get()->addBenchmarkEntry("seq_read_SB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto capacity{mState.getPartitionCapacity()};
+      auto capacity{mState.getChunkCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
         std::cout << std::setw(2) << "    ├ (" << getType<chunk_type>() << ") Seq read, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
           auto result = benchmarkSync(&gpu::readChunkSBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
-                                      nBlocks,
-                                      nThreads,
                                       iChunk,
+                                      nBlocks,
+                                      nThreads, // args...
                                       mState.deviceReadResultsPtr,
-                                      mState.scratchPtr,
-                                      capacity,
-                                      mState.chunkReservedGB);
-          mResultWriter.get()->storeBenchmarkEntry(iChunk, result);
+                                      capacity);
+          mResultWriter.get()->storeBenchmarkEntry(iChunk, result, mState.chunkReservedGB);
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -446,21 +436,19 @@ void GPUbenchmark<chunk_type>::readSequential(SplitLevel sl)
       mResultWriter.get()->addBenchmarkEntry("seq_read_MB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto capacity{mState.getPartitionCapacity()};
+      auto capacity{mState.getChunkCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
         std::cout << std::setw(2) << "    ├ (" << getType<chunk_type>() << ") Seq read, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
           auto result = benchmarkSync(&gpu::readChunkMBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
-                                      nBlocks,
-                                      nThreads,
                                       iChunk,
+                                      nBlocks,
+                                      nThreads, // args...
                                       mState.deviceReadResultsPtr,
-                                      mState.scratchPtr,
-                                      capacity,
-                                      mState.chunkReservedGB);
-          mResultWriter.get()->storeBenchmarkEntry(iChunk, result);
+                                      capacity);
+          mResultWriter.get()->storeBenchmarkEntry(iChunk, result, mState.chunkReservedGB);
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -479,7 +467,7 @@ void GPUbenchmark<chunk_type>::readConcurrent(SplitLevel sl, int nRegions)
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto chunks{mState.getMaxChunks()};
-      auto capacity{mState.getPartitionCapacity()};
+      auto capacity{mState.getChunkCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
         std::cout << "    ├ (" << getType<chunk_type>() << ") Conc read, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
@@ -489,11 +477,9 @@ void GPUbenchmark<chunk_type>::readConcurrent(SplitLevel sl, int nRegions)
                                       nBlocks,
                                       nThreads,
                                       mState.deviceReadResultsPtr, // kernel arguments (chunkId is passed by wrapper)
-                                      mState.scratchPtr,
-                                      capacity,
-                                      mState.chunkReservedGB);
+                                      capacity);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult]);
+          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult], mState.chunkReservedGB);
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -505,7 +491,7 @@ void GPUbenchmark<chunk_type>::readConcurrent(SplitLevel sl, int nRegions)
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto chunks{mState.getMaxChunks()};
-      auto capacity{mState.getPartitionCapacity()};
+      auto capacity{mState.getChunkCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
         std::cout << "    ├ (" << getType<chunk_type>() << ") Conc read, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
@@ -515,11 +501,9 @@ void GPUbenchmark<chunk_type>::readConcurrent(SplitLevel sl, int nRegions)
                                       nBlocks,
                                       nThreads,
                                       mState.deviceReadResultsPtr, // kernel arguments (chunkId is passed by wrapper)
-                                      mState.scratchPtr,
-                                      capacity,
-                                      mState.chunkReservedGB);
+                                      capacity);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult]);
+          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult], mState.chunkReservedGB);
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -555,21 +539,19 @@ void GPUbenchmark<chunk_type>::writeSequential(SplitLevel sl)
       mResultWriter.get()->addBenchmarkEntry("seq_write_SB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto capacity{mState.getPartitionCapacity()};
+      auto capacity{mState.getChunkCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
         std::cout << std::setw(2) << "    ├ (" << getType<chunk_type>() << ") Seq write, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
           auto result = benchmarkSync(&gpu::writeChunkSBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
+                                      iChunk,
                                       nBlocks,
                                       nThreads,
-                                      iChunk,
                                       mState.deviceWriteResultsPtr,
-                                      mState.scratchPtr,
-                                      capacity,
-                                      mState.chunkReservedGB);
-          mResultWriter.get()->storeBenchmarkEntry(iChunk, result);
+                                      capacity);
+          mResultWriter.get()->storeBenchmarkEntry(iChunk, result, mState.chunkReservedGB);
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -581,21 +563,19 @@ void GPUbenchmark<chunk_type>::writeSequential(SplitLevel sl)
       mResultWriter.get()->addBenchmarkEntry("seq_write_MB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto capacity{mState.getPartitionCapacity()};
+      auto capacity{mState.getChunkCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
         std::cout << std::setw(2) << "    ├ (" << getType<chunk_type>() << ") Seq write, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
           auto result = benchmarkSync(&gpu::writeChunkMBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
+                                      iChunk,
                                       nBlocks,
                                       nThreads,
-                                      iChunk,
                                       mState.deviceWriteResultsPtr,
-                                      mState.scratchPtr,
-                                      capacity,
-                                      mState.chunkReservedGB);
-          mResultWriter.get()->storeBenchmarkEntry(iChunk, result);
+                                      capacity);
+          mResultWriter.get()->storeBenchmarkEntry(iChunk, result, mState.chunkReservedGB);
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -614,7 +594,7 @@ void GPUbenchmark<chunk_type>::writeConcurrent(SplitLevel sl, int nRegions)
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto chunks{mState.getMaxChunks()};
-      auto capacity{mState.getPartitionCapacity()};
+      auto capacity{mState.getChunkCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
         std::cout << "    ├ (" << getType<chunk_type>() << ") Conc write, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
@@ -624,11 +604,9 @@ void GPUbenchmark<chunk_type>::writeConcurrent(SplitLevel sl, int nRegions)
                                       nBlocks,
                                       nThreads,
                                       mState.deviceWriteResultsPtr, // kernel arguments (chunkId is passed by wrapper)
-                                      mState.scratchPtr,
-                                      capacity,
-                                      mState.chunkReservedGB);
+                                      capacity);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult]);
+          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult], mState.chunkReservedGB);
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -640,7 +618,7 @@ void GPUbenchmark<chunk_type>::writeConcurrent(SplitLevel sl, int nRegions)
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto chunks{mState.getMaxChunks()};
-      auto capacity{mState.getPartitionCapacity()};
+      auto capacity{mState.getChunkCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
         std::cout << "    ├ (" << getType<chunk_type>() << ") Conc write, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
@@ -650,11 +628,9 @@ void GPUbenchmark<chunk_type>::writeConcurrent(SplitLevel sl, int nRegions)
                                       nBlocks,
                                       nThreads,
                                       mState.deviceWriteResultsPtr, // kernel arguments (chunkId is passed by wrapper)
-                                      mState.scratchPtr,
-                                      capacity,
-                                      mState.chunkReservedGB);
+                                      capacity);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult]);
+          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult], mState.chunkReservedGB);
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -692,21 +668,19 @@ void GPUbenchmark<chunk_type>::copySequential(SplitLevel sl)
       mResultWriter.get()->addBenchmarkEntry("seq_copy_SB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto capacity{mState.getPartitionCapacity()};
+      auto capacity{mState.getChunkCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
         std::cout << std::setw(2) << "    ├ (" << getType<chunk_type>() << ") Seq copy, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
           auto result = benchmarkSync(&gpu::copyChunkSBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
+                                      iChunk,
                                       nBlocks,
                                       nThreads,
-                                      iChunk,
                                       mState.deviceCopyInputsPtr,
-                                      mState.scratchPtr,
-                                      capacity,
-                                      mState.chunkReservedGB);
-          mResultWriter.get()->storeBenchmarkEntry(iChunk, result);
+                                      capacity);
+          mResultWriter.get()->storeBenchmarkEntry(iChunk, result, mState.chunkReservedGB);
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -718,21 +692,19 @@ void GPUbenchmark<chunk_type>::copySequential(SplitLevel sl)
       mResultWriter.get()->addBenchmarkEntry("seq_copy_MB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto capacity{mState.getPartitionCapacity()};
+      auto capacity{mState.getChunkCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
         std::cout << std::setw(2) << "    ├ (" << getType<chunk_type>() << ") Seq copy, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
           auto result = benchmarkSync(&gpu::copyChunkMBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
+                                      iChunk,
                                       nBlocks,
                                       nThreads,
-                                      iChunk,
                                       mState.deviceCopyInputsPtr,
-                                      mState.scratchPtr,
-                                      capacity,
-                                      mState.chunkReservedGB);
-          mResultWriter.get()->storeBenchmarkEntry(iChunk, result);
+                                      capacity);
+          mResultWriter.get()->storeBenchmarkEntry(iChunk, result, mState.chunkReservedGB);
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -751,7 +723,7 @@ void GPUbenchmark<chunk_type>::copyConcurrent(SplitLevel sl, int nRegions)
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto chunks{mState.getMaxChunks()};
-      auto capacity{mState.getPartitionCapacity()};
+      auto capacity{mState.getChunkCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
         std::cout << "    ├ (" << getType<chunk_type>() << ") Conc copy, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
@@ -761,11 +733,9 @@ void GPUbenchmark<chunk_type>::copyConcurrent(SplitLevel sl, int nRegions)
                                       nBlocks,
                                       nThreads,
                                       mState.deviceCopyInputsPtr, // kernel arguments (chunkId is passed by wrapper)
-                                      mState.scratchPtr,
-                                      capacity,
-                                      mState.chunkReservedGB);
+                                      capacity);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult]);
+          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult], mState.chunkReservedGB);
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -777,7 +747,7 @@ void GPUbenchmark<chunk_type>::copyConcurrent(SplitLevel sl, int nRegions)
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto chunks{mState.getMaxChunks()};
-      auto capacity{mState.getPartitionCapacity()};
+      auto capacity{mState.getChunkCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
         std::cout << "    ├ (" << getType<chunk_type>() << ") Conc copy, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
@@ -787,12 +757,9 @@ void GPUbenchmark<chunk_type>::copyConcurrent(SplitLevel sl, int nRegions)
                                       nBlocks,
                                       nThreads,
                                       mState.deviceCopyInputsPtr, // kernel arguments (chunkId is passed by wrapper)
-                                      mState.scratchPtr,
-                                      capacity,
-                                      mState.chunkReservedGB);
+                                      capacity);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          auto region = getCorrespondingRegionId(iResult, nBlocks, nRegions);
-          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult]);
+          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult], mState.chunkReservedGB);
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;

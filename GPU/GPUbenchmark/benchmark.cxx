@@ -24,7 +24,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
     "device,d", bpo::value<int>()->default_value(0), "Id of the device to run test on, EPN targeted.")(
     "test,t", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"read", "write", "copy"}, "read, write, copy"), "Tests to be performed.")(
     "mode,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"seq", "con"}, "seq, con"), "Mode: sequential or concurrent.")(
-    "pool,p", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"sb, mb"}, "sb, mb"), "Pool strategy: single or multi blocks.")(
+    "pool,p", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"sb", "mb"}, "sb, mb"), "Pool strategy: single or multi blocks.")(
     "chunkSize,c", bpo::value<float>()->default_value(1.f), "Size of scratch partitions (GB).")(
     "freeMemFraction,f", bpo::value<float>()->default_value(0.95f), "Fraction of free memory to be allocated (min: 0.f, max: 1.f).")(
     "launches,l", bpo::value<int>()->default_value(10), "Number of iterations in reading kernels.")(
@@ -48,7 +48,6 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
   conf.deviceId = vm["device"].as<int>();
   conf.freeMemoryFractionToAllocate = vm["freeMemFraction"].as<float>();
   conf.chunkReservedGB = vm["chunkSize"].as<float>();
-  conf.nRegions = vm["regions"].as<int>();
   conf.kernelLaunches = vm["launches"].as<int>();
   conf.nTests = vm["nruns"].as<int>();
 
