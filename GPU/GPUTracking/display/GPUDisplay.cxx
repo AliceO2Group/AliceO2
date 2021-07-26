@@ -807,51 +807,53 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, unsigned in
 {
   size_t startCount = mVertexBufferStart[iSlice].size();
   size_t startCountInner = mVertexBuffer[iSlice].size();
-  const int firstCluster = (mCollisionClusters.size() > 1 && iCol > 0) ? mCollisionClusters[iCol - 1][iSlice] : 0;
-  const int lastCluster = (mCollisionClusters.size() > 1 && iCol + 1 < mCollisionClusters.size()) ? mCollisionClusters[iCol][iSlice] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice] : 0);
-  for (int cidInSlice = firstCluster; cidInSlice < lastCluster; cidInSlice++) {
-    const int cid = GET_CID(iSlice, cidInSlice);
-    if (mCfgH.hideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) {
-      continue;
-    }
-    bool draw = mGlobalPos[cid].w == select;
+  if (mCollisionClusters.size() > 0 || iCol == 0) {
+    const int firstCluster = (mCollisionClusters.size() > 1 && iCol > 0) ? mCollisionClusters[iCol - 1][iSlice] : 0;
+    const int lastCluster = (mCollisionClusters.size() > 1 && iCol + 1 < mCollisionClusters.size()) ? mCollisionClusters[iCol][iSlice] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice] : 0);
+    for (int cidInSlice = firstCluster; cidInSlice < lastCluster; cidInSlice++) {
+      const int cid = GET_CID(iSlice, cidInSlice);
+      if (mCfgH.hideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) {
+        continue;
+      }
+      bool draw = mGlobalPos[cid].w == select;
 
-    if (mCfgH.markAdjacentClusters) {
-      const int attach = mIOPtrs->mergedTrackHitAttachment[cid];
-      if (attach) {
-        if (mCfgH.markAdjacentClusters >= 32) {
-          if (mQA && mQA->clusterRemovable(attach, mCfgH.markAdjacentClusters == 33)) {
+      if (mCfgH.markAdjacentClusters) {
+        const int attach = mIOPtrs->mergedTrackHitAttachment[cid];
+        if (attach) {
+          if (mCfgH.markAdjacentClusters >= 32) {
+            if (mQA && mQA->clusterRemovable(attach, mCfgH.markAdjacentClusters == 33)) {
+              draw = select == tMARKED;
+            }
+          } else if ((mCfgH.markAdjacentClusters & 2) && (attach & gputpcgmmergertypes::attachTube)) {
             draw = select == tMARKED;
-          }
-        } else if ((mCfgH.markAdjacentClusters & 2) && (attach & gputpcgmmergertypes::attachTube)) {
-          draw = select == tMARKED;
-        } else if ((mCfgH.markAdjacentClusters & 1) && (attach & (gputpcgmmergertypes::attachGood | gputpcgmmergertypes::attachTube)) == 0) {
-          draw = select == tMARKED;
-        } else if ((mCfgH.markAdjacentClusters & 4) && (attach & gputpcgmmergertypes::attachGoodLeg) == 0) {
-          draw = select == tMARKED;
-        } else if ((mCfgH.markAdjacentClusters & 16) && (attach & gputpcgmmergertypes::attachHighIncl)) {
-          draw = select == tMARKED;
-        } else if (mCfgH.markAdjacentClusters & 8) {
-          if (fabsf(mIOPtrs->mergedTracks[attach & gputpcgmmergertypes::attachTrackMask].GetParam().GetQPt()) > 20.f) {
+          } else if ((mCfgH.markAdjacentClusters & 1) && (attach & (gputpcgmmergertypes::attachGood | gputpcgmmergertypes::attachTube)) == 0) {
             draw = select == tMARKED;
+          } else if ((mCfgH.markAdjacentClusters & 4) && (attach & gputpcgmmergertypes::attachGoodLeg) == 0) {
+            draw = select == tMARKED;
+          } else if ((mCfgH.markAdjacentClusters & 16) && (attach & gputpcgmmergertypes::attachHighIncl)) {
+            draw = select == tMARKED;
+          } else if (mCfgH.markAdjacentClusters & 8) {
+            if (fabsf(mIOPtrs->mergedTracks[attach & gputpcgmmergertypes::attachTrackMask].GetParam().GetQPt()) > 20.f) {
+              draw = select == tMARKED;
+            }
           }
         }
+      } else if (mCfgH.markClusters) {
+        short flags;
+        if (mParam->par.earlyTpcTransform) {
+          flags = mIOPtrs->clusterData[iSlice][cidInSlice].flags;
+        } else {
+          flags = mIOPtrs->clustersNative->clustersLinear[cid].getFlags();
+        }
+        const bool match = flags & mCfgH.markClusters;
+        draw = (select == tMARKED) ? (match) : (draw && !match);
+      } else if (mCfgH.markFakeClusters) {
+        const bool fake = (mQA->HitAttachStatus(cid));
+        draw = (select == tMARKED) ? (fake) : (draw && !fake);
       }
-    } else if (mCfgH.markClusters) {
-      short flags;
-      if (mParam->par.earlyTpcTransform) {
-        flags = mIOPtrs->clusterData[iSlice][cidInSlice].flags;
-      } else {
-        flags = mIOPtrs->clustersNative->clustersLinear[cid].getFlags();
+      if (draw) {
+        mVertexBuffer[iSlice].emplace_back(mGlobalPos[cid].x, mGlobalPos[cid].y, mCfgH.projectXY ? 0 : mGlobalPos[cid].z);
       }
-      const bool match = flags & mCfgH.markClusters;
-      draw = (select == tMARKED) ? (match) : (draw && !match);
-    } else if (mCfgH.markFakeClusters) {
-      const bool fake = (mQA->HitAttachStatus(cid));
-      draw = (select == tMARKED) ? (fake) : (draw && !fake);
-    }
-    if (draw) {
-      mVertexBuffer[iSlice].emplace_back(mGlobalPos[cid].x, mGlobalPos[cid].y, mCfgH.projectXY ? 0 : mGlobalPos[cid].z);
     }
   }
   insertVertexList(iSlice, startCountInner, mVertexBuffer[iSlice].size());
