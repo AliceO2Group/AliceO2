@@ -34,6 +34,15 @@ using namespace o2::framework;
 using namespace o2::soa;
 using namespace o2::framework::expressions;
 
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  ConfigParamSpec multest = {"wfcentmultestimator",
+                             VariantType::String,
+                             "NOCM",
+                             {"Centrality/multiplicity estimator detector at workflow creation level. A this level the default is NOCM"}};
+  workflowOptions.push_back(multest);
+}
+
 #include "Framework/runDataProcessing.h"
 
 namespace o2
@@ -52,6 +61,7 @@ DECLARE_SOA_TABLE(AcceptedEvents, "AOD", "ACCEPTEDEVENTS", dptdptcorrelations::E
 DECLARE_SOA_TABLE(ScannedTracks, "AOD", "SCANNEDTRACKS", dptdptcorrelations::TrackacceptedAsOne, dptdptcorrelations::TrackacceptedAsTwo);
 
 using CollisionEvSelCent = soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator;
+using CollisionEvSel = soa::Join<aod::Collisions, aod::EvSels>::iterator;
 using TrackData = soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection>::iterator;
 using FilteredTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended, aod::ScannedTracks>>;
 using FilteredTrackData = Partition<aod::FilteredTracks>::filtered_iterator;
@@ -99,10 +109,21 @@ enum SystemType {
   knSystems      ///< number of handled systems
 };
 
+/// \enum GeneratorType
+/// \brief Which kid of generator data is the task addressing
+enum GenType {
+  kData = 0, ///< actual data, not generated
+  kMC,       ///< Generator level and detector level
+  kFastMC,   ///< Gererator level but stored dataset
+  kOnTheFly, ///< On the fly generator level data
+  knGenData  ///< number of different generator data types
+};
+
 /// \enum CentMultEstimatorType
 /// \brief The detector used to estimate centrality/multiplicity
 enum CentMultEstimatorType {
-  kV0M = 0,            ///< V0M centrality/multiplicity estimator
+  kNOCM = 0,           ///< do not use centrality/multiplicity estimator
+  kV0M,                ///< V0M centrality/multiplicity estimator
   kV0A,                ///< V0A centrality/multiplicity estimator
   kV0C,                ///< V0C centrality/multiplicity estimator
   kCL0,                ///< CL0 centrality/multiplicity estimator
@@ -110,12 +131,13 @@ enum CentMultEstimatorType {
   knCentMultEstimators ///< number of centrality/mutiplicity estimator
 };
 
-namespace filteranalyistask
+namespace filteranalysistask
 {
 //============================================================================================
 // The DptDptCorrelationsFilterAnalysisTask output objects
 //============================================================================================
 SystemType fSystem = kNoSystem;
+GenType fDataType = kData;
 CentMultEstimatorType fCentMultEstimator = kV0M;
 TH1F* fhCentMultB = nullptr;
 TH1F* fhCentMultA = nullptr;
@@ -139,7 +161,7 @@ TH2F* fhEtaVsPhiA = nullptr;
 
 TH2F* fhPtVsEtaB = nullptr;
 TH2F* fhPtVsEtaA = nullptr;
-} // namespace filteranalyistask
+} // namespace filteranalysistask
 
 namespace correlationstask
 {
@@ -155,37 +177,114 @@ enum TrackPairs {
 };
 } // namespace correlationstask
 
-SystemType getSystemType()
+/// \brief System type according to configuration string
+/// \param sysstr The system configuration string
+/// \return The internal code for the passed system string
+SystemType getSystemType(std::string const& sysstr)
 {
   /* we have to figure out how extract the system type */
+  if (sysstr.empty() or (sysstr == "PbPb")) {
+    return kPbPb;
+  } else if (sysstr == "pp") {
+    return kpp;
+  } else if (sysstr == "pPb") {
+    return kpPb;
+  } else if (sysstr == "Pbp") {
+    return kPbp;
+  } else if (sysstr == "pPb") {
+    return kpPb;
+  } else if (sysstr == "XeXe") {
+    return kXeXe;
+  } else {
+    LOGF(fatal, "DptDptCorrelations::getSystemType(). Wrong system type: %d", sysstr.c_str());
+  }
   return kPbPb;
+}
+
+/// \brief Type of data according to the configuration string
+/// \param datastr The data type configuration string
+/// \return Internal code for the passed kind of data string
+GenType getGenType(std::string const& datastr)
+{
+  /* we have to figure out how extract the type of data*/
+  if (datastr.empty() or (datastr == "data")) {
+    return kData;
+  } else if (datastr == "MC") {
+    return kMC;
+  } else if (datastr == "FastMC") {
+    return kFastMC;
+  } else if (datastr == "OnTheFlyMC") {
+    return kOnTheFly;
+  } else {
+    LOGF(fatal, "DptDptCorrelations::getGenType(). Wrong type of dat: %d", datastr.c_str());
+  }
+  return kData;
 }
 
 template <typename CollisionObject>
 bool IsEvtSelected(CollisionObject const& collision, float& centormult)
 {
-  using namespace filteranalyistask;
+  using namespace filteranalysistask;
 
-  if (collision.alias()[kINT7]) {
+  bool trigsel = false;
+  if (fDataType != kData) {
+    trigsel = true;
+  } else if (collision.alias()[kINT7]) {
     if (collision.sel7()) {
-      /* TODO: vertex quality checks */
-      if (zvtxlow < collision.posZ() and collision.posZ() < zvtxup) {
-        switch (fCentMultEstimator) {
-          case kV0M:
-            if (collision.centV0M() < 100 and 0 < collision.centV0M()) {
-              centormult = collision.centV0M();
-              return true;
-            }
-            break;
-          default:
-            break;
-        }
-        return false;
-      }
-      return false;
+      trigsel = true;
     }
   }
-  return false;
+
+  bool zvtxsel = false;
+  /* TODO: vertex quality checks */
+  if (zvtxlow < collision.posZ() and collision.posZ() < zvtxup) {
+    zvtxsel = true;
+  }
+
+  bool centmultsel = false;
+  switch (fCentMultEstimator) {
+    case kV0M:
+      if (collision.centV0M() < 100 and 0 < collision.centV0M()) {
+        centormult = collision.centV0M();
+        centmultsel = true;
+      }
+      break;
+    default:
+      break;
+  }
+  return trigsel and zvtxsel and centmultsel;
+}
+
+template <typename CollisionObject>
+bool IsEvtSelectedNoCentMult(CollisionObject const& collision, float& centormult)
+{
+  using namespace filteranalysistask;
+
+  bool trigsel = false;
+  if (fDataType != kData) {
+    trigsel = true;
+  } else if (collision.alias()[kINT7]) {
+    if (collision.sel7() or collision.sel8()) {
+      trigsel = true;
+    }
+  }
+
+  bool zvtxsel = false;
+  /* TODO: vertex quality checks */
+  if (zvtxlow < collision.posZ() and collision.posZ() < zvtxup) {
+    zvtxsel = true;
+  }
+
+  bool centmultsel = false;
+  switch (fCentMultEstimator) {
+    case kNOCM:
+      centormult = 50.0;
+      centmultsel = true;
+      break;
+    default:
+      break;
+  }
+  return trigsel and zvtxsel and centmultsel;
 }
 
 template <typename TrackObject>
@@ -237,6 +336,8 @@ struct DptDptCorrelationsFilterAnalysisTask {
   Configurable<int> cfgTrackType{"trktype", 1, "Type of selected tracks: 0 = no selection, 1 = global tracks FB96"};
   Configurable<bool> cfgProcessPairs{"processpairs", true, "Process pairs: false = no, just singles, true = yes, process pairs"};
   Configurable<std::string> cfgCentMultEstimator{"centmultestimator", "V0M", "Centrality/multiplicity estimator detector: default V0M"};
+  Configurable<std::string> cfgDataType{"datatype", "data", "Data type: data, MC, FastMC, OnTheFlyMC. Default data"};
+  Configurable<std::string> cfgSystem{"syst", "PbPb", "System: pp, PbPb, Pbp, pPb, XeXe. Default PbPb"};
 
   Configurable<o2::analysis::DptDptBinningCuts> cfgBinning{"binning",
                                                            {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.5},
@@ -247,9 +348,48 @@ struct DptDptCorrelationsFilterAnalysisTask {
   Produces<aod::AcceptedEvents> acceptedevents;
   Produces<aod::ScannedTracks> scannedtracks;
 
+  template <typename TrackListObject>
+  void filterTracks(TrackListObject const& ftracks)
+  {
+    using namespace filteranalysistask;
+
+    for (auto& track : ftracks) {
+      /* before track selection */
+      fhPtB->Fill(track.pt());
+      fhEtaB->Fill(track.eta());
+      fhPhiB->Fill(track.phi());
+      fhEtaVsPhiB->Fill(track.phi(), track.eta());
+      fhPtVsEtaB->Fill(track.eta(), track.pt());
+      if (track.sign() > 0) {
+        fhPtPosB->Fill(track.pt());
+      } else {
+        fhPtNegB->Fill(track.pt());
+      }
+
+      /* track selection */
+      /* tricky because the boolean columns issue */
+      bool asone, astwo;
+      AcceptTrack(track, asone, astwo);
+      if (asone or astwo) {
+        /* the track has been accepted */
+        fhPtA->Fill(track.pt());
+        fhEtaA->Fill(track.eta());
+        fhPhiA->Fill(track.phi());
+        fhEtaVsPhiA->Fill(track.phi(), track.eta());
+        fhPtVsEtaA->Fill(track.eta(), track.pt());
+        if (track.sign() > 0) {
+          fhPtPosA->Fill(track.pt());
+        } else {
+          fhPtNegA->Fill(track.pt());
+        }
+      }
+      scannedtracks((uint8_t)asone, (uint8_t)astwo);
+    }
+  }
+
   void init(InitContext const&)
   {
-    using namespace filteranalyistask;
+    using namespace filteranalysistask;
 
     /* update with the configurable values */
     /* the binning */
@@ -267,12 +407,15 @@ struct DptDptCorrelationsFilterAnalysisTask {
     /* the centrality/multiplicity estimation */
     if (cfgCentMultEstimator->compare("V0M") == 0) {
       fCentMultEstimator = kV0M;
+    } else if (cfgCentMultEstimator->compare("NOCM") == 0) {
+      fCentMultEstimator = kNOCM;
     } else {
-      LOGF(FATAL, "Centrality/Multiplicity estimator %s not supported yet", cfgCentMultEstimator->c_str());
+      LOGF(fatal, "Centrality/Multiplicity estimator %s not supported yet", cfgCentMultEstimator->c_str());
     }
 
     /* if the system type is not known at this time, we have to put the initalization somewhere else */
-    fSystem = getSystemType();
+    fSystem = getSystemType(cfgSystem);
+    fDataType = getGenType(cfgDataType);
 
     /* create the output list which will own the task histograms */
     TList* fOutputList = new TList();
@@ -333,9 +476,9 @@ struct DptDptCorrelationsFilterAnalysisTask {
     fOutputList->Add(fhPtVsEtaA);
   }
 
-  void process(aod::CollisionEvSelCent const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection> const& ftracks)
+  void processWithCent(aod::CollisionEvSelCent const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection> const& ftracks)
   {
-    using namespace filteranalyistask;
+    using namespace filteranalysistask;
 
     //    LOGF(INFO,"New collision with %d filtered tracks", ftracks.size());
     fhCentMultB->Fill(collision.centV0M());
@@ -346,40 +489,32 @@ struct DptDptCorrelationsFilterAnalysisTask {
       acceptedevent = true;
       fhCentMultA->Fill(collision.centV0M());
       fhVertexZA->Fill(collision.posZ());
-      //      LOGF(INFO,"New accepted collision with %d filtered tracks", ftracks.size());
 
+      filterTracks(ftracks);
+    } else {
       for (auto& track : ftracks) {
-        /* before track selection */
-        fhPtB->Fill(track.pt());
-        fhEtaB->Fill(track.eta());
-        fhPhiB->Fill(track.phi());
-        fhEtaVsPhiB->Fill(track.phi(), track.eta());
-        fhPtVsEtaB->Fill(track.eta(), track.pt());
-        if (track.sign() > 0) {
-          fhPtPosB->Fill(track.pt());
-        } else {
-          fhPtNegB->Fill(track.pt());
-        }
-
-        /* track selection */
-        /* tricky because the boolean columns issue */
-        bool asone, astwo;
-        AcceptTrack(track, asone, astwo);
-        if (asone or astwo) {
-          /* the track has been accepted */
-          fhPtA->Fill(track.pt());
-          fhEtaA->Fill(track.eta());
-          fhPhiA->Fill(track.phi());
-          fhEtaVsPhiA->Fill(track.phi(), track.eta());
-          fhPtVsEtaA->Fill(track.eta(), track.pt());
-          if (track.sign() > 0) {
-            fhPtPosA->Fill(track.pt());
-          } else {
-            fhPtNegA->Fill(track.pt());
-          }
-        }
-        scannedtracks((uint8_t)asone, (uint8_t)astwo);
+        scannedtracks((uint8_t) false, (uint8_t) false);
       }
+    }
+    acceptedevents((uint8_t)acceptedevent, centormult);
+  }
+  void processWithoutCent(aod::CollisionEvSel const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection> const& ftracks)
+  {
+    using namespace filteranalysistask;
+
+    /* the task does not have access to either centrality nor multiplicity 
+       classes information, so it has to live without it.
+       For the time being we assign a value of 50% */
+    fhCentMultB->Fill(50.0);
+    fhVertexZB->Fill(collision.posZ());
+    bool acceptedevent = false;
+    float centormult = -100.0;
+    if (IsEvtSelectedNoCentMult(collision, centormult)) {
+      acceptedevent = true;
+      fhCentMultA->Fill(50.0);
+      fhVertexZA->Fill(collision.posZ());
+
+      filterTracks(ftracks);
     } else {
       for (auto& track : ftracks) {
         scannedtracks((uint8_t) false, (uint8_t) false);
@@ -408,16 +543,16 @@ struct DptDptCorrelationsTask {
     TH2F* fhSum2PtPt_vsDEtaDPhi[4];   //!<! two-particle  \f$\sum {p_T}_1 {p_T}_2\f$ distribution vs \f$\Delta\eta,\;\Delta\phi\f$ 1-1,1-2,2-1,2-2, combinations
     TH2F* fhSum2DptDpt_vsDEtaDPhi[4]; //!<! two-particle  \f$\sum ({p_T}_1- <{p_T}_1>) ({p_T}_2 - <{p_T}_2>) \f$ distribution vs \f$\Delta\eta,\;\Delta\phi\f$ 1-1,1-2,2-1,2-2, combinations
     /* versus centrality/multiplicity  profiles */
-    TProfile* fhN1_vsC[2];           //!<! weighted single particle distribution vs event centrality, track 1 and 2
-    TProfile* fhSum1Pt_vsC[2];       //!<! accumulated sum of weighted \f$p_T\f$ vs event centrality, track 1 and 2
-    TProfile* fhN1nw_vsC[2];         //!<! un-weighted single particle distribution vs event centrality, track 1 and 2
-    TProfile* fhSum1Ptnw_vsC[2];     //!<! accumulated sum of un-weighted \f$p_T\f$ vs event centrality, track 1 and 2
-    TProfile* fhN2_vsC[4];           //!<! weighted accumulated two particle distribution vs event centrality 1-1,1-2,2-1,2-2, combinations
-    TProfile* fhSum2PtPt_vsC[4];     //!<! weighted accumulated \f${p_T}_1 {p_T}_2\f$ distribution vs event centrality 1-1,1-2,2-1,2-2, combinations
-    TProfile* fhSum2DptDpt_vsC[4];   //!<! weighted accumulated \f$\sum ({p_T}_1- <{p_T}_1>) ({p_T}_2 - <{p_T}_2>) \f$ distribution vs event centrality 1-1,1-2,2-1,2-2, combinations
-    TProfile* fhN2nw_vsC[4];         //!<! un-weighted accumulated two particle distribution vs event centrality 1-1,1-2,2-1,2-2, combinations
-    TProfile* fhSum2PtPtnw_vsC[4];   //!<! un-weighted accumulated \f${p_T}_1 {p_T}_2\f$ distribution vs event centrality 1-1,1-2,2-1,2-2, combinations
-    TProfile* fhSum2DptDptnw_vsC[4]; //!<! un-weighted accumulated \f$\sum ({p_T}_1- <{p_T}_1>) ({p_T}_2 - <{p_T}_2>) \f$ distribution vs \f$\Delta\eta,\;\Delta\phi\f$ distribution vs event centrality 1-1,1-2,2-1,2-2, combinations
+    TProfile* fhN1_vsC[2];           //!<! weighted single particle distribution vs event centrality/multiplicity, track 1 and 2
+    TProfile* fhSum1Pt_vsC[2];       //!<! accumulated sum of weighted \f$p_T\f$ vs event centrality/multiplicity, track 1 and 2
+    TProfile* fhN1nw_vsC[2];         //!<! un-weighted single particle distribution vs event centrality/multiplicity, track 1 and 2
+    TProfile* fhSum1Ptnw_vsC[2];     //!<! accumulated sum of un-weighted \f$p_T\f$ vs event centrality/multiplicity, track 1 and 2
+    TProfile* fhN2_vsC[4];           //!<! weighted accumulated two particle distribution vs event centrality/multiplicity 1-1,1-2,2-1,2-2, combinations
+    TProfile* fhSum2PtPt_vsC[4];     //!<! weighted accumulated \f${p_T}_1 {p_T}_2\f$ distribution vs event centrality/multiplicity 1-1,1-2,2-1,2-2, combinations
+    TProfile* fhSum2DptDpt_vsC[4];   //!<! weighted accumulated \f$\sum ({p_T}_1- <{p_T}_1>) ({p_T}_2 - <{p_T}_2>) \f$ distribution vs event centrality/multiplicity 1-1,1-2,2-1,2-2, combinations
+    TProfile* fhN2nw_vsC[4];         //!<! un-weighted accumulated two particle distribution vs event centrality/multiplicity 1-1,1-2,2-1,2-2, combinations
+    TProfile* fhSum2PtPtnw_vsC[4];   //!<! un-weighted accumulated \f${p_T}_1 {p_T}_2\f$ distribution vs event centrality/multiplicity 1-1,1-2,2-1,2-2, combinations
+    TProfile* fhSum2DptDptnw_vsC[4]; //!<! un-weighted accumulated \f$\sum ({p_T}_1- <{p_T}_1>) ({p_T}_2 - <{p_T}_2>) \f$ distribution vs \f$\Delta\eta,\;\Delta\phi\f$ distribution vs event centrality/multiplicity 1-1,1-2,2-1,2-2, combinations
 
     const char* tname[2] = {"1", "2"}; ///< the external track names, one and two, for histogram creation
     const char* trackPairsNames[4] = {"OO", "OT", "TO", "TT"};
@@ -588,6 +723,28 @@ struct DptDptCorrelationsTask {
       fhSum2PtPt_vsDEtaDPhi[pix]->SetEntries(fhSum2PtPt_vsDEtaDPhi[pix]->GetEntries() + n2);
     }
 
+    template <typename TrackListObject>
+    void processCollision(TrackListObject const& Tracks1, TrackListObject const& Tracks2, float zvtx, float centmult)
+    {
+      using namespace correlationstask;
+
+      if (not processpairs) {
+        /* process single tracks */
+        processSingles(Tracks1, 0, zvtx); /* track one */
+        processSingles(Tracks2, 1, zvtx); /* track two */
+      } else {
+        /* process track magnitudes */
+        /* TODO: the centrality should be chosen non detector dependent */
+        processTracks(Tracks1, 0, centmult); /* track one */
+        processTracks(Tracks2, 1, centmult); /* track one */
+        /* process pair magnitudes */
+        processTrackPairs(Tracks1, Tracks1, kOO, centmult);
+        processTrackPairs(Tracks1, Tracks2, kOT, centmult);
+        processTrackPairs(Tracks2, Tracks1, kTO, centmult);
+        processTrackPairs(Tracks2, Tracks2, kTT, centmult);
+      }
+    }
+
     void init(TList* fOutputList)
     {
       using namespace correlationstask;
@@ -636,16 +793,16 @@ struct DptDptCorrelationsTask {
                                             .Data(),
                                           etabins, etalow, etaup, phibins, philow, phiup);
           fhN1_vsC[i] = new TProfile(TString::Format("n1_%s_vsM", tname[i]).Data(),
-                                     TString::Format("#LT n_{1} #GT (weighted);Centrality (%%);#LT n_{1} #GT").Data(),
+                                     TString::Format("#LT n_{1} #GT (weighted);Centrality/Multiplicity (%%);#LT n_{1} #GT").Data(),
                                      100, 0.0, 100.0);
           fhSum1Pt_vsC[i] = new TProfile(TString::Format("sumPt_%s_vsM", tname[i]),
-                                         TString::Format("#LT #Sigma p_{t,%s} #GT (weighted);Centrality (%%);#LT #Sigma p_{t,%s} #GT (GeV/c)", tname[i], tname[i]).Data(),
+                                         TString::Format("#LT #Sigma p_{t,%s} #GT (weighted);Centrality/Multiplicity (%%);#LT #Sigma p_{t,%s} #GT (GeV/c)", tname[i], tname[i]).Data(),
                                          100, 0.0, 100.0);
           fhN1nw_vsC[i] = new TProfile(TString::Format("n1Nw_%s_vsM", tname[i]).Data(),
-                                       TString::Format("#LT n_{1} #GT;Centrality (%%);#LT n_{1} #GT").Data(),
+                                       TString::Format("#LT n_{1} #GT;Centrality/Multiplicity (%%);#LT n_{1} #GT").Data(),
                                        100, 0.0, 100.0);
           fhSum1Ptnw_vsC[i] = new TProfile(TString::Format("sumPtNw_%s_vsM", tname[i]).Data(),
-                                           TString::Format("#LT #Sigma p_{t,%s} #GT;Centrality (%%);#LT #Sigma p_{t,%s} #GT (GeV/c)", tname[i], tname[i]).Data(), 100, 0.0, 100.0);
+                                           TString::Format("#LT #Sigma p_{t,%s} #GT;Centrality/Multiplicity (%%);#LT #Sigma p_{t,%s} #GT (GeV/c)", tname[i], tname[i]).Data(), 100, 0.0, 100.0);
           fOutputList->Add(fhN1_vsEtaPhi[i]);
           fOutputList->Add(fhSum1Pt_vsEtaPhi[i]);
           fOutputList->Add(fhN1_vsC[i]);
@@ -672,12 +829,12 @@ struct DptDptCorrelationsTask {
           fhN2_vsPtPt[i] = new TH2F(TString::Format("n2_12_vsPtVsPt_%s", pname), TString::Format("#LT n_{2} #GT (%s);p_{t,1} (GeV/c);p_{t,2} (GeV/c);#LT n_{2} #GT", pname),
                                     ptbins, ptlow, ptup, ptbins, ptlow, ptup);
 
-          fhN2_vsC[i] = new TProfile(TString::Format("n2_12_vsM_%s", pname), TString::Format("#LT n_{2} #GT (%s) (weighted);Centrality (%%);#LT n_{2} #GT", pname), 100, 0.0, 100.0);
-          fhSum2PtPt_vsC[i] = new TProfile(TString::Format("sumPtPt_12_vsM_%s", pname), TString::Format("#LT #Sigma p_{t,1}p_{t,2} #GT (%s) (weighted);Centrality (%%);#LT #Sigma p_{t,1}p_{t,2} #GT (GeV^{2})", pname), 100, 0.0, 100.0);
-          fhSum2DptDpt_vsC[i] = new TProfile(TString::Format("sumDptDpt_12_vsM_%s", pname), TString::Format("#LT #Sigma (p_{t,1} - #LT p_{t,1} #GT)(p_{t,2} - #LT p_{t,2} #GT) #GT (%s) (weighted);Centrality (%%);#LT #Sigma (p_{t,1} - #LT p_{t,1} #GT)(p_{t,2} - #LT p_{t,2} #GT) #GT (GeV^{2})", pname), 100, 0.0, 100.0);
-          fhN2nw_vsC[i] = new TProfile(TString::Format("n2Nw_12_vsM_%s", pname), TString::Format("#LT n_{2} #GT (%s);Centrality (%%);#LT n_{2} #GT", pname), 100, 0.0, 100.0);
-          fhSum2PtPtnw_vsC[i] = new TProfile(TString::Format("sumPtPtNw_12_vsM_%s", pname), TString::Format("#LT #Sigma p_{t,1}p_{t,2} #GT (%s);Centrality (%%);#LT #Sigma p_{t,1}p_{t,2} #GT (GeV^{2})", pname), 100, 0.0, 100.0);
-          fhSum2DptDptnw_vsC[i] = new TProfile(TString::Format("sumDptDptNw_12_vsM_%s", pname), TString::Format("#LT #Sigma (p_{t,1} - #LT p_{t,1} #GT)(p_{t,2} - #LT p_{t,2} #GT) #GT (%s);Centrality (%%);#LT #Sigma (p_{t,1} - #LT p_{t,1} #GT)(p_{t,2} - #LT p_{t,2} #GT) #GT (GeV^{2})", pname), 100, 0.0, 100.0);
+          fhN2_vsC[i] = new TProfile(TString::Format("n2_12_vsM_%s", pname), TString::Format("#LT n_{2} #GT (%s) (weighted);Centrality/Multiplicity (%%);#LT n_{2} #GT", pname), 100, 0.0, 100.0);
+          fhSum2PtPt_vsC[i] = new TProfile(TString::Format("sumPtPt_12_vsM_%s", pname), TString::Format("#LT #Sigma p_{t,1}p_{t,2} #GT (%s) (weighted);Centrality/Multiplicity (%%);#LT #Sigma p_{t,1}p_{t,2} #GT (GeV^{2})", pname), 100, 0.0, 100.0);
+          fhSum2DptDpt_vsC[i] = new TProfile(TString::Format("sumDptDpt_12_vsM_%s", pname), TString::Format("#LT #Sigma (p_{t,1} - #LT p_{t,1} #GT)(p_{t,2} - #LT p_{t,2} #GT) #GT (%s) (weighted);Centrality/Multiplicity (%%);#LT #Sigma (p_{t,1} - #LT p_{t,1} #GT)(p_{t,2} - #LT p_{t,2} #GT) #GT (GeV^{2})", pname), 100, 0.0, 100.0);
+          fhN2nw_vsC[i] = new TProfile(TString::Format("n2Nw_12_vsM_%s", pname), TString::Format("#LT n_{2} #GT (%s);Centrality/Multiplicity (%%);#LT n_{2} #GT", pname), 100, 0.0, 100.0);
+          fhSum2PtPtnw_vsC[i] = new TProfile(TString::Format("sumPtPtNw_12_vsM_%s", pname), TString::Format("#LT #Sigma p_{t,1}p_{t,2} #GT (%s);Centrality/Multiplicity (%%);#LT #Sigma p_{t,1}p_{t,2} #GT (GeV^{2})", pname), 100, 0.0, 100.0);
+          fhSum2DptDptnw_vsC[i] = new TProfile(TString::Format("sumDptDptNw_12_vsM_%s", pname), TString::Format("#LT #Sigma (p_{t,1} - #LT p_{t,1} #GT)(p_{t,2} - #LT p_{t,2} #GT) #GT (%s);Centrality/Multiplicity (%%);#LT #Sigma (p_{t,1} - #LT p_{t,1} #GT)(p_{t,2} - #LT p_{t,2} #GT) #GT (GeV^{2})", pname), 100, 0.0, 100.0);
 
           /* the statistical uncertainties will be estimated by the subsamples method so let's get rid of the error tracking */
           fhN2_vsDEtaDPhi[i]->SetBit(TH1::kIsNotW);
@@ -816,7 +973,7 @@ struct DptDptCorrelationsTask {
     }
   }
 
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::Cents, aod::AcceptedEvents>>::iterator const& collision, aod::FilteredTracks const& tracks)
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::AcceptedEvents>>::iterator const& collision, aod::FilteredTracks const& tracks)
   {
     using namespace correlationstask;
 
@@ -833,21 +990,7 @@ struct DptDptCorrelationsTask {
     }
 
     if (rgfound) {
-      if (not processpairs) {
-        /* process single tracks */
-        dataCE[ixDCE]->processSingles(Tracks1, 0, collision.posZ()); /* track one */
-        dataCE[ixDCE]->processSingles(Tracks2, 1, collision.posZ()); /* track two */
-      } else {
-        /* process track magnitudes */
-        /* TODO: the centrality should be chosen non detector dependent */
-        dataCE[ixDCE]->processTracks(Tracks1, 0, collision.centmult()); /* track one */
-        dataCE[ixDCE]->processTracks(Tracks2, 1, collision.centmult()); /* track one */
-        /* process pair magnitudes */
-        dataCE[ixDCE]->processTrackPairs(Tracks1, Tracks1, kOO, collision.centmult());
-        dataCE[ixDCE]->processTrackPairs(Tracks1, Tracks2, kOT, collision.centmult());
-        dataCE[ixDCE]->processTrackPairs(Tracks2, Tracks1, kTO, collision.centmult());
-        dataCE[ixDCE]->processTrackPairs(Tracks2, Tracks2, kTT, collision.centmult());
-      }
+      dataCE[ixDCE]->processCollision(Tracks1, Tracks2, collision.posZ(), collision.centmult());
     }
   }
 };
@@ -876,7 +1019,7 @@ struct TracksAndEventClassificationQA {
   Filter onlyacceptedevents = (aod::dptdptcorrelations::eventaccepted == (uint8_t) true);
   Filter onlyacceptedtracks = ((aod::dptdptcorrelations::trackacceptedasone == (uint8_t) true) or (aod::dptdptcorrelations::trackacceptedastwo == (uint8_t) true));
 
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::Cents, aod::AcceptedEvents>>::iterator const& collision,
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::AcceptedEvents>>::iterator const& collision,
                soa::Filtered<soa::Join<aod::Tracks, aod::ScannedTracks>> const& tracks)
   {
     if (collision.eventaccepted() != (uint8_t) true) {
@@ -920,9 +1063,20 @@ struct TracksAndEventClassificationQA {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{
-    adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc),
-    adaptAnalysisTask<TracksAndEventClassificationQA>(cfgc),
-    adaptAnalysisTask<DptDptCorrelationsTask>(cfgc)};
-  return workflow;
+  std::string multest = cfgc.options().get<std::string>("wfcentmultestimator");
+  if (multest == "NOCM") {
+    /* no centrality/multiplicity classes available */
+    WorkflowSpec workflow{
+      adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, Processes{&DptDptCorrelationsFilterAnalysisTask::processWithoutCent}),
+      adaptAnalysisTask<TracksAndEventClassificationQA>(cfgc),
+      adaptAnalysisTask<DptDptCorrelationsTask>(cfgc)};
+    return workflow;
+  } else {
+    /* centrality/multiplicity classes available */
+    WorkflowSpec workflow{
+      adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, Processes{&DptDptCorrelationsFilterAnalysisTask::processWithCent}),
+      adaptAnalysisTask<TracksAndEventClassificationQA>(cfgc),
+      adaptAnalysisTask<DptDptCorrelationsTask>(cfgc)};
+    return workflow;
+  }
 }
