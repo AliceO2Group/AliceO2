@@ -61,7 +61,7 @@ bool isStable(int pdg)
 
 // Ported from AliRoot AliStack::IsPhysicalPrimary
 template <typename Particles, typename Particle>
-bool isPhysicalPrimary(Particle& particle)
+bool isPhysicalPrimary(const Particle& particle)
 {
   // Test if a particle is a physical primary according to the following definition:
   // Particles produced in the collision including products of strong and
