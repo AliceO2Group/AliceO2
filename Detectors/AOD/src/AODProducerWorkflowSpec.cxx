@@ -212,6 +212,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
   const auto& tpcClusRefs = data.getTPCTracksClusterRefs();
   const auto& tpcClusShMap = data.clusterShMapTPC;
   const auto& tpcClusAcc = data.getTPCClusters();
+  const auto& tpcTracks = data.getTPCTracks();
+  const auto& itsTracks = data.getITSTracks();
+  const auto& itsABRefs = data.getITSABRefs();
 
   for (int src = GIndex::NSources; src--;) {
     int start = trackRef.getFirstEntryOfSource(src);
@@ -228,11 +231,12 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
           const auto& trackPar = data.getTrackParam(trackIndex);
           if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
-            const auto& itsOrig = data.getITSTrack(contributorsGID[GIndex::ITS]);
-            extraInfoHolder.itsClusterMap = itsOrig.getPattern();
+            extraInfoHolder.itsClusterMap = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getPattern();
+          } else if (contributorsGID[GIndex::Source::ITSAB].isIndexSet()) { // this is an ITS-TPC afterburner contributor
+            extraInfoHolder.itsClusterMap = itsABRefs[contributorsGID[GIndex::Source::ITSAB].getIndex()].pattern;
           }
           if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-            const auto& tpcOrig = data.getTPCTrack(contributorsGID[GIndex::TPC]);
+            const auto& tpcOrig = tpcTracks[contributorsGID[GIndex::TPC].getIndex()];
             extraInfoHolder.tpcInnerParam = tpcOrig.getP();
             extraInfoHolder.tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
             extraInfoHolder.tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
