@@ -88,10 +88,10 @@ struct TableMakerMC {
   std::map<uint64_t, int> fNewLabels;
   std::map<uint64_t, int16_t> fMCFlags;
   int fCounter;
-  
+
   // list of MCsignal objects
   std::vector<MCSignal> fMCSignals;
-  
+
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
 
@@ -114,31 +114,31 @@ struct TableMakerMC {
     fHistMan = new HistogramManager("analysisHistos", "aa", VarManager::kNVars);
     fHistMan->SetUseDefaultVariableNames(kTRUE);
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
-    
+
     fCounter = 0;
-    
+
     TString histClasses = "Event_BeforeCuts;Event_AfterCuts;TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts;";
-    
+
     TString configNamesStr = fConfigMCSignals.value;
     if (!configNamesStr.IsNull()) {
       std::unique_ptr<TObjArray> objArray(configNamesStr.Tokenize(","));
       for (int isig = 0; isig < objArray->GetEntries(); ++isig) {
         MCSignal* sig = o2::aod::dqmcsignals::GetMCSignal(objArray->At(isig)->GetName());
-        if(sig) {
+        if (sig) {
           fMCSignals.push_back(*sig);
-          histClasses += Form("TrackBarrel_AfterCuts_%s;MCtruth_%s;",objArray->At(isig)->GetName(),objArray->At(isig)->GetName());
+          histClasses += Form("TrackBarrel_AfterCuts_%s;MCtruth_%s;", objArray->At(isig)->GetName(), objArray->At(isig)->GetName());
         }
       }
     }
-    
-    DefineHistograms(histClasses); // define all histograms
+
+    DefineHistograms(histClasses);                   // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
     fOutputList.setObject(fHistMan->GetMainHistogramList());
     DefineCuts();
-    
+
     cout << "===================== Print configured signals ==========================" << endl;
     for (MCSignal sig : fMCSignals) {
-      sig.Print();  
+      sig.Print();
     }
   }
 
@@ -155,8 +155,8 @@ struct TableMakerMC {
 
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
-  
-  void process(MyEvents::iterator const& collision, aod::BCs const& bcs, soa::Filtered<MyBarrelTracks> const& tracksBarrel, 
+
+  void process(MyEvents::iterator const& collision, aod::BCs const& bcs, soa::Filtered<MyBarrelTracks> const& tracksBarrel,
                aod::McParticles const& mcTracks, aod::McCollisions const& mcEvents)
   {
     uint32_t triggerAliases = 0;
@@ -171,7 +171,7 @@ struct TableMakerMC {
     VarManager::FillEvent<gkEventFillMap>(collision, fValues); // extract event information and place it in the fValues array
     VarManager::FillEvent<gkEventMCFillMap>(collision.mcCollision(), fValues);
 
-    fHistMan->FillHistClass("Event_BeforeCuts", fValues);    // automatically fill all the histograms in the class Event
+    fHistMan->FillHistClass("Event_BeforeCuts", fValues); // automatically fill all the histograms in the class Event
     if (!fEventCut->IsSelected(fValues)) {
       return;
     }
@@ -180,54 +180,54 @@ struct TableMakerMC {
     event(tag, collision.bc().runNumber(), collision.posX(), collision.posY(), collision.posZ(), collision.numContrib());
     eventExtended(collision.bc().globalBC(), collision.bc().triggerMask(), 0, triggerAliases, fValues[VarManager::kCentVZERO]);
     eventVtxCov(collision.covXX(), collision.covXY(), collision.covXZ(), collision.covYY(), collision.covYZ(), collision.covZZ(), collision.chi2());
-    eventMC(collision.mcCollision().generatorsID(), collision.mcCollision().posX(), collision.mcCollision().posY(), 
+    eventMC(collision.mcCollision().generatorsID(), collision.mcCollision().posX(), collision.mcCollision().posY(),
             collision.mcCollision().posZ(), collision.mcCollision().t(), collision.mcCollision().weight(), collision.mcCollision().impactParameter());
 
     // loop over the MC truth tracks and find those that need to be written
     uint16_t flags = 0;
     for (auto& mctrack : mcTracks) {
-      if (mctrack.mcCollision().globalIndex() != collision.mcCollision().globalIndex()) 
-          continue;
+      if (mctrack.mcCollision().globalIndex() != collision.mcCollision().globalIndex())
+        continue;
 
       flags = 0;
-      int i=0;
-      for (auto & sig : fMCSignals) {
-        if(sig.CheckSignal(true,mcTracks,mctrack))
-          flags |= (uint16_t(1)<<i);
+      int i = 0;
+      for (auto& sig : fMCSignals) {
+        if (sig.CheckSignal(true, mcTracks, mctrack))
+          flags |= (uint16_t(1) << i);
         i++;
       }
       if (flags) {
-          
-        // fill histograms for each of the signals, if found  
+
+        // fill histograms for each of the signals, if found
         VarManager::FillTrack<gkParticleMCFillMap>(mctrack, fValues);
-        for (int i=0; i<fMCSignals.size();i++) {
-          if(flags & (uint16_t(1)<<i)) {
+        for (int i = 0; i < fMCSignals.size(); i++) {
+          if (flags & (uint16_t(1) << i)) {
             fHistMan->FillHistClass(Form("MCtruth_%s", fMCSignals[i].GetName()), fValues);
           }
-        }  
-          
+        }
+
         fNewLabels[mctrack.index()] = fCounter++;
         fMCFlags[mctrack.index()] = flags;
         int m0Label = -1;
-        if (mctrack.mother0() > -1 && (fNewLabels.find(mctrack.mother0()) != fNewLabels.end())) 
+        if (mctrack.mother0() > -1 && (fNewLabels.find(mctrack.mother0()) != fNewLabels.end()))
           m0Label = fNewLabels.find(mctrack.mother0())->second;
         int m1Label = -1;
-        if (mctrack.mother1() > -1 && (fNewLabels.find(mctrack.mother1()) != fNewLabels.end())) 
+        if (mctrack.mother1() > -1 && (fNewLabels.find(mctrack.mother1()) != fNewLabels.end()))
           m1Label = fNewLabels.find(mctrack.mother1())->second;
         int d0Label = -1;
-        if (mctrack.daughter0() > -1 && (fNewLabels.find(mctrack.daughter0()) != fNewLabels.end())) 
+        if (mctrack.daughter0() > -1 && (fNewLabels.find(mctrack.daughter0()) != fNewLabels.end()))
           d0Label = fNewLabels.find(mctrack.daughter0())->second;
         int d1Label = -1;
-        if (mctrack.daughter1() > -1 && (fNewLabels.find(mctrack.daughter1()) != fNewLabels.end())) 
+        if (mctrack.daughter1() > -1 && (fNewLabels.find(mctrack.daughter1()) != fNewLabels.end()))
           d1Label = fNewLabels.find(mctrack.daughter1())->second;
         trackMC(event.lastIndex(), mctrack.pdgCode(), mctrack.statusCode(), mctrack.flags(),
                 m0Label, m1Label, d0Label, d1Label,
                 mctrack.weight(), mctrack.px(), mctrack.py(), mctrack.pz(), mctrack.e(),
                 mctrack.vx(), mctrack.vy(), mctrack.vz(), mctrack.vt(), fMCFlags.find(mctrack.index())->second);
       }
-    }  // end loop over mc stack
-     
-    // loop over reconstructed tracks 
+    } // end loop over mc stack
+
+    // loop over reconstructed tracks
     uint64_t trackFilteringTag = 0;
     trackBasic.reserve(tracksBarrel.size());
     trackBarrel.reserve(tracksBarrel.size());
@@ -236,7 +236,7 @@ struct TableMakerMC {
     trackBarrelLabels.reserve(tracksBarrel.size());
     for (auto& track : tracksBarrel) {
       VarManager::FillTrack<gkTrackFillMap>(track, fValues);
-      
+
       fHistMan->FillHistClass("TrackBarrel_BeforeCuts", fValues);
       if (!fTrackCut->IsSelected(fValues)) {
         continue;
@@ -244,36 +244,36 @@ struct TableMakerMC {
       auto mctrack = track.mcParticle();
       VarManager::FillTrack<gkParticleMCFillMap>(mctrack, fValues);
       fHistMan->FillHistClass("TrackBarrel_AfterCuts", fValues);
-      
+
       // if the MC truth particle corresponding to this reconstructed track is not already written,
       //   add it to the skimmed stack
-      if (! (fNewLabels.find(track.mcParticle().index()) != fNewLabels.end())) {
+      if (!(fNewLabels.find(track.mcParticle().index()) != fNewLabels.end())) {
         flags = 0;
-        int i=0;
+        int i = 0;
         // check all the specified signals
-        for (auto & sig : fMCSignals) {
-          if(sig.CheckSignal(true,mcTracks,mctrack)) {
-            flags |= (uint16_t(1)<<i);
-            fHistMan->FillHistClass(Form("TrackBarrel_AfterCuts_%s", sig.GetName()), fValues);   // fill the reconstructed truth
-            fHistMan->FillHistClass(Form("MCtruth_%s", sig.GetName()), fValues);    // fill the generated truth
+        for (auto& sig : fMCSignals) {
+          if (sig.CheckSignal(true, mcTracks, mctrack)) {
+            flags |= (uint16_t(1) << i);
+            fHistMan->FillHistClass(Form("TrackBarrel_AfterCuts_%s", sig.GetName()), fValues); // fill the reconstructed truth
+            fHistMan->FillHistClass(Form("MCtruth_%s", sig.GetName()), fValues);               // fill the generated truth
           }
           i++;
         }
-      
+
         fNewLabels[track.mcParticle().index()] = fCounter++;
         fMCFlags[track.mcParticle().index()] = flags;
-        
+
         int m0Label = -1;
-        if (mctrack.mother0() > -1 && (fNewLabels.find(mctrack.mother0()) != fNewLabels.end())) 
+        if (mctrack.mother0() > -1 && (fNewLabels.find(mctrack.mother0()) != fNewLabels.end()))
           m0Label = fNewLabels.find(mctrack.mother0())->second;
         int m1Label = -1;
-        if (mctrack.mother1() > -1 && (fNewLabels.find(mctrack.mother1()) != fNewLabels.end())) 
+        if (mctrack.mother1() > -1 && (fNewLabels.find(mctrack.mother1()) != fNewLabels.end()))
           m1Label = fNewLabels.find(mctrack.mother1())->second;
         int d0Label = -1;
-        if (mctrack.daughter0() > -1 && (fNewLabels.find(mctrack.daughter0()) != fNewLabels.end())) 
+        if (mctrack.daughter0() > -1 && (fNewLabels.find(mctrack.daughter0()) != fNewLabels.end()))
           d0Label = fNewLabels.find(mctrack.daughter0())->second;
         int d1Label = -1;
-        if (mctrack.daughter1() > -1 && (fNewLabels.find(mctrack.daughter1()) != fNewLabels.end())) 
+        if (mctrack.daughter1() > -1 && (fNewLabels.find(mctrack.daughter1()) != fNewLabels.end()))
           d1Label = fNewLabels.find(mctrack.daughter1())->second;
         trackMC(event.lastIndex(), mctrack.pdgCode(), mctrack.statusCode(), mctrack.flags(),
                 m0Label, m1Label, d0Label, d1Label,
@@ -307,7 +307,7 @@ struct TableMakerMC {
       trackBarrelLabels(fNewLabels.find(mctrack.index())->second, track.mcMask(), fMCFlags.find(mctrack.index())->second);
     }
   }
-  
+
   void DefineHistograms(TString histClasses)
   {
     std::unique_ptr<TObjArray> objArray(histClasses.Tokenize(";"));
@@ -321,11 +321,10 @@ struct TableMakerMC {
       }
 
       if (classStr.Contains("Track")) {
-        if (classStr.Contains("BeforeCuts")) {  
+        if (classStr.Contains("BeforeCuts")) {
           dqhistograms::DefineHistograms(fHistMan, objArray->At(iclass)->GetName(), "track", "dca,its,tpcpid,tofpid");
-        }
-        else {
-          dqhistograms::DefineHistograms(fHistMan, objArray->At(iclass)->GetName(), "track", "dca,its,tpcpid,tofpid,mc");  
+        } else {
+          dqhistograms::DefineHistograms(fHistMan, objArray->At(iclass)->GetName(), "track", "dca,its,tpcpid,tofpid,mc");
         }
       }
       if (classStr.Contains("MCtruth")) {
@@ -333,14 +332,15 @@ struct TableMakerMC {
       }
     }
   }
-  
-  template<typename T>
-  void PrintBits(T bitMap, int n) {
-    for (int i=0;i<n;i++) {
-      if (i<sizeof(T)*8) {
-        cout << (bitMap & (T(1)<<i) ? "1" : "0");
+
+  template <typename T>
+  void PrintBits(T bitMap, int n)
+  {
+    for (int i = 0; i < n; i++) {
+      if (i < sizeof(T) * 8) {
+        cout << (bitMap & (T(1) << i) ? "1" : "0");
       }
-    }  
+    }
   };
 };
 
@@ -349,6 +349,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // TODO: For now TableMakerMC works just for PbPb (cent table is present)
   //      Implement workflow arguments for pp/PbPb and possibly merge the task with tableMaker.cxx
   return WorkflowSpec{
-    adaptAnalysisTask<TableMakerMC>(cfgc)
-  };
+    adaptAnalysisTask<TableMakerMC>(cfgc)};
 }

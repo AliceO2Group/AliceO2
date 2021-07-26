@@ -76,7 +76,7 @@ class VarManager : public TObject
     ReducedMuonExtra = BIT(13),
     ReducedMuonCov = BIT(14),
     ParticleMC = BIT(15),
-    Pair = BIT(16)     // TODO: check whether we really need the Pair member here
+    Pair = BIT(16) // TODO: check whether we really need the Pair member here
   };
 
   enum PairCandidateType {
@@ -211,7 +211,7 @@ class VarManager : public TObject
     kMuonCTglTgl,
     kMuonC1Pt21Pt2,
     kNMuonTrackVariables,
-    
+
     // MC particle variables
     kMCPdgCode,
     kMCParticleWeight,
@@ -227,7 +227,7 @@ class VarManager : public TObject
     kMCEta,
     kMCParticleGeneratorId,
     kNMCParticleVariables,
-    
+
     // Pair variables
     kCandidateId,
     kPairType,
@@ -381,7 +381,7 @@ void VarManager::FillEvent(T const& event, float* values)
   }
 
   if constexpr ((fillMap & Collision) > 0) {
-    // TODO: trigger info from the evenet selection requires a separate flag 
+    // TODO: trigger info from the evenet selection requires a separate flag
     //         so that it can be switched off independently of the rest of Collision variables (e.g. if event selection is not available)
     if (fgUsedVars[kIsINT7]) {
       values[kIsINT7] = (event.alias()[kINT7] > 0);
@@ -491,7 +491,7 @@ void VarManager::FillEvent(T const& event, float* values)
     values[kVtxCovZZ] = event.covZZ();
     values[kVtxChi2] = event.chi2();
   }
-  
+
   if constexpr ((fillMap & CollisionMC) > 0) {
     values[kMCEventGeneratorId] = event.generatorsID();
     values[kMCVtxX] = event.posX();
@@ -501,7 +501,7 @@ void VarManager::FillEvent(T const& event, float* values)
     values[kMCEventWeight] = event.weight();
     values[kMCEventImpParam] = event.impactParameter();
   }
-  
+
   if constexpr ((fillMap & ReducedEventMC) > 0) {
     values[kMCEventGeneratorId] = event.generatorsID();
     values[kMCVtxX] = event.mcPosX();
@@ -687,7 +687,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kMCEta] = track.eta();
     values[kMCParticleGeneratorId] = track.producedByGenerator();
   }
-  
+
   // Derived quantities which can be computed based on already filled variables
   FillTrackDerived(values);
 }

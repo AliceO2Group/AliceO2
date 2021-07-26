@@ -28,7 +28,7 @@ namespace o2::aod
 
 namespace dqppfilter
 {
-DECLARE_SOA_COLUMN(EventFilter, eventFilter, uint64_t);      //! Bit-field used for the high level event triggering 
+DECLARE_SOA_COLUMN(EventFilter, eventFilter, uint64_t); //! Bit-field used for the high level event triggering
 }
 
 DECLARE_SOA_TABLE(DQEventFilter, "AOD", "EVENTFILTER", //! Store event-level decisions (DQ high level triggers)
@@ -38,11 +38,11 @@ namespace reducedevent
 {
 
 // basic event information
-DECLARE_SOA_COLUMN(Tag, tag, uint64_t);                      //!  Bit-field for storing event information (e.g. high level info, cut decisions)
-DECLARE_SOA_COLUMN(TriggerAlias, triggerAlias, uint32_t);    //!  Trigger aliases bit field    
-DECLARE_SOA_COLUMN(MCPosX, mcPosX, float);                       //!
-DECLARE_SOA_COLUMN(MCPosY, mcPosY, float);                       //!
-DECLARE_SOA_COLUMN(MCPosZ, mcPosZ, float);                       //!
+DECLARE_SOA_COLUMN(Tag, tag, uint64_t);                   //!  Bit-field for storing event information (e.g. high level info, cut decisions)
+DECLARE_SOA_COLUMN(TriggerAlias, triggerAlias, uint32_t); //!  Trigger aliases bit field
+DECLARE_SOA_COLUMN(MCPosX, mcPosX, float);                //!
+DECLARE_SOA_COLUMN(MCPosY, mcPosY, float);                //!
+DECLARE_SOA_COLUMN(MCPosZ, mcPosZ, float);                //!
 } // namespace reducedevent
 
 DECLARE_SOA_TABLE(ReducedEvents, "AOD", "REDUCEDEVENT", //!   Main event information table
@@ -59,10 +59,10 @@ DECLARE_SOA_TABLE(ReducedEventsVtxCov, "AOD", "REVTXCOV", //!    Event vertex co
 
 // TODO and NOTE: This table is just an extension of the ReducedEvents table
 //       There is no explicit accounting for MC events which were not reconstructed!!!
-//       However, for analysis which will require these events, a special skimming process function 
+//       However, for analysis which will require these events, a special skimming process function
 //           can be constructed and the same data model could be used
-DECLARE_SOA_TABLE(ReducedEventsMC, "AOD", "REMC",     //!   Event level MC truth information
-                  mccollision::GeneratorsID, reducedevent::MCPosX, reducedevent::MCPosY, reducedevent::MCPosZ, 
+DECLARE_SOA_TABLE(ReducedEventsMC, "AOD", "REMC", //!   Event level MC truth information
+                  mccollision::GeneratorsID, reducedevent::MCPosX, reducedevent::MCPosY, reducedevent::MCPosZ,
                   mccollision::T, mccollision::Weight, mccollision::ImpactParameter);
 
 using ReducedEvent = ReducedEvents::iterator;
@@ -136,15 +136,15 @@ using ReducedTrackBarrel = ReducedTracksBarrel::iterator;
 using ReducedTrackBarrelCov = ReducedTracksBarrelCov::iterator;
 using ReducedTrackBarrelPID = ReducedTracksBarrelPID::iterator;
 
-namespace reducedtrackMC 
+namespace reducedtrackMC
 {
 DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);
 DECLARE_SOA_COLUMN(McReducedFlags, mcReducedFlags, uint16_t);
-}
+} // namespace reducedtrackMC
 // NOTE: This table is nearly identical to the one from Framework (except that it points to the event ID, not the BC id)
 //       This table contains all MC truth tracks (both barrel and muon)
-DECLARE_SOA_TABLE(ReducedMCTracks, "AOD", "RTMC",    //!  MC track information
-                  o2::soa::Index<>, reducedtrack::ReducedEventId, 
+DECLARE_SOA_TABLE(ReducedMCTracks, "AOD", "RTMC", //!  MC track information
+                  o2::soa::Index<>, reducedtrack::ReducedEventId,
                   mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
                   mcparticle::Mother0, mcparticle::Mother1,
                   mcparticle::Daughter0, mcparticle::Daughter1, mcparticle::Weight,
@@ -160,12 +160,12 @@ using ReducedMCTrack = ReducedMCTracks::iterator;
 
 namespace reducedtrackMC
 {
-DECLARE_SOA_INDEX_COLUMN(ReducedMCTrack, reducedMCTrack); //!    
+DECLARE_SOA_INDEX_COLUMN(ReducedMCTrack, reducedMCTrack); //!
 }
 
 // NOTE: MC labels. This table has one entry for each reconstructed track (joinable with the track tables)
 //          The McParticleId points to the position of the MC truth track from the ReducedTracksMC table
-DECLARE_SOA_TABLE(ReducedTracksBarrelLabels, "AOD", "RTBARRELLABELS",  //!
+DECLARE_SOA_TABLE(ReducedTracksBarrelLabels, "AOD", "RTBARRELLABELS", //!
                   reducedtrackMC::ReducedMCTrackId, reducedtrackMC::McMask, reducedtrackMC::McReducedFlags);
 
 using ReducedTrackBarrelLabel = ReducedTracksBarrelLabels::iterator;

@@ -161,7 +161,7 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kMCVtxX] = "cm";
   fgVariableUnits[kMCVtxY] = "cm";
   fgVariableUnits[kMCVtxZ] = "cm";
-  fgVariableUnits[kMCEventTime] = "";        // TODO: add proper unit
+  fgVariableUnits[kMCEventTime] = ""; // TODO: add proper unit
   fgVariableUnits[kMCEventWeight] = "";
   fgVariableUnits[kMCEventImpParam] = "b";
   fgVariableNames[kPt] = "p_{T}";
@@ -283,11 +283,11 @@ void VarManager::SetDefaultVarNames()
   fgVariableNames[kMCE] = "MC Energy";
   fgVariableUnits[kMCE] = "GeV";
   fgVariableNames[kMCVx] = "MC vx";
-  fgVariableUnits[kMCVx] = "cm";        // TODO: check the unit
+  fgVariableUnits[kMCVx] = "cm"; // TODO: check the unit
   fgVariableNames[kMCVy] = "MC vy";
-  fgVariableUnits[kMCVy] = "cm";        // TODO: check the unit
+  fgVariableUnits[kMCVy] = "cm"; // TODO: check the unit
   fgVariableNames[kMCVz] = "MC vz";
-  fgVariableUnits[kMCVz] = "cm";        // TODO: check the unit
+  fgVariableUnits[kMCVz] = "cm"; // TODO: check the unit
   fgVariableNames[kCandidateId] = "";
   fgVariableUnits[kCandidateId] = "";
   fgVariableNames[kPairType] = "Pair type";

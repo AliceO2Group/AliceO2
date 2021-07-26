@@ -13,60 +13,61 @@
 ClassImp(MCSignal);
 
 //________________________________________________________________________________________________
-MCSignal::MCSignal() :
- TNamed("",""),
- fProngs({}), 
- fNProngs(0),
- fCommonAncestorIdxs({}), 
- fTempAncestorLabel(-1) 
-{}
-
-//________________________________________________________________________________________________
-MCSignal::MCSignal(int nProngs, const char* name /*= ""*/, const char* title /*= ""*/) :
- TNamed(name,title),
- fProngs({}),
- fNProngs(nProngs), 
- fCommonAncestorIdxs({}), 
- fTempAncestorLabel(-1) 
+MCSignal::MCSignal() : TNamed("", ""),
+                       fProngs({}),
+                       fNProngs(0),
+                       fCommonAncestorIdxs({}),
+                       fTempAncestorLabel(-1)
 {
-  fProngs.reserve(nProngs);    
 }
-  
-//________________________________________________________________________________________________
-MCSignal::MCSignal(const char* name, const char* title, std::vector<MCProng> prongs, std::vector<short> commonAncestors) :
- TNamed(name,title),
- fProngs(prongs),
- fNProngs(prongs.size()), 
- fCommonAncestorIdxs(commonAncestors), 
- fTempAncestorLabel(-1)
-{}
 
 //________________________________________________________________________________________________
-void MCSignal::SetProngs(std::vector<MCProng> prongs, std::vector<short> commonAncestors) {
+MCSignal::MCSignal(int nProngs, const char* name /*= ""*/, const char* title /*= ""*/) : TNamed(name, title),
+                                                                                         fProngs({}),
+                                                                                         fNProngs(nProngs),
+                                                                                         fCommonAncestorIdxs({}),
+                                                                                         fTempAncestorLabel(-1)
+{
+  fProngs.reserve(nProngs);
+}
+
+//________________________________________________________________________________________________
+MCSignal::MCSignal(const char* name, const char* title, std::vector<MCProng> prongs, std::vector<short> commonAncestors) : TNamed(name, title),
+                                                                                                                           fProngs(prongs),
+                                                                                                                           fNProngs(prongs.size()),
+                                                                                                                           fCommonAncestorIdxs(commonAncestors),
+                                                                                                                           fTempAncestorLabel(-1)
+{
+}
+
+//________________________________________________________________________________________________
+void MCSignal::SetProngs(std::vector<MCProng> prongs, std::vector<short> commonAncestors)
+{
   fProngs = prongs;
   fNProngs = fProngs.size();
   fCommonAncestorIdxs = commonAncestors;
 }
 
 //________________________________________________________________________________________________
-void MCSignal::AddProng(MCProng prong, short commonAncestor) {
-  if (fProngs.size()<fNProngs) {
+void MCSignal::AddProng(MCProng prong, short commonAncestor)
+{
+  if (fProngs.size() < fNProngs) {
     fProngs.push_back(prong);
     fCommonAncestorIdxs.push_back(commonAncestor);
-  }
-  else          // TODO: there should be an error message here
-    return;  
+  } else // TODO: there should be an error message here
+    return;
 }
 
 //________________________________________________________________________________________________
-void MCSignal::Print() {
-  cout << "Name/Title: " << fName << " / " << fTitle << endl;  
-  //cout << "Common ancestor idx :: " << fCommonAncestorIdx << endl;  
+void MCSignal::Print()
+{
+  cout << "Name/Title: " << fName << " / " << fTitle << endl;
+  //cout << "Common ancestor idx :: " << fCommonAncestorIdx << endl;
   cout << "Printing " << fNProngs << "/" << fProngs.size() << " prongs:" << endl;
-  int i=0;
-  for(auto& pr : fProngs) {
+  int i = 0;
+  for (auto& pr : fProngs) {
     cout << "Prong #" << i << "  commonAncestor" << fCommonAncestorIdxs[i] << " ================ " << endl;
     i++;
     pr.Print();
-  }    
+  }
 }

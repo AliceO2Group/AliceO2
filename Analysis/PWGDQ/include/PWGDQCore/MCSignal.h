@@ -64,93 +64,96 @@ process(aod::McParticles const& mcTracks) {
 using std::cout;
 using std::endl;
 
-class MCSignal : public TNamed {
- public: 
-    
-  MCSignal();   
+class MCSignal : public TNamed
+{
+ public:
+  MCSignal();
   MCSignal(int nProngs, const char* name = "", const char* title = "");
   MCSignal(const char* name, const char* title, std::vector<MCProng> prongs, std::vector<short> commonAncestors);
-  MCSignal(const MCSignal &c) = default;
+  MCSignal(const MCSignal& c) = default;
   virtual ~MCSignal() = default;
-  
+
   void SetProngs(std::vector<MCProng> prongs, std::vector<short> commonAncestors);
-  void AddProng(MCProng prong, short commonAncestor=-1);
-  
-  int GetNProngs() const {
+  void AddProng(MCProng prong, short commonAncestor = -1);
+
+  int GetNProngs() const
+  {
     return fNProngs;
   }
-  int GetNGenerations() const {
+  int GetNGenerations() const
+  {
     return fProngs[0].fNGenerations;
   }
-  
-  template <typename U, typename ...T>
-  bool CheckSignal(bool checkSources, const U& mcStack, const T&... args) {
+
+  template <typename U, typename... T>
+  bool CheckSignal(bool checkSources, const U& mcStack, const T&... args)
+  {
     // Make sure number of tracks provided is equal to the number of prongs
-    if (sizeof...(args) != fNProngs) {     // TODO: addd a proper error message
-      return false;  
+    if (sizeof...(args) != fNProngs) { // TODO: addd a proper error message
+      return false;
     }
-    
+
     return CheckMC(0, checkSources, mcStack, args...);
   };
-  
+
   void Print();
-  
+
  private:
   std::vector<MCProng> fProngs;
   int fNProngs;
   std::vector<short> fCommonAncestorIdxs;
   int fTempAncestorLabel;
-  
+
   template <typename U, typename T>
   bool CheckProng(int i, bool checkSources, const U& mcStack, const T& track);
-  
+
   template <typename U>
-  bool CheckMC(int, bool, U) {
+  bool CheckMC(int, bool, U)
+  {
     return true;
   };
-  
+
   template <typename U, typename T, typename... Ts>
-  bool CheckMC(int i, bool checkSources, const U& mcStack, const T& track, const Ts&... args) {
-    // recursive call of CheckMC for all args  
+  bool CheckMC(int i, bool checkSources, const U& mcStack, const T& track, const Ts&... args)
+  {
+    // recursive call of CheckMC for all args
     if (!CheckProng(i, checkSources, mcStack, track)) {
       return false;
-    }
-    else {
-      return CheckMC(i+1, checkSources, mcStack, args...);
+    } else {
+      return CheckMC(i + 1, checkSources, mcStack, args...);
     }
   };
-  
-  ClassDef(MCSignal,1);
+
+  ClassDef(MCSignal, 1);
 };
 
-
 template <typename U, typename T>
-bool MCSignal::CheckProng(int i, bool checkSources, const U& mcStack, const T& track) {
+bool MCSignal::CheckProng(int i, bool checkSources, const U& mcStack, const T& track)
+{
   auto currentMCParticle = track;
   // loop over the generations specified for this prong
-  for (int j=0; j<fProngs[i].fNGenerations; j++) {
-    // check the PDG code  
+  for (int j = 0; j < fProngs[i].fNGenerations; j++) {
+    // check the PDG code
     if (!fProngs[i].TestPDG(j, currentMCParticle.pdgCode())) {
-      return false;    
+      return false;
     }
     // check the common ancestor (if specified)
-    if (fNProngs>1 && fCommonAncestorIdxs[i]==j) {
-      if (i==0) {
+    if (fNProngs > 1 && fCommonAncestorIdxs[i] == j) {
+      if (i == 0) {
         fTempAncestorLabel = currentMCParticle.globalIndex();
-      }
-      else {
+      } else {
         if (currentMCParticle.globalIndex() != fTempAncestorLabel) {
           return false;
         }
       }
     }
     // make sure that a mother exists in the stack before moving one generation further in history
-    if (currentMCParticle.mother0()<0 && j<fProngs[i].fNGenerations-1) {
+    if (currentMCParticle.mother0() < 0 && j < fProngs[i].fNGenerations - 1) {
       return false;
     }
     currentMCParticle = mcStack.iteratorAt(currentMCParticle.mother0());
   }
-  
+
   // NOTE:  Checking the sources is optional due to the fact that with the skimmed data model
   //        the full history of a particle is not guaranteed to be present in the particle stack,
   //        which means that some sources cannot be properly checked (e.g. ALICE physical primary)
@@ -158,9 +161,9 @@ bool MCSignal::CheckProng(int i, bool checkSources, const U& mcStack, const T& t
   //        and present in the decision bit map.
   if (checkSources) {
     currentMCParticle = track;
-    for (int j=0; j<fProngs[i].fNGenerations; j++) {
+    for (int j = 0; j < fProngs[i].fNGenerations; j++) {
       if (!fProngs[i].fSourceBits[j]) {
-        // no sources required for this generation  
+        // no sources required for this generation
         continue;
       }
       // check each source
@@ -175,28 +178,28 @@ bool MCSignal::CheckProng(int i, bool checkSources, const U& mcStack, const T& t
         }
       }*/
       // Check kProducedInTransport
-      if(fProngs[i].fSourceBits[j] & MCProng::kProducedInTransport) { 
+      if (fProngs[i].fSourceBits[j] & MCProng::kProducedInTransport) {
         cout << "request kProducedInTransport, pdg " << currentMCParticle.pdgCode() << endl;
         cout << "1::" << (fProngs[i].fExcludeSource[j] & MCProng::kProducedInTransport) << endl;
-        cout << "2::" << (currentMCParticle.flags() & (uint8_t(1)<<0)) << endl;
-        if((fProngs[i].fExcludeSource[j] & MCProng::kProducedInTransport) != (currentMCParticle.flags() & (uint8_t(1)<<0))) {
+        cout << "2::" << (currentMCParticle.flags() & (uint8_t(1) << 0)) << endl;
+        if ((fProngs[i].fExcludeSource[j] & MCProng::kProducedInTransport) != (currentMCParticle.flags() & (uint8_t(1) << 0))) {
           sourcesDecision |= MCProng::kProducedInTransport;
           cout << "good " << sourcesDecision << endl;
         }
       }
       // no source bit is fulfilled
-      if(!sourcesDecision) {
+      if (!sourcesDecision) {
         return false;
       }
       // if fUseANDonSourceBitMap is on, request all bits
-      if(fProngs[i].fUseANDonSourceBitMap[j] && (sourcesDecision != fProngs[i].fSourceBits[j])) {
-        return false;  
+      if (fProngs[i].fUseANDonSourceBitMap[j] && (sourcesDecision != fProngs[i].fSourceBits[j])) {
+        return false;
       }
       // move one generation back in history
       currentMCParticle = mcStack.iteratorAt(currentMCParticle.mother0());
     }
   }
-  
+
   return true;
 }
 

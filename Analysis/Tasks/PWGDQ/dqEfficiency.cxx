@@ -10,7 +10,7 @@
 //
 // Contact: iarsene@cern.ch, i.c.arsene@fys.uio.no
 //
-// Analysis task for processing O2::DQ MC skimmed AODs 
+// Analysis task for processing O2::DQ MC skimmed AODs
 //
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
@@ -129,16 +129,15 @@ struct DQEventSelection {
   }
 };
 
-
 struct DQBarrelTrackSelection {
   Produces<aod::BarrelTrackCuts> trackSel;
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
   std::vector<AnalysisCompositeCut> fTrackCuts;
 
-  float* fValues;                      // array to be used by the VarManager
-  std::vector<MCSignal> fMCSignals;    // list of signals to be checked
-  
+  float* fValues;                   // array to be used by the VarManager
+  std::vector<MCSignal> fMCSignals; // list of signals to be checked
+
   Configurable<std::string> fConfigElectronCuts{"cfgElectronCuts", "jpsiPID1", "Comma separated list of barrel track cuts"};
   Configurable<std::string> fConfigTrackMCSignals{"cfgBarrelTrackMCSignals", "", "Comma separated list of MC signals"};
 
@@ -154,25 +153,25 @@ struct DQBarrelTrackSelection {
 
     TString configSigNamesStr = fConfigTrackMCSignals.value;
     std::unique_ptr<TObjArray> sigNamesArray(configSigNamesStr.Tokenize(","));
-        
+
     // Configure histogram classes for each track cut;
-    // Add histogram classes for each track cut and for each requested MC signal (reconstructed tracks with MC truth) 
+    // Add histogram classes for each track cut and for each requested MC signal (reconstructed tracks with MC truth)
     TString histClasses = "TrackBarrel_BeforeCuts;";
     for (int i = 0; i < fTrackCuts.size(); i++) {
       histClasses += Form("TrackBarrel_%s;", fTrackCuts[i].GetName());
       for (int isig = 0; isig < sigNamesArray->GetEntries(); ++isig) {
         MCSignal* sig = o2::aod::dqmcsignals::GetMCSignal(sigNamesArray->At(isig)->GetName());
-        if(sig) {
-          if (sig->GetNProngs() != 1) {      // NOTE: only 1 prong signals
-            continue;    
-          }  
+        if (sig) {
+          if (sig->GetNProngs() != 1) { // NOTE: only 1 prong signals
+            continue;
+          }
           fMCSignals.push_back(*sig);
-          histClasses += Form("TrackBarrel_%s_%s;",fTrackCuts[i].GetName(),sigNamesArray->At(isig)->GetName());
+          histClasses += Form("TrackBarrel_%s_%s;", fTrackCuts[i].GetName(), sigNamesArray->At(isig)->GetName());
         }
       }
     }
 
-    DefineHistograms(fHistMan, histClasses.Data());     // define all histograms
+    DefineHistograms(fHistMan, histClasses.Data());  // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
     fOutputList.setObject(fHistMan->GetMainHistogramList());
   }
@@ -211,22 +210,22 @@ struct DQBarrelTrackSelection {
           filterMap |= (uint8_t(1) << i);
           fHistMan->FillHistClass(Form("TrackBarrel_%s", (*cut).GetName()), fValues);
         }
-      }      
+      }
       trackSel(filterMap);
-      if(!filterMap) {
-        continue;    
+      if (!filterMap) {
+        continue;
       }
 
-      for (auto & sig : fMCSignals) {
-        if(sig.CheckSignal(false,tracksMC,track.reducedMCTrack())) {
-          for (int j=0; j<fTrackCuts.size(); j++) {
-            if (filterMap & (uint8_t(1)<<j)) {  
+      for (auto& sig : fMCSignals) {
+        if (sig.CheckSignal(false, tracksMC, track.reducedMCTrack())) {
+          for (int j = 0; j < fTrackCuts.size(); j++) {
+            if (filterMap & (uint8_t(1) << j)) {
               fHistMan->FillHistClass(Form("TrackBarrel_%s_%s", fTrackCuts[j].GetName(), sig.GetName()), fValues);
             }
           }
         }
       }
-    }  // end loop over tracks
+    } // end loop over tracks
   }
 };
 
@@ -239,7 +238,7 @@ struct DQQuarkoniumPairing {
   std::vector<TString> fCutNames;
   std::vector<MCSignal> fRecMCSignals;
   std::vector<MCSignal> fGenMCSignals;
-  
+
   Filter filterEventSelected = aod::reducedevent::isEventSelected == 1;
   Filter filterBarrelTrackSelected = aod::reducedtrack::isBarrelSelected > uint8_t(0);
 
@@ -250,7 +249,7 @@ struct DQQuarkoniumPairing {
   Configurable<std::string> fConfigMCRecSignals{"cfgBarrelMCRecSignals", "", "Comma separated list of MC signals (reconstructed)"};
   Configurable<std::string> fConfigMCGenSignals{"cfgBarrelMCGenSignals", "", "Comma separated list of MC signals (generated)"};
   // TODO: cuts on the MC truth information to be added if needed
-  
+
   void init(o2::framework::InitContext&)
   {
     fValues = new float[VarManager::kNVars];
@@ -258,50 +257,50 @@ struct DQQuarkoniumPairing {
     fHistMan = new HistogramManager("analysisHistos", "aa", VarManager::kNVars);
     fHistMan->SetUseDefaultVariableNames(kTRUE);
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
-    
+
     TString histClasses = "";
     TString sigNamesStr = fConfigMCRecSignals.value;
     std::unique_ptr<TObjArray> objRecSigArray(sigNamesStr.Tokenize(","));
-    
+
     // Add pair histogram classes separately for each track cut;
     //  Also, add histogram classes for each track cut and each user specified reconstructed MC signal (must be 2-prong MC signals)
     TString cutNamesStr = fConfigElectronCuts.value;
     if (!cutNamesStr.IsNull()) {
       std::unique_ptr<TObjArray> objArray(cutNamesStr.Tokenize(","));
       for (int icut = 0; icut < objArray->GetEntries(); ++icut) {
-        fCutNames.push_back(objArray->At(icut)->GetName());  
-        histClasses += Form("PairsBarrelSEPM_%s;PairsBarrelSEPP_%s;PairsBarrelSEMM_%s;", 
-                            fCutNames[icut].Data(), fCutNames[icut].Data(), fCutNames[icut].Data());  
+        fCutNames.push_back(objArray->At(icut)->GetName());
+        histClasses += Form("PairsBarrelSEPM_%s;PairsBarrelSEPP_%s;PairsBarrelSEMM_%s;",
+                            fCutNames[icut].Data(), fCutNames[icut].Data(), fCutNames[icut].Data());
         if (objRecSigArray) {
           for (int isig = 0; isig < objRecSigArray->GetEntries(); ++isig) {
             MCSignal* sig = o2::aod::dqmcsignals::GetMCSignal(objRecSigArray->At(isig)->GetName());
-            if(sig) {
-              if (sig->GetNProngs() != 2) {      // NOTE: 2-prong signals required
-                continue;    
-              }  
+            if (sig) {
+              if (sig->GetNProngs() != 2) { // NOTE: 2-prong signals required
+                continue;
+              }
               fRecMCSignals.push_back(*sig);
               histClasses += Form("PairsBarrelSEPM_%s_%s;", fCutNames[icut].Data(), sig->GetName());
             }
-          } 
+          }
         }
       }
-    }    
-    
+    }
+
     // Add histogram classes for each specified generated signal
     TString sigGenNamesStr = fConfigMCGenSignals.value;
     std::unique_ptr<TObjArray> objGenSigArray(sigGenNamesStr.Tokenize(","));
-    for (int isig = 0; isig<objGenSigArray->GetEntries(); isig++) {
+    for (int isig = 0; isig < objGenSigArray->GetEntries(); isig++) {
       MCSignal* sig = o2::aod::dqmcsignals::GetMCSignal(objGenSigArray->At(isig)->GetName());
-      if(sig) {
-        if (sig->GetNProngs() != 1) {     // NOTE: 1-prong signals required
-          continue;  
-        }  
+      if (sig) {
+        if (sig->GetNProngs() != 1) { // NOTE: 1-prong signals required
+          continue;
+        }
         fGenMCSignals.push_back(*sig);
         histClasses += Form("MCTruthGen_%s;", sig->GetName());
-      }  
+      }
     }
-    
-    DefineHistograms(fHistMan, histClasses.Data());    // define all histograms
+
+    DefineHistograms(fHistMan, histClasses.Data());  // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
     fOutputList.setObject(fHistMan->GetMainHistogramList());
 
@@ -329,9 +328,9 @@ struct DQQuarkoniumPairing {
         if (twoTrackFilter & (uint8_t(1) << i)) {
           if (t1.sign() * t2.sign() < 0) {
             fHistMan->FillHistClass(Form("PairsBarrelSEPM_%s", fCutNames[i].Data()), fValues);
-            for (auto & sig : fRecMCSignals) {
-              if(sig.CheckSignal(false,tracksMC,t1.reducedMCTrack(),t2.reducedMCTrack())) {
-                fHistMan->FillHistClass(Form("PairsBarrelSEPM_%s_%s", fCutNames[i].Data(), sig.GetName()), fValues);  
+            for (auto& sig : fRecMCSignals) {
+              if (sig.CheckSignal(false, tracksMC, t1.reducedMCTrack(), t2.reducedMCTrack())) {
+                fHistMan->FillHistClass(Form("PairsBarrelSEPM_%s_%s", fCutNames[i].Data(), sig.GetName()), fValues);
               }
             }
           } else {
@@ -344,22 +343,21 @@ struct DQQuarkoniumPairing {
         }
       }
     } // end loop over barrel track pairs
-    
+
     // loop over mc stack and fill histograms for pure MC truth signals
     for (auto& mctrack : tracksMC) {
       VarManager::FillTrack<gkParticleMCFillMap>(mctrack, fValues);
       // NOTE: Signals are checked here based on the skimmed MC stack, so depending on the requested signal, the stack could be incomplete.
       // NOTE: However, the working model is that the decisions on MC signals are precomputed during skimming and are stored in the mcReducedFlags member.
       // TODO:  Use the mcReducedFlags to select signals
-      for (auto & sig : fGenMCSignals) {
-        if(sig.CheckSignal(false,tracksMC,mctrack)) {
-          fHistMan->FillHistClass(Form("MCTruthGen_%s", sig.GetName()), fValues);  
+      for (auto& sig : fGenMCSignals) {
+        if (sig.CheckSignal(false, tracksMC, mctrack)) {
+          fHistMan->FillHistClass(Form("MCTruthGen_%s", sig.GetName()), fValues);
         }
       }
     }
   }
 };
-
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
@@ -399,7 +397,7 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
     if (classStr.Contains("MCTruthGen")) {
       histMan->AddHistogram(objArray->At(iclass)->GetName(), "Pt", "MC generator p_{T} distribution", false, 200, 0.0, 20.0, VarManager::kMCPt);
       histMan->AddHistogram(objArray->At(iclass)->GetName(), "Eta", "MC generator #eta distribution", false, 500, -5.0, 5.0, VarManager::kMCEta);
-      histMan->AddHistogram(objArray->At(iclass)->GetName(), "Phi", "MC generator #varphi distribution", false, 500, -6.3, 6.3, VarManager::kMCPhi);  
+      histMan->AddHistogram(objArray->At(iclass)->GetName(), "Phi", "MC generator #varphi distribution", false, 500, -6.3, 6.3, VarManager::kMCPhi);
     }
   } // end loop over histogram classes
 }

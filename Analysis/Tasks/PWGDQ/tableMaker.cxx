@@ -164,9 +164,9 @@ struct TableMaker {
     event(tag, collision.bc().runNumber(), collision.posX(), collision.posY(), collision.posZ(), collision.numContrib());
     eventExtended(collision.bc().globalBC(), collision.bc().triggerMask(), 0, triggerAliases, fValues[VarManager::kCentVZERO]);
     eventVtxCov(collision.covXX(), collision.covXY(), collision.covXZ(), collision.covYY(), collision.covYZ(), collision.covZZ(), collision.chi2());
-    
+
     uint64_t trackFilteringTag = 0;
-    
+
     trackBasic.reserve(tracksBarrel.size());
     trackBarrel.reserve(tracksBarrel.size());
     trackBarrelCov.reserve(tracksBarrel.size());
