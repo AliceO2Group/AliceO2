@@ -1366,6 +1366,7 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed)
   // refit track outward in the ITS
   const auto& itsClRefs = mABTrackletRefs[iITSAB];
   int nclRefit = 0, ncl = itsClRefs.getNClusters();
+  uint16_t patt = 0;
   float chi2 = 0.f;
   // NOTE: the ITS cluster absolute indices are stored from inner to outer layers
   for (int icl = itsClRefs.getFirstEntry(); icl < itsClRefs.getEntriesBound(); icl++) {
@@ -1668,18 +1669,19 @@ void MatchTPCITS::refitABWinners()
     const auto& ABSeed = mTPCABSeeds[wid];
     int start = mABTrackletClusterIDs.size();
     int lID = ABSeed.winLinkID, ncl = 0;
+    auto& clref = mABTrackletRefs.emplace_back(start, ncl);
     while (lID > MinusOne) {
       const auto& winL = ABSeed.getLink(lID);
       if (winL.clID > MinusOne) {
         mABTrackletClusterIDs.push_back(winL.clID);
         ncl++;
+        clref.pattern |= 0x1 << winL.layerID;
         if (mMCTruthON) {
           accountClusterLabel(winL.clID);
         }
       }
       lID = winL.parentID;
     }
-    mABTrackletRefs.emplace_back(start, ncl);
     if (!refitABTrack(mABTrackletRefs.size() - 1, ABSeed)) { // on failure, destroy added tracklet reference
       mABTrackletRefs.pop_back();
       mABTrackletClusterIDs.resize(start);
