@@ -45,7 +45,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h" // important to declare after the options
 
-struct NucleiSpectraEfficienctyVtx {
+struct NucleiSpectraEfficiencyVtx {
   OutputObj<TH1F> histVertexTrueZ{TH1F("histVertexTrueZ", "MC true z position of z-vertex; vertex z (cm)", 200, -20., 20.)};
 
   void process(aod::McCollision const& mcCollision)
@@ -167,7 +167,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec workflow{};
   //
   if (vertex) {
-    workflow.push_back(adaptAnalysisTask<NucleiSpectraEfficienctyVtx>(cfgc, TaskName{"nuclei-efficiency-vtx"}));
+    workflow.push_back(adaptAnalysisTask<NucleiSpectraEfficiencyVtx>(cfgc, TaskName{"nuclei-efficiency-vtx"}));
   }
   if (gen) {
     workflow.push_back(adaptAnalysisTask<NucleiSpectraEfficiencyGen>(cfgc, TaskName{"nuclei-efficiency-gen"}));
