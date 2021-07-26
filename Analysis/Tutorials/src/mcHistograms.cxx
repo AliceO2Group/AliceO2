@@ -61,7 +61,8 @@ struct AccessMcTruth {
   OutputObj<TH1F> phiDiff{TH1F("phiDiff", ";phi_{MC} - phi_{Rec}", 100, -M_PI, M_PI)};
 
   // group according to reconstructed Collisions
-  void process(soa::Join<aod::Collisions, aod::McCollisionLabels>::iterator const& collision, soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks, aod::McParticles const& mcParticles, aod::McCollisions const& mcCollisions)
+  void process(soa::Join<aod::Collisions, aod::McCollisionLabels>::iterator const& collision, soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks,
+               aod::McParticles const& mcParticles, aod::McCollisions const& mcCollisions)
   {
     // access MC truth information with mcCollision() and mcParticle() methods
     LOGF(info, "vtx-z (data) = %f | vtx-z (MC) = %f", collision.posZ(), collision.mcCollision().posZ());
@@ -84,11 +85,34 @@ struct AccessMcTruth {
   }
 };
 
+// Loop over MCColisions and get corresponding collisions (there can be more than one)
+// For each of them get the corresponding tracks
+struct LoopOverMcMatched {
+  OutputObj<TH1F> etaDiff{TH1F("etaDiff", ";eta_{MC} - eta_{Rec}", 100, -2, 2)};
+  void process(aod::McCollision const& mcCollision, soa::Join<aod::McCollisionLabels, aod::Collisions> const& collisions,
+               soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks, aod::McParticles const& mcParticles)
+  {
+    // access MC truth information with mcCollision() and mcParticle() methods
+    LOGF(info, "MC collision at vtx-z = %f with %d mc particles and %d reconstructed collisions", mcCollision.posZ(), mcParticles.size(), collisions.size());
+    for (auto& collision : collisions) {
+      LOGF(info, "  Reconstructed collision at vtx-z = %f", collision.posZ());
+
+      // NOTE this will be replaced by a improved grouping in the future
+      auto groupedTracks = tracks.sliceBy(aod::track::collisionId, collision.globalIndex());
+      LOGF(info, "  which has %d tracks", groupedTracks.size());
+      for (auto& track : groupedTracks) {
+        etaDiff->Fill(track.mcParticle().eta() - track.eta());
+      }
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
     adaptAnalysisTask<VertexDistribution>(cfgc),
     adaptAnalysisTask<AccessMcData>(cfgc),
     adaptAnalysisTask<AccessMcTruth>(cfgc),
+    adaptAnalysisTask<LoopOverMcMatched>(cfgc),
   };
 }
