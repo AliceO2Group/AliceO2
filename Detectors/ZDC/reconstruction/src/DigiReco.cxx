@@ -551,7 +551,7 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
   int thr = ropt.tth[itdc];
 
   int is1 = 0, is2 = 1;
-  int isfired[3] = {0};
+  uint8_t isfired = 0;
 #ifdef O2_ZDC_DEBUG
   int16_t m[3] = {0};
   int16_t s[3] = {0};
@@ -559,13 +559,13 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
   int it1 = 0, it2 = 0, ib1 = -1, ib2 = -1;
   for (;;) {
     // Shift data
-    for (int i = 1; i < 3; i++) {
-      isfired[i] = isfired[i - 1];
+    isfired = isfired << 1;
 #ifdef O2_ZDC_DEBUG
+    for (int i = 2; i > 0; i--) {
       m[i] = m[i - 1];
       s[i] = s[i - 1];
-#endif
     }
+#endif
     // Bunches and samples that are used in the difference
     int b1 = ibeg + is1 / NTimeBinsPerBC;
     int b2 = ibeg + is2 / NTimeBinsPerBC;
@@ -586,8 +586,8 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
     s[0] = mChData[ref_s].data[s2];
 #endif
     if (diff > thr) {
-      isfired[0] = 1;
-      if (isfired[1] == 1 && isfired[2] == 1) {
+      isfired = isfired | 0x1;
+      if ((isfired & 0x7) == 0x7) {
         // Fired bit is assigned to the second sample, i.e. to the one that can identify the
         // signal peak position
         mReco[b2].fired[itdc] |= mMask[s2];
@@ -598,8 +598,6 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
                   << " && (s" << s1 << ":" << m[0] << " - (s" << s2 << ":" << s[0] << ")) = " << diff << " > " << thr;
 #endif
       }
-    } else {
-      isfired[0] = 0;
     }
     if (is2 >= shift) {
       is1++;
