@@ -297,6 +297,9 @@ float GPUbenchmark<chunk_type>::benchmarkSync(void (*kernel)(T...),
 {
   cudaEvent_t start, stop;
   GPUCHECK(cudaSetDevice(mOptions.deviceId));
+  // Warm up
+  (*kernel)<<<blocks, threads, 0, 0>>>(args...);
+
   GPUCHECK(cudaEventCreate(&start));
   GPUCHECK(cudaEventCreate(&stop));
 
@@ -329,11 +332,15 @@ std::vector<float> GPUbenchmark<chunk_type>::benchmarkAsync(void (*kernel)(int, 
     GPUCHECK(cudaEventCreate(&(starts[iStream])));
     GPUCHECK(cudaEventCreate(&(stops[iStream])));
   }
+  // Warm up on every stream
+  for (auto iStream{0}; iStream < nStreams; ++iStream) {
+    (*kernel)<<<blocks, threads, 0, streams[iStream]>>>(iStream, args...);
+  }
 
   for (auto iStream{0}; iStream < nStreams; ++iStream) {
     GPUCHECK(cudaEventRecord(starts[iStream], streams[iStream]));
 
-    for (auto iLaunch{0}; iLaunch < 10 * nLaunches; ++iLaunch) { // 10x consecutive launches on the same stream
+    for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {
       (*kernel)<<<blocks, threads, 0, streams[iStream]>>>(iStream, args...);
     }
     GPUCHECK(cudaEventRecord(stops[iStream], streams[iStream]));
