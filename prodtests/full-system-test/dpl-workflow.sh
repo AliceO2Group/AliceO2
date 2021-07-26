@@ -30,6 +30,9 @@ fi
 if [ $NUMAGPUIDS != 0 ]; then
   ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
 fi
+if [ $GPUTYPE != "CPU" ]; then
+  ARGS_ALL+="  --shm-mlock-segment-on-creation 1"
+fi
 
 # Set some individual workflow arguments depending on configuration
 CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV,ZDC,FDD,HMP,FV0,TRD,MCH
