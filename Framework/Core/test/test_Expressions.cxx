@@ -258,5 +258,6 @@ BOOST_AUTO_TEST_CASE(TestConditionalExpressions)
   auto gandiva_tree2 = createExpressionTree(cfnspecs, schema2);
   auto gandiva_condition2 = makeCondition(gandiva_tree2);
   auto gandiva_filter2 = createFilter(schema2, gandiva_condition2);
-  std::cout << gandiva_tree2->ToString() << std::endl;
+  BOOST_REQUIRE_EQUAL(gandiva_tree2->ToString(),
+                      "bool greater_than((float) fSigned1Pt, (const float) 0 raw(0)) && if (bool less_than(float absf((float) fEta), (const float) 1 raw(3f800000)) && if (bool less_than((float) fPt, (const float) 1 raw(3f800000))) { bool greater_than((float) fRawPhi, (const float) 1.5708 raw(3fc90fdb)) } else { bool less_than((float) fRawPhi, (const float) 1.5708 raw(3fc90fdb)) }) { bool greater_than(float absf((float) fX), (const float) 1 raw(3f800000)) } else { bool greater_than(float absf((float) fY), (const float) 1 raw(3f800000)) }");
 }
