@@ -275,7 +275,7 @@ GPUdi() unsigned int GPUCommonMath::Clz(unsigned int x)
   return x == 0 ? 32 : CHOICE(__builtin_clz(x), __clz(x), __builtin_clz(x)); // use builtin if available
 #else
   for (int i = 31; i >= 0; i--) {
-    if (x & (1 << i)) {
+    if (x & (1u << i)) {
       return (31 - i);
     }
   }
