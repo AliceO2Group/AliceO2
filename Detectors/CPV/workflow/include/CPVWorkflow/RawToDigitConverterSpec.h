@@ -67,9 +67,9 @@ class RawToDigitConverterSpec : public framework::Task
   bool mIsPedestalData;                             ///< Do not subtract pedestals if true
   bool mIsUsingCcdbMgr;                             ///< Are we using CCDB manager?
   long mCurrentTimeStamp;                           ///< Current timestamp for CCDB querying
-  std::unique_ptr<CalibParams> mCalibParams;        ///< CPV calibration
-  std::unique_ptr<Pedestals> mPedestals;            ///< CPV pedestals
-  std::unique_ptr<BadChannelMap> mBadMap;           ///< BadMap
+  CalibParams* mCalibParams;                        ///< CPV calibration
+  Pedestals* mPedestals;                            ///< CPV pedestals
+  BadChannelMap* mBadMap;                           ///< BadMap
   std::vector<Digit> mOutputDigits;                 ///< Container with output cells
   std::vector<TriggerRecord> mOutputTriggerRecords; ///< Container with output cells
   std::vector<RawDecoderError> mOutputHWErrors;     ///< Errors occured in reading data
