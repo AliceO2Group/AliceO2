@@ -54,6 +54,7 @@ cmake_install.cmake
 compile_commands.json
 
 # IDEs files
+.cache
 .cproject
 .devcontainer*
 .project

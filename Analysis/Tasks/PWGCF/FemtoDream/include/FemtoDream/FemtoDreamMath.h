@@ -23,64 +23,71 @@
 
 #include <iostream>
 
-namespace o2::analysis
-{
-namespace femtoDream
+namespace o2::analysis::femtoDream
 {
 
 /// \class FemtoDreamMath
 /// \brief Container for math calculations of quantities related to pairs
-
 class FemtoDreamMath
 {
  public:
+  /// Compute the k* of a pair of particles
+  /// \tparam T type of tracks
+  /// \param part1 Particle 1
+  /// \param mass1 Mass of particle 1
+  /// \param part2 Particle 2
+  /// \param mass2 Mass of particle 2
   template <typename T>
   static float getkstar(const T& part1, const float mass1, const T& part2, const float mass2)
   {
-    ROOT::Math::PtEtaPhiMVector vecpart1(part1.pt(), part1.eta(), part1.phi(), mass1);
-    ROOT::Math::PtEtaPhiMVector vecpart2(part2.pt(), part2.eta(), part2.phi(), mass2);
+    const ROOT::Math::PtEtaPhiMVector vecpart1(part1.pt(), part1.eta(), part1.phi(), mass1);
+    const ROOT::Math::PtEtaPhiMVector vecpart2(part2.pt(), part2.eta(), part2.phi(), mass2);
+    const ROOT::Math::PtEtaPhiMVector trackSum = vecpart1 + vecpart2;
 
-    ROOT::Math::PtEtaPhiMVector trackSum = vecpart1 + vecpart2;
-
-    float beta = trackSum.Beta();
-    float betax = beta * std::cos(trackSum.Phi()) * std::sin(trackSum.Theta());
-    float betay = beta * std::sin(trackSum.Phi()) * std::sin(trackSum.Theta());
-    float betaz = beta * std::cos(trackSum.Theta());
+    const float beta = trackSum.Beta();
+    const float betax = beta * std::cos(trackSum.Phi()) * std::sin(trackSum.Theta());
+    const float betay = beta * std::sin(trackSum.Phi()) * std::sin(trackSum.Theta());
+    const float betaz = beta * std::cos(trackSum.Theta());
 
     ROOT::Math::PxPyPzMVector PartOneCMS(vecpart1);
     ROOT::Math::PxPyPzMVector PartTwoCMS(vecpart2);
 
-    ROOT::Math::Boost boostPRF = ROOT::Math::Boost(-betax, -betay, -betaz);
+    const ROOT::Math::Boost boostPRF = ROOT::Math::Boost(-betax, -betay, -betaz);
     PartOneCMS = boostPRF(PartOneCMS);
     PartTwoCMS = boostPRF(PartTwoCMS);
 
-    ROOT::Math::PxPyPzMVector trackRelK = PartOneCMS - PartTwoCMS;
+    const ROOT::Math::PxPyPzMVector trackRelK = PartOneCMS - PartTwoCMS;
     return 0.5 * trackRelK.P();
   }
 
+  /// Compute the transverse momentum of a pair of particles
+  /// \tparam T type of tracks
+  /// \param part1 Particle 1
+  /// \param mass1 Mass of particle 1
+  /// \param part2 Particle 2
+  /// \param mass2 Mass of particle 2
   template <typename T>
   static float getkT(const T& part1, const float mass1, const T& part2, const float mass2)
   {
-    ROOT::Math::PtEtaPhiMVector vecpart1(part1.pt(), part1.eta(), part1.phi(), mass1);
-    ROOT::Math::PtEtaPhiMVector vecpart2(part2.pt(), part2.eta(), part2.phi(), mass2);
-
-    ROOT::Math::PtEtaPhiMVector trackSum = vecpart1 + vecpart2;
+    const ROOT::Math::PtEtaPhiMVector vecpart1(part1.pt(), part1.eta(), part1.phi(), mass1);
+    const ROOT::Math::PtEtaPhiMVector vecpart2(part2.pt(), part2.eta(), part2.phi(), mass2);
+    const ROOT::Math::PtEtaPhiMVector trackSum = vecpart1 + vecpart2;
     return 0.5 * trackSum.Pt();
   }
 
+  /// Compute the transverse mass of a pair of particles
+  /// \tparam T type of tracks
+  /// \param part1 Particle 1
+  /// \param mass1 Mass of particle 1
+  /// \param part2 Particle 2
+  /// \param mass2 Mass of particle 2
   template <typename T>
   static float getmT(const T& part1, const float mass1, const T& part2, const float mass2)
   {
-    ROOT::Math::PtEtaPhiMVector vecpart1(part1.pt(), part1.eta(), part1.phi(), mass1);
-    ROOT::Math::PtEtaPhiMVector vecpart2(part2.pt(), part2.eta(), part2.phi(), mass2);
-
-    ROOT::Math::PtEtaPhiMVector trackSum = vecpart1 + vecpart2;
-    float averageMass = 0.5 * (mass1 + mass2);
-    return std::sqrt(std::pow(getkT(part1, mass1, part2, mass2), 2.) + std::pow(averageMass, 2.));
+    return std::sqrt(std::pow(getkT(part1, mass1, part2, mass2), 2.) + std::pow(0.5 * (mass1 + mass2), 2.));
   }
 };
 
-} /* namespace femtoDream */
-} /* namespace o2::analysis */
+} // namespace o2::analysis::femtoDream
 
 #endif /* ANALYSIS_TASKS_PWGCF_FEMTODREAM_FEMTODREAMMATH_H_ */

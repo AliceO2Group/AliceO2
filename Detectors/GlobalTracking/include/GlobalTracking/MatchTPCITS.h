@@ -51,6 +51,7 @@
 #include "GlobalTracking/MatchTPCITSParams.h"
 #include "CommonDataFormat/FlatHisto2D.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsITSMFT/TrkClusRef.h"
 
 class TTree;
 
@@ -126,6 +127,10 @@ struct TrackLocTPC : public o2::track::TrackParCov {
   {
     return constraint == Constrained ? time0 : (constraint == ASide ? time0 + dt : time0 - dt);
   }
+  float getSignedDT(float dt) const // account for TPC side in time difference for dt=external_time - tpc.time0
+  {
+    return constraint == Constrained ? 0. : (constraint == ASide ? dt : -dt);
+  }
 
   ClassDefNV(TrackLocTPC, 1);
 };
@@ -170,20 +175,18 @@ struct MatchRecord {
 ///< original track in the currently loaded TPC reco output
 struct ABTrackLink : public o2::track::TrackParCov {
   static constexpr int Disabled = -2;
-  int clID = MinusOne;     ///< ID of the attached cluster, MinusTen is for dummy layer above Nlr, MinusOne: no attachment on this layer
+  int clID = MinusOne;     ///< ID of the attached cluster, MinusOne: no attachment on this layer
   int parentID = MinusOne; ///< ID of the parent link (on prev layer) or parent TPC seed
   int nextOnLr = MinusOne; ///< ID of the next (in quality) link on the same layer
-  int icCandID = MinusOne; ///< ID of the interaction candidate this track belongs to
   uint8_t nDaughters = 0;  ///< number of daughter links on lower layers
   int8_t layerID = -1;     ///< layer ID
+  int8_t nContLayers = 0;  ///< number of contributing layers
   uint8_t ladderID = 0xff; ///< ladder ID in the layer (used for seeds with 2 hits in the layer)
   float chi2 = 0.f;        ///< chi2 after update
-#ifdef _ALLOW_DEBUG_AB_
-  o2::track::TrackParCov seed; // seed before update
-#endif
-  ABTrackLink() = default;
-  ABTrackLink(const o2::track::TrackParCov& src, int ic, int lr, int parid = MinusOne, int clid = MinusOne, float ch2 = 0.f)
-    : o2::track::TrackParCov(src), clID(clid), parentID(parid), icCandID(ic), layerID(lr), chi2(ch2) {}
+
+  ABTrackLink(const o2::track::TrackParCov& tr, int cl, int parID, int nextID, int lr, int nc, int ld, float _chi2)
+    : o2::track::TrackParCov(tr), clID(cl), parentID(parID), nextOnLr(nextID), layerID(int8_t(lr)), nContLayers(int8_t(nc)), ladderID(uint8_t(ld)), chi2(_chi2) {}
+
   bool isDisabled() const { return clID == Disabled; }
   void disable() { clID = Disabled; }
   bool isDummyTop() const { return clID == MinusTen; }
@@ -191,79 +194,67 @@ struct ABTrackLink : public o2::track::TrackParCov {
   float chi2NormPredict(float chi2cl) const { return (chi2 + chi2cl) / (1 + o2::its::RecoGeomHelper::getNLayers() - layerID); }
 };
 
-struct ABTrackLinksList {
-  int trackID = MinusOne;                                     ///< TPC work track id
-  int firstLinkID = MinusOne;                                 ///< 1st link added (used for fast clean-up)
-  int bestOrdLinkID = MinusOne;                               ///< start of sorted list of ABOrderLink for final validation
-  int8_t lowestLayer = o2::its::RecoGeomHelper::getNLayers(); // lowest layer reached
-  int8_t status = MinusOne;                                   ///< status (RS TODO)
-  std::array<int, o2::its::RecoGeomHelper::getNLayers() + 1> firstInLr;
-  ABTrackLinksList(int id = MinusOne) : trackID(id)
+// AB primary seed: TPC track propagated to outermost ITS layer under specific InteractionCandidate hypothesis
+struct TPCABSeed {
+  static constexpr int8_t NeedAlternative = -3;
+  int tpcWID = MinusOne;                                            ///< TPC track ID
+  int ICCanID = MinusOne;                                           ///< interaction candidate ID (they are sorted in increasing time)
+  int winLinkID = MinusOne;                                         ///< ID of the validated link
+  int8_t lowestLayer = o2::its::RecoGeomHelper::getNLayers();       ///< lowest layer reached
+  int8_t status = MinusOne;                                         ///< status (RS TODO)
+  o2::track::TrackParCov track{};                                   ///< Seed propagated to the outer layer under certain time constraint
+  std::array<int, o2::its::RecoGeomHelper::getNLayers()> firstInLr; ///< entry of 1st (best) hypothesis on each layer
+  std::vector<ABTrackLink> trackLinks{};                            ///< links
+  TPCABSeed(int id, int ic, const o2::track::TrackParCov& trc) : tpcWID(id), ICCanID(ic), track(trc)
   {
     firstInLr.fill(MinusOne);
   }
-  bool isDisabled() const { return status == MinusTen; } // RS is this strict enough
+  bool isDisabled() const { return status == MinusTen; }
   void disable() { status = MinusTen; }
   bool isValidated() const { return status == Validated; }
-  void validate() { status = Validated; }
-};
-
-struct ABOrderLink {          ///< link used for cross-layer sorting of best ABTrackLinks of the ABTrackLinksList
-  int trackLinkID = MinusOne; ///< ABTrackLink ID
-  int nextLinkID = MinusOne;  ///< indext on the next ABOrderLink
-  ABOrderLink() = default;
-  ABOrderLink(int id, int nxt = MinusOne) : trackLinkID(id), nextLinkID(nxt) {}
-};
-
-//---------------------------------------------------
-struct ABDebugLink : o2::BaseCluster<float> {
-#ifdef _ALLOW_DEBUG_AB_
-  // AB link debug version, kinematics BEFORE update is stored
-  o2::track::TrackParCov seed;
-#endif
-  o2::MCCompLabel clLabel;
-  float chi2 = 0.f;
-  uint8_t lr = 0;
-
-  ClassDefNV(ABDebugLink, 1);
-};
-
-struct ABDebugTrack {
-  int trackID = 0;
-  int icCand = 0;
-  short order = 0;
-  short valid = 0;
-  o2::track::TrackParCov tpcSeed;
-  o2::MCCompLabel tpcLabel;
-  o2::math_utils::Bracket<float> icTimeBin;
-  std::vector<ABDebugLink> links;
-  float chi2 = 0;
-  uint8_t nClusTPC = 0;
-  uint8_t nClusITS = 0;
-  uint8_t nClusITSCorr = 0;
-  uint8_t sideAC = 0;
-
-  ClassDefNV(ABDebugTrack, 1);
-};
-
-///< Link of the cluster used by AfterBurner: every used cluster will have 1 link for every update it did on some
-///< AB seed. The link (index) points not on seed state it is updating but on the end-point of the seed (lowest layer reached)
-struct ABClusterLink {
-  static constexpr int Disabled = -2;
-  int linkedABTrack = MinusOne;     ///< ID of final AB track hypothesis it updates
-  int linkedABTrackList = MinusOne; ///< ID of the AB tracks list to which linkedABTrack belongs
-  int nextABClusterLink = MinusOne; ///< ID of the next link of this cluster
-  ABClusterLink() = default;
-  ABClusterLink(int idLink, int idList) : linkedABTrack(idLink), linkedABTrackList(idList) {}
-  bool isDisabled() const { return linkedABTrack == Disabled; }
-  void disable() { linkedABTrack = Disabled; }
+  void validate(int lID)
+  {
+    winLinkID = lID;
+    status = Validated;
+  }
+  bool needAlteranative() const { return status == NeedAlternative; }
+  void setNeedAlternative() { status = NeedAlternative; }
+  ABTrackLink& getLink(int i) { return trackLinks[i]; }
+  const ABTrackLink& getLink(int i) const { return trackLinks[i]; }
+  auto getBestLinkID() const
+  {
+    return lowestLayer < o2::its::RecoGeomHelper::getNLayers() ? firstInLr[lowestLayer] : -1;
+  }
+  bool checkLinkHasUsedClusters(int linkID, const std::vector<int>& clStatus) const
+  {
+    // check if some clusters used by the link or its parents are forbidden (already used by validatet track)
+    while (linkID > MinusOne) {
+      const auto& link = trackLinks[linkID];
+      if (link.clID > MinusOne && clStatus[link.clID] != MinusOne) {
+        return true;
+      }
+      linkID = link.parentID;
+    }
+    return false;
+  }
+  void flagLinkUsedClusters(int linkID, std::vector<int>& clStatus) const
+  {
+    // check if some clusters used by the link or its parents are forbidden (already used by validated track)
+    while (linkID > MinusOne) {
+      const auto& link = trackLinks[linkID];
+      if (link.clID > MinusOne) {
+        clStatus[link.clID] = MinusTen;
+      }
+      linkID = link.parentID;
+    }
+  }
 };
 
 struct InteractionCandidate : public o2::InteractionRecord {
-  o2::math_utils::Bracketf_t tBracket;     // interaction time
-  int rofITS;                              // corresponding ITS ROF entry (in the ROFRecord vectors)
-  uint32_t flag;                           // origin, etc.
-  void* clRefPtr = nullptr;                // pointer on cluster references container (if any)
+  o2::math_utils::Bracketf_t tBracket;                // interaction time
+  int rofITS;                                         // corresponding ITS ROF entry (in the ROFRecord vectors)
+  uint32_t flag;                                      // origin, etc.
+  o2::dataformats::RangeReference<int, int> seedsRef; // references to AB seeds
   InteractionCandidate() = default;
   InteractionCandidate(const o2::InteractionRecord& ir, float t, float dt, int rof, uint32_t f = 0) : o2::InteractionRecord(ir), tBracket(t - dt, t + dt), rofITS(rof), flag(f) {}
 };
@@ -312,27 +303,6 @@ class MatchTPCITS
   ///< perform matching for provided input
   void run(const o2::globaltracking::RecoContainer& inp);
 
-  // RSTODO
-  void runAfterBurner();
-  bool runAfterBurner(int tpcWID, int iCStart, int iCEnd);
-  void buildABCluster2TracksLinks();
-  float correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTPC& tTPC, const InteractionCandidate& cand) const;
-  int checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& llist);
-  void accountForOverlapsAB(int lrSeed);
-  void mergeABSeedsOnOverlaps(int lr, ABTrackLinksList& llist);
-  ABTrackLinksList& createABTrackLinksList(int tpcWID);
-  ABTrackLinksList& getABTrackLinksList(int tpcWID) { return mABTrackLinksList[mTPCWork[tpcWID].matchID]; }
-  void disableABTrackLinksList(int tpcWID);
-  int registerABTrackLink(ABTrackLinksList& llist, const o2::track::TrackParCov& src, int ic, int lr, int parentID = -1, int clID = -1, float chi2Cl = 0.f);
-  void printABTracksTree(const ABTrackLinksList& llist) const;
-  void printABClusterUsage() const;
-  void selectBestMatchesAB();
-  bool validateABMatch(int ilink);
-  void buildBestLinksList(int ilink);
-  bool isBetter(float chi2A, float chi2B) { return chi2A < chi2B; } // RS TODO
-  void dumpABTracksDebugTree(const ABTrackLinksList& llist);
-  void destroyLastABTrackLinksList();
-  void refitABTrack(int ibest) const;
   void setSkipTPCOnly(bool v) { mSkipTPCOnly = v; }
   void setCosmics(bool v) { mCosmics = v; }
   bool isCosmics() const { return mCosmics; }
@@ -375,15 +345,18 @@ class MatchTPCITS
   }
 
   ///< get histo for tgl differences for VDrift calibration
-  auto getHistoDTgl() { return mHistoDTgl.get(); }
+  auto getHistoDTgl() const { return mHistoDTgl.get(); }
 
   ///< print settings
   void print() const;
   void printCandidatesTPC() const;
   void printCandidatesITS() const;
 
-  std::vector<o2::dataformats::TrackTPCITS>& getMatchedTracks() { return mMatchedTracks; }
-  MCLabContTr& getMatchLabels() { return mOutLabels; }
+  const std::vector<o2::dataformats::TrackTPCITS>& getMatchedTracks() const { return mMatchedTracks; }
+  const MCLabContTr& getMatchLabels() const { return mOutLabels; }
+  const MCLabContTr& getABTrackletLabels() const { return mABTrackletLabels; }
+  const std::vector<int>& getABTrackletClusterIDs() const { return mABTrackletClusterIDs; }
+  const std::vector<o2::itsmft::TrkClusRef>& getABTrackletRefs() const { return mABTrackletRefs; }
 
   //>>> ====================== options =============================>>>
   void setUseMatCorrFlag(MatCorrType f) { mUseMatCorrFlag = f; }
@@ -436,10 +409,9 @@ class MatchTPCITS
   int prepareTPCTracksAfterBurner();
   void addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float terr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
 
-  int preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& clRefs,
-                            float trackY, float trackZ, float tolerY, float tolerZ, const o2::MCCompLabel& lblTrc) const;
-  void fillClustersForAfterBurner(ITSChipClustersRefs& refCont, int rofStart, int nROFs = 1);
-  void cleanAfterBurnerClusRefCache(int currentIC, int& startIC);
+  int preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange,
+                            float trackY, float trackZ, float tolerY, float tolerZ) const;
+  void fillClustersForAfterBurner(int rofStart, int nROFs = 1);
   void flagUsedITSClusters(const o2::its::TrackITS& track, int rofOffset);
 
   void doMatching(int sec);
@@ -517,6 +489,17 @@ class MatchTPCITS
     return delta > toler ? rejFlag : (delta < -toler ? -rejFlag : Accept);
   }
 
+  // ========================= AFTERBURNER =========================
+  void runAfterBurner();
+  int prepareABSeeds();
+  void processABSeed(int sid);
+  int followABSeed(const o2::track::TrackParCov& seed, int seedID, int lrID, TPCABSeed& ABSeed);
+  int registerABTrackLink(TPCABSeed& ABSeed, const o2::track::TrackParCov& trc, int clID, int parentID, int lr, int laddID, float chi2Cl);
+  bool isBetter(float chi2A, float chi2B) { return chi2A < chi2B; } // RS FIMXE TODO
+  void refitABWinners();
+  bool refitABTrack(int iITSAB, const TPCABSeed& seed);
+  void accountForOverlapsAB(int lrSeed);
+  float correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTPC& tTPC, const InteractionCandidate& cand) const; // RS FIXME will be needed for refit
   //================================================================
 
   bool mInitDone = false;  ///< flag init already done
@@ -612,25 +595,23 @@ class MatchTPCITS
   MCLabContTr mITSLblWork;             ///< ITS track labels
   std::vector<float> mWinnerChi2Refit; ///< vector of refitChi2 for winners
 
-  std::deque<ITSChipClustersRefs> mITSChipClustersRefs; ///< range of clusters for each chip in ITS (for AfterBurner)
+  ITSChipClustersRefs mITSChipClustersRefs; ///< range of clusters for each chip in ITS (for AfterBurner)
 
-  std::vector<ABTrackLinksList> mABTrackLinksList; ///< pool of ABTrackLinksList objects for every TPC track matched by AB
-  std::vector<ABTrackLink> mABTrackLinks;          ///< pool AB track links
-  std::vector<ABClusterLink> mABClusterLinks;      ///< pool AB cluster links
-  std::vector<ABOrderLink> mABBestLinks;           ///< pool of ABOrder links for best links of the ABTrackLinksList
+  // ------------------------------
+  std::vector<TPCABSeed> mTPCABSeeds; ///< pool of primary TPC seeds for AB
+  ///< indices of selected track entries in mTPCWork (for tracks selected by AfterBurner)
+  std::vector<int> mTPCABIndexCache;
+  std::vector<int> mABWinnersIDs;
+  std::vector<int> mABTrackletClusterIDs;              ///< IDs of ITS clusters for AfterBurner winners
+  std::vector<o2::itsmft::TrkClusRef> mABTrackletRefs; ///< references on AfterBurner winners clusters
   std::vector<int> mABClusterLinkIndex;            ///< index of 1st ABClusterLink for every cluster used by AfterBurner, -1: unused, -10: used by external ITS tracks
-  int mMaxABLinksOnLayer = 20;                     ///< max number of candidate links per layer
-  int mMaxABFinalHyp = 10;                         ///< max number of final hypotheses to consider
+  MCLabContTr mABTrackletLabels;
+  // ------------------------------
 
   ///< per sector indices of TPC track entry in mTPCWork
   std::array<std::vector<int>, o2::constants::math::NSectors> mTPCSectIndexCache;
   ///< per sector indices of ITS track entry in mITSWork
   std::array<std::vector<int>, o2::constants::math::NSectors> mITSSectIndexCache;
-
-  ///< indices of selected track entries in mTPCWork (for tracks selected by AfterBurner)
-  std::vector<int> mTPCABIndexCache;
-  ///< indices of 1st entries with time-bin above the value
-  std::vector<int> mTPCABTimeBinStart;
 
   ///< indices of 1st TPC tracks with time above the ITS ROF time
   std::array<std::vector<int>, o2::constants::math::NSectors> mTPCTimeStart;
@@ -645,7 +626,6 @@ class MatchTPCITS
   MCLabContTr mOutLabels; ///< Labels: = TPC labels with flag isFake set in case of fake matching
 
   o2::its::RecoGeomHelper mRGHelper; ///< helper for cluster and geometry access
-  float mITSFiducialZCut = 9999.;    ///< eliminate TPC seeds outside of this range
 
 #ifdef _ALLOW_DEBUG_TREES_
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
@@ -666,10 +646,15 @@ class MatchTPCITS
                   SWDoMatching,
                   SWSelectBest,
                   SWRefit,
+                  SWABSeeds,
+                  SWABMatch,
+                  SWABWinners,
+                  SWABRefit,
                   SWIO,
                   SWDBG,
                   NStopWatches };
-  static constexpr std::string_view TimerName[] = {"Total", "PrepareITS", "PrepareTPC", "DoMatching", "SelectBest", "Refit", "IO", "Debug"};
+  static constexpr std::string_view TimerName[] = {"Total", "PrepareITS", "PrepareTPC", "DoMatching", "SelectBest", "Refit",
+                                                   "ABSeeds", "ABMatching", "ABWinners", "ABRefit", "IO", "Debug"};
   TStopwatch mTimer[NStopWatches];
 
 };
@@ -692,16 +677,6 @@ inline bool MatchTPCITS::isDisabledITS(const TrackLocITS& t) const { return t.ma
 //______________________________________________
 inline bool MatchTPCITS::isDisabledTPC(const TrackLocTPC& t) const { return t.matchID < 0; }
 
-//______________________________________________
-inline void MatchTPCITS::destroyLastABTrackLinksList()
-{
-  // Profit from the links of the last ABTrackLinksList having been added in the very end of mABTrackLinks
-  // and eliminate them also removing the last ABTrackLinksList.
-  // This method should not be called after buildABCluster2TracksLinks!!!
-  const auto& llist = mABTrackLinksList.back();
-  mABTrackLinks.resize(llist.firstLinkID);
-  mABTrackLinksList.pop_back();
-}
 
 } // namespace globaltracking
 } // namespace o2

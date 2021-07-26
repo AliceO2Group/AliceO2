@@ -107,9 +107,10 @@ struct TrackCheckTaskEvSel {
       bool isPrimary = false;
 
       if (isMC) { //determine particle species base on MC truth and if it is primary or not
-        int pdgcode = track.mcParticle().pdgCode();
+        const auto particle = track.mcParticle();
+        int pdgcode = particle.pdgCode();
 
-        if (MC::isPhysicalPrimary(mcParticles, track.mcParticle())) { //is primary?
+        if (MC::isPhysicalPrimary<aod::McParticles>(particle)) { //is primary?
           isPrimary = true;
         }
 
@@ -204,9 +205,10 @@ struct TrackCheckTaskEvSelTrackSel {
       bool isPrimary = false;
 
       if (isMC) { //determine particle species base on MC truth and if it is primary or not
-        int pdgcode = track.mcParticle().pdgCode();
+        const auto particle = track.mcParticle();
+        int pdgcode = particle.pdgCode();
 
-        if (MC::isPhysicalPrimary(mcParticles, track.mcParticle())) { //is primary?
+        if (MC::isPhysicalPrimary<aod::McParticles>(particle)) { //is primary?
           isPrimary = true;
         }
         //Calculate y

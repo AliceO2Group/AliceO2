@@ -9,24 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TrackTPCITSReader.h
+/// \file EventTimeMaker.cxx
+/// \brief Implementation of the TOF event time maker
 
-#ifndef O2_GLOBAL_TRACKITSTPCREADER
-#define O2_GLOBAL_TRACKITSTPCREADER
-
-#include "Framework/DataProcessorSpec.h"
-
-using namespace o2::framework;
+#include "TOFReconstruction/EventTimeMaker.h"
 
 namespace o2
 {
-namespace globaltracking
+
+namespace tof
 {
 
-/// create a processor spec
-framework::DataProcessorSpec getTrackTPCITSReaderSpec(bool useMC);
-
-} // namespace globaltracking
+} // namespace tof
 } // namespace o2
-
-#endif /* O2_GLOBAL_TRACKITSTPCREADER */

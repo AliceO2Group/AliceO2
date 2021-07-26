@@ -23,8 +23,9 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
     "help,h", "Print help message.")(
     "device,d", bpo::value<int>()->default_value(0), "Id of the device to run test on, EPN targeted.")(
     "test,t", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"read", "write", "copy"}, "read, write, copy"), "Tests to be performed.")(
+    "mode,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"seq", "con"}, "seq, con"), "Mode: sequential or concurrent.")(
+    "pool,p", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"sb, mb"}, "sb, mb"), "Pool strategy: single or multi blocks.")(
     "chunkSize,c", bpo::value<float>()->default_value(1.f), "Size of scratch partitions (GB).")(
-    "regions,r", bpo::value<int>()->default_value(2), "Number of memory regions to partition RAM in.")(
     "freeMemFraction,f", bpo::value<float>()->default_value(0.95f), "Fraction of free memory to be allocated (min: 0.f, max: 1.f).")(
     "launches,l", bpo::value<int>()->default_value(10), "Number of iterations in reading kernels.")(
     "nruns,n", bpo::value<int>()->default_value(1), "Number of times each test is run.");
@@ -61,6 +62,30 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
       conf.tests.push_back(Test::Copy);
     } else {
       std::cerr << "Unkonwn test: " << test << std::endl;
+      exit(1);
+    }
+  }
+
+  conf.modes.clear();
+  for (auto& mode : vm["mode"].as<std::vector<std::string>>()) {
+    if (mode == "seq") {
+      conf.modes.push_back(Mode::Sequential);
+    } else if (mode == "con") {
+      conf.modes.push_back(Mode::Concurrent);
+    } else {
+      std::cerr << "Unkonwn mode: " << mode << std::endl;
+      exit(1);
+    }
+  }
+
+  conf.pools.clear();
+  for (auto& pool : vm["pool"].as<std::vector<std::string>>()) {
+    if (pool == "sb") {
+      conf.pools.push_back(SplitLevel::Blocks);
+    } else if (pool == "mb") {
+      conf.pools.push_back(SplitLevel::Threads);
+    } else {
+      std::cerr << "Unkonwn pool: " << pool << std::endl;
       exit(1);
     }
   }

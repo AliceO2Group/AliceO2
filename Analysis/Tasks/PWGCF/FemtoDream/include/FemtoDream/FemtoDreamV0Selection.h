@@ -11,7 +11,8 @@
 
 /// \file FemtoDreamV0Selection.h
 /// \brief Definition of the FemtoDreamV0Selection
-/// \author Valentina Mantovani Sarti, TU München valentina.mantovani-sarti@tum.de and Andi Mathis, TU München, andreas.mathis@ph.tum.de
+/// \author Valentina Mantovani Sarti, TU München valentina.mantovani-sarti@tum.de
+/// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #ifndef ANALYSIS_TASKS_PWGCF_FEMTODREAM_FEMTODREAMV0SELECTION_H_
 #define ANALYSIS_TASKS_PWGCF_FEMTODREAM_FEMTODREAMV0SELECTION_H_
@@ -23,14 +24,10 @@
 #include "ReconstructionDataFormats/PID.h"
 #include "AnalysisCore/RecoDecay.h"
 #include "Framework/HistogramRegistry.h"
-#include <Rtypes.h>
-#include <cmath>
 
 using namespace o2::framework;
 
-namespace o2::analysis
-{
-namespace femtoDream
+namespace o2::analysis::femtoDream
 {
 namespace femtoDreamV0Selection
 {
@@ -51,13 +48,15 @@ class FemtoDreamV0Selection : public FemtoDreamObjectSelection<float, femtoDream
 {
  public:
   /// Initializes histograms for the task
+  template <o2::aod::femtodreamparticle::ParticleType part, typename cutContainerType>
   void init(HistogramRegistry* registry);
 
   template <typename C, typename V, typename T>
   bool isSelectedMinimal(C const& col, V const& v0, T const& posTrack, T const& negTrack);
 
-  template <typename C, typename V, typename T>
-  std::vector<uint64_t> getCutContainer(C const& col, V const& v0, T const& posTrack, T const& negTrack);
+  /// \todo for the moment the PID of the tracks is factored out into a separate field, hence 5 values in total
+  template <typename cutContainerType, typename C, typename V, typename T>
+  std::array<cutContainerType, 5> getCutContainer(C const& col, V const& v0, T const& posTrack, T const& negTrack);
 
   template <typename C, typename V>
   void fillQA(C const& col, V const& v0);
@@ -75,19 +74,18 @@ class FemtoDreamV0Selection : public FemtoDreamObjectSelection<float, femtoDream
  private:
   FemtoDreamTrackSelection PosDaughTrack;
   FemtoDreamTrackSelection NegDaughTrack;
-
-  ClassDefNV(FemtoDreamV0Selection, 1);
 }; // namespace femtoDream
 
+template <o2::aod::femtodreamparticle::ParticleType part, typename cutContainerType>
 void FemtoDreamV0Selection::init(HistogramRegistry* registry)
 {
   if (registry) {
     mHistogramRegistry = registry;
-    fillSelectionHistogram("V0Cuts/cuthist");
+    fillSelectionHistogram<part>();
 
     /// \todo this should be an automatic check in the parent class, and the return type should be templated
     int nSelections = getNSelections();
-    if (8 * sizeof(uint64_t) < nSelections) {
+    if (8 * sizeof(cutContainerType) < nSelections) {
       LOGF(error, "Number of selections to large for your container - quitting!");
     }
     /// \todo initialize histograms for children tracks of v0s
@@ -170,12 +168,12 @@ bool FemtoDreamV0Selection::isSelectedMinimal(C const& col, V const& v0, T const
 }
 
 /// the CosPA of V0 needs as argument the posXYZ of collisions vertex so we need to pass the collsion as well
-template <typename C, typename V, typename T>
-std::vector<uint64_t> FemtoDreamV0Selection::getCutContainer(C const& col, V const& v0, T const& posTrack, T const& negTrack)
+template <typename cutContainerType, typename C, typename V, typename T>
+std::array<cutContainerType, 5> FemtoDreamV0Selection::getCutContainer(C const& col, V const& v0, T const& posTrack, T const& negTrack)
 {
-  uint64_t outputPosTrack = PosDaughTrack.getCutContainer(posTrack);
-  uint64_t outputNegTrack = NegDaughTrack.getCutContainer(negTrack);
-  uint64_t output = 0;
+  auto outputPosTrack = PosDaughTrack.getCutContainer<cutContainerType>(posTrack);
+  auto outputNegTrack = NegDaughTrack.getCutContainer<cutContainerType>(negTrack);
+  cutContainerType output = 0;
   size_t counter = 0;
 
   const auto pT = v0.pt();
@@ -214,7 +212,7 @@ std::vector<uint64_t> FemtoDreamV0Selection::getCutContainer(C const& col, V con
       sel.checkSelectionSetBit(observable, output, counter);
     }
   }
-  return {{outputPosTrack, outputNegTrack, output}};
+  return {{output, outputPosTrack.at(0), outputPosTrack.at(1), outputNegTrack.at(0), outputNegTrack.at(1)}};
 }
 
 template <typename C, typename V>
@@ -234,7 +232,6 @@ void FemtoDreamV0Selection::fillQA(C const& col, V const& v0)
   }
 }
 
-} // namespace femtoDream
-} // namespace o2::analysis
+} // namespace o2::analysis::femtoDream
 
 #endif /* ANALYSIS_TASKS_PWGCF_FEMTODREAM_FEMTODREAMV0SELECTION_H_ */

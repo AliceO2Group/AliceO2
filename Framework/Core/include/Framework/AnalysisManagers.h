@@ -39,6 +39,11 @@ struct PartitionManager {
   {
   }
 
+  template <typename E>
+  static void bindInternalIndices(ANY&, E*)
+  {
+  }
+
   template <typename... Ts>
   static void getBoundToExternalIndices(ANY&, Ts&...)
   {
@@ -69,6 +74,14 @@ struct PartitionManager<Partition<T>> {
   static void bindExternalIndices(Partition<T>& partition, Ts*... tables)
   {
     partition.bindExternalIndices(tables...);
+  }
+
+  template <typename E>
+  static void bindInternalIndices(Partition<T>& partition, E* table)
+  {
+    if constexpr (o2::soa::is_binding_compatible_v<T, std::decay_t<E>>()) {
+      partition.bindInternalIndicesTo(table);
+    }
   }
 
   template <typename... Ts>

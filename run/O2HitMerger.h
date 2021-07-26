@@ -445,7 +445,7 @@ class O2HitMerger : public FairMQDevice
   void reorderAndMergeMCTRacks(TTree& origin, TTree& target, const std::vector<int>& nprimaries, const std::vector<int>& nsubevents)
   {
     std::vector<MCTrack>* incomingdata = nullptr;
-    auto targetdata = new std::vector<MCTrack>;
+    auto targetdata = std::make_unique<std::vector<MCTrack>>();
     auto originbr = origin.GetBranch("MCTrack");
     originbr->SetAddress(&incomingdata);
     const auto entries = origin.GetEntries();
@@ -485,7 +485,7 @@ class O2HitMerger : public FairMQDevice
       idelta1 -= nprim;
 
       for (Int_t i = nprim; i < npart; i++) {
-        auto& track = incomingdata->at(i);
+        auto& track = (*incomingdata)[i];
         Int_t cId = track.getMotherTrackId();
         if (cId >= nprim) {
           cId += idelta1;
@@ -496,7 +496,7 @@ class O2HitMerger : public FairMQDevice
         track.SetFirstDaughterTrackId(-1);
 
         Int_t hwm = (int)(targetdata->size());
-        auto& mother = targetdata->at(cId);
+        auto& mother = (*targetdata)[cId];
         if (mother.getFirstDaughterTrackId() == -1) {
           mother.SetFirstDaughterTrackId(hwm);
         }
@@ -513,11 +513,11 @@ class O2HitMerger : public FairMQDevice
 
     //
     // write to output
-    auto targetbr = o2::base::getOrMakeBranch(target, "MCTrack", &targetdata);
-    targetbr->SetAddress(&targetdata);
+    auto filladdr = targetdata.get();
+    auto targetbr = o2::base::getOrMakeBranch(target, "MCTrack", &filladdr);
+    targetbr->SetAddress(&filladdr);
     targetbr->Fill();
     targetbr->ResetAddress();
-    targetdata->clear();
   }
 
   template <typename T>
@@ -530,7 +530,7 @@ class O2HitMerger : public FairMQDevice
     // This method is called by O2HitMerger::mergeAndFlushData(int)
     //
     T* incomingdata = nullptr;
-    auto targetdata = new T;
+    std::unique_ptr<T> targetdata(nullptr);
     auto originbr = origin.GetBranch(brname.c_str());
     originbr->SetAddress(&incomingdata);
     const auto entries = origin.GetEntries();
@@ -538,8 +538,8 @@ class O2HitMerger : public FairMQDevice
     if (entries == 1) {
       // nothing to do in case there is only one entry
       originbr->GetEntry(0);
-      targetdata = incomingdata;
     } else {
+      targetdata = std::make_unique<T>();
       // loop over subevents
       Int_t nprimTot = 0;
       for (auto entry = 0; entry < entries; entry++) {
@@ -563,11 +563,11 @@ class O2HitMerger : public FairMQDevice
         incomingdata = nullptr;
       }
     }
-    auto targetbr = o2::base::getOrMakeBranch(target, brname.c_str(), &targetdata);
-    targetbr->SetAddress(&targetdata);
+    auto dataaddr = (entries == 1) ? incomingdata : targetdata.get();
+    auto targetbr = o2::base::getOrMakeBranch(target, brname.c_str(), &dataaddr);
+    targetbr->SetAddress(&dataaddr);
     targetbr->Fill();
     targetbr->ResetAddress();
-    targetdata->clear();
   }
 
   void updateTrackIdWithOffset(MCTrack& track, Int_t nprim, Int_t idelta0, Int_t idelta1)
@@ -593,7 +593,7 @@ class O2HitMerger : public FairMQDevice
   void merge(std::string brname, TTree& origin, TTree& target)
   {
     auto originbr = origin.GetBranch(brname.c_str());
-    auto targetdata = new T;
+    auto targetdata = std::make_unique<T>();
     T* incomingdata = nullptr;
     originbr->SetAddress(&incomingdata);
 
@@ -605,7 +605,7 @@ class O2HitMerger : public FairMQDevice
       originbr->GetEntry(0);
       filladdress = incomingdata;
     } else {
-      filladdress = targetdata;
+      filladdress = targetdata.get();
       for (auto entry = 0; entry < entries; ++entry) {
         originbr->GetEntry(entry);
         backInsert(*incomingdata, *targetdata);
@@ -619,13 +619,10 @@ class O2HitMerger : public FairMQDevice
     targetbr->SetAddress(&filladdress);
     targetbr->Fill();
     targetbr->ResetAddress();
-    targetdata->clear();
     if (incomingdata) {
       delete incomingdata;
       incomingdata = nullptr;
     }
-
-    delete targetdata;
   }
 
   void initHitTreeAndOutFile(std::string prefix, int detID)
