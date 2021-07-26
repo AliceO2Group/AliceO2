@@ -80,6 +80,7 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses);
 //       otherwise a compile time error will be thrown.
 //        This is a temporary fix until the arrow/ROOT issues are solved, at which point it will be possible
 //           to automatically detect the object types transmitted to the VarManager
+
 constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended;
 constexpr static uint32_t gkTrackFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackBarrel | VarManager::ObjTypes::ReducedTrackBarrelCov | VarManager::ObjTypes::ReducedTrackBarrelPID;
 constexpr static uint32_t gkMuonFillMap = VarManager::ObjTypes::ReducedMuon | VarManager::ObjTypes::ReducedMuonExtra | VarManager::ObjTypes::ReducedMuonCov;

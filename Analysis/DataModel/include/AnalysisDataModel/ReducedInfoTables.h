@@ -28,36 +28,47 @@ namespace o2::aod
 
 namespace dqppfilter
 {
-DECLARE_SOA_COLUMN(EventFilter, eventFilter, uint64_t);
+DECLARE_SOA_COLUMN(EventFilter, eventFilter, uint64_t);      //! Bit-field used for the high level event triggering 
 }
-// Table to be used for storing event-level decisions (DQ high level triggers)
-DECLARE_SOA_TABLE(DQEventFilter, "AOD", "EVENTFILTER", //!
+
+DECLARE_SOA_TABLE(DQEventFilter, "AOD", "EVENTFILTER", //! Store event-level decisions (DQ high level triggers)
                   dqppfilter::EventFilter);
 
 namespace reducedevent
 {
 
 // basic event information
-DECLARE_SOA_COLUMN(Tag, tag, uint64_t);
-DECLARE_SOA_COLUMN(TriggerAlias, triggerAlias, uint32_t);
-
+DECLARE_SOA_COLUMN(Tag, tag, uint64_t);                      //!  Bit-field for storing event information (e.g. high level info, cut decisions)
+DECLARE_SOA_COLUMN(TriggerAlias, triggerAlias, uint32_t);    //!  Trigger aliases bit field    
+DECLARE_SOA_COLUMN(MCPosX, mcPosX, float);                       //!
+DECLARE_SOA_COLUMN(MCPosY, mcPosY, float);                       //!
+DECLARE_SOA_COLUMN(MCPosZ, mcPosZ, float);                       //!
 } // namespace reducedevent
 
-DECLARE_SOA_TABLE(ReducedEvents, "AOD", "REDUCEDEVENT", //!
+DECLARE_SOA_TABLE(ReducedEvents, "AOD", "REDUCEDEVENT", //!   Main event information table
                   o2::soa::Index<>,
                   reducedevent::Tag, bc::RunNumber,
                   collision::PosX, collision::PosY, collision::PosZ, collision::NumContrib);
 
-DECLARE_SOA_TABLE(ReducedEventsExtended, "AOD", "REEXTENDED", //!
+DECLARE_SOA_TABLE(ReducedEventsExtended, "AOD", "REEXTENDED", //!  Extended event information
                   bc::GlobalBC, bc::TriggerMask, timestamp::Timestamp, reducedevent::TriggerAlias, cent::CentV0M);
 
-DECLARE_SOA_TABLE(ReducedEventsVtxCov, "AOD", "REVTXCOV", //!
+DECLARE_SOA_TABLE(ReducedEventsVtxCov, "AOD", "REVTXCOV", //!    Event vertex covariance matrix
                   collision::CovXX, collision::CovXY, collision::CovXZ,
                   collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2);
+
+// TODO and NOTE: This table is just an extension of the ReducedEvents table
+//       There is no explicit accounting for MC events which were not reconstructed!!!
+//       However, for analysis which will require these events, a special skimming process function 
+//           can be constructed and the same data model could be used
+DECLARE_SOA_TABLE(ReducedEventsMC, "AOD", "REMC",     //!   Event level MC truth information
+                  mccollision::GeneratorsID, reducedevent::MCPosX, reducedevent::MCPosY, reducedevent::MCPosZ, 
+                  mccollision::T, mccollision::Weight, mccollision::ImpactParameter);
 
 using ReducedEvent = ReducedEvents::iterator;
 using ReducedEventExtended = ReducedEventsExtended::iterator;
 using ReducedEventVtxCov = ReducedEventsVtxCov::iterator;
+using ReducedEventMC = ReducedEventsMC::iterator;
 
 namespace reducedtrack
 {
@@ -81,7 +92,6 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //!
                            [](float pt, float eta) -> float { return pt * std::sinh(eta); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, //!
                            [](float pt, float eta) -> float { return pt * std::cosh(eta); });
-
 } //namespace reducedtrack
 
 // basic track information
@@ -120,6 +130,45 @@ DECLARE_SOA_TABLE(ReducedTracksBarrelPID, "AOD", "RTBARRELPID", //!
                   pidtof::TOFNSigmaEl, pidtof::TOFNSigmaMu,
                   pidtof::TOFNSigmaPi, pidtof::TOFNSigmaKa, pidtof::TOFNSigmaPr,
                   track::TRDSignal);
+
+using ReducedTrack = ReducedTracks::iterator;
+using ReducedTrackBarrel = ReducedTracksBarrel::iterator;
+using ReducedTrackBarrelCov = ReducedTracksBarrelCov::iterator;
+using ReducedTrackBarrelPID = ReducedTracksBarrelPID::iterator;
+
+namespace reducedtrackMC 
+{
+DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);
+DECLARE_SOA_COLUMN(McReducedFlags, mcReducedFlags, uint16_t);
+}
+// NOTE: This table is nearly identical to the one from Framework (except that it points to the event ID, not the BC id)
+//       This table contains all MC truth tracks (both barrel and muon)
+DECLARE_SOA_TABLE(ReducedMCTracks, "AOD", "RTMC",    //!  MC track information
+                  o2::soa::Index<>, reducedtrack::ReducedEventId, 
+                  mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
+                  mcparticle::Mother0, mcparticle::Mother1,
+                  mcparticle::Daughter0, mcparticle::Daughter1, mcparticle::Weight,
+                  mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
+                  mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
+                  reducedtrackMC::McReducedFlags,
+                  mcparticle::Phi<mcparticle::Px, mcparticle::Py>,
+                  mcparticle::Eta<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
+                  mcparticle::Pt<mcparticle::Px, mcparticle::Py>,
+                  mcparticle::ProducedByGenerator<mcparticle::Flags>);
+
+using ReducedMCTrack = ReducedMCTracks::iterator;
+
+namespace reducedtrackMC
+{
+DECLARE_SOA_INDEX_COLUMN(ReducedMCTrack, reducedMCTrack); //!    
+}
+
+// NOTE: MC labels. This table has one entry for each reconstructed track (joinable with the track tables)
+//          The McParticleId points to the position of the MC truth track from the ReducedTracksMC table
+DECLARE_SOA_TABLE(ReducedTracksBarrelLabels, "AOD", "RTBARRELLABELS",  //!
+                  reducedtrackMC::ReducedMCTrackId, reducedtrackMC::McMask, reducedtrackMC::McReducedFlags);
+
+using ReducedTrackBarrelLabel = ReducedTracksBarrelLabels::iterator;
 
 // muon quantities
 namespace reducedmuon
@@ -163,6 +212,11 @@ DECLARE_SOA_TABLE(ReducedMuonsCov, "AOD", "RTMUONCOV",
                   fwdtrack::CTglX, fwdtrack::CTglY, fwdtrack::CTglPhi, fwdtrack::CTglTgl, fwdtrack::C1PtX,
                   fwdtrack::C1PtY, fwdtrack::C1PtPhi, fwdtrack::C1PtTgl, fwdtrack::C1Pt21Pt2);
 
+// iterators
+using ReducedMuon = ReducedMuons::iterator;
+using ReducedMuonExtra = ReducedMuonsExtra::iterator;
+using ReducedMuonCov = ReducedMuonsCov::iterator;
+
 // pair information
 namespace reducedpair
 {
@@ -192,14 +246,6 @@ DECLARE_SOA_TABLE(Dileptons, "AOD", "RTDILEPTON", //!
                   reducedpair::Pz<reducedpair::Pt, reducedpair::Eta>,
                   reducedpair::Pmom<reducedpair::Pt, reducedpair::Eta>);
 
-// iterators
-using ReducedTrack = ReducedTracks::iterator;
-using ReducedTrackBarrel = ReducedTracksBarrel::iterator;
-using ReducedTrackBarrelCov = ReducedTracksBarrelCov::iterator;
-using ReducedTrackBarrelPID = ReducedTracksBarrelPID::iterator;
-using ReducedMuon = ReducedMuons::iterator;
-using ReducedMuonExtra = ReducedMuonsExtra::iterator;
-using ReducedMuonCov = ReducedMuonsCov::iterator;
 using Dilepton = Dileptons::iterator;
 
 namespace v0bits
