@@ -23,6 +23,7 @@
 #include <gsl/gsl>
 
 #include <type_traits>
+#include <typeinfo>
 
 namespace o2::framework
 {
@@ -150,8 +151,15 @@ struct DataRefUtils {
         }
       });
       return std::move(result);
+    } else if constexpr (is_specialization<T, CCDBSerialized>::value == true) {
+      using wrapped = typename T::wrapped_type;
+      using DataHeader = o2::header::DataHeader;
+      std::unique_ptr<wrapped> result(static_cast<wrapped*>(DataRefUtils::decodeCCDB(ref, typeid(wrapped))));
+      return std::move(result);
     }
   }
+  // Decode a CCDB object using the CcdbApi.
+  static void* decodeCCDB(DataRef const& ref, std::type_info const& info);
 
   static o2::header::DataHeader::PayloadSizeType getPayloadSize(const DataRef& ref)
   {
