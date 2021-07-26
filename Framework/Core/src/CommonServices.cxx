@@ -55,6 +55,10 @@ using Metric = o2::monitoring::Metric;
 using Key = o2::monitoring::tags::Key;
 using Value = o2::monitoring::tags::Value;
 
+// This is to allow C++20 aggregate initialisation
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+
 namespace o2::framework
 {
 
@@ -67,126 +71,99 @@ struct ServiceKindExtractor<InfoLoggerContext> {
 #define MONITORING_QUEUE_SIZE 100
 o2::framework::ServiceSpec CommonServices::monitoringSpec()
 {
-  return ServiceSpec{"monitoring",
-                     [](ServiceRegistry& registry, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-                       void* service = nullptr;
-                       bool isWebsocket = strncmp(options.GetPropertyAsString("driver-client-backend").c_str(), "ws://", 4) == 0;
-                       bool isDefault = options.GetPropertyAsString("monitoring-backend") == "default";
-                       bool useDPL = (isWebsocket && isDefault) || options.GetPropertyAsString("monitoring-backend") == "dpl://";
-                       o2::monitoring::Monitoring* monitoring;
-                       if (useDPL) {
-                         monitoring = new Monitoring();
-                         monitoring->addBackend(std::make_unique<DPLMonitoringBackend>(registry));
-                       } else {
-                         auto backend = isDefault ? "infologger://" : options.GetPropertyAsString("monitoring-backend");
-                         monitoring = MonitoringFactory::Get(backend).release();
-                       }
-                       service = monitoring;
-                       monitoring->enableBuffering(MONITORING_QUEUE_SIZE);
-                       assert(registry.get<DeviceSpec const>().name.empty() == false);
-                       monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().name);
-                       try {
-                         auto run = registry.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
-                         monitoring->setRunNumber(stoul(run));
-                       } catch (...) {
-                       }
-                       return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
-                     },
-                     noConfiguration(),
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     [](ServiceRegistry& registry, void* service) {
+  return ServiceSpec{
+    .name = "monitoring",
+    .init = [](ServiceRegistry& registry, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      void* service = nullptr;
+      bool isWebsocket = strncmp(options.GetPropertyAsString("driver-client-backend").c_str(), "ws://", 4) == 0;
+      bool isDefault = options.GetPropertyAsString("monitoring-backend") == "default";
+      bool useDPL = (isWebsocket && isDefault) || options.GetPropertyAsString("monitoring-backend") == "dpl://";
+      o2::monitoring::Monitoring* monitoring;
+      if (useDPL) {
+        monitoring = new Monitoring();
+        monitoring->addBackend(std::make_unique<DPLMonitoringBackend>(registry));
+      } else {
+        auto backend = isDefault ? "infologger://" : options.GetPropertyAsString("monitoring-backend");
+        monitoring = MonitoringFactory::Get(backend).release();
+      }
+      service = monitoring;
+      monitoring->enableBuffering(MONITORING_QUEUE_SIZE);
+      assert(registry.get<DeviceSpec const>().name.empty() == false);
+      monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().name);
+      try {
+        auto run = registry.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
+        monitoring->setRunNumber(stoul(run));
+      } catch (...) {
+      }
+      return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
+    },
+    .configure = noConfiguration(),
+    .exit = [](ServiceRegistry& registry, void* service) {
                        Monitoring* monitoring = reinterpret_cast<Monitoring*>(service);
-                       delete monitoring;
-                     },
-                     nullptr,
-                     ServiceKind::Serial};
+                       delete monitoring; },
+    .kind = ServiceKind::Serial};
 }
 
 o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
 {
-  return ServiceSpec{"datataking-contex",
-                     simpleServiceInit<DataTakingContext, DataTakingContext>(),
-                     noConfiguration(),
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     [](ServiceRegistry& services, void* service) {
-                       auto& context = services.get<DataTakingContext>();
-                       context.runNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
-                       // FIXME: we actually need to get the orbit, not only to know where it is
-                       std::string orbitResetTimeUrl = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
-                       auto is_number = [](const std::string& s) -> bool {
-                         return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit);
-                       };
+  return ServiceSpec{
+    .name = "datataking-contex",
+    .init = simpleServiceInit<DataTakingContext, DataTakingContext>(),
+    .configure = noConfiguration(),
+    .preProcessing = [](ProcessingContext& processingContext, void* service) {
+      auto& context = processingContext.services().get<DataTakingContext>();
+      // Only on the first message
+      if (context.source == OrbitResetTimeSource::Data) {
+        return;
+      }
+      context.source = OrbitResetTimeSource::Data;
+      context.orbitResetTime = -1;
+      for (auto const& ref : processingContext.inputs()) {
+        const o2::framework::DataProcessingHeader *dph = o2::header::get<DataProcessingHeader*>(ref.header);
+        if (!dph) {
+          continue;
+        }
+        LOGP(DEBUG, "Orbit reset time from data: {} ", dph->creation);
+        context.orbitResetTime = dph->creation;
+        break;
+      } },
+    .start = [](ServiceRegistry& services, void* service) {
+      auto& context = services.get<DataTakingContext>();
+      context.runNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
+      // FIXME: we actually need to get the orbit, not only to know where it is
+      std::string orbitResetTimeUrl = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
+      auto is_number = [](const std::string& s) -> bool {
+        return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit);
+      };
 
-                       if (orbitResetTimeUrl.rfind("file://") == 0) {
-                         // FIXME: read it from a file
-                         context.orbitResetTime = 490917600;
-                       } else if (orbitResetTimeUrl.rfind("http://") == 0) {
-                         // FIXME: read it from ccdb
-                         context.orbitResetTime = 490917600;
-                       } else if (is_number(orbitResetTimeUrl)) {
-                         context.orbitResetTime = std::stoull(orbitResetTimeUrl.data());
-                         // FIXME: specify it from the command line
-                       } else {
-                         context.orbitResetTime = 490917600;
-                       }
-                       context.nOrbitsPerTF = services.get<RawDeviceService>().device()->fConfig->GetProperty<uint64_t>("Norbits_per_TF", 128);
-                     },
-                     nullptr,
-                     nullptr,
-                     ServiceKind::Serial};
+      if (orbitResetTimeUrl.rfind("file://") == 0) {
+        // FIXME: read it from a file
+        context.orbitResetTime = 490917600;
+      } else if (orbitResetTimeUrl.rfind("http://") == 0) {
+        // FIXME: read it from ccdb
+        context.orbitResetTime = 490917600;
+      } else if (is_number(orbitResetTimeUrl)) {
+        context.orbitResetTime = std::stoull(orbitResetTimeUrl.data());
+        // FIXME: specify it from the command line
+      } else {
+        context.orbitResetTime = 490917600;
+      }
+      context.nOrbitsPerTF = services.get<RawDeviceService>().device()->fConfig->GetProperty<uint64_t>("Norbits_per_TF", 128); },
+    .kind = ServiceKind::Serial};
 }
 
 o2::framework::ServiceSpec CommonServices::infologgerContextSpec()
 {
-  return ServiceSpec{"infologger-contex",
-                     simpleServiceInit<InfoLoggerContext, InfoLoggerContext>(),
-                     noConfiguration(),
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     [](ServiceRegistry& services, void* service) {
-                       auto& infoLoggerContext = services.get<InfoLoggerContext>();
-                       auto run = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
-                       infoLoggerContext.setField(InfoLoggerContext::FieldName::Run, run);
-                     },
-                     nullptr,
-                     nullptr,
-                     ServiceKind::Serial};
+  return ServiceSpec{
+    .name = "infologger-contex",
+    .init = simpleServiceInit<InfoLoggerContext, InfoLoggerContext>(),
+    .configure = noConfiguration(),
+    .start = [](ServiceRegistry& services, void* service) {
+      auto& infoLoggerContext = services.get<InfoLoggerContext>();
+      auto run = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
+      infoLoggerContext.setField(InfoLoggerContext::FieldName::Run, run);
+    },
+    .kind = ServiceKind::Serial};
 }
 
 // Creates the sink for FairLogger / InfoLogger integration
@@ -251,49 +228,34 @@ auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
 
 o2::framework::ServiceSpec CommonServices::infologgerSpec()
 {
-  return ServiceSpec{"infologger",
-                     [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-                       auto infoLoggerMode = options.GetPropertyAsString("infologger-mode");
-                       if (infoLoggerMode != "") {
-                         setenv("O2_INFOLOGGER_MODE", infoLoggerMode.c_str(), 1);
-                       }
-                       auto infoLoggerService = new InfoLogger;
-                       auto infoLoggerContext = &services.get<InfoLoggerContext>();
-                       infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, std::string("dpl/") + services.get<DeviceSpec const>().name);
-                       infoLoggerContext->setField(InfoLoggerContext::FieldName::System, std::string("DPL"));
-                       infoLoggerService->setContext(*infoLoggerContext);
+  return ServiceSpec{
+    .name = "infologger",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      auto infoLoggerMode = options.GetPropertyAsString("infologger-mode");
+      if (infoLoggerMode != "") {
+        setenv("O2_INFOLOGGER_MODE", infoLoggerMode.c_str(), 1);
+      }
+      auto infoLoggerService = new InfoLogger;
+      auto infoLoggerContext = &services.get<InfoLoggerContext>();
+      infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, std::string("dpl/") + services.get<DeviceSpec const>().name);
+      infoLoggerContext->setField(InfoLoggerContext::FieldName::System, std::string("DPL"));
+      infoLoggerService->setContext(*infoLoggerContext);
 
-                       auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
-                       if (infoLoggerSeverity != "") {
-                         fair::Logger::AddCustomSink("infologger", infoLoggerSeverity, createInfoLoggerSinkHelper(infoLoggerService, infoLoggerContext));
-                       }
-                       return ServiceHandle{TypeIdHelpers::uniqueId<InfoLogger>(), infoLoggerService};
-                     },
-                     noConfiguration(),
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     ServiceKind::Serial};
+      auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
+      if (infoLoggerSeverity != "") {
+        fair::Logger::AddCustomSink("infologger", infoLoggerSeverity, createInfoLoggerSinkHelper(infoLoggerService, infoLoggerContext));
+      }
+      return ServiceHandle{TypeIdHelpers::uniqueId<InfoLogger>(), infoLoggerService};
+    },
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
 }
 
 o2::framework::ServiceSpec CommonServices::configurationSpec()
 {
   return ServiceSpec{
-    "configuration",
-    [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .name = "configuration",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto backend = options.GetPropertyAsString("configuration");
       if (backend == "command-line") {
         return ServiceHandle{0, nullptr};
@@ -301,31 +263,15 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
       return ServiceHandle{TypeIdHelpers::uniqueId<ConfigurationInterface>(),
                            ConfigurationFactory::getConfiguration(backend).release()};
     },
-    noConfiguration(),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    ServiceKind::Global};
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Global};
 }
 
 o2::framework::ServiceSpec CommonServices::driverClientSpec()
 {
   return ServiceSpec{
-    "driverClient",
-    [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .name = "driverClient",
+    .init = [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto backend = options.GetPropertyAsString("driver-client-backend");
       if (backend == "stdout://") {
         return ServiceHandle{TypeIdHelpers::uniqueId<DriverClient>(),
@@ -335,163 +281,67 @@ o2::framework::ServiceSpec CommonServices::driverClientSpec()
       return ServiceHandle{TypeIdHelpers::uniqueId<DriverClient>(),
                            new WSDriverClient(services, state, ip.c_str(), port)};
     },
-    noConfiguration(),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    ServiceKind::Global};
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Global};
 }
 
 o2::framework::ServiceSpec CommonServices::controlSpec()
 {
   return ServiceSpec{
-    "control",
-    [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .name = "control",
+    .init = [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<ControlService>(),
                            new ControlService(services, state)};
     },
-    noConfiguration(),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    ServiceKind::Serial};
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
 }
 
 o2::framework::ServiceSpec CommonServices::rootFileSpec()
 {
   return ServiceSpec{
-    "localrootfile",
-    simpleServiceInit<LocalRootFileService, LocalRootFileService>(),
-    noConfiguration(),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    ServiceKind::Serial};
+    .name = "localrootfile",
+    .init = simpleServiceInit<LocalRootFileService, LocalRootFileService>(),
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
 }
 
 o2::framework::ServiceSpec CommonServices::parallelSpec()
 {
   return ServiceSpec{
-    "parallel",
-    [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .name = "parallel",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<ParallelContext>(),
                            new ParallelContext(spec.rank, spec.nSlots)};
     },
-    noConfiguration(),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    ServiceKind::Serial};
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
 }
 
 o2::framework::ServiceSpec CommonServices::timesliceIndex()
 {
   return ServiceSpec{
-    "timesliceindex",
-    simpleServiceInit<TimesliceIndex, TimesliceIndex>(),
-    noConfiguration(),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    ServiceKind::Serial};
+    .name = "timesliceindex",
+    .init = simpleServiceInit<TimesliceIndex, TimesliceIndex>(),
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
 }
 
 o2::framework::ServiceSpec CommonServices::callbacksSpec()
 {
   return ServiceSpec{
-    "callbacks",
-    simpleServiceInit<CallbackService, CallbackService>(),
-    noConfiguration(),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    ServiceKind::Serial};
+    .name = "callbacks",
+    .init = simpleServiceInit<CallbackService, CallbackService>(),
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
 }
 
 o2::framework::ServiceSpec CommonServices::dataRelayer()
 {
   return ServiceSpec{
-    "datarelayer",
-    [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .name = "datarelayer",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<DataRelayer>(),
                            new DataRelayer(spec.completionPolicy,
@@ -499,24 +349,8 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
                                            services.get<Monitoring>(),
                                            services.get<TimesliceIndex>())};
     },
-    noConfiguration(),
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    ServiceKind::Serial};
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
 }
 
 struct TracingInfrastructure {
@@ -526,34 +360,18 @@ struct TracingInfrastructure {
 o2::framework::ServiceSpec CommonServices::tracingSpec()
 {
   return ServiceSpec{
-    "tracing",
-    [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .name = "tracing",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<TracingInfrastructure>(), new TracingInfrastructure()};
     },
-    noConfiguration(),
-    [](ProcessingContext&, void* service) {
+    .configure = noConfiguration(),
+    .preProcessing = [](ProcessingContext&, void* service) {
       TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
-      t->processingCount += 1;
-    },
-    [](ProcessingContext&, void* service) {
+      t->processingCount += 1; },
+    .postProcessing = [](ProcessingContext&, void* service) {
       TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
-      t->processingCount += 1;
-    },
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    ServiceKind::Serial};
+      t->processingCount += 1; },
+    .kind = ServiceKind::Serial};
 }
 
 // FIXME: allow configuring the default number of threads per device
@@ -563,37 +381,22 @@ o2::framework::ServiceSpec CommonServices::tracingSpec()
 o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
 {
   return ServiceSpec{
-    "threadpool",
-    [numWorkers](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .name = "threadpool",
+    .init = [numWorkers](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       ThreadPool* pool = new ThreadPool();
       pool->poolSize = numWorkers;
       return ServiceHandle{TypeIdHelpers::uniqueId<ThreadPool>(), pool};
     },
-    [numWorkers](InitContext&, void* service) -> void* {
+    .configure = [numWorkers](InitContext&, void* service) -> void* {
       ThreadPool* t = reinterpret_cast<ThreadPool*>(service);
       t->poolSize = numWorkers;
       return service;
     },
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    [numWorkers](ServiceRegistry& service) -> void {
+    .postForkParent = [numWorkers](ServiceRegistry& service) -> void {
       auto numWorkersS = std::to_string(numWorkers);
       setenv("UV_THREADPOOL_SIZE", numWorkersS.c_str(), 0);
     },
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    ServiceKind::Serial};
+    .kind = ServiceKind::Serial};
 }
 
 namespace
@@ -670,41 +473,25 @@ auto flushMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
 o2::framework::ServiceSpec CommonServices::dataProcessingStats()
 {
   return ServiceSpec{
-    "data-processing-stats",
-    [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .name = "data-processing-stats",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
       DataProcessingStats* stats = new DataProcessingStats();
       return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStats>(), stats};
     },
-    noConfiguration(),
-    nullptr,
-    nullptr,
-    [](DanglingContext& context, void* service) {
+    .configure = noConfiguration(),
+    .preDangling = [](DanglingContext& context, void* service) {
       DataProcessingStats* stats = (DataProcessingStats*)service;
       sendRelayerMetrics(context.services(), *stats);
-      flushMetrics(context.services(), *stats);
-    },
-    [](DanglingContext& context, void* service) {
+      flushMetrics(context.services(), *stats); },
+    .postDangling = [](DanglingContext& context, void* service) {
       DataProcessingStats* stats = (DataProcessingStats*)service;
       sendRelayerMetrics(context.services(), *stats);
-      flushMetrics(context.services(), *stats);
-    },
-    [](EndOfStreamContext& context, void* service) {
+      flushMetrics(context.services(), *stats); },
+    .preEOS = [](EndOfStreamContext& context, void* service) {
       DataProcessingStats* stats = (DataProcessingStats*)service;
       sendRelayerMetrics(context.services(), *stats);
-      flushMetrics(context.services(), *stats);
-    },
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    ServiceKind::Serial};
+      flushMetrics(context.services(), *stats); },
+    .kind = ServiceKind::Serial};
 }
 
 std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
@@ -734,3 +521,4 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 }
 
 } // namespace o2::framework
+#pragma GCC diagnostic pop

@@ -92,7 +92,7 @@ class CruRawReader
   //  std::vector<o2::trd::TriggerRecord> getIR() { return mEventTriggers; }
   void getParsedObjects(std::vector<Tracklet64>& tracklets, std::vector<Digit>& cdigits, std::vector<TriggerRecord>& triggers);
   void getParsedObjectsandClear(std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits, std::vector<TriggerRecord>& triggers);
-  void buildDPLOutputs(o2::framework::ProcessingContext& outputs);
+  void buildDPLOutputs(o2::framework::ProcessingContext& outputs, bool displaytracklets = false);
   int getDigitsFound() { return mTotalDigitsFound; }
   int getTrackletsFound() { return mTotalTrackletsFound; }
   int sumTrackletsFound() { return mEventRecords.sumTracklets(); }

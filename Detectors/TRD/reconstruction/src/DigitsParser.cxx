@@ -113,6 +113,10 @@ int DigitsParser::Parse(bool verbose)
     if (mHeaderVerbose) {
       printDigitHCHeader(*mDigitHCHeader);
     }
+    if (mDigitHCHeader->word0 == 0x0 || mDigitHCHeader->word1 == 0x0) {
+      LOG(warn) << "Missing DigitHCHeader, reading digit end marker of zeros??";
+      printDigitHCHeader(*mDigitHCHeader);
+    }
     mBufferLocation += 2;
     mDataWordsParsed += 2;
     std::advance(mStartParse, 2);
@@ -183,22 +187,6 @@ int DigitsParser::Parse(bool verbose)
 
           if (!digitMCMHeaderSanityCheck(mDigitMCMHeader)) {
             LOG(warn) << "Sanity check Failure Digit MCMHeader : " << std::hex << mDigitMCMHeader->word;
-            LOG(warn) << "Sanity check Failure Digit MCMHeader word: " << std::hex << *word;
-            DigitMCMHeader* t;
-            tmpword = std::prev(word, 3);
-            printDigitMCMHeader(*(DigitMCMHeader*)(tmpword));
-            tmpword = std::prev(word, 2);
-            printDigitMCMHeader(*(DigitMCMHeader*)(tmpword));
-            tmpword = std::prev(word, 1);
-            printDigitMCMHeader(*(DigitMCMHeader*)(tmpword));
-            printDigitMCMHeader(*mDigitMCMHeader);
-            tmpword = std::next(word, 1);
-            printDigitMCMHeader(*(DigitMCMHeader*)(tmpword));
-            tmpword = std::next(word, 2);
-            printDigitMCMHeader(*(DigitMCMHeader*)(tmpword));
-            tmpword = std::next(word, 3);
-            printDigitMCMHeader(*(DigitMCMHeader*)(tmpword));
-            LOG(warn) << "Sanity check Failure Digit MCMHeader print out finished";
           } else {
             LOG(info) << "Sanity check passed for digitmcmheader";
             printDigitMCMHeader(*mDigitMCMHeader);
@@ -236,9 +224,6 @@ int DigitsParser::Parse(bool verbose)
         }
         // we dont care about the year flag, we are >2007 already.
       } else {
-        //if (mState == StateDigitMCMHeader && *word!=o2::trd::constants::CRUPADDING32) {
-        //  LOG(warn) << " state is MCMHeader but we have just bypassed it as the bitmask is wrong :" << std::hex << *word;
-        //}
         if (*word == o2::trd::constants::CRUPADDING32) {
           if (mVerbose) {
             LOG(info) << "state padding and word : 0x" << std::hex << *word << "  state is:" << mState;
@@ -261,12 +246,6 @@ int DigitsParser::Parse(bool verbose)
               LOG(info) << " digit end marker state ...";
             }
           } else {
-            //if (mState != StateDigitMCMData) {
-            //  LOG(warn) << "something is wrong we are in the statement for MCMdata, but the state is : " << mState << " and MCMData state is:" << StateDigitMCMData;
-            //}
-            if (mVerbose || mDataVerbose) {
-              //LOG(info) << "mDigitMCMData with state=" << mState << " is at " << mBufferLocation << " had value 0x" << std::hex << *word << " mcmdatacount of : " << mcmdatacount << " adc#" << mcmadccount;
-            }
             //for the case of on flp build a vector of tracklets, then pack them into a data stream with a header.
             //for dpl build a vector and connect it with a triggerrecord.
             mDataWordsParsed++;
@@ -280,13 +259,9 @@ int DigitsParser::Parse(bool verbose)
               LOG(info) << "digittimebinoffset = " << digittimebinoffset;
             }
             mADCValues[digittimebinoffset++] = mDigitMCMData->x;
-            //            digittimebinoffset+=1;
             mADCValues[digittimebinoffset++] = mDigitMCMData->y;
             mADCValues[digittimebinoffset++] = mDigitMCMData->z;
 
-            //   if(mcmadccount==0){
-            //     startmcmdataindex=word;
-            //   }
             if (digittimebinoffset > constants::TIMEBINS) {
               LOG(fatal) << "too many timebins to insert into mADCValues digittimebinoffset:" << digittimebinoffset;
             }
@@ -317,14 +292,11 @@ int DigitsParser::Parse(bool verbose)
                 //set that bit to zero
                 if (mADCMask == 0) {
                   //no more adc for zero suppression.
-                  // LOG(info) << "ADCMask is zero, we should change state to something useful";
                   //now we should either have another MCMHeader, or End marker
                   if (*word != 0 && *(std::next(word)) != 0) { // end marker is a sequence of 32 bit 2 zeros.
                     mState = StateDigitMCMHeader;
-                    //  LOG(info) << "ADCMask is zero, changing state to MCMHeader";
                   } else {
                     mState = StateDigitEndMarker;
-                    // LOG(info) << "ADCMask is zero, changing state to Endmarker";
                   }
                 }
               }
@@ -332,7 +304,6 @@ int DigitsParser::Parse(bool verbose)
                                                                                  // if(mDataVerbose){
                                                                                  //    CompressedDigit t = mDigits.back();
               //now fill in the adc values --- here because in commented code above if all 3 increments were there then it froze
-              // LOG(info) << " DDD "<< mDigitMCMHeader->eventcount << " Digit " << mDetector << " -" << mROB << "-" << mMCM <<"-" <<  mChannel;
               if (mDataVerbose) {
                 uint32_t adcsum = 0;
                 for (auto adc : mADCValues) {
@@ -375,9 +346,6 @@ int DigitsParser::Parse(bool verbose)
 
   if (!(mState == StateDigitMCMHeader || mState == StatePadding || mState == StateDigitEndMarker)) {
     LOG(warn) << "Exiting parsing but the state is wrong ... mState= " << mState;
-    if (mVerbose) {
-      LOG(info) << "Exiting parsing but the state is wrong ... mState= " << mState;
-    }
   }
   return mDataWordsParsed;
 }

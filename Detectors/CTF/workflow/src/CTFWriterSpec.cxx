@@ -115,7 +115,7 @@ class CTFWriterSpec : public o2::framework::Task
 
   std::string mDictDir = "";
   std::string mCTFDir = "";
-
+  std::string mCurrentCTFFileName = "";
   std::unique_ptr<TFile> mCTFFileOut;
   std::unique_ptr<TTree> mCTFTreeOut;
 
@@ -129,9 +129,12 @@ class CTFWriterSpec : public o2::framework::Task
   std::array<std::vector<FTrans>, DetID::nDetectors> mFreqsAccumulation;
   std::array<std::vector<o2::ctf::Metadata>, DetID::nDetectors> mFreqsMetaData;
   std::array<std::shared_ptr<void>, DetID::nDetectors> mHeaders;
-
   TStopwatch mTimer;
+
+  static const std::string TMPFileEnding;
 };
+
+const std::string CTFWriterSpec::TMPFileEnding{".part"};
 
 //___________________________________________________________________
 // process data of particular detector
@@ -343,7 +346,8 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
   }
   if (needToOpen) {
     closeTFTreeAndFile();
-    mCTFFileOut.reset(TFile::Open(o2::utils::Str::concat_string(mCTFDir, o2::base::NameConf::getCTFFileName(dh->runNumber, dh->firstTForbit, dh->tfCounter)).c_str(), "recreate"));
+    mCurrentCTFFileName = o2::utils::Str::concat_string(mCTFDir, o2::base::NameConf::getCTFFileName(dh->runNumber, dh->firstTForbit, dh->tfCounter));
+    mCTFFileOut.reset(TFile::Open(o2::utils::Str::concat_string(mCurrentCTFFileName, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
     mCTFTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
     mNCTFFiles++;
   }
@@ -357,6 +361,9 @@ void CTFWriterSpec::closeTFTreeAndFile()
     mCTFTreeOut.reset();
     mCTFFileOut->Close();
     mCTFFileOut.reset();
+    if (!TMPFileEnding.empty()) {
+      std::filesystem::rename(o2::utils::Str::concat_string(mCurrentCTFFileName, TMPFileEnding), mCurrentCTFFileName);
+    }
     mNAccCTF = 0;
   }
   mAccCTFSize = 0;

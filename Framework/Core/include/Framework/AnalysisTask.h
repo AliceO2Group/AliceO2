@@ -404,10 +404,12 @@ struct AnalysisDataProcessorBuilder {
                            });
 
             std::decay_t<A1> typedTable{{groupedElementsTable}, std::move(slicedSelection), (offsets[index])[pos]};
+            typedTable.bindInternalIndicesTo(&std::get<A1>(*mAt));
             return typedTable;
           } else {
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
             std::decay_t<A1> typedTable{{groupedElementsTable}, (offsets[index])[pos]};
+            typedTable.bindInternalIndicesTo(&std::get<A1>(*mAt));
             return typedTable;
           }
         } else {
@@ -455,6 +457,7 @@ struct AnalysisDataProcessorBuilder {
     // set filtered tables for partitions with grouping
     homogeneous_apply_refs([&groupingTable](auto& x) {
       PartitionManager<std::decay_t<decltype(x)>>::setPartition(x, groupingTable);
+      PartitionManager<std::decay_t<decltype(x)>>::bindInternalIndices(x, &groupingTable);
       return true;
     },
                            task);
@@ -481,6 +484,19 @@ struct AnalysisDataProcessorBuilder {
       static_assert(((soa::is_soa_iterator_t<std::decay_t<Associated>>::value == false) && ...),
                     "Associated arguments of process() should not be iterators");
       auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables<PI>(inputs, processingFunction, infos);
+      //pre-bind self indices
+      std::apply(
+        [&](auto&... t) {
+          (homogeneous_apply_refs(
+             [&](auto& p) {
+               PartitionManager<std::decay_t<decltype(p)>>::bindInternalIndices(p, &t);
+               return true;
+             },
+             task),
+           ...);
+        },
+        associatedTables);
+
       auto binder = [&](auto&& x) {
         x.bindExternalIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
         homogeneous_apply_refs([&x](auto& t) {

@@ -18,6 +18,7 @@ o2_add_library(DPLUtils
                        src/RawParser.cxx
                        test/DPLBroadcasterMerger.cxx
                        test/DPLOutputTest.cxx
+                       test/RawPageTestData.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework)
 
 o2_add_executable(raw-proxy
@@ -54,12 +55,6 @@ o2_add_test(DPLOutput
             LABELS long dplutils
             COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
 
-o2_add_test(RootTreeWriter
-            SOURCES test/test_RootTreeWriter.cxx
-            PUBLIC_LINK_LIBRARIES O2::DPLUtils
-            COMPONENT_NAME DPLUtils
-            LABELS dplutils)
-
 o2_add_test(RootTreeWriterWorkflow
             NO_BOOST_TEST
             SOURCES test/test_RootTreeWriterWorkflow.cxx
@@ -76,21 +71,24 @@ o2_add_test(RootTreeReader
             LABELS dplutils
             COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run)
 
-o2_add_test(RawParser
-            SOURCES test/test_RawParser.cxx
-            PUBLIC_LINK_LIBRARIES O2::DPLUtils
-            COMPONENT_NAME DPLUtils
-            LABELS dplutils)
 
-o2_add_test(DPLRawParser
-            SOURCES test/test_DPLRawParser.cxx
-            PUBLIC_LINK_LIBRARIES O2::DPLUtils
-            COMPONENT_NAME DPLUtils
-            LABELS dplutils)
+foreach(t
+        RootTreeWriter
+        RawParser
+        DPLRawParser
+        DPLRawPageSequencer
+        )
+  o2_add_test(${t}
+              SOURCES test/test_${t}.cxx
+              PUBLIC_LINK_LIBRARIES O2::DPLUtils
+              COMPONENT_NAME DPLUtils
+              LABELS dplutils)
+endforeach()
 
 if (TARGET benchmark::benchmark)
 foreach(b
         RawParser
+        DPLRawPageSequencer
         )
   o2_add_test(benchmark_${b} NAME test_Framework_benchmark_${b}
               SOURCES test/benchmark_${b}.cxx

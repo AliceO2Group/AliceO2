@@ -25,8 +25,9 @@
 #pragma link C++ class o2::globaltracking::MatchCosmicsParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::MatchCosmicsParams> + ;
 
-#pragma link C++ class o2::globaltracking::ABDebugLink + ;
-#pragma link C++ class o2::globaltracking::ABDebugTrack + ;
+// RS FIXME remove ?
+//#pragma link C++ class o2::globaltracking::ABDebugLink + ;
+//#pragma link C++ class o2::globaltracking::ABDebugTrack + ;
 
 #pragma link C++ class std::pair < o2::dataformats::EvIndex < int, int>, o2::dataformats::MatchInfoTOF> + ;
 #pragma link C++ class std::vector < std::pair < o2::dataformats::EvIndex < int, int>, o2::dataformats::MatchInfoTOF>> + ;

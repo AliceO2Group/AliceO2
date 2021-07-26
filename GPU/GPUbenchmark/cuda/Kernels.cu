@@ -309,6 +309,8 @@ float GPUbenchmark<chunk_type>::benchmarkSync(void (*kernel)(T...),
   GPUCHECK(cudaEventSynchronize(stop)); // synchronize executions
   float milliseconds{0.f};
   GPUCHECK(cudaEventElapsedTime(&milliseconds, start, stop));
+  GPUCHECK(cudaEventDestroy(start));
+  GPUCHECK(cudaEventDestroy(stop));
 
   return milliseconds;
 }
@@ -331,7 +333,7 @@ std::vector<float> GPUbenchmark<chunk_type>::benchmarkAsync(void (*kernel)(int, 
   for (auto iStream{0}; iStream < nStreams; ++iStream) {
     GPUCHECK(cudaEventRecord(starts[iStream], streams[iStream]));
 
-    for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) { // consecutive launches on the same stream
+    for (auto iLaunch{0}; iLaunch < 10 * nLaunches; ++iLaunch) { // 10x consecutive launches on the same stream
       (*kernel)<<<blocks, threads, 0, streams[iStream]>>>(iStream, args...);
     }
     GPUCHECK(cudaEventRecord(stops[iStream], streams[iStream]));
@@ -340,6 +342,9 @@ std::vector<float> GPUbenchmark<chunk_type>::benchmarkAsync(void (*kernel)(int, 
   for (auto iStream{0}; iStream < nStreams; ++iStream) {
     GPUCHECK(cudaEventSynchronize(stops[iStream]));
     GPUCHECK(cudaEventElapsedTime(&(results.at(iStream)), starts[iStream], stops[iStream]));
+    GPUCHECK(cudaEventDestroy(starts[iStream]));
+    GPUCHECK(cudaEventDestroy(stops[iStream]));
+    GPUCHECK(cudaStreamDestroy(streams[iStream]));
   }
 
   return results;
@@ -811,51 +816,54 @@ void GPUbenchmark<chunk_type>::run()
 {
   globalInit();
 
-  for (auto& test : mOptions.tests) {
-    switch (test) {
-      case Test::Read: {
-        readInit();
-        // Reading in whole memory
-        readSequential(SplitLevel::Blocks);
-        readSequential(SplitLevel::Threads);
+  for (auto& sl : mOptions.pools) {
+    for (auto& test : mOptions.tests) {
+      switch (test) {
+        case Test::Read: {
+          readInit();
 
-        // Reading in memory regions
-        readConcurrent(SplitLevel::Blocks);
-        readConcurrent(SplitLevel::Threads);
-        readFinalize();
+          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Sequential) != mOptions.modes.end()) {
+            readSequential(sl);
+          }
+          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Concurrent) != mOptions.modes.end()) {
+            readConcurrent(sl);
+          }
 
-        break;
-      }
-      case Test::Write: {
-        writeInit();
-        // Write on whole memory
-        writeSequential(SplitLevel::Blocks);
-        writeSequential(SplitLevel::Threads);
+          readFinalize();
 
-        // Write on memory regions
-        writeConcurrent(SplitLevel::Blocks);
-        writeConcurrent(SplitLevel::Threads);
-        writeFinalize();
+          break;
+        }
+        case Test::Write: {
+          writeInit();
+          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Sequential) != mOptions.modes.end()) {
+            writeSequential(sl);
+          }
+          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Concurrent) != mOptions.modes.end()) {
+            writeConcurrent(sl);
+          }
 
-        break;
-      }
-      case Test::Copy: {
-        copyInit();
-        // Copy from input buffer (size = nChunks) on whole memory
-        copySequential(SplitLevel::Blocks);
-        copySequential(SplitLevel::Threads);
+          writeFinalize();
 
-        // Copy from input buffer (size = nChunks) on memory regions
-        copyConcurrent(SplitLevel::Blocks);
-        copyConcurrent(SplitLevel::Threads);
-        copyFinalize();
+          break;
+        }
+        case Test::Copy: {
+          copyInit();
+          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Sequential) != mOptions.modes.end()) {
+            copySequential(sl);
+          }
+          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Concurrent) != mOptions.modes.end()) {
+            copyConcurrent(sl);
+          }
 
-        break;
+          copyFinalize();
+
+          break;
+        }
       }
     }
   }
 
-  GPUbenchmark<chunk_type>::globalFinalize();
+  globalFinalize();
 }
 
 template class GPUbenchmark<char>;

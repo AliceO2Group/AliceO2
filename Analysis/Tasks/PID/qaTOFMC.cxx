@@ -61,7 +61,7 @@ struct pidTOFTaskQA {
                                                         "nsigmaMCprm/Ka", "nsigmaMCprm/Pr", "nsigmaMCprm/De",
                                                         "nsigmaMCprm/Tr", "nsigmaMCprm/He", "nsigmaMCprm/Al"};
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
-  static constexpr int PDGs[Np] = {11, 13, 211, 321, 2212, 1, 1, 1, 1};
+  static constexpr int PDGs[Np] = {11, 13, 211, 321, 2212, 1000010020, 1000010030, 1000020030};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
@@ -131,10 +131,11 @@ struct pidTOFTaskQA {
   template <uint8_t pidIndex, typename T, typename TT>
   void fillNsigma(const T& track, const TT& mcParticles, const float& nsigma)
   {
-    if (abs(track.mcParticle().pdgCode()) == PDGs[pidIndex]) {
+    const auto particle = track.mcParticle();
+    if (abs(particle.pdgCode()) == PDGs[pidIndex]) {
       histos.fill(HIST(hnsigmaMC[pidIndex]), track.pt(), nsigma);
 
-      if (MC::isPhysicalPrimary(mcParticles, track.mcParticle())) { // Selecting primaries
+      if (MC::isPhysicalPrimary<aod::McParticles>(particle)) { // Selecting primaries
         histos.fill(HIST(hnsigmaMCprm[pidIndex]), track.pt(), nsigma);
       } else {
         histos.fill(HIST(hnsigmaMCsec[pidIndex]), track.pt(), nsigma);
@@ -188,7 +189,8 @@ struct pidTOFTaskQA {
       // Fill for all
       histos.fill(HIST(hnsigma[pid_type]), t.pt(), nsigma);
       histos.fill(HIST("event/tofbeta"), t.p(), t.beta());
-      if (MC::isPhysicalPrimary(mcParticles, t.mcParticle())) { // Selecting primaries
+      const auto particle = t.mcParticle();
+      if (MC::isPhysicalPrimary<aod::McParticles>(particle)) { // Selecting primaries
         histos.fill(HIST(hnsigmaprm[pid_type]), t.pt(), nsigma);
         histos.fill(HIST("event/tofbetaPrm"), t.p(), t.beta());
       } else {
