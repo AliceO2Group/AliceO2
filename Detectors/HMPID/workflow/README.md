@@ -57,7 +57,7 @@ Data processor options: HMP-DataDecoder:
                   Name of the Root file with the decoding
                   results.
   --fast-decode   Use the fast algorithm. (error 0.8%)
-  --get-results   Switch on the output of statistic result files
+  --get-results-statistics    Switch on the output of statistic result files
 ```
 
 

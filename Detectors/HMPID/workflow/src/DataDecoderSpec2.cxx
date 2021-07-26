@@ -66,7 +66,7 @@ void DataDecoderTask2::init(framework::InitContext& ic)
 
   LOG(INFO) << "[HMPID Data Decoder - Init] ( create Raw Stream Decoder for " << Geo::MAXEQUIPMENTS << " equipments !";
 
-  mProduceResults = ic.options().get<bool>("get-results");
+  mProduceResults = ic.options().get<bool>("get-results-statistics");
   mRootStatFile = ic.options().get<std::string>("result-file");
   mFastAlgorithm = ic.options().get<bool>("fast-decode");
   mDeco = new o2::hmpid::HmpidDecoder2(Geo::MAXEQUIPMENTS);
@@ -345,7 +345,7 @@ o2::framework::DataProcessorSpec getDecodingSpec2(bool askDISTSTF)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DataDecoderTask2>()},
-    Options{{"get-results", VariantType::Bool, false, {"Generate intermediat output results."}},
+    Options{{"get-results-statistics ", VariantType::Bool, false, {"Generate intermediat output results."}},
             {"result-file", VariantType::String, "/tmp/hmpRawDecodeResults", {"Base name of the decoding results files."}},
             {"fast-decode", VariantType::Bool, false, {"Use the fast algorithm. (error 0.8%)"}}}};
 }
