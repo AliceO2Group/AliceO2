@@ -109,7 +109,7 @@ struct RecEvent {
       addInfo(ch, code);
       uint16_t info = 0x8000;
       uint8_t i = 0;
-      for (; i < cnt && active[i]<15; i++) {
+      for (; i < cnt && active[i] < 15; i++) {
         info = info | (0x1 << active[i]);
       }
       addInfo(info);
