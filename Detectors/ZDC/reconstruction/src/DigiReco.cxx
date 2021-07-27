@@ -438,7 +438,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
           float evPed = 0;
           if (ibun > ibeg) {
             auto ref_m = mReco[ibun - 1].ref[ich];
-            if (ropt.beg_ped_int[ich] >= 0 || ref < ZDCRefInitVal) {
+            if (ropt.beg_ped_int[ich] >= 0 || ref_m < ZDCRefInitVal) {
               for (int is = ropt.beg_ped_int[ich]; is <= ropt.end_ped_int[ich]; is++) {
                 if (is < 0) {
                   // Sample is in previous BC
