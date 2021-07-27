@@ -46,6 +46,19 @@
       o2_add_dpl_workflow
     </CEdeclarationString>
     
+    <!-- delimiters used to mark text blocks to be replaced in html files -->
+    <delimAO2D>
+      &lt;!-- Block with AO2D tables --&gt;
+    </delimAO2D>
+    
+    <delimHelpers>
+      &lt;!-- Block with helper tasks --&gt;
+    </delimHelpers>
+    
+    <delimJoins>
+      &lt;!-- Block with joins and iterators --&gt;
+    </delimJoins>
+    
   </O2general>
   
   
