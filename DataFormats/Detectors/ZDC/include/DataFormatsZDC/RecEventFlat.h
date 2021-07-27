@@ -73,22 +73,22 @@ struct RecEventFlat {
 
   int next();
 
-  inline NElem getNEnergy()
+  inline NElem getNEnergy() const
   {
     return mNE;
   }
 
-  inline NElem getNTDC()
+  inline NElem getNTDC() const
   {
     return mNT;
   }
 
-  inline NElem getNInfo()
+  inline NElem getNInfo() const
   {
     return mNI;
   }
 
-  float tdcV(uint8_t ich, uint64_t ipos)
+  float tdcV(uint8_t ich, uint64_t ipos) const
   {
     if (ich < NTDCChannels) {
       if (ipos < TDCVal[ich].size()) {
@@ -98,7 +98,7 @@ struct RecEventFlat {
     return -std::numeric_limits<float>::infinity();
   }
 
-  float tdcA(uint8_t ich, uint64_t ipos)
+  float tdcA(uint8_t ich, uint64_t ipos) const
   {
     if (ich < NTDCChannels) {
       if (ipos < TDCAmp[ich].size()) {
@@ -108,7 +108,7 @@ struct RecEventFlat {
     return -std::numeric_limits<float>::infinity();
   }
 
-  int NtdcV(uint8_t ich)
+  int NtdcV(uint8_t ich) const
   {
     if (ich < NTDCChannels) {
       return TDCVal[ich].size();
@@ -117,7 +117,7 @@ struct RecEventFlat {
     }
   }
 
-  int NtdcA(uint8_t ich)
+  int NtdcA(uint8_t ich) const
   {
     if (ich < NTDCChannels) {
       return TDCAmp[ich].size();
@@ -126,9 +126,9 @@ struct RecEventFlat {
     }
   }
 
-  float EZDC(uint8_t ich)
+  float EZDC(uint8_t ich) const
   {
-    std::map<uint8_t, float>::iterator it = ezdc.find(ich);
+    std::map<uint8_t, float>::const_iterator it = ezdc.find(ich);
     if (it != ezdc.end()) {
       return it->second;
     } else {
@@ -136,36 +136,36 @@ struct RecEventFlat {
     }
   }
 
-  float EZNAC() { return EZDC(IdZNAC); }
-  float EZNA1() { return EZDC(IdZNA1); }
-  float EZNA2() { return EZDC(IdZNA2); }
-  float EZNA3() { return EZDC(IdZNA3); }
-  float EZNA4() { return EZDC(IdZNA4); }
-  float EZNASum() { return EZDC(IdZNASum); }
+  float EZNAC() const { return EZDC(IdZNAC); }
+  float EZNA1() const { return EZDC(IdZNA1); }
+  float EZNA2() const { return EZDC(IdZNA2); }
+  float EZNA3() const { return EZDC(IdZNA3); }
+  float EZNA4() const { return EZDC(IdZNA4); }
+  float EZNASum() const { return EZDC(IdZNASum); }
 
-  float EZPAC() { return EZDC(IdZPAC); }
-  float EZPA1() { return EZDC(IdZPA1); }
-  float EZPA2() { return EZDC(IdZPA2); }
-  float EZPA3() { return EZDC(IdZPA3); }
-  float EZPA4() { return EZDC(IdZPA4); }
-  float EZPASum() { return EZDC(IdZPASum); }
+  float EZPAC() const { return EZDC(IdZPAC); }
+  float EZPA1() const { return EZDC(IdZPA1); }
+  float EZPA2() const { return EZDC(IdZPA2); }
+  float EZPA3() const { return EZDC(IdZPA3); }
+  float EZPA4() const { return EZDC(IdZPA4); }
+  float EZPASum() const { return EZDC(IdZPASum); }
 
-  float EZEM1() { return EZDC(IdZEM1); }
-  float EZEM2() { return EZDC(IdZEM2); }
+  float EZEM1() const { return EZDC(IdZEM1); }
+  float EZEM2() const { return EZDC(IdZEM2); }
 
-  float EZNCC() { return EZDC(IdZNCC); }
-  float EZNC1() { return EZDC(IdZNC1); }
-  float EZNC2() { return EZDC(IdZNC2); }
-  float EZNC3() { return EZDC(IdZNC3); }
-  float EZNC4() { return EZDC(IdZNC4); }
-  float EZNCSum() { return EZDC(IdZNCSum); }
+  float EZNCC() const { return EZDC(IdZNCC); }
+  float EZNC1() const { return EZDC(IdZNC1); }
+  float EZNC2() const { return EZDC(IdZNC2); }
+  float EZNC3() const { return EZDC(IdZNC3); }
+  float EZNC4() const { return EZDC(IdZNC4); }
+  float EZNCSum() const { return EZDC(IdZNCSum); }
 
-  float EZPCC() { return EZDC(IdZPCC); }
-  float EZPC1() { return EZDC(IdZPC1); }
-  float EZPC2() { return EZDC(IdZPC2); }
-  float EZPC3() { return EZDC(IdZPC3); }
-  float EZPC4() { return EZDC(IdZPC4); }
-  float EZPCSum() { return EZDC(IdZPCSum); }
+  float EZPCC() const { return EZDC(IdZPCC); }
+  float EZPC1() const { return EZDC(IdZPC1); }
+  float EZPC2() const { return EZDC(IdZPC2); }
+  float EZPC3() const { return EZDC(IdZPC3); }
+  float EZPC4() const { return EZDC(IdZPC4); }
+  float EZPCSum() const { return EZDC(IdZPCSum); }
 
   void decodeInfo(uint8_t ch, uint16_t code);
   void decodeMapInfo(uint32_t ch, uint16_t code);

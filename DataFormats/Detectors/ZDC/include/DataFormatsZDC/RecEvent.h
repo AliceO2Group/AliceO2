@@ -86,38 +86,36 @@ struct RecEvent {
 
   void addInfo(const std::array<bool, NChannels>& vec, const uint16_t code)
   {
+    // Prepare list of channels interested by this message
     int cnt = 0;
+    std::array<int, NChannels> active;
     for (uint8_t ich = 0; ich < NChannels; ich++) {
       if (vec[ich]) {
+        active[cnt] = ich;
         cnt++;
       }
     }
     if (cnt == 0) {
       return;
     }
-    if (cnt < 3) {
-      // Transmission for single channel
-      for (uint8_t ich = 0; ich < NChannels; ich++) {
-        if (vec[ich]) {
-          addInfo(ich, code);
-        }
+    if (cnt <= 3) {
+      // Transmission of single channels
+      for (uint8_t i = 0; i < cnt; i++) {
+        addInfo(active[i], code);
       }
     } else {
-      // Transmission of pattern
+      // Transmission of channel pattern
       uint16_t ch = 0x1f;
       addInfo(ch, code);
       uint16_t info = 0x8000;
-      for (uint8_t ich = 0; ich < 15; ich++) {
-        if (vec[ich]) {
-          info = info | (0x1 << ich);
-        }
+      uint8_t i = 0;
+      for (; i < cnt && active[i]<15; i++) {
+        info = info | (0x1 << active[i]);
       }
       addInfo(info);
       info = 0x8000;
-      for (uint8_t ich = 15; ich < NChannels; ich++) {
-        if (vec[ich]) {
-          info = info | (0x1 << (ich - 15));
-        }
+      for (; i < cnt; i++) {
+        info = info | (0x1 << (active[i] - 15));
       }
       addInfo(info);
     }
