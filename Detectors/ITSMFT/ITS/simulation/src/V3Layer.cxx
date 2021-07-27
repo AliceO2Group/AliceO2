@@ -311,6 +311,35 @@ V3Layer::~V3Layer() = default;
 
 void V3Layer::createLayer(TGeoVolume* motherVolume)
 {
+  std::string volumeName;
+
+  volumeName = fmt::format("{:s}{:d}", GeometryTGeo::getITSLayerPattern(), mLayerNumber);
+  TGeoVolume* layerVolume = new TGeoVolumeAssembly(volumeName.c_str());
+
+  // Call for creation of a single Half Barrel
+  // and put two copies in the Layer volume
+  TGeoVolume* halfBarrel;
+
+  // If a Turbo layer is requested, do it
+  if (mIsTurbo) {
+    halfBarrel = createHalfBarrelTurbo();
+  } else {
+    halfBarrel = createHalfBarrel();
+  }
+
+  layerVolume->AddNode(halfBarrel, 0, nullptr);
+  layerVolume->AddNode(halfBarrel, 1, new TGeoRotation("", 180, 0, 0));
+  mHierarchy[kHalfBarrel] = 2;
+
+  // Finally put everything in the mother volume
+  motherVolume->AddNode(layerVolume, 1, nullptr);
+
+  //  geometry is served
+  return;
+}
+
+TGeoVolume* V3Layer::createHalfBarrel()
+{
   const Int_t nameLen = 30;
   char volumeName[nameLen];
   Double_t xpos, ypos, zpos;
@@ -345,47 +374,40 @@ void V3Layer::createLayer(TGeoVolume* motherVolume)
     LOG(FATAL) << "Sensor thickness " << mSensorThickness << " is greater than chip thickness " << mChipThickness;
   }
 
-  // If a Turbo layer is requested, do it and exit
-  if (mIsTurbo) {
-    createLayerTurbo(motherVolume);
-    return;
-  }
-
   // First create the stave container
   alpha = (360. / (2 * mNumberOfStaves)) * DegToRad();
 
   //  mStaveWidth = mLayerRadius*Tan(alpha);
 
-  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSLayerPattern(), mLayerNumber);
-  TGeoVolume* layerVolume = new TGeoVolumeAssembly(volumeName);
-  layerVolume->SetUniqueID(mChipTypeID);
+  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSHalfBarrelPattern(), mLayerNumber);
+  TGeoVolume* halfBarrelVolume = new TGeoVolumeAssembly(volumeName);
+  halfBarrelVolume->SetUniqueID(mChipTypeID);
 
-  // layerVolume->SetVisibility(kFALSE);
-  layerVolume->SetVisibility(kTRUE);
-  layerVolume->SetLineColor(1);
+  // halfBarrelVolume->SetVisibility(kFALSE);
+  halfBarrelVolume->SetVisibility(kTRUE);
+  halfBarrelVolume->SetLineColor(1);
 
   TGeoVolume* stavVol = createStave();
 
   // Now build up the layer
   alpha = 360. / mNumberOfStaves;
   Double_t r = mLayerRadius + (static_cast<TGeoBBox*>(stavVol->GetShape()))->GetDY();
-  for (Int_t j = 0; j < mNumberOfStaves; j++) {
+  mHierarchy[kStave] = 0;
+  for (Int_t j = 0; j < mNumberOfStaves / 2; j++) {
     Double_t phi = j * alpha + mPhi0;
     xpos = r * cosD(phi); // r*sinD(-phi);
     ypos = r * sinD(phi); // r*cosD(-phi);
     zpos = 0.;
     phi += 90;
-    layerVolume->AddNode(stavVol, j, new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", phi, 0, 0)));
+    halfBarrelVolume->AddNode(stavVol, j, new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", phi, 0, 0)));
+    mHierarchy[kStave]++;
   }
 
-  // Finally put everything in the mother volume
-  motherVolume->AddNode(layerVolume, 1, nullptr);
-
   //  geometry is served
-  return;
+  return halfBarrelVolume;
 }
 
-void V3Layer::createLayerTurbo(TGeoVolume* motherVolume)
+TGeoVolume* V3Layer::createHalfBarrelTurbo()
 {
   const Int_t nameLen = 30;
   char volumeName[nameLen];
@@ -401,30 +423,29 @@ void V3Layer::createLayerTurbo(TGeoVolume* motherVolume)
     LOG(WARNING) << "Stave tilt angle (" << mStaveTilt << ") greater than 45deg";
   }
 
-  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSLayerPattern(), mLayerNumber);
-  TGeoVolume* layerVolume = new TGeoVolumeAssembly(volumeName);
-  layerVolume->SetUniqueID(mChipTypeID);
-  layerVolume->SetVisibility(kTRUE);
-  layerVolume->SetLineColor(1);
+  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSHalfBarrelPattern(), mLayerNumber);
+  TGeoVolume* halfBarrelVolume = new TGeoVolumeAssembly(volumeName);
+  halfBarrelVolume->SetUniqueID(mChipTypeID);
+  halfBarrelVolume->SetVisibility(kTRUE);
+  halfBarrelVolume->SetLineColor(1);
   TGeoVolume* stavVol = createStave();
 
   // Now build up the layer
   alpha = 360. / mNumberOfStaves;
   Double_t r = mLayerRadius /* +chip thick ?! */;
-  for (Int_t j = 0; j < mNumberOfStaves; j++) {
+  mHierarchy[kStave] = 0;
+  for (Int_t j = 0; j < mNumberOfStaves / 2; j++) {
     Double_t phi = j * alpha + mPhi0;
     xpos = r * cosD(phi); // r*sinD(-phi);
     ypos = r * sinD(phi); // r*cosD(-phi);
     zpos = 0.;
     phi += 90;
-    layerVolume->AddNode(stavVol, j,
-                         new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", phi - mStaveTilt, 0, 0)));
+    halfBarrelVolume->AddNode(stavVol, j,
+                              new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", phi - mStaveTilt, 0, 0)));
+    mHierarchy[kStave]++;
   }
 
-  // Finally put everything in the mother volume
-  motherVolume->AddNode(layerVolume, 1, nullptr);
-
-  return;
+  return halfBarrelVolume;
 }
 
 TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
