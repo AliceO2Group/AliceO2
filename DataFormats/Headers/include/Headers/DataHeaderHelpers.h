@@ -69,7 +69,7 @@ struct fmt::formatter<o2::header::DataHeader> {
   template <typename FormatContext>
   auto format(const o2::header::DataHeader& h, FormatContext& ctx)
   {
-    auto res = fmt::format("Data header version %u, flags: %u\n", h.headerVersion, h.flags) +
+    auto res = fmt::format("Data header version {}, flags: {}\n", h.headerVersion, h.flags) +
                fmt::format("  origin       : {}\n", h.dataOrigin.str) +
                fmt::format("  serialization: {}\n", h.payloadSerializationMethod.str) +
                fmt::format("  description  : {}\n", h.dataDescription.str) +
