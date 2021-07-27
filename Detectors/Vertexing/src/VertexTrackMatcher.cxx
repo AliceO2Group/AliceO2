@@ -118,16 +118,28 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
       // track matches to vertex, register
       vtxList.push_back(vto.origID); // flag matching vertex
     }
-    if (vtxList.size()) {
-      nAssigned++;
-      for (auto v : vtxList) {
-        tmpMap[v].emplace_back(tro.origID).setAmbiguous();
+    if (tro.origID.getSource() == GIndex::Source::MFT) { // MFT tracks are treated differently: tracks with unresolved ambiguities are marked as orphans -> unassigned
+      if (vtxList.size() == 1) {
+        nAssigned++;
+        tmpMap[vtxList[0]].emplace_back(tro.origID).setAmbiguous();
+      } else {
+        orphans.emplace_back(tro.origID); // register as unassigned MFT track
       }
       if (vtxList.size() > 1) { // did track match to multiple vertices?
-        nAmbiguous++;
+        nAmbiguous++;           // Should count MFT tracks here even if they end up on the orphans/unassigned table?
       }
     } else {
-      orphans.emplace_back(tro.origID); // register unassigned track
+      if (vtxList.size()) {
+        nAssigned++;
+        for (auto v : vtxList) {
+          tmpMap[v].emplace_back(tro.origID).setAmbiguous();
+        }
+        if (vtxList.size() > 1) { // did track match to multiple vertices?
+          nAmbiguous++;
+        }
+      } else {
+        orphans.emplace_back(tro.origID); // register unassigned track
+      }
     }
   }
 
@@ -140,7 +152,7 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
     // sort entries in each vertex track indices list according to the source
     std::sort(trvec.begin(), trvec.end(), [](VTIndex a, VTIndex b) { return a.getSource() < b.getSource(); });
 
-    auto entry0 = trackIndex.size();   // start of entries for this vertex
+    auto entry0 = trackIndex.size(); // start of entries for this vertex
     auto& vr = vtxRefs.emplace_back();
     vr.setVtxID(iv < nv ? iv : -1); // flag table for unassigned tracks by VtxID = -1
     int oldSrc = -1;
