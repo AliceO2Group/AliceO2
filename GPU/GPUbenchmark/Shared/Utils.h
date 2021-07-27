@@ -164,10 +164,10 @@ inline void ResultWriter::addBenchmarkEntry(const std::string bName, const std::
   mTimeResults.resize(nChunks);
   mTimeTrees.back()->Branch("elapsed", &mTimeResults);
 
-  mThroughputTrees.emplace_back(new TTree((bName + "_" + type).data(), (bName + "_" + type + "_TP").data()));
+  mThroughputTrees.emplace_back(new TTree((bName + "_" + type + "_TP").data(), (bName + "_" + type + "_TP").data()));
   mThroughputResults.clear();
   mThroughputResults.resize(nChunks);
-  mThroughputTrees.back()->Branch("throughput", &mTimeResults);
+  mThroughputTrees.back()->Branch("throughput", &mThroughputResults);
 }
 
 inline void ResultWriter::storeBenchmarkEntry(int chunk, float entry, float chunkSizeGB)

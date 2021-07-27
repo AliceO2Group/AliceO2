@@ -109,7 +109,7 @@ __global__ void writeChunkSBKernel(
 {
   if (chunkId == blockIdx.x) { // runs only if blockIdx.x is allowed in given split
     for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
-      chunkPtr[i] = 1;
+      chunkPtr[i] = 0;
     }
   }
 }
@@ -122,7 +122,7 @@ __global__ void writeChunkMBKernel(
   size_t chunkSize)
 {
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
-    chunkPtr[i] = 1;
+    chunkPtr[i] = 0;
   }
 }
 
@@ -657,7 +657,7 @@ void GPUbenchmark<chunk_type>::copyInit()
   mState.hostCopyInputsVector.resize(mState.getMaxChunks());
   GPUCHECK(cudaSetDevice(mOptions.deviceId));
   GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&(mState.deviceCopyInputsPtr)), mState.getMaxChunks() * sizeof(chunk_type)));
-  GPUCHECK(cudaMemset(mState.deviceCopyInputsPtr, 1, mState.getMaxChunks() * sizeof(chunk_type)));
+  GPUCHECK(cudaMemset(mState.deviceCopyInputsPtr, 0, mState.getMaxChunks() * sizeof(chunk_type)));
 }
 
 template <class chunk_type>
