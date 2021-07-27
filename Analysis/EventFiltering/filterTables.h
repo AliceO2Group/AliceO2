@@ -28,7 +28,6 @@ DECLARE_SOA_COLUMN(DG, hasDG, bool); //! Double Gap events, DG
 
 } // namespace filtering
 
-
 // nuclei
 DECLARE_SOA_TABLE(NucleiFilters, "AOD", "NucleiFilters", //!
                   filtering::H2, filtering::H3, filtering::He3, filtering::He4);
@@ -47,19 +46,34 @@ constexpr std::array<char[128], NumberOfFilters> FilteringTaskNames{"o2-analysis
 constexpr o2::framework::pack<NucleiFilters, DiffractionFilters> FiltersPack;
 static_assert(o2::framework::pack_size(FiltersPack) == NumberOfFilters);
 
-template<typename T, typename C>
-void addColumnToMap(std::unordered_map<std::string, std::unordered_map<std::string, float>>& map) {
+template <typename T, typename C>
+void addColumnToMap(std::unordered_map<std::string, std::unordered_map<std::string, float>>& map)
+{
   map[MetadataTrait<T>::metadata::tableLabel()][C::columnLabel()] = 1.f;
 }
 
 template <typename T, typename... C>
-void addColumnsToMap(o2::framework::pack<C...>, std::unordered_map<std::string, std::unordered_map<std::string, float>>& map) {
+void addColumnsToMap(o2::framework::pack<C...>, std::unordered_map<std::string, std::unordered_map<std::string, float>>& map)
+{
   (addColumnToMap<T, C>(map), ...);
 }
 
-template<typename ... T>
-void FillFiltersMap(o2::framework::pack<T...>, std::unordered_map<std::string, std::unordered_map<std::string, float>>& map) {
+template <typename... T>
+void FillFiltersMap(o2::framework::pack<T...>, std::unordered_map<std::string, std::unordered_map<std::string, float>>& map)
+{
   (addColumnsToMap<T>(typename T::iterator::persistent_columns_t{}, map), ...);
+}
+
+template <typename... C>
+static std::vector<std::string> ColumnsNames(o2::framework::pack<C...>)
+{
+  return {C::columnLabel()...};
+}
+
+template <typename T>
+unsigned int NumberOfColumns()
+{
+  return o2::framework::pack_size(typename T::iterator::persistent_columns_t{});
 }
 
 } // namespace o2::aod

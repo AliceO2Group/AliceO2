@@ -31,13 +31,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{o2::framework::ConfigParamSpec{"train_config", o2::framework::VariantType::String, "full_config.json", {"Configuration of the filtering train"}}};
-  std::unordered_map<std::string, std::unordered_map<std::string, float>> downscalings;
-  o2::aod::FillFiltersMap(o2::aod::FiltersPack, downscalings);
-  for (auto& table : downscalings) {
-    for (auto& col : table.second) {
-      options.emplace_back(o2::framework::ConfigParamSpec{table.first + "_" + col.first, o2::framework::VariantType::Float, 1.f, {std::string("Downscaling for the filter ") + col.first + " of the class " + table.first}});
-    }
-  }
 
   std::swap(workflowOptions, options);
 }
@@ -45,6 +38,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 
 using namespace o2;
+using namespace o2::aod;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 using namespace rapidjson;
@@ -55,7 +49,7 @@ bool readJsonFile(std::string& config, Document& d)
 {
   FILE* fp = fopen(config.data(), "rb");
   if (!fp) {
-    LOG(ERROR) << "Missing configuration json file: " << config;
+    LOG(WARNING) << "Missing configuration json file: " << config;
     return false;
   }
 
@@ -68,6 +62,43 @@ bool readJsonFile(std::string& config, Document& d)
 }
 
 std::unordered_map<std::string, std::unordered_map<std::string, float>> mDownscaling;
+static const std::vector<std::string> downscalingName{"Downscaling"};
+static const float defaultDownscaling[32][1]{
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f},
+  {1.f}}; /// Max number of columns for triggers is 32 (extendible)
+
+#define FILTER_CONFIGURABLE(_TYPE_) \
+  Configurable<LabeledArray<float>> cfg##_TYPE_ { #_TYPE_, {defaultDownscaling[0], NumberOfColumns < _TYPE_>(), 1, ColumnsNames(typename _TYPE_::iterator::persistent_columns_t{}), downscalingName }, #_TYPE_ " downscalings" }
 
 } // namespace
 
@@ -75,7 +106,10 @@ struct centralEventFilterTask {
 
   HistogramRegistry scalers{"scalers", {}, OutputObjHandlingPolicy::AnalysisObject, true, true};
 
-  void init(o2::framework::InitContext&)
+  FILTER_CONFIGURABLE(NucleiFilters);
+  FILTER_CONFIGURABLE(DiffractionFilters);
+
+  void init(o2::framework::InitContext& initc)
   {
     LOG(INFO) << "Start init";
     int nCols{0};
@@ -96,6 +130,13 @@ struct centralEventFilterTask {
       for (auto& column : table.second) {
         mScalers->GetXaxis()->SetBinLabel(bin, column.first.data());
         mFiltered->GetXaxis()->SetBinLabel(bin++, column.first.data());
+      }
+      if (initc.options().isDefault(table.first.data()) || !initc.options().isSet(table.first.data())) {
+        continue;
+      }
+      auto filterOpt = initc.mOptions.get<LabeledArray<float>>(table.first.data());
+      for (auto& col : table.second) {
+        col.second = filterOpt.get(col.first.data(), 0u);
       }
     }
   }
@@ -153,14 +194,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfg)
   auto config = cfg.options().get<std::string>("train_config");
   Document d;
   std::unordered_map<std::string, std::unordered_map<std::string, float>> downscalings;
-  o2::aod::FillFiltersMap(o2::aod::FiltersPack, downscalings);
+  FillFiltersMap(FiltersPack, downscalings);
 
-  std::array<bool, o2::aod::NumberOfFilters> enabledFilters = {false};
+  std::array<bool, NumberOfFilters> enabledFilters = {false};
   if (readJsonFile(config, d)) {
     for (auto& workflow : d["workflows"].GetArray()) {
-      for (uint32_t iFilter{0}; iFilter < o2::aod::NumberOfFilters; ++iFilter) {
-        if (std::string_view(workflow["workflow_name"].GetString()) == std::string_view(o2::aod::FilteringTaskNames[iFilter])) {
-          inputs.emplace_back(std::string(o2::aod::AvailableFilters[iFilter]), "AOD", o2::aod::FilterDescriptions[iFilter], 0, Lifetime::Timeframe);
+      for (uint32_t iFilter{0}; iFilter < NumberOfFilters; ++iFilter) {
+        if (std::string_view(workflow["workflow_name"].GetString()) == std::string_view(FilteringTaskNames[iFilter])) {
+          inputs.emplace_back(std::string(AvailableFilters[iFilter]), "AOD", FilterDescriptions[iFilter], 0, Lifetime::Timeframe);
           enabledFilters[iFilter] = true;
           break;
         }
@@ -168,17 +209,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfg)
     }
   }
 
-  for (uint32_t iFilter{0}; iFilter < o2::aod::NumberOfFilters; ++iFilter) {
+  for (uint32_t iFilter{0}; iFilter < NumberOfFilters; ++iFilter) {
     if (!enabledFilters[iFilter]) {
-      LOG(INFO) << std::string_view(o2::aod::AvailableFilters[iFilter]) << " not present in the configuration, removing it.";
-      downscalings.erase(std::string(o2::aod::AvailableFilters[iFilter]));
-    } else {
-      std::string tableName{o2::aod::AvailableFilters[iFilter]};
-      for (auto& cols : downscalings[tableName]) {
-        std::string optName{tableName + "_" + cols.first};
-        auto downscaling = cfg.options().get<float>(optName.data());
-        cols.second = downscaling;
-      }
+      LOG(INFO) << std::string_view(AvailableFilters[iFilter]) << " not present in the configuration, removing it.";
+      downscalings.erase(std::string(AvailableFilters[iFilter]));
     }
   }
 
