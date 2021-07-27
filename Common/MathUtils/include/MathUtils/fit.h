@@ -118,6 +118,94 @@ TFitResultPtr fit(const size_t nBins, const T* arr, const T xMin, const T xMax, 
   return TFitResultPtr(tfr);
 }
 
+/// fast median estimate of gaussian parameters for histogrammed data
+///
+/// \param[in]  nbins size of the array and number of histogram bins
+/// \param[in]  arr   array with elements
+/// \param[in]  xMin  minimum range of the array
+/// \param[in]  xMax  maximum range of the array
+/// \param[out] param return paramters of the fit (0-Constant, 1-Mean, 2-Sigma)
+///
+/// \return false on failure (empty data)
+
+template <typename T>
+bool medmadGaus(size_t nBins, const T* arr, const T xMin, const T xMax, std::array<double, 3>& param)
+{
+  int bStart = 0, bEnd = -1, filled = 0;
+  double sum = 0, binW = double(xMax - xMin) / nBins, medVal = xMin;
+  for (int i = 0; i < (int)nBins; i++) {
+    auto v = arr[i];
+    if (v) {
+      if (!sum) {
+        bStart = i;
+      }
+      sum += v;
+      bEnd = i;
+    }
+  }
+  if (bEnd < bStart) {
+    return false;
+  }
+  bEnd++;
+  double cum = 0, thresh = 0.5 * sum, frac0 = 0;
+  int bid = bStart, prevbid = bid;
+  while (bid < bEnd) {
+    if (arr[bid] > 0) {
+      cum += arr[bid];
+      if (cum > thresh) {
+        frac0 = 1. + (thresh - cum) / float(arr[bid]);
+        medVal = xMin + binW * (bid + frac0);
+        int bdiff = bid - prevbid - 1;
+        if (bdiff > 0) {
+          medVal -= bdiff * binW * 0.5; // account for the gap
+          bid -= bdiff / 2;
+        }
+        break;
+      }
+      prevbid = bid;
+    }
+    bid++;
+  }
+  cum = 0.;
+  double edgeL = frac0 + bid, edgeR = edgeL, dist = 0., wL = 0, wR = 0;
+  while (1) {
+    float amp = 0.;
+    int bL = edgeL, bR = edgeR; // left and right bins
+    if (edgeL > bStart) {
+      wL = edgeL - bL;
+      amp += arr[bL];
+    } else {
+      wL = 1.;
+    }
+    if (edgeR < bEnd) {
+      wR = 1. + bR - edgeR;
+      amp += arr[bR];
+    } else {
+      wR = 1.;
+    }
+    auto wdt = std::min(wL, wR);
+    if (wdt < 1e-5) {
+      wdt = std::max(wL, wR);
+    }
+    if (amp > 0) {
+      amp *= wdt;
+      cum += amp;
+      if (cum >= thresh) {
+        dist += wdt * (cum - thresh) / amp * 0.5;
+        break;
+      }
+    }
+    dist += wdt;
+    edgeL -= wdt;
+    edgeR += wdt;
+  }
+  constexpr double SQRT2PI = 2.5066283;
+  param[1] = medVal;
+  param[2] = dist * binW * 1.4826; // MAD -> sigma
+  param[0] = sum * binW / (param[2] * SQRT2PI);
+  return true;
+}
+
 /// fast fit of an array with ranges (histogram) with gaussian function
 ///
 /// Fitting procedure:
@@ -234,7 +322,6 @@ Double_t fitGaus(const size_t nBins, const T* arr, const T xMin, const T xMax, s
     if (TMath::Abs(par[2]) < kTol) {
       return -4;
     }
-
     param[1] = T(par[1] / (-2. * par[2]));
     param[2] = T(1. / TMath::Sqrt(TMath::Abs(-2. * par[2])));
     Double_t lnparam0 = par[0] + par[1] * param[1] + par[2] * param[1] * param[1];
@@ -266,31 +353,46 @@ Double_t fitGaus(const size_t nBins, const T* arr, const T xMin, const T xMax, s
 }
 
 // more optimal implementation of guassian fit via log-normal fit, appropriate for MT calls
+// Only bins with values above minVal will be accounted.
+// If applyMAD is true, the fit is done whithin the nSigmaMAD range of the preliminary estimate by MAD
 template <typename T>
 double fitGaus(size_t nBins, const T* arr, const T xMin, const T xMax, std::array<double, 3>& param,
-               ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>>* covMat = nullptr)
+               ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>>* covMat = nullptr,
+               int minVal = 2, bool applyMAD = true)
 {
-  double binW = double(xMax - xMin) / nBins, x = xMin - 0.5 * binW, s0 = 0, s1 = 0, s2 = 0, s3 = 0, s4 = 0, sy0 = 0, sy1 = 0, sy2 = 0, syy = 0;
+  double binW = double(xMax - xMin) / nBins, s0 = 0, s1 = 0, s2 = 0, s3 = 0, s4 = 0, sy0 = 0, sy1 = 0, sy2 = 0, syy = 0, sum = 0.;
   int np = 0;
-  for (size_t i = 0; i < nBins; i++) {
+  int bStart = 0, bEnd = (int)nBins;
+  const float nSigmaMAD = 2.;
+  if (applyMAD) {
+    std::array<double, 3> madPar;
+    if (!medmadGaus(nBins, arr, xMin, xMax, madPar)) {
+      return -10;
+    }
+    bStart = std::max(bStart, int((madPar[1] - nSigmaMAD * madPar[2] - xMin) / binW));
+    bEnd = std::min(bEnd, 1 + int((madPar[1] + nSigmaMAD * madPar[2] - xMin) / binW));
+  }
+  float x = xMin + (bStart - 0.5) * binW;
+  for (int i = bStart; i < bEnd; i++) {
     x += binW;
     auto v = arr[i];
     if (v < 0) {
       throw std::runtime_error("Log-normal fit is possible only with non-negative data");
     }
-    if (v > 1) {
-      double y = std::log(v), err2i = v, err2iX = err2i, err2iY = err2i * y;
-      s0 += err2iX;
-      s1 += (err2iX *= x);
-      s2 += (err2iX *= x);
-      s3 += (err2iX *= x);
-      s4 += (err2iX *= x);
-      sy0 += err2iY;
-      syy += err2iY * y;
-      sy1 += (err2iY *= x);
-      sy2 += (err2iY *= x);
-      np++;
+    if (v < minVal) {
+      continue;
     }
+    double y = std::log(v), err2i = v, err2iX = err2i, err2iY = err2i * y;
+    s0 += err2iX;
+    s1 += (err2iX *= x);
+    s2 += (err2iX *= x);
+    s3 += (err2iX *= x);
+    s4 += (err2iX *= x);
+    sy0 += err2iY;
+    syy += err2iY * y;
+    sy1 += (err2iY *= x);
+    sy2 += (err2iY *= x);
+    np++;
   }
   if (np < 1) {
     return -10;
@@ -315,6 +417,12 @@ double fitGaus(size_t nBins, const T* arr, const T xMin, const T xMax, std::arra
     return -1.;
   }
   auto v = m33i * v3;
+  if (v(2) > 0.) {                 // fit failed, use mean amd RMS
+    param[0] = std::exp(sy0 / s0); // recover center of gravity
+    param[1] = s1 / s0;            // mean x;
+    param[2] = np == 1 ? binW / std::sqrt(12) : std::sqrt(std::abs(param[1] * param[1] - s2 / s0));
+    return -3;
+  }
   double chi2 = v(0) * v(0) * s0 + v(1) * v(1) * s2 + v(2) * v(2) * s4 + syy +
                 2. * (v(0) * v(1) * s1 + v(0) * v(2) * s2 + v(1) * v(2) * s3 - v(0) * sy0 - v(1) * sy1 - v(2) * sy2);
   param[1] = -0.5 * v(1) / v(2);
