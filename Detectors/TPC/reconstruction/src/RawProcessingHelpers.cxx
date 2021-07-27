@@ -22,7 +22,7 @@
 using namespace o2::tpc;
 
 //______________________________________________________________________________
-bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_utils::FEEIDType feeId, uint32_t orbit, uint32_t referenceOrbit, ADCCallback fillADC, bool useTimeBin)
+bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_utils::FEEIDType feeId, uint32_t orbit, uint32_t referenceOrbit, uint32_t syncOffsetReference, ADCCallback fillADC, bool useTimeBin)
 {
   const auto& mapper = Mapper::instance();
 
@@ -78,8 +78,8 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
     const uint32_t numberOfWords = zsdata->getDataWords();
     assert(expectedWords == numberOfWords);
 
-    const uint32_t bunchCrossingHeader = zsdata->getBunchCrossing();
-    uint32_t syncOffset = header.syncOffsetBC % 16;
+    const uint32_t bunchCrossingHeader = zsdata->getBunchCrossing() + syncOffsetReference;
+    uint32_t syncOffset = header.syncOffsetBC;
 
     if (useTimeBin) {
       const uint32_t timebinHeader = (header.syncOffsetCRUCycles << 8) | header.syncOffsetBC;

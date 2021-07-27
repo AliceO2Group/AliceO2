@@ -24,11 +24,14 @@
 
 namespace o2::aod
 {
+
+/// FemtoDreamCollision
 namespace femtodreamcollision
 {
-DECLARE_SOA_COLUMN(MultV0M, multV0M, float);
-DECLARE_SOA_COLUMN(Sphericity, sphericity, float);
+DECLARE_SOA_COLUMN(MultV0M, multV0M, float);       //! V0M multiplicity
+DECLARE_SOA_COLUMN(Sphericity, sphericity, float); //! Sphericity of the event
 } // namespace femtodreamcollision
+
 DECLARE_SOA_TABLE(FemtoDreamCollisions, "AOD", "FEMTODREAMCOLS",
                   o2::soa::Index<>,
                   o2::aod::collision::PosZ,
@@ -36,50 +39,57 @@ DECLARE_SOA_TABLE(FemtoDreamCollisions, "AOD", "FEMTODREAMCOLS",
                   femtodreamcollision::Sphericity);
 using FemtoDreamCollision = FemtoDreamCollisions::iterator;
 
+/// FemtoDreamTrack
 namespace femtodreamparticle
 {
+/// Distinuishes the different particle types
 enum ParticleType {
-  kTrack,
-  kV0,
-  kV0Child,
-  kCascade,
-  kCascadeBachelor
+  kTrack,          //! Track
+  kV0,             //! V0
+  kV0Child,        //! Child track of a V0
+  kCascade,        //! Cascade
+  kCascadeBachelor //! Bachelor track of a cascade
 };
 
-DECLARE_SOA_INDEX_COLUMN(FemtoDreamCollision, femtoDreamCollision);
-DECLARE_SOA_COLUMN(Pt, pt, float);
-DECLARE_SOA_COLUMN(Eta, eta, float);
-DECLARE_SOA_COLUMN(Phi, phi, float);
-DECLARE_SOA_COLUMN(PartType, partType, uint8_t);
-DECLARE_SOA_COLUMN(Cut, cut, uint64_t);
-DECLARE_SOA_COLUMN(TempFitVar, tempFitVar, float);
-DECLARE_SOA_COLUMN(Indices, indices, int[2]);
+static constexpr std::string_view ParticleTypeName[5] = {"Tracks", "V0", "V0Child", "Cascade", "CascadeBachelor"}; //! Naming of the different particle types
 
-DECLARE_SOA_DYNAMIC_COLUMN(Theta, theta,
+using cutContainerType = uint32_t; //! Definition of the data type for the bit-wise container for the different selection criteria
+
+DECLARE_SOA_INDEX_COLUMN(FemtoDreamCollision, femtoDreamCollision);
+DECLARE_SOA_COLUMN(Pt, pt, float);                    //! p_T (GeV/c)
+DECLARE_SOA_COLUMN(Eta, eta, float);                  //! Eta
+DECLARE_SOA_COLUMN(Phi, phi, float);                  //! Phi
+DECLARE_SOA_COLUMN(PartType, partType, uint8_t);      //! Type of the particle, according to femtodreamparticle::ParticleType
+DECLARE_SOA_COLUMN(Cut, cut, cutContainerType);       //! Bit-wise container for the different selection criteria
+DECLARE_SOA_COLUMN(PIDCut, pidcut, cutContainerType); //! Bit-wise container for the different PID selection criteria \todo since bit-masking cannot be done yet with filters we use a second field for the PID
+DECLARE_SOA_COLUMN(TempFitVar, tempFitVar, float);    //! Observable for the template fitting (Track: DCA_xy, V0: CPA)
+DECLARE_SOA_COLUMN(Indices, indices, int[2]);         //! Field for the track indices to remove auto-correlations
+
+DECLARE_SOA_DYNAMIC_COLUMN(Theta, theta, //! Compute the theta of the track
                            [](float eta) -> float {
                              return 2.f * std::atan(std::exp(-eta));
                            });
-DECLARE_SOA_DYNAMIC_COLUMN(Px, px, //! Momentum in x in GeV/c
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px, //! Compute the momentum in x in GeV/c
                            [](float pt, float phi) -> float {
                              return pt * std::sin(phi);
                            });
-DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //! Momentum in y in GeV/c
+DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //! Compute the momentum in y in GeV/c
                            [](float pt, float phi) -> float {
                              return pt * std::cos(phi);
                            });
-DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //! Momentum in z in GeV/c
+DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //! Compute the momentum in z in GeV/c
                            [](float pt, float eta) -> float {
                              return pt * std::sinh(eta);
                            });
-DECLARE_SOA_DYNAMIC_COLUMN(P, p, //! Momentum in z in GeV/c
+DECLARE_SOA_DYNAMIC_COLUMN(P, p, //! Compute the overall momentum in GeV/c
                            [](float pt, float eta) -> float {
                              return pt * std::cosh(eta);
                            });
 // debug variables
-DECLARE_SOA_COLUMN(Sign, sign, int8_t);
-DECLARE_SOA_COLUMN(TPCNClsFound, tpcNClsFound, uint8_t);
-DECLARE_SOA_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, uint8_t);
-DECLARE_SOA_DYNAMIC_COLUMN(TPCCrossedRowsOverFindableCls, tpcCrossedRowsOverFindableCls, //!
+DECLARE_SOA_COLUMN(Sign, sign, int8_t);                                                  //! Sign of the track charge
+DECLARE_SOA_COLUMN(TPCNClsFound, tpcNClsFound, uint8_t);                                 //! Number of TPC clusters
+DECLARE_SOA_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, uint8_t);                     //! Number of TPC crossed rows
+DECLARE_SOA_DYNAMIC_COLUMN(TPCCrossedRowsOverFindableCls, tpcCrossedRowsOverFindableCls, //! Compute the number of crossed rows over findable TPC clusters
                            [](int8_t tpcNClsFindable, int8_t tpcNClsCrossedRows) -> float {
                              return (float)tpcNClsCrossedRows / (float)tpcNClsFindable;
                            });
@@ -93,6 +103,7 @@ DECLARE_SOA_TABLE(FemtoDreamParticles, "AOD", "FEMTODREAMPARTS",
                   femtodreamparticle::Phi,
                   femtodreamparticle::PartType,
                   femtodreamparticle::Cut,
+                  femtodreamparticle::PIDCut,
                   femtodreamparticle::TempFitVar,
                   femtodreamparticle::Indices,
                   femtodreamparticle::Theta<femtodreamparticle::Eta>,
@@ -134,6 +145,14 @@ DECLARE_SOA_TABLE(FemtoDreamDebugParticles, "AOD", "FEMTODEBUGPARTS",
                   pidtof_tiny::TOFNSigmaPr<pidtof_tiny::TOFNSigmaStorePr>,
                   pidtof_tiny::TOFNSigmaDe<pidtof_tiny::TOFNSigmaStoreDe>);
 using FemtoDreamDebugParticle = FemtoDreamDebugParticles::iterator;
+
+/// Hash
+namespace hash
+{
+DECLARE_SOA_COLUMN(Bin, bin, int); //! Hash for the event mixing
+} // namespace hash
+DECLARE_SOA_TABLE(Hashes, "AOD", "HASH", hash::Bin);
+using Hash = Hashes::iterator;
 
 } // namespace o2::aod
 

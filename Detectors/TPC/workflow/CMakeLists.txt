@@ -25,6 +25,7 @@ o2_add_library(TPCWorkflow
                        src/IDCToVectorSpec.cxx
                        src/CalibdEdxSpec.cxx
                        src/MIPTrackFilterSpec.cxx
+                       src/LaserTrackFilterSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
@@ -64,9 +65,19 @@ o2_add_executable(calib-pedestal
                   SOURCES src/tpc-calib-pedestal.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(laser-tracks-calibrator
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-laser-tracks-calibrator.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_executable(calib-laser-tracks
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-calib-laser-tracks.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(laser-track-filter
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-laser-track-filter.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_executable(integrate-idc

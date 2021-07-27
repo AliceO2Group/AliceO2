@@ -110,8 +110,12 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
   {
     LOGP(info, "endOfStream");
 
-    dumpCalibData();
-    sendOutput(ec.outputs());
+    if (mReceivedLanes.count() == mLanesToExpect) {
+      dumpCalibData();
+      sendOutput(ec.outputs());
+    } else {
+      LOGP(info, "Received lanes {} does not match expected lanes {}, object already sent", mReceivedLanes.count(), mLanesToExpect);
+    }
     ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
 

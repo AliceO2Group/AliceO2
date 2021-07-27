@@ -64,7 +64,6 @@ struct ValidationTask {
       hfC1PtSnp->Fill(track.c1PtSnp());
       hfC1PtTgl->Fill(track.c1PtTgl());
       hfC1Pt21Pt2->Fill(track.c1Pt21Pt2());
-      LOGF(info, "track tgl  ss   s%f", track.tgl());
     }
   }
 };

@@ -67,6 +67,65 @@ struct HelperMethods {
     }
     return irob % 2;
   }
+
+  static int getStack(int det)
+  {
+    return det % (constants::NSTACK * constants::NLAYER) / constants::NLAYER;
+  };
+  static int getLayer(int det)
+  {
+    return det % constants::NLAYER;
+  };
+
+  static int getORIinSuperModule(int detector, int readoutboard)
+  {
+    //given a detector and readoutboard
+    int ori = -1;
+    int trdstack = HelperMethods::getStack(detector);
+    int trdlayer = HelperMethods::getLayer(detector);
+    int side = HelperMethods::getROBSide(readoutboard);
+    //TODO ccdb lookup of detector/stack/layer/side for link id.
+    bool aside = false;
+    if (trdstack == 0 || trdstack == 1) {
+      aside = true; //aside
+    } else {
+      if (trdstack != 2) {
+        aside = false; //cside
+      } else {
+        if (side == 0) {
+          aside = true; //stack
+        } else {
+          aside = false; //stack2, halfchamber 1
+        }
+      }
+    }
+    if (aside) {
+      ori = trdstack * 12 + (5 - trdlayer + side * 5) + trdlayer / 6 + side; // <- that is correct for A side at least for now, probably not for very long LUT as that will come form CCDB ni anycase.
+    } else {
+      //cside
+      int newside = side;
+      if (trdstack == 2) {
+        newside = 0; // the last part of C side CRU is a special case.
+      }
+      ori = (4 - trdstack) * 12 + (5 - trdlayer + newside * 5) + trdlayer / 6 + newside;
+      ori += 30; // 30 to offset if from the a side link , 69 links in total
+    }
+    //see TDP for explanation of mapping TODO should probably come from CCDB
+    return ori;
+  };
+
+  static int getLinkIDfromHCID(int hcid)
+  {
+    //return a number in range [0:29] for the link related to this hcid with in its respective CRU
+    //lower 15 is endpoint 0 and upper 15 is endpoint 1
+    //a side has 30, c side has 30 to give 60 links for a supermodule
+    int detector = hcid / 2;
+    int supermodule = hcid / 60;
+    int chamberside = hcid % 2; // 0 for side 0, 1 for side 1;
+    int ori = -1;
+    // now offset for supermodule (+60*supermodule);
+    return HelperMethods::getORIinSuperModule(detector, chamberside) + 60 * supermodule; // it takes readoutboard but only cares if its odd or even hence side here.
+  };
 };
 
 } // namespace trd

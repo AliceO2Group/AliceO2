@@ -22,6 +22,7 @@
 #include "TSystem.h"
 #include "TString.h"
 
+#include "TPCBase/CDBInterface.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Utils.h"
@@ -74,22 +75,38 @@ constexpr float fixedSizeToFloat(uint32_t value)
   return float(value) * FloatConversion;
 }
 
-void preparePedestalFiles(const std::string_view pedestalFileName, const TString outputDir = "./", float sigmaNoise = 3, float minADC = 2, float pedestalOffset = 0, bool onlyFilled = false)
+void preparePedestalFiles(const std::string_view pedestalFile, const TString outputDir = "./", float sigmaNoise = 3, float minADC = 2, float pedestalOffset = 0, bool onlyFilled = false)
 {
   static constexpr float FloatConversion = 1.f / float(1 << 2);
 
   using namespace o2::tpc;
   const auto& mapper = Mapper::instance();
 
-  TFile f(pedestalFileName.data());
-  gROOT->cd();
-
   // ===| load noise and pedestal from file |===
   CalDet<float> output("Pedestals");
-  CalDet<float>* calPedestal = nullptr;
-  CalDet<float>* calNoise = nullptr;
-  f.GetObject("Pedestals", calPedestal);
-  f.GetObject("Noise", calNoise);
+  const CalDet<float>* calPedestal = nullptr;
+  const CalDet<float>* calNoise = nullptr;
+
+  if (pedestalFile.find("cdb") != std::string::npos) {
+    auto& cdb = CDBInterface::instance();
+    if (pedestalFile.find("cdb-test") == 0) {
+      cdb.setURL("http://ccdb-test.cern.ch:8080");
+    } else if (pedestalFile.find("cdb-prod") == 0) {
+      cdb.setURL("");
+    }
+    const auto timePos = pedestalFile.find("@");
+    if (timePos != std::string_view::npos) {
+      std::cout << "set time stamp " << std::stol(pedestalFile.substr(timePos + 1).data()) << "\n";
+      cdb.setTimeStamp(std::stol(pedestalFile.substr(timePos + 1).data()));
+    }
+    calPedestal = &cdb.getPedestals();
+    calNoise = &cdb.getNoise();
+  } else {
+    TFile f(pedestalFile.data());
+    gROOT->cd();
+    f.GetObject("Pedestals", calPedestal);
+    f.GetObject("Noise", calNoise);
+  }
 
   DataMap pedestalValues;
   DataMap thresholdlValues;

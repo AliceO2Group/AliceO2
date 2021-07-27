@@ -46,7 +46,7 @@ endforeach()
 # environment assertion fired X11: The DISPLAY environment variable is missing
 # glfw-3.2.1/src/window.c:579: glfwGetFramebufferSize: Assertion `window !=
 # ((void *)0)' failed.
-if(NOT APPLE)
+if(NOT APPLE AND BUILD_TESTING)
 set_property(TEST test_Framework_test_SimpleTracksED PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUIGL PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUISokol PROPERTY DISABLED TRUE)
