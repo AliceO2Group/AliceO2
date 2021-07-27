@@ -40,13 +40,14 @@ struct NucleiSpectraTask {
 
   void init(o2::framework::InitContext&)
   {
-    std::vector<double> ptBinning = {0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2.0, 2.2, 2.4, 2.8, 3.2, 3.6, 4., 5.};
+    std::vector<double> ptBinning = {0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6,
+                                     1.8, 2.0, 2.2, 2.4, 2.8, 3.2, 3.6, 4., 5., 6., 8., 10., 12., 14.};
     std::vector<double> centBinning = {0., 1., 5., 10., 20., 30., 40., 50., 70., 100.};
 
     AxisSpec ptAxis = {ptBinning, "#it{p}_{T} (GeV/#it{c})"};
     AxisSpec centAxis = {centBinning, "V0M (%)"};
 
-    spectra.add("histRecVtxZData", "collision z position", HistType::kTH1F, {{600, -20., +20., "z position (cm)"}});
+    spectra.add("histRecVtxZData", "collision z position", HistType::kTH1F, {{200, -20., +20., "z position (cm)"}});
     spectra.add("histKeepEventData", "skimming histogram", HistType::kTH1F, {{2, -0.5, +1.5, "true: keep event, false: reject event"}});
     spectra.add("histTpcSignalData", "Specific energy loss", HistType::kTH2F, {{600, -6., 6., "#it{p} (GeV/#it{c})"}, {1400, 0, 1400, "d#it{E} / d#it{X} (a. u.)"}});
     spectra.add("histTofSignalData", "TOF signal", HistType::kTH2F, {{600, -6., 6., "#it{p} (GeV/#it{c})"}, {500, 0.0, 1.0, "#beta (TOF)"}});
@@ -94,14 +95,16 @@ struct NucleiSpectraTask {
       nSigmaHe3 += 94.222101 * TMath::Exp(-0.905203 * track.tpcInnerParam());
       //
       spectra.fill(HIST("histTpcSignalData"), track.tpcInnerParam() * track.sign(), track.tpcSignal());
-      spectra.fill(HIST("histTpcNsigmaData"), track.tpcInnerParam(), nSigmaHe3);
+      if (track.sign() < 0) {
+        spectra.fill(HIST("histTpcNsigmaData"), track.pt() * 2.0, nSigmaHe3);
+      }
       //
       // check offline-trigger (skimming) condidition
       //
       if (nSigmaHe3 > nsigmacutLow && nSigmaHe3 < nsigmacutHigh) {
         keepEvent = kTRUE;
         if (track.sign() < 0) {
-          spectra.fill(HIST("histDcaVsPtData"), track.pt(), track.dcaXY());
+          spectra.fill(HIST("histDcaVsPtData"), track.pt() * 2.0, track.dcaXY());
         }
         //
         // store tracks for invariant mass calculation
