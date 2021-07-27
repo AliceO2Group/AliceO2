@@ -40,7 +40,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           for (size_t pi = 0; pi < condition->size(); pi++) {
             LOGP(INFO, "Phase at {} for timestamp {} is {}", pi, condition->timestamp(pi), condition->LHCphase(pi));
           }
-          header->payloadSize;
           control.readyToQuit(QuitRequest::All);
         })},
       Options{
