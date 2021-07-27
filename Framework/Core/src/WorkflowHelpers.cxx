@@ -495,6 +495,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
     auto fileSink = CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD);
     extraSpecs.push_back(fileSink);
+
+    auto it = std::find_if(outputsInputs.begin(), outputsInputs.end(), [](InputSpec& spec) -> bool {
+      return DataSpecUtils::partialMatch(spec, o2::header::DataOrigin("TFN"));
+    });
+    size_t ii = std::distance(outputsInputs.begin(), it);
+    outputTypes[ii] &= ~((char)OutputType::DANGLING);
   }
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
