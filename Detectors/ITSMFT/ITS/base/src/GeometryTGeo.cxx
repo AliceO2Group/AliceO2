@@ -54,6 +54,7 @@ o2::its::GeometryTGeo::~GeometryTGeo() = default;
 
 std::string GeometryTGeo::sVolumeName = "ITSV";               ///< Mother volume name
 std::string GeometryTGeo::sLayerName = "ITSULayer";           ///< Layer name
+std::string GeometryTGeo::sHalfBarrelName = "ITSUHalfBarrel"; ///< HalfBarrel name
 std::string GeometryTGeo::sStaveName = "ITSUStave";           ///< Stave name
 std::string GeometryTGeo::sHalfStaveName = "ITSUHalfStave";   ///< HalfStave name
 std::string GeometryTGeo::sModuleName = "ITSUModule";         ///< Module name
@@ -90,15 +91,15 @@ void GeometryTGeo::adopt(GeometryTGeo* raw)
 }
 
 //__________________________________________________________________________
-int GeometryTGeo::getChipIndex(int lay, int sta, int chipInStave) const
+int GeometryTGeo::getChipIndex(int lay, int hba, int sta, int chipInStave) const
 {
-  return getFirstChipIndex(lay) + mNumberOfChipsPerStave[lay] * sta + chipInStave;
+  return getFirstChipIndex(lay) + mNumberOfChipsPerHalfBarrel[lay] * hba + mNumberOfChipsPerStave[lay] * sta + chipInStave;
 }
 
 //__________________________________________________________________________
-int GeometryTGeo::getChipIndex(int lay, int sta, int substa, int chipInSStave) const
+int GeometryTGeo::getChipIndex(int lay, int hba, int sta, int substa, int chipInSStave) const
 {
-  int n = getFirstChipIndex(lay) + mNumberOfChipsPerStave[lay] * sta + chipInSStave;
+  int n = getFirstChipIndex(lay) + mNumberOfChipsPerHalfBarrel[lay] * hba + mNumberOfChipsPerStave[lay] * sta + chipInSStave;
   if (mNumberOfHalfStaves[lay] && substa > 0) {
     n += mNumberOfChipsPerHalfStave[lay] * substa;
   }
@@ -106,12 +107,12 @@ int GeometryTGeo::getChipIndex(int lay, int sta, int substa, int chipInSStave) c
 }
 
 //__________________________________________________________________________
-int GeometryTGeo::getChipIndex(int lay, int sta, int substa, int md, int chipInMod) const
+int GeometryTGeo::getChipIndex(int lay, int hba, int sta, int substa, int md, int chipInMod) const
 {
   if (mNumberOfHalfStaves[lay] == 0) {
-    return getChipIndex(lay, md, chipInMod);
+    return getChipIndex(lay, substa, md, chipInMod);
   } else {
-    int n = getFirstChipIndex(lay) + mNumberOfChipsPerStave[lay] * sta + chipInMod;
+    int n = getFirstChipIndex(lay) + mNumberOfChipsPerHalfBarrel[lay] * hba + mNumberOfChipsPerStave[lay] * sta + chipInMod;
     if (mNumberOfHalfStaves[lay] && substa > 0) {
       n += mNumberOfChipsPerHalfStave[lay] * substa;
     }
@@ -138,6 +139,17 @@ int GeometryTGeo::getLayer(int index) const
     lay++;
   }
   return lay;
+}
+
+//__________________________________________________________________________
+int GeometryTGeo::getHalfBarrel(int index) const
+{
+  int lay = 0;
+  while (index > mLastChipIndex[lay]) {
+    lay++;
+  }
+  index -= getFirstChipIndex(lay);
+  return index / mNumberOfChipsPerHalfBarrel[lay];
 }
 
 //__________________________________________________________________________
@@ -244,35 +256,59 @@ bool GeometryTGeo::getChipId(int index, int& lay, int& sta, int& hsta, int& mod,
 }
 
 //__________________________________________________________________________
+bool GeometryTGeo::getChipId(int index, int& lay, int& hba, int& sta, int& hsta, int& mod, int& chip) const
+{
+  lay = getLayer(index);
+  index -= getFirstChipIndex(lay);
+  hba = mNumberOfHalfBarrels > 0 ? index / mNumberOfChipsPerHalfBarrel[lay] : -1;
+  index %= mNumberOfChipsPerHalfBarrel[lay];
+  sta = index / mNumberOfChipsPerStave[lay];
+  index %= mNumberOfChipsPerStave[lay];
+  hsta = mNumberOfHalfStaves[lay] > 0 ? index / mNumberOfChipsPerHalfStave[lay] : -1;
+  index %= mNumberOfChipsPerHalfStave[lay];
+  mod = mNumberOfModules[lay] > 0 ? index / mNumberOfChipsPerModule[lay] : -1;
+  chip = index % mNumberOfChipsPerModule[lay];
+
+  return kTRUE;
+}
+
+//__________________________________________________________________________
 const char* GeometryTGeo::composeSymNameLayer(int lr)
 {
   return Form("%s/%s%d", composeSymNameITS(), getITSLayerPattern(), lr);
 }
 
 //__________________________________________________________________________
-const char* GeometryTGeo::composeSymNameStave(int lr, int stave)
+const char* GeometryTGeo::composeSymNameHalfBarrel(int lr, int hbarrel)
 {
-  return Form("%s/%s%d", composeSymNameLayer(lr), getITSStavePattern(), stave);
+  return hbarrel >= 0 ? Form("%s/%s%d", composeSymNameLayer(lr), getITSHalfBarrelPattern(), hbarrel)
+                      : composeSymNameLayer(lr);
 }
 
 //__________________________________________________________________________
-const char* GeometryTGeo::composeSymNameHalfStave(int lr, int stave, int substave)
+const char* GeometryTGeo::composeSymNameStave(int lr, int hbarrel, int stave)
 {
-  return substave >= 0 ? Form("%s/%s%d", composeSymNameStave(lr, stave), getITSHalfStavePattern(), substave)
-                       : composeSymNameStave(lr, stave);
+  return Form("%s/%s%d", composeSymNameHalfBarrel(lr, hbarrel), getITSStavePattern(), stave);
 }
 
 //__________________________________________________________________________
-const char* GeometryTGeo::composeSymNameModule(int lr, int stave, int substave, int mod)
+const char* GeometryTGeo::composeSymNameHalfStave(int lr, int hba, int stave, int substave)
 {
-  return mod >= 0 ? Form("%s/%s%d", composeSymNameHalfStave(lr, stave, substave), getITSModulePattern(), mod)
-                  : composeSymNameHalfStave(lr, stave, substave);
+  return substave >= 0 ? Form("%s/%s%d", composeSymNameStave(lr, hba, stave), getITSHalfStavePattern(), substave)
+                       : composeSymNameStave(lr, hba, stave);
 }
 
 //__________________________________________________________________________
-const char* GeometryTGeo::composeSymNameChip(int lr, int sta, int substave, int mod, int chip)
+const char* GeometryTGeo::composeSymNameModule(int lr, int hba, int stave, int substave, int mod)
 {
-  return Form("%s/%s%d", composeSymNameModule(lr, sta, substave, mod), getITSChipPattern(), chip);
+  return mod >= 0 ? Form("%s/%s%d", composeSymNameHalfStave(lr, hba, stave, substave), getITSModulePattern(), mod)
+                  : composeSymNameHalfStave(lr, hba, stave, substave);
+}
+
+//__________________________________________________________________________
+const char* GeometryTGeo::composeSymNameChip(int lr, int hba, int sta, int substave, int mod, int chip)
+{
+  return Form("%s/%s%d", composeSymNameModule(lr, hba, sta, substave, mod), getITSChipPattern(), chip);
 }
 
 //__________________________________________________________________________
@@ -285,8 +321,8 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   //
   // Therefore we need to add a shift
 
-  int lay, stav, sstav, mod, chipInMod;
-  getChipId(index, lay, stav, sstav, mod, chipInMod);
+  int lay, hba, stav, sstav, mod, chipInMod;
+  getChipId(index, lay, hba, stav, sstav, mod, chipInMod);
 
   int wrID = mLayerToWrapper[lay];
 
@@ -297,7 +333,13 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   }
 
   path +=
-    Form("%s%d_1/%s%d_%d/", GeometryTGeo::getITSLayerPattern(), lay, GeometryTGeo::getITSStavePattern(), lay, stav);
+    Form("%s%d_1/", GeometryTGeo::getITSLayerPattern(), lay);
+
+  if (mNumberOfHalfBarrels > 0) {
+    path += Form("%s%d_%d/", GeometryTGeo::getITSHalfBarrelPattern(), lay, hba);
+  }
+  path +=
+    Form("%s%d_%d/", GeometryTGeo::getITSStavePattern(), lay, stav);
 
   if (mNumberOfHalfStaves[lay] > 0) {
     path += Form("%s%d_%d/", GeometryTGeo::getITSHalfStavePattern(), lay, sstav);
@@ -357,10 +399,12 @@ void GeometryTGeo::Build(int loadTrans)
   mNumberOfChipRowsPerModule.resize(mNumberOfLayers);
   mNumberOfChipsPerHalfStave.resize(mNumberOfLayers);
   mNumberOfChipsPerStave.resize(mNumberOfLayers);
+  mNumberOfChipsPerHalfBarrel.resize(mNumberOfLayers);
   mNumberOfChipsPerLayer.resize(mNumberOfLayers);
   mLastChipIndex.resize(mNumberOfLayers);
   int numberOfChips = 0;
 
+  mNumberOfHalfBarrels = extractNumberOfHalfBarrels();
   for (int i = 0; i < mNumberOfLayers; i++) {
     mNumberOfStaves[i] = extractNumberOfStaves(i);
     mNumberOfHalfStaves[i] = extractNumberOfHalfStaves(i);
@@ -369,6 +413,7 @@ void GeometryTGeo::Build(int loadTrans)
     mNumberOfChipsPerHalfStave[i] = mNumberOfChipsPerModule[i] * Max(1, mNumberOfModules[i]);
     mNumberOfChipsPerStave[i] = mNumberOfChipsPerHalfStave[i] * Max(1, mNumberOfHalfStaves[i]);
     mNumberOfChipsPerLayer[i] = mNumberOfChipsPerStave[i] * mNumberOfStaves[i];
+    mNumberOfChipsPerHalfBarrel[i] = mNumberOfChipsPerLayer[i] / Max(1, mNumberOfHalfBarrels);
     numberOfChips += mNumberOfChipsPerLayer[i];
     mLastChipIndex[i] = numberOfChips - 1;
   }
@@ -507,28 +552,41 @@ int GeometryTGeo::extractNumberOfLayers()
 }
 
 //__________________________________________________________________________
+int GeometryTGeo::extractNumberOfHalfBarrels() const
+{
+  // We take in account that we always have 2 and only 2 half barrels
+  int numberOfHalfBarrels = 2;
+
+  return numberOfHalfBarrels;
+}
+
+//__________________________________________________________________________
 int GeometryTGeo::extractNumberOfStaves(int lay) const
 {
   int numberOfStaves = 0;
-  char laynam[30];
-  snprintf(laynam, 30, "%s%d", getITSLayerPattern(), lay);
-  TGeoVolume* volLr = gGeoManager->GetVolume(laynam);
-  if (!volLr) {
-    LOG(FATAL) << "can't find " << laynam << " volume";
+  char hbarnam[30];
+  if (mNumberOfHalfBarrels == 0) {
+    snprintf(hbarnam, 30, "%s%d", getITSLayerPattern(), lay);
+  } else {
+    snprintf(hbarnam, 30, "%s%d", getITSHalfBarrelPattern(), lay);
+  }
+  TGeoVolume* volHb = gGeoManager->GetVolume(hbarnam);
+  if (!volHb) {
+    LOG(FATAL) << "can't find " << hbarnam << " volume";
     return -1;
   }
 
-  // Loop on all layer nodes, count Stave volumes by checking names
-  int nNodes = volLr->GetNodes()->GetEntries();
+  // Loop on all half barrel nodes, count Stave volumes by checking names
+  int nNodes = volHb->GetNodes()->GetEntries();
   for (int j = 0; j < nNodes; j++) {
     // LOG(INFO) << "L" << lay << " " << j << " of " << nNodes << " "
-    //           << volLr->GetNodes()->At(j)->GetName() << " "
+    //           << volHb->GetNodes()->At(j)->GetName() << " "
     //           << getITSStavePattern() << " -> " << numberOfStaves;
-    if (strstr(volLr->GetNodes()->At(j)->GetName(), getITSStavePattern())) {
+    if (strstr(volHb->GetNodes()->At(j)->GetName(), getITSStavePattern())) {
       numberOfStaves++;
     }
   }
-  return numberOfStaves;
+  return mNumberOfHalfBarrels > 0 ? (numberOfStaves * mNumberOfHalfBarrels) : numberOfStaves;
 }
 
 //__________________________________________________________________________
