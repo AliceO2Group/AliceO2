@@ -228,3 +228,9 @@ o2_add_dpl_workflow(multiprocess-example
                   JOB_POOL analysis
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
                   COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(conditional-expressions
+                  SOURCES src/conditionalExpressions.cxx
+                  JOB_POOL analysis
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)

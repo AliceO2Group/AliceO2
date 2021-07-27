@@ -26,6 +26,36 @@ using namespace o2::framework;
 
 namespace o2::framework::expressions
 {
+
+size_t Filter::designateSubtrees(Node* node, size_t index)
+{
+  std::stack<NodeRecord> path;
+  auto local_index = index;
+  path.emplace(node, 0);
+
+  while (path.empty() == false) {
+    auto& top = path.top();
+    top.node_ptr->index = local_index;
+    path.pop();
+    if (top.node_ptr->condition != nullptr) {
+      // start new subtrees
+      index = designateSubtrees(top.node_ptr->left.get(), local_index + 1);
+      index = designateSubtrees(top.node_ptr->condition.get(), index + 1);
+      index = designateSubtrees(top.node_ptr->right.get(), index + 1);
+    } else {
+      // continue current subtree
+      if (top.node_ptr->left != nullptr) {
+        path.emplace(top.node_ptr->left.get(), 0);
+      }
+      if (top.node_ptr->right != nullptr) {
+        path.emplace(top.node_ptr->right.get(), 0);
+      }
+    }
+  }
+
+  return index;
+}
+
 namespace
 {
 struct LiteralNodeHelper {
@@ -142,8 +172,9 @@ void updatePlaceholders(Filter& filter, InitContext& context)
     auto& top = path.top();
     updateNode(top.node_ptr);
 
-    auto leftp = top.node_ptr->left.get();
-    auto rightp = top.node_ptr->right.get();
+    auto* leftp = top.node_ptr->left.get();
+    auto* rightp = top.node_ptr->right.get();
+    auto* condp = top.node_ptr->condition.get();
     path.pop();
 
     if (leftp != nullptr) {
@@ -151,6 +182,9 @@ void updatePlaceholders(Filter& filter, InitContext& context)
     }
     if (rightp != nullptr) {
       path.emplace(rightp, 0);
+    }
+    if (condp != nullptr) {
+      path.emplace(condp, 0);
     }
   }
 }
@@ -185,14 +219,15 @@ Operations createOperations(Filter const& expression)
     auto operationSpec =
       std::visit(
         overloaded{
-          [](OpNode node) { return ColumnOperationSpec{node.op}; },
+          [&](OpNode node) { return ColumnOperationSpec{node.op, top.node_ptr->index}; },
+          [&](ConditionalNode) { return ColumnOperationSpec{BasicOp::Conditional, top.node_ptr->index}; },
           [](auto&&) { return ColumnOperationSpec{}; }},
         top.node_ptr->self);
 
     operationSpec.result = DatumSpec{top.index, operationSpec.type};
     path.pop();
 
-    auto left = top.node_ptr->left.get();
+    auto* left = top.node_ptr->left.get();
     bool leftLeaf = isLeaf(left);
     size_t li = 0;
     if (leftLeaf) {
@@ -224,12 +259,32 @@ Operations createOperations(Filter const& expression)
       }
     }
 
+    decltype(left) condition = nullptr;
+    if (top.node_ptr->condition != nullptr) {
+      condition = top.node_ptr->condition.get();
+    }
+    bool condleaf = condition != nullptr ? isLeaf(condition) : true;
+    size_t ci = 0;
+    if (condition != nullptr) {
+      if (condleaf) {
+        operationSpec.condition = processLeaf(condition);
+      } else {
+        ci = index;
+        operationSpec.condition = DatumSpec{index++, atype::BOOL};
+      }
+    } else {
+      operationSpec.condition = DatumSpec{};
+    }
+
     OperationSpecs.push_back(std::move(operationSpec));
     if (!leftLeaf) {
       path.emplace(left, li);
     }
     if (!isUnary && !rightLeaf) {
       path.emplace(right, ri);
+    }
+    if (!condleaf) {
+      path.emplace(condition, ci);
     }
   }
   // at this stage the operations vector is created, but the field types are
@@ -303,6 +358,7 @@ Operations createOperations(Filter const& expression)
     if (it->type == atype::NA) {
       it->type = type;
     }
+
     it->result.type = it->type;
     resultTypes[std::get<size_t>(it->result.datum)] = it->type;
   }
@@ -312,12 +368,12 @@ Operations createOperations(Filter const& expression)
 
 gandiva::ConditionPtr makeCondition(gandiva::NodePtr node)
 {
-  return gandiva::TreeExprBuilder::MakeCondition(node);
+  return gandiva::TreeExprBuilder::MakeCondition(std::move(node));
 }
 
 gandiva::ExpressionPtr makeExpression(gandiva::NodePtr node, gandiva::FieldPtr result)
 {
-  return gandiva::TreeExprBuilder::MakeExpression(node, result);
+  return gandiva::TreeExprBuilder::MakeExpression(std::move(node), std::move(result));
 }
 
 std::shared_ptr<gandiva::Filter>
@@ -338,7 +394,7 @@ std::shared_ptr<gandiva::Filter>
 {
   std::shared_ptr<gandiva::Filter> filter;
   auto s = gandiva::Filter::Make(Schema,
-                                 condition,
+                                 std::move(condition),
                                  &filter);
   if (!s.ok()) {
     throw runtime_error_f("Failed to create filter: %s", s.ToString().c_str());
@@ -351,7 +407,7 @@ std::shared_ptr<gandiva::Projector>
 {
   std::shared_ptr<gandiva::Projector> projector;
   auto s = gandiva::Projector::Make(Schema,
-                                    {makeExpression(createExpressionTree(opSpecs, Schema), result)},
+                                    {makeExpression(createExpressionTree(opSpecs, Schema), std::move(result))},
                                     &projector);
   if (!s.ok()) {
     throw runtime_error_f("Failed to create projector: %s", s.ToString().c_str());
@@ -362,10 +418,10 @@ std::shared_ptr<gandiva::Projector>
 std::shared_ptr<gandiva::Projector>
   createProjector(gandiva::SchemaPtr const& Schema, Projector&& p, gandiva::FieldPtr result)
 {
-  return createProjector(Schema, createOperations(std::move(p)), std::move(result));
+  return createProjector(Schema, createOperations(p), std::move(result));
 }
 
-Selection createSelection(std::shared_ptr<arrow::Table> table, std::shared_ptr<gandiva::Filter> gfilter)
+Selection createSelection(std::shared_ptr<arrow::Table> const& table, std::shared_ptr<gandiva::Filter> gfilter)
 {
   Selection selection;
   auto s = gandiva::SelectionVector::MakeInt64(table->num_rows(),
@@ -396,13 +452,13 @@ Selection createSelection(std::shared_ptr<arrow::Table> table, std::shared_ptr<g
   return selection;
 }
 
-Selection createSelection(std::shared_ptr<arrow::Table> table,
-                          const Filter& expression)
+Selection createSelection(std::shared_ptr<arrow::Table> const& table,
+                          Filter const& expression)
 {
   return createSelection(table, createFilter(table->schema(), createOperations(std::move(expression))));
 }
 
-auto createProjection(std::shared_ptr<arrow::Table> table, std::shared_ptr<gandiva::Projector> gprojector)
+auto createProjection(std::shared_ptr<arrow::Table> const& table, std::shared_ptr<gandiva::Projector> const& gprojector)
 {
   arrow::TableBatchReader reader(*table);
   std::shared_ptr<arrow::RecordBatch> batch;
@@ -430,6 +486,7 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
   opNodes.resize(opSpecs.size());
   std::fill(opNodes.begin(), opNodes.end(), nullptr);
   std::unordered_map<std::string, gandiva::NodePtr> fieldNodes;
+  std::unordered_map<size_t, gandiva::NodePtr> subtrees;
 
   auto datumNode = [Schema, &opNodes, &fieldNodes](DatumSpec const& spec) {
     if (spec.datum.index() == 0) {
@@ -490,6 +547,7 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
   for (auto it = opSpecs.rbegin(); it != opSpecs.rend(); ++it) {
     auto leftNode = datumNode(it->left);
     auto rightNode = datumNode(it->right);
+    auto condNode = datumNode(it->condition);
 
     auto insertUpcastNode = [&](gandiva::NodePtr node, atype::type t) {
       if (t != it->type) {
@@ -509,12 +567,17 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
       }
     };
 
+    gandiva::NodePtr temp_node;
+
     switch (it->op) {
       case BasicOp::LogicalOr:
-        tree = gandiva::TreeExprBuilder::MakeOr({leftNode, rightNode});
+        temp_node = gandiva::TreeExprBuilder::MakeOr({leftNode, rightNode});
         break;
       case BasicOp::LogicalAnd:
-        tree = gandiva::TreeExprBuilder::MakeAnd({leftNode, rightNode});
+        temp_node = gandiva::TreeExprBuilder::MakeAnd({leftNode, rightNode});
+        break;
+      case BasicOp::Conditional:
+        temp_node = gandiva::TreeExprBuilder::MakeIf(condNode, leftNode, rightNode, concreteArrowType(it->type));
         break;
       default:
         if (it->op < BasicOp::Sqrt) {
@@ -524,14 +587,24 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
           } else if (it->op == BasicOp::Equal || it->op == BasicOp::NotEqual) {
             insertEqualizeUpcastNode(leftNode, rightNode, it->left.type, it->right.type);
           }
-          tree = gandiva::TreeExprBuilder::MakeFunction(basicOperationsMap[it->op], {leftNode, rightNode}, concreteArrowType(it->type));
+          temp_node = gandiva::TreeExprBuilder::MakeFunction(basicOperationsMap[it->op], {leftNode, rightNode}, concreteArrowType(it->type));
         } else {
           leftNode = insertUpcastNode(leftNode, it->left.type);
-          tree = gandiva::TreeExprBuilder::MakeFunction(basicOperationsMap[it->op], {leftNode}, concreteArrowType(it->type));
+          temp_node = gandiva::TreeExprBuilder::MakeFunction(basicOperationsMap[it->op], {leftNode}, concreteArrowType(it->type));
         }
         break;
     }
-    opNodes[std::get<size_t>(it->result.datum)] = tree;
+    if (it->index == 0) {
+      tree = temp_node;
+    } else {
+      auto subtree = subtrees.find(it->index);
+      if (subtree == subtrees.end()) {
+        subtrees.insert({it->index, temp_node});
+      } else {
+        subtree->second = temp_node;
+      }
+    }
+    opNodes[std::get<size_t>(it->result.datum)] = temp_node;
   }
 
   return tree;
