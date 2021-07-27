@@ -155,10 +155,10 @@ DECLARE_SOA_TABLE_FULL(StoredV0Datas, "V0Datas", "AOD", "V0DATA", //!
                        v0data::Phi<v0data::Px, v0data::Py>,
                        v0data::NegativePt<v0data::PxNeg, v0data::PyNeg>,
                        v0data::PositivePt<v0data::PxPos, v0data::PyPos>,
-                       v0data::NegativeEta<v0data::NegPx, v0data::NegPy, v0data::NegPz>,
-                       v0data::NegativePhi<v0data::NegPx, v0data::NegPy>,
-                       v0data::PositiveEta<v0data::PosPx, v0data::PosPy, v0data::PosPz>,
-                       v0data::PositivePhi<v0data::PosPx, v0data::PosPy>);
+                       v0data::NegativeEta<v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+                       v0data::NegativePhi<v0data::PxNeg, v0data::PyNeg>,
+                       v0data::PositiveEta<v0data::PxPos, v0data::PyPos, v0data::PzPos>,
+                       v0data::PositivePhi<v0data::PxPos, v0data::PyPos>);
 
 // extended table with expression columns that can be used as arguments of dynamic columns
 DECLARE_SOA_EXTENDED_TABLE_USER(V0Datas, StoredV0Datas, "V0DATAEXT", //!
