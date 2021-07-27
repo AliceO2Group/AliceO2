@@ -203,7 +203,7 @@ struct QaTrackingKine {
       if (pdgCodeSel != 0 && particle.pdgCode() != pdgCodeSel) { // Checking PDG code
         continue;
       }
-      if (MC::isPhysicalPrimary<o2::aod::McParticles>(particle)) {
+      if (MC::isPhysicalPrimary(particle)) {
         histos.fill(HIST("trackingPrm/pt"), t.pt());
         histos.fill(HIST("trackingPrm/eta"), t.eta());
         histos.fill(HIST("trackingPrm/phi"), t.phi());
@@ -223,7 +223,7 @@ struct QaTrackingKine {
       histos.fill(HIST("particle/pt"), particle.pt());
       histos.fill(HIST("particle/eta"), particle.eta());
       histos.fill(HIST("particle/phi"), particle.phi());
-      if (MC::isPhysicalPrimary<o2::aod::McParticles>(particle)) {
+      if (MC::isPhysicalPrimary(particle)) {
         histos.fill(HIST("particlePrm/pt"), particle.pt());
         histos.fill(HIST("particlePrm/eta"), particle.eta());
         histos.fill(HIST("particlePrm/phi"), particle.phi());
@@ -376,7 +376,7 @@ struct QaTrackingResolution {
       if (pdgCodeSel != 0 && particle.pdgCode() != pdgCodeSel) {
         continue;
       }
-      if (useOnlyPhysicsPrimary && !MC::isPhysicalPrimary<o2::aod::McParticles>(particle)) {
+      if (useOnlyPhysicsPrimary && !MC::isPhysicalPrimary(particle)) {
         continue;
       }
       const double deltaPt = track.pt() - particle.pt();

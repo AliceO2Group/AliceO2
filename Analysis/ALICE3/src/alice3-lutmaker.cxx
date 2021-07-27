@@ -103,7 +103,7 @@ struct Alice3LutMaker {
       if (mcParticle.pdgCode() != pdg) {
         continue;
       }
-      if (selPrim.value && !MC::isPhysicalPrimary<aod::McParticles>(mcParticle)) { // Requiring is physical primary
+      if (selPrim.value && !MC::isPhysicalPrimary(mcParticle)) { // Requiring is physical primary
         continue;
       }
 
@@ -133,7 +133,7 @@ struct Alice3LutMaker {
       if (mcParticle.pdgCode() != pdg) {
         continue;
       }
-      if (!MC::isPhysicalPrimary<aod::McParticles>(mcParticle)) { // Requiring is physical primary
+      if (!MC::isPhysicalPrimary(mcParticle)) { // Requiring is physical primary
         continue;
       }
 

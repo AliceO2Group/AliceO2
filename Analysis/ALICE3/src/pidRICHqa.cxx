@@ -167,7 +167,7 @@ struct richPidQaMc {
     if (abs(particle.pdgCode()) == PDGs[pidIndex]) {
       histos.fill(HIST(hnsigmaMC[pidIndex]), track.pt(), nsigma);
 
-      if (MC::isPhysicalPrimary<aod::McParticles>(particle)) { // Selecting primaries
+      if (MC::isPhysicalPrimary(particle)) { // Selecting primaries
         histos.fill(HIST(hnsigmaMCprm[pidIndex]), track.pt(), nsigma);
       } else {
         histos.fill(HIST(hnsigmaMCsec[pidIndex]), track.pt(), nsigma);
@@ -250,7 +250,7 @@ struct richPidQaMc {
       }
       histos.fill(HIST(hnsigma[pid_type]), track.pt(), nsigma);
       histos.fill(HIST(hdelta[pid_type]), track.p(), delta);
-      if (MC::isPhysicalPrimary<aod::McParticles>(mcParticle)) { // Selecting primaries
+      if (MC::isPhysicalPrimary(mcParticle)) { // Selecting primaries
         histos.fill(HIST(hnsigmaprm[pid_type]), track.pt(), nsigma);
         histos.fill(HIST("p/Prim"), track.p());
       } else {

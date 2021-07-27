@@ -20,7 +20,6 @@ o2_target_root_dictionary(AnalysisCore
                       include/AnalysisCore/TrackSelection.h
                       include/AnalysisCore/TrackSelectionDefaults.h
                       include/AnalysisCore/TriggerAliases.h
-                      include/AnalysisCore/MC.h
               LINKDEF src/AnalysisCoreLinkDef.h)
 
 o2_add_executable(merger
