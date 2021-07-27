@@ -211,7 +211,7 @@ struct HfTaskBplusMc {
         }
 
         float ptProngs[2], yProngs[2], etaProngs[2];
-        for (int iD = particle.daughter0(), counter = 0; iD <= particle.daughter1(); ++iD, counter++) {
+        for (int iD = particle.daughter0Id(), counter = 0; iD <= particle.daughter1Id(); ++iD, counter++) {
           auto daught = particlesMC.iteratorAt(iD);
           ptProngs[counter] = daught.pt();
           etaProngs[counter] = daught.eta();
