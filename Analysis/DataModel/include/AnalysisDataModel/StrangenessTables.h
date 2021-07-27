@@ -38,7 +38,7 @@ DECLARE_SOA_COLUMN(Y, y, float);         //! decay position Y
 DECLARE_SOA_COLUMN(Z, z, float);         //! decay position Z
 
 //Saved from finding: DCAs
-DECLARE_SOA_COLUMN(DCAV0Daughters, dcaV0daughters, float); //! DCA between V0 daughters 
+DECLARE_SOA_COLUMN(DCAV0Daughters, dcaV0daughters, float); //! DCA between V0 daughters
 DECLARE_SOA_COLUMN(DCAPosToPV, dcapostopv, float);         //! DCA positive prong to PV
 DECLARE_SOA_COLUMN(DCANegToPV, dcanegtopv, float);         //! DCA negative prong to PV
 
@@ -48,11 +48,11 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, //! V0 pT
                            [](float pxpos, float pypos, float pxneg, float pyneg) -> float { return RecoDecay::sqrtSumOfSquares(pxpos + pxneg, pypos + pyneg); });
 
 //Length quantities
-DECLARE_SOA_DYNAMIC_COLUMN(V0Radius, v0radius, //! V0 decay radius (2D, centered at zero) 
+DECLARE_SOA_DYNAMIC_COLUMN(V0Radius, v0radius, //! V0 decay radius (2D, centered at zero)
                            [](float x, float y) -> float { return RecoDecay::sqrtSumOfSquares(x, y); });
 
 //CosPA
-DECLARE_SOA_DYNAMIC_COLUMN(V0CosPA, v0cosPA, //! V0 CosPA 
+DECLARE_SOA_DYNAMIC_COLUMN(V0CosPA, v0cosPA, //! V0 CosPA
                            [](float X, float Y, float Z, float Px, float Py, float Pz, float pvX, float pvY, float pvZ) -> float { return RecoDecay::CPA(array{pvX, pvY, pvZ}, array{X, Y, Z}, array{Px, Py, Pz}); });
 DECLARE_SOA_DYNAMIC_COLUMN(DCAV0ToPV, dcav0topv, //! DCA of V0 to PV
                            [](float X, float Y, float Z, float Px, float Py, float Pz, float pvX, float pvY, float pvZ) -> float { return std::sqrt((std::pow((pvY - Y) * Pz - (pvZ - Z) * Py, 2) + std::pow((pvX - X) * Pz - (pvZ - Z) * Px, 2) + std::pow((pvX - X) * Py - (pvY - Y) * Px, 2)) / (Px * Px + Py * Py + Pz * Pz)); });
