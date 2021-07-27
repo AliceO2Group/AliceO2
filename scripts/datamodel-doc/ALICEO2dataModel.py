@@ -456,6 +456,24 @@ class datamodel:
     else:
       tmp = tmp.text.strip()
     O2href = tmp
+    tmp = self.initCard.find("O2general/delimAO2D")
+    if tmp == None:
+      tmp = ""
+    else:
+      tmp = tmp.text.strip()
+    delimAO2D = tmp
+    tmp = self.initCard.find("O2general/delimHelpers")
+    if tmp == None:
+      tmp = ""
+    else:
+      tmp = tmp.text.strip()
+    delimHelpers = tmp
+    tmp = self.initCard.find("O2general/delimJoins")
+    if tmp == None:
+      tmp = ""
+    else:
+      tmp = tmp.text.strip()
+    delimJoins = tmp
 
     # gather all tables and columns
     tabs = list()
@@ -476,9 +494,14 @@ class datamodel:
       if len(inds) == 0:
         continue
 
-      if amFirst == False and HTheaderToWrite == True:
-        self.printHTheaderHTML()
-        HTheaderToWrite = False
+      if amFirst == True:
+        print(delimAO2D)
+      else:
+        if HTheaderToWrite == True:
+          print(delimAO2D)
+          print("")
+          print(delimHelpers)
+          HTheaderToWrite = False
 
       print("")
       print("#### ", CErelation[2])
@@ -562,7 +585,10 @@ class datamodel:
       amFirst = False
 
     # now print the usings
+    print(delimHelpers)
     if len(uses) > 0:
+      print("")
+      print(delimJoins)
       print("")
       print("<a name=\"usings\"></a>")
       print("## List of defined joins and iterators")
@@ -577,15 +603,7 @@ class datamodel:
         print("    </ul>")
         print("  </div>")
       print("</div>")
-
-  def printHTheaderHTML(self):
-    print("")
-    print("<a name=""helper_tasks""></a>")
-    print("## List of tables created with helper tasks")
-    print("")
-    print("The AO2D data files contain the basic set of data which is available for data analysis and from which other quantities are deduced. There are however quantities like PID information, V0 characteristics, etc. which are commonly used in analysis. In order to prevent that tasks to compute such quantities are repeatingly developed, a set of helper tasks is provided by the O2 framework. These tasks are listed below together with the tables they provide.")
-    print("")
-    print("Click on the labels to display the table details.")
+      print(delimJoins)
 
 # -----------------------------------------------------------------------------
 # functions
