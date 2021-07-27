@@ -128,7 +128,7 @@ struct OpNode {
 /// A placeholder node for simple type configurable
 struct PlaceholderNode : LiteralNode {
   template <typename T>
-  PlaceholderNode(Configurable<T> v) : LiteralNode{v.value}, name{v.name}
+  PlaceholderNode(Configurable<T> const& v) : LiteralNode{v.value}, name{v.name}
   {
     if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
       retrieve = [](InitContext& context, std::string const& name) { return LiteralNode::var_t{context.options().get<T>(name.c_str())}; };
@@ -198,65 +198,55 @@ struct Node {
 
 /// overloaded operators to build the tree from an expression
 
-#define BINARY_OP_NODES(_operator_, _operation_)                                          \
-  template <typename T>                                                                   \
-  inline Node operator _operator_(Node left, T right)                                     \
-  {                                                                                       \
-    return Node{OpNode{BasicOp::_operation_}, std::move(left), LiteralNode{right}};       \
-  }                                                                                       \
-  template <typename T>                                                                   \
-  inline Node operator _operator_(T left, Node right)                                     \
-  {                                                                                       \
-    return Node{OpNode{BasicOp::_operation_}, LiteralNode{left}, std::move(right)};       \
-  }                                                                                       \
-  template <typename T>                                                                   \
-  inline Node operator _operator_(Node left, Configurable<T> right)                       \
-  {                                                                                       \
-    return Node{OpNode{BasicOp::_operation_}, std::move(left), PlaceholderNode{right}};   \
-  }                                                                                       \
-  template <typename T>                                                                   \
-  inline Node operator _operator_(Configurable<T> left, Node right)                       \
-  {                                                                                       \
-    return Node{OpNode{BasicOp::_operation_}, PlaceholderNode{left}, std::move(right)};   \
-  }                                                                                       \
-  inline Node operator _operator_(Node left, Node right)                                  \
-  {                                                                                       \
-    return Node{OpNode{BasicOp::_operation_}, std::move(left), std::move(right)};         \
-  }                                                                                       \
-  inline Node operator _operator_(BindingNode left, BindingNode right)                    \
-  {                                                                                       \
-    return Node{OpNode{BasicOp::_operation_}, left, right};                               \
-  }                                                                                       \
-  template <>                                                                             \
-  inline Node operator _operator_(BindingNode left, Node right)                           \
-  {                                                                                       \
-    return Node{OpNode{BasicOp::_operation_}, left, std::move(right)};                    \
-  }                                                                                       \
-  template <>                                                                             \
-  inline Node operator _operator_(Node left, BindingNode right)                           \
-  {                                                                                       \
-    return Node{OpNode{BasicOp::_operation_}, std::move(left), right};                    \
-  }                                                                                       \
-                                                                                          \
-  template <typename T>                                                                   \
-  inline Node operator _operator_(Configurable<T> left, BindingNode right)                \
-  {                                                                                       \
-    return Node{OpNode{BasicOp::_operation_}, PlaceholderNode{left}, right};              \
-  }                                                                                       \
-  template <typename T>                                                                   \
-  inline Node operator _operator_(BindingNode left, Configurable<T> right)                \
-  {                                                                                       \
-    return Node{OpNode{BasicOp::_operation_}, left, PlaceholderNode{right}};              \
-  }                                                                                       \
-  template <typename T, typename L>                                                       \
-  inline Node operator _operator_(Configurable<T> left, L right)                          \
-  {                                                                                       \
-    return Node{OpNode{BasicOp::_operation_}, PlaceholderNode{left}, LiteralNode{right}}; \
-  }                                                                                       \
-  template <typename T, typename L>                                                       \
-  inline Node operator _operator_(L left, Configurable<T> right)                          \
-  {                                                                                       \
-    return Node{OpNode{BasicOp::_operation_}, left, PlaceholderNode{right}};              \
+#define BINARY_OP_NODES(_operator_, _operation_)                                        \
+  template <typename T>                                                                 \
+  inline Node operator _operator_(Node left, T right)                                   \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, std::move(left), LiteralNode{right}};     \
+  }                                                                                     \
+  template <typename T>                                                                 \
+  inline Node operator _operator_(T left, Node right)                                   \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, LiteralNode{left}, std::move(right)};     \
+  }                                                                                     \
+  template <typename T>                                                                 \
+  inline Node operator _operator_(Node left, Configurable<T> right)                     \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, std::move(left), PlaceholderNode{right}}; \
+  }                                                                                     \
+  template <typename T>                                                                 \
+  inline Node operator _operator_(Configurable<T> left, Node right)                     \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, PlaceholderNode{left}, std::move(right)}; \
+  }                                                                                     \
+  inline Node operator _operator_(Node left, Node right)                                \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, std::move(left), std::move(right)};       \
+  }                                                                                     \
+  inline Node operator _operator_(BindingNode left, BindingNode right)                  \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, left, right};                             \
+  }                                                                                     \
+  template <>                                                                           \
+  inline Node operator _operator_(BindingNode left, Node right)                         \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, left, std::move(right)};                  \
+  }                                                                                     \
+  template <>                                                                           \
+  inline Node operator _operator_(Node left, BindingNode right)                         \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, std::move(left), right};                  \
+  }                                                                                     \
+                                                                                        \
+  template <typename T>                                                                 \
+  inline Node operator _operator_(Configurable<T> left, BindingNode right)              \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, PlaceholderNode{left}, right};            \
+  }                                                                                     \
+  template <typename T>                                                                 \
+  inline Node operator _operator_(BindingNode left, Configurable<T> right)              \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, left, PlaceholderNode{right}};            \
   }
 
 BINARY_OP_NODES(&, BitwiseAnd);

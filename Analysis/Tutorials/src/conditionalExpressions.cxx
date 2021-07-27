@@ -20,7 +20,7 @@ using namespace o2::framework::expressions;
 
 struct ConditionalExpressions {
   Configurable<bool> useFlags{"useFlags", false, "Switch to enable using track flags for selection"};
-  Filter trackFilter = nabs(aod::track::eta) < 0.9f && aod::track::pt > 0.5f && ifnode(useFlags == true, (aod::track::flags & static_cast<uint32_t>(o2::aod::track::ITSrefit)) != 0u, true);
+  Filter trackFilter = nabs(aod::track::eta) < 0.9f && aod::track::pt > 0.5f && ifnode(useFlags.node() == true, (aod::track::flags & static_cast<uint32_t>(o2::aod::track::ITSrefit)) != 0u, true);
   OutputObj<TH2F> etapt{TH2F("etapt", ";#eta;#p_{T}", 201, -2.1, 2.1, 601, 0, 60.1)};
   void process(aod::Collision const&, soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra>> const& tracks)
   {

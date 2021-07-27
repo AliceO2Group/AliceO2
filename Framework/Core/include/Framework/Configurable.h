@@ -15,6 +15,11 @@
 #include <vector>
 namespace o2::framework
 {
+namespace expressions
+{
+struct PlaceholderNode;
+}
+
 template <typename T, ConfigParamKind K>
 struct ConfigurableBase {
   ConfigurableBase(std::string const& name, T&& defaultValue, std::string const& help)
@@ -67,6 +72,10 @@ struct Configurable : IP {
   Configurable(std::string const& name, T&& defaultValue, std::string const& help)
     : IP{name, std::forward<T>(defaultValue), help}
   {
+  }
+  auto node()
+  {
+    return expressions::PlaceholderNode{*this};
   }
 };
 
