@@ -152,7 +152,7 @@ struct raacharged {
 
   Configurable<bool> isMC{"isMC", 1, "0 - data, 1 - MC"};
 
-  void process(soa::Join<aod::Collisions, aod::McCollisionLabels, aod::EvSels, aod::Cents>::iterator const& collision, soa::Join<aod::Tracks, aod::McTrackLabels, aod::TrackSelection> const& tracks, aod::McParticles& mcParticles)
+  void process(soa::Join<aod::Collisions, aod::McCollisionLabels, aod::EvSels, aod::Cents>::iterator const& collision, soa::Join<aod::Tracks, aod::McTrackLabels, aod::TrackSelection> const& tracks, aod::McParticles const& mcParticles)
   {
     if (!collision.alias()[kINT7]) {
       return;
@@ -179,7 +179,7 @@ struct raacharged {
         continue;
       }
       const auto particle = track.mcParticle();
-      if (MC::isPhysicalPrimary<aod::McParticles>(particle)) {
+      if (MC::isPhysicalPrimary(particle)) {
         mcInfoVal = 0.0;
       } else {
         mcInfoVal = 1.0;
@@ -198,7 +198,7 @@ struct raacharged {
         if (abs(mcParticle.eta()) > 0.8) {
           continue;
         }
-        if (!MC::isPhysicalPrimary<aod::McParticles>(mcParticle)) {
+        if (!MC::isPhysicalPrimary(mcParticle)) {
           continue;
         }
 

@@ -70,7 +70,7 @@ struct NucleiSpectraEfficiencyGen {
     spectra.add("histGenPt", "generated particles", HistType::kTH1F, {ptAxis});
   }
 
-  void process(aod::McCollision const& mcCollision, aod::McParticles& mcParticles)
+  void process(aod::McCollision const& mcCollision, aod::McParticles const& mcParticles)
   {
     //
     // loop over generated particles and fill generated particles
@@ -79,7 +79,7 @@ struct NucleiSpectraEfficiencyGen {
       if (mcParticleGen.pdgCode() != -1000020030) {
         continue;
       }
-      if (!MC::isPhysicalPrimary<aod::McParticles>(mcParticleGen)) {
+      if (!MC::isPhysicalPrimary(mcParticleGen)) {
         continue;
       }
       if (abs(mcParticleGen.y()) > 0.5) {

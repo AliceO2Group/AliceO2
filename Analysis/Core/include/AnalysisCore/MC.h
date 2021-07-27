@@ -13,6 +13,7 @@
 #define MC_H
 
 #include "Framework/Logger.h"
+#include "Framework/AnalysisDataModel.h"
 
 #include "TPDGCode.h"
 
@@ -61,7 +62,7 @@ bool isStable(int pdg)
 
 // Ported from AliRoot AliStack::IsPhysicalPrimary
 template <typename Particles, typename Particle>
-bool isPhysicalPrimary(Particle& particle)
+bool isPhysicalPrimary(Particle const& particle)
 {
   // Test if a particle is a physical primary according to the following definition:
   // Particles produced in the collision including products of strong and
@@ -167,6 +168,12 @@ bool isPhysicalPrimary(Particle& particle)
     LOGF(debug, "isPhysicalPrimary T5");
     return true;
   }
+}
+
+// Short hand for the standard type
+bool isPhysicalPrimary(o2::aod::McParticle const& particle)
+{
+  return isPhysicalPrimary<o2::aod::McParticles>(particle);
 }
 
 }; // namespace MC

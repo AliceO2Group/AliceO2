@@ -152,7 +152,7 @@ struct ftofPidQaMC {
       if (pdgCode != 0 && abs(mcParticle.pdgCode()) != pdgCode) {
         continue;
       }
-      if (useOnlyPhysicsPrimary == 1 && !MC::isPhysicalPrimary<aod::McParticles>(mcParticle)) { // Selecting primaries
+      if (useOnlyPhysicsPrimary == 1 && !MC::isPhysicalPrimary(mcParticle)) { // Selecting primaries
         histos.fill(HIST("p/Sec"), track.p());
         continue;
       }
