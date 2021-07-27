@@ -100,6 +100,31 @@ class BoostSerialized
  private:
   wrapped_type& mRef;
 };
+
+template <typename T, typename HintType = void>
+class CCDBSerialized
+{
+ public:
+  using non_messageable = o2::framework::MarkAsNonMessageable;
+  using wrapped_type = T;
+  using hint_type = HintType;
+
+  static_assert(std::is_pointer<T>::value == false, "wrapped type can not be a pointer");
+  static_assert(std::is_pointer<HintType>::value == false, "hint type can not be a pointer");
+
+  CCDBSerialized() = delete;
+  CCDBSerialized(wrapped_type& ref, hint_type* hint = nullptr) : mRef(ref), mHint(hint) {}
+
+  T& operator()() { return mRef; }
+  T const& operator()() const { return mRef; }
+
+  hint_type* getHint() const { return mHint; }
+
+ private:
+  wrapped_type& mRef;
+  hint_type* mHint; // optional hint e.g. class info or class name
+};
+
 } // namespace framework
 } // namespace o2
 #endif // FRAMEWORK_SERIALIZATIONMETHODS_H
