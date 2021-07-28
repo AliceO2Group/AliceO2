@@ -90,17 +90,7 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec>& req
       auto outputs = pc.outputs();
       // spawn tables
       for (auto& input : requested) {
-        auto description = std::visit(
-          overloaded{
-            [](ConcreteDataMatcher const& matcher) { return matcher.description; },
-            [](auto&&) { return header::DataDescription{""}; }},
-          input.matcher);
-
-        auto origin = std::visit(
-          overloaded{
-            [](ConcreteDataMatcher const& matcher) { return matcher.origin; },
-            [](auto&&) { return header::DataOrigin{""}; }},
-          input.matcher);
+        auto&& [origin, description] = DataSpecUtils::asConcreteDataTypeMatcher(input);
 
         auto maker = [&](auto metadata) {
           using metadata_t = decltype(metadata);
@@ -151,17 +141,7 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& reque
       auto outputs = pc.outputs();
       // spawn tables
       for (auto& input : requested) {
-        auto description = std::visit(
-          overloaded{
-            [](ConcreteDataMatcher const& matcher) { return matcher.description; },
-            [](auto&&) { return header::DataDescription{""}; }},
-          input.matcher);
-
-        auto origin = std::visit(
-          overloaded{
-            [](ConcreteDataMatcher const& matcher) { return matcher.origin; },
-            [](auto&&) { return header::DataOrigin{""}; }},
-          input.matcher);
+        auto&& [origin, description] = DataSpecUtils::asConcreteDataTypeMatcher(input);
 
         auto maker = [&](auto metadata) {
           using metadata_t = decltype(metadata);
