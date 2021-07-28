@@ -20,6 +20,8 @@
 #include "FV0Calibration/FV0ChannelTimeTimeSlotContainer.h"
 #include "FITCalibration/FITCalibrationObjectProducer.h"
 #include "FT0Calibration/FT0DummyCalibrationObject.h" // delete this
+#include "DataFormatsFT0/GlobalOffsetsCalibrationObject.h"
+#include "DataFormatsFT0/GlobalOffsetsContainer.h"
 
 namespace o2::fit
 {
@@ -43,6 +45,13 @@ template <>
 o2::ft0::FT0ChannelTimeCalibrationObject FITCalibrationObjectProducer::generateCalibrationObject<o2::ft0::FT0ChannelTimeCalibrationObject, o2::ft0::FT0ChannelTimeTimeSlotContainer>(const o2::ft0::FT0ChannelTimeTimeSlotContainer& container)
 {
   return o2::ft0::FT0TimeChannelOffsetCalibrationObjectAlgorithm::generateCalibrationObject(container);
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <>
+o2::ft0::GlobalOffsetsCalibrationObject FITCalibrationObjectProducer::generateCalibrationObject<o2::ft0::GlobalOffsetsCalibrationObject, o2::ft0::GlobalOffsetsContainer>(const o2::ft0::GlobalOffsetsContainer& container)
+{
+  return o2::ft0::GlobalOffsetsCalibrationObjectAlgorithm::generateCalibrationObject(container);
 }
 
 template <>
