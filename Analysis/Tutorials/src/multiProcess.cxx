@@ -71,7 +71,8 @@ struct MultipleProcessExample {
     }
   }
 
-  // name, description, function pointer, default value
+  /// name, description, function pointer, default value
+  /// note that it has to be declared after the function, so that the pointer is known
   PROCESS_SWITCH(prec, "prec", "Process reco level", &MultipleProcessExample::processRec, true);
 
   void processGen(soa::Filtered<aod::McCollisions>::iterator const&, aod::McParticles const& mcParticles)

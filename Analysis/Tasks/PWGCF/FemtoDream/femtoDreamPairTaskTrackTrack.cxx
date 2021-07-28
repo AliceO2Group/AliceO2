@@ -193,6 +193,8 @@ struct femtoDreamPairTaskTrackTrack {
     }
   }
 
+  PROCESS_SWITCH(processSame, "processSame", "Enable processing same event", &femtoDreamPairTaskTrackTrack::processSameEvent, true);
+
   /// This function processes the mixed event
   /// \todo the trivial loops over the collisions and tracks should be factored out since they will be common to all combinations of T-T, T-V0, V0-V0, ...
   void processMixedEvent(o2::aod::FemtoDreamCollisions& cols,
@@ -252,12 +254,14 @@ struct femtoDreamPairTaskTrackTrack {
       }
     }
   }
+
+  PROCESS_SWITCH(processMixed, "processMixed", "Enable processing mixed events", &femtoDreamPairTaskTrackTrack::processMixedEvent, true);
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<femtoDreamPairTaskTrackTrack>(cfgc, framework::Processes{&femtoDreamPairTaskTrackTrack::processSameEvent, &femtoDreamPairTaskTrackTrack::processMixedEvent}),
+    adaptAnalysisTask<femtoDreamPairTaskTrackTrack>(cfgc),
   };
 
   return workflow;
