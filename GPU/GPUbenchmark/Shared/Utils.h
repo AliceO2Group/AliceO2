@@ -139,7 +139,7 @@ class ResultWriter
  public:
   explicit ResultWriter(const std::string resultsTreeFilename = "benchmark_results.root");
   ~ResultWriter() = default;
-  void storeBenchmarkEntry(int chunk, float entry, float chunkSizeGB);
+  void storeBenchmarkEntry(int chunk, float entry, float chunkSizeGB, int nLaunches);
   void addBenchmarkEntry(const std::string bName, const std::string type, const int nChunks);
   void snapshotBenchmark();
   void saveToFile();
@@ -170,10 +170,10 @@ inline void ResultWriter::addBenchmarkEntry(const std::string bName, const std::
   mThroughputTrees.back()->Branch("throughput", &mThroughputResults);
 }
 
-inline void ResultWriter::storeBenchmarkEntry(int chunk, float entry, float chunkSizeGB)
+inline void ResultWriter::storeBenchmarkEntry(int chunk, float entry, float chunkSizeGB, int nLaunches)
 {
   mTimeResults[chunk] = entry;
-  mThroughputResults[chunk] = 1e3 * chunkSizeGB / entry;
+  mThroughputResults[chunk] = 1e3 * chunkSizeGB * nLaunches / entry;
 }
 
 inline void ResultWriter::snapshotBenchmark()
