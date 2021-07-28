@@ -387,7 +387,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
     LOG(INFO) << "Processing sector " << sector << " with thread " << ithread;
     double xp[NCOMBINSTRIP], exp[NCOMBINSTRIP], deltat[NCOMBINSTRIP], edeltat[NCOMBINSTRIP];
 
-    std::vector<float> fitValues;
+    std::array<double, 3> fitValues;
     std::vector<float> histoValues;
 
     auto& histo = c->getHisto(sector);
@@ -418,25 +418,18 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
           LOG(DEBUG) << "pair " << ich << " will not be calibrated since it has only " << entriesInPair << " entries (min = " << mMinEntries << ")";
           continue;
         }
-        // make the slice of the 2D histogram so that we have the 1D of the current channel
-        fitValues.clear();
+        fitValues.fill(-99999999);
         histoValues.clear();
 
-        //LOG(INFO) << "Filling vector for fitGaus";
-        // more efficient way
+        // make the slice of the 2D histogram so that we have the 1D of the current channel
         for (unsigned i = 0; i < nbins; ++i) {
           const auto& v = histo.at(i, chinsector);
           LOG(DEBUG) << "channel = " << ich << ", in sector = " << sector << " (where it is channel = " << chinsector << ") bin = " << i << " value = " << v;
           histoValues.push_back(v);
         }
-        //LOG(INFO) << "DONE: Filling vector for fitGaus";
 
-        //fitValues[2] = 100;
-        //fitValues[1] = 0.01;
-        //LOG(INFO) << "fitGaus";
         double fitres = entriesInPair - 1;
-        fitres = fitGaus(mLinFitters[ithread], mat, nbins, histoValues.data(), -range, range, fitValues);
-        //LOG(INFO) << "DONE: fitGaus";
+        fitres = fitGaus(nbins, histoValues.data(), -range, range, fitValues, nullptr, 2., true);
         if (fitres >= 0) {
           LOG(DEBUG) << "Pair " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
         } else {
@@ -509,9 +502,10 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
         }
       }
 
-      LOG(DEBUG) << "Strip = " << istrip << " fitted by thread = " << ithread << ", NDF" << goodpoints - localFitter.GetNumberFreeParameters();
+      LOG(DEBUG) << "Strip = " << istrip << " fitted by thread = " << ithread << ", goodpoints = " << goodpoints << ", number of free parameters = "
+                 << localFitter.GetNumberFreeParameters() << ",  NDF = " << goodpoints - localFitter.GetNumberFreeParameters();
 
-      if (goodpoints < localFitter.GetNumberFreeParameters()) {
+      if (goodpoints <= localFitter.GetNumberFreeParameters()) {
         LOG(DEBUG) << "Skipped";
         continue;
       }
@@ -556,7 +550,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
   std::map<std::string, std::string> md;
   TimeSlewing& ts = mCalibTOFapi->getSlewParamObj(); // we take the current CCDB object, since we want to simply update the offset
 
-#if defined(WITH_OPENMP) && !defined(__CLING__)
+#ifdef WITH_OPENMP
   if (mNThreads < 1) {
     mNThreads = std::min(omp_get_max_threads(), NMAXTHREADS);
   }
@@ -574,7 +568,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
     LOG(INFO) << "Processing sector " << sector << " with thread " << ithread;
     auto& histo = c->getHisto(sector);
 
-    std::vector<float> fitValues;
+    std::array<double, 3> fitValues;
     std::vector<float> histoValues;
     for (int chinsector = 0; chinsector < Geo::NPADSXSECTOR; chinsector++) {
       // make the slice of the 2D histogram so that we have the 1D of the current channel
@@ -590,7 +584,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
       }
 
       LOG(INFO) << "channel " << ich << " will be calibrated since it has " << entriesInChannel << " entries (min = " << mMinEntries << ")";
-      fitValues.clear();
+      fitValues.fill(-99999999);
       histoValues.clear();
       // more efficient way
       for (unsigned j = chinsector; j <= chinsector; ++j) {
@@ -601,7 +595,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
         }
       }
 
-      double fitres = fitGaus(mLinFitters[ithread], mat, nbins, histoValues.data(), -range, range, fitValues);
+      double fitres = fitGaus(nbins, histoValues.data(), -range, range, fitValues, nullptr, 2., true);
       LOG(INFO) << "channel = " << ich << " fitted by thread = " << ithread;
       if (fitres >= 0) {
         LOG(DEBUG) << "Channel " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
