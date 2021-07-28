@@ -80,8 +80,8 @@ using CollisionsEvSelCent = soa::Join<aod::Collisions, aod::EvSels, aod::Cents>;
 using CollisionEvSelCent = soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator;
 using CollisionsEvSel = soa::Join<aod::Collisions, aod::EvSels>;
 using CollisionEvSel = soa::Join<aod::Collisions, aod::EvSels>::iterator;
-using TrackData = soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TrackSelection>::iterator;
-using FilteredTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::ScannedTracks>>;
+using TrackData = soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection>::iterator;
+using FilteredTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended, aod::ScannedTracks>>;
 using FilteredTrackData = Partition<aod::FilteredTracks>::filtered_iterator;
 } // namespace aod
 } // namespace o2
@@ -679,7 +679,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
     }
   }
 
-  void processWithCent(aod::CollisionEvSelCent const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TrackSelection> const& ftracks)
+  void processWithCent(aod::CollisionEvSelCent const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection> const& ftracks)
   {
     using namespace filteranalysistask;
 
@@ -703,7 +703,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
     acceptedevents((uint8_t)acceptedevent, centormult);
   }
 
-  void processWithoutCent(aod::CollisionEvSel const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TrackSelection> const& ftracks)
+  void processWithoutCent(aod::CollisionEvSel const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection> const& ftracks)
   {
     using namespace filteranalysistask;
 
