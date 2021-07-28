@@ -186,8 +186,9 @@ struct TableMakerMC {
     // loop over the MC truth tracks and find those that need to be written
     uint16_t flags = 0;
     for (auto& mctrack : mcTracks) {
-      if (mctrack.mcCollision().globalIndex() != collision.mcCollision().globalIndex())  // TODO: check if needed
+      if (mctrack.mcCollision().globalIndex() != collision.mcCollision().globalIndex()) { // TODO: check if needed
         continue;
+      }
 
       flags = 0;
       int i = 0;
