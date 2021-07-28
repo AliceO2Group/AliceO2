@@ -15,14 +15,17 @@ o2_add_library(DataFormatsFT0
   SOURCES src/ChannelData.cxx
   SOURCES src/RecPoints.cxx
   SOURCES src/RawEventData.cxx
-          src/CTF.cxx
+  SOURCES src/CTF.cxx
+  SOURCES src/GlobalOffsetsCalibrationObject.cxx
+  SOURCES src/GlobalOffsetsContainer.cxx
   PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
                         O2::Headers
                         O2::SimulationDataFormat
                         O2::CCDB
                         O2::DetectorsCalibration
                         O2::FT0Base
-                        O2::DataFormatsFIT)
+                        O2::DataFormatsFIT
+                         )
 
 o2_target_root_dictionary(DataFormatsFT0
                           HEADERS include/DataFormatsFT0/Digit.h
@@ -33,4 +36,7 @@ o2_target_root_dictionary(DataFormatsFT0
                                   include/DataFormatsFT0/HitType.h
                                   include/DataFormatsFT0/RawEventData.h
                                   include/DataFormatsFT0/LookUpTable.h
-                                  include/DataFormatsFT0/CTF.h)
+                                  include/DataFormatsFT0/CTF.h
+                                  include/DataFormatsFT0/RecoCalibInfoObject.h
+                                  include/DataFormatsFT0/GlobalOffsetsCalibrationObject.h
+                                  include/DataFormatsFT0/GlobalOffsetsContainer.h)
