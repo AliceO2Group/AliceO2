@@ -94,20 +94,28 @@ class BadChannelMap
   /// Only bad or warm cells are added to the container. In case
   /// the mask type is GOOD_CELL, the entry is removed from the
   /// container if present before, otherwise the cell is ignored.
-  void addBadChannel(unsigned short channelID) { mBadCells.set(channelID); } //set bit to true
+  void addBadChannel(unsigned short channelID)
+  {
+    if (channelID < NCHANNELS)
+      mBadCells.set(channelID);
+  } //set bit to true
 
   /// \brief Mark channel as good
   /// \param channelID Absolute ID of the channel
   ///
   /// Setting channel as good.
-  void setChannelGood(unsigned short channelID) { mBadCells.set(channelID, false); }
+  void setChannelGood(unsigned short channelID)
+  {
+    if (channelID < NCHANNELS)
+      mBadCells.set(channelID, false);
+  }
 
   /// \brief Get the status of a certain cell
   /// \param channelID channel for which to obtain the channel status
   /// \return true if good channel
   ///
   /// Provide the mask status of a cell.
-  bool isChannelGood(unsigned short channelID) const { return !mBadCells.test(channelID); }
+  bool isChannelGood(unsigned short channelID) const { return channelID < NCHANNELS ? !mBadCells.test(channelID) : false; }
 
   /// \brief Convert map into 2D histogram representation
   /// \param mod Module number
