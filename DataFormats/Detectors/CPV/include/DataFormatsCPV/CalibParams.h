@@ -21,6 +21,7 @@
 
 #include <array>
 #include "TObject.h"
+#include "CPVBase/Geometry.h"
 
 class TH2;
 
@@ -45,12 +46,16 @@ class CalibParams
   /// \brief Get High Gain energy calibration coefficients
   /// \param cellID Absolute ID of cell
   /// \return high gain energy calibration coefficient of the cell
-  float getGain(unsigned short cellID) const { return mGainCalib[cellID]; }
+  float getGain(unsigned short cellID) const { return cellID < o2::cpv::Geometry::kNCHANNELS ? mGainCalib[cellID] : 0.0; }
 
   /// \brief Set High Gain energy calibration coefficient
   /// \param cellID Absolute ID of cell
   /// \param c is the calibration coefficient
-  void setGain(unsigned short cellID, float c) { mGainCalib[cellID] = c; }
+  void setGain(unsigned short cellID, float c)
+  {
+    if (cellID < o2::cpv::Geometry::kNCHANNELS)
+      mGainCalib[cellID] = c;
+  }
 
   /// \brief Set High Gain energy calibration coefficients for one module in the form of 2D histogram
   /// \param 2D(64,56) histogram with calibration coefficients
