@@ -135,7 +135,7 @@ struct ProcessConfigurable : Configurable<bool, ConfigParamKind::kProcessFlag> {
   (As...);
 };
 
-#define PCONF(_Var_, _Name_, _Help_, _Function_, _Default_) \
+#define PROCESS_SWITCH(_Var_, _Name_, _Help_, _Function_, _Default_) \
   decltype(ProcessConfigurable{_Function_, _Name_, _Default_, _Help_}) _Var_ = ProcessConfigurable{_Function_, _Name_, _Default_, _Help_};
 } // namespace o2::framework
 
