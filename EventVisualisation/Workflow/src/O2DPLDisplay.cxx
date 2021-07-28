@@ -131,8 +131,9 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   // filtering out any run which occur before reaching next time interval
   std::chrono::time_point<std::chrono::high_resolution_clock> currentTime = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = currentTime - this->mTimeStamp;
-  if (elapsed < this->mTimeInteval)
+  if (elapsed < this->mTimeInteval) {
     return; // skip this run - it is too often
+  }
   this->mTimeStamp = currentTime;
 
   o2::globaltracking::RecoContainer recoData;
