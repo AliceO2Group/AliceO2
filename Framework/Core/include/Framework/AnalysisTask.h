@@ -774,7 +774,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
   // no static way to check if the task defines any processing, we can only make sure it subscribes to at least something
   if (inputs.empty() == true) {
-    throw runtime_error_f("Task %s has no inputs.", name_str.c_str());
+    LOG(WARN) << "Task " << name_str << " has no inputs";
   }
 
   homogeneous_apply_refs([&outputs, &hash](auto& x) { return OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x, hash); }, *task.get());
