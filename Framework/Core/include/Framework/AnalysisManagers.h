@@ -415,6 +415,26 @@ struct OptionManager<ProcessConfigurable<R, T, As...>> {
   }
 };
 
+template <typename ANY>
+struct UpdateProcessSwitches {
+  static bool set(std::pair<std::string, bool>, ANY&)
+  {
+    return false;
+  }
+};
+
+template <typename R, typename T, typename... As>
+struct UpdateProcessSwitches<ProcessConfigurable<R, T, As...>> {
+  static bool set(std::pair<std::string, bool> setting, ProcessConfigurable<R, T, As...>& what)
+  {
+    if (what.name == setting.first) {
+      what.value = setting.second;
+      return true;
+    }
+    return false;
+  }
+};
+
 /// Manager template to facilitate extended tables spawning
 template <typename T>
 struct SpawnManager {

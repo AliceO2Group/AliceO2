@@ -627,11 +627,75 @@ template <class T>
 inline constexpr bool has_init_v = has_init<T>::value;
 } // namespace
 
+struct SetDefaultProcesses {
+  std::vector<std::pair<std::string, bool>> map;
+};
+
 /// Struct to differentiate task names from possible task string arguments
 struct TaskName {
   TaskName(std::string const& name) : value{name} {}
   std::string value;
 };
+
+template <typename T, typename... A>
+auto getTaskNameSetProcesses(TaskName first, SetDefaultProcesses second, A... args)
+{
+  auto task = std::make_shared<T>(std::forward<A>(args)...);
+  for (auto& setting : second.map) {
+    homogeneous_apply_refs(
+      [&](auto& x) {
+        return UpdateProcessSwitches<std::decay_t<decltype(x)>>::set(setting, x);
+      },
+      *task.get());
+  }
+  return std::make_tuple(first.value, task);
+}
+
+template <typename T, typename... A>
+auto getTaskNameSetProcesses(SetDefaultProcesses first, TaskName second, A... args)
+{
+  auto task = std::make_shared<T>(std::forward<A>(args)...);
+  for (auto& setting : first.map) {
+    homogeneous_apply_refs(
+      [&](auto& x) {
+        return UpdateProcessSwitches<std::decay_t<decltype(x)>>::set(setting, x);
+      },
+      *task.get());
+  }
+  return std::make_tuple(second.value, task);
+}
+
+template <typename T, typename... A>
+auto getTaskNameSetProcesses(SetDefaultProcesses first, A... args)
+{
+  auto task = std::make_shared<T>(std::forward<A>(args)...);
+  for (auto& setting : first.map) {
+    homogeneous_apply_refs(
+      [&](auto& x) {
+        return UpdateProcessSwitches<std::decay_t<decltype(x)>>::set(setting, x);
+      },
+      *task.get());
+  }
+  auto type_name_str = type_name<T>();
+  std::string name = type_to_task_name(type_name_str);
+  return std::make_tuple(name, task);
+}
+
+template <typename T, typename... A>
+auto getTaskNameSetProcesses(TaskName first, A... args)
+{
+  auto task = std::make_shared<T>(std::forward<A>(args)...);
+  return std::make_tuple(first.value, task);
+}
+
+template <typename T, typename... A>
+auto getTaskNameSetProcesses(A... args)
+{
+  auto task = std::make_shared<T>(std::forward<A>(args)...);
+  auto type_name_str = type_name<T>();
+  std::string name = type_to_task_name(type_name_str);
+  return std::make_tuple(name, task);
+}
 
 template <typename T, typename... A>
 auto getTaskName(TaskName first, A... args)
@@ -656,7 +720,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 {
   TH1::AddDirectory(false);
 
-  auto [name_str, task] = getTaskName<T>(args...);
+  auto [name_str, task] = getTaskNameSetProcesses<T>(args...);
 
   auto suffix = ctx.options().get<std::string>("workflow-suffix");
   if (!suffix.empty()) {
