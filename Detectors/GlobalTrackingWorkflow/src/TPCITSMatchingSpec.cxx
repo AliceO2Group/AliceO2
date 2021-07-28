@@ -94,6 +94,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   mMatching.setMCTruthOn(mUseMC);
   mMatching.setUseFT0(mUseFT0);
   mMatching.setVDriftCalib(mCalibMode);
+  mMatching.setNThreads(std::max(1, ic.options().get<int>("nthreads")));
   //
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
@@ -192,6 +193,7 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
     AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(dataRequest, useFT0, calib, skipTPCOnly, useMC)},
     Options{
       {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
+      {"nthreads", VariantType::Int, 1, {"Number of afterburner threads"}},
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
       {"debug-tree-flags", VariantType::Int, 0, {"DebugFlagTypes bit-pattern for debug tree"}}}};
 }

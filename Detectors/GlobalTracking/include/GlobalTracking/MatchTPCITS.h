@@ -306,6 +306,7 @@ class MatchTPCITS
   void setSkipTPCOnly(bool v) { mSkipTPCOnly = v; }
   void setCosmics(bool v) { mCosmics = v; }
   bool isCosmics() const { return mCosmics; }
+  void setNThreads(int n);
 
   ///< perform all initializations
   void init();
@@ -409,9 +410,9 @@ class MatchTPCITS
   int prepareTPCTracksAfterBurner();
   void addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float terr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
 
-  int preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange,
+  int preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& itsChipClRefs,
                             float trackY, float trackZ, float tolerY, float tolerZ) const;
-  void fillClustersForAfterBurner(int rofStart, int nROFs = 1);
+  void fillClustersForAfterBurner(int rofStart, int nROFs, ITSChipClustersRefs& itsChipClRefs);
   void flagUsedITSClusters(const o2::its::TrackITS& track, int rofOffset);
 
   void doMatching(int sec);
@@ -492,8 +493,8 @@ class MatchTPCITS
   // ========================= AFTERBURNER =========================
   void runAfterBurner();
   int prepareABSeeds();
-  void processABSeed(int sid);
-  int followABSeed(const o2::track::TrackParCov& seed, int seedID, int lrID, TPCABSeed& ABSeed);
+  void processABSeed(int sid, const ITSChipClustersRefs& itsChipClRefs);
+  int followABSeed(const o2::track::TrackParCov& seed, const ITSChipClustersRefs& itsChipClRefs, int seedID, int lrID, TPCABSeed& ABSeed);
   int registerABTrackLink(TPCABSeed& ABSeed, const o2::track::TrackParCov& trc, int clID, int parentID, int lr, int laddID, float chi2Cl);
   bool isBetter(float chi2A, float chi2B) { return chi2A < chi2B; } // RS FIMXE TODO
   void refitABWinners();
@@ -508,6 +509,7 @@ class MatchTPCITS
   bool mMCTruthON = false; ///< flag availability of MC truth
   float mBz = 0;           ///< nominal Bz
   int mTFCount = 0;        ///< internal TF counter for debugger
+  int mNThreads = 1;       ///< number of OMP threads
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
@@ -594,8 +596,6 @@ class MatchTPCITS
   MCLabContTr mTPCLblWork;             ///< TPC track labels
   MCLabContTr mITSLblWork;             ///< ITS track labels
   std::vector<float> mWinnerChi2Refit; ///< vector of refitChi2 for winners
-
-  ITSChipClustersRefs mITSChipClustersRefs; ///< range of clusters for each chip in ITS (for AfterBurner)
 
   // ------------------------------
   std::vector<TPCABSeed> mTPCABSeeds; ///< pool of primary TPC seeds for AB
