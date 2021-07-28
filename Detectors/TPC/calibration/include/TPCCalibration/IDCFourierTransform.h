@@ -32,26 +32,26 @@ namespace o2::tpc
 /// class for fourier transform of 1D-IDCs
 /// For example usage see testO2TPCIDCFourierTransform.cxx
 
-/// \tparam Type type which can either be IDCFTType::IDCFourierTransformBaseEPN for synchronous reconstruction or IDCFTType::IDCFourierTransformBaseAggregator for aggregator
+/// \tparam Type type which can either be  IDCFourierTransformBaseEPN for synchronous reconstruction or  IDCFourierTransformBaseAggregator for aggregator
 template <class Type> // do not use enum class as type to avoid problems with ROOT dictionary generation!
 class IDCFourierTransform : public IDCFourierTransformBase<Type>
 {
  public:
-  /// constructor for IDCFTType::AGGREGATOR type
+  /// constructor for  AGGREGATOR type
   /// \param rangeIDC number of IDCs for each interval which will be used to calculate the fourier coefficients
   /// \param timeFrames number of time frames which will be stored
   /// \param nFourierCoefficientsStore number of courier coefficients (real+imag) which will be stored (the maximum can be 'rangeIDC + 2', should be an even number when using naive FT). If less than maximum is setn the inverse fourier transform will not work.
-  template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, IDCFTType::IDCFourierTransformBaseAggregator>::value)), int>::type = 0>
-  IDCFourierTransform(const unsigned int rangeIDC = 200, const unsigned int timeFrames = 2000, const unsigned int nFourierCoefficientsStore = 200 + 2) : IDCFTType::IDCFourierTransformAggregator(rangeIDC, timeFrames), mFourierCoefficients{timeFrames, nFourierCoefficientsStore}, mVal1DIDCs(sNThreads), mCoefficients(sNThreads)
+  template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, IDCFourierTransformBaseAggregator>::value)), int>::type = 0>
+  IDCFourierTransform(const unsigned int rangeIDC = 200, const unsigned int timeFrames = 2000, const unsigned int nFourierCoefficientsStore = 200 + 2) : IDCFourierTransformAggregator(rangeIDC, timeFrames), mFourierCoefficients{timeFrames, nFourierCoefficientsStore}, mVal1DIDCs(sNThreads), mCoefficients(sNThreads)
   {
     initFFTW3Members();
   };
 
-  /// constructor for IDCFTType::EPN type
+  /// constructor for  EPN type
   /// \param rangeIDC number of IDCs for each interval which will be used to calculate the fourier coefficients
   /// \param nFourierCoefficientsStore number of courier coefficients (real+imag) which will be stored (the maximum can be 'rangeIDC + 2', should be an even number when using naive FT). If less than maximum is setn the inverse fourier transform will not work.
-  template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, IDCFTType::IDCFourierTransformBaseEPN>::value)), int>::type = 0>
-  IDCFourierTransform(const unsigned int rangeIDC = 200, const unsigned int nFourierCoefficientsStore = 200 + 2) : IDCFTType::IDCFourierTransformEPN(rangeIDC), mFourierCoefficients{1, nFourierCoefficientsStore}, mVal1DIDCs(sNThreads), mCoefficients(sNThreads)
+  template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, IDCFourierTransformBaseEPN>::value)), int>::type = 0>
+  IDCFourierTransform(const unsigned int rangeIDC = 200, const unsigned int nFourierCoefficientsStore = 200 + 2) : IDCFourierTransformEPN(rangeIDC), mFourierCoefficients{1, nFourierCoefficientsStore}, mVal1DIDCs(sNThreads), mCoefficients(sNThreads)
   {
     initFFTW3Members();
   };
@@ -65,7 +65,7 @@ class IDCFourierTransform : public IDCFourierTransformBase<Type>
 
   /// This function has to be called before the constructor is called
   /// \param nThreads set the number of threads used for calculation of the fourier coefficients
-  template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, IDCFTType::IDCFourierTransformBaseAggregator>::value)), int>::type = 0>
+  template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, IDCFourierTransformBaseAggregator>::value)), int>::type = 0>
   static void setNThreads(const int nThreads)
   {
     sNThreads = nThreads;

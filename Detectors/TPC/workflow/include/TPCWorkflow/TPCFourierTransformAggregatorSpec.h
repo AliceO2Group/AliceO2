@@ -42,7 +42,7 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
 {
  public:
   // Fourier type
-  using IDCFType = IDCFourierTransform<IDCFTType::IDCFourierTransformBaseAggregator>;
+  using IDCFType = IDCFourierTransform<IDCFourierTransformBaseAggregator>;
 
   TPCFourierTransformAggregatorSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int nFourierCoefficientsStore, const unsigned int rangeIDC, const bool debug = false, const bool senddebug = false)
     : mTimeFrames{timeframes}, mCRUs{crus}, mIDCFourierTransform{rangeIDC, timeframes, nFourierCoefficientsStore}, mOneDIDCAggregator{timeframes}, mDebug{debug}, mSendOutDebug{senddebug} {};

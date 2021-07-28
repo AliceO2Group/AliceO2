@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(IDCFourierTransformAggregator_test)
   const unsigned int tfs = 200;                    // number of aggregated TFs
   const unsigned int rangeIDC = 200;               // number of IDCs used to calculate the fourier coefficients
   const unsigned int nFourierCoeff = rangeIDC + 2; // number of fourier coefficients which will be calculated/stored needs to be the maximum value to be able to perform IFT
-  using FtType = IDCFourierTransform<IDCFTType::IDCFourierTransformBaseAggregator>;
+  using FtType = IDCFourierTransform<IDCFourierTransformBaseAggregator>;
   gRandom->SetSeed(0);
 
   for (int iType = 0; iType < 2; ++iType) {
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(IDCFourierTransformEPN_test)
   const unsigned int rangeIDC = 200;                        // number of IDCs used to calculate the fourier coefficients
   const unsigned int tfs = rangeIDC / integrationIntervals; // number of aggregated TFs (minimum number of 1D-IDCs obtained by get1DIDCs must be>rangeIDC)
   const unsigned int nFourierCoeff = rangeIDC + 2;          // number of fourier coefficients which will be calculated/stored needs to be the maximum value to be able to perform IFT
-  using FtType = o2::tpc::IDCFourierTransform<o2::tpc::IDCFTType::IDCFourierTransformBaseEPN>;
+  using FtType = o2::tpc::IDCFourierTransform<o2::tpc::IDCFourierTransformBaseEPN>;
   gRandom->SetSeed(0);
 
   for (int iter = 0; iter < nIter; ++iter) {

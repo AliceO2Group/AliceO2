@@ -29,24 +29,13 @@ template <class Type>
 class IDCFourierTransformBase;
 
 // do not use enum class as type to avoid problems with ROOT dictionary generation!
-struct IDCFTType {
-
-  /// dummy class for templating IDCFourierTransformBase class
-  class IDCFourierTransformBaseEPN
-  {
-  };
-
-  /// dummy class for templating IDCFourierTransformBase class
-  class IDCFourierTransformBaseAggregator
-  {
-  };
-
-  using IDCFourierTransformEPN = o2::tpc::IDCFourierTransformBase<o2::tpc::IDCFTType::IDCFourierTransformBaseEPN>;
-  using IDCFourierTransformAggregator = o2::tpc::IDCFourierTransformBase<o2::tpc::IDCFTType::IDCFourierTransformBaseAggregator>;
-};
+class IDCFourierTransformBaseEPN;        /// dummy class for templating IDCFourierTransformBase class
+class IDCFourierTransformBaseAggregator; /// dummy class for templating IDCFourierTransformBase class
+using IDCFourierTransformEPN = o2::tpc::IDCFourierTransformBase<o2::tpc::IDCFourierTransformBaseEPN>;
+using IDCFourierTransformAggregator = o2::tpc::IDCFourierTransformBase<o2::tpc::IDCFourierTransformBaseAggregator>;
 
 template <>
-class IDCFourierTransformBase<IDCFTType::IDCFourierTransformBaseEPN>
+class IDCFourierTransformBase<IDCFourierTransformBaseEPN>
 {
  public:
   /// constructor
@@ -86,7 +75,7 @@ class IDCFourierTransformBase<IDCFTType::IDCFourierTransformBaseEPN>
 };
 
 template <>
-class IDCFourierTransformBase<IDCFTType::IDCFourierTransformBaseAggregator>
+class IDCFourierTransformBase<IDCFourierTransformBaseAggregator>
 {
  public:
   /// \param rangeIDC number of IDCs for each interval which will be used to calculate the fourier coefficients

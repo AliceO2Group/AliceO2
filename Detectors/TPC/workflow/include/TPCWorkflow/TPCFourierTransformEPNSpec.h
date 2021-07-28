@@ -39,7 +39,7 @@ namespace o2::tpc
 class TPCFourierTransformEPNSpec : public o2::framework::Task
 {
  public:
-  using IDCFType = IDCFourierTransform<IDCFTType::IDCFourierTransformBaseEPN>;
+  using IDCFType = IDCFourierTransform<IDCFourierTransformBaseEPN>;
 
   TPCFourierTransformEPNSpec(const std::vector<uint32_t>& crus, const unsigned int nFourierCoefficientsSend, const unsigned int rangeIDC, const bool debug = false) : mCRUs{crus}, mIDCFourierTransform{rangeIDC, nFourierCoefficientsSend}, mOneDIDCAggregator{1}, mDebug{debug} {};
 
@@ -81,7 +81,7 @@ class TPCFourierTransformEPNSpec : public o2::framework::Task
 
  private:
   const std::vector<uint32_t> mCRUs{};                                                                                                                                                     ///< CRUs to process in this instance
-  IDCFourierTransform<IDCFTType::IDCFourierTransformBaseEPN> mIDCFourierTransform{};                                                                                                       ///< object for performing the fourier transform of 1D-IDCs
+  IDCFourierTransform<IDCFourierTransformBaseEPN> mIDCFourierTransform{};                                                                                                                  ///< object for performing the fourier transform of 1D-IDCs
   OneDIDCAggregator mOneDIDCAggregator{};                                                                                                                                                  ///< helper class for aggregation of 1D-IDCs
   const bool mDebug{false};                                                                                                                                                                ///< dump IDCs to tree for debugging
   int mReceivedCRUs = 0;                                                                                                                                                                   ///< counter to keep track of the number of received data from CRUs

@@ -12,21 +12,21 @@
 #include "TPCCalibration/IDCFourierTransformBase.h"
 #include <fftw3.h>
 
-void o2::tpc::IDCFTType::IDCFourierTransformAggregator::setIDCs(OneDIDC&& oneDIDCs, std::vector<unsigned int>&& integrationIntervalsPerTF)
+void o2::tpc::IDCFourierTransformAggregator::setIDCs(OneDIDC&& oneDIDCs, std::vector<unsigned int>&& integrationIntervalsPerTF)
 {
   mOneDIDC[mBufferIndex] = std::move(oneDIDCs);
   mIntegrationIntervalsPerTF[mBufferIndex] = std::move(integrationIntervalsPerTF);
   mBufferIndex = !mBufferIndex;
 }
 
-void o2::tpc::IDCFTType::IDCFourierTransformAggregator::setIDCs(const OneDIDC& oneDIDCs, const std::vector<unsigned int>& integrationIntervalsPerTF)
+void o2::tpc::IDCFourierTransformAggregator::setIDCs(const OneDIDC& oneDIDCs, const std::vector<unsigned int>& integrationIntervalsPerTF)
 {
   mOneDIDC[mBufferIndex] = oneDIDCs;
   mIntegrationIntervalsPerTF[mBufferIndex] = integrationIntervalsPerTF;
   mBufferIndex = !mBufferIndex;
 }
 
-std::vector<unsigned int> o2::tpc::IDCFTType::IDCFourierTransformAggregator::getLastIntervals(o2::tpc::Side) const
+std::vector<unsigned int> o2::tpc::IDCFourierTransformAggregator::getLastIntervals(o2::tpc::Side) const
 {
   std::vector<unsigned int> endIndex;
   endIndex.reserve(mTimeFrames);
@@ -37,7 +37,7 @@ std::vector<unsigned int> o2::tpc::IDCFTType::IDCFourierTransformAggregator::get
   return endIndex;
 }
 
-std::vector<float> o2::tpc::IDCFTType::IDCFourierTransformAggregator::getExpandedIDCOne(const o2::tpc::Side side) const
+std::vector<float> o2::tpc::IDCFourierTransformAggregator::getExpandedIDCOne(const o2::tpc::Side side) const
 {
   std::vector<float> val1DIDCs = mOneDIDC[!mBufferIndex].mOneDIDC[side]; // just copy the elements
   if (useLastBuffer()) {
@@ -46,7 +46,7 @@ std::vector<float> o2::tpc::IDCFTType::IDCFourierTransformAggregator::getExpande
   return val1DIDCs;
 }
 
-float* o2::tpc::IDCFTType::IDCFourierTransformAggregator::allocMemFFTW(const o2::tpc::Side side) const
+float* o2::tpc::IDCFourierTransformAggregator::allocMemFFTW(const o2::tpc::Side side) const
 {
   const unsigned int nElementsLastBuffer = useLastBuffer() ? mRangeIDC - mIntegrationIntervalsPerTF[!mBufferIndex][0] : 0;
   const unsigned int nElementsAll = mOneDIDC[!mBufferIndex].getNIDCs(side) + nElementsLastBuffer;

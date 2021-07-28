@@ -116,7 +116,7 @@ void o2::tpc::IDCFourierTransform<Type>::calcFourierCoefficientsFFTW3(const o2::
   const std::vector<unsigned int> offsetIndex = this->getLastIntervals(side);
   const std::vector<float>& idcOneExpanded{this->getExpandedIDCOne(side)}; // 1D-IDC values which will be used for the FFT
 
-  if constexpr (std::is_same_v<Type, IDCFTType::IDCFourierTransformBaseAggregator>) {
+  if constexpr (std::is_same_v<Type, IDCFourierTransformBaseAggregator>) {
 #pragma omp parallel for num_threads(sNThreads)
     for (unsigned int interval = 0; interval < this->getNIntervals(); ++interval) {
       fftwLoop(idcOneExpanded, offsetIndex, interval, side, omp_get_thread_num());
@@ -266,5 +266,5 @@ void o2::tpc::IDCFourierTransform<Type>::printFFTWPlan() const
   fftwf_destroy_plan(fftwPlan);
 }
 
-template class o2::tpc::IDCFourierTransform<o2::tpc::IDCFTType::IDCFourierTransformBaseEPN>;
-template class o2::tpc::IDCFourierTransform<o2::tpc::IDCFTType::IDCFourierTransformBaseAggregator>;
+template class o2::tpc::IDCFourierTransform<o2::tpc::IDCFourierTransformBaseEPN>;
+template class o2::tpc::IDCFourierTransform<o2::tpc::IDCFourierTransformBaseAggregator>;
