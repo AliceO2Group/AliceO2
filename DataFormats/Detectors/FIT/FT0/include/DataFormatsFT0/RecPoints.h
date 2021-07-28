@@ -11,6 +11,7 @@
 
 /// \file RecPoints.h
 /// \brief Definition of the FIT RecPoints class
+
 #ifndef ALICEO2_FT0_RECPOINTS_H
 #define ALICEO2_FT0_RECPOINTS_H
 
