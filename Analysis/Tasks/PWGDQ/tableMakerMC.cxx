@@ -186,7 +186,7 @@ struct TableMakerMC {
     // loop over the MC truth tracks and find those that need to be written
     uint16_t flags = 0;
     for (auto& mctrack : mcTracks) {
-      if (mctrack.mcCollision().globalIndex() != collision.mcCollision().globalIndex())
+      if (mctrack.mcCollision().globalIndex() != collision.mcCollision().globalIndex())  // TODO: check if needed
         continue;
 
       flags = 0;
@@ -209,17 +209,17 @@ struct TableMakerMC {
         fNewLabels[mctrack.index()] = fCounter++;
         fMCFlags[mctrack.index()] = flags;
         int m0Label = -1;
-        if (mctrack.mother0() > -1 && (fNewLabels.find(mctrack.mother0()) != fNewLabels.end()))
-          m0Label = fNewLabels.find(mctrack.mother0())->second;
+        if (mctrack.has_mother0() && (fNewLabels.find(mctrack.mother0Id()) != fNewLabels.end()))
+          m0Label = fNewLabels.find(mctrack.mother0Id())->second;
         int m1Label = -1;
-        if (mctrack.mother1() > -1 && (fNewLabels.find(mctrack.mother1()) != fNewLabels.end()))
-          m1Label = fNewLabels.find(mctrack.mother1())->second;
+        if (mctrack.has_mother1() && (fNewLabels.find(mctrack.mother1Id()) != fNewLabels.end()))
+          m1Label = fNewLabels.find(mctrack.mother1Id())->second;
         int d0Label = -1;
-        if (mctrack.daughter0() > -1 && (fNewLabels.find(mctrack.daughter0()) != fNewLabels.end()))
-          d0Label = fNewLabels.find(mctrack.daughter0())->second;
+        if (mctrack.has_daughter0() && (fNewLabels.find(mctrack.daughter0Id()) != fNewLabels.end()))
+          d0Label = fNewLabels.find(mctrack.daughter0Id())->second;
         int d1Label = -1;
-        if (mctrack.daughter1() > -1 && (fNewLabels.find(mctrack.daughter1()) != fNewLabels.end()))
-          d1Label = fNewLabels.find(mctrack.daughter1())->second;
+        if (mctrack.has_daughter1() && (fNewLabels.find(mctrack.daughter1Id()) != fNewLabels.end()))
+          d1Label = fNewLabels.find(mctrack.daughter1Id())->second;
         trackMC(event.lastIndex(), mctrack.pdgCode(), mctrack.statusCode(), mctrack.flags(),
                 m0Label, m1Label, d0Label, d1Label,
                 mctrack.weight(), mctrack.px(), mctrack.py(), mctrack.pz(), mctrack.e(),
@@ -264,17 +264,17 @@ struct TableMakerMC {
         fMCFlags[track.mcParticle().index()] = flags;
 
         int m0Label = -1;
-        if (mctrack.mother0() > -1 && (fNewLabels.find(mctrack.mother0()) != fNewLabels.end()))
-          m0Label = fNewLabels.find(mctrack.mother0())->second;
+        if (mctrack.has_mother0() && (fNewLabels.find(mctrack.mother0Id()) != fNewLabels.end()))
+          m0Label = fNewLabels.find(mctrack.mother0Id())->second;
         int m1Label = -1;
-        if (mctrack.mother1() > -1 && (fNewLabels.find(mctrack.mother1()) != fNewLabels.end()))
-          m1Label = fNewLabels.find(mctrack.mother1())->second;
+        if (mctrack.has_mother1() && (fNewLabels.find(mctrack.mother1Id()) != fNewLabels.end()))
+          m1Label = fNewLabels.find(mctrack.mother1Id())->second;
         int d0Label = -1;
-        if (mctrack.daughter0() > -1 && (fNewLabels.find(mctrack.daughter0()) != fNewLabels.end()))
-          d0Label = fNewLabels.find(mctrack.daughter0())->second;
+        if (mctrack.has_daughter0() && (fNewLabels.find(mctrack.daughter0Id()) != fNewLabels.end()))
+          d0Label = fNewLabels.find(mctrack.daughter0Id())->second;
         int d1Label = -1;
-        if (mctrack.daughter1() > -1 && (fNewLabels.find(mctrack.daughter1()) != fNewLabels.end()))
-          d1Label = fNewLabels.find(mctrack.daughter1())->second;
+        if (mctrack.has_daughter1() && (fNewLabels.find(mctrack.daughter1Id()) != fNewLabels.end()))
+          d1Label = fNewLabels.find(mctrack.daughter1Id())->second;
         trackMC(event.lastIndex(), mctrack.pdgCode(), mctrack.statusCode(), mctrack.flags(),
                 m0Label, m1Label, d0Label, d1Label,
                 mctrack.weight(), mctrack.px(), mctrack.py(), mctrack.pz(), mctrack.e(),

@@ -148,10 +148,11 @@ bool MCSignal::CheckProng(int i, bool checkSources, const U& mcStack, const T& t
       }
     }
     // make sure that a mother exists in the stack before moving one generation further in history
-    if (currentMCParticle.mother0() < 0 && j < fProngs[i].fNGenerations - 1) {
+    if (currentMCParticle.has_mother0() && j < fProngs[i].fNGenerations - 1) {
       return false;
     }
-    currentMCParticle = mcStack.iteratorAt(currentMCParticle.mother0());
+    //currentMCParticle = mcStack.iteratorAt(currentMCParticle.mother0());
+    currentMCParticle = currentMCParticle.template mother0_as<U>();
   }
 
   // NOTE:  Checking the sources is optional due to the fact that with the skimmed data model
@@ -196,7 +197,8 @@ bool MCSignal::CheckProng(int i, bool checkSources, const U& mcStack, const T& t
         return false;
       }
       // move one generation back in history
-      currentMCParticle = mcStack.iteratorAt(currentMCParticle.mother0());
+      //currentMCParticle = mcStack.iteratorAt(currentMCParticle.mother0());
+      currentMCParticle = currentMCParticle.template mother0_as<U>();
     }
   }
 

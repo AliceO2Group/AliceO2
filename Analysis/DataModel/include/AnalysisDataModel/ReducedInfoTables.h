@@ -140,14 +140,18 @@ namespace reducedtrackMC
 {
 DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);
 DECLARE_SOA_COLUMN(McReducedFlags, mcReducedFlags, uint16_t);
+DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Mother0, mother0, int, "ReducedMCTracks_Mother0");       //! Track index of the first mother
+DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Mother1, mother1, int, "ReducedMCTracks_Mother1");       //! Track index of the last mother
+DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Daughter0, daughter0, int, "ReducedMCTracks_Daughter0"); //! Track index of the first daugther
+DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Daughter1, daughter1, int, "ReducedMCTracks_Daughter1"); //! Track index of the last daugther
 } // namespace reducedtrackMC
 // NOTE: This table is nearly identical to the one from Framework (except that it points to the event ID, not the BC id)
 //       This table contains all MC truth tracks (both barrel and muon)
 DECLARE_SOA_TABLE(ReducedMCTracks, "AOD", "RTMC", //!  MC track information
                   o2::soa::Index<>, reducedtrack::ReducedEventId,
                   mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
-                  mcparticle::Mother0, mcparticle::Mother1,
-                  mcparticle::Daughter0, mcparticle::Daughter1, mcparticle::Weight,
+                  reducedtrackMC::Mother0Id, reducedtrackMC::Mother1Id,
+                  reducedtrackMC::Daughter0Id, reducedtrackMC::Daughter1Id, mcparticle::Weight,
                   mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
                   mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
                   reducedtrackMC::McReducedFlags,
