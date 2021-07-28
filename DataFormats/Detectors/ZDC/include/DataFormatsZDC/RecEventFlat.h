@@ -35,7 +35,7 @@ namespace zdc
 using FirstEntry = int;
 using NElem = int;
 
-struct RecEventFlat {
+struct RecEventFlat { //NOLINT: false positive in clang-tidy !!
   o2::InteractionRecord ir;
   uint32_t channels = 0;                      /// pattern of channels acquired
   uint32_t triggers = 0;                      /// pattern of channels with autotrigger bit
