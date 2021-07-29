@@ -34,7 +34,7 @@ class EveWorkflowHelper
     std::vector<const o2::track::TrackParCov*> globalTracks;
     std::vector<float> globalTrackTimes;
   };
-  static std::shared_ptr<const tmpDataContainer> compute(const o2::globaltracking::RecoContainer& recoCont,  const CalibObjectsConst* calib = nullptr, GID::mask_t maskCl = GID::MASK_ALL, GID::mask_t maskTrk = GID::MASK_ALL, GID::mask_t maskMatch = GID::MASK_ALL);
+  static std::shared_ptr<const tmpDataContainer> compute(const o2::globaltracking::RecoContainer& recoCont, const CalibObjectsConst* calib = nullptr, GID::mask_t maskCl = GID::MASK_ALL, GID::mask_t maskTrk = GID::MASK_ALL, GID::mask_t maskMatch = GID::MASK_ALL);
 };
 } // namespace o2::event_visualisation
 

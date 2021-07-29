@@ -23,8 +23,8 @@ using namespace o2::event_visualisation;
 
 std::shared_ptr<const o2::event_visualisation::EveWorkflowHelper::tmpDataContainer>
   o2::event_visualisation::EveWorkflowHelper::compute(const o2::globaltracking::RecoContainer& recoCont,
-                                                        const CalibObjectsConst* calib, GID::mask_t maskCl,
-                                                        GID::mask_t maskTrk, GID::mask_t maskMatch)
+                                                      const CalibObjectsConst* calib, GID::mask_t maskCl,
+                                                      GID::mask_t maskTrk, GID::mask_t maskMatch)
 {
   unsigned int nTracksTPCITSO2 = 0;
   unsigned int nTOFMatches = 0;
@@ -55,7 +55,6 @@ std::shared_ptr<const o2::event_visualisation::EveWorkflowHelper::tmpDataContain
     LOG(info) << "Got " << nTracksTPCITSO2 << " ITS-TPC Tracks";
   }
 
-
   if ((maskMatch[GID::TOF] || maskMatch[GID::ITSTPCTOF] || maskMatch[GID::ITSTPCTRDTOF])) {
     const auto& tofMatches = recoCont.getTOFMatches();
     if (tofMatches.size()) {
@@ -71,8 +70,7 @@ std::shared_ptr<const o2::event_visualisation::EveWorkflowHelper::tmpDataContain
     LOG(info) << "Got " << nTPCTOFMatches << " TPC-TOF Matches";
   }
 
-
-  if (maskTrk[GID::ITSTPCTRD] ) {
+  if (maskTrk[GID::ITSTPCTRD]) {
     const auto& trdTracks = recoCont.getITSTPCTRDTracks<o2::trd::TrackTRD>();
     if (trdTracks.size()) {
       nTRDTracksITSTPCTRD = trdTracks.size();
@@ -103,7 +101,7 @@ std::shared_ptr<const o2::event_visualisation::EveWorkflowHelper::tmpDataContain
     LOG(info) << "Got " << tpcTracks.size() << " TPC Tracks";
   }
 
-  auto creator = [maskTrk, &recoCont, &retVal, nTracksTPCITSO2,nTPCTOFMatches](auto& trk, GID gid, float time, float) {
+  auto creator = [maskTrk, &recoCont, &retVal, nTracksTPCITSO2, nTPCTOFMatches](auto& trk, GID gid, float time, float) {
     if (gid.getSource() == GID::ITSTPCTOF) {
       if (maskTrk[GID::TPC] && nTracksTPCITSO2) {
         const auto& match = recoCont.getTOFMatch(gid);

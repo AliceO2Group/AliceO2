@@ -38,7 +38,6 @@
 #include <unistd.h>
 #include <limits.h>
 
-
 using namespace o2::event_visualisation;
 using namespace o2::framework;
 using namespace o2::dataformats;
@@ -134,7 +133,7 @@ std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, floa
 
 void O2DPLDisplaySpec::run(ProcessingContext& pc)
 {
-  if(!this->mEveHostNameMatch) {
+  if (!this->mEveHostNameMatch) {
     return;
   }
 
@@ -152,9 +151,9 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
 
   std::cout << cnt->globalTracks.size() << std::endl;
   o2::event_visualisation::VisualisationEvent vEvent;
-  int trackCount = cnt->globalTracks.size();      // how many tracks should be stored
-  if(this->mNumberOfTracks != -1 && this->mNumberOfTracks < trackCount) {
-    trackCount = this->mNumberOfTracks;           // less than available
+  int trackCount = cnt->globalTracks.size(); // how many tracks should be stored
+  if (this->mNumberOfTracks != -1 && this->mNumberOfTracks < trackCount) {
+    trackCount = this->mNumberOfTracks; // less than available
   }
 
   for (unsigned int i = 0; i < trackCount; i++) {
@@ -203,7 +202,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::string eveHostName = cfgc.options().get<std::string>("eve-hostname");
   char hostname[HOST_NAME_MAX];
   gethostname(hostname, HOST_NAME_MAX);
-  bool eveHostNameMatch = eveHostName.empty() || eveHostName == hostname ;
+  bool eveHostNameMatch = eveHostName.empty() || eveHostName == hostname;
 
   std::chrono::milliseconds timeInterval(cfgc.options().get<int>("time-interval"));
   int numberOfFiles = cfgc.options().get<int>("number-of_files");
