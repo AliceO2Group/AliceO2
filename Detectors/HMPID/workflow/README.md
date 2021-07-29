@@ -2,7 +2,7 @@
 \page refHMPIDworkflow HMP workflow
 /doxy -->
 
-# DPL workflows for the HMPID  v.0.7
+# DPL workflows for the HMPID  v.0.8
 
 ## HMPID DPL processors
 
@@ -56,7 +56,8 @@ Data processor options: HMP-DataDecoder:
   --root-file arg (=/tmp/hmpRawDecodeResults)
                   Name of the Root file with the decoding
                   results.
-  --fast-decode   Use the fast algorithm. (error 0.8%
+  --fast-decode   Use the fast algorithm. (error 0.8%)
+  --get-results-statistics    Switch on the output of statistic result files
 ```
 
 

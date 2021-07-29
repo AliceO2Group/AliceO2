@@ -42,6 +42,7 @@ class DataDecoderTask2 : public framework::Task
   long mTotalDigits;
   long mTotalFrames;
   std::string mRootStatFile;
+  bool mProduceResults;
   bool mFastAlgorithm;
 
   ExecutionTimer mExTimer;
