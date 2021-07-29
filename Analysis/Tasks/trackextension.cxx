@@ -35,15 +35,16 @@ struct TrackExtensionTask {
 
   Produces<aod::TracksExtended> extendedTrackQuantities;
 
-  void process(aod::Collision const& collision, aod::FullTracks const& tracks)
+  void process(aod::FullTracks const& tracks, aod::Collisions const&)
   {
     for (auto& track : tracks) {
 
       std::array<float, 2> dca{1e10f, 1e10f};
       // FIXME: temporary solution to remove tracks that should not be there after conversion
-      if (track.trackType() == o2::aod::track::TrackTypeEnum::Run2Track && track.itsChi2NCl() != 0.f && track.tpcChi2NCl() != 0.f && std::abs(track.x()) < 10.f) {
+      if (track.has_collision() && track.trackType() == o2::aod::track::TrackTypeEnum::Run2Track && track.itsChi2NCl() != 0.f && track.tpcChi2NCl() != 0.f && std::abs(track.x()) < 10.f) {
         float magField = 5.0; // in kG (FIXME: get this from CCDB)
         auto trackPar = getTrackPar(track);
+        auto const& collision = track.collision();
         trackPar.propagateParamToDCA({collision.posX(), collision.posY(), collision.posZ()}, magField, &dca);
       }
       extendedTrackQuantities(dca[0], dca[1]);
