@@ -15,7 +15,7 @@
     <mainDir>
       <!-- main path to the local O2 installation -->
       <local>
-        /home/pbuehler/alice/O2
+        ../..
       </local>
     
       <!-- ALICE O2 gitHub repository -->

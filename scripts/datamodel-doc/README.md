@@ -63,11 +63,11 @@ The html representation of the 'datamodel' object is achieved with the printHTML
 
 - Install the software
 
-git clone [git@github.com:pbuehler/ALICEO2dataModel.git](git@github.com:pbuehler/ALICEO2dataModel.git)
+Clone O2 as usual. Go to scripts/datamodel-doc
 
 - Adapt inputCard.xml
 
-Set the path in tag data/O2general/mainDir/local to the actual O2 installation path, e.g. home/me/alice/O2. The other parameters should fit.
+Set the path in tag O2general - General which is currently ../.. to the actual O2 installation path, e.g. /home/me/alice/O2 unless you run from the directory scripts/datamodel-doc. The other parameters should fit.
 
 - Run it
 
@@ -102,3 +102,9 @@ So to update the md files do:
 - ./mdUpdate.py 1 htmloutput.txt $path2mds/ao2dTables.md $path2mds/ao2dTables.md
 - ./mdUpdate.py 2 htmloutput.txt $path2mds/helperTaskTables.md $path2mds/helperTaskTables.md
 - ./mdUpdate.py 3 htmloutput.txt $path2mds/joinsAndIterators.md $path2mds/joinsAndIterators.md
+
+### For a full automatic update
+
+In the same directory have O2 cloned to O2 and the documentation (your fork of https://github.com/AliceO2Group/analysis-framework) in analysis-framework and execute
+
+O2/scripts/datamodel-doc/update-datamodel.sh
