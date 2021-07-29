@@ -263,7 +263,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-  const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getByPos(0));
+  const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
 
   mCurrCTFSize = estimateCTFSize(pc);
   if (mWriteCTF) {
