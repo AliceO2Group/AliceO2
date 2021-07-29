@@ -193,7 +193,7 @@ struct femtoDreamPairTaskTrackTrack {
     }
   }
 
-  PROCESS_SWITCH(processSameEvent, "Enable processing same event", femtoDreamPairTaskTrackTrack, true);
+  PROCESS_SWITCH(femtoDreamPairTaskTrackTrack, processSameEvent, "Enable processing same event", true);
 
   /// This function processes the mixed event
   /// \todo the trivial loops over the collisions and tracks should be factored out since they will be common to all combinations of T-T, T-V0, V0-V0, ...
@@ -255,7 +255,7 @@ struct femtoDreamPairTaskTrackTrack {
     }
   }
 
-  PROCESS_SWITCH(processMixedEvent, "Enable processing mixed events", femtoDreamPairTaskTrackTrack, true);
+  PROCESS_SWITCH(femtoDreamPairTaskTrackTrack, processMixedEvent, "Enable processing mixed events", true);
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)

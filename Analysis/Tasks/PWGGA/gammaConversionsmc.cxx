@@ -230,7 +230,7 @@ struct GammaConversionsmc {
     }
   }
 
-  PROCESS_SWITCH(processMC, "Process MC", GammaConversionsmc, true);
+  PROCESS_SWITCH(GammaConversionsmc, processMC, "Process MC", true);
 
   template <typename T>
   void fillHistogramsBeforeCuts(const T& theV0)

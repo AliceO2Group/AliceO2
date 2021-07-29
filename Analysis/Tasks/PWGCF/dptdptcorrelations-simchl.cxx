@@ -702,7 +702,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
     acceptedevents((uint8_t)acceptedevent, centormult);
   }
 
-  PROCESS_SWITCH(processWithCent, "Process with centrality", DptDptCorrelationsFilterAnalysisTask, true);
+  PROCESS_SWITCH(DptDptCorrelationsFilterAnalysisTask, processWithCent, "Process with centrality", true);
 
   void processWithoutCent(aod::CollisionEvSel const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection> const& ftracks)
   {
@@ -731,7 +731,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
     acceptedevents((uint8_t)acceptedevent, centormult);
   }
 
-  PROCESS_SWITCH(processWithoutCent, "Process without centrality", DptDptCorrelationsFilterAnalysisTask, false);
+  PROCESS_SWITCH(DptDptCorrelationsFilterAnalysisTask, processWithoutCent, "Process without centrality", false);
 
   //  void processWithCentMC(aod::McCollision const& mccollision,
   //                         soa::Join<aod::McCollisionLabels, aod::CollisionsEvSelCent> const& collisions,
@@ -778,7 +778,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
     }
   }
 
-  PROCESS_SWITCH(processWithCentMC, "Process with centrality", DptDptCorrelationsFilterAnalysisTask, false);
+  PROCESS_SWITCH(DptDptCorrelationsFilterAnalysisTask, processWithCentMC, "Process with centrality", false);
 
   void processWithoutCentMC(aod::McCollision const& mccollision,
                             aod::McParticles const& mcparticles)
@@ -808,7 +808,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
     acceptedtrueevents((uint8_t)acceptedevent, centormult);
   }
 
-  PROCESS_SWITCH(processWithoutCentMC, "Process with centrality", DptDptCorrelationsFilterAnalysisTask, false);
+  PROCESS_SWITCH(DptDptCorrelationsFilterAnalysisTask, processWithoutCentMC, "Process with centrality", false);
 };
 
 // Task for building <dpt,dpt> correlations

@@ -66,7 +66,7 @@ struct MultipleProcessExample {
 
   /// name, description, function pointer, default value
   /// note that it has to be declared after the function, so that the pointer is known
-  PROCESS_SWITCH(processRec, "Process reco level", MultipleProcessExample, true);
+  PROCESS_SWITCH(MultipleProcessExample, processRec, "Process reco level", true);
 
   void processGen(soa::Filtered<aod::McCollisions>::iterator const&, aod::McParticles const& mcParticles)
   {
@@ -76,7 +76,7 @@ struct MultipleProcessExample {
     }
   }
 
-  PROCESS_SWITCH(processGen, "Process gen level", MultipleProcessExample, false);
+  PROCESS_SWITCH(MultipleProcessExample, processGen, "Process gen level", false);
 
   void processResolution(soa::Filtered<soa::Join<aod::Collisions, aod::McCollisionLabels>>::iterator const& collision, soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks, aod::McParticles const&, aod::McCollisions const&)
   {
@@ -87,7 +87,7 @@ struct MultipleProcessExample {
     }
   }
 
-  PROCESS_SWITCH(processResolution, "Process reco/gen matching", MultipleProcessExample, false);
+  PROCESS_SWITCH(MultipleProcessExample, processResolution, "Process reco/gen matching", false);
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)

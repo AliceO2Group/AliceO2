@@ -211,29 +211,7 @@ void DataProcessingDevice::Init()
   TracyAppInfo(mSpec.name.data(), mSpec.name.size());
   ZoneScopedN("DataProcessingDevice::Init");
   mRelayer = &mServiceRegistry.get<DataRelayer>();
-  // If available use the ConfigurationInterface, otherwise go for
-  // the command line options.
-  //  bool hasConfiguration = false;
-  //  bool hasOverrides = false;
-  //  if (mServiceRegistry.active<ConfigurationInterface>()) {
-  //    auto& cfg = mServiceRegistry.get<ConfigurationInterface>();
-  //    hasConfiguration = true;
-  //    try {
-  //      cfg.getRecursive(mSpec.name);
-  //      hasOverrides = true;
-  //    } catch (...) {
-  //      // No overrides...
-  //    }
-  //  }
-  //  // We only use the configuration file if we have a stanza for the given
-  //  // dataprocessor
-  //  std::vector<std::unique_ptr<ParamRetriever>> retrievers;
-  //  if (hasConfiguration && hasOverrides) {
-  //    auto& cfg = mServiceRegistry.get<ConfigurationInterface>();
-  //    retrievers.emplace_back(std::make_unique<ConfigurationOptionsRetriever>(&cfg, mSpec.name));
-  //  } else {
-  //    retrievers.emplace_back(std::make_unique<FairOptionsRetriever>(GetConfig()));
-  //  }
+
   auto configStore = DeviceConfigurationHelpers::getConfiguration(mServiceRegistry, mSpec.name.c_str(), mSpec.options);
   if (configStore == nullptr) {
     std::vector<std::unique_ptr<ParamRetriever>> retrievers;

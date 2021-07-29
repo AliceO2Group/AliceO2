@@ -122,7 +122,7 @@ struct HfTagSelCollisions {
     rowSelectedCollision(statusCollision);
   };
 
-  PROCESS_SWITCH(processEvSel, "Use event selection", HfTagSelCollisions, true);
+  PROCESS_SWITCH(HfTagSelCollisions, processEvSel, "Use event selection", true);
 
   // no event selection in case of no event-selection task attached
   void processNoEvSel(aod::Collision const&)
@@ -138,7 +138,7 @@ struct HfTagSelCollisions {
     rowSelectedCollision(statusCollision);
   };
 
-  PROCESS_SWITCH(processNoEvSel, "Do not use event selection", HfTagSelCollisions, false);
+  PROCESS_SWITCH(HfTagSelCollisions, processNoEvSel, "Do not use event selection", false);
 };
 
 /// Track selection
