@@ -27,9 +27,11 @@ using namespace o2::framework::expressions;
 struct pidHMPIDQA {
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
   Configurable<int> nBinsP{"nBinsP", 500, "Number of momentum bins"};
-  Configurable<float> minP{"minP", 0.01, "Minimum momentum plotted (GeV/c)"};
-  Configurable<float> maxP{"maxP", 10, "Maximum momentum plotted (GeV/c)"};
-  Configurable<float> maxDCA{"maxDCA", 3, "Maximum DCA xy use for the plot (cm)"};
+  Configurable<float> minP{"minP", 0.01f, "Minimum momentum plotted (GeV/c)"};
+  Configurable<float> maxP{"maxP", 10.f, "Maximum momentum plotted (GeV/c)"};
+  Configurable<float> maxDCA{"maxDCA", 3.f, "Maximum DCA xy use for the plot (cm)"};
+  Configurable<float> maxDistance{"maxDistance", 5.f, "Maximum HMPID distance between the track and the cluster (cm)"};
+  Configurable<float> minCharge{"minCharge", 120.f, "Minimum HMPID charge collected in the cluster"};
 
   template <typename T>
   void makelogaxis(T h)
@@ -79,10 +81,10 @@ struct pidHMPIDQA {
       histos.fill(HIST("distance/nonselected"), t.hmpidDistance());
       histos.fill(HIST("qmip/nonselected"), t.hmpidQMip());
       histos.fill(HIST("nphotons/nonselected"), t.hmpidNPhotons());
-      if (t.hmpidDistance() > 5.f) {
+      if (t.hmpidDistance() > maxDistance) {
         continue;
       }
-      if (t.hmpidQMip() < 120.f) {
+      if (t.hmpidQMip() < minCharge) {
         continue;
       }
       histos.fill(HIST("distance/selected"), t.hmpidDistance());
