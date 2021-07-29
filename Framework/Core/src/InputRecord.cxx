@@ -75,6 +75,19 @@ DataRef InputRecord::getByPos(int pos, int part) const
   return ref;
 }
 
+DataRef InputRecord::getFirstValid() const
+{
+  for (size_t i = 0; i < size(); i++) {
+    auto ref = mSpan.get(i);
+    if (ref.header != nullptr) {
+      ref.spec = &mInputsSchema[i].matcher;
+      return ref;
+    }
+  }
+  throw runtime_error_f("no valid inputs out of total ", size());
+  return {};
+}
+
 size_t InputRecord::getNofParts(int pos) const
 {
   if (pos < 0 || pos >= mSpan.size()) {
