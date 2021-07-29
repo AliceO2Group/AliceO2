@@ -67,6 +67,12 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
     LOG(error) << "Failed to initialize mapper";
   }
 
+  if (ctx.options().get<bool>("autosubspec")) {
+    mAutoDefineSubspec = true;
+  } else {
+    mSubspecification = ctx.options().get<int>("subspec");
+  }
+
   auto fitmethod = ctx.options().get<std::string>("fitmethod");
   if (fitmethod == "standard") {
     LOG(info) << "Using standard raw fitter";
@@ -114,7 +120,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   mOutputDecoderErrors.clear();
 
   if (isLostTimeframe(ctx)) {
-    sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
+    sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors, 0xdeadbeaf);
     return;
   }
 
@@ -130,6 +136,24 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     auto rdhblock = reinterpret_cast<const o2::header::RDHAny*>(rawData.payload);
     if (o2::raw::RDHUtils::getHeaderSize(rdhblock) == static_cast<int>(o2::framework::DataRefUtils::getPayloadSize(rawData))) {
       continue;
+    }
+
+    // handle subspecificaiton for output channels
+    if (mSubspecification == UINT32_MAX) {
+      // Subspecification not defined
+      if (mAutoDefineSubspec) {
+        // get the subspecification from the first FEE ID
+        mSubspecification = mMapper->getFLPIndex(raw::RDHUtils::getFEEID(rdhblock));
+      } else {
+        // Use defaut subspecification 0
+        mSubspecification = 0;
+      }
+      LOG(info) << "Using output subspecification " << mSubspecification;
+    } else {
+      if (mPrintSubspecification) {
+        LOG(info) << "Using output subspecification " << mSubspecification;
+        mPrintSubspecification = false;
+      }
     }
 
     o2::emcal::RawReaderMemory rawreader(framework::DataRefUtils::as<const char>(rawData));
@@ -504,7 +528,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   }
 
   LOG(info) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells from " << mOutputTriggerRecords.size() << " events ...";
-  sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
+  sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors, mSubspecification);
 }
 
 bool RawToCellConverterSpec::isLostTimeframe(framework::ProcessingContext& ctx) const
@@ -531,22 +555,21 @@ bool RawToCellConverterSpec::isLostTimeframe(framework::ProcessingContext& ctx) 
   return false;
 }
 
-void RawToCellConverterSpec::sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors) const
+void RawToCellConverterSpec::sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors, header::DataHeader::SubSpecificationType subspecification) const
 {
   constexpr auto originEMC = o2::header::gDataOriginEMC;
-  ctx.outputs().snapshot(framework::Output{originEMC, "CELLS", mSubspecification, framework::Lifetime::Timeframe}, cells);
-  ctx.outputs().snapshot(framework::Output{originEMC, "CELLSTRGR", mSubspecification, framework::Lifetime::Timeframe}, triggers);
-  ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", mSubspecification, framework::Lifetime::Timeframe}, decodingErrors);
+  ctx.outputs().snapshot(framework::Output{originEMC, "CELLS", subspecification, framework::Lifetime::Timeframe}, cells);
+  ctx.outputs().snapshot(framework::Output{originEMC, "CELLSTRGR", subspecification, framework::Lifetime::Timeframe}, triggers);
+  ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", subspecification, framework::Lifetime::Timeframe}, decodingErrors);
 }
 
-o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpec(bool askDISTSTF, int subspecification)
+o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpec(bool askDISTSTF)
 {
   constexpr auto originEMC = o2::header::gDataOriginEMC;
-  std::vector<o2::framework::OutputSpec> outputs;
-
-  outputs.emplace_back(originEMC, "CELLS", subspecification, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back(originEMC, "CELLSTRGR", subspecification, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back(originEMC, "DECODERERR", subspecification, o2::framework::Lifetime::Timeframe);
+  std::vector<o2::framework::OutputSpec> outputs{
+    {framework::ConcreteDataTypeMatcher(originEMC, "CELLS"), framework::Lifetime::Timeframe},
+    {framework::ConcreteDataTypeMatcher(originEMC, "CELLSTRGR"), framework::Lifetime::Timeframe},
+    {framework::ConcreteDataTypeMatcher(originEMC, "DECODERERR"), framework::Lifetime::Timeframe}};
 
   std::vector<o2::framework::InputSpec> inputs{{"stf", o2::framework::ConcreteDataTypeMatcher{originEMC, o2::header::gDataDescriptionRawData}, o2::framework::Lifetime::Optional}};
   if (askDISTSTF) {
@@ -556,8 +579,10 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
   return o2::framework::DataProcessorSpec{"EMCALRawToCellConverterSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(subspecification),
+                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(),
                                           o2::framework::Options{
+                                            {"autosubspec", o2::framework::VariantType::Bool, false, {"Automatically configure output spec from RDH"}},
+                                            {"subspec", o2::framework::VariantType::Int, 0, {"Subspecification (if set manually and not auto-configured"}},
                                             {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}},
                                             {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}},
                                             {"printtrailer", o2::framework::VariantType::Bool, false, {"Print RCU trailer (for debugging)"}},

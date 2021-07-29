@@ -47,7 +47,6 @@ namespace reco_workflow
 o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                         bool askDISTSTF,
                                         bool enableDigitsPrinter,
-                                        int subspecification,
                                         std::string const& cfgInput,
                                         std::string const& cfgOutput,
                                         bool disableRootInput,
@@ -172,7 +171,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       specs.emplace_back(o2::emcal::reco_workflow::getCellConverterSpec(propagateMC));
     } else if (inputType == InputType::Raw) {
       // raw data will come from upstream
-      specs.emplace_back(o2::emcal::reco_workflow::getRawToCellConverterSpec(askDISTSTF, subspecification));
+      specs.emplace_back(o2::emcal::reco_workflow::getRawToCellConverterSpec(askDISTSTF));
     }
   }
 
@@ -273,10 +272,10 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
         specs.push_back(makeWriterSpec_CellsTR_noerrors("emcal-cells-writer",
                                                         "emccells.root",
                                                         "o2sim",
-                                                        BranchDefinition<CellsDataType>{o2::framework::InputSpec{"data", "EMC", "CELLS", 0},
+                                                        BranchDefinition<CellsDataType>{o2::framework::InputSpec{"data", framework::ConcreteDataTypeMatcher("EMC", "CELLS")},
                                                                                         "EMCALCell",
                                                                                         "cell-branch-name"},
-                                                        BranchDefinition<TriggerRecordDataType>{o2::framework::InputSpec{"trigger", "EMC", "CELLSTRGR", 0},
+                                                        BranchDefinition<TriggerRecordDataType>{o2::framework::InputSpec{"trigger", framework::ConcreteDataTypeMatcher("EMC", "CELLSTRGR")},
                                                                                                 "EMCALCellTRGR",
                                                                                                 "celltrigger-branch-name"})());
 
@@ -285,13 +284,13 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
         specs.push_back(makeWriterSpec_CellsTR("emcal-cells-writer",
                                                "emccells.root",
                                                "o2sim",
-                                               BranchDefinition<CellsDataType>{o2::framework::InputSpec{"data", "EMC", "CELLS", 0},
+                                               BranchDefinition<CellsDataType>{o2::framework::InputSpec{"data", framework::ConcreteDataTypeMatcher("EMC", "CELLS")},
                                                                                "EMCALCell",
                                                                                "cell-branch-name"},
-                                               BranchDefinition<TriggerRecordDataType>{o2::framework::InputSpec{"trigger", "EMC", "CELLSTRGR", 0},
+                                               BranchDefinition<TriggerRecordDataType>{o2::framework::InputSpec{"trigger", framework::ConcreteDataTypeMatcher("EMC", "CELLSTRGR")},
                                                                                        "EMCALCellTRGR",
                                                                                        "celltrigger-branch-name"},
-                                               BranchDefinition<DecoderErrorsDataType>{o2::framework::InputSpec{"errors", "EMC", "DECODERERR", 0},
+                                               BranchDefinition<DecoderErrorsDataType>{o2::framework::InputSpec{"errors", framework::ConcreteDataTypeMatcher("EMC", "CELLSTRGR")},
                                                                                        "EMCALDECODERERR",
                                                                                        "decodererror-branch-name"})());
       }

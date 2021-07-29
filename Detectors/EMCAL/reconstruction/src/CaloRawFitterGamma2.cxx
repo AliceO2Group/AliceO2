@@ -98,7 +98,7 @@ float CaloRawFitterGamma2::doFit_1peak(int firstTimeBin, int nSamples, float& am
 
   float chi2(0.);
 
-  // fit using gamma-2 function 	(ORDER =2 assumed)
+  // fit using gamma-2 function (ORDER =2 assumed)
   if (nSamples < 3) {
     throw RawFitterError_t::FIT_ERROR;
   }

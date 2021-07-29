@@ -70,7 +70,6 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   auto wf = o2::emcal::reco_workflow::getWorkflow(!cfgc.options().get<bool>("disable-mc"),
                                                   !cfgc.options().get<bool>("ignore-dist-stf"),
                                                   cfgc.options().get<bool>("enable-digits-printer"),
-                                                  cfgc.options().get<int>("subspecification"),
                                                   cfgc.options().get<std::string>("input-type"),
                                                   cfgc.options().get<std::string>("output-type"),
                                                   cfgc.options().get<bool>("disable-root-input"),

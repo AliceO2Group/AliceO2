@@ -38,9 +38,8 @@ namespace reco_workflow
 class RawToCellConverterSpec : public framework::Task
 {
  public:
-  /// \brief Constructor
-  /// \param subspecification Output subspecification for parallel running on multiple nodes
-  RawToCellConverterSpec(int subspecification) : framework::Task(), mSubspecification(subspecification){};
+  /// \brief Default constructor
+  RawToCellConverterSpec() = default;
 
   /// \brief Destructor
   ~RawToCellConverterSpec() override;
@@ -64,7 +63,16 @@ class RawToCellConverterSpec : public framework::Task
   /// Error messages will be suppressed once the maximum is reached
   void setMaxErrorMessages(int maxMessages) { mMaxErrorMessages = maxMessages; }
 
-  void setNoiseThreshold(int thresold) { mNoiseThreshold = thresold; }
+  /// \brief Set the noise threshold
+  /// \param threshold Noise threshold
+  ///
+  /// ADC values below the noise threshold are suppressed in the raw fit
+  void setNoiseThreshold(int threshold) { mNoiseThreshold = threshold; }
+
+  /// \brief Get the noise threshold
+  /// \return Noise threshold
+  ///
+  /// ADC values below the noise threshold are suppressed in the raw fit
   int getNoiseThreshold() const { return mNoiseThreshold; }
 
   /// \brief Set ID of the subspecification
@@ -102,39 +110,49 @@ class RawToCellConverterSpec : public framework::Task
     int mHWAddressLG;          ///< HW address of LG (for monitoring)
     int mHWAddressHG;          ///< HW address of HG (for monitoring)
   };
+
+  /// \brief Determine whether the timeframe is empty
+  /// \param ctx Processing context with all inputs
+  ///
+  /// Empty timeframes are detected via the deadbeaf
+  /// subspecification of the input channel.
   bool isLostTimeframe(framework::ProcessingContext& ctx) const;
 
   /// \brief Send data to output channels
   /// \param cells Container with output cells for timeframe
   /// \param triggers Container with trigger records for timeframe
   /// \param decodingErrors Container with decoding errors for timeframe
+  /// \param subspecification Output subspecification
   ///
   /// Send data to all output channels for the given subspecification. The subspecification
   /// is determined on the fly in the run method and therefore used as parameter. Consumers
   /// must use wildcard subspecification via ConcreteDataTypeMatcher.
-  void sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors) const;
+  void sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors, header::DataHeader::SubSpecificationType subspecification) const;
 
-  header::DataHeader::SubSpecificationType mSubspecification = 0;    ///< Subspecification for output channels
-  int mNoiseThreshold = 0;                                           ///< Noise threshold in raw fit
-  int mNumErrorMessages = 0;                                         ///< Current number of error messages
-  int mErrorMessagesSuppressed = 0;                                  ///< Counter of suppressed error messages
-  int mMaxErrorMessages = 100;                                       ///< Max. number of error messages
-  bool mMergeLGHG = true;                                            ///< Merge low and high gain cells
-  bool mPrintTrailer = false;                                        ///< Print RCU trailer
-  bool mDisablePedestalEvaluation = false;                           ///< Disable pedestal evaluation independent of settings in the RCU trailer
-  std::chrono::time_point<std::chrono::system_clock> mReferenceTime; ///< Reference time for muting messages
-  Geometry* mGeometry = nullptr;                                     ///!<! Geometry pointer
-  std::unique_ptr<MappingHandler> mMapper = nullptr;                 ///!<! Mapper
-  std::unique_ptr<CaloRawFitter> mRawFitter;                         ///!<! Raw fitter
-  std::vector<Cell> mOutputCells;                                    ///< Container with output cells
-  std::vector<TriggerRecord> mOutputTriggerRecords;                  ///< Container with output cells
-  std::vector<ErrorTypeFEE> mOutputDecoderErrors;                    ///< Container with decoder errors
+  header::DataHeader::SubSpecificationType mSubspecification = UINT32_MAX; ///< Subspecification for output channels
+  int mNoiseThreshold = 0;                                                 ///< Noise threshold in raw fit
+  int mNumErrorMessages = 0;                                               ///< Current number of error messages
+  int mErrorMessagesSuppressed = 0;                                        ///< Counter of suppressed error messages
+  int mMaxErrorMessages = 100;                                             ///< Max. number of error messages
+  bool mAutoDefineSubspec = false;                                         ///< Automatically determine the subspecification based on the FEE ID of the first RDH
+  bool mMergeLGHG = true;                                                  ///< Merge low and high gain cells
+  bool mPrintTrailer = false;                                              ///< Print RCU trailer
+  bool mDisablePedestalEvaluation = false;                                 ///< Disable pedestal evaluation independent of settings in the RCU trailer
+  bool mPrintSubspecification = true;                                      ///< Printout output subspecification
+  std::chrono::time_point<std::chrono::system_clock> mReferenceTime;       ///< Reference time for muting messages
+  Geometry* mGeometry = nullptr;                                           ///!<! Geometry pointer
+  std::unique_ptr<MappingHandler> mMapper = nullptr;                       ///!<! Mapper
+  std::unique_ptr<CaloRawFitter> mRawFitter;                               ///!<! Raw fitter
+  std::vector<Cell> mOutputCells;                                          ///< Container with output cells
+  std::vector<TriggerRecord> mOutputTriggerRecords;                        ///< Container with output cells
+  std::vector<ErrorTypeFEE> mOutputDecoderErrors;                          ///< Container with decoder errors
 };
 
 /// \brief Creating DataProcessorSpec for the EMCAL Cell Converter Spec
+/// \param askDISTSTF if true the task subscribes also to FLP/DISTSUBTIMEFRAME
 ///
-/// Refer to RawToCellConverterSpec::run for input and output specs
-framework::DataProcessorSpec getRawToCellConverterSpec(bool askDISTSTF, int subspecification);
+/// Refer to RawToCellConverterSpec::run for input and output specs.
+framework::DataProcessorSpec getRawToCellConverterSpec(bool askDISTSTF);
 
 } // namespace reco_workflow
 
