@@ -353,6 +353,13 @@ class MappingHandler
   /// \param branch Branch index (0 or 1) in DDL
   int getFEEForChannelInDDL(int dll, int channelFEC, int branch);
 
+  /// \brief Get index of the FLP based on the DDL ID
+  /// \param ddl Absolute DDL index
+  /// \return FLP index
+  ///
+  /// Current DDL - FLP indexing can be found in EMCAL-660
+  int getFLPIndex(int ddl);
+
  private:
   std::array<Mapper, 4> mMappings; ///< Mapping container
 

@@ -131,6 +131,17 @@ int MappingHandler::getFEEForChannelInDDL(int ddl, int channelFEC, int branch)
   return fecID;
 }
 
+int MappingHandler::getFLPIndex(int ddl)
+{
+  if ((ddl >= 0 && ddl <= 23) || ddl == 44) {
+    return 146; // EMCAL Links (44 - STU) -> FLP 146
+  }
+  if ((ddl >= 24 && ddl <= 38) || ddl == 45) {
+    return 147; // DCAL Links (45 - STU) -> FLP 147
+  }
+  throw DDLInvalid(ddl);
+}
+
 std::ostream& o2::emcal::operator<<(std::ostream& stream, const Mapper::ChannelID& channel)
 {
   stream << "Row " << static_cast<int>(channel.mRow) << ", Column " << static_cast<int>(channel.mColumn) << ", type " << o2::emcal::channelTypeToString(channel.mChannelType);
