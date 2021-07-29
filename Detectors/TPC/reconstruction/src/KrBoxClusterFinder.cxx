@@ -38,18 +38,14 @@ void KrBoxClusterFinder::loadGainMapFromFile(const std::string_view calDetFileNa
   LOGP(info, "Loaded gain map object '{}' from file '{}'", calDetFileName, gainMapName);
 }
 
-void KrBoxClusterFinder::createInitialMap(std::vector<o2::tpc::Digit>& eventSector)
+void KrBoxClusterFinder::createInitialMap(const gsl::span<const Digit> eventSector)
 {
   mSetOfTimeSlices.clear();
+  mNumADCwithMinQmax.clear();
 
   for (int iTimeSlice = 0; iTimeSlice <= 2 * mMaxClusterSizeTime; ++iTimeSlice) {
     addTimeSlice(eventSector, iTimeSlice);
   }
-}
-
-void KrBoxClusterFinder::popFirstTimeSliceFromMap()
-{
-  mSetOfTimeSlices.pop_front();
 }
 
 void KrBoxClusterFinder::fillADCValueInLastSlice(int cru, int rowInSector, int padInRow, float adcValue)
@@ -81,9 +77,10 @@ void KrBoxClusterFinder::fillADCValueInLastSlice(int cru, int rowInSector, int p
   timeSlice[rowInSector][corPad] = adcValue;
 }
 
-void KrBoxClusterFinder::addTimeSlice(std::vector<o2::tpc::Digit>& eventSector, const int timeSlice)
+void KrBoxClusterFinder::addTimeSlice(const gsl::span<const Digit> eventSector, const int timeSlice)
 {
   mSetOfTimeSlices.emplace_back();
+  auto& nADCminQmax = mNumADCwithMinQmax.emplace_back();
 
   for (; mFirstDigit < eventSector.size(); ++mFirstDigit) {
     const auto& digit = eventSector[mFirstDigit];
@@ -97,35 +94,34 @@ void KrBoxClusterFinder::addTimeSlice(std::vector<o2::tpc::Digit>& eventSector, 
 
     const int rowInSector = digit.getRow();
     const int padInRow = digit.getPad();
-    float adcValue = digit.getChargeFloat();
+    const float adcValue = digit.getChargeFloat();
+    if (adcValue > mQThresholdMax) {
+      ++nADCminQmax;
+    }
 
     fillADCValueInLastSlice(cru, rowInSector, padInRow, adcValue);
   }
 }
 
-void KrBoxClusterFinder::loopOverSector(std::vector<o2::tpc::Digit>& eventSector, const int sector)
+void KrBoxClusterFinder::loopOverSector(const gsl::span<const Digit> eventSector, const int sector)
 {
   mFirstDigit = 0;
   mSector = sector;
 
   createInitialMap(eventSector);
   for (int iTimeSlice = mMaxClusterSizeTime; iTimeSlice < mMaxTimes - mMaxClusterSizeTime; ++iTimeSlice) {
-    findLocalMaxima(true, iTimeSlice);
+    // only search for a local maximum if the central time slice has at least one ADC above the charge threshold
+    if (mNumADCwithMinQmax[mMaxClusterSizeTime]) {
+      findLocalMaxima(true, iTimeSlice);
+    }
     popFirstTimeSliceFromMap();
     addTimeSlice(eventSector, iTimeSlice + mMaxClusterSizeTime + 1);
+
+    // don't spend unnecessary time looping till mMaxTimes if there is no more data
+    if (mFirstDigit >= eventSector.size()) {
+      break;
+    }
   }
-}
-
-void KrBoxClusterFinder::resetADCMap()
-{
-  // Has to be reimplemented!
-  return;
-}
-
-void KrBoxClusterFinder::fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue)
-{
-  // Has to be reimplemented!
-  return;
 }
 
 void KrBoxClusterFinder::init()
@@ -323,6 +319,7 @@ std::vector<std::tuple<int, int, int>> KrBoxClusterFinder::findLocalMaxima(bool 
           }
         }
       }
+
       if (!thisIsMax) {
         continue;
       } else {
@@ -338,7 +335,7 @@ std::vector<std::tuple<int, int, int>> KrBoxClusterFinder::findLocalMaxima(bool 
       }
     }
   }
-  // }
+
   return localMaximaCoords;
 }
 
