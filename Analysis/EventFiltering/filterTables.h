@@ -26,6 +26,11 @@ DECLARE_SOA_COLUMN(He4, hasHe4, bool); //!
 // diffraction
 DECLARE_SOA_COLUMN(DG, hasDG, bool); //! Double Gap events, DG
 
+// heavy flavours
+DECLARE_SOA_COLUMN(HfHighPt, hasHfHighPt, bool); //! high-pT charm hadron
+DECLARE_SOA_COLUMN(HfBeauty, hasHfBeauty, bool); //! beauty hadron
+DECLARE_SOA_COLUMN(HfFemto, hasHfFemto, bool);   //! charm-hadron - N pair
+
 } // namespace filtering
 
 // nuclei
@@ -38,12 +43,18 @@ DECLARE_SOA_TABLE(DiffractionFilters, "AOD", "DiffFilters", //! Diffraction filt
                   filtering::DG);
 using DiffractionFilter = DiffractionFilters::iterator;
 
+// heavy flavours
+DECLARE_SOA_TABLE(HfFilters, "AOD", "HF Filters", //!
+                  filtering::HfHighPt, filtering::HfBeauty, filtering::HfFemto);
+
+using HfFilter = HfFilters::iterator;
+
 /// List of the available filters, the description of their tables and the name of the tasks
-constexpr int NumberOfFilters{2};
-constexpr std::array<char[32], NumberOfFilters> AvailableFilters{"NucleiFilters", "DiffractionFilters"};
-constexpr std::array<char[16], NumberOfFilters> FilterDescriptions{"NucleiFilters", "DiffFilters"};
-constexpr std::array<char[128], NumberOfFilters> FilteringTaskNames{"o2-analysis-nuclei-filter", "o2-analysis-diffraction-filter"};
-constexpr o2::framework::pack<NucleiFilters, DiffractionFilters> FiltersPack;
+constexpr int NumberOfFilters{3};
+constexpr std::array<char[32], NumberOfFilters> AvailableFilters{"NucleiFilters", "DiffractionFilters", "HeavyFlavourFilters"};
+constexpr std::array<char[16], NumberOfFilters> FilterDescriptions{"NucleiFilters", "DiffFilters", "HFFilters"};
+constexpr std::array<char[128], NumberOfFilters> FilteringTaskNames{"o2-analysis-nuclei-filter", "o2-analysis-diffraction-filter", "o2-analysis-hf-filter"};
+constexpr o2::framework::pack<NucleiFilters, DiffractionFilters, HfFilters> FiltersPack;
 static_assert(o2::framework::pack_size(FiltersPack) == NumberOfFilters);
 
 template <typename T, typename C>
