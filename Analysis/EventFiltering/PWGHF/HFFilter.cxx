@@ -247,14 +247,13 @@ struct HfFilter {
         float massBeautyHypos[3] = {massB0, massBs, massLb};
         float deltaMassHypos[3] = {deltaMassB0, deltaMassBs, deltaMassLb};
         if (track.signed1Pt() * sign3Prong < 0 && isSelectedTrack(track, kBeauty4Prong)) { // TODO: add more single track cuts
-          while (!keepEvent[kBeauty] && iHypo < 3) {
+          for (int iHypo{0}; iHypo < 3 && !keepEvent[kBeauty]; ++iHypo) {
             if (specieCharmHypos[iHypo]) {
               auto massCandB = RecoDecay::M(std::array{pVec3Prong, pVecFourth}, std::array{massCharmHypos[iHypo], massPi});
               if (std::abs(massCandB - massBeautyHypos[iHypo]) <= deltaMassHypos[iHypo]) {
                 keepEvent[kBeauty] = true;
               }
             }
-            iHypo++;
           }
         }
 
@@ -268,7 +267,7 @@ struct HfFilter {
     if (!keepEvent[kHighPt] && !keepEvent[kBeauty] && !keepEvent[kFemto]) {
       registry.get<TH1>(HIST("fProcessedEvents"))->Fill(1);
     } else {
-      for (int iTrigger = 0; iTrigger < kNtriggersHF; iTrigger++) {
+      for (int iTrigger{0}; iTrigger < kNtriggersHF; iTrigger++) {
         if (keepEvent[iTrigger]) {
           registry.get<TH1>(HIST("fProcessedEvents"))->Fill(iTrigger + 2);
         }
