@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 
 /// \file
-/// \author David Rohr (as O2DPLConfiguration.h)
 /// \author Julian Myrcha
 
 #include "EveWorkflow/O2DPLDisplay.h"

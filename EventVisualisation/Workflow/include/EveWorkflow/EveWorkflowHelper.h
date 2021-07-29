@@ -11,7 +11,6 @@
 
 ///
 /// \file   EveWorkflowHelper.h
-/// \author David Rohr (as GPUWorkflowHelper.h)
 /// \author julian.myrcha@cern.ch
 
 #ifndef ALICE_O2_EVENTVISUALISATION_WORKFLOW_EVEWORKFLOWHELPER_H

@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 
 /// \file EveWorkflowHelper.cxx
-/// \author David Rohr
 /// \author julian.myrcha@cern.ch
 
 #include <EveWorkflow/EveWorkflowHelper.h>

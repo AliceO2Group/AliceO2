@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 
 /// \file
-/// \author David Rohr (as O2DPLConfiguration.h)
 /// \author Julian Myrcha
 
 #ifndef ALICE_O2_EVENTVISUALISATION_WORKFLOW_EVECONFIGURATION_H
@@ -63,7 +62,6 @@ struct SettingsProcessing {
   bool runMC;
 };
 
-// Full configuration structure with all available settings of GPU...
 struct EveConfiguration {
   EveConfiguration() = default;
   ~EveConfiguration() = default;

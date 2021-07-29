@@ -39,7 +39,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2"
                 O2::MFTWorkflow
                 O2::TOFBase
                 O2::TOFWorkflowIO
-                O2::TPCFastTransformation
                 O2::TPCReconstruction
                 O2::TPCWorkflow
                 O2::TRDBase
