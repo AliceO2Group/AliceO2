@@ -16,25 +16,15 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_WORKFLOW_EVECONFIGURATION_H
 #define ALICE_O2_EVENTVISUALISATION_WORKFLOW_EVECONFIGURATION_H
 
-// Some defines denoting that we are compiling for O2
-#ifndef GPUCA_HAVE_O2HEADERS
-#define GPUCA_HAVE_O2HEADERS
-#endif
-#ifndef GPUCA_TPC_GEOMETRY_O2
-#define GPUCA_TPC_GEOMETRY_O2
-#endif
-#ifndef GPUCA_O2_INTERFACE
-#define GPUCA_O2_INTERFACE
-#endif
+#include "DataFormatsTPC/Constants.h"
+#include "TRDBase/GeometryFlat.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 #include <memory>
 #include <array>
 #include <vector>
 #include <functional>
 #include <gsl/gsl>
-#include <GPUO2Interface.h>
-#include "GPUSettings.h"
-#include "DataFormatsTPC/Constants.h"
 
 class TH1F;
 
@@ -53,12 +43,7 @@ struct ConstPtr {
 
 template <template <typename T> class S>
 struct CalibObjectsTemplate {
-  //typename S<TPCFastTransform>::type* fastTransform = nullptr;
-  typename S<o2::base::MatLayerCylSet>::type* matLUT = nullptr;
   typename S<o2::trd::GeometryFlat>::type* trdGeometry = nullptr;
-  //typename S<TPCdEdxCalibrationSplines>::type* dEdxSplines = nullptr;
-  //typename S<TPCPadGainCalib>::type* tpcPadGain = nullptr;
-  typename S<o2::base::PropagatorImpl<float>>::type* o2Propagator = nullptr;
   typename S<o2::itsmft::TopologyDictionary>::type* itsPatternDict = nullptr;
 };
 

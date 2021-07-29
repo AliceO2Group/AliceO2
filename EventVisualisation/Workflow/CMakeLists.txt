@@ -35,8 +35,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2"
                 O2::FT0Workflow
                 O2::GlobalTrackingWorkflowHelpers
                 O2::GlobalTrackingWorkflowReaders
-                O2::GPUO2Interface
-                O2::GPUWorkflowHelper
                 O2::ITSMFTWorkflow
                 O2::MFTWorkflow
                 O2::TOFBase

@@ -11,6 +11,7 @@
 
 ///
 /// \file   EveWorkflowHelper.h
+/// \author David Rohr (as GPUWorkflowHelper.h)
 /// \author julian.myrcha@cern.ch
 
 #ifndef ALICE_O2_EVENTVISUALISATION_WORKFLOW_EVEWORKFLOWHELPER_H
@@ -18,8 +19,6 @@
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
-#include "GPUDataTypes.h"
-//#include "GPUCommonMath.h"
 #include "EveWorkflow/EveConfiguration.h"
 
 namespace o2::event_visualisation
@@ -35,7 +34,7 @@ class EveWorkflowHelper
     std::vector<const o2::track::TrackParCov*> globalTracks;
     std::vector<float> globalTrackTimes;
   };
-  static std::shared_ptr<const tmpDataContainer> fillIOPtr(gpu::GPUTrackingInOutPointers& ioPtr, const o2::globaltracking::RecoContainer& recoCont, bool useMC, const CalibObjectsConst* calib = nullptr, GID::mask_t maskCl = GID::MASK_ALL, GID::mask_t maskTrk = GID::MASK_ALL, GID::mask_t maskMatch = GID::MASK_ALL);
+  static std::shared_ptr<const tmpDataContainer> compute(const o2::globaltracking::RecoContainer& recoCont,  const CalibObjectsConst* calib = nullptr, GID::mask_t maskCl = GID::MASK_ALL, GID::mask_t maskTrk = GID::MASK_ALL, GID::mask_t maskMatch = GID::MASK_ALL);
 };
 } // namespace o2::event_visualisation
 

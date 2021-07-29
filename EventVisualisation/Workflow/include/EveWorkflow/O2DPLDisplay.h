@@ -46,8 +46,8 @@ class O2DPLDisplaySpec : public o2::framework::Task
   O2DPLDisplaySpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t trkMask,
                    o2::dataformats::GlobalTrackID::mask_t clMask,
                    std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, std::string jsonPath,
-                   std::chrono::milliseconds timeInterval, int numberOfFiles)
-    : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mJsonPath(jsonPath), mTimeInteval(timeInterval), mNumberOfFiles(numberOfFiles)
+                   std::chrono::milliseconds timeInterval, int numberOfFiles, int numberOfTracks, bool eveHostNameMatch)
+                   : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mJsonPath(jsonPath), mTimeInteval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch)
   {
     this->mTimeStamp = std::chrono::high_resolution_clock::now() - timeInterval; // first run meets condition
   }
@@ -58,9 +58,11 @@ class O2DPLDisplaySpec : public o2::framework::Task
 
  private:
   bool mUseMC = false;
+  bool mEveHostNameMatch;                 // empty or correct hostname
   std::string mJsonPath;                  // folder where files are stored
   std::chrono::milliseconds mTimeInteval; // minimal interval between files in miliseconds
-  int mNumberOfFiles;
+  int mNumberOfFiles;                     // maximun number of files in folder - newer replaces older
+  int mNumberOfTracks;                    // maximun number of track in single file (0 means no limit)
   std::chrono::time_point<std::chrono::high_resolution_clock> mTimeStamp;
 
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;

@@ -35,6 +35,10 @@
 #include "TPCFastTransform.h"
 #include "TRDBase/Geometry.h"
 
+#include <unistd.h>
+#include <limits.h>
+
+
 using namespace o2::event_visualisation;
 using namespace o2::framework;
 using namespace o2::dataformats;
@@ -46,7 +50,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
     {"jsons-folder", VariantType::String, "jsons", {"name of the folder to store json files"}},
+    {"eve-hostname", VariantType::String, "", {"name of the host allowed to produce files (empty means no limit)"}},
     {"number-of_files", VariantType::Int, 300, {"maximum number of json files in folder"}},
+    {"number-of_tracks", VariantType::Int, -1, {"maximum number of track stored in json file (-1 means no limit)"}},
     {"time-interval", VariantType::Int, 5000, {"time interval in milliseconds between stored files"}},
     {"enable-mc", o2::framework::VariantType::Bool, false, {"enable visualization of MC data"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable visualization of MC data"}}, // for compatibility, overrides enable-mc
@@ -128,6 +134,10 @@ std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, floa
 
 void O2DPLDisplaySpec::run(ProcessingContext& pc)
 {
+  if(!this->mEveHostNameMatch) {
+    return;
+  }
+
   // filtering out any run which occur before reaching next time interval
   std::chrono::time_point<std::chrono::high_resolution_clock> currentTime = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = currentTime - this->mTimeStamp;
@@ -138,13 +148,16 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
 
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest);
-  gpu::GPUTrackingInOutPointers ptrs;
-  auto cnt = EveWorkflowHelper::fillIOPtr(ptrs, recoData, mUseMC, &(mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
+  auto cnt = EveWorkflowHelper::compute(recoData, &(mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
 
   std::cout << cnt->globalTracks.size() << std::endl;
   o2::event_visualisation::VisualisationEvent vEvent;
+  int trackCount = cnt->globalTracks.size();      // how many tracks should be stored
+  if(this->mNumberOfTracks != -1 && this->mNumberOfTracks < trackCount) {
+    trackCount = this->mNumberOfTracks;           // less than available
+  }
 
-  for (unsigned int i = 0; i < cnt->globalTracks.size(); i++) {
+  for (unsigned int i = 0; i < trackCount; i++) {
     auto tr = cnt->globalTracks[i];
     std::cout << tr->getX() << std::endl;
     float rMax = 385;
@@ -185,11 +198,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec specs;
 
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-
   bool useMC = cfgc.options().get<bool>("enable-mc") && !cfgc.options().get<bool>("disable-mc");
   std::string jsonFolder = cfgc.options().get<std::string>("jsons-folder");
+  std::string eveHostName = cfgc.options().get<std::string>("eve-hostname");
+  char hostname[HOST_NAME_MAX];
+  gethostname(hostname, HOST_NAME_MAX);
+  bool eveHostNameMatch = eveHostName.empty() || eveHostName == hostname ;
+
   std::chrono::milliseconds timeInterval(cfgc.options().get<int>("time-interval"));
   int numberOfFiles = cfgc.options().get<int>("number-of_files");
+  int numberOfTracks = cfgc.options().get<int>("number-of_tracks");
 
   GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks"));
   GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters"));
@@ -208,7 +226,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     "o2-eve-display",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles)}});
+    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch)}});
 
   return std::move(specs);
 }
