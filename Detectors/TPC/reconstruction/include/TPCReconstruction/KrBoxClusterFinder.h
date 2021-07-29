@@ -87,6 +87,7 @@
 #include <vector>
 #include <array>
 #include <deque>
+#include <gsl/span>
 
 namespace o2
 {
@@ -171,10 +172,12 @@ class KrBoxClusterFinder
     mMaxClusterSizeTime = maxClusterSizeTime;
   }
 
-  void fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue);
-  void resetADCMap();
+  void loopOverSector(const gsl::span<const Digit> eventSector, const int sector);
 
-  void loopOverSector(std::vector<o2::tpc::Digit>& eventSector, const int sector);
+  void loopOverSector(const std::vector<Digit>& eventSector, const int sector)
+  {
+    loopOverSector(gsl::span(eventSector.data(), eventSector.size()), sector);
+  }
 
  private:
   // These variables can be varied
@@ -243,10 +246,17 @@ class KrBoxClusterFinder
   /// Time slice four is the interesting one. In there, local maxima are found and clusters are built from it. After it is processed, timeslice number 1 will be dropped and another timeslice will be put at the end of the set.
   std::deque<TimeSliceSector> mSetOfTimeSlices{};
 
-  void createInitialMap(std::vector<o2::tpc::Digit>& eventSector);
-  void popFirstTimeSliceFromMap();
+  /// count the number of ADC values in each slice which satisfy the condition for the minumum Qmax
+  std::deque<int> mNumADCwithMinQmax{};
+
+  void createInitialMap(const gsl::span<const Digit> eventSector);
+  void popFirstTimeSliceFromMap()
+  {
+    mSetOfTimeSlices.pop_front();
+    mNumADCwithMinQmax.pop_front();
+  }
   void fillADCValueInLastSlice(int cru, int rowInSector, int padInRow, float adcValue);
-  void addTimeSlice(std::vector<o2::tpc::Digit>& eventSector, const int timeSlice);
+  void addTimeSlice(const gsl::span<const Digit> eventSector, const int timeSlice);
 
   /// For each ROC, the maximum cluster size has to be chosen
   void setMaxClusterSize(int row);
