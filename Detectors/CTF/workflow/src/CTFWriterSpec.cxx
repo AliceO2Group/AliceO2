@@ -43,6 +43,7 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <filesystem>
+#include <ctime>
 
 using namespace o2::framework;
 
@@ -114,7 +115,7 @@ class CTFWriterSpec : public o2::framework::Task
 
   std::string mDictDir = "";
   std::string mCTFDir = "";
-
+  std::string mCurrentCTFFileName = "";
   std::unique_ptr<TFile> mCTFFileOut;
   std::unique_ptr<TTree> mCTFTreeOut;
 
@@ -128,9 +129,12 @@ class CTFWriterSpec : public o2::framework::Task
   std::array<std::vector<FTrans>, DetID::nDetectors> mFreqsAccumulation;
   std::array<std::vector<o2::ctf::Metadata>, DetID::nDetectors> mFreqsMetaData;
   std::array<std::shared_ptr<void>, DetID::nDetectors> mHeaders;
-
   TStopwatch mTimer;
+
+  static const std::string TMPFileEnding;
 };
+
+const std::string CTFWriterSpec::TMPFileEnding{".part"};
 
 //___________________________________________________________________
 // process data of particular detector
@@ -155,6 +159,8 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
     }
     if (!mHeaders[det]) { // store 1st header
       mHeaders[det] = ctfImage.cloneHeader();
+      auto& hb = *static_cast<o2::ctf::CTFDictHeader*>(mHeaders[det].get());
+      hb.dictTimeStamp = uint32_t(std::time(nullptr));
     }
     for (int ib = 0; ib < C::getNBlocks(); ib++) {
       const auto& bl = ctfImage.getBlock(ib);
@@ -183,6 +189,9 @@ void CTFWriterSpec::storeDictionary(DetID det, CTFHeader& header)
   auto dictBlocks = C::createDictionaryBlocks(mFreqsAccumulation[det], mFreqsMetaData[det]);
   auto& h = C::get(dictBlocks.data())->getHeader();
   h = *reinterpret_cast<typename std::remove_reference<decltype(h)>::type*>(mHeaders[det].get());
+  auto& hb = static_cast<o2::ctf::CTFDictHeader&>(h);
+  hb = *static_cast<const o2::ctf::CTFDictHeader*>(mHeaders[det].get());
+
   C::get(dictBlocks.data())->print(o2::utils::Str::concat_string("Storing dictionary for ", det.getName(), ": "));
   C::get(dictBlocks.data())->appendToTree(*mDictTreeOut.get(), det.getName()); // cast to EncodedBlock
   //  mFreqsAccumulation[det].clear();
@@ -337,7 +346,8 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
   }
   if (needToOpen) {
     closeTFTreeAndFile();
-    mCTFFileOut.reset(TFile::Open(o2::utils::Str::concat_string(mCTFDir, o2::base::NameConf::getCTFFileName(dh->runNumber, dh->firstTForbit, dh->tfCounter)).c_str(), "recreate"));
+    mCurrentCTFFileName = o2::utils::Str::concat_string(mCTFDir, o2::base::NameConf::getCTFFileName(dh->runNumber, dh->firstTForbit, dh->tfCounter));
+    mCTFFileOut.reset(TFile::Open(o2::utils::Str::concat_string(mCurrentCTFFileName, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
     mCTFTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
     mNCTFFiles++;
   }
@@ -351,6 +361,9 @@ void CTFWriterSpec::closeTFTreeAndFile()
     mCTFTreeOut.reset();
     mCTFFileOut->Close();
     mCTFFileOut.reset();
+    if (!TMPFileEnding.empty()) {
+      std::filesystem::rename(o2::utils::Str::concat_string(mCurrentCTFFileName, TMPFileEnding), mCurrentCTFFileName);
+    }
     mNAccCTF = 0;
   }
   mAccCTFSize = 0;
@@ -429,11 +442,11 @@ void CTFWriterSpec::closeDictionaryTreeAndFile(CTFHeader& header)
 DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF, bool doDict, bool dictPerDet, size_t szmn, size_t szmx)
 {
   std::vector<InputSpec> inputs;
-  LOG(INFO) << "Detectors list:";
+  LOG(DEBUG) << "Detectors list:";
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (dets[id]) {
       inputs.emplace_back(DetID::getName(id), DetID::getDataOrigin(id), "CTFDATA", 0, Lifetime::Timeframe);
-      LOG(INFO) << "Det " << DetID::getName(id) << " added";
+      LOG(DEBUG) << "Det " << DetID::getName(id) << " added";
     }
   }
   return DataProcessorSpec{

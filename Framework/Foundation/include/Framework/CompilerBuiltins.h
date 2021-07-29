@@ -29,8 +29,8 @@
 #define O2_BUILTIN_LIKELY(x) __builtin_expect((x), 1)
 #define O2_BUILTIN_UNLIKELY(x) __builtin_expect((x), 0)
 #else
-#define O2_BUILTIN_LIKELY(x)
-#define O2_BUILTIN_UNLIKELY(x)
+#define O2_BUILTIN_LIKELY(x) (x)
+#define O2_BUILTIN_UNLIKELY(x) (x)
 #endif
 
 #if __GNUC__

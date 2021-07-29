@@ -16,40 +16,62 @@
 #ifndef ANALYSIS_TASKS_PWGCF_FEMTODREAM_FEMTODREAMSELECTION_H_
 #define ANALYSIS_TASKS_PWGCF_FEMTODREAM_FEMTODREAMSELECTION_H_
 
-#include <Rtypes.h>
-
-namespace o2::analysis
-{
-namespace femtoDream
+namespace o2::analysis::femtoDream
 {
 
 namespace femtoDreamSelection
 {
-enum SelectionType { kUpperLimit,
-                     kAbsUpperLimit,
-                     kLowerLimit,
-                     kAbsLowerLimit,
-                     kEqual };
+/// Type of selection to be employed
+enum SelectionType { kUpperLimit,    ///< simple upper limit for the value, e.g. p_T < 1 GeV/c
+                     kAbsUpperLimit, ///< upper limit of the absolute value, e.g. |eta| < 0.8
+                     kLowerLimit,    ///< simple lower limit for the value, e.g. p_T > 0.2 GeV/c
+                     kAbsLowerLimit, ///< lower limit of the absolute value, e.g. |DCA_xyz| > 0.05 cm
+                     kEqual          ///< values need to be equal, e.g. sign = 1
+};
 
-}
+} // namespace femtoDreamSelection
 
-template <class T1, class T2>
+/// Simple class taking care of individual selections
+/// \todo In principle all cuts that fulfill the getMinimalSelection are done implicitly and can be removed from the vector containing all cuts
+/// \tparam selValDataType Data type used for the selection (float/int/bool/...)
+/// \tparam selVariableDataType Data type used for the variable of the selection
+template <class selValDataType, class selVariableDataType>
 class FemtoDreamSelection
 {
  public:
+  /// Default constructor
   FemtoDreamSelection();
-  FemtoDreamSelection(T1 selVal, T2 selVar, femtoDreamSelection::SelectionType selType)
+
+  /// Constructor
+  /// \param selVal Value used for the selection
+  /// \param selVar Variable used for the selection
+  /// \param selType Type of selection to be employed
+  FemtoDreamSelection(selValDataType selVal, selVariableDataType selVar, femtoDreamSelection::SelectionType selType)
     : mSelVal(selVal),
       mSelVar(selVar),
       mSelType(selType)
   {
   }
 
-  T1 getSelectionValue() { return mSelVal; }
-  T2 getSelectionVariable() { return mSelVar; }
+  /// Destructor
+  virtual ~FemtoDreamSelection() = default;
+
+  /// Get the value used for the selection
+  /// \return Value used for the selection
+  selValDataType getSelectionValue() { return mSelVal; }
+
+  /// Get the variable used for the selection
+  /// \return variable used for the selection
+  selVariableDataType getSelectionVariable() { return mSelVar; }
+
+  /// Get the type of selection to be employed
+  /// \return Type of selection to be employed
   femtoDreamSelection::SelectionType getSelectionType() { return mSelType; }
 
-  bool isSelected(T1 observable)
+  /// Check whether the selection is fulfilled or not
+  /// \param observable Value of the variable to be checked
+  /// \return Whether the selection is fulfilled or not
+  bool isSelected(selValDataType observable)
   {
     switch (mSelType) {
       case (femtoDreamSelection::SelectionType::kUpperLimit):
@@ -70,9 +92,15 @@ class FemtoDreamSelection
     return false;
   }
 
+  /// Check whether the selection is fulfilled or not and put together the bit-wise container for the systematic variations
+  /// \tparam T Data type of the bit-wise container for the systematic variations
+  /// \param observable Value of the variable to be checked
+  /// \param cutContainer Bit-wise container for the systematic variations
+  /// \param counter Position in the bit-wise container for the systematic variations to be modified
   template <typename T>
-  void checkSelectionSetBit(T1 observable, T& cutContainer, size_t& counter)
+  void checkSelectionSetBit(selValDataType observable, T& cutContainer, size_t& counter)
   {
+    /// If the selection is fulfilled the bit at the specified position (counter) within the bit-wise container is set to 1
     if (isSelected(observable)) {
       cutContainer |= 1UL << counter;
     }
@@ -80,14 +108,11 @@ class FemtoDreamSelection
   }
 
  private:
-  T1 mSelVal{0.f};
-  T2 mSelVar;
-  femtoDreamSelection::SelectionType mSelType;
-
-  ClassDefNV(FemtoDreamSelection, 1);
+  selValDataType mSelVal{0.f};                 ///< Value used for the selection
+  selVariableDataType mSelVar;                 ///< Variable used for the selection
+  femtoDreamSelection::SelectionType mSelType; ///< Type of selection employed
 };
 
-} /* namespace femtoDream */
-} /* namespace o2::analysis */
+} // namespace o2::analysis::femtoDream
 
 #endif /* ANALYSIS_TASKS_PWGCF_FEMTODREAM_FEMTODREAMSELECTION_H_ */

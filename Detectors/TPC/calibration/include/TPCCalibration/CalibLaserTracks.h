@@ -11,6 +11,12 @@
 
 /// \file CalibLaserTracks.h
 /// \brief calibration using laser tracks
+///
+/// This class associated tpc tracks with ideal laser track positions from the data base
+/// The difference in z-Position, separately on the A- and C-Side, is then used to
+/// calculate a drift velocity correction factor as well as the trigger offset.
+/// A vector of mathced laser track IDs can be used to monitor the laser system alignment.
+///
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
 #ifndef TPC_CalibLaserTracks_H_
@@ -32,7 +38,35 @@ using o2::track::TrackParCov;
 struct TimePair {
   float x1{0.f};
   float x2{0.f};
-  float time{0.f};
+  uint64_t time{0};
+};
+
+struct LtrCalibData {
+  size_t processedTFs{};               ///< number of processed TFs with laser track candidates
+  uint64_t firstTime{};                ///< first time stamp of processed TFs
+  uint64_t lastTime{};                 ///< last time stamp of processed TFs
+  float dvCorrectionA{};               ///< drift velocity correction factor A-Side
+  float dvCorrectionC{};               ///< drift velocity correction factor C-Side
+  float dvOffsetA{};                   ///< drift velocity trigger offset A-Side
+  float dvOffsetC{};                   ///< drift velocity trigger offset C-Side
+  uint16_t nTracksA{};                 ///< number of tracks used for A-Side fit
+  uint16_t nTracksC{};                 ///< number of tracks used for C-Side fit
+  std::vector<uint16_t> matchedLtrIDs; ///< list of matched laser track IDs
+
+  void reset()
+  {
+    processedTFs = 0;
+    firstTime = 0;
+    lastTime = 0;
+    dvCorrectionA = 0;
+    dvCorrectionC = 0;
+    dvOffsetA = 0;
+    dvOffsetC = 0;
+    nTracksA = 0;
+    nTracksC = 0;
+
+    matchedLtrIDs.clear();
+  }
 };
 
 class CalibLaserTracks
@@ -48,24 +82,39 @@ class CalibLaserTracks
                                                     mBz{other.mBz},
                                                     mDriftV{other.mDriftV},
                                                     mZbinWidth{other.mZbinWidth},
-                                                    mTFtime{other.mTFtime},
-                                                    mDVall{other.mDVall},
-                                                    mZmatchPairsTF{other.mZmatchPairsTF},
-                                                    mZmatchPairs{other.mZmatchPairs},
-                                                    mDVperTF{other.mDVperTF},
-                                                    mWriteDebugTree{other.mWriteDebugTree}
+                                                    mTFstart{other.mTFstart},
+                                                    mTFend{other.mTFend},
+                                                    mCalibDataTF{other.mCalibDataTF},
+                                                    mCalibData{other.mCalibData},
+                                                    mZmatchPairsTFA{other.mZmatchPairsTFA},
+                                                    mZmatchPairsTFC{other.mZmatchPairsTFC},
+                                                    mZmatchPairsA{other.mZmatchPairsA},
+                                                    mZmatchPairsC{other.mZmatchPairsC},
+                                                    mWriteDebugTree{other.mWriteDebugTree},
+                                                    mFinalized{other.mFinalized}
   {
   }
 
   ~CalibLaserTracks() = default;
 
+  /// process all tracks of one TF
   void fill(const gsl::span<const TrackTPC> tracks);
+
+  /// process all tracks of one TF
   void fill(std::vector<TrackTPC> const& tracks);
+
+  /// process single track
   void processTrack(const TrackTPC& track);
 
+  /// try to associate track with ideal laser track
+  /// \return laser track ID; -1 in case of no match
   int findLaserTrackID(TrackPar track, int side = -1);
-  static float getPhiNearbySectorEdge(const TrackPar& param);
+
+  /// calculate phi of nearest laser rod
   static float getPhiNearbyLaserRod(const TrackPar& param, int side);
+
+  /// check if param is closer to a laser rod than 1/4 of a sector width
+  static bool hasNearbyLaserRod(const TrackPar& param, int side);
 
   /// trigger position for track z position correction
   void setTriggerPos(int triggerPos) { mTriggerPos = triggerPos; }
@@ -83,15 +132,34 @@ class CalibLaserTracks
   void print() const;
 
   /// check amount of data (to be improved)
-  bool hasEnoughData() const { return mZmatchPairs.size() > 100; }
+  /// at least numTFs with laser track candidate and 50 tracks per side per TF
+  bool hasEnoughData(size_t numTFs = 1) const { return mCalibData.processedTFs >= numTFs && mZmatchPairsA.size() > 50 * numTFs && mZmatchPairsC.size() > 50 * numTFs; }
 
-  /// number of associated laser tracks
-  size_t getMatchedPairs() const { return mZmatchPairs.size(); }
+  /// number of associated laser tracks on both sides for all processed TFs
+  size_t getMatchedPairs() const { return getMatchedPairsA() + getMatchedPairsC(); }
+
+  /// number of associated laser tracks for all processed TFs on the A-Side
+  size_t getMatchedPairsA() const { return mZmatchPairsA.size(); }
+
+  /// number of associated laser tracks for all processed TFs on the C-Side
+  size_t getMatchedPairsC() const { return mZmatchPairsC.size(); }
+
+  /// number of associated laser tracks presently processed TFs on the A-Side
+  size_t getMatchedPairsTFA() const { return mZmatchPairsA.size(); }
+
+  /// number of associated laser tracks presently processed TFs on the C-Side
+  size_t getMatchedPairsTFC() const { return mZmatchPairsC.size(); }
 
   /// time frame time of presently processed time frame
   /// should be called before calling processTrack(s)
-  void setTFtime(float tfTime) { mTFtime = tfTime; }
-  float getTFtime() const { return mTFtime; }
+  void setTFtimes(uint64_t tfStart, uint64_t tfEnd = 0)
+  {
+    mTFstart = tfStart;
+    mTFend = tfEnd;
+  }
+
+  uint64_t getTFstart() const { return mTFstart; }
+  uint64_t getTFend() const { return mTFend; }
 
   void setWriteDebugTree(bool write) { mWriteDebugTree = write; }
   bool getWriteDebugTree() const { return mWriteDebugTree; }
@@ -102,25 +170,40 @@ class CalibLaserTracks
   /// sort TimePoint vectors
   void sort(std::vector<TimePair>& trackMatches);
 
+  /// drift velocity fit information for presently processed time frame
+  const LtrCalibData& getCalibDataTF() { return mCalibDataTF; }
+
   /// drift velocity fit information for full data set
-  const TimePair& getDVall() { return mDVall; }
+  const LtrCalibData& getCalibData() { return mCalibData; }
+
+  /// name of the debug output tree
+  void setDebugOutputName(std::string_view name) { mDebugOutputName = name; }
 
  private:
-  int mTriggerPos{0};                                            ///< trigger position, if < 0 it treats it as the CE position
-  float mBz{0.5};                                                ///< Bz field in kGaus
-  float mDriftV{0};                                              ///< drift velocity used during reconstruction
-  float mZbinWidth{0};                                           ///< width of a bin in us
-  float mTFtime{0};                                              ///< time of present TF
-  TimePair mDVall{};                                             ///< fit result over all accumulated data
-  std::vector<TimePair> mZmatchPairsTF;                          ///< ideal vs. mesured z poitions for associated laser tracks in present time frame
-  std::vector<TimePair> mZmatchPairs;                            ///< ideal vs. mesured z poitions for associated laser tracks assumulated over all time frames
-  std::vector<TimePair> mDVperTF;                                ///< drift velocity and time offset per TF
-  bool mWriteDebugTree{false};                                   ///< create debug output tree
+  int mTriggerPos{0};                                          ///< trigger position, if < 0 it treats it as the CE position
+  float mBz{0.5};                                              ///< Bz field in Tesla
+  float mDriftV{0};                                            ///< drift velocity used during reconstruction
+  float mZbinWidth{0};                                         ///< width of a bin in us
+  uint64_t mTFstart{0};                                        ///< start time of processed time frames
+  uint64_t mTFend{0};                                          ///< end time of processed time frames
+  LtrCalibData mCalibDataTF{};                                 ///< calibration data for single TF (debugging)
+  LtrCalibData mCalibData{};                                   ///< final calibration data
+  std::vector<TimePair> mZmatchPairsTFA;                       ///< ideal vs. mesured z positions in present time frame A-Side (debugging)
+  std::vector<TimePair> mZmatchPairsTFC;                       ///< ideal vs. mesured z positions in present time frame C-Side (debugging)
+  std::vector<TimePair> mZmatchPairsA;                         ///< ideal vs. mesured z positions assumulated over all time frames A-Side
+  std::vector<TimePair> mZmatchPairsC;                         ///< ideal vs. mesured z positions assumulated over all time frames C-Side
+  bool mWriteDebugTree{false};                                 ///< create debug output tree
+  bool mFinalized{false};                                      ///< if the finalize method was already called
+  std::string mDebugOutputName{"CalibLaserTracks_debug.root"}; ///< name of the debug output tree
+
   LaserTrackContainer mLaserTracks;                              //!< laser track data base
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream; //!< debug output streamer
 
   /// update reconstruction parameters
   void updateParameters();
+
+  /// perform fits on the matched z-position pairs to extract the drift velocity correction factor and trigger offset
+  void fillCalibData(LtrCalibData& calibData, const std::vector<TimePair>& pairsA, const std::vector<TimePair>& pairsC);
 
   ClassDefNV(CalibLaserTracks, 1);
 };

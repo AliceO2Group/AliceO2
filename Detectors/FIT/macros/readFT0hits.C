@@ -16,12 +16,12 @@ void readFT0hits()
   gDirectory = 0x0;
 
   TH2F* hMultHit =
-    new TH2F("hMultHits", "photons Hits ", 210, 0, 210, 500, 0, 5000);
-  TH2F* hTimeHitA = new TH2F("hTimeAhit", "Time Hits", 210, 0, 210, 500, -1, 1);
-  TH2F* hTimeHitC = new TH2F("hTimeChit", "Time Hits", 210, 0, 210, 200, -1, 1);
+    new TH2F("hMultHits", "photons Hits ", 220, 0, 220, 500, 0, 5000);
+  TH2F* hTimeHitA = new TH2F("hTimeAhit", "Time Hits", 220, 0, 220, 500, -1, 1);
+  TH2F* hTimeHitC = new TH2F("hTimeChit", "Time Hits", 220, 0, 220, 200, -1, 1);
   TH2F* hMultDig =
-    new TH2F("hMultDig", "amplitude  ", 210, 0, 210, 500, 0, 1000);
-  TH2F* hPel = new TH2F("hPelDig", "N p.e. ", 210, 0, 210, 500, 0, 10000);
+    new TH2F("hMultDig", "amplitude  ", 220, 0, 220, 500, 0, 1000);
+  TH2F* hPel = new TH2F("hPelDig", "N p.e. ", 220, 0, 220, 500, 0, 10000);
   TH2F* hXYA = new TH2F("hXYA", "X vs Y A side", 400, -20, 20, 400, -20, 20);
   TH2F* hXYC = new TH2F("hXYC", "X vs Y C side", 400, -20, 20, 400, -20, 20);
 
@@ -59,15 +59,14 @@ void readFT0hits()
       hTimeHitA->Fill(detID, hit_time[detID] - 11.04);
       hTimeHitC->Fill(detID, hit_time[detID] - 2.91);
       countE[detID]++;
-      if (detID < 97)
+      if (detID < 96)
         hXYA->Fill(hit.GetX(), hit.GetY());
-      if (detID > 96)
+      if (detID > 95)
         hXYC->Fill(hit.GetX(), hit.GetY());
     }
-    for (int ii = 0; ii < 208; ii++) {
+    for (int ii = 0; ii < 220; ii++) {
       if (countE[ii] > 100) {
         hMultHit->Fill(ii, countE[ii]);
-        //	std::cout<<ii<<" "<<countE[ii]<<endl;
       }
     }
   }

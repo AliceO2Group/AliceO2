@@ -54,6 +54,7 @@ void TCMdata::print() const
   LOG(INFO) << "cen: " << cen;
   LOG(INFO) << "vertex: " << vertex;
   LOG(INFO) << "laser: " << laser;
+  LOG(INFO) << "outputsAreBlocked: " << outputsAreBlocked;
   LOG(INFO) << "dataIsValid: " << dataIsValid;
   LOG(INFO) << "nChanA: " << nChanA;
   LOG(INFO) << "nChanC: " << nChanC;

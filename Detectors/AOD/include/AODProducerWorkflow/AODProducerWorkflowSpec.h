@@ -14,29 +14,30 @@
 #ifndef O2_AODPRODUCER_WORKFLOW_SPEC
 #define O2_AODPRODUCER_WORKFLOW_SPEC
 
-#include "DataFormatsFT0/RecPoints.h"
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/AnalysisHelpers.h"
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
-#include "TStopwatch.h"
 #include "CCDB/BasicCCDBManager.h"
-#include "Steer/MCKinematicsReader.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "ReconstructionDataFormats/PrimaryVertex.h"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTRD/TrackTRD.h"
+#include "Framework/AnalysisDataModel.h"
+#include "Framework/AnalysisHelpers.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/Task.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "ReconstructionDataFormats/VtxTrackIndex.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "Steer/MCKinematicsReader.h"
+#include "TStopwatch.h"
 
-#include <string>
-#include <vector>
+#include <boost/functional/hash.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/unordered_map.hpp>
-#include <boost/functional/hash.hpp>
+#include <string>
+#include <vector>
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -106,10 +107,10 @@ using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
                                         o2::aod::mcparticle::PdgCode,
                                         o2::aod::mcparticle::StatusCode,
                                         o2::aod::mcparticle::Flags,
-                                        o2::aod::mcparticle::Mother0,
-                                        o2::aod::mcparticle::Mother1,
-                                        o2::aod::mcparticle::Daughter0,
-                                        o2::aod::mcparticle::Daughter1,
+                                        o2::aod::mcparticle::Mother0Id,
+                                        o2::aod::mcparticle::Mother1Id,
+                                        o2::aod::mcparticle::Daughter0Id,
+                                        o2::aod::mcparticle::Daughter1Id,
                                         o2::aod::mcparticle::Weight,
                                         o2::aod::mcparticle::Px,
                                         o2::aod::mcparticle::Py,
@@ -147,7 +148,7 @@ typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> Triple
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, bool fillSVertices) : mInputSources(src), mDataRequest(dataRequest), mFillSVertices(fillSVertices) {}
+  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest) : mInputSources(src), mDataRequest(dataRequest) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -160,8 +161,14 @@ class AODProducerWorkflowDPL : public Task
   int64_t mTFNumber{-1};
   int mTruncate{1};
   int mRecoOnly{0};
-  bool mFillSVertices{false};
   TStopwatch mTimer;
+
+  // unordered map connects global indices and table indices of barrel tracks
+  // the map is used for V0s and cascades
+  std::unordered_map<GIndex, int> mGIDToTableID;
+  int mTableTrID{0};
+
+  TripletsMap_t mToStore;
 
   std::shared_ptr<DataRequest> mDataRequest;
 
@@ -223,10 +230,11 @@ class AODProducerWorkflowDPL : public Task
   };
 
   // helper struct for mc track labels
+  // using -1 as dummies for AOD
   struct MCLabels {
-    uint32_t labelID = std::numeric_limits<uint32_t>::max();
-    uint32_t labelITS = std::numeric_limits<uint32_t>::max();
-    uint32_t labelTPC = std::numeric_limits<uint32_t>::max();
+    uint32_t labelID = -1;
+    uint32_t labelITS = -1;
+    uint32_t labelTPC = -1;
     uint16_t labelMask = 0;
     uint8_t mftLabelMask = 0;
   };
@@ -249,8 +257,8 @@ class AODProducerWorkflowDPL : public Task
   void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, const o2::mft::TrackMFT& track, int collisionID);
 
   // helper for track tables
-  // fills tables collision by collision
-  // interaction time is for TOF information
+  // * fills tables collision by collision
+  // * interaction time is for TOF information
   template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename mftTracksCursorType>
   void fillTrackTablesPerCollision(int collisionID,
                                    double interactionTime,
@@ -263,12 +271,12 @@ class AODProducerWorkflowDPL : public Task
                                    mftTracksCursorType& mftTracksCursor);
 
   template <typename MCParticlesCursorType>
-  void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
-                            gsl::span<const o2::MCCompLabel>& mcTruthITS,
-                            gsl::span<const o2::MCCompLabel>& mcTruthMFT,
-                            gsl::span<const o2::MCCompLabel>& mcTruthTPC,
-                            TripletsMap_t& toStore,
-                            std::vector<std::pair<int, int>> const& mccolidtoeventsource);
+  void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
+                            const MCParticlesCursorType& mcParticlesCursor,
+                            gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
+                            gsl::span<const GIndex>& GIndices,
+                            o2::globaltracking::RecoContainer& data,
+                            std::vector<std::pair<int, int>> const& mccolid_to_eventandsource);
 
   // helper for tpc clusters
   void countTPCClusters(const o2::tpc::TrackTPC& track,
@@ -282,7 +290,7 @@ class AODProducerWorkflowDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, bool fillSVertices);
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC);
 
 } // namespace o2::aodproducer
 

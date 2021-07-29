@@ -94,15 +94,15 @@ TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir 
     }
 
     if (type == 1) {
-      tMin = 425.f;
-      tMax = 485.f;
+      tMin = 490.f;
+      tMax = 510.f;
       wMin = 0.6;
       wMax = 0.8;
       qMin = 5.f;
       qMax = 500.f;
     }
 
-    auto arrT0 = painter::makeSummaryCanvases(*calT0, 100, tMin, tMax);
+    auto arrT0 = painter::makeSummaryCanvases(*calT0, 300, tMin, tMax);
     auto arrWidth = painter::makeSummaryCanvases(*calWidth, 100, wMin, wMax);
     auto arrQtot = painter::makeSummaryCanvases(*calQtot, 100, qMin, qMax);
 

@@ -206,7 +206,8 @@ void Digitizer::flush(std::vector<o2::fv0::BCData>& digitsBC,
                       std::vector<o2::fv0::DetTrigInput>& digitsTrig,
                       o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
 {
-  for (auto const& bc : mCache) {
+  while (!mCache.empty()) {
+    auto const& bc = mCache.front();
     if (mIntRecord.differenceInBC(bc) > NBC2Cache) { // Build events that are separated by NBC2Cache BCs from current BC
       storeBC(bc, digitsBC, digitsCh, digitsTrig, labels);
       mCache.pop_front();

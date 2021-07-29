@@ -27,6 +27,7 @@
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
+#include "DataFormatsITSMFT/TrkClusRef.h"
 
 using namespace o2::globaltracking;
 using namespace o2::framework;
@@ -89,8 +90,11 @@ void DataRequest::requestTPCTracks(bool mc)
 void DataRequest::requestITSTPCTracks(bool mc)
 {
   addInput({"trackITSTPC", "GLO", "TPCITS", 0, Lifetime::Timeframe});
+  addInput({"trackITSTPCABREFS", "GLO", "TPCITSAB_REFS", 0, Lifetime::Timeframe});
+  addInput({"trackITSTPCABCLID", "GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe});
   if (mc) {
     addInput({"trackITSTPCMCTR", "GLO", "TPCITS_MC", 0, Lifetime::Timeframe});
+    addInput({"trackITSTPCABMCTR", "GLO", "TPCITSAB_MC", 0, Lifetime::Timeframe});
   }
   requestMap["trackITSTPC"] = mc;
 }
@@ -221,7 +225,7 @@ void DataRequest::requestPrimaryVerterticesTMP(bool mc) // primary vertices befo
 
 void DataRequest::requestSecondaryVertertices(bool)
 {
-  addInput({"v0s", "GLO", "V0s", 0, Lifetime::Timeframe});
+  addInput({"v0s", "GLO", "V0S", 0, Lifetime::Timeframe});
   addInput({"p2v0s", "GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe});
   addInput({"cascs", "GLO", "CASCS", 0, Lifetime::Timeframe});
   addInput({"p2cascs", "GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe});
@@ -466,8 +470,11 @@ void RecoContainer::addTPCTracks(ProcessingContext& pc, bool mc)
 void RecoContainer::addITSTPCTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::ITSTPC].registerContainer(pc.inputs().get<gsl::span<o2d::TrackTPCITS>>("trackITSTPC"), TRACKS);
+  commonPool[GTrackID::ITSAB].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::TrkClusRef>>("trackITSTPCABREFS"), TRACKREFS);
+  commonPool[GTrackID::ITSAB].registerContainer(pc.inputs().get<gsl::span<int>>("trackITSTPCABCLID"), INDICES);
   if (mc) {
     commonPool[GTrackID::ITSTPC].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSTPCMCTR"), MCLABELS);
+    commonPool[GTrackID::ITSAB].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSTPCABMCTR"), MCLABELS);
   }
 }
 
@@ -664,16 +671,16 @@ RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) c
     const auto& parent1 = getTPCITSTrack(parent0.getEvIdxTrack().getIndex());
     table[GTrackID::ITSTPC] = parent0.getEvIdxTrack().getIndex();
     table[GTrackID::TOF] = {unsigned(parent0.getEvIdxTOFCl().getIndex()), GTrackID::TOF};
-    table[GTrackID::ITS] = parent1.getRefITS();
     table[GTrackID::TPC] = parent1.getRefTPC();
+    table[parent1.getRefITS().getSource()] = parent1.getRefITS(); // ITS source might be an ITS track or ITSAB tracklet
   } else if (src == GTrackID::TPCTOF) {
     const auto& parent0 = getTPCTOFMatch(gidx); //TPC : TOF
     table[GTrackID::TOF] = {unsigned(parent0.getEvIdxTOFCl().getIndex()), GTrackID::TOF};
     table[GTrackID::TPC] = parent0.getEvIdxTrack().getIndex();
   } else if (src == GTrackID::ITSTPC) {
     const auto& parent0 = getTPCITSTrack(gidx);
-    table[GTrackID::ITS] = parent0.getRefITS();
     table[GTrackID::TPC] = parent0.getRefTPC();
+    table[parent0.getRefITS().getSource()] = parent0.getRefITS(); // ITS source might be an ITS track or ITSAB tracklet
   }
   return std::move(table);
 }

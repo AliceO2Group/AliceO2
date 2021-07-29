@@ -18,6 +18,7 @@
 #include "DPLUtils/RawParser.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "Headers/DataHeaderHelpers.h"
+#include "DataFormatsTPC/ZeroSuppressionLinkBased.h"
 
 #include "TPCBase/RDHUtils.h"
 #include "TPCReconstruction/RawReaderCRU.h"
@@ -30,7 +31,8 @@ using namespace o2::framework;
 using RDHUtils = o2::raw::RDHUtils;
 
 void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, const rdh_utils::FEEIDType feeID);
-void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, uint32_t firstOrbit);
+void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, uint32_t firstOrbit, uint32_t syncOffsetReference);
+uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSpec>& filter);
 
 uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors)
 {
@@ -52,8 +54,21 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
   bool readFirst = false;
   uint32_t firstOrbit = 0;
 
+  // for LinkZS data the maximum sync offset is needed to align the data properly.
+  // getBCsyncOffsetReference only works, if the full TF is seen. Alternatively, this value could be set
+  // fixed to e.g. 144 or 152 which is the maximum sync delay expected
+  // this is less precise and might lead to more time bins which have to be removed at the beginnig
+  // or end of the TF
+  // uint32_t syncOffsetReference = getBCsyncOffsetReference(inputs, filter);
+  uint32_t syncOffsetReference = 144;
+
   for (auto const& ref : InputRecordWalker(inputs, filter)) {
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    // skip empty HBF
+    if (dh->payloadSize == 2 * sizeof(o2::header::RAWDataHeader)) {
+      continue;
+    }
+
     firstOrbit = dh->firstTForbit;
 
     // ---| extract hardware information to do the processing |---
@@ -115,7 +130,7 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
     }
 
     if (isLinkZS) {
-      processLinkZS(parser, reader, firstOrbit);
+      processLinkZS(parser, reader, firstOrbit, syncOffsetReference);
     } else {
       processGBT(parser, reader, feeID);
     }
@@ -126,6 +141,8 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
 
 void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, const rdh_utils::FEEIDType feeID)
 {
+  // TODO: currently this will only work for HBa1, since the sync is in the first packet and
+  // the decoder expects all packets of one link to be processed at once
   rdh_utils::FEEIDType cruID, linkID, endPoint;
   rdh_utils::getMapping(feeID, cruID, endPoint, linkID);
   const auto globalLinkID = linkID + endPoint * 12;
@@ -162,7 +179,7 @@ void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU
   reader->runADCDataCallback(rawData);
 }
 
-void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, uint32_t firstOrbit)
+void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, uint32_t firstOrbit, uint32_t syncOffsetReference)
 {
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
@@ -174,11 +191,76 @@ void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReader
     //const auto cru = RDHUtils::getCRUID(*rdhPtr);
     //const auto feeID = (RDHUtils::getFEEID(*rdhPtr) & 0x7f) | (cru << 7);
 
+    // skip all data that is not Link-base zero suppression
+    const auto detField = RDHUtils::getDetectorField(*rdhPtr);
+    if (detField != 1) {
+      continue;
+    }
+
     const bool useTimeBins = false;
     const auto feeID = RDHUtils::getFEEID(*rdhPtr);
     const auto orbit = RDHUtils::getHeartBeatOrbit(*rdhPtr);
     const auto data = (const char*)it.data();
     const auto size = it.size();
-    raw_processing_helpers::processZSdata(data, size, feeID, orbit, firstOrbit, reader->getManager()->getLinkZSCallback(), useTimeBins);
+    raw_processing_helpers::processZSdata(data, size, feeID, orbit, firstOrbit, syncOffsetReference, reader->getManager()->getLinkZSCallback(), useTimeBins);
   }
+}
+
+// find the global sync offset reference, using the large sync offset to avoid negative time bins
+uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSpec>& filter)
+{
+  uint32_t syncOffsetReference = 0;
+
+  for (auto const& ref : InputRecordWalker(inputs, filter)) {
+    const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    // skip empty HBF
+    if (dh->payloadSize == 2 * sizeof(o2::header::RAWDataHeader)) {
+      continue;
+    }
+
+    const gsl::span<const char> raw = inputs.get<gsl::span<char>>(ref);
+    o2::framework::RawParser parser(raw.data(), raw.size());
+
+    for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+      auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
+      if (!rdhPtr) {
+        LOGP(fatal, "could not get RDH from packet");
+      }
+
+      // only process LinkZSdata, only supported for data where this is already set in the UL
+      const auto detField = RDHUtils::getDetectorField(*rdhPtr);
+      if (detField != 1) {
+        continue;
+      }
+
+      const auto data = (const char*)it.data();
+      const auto size = it.size();
+
+      zerosupp_link_based::ContainerZS* zsdata = (zerosupp_link_based::ContainerZS*)data;
+      const zerosupp_link_based::ContainerZS* const zsdataEnd = (zerosupp_link_based::ContainerZS*)(data + size);
+
+      while (zsdata < zsdataEnd) {
+        const auto& header = zsdata->cont.header;
+        // align to header word if needed
+        if (!header.hasCorrectMagicWord()) {
+          zsdata = (zerosupp_link_based::ContainerZS*)((const char*)zsdata + sizeof(zerosupp_link_based::Header));
+          continue;
+        }
+
+        // skip trigger info
+        if (header.isTriggerInfo()) {
+          zsdata = zsdata->next();
+          continue;
+        }
+
+        syncOffsetReference = std::max(header.syncOffsetBC, syncOffsetReference);
+
+        // only read first time bin for each link
+        break;
+      }
+    }
+  }
+
+  LOGP(info, "syncOffsetReference in this TF: {}", syncOffsetReference);
+  return syncOffsetReference;
 }

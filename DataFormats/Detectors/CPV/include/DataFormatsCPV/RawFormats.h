@@ -101,7 +101,7 @@ class CpvHeader
   bool isOK() const { return (mBytes[9] == 0xe0) && (mBytes[10] == 0) && (mBytes[11] == 0) && (mBytes[12] == 0) && (mBytes[13] == 0) && (mBytes[14] == 0) && (mBytes[15] == 0); }
   bool isNoDataExpected() const { return mBytes[1] & 0b00100000; }
   bool isDataContinued() const { return mBytes[1] & 0b0100000; }
-  uint16_t bc() const { return mBytes[2] + ((mBytes[3] & 0x0f) << 8); }
+  uint16_t bc() const { return static_cast<uint16_t>(mBytes[2]) + static_cast<uint16_t>((mBytes[3] & 0x0f) << 8); }
   uint32_t orbit() const { return mBytes[4] + (mBytes[5] << 8) + (mBytes[6] << 16) + (mBytes[7] << 24); }
 
  public:

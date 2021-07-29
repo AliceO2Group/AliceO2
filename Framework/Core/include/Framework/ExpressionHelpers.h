@@ -20,7 +20,7 @@ namespace o2::framework::expressions
 {
 /// a map between BasicOp and gandiva node definitions
 /// note that logical 'and' and 'or' are created separately
-static std::array<std::string, BasicOp::BitwiseNot + 1> basicOperationsMap = {
+static std::array<std::string, BasicOp::Conditional + 1> basicOperationsMap = {
   "and",
   "or",
   "add",
@@ -48,7 +48,8 @@ static std::array<std::string, BasicOp::BitwiseNot + 1> basicOperationsMap = {
   "acosf",
   "atanf",
   "absf",
-  "bitwise_not"};
+  "bitwise_not",
+  "if"};
 
 struct DatumSpec {
   /// datum spec either contains an index, a value of a literal or a binding label
@@ -72,17 +73,21 @@ bool operator==(DatumSpec const& lhs, DatumSpec const& rhs);
 std::ostream& operator<<(std::ostream& os, DatumSpec const& spec);
 
 struct ColumnOperationSpec {
+  size_t index = 0;
   BasicOp op;
   DatumSpec left;
   DatumSpec right;
+  DatumSpec condition;
   DatumSpec result;
   atype::type type = atype::NA;
   ColumnOperationSpec() = default;
-  // TODO: extend this to support unary ops seamlessly
-  explicit ColumnOperationSpec(BasicOp op_) : op{op_},
-                                              left{},
-                                              right{},
-                                              result{}
+  explicit ColumnOperationSpec(BasicOp op_, size_t index_ = 0)
+    : index{index_},
+      op{op_},
+      left{},
+      right{},
+      condition{},
+      result{}
   {
     switch (op) {
       case BasicOp::LogicalOr:
@@ -110,6 +115,10 @@ struct NodeRecord {
   Node* node_ptr = nullptr;
   size_t index = 0;
   explicit NodeRecord(Node* node_, size_t index_) : node_ptr(node_), index{index_} {}
+  bool operator!=(NodeRecord const& rhs)
+  {
+    return this->node_ptr != rhs.node_ptr;
+  }
 };
 } // namespace o2::framework::expressions
 

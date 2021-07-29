@@ -45,20 +45,26 @@ void ITSMisaligner(const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080"
     pars = generateMisalignment(xLay, yLay, zLay, psiLay, thetaLay, phiLay);
     params.emplace_back(symname.c_str(), -1, pars[0], pars[1], pars[2], pars[3], pars[4], pars[5], glo);
 
-    for (int ist = 0; ist < geom->getNumberOfStaves(ilr); ist++) {
-      symname = geom->composeSymNameStave(ilr, ist);
+    for (int ihb = 0; ihb < geom->getNumberOfHalfBarrels(); ihb++) {
+      symname = geom->composeSymNameHalfBarrel(ilr, ihb);
       pars = generateMisalignment(xSta, ySta, zSta, psiSta, thetaSta, phiSta);
       params.emplace_back(symname.c_str(), -1, pars[0], pars[1], pars[2], pars[3], pars[4], pars[5], glo);
 
-      for (int ihst = 0; ihst < geom->getNumberOfHalfStaves(ilr); ihst++) {
-        symname = geom->composeSymNameHalfStave(ilr, ist, ihst);
-        pars = generateMisalignment(xHSt, yHSt, zHSt, psiHSt, thetaHSt, phiHSt);
+      for (int ist = 0; ist < geom->getNumberOfStaves(ilr) / 2; ist++) {
+        symname = geom->composeSymNameStave(ilr, ihb, ist);
+        pars = generateMisalignment(xSta, ySta, zSta, psiSta, thetaSta, phiSta);
         params.emplace_back(symname.c_str(), -1, pars[0], pars[1], pars[2], pars[3], pars[4], pars[5], glo);
 
-        for (int imd = 0; imd < geom->getNumberOfModules(ilr); imd++) {
-          symname = geom->composeSymNameModule(ilr, ist, ihst, imd);
-          pars = generateMisalignment(xMod, yMod, zMod, psiMod, thetaMod, phiMod);
+        for (int ihst = 0; ihst < geom->getNumberOfHalfStaves(ilr); ihst++) {
+          symname = geom->composeSymNameHalfStave(ilr, ihb, ist, ihst);
+          pars = generateMisalignment(xHSt, yHSt, zHSt, psiHSt, thetaHSt, phiHSt);
           params.emplace_back(symname.c_str(), -1, pars[0], pars[1], pars[2], pars[3], pars[4], pars[5], glo);
+
+          for (int imd = 0; imd < geom->getNumberOfModules(ilr); imd++) {
+            symname = geom->composeSymNameModule(ilr, ihb, ist, ihst, imd);
+            pars = generateMisalignment(xMod, yMod, zMod, psiMod, thetaMod, phiMod);
+            params.emplace_back(symname.c_str(), -1, pars[0], pars[1], pars[2], pars[3], pars[4], pars[5], glo);
+          }
         }
       }
     }

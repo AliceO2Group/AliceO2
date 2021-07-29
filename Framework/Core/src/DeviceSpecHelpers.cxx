@@ -487,6 +487,20 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     return deviceIt->deviceIndex;
   };
 
+  auto findConsumerForEdge = [&logicalEdges, &constDeviceIndex](size_t ei) {
+    auto& edge = logicalEdges[ei];
+    if (!std::is_sorted(constDeviceIndex.cbegin(), constDeviceIndex.cend())) {
+      throw o2::framework::runtime_error("Needs a sorted vector to be correct");
+    }
+
+    DeviceId pid{edge.consumer, edge.timeIndex, 0};
+    auto deviceIt = std::lower_bound(constDeviceIndex.cbegin(), constDeviceIndex.cend(), pid);
+    // We search for a consumer only if we know it's is already there.
+    assert(deviceIt != constDeviceIndex.end());
+    assert(deviceIt->processorIndex == pid.processorIndex && deviceIt->timeslice == pid.timeslice);
+    return deviceIt->deviceIndex;
+  };
+
   // Notice that to start with, consumer exists only if they also are
   // producers, so we need to create one if it does not exist.  Given this is
   // stateful, we keep an eye on what edge was last searched to make sure we
@@ -708,7 +722,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
   for (size_t edge : inEdgeIndex) {
     auto& action = actions[edge];
 
-    size_t consumerDevice;
+    size_t consumerDevice = -1;
 
     if (action.requiresNewDevice) {
       if (hasConsumerForEdge(edge)) {
@@ -716,6 +730,8 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       } else {
         consumerDevice = createNewDeviceForEdge(edge, acceptedOffer);
       }
+    } else {
+      consumerDevice = findConsumerForEdge(edge);
     }
     size_t producerDevice = findProducerForEdge(edge);
 
@@ -1112,6 +1128,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("post-fork-command", bpo::value<std::string>());
         realOdesc.add_options()("shm-segment-size", bpo::value<std::string>());
         realOdesc.add_options()("shm-mlock-segment", bpo::value<std::string>());
+        realOdesc.add_options()("shm-mlock-segment-on-creation", bpo::value<std::string>());
         realOdesc.add_options()("shm-zero-segment", bpo::value<std::string>());
         realOdesc.add_options()("shm-throw-bad-alloc", bpo::value<std::string>());
         realOdesc.add_options()("shm-segment-id", bpo::value<std::string>());
@@ -1258,6 +1275,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("channel-prefix", bpo::value<std::string>()->default_value(""), "prefix to use for multiplexing multiple workflows in the same session") //
     ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")                                             //
     ("shm-mlock-segment", bpo::value<std::string>()->default_value("false"), "mlock shared memory segment")                                   //
+    ("shm-mlock-segment-on-creation", bpo::value<std::string>()->default_value("false"), "mlock shared memory segment once on creation")      //
     ("shm-zero-segment", bpo::value<std::string>()->default_value("false"), "zero shared memory segment")                                     //
     ("shm-throw-bad-alloc", bpo::value<std::string>()->default_value("true"), "throw if insufficient shm memory")                             //
     ("shm-segment-id", bpo::value<std::string>()->default_value("0"), "shm segment id")                                                       //

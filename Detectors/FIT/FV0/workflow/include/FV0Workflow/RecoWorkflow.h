@@ -9,7 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// HF Configurable Classes
-//
-// Authors: Nima Zardoshti
-#include "AnalysisCore/HFConfigurables.h"
+#ifndef O2_FV0_RECOWORKFLOW_H
+#define O2_FV0_RECOWORKFLOW_H
+
+/// @file   RecoWorkflow.h
+
+#include "Framework/WorkflowSpec.h"
+
+namespace o2
+{
+namespace fv0
+{
+framework::WorkflowSpec getRecoWorkflow(bool useMC, bool disableRootInp, bool disableRootOut);
+} // namespace fv0
+} // namespace o2
+#endif

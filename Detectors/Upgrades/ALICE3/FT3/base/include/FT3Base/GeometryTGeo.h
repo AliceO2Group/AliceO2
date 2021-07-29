@@ -90,6 +90,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
 
   void Print(Option_t* opt = "") const;
   static const char* getFT3VolPattern() { return sVolumeName.c_str(); }
+  static const char* getFT3InnerVolPattern() { return sInnerVolumeName.c_str(); }
   static const char* getFT3LayerPattern() { return sLayerName.c_str(); }
   static const char* getFT3ChipPattern() { return sChipName.c_str(); }
   static const char* getFT3SensorPattern() { return sSensorName.c_str(); }
@@ -102,10 +103,11 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
  protected:
   static constexpr int MAXLAYERS = 15; ///< max number of active layers
 
-  Int_t mNumberOfLayers;          ///< number of layers
-  static std::string sVolumeName; ///< Mother volume name
-  static std::string sLayerName;  ///< Layer name
-  static std::string sChipName;   ///< Chip name
+  Int_t mNumberOfLayers;               ///< number of layers
+  static std::string sInnerVolumeName; ///< Mother inner volume name
+  static std::string sVolumeName;      ///< Mother volume name
+  static std::string sLayerName;       ///< Layer name
+  static std::string sChipName;        ///< Chip name
 
   static std::string sSensorName; ///< Sensor name
 

@@ -383,6 +383,9 @@ class InputRecord
         // return type with owning Deleter instance, forwarding to default_deleter
         std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<ROOTSerialized<ValueT>>(ref).release());
         return result;
+      } else if (method == o2::header::gSerializationMethodCCDB) {
+        std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release());
+        return result;
       } else {
         throw runtime_error("Attempt to extract object from message with unsupported serialization type");
       }

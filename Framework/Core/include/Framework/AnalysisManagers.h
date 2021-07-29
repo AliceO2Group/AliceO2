@@ -22,7 +22,7 @@
 #include "Framework/ConfigurableHelpers.h"
 #include "Framework/InitContext.h"
 #include "Framework/RootConfigParamHelpers.h"
-#include "../src/ExpressionHelpers.h"
+#include "Framework/ExpressionHelpers.h"
 
 namespace o2::framework
 {
@@ -36,6 +36,11 @@ struct PartitionManager {
 
   template <typename... Ts>
   static void bindExternalIndices(ANY&, Ts*...)
+  {
+  }
+
+  template <typename E>
+  static void bindInternalIndices(ANY&, E*)
   {
   }
 
@@ -69,6 +74,14 @@ struct PartitionManager<Partition<T>> {
   static void bindExternalIndices(Partition<T>& partition, Ts*... tables)
   {
     partition.bindExternalIndices(tables...);
+  }
+
+  template <typename E>
+  static void bindInternalIndices(Partition<T>& partition, E* table)
+  {
+    if constexpr (o2::soa::is_binding_compatible_v<T, std::decay_t<E>>()) {
+      partition.bindInternalIndicesTo(table);
+    }
   }
 
   template <typename... Ts>
@@ -152,8 +165,9 @@ struct OutputManager<Produces<TABLE>> {
     what.resetCursor(context.outputs().make<TableBuilder>(what.ref()));
     return true;
   }
-  static bool finalize(ProcessingContext&, Produces<TABLE>&)
+  static bool finalize(ProcessingContext&, Produces<TABLE>& what)
   {
+    what.setLabel(o2::aod::MetadataTrait<TABLE>::metadata::tableLabel());
     return true;
   }
   static bool postRun(EndOfStreamContext&, Produces<TABLE>&)
@@ -240,7 +254,7 @@ struct OutputManager<Spawns<T>> {
     auto original_table = soa::ArrowHelpers::joinTables(extractOriginals(what.sources_pack(), pc));
     if (original_table->schema()->fields().empty() == true) {
       using base_table_t = typename Spawns<T>::base_table_t;
-      original_table = makeEmptyTable<base_table_t>();
+      original_table = makeEmptyTable<base_table_t>(aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel());
     }
 
     what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::framework::spawner(what.pack(), original_table.get(), aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel()));

@@ -56,6 +56,8 @@ const double incrementEtaCut = 0.1;
 const double incrementPtThreshold = 0.5;
 const double epsilon = 1E-5;
 
+using MCParticlesPlus = soa::Join<aod::McParticles, aod::HfCandProng2MCGen>;
+
 /// D0-D0bar correlation pair builder - for real data and data-like analysis (i.e. reco-level w/o matching request via MC truth)
 struct HfCorrelatorD0D0bar {
   Produces<aod::DDbarPair> entryD0D0barPair;
@@ -195,8 +197,12 @@ struct HfCorrelatorD0D0barMcRec {
 
   void init(o2::framework::InitContext&)
   {
-    registry.add("hMassD0MCRec", "D0,D0bar candidates - MC reco;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hMassD0barMCRec", "D0,D0bar candidates - MC reco;inv. mass D0 only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0MCRecSig", "D0 signal candidates - MC reco;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0MCRecRefl", "D0 reflection candidates - MC reco;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0MCRecBkg", "D0 background candidates - MC reco;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0barMCRecSig", "D0bar signal candidates - MC reco;inv. mass D0bar only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0barMCRecRefl", "D0bar reflection candidates - MC reco;inv. mass D0bar only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0barMCRecBkg", "D0bar background candidates - MC reco;inv. mass D0bar only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= selectionFlagD0bar);
@@ -205,7 +211,9 @@ struct HfCorrelatorD0D0barMcRec {
   {
     //MC reco level
     bool flagD0Signal = false;
+    bool flagD0Reflection = false;
     bool flagD0barSignal = false;
+    bool flagD0barReflection = false;
     for (auto& candidate1 : candidates) {
       //check decay channel flag for candidate1
       if (!(candidate1.hfflag() & 1 << DecayType::D0ToPiK)) {
@@ -218,13 +226,7 @@ struct HfCorrelatorD0D0barMcRec {
         continue;
       }
       if (std::abs(candidate1.flagMCMatchRec()) == 1 << DecayType::D0ToPiK) {
-        //fill invariant mass plots and generic info from all D0/D0bar candidates
-        if (candidate1.isSelD0() >= selectionFlagD0 && candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK) { //only reco and matched as D0
-          registry.fill(HIST("hMassD0MCRec"), InvMassD0(candidate1), candidate1.pt());
-        }
-        if (candidate1.isSelD0bar() >= selectionFlagD0bar && candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK)) { //only reco and matched as D0bar
-          registry.fill(HIST("hMassD0barMCRec"), InvMassD0bar(candidate1), candidate1.pt());
-        }
+        //fill per-candidate distributions from D0/D0bar true candidates
         registry.fill(HIST("hPtCandMCRec"), candidate1.pt());
         registry.fill(HIST("hPtProng0MCRec"), candidate1.ptProng0());
         registry.fill(HIST("hPtProng1MCRec"), candidate1.ptProng1());
@@ -233,13 +235,33 @@ struct HfCorrelatorD0D0barMcRec {
         registry.fill(HIST("hYMCRec"), YD0(candidate1));
         registry.fill(HIST("hSelectionStatusMCRec"), candidate1.isSelD0bar() + (candidate1.isSelD0() * 2));
       }
+      //fill invariant mass plots from D0/D0bar signal and background candidates
+      if (candidate1.isSelD0() >= selectionFlagD0) {                  //only reco as D0
+        if (candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK) { //also matched as D0
+          registry.fill(HIST("hMassD0MCRecSig"), InvMassD0(candidate1), candidate1.pt());
+        } else if (candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK)) {
+          registry.fill(HIST("hMassD0MCRecRefl"), InvMassD0(candidate1), candidate1.pt());
+        } else {
+          registry.fill(HIST("hMassD0MCRecBkg"), InvMassD0(candidate1), candidate1.pt());
+        }
+      }
+      if (candidate1.isSelD0bar() >= selectionFlagD0bar) {               //only reco as D0bar
+        if (candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK)) { //also matched as D0bar
+          registry.fill(HIST("hMassD0barMCRecSig"), InvMassD0bar(candidate1), candidate1.pt());
+        } else if (candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK) {
+          registry.fill(HIST("hMassD0barMCRecRefl"), InvMassD0bar(candidate1), candidate1.pt());
+        } else {
+          registry.fill(HIST("hMassD0barMCRecBkg"), InvMassD0bar(candidate1), candidate1.pt());
+        }
+      }
 
       //D-Dbar correlation dedicated section
       //if the candidate is selected ad D0, search for D0bar and evaluate correlations
       if (candidate1.isSelD0() < selectionFlagD0) { //discard candidates not selected as D0 in outer loop
         continue;
       }
-      flagD0Signal = candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK; //flagD0Signal 'true' if candidate1 matched to D0 (particle)
+      flagD0Signal = candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK;        //flagD0Signal 'true' if candidate1 matched to D0 (particle)
+      flagD0Reflection = candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK); //flagD0Reflection 'true' if candidate1, selected as D0 (particle), is matched to D0bar (antiparticle)
       for (auto& candidate2 : candidates) {
         if (!(candidate2.hfflag() & 1 << DecayType::D0ToPiK)) { //check decay channel flag for candidate2
           continue;
@@ -247,7 +269,8 @@ struct HfCorrelatorD0D0barMcRec {
         if (candidate2.isSelD0bar() < selectionFlagD0bar) { //discard candidates not selected as D0bar in inner loop
           continue;
         }
-        flagD0barSignal = candidate2.flagMCMatchRec() == -(1 << DecayType::D0ToPiK); //flagD0barSignal 'true' if candidate2 matched to D0bar (antiparticle)
+        flagD0barSignal = candidate2.flagMCMatchRec() == -(1 << DecayType::D0ToPiK);  //flagD0barSignal 'true' if candidate2 matched to D0bar (antiparticle)
+        flagD0barReflection = candidate2.flagMCMatchRec() == 1 << DecayType::D0ToPiK; //flagD0barReflection 'true' if candidate2, selected as D0bar (antiparticle), is matched to D0 (particle)
         if (cutYCandMax >= 0. && std::abs(YD0(candidate2)) > cutYCandMax) {
           continue;
         }
@@ -259,11 +282,17 @@ struct HfCorrelatorD0D0barMcRec {
           continue;
         }
         //choice of options (D0/D0bar signal/bkg)
-        int pairSignalStatus = 0; //0 = bkg/bkg, 1 = bkg/sig, 2 = sig/bkg, 3 = sig/sig
+        int pairSignalStatus = 0; //0 = bkg/bkg, 1 = bkg/ref, 2 = bkg/sig, 3 = ref/bkg, 4 = ref/ref, 5 = ref/sig, 6 = sig/bkg, 7 = sig/ref, 8 = sig/sig
         if (flagD0Signal) {
-          pairSignalStatus += 2;
+          pairSignalStatus += 6;
+        }
+        if (flagD0Reflection) {
+          pairSignalStatus += 3;
         }
         if (flagD0barSignal) {
+          pairSignalStatus += 2;
+        }
+        if (flagD0barReflection) {
           pairSignalStatus += 1;
         }
         entryD0D0barPair(getDeltaPhi(candidate2.phi(), candidate1.phi()),
@@ -316,7 +345,7 @@ struct HfCorrelatorD0D0barMcGen {
     registry.add("hcountD0triggersMCGen", "D0 trigger particles - MC gen;;N of trigger D0", {HistType::kTH2F, {{1, -0.5, 0.5}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  void process(aod::McCollision const& mccollision, soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particlesMC)
+  void process(aod::McCollision const& mccollision, MCParticlesPlus const& particlesMC)
   {
     int counterD0D0bar = 0;
     registry.fill(HIST("hMCEvtCount"), 0);
@@ -375,10 +404,10 @@ struct HfCorrelatorD0D0barMcGen {
               registry.fill(HIST("hDDbarVsEtaCut"), etaCut - epsilon, ptCut + epsilon);
             }
             if (rightDecayChannels) { //fill with D and Dbar daughter particls acceptance checks
-              double etaCandidate1Daughter1 = particlesMC.iteratorAt(particle1.daughter0()).eta();
-              double etaCandidate1Daughter2 = particlesMC.iteratorAt(particle1.daughter1()).eta();
-              double etaCandidate2Daughter1 = particlesMC.iteratorAt(particle2.daughter0()).eta();
-              double etaCandidate2Daughter2 = particlesMC.iteratorAt(particle2.daughter1()).eta();
+              double etaCandidate1Daughter1 = particle1.daughter0_as<MCParticlesPlus>().eta();
+              double etaCandidate1Daughter2 = particle1.daughter1_as<MCParticlesPlus>().eta();
+              double etaCandidate2Daughter1 = particle2.daughter0_as<MCParticlesPlus>().eta();
+              double etaCandidate2Daughter2 = particle2.daughter1_as<MCParticlesPlus>().eta();
               if (std::abs(etaCandidate1Daughter1) < etaCut && std::abs(etaCandidate1Daughter2) < etaCut &&
                   std::abs(etaCandidate2Daughter1) < etaCut && std::abs(etaCandidate2Daughter2) < etaCut &&
                   particle1.pt() > ptCut && particle2.pt() > ptCut) {
@@ -615,7 +644,7 @@ struct HfCorrelatorD0D0barMcGenLs {
     registry.add("hcountD0triggersMCGen", "D0 trigger particles - MC gen;;N of trigger D0", {HistType::kTH2F, {{1, -0.5, 0.5}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  void process(aod::McCollision const& mccollision, soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particlesMC)
+  void process(aod::McCollision const& mccollision, MCParticlesPlus const& particlesMC)
   {
     int counterD0D0bar = 0;
     registry.fill(HIST("hMCEvtCount"), 0);
@@ -691,7 +720,7 @@ struct HfCorrelatorCCbarMcGen {
     registry.add("hcountCtriggersMCGen", "c trigger particles - MC gen;;N of trigger c quark", {HistType::kTH2F, {{1, -0.5, 0.5}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  void process(aod::McCollision const& mccollision, soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particlesMC)
+  void process(aod::McCollision const& mccollision, MCParticlesPlus const& particlesMC)
   {
     registry.fill(HIST("hMCEvtCount"), 0);
     int counterccbar = 0, counterccbarPreEtasel = 0;
@@ -701,7 +730,7 @@ struct HfCorrelatorCCbarMcGen {
       if (std::abs(particle1.pdgCode()) != PDG_t::kCharm) { //search c or cbar particles
         continue;
       }
-      int partMothPDG = particlesMC.iteratorAt(particle1.mother0()).pdgCode();
+      int partMothPDG = particle1.mother0_as<MCParticlesPlus>().pdgCode();
       //check whether mothers of quark c/cbar are still '4'/'-4' particles - in that case the c/cbar quark comes from its own fragmentation, skip it
       if (partMothPDG == particle1.pdgCode()) {
         continue;
@@ -738,7 +767,7 @@ struct HfCorrelatorCCbarMcGen {
           continue;
         }
         //check whether mothers of quark cbar (from associated loop) are still '-4' particles - in that case the cbar quark comes from its own fragmentation, skip it
-        if (particlesMC.iteratorAt(particle2.mother0()).pdgCode() == PDG_t::kCharmBar) {
+        if (particle2.mother0_as<MCParticlesPlus>().pdgCode() == PDG_t::kCharmBar) {
           continue;
         }
         entryccbarPair(getDeltaPhi(particle2.phi(), particle1.phi()),
@@ -776,7 +805,7 @@ struct HfCorrelatorCCbarMcGenLs {
     registry.add("hcountCtriggersMCGen", "c trigger particles - MC gen;;N of trigger c quark", {HistType::kTH2F, {{1, -0.5, 0.5}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  void process(aod::McCollision const& mccollision, soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particlesMC)
+  void process(aod::McCollision const& mccollision, MCParticlesPlus const& particlesMC)
   {
     registry.fill(HIST("hMCEvtCount"), 0);
     int counterccbar = 0, counterccbarPreEtasel = 0;
@@ -786,7 +815,7 @@ struct HfCorrelatorCCbarMcGenLs {
       if (std::abs(particle1.pdgCode()) != PDG_t::kCharm) { //search c or cbar particles
         continue;
       }
-      int partMothPDG = particlesMC.iteratorAt(particle1.mother0()).pdgCode();
+      int partMothPDG = particle1.mother0_as<MCParticlesPlus>().pdgCode();
       //check whether mothers of quark c/cbar are still '4'/'-4' particles - in that case the c/cbar quark comes from its own fragmentation, skip it
       if (partMothPDG == particle1.pdgCode()) {
         continue;
@@ -820,7 +849,7 @@ struct HfCorrelatorCCbarMcGenLs {
         }
         if (particle2.pdgCode() == particle1.pdgCode()) {
           //check whether mothers of quark cbar (from associated loop) are still '-4' particles - in that case the cbar quark comes from its own fragmentation, skip it
-          if (particlesMC.iteratorAt(particle2.mother0()).pdgCode() == particle2.pdgCode()) {
+          if (particle2.mother0_as<MCParticlesPlus>().pdgCode() == particle2.pdgCode()) {
             continue;
           }
           //Excluding self-correlations

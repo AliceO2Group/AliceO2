@@ -77,15 +77,25 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(DEBUG) << "[EMCALRawToCellConverter - run] called";
   const double CONVADCGEV = 0.016; // Conversion from ADC counts to energy: E = 16 MeV / ADC
+  constexpr auto originEMC = o2::header::gDataOriginEMC;
+  constexpr auto descRaw = o2::header::gDataDescriptionRawData;
+
+  mOutputCells.clear();
+  mOutputTriggerRecords.clear();
+  mOutputDecoderErrors.clear();
+
+  if (isLostTimeframe(ctx)) {
+    sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
+    return;
+  }
 
   // Cache cells from for bunch crossings as the component reads timeframes from many links consecutively
   std::map<o2::InteractionRecord, std::shared_ptr<std::vector<Cell>>> cellBuffer; // Internal cell buffer
   std::map<o2::InteractionRecord, uint32_t> triggerBuffer;
 
-  mOutputDecoderErrors.clear();
-
+  std::vector<framework::InputSpec> filter{{"filter", framework::ConcreteDataTypeMatcher(originEMC, descRaw)}};
   int firstEntry = 0;
-  for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
+  for (const auto& rawData : framework::InputRecordWalker(ctx.inputs(), filter)) {
 
     // Skip SOX headers
     auto rdhblock = reinterpret_cast<const o2::header::RDHAny*>(rawData.payload);
@@ -231,8 +241,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   }
 
   // Loop over BCs, sort cells with increasing tower ID and write to output containers
-  mOutputCells.clear();
-  mOutputTriggerRecords.clear();
   for (auto [bc, cells] : cellBuffer) {
     mOutputTriggerRecords.emplace_back(bc, triggerBuffer[bc], mOutputCells.size(), cells->size());
     if (cells->size()) {
@@ -245,25 +253,52 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   }
 
   LOG(DEBUG) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
-  ctx.outputs().snapshot(framework::Output{"EMC", "CELLS", 0, framework::Lifetime::Timeframe}, mOutputCells);
-  ctx.outputs().snapshot(framework::Output{"EMC", "CELLSTRGR", 0, framework::Lifetime::Timeframe}, mOutputTriggerRecords);
-  ctx.outputs().snapshot(framework::Output{"EMC", "DECODERERR", 0, framework::Lifetime::Timeframe}, mOutputDecoderErrors);
+  sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
 }
 
-o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpec()
+bool RawToCellConverterSpec::isLostTimeframe(framework::ProcessingContext& ctx) const
 {
-  std::vector<o2::framework::InputSpec> inputs;
+  constexpr auto originEMC = header::gDataOriginEMC;
+  o2::framework::InputSpec dummy{"dummy",
+                                 framework::ConcreteDataMatcher{originEMC,
+                                                                header::gDataDescriptionRawData,
+                                                                0xDEADBEEF}};
+  for (const auto& ref : o2::framework::InputRecordWalker(ctx.inputs(), {dummy})) {
+    const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    if (dh->payloadSize == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void RawToCellConverterSpec::sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors) const
+{
+  constexpr auto originEMC = o2::header::gDataOriginEMC;
+  ctx.outputs().snapshot(framework::Output{originEMC, "CELLS", mSubspecification, framework::Lifetime::Timeframe}, cells);
+  ctx.outputs().snapshot(framework::Output{originEMC, "CELLSTRGR", mSubspecification, framework::Lifetime::Timeframe}, triggers);
+  ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", mSubspecification, framework::Lifetime::Timeframe}, decodingErrors);
+}
+
+o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpec(bool askDISTSTF, int subspecification)
+{
+  constexpr auto originEMC = o2::header::gDataOriginEMC;
   std::vector<o2::framework::OutputSpec> outputs;
 
-  outputs.emplace_back("EMC", "CELLS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("EMC", "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("EMC", "DECODERERR", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(originEMC, "CELLS", subspecification, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(originEMC, "CELLSTRGR", subspecification, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(originEMC, "DECODERERR", subspecification, o2::framework::Lifetime::Timeframe);
+
+  std::vector<o2::framework::InputSpec> inputs{{"stf", o2::framework::ConcreteDataTypeMatcher{originEMC, o2::header::gDataDescriptionRawData}, o2::framework::Lifetime::Optional}};
+  if (askDISTSTF) {
+    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
+  }
 
   return o2::framework::DataProcessorSpec{"EMCALRawToCellConverterSpec",
-                                          o2::framework::select("A:EMC/RAWDATA"),
+                                          inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(),
+                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(subspecification),
                                           o2::framework::Options{
-                                            {"fitmethod", o2::framework::VariantType::String, "standard", {"Fit method (standard or gamma2)"}},
+                                            {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}},
                                             {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}}}};
 }

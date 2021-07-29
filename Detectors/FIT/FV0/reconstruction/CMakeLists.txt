@@ -10,11 +10,14 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(FV0Reconstruction
-        SOURCES src/ReadRaw.cxx
+        SOURCES src/BaseRecoTask.cxx
+                src/ReadRaw.cxx
                 src/CTFCoder.cxx
+
         PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
                               O2::Framework
                               O2::FV0Base
+                              O2::FV0Simulation
                               O2::DataFormatsFV0
                               O2::DetectorsRaw
                               O2::CommonDataFormat
@@ -22,7 +25,8 @@ o2_add_library(FV0Reconstruction
                               O2::Headers)
 
 o2_target_root_dictionary(FV0Reconstruction
-        HEADERS include/FV0Reconstruction/ReadRaw.h
+        HEADERS include/FV0Reconstruction/BaseRecoTask.h
+                include/FV0Reconstruction/ReadRaw.h
                 include/FV0Reconstruction/CTFCoder.h)
 
 o2_add_executable(

@@ -51,10 +51,11 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
   //dummy calibration objects
   if (ccdbUrl.compare("localtest") == 0) { // test default calibration
     mIsUsingCcdbMgr = false;
-    mCalibParams = std::make_unique<o2::cpv::CalibParams>(1);
-    mBadMap = std::make_unique<o2::cpv::BadChannelMap>(1);
-    mPedestals = std::make_unique<o2::cpv::Pedestals>(1);
+    mCalibParams = new o2::cpv::CalibParams(1);
+    mBadMap = new o2::cpv::BadChannelMap(1);
+    mPedestals = new o2::cpv::Pedestals(1);
     LOG(INFO) << "No reading calibration from ccdb requested, using dummy calibration for testing";
+    LOG(INFO) << "Task configuration is done.";
     return; //localtest = no reading ccdb
   }
 
@@ -65,9 +66,10 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
   if (!mIsUsingCcdbMgr) {
     LOG(ERROR) << "Host " << ccdbUrl << " is not reachable!!!";
     LOG(ERROR) << "Using dummy calibration";
-    mCalibParams = std::make_unique<o2::cpv::CalibParams>(1);
-    mBadMap = std::make_unique<o2::cpv::BadChannelMap>(1);
-    mPedestals = std::make_unique<o2::cpv::Pedestals>(1);
+    mCalibParams = new o2::cpv::CalibParams(1);
+    mBadMap = new o2::cpv::BadChannelMap(1);
+    mPedestals = new o2::cpv::Pedestals(1);
+
   } else {
     ccdbMgr.setCaching(true);                     //make local cache of remote objects
     ccdbMgr.setLocalObjectValidityChecking(true); //query objects from remote site only when local one is not valid
@@ -78,20 +80,20 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
     mCurrentTimeStamp = o2::ccdb::getCurrentTimestamp();
     ccdbMgr.setTimestamp(mCurrentTimeStamp);
 
-    mCalibParams.reset(ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains"));
+    mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");
     if (!mCalibParams) {
-      LOG(ERROR) << "Cannot get o2::cpv::CalibParams from CCDB. using dummy calibration!";
-      mCalibParams = std::make_unique<o2::cpv::CalibParams>(1);
+      LOG(ERROR) << "Cannot get o2::cpv::CalibParams from CCDB. Using dummy calibration!";
+      mCalibParams = new o2::cpv::CalibParams(1);
     }
-    mBadMap.reset(ccdbMgr.get<o2::cpv::BadChannelMap>("CPV/Calib/BadChannelMap"));
+    mBadMap = ccdbMgr.get<o2::cpv::BadChannelMap>("CPV/Calib/BadChannelMap");
     if (!mBadMap) {
-      LOG(ERROR) << "Cannot get o2::cpv::BadChannelMap from CCDB. using dummy calibration!";
-      mBadMap = std::make_unique<o2::cpv::BadChannelMap>(1);
+      LOG(ERROR) << "Cannot get o2::cpv::BadChannelMap from CCDB. Using dummy calibration!";
+      mBadMap = new o2::cpv::BadChannelMap(1);
     }
-    mPedestals.reset(ccdbMgr.get<o2::cpv::Pedestals>("CPV/Calib/Pedestals"));
+    mPedestals = ccdbMgr.get<o2::cpv::Pedestals>("CPV/Calib/Pedestals");
     if (!mPedestals) {
-      LOG(ERROR) << "Cannot get o2::cpv::Pedestals from CCDB. using dummy calibration!";
-      mPedestals = std::make_unique<o2::cpv::Pedestals>(1);
+      LOG(ERROR) << "Cannot get o2::cpv::Pedestals from CCDB. Using dummy calibration!";
+      mPedestals = new o2::cpv::Pedestals(1);
     }
     LOG(INFO) << "Task configuration is done.";
   }
@@ -247,7 +249,7 @@ o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getRawToDigitConverterS
                                           outputs,
                                           o2::framework::adaptFromTask<o2::cpv::reco_workflow::RawToDigitConverterSpec>(),
                                           o2::framework::Options{
-                                            {"pedestal", o2::framework::VariantType::Bool, false, {"If true then do not subtract pedestals from digits"}},
+                                            {"pedestal", o2::framework::VariantType::Bool, false, {"do not subtract pedestals from digits"}},
                                             {"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}},
                                           }};
 }

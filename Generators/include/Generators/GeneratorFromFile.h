@@ -80,6 +80,8 @@ class GeneratorFromO2Kine : public o2::eventgen::Generator
   // Set from which event to start
   void SetStartEvent(int start);
 
+  void setContinueMode(bool val) { mContinueMode = val; };
+
  private:
   /** methods that can be overridden **/
   void updateHeader(o2::dataformats::MCEventHeader* eventHeader) override;

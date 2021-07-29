@@ -14,7 +14,7 @@
 #include "Framework/AnalysisHelpers.h"
 #include "AnalysisDataModelHelpers.h"
 #include "DataProcessingHelpers.h"
-#include "ExpressionHelpers.h"
+#include "Framework/ExpressionHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -108,11 +108,11 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requ
           using index_pack_t = typename metadata_t::index_pack_t;
           using sources = typename metadata_t::originals;
           if constexpr (metadata_t::exclusive == true) {
-            return o2::framework::IndexExclusive::indexBuilder(index_pack_t{},
+            return o2::framework::IndexExclusive::indexBuilder(input.binding.c_str(), index_pack_t{},
                                                                extractTypedOriginal<Key>(pc),
                                                                extractOriginalsTuple(sources{}, pc));
           } else {
-            return o2::framework::IndexSparse::indexBuilder(index_pack_t{},
+            return o2::framework::IndexSparse::indexBuilder(input.binding.c_str(), index_pack_t{},
                                                             extractTypedOriginal<Key>(pc),
                                                             extractOriginalsTuple(sources{}, pc));
           }

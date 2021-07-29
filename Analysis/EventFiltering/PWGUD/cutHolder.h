@@ -93,7 +93,7 @@ class cutHolder
   float mMaxnSigmaTPC; // maximum nSigma TPC
   float mMaxnSigmaTOF; // maximum nSigma TOF
 
-  ClassDef(cutHolder, 1);
+  ClassDefNV(cutHolder, 1);
 };
 
 #endif // O2_ANALYSIS_DIFFCUT_HOLDER_H_

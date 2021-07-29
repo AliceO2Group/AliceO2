@@ -95,6 +95,7 @@ void RawReaderCRUEventSync::analyse(RAWDataType rawDataType)
       }
 
       if (!cruInfo.isComplete(rawDataType)) {
+        LOGP(info, "CRU info is incomplete");
         event.IsComplete = false;
         break;
       }
@@ -327,7 +328,8 @@ int RawReaderCRU::scanFile()
 
       RDHUtils::setFEEID(rdh, feeId);
     }
-    const auto heartbeatOrbit = isTFfile ? dh.firstTForbit : RDHUtils::getHeartBeatOrbit(rdh);
+    const auto heartbeatOrbit = RDHUtils::getHeartBeatOrbit(rdh);
+    const auto heartbeatOrbitEvent = isTFfile ? dh.firstTForbit : RDHUtils::getHeartBeatOrbit(rdh);
     const auto endPoint = rdh_utils::getEndPoint(feeId);
     const auto linkID = rdh_utils::getLink(feeId);
     const auto globalLinkID = linkID + endPoint * 12;
@@ -345,9 +347,9 @@ int RawReaderCRU::scanFile()
     RawReaderCRUEventSync::LinkInfo* linkInfo = nullptr;
     if (mManager) {
       // in case of triggered mode, we use the first heartbeat orbit as event identifier
-      if ((lastHeartbeatOrbit == 0) || (heartbeatOrbit != lastHeartbeatOrbit)) {
-        mManager->mEventSync.createEvent(heartbeatOrbit, mManager->getDataType());
-        lastHeartbeatOrbit = heartbeatOrbit;
+      if ((lastHeartbeatOrbit == 0) || (heartbeatOrbitEvent != lastHeartbeatOrbit)) {
+        mManager->mEventSync.createEvent(heartbeatOrbitEvent, mManager->getDataType());
+        lastHeartbeatOrbit = heartbeatOrbitEvent;
       }
       linkInfo = &mManager->mEventSync.getLinkInfo(rdh, mManager->getDataType());
       mManager->mEventSync.setCRUSeen(mCRU, mReaderNumber);
@@ -801,7 +803,8 @@ void RawReaderCRU::processLinkZS()
     }
     file.seekg(payloadOffset, file.beg);
     file.read(buffer, payloadSize);
-    o2::tpc::raw_processing_helpers::processZSdata(buffer, payloadSize, packet.getFEEID(), packet.getHeartBeatOrbit(), firstOrbitInEvent, mManager->mLinkZSCallback, false); // last parameter should be true for MW2 data
+    const uint32_t syncOffsetReference = 144;                                                                                                                                                     // <<< TODO: fix value as max offset over all links
+    o2::tpc::raw_processing_helpers::processZSdata(buffer, payloadSize, packet.getFEEID(), packet.getHeartBeatOrbit(), firstOrbitInEvent, syncOffsetReference, mManager->mLinkZSCallback, false); // last parameter should be true for MW2 data
   }
 }
 
@@ -819,7 +822,7 @@ void RawReaderCRU::processLinks(const uint32_t linkMask)
 
     // check if selected event is valid
     if (mEventNumber >= mManager->mEventSync.getNumberOfEvents()) {
-      O2ERROR("Selected event number %u is larger then the events in the file %lu", mEventNumber, mManager->mEventSync.getNumberOfEvents());
+      O2ERROR("Selected event number %u is larger than the events in file %lu", mEventNumber, mManager->mEventSync.getNumberOfEvents());
       return;
     }
 

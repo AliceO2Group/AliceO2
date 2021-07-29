@@ -9,9 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_TRD_DIGIT_BACKCOMPAT_H_
-#define ALICEO2_TRD_DIGIT_BACKCOMPAT_H_
+#ifndef O2_FRAMEWORK_ENDIAN_H_
+#define O2_FRAMEWORK_ENDIAN_H_
 
-#include "DataFormatsTRD/Digit.h"
-
+// Lookup file for __BYTE_ORDER
+#ifdef __APPLE__
+#include <machine/endian.h>
+#else
+#include <endian.h>
+#define ntohll be64toh
+#define htonll htobe64
 #endif
+#define O2_HOST_BYTE_ORDER __BYTE_ORDER
+#define O2_BIG_ENDIAN __BIG_ENDIAN
+#define O2_LITTLE_ENDIAN __LITTLE_ENDIAN
+#endif // O2_FRAMEWORK_ENDIAN_H_

@@ -68,7 +68,7 @@ void buildTrackletMCMData(TrackletMCMData& trackletword, const uint slope, const
 {
   trackletword.slope = slope;
   trackletword.pos = pos;
-  trackletword.pid = q0 | ((q1 & 0xff) << 8); //q2 sits with a bit of q1 in the header pid word.
+  trackletword.pid = (q0 & 0x7f) | ((q1 & 0x1f) << 7); //q2 sits with upper 2 bits of q1 in the header pid word, hence the 0x1f so 5 bits are used here.
   trackletword.checkbit = 1;
 }
 
@@ -127,17 +127,19 @@ uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader* header, const o2::trd::Tr
       LOG(warn) << " unknown trackletindex to getQFromRaw : " << pidindex;
       break;
   }
+  //qa is 6bits of Q2 and 2 bits of Q1
   //second part of pid is in the TrackletMCMData
   qb = data->pid;
+  //qb is 7 bits Q0 and 5 bits of Q1
   switch (pidindex) {
-    case 0:
-      pid = qa & 0xffc >> 2;
+    case 0:                   //Q0
+      pid = (qb >> 5) & 0x7f; // 7 bits at the top of all of Q0
       break;
-    case 1:
-      pid = ((qa & 0x3) << 5) | (qb >> 6);
+    case 1:                                //Q1
+      pid = ((qa & 0x3) << 5) | (qb >> 5); // 2 bits of qb and 5 bits of qb for Q1 .. 7 bits
       break;
-    case 2:
-      pid = qb & 0x3f;
+    case 2:                   //Q2
+      pid = (qa >> 2) & 0x2f; // 6 bits shifted down by bits 2 to 8 ... 6 bits
       break;
     default:
       LOG(warn) << " unknown pid index of : " << pidindex;
@@ -322,12 +324,22 @@ bool trackletHCHeaderSanityCheck(o2::trd::TrackletHCHeader& header)
 {
   bool goodheader = true;
   if (header.one != 1) {
+    LOG(warn) << "Sanity check tracklethcheader.one is not 1";
     goodheader = false;
   }
   if (header.supermodule > 17) {
+    LOG(warn) << "Sanity check tracklethcheader.supermodule>17";
     goodheader = false;
   }
   //if(header.format != )  only certain format versions are permitted come back an fill in if needed.
+  if (header.layer > 6) {
+    LOG(warn) << "Sanity check tracklethcheader.laywer>6";
+    goodheader = false;
+  }
+  if (header.stack > 5) {
+    LOG(warn) << "Sanity check tracklethcheader.stack>5";
+    goodheader = false;
+  }
   return goodheader;
 }
 

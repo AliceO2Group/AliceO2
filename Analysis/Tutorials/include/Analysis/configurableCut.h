@@ -58,7 +58,7 @@ class configurableCut
   std::vector<std::string> labels;
   o2::framework::Array2D<double> cuts;
 
-  ClassDef(configurableCut, 5);
+  ClassDefNV(configurableCut, 5);
 };
 
 std::ostream& operator<<(std::ostream& os, configurableCut const& c);

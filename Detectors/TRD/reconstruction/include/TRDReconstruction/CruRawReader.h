@@ -9,11 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   CruRawReader.h
-/// @author Sean Murray
-/// @brief  Cru raw data reader, this is the part that parses the raw data
-//          it runs on the flp(pre compression) or on the epn(pre tracklet64 array generation)
-//          it hands off blocks of cru pay load to the parsers.
+// Cru raw data reader, this is the part that parses the raw data
+// it runs on the flp(pre compression) or on the epn(pre tracklet64 array generation)
+// it hands off blocks of cru pay load to the parsers.
 
 #ifndef O2_TRD_CRURAWREADER
 #define O2_TRD_CRURAWREADER
@@ -31,7 +29,7 @@
 #include "TRDReconstruction/DigitsParser.h"
 #include "TRDReconstruction/TrackletsParser.h"
 #include "DataFormatsTRD/Constants.h"
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "TRDReconstruction/EventRecord.h"
 
@@ -60,12 +58,14 @@ class CruRawReader
 
   void checkSummary();
   void resetCounters();
-  void configure(bool byteswap, bool verbose, bool headerverbose, bool dataverbose)
+  void configure(bool byteswap, bool fixdigitcorruption, int tracklethcheader, bool verbose, bool headerverbose, bool dataverbose)
   {
     mByteSwap = byteswap;
     mVerbose = verbose;
     mHeaderVerbose = headerverbose;
     mDataVerbose = dataverbose;
+    mFixDigitEndCorruption = fixdigitcorruption;
+    mTrackletHCHeaderState = tracklethcheader;
   }
   void setBlob(bool returnblob) { mReturnBlob = returnblob; }; //set class to produce blobs and not vectors. (compress vs pass through)`
   void setDataBuffer(const char* val)
@@ -93,7 +93,7 @@ class CruRawReader
   //  std::vector<o2::trd::TriggerRecord> getIR() { return mEventTriggers; }
   void getParsedObjects(std::vector<Tracklet64>& tracklets, std::vector<Digit>& cdigits, std::vector<TriggerRecord>& triggers);
   void getParsedObjectsandClear(std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits, std::vector<TriggerRecord>& triggers);
-  void buildDPLOutputs(o2::framework::ProcessingContext& outputs);
+  void buildDPLOutputs(o2::framework::ProcessingContext& outputs, bool displaytracklets = false);
   int getDigitsFound() { return mTotalDigitsFound; }
   int getTrackletsFound() { return mTotalTrackletsFound; }
   int sumTrackletsFound() { return mEventRecords.sumTracklets(); }
@@ -130,6 +130,9 @@ class CruRawReader
   bool mHeaderVerbose{false};
   bool mDataVerbose{false};
   bool mByteSwap{false};
+  bool mFixDigitEndCorruption{false};
+  int mTrackletHCHeaderState{0};
+
   const char* mDataBuffer = nullptr;
   static const uint32_t mMaxHBFBufferSize = o2::trd::constants::HBFBUFFERMAX;
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX> mHBFPayload; //this holds the O2 payload held with in the HBFs to pass to parsing.

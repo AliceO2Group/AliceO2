@@ -21,6 +21,7 @@
 #include <arrow/table.h>
 #include <arrow/type_traits.h>
 #include <arrow/status.h>
+#include <arrow/util/key_value_metadata.h>
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
@@ -47,6 +48,13 @@ void ArrayFromVector(const std::vector<C_TYPE>& values, std::shared_ptr<arrow::A
 
 namespace o2::framework
 {
+void addLabelToSchema(std::shared_ptr<arrow::Schema>& schema, const char* label)
+{
+  schema = schema->WithMetadata(
+    std::make_shared<arrow::KeyValueMetadata>(
+      std::vector{std::string{"label"}},
+      std::vector{std::string{label}}));
+}
 
 std::shared_ptr<arrow::Table>
   TableBuilder::finalize()
@@ -72,6 +80,11 @@ void TableBuilder::validate(const int nColumns, std::vector<std::string> const& 
   if (mHolders != nullptr) {
     throwError(runtime_error("TableBuilder::persist can only be invoked once per instance"));
   }
+}
+
+void TableBuilder::setLabel(const char* label)
+{
+  mSchema = mSchema->WithMetadata(std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{std::string{label}}));
 }
 
 } // namespace o2::framework

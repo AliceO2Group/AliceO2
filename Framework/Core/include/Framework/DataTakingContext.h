@@ -17,6 +17,13 @@
 namespace o2::framework
 {
 
+enum struct OrbitResetTimeSource : int {
+  Default, // The information is dummy an should not be used
+  User,    // The information was provided by the user via either ECS or command line
+  Data,    // The information was retrieved from the first message processed.
+  CTP      // The information was retrieved from the CTP object in CCDB
+};
+
 struct DataTakingContext {
   /// The current run number
   std::string runNumber = "unknown";
@@ -24,6 +31,8 @@ struct DataTakingContext {
   uint64_t nOrbitsPerTF = 128;
   /// The start time of the first orbit
   uint64_t orbitResetTime = 490917600;
+  // What currently set the orbitResetTime value.
+  OrbitResetTimeSource source = OrbitResetTimeSource::Default;
 };
 
 } // namespace o2::framework

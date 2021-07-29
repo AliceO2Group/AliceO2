@@ -168,7 +168,7 @@ class JetFinder
   std::unique_ptr<fastjet::Subtractor> sub;
   std::unique_ptr<fastjet::contrib::ConstituentSubtractor> constituentSub;
 
-  ClassDef(JetFinder, 1);
+  ClassDefNV(JetFinder, 1);
 };
 
 //does this belong here?
