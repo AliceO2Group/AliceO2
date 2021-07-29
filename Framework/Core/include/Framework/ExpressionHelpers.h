@@ -135,8 +135,11 @@ struct ProcessConfigurable : Configurable<bool, ConfigParamKind::kProcessFlag> {
   (As...);
 };
 
-#define PROCESS_SWITCH(_Var_, _Name_, _Help_, _Function_, _Default_) \
+#define PROCESS_SWITCH_FULL(_Var_, _Name_, _Help_, _Function_, _Default_) \
   decltype(ProcessConfigurable{_Function_, _Name_, _Default_, _Help_}) _Var_ = ProcessConfigurable{_Function_, _Name_, _Default_, _Help_};
+
+#define PROCESS_SWITCH(_Name_, _Help_, _Class_, _Default_) \
+  decltype(ProcessConfigurable{&_Class_ ::_Name_, #_Name_, _Default_, _Help_}) do##_Name_ = ProcessConfigurable{&_Class_ ::_Name_, #_Name_, _Default_, _Help_};
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_EXPRESSIONS_HELPERS_H_

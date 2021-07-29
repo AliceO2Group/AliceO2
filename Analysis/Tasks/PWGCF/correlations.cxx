@@ -289,7 +289,7 @@ struct CorrelationTask {
     fillCorrelations(same, tracks, tracks, centrality, collision.posZ(), bSign);
   }
 
-  PROCESS_SWITCH(doProcessSame, "doProcessSame", "Process same event", &CorrelationTask::processSame, true);
+  PROCESS_SWITCH(processSame, "Process same event", CorrelationTask, true);
 
   void processMixed(soa::Join<aod::Collisions, aod::Hashes, aod::EvSels, aod::Cents>& collisions, myTracks const& tracks)
   {
@@ -337,7 +337,7 @@ struct CorrelationTask {
     }
   }
 
-  PROCESS_SWITCH(doProcessMixed, "doProcessMixed", "Process mixed events", &CorrelationTask::processMixed, true);
+  PROCESS_SWITCH(processMixed, "Process mixed events", CorrelationTask, true);
 
   // Version with combinations
   void processWithCombinations(soa::Join<aod::Collisions, aod::Cents>::iterator const& collision, soa::Filtered<aod::Tracks> const& tracks)
@@ -395,7 +395,7 @@ struct CorrelationTask {
     }
   }
 
-  PROCESS_SWITCH(doProcessCombinations, "doProcessCombinations", "Process with combinations", &CorrelationTask::processWithCombinations, false);
+  PROCESS_SWITCH(processWithCombinations, "Process with combinations", CorrelationTask, false);
 
   double getEfficiency(THn* eff, float eta, float pt, float centrality, float posZ)
   {

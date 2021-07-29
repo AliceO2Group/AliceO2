@@ -122,7 +122,7 @@ struct HfTagSelCollisions {
     rowSelectedCollision(statusCollision);
   };
 
-  PROCESS_SWITCH(withEvSel, "withEvSel", "Use event selection", &HfTagSelCollisions::processEvSel, true);
+  PROCESS_SWITCH(processEvSel, "Use event selection", HfTagSelCollisions, true);
 
   // no event selection in case of no event-selection task attached
   void processNoEvSel(aod::Collision const&)
@@ -138,7 +138,7 @@ struct HfTagSelCollisions {
     rowSelectedCollision(statusCollision);
   };
 
-  PROCESS_SWITCH(withoutEvSel, "withoutEvSel", "Do not use event selection", &HfTagSelCollisions::processNoEvSel, false);
+  PROCESS_SWITCH(processNoEvSel, "Do not use event selection", HfTagSelCollisions, false);
 };
 
 /// Track selection
@@ -1423,7 +1423,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   if (doEvSel) {
     workflow.push_back(adaptAnalysisTask<HfTagSelCollisions>(cfgc));
   } else {
-    workflow.push_back(adaptAnalysisTask<HfTagSelCollisions>(cfgc, SetDefaultProcesses{{{"withEvSel", false}, {"withoutEvSel", true}}}));
+    workflow.push_back(adaptAnalysisTask<HfTagSelCollisions>(cfgc, SetDefaultProcesses{{{"processEvSel", false}, {"processNoEvSel", true}}}));
   }
 
   workflow.push_back(adaptAnalysisTask<HfTagSelTracks>(cfgc));

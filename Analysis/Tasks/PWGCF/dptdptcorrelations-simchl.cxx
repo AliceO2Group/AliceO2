@@ -702,7 +702,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
     acceptedevents((uint8_t)acceptedevent, centormult);
   }
 
-  PROCESS_SWITCH(doProcessWithCent, "doProcessWithCent", "Process with centrality", &DptDptCorrelationsFilterAnalysisTask::processWithCent, true);
+  PROCESS_SWITCH(processWithCent, "Process with centrality", DptDptCorrelationsFilterAnalysisTask, true);
 
   void processWithoutCent(aod::CollisionEvSel const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection> const& ftracks)
   {
@@ -731,7 +731,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
     acceptedevents((uint8_t)acceptedevent, centormult);
   }
 
-  PROCESS_SWITCH(doProcessWithoutCent, "doProcessWithoutCent", "Process without centrality", &DptDptCorrelationsFilterAnalysisTask::processWithoutCent, false);
+  PROCESS_SWITCH(processWithoutCent, "Process without centrality", DptDptCorrelationsFilterAnalysisTask, false);
 
   //  void processWithCentMC(aod::McCollision const& mccollision,
   //                         soa::Join<aod::McCollisionLabels, aod::CollisionsEvSelCent> const& collisions,
@@ -778,7 +778,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
     }
   }
 
-  PROCESS_SWITCH(doProcessWithCentMC, "doProcessWithCentMC", "Process with centrality", &DptDptCorrelationsFilterAnalysisTask::processWithCentMC, false);
+  PROCESS_SWITCH(processWithCentMC, "Process with centrality", DptDptCorrelationsFilterAnalysisTask, false);
 
   void processWithoutCentMC(aod::McCollision const& mccollision,
                             aod::McParticles const& mcparticles)
@@ -808,7 +808,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
     acceptedtrueevents((uint8_t)acceptedevent, centormult);
   }
 
-  PROCESS_SWITCH(doProcessWithoutCentMC, "doProcessWithoutCentMC", "Process with centrality", &DptDptCorrelationsFilterAnalysisTask::processWithoutCentMC, false);
+  PROCESS_SWITCH(processWithoutCentMC, "Process with centrality", DptDptCorrelationsFilterAnalysisTask, false);
 };
 
 // Task for building <dpt,dpt> correlations
@@ -1417,9 +1417,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
       /* no centrality/multiplicity classes available */
       WorkflowSpec workflow{
         adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc,
-                                                                SetDefaultProcesses{{{"doProcessWithCent", false},
-                                                                                     {"doProcessWithoutCent", true},
-                                                                                     {"doProcessWithoutCentMC", true}}}),
+                                                                SetDefaultProcesses{{{"processWithCent", false},
+                                                                                     {"processWithoutCent", true},
+                                                                                     {"processWithoutCentMC", true}}}),
         adaptAnalysisTask<TracksAndEventClassificationQARec>(cfgc),
         adaptAnalysisTask<TracksAndEventClassificationQAGen>(cfgc),
         adaptAnalysisTask<DptDptCorrelationsTask>(cfgc)};
@@ -1427,7 +1427,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     } else {
       /* centrality/multiplicity classes available */
       WorkflowSpec workflow{
-        adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, SetDefaultProcesses{{{"doProcessWithCentMC", true}}}),
+        adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, SetDefaultProcesses{{{"processWithCentMC", true}}}),
         adaptAnalysisTask<TracksAndEventClassificationQARec>(cfgc),
         adaptAnalysisTask<TracksAndEventClassificationQAGen>(cfgc),
         adaptAnalysisTask<DptDptCorrelationsTask>(cfgc)};
@@ -1437,7 +1437,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     if (multest == "NOCM") {
       /* no centrality/multiplicity classes available */
       WorkflowSpec workflow{
-        adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, SetDefaultProcesses{{{"doProcessWithCent", false}, {"doProcessWithoutCent", true}}}),
+        adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, SetDefaultProcesses{{{"processWithCent", false}, {"processWithoutCent", true}}}),
         adaptAnalysisTask<TracksAndEventClassificationQARec>(cfgc),
         adaptAnalysisTask<DptDptCorrelationsTask>(cfgc)};
       return workflow;
