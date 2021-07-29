@@ -584,7 +584,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         outputRegions.clusterLabels.allocator = [&clustersMCBuffer](size_t size) -> void* { return &clustersMCBuffer; };
       }
 
-      const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
+      const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
       processAttributes->tfSettings.tfStartOrbit = dh->firstTForbit;
       processAttributes->tfSettings.hasTfStartOrbit = 1;
       ptrs.settingsTF = &processAttributes->tfSettings;

@@ -127,7 +127,7 @@ class TPCAggregateGroupedIDCSpec : public o2::framework::Task
   bool mUpdateGroupingPar{true};                    ///< flag to set if grouping parameters should be updated or not
 
   /// \return returns TF of current processed data
-  uint32_t getCurrentTF(o2::framework::ProcessingContext& pc) const { return o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getByPos(0))->tfCounter; }
+  uint32_t getCurrentTF(o2::framework::ProcessingContext& pc) const { return o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter; }
 
   /// \return returns first TF for validity range when storing to CCDB
   uint32_t getFirstTF() const { return mTFRange[0]; }

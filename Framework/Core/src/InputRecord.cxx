@@ -75,7 +75,7 @@ DataRef InputRecord::getByPos(int pos, int part) const
   return ref;
 }
 
-DataRef InputRecord::getFirstValid() const
+DataRef InputRecord::getFirstValid(bool throwOnFailure) const
 {
   for (size_t i = 0; i < size(); i++) {
     auto ref = mSpan.get(i);
@@ -84,7 +84,9 @@ DataRef InputRecord::getFirstValid() const
       return ref;
     }
   }
-  throw runtime_error_f("no valid inputs out of total ", size());
+  if (throwOnFailure) {
+    throw runtime_error_f("No valid input found out of total ", size());
+  }
   return {};
 }
 

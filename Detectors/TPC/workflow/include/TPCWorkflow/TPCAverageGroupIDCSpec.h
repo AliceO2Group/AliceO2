@@ -65,7 +65,7 @@ class TPCAverageGroupIDCDevice : public o2::framework::Task
     }
 
     if (mDebug) {
-      TFile fOut(fmt::format("IDCGroup_{}_tf_{}.root", mLane, o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getByPos(0))->tfCounter).data(), "RECREATE");
+      TFile fOut(fmt::format("IDCGroup_{}_tf_{}.root", mLane, o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter).data(), "RECREATE");
       for (int i = 0; i < mCRUs.size(); ++i) {
         const DataRef ref = pc.inputs().getByPos(i);
         auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
