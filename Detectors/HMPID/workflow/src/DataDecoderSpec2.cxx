@@ -345,7 +345,7 @@ o2::framework::DataProcessorSpec getDecodingSpec2(bool askDISTSTF)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DataDecoderTask2>()},
-    Options{{"get-results-statistics ", VariantType::Bool, false, {"Generate intermediat output results."}},
+    Options{{"get-results-statistics", VariantType::Bool, false, {"Generate intermediat output results."}},
             {"result-file", VariantType::String, "/tmp/hmpRawDecodeResults", {"Base name of the decoding results files."}},
             {"fast-decode", VariantType::Bool, false, {"Use the fast algorithm. (error 0.8%)"}}}};
 }
