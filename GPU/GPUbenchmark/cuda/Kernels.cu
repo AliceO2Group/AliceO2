@@ -91,12 +91,11 @@ __global__ void readChunkMBKernel(
   chunk_type* results,
   size_t chunkSize)
 {
+  chunk_type sink{0};
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
-    if (chunkPtr[i] == static_cast<chunk_type>(1)) { // actual read operation is performed here
-      results[chunkId] += chunkPtr[i];               // this case should never happen and waves should be always in sync
-      printf("Should never happen\n");
-    }
+    sink += chunkPtr[i];
   }
+  results[chunkId] = sink;
 }
 
 // Write
