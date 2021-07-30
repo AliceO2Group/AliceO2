@@ -54,15 +54,15 @@ void MCSignal::AddProng(MCProng prong, short commonAncestor)
   if (fProngs.size() < fNProngs) {
     fProngs.push_back(prong);
     fCommonAncestorIdxs.push_back(commonAncestor);
-  } else // TODO: there should be an error message here
+  } else { // TODO: there should be an error message here
     return;
+  }
 }
 
 //________________________________________________________________________________________________
 void MCSignal::Print()
 {
   cout << "Name/Title: " << fName << " / " << fTitle << endl;
-  //cout << "Common ancestor idx :: " << fCommonAncestorIdx << endl;
   cout << "Printing " << fNProngs << "/" << fProngs.size() << " prongs:" << endl;
   int i = 0;
   for (auto& pr : fProngs) {

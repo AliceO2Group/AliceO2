@@ -82,9 +82,9 @@ class MCProng
   void SetSources(int generation, uint64_t bits, uint64_t exclude = 0, bool useANDonSourceBits = true);
   void SetSourceBit(int generation, int sourceBit, bool exclude = false);
   void SetUseANDonSourceBits(int generation, bool option = true);
-  void Print();
-  bool TestPDG(int i, int pdgCode);
-  bool ComparePDG(int pdg, int prongPDG, bool checkBothCharges = false, bool exclude = false);
+  void Print() const;
+  bool TestPDG(int i, int pdgCode) const;
+  bool ComparePDG(int pdg, int prongPDG, bool checkBothCharges = false, bool exclude = false) const;
 
   std::vector<int> fPDGcodes;
   std::vector<bool> fCheckBothCharges;

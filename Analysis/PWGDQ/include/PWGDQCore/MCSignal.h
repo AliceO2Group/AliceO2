@@ -148,13 +148,14 @@ bool MCSignal::CheckProng(int i, bool checkSources, const U& mcStack, const T& t
       }
     }
     // make sure that a mother exists in the stack before moving one generation further in history
-    if (currentMCParticle.has_mother0() && j < fProngs[i].fNGenerations - 1) {
+    if (!currentMCParticle.has_mother0() && j < fProngs[i].fNGenerations - 1) {
       return false;
     }
-    //currentMCParticle = mcStack.iteratorAt(currentMCParticle.mother0());
-    currentMCParticle = currentMCParticle.template mother0_as<U>();
+    if (j < fProngs[i].fNGenerations - 1) {
+      currentMCParticle = mcStack.iteratorAt(currentMCParticle.mother0Id());
+      //currentMCParticle = currentMCParticle.template mother0_as<U>();
+    }
   }
-
   // NOTE:  Checking the sources is optional due to the fact that with the skimmed data model
   //        the full history of a particle is not guaranteed to be present in the particle stack,
   //        which means that some sources cannot be properly checked (e.g. ALICE physical primary)
@@ -173,7 +174,7 @@ bool MCSignal::CheckProng(int i, bool checkSources, const U& mcStack, const T& t
       //TODO: compilation fails if MC.h is included (error: multiple definition of MC::isStable()). Check it out!
       /*if(fProngs[i].fSourceBits[j] & MCProng::kPhysicalPrimary) { 
         cout << "request kPhysicalPrimary, pdg " << currentMCParticle.pdgCode() << endl;    
-        if((fProngs[i].fExcludeSource[j] & MCProng::kPhysicalPrimary) != MC::isPhysicalPrimary(mcStack, track)) {
+        if((fProngs[i].fExcludeSource[j] & MCProng::kPhysicalPrimary) != MC::isPhysicalPrimary<U>(track)) {
           sourcesDecision |= MCProng::kPhysicalPrimary;
           cout << "good " << sourcesDecision << endl;
         }
@@ -197,8 +198,11 @@ bool MCSignal::CheckProng(int i, bool checkSources, const U& mcStack, const T& t
         return false;
       }
       // move one generation back in history
-      //currentMCParticle = mcStack.iteratorAt(currentMCParticle.mother0());
-      currentMCParticle = currentMCParticle.template mother0_as<U>();
+      if (j < fProngs[i].fNGenerations - 1) {
+        currentMCParticle = mcStack.iteratorAt(currentMCParticle.mother0Id());
+        //currentMCParticle = currentMCParticle.template mother0_as<U>();
+      }
+      
     }
   }
 

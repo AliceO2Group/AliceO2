@@ -55,7 +55,8 @@ using MyBarrelTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, 
                                  aod::pidTOFFullEl, aod::pidTOFFullMu, aod::pidTOFFullPi,
                                  aod::pidTOFFullKa, aod::pidTOFFullPr, aod::pidTOFbeta,
                                  aod::McTrackLabels>;
-using MyEvents = soa::Join<aod::Collisions, aod::EvSels, aod::Cents, aod::McCollisionLabels>;
+//using MyEvents = soa::Join<aod::Collisions, aod::EvSels, aod::Cents, aod::McCollisionLabels>;
+using MyEvents = soa::Join<aod::Collisions, aod::EvSels, aod::McCollisionLabels>; // TODO: remove centrality temporarily
 
 // HACK: In order to be able to deduce which kind of aod object is transmitted to the templated VarManager::Fill functions
 //         a constexpr static bit map must be defined and sent as template argument
@@ -64,7 +65,8 @@ using MyEvents = soa::Join<aod::Collisions, aod::EvSels, aod::Cents, aod::McColl
 //       otherwise a compile time error will be thrown.
 //        This is a temporary fix until the arrow/ROOT issues are solved, at which point it will be possible
 //           to automatically detect the object types transmitted to the VarManager
-constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision | VarManager::ObjTypes::CollisionCent;
+//constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision | VarManager::ObjTypes::CollisionCent;
+constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision;
 constexpr static uint32_t gkEventMCFillMap = VarManager::ObjTypes::CollisionMC;
 constexpr static uint32_t gkTrackFillMap = VarManager::ObjTypes::Track | VarManager::ObjTypes::TrackExtra | VarManager::ObjTypes::TrackDCA | VarManager::ObjTypes::TrackSelection | VarManager::ObjTypes::TrackCov | VarManager::ObjTypes::TrackPID;
 constexpr static uint32_t gkParticleMCFillMap = VarManager::ObjTypes::ParticleMC;
@@ -86,7 +88,9 @@ struct TableMakerMC {
 
   // temporary variables used for the indexing of the skimmed MC stack
   std::map<uint64_t, int> fNewLabels;
+  std::map<uint64_t, int> fNewLabelsReversed;
   std::map<uint64_t, int16_t> fMCFlags;
+  std::map<uint64_t, int> fEventIdx;
   int fCounter;
 
   // list of MCsignal objects
@@ -116,7 +120,11 @@ struct TableMakerMC {
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
     fCounter = 0;
-
+    fNewLabels.clear();
+    fNewLabelsReversed.clear();
+    fMCFlags.clear();
+    fEventIdx.clear();
+    
     TString histClasses = "Event_BeforeCuts;Event_AfterCuts;TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts;";
 
     TString configNamesStr = fConfigMCSignals.value;
@@ -156,8 +164,44 @@ struct TableMakerMC {
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(MyEvents::iterator const& collision, aod::BCs const& bcs, soa::Filtered<MyBarrelTracks> const& tracksBarrel,
-               aod::McParticles const& mcTracks, aod::McCollisions const& mcEvents)
+  void processWriteStack(aod::McParticles const& mcTracks) {
+    // loop over the selected MC tracks and write them to the new stack
+    // NOTE: At this point, all the particles which should go into the new stack should had been
+    //     selected, such that the mother/daughter new labels can be computed    
+    // NOTE: We need to write the particles to the new stack in the exact same order as the
+    //   one in which the new labels were assigned. So we use the fNewLabelsReversed which has as key the new label 
+    //   and as value the old stack label, which we then use to retrieve the particle to be written 
+    for (const auto& [newLabel, oldLabel] : fNewLabelsReversed) {
+      auto mctrack = mcTracks.iteratorAt(oldLabel);
+      int mcflags = fMCFlags.find(oldLabel)->second;
+      
+      int m0Label = -1;
+      if (mctrack.has_mother0() && (fNewLabels.find(mctrack.mother0Id()) != fNewLabels.end()))
+        m0Label = fNewLabels.find(mctrack.mother0Id())->second;
+      int m1Label = -1;
+      if (mctrack.has_mother1() && (fNewLabels.find(mctrack.mother1Id()) != fNewLabels.end()))
+        m1Label = fNewLabels.find(mctrack.mother1Id())->second;
+      int d0Label = -1;
+      if (mctrack.has_daughter0() && (fNewLabels.find(mctrack.daughter0Id()) != fNewLabels.end()))
+        d0Label = fNewLabels.find(mctrack.daughter0Id())->second;
+      int d1Label = -1;
+      if (mctrack.has_daughter1() && (fNewLabels.find(mctrack.daughter1Id()) != fNewLabels.end()))
+        d1Label = fNewLabels.find(mctrack.daughter1Id())->second;
+      trackMC(fEventIdx.find(oldLabel)->second, mctrack.pdgCode(), mctrack.statusCode(), mctrack.flags(),
+              m0Label, m1Label, d0Label, d1Label,
+              mctrack.weight(), mctrack.px(), mctrack.py(), mctrack.pz(), mctrack.e(),
+              mctrack.vx(), mctrack.vy(), mctrack.vz(), mctrack.vt(), mcflags);
+    }
+      
+    fCounter = 0;
+    fNewLabels.clear();
+    fNewLabelsReversed.clear();
+    fMCFlags.clear();
+    fEventIdx.clear();
+  }
+  
+  void processRec(MyEvents::iterator const& collision, aod::BCs const& bcs, soa::Filtered<MyBarrelTracks> const& tracksBarrel,
+                  aod::McParticles const& mcTracks, aod::McCollisions const& mcEvents)
   {
     uint32_t triggerAliases = 0;
     for (int i = 0; i < kNaliases; i++) {
@@ -181,55 +225,46 @@ struct TableMakerMC {
     eventExtended(collision.bc().globalBC(), collision.bc().triggerMask(), 0, triggerAliases, fValues[VarManager::kCentVZERO]);
     eventVtxCov(collision.covXX(), collision.covXY(), collision.covXZ(), collision.covYY(), collision.covYZ(), collision.covZZ(), collision.chi2());
     eventMC(collision.mcCollision().generatorsID(), collision.mcCollision().posX(), collision.mcCollision().posY(),
-            collision.mcCollision().posZ(), collision.mcCollision().t(), collision.mcCollision().weight(), collision.mcCollision().impactParameter());
-
+            collision.mcCollision().posZ(), collision.mcCollision().t(), collision.mcCollision().weight(), collision.mcCollision().impactParameter());  
+    
     // loop over the MC truth tracks and find those that need to be written
-    uint16_t flags = 0;
+    uint16_t mcflags = 0;
     for (auto& mctrack : mcTracks) {
-      if (mctrack.mcCollision().globalIndex() != collision.mcCollision().globalIndex()) { // TODO: check if needed
+      // grouping will be needed here 
+      if (mctrack.mcCollision().globalIndex() != collision.mcCollision().globalIndex()) {
         continue;
       }
 
-      flags = 0;
+      // check all the requested MC signals and fill a decision bit map
+      mcflags = 0;
       int i = 0;
       for (auto& sig : fMCSignals) {
-        if (sig.CheckSignal(true, mcTracks, mctrack))
-          flags |= (uint16_t(1) << i);
+        if (sig.CheckSignal(true, mcTracks, mctrack)) {
+          mcflags |= (uint16_t(1) << i);
+        }
         i++;
       }
-      if (flags) {
-
+      // if any of the MC signals was matched, then fill histograms and write that MC particle into the new stack
+      if (mcflags) {
         // fill histograms for each of the signals, if found
         VarManager::FillTrack<gkParticleMCFillMap>(mctrack, fValues);
         for (int i = 0; i < fMCSignals.size(); i++) {
-          if (flags & (uint16_t(1) << i)) {
+          if (mcflags & (uint16_t(1) << i)) {
             fHistMan->FillHistClass(Form("MCtruth_%s", fMCSignals[i].GetName()), fValues);
           }
         }
 
-        fNewLabels[mctrack.index()] = fCounter++;
-        fMCFlags[mctrack.index()] = flags;
-        int m0Label = -1;
-        if (mctrack.has_mother0() && (fNewLabels.find(mctrack.mother0Id()) != fNewLabels.end()))
-          m0Label = fNewLabels.find(mctrack.mother0Id())->second;
-        int m1Label = -1;
-        if (mctrack.has_mother1() && (fNewLabels.find(mctrack.mother1Id()) != fNewLabels.end()))
-          m1Label = fNewLabels.find(mctrack.mother1Id())->second;
-        int d0Label = -1;
-        if (mctrack.has_daughter0() && (fNewLabels.find(mctrack.daughter0Id()) != fNewLabels.end()))
-          d0Label = fNewLabels.find(mctrack.daughter0Id())->second;
-        int d1Label = -1;
-        if (mctrack.has_daughter1() && (fNewLabels.find(mctrack.daughter1Id()) != fNewLabels.end()))
-          d1Label = fNewLabels.find(mctrack.daughter1Id())->second;
-        trackMC(event.lastIndex(), mctrack.pdgCode(), mctrack.statusCode(), mctrack.flags(),
-                m0Label, m1Label, d0Label, d1Label,
-                mctrack.weight(), mctrack.px(), mctrack.py(), mctrack.pz(), mctrack.e(),
-                mctrack.vx(), mctrack.vy(), mctrack.vz(), mctrack.vt(), fMCFlags.find(mctrack.index())->second);
+        fNewLabels[mctrack.index()] = fCounter;
+        fNewLabelsReversed[fCounter] = mctrack.index();
+        fMCFlags[mctrack.index()] = mcflags;
+        fEventIdx[mctrack.index()] = event.lastIndex();
+        fCounter++;
       }
     } // end loop over mc stack
-
+    
     // loop over reconstructed tracks
     uint64_t trackFilteringTag = 0;
+    //uint16_t mcflags = 0;
     trackBasic.reserve(tracksBarrel.size());
     trackBarrel.reserve(tracksBarrel.size());
     trackBarrelCov.reserve(tracksBarrel.size());
@@ -248,38 +283,24 @@ struct TableMakerMC {
 
       // if the MC truth particle corresponding to this reconstructed track is not already written,
       //   add it to the skimmed stack
-      if (!(fNewLabels.find(track.mcParticle().index()) != fNewLabels.end())) {
-        flags = 0;
+      mcflags = 0;
+      if (!(fNewLabels.find(mctrack.index()) != fNewLabels.end())) {
         int i = 0;
         // check all the specified signals
         for (auto& sig : fMCSignals) {
           if (sig.CheckSignal(true, mcTracks, mctrack)) {
-            flags |= (uint16_t(1) << i);
+            mcflags |= (uint16_t(1) << i);
             fHistMan->FillHistClass(Form("TrackBarrel_AfterCuts_%s", sig.GetName()), fValues); // fill the reconstructed truth
             fHistMan->FillHistClass(Form("MCtruth_%s", sig.GetName()), fValues);               // fill the generated truth
           }
           i++;
         }
 
-        fNewLabels[track.mcParticle().index()] = fCounter++;
-        fMCFlags[track.mcParticle().index()] = flags;
-
-        int m0Label = -1;
-        if (mctrack.has_mother0() && (fNewLabels.find(mctrack.mother0Id()) != fNewLabels.end()))
-          m0Label = fNewLabels.find(mctrack.mother0Id())->second;
-        int m1Label = -1;
-        if (mctrack.has_mother1() && (fNewLabels.find(mctrack.mother1Id()) != fNewLabels.end()))
-          m1Label = fNewLabels.find(mctrack.mother1Id())->second;
-        int d0Label = -1;
-        if (mctrack.has_daughter0() && (fNewLabels.find(mctrack.daughter0Id()) != fNewLabels.end()))
-          d0Label = fNewLabels.find(mctrack.daughter0Id())->second;
-        int d1Label = -1;
-        if (mctrack.has_daughter1() && (fNewLabels.find(mctrack.daughter1Id()) != fNewLabels.end()))
-          d1Label = fNewLabels.find(mctrack.daughter1Id())->second;
-        trackMC(event.lastIndex(), mctrack.pdgCode(), mctrack.statusCode(), mctrack.flags(),
-                m0Label, m1Label, d0Label, d1Label,
-                mctrack.weight(), mctrack.px(), mctrack.py(), mctrack.pz(), mctrack.e(),
-                mctrack.vx(), mctrack.vy(), mctrack.vz(), mctrack.vt(), fMCFlags.find(mctrack.index())->second);
+        fNewLabels[mctrack.index()] = fCounter;
+        fNewLabelsReversed[fCounter] = mctrack.index();
+        fMCFlags[mctrack.index()] = mcflags;
+        fEventIdx[mctrack.index()] = event.lastIndex();
+        fCounter++;
       }
 
       if (track.isGlobalTrack()) {
@@ -305,8 +326,8 @@ struct TableMakerMC {
                      track.tofNSigmaEl(), track.tofNSigmaMu(),
                      track.tofNSigmaPi(), track.tofNSigmaKa(), track.tofNSigmaPr(),
                      track.trdSignal());
-      trackBarrelLabels(fNewLabels.find(mctrack.index())->second, track.mcMask(), fMCFlags.find(mctrack.index())->second);
-    }
+      trackBarrelLabels(fNewLabels.find(mctrack.index())->second, track.mcMask(), mcflags);
+    }  // end loop over reconstructed tracks
   }
 
   void DefineHistograms(TString histClasses)
@@ -350,5 +371,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // TODO: For now TableMakerMC works just for PbPb (cent table is present)
   //      Implement workflow arguments for pp/PbPb and possibly merge the task with tableMaker.cxx
   return WorkflowSpec{
-    adaptAnalysisTask<TableMakerMC>(cfgc)};
+    adaptAnalysisTask<TableMakerMC>(cfgc, Processes{&TableMakerMC::processRec, &TableMakerMC::processWriteStack})
+  };
 }

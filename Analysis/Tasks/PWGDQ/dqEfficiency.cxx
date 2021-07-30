@@ -191,6 +191,7 @@ struct DQBarrelTrackSelection {
 
   void process(MyEventsSelected::iterator const& event, MyBarrelTracks const& tracks, ReducedMCTracks const& tracksMC)
   {
+    cout << "Event ######################################" << endl;
     VarManager::ResetValues(0, VarManager::kNMCParticleVariables, fValues);
     // fill event information which might be needed in histograms that combine track and event properties
     VarManager::FillEvent<gkEventFillMap>(event, fValues);
@@ -200,8 +201,13 @@ struct DQBarrelTrackSelection {
 
     for (auto& track : tracks) {
       filterMap = uint8_t(0);
+      cout << "track ===================================" << endl;
       VarManager::FillTrack<gkTrackFillMap>(track, fValues);
-      VarManager::FillTrack<gkParticleMCFillMap>(track.reducedMCTrack(), fValues);
+      cout << "after fill ===================================" << endl;
+      auto mctrack = track.reducedMCTrack();
+      cout << "MC matched track " << mctrack.index() << "/" << mctrack.globalIndex() << ", pdgCode " << mctrack.pdgCode() << ", pt rec/gen " << track.pt() << "/" << mctrack.pt() << ", MCflags " << mctrack.mcReducedFlags() << endl;
+      VarManager::FillTrack<gkParticleMCFillMap>(mctrack, fValues);
+      cout << "after fill MC ===================================" << endl;
       fHistMan->FillHistClass("TrackBarrel_BeforeCuts", fValues);
 
       int i = 0;
@@ -217,7 +223,7 @@ struct DQBarrelTrackSelection {
       }
 
       for (auto& sig : fMCSignals) {
-        if (sig.CheckSignal(false, tracksMC, track.reducedMCTrack())) {
+        if (sig.CheckSignal(false, tracksMC, mctrack)) {
           for (int j = 0; j < fTrackCuts.size(); j++) {
             if (filterMap & (uint8_t(1) << j)) {
               fHistMan->FillHistClass(Form("TrackBarrel_%s_%s", fTrackCuts[j].GetName(), sig.GetName()), fValues);
@@ -391,12 +397,13 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
     }
 
     if (classStr.Contains("Pairs")) {
-      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "pair", "vertexing-barrel");
+      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "pair_barrel", "vertexing-barrel");
     }
 
     if (classStr.Contains("MCTruthGen")) {
-      histMan->AddHistogram(objArray->At(iclass)->GetName(), "Pt", "MC generator p_{T} distribution", false, 200, 0.0, 20.0, VarManager::kMCPt);
-      histMan->AddHistogram(objArray->At(iclass)->GetName(), "Eta", "MC generator #eta distribution", false, 500, -5.0, 5.0, VarManager::kMCEta);
+      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "mctruth");  
+      /*histMan->AddHistogram(objArray->At(iclass)->GetName(), "Pt", "MC generator p_{T} distribution", false, 200, 0.0, 20.0, VarManager::kMCPt);
+      histMan->AddHistogram(objArray->At(iclass)->GetName(), "Eta", "MC generator #eta distribution", false, 500, -5.0, 5.0, VarManager::kMCEta);*/
       histMan->AddHistogram(objArray->At(iclass)->GetName(), "Phi", "MC generator #varphi distribution", false, 500, -6.3, 6.3, VarManager::kMCPhi);
     }
   } // end loop over histogram classes
