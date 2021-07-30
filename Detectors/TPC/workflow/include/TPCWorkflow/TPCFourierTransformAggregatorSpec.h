@@ -112,7 +112,7 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
   int mProcessedTFs{0};                         ///< number of processed time frames to keep track of when the writing to CCDB will be done
 
   /// \return returns TF of current processed data
-  uint32_t getCurrentTF(o2::framework::ProcessingContext& pc) const { return o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getByPos(0))->tfCounter; }
+  uint32_t getCurrentTF(o2::framework::ProcessingContext& pc) const { return o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter; }
 
   void sendOutput(DataAllocator& output)
   {

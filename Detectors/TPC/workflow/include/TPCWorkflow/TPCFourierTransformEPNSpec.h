@@ -65,7 +65,7 @@ class TPCFourierTransformEPNSpec : public o2::framework::Task
 
     if (mDebug) {
       LOGP(info, "dumping FT to file");
-      mIDCFourierTransform.dumpToFile(fmt::format("FourierEPN_{:02}.root", o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getByPos(0))->tfCounter).data());
+      mIDCFourierTransform.dumpToFile(fmt::format("FourierEPN_{:02}.root", o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter).data());
     }
 
     sendOutput(pc.outputs());
