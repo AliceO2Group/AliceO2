@@ -125,7 +125,8 @@ float ExpTimes<Coll, Trck, id>::ComputeExpectedTime(const float& tofExpMom, cons
     return 0.f;
   }
   const float energy = sqrt((massZ * massZ) + (tofExpMom * tofExpMom));
-  return length * energy / (kCSPEED * tofExpMom);
+  const float exp = length * energy / (kCSPEED * tofExpMom);
+  return exp >= 0.f ? exp : 0.f;
 }
 
 //_________________________________________________________________________
@@ -136,7 +137,8 @@ float ExpTimes<Coll, Trck, id>::GetExpectedSigma(const DetectorResponse& respons
     return -999.f;
   }
   const float x[7] = {trk.p(), trk.tofSignal(), col.collisionTimeRes() * 1000.f, o2::track::PID::getMass2Z(id), trk.length(), trk.sigma1Pt(), trk.pt()};
-  return response(response.kSigma, x);
+  const float reso = response(response.kSigma, x);
+  return reso >= 0.f ? reso : 0.f;
   // return response(response.kSigma, const Coll& col, const Trck& trk, id);
 }
 

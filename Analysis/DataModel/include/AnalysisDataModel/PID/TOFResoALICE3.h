@@ -75,7 +75,7 @@ template <o2::track::PID::ID id, typename C, typename T>
 float TOFResoALICE3ParamTrack(const C& collision, const T& track, const Parameters& parameters)
 {
   const float BETA = tan(0.25f * static_cast<float>(M_PI) - 0.5f * atan(track.tgl()));
-  const float sigmaP = sqrt(pow(track.pt(), 2) * pow(track.sigma1Pt(), 2) + (BETA * BETA - 1.f) / (BETA * (BETA * BETA + 1.f)) * (track.tgl() / sqrt(track.tgl() * track.tgl() + 1.f) - 1.f) * pow(track.sigmaTgl(), 2));
+  const float sigmaP = sqrt(track.pt() * track.pt() * track.sigma1Pt() * track.sigma1Pt() + (BETA * BETA - 1.f) / (BETA * (BETA * BETA + 1.f)) * (track.tgl() / sqrt(track.tgl() * track.tgl() + 1.f) - 1.f) * track.sigmaTgl() * track.sigmaTgl());
   // const float sigmaP = std::sqrt( track.getSigma1Pt2() ) * track.pt();
   return TOFResoALICE3Param(track.p(), sigmaP, collision.collisionTimeRes() * 1000.f, track.length(), o2::track::pid_constants::sMasses[id], parameters);
   // return TOFResoALICE3Param(track.p(), track.sigma1Pt(), collision.collisionTimeRes() * 1000.f, track.length(), o2::track::pid_constants::sMasses[id], parameters);

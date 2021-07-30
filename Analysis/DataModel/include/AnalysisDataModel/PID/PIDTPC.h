@@ -53,14 +53,16 @@ template <typename Coll, typename Trck, o2::track::PID::ID id>
 float ELoss<Coll, Trck, id>::GetExpectedSignal(const DetectorResponse& response, const Coll& col, const Trck& trk) const
 {
   const float x[2] = {trk.tpcInnerParam() / o2::track::PID::getMass(id), (float)o2::track::PID::getCharge(id)};
-  return response(DetectorResponse::kSignal, x);
+  const float bethe = response(DetectorResponse::kSignal, x);
+  return bethe >= 0.f ? bethe : 0.f;
 }
 
 template <typename Coll, typename Trck, o2::track::PID::ID id>
 float ELoss<Coll, Trck, id>::GetExpectedSigma(const DetectorResponse& response, const Coll& col, const Trck& trk) const
 {
   const float x[2] = {trk.tpcSignal(), (float)trk.tpcNClsFound()};
-  return response(DetectorResponse::kSigma, x);
+  const float reso = response(DetectorResponse::kSigma, x);
+  return reso >= 0.f ? reso : 0.f;
 }
 
 } // namespace o2::pid::tpc
