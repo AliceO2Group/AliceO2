@@ -35,7 +35,7 @@
 #include "TRDBase/Geometry.h"
 
 #include <unistd.h>
-#include <limits.h>
+#include <climits>
 
 using namespace o2::event_visualisation;
 using namespace o2::framework;
