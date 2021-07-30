@@ -46,21 +46,23 @@ class Pedestals
   /// \brief Get pedestal
   /// \param cellID Absolute ID of cell
   /// \return pedestal for the cell
-  short getPedestal(short cellID) const { return ((cellID >= 0) && (cellID < NCHANNELS)) ? short(mPedestals.at(cellID)) : 0; }
-  float getPedSigma(short cellID) const { return ((cellID >= 0) && (cellID < NCHANNELS)) ? mPedSigmas.at(cellID) : 0.0; }
+  short getPedestal(short cellID) const { mPedestals.at(cellID); }
+  float getPedSigma(short cellID) const { mPedSigmas.at(cellID); }
 
   /// \brief Set pedestal
   /// \param cellID Absolute ID of cell
   /// \param c is the pedestal (expected to be in range <254)
   void setPedestal(short cellID, short c)
   {
-    if ((cellID >= 0) && (cellID < NCHANNELS))
+    if ((cellID >= 0) && (cellID < NCHANNELS)) {
       mPedestals[cellID] = (c > 0 && c < 511) ? c : mPedestals[cellID];
+    }
   }
   void setPedSigma(short cellID, float c)
   {
-    if ((cellID >= 0) && (cellID < NCHANNELS))
+    if ((cellID >= 0) && (cellID < NCHANNELS)) {
       mPedSigmas[cellID] = (c > 0) ? c : mPedSigmas[cellID];
+    }
   }
 
   /// \brief Set pedestals from 1D histogram with cell absId in x axis
