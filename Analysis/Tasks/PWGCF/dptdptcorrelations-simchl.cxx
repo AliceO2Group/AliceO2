@@ -409,7 +409,7 @@ inline void AcceptTrueTrack(ParticleObject& particle, ParticleListObject& partic
   float charge = (fPDG->GetParticle(particle.pdgCode())->Charge() / 3 >= 1) ? 1.0 : ((fPDG->GetParticle(particle.pdgCode())->Charge() / 3 <= -1) ? -1.0 : 0.0);
 
   /* TODO: matchTrackType will not work. We need at least is physical primary */
-  if (MC::isPhysicalPrimary<ParticleListObject, ParticleObject>(particle)) {
+  if (MC::isPhysicalPrimary(particle)) {
     if (ptlow < particle.pt() and particle.pt() < ptup and etalow < particle.eta() and particle.eta() < etaup) {
       if (((charge > 0) and (trackonecharge > 0)) or ((charge < 0) and (trackonecharge < 0))) {
         asone = true;
