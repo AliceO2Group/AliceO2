@@ -106,8 +106,9 @@ class BadChannelMap
   /// Setting channel as good.
   void setChannelGood(unsigned short channelID)
   {
-    if (channelID < NCHANNELS)
+    if (channelID < NCHANNELS) {
       mBadCells.set(channelID, false);
+    }
   }
 
   /// \brief Get the status of a certain cell
@@ -115,7 +116,7 @@ class BadChannelMap
   /// \return true if good channel
   ///
   /// Provide the mask status of a cell.
-  bool isChannelGood(unsigned short channelID) const { return channelID < NCHANNELS ? !mBadCells.test(channelID) : false; }
+  bool isChannelGood(unsigned short channelID) const { return !mBadCells.test(channelID); }
 
   /// \brief Convert map into 2D histogram representation
   /// \param mod Module number
