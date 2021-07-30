@@ -96,8 +96,9 @@ class BadChannelMap
   /// container if present before, otherwise the cell is ignored.
   void addBadChannel(unsigned short channelID)
   {
-    if (channelID < NCHANNELS)
+    if (channelID < NCHANNELS) {
       mBadCells.set(channelID);
+    }
   } //set bit to true
 
   /// \brief Mark channel as good
