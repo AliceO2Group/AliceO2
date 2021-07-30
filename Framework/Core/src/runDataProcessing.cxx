@@ -1519,24 +1519,31 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               }
             }
             /// FIXME: use commandline arguments as alternative
-
-            LOGF(DEBUG, "Original inputs: ");
-            for (auto& input : device.inputs) {
-              LOGF(DEBUG, "-> %s", input.binding);
-            }
-            auto end = device.inputs.end();
-            auto new_end = std::remove_if(device.inputs.begin(), device.inputs.end(), [](InputSpec& input) {
-              return !std::any_of(input.metadata.begin(), input.metadata.end(), [](ConfigParamSpec& param) {
-                if (param.type == VariantType::Bool && param.name.find("control:") != std::string::npos) {
-                  return param.defaultValue.get<bool>() == true;
-                }
-                return true;
+            auto hasControls = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
+              return std::any_of(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& param) {
+                return param.type == VariantType::Bool && param.name.find("control:") != std::string::npos;
               });
             });
-            device.inputs.erase(new_end, end);
-            LOGF(DEBUG, "Adjusted inputs: ");
-            for (auto& input : device.inputs) {
-              LOGF(DEBUG, "-> %s", input.binding);
+
+            if (hasControls) {
+              LOGF(DEBUG, "Original inputs: ");
+              for (auto& input : device.inputs) {
+                LOGF(DEBUG, "-> %s", input.binding);
+              }
+              auto end = device.inputs.end();
+              auto new_end = std::remove_if(device.inputs.begin(), device.inputs.end(), [](InputSpec& input) {
+                return !std::any_of(input.metadata.begin(), input.metadata.end(), [](ConfigParamSpec& param) {
+                  if (param.type == VariantType::Bool && param.name.find("control:") != std::string::npos) {
+                    return param.defaultValue.get<bool>() == true;
+                  }
+                  return true;
+                });
+              });
+              device.inputs.erase(new_end, end);
+              LOGF(DEBUG, "Adjusted inputs: ");
+              for (auto& input : device.inputs) {
+                LOGF(DEBUG, "-> %s", input.binding);
+              }
             }
           }
 
