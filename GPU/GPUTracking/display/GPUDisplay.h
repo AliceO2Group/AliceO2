@@ -192,6 +192,7 @@ class GPUDisplay
   int InitGL_internal();
   int getNumThreads();
   void disableUnsupportedOptions();
+  int buildTrackFilter();
   const GPUTPCTracker& sliceTracker(int iSlice);
   const GPUTRDTrackerGPU& trdTracker();
   const GPUTRDGeometry& trdGeometry();
@@ -328,8 +329,9 @@ class GPUDisplay
   int mCurrentSpacePointsTRD = 0;
   int mCurrentClustersITS = 0;
   int mCurrentClustersTOF = 0;
-  std::vector<int> mTRDTrackIds;
-  std::vector<bool> mITSStandaloneTracks;
+  vecpod<int> mTRDTrackIds;
+  vecpod<bool> mITSStandaloneTracks;
+  std::vector<bool> mTrackFilter;
 
   int mGlDLrecent = 0;
   volatile int mUpdateDLList = 0;
