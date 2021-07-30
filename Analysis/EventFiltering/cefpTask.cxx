@@ -118,10 +118,8 @@ struct centralEventFilterTask {
     }
     LOG(INFO) << "Middle init, total number of columns " << nCols;
 
-    scalers.add("mScalers", "", HistType::kTH1F, {{nCols + 1, -0.5, 0.5 + nCols, ";;Number of events"}});
-    scalers.add("mFiltered", "", HistType::kTH1F, {{nCols + 1, -0.5, 0.5 + nCols, ";;Number of filtered events"}});
-    auto mScalers = scalers.get<TH1>(HIST("mScalers"));
-    auto mFiltered = scalers.get<TH1>(HIST("mFiltered"));
+    auto mScalers = std::get<std::shared_ptr<TH1>>(scalers.add("mScalers", ";;Number of events", HistType::kTH1F, {{nCols + 1, -0.5, 0.5 + nCols}}));
+    auto mFiltered = std::get<std::shared_ptr<TH1>>(scalers.add("mFiltered", ";;Number of filtered events", HistType::kTH1F, {{nCols + 1, -0.5, 0.5 + nCols}}));
 
     mScalers->GetXaxis()->SetBinLabel(1, "Total number of events");
     mFiltered->GetXaxis()->SetBinLabel(1, "Total number of events");
@@ -143,13 +141,15 @@ struct centralEventFilterTask {
 
   void run(ProcessingContext& pc)
   {
+    auto mScalers{scalers.get<TH1>(HIST("mScalers"))};
+    auto mFiltered{scalers.get<TH1>(HIST("mFiltered"))};
 
-    auto mScalers = scalers.get<TH1>(HIST("mScalers"));
-    auto mFiltered = scalers.get<TH1>(HIST("mFiltered"));
     int64_t nEvents{-1};
     for (auto& tableName : mDownscaling) {
+      if (!pc.inputs().isValid(tableName.first)) {
+        LOG(FATAL) << tableName.first << " table is not valid.";
+      }
       auto tableConsumer = pc.inputs().get<TableConsumer>(tableName.first);
-
       auto tablePtr{tableConsumer->asArrowTable()};
       int64_t nRows{tablePtr->num_rows()};
       nEvents = nEvents < 0 ? nRows : nEvents;
