@@ -517,13 +517,24 @@ void Detector::createGeometry()
     }
   }
 
-  // Unsupported with beampipe
   if (mLayers.size() == 1) { // All layers registered at mLayers[0], used when building from file
     LOG(INFO) << "Creating FT3 layers:";
-    for (Int_t iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
-      mLayers[0][iLayer].createLayer(volFT3);
+    if (A3IPvac) {
+      for (Int_t iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
+        if (std::abs(mLayers[0][iLayer].getZ()) < 25) {
+          mLayers[0][iLayer].createLayer(volIFT3);
+        } else {
+          mLayers[0][iLayer].createLayer(volFT3);
+        }
+      }
+      A3IPvac->AddNode(volIFT3, 2, new TGeoTranslation(0., 0., 0.));
+      vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
+    } else {
+      for (Int_t iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
+        mLayers[0][iLayer].createLayer(volFT3);
+      }
+      vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
     }
-    vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
     LOG(INFO) << "Registering FT3 LayerIDs:";
     for (int iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
       auto layerID = gMC ? TVirtualMC::GetMC()->VolId(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), 0, iLayer)) : 0;
