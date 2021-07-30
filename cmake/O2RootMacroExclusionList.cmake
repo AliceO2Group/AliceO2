@@ -19,7 +19,7 @@ include(O2GetListOfMacros)
 
 list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             Detectors/ITSMFT/ITS/macros/test/CheckLUtime.C # temporary exclude until fix for full Clusters elimination
-            Detectors/ITSMFT/ITS/macros/test/dictionary_integrity_test.C     # temporary exclude until fix for full Clusters elimination       
+            Detectors/ITSMFT/ITS/macros/test/dictionary_integrity_test.C     # temporary exclude until fix for full Clusters elimination
             Detectors/MUON/MCH/Geometry/Test/rootlogon.C
             Detectors/Passive/macro/PutFrameInTop.C
             Detectors/TPC/reconstruction/macro/addInclude.C
@@ -32,6 +32,8 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             Detectors/TRD/macros/convertRun2ToRun3Digits.C
             Detectors/TRD/macros/ParseTrapRawOutput.C
             Detectors/EMCAL/calib/macros/ReadTestBadChannelMap_CCDBApi.C
+            GPU/GPUTracking/display/filterMacros/TRDCandidate.C
+            GPU/GPUTracking/display/filterMacros/hasTRD.C
             GPU/GPUTracking/Merger/macros/checkPropagation.C # Needs AliRoot AliExternalTrackParam
             GPU/GPUTracking/Merger/macros/fitPolynomialFieldIts.C # Needs AliRoot AliMagF
             GPU/GPUTracking/Merger/macros/fitPolynomialFieldTpc.C # Needs AliRoot AliMagF
