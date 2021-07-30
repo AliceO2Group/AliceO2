@@ -46,8 +46,8 @@ class Pedestals
   /// \brief Get pedestal
   /// \param cellID Absolute ID of cell
   /// \return pedestal for the cell
-  short getPedestal(short cellID) const { mPedestals.at(cellID); }
-  float getPedSigma(short cellID) const { mPedSigmas.at(cellID); }
+  short getPedestal(short cellID) const { return mPedestals.at(cellID); }
+  float getPedSigma(short cellID) const { return mPedSigmas.at(cellID); }
 
   /// \brief Set pedestal
   /// \param cellID Absolute ID of cell
