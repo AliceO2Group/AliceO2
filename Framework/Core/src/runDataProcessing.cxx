@@ -1506,6 +1506,16 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               continue;
             }
 
+            // ignore devices with no control options
+            auto hasControls = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
+              return std::any_of(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& param) {
+                return param.type == VariantType::Bool && param.name.find("control:") != std::string::npos;
+              });
+            });
+            if (!hasControls) {
+              continue;
+            }
+
             auto configStore = DeviceConfigurationHelpers::getConfiguration(serviceRegistry, device.name.c_str(), device.options);
             if (configStore != nullptr) {
               auto reg = std::make_unique<ConfigParamRegistry>(std::move(configStore));
@@ -1519,31 +1529,23 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               }
             }
             /// FIXME: use commandline arguments as alternative
-            auto hasControls = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
-              return std::any_of(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& param) {
-                return param.type == VariantType::Bool && param.name.find("control:") != std::string::npos;
+            LOGF(DEBUG, "Original inputs: ");
+            for (auto& input : device.inputs) {
+              LOGF(DEBUG, "-> %s", input.binding);
+            }
+            auto end = device.inputs.end();
+            auto new_end = std::remove_if(device.inputs.begin(), device.inputs.end(), [](InputSpec& input) {
+              return !std::any_of(input.metadata.begin(), input.metadata.end(), [](ConfigParamSpec& param) {
+                if (param.type == VariantType::Bool && param.name.find("control:") != std::string::npos) {
+                  return param.defaultValue.get<bool>() == true;
+                }
+                return true;
               });
             });
-
-            if (hasControls) {
-              LOGF(DEBUG, "Original inputs: ");
-              for (auto& input : device.inputs) {
-                LOGF(DEBUG, "-> %s", input.binding);
-              }
-              auto end = device.inputs.end();
-              auto new_end = std::remove_if(device.inputs.begin(), device.inputs.end(), [](InputSpec& input) {
-                return !std::any_of(input.metadata.begin(), input.metadata.end(), [](ConfigParamSpec& param) {
-                  if (param.type == VariantType::Bool && param.name.find("control:") != std::string::npos) {
-                    return param.defaultValue.get<bool>() == true;
-                  }
-                  return true;
-                });
-              });
-              device.inputs.erase(new_end, end);
-              LOGF(DEBUG, "Adjusted inputs: ");
-              for (auto& input : device.inputs) {
-                LOGF(DEBUG, "-> %s", input.binding);
-              }
+            device.inputs.erase(new_end, end);
+            LOGF(DEBUG, "Adjusted inputs: ");
+            for (auto& input : device.inputs) {
+              LOGF(DEBUG, "-> %s", input.binding);
             }
           }
 
