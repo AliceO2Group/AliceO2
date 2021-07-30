@@ -131,7 +131,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
 
 void TPCITSMatchingDPL::run(ProcessingContext& pc)
 {
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
+  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
   LOG(INFO) << " startOrbit: " << dh->firstTForbit;
   mTimer.Start(false);
   RecoContainer recoData;
