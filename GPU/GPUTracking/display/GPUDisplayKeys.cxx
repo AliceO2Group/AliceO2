@@ -179,10 +179,10 @@ void GPUDisplay::HandleKey(unsigned char key)
     mCfgH.markFakeClusters ^= 1;
     SetInfo("Marking fake clusters: %s", mCfgH.markFakeClusters ? "on" : "off");
   } else if (key == 'b') {
-    if ((mFOV += 5) > 175) {
-      mFOV = 5;
+    if ((mCfgR.fov += 5) > 175) {
+      mCfgR.fov = 5;
     }
-    SetInfo("Set FOV to %f", mFOV);
+    SetInfo("Set FOV to %f", mCfgR.fov);
   } else if (key == 39) { // character = "'"
 #ifdef GPUCA_DISPLAY_OPENGL_CORE
     SetInfo("OpenGL compat profile not available, using core profile", 1);
