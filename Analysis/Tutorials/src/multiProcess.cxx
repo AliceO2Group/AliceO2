@@ -23,13 +23,6 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
-
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
-{
-  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Use MC info"}};
-  workflowOptions.push_back(optionDoMC);
-}
-
 #include "Framework/runDataProcessing.h"
 
 namespace
@@ -63,7 +56,7 @@ struct MultipleProcessExample {
   Filter RecColVtxZ = nabs(aod::collision::posZ) < 10.f;
   Filter GenColVtxZ = nabs(aod::mccollision::posZ) < 10.f;
 
-  void processRec(soa::Filtered<aod::Collisions>::iterator const& collision, aod::Tracks const& tracks)
+  void processRec(soa::Filtered<aod::Collisions>::iterator const&, aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
       registry.fill(HIST("etaRec"), track.eta());
@@ -71,7 +64,11 @@ struct MultipleProcessExample {
     }
   }
 
-  void processGen(soa::Filtered<aod::McCollisions>::iterator const& mcCollision, aod::McParticles const& mcParticles)
+  /// name, description, function pointer, default value
+  /// note that it has to be declared after the function, so that the pointer is known
+  PROCESS_SWITCH(MultipleProcessExample, processRec, "Process reco level", true);
+
+  void processGen(soa::Filtered<aod::McCollisions>::iterator const&, aod::McParticles const& mcParticles)
   {
     for (auto& particle : mcParticles) {
       registry.fill(HIST("etaMC"), particle.eta());
@@ -79,7 +76,9 @@ struct MultipleProcessExample {
     }
   }
 
-  void processResolution(soa::Filtered<soa::Join<aod::Collisions, aod::McCollisionLabels>>::iterator const& collision, soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks, aod::McParticles const& mcParticles, aod::McCollisions const& mcCollisions)
+  PROCESS_SWITCH(MultipleProcessExample, processGen, "Process gen level", false);
+
+  void processResolution(soa::Filtered<soa::Join<aod::Collisions, aod::McCollisionLabels>>::iterator const& collision, soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks, aod::McParticles const&, aod::McCollisions const&)
   {
     LOGF(info, "vtx-z (data) = %f | vtx-z (MC) = %f", collision.posZ(), collision.mcCollision().posZ());
     for (auto& track : tracks) {
@@ -87,24 +86,13 @@ struct MultipleProcessExample {
       registry.fill(HIST("phiDiff"), normalize(track.mcParticle().phi() - track.phi()));
     }
   }
+
+  PROCESS_SWITCH(MultipleProcessExample, processResolution, "Process reco/gen matching", false);
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  if (!cfgc.options().get<bool>("doMC")) {
-    return WorkflowSpec{
-      // only use rec-level process when MC info is not there
-      adaptAnalysisTask<MultipleProcessExample>(cfgc, Processes{&MultipleProcessExample::processRec}),
-    };
-  }
   return WorkflowSpec{
-    // use additional process functions when MC info is present
-    // functions will be executed in the sequence they are listed - allows to use, for example,
-    // histograms that were filled previously
-    // produced tables *cannot* be used
-    // filters will be applied *to all* processes
-    adaptAnalysisTask<MultipleProcessExample>(cfgc, Processes{&MultipleProcessExample::processRec,
-                                                              &MultipleProcessExample::processGen,
-                                                              &MultipleProcessExample::processResolution}),
+    adaptAnalysisTask<MultipleProcessExample>(cfgc) //
   };
 }

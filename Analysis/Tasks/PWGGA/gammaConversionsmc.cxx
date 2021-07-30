@@ -230,6 +230,8 @@ struct GammaConversionsmc {
     }
   }
 
+  PROCESS_SWITCH(GammaConversionsmc, processMC, "Process MC", true);
+
   template <typename T>
   void fillHistogramsBeforeCuts(const T& theV0)
   {
@@ -375,5 +377,5 @@ struct GammaConversionsmc {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{adaptAnalysisTask<GammaConversionsmc>(cfgc, Processes{&GammaConversionsmc::processMC})};
+  return WorkflowSpec{adaptAnalysisTask<GammaConversionsmc>(cfgc)};
 }
