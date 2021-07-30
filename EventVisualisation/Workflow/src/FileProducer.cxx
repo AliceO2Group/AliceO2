@@ -14,6 +14,7 @@
 /// \author julian.myrcha@cern.ch
 
 #include "EveWorkflow/FileProducer.h"
+
 #include <deque>
 #include <iostream>
 #include <chrono>
@@ -22,6 +23,8 @@
 #include <algorithm>
 
 using namespace std;
+using namespace o2::event_visualisation;
+
 using std::cout;
 using std::endl;
 using std::chrono::duration_cast;
@@ -41,11 +44,12 @@ std::deque<std::string> FileProducer::load(const std::string& path)
   return result;
 }
 
-FileProducer::FileProducer(const std::string& path, const std::string& name, int filesInFolder)
+FileProducer::FileProducer(const std::string& path, int filesInFolder, const std::string& name)
 {
   this->mFilesInFolder = filesInFolder;
   this->mPath = path;
   this->mName = name;
+  std::filesystem::create_directories(this->mPath); // create folder if not exists (fails if no rights)
 }
 
 std::string FileProducer::newFileName() const
