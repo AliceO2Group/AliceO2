@@ -52,6 +52,7 @@ struct Alice3LutMaker {
   Configurable<float> ptMin{"pt-min", -2.f, "Lower limit in pT"};
   Configurable<float> ptMax{"pt-max", 2.f, "Upper limit in pT"};
   Configurable<int> logPt{"log-pt", 0, "Flag to use a logarithmic pT axis, in this case the pT limits are the expontents"};
+  Configurable<int> addQA{"add-qa", 0, "Flag to use add QA plots to show the covariance matrix elements"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   void init(InitContext&)
@@ -69,6 +70,21 @@ struct Alice3LutMaker {
       axisPt.nBins = std::nullopt;
     }
     const AxisSpec axisEta{etaBins, etaMin, etaMax, "#it{#eta}"};
+    const AxisSpec axiscYY{100, -10, 10, "cYY"};
+    const AxisSpec axiscZY{100, -10, 10, "cZY"};
+    const AxisSpec axiscZZ{100, -10, 10, "cZZ"};
+    const AxisSpec axiscSnpY{100, -10, 10, "cSnpY"};
+    const AxisSpec axiscSnpZ{100, -10, 10, "cSnpZ"};
+    const AxisSpec axiscSnpSnp{100, -10, 10, "cSnpSnp"};
+    const AxisSpec axiscTglY{100, -10, 10, "cTglY"};
+    const AxisSpec axiscTglZ{100, -10, 10, "cTglZ"};
+    const AxisSpec axiscTglSnp{100, -10, 10, "cTglSnp"};
+    const AxisSpec axiscTglTgl{100, -10, 10, "cTglTgl"};
+    const AxisSpec axisc1PtY{100, -10, 10, "c1PtY"};
+    const AxisSpec axisc1PtZ{100, -10, 10, "c1PtZ"};
+    const AxisSpec axisc1PtSnp{100, -10, 10, "c1PtSnp"};
+    const AxisSpec axisc1PtTgl{100, -10, 10, "c1PtTgl"};
+    const AxisSpec axisc1Pt21Pt2{100, -10, 10, "c1Pt21Pt2"};
 
     histos.add("multiplicity", "Track multiplicity;Tracks per event;Events", kTH1F, {{100, 0, 2000}});
     histos.add("pt", "pt" + commonTitle, kTH1F, {axisPt});
@@ -90,6 +106,23 @@ struct Alice3LutMaker {
     histos.add("CovMat_c1Pt21Pt2", "c1Pt21Pt2" + commonTitle, kTProfile2D, {axisPt, axisEta});
 
     histos.add("Efficiency", "Efficiency" + commonTitle, kTProfile2D, {axisPt, axisEta});
+    if (addQA) {
+      histos.add("QA/CovMat_cYY", "cYY" + commonTitle, kTH3F, {axisPt, axisEta, axiscYY});
+      histos.add("QA/CovMat_cZY", "cZY" + commonTitle, kTH3F, {axisPt, axisEta, axiscZY});
+      histos.add("QA/CovMat_cZZ", "cZZ" + commonTitle, kTH3F, {axisPt, axisEta, axiscZZ});
+      histos.add("QA/CovMat_cSnpY", "cSnpY" + commonTitle, kTH3F, {axisPt, axisEta, axiscSnpY});
+      histos.add("QA/CovMat_cSnpZ", "cSnpZ" + commonTitle, kTH3F, {axisPt, axisEta, axiscSnpZ});
+      histos.add("QA/CovMat_cSnpSnp", "cSnpSnp" + commonTitle, kTH3F, {axisPt, axisEta, axiscSnpSnp});
+      histos.add("QA/CovMat_cTglY", "cTglY" + commonTitle, kTH3F, {axisPt, axisEta, axiscTglY});
+      histos.add("QA/CovMat_cTglZ", "cTglZ" + commonTitle, kTH3F, {axisPt, axisEta, axiscTglZ});
+      histos.add("QA/CovMat_cTglSnp", "cTglSnp" + commonTitle, kTH3F, {axisPt, axisEta, axiscTglSnp});
+      histos.add("QA/CovMat_cTglTgl", "cTglTgl" + commonTitle, kTH3F, {axisPt, axisEta, axiscTglTgl});
+      histos.add("QA/CovMat_c1PtY", "c1PtY" + commonTitle, kTH3F, {axisPt, axisEta, axisc1PtY});
+      histos.add("QA/CovMat_c1PtZ", "c1PtZ" + commonTitle, kTH3F, {axisPt, axisEta, axisc1PtZ});
+      histos.add("QA/CovMat_c1PtSnp", "c1PtSnp" + commonTitle, kTH3F, {axisPt, axisEta, axisc1PtSnp});
+      histos.add("QA/CovMat_c1PtTgl", "c1PtTgl" + commonTitle, kTH3F, {axisPt, axisEta, axisc1PtTgl});
+      histos.add("QA/CovMat_c1Pt21Pt2", "c1Pt21Pt2" + commonTitle, kTH3F, {axisPt, axisEta, axisc1Pt21Pt2});
+    }
   }
 
   void process(const soa::Join<aod::Tracks, aod::TracksCov, aod::McTrackLabels>& tracks,
@@ -126,6 +159,23 @@ struct Alice3LutMaker {
       histos.fill(HIST("CovMat_c1PtSnp"), mcParticle.pt(), mcParticle.eta(), track.c1PtSnp());
       histos.fill(HIST("CovMat_c1PtTgl"), mcParticle.pt(), mcParticle.eta(), track.c1PtTgl());
       histos.fill(HIST("CovMat_c1Pt21Pt2"), mcParticle.pt(), mcParticle.eta(), track.c1Pt21Pt2());
+      if (addQA) {
+        histos.fill(HIST("QA/CovMat_cYY"), mcParticle.pt(), mcParticle.eta(), track.cYY());
+        histos.fill(HIST("QA/CovMat_cZY"), mcParticle.pt(), mcParticle.eta(), track.cZY());
+        histos.fill(HIST("QA/CovMat_cZZ"), mcParticle.pt(), mcParticle.eta(), track.cZZ());
+        histos.fill(HIST("QA/CovMat_cSnpY"), mcParticle.pt(), mcParticle.eta(), track.cSnpY());
+        histos.fill(HIST("QA/CovMat_cSnpZ"), mcParticle.pt(), mcParticle.eta(), track.cSnpZ());
+        histos.fill(HIST("QA/CovMat_cSnpSnp"), mcParticle.pt(), mcParticle.eta(), track.cSnpSnp());
+        histos.fill(HIST("QA/CovMat_cTglY"), mcParticle.pt(), mcParticle.eta(), track.cTglY());
+        histos.fill(HIST("QA/CovMat_cTglZ"), mcParticle.pt(), mcParticle.eta(), track.cTglZ());
+        histos.fill(HIST("QA/CovMat_cTglSnp"), mcParticle.pt(), mcParticle.eta(), track.cTglSnp());
+        histos.fill(HIST("QA/CovMat_cTglTgl"), mcParticle.pt(), mcParticle.eta(), track.cTglTgl());
+        histos.fill(HIST("QA/CovMat_c1PtY"), mcParticle.pt(), mcParticle.eta(), track.c1PtY());
+        histos.fill(HIST("QA/CovMat_c1PtZ"), mcParticle.pt(), mcParticle.eta(), track.c1PtZ());
+        histos.fill(HIST("QA/CovMat_c1PtSnp"), mcParticle.pt(), mcParticle.eta(), track.c1PtSnp());
+        histos.fill(HIST("QA/CovMat_c1PtTgl"), mcParticle.pt(), mcParticle.eta(), track.c1PtTgl());
+        histos.fill(HIST("QA/CovMat_c1Pt21Pt2"), mcParticle.pt(), mcParticle.eta(), track.c1Pt21Pt2());
+      }
     }
     histos.fill(HIST("multiplicity"), ntrks);
 
