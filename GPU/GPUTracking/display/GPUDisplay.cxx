@@ -1048,6 +1048,10 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         }
       }
 
+      if (mCfgH.trackFilter && !mTrackFilter[i]) {
+        break;
+      }
+
       // Print TOF part of track
       if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
         if (mIOPtrs->tpcLinkTOF && mIOPtrs->tpcLinkTOF[i] != -1 && mIOPtrs->nTOFClusters) {
@@ -1060,14 +1064,6 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
 
       // Print TRD part of track
       if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
-        if (mCfgH.trackFilter && mChain) {
-          if (mCfgH.trackFilter == 2 && (!trdTracker().PreCheckTrackTRDCandidate(*track) || !trdTracker().CheckTrackTRDCandidate((GPUTRDTrackGPU)*track))) {
-            break;
-          }
-          if (mCfgH.trackFilter == 1 && mTRDTrackIds[i] == -1) {
-            break;
-          }
-        }
         if (mTRDTrackIds[i] != -1 && mIOPtrs->nTRDTracklets) {
           auto& trk = mIOPtrs->trdTracks[mTRDTrackIds[i]];
           for (int k = 5; k >= 0; k--) {
@@ -1534,6 +1530,21 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
             mITSStandaloneTracks[mIOPtrs->tpcLinkITS[i]] = false;
           }
         }
+      }
+    }
+
+    if (mCfgH.trackFilter) {
+      unsigned int nTracks = mConfig.showTPCTracksFromO2Format ? mIOPtrs->nOutputTracksTPCO2 : mIOPtrs->nMergedTracks;
+      mTrackFilter.resize(nTracks);
+      std::fill(mTrackFilter.begin(), mTrackFilter.end(), true);
+      if (buildTrackFilter()) {
+        SetInfo("Error running track filter from %s", mConfig.filterMacros[mCfgH.trackFilter - 1].c_str());
+      } else {
+        unsigned int nFiltered = 0;
+        for (unsigned int i = 0; i < mTrackFilter.size(); i++) {
+          nFiltered += !mTrackFilter[i];
+        }
+        SetInfo("Applied track filter %s - filtered %u / %u", mConfig.filterMacros[mCfgH.trackFilter - 1].c_str(), nFiltered, (unsigned int)mTrackFilter.size());
       }
     }
 
