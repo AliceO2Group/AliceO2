@@ -70,6 +70,13 @@ o2_add_executable(matcher-workflow
                   SOURCES src/tof-matcher-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow O2::TOFWorkflowIO)
 
+o2_add_executable(recoTracks-reader
+                  SOURCES src/recoTracks-reader.cxx
+                  COMPONENT_NAME tof
+                  PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils
+                            O2::GlobalTrackingWorkflow
+                            O2::TPCWorkflow)
+
 
 add_subdirectory(tofworkflow)
 add_subdirectory(tpcinterpolationworkflow)
