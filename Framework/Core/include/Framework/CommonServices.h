@@ -69,6 +69,13 @@ struct CommonServices {
   static std::vector<ServiceSpec> requiredServices();
 };
 
+struct CommonAnalysisServices {
+  static ServiceSpec databasePDGSpec();
+
+  template <typename T>
+  static ServiceSpec addAnalysisService();
+};
+
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_COMMONSERVICES_H_
