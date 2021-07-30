@@ -14,7 +14,8 @@ namespace o2::framework
 {
 enum ConfigParamKind : int {
   kGeneric = 0,
-  kAxisSpec = 1
+  kAxisSpec = 1,
+  kProcessFlag = 2
 };
 }
 #endif // O2_FRAMEWORK_CONFIGURABLEKINDS_H_

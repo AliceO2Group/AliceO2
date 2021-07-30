@@ -180,7 +180,7 @@ void addMissingOutputsToBuilder(std::vector<InputSpec>&& requestedIDXs,
     std::regex word_regex("(\\w+)");
     auto words = std::sregex_iterator(s.begin(), s.end(), word_regex);
     if (std::distance(words, std::sregex_iterator()) != 3) {
-      throw runtime_error_f("Malformed spec: %s", s.c_str());
+      throw runtime_error_f("Malformed input spec metadata: %s", s.c_str());
     }
     std::vector<std::string> data;
     for (auto i = words; i != std::sregex_iterator(); ++i) {
@@ -197,12 +197,14 @@ void addMissingOutputsToBuilder(std::vector<InputSpec>&& requestedIDXs,
     auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
     publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
     for (auto& i : input.metadata) {
-      auto spec = inputSpecFromString(i.defaultValue.get<std::string>());
-      auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
-      if (j == publisher.inputs.end()) {
-        publisher.inputs.push_back(spec);
+      if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
+        auto spec = inputSpecFromString(i.defaultValue.get<std::string>());
+        auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
+        if (j == publisher.inputs.end()) {
+          publisher.inputs.push_back(spec);
+        }
+        requestedAODs.push_back(spec);
       }
-      requestedAODs.push_back(spec);
     }
   }
 }
