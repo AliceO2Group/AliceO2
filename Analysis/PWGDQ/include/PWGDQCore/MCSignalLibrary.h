@@ -27,15 +27,15 @@ MCSignal* o2::aod::dqmcsignals::GetMCSignal(const char* name)
   MCSignal* signal;
   // 1-prong signals
   if (!nameStr.compare("alicePrimary")) {
-    MCProng prong(1);  // 1-generation prong
-    prong.SetSourceBit(0, MCProng::kPhysicalPrimary); // set source to be ALICE primary particles
-    signal = new MCSignal(1, name, "ALICE primaries");  // define a signal with one prong
-    signal->AddProng(prong);  // add the previously defined prong to the signal
+    MCProng prong(1);                                  // 1-generation prong
+    prong.SetSourceBit(0, MCProng::kPhysicalPrimary);  // set source to be ALICE primary particles
+    signal = new MCSignal(1, name, "ALICE primaries"); // define a signal with one prong
+    signal->AddProng(prong);                           // add the previously defined prong to the signal
     return signal;
   }
   if (!nameStr.compare("electron")) {
-    MCProng prong(1, {11}, {true}, {false}, {0}, {0}, {false});  // define 1-generation prong using the full constructor
-    signal = new MCSignal(name, "Inclusive electrons", {prong}, {-1}); // define the signal using the full constructor 
+    MCProng prong(1, {11}, {true}, {false}, {0}, {0}, {false});        // define 1-generation prong using the full constructor
+    signal = new MCSignal(name, "Inclusive electrons", {prong}, {-1}); // define the signal using the full constructor
     return signal;
   }
   if (!nameStr.compare("muon")) {
@@ -130,7 +130,7 @@ MCSignal* o2::aod::dqmcsignals::GetMCSignal(const char* name)
     signal = new MCSignal(name, "Ds mesons", {prong}, {-1});
     return signal;
   }
-    
+
   // 2-prong signals
   if (!nameStr.compare("dielectron")) {
     MCProng prong(1, {11}, {true}, {false}, {0}, {0}, {false});
@@ -143,7 +143,7 @@ MCSignal* o2::aod::dqmcsignals::GetMCSignal(const char* name)
     return signal;
   }
   if (!nameStr.compare("electronMuonPair")) {
-    MCProng electron(1, {11}, {true}, {false}, {0}, {0}, {false});  
+    MCProng electron(1, {11}, {true}, {false}, {0}, {0}, {false});
     MCProng muon(1, {13}, {true}, {false}, {0}, {0}, {false});
     signal = new MCSignal(name, "Electron-muon pair", {electron, muon}, {-1, -1});
     return signal;

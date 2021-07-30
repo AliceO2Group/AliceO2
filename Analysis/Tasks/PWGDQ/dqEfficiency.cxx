@@ -401,7 +401,7 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
     }
 
     if (classStr.Contains("MCTruthGen")) {
-      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "mctruth");  
+      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "mctruth");
       /*histMan->AddHistogram(objArray->At(iclass)->GetName(), "Pt", "MC generator p_{T} distribution", false, 200, 0.0, 20.0, VarManager::kMCPt);
       histMan->AddHistogram(objArray->At(iclass)->GetName(), "Eta", "MC generator #eta distribution", false, 500, -5.0, 5.0, VarManager::kMCEta);*/
       histMan->AddHistogram(objArray->At(iclass)->GetName(), "Phi", "MC generator #varphi distribution", false, 500, -6.3, 6.3, VarManager::kMCPhi);

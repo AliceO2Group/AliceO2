@@ -124,7 +124,7 @@ struct TableMakerMC {
     fNewLabelsReversed.clear();
     fMCFlags.clear();
     fEventIdx.clear();
-    
+
     TString histClasses = "Event_BeforeCuts;Event_AfterCuts;TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts;";
 
     TString configNamesStr = fConfigMCSignals.value;
@@ -164,17 +164,18 @@ struct TableMakerMC {
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void processWriteStack(aod::McParticles const& mcTracks) {
+  void processWriteStack(aod::McParticles const& mcTracks)
+  {
     // loop over the selected MC tracks and write them to the new stack
     // NOTE: At this point, all the particles which should go into the new stack should had been
-    //     selected, such that the mother/daughter new labels can be computed    
+    //     selected, such that the mother/daughter new labels can be computed
     // NOTE: We need to write the particles to the new stack in the exact same order as the
-    //   one in which the new labels were assigned. So we use the fNewLabelsReversed which has as key the new label 
-    //   and as value the old stack label, which we then use to retrieve the particle to be written 
+    //   one in which the new labels were assigned. So we use the fNewLabelsReversed which has as key the new label
+    //   and as value the old stack label, which we then use to retrieve the particle to be written
     for (const auto& [newLabel, oldLabel] : fNewLabelsReversed) {
       auto mctrack = mcTracks.iteratorAt(oldLabel);
       int mcflags = fMCFlags.find(oldLabel)->second;
-      
+
       int m0Label = -1;
       if (mctrack.has_mother0() && (fNewLabels.find(mctrack.mother0Id()) != fNewLabels.end()))
         m0Label = fNewLabels.find(mctrack.mother0Id())->second;
@@ -192,14 +193,14 @@ struct TableMakerMC {
               mctrack.weight(), mctrack.px(), mctrack.py(), mctrack.pz(), mctrack.e(),
               mctrack.vx(), mctrack.vy(), mctrack.vz(), mctrack.vt(), mcflags);
     }
-      
+
     fCounter = 0;
     fNewLabels.clear();
     fNewLabelsReversed.clear();
     fMCFlags.clear();
     fEventIdx.clear();
   }
-  
+
   void processRec(MyEvents::iterator const& collision, aod::BCs const& bcs, soa::Filtered<MyBarrelTracks> const& tracksBarrel,
                   aod::McParticles const& mcTracks, aod::McCollisions const& mcEvents)
   {
@@ -225,12 +226,12 @@ struct TableMakerMC {
     eventExtended(collision.bc().globalBC(), collision.bc().triggerMask(), 0, triggerAliases, fValues[VarManager::kCentVZERO]);
     eventVtxCov(collision.covXX(), collision.covXY(), collision.covXZ(), collision.covYY(), collision.covYZ(), collision.covZZ(), collision.chi2());
     eventMC(collision.mcCollision().generatorsID(), collision.mcCollision().posX(), collision.mcCollision().posY(),
-            collision.mcCollision().posZ(), collision.mcCollision().t(), collision.mcCollision().weight(), collision.mcCollision().impactParameter());  
-    
+            collision.mcCollision().posZ(), collision.mcCollision().t(), collision.mcCollision().weight(), collision.mcCollision().impactParameter());
+
     // loop over the MC truth tracks and find those that need to be written
     uint16_t mcflags = 0;
     for (auto& mctrack : mcTracks) {
-      // grouping will be needed here 
+      // grouping will be needed here
       if (mctrack.mcCollision().globalIndex() != collision.mcCollision().globalIndex()) {
         continue;
       }
@@ -261,7 +262,7 @@ struct TableMakerMC {
         fCounter++;
       }
     } // end loop over mc stack
-    
+
     // loop over reconstructed tracks
     uint64_t trackFilteringTag = 0;
     //uint16_t mcflags = 0;
@@ -327,7 +328,7 @@ struct TableMakerMC {
                      track.tofNSigmaPi(), track.tofNSigmaKa(), track.tofNSigmaPr(),
                      track.trdSignal());
       trackBarrelLabels(fNewLabels.find(mctrack.index())->second, track.mcMask(), mcflags);
-    }  // end loop over reconstructed tracks
+    } // end loop over reconstructed tracks
   }
 
   void DefineHistograms(TString histClasses)
@@ -371,6 +372,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // TODO: For now TableMakerMC works just for PbPb (cent table is present)
   //      Implement workflow arguments for pp/PbPb and possibly merge the task with tableMaker.cxx
   return WorkflowSpec{
-    adaptAnalysisTask<TableMakerMC>(cfgc, Processes{&TableMakerMC::processRec, &TableMakerMC::processWriteStack})
-  };
+    adaptAnalysisTask<TableMakerMC>(cfgc, Processes{&TableMakerMC::processRec, &TableMakerMC::processWriteStack})};
 }

@@ -202,7 +202,6 @@ bool MCSignal::CheckProng(int i, bool checkSources, const U& mcStack, const T& t
         currentMCParticle = mcStack.iteratorAt(currentMCParticle.mother0Id());
         //currentMCParticle = currentMCParticle.template mother0_as<U>();
       }
-      
     }
   }
 
