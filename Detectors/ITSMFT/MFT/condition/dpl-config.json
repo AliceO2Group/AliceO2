@@ -1,8 +1,8 @@
 {
     "internal-dpl-clock": "",
     "dcs-random-data-generator": {
-        "max-timeframes": "3",
-        "delta-fraction": "0.5",
+        "max-timeframes": "100",
+        "delta-fraction": "0.100000001",
         "max-cycles-no-full-map": "6000",
         "orbit-offset-enumeration": "0",
         "orbit-multiplier-enumeration": "0",
@@ -10,13 +10,5 @@
         "end-value-enumeration": "-1",
         "step-value-enumeration": "1"
     },
-    "mft-dcs-data-processor": {
-        "ccdb-path": "http:\/\/localhost:8080",
-        "use-ccdb-to-configure": "false",
-        "use-verbose-mode": "false",
-        "DPs-update-interval": "600"
-    },
-    "ccdb-populator": {
-        "ccdb-path": "http:\/\/ccdb-test.cern.ch:8080"
-    }
+    "internal-dpl-injected-dummy-sink": ""
 }
