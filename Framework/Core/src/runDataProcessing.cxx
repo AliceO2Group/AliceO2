@@ -1505,7 +1505,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             if (device.inputs.empty() == true) {
               continue;
             }
-
+            //ignore devices with no metadata in inputs
+            auto hasMetadata = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
+              return spec.metadata.empty() == false;
+            });
+            if (!hasMetadata) {
+              continue;
+            }
             // ignore devices with no control options
             auto hasControls = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
               return std::any_of(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& param) {
