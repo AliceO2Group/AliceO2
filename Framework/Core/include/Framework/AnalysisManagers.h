@@ -21,6 +21,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ConfigurableHelpers.h"
 #include "Framework/InitContext.h"
+#include "Framework/ConfigContext.h"
 #include "Framework/RootConfigParamHelpers.h"
 #include "Framework/ExpressionHelpers.h"
 
@@ -399,6 +400,41 @@ struct OptionManager<Configurable<T, K, IP>> {
   }
 };
 
+template <typename R, typename T, typename... As>
+struct OptionManager<ProcessConfigurable<R, T, As...>> {
+  static bool appendOption(std::vector<ConfigParamSpec>& options, ProcessConfigurable<R, T, As...>& what)
+  {
+    options.emplace_back(ConfigParamSpec{what.name, variant_trait_v<std::decay_t<bool>>, what.value, {what.help}, what.kind});
+    return true;
+  }
+
+  static bool prepare(InitContext& context, ProcessConfigurable<R, T, As...>& what)
+  {
+    what.value = context.options().get<bool>(what.name.c_str());
+    return true;
+  }
+};
+
+template <typename ANY>
+struct UpdateProcessSwitches {
+  static bool set(std::pair<std::string, bool>, ANY&)
+  {
+    return false;
+  }
+};
+
+template <typename R, typename T, typename... As>
+struct UpdateProcessSwitches<ProcessConfigurable<R, T, As...>> {
+  static bool set(std::pair<std::string, bool> setting, ProcessConfigurable<R, T, As...>& what)
+  {
+    if (what.name == setting.first) {
+      what.value = setting.second;
+      return true;
+    }
+    return false;
+  }
+};
+
 /// Manager template to facilitate extended tables spawning
 template <typename T>
 struct SpawnManager {
@@ -438,6 +474,7 @@ struct IndexManager<Builds<IDX, P>> {
     return true;
   }
 };
+
 } // namespace o2::framework
 
 #endif // ANALYSISMANAGERS_H

@@ -8,14 +8,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_FRAMEWORK_CONFIGURABLEKINDS_H_
-#define O2_FRAMEWORK_CONFIGURABLEKINDS_H_
-namespace o2::framework
+
+/// \file EveConfiguration.cxx
+/// \author julian.myrcha@cern.ch
+
+#include "EveWorkflow/EveConfiguration.h"
+
+using namespace o2::event_visualisation;
+
+void EveConfiguration::ReadConfigurableParam()
 {
-enum ConfigParamKind : int {
-  kGeneric = 0,
-  kAxisSpec = 1,
-  kProcessFlag = 2
-};
 }
-#endif // O2_FRAMEWORK_CONFIGURABLEKINDS_H_
