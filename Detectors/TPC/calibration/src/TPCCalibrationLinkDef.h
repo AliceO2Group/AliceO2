@@ -64,12 +64,11 @@
 #pragma link C++ class o2::tpc::IDCCCDBHelper<float> +;
 #pragma link C++ class o2::tpc::IDCCCDBHelper<short> +;
 #pragma link C++ class o2::tpc::IDCCCDBHelper<char> +;
-#pragma link C++ class o2::tpc::CalibdEdxBase<float> + ;
-#pragma link C++ class o2::tpc::CalibdEdxBase<o2::tpc::FastHisto<float>> + ;
+#pragma link C++ class o2::tpc::CalibdEdxDataContainer<float> + ;
+#pragma link C++ class o2::tpc::CalibdEdxDataContainer<o2::tpc::FastHisto<float>> + ;
 #pragma link C++ class o2::tpc::CalibdEdx + ;
-#pragma link C++ class o2::tpc::CalibdEdxHistos + ;
 #pragma link C++ class o2::tpc::CalibratordEdx + ;
-#pragma link C++ class o2::calibration::TimeSlot < o2::tpc::CalibdEdxHistos> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tpc::TrackTPC, o2::tpc::CalibdEdxHistos> + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::tpc::CalibdEdx> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tpc::TrackTPC, o2::tpc::CalibdEdx> + ;
 
 #endif

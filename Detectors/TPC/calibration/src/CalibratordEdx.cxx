@@ -22,7 +22,6 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/Logger.h"
-#include "TPCCalibration/CalibdEdxHistos.h"
 #include "TPCCalibration/CalibdEdx.h"
 
 using namespace o2::tpc;
@@ -37,14 +36,15 @@ void CalibratordEdx::initOutput()
 
 void CalibratordEdx::finalizeSlot(Slot& slot)
 {
-  LOG(INFO) << "Finalizing slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
+  LOGP(info, "Finalizing slot {} <= TF <= {}", slot.getTFStart(), slot.getTFEnd());
 
-  const CalibdEdxHistos* container = slot.getContainer();
+  // compute calibration values from histograms
+  CalibdEdx* container = slot.getContainer();
+  container->finalise();
+  const auto& mips = container->getCalib();
 
-  CalibdEdx mips(*container);
-
-  slot.print();
   // print some thing informative about CalibMIP
+  slot.print();
 
   const auto className = o2::utils::MemFileHelper::getClassName(mips);
   const auto fileName = o2::ccdb::CcdbApi::generateFileName(className);
@@ -57,12 +57,11 @@ void CalibratordEdx::finalizeSlot(Slot& slot)
   mMIPVector.push_back(mips);
 
   if (mDebugOutputStreamer) {
-    LOG(INFO) << "Dumping time slot data to file";
+    LOGP(info, "Dumping time slot data to file");
 
     *mDebugOutputStreamer << "mipPosition"
-                          << "timeFrame=" << timeFrame                 // Initial time frame of time slot
-                          << "calibdEdx=" << mips                      // Computed MIP positions
-                          << "CalibdEdxHistos=" << slot.getContainer() // dE/dx histograms
+                          << "timeFrame=" << timeFrame // Initial time frame of time slot
+                          << "CalibdEdx=" << container // dE/dx histograms and calib values
                           << "\n";
   }
 }
@@ -72,7 +71,7 @@ CalibratordEdx::Slot& CalibratordEdx::emplaceNewSlot(bool front, TFType tstart, 
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
 
-  auto container = std::make_unique<CalibdEdxHistos>(mNBins, mMindEdx, mMaxdEdx, mCuts);
+  auto container = std::make_unique<CalibdEdx>(mNBins, mMindEdx, mMaxdEdx, mCuts);
   container->setApplyCuts(mApplyCuts);
 
   slot.setContainer(std::move(container));
@@ -93,18 +92,7 @@ void CalibratordEdx::disableDebugOutput()
 void CalibratordEdx::finalizeDebugOutput() const
 {
   if (mDebugOutputStreamer) {
-    LOG(INFO) << "Closing dump file";
+    LOGP(info, "Closing dump file");
     mDebugOutputStreamer->Close();
   }
-}
-
-bool CalibratordEdx::hasEnoughData(const Slot& slot) const
-{
-  const auto* container = slot.getContainer();
-  for (const auto entries : container->getEntries()) {
-    if (entries < mMinEntries) {
-      return false;
-    }
-  }
-  return true;
 }

@@ -26,7 +26,6 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
-#include "TPCCalibration/CalibdEdxHistos.h"
 #include "TPCCalibration/CalibdEdx.h"
 #include "TPCCalibration/FastHisto.h"
 #include "CommonUtils/TreeStreamRedirector.h"
@@ -35,12 +34,12 @@ namespace o2::tpc
 {
 
 /// dE/dx calibrator class
-class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc::TrackTPC, o2::tpc::CalibdEdxHistos>
+class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc::TrackTPC, o2::tpc::CalibdEdx>
 {
   using TFType = o2::calibration::TFType;
-  using Slot = o2::calibration::TimeSlot<CalibdEdxHistos>;
+  using Slot = o2::calibration::TimeSlot<CalibdEdx>;
   using CcdbObjectInfoVector = std::vector<o2::ccdb::CcdbObjectInfo>;
-  using MIPVector = std::vector<CalibdEdx>;
+  using MIPVector = std::vector<CalibdEdx::CalibContainer>;
 
  public:
   /// Contructor that enables track cuts
@@ -54,7 +53,7 @@ class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc
 
   /// \brief Check if there are enough data to compute the calibration.
   /// \return false if any of the histograms has less entries than mMinEntries
-  bool hasEnoughData(const Slot&) const final;
+  bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->hasEnoughData(mMinEntries); };
 
   /// Empty the output vectors
   void initOutput() final;
