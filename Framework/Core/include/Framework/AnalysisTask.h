@@ -98,9 +98,9 @@ struct AnalysisDataProcessorBuilder {
     auto locate = std::find_if(inputs.begin(), inputs.end(), [](InputSpec& input) { return input.binding == metadata::tableLabel(); });
     if (locate != inputs.end()) {
       // amend entry
-      auto entryMetadata = locate->metadata;
-      entryMetadata.insert(entryMetadata.begin(), inputMetadata.front());
-      entryMetadata.insert(entryMetadata.end(), inputMetadata.begin() + 1, inputMetadata.end());
+      auto& entryMetadata = locate->metadata;
+      entryMetadata.insert(entryMetadata.end(), inputMetadata.begin(), inputMetadata.end());
+      std::sort(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
       auto new_end = std::unique(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
       entryMetadata.erase(new_end, entryMetadata.end());
     } else {
