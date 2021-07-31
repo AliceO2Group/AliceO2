@@ -14,6 +14,8 @@
 #include "Framework/ServiceSpec.h"
 #include "Framework/TypeIdHelpers.h"
 
+class TDatabasePDG;
+
 namespace o2::framework
 {
 
@@ -73,7 +75,12 @@ struct CommonAnalysisServices {
   static ServiceSpec databasePDGSpec();
 
   template <typename T>
-  static ServiceSpec addAnalysisService();
+  static void addAnalysisService(std::vector<ServiceSpec>& specs)
+  {
+    if constexpr (std::is_same_v<T, TDatabasePDG>) {
+      specs.push_back(databasePDGSpec());
+    }
+  }
 };
 
 } // namespace o2::framework

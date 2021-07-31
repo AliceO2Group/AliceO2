@@ -542,12 +542,5 @@ o2::framework::ServiceSpec CommonAnalysisServices::databasePDGSpec()
     .exit = [](ServiceRegistry&, void* service) { reinterpret_cast<TDatabasePDG*>(service)->Delete(); },
     .kind = ServiceKind::Serial};
 }
-
-template <>
-o2::framework::ServiceSpec CommonAnalysisServices::addAnalysisService<TDatabasePDG>()
-{
-  return databasePDGSpec();
-}
-
 } // namespace o2::framework
 #pragma GCC diagnostic pop

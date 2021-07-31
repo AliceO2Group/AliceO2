@@ -362,7 +362,7 @@ template <typename T>
 struct ServiceManager<Service<T>> {
   static bool add(std::vector<ServiceSpec>& specs, Service<T>&)
   {
-    specs.push_back(CommonAnalysisServices::addAnalysisService<T>());
+    CommonAnalysisServices::addAnalysisService<T>(specs);
     return true;
   }
 
