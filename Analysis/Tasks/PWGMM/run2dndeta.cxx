@@ -89,12 +89,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec ws{adaptAnalysisTask<PseudorapidityDensity<aod::track::TrackTypeEnum::Run2Tracklet>>(cfgc, TaskName{"pseudorapidity-density"})};
   if (doMC) {
     ws.push_back(adaptAnalysisTask<SelectPhysicalPrimaries<false>>(cfgc, TaskName{"select-physical-primaries"}));
-    ws.push_back(adaptAnalysisTask<PseudorapidityDensityMc<aod::track::TrackTypeEnum::Run2Tracklet>>(cfgc,
-                                                                                                     TaskName{"pseudorapidity-density-mc"},
-                                                                                                     Processes{
-                                                                                                       &PseudorapidityDensityMc<aod::track::TrackTypeEnum::Run2Tracklet>::processGen,
-                                                                                                       &PseudorapidityDensityMc<aod::track::TrackTypeEnum::Run2Tracklet>::processMatching //
-                                                                                                     }));
+    ws.push_back(adaptAnalysisTask<PseudorapidityDensityMc<aod::track::TrackTypeEnum::Run2Tracklet>>(cfgc, TaskName{"pseudorapidity-density-mc"}));
   }
   return ws;
 }

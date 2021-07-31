@@ -92,12 +92,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec ws{adaptAnalysisTask<PseudorapidityDensity<o2::dataformats::GlobalTrackID::ITS>>(cfgc, TaskName{"pseudorapidity-density"})};
   if (doMC) {
     ws.push_back(adaptAnalysisTask<SelectPhysicalPrimaries<true>>(cfgc, TaskName{"select-physical-primaries"}));
-    ws.push_back(adaptAnalysisTask<PseudorapidityDensityMc<o2::dataformats::GlobalTrackID::ITS>>(cfgc,
-                                                                                                 TaskName{"pseudorapidity-density-mc"},
-                                                                                                 Processes{
-                                                                                                   &PseudorapidityDensityMc<o2::dataformats::GlobalTrackID::ITS>::processGen,
-                                                                                                   &PseudorapidityDensityMc<o2::dataformats::GlobalTrackID::ITS>::processMatching //
-                                                                                                 }));
+    ws.push_back(adaptAnalysisTask<PseudorapidityDensityMc<o2::dataformats::GlobalTrackID::ITS>>(cfgc, TaskName{"pseudorapidity-density-mc"}));
   }
   return ws;
 }

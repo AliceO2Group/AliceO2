@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 #ifndef DNDETA_H
 #define DNDETA_H
+#include "Framework/Configurable.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "AnalysisDataModel/Multiplicity.h"
@@ -54,7 +55,7 @@ struct SelectPhysicalPrimaries {
       if constexpr (RUN3) {
         prims(MC::isPhysicalPrimaryRun3(particle), charge);
       } else {
-        prims(MC::isPhysicalPrimary(particles, particle), charge);
+        prims(MC::isPhysicalPrimary(particle), charge);
       }
     }
     delete pdg;
@@ -86,7 +87,7 @@ struct PseudorapidityDensity {
 
   void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, soa::Filtered<aod::Tracks> const& tracks);
 };
-
+using namespace o2::framework;
 template <uint8_t TRACKTYPE>
 struct PseudorapidityDensityMc {
   o2::framework::Configurable<float> etaMax{"etaMax", 2.0, "max eta value"};
@@ -116,7 +117,11 @@ struct PseudorapidityDensityMc {
 
   void processGen(soa::Filtered<aod::McCollisions>::iterator const& collision, soa::Filtered<Particles> const& primaries);
 
+  PROCESS_SWITCH(PseudorapidityDensityMc<TRACKTYPE>, processGen, "Process generator-level info", true);
+
   void processMatching(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::McCollisionLabels>>::iterator const& collision, soa::Filtered<aod::Tracks> const& tracks, aod::McCollisions const&);
+
+  PROCESS_SWITCH(PseudorapidityDensityMc<TRACKTYPE>, processMatching, "Process generator-level info matched to reco", true);
 };
 } // namespace o2::pwgmm::multiplicity
 
