@@ -77,7 +77,6 @@ struct HelperMethods {
   {
     return det % (constants::NSTACK * constants::NLAYER) / constants::NLAYER;
   }
-
   static int getLayer(int det)
   {
     return det % constants::NLAYER;

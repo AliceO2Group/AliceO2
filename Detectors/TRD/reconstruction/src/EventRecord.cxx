@@ -118,6 +118,7 @@ void EventStorage::addTracklet(InteractionRecord& ir, Tracklet64& tracklet)
     mEventRecords.back().addTracklet(tracklet);
   }
 }
+
 void EventStorage::addTracklets(InteractionRecord& ir, std::vector<Tracklet64>& tracklets)
 {
   bool added = false;
@@ -168,6 +169,7 @@ void EventStorage::unpackData(std::vector<TriggerRecord>& triggers, std::vector<
 void EventStorage::sendData(o2::framework::ProcessingContext& pc, bool displaytracklets)
 {
   //at this point we know the total number of tracklets and digits and triggers.
+  auto dataReadStart = std::chrono::high_resolution_clock::now();
   uint64_t trackletcount = 0;
   uint64_t digitcount = 0;
   uint64_t triggercount = 0;
@@ -199,9 +201,16 @@ void EventStorage::sendData(o2::framework::ProcessingContext& pc, bool displaytr
     }
   }
   LOG(info) << "Sending data onwards with " << digits.size() << " Digits and " << tracklets.size() << " Tracklets and " << triggers.size() << " Triggers";
+  //TODO change to adopt instead of having this additional copy.
+  //
   pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "DIGITS", 0, o2::framework::Lifetime::Timeframe}, digits);
   pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, o2::framework::Lifetime::Timeframe}, tracklets);
   pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, o2::framework::Lifetime::Timeframe}, triggers);
+  std::chrono::duration<double, std::micro> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
+  LOG(info) << "Preparing for sending and sending data took  " << std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count() << "ms";
+  if (mPackagingTime != nullptr) {
+    mPackagingTime->Fill((int)std::chrono::duration_cast<std::chrono::microseconds>(dataReadTime).count());
+  }
 }
 
 int EventStorage::sumTracklets()
@@ -245,6 +254,7 @@ std::vector<Tracklet64>& EventStorage::getTracklets(InteractionRecord& ir)
   printIR();
   return mDummyTracklets;
 }
+
 std::vector<Digit>& EventStorage::getDigits(InteractionRecord& ir)
 {
   bool found = false;
@@ -263,6 +273,31 @@ void EventStorage::printIR()
 {
   for (int count = 0; count < mEventRecords.size(); ++count) {
     LOG(info) << "[" << count << "]" << mEventRecords[count].getBCData() << " ";
+  }
+}
+
+EventRecord& EventStorage::getEventRecord(InteractionRecord& ir)
+{
+  //now find the event record in question
+  for (auto& event : mEventRecords) {
+    if (event == ir) {
+      return event;
+    }
+  }
+  //oops its new, so add it
+  mEventRecords.push_back(EventRecord(ir));
+  return mEventRecords.back();
+}
+
+void EventRecord::popTracklets(int popcount)
+{
+  if (popcount > 3 || popcount < 0) {
+    LOG(error) << " been asked to pop more than 3 tracklets:" << popcount;
+  } else {
+    while (popcount > 0) {
+      mTracklets.pop_back();
+      popcount--;
+    }
   }
 }
 
