@@ -26,9 +26,11 @@ std::shared_ptr<const o2::event_visualisation::EveWorkflowHelper::tmpDataContain
                                                       GID::mask_t maskTrk, GID::mask_t maskMatch)
 {
   unsigned int nTracksTPCITSO2 = 0;
-  unsigned int nTOFMatches = 0;
   unsigned int nTRDTracksITSTPCTRD = 0;
   unsigned int nTRDTracksTPCTRD = 0;
+  unsigned int nITSTPCTOFMatches = 0;
+  unsigned int nITSTPCTRDTOFMatches = 0;
+  unsigned int nTPCTRDTOFMatches = 0;
   unsigned int nTPCTOFMatches = 0;
 
   auto retVal = std::make_shared<tmpDataContainer>();
@@ -54,19 +56,33 @@ std::shared_ptr<const o2::event_visualisation::EveWorkflowHelper::tmpDataContain
     LOG(info) << "Got " << nTracksTPCITSO2 << " ITS-TPC Tracks";
   }
 
-  if ((maskMatch[GID::TOF] || maskMatch[GID::ITSTPCTOF] || maskMatch[GID::ITSTPCTRDTOF])) {
-    const auto& tofMatches = recoCont.getTOFMatches();
+  if ((maskMatch[GID::TOF] || maskMatch[GID::ITSTPCTOF])) {
+    const auto& tofMatches = recoCont.getITSTPCTOFMatches();
     if (tofMatches.size()) {
-      nTOFMatches = tofMatches.size();
+      nITSTPCTOFMatches = tofMatches.size();
     }
+    LOG(info) << "Got " << nITSTPCTOFMatches << " ITS-TPC-TOF Matches";
   }
-
-  if (maskMatch[GID::TPCTOF] && nTPCTOFMatches == 0) {
+  if ((maskMatch[GID::TOF] || maskMatch[GID::ITSTPCTRDTOF])) {
+    const auto& tofMatches = recoCont.getITSTPCTRDTOFMatches();
+    if (tofMatches.size()) {
+      nITSTPCTRDTOFMatches = tofMatches.size();
+    }
+    LOG(info) << "Got " << nITSTPCTRDTOFMatches << " ITS-TPC-TRD-TOF Matches";
+  }
+  if (maskMatch[GID::TOF] || (maskMatch[GID::TPCTOF])) {
     const auto& tpctofMatches = recoCont.getTPCTOFMatches();
     if (tpctofMatches.size()) {
       nTPCTOFMatches = tpctofMatches.size();
     }
     LOG(info) << "Got " << nTPCTOFMatches << " TPC-TOF Matches";
+  }
+  if (maskMatch[GID::TOF] || (maskMatch[GID::TPCTRDTOF])) {
+    const auto& tpctofMatches = recoCont.getTPCTRDTOFMatches();
+    if (tpctofMatches.size()) {
+      nTPCTRDTOFMatches = tpctofMatches.size();
+    }
+    LOG(info) << "Got " << nTPCTRDTOFMatches << " TPC-TRD-TOF Matches";
   }
 
   if (maskTrk[GID::ITSTPCTRD]) {
@@ -91,7 +107,7 @@ std::shared_ptr<const o2::event_visualisation::EveWorkflowHelper::tmpDataContain
     if (nTracksTPCITSO2) {
       retVal->tpcLinkITS.resize(tpcTracks.size(), -1);
     }
-    if (nTOFMatches || nTPCTOFMatches) {
+    if (nITSTPCTRDTOFMatches || nITSTPCTOFMatches || nTPCTRDTOFMatches || nTPCTOFMatches) {
       retVal->tpcLinkTOF.resize(tpcTracks.size(), -1);
     }
     if (nTRDTracksITSTPCTRD || nTRDTracksTPCTRD) {

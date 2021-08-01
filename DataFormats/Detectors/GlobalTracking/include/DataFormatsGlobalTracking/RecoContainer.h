@@ -20,6 +20,7 @@
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "ReconstructionDataFormats/MatchingType.h"
 #include "CommonDataFormat/AbstractRefAccessor.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -112,6 +113,14 @@ namespace globaltracking
 struct DataRequest {
   std::vector<o2::framework::InputSpec> inputs;
   std::unordered_map<std::string, bool> requestMap;
+  MatchingType matchingInputType = MatchingType::Standard; // use subspec = 0 for inputs
+
+  auto getMatchingInputType() const { return matchingInputType; }
+  void setMatchingInputStrict() { matchingInputType = MatchingType::Strict; }
+  void setMatchingInputFull() { matchingInputType = MatchingType::Full; }
+  void setMatchingInputStandard() { matchingInputType = MatchingType::Standard; }
+  uint32_t getMatchingInputSubSpec() const { return getSubSpec(matchingInputType); }
+
   void addInput(const o2::framework::InputSpec&& isp);
 
   bool isRequested(const std::string& t) const { return !t.empty() && requestMap.find(t) != requestMap.end(); }
@@ -398,18 +407,28 @@ struct RecoContainer {
   gsl::span<const o2::trd::TriggerRecord> getTRDTriggerRecords() const;
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* getTRDTrackletsMCLabels() const;
 
+  // TOF
+  const o2::dataformats::MatchInfoTOF& getTOFMatch(GTrackID id) const { return getObject<o2::dataformats::MatchInfoTOF>(id, MATCHES); } // generic match getter
   // TPC-TOF, made of refitted TPC track and separate matchInfo
   const o2::dataformats::TrackTPCTOF& getTPCTOFTrack(GTrackID gid) const { return getTrack<o2::dataformats::TrackTPCTOF>(gid); }
   const o2::dataformats::MatchInfoTOF& getTPCTOFMatch(GTrackID id) const { return getObject<o2::dataformats::MatchInfoTOF>(id, MATCHES); }
   auto getTPCTOFTrackMCLabel(GTrackID id) const { return getObject<o2::MCCompLabel>(id, MCLABELS); }
   auto getTPCTOFTracks() const { return getTracks<o2::dataformats::TrackTPCTOF>(GTrackID::TPCTOF); }
+  // TPC-TOF matches
   auto getTPCTOFMatches() const { return getSpan<o2::dataformats::MatchInfoTOF>(GTrackID::TPCTOF, MATCHES); }
   auto getTPCTOFTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::TPCTOF, MCLABELS); }
-  // global ITS-TPC-TOF matches, TODO: add ITS-TPC-TRD-TOF and TPC-TRD-TOF
-  const o2::dataformats::MatchInfoTOF& getTOFMatch(GTrackID id) const { return getObject<o2::dataformats::MatchInfoTOF>(id, MATCHES); }
+  // TPC-TRD-TOF matches
+  auto getTPCTRDTOFMatches() const { return getSpan<o2::dataformats::MatchInfoTOF>(GTrackID::TPCTRDTOF, MATCHES); }
+  auto getTPCTRDTOFTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::TPCTRDTOF, MCLABELS); }
+  // global ITS-TPC-TOF matches
   const o2::dataformats::TrackTPCITS& getITSTPCTOFTrack(GTrackID id) const; // this is special since global TOF track is just a reference on TPCITS
-  auto getTOFMatches() const { return getSpan<o2::dataformats::MatchInfoTOF>(GTrackID::ITSTPCTOF, MATCHES); }
-  auto getTOFMatchesMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::ITSTPCTOF, MCLABELS); }
+  auto getITSTPCTOFMatches() const { return getSpan<o2::dataformats::MatchInfoTOF>(GTrackID::ITSTPCTOF, MATCHES); }
+  auto getITSTPCTOFMatchesMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::ITSTPCTOF, MCLABELS); }
+  // global ITS-TPC-TRD-TOF matches
+  //  const o2::dataformats::TrackTPCITS& getITSTPCTRDTOFTrack(GTrackID id) const; // TODO this is special since global TOF track is just a reference on TPCITS
+  auto getITSTPCTRDTOFMatches() const { return getSpan<o2::dataformats::MatchInfoTOF>(GTrackID::ITSTPCTRDTOF, MATCHES); }
+  auto getITSTPCTRDTOFMatchesMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::ITSTPCTRDTOF, MCLABELS); }
+
   // TOF clusters
   auto getTOFClusters() const { return getSpan<o2::tof::Cluster>(GTrackID::TOF, CLUSTERS); }
   auto getTOFClustersMCLabels() const { return mcTOFClusters.get(); }

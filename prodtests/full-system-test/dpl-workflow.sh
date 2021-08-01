@@ -51,10 +51,10 @@ TRD_TRANSFORMER_CONFIG=
 if [ $SYNCMODE == 1 ]; then
   ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
-  TRD_CONFIG+=" --tracking-sources ITS-TPC --filter-trigrec --configKeyValues 'GPU_proc.ompThreads=1;'"
+  TRD_CONFIG+=" --track-sources ITS-TPC --filter-trigrec --configKeyValues 'GPU_proc.ompThreads=1;'"
   TRD_TRANSFORMER_CONFIG+=" --filter-trigrec"
 else
-  TRD_CONFIG+=" --tracking-sources TPC,ITS-TPC"
+  TRD_CONFIG+=" --track-sources TPC,ITS-TPC"
 fi
 if [ $CTFINPUT == 1 ]; then
   ITS_CONFIG+=" --tracking-mode async"
