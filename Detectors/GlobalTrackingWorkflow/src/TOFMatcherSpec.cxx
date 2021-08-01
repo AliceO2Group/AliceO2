@@ -41,12 +41,12 @@
 
 using namespace o2::framework;
 // using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
-// using GTrackID = o2::dataformats::GlobalTrackID;
+// using GID = o2::dataformats::GlobalTrackID;
 // using DetID = o2::detectors::DetID;
 
 using evIdx = o2::dataformats::EvIndex<int, int>;
 using MatchOutputType = std::vector<o2::dataformats::MatchInfoTOF>;
-using GTrackID = o2::dataformats::GlobalTrackID;
+using GID = o2::dataformats::GlobalTrackID;
 
 namespace o2
 {
@@ -56,7 +56,7 @@ namespace globaltracking
 class TOFMatcherSpec : public Task
 {
  public:
-  TOFMatcherSpec(std::shared_ptr<DataRequest> dr, bool useMC, bool useFIT, bool tpcRefit, bool highpur) : mDataRequest(dr), mUseMC(useMC), mUseFIT(useFIT), mDoTPCRefit(tpcRefit), mSetHighPurity(highpur) {}
+  TOFMatcherSpec(std::shared_ptr<DataRequest> dr, bool useMC, bool useFIT, bool tpcRefit, bool strict) : mDataRequest(dr), mUseMC(useMC), mUseFIT(useFIT), mDoTPCRefit(tpcRefit), mStrict(strict) {}
   ~TOFMatcherSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -67,7 +67,7 @@ class TOFMatcherSpec : public Task
   bool mUseMC = true;
   bool mUseFIT = false;
   bool mDoTPCRefit = false;
-  bool mSetHighPurity = false;
+  bool mStrict = false;
   MatchTOF mMatcher; ///< Cluster finder
   TStopwatch mTimer;
 };
@@ -91,7 +91,7 @@ void TOFMatcherSpec::init(InitContext& ic)
   } else {
     LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
-  if (mSetHighPurity) {
+  if (mStrict) {
     mMatcher.setHighPurity();
   }
 }
@@ -112,15 +112,15 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   bool isITSTPCused = recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPC);
   bool isTPCTRDused = recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRD);
   bool isITSTPCTRDused = recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRD);
-
+  uint32_t ss = o2::globaltracking::getSubSpec(mStrict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   mMatcher.setFIT(mUseFIT);
 
   mMatcher.run(recoData);
 
   if (isTPCused) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFOS_TPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_TPC", ss, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFOS_TPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMTC_TPC", ss, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
     }
 
     auto nmatch = mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC).size();
@@ -129,17 +129,18 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
     } else {
       LOG(INFO) << "Shifting Z for " << nmatch << " matched TPC tracks according to TOF time info";
     }
-    auto& tracksTPCTOF = pc.outputs().make<std::vector<o2::dataformats::TrackTPCTOF>>(OutputRef{"tpctofTracks"}, nmatch);
+    auto& tracksTPCTOF = pc.outputs().make<std::vector<o2::dataformats::TrackTPCTOF>>(OutputRef{"tpctofTracks", ss}, nmatch);
     mMatcher.makeConstrainedTPCTracks(tracksTPCTOF);
   }
 
   if (isITSTPCused) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_ITSTPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC));
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFOS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC));
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMTC_ITSTPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC));
     }
   }
 
+  // TODO: TRD-matched tracks
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
 
   mTimer.Stop();
@@ -151,36 +152,52 @@ void TOFMatcherSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTOFMatcherSpec(GTrackID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool highpur)
+DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict)
 {
+  uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   auto dataRequest = std::make_shared<DataRequest>();
+  if (strict) {
+    dataRequest->setMatchingInputStrict();
+  }
   dataRequest->requestTracks(src, useMC);
-  dataRequest->requestClusters(GTrackID::getSourceMask(GTrackID::TOF), useMC);
+  dataRequest->requestClusters(GID::getSourceMask(GID::TOF), useMC);
   if (useFIT) {
-    dataRequest->requestClusters(GTrackID::getSourceMask(GTrackID::FT0), false);
+    dataRequest->requestClusters(GID::getSourceMask(GID::FT0), false);
   }
 
   std::vector<OutputSpec> outputs;
-
-  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFOS_TPC", 0, Lifetime::Timeframe);
-  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe);
-  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFO_2", 0, Lifetime::Timeframe);
-  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFO_3", 0, Lifetime::Timeframe);
-  if (useMC) {
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFOS_TPC", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFOS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFO_2", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFO_3", 0, Lifetime::Timeframe);
+  if (GID::includesSource(GID::TPC, src)) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MTC_TPC", ss, Lifetime::Timeframe);
+    outputs.emplace_back(OutputLabel{"tpctofTracks"}, o2::header::gDataOriginTOF, "TOFTRACKS_TPC", ss, Lifetime::Timeframe);
+    if (useMC) {
+      outputs.emplace_back(o2::header::gDataOriginTOF, "MCMTC_TPC", ss, Lifetime::Timeframe);
+    }
+  }
+  if (GID::includesSource(GID::ITSTPC, src)) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MTC_ITSTPC", 0, Lifetime::Timeframe);
+    if (useMC) {
+      outputs.emplace_back(o2::header::gDataOriginTOF, "MCMTC_ITSTPC", 0, Lifetime::Timeframe);
+    }
+  }
+  if (GID::includesSource(GID::ITSTPCTRD, src)) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MTC_ITSTPCTRD", 0, Lifetime::Timeframe);
+    if (useMC) {
+      outputs.emplace_back(o2::header::gDataOriginTOF, "MCMTC_ITSTPCTRD", 0, Lifetime::Timeframe);
+    }
+  }
+  if (GID::includesSource(GID::TPCTRD, src)) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MTC_TPCTRD", ss, Lifetime::Timeframe);
+    if (useMC) {
+      outputs.emplace_back(o2::header::gDataOriginTOF, "MCMTC_TPCTRD", ss, Lifetime::Timeframe);
+    }
   }
   outputs.emplace_back(o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe);
-
-  outputs.emplace_back(OutputLabel{"tpctofTracks"}, o2::header::gDataOriginTOF, "TOFTRACKS_TPC", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "tof-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFMatcherSpec>(dataRequest, useMC, useFIT, tpcRefit, highpur)},
+    AlgorithmSpec{adaptFromTask<TOFMatcherSpec>(dataRequest, useMC, useFIT, tpcRefit, strict)},
     Options{
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }

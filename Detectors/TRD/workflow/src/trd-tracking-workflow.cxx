@@ -32,8 +32,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"Disable MC labels"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
-    {"tracking-sources", VariantType::String, std::string{GTrackID::ALL}, {"comma-separated list of sources to use for tracking"}},
+    {"track-sources", VariantType::String, std::string{GTrackID::ALL}, {"comma-separated list of sources to use for tracking"}},
     {"filter-trigrec", o2::framework::VariantType::Bool, false, {"ignore interaction records without ITS data"}},
+    {"strict-matching", o2::framework::VariantType::Bool, false, {"High purity preliminary matching"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -53,8 +54,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2trdtracking-workflow_configuration.ini");
   auto trigRecFilterActive = configcontext.options().get<bool>("filter-trigrec");
-  GTrackID::mask_t srcTRD = allowedSources & GTrackID::getSourcesMask(configcontext.options().get<std::string>("tracking-sources"));
-
+  auto strict = configcontext.options().get<bool>("strict-matching");
+  GTrackID::mask_t srcTRD = allowedSources & GTrackID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
+  if (strict && (srcTRD & ~GTrackID::getSourcesMask("TPC")).any()) {
+    LOGP(WARNING, "In strict matching mode only TPC source allowed, {} asked, redefining", GTrackID::getSourcesNames(srcTRD));
+    srcTRD = GTrackID::getSourcesMask("TPC");
+  }
   o2::framework::WorkflowSpec specs;
   bool useMC = false;
   if (!configcontext.options().get<bool>("disable-mc") && !useMC) {
@@ -62,7 +67,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   // processing devices
-  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive));
+  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive, strict));
   if (GTrackID::includesSource(GTrackID::Source::ITSTPC, srcTRD)) {
     specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec());
   }
@@ -74,14 +79,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.emplace_back(o2::trd::getTRDCalibWriterSpec());
     }
     if (GTrackID::includesSource(GTrackID::Source::TPC, srcTRD)) {
-      specs.emplace_back(o2::trd::getTRDTPCTrackWriterSpec(useMC));
+      specs.emplace_back(o2::trd::getTRDTPCTrackWriterSpec(useMC, strict));
     }
   }
 
   // input
   auto maskClusters = GTrackID::getSourcesMask("TRD");
-  auto maskTracks = srcTRD & GTrackID::getSourcesMask("TPC");
-  auto maskMatches = srcTRD & GTrackID::getSourcesMask("ITS-TPC");
+  auto maskTracks = srcTRD;
+  auto maskMatches = GTrackID::getSourcesMask(GTrackID::NONE);
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, maskClusters, maskMatches, maskTracks, useMC);
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit

@@ -9,25 +9,33 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TOFMatcherSpec.h
+/// @file  MatchingType.h
+/// \brief Defintions for the inter-detector matching type
+/// \author ruben.shahoyan@cern.ch
 
-#ifndef O2_TOF_MATCHER_SPEC
-#define O2_TOF_MATCHER_SPEC
-
-#include "Framework/DataProcessorSpec.h"
-#include "ReconstructionDataFormats/MatchInfoTOFReco.h"
-
-using namespace o2::framework;
+#ifndef O2_MATCHING_TYPE
+#define O2_MATCHING_TYPE
 
 namespace o2
 {
 namespace globaltracking
 {
+enum class MatchingType {
+  Standard, // standard matching, i.e. no extended workflow was applied
+  Full,     // device is in the full matching mode
+  Strict,   // device is in the strict matching mode
+  NModes
+};
 
-/// create a processor spec
-framework::DataProcessorSpec getTOFMatcherSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict);
+static constexpr uint32_t getSubSpec(MatchingType t)
+{
+  return t == MatchingType::Strict ? 1 : 0; // Only strict matching inputs and outputs need special SubSpec
+  if (t == MatchingType::Standard) {
+    return 0;
+  }
+}
 
 } // namespace globaltracking
 } // namespace o2
 
-#endif /* O2_TOF_MATCHER_SPEC */
+#endif

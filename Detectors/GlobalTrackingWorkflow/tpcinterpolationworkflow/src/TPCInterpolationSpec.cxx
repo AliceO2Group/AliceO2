@@ -92,7 +92,7 @@ DataProcessorSpec getTPCInterpolationSpec(bool useMC)
   inputs.emplace_back("clusTPC", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe);
 
   inputs.emplace_back("match", "GLO", "TPCITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("matchTOF", "TOF", "MATCHINFOS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("matchTOF", "TOF", "MTC_ITSTPC", 0, Lifetime::Timeframe);
   inputs.emplace_back("clustersTOF", "TOF", "CLUSTERS", 0, Lifetime::Timeframe);
 
   if (useMC) {

@@ -25,6 +25,7 @@
 #include "TPCBase/ParameterGas.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "GPUWorkflowHelper/GPUWorkflowHelper.h"
+#include "Framework/ConfigParamRegistry.h"
 
 // GPU header
 #include "GPUReconstruction.h"
@@ -60,6 +61,17 @@ void TRDGlobalTracking::init(InitContext& ic)
   geo->createPadPlaneArray();
   geo->createClusterMatrixArray();
   mFlatGeo = std::make_unique<GeometryFlat>(*geo);
+
+  // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
+  std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
+  std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
+  if (o2::utils::Str::pathExists(matLUTFile)) {
+    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
+    o2::base::Propagator::Instance()->setMatLUT(lut);
+    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+  } else {
+    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+  }
 
   //-------- init GPU reconstruction --------//
   GPURecoStepConfiguration cfgRecoStep;
@@ -128,7 +140,6 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   inputTracks.collectData(pc, *mDataRequest);
   auto tmpInputContainer = getRecoInputContainer(pc, &mChainTracking->mIOPtrs, &inputTracks);
   auto tmpContainer = GPUWorkflowHelper::fillIOPtr(mChainTracking->mIOPtrs, inputTracks, mUseMC, nullptr, GTrackID::getSourcesMask("TRD"), mTrkMask, GTrackID::mask_t{GTrackID::MASK_NONE});
-
   LOGF(INFO, "There are %i tracklets in total from %i trigger records", mChainTracking->mIOPtrs.nTRDTracklets, mChainTracking->mIOPtrs.nTRDTriggerRecords);
   LOGF(INFO, "As input seeds are available: %i ITS-TPC matched tracks and %i TPC tracks", mChainTracking->mIOPtrs.nTracksTPCITSO2, mChainTracking->mIOPtrs.nOutputTracksTPCO2);
 
@@ -234,13 +245,14 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   LOGF(INFO, "The TRD tracker found %lu tracks from TPC seeds and %lu tracks from ITS-TPC seeds and attached in total %i tracklets out of %i",
        tracksOutTPC.size(), tracksOutITSTPC.size(), nTrackletsAttached, mChainTracking->mIOPtrs.nTRDTracklets);
 
+  uint32_t ss = o2::globaltracking::getSubSpec(mStrict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   if (inputTracks.isTrackSourceLoaded(GTrackID::Source::ITSTPC)) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0, Lifetime::Timeframe}, tracksOutITSTPC);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG_GLO", 0, Lifetime::Timeframe}, trackTrigRecITSTPC);
   }
   if (inputTracks.isTrackSourceLoaded(GTrackID::Source::TPC)) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0, Lifetime::Timeframe}, tracksOutTPC);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG_TPC", 0, Lifetime::Timeframe}, trackTrigRecTPC);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_TPC", ss, Lifetime::Timeframe}, tracksOutTPC);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG_TPC", ss, Lifetime::Timeframe}, trackTrigRecTPC);
   }
 
   mTimer.Stop();
@@ -252,11 +264,14 @@ void TRDGlobalTracking::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive)
+DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive, bool strict)
 {
   std::vector<OutputSpec> outputs;
-
+  uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
+  if (strict) {
+    dataRequest->setMatchingInputStrict();
+  }
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestClusters(GTrackID::getSourcesMask("TRD"), useMC);
   auto& inputs = dataRequest->inputs;
@@ -271,8 +286,8 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
     outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG_GLO", 0, Lifetime::Timeframe);
   }
   if (GTrackID::includesSource(GTrackID::Source::TPC, src)) {
-    outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG_TPC", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_TPC", ss, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG_TPC", ss, Lifetime::Timeframe);
     if (trigRecFilterActive) {
       LOG(ERROR) << "Matching to TPC-only tracks requested, but IR without ITS contribution are filtered out. This does not lead to a crash, but it deteriorates the matching efficiency.";
     }
@@ -285,8 +300,8 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
     processorName,
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, dataRequest, src, trigRecFilterActive)},
-    Options{}};
+    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, dataRequest, src, trigRecFilterActive, strict)},
+    Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 
 } // namespace trd

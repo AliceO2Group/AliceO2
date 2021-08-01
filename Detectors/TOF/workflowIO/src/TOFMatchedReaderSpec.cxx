@@ -23,8 +23,10 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/MatchingType.h"
 #include "CommonUtils/StringUtils.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
 using namespace o2::framework;
 
@@ -32,7 +34,7 @@ namespace o2
 {
 namespace tof
 {
-o2::header::DataDescription ddMatchInfo{"MATCHINFOS"}, ddMatchInfo_tpc{"MATCHINFOS_TPC"},
+o2::header::DataDescription ddMatchInfo{"MTC_ITSTPC"}, ddMatchInfo_tpc{"MTC_TPC"},
   ddMCMatchTOF{"MCMATCHTOF"}, ddMCMatchTOF_tpc{"MCMATCHTOF_TPC"};
 
 void TOFMatchedReader::init(InitContext& ic)
@@ -72,12 +74,13 @@ void TOFMatchedReader::run(ProcessingContext& pc)
   mTree->GetEntry(currEntry);
   LOG(INFO) << "Pushing " << mMatches.size() << " TOF matchings at entry " << currEntry;
 
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTPCMatch ? ddMatchInfo_tpc : ddMatchInfo, 0, Lifetime::Timeframe}, mMatches);
+  uint32_t tpcMatchSS = o2::globaltracking::getSubSpec(mSubSpecStrict && mTPCMatch ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTPCMatch ? ddMatchInfo_tpc : ddMatchInfo, tpcMatchSS, Lifetime::Timeframe}, mMatches);
   if (mReadTracks && mTPCMatch) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "TOFTRACKS_TPC", 0, Lifetime::Timeframe}, mTracks);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "TOFTRACKS_TPC", tpcMatchSS, Lifetime::Timeframe}, mTracks);
   }
   if (mUseMC) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTPCMatch ? ddMCMatchTOF_tpc : ddMCMatchTOF, 0, Lifetime::Timeframe}, mLabelTOF);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTPCMatch ? ddMCMatchTOF_tpc : ddMCMatchTOF, tpcMatchSS, Lifetime::Timeframe}, mLabelTOF);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
@@ -86,23 +89,23 @@ void TOFMatchedReader::run(ProcessingContext& pc)
   }
 }
 
-DataProcessorSpec getTOFMatchedReaderSpec(bool useMC, bool tpcmatch, bool readTracks)
+DataProcessorSpec getTOFMatchedReaderSpec(bool useMC, bool tpcmatch, bool readTracks, bool subSpecStrict)
 {
   std::vector<OutputSpec> outputs;
-
-  outputs.emplace_back(o2::header::gDataOriginTOF, tpcmatch ? ddMatchInfo_tpc : ddMatchInfo, 0, Lifetime::Timeframe);
+  uint32_t tpcMatchSS = o2::globaltracking::getSubSpec(subSpecStrict && tpcmatch ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
+  outputs.emplace_back(o2::header::gDataOriginTOF, tpcmatch ? ddMatchInfo_tpc : ddMatchInfo, tpcMatchSS, Lifetime::Timeframe);
   if (tpcmatch && readTracks) {
-    outputs.emplace_back(o2::header::gDataOriginTOF, "TOFTRACKS_TPC", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "TOFTRACKS_TPC", tpcMatchSS, Lifetime::Timeframe);
   }
   if (useMC) {
-    outputs.emplace_back(o2::header::gDataOriginTOF, tpcmatch ? ddMCMatchTOF_tpc : ddMCMatchTOF, 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, tpcmatch ? ddMCMatchTOF_tpc : ddMCMatchTOF, tpcMatchSS, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
     o2::utils::Str::concat_string("TOFMatchedReader_", tpcmatch ? "tpc" : "glo"),
     Inputs{},
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFMatchedReader>(useMC, tpcmatch, readTracks)},
+    AlgorithmSpec{adaptFromTask<TOFMatchedReader>(useMC, tpcmatch, readTracks, subSpecStrict)},
     Options{
       {"tof-matched-infile", VariantType::String, tpcmatch ? "o2match_tof_tpc.root" : "o2match_tof_itstpc.root", {"Name of the input file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},
