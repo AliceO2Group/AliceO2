@@ -23,12 +23,14 @@
 #include "DataFormatsTRD/Constants.h"
 
 #include <fstream>
-
+#include <bitset>
+#include "TH1F.h"
 //using namespace o2::framework;
 
 namespace o2::trd
 {
 class Digit;
+class EventRecord;
 // class to Parse a single link of digits data.
 // calling class splits data by link and this gets called per link.
 
@@ -41,9 +43,9 @@ class DigitsParser
   void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
   int Parse(bool verbose = false); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
-            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, int stack, int layer, DigitHCHeader& hcheader,
-            TRDFeeID& feeid, unsigned int linkindex, bool cleardigits = false, bool disablebyteswap = false, bool verbose = false,
-            bool headerverbose = false, bool dataverbose = false);
+            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, int stack, int layer, int side, DigitHCHeader& hcheader,
+            TRDFeeID& feeid, unsigned int linkindex, EventRecord* eventrecord, std::bitset<16> options, bool cleardigits = false);
+
   enum DigitParserState { StateDigitHCHeader, // always the start of a half chamber.
                           StateDigitMCMHeader,
                           StateDigitMCMData,
@@ -68,6 +70,7 @@ class DigitsParser
   uint64_t getDataWordsParsed() { return mDataWordsParsed; }
   void tryFindMCMHeaderAndDisplay(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse);
   void OutputIncomingData();
+  void setParsingHisto(TH1F* parsingerrors) { mParsingErrors = parsingerrors; }
 
  private:
   int mState;
@@ -88,17 +91,20 @@ class DigitsParser
   // this means that successive calls to Parse simply appends the new digits onto the vector.
   // at the end of the event the calling object must pull/copy the vector and clear or clear on next parse.
   //
-  // int mParsedWords{0}; // words parsed in data vector, last complete bit is not parsed, and left for another round of data update.
   uint64_t mWordsDumped{0}; // words rejected for various reasons.
   DigitHCHeader mDigitHCHeader;
   DigitMCMHeader* mDigitMCMHeader;
   DigitMCMADCMask* mDigitMCMADCMask;
   uint32_t mADCMask;
   DigitMCMData* mDigitMCMData;
+  EventRecord* mEventRecord;
   bool mVerbose{false};
   bool mHeaderVerbose{false};
   bool mDataVerbose{false};
   bool mvVerbose{false};
+  std::bitset<16> mOptions;
+  bool mIgnoreDigitHCHeader{false}; // whether to ignore the contents of the half chamber header and take the rdh/cru header as authoritative
+
   uint16_t mDetector;
   uint16_t mMCM;
   uint16_t mROB;
@@ -106,15 +112,15 @@ class DigitsParser
   uint16_t mDigitWordCount;
   uint16_t mStack;
   uint16_t mLayer;
+  uint16_t mSector;
+  uint16_t mSide;
+
   uint16_t mEventCounter;
   TRDFeeID mFEEID;
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
   std::array<uint16_t, constants::TIMEBINS> mADCValues{};
   std::array<uint16_t, constants::MAXMCMCOUNT> mMCMstats; // bit pattern for errors current event for a given mcm;
-  //uint32_t mCurrentLinkDataPosition256;                // count of data read for current link in units of 256 bits
-  //uint32_t mCurrentLinkDataPosition;                   // count of data read for current link in units of 256 bits
-  //uhint32_t mCurrentHalfCRUDataPosition256;             //count of data read for this half cru.
-  //  std::array<uint32_t, 15> mCurrentHalfCRULinkLengths; // not in units of 256 bits or 32 bytes or 8 words
+  TH1F* mParsingErrors;
 };
 
 } // namespace o2::trd

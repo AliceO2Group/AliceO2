@@ -23,9 +23,12 @@
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Digit.h"
-//#include "DataFormatsTRD/FlpStats.h"
-
+#include "DataFormatsTRD/RawDataStats.h"
 #include <fstream>
+
+#include "TGraph2D.h"
+#include "TH3F.h"
+#include <TH2F.h>
 
 using namespace o2::framework;
 
@@ -35,12 +38,15 @@ namespace o2::trd
 class DataReaderTask : public Task
 {
  public:
-  DataReaderTask(bool compresseddata, bool byteswap, bool fixdigitendcorruption, int tracklethcheader, bool verbose, bool headerverbose, bool dataverbose) : mCompressedData(compresseddata), mByteSwap(byteswap), mFixDigitEndCorruption(fixdigitendcorruption), mTrackletHCHeaderState(tracklethcheader), mVerbose(verbose), mHeaderVerbose(headerverbose), mDataVerbose(dataverbose) {}
+  DataReaderTask(int tracklethcheader, std::bitset<16> option) : mCompressedData(option[TRDCompressedDataBit]), mByteSwap(option[TRDByteSwapBit]), mFixDigitEndCorruption(option[TRDFixDigitCorruptionBit]), mTrackletHCHeaderState(tracklethcheader), mVerbose(option[TRDVerboseBit]), mHeaderVerbose(option[TRDHeaderVerboseBit]), mDataVerbose(option[TRDDataVerboseBit]), mEnableTimeInfo(option[TRDEnableTimeInfoBit]), mEnableStats(option[TRDEnableStatsBit]), mRootOutput(option[TRDEnableRootOutputBit]), mIgnoreTrackletHCHeader(option[TRDIgnoreTrackletHCHeaderBit]), mIgnoreDigitHCHeader(option[TRDIgnoreDigitHCHeaderBit]), mOptions(option) {}
   ~DataReaderTask() override = default;
   void init(InitContext& ic) final;
   void sendData(ProcessingContext& pc, bool blankframe = false);
   void run(ProcessingContext& pc) final;
   bool isTimeFrameEmpty(ProcessingContext& pc);
+  void endOfStream(o2::framework::EndOfStreamContext& ec) override;
+
+  void setParsingErrorLabels();
 
  private:
   CruRawReader mReader;                  // this will do the parsing, of raw data passed directly through the flp(no compression)
@@ -55,6 +61,14 @@ class DataReaderTask : public Task
   bool mCompressedData{false};   // are we dealing with the compressed data from the flp (send via option)
   bool mByteSwap{true};          // whether we are to byteswap the incoming data, mc is not byteswapped, raw data is (too be changed in cru at some point)
                                  //  o2::header::DataDescription mDataDesc; // Data description of the incoming data
+  bool mEnableTimeInfo{false};   // enable the timing of timeframe,cru,digit,tracklet processing.
+  bool mEnableStats{false};      // enable the taking of stats in the rawdatastats class
+  bool mRootOutput{false};       // enable the writing of histos.root, a poor mans qc, mostly for debugging.
+  bool mIgnoreDigitHCHeader{false};    // ignore this header for the purposes of data cross checking use the rdh/cru as authoritative
+  bool mIgnoreTrackletHCHeader{false}; // ignore this header for data validity checks, this and the above are use to parse corrupted data.
+  std::bitset<16> mOptions;            // stores the incoming of the above bools, useful to be able to send this on instead of the individual ones above
+                                       // the above bools make the code more readable hence still here.
+
   uint64_t mWordsRead = 0;
   uint64_t mWordsRejected = 0;
   int mTrackletHCHeaderState{0}; // what to do about tracklethcheader, 0 never there, 2 always there, 1 there iff tracklet data, i.e. only there if next word is *not* endmarker 10001000.
@@ -62,6 +76,26 @@ class DataReaderTask : public Task
   std::string mDataDesc;
   o2::header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
   bool mFixDigitEndCorruption{false};                                                     // fix the parsing of corrupt end of digit data. bounce over it.
+  o2::trd::TRDDataCountersPerTimeFrame mTimeFrameStats;                                   // TODO for compressed data this is going to come in for each subtimeframe
+                                                                                          // and we need to collate them.
+
+  TH2F* LinkError;
+  TH2F* LinkError1;
+  TH2F* LinkError2;
+  TH2F* LinkError3;
+  TH2F* LinkError4;
+  TH2F* LinkError5;
+  TH2F* LinkError6;
+  TH2F* LinkError7;
+  TH1F* mTimeFrameTime;
+  TH1F* mTrackletParsingTime;
+  TH1F* mDigitParsingTime;
+  TH1F* mCruTime;
+  TH1F* mPackagingTime;
+  TH1F* mDataVersions;
+  TH1F* mDataVersionsMajor;
+  TH1F* mParsingErrors;
+  TFile* mRootFile;
 };
 
 } // namespace o2::trd

@@ -565,7 +565,8 @@ int Trap2CRU::writeDigitHCHeader(const int eventcount, const uint32_t linkid)
   int detector = linkid / 2;
 
   DigitHCHeader digitheader;
-  digitheader.res0 = 1;
+  DigitHCHeader1 digitheader1;
+  digitheader.res = 1;
   digitheader.side = (linkid % 2) ? 1 : 0;
   digitheader.stack = (detector % (o2::trd::constants::NLAYER * o2::trd::constants::NSTACK)) / o2::trd::constants::NLAYER;
   digitheader.layer = (detector % o2::trd::constants::NLAYER);
@@ -574,13 +575,15 @@ int Trap2CRU::writeDigitHCHeader(const int eventcount, const uint32_t linkid)
   digitheader.minor = 42;    // my (shtm) version, not used
   digitheader.major = 0x20;  // zero suppressed
   digitheader.version = 1;   //new version of the header. we only have 1 version
-  digitheader.res1 = 1;
-  digitheader.ptrigcount = 1;             //TODO put something more real in here?
-  digitheader.ptrigphase = 1;             //TODO put something more real in here?
-  digitheader.bunchcrossing = eventcount; //NB this is not the same as the bunchcrossing the rdh. See RawData.h for explanation
-  digitheader.numtimebins = 30;
-  memcpy(mRawDataPtr, (char*)&digitheader, 8); // 8 because we are only using the first 2 32bit words of the header, the rest are optional.
-  mRawDataPtr += 8;
+  digitheader1.res = 1;
+  digitheader1.ptrigcount = 1;             //TODO put something more real in here?
+  digitheader1.ptrigphase = 1;             //TODO put something more real in here?
+  digitheader1.bunchcrossing = eventcount; //NB this is not the same as the bunchcrossing the rdh. See RawData.h for explanation
+  digitheader1.numtimebins = 30;
+  memcpy(mRawDataPtr, (char*)&digitheader, sizeof(DigitHCHeader)); // 8 because we are only using the first 2 32bit words of the header, the rest are optional.
+  mRawDataPtr += sizeof(DigitHCHeader);
+  memcpy(mRawDataPtr, (char*)&digitheader, sizeof(DigitHCHeader1)); // 8 because we are only using the first 2 32bit words of the header, the rest are optional.
+  mRawDataPtr += sizeof(DigitHCHeader1);
   wordswritten += 2;
   return wordswritten;
 }

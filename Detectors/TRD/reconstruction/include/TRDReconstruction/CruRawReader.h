@@ -26,12 +26,15 @@
 #include "Headers/RDHAny.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DataFormatsTRD/RawData.h"
+#include "DataFormatsTRD/RawDataStats.h"
 #include "TRDReconstruction/DigitsParser.h"
 #include "TRDReconstruction/TrackletsParser.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/Digit.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "TRDReconstruction/EventRecord.h"
+
+#include "TH2F.h"
 
 namespace o2::trd
 {
@@ -58,14 +61,18 @@ class CruRawReader
 
   void checkSummary();
   void resetCounters();
-  void configure(bool byteswap, bool fixdigitcorruption, int tracklethcheader, bool verbose, bool headerverbose, bool dataverbose)
+  void configure(int tracklethcheader, std::bitset<16> options)
   {
-    mByteSwap = byteswap;
-    mVerbose = verbose;
-    mHeaderVerbose = headerverbose;
-    mDataVerbose = dataverbose;
-    mFixDigitEndCorruption = fixdigitcorruption;
+    mByteSwap = options[TRDByteSwapBit];
+    mVerbose = options[TRDVerboseBit];
+    mHeaderVerbose = options[TRDHeaderVerboseBit];
+    mDataVerbose = options[TRDDataVerboseBit];
+    mFixDigitEndCorruption = options[TRDFixDigitCorruptionBit];
     mTrackletHCHeaderState = tracklethcheader;
+    mRootOutput = options[TRDEnableRootOutputBit];
+    mEnableTimeInfo = options[TRDEnableTimeInfoBit];
+    mEnableStats = options[TRDEnableStatsBit];
+    mOptions = options;
   }
   void setBlob(bool returnblob) { mReturnBlob = returnblob; }; //set class to produce blobs and not vectors. (compress vs pass through)`
   void setDataBuffer(const char* val)
@@ -100,6 +107,8 @@ class CruRawReader
   int sumDigitsFound() { return mEventRecords.sumDigits(); }
   int getWordsRead() { return mTotalDigitWordsRead; }
   int getWordsRejected() { return mTotalDigitWordsRejected; }
+
+  std::shared_ptr<EventStorage*> getEventStorage() { return std::make_shared<EventStorage*>(&mEventRecords); }
   void clearall()
   {
     mEventRecords.clear();
@@ -111,6 +120,38 @@ class CruRawReader
     mDigitsParser.clear();
   }
   void OutputHalfCruRawData();
+  // void setStats(o2::trd::TRDDataCountersPerTimeFrame* trdstats){mTimeFrameStats=trdstats;}
+  void setHistos(TH2F* h1, TH2F* h2, TH2F* h3)
+  {
+    hist1 = h1;
+    hist2 = h2;
+    hist3 = h3;
+  }; // a hack!
+  void setHistos1(TH2F* h1, TH2F* h2, TH2F* h3)
+  {
+    hist4 = h1;
+    hist5 = h2;
+    hist6 = h3;
+  }; // a hack!
+  void setHistos2(TH2F* h1, TH2F* h2)
+  {
+    hist7 = h1;
+    hist8 = h2;
+  }; // a hack!
+  void setTimeHistos(TH1F* timeframetime, TH1F* trackletparsingtime, TH1F* digitparsingtime,
+                     TH1F* crutime, TH1F* packagingtime, TH1F* versions, TH1F* versionsmajor,
+                     TH1F* parsingerrors)
+  {
+    mTimeFrameTime = timeframetime;
+    mTrackletTiming = trackletparsingtime;
+    mDigitTiming = digitparsingtime;
+    mCruTime = crutime;
+    mEventRecords.setHisto(packagingtime);
+    mDataVersions = versions;
+    mDataVersionsMajor = versionsmajor;
+    mParsingErrors = parsingerrors;
+    mTrackletsParser.setErrorHistos(parsingerrors);
+  };
 
  protected:
   bool processHBFs(int datasizealreadyread = 0, bool verbose = false);
@@ -118,6 +159,9 @@ class CruRawReader
   bool buildCRUPayLoad();
   int processHalfCRU(int cruhbfstartoffset);
   bool processCRULink();
+  int parseDigitHCHeader();
+  int checkDigitHCHeader();
+  int checkTrackletHCHeader();
   bool skipRDH();
 
   inline void rewind()
@@ -135,7 +179,10 @@ class CruRawReader
   bool mByteSwap{false};
   bool mFixDigitEndCorruption{false};
   int mTrackletHCHeaderState{0};
-
+  bool mRootOutput{0};
+  bool mEnableTimeInfo{0};
+  bool mEnableStats{0};
+  std::bitset<16> mOptions;
   const char* mDataBuffer = nullptr;
   static const uint32_t mMaxHBFBufferSize = o2::trd::constants::HBFBUFFERMAX;
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX> mHBFPayload; //this holds the O2 payload held with in the HBFs to pass to parsing.
@@ -165,11 +212,26 @@ class CruRawReader
 
   const o2::header::RDHAny* mDataRDH;
   HalfCRUHeader mCurrentHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
+  DigitHCHeader mDigitHCHeader;        // Digit HalfChamber header we are currently on.
+  DigitHCHeader1 mDigitHCHeader1;      // this and the next 2 are option are and variable in order, hence
+  DigitHCHeader2 mDigitHCHeader2;      // the individual seperation instead of an array.
+  DigitHCHeader3 mDigitHCHeader3;
+  TrackletHCHeader mTrackletHCHeader;  // Tracklet HalfChamber header we are currently on.
   uint16_t mCurrentLink;               // current link within the halfcru we are parsing 0-14
   uint16_t mCRUEndpoint;               // the upper or lower half of the currently parsed cru 0-14 or 15-29
   uint16_t mCRUID;
   uint16_t mHCID;
   TRDFeeID mFEEID; // current Fee ID working on
+  // the store of the 3 ways we can determine this information, link,rdh,halfchamber
+  std::array<int, 3> mDetector;
+  std::array<int, 3> mSector;
+  std::array<int, 3> mStack;
+  std::array<int, 3> mLayer;
+  std::array<int, 3> mSide;
+  std::array<int, 3> mEndPoint;
+  std::array<int, 3> mHalfChamberSide;
+  int mWhichData; // index used into the above arrays once decided on which source is "correct"
+  o2::InteractionRecord mIR;
   std::array<uint32_t, 15> mCurrentHalfCRULinkLengths;
   std::array<uint32_t, 15> mCurrentHalfCRULinkErrorFlags;
   uint32_t mCRUState; // the state of what we are expecting to read currently from the data stream, *not* what we have just read.
@@ -185,9 +247,12 @@ class CruRawReader
   uint64_t mDigitWordsRejected = 0;
   uint64_t mTotalDigitWordsRead = 0;
   uint64_t mTotalDigitWordsRejected = 0;
+  uint64_t mTrackletWordsRead = 0;
+  uint64_t mTrackletWordsRejected = 0;
+  uint64_t mTotalTrackletWordsRejected = 0;
+  uint64_t mTotalTrackletWordsRead = 0;
   //pointers to the data as we read them in, again no point in copying.
   HalfCRUHeader* mhalfcruheader;
-  o2::InteractionRecord mIR;
 
   bool checkerCheck();
   void checkerCheckRDH();
@@ -206,30 +271,17 @@ class CruRawReader
   uint32_t mErrorCounter;
 
   EventStorage mEventRecords; // store data range indexes into the above vectors.
+  EventRecord* mCurrentEvent; // the current event we are looking at, info extracted from cru half chamber header.
+
   bool mReturnBlob{0};        // whether to return blobs or vectors;
-  struct TRDDataCountersPerEvent_t { //thisis on a per event basis
-    //TODO this should go into a dpl message for catching by qc ?? I think.
-    std::array<uint32_t, 1080> mLinkWordCounts;    //units of 256bits "cru word"
-    std::array<uint32_t, 1080> mLinkPadWordCounts; // units of 32 bits the data pad word size.
-    std::array<uint32_t, 1080> mLinkFreq;          //units of 256bits "cru word"
-    std::array<uint8_t, 1080> mLinkErrorFlag;      //units of 256bits "cru word"
-    //from the above you can get the stats for supermodule and detector.
-    std::array<bool, 1080> LinkEmpty; // Link only has padding words only, probably not serious.
-    //maybe change this to actual traps ?? but it will get large.
-    std::array<uint32_t, 1080> mLinkTrackletPerTrap1; // incremented if a trap on this link has 1 tracklet
-    std::array<uint32_t, 1080> mLinkTrackletPerTrap2; // incremented if a trap on this link has 2 tracklet
-    std::array<uint32_t, 1080> mLinkTrackletPerTrap3; // incremented if a trap on this link has 3 tracklet
-    std::array<uint32_t, 1080> mLinkMCMsWithData;
-    std::array<uint16_t, 1080> MCMStatus;
-    std::array<uint16_t, constants::MAXMCMCOUNT> mMCMstats; // bit pattern for errors current event for a given mcm;
-    std::vector<uint32_t> mEmptyTraps;                      // MCM indexes of traps that are empty ?? list might better
-  } TRDStatCountersPerEvent;
+  o2::trd::TRDDataCountersRunning mStatCountersRunning;
 
-  struct TRDDataCountersRunning_t { //those counters that keep counting
-    //??
-  } TRDStatCountersRunning;
-
-  /** summary data **/
+  TH2F *hist1, *hist2, *hist3;                                      // a hack !
+  TH2F *hist4, *hist5, *hist6;                                      // a hack !
+  TH2F *hist7, *hist8;                                              // a hack !
+  TH1F *mTimeFrameTime, *mTrackletTiming, *mDigitTiming, *mCruTime; // a hack !
+  TH1F *mDataVersions, *mDataVersionsMajor;                         // a hack !
+  TH1F* mParsingErrors;                                             // a hack !
 };
 
 } // namespace o2::trd
