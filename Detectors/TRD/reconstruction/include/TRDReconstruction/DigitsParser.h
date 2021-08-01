@@ -112,7 +112,7 @@ class DigitsParser
   uint16_t mChannel;
   uint16_t mEventCounter;
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
-                                                                                           // std::array<uint16_t, 60>/*constants::TIMEBINS>*/ mADCValues;
+  std::array<uint16_t, constants::TIMEBINS> mADCValues{};
   //uint32_t mCurrentLinkDataPosition256;                // count of data read for current link in units of 256 bits
   //uint32_t mCurrentLinkDataPosition;                   // count of data read for current link in units of 256 bits
   //uhint32_t mCurrentHalfCRUDataPosition256;             //count of data read for this half cru.

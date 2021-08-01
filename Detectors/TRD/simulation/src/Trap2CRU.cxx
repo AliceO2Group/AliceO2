@@ -573,7 +573,7 @@ int Trap2CRU::writeDigitHCHeader(const int eventcount, const uint32_t linkid)
   digitheader.supermodule = linkid / 60;
   digitheader.numberHCW = 1; // number of additional words in th header, we are using 2 header words so 1 here.
   digitheader.minor = 42;    // my (shtm) version, not used
-  digitheader.major = 4;     // zero suppressed
+  digitheader.major = 0x20;     // zero suppressed
   digitheader.version = 1;   //new version of the header. we only have 1 version
   digitheader.res1 = 1;
   digitheader.ptrigcount = 1;             //TODO put something more real in here?

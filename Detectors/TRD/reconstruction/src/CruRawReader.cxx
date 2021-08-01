@@ -70,7 +70,6 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
 {
   if (mVerbose) {
     LOG(info) << "PROCESS HBF starting at " << std::hex << (void*)mDataPointer;
-    LOG(info) << "PROCESS HBF from payload starting at " << std::hex << (void*)&mHBFPayload[0];
   }
   mDataRDH = reinterpret_cast<const o2::header::RDHAny*>(mDataPointer);
   mOpenRDH = reinterpret_cast<o2::header::RDHAny*>((char*)mDataPointer);
@@ -86,8 +85,6 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     if (mVerbose) {
       LOG(info) << "--- RDH open/continue detected loopcount :" << loopcount;
       LOG(info) << " rdh first word 0x" << std::hex << (uint32_t)*mDataPointer;
-
-      //      o2::raw::RDHUtils::printRDH(rdh);
       for (int i = 0; i < 64; ++i) {
         LOG(info) << std::hex << " 0x" << *(mDataPointer + i);
       }
@@ -130,7 +127,7 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
   int counthalfcru = 0;
   mHBFoffset32 = 0;
 
-  while ((mHBFoffset32 < ((mTotalHBFPayLoad) / 4))) {
+  while ((mHBFoffset32 < ((mTotalHBFPayLoad) / 4))) {// the blank event of eeeeee at the end 
     if (mVerbose) {
       LOG(info) << "Looping over cruheaders in HBF, loop count " << counthalfcru << " current offset is" << mHBFoffset32 << " total payload is " << mTotalHBFPayLoad / 4 << "  raw :" << mTotalHBFPayLoad;
     }
@@ -146,11 +143,19 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
         case 1:
           LOG(info) << "all good parsing half cru";
           break;
+        default : return true;
       }
     }
+  //take care of the case where there is an "empty" rdh containing all 0xeeeeeeee as payload.
+  if(mTotalHBFPayLoad/4 - mHBFoffset32 == 8 && mHBFPayload[mHBFoffset32+7]== o2::trd::constants::CRUPADDING32){
+    mHBFoffset32+=8;
+  }
     counthalfcru++;
+    if(counthalfcru==1)break;
   } // loop of halfcru's while there is still data in the heart beat frame.
-  mDatareadfromhbf = totaldataread;
+  if(totaldataread>0){
+    mDatareadfromhbf = totaldataread;
+  }
   return true; //totaldataread;
 }
 
@@ -193,12 +198,35 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
                                                mCurrentHalfCRULinkLengths.end(),
                                                decltype(mCurrentHalfCRULinkLengths)::value_type(0));
   mTotalHalfCRUDataLength = mTotalHalfCRUDataLength256 * 32; //convert to bytes.
+
+  if(mDataVerbose){
+    if(mTotalHalfCRUDataLength!=mTotalHBFPayLoad){
+      LOG(info) << "mTotalHalfCRUDataLength ?!= mTotalHBFPayLoad " << mTotalHalfCRUDataLength << "?!=" << mTotalHBFPayLoad;
+    }
+  }
   std::array<uint32_t, 1024>::iterator currentlinkstart = mHBFPayload.begin() + cruhbfstartoffset;
+/*LOG(info) << "CRU dump begin  ************************** ";
+  for(int z=0;z<15;++z){
+    LOG(info) << "link " << z << " length : " << mCurrentHalfCRULinkLengths[z]*8;
+  }
+  int linkzcount=0;
+  uint64_t linkzsum=0;
+  for(int di=0;di<mTotalHalfCRUDataLength;++di){
+    LOG(info) << "di:" << di << " " << std::hex << mHBFPayload[di+8];
+    if(di == cruhbfstartoffset) LOG(info) << "start there ^^^^^";
+    if(di == mCurrentHalfCRULinkLengths[linkzcount]*8+linkzsum) {LOG(info) << "end of link "<< linkzcount; linkzsum+=mCurrentHalfCRULinkLengths[linkzcount]*8;linkzcount++;}
+  }
+  for(int di=mTotalHalfCRUDataLength; di < mTotalHalfCRUDataLength+16;++di){
+    LOG(info) << "**di:" << di << " " << std::hex << mHBFPayload[di];
+  }
+  LOG(info) << "CRU dump end ***************";*/
   std::array<uint32_t, 1024>::iterator linkstart, linkend;
   int dataoffsetstart32 = sizeof(mCurrentHalfCRUHeader) / 4 + cruhbfstartoffset; // in uint32
   //CHECK 1 does rdh endpoint match cru header end point.
   if (mCRUEndpoint != mCurrentHalfCRUHeader.EndPoint) {
     LOG(warn) << " Endpoint mismatch : CRU Half chamber header endpoint = " << mCurrentHalfCRUHeader.EndPoint << " rdh end point = " << mCRUEndpoint;
+    //disaster dump the rest of this hbf
+    return 42;
     if (mVerbose) {
       LOG(info) << "******* LINK # " << currentlinkindex;
     }
@@ -224,6 +252,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
   linkend = mHBFPayload.begin() + dataoffsetstart32;
   //loop over links
   for (currentlinkindex = 0; currentlinkindex < constants::NLINKSPERHALFCRU; currentlinkindex++) {
+    auto linktimerstart = std::chrono::high_resolution_clock::now(); // measure total processing time
     currentlinksize = mCurrentHalfCRULinkLengths[currentlinkindex];
     currentlinksize32 = currentlinksize * 8; //x8 to go from 256 bits to 32 bit;
     linkstart = mHBFPayload.begin() + dataoffsetstart32 + linksizeAccum32;
@@ -238,31 +267,23 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
     FeeParam::unpackORI(oriindex, side, stack, layer, halfchamberside);
     int currentdetector = stack * constants::NLAYER + layer + supermodule * constants::NLAYER * constants::NSTACK;
     if (mVerbose) {
-      LOG(info) << "******* LINK # " << currentlinkindex << " and  unpackORI(" << oriindex << "," << side << "," << stack << "," << layer << "," << halfchamberside << ") and an FEEID:" << std::hex << mFEEID << " det:" << std::dec << currentdetector;
+      LOG(info) << "******* LINK # " << currentlinkindex << " and  starting at "<< mHBFoffset32 << " unpackORI(" << oriindex << "," << side << "," << stack << "," << layer << "," << halfchamberside << ") and an FEEID:" << std::hex << mFEEID << " det:" << std::dec << currentdetector;
     }
     // tracklet first then digit ??
     // tracklets end with tracklet end marker(0x10001000 0x10001000), digits end with digit endmarker (0x0 0x0)
     if (linkstart != linkend) { // if link is not empty
 
-      if (mVerbose) {
-        LOG(info) << "parse tracklets ";
-      }
       bool cleardigits = false; //linkstart and linkend already have the multiple cruheaderoffsets built in
-      if (mVerbose) {
-        LOG(info) << "mem copy with offset of : " << cruhbfstartoffset << " parsing tracklets with linkstart: " << linkstart << " ending at : " << linkend;
-      }
       trackletwordsread = mTrackletsParser.Parse(&mHBFPayload, linkstart, linkend, mFEEID, halfchamberside, currentdetector, stack, layer, cleardigits, mByteSwap, mTrackletHCHeaderState, mVerbose, mHeaderVerbose, mDataVerbose); // this will read up to the tracklet end marker.
+      //LOG(info) << mTrackletsParser.getTrackletsFound()<<" Tracklets processed in  time : " << std::chrono::duration_cast<std::chrono::milliseconds>(trackletprocessingtime).count() << "ms";
       if (mVerbose) {
         LOG(info) << "trackletwordsread:" << trackletwordsread << "  mem copy with offset of : " << cruhbfstartoffset << " parsing with linkstart: " << linkstart << " ending at : " << linkend;
       }
       linkstart += trackletwordsread;
-      //now we have a tracklethcheader and a digithcheader.
+      //now we have a tracklethcheader and a digithcheader. 
       mHBFoffset32 += trackletwordsread;
       mTotalTrackletsFound += mTrackletsParser.getTrackletsFound();
       digitwordsread = 0;
-      if (mVerbose) {
-        LOG(info) << "parse digits";
-      }
       //linkstart and linkend already have the multiple cruheaderoffsets built in
       digitwordsread = mDigitsParser.Parse(&mHBFPayload, linkstart, linkend, currentdetector, cleardigits, mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
       if (digitwordsread != std::distance(linkstart, linkend)) {
@@ -278,8 +299,8 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
         LOG(info) << "digitwordsread : " << digitwordsread << " mem copy with offset of : " << cruhbfstartoffset << " parsing digits with linkstart: " << linkstart << " ending at : " << linkend;
       }
       sumlinklengths += mCurrentHalfCRULinkLengths[currentlinkindex];
-      sumtrackletwords = trackletwordsread;
-      sumdigitwords = digitwordsread;
+      sumtrackletwords += trackletwordsread;
+      sumdigitwords += digitwordsread;
       mHBFoffset32 += digitwordsread; // all 3 in 32bit units
     } else {
       if (mVerbose) {
@@ -307,6 +328,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
     LOG(info) << "Event digits after eventi # : " << mEventRecords.sumDigits() << " having added : via sum=" << mDigitsParser.getDigits().size() << " digitsfound is " << mDigitsParser.getDigitsFound();
   }
   int lasttrigger = 0, lastdigit = 0, lasttracklet = 0;
+
   //if we get here all is ok.
   return 1;
 }

@@ -307,10 +307,10 @@ struct DigitMCMADCMask {
   union {
     uint32_t word; //MCM ADC MASK header
     struct {
-      uint32_t n : 2; // unused always 0x3
-      uint32_t c : 5; // unused always 0x1f
-      uint32_t adcmask : 21;
       uint32_t j : 4; // unused always 0xc
+      uint32_t adcmask : 21;
+      uint32_t c : 5; // unused always 0x1f
+      uint32_t n : 2; // unused always 0x3
     } __attribute__((__packed__));
   };
 };
