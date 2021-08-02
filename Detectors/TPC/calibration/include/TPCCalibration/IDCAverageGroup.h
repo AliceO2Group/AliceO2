@@ -18,8 +18,9 @@
 
 #include <vector>
 #include "TPCCalibration/IDCGroup.h"
-#include "TPCBase/Mapper.h"
 #include "Rtypes.h"
+#include "TPCBase/Sector.h"
+#include "TPCCalibration/RobustAverage.h"
 
 namespace o2::utils
 {
@@ -53,8 +54,8 @@ class IDCAverageGroup
   /// \param groupLastRowsThreshold minimum number of pads in row direction for the last group in row direction
   /// \param groupLastPadsThreshold minimum number of pads in pad direction for the last group in pad direction
   /// \param region region of the TPC
-  IDCAverageGroup(const unsigned char groupPads = 4, const unsigned char groupRows = 4, const unsigned char groupLastRowsThreshold = 2, const unsigned char groupLastPadsThreshold = 2, const unsigned int region = 0, const Sector sector = Sector{0})
-    : mIDCsGrouped{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, region}, mSector{sector} {}
+  /// \param sigma maximum accepted standard deviation for filtering outliers: sigma*stdev
+  IDCAverageGroup(const unsigned char groupPads = 4, const unsigned char groupRows = 4, const unsigned char groupLastRowsThreshold = 2, const unsigned char groupLastPadsThreshold = 2, const unsigned int region = 0, const Sector sector = Sector{0}, const float sigma = 3);
 
   /// set the IDCs which will be averaged and grouped
   /// \param idcs vector containing the IDCs
@@ -65,7 +66,7 @@ class IDCAverageGroup
   void setIDCs(std::vector<float>&& idcs);
 
   /// \return returns number of integration intervalls stored in this object
-  unsigned int getNIntegrationIntervals() const { return mIDCsUngrouped.size() / Mapper::PADSPERREGION[mIDCsGrouped.getRegion()]; }
+  unsigned int getNIntegrationIntervals() const;
 
   /// grouping and averaging of IDCs
   void processIDCs();
@@ -73,10 +74,16 @@ class IDCAverageGroup
   /// \return returns grouped IDC object
   const auto& getIDCGroup() const { return mIDCsGrouped; }
 
+  /// \return returns grouped IDC object
+  auto getIDCGroupData() && { return std::move(mIDCsGrouped).getData(); }
+
   /// dump object to disc
   /// \param outFileName name of the output file
   /// \param outName name of the object in the output file
   void dumpToFile(const char* outFileName = "IDCAverageGroup.root", const char* outName = "IDCAverageGroup") const;
+
+  /// load ungrouped and grouped IDCs from File
+  bool setFromFile(const char* fileName = "IDCAverageGroup.root", const char* name = "IDCAverageGroup");
 
   /// draw ungrouped IDCs
   /// \param integrationInterval integration interval for which the IDCs will be drawn
@@ -103,7 +110,7 @@ class IDCAverageGroup
   /// \return returns the stored ungrouped IDC value for local pad number
   /// \param localPadNumber local pad number for region
   /// \param integrationInterval integration interval for which the IDCs will be returned
-  float getUngroupedIDCVal(const unsigned int localPadNumber, const unsigned int integrationInterval) const { return mIDCsUngrouped[localPadNumber + integrationInterval * Mapper::PADSPERREGION[mIDCsGrouped.getRegion()]]; }
+  float getUngroupedIDCVal(const unsigned int localPadNumber, const unsigned int integrationInterval) const;
 
   /// \return returns the stored grouped IDC value for local ungrouped pad row and ungrouped pad
   /// \param ulrow local row in region of the ungrouped IDCs
@@ -124,38 +131,43 @@ class IDCAverageGroup
   Sector getSector() const { return mSector; }
 
   /// \return returns ungrouped IDCs
-  const auto& getIDCsUngrouped() const { return mIDCsGrouped; }
+  const auto& getIDCsUngrouped() const { return mIDCsUngrouped; }
 
   /// \return returns region
   unsigned int getRegion() const { return mIDCsGrouped.getRegion(); }
+
+  /// \return returns sigma used for filtering
+  float getSigma() const { return mSigma; }
 
   /// set the number of threads used for some of the calculations
   static void setNThreads(const int nThreads) { sNThreads = nThreads; }
 
   /// for debugging: creating debug tree
-  /// \param nameTree name of the output file
-  void createDebugTree(const char* nameTree) const;
+  /// \param nameFile name of the output file
+  void createDebugTree(const char* nameFile) const;
 
   /// for debugging: creating debug tree for integrated IDCs for all objects which are in the same file
-  /// \param nameTree name of the output file
+  /// \param nameFile name of the output file
   /// \param filename name of the input file containing all objects
-  static void createDebugTreeForAllCRUs(const char* nameTree, const char* filename);
+  static void createDebugTreeForAllCRUs(const char* nameFile, const char* filename);
 
  private:
-  inline static int sNThreads{1};      ///< number of threads which are used during the calculations
-  std::vector<float> mIDCsUngrouped{}; ///< integrated ungrouped IDC values per pad
-  IDCGroup mIDCsGrouped{};             ///< grouped and averaged IDC values
-  const Sector mSector{};              ///< sector of averaged and grouped IDCs (used for debugging)
+  inline static int sNThreads{1};            ///< number of threads which are used during the calculations
+  std::vector<float> mIDCsUngrouped{};       ///< integrated ungrouped IDC values per pad
+  IDCGroup mIDCsGrouped{};                   ///< grouped and averaged IDC values
+  const Sector mSector{};                    ///< sector of averaged and grouped IDCs (used for debugging)
+  const float mSigma{};                      ///< sigma cut for outlier filtering
+  std::vector<RobustAverage> mRobustAverage; ///<! object for averaging (each thread will get his one object)
 
   /// \return returns index to data from ungrouped pad and row
   /// \param ulrow ungrouped local row in region
   /// \param upad ungrouped pad in pad direction
-  unsigned int getUngroupedIndex(const unsigned int ulrow, const unsigned int upad, const unsigned int integrationInterval) const { return integrationInterval * Mapper::PADSPERREGION[mIDCsGrouped.getRegion()] + Mapper::OFFSETCRULOCAL[mIDCsGrouped.getRegion()][ulrow] + upad; }
+  unsigned int getUngroupedIndex(const unsigned int ulrow, const unsigned int upad, const unsigned int integrationInterval) const;
 
   /// \return returns index to data from ungrouped pad and row
   /// \param ugrow ungrouped global row
   /// \param upad ungrouped pad in pad direction
-  unsigned int getUngroupedIndexGlobal(const unsigned int ugrow, const unsigned int upad, const unsigned int integrationInterval) const { return integrationInterval * Mapper::PADSPERREGION[mIDCsGrouped.getRegion()] + Mapper::OFFSETCRUGLOBAL[ugrow] + upad; }
+  unsigned int getUngroupedIndexGlobal(const unsigned int ugrow, const unsigned int upad, const unsigned int integrationInterval) const;
 
   /// called from createDebugTreeForAllCRUs()
   static void createDebugTree(const IDCAverageGroup& idcavg, o2::utils::TreeStreamRedirector& pcstream);
