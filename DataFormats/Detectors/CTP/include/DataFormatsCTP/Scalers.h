@@ -24,7 +24,7 @@ namespace o2
 {
 namespace ctp
 {
-/// raw scalers produced by CTP and send to O2 either via 
+/// raw scalers produced by CTP and send to O2 either via
 /// - ZeroMQ published at CTP control machine
 /// - CTPreadout to FLP
 struct  CTPScalerRaw {
