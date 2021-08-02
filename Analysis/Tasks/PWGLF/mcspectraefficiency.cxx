@@ -68,7 +68,7 @@ struct GeneratedTask {
       if (abs(mcParticle.eta()) > 0.8) {
         continue;
       }
-      if (isPhysicalPrimary<aod::McParticles>(mcParticle)) {
+      if (isPhysicalPrimary(mcParticle)) {
         const auto pdg = Form("%i", mcParticle.pdgCode());
         pdgH->Fill(pdg, 1);
         const float pdgbin = pdgH->GetXaxis()->GetBinCenter(pdgH->GetXaxis()->FindBin(pdg));
@@ -115,7 +115,7 @@ struct ReconstructedTask {
     for (auto& track : tracks) {
       const auto particle = track.mcParticle();
       const auto pdg = Form("%i", particle.pdgCode());
-      if (!isPhysicalPrimary<aod::McParticles>(particle)) {
+      if (!isPhysicalPrimary(particle)) {
         pdgsecH->Fill(pdg, 1);
         const float pdgbinsec = pdgH->GetXaxis()->GetBinCenter(pdgsecH->GetXaxis()->FindBin(pdg));
         dcaxysecH->Fill(track.dcaXY(), pdgbinsec);
