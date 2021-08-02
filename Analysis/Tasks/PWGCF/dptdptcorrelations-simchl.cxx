@@ -59,22 +59,47 @@ namespace aod
 /* we have to change from int to bool when bool columns work properly */
 namespace dptdptcorrelations
 {
-DECLARE_SOA_COLUMN(EventAccepted, eventaccepted, uint8_t);
-DECLARE_SOA_COLUMN(EventCentMult, centmult, float);
-DECLARE_SOA_COLUMN(TrackacceptedAsOne, trackacceptedasone, uint8_t);
-DECLARE_SOA_COLUMN(TrackacceptedAsTwo, trackacceptedastwo, uint8_t);
+DECLARE_SOA_COLUMN(EventAccepted, eventaccepted, uint8_t); //! If the collision/event has been accepted or not
+DECLARE_SOA_COLUMN(EventCentMult, centmult, float);        //! The centrality/multiplicity pecentile
 } // namespace dptdptcorrelations
-namespace dptdptcorrelationsmc
+DECLARE_SOA_TABLE(AcceptedEvents, "AOD", "ACCEPTEDEVENTS", //! Accepted reconstructed collisions/events filtered table
+                  o2::soa::Index<>,
+                  collision::BCId,
+                  collision::PosZ,
+                  dptdptcorrelations::EventAccepted,
+                  dptdptcorrelations::EventCentMult);
+using AcceptedEvent = AcceptedEvents::iterator;
+DECLARE_SOA_TABLE(AcceptedTrueEvents, "AOD", "ACCTRUEEVENTS", //! Accepted generated collisions/events filtered table
+                  o2::soa::Index<>,
+                  collision::BCId,
+                  mccollision::PosZ,
+                  dptdptcorrelations::EventAccepted,
+                  dptdptcorrelations::EventCentMult);
+using AcceptedTrueEvent = AcceptedTrueEvents::iterator;
+namespace dptdptcorrelations
 {
-DECLARE_SOA_COLUMN(EventAccepted, eventaccepted, uint8_t);
-DECLARE_SOA_COLUMN(EventCentMult, centmult, float);
-DECLARE_SOA_COLUMN(TrackacceptedAsOne, trackacceptedasone, uint8_t);
-DECLARE_SOA_COLUMN(TrackacceptedAsTwo, trackacceptedastwo, uint8_t);
-} // namespace dptdptcorrelationsmc
-DECLARE_SOA_TABLE(AcceptedEvents, "AOD", "ACCEPTEDEVENTS", dptdptcorrelations::EventAccepted, dptdptcorrelations::EventCentMult);
-DECLARE_SOA_TABLE(ScannedTracks, "AOD", "SCANNEDTRACKS", dptdptcorrelations::TrackacceptedAsOne, dptdptcorrelations::TrackacceptedAsTwo);
-DECLARE_SOA_TABLE(AcceptedTrueEvents, "AOD", "ACCTRUEEVENTS", dptdptcorrelationsmc::EventAccepted, dptdptcorrelationsmc::EventCentMult);
-DECLARE_SOA_TABLE(ScannedTrueTracks, "AOD", "SCANTRUETRACKS", dptdptcorrelationsmc::TrackacceptedAsOne, dptdptcorrelationsmc::TrackacceptedAsTwo);
+DECLARE_SOA_INDEX_COLUMN(AcceptedEvent, event);                      //! Reconstructed collision/event
+DECLARE_SOA_INDEX_COLUMN(AcceptedTrueEvent, mcevent);                //! Generated collision/event
+DECLARE_SOA_COLUMN(TrackacceptedAsOne, trackacceptedasone, uint8_t); //! Track accepted as type one
+DECLARE_SOA_COLUMN(TrackacceptedAsTwo, trackacceptedastwo, uint8_t); //! Track accepted as type two
+DECLARE_SOA_COLUMN(Pt, pt, float);                                   //! The track transverse momentum
+DECLARE_SOA_COLUMN(Eta, eta, float);                                 //! The track pseudorapidity
+DECLARE_SOA_COLUMN(Phi, phi, float);                                 //! The track azimuthal angle
+} // namespace dptdptcorrelations
+DECLARE_SOA_TABLE(ScannedTracks, "AOD", "SCANNEDTRACKS", //! The reconstructed tracks filtered table
+                  dptdptcorrelations::AcceptedEventId,
+                  dptdptcorrelations::TrackacceptedAsOne,
+                  dptdptcorrelations::TrackacceptedAsTwo,
+                  dptdptcorrelations::Pt,
+                  dptdptcorrelations::Eta,
+                  dptdptcorrelations::Phi);
+DECLARE_SOA_TABLE(ScannedTrueTracks, "AOD", "SCANTRUETRACKS", //! The generated particles filtered table
+                  dptdptcorrelations::AcceptedTrueEventId,
+                  dptdptcorrelations::TrackacceptedAsOne,
+                  dptdptcorrelations::TrackacceptedAsTwo,
+                  dptdptcorrelations::Pt,
+                  dptdptcorrelations::Eta,
+                  dptdptcorrelations::Phi);
 
 using CollisionsEvSelCent = soa::Join<aod::Collisions, aod::EvSels, aod::Cents>;
 using CollisionEvSelCent = soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator;
@@ -364,6 +389,8 @@ bool IsTrueEvtSelected(CollisionObject const& collision, float centormult)
 template <typename TrackObject>
 bool matchTrackType(TrackObject const& track)
 {
+  using namespace filteranalysistask;
+
   switch (tracktype) {
     case 1:
       if (track.isGlobalTrack() != 0 || track.isGlobalTrackSDD() != 0) {
@@ -371,6 +398,9 @@ bool matchTrackType(TrackObject const& track)
       } else {
         return false;
       }
+      break;
+    case 3:        /* Run3 track */
+      return true; // so far we accept every kind of Run3 tracks
       break;
     default:
       return false;
@@ -447,10 +477,12 @@ struct DptDptCorrelationsFilterAnalysisTask {
   Produces<aod::AcceptedTrueEvents> acceptedtrueevents;
   Produces<aod::ScannedTrueTracks> scannedtruetracks;
 
-  template <typename TrackListObject>
-  void filterTracks(TrackListObject const& ftracks)
+  template <typename TrackListObject, typename CollisionIndex>
+  void filterTracks(TrackListObject const& ftracks, CollisionIndex colix)
   {
     using namespace filteranalysistask;
+
+    int acceptedtracks = 0;
 
     for (auto& track : ftracks) {
       /* before track selection */
@@ -481,13 +513,15 @@ struct DptDptCorrelationsFilterAnalysisTask {
         } else {
           fhPtNegA->Fill(track.pt());
         }
+        acceptedtracks++;
       }
-      scannedtracks((uint8_t)asone, (uint8_t)astwo);
+      scannedtracks(colix, (uint8_t)asone, (uint8_t)astwo, track.pt(), track.eta(), track.phi());
     }
+    LOGF(info, "Accepted %d reconstructed tracks", acceptedtracks);
   }
 
-  template <typename ParticleListObject>
-  void filterTrueTracks(ParticleListObject const& particles)
+  template <typename ParticleListObject, typename CollisionIndex>
+  void filterTrueTracks(ParticleListObject const& particles, CollisionIndex colix)
   {
     using namespace filteranalysistask;
 
@@ -530,7 +564,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
           }
         }
       }
-      scannedtruetracks((uint8_t)asone, (uint8_t)astwo);
+      scannedtruetracks(colix, (uint8_t)asone, (uint8_t)astwo, particle.pt(), particle.eta(), particle.phi());
     }
   }
 
@@ -692,23 +726,23 @@ struct DptDptCorrelationsFilterAnalysisTask {
       acceptedevent = true;
       fhCentMultA->Fill(collision.centV0M());
       fhVertexZA->Fill(collision.posZ());
+      acceptedevents(collision.bcId(), collision.posZ(), (uint8_t)acceptedevent, centormult);
 
-      filterTracks(ftracks);
+      filterTracks(ftracks, acceptedevents.lastIndex());
     } else {
+      acceptedevents(collision.bcId(), collision.posZ(), (uint8_t)acceptedevent, centormult);
       for (auto& track : ftracks) {
-        scannedtracks((uint8_t) false, (uint8_t) false);
+        scannedtracks(acceptedevents.lastIndex(), (uint8_t) false, (uint8_t) false, track.pt(), track.eta(), track.phi());
       }
     }
-    acceptedevents((uint8_t)acceptedevent, centormult);
   }
-
-  PROCESS_SWITCH(DptDptCorrelationsFilterAnalysisTask, processWithCent, "Process with centrality", true);
+  PROCESS_SWITCH(DptDptCorrelationsFilterAnalysisTask, processWithCent, "Process reco with centrality", false);
 
   void processWithoutCent(aod::CollisionEvSel const& collision, soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection> const& ftracks)
   {
     using namespace filteranalysistask;
 
-    // LOGF(info, "FilterAnalysisTask::processWithoutCent(). New collision with %d tracks", ftracks.size());
+    LOGF(info, "FilterAnalysisTask::processWithoutCent(). New collision with collision id %d and with %d tracks", collision.bcId(), ftracks.size());
 
     /* the task does not have access to either centrality nor multiplicity 
        classes information, so it has to live without it.
@@ -721,21 +755,18 @@ struct DptDptCorrelationsFilterAnalysisTask {
       acceptedevent = true;
       fhCentMultA->Fill(50.0);
       fhVertexZA->Fill(collision.posZ());
+      acceptedevents(collision.bcId(), collision.posZ(), (uint8_t)acceptedevent, centormult);
 
-      filterTracks(ftracks);
+      filterTracks(ftracks, acceptedevents.lastIndex());
     } else {
+      acceptedevents(collision.bcId(), collision.posZ(), (uint8_t)acceptedevent, centormult);
       for (auto& track : ftracks) {
-        scannedtracks((uint8_t) false, (uint8_t) false);
+        scannedtracks(acceptedevents.lastIndex(), (uint8_t) false, (uint8_t) false, track.pt(), track.eta(), track.phi());
       }
     }
-    acceptedevents((uint8_t)acceptedevent, centormult);
   }
+  PROCESS_SWITCH(DptDptCorrelationsFilterAnalysisTask, processWithoutCent, "Process reco without centrality", false);
 
-  PROCESS_SWITCH(DptDptCorrelationsFilterAnalysisTask, processWithoutCent, "Process without centrality", false);
-
-  //  void processWithCentMC(aod::McCollision const& mccollision,
-  //                         soa::Join<aod::McCollisionLabels, aod::CollisionsEvSelCent> const& collisions,
-  //                         aod::McParticles const& mcparticles)
   void processWithCentMC(aod::McCollision const& mccollision,
                          soa::Join<aod::McCollisionLabels, aod::Collisions, aod::EvSels, aod::Cents> const& collisions,
                          aod::McParticles const& mcparticles)
@@ -761,24 +792,23 @@ struct DptDptCorrelationsFilterAnalysisTask {
       fhTrueVertexZB->Fill(mccollision.posZ());
 
       bool acceptedevent = false;
-      float centormult = -100.0;
       if (IsTrueEvtSelected(mccollision, cent)) {
         acceptedevent = true;
-        fhTrueCentMultA->Fill(centormult);
+        fhTrueCentMultA->Fill(cent);
         fhTrueVertexZA->Fill(mccollision.posZ());
+        acceptedtrueevents(mccollision.bcId(), mccollision.posZ(), (uint8_t)acceptedevent, cent);
 
-        filterTrueTracks(mcparticles);
+        filterTrueTracks(mcparticles, acceptedtrueevents.lastIndex());
       } else {
+        acceptedtrueevents(mccollision.bcId(), mccollision.posZ(), (uint8_t)acceptedevent, cent);
         for (auto& particle : mcparticles) {
-          scannedtruetracks((uint8_t) false, (uint8_t) false);
+          scannedtruetracks(acceptedtrueevents.lastIndex(), (uint8_t) false, (uint8_t) false, particle.pt(), particle.eta(), particle.phi());
         }
       }
-      acceptedtrueevents((uint8_t)acceptedevent, centormult);
       break; /* TODO: only processing the first reconstructed collision for centrality/multiplicity class estimation */
     }
   }
-
-  PROCESS_SWITCH(DptDptCorrelationsFilterAnalysisTask, processWithCentMC, "Process with centrality", false);
+  PROCESS_SWITCH(DptDptCorrelationsFilterAnalysisTask, processWithCentMC, "Process generated with centrality", false);
 
   void processWithoutCentMC(aod::McCollision const& mccollision,
                             aod::McParticles const& mcparticles)
@@ -792,23 +822,24 @@ struct DptDptCorrelationsFilterAnalysisTask {
        For the time being we assign a value of 50% */
     fhTrueCentMultB->Fill(50.0);
     fhTrueVertexZB->Fill(mccollision.posZ());
+
     bool acceptedevent = false;
     float centormult = 50.0;
     if (IsTrueEvtSelected(mccollision, centormult)) {
       acceptedevent = true;
       fhTrueCentMultA->Fill(centormult);
       fhTrueVertexZA->Fill(mccollision.posZ());
+      acceptedtrueevents(mccollision.bcId(), mccollision.posZ(), (uint8_t)acceptedevent, centormult);
 
-      filterTrueTracks(mcparticles);
+      filterTrueTracks(mcparticles, acceptedtrueevents.lastIndex());
     } else {
+      acceptedtrueevents(mccollision.bcId(), mccollision.posZ(), (uint8_t)acceptedevent, centormult);
       for (auto& particle : mcparticles) {
-        scannedtruetracks((uint8_t) false, (uint8_t) false);
+        scannedtruetracks(acceptedtrueevents.lastIndex(), (uint8_t) false, (uint8_t) false, particle.pt(), particle.eta(), particle.phi());
       }
     }
-    acceptedtrueevents((uint8_t)acceptedevent, centormult);
   }
-
-  PROCESS_SWITCH(DptDptCorrelationsFilterAnalysisTask, processWithoutCentMC, "Process with centrality", false);
+  PROCESS_SWITCH(DptDptCorrelationsFilterAnalysisTask, processWithoutCentMC, "Process generated without centrality", false);
 };
 
 // Task for building <dpt,dpt> correlations
@@ -932,6 +963,8 @@ struct DptDptCorrelationsTask {
     template <typename TrackListObject>
     void processTracks(TrackListObject const& passedtracks, int tix, float cmul)
     {
+      LOGF(INFO, "Processing %d tracks of type %d in a collision with cent/mult %f ", passedtracks.size(), tix, cmul);
+
       /* process magnitudes */
       double n1 = 0;       ///< weighted number of track 1 tracks for current collision
       double sum1Pt = 0;   ///< accumulated sum of weighted track 1 \f$p_T\f$ for current collision
@@ -959,8 +992,8 @@ struct DptDptCorrelationsTask {
     /// \param pix index, in the track combination histogram bank, for the passed filetered track tables
     /// \param cmul centrality - multiplicity for the collision being analyzed
     /// Be aware that at least in half of the cases traks1 and trks2 will have the same content
-    template <typename TrackListObject>
-    void processTrackPairs(TrackListObject const& trks1, TrackListObject const& trks2, int pix, float cmul)
+    template <typename TrackOneListObject, typename TrackTwoListObject>
+    void processTrackPairs(TrackOneListObject const& trks1, TrackTwoListObject const& trks2, int pix, float cmul)
     {
       /* process pair magnitudes */
       double n2 = 0;           ///< weighted number of track 1 track 2 pairs for current collision
@@ -1010,8 +1043,8 @@ struct DptDptCorrelationsTask {
       fhSum2PtPt_vsDEtaDPhi[pix]->SetEntries(fhSum2PtPt_vsDEtaDPhi[pix]->GetEntries() + n2);
     }
 
-    template <typename TrackListObject>
-    void processCollision(TrackListObject const& Tracks1, TrackListObject const& Tracks2, float zvtx, float centmult)
+    template <typename TrackOneListObject, typename TrackTwoListObject>
+    void processCollision(TrackOneListObject const& Tracks1, TrackTwoListObject const& Tracks2, float zvtx, float centmult)
     {
       using namespace correlationstask;
 
@@ -1165,12 +1198,6 @@ struct DptDptCorrelationsTask {
 
   OutputObj<TList> fOutput{"DptDptCorrelationsData", OutputObjHandlingPolicy::AnalysisObject};
 
-  Filter onlyacceptedevents = (aod::dptdptcorrelations::eventaccepted == (uint8_t) true);
-  Filter onlyacceptedtracks = ((aod::dptdptcorrelations::trackacceptedasone == (uint8_t) true) or (aod::dptdptcorrelations::trackacceptedastwo == (uint8_t) true));
-
-  Partition<aod::FilteredTracks> Tracks1 = aod::dptdptcorrelations::trackacceptedasone == (uint8_t) true;
-  Partition<aod::FilteredTracks> Tracks2 = aod::dptdptcorrelations::trackacceptedastwo == (uint8_t) true;
-
   void init(InitContext const&)
   {
     using namespace correlationstask;
@@ -1260,26 +1287,61 @@ struct DptDptCorrelationsTask {
     }
   }
 
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::AcceptedEvents>>::iterator const& collision, aod::FilteredTracks const& tracks)
+  /// \brief Get the data collecting engine index corresponding to the passed collision
+  template <typename FilteredCollision>
+  int getDCEindex(FilteredCollision collision)
   {
-    using namespace correlationstask;
-
-    /* locate the data collecting engine for the collision centrality/multiplicity */
-    int ixDCE = 0;
+    int ixDCE = -1;
     float cm = collision.centmult();
-    bool rgfound = false;
     for (int i = 0; i < ncmranges; ++i) {
       if (cm < fCentMultMax[i]) {
-        rgfound = true;
         ixDCE = i;
         break;
       }
     }
+    return ixDCE;
+  }
 
-    if (rgfound) {
-      dataCE[ixDCE]->processCollision(Tracks1, Tracks2, collision.posZ(), collision.centmult());
+  Filter onlyacceptedevents = (aod::dptdptcorrelations::eventaccepted == (uint8_t) true);
+  Filter onlyacceptedtracks = ((aod::dptdptcorrelations::trackacceptedasone == (uint8_t) true) or (aod::dptdptcorrelations::trackacceptedastwo == (uint8_t) true));
+
+  void processRecLevel(soa::Filtered<aod::AcceptedEvents>::iterator const& collision, soa::Filtered<aod::ScannedTracks>& tracks)
+  {
+    using namespace correlationstask;
+
+    /* locate the data collecting engine for the collision centrality/multiplicity */
+    int ixDCE = getDCEindex(collision);
+    if (not(ixDCE < 0)) {
+      Partition<o2::aod::ScannedTracks> TracksOne = aod::dptdptcorrelations::trackacceptedasone == (uint8_t) true;
+      Partition<o2::aod::ScannedTracks> TracksTwo = aod::dptdptcorrelations::trackacceptedastwo == (uint8_t) true;
+      TracksOne.bindTable(tracks);
+      TracksTwo.bindTable(tracks);
+
+      LOGF(INFO, "Accepted BC id %d collision with cent/mult %f and %d total tracks. Assigned DCE: %d", collision.bcId(), collision.centmult(), tracks.size(), ixDCE);
+      LOGF(INFO, "Accepted new collision with cent/mult %f and %d type one tracks and %d type two tracks. Assigned DCE: %d", collision.centmult(), TracksOne.size(), TracksTwo.size(), ixDCE);
+      dataCE[ixDCE]->processCollision(TracksOne, TracksTwo, collision.posZ(), collision.centmult());
     }
   }
+  PROCESS_SWITCH(DptDptCorrelationsTask, processRecLevel, "Process reco level correlations", false);
+
+  void processGenLevel(soa::Filtered<aod::AcceptedTrueEvents>::iterator const& collision, soa::Filtered<aod::ScannedTrueTracks>& tracks)
+  {
+    using namespace correlationstask;
+
+    /* locate the data collecting engine for the collision centrality/multiplicity */
+    int ixDCE = getDCEindex(collision);
+    if (not(ixDCE < 0)) {
+      Partition<o2::aod::ScannedTrueTracks> TracksOne = aod::dptdptcorrelations::trackacceptedasone == (uint8_t) true;
+      Partition<o2::aod::ScannedTrueTracks> TracksTwo = aod::dptdptcorrelations::trackacceptedastwo == (uint8_t) true;
+      TracksOne.bindTable(tracks);
+      TracksTwo.bindTable(tracks);
+
+      LOGF(INFO, "Accepted BC id %d generated collision with cent/mult %f and %d total tracks. Assigned DCE: %d", collision.bcId(), collision.centmult(), tracks.size(), ixDCE);
+      LOGF(INFO, "Accepted new generated collision with cent/mult %f and %d type one tracks and %d type two tracks. Assigned DCE: %d", collision.centmult(), TracksOne.size(), TracksTwo.size(), ixDCE);
+      dataCE[ixDCE]->processCollision(TracksOne, TracksTwo, collision.posZ(), collision.centmult());
+    }
+  }
+  PROCESS_SWITCH(DptDptCorrelationsTask, processGenLevel, "Process generator level correlations", false);
 };
 
 // Checking the filtered tables
@@ -1376,9 +1438,9 @@ struct TracksAndEventClassificationQARec {
   Filter onlyacceptedevents = (aod::dptdptcorrelations::eventaccepted == (uint8_t) true);
   Filter onlyacceptedtracks = ((aod::dptdptcorrelations::trackacceptedasone == (uint8_t) true) or (aod::dptdptcorrelations::trackacceptedastwo == (uint8_t) true));
 
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::AcceptedEvents>>::iterator const& collision,
-               soa::Filtered<soa::Join<aod::Tracks, aod::ScannedTracks>> const& tracks)
+  void process(soa::Filtered<aod::AcceptedEvents>::iterator const& collision, soa::Filtered<aod::ScannedTracks> const& tracks)
   {
+    LOGF(info, "New filtered collision with BC id %d and with %d accepted tracks", collision.bcId(), tracks.size());
     processQATask(collision, tracks);
   }
 };
@@ -1398,12 +1460,12 @@ struct TracksAndEventClassificationQAGen {
     initQATask(context, fOutputList);
   }
 
-  Filter onlyacceptedevents = (aod::dptdptcorrelationsmc::eventaccepted == (uint8_t) true);
-  Filter onlyacceptedtracks = ((aod::dptdptcorrelationsmc::trackacceptedasone == (uint8_t) true) or (aod::dptdptcorrelationsmc::trackacceptedastwo == (uint8_t) true));
+  Filter onlyacceptedevents = (aod::dptdptcorrelations::eventaccepted == (uint8_t) true);
+  Filter onlyacceptedtracks = ((aod::dptdptcorrelations::trackacceptedasone == (uint8_t) true) or (aod::dptdptcorrelations::trackacceptedastwo == (uint8_t) true));
 
-  void process(soa::Filtered<soa::Join<aod::McCollisions, aod::AcceptedTrueEvents>>::iterator const& collision,
-               soa::Filtered<soa::Join<aod::McParticles, aod::ScannedTrueTracks>> const& tracks)
+  void process(soa::Filtered<aod::AcceptedTrueEvents>::iterator const& collision, soa::Filtered<aod::ScannedTrueTracks> const& tracks)
   {
+    LOGF(info, "New filtered generated collision with BC id %d and with %d accepted tracks", collision.bcId(), tracks.size());
     processQATask(collision, tracks);
   }
 };
@@ -1416,37 +1478,36 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     if (multest == "NOCM") {
       /* no centrality/multiplicity classes available */
       WorkflowSpec workflow{
-        adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc,
-                                                                SetDefaultProcesses{{{"processWithCent", false},
-                                                                                     {"processWithoutCent", true},
-                                                                                     {"processWithoutCentMC", true}}}),
+        adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, SetDefaultProcesses{{{"processWithoutCent", true}, {"processWithoutCentMC", true}}}),
         adaptAnalysisTask<TracksAndEventClassificationQARec>(cfgc),
         adaptAnalysisTask<TracksAndEventClassificationQAGen>(cfgc),
-        adaptAnalysisTask<DptDptCorrelationsTask>(cfgc)};
+        adaptAnalysisTask<DptDptCorrelationsTask>(cfgc, TaskName{"DptDptCorrelationsTaskRec"}, SetDefaultProcesses{{{"processRecLevel", true}}}),
+        adaptAnalysisTask<DptDptCorrelationsTask>(cfgc, TaskName{"DptDptCorrelationsTaskGen"}, SetDefaultProcesses{{{"processGenLevel", true}}})};
       return workflow;
     } else {
       /* centrality/multiplicity classes available */
       WorkflowSpec workflow{
-        adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, SetDefaultProcesses{{{"processWithCentMC", true}}}),
+        adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, SetDefaultProcesses{{{"processWithCent", true}, {"processWithCentMC", true}}}),
         adaptAnalysisTask<TracksAndEventClassificationQARec>(cfgc),
         adaptAnalysisTask<TracksAndEventClassificationQAGen>(cfgc),
-        adaptAnalysisTask<DptDptCorrelationsTask>(cfgc)};
+        adaptAnalysisTask<DptDptCorrelationsTask>(cfgc, TaskName{"DptDptCorrelationsTaskRec"}, SetDefaultProcesses{{{"processRecLevel", true}}}),
+        adaptAnalysisTask<DptDptCorrelationsTask>(cfgc, TaskName{"DptDptCorrelationsTaskGen"}, SetDefaultProcesses{{{"processGenLevel", true}}})};
       return workflow;
     }
   } else {
     if (multest == "NOCM") {
       /* no centrality/multiplicity classes available */
       WorkflowSpec workflow{
-        adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, SetDefaultProcesses{{{"processWithCent", false}, {"processWithoutCent", true}}}),
+        adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, SetDefaultProcesses{{{"processWithoutCent", true}}}),
         adaptAnalysisTask<TracksAndEventClassificationQARec>(cfgc),
-        adaptAnalysisTask<DptDptCorrelationsTask>(cfgc)};
+        adaptAnalysisTask<DptDptCorrelationsTask>(cfgc, TaskName{"DptDptCorrelationsTaskRec"}, SetDefaultProcesses{{{"processRecLevel", true}}})};
       return workflow;
     } else {
       /* centrality/multiplicity classes available */
       WorkflowSpec workflow{
-        adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc),
+        adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, SetDefaultProcesses{{{"processWithCent", true}}}),
         adaptAnalysisTask<TracksAndEventClassificationQARec>(cfgc),
-        adaptAnalysisTask<DptDptCorrelationsTask>(cfgc)};
+        adaptAnalysisTask<DptDptCorrelationsTask>(cfgc, TaskName{"DptDptCorrelationsTaskRec"}, SetDefaultProcesses{{{"processRecLevel", true}}})};
       return workflow;
     }
   }
