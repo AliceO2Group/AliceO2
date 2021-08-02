@@ -124,7 +124,7 @@ uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader* header, const o2::trd::Tr
       qa = header->pid2;
       break;
     default:
-      LOG(warn) << " unknown trackletindex to getQFromRaw : " << pidindex;
+      LOG(warn) << " unknown trackletindex of " << trackletindex << " to getQFromRaw : " << pidindex;
       break;
   }
   //qa is 6bits of Q2 and 2 bits of Q1
@@ -253,7 +253,7 @@ void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
   for (int i = 0; i < 15; i++) {
     LOGF(INFO, "Link %d size: %ul eflag: 0x%02x", i, sizes[i], errorflags[i]);
   }
-  LOG(INFO) << "Raw: " << std::hex << halfcru.word0<< " " << halfcru.word12[0]<< " " << halfcru.word12[1]<< " " << halfcru.word3<< " " << halfcru.word47[0]<< " " << halfcru.word47[1]<< " " <<halfcru.word47[2]<< " " <<halfcru.word47[3];
+  LOG(INFO) << "Raw: " << std::hex << halfcru.word0 << " " << halfcru.word12[0] << " " << halfcru.word12[1] << " " << halfcru.word3 << " " << halfcru.word47[0] << " " << halfcru.word47[1] << " " << halfcru.word47[2] << " " << halfcru.word47[3];
   for (int i = 0; i < 15; i++) {
     LOGF(INFO, "Raw: %d word: %ul x", i, sizes[i], errorflags[i]);
   }
@@ -444,15 +444,16 @@ void setNumberOfTrackletsInHeader(o2::trd::TrackletMCMHeader& header, int number
 int nextmcmadc(unsigned int& bp, int channel)
 {
   //given a bitpattern (adcmask) find next channel with in the mask starting from the current channel;
-  if(bp==0) return 22;
-  int position=channel;
-  int m=1<<channel;
+  if (bp == 0)
+    return 22;
+  int position = channel;
+  int m = 1 << channel;
   while (!(bp & m)) {
-    m= m<<1;
+    m = m << 1;
     position++;
   }
   bp &= ~(1UL << (position));
-  return position; 
+  return position;
 }
 
 } // namespace trd

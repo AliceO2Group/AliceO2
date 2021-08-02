@@ -104,7 +104,7 @@ class TrackletsParser
   bool mReturnVector{false};           // whether weare returing a vector or the raw data buffer.
 
   uint16_t mEventCounter;
-  std::chrono::duration<double>mTrackletparsetime; // store the time it takes to parse
+  std::chrono::duration<double> mTrackletparsetime;                                        // store the time it takes to parse
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
   //uint32_t mCurrentLinkDataPosition256;                // count of data read for current link in units of 256 bits
 

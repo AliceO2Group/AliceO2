@@ -96,7 +96,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     Options{}});
 
   if (cfgc.options().get<bool>("enable-root-output")) {
-    workflow.emplace_back(o2::trd::getTRDDigitWriterSpec(false, false));
+    workflow.emplace_back(o2::trd::getTRDDigitWriterSpec(false, true));
     workflow.emplace_back(o2::trd::getTRDTrackletWriterSpec(false));
   }
 

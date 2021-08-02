@@ -39,13 +39,11 @@ class DigitsParser
   DigitsParser() = default;
   ~DigitsParser() = default;
   void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
-  //  void setLinkLengths(std::array<uint32_t, 15>& lengths) { mCurrentHalfCRULinkLengths = lengths; };
   int Parse(bool verbose = false); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
             std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, bool cleardigits = false, bool disablebyteswap = false, bool verbose = false, bool headerverbose = false, bool dataverbose = false)
   {
     setData(data);
-    //   setLinkLengths(lengths);
     mStartParse = start;
     mEndParse = end;
     mDetector = detector;

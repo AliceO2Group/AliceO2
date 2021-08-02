@@ -115,7 +115,7 @@ void DataReaderTask::run(ProcessingContext& pc)
       const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto payloadIn = ref.payload;
       auto payloadInSize = headerIn->payloadSize;
-  //    const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      //    const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       if (std::string(headerIn->dataDescription.str) != std::string("DISTSUBTIMEFRAMEFLP")) {
         if (!mCompressedData) { //we have raw data coming in from flp
           if (mVerbose) {
@@ -135,10 +135,9 @@ void DataReaderTask::run(ProcessingContext& pc)
           mCompressedReader.run();
         }
       } // ignore the input of DISTSUBTIMEFRAMEFLP
-//      auto inputprocessingtime = std::chrono::high_resolution_clock::now() - inputprocessingstart;
- //     LOGP(info, "Input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : processed in {} us",
-  //           dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,std::chrono::duration_cast<std::chrono::microseconds>(inputprocessingtime).count());
-
+        //      auto inputprocessingtime = std::chrono::high_resolution_clock::now() - inputprocessingstart;
+        //     LOGP(info, "Input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : processed in {} us",
+        //           dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,std::chrono::duration_cast<std::chrono::microseconds>(inputprocessingtime).count());
     }
     /* output */
     sendData(pc, false);
