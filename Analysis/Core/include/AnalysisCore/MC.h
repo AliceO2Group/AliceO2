@@ -61,7 +61,7 @@ bool isStable(int pdg)
 }
 
 // Ported from AliRoot AliStack::IsPhysicalPrimary
-template <typename Particles, typename Particle>
+template <typename Particle>
 bool isPhysicalPrimary(Particle const& particle)
 {
   // Test if a particle is a physical primary according to the following definition:
@@ -96,7 +96,7 @@ bool isPhysicalPrimary(Particle const& particle)
     // Solution for K0L decayed by Pythia6
     // ->
     if (particle.has_mother0()) {
-      auto mother = particle.template mother0_as<Particles>();
+      auto mother = particle.template mother0_as<typename Particle::parent_t>();
       if (std::abs(mother.pdgCode()) == 130) {
         LOGF(debug, "isPhysicalPrimary F4");
         return false;
@@ -107,7 +107,7 @@ bool isPhysicalPrimary(Particle const& particle)
     // ->
     if (pdg == 22 && particle.has_daughter0()) {
       LOGF(debug, "D %d", particle.daughter0Id());
-      auto daughter = particle.template daughter0_as<Particles>();
+      auto daughter = particle.template daughter0_as<typename Particle::parent_t>();
       if (daughter.pdgCode() == 22) {
         LOGF(debug, "isPhysicalPrimary F5");
         return false;
@@ -121,7 +121,7 @@ bool isPhysicalPrimary(Particle const& particle)
   // Particle produced during transport
 
   LOGF(debug, "M0 %d %d", particle.producedByGenerator(), particle.mother0Id());
-  auto mother = particle.template mother0_as<Particles>();
+  auto mother = particle.template mother0_as<typename Particle::parent_t>();
   int mpdg = std::abs(mother.pdgCode());
 
   // Check for Sigma0
@@ -155,7 +155,7 @@ bool isPhysicalPrimary(Particle const& particle)
   // Loop back to the generated mother
   LOGF(debug, "M0 %d %d", mother.producedByGenerator(), mother.mother0Id());
   while (mother.has_mother0() && !mother.producedByGenerator()) {
-    mother = mother.template mother0_as<Particles>();
+    mother = mother.template mother0_as<typename Particle::parent_t>();
     LOGF(debug, "M+ %d %d", mother.producedByGenerator(), mother.mother0Id());
     mpdg = std::abs(mother.pdgCode());
     mfl = int(mpdg / std::pow(10, int(std::log10(mpdg))));
@@ -169,13 +169,6 @@ bool isPhysicalPrimary(Particle const& particle)
     return true;
   }
 }
-
-// Short hand for the standard type
-bool isPhysicalPrimary(o2::aod::McParticle const& particle)
-{
-  return isPhysicalPrimary<o2::aod::McParticles>(particle);
-}
-
 }; // namespace MC
 
 #endif
