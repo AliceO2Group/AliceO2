@@ -1528,8 +1528,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               for (auto& input : device.inputs) {
                 for (auto& param : input.metadata) {
                   if (param.type == VariantType::Bool && param.name.find("control:") != std::string::npos) {
-                    auto confName = confNameFromParam(param.name).second;
-                    param.defaultValue = reg->get<bool>(confName.c_str());
+                    if (param.name != "control:default" && param.name != "control:spawn" && param.name != "control:build") {
+                      auto confName = confNameFromParam(param.name).second;
+                      param.defaultValue = reg->get<bool>(confName.c_str());
+                    }
                   }
                 }
               }
