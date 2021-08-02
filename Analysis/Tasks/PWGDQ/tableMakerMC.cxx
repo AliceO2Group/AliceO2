@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -177,17 +178,21 @@ struct TableMakerMC {
       int mcflags = fMCFlags.find(oldLabel)->second;
 
       int m0Label = -1;
-      if (mctrack.has_mother0() && (fNewLabels.find(mctrack.mother0Id()) != fNewLabels.end()))
+      if (mctrack.has_mother0() && (fNewLabels.find(mctrack.mother0Id()) != fNewLabels.end())) {
         m0Label = fNewLabels.find(mctrack.mother0Id())->second;
+      }
       int m1Label = -1;
-      if (mctrack.has_mother1() && (fNewLabels.find(mctrack.mother1Id()) != fNewLabels.end()))
+      if (mctrack.has_mother1() && (fNewLabels.find(mctrack.mother1Id()) != fNewLabels.end())) {
         m1Label = fNewLabels.find(mctrack.mother1Id())->second;
+      }
       int d0Label = -1;
-      if (mctrack.has_daughter0() && (fNewLabels.find(mctrack.daughter0Id()) != fNewLabels.end()))
+      if (mctrack.has_daughter0() && (fNewLabels.find(mctrack.daughter0Id()) != fNewLabels.end())) {
         d0Label = fNewLabels.find(mctrack.daughter0Id())->second;
+      }
       int d1Label = -1;
-      if (mctrack.has_daughter1() && (fNewLabels.find(mctrack.daughter1Id()) != fNewLabels.end()))
+      if (mctrack.has_daughter1() && (fNewLabels.find(mctrack.daughter1Id()) != fNewLabels.end())) {
         d1Label = fNewLabels.find(mctrack.daughter1Id())->second;
+      }
       trackMC(fEventIdx.find(oldLabel)->second, mctrack.pdgCode(), mctrack.statusCode(), mctrack.flags(),
               m0Label, m1Label, d0Label, d1Label,
               mctrack.weight(), mctrack.px(), mctrack.py(), mctrack.pz(), mctrack.e(),
