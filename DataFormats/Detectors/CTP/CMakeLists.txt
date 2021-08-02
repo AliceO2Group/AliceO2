@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(DataFormatsCTP
-  SOURCES src/Digits.cxx 
+  SOURCES src/Digits.cxx
   SOURCES src/Configuration.cxx
   SOURCES src/Scalers.cxx
   PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
