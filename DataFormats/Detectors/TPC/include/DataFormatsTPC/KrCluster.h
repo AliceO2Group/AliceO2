@@ -16,6 +16,8 @@
 #ifndef ALICEO2_TPC_KrCluster_H_
 #define ALICEO2_TPC_KrCluster_H_
 
+#include "Rtypes.h"
+
 namespace o2
 {
 namespace tpc
@@ -33,8 +35,15 @@ struct KrCluster {
   float meanRow = 0;              ///< Center of gravity (Row number)
   float sigmaPad = 0;             ///< RMS of cluster in pad direction
   float sigmaRow = 0;             ///< RMS of cluster in row direction
-  double meanTime = 0;            ///< Center of gravity (Time)
-  double sigmaTime = 0;           ///< RMS of cluster in time direction
+  float meanTime = 0;             ///< Center of gravity (Time)
+  float sigmaTime = 0;            ///< RMS of cluster in time direction
+
+  float getQmax() const { return maxCharge; }
+  float getQtot() const { return totCharge; }
+  float getPad() const { return meanPad; }
+  float getSigmaPad() const { return sigmaPad; }
+  float getTime() const { return meanTime; }
+  float getSigmaTime() const { return sigmaTime; }
 
   /// Used to set all Cluster variables to zero.
   void reset()
@@ -53,7 +62,7 @@ struct KrCluster {
     sigmaTime = 0;
   }
 
-  ClassDefNV(KrCluster, 3);
+  ClassDefNV(KrCluster, 4);
 };
 
 } // namespace tpc

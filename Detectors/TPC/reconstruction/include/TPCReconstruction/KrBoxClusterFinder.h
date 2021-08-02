@@ -76,7 +76,7 @@
 #define ALICEO2_TPC_KrBoxClusterFinder_H_
 
 #include "DataFormatsTPC/Digit.h"
-#include "TPCReconstruction/KrCluster.h"
+#include "DataFormatsTPC/KrCluster.h"
 #include "TPCReconstruction/KrBoxClusterFinderParam.h"
 
 #include "TPCBase/Mapper.h"
