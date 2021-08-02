@@ -66,8 +66,8 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
       bool trackGood = true;
       bool hasOuterPoint = false;
       auto gidTable = recoData.getSingleDetectorRefs(_origID);
-      if ((!gidTable[GTrackID::ITS].isIndexSet() && !gidTable[GTrackID::ITSAB].isIndexSet()) || !gidTable[GTrackID::TPC].isIndexSet()) {
-        // ITS and TPC track is always needed. At this stage accept also ITS afterburner tracks (a cut on min. number of ITS clusters is added below)
+      if (!gidTable[GTrackID::ITS].isIndexSet() || !gidTable[GTrackID::TPC].isIndexSet()) {
+        // ITS and TPC track is always needed. At this stage ITS afterburner tracks are also rejected
         return true;
       }
       if (gidTable[GTrackID::TRD].isIndexSet() || gidTable[GTrackID::TOF].isIndexSet()) {
