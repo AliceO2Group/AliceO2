@@ -54,11 +54,11 @@ using namespace GPUCA_NAMESPACE::gpu;
 __global__ void dummyInitKernel(void*) {}
 
 #if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
-#include "ITStrackingHIP/VertexerTraitsHIP.h"
+#include "ITStrackingGPU/VertexerTraitsGPU.h"
 #else
 namespace o2::its
 {
-class VertexerTraitsHIP : public VertexerTraits
+class VertexerTraitsGPU : public VertexerTraits
 {
 };
 class TrackerTraitsHIP : public TrackerTraits
@@ -210,7 +210,7 @@ void GPUReconstructionHIPBackend::GetITSTraits(std::unique_ptr<o2::its::TrackerT
   //   trackerTraits->reset(new o2::its::TrackerTraitsNV);
   // }
   if (vertexerTraits) {
-    vertexerTraits->reset(new o2::its::VertexerTraitsHIP);
+    vertexerTraits->reset(new o2::its::VertexerTraitsGPU);
   }
 }
 

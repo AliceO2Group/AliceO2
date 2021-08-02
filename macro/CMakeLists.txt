@@ -47,7 +47,6 @@ install(FILES CheckDigits_mft.C
               run_cmp2digit_tof.C
               compareTOFDigits.C
               compareTOFClusters.C
-              run_primary_vertexer_ITS.C
               run_rawdecoding_its.C
               run_rawdecoding_mft.C
               run_trac_ca_its.C
@@ -295,16 +294,6 @@ o2_add_test_root_macro(compareTOFDigits.C
 o2_add_test_root_macro(compareTOFClusters.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF
                        LABELS tof)
-
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(run_primary_vertexer_ITS.C
-                       PUBLIC_LINK_LIBRARIES O2::DataFormatsITSMFT
-                                             O2::DataFormatsParameters
-                                             O2::GPUTracking
-                                             O2::SimulationDataFormat
-                                             O2::ITSBase O2::ITStracking
-          O2::DetectorsBase
-                       LABELS its COMPILE_ONLY)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_rawdecoding_its.C

@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 ///
 /// \file Vertexer.cxx
-/// \brief
+/// \author Matteo Concas mconcas@cern.ch
 ///
 
 #include "ITStracking/Vertexer.h"
@@ -30,6 +30,9 @@ namespace its
 
 Vertexer::Vertexer(VertexerTraits* traits)
 {
+  if (!traits) {
+    LOG(FATAL) << "nullptr passed to ITS vertexer construction.";
+  }
   mTraits = traits;
 }
 

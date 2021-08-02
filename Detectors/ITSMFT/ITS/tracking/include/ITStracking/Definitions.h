@@ -11,18 +11,21 @@
 ///
 /// \file Definitions.h
 /// \brief
-///
 
-#ifndef TRACKINGITSU_INCLUDE_CADEFINITIONS_H_
-#define TRACKINGITSU_INCLUDE_CADEFINITIONS_H_
+#ifndef TRACKINGITS_DEFINITIONS_H_
+#define TRACKINGITS_DEFINITIONS_H_
 
 // #define _ALLOW_DEBUG_TREES_ITS_ // to allow debug (vertexer only)
+// #define CA_DEBUG
+
+template <typename T>
+void discardResult(const T&)
+{
+}
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <array>
 #endif
-
-// #define CA_DEBUG
 
 #ifdef CA_DEBUG
 #define CA_DEBUGGER(x) x
@@ -30,77 +33,105 @@
 #define CA_DEBUGGER(x) \
   do {                 \
   } while (0)
-// #ifndef NDEBUG
-// #define NDEBUG 1
-// #endif
 #endif
 
-#if defined(CUDA_ENABLED)
-#define TRACKINGITSU_GPU_MODE true
-#else
-#define TRACKINGITSU_GPU_MODE false
-#endif
-
-#if defined(__CUDACC__)
-#define TRACKINGITSU_GPU_COMPILING
-#endif
-
-#if defined(__CUDA_ARCH__)
+#if defined(__CUDA_ARCH__) // ????
 #define TRACKINGITSU_GPU_DEVICE
 #endif
 
-#if defined(__CUDACC__)
-
-#define GPU_HOST __host__
-#define GPU_DEVICE __device__
-#define GPU_HOST_DEVICE __host__ __device__
-#define GPU_GLOBAL __global__
-#define GPU_SHARED __shared__
-#define GPU_SYNC __syncthreads()
-
+#if defined(__CUDACC__) || defined(__HIPCC__)
 #define MATH_CEIL ceil
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <cstddef>
 #endif
-#include "ITStrackingCUDA/Array.h"
+#include "../GPU/ITStrackingGPU/Array.h"
 
 template <typename T, size_t Size>
 using GPUArray = o2::its::gpu::Array<T, Size>;
 
+#ifdef __CUDACC__
+#define GPU_ARCH "CUDA"
+
 typedef cudaStream_t GPUStream;
+inline int getGPUCores(const int major, const int minor)
+{
+  // Defines for GPU Architecture types (using the SM version to determine the # of cores per SM
+  typedef struct
+  {
+    int SM; // 0xMm (hexidecimal notation), M = SM Major version, and m = SM minor version
+    int Cores;
+  } sSMtoCores;
 
-#else
+  sSMtoCores nGpuArchCoresPerSM[] =
+    {
+      {0x20, 32},  // Fermi Generation (SM 2.0) GF100 class
+      {0x21, 48},  // Fermi Generation (SM 2.1) GF10x class
+      {0x30, 192}, // Kepler Generation (SM 3.0) GK10x class
+      {0x32, 192}, // Kepler Generation (SM 3.2) GK10x class
+      {0x35, 192}, // Kepler Generation (SM 3.5) GK11x class
+      {0x37, 192}, // Kepler Generation (SM 3.7) GK21x class
+      {0x50, 128}, // Maxwell Generation (SM 5.0) GM10x class
+      {0x52, 128}, // Maxwell Generation (SM 5.2) GM20x class
+      {0x53, 128}, // Maxwell Generation (SM 5.3) GM20x class
+      {0x60, 64},  // Pascal Generation (SM 6.0) GP100 class
+      {0x61, 128}, // Pascal Generation (SM 6.1) GP10x class
+      {0x62, 128}, // Pascal Generation (SM 6.2) GP10x class
+      {0x70, 64},  // Volta Generation (SM 7.0) GV100 class
+      {0x72, 64},  // Volta Generation (SM 7.2) GV10B class
+      {0x75, 64},  // Turing Generation (SM 7.5) TU1xx class
+      {-1, -1}};
 
-#define GPU_HOST
-#define GPU_DEVICE
-#define GPU_HOST_DEVICE
-#define GPU_GLOBAL
-#define GPU_SHARED
-#define GPU_SYNC
+  int index = 0;
 
-#define MATH_CEIL std::ceil
+  while (nGpuArchCoresPerSM[index].SM != -1) {
+    if (nGpuArchCoresPerSM[index].SM == ((major << 4) + minor)) {
+      return nGpuArchCoresPerSM[index].Cores;
+    }
 
-#ifndef __VECTOR_TYPES_H__
+    index++;
+  }
 
-#include "GPUCommonDef.h"
+  // If we don't find the values, we default use the previous one to run properly
+  return nGpuArchCoresPerSM[index - 1].Cores;
+}
+inline int getGPUMaxThreadsPerComputingUnit()
+{
+  return 8;
+}
 
+#else // __HIPCC__
+#define GPU_ARCH "HIP"
+typedef hipStream_t GPUStream;
+inline int getGPUCores(const int major, const int minor)
+{
+  // Hardcoded result for AMD RADEON WX 9100, to be decided if and how determine this paramter
+  return 4096;
+}
+
+inline int getGPUMaxThreadsPerComputingUnit()
+{
+  return 8;
+}
 #endif
 
+#else
+#define MATH_CEIL std::ceil
+#ifndef __VECTOR_TYPES_H__
+#include "GPUCommonDef.h"
+#endif
 #ifndef __OPENCL__
 #include <cstddef>
 template <typename T, size_t Size>
 using GPUArray = std::array<T, Size>;
 #else
-#include "ITStrackingCUDA/Array.h"
-
+#include "../GPU/ITStrackingGPU/Array.h"
 template <typename T, size_t Size>
 using GPUArray = o2::its::gpu::Array<T, Size>;
 #endif
 
 typedef struct _dummyStream {
 } GPUStream;
-
 #endif
 
-#endif /* TRACKINGITSU_INCLUDE_CADEFINITIONS_H_ */
+#endif

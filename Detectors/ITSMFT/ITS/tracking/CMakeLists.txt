@@ -42,11 +42,6 @@ o2_target_root_dictionary(ITStracking
                                   include/ITStracking/StandaloneDebugger.h
                           LINKDEF src/TrackingLinkDef.h)
 
-if(CUDA_ENABLED)
-  add_subdirectory(cuda)
-  target_compile_definitions(${targetName} PRIVATE CUDA_ENABLED)
-endif()
-if(HIP_ENABLED)
-  add_subdirectory(hip)
-  target_compile_definitions(${targetName} PRIVATE HIP_ENABLED)
+if(CUDA_ENABLED OR HIP_ENABLED)
+  add_subdirectory(GPU)
 endif()

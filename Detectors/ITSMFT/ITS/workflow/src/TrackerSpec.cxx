@@ -79,7 +79,6 @@ void TrackerDPL::init(InitContext& ic)
     }
 
     auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
-    mRecChain->Init();
     mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
     mTracker = std::make_unique<Tracker>(new TrackerTraitsCPU(&mTimeFrame));
 
