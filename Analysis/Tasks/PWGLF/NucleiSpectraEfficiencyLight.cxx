@@ -62,10 +62,8 @@ struct NucleiSpectraEfficiencyLightGen {
   {
     std::vector<double> ptBinning = {0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6,
                                      1.8, 2.0, 2.2, 2.4, 2.8, 3.2, 3.6, 4., 5., 6., 8., 10., 12., 14.};
-    std::vector<double> centBinning = {0., 1., 5., 10., 20., 30., 40., 50., 70., 100.};
     //
     AxisSpec ptAxis = {ptBinning, "#it{p}_{T} (GeV/#it{c})"};
-    AxisSpec centAxis = {centBinning, "V0M (%)"};
     //
     spectra.add("histGenPt", "generated particles", HistType::kTH1F, {ptAxis});
   }
@@ -98,16 +96,18 @@ struct NucleiSpectraEfficiencyLightRec {
   {
     std::vector<double> ptBinning = {0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6,
                                      1.8, 2.0, 2.2, 2.4, 2.8, 3.2, 3.6, 4., 5., 6., 8., 10., 12., 14.};
-    std::vector<double> centBinning = {0., 1., 5., 10., 20., 30., 40., 50., 70., 100.};
     //
     AxisSpec ptAxis = {ptBinning, "#it{p}_{T} (GeV/#it{c})"};
-    AxisSpec centAxis = {centBinning, "V0M (%)"};
     //
+    spectra.add("histEvSel", "eventselection", HistType::kTH1D, {{10, -0.5, 9.5}});
     spectra.add("histRecVtxZ", "collision z position", HistType::kTH1F, {{200, -20., +20., "z position (cm)"}});
     spectra.add("histRecPt", "reconstructed particles", HistType::kTH1F, {ptAxis});
     spectra.add("histTpcSignal", "Specific energy loss", HistType::kTH2F, {{600, -6., 6., "#it{p/z} (GeV/#it{c})"}, {1400, 0, 1400, "d#it{E} / d#it{X} (a. u.)"}});
+    spectra.add("histTofSignalData", "TOF signal", HistType::kTH2F, {{600, -6., 6., "#it{p} (GeV/#it{c})"}, {500, 0.0, 1.2, "#beta (TOF)"}});
     spectra.add("histTpcNsigma", "n-sigma TPC", HistType::kTH2F, {ptAxis, {200, -100., +100., "n#sigma_{He} (a. u.)"}});
-    spectra.add("histItsClusters","number of ITS clusters", HistType::kTH1F, {{10, -0.5, +9.5, "number of ITS clusters"}});
+    spectra.add("histItsClusters", "number of ITS clusters", HistType::kTH1F, {{10, -0.5, +9.5, "number of ITS clusters"}});
+    spectra.add("histDcaXYprimary", "dca XY primary particles", HistType::kTH1F, {{200, -1., +1., "dca XY (cm)"}});
+    spectra.add("histDcaXYsecondary", "dca XY secondary particles", HistType::kTH1F, {{200, -1., +1., "dca XY (cm)"}});
   }
 
   Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
@@ -120,9 +120,18 @@ struct NucleiSpectraEfficiencyLightRec {
 
   using TrackCandidates = soa::Join<aod::Tracks, aod::TracksExtra, aod::McTrackLabels, aod::pidTPCFullHe, aod::pidTOFFullHe>;
 
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::McCollisionLabels>>::iterator const& collision,
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::McCollisionLabels, aod::EvSels>>::iterator const& collision,
                TrackCandidates const& tracks, aod::McParticles& mcParticles, aod::McCollisions const& mcCollisions)
   {
+    //
+    // check event selection
+    //
+    spectra.get<TH1>(HIST("histEvSel"))->Fill("all", 1.f);
+    if (collision.sel8()) {
+      spectra.get<TH1>(HIST("histEvSel"))->Fill("sel8", 1.f);
+    } else {
+      return;
+    }
     //
     // check the vertex-z distribution
     //
@@ -144,12 +153,27 @@ struct NucleiSpectraEfficiencyLightRec {
       //
       // TPC-QA
       //
-      spectra.fill(HIST("histTpcSignal"), track.tpcInnerParam() * track.sign(), track.tpcSignal());
+      if (track.itsNCls() > 0) {
+        spectra.fill(HIST("histTpcSignal"), track.tpcInnerParam() * track.sign(), track.tpcSignal());
+      }
       spectra.fill(HIST("histTpcNsigma"), track.tpcInnerParam(), nSigmaHe3);
       //
       // ITS-QA
       //
-      spectra.fill(HIST("histItsClusters"),track.itsClusterMap());
+      spectra.fill(HIST("histItsClusters"), track.itsNCls());
+      //
+      // TOF-QA
+      //
+      if (track.hasTOF()) {
+        Float_t tofTime = track.tofSignal();
+        Float_t tofLength = track.length();
+        Float_t beta = tofLength / (TMath::C() * 1e-10 * tofTime);
+        spectra.fill(HIST("histTofSignalData"), track.tpcInnerParam() * track.sign(), beta);
+      }
+      //
+      // dca to primary vertex -- wait for tracksextented
+      //
+      //spectra.fill(HIST("histDcaXYprimary"), track.dcaXY());
       //
       // fill histograms
       //
