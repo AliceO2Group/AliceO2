@@ -83,7 +83,7 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
   return std::make_tuple(extractTypedOriginal<Os>(pc)...);
 }
 
-AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requested)
+AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec>& requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
     return [requested](ProcessingContext& pc) {
@@ -144,7 +144,7 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requ
   }};
 }
 
-AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> requested)
+AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
     return [requested](ProcessingContext& pc) {
