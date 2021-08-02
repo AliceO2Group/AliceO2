@@ -24,7 +24,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 
 #include "DataFormatsTPC/TPCSectorHeader.h"
-#include "TPCReconstruction/KrCluster.h"
+#include "DataFormatsTPC/KrCluster.h"
 #include "TPCBase/Sector.h"
 #include "TPCWorkflow/KryptonClustererSpec.h"
 
