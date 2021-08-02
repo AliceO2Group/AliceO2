@@ -209,8 +209,68 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           continue;
         };
 
+        if (!(chantype == o2::emcal::ChannelType_t::HIGH_GAIN || chantype == o2::emcal::ChannelType_t::LOW_GAIN)) {
+          continue;
+        }
+
         auto [phishift, etashift] = mGeometry->ShiftOnlineToOfflineCellIndexes(iSM, iRow, iCol);
         int CellID = mGeometry->GetAbsCellIdFromCellIndexes(iSM, phishift, etashift);
+        if (CellID > 17664) {
+          if (mNumErrorMessages < mMaxErrorMessages) {
+            std::string celltypename;
+            switch (chantype) {
+              case o2::emcal::ChannelType_t::HIGH_GAIN:
+                celltypename = "high gain";
+                break;
+              case o2::emcal::ChannelType_t::LOW_GAIN:
+                celltypename = "low-gain";
+                break;
+              case o2::emcal::ChannelType_t::TRU:
+                celltypename = "TRU";
+                break;
+              case o2::emcal::ChannelType_t::LEDMON:
+                celltypename = "LEDMON";
+                break;
+            };
+            LOG(ERROR) << "Sending invalid cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
+            mNumErrorMessages++;
+            if (mNumErrorMessages == mMaxErrorMessages) {
+              LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+            }
+          } else {
+            mErrorMessagesSuppressed++;
+          }
+          mOutputDecoderErrors.emplace_back(feeID, 100, -1); // Geometry error codes will start from 100
+          continue;
+        }
+        if (CellID < 0) {
+          if (mNumErrorMessages < mMaxErrorMessages) {
+            std::string celltypename;
+            switch (chantype) {
+              case o2::emcal::ChannelType_t::HIGH_GAIN:
+                celltypename = "high gain";
+                break;
+              case o2::emcal::ChannelType_t::LOW_GAIN:
+                celltypename = "low-gain";
+                break;
+              case o2::emcal::ChannelType_t::TRU:
+                celltypename = "TRU";
+                break;
+              case o2::emcal::ChannelType_t::LEDMON:
+                celltypename = "LEDMON";
+                break;
+            };
+            LOG(ERROR) << "Sending negative cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
+            mNumErrorMessages++;
+            if (mNumErrorMessages == mMaxErrorMessages) {
+              LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+            }
+          } else {
+            mErrorMessagesSuppressed++;
+          }
+          mOutputDecoderErrors.emplace_back(feeID, 100, -1); // Geometry error codes will start from 100
+          continue;
+        }
 
         // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
         CaloFitResults fitResults;
@@ -244,6 +304,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   for (auto [bc, cells] : cellBuffer) {
     mOutputTriggerRecords.emplace_back(bc, triggerBuffer[bc], mOutputCells.size(), cells->size());
     if (cells->size()) {
+      LOG(DEBUG) << "Event has " << cells->size() << " cells";
       // Sort cells according to cell ID
       std::sort(cells->begin(), cells->end(), [](Cell& lhs, Cell& rhs) { return lhs.getTower() < rhs.getTower(); });
       for (auto cell : *cells) {
