@@ -42,6 +42,8 @@ The generation part (in `prodtests/full_system_test.sh` runs the following steps
 * Run digits 2 raw conversion.
 * By default, afterwards it will also run the sync and async DPL workflows (configured via `$DISABLE_PROCESSING`).
 
+The `prodtests/full_system_test.sh` uses `Utilities/Tools/jobutils.sh` for running the jobs, which creates a log file for each step, and which will automatically skip steps that have already succeeded if the test is rerun in the current folder. I.e. if you break the FST or it failed at some point, you can rerun the same command line and it will continue after the last successful step. See `Utilities/Tools/jobutils.sh` for details.
+
 Note that by default, the generation produces raw files, which can be consumed by the `raw-file-reader-workflow` and by `o2-readout-exe`.
 The files can be converted into timeframes files readable by the StfBuilder as described in https://alice.its.cern.ch/jira/browse/O2-1492.
 
@@ -114,3 +116,17 @@ The following options exist (some of the options are not used in all scripts, an
   It is suggested to leave this enabled (default) on tests on the laptop to get an actual error when it runs out of memory.
   This is disabled in `start_tmux.sh`, to avoid breaking the processing while there is a chance that another process might free memory and we can continue.
 * `NORATELOG`: Disable FairMQ Rate Logging.
+
+## Files produced / required by the full system test
+
+The full system test can use the following input files:
+* Material budget: `matbud.root` with the material budget (used if available by the workflows to speed up material queries).
+* CTF ANS dictionaries: `ctf_dictionary.root` (if `CREATECTFDICT=0` is set).
+* ITS and MFT pattern dictionaries: `ITSdictionary.bin` and `MFTdictionary.bin` can be provided externally, or they can be produced automatically if `GENERATE_ITSMFT_DICTIONARIES=1` is set.
+
+The full system test produces the following output:
+* QED simulation output in the folder `qed`.
+* Normal simulation output (as `o2-sim`).
+* Digits from `o2-sim-digitizer-workflow` and TRD tracklets.
+* Depending on the options mentioned above, `ctf_dictionary.root` and `ITSdictionary.bin` / `MFTdictionary.bin`.
+* RAW files in `raw/[DETECTOR_NAME]`
