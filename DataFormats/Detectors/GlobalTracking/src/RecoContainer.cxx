@@ -597,7 +597,7 @@ const o2::track::TrackParCov& RecoContainer::getTrackParamOut(GTrackID gidx) con
   if (trSrc == GTrackID::ITSTPC) {
     return getTrack<o2d::TrackTPCITS>(gidx).getParamOut();
   } else if (trSrc == GTrackID::ITSTPCTOF) { // the physical tracks are in ITS-TPC, need to get reference from match info
-    return getTrack<o2d::TrackTPCITS>(getTOFMatch(gidx).getEvIdxTrack().getIndex()).getParamOut();
+    return getTrack<o2d::TrackTPCITS>(getTOFMatch(gidx).getTrackRef().getIndex()).getParamOut();
   } else if (trSrc == GTrackID::TPCTOF) {
     return getTrack<o2d::TrackTPCTOF>(gidx).getParamOut();
   } else if (trSrc == GTrackID::ITS) {
@@ -627,7 +627,7 @@ const o2::track::TrackParCov& RecoContainer::getTrackParam(GTrackID gidx) const
   // get base track
   auto trSrc = gidx.getSource();
   if (trSrc == GTrackID::ITSTPCTOF) { // the physical tracks are in ITS-TPC, need to get reference from match info
-    gidx = getTOFMatch(gidx).getEvIdxTrack().getIndex();
+    gidx = getTOFMatch(gidx).getTrackRef().getIndex();
   }
   return getObject<o2::track::TrackParCov>(gidx, TRACKS);
 }
@@ -636,7 +636,7 @@ const o2::track::TrackParCov& RecoContainer::getTrackParam(GTrackID gidx) const
 const o2::dataformats::TrackTPCITS& RecoContainer::getITSTPCTOFTrack(GTrackID gidx) const
 {
   // get ITS-TPC track pointed by global TOF match
-  return getTPCITSTrack(getTOFMatch(gidx).getEvIdxTrack().getIndex());
+  return getTPCITSTrack(getTOFMatch(gidx).getTrackRef().getIndex());
 }
 
 //________________________________________________________
@@ -679,15 +679,15 @@ RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) c
   }
   if (src == GTrackID::ITSTPCTOF) {
     const auto& parent0 = getTOFMatch(gidx); //ITS/TPC : TOF
-    const auto& parent1 = getTPCITSTrack(parent0.getEvIdxTrack().getIndex());
-    table[GTrackID::ITSTPC] = parent0.getEvIdxTrack().getIndex();
-    table[GTrackID::TOF] = {unsigned(parent0.getEvIdxTOFCl().getIndex()), GTrackID::TOF};
+    const auto& parent1 = getTPCITSTrack(parent0.getTrackRef().getIndex());
+    table[GTrackID::ITSTPC] = parent0.getTrackRef().getIndex();
+    table[GTrackID::TOF] = {unsigned(parent0.getIdxTOFCl()), GTrackID::TOF};
     table[GTrackID::TPC] = parent1.getRefTPC();
     table[parent1.getRefITS().getSource()] = parent1.getRefITS(); // ITS source might be an ITS track or ITSAB tracklet
   } else if (src == GTrackID::TPCTOF) {
     const auto& parent0 = getTPCTOFMatch(gidx); //TPC : TOF
-    table[GTrackID::TOF] = {unsigned(parent0.getEvIdxTOFCl().getIndex()), GTrackID::TOF};
-    table[GTrackID::TPC] = parent0.getEvIdxTrack().getIndex();
+    table[GTrackID::TOF] = {unsigned(parent0.getIdxTOFCl()), GTrackID::TOF};
+    table[GTrackID::TPC] = parent0.getTrackRef().getIndex();
   } else if (src == GTrackID::ITSTPC) {
     const auto& parent0 = getTPCITSTrack(gidx);
     table[GTrackID::TPC] = parent0.getRefTPC();
@@ -708,11 +708,11 @@ GTrackID RecoContainer::getTPCContributorGID(GTrackID gidx) const
     return parent1.getRefTPC();
   } else if (src == GTrackID::ITSTPCTOF) {
     const auto& parent0 = getTOFMatch(gidx); //ITS/TPC : TOF
-    const auto& parent1 = getTPCITSTrack(parent0.getEvIdxTrack().getIndex());
+    const auto& parent1 = getTPCITSTrack(parent0.getTrackRef().getIndex());
     return parent1.getRefTPC();
   } else if (src == GTrackID::TPCTOF) {
     const auto& parent0 = getTPCTOFMatch(gidx); //TPC : TOF
-    return parent0.getEvIdxTrack().getIndex();
+    return parent0.getTrackRef().getIndex();
   } else if (src == GTrackID::ITSTPC) {
     const auto& parent0 = getTPCITSTrack(gidx);
     return parent0.getRefTPC();
@@ -728,7 +728,7 @@ GTrackID RecoContainer::getITSContributorGID(GTrackID gidx) const
   auto src = gidx.getSource();
   if (src == GTrackID::ITSTPCTOF) {
     const auto& parent0 = getTOFMatch(gidx); //ITS/TPC : TOF
-    const auto& parent1 = getTPCITSTrack(parent0.getEvIdxTrack().getIndex());
+    const auto& parent1 = getTPCITSTrack(parent0.getTrackRef().getIndex());
     return parent1.getRefITS();
   } else if (src == GTrackID::ITSTPC) {
     const auto& parent0 = getTPCITSTrack(gidx);
