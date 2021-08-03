@@ -78,7 +78,7 @@ class TrackResiduals
 
   /// Structure which gets filled with the results for each voxel
   struct VoxRes {
-    VoxRes() {}
+    VoxRes() = default;
     std::array<float, ResDim> D{};            ///< values of extracted distortions
     std::array<float, ResDim> E{};            ///< their errors
     std::array<float, ResDim> DS{};           ///< smoothed residual
@@ -94,10 +94,10 @@ class TrackResiduals
 
   /// Structure for local residuals (y/z position, dip angle, voxel identifier)
   struct LocalResid {
-    LocalResid() : dy(0), dz(0), tgSlp(0) {}
-    short dy;                                 ///< residual in y, ranges from -param::sMaxResid to +param::sMaxResid
-    short dz;                                 ///< residual in z, ranges from -param::sMaxResid to +param::sMaxResid
-    short tgSlp;                              ///< track dip angle, ranges from -param::sMaxAngle to +param::sMaxAngle
+    LocalResid() = default;
+    short dy{0};                              ///< residual in y, ranges from -param::sMaxResid to +param::sMaxResid
+    short dz{0};                              ///< residual in z, ranges from -param::sMaxResid to +param::sMaxResid
+    short tgSlp{0};                           ///< track dip angle, ranges from -param::sMaxAngle to +param::sMaxAngle
     std::array<unsigned char, VoxDim> bvox{}; ///< voxel identifier: VoxZ, VoxF, VoxX
   };
 
@@ -119,6 +119,7 @@ class TrackResiduals
   };
 
   struct DebugOutliers {
+    DebugOutliers() = default;
     int idx{-1};
     std::array<float, param::NPadRows> x{};
     std::array<float, param::NPadRows> xFlagged{};
