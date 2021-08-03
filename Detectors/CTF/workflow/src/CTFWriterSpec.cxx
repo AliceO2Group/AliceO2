@@ -373,7 +373,7 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
   if (!mCTFTreeOut) {
     needToOpen = true;
   } else {
-    if ((mAccCTFSize >= mMinSize) ||                                                         // min size exceeded, may close the file
+    if ((mAccCTFSize >= mMinSize) ||                                                         // min size exceeded, may close the file.
         (mAccCTFSize && mMaxSize > mMinSize && ((mAccCTFSize + mCurrCTFSize) > mMaxSize))) { // this is not the 1st CTF in the file and the new size will exceed allowed max
       needToOpen = true;
     } else {
