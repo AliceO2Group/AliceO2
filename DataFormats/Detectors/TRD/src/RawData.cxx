@@ -451,6 +451,8 @@ int nextmcmadc(unsigned int& bp, int channel)
   while (!(bp & m)) {
     m = m << 1;
     position++;
+    if (position > 31)
+      break;
   }
   bp &= ~(1UL << (position));
   return position;

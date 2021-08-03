@@ -108,11 +108,11 @@ int TrackletsParser::Parse()
 
     // a hack to clean the data bit.
     // sometimes we get some erroneos digit data at the beginning to find *either* the first trackletMCMHeader or the end of trackletmarker or the end of digit marker or padding words.
-    if (word == mStartParse) {
+    /* if (word == mStartParse) { // this is a terrible idea, but leaving here for now
       //we are at the start
       //
       int countadvance = 0;
-      LOG(info) << "Tracklet parsing skipping over 0x" << std::hex << *word;
+//      LOG(info) << "Tracklet parsing skipping over 0x" << std::hex << *word;
       while (word != mEndParse) {
         uint32_t bsword = *word;
         swapByteOrder(bsword);
@@ -128,7 +128,7 @@ int TrackletsParser::Parse()
       if (word == mEndParse) {
         LOG(warn) << " something odd is going on, we skipped over the entire buffer trying to find a trackletmcmheader, trackletendmarker, digitendmarker, or paddingword";
       }
-    }
+    }*/
     if (mState == StateFinished) {
       mTrackletparsetime += std::chrono::high_resolution_clock::now() - parsetimestart;
       LOG(info) << "state finished so bailing out tracklet parsing having read : " << mWordsRead << " words";
@@ -159,7 +159,7 @@ int TrackletsParser::Parse()
         LOG(warn) << "State should be trackletend marker current ?= end marker  ?? " << mState << " ?=" << StateTrackletEndMarker;
       }
       if (mHeaderVerbose) {
-        LOG(info) << "TrackletEndMarker : 0x" << std::hex << *word << " and " << nextwordcopy;
+        LOG(info) << "***TrackletEndMarker : 0x" << std::hex << *word << " and 0x" << nextwordcopy;
       }
       mWordsRead += 2;
       //we should now have a tracklet half chamber header.
@@ -185,7 +185,7 @@ int TrackletsParser::Parse()
         }
         //read the header
         if (mHeaderVerbose) {
-          LOG(info) << "TrackletHCHeader : 0x" << std::hex << *word;
+          LOG(info) << "*** TrackletHCHeader : 0x" << std::hex << *word;
         }
         //we actually have a header word.
         mTrackletHCHeader = (TrackletHCHeader*)&word;
@@ -200,7 +200,7 @@ int TrackletsParser::Parse()
           //mcmheader
           mTrackletMCMHeader = (TrackletMCMHeader*)&(*word);
           if (mHeaderVerbose) {
-            LOG(info) << "TrackletMCMHeader : 0x" << std::hex << *word;
+            LOG(info) << "***TrackletMCMHeader : 0x" << std::hex << *word;
             TrackletMCMHeader a;
             a.word = *word;
             printTrackletMCMHeader(a);
@@ -213,8 +213,8 @@ int TrackletsParser::Parse()
           mState = StateTrackletMCMData;
           //tracklet data;
           mTrackletMCMData = (TrackletMCMData*)&(*word);
-          if (mDataVerbose) {
-            LOG(info) << "TrackletMCMData : 0x" << std::hex << *word;
+          if (mHeaderVerbose) {
+            LOG(info) << "*** TrackletMCMData : 0x" << std::hex << *word;
             printTrackletMCMData(*mTrackletMCMData);
           }
           mWordsRead++;
@@ -273,11 +273,11 @@ int TrackletsParser::Parse()
           if (mcmtrackletcount > 3) {
             LOG(warn) << "We have more than 3 Tracklets in parsing the TrackletMCMData attached to a single TrackletMCMHeader";
             //dump out preceeding 8 words and subsequent 8 words, might help in diagnostics
-            if (mDataVerbose) {
-              auto debugword = std::prev(word, -8); //
-              int debugcount = -8;
+            if (mVerbose) {
+              auto debugword = std::prev(word, -4); //
+              int debugcount = -4;
               //now output it to info
-              while (debugcount != 16) {
+              while (debugcount != 4) {
                 LOG(info) << "tracklet debug " << debugcount << " 0x" << std::hex << *debugword;
                 debugword++;
                 debugcount++;

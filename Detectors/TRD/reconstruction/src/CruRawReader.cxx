@@ -201,7 +201,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
                                                decltype(mCurrentHalfCRULinkLengths)::value_type(0));
   mTotalHalfCRUDataLength = mTotalHalfCRUDataLength256 * 32; //convert to bytes.
   //check for cru errors :
-  if (mHeaderVerbose) {
+  if (mDataVerbose) {
     int linkerrorcounter = 0;
     LOG(info) << "link errors";
     for (auto& linkerror : mCurrentHalfCRULinkErrorFlags) {
@@ -279,10 +279,10 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
     int oriindex = currentlinkindex + constants::NLINKSPERHALFCRU * endpoint; // endpoint denotes the pci side, upper or lower for the pair of 15 fibres.
     FeeParam::unpackORI(oriindex, side, stack, layer, halfchamberside);
     int currentdetector = stack * constants::NLAYER + layer + supermodule * constants::NLAYER * constants::NSTACK;
-    if (mVerbose) {
+    if (mDataVerbose) {
       LOG(info) << "******* LINK # " << currentlinkindex << " and  starting at " << mHBFoffset32 << " unpackORI(" << oriindex << "," << side << "," << stack << "," << layer << "," << halfchamberside << ") and an FEEID:" << std::hex << mFEEID << " det:" << std::dec << currentdetector;
+      LOG(info) << "******* LINK # " << currentlinkindex << " an FEEID:" << std::hex << mFEEID << " det:" << std::dec << currentdetector << " Error Flags : " << mCurrentHalfCRULinkErrorFlags[currentlinkindex];
     }
-    LOG(info) << "******* LINK # " << currentlinkindex << " an FEEID:" << std::hex << mFEEID << " det:" << std::dec << currentdetector << " Error Flags : " << mCurrentHalfCRULinkErrorFlags[currentlinkindex];
     // tracklet first then digit ??
     // tracklets end with tracklet end marker(0x10001000 0x10001000), digits end with digit endmarker (0x0 0x0)
     if (linkstart != linkend) { // if link is not empty
