@@ -22,6 +22,7 @@
 #include "TRDReconstruction/DigitsParser.h"
 #include "TRDReconstruction/TrackletsParser.h"
 #include "DataFormatsTRD/Constants.h"
+#include "DataFormatsTRD/HelperMethods.h"
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -297,25 +298,54 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
       //now we have a tracklethcheader and a digithcheader.
       mHBFoffset32 += trackletwordsread;
       mTotalTrackletsFound += mTrackletsParser.getTrackletsFound();
-      digitwordsread = 0;
-      //linkstart and linkend already have the multiple cruheaderoffsets built in
-      digitwordsread = mDigitsParser.Parse(&mHBFPayload, linkstart, linkend, currentdetector, cleardigits, mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
-      if (digitwordsread != std::distance(linkstart, linkend)) {
-        //we have the data corruption problem of a pile of stuff at the end of a link, jump over it.
-        if (mFixDigitEndCorruption) {
-          digitwordsread = std::distance(linkstart, linkend);
-        } else {
-          LOG(warn) << "read digits but data still left on the link digitwordsread:" << digitwordsread << " and link length:" << std::distance(linkstart, linkend);
+      //now read the digit half chamber header
+      DigitHCHeader digitHCHeader;
+      uint32_t dhcheader0 = mHBFPayload[mHBFoffset32++];
+      uint32_t dhcheader1 = mHBFPayload[mHBFoffset32++];
+      if (mByteSwap) {
+        // byte swap if needed.
+        o2::trd::HelperMethods::swapByteOrder(dhcheader0);
+        o2::trd::HelperMethods::swapByteOrder(dhcheader1);
+      }
+      digitHCHeader.word0 = dhcheader0;
+      digitHCHeader.word1 = dhcheader1;
+      if (mHeaderVerbose) {
+        LOG(info) << "*** HCHHeader : 0x" << std::hex << digitHCHeader.word0 << " 0x" << digitHCHeader.word1;
+        printDigitHCHeader(digitHCHeader);
+      }
+      if (digitHCHeader.word0 == 0x0 || digitHCHeader.word1 == 0x0) {
+        LOG(warn) << "Missing DigitHCHeader, read digit end marker of zeros";
+        printDigitHCHeader(digitHCHeader);
+      }
+      //move over the DigitHCHeader;
+      linkstart += 2;
+      if (digitHCHeader.major == 0x47) {
+        // config event so ignore for now and bail out of parsing.
+        LOG(warn) << " HCHeader major version is 0x47 bailing out of parsing this as its a config event";
+        //advance data pointers to the end;
+        linkstart = linkend;
+        mHBFoffset32 = dataoffsetstart32 + currentlinksize; // go to the end of the link
+      } else {
+        digitwordsread = 0;
+        //linkstart and linkend already have the multiple cruheaderoffsets built in
+        digitwordsread = mDigitsParser.Parse(&mHBFPayload, linkstart, linkend, currentdetector, digitHCHeader, cleardigits, mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
+        if (digitwordsread != std::distance(linkstart, linkend)) {
+          //we have the data corruption problem of a pile of stuff at the end of a link, jump over it.
+          if (mFixDigitEndCorruption) {
+            digitwordsread = std::distance(linkstart, linkend);
+          } else {
+            LOG(warn) << "read digits but data still left on the link digitwordsread:" << digitwordsread << " and link length:" << std::distance(linkstart, linkend);
+          }
         }
+        mTotalDigitsFound += mDigitsParser.getDigitsFound();
+        if (mVerbose) {
+          LOG(info) << "digitwordsread : " << digitwordsread << " mem copy with offset of : " << cruhbfstartoffset << " parsing digits with linkstart: " << linkstart << " ending at : " << linkend;
+        }
+        sumlinklengths += mCurrentHalfCRULinkLengths[currentlinkindex];
+        sumtrackletwords += trackletwordsread;
+        sumdigitwords += digitwordsread;
+        mHBFoffset32 += digitwordsread; // all 3 in 32bit units
       }
-      mTotalDigitsFound += mDigitsParser.getDigitsFound();
-      if (mVerbose) {
-        LOG(info) << "digitwordsread : " << digitwordsread << " mem copy with offset of : " << cruhbfstartoffset << " parsing digits with linkstart: " << linkstart << " ending at : " << linkend;
-      }
-      sumlinklengths += mCurrentHalfCRULinkLengths[currentlinkindex];
-      sumtrackletwords += trackletwordsread;
-      sumdigitwords += digitwordsread;
-      mHBFoffset32 += digitwordsread; // all 3 in 32bit units
     } else {
       if (mVerbose) {
         LOG(info) << "link start and end are the same, link appears to be empty for link currentlinkdex";

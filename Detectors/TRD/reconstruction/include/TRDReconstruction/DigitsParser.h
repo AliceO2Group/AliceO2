@@ -41,12 +41,13 @@ class DigitsParser
   void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
   int Parse(bool verbose = false); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
-            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, bool cleardigits = false, bool disablebyteswap = false, bool verbose = false, bool headerverbose = false, bool dataverbose = false)
+            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, DigitHCHeader& hcheader, bool cleardigits = false, bool disablebyteswap = false, bool verbose = false, bool headerverbose = false, bool dataverbose = false)
   {
     setData(data);
     mStartParse = start;
     mEndParse = end;
     mDetector = detector;
+    mDigitHCHeader = hcheader;
     setVerbose(verbose, headerverbose, dataverbose);
     if (cleardigits) {
       clearDigits();
@@ -95,7 +96,7 @@ class DigitsParser
   // at the end of the event the calling object must pull/copy the vector and clear or clear on next parse.
   //
   int mParsedWords{0}; // words parsed in data vector, last complete bit is not parsed, and left for another round of data update.
-  DigitHCHeader* mDigitHCHeader;
+  DigitHCHeader mDigitHCHeader;
   DigitMCMHeader* mDigitMCMHeader;
   DigitMCMADCMask* mDigitMCMADCMask;
   uint32_t mADCMask;

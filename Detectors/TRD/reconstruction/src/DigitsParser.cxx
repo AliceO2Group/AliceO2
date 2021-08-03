@@ -50,7 +50,7 @@ int DigitsParser::Parse(bool verbose)
   //  mDataVerbose = true;
   //  mHeaderVerbose = true;
 
-  mState = StateDigitHCHeader;
+  mState = StateDigitMCMHeader;
   mDataWordsParsed = 0; // count of data wordsin data that have been parsed in current call to parse.
   mDigitsFound = 0;     // tracklets found in the data block, mostly used for debugging.
   mBufferLocation = 0;
@@ -99,33 +99,6 @@ int DigitsParser::Parse(bool verbose)
   //mData holds a buffer containing digits parse placing the read digits where they need to be
   // due to the nature of the incoming data, there will *never* straggling digits or for that matter trap outputs spanning a boundary.
   // data starts with a DigitHCHeader, so pull that off first to simplify looping
-  if (mState == StateDigitHCHeader) {
-    if (mVerbose) {
-      LOG(info) << "at start of data";
-    }
-    mDigitHCHeader = (DigitHCHeader*)mStartParse;
-    if (mByteOrderFix) {
-      // byte swap if needed.
-      swapByteOrder(mDigitHCHeader->word0);
-      swapByteOrder(mDigitHCHeader->word1);
-    }
-    if (mVerbose) {
-      LOG(info) << mDigitHCHeader->bunchcrossing << " was bunchcrossing and " << mDigitHCHeader->supermodule << " " << mDigitHCHeader->layer;
-    }
-    if (mHeaderVerbose) {
-      LOG(info) << "*** DigitHCHHeader : 0x" << std::hex << mDigitHCHeader->word0 << " 0x" << mDigitHCHeader->word1;
-      printDigitHCHeader(*mDigitHCHeader);
-    }
-    if (mDigitHCHeader->word0 == 0x0 || mDigitHCHeader->word1 == 0x0) {
-      LOG(warn) << "Missing DigitHCHeader, read digit end marker of zeros";
-      printDigitHCHeader(*mDigitHCHeader);
-    }
-    mBufferLocation += 2;
-    mDataWordsParsed += 2;
-    std::advance(mStartParse, 2);
-    //move over the DigitHCHeader;
-    mState = StateDigitMCMHeader;
-  }
 
   for (auto& word = mStartParse; word < mEndParse; ++word) { // loop over the entire data buffer (a complete link of digits)
     auto looptime = std::chrono::high_resolution_clock::now() - timedigitparsestart;
@@ -177,9 +150,9 @@ int DigitsParser::Parse(bool verbose)
           printDigitMCMHeader(*mDigitMCMHeader);
         }
         if (mHeaderVerbose) {
-          LOG(info) << "mDigitHCHeader format definition:0x" << mDigitHCHeader->major << "." << mDigitHCHeader->minor;
+          LOG(info) << "mDigitHCHeader format definition:0x" << mDigitHCHeader.major << "." << mDigitHCHeader.minor;
         }
-        if (mDigitHCHeader->major == 0x20) {
+        if (mDigitHCHeader.major & 0x20) {
           //zero suppressed
           //so we have an adcmask next
           std::advance(word, 1);
@@ -235,16 +208,16 @@ int DigitsParser::Parse(bool verbose)
         mROB = mDigitMCMHeader->rob;
         //cru /2 = supermodule
         //link channel == readoutboard as per guido doc.
-        int layer = mDigitHCHeader->layer;
-        int stack = mDigitHCHeader->stack;
-        int sector = mDigitHCHeader->supermodule;
+        int layer = mDigitHCHeader.layer;
+        int stack = mDigitHCHeader.stack;
+        int sector = mDigitHCHeader.supermodule;
         mDetector = layer + stack * constants::NLAYER + sector * constants::NLAYER * constants::NSTACK;
         //TODO check that his matches up with the CRU Link info
         //TOOD does it match the feeid which ncodes this information as well.
         //
         mEventCounter = mDigitMCMHeader->eventcount;
         mDataWordsParsed++; // header
-        if (mDigitHCHeader->major & 0x20) {
+        if (mDigitHCHeader.major & 0x20) {
           //zero suppressed digits
           mDataWordsParsed++; // adc mask
         }
@@ -326,7 +299,7 @@ int DigitsParser::Parse(bool verbose)
               mcmadccount++;
               //write out adc value to vector
               //zero digittimebinoffset
-              if (mDigitHCHeader->major & 0x20) {
+              if (mDigitHCHeader.major & 0x20) {
                 //zero suppressed, so channel must be extracted from next available bit in adcmask
                 mChannel = nextmcmadc(mADCMask, mChannel);
                 if (mChannel == 21) {
@@ -377,7 +350,7 @@ int DigitsParser::Parse(bool verbose)
               mDigitsFound++;
               digittimebinoffset = 0;
               digitwordcount = 0; // end of the digit.
-              if (mDigitHCHeader->major == 5) {
+              if (mDigitHCHeader.major & 0x10) {
                 mChannel++; // we count channels as all 21 channels are present, no way to check this.
               }
             } // digitwordcount == timebins/3
