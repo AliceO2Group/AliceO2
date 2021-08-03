@@ -194,7 +194,7 @@ void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReader
     // skip all data that is not Link-base zero suppression
     const auto link = RDHUtils::getLinkID(*rdhPtr);
     const auto detField = RDHUtils::getDetectorField(*rdhPtr);
-    if ((detField != 1) && (link != rdh_utils::UserLogicLinkID)) {
+    if (!((detField == 1) || ((detField == 0 || detField == 0xdeadbeef) && link == rdh_utils::UserLogicLinkID))) {
       continue;
     }
 
@@ -231,7 +231,7 @@ uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSp
       // only process LinkZSdata, only supported for data where this is already set in the UL
       const auto link = RDHUtils::getLinkID(*rdhPtr);
       const auto detField = RDHUtils::getDetectorField(*rdhPtr);
-      if ((detField != 1) && (link != rdh_utils::UserLogicLinkID)) {
+      if (!((detField == 1) || ((detField == 0 || detField == 0xdeadbeef) && link == rdh_utils::UserLogicLinkID))) {
         continue;
       }
 
