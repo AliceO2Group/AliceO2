@@ -1494,7 +1494,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             std::string conf = std::sregex_token_iterator(paramName.begin(), paramName.end(), name_regex, 2)->str();
             return std::pair{task, conf};
           };
-
+          bool altered = false;
           for (auto& device : altered_workflow) {
             LOGF(DEBUG, "Adjusting device %s", device.name.c_str());
             // ignore internal devices
@@ -1555,6 +1555,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             for (auto& input : device.inputs) {
               LOGF(DEBUG, "-> %s", input.binding);
             }
+            altered = true;
+          }
+          if (altered) {
+            WorkflowHelpers::adjustServiceDevices(altered_workflow);
           }
 
           DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(altered_workflow,
