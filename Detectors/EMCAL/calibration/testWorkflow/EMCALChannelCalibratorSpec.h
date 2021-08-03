@@ -46,7 +46,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     int isTest = ic.options().get<bool>("do-EMCAL-channel-calib-in-test-mode");
-    mCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator>();
+    mCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::ChannelCalibInitParams>>();
     mCalibrator->setUpdateAtTheEndOfRunOnly();
     mCalibrator->setIsTest(isTest);
   }
@@ -73,7 +73,8 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   }
 
  private:
-  std::unique_ptr<o2::emcal::EMCALChannelCalibrator> mCalibrator;
+  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::ChannelCalibInitParams>> mCalibrator;
+  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibInitParams>> mTimeCalibrator;
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)

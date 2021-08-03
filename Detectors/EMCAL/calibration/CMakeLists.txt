@@ -10,8 +10,8 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(EMCALCalibration
-               SOURCES
-               src/EMCALChannelCalibrator.cxx
+               SOURCES  src/EMCALChannelData.cxx 
+                        src/EMCALTimeCalibData.cxx 
                PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase
                                      O2::EMCALCalib
                                      O2::CommonUtils
@@ -21,10 +21,13 @@ o2_add_library(EMCALCalibration
                                      O2::Algorithm
                                      Microsoft.GSL::GSL
                                      )
-
-
+									 
+				  
+				   
 o2_target_root_dictionary(EMCALCalibration
                           HEADERS include/EMCALCalibration/EMCALChannelCalibrator.h
+                                  include/EMCALCalibration/EMCALChannelData.h
+                                  include/EMCALCalibration/EMCALTimeCalibData.h
                           LINKDEF src/EMCALCalibrationLinkDef.h)
 
 
