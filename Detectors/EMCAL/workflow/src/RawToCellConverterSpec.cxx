@@ -66,6 +66,8 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
     mRawFitter = std::unique_ptr<CaloRawFitter>(new o2::emcal::CaloRawFitterGamma2);
   }
 
+  mPrintTrailer = ctx.options().get<bool>("printtrailer");
+
   mMaxErrorMessages = ctx.options().get<int>("maxmessage");
   LOG(INFO) << "Suppressing error messages after " << mMaxErrorMessages << " messages";
 
@@ -188,7 +190,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         continue;
       }
 
-      LOG(DEBUG) << decoder.getRCUTrailer();
+      if (mPrintTrailer) {
+        // Can become very verbose, therefore must be switched on explicitly in addition
+        // to high debug level
+        LOG(DEBUG4) << decoder.getRCUTrailer();
+      }
       // Apply zero suppression only in case it was enabled
       mRawFitter->setIsZeroSuppressed(decoder.getRCUTrailer().hasZeroSuppression());
 
@@ -361,5 +367,6 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
                                           o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(subspecification),
                                           o2::framework::Options{
                                             {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}},
-                                            {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}}}};
+                                            {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}},
+                                            {"printtrailer", o2::framework::VariantType::Bool, false, {"Print RCU trailer (for debugging)"}}}};
 }
