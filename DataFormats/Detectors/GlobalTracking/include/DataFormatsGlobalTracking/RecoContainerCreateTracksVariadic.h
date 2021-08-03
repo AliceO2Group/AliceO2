@@ -115,7 +115,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     }
     for (unsigned i = 0; i < matchesITSTPCTOF.size(); i++) {
       const auto& match = matchesITSTPCTOF[i];
-      auto gidx = match.getEvIdxTrack().getIndex(); // this should be corresponding ITS-TPC track
+      auto gidx = match.getTrackRef();              // this should be corresponding ITS-TPC track
       if (isUsed(gidx)) {                           // RS FIXME: THIS IS TEMPORARY, until the TOF matching will use ITS-TPC-TRD as an input
         continue;
       }
@@ -175,8 +175,8 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     }
     for (unsigned i = 0; i < matchesTPCTOF.size(); i++) {
       const auto& match = matchesTPCTOF[i];
-      const auto& gidx = match.getEvIdxTrack().getIndex(); // TPC track global idx
-      if (isUsed(gidx)) {                                  // is TPC track already used
+      const auto& gidx = match.getTrackRef(); // TPC track global idx
+      if (isUsed(gidx)) {                     // is TPC track already used
         continue;
       }
       const auto& trc = tracksTPCTOF[i];
