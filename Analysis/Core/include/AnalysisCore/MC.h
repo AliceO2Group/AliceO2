@@ -60,40 +60,6 @@ bool isStable(int pdg)
   return false;
 }
 
-bool isStableCharged(int pdg)
-{
-  constexpr int kNstableCharged = 9;
-  int pdgStableCharged[kNstableCharged] = {
-    kElectron,   // Electron
-    kMuonPlus,   // Muon
-    kPiPlus,     // Pion
-    kKPlus,      // Kaon
-    kProton,     // Proton
-    kSigmaMinus, // Sigma Minus
-    kSigmaPlus,  // Sigma Plus
-    3312,        // Xsi Minus
-    3334         // Omega
-  };
-
-  for (int i = 0; i < kNstableCharged; i++) {
-    if (pdg == std::abs(pdgStableCharged[i])) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-// temporary before we get properly filled particle info
-template <typename T>
-bool isPhysicalPrimaryRun3(T const& p)
-{
-  if (!isStable(std::abs(p.pdgCode()))) {
-    return false;
-  };
-  return true;
-}
-
 // Ported from AliRoot AliStack::IsPhysicalPrimary
 template <typename Particle>
 bool isPhysicalPrimary(Particle const& particle)

@@ -88,7 +88,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   const bool doMC = cfgc.options().get<bool>("doMC");
   WorkflowSpec ws{adaptAnalysisTask<PseudorapidityDensity<aod::track::TrackTypeEnum::Run2Tracklet>>(cfgc, TaskName{"pseudorapidity-density"})};
   if (doMC) {
-    ws.push_back(adaptAnalysisTask<SelectPhysicalPrimaries<false>>(cfgc, TaskName{"select-physical-primaries"}));
+    ws.push_back(adaptAnalysisTask<SelectPhysicalPrimaries>(cfgc));
     ws.push_back(adaptAnalysisTask<PseudorapidityDensityMc<aod::track::TrackTypeEnum::Run2Tracklet>>(cfgc, TaskName{"pseudorapidity-density-mc"}));
   }
   return ws;

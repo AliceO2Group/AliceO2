@@ -31,7 +31,7 @@ DECLARE_SOA_TABLE(SelPrimaries, "AOD", "SPRIM", aod::mcparticle::Primary, aod::m
 
 namespace o2::pwgmm::multiplicity
 {
-template <bool RUN3>
+
 struct SelectPhysicalPrimaries {
   o2::framework::Produces<o2::aod::SelPrimaries> prims;
   //  TDatabasePDG* pdg; //until it is made into a Service
@@ -52,11 +52,7 @@ struct SelectPhysicalPrimaries {
       } else {
         charge = p->Charge();
       }
-      if constexpr (RUN3) {
-        prims(MC::isPhysicalPrimaryRun3(particle), charge);
-      } else {
-        prims(MC::isPhysicalPrimary(particle), charge);
-      }
+      prims(MC::isPhysicalPrimary(particle), charge);
     }
     delete pdg;
   }
