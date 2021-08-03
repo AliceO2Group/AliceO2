@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "EMCALCalibration/EMCALChannelCalibrator.h"
+#include "EMCALCalibration/EMCALChannelData.h"
 #include "Framework/Logger.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
@@ -81,47 +81,6 @@ bool EMCALChannelData::hasEnoughData() const
   bool enough;
 
   return enough;
-}
-
-//_____________________________________________
-void EMCALChannelCalibrator::initOutput()
-{
-  mInfoVector.clear();
-  return;
-}
-
-//_____________________________________________
-bool EMCALChannelCalibrator::hasEnoughData(const Slot& slot) const
-{
-
-  const o2::emcal::EMCALChannelData* c = slot.getContainer();
-  LOG(INFO) << "Checking statistics";
-  return (mTest ? true : c->hasEnoughData());
-}
-
-//_____________________________________________
-void EMCALChannelCalibrator::finalizeSlot(Slot& slot)
-{
-  // Extract results for the single slot
-  o2::emcal::EMCALChannelData* c = slot.getContainer();
-  LOG(INFO) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
-
-  // for the CCDB entry
-  std::map<std::string, std::string> md;
-
-  //auto clName = o2::utils::MemFileHelper::getClassName(tm);
-  //auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  mInfoVector.emplace_back("EMCAL/ChannelCalib", "clname", "flname", md, slot.getTFStart(), 99999999999999);
-}
-
-//_____________________________________________
-Slot& EMCALChannelCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
-{
-
-  auto& cont = getSlots();
-  auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
-  slot.setContainer(std::make_unique<o2::emcal::EMCALChannelData>(mNBins, mRange));
-  return slot;
 }
 
 } // end namespace emcal
