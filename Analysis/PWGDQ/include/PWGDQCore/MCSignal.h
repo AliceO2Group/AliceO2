@@ -72,7 +72,7 @@ class MCSignal : public TNamed
   MCSignal(int nProngs, const char* name = "", const char* title = "");
   MCSignal(const char* name, const char* title, std::vector<MCProng> prongs, std::vector<short> commonAncestors);
   MCSignal(const MCSignal& c) = default;
-  ~MCSignal() = default;
+  ~MCSignal() override = default;
 
   void SetProngs(std::vector<MCProng> prongs, std::vector<short> commonAncestors);
   void AddProng(MCProng prong, short commonAncestor = -1);
