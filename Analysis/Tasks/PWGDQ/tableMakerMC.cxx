@@ -165,47 +165,6 @@ struct TableMakerMC {
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void processWriteStack(aod::McParticles const& mcTracks)
-  {
-    // loop over the selected MC tracks and write them to the new stack
-    // NOTE: At this point, all the particles which should go into the new stack should had been
-    //     selected, such that the mother/daughter new labels can be computed
-    // NOTE: We need to write the particles to the new stack in the exact same order as the
-    //   one in which the new labels were assigned. So we use the fNewLabelsReversed which has as key the new label
-    //   and as value the old stack label, which we then use to retrieve the particle to be written
-    for (const auto& [newLabel, oldLabel] : fNewLabelsReversed) {
-      auto mctrack = mcTracks.iteratorAt(oldLabel);
-      int mcflags = fMCFlags.find(oldLabel)->second;
-
-      int m0Label = -1;
-      if (mctrack.has_mother0() && (fNewLabels.find(mctrack.mother0Id()) != fNewLabels.end())) {
-        m0Label = fNewLabels.find(mctrack.mother0Id())->second;
-      }
-      int m1Label = -1;
-      if (mctrack.has_mother1() && (fNewLabels.find(mctrack.mother1Id()) != fNewLabels.end())) {
-        m1Label = fNewLabels.find(mctrack.mother1Id())->second;
-      }
-      int d0Label = -1;
-      if (mctrack.has_daughter0() && (fNewLabels.find(mctrack.daughter0Id()) != fNewLabels.end())) {
-        d0Label = fNewLabels.find(mctrack.daughter0Id())->second;
-      }
-      int d1Label = -1;
-      if (mctrack.has_daughter1() && (fNewLabels.find(mctrack.daughter1Id()) != fNewLabels.end())) {
-        d1Label = fNewLabels.find(mctrack.daughter1Id())->second;
-      }
-      trackMC(fEventIdx.find(oldLabel)->second, mctrack.pdgCode(), mctrack.statusCode(), mctrack.flags(),
-              m0Label, m1Label, d0Label, d1Label,
-              mctrack.weight(), mctrack.px(), mctrack.py(), mctrack.pz(), mctrack.e(),
-              mctrack.vx(), mctrack.vy(), mctrack.vz(), mctrack.vt(), mcflags);
-    }
-
-    fCounter = 0;
-    fNewLabels.clear();
-    fNewLabelsReversed.clear();
-    fMCFlags.clear();
-    fEventIdx.clear();
-  }
-
   void processRec(MyEvents::iterator const& collision, aod::BCs const& bcs, soa::Filtered<MyBarrelTracks> const& tracksBarrel,
                   aod::McParticles const& mcTracks, aod::McCollisions const& mcEvents)
   {
@@ -336,6 +295,47 @@ struct TableMakerMC {
     } // end loop over reconstructed tracks
   }
 
+  void processWriteStack(aod::McParticles const& mcTracks)
+  {
+    // loop over the selected MC tracks and write them to the new stack
+    // NOTE: At this point, all the particles which should go into the new stack should had been
+    //     selected, such that the mother/daughter new labels can be computed
+    // NOTE: We need to write the particles to the new stack in the exact same order as the
+    //   one in which the new labels were assigned. So we use the fNewLabelsReversed which has as key the new label
+    //   and as value the old stack label, which we then use to retrieve the particle to be written
+    for (const auto& [newLabel, oldLabel] : fNewLabelsReversed) {
+      auto mctrack = mcTracks.iteratorAt(oldLabel);
+      int mcflags = fMCFlags.find(oldLabel)->second;
+
+      int m0Label = -1;
+      if (mctrack.has_mother0() && (fNewLabels.find(mctrack.mother0Id()) != fNewLabels.end())) {
+        m0Label = fNewLabels.find(mctrack.mother0Id())->second;
+      }
+      int m1Label = -1;
+      if (mctrack.has_mother1() && (fNewLabels.find(mctrack.mother1Id()) != fNewLabels.end())) {
+        m1Label = fNewLabels.find(mctrack.mother1Id())->second;
+      }
+      int d0Label = -1;
+      if (mctrack.has_daughter0() && (fNewLabels.find(mctrack.daughter0Id()) != fNewLabels.end())) {
+        d0Label = fNewLabels.find(mctrack.daughter0Id())->second;
+      }
+      int d1Label = -1;
+      if (mctrack.has_daughter1() && (fNewLabels.find(mctrack.daughter1Id()) != fNewLabels.end())) {
+        d1Label = fNewLabels.find(mctrack.daughter1Id())->second;
+      }
+      trackMC(fEventIdx.find(oldLabel)->second, mctrack.pdgCode(), mctrack.statusCode(), mctrack.flags(),
+              m0Label, m1Label, d0Label, d1Label,
+              mctrack.weight(), mctrack.pt(), mctrack.eta(), mctrack.phi(), mctrack.e(),
+              mctrack.vx(), mctrack.vy(), mctrack.vz(), mctrack.vt(), mcflags);
+    }
+
+    fCounter = 0;
+    fNewLabels.clear();
+    fNewLabelsReversed.clear();
+    fMCFlags.clear();
+    fEventIdx.clear();
+  }
+
   void DefineHistograms(TString histClasses)
   {
     std::unique_ptr<TObjArray> objArray(histClasses.Tokenize(";"));
@@ -370,6 +370,9 @@ struct TableMakerMC {
       }
     }
   };
+  
+  PROCESS_SWITCH(TableMakerMC, processRec, "Process reco level", true);
+  PROCESS_SWITCH(TableMakerMC, processWriteStack, "Write the skimmed MC stack", true);
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
@@ -377,5 +380,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // TODO: For now TableMakerMC works just for PbPb (cent table is present)
   //      Implement workflow arguments for pp/PbPb and possibly merge the task with tableMaker.cxx
   return WorkflowSpec{
-    adaptAnalysisTask<TableMakerMC>(cfgc, Processes{&TableMakerMC::processRec, &TableMakerMC::processWriteStack})};
+    adaptAnalysisTask<TableMakerMC>(cfgc)};
 }

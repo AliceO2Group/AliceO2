@@ -225,6 +225,7 @@ class VarManager : public TObject
     kMCPt,
     kMCPhi,
     kMCEta,
+    kMCY,
     kMCParticleGeneratorId,
     kNMCParticleVariables,
 
@@ -685,6 +686,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kMCPt] = track.pt();
     values[kMCPhi] = track.phi();
     values[kMCEta] = track.eta();
+    values[kMCY] = track.y();
     values[kMCParticleGeneratorId] = track.producedByGenerator();
   }
 

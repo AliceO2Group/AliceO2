@@ -280,6 +280,8 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kMCPhi] = "rad";
   fgVariableNames[kMCEta] = "MC #eta";
   fgVariableUnits[kMCEta] = "";
+  fgVariableNames[kMCY] = "MC y";
+  fgVariableUnits[kMCY] = "";
   fgVariableNames[kMCE] = "MC Energy";
   fgVariableUnits[kMCE] = "GeV";
   fgVariableNames[kMCVx] = "MC vx";
