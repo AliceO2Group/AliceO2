@@ -36,7 +36,7 @@ class TrackletsParser
   void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
   int Parse(); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
-            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, uint32_t feeid, int robside, int detector, int stack, int layer, bool cleardigits = false, bool disablebyteswap = false, int usetracklethcheader = 0, bool verbose = true, bool headerverbose = false, bool dataverbose = false)
+            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, TRDFeeID feeid, int robside, int detector, int stack, int layer, bool cleardigits = false, bool disablebyteswap = false, int usetracklethcheader = 0, bool verbose = true, bool headerverbose = false, bool dataverbose = false)
   {
     mStartParse = start;
     mEndParse = end;
@@ -116,7 +116,7 @@ class TrackletsParser
   uint16_t mRobSide;
   uint16_t mStack;
   uint16_t mLayer;
-  uint16_t mFEEID; // current Fee ID working on
+  TRDFeeID mFEEID; // current Fee ID working on
   uint16_t mMCM;
   uint16_t mROB;
   //  std::array<uint32_t, 16> mAverageNumTrackletsPerTrap; TODO come back to this stat.

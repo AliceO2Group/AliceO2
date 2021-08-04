@@ -41,13 +41,16 @@ class DigitsParser
   void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
   int Parse(bool verbose = false); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
-            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, DigitHCHeader& hcheader, bool cleardigits = false, bool disablebyteswap = false, bool verbose = false, bool headerverbose = false, bool dataverbose = false)
+            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, int stack, int layer, DigitHCHeader& hcheader, TRDFeeID& feeid, unsigned int linkindex, bool cleardigits = false, bool disablebyteswap = false, bool verbose = false, bool headerverbose = false, bool dataverbose = false)
   {
     setData(data);
     mStartParse = start;
     mEndParse = end;
     mDetector = detector;
+   mStack= stack;
+   mLayer=layer;
     mDigitHCHeader = hcheader;
+    mFEEID=feeid;
     setVerbose(verbose, headerverbose, dataverbose);
     if (cleardigits) {
       clearDigits();
@@ -109,7 +112,10 @@ class DigitsParser
   uint16_t mMCM;
   uint16_t mROB;
   uint16_t mChannel;
+  uint16_t mStack;
+  uint16_t mLayer;
   uint16_t mEventCounter;
+  TRDFeeID mFEEID;
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
   std::array<uint16_t, constants::TIMEBINS> mADCValues{};
   //uint32_t mCurrentLinkDataPosition256;                // count of data read for current link in units of 256 bits

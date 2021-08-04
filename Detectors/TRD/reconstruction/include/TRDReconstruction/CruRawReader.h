@@ -164,7 +164,7 @@ class CruRawReader
   uint16_t mCRUEndpoint;               // the upper or lower half of the currently parsed cru 0-14 or 15-29
   uint16_t mCRUID;
   uint16_t mHCID;
-  uint16_t mFEEID; // current Fee ID working on
+  TRDFeeID mFEEID; // current Fee ID working on
   std::array<uint32_t, 15> mCurrentHalfCRULinkLengths;
   std::array<uint32_t, 15> mCurrentHalfCRULinkErrorFlags;
   uint32_t mCRUState; // the state of what we are expecting to read currently from the data stream, *not* what we have just read.

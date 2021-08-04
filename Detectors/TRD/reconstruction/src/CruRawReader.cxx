@@ -83,6 +83,7 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
   int loopcount = 0;
   // loop until RDH stop header
   while (!o2::raw::RDHUtils::getStop(rdh)) { // carry on till the end of the event.
+    o2::raw::RDHUtils::printRDH(rdh);
     if (mVerbose) {
       LOG(info) << "--- RDH open/continue detected loopcount :" << loopcount;
       LOG(info) << " rdh first word 0x" << std::hex << (uint32_t)*mDataPointer;
@@ -96,7 +97,7 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     auto memorySize = o2::raw::RDHUtils::getMemorySize(rdh);
     auto offsetToNext = o2::raw::RDHUtils::getOffsetToNext(rdh);
     auto rdhpayload = memorySize - headerSize;
-    mFEEID = o2::raw::RDHUtils::getFEEID(rdh);            //TODO change this and just carry around the curreht RDH
+    mFEEID.word = o2::raw::RDHUtils::getFEEID(rdh);            //TODO change this and just carry around the curreht RDH
     mCRUEndpoint = o2::raw::RDHUtils::getEndPointID(rdh); // the upper or lower half of the currently parsed cru 0-14 or 15-29
     mCRUID = o2::raw::RDHUtils::getCRUID(rdh);
     auto packetCount = o2::raw::RDHUtils::getPacketCounter(rdh);
@@ -207,33 +208,30 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
     LOG(info) << "link errors";
     for (auto& linkerror : mCurrentHalfCRULinkErrorFlags) {
       if (linkerror != 0)
-        LOG(info) << "E link error FEEID:" << mFEEID << " CRUID:" << mCRUID << " Endpoint:" << mCRUEndpoint
+        LOG(info) << "E link error FEEID:" << mFEEID.word << " CRUID:" << mCRUID << " Endpoint:" << mCRUEndpoint
                   << " on linkcount:" << linkerrorcounter++ << " errorval:0x" << std::hex << linkerror;
     }
     LOG(info) << "link errors end";
   }
-  if (mDataVerbose) {
-    if (mTotalHalfCRUDataLength != mTotalHBFPayLoad) {
-      LOG(info) << "mTotalHalfCRUDataLength ?!= mTotalHBFPayLoad " << mTotalHalfCRUDataLength << "?!=" << mTotalHBFPayLoad;
-    }
-  }
 
   std::array<uint32_t, 1024>::iterator currentlinkstart = mHBFPayload.begin() + cruhbfstartoffset;
-  /*LOG(info) << "CRU dump begin  ************************** ";
+    LOG(info) << "CRU dump begin  **************************  FEEID:0x" <<std::hex << mFEEID.word;
     for(int z=0;z<15;++z){
     LOG(info) << "link " << z << " length : " << mCurrentHalfCRULinkLengths[z]*8;
     }
     int linkzcount=0;
     uint64_t linkzsum=0;
-    for(int di=0;di<mTotalHalfCRUDataLength;++di){
-    LOG(info) << "di:" << di << " " << std::hex << mHBFPayload[di+8];
-    if(di == cruhbfstartoffset) LOG(info) << "start there ^^^^^";
-    if(di == mCurrentHalfCRULinkLengths[linkzcount]*8+linkzsum) {LOG(info) << "end of link "<< linkzcount; linkzsum+=mCurrentHalfCRULinkLengths[linkzcount]*8;linkzcount++;}
+    for(int di=0;di<mTotalHalfCRUDataLength;di+=8){
+    LOGP(info,"di:{0:06d} {1:08x} {2:08x}  {3:08x} {4:08x} {5:08x} {6:08x} {7:08x} {8:08x} ",di, HelperMethods::swapByteOrderreturn(mHBFPayload[di]),HelperMethods::swapByteOrderreturn(mHBFPayload[di+1]),HelperMethods::swapByteOrderreturn(mHBFPayload[di+2]),HelperMethods::swapByteOrderreturn(mHBFPayload[di+3]),HelperMethods::swapByteOrderreturn(mHBFPayload[di+4]),HelperMethods::swapByteOrderreturn(mHBFPayload[di+5]),HelperMethods::swapByteOrderreturn(mHBFPayload[di+6]),HelperMethods::swapByteOrderreturn(mHBFPayload[di+7]));
+      if(mCurrentHalfCRULinkLengths[linkzcount]!=0 && di+8 == mCurrentHalfCRULinkLengths[linkzcount]*8+linkzsum) {LOG(info) << "end of link "<< linkzcount << " with length:" << mCurrentHalfCRULinkLengths[linkzcount]; }
+      linkzsum+=mCurrentHalfCRULinkLengths[linkzcount]*8;
+      linkzcount++;
     }
+    LOG(info) << "CRU Next 16 words just for info";
     for(int di=mTotalHalfCRUDataLength; di < mTotalHalfCRUDataLength+16;++di){
-    LOG(info) << "**di:" << di << " " << std::hex << mHBFPayload[di];
+    LOGP(info,"?di:{0:06d} {1:08x} {2:08x}  {3:08x} {4:08x} {5:08x} {6:08x} {7:08x} {8:08x} ",di,mHBFPayload[di],mHBFPayload[di+1],mHBFPayload[di+2],mHBFPayload[di+3],mHBFPayload[di+4],mHBFPayload[di+5],mHBFPayload[di+6],mHBFPayload[di+7]);
     }
-    LOG(info) << "CRU dump end ***************";*/
+    LOG(info) << "CRU dump end ***************";
   std::array<uint32_t, 1024>::iterator linkstart, linkend;
   int dataoffsetstart32 = sizeof(mCurrentHalfCRUHeader) / 4 + cruhbfstartoffset; // in uint32
   //CHECK 1 does rdh endpoint match cru header end point.
@@ -246,18 +244,6 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
     }
   }
 
-  if (mDataVerbose) {
-    printHalfCRUHeader(mCurrentHalfCRUHeader);
-    for (int i = 0; i < 16; ++i) {
-      LOG(info) << std::hex << " 0x" << mHBFPayload[mHBFoffset32 + i];
-    }
-    for (auto t : mCurrentHalfCRULinkLengths) {
-      if (t > 100) {
-        LOG(info) << " errorin lengthof cru link";
-      }
-    }
-    LOG(info) << "end halfcrudump";
-  }
   // verify cru header vs rdh header
   //FEEID has supermodule/layer/stack/side in it.
   //CRU has
@@ -271,26 +257,41 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
     currentlinksize32 = currentlinksize * 8; //x8 to go from 256 bits to 32 bit;
     linkstart = mHBFPayload.begin() + dataoffsetstart32 + linksizeAccum32;
     linkend = linkstart + currentlinksize32;
+    LOG(info) << "CRU link dump begin  ************************** link index: "<<currentlinkindex << " FEEID 0x:"<< std::hex << mFEEID.word;
+    uint64_t linkzsum=0;
+    int dioffset=dataoffsetstart32+linksizeAccum32;
+    int di=0;
+    if(dioffset%8!=0){ 
+      LOG(error)<< " we are not 256 bit aligned ... this should never happen";
+    }
+    auto linkparser=linkstart;
+    while(linkstart<=linkend){
+    LOGP(info,"di:{0:03d} Data: {1:08x} {2:08x}  {3:08x} {4:08x} {5:08x} {6:08x} {7:08x} {8:08x} ",di,mHBFPayload[di],mHBFPayload[di+1],mHBFPayload[di+2],mHBFPayload[di+3],mHBFPayload[di+4],mHBFPayload[di+5],mHBFPayload[di+6],mHBFPayload[di+7]);
+    di+=8; // 256 bit advancement
+    std::advance(linkparser,8);
+    }
+    for(int di=mTotalHalfCRUDataLength; di < mTotalHalfCRUDataLength+16;++di){
+    LOG(info) << "**di:" << di << " " << std::hex << mHBFPayload[di];
+    }
+    LOG(info) << "CRU dump end ***************";
+  std::array<uint32_t, 1024>::iterator linkstart, linkend;
     linksizeAccum32 += currentlinksize32;
-    int supermodule = ((TRDFeeID*)&mFEEID)->supermodule;
-    int endpoint = ((TRDFeeID*)&mFEEID)->endpoint;
-    int side = ((TRDFeeID*)&mFEEID)->side;
+    int supermodule = mFEEID.supermodule;
+    int endpoint = mFEEID.endpoint;
+    int side = mFEEID.side;
     //stack layer and side map to ori
     int stack, layer, halfchamberside;
     int oriindex = currentlinkindex + constants::NLINKSPERHALFCRU * endpoint; // endpoint denotes the pci side, upper or lower for the pair of 15 fibres.
     FeeParam::unpackORI(oriindex, side, stack, layer, halfchamberside);
     int currentdetector = stack * constants::NLAYER + layer + supermodule * constants::NLAYER * constants::NSTACK;
-    if (mDataVerbose) {
-      LOG(info) << "******* LINK # " << currentlinkindex << " and  starting at " << mHBFoffset32 << " unpackORI(" << oriindex << "," << side << "," << stack << "," << layer << "," << halfchamberside << ") and an FEEID:" << std::hex << mFEEID << " det:" << std::dec << currentdetector;
-      LOG(info) << "******* LINK # " << currentlinkindex << " an FEEID:" << std::hex << mFEEID << " det:" << std::dec << currentdetector << " Error Flags : " << mCurrentHalfCRULinkErrorFlags[currentlinkindex];
-    }
-    // tracklet first then digit ??
-    // tracklets end with tracklet end marker(0x10001000 0x10001000), digits end with digit endmarker (0x0 0x0)
+//    if (mDataVerbose) {
+      LOG(info) << "******* LINK # " << currentlinkindex << " and  starting at " << mHBFoffset32 << " unpackORI(" << oriindex << "," << side << "," << stack << "," << layer << "," << halfchamberside << ") and an FEEID:" << std::hex << mFEEID.word << " det:" << std::dec << currentdetector;
+      LOG(info) << "******* LINK # " << currentlinkindex << " an FEEID:" << std::hex << mFEEID.word << " det:" << std::dec << currentdetector << " Error Flags : " << mCurrentHalfCRULinkErrorFlags[currentlinkindex];
+//    }
     if (linkstart != linkend) { // if link is not empty
 
       bool cleardigits = false; //linkstart and linkend already have the multiple cruheaderoffsets built in
       trackletwordsread = mTrackletsParser.Parse(&mHBFPayload, linkstart, linkend, mFEEID, halfchamberside, currentdetector, stack, layer, cleardigits, mByteSwap, mTrackletHCHeaderState, mVerbose, mHeaderVerbose, mDataVerbose); // this will read up to the tracklet end marker.
-      //LOG(info) << mTrackletsParser.getTrackletsFound()<<" Tracklets processed in  time : " << std::chrono::duration_cast<std::chrono::milliseconds>(trackletprocessingtime).count() << "ms";
       if (mVerbose) {
         LOG(info) << "trackletwordsread:" << trackletwordsread << "  mem copy with offset of : " << cruhbfstartoffset << " parsing with linkstart: " << linkstart << " ending at : " << linkend;
       }
@@ -328,7 +329,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
       } else {
         digitwordsread = 0;
         //linkstart and linkend already have the multiple cruheaderoffsets built in
-        digitwordsread = mDigitsParser.Parse(&mHBFPayload, linkstart, linkend, currentdetector, digitHCHeader, cleardigits, mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
+        digitwordsread = mDigitsParser.Parse(&mHBFPayload, linkstart, linkend, currentdetector, stack, layer, digitHCHeader, mFEEID, currentlinkindex, cleardigits, mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
         if (digitwordsread != std::distance(linkstart, linkend)) {
           //we have the data corruption problem of a pile of stuff at the end of a link, jump over it.
           if (mFixDigitEndCorruption) {
