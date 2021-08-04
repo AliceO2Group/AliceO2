@@ -85,6 +85,9 @@ void TRDGlobalTracking::init(InitContext& ic)
 
   mTracker = new GPUTRDTracker();
   mTracker->SetNCandidates(mRec->GetProcessingSettings().trdNCandidates); // must be set before initialization
+  if (mStrict && mRec->GetProcessingSettings().trdNCandidates == 1) {
+    LOG(ERROR) << "Strict matching mode requested, but tracks with another close hypothesis will not be rejected. Please set trdNCandidates to at least 3.";
+  }
   mTracker->SetProcessPerTimeFrame(true);
   mTracker->SetGenerateSpacePoints(false); // set to true to force space point calculation by the TRD tracker itself
 
@@ -226,6 +229,10 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     const auto& trdTrack = mTracker->Tracks()[trackIdxArray[iTrk]];
     if (trdTrack.getCollisionId() < 0) {
       // skip tracks without TRD tracklets (the collision ID for the TRD tracks is initialized to -1 and only changed if a tracklet is attached to the track)
+      continue;
+    }
+    if (mStrict && (trdTrack.getIsAmbiguous() || trdTrack.getReducedChi2() > mTracker->Param().rec.trd.chi2StrictCut)) {
+      // skip tracks which have another hypothesis close to the best one or which do are above strict chi2 threshold
       continue;
     }
     nTrackletsAttached += trdTrack.getNtracklets();

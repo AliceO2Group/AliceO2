@@ -33,7 +33,7 @@ GPUd() void GPUTRDTrack_t<T>::initialize()
   mChi2 = 0.f;
   mRefGlobalTrackId = 0;
   mCollisionId = -1;
-  mIsFindable = 0;
+  mFlags = 0;
   for (int i = 0; i < kNLayers; ++i) {
     mAttachedTracklets[i] = -1;
   }
@@ -80,7 +80,7 @@ GPUd() void GPUTRDTrack_t<T>::ConvertFrom(const GPUTRDTrackDataRecord& t)
   T::set(t.fX, t.mAlpha, &(t.fY), t.fC);
   setRefGlobalTrackIdRaw(t.fTPCTrackID);
   mChi2 = 0.f;
-  mIsFindable = 0;
+  mFlags = 0;
   mCollisionId = -1;
   for (int iLayer = 0; iLayer < kNLayers; iLayer++) {
     mAttachedTracklets[iLayer] = t.fAttachedTracklets[iLayer];
@@ -109,7 +109,7 @@ GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::tpc::TrackTPC& t) : T(t)
 
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const GPUTRDTrack_t<T>& t)
-  : T(t), mChi2(t.mChi2), mRefGlobalTrackId(t.mRefGlobalTrackId), mCollisionId(t.mCollisionId), mIsFindable(t.mIsFindable)
+  : T(t), mChi2(t.mChi2), mRefGlobalTrackId(t.mRefGlobalTrackId), mCollisionId(t.mCollisionId), mFlags(t.mFlags)
 {
   // copy constructor
   for (int i = 0; i < kNLayers; ++i) {
@@ -135,7 +135,7 @@ GPUd() GPUTRDTrack_t<T>& GPUTRDTrack_t<T>::operator=(const GPUTRDTrack_t<T>& t)
   mChi2 = t.mChi2;
   mRefGlobalTrackId = t.mRefGlobalTrackId;
   mCollisionId = t.mCollisionId;
-  mIsFindable = t.mIsFindable;
+  mFlags = t.mFlags;
   for (int i = 0; i < kNLayers; ++i) {
     mAttachedTracklets[i] = t.mAttachedTracklets[i];
   }
@@ -148,7 +148,7 @@ GPUd() int GPUTRDTrack_t<T>::getNlayersFindable() const
   // returns number of layers in which the track is in active area of TRD
   int retVal = 0;
   for (int iLy = 0; iLy < kNLayers; iLy++) {
-    if ((mIsFindable >> iLy) & 0x1) {
+    if ((mFlags >> iLy) & 0x1) {
       ++retVal;
     }
   }
