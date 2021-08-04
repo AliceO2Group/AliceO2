@@ -75,7 +75,7 @@ constexpr float fixedSizeToFloat(uint32_t value)
   return float(value) * FloatConversion;
 }
 
-void preparePedestalFiles(const std::string_view pedestalFile, const TString outputDir = "./", float sigmaNoise = 3, float minADC = 2, float pedestalOffset = 0, bool onlyFilled = false)
+void preparePedestalFiles(const std::string_view pedestalFile, const TString outputDir = "./", float sigmaNoise = 3, float minADC = 2, float pedestalOffset = 0, bool onlyFilled = false, bool maskBad = true)
 {
   static constexpr float FloatConversion = 1.f / float(1 << 2);
 
@@ -152,10 +152,17 @@ void preparePedestalFiles(const std::string_view pedestalFile, const TString out
       }
 
       float noise = std::abs(rocNoise.getValue(ipad)); // it seems with the new fitting procedure, the noise can also be negative, since in gaus sigma is quadratic
-      if ((pedestal < 0) || (pedestal > 1023) || (noise < 0) || (noise > 1023)) {
-        printf("Bad pedestal or noise value in ROC %2zu, CRU %3d, fec in CRU: %2d, SAMPA: %d, channel: %2d, pedestal: %.4f, noise %.4f, setting both to 0\n", iroc, cruID, fecInPartition, sampa, sampaChannel, pedestal, noise);
-        pedestal = 0;
-        noise = 0;
+      if ((pedestal <= 0) || (pedestal > 1023) || (noise <= 0) || (noise > 1023)) {
+        printf("Bad pedestal or noise value in ROC %2zu, CRU %3d, fec in CRU: %2d, SAMPA: %d, channel: %2d, pedestal: %.4f, noise %.4f", iroc, cruID, fecInPartition, sampa, sampaChannel, pedestal, noise);
+        if (maskBad) {
+          pedestal = 512;
+          noise = 50;
+          printf(", they will be masked using pedestal value %.0f and noise %.0f\n", pedestal, noise);
+        } else {
+          printf(", setting both to 0\n");
+          pedestal = 0;
+          noise = 0;
+        }
       }
       const float threshold = (noise > 0) ? std::max(sigmaNoise * noise, minADC) : 0;
 
