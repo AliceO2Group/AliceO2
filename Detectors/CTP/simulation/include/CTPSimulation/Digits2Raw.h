@@ -37,6 +37,8 @@ class Digits2Raw
   void init();
   void setVerbosity(int v) { mVerbosity = v; }
   void setFilePerLink(bool v) { mOutputPerLink = v; }
+  void setZeroSuppressedIntRec(bool value){ mZeroSuppressedIntRec = value; }
+  void setZeroSuppressedClassRec(bool value){ mZeroSuppressedClassRec = value; }
   void setOutDir(std::string& outdir) { mOutDir = outdir; }
   bool getFilePerLink() const { return mOutputPerLink; }
   o2::raw::RawFileWriter& getWriter() { return mWriter; }
