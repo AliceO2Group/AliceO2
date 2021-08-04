@@ -1,7 +1,4 @@
 #include "GPUO2Interface.h"
-#include "GPUDataTypes.h"
-#include "GPUConstantMem.h"
-
 using namespace o2::gpu;
 
 void gpuDisplayTrackFilter(std::vector<bool>* filter, const GPUTrackingInOutPointers* ioPtrs, const GPUConstantMem* processors)
