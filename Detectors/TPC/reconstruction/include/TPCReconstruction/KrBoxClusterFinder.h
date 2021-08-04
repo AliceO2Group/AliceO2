@@ -246,14 +246,19 @@ class KrBoxClusterFinder
   /// Time slice four is the interesting one. In there, local maxima are found and clusters are built from it. After it is processed, timeslice number 1 will be dropped and another timeslice will be put at the end of the set.
   std::deque<TimeSliceSector> mSetOfTimeSlices{};
 
-  /// count the number of ADC values in each slice which satisfy the condition for the minumum Qmax
-  std::deque<int> mNumADCwithMinQmax{};
+  /// pre-store if complete time bins and rows within time bins have charges above mQThresholdMax
+  struct ThresholdInfo {
+    bool digitAboveThreshold{};
+    std::array<bool, MaxRows> rowAboveThreshold{};
+  };
+
+  std::deque<ThresholdInfo> mThresholdInfo{};
 
   void createInitialMap(const gsl::span<const Digit> eventSector);
   void popFirstTimeSliceFromMap()
   {
     mSetOfTimeSlices.pop_front();
-    mNumADCwithMinQmax.pop_front();
+    mThresholdInfo.pop_front();
   }
   void fillADCValueInLastSlice(int cru, int rowInSector, int padInRow, float adcValue);
   void addTimeSlice(const gsl::span<const Digit> eventSector, const int timeSlice);
