@@ -111,9 +111,9 @@ void Detector::configITS(Detector* its)
 
   std::vector<std::array<double, 2>> layers;
   const int nLayers{12};
-  layers.emplace_back(std::array<double, 2>{0.5f, 30.f});
-  layers.emplace_back(std::array<double, 2>{1.2f, 30.f});
-  layers.emplace_back(std::array<double, 2>{2.5f, 30.f});
+  layers.emplace_back(std::array<double, 2>{0.5f, 50.f});
+  layers.emplace_back(std::array<double, 2>{1.2f, 50.f});
+  layers.emplace_back(std::array<double, 2>{2.5f, 50.f});
   layers.emplace_back(std::array<double, 2>{3.75f, 124.f});
   layers.emplace_back(std::array<double, 2>{7.f, 124.f});
   layers.emplace_back(std::array<double, 2>{12.f, 124.f});
@@ -371,9 +371,8 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     fMC->CurrentVolOffID(2, module);
     fMC->CurrentVolOffID(3, halfstave);
     fMC->CurrentVolOffID(4, stave);
-    int chipindex = mGeometryTGeo->getChipIndex(lay, stave, halfstave, module, chipinmodule);
 
-    Hit* p = addHit(stack->GetCurrentTrackNumber(), chipindex, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
+    Hit* p = addHit(stack->GetCurrentTrackNumber(), lay, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
                     mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
                     mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
     // p->SetTotalEnergy(vmc->Etot());
