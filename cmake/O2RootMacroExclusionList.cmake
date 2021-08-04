@@ -34,6 +34,8 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             Detectors/EMCAL/calib/macros/ReadTestBadChannelMap_CCDBApi.C
             GPU/GPUTracking/display/filterMacros/TRDCandidate.C
             GPU/GPUTracking/display/filterMacros/hasTRD.C
+            GPU/GPUTracking/display/filterMacros/filterGPUTrack.C
+            GPU/GPUTracking/display/filterMacros/filterTPCTrack.C
             GPU/GPUTracking/Merger/macros/checkPropagation.C # Needs AliRoot AliExternalTrackParam
             GPU/GPUTracking/Merger/macros/fitPolynomialFieldIts.C # Needs AliRoot AliMagF
             GPU/GPUTracking/Merger/macros/fitPolynomialFieldTpc.C # Needs AliRoot AliMagF

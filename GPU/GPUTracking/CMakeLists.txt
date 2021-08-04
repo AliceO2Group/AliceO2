@@ -247,6 +247,12 @@ if(GPUCA_EVENT_DISPLAY)
   set(HDRS_INSTALL ${HDRS_INSTALL}
                    display/GPUDisplayExt.h
                    display/GPUDisplayShaders.h)
+  if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+    install(DIRECTORY display/filterMacros/ DESTINATION displayTrackFilter FILES_MATCHING PATTERN "*.C")
+    get_property(GPU_DISPLAY_INCLUDE_PATH DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+    configure_file(display/filterMacros/setinclude.sh.in setinclude.sh @ONLY)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/setinclude.sh PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE DESTINATION displayTrackFilter)
+  endif()
 else()
   set(HDRS_INSTALL ${HDRS_INSTALL} display/GPUDisplay.h)
 endif()
