@@ -41,7 +41,7 @@ void KrBoxClusterFinder::loadGainMapFromFile(const std::string_view calDetFileNa
 void KrBoxClusterFinder::createInitialMap(const gsl::span<const Digit> eventSector)
 {
   mSetOfTimeSlices.clear();
-  mNumADCwithMinQmax.clear();
+  mThresholdInfo.clear();
 
   for (int iTimeSlice = 0; iTimeSlice <= 2 * mMaxClusterSizeTime; ++iTimeSlice) {
     addTimeSlice(eventSector, iTimeSlice);
@@ -51,10 +51,16 @@ void KrBoxClusterFinder::createInitialMap(const gsl::span<const Digit> eventSect
 void KrBoxClusterFinder::fillADCValueInLastSlice(int cru, int rowInSector, int padInRow, float adcValue)
 {
   auto& timeSlice = mSetOfTimeSlices.back();
+  auto& thresholdInfo = mThresholdInfo.back();
 
   // Correct for pad offset:
   const int padsInRow = mMapperInstance.getNumberOfPadsInRowSector(rowInSector);
   const int corPad = padInRow - (padsInRow / 2) + (MaxPads / 2);
+
+  if (adcValue > mQThresholdMax) {
+    thresholdInfo.digitAboveThreshold = true;
+    thresholdInfo.rowAboveThreshold[rowInSector] = true;
+  }
 
   // Get correction factor from gain map:
   const auto correctionFactorCalDet = mGainMap.get();
@@ -80,7 +86,7 @@ void KrBoxClusterFinder::fillADCValueInLastSlice(int cru, int rowInSector, int p
 void KrBoxClusterFinder::addTimeSlice(const gsl::span<const Digit> eventSector, const int timeSlice)
 {
   mSetOfTimeSlices.emplace_back();
-  auto& nADCminQmax = mNumADCwithMinQmax.emplace_back();
+  mThresholdInfo.emplace_back();
 
   for (; mFirstDigit < eventSector.size(); ++mFirstDigit) {
     const auto& digit = eventSector[mFirstDigit];
@@ -95,9 +101,6 @@ void KrBoxClusterFinder::addTimeSlice(const gsl::span<const Digit> eventSector, 
     const int rowInSector = digit.getRow();
     const int padInRow = digit.getPad();
     const float adcValue = digit.getChargeFloat();
-    if (adcValue > mQThresholdMax) {
-      ++nADCminQmax;
-    }
 
     fillADCValueInLastSlice(cru, rowInSector, padInRow, adcValue);
   }
@@ -111,7 +114,7 @@ void KrBoxClusterFinder::loopOverSector(const gsl::span<const Digit> eventSector
   createInitialMap(eventSector);
   for (int iTimeSlice = mMaxClusterSizeTime; iTimeSlice < mMaxTimes - mMaxClusterSizeTime; ++iTimeSlice) {
     // only search for a local maximum if the central time slice has at least one ADC above the charge threshold
-    if (mNumADCwithMinQmax[mMaxClusterSizeTime]) {
+    if (mThresholdInfo[mMaxClusterSizeTime].digitAboveThreshold) {
       findLocalMaxima(true, iTimeSlice);
     }
     popFirstTimeSliceFromMap();
@@ -216,6 +219,8 @@ std::vector<std::tuple<int, int, int>> KrBoxClusterFinder::findLocalMaxima(bool 
 
   const int iTime = mMaxClusterSizeTime;
   const auto& mapRow = mSetOfTimeSlices[iTime];
+  const auto& thresholdInfo = mThresholdInfo[iTime];
+
   for (int iRow = 0; iRow < MaxRows; iRow++) { // mapRow.size()
     // Since pad size is different for each ROC, we take this into account while looking for maxima:
     // setMaxClusterSize(iRow);
@@ -231,6 +236,10 @@ std::vector<std::tuple<int, int, int>> KrBoxClusterFinder::findLocalMaxima(bool 
     } else if (iRow == MaxRowsIROC + MaxRowsOROC1 + MaxRowsOROC2) {
       mMaxClusterSizePad = mMaxClusterSizePadOROC3;
       mMaxClusterSizeRow = mMaxClusterSizeRowOROC3;
+    }
+    // skip rows that don't have charges above the threshold
+    if (!thresholdInfo.rowAboveThreshold[iRow]) {
+      continue;
     }
 
     const auto& mapPad = mapRow[iRow];
@@ -249,15 +258,15 @@ std::vector<std::tuple<int, int, int>> KrBoxClusterFinder::findLocalMaxima(bool 
       // Acceptance condition: Require at least mMinNumberOfNeighbours neigbours
       // with signal in any direction!
       int noNeighbours = 0;
-      if ((iPad + 1 < MaxPads) && (mSetOfTimeSlices[iTime][iRow][iPad + 1] > mQThreshold)) {
-        if (mSetOfTimeSlices[iTime][iRow][iPad + 1] > qMax) {
+      if ((iPad + 1 < MaxPads) && (mapPad[iPad + 1] > mQThreshold)) {
+        if (mapPad[iPad + 1] > qMax) {
           continue;
         }
         noNeighbours++;
       }
 
-      if ((iPad - 1 >= 0) && (mSetOfTimeSlices[iTime][iRow][iPad - 1] > mQThreshold)) {
-        if (mSetOfTimeSlices[iTime][iRow][iPad - 1] > qMax) {
+      if ((iPad - 1 >= 0) && (mapPad[iPad - 1] > mQThreshold)) {
+        if (mapPad[iPad - 1] > qMax) {
           continue;
         }
         noNeighbours++;
