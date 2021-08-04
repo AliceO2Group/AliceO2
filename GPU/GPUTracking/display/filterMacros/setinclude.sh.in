@@ -1,0 +1,2 @@
+#!/bin/bash
+export ROOC_INCLUDE_PATH="@GPU_DISPLAY_INCLUDE_PATH@"
