@@ -392,6 +392,7 @@ void GPUDisplay::HandleKey(unsigned char key)
     }
   } else if (key == 'u') {
     mCfgH.trackFilter = (mCfgH.trackFilter + 1) % (mConfig.filterMacros.size() + 1);
+    mUpdateTrackFilter = true;
     SetInfo("Track filter: %s", mCfgH.trackFilter == 0 ? "None" : mConfig.filterMacros[mCfgH.trackFilter - 1].c_str());
   } else if (key == 'o') {
     FILE* ftmp = fopen("glpos.tmp", "w+b");
