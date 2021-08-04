@@ -20,6 +20,7 @@
 
 #pragma link C++ class o2::gpu::TPCdEdxCalibrationSplines + ;
 #pragma link C++ class o2::gpu::GPUTRDO2BaseTrack + ;
+#pragma link C++ class o2::gpu::GPUTPCGMMergedTrack + ;
 #pragma link C++ class o2::gpu::trackInterface < o2::gpu::GPUTRDO2BaseTrack> + ;
 #pragma link C++ class o2::gpu::GPUTRDTrack_t < o2::gpu::trackInterface < o2::gpu::GPUTRDO2BaseTrack>> + ;
 #pragma link C++ class std::vector < o2::gpu::GPUTRDTrack_t < o2::gpu::trackInterface < o2::gpu::GPUTRDO2BaseTrack>>> + ;

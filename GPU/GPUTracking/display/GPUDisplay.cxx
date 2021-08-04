@@ -1544,9 +1544,12 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         for (unsigned int i = 0; i < mTrackFilter.size(); i++) {
           nFiltered += !mTrackFilter[i];
         }
-        SetInfo("Applied track filter %s - filtered %u / %u", mConfig.filterMacros[mCfgH.trackFilter - 1].c_str(), nFiltered, (unsigned int)mTrackFilter.size());
+        if (mUpdateTrackFilter) {
+          SetInfo("Applied track filter %s - filtered %u / %u", mConfig.filterMacros[mCfgH.trackFilter - 1].c_str(), nFiltered, (unsigned int)mTrackFilter.size());
+        }
       }
     }
+    mUpdateTrackFilter = false;
 
     mMaxClusterZ = 0;
     GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
