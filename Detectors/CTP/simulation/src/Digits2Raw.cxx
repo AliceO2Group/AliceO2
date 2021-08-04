@@ -50,6 +50,7 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
     LOG(FATAL) << "Failed to open input digits file " << fileDigitsName;
     return;
   }
+  LOG(INFO) << "Processing digits to raw";
   TTree* digiTree = (TTree*)digiFile->Get("o2sim");
   if (!digiTree) {
     LOG(FATAL) << "Failed to get digits tree";
@@ -75,6 +76,7 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
     std::vector<std::bitset<NGBT>> hbfIR;
     std::vector<std::bitset<NGBT>> hbfTC;
     for (auto const& ctpdig : CTPDigits) {
+      std::cout << ctpdig.intRecord.orbit << " orbit bc " << ctpdig.intRecord.bc << std::endl;
       if ((orbit0 == ctpdig.intRecord.orbit) || firstorbit) {
         if (firstorbit == true) {
           firstorbit = false;
@@ -84,6 +86,7 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
         std::bitset<NGBT> gbtdigIR;
         std::bitset<NGBT> gbtdigTC;
         digit2GBTdigit(gbtdigIR, gbtdigTC, ctpdig);
+        std::cout << "ir:" << gbtdigIR << std::endl;
         hbfIR.push_back(gbtdigIR);
         hbfTC.push_back(gbtdigTC);
       } else {
@@ -95,9 +98,12 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
         if (mZeroSuppressedIntRec == true) {
           buffer = digits2HBTPayload(hbfIR, NIntRecPayload);
         } else {
-          std::vector<std::bitset<NGBT>> hbfIRnonZS = addEmptyBC(hbfIRnonZS);
+          std::vector<std::bitset<NGBT>> hbfIRnonZS = addEmptyBC(hbfIR);
           buffer = digits2HBTPayload(hbfIRnonZS, NIntRecPayload);
         }
+        std::cout << "buffer:" << buffer.size() << ":";
+        for(auto const& c : buffer) std::cout << c ;
+        std::cout << std::endl;
         mWriter.addData(CRULinkIDIntRec, mCruID, CRULinkIDIntRec, mEndPointID, intRec, buffer);
         // add data for Trigger Class Record
         buffer.clear();
