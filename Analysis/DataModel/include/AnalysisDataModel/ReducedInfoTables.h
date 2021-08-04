@@ -144,11 +144,11 @@ DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Mother0, mother0, int, "ReducedMCTracks_Mothe
 DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Mother1, mother1, int, "ReducedMCTracks_Mother1");       //! Track index of the last mother
 DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Daughter0, daughter0, int, "ReducedMCTracks_Daughter0"); //! Track index of the first daugther
 DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Daughter1, daughter1, int, "ReducedMCTracks_Daughter1"); //! Track index of the last daugther
-DECLARE_SOA_COLUMN(Pt, pt, float);       //!
-DECLARE_SOA_COLUMN(Eta, eta, float);     //!
-DECLARE_SOA_COLUMN(Phi, phi, float);     //!
-DECLARE_SOA_COLUMN(E, e, float);     //!
-DECLARE_SOA_DYNAMIC_COLUMN(Px, px,       //!
+DECLARE_SOA_COLUMN(Pt, pt, float);                                                          //!
+DECLARE_SOA_COLUMN(Eta, eta, float);                                                        //!
+DECLARE_SOA_COLUMN(Phi, phi, float);                                                        //!
+DECLARE_SOA_COLUMN(E, e, float);                                                            //!
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px,                                                          //!
                            [](float pt, float phi) -> float { return pt * std::cos(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //!
                            [](float pt, float phi) -> float { return pt * std::sin(phi); });
@@ -157,31 +157,31 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //!
 DECLARE_SOA_DYNAMIC_COLUMN(P, p, //!
                            [](float pt, float eta) -> float { return pt * std::cosh(eta); });
 DECLARE_SOA_DYNAMIC_COLUMN(Y, y, //! Particle rapidity
-                           [](float pt, float eta, float e) -> float { 
-                             float pz = pt*std::sinh(eta); 
-                             if ((e-pz) > static_cast<float>(1e-7)) {
-                               return 0.5f*std::log((e+pz)/(e-pz));     
+                           [](float pt, float eta, float e) -> float {
+                             float pz = pt * std::sinh(eta);
+                             if ((e - pz) > static_cast<float>(1e-7)) {
+                               return 0.5f * std::log((e + pz) / (e - pz));
                              } else {
-                               return -999.0f;   
+                               return -999.0f;
                              }
                            });
 } // namespace reducedtrackMC
 // NOTE: This table is nearly identical to the one from Framework (except that it points to the event ID, not the BC id)
 //       This table contains all MC truth tracks (both barrel and muon)
 DECLARE_SOA_TABLE_FULL(ReducedMCTracks, "ReducedMCTracks", "AOD", "RTMC", //!  MC track information (on disk)
-                  o2::soa::Index<>, reducedtrack::ReducedEventId,
-                  mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
-                  reducedtrackMC::Mother0Id, reducedtrackMC::Mother1Id,
-                  reducedtrackMC::Daughter0Id, reducedtrackMC::Daughter1Id, mcparticle::Weight,
-                  reducedtrackMC::Pt, reducedtrackMC::Eta, reducedtrackMC::Phi, reducedtrackMC::E,
-                  mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
-                  reducedtrackMC::McReducedFlags,
-                  reducedtrackMC::Px<reducedtrackMC::Pt,reducedtrackMC::Phi>,
-                  reducedtrackMC::Py<reducedtrackMC::Pt,reducedtrackMC::Phi>,
-                  reducedtrackMC::Pz<reducedtrackMC::Pt,reducedtrackMC::Eta>,
-                  reducedtrackMC::P<reducedtrackMC::Pt,reducedtrackMC::Eta>,
-                  reducedtrackMC::Y<reducedtrackMC::Pt,reducedtrackMC::Eta,reducedtrackMC::E>,
-                  mcparticle::ProducedByGenerator<mcparticle::Flags>);
+                       o2::soa::Index<>, reducedtrack::ReducedEventId,
+                       mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
+                       reducedtrackMC::Mother0Id, reducedtrackMC::Mother1Id,
+                       reducedtrackMC::Daughter0Id, reducedtrackMC::Daughter1Id, mcparticle::Weight,
+                       reducedtrackMC::Pt, reducedtrackMC::Eta, reducedtrackMC::Phi, reducedtrackMC::E,
+                       mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
+                       reducedtrackMC::McReducedFlags,
+                       reducedtrackMC::Px<reducedtrackMC::Pt, reducedtrackMC::Phi>,
+                       reducedtrackMC::Py<reducedtrackMC::Pt, reducedtrackMC::Phi>,
+                       reducedtrackMC::Pz<reducedtrackMC::Pt, reducedtrackMC::Eta>,
+                       reducedtrackMC::P<reducedtrackMC::Pt, reducedtrackMC::Eta>,
+                       reducedtrackMC::Y<reducedtrackMC::Pt, reducedtrackMC::Eta, reducedtrackMC::E>,
+                       mcparticle::ProducedByGenerator<mcparticle::Flags>);
 
 /*DECLARE_SOA_EXTENDED_TABLE(ReducedMCTracks, StoredReducedMCTracks, "RTMC", //! Basic derived track properties
                            aod::reducedtrackMC::Px,

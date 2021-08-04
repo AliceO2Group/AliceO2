@@ -370,7 +370,7 @@ struct TableMakerMC {
       }
     }
   };
-  
+
   PROCESS_SWITCH(TableMakerMC, processRec, "Process reco level", true);
   PROCESS_SWITCH(TableMakerMC, processWriteStack, "Write the skimmed MC stack", true);
 };
