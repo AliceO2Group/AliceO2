@@ -242,7 +242,8 @@ if(GPUCA_EVENT_DISPLAY)
                    display/GPUDisplayBackendGlfw.cxx)
   set(SRCS_NO_H ${SRCS_NO_H} display/GPUDisplayQuaternion.cxx
                 display/GPUDisplayInterpolation.cxx
-                display/GPUDisplayKeys.cxx)
+                display/GPUDisplayKeys.cxx
+                display/GPUDisplayROOT.cxx)
   set(HDRS_INSTALL ${HDRS_INSTALL}
                    display/GPUDisplayExt.h
                    display/GPUDisplayShaders.h)

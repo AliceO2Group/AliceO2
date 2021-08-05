@@ -71,15 +71,18 @@ struct AccessMcTruth {
       //  continue;
       //if (track.labelMask() != 0)
       //  continue;
-      etaDiff->Fill(track.mcParticle().eta() - track.eta());
-      auto delta = track.mcParticle().phi() - track.phi();
-      if (delta > M_PI) {
-        delta -= 2 * M_PI;
+      auto particle = track.mcParticle();
+      if (MC::isPhysicalPrimary(particle)) {
+        etaDiff->Fill(particle.eta() - track.eta());
+        auto delta = particle.phi() - track.phi();
+        if (delta > M_PI) {
+          delta -= 2 * M_PI;
+        }
+        if (delta < -M_PI) {
+          delta += 2 * M_PI;
+        }
+        phiDiff->Fill(delta);
       }
-      if (delta < -M_PI) {
-        delta += 2 * M_PI;
-      }
-      phiDiff->Fill(delta);
       //LOGF(info, "eta: %.2f %.2f \t phi: %.2f %.2f | %d", track.mcParticle().eta(), track.eta(), track.mcParticle().phi(), track.phi(), track.mcParticle().index());
     }
   }

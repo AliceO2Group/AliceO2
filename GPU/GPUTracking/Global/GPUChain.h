@@ -63,6 +63,7 @@ class GPUChain
   const GPUCalibObjectsConst& calib() const { return processors()->calibObjects; }
   GPUReconstruction* rec() { return mRec; }
   const GPUReconstruction* rec() const { return mRec; }
+  inline const GPUConstantMem* GetProcessors() { return mRec->processors(); }
 
   GPUReconstruction::RecoStepField GetRecoSteps() const { return mRec->GetRecoSteps(); }
   GPUReconstruction::RecoStepField GetRecoStepsGPU() const { return mRec->GetRecoStepsGPU(); }

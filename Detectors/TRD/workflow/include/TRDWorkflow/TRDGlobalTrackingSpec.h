@@ -34,7 +34,7 @@ namespace trd
 class TRDGlobalTracking : public o2::framework::Task
 {
  public:
-  TRDGlobalTracking(bool useMC, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive) : mUseMC(useMC), mDataRequest(dataRequest), mTrkMask(src), mTrigRecFilter(trigRecFilterActive) {}
+  TRDGlobalTracking(bool useMC, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict) : mUseMC(useMC), mDataRequest(dataRequest), mTrkMask(src), mTrigRecFilter(trigRecFilterActive), mStrict(strict) {}
   ~TRDGlobalTracking() override = default;
   void init(o2::framework::InitContext& ic) final;
   void updateTimeDependentParams();
@@ -49,6 +49,7 @@ class TRDGlobalTracking : public o2::framework::Task
   std::unique_ptr<GeometryFlat> mFlatGeo{nullptr};    ///< flat TRD geometry
   bool mUseMC{false};                                 ///< MC flag
   bool mTrigRecFilter{false};                         ///< if true, TRD trigger records without matching ITS IR are filtered out
+  bool mStrict{false};                                ///< preliminary matching in strict mode
   float mTPCTBinMUS{.2f};                             ///< width of a TPC time bin in us
   float mTPCVdrift{2.58f};                            ///< TPC drift velocity (for shifting TPC tracks along Z)
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< seeding input (TPC-only, ITS-TPC or both)
@@ -57,7 +58,7 @@ class TRDGlobalTracking : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive);
+framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict = false);
 
 } // namespace trd
 } // namespace o2

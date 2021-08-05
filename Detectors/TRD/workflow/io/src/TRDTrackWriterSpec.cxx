@@ -14,7 +14,7 @@
 #include <vector>
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsTRD/TrackTriggerRecord.h"
-
+#include "ReconstructionDataFormats/MatchingType.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "TRDWorkflowIO/TRDTrackWriterSpec.h"
 
@@ -65,7 +65,7 @@ DataProcessorSpec getTRDGlobalTrackWriterSpec(bool useMC)
                                                              "labels-branch-name"})();
 }
 
-DataProcessorSpec getTRDTPCTrackWriterSpec(bool useMC)
+DataProcessorSpec getTRDTPCTrackWriterSpec(bool useMC, bool strictMode)
 {
   // TODO: not clear if the writer is supposed to write MC labels at some point
   // this is just a dummy definition for the template branch definition below
@@ -79,22 +79,22 @@ DataProcessorSpec getTRDTPCTrackWriterSpec(bool useMC)
   auto tracksLogger = [tracksSize](std::vector<o2::trd::TrackTRD> const& tracks) {
     *tracksSize = tracks.size();
   };
-
+  uint32_t ss = o2::globaltracking::getSubSpec(strictMode ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   return MakeRootTreeWriterSpec("trd-track-writer-tpc",
                                 "trdmatches_tpc.root",
                                 "tracksTRD",
-                                BranchDefinition<std::vector<o2::trd::TrackTRD>>{InputSpec{"tracks", o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0},
+                                BranchDefinition<std::vector<o2::trd::TrackTRD>>{InputSpec{"tracks", o2::header::gDataOriginTRD, "MATCHTRD_TPC", ss},
                                                                                  "tracks",
                                                                                  "tracks-branch-name",
                                                                                  1,
                                                                                  tracksLogger},
-                                BranchDefinition<std::vector<o2::trd::TrackTriggerRecord>>{InputSpec{"trackTrig", o2::header::gDataOriginTRD, "TRKTRG_TPC", 0},
+                                BranchDefinition<std::vector<o2::trd::TrackTriggerRecord>>{InputSpec{"trackTrig", o2::header::gDataOriginTRD, "TRKTRG_TPC", ss},
                                                                                            "trgrec",
                                                                                            "trgrec-branch-name",
                                                                                            1},
                                 // NOTE: this branch template is to show how the conditional MC labels can
                                 // be defined, the '0' disables the branch for the moment
-                                BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", "GLO", "SOME_LABELS", 0},
+                                BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", "GLO", "SOME_LABELS", ss},
                                                              "labels",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              "labels-branch-name"})();

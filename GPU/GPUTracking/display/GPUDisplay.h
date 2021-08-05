@@ -192,6 +192,7 @@ class GPUDisplay
   int InitGL_internal();
   int getNumThreads();
   void disableUnsupportedOptions();
+  int buildTrackFilter();
   const GPUTPCTracker& sliceTracker(int iSlice);
   const GPUTRDTrackerGPU& trdTracker();
   const GPUTRDGeometry& trdGeometry();
@@ -291,11 +292,8 @@ class GPUDisplay
   bool mUseMultiVBO = false;
 
   std::array<float, 3> mDrawColor = {};
-  const int mDrawQualityRenderToTexture = 1;
 
   int mTestSetting = 0;
-
-  float mFOV = 45.f;
 
   float mAngleRollOrigin = -1e9;
   float mMaxClusterZ = -1;
@@ -331,11 +329,13 @@ class GPUDisplay
   int mCurrentSpacePointsTRD = 0;
   int mCurrentClustersITS = 0;
   int mCurrentClustersTOF = 0;
-  std::vector<int> mTRDTrackIds;
-  std::vector<bool> mITSStandaloneTracks;
+  vecpod<int> mTRDTrackIds;
+  vecpod<bool> mITSStandaloneTracks;
+  std::vector<bool> mTrackFilter;
 
   int mGlDLrecent = 0;
-  int mUpdateDLList = 0;
+  volatile int mUpdateDLList = 0;
+  volatile int mResetScene = 0;
 
   int mAnimate = 0;
   HighResTimer mAnimationTimer;
@@ -348,8 +348,6 @@ class GPUDisplay
   vecpod<float> mAnimateVectors[9];
   vecpod<GPUSettingsDisplayLight> mAnimateConfig;
   opengl_spline mAnimationSplines[8];
-
-  volatile int mResetScene = 0;
 
   int mPrintInfoText = 1;
   char mInfoText2[1024];

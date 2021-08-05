@@ -34,7 +34,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
-    {"track-sources", VariantType::String, "ITS,TPC", {"comma-separated list of sources to use: ITS,TPC,TPC-TOF,TPC-TRD,TPC-TRD-TOF"}},
+    {"track-sources", VariantType::String, "TPC", {"comma-separated list of sources to use: TPC,TPC-TOF,TPC-TRD,TPC-TRD-TOF"}},
     {"produce-calibration-data", o2::framework::VariantType::Bool, false, {"produce output for TPC vdrift calibration"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
@@ -67,14 +67,13 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
 
   GID::mask_t alowedSources = GID::getSourcesMask("ITS,TPC,TPC-TOF");
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
+  bool needStrictTRDTOF = (src & GID::getSourcesMask("TPC-TRD,TPC-TOF,TPC-TRD-TOF")).any();
   auto useFT0 = configcontext.options().get<bool>("use-ft0");
   if (useFT0) {
     src |= GID::getSourceMask(GID::FT0);
   }
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto calib = configcontext.options().get<bool>("produce-calibration-data");
-
-  LOG(INFO) << "Data sources: " << GID::getSourcesNames(src);
   auto srcL = src | GID::getSourcesMask("ITS,TPC"); // ITS is neadded always, TPC must be loaded even if bare TPC tracks are not used in matching
 
   o2::framework::WorkflowSpec specs;
@@ -85,8 +84,7 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   }
 
   // the only clusters MC which is need with useMC is ITS (for afterburner), for the rest we use tracks MC labels
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcL, srcL, srcL,
-                                                 useMC, GID::getSourceMask(GID::ITS));
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcL, srcL, srcL, useMC, GID::getSourceMask(GID::ITS), GID::getSourcesMask(GID::ALL), needStrictTRDTOF);
 
   return std::move(specs);
 }

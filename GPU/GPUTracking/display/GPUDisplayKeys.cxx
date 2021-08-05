@@ -179,10 +179,10 @@ void GPUDisplay::HandleKey(unsigned char key)
     mCfgH.markFakeClusters ^= 1;
     SetInfo("Marking fake clusters: %s", mCfgH.markFakeClusters ? "on" : "off");
   } else if (key == 'b') {
-    if ((mFOV += 5) > 175) {
-      mFOV = 5;
+    if ((mCfgR.fov += 5) > 175) {
+      mCfgR.fov = 5;
     }
-    SetInfo("Set FOV to %f", mFOV);
+    SetInfo("Set FOV to %f", mCfgR.fov);
   } else if (key == 39) { // character = "'"
 #ifdef GPUCA_DISPLAY_OPENGL_CORE
     SetInfo("OpenGL compat profile not available, using core profile", 1);
@@ -391,8 +391,8 @@ void GPUDisplay::HandleKey(unsigned char key)
       SetInfo("Animation mode %d - Position: %s, Direction: %s", mCfgL.animationMode, (mCfgL.animationMode & 2) ? "Spherical (spherical rotation)" : (mCfgL.animationMode & 4) ? "Spherical (Euler angles)" : "Cartesian", (mCfgL.animationMode & 1) ? "Euler angles" : "Quaternion");
     }
   } else if (key == 'u') {
-    mCfgH.trackFilter = (mCfgH.trackFilter + 1) % 3;
-    SetInfo("Track filter: %s", mCfgH.trackFilter == 2 ? "TRD Track candidates" : mCfgH.trackFilter ? "TRD Tracks only" : "None");
+    mCfgH.trackFilter = (mCfgH.trackFilter + 1) % (mConfig.filterMacros.size() + 1);
+    SetInfo("Track filter: %s", mCfgH.trackFilter == 0 ? "None" : mConfig.filterMacros[mCfgH.trackFilter - 1].c_str());
   } else if (key == 'o') {
     FILE* ftmp = fopen("glpos.tmp", "w+b");
     if (ftmp) {

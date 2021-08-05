@@ -35,7 +35,10 @@ using namespace o2::globaltracking;
 using namespace o2::dataformats;
 using GID = o2::dataformats::GlobalTrackID;
 
-int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec& specs, GID::mask_t maskClusters, GID::mask_t maskMatches, GID::mask_t maskTracks, bool useMC, GID::mask_t maskClustersMC, GID::mask_t maskTracksMC)
+int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec& specs,
+                               GID::mask_t maskClusters, GID::mask_t maskMatches, GID::mask_t maskTracks,
+                               bool useMC, GID::mask_t maskClustersMC, GID::mask_t maskTracksMC,
+                               bool subSpecStrict)
 {
   if (configcontext.options().get<bool>("disable-root-input")) {
     return 0;
@@ -76,7 +79,7 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
     specs.emplace_back(o2::tof::getClusterReaderSpec(maskClustersMC[GID::TOF]));
   }
   if (maskMatches[GID::TPCTOF]) {
-    specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTOF], true, maskTracks[GID::TPCTOF]));
+    specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTOF], true, maskTracks[GID::TPCTOF], subSpecStrict));
   }
   if (maskTracks[GID::FT0] || maskClusters[GID::FT0]) {
     specs.emplace_back(o2::ft0::getRecPointReaderSpec(maskTracksMC[GID::FT0] || maskClustersMC[GID::FT0]));
@@ -88,7 +91,7 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
     specs.emplace_back(o2::trd::getTRDGlobalTrackReaderSpec(false));
   }
   if (maskTracks[GID::TPCTRD]) {
-    specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(false));
+    specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(false, subSpecStrict));
   }
 
   return 0;

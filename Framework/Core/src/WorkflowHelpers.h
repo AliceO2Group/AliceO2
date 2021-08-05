@@ -178,6 +178,10 @@ struct WorkflowHelpers {
   // @a ctx the context for the configuration phase
   static void injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx);
 
+  // Re-adjust service devices if the inputs of other devices were modified
+  // @a workflow to analyze
+  static void adjustServiceDevices(WorkflowSpec& workflow);
+
   static void constructGraph(const WorkflowSpec& workflow,
                              std::vector<DeviceConnectionEdge>& logicalEdges,
                              std::vector<OutputSpec>& outputs,

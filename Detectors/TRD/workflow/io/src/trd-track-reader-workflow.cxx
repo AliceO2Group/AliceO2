@@ -27,6 +27,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, true, {"disable MC propagation"}},
     {"track-types", VariantType::String, std::string{GTrackID::ALL}, {"comma-separated list of sources to use for tracking"}},
+    {"output-strict", o2::framework::VariantType::Bool, false, {"outputs specs should correspond to strict matching mode"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
   std::swap(workflowOptions, options);
@@ -55,7 +56,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::trd::getTRDGlobalTrackReaderSpec(useMC));
   }
   if (GTrackID::includesSource(GTrackID::Source::TPCTRD, srcTRD)) {
-    specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(useMC));
+    specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(useMC, configcontext.options().get<bool>("output-strict")));
   }
   return std::move(specs);
 }

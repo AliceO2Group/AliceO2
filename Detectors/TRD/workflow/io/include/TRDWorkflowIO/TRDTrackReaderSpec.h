@@ -42,7 +42,7 @@ class TRDTrackReader : public Task
     TPCTRD
   };
 
-  TRDTrackReader(bool useMC, Mode mode) : mUseMC(useMC), mMode(mode) {}
+  TRDTrackReader(bool useMC, Mode mode, bool subSpecStrict = false) : mUseMC(useMC), mMode(mode) {}
   ~TRDTrackReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -50,6 +50,7 @@ class TRDTrackReader : public Task
  private:
   void connectTree(const std::string& filename);
   bool mUseMC = false;
+  bool mSubSpecStrict = false;
   Mode mMode;
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
@@ -59,7 +60,7 @@ class TRDTrackReader : public Task
 };
 
 /// read TPC-TRD matched tracks from a root file
-framework::DataProcessorSpec getTRDTPCTrackReaderSpec(bool useMC);
+framework::DataProcessorSpec getTRDTPCTrackReaderSpec(bool useMC, bool subSpecStrict = false);
 
 /// read ITS-TPC-TRD matched tracks from a root file
 framework::DataProcessorSpec getTRDGlobalTrackReaderSpec(bool useMC);

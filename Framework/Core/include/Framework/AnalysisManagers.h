@@ -441,15 +441,33 @@ struct SpawnManager {
   static bool requestInputs(std::vector<InputSpec>&, T const&) { return false; }
 };
 
+namespace
+{
+void updateInputs(std::string type, bool value, std::vector<InputSpec>& inputs, InputSpec& spec)
+{
+  auto locate = std::find_if(inputs.begin(), inputs.end(), [&](InputSpec& input) { return input.binding == spec.binding; });
+  if (locate != inputs.end()) {
+    // amend entry
+    auto& entryMetadata = locate->metadata;
+    entryMetadata.push_back(ConfigParamSpec{std::string{"control:"} + type, VariantType::Bool, value, {"\"\""}});
+    std::sort(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
+    auto new_end = std::unique(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
+    entryMetadata.erase(new_end, entryMetadata.end());
+  } else {
+    //add entry
+    spec.metadata.push_back(ConfigParamSpec{std::string{"control:"} + type, VariantType::Bool, value, {"\"\""}});
+    inputs.emplace_back(spec);
+  }
+}
+} // namespace
+
 template <typename TABLE>
 struct SpawnManager<Spawns<TABLE>> {
   static bool requestInputs(std::vector<InputSpec>& inputs, Spawns<TABLE>& spawns)
   {
     auto base_specs = spawns.base_specs();
     for (auto& base_spec : base_specs) {
-      if (std::find_if(inputs.begin(), inputs.end(), [&](InputSpec const& spec) { return base_spec.binding == spec.binding; }) == inputs.end()) {
-        inputs.emplace_back(base_spec);
-      }
+      updateInputs("spawn", true, inputs, base_spec);
     }
     return true;
   }
@@ -467,9 +485,7 @@ struct IndexManager<Builds<IDX, P>> {
   {
     auto base_specs = builds.base_specs();
     for (auto& base_spec : base_specs) {
-      if (std::find_if(inputs.begin(), inputs.end(), [&](InputSpec const& spec) { return base_spec.binding == spec.binding; }) == inputs.end()) {
-        inputs.emplace_back(base_spec);
-      }
+      updateInputs("build", true, inputs, base_spec);
     }
     return true;
   }

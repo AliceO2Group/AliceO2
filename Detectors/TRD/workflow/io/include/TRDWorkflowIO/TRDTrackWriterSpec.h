@@ -25,7 +25,7 @@ namespace trd
 framework::DataProcessorSpec getTRDGlobalTrackWriterSpec(bool useMC);
 
 /// writer for matches with TPC-only tracks
-framework::DataProcessorSpec getTRDTPCTrackWriterSpec(bool useMC);
+framework::DataProcessorSpec getTRDTPCTrackWriterSpec(bool useMC, bool strictMode = false);
 
 } // namespace trd
 } // namespace o2

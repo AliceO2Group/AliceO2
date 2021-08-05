@@ -16,6 +16,8 @@
 #include "Framework/ControlService.h"
 #include "Framework/SerializationMethods.h"
 #include "CommonUtils/StringUtils.h"
+#include "ReconstructionDataFormats/MatchingType.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
 using GTrackID = o2::dataformats::GlobalTrackID;
 
@@ -41,8 +43,9 @@ void TRDTrackReader::run(ProcessingContext& pc)
   LOG(INFO) << "Pushing " << mTracks.size() << " tracks and " << mTrigRec.size() << " trigger records at entry " << ent;
 
   if (mMode == Mode::TPCTRD) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0, Lifetime::Timeframe}, mTracks);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG_TPC", 0, Lifetime::Timeframe}, mTrigRec);
+    uint32_t ss = o2::globaltracking::getSubSpec(mSubSpecStrict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_TPC", ss, Lifetime::Timeframe}, mTracks);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG_TPC", ss, Lifetime::Timeframe}, mTrigRec);
   } else if (mMode == Mode::ITSTPCTRD) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0, Lifetime::Timeframe}, mTracks);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG_GLO", 0, Lifetime::Timeframe}, mTrigRec);
@@ -66,21 +69,21 @@ void TRDTrackReader::connectTree(const std::string& filename)
   LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getTRDTPCTrackReaderSpec(bool useMC)
+DataProcessorSpec getTRDTPCTrackReaderSpec(bool useMC, bool subSpecStrict)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0, Lifetime::Timeframe);
-  outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG_TPC", 0, Lifetime::Timeframe);
+  uint32_t sspec = o2::globaltracking::getSubSpec(subSpecStrict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_TPC", sspec, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG_TPC", sspec, Lifetime::Timeframe);
 
   if (useMC) {
     LOG(FATAL) << "TRD track reader cannot read MC data (yet)";
   }
-
   return DataProcessorSpec{
     "tpctrd-track-reader",
     Inputs{},
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDTrackReader>(useMC, TRDTrackReader::Mode::TPCTRD)},
+    AlgorithmSpec{adaptFromTask<TRDTrackReader>(useMC, TRDTrackReader::Mode::TPCTRD, subSpecStrict)},
     Options{
       {"track-infile", VariantType::String, "trdmatches_tpc.root", {"Name of the input file for TPC-TRD matches"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
