@@ -25,11 +25,11 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   std::vector<o2::dcs::test::HintType> dphints;
   // for MFT
   // for test, we use less DPs that official ones
-  
+
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"mft_main:MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3].Monitoirng.Current.Analog", 0, 3.});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"mft_main:MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3].Monitoirng.Current.Digital", 0, 3.});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"mft_main:MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3].Monitoirng.Current.BackBias", 0, 3.});
-  
+
   o2::framework::WorkflowSpec specs;
   specs.emplace_back(o2::dcs::test::getDCSRandomDataGeneratorSpec(dphints, "MFT"));
   return specs;

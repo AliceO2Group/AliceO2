@@ -30,104 +30,104 @@
 
 namespace o2
 {
-namespace mft
-{
-
-using DPID  = o2::dcs::DataPointIdentifier;
-using DPVAL = o2::dcs::DataPointValue;
-using DPCOM = o2::dcs::DataPointCompositeObject;
-
-struct MFTDCSinfo {
-  std::pair<uint64_t, double> firstValue; // first value seen by the MFT DCS processor
-  std::pair<uint64_t, double> lastValue;  // last value seen by the MFT DCS processor
-  std::pair<uint64_t, double> midValue;   // mid value seen by the MFT DCS processor
-  std::pair<uint64_t, double> maxChange;  // maximum variation seen by the MFT DCS processor
-  MFTDCSinfo()
+  namespace mft
   {
-    firstValue = std::make_pair(0, -999999999);
-    lastValue = std::make_pair(0, -999999999);
-    midValue = std::make_pair(0, -999999999);
-    maxChange = std::make_pair(0, -999999999);
-  }
-  void makeEmpty()
-  {
-    firstValue.first = lastValue.first = midValue.first = maxChange.first = 0;
-    firstValue.second = lastValue.second = midValue.second = maxChange.second = -999999999;
-  }
-  void print() const;
 
-  ClassDefNV(MFTDCSinfo, 1);
-};
+    using DPID  = o2::dcs::DataPointIdentifier;
+    using DPVAL = o2::dcs::DataPointValue;
+    using DPCOM = o2::dcs::DataPointCompositeObject;
 
-class MFTDCSProcessor
-{
+    struct MFTDCSinfo {
+      std::pair<uint64_t, double> firstValue; // first value seen by the MFT DCS processor
+      std::pair<uint64_t, double> lastValue;  // last value seen by the MFT DCS processor
+      std::pair<uint64_t, double> midValue;   // mid value seen by the MFT DCS processor
+      std::pair<uint64_t, double> maxChange;  // maximum variation seen by the MFT DCS processor
+      MFTDCSinfo()
+      {
+	firstValue = std::make_pair(0, -999999999);
+	lastValue = std::make_pair(0, -999999999);
+	midValue = std::make_pair(0, -999999999);
+	maxChange = std::make_pair(0, -999999999);
+      }
+      void makeEmpty()
+      {
+	firstValue.first = lastValue.first = midValue.first = maxChange.first = 0;
+	firstValue.second = lastValue.second = midValue.second = maxChange.second = -999999999;
+      }
+      void print() const;
 
- public:
-  
-  using TFType = uint64_t;
-  using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
-  using DQDoubles = std::deque<double>;
+      ClassDefNV(MFTDCSinfo, 1);
+    };
 
-  MFTDCSProcessor() = default;
-  ~MFTDCSProcessor() = default;
+    class MFTDCSProcessor
+    {
 
-  void init(const std::vector<DPID>& pids);
+    public:
+      
+      using TFType = uint64_t;
+      using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
+      using DQDoubles = std::deque<double>;
 
-  int process(const gsl::span<const DPCOM> dps);
-  int processDP(const DPCOM& dpcom);
+      MFTDCSProcessor() = default;
+      ~MFTDCSProcessor() = default;
 
-  void updateDPsCCDB();
+      void init(const std::vector<DPID>& pids);
 
-  const CcdbObjectInfo& getccdbDPsInfo() const { return mccdbDPsInfo; }
-  CcdbObjectInfo& getccdbDPsInfo() { return mccdbDPsInfo; }
-  const std::unordered_map<DPID, MFTDCSinfo>& getMFTDPsInfo() const { return mMFTDCS; }
+      int process(const gsl::span<const DPCOM> dps);
+      int processDP(const DPCOM& dpcom);
+      
+      void updateDPsCCDB();
 
-  template <typename T>
-    void prepareCCDBobjectInfo(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf, const std::map<std::string, std::string>& md);
+      const CcdbObjectInfo& getccdbDPsInfo() const { return mccdbDPsInfo; }
+      CcdbObjectInfo& getccdbDPsInfo() { return mccdbDPsInfo; }
+      const std::unordered_map<DPID, MFTDCSinfo>& getMFTDPsInfo() const { return mMFTDCS; }
+      
+      template <typename T>
+	void prepareCCDBobjectInfo(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf, const std::map<std::string, std::string>& md);
 
-  void setTF(TFType tf) { mTF = tf; }
-  void useVerboseMode() { mVerbose = true; }
+      void setTF(TFType tf) { mTF = tf; }
+      void useVerboseMode() { mVerbose = true; }
 
-  void clearDPsinfo()
-  {
-    mDpsdoublesmap.clear();
-    mMFTDCS.clear();
-  }
+      void clearDPsinfo()
+      {
+	mDpsdoublesmap.clear();
+	mMFTDCS.clear();
+      }
 
- private:
+    private:
 
-  std::unordered_map<DPID, MFTDCSinfo> mMFTDCS;                // this is the object that will go to the CCDB
-  std::unordered_map<DPID, bool> mPids;                        // contains all PIDs for the processor, the bool
-                                                               // will be true if the DP was processed at least once
-  std::unordered_map<DPID, std::vector<DPVAL>> mDpsdoublesmap; // this is the map that will hold the DPs for the
+      std::unordered_map<DPID, MFTDCSinfo> mMFTDCS;                // this is the object that will go to the CCDB
+      std::unordered_map<DPID, bool> mPids;                        // contains all PIDs for the processor, the bool
+                                                                   // will be true if the DP was processed at least once
+      std::unordered_map<DPID, std::vector<DPVAL>> mDpsdoublesmap; // this is the map that will hold the DPs for the
                                                                // double type (voltages and currents)
-  CcdbObjectInfo mccdbDPsInfo;
+      CcdbObjectInfo mccdbDPsInfo;
+      
+      TFType mStartTF; // TF index for processing of first processed TF, used to store CCDB object
+      TFType mTF = 0;  // TF index for processing, used to store CCDB object
+      bool mStartTFset = false;
 
-  TFType mStartTF; // TF index for processing of first processed TF, used to store CCDB object
-  TFType mTF = 0;  // TF index for processing, used to store CCDB object
-  bool mStartTFset = false;
+      bool mVerbose = false;
 
-  bool mVerbose = false;
+      ClassDefNV(MFTDCSProcessor, 0);
+    };
 
-  ClassDefNV(MFTDCSProcessor, 0);
-};
+    template <typename T>
+      void MFTDCSProcessor::prepareCCDBobjectInfo(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf,const std::map<std::string, std::string>& md)
+      {
 
-template <typename T>
-void MFTDCSProcessor::prepareCCDBobjectInfo(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf,const std::map<std::string, std::string>& md)
-  {
+	// prepare all info to be sent to CCDB for object obj
+	auto clName = o2::utils::MemFileHelper::getClassName(obj);
+	auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
+	info.setPath(path);
+	info.setObjectType(clName);
+	info.setFileName(flName);
+	info.setStartValidityTimestamp(tf);
+	info.setEndValidityTimestamp(99999999999999);
+	info.setMetaData(md);
+      }
 
-  // prepare all info to be sent to CCDB for object obj
-  auto clName = o2::utils::MemFileHelper::getClassName(obj);
-  auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  info.setPath(path);
-  info.setObjectType(clName);
-  info.setFileName(flName);
-  info.setStartValidityTimestamp(tf);
-  info.setEndValidityTimestamp(99999999999999);
-  info.setMetaData(md);
-}
-
-} // namespace tof
+  } // namespace tof
 } // namespace o2
 
 #endif
