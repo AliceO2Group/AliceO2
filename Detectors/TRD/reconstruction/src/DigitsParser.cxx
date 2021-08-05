@@ -27,6 +27,7 @@
 #include <array>
 #include <iterator>
 #include <bitset>
+#include <iomanip>
 #include <iostream>
 
 namespace o2::trd
@@ -55,6 +56,26 @@ int DigitsParser::Parse(bool verbose)
   mPaddingWordsCounter = 0; 
   int bitsinmask=0;
   int overchannelcount=0;
+  if(mHeaderVerbose){
+    LOG(info)<< "Data buffer to parse for Digits begin " << mStartParse <<":"<< mEndParse;
+    int wordcount=0;
+    std::stringstream outputstring;
+    auto word=mStartParse;
+    outputstring<< "digit 0x"<< std::hex << std::setfill('0') << std::setw(6) << 0 << " :: ";
+    while(word <= mEndParse) { // loop over the entire data buffer (a complete link of tracklets and digits)
+
+        if(wordcount!=0 && (wordcount %8 ==0 || word == mEndParse)){
+          LOG(info) << outputstring.str();
+          outputstring.str("");
+          outputstring<< "digit 0x"<< std::hex << std::setfill('0') << std::setw(6) << wordcount << " :: ";
+        }
+        if(wordcount==0)outputstring << " 0x"<< std::hex << std::setfill('0')<< std::setw(8) <<  HelperMethods::swapByteOrderreturn(*word); 
+        else outputstring << " 0x"<< std::hex << std::setfill('0')<< std::setw(8) <<  HelperMethods::swapByteOrderreturn(*word); 
+        word++;wordcount++;
+    }
+    LOG(info)<< "Data buffer to parse for Digits end";
+
+  }
   if (mVerbose) {
     LOG(info) << "Digit Parser parse of data sitting at :" << std::hex << (void*)mData << " starting at pos " << mStartParse;
     if (mByteOrderFix) {
@@ -107,7 +128,7 @@ int DigitsParser::Parse(bool verbose)
     if ((*word) == 0x0 && (*nextword == 0x0)) { // no need to byte swap nextword
       // end of digits marker.
       if (mHeaderVerbose) {
-        LOG(info) << "*** DigitEndMarker :0x" << std::hex << *word << "::0x" << *nextword << " at offset"<<std::distance(mStartParse,word);
+        LOG(info) << "*** DigitEndMarker :0x" << std::hex << *word << "::0x" << *nextword << " at offset "<<std::distance(mStartParse,word);
       }
       //state *should* be StateDigitMCMData check that it is
       if (mState == StateDigitMCMData || mState == StateDigitEndMarker || mState == StateDigitHCHeader || mState == StateDigitMCMHeader) {
@@ -122,11 +143,11 @@ int DigitsParser::Parse(bool verbose)
       mState = StateDigitEndMarker;
     } else {
       if (mHeaderVerbose) {
-        LOG(info) << " *** now to check for mDigitMCMHeader with a value " << std::hex << *word << " at offset"<<std::distance(mStartParse,word);
+        LOG(info) << " *** now to check for mDigitMCMHeader with a value " << std::hex << *word << " at offset "<<std::distance(mStartParse,word);
       }
       if ((*word & 0xf) == 0xc && mState == StateDigitMCMHeader) { //marker for DigitMCMHeader.
         if (mHeaderVerbose) {
-          LOG(info) << " *** mDigitMCMHeader " << std::hex << *word << " at offset"<<std::distance(mStartParse,word);;
+          LOG(info) << " *** mDigitMCMHeader " << std::hex << *word << " at offset "<<std::distance(mStartParse,word);;
           DigitMCMHeader headerword;
           headerword.word = *word;
           printDigitMCMHeader(headerword);
@@ -138,11 +159,11 @@ int DigitsParser::Parse(bool verbose)
         mChannel = 0;
         mDigitMCMHeader = (DigitMCMHeader*)(word);
         if (mHeaderVerbose) {
-          LOG(info) << "state mcmheader and word : 0x" << std::hex << *word << " at offset"<<std::distance(mStartParse,word);;
+          LOG(info) << "state mcmheader and word : 0x" << std::hex << *word << " at offset "<<std::distance(mStartParse,word);;
           printDigitMCMHeader(*mDigitMCMHeader);
         }
         if (mHeaderVerbose) {
-          LOG(info) << "mDigitHCHeader format definition:0x" << mDigitHCHeader.major << "." << mDigitHCHeader.minor << " at offset"<<std::distance(mStartParse,word);
+          LOG(info) << "mDigitHCHeader format definition:0x" << mDigitHCHeader.major << "." << mDigitHCHeader.minor << " at offset "<<std::distance(mStartParse,word);
         }
         if (mDigitHCHeader.major & 0x20) {
           //zero suppressed
@@ -155,7 +176,7 @@ int DigitsParser::Parse(bool verbose)
           mDigitMCMADCMask = (DigitMCMADCMask*)(word);
           mADCMask = mDigitMCMADCMask->adcmask;
           if (mHeaderVerbose) {
-            LOG(info) << "**DigitADCMask is " << std::hex << mDigitMCMADCMask->adcmask << " raw form : 0x" << std::hex << mDigitMCMADCMask->word << " at offset"<<std::distance(mStartParse,word);;
+            LOG(info) << "**DigitADCMask is " << std::hex << mDigitMCMADCMask->adcmask << " raw form : 0x" << std::hex << mDigitMCMADCMask->word << " at offset "<<std::distance(mStartParse,word);;
           }
           //TODO check for end of loop?
           if (word == mEndParse) {
@@ -248,7 +269,7 @@ int DigitsParser::Parse(bool verbose)
           if (mState == StateDigitEndMarker) {
 
             if (mHeaderVerbose) {
-              LOG(info) << "***DigitEndMarker State : " << std::hex << *word << " at offset"<<std::distance(mStartParse,word);;
+              LOG(info) << "***DigitEndMarker State : " << std::hex << *word << " at offset "<<std::distance(mStartParse,word);;
               //we are at the end
               // do nothing.
             }
@@ -256,7 +277,7 @@ int DigitsParser::Parse(bool verbose)
             //for the case of on flp build a vector of tracklets, then pack them into a data stream with a header.
             //for dpl build a vector and connect it with a triggerrecord.
             if (mHeaderVerbose) {
-              LOG(info) << "***DigitMCMword : " << std::hex << *word << " at offset"<<std::distance(mStartParse,word);;
+              LOG(info) << "***DigitMCMword : " << std::hex << *word << " at offset "<<std::distance(mStartParse,word);;
             }
             mDataWordsParsed++;
             mcmdatacount++;
@@ -265,7 +286,7 @@ int DigitsParser::Parse(bool verbose)
             mState = StateDigitMCMData;
             digitwordcount++;
             if (mDataVerbose) {
-              LOG(info) << "adc values : raw 0x:" << std::hex << *word << std::dec << mDigitMCMData->x << "::" << mDigitMCMData->y << "::" << mDigitMCMData->z << " mask:0x" << std::hex << mADCMask << " at offset"<<std::distance(mStartParse,word);;;
+              LOG(info) << "adc values : raw 0x:" << std::hex << *word << std::dec << mDigitMCMData->x << "::" << mDigitMCMData->y << "::" << mDigitMCMData->z << " mask:0x" << std::hex << mADCMask << " at offset "<<std::distance(mStartParse,word);;;
               LOG(info) << "digittimebinoffset = " << digittimebinoffset;
             }
             mADCValues[digittimebinoffset++] = mDigitMCMData->x;
@@ -290,7 +311,7 @@ int DigitsParser::Parse(bool verbose)
                   LOG(warn) << "ADCMask is zero but we seem to have a digit";
                 }
                 if (mChannel == 22) {
-                  LOG(error) << "invalid bitpattern for this mcm 0x" << std::hex << mADCMask << " at offset"<<std::distance(mStartParse,word);;;
+                  LOG(error) << "invalid bitpattern for this mcm 0x" << std::hex << mADCMask << " at offset "<<std::distance(mStartParse,word);;;
                   mChannel=100*bitsinmask+overchannelcount++;
                   LOG(info) << "EEE " << mDetector << ":" << mROB << ":" << mMCM << ":" << mChannel
                             << " supermodule:stack:layer:side : "<< mDigitHCHeader.supermodule << ":"<< mDigitHCHeader.stack << ":"<< mDigitHCHeader.layer <<":"<< mDigitHCHeader.side;
@@ -319,7 +340,7 @@ int DigitsParser::Parse(bool verbose)
                 for (auto adc : mADCValues) {
                   adcsum += adc;
                 }
-                LOG(info) << "DDDD #" << mDigitsFound << " det:rob:mcm:channel:adcsum ... " << mDetector << ":" << mROB << ":" << mMCM << ":" << mChannel << ":" << adcsum << ":" << mADCValues[0] << ":" << mADCValues[1] << ":" << mADCValues[2] << "::" << mADCValues[27] << ":" << mADCValues[28] << ":" << mADCValues[29] << " at offset"<<std::distance(mStartParse,word);;;
+                LOG(info) << "DDDD #" << mDigitsFound << " det:rob:mcm:channel:adcsum ... " << mDetector << ":" << mROB << ":" << mMCM << ":" << mChannel << ":" << adcsum << ":" << mADCValues[0] << ":" << mADCValues[1] << ":" << mADCValues[2] << "::" << mADCValues[27] << ":" << mADCValues[28] << ":" << mADCValues[29] << " at offset "<<std::distance(mStartParse,word);;;
               }
               mDigitsFound++;
               digittimebinoffset = 0;
