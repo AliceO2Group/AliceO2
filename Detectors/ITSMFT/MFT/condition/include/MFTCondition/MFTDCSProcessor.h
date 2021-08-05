@@ -77,7 +77,7 @@ class MFTDCSProcessor
   int processDP(const DPCOM& dpcom);
 
   void updateDPsCCDB();
-  
+
   const CcdbObjectInfo& getccdbDPsInfo() const { return mccdbDPsInfo; }
   CcdbObjectInfo& getccdbDPsInfo() { return mccdbDPsInfo; }
   const std::unordered_map<DPID, MFTDCSinfo>& getMFTDPsInfo() const { return mMFTDCS; }
@@ -87,7 +87,7 @@ class MFTDCSProcessor
 
   void setTF(TFType tf) { mTF = tf; }
   void useVerboseMode() { mVerbose = true; }
-  
+
   void clearDPsinfo()
   {
     mDpsdoublesmap.clear();
@@ -95,7 +95,7 @@ class MFTDCSProcessor
   }
 
  private:
-  
+
   std::unordered_map<DPID, MFTDCSinfo> mMFTDCS;                // this is the object that will go to the CCDB
   std::unordered_map<DPID, bool> mPids;                        // contains all PIDs for the processor, the bool
                                                                // will be true if the DP was processed at least once
@@ -113,8 +113,7 @@ class MFTDCSProcessor
 };
 
 template <typename T>
-void MFTDCSProcessor::prepareCCDBobjectInfo(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf,
-					    const std::map<std::string, std::string>& md)
+void MFTDCSProcessor::prepareCCDBobjectInfo(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf,const std::map<std::string, std::string>& md)
   {
 
   // prepare all info to be sent to CCDB for object obj

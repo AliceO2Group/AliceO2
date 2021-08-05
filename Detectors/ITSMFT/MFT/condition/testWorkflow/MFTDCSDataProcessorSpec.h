@@ -57,8 +57,8 @@ namespace mft
     //________________________________________________________________
     void init(o2::framework::InitContext& ic) final
     {
-      std::vector<DPID> vect;      
-      mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");      
+      std::vector<DPID> vect;
+      mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
       if (mDPsUpdateInterval == 0) {
 	LOG(ERROR) << "MFT DPs update interval set to zero seconds --> changed to 60";
 	mDPsUpdateInterval = 60;
@@ -80,7 +80,7 @@ namespace mft
 	for (auto& i : *dpid2DataDesc) {
 	  vect.push_back(i.first);
 	}
-      } 
+      }
 
       else {
 	LOG(INFO) << "Configuring via hardcoded strings";
@@ -150,7 +150,7 @@ namespace mft
     {
       // extract CCDB infos and calibration object for DPs
       mProcessor->updateDPsCCDB();
-      const auto& payload = mProcessor->getMFTDPsInfo();      
+      const auto& payload = mProcessor->getMFTDPsInfo();
       auto& info = mProcessor->getccdbDPsInfo();
       
       long tstart = mStart;

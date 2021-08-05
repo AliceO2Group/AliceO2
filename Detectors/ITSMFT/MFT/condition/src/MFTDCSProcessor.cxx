@@ -31,7 +31,7 @@ void MFTDCSinfo::print() const
   LOG(INFO) << "First Value: timestamp = " << firstValue.first << ", value = " << firstValue.second;
   LOG(INFO) << "Last Value:  timestamp = " << lastValue.first << ", value = " << lastValue.second;
   LOG(INFO) << "Mid Value:   timestamp = " << midValue.first << ", value = " << midValue.second;
-  LOG(INFO) << "Max Change:  timestamp = " << maxChange.first << ", value = " << maxChange.second;  
+  LOG(INFO) << "Max Change:  timestamp = " << maxChange.first << ", value = " << maxChange.second;
 }
 
 //__________________________________________________________________
@@ -112,7 +112,7 @@ int MFTDCSProcessor::processDP(const DPCOM& dpcom)
       LOG(INFO) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<int32_t>(dpcom);
     }
   }
-  
+
   auto flags = val.get_flags();
 
   // now I need to access the correct element
@@ -121,11 +121,10 @@ int MFTDCSProcessor::processDP(const DPCOM& dpcom)
     auto& dvect = mDpsdoublesmap[dpid];
     LOG(INFO) << "mDpsdoublesmap[dpid].size() = " << dvect.size();
     auto etime = val.get_epoch_time();
-    if (dvect.size() == 0 ||
-	etime != dvect.back().get_epoch_time()) { // we check
-                                                  // that we did not get the
-                                                  // same timestamp as the
-                                                  // latest one
+    if (dvect.size() == 0 || etime != dvect.back().get_epoch_time()) { // we check
+                                                                       // that we did not get the
+                                                                       // same timestamp as the
+                                                                       // latest one
         dvect.push_back(val);
     }
   }
