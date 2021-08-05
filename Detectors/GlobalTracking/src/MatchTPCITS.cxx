@@ -1299,6 +1299,12 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     }
     float chi2Out = 0;
     auto posStart = tracOut.getXYZGlo();
+    auto tImposed = timeC * mTPCTBinMUSInv;
+    if (std::abs(tImposed - mTPCTracksArray[tTPC.sourceID].getTime0()) > 550) { // RS FIXME: should be removed once TOF fixes https://github.com/AliceO2Group/AliceO2/pull/6540#issuecomment-880060760
+      LOG(ERROR) << "Impossible imposed timebin " << tImposed << " for TPC track with timebin0 " << mTPCTracksArray[tTPC.sourceID].getTime0() << " TB";
+      mMatchedTracks.pop_back(); // destroy failed track
+      return false;
+    }
     int retVal = mTPCRefitter->RefitTrackAsTrackParCov(tracOut, mTPCTracksArray[tTPC.sourceID].getClusterRef(), timeC * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
     if (retVal < 0) {
       LOG(DEBUG) << "Refit failed";

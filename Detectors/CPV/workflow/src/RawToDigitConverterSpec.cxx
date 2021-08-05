@@ -224,7 +224,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   }
   digitBuffer.clear();
 
-  LOG(INFO) << "[CPVRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits ...";
+  LOG(DEBUG) << "[CPVRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits ...";
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);

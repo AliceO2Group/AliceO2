@@ -21,6 +21,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ConfigurableHelpers.h"
 #include "Framework/InitContext.h"
+#include "Framework/ConfigContext.h"
 #include "Framework/RootConfigParamHelpers.h"
 #include "Framework/ExpressionHelpers.h"
 
@@ -399,11 +400,66 @@ struct OptionManager<Configurable<T, K, IP>> {
   }
 };
 
+template <typename R, typename T, typename... As>
+struct OptionManager<ProcessConfigurable<R, T, As...>> {
+  static bool appendOption(std::vector<ConfigParamSpec>& options, ProcessConfigurable<R, T, As...>& what)
+  {
+    options.emplace_back(ConfigParamSpec{what.name, variant_trait_v<std::decay_t<bool>>, what.value, {what.help}, what.kind});
+    return true;
+  }
+
+  static bool prepare(InitContext& context, ProcessConfigurable<R, T, As...>& what)
+  {
+    what.value = context.options().get<bool>(what.name.c_str());
+    return true;
+  }
+};
+
+template <typename ANY>
+struct UpdateProcessSwitches {
+  static bool set(std::pair<std::string, bool>, ANY&)
+  {
+    return false;
+  }
+};
+
+template <typename R, typename T, typename... As>
+struct UpdateProcessSwitches<ProcessConfigurable<R, T, As...>> {
+  static bool set(std::pair<std::string, bool> setting, ProcessConfigurable<R, T, As...>& what)
+  {
+    if (what.name == setting.first) {
+      what.value = setting.second;
+      return true;
+    }
+    return false;
+  }
+};
+
 /// Manager template to facilitate extended tables spawning
 template <typename T>
 struct SpawnManager {
   static bool requestInputs(std::vector<InputSpec>&, T const&) { return false; }
 };
+
+namespace
+{
+void updateInputs(std::string type, bool value, std::vector<InputSpec>& inputs, InputSpec& spec)
+{
+  auto locate = std::find_if(inputs.begin(), inputs.end(), [&](InputSpec& input) { return input.binding == spec.binding; });
+  if (locate != inputs.end()) {
+    // amend entry
+    auto& entryMetadata = locate->metadata;
+    entryMetadata.push_back(ConfigParamSpec{std::string{"control:"} + type, VariantType::Bool, value, {"\"\""}});
+    std::sort(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
+    auto new_end = std::unique(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
+    entryMetadata.erase(new_end, entryMetadata.end());
+  } else {
+    //add entry
+    spec.metadata.push_back(ConfigParamSpec{std::string{"control:"} + type, VariantType::Bool, value, {"\"\""}});
+    inputs.emplace_back(spec);
+  }
+}
+} // namespace
 
 template <typename TABLE>
 struct SpawnManager<Spawns<TABLE>> {
@@ -411,9 +467,7 @@ struct SpawnManager<Spawns<TABLE>> {
   {
     auto base_specs = spawns.base_specs();
     for (auto& base_spec : base_specs) {
-      if (std::find_if(inputs.begin(), inputs.end(), [&](InputSpec const& spec) { return base_spec.binding == spec.binding; }) == inputs.end()) {
-        inputs.emplace_back(base_spec);
-      }
+      updateInputs("spawn", true, inputs, base_spec);
     }
     return true;
   }
@@ -431,13 +485,12 @@ struct IndexManager<Builds<IDX, P>> {
   {
     auto base_specs = builds.base_specs();
     for (auto& base_spec : base_specs) {
-      if (std::find_if(inputs.begin(), inputs.end(), [&](InputSpec const& spec) { return base_spec.binding == spec.binding; }) == inputs.end()) {
-        inputs.emplace_back(base_spec);
-      }
+      updateInputs("build", true, inputs, base_spec);
     }
     return true;
   }
 };
+
 } // namespace o2::framework
 
 #endif // ANALYSISMANAGERS_H

@@ -18,7 +18,6 @@
 #define TPC_KryptonClustererSpec_H_
 
 #include "Framework/DataProcessorSpec.h"
-#include <string_view>
 
 namespace o2
 {
@@ -27,7 +26,7 @@ namespace tpc
 
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
-o2::framework::DataProcessorSpec getKryptonClustererSpec(const std::string inputSpec, int ilane, std::vector<int> const& sectors);
+o2::framework::DataProcessorSpec getKryptonClustererSpec();
 
 } // end namespace tpc
 } // end namespace o2

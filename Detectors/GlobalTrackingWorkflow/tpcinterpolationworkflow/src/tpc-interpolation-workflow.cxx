@@ -9,13 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TPCInterpolationWorkflow/TrackInterpolationWorkflow.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
+#include "TPCInterpolationWorkflow/TPCInterpolationSpec.h"
+#include "TPCInterpolationWorkflow/TPCResidualWriterSpec.h"
 
 using namespace o2::framework;
+using GID = o2::dataformats::GlobalTrackID;
 
 // ------------------------------------------------------------------
 
@@ -26,6 +30,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"enable-itsonly", o2::framework::VariantType::Bool, false, {"process tracks without outer point (ITS-TPC only)"}},
+    {"tracking-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use for tracking"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -50,17 +57,27 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
+  WorkflowSpec specs;
+  GID::mask_t allowedSources = GID::getSourcesMask("ITS,TPC,TRD,TOF,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2tpcinterpolation-workflow_configuration.ini");
-  auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
-  auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  auto useMC = !configcontext.options().get<bool>("disable-mc");
+  useMC = false; // force disabling MC as long as it is not implemented
+  auto processITSTPConly = configcontext.options().get<bool>("enable-itsonly");
+  GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("tracking-sources"));
+  LOG(INFO) << "Data sources: " << GID::getSourcesNames(src);
 
-  auto wf = o2::tpc::getTPCInterpolationWorkflow(disableRootInp, disableRootOut);
+  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(src, useMC, processITSTPConly));
+  if (!configcontext.options().get<bool>("disable-root-output")) {
+    specs.emplace_back(o2::tpc::getTPCResidualWriterSpec(useMC));
+  }
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
-  o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
-  return std::move(wf);
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC);
+
+  return std::move(specs);
 }

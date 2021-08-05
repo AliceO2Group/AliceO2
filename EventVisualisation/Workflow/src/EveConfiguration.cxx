@@ -9,21 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TPC_INTERPOLATION_WORKFLOW_H
-#define O2_TPC_INTERPOLATION_WORKFLOW_H
+/// \file EveConfiguration.cxx
+/// \author julian.myrcha@cern.ch
 
-/// @file   TrackInterpolationWorkflow.h
+#include "EveWorkflow/EveConfiguration.h"
 
-#include "Framework/WorkflowSpec.h"
+using namespace o2::event_visualisation;
 
-namespace o2
+void EveConfiguration::ReadConfigurableParam()
 {
-namespace tpc
-{
-
-framework::WorkflowSpec getTPCInterpolationWorkflow(bool disableRootInp, bool disableRootOut);
-
-} // namespace tpc
-} // namespace o2
-
-#endif
+}

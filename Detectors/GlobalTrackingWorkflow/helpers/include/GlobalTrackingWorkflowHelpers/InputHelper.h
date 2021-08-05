@@ -30,7 +30,12 @@ class InputHelper
   // If useMC is false, maskClustersMC and maskTracksMC are overwritten to NONE.
   // The masks define what data to load in a quite generic way, masks with MC suffix are for the corresponding MC labels.
   // For matched tracks, maskMatches refers only to the matching information, while the corresponding maskTracks can still be set to load also the refit matched tracks
-  static int addInputSpecs(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, GID::mask_t maskClusters, GID::mask_t maskMatches, GID::mask_t maskTracks, bool useMC = true, GID::mask_t maskClustersMC = GID::getSourcesMask(GID::ALL), GID::mask_t maskTracksMC = GID::getSourcesMask(GID::ALL));
+  // If subSpecStrict==true, then those inputs which are supposed to be produced in the "strict" mode of the extended matching workflow will by pushed with special
+  // subspec corresponding to this mode (see MatchingType.h)
+  static int addInputSpecs(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs,
+                           GID::mask_t maskClusters, GID::mask_t maskMatches, GID::mask_t maskTracks,
+                           bool useMC = true, GID::mask_t maskClustersMC = GID::getSourcesMask(GID::ALL), GID::mask_t maskTracksMC = GID::getSourcesMask(GID::ALL),
+                           bool subSpecStrict = false);
   static int addInputSpecsPVertex(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, bool mc);
   static int addInputSpecsSVertex(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs);
   static int addInputSpecsCosmics(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, bool mc);

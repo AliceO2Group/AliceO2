@@ -11,8 +11,9 @@
 
 #include "TPCCalibration/IDCAverageGroup.h"
 #include "TPCCalibration/IDCGroup.h"
-#include "TPCCalibration/RobustAverage.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include "TPCCalibration/IDCGroupingParameter.h"
+#include "TPCBase/Mapper.h"
 
 #include "TFile.h"
 #include "TKey.h"
@@ -25,12 +26,33 @@
 
 #if (defined(WITH_OPENMP) || defined(_OPENMP)) && !defined(__CLING__)
 #include <omp.h>
+#else
+static inline int omp_get_thread_num() { return 0; }
 #endif
+
+o2::tpc::IDCAverageGroup::IDCAverageGroup(const unsigned char groupPads, const unsigned char groupRows, const unsigned char groupLastRowsThreshold, const unsigned char groupLastPadsThreshold, const unsigned int region, const Sector sector, const float sigma)
+  : mIDCsGrouped{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, region}, mSector{sector}, mSigma{sigma}, mRobustAverage(sNThreads)
+{
+  unsigned int maxValues = 0;
+  for (unsigned int i = 0; i < Mapper::NREGIONS; ++i) {
+    const unsigned int maxGroup = (mIDCsGrouped.getGroupRows() + mIDCsGrouped.getGroupLastRowsThreshold()) * (mIDCsGrouped.getGroupPads() + mIDCsGrouped.getGroupLastPadsThreshold() + Mapper::ADDITIONALPADSPERROW[i].back());
+    if (maxGroup > maxValues) {
+      maxValues = maxGroup;
+    }
+  }
+
+  for (auto& rob : mRobustAverage) {
+    rob.reserve(maxValues);
+  }
+}
 
 void o2::tpc::IDCAverageGroup::processIDCs()
 {
+  const static auto& paramIDCGroup = ParameterIDCGroup::Instance();
+
 #pragma omp parallel for num_threads(sNThreads)
   for (unsigned int integrationInterval = 0; integrationInterval < getNIntegrationIntervals(); ++integrationInterval) {
+    const unsigned int threadNum = omp_get_thread_num();
     const unsigned int lastRow = mIDCsGrouped.getLastRow();
     unsigned int rowGrouped = 0;
     for (unsigned int iRow = 0; iRow <= lastRow; iRow += mIDCsGrouped.getGroupRows()) {
@@ -44,11 +66,7 @@ void o2::tpc::IDCAverageGroup::processIDCs()
         unsigned int padGrouped = iYLocalSide ? halfPadsInRow : halfPadsInRow - 1;
         for (unsigned int ipad = nPads; ipad <= endPads; ipad += mIDCsGrouped.getGroupPads()) {
           const unsigned int endRows = (iRow == lastRow) ? (Mapper::ROWSPERREGION[region] - iRow) : mIDCsGrouped.getGroupRows();
-
-          // TODO Mapper::ADDITIONALPADSPERROW[region].back() factor is to large, but doesnt really matter
-          const unsigned int maxGoup = (mIDCsGrouped.getGroupRows() + mIDCsGrouped.getGroupLastRowsThreshold()) * (mIDCsGrouped.getGroupPads() + mIDCsGrouped.getGroupLastPadsThreshold() + Mapper::ADDITIONALPADSPERROW[region].back());
-          RobustAverage robustAverage(maxGoup);
-
+          mRobustAverage[threadNum].clear();
           for (unsigned int iRowMerge = 0; iRowMerge < endRows; ++iRowMerge) {
             const unsigned int iRowTmp = iRow + iRowMerge;
             const auto offs = Mapper::ADDITIONALPADSPERROW[region][iRowTmp] - Mapper::ADDITIONALPADSPERROW[region][iRow];
@@ -58,10 +76,20 @@ void o2::tpc::IDCAverageGroup::processIDCs()
               const unsigned int iPadTmp = ipad + ipadMerge;
               const unsigned int iPadSide = iYLocalSide ? iPadTmp : Mapper::PADSPERROW[region][iRowTmp] - iPadTmp - 1;
               const unsigned int indexIDC = integrationInterval * Mapper::PADSPERREGION[region] + Mapper::OFFSETCRULOCAL[region][iRowTmp] + iPadSide;
-              robustAverage.addValue(mIDCsUngrouped[indexIDC] * Mapper::PADAREA[region]);
+              mRobustAverage[threadNum].addValue(mIDCsUngrouped[indexIDC] * Mapper::PADAREA[region]);
             }
           }
-          mIDCsGrouped(rowGrouped, padGrouped, integrationInterval) = robustAverage.getFilteredAverage();
+
+          switch (paramIDCGroup.Method) {
+            case o2::tpc::AveragingMethod::SLOW:
+            default:
+              mIDCsGrouped(rowGrouped, padGrouped, integrationInterval) = mRobustAverage[threadNum].getFilteredAverage(mSigma);
+              break;
+            case o2::tpc::AveragingMethod::FAST:
+              mIDCsGrouped(rowGrouped, padGrouped, integrationInterval) = mRobustAverage[threadNum].getMean();
+              break;
+          }
+
           iYLocalSide ? ++padGrouped : --padGrouped;
         }
       }
@@ -75,6 +103,22 @@ void o2::tpc::IDCAverageGroup::dumpToFile(const char* outFileName, const char* o
   TFile fOut(outFileName, "RECREATE");
   fOut.WriteObject(this, outName);
   fOut.Close();
+}
+
+bool o2::tpc::IDCAverageGroup::setFromFile(const char* fileName, const char* name)
+{
+  TFile inpf(fileName, "READ");
+  IDCAverageGroup* idcAverageGroupTmp{nullptr};
+  idcAverageGroupTmp = reinterpret_cast<IDCAverageGroup*>(inpf.GetObjectChecked(name, IDCAverageGroup::Class()));
+
+  if (!idcAverageGroupTmp) {
+    LOGP(ERROR, "Failed to load {} from {}", name, inpf.GetName());
+    return false;
+  }
+  setIDCs(idcAverageGroupTmp->getIDCsUngrouped());
+
+  delete idcAverageGroupTmp;
+  return true;
 }
 
 void o2::tpc::IDCAverageGroup::drawUngroupedIDCs(const unsigned int integrationInterval, const std::string filename) const
@@ -121,18 +165,18 @@ void o2::tpc::IDCAverageGroup::drawUngroupedIDCs(const unsigned int integrationI
 }
 
 /// for debugging: creating debug tree for integrated IDCs
-/// \param nameTree name of the output file
-void o2::tpc::IDCAverageGroup::createDebugTree(const char* nameTree) const
+/// \param nameFile name of the output file
+void o2::tpc::IDCAverageGroup::createDebugTree(const char* nameFile) const
 {
-  o2::utils::TreeStreamRedirector pcstream(nameTree, "RECREATE");
+  o2::utils::TreeStreamRedirector pcstream(nameFile, "RECREATE");
   pcstream.GetFile()->cd();
   createDebugTree(*this, pcstream);
   pcstream.Close();
 }
 
-void o2::tpc::IDCAverageGroup::createDebugTreeForAllCRUs(const char* nameTree, const char* filename)
+void o2::tpc::IDCAverageGroup::createDebugTreeForAllCRUs(const char* nameFile, const char* filename)
 {
-  o2::utils::TreeStreamRedirector pcstream(nameTree, "RECREATE");
+  o2::utils::TreeStreamRedirector pcstream(nameFile, "RECREATE");
   pcstream.GetFile()->cd();
   TFile fInp(filename, "READ");
 
@@ -215,4 +259,24 @@ void o2::tpc::IDCAverageGroup::setIDCs(std::vector<float>&& idcs)
 {
   mIDCsUngrouped = std::move(idcs);
   mIDCsGrouped.resize(getNIntegrationIntervals());
+}
+
+unsigned int o2::tpc::IDCAverageGroup::getNIntegrationIntervals() const
+{
+  return mIDCsUngrouped.size() / Mapper::PADSPERREGION[mIDCsGrouped.getRegion()];
+}
+
+float o2::tpc::IDCAverageGroup::getUngroupedIDCVal(const unsigned int localPadNumber, const unsigned int integrationInterval) const
+{
+  return mIDCsUngrouped[localPadNumber + integrationInterval * Mapper::PADSPERREGION[mIDCsGrouped.getRegion()]];
+}
+
+unsigned int o2::tpc::IDCAverageGroup::getUngroupedIndex(const unsigned int ulrow, const unsigned int upad, const unsigned int integrationInterval) const
+{
+  return integrationInterval * Mapper::PADSPERREGION[mIDCsGrouped.getRegion()] + Mapper::OFFSETCRULOCAL[mIDCsGrouped.getRegion()][ulrow] + upad;
+}
+
+unsigned int o2::tpc::IDCAverageGroup::getUngroupedIndexGlobal(const unsigned int ugrow, const unsigned int upad, const unsigned int integrationInterval) const
+{
+  return integrationInterval * Mapper::PADSPERREGION[mIDCsGrouped.getRegion()] + Mapper::OFFSETCRUGLOBAL[ugrow] + upad;
 }

@@ -179,6 +179,9 @@ class InputRecord
 
   DataRef getByPos(int pos, int part = 0) const;
 
+  /// Get the ref of the first valid input. If requested, throw an error if none is found.
+  DataRef getFirstValid(bool throwOnFailure = false) const;
+
   size_t getNofParts(int pos) const;
   /// Get the object of specified type T for the binding R.
   /// If R is a string like object, we look up by name the InputSpec and

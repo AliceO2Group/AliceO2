@@ -69,7 +69,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   const auto tracksTPCTOF = getTPCTOFTracks();   // TOF-TPC tracks with refit
   const auto matchesTPCTOF = getTPCTOFMatches(); // and corresponding matches
   const auto tracksTPCTRD = getTPCTRDTracks<o2::trd::TrackTRD>();
-  const auto matchesITSTPCTOF = getTOFMatches(); // just matches, no refit done
+  const auto matchesITSTPCTOF = getITSTPCTOFMatches(); // just matches, no refit done
   const auto tofClusters = getTOFClusters();
   const auto tracksITSTPCTRD = getITSTPCTRDTracks<o2::trd::TrackTRD>();
 
@@ -81,7 +81,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   usedData[GTrackID::ITSTPC].resize(tracksTPCITS.size());                                // to flag used ITSTPC tracks
   usedData[GTrackID::ITSTPCTRD].resize(tracksITSTPCTRD.size());                          // to flag used ITSTPCTRD tracks
   usedData[GTrackID::TPCTRD].resize(tracksTPCTRD.size());                                // to flag used TPCTRD tracks
-  usedData[GTrackID::TOF].resize(getTOFMatches().size());                                // to flag used ITSTPC-TOF matches
+  usedData[GTrackID::ITSTPCTOF].resize(getITSTPCTOFMatches().size());                    // to flag used ITSTPC-TOF matches
 
   // ITS-TPC-TRD-TOF
   // TODO, will flag used ITS-TPC-TRD
@@ -124,7 +124,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
       const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
       if (creator(tracksTPCITS[gidx.getIndex()], {i, GTrackID::ITSTPCTOF}, timeTOFMUS, timeErr)) {
-        flagUsed2(i, GTrackID::TOF); // flag used TOF match // TODO might be not needed
+        //flagUsed2(i, GTrackID::TOF); // flag used TOF match // TODO might be not needed
         flagUsed(gidx);              // flag used ITS-TPC tracks
       }
     }
@@ -175,7 +175,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     }
     for (unsigned i = 0; i < matchesTPCTOF.size(); i++) {
       const auto& match = matchesTPCTOF[i];
-      const auto& gidx = match.getEvIdxTrack().getIndex(); // TPC (or other? but w/o ITS) track global idx (FIXME: TOF has to git rid of EvIndex stuff)
+      const auto& gidx = match.getEvIdxTrack().getIndex(); // TPC track global idx
       if (isUsed(gidx)) {                                  // is TPC track already used
         continue;
       }

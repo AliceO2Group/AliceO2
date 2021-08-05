@@ -89,6 +89,7 @@ class RawToCellConverterSpec : public framework::Task
   int mNumErrorMessages = 0;                                      ///< Current number of error messages
   int mErrorMessagesSuppressed = 0;                               ///< Counter of suppressed error messages
   int mMaxErrorMessages = 100;                                    ///< Max. number of error messages
+  bool mPrintTrailer = false;
   Geometry* mGeometry = nullptr;                                  ///!<! Geometry pointer
   std::unique_ptr<MappingHandler> mMapper = nullptr;              ///!<! Mapper
   std::unique_ptr<CaloRawFitter> mRawFitter;                      ///!<! Raw fitter

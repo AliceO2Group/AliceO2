@@ -192,8 +192,9 @@ void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReader
     //const auto feeID = (RDHUtils::getFEEID(*rdhPtr) & 0x7f) | (cru << 7);
 
     // skip all data that is not Link-base zero suppression
+    const auto link = RDHUtils::getLinkID(*rdhPtr);
     const auto detField = RDHUtils::getDetectorField(*rdhPtr);
-    if (detField != 1) {
+    if ((detField != 1) && (link != rdh_utils::UserLogicLinkID)) {
       continue;
     }
 
@@ -209,7 +210,7 @@ void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReader
 // find the global sync offset reference, using the large sync offset to avoid negative time bins
 uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSpec>& filter)
 {
-  uint32_t syncOffsetReference = 0;
+  uint32_t syncOffsetReference = 144;
 
   for (auto const& ref : InputRecordWalker(inputs, filter)) {
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
@@ -228,8 +229,9 @@ uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSp
       }
 
       // only process LinkZSdata, only supported for data where this is already set in the UL
+      const auto link = RDHUtils::getLinkID(*rdhPtr);
       const auto detField = RDHUtils::getDetectorField(*rdhPtr);
-      if (detField != 1) {
+      if ((detField != 1) && (link != rdh_utils::UserLogicLinkID)) {
         continue;
       }
 

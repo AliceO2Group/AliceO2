@@ -408,23 +408,6 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       float pY = (float)mcParticles[particle].Py();
       float pZ = (float)mcParticles[particle].Pz();
       float energy = (float)mcParticles[particle].GetEnergy();
-      // HACK to avoid FPE in expression columns. Affect only particles in the Beam Pipe.
-      // TO BE REMOVED asap
-      {
-        const float limit = 1e-4;
-        const float mom = TMath::Sqrt(pX * pX + pY * pY + pZ * pZ);
-        const float eta = 0.5f * TMath::Log((mom + pZ) / (mom - pZ));
-        if (TMath::Abs(eta) > 0.9) {
-          if (TMath::Abs((mom - pZ) / pZ) <= limit) {
-            pX = truncateFloatFraction(TMath::Sqrt((1.f + limit) * (1.f + limit) - 1.f) * pZ * 0.70710678, mMcParticleMom);
-            pY = truncateFloatFraction(TMath::Sqrt((1.f + limit) * (1.f + limit) - 1.f) * pZ * 0.70710678, mMcParticleMom);
-          }
-          if (TMath::Abs(energy - pZ) < limit) {
-            energy = truncateFloatFraction(pZ + limit, mMcParticleMom);
-          }
-        }
-      }
-      // End of HACK
 
       mcParticlesCursor(0,
                         mccolid,
@@ -626,7 +609,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   std::map<uint64_t, int> bcsMap;
   collectBCs(ft0RecPoints, primVertices, mcRecords, bcsMap);
 
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
+  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
   o2::InteractionRecord startIR = {0, dh->firstTForbit};
 
   uint64_t tfNumber;

@@ -92,8 +92,8 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
     mStatelessProcess{mSpec.algorithm.onProcess},
     mError{mSpec.algorithm.onError},
     mConfigRegistry{nullptr},
-    mAllocator{&mTimingInfo, &registry, mSpec.outputs},
     mServiceRegistry{registry},
+    mAllocator{&mTimingInfo, &registry, mSpec.outputs},
     mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>()}
 {
   /// FIXME: move erro handling to a service?
@@ -211,32 +211,16 @@ void DataProcessingDevice::Init()
   TracyAppInfo(mSpec.name.data(), mSpec.name.size());
   ZoneScopedN("DataProcessingDevice::Init");
   mRelayer = &mServiceRegistry.get<DataRelayer>();
-  // If available use the ConfigurationInterface, otherwise go for
-  // the command line options.
-  bool hasConfiguration = false;
-  bool hasOverrides = false;
-  if (mServiceRegistry.active<ConfigurationInterface>()) {
-    auto& cfg = mServiceRegistry.get<ConfigurationInterface>();
-    hasConfiguration = true;
-    try {
-      cfg.getRecursive(mSpec.name);
-      hasOverrides = true;
-    } catch (...) {
-      // No overrides...
-    }
-  }
-  // We only use the configuration file if we have a stanza for the given
-  // dataprocessor
-  std::vector<std::unique_ptr<ParamRetriever>> retrievers;
-  if (hasConfiguration && hasOverrides) {
-    auto& cfg = mServiceRegistry.get<ConfigurationInterface>();
-    retrievers.emplace_back(std::make_unique<ConfigurationOptionsRetriever>(&cfg, mSpec.name));
-  } else {
+
+  auto configStore = DeviceConfigurationHelpers::getConfiguration(mServiceRegistry, mSpec.name.c_str(), mSpec.options);
+  if (configStore == nullptr) {
+    std::vector<std::unique_ptr<ParamRetriever>> retrievers;
     retrievers.emplace_back(std::make_unique<FairOptionsRetriever>(GetConfig()));
+    configStore = std::make_unique<ConfigParamStore>(mSpec.options, std::move(retrievers));
+    configStore->preload();
+    configStore->activate();
   }
-  auto configStore = std::make_unique<ConfigParamStore>(mSpec.options, std::move(retrievers));
-  configStore->preload();
-  configStore->activate();
+
   using boost::property_tree::ptree;
 
   /// Dump the configuration so that we can get it from the driver.
@@ -1328,6 +1312,26 @@ void DataProcessingDevice::error(const char* msg)
 {
   LOG(ERROR) << msg;
   mServiceRegistry.get<DataProcessingStats>().errorCount++;
+}
+
+std::unique_ptr<ConfigParamStore> DeviceConfigurationHelpers::getConfiguration(ServiceRegistry& registry, const char* name, std::vector<ConfigParamSpec> const& options)
+{
+
+  if (registry.active<ConfigurationInterface>()) {
+    auto& cfg = registry.get<ConfigurationInterface>();
+    try {
+      cfg.getRecursive(name);
+      std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+      retrievers.emplace_back(std::make_unique<ConfigurationOptionsRetriever>(&cfg, name));
+      auto configStore = std::make_unique<ConfigParamStore>(options, std::move(retrievers));
+      configStore->preload();
+      configStore->activate();
+      return configStore;
+    } catch (...) {
+      // No overrides...
+    }
+  }
+  return std::unique_ptr<ConfigParamStore>(nullptr);
 }
 
 } // namespace o2::framework

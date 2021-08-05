@@ -276,6 +276,10 @@ bool GPUChainTracking::ValidateSettings()
     GPUError("NStreams must be > nTPCClustererLanes");
     return false;
   }
+  if (GetProcessingSettings().noGPUMemoryRegistration && GetProcessingSettings().tpcCompressionGatherMode != 3) {
+    GPUError("noGPUMemoryRegistration only possible with gather mode 3");
+    return false;
+  }
   if (GetProcessingSettings().doublePipeline) {
     if (!GetRecoStepsOutputs().isOnlySet(GPUDataTypes::InOutType::TPCMergedTracks, GPUDataTypes::InOutType::TPCCompressedClusters, GPUDataTypes::InOutType::TPCClusters)) {
       GPUError("Invalid outputs for double pipeline mode 0x%x", (unsigned int)GetRecoStepsOutputs());

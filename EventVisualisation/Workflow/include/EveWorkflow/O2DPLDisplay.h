@@ -9,10 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_GPU_DPL_DISPLAY_H
-#define O2_GPU_DPL_DISPLAY_H
+///
+/// \file   EveWorkflowHelper.h
+/// \author julian.myrcha@cern.ch
+
+#ifndef ALICE_O2_EVENTVISUALISATION_WORKFLOW_O2DPLDISPLAY_H
+#define ALICE_O2_EVENTVISUALISATION_WORKFLOW_O2DPLDISPLAY_H
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "EveWorkflow/EveConfiguration.h"
 #include "Framework/Task.h"
 #include <memory>
 
@@ -20,42 +25,54 @@ namespace o2::trd
 {
 class GeometryFlat;
 }
+
 namespace o2::globaltracking
 {
 struct DataRequest;
 }
+
 namespace o2::itsmft
 {
 class TopologyDictionary;
 }
 
-namespace o2::gpu
+namespace o2::event_visualisation
 {
-class GPUO2InterfaceDisplay;
-struct GPUO2InterfaceConfiguration;
 class TPCFastTransform;
 
-class O2GPUDPLDisplaySpec : public o2::framework::Task
+class O2DPLDisplaySpec : public o2::framework::Task
 {
  public:
-  O2GPUDPLDisplaySpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest) : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest) {}
-  ~O2GPUDPLDisplaySpec() override = default;
+  O2DPLDisplaySpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t trkMask,
+                   o2::dataformats::GlobalTrackID::mask_t clMask,
+                   std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, std::string jsonPath,
+                   std::chrono::milliseconds timeInterval, int numberOfFiles, int numberOfTracks, bool eveHostNameMatch)
+    : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mJsonPath(jsonPath), mTimeInteval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch)
+  {
+    this->mTimeStamp = std::chrono::high_resolution_clock::now() - timeInterval; // first run meets condition
+  }
+  ~O2DPLDisplaySpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
   bool mUseMC = false;
+  bool mEveHostNameMatch;                 // empty or correct hostname
+  std::string mJsonPath;                  // folder where files are stored
+  std::chrono::milliseconds mTimeInteval; // minimal interval between files in miliseconds
+  int mNumberOfFiles;                     // maximun number of files in folder - newer replaces older
+  int mNumberOfTracks;                    // maximun number of track in single file (0 means no limit)
+  std::chrono::time_point<std::chrono::high_resolution_clock> mTimeStamp;
+
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;
   o2::dataformats::GlobalTrackID::mask_t mClMask;
-  //std::unique_ptr<GPUO2InterfaceDisplay> mDisplay;
-  std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
-  std::unique_ptr<TPCFastTransform> mFastTransform;
+  std::unique_ptr<EveConfiguration> mConfig;
   std::unique_ptr<o2::trd::GeometryFlat> mTrdGeo;
   std::unique_ptr<o2::itsmft::TopologyDictionary> mITSDict;
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
 };
 
-} // namespace o2::gpu
+} // namespace o2::event_visualisation
 
 #endif
