@@ -55,7 +55,7 @@ struct pidTOFTaskBeta {
   }
 };
 
-struct pidTOFTaskQABeta {
+struct tofPidQaBeta {
 
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
@@ -137,6 +137,11 @@ struct pidTOFTaskQABeta {
       return;
     }
     histos.fill(HIST("event/tofbeta"), track.p(), track.beta());
+    histos.fill(HIST("event/length"), track.length());
+    histos.fill(HIST("event/eta"), track.eta());
+    histos.fill(HIST("event/tofsignal"), track.p(), track.tofSignal());
+    histos.fill(HIST("event/pt"), track.pt());
+    histos.fill(HIST("event/p"), track.p());
   }
 };
 
@@ -144,7 +149,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   auto workflow = WorkflowSpec{adaptAnalysisTask<pidTOFTaskBeta>(cfgc)};
   if (cfgc.options().get<int>("add-qa")) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskQABeta>(cfgc, TaskName{"pidTOFQA-task"}));
+    workflow.push_back(adaptAnalysisTask<tofPidQaBeta>(cfgc));
   }
   return workflow;
 }
