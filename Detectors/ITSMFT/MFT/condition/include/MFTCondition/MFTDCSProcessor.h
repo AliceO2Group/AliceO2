@@ -44,15 +44,15 @@ namespace o2
       std::pair<uint64_t, double> maxChange;  // maximum variation seen by the MFT DCS processor
       MFTDCSinfo()
       {
-	firstValue = std::make_pair(0, -999999999);
-	lastValue = std::make_pair(0, -999999999);
-	midValue = std::make_pair(0, -999999999);
-	maxChange = std::make_pair(0, -999999999);
+  firstValue = std::make_pair(0, -999999999);
+  lastValue = std::make_pair(0, -999999999);
+  midValue = std::make_pair(0, -999999999);
+  maxChange = std::make_pair(0, -999999999);
       }
       void makeEmpty()
       {
-	firstValue.first = lastValue.first = midValue.first = maxChange.first = 0;
-	firstValue.second = lastValue.second = midValue.second = maxChange.second = -999999999;
+  firstValue.first = lastValue.first = midValue.first = maxChange.first = 0;
+  firstValue.second = lastValue.second = midValue.second = maxChange.second = -999999999;
       }
       void print() const;
 
@@ -63,7 +63,7 @@ namespace o2
     {
 
     public:
-      
+
       using TFType = uint64_t;
       using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
       using DQDoubles = std::deque<double>;
@@ -75,23 +75,23 @@ namespace o2
 
       int process(const gsl::span<const DPCOM> dps);
       int processDP(const DPCOM& dpcom);
-      
+
       void updateDPsCCDB();
 
       const CcdbObjectInfo& getccdbDPsInfo() const { return mccdbDPsInfo; }
       CcdbObjectInfo& getccdbDPsInfo() { return mccdbDPsInfo; }
       const std::unordered_map<DPID, MFTDCSinfo>& getMFTDPsInfo() const { return mMFTDCS; }
-      
+
       template <typename T>
-	void prepareCCDBobjectInfo(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf, const std::map<std::string, std::string>& md);
+  void prepareCCDBobjectInfo(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf, const std::map<std::string, std::string>& md);
 
       void setTF(TFType tf) { mTF = tf; }
       void useVerboseMode() { mVerbose = true; }
 
       void clearDPsinfo()
       {
-	mDpsdoublesmap.clear();
-	mMFTDCS.clear();
+  mDpsdoublesmap.clear();
+  mMFTDCS.clear();
       }
 
     private:
@@ -102,7 +102,7 @@ namespace o2
       std::unordered_map<DPID, std::vector<DPVAL>> mDpsdoublesmap; // this is the map that will hold the DPs for the
                                                                // double type (voltages and currents)
       CcdbObjectInfo mccdbDPsInfo;
-      
+
       TFType mStartTF; // TF index for processing of first processed TF, used to store CCDB object
       TFType mTF = 0;  // TF index for processing, used to store CCDB object
       bool mStartTFset = false;
@@ -116,15 +116,15 @@ namespace o2
       void MFTDCSProcessor::prepareCCDBobjectInfo(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf,const std::map<std::string, std::string>& md)
       {
 
-	// prepare all info to be sent to CCDB for object obj
-	auto clName = o2::utils::MemFileHelper::getClassName(obj);
-	auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-	info.setPath(path);
-	info.setObjectType(clName);
-	info.setFileName(flName);
-	info.setStartValidityTimestamp(tf);
-	info.setEndValidityTimestamp(99999999999999);
-	info.setMetaData(md);
+  // prepare all info to be sent to CCDB for object obj
+  auto clName = o2::utils::MemFileHelper::getClassName(obj);
+  auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
+  info.setPath(path);
+  info.setObjectType(clName);
+  info.setFileName(flName);
+  info.setStartValidityTimestamp(tf);
+  info.setEndValidityTimestamp(99999999999999);
+  info.setMetaData(md);
       }
 
   } // namespace tof

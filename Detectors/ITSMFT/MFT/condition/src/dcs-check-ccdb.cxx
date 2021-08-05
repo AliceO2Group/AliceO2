@@ -122,7 +122,7 @@ int main(int argc, char** argv)
          if (v.size()) {
            mean /= v.size();
          }
-	 std::cout << fmt::format("{:64s} {:4d} values of mean {:7.2f}\n", i.first.get_alias(), v.size(),mean);
+   std::cout << fmt::format("{:64s} {:4d} values of mean {:7.2f}\n", i.first.get_alias(), v.size(),mean);
        }
      }
    }
