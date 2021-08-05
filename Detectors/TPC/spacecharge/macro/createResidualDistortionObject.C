@@ -22,15 +22,12 @@
 
 using namespace o2::tpc;
 using DataT = double;
-constexpr int NZ = 129;
-constexpr int NR = 129;
-constexpr int NPHI = 180;
-using DataContainer = DataContainer3D<DataT, NZ, NR, NPHI>;
+using DataContainer = DataContainer3D<DataT>;
 
 // function declarations
-void createSpaceCharge(o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI>& spaceCharge, const char* path, const char* histoName, const int bSign, const int nThreads = -1);
-void fillDistortionLookupMatrices(o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI>& spaceChargeCalcFluc, o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI>* spaceChargeCalcAvg, DataContainer matrixDistDr[2], DataContainer matrixDistDrphi[2], DataContainer matrixDistDz[2]);
-void makeDebugTreeResiduals(o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI>& calcFluc, o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI>& calcAvg, o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI>& spaceChargeRes);
+void createSpaceCharge(o2::tpc::SpaceCharge<DataT>& spaceCharge, const char* path, const char* histoName, const int bSign, const int nThreads = -1);
+void fillDistortionLookupMatrices(o2::tpc::SpaceCharge<DataT>& spaceChargeCalcFluc, o2::tpc::SpaceCharge<DataT>* spaceChargeCalcAvg, DataContainer matrixDistDr[2], DataContainer matrixDistDrphi[2], DataContainer matrixDistDz[2]);
+void makeDebugTreeResiduals(o2::tpc::SpaceCharge<DataT>& calcFluc, o2::tpc::SpaceCharge<DataT>& calcAvg, o2::tpc::SpaceCharge<DataT>& spaceChargeRes);
 /// Create a SpaceCharge object with residual distortions from a fluctuating and an average space-charge density histogram and write it to a file.
 /// \param bSign sign of the B-field: -1 = negative, 0 = no B-field, 1 = positive
 /// \param pathToHistoFile path to a file with the fluctuating and average histograms
@@ -44,18 +41,18 @@ void createResidualDistortionObject(int bSign, const char* pathToHistoFile = "In
    */
 
   // Calculate fluctuating and average distortion and correction lookup tables
-  o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI> scCalcFluc;
-  o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI> scCalcAvg;
+  o2::tpc::SpaceCharge<DataT> scCalcFluc;
+  o2::tpc::SpaceCharge<DataT> scCalcAvg;
   createSpaceCharge(scCalcFluc, pathToHistoFile, histoFlucName, bSign, nThreads);
   createSpaceCharge(scCalcAvg, pathToHistoFile, histoAvgName, bSign, nThreads);
 
   // Create matrices and fill them with residual distortions. Create SpaceCharge object, assign residual distortion matrices to it and store it in the output file.
-  DataContainer matrixResDistDr[2];
-  DataContainer matrixResDistDrphi[2];
-  DataContainer matrixResDistDz[2];
+  DataContainer matrixResDistDr[2]{DataContainer(scCalcAvg.getNZVertices(), scCalcAvg.getNRVertices(), scCalcAvg.getNPhiVertices()), DataContainer(scCalcAvg.getNZVertices(), scCalcAvg.getNRVertices(), scCalcAvg.getNPhiVertices())};
+  DataContainer matrixResDistDrphi[2]{DataContainer(scCalcAvg.getNZVertices(), scCalcAvg.getNRVertices(), scCalcAvg.getNPhiVertices()), DataContainer(scCalcAvg.getNZVertices(), scCalcAvg.getNRVertices(), scCalcAvg.getNPhiVertices())};
+  DataContainer matrixResDistDz[2]{DataContainer(scCalcAvg.getNZVertices(), scCalcAvg.getNRVertices(), scCalcAvg.getNPhiVertices()), DataContainer(scCalcAvg.getNZVertices(), scCalcAvg.getNRVertices(), scCalcAvg.getNPhiVertices())};
 
   fillDistortionLookupMatrices(scCalcFluc, &scCalcAvg, matrixResDistDr, matrixResDistDrphi, matrixResDistDz);
-  o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI> spaceChargeRes;
+  o2::tpc::SpaceCharge<DataT> spaceChargeRes;
   spaceChargeRes.setDistortionLookupTables(matrixResDistDz[0], matrixResDistDr[0], matrixResDistDrphi[0], o2::tpc::Side::A);
   spaceChargeRes.setDistortionLookupTables(matrixResDistDz[1], matrixResDistDr[1], matrixResDistDrphi[1], o2::tpc::Side::C);
 
@@ -74,7 +71,7 @@ void createResidualDistortionObject(int bSign, const char* pathToHistoFile = "In
 /// \param histoName name of the histogram
 /// \param bSign sign of the B-field: -1 = negative, 0 = no B-field, 1 = positive
 /// \param nThreads number of threads which are used
-void createSpaceCharge(o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI>& spaceCharge, const char* path, const char* histoName, const int bSign, const int nThreads)
+void createSpaceCharge(o2::tpc::SpaceCharge<DataT>& spaceCharge, const char* path, const char* histoName, const int bSign, const int nThreads)
 {
   const float omegaTau = -0.32 * bSign;
   spaceCharge.setOmegaTauT1T2(omegaTau, 1, 1);
@@ -97,17 +94,17 @@ void createSpaceCharge(o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI>& spaceCharge, c
 /// \param matrixDistDr matrix to store radial distortions on the A and C side
 /// \param matrixDistDrphi matrix to store rphi distortions on the A and C side
 /// \param matrixDistDz matrix to store z distortions on the A and C side
-void fillDistortionLookupMatrices(o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI>& spaceChargeCalcFluc, o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI>* spaceChargeCalcAvg, DataContainer matrixDistDr[2], DataContainer matrixDistDrphi[2], DataContainer matrixDistDz[2])
+void fillDistortionLookupMatrices(o2::tpc::SpaceCharge<DataT>& spaceChargeCalcFluc, o2::tpc::SpaceCharge<DataT>* spaceChargeCalcAvg, DataContainer matrixDistDr[2], DataContainer matrixDistDrphi[2], DataContainer matrixDistDz[2])
 {
   for (int iside = 0; iside < 2; ++iside) {
     o2::tpc::Side side = (iside == 0) ? o2::tpc::Side::A : o2::tpc::Side::C;
-    for (int iphi = 0; iphi < NPHI; ++iphi) {
+    for (int iphi = 0; iphi < spaceChargeCalcFluc.getNPhiVertices(); ++iphi) {
       const auto phi = spaceChargeCalcFluc.getPhiVertex(iphi, side);
 
-      for (int ir = 0; ir < NR; ++ir) {
+      for (int ir = 0; ir < spaceChargeCalcFluc.getNRVertices(); ++ir) {
         const auto r = spaceChargeCalcFluc.getRVertex(ir, side);
 
-        for (int iz = 0; iz < NZ; ++iz) {
+        for (int iz = 0; iz < spaceChargeCalcFluc.getNZVertices(); ++iz) {
           const auto z = spaceChargeCalcFluc.getZVertex(iz, side);
 
           // get fluctuating distortions
@@ -144,18 +141,18 @@ void fillDistortionLookupMatrices(o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI>& spa
 /// \param calcFluc space charge object with fluctuation distortions
 /// \param calcAvg space charge object with average distortions
 /// \param spaceChargeRes space charge object with residual distortions
-void makeDebugTreeResiduals(o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI>& calcFluc, o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI>& calcAvg, o2::tpc::SpaceCharge<DataT, NZ, NR, NPHI>& spaceChargeRes)
+void makeDebugTreeResiduals(o2::tpc::SpaceCharge<DataT>& calcFluc, o2::tpc::SpaceCharge<DataT>& calcAvg, o2::tpc::SpaceCharge<DataT>& spaceChargeRes)
 {
   o2::utils::TreeStreamRedirector pcstream("debugResidualDistortions.root", "recreate");
   for (int iside = 0; iside < 2; ++iside) {
     o2::tpc::Side side = (iside == 0) ? o2::tpc::Side::A : o2::tpc::Side::C;
-    for (int iphi = 0; iphi < NPHI; ++iphi) {
+    for (int iphi = 0; iphi < calcFluc.getNPhiVertices(); ++iphi) {
       auto phi = calcFluc.getPhiVertex(iphi, side);
-      for (int ir = 0; ir < NR; ++ir) {
+      for (int ir = 0; ir < calcFluc.getNRVertices(); ++ir) {
         auto r = calcFluc.getRVertex(ir, side);
         DataT x = r * std::cos(phi);
         DataT y = r * std::sin(phi);
-        for (int iz = 1; iz < NZ; ++iz) {
+        for (int iz = 1; iz < calcFluc.getNZVertices(); ++iz) {
           DataT z = calcFluc.getZVertex(iz, side);
 
           GlobalPosition3D posDistRes(x, y, z);

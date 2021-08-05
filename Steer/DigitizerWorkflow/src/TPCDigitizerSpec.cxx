@@ -42,11 +42,12 @@
 #include "CommonDataFormat/RangeReference.h"
 #include "SimConfig/DigiParams.h"
 #include <filesystem>
+#include "TH3.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 using DigiGroupRef = o2::dataformats::RangeReference<int, int>;
-using SC = o2::tpc::SpaceCharge<double, 129, 129, 180>;
+using SC = o2::tpc::SpaceCharge<double>;
 
 namespace o2
 {

@@ -49,7 +49,7 @@ using namespace gpu;
 const int nPhi = 180;
 const int nR = 129;
 const int nZ = 129;
-using SC = o2::tpc::SpaceCharge<double, nZ, nR, nPhi>;
+using SC = o2::tpc::SpaceCharge<double>;
 std::unique_ptr<SC> spaceCharge;
 
 void getSpaceChargeCorrection(const int roc, const double XYZ[3], double dXdYdZ[3]);
@@ -72,6 +72,7 @@ void createTPCSpaceChargeCorrection(
   const char* outputFileName = "tpctransform.root",
   const int debug = 0)
 {
+  SC::setGrid(nZ, nR, nPhi);
   initSpaceCharge(histoFileName, histoName);
   TPCFastTransformHelperO2::instance()->setSpaceChargeCorrection(getSpaceChargeCorrection);
 

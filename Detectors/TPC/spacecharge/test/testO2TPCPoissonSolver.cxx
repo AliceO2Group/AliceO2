@@ -20,6 +20,7 @@
 #include <boost/test/unit_test.hpp>
 #include "TPCSpaceCharge/PoissonSolver.h"
 #include "TPCSpaceCharge/SpaceChargeHelpers.h"
+#include "TPCSpaceCharge/PoissonSolverHelpers.h"
 
 namespace o2
 {
@@ -30,116 +31,117 @@ using DataT = double;                       // using float actually takes alot l
 static constexpr DataT TOLERANCE = 3;       // relative tolerance for 3D (maximum large error is at phi=90 since there the potential is 0!)
 static constexpr DataT TOLERANCE2D = 8.5;   // relative tolerance for 2D TODO check why the difference between numerical and analyticial is larger than for 3D!
 static constexpr DataT ABSTOLERANCE = 0.01; // absolute tolerance is taken at small values near 0
-static constexpr int NR = 65;               // grid in r
-static constexpr int NZ = 65;               // grid in z
-static constexpr int NR2D = 129;            // grid in r
-static constexpr int NZ2D = 129;            // grid in z
-static constexpr int NPHI = 180;            // grid in phi
+static constexpr unsigned short NR = 65;    // grid in r
+static constexpr unsigned short NZ = 65;    // grid in z
+static constexpr unsigned short NPHI = 180; // grid in phi
+static constexpr unsigned short NR2D = 129; // grid in r
+static constexpr unsigned short NZ2D = 129; // grid in z
+static constexpr unsigned short NPHI2D = 1; // grid in phi
 
 /// Get phi vertex position for index in phi direction
 /// \param indexPhi index in phi direction
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
-DataT getPhiVertex(const size_t indexPhi, const o2::tpc::RegularGrid3D<DataT, Nz, Nr, Nphi>& grid)
+template <typename DataT>
+DataT getPhiVertex(const size_t indexPhi, const o2::tpc::RegularGrid3D<DataT>& grid)
 {
-  return grid.getZVertex(indexPhi);
+  return grid.getPhiVertex(indexPhi);
 }
 
 /// Get r vertex position for index in r direction
 /// \param indexR index in r direction
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
-DataT getRVertex(const size_t indexR, const o2::tpc::RegularGrid3D<DataT, Nz, Nr, Nphi>& grid)
+template <typename DataT>
+DataT getRVertex(const size_t indexR, const o2::tpc::RegularGrid3D<DataT>& grid)
 {
-  return grid.getYVertex(indexR);
+  return grid.getRVertex(indexR);
 }
 
 /// Get z vertex position for index in z direction
 /// \param indexZ index in z direction
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
-DataT getZVertex(const size_t indexZ, const o2::tpc::RegularGrid3D<DataT, Nz, Nr, Nphi>& grid)
+template <typename DataT>
+DataT getZVertex(const size_t indexZ, const o2::tpc::RegularGrid3D<DataT>& grid)
 {
-  return grid.getXVertex(indexZ);
+  return grid.getZVertex(indexZ);
 }
 
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
-void setChargeDensityFromFormula(const AnalyticalFields<DataT>& formulas, const o2::tpc::RegularGrid3D<DataT, Nz, Nr, Nphi>& grid, o2::tpc::DataContainer3D<DataT, Nz, Nr, Nphi>& density)
+template <typename DataT>
+void setChargeDensityFromFormula(const AnalyticalFields<DataT>& formulas, const o2::tpc::RegularGrid3D<DataT>& grid, o2::tpc::DataContainer3D<DataT>& density)
 {
-  for (size_t iPhi = 0; iPhi < Nphi; ++iPhi) {
-    const DataT phi = getPhiVertex<DataT, Nz, Nr, Nphi>(iPhi, grid);
-    for (size_t iR = 0; iR < Nr; ++iR) {
-      const DataT radius = getRVertex<DataT, Nz, Nr, Nphi>(iR, grid);
-      for (size_t iZ = 0; iZ < Nz; ++iZ) {
-        const DataT z = getZVertex<DataT, Nz, Nr, Nphi>(iZ, grid);
+  for (size_t iPhi = 0; iPhi < density.getNPhi(); ++iPhi) {
+    const DataT phi = getPhiVertex<DataT>(iPhi, grid);
+    for (size_t iR = 0; iR < density.getNR(); ++iR) {
+      const DataT radius = getRVertex<DataT>(iR, grid);
+      for (size_t iZ = 0; iZ < density.getNZ(); ++iZ) {
+        const DataT z = getZVertex<DataT>(iZ, grid);
         density(iZ, iR, iPhi) = formulas.evalDensity(z, radius, phi);
       }
     }
   }
 }
 
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
-void setPotentialFromFormula(const AnalyticalFields<DataT>& formulas, const o2::tpc::RegularGrid3D<DataT, Nz, Nr, Nphi>& grid, o2::tpc::DataContainer3D<DataT, Nz, Nr, Nphi>& potential)
+template <typename DataT>
+void setPotentialFromFormula(const AnalyticalFields<DataT>& formulas, const o2::tpc::RegularGrid3D<DataT>& grid, o2::tpc::DataContainer3D<DataT>& potential)
 {
-  for (size_t iPhi = 0; iPhi < Nphi; ++iPhi) {
-    const DataT phi = getPhiVertex<DataT, Nz, Nr, Nphi>(iPhi, grid);
-    for (size_t iR = 0; iR < Nr; ++iR) {
-      const DataT radius = getRVertex<DataT, Nz, Nr, Nphi>(iR, grid);
-      for (size_t iZ = 0; iZ < Nz; ++iZ) {
-        const DataT z = getZVertex<DataT, Nz, Nr, Nphi>(iZ, grid);
+  for (size_t iPhi = 0; iPhi < potential.getNPhi(); ++iPhi) {
+    const DataT phi = getPhiVertex<DataT>(iPhi, grid);
+    for (size_t iR = 0; iR < potential.getNR(); ++iR) {
+      const DataT radius = getRVertex<DataT>(iR, grid);
+      for (size_t iZ = 0; iZ < potential.getNZ(); ++iZ) {
+        const DataT z = getZVertex<DataT>(iZ, grid);
         potential(iZ, iR, iPhi) = formulas.evalPotential(z, radius, phi);
       }
     }
   }
 }
 
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
-void setPotentialBoundaryFromFormula(const AnalyticalFields<DataT>& formulas, const o2::tpc::RegularGrid3D<DataT, Nz, Nr, Nphi>& grid, o2::tpc::DataContainer3D<DataT, Nz, Nr, Nphi>& potential)
+template <typename DataT>
+void setPotentialBoundaryFromFormula(const AnalyticalFields<DataT>& formulas, const o2::tpc::RegularGrid3D<DataT>& grid, o2::tpc::DataContainer3D<DataT>& potential)
 {
-  for (size_t iPhi = 0; iPhi < Nphi; ++iPhi) {
-    const DataT phi = getPhiVertex<DataT, Nz, Nr, Nphi>(iPhi, grid);
-    for (size_t iZ = 0; iZ < Nz; ++iZ) {
-      const DataT z = getZVertex<DataT, Nz, Nr, Nphi>(iZ, grid);
+  for (size_t iPhi = 0; iPhi < potential.getNPhi(); ++iPhi) {
+    const DataT phi = getPhiVertex<DataT>(iPhi, grid);
+    for (size_t iZ = 0; iZ < potential.getNZ(); ++iZ) {
+      const DataT z = getZVertex<DataT>(iZ, grid);
       const size_t iR = 0;
-      const DataT radius = getRVertex<DataT, Nz, Nr, Nphi>(iR, grid);
+      const DataT radius = getRVertex<DataT>(iR, grid);
       potential(iZ, iR, iPhi) = formulas.evalPotential(z, radius, phi);
     }
   }
 
-  for (size_t iPhi = 0; iPhi < Nphi; ++iPhi) {
-    const DataT phi = getPhiVertex<DataT, Nz, Nr, Nphi>(iPhi, grid);
-    for (size_t iZ = 0; iZ < Nz; ++iZ) {
-      const DataT z = getZVertex<DataT, Nz, Nr, Nphi>(iZ, grid);
-      const size_t iR = Nr - 1;
-      const DataT radius = getRVertex<DataT, Nz, Nr, Nphi>(iR, grid);
+  for (size_t iPhi = 0; iPhi < potential.getNPhi(); ++iPhi) {
+    const DataT phi = getPhiVertex<DataT>(iPhi, grid);
+    for (size_t iZ = 0; iZ < potential.getNZ(); ++iZ) {
+      const DataT z = getZVertex<DataT>(iZ, grid);
+      const size_t iR = potential.getNR() - 1;
+      const DataT radius = getRVertex<DataT>(iR, grid);
       potential(iZ, iR, iPhi) = formulas.evalPotential(z, radius, phi);
     }
   }
 
-  for (size_t iPhi = 0; iPhi < Nphi; ++iPhi) {
-    const DataT phi = getPhiVertex<DataT, Nz, Nr, Nphi>(iPhi, grid);
-    for (size_t iR = 0; iR < Nr; ++iR) {
-      const DataT radius = getRVertex<DataT, Nz, Nr, Nphi>(iR, grid);
+  for (size_t iPhi = 0; iPhi < potential.getNPhi(); ++iPhi) {
+    const DataT phi = getPhiVertex<DataT>(iPhi, grid);
+    for (size_t iR = 0; iR < potential.getNR(); ++iR) {
+      const DataT radius = getRVertex<DataT>(iR, grid);
       const size_t iZ = 0;
-      const DataT z = getZVertex<DataT, Nz, Nr, Nphi>(iZ, grid);
+      const DataT z = getZVertex<DataT>(iZ, grid);
       potential(iZ, iR, iPhi) = formulas.evalPotential(z, radius, phi);
     }
   }
 
-  for (size_t iPhi = 0; iPhi < Nphi; ++iPhi) {
-    const DataT phi = getPhiVertex<DataT, Nz, Nr, Nphi>(iPhi, grid);
-    for (size_t iR = 0; iR < Nr; ++iR) {
-      const DataT radius = getRVertex<DataT, Nz, Nr, Nphi>(iR, grid);
-      const size_t iZ = Nz - 1;
-      const DataT z = getZVertex<DataT, Nz, Nr, Nphi>(iZ, grid);
+  for (size_t iPhi = 0; iPhi < potential.getNPhi(); ++iPhi) {
+    const DataT phi = getPhiVertex<DataT>(iPhi, grid);
+    for (size_t iR = 0; iR < potential.getNR(); ++iR) {
+      const DataT radius = getRVertex<DataT>(iR, grid);
+      const size_t iZ = potential.getNZ() - 1;
+      const DataT z = getZVertex<DataT>(iZ, grid);
       potential(iZ, iR, iPhi) = formulas.evalPotential(z, radius, phi);
     }
   }
 }
 
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
-void testAlmostEqualArray(o2::tpc::DataContainer3D<DataT, Nz, Nr, Nphi>& analytical, o2::tpc::DataContainer3D<DataT, Nz, Nr, Nphi>& numerical)
+template <typename DataT>
+void testAlmostEqualArray(o2::tpc::DataContainer3D<DataT>& analytical, o2::tpc::DataContainer3D<DataT>& numerical)
 {
-  for (size_t iPhi = 0; iPhi < Nphi; ++iPhi) {
-    for (size_t iR = 0; iR < Nr; ++iR) {
-      for (size_t iZ = 0; iZ < Nz; ++iZ) {
+  for (size_t iPhi = 0; iPhi < numerical.getNPhi(); ++iPhi) {
+    for (size_t iR = 0; iR < numerical.getNR(); ++iR) {
+      for (size_t iZ = 0; iZ < numerical.getNZ(); ++iZ) {
         if (std::fabs(analytical(iZ, iR, iPhi)) < ABSTOLERANCE) {
           BOOST_CHECK_SMALL(numerical(iZ, iR, iPhi) - analytical(iZ, iR, iPhi), ABSTOLERANCE);
         } else {
@@ -150,12 +152,12 @@ void testAlmostEqualArray(o2::tpc::DataContainer3D<DataT, Nz, Nr, Nphi>& analyti
   }
 }
 
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
-void testAlmostEqualArray2D(o2::tpc::DataContainer3D<DataT, Nz, Nr, Nphi>& analytical, o2::tpc::DataContainer3D<DataT, Nz, Nr, Nphi>& numerical)
+template <typename DataT>
+void testAlmostEqualArray2D(o2::tpc::DataContainer3D<DataT>& analytical, o2::tpc::DataContainer3D<DataT>& numerical)
 {
-  for (size_t iPhi = 0; iPhi < Nphi; ++iPhi) {
-    for (size_t iR = 0; iR < Nr; ++iR) {
-      for (size_t iZ = 0; iZ < Nz; ++iZ) {
+  for (size_t iPhi = 0; iPhi < numerical.getNPhi(); ++iPhi) {
+    for (size_t iR = 0; iR < numerical.getNR(); ++iR) {
+      for (size_t iZ = 0; iZ < numerical.getNZ(); ++iZ) {
         if (std::fabs(analytical(iZ, iR, iPhi)) < ABSTOLERANCE) {
           BOOST_CHECK_SMALL(numerical(iZ, iR, iPhi) - analytical(iZ, iR, iPhi), ABSTOLERANCE);
         } else {
@@ -166,77 +168,87 @@ void testAlmostEqualArray2D(o2::tpc::DataContainer3D<DataT, Nz, Nr, Nphi>& analy
   }
 }
 
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
+template <typename DataT>
 void poissonSolver3D()
 {
-  using GridProp = GridProperties<DataT, Nr, Nz, Nphi>;
-  const o2::tpc::RegularGrid3D<DataT, Nz, Nr, Nphi> grid3D{GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, GridProp::GRIDSPACINGZ, GridProp::GRIDSPACINGR, GridProp::GRIDSPACINGPHI};
+  using GridProp = GridProperties<DataT>;
+  const o2::tpc::RegularGrid3D<DataT> grid3D{GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, GridProp::getGridSpacingZ(NZ), GridProp::getGridSpacingR(NR), GridProp::getGridSpacingPhi(NPHI)};
 
-  using DataContainer = o2::tpc::DataContainer3D<DataT, Nz, Nr, Nphi>;
-  DataContainer potentialNumerical{};
-  DataContainer potentialAnalytical{};
-  DataContainer charge{};
+  using DataContainer = o2::tpc::DataContainer3D<DataT>;
+  DataContainer potentialNumerical(NZ, NR, NPHI);
+  DataContainer potentialAnalytical(NZ, NR, NPHI);
+  DataContainer charge(NZ, NR, NPHI);
 
   const o2::tpc::AnalyticalFields<DataT> analyticalFields;
   // set the boudnary and charge for numerical poisson solver
-  setChargeDensityFromFormula<DataT, Nz, Nr, Nphi>(analyticalFields, grid3D, charge);
-  setPotentialBoundaryFromFormula<DataT, Nz, Nr, Nphi>(analyticalFields, grid3D, potentialNumerical);
+  setChargeDensityFromFormula<DataT>(analyticalFields, grid3D, charge);
+  setPotentialBoundaryFromFormula<DataT>(analyticalFields, grid3D, potentialNumerical);
 
   // set analytical potential
-  setPotentialFromFormula<DataT, Nz, Nr, Nphi>(analyticalFields, grid3D, potentialAnalytical);
+  setPotentialFromFormula<DataT>(analyticalFields, grid3D, potentialAnalytical);
 
   //calculate numerical potential
-  PoissonSolver<DataT, Nz, Nr, Nphi> poissonSolver(grid3D);
+  PoissonSolver<DataT> poissonSolver(grid3D);
   const int symmetry = 0;
   poissonSolver.poissonSolver3D(potentialNumerical, charge, symmetry);
 
   // compare numerical with analytical solution of the potential
-  testAlmostEqualArray<DataT, Nz, Nr, Nphi>(potentialAnalytical, potentialNumerical);
+  testAlmostEqualArray<DataT>(potentialAnalytical, potentialNumerical);
 }
 
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
+template <typename DataT>
 void poissonSolver2D()
 {
-  using GridProp = GridProperties<DataT, Nr, Nz, Nphi>;
-  const o2::tpc::RegularGrid3D<DataT, Nz, Nr, Nphi> grid3D{GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, GridProp::GRIDSPACINGZ, GridProp::GRIDSPACINGR, GridProp::GRIDSPACINGPHI};
+  using GridProp = GridProperties<DataT>;
+  const o2::tpc::RegularGrid3D<DataT> grid3D{GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, GridProp::getGridSpacingZ(NZ2D), GridProp::getGridSpacingR(NR2D), GridProp::getGridSpacingPhi(NPHI2D)};
 
-  using DataContainer = o2::tpc::DataContainer3D<DataT, Nz, Nr, Nphi>;
-  DataContainer potentialNumerical{};
-  DataContainer potentialAnalytical{};
-  DataContainer charge{};
+  using DataContainer = o2::tpc::DataContainer3D<DataT>;
+  DataContainer potentialNumerical(NZ2D, NR2D, NPHI2D);
+  DataContainer potentialAnalytical(NZ2D, NR2D, NPHI2D);
+  DataContainer charge(NZ2D, NR2D, NPHI2D);
 
   // set the boudnary and charge for numerical poisson solver
   const o2::tpc::AnalyticalFields<DataT> analyticalFields;
-  setChargeDensityFromFormula<DataT, Nz, Nr, Nphi>(analyticalFields, grid3D, charge);
-  setPotentialBoundaryFromFormula<DataT, Nz, Nr, Nphi>(analyticalFields, grid3D, potentialNumerical);
+  setChargeDensityFromFormula<DataT>(analyticalFields, grid3D, charge);
+  setPotentialBoundaryFromFormula<DataT>(analyticalFields, grid3D, potentialNumerical);
 
   // set analytical potential
-  setPotentialFromFormula<DataT, Nz, Nr, Nphi>(analyticalFields, grid3D, potentialAnalytical);
+  setPotentialFromFormula<DataT>(analyticalFields, grid3D, potentialAnalytical);
 
   //calculate numerical potential
-  PoissonSolver<DataT, Nz, Nr, Nphi> poissonSolver(grid3D);
+  PoissonSolver<DataT> poissonSolver(grid3D);
   poissonSolver.poissonSolver2D(potentialNumerical, charge);
 
   // compare numerical with analytical solution of the potential
-  testAlmostEqualArray2D<DataT, Nz, Nr, Nphi>(potentialAnalytical, potentialNumerical);
+  testAlmostEqualArray2D<DataT>(potentialAnalytical, potentialNumerical);
 }
 
 BOOST_AUTO_TEST_CASE(PoissonSolver3D_test)
 {
   o2::tpc::MGParameters::isFull3D = true; //3D
-  poissonSolver3D<DataT, NZ, NR, NPHI>();
+
+  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NZVertices", NZ);
+  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NRVertices", NR);
+  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NPhiVertices", NPHI);
+
+  poissonSolver3D<DataT>();
 }
 
 BOOST_AUTO_TEST_CASE(PoissonSolver3D2D_test)
 {
   o2::tpc::MGParameters::isFull3D = false; // 3D2D
-  poissonSolver3D<DataT, NZ, NR, NPHI>();
+  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NZVertices", NZ);
+  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NRVertices", NR);
+  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NPhiVertices", NPHI);
+  poissonSolver3D<DataT>();
 }
 
 BOOST_AUTO_TEST_CASE(PoissonSolver2D_test)
 {
-  const int Nphi = 1;
-  poissonSolver2D<DataT, NZ2D, NR2D, Nphi>();
+  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NZVertices", NZ2D);
+  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NRVertices", NR2D);
+  o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NPhiVertices", NPHI2D);
+  poissonSolver2D<DataT>();
 }
 
 } // namespace tpc
