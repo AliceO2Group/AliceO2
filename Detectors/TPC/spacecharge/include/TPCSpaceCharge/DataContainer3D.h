@@ -23,6 +23,7 @@
 #include "Rtypes.h"
 #include "Framework/Logger.h"
 #include <iomanip>
+#include <vector>
 
 namespace o2
 {
@@ -33,14 +34,17 @@ namespace tpc
 /// The DataContainer3D class represents a simple method to store values on a large 3-Dim grid with ROOT io functionality.
 
 /// \tparam DataT the type of data which is used during the calculations
-/// \tparam Nx number of values in x direction
-/// \tparam Ny number of values in y direction
-/// \tparam Nz number of values in z direction
-template <typename DataT = double, unsigned int Nx = 129, unsigned int Ny = 129, unsigned int Nz = 180>
+template <typename DataT = double>
 struct DataContainer3D {
 
-  ///< default constructor
-  DataContainer3D() : mData(FN){};
+  ///< constructor
+  /// \param nZ number of vertices in z direction
+  /// \param nR number of vertices in r direction
+  /// \param nPhi number of vertices in phi direction
+  DataContainer3D(unsigned short nZ, unsigned short nR, unsigned short nPhi) : mZVertices{nZ}, mRVertices{nR}, mPhiVertices{nPhi}, mData(nZ * nR * nPhi){};
+
+  ///< default constructor for Root I/O
+  DataContainer3D() = default;
 
   /// operator to directly access the values
   const DataT& operator[](size_t i) const { return mData[i]; }
@@ -73,23 +77,23 @@ struct DataContainer3D {
   /// \param iy index in y dimension
   /// \param iz index in z dimension
   /// \return returns the index to the data
-  static constexpr size_t getDataIndex(const size_t ix, const size_t iy, const size_t iz)
+  size_t getDataIndex(const size_t ix, const size_t iy, const size_t iz) const
   {
-    const size_t index = ix + Nx * (iy + iz * Ny);
+    const size_t index = ix + mZVertices * (iy + iz * mRVertices);
     return index;
   }
 
   /// \return returns the number of values stored
-  static constexpr size_t getNDataPoints() { return FN; }
+  size_t getNDataPoints() const { return mData.size(); }
 
   /// \return returns the number of x vertices
-  static constexpr size_t getNX() { return Nx; }
+  unsigned short getNZ() const { return mZVertices; }
 
   /// \return returns the number of y vertices
-  static constexpr size_t getNY() { return Ny; }
+  unsigned short getNR() const { return mRVertices; }
 
   /// \return returns the number of z vertices
-  static constexpr size_t getNZ() { return Nz; }
+  unsigned short getNPhi() const { return mPhiVertices; }
 
   /// write this object to a file
   /// \param outf object is written to this file
@@ -100,14 +104,16 @@ struct DataContainer3D {
   bool initFromFile(TFile& inpf, const char* name = "data");
 
   /// get pointer to object from file
-  inline static DataContainer3D<DataT, Nx, Ny, Nz>* loadFromFile(TFile& inpf, const char* name = "data");
+  inline static DataContainer3D<DataT>* loadFromFile(TFile& inpf, const char* name = "data");
 
   /// print the matrix
   void print() const;
 
  private:
-  static constexpr size_t FN{Nx * Ny * Nz}; ///< number of values stored in the container
-  std::vector<DataT> mData;                 ///< storage for the data
+  unsigned short mZVertices{};   ///< number of z vertices
+  unsigned short mRVertices{};   ///< number of r vertices
+  unsigned short mPhiVertices{}; ///< number of phi vertices
+  std::vector<DataT> mData{};    ///< storage for the data
 
   ClassDefNV(DataContainer3D, 1)
 };
@@ -118,47 +124,55 @@ struct DataContainer3D {
 /// ========================================================================================================
 ///
 
-template <typename DataT, unsigned int Nx, unsigned int Ny, unsigned int Nz>
-int DataContainer3D<DataT, Nx, Ny, Nz>::writeToFile(TFile& outf, const char* name) const
+template <typename DataT>
+int DataContainer3D<DataT>::writeToFile(TFile& outf, const char* name) const
 {
   if (outf.IsZombie()) {
     LOGP(ERROR, "Failed to write to file: {}", outf.GetName());
     return -1;
   }
-  outf.WriteObjectAny(this, DataContainer3D<DataT, Nx, Ny, Nz>::Class(), name);
+  outf.WriteObjectAny(this, DataContainer3D<DataT>::Class(), name);
   return 0;
 }
 
 /// set values from file
-template <typename DataT, unsigned int Nx, unsigned int Ny, unsigned int Nz>
-bool DataContainer3D<DataT, Nx, Ny, Nz>::initFromFile(TFile& inpf, const char* name)
+template <typename DataT>
+bool DataContainer3D<DataT>::initFromFile(TFile& inpf, const char* name)
 {
   if (inpf.IsZombie()) {
     LOGP(ERROR, "Failed to read from file: {}", inpf.GetName());
     return false;
   }
-  DataContainer3D<DataT, Nx, Ny, Nz>* dataCont{nullptr};
+  DataContainer3D<DataT>* dataCont{nullptr};
+  dataCont = reinterpret_cast<DataContainer3D<DataT>*>(inpf.GetObjectChecked(name, DataContainer3D<DataT>::Class()));
 
-  dataCont = reinterpret_cast<DataContainer3D<DataT, Nx, Ny, Nz>*>(inpf.GetObjectChecked(name, DataContainer3D<DataT, Nx, Ny, Nz>::Class()));
   if (!dataCont) {
     LOGP(ERROR, "Failed to load {} from {}", name, inpf.GetName());
     return false;
   }
+
+  if (mZVertices != dataCont->getNZ() || mRVertices != dataCont->getNR() || mPhiVertices != dataCont->getNPhi()) {
+    LOGP(ERROR, "Data from input file has different definition of vertices!");
+    LOGP(ERROR, "set vertices before creating the sc object to: SpaceCharge<>::setGrid({}, {}, {})", dataCont->getNZ(), dataCont->getNR(), dataCont->getNPhi());
+    delete dataCont;
+    return false;
+  }
+
   mData = dataCont->mData;
   delete dataCont;
   return true;
 }
 
-template <typename DataT, unsigned int Nx, unsigned int Ny, unsigned int Nz>
-DataContainer3D<DataT, Nx, Ny, Nz>* DataContainer3D<DataT, Nx, Ny, Nz>::loadFromFile(TFile& inpf, const char* name)
+template <typename DataT>
+DataContainer3D<DataT>* DataContainer3D<DataT>::loadFromFile(TFile& inpf, const char* name)
 {
   if (inpf.IsZombie()) {
     LOGP(ERROR, "Failed to read from file {}", inpf.GetName());
     return nullptr;
   }
-  DataContainer3D<DataT, Nx, Ny, Nz>* dataCont{nullptr};
+  DataContainer3D<DataT>* dataCont{nullptr};
 
-  dataCont = reinterpret_cast<DataContainer3D<DataT, Nx, Ny, Nz>*>(inpf.GetObjectChecked(name, DataContainer3D<DataT, Nx, Ny, Nz>::Class()));
+  dataCont = reinterpret_cast<DataContainer3D<DataT>*>(inpf.GetObjectChecked(name, DataContainer3D<DataT>::Class()));
   if (!dataCont) {
     LOGP(ERROR, "Failed to load {} from {}", name, inpf.GetName());
     return nullptr;
@@ -166,34 +180,34 @@ DataContainer3D<DataT, Nx, Ny, Nz>* DataContainer3D<DataT, Nx, Ny, Nz>::loadFrom
   return dataCont;
 }
 
-template <typename DataT, unsigned int Nx, unsigned int Ny, unsigned int Nz>
-void DataContainer3D<DataT, Nx, Ny, Nz>::print() const
+template <typename DataT>
+void DataContainer3D<DataT>::print() const
 {
   std::stringstream stream;
   stream.precision(3);
   auto&& w = std::setw(9);
   stream << std::endl;
 
-  for (unsigned int iz = 0; iz < Nz; ++iz) {
+  for (unsigned int iz = 0; iz < mPhiVertices; ++iz) {
     stream << "z layer: " << iz << "\n";
     // print top x row
     stream << "⎡" << w << (*this)(0, 0, iz);
-    for (unsigned int ix = 1; ix < Nx; ++ix) {
+    for (unsigned int ix = 1; ix < mZVertices; ++ix) {
       stream << ", " << w << (*this)(ix, 0, iz);
     }
     stream << " ⎤ \n";
 
-    for (unsigned int iy = 1; iy < Ny - 1; ++iy) {
+    for (unsigned int iy = 1; iy < mRVertices - 1; ++iy) {
       stream << "⎢" << w << (*this)(0, iy, iz);
-      for (unsigned int ix = 1; ix < Nx; ++ix) {
+      for (unsigned int ix = 1; ix < mZVertices; ++ix) {
         stream << ", " << w << (*this)(ix, iy, iz);
       }
       stream << " ⎥ \n";
     }
 
-    stream << "⎣" << w << (*this)(0, Ny - 1, iz);
-    for (unsigned int ix = 1; ix < Nx; ++ix) {
-      stream << ", " << w << (*this)(ix, Ny - 1, iz);
+    stream << "⎣" << w << (*this)(0, mRVertices - 1, iz);
+    for (unsigned int ix = 1; ix < mZVertices; ++ix) {
+      stream << ", " << w << (*this)(ix, mRVertices - 1, iz);
     }
     stream << " ⎦ \n \n";
   }
