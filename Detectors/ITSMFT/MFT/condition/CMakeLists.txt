@@ -9,12 +9,12 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MFTCondition
-               SOURCES src/MFTDCSProcessor.cxx	               
+               SOURCES src/MFTDCSProcessor.cxx
                PUBLIC_LINK_LIBRARIES O2::CCDB
-                                     O2::DetectorsCalibration
-                                     O2::DetectorsDCS				     
-				     ROOT::Minuit
-                                     Microsoft.GSL::GSL)
+               O2::DetectorsCalibration
+               O2::DetectorsDCS
+               ROOT::Minuit
+               Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(MFTCondition
                           HEADERS include/MFTCondition/MFTDCSProcessor.h
@@ -29,5 +29,5 @@ o2_add_executable(mft-dcs-workflow
                   COMPONENT_NAME condition
                   SOURCES testWorkflow/mft-dcs-data-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
-	                                O2::MFTCondition
+                                        O2::MFTCondition
                                         O2::DetectorsDCS)
