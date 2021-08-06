@@ -81,14 +81,16 @@ class DataSampling
   ///                              QC tasks.
   /// \param policiesSource        Path to configuration file.
   /// \param threads               Number of dispatcher threads, that will handle the data
-  static void GenerateInfrastructure(framework::WorkflowSpec& workflow, const std::string& policiesSource, size_t threads = 1);
+  /// \param host                  Host name. If the host or a policy machine list are empty, the policy will always be created.
+  static void GenerateInfrastructure(framework::WorkflowSpec& workflow, const std::string& policiesSource, size_t threads = 1, const std::string& host = "");
 
   /// \brief Generates data sampling infrastructure.
   /// \param workflow              DPL workflow with already declared data processors which provide data desired by
   ///                              QC tasks.
   /// \param policiesSource        boost::property_tree::ptree with the configuration
   /// \param threads               Number of dispatcher threads, that will handle the data
-  static void GenerateInfrastructure(framework::WorkflowSpec& workflow, boost::property_tree::ptree const& policies, size_t threads = 1);
+  /// \param host                  Host name. If the host or a policy machine list are empty, the policy will always be created.
+  static void GenerateInfrastructure(framework::WorkflowSpec& workflow, boost::property_tree::ptree const& policies, size_t threads = 1, const std::string& host = "");
   /// \brief Configures dispatcher to consume any data immediately.
   static void CustomizeInfrastructure(std::vector<framework::CompletionPolicy>&);
   /// \brief Applies blocking/nonblocking data sampling configuration to the workflow.
@@ -114,7 +116,7 @@ class DataSampling
   static std::vector<std::string> MachinesForPolicy(const std::string& policiesSource, const std::string& policyName);
 
  private:
-  static void DoGenerateInfrastructure(Dispatcher&, framework::WorkflowSpec& workflow, boost::property_tree::ptree const& policies, size_t threads = 1);
+  static void DoGenerateInfrastructure(Dispatcher&, framework::WorkflowSpec& workflow, boost::property_tree::ptree const& policies, size_t threads = 1, const std::string& host = "");
   // Internal functions, used by GenerateInfrastructure()
   static std::string createDispatcherName();
 };
