@@ -61,10 +61,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     srcTRD = GTrackID::getSourcesMask("TPC");
   }
   o2::framework::WorkflowSpec specs;
-  bool useMC = false;
-  if (!configcontext.options().get<bool>("disable-mc") && !useMC) {
-    LOG(WARNING) << "MC is not disabled, although it is not yet supported by the workflow. It is forced off.";
-  }
+  bool useMC = !configcontext.options().get<bool>("disable-mc");
 
   // processing devices
   specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive, strict));

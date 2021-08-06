@@ -240,7 +240,7 @@ struct RecoContainer {
   void addITSClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addTPCClusters(o2::framework::ProcessingContext& pc, bool mc, bool shmap);
   void addTOFClusters(o2::framework::ProcessingContext& pc, bool mc);
-  void addTRDTracklets(o2::framework::ProcessingContext& pc);
+  void addTRDTracklets(o2::framework::ProcessingContext& pc, bool mc);
 
   void addFT0RecPoints(o2::framework::ProcessingContext& pc, bool mc);
 
@@ -385,6 +385,8 @@ struct RecoContainer {
   {
     return getSpan<o2::trd::TrackTriggerRecord>(GTrackID::ITSTPCTRD, TRACKREFS);
   }
+  auto getITSTPCTRDTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::ITSTPCTRD, MCLABELS); }
+  auto getITSTPCTRDTrackMCLabel(GTrackID id) const { return getObject<o2::MCCompLabel>(id, MCLABELS); }
 
   // TPC-TRD
   template <class U>
@@ -401,6 +403,8 @@ struct RecoContainer {
   {
     return getSpan<o2::trd::TrackTriggerRecord>(GTrackID::TPCTRD, TRACKREFS);
   }
+  auto getTPCTRDTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::TPCTRD, MCLABELS); }
+  auto getTPCTRDTrackMCLabel(GTrackID id) const { return getObject<o2::MCCompLabel>(id, MCLABELS); }
   // TRD tracklets
   gsl::span<const o2::trd::Tracklet64> getTRDTracklets() const;
   gsl::span<const o2::trd::CalibratedTracklet> getTRDCalibratedTracklets() const;
