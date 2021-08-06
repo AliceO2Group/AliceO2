@@ -194,6 +194,7 @@ struct ALICE3pidTOFTaskQA {
     histos.add("event/colltimereso", ";TOF multiplicity;Collision time resolution (ps);Entries", HistType::kTH2F, {{100, 0, 100}, {100, 0, 2000}});
     histos.add("event/tofsignal", ";#it{p} (GeV/#it{c});TOF Signal", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {10000, 0, 2e6}});
     makelogaxis(histos.get<TH2>(HIST("event/tofsignal")));
+    histos.add("event/pexp", ";#it{p} (GeV/#it{c});TOF Signal", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {nBinsP, 0, 10}});
     histos.add("event/eta", ";#it{#eta};Entries", HistType::kTH1F, {{100, -2, 2}});
     histos.add("event/length", ";Track length (cm);Entries", HistType::kTH1F, {{100, 0, 500}});
     histos.add("event/pt", ";#it{p}_{T} (GeV/#it{c});Entries", HistType::kTH1F, {{nBinsP, MinP, MaxP}});
@@ -257,6 +258,7 @@ struct ALICE3pidTOFTaskQA {
 
       //
       histos.fill(HIST("event/tofsignal"), t.p(), t.tofSignal());
+      histos.fill(HIST("event/pexp"), t.p(), t.tofExpMom());
       histos.fill(HIST("event/eta"), t.eta());
       histos.fill(HIST("event/length"), t.length());
       histos.fill(HIST("event/pt"), t.pt());
