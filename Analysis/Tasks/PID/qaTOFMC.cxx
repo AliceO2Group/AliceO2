@@ -9,6 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+///
+/// \file   qaTOFMC.cxx
+/// \author Nicolo' Jacazio
+/// \brief  Task to produce QA output of the PID with TOF running on the MC.
+///
+
 // O2 includes
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
@@ -64,9 +70,14 @@ struct pidTOFTaskQA {
   static constexpr int PDGs[Np] = {11, 13, 211, 321, 2212, 1000010020, 1000010030, 1000020030};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
+  Configurable<int> checkPrimaries{"checkPrimaries", 1,
+                                   "Whether to check physical primary and secondaries particles for the resolution."};
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
   Configurable<float> minP{"minP", 0.1, "Minimum momentum in range"};
   Configurable<float> maxP{"maxP", 5, "Maximum momentum in range"};
+  Configurable<int> nBinsNsigma{"nBinsNsigma", 2000, "Number of bins for the momentum"};
+  Configurable<float> minNsigma{"minP", -30.f, "Minimum momentum in range"};
+  Configurable<float> maxNsigma{"maxP", 30.f, "Maximum momentum in range"};
   Configurable<float> minEta{"minEta", -0.8, "Minimum eta in range"};
   Configurable<float> maxEta{"maxEta", 0.8, "Maximum eta in range"};
   Configurable<int> nMinNumberOfContributors{"nMinNumberOfContributors", 2, "Minimum required number of contributors to the vertex"};
@@ -91,41 +102,53 @@ struct pidTOFTaskQA {
   }
 
   template <uint8_t i>
-  void addParticleHistos()
+  void addParticleHistos(AxisSpec& const axisP, AxisSpec& const nBinsNsigma)
   {
     // NSigma
-    histos.add(hnsigmaMC[i].data(), Form("True %s;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i], pT[pid_type]), HistType::kTH2F, {{nBinsP, minP, maxP}, {2000, -30, 30}});
+    histos.add(hnsigmaMC[i].data(), Form("True %s", pT[i]), HistType::kTH2F, {ptAxis, nSigmaAxis});
     makelogaxis(histos.get<TH2>(HIST(hnsigmaMC[i])));
-    histos.add(hnsigmaMCprm[i].data(), Form("True Primary %s;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i], pT[pid_type]), HistType::kTH2F, {{nBinsP, minP, maxP}, {2000, -30, 30}});
+    if (!checkPrimaries) {
+      return;
+    }
+    histos.add(hnsigmaMCprm[i].data(), Form("True Primary %s", pT[i]), HistType::kTH2F, {ptAxis, nSigmaAxis});
     makelogaxis(histos.get<TH2>(HIST(hnsigmaMCprm[i])));
-    histos.add(hnsigmaMCsec[i].data(), Form("True Secondary %s;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i], pT[pid_type]), HistType::kTH2F, {{nBinsP, minP, maxP}, {2000, -30, 30}});
+    histos.add(hnsigmaMCsec[i].data(), Form("True Secondary %s", pT[i]), HistType::kTH2F, {ptAxis, nSigmaAxis});
     makelogaxis(histos.get<TH2>(HIST(hnsigmaMCsec[i])));
   }
 
   void init(o2::framework::InitContext&)
   {
+    const AxisSpec ptAxis{nBinsP, minP, maxP, "#it{p}_{T} (GeV/#it{c})"};
+    const AxisSpec pAxis{nBinsP, minP, maxP, "#it{p} (GeV/#it{c})"};
+    const AxisSpec nSigmaAxis{nBinsNsigma, minNsigma, maxNsigma, Form("N_{#sigma}^{TOF}(%s)", pT[pid_type])};
+    const AxisSpec betaAxis{1000, 0, 1.2, "TOF #beta"};
+
     histos.add("event/T0", ";Tracks with TOF;T0 (ps);Counts", HistType::kTH2F, {{1000, 0, 1000}, {1000, -1000, 1000}});
-    histos.add(hnsigma[pid_type].data(), Form(";#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[pid_type]), HistType::kTH2F, {{nBinsP, minP, maxP}, {2000, -30, 30}});
+    histos.add(hnsigma[pid_type].data(), pT[pid_type], HistType::kTH2F, {ptAxis, nSigmaAxis});
     makelogaxis(histos.get<TH2>(HIST(hnsigma[pid_type])));
-    histos.add(hnsigmaprm[pid_type].data(), Form("Primary;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[pid_type]), HistType::kTH2F, {{nBinsP, minP, maxP}, {2000, -30, 30}});
-    makelogaxis(histos.get<TH2>(HIST(hnsigmaprm[pid_type])));
-    histos.add(hnsigmasec[pid_type].data(), Form("Secondary;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[pid_type]), HistType::kTH2F, {{nBinsP, minP, maxP}, {2000, -30, 30}});
-    makelogaxis(histos.get<TH2>(HIST(hnsigmasec[pid_type])));
-    addParticleHistos<0>();
-    addParticleHistos<1>();
-    addParticleHistos<2>();
-    addParticleHistos<3>();
-    addParticleHistos<4>();
-    addParticleHistos<5>();
-    addParticleHistos<6>();
-    addParticleHistos<7>();
-    addParticleHistos<8>();
-    histos.add("event/tofbeta", ";#it{p}_{T} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, minP, maxP}, {1000, 0, 1.2}});
+    if (!checkPrimaries) {
+      histos.add(hnsigmaprm[pid_type].data(), Form("Primary %s", pT[pid_type]), HistType::kTH2F, {ptAxis, nSigmaAxis});
+      makelogaxis(histos.get<TH2>(HIST(hnsigmaprm[pid_type])));
+      histos.add(hnsigmasec[pid_type].data(), Form("Secondary %s", pT[pid_type]), HistType::kTH2F, {ptAxis, nSigmaAxis});
+      makelogaxis(histos.get<TH2>(HIST(hnsigmasec[pid_type])));
+    }
+    addParticleHistos<0>(ptAxis, nSigmaAxis);
+    addParticleHistos<1>(ptAxis, nSigmaAxis);
+    addParticleHistos<2>(ptAxis, nSigmaAxis);
+    addParticleHistos<3>(ptAxis, nSigmaAxis);
+    addParticleHistos<4>(ptAxis, nSigmaAxis);
+    addParticleHistos<5>(ptAxis, nSigmaAxis);
+    addParticleHistos<6>(ptAxis, nSigmaAxis);
+    addParticleHistos<7>(ptAxis, nSigmaAxis);
+    addParticleHistos<8>(ptAxis, nSigmaAxis);
+    histos.add("event/tofbeta", pT[pid_type], HistType::kTH2F, {pAxis, betaAxis});
     makelogaxis(histos.get<TH2>(HIST("event/tofbeta")));
-    histos.add("event/tofbetaPrm", ";#it{p}_{T} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, minP, maxP}, {1000, 0, 1.2}});
-    makelogaxis(histos.get<TH2>(HIST("event/tofbetaPrm")));
-    histos.add("event/tofbetaSec", ";#it{p}_{T} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, minP, maxP}, {1000, 0, 1.2}});
-    makelogaxis(histos.get<TH2>(HIST("event/tofbetaSec")));
+    if (!checkPrimaries) {
+      histos.add("event/tofbetaPrm", Form("Primary %s", pT[pid_type]), HistType::kTH2F, {pAxis, betaAxis});
+      makelogaxis(histos.get<TH2>(HIST("event/tofbetaPrm")));
+      histos.add("event/tofbetaSec", Form("Secondary %s", pT[pid_type]), HistType::kTH2F, {pAxis, betaAxis});
+      makelogaxis(histos.get<TH2>(HIST("event/tofbetaSec")));
+    }
   }
 
   template <uint8_t pidIndex, typename T, typename TT>
