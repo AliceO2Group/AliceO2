@@ -332,6 +332,7 @@ class GPUDisplay
   vecpod<int> mTRDTrackIds;
   vecpod<bool> mITSStandaloneTracks;
   std::vector<bool> mTrackFilter;
+  bool mUpdateTrackFilter = false;
 
   int mGlDLrecent = 0;
   volatile int mUpdateDLList = 0;

@@ -107,6 +107,9 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam_internal()
   if (global.constBz) {
     configGRP.constBz = global.constBz;
   }
+  if (global.gpuDisplayfilterMacro != "") {
+    configDisplay.filterMacros.emplace_back(global.gpuDisplayfilterMacro);
+  }
   if (configReconstruction.tpc.trackReferenceX == 1000.f) {
     configReconstruction.tpc.trackReferenceX = 83.f;
   }

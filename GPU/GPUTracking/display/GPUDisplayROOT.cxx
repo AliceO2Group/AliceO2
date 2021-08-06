@@ -28,11 +28,14 @@ int GPUDisplay::buildTrackFilter()
   if (!mCfgH.trackFilter) {
     return 0;
   }
-  std::string name = "displayTrackFilter/";
-  name += mConfig.filterMacros[mCfgH.trackFilter - 1];
-  if (gROOT->LoadMacro(name.c_str())) {
-    GPUError("Error loading trackFilter macro %s", name.c_str());
-    return 1;
+  if (mUpdateTrackFilter) {
+    std::string name = "displayTrackFilter/";
+    name += mConfig.filterMacros[mCfgH.trackFilter - 1];
+    gROOT->Reset();
+    if (gROOT->LoadMacro(name.c_str())) {
+      GPUError("Error loading trackFilter macro %s", name.c_str());
+      return 1;
+    }
   }
   TMethodCall call;
   call.InitWithPrototype("gpuDisplayTrackFilter", "std::vector<bool>*, const o2::gpu::GPUTrackingInOutPointers*, const o2::gpu::GPUConstantMem*");

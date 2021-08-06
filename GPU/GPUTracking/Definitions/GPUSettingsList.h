@@ -404,6 +404,7 @@ AddOption(allocateOutputOnTheFly, bool, true, "", 0, "Allocate shm output buffer
 AddOption(outputBufferSize, unsigned long, 200000000ul, "", 0, "Size of the output buffers to be allocated")
 AddOption(mutexMemReg, bool, false, "", 0, "Global mutex to serialize GPU memory registration")
 AddOption(printSettings, int, 0, "", 0, "Print all settings", def(1))
+AddOption(gpuDisplayfilterMacro, std::string, "", "", 0, "File name of ROOT macro for GPU display filter")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE

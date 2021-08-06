@@ -34,7 +34,7 @@
 // define number of bins in r, rphi, z for the lookup tables
 // o2::tpc::SpaceCharge<double, nZ, nR, nPhi>
 // for valid values see the definitions in TPCSpacechargeLinkDef.h
-using SC = o2::tpc::SpaceCharge<double, 129, 129, 180>;
+using SC = o2::tpc::SpaceCharge<double>;
 SC* sc = nullptr;
 
 using namespace o2::tpc;

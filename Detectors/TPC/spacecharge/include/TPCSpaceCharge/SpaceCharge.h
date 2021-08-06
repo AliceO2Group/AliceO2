@@ -19,21 +19,15 @@
 #define ALICEO2_TPC_SPACECHARGE_H_
 
 #include "TPCSpaceCharge/TriCubic.h"
-#include "TPCSpaceCharge/PoissonSolver.h"
 #include "TPCSpaceCharge/SpaceChargeHelpers.h"
+#include "TPCSpaceCharge/PoissonSolverHelpers.h"
 #include "TPCSpaceCharge/RegularGrid3D.h"
 #include "TPCSpaceCharge/DataContainer3D.h"
-
-#include "TPCBase/ParameterGas.h"
-#include "Field/MagneticField.h"
-#include "TGeoGlobalMagField.h"
-
+#include "TPCSpaceCharge/SpaceChargeParameter.h"
 #include "DataFormatsTPC/Defs.h"
-#include "Framework/Logger.h"
 
-// Root includes
-#include "TF1.h" /// for numerical intergration only
-#include "TH3.h"
+class TH3;
+class TH3D;
 
 namespace o2
 {
@@ -49,17 +43,23 @@ namespace tpc
 /// \tparam Nz number of vertices in z direction
 /// \tparam Nr number of vertices in r direction
 /// \tparam Nphi number of vertices in phi direction
-template <typename DataT = double, size_t Nz = 129, size_t Nr = 129, size_t Nphi = 180>
+template <typename DataT = double>
 class SpaceCharge
 {
-  using RegularGrid = RegularGrid3D<DataT, Nz, Nr, Nphi>;
-  using DataContainer = DataContainer3D<DataT, Nz, Nr, Nphi>;
-  using GridProp = GridProperties<DataT, Nz, Nr, Nphi>;
-  using TriCubic = TriCubicInterpolator<DataT, Nz, Nr, Nphi>;
+  using RegularGrid = RegularGrid3D<DataT>;
+  using DataContainer = DataContainer3D<DataT>;
+  using GridProp = GridProperties<DataT>;
+  using TriCubic = TriCubicInterpolator<DataT>;
 
  public:
   /// default constructor
+  /// grid granularity has to set before constructing an object using the static function setGrid(nZVertices, nRVertices, nPhiVertices)!
   SpaceCharge() = default;
+
+  /// \param nZVertices number of vertices of the grid in z direction
+  /// \param nRVertices number of vertices of the grid in z direction
+  /// \param nPhiVertices number of vertices of the grid in z direction
+  static void setGrid(const unsigned short nZVertices, const unsigned short nRVertices, const unsigned short nPhiVertices);
 
   /// Enumerator for setting the space-charge distortion mode
   enum class SCDistortionType : int {
@@ -167,7 +167,16 @@ class SpaceCharge
   /// \param approachR when the difference between the desired r coordinate and the position of the global correction is deltaR, approach the desired r coordinate by deltaR * \p approachR.
   /// \param approachPhi when the difference between the desired phi coordinate and the position of the global correction is deltaPhi, approach the desired phi coordinate by deltaPhi * \p approachPhi.
   /// \param diffCorr if the absolute differences from the interpolated values for the global corrections from the last iteration compared to the current iteration is smaller than this value, set converged to true for current global distortion
-  void calcGlobalDistWithGlobalCorrIterative(const DistCorrInterpolator<DataT, Nz, Nr, Nphi>& globCorr, const int maxIter = 100, const DataT approachZ = 0.5, const DataT approachR = 0.5, const DataT approachPhi = 0.5, const DataT diffCorr = 1e-6);
+  void calcGlobalDistWithGlobalCorrIterative(const DistCorrInterpolator<DataT>& globCorr, const int maxIter = 100, const DataT approachZ = 0.5, const DataT approachR = 0.5, const DataT approachPhi = 0.5, const DataT diffCorr = 1e-6);
+
+  /// \return returns number of vertices in z direction
+  unsigned short getNZVertices() { return mParamGrid.NZVertices; }
+
+  /// \return returns number of vertices in r direction
+  unsigned short getNRVertices() { return mParamGrid.NRVertices; }
+
+  /// \return returns number of vertices in phi direction
+  unsigned short getNPhiVertices() { return mParamGrid.NPhiVertices; }
 
   /// get the space charge density for given coordinate
   /// \param z global z coordinate
@@ -295,34 +304,34 @@ class SpaceCharge
   void setFromFile(TFile& file, const Side side);
 
   /// Get grid spacing in r direction
-  DataT getGridSpacingR(const Side side) const { return mGrid3D[side].getSpacingY(); }
+  DataT getGridSpacingR(const Side side) const { return mGrid3D[side].getSpacingR(); }
 
   /// Get grid spacing in z direction
-  DataT getGridSpacingZ(const Side side) const { return mGrid3D[side].getSpacingX(); }
+  DataT getGridSpacingZ(const Side side) const { return mGrid3D[side].getSpacingZ(); }
 
   /// Get grid spacing in phi direction
-  DataT getGridSpacingPhi(const Side side) const { return mGrid3D[side].getSpacingZ(); }
+  DataT getGridSpacingPhi(const Side side) const { return mGrid3D[side].getSpacingPhi(); }
 
   /// Get constant electric field
   static constexpr DataT getEzField(const Side side) { return getSign(side) * (TPCParameters<DataT>::cathodev - TPCParameters<DataT>::vg1t) / TPCParameters<DataT>::TPCZ0; }
 
   /// Get inner radius of tpc
-  DataT getRMin(const Side side) const { return mGrid3D[side].getGridMinY(); }
+  DataT getRMin(const Side side) const { return mGrid3D[side].getGridMinR(); }
 
   /// Get min z position which is used during the calaculations
-  DataT getZMin(const Side side) const { return mGrid3D[side].getGridMinX(); }
+  DataT getZMin(const Side side) const { return mGrid3D[side].getGridMinZ(); }
 
   /// Get min phi
-  DataT getPhiMin(const Side side) const { return mGrid3D[side].getGridMinZ(); }
+  DataT getPhiMin(const Side side) const { return mGrid3D[side].getGridMinPhi(); }
 
   /// Get max r
-  DataT getRMax(const Side side) const { return mGrid3D[side].getGridMaxY(); };
+  DataT getRMax(const Side side) const { return mGrid3D[side].getGridMaxR(); };
 
   /// Get max z
-  DataT getZMax(const Side side) const { return mGrid3D[side].getGridMaxX(); }
+  DataT getZMax(const Side side) const { return mGrid3D[side].getGridMaxZ(); }
 
   /// Get max phi
-  DataT getPhiMax(const Side side) const { return mGrid3D[side].getGridMaxZ(); }
+  DataT getPhiMax(const Side side) const { return mGrid3D[side].getGridMaxPhi(); }
 
   // get side of TPC for z coordinate TODO rewrite this
   static Side getSide(const DataT z) { return ((z >= 0) ? Side::A : Side::C); }
@@ -332,23 +341,23 @@ class SpaceCharge
 
   /// Get struct containing interpolators for the electrical fields
   /// \param side side of the TPC
-  NumericalFields<DataT, Nz, Nr, Nphi> getElectricFieldsInterpolator(const Side side) const;
+  NumericalFields<DataT> getElectricFieldsInterpolator(const Side side) const;
 
   /// Get struct containing interpolators for local distortions dR, dZ, dPhi
   /// \param side side of the TPC
-  DistCorrInterpolator<DataT, Nz, Nr, Nphi> getLocalDistInterpolator(const Side side) const;
+  DistCorrInterpolator<DataT> getLocalDistInterpolator(const Side side) const;
 
   /// Get struct containing interpolators for local corrections dR, dZ, dPhi
   /// \param side side of the TPC
-  DistCorrInterpolator<DataT, Nz, Nr, Nphi> getLocalCorrInterpolator(const Side side) const;
+  DistCorrInterpolator<DataT> getLocalCorrInterpolator(const Side side) const;
 
   /// Get struct containing interpolators for global distortions dR, dZ, dPhi
   /// \param side side of the TPC
-  DistCorrInterpolator<DataT, Nz, Nr, Nphi> getGlobalDistInterpolator(const Side side) const;
+  DistCorrInterpolator<DataT> getGlobalDistInterpolator(const Side side) const;
 
   /// Get struct containing interpolators for global corrections dR, dZ, dPhi
   /// \param side side of the TPC
-  DistCorrInterpolator<DataT, Nz, Nr, Nphi> getGlobalCorrInterpolator(const Side side) const;
+  DistCorrInterpolator<DataT> getGlobalCorrInterpolator(const Side side) const;
 
   /// \param iz vertex in z dimension
   /// \param ir vertex in r dimension
@@ -516,15 +525,15 @@ class SpaceCharge
 
   /// Get phi vertex position for index in phi direction
   /// \param indexPhi index in phi direction
-  DataT getPhiVertex(const size_t indexPhi, const Side side) const { return mGrid3D[side].getZVertex(indexPhi); }
+  DataT getPhiVertex(const size_t indexPhi, const Side side) const { return mGrid3D[side].getPhiVertex(indexPhi); }
 
   /// Get r vertex position for index in r direction
   /// \param indexR index in r direction
-  DataT getRVertex(const size_t indexR, const Side side) const { return mGrid3D[side].getYVertex(indexR); }
+  DataT getRVertex(const size_t indexR, const Side side) const { return mGrid3D[side].getRVertex(indexR); }
 
   /// Get z vertex position for index in z direction
   /// \param indexZ index in z direction
-  DataT getZVertex(const size_t indexZ, const Side side) const { return mGrid3D[side].getXVertex(indexZ); }
+  DataT getZVertex(const size_t indexZ, const Side side) const { return mGrid3D[side].getZVertex(indexZ); }
 
   /// \param omegaTau \omega \tau value
   /// \param t1 value for t1 see: ???
@@ -558,7 +567,7 @@ class SpaceCharge
   static void setNThreads(const int nThreads)
   {
     sNThreads = nThreads;
-    o2::tpc::TriCubicInterpolator<DataT, Nz, Nr, Nphi>::setNThreads(nThreads);
+    o2::tpc::TriCubicInterpolator<DataT>::setNThreads(nThreads);
   }
 
   /// set which kind of numerical integration is used for calcution of the integrals int Er/Ez dz, int Ephi/Ez dz, int Ez dz
@@ -582,6 +591,11 @@ class SpaceCharge
   static SCDistortionType getSCDistortionType() { return sSCDistortionType; }
 
   void setUseInitialSCDensity(const bool useInitialSCDensity) { mUseInitialSCDensity = useInitialSCDensity; }
+
+  /// write all fields etc to a file
+  /// \param outf output file
+  /// \side side of the TPC
+  void dumpToFile(TFile& outf, const Side side) const;
 
   /// write electric fields to root file
   /// \param outf output file where the electrical fields will be written to
@@ -697,10 +711,16 @@ class SpaceCharge
   /// set phi coordinate between min phi max phi
   DataT regulatePhi(const DataT posPhi, const Side side) const { return mGrid3D[side].clampToGridCircular(posPhi, 2); }
 
- private:
-  using ASolv = o2::tpc::PoissonSolver<DataT, Nz, Nr, Nphi>;
+  /// rebin the input space charge density histogram to desired binning
+  /// \param hOrig original histogram
+  /// \param nBinsZNew number of z bins of rebinned histogram
+  /// \param nBinsRNew number of r bins of rebinned histogram
+  /// \param nBinsPhiNew number of phi bins of rebinned histogram
+  static TH3D rebinDensityHisto(const TH3& hOrig, const unsigned short nBinsZNew, const unsigned short nBinsRNew, const unsigned short nBinsPhiNew);
 
-  inline static int sNThreads{omp_get_max_threads()}; ///< number of threads which are used during the calculations
+ private:
+  inline static auto& mParamGrid = ParameterSpaceCharge::Instance(); ///< parameters of the grid on which the calculations are performed
+  inline static int sNThreads{omp_get_max_threads()};                ///< number of threads which are used during the calculations
 
   inline static IntegrationStrategy sNumericalIntegrationStrategy{IntegrationStrategy::SimpsonIterative}; ///< numerical integration strategy of integration of the E-Field: 0: trapezoidal, 1: Simpson, 2: Root (only for analytical formula case)
   inline static int sSimpsonNIteratives{3};                                                               ///< number of iterations which are performed in the iterative simpson calculation of distortions/corrections
@@ -725,36 +745,36 @@ class SpaceCharge
   bool mInitLookUpTables{false};    ///< Flag to indicate if lookup tables have been calculated
 
   const RegularGrid mGrid3D[FNSIDES]{
-    {GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::A) * GridProp::GRIDSPACINGZ, GridProp::GRIDSPACINGR, GridProp::GRIDSPACINGPHI},
-    {GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::C) * GridProp::GRIDSPACINGZ, GridProp::GRIDSPACINGR, GridProp::GRIDSPACINGPHI}}; ///< grid properties
+    {GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::A) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices)},
+    {GridProp::ZMIN, GridProp::RMIN, GridProp::PHIMIN, getSign(Side::C) * GridProp::getGridSpacingZ(mParamGrid.NZVertices), GridProp::getGridSpacingR(mParamGrid.NRVertices), GridProp::getGridSpacingPhi(mParamGrid.NPhiVertices)}}; ///< grid properties
 
-  DataContainer mLocalDistdR[FNSIDES]{};    ///< data storage for local distortions dR
-  DataContainer mLocalDistdZ[FNSIDES]{};    ///< data storage for local distortions dZ
-  DataContainer mLocalDistdRPhi[FNSIDES]{}; ///< data storage for local distortions dRPhi
+  DataContainer mLocalDistdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for local distortions dR
+  DataContainer mLocalDistdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for local distortions dZ
+  DataContainer mLocalDistdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)}; ///< data storage for local distortions dRPhi
 
   // local distortion vectors.
-  DataContainer mLocalVecDistdR[FNSIDES]{};    ///< data storage for local distortions vector dR
-  DataContainer mLocalVecDistdZ[FNSIDES]{};    ///< data storage for local distortions vector dZ
-  DataContainer mLocalVecDistdRPhi[FNSIDES]{}; ///< data storage for local distortions vector dRPhi
+  DataContainer mLocalVecDistdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for local distortions vector dR
+  DataContainer mLocalVecDistdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for local distortions vector dZ
+  DataContainer mLocalVecDistdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)}; ///< data storage for local distortions vector dRPhi
 
-  DataContainer mLocalCorrdR[FNSIDES]{};    ///< data storage for local corrections dR
-  DataContainer mLocalCorrdZ[FNSIDES]{};    ///< data storage for local corrections dZ
-  DataContainer mLocalCorrdRPhi[FNSIDES]{}; ///< data storage for local corrections dRPhi
+  DataContainer mLocalCorrdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for local corrections dR
+  DataContainer mLocalCorrdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for local corrections dZ
+  DataContainer mLocalCorrdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)}; ///< data storage for local corrections dRPhi
 
-  DataContainer mGlobalDistdR[FNSIDES]{};    ///< data storage for global distortions dR
-  DataContainer mGlobalDistdZ[FNSIDES]{};    ///< data storage for global distortions dZ
-  DataContainer mGlobalDistdRPhi[FNSIDES]{}; ///< data storage for global distortions dRPhi
+  DataContainer mGlobalDistdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for global distortions dR
+  DataContainer mGlobalDistdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for global distortions dZ
+  DataContainer mGlobalDistdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)}; ///< data storage for global distortions dRPhi
 
-  DataContainer mGlobalCorrdR[FNSIDES]{};    ///< data storage for global corrections dR
-  DataContainer mGlobalCorrdZ[FNSIDES]{};    ///< data storage for global corrections dZ
-  DataContainer mGlobalCorrdRPhi[FNSIDES]{}; ///< data storage for global corrections dRPhi
+  DataContainer mGlobalCorrdR[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for global corrections dR
+  DataContainer mGlobalCorrdZ[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};    ///< data storage for global corrections dZ
+  DataContainer mGlobalCorrdRPhi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)}; ///< data storage for global corrections dRPhi
 
-  DataContainer mDensity[FNSIDES]{};   ///< data storage for space charge density
-  DataContainer mPotential[FNSIDES]{}; ///< data storage for the potential
+  DataContainer mDensity[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};   ///< data storage for space charge density
+  DataContainer mPotential[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)}; ///< data storage for the potential
 
-  DataContainer mElectricFieldEr[FNSIDES]{};   ///< data storage for the electric field Er
-  DataContainer mElectricFieldEz[FNSIDES]{};   ///< data storage for the electric field Ez
-  DataContainer mElectricFieldEphi[FNSIDES]{}; ///< data storage for the electric field Ephi
+  DataContainer mElectricFieldEr[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};   ///< data storage for the electric field Er
+  DataContainer mElectricFieldEz[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)};   ///< data storage for the electric field Ez
+  DataContainer mElectricFieldEphi[FNSIDES]{DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices), DataContainer(mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices)}; ///< data storage for the electric field Ephi
 
   TriCubic mInterpolatorPotential[FNSIDES]{
     {mPotential[Side::A], mGrid3D[Side::A]},
@@ -764,47 +784,40 @@ class SpaceCharge
     {mDensity[Side::A], mGrid3D[Side::A]},
     {mDensity[Side::C], mGrid3D[Side::C]}}; ///< interpolator for the charge
 
-  DistCorrInterpolator<DataT, Nz, Nr, Nphi> mInterpolatorGlobalCorr[FNSIDES]{
+  DistCorrInterpolator<DataT> mInterpolatorGlobalCorr[FNSIDES]{
     {mGlobalCorrdR[Side::A], mGlobalCorrdZ[Side::A], mGlobalCorrdRPhi[Side::A], mGrid3D[Side::A], Side::A},
     {mGlobalCorrdR[Side::C], mGlobalCorrdZ[Side::C], mGlobalCorrdRPhi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the global corrections
 
-  DistCorrInterpolator<DataT, Nz, Nr, Nphi> mInterpolatorLocalCorr[FNSIDES]{
+  DistCorrInterpolator<DataT> mInterpolatorLocalCorr[FNSIDES]{
     {mLocalCorrdR[Side::A], mLocalCorrdZ[Side::A], mLocalCorrdRPhi[Side::A], mGrid3D[Side::A], Side::A},
     {mLocalCorrdR[Side::C], mLocalCorrdZ[Side::C], mLocalCorrdRPhi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the local corrections
 
-  DistCorrInterpolator<DataT, Nz, Nr, Nphi> mInterpolatorGlobalDist[FNSIDES]{
+  DistCorrInterpolator<DataT> mInterpolatorGlobalDist[FNSIDES]{
     {mGlobalDistdR[Side::A], mGlobalDistdZ[Side::A], mGlobalDistdRPhi[Side::A], mGrid3D[Side::A], Side::A},
     {mGlobalDistdR[Side::C], mGlobalDistdZ[Side::C], mGlobalDistdRPhi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the global distortions
 
-  DistCorrInterpolator<DataT, Nz, Nr, Nphi> mInterpolatorLocalDist[FNSIDES]{
+  DistCorrInterpolator<DataT> mInterpolatorLocalDist[FNSIDES]{
     {mLocalDistdR[Side::A], mLocalDistdZ[Side::A], mLocalDistdRPhi[Side::A], mGrid3D[Side::A], Side::A},
     {mLocalDistdR[Side::C], mLocalDistdZ[Side::C], mLocalDistdRPhi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the local distortions
 
-  DistCorrInterpolator<DataT, Nz, Nr, Nphi> mInterpolatorLocalVecDist[FNSIDES]{
+  DistCorrInterpolator<DataT> mInterpolatorLocalVecDist[FNSIDES]{
     {mLocalVecDistdR[Side::A], mLocalVecDistdZ[Side::A], mLocalVecDistdRPhi[Side::A], mGrid3D[Side::A], Side::A},
     {mLocalVecDistdR[Side::C], mLocalVecDistdZ[Side::C], mLocalVecDistdRPhi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the local distortion vectors
 
-  NumericalFields<DataT, Nz, Nr, Nphi> mInterpolatorEField[FNSIDES]{
+  NumericalFields<DataT> mInterpolatorEField[FNSIDES]{
     {mElectricFieldEr[Side::A], mElectricFieldEz[Side::A], mElectricFieldEphi[Side::A], mGrid3D[Side::A], Side::A},
     {mElectricFieldEr[Side::C], mElectricFieldEz[Side::C], mElectricFieldEphi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the electric fields
 
-  /// rebin the input space charge density histogram to desired binning
-  /// \param hOrig original histogram
-  TH3D rebinDensityHisto(const TH3& hOrig) const;
-
-  static int getSign(const Side side)
-  {
-    return side == Side::C ? -1 : 1;
-  }
+  static int getSign(const Side side) { return side == Side::C ? -1 : 1; }
 
   /// get inverse spacing in z direction
-  DataT getInvSpacingZ(const Side side) const { return mGrid3D[side].getInvSpacingX(); }
+  DataT getInvSpacingZ(const Side side) const { return mGrid3D[side].getInvSpacingZ(); }
 
   /// get inverse spacing in r direction
-  DataT getInvSpacingR(const Side side) const { return mGrid3D[side].getInvSpacingY(); }
+  DataT getInvSpacingR(const Side side) const { return mGrid3D[side].getInvSpacingR(); }
 
   /// get inverse spacing in phi direction
-  DataT getInvSpacingPhi(const Side side) const { return mGrid3D[side].getInvSpacingZ(); }
+  DataT getInvSpacingPhi(const Side side) const { return mGrid3D[side].getInvSpacingPhi(); }
 
   std::string getSideName(const Side side) const { return side == Side::A ? "A" : "C"; }
 
@@ -838,13 +851,13 @@ class SpaceCharge
   }
 
   /// calculate distortions/corrections using electric fields from tricubic interpolator
-  void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const NumericalFields<DataT, Nz, Nr, Nphi>& formulaStruct) const
+  void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const NumericalFields<DataT>& formulaStruct) const
   {
     calcDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, formulaStruct, false);
   }
 
   /// calculate distortions/corrections by interpolation of local distortions/corrections
-  void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, [[maybe_unused]] const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const DistCorrInterpolator<DataT, Nz, Nr, Nphi>& localDistCorr) const
+  void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, [[maybe_unused]] const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const DistCorrInterpolator<DataT>& localDistCorr) const
   {
     ddR = localDistCorr.evaldR(z0Tmp, radius, phi);
     ddZ = localDistCorr.evaldZ(z0Tmp, radius, phi);
@@ -858,27 +871,9 @@ class SpaceCharge
 /// ========================================================================================================
 ///
 
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
+template <typename DataT>
 template <typename Fields>
-void SpaceCharge<DataT, Nz, Nr, Nphi>::integrateEFieldsRoot(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct) const
-{
-  const DataT ezField = getEzField(formulaStruct.getSide());
-  TF1 fErOverEz(
-    "fErOverEz", [&](double* x, double* p) { (void)p; return static_cast<double>(formulaStruct.evalEr(static_cast<DataT>(x[0]), p1r, p1phi) / (formulaStruct.evalEz(static_cast<DataT>(x[0]), p1r, p1phi) + ezField)); }, p1z, p2z, 1);
-  localIntErOverEz = static_cast<DataT>(fErOverEz.Integral(p1z, p2z));
-
-  TF1 fEphiOverEz(
-    "fEPhiOverEz", [&](double* x, double* p) { (void)p; return static_cast<double>(formulaStruct.evalEphi(static_cast<DataT>(x[0]), p1r, p1phi) / (formulaStruct.evalEz(static_cast<DataT>(x[0]), p1r, p1phi) + ezField)); }, p1z, p2z, 1);
-  localIntEPhiOverEz = static_cast<DataT>(fEphiOverEz.Integral(p1z, p2z));
-
-  TF1 fEz(
-    "fEZOverEz", [&](double* x, double* p) { (void)p; return static_cast<double>(formulaStruct.evalEz(static_cast<DataT>(x[0]), p1r, p1phi) - ezField); }, p1z, p2z, 1);
-  localIntDeltaEz = getSign(formulaStruct.getSide()) * static_cast<DataT>(fEz.Integral(p1z, p2z));
-}
-
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
-template <typename Fields>
-void SpaceCharge<DataT, Nz, Nr, Nphi>::integrateEFieldsTrapezoidal(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct) const
+void SpaceCharge<DataT>::integrateEFieldsTrapezoidal(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct) const
 {
   //========trapezoidal rule see: https://en.wikipedia.org/wiki/Trapezoidal_rule ==============
   const DataT fielder0 = formulaStruct.evalEr(p1z, p1r, p1phi);
@@ -899,9 +894,9 @@ void SpaceCharge<DataT, Nz, Nr, Nphi>::integrateEFieldsTrapezoidal(const DataT p
   localIntDeltaEz = getSign(formulaStruct.getSide()) * deltaX * (fieldez0 + fieldez1);
 }
 
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
+template <typename DataT>
 template <typename Fields>
-void SpaceCharge<DataT, Nz, Nr, Nphi>::integrateEFieldsSimpson(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct) const
+void SpaceCharge<DataT>::integrateEFieldsSimpson(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct) const
 {
   //==========simpsons rule see: https://en.wikipedia.org/wiki/Simpson%27s_rule =============================
   const DataT fielder0 = formulaStruct.evalEr(p1z, p1r, p1phi);
@@ -929,9 +924,9 @@ void SpaceCharge<DataT, Nz, Nr, Nphi>::integrateEFieldsSimpson(const DataT p1r, 
   localIntDeltaEz = getSign(formulaStruct.getSide()) * deltaXSimpsonSixth * (4. * ezField2 + fieldez0 + fieldez1);
 }
 
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
+template <typename DataT>
 template <typename Fields>
-void SpaceCharge<DataT, Nz, Nr, Nphi>::integrateEFieldsSimpsonIterative(const DataT p1r, const DataT p2r, const DataT p1phi, const DataT p2phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct) const
+void SpaceCharge<DataT>::integrateEFieldsSimpsonIterative(const DataT p1r, const DataT p2r, const DataT p1phi, const DataT p2phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct) const
 {
   //==========simpsons rule see: https://en.wikipedia.org/wiki/Simpson%27s_rule =============================
   const Side side = formulaStruct.getSide();
@@ -964,9 +959,9 @@ void SpaceCharge<DataT, Nz, Nr, Nphi>::integrateEFieldsSimpsonIterative(const Da
   localIntDeltaEz = getSign(side) * deltaXSimpsonSixth * (4 * ezField2 + fieldez0 + fieldez1);
 }
 
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
+template <typename DataT>
 template <typename Fields>
-void SpaceCharge<DataT, Nz, Nr, Nphi>::calcDistCorr(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& ddR, DataT& ddPhi, DataT& ddZ, const Fields& formulaStruct, const bool localDistCorr) const
+void SpaceCharge<DataT>::calcDistCorr(const DataT p1r, const DataT p1phi, const DataT p1z, const DataT p2z, DataT& ddR, DataT& ddPhi, DataT& ddZ, const Fields& formulaStruct, const bool localDistCorr) const
 {
   // see: https://edms.cern.ch/ui/file/1108138/1/ALICE-INT-2010-016.pdf
   // needed for calculation of distortions/corrections
@@ -996,14 +991,13 @@ void SpaceCharge<DataT, Nz, Nr, Nphi>::calcDistCorr(const DataT p1r, const DataT
       langevinCylindrical(ddR, ddPhi, ddZ, p1r, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz);
       break;
     default:
-      LOGP(INFO, "no matching case: Using Simpson");
       integrateEFieldsSimpson(p1r, p1phi, p1z, p2z, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz, formulaStruct);
       langevinCylindrical(ddR, ddPhi, ddZ, p1r, localIntErOverEz, localIntEPhiOverEz, localIntDeltaEz);
   }
 }
 
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
-void SpaceCharge<DataT, Nz, Nr, Nphi>::langevinCylindrical(DataT& ddR, DataT& ddPhi, DataT& ddZ, const DataT radius, const DataT localIntErOverEz, const DataT localIntEPhiOverEz, const DataT localIntDeltaEz) const
+template <typename DataT>
+void SpaceCharge<DataT>::langevinCylindrical(DataT& ddR, DataT& ddPhi, DataT& ddZ, const DataT radius, const DataT localIntErOverEz, const DataT localIntEPhiOverEz, const DataT localIntDeltaEz) const
 {
   // calculated distortions/correction with the formula described in https://edms.cern.ch/ui/file/1108138/1/ALICE-INT-2010-016.pdf page 7.
   ddR = mC0 * localIntErOverEz + mC1 * localIntEPhiOverEz;

@@ -45,6 +45,7 @@ class GPUChainTracking;
 struct GPUO2InterfaceConfiguration;
 struct GPUInterfaceOutputs;
 struct GPUTrackingOutputs;
+struct GPUConstantMem;
 
 class GPUO2Interface
 {

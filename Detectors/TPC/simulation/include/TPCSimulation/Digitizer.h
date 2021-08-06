@@ -53,7 +53,7 @@ class DigitContainer;
 class Digitizer
 {
  public:
-  using SC = SpaceCharge<double, 129, 129, 180>;
+  using SC = SpaceCharge<double>;
 
   /// Default constructor
   Digitizer() = default;
