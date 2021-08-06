@@ -222,6 +222,12 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
     std::string channelNameForSplitParts;
     static int64_t dplCounter = -1;
     dplCounter++;
+    if (filterSpecs.size() == 1 && DataSpecUtils::match(filterSpecs[0], OutputSpec{{header::gDataOriginAny, header::gDataDescriptionAny}})) {
+      // there should be only a single output channel
+      auto channelName = channelRetriever(filterSpecs[0], 0);
+      sendOnChannel(device, parts, channelName);
+      return;
+    }
     for (size_t msgidx = 0; msgidx < parts.Size() / 2; ++msgidx) {
       const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx * 2)->GetData());
       if (!dh) {
@@ -361,6 +367,17 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
     auto outputChannels = ctx.services().get<RawDeviceService>().spec().outputChannels;
     assert(device);
 
+    // for optimization we check if there is only one single output channel
+    std::string singleChannel;
+    for (auto& route : outputRoutes) {
+      if (singleChannel.empty()) {
+        singleChannel = route.channel;
+      } else if (singleChannel != route.channel) {
+        singleChannel.clear();
+        break;
+      }
+    }
+
     // check that the name used for registering the OnData callback corresponds
     // to the configured output channel, unfortunately we can not automatically
     // deduce this from list of channels without knowing the name, because there
@@ -375,9 +392,17 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
     ctx.services().get<CallbackService>().set(CallbackService::Id::Start, channelConfigurationChecker);
     // Converter should pump messages
 
-    auto dataHandler = [device, converter, outputRoutes = std::move(outputRoutes), control = &ctx.services().get<ControlService>(), outputChannels = std::move(outputChannels)](FairMQParts& inputs, int) {
-      // pass a copy of the outputRoutes
-      auto channelRetriever = [&outputRoutes](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
+    auto dataHandler = [device, converter, outputRoutes = std::move(outputRoutes), singleChannel = std::move(singleChannel), control = &ctx.services().get<ControlService>(), outputChannels = std::move(outputChannels)](FairMQParts& inputs, int) {
+      // simple retriever is used if there is only one output channel, still there can be multiple
+      // output routes, but we expect the converter to call channelRetriever only if there is
+      // a matching filter spec, thus we can skip the route checking
+      // also time slice checking can be ignored as all routes would return the
+      // one single channel
+      auto simpleRetriever = [&singleChannel](OutputSpec const&, DataProcessingHeader::StartTime) -> std::string {
+        return singleChannel;
+      };
+      // the standard retriever is checking for the matching output route
+      auto standardRetriever = [&outputRoutes](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
         for (auto& route : outputRoutes) {
           LOG(DEBUG) << "matching: " << DataSpecUtils::describe(query) << " to route " << DataSpecUtils::describe(route.matcher);
           if (DataSpecUtils::match(route.matcher, query) && ((timeslice % route.maxTimeslices) == route.timeslice)) {
@@ -386,6 +411,15 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         }
         return std::string("");
       };
+      auto assign = [](ChannelRetriever r) -> ChannelRetriever {
+        return r;
+      };
+      ChannelRetriever channelRetriever;
+      if (singleChannel.empty()) {
+        channelRetriever = assign(standardRetriever);
+      } else {
+        channelRetriever = assign(simpleRetriever);
+      }
 
       auto checkEos = [&inputs]() -> bool {
         std::string channelNameForSplitParts;
