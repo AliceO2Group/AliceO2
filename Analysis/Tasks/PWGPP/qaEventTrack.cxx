@@ -140,6 +140,10 @@ struct QaGlobalObservables {
 
 /// Task to QA the kinematic properties of the tracks
 struct QaTrackingKine {
+
+  Configurable<int> checkPrimaries{"checkPrimaries", 1,
+                                   "Whether to check physical primary and secondaries particles for the resolution."};
+
   Configurable<int> pdgCodeSel{"pdgCodeSel", 0, "PDG code of the particle to select in absolute value, 0 selects every particle"};
 
   Configurable<int> ptBins{"ptBins", 100, "Number of pT bins"};
@@ -174,25 +178,29 @@ struct QaTrackingKine {
     histos.add("tracking/eta", commonTitle + ";" + eta, kTH1D, {etaAxis});
     histos.add("tracking/phi", commonTitle + ";" + phi, kTH1D, {phiAxis});
 
-    histos.add("trackingPrm/pt", commonTitle + " Primary;" + pt, kTH1D, {ptAxis});
-    histos.add("trackingPrm/eta", commonTitle + " Primary;" + eta, kTH1D, {etaAxis});
-    histos.add("trackingPrm/phi", commonTitle + " Primary;" + phi, kTH1D, {phiAxis});
+    if (checkPrimaries) {
+      histos.add("trackingPrm/pt", commonTitle + " Primary;" + pt, kTH1D, {ptAxis});
+      histos.add("trackingPrm/eta", commonTitle + " Primary;" + eta, kTH1D, {etaAxis});
+      histos.add("trackingPrm/phi", commonTitle + " Primary;" + phi, kTH1D, {phiAxis});
 
-    histos.add("trackingSec/pt", commonTitle + " Secondary;" + pt, kTH1D, {ptAxis});
-    histos.add("trackingSec/eta", commonTitle + " Secondary;" + eta, kTH1D, {etaAxis});
-    histos.add("trackingSec/phi", commonTitle + " Secondary;" + phi, kTH1D, {phiAxis});
+      histos.add("trackingSec/pt", commonTitle + " Secondary;" + pt, kTH1D, {ptAxis});
+      histos.add("trackingSec/eta", commonTitle + " Secondary;" + eta, kTH1D, {etaAxis});
+      histos.add("trackingSec/phi", commonTitle + " Secondary;" + phi, kTH1D, {phiAxis});
+    }
 
     histos.add("particle/pt", commonTitle + ";" + pt, kTH1D, {ptAxis});
     histos.add("particle/eta", commonTitle + ";" + eta, kTH1D, {etaAxis});
     histos.add("particle/phi", commonTitle + ";" + phi, kTH1D, {phiAxis});
 
-    histos.add("particlePrm/pt", commonTitle + " Primary;" + pt, kTH1D, {ptAxis});
-    histos.add("particlePrm/eta", commonTitle + " Primary;" + eta, kTH1D, {etaAxis});
-    histos.add("particlePrm/phi", commonTitle + " Primary;" + phi, kTH1D, {phiAxis});
+    if (checkPrimaries) {
+      histos.add("particlePrm/pt", commonTitle + " Primary;" + pt, kTH1D, {ptAxis});
+      histos.add("particlePrm/eta", commonTitle + " Primary;" + eta, kTH1D, {etaAxis});
+      histos.add("particlePrm/phi", commonTitle + " Primary;" + phi, kTH1D, {phiAxis});
 
-    histos.add("particleSec/pt", commonTitle + " Secondary;" + pt, kTH1D, {ptAxis});
-    histos.add("particleSec/eta", commonTitle + " Secondary;" + eta, kTH1D, {etaAxis});
-    histos.add("particleSec/phi", commonTitle + " Secondary;" + phi, kTH1D, {phiAxis});
+      histos.add("particleSec/pt", commonTitle + " Secondary;" + pt, kTH1D, {ptAxis});
+      histos.add("particleSec/eta", commonTitle + " Secondary;" + eta, kTH1D, {etaAxis});
+      histos.add("particleSec/phi", commonTitle + " Secondary;" + phi, kTH1D, {phiAxis});
+    }
   }
 
   void process(const o2::soa::Join<o2::aod::Tracks, o2::aod::TracksCov, o2::aod::McTrackLabels>& tracks,
@@ -203,6 +211,15 @@ struct QaTrackingKine {
       if (pdgCodeSel != 0 && particle.pdgCode() != pdgCodeSel) { // Checking PDG code
         continue;
       }
+
+      histos.fill(HIST("tracking/pt"), t.pt());
+      histos.fill(HIST("tracking/eta"), t.eta());
+      histos.fill(HIST("tracking/phi"), t.phi());
+
+      if (!checkPrimaries) {
+        continue;
+      }
+
       if (MC::isPhysicalPrimary(particle)) {
         histos.fill(HIST("trackingPrm/pt"), t.pt());
         histos.fill(HIST("trackingPrm/eta"), t.eta());
@@ -212,9 +229,6 @@ struct QaTrackingKine {
         histos.fill(HIST("trackingSec/eta"), t.eta());
         histos.fill(HIST("trackingSec/phi"), t.phi());
       }
-      histos.fill(HIST("tracking/pt"), t.pt());
-      histos.fill(HIST("tracking/eta"), t.eta());
-      histos.fill(HIST("tracking/phi"), t.phi());
     }
     for (const auto& particle : mcParticles) {
       if (pdgCodeSel != 0 && particle.pdgCode() != pdgCodeSel) { // Checking PDG code
@@ -223,6 +237,11 @@ struct QaTrackingKine {
       histos.fill(HIST("particle/pt"), particle.pt());
       histos.fill(HIST("particle/eta"), particle.eta());
       histos.fill(HIST("particle/phi"), particle.phi());
+
+      if (!checkPrimaries) {
+        continue;
+      }
+
       if (MC::isPhysicalPrimary(particle)) {
         histos.fill(HIST("particlePrm/pt"), particle.pt());
         histos.fill(HIST("particlePrm/eta"), particle.eta());
