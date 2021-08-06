@@ -46,9 +46,15 @@ void TRDTrackReader::run(ProcessingContext& pc)
     uint32_t ss = o2::globaltracking::getSubSpec(mSubSpecStrict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_TPC", ss, Lifetime::Timeframe}, mTracks);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG_TPC", ss, Lifetime::Timeframe}, mTrigRec);
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{"GLO", "MTCHLBL_TPC", ss, Lifetime::Timeframe}, mLabels);
+    }
   } else if (mMode == Mode::ITSTPCTRD) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0, Lifetime::Timeframe}, mTracks);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG_GLO", 0, Lifetime::Timeframe}, mTrigRec);
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{"GLO", "MTCHLBL_GLO", 0, Lifetime::Timeframe}, mLabels);
+    }
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
@@ -66,6 +72,9 @@ void TRDTrackReader::connectTree(const std::string& filename)
   assert(mTree);
   mTree->SetBranchAddress("tracks", &mTracksPtr);
   mTree->SetBranchAddress("trgrec", &mTrigRecPtr);
+  if (mUseMC) {
+    mTree->SetBranchAddress("labels", &mLabelsPtr);
+  }
   LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
@@ -77,7 +86,7 @@ DataProcessorSpec getTRDTPCTrackReaderSpec(bool useMC, bool subSpecStrict)
   outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG_TPC", sspec, Lifetime::Timeframe);
 
   if (useMC) {
-    LOG(FATAL) << "TRD track reader cannot read MC data (yet)";
+    outputs.emplace_back(o2::header::gDataOriginTRD, "MTCHLBL_TPC", sspec, Lifetime::Timeframe);
   }
   return DataProcessorSpec{
     "tpctrd-track-reader",
@@ -96,7 +105,7 @@ DataProcessorSpec getTRDGlobalTrackReaderSpec(bool useMC)
   outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG_GLO", 0, Lifetime::Timeframe);
 
   if (useMC) {
-    LOG(FATAL) << "TRD track reader cannot read MC data (yet)";
+    outputs.emplace_back(o2::header::gDataOriginTRD, "MTCHLBL_GLO", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

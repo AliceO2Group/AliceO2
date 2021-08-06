@@ -16,6 +16,7 @@
 
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsTRD/TrackTriggerRecord.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -57,6 +58,7 @@ class TRDTrackReader : public Task
   std::string mFileName = "";
   std::vector<o2::trd::TrackTRD> mTracks, *mTracksPtr = &mTracks;
   std::vector<o2::trd::TrackTriggerRecord> mTrigRec, *mTrigRecPtr = &mTrigRec;
+  std::vector<o2::MCCompLabel> mLabels, *mLabelsPtr = &mLabels;
 };
 
 /// read TPC-TRD matched tracks from a root file

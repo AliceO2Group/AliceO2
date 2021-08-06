@@ -88,10 +88,10 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
     specs.emplace_back(o2::trd::getTRDTrackletReaderSpec(maskClustersMC[GID::TRD], true));
   }
   if (maskTracks[GID::ITSTPCTRD]) {
-    specs.emplace_back(o2::trd::getTRDGlobalTrackReaderSpec(false));
+    specs.emplace_back(o2::trd::getTRDGlobalTrackReaderSpec(maskTracksMC[GID::ITSTPCTRD]));
   }
   if (maskTracks[GID::TPCTRD]) {
-    specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(false, subSpecStrict));
+    specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(maskTracksMC[GID::TPCTRD], subSpecStrict));
   }
 
   return 0;

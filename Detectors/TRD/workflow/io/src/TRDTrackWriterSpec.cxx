@@ -17,6 +17,7 @@
 #include "ReconstructionDataFormats/MatchingType.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "TRDWorkflowIO/TRDTrackWriterSpec.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 using namespace o2::framework;
 using namespace o2::gpu;
@@ -32,12 +33,7 @@ using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
 DataProcessorSpec getTRDGlobalTrackWriterSpec(bool useMC)
 {
-  // TODO: not clear if the writer is supposed to write MC labels at some point
-  // this is just a dummy definition for the template branch definition below
-  // define the correct type and the input specs
-  using LabelsType = std::vector<int>;
-  // force, this will disable the branch for now, can be adjusted in the future
-  useMC = false;
+  using LabelsType = std::vector<o2::MCCompLabel>;
 
   // A spectator to store the size of the data array for the logger below
   auto tracksSize = std::make_shared<int>();
@@ -57,9 +53,8 @@ DataProcessorSpec getTRDGlobalTrackWriterSpec(bool useMC)
                                                                                            "trgrec",
                                                                                            "trgrec-branch-name",
                                                                                            1},
-                                // NOTE: this branch template is to show how the conditional MC labels can
-                                // be defined, the '0' disables the branch for the moment
-                                BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", "GLO", "SOME_LABELS", 0},
+
+                                BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", "GLO", "MTCHLBL_GLO", 0},
                                                              "labels",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              "labels-branch-name"})();
@@ -67,12 +62,7 @@ DataProcessorSpec getTRDGlobalTrackWriterSpec(bool useMC)
 
 DataProcessorSpec getTRDTPCTrackWriterSpec(bool useMC, bool strictMode)
 {
-  // TODO: not clear if the writer is supposed to write MC labels at some point
-  // this is just a dummy definition for the template branch definition below
-  // define the correct type and the input specs
-  using LabelsType = std::vector<int>;
-  // force, this will disable the branch for now, can be adjusted in the future
-  useMC = false;
+  using LabelsType = std::vector<o2::MCCompLabel>;
 
   // A spectator to store the size of the data array for the logger below
   auto tracksSize = std::make_shared<int>();
@@ -92,9 +82,7 @@ DataProcessorSpec getTRDTPCTrackWriterSpec(bool useMC, bool strictMode)
                                                                                            "trgrec",
                                                                                            "trgrec-branch-name",
                                                                                            1},
-                                // NOTE: this branch template is to show how the conditional MC labels can
-                                // be defined, the '0' disables the branch for the moment
-                                BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", "GLO", "SOME_LABELS", ss},
+                                BranchDefinition<LabelsType>{InputSpec{"matchitstpclabels", "GLO", "MTCHLBL_TPC", ss},
                                                              "labels",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              "labels-branch-name"})();

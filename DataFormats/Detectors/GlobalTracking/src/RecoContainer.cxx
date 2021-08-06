@@ -115,9 +115,9 @@ void DataRequest::requestITSTPCTRDTracks(bool mc)
   addInput({"trackITSTPCTRD", "TRD", "MATCHTRD_GLO", 0, Lifetime::Timeframe});
   addInput({"trigITSTPCTRD", "TRD", "TRKTRG_GLO", 0, Lifetime::Timeframe});
   if (mc) {
-    LOG(WARNING) << "TRD Tracks does not support MC truth, dummy label will be returned";
+    addInput({"trackITSTPCTRDMCTR", "GLO", "MTCHLBL_GLO", 0, Lifetime::Timeframe});
   }
-  requestMap["trackITSTPCTRD"] = false;
+  requestMap["trackITSTPCTRD"] = mc;
 }
 
 void DataRequest::requestTPCTRDTracks(bool mc)
@@ -126,9 +126,9 @@ void DataRequest::requestTPCTRDTracks(bool mc)
   addInput({"trackTPCTRD", "TRD", "MATCHTRD_TPC", ss, Lifetime::Timeframe});
   addInput({"trigTPCTRD", "TRD", "TRKTRG_TPC", ss, Lifetime::Timeframe});
   if (mc) {
-    LOG(WARNING) << "TRD Tracks does not support MC truth, dummy label will be returned";
+    addInput({"trackTPCTRDMCTR", "GLO", "MTCHLBL_TPC", 0, Lifetime::Timeframe});
   }
-  requestMap["trackTPCTRD"] = false;
+  requestMap["trackTPCTRD"] = mc;
 }
 
 void DataRequest::requestTOFMatches(bool mc)
@@ -354,7 +354,7 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
 
   req = reqMap.find("trackletTRD");
   if (req != reqMap.end()) {
-    addTRDTracklets(pc);
+    addTRDTracklets(pc, req->second);
   }
 
   req = reqMap.find("Cosmics");
@@ -485,6 +485,9 @@ void RecoContainer::addITSTPCTRDTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::ITSTPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::trd::TrackTRD>>("trackITSTPCTRD"), TRACKS);
   commonPool[GTrackID::ITSTPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::trd::TrackTriggerRecord>>("trigITSTPCTRD"), TRACKREFS);
+  if (mc) {
+    commonPool[GTrackID::ITSTPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSTPCTRDMCTR"), MCLABELS);
+  }
 }
 
 //__________________________________________________________
@@ -492,6 +495,9 @@ void RecoContainer::addTPCTRDTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::TPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::trd::TrackTRD>>("trackTPCTRD"), TRACKS);
   commonPool[GTrackID::TPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::trd::TrackTriggerRecord>>("trigTPCTRD"), TRACKREFS);
+  if (mc) {
+    commonPool[GTrackID::TPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackTPCTRDMCTR"), MCLABELS);
+  }
 }
 
 //__________________________________________________________
@@ -534,9 +540,9 @@ void RecoContainer::addTPCClusters(ProcessingContext& pc, bool mc, bool shmap)
 }
 
 //__________________________________________________________
-void RecoContainer::addTRDTracklets(ProcessingContext& pc)
+void RecoContainer::addTRDTracklets(ProcessingContext& pc, bool mc)
 {
-  inputsTRD = o2::trd::getRecoInputContainer(pc, nullptr, this);
+  inputsTRD = o2::trd::getRecoInputContainer(pc, nullptr, this, mc);
 }
 
 //__________________________________________________________
