@@ -57,6 +57,9 @@ struct pidTOFTaskQA {
   static constexpr std::string_view hnsigmasec[Np] = {"nsigmasec/El", "nsigmasec/Mu", "nsigmasec/Pi",
                                                       "nsigmasec/Ka", "nsigmasec/Pr", "nsigmasec/De",
                                                       "nsigmasec/Tr", "nsigmasec/He", "nsigmasec/Al"};
+  static constexpr std::string_view hbetaMC[Np] = {"beta/El", "beta/Mu", "beta/Pi",
+                                                   "beta/Ka", "beta/Pr", "beta/De",
+                                                   "beta/Tr", "beta/He", "beta/Al"};
   static constexpr std::string_view hnsigmaMC[Np] = {"nsigmaMC/El", "nsigmaMC/Mu", "nsigmaMC/Pi",
                                                      "nsigmaMC/Ka", "nsigmaMC/Pr", "nsigmaMC/De",
                                                      "nsigmaMC/Tr", "nsigmaMC/He", "nsigmaMC/Al"};
@@ -82,25 +85,6 @@ struct pidTOFTaskQA {
   Configurable<float> maxEta{"maxEta", 0.8, "Maximum eta in range"};
   Configurable<int> nMinNumberOfContributors{"nMinNumberOfContributors", 2, "Minimum required number of contributors to the vertex"};
   Configurable<int> logPt{"log-pt", 1, "Flag to use a logarithmic pT axis, in this case the pT limits are the expontents"};
-
-  template <typename T>
-  void makelogaxis(T h)
-  {
-    const int nbins = h->GetNbinsX();
-    double binp[nbins + 1];
-    double max = h->GetXaxis()->GetBinUpEdge(nbins);
-    double min = h->GetXaxis()->GetBinLowEdge(1);
-    if (min <= 0) {
-      min = 0.00001;
-    }
-    double lmin = TMath::Log10(min);
-    double ldelta = (TMath::Log10(max) - lmin) / ((double)nbins);
-    for (int i = 0; i < nbins; i++) {
-      binp[i] = TMath::Exp(TMath::Log(10) * (lmin + i * ldelta));
-    }
-    binp[nbins] = max + 1;
-    h->GetXaxis()->Set(nbins, binp);
-  }
 
   template <uint8_t i>
   void addParticleHistos()
@@ -133,6 +117,7 @@ struct pidTOFTaskQA {
     const AxisSpec betaAxis{1000, 0, 1.2, "TOF #beta"};
 
     histos.add("event/T0", ";Tracks with TOF;T0 (ps);Counts", HistType::kTH2F, {{1000, 0, 1000}, {1000, -1000, 1000}});
+    histos.add(hbetaMC[pid_type].data(), pT[pid_type], HistType::kTH2F, {ptAxis, betaAxis});
     histos.add(hnsigma[pid_type].data(), pT[pid_type], HistType::kTH2F, {ptAxis, nSigmaAxis});
     if (checkPrimaries) {
       histos.add(hnsigmaprm[pid_type].data(), Form("Primary %s", pT[pid_type]), HistType::kTH2F, {ptAxis, nSigmaAxis});
@@ -159,6 +144,8 @@ struct pidTOFTaskQA {
   {
     const auto particle = track.mcParticle();
     if (abs(particle.pdgCode()) == PDGs[pidIndex]) {
+
+      histos.fill(HIST(hbetaMC[pidIndex]), track.pt(), track.beta());
       histos.fill(HIST(hnsigmaMC[pidIndex]), track.pt(), nsigma);
 
       if (MC::isPhysicalPrimary(particle)) { // Selecting primaries
