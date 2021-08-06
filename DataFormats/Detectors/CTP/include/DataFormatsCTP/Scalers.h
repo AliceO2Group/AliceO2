@@ -17,7 +17,7 @@
 #define _CTP_SCALERS_H_
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsCTP/Digits.h"
-
+#include <map>
 #include <bitset>
 
 namespace o2
@@ -42,6 +42,7 @@ struct  CTPScalerRaw {
 /// Scalers produced from raw scalers corrected for overflow
 struct  CTPScalerO2 {
   CTPScalerO2() = default;
+  void createCTPScalerO2FromRaw(CTPScalerRaw& raw, std::vector<uint32_t>& overfow);
   uint32_t classIndex;
   uint64_t lmBefore;
   uint64_t lmAfter;
@@ -80,13 +81,16 @@ class CTPRunScalers
   void printClasses(std::ostream& stream) const;
   std::vector<uint32_t> getClassIndexes();
   int readScalers(const std::string& rawscalers);
+  int convertRawToO2();
  private:
+  typedef std::map<uint32_t, std::array<uint32_t,6>> overflows_t;
   int mVersion;
   uint32_t mRunNumber;
   std::bitset<CTP_NCLASSES> mClassMask;
   std::vector<CTPScalerRecordRaw> mScalerRecordRaw;
   std::vector<CTPScalerRecordO2> mScalerRecordO2;
-  int processScalerLine(std::string& line,int& level);
+  int processScalerLine(std::string& line,int& level, int& nclasses);
+  int copyRawToO2Scalers();
   ClassDefNV(CTPRunScalers, 1);
 };
 } // namespace ctp

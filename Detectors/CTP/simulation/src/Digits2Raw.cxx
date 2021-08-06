@@ -190,8 +190,8 @@ int Digits2Raw::digit2GBTdigit(std::bitset<NGBT>& gbtdigitIR, std::bitset<NGBT>&
   // Trig Classes
   //
   gbtdigitTR = 0;
-  gbtdigitIR = (digit.CTPClassMask).to_ullong() >> 12;
-  gbtdigitIR |= digit.intRecord.bc;
+  gbtdigitTR = (digit.CTPClassMask).to_ullong() >> 12;
+  gbtdigitTR |= digit.intRecord.bc;
   return 0;
 }
 std::vector<std::bitset<NGBT>> Digits2Raw::addEmptyBC(std::vector<std::bitset<NGBT>>& hbfIRZS)
