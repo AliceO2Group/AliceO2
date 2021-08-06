@@ -98,6 +98,8 @@ class CruRawReader
   int getTrackletsFound() { return mTotalTrackletsFound; }
   int sumTrackletsFound() { return mEventRecords.sumTracklets(); }
   int sumDigitsFound() { return mEventRecords.sumDigits(); }
+  int getWordsRead() { return mTotalDigitWordsRead; }
+  int getWordsRejected() { return mTotalDigitWordsRejected; }
   void clearall()
   {
     mEventRecords.clear();
@@ -176,6 +178,10 @@ class CruRawReader
   uint32_t mDatareadfromhbf;
   uint32_t mTotalHBFPayLoad = 0; // total data payload of the heart beat frame in question.
   uint32_t mHBFoffset32 = 0;     // total data payload of the heart beat frame in question.
+  uint64_t mDigitWordsRead = 0;
+  uint64_t mDigitWordsRejected = 0;
+  uint64_t mTotalDigitWordsRead = 0;
+  uint64_t mTotalDigitWordsRejected = 0;
   //pointers to the data as we read them in, again no point in copying.
   HalfCRUHeader* mhalfcruheader;
   o2::InteractionRecord mIR;
@@ -204,14 +210,18 @@ class CruRawReader
     std::array<uint32_t, 1080> LinkPadWordCounts; // units of 32 bits the data pad word size.
     std::array<uint32_t, 1080> LinkFreq;          //units of 256bits "cru word"
     //from the above you can get the stats for supermodule and detector.
-    std::array<bool, 1080> LinkEmpty; // Link only has padding words, probably not serious in pp.
-    uint32_t EmptyLinks;
+    std::array<bool, 1080> LinkEmpty; // Link only has padding words only, probably not serious in pp.
     //maybe change this to actual traps ?? but it will get large.
     std::array<uint32_t, 1080> LinkTrackletPerTrap1; // incremented if a trap on this link has 1 tracklet
     std::array<uint32_t, 1080> LinkTrackletPerTrap2; // incremented if a trap on this link has 2 tracklet
     std::array<uint32_t, 1080> LinkTrackletPerTrap3; // incremented if a trap on this link has 3 tracklet
+    std::array<uint32_t, 1080> LinkMCMsWithData;
+    std::array<uint16_t, 1080> MCMStatus;
+    std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
+    std::array<uint16_t, constants::TIMEBINS> mADCValues{};
+    std::array<uint16_t, constants::MAXMCMCOUNT> mMCMstats; // bit pattern for errors current event for a given mcm;
     std::vector<uint32_t> EmptyTraps;                // MCM indexes of traps that are empty ?? list might better
-  } TRDStatCounters;
+  } TRDStatCountersPerEvent;
 
   /** summary data **/
 };

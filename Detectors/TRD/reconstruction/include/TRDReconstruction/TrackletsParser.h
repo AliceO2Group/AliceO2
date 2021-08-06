@@ -98,10 +98,9 @@ class TrackletsParser
   bool mHeaderVerbose{false};
   bool mDataVerbose{false};
   int mTrackletHCHeaderState{0}; //what to with the tracklet half chamber header 0,1,2
-
   bool mIgnoreTrackletHCHeader{false}; // Is the data with out the tracklet HC Header? defaults to having it in.
   bool mByteOrderFix{false};           // simulated data is not byteswapped, real is, so deal with it accodringly.
-  bool mReturnVector{false};           // whether weare returing a vector or the raw data buffer.
+  uint64_t mWordsDumped{0};
 
   uint16_t mEventCounter;
   std::chrono::duration<double> mTrackletparsetime;                                        // store the time it takes to parse

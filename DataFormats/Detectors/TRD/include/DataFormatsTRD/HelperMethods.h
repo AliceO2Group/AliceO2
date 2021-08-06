@@ -136,10 +136,10 @@ struct HelperMethods {
   }
   inline static unsigned int swapByteOrderreturn(unsigned int word)
   {
-    word = (word >> 24) |
-           ((word << 8) & 0x00FF0000) |
-           ((word >> 8) & 0x0000FF00) |
-           (word << 24);
+    //    word = (word >> 24) |
+    //         ((word << 8) & 0x00FF0000) |
+    //        ((word >> 8) & 0x0000FF00) |
+    //       (word << 24);
     return word;
   }
 };
