@@ -112,27 +112,19 @@ std::vector<InputSpec> DataSampling::InputSpecsForPolicy(const std::string& poli
 
 std::vector<InputSpec> DataSampling::InputSpecsForPolicy(ConfigurationInterface* const config, const std::string& policyName)
 {
-  std::vector<InputSpec> inputs;
   auto policiesTree = config->getRecursive("dataSamplingPolicies");
-
-  for (auto&& policyConfig : policiesTree) {
-    if (policyConfig.second.get<std::string>("id") == policyName) {
-      auto policy = DataSamplingPolicy::fromConfiguration(policyConfig.second);
-      for (const auto& path : policy.getPathMap()) {
-        InputSpec input = DataSpecUtils::matchingInput(path.second);
-        inputs.push_back(input);
-      }
-      break;
-    }
-  }
-  return inputs;
+  return InputSpecsForPolicy(policiesTree, policyName);
 }
 
 std::vector<InputSpec> DataSampling::InputSpecsForPolicy(std::shared_ptr<configuration::ConfigurationInterface> config, const std::string& policyName)
 {
-  std::vector<InputSpec> inputs;
   auto policiesTree = config->getRecursive("dataSamplingPolicies");
+  return InputSpecsForPolicy(policiesTree, policyName);
+}
 
+std::vector<framework::InputSpec> DataSampling::InputSpecsForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName)
+{
+  std::vector<InputSpec> inputs;
   for (auto&& policyConfig : policiesTree) {
     if (policyConfig.second.get<std::string>("id") == policyName) {
       auto policy = DataSamplingPolicy::fromConfiguration(policyConfig.second);
@@ -154,9 +146,13 @@ std::vector<OutputSpec> DataSampling::OutputSpecsForPolicy(const std::string& po
 
 std::vector<OutputSpec> DataSampling::OutputSpecsForPolicy(ConfigurationInterface* const config, const std::string& policyName)
 {
-  std::vector<OutputSpec> outputs;
   auto policiesTree = config->getRecursive("dataSamplingPolicies");
+  return OutputSpecsForPolicy(policiesTree, policyName);
+}
 
+std::vector<framework::OutputSpec> DataSampling::OutputSpecsForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName)
+{
+  std::vector<OutputSpec> outputs;
   for (auto&& policyConfig : policiesTree) {
     if (policyConfig.second.get<std::string>("id") == policyName) {
       auto policy = DataSamplingPolicy::fromConfiguration(policyConfig.second);
@@ -172,6 +168,17 @@ std::vector<OutputSpec> DataSampling::OutputSpecsForPolicy(ConfigurationInterfac
 std::optional<uint16_t> DataSampling::PortForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName)
 {
   auto policiesTree = config->getRecursive("dataSamplingPolicies");
+  return PortForPolicy(policiesTree, policyName);
+}
+
+std::optional<uint16_t> DataSampling::PortForPolicy(const std::string& policiesSource, const std::string& policyName)
+{
+  std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);
+  return PortForPolicy(config.get(), policyName);
+}
+
+std::optional<uint16_t> DataSampling::PortForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName)
+{
   for (auto&& policyConfig : policiesTree) {
     if (policyConfig.second.get<std::string>("id") == policyName) {
       auto boostOptionalPort = policyConfig.second.get_optional<uint16_t>("port");
@@ -181,16 +188,21 @@ std::optional<uint16_t> DataSampling::PortForPolicy(configuration::Configuration
   throw std::runtime_error("Could not find the policy '" + policyName + "'");
 }
 
-std::optional<uint16_t> DataSampling::PortForPolicy(const std::string& policiesSource, const std::string& policyName)
-{
-  std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);
-  return PortForPolicy(config.get(), policyName);
-}
-
 std::vector<std::string> DataSampling::MachinesForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName)
 {
-  std::vector<std::string> machines;
   auto policiesTree = config->getRecursive("dataSamplingPolicies");
+  return MachinesForPolicy(policiesTree, policyName);
+}
+
+std::vector<std::string> DataSampling::MachinesForPolicy(const std::string& policiesSource, const std::string& policyName)
+{
+  std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);
+  return MachinesForPolicy(config.get(), policyName);
+}
+
+std::vector<std::string> DataSampling::MachinesForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName)
+{
+  std::vector<std::string> machines;
   for (auto&& policyConfig : policiesTree) {
     if (policyConfig.second.get<std::string>("id") == policyName) {
       if (policyConfig.second.count("machines") > 0) {
@@ -202,12 +214,6 @@ std::vector<std::string> DataSampling::MachinesForPolicy(configuration::Configur
     }
   }
   throw std::runtime_error("Could not find the policy '" + policyName + "'");
-}
-
-std::vector<std::string> DataSampling::MachinesForPolicy(const std::string& policiesSource, const std::string& policyName)
-{
-  std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);
-  return MachinesForPolicy(config.get(), policyName);
 }
 
 } // namespace o2::utilities
