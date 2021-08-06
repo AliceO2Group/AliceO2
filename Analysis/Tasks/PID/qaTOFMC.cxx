@@ -76,8 +76,8 @@ struct pidTOFTaskQA {
   Configurable<float> minP{"minP", 0.1, "Minimum momentum in range"};
   Configurable<float> maxP{"maxP", 5, "Maximum momentum in range"};
   Configurable<int> nBinsNsigma{"nBinsNsigma", 2000, "Number of bins for the momentum"};
-  Configurable<float> minNsigma{"minP", -30.f, "Minimum momentum in range"};
-  Configurable<float> maxNsigma{"maxP", 30.f, "Maximum momentum in range"};
+  Configurable<float> minNsigma{"minNsigma", -30.f, "Minimum momentum in range"};
+  Configurable<float> maxNsigma{"maxNsigma", 30.f, "Maximum momentum in range"};
   Configurable<float> minEta{"minEta", -0.8, "Minimum eta in range"};
   Configurable<float> maxEta{"maxEta", 0.8, "Maximum eta in range"};
   Configurable<int> nMinNumberOfContributors{"nMinNumberOfContributors", 2, "Minimum required number of contributors to the vertex"};
@@ -103,8 +103,15 @@ struct pidTOFTaskQA {
   }
 
   template <uint8_t i>
-  void addParticleHistos(AxisSpec const& axisP, AxisSpec const& nBinsNsigma)
+  void addParticleHistos()
   {
+
+    AxisSpec ptAxis{nBinsP, minP, maxP, "#it{p}_{T} (GeV/#it{c})"};
+    const AxisSpec nSigmaAxis{nBinsNsigma, minNsigma, maxNsigma, Form("N_{#sigma}^{TOF}(%s)", pT[pid_type])};
+    if (logPt) {
+      ptAxis.makeLogaritmic();
+    }
+
     // NSigma
     histos.add(hnsigmaMC[i].data(), Form("True %s", pT[i]), HistType::kTH2F, {ptAxis, nSigmaAxis});
     if (!checkPrimaries) {
@@ -127,21 +134,21 @@ struct pidTOFTaskQA {
 
     histos.add("event/T0", ";Tracks with TOF;T0 (ps);Counts", HistType::kTH2F, {{1000, 0, 1000}, {1000, -1000, 1000}});
     histos.add(hnsigma[pid_type].data(), pT[pid_type], HistType::kTH2F, {ptAxis, nSigmaAxis});
-    if (!checkPrimaries) {
+    if (checkPrimaries) {
       histos.add(hnsigmaprm[pid_type].data(), Form("Primary %s", pT[pid_type]), HistType::kTH2F, {ptAxis, nSigmaAxis});
       histos.add(hnsigmasec[pid_type].data(), Form("Secondary %s", pT[pid_type]), HistType::kTH2F, {ptAxis, nSigmaAxis});
     }
-    addParticleHistos<0>(ptAxis, nSigmaAxis);
-    addParticleHistos<1>(ptAxis, nSigmaAxis);
-    addParticleHistos<2>(ptAxis, nSigmaAxis);
-    addParticleHistos<3>(ptAxis, nSigmaAxis);
-    addParticleHistos<4>(ptAxis, nSigmaAxis);
-    addParticleHistos<5>(ptAxis, nSigmaAxis);
-    addParticleHistos<6>(ptAxis, nSigmaAxis);
-    addParticleHistos<7>(ptAxis, nSigmaAxis);
-    addParticleHistos<8>(ptAxis, nSigmaAxis);
+    addParticleHistos<0>();
+    addParticleHistos<1>();
+    addParticleHistos<2>();
+    addParticleHistos<3>();
+    addParticleHistos<4>();
+    addParticleHistos<5>();
+    addParticleHistos<6>();
+    addParticleHistos<7>();
+    addParticleHistos<8>();
     histos.add("event/tofbeta", pT[pid_type], HistType::kTH2F, {pAxis, betaAxis});
-    if (!checkPrimaries) {
+    if (checkPrimaries) {
       histos.add("event/tofbetaPrm", Form("Primary %s", pT[pid_type]), HistType::kTH2F, {pAxis, betaAxis});
       histos.add("event/tofbetaSec", Form("Secondary %s", pT[pid_type]), HistType::kTH2F, {pAxis, betaAxis});
     }
