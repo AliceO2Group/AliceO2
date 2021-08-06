@@ -62,6 +62,7 @@ struct Alice3SingleParticle {
     histos.add("event/VtxY", "Vertex Y", kTH1D, {axisVy});
     histos.add("event/VtxZ", "Vertex Z", kTH1D, {axisVz});
 
+    histos.add("particle/PDGs", "Particle PDGs;PDG Code", kTH1D, {{100, 0.f, 100.f}});
     histos.add("particle/Pt", "Particle Pt " + tit, kTH1D, {axisPt});
     histos.add("particle/prodVx", "Particle Prod. Vertex X " + tit, kTH1D, {axisProdx});
     histos.add("particle/prodVy", "Particle Prod. Vertex Y " + tit, kTH1D, {axisPrody});
@@ -83,6 +84,8 @@ struct Alice3SingleParticle {
     histos.add("particle/Py", "Particle Py " + tit, kTH1D, {axisPy});
     histos.add("particle/Pz", "Particle Pz " + tit, kTH1D, {axisPz});
 
+    histos.add("track/PDGs", "Track PDGs;PDG Code", kTH1D, {{100, 0.f, 100.f}});
+    histos.add("track/tofPDGs", "Track wTOF PDGs;PDG Code", kTH1D, {{100, 0.f, 100.f}});
     histos.add("track/Pt", "Track Pt " + tit, kTH1D, {axisPt});
     histos.add("track/Eta", "Track Eta " + tit, kTH1D, {axisEta});
     histos.add("track/primaries", "Source for primaries " + tit + ";PDG Code", kTH1D, {{100, 0.f, 100.f}});
@@ -90,7 +93,7 @@ struct Alice3SingleParticle {
   }
 
   void process(const o2::aod::McCollisions& colls,
-               const soa::Join<o2::aod::Tracks, o2::aod::McTrackLabels>& tracks,
+               const soa::Join<o2::aod::Tracks, o2::aod::McTrackLabels, o2::aod::TracksExtra>& tracks,
                const aod::McParticles& mcParticles)
   {
     for (const auto& col : colls) {
@@ -100,6 +103,7 @@ struct Alice3SingleParticle {
     }
     std::vector<int64_t> ParticlesOfInterest;
     for (const auto& mcParticle : mcParticles) {
+      histos.get<TH1>(HIST("particle/PDGs"))->Fill(Form("%i", mcParticle.pdgCode()), 1.f);
       if (mcParticle.pdgCode() != PDG) {
         continue;
       }
@@ -131,6 +135,10 @@ struct Alice3SingleParticle {
 
     for (const auto& track : tracks) {
       const auto mcParticle = track.mcParticle();
+      histos.get<TH1>(HIST("track/PDGs"))->Fill(Form("%i", mcParticle.pdgCode()), 1.f);
+      if (track.hasTOF()) {
+        histos.get<TH1>(HIST("track/tofPDGs"))->Fill(Form("%i", mcParticle.pdgCode()), 1.f);
+      }
       if (!IsStable) {
         if (!mcParticle.has_mother0()) {
           continue;
