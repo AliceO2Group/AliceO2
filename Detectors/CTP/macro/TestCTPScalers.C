@@ -26,14 +26,24 @@ using namespace o2::ctp;
 void TestCTPScalers(long tmin = 0, long tmax = -1, std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
 {
   /// Demo scalers
-  std::string scalersstr = "0 \n";  // version
+  std::string scalersstr = "0\n";     // version
   scalersstr += "333 5 0 2 8 32 63\n"; // runnumber nclasses [classes list]]
-  scalersstr += "4 3563 4 5\n"; // orbit bc secs usecs
-  scalersstr += "1 2 1 2 1 1\n";
-  scalersstr += "100 0 0 0 0 100\n";
-  scalersstr += "0 0 0 0 0 0\n";
-  scalersstr += "3 3 3 3 3 3\n";
+  scalersstr += "4 3563 4 5\n";        // orbit bc secs usecs
+  scalersstr += "1 2 1 2 1 1\n";       // class 0
+  scalersstr += "100 0 0 0 0 100\n";   // class 2
+  scalersstr += "0 0 0 0 0 0\n";       // class 8
+  scalersstr += "3 3 3 3 3 3\n";       // class 32
+  scalersstr += "34 34 34 34 34 34\n";       // class 63
+  scalersstr += "1000 3563 5 5\n";     // orbit bc secs usecs
+  scalersstr += "1 2 1 2 1 1\n";       // class 0
+  scalersstr += "100 0 0 0 0 100\n";   // class 2
+  scalersstr += "0 0 0 0 0 0\n";       // class 8
+  scalersstr += "3 3 3 3 3 3\n";       // class 32
+  scalersstr += "34 34 34 34 34 34\n";       // class 63
+  //
   CTPRunScalers ctpscalers;
-  ctpscalers.readScalers(scalersstr);
-  ctpscalers.printStream(std::cout);
+  int ret = ctpscalers.readScalers(scalersstr);
+  if(ret == 0) {
+    ctpscalers.printStream(std::cout);
+  }
 }

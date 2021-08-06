@@ -25,6 +25,17 @@ void CTPScalerRaw::printStream(std::ostream& stream) const
   stream << " LOB:" << l0Before << " L0A:" << l0After;
   stream << " L1B:" << l1Before << " L1A:" << l1After << std::endl;
 }
+//
+void CTPScalerO2::createCTPScalerO2FromRaw(CTPScalerRaw& raw, std::vector<uint32_t>& overflow)
+{
+  classIndex = raw.classIndex;
+  lmBefore = raw.lmBefore + 0xffffffff*overflow[0];
+  lmAfter = raw.lmAfter + 0xffffffff*overflow[1];
+  l0Before = raw.l0Before + 0xffffffff*overflow[2];
+  l0After = raw.l0After + 0xffffffff*overflow[3];
+  l1Before = raw.l1Before + 0xffffffff*overflow[4];
+  l1After = raw.l1After + 0xffffffff*overflow[5];
+}
 void CTPScalerO2::printStream(std::ostream& stream) const
 {
   stream << "Class:" << classIndex << "O2 LMB:" << lmBefore << " LMA:" << lmAfter;
@@ -82,17 +93,21 @@ int CTPRunScalers::readScalers(const std::string& rawscalers)
   int ret = 0;
   int level = 0;
   std::string line;
+  int nclasses=0;
   while (std::getline(iss, line)) {
     o2::utils::Str::trim(line);
-    if ((ret = processScalerLine(line, level)) != 0) {
+    if ((ret = processScalerLine(line, level, nclasses)) != 0) {
       return ret;
     }
   }
+  if(nclasses != 0) {
+      LOG(ERROR) << "Wrong number of classes in final record";
+      return 6;
+  }
   return 0;
 }
-int CTPRunScalers::processScalerLine(std::string& line, int& level)
+int CTPRunScalers::processScalerLine(std::string& line, int& level, int& nclasses)
 {
-  std::cout << "level:" << level << std::endl;
   if (line.size() == 0) {
     return 0;
   }
@@ -104,6 +119,7 @@ int CTPRunScalers::processScalerLine(std::string& line, int& level)
   if (ntokens == 0) {
     return 0;
   }
+  std::cout << line << " level in::" << level << std::endl;
   // Version
   if(level == 0) {
       if(ntokens != 1) {
@@ -133,6 +149,7 @@ int CTPRunScalers::processScalerLine(std::string& line, int& level)
               mClassMask[index] = 1;
           }
           level = 2;
+          nclasses = 0;
           return 0;
       }
   }
@@ -152,11 +169,12 @@ int CTPRunScalers::processScalerLine(std::string& line, int& level)
         return 0;
       }
   }
-  if((level > 2) && ( level < (2 + mClassMask.count()))) {
-            if(ntokens != 6) {
-        LOG(ERROR) << "Wrong syntax of counters line  in CTP scalers";
+  if(level == 3) {
+    if(ntokens != 6) {
+        LOG(ERROR) << "Wrong syntax of counters line in CTP scalers";
         return 5;
       } else {
+        std::cout << "nclasses:" << nclasses << std::endl;
         CTPScalerRaw scaler;
         scaler.classIndex = getClassIndexes()[level - 3];
         scaler.lmBefore = std::stol(tokens[0]);
@@ -166,9 +184,34 @@ int CTPRunScalers::processScalerLine(std::string& line, int& level)
         scaler.l1Before = std::stol(tokens[4]);
         scaler.l1After = std::stol(tokens[5]);
         (mScalerRecordRaw.back()).scalers.push_back(scaler);
-        level = (((level-2)+1) % mClassMask.count()) + 2;
+        nclasses++;
+        if(nclasses >= mClassMask.count()) {
+            level = 2;
+            nclasses = 0;
+        }
         return 0;
       }
+  }
+  return 0;
+}
+/// Converts raw 32 bit scalers to O2 64 bit scalers correcting for overflow.
+/// Consistency checks done.
+int CTPRunScalers::convertRawToO2()
+{
+  //struct classScalersOverflows {uint32_t overflows[6];};
+  overflows_t overflows;
+  for(uint32_t i = 0; i < mClassMask.size(); i++) {
+      if(mClassMask[i]) {
+          overflows[i] = {0,0,0,0,0,0};
+      }
+  }
+  CTPScalerRecordO2 o2rec;
+  o2rec.intRecord = mScalerRecordRaw[0].intRecord; 
+  o2rec.seconds = mScalerRecordRaw[0].seconds;
+  o2rec.microSeconds = mScalerRecordRaw[0].microSeconds;
+  for(int i = 1; i < mScalerRecordRaw.size(); i++) {
+    //CTPScalerRecordRaw& prev = mScalerRecordRaw[i-1];
+    //CTPScalerRecordRaw& curr = mScalerRecordRaw[i];
   }
   return 0;
 }
