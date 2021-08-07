@@ -58,6 +58,8 @@ class VarManager : public TObject
     ReducedEvent = BIT(4),
     ReducedEventExtended = BIT(5),
     ReducedEventVtxCov = BIT(6),
+    CollisionMC = BIT(7),
+    ReducedEventMC = BIT(8),
     Track = BIT(0),
     TrackCov = BIT(1),
     TrackExtra = BIT(2),
@@ -73,7 +75,8 @@ class VarManager : public TObject
     ReducedMuon = BIT(12),
     ReducedMuonExtra = BIT(13),
     ReducedMuonCov = BIT(14),
-    Pair = BIT(15)
+    ParticleMC = BIT(15),
+    Pair = BIT(16) // TODO: check whether we really need the Pair member here
   };
 
   enum PairCandidateType {
@@ -119,6 +122,13 @@ class VarManager : public TObject
     kVtxCovZZ,
     kVtxChi2,
     kCentVZERO,
+    kMCEventGeneratorId,
+    kMCVtxX,
+    kMCVtxY,
+    kMCVtxZ,
+    kMCEventTime,
+    kMCEventWeight,
+    kMCEventImpParam,
     kNEventWiseVariables,
 
     // Basic track/muon/pair wise variables
@@ -201,6 +211,23 @@ class VarManager : public TObject
     kMuonCTglTgl,
     kMuonC1Pt21Pt2,
     kNMuonTrackVariables,
+
+    // MC particle variables
+    kMCPdgCode,
+    kMCParticleWeight,
+    kMCPx,
+    kMCPy,
+    kMCPz,
+    kMCE,
+    kMCVx,
+    kMCVy,
+    kMCVz,
+    kMCPt,
+    kMCPhi,
+    kMCEta,
+    kMCY,
+    kMCParticleGeneratorId,
+    kNMCParticleVariables,
 
     // Pair variables
     kCandidateId,
@@ -355,6 +382,8 @@ void VarManager::FillEvent(T const& event, float* values)
   }
 
   if constexpr ((fillMap & Collision) > 0) {
+    // TODO: trigger info from the evenet selection requires a separate flag
+    //         so that it can be switched off independently of the rest of Collision variables (e.g. if event selection is not available)
     if (fgUsedVars[kIsINT7]) {
       values[kIsINT7] = (event.alias()[kINT7] > 0);
     }
@@ -462,6 +491,26 @@ void VarManager::FillEvent(T const& event, float* values)
     values[kVtxCovYZ] = event.covYZ();
     values[kVtxCovZZ] = event.covZZ();
     values[kVtxChi2] = event.chi2();
+  }
+
+  if constexpr ((fillMap & CollisionMC) > 0) {
+    values[kMCEventGeneratorId] = event.generatorsID();
+    values[kMCVtxX] = event.posX();
+    values[kMCVtxY] = event.posY();
+    values[kMCVtxZ] = event.posZ();
+    values[kMCEventTime] = event.t();
+    values[kMCEventWeight] = event.weight();
+    values[kMCEventImpParam] = event.impactParameter();
+  }
+
+  if constexpr ((fillMap & ReducedEventMC) > 0) {
+    values[kMCEventGeneratorId] = event.generatorsID();
+    values[kMCVtxX] = event.mcPosX();
+    values[kMCVtxY] = event.mcPosY();
+    values[kMCVtxZ] = event.mcPosZ();
+    values[kMCEventTime] = event.t();
+    values[kMCEventWeight] = event.weight();
+    values[kMCEventImpParam] = event.impactParameter();
   }
 
   FillEventDerived(values);
@@ -622,6 +671,23 @@ void VarManager::FillTrack(T const& track, float* values)
   // Quantities based on the pair table(s)
   if constexpr ((fillMap & Pair) > 0) {
     values[kMass] = track.mass();
+  }
+
+  if constexpr ((fillMap & ParticleMC) > 0) {
+    values[kMCPdgCode] = track.pdgCode();
+    values[kMCParticleWeight] = track.weight();
+    values[kMCPx] = track.px();
+    values[kMCPy] = track.py();
+    values[kMCPz] = track.pz();
+    values[kMCE] = track.e();
+    values[kMCVx] = track.vx();
+    values[kMCVy] = track.vy();
+    values[kMCVz] = track.vz();
+    values[kMCPt] = track.pt();
+    values[kMCPhi] = track.phi();
+    values[kMCEta] = track.eta();
+    values[kMCY] = track.y();
+    values[kMCParticleGeneratorId] = track.producedByGenerator();
   }
 
   // Derived quantities which can be computed based on already filled variables

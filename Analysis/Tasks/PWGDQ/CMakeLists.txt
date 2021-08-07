@@ -14,13 +14,23 @@ o2_add_dpl_workflow(table-maker
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::AnalysisCore O2::PWGDQCore
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(table-maker-mc
+                    SOURCES tableMakerMC.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::AnalysisCore O2::PWGDQCore
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(table-maker-inpbpb
                     SOURCES tableMaker_PbPb.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::AnalysisCore O2::PWGDQCore
                     COMPONENT_NAME Analysis)
-
+                    
 o2_add_dpl_workflow(table-reader
                     SOURCES tableReader.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::AnalysisCore O2::PWGDQCore
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(dq-efficiency
+                    SOURCES dqEfficiency.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::AnalysisCore O2::PWGDQCore
                     COMPONENT_NAME Analysis)
 
