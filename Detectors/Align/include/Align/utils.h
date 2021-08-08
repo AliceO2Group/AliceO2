@@ -173,15 +173,6 @@ inline constexpr bool smaller(F d, F tolD) noexcept
   return d < tolD;
 }
 
-//_________________________________________________________________________________
-inline constexpr int numberOfBitsSet(uint32_t x) noexcept
-{
-  // count number of non-0 bits in 32bit word
-  x = x - ((x >> 1) & 0x55555555);
-  x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
-  return (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
-};
-
 inline constexpr bool isZeroAbs(double d) noexcept { return smallerAbs(d, AlmostZeroD); };
 inline constexpr bool isZeroAbs(float f) noexcept { return smallerAbs(f, AlmostZeroF); }
 inline constexpr bool isZeroPos(double d) noexcept { return smaller(d, AlmostZeroD); }

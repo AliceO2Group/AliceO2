@@ -333,14 +333,14 @@ bool AlignmentTrack::calcResidDeriv(double* extendedParams, bool invert, int pFr
       if (pnt->containsMeasurement()) { // calculate derivatives at the scattering point itself
         int offsDerIP = ip * mNLocPar + offsIP;
         richardsonDeriv(probD, varDelta, pnt, mDResDLocA[0][offsDerIP], mDResDLocA[1][offsDerIP]); // calculate derivatives for ip
-                                                                                                   //	printf("DR SELF: %e %e at %d (%d)\n",mDResDLocA[0][offsDerIP], mDResDLocA[1][offsDerIP],offsI, offsDerIP);
+                                                                                                   // printf("DR SELF: %e %e at %d (%d)\n",mDResDLocA[0][offsDerIP], mDResDLocA[1][offsDerIP],offsI, offsDerIP);
       }
       //
       // loop over points whose residuals can be affected by the material effects on point ip
       for (int jp = ip + pinc; jp != pTo; jp += pinc) {
         AlignmentPoint* pntJ = getPoint(jp);
 
-        //	printf("  DerFor:%d ",jp); pntJ->print();
+        // printf("  DerFor:%d ",jp); pntJ->print();
 
         if (!propagateParamToPoint(probD, kNRDClones, pntJ)) {
           return false;
@@ -382,7 +382,7 @@ bool AlignmentTrack::calcResidDerivGlo(AlignmentPoint* pnt)
   pnt->setDGloOffs(mNGloPar); // mark 1st entry of derivatives
   do {
     // measurement residuals
-    int nfree = vol->getNDOFFree();
+    int nfree = vol->getNDOFsFree();
     if (!nfree) {
       continue;
     } // no free parameters?
@@ -617,7 +617,7 @@ bool AlignmentTrack::ApplyMS(trackParam_t& trPar, double tms,double pms)
   //
   //  | Cos[lam]*Cos[phi] Cos[phi]*Sin[lam] -Sin[phi] |   | Cos[tms]         |
   //  | Cos[lam]*Sin[phi] Sin[lam]*Sin[phi]  Cos[phi] | x | Cos[pms]*Sin[tms]|
-  //  | Sin[lam]	       -Cos[lam]	0     |   | Sin[pms]*Sin[tms]|
+  //  | Sin[lam]        -Cos[lam] 0     |   | Sin[pms]*Sin[tms]|
   //
   //------------------------------------------------------------------------------
   //
@@ -862,7 +862,7 @@ void AlignmentTrack::Print(Option_t* opt) const
         if (paru) { // print also mat.corrections in track frame
           double corr[5] = {0};
           pnt->unDiagMatCorr(corrDiag, corr);
-          //	  if (!pnt->getELossVaried()) corr[kParQ2Pt] = pnt->getMatCorrExp()[kParQ2Pt]; // fixed eloss expected effect
+          //   if (!pnt->getELossVaried()) corr[kParQ2Pt] = pnt->getMatCorrExp()[kParQ2Pt]; // fixed eloss expected effect
           printf("  Corr.Track: ");
           for (int i = 0; i < kNKinParBON; i++) {
             printf("%+.3e ", corr[i]);

@@ -96,6 +96,7 @@
 
  */
 
+#include "Align/Controller.h"
 #include "Align/AlignableVolume.h"
 #include "Align/DOFStatistics.h"
 #include "Align/GeometricalConstraint.h"
@@ -129,31 +130,14 @@ uint32_t AlignableVolume::sDefGeomFree =
 const char* AlignableVolume::sDOFName[AlignableVolume::kNDOFGeom] = {"TX", "TY", "TZ", "PSI", "THT", "PHI"};
 
 //_________________________________________________________
-AlignableVolume::AlignableVolume(const char* symname, int iid) : TNamed(symname, ""), mVarFrame(kTRA), mIntID(iid), mX(0), mAlp(0), mNDOFs(0), mDOF(0), mNDOFGeomFree(0), mNDOFFree(0), mConstrChild(kDefChildConstr)
-                                                                 //
-                                                                 ,
-                                                                 mParent(nullptr),
-                                                                 mChildren(nullptr)
-                                                                 //
-                                                                 ,
-                                                                 mNProcPoints(0),
-                                                                 mFirstParGloID(-1),
-                                                                 mParVals(nullptr),
-                                                                 mParErrs(nullptr),
-                                                                 mParLabs(nullptr)
-                                                                 //
-                                                                 ,
-                                                                 mMatL2GReco(),
-                                                                 mMatL2G(),
-                                                                 mMatL2GIdeal(),
-                                                                 mMatT2L(),
-                                                                 mMatDeltaRefGlo()
+AlignableVolume::AlignableVolume(const char* symname, int iid, Controller* ctr) : DOFSet(symname, ctr), mIntID(iid)
 {
   // def c-tor
-  setVolID(0);   // volumes have no VID, unless it is sensor
-  if (symname) { // real volumes have at least geometric degrees of freedom
-    setNDOFs(kNDOFGeom);
+  if (!ctr) {
+    LOG(FATAL) << "Controller has to be provided :" << symname;
   }
+  setVolID(0); // volumes have no VID, unless it is sensor
+  setNDOFs(kNDOFGeom);
   setFreeDOFPattern(sDefGeomFree);
 }
 
@@ -257,7 +241,7 @@ void AlignableVolume::Print(const Option_t* opt) const
   opts.ToLower();
   printf("Lev:%2d IntID:%7d %s | %2d nodes | Effective X:%8.4f Alp:%+.4f | Used Points: %d\n",
          countParents(), getInternalID(), getSymName(), getNChildren(), mX, mAlp, mNProcPoints);
-  printf("     DOFs: Tot: %d (offs: %5d) Free: %d  Geom: %d {", mNDOFs, mFirstParGloID, mNDOFFree, mNDOFGeomFree);
+  printf("     DOFs: Tot: %d (offs: %5d) Free: %d  Geom: %d {", mNDOFs, mFirstParGloID, mNDOFsFree, mNDOFGeomFree);
   for (int i = 0; i < kNDOFGeom; i++) {
     printf("%d", isFreeDOF(i) ? 1 : 0);
   }
@@ -274,7 +258,7 @@ void AlignableVolume::Print(const Option_t* opt) const
   }
   printf("\n");
   //
-  if (opts.Contains("par") && mParVals) {
+  if (opts.Contains("par") && mFirstParGloID >= 0) {
     printf("     Lb: ");
     for (int i = 0; i < mNDOFs; i++) {
       printf("%10d  ", getParLab(i));
@@ -403,22 +387,20 @@ void AlignableVolume::setTrackingFrame()
 }
 
 //__________________________________________________________________
-void AlignableVolume::assignDOFs(int& cntDOFs, float* pars, float* errs, int* labs)
+void AlignableVolume::assignDOFs()
 {
   // Assigns offset of the DOFS of this volume in global array of DOFs, attaches arrays to volumes
   //
-  mParVals = pars + cntDOFs;
-  mParErrs = errs + cntDOFs;
-  mParLabs = labs + cntDOFs;
-  setFirstParGloID(cntDOFs);
-  for (int i = 0; i < mNDOFs; i++) {
-    mParLabs[i] = getInternalID() * 100 + i;
+  setFirstParGloID(mController->getNDOFs());
+  if (mFirstParGloID == (int)mController->getGloParVal().size()) {
+    mController->expandGlobalsBy(mNDOFs);
   }
-  cntDOFs += mNDOFs; // increment total DOFs count
-  //
+  for (int i = 0; i < mNDOFs; i++) {
+    setParLab(i, getInternalID() * 100 + i);
+  }
   int nch = getNChildren(); // go over childs
   for (int ich = 0; ich < nch; ich++) {
-    getChild(ich)->assignDOFs(cntDOFs, pars, errs, labs);
+    getChild(ich)->assignDOFs();
   }
   //
   return;
@@ -433,8 +415,10 @@ void AlignableVolume::initDOFs()
   if (getInitDOFsDone()) {
     LOG(FATAL) << "DOFs are already initialized for " << GetName();
   }
+  auto pars = getParVals();
+  auto errs = getParErrs();
   for (int i = 0; i < mNDOFs; i++) {
-    if (mParErrs[i] < -9999 && isZeroAbs(mParVals[i])) {
+    if (errs[i] < -9999 && isZeroAbs(pars[i])) {
       fixDOF(i);
     }
   }
@@ -446,7 +430,7 @@ void AlignableVolume::initDOFs()
 void AlignableVolume::calcFree(bool condFix)
 {
   // calculate free dofs. If condFix==true, condition parameter a la pede, i.e. error < 0
-  mNDOFFree = mNDOFGeomFree = 0;
+  mNDOFsFree = mNDOFGeomFree = 0;
   for (int i = 0; i < mNDOFs; i++) {
     if (!isFreeDOF(i)) {
       if (condFix) {
@@ -454,7 +438,7 @@ void AlignableVolume::calcFree(bool condFix)
       }
       continue;
     }
-    mNDOFFree++;
+    mNDOFsFree++;
     if (i < kNDOFGeom) {
       mNDOFGeomFree++;
     }
@@ -462,14 +446,13 @@ void AlignableVolume::calcFree(bool condFix)
   //
 }
 
-//__________________________________________________________________
-void AlignableVolume::setNDOFs(int n)
+//_________________________________________________________
+void AlignableVolume::getParValGeom(double* delta) const
 {
-  // book global degrees of freedom
-  if (n < kNDOFGeom) {
-    n = kNDOFGeom;
+  auto pars = getParVals();
+  for (int i = kNDOFGeom; i--;) {
+    delta[i] = pars[i];
   }
-  mNDOFs = n;
 }
 
 //__________________________________________________________________
@@ -484,19 +467,6 @@ void AlignableVolume::addChild(AlignableVolume* ch)
 }
 
 //__________________________________________________________________
-void AlignableVolume::setParVals(int npar, double* vl, double* er)
-{
-  // set parameters
-  if (npar > mNDOFs) {
-    LOG(FATAL) << "Volume " << GetName() << " has " << mNDOFs << " dofs";
-  }
-  for (int i = 0; i < npar; i++) {
-    mParVals[i] = vl[i];
-    mParErrs[i] = er ? er[i] : 0;
-  }
-}
-
-//__________________________________________________________________
 bool AlignableVolume::isCondDOF(int i) const
 {
   // is DOF free and conditioned?
@@ -504,7 +474,7 @@ bool AlignableVolume::isCondDOF(int i) const
 }
 
 //______________________________________________________
-int AlignableVolume::finalizeStat(DOFStatistics* st)
+int AlignableVolume::finalizeStat(DOFStatistics& st)
 {
   // finalize statistics on processed points
   mNProcPoints = 0;
@@ -512,9 +482,7 @@ int AlignableVolume::finalizeStat(DOFStatistics* st)
     AlignableVolume* child = getChild(ich);
     mNProcPoints += child->finalizeStat(st);
   }
-  if (st) {
-    fillDOFStat(st);
-  }
+  fillDOFStat(st);
   return mNProcPoints;
 }
 
@@ -557,7 +525,7 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
   //
   if (nCond || showDef || showFix || showNam) {
     fprintf(parOut, "%s%s %s\t\tDOF/Free: %d/%d (%s) %s\n", comment[cmt], kKeyParam, comment[kOnOn],
-            getNDOFs(), getNDOFFree(), sFrameName[mVarFrame], GetName());
+            getNDOFs(), getNDOFsFree(), sFrameName[mVarFrame], GetName());
   }
   //
   if (nCond || showDef || showFix) {
@@ -592,7 +560,7 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
 //_________________________________________________________________
 void AlignableVolume::createGloDeltaMatrix(TGeoHMatrix& deltaM) const
 {
-  // Create global matrix deltaM from mParVals array containing corrections.
+  // Create global matrix deltaM from global array containing corrections.
   // This deltaM does not account for eventual prealignment
   // Volume knows if its variation was done in TRA or LOC frame
   //
@@ -603,12 +571,11 @@ void AlignableVolume::createGloDeltaMatrix(TGeoHMatrix& deltaM) const
   deltaM.MultiplyLeft(&l2g);
   //
 }
-
 /*
 //_________________________________________________________________
 void AlignableVolume::createGloDeltaMatrix(TGeoHMatrix &deltaM) const
 {
-  // Create global matrix deltaM from mParVals array containing corrections.
+  // Create global matrix deltaM from global array containing corrections.
   // This deltaM does not account for eventual prealignment
   // Volume knows if its variation was done in TRA or LOC frame
   //
@@ -655,7 +622,7 @@ void AlignableVolume::createPreGloDeltaMatrix(TGeoHMatrix& deltaM) const
 }
 
 /*
-  // this is an alternative lengthy way !
+// this is an alternative lengthy way !
 //_________________________________________________________________
 void AlignableVolume::createPreGloDeltaMatrix(TGeoHMatrix &deltaM) const
 {
@@ -707,12 +674,13 @@ void AlignableVolume::createPreLocDeltaMatrix(TGeoHMatrix& deltaM) const
 //_________________________________________________________________
 void AlignableVolume::createLocDeltaMatrix(TGeoHMatrix& deltaM) const
 {
-  // Create local matrix deltaM from mParVals array containing corrections.
+  // Create local matrix deltaM from global array containing corrections.
   // This deltaM does not account for eventual prealignment
   // Volume knows if its variation was done in TRA or LOC frame
+  auto pars = getParVals();
   double corr[kNDOFGeom];
   for (int i = kNDOFGeom; i--;) {
-    corr[i] = mParVals[i];
+    corr[i] = pars[i];
   } // we need doubles
   delta2Matrix(deltaM, corr);
   if (isFrameTRA()) { // we need corrections in local frame!
@@ -894,18 +862,15 @@ const char* AlignableVolume::getDOFName(int i) const
 }
 
 //______________________________________________________
-void AlignableVolume::fillDOFStat(DOFStatistics* h) const
+void AlignableVolume::fillDOFStat(DOFStatistics& h) const
 {
   // fill statistics info hist
-  if (!h) {
-    return;
-  }
   int ndf = getNDOFs();
   int dof0 = getFirstParGloID();
   int stat = getNProcessedPoints();
   for (int idf = 0; idf < ndf; idf++) {
     int dof = idf + dof0;
-    h->addStat(dof, stat);
+    h.addStat(dof, stat);
   }
 }
 
