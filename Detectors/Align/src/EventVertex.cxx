@@ -14,9 +14,8 @@
 /// @since  2021-02-01
 /// @brief  Special fake "sensor" for event vertex.
 
+#include "Align/Controller.h"
 #include "Align/EventVertex.h"
-//#include "AliTrackPointArray.h" FIXME(milettri): needs AliTrackPointArray
-//#include "AliESDtrack.h" FIXME(milettri): needs AliESDtrack
 #include "Align/AlignmentPoint.h"
 #include "Align/AlignableDetector.h"
 #include "Framework/Logger.h"
@@ -24,15 +23,13 @@
 
 using namespace TMath;
 
-ClassImp(o2::align::EventVertex);
-
 namespace o2
 {
 namespace align
 {
 
 //_________________________________________________________
-EventVertex::EventVertex() : AlignableSensor("Vertex", 0, 1)
+EventVertex::EventVertex(Controller* ctr) : AlignableSensor("Vertex", 0, 1, ctr)
 {
   // def c-tor
   setVarFrame(kLOC);

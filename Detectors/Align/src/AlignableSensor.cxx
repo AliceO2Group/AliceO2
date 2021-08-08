@@ -21,7 +21,7 @@
 #include "Framework/Logger.h"
 #include "Align/AlignmentPoint.h"
 #include "Align/AlignableDetector.h"
-//#include "AliGeomManager.h"
+#include "DetectorsBase/GeometryManager.h"
 
 ClassImp(o2::align::AlignableSensor);
 
@@ -34,8 +34,8 @@ namespace align
 {
 
 //_________________________________________________________
-AlignableSensor::AlignableSensor(const char* name, int vid, int iid)
-  : AlignableVolume(name, iid), mSID(0), mDet(nullptr), mMatClAlg(), mMatClAlgReco()
+AlignableSensor::AlignableSensor(const char* name, int vid, int iid, Controller* ctr)
+  : AlignableVolume(name, iid, ctr), mSID(0), mDet(nullptr), mMatClAlg(), mMatClAlgReco()
 {
   // def c-tor
   setVolID(vid);
@@ -326,7 +326,7 @@ void AlignableSensor::Print(const Option_t* opt) const
   printf("Lev:%2d IntID:%7d %s VId:%6d X:%8.4f Alp:%+.4f | Err: %.4e %.4e | Used Points: %d\n",
          countParents(), getInternalID(), getSymName(), getVolID(), mX, mAlp,
          mAddError[0], mAddError[1], mNProcPoints);
-  printf("     DOFs: Tot: %d (offs: %5d) Free: %d  Geom: %d {", mNDOFs, mFirstParGloID, mNDOFFree, mNDOFGeomFree);
+  printf("     DOFs: Tot: %d (offs: %5d) Free: %d  Geom: %d {", mNDOFs, mFirstParGloID, mNDOFsFree, mNDOFGeomFree);
   for (int i = 0; i < kNDOFGeom; i++) {
     printf("%d", isFreeDOF(i) ? 1 : 0);
   }
@@ -334,7 +334,7 @@ void AlignableSensor::Print(const Option_t* opt) const
   //
   //
   //
-  if (opts.Contains("par") && mParVals) {
+  if (opts.Contains("par") && mFirstParGloID >= 0) {
     printf("     Lb: ");
     for (int i = 0; i < mNDOFs; i++) {
       printf("%10d  ", getParLab(i));
@@ -376,7 +376,7 @@ void AlignableSensor::prepareMatrixT2L()
   TGeoHMatrix t2l;
   t2l.Clear();
   t2l.RotateZ(mAlp * RadToDeg()); // rotate in direction of normal to the sensor plane
-  const TGeoHMatrix* matL2G = base::GeometryManager::getMatrix(mDet->getO2DetID(), getSID());
+  const TGeoHMatrix* matL2G = base::GeometryManager::getMatrix(mDet->getDetID(), getSID());
   const TGeoHMatrix& matL2Gi = matL2G->Inverse();
   t2l.MultiplyLeft(&matL2Gi);
   setMatrixT2L(t2l);
@@ -428,12 +428,10 @@ void AlignableSensor::dPosTraDParCalib(const AlignmentPoint* pnt, double* deriv,
 }
 
 //______________________________________________________
-int AlignableSensor::finalizeStat(DOFStatistics* st)
+int AlignableSensor::finalizeStat(DOFStatistics& st)
 {
   // finalize statistics on processed points
-  if (st) {
-    fillDOFStat(st);
-  }
+  fillDOFStat(st);
   return mNProcPoints;
 }
 
@@ -484,7 +482,6 @@ void AlignableSensor::applyAlignmentFromMPSol()
   prepareMatrixClAlg();
   //
 }
-
 /*
 //_________________________________________________________________
 void AlignableSensor::applyAlignmentFromMPSol()
@@ -520,7 +517,6 @@ void AlignableSensor::applyAlignmentFromMPSol()
   }
   //
 }
-
 */
 
 } // namespace align
