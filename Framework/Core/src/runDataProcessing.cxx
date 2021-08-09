@@ -184,7 +184,7 @@ std::ostream& operator<<(std::ostream& out, const enum TerminationPolicy& policy
   } else if (policy == TerminationPolicy::WAIT) {
     out << "wait";
   } else {
-    out.setstate(std::ios_base::failbit);
+    out.setstate(std::ios_base::failbit);   
   }
   return out;
 }

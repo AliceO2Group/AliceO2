@@ -39,7 +39,7 @@ static inline void getFrameJSON(void *data, std::ostream& json_data) override
 {
 }
 
-void getFrameRaw(void *data, void **raw_data, int *size) override
+static inline void getFrameRaw(void *data, void **raw_data, int *size) override
 {
 }
 
