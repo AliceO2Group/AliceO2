@@ -57,9 +57,6 @@ struct pidTOFTaskQA {
   static constexpr std::string_view hnsigmasec[Np] = {"nsigmasec/El", "nsigmasec/Mu", "nsigmasec/Pi",
                                                       "nsigmasec/Ka", "nsigmasec/Pr", "nsigmasec/De",
                                                       "nsigmasec/Tr", "nsigmasec/He", "nsigmasec/Al"};
-  static constexpr std::string_view hbetaMC[Np] = {"beta/El", "beta/Mu", "beta/Pi",
-                                                   "beta/Ka", "beta/Pr", "beta/De",
-                                                   "beta/Tr", "beta/He", "beta/Al"};
   static constexpr std::string_view hnsigmaMC[Np] = {"nsigmaMC/El", "nsigmaMC/Mu", "nsigmaMC/Pi",
                                                      "nsigmaMC/Ka", "nsigmaMC/Pr", "nsigmaMC/De",
                                                      "nsigmaMC/Tr", "nsigmaMC/He", "nsigmaMC/Al"};
@@ -117,7 +114,6 @@ struct pidTOFTaskQA {
     const AxisSpec betaAxis{1000, 0, 1.2, "TOF #beta"};
 
     histos.add("event/T0", ";Tracks with TOF;T0 (ps);Counts", HistType::kTH2F, {{1000, 0, 1000}, {1000, -1000, 1000}});
-    histos.add(hbetaMC[pid_type].data(), pT[pid_type], HistType::kTH2F, {ptAxis, betaAxis});
     histos.add(hnsigma[pid_type].data(), pT[pid_type], HistType::kTH2F, {ptAxis, nSigmaAxis});
     if (checkPrimaries) {
       histos.add(hnsigmaprm[pid_type].data(), Form("Primary %s", pT[pid_type]), HistType::kTH2F, {ptAxis, nSigmaAxis});
@@ -132,10 +128,13 @@ struct pidTOFTaskQA {
     addParticleHistos<6>();
     addParticleHistos<7>();
     addParticleHistos<8>();
-    histos.add("event/tofbeta", pT[pid_type], HistType::kTH2F, {pAxis, betaAxis});
+    histos.add("event/tofbeta", "All", HistType::kTH2F, {pAxis, betaAxis});
+    histos.add("event/tofbetaMC", pT[pid_type], HistType::kTH2F, {pAxis, betaAxis});
     if (checkPrimaries) {
-      histos.add("event/tofbetaPrm", Form("Primary %s", pT[pid_type]), HistType::kTH2F, {pAxis, betaAxis});
-      histos.add("event/tofbetaSec", Form("Secondary %s", pT[pid_type]), HistType::kTH2F, {pAxis, betaAxis});
+      histos.add("event/tofbetaPrm", "Primaries", HistType::kTH2F, {pAxis, betaAxis});
+      histos.add("event/tofbetaSec", "Secondaries", HistType::kTH2F, {pAxis, betaAxis});
+      histos.add("event/tofbetaMCPrm", Form("Primary %s", pT[pid_type]), HistType::kTH2F, {pAxis, betaAxis});
+      histos.add("event/tofbetaMCSec", Form("Secondary %s", pT[pid_type]), HistType::kTH2F, {pAxis, betaAxis});
     }
   }
 
@@ -145,14 +144,9 @@ struct pidTOFTaskQA {
     const auto particle = track.mcParticle();
     if (abs(particle.pdgCode()) == PDGs[pidIndex]) {
 
-      histos.fill(HIST(hbetaMC[pidIndex]), track.pt(), track.beta());
       histos.fill(HIST(hnsigmaMC[pidIndex]), track.pt(), nsigma);
-
-      if (MC::isPhysicalPrimary(particle)) { // Selecting primaries
-        histos.fill(HIST(hnsigmaMCprm[pidIndex]), track.pt(), nsigma);
-      } else {
-        histos.fill(HIST(hnsigmaMCsec[pidIndex]), track.pt(), nsigma);
-      }
+      // Selecting primaries
+      histos.fill(MC::isPhysicalPrimary(particle) ? HIST(hnsigmaMCprm[pidIndex]) : HIST(hnsigmaMCsec[pidIndex]), track.pt(), nsigma);
     }
   }
 
@@ -209,6 +203,10 @@ struct pidTOFTaskQA {
       } else {
         histos.fill(HIST(hnsigmasec[pid_type]), t.pt(), nsigma);
         histos.fill(HIST("event/tofbetaSec"), t.p(), t.beta());
+      }
+      if (abs(particle.pdgCode()) == PDGs[pid_type]) { // Checking the PDG code
+        histos.fill(HIST("event/tofbetaMC"), track.pt(), t.beta());
+        histos.fill(MC::isPhysicalPrimary(particle) ? HIST("event/tofbetaMCPrm") : HIST("event/tofbetaMCSec"), track.pt(), t.beta());
       }
       // Fill with PDG codes
       fillNsigma<0>(t, mcParticles, nsigma);
