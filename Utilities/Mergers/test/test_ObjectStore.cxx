@@ -51,9 +51,9 @@ BOOST_AUTO_TEST_CASE(TestObjectExtraction)
     DataRef ref = makeDataRef(obj);
 
     auto objStore = object_store_helpers::extractObjectFrom(ref);
-    BOOST_REQUIRE(std::holds_alternative<TObjectPtr>(objStore));
+    BOOST_REQUIRE(std::holds_alternative<MergeInterfacePtr>(objStore));
 
-    auto objExtractedCustom = dynamic_cast<CustomMergeableTObject*>(std::get<TObjectPtr>(objStore).get());
+    auto objExtractedCustom = dynamic_cast<CustomMergeableTObject*>(std::get<MergeInterfacePtr>(objStore).get());
     BOOST_REQUIRE(objExtractedCustom != nullptr);
     BOOST_CHECK_EQUAL(objExtractedCustom->getSecret(), 123);
 

@@ -36,7 +36,10 @@ class MergeInterface
   /// \brief Custom merge method.
   virtual void merge(MergeInterface* const other) = 0; // const argument
 
-  ClassDef(MergeInterface, 0);
+  /// \brief Lets the child perform any routines after the object was deserialized (e.g. setting the correct ownership)
+  virtual void postDeserialization(){};
+
+  ClassDef(MergeInterface, 1);
 };
 
 } // namespace o2::mergers
