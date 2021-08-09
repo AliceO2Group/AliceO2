@@ -53,7 +53,6 @@ using MyBarrelTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, 
                                  aod::pidTOFFullKa, aod::pidTOFFullPr, aod::pidTOFbeta, aod::V0Bits>;
 using MyEvents = soa::Join<aod::Collisions, aod::EvSels, aod::Cents>;
 using MyEventsNoCent = soa::Join<aod::Collisions, aod::EvSels>;
-//using MyMuons = aod::Muons;
 using MyMuons = soa::Join<aod::FwdTracks, aod::FwdTracksCov>;
 
 // HACK: In order to be able to deduce which kind of aod object is transmitted to the templated VarManager::Fill functions
@@ -167,6 +166,7 @@ struct TableMaker {
     eventVtxCov(collision.covXX(), collision.covXY(), collision.covXZ(), collision.covYY(), collision.covYZ(), collision.covZZ(), collision.chi2());
 
     uint64_t trackFilteringTag = 0;
+
     trackBasic.reserve(tracksBarrel.size());
     trackBarrel.reserve(tracksBarrel.size());
     trackBarrelCov.reserve(tracksBarrel.size());

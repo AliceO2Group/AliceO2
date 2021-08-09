@@ -18,7 +18,7 @@
 #include "TFile.h"
 #include "TTree.h"
 
-#include "TPCReconstruction/KrCluster.h"
+#include "DataFormatsTPC/KrCluster.h"
 #include "TPCReconstruction/KrBoxClusterFinder.h"
 #include "DataFormatsTPC/Digit.h"
 

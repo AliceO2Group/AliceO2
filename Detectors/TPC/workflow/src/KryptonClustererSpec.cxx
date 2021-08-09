@@ -16,10 +16,10 @@
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Headers/DataHeader.h"
-#include "DataFormatsTPC/TPCSectorHeader.h"
 
+#include "DataFormatsTPC/TPCSectorHeader.h"
+#include "DataFormatsTPC/KrCluster.h"
 #include "TPCReconstruction/KrBoxClusterFinder.h"
-#include "TPCReconstruction/KrCluster.h"
 #include "TPCWorkflow/KryptonClustererSpec.h"
 
 using namespace o2::framework;

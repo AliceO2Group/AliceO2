@@ -102,6 +102,22 @@ std::ostream& operator<<(std::ostream& os, const ClusterPattern& pattern)
   return os;
 }
 
+int ClusterPattern::getNPixels() const
+{
+  int n = 0, nBytes = getUsedBytes();
+  const auto* patt = mBitmap.data() + 2;
+  for (int i = 0; i < nBytes; i++) {
+    auto p = patt[i];
+    if (p) {
+      p = ((p & 0xAA) >> 1) + (p & 0x55);
+      p = ((p & 0xCC) >> 2) + (p & 0x33);
+      p = ((p & 0xF0) >> 4) + (p & 0x0f);
+      n += p;
+    }
+  }
+  return n;
+}
+
 int ClusterPattern::getCOG(int rowSpan, int colSpan, const unsigned char patt[MaxPatternBytes], float& xCOG, float& zCOG)
 {
   int tempxCOG = 0, tempzCOG = 0, tempFiredPixels = 0, ic = 0, ir = 0;
@@ -137,12 +153,6 @@ int ClusterPattern::getCOG(int rowSpan, int colSpan, const unsigned char patt[Ma
   zCOG = float(tempzCOG) / tempFiredPixels;
 
   return tempFiredPixels;
-}
-
-int ClusterPattern::getCOG(float& xCOG, float& zCOG) const
-{
-  auto patt = getPattern();
-  return ClusterPattern::getCOG(getRowSpan(), getColumnSpan(), &patt[2], xCOG, zCOG);
 }
 
 } // namespace itsmft

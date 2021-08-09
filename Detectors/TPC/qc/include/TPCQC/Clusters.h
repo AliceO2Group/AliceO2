@@ -42,7 +42,8 @@ class Clusters
  public:
   Clusters() = default;
 
-  bool processCluster(const o2::tpc::ClusterNative& cluster, const o2::tpc::Sector sector, const int row);
+  template <class T>
+  bool processCluster(const T& cluster, const o2::tpc::Sector sector, const int row);
 
   void fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue);
 

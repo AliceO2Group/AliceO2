@@ -127,7 +127,7 @@ unsigned long ClusterTopology::getCompleteHash(int nRow, int nCol,
 
 unsigned long ClusterTopology::getCompleteHash(const ClusterTopology& topology)
 {
-  auto patt = topology.getPattern();
+  const auto& patt = topology.getPattern();
   int nBytesUsed = topology.getUsedBytes();
   unsigned long partialHash = (unsigned long)hashFunction(patt.data(), nBytesUsed);
   // The first four bytes are directly taken from partialHash
