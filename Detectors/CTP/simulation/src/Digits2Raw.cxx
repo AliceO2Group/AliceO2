@@ -184,13 +184,13 @@ int Digits2Raw::digit2GBTdigit(std::bitset<NGBT>& gbtdigitIR, std::bitset<NGBT>&
   // CTP Interaction record (CTP inputs)
   //
   gbtdigitIR = 0;
-  gbtdigitIR = (digit.CTPInputMask).to_ullong() >> 12;
+  gbtdigitIR = (digit.CTPInputMask).to_ullong() << 12;
   gbtdigitIR |= digit.intRecord.bc;
   //
   // Trig Classes
   //
   gbtdigitTR = 0;
-  gbtdigitTR = (digit.CTPClassMask).to_ullong() >> 12;
+  gbtdigitTR = (digit.CTPClassMask).to_ullong() << 12;
   gbtdigitTR |= digit.intRecord.bc;
   return 0;
 }
