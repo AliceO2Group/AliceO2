@@ -77,7 +77,7 @@ struct NucleiSpectraEfficiencyLightGen {
       if (mcParticleGen.pdgCode() != -1000020030) {
         continue;
       }
-      if (!MC::isPhysicalPrimary<aod::McParticles>(mcParticleGen)) {
+      if (!MC::isPhysicalPrimary(mcParticleGen)) {
         continue;
       }
       if (abs(mcParticleGen.y()) > 0.5) {
