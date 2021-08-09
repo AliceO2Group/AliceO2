@@ -167,7 +167,6 @@ struct tofPid {
 };
 
 struct tofPidQa {
-
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   static constexpr std::string_view hexpected[Np] = {"expected/El", "expected/Mu", "expected/Pi",
@@ -200,9 +199,9 @@ struct tofPidQa {
     if (logAxis) {
       pAxis.makeLogaritmic();
     }
-    const AxisSpec nSigmaAxis{nBinsNSigma, minNSigma, maxNSigma, "#it{p} (GeV/#it{c})"};
+    const AxisSpec nSigmaAxis{nBinsNSigma, minNSigma, maxNSigma, Form("N_{#sigma}^{TOF}(%s)", pT[i])};
 
-    histos.add(hnsigma[i].data(), Form(";;N_{#sigma}^{TOF}(%s)", pT[i]), HistType::kTH2F, {pAxis, nSigmaAxis});
+    histos.add(hnsigma[i].data(), "", HistType::kTH2F, {pAxis, nSigmaAxis});
   }
 
   void init(o2::framework::InitContext&)
