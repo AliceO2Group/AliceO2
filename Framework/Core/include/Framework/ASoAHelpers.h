@@ -20,7 +20,6 @@
 #include <iterator>
 #include <tuple>
 #include <utility>
-#include <iostream>
 
 namespace o2::soa
 {
@@ -57,7 +56,6 @@ struct NTupleType<T, 0, REST...> {
 // Group table (C++ vector of indices)
 bool sameCategory(std::pair<uint64_t, uint64_t> const& a, std::pair<uint64_t, uint64_t> const& b)
 {
-  std::cout << "Checking same category, a.first: " << a.first << " b.first: " << b.first << std::endl;
   return a.first < b.first;
 }
 bool diffCategory(std::pair<uint64_t, uint64_t> const& a, std::pair<uint64_t, uint64_t> const& b)
@@ -443,22 +441,16 @@ struct CombinationsBlockFullIndexPolicy : public CombinationsBlockIndexPolicyBas
   {
     constexpr auto k = sizeof...(Ts);
     for_<k>([&, this](auto i) {
-      std::cout << "Range at " << i.value << " current index: " << std::get<i.value>(this->mCurrentIndices) << std::endl;
-      std::cout << "Size of grouped indices: " << this->mGroupedIndices[i.value].size() << " begin position: " << (*(this->mGroupedIndices[i.value].begin())).second << std::endl; 
       auto catBegin = this->mGroupedIndices[i.value].begin() + std::get<i.value>(this->mCurrentIndices);
-      std::cout << "at " << i.value << " cat begin: " << (*catBegin).first << ", " << (*catBegin).second << std::endl;
       auto range = std::equal_range(catBegin, this->mGroupedIndices[i.value].end(), *catBegin, sameCategory);
-      //std::cout << "at " << i.value << " cat begin: " << (*catBegin).first << ", " << (*catBegin).second << " range: (" << (*(range.first)).first << ", " << (*(range.first)).second << "), (" << (*(range.second)).first << ", " << (*(range.second)).second << "), groupedIndices vector size: " << this->mGroupedIndices[i.value].size() << std::endl;
       std::get<i.value>(this->mBeginIndices) = std::distance(this->mGroupedIndices[i.value].begin(), range.first);
       std::get<i.value>(this->mMaxOffset) = std::distance(this->mGroupedIndices[i.value].begin(), range.second);
-      std::cout << "maxOffset set: " << std::get<i.value>(this->mMaxOffset) << " begin index: " << std::get<i.value>(this->mBeginIndices) << std::endl;
       std::get<i.value>(this->mCurrent).setCursor(range.first->second);
     });
   }
 
   void addOne()
   {
-    std::cout << "Adding one" << std::endl;
     constexpr auto k = sizeof...(Ts);
     bool modify = true;
     bool nextCatAvailable = true;
@@ -467,36 +459,25 @@ struct CombinationsBlockFullIndexPolicy : public CombinationsBlockIndexPolicyBas
         constexpr auto curInd = k - i.value - 1;
         std::get<curInd>(this->mCurrentIndices)++;
         uint64_t curGroupedInd = std::get<curInd>(this->mCurrentIndices);
-        std::cout << "i: " << i.value << " current index: " << curInd << " curGroupedInd: " << curGroupedInd << std::endl;
-        std::cout << "GroupedIndices array size: " << this->mGroupedIndices.size() << " size of vector at curInd: " << this->mGroupedIndices[curInd].size() << std::endl;
         if (curGroupedInd < this->mGroupedIndices[curInd].size()) {
-          std::cout << "Setting position to : " << this->mGroupedIndices[curInd][curGroupedInd].second << std::endl;
           std::get<curInd>(this->mCurrent).setCursor(this->mGroupedIndices[curInd][curGroupedInd].second);
         }
         uint64_t windowOffset = curInd == this->mCurrentlyFixed ? 1 : this->mSlidingWindowSize;
         uint64_t maxForWindow = std::get<curInd>(this->mBeginIndices) + windowOffset;
-        std::cout << "Window offset: " << windowOffset << " max for window: " << maxForWindow << std::endl;
-        std::cout << "Currently fixd: " << this->mCurrentlyFixed << std::endl;
 
         // If we remain within the same sliding window and fixed index
         if (curGroupedInd < maxForWindow && curGroupedInd < std::get<curInd>(this->mMaxOffset)) {
-          std::cout << "Same sliding window, less than max offset" << std::endl;
           for_<i.value>([&, this](auto j) {
             constexpr auto curJ = k - i.value + j.value;
-            std::cout << "curJ: " << curJ << " current position: " << std::get<curJ>(this->mCurrentIndices) << std::endl;
             if (curJ < this->mCurrentlyFixed) { // To assure no repetitions
               std::get<curJ>(this->mCurrentIndices) = std::get<curJ>(this->mBeginIndices) + 1;
-              std::cout << "set indices to begin + 1: " << std::get<curJ>(this->mCurrentIndices) << std::endl;
             } else {
               std::get<curJ>(this->mCurrentIndices) = std::get<curJ>(this->mBeginIndices);
-              std::cout << "set indices to begin: " << std::get<curJ>(this->mCurrentIndices) << std::endl;
             }
             uint64_t curGroupedJ = std::get<curJ>(this->mCurrentIndices);
             std::get<curJ>(this->mCurrent).setCursor(this->mGroupedIndices[curJ][curGroupedJ].second);
-            std::cout << "J groupedInd: " << curGroupedJ << " setting position to: " << this->mGroupedIndices[curJ][curGroupedJ].second << std::endl;
           });
           modify = false;
-          std::cout << "Modify set to false" << std::endl;
         }
       }
     });
@@ -505,35 +486,26 @@ struct CombinationsBlockFullIndexPolicy : public CombinationsBlockIndexPolicyBas
     if (modify) {
       // If we haven't finished with window starting element
       if (this->mCurrentlyFixed < k - 1 && std::get<0>(this->mBeginIndices) < std::get<0>(this->mMaxOffset) - 1) {
-        std::cout << "Not done with the starting element of the window" << std::endl;
         this->mCurrentlyFixed++;
-        std::cout << "new currently fixed: " << this->mCurrentlyFixed << std::endl;
         for_<k>([&, this](auto s) {
-          std::cout << "Current index: " << s.value << " position: " << std::get<s.value>(this->mCurrentIndices) << std::endl;
           if (s.value < this->mCurrentlyFixed) { // To assure no repetitions
             std::get<s.value>(this->mCurrentIndices) = std::get<s.value>(this->mBeginIndices) + 1;
-            std::cout << "set indices to begin + 1: " << std::get<s.value>(this->mCurrentIndices) << std::endl;
           } else {
             std::get<s.value>(this->mCurrentIndices) = std::get<s.value>(this->mBeginIndices);
-            std::cout << "set indices to begin: " << std::get<s.value>(this->mCurrentIndices) << std::endl;
           }
           uint64_t curGroupedI = std::get<s.value>(this->mCurrentIndices);
           std::get<s.value>(this->mCurrent).setCursor(this->mGroupedIndices[s.value][curGroupedI].second);
-          std::cout << "s groupedInd: " << curGroupedI << " setting position to: " << this->mGroupedIndices[s.value][curGroupedI].second << std::endl;
         });
         modify = false;
       } else {
-        std::cout << "Starting element done, setting currently fixed back to 0" << std::endl;
         this->mCurrentlyFixed = 0;
         std::get<0>(this->mBeginIndices)++;
         std::get<0>(this->mCurrentIndices) = std::get<0>(this->mBeginIndices);
 
         // If we remain within the same category - slide window
         if (std::get<0>(this->mBeginIndices) < std::get<0>(this->mMaxOffset)) {
-          std::cout << "Same category, sliding the window by 1" << std::endl;
           uint64_t curGroupedInd = std::get<0>(this->mCurrentIndices);
           std::get<0>(this->mCurrent).setCursor(this->mGroupedIndices[0][curGroupedInd].second);
-          std::cout << "New index at 0: " << std::get<0>(this->mCurrentIndices) << " position: " << this->mGroupedIndices[0][curGroupedInd].second << std::endl;
           modify = false;
           for_<k - 1>([&, this](auto j) {
             constexpr auto curJ = j.value + 1;
@@ -542,9 +514,7 @@ struct CombinationsBlockFullIndexPolicy : public CombinationsBlockIndexPolicyBas
               std::get<curJ>(this->mCurrentIndices) = std::get<curJ>(this->mBeginIndices);
               uint64_t curGroupedJ = std::get<curJ>(this->mCurrentIndices);
               std::get<curJ>(this->mCurrent).setCursor(this->mGroupedIndices[curJ][curGroupedJ].second);
-              std::cout << "New index at " << curJ << ": " << std::get<curJ>(this->mCurrentIndices) << " position: " << this->mGroupedIndices[curJ][curGroupedJ].second << std::endl;
             } else {
-              std::cout << "End of the category after sliding, need to change" << std::endl;
               modify = true;
             }
           });
@@ -554,24 +524,18 @@ struct CombinationsBlockFullIndexPolicy : public CombinationsBlockIndexPolicyBas
 
     // No more combinations within this category - move to the next category, if possible
     if (modify) {
-      std::cout << "Moving to the next category" << std::endl;
       for_<k>([&, this](auto m) {
-        std::cout << "At " << m.value << " setting current indices to max offset: " << std::get<m.value>(this->mMaxOffset) << std::endl;
         std::get<m.value>(this->mCurrentIndices) = std::get<m.value>(this->mMaxOffset);
         if (std::get<m.value>(this->mCurrentIndices) == this->mGroupedIndices[m.value].size()) {
-          std::cout << "At " << m.value << " no more categories, size of grouped: " << this->mGroupedIndices[m.value].size() << std::endl;
           nextCatAvailable = false;
         }
       });
       if (nextCatAvailable) {
-        std::cout << "Moved to the next category, setting ranges" << std::endl;
         setRanges();
       }
     }
 
     this->mIsEnd = modify && !nextCatAvailable;
-
-    std::cout << "=======================================================================================================" << std::endl;
   }
 
   uint64_t mCurrentlyFixed;
@@ -948,10 +912,7 @@ struct CombinationsGenerator {
   CombinationsGenerator() = delete;
   CombinationsGenerator(const P& policy) : mBegin(policy), mEnd(policy)
   {
-    std::cout << "Created iterators in the generator" << std::endl;
     mEnd.moveToEnd();
-    std::cout << "End iterator moved to the end" << std::endl;
-    std::cout << "###############################################################################################################################" << std::endl;
   }
   ~CombinationsGenerator() = default;
 
