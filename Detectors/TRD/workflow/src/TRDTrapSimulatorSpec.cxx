@@ -298,7 +298,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
             for (const auto& newLabel : newLabels) {
               bool alreadyIn = false;
               for (const auto& currLabel : currentLabels) {
-                if (currLabel.compare(newLabel) == 1) {
+                if (currLabel == newLabel) {
                   alreadyIn = true;
                   break;
                 }

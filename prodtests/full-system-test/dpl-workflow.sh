@@ -137,7 +137,7 @@ WORKFLOW+="o2-gpu-reco-workflow ${ARGS_ALL/--severity $SEVERITY/--severity $SEVE
 WORKFLOW+="o2-tpcits-match-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --pipeline itstpc-track-matcher:$N_TPCITS | "
 WORKFLOW+="o2-ft0-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC | "
 WORKFLOW+="o2-tof-reco-workflow $ARGS_ALL --input-type $TOF_INPUT --output-type $TOF_OUTPUT --disable-root-input --disable-root-output $DISABLE_MC | "
-WORKFLOW+="o2-trd-tracklet-transformer $ARGS_ALL --disable-root-input --disable-root-output $TRD_TRANSFORMER_CONFIG --pipeline TRDTRACKLETTRANSFORMER:$N_TRDTRK | "
+WORKFLOW+="o2-trd-tracklet-transformer $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC $TRD_TRANSFORMER_CONFIG --pipeline TRDTRACKLETTRANSFORMER:$N_TRDTRK | "
 WORKFLOW+="o2-trd-global-tracking $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC $TRD_CONFIG | "
 
 # Workflows disabled in sync mode

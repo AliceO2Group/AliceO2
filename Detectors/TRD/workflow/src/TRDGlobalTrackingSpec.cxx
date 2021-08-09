@@ -114,7 +114,7 @@ void TRDGlobalTracking::updateTimeDependentParams()
   mTracker->SetTPCVdrift(mTPCVdrift);
 }
 
-void TRDGlobalTracking::fillMCTruthInfo(const TrackTRD& trk, const o2::MCCompLabel& lblSeed, std::vector<o2::MCCompLabel>& lblContainer, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkltLabels) const
+void TRDGlobalTracking::fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lblSeed, std::vector<o2::MCCompLabel>& lblContainerTrd, std::vector<o2::MCCompLabel>& lblContainerMatch, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkltLabels) const
 {
   // Check MC labels of the TRD tracklets attached to the track seed.
   // Set TRD track label to the most frequent tracklet label.
@@ -134,9 +134,9 @@ void TRDGlobalTracking::fillMCTruthInfo(const TrackTRD& trk, const o2::MCCompLab
     }
     const auto& lblsTrklt = trkltLabels->getLabels(trkltIndex);
     for (const auto lblTrklt : lblsTrklt) {
-      ++labelCounter[lblTrklt];
-      if (labelCounter[lblTrklt] > maxOccurences) {
-        maxOccurences = labelCounter[lblTrklt];
+      int nOcc = ++labelCounter[lblTrklt];
+      if (nOcc > maxOccurences) {
+        maxOccurences = nOcc;
       }
     }
   }
@@ -144,11 +144,12 @@ void TRDGlobalTracking::fillMCTruthInfo(const TrackTRD& trk, const o2::MCCompLab
   for (const auto& [lbl, count] : labelCounter) {
     LOG(DEBUG) << "Label " << lbl << " occured " << count << " times.";
     if (count == maxOccurences) {
-      if (lblSeed.compare(lbl) >= 0) {
+      if (lblSeed == lbl) {
         // most frequent label matches seed label
         mostFrequentLabel = lbl;
         mostFrequentLabel.setFakeFlag(maxOccurences != trk.getNtracklets());
-        lblContainer.push_back(mostFrequentLabel);
+        lblContainerTrd.push_back(mostFrequentLabel);
+        lblContainerMatch.push_back(lblSeed); // is not fake by definition, since the seed label matches the TRD track label
         return;
       } else {
         // maybe multiple labels occur with the same frequency and the next one might match the seed?
@@ -156,9 +157,10 @@ void TRDGlobalTracking::fillMCTruthInfo(const TrackTRD& trk, const o2::MCCompLab
       }
     }
   }
-  bool fakeFlag = (lblSeed.compare(mostFrequentLabel) == -1) || (maxOccurences != trk.getNtracklets());
-  mostFrequentLabel.setFakeFlag(fakeFlag);
-  lblContainer.push_back(mostFrequentLabel);
+  mostFrequentLabel.setFakeFlag(maxOccurences != trk.getNtracklets());
+  lblContainerTrd.push_back(mostFrequentLabel);
+  lblSeed.setFakeFlag(lblSeed != mostFrequentLabel);
+  lblContainerMatch.push_back(lblSeed);
 }
 
 void TRDGlobalTracking::fillTrackTriggerRecord(const std::vector<TrackTRD>& tracks, std::vector<TrackTriggerRecord>& trigRec, const gsl::span<const o2::trd::TriggerRecord>& trackletTrigRec) const
@@ -194,7 +196,9 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   LOGF(INFO, "As input seeds are available: %i ITS-TPC matched tracks and %i TPC tracks", mChainTracking->mIOPtrs.nTracksTPCITSO2, mChainTracking->mIOPtrs.nOutputTracksTPCO2);
 
   std::vector<o2::MCCompLabel> matchLabelsITSTPC;
+  std::vector<o2::MCCompLabel> trdLabelsITSTPC;
   std::vector<o2::MCCompLabel> matchLabelsTPC;
+  std::vector<o2::MCCompLabel> trdLabelsTPC;
   gsl::span<const o2::MCCompLabel> tpcTrackLabels;
   gsl::span<const o2::MCCompLabel> itstpcTrackLabels;
   if (mUseMC) {
@@ -301,13 +305,13 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       // this track is from an ITS-TPC seed
       tracksOutITSTPC.push_back(trdTrack);
       if (mUseMC) {
-        fillMCTruthInfo(trdTrack, inputTracks.getTPCITSTrackMCLabel(trackGID), matchLabelsITSTPC, inputTracks.getTRDTrackletsMCLabels());
+        fillMCTruthInfo(trdTrack, itstpcTrackLabels[trackGID], trdLabelsITSTPC, matchLabelsITSTPC, inputTracks.getTRDTrackletsMCLabels());
       }
     } else {
       // this track is from a TPC-only seed
       tracksOutTPC.push_back(trdTrack);
       if (mUseMC) {
-        fillMCTruthInfo(trdTrack, inputTracks.getTPCTrackMCLabel(trackGID), matchLabelsTPC, inputTracks.getTRDTrackletsMCLabels());
+        fillMCTruthInfo(trdTrack, tpcTrackLabels[trackGID], trdLabelsTPC, matchLabelsTPC, inputTracks.getTRDTrackletsMCLabels());
       }
     }
   }
@@ -320,17 +324,19 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
 
   uint32_t ss = o2::globaltracking::getSubSpec(mStrict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   if (inputTracks.isTrackSourceLoaded(GTrackID::Source::ITSTPC)) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0, Lifetime::Timeframe}, tracksOutITSTPC);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG_GLO", 0, Lifetime::Timeframe}, trackTrigRecITSTPC);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCH_ITSTPC", 0, Lifetime::Timeframe}, tracksOutITSTPC);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRGREC_ITSTPC", 0, Lifetime::Timeframe}, trackTrigRecITSTPC);
     if (mUseMC) {
-      pc.outputs().snapshot(Output{"GLO", "MTCHLBL_GLO", 0, Lifetime::Timeframe}, matchLabelsITSTPC);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_ITSTPC", 0, Lifetime::Timeframe}, matchLabelsITSTPC);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_ITSTPC_TRD", 0, Lifetime::Timeframe}, trdLabelsITSTPC);
     }
   }
   if (inputTracks.isTrackSourceLoaded(GTrackID::Source::TPC)) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_TPC", ss, Lifetime::Timeframe}, tracksOutTPC);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG_TPC", ss, Lifetime::Timeframe}, trackTrigRecTPC);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCH_TPC", ss, Lifetime::Timeframe}, tracksOutTPC);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRGREC_TPC", ss, Lifetime::Timeframe}, trackTrigRecTPC);
     if (mUseMC) {
-      pc.outputs().snapshot(Output{"GLO", "MTCHLBL_TPC", ss, Lifetime::Timeframe}, matchLabelsTPC);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_TPC", ss, Lifetime::Timeframe}, matchLabelsTPC);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_TPC_TRD", ss, Lifetime::Timeframe}, trdLabelsTPC);
     }
   }
 
@@ -357,17 +363,19 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
 
 
   if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
-    outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG_GLO", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTRD, "MATCH_ITSTPC", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTRD, "TRGREC_ITSTPC", 0, Lifetime::Timeframe);
     if (useMC) {
-      outputs.emplace_back("GLO", "MTCHLBL_GLO", 0, Lifetime::Timeframe);
+      outputs.emplace_back(o2::header::gDataOriginTRD, "MCLB_ITSTPC", 0, Lifetime::Timeframe);
+      outputs.emplace_back(o2::header::gDataOriginTRD, "MCLB_ITSTPC_TRD", 0, Lifetime::Timeframe);
     }
   }
   if (GTrackID::includesSource(GTrackID::Source::TPC, src)) {
-    outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_TPC", ss, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG_TPC", ss, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTRD, "MATCH_TPC", ss, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTRD, "TRGREC_TPC", ss, Lifetime::Timeframe);
     if (useMC) {
-      outputs.emplace_back("GLO", "MTCHLBL_TPC", ss, Lifetime::Timeframe);
+      outputs.emplace_back(o2::header::gDataOriginTRD, "MCLB_TPC", ss, Lifetime::Timeframe);
+      outputs.emplace_back(o2::header::gDataOriginTRD, "MCLB_TPC_TRD", ss, Lifetime::Timeframe);
     }
     if (trigRecFilterActive) {
       LOG(ERROR) << "Matching to TPC-only tracks requested, but IR without ITS contribution are filtered out. This does not lead to a crash, but it deteriorates the matching efficiency.";
