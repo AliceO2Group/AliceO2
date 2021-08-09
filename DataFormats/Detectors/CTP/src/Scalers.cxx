@@ -206,7 +206,7 @@ int CTPRunScalers::convertRawToO2()
       }
   }
   CTPScalerRecordO2 o2rec;
-  o2rec.intRecord = mScalerRecordRaw[0].intRecord; 
+  o2rec.intRecord = mScalerRecordRaw[0].intRecord;
   o2rec.seconds = mScalerRecordRaw[0].seconds;
   o2rec.microSeconds = mScalerRecordRaw[0].microSeconds;
   for(int i = 1; i < mScalerRecordRaw.size(); i++) {
