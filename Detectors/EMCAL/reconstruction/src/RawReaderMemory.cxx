@@ -40,7 +40,7 @@ o2::header::RDHAny RawReaderMemory::decodeRawHeader(const void* payloadwords)
   } else if (headerversion == 6) {
     return o2::header::RDHAny(*reinterpret_cast<const o2::header::RAWDataHeaderV6*>(payloadwords));
   }
-  throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING);
+  throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING, mCurrentFEE);
 }
 
 void RawReaderMemory::init()
@@ -49,7 +49,6 @@ void RawReaderMemory::init()
   mRawHeaderInitialized = false;
   mPayloadInitialized = false;
   mRawBuffer.flush();
-  mNumData = mRawMemoryBuffer.size() / 8192; // assume fixed 8 kB pages
 }
 
 void RawReaderMemory::next()
@@ -86,7 +85,7 @@ void RawReaderMemory::next()
 void RawReaderMemory::nextPage(bool doResetPayload)
 {
   if (!hasNext()) {
-    throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_NOTFOUND);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_NOTFOUND, mCurrentFEE);
   }
   if (doResetPayload) {
     mRawPayload.reset();
@@ -96,21 +95,34 @@ void RawReaderMemory::nextPage(bool doResetPayload)
   // Read header
   try {
     mRawHeader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
+    auto feeID = RDHDecoder::getFEEID(mRawHeader);
+    if (mCurrentFEE < 0 || mCurrentFEE != feeID) {
+      // update current FEE ID
+      mCurrentFEE = feeID;
+    }
     //RDHDecoder::printRDH(mRawHeader);
     if (RDHDecoder::getOffsetToNext(mRawHeader) == RDHDecoder::getHeaderSize(mRawHeader)) {
       // No Payload - jump to next rawheader
       // This will eventually move, depending on whether for events without payload in the SRU we send the RCU trailer
       mCurrentPosition += RDHDecoder::getHeaderSize(mRawHeader);
       mRawHeader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
+      feeID = RDHDecoder::getFEEID(mRawHeader);
+      if (mCurrentFEE < 0 || mCurrentFEE != feeID) {
+        // update current FEE ID
+        mCurrentFEE = feeID;
+      }
       //RDHDecoder::printRDH(mRawHeader);
     }
     mRawHeaderInitialized = true;
   } catch (...) {
-    throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING, mCurrentFEE);
   }
   if (mCurrentPosition + RDHDecoder::getMemorySize(mRawHeader) > mRawMemoryBuffer.size()) {
     // Payload incomplete
-    throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_DECODING);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_DECODING, mCurrentFEE);
+  } else if (mCurrentPosition + RDHDecoder::getHeaderSize(mRawHeader) > mRawMemoryBuffer.size()) {
+    // Start position of the payload is outside the payload range
+    throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_START_INVALID, mCurrentFEE);
   } else {
     mRawBuffer.readFromMemoryBuffer(gsl::span<const char>(mRawMemoryBuffer.data() + mCurrentPosition + RDHDecoder::getHeaderSize(mRawHeader), RDHDecoder::getMemorySize(mRawHeader) - RDHDecoder::getHeaderSize(mRawHeader)));
 
@@ -145,33 +157,10 @@ void RawReaderMemory::nextPage(bool doResetPayload)
   mCurrentPosition += RDHDecoder::getOffsetToNext(mRawHeader); /// Assume fixed 8 kB page size
 }
 
-void RawReaderMemory::readPage(int page)
-{
-  int currentposition = 8192 * page;
-  if (currentposition >= mRawMemoryBuffer.size()) {
-    throw RawDecodingError(RawDecodingError::ErrorType_t::PAGE_NOTFOUND);
-  }
-  mRawHeaderInitialized = false;
-  mPayloadInitialized = false;
-  // Read header
-  try {
-    mRawHeader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
-    mRawHeaderInitialized = true;
-  } catch (...) {
-    throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING);
-  }
-  if (currentposition + RDHDecoder::getHeaderSize(mRawHeader) + RDHDecoder::getMemorySize(mRawHeader) >= mRawMemoryBuffer.size()) {
-    // Payload incomplete
-    throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_DECODING);
-  } else {
-    mRawBuffer.readFromMemoryBuffer(gsl::span<const char>(mRawMemoryBuffer.data() + currentposition + RDHDecoder::getHeaderSize(mRawHeader), RDHDecoder::getMemorySize(mRawHeader)));
-  }
-}
-
 const o2::header::RDHAny& RawReaderMemory::getRawHeader() const
 {
   if (!mRawHeaderInitialized) {
-    throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_INVALID);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_INVALID, mCurrentFEE);
   }
   return mRawHeader;
 }
@@ -179,7 +168,7 @@ const o2::header::RDHAny& RawReaderMemory::getRawHeader() const
 const RawBuffer& RawReaderMemory::getRawBuffer() const
 {
   if (!mPayloadInitialized) {
-    throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_INVALID);
+    throw RawDecodingError(RawDecodingError::ErrorType_t::PAYLOAD_INVALID, mCurrentFEE);
   }
   return mRawBuffer;
 }
