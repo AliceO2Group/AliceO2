@@ -146,7 +146,11 @@ struct pidTOFTaskQA {
 
       histos.fill(HIST(hnsigmaMC[pidIndex]), track.pt(), nsigma);
       // Selecting primaries
-      histos.fill(MC::isPhysicalPrimary(particle) ? HIST(hnsigmaMCprm[pidIndex]) : HIST(hnsigmaMCsec[pidIndex]), track.pt(), nsigma);
+      if (MC::isPhysicalPrimary(particle)) {
+        histos.fill(HIST(hnsigmaMCprm[pidIndex]), track.pt(), nsigma);
+      } else {
+        histos.fill(HIST(hnsigmaMCsec[pidIndex]), track.pt(), nsigma);
+      }
     }
   }
 
@@ -205,8 +209,12 @@ struct pidTOFTaskQA {
         histos.fill(HIST("event/tofbetaSec"), t.p(), t.beta());
       }
       if (abs(particle.pdgCode()) == PDGs[pid_type]) { // Checking the PDG code
-        histos.fill(HIST("event/tofbetaMC"), track.pt(), t.beta());
-        histos.fill(MC::isPhysicalPrimary(particle) ? HIST("event/tofbetaMCPrm") : HIST("event/tofbetaMCSec"), track.pt(), t.beta());
+        histos.fill(HIST("event/tofbetaMC"), t.pt(), t.beta());
+        if (MC::isPhysicalPrimary(particle)) {
+          histos.fill(HIST("event/tofbetaMCPrm"), t.pt(), t.beta());
+        } else {
+          histos.fill(HIST("event/tofbetaMCSec"), t.pt(), t.beta());
+        }
       }
       // Fill with PDG codes
       fillNsigma<0>(t, mcParticles, nsigma);
