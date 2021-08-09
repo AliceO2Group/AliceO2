@@ -27,7 +27,7 @@ namespace ctp
 /// raw scalers produced by CTP and send to O2 either via
 /// - ZeroMQ published at CTP control machine
 /// - CTPreadout to FLP
-struct  CTPScalerRaw {
+struct CTPScalerRaw {
   CTPScalerRaw() = default;
   uint32_t classIndex;
   uint32_t lmBefore;
@@ -40,7 +40,7 @@ struct  CTPScalerRaw {
   ClassDefNV(CTPScalerRaw, 1);
 };
 /// Scalers produced from raw scalers corrected for overflow
-struct  CTPScalerO2 {
+struct CTPScalerO2 {
   CTPScalerO2() = default;
   void createCTPScalerO2FromRaw(CTPScalerRaw& raw, std::vector<uint32_t>& overfow);
   uint32_t classIndex;
@@ -53,8 +53,7 @@ struct  CTPScalerO2 {
   void printStream(std::ostream& stream) const;
   ClassDefNV(CTPScalerO2, 1);
 };
-struct CTPScalerRecordRaw
-{
+struct CTPScalerRecordRaw {
   CTPScalerRecordRaw() = default;
   o2::InteractionRecord intRecord;
   uint32_t seconds;
@@ -63,8 +62,7 @@ struct CTPScalerRecordRaw
   void printStream(std::ostream& stream) const;
   ClassDefNV(CTPScalerRecordRaw, 1);
 };
-struct CTPScalerRecordO2
-{
+struct CTPScalerRecordO2 {
   CTPScalerRecordO2() = default;
   o2::InteractionRecord intRecord;
   uint32_t seconds;
@@ -82,14 +80,15 @@ class CTPRunScalers
   std::vector<uint32_t> getClassIndexes();
   int readScalers(const std::string& rawscalers);
   int convertRawToO2();
+
  private:
-  typedef std::map<uint32_t, std::array<uint32_t,6>> overflows_t;
+  typedef std::map<uint32_t, std::array<uint32_t, 6>> overflows_t;
   int mVersion;
   uint32_t mRunNumber;
   std::bitset<CTP_NCLASSES> mClassMask;
   std::vector<CTPScalerRecordRaw> mScalerRecordRaw;
   std::vector<CTPScalerRecordO2> mScalerRecordO2;
-  int processScalerLine(std::string& line,int& level, int& nclasses);
+  int processScalerLine(std::string& line, int& level, int& nclasses);
   int copyRawToO2Scalers();
   ClassDefNV(CTPRunScalers, 1);
 };

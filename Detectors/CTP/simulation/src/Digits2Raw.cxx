@@ -102,7 +102,8 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
           buffer = digits2HBTPayload(hbfIRnonZS, NIntRecPayload);
         }
         std::cout << "buffer:" << buffer.size() << ":";
-        for(auto const& c : buffer) std::cout << c ;
+        for (auto const& c : buffer)
+          std::cout << c;
         std::cout << std::endl;
         mWriter.addData(CRULinkIDIntRec, mCruID, CRULinkIDIntRec, mEndPointID, intRec, buffer);
         // add data for Trigger Class Record
