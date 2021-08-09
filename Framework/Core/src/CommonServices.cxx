@@ -162,6 +162,8 @@ o2::framework::ServiceSpec CommonServices::infologgerContextSpec()
       auto& infoLoggerContext = services.get<InfoLoggerContext>();
       auto run = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
       infoLoggerContext.setField(InfoLoggerContext::FieldName::Run, run);
+      auto partition = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("environment_id", "unspecified");
+      infoLoggerContext.setField(InfoLoggerContext::FieldName::Partition, partition);
     },
     .kind = ServiceKind::Serial};
 }
