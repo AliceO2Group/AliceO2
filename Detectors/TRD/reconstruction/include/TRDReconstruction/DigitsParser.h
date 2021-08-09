@@ -41,24 +41,9 @@ class DigitsParser
   void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
   int Parse(bool verbose = false); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
-            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, int stack, int layer, DigitHCHeader& hcheader, TRDFeeID& feeid, unsigned int linkindex, bool cleardigits = false, bool disablebyteswap = false, bool verbose = false, bool headerverbose = false, bool dataverbose = false)
-  {
-    setData(data);
-    mStartParse = start;
-    mEndParse = end;
-    mDetector = detector;
-    mStack = stack;
-    mLayer = layer;
-    mDigitHCHeader = hcheader;
-    mFEEID = feeid;
-    setVerbose(verbose, headerverbose, dataverbose);
-    if (cleardigits) {
-      clearDigits();
-    }
-    setByteSwap(disablebyteswap);
-    mReturnVectorPos = 0;
-    return Parse();
-  };
+            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, int stack, int layer, DigitHCHeader& hcheader,
+            TRDFeeID& feeid, unsigned int linkindex, bool cleardigits = false, bool disablebyteswap = false, bool verbose = false,
+            bool headerverbose = false, bool dataverbose = false);
   enum DigitParserState { StateDigitHCHeader, // always the start of a half chamber.
                           StateDigitMCMHeader,
                           StateDigitMCMData,
@@ -82,6 +67,7 @@ class DigitsParser
   uint64_t getDumpedDataCount() { return mWordsDumped; }
   uint64_t getDataWordsParsed() { return mDataWordsParsed; }
   void tryFindMCMHeaderAndDisplay(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse);
+  void OutputIncomingData();
 
  private:
   int mState;

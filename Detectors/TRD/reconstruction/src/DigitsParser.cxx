@@ -40,6 +40,52 @@ inline void DigitsParser::swapByteOrder(unsigned int& word)
          ((word >> 8) & 0x0000FF00) |
          (word << 24);
 }
+int DigitsParser::Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
+                        std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, int stack, int layer, DigitHCHeader& hcheader,
+                        TRDFeeID& feeid, unsigned int linkindex, bool cleardigits, bool disablebyteswap, bool verbose, bool headerverbose, bool dataverbose)
+{
+  setData(data);
+  mStartParse = start;
+  mEndParse = end;
+  mDetector = detector;
+  mStack = stack;
+  mLayer = layer;
+  mDigitHCHeader = hcheader;
+  mFEEID = feeid;
+  setVerbose(verbose, headerverbose, dataverbose);
+  if (cleardigits) {
+    clearDigits();
+  }
+  setByteSwap(disablebyteswap);
+  mReturnVectorPos = 0;
+  return Parse();
+};
+
+void DigitsParser::OutputIncomingData()
+{
+
+  LOG(info) << "Data buffer to parse for Digits begin " << mStartParse << ":" << mEndParse;
+  int wordcount = 0;
+  std::stringstream outputstring;
+  auto word = mStartParse;
+  outputstring << "digit 0x" << std::hex << std::setfill('0') << std::setw(6) << 0 << " :: ";
+  while (word <= mEndParse) { // loop over the entire data buffer (a complete link of tracklets and digits)
+
+    if (wordcount != 0 && (wordcount % 8 == 0 || word == mEndParse)) {
+      LOG(info) << outputstring.str();
+      outputstring.str("");
+      outputstring << "digit 0x" << std::hex << std::setfill('0') << std::setw(6) << wordcount << " :: ";
+    }
+    if (wordcount == 0) {
+      outputstring << " 0x" << std::hex << std::setfill('0') << std::setw(8) << HelperMethods::swapByteOrderreturn(*word);
+    } else {
+      outputstring << " 0x" << std::hex << std::setfill('0') << std::setw(8) << HelperMethods::swapByteOrderreturn(*word);
+    }
+    word++;
+    wordcount++;
+  }
+  LOG(info) << "Data buffer to parse for Digits end";
+}
 
 int DigitsParser::Parse(bool verbose)
 {
@@ -61,27 +107,7 @@ int DigitsParser::Parse(bool verbose)
   int lastrobread = 0;
   int lasteventcounterread = 0;
   if (mHeaderVerbose) {
-    LOG(info) << "Data buffer to parse for Digits begin " << mStartParse << ":" << mEndParse;
-    int wordcount = 0;
-    std::stringstream outputstring;
-    auto word = mStartParse;
-    outputstring << "digit 0x" << std::hex << std::setfill('0') << std::setw(6) << 0 << " :: ";
-    while (word <= mEndParse) { // loop over the entire data buffer (a complete link of tracklets and digits)
-
-      if (wordcount != 0 && (wordcount % 8 == 0 || word == mEndParse)) {
-        LOG(info) << outputstring.str();
-        outputstring.str("");
-        outputstring << "digit 0x" << std::hex << std::setfill('0') << std::setw(6) << wordcount << " :: ";
-      }
-      if (wordcount == 0) {
-        outputstring << " 0x" << std::hex << std::setfill('0') << std::setw(8) << HelperMethods::swapByteOrderreturn(*word);
-      } else {
-        outputstring << " 0x" << std::hex << std::setfill('0') << std::setw(8) << HelperMethods::swapByteOrderreturn(*word);
-      }
-      word++;
-      wordcount++;
-    }
-    LOG(info) << "Data buffer to parse for Digits end";
+    OutputIncomingData();
   }
   if (mVerbose) {
     LOG(info) << "Digit Parser parse of data sitting at :" << std::hex << (void*)mData << " starting at pos " << mStartParse;
@@ -89,27 +115,6 @@ int DigitsParser::Parse(bool verbose)
       LOG(info) << " we will not be byte swapping";
     } else {
       LOG(info) << " we will be byte swapping";
-    }
-  }
-  if (mDataVerbose) {
-    LOG(info) << "trackletdata to parse begin";
-    std::vector<uint32_t> datacopy(mStartParse, mEndParse);
-    if (mByteOrderFix) {
-      for (auto a : datacopy) {
-        swapByteOrder(a);
-      }
-    }
-    LOG(info) << "digitdata to parse with size of " << datacopy.size();
-    int loopsize = 0;
-    if (datacopy.size() > 1024) {
-      loopsize = 64;
-    }
-    for (int i = 0; i < loopsize; i += 8) {
-      LOG(info) << std::hex << "0x" << datacopy[i] << " " << std::hex << "0x" << datacopy[i + 1] << " " << std::hex << "0x" << datacopy[i + 2] << " " << std::hex << "0x" << datacopy[i + 3] << " " << std::hex << "0x" << datacopy[i + 4] << " " << std::hex << "0x" << datacopy[i + 5] << " " << std::hex << "0x" << datacopy[i + 6] << " " << std::hex << "0x" << datacopy[i + 7];
-    }
-    LOG(info) << "digitdata to parse end";
-    if (datacopy.size() > 1024) {
-      LOG(error) << "something likely very wrong with digit parsing >1024";
     }
   }
   int mcmdatacount = 0;
@@ -164,7 +169,7 @@ int DigitsParser::Parse(bool verbose)
           if (mDumpUnknownData) {
             // we dump the remainig data pending better options.
             // we can try a 16 bit bitshift...
-            mWordsDumped = std::distance(mStartParse, word);
+            mWordsDumped = std::distance(word, mEndParse);
             LOG(error) << " dumping the rest of this digitparsing buffer of " << mWordsDumped;
             tryFindMCMHeaderAndDisplay(word);
             word = mEndParse;
@@ -181,7 +186,7 @@ int DigitsParser::Parse(bool verbose)
               // we dump the remainig data pending better options.
               // we can try a 16 bit bitshift...
               LOG(error) << " dump?";
-              mWordsDumped = std::distance(mStartParse, word);
+              mWordsDumped = std::distance(word, mEndParse);
               LOG(error) << " dumping the rest of this digitparsing buffer of " << mWordsDumped;
               tryFindMCMHeaderAndDisplay(word);
               word = mEndParse;
@@ -232,7 +237,7 @@ int DigitsParser::Parse(bool verbose)
           //check ADCMask:
           if (!digitMCMADCMaskSanityCheck(*mDigitMCMADCMask, bitsinmask)) {
             LOG(info) << "**DigitADCMask SANITY CHECK FAILURE " << std::hex << mDigitMCMADCMask->adcmask << " raw form : 0x" << std::hex << mDigitMCMADCMask->word << " at offset " << std::distance(mStartParse, word);
-            mWordsDumped = std::distance(mStartParse, word);
+            mWordsDumped = std::distance(word, mEndParse);
             LOG(error) << " dumping the rest of this digitparsing buffer of " << mWordsDumped;
             tryFindMCMHeaderAndDisplay(word);
             word = mEndParse;
@@ -353,7 +358,7 @@ int DigitsParser::Parse(bool verbose)
                          << std::dec << mCurrentADCChannel << std::hex << " at offset "
                          << std::distance(mStartParse, word);
               // to bale or not to bale?
-              mWordsDumped = std::distance(mStartParse, word);
+              mWordsDumped = std::distance(word, mEndParse);
               LOG(error) << " dumping the rest of this digitparsing buffer of " << mWordsDumped;
               tryFindMCMHeaderAndDisplay(word);
               word = mEndParse;
@@ -367,7 +372,7 @@ int DigitsParser::Parse(bool verbose)
             if (digittimebinoffset > constants::TIMEBINS) {
               LOG(error) << "too many timebins to insert into mADCValues digittimebinoffset:" << digittimebinoffset;
               //bale out TODO
-              mWordsDumped = std::distance(mStartParse, word);
+              mWordsDumped = std::distance(word, mEndParse);
               LOG(error) << " dumping the rest of this digitparsing buffer of " << mWordsDumped;
               word = mEndParse;
             }
@@ -401,7 +406,7 @@ int DigitsParser::Parse(bool verbose)
   if (!(mState == StateDigitMCMHeader || mState == StatePadding || mState == StateDigitEndMarker)) {
     LOG(warn) << "Exiting parsing but the state is wrong ... mState= " << mState;
   }
-  if (std::distance(mStartParse, mEndParse) != mDataWordsParsed) {
+  if (std::distance(mStartParse, mEndParse) != mDataWordsParsed && mHeaderVerbose) {
     LOG(info) << " we rejected " << mWordsDumped << " word and parse " << mDataWordsParsed << " % loss rate of " << (double)mWordsDumped / (double)mDataWordsParsed * 100.0;
   }
   return mDataWordsParsed;

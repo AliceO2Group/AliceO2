@@ -38,35 +38,56 @@ inline void TrackletsParser::swapByteOrder(unsigned int& ui)
        (ui << 24);
 }
 
-int TrackletsParser::Parse()
+int TrackletsParser::Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data,
+                           std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
+                           std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end,
+                           TRDFeeID feeid, int robside, int detector, int stack, int layer,
+                           bool cleardigits, bool disablebyteswap, int usetracklethcheader,
+                           bool verbose, bool headerverbose, bool dataverbose)
 {
-  auto parsetimestart = std::chrono::high_resolution_clock::now(); // measure total processing time
-  //we are handed the buffer payload of an rdh and need to parse its contents.
-  //producing a vector of digits.
+  mStartParse = start;
+  mEndParse = end;
+  mDetector = detector;
+  mFEEID = feeid;
+  mRobSide = robside;
+  mStack = stack;
+  mLayer = layer;
+  setData(data);
+  setVerbose(verbose, headerverbose, dataverbose);
+  setByteSwap(disablebyteswap);
+  mWordsRead = 0;
+  mDataWordsParsed = 0;
+  mTrackletsFound = 0;
+  mPaddingWordsCounter = 0;
+  mTrackletHCHeaderState = usetracklethcheader; //what to with the tracklet half chamber header 0,1,2
+  //    mTracklets.clear();
+  return Parse();
+}
 
-  if (mHeaderVerbose) {
-    LOG(info) << "Data to parse for Tracklets from " << std::hex << mStartParse << " to " << mEndParse;
-    int wordcount = 0;
-    std::stringstream outputstring;
-    auto word = mStartParse;
-    outputstring << "tracklet 0x" << std::hex << std::setfill('0') << std::setw(6) << 0 << " :: ";
-    while (word <= mEndParse) { // loop over the entire data buffer (a complete link of tracklets and digits)
+void TrackletsParser::OutputIncomingData()
+{
+  LOG(info) << "Data to parse for Tracklets from " << std::hex << mStartParse << " to " << mEndParse;
+  int wordcount = 0;
+  std::stringstream outputstring;
+  auto word = mStartParse;
+  outputstring << "tracklet 0x" << std::hex << std::setfill('0') << std::setw(6) << 0 << " :: ";
+  while (word <= mEndParse) { // loop over the entire data buffer (a complete link of tracklets and digits)
 
-      if (wordcount != 0 && (wordcount % 8 == 0 || word == mEndParse)) {
-        LOG(info) << outputstring.str();
-        outputstring.str("");
-        outputstring << "tracklet 0x" << std::hex << std::setfill('0') << std::setw(6) << wordcount << " :: ";
-      }
-      if (wordcount == 0) {
-        outputstring << " 0x" << std::hex << std::setfill('0') << std::setw(8) << HelperMethods::swapByteOrderreturn(*word);
-      } else {
-        outputstring << " 0x" << std::hex << std::setfill('0') << std::setw(8) << HelperMethods::swapByteOrderreturn(*word);
-      }
-      word++;
-      wordcount++;
+    if (wordcount != 0 && (wordcount % 8 == 0 || word == mEndParse)) {
+      LOG(info) << outputstring.str();
+      outputstring.str("");
+      outputstring << "tracklet 0x" << std::hex << std::setfill('0') << std::setw(6) << wordcount << " :: ";
     }
-    LOG(info) << "Data buffer to parse for Digits end";
-    /*for (auto word = mStartParse; word != mEndParse; word+=8) { // loop over the entire data buffer (a complete link of tracklets and digits)
+    if (wordcount == 0) {
+      outputstring << " 0x" << std::hex << std::setfill('0') << std::setw(8) << HelperMethods::swapByteOrderreturn(*word);
+    } else {
+      outputstring << " 0x" << std::hex << std::setfill('0') << std::setw(8) << HelperMethods::swapByteOrderreturn(*word);
+    }
+    word++;
+    wordcount++;
+  }
+  LOG(info) << "Data buffer to parse for Tracklets end";
+  /*for (auto word = mStartParse; word != mEndParse; word+=8) { // loop over the entire data buffer (a complete link of tracklets and digits)
         LOGP(info,"0x{0:08x} :: {1:08x} {2:08x}  {3:08x} {4:08x} {5:08x} {6:08x} {7:08x} {8:08x} ",std::distance(mStartParse,word),
             HelperMethods::swapByteOrderreturn(*word), HelperMethods::swapByteOrderreturn(*std::next(word,1)),
             HelperMethods::swapByteOrderreturn(*std::next(word,2)), HelperMethods::swapByteOrderreturn(*std::next(word,3)),
@@ -74,6 +95,16 @@ int TrackletsParser::Parse()
             HelperMethods::swapByteOrderreturn(*std::next(word,6)), HelperMethods::swapByteOrderreturn(*std::next(word,7)));
     }
     LOG(info) << "Data to parse for Tracklets end";*/
+}
+
+int TrackletsParser::Parse()
+{
+  auto parsetimestart = std::chrono::high_resolution_clock::now(); // measure total processing time
+  //we are handed the buffer payload of an rdh and need to parse its contents.
+  //producing a vector of digits.
+
+  if (mHeaderVerbose) {
+    OutputIncomingData();
   }
   //mData holds a buffer containing tracklets parse placing tracklets in the output vector.
   //mData holds 2048 digits.

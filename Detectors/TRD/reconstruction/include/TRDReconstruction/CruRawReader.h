@@ -110,6 +110,7 @@ class CruRawReader
     mTrackletsParser.clear();
     mDigitsParser.clear();
   }
+  void OutputHalfCruRawData();
 
  protected:
   bool processHBFs(int datasizealreadyread = 0, bool verbose = false);
@@ -140,6 +141,8 @@ class CruRawReader
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX> mHBFPayload; //this holds the O2 payload held with in the HBFs to pass to parsing.
   uint32_t mHalfCRUPayLoadRead{0};                                    // the words current read in for the currnt cru payload.
   uint32_t mO2PayLoadRead{0};                                         // the words current read in for the currnt cru payload.
+  std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, start and end points for parsing.
+  std::array<uint16_t, constants::TIMEBINS> mADCValues{};
   int mCurrentHalfCRULinkHeaderPoisition = 0;
   // no need to waste time doing the copy  std::array<uint32_t,8> mCurrentCRUWord; // data for a cru comes in words of 256 bits.
   uint32_t mCurrentLinkDataPosition256;    // count of data read for current link in units of 256 bits
@@ -204,24 +207,27 @@ class CruRawReader
 
   EventStorage mEventRecords; // store data range indexes into the above vectors.
   bool mReturnBlob{0};        // whether to return blobs or vectors;
-  struct TRDDataCounters_t {  //thisis on a per event basis
+  struct TRDDataCountersPerEvent_t { //thisis on a per event basis
     //TODO this should go into a dpl message for catching by qc ?? I think.
-    std::array<uint32_t, 1080> LinkWordCounts;    //units of 256bits "cru word"
-    std::array<uint32_t, 1080> LinkPadWordCounts; // units of 32 bits the data pad word size.
-    std::array<uint32_t, 1080> LinkFreq;          //units of 256bits "cru word"
+    std::array<uint32_t, 1080> mLinkWordCounts;    //units of 256bits "cru word"
+    std::array<uint32_t, 1080> mLinkPadWordCounts; // units of 32 bits the data pad word size.
+    std::array<uint32_t, 1080> mLinkFreq;          //units of 256bits "cru word"
+    std::array<uint8_t, 1080> mLinkErrorFlag;      //units of 256bits "cru word"
     //from the above you can get the stats for supermodule and detector.
-    std::array<bool, 1080> LinkEmpty; // Link only has padding words only, probably not serious in pp.
+    std::array<bool, 1080> LinkEmpty; // Link only has padding words only, probably not serious.
     //maybe change this to actual traps ?? but it will get large.
-    std::array<uint32_t, 1080> LinkTrackletPerTrap1; // incremented if a trap on this link has 1 tracklet
-    std::array<uint32_t, 1080> LinkTrackletPerTrap2; // incremented if a trap on this link has 2 tracklet
-    std::array<uint32_t, 1080> LinkTrackletPerTrap3; // incremented if a trap on this link has 3 tracklet
-    std::array<uint32_t, 1080> LinkMCMsWithData;
+    std::array<uint32_t, 1080> mLinkTrackletPerTrap1; // incremented if a trap on this link has 1 tracklet
+    std::array<uint32_t, 1080> mLinkTrackletPerTrap2; // incremented if a trap on this link has 2 tracklet
+    std::array<uint32_t, 1080> mLinkTrackletPerTrap3; // incremented if a trap on this link has 3 tracklet
+    std::array<uint32_t, 1080> mLinkMCMsWithData;
     std::array<uint16_t, 1080> MCMStatus;
-    std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
-    std::array<uint16_t, constants::TIMEBINS> mADCValues{};
     std::array<uint16_t, constants::MAXMCMCOUNT> mMCMstats; // bit pattern for errors current event for a given mcm;
-    std::vector<uint32_t> EmptyTraps;                // MCM indexes of traps that are empty ?? list might better
+    std::vector<uint32_t> mEmptyTraps;                      // MCM indexes of traps that are empty ?? list might better
   } TRDStatCountersPerEvent;
+
+  struct TRDDataCountersRunning_t { //those counters that keep counting
+    //??
+  } TRDStatCountersRunning;
 
   /** summary data **/
 };

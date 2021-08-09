@@ -35,27 +35,10 @@ class TrackletsParser
   ~TrackletsParser() = default;
   void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
   int Parse(); // presupposes you have set everything up already.
-  int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
-            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, TRDFeeID feeid, int robside, int detector, int stack, int layer, bool cleardigits = false, bool disablebyteswap = false, int usetracklethcheader = 0, bool verbose = true, bool headerverbose = false, bool dataverbose = false)
-  {
-    mStartParse = start;
-    mEndParse = end;
-    mDetector = detector;
-    mFEEID = feeid;
-    mRobSide = robside;
-    mStack = stack;
-    mLayer = layer;
-    setData(data);
-    setVerbose(verbose, headerverbose, dataverbose);
-    setByteSwap(disablebyteswap);
-    mWordsRead = 0;
-    mDataWordsParsed = 0;
-    mTrackletsFound = 0;
-    mPaddingWordsCounter = 0;
-    mTrackletHCHeaderState = usetracklethcheader; //what to with the tracklet half chamber header 0,1,2
-    //    mTracklets.clear();
-    return Parse();
-  };
+  int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, TRDFeeID feeid, int robside,
+            int detector, int stack, int layer, bool cleardigits = false,
+            bool disablebyteswap = false, int usetracklethcheader = 0, bool verbose = true,
+            bool headerverbose = false, bool dataverbose = false);
   void setVerbose(bool verbose, bool header = false, bool data = false)
   {
     mVerbose = verbose;
@@ -79,6 +62,7 @@ class TrackletsParser
   {
     mTracklets.clear();
   }
+  void OutputIncomingData();
 
  private:
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* mData;
