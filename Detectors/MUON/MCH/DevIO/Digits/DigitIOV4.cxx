@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DigitIOV3.h"
+#include "DigitIOV4.h"
 #include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DigitFileFormat.h"
@@ -21,7 +21,7 @@
 namespace o2::mch::io::impl
 {
 
-void DigitReaderV3::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t& ndigits)
+void DigitReaderV4::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t& ndigits)
 {
   rewind(in);
   ndigits = 0;
@@ -30,7 +30,7 @@ void DigitReaderV3::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t&
   std::pair<int, int> pairs;
   std::pair<int, int> invalid{-1, -1};
 
-  while ((pairs = advanceOneEvent(in, 3)) != invalid) {
+  while ((pairs = advanceOneEvent(in, 4)) != invalid) {
     ndigits += pairs.second;
     nrofs += pairs.first;
     ++ntfs;
@@ -38,7 +38,7 @@ void DigitReaderV3::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t&
   rewind(in);
 }
 
-bool DigitReaderV3::read(std::istream& in,
+bool DigitReaderV4::read(std::istream& in,
                          std::vector<Digit>& digits,
                          std::vector<ROFRecord>& rofs)
 {
@@ -58,11 +58,14 @@ bool DigitReaderV3::read(std::istream& in,
     uint32_t orbit;
     uint32_t firstIdx;
     uint32_t nentries;
+    uint32_t bcWidth;
     in.read(reinterpret_cast<char*>(&bc), sizeof(uint16_t));
     in.read(reinterpret_cast<char*>(&orbit), sizeof(uint32_t));
     in.read(reinterpret_cast<char*>(&firstIdx), sizeof(uint32_t));
     in.read(reinterpret_cast<char*>(&nentries), sizeof(uint32_t));
+    in.read(reinterpret_cast<char*>(&bcWidth), sizeof(uint32_t));
     rofs.emplace_back(o2::InteractionRecord{bc, orbit}, firstIdx, nentries);
+    rofs.back().setBCWidth(bcWidth);
     if (in.fail()) {
       return false;
     }
@@ -94,12 +97,12 @@ bool DigitReaderV3::read(std::istream& in,
   return true;
 }
 
-void DigitReaderV3::rewind(std::istream& in)
+void DigitReaderV4::rewind(std::istream& in)
 {
   DigitReaderImpl::rewind(in);
 }
 
-bool DigitWriterV3::write(std::ostream& out,
+bool DigitWriterV4::write(std::ostream& out,
                           gsl::span<const Digit> digits,
                           gsl::span<const ROFRecord> rofs)
 {
@@ -115,10 +118,12 @@ bool DigitWriterV3::write(std::ostream& out,
     uint32_t orbit = r.getBCData().orbit;
     uint32_t firstIdx = r.getFirstIdx();
     uint32_t nentries = r.getNEntries();
+    uint32_t bcWidth = r.getBCWidth();
     out.write(reinterpret_cast<const char*>(&bc), sizeof(uint16_t));
     out.write(reinterpret_cast<const char*>(&orbit), sizeof(uint32_t));
     out.write(reinterpret_cast<const char*>(&firstIdx), sizeof(uint32_t));
     out.write(reinterpret_cast<const char*>(&nentries), sizeof(uint32_t));
+    out.write(reinterpret_cast<const char*>(&bcWidth), sizeof(uint32_t));
     if (out.fail()) {
       return false;
     }

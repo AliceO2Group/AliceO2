@@ -62,7 +62,6 @@ BOOST_AUTO_TEST_CASE(DigitFileFormatV1Value)
 {
   DigitFileFormat v1 = createFormat(1, 0, 20, 1, 16, false, true);
   BOOST_CHECK_EQUAL(isValid(v1), true);
-  BOOST_CHECK_EQUAL(sizeof(o2::mch::ROFRecord), v1.rofSize);
 }
 
 BOOST_AUTO_TEST_CASE(DigitFileFormatV2Value)
@@ -75,6 +74,12 @@ BOOST_AUTO_TEST_CASE(DigitFileFormatV3Value)
 {
   DigitFileFormat v3 = createFormat(3, 0, 19, 1, 14, false, true);
   BOOST_CHECK_EQUAL(isValid(v3), true);
+}
+
+BOOST_AUTO_TEST_CASE(DigitFileFormatV4Value)
+{
+  DigitFileFormat v4 = createFormat(3, 0, 19, 2, 18, false, true);
+  BOOST_CHECK_EQUAL(isValid(v4), true);
 }
 
 BOOST_DATA_TEST_CASE(WriteMustReturnFalseIfDigitVectorIsEmpty, digitFileFormats, digitFileFormat)
@@ -173,7 +178,7 @@ TF createDummyData(int ndigits, int nrofs, uint32_t firstOrbit)
   return tf;
 }
 
-/** The test data is used to check the internal consistency 
+/** The test data is used to check the internal consistency
   * of the reader and writer (i.e. data written by the writer must be readable
   * by the reader).
   * A complete test requires, in addition, the usage of externally created data

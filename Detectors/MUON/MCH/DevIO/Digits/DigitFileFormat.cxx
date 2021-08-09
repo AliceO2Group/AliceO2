@@ -19,11 +19,12 @@
 namespace o2::mch::io
 {
 
-std::array<DigitFileFormat, 4> digitFileFormats = {
+std::array<DigitFileFormat, 5> digitFileFormats = {
   DigitFileFormat{2305844383603244847},
   DigitFileFormat{1224998065220435759},
   DigitFileFormat{63069292639436591},
-  DigitFileFormat{1215990797246349103}};
+  DigitFileFormat{1215990797246349103},
+  DigitFileFormat{1234022787941875503}};
 
 std::ostream& operator<<(std::ostream& os, const DigitFileFormat& dff)
 {
@@ -52,7 +53,7 @@ bool operator!=(const DigitFileFormat& dff1, const DigitFileFormat& dff2)
 }
 
 /* Read the file format from the stream.
-* 
+*
 * Every digit file should start with 8 bytes of format identifier.
 */
 DigitFileFormat readDigitFileFormat(std::istream& in)
