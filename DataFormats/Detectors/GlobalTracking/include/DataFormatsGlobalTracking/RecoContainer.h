@@ -387,6 +387,8 @@ struct RecoContainer {
   }
   auto getITSTPCTRDTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::ITSTPCTRD, MCLABELS); }
   auto getITSTPCTRDTrackMCLabel(GTrackID id) const { return getObject<o2::MCCompLabel>(id, MCLABELS); }
+  auto getITSTPCTRDSATracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::ITSTPCTRD, MCLABELSEXTRA); }
+  auto getITSTPCTRDSATrackMCLabel(GTrackID id) const { return getObject<o2::MCCompLabel>(id, MCLABELSEXTRA); }
 
   // TPC-TRD
   template <class U>
@@ -405,6 +407,8 @@ struct RecoContainer {
   }
   auto getTPCTRDTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::TPCTRD, MCLABELS); }
   auto getTPCTRDTrackMCLabel(GTrackID id) const { return getObject<o2::MCCompLabel>(id, MCLABELS); }
+  auto getTPCTRDSATracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::TPCTRD, MCLABELSEXTRA); }
+  auto getTPCTRDSATrackMCLabel(GTrackID id) const { return getObject<o2::MCCompLabel>(id, MCLABELSEXTRA); }
   // TRD tracklets
   gsl::span<const o2::trd::Tracklet64> getTRDTracklets() const;
   gsl::span<const o2::trd::CalibratedTracklet> getTRDCalibratedTracklets() const;

@@ -40,7 +40,7 @@ class TRDGlobalTracking : public o2::framework::Task
   ~TRDGlobalTracking() override = default;
   void init(o2::framework::InitContext& ic) final;
   void updateTimeDependentParams();
-  void fillMCTruthInfo(const TrackTRD& trk, const o2::MCCompLabel& lblSeed, std::vector<o2::MCCompLabel>& lblContainer, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkltLabels) const;
+  void fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lblSeed, std::vector<o2::MCCompLabel>& lblContainerTrd, std::vector<o2::MCCompLabel>& lblContainerMatch, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkltLabels) const;
   void fillTrackTriggerRecord(const std::vector<TrackTRD>& tracks, std::vector<TrackTriggerRecord>& trigRec, const gsl::span<const o2::trd::TriggerRecord>& trackletTrigRec) const;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;

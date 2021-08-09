@@ -44,17 +44,20 @@ DataProcessorSpec getTRDGlobalTrackWriterSpec(bool useMC)
   return MakeRootTreeWriterSpec("trd-track-writer-tpcits",
                                 "trdmatches_itstpc.root",
                                 "tracksTRD",
-                                BranchDefinition<std::vector<o2::trd::TrackTRD>>{InputSpec{"tracks", o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0},
+                                BranchDefinition<std::vector<o2::trd::TrackTRD>>{InputSpec{"tracks", o2::header::gDataOriginTRD, "MATCH_ITSTPC", 0},
                                                                                  "tracks",
                                                                                  "tracks-branch-name",
                                                                                  1,
                                                                                  tracksLogger},
-                                BranchDefinition<std::vector<o2::trd::TrackTriggerRecord>>{InputSpec{"trackTrig", o2::header::gDataOriginTRD, "TRKTRG_GLO", 0},
+                                BranchDefinition<std::vector<o2::trd::TrackTriggerRecord>>{InputSpec{"trackTrig", o2::header::gDataOriginTRD, "TRGREC_ITSTPC", 0},
                                                                                            "trgrec",
                                                                                            "trgrec-branch-name",
                                                                                            1},
-
-                                BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", "GLO", "MTCHLBL_GLO", 0},
+                                BranchDefinition<LabelsType>{InputSpec{"trdlabels", o2::header::gDataOriginTRD, "MCLB_ITSTPC_TRD", 0},
+                                                             "labelsTRD",
+                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                             "trdlabels-branch-name"},
+                                BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", o2::header::gDataOriginTRD, "MCLB_ITSTPC", 0},
                                                              "labels",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              "labels-branch-name"})();
@@ -73,16 +76,20 @@ DataProcessorSpec getTRDTPCTrackWriterSpec(bool useMC, bool strictMode)
   return MakeRootTreeWriterSpec("trd-track-writer-tpc",
                                 "trdmatches_tpc.root",
                                 "tracksTRD",
-                                BranchDefinition<std::vector<o2::trd::TrackTRD>>{InputSpec{"tracks", o2::header::gDataOriginTRD, "MATCHTRD_TPC", ss},
+                                BranchDefinition<std::vector<o2::trd::TrackTRD>>{InputSpec{"tracks", o2::header::gDataOriginTRD, "MATCH_TPC", ss},
                                                                                  "tracks",
                                                                                  "tracks-branch-name",
                                                                                  1,
                                                                                  tracksLogger},
-                                BranchDefinition<std::vector<o2::trd::TrackTriggerRecord>>{InputSpec{"trackTrig", o2::header::gDataOriginTRD, "TRKTRG_TPC", ss},
+                                BranchDefinition<std::vector<o2::trd::TrackTriggerRecord>>{InputSpec{"trackTrig", o2::header::gDataOriginTRD, "TRGREC_TPC", ss},
                                                                                            "trgrec",
                                                                                            "trgrec-branch-name",
                                                                                            1},
-                                BranchDefinition<LabelsType>{InputSpec{"matchitstpclabels", "GLO", "MTCHLBL_TPC", ss},
+                                BranchDefinition<LabelsType>{InputSpec{"trdlabels", o2::header::gDataOriginTRD, "MCLB_TPC_TRD", ss},
+                                                             "labelsTRD",
+                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                             "trdlabels-branch-name"},
+                                BranchDefinition<LabelsType>{InputSpec{"matchitstpclabels", o2::header::gDataOriginTRD, "MCLB_TPC", ss},
                                                              "labels",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              "labels-branch-name"})();

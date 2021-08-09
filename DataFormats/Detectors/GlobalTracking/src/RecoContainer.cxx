@@ -112,10 +112,11 @@ void DataRequest::requestTPCTOFTracks(bool mc)
 
 void DataRequest::requestITSTPCTRDTracks(bool mc)
 {
-  addInput({"trackITSTPCTRD", "TRD", "MATCHTRD_GLO", 0, Lifetime::Timeframe});
-  addInput({"trigITSTPCTRD", "TRD", "TRKTRG_GLO", 0, Lifetime::Timeframe});
+  addInput({"trackITSTPCTRD", "TRD", "MATCH_ITSTPC", 0, Lifetime::Timeframe});
+  addInput({"trigITSTPCTRD", "TRD", "TRGREC_ITSTPC", 0, Lifetime::Timeframe});
   if (mc) {
-    addInput({"trackITSTPCTRDMCTR", "GLO", "MTCHLBL_GLO", 0, Lifetime::Timeframe});
+    addInput({"trackITSTPCTRDMCTR", "TRD", "MCLB_ITSTPC", 0, Lifetime::Timeframe});
+    addInput({"trackITSTPCTRDSAMCTR", "TRD", "MCLB_ITSTPC_TRD", 0, Lifetime::Timeframe});
   }
   requestMap["trackITSTPCTRD"] = mc;
 }
@@ -123,10 +124,11 @@ void DataRequest::requestITSTPCTRDTracks(bool mc)
 void DataRequest::requestTPCTRDTracks(bool mc)
 {
   auto ss = getMatchingInputSubSpec();
-  addInput({"trackTPCTRD", "TRD", "MATCHTRD_TPC", ss, Lifetime::Timeframe});
-  addInput({"trigTPCTRD", "TRD", "TRKTRG_TPC", ss, Lifetime::Timeframe});
+  addInput({"trackTPCTRD", "TRD", "MATCH_TPC", ss, Lifetime::Timeframe});
+  addInput({"trigTPCTRD", "TRD", "TRGREC_TPC", ss, Lifetime::Timeframe});
   if (mc) {
-    addInput({"trackTPCTRDMCTR", "GLO", "MTCHLBL_TPC", 0, Lifetime::Timeframe});
+    addInput({"trackTPCTRDMCTR", "TRD", "MCLB_TPC", ss, Lifetime::Timeframe});
+    addInput({"trackTPCTRDSAMCTR", "TRD", "MCLB_TPC_TRD", ss, Lifetime::Timeframe});
   }
   requestMap["trackTPCTRD"] = mc;
 }
@@ -487,6 +489,7 @@ void RecoContainer::addITSTPCTRDTracks(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::ITSTPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::trd::TrackTriggerRecord>>("trigITSTPCTRD"), TRACKREFS);
   if (mc) {
     commonPool[GTrackID::ITSTPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSTPCTRDMCTR"), MCLABELS);
+    commonPool[GTrackID::ITSTPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSTPCTRDSAMCTR"), MCLABELSEXTRA);
   }
 }
 
@@ -497,6 +500,7 @@ void RecoContainer::addTPCTRDTracks(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::TPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::trd::TrackTriggerRecord>>("trigTPCTRD"), TRACKREFS);
   if (mc) {
     commonPool[GTrackID::TPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackTPCTRDMCTR"), MCLABELS);
+    commonPool[GTrackID::TPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackTPCTRDSAMCTR"), MCLABELSEXTRA);
   }
 }
 

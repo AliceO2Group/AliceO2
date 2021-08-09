@@ -41,19 +41,27 @@ void TRDTrackReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(INFO) << "Pushing " << mTracks.size() << " tracks and " << mTrigRec.size() << " trigger records at entry " << ent;
+  if (mUseMC) {
+    if (mLabelsTrd.size() != mLabelsMatch.size()) {
+      LOG(ERROR) << "The number of labels for matches and for TRD tracks is different. " << mLabelsTrd.size() << " TRD labels vs. " << mLabelsMatch.size() << " match labels";
+    }
+    LOG(INFO) << "Pushing " << mLabelsTrd.size() << " MC labels at entry " << ent;
+  }
 
   if (mMode == Mode::TPCTRD) {
     uint32_t ss = o2::globaltracking::getSubSpec(mSubSpecStrict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_TPC", ss, Lifetime::Timeframe}, mTracks);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG_TPC", ss, Lifetime::Timeframe}, mTrigRec);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCH_TPC", ss, Lifetime::Timeframe}, mTracks);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRGREC_TPC", ss, Lifetime::Timeframe}, mTrigRec);
     if (mUseMC) {
-      pc.outputs().snapshot(Output{"GLO", "MTCHLBL_TPC", ss, Lifetime::Timeframe}, mLabels);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_TPC", ss, Lifetime::Timeframe}, mLabelsMatch);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_TPC_TRD", ss, Lifetime::Timeframe}, mLabelsTrd);
     }
   } else if (mMode == Mode::ITSTPCTRD) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0, Lifetime::Timeframe}, mTracks);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG_GLO", 0, Lifetime::Timeframe}, mTrigRec);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCH_ITSTPC", 0, Lifetime::Timeframe}, mTracks);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRGREC_ITSTPC", 0, Lifetime::Timeframe}, mTrigRec);
     if (mUseMC) {
-      pc.outputs().snapshot(Output{"GLO", "MTCHLBL_GLO", 0, Lifetime::Timeframe}, mLabels);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_ITSTPC", 0, Lifetime::Timeframe}, mLabelsMatch);
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MCLB_ITSTPC_TRD", 0, Lifetime::Timeframe}, mLabelsTrd);
     }
   }
 
@@ -73,7 +81,8 @@ void TRDTrackReader::connectTree(const std::string& filename)
   mTree->SetBranchAddress("tracks", &mTracksPtr);
   mTree->SetBranchAddress("trgrec", &mTrigRecPtr);
   if (mUseMC) {
-    mTree->SetBranchAddress("labels", &mLabelsPtr);
+    mTree->SetBranchAddress("labels", &mLabelsMatchPtr);
+    mTree->SetBranchAddress("labelsTRD", &mLabelsTrdPtr);
   }
   LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
@@ -82,11 +91,12 @@ DataProcessorSpec getTRDTPCTrackReaderSpec(bool useMC, bool subSpecStrict)
 {
   std::vector<OutputSpec> outputs;
   uint32_t sspec = o2::globaltracking::getSubSpec(subSpecStrict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
-  outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_TPC", sspec, Lifetime::Timeframe);
-  outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG_TPC", sspec, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "MATCH_TPC", sspec, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "TRGREC_TPC", sspec, Lifetime::Timeframe);
 
   if (useMC) {
-    outputs.emplace_back(o2::header::gDataOriginTRD, "MTCHLBL_TPC", sspec, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTRD, "MCLB_TPC", sspec, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTRD, "MCLB_TPC_TRD", sspec, Lifetime::Timeframe);
   }
   return DataProcessorSpec{
     "tpctrd-track-reader",
@@ -101,11 +111,12 @@ DataProcessorSpec getTRDTPCTrackReaderSpec(bool useMC, bool subSpecStrict)
 DataProcessorSpec getTRDGlobalTrackReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0, Lifetime::Timeframe);
-  outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG_GLO", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "MATCH_ITSTPC", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "TRGREC_ITSTPC", 0, Lifetime::Timeframe);
 
   if (useMC) {
-    outputs.emplace_back(o2::header::gDataOriginTRD, "MTCHLBL_GLO", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTRD, "MCLB_ITSTPC", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTRD, "MCLB_ITSTPC_TRD", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

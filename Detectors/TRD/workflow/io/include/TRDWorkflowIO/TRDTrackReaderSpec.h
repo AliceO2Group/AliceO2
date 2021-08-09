@@ -58,7 +58,8 @@ class TRDTrackReader : public Task
   std::string mFileName = "";
   std::vector<o2::trd::TrackTRD> mTracks, *mTracksPtr = &mTracks;
   std::vector<o2::trd::TrackTriggerRecord> mTrigRec, *mTrigRecPtr = &mTrigRec;
-  std::vector<o2::MCCompLabel> mLabels, *mLabelsPtr = &mLabels;
+  std::vector<o2::MCCompLabel> mLabelsMatch, *mLabelsMatchPtr = &mLabelsMatch;
+  std::vector<o2::MCCompLabel> mLabelsTrd, *mLabelsTrdPtr = &mLabelsTrd;
 };
 
 /// read TPC-TRD matched tracks from a root file
