@@ -29,6 +29,7 @@
 #include "EMCALReconstruction/CaloRawFitterStandard.h"
 #include "EMCALReconstruction/CaloRawFitterGamma2.h"
 #include "EMCALReconstruction/AltroDecoder.h"
+#include "EMCALReconstruction/RawDecodingError.h"
 #include "EMCALWorkflow/RawToCellConverterSpec.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -119,7 +120,20 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     // loop over all the DMA pages
     while (rawreader.hasNext()) {
 
-      rawreader.next();
+      try {
+        rawreader.next();
+      } catch (RawDecodingError& e) {
+        mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()));
+        if (mNumErrorMessages < mMaxErrorMessages) {
+          LOG(ERROR) << " EMCAL raw task: " << e.what() << " in FEC " << e.getFECID() << std::endl;
+          mNumErrorMessages++;
+          if (mNumErrorMessages == mMaxErrorMessages) {
+            LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+          }
+        } else {
+          mErrorMessagesSuppressed++;
+        }
+      }
 
       auto& header = rawreader.getRawHeader();
       auto triggerBC = raw::RDHUtils::getTriggerBC(header);
@@ -154,7 +168,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         std::string errormessage;
         using AltroErrType = AltroDecoderError::ErrorType_t;
         /// @TODO still need to add the RawFitter errors
-        ErrorTypeFEE errornum(feeID, AltroDecoderError::errorTypeToInt(e.getErrorType()), -1);
+        ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(e.getErrorType()));
         switch (e.getErrorType()) {
           case AltroErrType::RCU_TRAILER_ERROR:
             errormessage = " RCU Trailer Error ";
@@ -253,7 +267,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           } else {
             mErrorMessagesSuppressed++;
           }
-          mOutputDecoderErrors.emplace_back(feeID, 100, -1); // Geometry error codes will start from 100
+          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, 0); // 0 -> Cell ID out of range
           continue;
         }
         if (CellID < 0) {
@@ -281,7 +295,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           } else {
             mErrorMessagesSuppressed++;
           }
-          mOutputDecoderErrors.emplace_back(feeID, 100, -1); // Geometry error codes will start from 100
+          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, -1); // Geometry error codes will start from 100
           continue;
         }
 
@@ -306,7 +320,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           } else {
             mErrorMessagesSuppressed++;
           }
-          mOutputDecoderErrors.emplace_back(feeID, -1, CaloRawFitter::getErrorNumber(fiterror));
+          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror));
         }
         currentCellContainer->emplace_back(CellID, fitResults.getAmp() * CONVADCGEV, fitResults.getTime(), chantype);
       }
