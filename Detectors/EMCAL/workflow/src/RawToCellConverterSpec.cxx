@@ -10,12 +10,13 @@
 // or submit itself to any jurisdiction.
 #include <string>
 
-#include "FairLogger.h"
+#include <InfoLogger/InfoLogger.hxx>
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "Framework/InputRecordWalker.h"
 #include "Framework/ControlService.h"
+#include "Framework/InputRecordWalker.h"
+#include "Framework/Logger.h"
 #include "Framework/WorkflowSpec.h"
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
@@ -43,6 +44,9 @@ RawToCellConverterSpec::~RawToCellConverterSpec()
 
 void RawToCellConverterSpec::init(framework::InitContext& ctx)
 {
+  auto& ilctx = ctx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
+  ilctx.setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, "EMC");
+
   LOG(DEBUG) << "[EMCALRawToCellConverter - init] Initialize converter ";
   if (!mGeometry) {
     mGeometry = Geometry::GetInstanceFromRunNumber(223409);
@@ -63,7 +67,10 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
     LOG(INFO) << "Using standard raw fitter";
     mRawFitter = std::unique_ptr<CaloRawFitter>(new o2::emcal::CaloRawFitterStandard);
   } else if (fitmethod == "gamma2") {
+    LOG(INFO) << "Using gamma2 raw fitter";
     mRawFitter = std::unique_ptr<CaloRawFitter>(new o2::emcal::CaloRawFitterGamma2);
+  } else {
+    LOG(FATAL) << "Unknown fit method" << fitmethod;
   }
 
   mPrintTrailer = ctx.options().get<bool>("printtrailer");
