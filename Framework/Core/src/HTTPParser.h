@@ -19,6 +19,8 @@
 #include <vector>
 #include <map>
 
+#include "DriverServerContext.h"
+
 namespace o2::framework
 {
 
@@ -152,6 +154,33 @@ struct WebSocketHandler {
   /// Bytes from an incomplete header
   size_t pendingHeaderSize = 0;
   char* pendingHeader = nullptr;
+};
+
+/// An handler for a websocket message stream.
+struct ControlWebSocketHandler : public WebSocketHandler {
+  ControlWebSocketHandler(DriverServerContext& context);
+  ~ControlWebSocketHandler() override = default;
+  void headers(std::map<std::string, std::string> const& headers) override;
+  void beginFragmentation() override;
+  void frame(char const* frame, size_t s) override;
+  void endFragmentation() override;
+  void control(char const* frame, size_t s) override;
+  void beginChunk() override;
+  void endChunk() override;
+
+  /// The driver context were we want to accumulate changes
+  /// which we got from the websocket.
+  DriverServerContext& mContext;
+  /// The pid of the remote process actually associated to this
+  /// handler. Notice that this information comes as part of
+  /// the HTTP headers via x-dpl-pid.
+  pid_t mPid = 0;
+  /// The index of the remote process associated to this handler.
+  size_t mIndex = (size_t)-1;
+  /// Wether any frame operation between beginChunk and endChunk
+  /// actually processed some metric.
+  bool didProcessMetric = false;
+  bool didHaveNewMetric = false;
 };
 
 /// Decoder for websocket data. For now we assume that the frame was not split. However multiple

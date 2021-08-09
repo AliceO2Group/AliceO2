@@ -89,17 +89,36 @@ void ws_handshake_done_callback(uv_write_t* h, int status)
   uv_read_start((uv_stream_t*)h->handle, (uv_alloc_cb)my_alloc_cb, websocket_server_callback);
 }
 
-WSDPLHandler::WSDPLHandler(uv_stream_t* s, DriverServerContext* context, std::unique_ptr<WebSocketHandler> h)
+/// An handler for a websocket message stream.
+struct GUIWebSocketHandler : public WebSocketHandler {
+  GUIWebSocketHandler(DriverServerContext& context)
+    : mContext{context}
+  {
+  }
+  ~GUIWebSocketHandler() override = default;
+
+  void headers(std::map<std::string, std::string> const& headers) override{}
+  void beginFragmentation() override {}
+  void frame(char const* frame, size_t s) override{}
+  void endFragmentation() override{};
+  void control(char const* frame, size_t s) override{};
+  void beginChunk() override{};
+  void endChunk() override{};
+
+  /// The driver context were we want to accumulate changes
+  /// which we got from the websocket.
+  DriverServerContext& mContext;
+};
+
+WSDPLHandler::WSDPLHandler(uv_stream_t* s, DriverServerContext* context)
   : mStream{s},
-    mServerContext{context},
-    mHandler{std::move(h)}
+    mServerContext{context}
 {
 }
 
 WSDPLHandler::~WSDPLHandler()
 {
   if (mGUI) {
-    const std::lock_guard<std::mutex> lock(mServerContext->gui->lock);
     mServerContext->gui->drawCallbacks.erase(mHeaders["sec-websocket-key"]);
   }
 }
@@ -155,7 +174,6 @@ void WSDPLHandler::endHeaders()
   if (mHeaders["sec-websocket-version"] != "13") {
     throw WSError{400, "Bad Request: wrong protocol version"};
   }
-  mHandler->headers(mHeaders);
   /// Create an appropriate reply
   LOG(debug) << "Got upgrade request with nonce " << mHeaders["sec-websocket-key"].c_str();
   std::string reply = encode_websocket_handshake_reply(mHeaders["sec-websocket-key"].c_str());
@@ -167,6 +185,8 @@ void WSDPLHandler::endHeaders()
   auto header = mHeaders.find("x-dpl-pid");
   if (header != mHeaders.end()) {
     LOG(debug) << "Driver connected to PID : " << header->second;
+    mHandler = std::make_unique<ControlWebSocketHandler>(*mServerContext);
+    mHandler->headers(mHeaders);
     for (size_t i = 0; i < mServerContext->infos->size(); ++i) {
       if (std::to_string((*mServerContext->infos)[i].pid) == header->second) {
         (*mServerContext->controls)[i].controller = new DeviceController{this};
@@ -175,13 +195,14 @@ void WSDPLHandler::endHeaders()
     }
   } else {
     LOG(INFO) << "Connection not bound to a PID";
+    mHandler = std::make_unique<GUIWebSocketHandler>(*mServerContext);
+    mHandler->headers(mHeaders);
     mGUI = true;
     auto drawCallback = [this](void *data, int size) {
       std::vector<uv_buf_t> outputs;
       encode_websocket_frames(outputs, (const char*)data, size, WebSocketOpCode::Binary, 0);
       write(outputs);
     };
-    const std::lock_guard<std::mutex> lock(mServerContext->gui->lock);
     mServerContext->gui->drawCallbacks.insert(std::pair<std::string, std::function<void(void*,int)>>(mHeaders["sec-websocket-key"], drawCallback));
   }
 }

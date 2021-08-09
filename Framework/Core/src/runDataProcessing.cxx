@@ -488,151 +488,6 @@ static void my_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* bu
   buf->len = suggested_size;
 }
 
-void updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> const& metricsInfos)
-{
-  // Calculate the unique set of metrics, as available in the metrics service
-  static std::unordered_set<std::string> allMetricsNames;
-  for (const auto& metricsInfo : metricsInfos) {
-    for (const auto& labelsPairs : metricsInfo.metricLabels) {
-      allMetricsNames.insert(std::string(labelsPairs.label));
-    }
-  }
-  for (const auto& labelsPairs : driverInfo.metrics.metricLabels) {
-    allMetricsNames.insert(std::string(labelsPairs.label));
-  }
-  std::vector<std::string> result(allMetricsNames.begin(), allMetricsNames.end());
-  std::sort(result.begin(), result.end());
-  driverInfo.availableMetrics.swap(result);
-}
-
-/// An handler for a websocket message stream.
-struct ControlWebSocketHandler : public WebSocketHandler {
-  ControlWebSocketHandler(DriverServerContext& context)
-    : mContext{context}
-  {
-  }
-  ~ControlWebSocketHandler() override = default;
-
-  /// Invoked at the end of the headers.
-  /// as a special header we have "x-dpl-pid" which devices can use
-  /// to identify themselves.
-  /// FIXME: No effort is done to guarantee their identity. Maybe each device
-  ///        should be started with a unique secret if we wanted to provide
-  ///        some secutity.
-  void headers(std::map<std::string, std::string> const& headers) override
-  {
-    if (headers.count("x-dpl-pid")) {
-      auto s = headers.find("x-dpl-pid");
-      this->mPid = std::stoi(s->second);
-      for (size_t di = 0; di < mContext.infos->size(); ++di) {
-        if ((*mContext.infos)[di].pid == mPid) {
-          mIndex = di;
-          return;
-        }
-      }
-    }
-  }
-  /// FIXME: not implemented by the backend.
-  void beginFragmentation() override {}
-
-  /// Invoked when a frame it's parsed. Notice you do not own the data and you must
-  /// not free the memory.
-  void frame(char const* frame, size_t s) override
-  {
-    // do nothing if not associated with any process
-    if (!mPid) {
-      return;
-    }
-    bool hasNewMetric = false;
-    auto updateMetricsViews = Metric2DViewIndex::getUpdater({&(*mContext.infos)[mIndex].dataRelayerViewIndex,
-                                                             &(*mContext.infos)[mIndex].variablesViewIndex,
-                                                             &(*mContext.infos)[mIndex].queriesViewIndex});
-
-    auto newMetricCallback = [&updateMetricsViews, &metrics = mContext.metrics, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
-      updateMetricsViews(name, metric, value, metricIndex);
-      hasNewMetric = true;
-    };
-    std::string token(frame, s);
-    std::smatch match;
-    ParsedConfigMatch configMatch;
-    ParsedMetricMatch metricMatch;
-
-    auto doParseConfig = [](std::string const& token, ParsedConfigMatch& configMatch, DeviceInfo& info) -> bool {
-      auto ts = "                 " + token;
-      if (DeviceConfigHelper::parseConfig(ts, configMatch)) {
-        DeviceConfigHelper::processConfig(configMatch, info);
-        return true;
-      }
-      return false;
-    };
-    LOG(debug3) << "Data received: " << std::string_view(frame, s);
-    if (DeviceMetricsHelper::parseMetric(token, metricMatch)) {
-      // We use this callback to cache which metrics are needed to provide a
-      // the DataRelayer view.
-      assert(mContext.metrics);
-      DeviceMetricsHelper::processMetric(metricMatch, (*mContext.metrics)[mIndex], newMetricCallback);
-      didProcessMetric = true;
-      didHaveNewMetric |= hasNewMetric;
-    } else if (ControlServiceHelpers::parseControl(token, match) && mContext.infos) {
-      ControlServiceHelpers::processCommand(*mContext.infos, mPid, match[1].str(), match[2].str());
-    } else if (doParseConfig(token, configMatch, (*mContext.infos)[mIndex]) && mContext.infos) {
-      LOG(debug2) << "Found configuration information for pid " << mPid;
-    } else {
-      LOG(error) << "Unexpected control data: " << std::string_view(frame, s);
-    }
-  }
-
-  /// FIXME: not implemented
-  void endFragmentation() override{};
-  /// FIXME: not implemented
-  void control(char const* frame, size_t s) override{};
-
-  /// Invoked at the beginning of some incoming data. We simply
-  /// reset actions which need to happen on a per chunk basis.
-  void beginChunk() override
-  {
-    didProcessMetric = false;
-    didHaveNewMetric = false;
-  }
-
-  /// Invoked after we have processed all the available incoming data.
-  /// In this particular case we must handle the metric callbacks, if
-  /// needed.
-  void endChunk() override
-  {
-    // do nothing if not associated with any process
-    if (!mPid) {
-      return;
-    }
-    if (!didProcessMetric) {
-      return;
-    }
-    size_t timestamp = current_time_with_ms();
-    for (auto& callback : *mContext.metricProcessingCallbacks) {
-      callback(*mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
-    }
-    for (auto& metricsInfo : *mContext.metrics) {
-      std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
-    }
-    if (didHaveNewMetric) {
-      updateMetricsNames(*mContext.driver, *mContext.metrics);
-    }
-  }
-
-  /// The driver context were we want to accumulate changes
-  /// which we got from the websocket.
-  DriverServerContext& mContext;
-  /// The pid of the remote process actually associated to this
-  /// handler. Notice that this information comes as part of
-  /// the HTTP headers via x-dpl-pid.
-  pid_t mPid = 0;
-  /// The index of the remote process associated to this handler.
-  size_t mIndex = (size_t)-1;
-  /// Wether any frame operation between beginChunk and endChunk
-  /// actually processed some metric.
-  bool didProcessMetric = false;
-  bool didHaveNewMetric = false;
-};
 
 /// A callback for the rest engine
 void ws_connect_callback(uv_stream_t* server, int status)
@@ -647,9 +502,7 @@ void ws_connect_callback(uv_stream_t* server, int status)
   uv_tcp_t* client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
   uv_tcp_init(serverContext->loop, client);
   if (uv_accept(server, (uv_stream_t*)client) == 0) {
-    /// FIXME: ControlWebSocketHandler useless if the connection comes from a browser
-    auto handler = std::make_unique<ControlWebSocketHandler>(*serverContext);
-    client->data = new WSDPLHandler((uv_stream_t*)client, serverContext, std::move(handler));
+    client->data = new WSDPLHandler((uv_stream_t*)client, serverContext);
     uv_read_start((uv_stream_t*)client, (uv_alloc_cb)my_alloc_cb, websocket_callback);
   } else {
     uv_close((uv_handle_t*)client, nullptr);
@@ -913,6 +766,127 @@ void spawnDevice(DeviceRef ref,
   deviceInfos.emplace_back(info);
   // Let's add also metrics information for the given device
   gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
+}
+
+void updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> const& metricsInfos)
+{
+  // Calculate the unique set of metrics, as available in the metrics service
+  static std::unordered_set<std::string> allMetricsNames;
+  for (const auto& metricsInfo : metricsInfos) {
+    for (const auto& labelsPairs : metricsInfo.metricLabels) {
+      allMetricsNames.insert(std::string(labelsPairs.label));
+    }
+  }
+  for (const auto& labelsPairs : driverInfo.metrics.metricLabels) {
+    allMetricsNames.insert(std::string(labelsPairs.label));
+  }
+  std::vector<std::string> result(allMetricsNames.begin(), allMetricsNames.end());
+  std::sort(result.begin(), result.end());
+  driverInfo.availableMetrics.swap(result);
+}
+
+
+ControlWebSocketHandler::ControlWebSocketHandler(DriverServerContext& context)
+  : mContext{context}
+{
+}
+
+/// Invoked at the end of the headers.
+/// as a special header we have "x-dpl-pid" which devices can use
+/// to identify themselves.
+/// FIXME: No effort is done to guarantee their identity. Maybe each device
+///        should be started with a unique secret if we wanted to provide
+///        some secutity.
+void ControlWebSocketHandler::headers(std::map<std::string, std::string> const& headers) 
+{
+  if (headers.count("x-dpl-pid")) {
+    auto s = headers.find("x-dpl-pid");
+    this->mPid = std::stoi(s->second);
+    for (size_t di = 0; di < mContext.infos->size(); ++di) {
+      if ((*mContext.infos)[di].pid == mPid) {
+        mIndex = di;
+        return;
+      }
+    }
+  }
+}
+/// FIXME: not implemented by the backend.
+void ControlWebSocketHandler::beginFragmentation()  {}
+
+/// Invoked when a frame it's parsed. Notice you do not own the data and you must
+/// not free the memory.
+void ControlWebSocketHandler::frame(char const* frame, size_t s) 
+{
+  bool hasNewMetric = false;
+  auto updateMetricsViews = Metric2DViewIndex::getUpdater({&(*mContext.infos)[mIndex].dataRelayerViewIndex,
+                                                            &(*mContext.infos)[mIndex].variablesViewIndex,
+                                                            &(*mContext.infos)[mIndex].queriesViewIndex});
+
+  auto newMetricCallback = [&updateMetricsViews, &metrics = mContext.metrics, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
+    updateMetricsViews(name, metric, value, metricIndex);
+    hasNewMetric = true;
+  };
+  std::string token(frame, s);
+  std::smatch match;
+  ParsedConfigMatch configMatch;
+  ParsedMetricMatch metricMatch;
+
+  auto doParseConfig = [](std::string const& token, ParsedConfigMatch& configMatch, DeviceInfo& info) -> bool {
+    auto ts = "                 " + token;
+    if (DeviceConfigHelper::parseConfig(ts, configMatch)) {
+      DeviceConfigHelper::processConfig(configMatch, info);
+      return true;
+    }
+    return false;
+  };
+  LOG(debug3) << "Data received: " << std::string_view(frame, s);
+  if (DeviceMetricsHelper::parseMetric(token, metricMatch)) {
+    // We use this callback to cache which metrics are needed to provide a
+    // the DataRelayer view.
+    assert(mContext.metrics);
+    DeviceMetricsHelper::processMetric(metricMatch, (*mContext.metrics)[mIndex], newMetricCallback);
+    didProcessMetric = true;
+    didHaveNewMetric |= hasNewMetric;
+  } else if (ControlServiceHelpers::parseControl(token, match) && mContext.infos) {
+    ControlServiceHelpers::processCommand(*mContext.infos, mPid, match[1].str(), match[2].str());
+  } else if (doParseConfig(token, configMatch, (*mContext.infos)[mIndex]) && mContext.infos) {
+    LOG(debug2) << "Found configuration information for pid " << mPid;
+  } else {
+    LOG(error) << "Unexpected control data: " << std::string_view(frame, s);
+  }
+}
+
+/// FIXME: not implemented
+void ControlWebSocketHandler::endFragmentation() {};
+/// FIXME: not implemented
+void ControlWebSocketHandler::control(char const* frame, size_t s) {};
+
+/// Invoked at the beginning of some incoming data. We simply
+/// reset actions which need to happen on a per chunk basis.
+void ControlWebSocketHandler::beginChunk() 
+{
+  didProcessMetric = false;
+  didHaveNewMetric = false;
+}
+
+/// Invoked after we have processed all the available incoming data.
+/// In this particular case we must handle the metric callbacks, if
+/// needed.
+void ControlWebSocketHandler::endChunk() 
+{
+  if (!didProcessMetric) {
+    return;
+  }
+  size_t timestamp = current_time_with_ms();
+  for (auto& callback : *mContext.metricProcessingCallbacks) {
+    callback(*mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
+  }
+  for (auto& metricsInfo : *mContext.metrics) {
+    std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
+  }
+  if (didHaveNewMetric) {
+    updateMetricsNames(*mContext.driver, *mContext.metrics);
+  }
 }
 
 struct LogProcessingState {
@@ -1187,21 +1161,13 @@ void gui_callback(uv_timer_s* ctx)
   uint64_t remoteFrameLatency = frameStart - gui->remoteFrameLast;
   if (gui->plugin->pollGUIPreRender(gui->window)) {
     void *draw_data = gui->plugin->pollGUIRender(gui->callback);
-    bool is_empty;
-    {
-        std::lock_guard<std::mutex> lock(gui->lock);
-        is_empty = gui->drawCallbacks.empty();
-    }
-    if (!is_empty && remoteFrameLatency > 1000000*100) {
+    if (!gui->drawCallbacks.empty() && remoteFrameLatency > 1000000*100) {
       gui->remoteFrameLast = frameStart;
       void *frame;
       int size;
       gui->plugin->getFrameRaw(draw_data, &frame, &size);
-      {
-        std::lock_guard<std::mutex> lock(gui->lock);
-        for (const auto& [key, callback] : gui->drawCallbacks) {
-          callback(frame, size);
-        }
+      for (const auto& [key, callback] : gui->drawCallbacks) {
+        callback(frame, size);
       }
       free(frame);
     }

@@ -40,7 +40,7 @@ struct WSDPLHandler : public HTTPParser {
   ///  DeviceInfo.
   /// @a handler is the websocket handler to react on the
   /// various frames
-  WSDPLHandler(uv_stream_t* stream, DriverServerContext* context, std::unique_ptr<WebSocketHandler> handler);
+  WSDPLHandler(uv_stream_t* stream, DriverServerContext* context);
   ~WSDPLHandler();
   void method(std::string_view const& s) override;
   void target(std::string_view const& s) override;
