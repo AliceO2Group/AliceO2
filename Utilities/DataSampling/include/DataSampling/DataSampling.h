@@ -103,6 +103,8 @@ class DataSampling
   static std::optional<uint16_t> PortForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName);
   /// \brief Provides the machines where given DataSamplingPolicy is enabled. Expects the "dataSamplingPolicies" tree.
   static std::vector<std::string> MachinesForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName);
+  /// \brief Says if remote part (e.g. QC server) should bind the inter-machine channel, according to the configuration. Expects the "dataSamplingPolicies" tree.
+  static std::string BindLocationForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName);
 
  private:
   static void DoGenerateInfrastructure(Dispatcher&, framework::WorkflowSpec& workflow, boost::property_tree::ptree const& policies, size_t threads = 1, const std::string& host = "");
