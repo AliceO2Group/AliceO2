@@ -175,12 +175,6 @@ struct tpcPid {
 struct tpcPidQa {
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
-  static constexpr std::string_view hexpected[Np] = {"expected/El", "expected/Mu", "expected/Pi",
-                                                     "expected/Ka", "expected/Pr", "expected/De",
-                                                     "expected/Tr", "expected/He", "expected/Al"};
-  static constexpr std::string_view hexpected_diff[Np] = {"expected_diff/El", "expected_diff/Mu", "expected_diff/Pi",
-                                                          "expected_diff/Ka", "expected_diff/Pr", "expected_diff/De",
-                                                          "expected_diff/Tr", "expected_diff/He", "expected_diff/Al"};
   static constexpr std::string_view hnsigma[Np] = {"nsigma/El", "nsigma/Mu", "nsigma/Pi",
                                                    "nsigma/Ka", "nsigma/Pr", "nsigma/De",
                                                    "nsigma/Tr", "nsigma/He", "nsigma/Al"};
@@ -201,15 +195,7 @@ struct tpcPidQa {
     if (logAxis) {
       pAxis.makeLogaritmic();
     }
-    const AxisSpec expAxis{1000, 0, 1000, Form("d#it{E}/d#it{x}_(%s) A.U.", pT[i])};
-    const AxisSpec deltaAxis{1000, -500, 500, Form("d#it{E}/d#it{x} - d#it{E}/d#it{x}(%s)", pT[i])};
     const AxisSpec nSigmaAxis{nBinsNSigma, minNSigma, maxNSigma, Form("N_{#sigma}^{TPC}(%s)", pT[i])};
-
-    // Exp signal
-    histos.add(hexpected[i].data(), "", kTH2F, {pAxis, expAxis});
-
-    // Signal - Expected signal
-    histos.add(hexpected_diff[i].data(), "", pT[i]), kTH2F, {pAxis, deltaAxis});
 
     // NSigma
     histos.add(hnsigma[i].data(), Form("N_{#sigma}^{TPC}(%s)", pT[i]), kTH2F, {pAxis, nSigmaAxis});

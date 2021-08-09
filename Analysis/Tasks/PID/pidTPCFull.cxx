@@ -185,6 +185,9 @@ struct tpcPidFullQa {
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
   Configurable<float> minP{"minP", 0, "Minimum momentum in range"};
   Configurable<float> maxP{"maxP", 20, "Maximum momentum in range"};
+  Configurable<int> nBinsDelta{"nBinsDelta", 200, "Number of bins for the Delta"};
+  Configurable<float> minDelta{"minDelta", -1000.f, "Minimum Delta in range"};
+  Configurable<float> maxDelta{"maxDelta", 1000.f, "Maximum Delta in range"};
   Configurable<int> nBinsNSigma{"nBinsNSigma", 200, "Number of bins for the NSigma"};
   Configurable<float> minNSigma{"minNSigma", -10.f, "Minimum NSigma in range"};
   Configurable<float> maxNSigma{"maxNSigma", 10.f, "Maximum NSigma in range"};
@@ -196,18 +199,18 @@ struct tpcPidFullQa {
     if (logAxis) {
       pAxis.makeLogaritmic();
     }
-    const AxisSpec expAxis{1000, 0, 1000, Form("d#it{E}/d#it{x}_(%s) A.U.", pT[i])};
-    const AxisSpec deltaAxis{1000, -500, 500, Form("d#it{E}/d#it{x} - d#it{E}/d#it{x}(%s)", pT[i])};
-    const AxisSpec nSigmaAxis{nBinsNSigma, minNSigma, maxNSigma, Form("N_{#sigma}^{TPC}(%s)", pT[i])};
 
     // Exp signal
+    const AxisSpec expAxis{1000, 0, 1000, Form("d#it{E}/d#it{x}_(%s) A.U.", pT[i])};
     histos.add(hexpected[i].data(), "", kTH2F, {pAxis, expAxis});
 
     // Signal - Expected signal
-    histos.add(hexpected_diff[i].data(), "", pT[i]), kTH2F, {pAxis, deltaAxis});
+    const AxisSpec deltaAxis{nBinsDelta, minDelta, maxDelta, Form("d#it{E}/d#it{x} - d#it{E}/d#it{x}(%s)", pT[i])};
+    histos.add(hexpected_diff[i].data(), "", kTH2F, {pAxis, deltaAxis});
 
     // NSigma
-    histos.add(hnsigma[i].data(), Form("N_{#sigma}^{TPC}(%s)", pT[i]), kTH2F, {pAxis, nSigmaAxis});
+    const AxisSpec nSigmaAxis{nBinsNSigma, minNSigma, maxNSigma, Form("N_{#sigma}^{TPC}(%s)", pT[i])};
+    histos.add(hnsigma[i].data(), "", kTH2F, {pAxis, nSigmaAxis});
   }
 
   void init(o2::framework::InitContext&)

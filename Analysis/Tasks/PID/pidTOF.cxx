@@ -184,9 +184,6 @@ struct tofPidQa {
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
   Configurable<float> minP{"minP", 0.1f, "Minimum momentum in range"};
   Configurable<float> maxP{"maxP", 5.f, "Maximum momentum in range"};
-  Configurable<int> nBinsDelta{"nBinsDelta", 200, "Number of bins for the Delta"};
-  Configurable<float> minDelta{"minDelta", -1000.f, "Minimum Delta in range"};
-  Configurable<float> maxDelta{"maxDelta", 1000.f, "Maximum Delta in range"};
   Configurable<int> nBinsNSigma{"nBinsNSigma", 200, "Number of bins for the NSigma"};
   Configurable<float> minNSigma{"minNSigma", -10.f, "Minimum NSigma in range"};
   Configurable<float> maxNSigma{"maxNSigma", 10.f, "Maximum NSigma in range"};
@@ -194,13 +191,13 @@ struct tofPidQa {
   template <uint8_t i>
   void addParticleHistos()
   {
-    // NSigma
     AxisSpec pAxis{nBinsP, minP, maxP, "#it{p} (GeV/#it{c})"};
     if (logAxis) {
       pAxis.makeLogaritmic();
     }
-    const AxisSpec nSigmaAxis{nBinsNSigma, minNSigma, maxNSigma, Form("N_{#sigma}^{TOF}(%s)", pT[i])};
 
+    // NSigma
+    const AxisSpec nSigmaAxis{nBinsNSigma, minNSigma, maxNSigma, Form("N_{#sigma}^{TOF}(%s)", pT[i])};
     histos.add(hnsigma[i].data(), "", HistType::kTH2F, {pAxis, nSigmaAxis});
   }
 
