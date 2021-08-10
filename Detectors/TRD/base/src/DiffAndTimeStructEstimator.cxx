@@ -22,16 +22,18 @@ using namespace garfield;
 using namespace constants;
 
 //_____________________________________________________________________________
-void DiffusionAndTimeStructEstimator::sampleTimeStruct(float vdrift)
+bool DiffusionAndTimeStructEstimator::sampleTimeStruct(float vdrift)
 {
   //
   // Samples the timing structure of a drift cell
   // Drift Time data calculated with Garfield (by C.Lippmann)
   //
 
+  bool retVal = true;
+
   // Nothing to do
   if (std::abs(mTimeLastVdrift - vdrift) < 1.e-3) {
-    return;
+    return retVal;
   }
   mTimeLastVdrift = vdrift;
 
@@ -39,11 +41,13 @@ void DiffusionAndTimeStructEstimator::sampleTimeStruct(float vdrift)
   constexpr float fVDsmp[8] = {1.032, 1.158, 1.299, 1.450, 1.610, 1.783, 1.959, 2.134};
 
   if (vdrift < fVDsmp[0]) {
-    LOG(WARN) << "TRD: Drift Velocity too small " << vdrift << " < " << fVDsmp[0];
+    LOG(DEBUG) << "TRD: Drift Velocity too small " << vdrift << " < " << fVDsmp[0];
     vdrift = fVDsmp[0];
+    retVal = false;
   } else if (vdrift > fVDsmp[7]) {
-    LOG(WARN) << "TRD: Drift Velocity too large " << vdrift << " > " << fVDsmp[7];
+    LOG(DEBUG) << "TRD: Drift Velocity too large " << vdrift << " > " << fVDsmp[7];
     vdrift = fVDsmp[7];
+    retVal = false;
   }
   if (vdrift > fVDsmp[6]) {
     mVDlo = fVDsmp[6];
@@ -110,10 +114,11 @@ void DiffusionAndTimeStructEstimator::sampleTimeStruct(float vdrift)
     mVDhi = fVDsmp[1];
   }
   mInvBinWidth = 1. / (mVDhi - mVDlo);
+  return retVal;
 }
 
 //_____________________________________________________________________________
-float DiffusionAndTimeStructEstimator::timeStruct(float vdrift, float dist, float z)
+float DiffusionAndTimeStructEstimator::timeStruct(float vdrift, float dist, float z, bool* errFlag)
 {
   //
   // Applies the time structure of the drift cells (by C.Lippmann).
@@ -133,7 +138,9 @@ float DiffusionAndTimeStructEstimator::timeStruct(float vdrift, float dist, floa
   // and fTimeStruct2, calculated for the two mentioned drift velocities.
   //
 
-  sampleTimeStruct(vdrift);
+  if (!sampleTimeStruct(vdrift)) {
+    *errFlag = true;
+  }
 
   // Indices:
   int r1 = (int)(10 * dist);
