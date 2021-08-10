@@ -33,10 +33,10 @@ class DiffusionAndTimeStructEstimator
   bool getDiffCoeff(float& dl, float& dt, float vdrift);
 
   /// determines drift time as function of drift velocity and coordinates
-  float timeStruct(float vdrift, float xd, float z);
+  float timeStruct(float vdrift, float xd, float z, bool* errFlag = nullptr);
 
  private:
-  void sampleTimeStruct(float vdrift);
+  bool sampleTimeStruct(float vdrift);
 
   std::array<float, constants::TIMEBINSGARFIELD * constants::ZBINSGARFIELD> mTimeStruct1; ///< cached Time Structure of Drift Cells (for last vdrift value)
   std::array<float, constants::TIMEBINSGARFIELD * constants::ZBINSGARFIELD> mTimeStruct2; ///< cached Time Structure of Drift Cells (for last vdrift value)
