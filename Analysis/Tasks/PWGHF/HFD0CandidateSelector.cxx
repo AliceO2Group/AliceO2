@@ -20,11 +20,43 @@
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 #include "AnalysisCore/TrackSelectorPID.h"
-
+//////////new/////////////////
+#include "ALICE3Analysis/RICH.h"
+#include "Framework/runDataProcessing.h"
+////////////////////////
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
 using namespace o2::analysis::hf_cuts_d0_topik;
+
+
+
+///////////////new////////////////////
+namespace o2::aod
+{
+namespace hf_track_index_alice3_pid
+{
+DECLARE_SOA_INDEX_COLUMN(Track, track); //!
+DECLARE_SOA_INDEX_COLUMN(RICH, rich);
+} // namespace hf_track_index_alice3_pid
+
+  DECLARE_SOA_INDEX_TABLE_USER(HfTrackIndexALICE3PID, Tracks, "HFTRKIDXA3PID",//!
+                             hf_track_index_alice3_pid::TrackId,
+                             hf_track_index_alice3_pid::RICHId);
+} // namespace o2::aod
+//////////////////
+
+////////new//////////
+struct Alice3PidIndexBuilder {
+  Builds<o2::aod::HfTrackIndexALICE3PID> index;
+  void init(o2::framework::InitContext&) {}
+};
+/////////////////////
+
+
+
+
+
 
 /// Struct for applying D0 selection cuts
 struct HFD0CandidateSelector {
@@ -36,13 +68,20 @@ struct HFD0CandidateSelector {
   Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 5., "Upper bound of track pT for TPC PID"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
-  Configurable<double> d_nSigmaTPCCombined{"d_nSigmaTPCCombined", 5., "Nsigma cut on TPC combined with TOF"};
+  //Configurable<double> d_nSigmaTPCCombined{"d_nSigmaTPCCombined", 5., "Nsigma cut on TPC combined with TOF"};
   //Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 50., "Lower bound of TPC findable clusters for good PID"};
   // TOF
   Configurable<double> d_pidTOFMinpT{"d_pidTOFMinpT", 0.15, "Lower bound of track pT for TOF PID"};
   Configurable<double> d_pidTOFMaxpT{"d_pidTOFMaxpT", 5., "Upper bound of track pT for TOF PID"};
   Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF only"};
-  Configurable<double> d_nSigmaTOFCombined{"d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
+  //Configurable<double> d_nSigmaTOFCombined{"d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
+  //////////////////new//////////////////////////
+  // RICH
+  Configurable<double> d_pidRICHMinpT{"d_pidRICHMinpT", 0.15, "Lower bound of track pT for RICH PID"};
+  Configurable<double> d_pidRICHMaxpT{"d_pidRICHMaxpT", 10., "Upper bound of track pT for RICH PID"};
+  Configurable<double> d_nSigmaRICH{"d_nSigmaRICH", 3., "Nsigma cut on RICH only"};
+  Configurable<double> d_nSigmaRICHCombinedTOF{"d_nSigmaRICHCombinedTOF", 5., "Nsigma cut on RICH combined with TOF"};
+  //////////////////////
   // topological cuts
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_d0_topik::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"D0_to_pi_K_cuts", {hf_cuts_d0_topik::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "D0 candidate selection per pT bin"};
@@ -161,17 +200,27 @@ struct HFD0CandidateSelector {
 
     return true;
   }
+  ////////new////////////////
+    using TracksPID = soa::Join<aod::BigTracksPID, aod::HfTrackIndexALICE3PID>;
+  ////////////////////
 
-  void process(aod::HfCandProng2 const& candidates, aod::BigTracksPID const&)
+
+  /////////////new/////////////
+    void process(aod::HfCandProng2 const& candidates, TracksPID const&)
+    //void process(aod::HfCandProng2 const& candidates, aod::BigTracksPID const&)
   {
     TrackSelectorPID selectorPion(kPiPlus);
     selectorPion.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
     selectorPion.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
-    selectorPion.setRangeNSigmaTPCCondTOF(-d_nSigmaTPCCombined, d_nSigmaTPCCombined);
+    //selectorPion.setRangeNSigmaTPCCondTOF(-d_nSigmaTPCCombined, d_nSigmaTPCCombined);
     selectorPion.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
     selectorPion.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
-    selectorPion.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
-
+    //selectorPion.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
+    //////////////new/////////////////////
+    selectorPion.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
+    selectorPion.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
+    selectorPion.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
+    //////////////////////////////////////
     TrackSelectorPID selectorKaon(selectorPion);
     selectorKaon.setPDG(kKPlus);
 
@@ -187,9 +236,15 @@ struct HFD0CandidateSelector {
         continue;
       }
 
-      auto trackPos = candidate.index0_as<aod::BigTracksPID>(); // positive daughter
-      auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter
+      ///////////new/////////////
+      auto trackPos = candidate.index0_as<TracksPID>(); // positive daughter
+      auto trackNeg = candidate.index1_as<TracksPID>(); // negative daughter
+      //auto trackPos = candidate.index0_as<aod::BigTracksPID>(); // positive daughter
+      //auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter
+      ////////////////
 
+
+      
       /*
       if (!daughterSelection(trackPos) || !daughterSelection(trackNeg)) {
         hfSelD0Candidate(statusD0, statusD0bar);
@@ -203,6 +258,16 @@ struct HFD0CandidateSelector {
         continue;
       }
 
+
+
+      ///////////////////////////////new///////////////
+      if (selectorPion.isElectronAndNotPion(trackPos) || selectorPion.isElectronAndNotPion(trackNeg))
+	{
+	  hfSelD0Candidate(statusD0, statusD0bar);
+	  continue;
+	}
+      ////////////////////////////////////////////////
+      
       // implement filter bit 4 cut - should be done before this task at the track selection level
       // need to add special cuts (additional cuts on decay length and d0 norm)
 
@@ -264,6 +329,12 @@ struct HFD0CandidateSelector {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
+  ///////////new////////////
+  WorkflowSpec workflow{};
+  workflow.push_back(adaptAnalysisTask<Alice3PidIndexBuilder>(cfgc));
+  workflow.push_back(adaptAnalysisTask<HFD0CandidateSelector>(cfgc, TaskName{"hf-d0-candidate-selector"}));
+  return workflow;
+  /*
   return WorkflowSpec{
-    adaptAnalysisTask<HFD0CandidateSelector>(cfgc, TaskName{"hf-d0-candidate-selector"})};
+  adaptAnalysisTask<HFD0CandidateSelector>(cfgc, TaskName{"hf-d0-candidate-selector"})};*/
 }
