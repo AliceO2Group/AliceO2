@@ -1,4 +1,4 @@
-# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+Common/Utils/CMakeLists.txt# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 # See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 # All rights not expressly granted are reserved.
 #
@@ -25,7 +25,6 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/TreeStreamRedirector.h
                                   include/CommonUtils/RootChain.h
                                   include/CommonUtils/BoostSerializer.h
-                                  include/CommonUtils/BoostHistogramUtils.h
                                   include/CommonUtils/ShmManager.h
                                   include/CommonUtils/RngHelper.h
                                   include/CommonUtils/StringUtils.h
