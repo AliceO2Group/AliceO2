@@ -21,12 +21,18 @@ o2_add_library(EMCALWorkflow
                        src/RawToCellConverterSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
+                       src/EventBuilderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsEMCAL O2::EMCALSimulation O2::Steer
                                      O2::DPLUtils O2::EMCALBase O2::EMCALReconstruction O2::Algorithm)
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME emcal
                   SOURCES src/emc-reco-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
+
+o2_add_executable(event-builder-workflow
+                  COMPONENT_NAME emcal
+                  SOURCES src/event-builder-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
 
 o2_add_executable(entropy-encoder-workflow
