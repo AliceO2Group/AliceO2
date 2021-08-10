@@ -25,6 +25,7 @@
 #include "EMCALWorkflow/RecoWorkflow.h"
 #include "EMCALWorkflow/CellConverterSpec.h"
 #include "EMCALWorkflow/ClusterizerSpec.h"
+#include "EMCALWorkflow/EntropyDecoderSpec.h"
 #include "EMCALWorkflow/AnalysisClusterSpec.h"
 #include "EMCALWorkflow/DigitsPrinterSpec.h"
 #include "EMCALWorkflow/PublisherSpec.h"
@@ -60,7 +61,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     {"cells", InputType::Cells},
     {"raw", InputType::Raw},
     {"clusters", InputType::Clusters},
-  };
+    {"ctf", InputType::CTF}};
 
   const std::unordered_map<std::string, OutputType> OutputMap{
     {"digits", OutputType::Digits},
@@ -72,7 +73,8 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
   std::unordered_map<InputType, std::vector<OutputType>> allowedIO;
   allowedIO[InputType::Digits] = std::vector<OutputType>{OutputType::Cells, OutputType::Clusters, OutputType::AnalysisClusters};
   allowedIO[InputType::Cells] = std::vector<OutputType>{OutputType::Cells, OutputType::Clusters, OutputType::AnalysisClusters};
-  allowedIO[InputType::Raw] = std::vector<OutputType>{OutputType::Cells};
+  allowedIO[InputType::Raw] = std::vector<OutputType>{OutputType::Cells, OutputType::Clusters, OutputType::AnalysisClusters};
+  allowedIO[InputType::CTF] = std::vector<OutputType>{OutputType::Cells, OutputType::Clusters, OutputType::AnalysisClusters};
 
   InputType inputType;
 
@@ -161,6 +163,12 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       } catch (std::runtime_error& e) {
         LOG(ERROR) << "Cannot create digits printer spec: " << e.what();
       }
+    }
+  } else if (inputType == InputType::CTF) {
+    try {
+      specs.emplace_back(o2::emcal::getEntropyDecoderSpec());
+    } catch (const std::runtime_error& e) {
+      LOG(ERROR) << "Cannot create entropy encoder spec: " << e.what();
     }
   }
 

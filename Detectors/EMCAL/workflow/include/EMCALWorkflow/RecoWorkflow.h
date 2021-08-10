@@ -28,10 +28,11 @@ namespace reco_workflow
 /// \enum InputType
 /// \brief Input types of the workflow
 /// \ingroup EMCALworkflow
-enum struct InputType { Digits,  ///< read digits from file
-                        Cells,   ///< read compressed cells from file
-                        Raw,     ///< read data in raw page format from file
-                        Clusters ///< read native clusters from file
+enum struct InputType { Digits,   ///< read digits from file
+                        Cells,    ///< read compressed cells from file
+                        Raw,      ///< read data in raw page format from file
+                        Clusters, ///< read native clusters from file
+                        CTF       ///< Compressed Timeframes
 };
 
 /// \enum OutputType

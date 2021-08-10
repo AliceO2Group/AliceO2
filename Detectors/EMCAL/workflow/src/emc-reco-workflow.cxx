@@ -30,7 +30,7 @@
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"input-type", o2::framework::VariantType::String, "digits", {"digits, cells, raw, clusters"}},
+    {"input-type", o2::framework::VariantType::String, "digits", {"digits, cells, raw, clusters, ctf"}},
     {"output-type", o2::framework::VariantType::String, "cells", {"digits, cells, raw, clusters, analysisclusters"}},
     {"enable-digits-printer", o2::framework::VariantType::Bool, false, {"enable digits printer component"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"do not initialize root files readers"}},
