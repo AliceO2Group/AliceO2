@@ -36,7 +36,7 @@ std::string DataSampling::createDispatcherName()
   return std::string("Dispatcher"); //_") + getenv("HOSTNAME");
 }
 
-void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::string& policiesSource, size_t threads)
+void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::string& policiesSource, size_t threads, const std::string& host)
 {
   std::unique_ptr<ConfigurationInterface> cfg = ConfigurationFactory::getConfiguration(policiesSource);
   if (cfg->getRecursive("").count("dataSamplingPolicies") == 0) {
@@ -45,26 +45,33 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::str
   }
   auto policiesTree = cfg->getRecursive("dataSamplingPolicies");
   Dispatcher dispatcher(createDispatcherName(), policiesSource);
-  DataSampling::DoGenerateInfrastructure(dispatcher, workflow, policiesTree, threads);
+  DataSampling::DoGenerateInfrastructure(dispatcher, workflow, policiesTree, threads, host);
 }
 
-void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const boost::property_tree::ptree& policiesTree, size_t threads)
+void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const boost::property_tree::ptree& policiesTree, size_t threads, const std::string& host)
 {
   Dispatcher dispatcher(createDispatcherName(), "");
-  DataSampling::DoGenerateInfrastructure(dispatcher, workflow, policiesTree, threads);
+  DataSampling::DoGenerateInfrastructure(dispatcher, workflow, policiesTree, threads, host);
 }
 
-void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec& workflow, const boost::property_tree::ptree& policiesTree, size_t threads)
+void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec& workflow, const boost::property_tree::ptree& policiesTree, size_t threads, const std::string& host)
 {
   LOG(DEBUG) << "Generating Data Sampling infrastructure...";
 
   for (auto&& policyConfig : policiesTree) {
 
-    std::unique_ptr<DataSamplingPolicy> policy;
-
     // We don't want the Dispatcher to exit due to one faulty Policy
     try {
-      dispatcher.registerPolicy(std::make_unique<DataSamplingPolicy>(DataSamplingPolicy::fromConfiguration(policyConfig.second)));
+      auto policy = DataSamplingPolicy::fromConfiguration(policyConfig.second);
+      std::vector<std::string> machines;
+      if (policyConfig.second.count("machines") > 0) {
+        for (const auto& machine : policyConfig.second.get_child("machines")) {
+          machines.emplace_back(machine.second.get<std::string>(""));
+        }
+      }
+      if (host.empty() || machines.empty() || std::find(machines.begin(), machines.end(), host) != machines.end()) {
+        dispatcher.registerPolicy(std::make_unique<DataSamplingPolicy>(std::move(policy)));
+      }
     } catch (const std::exception& ex) {
       LOG(WARN) << "Could not load the Data Sampling Policy '"
                 << policyConfig.second.get_optional<std::string>("id").value_or("") << "', because: " << ex.what();
