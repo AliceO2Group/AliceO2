@@ -23,6 +23,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <iostream>
+
 namespace o2::framework
 {
 
@@ -89,6 +91,12 @@ void ws_handshake_done_callback(uv_write_t* h, int status)
   uv_read_start((uv_stream_t*)h->handle, (uv_alloc_cb)my_alloc_cb, websocket_server_callback);
 }
 
+enum struct GUIOpcodes : uint8_t {
+  Control = 0,
+  Mousepos = 1,
+  Mouseclick = 2
+};
+
 /// An handler for a websocket message stream.
 struct GUIWebSocketHandler : public WebSocketHandler {
   GUIWebSocketHandler(DriverServerContext& context)
@@ -99,7 +107,24 @@ struct GUIWebSocketHandler : public WebSocketHandler {
 
   void headers(std::map<std::string, std::string> const& headers) override{}
   void beginFragmentation() override {}
-  void frame(char const* frame, size_t s) override{}
+  void frame(char const* frame, size_t s) override
+  {
+    GUIOpcodes opcode = (GUIOpcodes)*(frame++);
+    switch (opcode) {
+      case GUIOpcodes::Mousepos:
+      {
+        float *positions = (float*)frame;
+        mContext.gui->plugin->updateMousePos(positions[0], positions[1]);
+        break;
+      }
+      case GUIOpcodes::Mouseclick:
+      {
+        char isClicked = *frame;
+        mContext.gui->plugin->updateMouseButton(isClicked == 1);
+        break;
+      }
+    }
+  }
   void endFragmentation() override{};
   void control(char const* frame, size_t s) override{};
   void beginChunk() override{};

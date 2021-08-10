@@ -1063,4 +1063,14 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
   };
 }
 
+void updateMousePos(float x, float y) {
+    ImGuiIO& io = ImGui::GetIO();
+    io.MousePos = ImVec2(x, y);
+}
+
+void updateMouseButton(bool clicked) {
+  ImGuiIO& io = ImGui::GetIO();
+  io.MouseDown[0] = clicked;
+}
+
 } // namespace o2::framework::gui

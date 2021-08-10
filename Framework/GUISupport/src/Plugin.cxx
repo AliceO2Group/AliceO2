@@ -33,6 +33,14 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
     return o2::framework::gui::getGUIDebugger(infos, devices, metadata, metricsInfos, driverInfo, controls, driverControl);
   }
 
+  void updateMousePos(float x, float y) override
+  {
+    o2::framework::gui::updateMousePos(x, y);
+  }
+  void updateMouseButton(bool clicked) override
+  {
+    o2::framework::gui::updateMouseButton(clicked);
+  }
   void* initGUI(char const* windowTitle) override
   {
     return o2::framework::initGUI(windowTitle);
