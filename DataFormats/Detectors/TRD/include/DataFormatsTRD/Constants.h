@@ -55,6 +55,10 @@ constexpr float PADGRANULARITYTRKLSLOPE = 1000.f;
 constexpr float GRANULARITYTRKLPOS = 1.f / PADGRANULARITYTRKLPOS;     // granularity of position in tracklet64 word in pad-widths
 constexpr float GRANULARITYTRKLSLOPE = 1.f / PADGRANULARITYTRKLSLOPE; // granularity of slope in tracklet64 word in pads/timebin
 
+// Simulation specific parameters
+constexpr int TIMEBINSGARFIELD = 38; // Number of bins in time direction used for garfield simulation
+constexpr int ZBINSGARFIELD = 11;    // Number of bins in z direction used for garfield simulation
+
 // OS: Should this not be flexible for example in case of Kr calib?
 constexpr int TIMEBINS = 30; // the number of time bins
 constexpr float MAXIMPACTANGLE = 25.f; // the maximum impact angle for tracks relative to the TRD detector plane to be considered for vDrift and ExB calibration
