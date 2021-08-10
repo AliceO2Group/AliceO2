@@ -188,6 +188,8 @@ struct JetFinderTask {
     processImpl(collision);
   }
 
+  PROCESS_SWITCH(JetFinderTask, processParticleLevel, "Particle level jet finding", false);
+
   void processData(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,
                    soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks,
                    aod::EMCALClusters const& clusters)
@@ -227,6 +229,8 @@ struct JetFinderTask {
 
     processImpl(collision);
   }
+
+  PROCESS_SWITCH(JetFinderTask, processData, "Data jet finding", true);
 };
 
 using JetFinderData = JetFinderTask<o2::aod::Jets, o2::aod::JetTrackConstituents, o2::aod::JetClusterConstituents, o2::aod::JetConstituentsSub>;
@@ -251,25 +255,45 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     {"HybridIntermediate", JetInputData_t::HybridIntermediate},
     {"", JetInputData_t::Data}, // Default to data
   };
-  auto jetData = jetInputDataTypes.at(jetInputData);
-  switch (jetData) {
-    case JetInputData_t::MCParticleLevel:
-      return WorkflowSpec{
-        adaptAnalysisTask<JetFinderMCParticleLevel>(cfgc, Processes{&JetFinderMCParticleLevel::processParticleLevel}, TaskName{"jet-finder-MC"})};
-      break;
-    case JetInputData_t::MCDetectorLevel:
-      return WorkflowSpec{
-        adaptAnalysisTask<JetFinderMCDetectorLevel>(cfgc, Processes{&JetFinderMCDetectorLevel::processData}, TaskName{"jet-finder-MC-detector-level"})};
-      break;
-    case JetInputData_t::HybridIntermediate:
-      return WorkflowSpec{
-        adaptAnalysisTask<JetFinderHybridIntermediate>(cfgc, Processes{&JetFinderHybridIntermediate::processData}, TaskName{"jet-finder-hybrid-intermedaite"})};
-      break;
-    case JetInputData_t::Data: // intentionally fall through to the default which is outside of the switch.
-    default:
-      break;
+  // TODO: Is there a better way to do this?
+  // TODO: String validation and normalization. There's too much room for error with enumerations.
+  auto jetMatching = cfgc.options().get<std::string>("jet-input-data");
+  // Tokenize using stringstream
+  std::vector<std::string> matchingOptions;
+  std::stringstream ss;
+  ss << jetMatching;
+  while (ss.good()) {
+    std::string substring;
+    getline(ss, substring, ',');
+    matchingOptions.push_back(substring);
   }
-  // Default to data
-  return WorkflowSpec{
-    adaptAnalysisTask<JetFinderData>(cfgc, Processes{&JetFinderData::processData}, TaskName{"jet-finder-data"})};
+  std::vector<o2::framework::DataProcessorSpec> tasks;
+  for (auto opt : matchingOptions) {
+    auto jetData = jetInputDataTypes.at(opt);
+    switch (jetData) {
+      case JetInputData_t::MCParticleLevel:
+        tasks.emplace_back(
+          adaptAnalysisTask<JetFinderMCParticleLevel>(cfgc,
+            SetDefaultProcesses{{{"processParticleLevel", true}, {"processData", false}}}, TaskName{"jet-finder-MC"})
+        );
+        break;
+      case JetInputData_t::MCDetectorLevel:
+        tasks.emplace_back(
+          adaptAnalysisTask<JetFinderMCDetectorLevel>(cfgc, TaskName{"jet-finder-MC-detector-level"})
+          );
+        break;
+      case JetInputData_t::HybridIntermediate:
+        tasks.emplace_back(
+          adaptAnalysisTask<JetFinderHybridIntermediate>(cfgc, TaskName{"jet-finder-hybrid-intermedaite"})
+          );
+        break;
+      case JetInputData_t::Data: // intentionally fall through to the default which is outside of the switch.
+      default:
+        tasks.emplace_back(
+          adaptAnalysisTask<JetFinderData>(cfgc, TaskName{"jet-finder-data"})
+        );
+        break;
+    }
+  }
+  return WorkflowSpec{tasks};
 }
