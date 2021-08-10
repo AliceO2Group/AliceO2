@@ -30,7 +30,6 @@
 #include "TRDSimulation/Trap2CRU.h"
 #include "TRDSimulation/TrapSimulator.h"
 #include "CommonUtils/StringUtils.h"
-#include "TRDBase/CommonParam.h"
 #include "TFile.h"
 #include "TTree.h"
 #include <TStopwatch.h>

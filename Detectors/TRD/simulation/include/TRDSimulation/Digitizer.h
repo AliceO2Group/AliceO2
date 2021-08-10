@@ -16,6 +16,7 @@
 
 #include "TRDBase/Calibrations.h"
 #include "TRDBase/CommonParam.h"
+#include "TRDBase/PadResponse.h"
 #include "TRDBase/DiffAndTimeStructEstimator.h"
 #include "TRDSimulation/PileupTool.h"
 
@@ -38,9 +39,6 @@ namespace trd
 
 class Geometry;
 class SimParam;
-class PadPlane;
-class TRDArraySignal;
-class PadResponse;
 
 using DigitContainer = std::vector<Digit>;
 using SignalContainer = std::unordered_map<int, SignalArray>;
@@ -70,7 +68,7 @@ class Digitizer
 
  private:
   Geometry* mGeo = nullptr;               // access to Geometry
-  PadResponse* mPRF = nullptr;            // access to PadResponse
+  PadResponse mPRF{};                     // access to PadResponse
   SimParam* mSimParam = nullptr;          // access to SimParam instance
   CommonParam* mCommonParam = nullptr;    // access to CommonParam instance
   Calibrations* mCalib = nullptr;         // access to Calibrations in CCDB
