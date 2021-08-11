@@ -24,6 +24,7 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/RootConfigParamHelpers.h"
 #include "Framework/ExpressionHelpers.h"
+#include "Framework/CommonServices.h"
 
 namespace o2::framework
 {
@@ -345,6 +346,12 @@ class has_instance
 template <typename T>
 struct ServiceManager {
   template <typename ANY>
+  static bool add(std::vector<ServiceSpec>&, ANY&)
+  {
+    return false;
+  }
+
+  template <typename ANY>
   static bool prepare(InitContext&, ANY&)
   {
     return false;
@@ -353,13 +360,19 @@ struct ServiceManager {
 
 template <typename T>
 struct ServiceManager<Service<T>> {
+  static bool add(std::vector<ServiceSpec>& specs, Service<T>&)
+  {
+    CommonAnalysisServices::addAnalysisService<T>(specs);
+    return true;
+  }
+
   static bool prepare(InitContext& context, Service<T>& service)
   {
     if constexpr (has_instance<T>::value) {
       service.service = &(T::instance()); // Sigh...
       return true;
     } else {
-      service.service = context.services().get<T>();
+      service.service = &(context.services().get<T>());
       return true;
     }
     return false;

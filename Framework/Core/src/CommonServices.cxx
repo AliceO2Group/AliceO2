@@ -33,6 +33,7 @@
 #include "../src/DataProcessingStatus.h"
 #include "ArrowSupport.h"
 #include "DPLMonitoringBackend.h"
+#include "TDatabasePDG.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
@@ -530,5 +531,18 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
   return specs;
 }
 
+o2::framework::ServiceSpec CommonAnalysisServices::databasePDGSpec()
+{
+  return ServiceSpec{
+    .name = "database-pdg",
+    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
+      auto* ptr = new TDatabasePDG();
+      ptr->ReadPDGTable();
+      return ServiceHandle{TypeIdHelpers::uniqueId<TDatabasePDG>(), ptr, ServiceKind::Serial, "database-pdg"};
+    },
+    .configure = CommonServices::noConfiguration(),
+    .exit = [](ServiceRegistry&, void* service) { reinterpret_cast<TDatabasePDG*>(service)->Delete(); },
+    .kind = ServiceKind::Serial};
+}
 } // namespace o2::framework
 #pragma GCC diagnostic pop

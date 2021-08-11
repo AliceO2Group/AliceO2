@@ -234,3 +234,9 @@ o2_add_dpl_workflow(conditional-expressions
                   JOB_POOL analysis
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
                   COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(using-pdg
+                  SOURCES src/usingPDGService.cxx
+                  JOB_POOL analysis
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
