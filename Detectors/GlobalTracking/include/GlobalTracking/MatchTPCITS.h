@@ -413,7 +413,7 @@ class MatchTPCITS
   int preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& itsChipClRefs,
                             float trackY, float trackZ, float tolerY, float tolerZ) const;
   void fillClustersForAfterBurner(int rofStart, int nROFs, ITSChipClustersRefs& itsChipClRefs);
-  void flagUsedITSClusters(const o2::its::TrackITS& track, int rofOffset);
+  void flagUsedITSClusters(const o2::its::TrackITS& track);
 
   void doMatching(int sec);
 

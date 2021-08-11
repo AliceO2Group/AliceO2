@@ -569,7 +569,6 @@ bool MatchTPCITS::prepareITSData()
       mITSTrackROFContMapping[irofCont] = irof;
     }
 
-    int cluROFOffset = mITSClusterROFRec[irof].getFirstEntry(); // clusters of this ROF start at this offset
     mITSROFTimes.emplace_back(tMin, tMax);                      // ITS ROF min/max time
 
     for (int sec = o2::constants::math::NSectors; sec--;) {         // start of sector's tracks for this ROF
@@ -580,7 +579,7 @@ bool MatchTPCITS::prepareITSData()
     for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
       const auto& trcOrig = mITSTracksArray[it];
       if (mParams->runAfterBurner) {
-        flagUsedITSClusters(trcOrig, cluROFOffset);
+        flagUsedITSClusters(trcOrig);
       }
       if (trcOrig.getParamOut().getX() < 1.) {
         continue; // backward refit failed
@@ -1233,9 +1232,6 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   float chi2 = 0.f;
   auto geom = o2::its::GeometryTGeo::Instance();
   auto propagator = o2::base::Propagator::Instance();
-  // NOTE: the ITS cluster index is stored wrt 1st cluster of relevant ROF, while here we extract clusters from the
-  // buffer for the whole TF. Therefore, we should shift the index by the entry of the ROF's 1st cluster in the global cluster buffer
-  int clusIndOffs = mITSClusterROFRec[tITS.roFrame].getFirstEntry();
   int clEntry = itsTrOrig.getFirstClusterEntry();
 
   float addErr2 = 0;
@@ -1247,7 +1243,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   }
 
   for (int icl = 0; icl < ncl; icl++) {
-    const auto& clus = mITSClustersArray[clusIndOffs + mITSTrackClusIdx[clEntry++]];
+    const auto& clus = mITSClustersArray[mITSTrackClusIdx[clEntry++]];
     float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
     if (!trfit.rotate(alpha) ||
         // note: here we also calculate the L,T integral (in the inward direction, but this is irrelevant)
@@ -2205,12 +2201,12 @@ void MatchTPCITS::removeITSfromTPC(int itsID, int tpcID)
 }
 
 //______________________________________________
-void MatchTPCITS::flagUsedITSClusters(const o2::its::TrackITS& track, int rofOffset)
+void MatchTPCITS::flagUsedITSClusters(const o2::its::TrackITS& track)
 {
   // flag clusters used by this track
   int clEntry = track.getFirstClusterEntry();
   for (int icl = track.getNumberOfClusters(); icl--;) {
-    mABClusterLinkIndex[rofOffset + mITSTrackClusIdx[clEntry++]] = MinusTen;
+    mABClusterLinkIndex[mITSTrackClusIdx[clEntry++]] = MinusTen;
   }
 }
 

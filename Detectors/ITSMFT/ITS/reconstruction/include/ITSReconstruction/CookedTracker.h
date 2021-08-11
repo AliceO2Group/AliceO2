@@ -89,7 +89,7 @@ class CookedTracker
       for (int i = 0; i < noc; i++) {
         const Cluster* c = this->getCluster(t.getClusterIndex(i));
         Int_t idx = c - &mClusterCache[0]; // Index of this cluster in event
-        clusIdx.emplace_back(idx);
+        clusIdx.emplace_back(this->mFirstInFrame + idx);
       }
       trackNew.setClusterRefs(clEntry, noc);
       trackNew.setPattern(0x7f); // this tracker finds only complete tracks
