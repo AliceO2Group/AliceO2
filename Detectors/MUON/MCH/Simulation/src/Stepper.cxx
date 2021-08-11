@@ -11,6 +11,7 @@
 
 #include "Stepper.h"
 
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "TGeoManager.h"
@@ -50,7 +51,8 @@ void Stepper::process(const TVirtualMC& vmc)
 
   if (t.isEntering() || t.isExiting()) {
     // generate a track referenced
-    o2::TrackReference tr{vmc, detElemId};
+    o2::TrackReference tr{vmc, o2::detectors::DetID::MCH};
+    tr.setUserId(detElemId);
     stack->addTrackReference(tr);
   }
 
