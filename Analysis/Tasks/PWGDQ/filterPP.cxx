@@ -279,6 +279,7 @@ struct DQFilterPPTask {
   void process(MyEventsSelected::iterator const& event, MyBarrelTracksSelected const& tracks, aod::BCs const& bcs)
   {
     uint64_t filter = 0;
+    constexpr int pairType = VarManager::kJpsiToEE;
 
     if (event.isDQEventSelected() == 1) {
       // Reset the fValues array
@@ -297,7 +298,7 @@ struct DQFilterPPTask {
           if (!cutFilter) { // the tracks must have at least one filter bit in common to continue
             continue;
           }
-          VarManager::FillPair(tpos, tneg, fValues); // compute pair quantities
+          VarManager::FillPair<pairType>(tpos, tneg, fValues); // compute pair quantities
           for (int i = 0; i < fNTrackCuts; ++i) {
             if (!(cutFilter & (uint8_t(1) << i))) {
               continue;

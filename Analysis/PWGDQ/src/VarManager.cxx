@@ -322,4 +322,16 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kDeltaPhiSym] = "rad.";
   fgVariableNames[kCosThetaHE] = "cos#it{#theta}";
   fgVariableUnits[kCosThetaHE] = "";
+  fgVariableNames[kQuadDCAabsXY] = "DCA_{xy}^{quad}";
+  fgVariableUnits[kQuadDCAabsXY] = "cm";
+  fgVariableNames[kQuadDCAsigXY] = "DCA_{xy}^{quad}";
+  fgVariableUnits[kQuadDCAsigXY] = "#sigma";
+  fgVariableNames[kTrackDCAsigXY] = "DCA_{xy}";
+  fgVariableUnits[kTrackDCAsigXY] = "#sigma";
+  fgVariableNames[kTrackDCAsigZ] = "DCA_{z}";
+  fgVariableUnits[kTrackDCAsigZ] = "#sigma";
+  fgVariableNames[kTrackDCAresXY] = "#Delta DCA_{xy}";
+  fgVariableUnits[kTrackDCAresXY] = "cm";
+  fgVariableNames[kTrackDCAresZ] = "#Delta DCA_{z}";
+  fgVariableUnits[kTrackDCAresZ] = "cm";
 }

@@ -85,6 +85,10 @@ constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::ReducedEvent | 
 constexpr static uint32_t gkTrackFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackBarrel | VarManager::ObjTypes::ReducedTrackBarrelCov | VarManager::ObjTypes::ReducedTrackBarrelPID;
 constexpr static uint32_t gkMuonFillMap = VarManager::ObjTypes::ReducedMuon | VarManager::ObjTypes::ReducedMuonExtra | VarManager::ObjTypes::ReducedMuonCov;
 
+constexpr int pairTypeEE = VarManager::kJpsiToEE;
+constexpr int pairTypeMuMu = VarManager::kJpsiToMuMu;
+constexpr int pairTypeEMu = VarManager::kElectronMuon;
+
 struct DQEventSelection {
   Produces<aod::EventCuts> eventSel;
   Produces<aod::MixingHashes> hash;
@@ -369,7 +373,8 @@ struct DQEventMixing {
           if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
             continue;
           }
-          VarManager::FillPair(track1, track2, fValues);
+
+          VarManager::FillPair<pairTypeEE>(track1, track2, fValues);
 
           for (int i = 0; i < fCutNames.size(); ++i) {
             if (twoTrackFilter & (uint8_t(1) << i)) {
@@ -413,7 +418,7 @@ struct DQEventMixing {
           if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
             continue;
           }
-          VarManager::FillPair(muon1, muon2, fValues, VarManager::kJpsiToMuMu);
+          VarManager::FillPair<pairTypeMuMu>(muon1, muon2, fValues);
           if (muon1.sign() * muon2.sign() < 0) {
             fHistMan->FillHistClass("PairsMuonMEPM", fValues);
           } else {
@@ -433,7 +438,8 @@ struct DQEventMixing {
           if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
             continue;
           }
-          VarManager::FillPair(track1, muon2, fValues, VarManager::kElectronMuon);
+
+          VarManager::FillPair<pairTypeEMu>(track1, muon2, fValues);
 
           for (int i = 0; i < fCutNames.size(); ++i) {
             if (twoTrackFilter & (uint8_t(1) << i)) {
@@ -519,7 +525,7 @@ struct DQTableReader {
         continue;
       }
       dileptonFilterMap = uint32_t(twoTrackFilter);
-      VarManager::FillPair(t1, t2, fValues);
+      VarManager::FillPair<pairTypeEE>(t1, t2, fValues);
       VarManager::FillPairVertexing(event, t1, t2, fValues);
       dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], t1.sign() + t2.sign(), dileptonFilterMap);
       for (int i = 0; i < fCutNames.size(); ++i) {
@@ -547,7 +553,7 @@ struct DQTableReader {
       //       In order to discriminate them, the dileptonFilterMap uses the first 8 bits for dielectrons, the next 8 for dimuons and the rest for electron-muon
       // TBD:  Other implementations may be possible, for example add a column to the dilepton table to specify the pair type (dielectron, dimuon, electron-muon, etc.)
       dileptonFilterMap = uint32_t(twoTrackFilter) << 8;
-      VarManager::FillPair(muon1, muon2, fValues, VarManager::kJpsiToMuMu);
+      VarManager::FillPair<pairTypeMuMu>(muon1, muon2, fValues);
       dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], muon1.sign() + muon2.sign(), dileptonFilterMap);
       if (muon1.sign() * muon2.sign() < 0) {
         fHistMan->FillHistClass("PairsMuonSEPM", fValues);
@@ -568,7 +574,7 @@ struct DQTableReader {
       // NOTE: The dimuons and electron-muon pairs in this task are pushed in the same table as the dielectrons.
       //       In order to discriminate them, the dileptonFilterMap uses the first 8 bits for dielectrons, the next 8 for dimuons and the rest for electron-muon
       dileptonFilterMap = uint32_t(twoTrackFilter) << 16;
-      VarManager::FillPair(trackBarrel, trackMuon, fValues, VarManager::kElectronMuon);
+      VarManager::FillPair<pairTypeEMu>(trackBarrel, trackMuon, fValues);
       dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], trackBarrel.sign() + trackMuon.sign(), dileptonFilterMap);
       for (int i = 0; i < fCutNames.size(); ++i) {
         if (twoTrackFilter & (uint8_t(1) << i)) {

@@ -294,10 +294,11 @@ struct DileptonEE {
     // TODO: Use combinations() when this will work for Partitions
     /* e.g.
      * for (auto& [tpos, tneg] : combinations(posTracks, negTracks)) {
-      VarManager::FillPair(tpos, tneg);
+      VarManager::FillPair<pairType>(tpos, tneg, fValues);
       fHistMan->FillHistClass("PairsBarrelULS", VarManager::fgValues);
     }
     */
+    constexpr static int pairType = VarManager::kJpsiToEE;
     uint8_t filter = 0;
     for (auto tpos : posTracks) {
       for (auto tneg : negTracks) { // +- pairs
@@ -305,7 +306,7 @@ struct DileptonEE {
         if (!filter) { // the tracks must have at least one filter bit in common to continue
           continue;
         }
-        VarManager::FillPair(tpos, tneg, fValues);
+        VarManager::FillPair<pairType>(tpos, tneg, fValues);
         dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], 0, filter);
         for (int i = 0; i < fNTrackCuts; ++i) {
           if (filter & (uint8_t(1) << i)) {
@@ -318,7 +319,7 @@ struct DileptonEE {
         if (!filter) { // the tracks must have at least one filter bit in common to continue
           continue;
         }
-        VarManager::FillPair(tpos, tpos2, fValues);
+        VarManager::FillPair<pairType>(tpos, tpos2, fValues);
         dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], 2, filter);
         for (int i = 0; i < fNTrackCuts; ++i) {
           if (filter & (uint8_t(1) << i)) {
@@ -333,7 +334,7 @@ struct DileptonEE {
         if (!filter) { // the tracks must have at least one filter bit in common to continue
           continue;
         }
-        VarManager::FillPair(tneg, tneg2, fValues);
+        VarManager::FillPair<pairType>(tneg, tneg2, fValues);
         dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], -2, filter);
         for (int i = 0; i < fNTrackCuts; ++i) {
           if (filter & (uint8_t(1) << i)) {
@@ -383,6 +384,7 @@ struct DQEventMixing {
   void process(soa::Filtered<MyEventsHashSelected>& events, soa::Filtered<MyBarrelTracksSelected> const& tracks)
   {
     uint8_t twoTrackFilter = 0;
+    constexpr static int pairType = VarManager::kJpsiToEE;
 
     events.bindExternalIndices(&tracks);
     auto tracksTuple = std::make_tuple(tracks);
@@ -422,7 +424,7 @@ struct DQEventMixing {
           if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
             continue;
           }
-          VarManager::FillPair(track1, track2, fValues);
+          VarManager::FillPair<pairType>(track1, track2, fValues);
 
           for (int i = 0; i < fCutNames.size(); ++i) {
             if (twoTrackFilter & (uint8_t(1) << i)) {

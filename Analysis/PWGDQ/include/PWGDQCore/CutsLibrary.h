@@ -483,6 +483,16 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("pairDCA")) {
+    cut->AddCut(VarManager::kQuadDCAabsXY, .0, .50);
+    return cut;
+  }
+
+  if (!nameStr.compare("singleDCA")) {
+    cut->AddCut(VarManager::kTrackDCAsigXY, 0.0, 5.);
+    return cut;
+  }
+
   delete cut;
   return nullptr;
 }

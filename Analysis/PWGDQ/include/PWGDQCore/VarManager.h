@@ -168,6 +168,10 @@ class VarManager : public TObject
     kTrackLength,
     kTrackDCAxy,
     kTrackDCAz,
+    kTrackDCAsigXY,
+    kTrackDCAsigZ,
+    kTrackDCAresXY,
+    kTrackDCAresZ,
     kIsGoldenChi2,
     kTrackCYY,
     kTrackCZZ,
@@ -239,6 +243,8 @@ class VarManager : public TObject
     kVertexingProcCode,
     kVertexingChi2PCA,
     kCosThetaHE,
+    kQuadDCAabsXY,
+    kQuadDCAsigXY,
     kNPairVariables,
 
     // Candidate-track correlation variables
@@ -315,8 +321,8 @@ class VarManager : public TObject
   static void FillEvent(T const& event, float* values = nullptr);
   template <uint32_t fillMap, typename T>
   static void FillTrack(T const& track, float* values = nullptr);
-  template <typename T1, typename T2>
-  static void FillPair(T1 const& t1, T2 const& t2, float* values = nullptr, PairCandidateType pairType = kJpsiToEE);
+  template <int pairType, typename T1, typename T2>
+  static void FillPair(T1 const& t1, T2 const& t2, float* values = nullptr);
   template <typename C, typename T>
   static void FillPairVertexing(C const& collision, T const& t1, T const& t2, float* values = nullptr, PairCandidateType pairType = kJpsiToEE);
   template <typename T1, typename T2>
@@ -383,7 +389,7 @@ void VarManager::FillEvent(T const& event, float* values)
 
   if constexpr ((fillMap & Collision) > 0) {
     // TODO: trigger info from the evenet selection requires a separate flag
-    //         so that it can be switched off independently of the rest of Collision variables (e.g. if event selection is not available)
+    // //         so that it can be switched off independently of the rest of Collision variables (e.g. if event selection is not available)
     if (fgUsedVars[kIsINT7]) {
       values[kIsINT7] = (event.alias()[kINT7] > 0);
     }
@@ -593,6 +599,16 @@ void VarManager::FillTrack(T const& track, float* values)
       }
       values[kTrackDCAxy] = track.dcaXY();
       values[kTrackDCAz] = track.dcaZ();
+      if constexpr ((fillMap & TrackCov) > 0) {
+        if (fgUsedVars[kTrackDCAsigXY])
+          values[kTrackDCAsigXY] = track.dcaXY() / std::sqrt(track.cYY());
+        if (fgUsedVars[kTrackDCAsigZ])
+          values[kTrackDCAsigZ] = track.dcaZ() / std::sqrt(track.cZZ());
+        if (fgUsedVars[kTrackDCAresXY])
+          values[kTrackDCAresXY] = std::sqrt(track.cYY());
+        if (fgUsedVars[kTrackDCAresZ])
+          values[kTrackDCAresZ] = std::sqrt(track.cZZ());
+      }
     }
   }
 
@@ -600,6 +616,16 @@ void VarManager::FillTrack(T const& track, float* values)
   if constexpr ((fillMap & TrackDCA) > 0) {
     values[kTrackDCAxy] = track.dcaXY();
     values[kTrackDCAz] = track.dcaZ();
+    if constexpr ((fillMap & TrackCov) > 0) {
+      if (fgUsedVars[kTrackDCAsigXY])
+        values[kTrackDCAsigXY] = track.dcaXY() / std::sqrt(track.cYY());
+      if (fgUsedVars[kTrackDCAsigZ])
+        values[kTrackDCAsigZ] = track.dcaZ() / std::sqrt(track.cZZ());
+      if (fgUsedVars[kTrackDCAresXY])
+        values[kTrackDCAresXY] = std::sqrt(track.cYY());
+      if (fgUsedVars[kTrackDCAresZ])
+        values[kTrackDCAresZ] = std::sqrt(track.cZZ());
+    }
   }
 
   // Quantities based on the barrel track selection table
@@ -694,8 +720,8 @@ void VarManager::FillTrack(T const& track, float* values)
   FillTrackDerived(values);
 }
 
-template <typename T1, typename T2>
-void VarManager::FillPair(T1 const& t1, T2 const& t2, float* values, PairCandidateType pairType)
+template <int pairType, typename T1, typename T2>
+void VarManager::FillPair(T1 const& t1, T2 const& t2, float* values)
 {
   if (!values) {
     values = fgValues;
@@ -703,12 +729,12 @@ void VarManager::FillPair(T1 const& t1, T2 const& t2, float* values, PairCandida
 
   float m1 = fgkElectronMass;
   float m2 = fgkElectronMass;
-  if (pairType == kJpsiToMuMu) {
+  if constexpr (pairType == kJpsiToMuMu) {
     m1 = fgkMuonMass;
     m2 = fgkMuonMass;
   }
 
-  if (pairType == kElectronMuon) {
+  if constexpr (pairType == kElectronMuon) {
     m1 = fgkElectronMass;
     m2 = fgkMuonMass;
   }
@@ -734,6 +760,20 @@ void VarManager::FillPair(T1 const& t1, T2 const& t2, float* values, PairCandida
     cosTheta = zaxis.Dot(v2_CM);
   }
   values[kCosThetaHE] = cosTheta;
+
+  if constexpr (pairType == kJpsiToEE) {
+
+    if (fgUsedVars[kQuadDCAabsXY] || fgUsedVars[kQuadDCAsigXY]) {
+      // Quantities based on the barrel tables
+      double dca1 = t1.dcaXY();
+      double dca2 = t2.dcaXY();
+      double dca1sig = dca1 / std::sqrt(t1.cYY());
+      double dca2sig = dca2 / std::sqrt(t2.cYY());
+
+      values[kQuadDCAabsXY] = std::sqrt((dca1 * dca1 + dca2 * dca2) / 2);
+      values[kQuadDCAsigXY] = std::sqrt((dca1sig * dca1sig + dca2sig * dca2sig) / 2);
+    }
+  }
 }
 
 template <typename C, typename T>

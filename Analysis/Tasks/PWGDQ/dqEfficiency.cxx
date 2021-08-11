@@ -323,13 +323,14 @@ struct DQQuarkoniumPairing {
     // Run the same event pairing for barrel tracks
     uint8_t twoTrackFilter = 0;
     uint16_t dileptonFilterMap = 0;
+    constexpr static int pairType = VarManager::kJpsiToEE;
     // Loop over reconstructed pairs and fill histograms
     for (auto& [t1, t2] : combinations(tracks, tracks)) {
       twoTrackFilter = t1.isBarrelSelected() & t2.isBarrelSelected();
       if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
         continue;
       }
-      VarManager::FillPair(t1, t2, fValues);
+      VarManager::FillPair<pairType>(t1, t2, fValues);
       VarManager::FillPairVertexing(event, t1, t2, fValues);
       for (int i = 0; i < fCutNames.size(); ++i) {
         if (twoTrackFilter & (uint8_t(1) << i)) {

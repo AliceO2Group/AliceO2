@@ -279,13 +279,14 @@ struct DQEventMixing {
       auto muons2 = std::get<soa::Filtered<MyMuonTracksSelected>>(im2.associatedTables());
       muons2.bindExternalIndices(&events);
 
+      constexpr static int pairType = VarManager::kJpsiToMuMu;
       for (auto& muon1 : muons1) {
         for (auto& muon2 : muons2) {
           twoTrackFilter = muon1.isMuonSelected() & muon2.isMuonSelected();
           if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
             continue;
           }
-          VarManager::FillPair(muon1, muon2, fValues, VarManager::kJpsiToMuMu);
+          VarManager::FillPair<pairType>(muon1, muon2, fValues);
           if (muon1.sign() * muon2.sign() < 0) {
             fHistMan->FillHistClass("PairsMuonMEPM", fValues);
           } else {
@@ -342,6 +343,7 @@ struct DQDileptonMuMu {
 
     // Run the same event pairing for barrel tracks
     uint8_t twoTrackFilter = 0;
+    constexpr static int pairType = VarManager::kJpsiToMuMu;
 
     // same event pairing for muons
     for (auto& [muon1, muon2] : combinations(muons, muons)) {
@@ -349,7 +351,7 @@ struct DQDileptonMuMu {
       if (!twoTrackFilter) { // the muons must have at least one filter bit in common to continue
         continue;
       }
-      VarManager::FillPair(muon1, muon2, fValues, VarManager::kJpsiToMuMu);
+      VarManager::FillPair<pairType>(muon1, muon2, fValues);
       if (muon1.sign() * muon2.sign() < 0) {
         fHistMan->FillHistClass("PairsMuonSEPM", fValues);
       } else {
