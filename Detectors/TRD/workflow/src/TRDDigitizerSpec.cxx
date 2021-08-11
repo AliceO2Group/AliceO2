@@ -146,7 +146,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (mctruth) {
       labelsAccum.mergeAtBack(labels);
     }
-    LOGF(INFO, "List of TRD chambers for which at least once an unusual drift velocity was found: %s", mDigitizer.dumpFlaggedChambers());
+    LOGF(INFO, "List of TRD chambers with at least one drift velocity out of range: %s", mDigitizer.dumpFlaggedChambers());
     timer.Stop();
     LOGF(INFO, "TRD digitization timing: Cpu: %.3e Real: %.3e s", timer.CpuTime(), timer.RealTime());
 

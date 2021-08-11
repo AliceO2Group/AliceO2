@@ -67,8 +67,6 @@ void Digitizer::init()
     mDriftEstimators.emplace_back();
   }
 
-  std::fill(mFlagVdriftOutOfRange.begin(), mFlagVdriftOutOfRange.end(), false);
-
   setSimulationParameters();
 }
 
@@ -311,11 +309,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
           zz = 0.5 - zz;
         }
         // Use drift time map (GARFIELD)
-        bool errFlag = false;
-        driftTime = mDriftEstimators[thread].timeStruct(driftVelocity, 0.5 * AmWidth - 1.0 * locTd, zz, &errFlag) + hit.GetTime();
-        if (errFlag) {
-          mFlagVdriftOutOfRange[det] = true;
-        }
+        driftTime = mDriftEstimators[thread].timeStruct(driftVelocity, 0.5 * AmWidth - 1.0 * locTd, zz, &(mFlagVdriftOutOfRange[det])) + hit.GetTime();
       } else {
         // Use constant drift velocity
         driftTime = std::fabs(locTd) / driftVelocity + hit.GetTime(); // drift time in microseconds

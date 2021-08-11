@@ -12,7 +12,6 @@
 #include "TRDBase/CommonParam.h"
 #include "TRDBase/DiffAndTimeStructEstimator.h"
 #include "TRDBase/Geometry.h"
-#include "TRDBase/Garfield.h"
 #include <cmath>
 
 namespace o2::trd
