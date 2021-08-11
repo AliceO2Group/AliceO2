@@ -124,7 +124,7 @@ uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader* header, const o2::trd::Tr
       qa = header->pid2;
       break;
     default:
-      LOG(warn) << " unknown trackletindex to getQFromRaw : " << pidindex;
+      LOG(warn) << " unknown trackletindex of " << trackletindex << " to getQFromRaw : " << pidindex;
       break;
   }
   //qa is 6bits of Q2 and 2 bits of Q1
@@ -253,6 +253,10 @@ void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
   for (int i = 0; i < 15; i++) {
     LOGF(INFO, "Link %d size: %ul eflag: 0x%02x", i, sizes[i], errorflags[i]);
   }
+  LOG(INFO) << "Raw: " << std::hex << halfcru.word0 << " " << halfcru.word12[0] << " " << halfcru.word12[1] << " " << halfcru.word3 << " " << halfcru.word47[0] << " " << halfcru.word47[1] << " " << halfcru.word47[2] << " " << halfcru.word47[3];
+  for (int i = 0; i < 15; i++) {
+    LOGF(INFO, "Raw: %d word: %ul x", i, sizes[i], errorflags[i]);
+  }
 }
 
 void dumpHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
@@ -357,6 +361,56 @@ bool digitMCMHeaderSanityCheck(o2::trd::DigitMCMHeader* header)
   return goodheader;
 }
 
+bool digitMCMADCMaskSanityCheck(o2::trd::DigitMCMADCMask& mask, int numberofbitsset)
+{
+  bool goodadcmask = true;
+  uint32_t count = (unsigned int)mask.c;
+  count = ~count;
+  /*  if(count != numberofbitsset){
+    goodadcmask=false;
+    LOG(warn) << "***DigitMCMADCMask bad bit count maskcount:" << ~mask.c << " bitscounting:" << numberofbitsset;
+  }*/
+  if (mask.n != 0x1) {
+    goodadcmask = false;
+    LOG(warn) << "***DigitMCMADCMask bad n value should be 0x01 but:0x" << std::hex << mask.n;
+  }
+  if (mask.j != 0xc) {
+    goodadcmask = false;
+    LOG(warn) << "***DigitMCMADCMask bad j value should be 0xc but:0x" << std::hex << mask.c;
+  }
+  return goodadcmask;
+}
+
+bool digitMCMWordSanityCheck(o2::trd::DigitMCMData* word, int adcchannel)
+{
+  bool gooddata = true;
+  // DigitMCMWord0x3 is odd 10 for odd adc channels and 11 for even, counted as the first of the 3.
+  switch (word->c) {
+    case 3: // even adc channnel
+      if (adcchannel % 2 == 0) {
+        gooddata = true;
+      } else {
+        gooddata = false;
+      }
+      break;
+    case 2: // odd adc channel
+      if (adcchannel % 2 == 1) {
+        gooddata = true;
+      } else {
+        gooddata = false;
+      }
+      break;
+    case 1: // error
+      gooddata = false;
+      break;
+    case 0: // error
+      gooddata = false;
+      break;
+      // no default all cases taken care of
+  }
+  return gooddata;
+}
+
 void printDigitHCHeader(o2::trd::DigitHCHeader& header)
 {
   LOGF(INFO, "Digit HalfChamber Header\n Raw:0x%08x 0x%08x reserve:%01x side:%01x stack:0x%02x layer:0x%02x supermod:0x%02x numberHCW:0x%02x minor:0x%03x major:0x%03x version:0x%01x reserve:0x%02x pretriggercount=0x%02x pretriggerphase=0x%02x bunchxing:0x%05x number of timebins : 0x%03x\n",
@@ -440,14 +494,20 @@ void setNumberOfTrackletsInHeader(o2::trd::TrackletMCMHeader& header, int number
 int nextmcmadc(unsigned int& bp, int channel)
 {
   //given a bitpattern (adcmask) find next channel with in the mask starting from the current channel;
-  while ((bp & (1 << channel)) == 0) {
-    channel++;
-    if (channel == 21) {
+  if (bp == 0) {
+    return 22;
+  }
+  int position = channel;
+  int m = 1 << channel;
+  while (!(bp & m)) {
+    m = m << 1;
+    position++;
+    if (position > 31) {
       break;
     }
   }
-  bp &= ~(1UL << (channel));
-  return channel; // zero based
+  bp &= ~(1UL << (position));
+  return position;
 }
 
 } // namespace trd
