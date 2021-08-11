@@ -34,6 +34,10 @@ namespace its
 
 class TrackITS : public o2::track::TrackParCov
 {
+  enum UserBits {
+    kNextROF = 1
+  };
+
   using Cluster = o2::itsmft::Cluster;
   using ClusRefs = o2::dataformats::RangeRefComp<4>;
 
@@ -93,6 +97,9 @@ class TrackITS : public o2::track::TrackParCov
   void setPattern(uint16_t p) { mPattern = p; }
   int getPattern() const { return mPattern; }
   bool hasHitOnLayer(int i) { return mPattern & (0x1 << i); }
+
+  void setNextROFbit(bool toggle = true) { setUserField((getUserField() & ~kNextROF) | (-toggle & kNextROF)); }
+  bool hasHitInNextROF() const { return getUserField() & kNextROF; }
 
  private:
   o2::track::TrackParCov mParamOut; ///< parameter at largest radius

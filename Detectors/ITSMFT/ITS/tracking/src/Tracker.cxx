@@ -29,6 +29,7 @@
 #include <dlfcn.h>
 #include <cstdlib>
 #include <string>
+#include <climits>
 
 namespace o2
 {
@@ -320,7 +321,7 @@ void Tracker::findTracks()
       continue;
     }
 
-    std::pair<int, int> rofs[3]{{-1, 0}, {-1, 0}, {-1, 0}};
+    std::array<int, 3> rofs{INT_MAX, INT_MAX, INT_MAX};
     for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
       if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
         continue;
@@ -328,20 +329,21 @@ void Tracker::findTracks()
       mTimeFrame->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
       int currentROF = mTimeFrame->getClusterROF(iLayer, track.getClusterIndex(iLayer));
       for (int iR{0}; iR < 3; ++iR) {
-        if (rofs[iR].first == -1) {
-          rofs[iR].first = currentROF;
+        if (rofs[iR] == INT_MAX) {
+          rofs[iR] = currentROF;
         }
-        if (rofs[iR].first == currentROF) {
-          rofs[iR].second++;
+        if (rofs[iR] == currentROF) {
           break;
         }
       }
     }
-    if (rofs[2].first != -1) {
+    if (rofs[2] != INT_MAX) {
       continue;
     }
-    int trackROF{rofs[0].second > rofs[1].second ? rofs[0].first : rofs[1].first};
-    mTimeFrame->getTracks(trackROF).emplace_back(track);
+    if (rofs[1] != INT_MAX) {
+      track.setNextROFbit();
+    }
+    mTimeFrame->getTracks(std::min(rofs[0], rofs[1])).emplace_back(track);
   }
 }
 
