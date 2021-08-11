@@ -108,7 +108,7 @@ class Digitizer
   std::vector<MCLabel> mMergedLabels;                                            // temporary label container
   std::array<SignalContainer, constants::MAXCHAMBER> mSignalsMapCollection;      // container for caching signals over a timeframe
   std::deque<std::array<SignalContainer, constants::MAXCHAMBER>> mPileupSignals; // container for piled up signals
-  std::array<bool, constants::MAXCHAMBER> mFlagVdriftOutOfRange;                 // flag chambers in which the drift velocity is out of range for which a parameterization exists
+  std::array<bool, constants::MAXCHAMBER> mFlagVdriftOutOfRange{};               // flag chambers in which the drift velocity is out of range for which a parameterization exists
 
   void getHitContainerPerDetector(const std::vector<Hit>&, std::array<std::vector<Hit>, constants::MAXCHAMBER>&);
   void setSimulationParameters();

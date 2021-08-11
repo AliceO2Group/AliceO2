@@ -14,6 +14,7 @@
 
 #include <array>
 #include "DataFormatsTRD/Constants.h"
+#include "TRDBase/Garfield.h"
 
 namespace o2
 {
@@ -38,12 +39,12 @@ class DiffusionAndTimeStructEstimator
  private:
   bool sampleTimeStruct(float vdrift);
 
-  std::array<float, constants::TIMEBINSGARFIELD * constants::ZBINSGARFIELD> mTimeStruct1; ///< cached Time Structure of Drift Cells (for last vdrift value)
-  std::array<float, constants::TIMEBINSGARFIELD * constants::ZBINSGARFIELD> mTimeStruct2; ///< cached Time Structure of Drift Cells (for last vdrift value)
-  float mVDlo;                                                                            ///<  Lower drift velocity, for interpolation
-  float mVDhi;                                                                            ///<  Higher drift velocity, for interpolation
-  float mInvBinWidth;                                                                     ///<  caching 1/(mVDhi - mVDlo)
-  float mTimeLastVdrift = -1.f;                                                           ///<  The structures are valid for this mLastVdrift (caching)
+  std::array<float, garfield::TIMEBINSGARFIELD * garfield::ZBINSGARFIELD> mTimeStruct1; ///< cached Time Structure of Drift Cells (for last vdrift value)
+  std::array<float, garfield::TIMEBINSGARFIELD * garfield::ZBINSGARFIELD> mTimeStruct2; ///< cached Time Structure of Drift Cells (for last vdrift value)
+  float mVDlo;                                                                          ///<  Lower drift velocity, for interpolation
+  float mVDhi;                                                                          ///<  Higher drift velocity, for interpolation
+  float mInvBinWidth;                                                                   ///<  caching 1/(mVDhi - mVDlo)
+  float mTimeLastVdrift = -1.f;                                                         ///<  The structures are valid for this mLastVdrift (caching)
 
   // for the diffusion part
   float mDiffLastVdrift = -1.f;

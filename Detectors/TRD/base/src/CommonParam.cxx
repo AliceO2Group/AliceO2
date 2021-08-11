@@ -25,7 +25,6 @@
 #include "TRDBase/CommonParam.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/SimParam.h"
-#include "TRDBase/Garfield.h"
 
 #include "Field/MagneticField.h"
 
