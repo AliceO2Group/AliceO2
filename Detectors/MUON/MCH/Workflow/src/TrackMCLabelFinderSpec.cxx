@@ -136,7 +136,7 @@ class TrackMCLabelFinderTask
         deId = -1;
         continue;
       }
-      if (trackRef.getDetectorId() == deId) {
+      if (trackRef.getUserId() == deId) {
         auto& cluster = mcClusters.back();
         cluster.x = (cluster.x + trackRef.X()) / 2.;
         cluster.y = (cluster.y + trackRef.Y()) / 2.;
