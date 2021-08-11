@@ -194,7 +194,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   FastMultEst multEst;                                     // mult estimator
 
   // snippet to convert found tracks to final output tracks with separate cluster indices
-  auto copyTracks = [](auto& tracks, auto& allTracks, auto& allClusIdx, int offset = 0) {
+  auto copyTracks = [](auto& tracks, auto& allTracks, auto& allClusIdx) {
     for (auto& trc : tracks) {
       trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
       int ncl = trc.getNumberOfClusters(), nclf = 0;
@@ -202,7 +202,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
         auto clid = trc.getClusterIndex(ic);
         if (clid >= 0) {
-          allClusIdx.push_back(clid + offset);
+          allClusIdx.push_back(clid);
           nclf++;
           patt |= 0x1 << ic;
         }
@@ -273,10 +273,9 @@ void TrackerDPL::run(ProcessingContext& pc)
       LOG(INFO) << "Found tracks: " << tracks.size();
       int number = tracks.size();
       trackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
-      int shiftIdx = -rof.getFirstEntry();          // cluster entry!!!
       rof.setFirstEntry(first);
       rof.setNEntries(number);
-      copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
+      copyTracks(tracks, allTracks, allClusIdx);
       std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
       trackLabels.clear();
       vtxROF.setNEntries(vtxVecLoc.size());
