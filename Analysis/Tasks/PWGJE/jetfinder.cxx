@@ -274,24 +274,20 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
       case JetInputData_t::MCParticleLevel:
         tasks.emplace_back(
           adaptAnalysisTask<JetFinderMCParticleLevel>(cfgc,
-            SetDefaultProcesses{{{"processParticleLevel", true}, {"processData", false}}}, TaskName{"jet-finder-MC"})
-        );
+                                                      SetDefaultProcesses{{{"processParticleLevel", true}, {"processData", false}}}, TaskName{"jet-finder-MC"}));
         break;
       case JetInputData_t::MCDetectorLevel:
         tasks.emplace_back(
-          adaptAnalysisTask<JetFinderMCDetectorLevel>(cfgc, TaskName{"jet-finder-MC-detector-level"})
-          );
+          adaptAnalysisTask<JetFinderMCDetectorLevel>(cfgc, TaskName{"jet-finder-MC-detector-level"}));
         break;
       case JetInputData_t::HybridIntermediate:
         tasks.emplace_back(
-          adaptAnalysisTask<JetFinderHybridIntermediate>(cfgc, TaskName{"jet-finder-hybrid-intermedaite"})
-          );
+          adaptAnalysisTask<JetFinderHybridIntermediate>(cfgc, TaskName{"jet-finder-hybrid-intermedaite"}));
         break;
       case JetInputData_t::Data: // intentionally fall through to the default which is outside of the switch.
       default:
         tasks.emplace_back(
-          adaptAnalysisTask<JetFinderData>(cfgc, TaskName{"jet-finder-data"})
-        );
+          adaptAnalysisTask<JetFinderData>(cfgc, TaskName{"jet-finder-data"}));
         break;
     }
   }
