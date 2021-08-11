@@ -1161,7 +1161,7 @@ void gui_callback(uv_timer_s* ctx)
   uint64_t remoteFrameLatency = frameStart - gui->remoteFrameLast;
   if (gui->plugin->pollGUIPreRender(gui->window)) {
     void *draw_data = gui->plugin->pollGUIRender(gui->callback);
-    if (!gui->drawCallbacks.empty() && remoteFrameLatency > 1000000*100) {
+    if (!gui->drawCallbacks.empty() && remoteFrameLatency > 1000000*50) {
       gui->remoteFrameLast = frameStart;
       void *frame;
       int size;
@@ -1268,8 +1268,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     }
   }
   if (driverInfo.batch == false && window == nullptr && frameworkId.empty()) {
-    LOG(WARN) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
-    driverInfo.batch = true;
+    //LOG(WARN) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
+    //driverInfo.batch = true;
   }
   bool guiQuitRequested = false;
   bool hasError = false;
@@ -1283,9 +1283,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   uv_idle_t idler;
 
   uv_timer_t gui_timer;
-  if (window) {
+  //if (window) {
     uv_timer_init(loop, &gui_timer);
-  }
+  //}
 
   // We initialise this in the driver, because different drivers might have
   // different versions of the service
@@ -1343,6 +1343,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       if (driverInfo.port > 64000) {
         throw runtime_error_f("Unable to find a free port for the driver. Last attempt returned %d", result);
       }
+      LOGP(info, "Driver listening on port: {}.", driverInfo.port);
       serverAddr = (sockaddr_in*)malloc(sizeof(sockaddr_in));
       uv_ip4_addr("0.0.0.0", driverInfo.port, serverAddr);
       auto bindResult = uv_tcp_bind(&serverHandle, (const struct sockaddr*)serverAddr, 0);
@@ -1570,14 +1571,14 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // has been added to the topology.
         // We need to recreate the GUI callback every time we reschedule
         // because getGUIDebugger actually recreates the GUI state.
-        if (window) {
+        //if (window) {
           uv_timer_stop(&gui_timer);
           guiContext.callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
           guiContext.window = window;
           gui_timer.data = &guiContext;
           uv_timer_start(&gui_timer, gui_callback, 0, 20);
           guiDeployedOnce = true;
-        }
+        //}
         break;
       case DriverState::MERGE_CONFIGS: {
         try {

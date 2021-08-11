@@ -1073,4 +1073,18 @@ void updateMouseButton(bool clicked) {
   io.MouseDown[0] = clicked;
 }
 
+void updateMouseWheel(int direction) {
+  ImGuiIO& io = ImGui::GetIO();
+  if (direction > 0) {
+    io.MouseWheel++;
+  } else {
+    io.MouseWheel--;
+  }
+}
+
+void updateWindowSize(int x, int y) {
+  ImGuiIO& io = ImGui::GetIO();
+  io.DisplaySize = ImVec2(x, y);
+}
+
 } // namespace o2::framework::gui

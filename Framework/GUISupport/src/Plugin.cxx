@@ -41,6 +41,14 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
   {
     o2::framework::gui::updateMouseButton(clicked);
   }
+  void updateMouseWheel(int direction) override
+  {
+    o2::framework::gui::updateMouseWheel(direction);
+  }
+  void updateWindowSize(int x, int y) override
+  {
+    o2::framework::gui::updateWindowSize(x, y);
+  }
   void* initGUI(char const* windowTitle) override
   {
     return o2::framework::initGUI(windowTitle);

@@ -94,7 +94,9 @@ void ws_handshake_done_callback(uv_write_t* h, int status)
 enum struct GUIOpcodes : uint8_t {
   Control = 0,
   Mousepos = 1,
-  Mouseclick = 2
+  Mouseclick = 2,
+  Mousewheel = 3,
+  Window = 4
 };
 
 /// An handler for a websocket message stream.
@@ -121,6 +123,18 @@ struct GUIWebSocketHandler : public WebSocketHandler {
       {
         char isClicked = *frame;
         mContext.gui->plugin->updateMouseButton(isClicked == 1);
+        break;
+      }
+      case GUIOpcodes::Mousewheel:
+      {
+        int movement = *frame;
+        mContext.gui->plugin->updateMouseWheel(movement);
+        break;
+      }
+      case GUIOpcodes::Window:
+      {
+        int *size = (int*)frame;
+        mContext.gui->plugin->updateWindowSize(size[0], size[1]);
         break;
       }
     }

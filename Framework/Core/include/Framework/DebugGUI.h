@@ -35,6 +35,8 @@ struct DebugGUI {
                                                    o2::framework::DriverControl& driverControl) = 0;
   virtual void updateMousePos(float x, float y) = 0;
   virtual void updateMouseButton(bool isClicked) = 0;
+  virtual void updateMouseWheel(int direction) = 0;
+  virtual void updateWindowSize(int x, int y) = 0;
   virtual void* initGUI(char const* windowTitle) = 0;
   virtual bool pollGUI(void* context, std::function<void(void)> guiCallback) = 0;
   virtual void getFrameJSON(void *data, std::ostream& json_data) = 0;
