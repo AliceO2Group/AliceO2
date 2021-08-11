@@ -80,7 +80,11 @@ struct nucleiFilter {
     spectra.add("fCollZpos", "collision z position", HistType::kTH1F, {{600, -20., +20., "z position (cm)"}});
     spectra.add("fTPCsignal", "Specific energy loss", HistType::kTH2F, {{600, 0., 3, "#it{p} (GeV/#it{c})"}, {1400, 0, 1400, "d#it{E} / d#it{X} (a. u.)"}});
     spectra.add("fTPCcounts", "n-sigma TPC", HistType::kTH2F, {ptAxis, {200, -100., +100., "n#sigma_{He} (a. u.)"}});
-    spectra.add("fProcessedEvents", "Nuclei - event filtered", HistType::kTH1F, {{4, -0.5, 3.5, "Event counter"}});
+
+    auto scalers{std::get<std::shared_ptr<TH1>>(spectra.add("fProcessedEvents", ";;Number of filtered events", HistType::kTH1F, {{4, -0.5, 3.5}}))};
+    for (uint32_t iS{1}; iS <= nucleiNames.size(); ++iS) {
+      scalers->GetXaxis()->SetBinLabel(iS, nucleiNames[iS - 1].data());
+    }
   }
 
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
@@ -95,7 +99,7 @@ struct nucleiFilter {
     spectra.fill(HIST("fCollZpos"), collision.posZ());
     //
 
-    for (auto track : tracks) { // start loop over tracks
+    for (auto& track : tracks) { // start loop over tracks
 
       const float nSigmaTPC[nNuclei]{
         track.tpcNSigmaDe(), track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl()};
