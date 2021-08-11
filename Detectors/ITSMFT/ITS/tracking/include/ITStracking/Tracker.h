@@ -74,7 +74,6 @@ class Tracker
   bool getSmoothing() const { return mApplySmoothing; }
 
   std::vector<TrackITSExt>& getTracks();
-  auto& getTrackLabels() { return mTrackLabels; }
 
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
