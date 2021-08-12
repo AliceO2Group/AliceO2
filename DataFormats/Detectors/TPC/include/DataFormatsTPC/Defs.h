@@ -65,6 +65,13 @@ enum class PadSubset : char {
   Region     ///< Regions (up to 36*10)
 };
 
+// TPC dE/dx charge types
+enum dEdxCharge {
+  Tot = 0,
+  Max = 1
+};
+constexpr unsigned short DEDXCHARGETYPES = 2;
+
 /// Statistics type
 enum class StatisticsType {
   GausFit,     ///< Use slow gaus fit (better fit stability)

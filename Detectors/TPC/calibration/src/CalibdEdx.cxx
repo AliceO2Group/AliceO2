@@ -27,7 +27,6 @@
 #include "Framework/Logger.h"
 #include "MathUtils/fit.h"
 #include "MathUtils/Utils.h"
-#include "TPCCalibration/FastHisto.h"
 
 //root includes
 #include "TFile.h"
@@ -39,21 +38,15 @@
 using namespace o2::tpc;
 namespace bh = boost::histogram;
 
-CalibdEdx::CalibdEdx(int nBins, float minTotdEdx, float maxTotdEdx,
-                     float minMaxdEdx, float maxMaxdEdx, const TrackCuts& cuts)
+CalibdEdx::CalibdEdx(int nBins, float minTotdEdx, float maxTotdEdx, const TrackCuts& cuts)
   : mCuts{cuts}, mNBins{nBins}
 {
-  mTotHist = bh::make_histogram(
+  mHist = bh::make_histogram(
     bh::axis::regular<>(nBins, minTotdEdx, maxTotdEdx, "dEdx"),
     HistIntAxis(0, SECTORSPERSIDE, "sector"),
     HistIntAxis(0, SIDES, "side"),
-    HistIntAxis(0, GEMSTACKSPERSECTOR, "type"));
-
-  mMaxHist = bh::make_histogram(
-    bh::axis::regular<>(nBins, minMaxdEdx, maxMaxdEdx, "dEdx"),
-    HistIntAxis(0, SECTORSPERSIDE, "sector"),
-    HistIntAxis(0, SIDES, "side"),
-    HistIntAxis(0, GEMSTACKSPERSECTOR, "type"));
+    HistIntAxis(0, GEMSTACKSPERSECTOR, "stack type"),
+    HistIntAxis(0, DEDXCHARGETYPES, "charge"));
 }
 
 void CalibdEdx::fill(const TrackTPC& track)
@@ -65,6 +58,8 @@ void CalibdEdx::fill(const TrackTPC& track)
 
   const auto& dEdx = track.getdEdx();
   const auto side = track.hasASideClustersOnly() ? Side::A : Side::C;
+  const std::array<float, 4> dEdxTot{dEdx.dEdxTotIROC, dEdx.dEdxTotOROC1, dEdx.dEdxTotOROC2, dEdx.dEdxTotOROC3};
+  const std::array<float, 4> dEdxMax{dEdx.dEdxMaxIROC, dEdx.dEdxMaxOROC1, dEdx.dEdxMaxOROC2, dEdx.dEdxMaxOROC3};
 
   for (const GEMstack stack : {IROCgem, OROC1gem, OROC2gem, OROC3gem}) {
     bool ok = false;
@@ -75,25 +70,8 @@ void CalibdEdx::fill(const TrackTPC& track)
       continue;
     }
 
-    // Fill the correct readout type
-    switch (stack) {
-      case GEMstack::IROCgem:
-        mTotHist(dEdx.dEdxTotIROC, sector, side, stack);
-        mMaxHist(dEdx.dEdxMaxIROC, sector, side, stack);
-        break;
-      case GEMstack::OROC1gem:
-        mTotHist(dEdx.dEdxTotOROC1, sector, side, stack);
-        mMaxHist(dEdx.dEdxMaxOROC1, sector, side, stack);
-        break;
-      case GEMstack::OROC2gem:
-        mTotHist(dEdx.dEdxTotOROC2, sector, side, stack);
-        mMaxHist(dEdx.dEdxMaxOROC2, sector, side, stack);
-        break;
-      case GEMstack::OROC3gem:
-        mTotHist(dEdx.dEdxTotOROC3, sector, side, stack);
-        mMaxHist(dEdx.dEdxMaxOROC3, sector, side, stack);
-        break;
-    }
+    mHist(dEdxTot[stack], sector, side, stack, dEdxCharge::Tot);
+    mHist(dEdxTot[stack], sector, side, stack, dEdxCharge::Max);
   }
 }
 
@@ -124,41 +102,37 @@ int CalibdEdx::findTrackSector(const TrackTPC& track, GEMstack stack, bool& ok)
 
 void CalibdEdx::merge(const CalibdEdx* other)
 {
-  mTotHist += other->getFullHist(ChargeType::Tot);
-  mMaxHist += other->getFullHist(ChargeType::Max);
+  mHist += other->getFullHist();
 }
 
-void CalibdEdx::finalise()
+void CalibdEdx::finalize()
 {
-  auto& calibEntries = mCalib.getEntries();
-  size_t calibIndex = 0;
   std::vector<float> stackData(mNBins);
 
-  for (const auto charge : {ChargeType::Tot, ChargeType::Max}) {
-    const auto& hist = getFullHist(charge);
+  const auto mindEdx = static_cast<float>(mHist.axis(0).begin()->lower());
+  const auto maxdEdx = static_cast<float>(mHist.axis(0).end()->lower());
 
-    const auto mindEdx = static_cast<float>(hist.axis(0).begin()->lower());
-    const auto maxdEdx = static_cast<float>(hist.axis(0).end()->lower());
-    int dEdxbin = 0;
+  auto indexed = bh::indexed(mHist);
+  auto entry = indexed.begin();
+  while (entry != indexed.end()) {
+    const int sector = entry->bin(HistAxis::Sector).lower();
+    const auto side = static_cast<enum Side>(entry->bin(HistAxis::Side).lower());
+    const auto type = static_cast<GEMstack>(entry->bin(HistAxis::Stack).lower());
+    const auto charge = static_cast<dEdxCharge>(entry->bin(HistAxis::Charge).lower());
 
-    // std::vector<float> fitValues;
-    for (const auto& bin : bh::indexed(hist)) {
-      // Fit the Center of Gravity if we hit the end of a 1D dEdx histogram
-      if (dEdxbin == mNBins) {
-        // TODO: the gauss fit wasnt good. Noise from low count bins?
-        // o2::math_utils::fitGaus(stackData.size(), stackData.data(), mindEdx, maxdEdx, fitValues);
-        // calibEntries[calibIndex] = fitValues[1];
-
-        const auto stats = o2::math_utils::getStatisticsData(stackData.data(), stackData.size(), mindEdx, maxdEdx);
-        calibEntries[calibIndex] = stats.mCOG;
-        ++calibIndex;
-        dEdxbin = 0;
-      }
-
-      // FIXME: find a way to remove this copy to vector, maybe not possible.
-      stackData[dEdxbin] = *bin;
-      ++dEdxbin;
+    // to use a fit function we fist copy the data to a vector of float
+    // TODO: can we avoid this copy?
+    for (size_t i = 0; i < stackData.size(); ++i, ++entry) {
+      stackData[i] = *entry;
     }
+
+    // TODO: the gauss fit wasnt good. Noise from low count bins?
+    // std::vector<float> fitValues(4);
+    // o2::math_utils::fitGaus(stackData.size(), stackData.data(), mindEdx, maxdEdx, fitValues);
+    // mCalib.at(sector, side, type, charge) = fitValues[1];
+
+    const auto stats = o2::math_utils::getStatisticsData(stackData.data(), stackData.size(), mindEdx, maxdEdx);
+    mCalib.at(sector, side, type, charge) = stats.mCOG;
   }
 }
 
@@ -167,27 +141,26 @@ bool CalibdEdx::hasEnoughData(float minEntries) const
   using namespace bh::literals; // enables _c suffix
 
   // sum over the dEdx bins to find the number of entries per stack
-  const auto projection = bh::algorithm::project(mTotHist, 1_c, 2_c, 3_c);
+  const auto projection = bh::algorithm::project(mHist, 1_c, 2_c, 3_c);
   auto dEdxCounts = bh::indexed(projection);
   return std::all_of(dEdxCounts.begin(), dEdxCounts.end(), [minEntries](const auto& x) { return x >= minEntries; });
 }
 
-TH2F CalibdEdx::getRootHist(ChargeType charge) const
+TH2F CalibdEdx::getRootHist() const
 {
-  auto hist = getHist(charge);
+  const float lower = mHist.axis(0).begin()->lower();
+  const float upper = mHist.axis(0).end()->lower();
 
-  const float lower = hist.axis(0).begin()->lower();
-  const float upper = hist.axis(0).end()->lower();
+  auto projectedHist = getHist();
 
-  const unsigned nbins = hist.axis(0).size();
-  const unsigned nhists = hist.size() / nbins;
+  const int nHists = projectedHist.size() / mNBins;
 
-  TH2F rootHist("", "", nhists, 0, nhists, nbins, lower, upper);
+  TH2F rootHist("", "", nHists, 0, nHists, mNBins, lower, upper);
 
   int stack = 0;
   float last_center = -1;
   // fill TH2
-  for (auto&& x : bh::indexed(hist)) {
+  for (auto&& x : bh::indexed(projectedHist)) {
     const auto y = x.bin(0).center(); // current bin interval along dEdx axis
     const auto w = *x;                // "dereference" to get the bin value
     rootHist.Fill(stack, y, w);
@@ -201,17 +174,17 @@ TH2F CalibdEdx::getRootHist(ChargeType charge) const
   return rootHist;
 }
 
-
 void CalibdEdx::print() const
 {
-  const int unique_entries = std::accumulate(mTotHist.begin(), mTotHist.end(), 0.0) / GEMSTACKSPERSECTOR / 2;
+  const int unique_entries = std::accumulate(mHist.begin(), mHist.end(), 0.0) / GEMSTACKSPERSECTOR / 2;
   LOGP(info, "Total number of track entries: {}", unique_entries);
 }
 
 void CalibdEdx::dumpToFile(std::string_view fileName) const
 {
   TFile file(fileName.data(), "recreate");
-  file.WriteObject(&mTotHist, "TotdEdxHist");
-  file.WriteObject(&mMaxHist, "MaxdEdxHist");
+  const auto rootHist = getRootHist();
+  file.WriteObject(&rootHist, "CalibHists");
+  file.WriteObject(&mCalib, "CalibData");
   file.Close();
 }

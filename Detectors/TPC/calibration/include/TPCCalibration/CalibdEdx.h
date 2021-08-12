@@ -26,10 +26,11 @@
 #include "TPCCalibration/CalibdEdxDataContainer.h"
 #include "DataFormatsTPC/TrackCuts.h"
 
-// Forward declarations
-class TH2F;
-
+// boost includes
 #include <boost/histogram.hpp>
+
+// root includes
+#include "TH2F.h"
 
 namespace o2::tpc
 {
@@ -45,7 +46,8 @@ class CalibdEdx
     Sector = 1,
     Side = 2,
     Stack = 3,
-    Size = 4 ///< Number of axes
+    Charge = 4,
+    Size = 5 ///< Number of axes
   };
 
   // Interger histogram axis identifying the GEM stacks, without under and overflow bins.
@@ -56,22 +58,22 @@ class CalibdEdx
     boost::histogram::axis::regular<>, // dEdx
     HistIntAxis,                       // sector
     HistIntAxis,                       // side
-    HistIntAxis                        // type
+    HistIntAxis,                       // type
+    HistIntAxis                        // Charge
     >;
 
   using Hist = boost::histogram::histogram<HistAxesType>;
   using CalibContainer = CalibdEdxDataContainer<float>;
-  using ChargeType = CalibContainer::Charge;
 
   /// Default constructor
   CalibdEdx() = default;
 
   /// Constructor that enable tracks cuts.
-  CalibdEdx(int nBins, float minTotdEdx, float maxTotdEdx, float minMaxdEdx, float maxMaxdEdx, const TrackCuts& cuts);
+  CalibdEdx(int nBins, float mindEdx, float maxdEdx, const TrackCuts& cuts);
 
   /// Constructor that enable tracks cuts, and creates a TrackCuts internally.
-  CalibdEdx(int nBins, float minTotdEdx = 20, float maxTotdEdx = 70, float minMaxdEdx = 5, float maxMaxdEdx = 40, float minP = 0.4, float maxP = 0.6, int minClusters = 60)
-    : CalibdEdx(nBins, minTotdEdx, maxTotdEdx, minMaxdEdx, maxMaxdEdx, {minP, maxP, static_cast<float>(minClusters)}) {}
+  CalibdEdx(int nBins, float mindEdx = 5, float maxdEdx = 70, float minP = 0.4, float maxP = 0.6, int minClusters = 60)
+    : CalibdEdx(nBins, mindEdx, maxdEdx, {minP, maxP, static_cast<float>(minClusters)}) {}
 
   /// Fill histograms using tracks data.
   void fill(const gsl::span<const TrackTPC>);
@@ -82,19 +84,19 @@ class CalibdEdx
   void merge(const CalibdEdx* other);
 
   /// Compute MIP position from dEdx histograms, and save result in the calib container.
-  void finalise();
+  void finalize();
 
   void setAxis(HistAxis axis, bool keep) { mAxisFlags.set(axis, keep); }
   bool getAxis(HistAxis axis) const { return mAxisFlags[axis]; }
 
   // Return the projected histogram, the unkept axis are summed over.
-  auto getHist(ChargeType) const;
+  auto getHist() const;
 
   // Return the projected histogram as a TH2F, the unkept axis are summed over.
-  TH2F getRootHist(ChargeType) const;
+  TH2F getRootHist() const;
 
-  // Return the full unprojected histogram.
-  const Hist& getFullHist(ChargeType charge) const { return charge == ChargeType::Tot ? mTotHist : mMaxHist; }
+  // Return the full, unprojected, histogram.
+  const Hist& getFullHist() const { return mHist; }
   const CalibContainer& getCalib() const { return mCalib; }
 
   /// \brief Check if there are enough data to compute the calibration.
@@ -122,14 +124,13 @@ class CalibdEdx
   int mNBins;            ///< Number of dEdx bins
   TrackCuts mCuts;       ///< Cut class
 
-  Hist mTotHist;         ///< TotdEdx multidimensional histogram
-  Hist mMaxHist;         ///< MaxdEdx multidimensional histogram
+  Hist mHist;            ///< TotdEdx multidimensional histogram
   CalibContainer mCalib; ///< Calibration output container
 
   ClassDefNV(CalibdEdx, 1);
 };
 
-inline auto CalibdEdx::getHist(ChargeType charge) const
+inline auto CalibdEdx::getHist() const
 {
   std::vector<int> keepAxis;
   for (int i = 0; i < mAxisFlags.size(); ++i) {
@@ -137,7 +138,7 @@ inline auto CalibdEdx::getHist(ChargeType charge) const
       keepAxis.push_back(i);
     }
   }
-  return boost::histogram::algorithm::project(getFullHist(charge), keepAxis);
+  return boost::histogram::algorithm::project(mHist, keepAxis);
 }
 
 } // namespace o2::tpc

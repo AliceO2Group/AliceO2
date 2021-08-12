@@ -30,13 +30,8 @@ template <typename Entry>
 class CalibdEdxDataContainer
 {
  public:
-  enum Charge {
-    Tot = 0,
-    Max = 1
-  };
-
-  static const size_t totalStacks = SECTORSPERSIDE * SIDES * GEMSTACKSPERSECTOR;
-  static const size_t size = totalStacks * 2; // both Tot and Max charge data in a single array
+  static const size_t stacksCount = SECTORSPERSIDE * SIDES * GEMSTACKSPERSECTOR;
+  static const size_t size = stacksCount * DEDXCHARGETYPES; // both Tot and Max charge data in a single array
   using Container = std::array<Entry, size>;
 
   /// Fill the undelying arrays with the passed value
@@ -44,19 +39,18 @@ class CalibdEdxDataContainer
 
   /// \brief Find the index of a stack.
   /// \param sector from 0 to 17
-  static size_t stackIndex(size_t sector, Side, GEMstack, Charge);
+  static size_t stackIndex(size_t sector, Side, GEMstack, dEdxCharge);
 
-  /// \brief Get data from a specific stack.
-  /// \param sector from 0 to 17
-  Entry& getEntry(size_t sector, Side side, GEMstack type, Charge charge)
+  /// \brief data from a specific stack.
+  Entry& at(size_t sector, Side side, GEMstack type, dEdxCharge charge)
   {
     const size_t index = stackIndex(sector, side, type, charge);
     return mEntries[index];
   }
 
-  const Container& getEntries() const { return mEntries; };
+  const Container& container() const { return mEntries; };
   // We need a non const version to manipulate the data
-  Container& getEntries() { return mEntries; };
+  Container& container() { return mEntries; };
 
  private:
   Container mEntries;
@@ -69,7 +63,7 @@ void CalibdEdxDataContainer<Entry>::init(const Entry& entry)
 }
 
 template <typename Entry>
-size_t CalibdEdxDataContainer<Entry>::stackIndex(size_t sector, const Side side, const GEMstack type, const Charge charge)
+size_t CalibdEdxDataContainer<Entry>::stackIndex(size_t sector, const Side side, const GEMstack type, const dEdxCharge charge)
 {
   // Limit sector value
   if (sector >= SECTORSPERSIDE) {
@@ -85,7 +79,7 @@ size_t CalibdEdxDataContainer<Entry>::stackIndex(size_t sector, const Side side,
   sector += side * sideOffset;
 
   // Account for charge type
-  sector += charge * totalStacks;
+  sector += charge * stacksCount;
 
   return sector;
 }

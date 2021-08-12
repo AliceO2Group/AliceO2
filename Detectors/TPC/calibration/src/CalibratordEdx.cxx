@@ -39,7 +39,7 @@ void CalibratordEdx::finalizeSlot(Slot& slot)
 
   // compute calibration values from histograms
   CalibdEdx* container = slot.getContainer();
-  container->finalise();
+  container->finalize();
   const auto& mips = container->getCalib();
 
   // print some thing informative about CalibMIP
@@ -57,10 +57,12 @@ void CalibratordEdx::finalizeSlot(Slot& slot)
 
   if (mDebugOutputStreamer) {
     LOGP(info, "Dumping time slot data to file");
-
+    auto rootHist = container->getRootHist();
+    auto nonConstMip = mips;
     *mDebugOutputStreamer << "mipPosition"
-                          << "timeFrame=" << timeFrame // Initial time frame of time slot
-                          << "CalibdEdx=" << container // dE/dx histograms and calib values
+                          << "timeFrame=" << timeFrame   // Initial time frame of time slot
+                          << "calibData=" << nonConstMip // dE/dx calibration data
+                          << "calibHists=" << rootHist   // dE/dx histograms
                           << "\n";
   }
 }
@@ -70,7 +72,7 @@ CalibratordEdx::Slot& CalibratordEdx::emplaceNewSlot(bool front, TFType tstart, 
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
 
-  auto container = std::make_unique<CalibdEdx>(mNBins, mMindEdx, mMaxdEdx, mMindEdx, mMaxdEdx, mCuts);
+  auto container = std::make_unique<CalibdEdx>(mNBins, mMindEdx, mMaxdEdx, mCuts);
   container->setApplyCuts(mApplyCuts);
 
   slot.setContainer(std::move(container));
