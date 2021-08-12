@@ -24,6 +24,7 @@
 #include "TrackAtVertexSpec.h"
 #include "TrackFinderSpec.h"
 #include "TrackFitterSpec.h"
+#include "TrackMCLabelFinderSpec.h"
 #include "VertexSamplerSpec.h"
 
 using o2::framework::ConfigContext;
@@ -66,6 +67,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.emplace_back(o2::mch::getVertexSamplerSpec("mch-vertex-sampler"));
   specs.emplace_back(o2::mch::getTrackAtVertexSpec("mch-track-at-vertex"));
   if (!disableRootOutput) {
+    if (useMC) {
+      specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder"));
+    }
     specs.emplace_back(o2::mch::getTrackWriterSpec(useMC, "mch-track-writer", "mchtracks.root"));
   }
 

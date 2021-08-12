@@ -183,6 +183,7 @@ o2_add_executable(
             src/DigitReaderSpec.cxx
             src/TrackAtVertexSpec.cxx
             src/TrackFinderSpec.cxx
+            src/TrackMCLabelFinderSpec.cxx
             src/VertexSamplerSpec.cxx
             src/reco-workflow.cxx
         COMPONENT_NAME mch
@@ -191,6 +192,7 @@ o2_add_executable(
             O2::MCHTracking
             O2::MCHWorkflow
             O2::SimulationDataFormat
+            O2::Steer
         )
 
 o2_add_executable(tracks-file-dumper
