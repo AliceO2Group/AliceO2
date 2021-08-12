@@ -146,6 +146,18 @@ void KrBoxClusterFinder::init()
   mQThresholdMax = param.QThresholdMax;
   mQThreshold = param.QThreshold;
   mMinNumberOfNeighbours = param.MinNumberOfNeighbours;
+
+  mCutMinSigmaTime = param.CutMinSigmaTime;
+  mCutMaxSigmaTime = param.CutMaxSigmaTime;
+  mCutMinSigmaPad = param.CutMinSigmaPad;
+  mCutMaxSigmaPad = param.CutMaxSigmaPad;
+  mCutMinSigmaRow = param.CutMinSigmaRow;
+  mCutMaxSigmaRow = param.CutMaxSigmaRow;
+  mCutMaxQtot = param.CutMaxQtot;
+  mCutQtot0 = param.CutQtot0;
+  mCutQtotSizeSlope = param.CutQtotSizeSlope;
+  mCutMaxSize = param.CutMaxSize;
+  mApplyCuts = param.ApplyCuts;
 }
 
 //#################################################
@@ -458,7 +470,9 @@ KrCluster KrBoxClusterFinder::buildCluster(int clusterCenterPad, int clusterCent
   updateTempClusterFinal(timeOffset);
 
   if (directFilling) {
-    mClusters.emplace_back(mTempCluster);
+    if (!mApplyCuts || acceptCluster(mTempCluster)) {
+      mClusters.emplace_back(mTempCluster);
+    }
   }
 
   return mTempCluster;
@@ -480,4 +494,31 @@ void KrBoxClusterFinder::setMaxClusterSize(int row)
     mMaxClusterSizePad = mMaxClusterSizePadOROC3;
     mMaxClusterSizeRow = mMaxClusterSizeRowOROC3;
   }
+}
+
+bool KrBoxClusterFinder::acceptCluster(const KrCluster& cl)
+{
+  // Qtot cut
+  if (cl.totCharge > mCutMaxQtot) {
+    return false;
+  }
+
+  // sigma cuts
+  if (cl.sigmaPad < mCutMinSigmaPad || cl.sigmaPad > mCutMaxSigmaPad ||
+      cl.sigmaRow < mCutMinSigmaRow || cl.sigmaRow > mCutMaxSigmaRow ||
+      cl.sigmaTime < mCutMinSigmaTime || cl.sigmaRow > mCutMaxSigmaTime) {
+    return false;
+  }
+
+  // total charge vs size cut
+  if (cl.totCharge > mCutQtot0 + mCutQtotSizeSlope * cl.size) {
+    return false;
+  }
+
+  // maximal size
+  if (cl.size > mCutMaxSize) {
+    return false;
+  }
+
+  return true;
 }
