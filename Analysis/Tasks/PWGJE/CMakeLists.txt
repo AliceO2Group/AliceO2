@@ -20,12 +20,12 @@ o2_add_dpl_workflow(jet-finder-hf
                     SOURCES jetfinderhf.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisJets O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
-		    
+
 o2_add_dpl_workflow(jet-finder-hadron-recoil
                     SOURCES jetfinderhadronrecoil.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisJets O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
-		    
+
 o2_add_dpl_workflow(jet-substructure
                     SOURCES jetsubstructure.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisJets O2::AnalysisDataModel
@@ -33,6 +33,11 @@ o2_add_dpl_workflow(jet-substructure
 
 o2_add_dpl_workflow(jet-skimmer
                     SOURCES jetskimming.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisJets O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(jet-matching
+                    SOURCES jetmatching.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisJets O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 endif()

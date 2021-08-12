@@ -38,7 +38,7 @@ struct JetProviderTask {
 
   void process(soa::Filtered<aod::Jets>::iterator const& jet,
                aod::Tracks const& tracks,
-               aod::JetConstituents const& constituents,
+               aod::JetTrackConstituents const& constituents,
                aod::JetConstituentsSub const& constituentsSub)
   {
     outputJets(jet.pt(), jet.eta(), jet.phi(), jet.energy(), jet.mass(), jet.area());

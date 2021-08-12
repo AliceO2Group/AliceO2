@@ -34,5 +34,6 @@ o2_add_library(AnalysisJets
 
 o2_target_root_dictionary(AnalysisJets
               HEADERS include/AnalysisCore/JetFinder.h
+                      include/AnalysisCore/JetUtilities.h
               LINKDEF src/AnalysisJetsLinkDef.h)
 endif()

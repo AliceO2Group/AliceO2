@@ -45,7 +45,7 @@ struct JetSpectraReference {
 
   void process(aod::Jet const& jet,
                aod::Tracks const& tracks,
-               aod::JetConstituents const& constituents,
+               aod::JetTrackConstituents const& constituents,
                aod::JetConstituentsSub const& constituentsSub)
   {
     registry.fill(HIST("hJetPt"), jet.pt());
