@@ -182,6 +182,7 @@ class KrBoxClusterFinder
  private:
   // These variables can be varied
   // They were choses such that the box in each readout chamber is approx. the same size
+  // NOTE: They will be overwritten by the values in KrBoxClusterFinderParam in case the init() function is called
   int mMaxClusterSizeTime = 3; ///< The "radius" of a cluster in time direction
   int mMaxClusterSizeRow;      ///< The "radius" of a cluster in row direction
   int mMaxClusterSizePad;      ///< The "radius" of a cluster in pad direction
@@ -199,6 +200,18 @@ class KrBoxClusterFinder
   float mQThresholdMax = 30.0;    ///< the Maximum charge in a cluster must exceed this value or it is discarded
   float mQThreshold = 1.0;        ///< every charge which is added to a cluster must exceed this value or it is discarded
   int mMinNumberOfNeighbours = 2; ///< amount of direct neighbours required for a cluster maximum
+
+  float mCutMinSigmaTime{0};      ///< Min sigma time to accept cluster
+  float mCutMaxSigmaTime{1000};   ///< Min sigma time to accept cluster
+  float mCutMinSigmaPad{0};       ///< Min sigma pad to accept cluster
+  float mCutMaxSigmaPad{1000};    ///< Min sigma pad to accept cluster
+  float mCutMinSigmaRow{0};       ///< Min sigma row to accept cluster
+  float mCutMaxSigmaRow{1000};    ///< Min sigma row to accept cluster
+  float mCutMaxQtot{1e10};        ///< Max Qtot to accept cluster
+  float mCutQtot0{1e10};          ///< Max Qtot at zero size for Qtot vs. size correlation cut
+  float mCutQtotSizeSlope{0};     ///< Max Qtot over size slope for Qtot vs. size correlation cut
+  unsigned char mCutMaxSize{255}; ///< Max cluster size in number of digits
+  bool mApplyCuts{false};         ///< if to apply cluster cuts above
 
   int mSector = -1;                 ///< sector being processed in this instance
   std::unique_ptr<CalPad> mGainMap; ///< Gain map object
@@ -273,6 +286,9 @@ class KrBoxClusterFinder
 
   /// Returns sign of val (in a crazy way)
   int signnum(int val) { return (0 < val) - (val < 0); }
+
+  /// Cluster acceptance cuts
+  bool acceptCluster(const KrCluster& cl);
 
   ClassDefNV(KrBoxClusterFinder, 0);
 };
