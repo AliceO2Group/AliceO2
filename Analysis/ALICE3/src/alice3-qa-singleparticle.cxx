@@ -42,57 +42,103 @@ struct Alice3SingleParticle {
   void init(InitContext&)
   {
     const TString tit = Form("%i", PDG.value);
-    AxisSpec axisPt{ptBins, ptMin, ptMax};
-    AxisSpec axisEta{etaBins, etaMin, etaMax};
-    AxisSpec axisProd{prodBins, prodMin, prodMax};
+    const AxisSpec axisVx{100, -1, 1, "Vtx_{x}"};
+    const AxisSpec axisVy{100, -1, 1, "Vtx_{y}"};
+    const AxisSpec axisVz{100, -20, 20, "Vtx_{z}"};
+    const AxisSpec axisP{ptBins, ptMax, ptMax, "#it{p} (GeV/#it{c})"};
+    const AxisSpec axisPt{ptBins, ptMin, ptMax, "#it{p}_{T} (GeV/#it{c})"};
+    const AxisSpec axisPx{ptBins, -ptMax, ptMax, "#it{p}_{x} (GeV/#it{c})"};
+    const AxisSpec axisPy{ptBins, -ptMax, ptMax, "#it{p}_{y} (GeV/#it{c})"};
+    const AxisSpec axisPz{ptBins, -ptMax, ptMax, "#it{p}_{z} (GeV/#it{c})"};
+    const AxisSpec axisEta{etaBins, etaMin, etaMax, "#it{#eta}"};
+    const AxisSpec axisY{etaBins, etaMin, etaMax, "#it{y}"};
+    const AxisSpec axisE{etaBins, 0, 1000, "E"};
+    const AxisSpec axisProdx{prodBins, prodMin, prodMax, "Prod. Vertex X (cm)"};
+    const AxisSpec axisPrody{prodBins, prodMin, prodMax, "Prod. Vertex Y (cm)"};
+    const AxisSpec axisProdz{prodBins, prodMin, prodMax, "Prod. Vertex Z (cm)"};
+    const AxisSpec axisProdRadius{prodBins, prodMin, prodMax, "Prod. Vertex Radius (cm)"};
 
-    histos.add("particlePt", "Particle Pt " + tit + ";#it{p}_{T} (GeV/#it{c})", kTH1D, {axisPt});
-    histos.add("prodVx", "Particle Prod. Vertex X " + tit + ";Prod. Vertex X (cm)", kTH1D, {axisProd});
-    histos.add("prodVy", "Particle Prod. Vertex Y " + tit + ";Prod. Vertex Y (cm)", kTH1D, {axisProd});
-    histos.add("prodVz", "Particle Prod. Vertex Z " + tit + ";Prod. Vertex Z (cm)", kTH1D, {axisProd});
-    histos.add("prodRadius", "Particle Prod. Vertex Radius " + tit + ";Prod. Vertex Radius (cm)", kTH1D, {axisProd});
-    histos.add("prodVxVsPt", "Particle Prod. Vertex X " + tit + ";#it{p}_{T} (GeV/#it{c});Prod. Vertex X (cm)", kTH2D, {axisPt, axisProd});
-    histos.add("prodVyVsPt", "Particle Prod. Vertex Y " + tit + ";#it{p}_{T} (GeV/#it{c});Prod. Vertex Y (cm)", kTH2D, {axisPt, axisProd});
-    histos.add("prodVzVsPt", "Particle Prod. Vertex Z " + tit + ";#it{p}_{T} (GeV/#it{c});Prod. Vertex Z (cm)", kTH2D, {axisPt, axisProd});
-    histos.add("prodRadiusVsPt", "Particle Prod. Vertex Radius " + tit + ";#it{p}_{T} (GeV/#it{c});Prod. Vertex Radius (cm)", kTH2D, {axisPt, axisProd});
-    histos.add("prodRadius3DVsPt", "Particle Prod. Vertex Radius XYZ " + tit + ";#it{p}_{T} (GeV/#it{c});Prod. Vertex Radius XYZ (cm)", kTH2D, {axisPt, axisProd});
-    histos.add("trackPt", "Track Pt " + tit + ";#it{p}_{T} (GeV/#it{c})", kTH1D, {axisPt});
-    histos.add("particleEta", "Particle Eta " + tit + ";#it{#eta}", kTH1D, {axisEta});
-    histos.add("trackEta", "Track Eta " + tit + ";#it{#eta}", kTH1D, {axisEta});
-    histos.add("particleY", "Particle Y " + tit + ";#it{y}", kTH1D, {axisEta});
-    histos.add("primaries", "Source for primaries " + tit + ";PDG Code", kTH1D, {{100, 0.f, 100.f}});
-    histos.add("secondaries", "Source for secondaries " + tit + ";PDG Code", kTH1D, {{100, 0.f, 100.f}});
+    histos.add("event/VtxX", "Vertex X", kTH1D, {axisVx});
+    histos.add("event/VtxY", "Vertex Y", kTH1D, {axisVy});
+    histos.add("event/VtxZ", "Vertex Z", kTH1D, {axisVz});
+
+    histos.add("particle/PDGs", "Particle PDGs;PDG Code", kTH1D, {{100, 0.f, 100.f}});
+    histos.add("particle/Pt", "Particle Pt " + tit, kTH1D, {axisPt});
+    histos.add("particle/prodVx", "Particle Prod. Vertex X " + tit, kTH1D, {axisProdx});
+    histos.add("particle/prodVy", "Particle Prod. Vertex Y " + tit, kTH1D, {axisPrody});
+    histos.add("particle/prodVz", "Particle Prod. Vertex Z " + tit, kTH1D, {axisProdz});
+    histos.add("particle/prodRadius", "Particle Prod. Vertex Radius " + tit, kTH1D, {axisProdRadius});
+    histos.add("particle/prodVxVsPt", "Particle Prod. Vertex X " + tit, kTH2D, {axisPt, axisProdx});
+    histos.add("particle/prodVyVsPt", "Particle Prod. Vertex Y " + tit, kTH2D, {axisPt, axisPrody});
+    histos.add("particle/prodVzVsPt", "Particle Prod. Vertex Z " + tit, kTH2D, {axisPt, axisProdz});
+    histos.add("particle/prodRadiusVsPt", "Particle Prod. Vertex Radius " + tit, kTH2D, {axisPt, axisProdRadius});
+    histos.add("particle/prodRadius3DVsPt", "Particle Prod. Vertex Radius XYZ " + tit, kTH2D, {axisPt, axisProdRadius});
+    histos.add("particle/Eta", "Particle Eta " + tit, kTH1D, {axisEta});
+    histos.add("particle/Y", "Particle Y " + tit, kTH1D, {axisY});
+    histos.add("particle/EvsPz", "Particle E vs Pz " + tit, kTH2D, {axisE, axisPz});
+    histos.add("particle/YvzPz", "Particle Y vs Pz " + tit, kTH2D, {axisY, axisPz});
+    histos.add("particle/EtavzPz", "Particle Eta vs Pz " + tit, kTH2D, {axisEta, axisPz});
+    histos.add("particle/PtvzPz", "Particle Pt vs Pz " + tit, kTH2D, {axisPt, axisPz});
+    histos.add("particle/PvzPz", "Particle P vs Pz " + tit, kTH2D, {axisP, axisPz});
+    histos.add("particle/Px", "Particle Px " + tit, kTH1D, {axisPx});
+    histos.add("particle/Py", "Particle Py " + tit, kTH1D, {axisPy});
+    histos.add("particle/Pz", "Particle Pz " + tit, kTH1D, {axisPz});
+
+    histos.add("track/PDGs", "Track PDGs;PDG Code", kTH1D, {{100, 0.f, 100.f}});
+    histos.add("track/tofPDGs", "Track wTOF PDGs;PDG Code", kTH1D, {{100, 0.f, 100.f}});
+    histos.add("track/Pt", "Track Pt " + tit, kTH1D, {axisPt});
+    histos.add("track/Eta", "Track Eta " + tit, kTH1D, {axisEta});
+    histos.add("track/primaries", "Source for primaries " + tit + ";PDG Code", kTH1D, {{100, 0.f, 100.f}});
+    histos.add("track/secondaries", "Source for secondaries " + tit + ";PDG Code", kTH1D, {{100, 0.f, 100.f}});
   }
 
-  void process(const soa::Join<o2::aod::Tracks, o2::aod::McTrackLabels>& tracks,
+  void process(const o2::aod::McCollisions& colls,
+               const soa::Join<o2::aod::Tracks, o2::aod::McTrackLabels, o2::aod::TracksExtra>& tracks,
                const aod::McParticles& mcParticles)
   {
-
+    for (const auto& col : colls) {
+      histos.fill(HIST("event/VtxX"), col.posX());
+      histos.fill(HIST("event/VtxY"), col.posY());
+      histos.fill(HIST("event/VtxZ"), col.posZ());
+    }
     std::vector<int64_t> ParticlesOfInterest;
     for (const auto& mcParticle : mcParticles) {
+      histos.get<TH1>(HIST("particle/PDGs"))->Fill(Form("%i", mcParticle.pdgCode()), 1.f);
       if (mcParticle.pdgCode() != PDG) {
         continue;
       }
       if (mcParticle.y() < yMin || mcParticle.y() > yMax) {
         continue;
       }
-      histos.fill(HIST("particlePt"), mcParticle.pt());
-      histos.fill(HIST("particleEta"), mcParticle.eta());
-      histos.fill(HIST("particleY"), mcParticle.y());
-      histos.fill(HIST("prodVx"), mcParticle.vx());
-      histos.fill(HIST("prodVy"), mcParticle.vy());
-      histos.fill(HIST("prodVz"), mcParticle.vz());
-      histos.fill(HIST("prodRadius"), std::sqrt(mcParticle.vx() * mcParticle.vx() + mcParticle.vy() * mcParticle.vy()));
-      histos.fill(HIST("prodVxVsPt"), mcParticle.pt(), mcParticle.vx());
-      histos.fill(HIST("prodVyVsPt"), mcParticle.pt(), mcParticle.vy());
-      histos.fill(HIST("prodVzVsPt"), mcParticle.pt(), mcParticle.vz());
-      histos.fill(HIST("prodRadiusVsPt"), mcParticle.pt(), std::sqrt(mcParticle.vx() * mcParticle.vx() + mcParticle.vy() * mcParticle.vy()));
-      histos.fill(HIST("prodRadius3DVsPt"), mcParticle.pt(), std::sqrt(mcParticle.vx() * mcParticle.vx() + mcParticle.vy() * mcParticle.vy() + mcParticle.vz() * mcParticle.vz()));
+      histos.fill(HIST("particle/Pt"), mcParticle.pt());
+      histos.fill(HIST("particle/Eta"), mcParticle.eta());
+      histos.fill(HIST("particle/EvsPz"), mcParticle.e(), mcParticle.pz());
+      histos.fill(HIST("particle/Y"), mcParticle.y());
+      histos.fill(HIST("particle/YvzPz"), mcParticle.y(), mcParticle.pz());
+      histos.fill(HIST("particle/EtavzPz"), mcParticle.eta(), mcParticle.pz());
+      histos.fill(HIST("particle/PvzPz"), mcParticle.p(), mcParticle.pz());
+      histos.fill(HIST("particle/PtvzPz"), mcParticle.pt(), mcParticle.pz());
+      histos.fill(HIST("particle/Px"), mcParticle.px());
+      histos.fill(HIST("particle/Py"), mcParticle.py());
+      histos.fill(HIST("particle/Pz"), mcParticle.pz());
+      histos.fill(HIST("particle/prodVx"), mcParticle.vx());
+      histos.fill(HIST("particle/prodVy"), mcParticle.vy());
+      histos.fill(HIST("particle/prodVz"), mcParticle.vz());
+      histos.fill(HIST("particle/prodRadius"), std::sqrt(mcParticle.vx() * mcParticle.vx() + mcParticle.vy() * mcParticle.vy()));
+      histos.fill(HIST("particle/prodVxVsPt"), mcParticle.pt(), mcParticle.vx());
+      histos.fill(HIST("particle/prodVyVsPt"), mcParticle.pt(), mcParticle.vy());
+      histos.fill(HIST("particle/prodVzVsPt"), mcParticle.pt(), mcParticle.vz());
+      histos.fill(HIST("particle/prodRadiusVsPt"), mcParticle.pt(), std::sqrt(mcParticle.vx() * mcParticle.vx() + mcParticle.vy() * mcParticle.vy()));
+      histos.fill(HIST("particle/prodRadius3DVsPt"), mcParticle.pt(), std::sqrt(mcParticle.vx() * mcParticle.vx() + mcParticle.vy() * mcParticle.vy() + mcParticle.vz() * mcParticle.vz()));
       ParticlesOfInterest.push_back(mcParticle.globalIndex());
     }
 
     for (const auto& track : tracks) {
       const auto mcParticle = track.mcParticle();
+      histos.get<TH1>(HIST("track/PDGs"))->Fill(Form("%i", mcParticle.pdgCode()), 1.f);
+      if (track.hasTOF()) {
+        histos.get<TH1>(HIST("track/tofPDGs"))->Fill(Form("%i", mcParticle.pdgCode()), 1.f);
+      }
       if (!IsStable) {
         if (!mcParticle.has_mother0()) {
           continue;
@@ -109,8 +155,8 @@ struct Alice3SingleParticle {
         if (mcParticle.pdgCode() != PDG) {
           continue;
         }
-        histos.fill(HIST("trackPt"), track.pt() * charge);
-        histos.fill(HIST("trackEta"), track.eta());
+        histos.fill(HIST("track/Pt"), track.pt() * charge);
+        histos.fill(HIST("track/Eta"), track.eta());
         if (!mcParticle.has_mother0()) {
           if (doPrint) {
             LOG(INFO) << "Track " << track.globalIndex() << " is a " << mcParticle.pdgCode();
@@ -119,9 +165,9 @@ struct Alice3SingleParticle {
         }
         auto mother = mcParticle.mother0_as<aod::McParticles>();
         if (MC::isPhysicalPrimary(mcParticle)) {
-          histos.get<TH1>(HIST("primaries"))->Fill(Form("%i", mother.pdgCode()), 1.f);
+          histos.get<TH1>(HIST("track/primaries"))->Fill(Form("%i", mother.pdgCode()), 1.f);
         } else {
-          histos.get<TH1>(HIST("secondaries"))->Fill(Form("%i", mother.pdgCode()), 1.f);
+          histos.get<TH1>(HIST("track/secondaries"))->Fill(Form("%i", mother.pdgCode()), 1.f);
         }
         if (doPrint) {
           LOG(INFO) << "Track " << track.globalIndex() << " is a " << mcParticle.pdgCode() << " and comes from a " << mother.pdgCode() << " and is " << (MC::isPhysicalPrimary(mcParticle) ? "" : "not") << " a primary";

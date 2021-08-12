@@ -175,62 +175,45 @@ struct tpcPid {
 struct tpcPidQa {
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
-  static constexpr std::string_view hexpected[Np] = {"expected/El", "expected/Mu", "expected/Pi",
-                                                     "expected/Ka", "expected/Pr", "expected/De",
-                                                     "expected/Tr", "expected/He", "expected/Al"};
-  static constexpr std::string_view hexpected_diff[Np] = {"expected_diff/El", "expected_diff/Mu", "expected_diff/Pi",
-                                                          "expected_diff/Ka", "expected_diff/Pr", "expected_diff/De",
-                                                          "expected_diff/Tr", "expected_diff/He", "expected_diff/Al"};
   static constexpr std::string_view hnsigma[Np] = {"nsigma/El", "nsigma/Mu", "nsigma/Pi",
                                                    "nsigma/Ka", "nsigma/Pr", "nsigma/De",
                                                    "nsigma/Tr", "nsigma/He", "nsigma/Al"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
+  Configurable<int> logAxis{"logAxis", 1, "Flag to use a log momentum axis"};
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
-  Configurable<float> MinP{"MinP", 0, "Minimum momentum in range"};
-  Configurable<float> MaxP{"MaxP", 20, "Maximum momentum in range"};
-
-  template <typename T>
-  void makelogaxis(T h)
-  {
-    const int nbins = h->GetNbinsX();
-    double binp[nbins + 1];
-    double max = h->GetXaxis()->GetBinUpEdge(nbins);
-    double min = h->GetXaxis()->GetBinLowEdge(1);
-    if (min <= 0) {
-      min = 0.00001;
-    }
-    double lmin = TMath::Log10(min);
-    double ldelta = (TMath::Log10(max) - lmin) / ((double)nbins);
-    for (int i = 0; i < nbins; i++) {
-      binp[i] = TMath::Exp(TMath::Log(10) * (lmin + i * ldelta));
-    }
-    binp[nbins] = max + 1;
-    h->GetXaxis()->Set(nbins, binp);
-  }
+  Configurable<float> minP{"minP", 0, "Minimum momentum in range"};
+  Configurable<float> maxP{"maxP", 20, "Maximum momentum in range"};
+  Configurable<int> nBinsNSigma{"nBinsNSigma", 200, "Number of bins for the NSigma"};
+  Configurable<float> minNSigma{"minNSigma", -10.f, "Minimum NSigma in range"};
+  Configurable<float> maxNSigma{"maxNSigma", 10.f, "Maximum NSigma in range"};
 
   template <uint8_t i>
   void addParticleHistos()
   {
-    // Exp signal
-    histos.add(hexpected[i].data(), Form(";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
-    makelogaxis(histos.get<TH2>(HIST(hexpected[i])));
-
-    // Signal - Expected signal
-    histos.add(hexpected_diff[i].data(), Form(";#it{p} (GeV/#it{c});;d#it{E}/d#it{x} - d#it{E}/d#it{x}(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {1000, -500, 500}});
-    makelogaxis(histos.get<TH2>(HIST(hexpected_diff[i])));
+    AxisSpec pAxis{nBinsP, minP, maxP, "#it{p} (GeV/#it{c})"};
+    if (logAxis) {
+      pAxis.makeLogaritmic();
+    }
+    const AxisSpec nSigmaAxis{nBinsNSigma, minNSigma, maxNSigma, Form("N_{#sigma}^{TPC}(%s)", pT[i])};
 
     // NSigma
-    histos.add(hnsigma[i].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
-    makelogaxis(histos.get<TH2>(HIST(hnsigma[i])));
+    histos.add(hnsigma[i].data(), Form("N_{#sigma}^{TPC}(%s)", pT[i]), kTH2F, {pAxis, nSigmaAxis});
   }
 
   void init(o2::framework::InitContext&)
   {
+
+    AxisSpec pAxis{nBinsP, minP, maxP, "#it{p} (GeV/#it{c})"};
+    if (logAxis) {
+      pAxis.makeLogaritmic();
+    }
+    const AxisSpec vtxZAxis{100, -20, 20, "Vtx_{z} (cm)"};
+    const AxisSpec dedxAxis{1000, 0, 1000, "d#it{E}/d#it{x} A.U."};
+
     // Event properties
-    histos.add("event/vertexz", ";Vtx_{z} (cm);Entries", kTH1F, {{100, -20, 20}});
-    histos.add("event/tpcsignal", ";#it{p} (GeV/#it{c});TPC Signal", kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
-    makelogaxis(histos.get<TH2>(HIST("event/tpcsignal")));
+    histos.add("event/vertexz", "", kTH1F, {vtxZAxis});
+    histos.add("event/tpcsignal", "", kTH2F, {pAxis, dedxAxis});
 
     addParticleHistos<0>();
     addParticleHistos<1>();

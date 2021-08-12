@@ -116,10 +116,28 @@ struct AxisSpec {
     binEdges.erase(binEdges.begin()); // remove first entry that we assume to be number of bins
   }
 
-  std::optional<int> nBins{};
-  std::vector<double> binEdges{};
-  std::optional<std::string> title{};
-  std::optional<std::string> name{}; // optional axis name for ndim histograms
+  /// Function to make the axis logartitmic
+  void makeLogaritmic()
+  {
+    if (binEdges.size() > 2) {
+      LOG(FATAL) << "Cannot make a variabled bin width axis logaritmic";
+    }
+
+    const double min = binEdges[0];
+    const double width = (binEdges[1] - binEdges[0]) / nBins.value();
+    binEdges.clear();
+    binEdges.resize(0);
+    for (int i = 0; i < nBins.value() + 1; i++) {
+      binEdges.push_back(std::pow(10., min + i * width));
+    }
+    nBins = std::nullopt;
+  }
+
+  /// Data members
+  std::optional<int> nBins{};         /// Number of bins (only used for fixed bin width axis)
+  std::vector<double> binEdges{};     /// Edges of the bin. For fixed bin width these are the limits of the binning
+  std::optional<std::string> title{}; /// Optional title of the axis
+  std::optional<std::string> name{};  /// Optional axis name for ndim histograms
 };
 
 //**************************************************************************************************
