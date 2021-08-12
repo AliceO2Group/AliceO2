@@ -173,7 +173,7 @@ std::vector<CalPad*> utils::readCalPads(const std::string_view fileName, const s
 }
 
 //______________________________________________________________________________
-void utils::mergeCalPads(std::string_view outputFileName, std::string_view inputFileNames, std::string_view calPadNames)
+void utils::mergeCalPads(std::string_view outputFileName, std::string_view inputFileNames, std::string_view calPadNames, bool average)
 {
   using namespace o2::tpc;
 
@@ -205,6 +205,15 @@ void utils::mergeCalPads(std::string_view outputFileName, std::string_view input
         *calPadMerged += *calPadToMerge;
 
         delete calPadToMerge;
+      }
+    }
+  }
+
+  if (average) {
+    const auto n = arrFiles->GetEntriesFast();
+    if (n > 0) {
+      for (auto calPad : mergedCalPads) {
+        *calPad /= n;
       }
     }
   }
