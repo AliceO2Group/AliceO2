@@ -135,12 +135,12 @@ class AnalyticalFields
 /// This class gives tricubic interpolation of the electric fields and can be used to calculate the distortions/corrections.
 /// The electric fields have to be calculated by the poisson solver or given by the analytical formula.
 ///
-template <typename DataT = double, size_t Nz = 129, size_t Nr = 129, size_t Nphi = 180>
+template <typename DataT = double>
 class NumericalFields
 {
-  using RegularGrid = o2::tpc::RegularGrid3D<DataT, Nz, Nr, Nphi>;
-  using DataContainer = o2::tpc::DataContainer3D<DataT, Nz, Nr, Nphi>;
-  using TriCubic = o2::tpc::TriCubicInterpolator<DataT, Nz, Nr, Nphi>;
+  using RegularGrid = o2::tpc::RegularGrid3D<DataT>;
+  using DataContainer = o2::tpc::DataContainer3D<DataT>;
+  using TriCubic = o2::tpc::TriCubicInterpolator<DataT>;
 
  public:
   /// constructor
@@ -197,12 +197,12 @@ class NumericalFields
 /// This class gives tricubic interpolation of the local distortions or corrections.
 /// The the local distortions or corrections can be used to calculate the global distortions/corrections.
 ///
-template <typename DataT = double, size_t Nz = 129, size_t Nr = 129, size_t Nphi = 180>
+template <typename DataT = double>
 class DistCorrInterpolator
 {
-  using RegularGrid = o2::tpc::RegularGrid3D<DataT, Nz, Nr, Nphi>;
-  using DataContainer = o2::tpc::DataContainer3D<DataT, Nz, Nr, Nphi>;
-  using TriCubic = o2::tpc::TriCubicInterpolator<DataT, Nz, Nr, Nphi>;
+  using RegularGrid = o2::tpc::RegularGrid3D<DataT>;
+  using DataContainer = o2::tpc::DataContainer3D<DataT>;
+  using TriCubic = o2::tpc::TriCubicInterpolator<DataT>;
 
  public:
   /// constructor
@@ -217,28 +217,19 @@ class DistCorrInterpolator
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for the local distortion or correction dR for given coordinate
-  DataT evaldR(const DataT z, const DataT r, const DataT phi) const
-  {
-    return interpolatorDistCorrdR(z, r, phi, mInterpolType);
-  }
+  DataT evaldR(const DataT z, const DataT r, const DataT phi) const { return interpolatorDistCorrdR(z, r, phi, mInterpolType); }
 
   /// \param r r coordinate
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for the local distortion or correction dZ for given coordinate
-  DataT evaldZ(const DataT z, const DataT r, const DataT phi) const
-  {
-    return interpolatorDistCorrdZ(z, r, phi, mInterpolType);
-  }
+  DataT evaldZ(const DataT z, const DataT r, const DataT phi) const { return interpolatorDistCorrdZ(z, r, phi, mInterpolType); }
 
   /// \param r r coordinate
   /// \param phi phi coordinate
   /// \param z z coordinate
   /// \return returns the function value for the local distortion or correction dRPhi for given coordinate
-  DataT evaldRPhi(const DataT z, const DataT r, const DataT phi) const
-  {
-    return interpolatorDistCorrdRPhi(z, r, phi, mInterpolType);
-  }
+  DataT evaldRPhi(const DataT z, const DataT r, const DataT phi) const { return interpolatorDistCorrdRPhi(z, r, phi, mInterpolType); }
 
   o2::tpc::Side getSide() const { return mSide; }
 

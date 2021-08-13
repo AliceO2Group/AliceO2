@@ -162,7 +162,6 @@ struct tofPidFull {
 };
 
 struct tofPidFullQa {
-
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   static constexpr std::string_view hexpected[Np] = {"expected/El", "expected/Mu", "expected/Pi",
@@ -171,6 +170,9 @@ struct tofPidFullQa {
   static constexpr std::string_view hexpected_diff[Np] = {"expected_diff/El", "expected_diff/Mu", "expected_diff/Pi",
                                                           "expected_diff/Ka", "expected_diff/Pr", "expected_diff/De",
                                                           "expected_diff/Tr", "expected_diff/He", "expected_diff/Al"};
+  static constexpr std::string_view hexpsigma[Np] = {"expsigma/El", "expsigma/Mu", "expsigma/Pi",
+                                                     "expsigma/Ka", "expsigma/Pr", "expsigma/De",
+                                                     "expsigma/Tr", "expsigma/He", "expsigma/Al"};
   static constexpr std::string_view hnsigma[Np] = {"nsigma/El", "nsigma/Mu", "nsigma/Pi",
                                                    "nsigma/Ka", "nsigma/Pr", "nsigma/De",
                                                    "nsigma/Tr", "nsigma/He", "nsigma/Al"};
@@ -178,65 +180,74 @@ struct tofPidFullQa {
 
   Configurable<int> logAxis{"logAxis", 1, "Flag to use a log momentum axis"};
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
-  Configurable<float> MinP{"MinP", 0.1f, "Minimum momentum in range"};
-  Configurable<float> MaxP{"MaxP", 5.f, "Maximum momentum in range"};
+  Configurable<float> minP{"minP", 0.1f, "Minimum momentum in range"};
+  Configurable<float> maxP{"maxP", 5.f, "Maximum momentum in range"};
   Configurable<int> nBinsDelta{"nBinsDelta", 200, "Number of bins for the Delta"};
-  Configurable<float> MinDelta{"MinDelta", -1000.f, "Minimum Delta in range"};
-  Configurable<float> MaxDelta{"MaxDelta", 1000.f, "Maximum Delta in range"};
+  Configurable<float> minDelta{"minDelta", -1000.f, "Minimum Delta in range"};
+  Configurable<float> maxDelta{"maxDelta", 1000.f, "Maximum Delta in range"};
+  Configurable<int> nBinsExpSigma{"nBinsExpSigma", 200, "Number of bins for the ExpSigma"};
+  Configurable<float> minExpSigma{"minExpSigma", 0.f, "Minimum ExpSigma in range"};
+  Configurable<float> maxExpSigma{"maxExpSigma", 200.f, "Maximum ExpSigma in range"};
   Configurable<int> nBinsNSigma{"nBinsNSigma", 200, "Number of bins for the NSigma"};
-  Configurable<float> MinNSigma{"MinNSigma", -10.f, "Minimum NSigma in range"};
-  Configurable<float> MaxNSigma{"MaxNSigma", 10.f, "Maximum NSigma in range"};
-
-  template <typename T>
-  void makelogaxis(T h)
-  {
-    if (logAxis == 0) {
-      return;
-    }
-    const int nbins = h->GetNbinsX();
-    double binp[nbins + 1];
-    double max = h->GetXaxis()->GetBinUpEdge(nbins);
-    double min = h->GetXaxis()->GetBinLowEdge(1);
-    if (min <= 0) {
-      min = 0.00001;
-    }
-    double lmin = TMath::Log10(min);
-    double ldelta = (TMath::Log10(max) - lmin) / ((double)nbins);
-    for (int i = 0; i < nbins; i++) {
-      binp[i] = TMath::Exp(TMath::Log(10) * (lmin + i * ldelta));
-    }
-    binp[nbins] = max + 1;
-    h->GetXaxis()->Set(nbins, binp);
-  }
+  Configurable<float> minNSigma{"minNSigma", -10.f, "Minimum NSigma in range"};
+  Configurable<float> maxNSigma{"maxNSigma", 10.f, "Maximum NSigma in range"};
 
   template <uint8_t i>
   void addParticleHistos()
   {
-    // Exp signal
-    histos.add(hexpected[i].data(), Form(";#it{p} (GeV/#it{c});t_{exp}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2e6}});
-    makelogaxis(histos.get<TH2>(HIST(hexpected[i])));
+    AxisSpec pAxis{nBinsP, minP, maxP, "#it{p} (GeV/#it{c})"};
+    if (logAxis) {
+      pAxis.makeLogaritmic();
+    }
 
-    // T-Texp
-    histos.add(hexpected_diff[i].data(), Form(";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp}(%s))", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {nBinsDelta, MinDelta, MaxDelta}});
-    makelogaxis(histos.get<TH2>(HIST(hexpected_diff[i])));
+    // Exp signal
+    const AxisSpec expAxis{1000, 0, 2e6, Form("t_{exp}(%s)", pT[i])};
+    histos.add(hexpected[i].data(), "", kTH2F, {pAxis, expAxis});
+
+    // Signal - Expected signal
+    const AxisSpec deltaAxis{nBinsDelta, minDelta, maxDelta, Form("(t-t_{evt}-t_{exp}(%s))", pT[i])};
+    histos.add(hexpected_diff[i].data(), "", kTH2F, {pAxis, deltaAxis});
+
+    // Exp Sigma
+    const AxisSpec expSigmaAxis{nBinsExpSigma, minExpSigma, maxExpSigma, Form("Exp_{#sigma}^{TOF}(%s)", pT[i])};
+    histos.add(hexpsigma[i].data(), "", kTH2F, {pAxis, expSigmaAxis});
 
     // NSigma
-    histos.add(hnsigma[i].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {nBinsNSigma, MinNSigma, MaxNSigma}});
-    makelogaxis(histos.get<TH2>(HIST(hnsigma[i])));
+    const AxisSpec nSigmaAxis{nBinsNSigma, minNSigma, maxNSigma, Form("N_{#sigma}^{TOF}(%s)", pT[i])};
+    histos.add(hnsigma[i].data(), "", kTH2F, {pAxis, nSigmaAxis});
   }
 
   void init(o2::framework::InitContext&)
   {
+
+    const AxisSpec pExpAxis{100, 0, 10, "#it{p}_{Exp. TOF} (GeV/#it{c})"};
+    const AxisSpec multAxis{100, 0, 100, "TOF multiplicity"};
+    const AxisSpec vtxZAxis{100, -20, 20, "Vtx_{z} (cm)"};
+    const AxisSpec tofAxis{10000, 0, 2e6, "TOF Signal"};
+    const AxisSpec etaAxis{100, -2, 2, "#it{#eta}"};
+    const AxisSpec colTimeAxis{100, -2000, 2000, "Collision time (ps)"};
+    const AxisSpec colTimeResoAxis{100, 0, 1000, "#sigma_{Collision time} (ps)"};
+    const AxisSpec lAxis{100, 0, 500, "Track length (cm)"};
+    const AxisSpec ptResoAxis{100, 0, 0.1, "#sigma_{#it{p}_{T}}"};
+    AxisSpec ptAxis{nBinsP, minP, maxP, "#it{p}_{T} (GeV/#it{c})"};
+    AxisSpec pAxis{nBinsP, minP, maxP, "#it{p} (GeV/#it{c})"};
+    if (logAxis) {
+      ptAxis.makeLogaritmic();
+      pAxis.makeLogaritmic();
+    }
+
     // Event properties
-    histos.add("event/vertexz", ";Vtx_{z} (cm);Entries", HistType::kTH1F, {{100, -20, 20}});
-    histos.add("event/colltime", ";Collision time (ps);Entries", HistType::kTH1F, {{100, -2000, 2000}});
-    histos.add("event/tofsignal", ";#it{p} (GeV/#it{c});TOF Signal", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {10000, 0, 2e6}});
-    makelogaxis(histos.get<TH2>(HIST("event/tofsignal")));
-    histos.add("event/eta", ";#it{#eta};Entries", HistType::kTH1F, {{100, -2, 2}});
-    histos.add("event/length", ";Track length (cm);Entries", HistType::kTH1F, {{100, 0, 500}});
-    histos.add("event/pt", ";#it{p}_{T} (GeV/#it{c});Entries", HistType::kTH1F, {{nBinsP, MinP, MaxP}});
-    histos.add("event/p", ";#it{p} (GeV/#it{c});Entries", HistType::kTH1F, {{nBinsP, MinP, MaxP}});
-    histos.add("event/ptreso", ";#it{p} (GeV/#it{c});Entries", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {100, 0, 0.1}});
+    histos.add("event/vertexz", "", kTH1F, {vtxZAxis});
+    histos.add("event/tofmultiplicity", "", kTH1F, {multAxis});
+    histos.add("event/colltime", "", kTH1F, {colTimeAxis});
+    histos.add("event/colltimereso", "", kTH2F, {multAxis, colTimeResoAxis});
+    histos.add("event/tofsignal", "", kTH2F, {pAxis, tofAxis});
+    histos.add("event/pexp", "", kTH2F, {pAxis, pExpAxis});
+    histos.add("event/eta", "", kTH1F, {etaAxis});
+    histos.add("event/length", "", kTH1F, {lAxis});
+    histos.add("event/pt", "", kTH1F, {ptAxis});
+    histos.add("event/p", "", kTH1F, {pAxis});
+    histos.add("event/ptreso", "", kTH2F, {pAxis, ptResoAxis});
 
     addParticleHistos<0>();
     addParticleHistos<1>();
@@ -250,10 +261,11 @@ struct tofPidFullQa {
   }
 
   template <uint8_t i, typename T>
-  void fillParticleHistos(const T& t, const float tof, const float exp_diff, const float nsigma)
+  void fillParticleHistos(const T& t, const float& tof, const float& exp_diff, const float& expsigma, const float& nsigma)
   {
     histos.fill(HIST(hexpected[i]), t.p(), tof - exp_diff);
     histos.fill(HIST(hexpected_diff[i]), t.p(), exp_diff);
+    histos.fill(HIST(hexpsigma[i]), t.p(), expsigma);
     histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
   }
 
@@ -263,9 +275,21 @@ struct tofPidFullQa {
                                                           aod::pidTOFFullTr, aod::pidTOFFullHe, aod::pidTOFFullAl,
                                                           aod::TrackSelection> const& tracks)
   {
+    // Computing Multiplicity first
+    int mult = 0;
+    for (auto t : tracks) {
+      //
+      if (!t.hasTOF()) { // Skipping tracks without TOF
+        continue;
+      }
+      mult++;
+    }
+
     const float collisionTime_ps = collision.collisionTime() * 1000.f;
     histos.fill(HIST("event/vertexz"), collision.posZ());
     histos.fill(HIST("event/colltime"), collisionTime_ps);
+    histos.fill(HIST("event/tofmultiplicity"), mult);
+    histos.fill(HIST("event/colltimereso"), mult, collision.collisionTimeRes() * 1000.f);
 
     for (auto t : tracks) {
       //
@@ -280,20 +304,21 @@ struct tofPidFullQa {
 
       //
       histos.fill(HIST("event/tofsignal"), t.p(), t.tofSignal());
+      histos.fill(HIST("event/pexp"), t.p(), t.tofExpMom());
       histos.fill(HIST("event/eta"), t.eta());
       histos.fill(HIST("event/length"), t.length());
       histos.fill(HIST("event/pt"), t.pt());
       histos.fill(HIST("event/ptreso"), t.p(), t.sigma1Pt() * t.pt() * t.pt());
       //
-      fillParticleHistos<0>(t, tof, t.tofExpSignalDiffEl(), t.tofNSigmaEl());
-      fillParticleHistos<1>(t, tof, t.tofExpSignalDiffMu(), t.tofNSigmaMu());
-      fillParticleHistos<2>(t, tof, t.tofExpSignalDiffPi(), t.tofNSigmaPi());
-      fillParticleHistos<3>(t, tof, t.tofExpSignalDiffKa(), t.tofNSigmaKa());
-      fillParticleHistos<4>(t, tof, t.tofExpSignalDiffPr(), t.tofNSigmaPr());
-      fillParticleHistos<5>(t, tof, t.tofExpSignalDiffDe(), t.tofNSigmaDe());
-      fillParticleHistos<6>(t, tof, t.tofExpSignalDiffTr(), t.tofNSigmaTr());
-      fillParticleHistos<7>(t, tof, t.tofExpSignalDiffHe(), t.tofNSigmaHe());
-      fillParticleHistos<8>(t, tof, t.tofExpSignalDiffAl(), t.tofNSigmaAl());
+      fillParticleHistos<0>(t, tof, t.tofExpSignalDiffEl(), t.tofExpSigmaEl(), t.tofNSigmaEl());
+      fillParticleHistos<1>(t, tof, t.tofExpSignalDiffMu(), t.tofExpSigmaMu(), t.tofNSigmaMu());
+      fillParticleHistos<2>(t, tof, t.tofExpSignalDiffPi(), t.tofExpSigmaPi(), t.tofNSigmaPi());
+      fillParticleHistos<3>(t, tof, t.tofExpSignalDiffKa(), t.tofExpSigmaKa(), t.tofNSigmaKa());
+      fillParticleHistos<4>(t, tof, t.tofExpSignalDiffPr(), t.tofExpSigmaPr(), t.tofNSigmaPr());
+      fillParticleHistos<5>(t, tof, t.tofExpSignalDiffDe(), t.tofExpSigmaDe(), t.tofNSigmaDe());
+      fillParticleHistos<6>(t, tof, t.tofExpSignalDiffTr(), t.tofExpSigmaTr(), t.tofNSigmaTr());
+      fillParticleHistos<7>(t, tof, t.tofExpSignalDiffHe(), t.tofExpSigmaHe(), t.tofNSigmaHe());
+      fillParticleHistos<8>(t, tof, t.tofExpSignalDiffAl(), t.tofExpSigmaAl(), t.tofNSigmaAl());
     }
   }
 };

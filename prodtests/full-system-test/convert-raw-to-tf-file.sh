@@ -29,6 +29,7 @@ sleep 15
 
 echo Starting Readout
 export O2_INFOLOGGER_OPTIONS="floodProtection=0"
+export O2_INFOLOGGER_MODE=stdout
 o2-readout-exe file:rdo_TF.cfg &> readout.log &
 RD_PID=$!
 echo Readout PID: $RD_PID

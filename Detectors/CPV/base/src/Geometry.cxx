@@ -28,7 +28,10 @@ bool Geometry::absToRelNumbering(unsigned short absId, short* relid)
   //  relid[0] = CPV Module number 1:fNModules
   //  relid[1] = Column number inside a CPV module (Phi coordinate)
   //  relid[2] = Row number inside a CPV module (Z coordinate)
-
+  if (absId >= kNCHANNELS) {
+    LOG(DEBUG) << "Wrong absId = " << absId << " > kNCHANNELS=" << kNCHANNELS;
+    return false;
+  }
   const short nCPV = kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ;
   relid[0] = absId / nCPV + 2;
   absId -= (relid[0] - 2) * nCPV;
@@ -102,52 +105,62 @@ bool Geometry::relToAbsNumbering(const short* relId, unsigned short& absId)
 
   return true;
 }
-void Geometry::hwaddressToAbsId(short ccId, short dil, short gas, short pad, unsigned short& absId)
+bool Geometry::hwaddressToAbsId(short ccId, short dil, short gas, short pad, unsigned short& absId)
 {
+  //check if hw address is valid
+  bool isGoodHWAddress = true;
+  if (pad < 0 || pad >= kNPAD) {
+    LOG(DEBUG) << "Geometry::hwaddressToAbsId() : Wrong pad address: pad=" << pad << " >= kNPAD=" << kNPAD;
+    isGoodHWAddress = false;
+  }
+  if (dil < 0 || dil >= kNDilogic) {
+    LOG(DEBUG) << "Geometry::hwaddressToAbsId() : Wrong dil address: dil=" << dil << " >= kNDilogic=" << kNDilogic;
+    isGoodHWAddress = false;
+  }
+  if (gas < 0 || gas >= kNGas) {
+    LOG(DEBUG) << "Geometry::hwaddressToAbsId() : Wrong gasiplex address: gas=" << gas << " >= kNGas=" << kNGas;
+    isGoodHWAddress = false;
+  }
+  //return false in no success case
+  if (!isGoodHWAddress) {
+    return false;
+  }
 
   short pZ = mPadToZ[pad];
   short pPhi = mPadToPhi[pad];
   short relid[3] = {short(ccId / 8 + 2), short((ccId % 8) * 16 + (dil / 2) * 8 + 7 - pPhi), short((dil % 2) * 30 + gas * 6 + pZ)};
 
-  relToAbsNumbering(relid, absId);
+  return relToAbsNumbering(relid, absId);
 }
 
-void Geometry::absIdToHWaddress(unsigned short absId, short& ccId, short& dil, short& gas, short& pad)
+bool Geometry::absIdToHWaddress(unsigned short absId, short& ccId, short& dil, short& gas, short& pad)
 {
   // Convert absId to hw address
   // Arguments: ccId:  0 -- 7 - mod 2;  8...15 mod 3; 16...23 mod 4
   //dilogic: 0..3, gas=0..5, pad:0..47
 
   short relid[3];
-  absToRelNumbering(absId, relid);
+  if (!absToRelNumbering(absId, relid)) {
+    return false; //wrong absId passed
+  }
 
   ccId = (relid[0] - 2) * 8 + relid[1] / 16;
   dil = 2 * ((relid[1] % 16) / 8) + relid[2] / 30; // Dilogic# 0..3
   gas = (relid[2] % 30) / 6;                       // gasiplex# 0..4
   pad = mPadMap[relid[2] % 6][7 - relid[1] % 8];   // pad 0..47
 
-  if (pad < 0 || pad > kNPAD) {
-    LOG(ERROR) << "Wrong pad address: pad=" << pad << " > kNPAD=" << kNPAD;
-    pad = 0;
-    dil = 0;
-    gas = 0;
-    ccId = 0;
-    return;
+  bool isAbsIdOk = true;
+  if (pad < 0 || pad >= kNPAD) {
+    LOG(DEBUG) << "Wrong pad address: pad=" << pad << " >= kNPAD=" << kNPAD;
+    isAbsIdOk = false;
   }
   if (dil < 0 || dil >= kNDilogic) {
-    LOG(ERROR) << "Wrong dil address: dil=" << dil << " > kNDilogic=" << kNDilogic;
-    pad = 0;
-    dil = 0;
-    gas = 0;
-    ccId = 0;
-    return;
+    LOG(DEBUG) << "Wrong dil address: dil=" << dil << " >= kNDilogic=" << kNDilogic;
+    isAbsIdOk = false;
   }
   if (gas < 0 || gas >= kNGas) {
-    LOG(ERROR) << "Wrong gasiplex address: gas=" << gas << " > kNGas=" << kNGas;
-    pad = 0;
-    dil = 0;
-    gas = 0;
-    ccId = 0;
-    return;
+    LOG(DEBUG) << "Wrong gasiplex address: gas=" << gas << " >= kNGas=" << kNGas;
+    isAbsIdOk = false;
   }
+  return isAbsIdOk;
 }

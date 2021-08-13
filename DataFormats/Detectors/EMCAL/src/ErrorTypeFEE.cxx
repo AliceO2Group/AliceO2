@@ -16,7 +16,28 @@ using namespace o2::emcal;
 
 void ErrorTypeFEE::PrintStream(std::ostream& stream) const
 {
-  stream << "EMCAL SM: " << getFEEID() << ", Decode error Type: " << getDecodeErrorType() << ", Raw fitter error: " << getRawFitErrorType();
+  std::string typestring;
+  switch (mErrorSource) {
+    case ErrorSource_t::ALTRO_ERROR:
+      typestring = "decode error";
+      break;
+    case ErrorSource_t::FIT_ERROR:
+      typestring = "fit error";
+      break;
+    case ErrorSource_t::PAGE_ERROR:
+      typestring = "page error";
+      break;
+    case ErrorSource_t::GEOMETRY_ERROR:
+      typestring = "geometry error";
+      break;
+    case ErrorSource_t::UNDEFINED:
+      typestring = "unknown error";
+      break;
+    default:
+      typestring = "unknown error";
+      break;
+  };
+  stream << "EMCAL SM: " << getFEEID() << ", " << typestring << " Type: " << getErrorCode();
 }
 
 std::ostream& operator<<(std::ostream& stream, const ErrorTypeFEE& error)

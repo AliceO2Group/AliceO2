@@ -77,12 +77,13 @@ GEMAmplification::GEMAmplification()
   const float gainStack = mGEMParam->TotalGainStack;
   const float kappaStack = mGEMParam->KappaStack;
   const float effStack = mGEMParam->EfficiencyStack;
-  const float sStack = gainStack / (kappaStack * (1.f - effStack));
+  // Correct for electron losses occurring when changing kappa and the efficiency
+  const float sStack = gainStack / (kappaStack * effStack);
   polya % kappaStack % sStack % sStack % (kappaStack - 1) % sStack;
   std::string name = polya.str();
   o2::math_utils::CachingTF1* polyaDistribution = nullptr;
   if (!cacheexists) {
-    polyaDistribution = new o2::math_utils::CachingTF1("polya", name.c_str(), 0, 50000);
+    polyaDistribution = new o2::math_utils::CachingTF1("polya", name.c_str(), 0, 25.f * gainStack);
     polyaDistribution->SetNpx(50000);
   } else {
     polyaDistribution = (o2::math_utils::CachingTF1*)outfile->Get("polyaStack");
@@ -100,8 +101,6 @@ GEMAmplification::GEMAmplification()
   watch.Stop();
   LOG(INFO) << "TPC: GEM setup (polya) took " << watch.CpuTime();
 }
-
-GEMAmplification::~GEMAmplification() = default;
 
 void GEMAmplification::updateParameters()
 {
@@ -130,7 +129,7 @@ int GEMAmplification::getEffectiveStackAmplification(int nElectrons)
   /// in the stack is handled in an effective manner
   int nElectronsGEM = 0;
   for (int i = 0; i < nElectrons; ++i) {
-    if (mRandomFlat.getNextValue() < mGEMParam->EfficiencyStack) {
+    if (mRandomFlat.getNextValue() > mGEMParam->EfficiencyStack) {
       continue;
     }
     nElectronsGEM += mGainFullStack.getNextValue();

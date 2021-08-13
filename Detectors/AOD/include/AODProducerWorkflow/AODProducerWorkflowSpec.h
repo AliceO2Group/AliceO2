@@ -107,10 +107,10 @@ using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
                                         o2::aod::mcparticle::PdgCode,
                                         o2::aod::mcparticle::StatusCode,
                                         o2::aod::mcparticle::Flags,
-                                        o2::aod::mcparticle::Mother0,
-                                        o2::aod::mcparticle::Mother1,
-                                        o2::aod::mcparticle::Daughter0,
-                                        o2::aod::mcparticle::Daughter1,
+                                        o2::aod::mcparticle::Mother0Id,
+                                        o2::aod::mcparticle::Mother1Id,
+                                        o2::aod::mcparticle::Daughter0Id,
+                                        o2::aod::mcparticle::Daughter1Id,
                                         o2::aod::mcparticle::Weight,
                                         o2::aod::mcparticle::Px,
                                         o2::aod::mcparticle::Py,
@@ -167,6 +167,8 @@ class AODProducerWorkflowDPL : public Task
   // the map is used for V0s and cascades
   std::unordered_map<GIndex, int> mGIDToTableID;
   int mTableTrID{0};
+
+  TripletsMap_t mToStore;
 
   std::shared_ptr<DataRequest> mDataRequest;
 
@@ -228,10 +230,11 @@ class AODProducerWorkflowDPL : public Task
   };
 
   // helper struct for mc track labels
+  // using -1 as dummies for AOD
   struct MCLabels {
-    uint32_t labelID = std::numeric_limits<uint32_t>::max();
-    uint32_t labelITS = std::numeric_limits<uint32_t>::max();
-    uint32_t labelTPC = std::numeric_limits<uint32_t>::max();
+    uint32_t labelID = -1;
+    uint32_t labelITS = -1;
+    uint32_t labelTPC = -1;
     uint16_t labelMask = 0;
     uint8_t mftLabelMask = 0;
   };
@@ -268,12 +271,12 @@ class AODProducerWorkflowDPL : public Task
                                    mftTracksCursorType& mftTracksCursor);
 
   template <typename MCParticlesCursorType>
-  void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
-                            gsl::span<const o2::MCCompLabel>& mcTruthITS,
-                            gsl::span<const o2::MCCompLabel>& mcTruthMFT,
-                            gsl::span<const o2::MCCompLabel>& mcTruthTPC,
-                            TripletsMap_t& toStore,
-                            std::vector<std::pair<int, int>> const& mccolidtoeventsource);
+  void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
+                            const MCParticlesCursorType& mcParticlesCursor,
+                            gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
+                            gsl::span<const GIndex>& GIndices,
+                            o2::globaltracking::RecoContainer& data,
+                            std::vector<std::pair<int, int>> const& mccolid_to_eventandsource);
 
   // helper for tpc clusters
   void countTPCClusters(const o2::tpc::TrackTPC& track,

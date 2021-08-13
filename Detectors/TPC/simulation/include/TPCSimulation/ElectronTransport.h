@@ -42,7 +42,7 @@ class ElectronTransport
   }
 
   /// Destructor
-  ~ElectronTransport();
+  ~ElectronTransport() = default;
 
   /// Update the OCDB parameters cached in the class. To be called once per event
   void updateParameters();

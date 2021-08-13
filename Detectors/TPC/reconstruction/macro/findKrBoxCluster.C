@@ -18,7 +18,7 @@
 #include "TFile.h"
 #include "TTree.h"
 
-#include "TPCReconstruction/KrCluster.h"
+#include "DataFormatsTPC/KrCluster.h"
 #include "TPCReconstruction/KrBoxClusterFinder.h"
 #include "DataFormatsTPC/Digit.h"
 
@@ -73,6 +73,7 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1, std::
       if (sector->size() == 0) {
         continue;
       }
+      std::cout << "Processing sector " << i << "\n";
 
       clFinder->loopOverSector(*sector, i);
     }

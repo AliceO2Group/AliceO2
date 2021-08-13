@@ -47,8 +47,6 @@ class DOFStatistics : public TNamed
   int64_t merge(TCollection* list);
 
  protected:
-  DOFStatistics(const DOFStatistics&);
-  DOFStatistics& operator=(const DOFStatistics&);
 
  protected:
   int mNMerges{1};        // number of merges

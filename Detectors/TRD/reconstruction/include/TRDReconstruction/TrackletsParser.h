@@ -35,26 +35,10 @@ class TrackletsParser
   ~TrackletsParser() = default;
   void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
   int Parse(); // presupposes you have set everything up already.
-  int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
-            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, uint32_t feeid, int robside, int detector, int stack, int layer, bool cleardigits = false, bool disablebyteswap = false, bool verbose = true, bool headerverbose = false, bool dataverbose = false) //, std::array<uint32_t, 15>& lengths) // change to calling per link.
-  {
-    mStartParse = start;
-    mEndParse = end;
-    mDetector = detector;
-    mFEEID = feeid;
-    mRobSide = robside;
-    mStack = stack;
-    mLayer = layer;
-    setData(data);
-    setVerbose(verbose, headerverbose, dataverbose);
-    setByteSwap(disablebyteswap);
-    mWordsRead = 0;
-    mDataWordsParsed = 0;
-    mTrackletsFound = 0;
-    mPaddingWordsCounter = 0;
-    //    mTracklets.clear();
-    return Parse();
-  };
+  int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, TRDFeeID feeid, int robside,
+            int detector, int stack, int layer, bool cleardigits = false,
+            bool disablebyteswap = false, int usetracklethcheader = 0, bool verbose = true,
+            bool headerverbose = false, bool dataverbose = false);
   void setVerbose(bool verbose, bool header = false, bool data = false)
   {
     mVerbose = verbose;
@@ -78,6 +62,7 @@ class TrackletsParser
   {
     mTracklets.clear();
   }
+  void OutputIncomingData();
 
  private:
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* mData;
@@ -96,12 +81,13 @@ class TrackletsParser
   bool mVerbose{false};     // user verbose output, put debug statement in output from commandline.
   bool mHeaderVerbose{false};
   bool mDataVerbose{false};
-
+  int mTrackletHCHeaderState{0}; //what to with the tracklet half chamber header 0,1,2
   bool mIgnoreTrackletHCHeader{false}; // Is the data with out the tracklet HC Header? defaults to having it in.
   bool mByteOrderFix{false};           // simulated data is not byteswapped, real is, so deal with it accodringly.
-  bool mReturnVector{false};           // whether weare returing a vector or the raw data buffer.
+  uint64_t mWordsDumped{0};
 
   uint16_t mEventCounter;
+  std::chrono::duration<double> mTrackletparsetime;                                        // store the time it takes to parse
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
   //uint32_t mCurrentLinkDataPosition256;                // count of data read for current link in units of 256 bits
 
@@ -113,7 +99,7 @@ class TrackletsParser
   uint16_t mRobSide;
   uint16_t mStack;
   uint16_t mLayer;
-  uint16_t mFEEID; // current Fee ID working on
+  TRDFeeID mFEEID; // current Fee ID working on
   uint16_t mMCM;
   uint16_t mROB;
   //  std::array<uint32_t, 16> mAverageNumTrackletsPerTrap; TODO come back to this stat.

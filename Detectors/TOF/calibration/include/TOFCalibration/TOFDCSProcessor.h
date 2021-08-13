@@ -86,7 +86,7 @@ class TOFDCSProcessor
   //int process(const std::vector<DPCOM>& dps);
   int process(const gsl::span<const DPCOM> dps);
   int processDP(const DPCOM& dpcom);
-  virtual uint64_t processFlags(uint64_t flag, const char* pid);
+  uint64_t processFlags(uint64_t flag, const char* pid);
 
   void updateDPsCCDB();
   void getStripsConnectedToFEAC(int nDDL, int nFEAC, TOFFEACinfo& info) const;

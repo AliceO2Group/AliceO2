@@ -43,8 +43,8 @@ Word 1  |  link 7 error flags   |   link 6 error flags  |  link 5 error flags   
         -------------------------------------------------------------------------------------------------
 Word 2  |  link 11 error flags  |   link 10 error flags |  link 9 error flags   |  link 8 error flags   |
         -------------------------------------------------------------------------------------------------
-Word 2  |  link 12 error flags  |  link 13 error flags  |  link 14 error flags  |      reserved 2       |
-        -------------------------------------------------------------------------------------------------
+Word 2  |      reserved 2       |  link 14 error flags  |  link 13 error flags  |  link 12 error flags  |
+         ------------------------------------------------------------------------------------------------
 Word 3  |                                          reserved 3                                           |
         -------------------------------------------------------------------------------------------------
 Word 3  |                                          reserved 4                                           |
@@ -171,7 +171,7 @@ struct TrackletMCMHeader {
     uint32_t word;
     struct {
       uint32_t oneb : 1;   //
-      uint32_t pid0 : 8;   // part of pid for tracklet 0
+      uint32_t pid0 : 8;   // part of pid for tracklet 0 // 6 bits of Q2 and 2 bits of Q1
       uint32_t pid1 : 8;   // part of pid for tracklet 1
       uint32_t pid2 : 8;   // part of pid for tracklet 2
       uint32_t col : 2;    //  2 bits for position in pad direction.
@@ -190,7 +190,7 @@ struct TrackletMCMData {
     struct {
       uint8_t checkbit : 1; //
       uint16_t slope : 8;   // Deflection angle of tracklet
-      uint16_t pid : 12;    // Particle Identity
+      uint16_t pid : 12;    // Particle Identity 7 bits of Q0 and 5 bits of Q1
       uint16_t pos : 11;    // Position of tracklet, signed 11 bits, granularity 1/80 pad widths, -12.80 to +12.80, relative to centre of pad 10
     } __attribute__((__packed__));
   };
@@ -307,10 +307,10 @@ struct DigitMCMADCMask {
   union {
     uint32_t word; //MCM ADC MASK header
     struct {
-      uint32_t n : 2; // unused always 0x3
-      uint32_t c : 5; // unused always 0x1f
+      uint32_t j : 4; // 0xc
       uint32_t adcmask : 21;
-      uint32_t j : 4; // unused always 0xc
+      uint32_t c : 5; // ~(number of bits set in adcmask)
+      uint32_t n : 2; // 0b01
     } __attribute__((__packed__));
   };
 };
@@ -440,6 +440,8 @@ std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru);
 bool trackletMCMHeaderSanityCheck(o2::trd::TrackletMCMHeader& header);
 bool trackletHCHeaderSanityCheck(o2::trd::TrackletHCHeader& header);
 bool digitMCMHeaderSanityCheck(o2::trd::DigitMCMHeader* header);
+bool digitMCMADCMaskSanityCheck(o2::trd::DigitMCMADCMask& mask, int numberofbitsset);
+bool digitMCMWordSanityCheck(o2::trd::DigitMCMData* word, int adcchannel);
 void printDigitMCMHeader(o2::trd::DigitMCMHeader& header);
 void printDigitHCHeader(o2::trd::DigitHCHeader& header);
 DigitMCMADCMask buildBlankADCMask();

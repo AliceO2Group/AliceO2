@@ -97,7 +97,7 @@ class TableToTree
   TTree* mTreePtr;
 
   // a list of BranchIterator
-  std::vector<BranchIterator*> mBranchIterators;
+  std::vector<std::unique_ptr<BranchIterator>> mBranchIterators;
 
   // table to convert
   std::shared_ptr<arrow::Table> mTable;
@@ -106,7 +106,6 @@ class TableToTree
   TableToTree(std::shared_ptr<arrow::Table> table,
               TFile* file,
               const char* treename);
-  ~TableToTree();
 
   // add branches
   bool addBranch(std::shared_ptr<arrow::ChunkedArray> col, std::shared_ptr<arrow::Field> field);

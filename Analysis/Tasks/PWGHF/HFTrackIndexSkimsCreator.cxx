@@ -123,6 +123,8 @@ struct HfTagSelCollisions {
     rowSelectedCollision(statusCollision);
   };
 
+  PROCESS_SWITCH(HfTagSelCollisions, processEvSel, "Use event selection", true);
+
   // no event selection in case of no event-selection task attached
   void processNoEvSel(aod::Collision const&)
   {
@@ -136,6 +138,8 @@ struct HfTagSelCollisions {
     // fill table row
     rowSelectedCollision(statusCollision);
   };
+
+  PROCESS_SWITCH(HfTagSelCollisions, processNoEvSel, "Do not use event selection", false);
 };
 
 /// Track selection
@@ -548,7 +552,7 @@ struct HfTrackIndexSkimsCreator {
       array{hfTracks[0].px(), hfTracks[0].py(), hfTracks[0].pz()},
       array{hfTracks[1].px(), hfTracks[1].py(), hfTracks[1].pz()}};
 
-    auto pT = RecoDecay::Pt(arrMom[0], arrMom[1]) - pTTolerance; // add tolerance because of no reco decay vertex
+    auto pT = RecoDecay::Pt(arrMom[0], arrMom[1]) + pTTolerance; // add tolerance because of no reco decay vertex
 
     for (int iDecay2P = 0; iDecay2P < n2ProngDecays; iDecay2P++) {
 
@@ -609,7 +613,7 @@ struct HfTrackIndexSkimsCreator {
       array{hfTracks[1].px(), hfTracks[1].py(), hfTracks[1].pz()},
       array{hfTracks[2].px(), hfTracks[2].py(), hfTracks[2].pz()}};
 
-    auto pT = RecoDecay::Pt(arrMom[0], arrMom[1], arrMom[2]) - pTTolerance; // add tolerance because of no reco decay vertex
+    auto pT = RecoDecay::Pt(arrMom[0], arrMom[1], arrMom[2]) + pTTolerance; // add tolerance because of no reco decay vertex
 
     for (int iDecay3P = 0; iDecay3P < n3ProngDecays; iDecay3P++) {
 
@@ -1431,9 +1435,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   const bool doEvSel = cfgc.options().get<bool>("doEvSel");
   if (doEvSel) {
-    workflow.push_back(adaptAnalysisTask<HfTagSelCollisions>(cfgc, Processes{&HfTagSelCollisions::processEvSel}));
+    workflow.push_back(adaptAnalysisTask<HfTagSelCollisions>(cfgc));
   } else {
-    workflow.push_back(adaptAnalysisTask<HfTagSelCollisions>(cfgc, Processes{&HfTagSelCollisions::processNoEvSel}));
+    workflow.push_back(adaptAnalysisTask<HfTagSelCollisions>(cfgc, SetDefaultProcesses{{{"processEvSel", false}, {"processNoEvSel", true}}}));
   }
 
   workflow.push_back(adaptAnalysisTask<HfTagSelTracks>(cfgc));

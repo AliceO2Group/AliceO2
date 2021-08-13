@@ -46,7 +46,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  DetID::mask_t dets;
+  DetID::mask_t dets = 0;
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   long run = 0;
   bool doCTF = true, doDict = false, dictPerDet = false;

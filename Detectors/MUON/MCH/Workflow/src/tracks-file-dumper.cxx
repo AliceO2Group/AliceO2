@@ -9,6 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "MCHBase/ClusterBlock.h"
@@ -130,12 +132,22 @@ int dumpRoot(std::string inputFile)
   ROFRecord rof;
   std::vector<TrackMCH> tracks;
   std::vector<ClusterStruct> clusters;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
 
-  while (tr.next(rof, tracks, clusters)) {
+  while (tr.next(rof, tracks, clusters, labels)) {
     std::cout << rof << "\n";
+    if (tr.hasLabels() && labels.getIndexedSize() != tracks.size()) {
+      std::cerr << "the number of labels do not match the number of tracks\n";
+      return -1;
+    }
+    int it(0);
     for (const auto& t : tracks) {
       std::cout << "   ";
       dump(std::cout, t);
+      for (const auto& l : labels.getLabels(it++)) {
+        std::cout << "   MC label: ";
+        l.print();
+      }
     }
   }
   return 0;
@@ -178,7 +190,7 @@ int main(int argc, char* argv[])
   }
 
   std::string ext = fs::path(inputFile).extension();
-  std::transform(ext.begin(), ext.begin(), ext.end(), [](unsigned char c) { return std::tolower(c); });
+  std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return std::tolower(c); });
 
   if (ext == ".root") {
     return dumpRoot(inputFile);

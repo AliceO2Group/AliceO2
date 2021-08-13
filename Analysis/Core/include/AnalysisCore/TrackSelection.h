@@ -210,7 +210,7 @@ class TrackSelection
   // vector of ITS requirements (minNRequiredHits in specific requiredLayers)
   std::vector<std::pair<int8_t, std::set<uint8_t>>> mRequiredITSHits{};
 
-  ClassDef(TrackSelection, 1);
+  ClassDefNV(TrackSelection, 1);
 };
 
 #endif

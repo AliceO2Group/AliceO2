@@ -32,6 +32,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"eff-ka", VariantType::Int, 1, {"Efficiency for the Kaon PDG code"}},
     {"eff-pr", VariantType::Int, 1, {"Efficiency for the Proton PDG code"}},
     {"eff-de", VariantType::Int, 0, {"Efficiency for the Deuteron PDG code"}},
+    {"eff-tr", VariantType::Int, 0, {"Efficiency for the Triton PDG code"}},
     {"eff-he", VariantType::Int, 0, {"Efficiency for the Helium3 PDG code"}}};
   std::swap(workflowOptions, options);
 }
@@ -128,12 +129,13 @@ struct QaTrackingEfficiency {
 
     histos.add("trackSelection", "Track Selection", kTH1D, {axisSel});
     histos.get<TH1>(HIST("trackSelection"))->GetXaxis()->SetBinLabel(1, "Tracks read");
-    histos.get<TH1>(HIST("trackSelection"))->GetXaxis()->SetBinLabel(2, "Passed #it{p}_{T}");
-    histos.get<TH1>(HIST("trackSelection"))->GetXaxis()->SetBinLabel(3, "Passed #it{#eta}");
-    histos.get<TH1>(HIST("trackSelection"))->GetXaxis()->SetBinLabel(4, "Passed #it{#varphi}");
-    histos.get<TH1>(HIST("trackSelection"))->GetXaxis()->SetBinLabel(5, "Passed Prim.");
-    histos.get<TH1>(HIST("trackSelection"))->GetXaxis()->SetBinLabel(6, Form("Passed PDG %i", pdg));
-    histos.get<TH1>(HIST("trackSelection"))->GetXaxis()->SetBinLabel(7, "Passed Fake");
+    histos.get<TH1>(HIST("trackSelection"))->GetXaxis()->SetBinLabel(2, "Passed Ev. Reco.");
+    histos.get<TH1>(HIST("trackSelection"))->GetXaxis()->SetBinLabel(3, "Passed #it{p}_{T}");
+    histos.get<TH1>(HIST("trackSelection"))->GetXaxis()->SetBinLabel(4, "Passed #it{#eta}");
+    histos.get<TH1>(HIST("trackSelection"))->GetXaxis()->SetBinLabel(5, "Passed #it{#varphi}");
+    histos.get<TH1>(HIST("trackSelection"))->GetXaxis()->SetBinLabel(6, "Passed Prim.");
+    histos.get<TH1>(HIST("trackSelection"))->GetXaxis()->SetBinLabel(7, Form("Passed PDG %i", pdg));
+    histos.get<TH1>(HIST("trackSelection"))->GetXaxis()->SetBinLabel(8, "Passed Fake");
 
     histos.add("partSelection", "Particle Selection", kTH1D, {axisSel});
     histos.get<TH1>(HIST("partSelection"))->GetXaxis()->SetBinLabel(1, "Particles read");
@@ -191,23 +193,47 @@ struct QaTrackingEfficiency {
                const o2::aod::McParticles& mcParticles)
   {
 
-    auto rejectParticle = [&](auto p, auto h, const int& selBinOffset = 0) {
+    std::vector<int64_t> recoEvt(collisions.size());
+    int nevts = 0;
+    for (const auto& collision : collisions) {
+      histos.fill(HIST("eventSelection"), 1);
+      if (collision.numContrib() < nMinNumberOfContributors) {
+        continue;
+      }
+      histos.fill(HIST("eventSelection"), 2);
+      const auto mcCollision = collision.mcCollision();
+      if ((mcCollision.posZ() < vertexZMin || mcCollision.posZ() > vertexZMax)) {
+        continue;
+      }
+      histos.fill(HIST("eventSelection"), 3);
+      recoEvt[nevts++] = mcCollision.globalIndex();
+    }
+    recoEvt.resize(nevts);
+
+    auto rejectParticle = [&](const auto& p, auto h) {
+      histos.fill(h, 1);
+      const auto evtReconstructed = std::find(recoEvt.begin(), recoEvt.end(), p.mcCollision().globalIndex()) != recoEvt.end();
+      if (!evtReconstructed) { // Check that the event is reconstructed
+        return true;
+      }
+
+      histos.fill(h, 2);
       if ((p.pt() < ptMin || p.pt() > ptMax)) { // Check pt
         return true;
       }
-      histos.fill(h, 2 + selBinOffset);
+      histos.fill(h, 3);
       if ((p.eta() < etaMin || p.eta() > etaMax)) { // Check eta
         return true;
       }
-      histos.fill(h, 3 + selBinOffset);
+      histos.fill(h, 4);
       if ((p.phi() < phiMin || p.phi() > phiMax)) { // Check phi
         return true;
       }
-      histos.fill(h, 4 + selBinOffset);
-      if ((selPrim == 1) && (!MC::isPhysicalPrimary(mcParticles, p))) { // Requiring is physical primary
+      histos.fill(h, 5);
+      if ((selPrim == 1) && (!MC::isPhysicalPrimary(p))) { // Requiring is physical primary
         return true;
       }
-      histos.fill(h, 5 + selBinOffset);
+      histos.fill(h, 6);
 
       // Selecting PDG code
       switch ((int)pdgSign) {
@@ -230,34 +256,15 @@ struct QaTrackingEfficiency {
           LOG(FATAL) << "Provide pdgSign as 0, 1, -1. Provided: " << pdgSign.value;
           break;
       }
-      histos.fill(h, 6 + selBinOffset);
+      histos.fill(h, 7);
 
       return false;
     };
 
-    std::vector<int64_t> recoEvt(collisions.size());
-    int nevts = 0;
-    for (const auto& collision : collisions) {
-      histos.fill(HIST("eventSelection"), 1);
-      if (collision.numContrib() < nMinNumberOfContributors) {
-        continue;
-      }
-      histos.fill(HIST("eventSelection"), 2);
-      const auto mcCollision = collision.mcCollision();
-      if ((mcCollision.posZ() < vertexZMin || mcCollision.posZ() > vertexZMax)) {
-        continue;
-      }
-      histos.fill(HIST("eventSelection"), 3);
-      recoEvt[nevts++] = mcCollision.globalIndex();
-    }
-    recoEvt.resize(nevts);
-
     std::vector<int64_t> recoTracks(tracks.size());
     int ntrks = 0;
     for (const auto& track : tracks) {
-      histos.fill(HIST("trackSelection"), 1);
       const auto mcParticle = track.mcParticle();
-
       if (rejectParticle(mcParticle, HIST("trackSelection"))) {
         continue;
       }
@@ -274,7 +281,8 @@ struct QaTrackingEfficiency {
           continue;
         }
       }
-      histos.fill(HIST("trackSelection"), 7);
+
+      histos.fill(HIST("trackSelection"), 8);
       histos.fill(HIST("pt/num"), mcParticle.pt());
       histos.fill(HIST("eta/num"), mcParticle.eta());
       histos.fill(HIST("phi/num"), mcParticle.phi());
@@ -282,13 +290,7 @@ struct QaTrackingEfficiency {
     }
 
     for (const auto& mcParticle : mcParticles) {
-      histos.fill(HIST("partSelection"), 1);
-      const auto evtReconstructed = std::find(recoEvt.begin(), recoEvt.end(), mcParticle.mcCollision().globalIndex()) != recoEvt.end();
-      if (!evtReconstructed) {
-        continue;
-      }
-      histos.fill(HIST("partSelection"), 2);
-      if (rejectParticle(mcParticle, HIST("partSelection"), 1)) {
+      if (rejectParticle(mcParticle, HIST("partSelection"))) {
         continue;
       }
 
@@ -327,6 +329,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
   if (cfgc.options().get<int>("eff-de")) {
     w.push_back(adaptAnalysisTask<QaTrackingEfficiency<o2::track::PID::Deuteron>>(cfgc, TaskName{"qa-tracking-efficiency-deuteron"}));
+  }
+  if (cfgc.options().get<int>("eff-tr")) {
+    w.push_back(adaptAnalysisTask<QaTrackingEfficiency<o2::track::PID::Triton>>(cfgc, TaskName{"qa-tracking-efficiency-triton"}));
   }
   if (cfgc.options().get<int>("eff-he")) {
     w.push_back(adaptAnalysisTask<QaTrackingEfficiency<o2::track::PID::Helium3>>(cfgc, TaskName{"qa-tracking-efficiency-helium3"}));

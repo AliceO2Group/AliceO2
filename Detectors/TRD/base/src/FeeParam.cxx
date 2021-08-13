@@ -410,47 +410,22 @@ int FeeParam::getORI(int detector, int readoutboard)
 {
   int supermodule = detector / NCHAMBERPERSEC;
   ///  LOG(info) << "getORI : " << detector << " :: " << readoutboard << " -- " << getORIinSM(detector, readoutboard) << "   " << getORIinSM(detector, readoutboard) + NCHAMBERPERSEC * 2 * detector;
-  return getORIinSM(detector, readoutboard) + NCHAMBER * 2 * detector; // 60 ORI per supermodule
+  return getORIinSuperModule(detector, readoutboard) + NCHAMBER * 2 * detector; // 60 ORI per supermodule
 }
 
-int FeeParam::getORIinSM(int detector, int readoutboard)
+int FeeParam::getORIinSuperModule(int detector, int readoutboard)
 {
-  int ori = -1;
-  int chamberside = 0;
-  int trdstack = Geometry::getStack(detector);
-  int trdlayer = Geometry::getLayer(detector);
-  int side = getROBSide(readoutboard);
-  //see TDP for explanation of mapping TODO should probably come from CCDB
-  if (trdstack < 2 || (trdstack == 2 && side == 0)) // A Side
-  {
-    ori = trdstack * 12 + (5 - trdlayer + side * 5) + trdlayer / 6 + side; // <- that is correct for A side at least for now, probably not for very long LUT as that will come form CCDB ni anycase.
-  } else {
-    if (trdstack > 2 || (trdstack == 2 && side == 1)) // CSide
-    {
-      int newside = side;
-      if (trdstack == 2) {
-        newside = 0; // the last part of C side CRU is a special case.
-      }
-      ori = (4 - trdstack) * 12 + (5 - trdlayer + newside * 5) + trdlayer / 6 + newside;
-    } else {
-      LOG(warn) << " something wrong with calculation of ORI for detector " << detector << " and readoutboard" << readoutboard;
-    }
-  }
-  // now offset for supermodule (+60*supermodule);
-
-  return ori;
+  return HelperMethods::getORIinSuperModule(detector, readoutboard);
 }
 
-int FeeParam::getORIfromHCID(int hcid)
+int FeeParam::getLinkIDfromHCID(int hcid)
 {
-  int detector = hcid / 2;
-  int side = hcid % 2; // 0 for side 0, 1 for side 1;
-  int ori = -1;
-  int chamberside = 0;
-  int trdstack = Geometry::getStack(detector);
-  int trdlayer = Geometry::getLayer(detector);
-  return getORIinSM(detector, side); // it takes readoutboard but only cares if its odd or even hence side here.
+  return HelperMethods::getLinkIDfromHCID(hcid);
+  //return a number in range [0:29] for the link related to this hcid with in its respective CRU
+  //lower 15 is endpoint 0 and upper 15 is endpoint 1
+  //a side has 30, c side has 30 to give 60 links for a supermodule
 }
+
 int FeeParam::getHCIDfromORI(int ori, int readoutboard)
 {
   // ori = 60*SM+offset[0-29 A, 30-59 C]

@@ -24,7 +24,6 @@ using namespace o2::phos;
 AltroDecoderError::ErrorType_t AltroDecoder::decode(RawReaderMemory& rawreader, CaloRawFitter* rawFitter,
                                                     std::vector<o2::phos::Cell>& currentCellContainer, std::vector<o2::phos::Cell>& currentTRUContainer)
 {
-
   mOutputHWErrors.clear();
   mOutputFitChi.clear();
 
@@ -140,6 +139,13 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
       while (currentsample < header.mPayloadSize) {
         int bunchlength = mBunchwords[currentsample] - 2, // remove words for bunchlength and starttime
           starttime = mBunchwords[currentsample + 1];
+        if (bunchlength < 0) {                            // corrupted data,
+          short fec = header.mHardwareAddress >> 7 & 0xf; //try to extract FEE number from header
+          short branch = header.mHardwareAddress >> 11 & 0x1;
+          fec += kGeneralTRUErr * branch;
+          mOutputHWErrors.emplace_back(mddl, fec, 6); //6: channel payload error
+          break;
+        }
         //extract sample properties
         CaloRawFitter::FitStatus fitResult = rawFitter->evaluate(gsl::span<uint16_t>(&mBunchwords[currentsample + 2], std::min((unsigned long)bunchlength, mBunchwords.size() - currentsample - 2)));
         currentsample += bunchlength + 2;

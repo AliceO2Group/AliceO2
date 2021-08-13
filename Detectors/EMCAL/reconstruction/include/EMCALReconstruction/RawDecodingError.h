@@ -27,17 +27,21 @@ namespace emcal
 /// - Page not found
 /// - Raw header decoding error
 /// - Payload decoding error
+/// - Out-of-bounds errors
+/// In addition to the error type the FEE ID obtained from the
+/// current raw header is propagated.
 class RawDecodingError : public std::exception
 {
  public:
   /// \enum ErrorType_t
   /// \brief Codes for different error types
   enum class ErrorType_t {
-    PAGE_NOTFOUND,    ///< Page was not found (page index outside range)
-    HEADER_DECODING,  ///< Header cannot be decoded (format incorrect)
-    PAYLOAD_DECODING, ///< Payload cannot be decoded (format incorrect)
-    HEADER_INVALID,   ///< Header in memory not belonging to requested superpage
-    PAYLOAD_INVALID,  ///< Payload in memory not belonging to requested superpage
+    PAGE_NOTFOUND,      ///< Page was not found (page index outside range)
+    HEADER_DECODING,    ///< Header cannot be decoded (format incorrect)
+    PAYLOAD_DECODING,   ///< Payload cannot be decoded (format incorrect)
+    HEADER_INVALID,     ///< Header in memory not belonging to requested superpage
+    PAGE_START_INVALID, ///< Page position starting outside payload size
+    PAYLOAD_INVALID     ///< Payload in memory not belonging to requested superpage
   };
 
   /// \brief Constructor
@@ -45,7 +49,7 @@ class RawDecodingError : public std::exception
   ///
   /// Constructing the error with error code. To be called when the
   /// exception is thrown.
-  RawDecodingError(ErrorType_t errtype) : mErrorType(errtype)
+  RawDecodingError(ErrorType_t errtype, int fecID) : mErrorType(errtype), mFecID(fecID)
   {
   }
 
@@ -65,6 +69,8 @@ class RawDecodingError : public std::exception
         return "Payload of page cannot be decoded";
       case ErrorType_t::HEADER_INVALID:
         return "Access to header not belonging to requested superpage";
+      case ErrorType_t::PAGE_START_INVALID:
+        return "Page decoding starting outside payload size";
       case ErrorType_t::PAYLOAD_INVALID:
         return "Access to payload not belonging to requested superpage";
     };
@@ -75,8 +81,36 @@ class RawDecodingError : public std::exception
   /// \return Error code of the exception
   ErrorType_t getErrorType() const { return mErrorType; }
 
+  /// \brief Get the ID of the frontend electronics responsible for the error
+  /// \return ID of the frontend electronics
+  int getFECID() const { return mFecID; }
+
+  /// \brief Convert error type to error code number
+  /// \return Numeric representation of the error type
+  static int ErrorTypeToInt(RawDecodingError::ErrorType_t errortype)
+  {
+    switch (errortype) {
+      case ErrorType_t::PAGE_NOTFOUND:
+        return 0;
+      case ErrorType_t::HEADER_DECODING:
+        return 1;
+      case ErrorType_t::PAYLOAD_DECODING:
+        return 2;
+      case ErrorType_t::HEADER_INVALID:
+        return 3;
+      case ErrorType_t::PAGE_START_INVALID:
+        return 4;
+      case ErrorType_t::PAYLOAD_INVALID:
+        return 5;
+    };
+    // can never reach this, due to enum class
+    // just to make Werror happy
+    return -1;
+  }
+
  private:
   ErrorType_t mErrorType; ///< Type of the error
+  int mFecID;             ///< ID of the FEC responsible for the ERROR
 };
 
 } // namespace emcal

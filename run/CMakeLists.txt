@@ -94,6 +94,7 @@ message(STATUS "SIMENV = ${SIMENV}")
 o2_name_target(sim NAME o2simExecutable IS_EXE)
 o2_name_target(sim-serial NAME o2simSerialExecutable IS_EXE)
 
+if (BUILD_TESTING)
 o2_add_test_command(NAME o2sim_G4
                     WORKING_DIRECTORY ${SIMTESTDIR}
                     TIMEOUT 400
@@ -228,5 +229,6 @@ o2_add_test_command(NAME o2sim_G4_checklogs
 
 set_tests_properties(o2sim_G3_checklogs
                      PROPERTIES FIXTURES_REQUIRED G4)
+endif()
 
 install(FILES o2-sim-client.py PERMISSIONS GROUP_READ GROUP_EXECUTE OWNER_EXECUTE OWNER_WRITE OWNER_READ WORLD_EXECUTE WORLD_READ DESTINATION ${CMAKE_INSTALL_BINDIR})

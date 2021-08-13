@@ -114,9 +114,8 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
   auto refitITSTrack = [this, &data, &itsTracksROF, &itsClusters](o2::track::TrackParCov& trFit, GTrackID gidx, float& chi2, bool inward = false) {
     const auto& itsTrOrig = data.getITSTrack(gidx);
     int nclRefit = 0, ncl = itsTrOrig.getNumberOfClusters(), rof = itsTracksROF[gidx.getIndex()];
-    const auto& itsClustersROFRec = data.getITSClustersROFRecords();
     const auto& itsTrackClusRefs = data.getITSTracksClusterRefs();
-    int clusIndOffs = itsClustersROFRec[rof].getFirstEntry(), clEntry = itsTrOrig.getFirstClusterEntry();
+    int clEntry = itsTrOrig.getFirstClusterEntry();
     const auto propagator = o2::base::Propagator::Instance();
     const auto geomITS = o2::its::GeometryTGeo::Instance();
     int from = ncl - 1, to = -1, step = -1;
@@ -126,7 +125,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
       step = 1;
     }
     for (int icl = from; icl != to; icl += step) { // ITS clusters are referred in layer decreasing order
-      const auto& clus = itsClusters[clusIndOffs + itsTrackClusRefs[clEntry + icl]];
+      const auto& clus = itsClusters[itsTrackClusRefs[clEntry + icl]];
       float alpha = geomITS->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
       if (!trFit.rotate(alpha) || !propagator->propagateToX(trFit, x, propagator->getNominalBz(), this->mMatchParams->maxSnp, this->mMatchParams->maxStep, this->mMatchParams->matCorr)) {
         break;

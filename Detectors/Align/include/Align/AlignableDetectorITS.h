@@ -19,11 +19,14 @@
 
 #include "Align/AlignableDetector.h"
 #include "Align/utils.h"
+#include "ReconstructionDataFormats/TrackParametrizationWithError.h"
 
 namespace o2
 {
 namespace align
 {
+
+class Controller;
 
 class AlignableDetectorITS : public AlignableDetector
 {
@@ -36,18 +39,20 @@ class AlignableDetectorITS : public AlignableDetector
                   kSPD1,
                   kNSPDSelTypes };
   //
-  AlignableDetectorITS(const char* title = "");
-  virtual ~AlignableDetectorITS();
+  AlignableDetectorITS() = default;
+  AlignableDetectorITS(Controller* ctr);
+  ~AlignableDetectorITS() override = default;
   //
-  virtual void defineVolumes();
+  void defineVolumes() override;
   //
-  bool AcceptTrack(const AliESDtrack* trc, int trtype) const;
+  // RSTODO
+  //  bool AcceptTrack(const AliESDtrack* trc, int trtype) const;
 
   void SetAddErrorLr(int ilr, double sigY, double sigZ);
   void SetSkipLr(int ilr);
   //
-  virtual void UpdatePointByTrackInfo(AlignmentPoint* pnt, const AliExternalTrackParam* t) const;
-  virtual void setUseErrorParam(int v = 1);
+  void updatePointByTrackInfo(AlignmentPoint* pnt, const trackParam_t* t) const override;
+  void setUseErrorParam(int v = 1) override;
   void SetITSSelPattern(int trtype, ITSSel_t sel) { fITSPatt[trtype] = sel; }
   void SetITSSelPatternColl(ITSSel_t sel = kSPDAny) { SetITSSelPattern(utils::Coll, sel); }
   void SetITSSelPatternCosm(ITSSel_t sel = kSPDNoSel) { SetITSSelPattern(utils::Cosm, sel); }
@@ -56,14 +61,11 @@ class AlignableDetectorITS : public AlignableDetector
   int GetITSSelPatternColl() const { return fITSPatt[utils::Coll]; }
   int GetITSSelPatternCosm() const { return fITSPatt[utils::Cosm]; }
   //
-  virtual void Print(const Option_t* opt = "") const;
+  void Print(const Option_t* opt = "") const override;
   //
-  static bool CheckHitPattern(const AliESDtrack* trc, int sel);
-  static const char* GetITSPattName(int sel) { return sel < kNSPDSelTypes ? fgkHitsSel[sel] : 0; }
+  static const char* GetITSPattName(int sel) { return sel < kNSPDSelTypes ? fgkHitsSel[sel] : nullptr; }
   //
  protected:
-  //
-  void GetErrorParamAngle(int layer, double tgl, double tgphitr, double& erry, double& errz) const;
   //
   // -------- dummies --------
   AlignableDetectorITS(const AlignableDetectorITS&);
@@ -75,7 +77,7 @@ class AlignableDetectorITS : public AlignableDetector
   //
   static const char* fgkHitsSel[kNSPDSelTypes]; // ITS selection names
   //
-  ClassDef(AlignableDetectorITS, 1);
+  ClassDefOverride(AlignableDetectorITS, 1);
 };
 } // namespace align
 } // namespace o2

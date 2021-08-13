@@ -226,7 +226,7 @@ class AlignmentPoint : public TObject
 
   AlignableSensor* mSensor; // sensor of this point
 
-  ClassDef(AlignmentPoint, 1)
+  ClassDefOverride(AlignmentPoint, 1)
 };
 
 //____________________________________________________

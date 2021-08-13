@@ -289,6 +289,8 @@ struct CorrelationTask {
     fillCorrelations(same, tracks, tracks, centrality, collision.posZ(), bSign);
   }
 
+  PROCESS_SWITCH(CorrelationTask, processSame, "Process same event", true);
+
   void processMixed(soa::Join<aod::Collisions, aod::Hashes, aod::EvSels, aod::Cents>& collisions, myTracks const& tracks)
   {
     // TODO loading of efficiency histogram missing here, because it will happen somehow in the CCDBConfigurable
@@ -334,6 +336,8 @@ struct CorrelationTask {
       fillCorrelations(mixed, tracks1, tracks2, collision1.centV0M(), collision1.posZ(), bSign);
     }
   }
+
+  PROCESS_SWITCH(CorrelationTask, processMixed, "Process mixed events", true);
 
   // Version with combinations
   void processWithCombinations(soa::Join<aod::Collisions, aod::Cents>::iterator const& collision, soa::Filtered<aod::Tracks> const& tracks)
@@ -390,6 +394,8 @@ struct CorrelationTask {
       //mixed->getPairHist()->Fill(values, CorrelationContainer::kCFStepReconstructed);
     }
   }
+
+  PROCESS_SWITCH(CorrelationTask, processWithCombinations, "Process with combinations", false);
 
   double getEfficiency(THn* eff, float eta, float pt, float centrality, float posZ)
   {
@@ -494,5 +500,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
     adaptAnalysisTask<CorrelationHashTask>(cfgc),
-    adaptAnalysisTask<CorrelationTask>(cfgc, Processes{&CorrelationTask::processSame, &CorrelationTask::processMixed})};
+    adaptAnalysisTask<CorrelationTask>(cfgc)};
 }

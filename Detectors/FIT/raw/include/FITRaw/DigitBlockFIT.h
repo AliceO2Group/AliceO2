@@ -83,8 +83,8 @@ auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::
   tcmData.cen = digit.mTriggers.getCen();
   tcmData.vertex = digit.mTriggers.getVertex();
   tcmData.laser = bool(digit.mTriggers.triggersignals & (1 << 5));
-  tcmData.dataIsValid = bool(digit.mTriggers.triggersignals & (1 << 6));
-  //tcmData.laser = digit.mTriggers.getLaserBit(); //Turned off for FDD
+  tcmData.outputsAreBlocked = bool(digit.mTriggers.triggersignals & (1 << 6));
+  tcmData.dataIsValid = bool(digit.mTriggers.triggersignals & (1 << 7));
   tcmData.nChanA = digit.mTriggers.nChanA;
   tcmData.nChanC = digit.mTriggers.nChanC;
   const int64_t thresholdSignedInt17bit = 65535; //pow(2,17)/2-1
@@ -111,7 +111,8 @@ auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::
   tcmData.cen = bool(digit.mTriggers.triggerSignals & (1 << 3));
   tcmData.vertex = bool(digit.mTriggers.triggerSignals & (1 << 4));
   tcmData.laser = bool(digit.mTriggers.triggerSignals & (1 << 5));
-  tcmData.dataIsValid = bool(digit.mTriggers.triggerSignals & (1 << 6));
+  tcmData.outputsAreBlocked = bool(digit.mTriggers.triggerSignals & (1 << 6));
+  tcmData.dataIsValid = bool(digit.mTriggers.triggerSignals & (1 << 7));
   tcmData.nChanA = digit.mTriggers.nChanA;
   //tcmData.nChanC = digit.mTriggers.nChanC;
   tcmData.nChanC = 0;
@@ -137,7 +138,8 @@ auto ConvertTCMData2Digit(DigitType& digit, const TCMDataType& tcmData) -> std::
                        ((bool)tcmData.cen << TriggerType::bitCen) |
                        ((bool)tcmData.sCen << TriggerType::bitSCen) |
                        ((bool)tcmData.laser << 5) |
-                       ((bool)tcmData.dataIsValid << 6);
+                       ((bool)tcmData.outputsAreBlocked << 6) |
+                       ((bool)tcmData.dataIsValid << 7);
   trg.nChanA = (int8_t)tcmData.nChanA;
   trg.nChanC = (int8_t)tcmData.nChanC;
   trg.amplA = (int32_t)tcmData.amplA;
@@ -167,7 +169,8 @@ auto ConvertTCMData2Digit(DigitType& digit, const TCMDataType& tcmData) -> std::
                        ((bool)tcmData.cen << 3) |
                        ((bool)tcmData.vertex << 4) |
                        ((bool)tcmData.laser << 5) |
-                       ((bool)tcmData.dataIsValid << 6);
+                       ((bool)tcmData.outputsAreBlocked << 6) |
+                       ((bool)tcmData.dataIsValid << 7);
   trg.nChanA = (int8_t)tcmData.nChanA;
   //trg.nChanC = (int8_t)tcmData.nChanC;
   trg.amplA = (int32_t)tcmData.amplA;

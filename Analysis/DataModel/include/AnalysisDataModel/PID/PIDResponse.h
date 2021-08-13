@@ -22,9 +22,27 @@
 // O2 includes
 #include "Framework/ASoA.h"
 #include "Framework/AnalysisDataModel.h"
+#include "ReconstructionDataFormats/PID.h"
 
 namespace o2::aod
 {
+namespace pidutils
+{
+// Function to pack a float into a binned value in table
+template <typename T, const T underflow, const T overflow, typename tableType>
+void packInTable(const float& separation, tableType& table, const float& lowest, const float& highest, const float& width)
+{
+  if (separation <= lowest) {
+    table(underflow);
+  } else if (separation >= highest) {
+    table(overflow);
+  } else if (separation >= 0) {
+    table(static_cast<T>(separation / width + 0.5f));
+  } else {
+    table(static_cast<T>(separation / width - 0.5f));
+  }
+}
+} // namespace pidutils
 
 namespace pidtofbeta
 {
@@ -281,6 +299,47 @@ DECLARE_SOA_TABLE(pidTPCAl, "AOD", "pidTPCAl", //! Table of the TPC response wit
                   pidtpc_tiny::TPCNSigmaStoreAl, pidtpc_tiny::TPCNSigmaAl<pidtpc_tiny::TPCNSigmaStoreAl>);
 
 #undef DEFINE_UNWRAP_NSIGMA_COLUMN
+
+namespace pidbayes
+{
+typedef int8_t binned_prob_t;
+// Bayesian probabilities with reduced size
+DECLARE_SOA_COLUMN(BayesEl, bayesEl, binned_prob_t);                //! Bayesian probability for electron expressed in %
+DECLARE_SOA_COLUMN(BayesMu, bayesMu, binned_prob_t);                //! Bayesian probability for muon expressed in %
+DECLARE_SOA_COLUMN(BayesPi, bayesPi, binned_prob_t);                //! Bayesian probability for pion expressed in %
+DECLARE_SOA_COLUMN(BayesKa, bayesKa, binned_prob_t);                //! Bayesian probability for kaon expressed in %
+DECLARE_SOA_COLUMN(BayesPr, bayesPr, binned_prob_t);                //! Bayesian probability for proton expressed in %
+DECLARE_SOA_COLUMN(BayesDe, bayesDe, binned_prob_t);                //! Bayesian probability for deuteron expressed in %
+DECLARE_SOA_COLUMN(BayesTr, bayesTr, binned_prob_t);                //! Bayesian probability for triton expressed in %
+DECLARE_SOA_COLUMN(BayesHe, bayesHe, binned_prob_t);                //! Bayesian probability for helium3 expressed in %
+DECLARE_SOA_COLUMN(BayesAl, bayesAl, binned_prob_t);                //! Bayesian probability for alpha expressed in %
+DECLARE_SOA_COLUMN(BayesProb, bayesProb, binned_prob_t);            //! Bayesian probability of the most probable ID
+DECLARE_SOA_COLUMN(BayesID, bayesID, o2::track::pid_constants::ID); //! Most probable ID
+
+} // namespace pidbayes
+
+// Table for each particle hypothesis
+DECLARE_SOA_TABLE(pidBayesEl, "AOD", "pidBayesEl", //! Binned (in percentage) Bayesian probability of having a Electron
+                  pidbayes::BayesEl);
+DECLARE_SOA_TABLE(pidBayesMu, "AOD", "pidBayesMu", //! Binned (in percentage) Bayesian probability of having a Muon
+                  pidbayes::BayesMu);
+DECLARE_SOA_TABLE(pidBayesPi, "AOD", "pidBayesPi", //! Binned (in percentage) Bayesian probability of having a Pion
+                  pidbayes::BayesPi);
+DECLARE_SOA_TABLE(pidBayesKa, "AOD", "pidBayesKa", //! Binned (in percentage) Bayesian probability of having a Kaon
+                  pidbayes::BayesKa);
+DECLARE_SOA_TABLE(pidBayesPr, "AOD", "pidBayesPr", //! Binned (in percentage) Bayesian probability of having a Proton
+                  pidbayes::BayesPr);
+DECLARE_SOA_TABLE(pidBayesDe, "AOD", "pidBayesDe", //! Binned (in percentage) Bayesian probability of having a Deuteron
+                  pidbayes::BayesDe);
+DECLARE_SOA_TABLE(pidBayesTr, "AOD", "pidBayesTr", //! Binned (in percentage) Bayesian probability of having a Triton
+                  pidbayes::BayesTr);
+DECLARE_SOA_TABLE(pidBayesHe, "AOD", "pidBayesHe", //! Binned (in percentage) Bayesian probability of having a Helium3
+                  pidbayes::BayesHe);
+DECLARE_SOA_TABLE(pidBayesAl, "AOD", "pidBayesAl", //! Binned (in percentage) Bayesian probability of having a Alpha
+                  pidbayes::BayesAl);
+
+// Table for the most probable particle
+DECLARE_SOA_TABLE(pidBayes, "AOD", "pidBayes", pidbayes::BayesProb, pidbayes::BayesID); //! Index of the most probable ID and its bayesian probability
 
 } // namespace o2::aod
 

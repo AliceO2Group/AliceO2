@@ -25,6 +25,7 @@ o2_add_library(TPCWorkflow
                        src/IDCToVectorSpec.cxx
                        src/CalibdEdxSpec.cxx
                        src/MIPTrackFilterSpec.cxx
+                       src/LaserTrackFilterSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
@@ -64,24 +65,49 @@ o2_add_executable(calib-pedestal
                   SOURCES src/tpc-calib-pedestal.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(laser-tracks-calibrator
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-laser-tracks-calibrator.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_executable(calib-laser-tracks
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-calib-laser-tracks.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
-o2_add_executable(integrate-idc
+o2_add_executable(laser-track-filter
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-laser-track-filter.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(idc-integrate
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-integrate-idc.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
-o2_add_executable(averagegroup-idc
+o2_add_executable(idc-averagegroup
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-averagegroup-idc.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
-o2_add_executable(aggregate-idc
+o2_add_executable(idc-distribute
                   COMPONENT_NAME tpc
-                  SOURCES src/tpc-aggregate-grouped-idc.cxx
+                  SOURCES src/tpc-distribute-idc.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(idc-ft-aggregator
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-fouriertransform-aggregator.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(idc-ft-epn
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-fouriertransform-epn.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(idc-factorize
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-factorize-idc.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_executable(track-reader
@@ -107,6 +133,11 @@ o2_add_executable(idc-to-vector
 o2_add_executable(calib-dedx
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-calib-dEdx.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(idc-test-ft
+                  COMPONENT_NAME tpc
+                  SOURCES test/test_ft_EPN_Aggregator.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_executable(miptrack-filter

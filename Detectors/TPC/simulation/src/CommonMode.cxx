@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file CommonMode.cxx
-/// \brief Implementation of the common mode output object
+/// \brief Implementation of the common mode container class
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #include "TPCSimulation/CommonMode.h"

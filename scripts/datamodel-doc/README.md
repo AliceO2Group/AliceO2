@@ -63,14 +63,48 @@ The html representation of the 'datamodel' object is achieved with the printHTML
 
 - Install the software
 
-git clone [git@github.com:pbuehler/ALICEO2dataModel.git](git@github.com:pbuehler/ALICEO2dataModel.git)
+Clone O2 as usual. Go to scripts/datamodel-doc
 
 - Adapt inputCard.xml
 
-Set the path in tag data/O2general/mainDir/local to the actual O2 installation path, e.g. home/me/alice/O2. The other parameters should fit.
+Set the path in tag O2general - General which is currently ../.. to the actual O2 installation path, e.g. /home/me/alice/O2 unless you run from the directory scripts/datamodel-doc. The other parameters should fit.
 
 - Run it
 
 ./extractDataModel.py > htmloutput.txt
 
 - Update the markdown files with the content of htmloutput.txt.
+
+
+### Update the markdown files automatically
+
+The python script mdUpdate.py allows to update the contents of the md files automatically.
+
+mdUpdate.py takes four arguments:
+
+Usage:
+mdUpdate.py cc fn2u fnold fnnew
+
+cc: 1: AO2D, 2: Helpers, 3: Joins
+
+fn2u: file with new text
+
+fnold: file with old text
+
+fnnew: file with replaced text
+
+mdUpdate.py replaces in file fnold the block of text which is delimited by two lines containing a delimiter string by the block of text in file fn2u which is delimited by two lines containing the same delimiter string and write the output to file fnnew. The delimiter string is obtained from the inputCard.xml, depending on the value of cc. If fnnew = fnold, the content of fnold is overwritten.
+
+So to update the md files do:
+
+- ./extractDataModel.py > htmloutput.txt
+- path2mds=./testing
+- ./mdUpdate.py 1 htmloutput.txt $path2mds/ao2dTables.md $path2mds/ao2dTables.md
+- ./mdUpdate.py 2 htmloutput.txt $path2mds/helperTaskTables.md $path2mds/helperTaskTables.md
+- ./mdUpdate.py 3 htmloutput.txt $path2mds/joinsAndIterators.md $path2mds/joinsAndIterators.md
+
+### For a full automatic update
+
+In the same directory have O2 cloned to O2 and the documentation (your fork of https://github.com/AliceO2Group/analysis-framework) in analysis-framework and execute
+
+O2/scripts/datamodel-doc/update-datamodel.sh

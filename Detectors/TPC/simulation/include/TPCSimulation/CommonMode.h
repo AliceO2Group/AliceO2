@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DigitMCMetaData.h
-/// \brief Definition of the Meta Data object of the Monte Carlo Digit
+/// \file CommonMode.h
+/// \brief Definition of the common mode container class
 /// \author Andi Mathis, TU München, andreas.mathis@ph.tum.de
 
 #ifndef ALICEO2_TPC_CommonMode_H_

@@ -205,3 +205,42 @@ void Geometry::local2Global(char module, float x, float z, TVector3& globaPos) c
   mPHOS[module].LocalToMaster(posL, posG);
   globaPos.SetXYZ(posG[0], posG[1], posG[2]);
 }
+
+bool Geometry::impactOnPHOS(const TVector3& vtx, const TVector3& p,
+                            short& module, float& z, float& x) const
+{
+  // calculates the impact coordinates on PHOS of a neutral particle
+  // emitted in the vertex vtx with 3-momentum p
+  constexpr float shiftY = -1.26;          //Depth-optimized
+  constexpr float moduleXhalfSize = 72.16; // 18.04 / 2 * 8
+  constexpr float moduleZhalfSize = 64.14; // 4.51 / 2 * 28
+
+  for (short mod = 1; mod < 5; mod++) {
+    //create vector from (0,0,0) to center of crystal surface of imod module
+    double tmp[3] = {0., 0., shiftY};
+    double posG[3] = {0., 0., 0.};
+    mPHOS[mod].LocalToMaster(tmp, posG);
+    TVector3 n(posG[0], posG[1], posG[2]);
+    double direction = n.Dot(p);
+    if (direction <= 0.) {
+      continue; //momentum directed FROM module
+    }
+    double fr = (n.Mag2() - n.Dot(vtx)) / direction;
+    //Calculate direction in module plane
+    n -= vtx + fr * p;
+    n *= -1.;
+    if (TMath::Abs(n.Z()) < moduleZhalfSize && n.Pt() < moduleXhalfSize) {
+      module = mod;
+      z = n.Z();
+      x = TMath::Sign(n.Pt(), n.X());
+      //no need to return to local system since we calcilated distance from module center
+      //and tilts can not be significant.
+      return true;
+    }
+  }
+  //Not in acceptance
+  x = 0;
+  z = 0;
+  module = 0;
+  return false;
+}

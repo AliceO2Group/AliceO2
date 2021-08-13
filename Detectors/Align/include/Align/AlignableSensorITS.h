@@ -32,16 +32,17 @@ namespace align
 class AlignableSensorITS : public AlignableSensor
 {
  public:
-  AlignableSensorITS(const char* name = 0, int vid = 0, int iid = 0);
-  virtual ~AlignableSensorITS();
+  AlignableSensorITS() = default;
+  AlignableSensorITS(const char* name, int vid, int iid, Controller* ctr);
+  ~AlignableSensorITS() override = default;
   //
-  virtual AlignmentPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t);
+  //  virtual AlignmentPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t);
 
-  //  virtual void   setTrackingFrame();
+  void setTrackingFrame() override;
   //
  protected:
   //
-  ClassDef(AlignableSensorITS, 1)
+  ClassDefOverride(AlignableSensorITS, 1)
 };
 } // namespace align
 } // namespace o2

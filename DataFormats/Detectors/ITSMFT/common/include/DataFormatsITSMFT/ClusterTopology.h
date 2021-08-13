@@ -44,8 +44,8 @@ class ClusterTopology
   /// Returns a specific byte of the pattern
   unsigned char getByte(int n) const { return mPattern.getByte(n); }
   /// Returns the pattern
-  std::array<unsigned char, ClusterPattern::kExtendedPatternBytes> getPattern() const { return mPattern.getPattern(); }
-  ClusterPattern getClusterPattern() const { return mPattern; }
+  const std::array<unsigned char, ClusterPattern::kExtendedPatternBytes>& getPattern() const { return mPattern.getPattern(); }
+  const ClusterPattern& getClusterPattern() const { return mPattern; }
   /// Returns the number of rows
   int getRowSpan() const { return mPattern.getRowSpan(); }
   /// Returns the number of columns

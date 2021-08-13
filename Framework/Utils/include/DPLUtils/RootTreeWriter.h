@@ -188,9 +188,9 @@ class RootTreeWriter
     /// number of branches controlled by this definition for the same type
     size_t nofBranches = 1;
     /// extractor function for the index for parallel branches
-    IndexExtractor getIndex; // = [](o2::framework::DataRef const&) {return 0;}
+    IndexExtractor getIndex = nullptr;
     /// get name of branch from base name and index
-    BranchNameMapper getName = [](std::string base, size_t i) { return base + "_" + std::to_string(i); };
+    BranchNameMapper getName = nullptr;
 
     using Fill = std::function<void(TBranch& branch, T const&)>;
     using FillExt = std::function<void(TBranch& branch, T const&, DataRef const&)>;
@@ -317,8 +317,9 @@ class RootTreeWriter
   void setBranchName(size_t index, const char* branchName)
   {
     auto& spec = mBranchSpecs.at(index);
-    if (spec.names.size() > 1 && spec.getName) {
-      // set the branch names for this group
+    if (spec.getName) {
+      // set the branch names for this group, we also amend if there is only one branch but
+      // the callback is configured
       size_t idx = 0;
       std::generate(spec.names.begin(), spec.names.end(), [&]() { return spec.getName(branchName, idx++); });
     } else {
@@ -423,8 +424,8 @@ class RootTreeWriter
     std::vector<std::string> names;
     std::vector<TBranch*> branches;
     TClass* classinfo = nullptr;
-    IndexExtractor getIndex;
-    BranchNameMapper getName;
+    IndexExtractor getIndex = nullptr;
+    BranchNameMapper getName = nullptr;
   };
 
   using InputContext = InputRecord;
@@ -845,12 +846,15 @@ class RootTreeWriter
     // a getIndex function makes only sense if there are multiple branches
     assert(def.nofBranches <= 1 || def.getIndex);
     if (def.nofBranches > 1) {
+      // FIXME: should that be an exception since assert is disabled in the normal build?
       assert(def.getIndex && def.getName);
       mBranchSpecs.back().getIndex = def.getIndex;
-      mBranchSpecs.back().getName = def.getName;
       mBranchSpecs.back().names.resize(def.nofBranches);
+    }
 
-      // fill the branch names by calling the getName callback
+    // always amend the branch name(s) if the callback is configured
+    if (def.getName) {
+      mBranchSpecs.back().getName = def.getName;
       idx = 0;
       std::generate(mBranchSpecs.back().names.begin(), mBranchSpecs.back().names.end(),
                     [&def, &idx]() { return def.getName(def.branchName, idx++); });

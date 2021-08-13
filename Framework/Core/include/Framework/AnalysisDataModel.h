@@ -510,14 +510,22 @@ namespace aod
 using FullFwdTracks = soa::Join<FwdTracks, FwdTracksCov>;
 using FullFwdTrack = FullFwdTracks::iterator;
 
+// Some tracks cannot be uniquely identified with a collision. Some tracks cannot be assigned to a collision at all.
+// Those tracks have -1 as collision index and have an entry in the following table. Either of the two following then applies:
+// If a track has several matching collisions these are listed in the Collision array. In this case the BC slice is not filled
+// If on the contrary, a track has no matching collision and can only be assigned through its estimated time, it is assigned all
+//   BCs which are compatible with this time. As the BCs are time ordered, a slice is used to store the relation. In this case
+//   no entry is found in the collision member.
 namespace ambiguoustracks
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision); //! Collision index
-DECLARE_SOA_INDEX_COLUMN(Track, track);         //! Track index
+DECLARE_SOA_INDEX_COLUMN(Track, track); //! Track index
+DECLARE_SOA_SLICE_INDEX_COLUMN(BC, bc); //! BC index (slice for 1 to N entries)
+// TODO to be replaced by a variable length array
+DECLARE_SOA_ARRAY_INDEX_COLUMN(Collision, collision, 2); //! Collision index
 } // namespace ambiguoustracks
 
 DECLARE_SOA_TABLE(AmbiguousTracks, "AOD", "AMBIGUOUSTRACK", //! Table for tracks which are not uniquely associated with a collision
-                  ambiguoustracks::CollisionId, ambiguoustracks::TrackId);
+                  ambiguoustracks::TrackId, ambiguoustracks::BCIdSlice, ambiguoustracks::CollisionIds);
 
 using AmbiguousTrack = AmbiguousTracks::iterator;
 
@@ -763,55 +771,76 @@ using McCollision = McCollisions::iterator;
 
 namespace mcparticle
 {
-DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision); //! MC collision of this particle
-DECLARE_SOA_COLUMN(PdgCode, pdgCode, int);          //! PDG code
-DECLARE_SOA_COLUMN(StatusCode, statusCode, int);    //! Status code directly from the generator
-DECLARE_SOA_COLUMN(Flags, flags, uint8_t);          //! ALICE specific flags. Do not use directly. Use the dynamic columns, e.g. producedByGenerator()
-// TODO declaration to be swapped when self-indexing columns are available
-//DECLARE_SOA_INDEX_COLUMN_FULL(Mother0, mother0, int, McParticle, "_Mother0"); //! Track index of the first mother
-DECLARE_SOA_COLUMN_FULL(Mother0, mother0, int, "fIndexMcParticles_Mother0"); //! Track index of the first mother
-//DECLARE_SOA_INDEX_COLUMN_FULL(Mother1, mother1, int, McParticle, "_Mother1"); //! Track index of the second mother
-DECLARE_SOA_COLUMN_FULL(Mother1, mother1, int, "fIndexMcParticles_Mother1"); //! Track index of the first mother
-//DECLARE_SOA_INDEX_COLUMN_FULL(Daughter0, daughter0, int, McParticle, "_Daughter0"); //! Track index of the first daugther
-DECLARE_SOA_COLUMN_FULL(Daughter0, daughter0, int, "fIndexMcParticles_Daughter0"); //! Track index of the first daugther
-//DECLARE_SOA_INDEX_COLUMN_FULL(Daughter1, daughter1, int, McParticle, "_Daughter1"); //! Track index of the first daugther
-DECLARE_SOA_COLUMN_FULL(Daughter1, daughter1, int, "fIndexMcParticles_Daughter1"); //! Track index of the first daugther
-DECLARE_SOA_COLUMN(Weight, weight, float);                                         //! MC weight
-DECLARE_SOA_COLUMN(Px, px, float);                                                 //! Momentum in x in GeV/c
-DECLARE_SOA_COLUMN(Py, py, float);                                                 //! Momentum in y in GeV/c
-DECLARE_SOA_COLUMN(Pz, pz, float);                                                 //! Momentum in z in GeV/c
-DECLARE_SOA_COLUMN(E, e, float);                                                   //! Energy
-DECLARE_SOA_COLUMN(Vx, vx, float);                                                 //! X production vertex in cm
-DECLARE_SOA_COLUMN(Vy, vy, float);                                                 //! Y production vertex in cm
-DECLARE_SOA_COLUMN(Vz, vz, float);                                                 //! Z production vertex in cm
-DECLARE_SOA_COLUMN(Vt, vt, float);                                                 //! Production time
-DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi,                                               //! Phi
+DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);                                     //! MC collision of this particle
+DECLARE_SOA_COLUMN(PdgCode, pdgCode, int);                                              //! PDG code
+DECLARE_SOA_COLUMN(StatusCode, statusCode, int);                                        //! Status code directly from the generator
+DECLARE_SOA_COLUMN(Flags, flags, uint8_t);                                              //! ALICE specific flags. Do not use directly. Use the dynamic columns, e.g. producedByGenerator()
+DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Mother0, mother0, int, "McParticles_Mother0");       //! Track index of the first mother
+DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Mother1, mother1, int, "McParticles_Mother1");       //! Track index of the last mother
+DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Daughter0, daughter0, int, "McParticles_Daughter0"); //! Track index of the first daugther
+DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Daughter1, daughter1, int, "McParticles_Daughter1"); //! Track index of the last daugther
+DECLARE_SOA_COLUMN(Weight, weight, float);                                              //! MC weight
+DECLARE_SOA_COLUMN(Px, px, float);                                                      //! Momentum in x in GeV/c
+DECLARE_SOA_COLUMN(Py, py, float);                                                      //! Momentum in y in GeV/c
+DECLARE_SOA_COLUMN(Pz, pz, float);                                                      //! Momentum in z in GeV/c
+DECLARE_SOA_COLUMN(E, e, float);                                                        //! Energy
+DECLARE_SOA_COLUMN(Vx, vx, float);                                                      //! X production vertex in cm
+DECLARE_SOA_COLUMN(Vy, vy, float);                                                      //! Y production vertex in cm
+DECLARE_SOA_COLUMN(Vz, vz, float);                                                      //! Z production vertex in cm
+DECLARE_SOA_COLUMN(Vt, vt, float);                                                      //! Production time
+DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi,                                                    //! Phi
                            [](float px, float py) -> float { return static_cast<float>(M_PI) + std::atan2(-py, -px); });
-DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, //! Pseudorapidity
-                           [](float px, float py, float pz) -> float { return 0.5f * std::log((std::sqrt(px * px + py * py + pz * pz) + pz) / (std::sqrt(px * px + py * py + pz * pz) - pz)); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, //! Transverse momentum in GeV/c
-                           [](float px, float py) -> float { return std::sqrt(px * px + py * py); });
-DECLARE_SOA_DYNAMIC_COLUMN(P, p, //! Total momentum in GeV/c
-                           [](float px, float py, float pz) -> float { return std::sqrt(px * px + py * py + pz * pz); });
-DECLARE_SOA_DYNAMIC_COLUMN(Y, y, //! Particle rapidity
-                           [](float pz, float energy) -> float { return 0.5f * std::log((energy + pz) / (energy - pz)); });
 DECLARE_SOA_DYNAMIC_COLUMN(ProducedByGenerator, producedByGenerator, //! Particle produced by the generator or by the transport code
                            [](uint8_t flags) -> bool { return (flags & 0x1) == 0x0; });
+
+// DECLARE_SOA_EXPRESSION_COLUMN(Phi, phi, float, //! Phi: NOTE this waits that the atan2 function is defined for expression columns
+//                               static_cast<float>(M_PI) + natan2(-aod::mcparticle::py, -aod::mcparticle::px));
+DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //! Pseudorapidity, conditionally defined to avoid FPEs
+                              ifnode((nsqrt(aod::mcparticle::px * aod::mcparticle::px +
+                                            aod::mcparticle::py * aod::mcparticle::py +
+                                            aod::mcparticle::pz * aod::mcparticle::pz) -
+                                      aod::mcparticle::pz) < static_cast<float>(1e-7),
+                                     ifnode(aod::mcparticle::pz < 0.f, -100.f, 100.f),
+                                     0.5f * nlog((nsqrt(aod::mcparticle::px * aod::mcparticle::px +
+                                                        aod::mcparticle::py * aod::mcparticle::py +
+                                                        aod::mcparticle::pz * aod::mcparticle::pz) +
+                                                  aod::mcparticle::pz) /
+                                                 (nsqrt(aod::mcparticle::px * aod::mcparticle::px +
+                                                        aod::mcparticle::py * aod::mcparticle::py +
+                                                        aod::mcparticle::pz * aod::mcparticle::pz) -
+                                                  aod::mcparticle::pz))));
+DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, //! Transverse momentum in GeV/c
+                              nsqrt(aod::mcparticle::px* aod::mcparticle::px +
+                                    aod::mcparticle::py * aod::mcparticle::py));
+DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //! Total momentum in GeV/c
+                              nsqrt(aod::mcparticle::px* aod::mcparticle::px +
+                                    aod::mcparticle::py * aod::mcparticle::py +
+                                    aod::mcparticle::pz * aod::mcparticle::pz));
+DECLARE_SOA_EXPRESSION_COLUMN(Y, y, float, //! Particle rapidity, conditionally defined to avoid FPEs
+                              ifnode((aod::mcparticle::e - aod::mcparticle::pz) < static_cast<float>(1e-7),
+                                     ifnode(aod::mcparticle::pz < 0.f, -100.f, 100.f),
+                                     0.5f * nlog((aod::mcparticle::e + aod::mcparticle::pz) /
+                                                 (aod::mcparticle::e - aod::mcparticle::pz))));
 } // namespace mcparticle
 
-DECLARE_SOA_TABLE(McParticles, "AOD", "MCPARTICLE", //! MC particle table
-                  o2::soa::Index<>, mcparticle::McCollisionId,
-                  mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
-                  mcparticle::Mother0, mcparticle::Mother1,
-                  mcparticle::Daughter0, mcparticle::Daughter1, mcparticle::Weight,
-                  mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
-                  mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
-                  mcparticle::Phi<mcparticle::Px, mcparticle::Py>,
-                  mcparticle::Eta<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
-                  mcparticle::Pt<mcparticle::Px, mcparticle::Py>,
-                  mcparticle::P<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
-                  mcparticle::Y<mcparticle::Pz, mcparticle::E>,
-                  mcparticle::ProducedByGenerator<mcparticle::Flags>);
+DECLARE_SOA_TABLE_FULL(StoredMcParticles, "McParticles", "AOD", "MCPARTICLE", //! On disk version of the MC particle table
+                       o2::soa::Index<>, mcparticle::McCollisionId,
+                       mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
+                       mcparticle::Mother0Id, mcparticle::Mother1Id,
+                       mcparticle::Daughter0Id, mcparticle::Daughter1Id, mcparticle::Weight,
+                       mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
+                       mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
+                       mcparticle::Phi<mcparticle::Px, mcparticle::Py>,
+                       //  mcparticle::Eta<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
+                       mcparticle::ProducedByGenerator<mcparticle::Flags>);
+
+DECLARE_SOA_EXTENDED_TABLE(McParticles, StoredMcParticles, "MCPARTICLE", //! Basic MC particle properties
+                                                                         //  mcparticle::Phi,
+                           mcparticle::Eta,
+                           mcparticle::Pt,
+                           mcparticle::P,
+                           mcparticle::Y);
+
 using McParticle = McParticles::iterator;
 
 namespace mctracklabel

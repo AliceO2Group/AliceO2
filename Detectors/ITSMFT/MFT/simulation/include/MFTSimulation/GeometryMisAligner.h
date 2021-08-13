@@ -240,7 +240,7 @@ class GeometryMisAligner
   Double_t fXYAngMisAligFactor; ///< factor (<1) to apply to angular misalignment range since range of motion is restricted out of the xy plane
   Double_t fZCartMisAligFactor; ///< factor (<1) to apply to cartetian misalignment range since range of motion is restricted in z direction
 
-  ClassDef(GeometryMisAligner, 0) // Geometry parametrisation
+  ClassDefNV(GeometryMisAligner, 0) // Geometry parametrisation
 };
 
 } // namespace mft

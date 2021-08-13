@@ -142,7 +142,7 @@ class AlpideSimResponse
   const std::string& getColRowDataFmt() const { return mColRowDataFmt; }
   void print() const;
 
-  ClassDef(AlpideSimResponse, 1);
+  ClassDefNV(AlpideSimResponse, 1);
 };
 
 //-----------------------------------------------------

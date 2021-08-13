@@ -10,12 +10,13 @@
 // or submit itself to any jurisdiction.
 #include <string>
 
-#include "FairLogger.h"
+#include <InfoLogger/InfoLogger.hxx>
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "Framework/InputRecordWalker.h"
 #include "Framework/ControlService.h"
+#include "Framework/InputRecordWalker.h"
+#include "Framework/Logger.h"
 #include "Framework/WorkflowSpec.h"
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
@@ -28,6 +29,7 @@
 #include "EMCALReconstruction/CaloRawFitterStandard.h"
 #include "EMCALReconstruction/CaloRawFitterGamma2.h"
 #include "EMCALReconstruction/AltroDecoder.h"
+#include "EMCALReconstruction/RawDecodingError.h"
 #include "EMCALWorkflow/RawToCellConverterSpec.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -43,6 +45,9 @@ RawToCellConverterSpec::~RawToCellConverterSpec()
 
 void RawToCellConverterSpec::init(framework::InitContext& ctx)
 {
+  auto& ilctx = ctx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
+  ilctx.setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, "EMC");
+
   LOG(DEBUG) << "[EMCALRawToCellConverter - init] Initialize converter ";
   if (!mGeometry) {
     mGeometry = Geometry::GetInstanceFromRunNumber(223409);
@@ -63,8 +68,13 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
     LOG(INFO) << "Using standard raw fitter";
     mRawFitter = std::unique_ptr<CaloRawFitter>(new o2::emcal::CaloRawFitterStandard);
   } else if (fitmethod == "gamma2") {
+    LOG(INFO) << "Using gamma2 raw fitter";
     mRawFitter = std::unique_ptr<CaloRawFitter>(new o2::emcal::CaloRawFitterGamma2);
+  } else {
+    LOG(FATAL) << "Unknown fit method" << fitmethod;
   }
+
+  mPrintTrailer = ctx.options().get<bool>("printtrailer");
 
   mMaxErrorMessages = ctx.options().get<int>("maxmessage");
   LOG(INFO) << "Suppressing error messages after " << mMaxErrorMessages << " messages";
@@ -77,15 +87,25 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(DEBUG) << "[EMCALRawToCellConverter - run] called";
   const double CONVADCGEV = 0.016; // Conversion from ADC counts to energy: E = 16 MeV / ADC
+  constexpr auto originEMC = o2::header::gDataOriginEMC;
+  constexpr auto descRaw = o2::header::gDataDescriptionRawData;
+
+  mOutputCells.clear();
+  mOutputTriggerRecords.clear();
+  mOutputDecoderErrors.clear();
+
+  if (isLostTimeframe(ctx)) {
+    sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
+    return;
+  }
 
   // Cache cells from for bunch crossings as the component reads timeframes from many links consecutively
   std::map<o2::InteractionRecord, std::shared_ptr<std::vector<Cell>>> cellBuffer; // Internal cell buffer
   std::map<o2::InteractionRecord, uint32_t> triggerBuffer;
 
-  mOutputDecoderErrors.clear();
-
+  std::vector<framework::InputSpec> filter{{"filter", framework::ConcreteDataTypeMatcher(originEMC, descRaw)}};
   int firstEntry = 0;
-  for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
+  for (const auto& rawData : framework::InputRecordWalker(ctx.inputs(), filter)) {
 
     // Skip SOX headers
     auto rdhblock = reinterpret_cast<const o2::header::RDHAny*>(rawData.payload);
@@ -100,7 +120,20 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     // loop over all the DMA pages
     while (rawreader.hasNext()) {
 
-      rawreader.next();
+      try {
+        rawreader.next();
+      } catch (RawDecodingError& e) {
+        mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()));
+        if (mNumErrorMessages < mMaxErrorMessages) {
+          LOG(ERROR) << " EMCAL raw task: " << e.what() << " in FEC " << e.getFECID() << std::endl;
+          mNumErrorMessages++;
+          if (mNumErrorMessages == mMaxErrorMessages) {
+            LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+          }
+        } else {
+          mErrorMessagesSuppressed++;
+        }
+      }
 
       auto& header = rawreader.getRawHeader();
       auto triggerBC = raw::RDHUtils::getTriggerBC(header);
@@ -135,7 +168,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         std::string errormessage;
         using AltroErrType = AltroDecoderError::ErrorType_t;
         /// @TODO still need to add the RawFitter errors
-        ErrorTypeFEE errornum(feeID, AltroDecoderError::errorTypeToInt(e.getErrorType()), -1);
+        ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(e.getErrorType()));
         switch (e.getErrorType()) {
           case AltroErrType::RCU_TRAILER_ERROR:
             errormessage = " RCU Trailer Error ";
@@ -178,7 +211,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         continue;
       }
 
-      LOG(DEBUG) << decoder.getRCUTrailer();
+      if (mPrintTrailer) {
+        // Can become very verbose, therefore must be switched on explicitly in addition
+        // to high debug level
+        LOG(DEBUG4) << decoder.getRCUTrailer();
+      }
       // Apply zero suppression only in case it was enabled
       mRawFitter->setIsZeroSuppressed(decoder.getRCUTrailer().hasZeroSuppression());
 
@@ -199,8 +236,68 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           continue;
         };
 
+        if (!(chantype == o2::emcal::ChannelType_t::HIGH_GAIN || chantype == o2::emcal::ChannelType_t::LOW_GAIN)) {
+          continue;
+        }
+
         auto [phishift, etashift] = mGeometry->ShiftOnlineToOfflineCellIndexes(iSM, iRow, iCol);
         int CellID = mGeometry->GetAbsCellIdFromCellIndexes(iSM, phishift, etashift);
+        if (CellID > 17664) {
+          if (mNumErrorMessages < mMaxErrorMessages) {
+            std::string celltypename;
+            switch (chantype) {
+              case o2::emcal::ChannelType_t::HIGH_GAIN:
+                celltypename = "high gain";
+                break;
+              case o2::emcal::ChannelType_t::LOW_GAIN:
+                celltypename = "low-gain";
+                break;
+              case o2::emcal::ChannelType_t::TRU:
+                celltypename = "TRU";
+                break;
+              case o2::emcal::ChannelType_t::LEDMON:
+                celltypename = "LEDMON";
+                break;
+            };
+            LOG(ERROR) << "Sending invalid cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
+            mNumErrorMessages++;
+            if (mNumErrorMessages == mMaxErrorMessages) {
+              LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+            }
+          } else {
+            mErrorMessagesSuppressed++;
+          }
+          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, 0); // 0 -> Cell ID out of range
+          continue;
+        }
+        if (CellID < 0) {
+          if (mNumErrorMessages < mMaxErrorMessages) {
+            std::string celltypename;
+            switch (chantype) {
+              case o2::emcal::ChannelType_t::HIGH_GAIN:
+                celltypename = "high gain";
+                break;
+              case o2::emcal::ChannelType_t::LOW_GAIN:
+                celltypename = "low-gain";
+                break;
+              case o2::emcal::ChannelType_t::TRU:
+                celltypename = "TRU";
+                break;
+              case o2::emcal::ChannelType_t::LEDMON:
+                celltypename = "LEDMON";
+                break;
+            };
+            LOG(ERROR) << "Sending negative cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
+            mNumErrorMessages++;
+            if (mNumErrorMessages == mMaxErrorMessages) {
+              LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+            }
+          } else {
+            mErrorMessagesSuppressed++;
+          }
+          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, -1); // Geometry error codes will start from 100
+          continue;
+        }
 
         // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
         CaloFitResults fitResults;
@@ -223,7 +320,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           } else {
             mErrorMessagesSuppressed++;
           }
-          mOutputDecoderErrors.emplace_back(feeID, -1, CaloRawFitter::getErrorNumber(fiterror));
+          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror));
         }
         currentCellContainer->emplace_back(CellID, fitResults.getAmp() * CONVADCGEV, fitResults.getTime(), chantype);
       }
@@ -231,11 +328,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   }
 
   // Loop over BCs, sort cells with increasing tower ID and write to output containers
-  mOutputCells.clear();
-  mOutputTriggerRecords.clear();
   for (auto [bc, cells] : cellBuffer) {
     mOutputTriggerRecords.emplace_back(bc, triggerBuffer[bc], mOutputCells.size(), cells->size());
     if (cells->size()) {
+      LOG(DEBUG) << "Event has " << cells->size() << " cells";
       // Sort cells according to cell ID
       std::sort(cells->begin(), cells->end(), [](Cell& lhs, Cell& rhs) { return lhs.getTower() < rhs.getTower(); });
       for (auto cell : *cells) {
@@ -245,25 +341,53 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   }
 
   LOG(DEBUG) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
-  ctx.outputs().snapshot(framework::Output{"EMC", "CELLS", 0, framework::Lifetime::Timeframe}, mOutputCells);
-  ctx.outputs().snapshot(framework::Output{"EMC", "CELLSTRGR", 0, framework::Lifetime::Timeframe}, mOutputTriggerRecords);
-  ctx.outputs().snapshot(framework::Output{"EMC", "DECODERERR", 0, framework::Lifetime::Timeframe}, mOutputDecoderErrors);
+  sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
 }
 
-o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpec()
+bool RawToCellConverterSpec::isLostTimeframe(framework::ProcessingContext& ctx) const
 {
-  std::vector<o2::framework::InputSpec> inputs;
+  constexpr auto originEMC = header::gDataOriginEMC;
+  o2::framework::InputSpec dummy{"dummy",
+                                 framework::ConcreteDataMatcher{originEMC,
+                                                                header::gDataDescriptionRawData,
+                                                                0xDEADBEEF}};
+  for (const auto& ref : o2::framework::InputRecordWalker(ctx.inputs(), {dummy})) {
+    const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    if (dh->payloadSize == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void RawToCellConverterSpec::sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors) const
+{
+  constexpr auto originEMC = o2::header::gDataOriginEMC;
+  ctx.outputs().snapshot(framework::Output{originEMC, "CELLS", mSubspecification, framework::Lifetime::Timeframe}, cells);
+  ctx.outputs().snapshot(framework::Output{originEMC, "CELLSTRGR", mSubspecification, framework::Lifetime::Timeframe}, triggers);
+  ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", mSubspecification, framework::Lifetime::Timeframe}, decodingErrors);
+}
+
+o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpec(bool askDISTSTF, int subspecification)
+{
+  constexpr auto originEMC = o2::header::gDataOriginEMC;
   std::vector<o2::framework::OutputSpec> outputs;
 
-  outputs.emplace_back("EMC", "CELLS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("EMC", "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("EMC", "DECODERERR", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(originEMC, "CELLS", subspecification, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(originEMC, "CELLSTRGR", subspecification, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(originEMC, "DECODERERR", subspecification, o2::framework::Lifetime::Timeframe);
+
+  std::vector<o2::framework::InputSpec> inputs{{"stf", o2::framework::ConcreteDataTypeMatcher{originEMC, o2::header::gDataDescriptionRawData}, o2::framework::Lifetime::Optional}};
+  if (askDISTSTF) {
+    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
+  }
 
   return o2::framework::DataProcessorSpec{"EMCALRawToCellConverterSpec",
-                                          o2::framework::select("A:EMC/RAWDATA"),
+                                          inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(),
+                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(subspecification),
                                           o2::framework::Options{
                                             {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}},
-                                            {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}}}};
+                                            {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}},
+                                            {"printtrailer", o2::framework::VariantType::Bool, false, {"Print RCU trailer (for debugging)"}}}};
 }
