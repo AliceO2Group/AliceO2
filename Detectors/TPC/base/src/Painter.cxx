@@ -21,6 +21,7 @@
 #include "TCanvas.h"
 #include "TLine.h"
 #include "TLatex.h"
+#include "TStyle.h"
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/ROC.h"
@@ -572,6 +573,81 @@ void painter::drawSectorsXY(Side side, int sectorLineColor, int sectorTextColor)
     lat.DrawLatex(xText, yText, fmt::format("{}", isector).data());
   }
 }
+
+void painter::drawSectorLocalPadNumberPoly(short padTextColor, float lineScalePS)
+{
+  static const Mapper& mapper = Mapper::instance();
+  const auto coords = getPadCoordinatesSector();
+  TLatex lat;
+  lat.SetTextAlign(12);
+  lat.SetTextSize(0.002f);
+  lat.SetTextColor(padTextColor);
+  gStyle->SetLineScalePS(lineScalePS);
+
+  for (unsigned int iregion = 0; iregion < Mapper::NREGIONS; ++iregion) {
+    const auto padInf = mapper.getPadRegionInfo(iregion);
+    for (unsigned int irow = 0; irow < Mapper::ROWSPERREGION[iregion]; ++irow) {
+      for (unsigned int ipad = 0; ipad < Mapper::PADSPERROW[iregion][irow]; ++ipad) {
+        const GlobalPadNumber padNum = o2::tpc::Mapper::getGlobalPadNumber(irow, ipad, iregion);
+        const auto coordinate = coords[padNum];
+        const float yPos = (coordinate.yVals[0] + coordinate.yVals[2]) / 2;
+        const float xPos = (coordinate.xVals[0] + coordinate.xVals[2]) / 2;
+        lat.DrawLatex(xPos, yPos, Form("%i", ipad));
+      }
+    }
+  }
+}
+
+void painter::drawSectorInformationPoly(short regionLineColor, short rowTextColor)
+{
+  static const Mapper& mapper = Mapper::instance();
+
+  TLatex lat;
+  lat.SetTextColor(rowTextColor);
+  lat.SetTextSize(0.02f);
+  lat.SetTextAlign(12);
+
+  TLine line;
+  line.SetLineColor(regionLineColor);
+
+  std::vector<float> radii(Mapper::NREGIONS + 1);
+  radii.back() = 247;
+  for (unsigned int ireg = 0; ireg < Mapper::NREGIONS; ++ireg) {
+    const auto reg = mapper.getPadRegionInfo(ireg);
+    const float rad = reg.getRadiusFirstRow();
+    radii[ireg] = rad;
+    line.DrawLine(rad, -43, rad, 43);
+  }
+
+  // draw top region information
+  for (unsigned int ireg = 0; ireg < Mapper::NREGIONS; ++ireg) {
+    lat.DrawLatex((radii[ireg] + radii[ireg + 1]) / 2, 45, Form("%i", ireg));
+  }
+
+  lat.SetTextSize(0.002f);
+  lat.SetTextAlign(13);
+  // draw local and global rows
+  const std::array<float, Mapper::NREGIONS> posRow{16.2f, 18.2f, 20.2f, 22.3f, 26.f, 29.f, 33.f, 35.f, 39.f, 42.5f};
+  int globalRow = 0;
+  for (unsigned int ireg = 0; ireg < Mapper::NREGIONS; ++ireg) {
+    const auto reg = mapper.getPadRegionInfo(ireg);
+    const float nRows = reg.getNumberOfPadRows();
+    for (int i = 0; i < nRows; ++i) {
+      const float padHeight = reg.getPadHeight();
+      const float radiusFirstRow = reg.getRadiusFirstRow();
+      const float xPos = radiusFirstRow + (i + 0.5f) * padHeight;
+      const float yPos = posRow[ireg];
+      // row in region
+      lat.DrawLatex(xPos, yPos, Form("%i", i));
+      lat.DrawLatex(xPos, -yPos, Form("%i", i));
+      // row in sector
+      const float offs = 0.5f;
+      lat.DrawLatex(xPos, yPos + offs, Form("%i", globalRow));
+      lat.DrawLatex(xPos, -yPos - offs, Form("%i", globalRow++));
+    }
+  }
+}
+
 // ===| explicit instantiations |===============================================
 // this is required to force the compiler to create instances with the types
 // we usually would like to deal with
