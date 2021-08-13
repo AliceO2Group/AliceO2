@@ -104,6 +104,9 @@ o2_add_test_root_macro(macro/extractGainMap.C
 o2_add_test_root_macro(macro/preparePedestalFiles.C
                        PUBLIC_LINK_LIBRARIES O2::TPCCalibration
                        LABELS tpc)
+o2_add_test_root_macro(macro/makeTPCCCDBEntryForDCS.C
+                       PUBLIC_LINK_LIBRARIES O2::DetectorsDCS
+                       LABELS tpc)
 
 o2_add_test(IDCFourierTransform
             COMPONENT_NAME calibration
