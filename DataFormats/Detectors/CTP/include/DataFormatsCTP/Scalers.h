@@ -42,7 +42,7 @@ struct CTPScalerRaw {
 /// Scalers produced from raw scalers corrected for overflow
 struct CTPScalerO2 {
   CTPScalerO2() = default;
-  void createCTPScalerO2FromRaw(CTPScalerRaw& raw, std::vector<uint32_t>& overfow);
+  void createCTPScalerO2FromRaw(CTPScalerRaw raw, std::array<uint32_t, 6>& overfow);
   uint32_t classIndex;
   uint64_t lmBefore;
   uint64_t lmAfter;
@@ -77,19 +77,25 @@ class CTPRunScalers
   CTPRunScalers() = default;
   void printStream(std::ostream& stream) const;
   void printClasses(std::ostream& stream) const;
-  std::vector<uint32_t> getClassIndexes();
+  std::vector<uint32_t> getClassIndexes() const;
   int readScalers(const std::string& rawscalers);
   int convertRawToO2();
-
+  int checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2& scal1) const;
+  int checkConsistency(const CTPScalerRecordO2& rec0, const CTPScalerRecordO2& rec1) const;
  private:
+  // map from class index to overflow
+  // overflow counts how many time class scalerers overflowed
   typedef std::map<uint32_t, std::array<uint32_t, 6>> overflows_t;
   int mVersion;
   uint32_t mRunNumber;
+  // using class mask for all class index related stuff
   std::bitset<CTP_NCLASSES> mClassMask;
   std::vector<CTPScalerRecordRaw> mScalerRecordRaw;
   std::vector<CTPScalerRecordO2> mScalerRecordO2;
   int processScalerLine(std::string& line, int& level, int& nclasses);
-  int copyRawToO2Scalers();
+  int copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec, CTPScalerRecordO2& o2rec, overflows_t& classesoverflows);
+  int updateOverflows(const CTPScalerRecordRaw& rec0, const CTPScalerRecordRaw& rec1, overflows_t& classesoverflows) const;
+  int updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw& scal1, std::array<uint32_t, 6>& overflow) const;
   ClassDefNV(CTPRunScalers, 1);
 };
 } // namespace ctp
