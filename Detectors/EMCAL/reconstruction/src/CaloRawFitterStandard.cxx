@@ -69,7 +69,7 @@ CaloFitResults CaloRawFitterStandard::evaluate(const gsl::span<const Bunch> bunc
     amp = ampEstimate;
 
     if (nsamples > 1 && maxADC < constants::OVERFLOWCUT) {
-      std::tie(amp, time, chi2) = fitRaw(first, last);
+      std::tie(amp, time, chi2, fitDone) = fitRaw(first, last);
       time += timebinOffset;
       timeEstimate += timebinOffset;
       ndf = nsamples - 2;
@@ -99,10 +99,11 @@ CaloFitResults CaloRawFitterStandard::evaluate(const gsl::span<const Bunch> bunc
   throw RawFitterError_t::FIT_ERROR;
 }
 
-std::tuple<float, float, float> CaloRawFitterStandard::fitRaw(int firstTimeBin, int lastTimeBin) const
+std::tuple<float, float, float, bool> CaloRawFitterStandard::fitRaw(int firstTimeBin, int lastTimeBin) const
 {
 
   float amp(0), time(0), chi2(0);
+  bool fitDone = false;
 
   int nsamples = lastTimeBin - firstTimeBin + 1;
   if (nsamples < 3) {
@@ -133,9 +134,10 @@ std::tuple<float, float, float> CaloRawFitterStandard::fitRaw(int firstTimeBin, 
     amp = signalF.GetParameter(0);
     time = signalF.GetParameter(1);
     chi2 = signalF.GetChisquare();
+    fitDone = true;
   } else {
     throw RawFitterError_t::FIT_ERROR;
   }
 
-  return std::make_tuple(amp, time, chi2);
+  return std::make_tuple(amp, time, chi2, fitDone);
 }

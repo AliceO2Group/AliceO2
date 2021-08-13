@@ -69,9 +69,9 @@ class CaloRawFitterStandard final : public CaloRawFitter
   /// \brief Fits the raw signal time distribution using TMinuit
   /// \param firstTimeBin First timebin of the ALTRO bunch
   /// \param lastTimeBin Last timebin of the ALTRO bunch
-  /// \return the fit parameters: amplitude, time, chi2
+  /// \return the fit parameters: amplitude, time, chi2, fit status
   /// \throw RawFitter_t::FIT_ERROR in case the fit failed (insufficient number of samples or fit error from MINUIT)
-  std::tuple<float, float, float> fitRaw(int firstTimeBin, int lastTimeBin) const;
+  std::tuple<float, float, float, bool> fitRaw(int firstTimeBin, int lastTimeBin) const;
 
  private:
   ClassDefNV(CaloRawFitterStandard, 1);
