@@ -14,6 +14,7 @@
 
 #include "DataFormatsCTP/Scalers.h"
 #include <iostream>
+#include <iomanip>
 #include "CommonUtils/StringUtils.h"
 #include "FairLogger.h"
 
@@ -21,26 +22,30 @@ using namespace o2::ctp;
 
 void CTPScalerRaw::printStream(std::ostream& stream) const
 {
-  stream << "Class:" << classIndex << " RAW LMB:" << lmBefore << " LMA:" << lmAfter;
-  stream << " LOB:" << l0Before << " L0A:" << l0After;
-  stream << " L1B:" << l1Before << " L1A:" << l1After << std::endl;
+  stream << "Class:" << std::setw(2) << classIndex << " RAW";
+  stream << " LMB:" << std::setw(10) << lmBefore << " LMA:" << std::setw(10) << lmAfter;
+  stream << " LOB:" << std::setw(10) << l0Before << " L0A:" << std::setw(10) << l0After;
+  stream << " L1B:" << std::setw(10) << l1Before << " L1A:" << std::setw(10) << l1After << std::endl;
 }
 //
-void CTPScalerO2::createCTPScalerO2FromRaw(CTPScalerRaw& raw, std::vector<uint32_t>& overflow)
+void CTPScalerO2::createCTPScalerO2FromRaw(CTPScalerRaw raw, std::array<uint32_t, 6>& overflow)
 {
   classIndex = raw.classIndex;
-  lmBefore = raw.lmBefore + 0xffffffff * overflow[0];
-  lmAfter = raw.lmAfter + 0xffffffff * overflow[1];
-  l0Before = raw.l0Before + 0xffffffff * overflow[2];
-  l0After = raw.l0After + 0xffffffff * overflow[3];
-  l1Before = raw.l1Before + 0xffffffff * overflow[4];
-  l1After = raw.l1After + 0xffffffff * overflow[5];
+  lmBefore = (uint64_t)(raw.lmBefore) + 0xffffffffull * (uint64_t)(overflow[0]);
+  lmAfter  = (uint64_t)(raw.lmAfter) + 0xffffffffull * (uint64_t)(overflow[1]);
+  l0Before = (uint64_t)(raw.l0Before) + 0xffffffffull * (uint64_t)(overflow[2]);
+  l0After  = (uint64_t)(raw.l0After) + 0xffffffffull * (uint64_t)(overflow[3]);
+  l1Before = (uint64_t)(raw.l1Before) + 0xffffffffull * (uint64_t)(overflow[4]);
+  l1After  = (uint64_t)(raw.l1After) + 0xffffffffull * (uint64_t)(overflow[5]);
+  //std::cout << "lmb overflow:" << overflow[0] << " lmb:" << lmBefore << " raw:" << raw.lmBefore << std::endl;
+
 }
 void CTPScalerO2::printStream(std::ostream& stream) const
 {
-  stream << "Class:" << classIndex << "O2 LMB:" << lmBefore << " LMA:" << lmAfter;
-  stream << " LOB:" << l0Before << " L0A:" << l0After;
-  stream << " L1B:" << l1Before << " L1A:" << l1After << std::endl;
+  stream << "Class:" << std::setw(2) << classIndex << " O2";
+  stream << " LMB:" << std::setw(10) << lmBefore << " LMA:" << std::setw(10) << lmAfter;
+  stream << " LOB:" << std::setw(10) << l0Before << " L0A:" << std::setw(10) << l0After;
+  stream << " L1B:" << std::setw(10) << l1Before << " L1A:" << std::setw(10) << l1After << std::endl;
 }
 void CTPScalerRecordRaw::printStream(std::ostream& stream) const
 {
@@ -58,11 +63,18 @@ void CTPScalerRecordO2::printStream(std::ostream& stream) const
     cnts.printStream(stream);
   }
 }
+//
+// CTPRunScalers
+//
 void CTPRunScalers::printStream(std::ostream& stream) const
 {
   stream << "CTP Scalers (version:" << mVersion << ") Run:" << mRunNumber << std::endl;
   printClasses(stream);
   for (auto const& rec : mScalerRecordRaw) {
+    rec.printStream(stream);
+  }
+  stream << "O2 Counters:" << std::endl;
+  for (auto const& rec : mScalerRecordO2) {
     rec.printStream(stream);
   }
 }
@@ -76,7 +88,7 @@ void CTPRunScalers::printClasses(std::ostream& stream) const
   }
   stream << std::endl;
 }
-std::vector<uint32_t> CTPRunScalers::getClassIndexes()
+std::vector<uint32_t> CTPRunScalers::getClassIndexes() const
 {
   std::vector<uint32_t> indexes;
   for (uint32_t i = 0; i < CTP_NCLASSES; i++) {
@@ -94,11 +106,17 @@ int CTPRunScalers::readScalers(const std::string& rawscalers)
   int level = 0;
   std::string line;
   int nclasses = 0;
+  int nlines = 0;
   while (std::getline(iss, line)) {
     o2::utils::Str::trim(line);
     if ((ret = processScalerLine(line, level, nclasses)) != 0) {
       return ret;
     }
+    nlines++;
+  }
+  if(nlines < 4) {
+    LOG(ERROR) << "Input string seems too small:\n" << rawscalers;
+    return 6;
   }
   if (nclasses != 0) {
     LOG(ERROR) << "Wrong number of classes in final record";
@@ -108,6 +126,7 @@ int CTPRunScalers::readScalers(const std::string& rawscalers)
 }
 int CTPRunScalers::processScalerLine(std::string& line, int& level, int& nclasses)
 {
+  //std::cout << "Processing line" << std::endl;
   if (line.size() == 0) {
     return 0;
   }
@@ -119,7 +138,7 @@ int CTPRunScalers::processScalerLine(std::string& line, int& level, int& nclasse
   if (ntokens == 0) {
     return 0;
   }
-  std::cout << line << " level in::" << level << std::endl;
+  //std::cout << line << " level in::" << level << std::endl;
   // Version
   if (level == 0) {
     if (ntokens != 1) {
@@ -174,9 +193,9 @@ int CTPRunScalers::processScalerLine(std::string& line, int& level, int& nclasse
       LOG(ERROR) << "Wrong syntax of counters line in CTP scalers";
       return 5;
     } else {
-      std::cout << "nclasses:" << nclasses << std::endl;
+      //std::cout << "nclasses:" << nclasses << std::endl;
       CTPScalerRaw scaler;
-      scaler.classIndex = getClassIndexes()[level - 3];
+      scaler.classIndex = getClassIndexes()[nclasses];
       scaler.lmBefore = std::stol(tokens[0]);
       scaler.lmAfter = std::stol(tokens[1]);
       scaler.l0Before = std::stol(tokens[2]);
@@ -205,13 +224,140 @@ int CTPRunScalers::convertRawToO2()
       overflows[i] = {0, 0, 0, 0, 0, 0};
     }
   }
+  // 1st o2 rec is just copy
   CTPScalerRecordO2 o2rec;
-  o2rec.intRecord = mScalerRecordRaw[0].intRecord;
-  o2rec.seconds = mScalerRecordRaw[0].seconds;
-  o2rec.microSeconds = mScalerRecordRaw[0].microSeconds;
-  for (int i = 1; i < mScalerRecordRaw.size(); i++) {
-    //CTPScalerRecordRaw& prev = mScalerRecordRaw[i-1];
-    //CTPScalerRecordRaw& curr = mScalerRecordRaw[i];
+  copyRawToO2ScalerRecord(mScalerRecordRaw[0],o2rec,overflows);
+  mScalerRecordO2.push_back(o2rec);
+  for ( int i = 1; i < mScalerRecordRaw.size(); i++) {
+    //update overflows  
+    updateOverflows(mScalerRecordRaw[i-1],mScalerRecordRaw[i], overflows);
+    //
+    CTPScalerRecordO2 o2rec;
+    copyRawToO2ScalerRecord(mScalerRecordRaw[i],o2rec,overflows);
+    mScalerRecordO2.push_back(o2rec);
+    // Check consistency
+    checkConsistency(mScalerRecordO2[i-1], mScalerRecordO2[i]);
   }
+  return 0;
+}
+int CTPRunScalers::copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec,CTPScalerRecordO2& o2rec, overflows_t& classesoverflows)
+{
+  if(rawrec.scalers.size() != (mClassMask.count())) {
+    LOG(ERROR) << "Inconsistent scaler record size:" << rawrec.scalers.size() << " Expected:" << mClassMask.count();
+    return 1;
+  }
+  o2rec.scalers.clear();
+  o2rec.intRecord = rawrec.intRecord;
+  o2rec.seconds = rawrec.seconds;
+  o2rec.microSeconds = rawrec.microSeconds;
+  for(int i = 0; i < rawrec.scalers.size(); i++ )  {
+    CTPScalerRaw rawscal = rawrec.scalers[i];
+    CTPScalerO2 o2scal;
+    int k = (getClassIndexes())[i];
+    o2scal.createCTPScalerO2FromRaw(rawscal,classesoverflows[k]); 
+    o2rec.scalers.push_back(o2scal);
+  }
+  return 0;
+}
+int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2& scal1) const
+{
+  int ret=0;
+  // Scaler should never decrease
+  if(scal0.lmBefore > scal1.lmBefore) {
+      LOG(ERROR) << "Scaler decreasing: Class:" << scal0.classIndex << " lmBefore 0:" << scal0.lmBefore << " lmBefore :" << scal1.lmBefore;
+      ret++;
+  }
+  if(scal0.l0Before > scal1.l0Before) {
+      LOG(ERROR) << "Scaler decreasing: Class:" << scal0.classIndex << " lmBefore 0:" << scal0.l0Before << " lmBefore :" << scal1.l0Before;
+      ret++;
+  }
+  if(scal0.l1Before > scal1.l1Before) {
+      LOG(ERROR) << "Scaler decreasing: Class:" << scal0.classIndex << " lmBefore 0:" << scal0.l1Before << " lmBefore :" << scal1.l1Before;
+      ret++;
+  }
+  if(scal0.lmAfter > scal1.lmAfter) {
+      LOG(ERROR) << "Scaler decreasing: Class:" << scal0.classIndex << " lmAfter 0:" << scal0.lmAfter << " lmAfter :" << scal1.lmAfter;
+      ret++;
+  }
+  if(scal0.l0After > scal1.l0After) {
+      LOG(ERROR) << "Scaler decreasing: Class:" << scal0.classIndex << " lmAfter 0:" << scal0.l0After << " lmAfter :" << scal1.l0After;
+      ret++;
+  }
+  if(scal0.l1After > scal1.l1After) {
+      LOG(ERROR) << "Scaler decreasing: Class:" << scal0.classIndex << " lmAfter 0:" << scal0.l1After << " lmAfter :" << scal1.l1After;
+      ret++;
+  }
+  //
+  // LMB >= LMA >= L0B >= L0A >= L1B >= L1A: 5 relations
+  //
+  if((scal1.lmAfter - scal0.lmAfter) > (scal1.lmBefore - scal0.lmBefore)) {
+      LOG(ERROR) << "LMA > LMB eerror";
+      ret++;
+  }
+  if((scal1.l0After - scal0.l0After) > (scal1.l0Before - scal0.l0Before)) {
+      LOG(ERROR) << "L0A > L0B error";
+      ret++;
+  }
+  if((scal1.l1After - scal0.l1After) > (scal1.l1Before - scal0.l1Before)) {
+      LOG(ERROR) << "L1A > L1B error";
+      ret++;
+  }
+  if((scal1.l0Before - scal0.l0Before) > (scal1.lmAfter - scal0.lmAfter)) {
+      LOG(ERROR) << "L0B > LMA error.";
+      ret++;
+  }
+  if((scal1.l1Before - scal0.l1Before) > (scal1.l0After - scal0.l0After)) {
+      LOG(ERROR) << "L1B > L0A Before error.";
+      ret++;
+  }
+  //
+  if(ret) {
+    scal0.printStream(std::cout);
+    scal1.printStream(std::cout);
+  }
+  return ret;
+}
+int CTPRunScalers::updateOverflows(const CTPScalerRecordRaw& rec0, const CTPScalerRecordRaw& rec1, overflows_t& classesoverflows) const
+{
+  if(rec1.scalers.size() != mClassMask.count()) {
+      LOG(ERROR) << "Inconsistent scaler record size:" << rec1.scalers.size() << " Expected:" << mClassMask.count();
+      return 1;
+  }
+  for(int i = 0; i < rec0.scalers.size() ; i++) {
+    int k = (getClassIndexes())[i];
+    updateOverflows(rec0.scalers[i],rec1.scalers[i],classesoverflows[k]);
+  }
+  return 0;
+}
+int CTPRunScalers::checkConsistency(const CTPScalerRecordO2& rec0, const CTPScalerRecordO2& rec1) const
+{
+  for(int i = 0; i < rec0.scalers.size(); i++) {
+    checkConsistency(rec0.scalers[i],rec1.scalers[i]);
+  }
+  return 0;
+}
+int CTPRunScalers::updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw& scal1, std::array<uint32_t, 6>& overflow) const
+{
+  if(scal0.lmBefore > scal1.lmBefore) {
+    overflow[0]+=1;
+  }
+  if(scal0.lmAfter > scal1.lmAfter) {
+    overflow[1]+=1;
+  }
+  if(scal0.l0Before > scal1.l0Before) {
+    overflow[2]+=1;
+  }
+  if(scal0.l0After > scal1.l0After) {
+    overflow[3]+=1;
+  }
+  if(scal0.l1Before > scal1.l1Before) {
+    overflow[4]+=1;
+  }
+  if(scal0.l1After > scal1.l1After) {
+    overflow[5]+=1;
+  }
+  //std::cout << "lmB0:" << scal0.lmBefore << " lmB1:" << scal1.lmBefore << " over:" << overflow[0] << std::endl;
+  //for(int i = 0; i < 6; i++)std::cout << overflow[i] << " ";
+  //std::cout << std::endl;
   return 0;
 }
