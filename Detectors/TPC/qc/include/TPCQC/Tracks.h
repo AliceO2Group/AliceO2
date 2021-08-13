@@ -79,9 +79,9 @@ class Tracks
   const std::vector<TH1F>& getHistogramRatios1D() const { return mHistRatio1D; }
 
  private:
-  std::vector<TH1F> mHist1D{};    ///< Initialize vector of 1D histograms
-  std::vector<TH2F> mHist2D{};    ///< Initialize vector of 2D histograms
-  std::vector<TH1F> mHistRatio1D; ///< Initialize vector of ratios of 1D histograms
+  std::vector<TH1F> mHist1D{};      ///< Initialize vector of 1D histograms
+  std::vector<TH2F> mHist2D{};      ///< Initialize vector of 2D histograms
+  std::vector<TH1F> mHistRatio1D{}; ///< Initialize vector of ratios of 1D histograms
 
   ClassDefNV(Tracks, 2)
 };
