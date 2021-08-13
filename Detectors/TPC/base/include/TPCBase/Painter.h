@@ -158,6 +158,16 @@ std::vector<TCanvas*> makeSummaryCanvases(const std::string_view fileName, const
 /// draw sector boundaris, side name and sector numbers
 void drawSectorsXY(Side side, int sectorLineColor = 920, int sectorTextColor = 1);
 
+/// draw information of the sector: pad number in row
+/// \param padTextColor text color of pad number
+/// \param lineScalePS setting the width of the lines of the pads which are drawn
+void drawSectorLocalPadNumberPoly(short padTextColor = kBlack, float lineScalePS = 1);
+
+/// draw information of the sector: pad row in region, global pad row, lines for separating the regions
+/// \param regionLineColor color of the line which is drawn at the start of a sector
+/// \param rowTextColor color of the text which is drawn
+void drawSectorInformationPoly(short regionLineColor = kRed, short rowTextColor = kRed);
+
 } // namespace painter
 
 } // namespace tpc
