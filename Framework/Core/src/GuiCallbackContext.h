@@ -18,16 +18,22 @@
 
 namespace o2::framework
 {
+
+struct GuiRenderer {
+  uint64_t latency;
+  uint64_t frameLast;
+  std::function<void(void*,int)> drawCallback;
+};
+
 struct GuiCallbackContext {
   uint64_t frameLast;
-  uint64_t remoteFrameLast;
   float* frameLatency;
   float* frameCost;
   DebugGUI* plugin;
   void* window;
   bool* guiQuitRequested;
   std::function<void(void)> callback;
-  std::map<std::string, std::function<void(void*,int)>> drawCallbacks;
+  std::map<std::string, GuiRenderer*> renderers;
 };
 } // namespace o2::framework
 

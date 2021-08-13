@@ -96,13 +96,14 @@ enum struct GUIOpcodes : uint8_t {
   Mousepos = 1,
   Mouseclick = 2,
   Mousewheel = 3,
-  Window = 4
+  Window = 4,
+  Latency = 5
 };
 
 /// An handler for a websocket message stream.
 struct GUIWebSocketHandler : public WebSocketHandler {
-  GUIWebSocketHandler(DriverServerContext& context)
-    : mContext{context}
+  GUIWebSocketHandler(DriverServerContext& context, GuiRenderer *renderer)
+    : mContext{context}, mRenderer{renderer}
   {
   }
   ~GUIWebSocketHandler() override = default;
@@ -137,6 +138,16 @@ struct GUIWebSocketHandler : public WebSocketHandler {
         mContext.gui->plugin->updateWindowSize(size[0], size[1]);
         break;
       }
+      case GUIOpcodes::Latency:
+      {
+        char dir = *frame;
+        if (dir > 0) {
+          mRenderer->latency += 20;
+        } else if (mRenderer->latency > 20) {
+          mRenderer->latency -= 20;
+        }
+        break;
+      }
     }
   }
   void endFragmentation() override{};
@@ -147,6 +158,7 @@ struct GUIWebSocketHandler : public WebSocketHandler {
   /// The driver context were we want to accumulate changes
   /// which we got from the websocket.
   DriverServerContext& mContext;
+  GuiRenderer *mRenderer;
 };
 
 WSDPLHandler::WSDPLHandler(uv_stream_t* s, DriverServerContext* context)
@@ -158,7 +170,9 @@ WSDPLHandler::WSDPLHandler(uv_stream_t* s, DriverServerContext* context)
 WSDPLHandler::~WSDPLHandler()
 {
   if (mGUI) {
-    mServerContext->gui->drawCallbacks.erase(mHeaders["sec-websocket-key"]);
+    auto renderer = mServerContext->gui->renderers[mHeaders["sec-websocket-key"]];
+    mServerContext->gui->renderers.erase(mHeaders["sec-websocket-key"]);
+    delete renderer;
   }
 }
 
@@ -234,15 +248,18 @@ void WSDPLHandler::endHeaders()
     }
   } else {
     LOG(INFO) << "Connection not bound to a PID";
-    mHandler = std::make_unique<GUIWebSocketHandler>(*mServerContext);
-    mHandler->headers(mHeaders);
-    mGUI = true;
-    auto drawCallback = [this](void *data, int size) {
+    GuiRenderer *renderer = new GuiRenderer;
+    renderer->latency = 200;
+    renderer->frameLast = uv_hrtime();
+    renderer->drawCallback = [this](void *data, int size) {
       std::vector<uv_buf_t> outputs;
       encode_websocket_frames(outputs, (const char*)data, size, WebSocketOpCode::Binary, 0);
       write(outputs);
     };
-    mServerContext->gui->drawCallbacks.insert(std::pair<std::string, std::function<void(void*,int)>>(mHeaders["sec-websocket-key"], drawCallback));
+    mHandler = std::make_unique<GUIWebSocketHandler>(*mServerContext, renderer);
+    mHandler->headers(mHeaders);
+    mGUI = true;
+    mServerContext->gui->renderers.insert(std::pair<std::string, GuiRenderer*>(mHeaders["sec-websocket-key"], renderer));
   }
 }
 

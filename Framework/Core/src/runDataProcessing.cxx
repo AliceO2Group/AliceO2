@@ -1156,29 +1156,41 @@ void gui_callback(uv_timer_s* ctx)
   if (gui->plugin == nullptr) {
     return;
   }
-  uint64_t frameStart = uv_hrtime();
-  uint64_t frameLatency = frameStart - gui->frameLast;
-  uint64_t remoteFrameLatency = frameStart - gui->remoteFrameLast;
-  if (gui->plugin->pollGUIPreRender(gui->window)) {
-    void *draw_data = gui->plugin->pollGUIRender(gui->callback);
-    if (!gui->drawCallbacks.empty() && remoteFrameLatency > 1000000*50) {
-      gui->remoteFrameLast = frameStart;
-      void *frame;
-      int size;
-      gui->plugin->getFrameRaw(draw_data, &frame, &size);
-      for (const auto& [key, callback] : gui->drawCallbacks) {
-        callback(frame, size);
+  
+  // only render if the window or at least one draw callback is present
+  if (gui->window || !gui->renderers.empty()) {
+    void *frame = nullptr;
+    int size;
+    uint64_t frameStart = uv_hrtime();
+    uint64_t frameLatency = frameStart - gui->frameLast;
+
+    if (gui->plugin->pollGUIPreRender(gui->window)) {
+      void *draw_data = gui->plugin->pollGUIRender(gui->callback);
+      for (const auto& [key, renderer] : gui->renderers) {
+        uint64_t remoteFrameLatency = frameStart - renderer->frameLast;
+
+        if (remoteFrameLatency > 1000000*renderer->latency) {
+          renderer->frameLast = frameStart;
+          // get frame if at first renderer
+          if (!frame) {
+            gui->plugin->getFrameRaw(draw_data, &frame, &size);
+          }
+          renderer->drawCallback(frame, size);
+        }
       }
-      free(frame);
+      if (frame) {
+        free(frame);
+      }
+      gui->plugin->pollGUIPostRender(gui->window, draw_data);
+    } else {
+      *(gui->guiQuitRequested) = true;
     }
-    gui->plugin->pollGUIPostRender(gui->window, draw_data);
-  } else {
-    *(gui->guiQuitRequested) = true;
+
+    uint64_t frameEnd = uv_hrtime();
+    *(gui->frameCost) = (frameEnd - frameStart) / 1000000;
+    *(gui->frameLatency) = frameLatency / 1000000;
+    gui->frameLast = frameStart;
   }
-  uint64_t frameEnd = uv_hrtime();
-  *(gui->frameCost) = (frameEnd - frameStart) / 1000000;
-  *(gui->frameLatency) = frameLatency / 1000000;
-  gui->frameLast = frameStart;
 }
 
 /// Force single stepping of the children
@@ -1264,12 +1276,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     };
     debugGUI = initDebugGUI();
     if (debugGUI) {
-      window = debugGUI->initGUI("O2 Framework debug GUI");
+      //window = debugGUI->initGUI("O2 Framework debug GUI");
+      window = debugGUI->initGUI(nullptr);
     }
   }
   if (driverInfo.batch == false && window == nullptr && frameworkId.empty()) {
-    //LOG(WARN) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
-    //driverInfo.batch = true;
+    LOG(WARN) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
+    driverInfo.batch = true;
   }
   bool guiQuitRequested = false;
   bool hasError = false;
@@ -1283,9 +1296,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   uv_idle_t idler;
 
   uv_timer_t gui_timer;
-  //if (window) {
-    uv_timer_init(loop, &gui_timer);
-  //}
+  uv_timer_init(loop, &gui_timer);
 
   // We initialise this in the driver, because different drivers might have
   // different versions of the service
@@ -1304,7 +1315,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   GuiCallbackContext guiContext;
   guiContext.plugin = debugGUI;
   guiContext.frameLast = uv_hrtime();
-  guiContext.remoteFrameLast = uv_hrtime();
   guiContext.frameLatency = &driverInfo.frameLatency;
   guiContext.frameCost = &driverInfo.frameCost;
   guiContext.guiQuitRequested = &guiQuitRequested;
@@ -1571,14 +1581,12 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // has been added to the topology.
         // We need to recreate the GUI callback every time we reschedule
         // because getGUIDebugger actually recreates the GUI state.
-        //if (window) {
-          uv_timer_stop(&gui_timer);
-          guiContext.callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
-          guiContext.window = window;
-          gui_timer.data = &guiContext;
-          uv_timer_start(&gui_timer, gui_callback, 0, 20);
-          guiDeployedOnce = true;
-        //}
+        uv_timer_stop(&gui_timer);
+        guiContext.callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
+        guiContext.window = window;
+        gui_timer.data = &guiContext;
+        uv_timer_start(&gui_timer, gui_callback, 0, 20);
+        guiDeployedOnce = true;
         break;
       case DriverState::MERGE_CONFIGS: {
         try {
