@@ -68,6 +68,11 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/dEdxHistos.h
                                   include/TPCCalibration/CalibdEdx.h)
 
+o2_add_executable(dcs-sim-workflow
+                  COMPONENT_NAME tpc
+                  SOURCES testWorkflow/tpc-dcs-sim-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow)
+
 o2_add_test_root_macro(macro/comparePedestalsAndNoise.C
                        PUBLIC_LINK_LIBRARIES O2::TPCBase
                        LABELS tpc)
