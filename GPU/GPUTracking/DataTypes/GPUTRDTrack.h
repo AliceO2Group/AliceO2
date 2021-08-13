@@ -93,6 +93,7 @@ class GPUTRDTrack_t : public T
   GPUd() bool getIsAmbiguous() const { return (mFlags >> kAmbiguousFlag) & 0x1; }
   GPUd() bool getIsFindable(int iLayer) const { return (mFlags >> iLayer) & 0x1; }
   GPUd() int getNmissingConsecLayers(int iLayer) const;
+  GPUd() int getIsPenaltyAdded(int iLayer) const { return getIsFindable(iLayer) && getTrackletIndex(iLayer) < 0; }
   // for AliRoot compatibility. To be removed once HLT/global/AliHLTGlobalEsdConverterComponent.cxx does not require them anymore
   GPUd() int GetTPCtrackId() const { return mRefGlobalTrackId; }
   GPUd() bool GetIsStopped() const { return getIsStopped(); }

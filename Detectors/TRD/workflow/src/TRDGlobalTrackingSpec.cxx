@@ -98,6 +98,7 @@ void TRDGlobalTracking::init(InitContext& ic)
   }
 
   mTracker->PrintSettings();
+  LOG(INFO) << "Strict matching mode is " << ((mStrict) ? "ON" : "OFF");
 
   mTimer.Stop();
   mTimer.Reset();
