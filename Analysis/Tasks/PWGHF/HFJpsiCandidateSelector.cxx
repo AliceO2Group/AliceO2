@@ -215,6 +215,8 @@ struct HfJpsiCandidateSelector {
     }
   }
 
+  PROCESS_SWITCH(HfJpsiCandidateSelector, processAlice2, "Use ALICE 2 detector setup", true);
+
   void processAlice3(aod::HfCandProng2 const& candidates, TracksPID const&, aod::RICHs const&, aod::MIDs const&)
   {
     TrackSelectorPID selectorElectron(kElectron);
@@ -314,6 +316,8 @@ struct HfJpsiCandidateSelector {
       //hfSelJpsiCandidate(selectedEE, selectedMuMu);
     }
   }
+
+  PROCESS_SWITCH(HfJpsiCandidateSelector, processAlice3, "Use ALICE 3 detector setup", false);
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
@@ -322,9 +326,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   const bool isAlice3 = cfgc.options().get<bool>("isAlice3");
   if (isAlice3) {
     workflow.push_back(adaptAnalysisTask<Alice3PidIndexBuilder>(cfgc));
-    workflow.push_back(adaptAnalysisTask<HfJpsiCandidateSelector>(cfgc, Processes{&HfJpsiCandidateSelector::processAlice3}));
+    workflow.push_back(adaptAnalysisTask<HfJpsiCandidateSelector>(cfgc));
   } else {
-    workflow.push_back(adaptAnalysisTask<HfJpsiCandidateSelector>(cfgc, Processes{&HfJpsiCandidateSelector::processAlice2}));
+    workflow.push_back(adaptAnalysisTask<HfJpsiCandidateSelector>(cfgc, SetDefaultProcesses{{{"processAlice2", false}, {"processAlice3", true}}}));
   }
   return workflow;
 }

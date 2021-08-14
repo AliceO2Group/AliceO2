@@ -77,7 +77,6 @@ using MyTracks = soa::Join<aod::FullTracks, aod::HFSelTrack, aod::TracksExtended
 
 /// Event selection
 struct HfTagSelCollisions {
-
   Produces<aod::HFSelCollision> rowSelectedCollision;
 
   Configurable<bool> fillHistograms{"fillHistograms", true, "fill histograms"};
@@ -144,7 +143,6 @@ struct HfTagSelCollisions {
 
 /// Track selection
 struct HfTagSelTracks {
-
   Produces<aod::HFSelTrack> rowSelectedTrack;
 
   Configurable<bool> fillHistograms{"fillHistograms", true, "fill histograms"};
