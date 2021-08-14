@@ -326,9 +326,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   const bool isAlice3 = cfgc.options().get<bool>("isAlice3");
   if (isAlice3) {
     workflow.push_back(adaptAnalysisTask<Alice3PidIndexBuilder>(cfgc));
-    workflow.push_back(adaptAnalysisTask<HfJpsiCandidateSelector>(cfgc));
-  } else {
     workflow.push_back(adaptAnalysisTask<HfJpsiCandidateSelector>(cfgc, SetDefaultProcesses{{{"processAlice2", false}, {"processAlice3", true}}}));
+  } else {
+    workflow.push_back(adaptAnalysisTask<HfJpsiCandidateSelector>(cfgc));
   }
   return workflow;
 }
