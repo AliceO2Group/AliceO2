@@ -61,6 +61,9 @@ struct TrackReader {
   TrackReader(bool useMC = false) : mUseMC(useMC) {}
   void init(InitContext& ic)
   {
+    if (!mUseMC) {
+      LOGP(warning, "Not reading MCH Track Labels");
+    }
     auto treeName = "o2sim";
     auto fileName = ic.options().get<std::string>("infile");
     auto nofEntries{-1};
