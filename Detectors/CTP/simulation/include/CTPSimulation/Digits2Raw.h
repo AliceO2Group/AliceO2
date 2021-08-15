@@ -38,12 +38,12 @@ class Digits2Raw
   void setVerbosity(int v) { mVerbosity = v; }
   void setFilePerLink(bool v) { mOutputPerLink = v; }
   void setOutDir(std::string& outdir) { mOutDir = outdir; }
-  void setBoardId(uint32_t boardid){ mBoardId = boardid; }
+  void setBoardId(uint32_t boardid) { mBoardId = boardid; }
   void setZeroSuppressedIntRec(bool value) { mZeroSuppressedIntRec = value; }
   void setZeroSuppressedClassRec(bool value) { mZeroSuppressedClassRec = value; }
   bool getFilePerLink() const { return mOutputPerLink; }
-  uint64_t getFEEIDIR() const { return uint64_t(mBoardId + (o2::ctp::GBTLinkIDIntRec<<8)); }
-  uint64_t getFEEIDTC() const { return uint64_t(mBoardId + (o2::ctp::GBTLinkIDClassRec<<8)); }
+  uint64_t getFEEIDIR() const { return uint64_t(mBoardId + (o2::ctp::GBTLinkIDIntRec << 8)); }
+  uint64_t getFEEIDTC() const { return uint64_t(mBoardId + (o2::ctp::GBTLinkIDClassRec << 8)); }
   o2::raw::RawFileWriter& getWriter() { return mWriter; }
   void setOutDir(const std::string& outDir) { mOutDir = outDir; }
   void processDigits(const std::string& fileDigitsName);

@@ -125,7 +125,7 @@ void Digits2Raw::emptyHBFMethod(const header::RDHAny* rdh, std::vector<char>& to
 {
   // TriClassRecord data zero suppressed
   // CTP INteraction Data
-  if (((o2::raw::RDHUtils::getFEEID(rdh) & 0xf00)>>8) == GBTLinkIDIntRec) {
+  if (((o2::raw::RDHUtils::getFEEID(rdh) & 0xf00) >> 8) == GBTLinkIDIntRec) {
     if (mZeroSuppressedIntRec == false) {
       toAdd.clear();
       std::vector<std::bitset<NGBT>> digits;
