@@ -232,11 +232,11 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
       auto& trackIndex = GIndices[ti];
       if (GIndex::includesSource(src, mInputSources)) {
         if (src == GIndex::Source::MFT) { // MFT tracks are treated separately since they are stored in a different table
-          const auto& track = data.getMFTTrack(trackIndex.getIndex());
+          const auto& track = data.getMFTTrack(trackIndex);
           addToMFTTracksTable(mftTracksCursor, track, collisionID);
         } else if (src == GIndex::Source::MCH) {
           // FwdTracks tracks are treated separately since they are stored in a different table
-          const auto& track = data.getMCHTrack(trackIndex.getIndex());
+          const auto& track = data.getMCHTrack(trackIndex);
           if (collisionID < 0) {
             InteractionRecord meanIR;
             auto rofsMCH = data.getMCHTracksROFRecords();
