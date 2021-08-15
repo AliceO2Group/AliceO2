@@ -26,9 +26,9 @@ namespace o2
 namespace ctp
 {
 /// CTP related constants
-static constexpr uint32_t CRULinkIDIntRec = 0;
+static constexpr uint32_t GBTLinkIDIntRec = 0;
 static constexpr uint32_t NIntRecPayload = 48 + 12;
-static constexpr uint32_t CRULinkIDClassRec = 1;
+static constexpr uint32_t GBTLinkIDClassRec = 1;
 static constexpr uint32_t NClassPayload = 64 + 12;
 static constexpr uint32_t NGBT = 80;
 static constexpr std::uint32_t NumOfHBInTF = 256;
