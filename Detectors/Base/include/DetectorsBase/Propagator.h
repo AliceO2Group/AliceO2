@@ -43,6 +43,7 @@ class VertexBase;
 namespace field
 {
 class MagFieldFast;
+class MagneticField;
 }
 
 namespace gpu
@@ -155,8 +156,9 @@ class PropagatorImpl
   template <typename T>
   GPUd() void getFieldXYZImpl(const math_utils::Point3D<T> xyz, T* bxyz) const;
 
-  const o2::field::MagFieldFast* mField = nullptr; ///< External fast field (barrel only for the moment)
-  value_type mBz = 0;                              // nominal field
+  const o2::field::MagFieldFast* mFieldFast = nullptr; ///< External fast field map (barrel only for the moment)
+  o2::field::MagneticField* mField = nullptr;          ///< External nominal field map
+  value_type mBz = 0;                                  ///< nominal field
 
   const o2::base::MatLayerCylSet* mMatLUT = nullptr;           // externally set LUT
   const o2::gpu::GPUTPCGMPolynomialField* mGPUField = nullptr; // externally set GPU Field

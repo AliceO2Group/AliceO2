@@ -151,25 +151,31 @@ MagneticField::MagneticField(const MagFieldParam& param)
 
 MagneticField* MagneticField::createNominalField(int fld, bool uniform)
 {
-  float fldCoeff;
+  float fldCoeffL3, fldCoeffDip;
   o2::field::MagFieldParam::BMap_t fldType;
-  switch (std::abs(fld)) {
-    case 5:
-      fldType = uniform ? o2::field::MagFieldParam::k5kGUniform : o2::field::MagFieldParam::k5kG;
-      fldCoeff = fld > 0 ? 1. : -1;
-      break;
-    case 0:
-      fldType = o2::field::MagFieldParam::k5kG;
-      fldCoeff = 0;
-      break;
-    case 2:
-      fldType = o2::field::MagFieldParam::k2kG;
-      fldCoeff = fld > 0 ? 1. : -1;
-      break;
-    default:
-      LOG(FATAL) << "Field option " << fld << " is not supported, use +-2, +-5 or 0";
-  };
-  return new o2::field::MagneticField("Maps", "Maps", fldCoeff, fldCoeff, fldType);
+  if (uniform) {
+    fldCoeffL3 = float(fld) / 5.;
+    fldCoeffDip = fld > 0 ? 1. : -1;
+    fldType = o2::field::MagFieldParam::k5kGUniform;
+  } else {
+    switch (std::abs(fld)) {
+      case 5:
+        fldType = o2::field::MagFieldParam::k5kG;
+        fldCoeffL3 = fldCoeffDip = fld > 0 ? 1. : -1;
+        break;
+      case 0:
+        fldType = o2::field::MagFieldParam::k5kG;
+        fldCoeffL3 = fldCoeffDip = 0;
+        break;
+      case 2:
+        fldType = o2::field::MagFieldParam::k2kG;
+        fldCoeffL3 = fldCoeffDip = fld > 0 ? 1. : -1;
+        break;
+      default:
+        LOG(FATAL) << "Field option " << fld << " is not supported, use +-2, +-5 or 0 or <int_kilogauss>U";
+    };
+  }
+  return new o2::field::MagneticField("Maps", "Maps", fldCoeffL3, fldCoeffDip, fldType);
 }
 
 void MagneticField::CreateField()
