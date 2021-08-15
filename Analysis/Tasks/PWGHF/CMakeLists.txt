@@ -9,6 +9,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+o2_add_dpl_workflow(qa-rejection
+                    SOURCES qaPidRejection.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::ALICE3Analysis
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(hf-track-index-skims-creator
                     SOURCES HFTrackIndexSkimsCreator.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::AnalysisTasksUtils ROOT::EG
@@ -34,6 +39,11 @@ o2_add_dpl_workflow(hf-candidate-creator-3prong
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(hf-candidate-creator-x
+                    SOURCES HFCandidateCreatorX.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(hf-tree-creator-lc-topkpi
                     SOURCES HFTreeCreatorLcToPKPi.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
@@ -54,9 +64,9 @@ o2_add_dpl_workflow(hf-lc-candidate-selector
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(hf-jpsi-toee-candidate-selector
-                    SOURCES HFJpsiToEECandidateSelector.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
+o2_add_dpl_workflow(hf-jpsi-candidate-selector
+                    SOURCES HFJpsiCandidateSelector.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::ALICE3Analysis
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(hf-xic-topkpi-candidate-selector
@@ -67,6 +77,11 @@ o2_add_dpl_workflow(hf-xic-topkpi-candidate-selector
 o2_add_dpl_workflow(hf-lc-tok0sp-candidate-selector
                     SOURCES HFLcK0sPCandidateSelector.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::AnalysisTasksUtils
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(hf-x-tojpsipipi-candidate-selector
+                    SOURCES HFXToJpsiPiPiCandidateSelector.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(hf-task-d0

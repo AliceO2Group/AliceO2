@@ -48,6 +48,7 @@ static const double massPi = RecoDecay::getMassPDG(kPiPlus);
 static const double massK = RecoDecay::getMassPDG(kKPlus);
 static const double massProton = RecoDecay::getMassPDG(kProton);
 static const double massElectron = RecoDecay::getMassPDG(kElectron);
+static const double massMuon = RecoDecay::getMassPDG(kMuonPlus);
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -76,7 +77,6 @@ using MyTracks = soa::Join<aod::FullTracks, aod::HFSelTrack, aod::TracksExtended
 
 /// Event selection
 struct HfTagSelCollisions {
-
   Produces<aod::HFSelCollision> rowSelectedCollision;
 
   Configurable<bool> fillHistograms{"fillHistograms", true, "fill histograms"};
@@ -143,7 +143,6 @@ struct HfTagSelCollisions {
 
 /// Track selection
 struct HfTagSelTracks {
-
   Produces<aod::HFSelTrack> rowSelectedTrack;
 
   Configurable<bool> fillHistograms{"fillHistograms", true, "fill histograms"};
@@ -452,9 +451,12 @@ struct HfTrackIndexSkimsCreator {
   // D0 cuts
   Configurable<std::vector<double>> pTBinsD0ToPiK{"pTBinsD0ToPiK", std::vector<double>{hf_cuts_presel_2prong::pTBinsVec}, "pT bin limits for D0->piK pT-depentend cuts"};
   Configurable<LabeledArray<double>> cutsD0ToPiK{"cutsD0ToPiK", {hf_cuts_presel_2prong::cuts[0], hf_cuts_presel_2prong::npTBins, hf_cuts_presel_2prong::nCutVars, hf_cuts_presel_2prong::pTBinLabels, hf_cuts_presel_2prong::cutVarLabels}, "D0->piK selections per pT bin"};
-  // Jpsi cuts
+  // Jpsi -> ee cuts
   Configurable<std::vector<double>> pTBinsJpsiToEE{"pTBinsJpsiToEE", std::vector<double>{hf_cuts_presel_2prong::pTBinsVec}, "pT bin limits for Jpsi->ee pT-depentend cuts"};
   Configurable<LabeledArray<double>> cutsJpsiToEE{"cutsJpsiToEE", {hf_cuts_presel_2prong::cuts[0], hf_cuts_presel_2prong::npTBins, hf_cuts_presel_2prong::nCutVars, hf_cuts_presel_2prong::pTBinLabels, hf_cuts_presel_2prong::cutVarLabels}, "Jpsi->ee selections per pT bin"};
+  // Jpsi -> mumu cuts
+  Configurable<std::vector<double>> pTBinsJpsiToMuMu{"pTBinsJpsiToMuMu", std::vector<double>{hf_cuts_presel_2prong::pTBinsVec}, "pT bin limits for Jpsi->mumu pT-depentend cuts"};
+  Configurable<LabeledArray<double>> cutsJpsiToMuMu{"cutsJpsiToMuMu", {hf_cuts_presel_2prong::cuts[0], hf_cuts_presel_2prong::npTBins, hf_cuts_presel_2prong::nCutVars, hf_cuts_presel_2prong::pTBinLabels, hf_cuts_presel_2prong::cutVarLabels}, "Jpsi->mumu selections per pT bin"};
   // D+ cuts
   Configurable<std::vector<double>> pTBinsDPlusToPiKPi{"pTBinsDPlusToPiKPi", std::vector<double>{hf_cuts_presel_3prong::pTBinsVec}, "pT bin limits for D+->piKpi pT-depentend cuts"};
   Configurable<LabeledArray<double>> cutsDPlusToPiKPi{"cutsDPlusToPiKPi", {hf_cuts_presel_3prong::cuts[0], hf_cuts_presel_3prong::npTBins, hf_cuts_presel_3prong::nCutVars, hf_cuts_presel_3prong::pTBinLabels, hf_cuts_presel_3prong::cutVarLabels}, "D+->piKpi selections per pT bin"};
@@ -479,6 +481,7 @@ struct HfTrackIndexSkimsCreator {
      {"hNCand2ProngVsNTracks", "2-prong candidates preselected;# of selected tracks;# of candidates;entries", {HistType::kTH2F, {{2500, 0., 25000.}, {2000, 0., 200000.}}}},
      {"hmassD0ToPiK", "D^{0} candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      {"hmassJpsiToEE", "J/#psi candidates;inv. mass (e^{#plus} e^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
+     {"hmassJpsiToMuMu", "J/#psi candidates;inv. mass (#mu^{#plus} #mu^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      // 3-prong histograms
      {"hVtx3ProngX", "3-prong candidates;#it{x}_{sec. vtx.} (cm);entries", {HistType::kTH1F, {{1000, -2., 2.}}}},
      {"hVtx3ProngY", "3-prong candidates;#it{y}_{sec. vtx.} (cm);entries", {HistType::kTH1F, {{1000, -2., 2.}}}},
@@ -512,6 +515,9 @@ struct HfTrackIndexSkimsCreator {
     arrMass2Prong[hf_cand_prong2::DecayType::JpsiToEE] = array{array{massElectron, massElectron},
                                                                array{massElectron, massElectron}};
 
+    arrMass2Prong[hf_cand_prong2::DecayType::JpsiToMuMu] = array{array{massMuon, massMuon},
+                                                                 array{massMuon, massMuon}};
+
     arrMass3Prong[hf_cand_prong3::DecayType::DPlusToPiKPi] = array{array{massPi, massK, massPi},
                                                                    array{massPi, massK, massPi}};
 
@@ -525,8 +531,8 @@ struct HfTrackIndexSkimsCreator {
                                                                 array{massPi, massK, massProton}};
 
     // cuts for 2-prong decays retrieved by json. the order must be then one in hf_cand_prong2::DecayType
-    cut2Prong = {cutsD0ToPiK, cutsJpsiToEE};
-    pTBins2Prong = {pTBinsD0ToPiK, pTBinsJpsiToEE};
+    cut2Prong = {cutsD0ToPiK, cutsJpsiToEE, cutsJpsiToMuMu};
+    pTBins2Prong = {pTBinsD0ToPiK, pTBinsJpsiToEE, pTBinsJpsiToMuMu};
     // cuts for 3-prong decays retrieved by json. the order must be then one in hf_cand_prong3::DecayType
     cut3Prong = {cutsDPlusToPiKPi, cutsLcToPKPi, cutsDsToPiKK, cutsXicToPKPi};
     pTBins3Prong = {pTBinsDPlusToPiKPi, pTBinsLcToPKPi, pTBinsDsToPiKK, pTBinsXicToPKPi};
@@ -864,7 +870,7 @@ struct HfTrackIndexSkimsCreator {
                     }
                   }
                 }
-                rowProng2CutStatus(Prong2CutStatus[0], Prong2CutStatus[1]); //FIXME when we can do this by looping over n2ProngDecays
+                rowProng2CutStatus(Prong2CutStatus[0], Prong2CutStatus[1], Prong2CutStatus[2]); //FIXME when we can do this by looping over n2ProngDecays
               }
 
               // fill histograms
@@ -877,10 +883,16 @@ struct HfTrackIndexSkimsCreator {
                   if (TESTBIT(isSelected2ProngCand, iDecay2P)) {
                     if (whichHypo2Prong[iDecay2P] == 1 || whichHypo2Prong[iDecay2P] == 3) {
                       auto mass2Prong = RecoDecay::M(arrMom, arrMass2Prong[iDecay2P][0]);
-                      if (iDecay2P == hf_cand_prong2::DecayType::D0ToPiK) {
-                        registry.get<TH1>(HIST("hmassD0ToPiK"))->Fill(mass2Prong);
-                      } else if (iDecay2P == hf_cand_prong2::DecayType::JpsiToEE) {
-                        registry.get<TH1>(HIST("hmassJpsiToEE"))->Fill(mass2Prong);
+                      switch (iDecay2P) {
+                        case hf_cand_prong2::DecayType::D0ToPiK:
+                          registry.get<TH1>(HIST("hmassD0ToPiK"))->Fill(mass2Prong);
+                          break;
+                        case hf_cand_prong2::DecayType::JpsiToEE:
+                          registry.get<TH1>(HIST("hmassJpsiToEE"))->Fill(mass2Prong);
+                          break;
+                        case hf_cand_prong2::DecayType::JpsiToMuMu:
+                          registry.get<TH1>(HIST("hmassJpsiToMuMu"))->Fill(mass2Prong);
+                          break;
                       }
                     }
                     if (whichHypo2Prong[iDecay2P] >= 2) {
