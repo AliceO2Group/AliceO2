@@ -82,6 +82,7 @@ class CTPRunScalers
   int convertRawToO2();
   int checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2& scal1) const;
   int checkConsistency(const CTPScalerRecordO2& rec0, const CTPScalerRecordO2& rec1) const;
+
  private:
   // map from class index to overflow
   // overflow counts how many time class scalerers overflowed
