@@ -36,11 +36,17 @@ void Digits2Raw::init()
     outd += '/';
   }
   LOG(INFO) << "Raw outpud dir:" << mOutDir;
-  for (int ilink = 0; ilink < mNLinks; ilink++) {
-    mFeeID = uint64_t(ilink);
-    std::string outFileLink = mOutputPerLink ? o2::utils::Str::concat_string(outd, "ctp_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, "ctp.raw");
-    mWriter.registerLink(mFeeID, mCruID, ilink, mEndPointID, outFileLink);
-  }
+  // Interaction Record
+  int ilink = 0;
+  uint64_t feeID = getFEEIDIR();
+  std::string outFileLink0 = mOutputPerLink ? o2::utils::Str::concat_string(outd, "ctp_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, "ctp.raw");
+  mWriter.registerLink(feeID, mCruID, ilink, mEndPointID, outFileLink0);
+  // Trigger Class record
+  ilink = 1;
+  feeID = getFEEIDTC();
+  std::string outFileLink1 = mOutputPerLink ? o2::utils::Str::concat_string(outd, "ctp_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, "ctp.raw");
+  mWriter.registerLink(feeID, mCruID, ilink, mEndPointID, outFileLink1);
+  // ilink = 2: HBMap, Counters - tbd
   mWriter.setEmptyPageCallBack(this);
 }
 void Digits2Raw::processDigits(const std::string& fileDigitsName)
@@ -76,7 +82,7 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
     std::vector<std::bitset<NGBT>> hbfIR;
     std::vector<std::bitset<NGBT>> hbfTC;
     for (auto const& ctpdig : CTPDigits) {
-      std::cout << ctpdig.intRecord.orbit << " orbit bc " << ctpdig.intRecord.bc << std::endl;
+      LOG(DEBUG) << ctpdig.intRecord.orbit << " orbit bc " << ctpdig.intRecord.bc;
       if ((orbit0 == ctpdig.intRecord.orbit) || firstorbit) {
         if (firstorbit == true) {
           firstorbit = false;
@@ -86,7 +92,7 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
         std::bitset<NGBT> gbtdigIR;
         std::bitset<NGBT> gbtdigTC;
         digit2GBTdigit(gbtdigIR, gbtdigTC, ctpdig);
-        std::cout << "ir:" << gbtdigIR << std::endl;
+        LOG(DEBUG) << "ir:" << gbtdigIR;
         hbfIR.push_back(gbtdigIR);
         hbfTC.push_back(gbtdigTC);
       } else {
@@ -101,14 +107,12 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
           std::vector<std::bitset<NGBT>> hbfIRnonZS = addEmptyBC(hbfIR);
           buffer = digits2HBTPayload(hbfIRnonZS, NIntRecPayload);
         }
-        std::cout << "buffer:" << buffer.size() << ":";
-        for (auto const& c : buffer)
-          std::cout << c;
-        std::cout << std::endl;
-        mWriter.addData(CRULinkIDIntRec, mCruID, CRULinkIDIntRec, mEndPointID, intRec, buffer);
+        // add data for IR
+        LOG(DEBUG) << "buffer size:" << buffer.size() << ":";
+        mWriter.addData(getFEEIDIR(), mCruID, GBTLinkIDIntRec, mEndPointID, intRec, buffer);
         // add data for Trigger Class Record
         buffer.clear();
-        mWriter.addData(CRULinkIDClassRec, mCruID, CRULinkIDClassRec, mEndPointID, intRec, buffer);
+        mWriter.addData(getFEEIDTC(), mCruID, GBTLinkIDClassRec, mEndPointID, intRec, buffer);
         //
         orbit0 = ctpdig.intRecord.orbit;
         hbfIR.clear();
@@ -121,7 +125,7 @@ void Digits2Raw::emptyHBFMethod(const header::RDHAny* rdh, std::vector<char>& to
 {
   // TriClassRecord data zero suppressed
   // CTP INteraction Data
-  if (o2::raw::RDHUtils::getCRUID(rdh) == CRULinkIDIntRec) {
+  if (((o2::raw::RDHUtils::getFEEID(rdh) & 0xf00)>>8) == GBTLinkIDIntRec) {
     if (mZeroSuppressedIntRec == false) {
       toAdd.clear();
       std::vector<std::bitset<NGBT>> digits;
