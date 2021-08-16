@@ -12,7 +12,6 @@
 /// @file   AODProducerWorkflowSpec.cxx
 
 #include "AODProducerWorkflow/AODProducerWorkflowSpec.h"
-#include "AnalysisDataModel/PID/PIDTOF.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMFT/TrackMFT.h"
