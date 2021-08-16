@@ -364,11 +364,11 @@ struct CombinationsBlockUpperIndexPolicy : public CombinationsBlockIndexPolicyBa
         constexpr auto curInd = k - i.value - 1;
         std::get<curInd>(this->mCurrentIndices)++;
         uint64_t curGroupedInd = std::get<curInd>(this->mCurrentIndices);
-        std::get<curInd>(this->mCurrent).setCursor(this->mGroupedIndices[curInd][curGroupedInd].second);
         uint64_t maxForWindow = std::get<curInd>(this->mBeginIndices) + this->mSlidingWindowSize;
 
         // If we remain within the same sliding window
         if (curGroupedInd < maxForWindow && curGroupedInd < std::get<curInd>(this->mMaxOffset)) {
+          std::get<curInd>(this->mCurrent).setCursor(this->mGroupedIndices[curInd][curGroupedInd].second);
           modify = false;
           for_<i.value>([&, this](auto j) {
             constexpr auto curJ = k - i.value + j.value;
@@ -389,10 +389,10 @@ struct CombinationsBlockUpperIndexPolicy : public CombinationsBlockIndexPolicyBa
       std::get<0>(this->mCurrentIndices)++;
       std::get<0>(this->mBeginIndices)++;
       uint64_t curGroupedInd = std::get<0>(this->mCurrentIndices);
-      std::get<0>(this->mCurrent).setCursor(this->mGroupedIndices[0][curGroupedInd].second);
 
       // If we remain within the same category - slide window
       if (curGroupedInd < std::get<0>(this->mMaxOffset)) {
+        std::get<0>(this->mCurrent).setCursor(this->mGroupedIndices[0][curGroupedInd].second);
         modify = false;
         for_<k - 1>([&, this](auto j) {
           constexpr auto curJ = j.value + 1;
@@ -459,12 +459,12 @@ struct CombinationsBlockFullIndexPolicy : public CombinationsBlockIndexPolicyBas
         constexpr auto curInd = k - i.value - 1;
         std::get<curInd>(this->mCurrentIndices)++;
         uint64_t curGroupedInd = std::get<curInd>(this->mCurrentIndices);
-        std::get<curInd>(this->mCurrent).setCursor(this->mGroupedIndices[curInd][curGroupedInd].second);
         uint64_t windowOffset = curInd == this->mCurrentlyFixed ? 1 : this->mSlidingWindowSize;
         uint64_t maxForWindow = std::get<curInd>(this->mBeginIndices) + windowOffset;
 
         // If we remain within the same sliding window and fixed index
         if (curGroupedInd < maxForWindow && curGroupedInd < std::get<curInd>(this->mMaxOffset)) {
+          std::get<curInd>(this->mCurrent).setCursor(this->mGroupedIndices[curInd][curGroupedInd].second);
           for_<i.value>([&, this](auto j) {
             constexpr auto curJ = k - i.value + j.value;
             if (curJ < this->mCurrentlyFixed) { // To assure no repetitions
@@ -499,11 +499,11 @@ struct CombinationsBlockFullIndexPolicy : public CombinationsBlockIndexPolicyBas
         this->mCurrentlyFixed = 0;
         std::get<0>(this->mBeginIndices)++;
         std::get<0>(this->mCurrentIndices) = std::get<0>(this->mBeginIndices);
-        uint64_t curGroupedInd = std::get<0>(this->mCurrentIndices);
-        std::get<0>(this->mCurrent).setCursor(this->mGroupedIndices[0][curGroupedInd].second);
 
         // If we remain within the same category - slide window
         if (std::get<0>(this->mBeginIndices) < std::get<0>(this->mMaxOffset)) {
+          uint64_t curGroupedInd = std::get<0>(this->mCurrentIndices);
+          std::get<0>(this->mCurrent).setCursor(this->mGroupedIndices[0][curGroupedInd].second);
           modify = false;
           for_<k - 1>([&, this](auto j) {
             constexpr auto curJ = j.value + 1;
@@ -602,11 +602,11 @@ struct CombinationsBlockUpperSameIndexPolicy : public CombinationsBlockSameIndex
         constexpr auto curInd = k - i.value - 1;
         std::get<curInd>(this->mCurrentIndices)++;
         uint64_t curGroupedInd = std::get<curInd>(this->mCurrentIndices);
-        std::get<curInd>(this->mCurrent).setCursor(this->mGroupedIndices[curGroupedInd].second);
         uint64_t maxForWindow = std::get<0>(this->mCurrentIndices) + this->mSlidingWindowSize;
 
         // If we remain within the same sliding window
         if (curGroupedInd < maxForWindow && curGroupedInd < std::get<curInd>(this->mMaxOffset)) {
+          std::get<curInd>(this->mCurrent).setCursor(this->mGroupedIndices[curGroupedInd].second);
           for_<i.value>([&, this](auto j) {
             constexpr auto curJ = k - i.value + j.value;
             std::get<curJ>(this->mCurrentIndices) = std::get<curJ - 1>(this->mCurrentIndices);
@@ -622,10 +622,10 @@ struct CombinationsBlockUpperSameIndexPolicy : public CombinationsBlockSameIndex
     if (modify) {
       std::get<0>(this->mCurrentIndices)++;
       uint64_t curGroupedInd = std::get<0>(this->mCurrentIndices);
-      std::get<0>(this->mCurrent).setCursor(this->mGroupedIndices[curGroupedInd].second);
 
       // If we remain within the same category - slide window
       if (curGroupedInd < std::get<0>(this->mMaxOffset)) {
+        std::get<0>(this->mCurrent).setCursor(this->mGroupedIndices[curGroupedInd].second);
         for_<k - 1>([&, this](auto j) {
           constexpr auto curJ = j.value + 1;
           std::get<curJ>(this->mCurrentIndices) = std::get<curJ - 1>(this->mCurrentIndices);
@@ -680,11 +680,11 @@ struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockS
         constexpr auto curInd = k - i.value - 1;
         std::get<curInd>(this->mCurrentIndices)++;
         uint64_t curGroupedInd = std::get<curInd>(this->mCurrentIndices);
-        std::get<curInd>(this->mCurrent).setCursor(this->mGroupedIndices[curGroupedInd].second);
         uint64_t maxForWindow = std::get<0>(this->mCurrentIndices) + this->mSlidingWindowSize - i.value;
 
         // If we remain within the same sliding window
         if (curGroupedInd < maxForWindow && curGroupedInd < std::get<curInd>(this->mMaxOffset)) {
+          std::get<curInd>(this->mCurrent).setCursor(this->mGroupedIndices[curGroupedInd].second);
           for_<i.value>([&, this](auto j) {
             constexpr auto curJ = k - i.value + j.value;
             std::get<curJ>(this->mCurrentIndices) = std::get<curJ - 1>(this->mCurrentIndices) + 1;
@@ -700,10 +700,10 @@ struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockS
     if (modify) {
       std::get<0>(this->mCurrentIndices)++;
       uint64_t curGroupedInd = std::get<0>(this->mCurrentIndices);
-      std::get<0>(this->mCurrent).setCursor(this->mGroupedIndices[curGroupedInd].second);
 
       // If we remain within the same category - slide window
       if (curGroupedInd < std::get<0>(this->mMaxOffset)) {
+        std::get<0>(this->mCurrent).setCursor(this->mGroupedIndices[curGroupedInd].second);
         for_<k - 1>([&, this](auto j) {
           constexpr auto curJ = j.value + 1;
           std::get<curJ>(this->mCurrentIndices) = std::get<curJ - 1>(this->mCurrentIndices) + 1;
@@ -762,12 +762,12 @@ struct CombinationsBlockFullSameIndexPolicy : public CombinationsBlockSameIndexP
         constexpr auto curInd = k - i.value - 1;
         std::get<curInd>(this->mCurrentIndices)++;
         uint64_t curGroupedInd = std::get<curInd>(this->mCurrentIndices);
-        std::get<curInd>(this->mCurrent).setCursor(this->mGroupedIndices[curGroupedInd].second);
         uint64_t windowOffset = curInd == this->mCurrentlyFixed ? 1 : this->mSlidingWindowSize;
         uint64_t maxForWindow = this->mBeginIndex + windowOffset;
 
         // If we remain within the same sliding window and fixed index
         if (curGroupedInd < maxForWindow && curGroupedInd < std::get<curInd>(this->mMaxOffset)) {
+          std::get<curInd>(this->mCurrent).setCursor(this->mGroupedIndices[curGroupedInd].second);
           for_<i.value>([&, this](auto j) {
             constexpr auto curJ = k - i.value + j.value;
             if (curJ < this->mCurrentlyFixed) { // To assure no repetitions
@@ -802,11 +802,11 @@ struct CombinationsBlockFullSameIndexPolicy : public CombinationsBlockSameIndexP
         this->mCurrentlyFixed = 0;
         this->mBeginIndex++;
         std::get<0>(this->mCurrentIndices) = this->mBeginIndex;
-        uint64_t curGroupedInd = std::get<0>(this->mCurrentIndices);
-        std::get<0>(this->mCurrent).setCursor(this->mGroupedIndices[curGroupedInd].second);
 
         // If we remain within the same category - slide window
         if (this->mBeginIndex < std::get<0>(this->mMaxOffset)) {
+          uint64_t curGroupedInd = std::get<0>(this->mCurrentIndices);
+          std::get<0>(this->mCurrent).setCursor(this->mGroupedIndices[curGroupedInd].second);
           for_<k - 1>([&, this](auto j) {
             constexpr auto curJ = j.value + 1;
             std::get<curJ>(this->mCurrentIndices) = this->mBeginIndex;
