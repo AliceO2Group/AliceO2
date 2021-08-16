@@ -98,6 +98,20 @@ struct HFXToJpsiPiPiCandidateSelector {
     }
 
     // add more cuts: d0 product? PCA?
+    // Cut on Q of the X candidate as reported in https://arxiv.org/pdf/1112.5310.pdf
+    if (InvQXToJpsiPiPi(hfCandX) >  cuts->get(pTBin, "Q value")) {
+      return false;
+    }
+
+    // Cut on Delta R (Jpsi - pi+)
+    if (DeltaRXToJpsiPiPos(hfCandX) >  cuts->get(pTBin, "Delta R")) {
+      return false;
+    }
+
+    // Cut on Delta R (Jpsi - pi-)
+    if (DeltaRXToJpsiPiNeg(hfCandX) >  cuts->get(pTBin, "Delta R")) {
+      return false;
+    }
 
     return true;
   }
@@ -191,16 +205,27 @@ struct HFXToJpsiPiPiCandidateSelector {
       auto trackPos = hfCandX.index1_as<aod::BigTracksPID>(); //positive daughter
       auto trackNeg = hfCandX.index2_as<aod::BigTracksPID>(); //negative daughter
 
+      int selJpsiToEE = 1;
+      int selJpsiToMuMu = 1;
+
       // check if flagged as X --> Jpsi Pi Pi
-      if (!(hfCandX.hfflag() & 1 << XToJpsiPiPi)) {
-        hfSelXToJpsiPiPiCandidate(0);
+      //if (!(hfCandX.hfflag() & 1 << XToJpsiPiPi)) {
+        //hfSelXToJpsiPiPiCandidate(0, 0);
         // Printf("X candidate selection failed at hfflag check");
-        continue;
+        //continue;
+      //}
+
+      if (!(hfCandX.hfflag() & 1 << XToJpsiPiPi)) {
+        selJpsiToEE = 0;
+      }
+
+      if (!(hfCandX.hfflag() & 1 << XToJpsiToMuMuPiPi)) {
+        selJpsiToMuMu = 0;
       }
 
       // daughter track validity selection
       if (!daughterSelection(trackPos) || !daughterSelection(trackNeg)) {
-        hfSelXToJpsiPiPiCandidate(0);
+        hfSelXToJpsiPiPiCandidate(0, 0);
         // Printf("X candidate selection failed at daughter selection");
         continue;
       }
@@ -209,18 +234,18 @@ struct HFXToJpsiPiPiCandidateSelector {
       //need to add special cuts (additional cuts on decay length and d0 norm)
 
       if (!selectionTopol(hfCandX, candJpsi, trackPos, trackNeg)) {
-        hfSelXToJpsiPiPiCandidate(0);
+        hfSelXToJpsiPiPiCandidate(0, 0);
         // Printf("X candidate selection failed at selection topology");
         continue;
       }
 
       if (selectionPID(trackPos) == 0 || selectionPID(trackNeg) == 0) {
-        hfSelXToJpsiPiPiCandidate(0);
+        hfSelXToJpsiPiPiCandidate(0, 0);
         // Printf("X candidate selection failed at selection PID");
         continue;
       }
 
-      hfSelXToJpsiPiPiCandidate(1);
+      hfSelXToJpsiPiPiCandidate(selJpsiToEE, selJpsiToMuMu);
       // Printf("X candidate selection successful, candidate should be selected");
     }
   }

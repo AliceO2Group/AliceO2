@@ -32,8 +32,11 @@ using namespace o2::aod::hf_cand_prong2;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, true, {"Fill MC histograms."}};
-  workflowOptions.push_back(optionDoMC);
+  std::vector<ConfigParamSpec> options{
+  {"doMC", VariantType::Bool, true, {"Fill MC histograms."}},
+  {"dimu-sel", VariantType::Bool, true, {"Enable Jpsi dimuon decay channel"}},
+  {"diel-sel", VariantType::Bool, true, {"Enable Jpsi dieletron decay channel"}}};
+  std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -49,11 +52,16 @@ struct TaskX {
 
   Configurable<int> d_selectionFlagX{"d_selectionFlagX", 1, "Selection Flag for X"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
+  Configurable<bool> d_modeXToJpsiToMuMuPiPi{"d_modeXToJpsiToMuMuPiPi", false, "Perform Jpsi to mu+mu- analysis"};
   Configurable<std::vector<double>> bins{"pTBins", std::vector<double>{hf_cuts_x_tojpsipipi::pTBins_v}, "pT bin limits"};
 
   void init(o2::framework::InitContext&)
   {
-    registry.add("hMass", "3-prong candidates;inv. mass (J/#psi #pi+ #pi-) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{200, 3., 4.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    if (d_modeXToJpsiToMuMuPiPi) {
+      registry.add("hMass", "3-prong candidates;inv. mass (J/#psi(#mu+#mu-) #pi+ #pi-) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{200, 3., 4.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    } else {
+      registry.add("hMass", "3-prong candidates;inv. mass (J/#psi(e+e-) #pi+ #pi-) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{200, 3., 4.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    }
     registry.add("hdeclength", "3-prong candidates;decay length (cm);entries", {HistType::kTH2F, {{100, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hdeclengthxy", "3-prong candidates;decay length xy (cm);entries", {HistType::kTH2F, {{100, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hd0Prong0", "3-prong candidates;prong 0 DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {{400, -0.002, 0.002}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
@@ -66,13 +74,20 @@ struct TaskX {
     registry.add("hDecLenXYErr", "3-prong candidates;decay length xy error (cm);entries", {HistType::kTH2F, {{100, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_x::isSelXToJpsiPiPi >= d_selectionFlagX);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_x::isSelXToJpsiPiPi >= d_selectionFlagX || aod::hf_selcandidate_x::isSelXToJpsiToMuMuPiPi >= d_selectionFlagX);
 
   void process(soa::Filtered<soa::Join<aod::HfCandX, aod::HFSelXToJpsiPiPiCandidate>> const& candidates)
   {
+    int decayMode = d_modeXToJpsiToMuMuPiPi ? XToJpsiToMuMuPiPi : XToJpsiPiPi;
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << XToJpsiPiPi)) {
-        continue;
+      if (d_modeXToJpsiToMuMuPiPi) {
+        if (!(candidate.hfflag() & 1 << decayMode)) {
+          continue;
+        }
+      } else {
+        if (!(candidate.hfflag() & 1 << decayMode)) {
+          continue;
+        }
       }
       if (cutYCandMax >= 0. && std::abs(YX(candidate)) > cutYCandMax) {
         continue;
@@ -108,6 +123,7 @@ struct TaskXMC {
 
   Configurable<int> d_selectionFlagX{"d_selectionFlagX", 1, "Selection Flag for X"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
+  Configurable<bool> d_modeXToJpsiToMuMuPiPi{"d_modeXToJpsiToMuMuPiPi", false, "Perform Jpsi to mu+mu- analysis"};
   Configurable<std::vector<double>> bins{"pTBins", std::vector<double>{hf_cuts_x_tojpsipipi::pTBins_v}, "pT bin limits"};
 
   void init(o2::framework::InitContext&)
@@ -145,23 +161,60 @@ struct TaskXMC {
     registry.add("hCtBg", "3-prong candidates (rec. unmatched);proper lifetime X(3872) * #it{c} (cm);entries", {HistType::kTH2F, {{400, 0., 0.001}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hYSig", "3-prong candidates (rec. matched);candidate rapidity;entries", {HistType::kTH2F, {{100, -2., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hYBg", "3-prong candidates (rec. unmatched);candidate rapidity;entries", {HistType::kTH2F, {{100, -2., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+
+    registry.add("hQSig", "3-prong candidates (rec. matched);candidate Q(M_{X} - M_{#mu#mu} - M_{#pi#pi});entries", {HistType::kTH2F, {{100, 0., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hQBg", "3-prong candidates (rec. unmatched);candidate Q(M_{X} - M_{#mu#mu} - M_{#pi#pi});entries", {HistType::kTH2F, {{100, 0., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+
+    registry.add("hDPhiJpsiPiPosSig", "3-prong candidates (rec. matched);candidate #Delta #phi (J/#psi - #pi^{+});entries", {HistType::kTH2F, {{500, -10., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hDPhiJpsiPiPosBg", "3-prong candidates (rec. unmatched);candidate #Delta #phi (J/#psi - #pi^{+});entries", {HistType::kTH2F, {{500, -10., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hDEtaJpsiPiPosSig", "3-prong candidates (rec. matched);candidate #Delta #eta (J/#psi - #pi^{+});entries", {HistType::kTH2F, {{500, -10., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hDEtaJpsiPiPosBg", "3-prong candidates (rec. unmatched);candidate #Delta #eta (J/#psi - #pi^{+});entries", {HistType::kTH2F, {{500, -10., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hDRJpsiPiPosSig", "3-prong candidates (rec. matched);candidate #Delta R (J/#psi - #pi^{+});entries", {HistType::kTH2F, {{500, 0., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hDRJpsiPiPosBg", "3-prong candidates (rec. unmatched);candidate #Delta R (J/#psi - #pi^{+});entries", {HistType::kTH2F, {{500, 0., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+
+    registry.add("hDPhiJpsiPiNegSig", "3-prong candidates (rec. matched);candidate #Delta #phi (J/#psi - #pi^{-});entries", {HistType::kTH2F, {{500, -10., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hDPhiJpsiPiNegBg", "3-prong candidates (rec. unmatched);candidate #Delta #phi (J/#psi - #pi^{-});entries", {HistType::kTH2F, {{500, -10., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hDEtaJpsiPiNegSig", "3-prong candidates (rec. matched);candidate #Delta #eta (J/#psi - #pi^{-});entries", {HistType::kTH2F, {{500, -10., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hDEtaJpsiPiNegBg", "3-prong candidates (rec. unmatched);candidate #Delta #eta (J/#psi - #pi^{-});entries", {HistType::kTH2F, {{500, -10., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hDRJpsiPiNegSig", "3-prong candidates (rec. matched);candidate #Delta R (J/#psi - #pi^{-});entries", {HistType::kTH2F, {{500, 0., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hDRJpsiPiNegBg", "3-prong candidates (rec. unmatched);candidate #Delta R (J/#psi - #pi^{-});entries", {HistType::kTH2F, {{500, 0., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+
+    registry.add("hPhiJpsiSig", "3-prong candidates (rec. matched);candidate #phi J/#psi;entries", {HistType::kTH2F, {{500, -10., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hPhiPiPosSig", "3-prong candidates (rec. matched);candidate #phi #pi^{+};entries", {HistType::kTH2F, {{500, -10., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hPhiPiNegSig", "3-prong candidates (rec. matched);candidate #phi #pi^{-};entries", {HistType::kTH2F, {{500, -10., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+
+    registry.add("hPhiJpsiBg", "3-prong candidates (rec. unmatched);candidate #phi J/#psi;entries", {HistType::kTH2F, {{500, -10., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hPhiPiPosBg", "3-prong candidates (rec. unmatched);candidate #phi #pi^{+};entries", {HistType::kTH2F, {{500, -10., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hPhiPiNegBg", "3-prong candidates (rec. unmatched);candidate #phi #pi^{-};entries", {HistType::kTH2F, {{500, -10., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+
+    registry.add("hQDRJpsiPiPosSig", "3-prong candidates (rec. matched);candidate Q(M_{X} - M_{#mu#mu} - M_{#pi#pi});#Delta R;entries", {HistType::kTH2F, {{100, 0., 2.}, {500, 0., 10.}}});
+    registry.add("hQDRJpsiPiNegSig", "3-prong candidates (rec. matched);candidate Q(M_{X} - M_{#mu#mu} - M_{#pi#pi});#Delta R;entries", {HistType::kTH2F, {{100, 0., 2.}, {500, 0., 10.}}});
+    registry.add("hQDRJpsiPiPosBg", "3-prong candidates (rec. matched);candidate Q(M_{X} - M_{#mu#mu} - M_{#pi#pi});#Delta R;entries", {HistType::kTH2F, {{100, 0., 2.}, {500, 0., 10.}}});
+    registry.add("hQDRJpsiPiNegBg", "3-prong candidates (rec. matched);candidate Q(M_{X} - M_{#mu#mu} - M_{#pi#pi});#Delta R;entries", {HistType::kTH2F, {{100, 0., 2.}, {500, 0., 10.}}});
   }
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_x::isSelXToJpsiPiPi >= d_selectionFlagX);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_x::isSelXToJpsiPiPi >= d_selectionFlagX || aod::hf_selcandidate_x::isSelXToJpsiToMuMuPiPi >= d_selectionFlagX);
 
   void process(soa::Filtered<soa::Join<aod::HfCandX, aod::HFSelXToJpsiPiPiCandidate, aod::HfCandXMCRec>> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandXMCGen> const& particlesMC, aod::BigTracksMC const& tracks)
   {
     // MC rec.
     //Printf("MC Candidates: %d", candidates.size());
+    int decayMode = d_modeXToJpsiToMuMuPiPi ? XToJpsiToMuMuPiPi : XToJpsiPiPi;
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << XToJpsiPiPi)) {
-        continue;
+      if (d_modeXToJpsiToMuMuPiPi) {
+        if (!(candidate.hfflag() & 1 << decayMode)) {
+          continue;
+        }
+      } else {
+        if (!(candidate.hfflag() & 1 << decayMode)) {
+          continue;
+        }
       }
       if (cutYCandMax >= 0. && std::abs(YX(candidate)) > cutYCandMax) {
         continue;
       }
-      if (candidate.flagMCMatchRec() == 1 << XToJpsiPiPi) {
+      if (candidate.flagMCMatchRec() == 1 << decayMode) {
         auto indexMother = RecoDecay::getMother(particlesMC, candidate.index1_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandXMCGen>>(), 9920443, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
         registry.fill(HIST("hPtGenSig"), particleMother.pt());
@@ -180,6 +233,19 @@ struct TaskXMC {
         registry.fill(HIST("hChi2PCASig"), candidate.chi2PCA(), candidate.pt());
         registry.fill(HIST("hCtSig"), CtX(candidate), candidate.pt());
         registry.fill(HIST("hYSig"), YX(candidate), candidate.pt());
+
+        registry.fill(HIST("hQSig"), InvQXToJpsiPiPi(candidate), candidate.pt());
+        registry.fill(HIST("hDPhiJpsiPiPosSig"), DeltaPhiXToJpsiPiPos(candidate), candidate.pt());
+        registry.fill(HIST("hDEtaJpsiPiPosSig"), DeltaEtaXToJpsiPiPos(candidate), candidate.pt());
+	      registry.fill(HIST("hDRJpsiPiPosSig"), DeltaRXToJpsiPiPos(candidate), candidate.pt());
+        registry.fill(HIST("hDPhiJpsiPiNegSig"), DeltaPhiXToJpsiPiNeg(candidate), candidate.pt());
+        registry.fill(HIST("hDEtaJpsiPiNegSig"), DeltaEtaXToJpsiPiNeg(candidate), candidate.pt());
+	      registry.fill(HIST("hDRJpsiPiNegSig"), DeltaRXToJpsiPiNeg(candidate), candidate.pt());
+        registry.fill(HIST("hPhiJpsiSig"), RecoDecay::Phi(candidate.pxProng0(), candidate.pyProng0()), candidate.pt());
+        registry.fill(HIST("hPhiPiPosSig"), RecoDecay::Phi(candidate.pxProng1(), candidate.pyProng1()), candidate.pt());
+        registry.fill(HIST("hPhiPiNegSig"), RecoDecay::Phi(candidate.pxProng2(), candidate.pyProng2()), candidate.pt());
+        registry.fill(HIST("hQDRJpsiPiPosSig"), InvQXToJpsiPiPi(candidate), DeltaRXToJpsiPiPos(candidate));
+        registry.fill(HIST("hQDRJpsiPiNegSig"), InvQXToJpsiPiPi(candidate), DeltaRXToJpsiPiNeg(candidate));
       } else {
         registry.fill(HIST("hPtRecBg"), candidate.pt());
         registry.fill(HIST("hCPARecBg"), candidate.cpa(), candidate.pt());
@@ -196,12 +262,25 @@ struct TaskXMC {
         registry.fill(HIST("hChi2PCABg"), candidate.chi2PCA(), candidate.pt());
         registry.fill(HIST("hCtBg"), CtX(candidate), candidate.pt());
         registry.fill(HIST("hYBg"), YX(candidate), candidate.pt());
+
+        registry.fill(HIST("hQBg"), InvQXToJpsiPiPi(candidate), candidate.pt());
+        registry.fill(HIST("hDPhiJpsiPiPosBg"), DeltaPhiXToJpsiPiPos(candidate), candidate.pt());
+        registry.fill(HIST("hDEtaJpsiPiPosBg"), DeltaEtaXToJpsiPiPos(candidate), candidate.pt());
+	      registry.fill(HIST("hDRJpsiPiPosBg"), DeltaRXToJpsiPiPos(candidate), candidate.pt());
+        registry.fill(HIST("hDPhiJpsiPiNegBg"), DeltaPhiXToJpsiPiNeg(candidate), candidate.pt());
+        registry.fill(HIST("hDEtaJpsiPiNegBg"), DeltaEtaXToJpsiPiNeg(candidate), candidate.pt());
+	      registry.fill(HIST("hDRJpsiPiNegBg"), DeltaRXToJpsiPiNeg(candidate), candidate.pt());
+        registry.fill(HIST("hPhiJpsiBg"), RecoDecay::Phi(candidate.pxProng0(), candidate.pyProng0()), candidate.pt());
+        registry.fill(HIST("hPhiPiPosBg"), RecoDecay::Phi(candidate.pxProng1(), candidate.pyProng1()), candidate.pt());
+        registry.fill(HIST("hPhiPiNegBg"), RecoDecay::Phi(candidate.pxProng2(), candidate.pyProng2()), candidate.pt());
+        registry.fill(HIST("hQDRJpsiPiPosBg"), InvQXToJpsiPiPi(candidate), DeltaRXToJpsiPiPos(candidate));
+        registry.fill(HIST("hQDRJpsiPiNegBg"), InvQXToJpsiPiPi(candidate), DeltaRXToJpsiPiNeg(candidate));
       }
     } // rec
     // MC gen.
     //Printf("MC Particles: %d", particlesMC.size());
     for (auto& particle : particlesMC) {
-      if (particle.flagMCMatchGen() == 1 << XToJpsiPiPi) {
+      if (particle.flagMCMatchGen() == 1 << decayMode) {
         // TODO: add X(3872) mass such that we can use the getMassPDG function instead of hardcoded mass
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, 3.87168)) > cutYCandMax) {
           // Printf("MC Gen.: Y rejection: %g", RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, 3.87168));
@@ -227,11 +306,20 @@ struct TaskXMC {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{
-    adaptAnalysisTask<TaskX>(cfgc, TaskName{"hf-task-x"})};
+  // Enable to run simultaneously e+e- and mu+mu-
   const bool doMC = cfgc.options().get<bool>("doMC");
-  if (doMC) {
-    workflow.push_back(adaptAnalysisTask<TaskXMC>(cfgc, TaskName{"hf-task-x-mc"}));
-  }
-  return workflow;
+  WorkflowSpec w;
+   if (cfgc.options().get<bool>("diel-sel")) {
+     w.push_back(adaptAnalysisTask<TaskX>(cfgc, TaskName{"hf-task-x-elel"}));
+     if (doMC) {
+       w.push_back(adaptAnalysisTask<TaskXMC>(cfgc, TaskName{"hf-task-x-mc-elel"}));
+     }
+   }
+   if (cfgc.options().get<bool>("dimu-sel")) {
+     w.push_back(adaptAnalysisTask<TaskX>(cfgc, TaskName{"hf-task-x-mumu"}));
+     if (doMC) {
+       w.push_back(adaptAnalysisTask<TaskXMC>(cfgc, TaskName{"hf-task-x-mc-mumu"}));
+     }
+   }
+   return w;
 }

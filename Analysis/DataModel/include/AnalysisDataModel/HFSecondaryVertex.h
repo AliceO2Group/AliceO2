@@ -636,6 +636,118 @@ auto InvMassXToJpsiPiPi(const T& candidate)
   return candidate.m(array{RecoDecay::getMassPDG(443), RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kPiPlus)});
 }
 
+template <typename T>
+auto InvQXToJpsiPiPi(const T& candidate)
+{
+  array<float, 3> pivec0;
+  array<float, 3> pivec1;
+
+  pivec0[0] = candidate.pxProng1();
+  pivec0[1] = candidate.pyProng1();
+  pivec0[2] = candidate.pzProng1();
+
+  pivec1[0] = candidate.pxProng2();
+  pivec1[1] = candidate.pyProng2();
+  pivec1[2] = candidate.pzProng2();
+
+  double massPi = RecoDecay::getMassPDG(kPiPlus);
+
+  auto arrayMomenta = array{pivec0, pivec1};
+  double massPiPi = RecoDecay::M(arrayMomenta, array{massPi, massPi});
+
+  // PDG mass, as reported in CMS paper https://arxiv.org/pdf/1302.3968.pdf
+  double massMuMu = RecoDecay::getMassPDG(443);
+
+  double massMuMuPiPi = InvMassXToJpsiPiPi(candidate);
+  //printf("mass MuMuPiPi = %f, mass MuMu = %f, mass PiPi = %f\n", massMuMuPiPi, massMuMu, massPiPi);
+  return std::abs(massMuMuPiPi - massMuMu - massPiPi);
+}
+
+template <typename T>
+auto DeltaPhiXToJpsiPiPos(const T& candidate)
+{
+  double g_Pi = 3.1415927;
+  double phiJpsi = RecoDecay::Phi(candidate.pxProng0(), candidate.pyProng0());
+  double phiPiPos = RecoDecay::Phi(candidate.pxProng1(), candidate.pyProng1());
+  double deltaPhiPos = std::abs(phiJpsi - phiPiPos);
+
+  if (deltaPhiPos > g_Pi) {
+		deltaPhiPos = 2 * g_Pi - deltaPhiPos;
+	}
+
+  return deltaPhiPos;
+}
+template <typename T>
+auto DeltaPhiXToJpsiPiNeg(const T& candidate)
+{
+  double g_Pi = 3.1415927;
+  double phiJpsi = RecoDecay::Phi(candidate.pxProng0(), candidate.pyProng0());
+  double phiPiNeg = RecoDecay::Phi(candidate.pxProng2(), candidate.pyProng2());
+
+  double deltaPhiNeg = std::abs(phiJpsi - phiPiNeg);
+	if (deltaPhiNeg > g_Pi) {
+		deltaPhiNeg = 2 * g_Pi - deltaPhiNeg;
+	}
+
+  return deltaPhiNeg;
+}
+template <typename T>
+auto DeltaEtaXToJpsiPiPos(const T& candidate)
+{
+  double g_Pi = 3.1415927;
+  double etaJpsi = RecoDecay::Eta(array{candidate.pxProng0(), candidate.pyProng0(), candidate.pzProng0()});
+  double etaPiPos = RecoDecay::Eta(array{candidate.pxProng1(), candidate.pyProng1(), candidate.pzProng1()});
+  double deltaEtaPos = etaJpsi - etaPiPos;
+  return deltaEtaPos;
+}
+template <typename T>
+auto DeltaEtaXToJpsiPiNeg(const T& candidate)
+{
+  double g_Pi = 3.1415927;
+  double etaJpsi = RecoDecay::Eta(array{candidate.pxProng0(), candidate.pyProng0(), candidate.pzProng0()});
+  double etaPiNeg = RecoDecay::Eta(array{candidate.pxProng2(), candidate.pyProng2(), candidate.pzProng2()});
+  double deltaEtaNeg = etaJpsi - etaPiNeg;
+  return deltaEtaNeg;
+}
+template <typename T>
+auto DeltaRXToJpsiPiPos(const T& candidate)
+{
+  double g_Pi = 3.1415927;
+  double etaJpsi = RecoDecay::Eta(array{candidate.pxProng0(), candidate.pyProng0(), candidate.pzProng0()});
+  double phiJpsi = RecoDecay::Phi(candidate.pxProng0(), candidate.pyProng0());
+
+  double etaPiPos = RecoDecay::Eta(array{candidate.pxProng1(), candidate.pyProng1(), candidate.pzProng1()});
+  double phiPiPos = RecoDecay::Phi(candidate.pxProng1(), candidate.pyProng1());
+
+  double deltaEtaPos = etaJpsi - etaPiPos;
+  double deltaPhiPos = std::abs(phiJpsi - phiPiPos);
+	if (deltaPhiPos > g_Pi) {
+		deltaPhiPos = 2 * g_Pi - deltaPhiPos;
+	}
+
+  double deltaRPos = std::sqrt(deltaEtaPos * deltaEtaPos + deltaPhiPos * deltaPhiPos);
+  return deltaRPos;
+}
+template <typename T>
+auto DeltaRXToJpsiPiNeg(const T& candidate)
+{
+  double g_Pi = 3.1415927;
+  double etaJpsi = RecoDecay::Eta(array{candidate.pxProng0(), candidate.pyProng0(), candidate.pzProng0()});
+  double phiJpsi = RecoDecay::Phi(candidate.pxProng0(), candidate.pyProng0());
+
+  double etaPiNeg = RecoDecay::Eta(array{candidate.pxProng2(), candidate.pyProng2(), candidate.pzProng2()});
+  double phiPiNeg = RecoDecay::Phi(candidate.pxProng2(), candidate.pyProng2());
+
+  double deltaEtaNeg = etaJpsi - etaPiNeg;
+  double deltaPhiNeg = std::abs(phiJpsi - phiPiNeg);
+	if (deltaPhiNeg > g_Pi) {
+		deltaPhiNeg = 2 * g_Pi - deltaPhiNeg;
+	}
+
+  double deltaRNeg = std::sqrt(deltaEtaNeg * deltaEtaNeg + deltaPhiNeg * deltaPhiNeg);
+  return deltaRNeg;
+}
+
 } // namespace hf_cand_prong3
 
 // 3-prong decay candidate table
@@ -706,7 +818,8 @@ DECLARE_SOA_COLUMN(OriginMCGen, originMCGen, int8_t);               // particle 
 DECLARE_SOA_COLUMN(FlagMCDecayChanRec, flagMCDecayChanRec, int8_t); // resonant decay channel flag, reconstruction level
 DECLARE_SOA_COLUMN(FlagMCDecayChanGen, flagMCDecayChanGen, int8_t); // resonant decay channel flag, generator level
 // mapping of decay types
-enum DecayType { XToJpsiPiPi = 0 }; // move this to a dedicated cascade namespace in the future?
+enum DecayType { XToJpsiPiPi = 0,
+                 XToJpsiToMuMuPiPi }; // move this to a dedicated cascade namespace in the future?
 } // namespace hf_cand_x
 
 // declare dedicated X candidate table
