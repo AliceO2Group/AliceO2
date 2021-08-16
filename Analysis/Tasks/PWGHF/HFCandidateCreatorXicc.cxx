@@ -245,7 +245,7 @@ struct HfCandidateCreatorXiccMc {
       // Xicc → Xic + π+
       if (RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kXiCCPlusPlus, array{int(pdg::Code::kXiCPlus), +kPiPlus}, true)) {
         // Match Xic -> pKπ
-        auto XicCandMC = particlesMC.iteratorAt(particle.daughter0());
+        auto XicCandMC = particlesMC.iteratorAt(particle.daughter0Id());
         //Printf("Checking Ξc± → p± K∓ π±");
         if (RecoDecay::isMatchedMCGen(particlesMC, XicCandMC, int(pdg::Code::kXiCPlus), array{+kProton, -kKPlus, +kPiPlus}, true, &sign)) {
           flag = sign * (1 << DecayType::XiccToXicPi);

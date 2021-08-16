@@ -67,8 +67,6 @@ DECLARE_SOA_COLUMN(IsSelLcK0sP, isSelLcK0sP, int);
 DECLARE_SOA_TABLE(HFSelLcK0sPCandidate, "AOD", "HFSELLCK0SPCAND", //!
                   hf_selcandidate_lc_k0sp::IsSelLcK0sP);
 
-<<<<<<< HEAD
-=======
 namespace hf_selcandidate_x
 {
 DECLARE_SOA_COLUMN(IsSelXToJpsiPiPi, isSelXToJpsiPiPi, int); //!
@@ -79,7 +77,6 @@ DECLARE_SOA_TABLE(HFSelXToJpsiPiPiCandidate, "AOD", "HFSELXCAND", //!
 
 namespace o2::aod
 {
->>>>>>> a68206fb516a7cdb4463e66587e923a0057523c6
 namespace hf_selcandidate_xic
 {
 DECLARE_SOA_COLUMN(IsSelXicToPKPi, isSelXicToPKPi, int); //!

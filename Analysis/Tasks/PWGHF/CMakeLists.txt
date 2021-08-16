@@ -39,13 +39,13 @@ o2_add_dpl_workflow(hf-candidate-creator-3prong
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
                     COMPONENT_NAME Analysis)
 
-<<<<<<< HEAD
 o2_add_dpl_workflow(hf-candidate-creator-xicc
                     SOURCES HFCandidateCreatorXicc.cxx
-=======
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(hf-candidate-creator-x
                     SOURCES HFCandidateCreatorX.cxx
->>>>>>> a68206fb516a7cdb4463e66587e923a0057523c6
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
                     COMPONENT_NAME Analysis)
 
