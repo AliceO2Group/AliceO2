@@ -83,6 +83,20 @@ static constexpr std::array<std::array<std::string_view, n3Prong + 1>, 3> histoN
 static constexpr std::array<std::array<std::string_view, n3Prong + 1>, 3> histoNamesMinTrackPt3Prong = {{{"hPromptMinTrackPtVsPtDPlusToPiKPi", "hPromptMinTrackPtVsPtLcToPKPi", "hPromptMinTrackPtVsPtDsToPiKK", "hPromptMinTrackPtVsPtXicToPKPi", "hPromptMinTrackPtVsPt3Prong"},
                                                                                                          {"hNonPromptMinTrackPtVsPtDPlusToPiKPi", "hNonPromptMinTrackPtVsPtLcToPKPi", "hNonPromptMinTrackPtVsPtDsToPiKK", "hNonPromptMinTrackPtVsPtXicToPKPi", "hNonPromptMinTrackPtVsPt3Prong"},
                                                                                                          {"hBkgMinTrackPtVsPtDPlusToPiKPi", "hBkgMinTrackPtVsPtLcToPKPi", "hBkgMinTrackPtVsPtDsToPiKK", "hBkgMinTrackPtVsPtXicToPKPi", "hBkgMinTrackPtVsPt3Prong"}}};
+
+static std::array<std::array<std::shared_ptr<TH1>, n2Prong + 1>, 3> hist2Prong{};
+static std::array<std::array<std::shared_ptr<TH2>, n2Prong + 1>, 3> histCosp2Prong{};
+static std::array<std::array<std::shared_ptr<TH2>, n2Prong + 1>, 3> histDecLen2Prong{};
+static std::array<std::array<std::shared_ptr<TH2>, n2Prong + 1>, 3> histImpParProd2Prong{};
+static std::array<std::array<std::shared_ptr<TH2>, n2Prong + 1>, 3> histMinDCAxy2Prong{};
+static std::array<std::array<std::shared_ptr<TH2>, n2Prong + 1>, 3> histMinTrackPt2Prong{};
+
+static std::array<std::array<std::shared_ptr<TH1>, n3Prong + 1>, 3> hist3Prong{};
+static std::array<std::array<std::shared_ptr<TH2>, n3Prong + 1>, 3> histCosp3Prong{};
+static std::array<std::array<std::shared_ptr<TH2>, n3Prong + 1>, 3> histDecLen3Prong{};
+static std::array<std::array<std::shared_ptr<TH2>, n3Prong + 1>, 3> histMinDCAxy3Prong{};
+static std::array<std::array<std::shared_ptr<TH2>, n3Prong + 1>, 3> histMinTrackPt3Prong{};
+
 } // namespace
 
 struct HfSelOptimisation {
@@ -109,54 +123,55 @@ struct HfSelOptimisation {
   {
     for (int iOrig{0}; iOrig < 3; iOrig++) {
       for (int i2Prong = 0; i2Prong < n2Prong + 1; ++i2Prong) {
-        registry.add(histoNames2Prong[iOrig][i2Prong].data(), "", HistType::kTH1F, {axisPt});
-        auto histCosp2Prong = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesCosp2Prong[iOrig][i2Prong].data(), "", HistType::kTH2F, {axisPt, axisCosp}));
-        for (int iBin{0}; iBin < histCosp2Prong->GetYaxis()->GetNbins(); ++iBin) {
-          histCosp2Prong->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.4f", cutsToTestCosp->at(iBin)));
+        hist2Prong[iOrig][i2Prong] = std::get<std::shared_ptr<TH1>>(registry.add(histoNames2Prong[iOrig][i2Prong].data(), "", HistType::kTH1F, {axisPt}));
+        histCosp2Prong[iOrig][i2Prong] = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesCosp2Prong[iOrig][i2Prong].data(), "", HistType::kTH2F, {axisPt, axisCosp}));
+        for (int iBin{0}; iBin < histCosp2Prong[iOrig][i2Prong]->GetYaxis()->GetNbins(); ++iBin) {
+          histCosp2Prong[iOrig][i2Prong]->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.4f", cutsToTestCosp->at(iBin)));
         }
-        auto histDecLen2Prong = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesDecLen2Prong[iOrig][i2Prong].data(), "", HistType::kTH2F, {axisPt, axisDecLen}));
-        for (int iBin{0}; iBin < histDecLen2Prong->GetYaxis()->GetNbins(); ++iBin) {
-          histDecLen2Prong->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.3f", cutsToTestDecLen->at(iBin)));
+        histDecLen2Prong[iOrig][i2Prong] = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesDecLen2Prong[iOrig][i2Prong].data(), "", HistType::kTH2F, {axisPt, axisDecLen}));
+        for (int iBin{0}; iBin < histDecLen2Prong[iOrig][i2Prong]->GetYaxis()->GetNbins(); ++iBin) {
+          histDecLen2Prong[iOrig][i2Prong]->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.3f", cutsToTestDecLen->at(iBin)));
         }
-        auto histImpParProd2Prong = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesImpParProd2Prong[iOrig][i2Prong].data(), "", HistType::kTH2F, {axisPt, axisImpParProd}));
-        for (int iBin{0}; iBin < histImpParProd2Prong->GetYaxis()->GetNbins(); ++iBin) {
-          histImpParProd2Prong->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.4f", cutsToTestImpParProd->at(iBin)));
+        histImpParProd2Prong[iOrig][i2Prong] = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesImpParProd2Prong[iOrig][i2Prong].data(), "", HistType::kTH2F, {axisPt, axisImpParProd}));
+        for (int iBin{0}; iBin < histImpParProd2Prong[iOrig][i2Prong]->GetYaxis()->GetNbins(); ++iBin) {
+          histImpParProd2Prong[iOrig][i2Prong]->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.4f", cutsToTestImpParProd->at(iBin)));
         }
-        auto histMinDCAxy2Prong = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesMinDCAxy2Prong[iOrig][i2Prong].data(), "", HistType::kTH2F, {axisPt, axisMinDCAxy}));
-        for (int iBin{0}; iBin < histMinDCAxy2Prong->GetYaxis()->GetNbins(); ++iBin) {
-          histMinDCAxy2Prong->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.4f", cutsToTestMinDCAxy->at(iBin)));
+        histMinDCAxy2Prong[iOrig][i2Prong] = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesMinDCAxy2Prong[iOrig][i2Prong].data(), "", HistType::kTH2F, {axisPt, axisMinDCAxy}));
+        for (int iBin{0}; iBin < histMinDCAxy2Prong[iOrig][i2Prong]->GetYaxis()->GetNbins(); ++iBin) {
+          histMinDCAxy2Prong[iOrig][i2Prong]->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.4f", cutsToTestMinDCAxy->at(iBin)));
         }
-        auto histMinTrackPt2Prong = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesMinTrackPt2Prong[iOrig][i2Prong].data(), "", HistType::kTH2F, {axisPt, axisMinTrackPt}));
-        for (int iBin{0}; iBin < histMinTrackPt2Prong->GetYaxis()->GetNbins(); ++iBin) {
-          histMinTrackPt2Prong->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.2f", cutsToTestMinTrackPt->at(iBin)));
+        histMinTrackPt2Prong[iOrig][i2Prong] = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesMinTrackPt2Prong[iOrig][i2Prong].data(), "", HistType::kTH2F, {axisPt, axisMinTrackPt}));
+        for (int iBin{0}; iBin < histMinTrackPt2Prong[iOrig][i2Prong]->GetYaxis()->GetNbins(); ++iBin) {
+          histMinTrackPt2Prong[iOrig][i2Prong]->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.2f", cutsToTestMinTrackPt->at(iBin)));
         }
       }
       for (int i3Prong{0}; i3Prong < n3Prong + 1; ++i3Prong) {
-        registry.add(histoNames3Prong[iOrig][i3Prong].data(), "", HistType::kTH1F, {axisPt});
-        auto histCosp3Prong = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesCosp3Prong[iOrig][i3Prong].data(), "", HistType::kTH2F, {axisPt, axisCosp}));
-        for (int iBin{0}; iBin < histCosp3Prong->GetYaxis()->GetNbins(); ++iBin) {
-          histCosp3Prong->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.4f", cutsToTestCosp->at(iBin)));
+        hist3Prong[iOrig][i3Prong] = std::get<std::shared_ptr<TH1>>(registry.add(histoNames3Prong[iOrig][i3Prong].data(), "", HistType::kTH1F, {axisPt}));
+        histCosp3Prong[iOrig][i3Prong] = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesCosp3Prong[iOrig][i3Prong].data(), "", HistType::kTH2F, {axisPt, axisCosp}));
+        for (int iBin{0}; iBin < histCosp3Prong[iOrig][i3Prong]->GetYaxis()->GetNbins(); ++iBin) {
+          histCosp3Prong[iOrig][i3Prong]->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.4f", cutsToTestCosp->at(iBin)));
         }
-        auto histDecayLen3Prong = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesDecLen3Prong[iOrig][i3Prong].data(), "", HistType::kTH2F, {axisPt, axisDecLen}));
-        for (int iBin{0}; iBin < histDecayLen3Prong->GetYaxis()->GetNbins(); ++iBin) {
-          histDecayLen3Prong->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.4f", cutsToTestDecLen->at(iBin)));
+        histDecLen3Prong[iOrig][i3Prong] = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesDecLen3Prong[iOrig][i3Prong].data(), "", HistType::kTH2F, {axisPt, axisDecLen}));
+        for (int iBin{0}; iBin < histDecLen3Prong[iOrig][i3Prong]->GetYaxis()->GetNbins(); ++iBin) {
+          histDecLen3Prong[iOrig][i3Prong]->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.4f", cutsToTestDecLen->at(iBin)));
         }
-        auto histMinDCAxy3Prong = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesMinDCAxy3Prong[iOrig][i3Prong].data(), "", HistType::kTH2F, {axisPt, axisMinDCAxy}));
-        for (int iBin{0}; iBin < histMinDCAxy3Prong->GetYaxis()->GetNbins(); ++iBin) {
-          histMinDCAxy3Prong->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.4f", cutsToTestMinDCAxy->at(iBin)));
+        histMinDCAxy3Prong[iOrig][i3Prong] = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesMinDCAxy3Prong[iOrig][i3Prong].data(), "", HistType::kTH2F, {axisPt, axisMinDCAxy}));
+        for (int iBin{0}; iBin < histMinDCAxy3Prong[iOrig][i3Prong]->GetYaxis()->GetNbins(); ++iBin) {
+          histMinDCAxy3Prong[iOrig][i3Prong]->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.4f", cutsToTestMinDCAxy->at(iBin)));
         }
-        auto histMinTrackPt3Prong = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesMinTrackPt3Prong[iOrig][i3Prong].data(), "", HistType::kTH2F, {axisPt, axisMinTrackPt}));
-        for (int iBin{0}; iBin < histMinTrackPt3Prong->GetYaxis()->GetNbins(); ++iBin) {
-          histMinTrackPt3Prong->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.4f", cutsToTestMinTrackPt->at(iBin)));
+        histMinTrackPt3Prong[iOrig][i3Prong] = std::get<std::shared_ptr<TH2>>(registry.add(histoNamesMinTrackPt3Prong[iOrig][i3Prong].data(), "", HistType::kTH2F, {axisPt, axisMinTrackPt}));
+        for (int iBin{0}; iBin < histMinTrackPt3Prong[iOrig][i3Prong]->GetYaxis()->GetNbins(); ++iBin) {
+          histMinTrackPt3Prong[iOrig][i3Prong]->GetYaxis()->SetBinLabel(iBin + 1, Form("%0.4f", cutsToTestMinTrackPt->at(iBin)));
         }
       }
     }
   }
 
   /// Conjugate-dependent topological cuts
+  /// \param candType is the candidate channel
+  /// \param candOrig is candidate type (Prompt, NonPrompt, Bkg)
   /// \param candidate is a candidate
-  /// \param channel is the candidate channel
-  /// \param candType is candidate type (Prompt, NonPrompt, Bkg)
+  /// \param tracks is the array of doughter tracks
   template <std::size_t candType, std::size_t candOrig, typename T1, typename T2>
   void testSelections2Prong(const T1& candidate, const T2& tracks)
   {
@@ -167,43 +182,44 @@ struct HfSelOptimisation {
     std::array<double, 2> ptTrack{tracks[0].pt(), tracks[1].pt()};
     std::sort(ptTrack.begin(), ptTrack.end());
 
-    registry.get<TH1>(HIST(histoNames2Prong[candOrig][candType].data()))->Fill(pT);
+    hist2Prong[candOrig][candType]->Fill(pT);
 
     for (int iCospCut{0}; iCospCut < cutsToTestCosp->size(); ++iCospCut) {
       if (candidate.cpa() > cutsToTestCosp->at(iCospCut)) {
-        registry.get<TH2>(HIST(histoNamesCosp2Prong[candOrig][candType].data()))->Fill(pT, iCospCut + 1);
+       histCosp2Prong[candOrig][candType]->Fill(pT, iCospCut + 1);
       }
     }
 
     for (int iDecLenCut{0}; iDecLenCut < cutsToTestDecLen->size(); ++iDecLenCut) {
       if (candidate.decayLength() > cutsToTestDecLen->at(iDecLenCut)) {
-        registry.get<TH2>(HIST(histoNamesDecLen2Prong[candOrig][candType].data()))->Fill(pT, iDecLenCut + 1);
+        histDecLen2Prong[candOrig][candType]->Fill(pT, iDecLenCut + 1);
       }
     }
 
     for (int iImpParProd{0}; iImpParProd < cutsToTestImpParProd->size(); ++iImpParProd) {
       if (candidate.impactParameterProduct() < cutsToTestImpParProd->at(iImpParProd)) {
-        registry.get<TH2>(HIST(histoNamesImpParProd2Prong[candOrig][candType].data()))->Fill(pT, iImpParProd + 1);
+        histImpParProd2Prong[candOrig][candType]->Fill(pT, iImpParProd + 1);
       }
     }
 
     for (int iMinDCAxy{0}; iMinDCAxy < cutsToTestMinDCAxy->size(); ++iMinDCAxy) {
       if (absDCA[0] > cutsToTestMinDCAxy->at(iMinDCAxy)) {
-        registry.get<TH2>(HIST(histoNamesMinDCAxy2Prong[candOrig][candType].data()))->Fill(pT, iMinDCAxy + 1);
+        histMinDCAxy2Prong[candOrig][candType]->Fill(pT, iMinDCAxy + 1);
       }
     }
 
     for (int iMinTrackPt{0}; iMinTrackPt < cutsToTestMinTrackPt->size(); ++iMinTrackPt) {
       if (ptTrack[0] > cutsToTestMinTrackPt->at(iMinTrackPt)) {
-        registry.get<TH2>(HIST(histoNamesMinTrackPt2Prong[candOrig][candType].data()))->Fill(pT, iMinTrackPt + 1);
+        histMinTrackPt2Prong[candOrig][candType]->Fill(pT, iMinTrackPt + 1);
       }
     }
   }
 
   /// Conjugate-dependent topological cuts
+  /// \param candType is the candidate channel
+  /// \param candOrig is candidate type (Prompt, NonPrompt, Bkg)
   /// \param candidate is a candidate
-  /// \param channel is the candidate channel
-  /// \param candType is candidate type (Prompt, NonPrompt, Bkg)
+  /// \param tracks is the array of doughter tracks
   template <std::size_t candType, std::size_t candOrig, typename T1, typename T2>
   void testSelections3Prong(const T1& candidate, const T2& tracks)
   {
@@ -214,29 +230,29 @@ struct HfSelOptimisation {
     std::array<double, 3> ptTrack{tracks[0].pt(), tracks[1].pt(), tracks[2].pt()};
     std::sort(ptTrack.begin(), ptTrack.end());
 
-    registry.get<TH1>(HIST(histoNames3Prong[candOrig][candType].data()))->Fill(pT);
+    hist3Prong[candOrig][candType]->Fill(pT);
 
     for (int iCospCut{0}; iCospCut < cutsToTestCosp->size(); ++iCospCut) {
       if (candidate.cpa() > cutsToTestCosp->at(iCospCut)) {
-        registry.get<TH2>(HIST(histoNamesCosp3Prong[candOrig][candType].data()))->Fill(pT, iCospCut + 1);
+        histCosp3Prong[candOrig][candType]->Fill(pT, iCospCut + 1);
       }
     }
 
     for (int iDecLenCut{0}; iDecLenCut < cutsToTestDecLen->size(); ++iDecLenCut) {
       if (candidate.decayLength() > cutsToTestDecLen->at(iDecLenCut)) {
-        registry.get<TH2>(HIST(histoNamesDecLen3Prong[candOrig][candType].data()))->Fill(pT, iDecLenCut + 1);
+        histDecLen3Prong[candOrig][candType]->Fill(pT, iDecLenCut + 1);
       }
     }
 
     for (int iMinDCAxy{0}; iMinDCAxy < cutsToTestMinDCAxy->size(); ++iMinDCAxy) {
       if (absDCA[0] > cutsToTestMinDCAxy->at(iMinDCAxy)) {
-        registry.get<TH2>(HIST(histoNamesMinDCAxy3Prong[candOrig][candType].data()))->Fill(pT, iMinDCAxy + 1);
+        histMinDCAxy3Prong[candOrig][candType]->Fill(pT, iMinDCAxy + 1);
       }
     }
 
     for (int iMinTrackPt{0}; iMinTrackPt < cutsToTestMinTrackPt->size(); ++iMinTrackPt) {
       if (ptTrack[0] > cutsToTestMinTrackPt->at(iMinTrackPt)) {
-        registry.get<TH2>(HIST(histoNamesMinTrackPt3Prong[candOrig][candType].data()))->Fill(pT, iMinTrackPt + 1);
+        histMinTrackPt3Prong[candOrig][candType]->Fill(pT, iMinTrackPt + 1);
       }
     }
   }
