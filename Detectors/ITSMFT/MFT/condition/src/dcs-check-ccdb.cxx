@@ -99,32 +99,32 @@ int main(int argc, char** argv)
   // Converter converter;
   // converter.raw_data = dpcom.data.payload_pt1;
 
-   auto sum =
-     [](float s, o2::dcs::DataPointValue v) {
-     union Converter {
-       uint64_t raw_data;
-       double value;
-     } converter;
-     converter.raw_data = v.payload_pt1;
-     return s + converter.value;
-   };
+  auto sum =
+    [](float s, o2::dcs::DataPointValue v) {
+      union Converter {
+        uint64_t raw_data;
+        double value;
+      } converter;
+      converter.raw_data = v.payload_pt1;
+      return s + converter.value;
+    };
 
-   o2::ccdb::CcdbApi api;
-   api.init(ccdbUrl);
-   for (auto w : what) {
-     std::map<std::string, std::string> metadata;
-     auto* m = api.retrieveFromTFileAny<DPMAP>(w, metadata, timestamp);
-     std::cout << "size of " << w << " map = " << m->size() << std::endl;
-     if (verbose) {
-       for (auto& i : *m) {
-         auto v = i.second;
-         auto mean = std::accumulate(v.begin(), v.end(), 0.0, sum);
-         if (v.size()) {
-           mean /= v.size();
-         }
-   std::cout << fmt::format("{:64s} {:4d} values of mean {:7.2f}\n", i.first.get_alias(), v.size(),mean);
-       }
-     }
-   }
-   return 0;
+  o2::ccdb::CcdbApi api;
+  api.init(ccdbUrl);
+  for (auto w : what) {
+    std::map<std::string, std::string> metadata;
+    auto* m = api.retrieveFromTFileAny<DPMAP>(w, metadata, timestamp);
+    std::cout << "size of " << w << " map = " << m->size() << std::endl;
+    if (verbose) {
+      for (auto& i : *m) {
+        auto v = i.second;
+        auto mean = std::accumulate(v.begin(), v.end(), 0.0, sum);
+        if (v.size()) {
+          mean /= v.size();
+        }
+        std::cout << fmt::format("{:64s} {:4d} values of mean {:7.2f}\n", i.first.get_alias(), v.size(), mean);
+      }
+    }
+  }
+  return 0;
 }

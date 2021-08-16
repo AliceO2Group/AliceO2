@@ -125,7 +125,7 @@ int MFTDCSProcessor::processDP(const DPCOM& dpcom)
                                                                        // that we did not get the
                                                                        // same timestamp as the
                                                                        // latest one
-        dvect.push_back(val);
+      dvect.push_back(val);
     }
   }
 
