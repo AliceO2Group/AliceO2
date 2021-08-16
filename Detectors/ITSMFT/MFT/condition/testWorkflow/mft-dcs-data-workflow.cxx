@@ -15,9 +15,9 @@
 #include <unordered_map>
 namespace o2::framework
 {
-  template <>
-  struct has_root_dictionary<std::unordered_map<o2::dcs::DataPointIdentifier, o2::dcs::DataPointValue>, void> : std::true_type {
-  };
+template <>
+struct has_root_dictionary<std::unordered_map<o2::dcs::DataPointIdentifier, o2::dcs::DataPointValue>, void> : std::true_type {
+};
 } // namespace o2::framework
 #include "Framework/DataProcessorSpec.h"
 #include "MFTDCSDataProcessorSpec.h"
