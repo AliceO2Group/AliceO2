@@ -68,8 +68,6 @@ struct CHECKNOFBITS {
     }
     if (PARITY_NOFBITS != 1) {
       throw std::invalid_argument(fmt::format("PARITY_NOFBITS is {0}. Should be 1", PARITY_NOFBITS));
-
-      throw;
     }
   }
 };

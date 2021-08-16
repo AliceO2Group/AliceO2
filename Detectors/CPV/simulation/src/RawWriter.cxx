@@ -115,14 +115,6 @@ void RawWriter::digitsToRaw(gsl::span<o2::cpv::Digit> digitsbranch, gsl::span<o2
 //prepare preformatted data for one orbit and send it to RawFileWriter
 bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const gsl::span<o2::cpv::TriggerRecord> trgs)
 {
-  //Array used to sort properly digits
-  for (int i = kNcc; i--;) {
-    for (int j = kNDilogic; j--;) {
-      for (int k = kNGasiplex; k--;) {
-        mPadCharge[i][j][k].clear();
-      }
-    }
-  }
   //clear payload
   mPayload.clear();
 
@@ -132,10 +124,24 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
 
   int gbtWordCounter = 0;
   int gbtWordCounterBeforeCPVTrailer = 0;
+  bool isHeaderClosedWithTrailer = false;
   int nMaxGbtWordsPerPage = o2::raw::RDHUtils::MAXCRUPage / o2::raw::RDHUtils::GBTWord; //512*16/16 = 512;
   nMaxGbtWordsPerPage -= 4;                                                             //rdh size = 4 gbt words
   for (auto& trg : trgs) {
+    LOG(DEBUG) << "RawWriter::processOrbit() : "
+               << "I start to process trigger record (orbit = " << trg.getBCData().orbit
+               << ", BC = " << trg.getBCData().bc << ")";
+    LOG(DEBUG) << "First entry = " << trg.getFirstEntry() << ", Number of objects = " << trg.getNumberOfObjects();
     gbtWordCounterBeforeCPVTrailer = 0; //every trigger we start this counter from 0
+
+    //Clear array which is used to store digits
+    for (int i = kNcc; i--;) {
+      for (int j = kNDilogic; j--;) {
+        for (int k = kNGasiplex; k--;) {
+          mPadCharge[i][j][k].clear();
+        }
+      }
+    }
 
     //make payload for current trigger
     int nDigsInTrg = 0;
@@ -153,8 +159,9 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
       mPadCharge[ccId][dil][gas].emplace_back(charge, pad);
       nDigsInTrg++;
     }
+    LOG(DEBUG) << "I produced " << nDigsInTrg << " digits for this trigger record";
 
-    //we need to write header + trailer + at least 1 payload word
+    //we need to write header + at least 1 payload word + trailer
     if (nMaxGbtWordsPerPage - gbtWordCounter < 3) { //otherwise flush already prepared data to file
       LOG(DEBUG) << "RawWriter::processOrbit() : before header: adding preformatted dma page of size " << mPayload.size();
       mRawWriter->addData(feeid, cru, link, endpoint, trg.getBCData(), gsl::span<char>(mPayload.data(), mPayload.size()), preformatted);
@@ -168,11 +175,18 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
     for (int i = 0; i < 16; i++) {
       mPayload.push_back(header.mBytes[i]);
     }
+    isHeaderClosedWithTrailer = false;
+    LOG(DEBUG) << "RawWriter::processOrbit() : "
+               << "I wrote cpv header for orbit = " << trg.getBCData().orbit
+               << " and BC = " << trg.getBCData().bc;
+
     gbtWordCounter++;
     gbtWordCounterBeforeCPVTrailer++;
 
-    int ccWordCounter = 0;
+    int nDigsToWriteLeft = nDigsInTrg;
+
     for (char ccId = 0; ccId < kNcc; ccId++) {
+      int ccWordCounter = 0;
       for (char dil = 0; dil < kNDilogic; dil++) {
         for (char gas = 0; gas < kNGasiplex; gas++) {
           for (padCharge& pc : mPadCharge[ccId][dil][gas]) {
@@ -186,6 +200,7 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
             mPayload.push_back(currentword.mBytes[1]);
             mPayload.push_back(currentword.mBytes[2]);
             ccWordCounter++;
+            nDigsToWriteLeft--;
             if (ccWordCounter % 3 == 0) { // complete 3 channels (72 bit) + CC index (8 bits) + 6 empty bits = Generate 128 bits of data
               mPayload.push_back(ccId);
               for (int i = 6; i--;) {
@@ -193,67 +208,75 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
               }
               gbtWordCounter++;
               gbtWordCounterBeforeCPVTrailer++;
-              if (nMaxGbtWordsPerPage - gbtWordCounter < 2) {                            //the only space for trailer left on current page
-                CpvTrailer tr(gbtWordCounterBeforeCPVTrailer, trg.getBCData().bc, true); //add trailer and flush page to file
+              if (nMaxGbtWordsPerPage - gbtWordCounter == 1) {                                            //the only space for trailer left on current page
+                CpvTrailer tr(gbtWordCounterBeforeCPVTrailer, trg.getBCData().bc, nDigsToWriteLeft == 0); //add trailer and flush page to file
                 for (int i = 0; i < 16; i++) {
                   mPayload.push_back(tr.mBytes[i]);
                 }
+                isHeaderClosedWithTrailer = true;
                 LOG(DEBUG) << "RawWriter::processOrbit() : middle of payload: adding preformatted dma page of size " << mPayload.size();
                 mRawWriter->addData(feeid, cru, link, endpoint, trg.getBCData(), gsl::span<char>(mPayload.data(), mPayload.size()), preformatted);
                 mPayload.clear();
                 gbtWordCounter = 0;
                 gbtWordCounterBeforeCPVTrailer = 0;
-                if (nDigsInTrg > gbtWordCounterBeforeCPVTrailer - 1) { //some digits left for writing
-                  for (int i = 0; i < 16; i++) {                       //so put a new header and continue
-                    mPayload.push_back(header.mBytes[i]);
+                if (nDigsToWriteLeft) { //some digits left for writing
+                  CpvHeader newHeader(trg.getBCData(), false, true);
+                  for (int i = 0; i < 16; i++) { //so put a new header and continue
+                    mPayload.push_back(newHeader.mBytes[i]);
                   }
+                  isHeaderClosedWithTrailer = false;
                   gbtWordCounter++;
                   gbtWordCounterBeforeCPVTrailer++;
                 }
               }
             }
           }
-          if (ccWordCounter % 3 != 0) {
-            while (ccWordCounter % 3 != 0) {
-              mPayload.push_back(char(255));
-              mPayload.push_back(char(255));
-              mPayload.push_back(char(255));
-              ccWordCounter++;
+        }
+      } //end of dil cycle
+      if (ccWordCounter % 3 != 0) {
+        while (ccWordCounter % 3 != 0) {
+          mPayload.push_back(char(255));
+          mPayload.push_back(char(255));
+          mPayload.push_back(char(255));
+          ccWordCounter++;
+        }
+        mPayload.push_back(ccId);
+        for (int i = 6; i--;) {
+          mPayload.push_back(char(0));
+        }
+        gbtWordCounter++;
+        gbtWordCounterBeforeCPVTrailer++;
+        if (nMaxGbtWordsPerPage - gbtWordCounter == 1) {                                            //the only space for trailer left on current page
+          CpvTrailer tr(gbtWordCounterBeforeCPVTrailer, trg.getBCData().bc, nDigsToWriteLeft == 0); //add trailer and flush page to file
+          for (int i = 0; i < 16; i++) {
+            mPayload.push_back(tr.mBytes[i]);
+          }
+          isHeaderClosedWithTrailer = true;
+          LOG(DEBUG) << "RawWriter::processOrbit() : middle of payload (after filling empty words): adding preformatted dma page of size " << mPayload.size();
+          mRawWriter->addData(feeid, cru, link, endpoint, trg.getBCData(), gsl::span<char>(mPayload.data(), mPayload.size()), preformatted);
+          mPayload.clear();
+          gbtWordCounter = 0;
+          gbtWordCounterBeforeCPVTrailer = 0;
+          if (nDigsToWriteLeft) {          //some digits left for writing
+            for (int i = 0; i < 16; i++) { //so put a new header and continue
+              mPayload.push_back(header.mBytes[i]);
             }
-            mPayload.push_back(ccId);
-            for (int i = 6; i--;) {
-              mPayload.push_back(char(0));
-            }
+            isHeaderClosedWithTrailer = false;
             gbtWordCounter++;
             gbtWordCounterBeforeCPVTrailer++;
-            if (nMaxGbtWordsPerPage - gbtWordCounter < 2) {                            //the only space for trailer left on current page
-              CpvTrailer tr(gbtWordCounterBeforeCPVTrailer, trg.getBCData().bc, true); //add trailer and flush page to file
-              for (int i = 0; i < 16; i++) {
-                mPayload.push_back(tr.mBytes[i]);
-              }
-              LOG(DEBUG) << "RawWriter::processOrbit() : middle of payload (after filling empty words): adding preformatted dma page of size " << mPayload.size();
-              mRawWriter->addData(feeid, cru, link, endpoint, trg.getBCData(), gsl::span<char>(mPayload.data(), mPayload.size()), preformatted);
-              mPayload.clear();
-              gbtWordCounter = 0;
-              gbtWordCounterBeforeCPVTrailer = 0;
-              if (nDigsInTrg > gbtWordCounterBeforeCPVTrailer - 1) { //some digits left for writing
-                for (int i = 0; i < 16; i++) {                       //so put a new header and continue
-                  mPayload.push_back(header.mBytes[i]);
-                }
-                gbtWordCounter++;
-                gbtWordCounterBeforeCPVTrailer++;
-              }
-            }
           }
         }
       }
+    } //end of ccId cycle
+    if (!isHeaderClosedWithTrailer) {
+      CpvTrailer tr(gbtWordCounterBeforeCPVTrailer, trg.getBCData().bc, true);
+      for (int i = 0; i < 16; i++) {
+        mPayload.push_back(tr.mBytes[i]);
+      }
+      isHeaderClosedWithTrailer = true;
+      gbtWordCounterBeforeCPVTrailer = 0;
+      gbtWordCounter++;
     }
-    CpvTrailer tr(gbtWordCounterBeforeCPVTrailer, trg.getBCData().bc, true); //cout GBT words
-    for (int i = 0; i < 16; i++) {
-      mPayload.push_back(tr.mBytes[i]);
-    }
-    gbtWordCounterBeforeCPVTrailer++;
-    gbtWordCounter++;
   }                      //end of for (auto& trg : trgs)
   if (mPayload.size()) { //flush payload to file (if any)
     LOG(DEBUG) << "RawWriter::processOrbit() : final payload: adding preformatted dma page of size " << mPayload.size();

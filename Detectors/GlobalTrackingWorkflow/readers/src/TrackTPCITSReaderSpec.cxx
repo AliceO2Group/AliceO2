@@ -12,13 +12,18 @@
 /// @file   TrackTPCITSReaderSpec.cxx
 
 #include <vector>
-
+#include "TFile.h"
+#include "TTree.h"
+#include "Framework/Task.h"
+#include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Framework/SerializationMethods.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "DataFormatsITSMFT/TrkClusRef.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -27,6 +32,28 @@ namespace o2
 {
 namespace globaltracking
 {
+
+class TrackTPCITSReader : public Task
+{
+ public:
+  TrackTPCITSReader(bool useMC) : mUseMC(useMC) {}
+  ~TrackTPCITSReader() override = default;
+  void init(InitContext& ic) final;
+  void run(ProcessingContext& pc) final;
+
+ private:
+  void connectTree(const std::string& filename);
+  bool mUseMC = true;
+  std::unique_ptr<TFile> mFile;
+  std::unique_ptr<TTree> mTree;
+  std::string mFileName = "";
+  std::vector<o2::dataformats::TrackTPCITS> mTracks, *mTracksPtr = &mTracks;
+  std::vector<o2::itsmft::TrkClusRef> mABTrkClusRefs, *mABTrkClusRefsPtr = &mABTrkClusRefs;
+  std::vector<int> mABTrkClIDs, *mABTrkClIDsPtr = &mABTrkClIDs;
+  std::vector<o2::MCCompLabel> mLabels, *mLabelsPtr = &mLabels;
+  std::vector<o2::MCCompLabel> mLabelsAB, *mLabelsABPtr = &mLabelsAB;
+};
+
 void TrackTPCITSReader::init(InitContext& ic)
 {
   mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
@@ -42,8 +69,11 @@ void TrackTPCITSReader::run(ProcessingContext& pc)
   LOG(INFO) << "Pushing " << mTracks.size() << " TPC-ITS matches at entry " << ent;
 
   pc.outputs().snapshot(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe}, mTracks);
+  pc.outputs().snapshot(Output{"GLO", "TPCITSAB_REFS", 0, Lifetime::Timeframe}, mABTrkClusRefs);
+  pc.outputs().snapshot(Output{"GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe}, mABTrkClIDs);
   if (mUseMC) {
     pc.outputs().snapshot(Output{"GLO", "TPCITS_MC", 0, Lifetime::Timeframe}, mLabels);
+    pc.outputs().snapshot(Output{"GLO", "TPCITSAB_MC", 0, Lifetime::Timeframe}, mLabelsAB);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
@@ -60,8 +90,11 @@ void TrackTPCITSReader::connectTree(const std::string& filename)
   mTree.reset((TTree*)mFile->Get("matchTPCITS"));
   assert(mTree);
   mTree->SetBranchAddress("TPCITS", &mTracksPtr);
+  mTree->SetBranchAddress("TPCITSABRefs", &mABTrkClusRefsPtr);
+  mTree->SetBranchAddress("TPCITSABCLID", &mABTrkClIDsPtr);
   if (mUseMC) {
     mTree->SetBranchAddress("MatchMCTruth", &mLabelsPtr);
+    mTree->SetBranchAddress("MatchABMCTruth", &mLabelsABPtr);
   }
   LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
@@ -70,8 +103,11 @@ DataProcessorSpec getTrackTPCITSReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("GLO", "TPCITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "TPCITSAB_REFS", 0, Lifetime::Timeframe); // AftetBurner ITS tracklet references (referred by GlobalTrackID::ITSAB) on cluster indices
+  outputs.emplace_back("GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe); // cluster indices of ITS tracklets attached by the AfterBurner
   if (useMC) {
     outputs.emplace_back("GLO", "TPCITS_MC", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "TPCITSAB_MC", 0, Lifetime::Timeframe); // AfterBurner ITS tracklet MC
   }
 
   return DataProcessorSpec{

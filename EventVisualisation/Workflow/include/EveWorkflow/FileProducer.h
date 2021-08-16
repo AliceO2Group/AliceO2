@@ -13,23 +13,33 @@
 /// \file    FileProducer.h
 /// \author julian.myrcha@cern.ch
 
-#ifndef FILEPRODUCER_FILEPRODUCER_H
-#define FILEPRODUCER_FILEPRODUCER_H
+#ifndef ALICE_O2_EVENTVISUALISATION_WORKFLOW_FILEPRODUCER_H
+#define ALICE_O2_EVENTVISUALISATION_WORKFLOW_FILEPRODUCER_H
 
 #include <string>
 #include <deque>
 
+namespace o2
+{
+namespace event_visualisation
+{
 class FileProducer
 {
  private:
   static std::deque<std::string> load(const std::string& path);
+
   size_t mFilesInFolder;
   std::string mPath;
   std::string mName;
 
  public:
-  explicit FileProducer(const std::string& path, const std::string& name = "tracks{}.json", int filesInFolder = 10);
+  explicit FileProducer(const std::string& path, int filesInFolder = 10,
+                        const std::string& name = "tracks{}.json");
+
   [[nodiscard]] std::string newFileName() const;
 };
 
-#endif //FILEPRODUCER_FILEPRODUCER_H
+} // namespace event_visualisation
+} // namespace o2
+
+#endif //ALICE_O2_EVENTVISUALISATION_WORKFLOW_FILEPRODUCER_H

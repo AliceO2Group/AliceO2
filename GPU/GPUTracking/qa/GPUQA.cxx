@@ -751,7 +751,7 @@ int GPUQA::InitQA(int tasks)
     std::vector<std::vector<std::vector<int>>*> labelsBuffer(nFiles);
     std::vector<std::vector<std::vector<int>>*> effBuffer(nFiles);
     for (unsigned int i = 0; i < nFiles; i++) {
-      files.emplace_back(std::make_unique<TFile>(mConfig.matchMCLabels[i]));
+      files.emplace_back(std::make_unique<TFile>(mConfig.matchMCLabels[i].c_str()));
       labelsBuffer[i] = (std::vector<std::vector<int>>*)files[i]->Get("mcLabelBuffer");
       effBuffer[i] = (std::vector<std::vector<int>>*)files[i]->Get("mcEffBuffer");
       if (labelsBuffer[i] == nullptr || effBuffer[i] == nullptr) {
@@ -1801,9 +1801,9 @@ void GPUQA::GetName(char* fname, int k)
     if (!(mConfig.inputHistogramsOnly || k)) {
       snprintf(fname, 1024, "%s - ", mConfig.name.c_str());
     } else if (mConfig.compareInputNames.size() > (unsigned)(k - nNewInput)) {
-      snprintf(fname, 1024, "%s - ", mConfig.compareInputNames[k - nNewInput]);
+      snprintf(fname, 1024, "%s - ", mConfig.compareInputNames[k - nNewInput].c_str());
     } else {
-      strcpy(fname, mConfig.compareInputs[k - nNewInput]);
+      strcpy(fname, mConfig.compareInputs[k - nNewInput].c_str());
       if (strlen(fname) > 5 && strcmp(fname + strlen(fname) - 5, ".root") == 0) {
         fname[strlen(fname) - 5] = 0;
       }
@@ -1870,7 +1870,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
 
   std::vector<std::unique_ptr<TFile>> tin;
   for (unsigned int i = 0; i < mConfig.compareInputs.size(); i++) {
-    tin.emplace_back(std::make_unique<TFile>(mConfig.compareInputs[i]));
+    tin.emplace_back(std::make_unique<TFile>(mConfig.compareInputs[i].c_str()));
   }
   std::unique_ptr<TFile> tout = nullptr;
   if (mConfig.output.size()) {

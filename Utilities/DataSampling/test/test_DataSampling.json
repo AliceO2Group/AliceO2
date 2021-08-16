@@ -3,14 +3,17 @@
     {
       "id": "tpcclusters",
       "active": "true",
-      "machines": [],
       "query" : "clusters:TPC/CLUSTERS;clusters_p:TPC/CLUSTERS_P",
       "samplingConditions": []
     },
     {
       "id": "tpcraw",
       "active": "true",
-      "machines": [],
+      "machines": [
+        "machineA",
+        "machineB"
+      ],
+      "port": "1234",
       "query": "clusters:TPC/RAWDATA",
       "samplingConditions": []
     }

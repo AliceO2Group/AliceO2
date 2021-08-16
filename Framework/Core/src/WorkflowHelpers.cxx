@@ -180,7 +180,7 @@ void addMissingOutputsToBuilder(std::vector<InputSpec>&& requestedIDXs,
     std::regex word_regex("(\\w+)");
     auto words = std::sregex_iterator(s.begin(), s.end(), word_regex);
     if (std::distance(words, std::sregex_iterator()) != 3) {
-      throw runtime_error_f("Malformed spec: %s", s.c_str());
+      throw runtime_error_f("Malformed input spec metadata: %s", s.c_str());
     }
     std::vector<std::string> data;
     for (auto i = words; i != std::sregex_iterator(); ++i) {
@@ -197,12 +197,14 @@ void addMissingOutputsToBuilder(std::vector<InputSpec>&& requestedIDXs,
     auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
     publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
     for (auto& i : input.metadata) {
-      auto spec = inputSpecFromString(i.defaultValue.get<std::string>());
-      auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
-      if (j == publisher.inputs.end()) {
-        publisher.inputs.push_back(spec);
+      if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
+        auto spec = inputSpecFromString(i.defaultValue.get<std::string>());
+        auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
+        if (j == publisher.inputs.end()) {
+          publisher.inputs.push_back(spec);
+        }
+        requestedAODs.push_back(spec);
       }
-      requestedAODs.push_back(spec);
     }
   }
 }
@@ -495,6 +497,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
     auto fileSink = CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD);
     extraSpecs.push_back(fileSink);
+
+    auto it = std::find_if(outputsInputs.begin(), outputsInputs.end(), [](InputSpec& spec) -> bool {
+      return DataSpecUtils::partialMatch(spec, o2::header::DataOrigin("TFN"));
+    });
+    size_t ii = std::distance(outputsInputs.begin(), it);
+    outputTypes[ii] &= ~((char)OutputType::DANGLING);
   }
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
@@ -539,6 +547,102 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
   extraSpecs.clear();
+}
+
+void WorkflowHelpers::adjustServiceDevices(WorkflowSpec& workflow)
+{
+  auto spawner = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-spawner"; });
+  auto builder = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-index-builder"; });
+  auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });
+
+  if (spawner != workflow.end()) {
+    std::vector<InputSpec> requestedDYNs;
+    // collect currently requested DYNs
+    for (auto& d : workflow) {
+      if (d.name == spawner->name) {
+        continue;
+      }
+      for (auto& i : d.inputs) {
+        if (DataSpecUtils::partialMatch(i, header::DataOrigin{"DYN"})) {
+          requestedDYNs.emplace_back(i);
+        }
+      }
+      std::sort(requestedDYNs.begin(), requestedDYNs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
+      auto end = std::unique(requestedDYNs.begin(), requestedDYNs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
+      requestedDYNs.erase(end, requestedDYNs.end());
+    }
+
+    // remove unmatched outputs
+    auto o_end = std::remove_if(spawner->outputs.begin(), spawner->outputs.end(), [&](OutputSpec const& o) {
+      return std::none_of(requestedDYNs.begin(), requestedDYNs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
+    });
+    spawner->outputs.erase(o_end, spawner->outputs.end());
+
+    // remove unmatched inputs
+    auto i_end = std::remove_if(spawner->inputs.begin(), spawner->inputs.end(), [&](InputSpec const& i) {
+      auto&& [origin, description] = DataSpecUtils::asConcreteDataTypeMatcher(i);
+      return std::none_of(spawner->outputs.begin(), spawner->outputs.end(), [description = description](OutputSpec const& o) {
+        return DataSpecUtils::partialMatch(o, description);
+      });
+    });
+    spawner->inputs.erase(i_end, spawner->inputs.end());
+
+    // replace AlgorithmSpec
+    // FIXME: it should be made more generic, so it does not need replacement...
+    spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(requestedDYNs);
+  }
+
+  if (builder != workflow.end()) {
+    // collect currently requested IDXs
+    std::vector<InputSpec> requestedIDXs;
+    std::vector<InputSpec> dummy_i;
+    std::vector<OutputSpec> dummy_o;
+    for (auto& d : workflow) {
+      if (d.name == builder->name) {
+        continue;
+      }
+      for (auto& i : d.inputs) {
+        if (DataSpecUtils::partialMatch(i, header::DataOrigin{"IDX"})) {
+          requestedIDXs.emplace_back(i);
+        }
+      }
+      std::sort(requestedIDXs.begin(), requestedIDXs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
+      auto end = std::unique(requestedIDXs.begin(), requestedIDXs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
+      requestedIDXs.erase(end, requestedIDXs.end());
+    }
+
+    // recreate inputs and outputs
+    builder->inputs = dummy_i;
+    builder->outputs = dummy_o;
+    auto copy = requestedIDXs;
+    addMissingOutputsToBuilder(std::move(copy), dummy_i, *builder);
+
+    //replace AlgorithmSpec
+    // FIXME: it should be made more generic, so it does not need replacement...
+    builder->algorithm = readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs);
+  }
+
+  if (reader != workflow.end() && (spawner != workflow.end() || builder != workflow.end())) {
+    // If reader and/or builder were adjusted, remove unneeded outputs
+    std::vector<InputSpec> requestedAODs;
+    // collect currently requested AODs
+    for (auto& d : workflow) {
+      for (auto& i : d.inputs) {
+        if (DataSpecUtils::partialMatch(i, header::DataOrigin{"AOD"})) {
+          requestedAODs.emplace_back(i);
+        }
+      }
+      std::sort(requestedAODs.begin(), requestedAODs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
+      auto end = std::unique(requestedAODs.begin(), requestedAODs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
+      requestedAODs.erase(end, requestedAODs.end());
+    }
+
+    // remove unmatched outputs
+    auto o_end = std::remove_if(reader->outputs.begin(), reader->outputs.end(), [&](OutputSpec const& o) {
+      return !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFNumber"}) && std::none_of(requestedAODs.begin(), requestedAODs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
+    });
+    reader->outputs.erase(o_end, reader->outputs.end());
+  }
 }
 
 void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,

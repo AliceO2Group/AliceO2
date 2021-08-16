@@ -73,7 +73,10 @@ class IDCGroup : public IDCGroupHelperRegion
   float getValUngroupedGlobal(unsigned int ugrow, unsigned int upad, unsigned int integrationInterval) const;
 
   /// \return returns grouped and averaged IDC values
-  const auto& getData() const { return mIDCsGrouped; }
+  const auto& getData() const& { return mIDCsGrouped; }
+
+  /// \return returns grouped and averaged IDC values using move semantics
+  auto getData() && { return std::move(mIDCsGrouped); }
 
   /// \return returns number of stored integration intervals
   unsigned int getNIntegrationIntervals() const { return mIDCsGrouped.size() / getNIDCsPerIntegrationInterval(); }

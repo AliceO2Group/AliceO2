@@ -42,7 +42,7 @@ bool Pedestals::setPedestals(TH1* h)
                  << " exceeds max possible value 511 (limited by CPV electronics)";
       continue;
     }
-    mPedestals[i] = short(h->GetBinContent(i));
+    mPedestals[i - 1] = short(h->GetBinContent(i));
   }
   return true;
 }
@@ -66,7 +66,7 @@ bool Pedestals::setPedSigmas(TH1F* h)
                  << " cannot be less than 0";
       continue;
     }
-    mPedSigmas[i] = float(h->GetBinContent(i));
+    mPedSigmas[i - 1] = float(h->GetBinContent(i));
   }
   return true;
 }

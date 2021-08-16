@@ -23,6 +23,7 @@ o2_add_library(MCHWorkflow
                    O2::CommonUtils
                    O2::DPLUtils
                    O2::DataFormatsParameters
+                   O2::SimulationDataFormat
                    O2::DetectorsRaw
                    O2::MCHCTF
                    O2::MCHClustering
@@ -79,7 +80,6 @@ o2_add_executable(
         SOURCES src/DigitReaderSpec.cxx src/sim-digits-reader-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase O2::MCHMappingImpl3 O2::SimulationDataFormat)
-
 
 o2_add_executable(
         preclusters-sink-workflow
@@ -195,3 +195,9 @@ o2_add_executable(tracks-file-dumper
         SOURCES src/tracks-file-dumper.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES Boost::program_options O2::MCHWorkflow)
+
+o2_add_executable(
+        tracks-mc-label-finder-workflow
+        SOURCES src/TrackMCLabelFinderSpec.cxx src/tracks-mc-label-finder-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::Steer O2::DataFormatsMCH O2::MCHBase)

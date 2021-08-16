@@ -89,8 +89,15 @@ void Tracker::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
 }
 
 //_________________________________________________________________________________________________
-void Tracker::initialize()
+void Tracker::initialize(bool fullClusterScan)
 {
+  mRoad.initialize();
+
+  if (fullClusterScan) {
+    mFullClusterScan = true;
+    return;
+  }
+
   /// calculate Look-Up-Table of the R-Phi bins projection from one layer to another
   /// layer1 + global R-Phi bin index ---> layer2 + R bin index + Phi bin index
 
@@ -179,8 +186,6 @@ void Tracker::initialize()
       }   // end loop PhiBinIndex
     }     // end loop RBinIndex
   }       // end loop layer1
-
-  mRoad.initialize();
 }
 
 //_________________________________________________________________________________________________
@@ -195,8 +200,13 @@ void Tracker::clustersToTracks(ROframe& event, std::ostream& timeBenchmarkOutput
 //_________________________________________________________________________________________________
 void Tracker::findTracks(ROframe& event)
 {
-  findTracksLTF(event);
-  findTracksCA(event);
+  if (!mFullClusterScan) {
+    findTracksLTF(event);
+    findTracksCA(event);
+  } else {
+    findTracksLTFfcs(event);
+    findTracksCAfcs(event);
+  }
 }
 
 //_________________________________________________________________________________________________
@@ -343,6 +353,139 @@ void Tracker::findTracksLTF(ROframe& event)
 }
 
 //_________________________________________________________________________________________________
+void Tracker::findTracksLTFfcs(ROframe& event)
+{
+  // find (high momentum) tracks by the Linear Track Finder (LTF) method
+  // with full scan of the clusters in the target plane
+
+  MCCompLabel mcCompLabel;
+  Int_t layer1, layer2, nPointDisks;
+  Int_t binR_proj, binPhi_proj, bin;
+  Int_t binIndex, clsMinIndex, clsMaxIndex, clsMinIndexS, clsMaxIndexS;
+  Int_t extClsIndex;
+  Float_t dR2, dR2min, dR2cut = mLTFclsR2Cut;
+  Bool_t hasDisk[constants::mft::DisksNumber], newPoint;
+
+  Int_t clsInLayer1, clsInLayer2, clsInLayer;
+
+  Int_t nPoints;
+  TrackElement trackPoints[constants::mft::LayersNumber];
+
+  Int_t step = 0;
+  layer1 = 0;
+
+  while (true) {
+
+    layer2 = (step == 0) ? (constants::mft::LayersNumber - 1) : (layer2 - 1);
+    step++;
+
+    if (layer2 < layer1 + (mMinTrackPointsLTF - 1)) {
+      ++layer1;
+      if (layer1 > (constants::mft::LayersNumber - (mMinTrackPointsLTF - 1))) {
+        break;
+      }
+      step = 0;
+      continue;
+    }
+
+    for (std::vector<Cluster>::iterator it1 = event.getClustersInLayer(layer1).begin(); it1 != event.getClustersInLayer(layer1).end(); ++it1) {
+      Cluster& cluster1 = *it1;
+      if (cluster1.getUsed()) {
+        continue;
+      }
+      clsInLayer1 = it1 - event.getClustersInLayer(layer1).begin();
+
+      for (std::vector<Cluster>::iterator it2 = event.getClustersInLayer(layer2).begin(); it2 != event.getClustersInLayer(layer2).end(); ++it2) {
+        Cluster& cluster2 = *it2;
+        if (cluster2.getUsed()) {
+          continue;
+        }
+        clsInLayer2 = it2 - event.getClustersInLayer(layer2).begin();
+
+        // start a TrackLTF
+        nPoints = 0;
+
+        // add the first seed point
+        trackPoints[nPoints].layer = layer1;
+        trackPoints[nPoints].idInLayer = clsInLayer1;
+        nPoints++;
+
+        // intermediate layers
+        for (Int_t layer = (layer1 + 1); layer <= (layer2 - 1); ++layer) {
+
+          newPoint = kTRUE;
+
+          // loop over the bins in the search window
+          dR2min = dR2cut;
+          for (std::vector<Cluster>::iterator it = event.getClustersInLayer(layer).begin(); it != event.getClustersInLayer(layer).end(); ++it) {
+            Cluster& cluster = *it;
+            if (cluster.getUsed()) {
+              continue;
+            }
+            clsInLayer = it - event.getClustersInLayer(layer).begin();
+
+            dR2 = getDistanceToSeed(cluster1, cluster2, cluster);
+            // retain the closest point within a radius dR2cut
+            if (dR2 >= dR2min) {
+              continue;
+            }
+            dR2min = dR2;
+
+            if (newPoint) {
+              trackPoints[nPoints].layer = layer;
+              trackPoints[nPoints].idInLayer = clsInLayer;
+              nPoints++;
+            }
+            // retain only the closest point in DistanceToSeed
+            newPoint = false;
+          } // end clusters bin intermediate layer
+        }   // end intermediate layers
+
+        // add the second seed point
+        trackPoints[nPoints].layer = layer2;
+        trackPoints[nPoints].idInLayer = clsInLayer2;
+        nPoints++;
+
+        // keep only tracks fulfilling the minimum length condition
+        if (nPoints < mMinTrackPointsLTF) {
+          continue;
+        }
+        for (Int_t i = 0; i < (constants::mft::DisksNumber); i++) {
+          hasDisk[i] = kFALSE;
+        }
+        for (Int_t point = 0; point < nPoints; ++point) {
+          auto layer = trackPoints[point].layer;
+          hasDisk[layer / 2] = kTRUE;
+        }
+        nPointDisks = 0;
+        for (Int_t disk = 0; disk < (constants::mft::DisksNumber); ++disk) {
+          if (hasDisk[disk]) {
+            ++nPointDisks;
+          }
+        }
+        if (nPointDisks < mMinTrackStationsLTF) {
+          continue;
+        }
+
+        // add a new TrackLTF
+        event.addTrackLTF();
+        for (Int_t point = 0; point < nPoints; ++point) {
+          auto layer = trackPoints[point].layer;
+          auto clsInLayer = trackPoints[point].idInLayer;
+          Cluster& cluster = event.getClustersInLayer(layer)[clsInLayer];
+          mcCompLabel = mUseMC ? event.getClusterLabels(layer, cluster.clusterId) : MCCompLabel();
+          extClsIndex = event.getClusterExternalIndex(layer, cluster.clusterId);
+          event.getCurrentTrackLTF().setPoint(cluster, layer, clsInLayer, mcCompLabel, extClsIndex);
+          // mark the used clusters
+          cluster.setUsed(true);
+        }
+      } // end seed clusters bin layer2
+    }   // end clusters layer1
+
+  } // end seeding
+}
+
+//_________________________________________________________________________________________________
 void Tracker::findTracksCA(ROframe& event)
 {
   // layers: 0, 1, 2, ..., 9
@@ -467,6 +610,121 @@ void Tracker::findTracksCA(ROframe& event)
       }     // end clusters in layer1
     }       // end layer2
   }         // end layer1
+}
+
+//_________________________________________________________________________________________________
+void Tracker::findTracksCAfcs(ROframe& event)
+{
+  // layers: 0, 1, 2, ..., 9
+  // rules for combining first/last plane in a road:
+  // 0 with 6, 7, 8, 9
+  // 1 with 6, 7, 8, 9
+  // 2 with 8, 9
+  // 3 with 8, 9
+  Int_t layer1Min = 0, layer1Max = 3;
+  Int_t layer2Min[4] = {6, 6, 8, 8};
+  constexpr Int_t layer2Max = constants::mft::LayersNumber - 1;
+
+  MCCompLabel mcCompLabel;
+  Int_t roadId, nPointDisks;
+  Int_t binR_proj, binPhi_proj, bin;
+  Int_t binIndex, clsMinIndex, clsMaxIndex, clsMinIndexS, clsMaxIndexS;
+  Float_t dR2, dR2cut = mROADclsR2Cut;
+  Bool_t hasDisk[constants::mft::DisksNumber];
+
+  Int_t clsInLayer1, clsInLayer2, clsInLayer;
+
+  Int_t nPoints;
+  std::vector<TrackElement> roadPoints;
+
+  roadId = 0;
+
+  for (Int_t layer1 = layer1Min; layer1 <= layer1Max; ++layer1) {
+
+    for (Int_t layer2 = layer2Max; layer2 >= layer2Min[layer1]; --layer2) {
+
+      for (std::vector<Cluster>::iterator it1 = event.getClustersInLayer(layer1).begin(); it1 != event.getClustersInLayer(layer1).end(); ++it1) {
+        Cluster& cluster1 = *it1;
+        if (cluster1.getUsed()) {
+          continue;
+        }
+        clsInLayer1 = it1 - event.getClustersInLayer(layer1).begin();
+
+        for (std::vector<Cluster>::iterator it2 = event.getClustersInLayer(layer2).begin(); it2 != event.getClustersInLayer(layer2).end(); ++it2) {
+          Cluster& cluster2 = *it2;
+          if (cluster2.getUsed()) {
+            continue;
+          }
+          clsInLayer2 = it2 - event.getClustersInLayer(layer2).begin();
+
+          // start a road
+          roadPoints.clear();
+
+          // add the first seed point
+          roadPoints.emplace_back(layer1, clsInLayer1);
+
+          for (Int_t layer = (layer1 + 1); layer <= (layer2 - 1); ++layer) {
+
+            for (std::vector<Cluster>::iterator it = event.getClustersInLayer(layer).begin(); it != event.getClustersInLayer(layer).end(); ++it) {
+              Cluster& cluster = *it;
+              if (cluster.getUsed()) {
+                continue;
+              }
+              clsInLayer = it - event.getClustersInLayer(layer).begin();
+
+              dR2 = getDistanceToSeed(cluster1, cluster2, cluster);
+              // add all points within a radius dR2cut
+              if (dR2 >= dR2cut) {
+                continue;
+              }
+
+              roadPoints.emplace_back(layer, clsInLayer);
+
+            } // end clusters bin intermediate layer
+          }   // end intermediate layers
+
+          // add the second seed point
+          roadPoints.emplace_back(layer2, clsInLayer2);
+          nPoints = roadPoints.size();
+
+          // keep only roads fulfilling the minimum length condition
+          if (nPoints < mMinTrackPointsCA) {
+            continue;
+          }
+          for (Int_t i = 0; i < (constants::mft::DisksNumber); i++) {
+            hasDisk[i] = kFALSE;
+          }
+          for (Int_t point = 0; point < nPoints; ++point) {
+            auto layer = roadPoints[point].layer;
+            hasDisk[layer / 2] = kTRUE;
+          }
+          nPointDisks = 0;
+          for (Int_t disk = 0; disk < (constants::mft::DisksNumber); ++disk) {
+            if (hasDisk[disk]) {
+              ++nPointDisks;
+            }
+          }
+          if (nPointDisks < mMinTrackStationsCA) {
+            continue;
+          }
+
+          mRoad.reset();
+          for (Int_t point = 0; point < nPoints; ++point) {
+            auto layer = roadPoints[point].layer;
+            auto clsInLayer = roadPoints[point].idInLayer;
+            mRoad.setPoint(layer, clsInLayer);
+          }
+          mRoad.setRoadId(roadId);
+          ++roadId;
+
+          computeCellsInRoad(event);
+          runForwardInRoad();
+          runBackwardInRoad(event);
+
+        } // end clusters in layer2
+      }   // end clusters in layer1
+    }     // end layer2
+  }       // end layer1
 }
 
 //_________________________________________________________________________________________________

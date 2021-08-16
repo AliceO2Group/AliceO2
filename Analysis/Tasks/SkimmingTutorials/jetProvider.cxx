@@ -38,19 +38,19 @@ struct JetProviderTask {
 
   void process(soa::Filtered<aod::Jets>::iterator const& jet,
                aod::Tracks const& tracks,
-               aod::JetConstituents const& constituents,
+               aod::JetTrackConstituents const& constituents,
                aod::JetConstituentsSub const& constituentsSub)
   {
     outputJets(jet.pt(), jet.eta(), jet.phi(), jet.energy(), jet.mass(), jet.area());
     if (keepConstituents) {
       if (DoConstSub) {
         outputConstituents.reserve(constituentsSub.size());
-        for (const auto constituent : constituentsSub) {
+        for (const auto& constituent : constituentsSub) {
           outputConstituents(outputJets.lastIndex(), constituent.pt(), constituent.eta(), constituent.phi());
         }
       } else {
         outputConstituents.reserve(constituents.size());
-        for (const auto constituentIndex : constituents) {
+        for (const auto& constituentIndex : constituents) {
           auto constituent = constituentIndex.track();
           outputConstituents(outputJets.lastIndex(), constituent.pt(), constituent.eta(), constituent.phi());
         }

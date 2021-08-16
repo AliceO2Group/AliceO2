@@ -87,7 +87,6 @@ class Detector : public o2::base::DetImpl<Detector>
     return nullptr;
   }
 
- public:
   /// Has to be called after each event to reset the containers
   void Reset() override;
 
@@ -152,6 +151,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Detector& operator=(const Detector&);
 
   std::vector<std::vector<FT3Layer>> mLayers;
+  bool mIsPipeActivated = true; //! If Alice 3 pipe is present append inner disks to vacuum volume to avoid overlaps
 
   template <typename Det>
   friend class o2::base::DetImpl;

@@ -17,7 +17,6 @@
 #define ALICEO2_TPC_Digitizer_H_
 
 #include "TPCSimulation/DigitContainer.h"
-#include "TPCSimulation/PadResponse.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSpaceCharge/SpaceCharge.h"
 
@@ -44,7 +43,7 @@ class DigitContainer;
 /// -# Drift and diffusion of the primary electrons while moving in the active volume towards the readout chambers
 /// (ElectronTransport)
 /// -# Amplification of the electrons in the stack of four GEM foils (GEMAmplification)
-/// -# Induction of the signal on the pad plane, including a spread of the signal due to the pad response (PadResponse)
+/// -# Induction of the signal on the pad plane, including a spread of the signal due to the pad response (SignalInduction)
 /// -# Shaping and further signal processing in the Front-End Cards (SampaProcessing)
 /// The such created Digits and then sorted in an intermediate Container (DigitContainer) and after processing of the
 /// full event/drift time summed up
@@ -53,7 +52,7 @@ class DigitContainer;
 class Digitizer
 {
  public:
-  using SC = SpaceCharge<double, 129, 129, 180>;
+  using SC = SpaceCharge<double>;
 
   /// Default constructor
   Digitizer() = default;
@@ -104,10 +103,11 @@ class Digitizer
 
   /// Switch for triggered / continuous readout
   /// \param isContinuous - false for triggered readout, true for continuous readout
-  static void setContinuousReadout(bool isContinuous) { mIsContinuous = isContinuous; }
+  void setContinuousReadout(bool isContinuous) { mIsContinuous = isContinuous; }
 
   /// Option to retrieve triggered / continuous readout
-  static bool isContinuousReadout() { return mIsContinuous; }
+  /// \return true for continuous readout
+  bool isContinuousReadout() { return mIsContinuous; }
 
   /// Enable the use of space-charge distortions and provide space-charge density histogram as input
   /// \param distortionType select the type of space-charge distortions (constant or realistic)
@@ -131,8 +131,7 @@ class Digitizer
   Sector mSector = -1;               ///< ID of the currently processed sector
   double mEventTime = 0.f;           ///< Time of the currently processed event
   double mOutputDigitTimeOffset = 0; ///< Time of the first IR sampled in the digitizer
-  // FIXME: whats the reason for hving this static?
-  static bool mIsContinuous;      ///< Switch for continuous readout
+  bool mIsContinuous;                ///< Switch for continuous readout
   bool mUseSCDistortions = false; ///< Flag to switch on the use of space-charge distortions
   ClassDefNV(Digitizer, 1);
 };

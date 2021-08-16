@@ -44,7 +44,7 @@ class Flex
   Double_t* mFlexOrigin;
   LadderSegmentation* mLadderSeg;
 
-  ClassDef(Flex, 1);
+  ClassDefNV(Flex, 1);
 };
 } // namespace mft
 } // namespace o2

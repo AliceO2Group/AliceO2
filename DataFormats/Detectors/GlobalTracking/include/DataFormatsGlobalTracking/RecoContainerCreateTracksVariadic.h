@@ -62,13 +62,14 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
 
   // create only for those data types which are used
   const auto tracksITS = getITSTracks();
+  const auto trkITABRefs = getITSABRefs();
   const auto tracksMFT = getMFTTracks();
   const auto tracksTPC = getTPCTracks();
   const auto tracksTPCITS = getTPCITSTracks();
   const auto tracksTPCTOF = getTPCTOFTracks();   // TOF-TPC tracks with refit
   const auto matchesTPCTOF = getTPCTOFMatches(); // and corresponding matches
   const auto tracksTPCTRD = getTPCTRDTracks<o2::trd::TrackTRD>();
-  const auto matchesITSTPCTOF = getTOFMatches(); // just matches, no refit done
+  const auto matchesITSTPCTOF = getITSTPCTOFMatches(); // just matches, no refit done
   const auto tofClusters = getTOFClusters();
   const auto tracksITSTPCTRD = getITSTPCTRDTracks<o2::trd::TrackTRD>();
 
@@ -80,7 +81,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   usedData[GTrackID::ITSTPC].resize(tracksTPCITS.size());                                // to flag used ITSTPC tracks
   usedData[GTrackID::ITSTPCTRD].resize(tracksITSTPCTRD.size());                          // to flag used ITSTPCTRD tracks
   usedData[GTrackID::TPCTRD].resize(tracksTPCTRD.size());                                // to flag used TPCTRD tracks
-  usedData[GTrackID::TOF].resize(getTOFMatches().size());                                // to flag used ITSTPC-TOF matches
+  usedData[GTrackID::ITSTPCTOF].resize(getITSTPCTOFMatches().size());                    // to flag used ITSTPC-TOF matches
 
   // ITS-TPC-TRD-TOF
   // TODO, will flag used ITS-TPC-TRD
@@ -114,7 +115,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     }
     for (unsigned i = 0; i < matchesITSTPCTOF.size(); i++) {
       const auto& match = matchesITSTPCTOF[i];
-      auto gidx = match.getEvIdxTrack().getIndex(); // this should be corresponding ITS-TPC track
+      auto gidx = match.getTrackRef();              // this should be corresponding ITS-TPC track
       if (isUsed(gidx)) {                           // RS FIXME: THIS IS TEMPORARY, until the TOF matching will use ITS-TPC-TRD as an input
         continue;
       }
@@ -123,7 +124,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
       const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
       if (creator(tracksTPCITS[gidx.getIndex()], {i, GTrackID::ITSTPCTOF}, timeTOFMUS, timeErr)) {
-        flagUsed2(i, GTrackID::TOF); // flag used TOF match // TODO might be not needed
+        //flagUsed2(i, GTrackID::TOF); // flag used TOF match // TODO might be not needed
         flagUsed(gidx);              // flag used ITS-TPC tracks
       }
     }
@@ -154,13 +155,13 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     for (unsigned i = 0; i < tracksTPCITS.size(); i++) {
       const auto& matchTr = tracksTPCITS[i];
       if (isUsed2(i, GTrackID::ITSTPC)) {
-        flagUsed(matchTr.getRefITS()); // flag used ITS tracks
+        flagUsed(matchTr.getRefITS()); // flag used ITS tracks or AB tracklets (though the latter is not really necessary)
         flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
         continue;
       }
       if (creator(matchTr, {i, GTrackID::ITSTPC}, matchTr.getTimeMUS().getTimeStamp(), matchTr.getTimeMUS().getTimeStampError())) {
         flagUsed2(i, GTrackID::ITSTPC);
-        flagUsed(matchTr.getRefITS()); // flag used ITS tracks
+        flagUsed(matchTr.getRefITS()); // flag used ITS tracks or AB tracklets (though the latter is not really necessary)
         flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
       }
     }
@@ -174,8 +175,8 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     }
     for (unsigned i = 0; i < matchesTPCTOF.size(); i++) {
       const auto& match = matchesTPCTOF[i];
-      const auto& gidx = match.getEvIdxTrack().getIndex(); // TPC (or other? but w/o ITS) track global idx (FIXME: TOF has to git rid of EvIndex stuff)
-      if (isUsed(gidx)) {                                  // is TPC track already used
+      const auto& gidx = match.getTrackRef(); // TPC track global idx
+      if (isUsed(gidx)) {                     // is TPC track already used
         continue;
       }
       const auto& trc = tracksTPCTOF[i];
@@ -245,6 +246,12 @@ template <class T>
 inline constexpr auto isITSTrack()
 {
   return std::is_same_v<std::decay_t<T>, o2::its::TrackITS>;
+}
+
+template <class T>
+inline constexpr auto isITSABRef()
+{
+  return std::is_same_v<std::decay_t<T>, o2::itsmft::TrkClusRef>;
 }
 
 template <class T>

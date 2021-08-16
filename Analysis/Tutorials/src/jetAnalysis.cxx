@@ -35,10 +35,10 @@ struct JetAnalysis {
 
   // Jet and JetConstituents are tables which are filled by executable o2-analysis-jetfinder
   void process(aod::Jet const& jet,
-               aod::JetConstituents const& constituents, aod::Tracks const& tracks)
+               aod::JetTrackConstituents const& constituents, aod::Tracks const& tracks)
   {
     hJetPt->Fill(jet.pt());
-    for (const auto c : constituents) {
+    for (const auto& c : constituents) {
       LOGF(DEBUG, "jet %d: track id %d, track pt %g", jet.index(), c.trackId(), c.track().pt());
       hConstPt->Fill(c.track().pt());
     }

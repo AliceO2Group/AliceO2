@@ -51,7 +51,7 @@ namespace bpo = boost::program_options;
 
 void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName,
               const std::string& outDir, int digitrate, bool verbose, std::string filePerLink,
-              uint32_t rdhV = 6, bool noEmptyHBF = false, bool tracklethcheader = false, int superPageSizeInB = 1024 * 1024);
+              uint32_t rdhV = 6, bool noEmptyHBF = false, int tracklethcheader = 0, int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
 {
@@ -71,7 +71,7 @@ int main(int argc, char** argv)
     add_option("input-file-tracklets,t", bpo::value<std::string>()->default_value("trdtracklets.root"), "input Trapsim tracklets file");
     add_option("fileper,l", bpo::value<std::string>()->default_value("halfcru"), "all : raw file(false), halfcru : cru end point, cru : one file per cru, sm: one file per supermodule");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
-    add_option("trackletHCHeader,x", bpo::value<bool>()->default_value("false")->implicit_value(true), "include tracklet half chamber header (for run3) comes after tracklets and before the digit half chamber header, that has always been there.");
+    add_option("tracklethcheader,x", bpo::value<int>()->default_value(0), "include tracklet half chamber header (for run3). 0 never, 1 if there is tracklet data, 2 always");
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(6), "rdh version in use default");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
@@ -104,13 +104,12 @@ int main(int argc, char** argv)
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
 
   std::cout << "yay it ran" << std::endl;
-  trap2raw(vm["input-file-digits"].as<std::string>(), vm["input-file-tracklets"].as<std::string>(), vm["output-dir"].as<std::string>(), vm["digitrate"].as<int>(), vm["verbosity"].as<int>(),
-           vm["fileper"].as<std::string>(), vm["rdh-version"].as<uint32_t>(), vm["no-empty-hbf"].as<bool>(), vm["trackletHCHeader"].as<bool>());
+  trap2raw(vm["input-file-digits"].as<std::string>(), vm["input-file-tracklets"].as<std::string>(), vm["output-dir"].as<std::string>(), vm["digitrate"].as<int>(), vm["verbosity"].as<int>(), vm["fileper"].as<std::string>(), vm["rdh-version"].as<uint32_t>(), vm["no-empty-hbf"].as<bool>(), vm["tracklethcheader"].as<int>());
 
   return 0;
 }
 
-void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName, const std::string& outDir, int digitrate, bool verbose, std::string filePer, uint32_t rdhV, bool noEmptyHBF, bool trackletHCHeader, int superPageSizeInB)
+void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName, const std::string& outDir, int digitrate, bool verbose, std::string filePer, uint32_t rdhV, bool noEmptyHBF, int trackletHCHeader, int superPageSizeInB)
 {
   TStopwatch swTot;
   swTot.Start();

@@ -16,6 +16,7 @@
 
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsTRD/TrackTriggerRecord.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -42,7 +43,7 @@ class TRDTrackReader : public Task
     TPCTRD
   };
 
-  TRDTrackReader(bool useMC, Mode mode) : mUseMC(useMC), mMode(mode) {}
+  TRDTrackReader(bool useMC, Mode mode, bool subSpecStrict = false) : mUseMC(useMC), mMode(mode) {}
   ~TRDTrackReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -50,16 +51,19 @@ class TRDTrackReader : public Task
  private:
   void connectTree(const std::string& filename);
   bool mUseMC = false;
+  bool mSubSpecStrict = false;
   Mode mMode;
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
   std::string mFileName = "";
   std::vector<o2::trd::TrackTRD> mTracks, *mTracksPtr = &mTracks;
   std::vector<o2::trd::TrackTriggerRecord> mTrigRec, *mTrigRecPtr = &mTrigRec;
+  std::vector<o2::MCCompLabel> mLabelsMatch, *mLabelsMatchPtr = &mLabelsMatch;
+  std::vector<o2::MCCompLabel> mLabelsTrd, *mLabelsTrdPtr = &mLabelsTrd;
 };
 
 /// read TPC-TRD matched tracks from a root file
-framework::DataProcessorSpec getTRDTPCTrackReaderSpec(bool useMC);
+framework::DataProcessorSpec getTRDTPCTrackReaderSpec(bool useMC, bool subSpecStrict = false);
 
 /// read ITS-TPC-TRD matched tracks from a root file
 framework::DataProcessorSpec getTRDGlobalTrackReaderSpec(bool useMC);

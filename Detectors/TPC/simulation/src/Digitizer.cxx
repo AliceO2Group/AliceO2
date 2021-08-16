@@ -22,7 +22,6 @@
 #include "TPCBase/ParameterGas.h"
 #include "TPCSimulation/ElectronTransport.h"
 #include "TPCSimulation/GEMAmplification.h"
-#include "TPCSimulation/PadResponse.h"
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 #include "TPCBase/CDBInterface.h"
@@ -34,8 +33,6 @@
 ClassImp(o2::tpc::Digitizer);
 
 using namespace o2::tpc;
-
-bool o2::tpc::Digitizer::mIsContinuous = true;
 
 void Digitizer::init()
 {

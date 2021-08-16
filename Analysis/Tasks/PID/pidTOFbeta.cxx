@@ -55,7 +55,7 @@ struct pidTOFTaskBeta {
   }
 };
 
-struct pidTOFTaskQABeta {
+struct tofPidQaBeta {
 
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
@@ -72,51 +72,35 @@ struct pidTOFTaskQABeta {
 
   Configurable<int> logAxis{"logAxis", 1, "Flag to use a log momentum axis"};
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
-  Configurable<float> MinP{"MinP", 0.1f, "Minimum momentum in range"};
-  Configurable<float> MaxP{"MaxP", 5.f, "Maximum momentum in range"};
-  Configurable<int> nBinsDelta{"nBinsDelta", 200, "Number of bins for the Delta"};
-  Configurable<float> MinDelta{"MinDelta", -1000.f, "Minimum Delta in range"};
-  Configurable<float> MaxDelta{"MaxDelta", 1000.f, "Maximum Delta in range"};
-  Configurable<int> nBinsNSigma{"nBinsNSigma", 200, "Number of bins for the NSigma"};
-  Configurable<float> MinNSigma{"MinNSigma", -10.f, "Minimum NSigma in range"};
-  Configurable<float> MaxNSigma{"MaxNSigma", 10.f, "Maximum NSigma in range"};
-
-  template <typename T>
-  void makelogaxis(T h)
-  {
-    if (logAxis == 0) {
-      return;
-    }
-    const int nbins = h->GetNbinsX();
-    double binp[nbins + 1];
-    double max = h->GetXaxis()->GetBinUpEdge(nbins);
-    double min = h->GetXaxis()->GetBinLowEdge(1);
-    if (min <= 0) {
-      min = 0.00001;
-    }
-    double lmin = TMath::Log10(min);
-    double ldelta = (TMath::Log10(max) - lmin) / ((double)nbins);
-    for (int i = 0; i < nbins; i++) {
-      binp[i] = TMath::Exp(TMath::Log(10) * (lmin + i * ldelta));
-    }
-    binp[nbins] = max + 1;
-    h->GetXaxis()->Set(nbins, binp);
-  }
+  Configurable<float> minP{"minP", 0.1f, "Minimum momentum in range"};
+  Configurable<float> maxP{"maxP", 5.f, "Maximum momentum in range"};
 
   void init(o2::framework::InitContext&)
   {
+    const AxisSpec vtxZAxis{100, -20, 20, "Vtx_{z} (cm)"};
+    const AxisSpec tofAxis{10000, 0, 2e6, "TOF Signal"};
+    const AxisSpec betaAxis{1000, 0, 2, "TOF #beta"};
+    const AxisSpec etaAxis{100, -2, 2, "#it{#eta}"};
+    const AxisSpec colTimeAxis{100, -2000, 2000, "Collision time (ps)"};
+    const AxisSpec lAxis{100, 0, 500, "Track length (cm)"};
+    const AxisSpec ptResoAxis{100, 0, 0.1, "#sigma_{#it{p}_{T}}"};
+    AxisSpec ptAxis{nBinsP, minP, maxP, "#it{p}_{T} (GeV/#it{c})"};
+    AxisSpec pAxis{nBinsP, minP, maxP, "#it{p} (GeV/#it{c})"};
+    if (logAxis) {
+      ptAxis.makeLogaritmic();
+      pAxis.makeLogaritmic();
+    }
+
     // Event properties
-    histos.add("event/vertexz", ";Vtx_{z} (cm);Entries", HistType::kTH1F, {{100, -20, 20}});
-    histos.add("event/colltime", ";Collision time (ps);Entries", HistType::kTH1F, {{100, -2000, 2000}});
-    histos.add("event/tofsignal", ";#it{p} (GeV/#it{c});TOF Signal", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {10000, 0, 2e6}});
-    makelogaxis(histos.get<TH2>(HIST("event/tofsignal")));
-    histos.add("event/tofbeta", ";#it{p} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2}});
-    makelogaxis(histos.get<TH2>(HIST("event/tofbeta")));
-    histos.add("event/eta", ";#it{#eta};Entries", HistType::kTH1F, {{100, -2, 2}});
-    histos.add("event/length", ";Track length (cm);Entries", HistType::kTH1F, {{100, 0, 500}});
-    histos.add("event/pt", ";#it{p}_{T} (GeV/#it{c});Entries", HistType::kTH1F, {{nBinsP, MinP, MaxP}});
-    histos.add("event/p", ";#it{p} (GeV/#it{c});Entries", HistType::kTH1F, {{nBinsP, MinP, MaxP}});
-    histos.add("event/ptreso", ";#it{p} (GeV/#it{c});Entries", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {100, 0, 0.1}});
+    histos.add("event/vertexz", "", HistType::kTH1F, {vtxZAxis});
+    histos.add("event/colltime", "", HistType::kTH1F, {colTimeAxis});
+    histos.add("event/tofsignal", "", HistType::kTH2F, {pAxis, tofAxis});
+    histos.add("event/tofbeta", "", HistType::kTH2F, {pAxis, betaAxis});
+    histos.add("event/eta", "", HistType::kTH1F, {etaAxis});
+    histos.add("event/length", "", HistType::kTH1F, {lAxis});
+    histos.add("event/pt", "", HistType::kTH1F, {ptAxis});
+    histos.add("event/p", "", HistType::kTH1F, {pAxis});
+    histos.add("event/ptreso", "", HistType::kTH2F, {pAxis, ptResoAxis});
   }
 
   template <uint8_t i, typename T>
@@ -137,6 +121,11 @@ struct pidTOFTaskQABeta {
       return;
     }
     histos.fill(HIST("event/tofbeta"), track.p(), track.beta());
+    histos.fill(HIST("event/length"), track.length());
+    histos.fill(HIST("event/eta"), track.eta());
+    histos.fill(HIST("event/tofsignal"), track.p(), track.tofSignal());
+    histos.fill(HIST("event/pt"), track.pt());
+    histos.fill(HIST("event/p"), track.p());
   }
 };
 
@@ -144,7 +133,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   auto workflow = WorkflowSpec{adaptAnalysisTask<pidTOFTaskBeta>(cfgc)};
   if (cfgc.options().get<int>("add-qa")) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskQABeta>(cfgc, TaskName{"pidTOFQA-task"}));
+    workflow.push_back(adaptAnalysisTask<tofPidQaBeta>(cfgc));
   }
   return workflow;
 }

@@ -41,6 +41,7 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/ClusterHardware.h
           include/DataFormatsTPC/Digit.h
           include/DataFormatsTPC/Helpers.h
+          include/DataFormatsTPC/KrCluster.h
           include/DataFormatsTPC/TrackTPC.h
           include/DataFormatsTPC/LaserTrack.h
           include/DataFormatsTPC/Constants.h

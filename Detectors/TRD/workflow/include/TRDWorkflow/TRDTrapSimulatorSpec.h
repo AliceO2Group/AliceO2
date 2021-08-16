@@ -22,8 +22,6 @@
 #include "TRDSimulation/TrapConfig.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/Constants.h"
-#include <SimulationDataFormat/MCCompLabel.h>
-#include <SimulationDataFormat/ConstMCTruthContainer.h>
 
 class Calibrations;
 

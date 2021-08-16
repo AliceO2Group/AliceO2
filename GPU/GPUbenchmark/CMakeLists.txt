@@ -56,3 +56,5 @@ if(HIP_ENABLED)
     target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
   endif()
 endif()
+
+o2_add_test_root_macro(macro/showBenchmarks.C)

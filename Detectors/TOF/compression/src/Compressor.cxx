@@ -206,7 +206,7 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
   if (mDecoderFatal) {
     mFatalCounter++;
     mEncoderPointer = mEncoderPointerStart;
-    mEncoderRDH->detectorField |= 0x00010000;
+    mEncoderRDH->detectorField |= 0x00001000;
   }
 
   if (mDecoderError) {

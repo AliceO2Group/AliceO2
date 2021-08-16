@@ -40,7 +40,8 @@ class AlignableSensor : public AlignableVolume
 {
  public:
   //
-  AlignableSensor(const char* name = nullptr, int vid = 0, int iid = 0);
+  AlignableSensor() = default;
+  AlignableSensor(const char* name, int vid, int iid, Controller* ctr);
   ~AlignableSensor() override = default;
   //
   void addChild(AlignableVolume*) override;
@@ -85,7 +86,7 @@ class AlignableSensor : public AlignableVolume
   //
   //  virtual AlignmentPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t) = 0; TODO(milettri): needs AliTrackPointArray AliESDtrack
   //
-  int finalizeStat(DOFStatistics* h = nullptr) override;
+  int finalizeStat(DOFStatistics& h) override;
   //
   virtual void prepareMatrixClAlg();
   virtual void prepareMatrixClAlgReco();
@@ -112,7 +113,7 @@ class AlignableSensor : public AlignableVolume
   TGeoHMatrix mMatClAlgReco; // reco-time cluster alignment matrix in tracking frame
 
   //
-  ClassDef(AlignableSensor, 1)
+  ClassDefOverride(AlignableSensor, 1)
 };
 } // namespace align
 } // namespace o2

@@ -57,7 +57,7 @@ class DetectorResponse
   /// Setter for the parametrization
   /// \param ptype Type of the parametrization
   /// \param param Parametrization
-  void LoadParam(const Param_t ptype, Parametrization* param) { mParam[ptype] = param; }
+  void LoadParam(const Param_t ptype, Parametrization* param);
 
   /// Getter for the parametrizations
   Parametrization* GetParam(const Param_t ptype) const { return mParam[ptype]; }
@@ -76,6 +76,14 @@ class DetectorResponse
   /// Parametrizations for the expected signal and sigma
   std::array<Parametrization*, kNParams> mParam;
 };
+
+inline void DetectorResponse::LoadParam(const Param_t ptype, Parametrization* param)
+{
+  if (!param) {
+    LOG(fatal) << "Got no param for parametrization " << ParamName[ptype];
+  }
+  mParam[ptype] = param;
+}
 
 inline void DetectorResponse::LoadParamFromFile(const TString fname, const TString pname, const Param_t ptype)
 {

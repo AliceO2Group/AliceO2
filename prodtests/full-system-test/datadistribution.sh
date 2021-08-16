@@ -9,7 +9,7 @@ if [ `which StfBuilder 2> /dev/null | wc -l` == "0" ]; then
 fi
 
 # For benchmark only, do NOT copy&paste!
-export DATADIST_SHM_DELAY=10
+export DATADIST_SHM_DELAY=30
 export DATADIST_FILE_READ_COUNT=$NTIMEFRAMES
 
 export TF_DIR=./raw/timeframe

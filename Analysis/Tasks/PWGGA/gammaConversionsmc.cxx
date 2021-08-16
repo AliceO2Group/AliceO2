@@ -189,9 +189,9 @@ struct GammaConversionsmc {
     auto lTrackNeg = theV0.template negTrack_as<tracksAndTPCInfoMC>(); //negative daughter
 
     // todo: verify it is enough to check only mother0 being equal
-    if (lTrackPos.mcParticle().mother0() > -1 &&
-        lTrackPos.mcParticle().mother0() == lTrackNeg.mcParticle().mother0()) {
-      auto lMother = theMcParticles.iteratorAt(lTrackPos.mcParticle().mother0());
+    if (lTrackPos.mcParticle().has_mother0() &&
+        lTrackPos.mcParticle().mother0Id() == lTrackNeg.mcParticle().mother0Id()) {
+      auto lMother = lTrackPos.mcParticle().template mother0_as<TMC>();
 
       if (lMother.pdgCode() == 22) {
 
@@ -229,6 +229,8 @@ struct GammaConversionsmc {
       processTruePhoton(lV0, theMcParticles);
     }
   }
+
+  PROCESS_SWITCH(GammaConversionsmc, processMC, "Process MC", true);
 
   template <typename T>
   void fillHistogramsBeforeCuts(const T& theV0)
@@ -375,5 +377,5 @@ struct GammaConversionsmc {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{adaptAnalysisTask<GammaConversionsmc>(cfgc, Processes{&GammaConversionsmc::processMC})};
+  return WorkflowSpec{adaptAnalysisTask<GammaConversionsmc>(cfgc)};
 }

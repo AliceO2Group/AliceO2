@@ -29,8 +29,6 @@ SAMPAProcessing::SAMPAProcessing() : mRandomNoiseRing()
   updateParameters();
 }
 
-SAMPAProcessing::~SAMPAProcessing() = default;
-
 void SAMPAProcessing::updateParameters()
 {
   mGasParam = &(ParameterGas::Instance());

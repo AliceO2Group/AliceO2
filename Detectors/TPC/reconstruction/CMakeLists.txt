@@ -49,7 +49,6 @@ o2_target_root_dictionary(
           include/TPCReconstruction/HwClustererParam.h
           include/TPCReconstruction/KrBoxClusterFinder.h
           include/TPCReconstruction/KrBoxClusterFinderParam.h
-          include/TPCReconstruction/KrCluster.h
           include/TPCReconstruction/RawReader.h
           include/TPCReconstruction/RawReaderCRU.h
           include/TPCReconstruction/RawReaderEventSync.h

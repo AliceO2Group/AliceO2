@@ -186,6 +186,105 @@ BOOST_AUTO_TEST_CASE(InputSpecsForPolicy)
   BOOST_CHECK_EQUAL(inputs.size(), 2);
 }
 
+BOOST_AUTO_TEST_CASE(MultinodeUtilities)
+{
+  std::string configFilePath = "json:/" + std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
+
+  {
+    BOOST_CHECK_THROW(DataSampling::PortForPolicy(configFilePath, "no such policy"), std::runtime_error);
+    BOOST_CHECK_THROW(DataSampling::MachinesForPolicy(configFilePath, "no such policy"), std::runtime_error);
+  }
+  {
+    auto port = DataSampling::PortForPolicy(configFilePath, "tpcclusters");
+    BOOST_CHECK(!port.has_value());
+    auto machines = DataSampling::MachinesForPolicy(configFilePath, "tpcclusters");
+    BOOST_CHECK(machines.empty());
+  }
+  {
+    auto port = DataSampling::PortForPolicy(configFilePath, "tpcraw");
+    BOOST_REQUIRE(port.has_value());
+    BOOST_CHECK_EQUAL(port.value(), 1234);
+    auto machines = DataSampling::MachinesForPolicy(configFilePath, "tpcraw");
+    BOOST_CHECK_EQUAL(machines.size(), 2);
+  }
+  {
+    // empty host -> match any policy
+    WorkflowSpec workflow;
+    DataSampling::GenerateInfrastructure(workflow, configFilePath, 1, "");
+
+    auto disp = std::find_if(workflow.begin(), workflow.end(),
+                             [](const DataProcessorSpec& d) {
+                               return d.name.find("Dispatcher") != std::string::npos;
+                             });
+    BOOST_REQUIRE(disp != workflow.end());
+
+    auto input1 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("CLUSTERS"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input1 != disp->inputs.end());
+    auto input2 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("CLUSTERS_P"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input2 != disp->inputs.end());
+    auto input3 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("RAWDATA"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input3 != disp->inputs.end());
+  }
+  {
+    // mismatching host -> create only policies with empty machines list
+    WorkflowSpec workflow;
+    DataSampling::GenerateInfrastructure(workflow, configFilePath, 1, "mismatching host");
+
+    auto disp = std::find_if(workflow.begin(), workflow.end(),
+                             [](const DataProcessorSpec& d) {
+                               return d.name.find("Dispatcher") != std::string::npos;
+                             });
+    BOOST_REQUIRE(disp != workflow.end());
+
+    auto input1 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("CLUSTERS"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input1 != disp->inputs.end());
+    auto input2 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("CLUSTERS_P"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input2 != disp->inputs.end());
+  }
+  {
+    // matching host -> create policies with empty machines list and the ones which match
+    WorkflowSpec workflow;
+    DataSampling::GenerateInfrastructure(workflow, configFilePath, 1, "machineA");
+
+    auto disp = std::find_if(workflow.begin(), workflow.end(),
+                             [](const DataProcessorSpec& d) {
+                               return d.name.find("Dispatcher") != std::string::npos;
+                             });
+    BOOST_REQUIRE(disp != workflow.end());
+
+    auto input1 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("CLUSTERS"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input1 != disp->inputs.end());
+    auto input2 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("CLUSTERS_P"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input2 != disp->inputs.end());
+    auto input3 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("RAWDATA"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input3 != disp->inputs.end());
+  }
+}
+
 BOOST_AUTO_TEST_CASE(DataSamplingEmptyConfig)
 {
   std::string configFilePath = "json:/" + std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSamplingEmpty.json";

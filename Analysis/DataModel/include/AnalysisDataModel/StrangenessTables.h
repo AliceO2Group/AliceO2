@@ -25,40 +25,40 @@ DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "_Neg"); //!
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                         //!
 
 //General V0 properties: position, momentum
-DECLARE_SOA_COLUMN(PosX, posX, float);   //!
-DECLARE_SOA_COLUMN(NegX, negX, float);   //!
-DECLARE_SOA_COLUMN(PxPos, pxpos, float); //!
-DECLARE_SOA_COLUMN(PyPos, pypos, float); //!
-DECLARE_SOA_COLUMN(PzPos, pzpos, float); //!
-DECLARE_SOA_COLUMN(PxNeg, pxneg, float); //!
-DECLARE_SOA_COLUMN(PyNeg, pyneg, float); //!
-DECLARE_SOA_COLUMN(PzNeg, pzneg, float); //!
-DECLARE_SOA_COLUMN(X, x, float);         //!
-DECLARE_SOA_COLUMN(Y, y, float);         //!
-DECLARE_SOA_COLUMN(Z, z, float);         //!
+DECLARE_SOA_COLUMN(PosX, posX, float);   //! positive track X at min
+DECLARE_SOA_COLUMN(NegX, negX, float);   //! negative track X at min
+DECLARE_SOA_COLUMN(PxPos, pxpos, float); //! positive track px at min
+DECLARE_SOA_COLUMN(PyPos, pypos, float); //! positive track py at min
+DECLARE_SOA_COLUMN(PzPos, pzpos, float); //! positive track pz at min
+DECLARE_SOA_COLUMN(PxNeg, pxneg, float); //! negative track px at min
+DECLARE_SOA_COLUMN(PyNeg, pyneg, float); //! negative track py at min
+DECLARE_SOA_COLUMN(PzNeg, pzneg, float); //! negative track pz at min
+DECLARE_SOA_COLUMN(X, x, float);         //! decay position X
+DECLARE_SOA_COLUMN(Y, y, float);         //! decay position Y
+DECLARE_SOA_COLUMN(Z, z, float);         //! decay position Z
 
 //Saved from finding: DCAs
-DECLARE_SOA_COLUMN(DCAV0Daughters, dcaV0daughters, float); //!
-DECLARE_SOA_COLUMN(DCAPosToPV, dcapostopv, float);         //!
-DECLARE_SOA_COLUMN(DCANegToPV, dcanegtopv, float);         //!
+DECLARE_SOA_COLUMN(DCAV0Daughters, dcaV0daughters, float); //! DCA between V0 daughters
+DECLARE_SOA_COLUMN(DCAPosToPV, dcapostopv, float);         //! DCA positive prong to PV
+DECLARE_SOA_COLUMN(DCANegToPV, dcanegtopv, float);         //! DCA negative prong to PV
 
 //Derived expressions
 //Momenta
-DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, //!
+DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, //! V0 pT
                            [](float pxpos, float pypos, float pxneg, float pyneg) -> float { return RecoDecay::sqrtSumOfSquares(pxpos + pxneg, pypos + pyneg); });
 
 //Length quantities
-DECLARE_SOA_DYNAMIC_COLUMN(V0Radius, v0radius, //!
+DECLARE_SOA_DYNAMIC_COLUMN(V0Radius, v0radius, //! V0 decay radius (2D, centered at zero)
                            [](float x, float y) -> float { return RecoDecay::sqrtSumOfSquares(x, y); });
 
 //CosPA
-DECLARE_SOA_DYNAMIC_COLUMN(V0CosPA, v0cosPA, //!
+DECLARE_SOA_DYNAMIC_COLUMN(V0CosPA, v0cosPA, //! V0 CosPA
                            [](float X, float Y, float Z, float Px, float Py, float Pz, float pvX, float pvY, float pvZ) -> float { return RecoDecay::CPA(array{pvX, pvY, pvZ}, array{X, Y, Z}, array{Px, Py, Pz}); });
-DECLARE_SOA_DYNAMIC_COLUMN(DCAV0ToPV, dcav0topv, //!
+DECLARE_SOA_DYNAMIC_COLUMN(DCAV0ToPV, dcav0topv, //! DCA of V0 to PV
                            [](float X, float Y, float Z, float Px, float Py, float Pz, float pvX, float pvY, float pvZ) -> float { return std::sqrt((std::pow((pvY - Y) * Pz - (pvZ - Z) * Py, 2) + std::pow((pvX - X) * Pz - (pvZ - Z) * Px, 2) + std::pow((pvX - X) * Py - (pvY - Y) * Px, 2)) / (Px * Px + Py * Py + Pz * Pz)); });
 
 //Armenteros-Podolanski variables
-DECLARE_SOA_DYNAMIC_COLUMN(Alpha, alpha, //!
+DECLARE_SOA_DYNAMIC_COLUMN(Alpha, alpha, //! Armenteros Alpha
                            [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) {
                              float momTot = RecoDecay::P(pxpos + pxneg, pypos + pyneg, pzpos + pzneg);
                              float lQlNeg = RecoDecay::dotProd(array{pxneg, pyneg, pzneg}, array{pxpos + pxneg, pypos + pyneg, pzpos + pzneg}) / momTot;
@@ -66,7 +66,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(Alpha, alpha, //!
                              return (lQlPos - lQlNeg) / (lQlPos + lQlNeg); //alphav0
                            });
 
-DECLARE_SOA_DYNAMIC_COLUMN(QtArm, qtarm, //!
+DECLARE_SOA_DYNAMIC_COLUMN(QtArm, qtarm, //! Armenteros Qt
                            [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) {
                              float momTot = RecoDecay::P2(pxpos + pxneg, pypos + pyneg, pzpos + pzneg);
                              float dp = RecoDecay::dotProd(array{pxneg, pyneg, pzneg}, array{pxpos + pxneg, pypos + pyneg, pzpos + pzneg});
@@ -74,7 +74,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(QtArm, qtarm, //!
                            });
 
 // Psi pair angle: angle between the plane defined by the electron and positron momenta and the xy plane
-DECLARE_SOA_DYNAMIC_COLUMN(PsiPair, psipair, //!
+DECLARE_SOA_DYNAMIC_COLUMN(PsiPair, psipair, //! psi pair angle
                            [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) {
                              auto clipToPM1 = [](float x) { return x < -1.f ? -1.f : (x > 1.f ? 1.f : x); };
                              float ptot2 = RecoDecay::P2(pxpos, pypos, pzpos) * RecoDecay::P2(pxneg, pyneg, pzneg);
@@ -86,29 +86,42 @@ DECLARE_SOA_DYNAMIC_COLUMN(PsiPair, psipair, //!
                            });
 
 //Calculated on the fly with mass assumption + dynamic tables
-DECLARE_SOA_DYNAMIC_COLUMN(MLambda, mLambda, //!
+DECLARE_SOA_DYNAMIC_COLUMN(MLambda, mLambda, //! mass under lambda hypothesis
                            [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) -> float { return RecoDecay::M(array{array{pxpos, pypos, pzpos}, array{pxneg, pyneg, pzneg}}, array{RecoDecay::getMassPDG(kProton), RecoDecay::getMassPDG(kPiPlus)}); });
-DECLARE_SOA_DYNAMIC_COLUMN(MAntiLambda, mAntiLambda, //!
+DECLARE_SOA_DYNAMIC_COLUMN(MAntiLambda, mAntiLambda, //! mass under antilambda hypothesis
                            [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) -> float { return RecoDecay::M(array{array{pxpos, pypos, pzpos}, array{pxneg, pyneg, pzneg}}, array{RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kProton)}); });
-DECLARE_SOA_DYNAMIC_COLUMN(MK0Short, mK0Short, //!
+DECLARE_SOA_DYNAMIC_COLUMN(MK0Short, mK0Short, //! mass under K0short hypothesis
                            [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) -> float { return RecoDecay::M(array{array{pxpos, pypos, pzpos}, array{pxneg, pyneg, pzneg}}, array{RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kPiPlus)}); });
-DECLARE_SOA_DYNAMIC_COLUMN(MGamma, mGamma, //!
+DECLARE_SOA_DYNAMIC_COLUMN(MGamma, mGamma, //! mass under gamma hypothesis
                            [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) -> float { return RecoDecay::M(array{array{pxpos, pypos, pzpos}, array{pxneg, pyneg, pzneg}}, array{RecoDecay::getMassPDG(kElectron), RecoDecay::getMassPDG(kElectron)}); });
 
-DECLARE_SOA_DYNAMIC_COLUMN(YK0Short, yK0Short, //!
+DECLARE_SOA_DYNAMIC_COLUMN(YK0Short, yK0Short, //! V0 y with K0short hypothesis
                            [](float Px, float Py, float Pz) -> float { return RecoDecay::Y(array{Px, Py, Pz}, RecoDecay::getMassPDG(kK0)); });
-DECLARE_SOA_DYNAMIC_COLUMN(YLambda, yLambda, //!
+DECLARE_SOA_DYNAMIC_COLUMN(YLambda, yLambda, //! V0 y with lambda or antilambda hypothesis
                            [](float Px, float Py, float Pz) -> float { return RecoDecay::Y(array{Px, Py, Pz}, RecoDecay::getMassPDG(kLambda0)); });
-DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, //!
+DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, //! V0 eta
                            [](float Px, float Py, float Pz) -> float { return RecoDecay::Eta(array{Px, Py, Pz}); });
-DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, //!
+DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, //! V0 phi
                            [](float Px, float Py) -> float { return RecoDecay::Phi(Px, Py); });
 
-DECLARE_SOA_EXPRESSION_COLUMN(Px, px, //!
+DECLARE_SOA_DYNAMIC_COLUMN(NegativePt, negativept, //! negative daughter pT
+                           [](float pxneg, float pyneg) -> float { return RecoDecay::sqrtSumOfSquares(pxneg, pyneg); });
+DECLARE_SOA_DYNAMIC_COLUMN(PositivePt, positivept, //! positive daughter pT
+                           [](float pxpos, float pypos) -> float { return RecoDecay::sqrtSumOfSquares(pxpos, pypos); });
+DECLARE_SOA_DYNAMIC_COLUMN(NegativeEta, negativeeta, //! negative daughter eta
+                           [](float PxNeg, float PyNeg, float PzNeg) -> float { return RecoDecay::Eta(array{PxNeg, PyNeg, PzNeg}); });
+DECLARE_SOA_DYNAMIC_COLUMN(NegativePhi, negativephi, //! negative daughter phi
+                           [](float PxNeg, float PyNeg) -> float { return RecoDecay::Phi(PxNeg, PyNeg); });
+DECLARE_SOA_DYNAMIC_COLUMN(PositiveEta, positiveeta, //! positive daughter eta
+                           [](float PxPos, float PyPos, float PzPos) -> float { return RecoDecay::Eta(array{PxPos, PyPos, PzPos}); });
+DECLARE_SOA_DYNAMIC_COLUMN(PositivePhi, positivephi, //! positive daughter phi
+                           [](float PxPos, float PyPos) -> float { return RecoDecay::Phi(PxPos, PyPos); });
+
+DECLARE_SOA_EXPRESSION_COLUMN(Px, px, //! V0 px
                               float, 1.f * aod::v0data::pxpos + 1.f * aod::v0data::pxneg);
-DECLARE_SOA_EXPRESSION_COLUMN(Py, py, //!
+DECLARE_SOA_EXPRESSION_COLUMN(Py, py, //! V0 py
                               float, 1.f * aod::v0data::pypos + 1.f * aod::v0data::pyneg);
-DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, //!
+DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, //! V0 pz
                               float, 1.f * aod::v0data::pzpos + 1.f * aod::v0data::pzneg);
 } // namespace v0data
 
@@ -139,7 +152,13 @@ DECLARE_SOA_TABLE_FULL(StoredV0Datas, "V0Datas", "AOD", "V0DATA", //!
                        v0data::YK0Short<v0data::Px, v0data::Py, v0data::Pz>,
                        v0data::YLambda<v0data::Px, v0data::Py, v0data::Pz>,
                        v0data::Eta<v0data::Px, v0data::Py, v0data::Pz>,
-                       v0data::Phi<v0data::Px, v0data::Py>);
+                       v0data::Phi<v0data::Px, v0data::Py>,
+                       v0data::NegativePt<v0data::PxNeg, v0data::PyNeg>,
+                       v0data::PositivePt<v0data::PxPos, v0data::PyPos>,
+                       v0data::NegativeEta<v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+                       v0data::NegativePhi<v0data::PxNeg, v0data::PyNeg>,
+                       v0data::PositiveEta<v0data::PxPos, v0data::PyPos, v0data::PzPos>,
+                       v0data::PositivePhi<v0data::PxPos, v0data::PyPos>);
 
 // extended table with expression columns that can be used as arguments of dynamic columns
 DECLARE_SOA_EXTENDED_TABLE_USER(V0Datas, StoredV0Datas, "V0DATAEXT", //!

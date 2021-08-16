@@ -353,7 +353,7 @@ class RawParser
 {
  public:
   using buffer_type = unsigned char;
-  size_t max_size = MAX_SIZE;
+  static size_t const max_size = MAX_SIZE;
   using self_type = RawParser<MAX_SIZE>;
 
   RawParser() = delete;

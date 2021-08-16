@@ -120,6 +120,8 @@ class GPUTPCGMMergedTrack
   unsigned int mNClustersFitted; //* number of clusters used in fit
   unsigned char mFlags;
   unsigned char mLegs;
+
+  ClassDefNV(GPUTPCGMMergedTrack, 0);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

@@ -66,6 +66,7 @@ void DataDecoderTask2::init(framework::InitContext& ic)
 
   LOG(INFO) << "[HMPID Data Decoder - Init] ( create Raw Stream Decoder for " << Geo::MAXEQUIPMENTS << " equipments !";
 
+  mProduceResults = ic.options().get<bool>("get-results-statistics");
   mRootStatFile = ic.options().get<std::string>("result-file");
   mFastAlgorithm = ic.options().get<bool>("fast-decode");
   mDeco = new o2::hmpid::HmpidDecoder2(Geo::MAXEQUIPMENTS);
@@ -108,55 +109,58 @@ void DataDecoderTask2::endOfStream(framework::EndOfStreamContext& ec)
   float xb;
   float yb;
 
-  TString filename = TString::Format("%s_stat.root", mRootStatFile.c_str());
-  LOG(INFO) << "Create the stat file " << filename.Data();
-  TFile mfileOut(TString::Format("%s", filename.Data()), "RECREATE");
-  TTree* theObj[Geo::N_MODULES + 1];
-  for (int i = 0; i < Geo::N_MODULES; i++) { // Create the TTree array
-    TString tit = TString::Format("HMPID Data Decoding Statistic results Mod=%d", i);
-    theObj[i] = new TTree("o2hmp", tit);
-    theObj[i]->Branch("x", &xb, "s");
-    theObj[i]->Branch("y", &yb, "s");
-    theObj[i]->Branch("Samples", &numOfSamples, "i");
-    theObj[i]->Branch("Sum_of_charges", &sumOfCharges, "l");
-    theObj[i]->Branch("Sum_of_square", &squareOfCharges, "l");
-  }
-  theObj[Geo::N_MODULES] = new TTree("o2hmp", "HMPID Data Decoding Statistic results");
-  theObj[Geo::N_MODULES]->Branch("Average_Event_Size", &avgEventSize, "F");
-  theObj[Geo::N_MODULES]->Branch("Average_Busy_Time", &avgBusyTime, "F");
-
-  // Update the Stat for the Decoding
-  int numEqui = mDeco->getNumberOfEquipments();
-  // cycle in order to update info for the last event
-  for (int i = 0; i < numEqui; i++) {
-    if (mDeco->mTheEquipments[i]->mNumberOfEvents > 0) {
-      mDeco->updateStatistics(mDeco->mTheEquipments[i]);
+  if (!mProduceResults) {
+    LOG(INFO) << "Skip the Stat file creation ! ";
+  } else {
+    TString filename = TString::Format("%s_stat.root", mRootStatFile.c_str());
+    LOG(INFO) << "Create the stat file " << filename.Data();
+    TFile mfileOut(TString::Format("%s", filename.Data()), "RECREATE");
+    TTree* theObj[Geo::N_MODULES + 1];
+    for (int i = 0; i < Geo::N_MODULES; i++) { // Create the TTree array
+      TString tit = TString::Format("HMPID Data Decoding Statistic results Mod=%d", i);
+      theObj[i] = new TTree("o2hmp", tit);
+      theObj[i]->Branch("x", &xb, "s");
+      theObj[i]->Branch("y", &yb, "s");
+      theObj[i]->Branch("Samples", &numOfSamples, "i");
+      theObj[i]->Branch("Sum_of_charges", &sumOfCharges, "l");
+      theObj[i]->Branch("Sum_of_square", &squareOfCharges, "l");
     }
-  }
-  char summaryFileName[254];
-  sprintf(summaryFileName, "%s_stat.txt", mRootStatFile.c_str());
-  mDeco->writeSummaryFile(summaryFileName);
-  for (int e = 0; e < numEqui; e++) {
-    avgEventSize = mDeco->getAverageEventSize(e);
-    avgBusyTime = mDeco->getAverageBusyTime(e);
-    theObj[Geo::N_MODULES]->Fill();
-  }
-  for (int m = 0; m < o2::hmpid::Geo::N_MODULES; m++) {
-    for (int y = 0; y < o2::hmpid::Geo::N_YCOLS; y++) {
-      for (int x = 0; x < o2::hmpid::Geo::N_XROWS; x++) {
-        xb = x;
-        yb = y;
-        numOfSamples = mDeco->getPadSamples(m, x, y);
-        sumOfCharges = mDeco->getPadSum(m, x, y);
-        squareOfCharges = mDeco->getPadSquares(m, x, y);
-        theObj[m]->Fill();
+    theObj[Geo::N_MODULES] = new TTree("o2hmp", "HMPID Data Decoding Statistic results");
+    theObj[Geo::N_MODULES]->Branch("Average_Event_Size", &avgEventSize, "F");
+    theObj[Geo::N_MODULES]->Branch("Average_Busy_Time", &avgBusyTime, "F");
+
+    // Update the Stat for the Decoding
+    int numEqui = mDeco->getNumberOfEquipments();
+    // cycle in order to update info for the last event
+    for (int i = 0; i < numEqui; i++) {
+      if (mDeco->mTheEquipments[i]->mNumberOfEvents > 0) {
+        mDeco->updateStatistics(mDeco->mTheEquipments[i]);
       }
     }
+    char summaryFileName[254];
+    sprintf(summaryFileName, "%s_stat.txt", mRootStatFile.c_str());
+    mDeco->writeSummaryFile(summaryFileName);
+    for (int e = 0; e < numEqui; e++) {
+      avgEventSize = mDeco->getAverageEventSize(e);
+      avgBusyTime = mDeco->getAverageBusyTime(e);
+      theObj[Geo::N_MODULES]->Fill();
+    }
+    for (int m = 0; m < o2::hmpid::Geo::N_MODULES; m++) {
+      for (int y = 0; y < o2::hmpid::Geo::N_YCOLS; y++) {
+        for (int x = 0; x < o2::hmpid::Geo::N_XROWS; x++) {
+          xb = x;
+          yb = y;
+          numOfSamples = mDeco->getPadSamples(m, x, y);
+          sumOfCharges = mDeco->getPadSum(m, x, y);
+          squareOfCharges = mDeco->getPadSquares(m, x, y);
+          theObj[m]->Fill();
+        }
+      }
+    }
+    for (int i = 0; i <= Geo::N_MODULES; i++) {
+      theObj[i]->Write();
+    }
   }
-  for (int i = 0; i <= Geo::N_MODULES; i++) {
-    theObj[i]->Write();
-  }
-
   mExTimer.logMes("End the Decoding ! Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
   mExTimer.stop();
   return;
@@ -341,7 +345,8 @@ o2::framework::DataProcessorSpec getDecodingSpec2(bool askDISTSTF)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DataDecoderTask2>()},
-    Options{{"result-file", VariantType::String, "/tmp/hmpRawDecodeResults", {"Base name of the decoding results files."}},
+    Options{{"get-results-statistics", VariantType::Bool, false, {"Generate intermediat output results."}},
+            {"result-file", VariantType::String, "/tmp/hmpRawDecodeResults", {"Base name of the decoding results files."}},
             {"fast-decode", VariantType::Bool, false, {"Use the fast algorithm. (error 0.8%)"}}}};
 }
 

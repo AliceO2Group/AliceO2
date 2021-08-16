@@ -32,7 +32,7 @@
 #include <memory>
 #include <type_traits>
 
-class FairMQMessage;
+#include <fairmq/FwdDecls.h>
 
 namespace o2
 {
@@ -178,6 +178,9 @@ class InputRecord
   int getPos(const std::string& name) const;
 
   DataRef getByPos(int pos, int part = 0) const;
+
+  /// Get the ref of the first valid input. If requested, throw an error if none is found.
+  DataRef getFirstValid(bool throwOnFailure = false) const;
 
   size_t getNofParts(int pos) const;
   /// Get the object of specified type T for the binding R.
@@ -382,6 +385,9 @@ class InputRecord
         // is messageable and a different method would be deduced in DataRefUtils
         // return type with owning Deleter instance, forwarding to default_deleter
         std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<ROOTSerialized<ValueT>>(ref).release());
+        return result;
+      } else if (method == o2::header::gSerializationMethodCCDB) {
+        std::unique_ptr<ValueT const, Deleter<ValueT const>> result(DataRefUtils::as<CCDBSerialized<ValueT>>(ref).release());
         return result;
       } else {
         throw runtime_error("Attempt to extract object from message with unsupported serialization type");

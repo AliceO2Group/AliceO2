@@ -88,8 +88,8 @@ class Geometry
   static void absIdToRelPosInModule(unsigned short absId, float& x, float& z);
   static bool relToAbsNumbering(const short* relId, unsigned short& absId);
 
-  static void hwaddressToAbsId(short ccId, short dil, short gas, short pad, unsigned short& absId);
-  static void absIdToHWaddress(unsigned short absId, short& ccId, short& dil, short& gas, short& pad);
+  static bool hwaddressToAbsId(short ccId, short dil, short gas, short pad, unsigned short& absId);
+  static bool absIdToHWaddress(unsigned short absId, short& ccId, short& dil, short& gas, short& pad);
 
   static unsigned short getTotalNPads() { return kNCHANNELS; }
   static bool IsPadExists(unsigned short absId)

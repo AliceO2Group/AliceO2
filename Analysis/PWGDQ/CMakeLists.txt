@@ -14,6 +14,8 @@ o2_add_library(PWGDQCore
                         src/HistogramManager.cxx
                         src/AnalysisCut.cxx
                         src/AnalysisCompositeCut.cxx
+                        src/MCProng.cxx
+                        src/MCSignal.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::DetectorsVertexing)
 
 o2_target_root_dictionary(PWGDQCore
@@ -23,4 +25,7 @@ o2_target_root_dictionary(PWGDQCore
                           include/PWGDQCore/HistogramManager.h
                           include/PWGDQCore/CutsLibrary.h 
                           include/PWGDQCore/HistogramsLibrary.h
+                          include/PWGDQCore/MCProng.h
+                          include/PWGDQCore/MCSignal.h
+                          include/PWGDQCore/MCSignalLibrary.h
                           LINKDEF src/PWGDQCoreLinkDef.h)

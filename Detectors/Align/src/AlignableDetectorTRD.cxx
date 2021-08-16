@@ -47,7 +47,7 @@ AlignableDetectorTRD::AlignableDetectorTRD(const char* title)
   // ad hoc correction
   SetNonRCCorrDzDtgl();
   SetExtraErrRC();
-  mNCalibDOF = kNCalibParams;
+  mNCalibDOFs = kNCalibParams;
 }
 
 //____________________________________________

@@ -73,17 +73,17 @@ struct JetSubstructure {
 
   void process(aod::Jet const& jet,
                aod::Tracks const& tracks,
-               aod::JetConstituents const& constituents,
+               aod::JetTrackConstituents const& constituents,
                aod::JetConstituentsSub const& constituentsSub)
   {
     jetConstituents.clear();
     jetReclustered.clear();
     if (b_DoConstSub) {
-      for (const auto constituent : constituentsSub) {
+      for (const auto& constituent : constituentsSub) {
         fillConstituents(constituent, jetConstituents);
       }
     } else {
-      for (const auto constituentIndex : constituents) {
+      for (const auto& constituentIndex : constituents) {
         auto constituent = constituentIndex.track();
         fillConstituents(constituent, jetConstituents);
       }
