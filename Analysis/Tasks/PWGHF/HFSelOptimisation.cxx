@@ -186,7 +186,7 @@ struct HfSelOptimisation {
 
     for (int iCospCut{0}; iCospCut < cutsToTestCosp->size(); ++iCospCut) {
       if (candidate.cpa() > cutsToTestCosp->at(iCospCut)) {
-       histCosp2Prong[candOrig][candType]->Fill(pT, iCospCut + 1);
+        histCosp2Prong[candOrig][candType]->Fill(pT, iCospCut + 1);
       }
     }
 
