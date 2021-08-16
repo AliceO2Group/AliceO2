@@ -69,6 +69,7 @@ o2_add_library(Framework
                        src/GraphvizHelpers.cxx
                        src/HTTPParser.cxx
                        src/InputRecord.cxx
+                       src/InputRouteHelpers.cxx
                        src/InputSpan.cxx
                        src/InputSpec.cxx
                        src/OutputSpec.cxx
