@@ -37,7 +37,7 @@ static void BM_RelayMessageCreation(benchmark::State& state)
     InputRoute{spec, 0, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index;
+  TimesliceIndex index{1};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -78,7 +78,7 @@ static void BM_RelaySingleSlot(benchmark::State& state)
     InputRoute{spec, 0, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index;
+  TimesliceIndex index{1};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -128,7 +128,7 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
     InputRoute{spec, 0, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index;
+  TimesliceIndex index{1};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -182,7 +182,7 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
     InputRoute{spec2, 1, "Fake2", 0}};
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index;
+  TimesliceIndex index{1};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -256,7 +256,7 @@ static void BM_RelaySplitParts(benchmark::State& state)
   };
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index;
+  TimesliceIndex index{1};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);

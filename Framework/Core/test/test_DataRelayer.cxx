@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
     InputRoute{spec, 0, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index;
+  TimesliceIndex index{1};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(TestNoWaitMatcher)
     InputRoute{specs[0], 0, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index;
+  TimesliceIndex index{1};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(TestRelay)
 
   std::vector<ForwardRoute> forwards;
 
-  TimesliceIndex index;
+  TimesliceIndex index{1};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -221,7 +221,7 @@ BOOST_AUTO_TEST_CASE(TestRelayBug)
 
   std::vector<ForwardRoute> forwards;
 
-  TimesliceIndex index;
+  TimesliceIndex index{1};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -302,7 +302,7 @@ BOOST_AUTO_TEST_CASE(TestCache)
   std::vector<ForwardRoute> forwards;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
-  TimesliceIndex index;
+  TimesliceIndex index{1};
   DataRelayer relayer(policy, inputs, metrics, index);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(2);
@@ -373,7 +373,7 @@ BOOST_AUTO_TEST_CASE(TestPolicies)
   };
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index;
+  TimesliceIndex index{1};
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -441,7 +441,7 @@ BOOST_AUTO_TEST_CASE(TestClear)
   };
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index;
+  TimesliceIndex index{1};
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -496,7 +496,7 @@ BOOST_AUTO_TEST_CASE(TestTooMany)
   };
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index;
+  TimesliceIndex index{1};
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -551,7 +551,7 @@ BOOST_AUTO_TEST_CASE(SplitParts)
   };
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index;
+  TimesliceIndex index{1};
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);

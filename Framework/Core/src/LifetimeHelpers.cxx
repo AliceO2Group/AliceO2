@@ -101,7 +101,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
     data_matcher::VariableContext newContext;
     newContext.put({0, static_cast<uint64_t>(current)});
     newContext.commit();
-    auto [action, slot] = index.replaceLRUWith(newContext);
+    auto [action, slot] = index.replaceLRUWith(newContext, TimesliceId{current});
     switch (action) {
       case TimesliceIndex::ActionTaken::ReplaceObsolete:
       case TimesliceIndex::ActionTaken::ReplaceUnused:

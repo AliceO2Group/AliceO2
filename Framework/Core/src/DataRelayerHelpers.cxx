@@ -11,6 +11,7 @@
 
 #include "DataRelayerHelpers.h"
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/InputRoute.h"
 #include <stdexcept>
 
 using namespace o2::framework::data_matcher;

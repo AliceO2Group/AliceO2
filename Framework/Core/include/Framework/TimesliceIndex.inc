@@ -11,6 +11,10 @@
 namespace o2::framework
 {
 
+inline TimesliceIndex::TimesliceIndex(size_t maxLanes)
+: mMaxLanes {maxLanes}
+{}
+
 inline bool TimesliceId::isValid(TimesliceId const& timeslice) { return timeslice.value != INVALID; }
 inline bool TimesliceSlot::isValid(TimesliceSlot const& slot) { return slot.index != INVALID; }
 
@@ -82,16 +86,17 @@ inline void TimesliceIndex::associate(TimesliceId timestamp, TimesliceSlot slot)
   mDirty[slot.index] = true;
 }
 
-inline TimesliceSlot TimesliceIndex::findOldestSlot() const
+inline TimesliceSlot TimesliceIndex::findOldestSlot(TimesliceId timestamp) const
 {
-  TimesliceSlot oldest{0};
+  size_t lane = timestamp.value % mMaxLanes;
+  TimesliceSlot oldest{lane};
   auto oldPVal = std::get_if<uint64_t>(&mVariables[oldest.index].get(0));
   if (oldPVal == nullptr) {
     return oldest;
   }
   uint64_t oldTimestamp = *oldPVal;
 
-  for (size_t i = 1; i < mVariables.size(); ++i) {
+  for (size_t i = lane + mMaxLanes; i < mVariables.size(); i += mMaxLanes) {
     auto newPVal = std::get_if<uint64_t>(&mVariables[i].get(0));
     if (newPVal == nullptr) {
       return TimesliceSlot{i};
@@ -151,9 +156,9 @@ inline data_matcher::VariableContext& TimesliceIndex::getPublishedVariablesForSl
   return mPublishedVariables[slot.index];
 }
 
-inline std::tuple<TimesliceIndex::ActionTaken, TimesliceSlot> TimesliceIndex::replaceLRUWith(data_matcher::VariableContext& newContext)
+inline std::tuple<TimesliceIndex::ActionTaken, TimesliceSlot> TimesliceIndex::replaceLRUWith(data_matcher::VariableContext& newContext, TimesliceId timestamp)
 {
-  auto oldestSlot = findOldestSlot();
+  auto oldestSlot = findOldestSlot(timestamp);
   if (TimesliceIndex::isValid(oldestSlot) == false) {
     mVariables[oldestSlot.index] = newContext;
     return std::make_tuple(ActionTaken::ReplaceUnused, oldestSlot);
