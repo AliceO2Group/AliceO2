@@ -336,8 +336,8 @@ BOOST_AUTO_TEST_CASE(TestCache)
   std::vector<RecordAction> ready;
   relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 2);
-  BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
-  BOOST_CHECK_EQUAL(ready[1].slot.index, 1);
+  BOOST_CHECK_EQUAL(ready[0].slot.index, 1);
+  BOOST_CHECK_EQUAL(ready[1].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
   BOOST_CHECK_EQUAL(ready[1].op, CompletionPolicy::CompletionOp::Consume);
   for (size_t i = 0; i < ready.size(); ++i) {

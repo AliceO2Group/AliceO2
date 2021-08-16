@@ -505,8 +505,8 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
   size_t cacheLines = cache.size() / numInputTypes;
   assert(cacheLines * numInputTypes == cache.size());
 
-  for (size_t li = 0; li < cacheLines; ++li) {
-    TimesliceSlot slot{li};
+  for (int li = cacheLines - 1; li >= 0; --li) {
+    TimesliceSlot slot{(size_t)li};
     // We only check the cachelines which have been updated by an incoming
     // message.
     if (mTimesliceIndex.isDirty(slot) == false) {
