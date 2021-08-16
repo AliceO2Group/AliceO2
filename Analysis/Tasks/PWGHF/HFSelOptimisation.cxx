@@ -97,11 +97,11 @@ struct HfSelOptimisation {
 
   AxisSpec axisPt = {ptBinning, "#it{p}_{T} (GeV/#it{c})"};
   // quantized axes
-  AxisSpec axisCosp = {cutsToTestCosp->size(), 0.5, cutsToTestCosp->size() + 0.5, "cos(#theta_{P}) >"};
-  AxisSpec axisDecLen = {cutsToTestDecLen->size(), 0.5, cutsToTestDecLen->size() + 0.5, "decay length (cm) >"};
-  AxisSpec axisImpParProd = {cutsToTestImpParProd->size(), 0.5, cutsToTestImpParProd->size() + 0.5, "#it{d}_{0}#times#it{d}_{0} (cm^{2}) <"};
-  AxisSpec axisMinDCAxy = {cutsToTestMinDCAxy->size(), 0.5, cutsToTestMinDCAxy->size() + 0.5, "min track #it{d}_{0} (cm) >"};
-  AxisSpec axisMinTrackPt = {cutsToTestMinTrackPt->size(), 0.5, cutsToTestMinTrackPt->size() + 0.5, "min track #it{p}_{T} (cm) >"};
+  AxisSpec axisCosp = {static_cast<int>(cutsToTestCosp->size()), 0.5, cutsToTestCosp->size() + 0.5, "cos(#theta_{P}) >"};
+  AxisSpec axisDecLen = {static_cast<int>(cutsToTestDecLen->size()), 0.5, cutsToTestDecLen->size() + 0.5, "decay length (cm) >"};
+  AxisSpec axisImpParProd = {static_cast<int>(cutsToTestImpParProd->size()), 0.5, cutsToTestImpParProd->size() + 0.5, "#it{d}_{0}#times#it{d}_{0} (cm^{2}) <"};
+  AxisSpec axisMinDCAxy = {static_cast<int>(cutsToTestMinDCAxy->size()), 0.5, cutsToTestMinDCAxy->size() + 0.5, "min track #it{d}_{0} (cm) >"};
+  AxisSpec axisMinTrackPt = {static_cast<int>(cutsToTestMinTrackPt->size()), 0.5, cutsToTestMinTrackPt->size() + 0.5, "min track #it{p}_{T} (cm) >"};
 
   HistogramRegistry registry{"registry", {}};
 
