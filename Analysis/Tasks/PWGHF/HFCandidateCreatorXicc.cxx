@@ -177,7 +177,7 @@ struct HfCandidateCreatorXicc {
                          pvecpion[0], pvecpion[1], pvecpion[2],
                          impactParameter0.getY(), impactParameter1.getY(),
                          std::sqrt(impactParameter0.getSigmaY2()), std::sqrt(impactParameter1.getSigmaY2()),
-                         trackxic.getProngID(0).getRaw() ,trackpion.globalIndex(),
+                         trackxic.getProngID(0).getRaw(), trackpion.globalIndex(),
                          hfFlag);
       } // if on selected Xicc
     }   // loop over candidates
