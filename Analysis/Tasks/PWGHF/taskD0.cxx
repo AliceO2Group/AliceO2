@@ -173,45 +173,45 @@ struct TaskD0MC {
         registry.fill(HIST("hPtRecSig"), ptRec); // rec. level pT
         if (candidate.isRecoHFFlag() >= d_selectionHFFlag) {
           registry.fill(HIST("hPtvsYRecSig_RecoHFFlag"), ptRec, yRec);
-	}
+        }
         if (candidate.isRecoTopol() >= d_selectionTopol) {
           registry.fill(HIST("hPtvsYRecSig_RecoTopol"), ptRec, yRec);
-	}
+        }
         if (candidate.isRecoCand() >= d_selectionCand) {
           registry.fill(HIST("hPtvsYRecSig_RecoCand"), ptRec, yRec);
-	}
+        }
         if (candidate.isRecoPID() >= d_selectionPID) {
           registry.fill(HIST("hPtvsYRecSig_RecoPID"), ptRec, yRec);
-	}
+        }
 
         if (candidate.originMCRec() == OriginType::Prompt) {
           registry.fill(HIST("hPtRecSigPrompt"), ptRec); // rec. level pT, prompt
           if (candidate.isRecoHFFlag() >= d_selectionHFFlag) {
             registry.fill(HIST("hPtvsYRecSigPrompt_RecoHFFlag"), ptRec, yRec);
-	  }
+          }
           if (candidate.isRecoTopol() >= d_selectionTopol) {
             registry.fill(HIST("hPtvsYRecSigPrompt_RecoTopol"), ptRec, yRec);
-	  }
+          }
           if (candidate.isRecoCand() >= d_selectionCand) {
             registry.fill(HIST("hPtvsYRecSigPrompt_RecoCand"), ptRec, yRec);
-	  }
+          }
           if (candidate.isRecoPID() >= d_selectionPID) {
             registry.fill(HIST("hPtvsYRecSigPrompt_RecoPID"), ptRec, yRec);
-	  }
+          }
         } else {
           registry.fill(HIST("hPtRecSigNonPrompt"), ptRec); // rec. level pT, non-prompt
           if (candidate.isRecoHFFlag() >= d_selectionHFFlag) {
             registry.fill(HIST("hPtvsYRecSigNonPrompt_RecoHFFlag"), ptRec, yRec);
-	  }
+          }
           if (candidate.isRecoTopol() >= d_selectionTopol) {
             registry.fill(HIST("hPtvsYRecSigNonPrompt_RecoTopol"), ptRec, yRec);
-	  }
+          }
           if (candidate.isRecoCand() >= d_selectionCand) {
             registry.fill(HIST("hPtvsYRecSigNonPrompt_RecoCand"), ptRec, yRec);
-	  }
+          }
           if (candidate.isRecoPID() >= d_selectionPID) {
             registry.fill(HIST("hPtvsYRecSigNonPrompt_RecoPID"), ptRec, yRec);
-	  }
+          }
         }
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
