@@ -13,7 +13,7 @@
 
 #include "Framework/ServiceHandle.h"
 
-class FairMQDevice;
+#include <fairmq/FwdDecls.h>
 
 namespace o2::framework
 {

@@ -15,7 +15,7 @@
 #include <functional>
 #include <string>
 
-class FairMQParts;
+#include <fairmq/FwdDecls.h>
 
 namespace o2
 {
