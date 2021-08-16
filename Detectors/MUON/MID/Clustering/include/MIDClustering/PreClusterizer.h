@@ -45,8 +45,8 @@ class PreClusterizer
 
  private:
   struct PatternStruct {
-    int deId;                          ///< Detection element ID
-    int firedColumns;                  ///< Fired columns
+    int deId = 0;                      ///< Detection element ID
+    int firedColumns = 0;              ///< Fired columns
     std::array<ColumnData, 7> columns; ///< Array of strip patterns
   };
 
@@ -55,11 +55,11 @@ class PreClusterizer
   void preClusterizeBP(PatternStruct& de);
   void preClusterizeNBP(PatternStruct& de);
 
-  Mapping mMapping{};                              ///< Mapping
-  std::unordered_map<int, PatternStruct> mMpDEs{}; ///< Internal mapping
-  std::unordered_map<int, bool> mActiveDEs{};      ///< List of active detection elements for event
-  std::vector<PreCluster> mPreClusters{};          ///< List of pre-clusters
-  std::vector<ROFRecord> mROFRecords{};            ///< List of pre-clusters RO frame records
+  Mapping mMapping;                              ///< Mapping
+  std::unordered_map<int, PatternStruct> mMpDEs; ///< Internal mapping
+  std::unordered_map<int, bool> mActiveDEs;      ///< List of active detection elements for event
+  std::vector<PreCluster> mPreClusters;          ///< List of pre-clusters
+  std::vector<ROFRecord> mROFRecords;            ///< List of pre-clusters RO frame records
 };
 } // namespace mid
 } // namespace o2
