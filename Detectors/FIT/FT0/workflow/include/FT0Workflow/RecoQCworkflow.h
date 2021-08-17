@@ -1,4 +1,5 @@
 
+
 // Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
@@ -11,8 +12,8 @@
 // or submit itself to any jurisdiction.
 /// @file   RecoCalibInfoWorkflow.h
 
-#ifndef O2_RECOCALIBINFO_WORKFLOW
-#define O2_RECOCALIBINFO_WORKFLOW
+#ifndef O2_RECOQC_WORKFLOW
+#define O2_RECOQC_WORKFLOW
 
 #include <FairLogger.h>
 #include <Framework/ConfigContext.h>
@@ -26,10 +27,13 @@
 #include "CommonDataFormat/TimeStamp.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
-#include "DataFormatsFT0/RecoCalibInfoObject.h"
+//#include "DataFormatsFT0/RecoCalibInfoObject.h"
 #include "TStopwatch.h"
 #include <string>
 #include <vector>
+#include <TH1F.h>
+#include <TH2F.h>
+#include <TFile.h>
 
 using namespace o2::framework;
 using DataRequest = o2::globaltracking::DataRequest;
@@ -38,11 +42,10 @@ using GID = o2::dataformats::GlobalTrackID;
 namespace o2::ft0
 {
 
-class RecoCalibInfoWorkflow final : public o2::framework::Task
+class RecoQCworkflow final : public o2::framework::Task
 {
  public:
-  //  RecoCalibInfoWorkflow(std::shared_ptr<DataRequest> const& dataRequest) : mDataRequest(dataRequest) {}
-  RecoCalibInfoWorkflow(GID::mask_t src, std::shared_ptr<DataRequest> const& dataRequest) : mInputSources(src), mDataRequest(dataRequest) {}
+  RecoQCworkflow(GID::mask_t src, std::shared_ptr<DataRequest> const& dataRequest) : mInputSources(src), mDataRequest(dataRequest) {}
   void run(o2::framework::ProcessingContext& pc) final;
   void init(InitContext& ic) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
@@ -52,11 +55,15 @@ class RecoCalibInfoWorkflow final : public o2::framework::Task
   const float cSpeed = 0.029979246f; // speed of light in TOF units
   GID::mask_t mInputSources;
   TStopwatch mTimer;
-  //  TFile *mFile ;
-  //  TTree *mTree;
+  TFile *mFileOut ;
+  TH1F* mHisto[10];
+  TH2F *mVertexComp;
+  TH1F* mVertexT0;
+  TH1F* mPV;
 };
-framework::DataProcessorSpec getRecoCalibInfoWorkflow(GID::mask_t src, bool useMC);
+
+framework::DataProcessorSpec getRecoQCworkflow(GID::mask_t src);
 
 } // namespace o2::ft0
 
-#endif /* O2_RECOCALIBINFO_WORKFLOW */
+#endif /* O2_RECOQC_WORKFLOW */

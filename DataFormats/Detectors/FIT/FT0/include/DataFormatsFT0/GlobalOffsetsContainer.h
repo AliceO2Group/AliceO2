@@ -19,6 +19,7 @@
 #include "DataFormatsFT0/GlobalOffsetsCalibrationObject.h"
 #include "Rtypes.h"
 #include <boost/histogram.hpp>
+#include <TH1F.h>
 
 namespace o2::ft0
 {
@@ -29,11 +30,11 @@ class GlobalOffsetsContainer final
   static constexpr int HISTOGRAM_RANGE = 500;
   static constexpr unsigned int NUMBER_OF_HISTOGRAM_BINS = 2 * HISTOGRAM_RANGE;
 
-  using BoostHistogramType = boost::histogram::histogram<std::tuple<boost::histogram::axis::integer<>,
-                                                                    boost::histogram::axis::integer<>>,
-                                                         boost::histogram::unlimited_storage<std::allocator<char>>>;
-
+   using BoostHistogramType = boost::histogram::histogram<std::tuple<boost::histogram::axis::integer<>,
+                                                                  boost::histogram::axis::integer<>>,
+                                                       boost::histogram::unlimited_storage<std::allocator<char>>>;
  public:
+
   explicit GlobalOffsetsContainer(std::size_t minEntries);
   bool hasEnoughEntries() const;
   void fill(const gsl::span<const o2::ft0::RecoCalibInfoObject>& data);
@@ -44,7 +45,7 @@ class GlobalOffsetsContainer final
  private:
   std::size_t mMinEntries;
   std::array<uint64_t, 3> mEntriesCollTime{};
-  BoostHistogramType mHistogram;
+   BoostHistogramType mHistogram;
 
   ClassDefNV(GlobalOffsetsContainer, 1);
 };

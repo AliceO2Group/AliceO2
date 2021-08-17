@@ -12,11 +12,8 @@
 #ifndef O2_FITCALIBRATIONAPI_H
 #define O2_FITCALIBRATIONAPI_H
 
-<<<<<<< HEAD
 #include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 #include "FV0Calibration/FV0ChannelTimeCalibrationObject.h"
-=======
->>>>>>> collect info for global offsets calibration
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "FT0Calibration/FT0DummyCalibrationObject.h" //delete this when example not needed anymore
@@ -178,6 +175,12 @@ inline const char* FITCalibrationApi::getObjectPath<o2::fv0::FV0ChannelTimeCalib
 
 template <>
 inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::fv0::FV0ChannelTimeCalibrationObject>(const o2::fv0::FV0ChannelTimeCalibrationObject& calibrationObject)
+{
+  std::vector<CalibObjWithInfoType> result;
+  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject));
+  return result;
+}
+
 template <>
 inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::GlobalOffsetsCalibrationObject>(const o2::ft0::GlobalOffsetsCalibrationObject& calibrationObject)
 {

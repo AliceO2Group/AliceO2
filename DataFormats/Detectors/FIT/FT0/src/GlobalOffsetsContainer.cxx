@@ -31,9 +31,8 @@ bool GlobalOffsetsContainer::hasEnoughEntries() const
 }
 void GlobalOffsetsContainer::fill(const gsl::span<const o2::ft0::RecoCalibInfoObject>& data)
 {
-
+  LOG(INFO)<<"@@@GlobalOffsetsContainer::fill data size  "<<data.size();
   for (auto& entry : data) {
-
     if (std::abs(entry.getT0A()) < 2000 && std::abs(entry.getT0C()) < 2000 && std::abs(entry.getT0AC()) < 2000) {
       mHistogram(0, entry.getT0A());
       mHistogram(1, entry.getT0C());
