@@ -14,13 +14,13 @@
 
 #include <array>
 #include "Rtypes.h" // for ClassDef
+#include "DataFormatsTRD/Constants.h"
+#include "TRDBase/Garfield.h"
 
 namespace o2
 {
 namespace trd
 {
-
-class PadPlane;
 
 class CommonParam
 {
@@ -46,27 +46,20 @@ class CommonParam
   float getSamplingFrequency() const { return mSamplingFrequency; }
   float getCachedField() const { return mField; }
 
-  // Cached magnetic field, to be called by the user before using GetDiffCoeff or GetOmegaTau
-  bool cacheMagField();
-  float getOmegaTau(float vdrift);
-  bool getDiffCoeff(float& dl, float& dt, float vdrift);
-
-  double timeStruct(float vdrift, double xd, double z);
+  // Cached magnetic field, to be called by the user before using DiffusionAndTimeStructEstimator::GetDiffCoeff
+  void cacheMagField();
 
  protected:
-  void sampleTimeStruct(float vdrift);
 
   static CommonParam* mgInstance;    ///<  Instance of this class (singleton implementation)
-  static constexpr int TIMEBIN = 38; ///< Number of bins in time direction used for garfield simulation
-  static constexpr int ZBIN = 11;    ///< Number of bins in z direction used for garfield simulation
   bool mExBOn{true};                 ///< Switch for the ExB effects
   double mField{-0.5};               ///< Cached magnetic field
   float mDiffusionT{0.};             ///< Transverse drift coefficient
   float mDiffusionL{0.};             ///< Longitudinal drift coefficient
   float mDiffLastVdrift{-1.};        ///< The structures are valid for fLastVdrift (caching)
 
-  std::array<float, TIMEBIN * ZBIN> mTimeStruct1{}; ///< Time Structure of Drift Cells
-  std::array<float, TIMEBIN * ZBIN> mTimeStruct2{}; ///< Time Structure of Drift Cells
+  std::array<float, garfield::TIMEBINSGARFIELD * garfield::ZBINSGARFIELD> mTimeStruct1{}; ///< Time Structure of Drift Cells
+  std::array<float, garfield::TIMEBINSGARFIELD * garfield::ZBINSGARFIELD> mTimeStruct2{}; ///< Time Structure of Drift Cells
   float mVDlo{0.};                                  ///< Lower drift velocity, for interpolation
   float mVDhi{0.};                                  ///< Higher drift velocity, for interpolation
   float mTimeLastVdrift{-1.};                       ///< The structures are valid for fLastVdrift (caching)

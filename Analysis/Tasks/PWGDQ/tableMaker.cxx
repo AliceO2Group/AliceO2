@@ -239,7 +239,7 @@ struct TableMaker {
       muonBasic(event.lastIndex(), trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.sign());
       muonExtra(muon.nClusters(), muon.pDca(), muon.rAtAbsorberEnd(),
                 muon.chi2(), muon.chi2MatchMCHMID(), muon.chi2MatchMCHMFT(),
-                muon.matchScoreMCHMFT(), muon.matchMFTTrackID(), muon.matchMCHTrackID());
+                muon.matchScoreMCHMFT(), muon.matchMFTTrackID(), muon.matchMCHTrackID(), muon.MchBitMap());
       muonCov(muon.x(), muon.y(), muon.z(), muon.phi(), muon.tgl(), muon.signed1Pt(),
               muon.cXX(), muon.cXY(), muon.cYY(), muon.cPhiX(), muon.cPhiY(), muon.cPhiPhi(),
               muon.cTglX(), muon.cTglY(), muon.cTglPhi(), muon.cTglTgl(), muon.c1PtX(), muon.c1PtY(),

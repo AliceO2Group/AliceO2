@@ -181,11 +181,16 @@ struct HFD0CandidateSelector {
       // final selection flag: 0 - rejected, 1 - accepted
       int statusD0 = 0;
       int statusD0bar = 0;
+      int statusHFFlag = 0;
+      int statusTopol = 0;
+      int statusCand = 0;
+      int statusPID = 0;
 
       if (!(candidate.hfflag() & 1 << DecayType::D0ToPiK)) {
-        hfSelD0Candidate(statusD0, statusD0bar);
+        hfSelD0Candidate(statusD0, statusD0bar, statusHFFlag, statusTopol, statusCand, statusPID);
         continue;
       }
+      statusHFFlag = 1;
 
       auto trackPos = candidate.index0_as<aod::BigTracksPID>(); // positive daughter
       auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter
@@ -199,9 +204,10 @@ struct HFD0CandidateSelector {
 
       // conjugate-independent topological selection
       if (!selectionTopol(candidate)) {
-        hfSelD0Candidate(statusD0, statusD0bar);
+        hfSelD0Candidate(statusD0, statusD0bar, statusHFFlag, statusTopol, statusCand, statusPID);
         continue;
       }
+      statusTopol = 1;
 
       // implement filter bit 4 cut - should be done before this task at the track selection level
       // need to add special cuts (additional cuts on decay length and d0 norm)
@@ -212,9 +218,10 @@ struct HFD0CandidateSelector {
       bool topolD0bar = selectionTopolConjugate(candidate, trackNeg, trackPos);
 
       if (!topolD0 && !topolD0bar) {
-        hfSelD0Candidate(statusD0, statusD0bar);
+        hfSelD0Candidate(statusD0, statusD0bar, statusHFFlag, statusTopol, statusCand, statusPID);
         continue;
       }
+      statusCand = 1;
 
       // track-level PID selection
       int pidTrackPosKaon = selectorKaon.getStatusTrackPIDAll(trackPos);
@@ -246,7 +253,7 @@ struct HFD0CandidateSelector {
       }
 
       if (pidD0 == 0 && pidD0bar == 0) {
-        hfSelD0Candidate(statusD0, statusD0bar);
+        hfSelD0Candidate(statusD0, statusD0bar, statusHFFlag, statusTopol, statusCand, statusPID);
         continue;
       }
 
@@ -256,8 +263,8 @@ struct HFD0CandidateSelector {
       if ((pidD0bar == -1 || pidD0bar == 1) && topolD0bar) {
         statusD0bar = 1; // identified as D0bar
       }
-
-      hfSelD0Candidate(statusD0, statusD0bar);
+      statusPID = 1;
+      hfSelD0Candidate(statusD0, statusD0bar, statusHFFlag, statusTopol, statusCand, statusPID);
     }
   }
 };

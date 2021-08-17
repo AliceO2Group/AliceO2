@@ -238,7 +238,7 @@ int main(int argc, char** argv)
     UserCustomizationsHelper::userDefinedCustomization(onWorkflowTerminationHook, 0);
     onWorkflowTerminationHook(idstring);
     doDefaultWorkflowTerminationHook();
-    return result;
   }
+  return result;
 }
 #endif

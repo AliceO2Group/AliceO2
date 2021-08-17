@@ -13,6 +13,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/DriverClient.h"
 #include "Framework/CallbackService.h"
+#include "Framework/ServiceSpec.h"
 #include "Framework/TimesliceIndex.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/ServiceRegistry.h"
@@ -23,6 +24,7 @@
 #include "Framework/DataProcessingStats.h"
 #include "Framework/CommonMessageBackends.h"
 #include "Framework/DanglingContext.h"
+#include "InputRouteHelpers.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/Tracing.h"
@@ -334,7 +336,10 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
 {
   return ServiceSpec{
     .name = "timesliceindex",
-    .init = simpleServiceInit<TimesliceIndex, TimesliceIndex>(),
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      return ServiceHandle{TypeIdHelpers::uniqueId<TimesliceIndex>(),
+                           new TimesliceIndex(InputRouteHelpers::maxLanes(services.get<DeviceSpec const>().inputs))};
+    },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
 }

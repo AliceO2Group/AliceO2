@@ -46,6 +46,7 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/Geometry.h
                                   include/TRDBase/GeometryFlat.h
                                   include/TRDBase/SimParam.h
+                                  include/TRDBase/Garfield.h
                                   include/TRDBase/CommonParam.h
                                   include/TRDBase/PadResponse.h
                                   include/TRDBase/CalDet.h

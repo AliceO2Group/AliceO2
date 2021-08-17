@@ -23,8 +23,7 @@
 #include <FairRootManager.h>
 #include <FairDetector.h>
 
-class FairMQParts;
-class FairMQChannel;
+#include <fairmq/FwdDecls.h>
 
 namespace o2
 {

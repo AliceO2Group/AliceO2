@@ -17,9 +17,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "TRDBase/CalSingleChamberStatus.h"
-#include <TMath.h>
-#include <Rtypes.h>
-#include "TRDBase/CommonParam.h"
 
 using namespace o2::trd;
 

@@ -18,6 +18,7 @@
 #include "FV0Base/Geometry.h"
 #include "FV0Simulation/FV0DigParam.h"
 #include "FV0Simulation/DigitizationConstant.h"
+#include "FV0Simulation/FV0DigParam.h"
 #include <DataFormatsFV0/ChannelData.h>
 #include <DataFormatsFV0/BCData.h>
 #include <cmath>
@@ -48,14 +49,13 @@ RP BaseRecoTask::process(o2::fv0::BCData const& bcd,
   LOG(INFO) << " event time " << timeStamp << " orbit " << bcd.getIntRecord().orbit << " bc " << bcd.getIntRecord().bc;
 
   int nch = inChData.size();
-  const auto parInv = 1; // TODO: Check what value should be used. In FTO it was 16./7: DigitizationParameters::Instance().mMV_2_NchannelsInverse;
   for (int ich = 0; ich < nch; ich++) {
     LOG(INFO) << "  channel " << ich << " / " << nch;
-    int offsetChannel = 0; // TODO: Not used until calibration is implemented. In FT0 it was: getOffset(ich, inChData[ich].QTCAmpl);
+    int offsetChannel = getChannelOffset(ich);
 
     outChData[ich] = o2::fv0::ChannelDataFloat{inChData[ich].pmtNumber,
                                                (inChData[ich].time - offsetChannel) * DigitizationConstant::TIME_PER_TDCCHANNEL,
-                                               (double)inChData[ich].chargeAdc * parInv,
+                                               (double)inChData[ich].chargeAdc * o2::fv0::FV0DigParam::Instance().adcChannelsPerMilivolt,
                                                0}; // Fill with ADC number once implemented
 
     //  only signals with amplitude participate in collision time
@@ -82,18 +82,13 @@ RP BaseRecoTask::process(o2::fv0::BCData const& bcd,
 void BaseRecoTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits
-  // if (!mContinuous)   return;
+  //if (!mContinuous)   return;
 }
 //______________________________________________________
-/*int CollisionTimeRecoTask::getOffset(int channel, int amp)
+int BaseRecoTask::getChannelOffset(int channel)
 {
-  if (!mCalibSlew || !mCalibOffset) {
+  if (!mCalibOffset) {
     return 0;
   }
-  int offsetChannel = mCalibOffset->mTimeOffsets[channel];
-  TGraph& gr = mCalibSlew->at(channel);
-  double slewoffset = gr.Eval(amp);
-  LOG(DEBUG) << "@@@CollisionTimeRecoTask::getOffset(int channel, int amp) " << channel << " " << amp << " " << offsetChannel << " " << slewoffset;
-  return offsetChannel + int(slewoffset);
+  return mCalibOffset->mTimeOffsets[channel];
 }
-*/

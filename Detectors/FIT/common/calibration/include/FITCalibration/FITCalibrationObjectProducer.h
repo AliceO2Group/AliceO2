@@ -16,6 +16,8 @@
 #include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 #include "FT0Calibration/FT0ChannelTimeTimeSlotContainer.h"
 #include "FT0Calibration/FT0CalibTimeSlewing.h"
+#include "FV0Calibration/FV0ChannelTimeCalibrationObject.h"
+#include "FV0Calibration/FV0ChannelTimeTimeSlotContainer.h"
 #include "FITCalibration/FITCalibrationObjectProducer.h"
 #include "FT0Calibration/FT0DummyCalibrationObject.h" // delete this
 
@@ -41,6 +43,12 @@ template <>
 o2::ft0::FT0ChannelTimeCalibrationObject FITCalibrationObjectProducer::generateCalibrationObject<o2::ft0::FT0ChannelTimeCalibrationObject, o2::ft0::FT0ChannelTimeTimeSlotContainer>(const o2::ft0::FT0ChannelTimeTimeSlotContainer& container)
 {
   return o2::ft0::FT0TimeChannelOffsetCalibrationObjectAlgorithm::generateCalibrationObject(container);
+}
+
+template <>
+o2::fv0::FV0ChannelTimeCalibrationObject FITCalibrationObjectProducer::generateCalibrationObject<o2::fv0::FV0ChannelTimeCalibrationObject, o2::fv0::FV0ChannelTimeTimeSlotContainer>(const o2::fv0::FV0ChannelTimeTimeSlotContainer& container)
+{
+  return o2::fv0::FV0TimeChannelOffsetCalibrationObjectAlgorithm::generateCalibrationObject(container);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

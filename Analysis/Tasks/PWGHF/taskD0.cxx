@@ -123,13 +123,33 @@ struct TaskD0MC {
      {"hCPARecBg", "2-prong candidates (unmatched);cosine of pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
      {"hEtaRecSig", "2-prong candidates (matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
      {"hEtaRecBg", "2-prong candidates (unmatched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
-     {"hEtaGen", "MC particles (matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}}}};
+     {"hEtaGen", "MC particles (matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
+     {"hPtvsYRecSig_RecoPID", "2-prong candidates (RecoPID - matched);#it{p}_{T}^{rec.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}},
+     {"hPtvsYRecSigPrompt_RecoPID", "2-prong candidates (RecoPID - matched, prompt);#it{p}_{T}^{rec.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}},
+     {"hPtvsYRecSigNonPrompt_RecoPID", "2-prong candidates (RecoPID - matched, non-prompt);#it{p}_{T}^{rec.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}},
+     {"hPtvsYRecSig_RecoCand", "2-prong candidates (RecoCand - matched);#it{p}_{T}^{rec.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}},
+     {"hPtvsYRecSigPrompt_RecoCand", "2-prong candidates (RecoCand - matched, prompt);#it{p}_{T}^{rec.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}},
+     {"hPtvsYRecSigNonPrompt_RecoCand", "2-prong candidates (RecoCand - matched, non-prompt);#it{p}_{T}^{rec.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}},
+     {"hPtvsYRecSig_RecoTopol", "2-prong candidates (RecoTopol - matched);#it{p}_{T}^{rec.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}},
+     {"hPtvsYRecSigPrompt_RecoTopol", "2-prong candidates (RecoTopol - matched, prompt);#it{p}_{T}^{rec.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}},
+     {"hPtvsYRecSigNonPrompt_RecoTopol", "2-prong candidates (RecoTopol - matched, non-prompt);#it{p}_{T}^{rec.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}},
+     {"hPtvsYRecSig_RecoHFFlag", "2-prong candidates (RecoHFFlag - matched);#it{p}_{T}^{rec.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}},
+     {"hPtvsYRecSigPrompt_RecoHFFlag", "2-prong candidates (RecoHFFlag - matched, prompt);#it{p}_{T}^{rec.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}},
+     {"hPtvsYRecSigNonPrompt_RecoHFFlag", "2-prong candidates (RecoHFFlag - matched, non-prompt);#it{p}_{T}^{rec.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}},
+     {"hPtvsYGen", "2-prong candidates (matched);#it{p}_{T}^{gen.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}},
+     {"hPtvsYGenPrompt", "2-prong candidates (matched, prompt);#it{p}_{T}^{gen.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}},
+     {"hPtvsYGenNonPrompt", "2-prong candidates (matched, non-prompt);#it{p}_{T}^{gen.}; #it{y}", {HistType::kTH2F, {{100, 0., 10.}, {100, -2., 2.}}}}}};
 
   Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
   Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
+  Configurable<int> d_selectionHFFlag{"d_selectionHFFlag", 1, "Selection Flag for HF flagged candidates"};
+  Configurable<int> d_selectionTopol{"d_selectionTopol", 1, "Selection Flag for topologically selected candidates"};
+  Configurable<int> d_selectionCand{"d_selectionCand", 1, "Selection Flag for conj. topol. selected candidates"};
+  Configurable<int> d_selectionPID{"d_selectionPID", 1, "Selection Flag for reco PID candidates"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isRecoHFFlag >= d_selectionHFFlag);
+  //Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate, aod::HfCandProng2MCRec>> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particlesMC, aod::BigTracksMC const& tracks)
@@ -149,11 +169,49 @@ struct TaskD0MC {
         auto particleMother = particlesMC.iteratorAt(indexMother);
         registry.fill(HIST("hPtGenSig"), particleMother.pt()); // gen. level pT
         auto ptRec = candidate.pt();
+        auto yRec = YD0(candidate);
         registry.fill(HIST("hPtRecSig"), ptRec); // rec. level pT
+        if (candidate.isRecoHFFlag() >= d_selectionHFFlag) {
+          registry.fill(HIST("hPtvsYRecSig_RecoHFFlag"), ptRec, yRec);
+        }
+        if (candidate.isRecoTopol() >= d_selectionTopol) {
+          registry.fill(HIST("hPtvsYRecSig_RecoTopol"), ptRec, yRec);
+        }
+        if (candidate.isRecoCand() >= d_selectionCand) {
+          registry.fill(HIST("hPtvsYRecSig_RecoCand"), ptRec, yRec);
+        }
+        if (candidate.isRecoPID() >= d_selectionPID) {
+          registry.fill(HIST("hPtvsYRecSig_RecoPID"), ptRec, yRec);
+        }
+
         if (candidate.originMCRec() == OriginType::Prompt) {
           registry.fill(HIST("hPtRecSigPrompt"), ptRec); // rec. level pT, prompt
+          if (candidate.isRecoHFFlag() >= d_selectionHFFlag) {
+            registry.fill(HIST("hPtvsYRecSigPrompt_RecoHFFlag"), ptRec, yRec);
+          }
+          if (candidate.isRecoTopol() >= d_selectionTopol) {
+            registry.fill(HIST("hPtvsYRecSigPrompt_RecoTopol"), ptRec, yRec);
+          }
+          if (candidate.isRecoCand() >= d_selectionCand) {
+            registry.fill(HIST("hPtvsYRecSigPrompt_RecoCand"), ptRec, yRec);
+          }
+          if (candidate.isRecoPID() >= d_selectionPID) {
+            registry.fill(HIST("hPtvsYRecSigPrompt_RecoPID"), ptRec, yRec);
+          }
         } else {
           registry.fill(HIST("hPtRecSigNonPrompt"), ptRec); // rec. level pT, non-prompt
+          if (candidate.isRecoHFFlag() >= d_selectionHFFlag) {
+            registry.fill(HIST("hPtvsYRecSigNonPrompt_RecoHFFlag"), ptRec, yRec);
+          }
+          if (candidate.isRecoTopol() >= d_selectionTopol) {
+            registry.fill(HIST("hPtvsYRecSigNonPrompt_RecoTopol"), ptRec, yRec);
+          }
+          if (candidate.isRecoCand() >= d_selectionCand) {
+            registry.fill(HIST("hPtvsYRecSigNonPrompt_RecoCand"), ptRec, yRec);
+          }
+          if (candidate.isRecoPID() >= d_selectionPID) {
+            registry.fill(HIST("hPtvsYRecSigNonPrompt_RecoPID"), ptRec, yRec);
+          }
         }
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
@@ -171,11 +229,15 @@ struct TaskD0MC {
           continue;
         }
         auto ptGen = particle.pt();
+        auto yGen = RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode()));
         registry.fill(HIST("hPtGen"), ptGen);
+        registry.fill(HIST("hPtvsYGen"), ptGen, yGen);
         if (particle.originMCGen() == OriginType::Prompt) {
           registry.fill(HIST("hPtGenPrompt"), ptGen);
+          registry.fill(HIST("hPtvsYGenPrompt"), ptGen, yGen);
         } else {
           registry.fill(HIST("hPtGenNonPrompt"), ptGen);
+          registry.fill(HIST("hPtvsYGenNonPrompt"), ptGen, yGen);
         }
         registry.fill(HIST("hEtaGen"), particle.eta());
       }

@@ -23,6 +23,8 @@
 
 #include <gsl/span>
 
+#include "DetectorsCommonDataFormats/DetID.h"
+
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -130,18 +132,18 @@ class TrackMCLabelFinderTask
     int deId(-1);
     int clusterIdx(0);
     for (const auto& trackRef : mcTrackRefs) {
-      if (trackRef.getDetectorId() < 100 || trackRef.getDetectorId() > 1025) {
+      if (trackRef.getDetectorId() != o2::detectors::DetID::MCH) {
         deId = -1;
         continue;
       }
-      if (trackRef.getDetectorId() == deId) {
+      if (trackRef.getUserId() == deId) {
         auto& cluster = mcClusters.back();
         cluster.x = (cluster.x + trackRef.X()) / 2.;
         cluster.y = (cluster.y + trackRef.Y()) / 2.;
         cluster.z = (cluster.z + trackRef.Z()) / 2.;
         deId = -1; // to create a new cluster in case the track re-enter the DE (loop)
       } else {
-        deId = trackRef.getDetectorId();
+        deId = trackRef.getUserId();
         mcClusters.push_back({trackRef.X(), trackRef.Y(), trackRef.Z(), 0.f, 0.f,
                               ClusterStruct::buildUniqueId(deId / 100 - 1, deId, clusterIdx++), 0u, 0u});
       }

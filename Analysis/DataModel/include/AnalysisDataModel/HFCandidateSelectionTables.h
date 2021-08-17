@@ -16,11 +16,20 @@ namespace o2::aod
 {
 namespace hf_selcandidate_d0
 {
-DECLARE_SOA_COLUMN(IsSelD0, isSelD0, int);       //!
-DECLARE_SOA_COLUMN(IsSelD0bar, isSelD0bar, int); //!
+DECLARE_SOA_COLUMN(IsSelD0, isSelD0, int);           //!
+DECLARE_SOA_COLUMN(IsSelD0bar, isSelD0bar, int);     //!
+DECLARE_SOA_COLUMN(IsRecoHFFlag, isRecoHFFlag, int); //!
+DECLARE_SOA_COLUMN(IsRecoTopol, isRecoTopol, int);   //!
+DECLARE_SOA_COLUMN(IsRecoCand, isRecoCand, int);     //!
+DECLARE_SOA_COLUMN(IsRecoPID, isRecoPID, int);
 } // namespace hf_selcandidate_d0
 DECLARE_SOA_TABLE(HFSelD0Candidate, "AOD", "HFSELD0CAND", //!
-                  hf_selcandidate_d0::IsSelD0, hf_selcandidate_d0::IsSelD0bar);
+                  hf_selcandidate_d0::IsSelD0,
+                  hf_selcandidate_d0::IsSelD0bar,
+                  hf_selcandidate_d0::IsRecoHFFlag,
+                  hf_selcandidate_d0::IsRecoTopol,
+                  hf_selcandidate_d0::IsRecoCand,
+                  hf_selcandidate_d0::IsRecoPID);
 
 namespace hf_selcandidate_dplus
 {
