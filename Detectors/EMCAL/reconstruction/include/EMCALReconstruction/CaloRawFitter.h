@@ -14,6 +14,7 @@
 #include <iosfwd>
 #include <array>
 #include <optional>
+#include <string_view>
 #include <Rtypes.h>
 #include <gsl/span>
 #include "EMCALReconstruction/CaloFitResults.h"
@@ -48,7 +49,8 @@ class CaloRawFitter
     SAMPLE_UNINITIALIZED, ///< Samples not initialized or length is 0
     FIT_ERROR,            ///< Fit procedure failed
     CHI2_ERROR,           ///< Chi2 cannot be determined (usually due to insufficient amount of samples)
-    BUNCH_NOT_OK          ///< Bunch selection failed
+    BUNCH_NOT_OK,         ///< Bunch selection failed
+    LOW_SIGNAL            ///< No ADC value above threshold found
   };
 
   /// \brief Create error message for a given error type
@@ -71,14 +73,11 @@ class CaloRawFitter
   /// \brief Destructor
   virtual ~CaloRawFitter() = default;
 
-  virtual CaloFitResults evaluate(const gsl::span<const Bunch> bunchvector,
-                                  std::optional<unsigned int> altrocfg1,
-                                  std::optional<unsigned int> altrocfg2) = 0;
+  virtual CaloFitResults evaluate(const gsl::span<const Bunch> bunchvector) = 0;
 
   /// \brief Method to do the selection of what should possibly be fitted.
   /// \param bunchvector ALTRO bunches for the current channel
-  /// \param altrocfg1 ALTRO config register 1 from RCU trailer
-  /// \param altrocfg2 ALTRO config register 2 from RCU trailer
+  /// \param adcThreshold ADC threshold applied in peak finding
   /// \return Size of the sub-selected sample,
   /// \return index of the bunch with maximum signal,
   /// \return maximum signal,
@@ -87,8 +86,7 @@ class CaloRawFitter
   /// \return pedestal,
   /// \return first time bin,
   /// \return last time bin,
-  std::tuple<int, int, float, short, short, float, int, int> preFitEvaluateSamples(const gsl::span<const Bunch> bunchvector,
-                                                                                   std::optional<unsigned int> altrocfg1, std::optional<unsigned int> altrocfg2, int acut);
+  std::tuple<int, int, float, short, short, float, int, int> preFitEvaluateSamples(const gsl::span<const Bunch> bunchvector, int adcThreshold);
 
   /// \brief The require time range if the maximum ADC value is between min and max (timebin)
   void setTimeConstraint(int min, int max);
@@ -104,45 +102,60 @@ class CaloRawFitter
 
   // access to array info
   double getReversed(const int i) const { return mReversed[i]; }
-  const char* getAlgoName() const { return mName.c_str(); }
-  const char* getAlgoAbbr() const { return mNameShort.c_str(); }
+  const std::string_view getAlgoName() const { return mName.c_str(); }
+  const std::string_view getAlgoAbbr() const { return mNameShort.c_str(); }
+
+  /// \brief Get Type of the fit algorithm
+  /// \return Fit algorithm type
   FitAlgorithm getAlgo() const { return mAlgo; }
 
-  /// \brief Get the maximum of a bunch array
-  /// \return Maximum amplitute
-  short maxAmp(const Bunch& bunch, int& maxindex) const;
+  /// \brief Get the maximum amplitude and its index of a bunch array
+  /// \return Maximum ADC value of the bunch
+  /// \return Index of the max. ADC value of the bunch
+  std::tuple<short, int> getMaxAmplitudeBunch(const Bunch& bunchx) const;
 
   /// \brief Get maximum of array
   /// \return Maximum amplitute
-  unsigned short maxAmp(const gsl::span<unsigned short> data) const;
+  unsigned short getMaxAmplitudeBunch(const gsl::span<unsigned short> data) const;
 
-  /// \brief A bunch is considered invalid if the maximum is in the first or last time-bin.
-  bool checkBunchEdgesForMax(const Bunch& bunch) const;
+  /// \brief Check if the max. ADC value is at the edge of a bunch
+  /// \param bunch The bunch to be checked
+  /// \return True if the Max. ADC value is either the first or the last value of a bunch
+  bool isMaxADCBunchEdge(const Bunch& bunch) const;
 
-  /// \brief Check if the index of the max ADC vaue is consistent with trigger.
-  bool isInTimeRange(int maxindex, int maxtime, int mintime) const;
+  /// \brief Check if the index of the max ADC vaue is within accepted time range
+  /// \param indexMaxADC Index of the max. ADC value
+  /// \param maxtime Max. time value of the accepted range
+  /// \param mintime Min. time value of the accepted range
+  /// \return True of the index of the max ADC is within the accepted time range, false otherwise
+  bool isInTimeRange(int indexMaxADC, int maxtime, int mintime) const;
 
   /// \brief Time sample comes in reversed order, revers them back Subtract the baseline based on content of altrocfg1 and altrocfg2.
   /// \return Pedestal
   /// \return Array with revered and pedestal subtracted ADC signals
-  std::tuple<float, std::array<double, constants::EMCAL_MAXTIMEBINS>> reverseAndSubtractPed(const Bunch& bunch,
-                                                                                            std::optional<unsigned int> altrocfg1, std::optional<unsigned int> altrocfg2) const;
+  std::tuple<float, std::array<double, constants::EMCAL_MAXTIMEBINS>> reverseAndSubtractPed(const Bunch& bunch) const;
 
   /// \brief We select the bunch with the highest amplitude unless any time constraints is set.
+  /// \param bunchvector Bunches of the channel among which to select the maximium
   /// \return The index of the array with the maximum aplitude
   /// \return The bin where we have a maximum amp
   /// \return The maximum ADC signal
-  std::tuple<short, short, short> selectBunch(const gsl::span<const Bunch>& bunchvector);
+  /// \throw RawFitterError_t::BUNCH_NOT_OK ADC value is at a bunch edge
+  std::tuple<short, short, short> selectMaximumBunch(const gsl::span<const Bunch>& bunchvector);
 
-  /// \brief Selection of subset of data from one bunch that will be used for fitting or Peak finding.
-  /// Go to the left and right of index of the maximum time bin
-  /// Until the ADC value is less than cut, or derivative changes sign (data jump)
-  /// \return The index of the jumb before the maximum
-  /// \return The index of the jumb after the maximum
-  std::tuple<int, int> selectSubarray(const gsl::span<double> data, short maxindex, int cut) const;
+  /// \brief Find region constrainded by its closest minima around the main peak
+  /// \param adcValues ADC values of the bunch
+  /// \param indexMaxADC Index of the maximum ADC value
+  /// \param threshold Min. ADC value accepted in peak region
+  /// \return Index of the closest minimum before the peak
+  /// \return Index of the closest minimum after the pea
+  std::tuple<int, int> findPeakRegion(const gsl::span<double> adcValues, short indexMaxADC, int threshold) const;
 
-  /// \brief Pedestal evaluation if not zero suppressed
-  float evaluatePedestal(const gsl::span<const uint16_t> data, std::optional<int> length) const;
+  /// \brief Calculate the pedestal from the ADC values in a bunch
+  /// \param data ADC values from which to calculate the pedestal
+  /// \param length Optional bunch length
+  /// \return Pedestal value
+  double evaluatePedestal(const gsl::span<const uint16_t> data, std::optional<int> length) const;
 
   /// \brief Calculates the chi2 of the fit
   ///

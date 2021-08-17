@@ -92,6 +92,7 @@ void RawFitterTESTs(const char* filename = "")
 
         std::cout << decoder.getRCUTrailer() << std::endl;
         std::cout << "Found number of channels: " << decoder.getChannels().size() << std::endl;
+        RawFitter.setIsZeroSuppressed(decoder.getRCUTrailer().hasZeroSuppression());
 
         // Loop over all the channels
         for (auto& chan : decoder.getChannels()) {
@@ -99,7 +100,7 @@ void RawFitterTESTs(const char* filename = "")
           // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
           continue;
           try {
-            o2::emcal::CaloFitResults fitResults = RawFitter.evaluate(chan.getBunches(), 0, 0);
+            o2::emcal::CaloFitResults fitResults = RawFitter.evaluate(chan.getBunches());
 
             // print the fit output
             std::cout << "The Time is : " << fitResults.getTime() << " And the Amplitude is : " << fitResults.getAmp() << std::endl;

@@ -32,8 +32,7 @@ CaloRawFitterGamma2::CaloRawFitterGamma2() : CaloRawFitter("Chi Square ( Gamma2 
   mAlgo = FitAlgorithm::Gamma2;
 }
 
-CaloFitResults CaloRawFitterGamma2::evaluate(const gsl::span<const Bunch> bunchlist,
-                                             std::optional<unsigned int> altrocfg1, std::optional<unsigned int> altrocfg2)
+CaloFitResults CaloRawFitterGamma2::evaluate(const gsl::span<const Bunch> bunchlist)
 {
   float time = 0;
   float amp = 0;
@@ -42,7 +41,7 @@ CaloFitResults CaloRawFitterGamma2::evaluate(const gsl::span<const Bunch> bunchl
   bool fitDone = false;
 
   auto [nsamples, bunchIndex, ampEstimate,
-        maxADC, timeEstimate, pedEstimate, first, last] = preFitEvaluateSamples(bunchlist, altrocfg1, altrocfg2, mAmpCut);
+        maxADC, timeEstimate, pedEstimate, first, last] = preFitEvaluateSamples(bunchlist, mAmpCut);
 
   if (bunchIndex >= 0 && ampEstimate >= mAmpCut) {
     time = timeEstimate;
