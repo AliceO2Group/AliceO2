@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsFT0/GlobalOffsetsCalibrationObject.h"
-#include "DataFormatsFT0/GlobalOffsetContainer.h"
+#include "DataFormatsFT0/GlobalOffsetsContainer.h"
 
 using namespace o2::ft0;
 
@@ -19,7 +19,6 @@ GlobalOffsetsCalibrationObject GlobalOffsetsCalibrationObjectAlgorithm::generate
   GlobalOffsetsCalibrationObject calibrationObject;
 
   for (unsigned int iCh = 0; iCh < 3; ++iCh) {
-    /* if () */
     calibrationObject.mCollisionTimeOffsets[iCh] = container.getMeanGaussianFitValue(iCh);
   }
 
