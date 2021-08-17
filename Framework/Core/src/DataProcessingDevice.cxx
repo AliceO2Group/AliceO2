@@ -673,12 +673,16 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
     // to process.
     bool newMessages = false;
     while (true) {
-      int result = info.parts.Size();
-      if (result == 0) {
-        result = info.channel->Receive(info.parts, 0);
-        newMessages = true;
+      if (info.parts.Size() < 16) {
+        FairMQParts parts;
+        info.channel->Receive(parts, 0);
+        for (auto&& part : parts) {
+          info.parts.fParts.emplace_back(std::move(part));
+        }
+        newMessages |= true;
       }
-      if (result >= 0) {
+
+      if (info.parts.Size() >= 0) {
         DataProcessingDevice::handleData(context, info);
         // Receiving data counts as activity now, so that
         // We can make sure we process all the pending
