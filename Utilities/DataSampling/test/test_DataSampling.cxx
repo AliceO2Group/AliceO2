@@ -207,6 +207,82 @@ BOOST_AUTO_TEST_CASE(MultinodeUtilities)
     auto machines = DataSampling::MachinesForPolicy(configFilePath, "tpcraw");
     BOOST_CHECK_EQUAL(machines.size(), 2);
   }
+  {
+    // empty host -> match any policy
+    WorkflowSpec workflow;
+    DataSampling::GenerateInfrastructure(workflow, configFilePath, 1, "");
+
+    auto disp = std::find_if(workflow.begin(), workflow.end(),
+                             [](const DataProcessorSpec& d) {
+                               return d.name.find("Dispatcher") != std::string::npos;
+                             });
+    BOOST_REQUIRE(disp != workflow.end());
+
+    auto input1 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("CLUSTERS"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input1 != disp->inputs.end());
+    auto input2 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("CLUSTERS_P"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input2 != disp->inputs.end());
+    auto input3 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("RAWDATA"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input3 != disp->inputs.end());
+  }
+  {
+    // mismatching host -> create only policies with empty machines list
+    WorkflowSpec workflow;
+    DataSampling::GenerateInfrastructure(workflow, configFilePath, 1, "mismatching host");
+
+    auto disp = std::find_if(workflow.begin(), workflow.end(),
+                             [](const DataProcessorSpec& d) {
+                               return d.name.find("Dispatcher") != std::string::npos;
+                             });
+    BOOST_REQUIRE(disp != workflow.end());
+
+    auto input1 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("CLUSTERS"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input1 != disp->inputs.end());
+    auto input2 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("CLUSTERS_P"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input2 != disp->inputs.end());
+  }
+  {
+    // matching host -> create policies with empty machines list and the ones which match
+    WorkflowSpec workflow;
+    DataSampling::GenerateInfrastructure(workflow, configFilePath, 1, "machineA");
+
+    auto disp = std::find_if(workflow.begin(), workflow.end(),
+                             [](const DataProcessorSpec& d) {
+                               return d.name.find("Dispatcher") != std::string::npos;
+                             });
+    BOOST_REQUIRE(disp != workflow.end());
+
+    auto input1 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("CLUSTERS"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input1 != disp->inputs.end());
+    auto input2 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("CLUSTERS_P"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input2 != disp->inputs.end());
+    auto input3 = std::find_if(disp->inputs.begin(), disp->inputs.end(),
+                               [](const InputSpec& in) {
+                                 return DataSpecUtils::match(in, DataOrigin("TPC"), DataDescription("RAWDATA"), 0) && in.lifetime == Lifetime::Timeframe;
+                               });
+    BOOST_CHECK(input3 != disp->inputs.end());
+  }
 }
 
 BOOST_AUTO_TEST_CASE(DataSamplingEmptyConfig)

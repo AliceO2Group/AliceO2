@@ -212,6 +212,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
   const auto& tpcClusRefs = data.getTPCTracksClusterRefs();
   const auto& tpcClusShMap = data.clusterShMapTPC;
   const auto& tpcClusAcc = data.getTPCClusters();
+  const auto& tpcTracks = data.getTPCTracks();
+  const auto& itsTracks = data.getITSTracks();
+  const auto& itsABRefs = data.getITSABRefs();
 
   for (int src = GIndex::NSources; src--;) {
     int start = trackRef.getFirstEntryOfSource(src);
@@ -228,11 +231,12 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
           const auto& trackPar = data.getTrackParam(trackIndex);
           if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
-            const auto& itsOrig = data.getITSTrack(contributorsGID[GIndex::ITS]);
-            extraInfoHolder.itsClusterMap = itsOrig.getPattern();
+            extraInfoHolder.itsClusterMap = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getPattern();
+          } else if (contributorsGID[GIndex::Source::ITSAB].isIndexSet()) { // this is an ITS-TPC afterburner contributor
+            extraInfoHolder.itsClusterMap = itsABRefs[contributorsGID[GIndex::Source::ITSAB].getIndex()].pattern;
           }
           if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-            const auto& tpcOrig = data.getTPCTrack(contributorsGID[GIndex::TPC]);
+            const auto& tpcOrig = tpcTracks[contributorsGID[GIndex::TPC].getIndex()];
             extraInfoHolder.tpcInnerParam = tpcOrig.getP();
             extraInfoHolder.tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
             extraInfoHolder.tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
@@ -404,23 +408,6 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       float pY = (float)mcParticles[particle].Py();
       float pZ = (float)mcParticles[particle].Pz();
       float energy = (float)mcParticles[particle].GetEnergy();
-      // HACK to avoid FPE in expression columns. Affect only particles in the Beam Pipe.
-      // TO BE REMOVED asap
-      {
-        const float limit = 1e-4;
-        const float mom = TMath::Sqrt(pX * pX + pY * pY + pZ * pZ);
-        const float eta = 0.5f * TMath::Log((mom + pZ) / (mom - pZ));
-        if (TMath::Abs(eta) > 0.9) {
-          if (TMath::Abs((mom - pZ) / pZ) <= limit) {
-            pX = truncateFloatFraction(TMath::Sqrt((1.f + limit) * (1.f + limit) - 1.f) * pZ * 0.70710678, mMcParticleMom);
-            pY = truncateFloatFraction(TMath::Sqrt((1.f + limit) * (1.f + limit) - 1.f) * pZ * 0.70710678, mMcParticleMom);
-          }
-          if (TMath::Abs(energy - pZ) < limit) {
-            energy = truncateFloatFraction(pZ + limit, mMcParticleMom);
-          }
-        }
-      }
-      // End of HACK
 
       mcParticlesCursor(0,
                         mccolid,
@@ -622,7 +609,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   std::map<uint64_t, int> bcsMap;
   collectBCs(ft0RecPoints, primVertices, mcRecords, bcsMap);
 
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
+  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
   o2::InteractionRecord startIR = {0, dh->firstTForbit};
 
   uint64_t tfNumber;

@@ -16,6 +16,7 @@
 
 #include "TRDBase/Calibrations.h"
 #include "TRDBase/CommonParam.h"
+#include "TRDBase/PadResponse.h"
 #include "TRDBase/DiffAndTimeStructEstimator.h"
 #include "TRDSimulation/PileupTool.h"
 
@@ -30,6 +31,7 @@
 #include <deque>
 #include <unordered_map>
 #include <vector>
+#include <string>
 
 namespace o2
 {
@@ -38,9 +40,6 @@ namespace trd
 
 class Geometry;
 class SimParam;
-class PadPlane;
-class TRDArraySignal;
-class PadResponse;
 
 using DigitContainer = std::vector<Digit>;
 using SignalContainer = std::unordered_map<int, SignalArray>;
@@ -67,10 +66,11 @@ class Digitizer
   int getEventID() const { return mEventID; }
   int getSrcID() const { return mSrcID; }
   bool getCreateSharedDigits() const { return mCreateSharedDigits; }
+  std::string dumpFlaggedChambers() const;
 
  private:
   Geometry* mGeo = nullptr;               // access to Geometry
-  PadResponse* mPRF = nullptr;            // access to PadResponse
+  PadResponse mPRF{};                     // access to PadResponse
   SimParam* mSimParam = nullptr;          // access to SimParam instance
   CommonParam* mCommonParam = nullptr;    // access to CommonParam instance
   Calibrations* mCalib = nullptr;         // access to Calibrations in CCDB
@@ -108,6 +108,7 @@ class Digitizer
   std::vector<MCLabel> mMergedLabels;                                            // temporary label container
   std::array<SignalContainer, constants::MAXCHAMBER> mSignalsMapCollection;      // container for caching signals over a timeframe
   std::deque<std::array<SignalContainer, constants::MAXCHAMBER>> mPileupSignals; // container for piled up signals
+  std::array<bool, constants::MAXCHAMBER> mFlagVdriftOutOfRange{};               // flag chambers in which the drift velocity is out of range for which a parameterization exists
 
   void getHitContainerPerDetector(const std::vector<Hit>&, std::array<std::vector<Hit>, constants::MAXCHAMBER>&);
   void setSimulationParameters();

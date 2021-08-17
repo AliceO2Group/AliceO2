@@ -28,18 +28,53 @@ DECLARE_SOA_COLUMN(DG, hasDG, bool); //! Double Gap events, DG
 
 } // namespace filtering
 
-DECLARE_SOA_TABLE(NucleiFilters, "AOD", "Nuclei Filters", //!
+// nuclei
+DECLARE_SOA_TABLE(NucleiFilters, "AOD", "NucleiFilters", //!
                   filtering::H2, filtering::H3, filtering::He3, filtering::He4);
-
-constexpr std::array<char[32], 2> AvailableFilters{"NucleiFilters", "DiffractionFilters"};
-constexpr std::array<char[16], 2> FilterDescriptions{"Nuclei Filters", "DiffFilters"};
-
 using NucleiFilter = NucleiFilters::iterator;
 
 // diffraction
 DECLARE_SOA_TABLE(DiffractionFilters, "AOD", "DiffFilters", //! Diffraction filters
                   filtering::DG);
 using DiffractionFilter = DiffractionFilters::iterator;
+
+/// List of the available filters, the description of their tables and the name of the tasks
+constexpr int NumberOfFilters{2};
+constexpr std::array<char[32], NumberOfFilters> AvailableFilters{"NucleiFilters", "DiffractionFilters"};
+constexpr std::array<char[16], NumberOfFilters> FilterDescriptions{"NucleiFilters", "DiffFilters"};
+constexpr std::array<char[128], NumberOfFilters> FilteringTaskNames{"o2-analysis-nuclei-filter", "o2-analysis-diffraction-filter"};
+constexpr o2::framework::pack<NucleiFilters, DiffractionFilters> FiltersPack;
+static_assert(o2::framework::pack_size(FiltersPack) == NumberOfFilters);
+
+template <typename T, typename C>
+void addColumnToMap(std::unordered_map<std::string, std::unordered_map<std::string, float>>& map)
+{
+  map[MetadataTrait<T>::metadata::tableLabel()][C::columnLabel()] = 1.f;
+}
+
+template <typename T, typename... C>
+void addColumnsToMap(o2::framework::pack<C...>, std::unordered_map<std::string, std::unordered_map<std::string, float>>& map)
+{
+  (addColumnToMap<T, C>(map), ...);
+}
+
+template <typename... T>
+void FillFiltersMap(o2::framework::pack<T...>, std::unordered_map<std::string, std::unordered_map<std::string, float>>& map)
+{
+  (addColumnsToMap<T>(typename T::iterator::persistent_columns_t{}, map), ...);
+}
+
+template <typename... C>
+static std::vector<std::string> ColumnsNames(o2::framework::pack<C...>)
+{
+  return {C::columnLabel()...};
+}
+
+template <typename T>
+unsigned int NumberOfColumns()
+{
+  return o2::framework::pack_size(typename T::iterator::persistent_columns_t{});
+}
 
 } // namespace o2::aod
 

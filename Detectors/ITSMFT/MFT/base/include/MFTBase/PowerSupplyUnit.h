@@ -37,7 +37,7 @@ class PowerSupplyUnit
   TGeoVolumeAssembly* create();
 
  private:
-  ClassDef(PowerSupplyUnit, 2);
+  ClassDefNV(PowerSupplyUnit, 2);
 };
 } // namespace mft
 } // namespace o2

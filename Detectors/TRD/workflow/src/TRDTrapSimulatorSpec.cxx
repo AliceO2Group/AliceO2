@@ -28,6 +28,8 @@
 #include "fairlogger/Logger.h"
 #include "CCDB/BasicCCDBManager.h"
 
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "TRDBase/Calibrations.h"
 #include "TRDSimulation/TRDSimParams.h"
 #include "DataFormatsTRD/Digit.h"
@@ -296,7 +298,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
             for (const auto& newLabel : newLabels) {
               bool alreadyIn = false;
               for (const auto& currLabel : currentLabels) {
-                if (currLabel.compare(newLabel)) {
+                if (currLabel == newLabel) {
                   alreadyIn = true;
                   break;
                 }

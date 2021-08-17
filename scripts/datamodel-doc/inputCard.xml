@@ -15,7 +15,7 @@
     <mainDir>
       <!-- main path to the local O2 installation -->
       <local>
-        /home/pbuehler/alice/O2
+        ../..
       </local>
     
       <!-- ALICE O2 gitHub repository -->
@@ -45,6 +45,19 @@
     <CEdeclarationString>
       o2_add_dpl_workflow
     </CEdeclarationString>
+    
+    <!-- delimiters used to mark text blocks to be replaced in html files -->
+    <delimAO2D>
+      &lt;!-- Block with AO2D tables --&gt;
+    </delimAO2D>
+    
+    <delimHelpers>
+      &lt;!-- Block with helper tasks --&gt;
+    </delimHelpers>
+    
+    <delimJoins>
+      &lt;!-- Block with joins and iterators --&gt;
+    </delimJoins>
     
   </O2general>
   

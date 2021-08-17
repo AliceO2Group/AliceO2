@@ -93,6 +93,12 @@ o2_add_dpl_workflow(tof-dummy-ccdb
                   PUBLIC_LINK_LIBRARIES O2::TOFReconstruction
                   COMPONENT_NAME TestWorkflows)
 
+# Detector specific dummy workflows
+o2_add_dpl_workflow(test-ccdb-fetcher
+                    SOURCES src/test_CCDBFetcher.cxx
+                    PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF O2::Framework
+                    COMPONENT_NAME TestWorkflows)
+
 if(BUILD_SIMULATION)
   o2_add_executable(
     ITSClusterizers

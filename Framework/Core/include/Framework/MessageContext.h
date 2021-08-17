@@ -30,7 +30,7 @@
 #include <unordered_map>
 #include <vector>
 
-class FairMQDevice;
+#include <fairmq/FwdDecls.h>
 
 namespace o2::framework
 {

@@ -103,6 +103,10 @@ struct TaskStreamInfo {
   bool running = false;
 };
 
+struct DeviceConfigurationHelpers {
+  static std::unique_ptr<ConfigParamStore> getConfiguration(ServiceRegistry& registry, const char* name, std::vector<ConfigParamSpec> const& options);
+};
+
 /// A device actually carrying out all the DPL
 /// Data Processing needs.
 class DataProcessingDevice : public FairMQDevice

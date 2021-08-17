@@ -35,4 +35,9 @@
 #pragma link C++ class o2::fv0::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::fv0::CTFHeader, 6, uint32_t> + ;
 
+#pragma link C++ class o2::fv0::RecPoints + ;
+#pragma link C++ class vector < o2::fv0::RecPoints> + ;
+#pragma link C++ class o2::fv0::ChannelDataFloat + ;
+#pragma link C++ class vector < o2::fv0::ChannelDataFloat> + ;
+
 #endif

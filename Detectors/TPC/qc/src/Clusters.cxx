@@ -21,24 +21,26 @@
 #include "TPCBase/CRU.h"
 #include "TPCBase/Mapper.h"
 #include "DataFormatsTPC/ClusterNative.h"
+#include "DataFormatsTPC/KrCluster.h"
 
 ClassImp(o2::tpc::qc::Clusters);
 
 using namespace o2::tpc::qc;
 
 //______________________________________________________________________________
-bool Clusters::processCluster(const o2::tpc::ClusterNative& cluster, const o2::tpc::Sector sector, const int row)
+template <class T>
+bool Clusters::processCluster(const T& cluster, const o2::tpc::Sector sector, const int row)
 {
   const int nROC = row < 63 ? int(sector) : int(sector) + 36;
   const int rocRow = row < 63 ? row : row - 63;
 
   const float pad = cluster.getPad();
 
-  const uint16_t qMax = cluster.qMax;
-  const uint16_t qTot = cluster.qTot;
-  const float sigmaPad = cluster.getSigmaPad();
-  const float sigmaTime = cluster.getSigmaTime();
-  const float timeBin = cluster.getTime();
+  const auto qMax = cluster.getQmax();
+  const auto qTot = cluster.getQtot();
+  const auto sigmaPad = cluster.getSigmaPad();
+  const auto sigmaTime = cluster.getSigmaTime();
+  const auto timeBin = cluster.getTime();
 
   float count = mNClusters.getCalArray(nROC).getValue(rocRow, pad);
   mNClusters.getCalArray(nROC).setValue(rocRow, pad, count + 1);
@@ -113,3 +115,7 @@ void Clusters::dumpToFile(std::string filename)
   g->WriteObject(&mTimeBin, mTimeBin.getName().data());
   g->Close();
 }
+
+// ===| explicit instantiations |===============================================
+template bool Clusters::processCluster<o2::tpc::ClusterNative>(const o2::tpc::ClusterNative&, const o2::tpc::Sector, const int);
+template bool Clusters::processCluster<o2::tpc::KrCluster>(const o2::tpc::KrCluster&, const o2::tpc::Sector, const int);

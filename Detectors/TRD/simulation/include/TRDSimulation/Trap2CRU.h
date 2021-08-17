@@ -55,7 +55,7 @@ class Trap2CRU
   uint32_t buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, const uint32_t halfcru); // build the half cru header holding the lengths of all links amongst other things.
   void linkSizePadding(uint32_t linksize, uint32_t& crudatasize, uint32_t& padding);             // pad the link data stream to align with 256 bit words.
   void openInputFiles();
-  void setTrackletHCHeader(bool tracklethcheader) { mUseTrackletHCHeader = tracklethcheader; }
+  void setTrackletHCHeader(int tracklethcheader) { mUseTrackletHCHeader = tracklethcheader; }
   bool isTrackletOnLink(int link, int trackletpos); // is the current tracklet on the the current link
   bool isDigitOnLink(int link, int digitpos);       // is the current digit on the current link
   int buildDigitRawData(const int digitstartindex, const int digitendindex, const int mcm, const int rob, const uint32_t triggercount);
@@ -88,7 +88,7 @@ class Trap2CRU
   //HalfCRUHeader mHalfCRUHeader;
   //TrackletMCMHeader mTrackletMCMHeader;
   // TrackletMCMData mTrackletMCMData;
-  bool mUseTrackletHCHeader{false};
+  int mUseTrackletHCHeader{0};
   std::vector<char> mRawData; // store for building data event for a single half cru
   uint32_t mRawDataPos = 0;
   char* mRawDataPtr{nullptr};

@@ -57,7 +57,7 @@ void HistogramRegistry::setHash(uint32_t hash)
 }
 
 // create histogram from specification and insert it into the registry
-void HistogramRegistry::insert(const HistogramSpec& histSpec)
+HistPtr HistogramRegistry::insert(const HistogramSpec& histSpec)
 {
   validateHistName(histSpec.name.data(), histSpec.hash);
   const uint32_t idx = imask(histSpec.hash);
@@ -69,10 +69,11 @@ void HistogramRegistry::insert(const HistogramSpec& histSpec)
       mRegistryKey[imask(idx + i)] = histSpec.hash;
       mRegistryValue[imask(idx + i)] = HistFactory::createHistVariant(histSpec);
       lookup += i;
-      return;
+      return mRegistryValue[imask(idx + i)];
     }
   }
   LOGF(FATAL, R"(Internal array of HistogramRegistry "%s" is full.)", mName);
+  return HistPtr();
 }
 
 // helper function that checks if histogram name can be used in registry
@@ -95,19 +96,19 @@ void HistogramRegistry::validateHistName(const char* name, const uint32_t hash)
    */
 }
 
-void HistogramRegistry::add(const HistogramSpec& histSpec)
+HistPtr HistogramRegistry::add(const HistogramSpec& histSpec)
 {
-  insert(histSpec);
+  return insert(histSpec);
 }
 
-void HistogramRegistry::add(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2)
+HistPtr HistogramRegistry::add(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2)
 {
-  insert({name, title, histConfigSpec, callSumw2});
+  return insert({name, title, histConfigSpec, callSumw2});
 }
 
-void HistogramRegistry::add(char const* const name, char const* const title, HistType histType, std::vector<AxisSpec> axes, bool callSumw2)
+HistPtr HistogramRegistry::add(char const* const name, char const* const title, HistType histType, std::vector<AxisSpec> axes, bool callSumw2)
 {
-  insert({name, title, {histType, axes}, callSumw2});
+  return insert({name, title, {histType, axes}, callSumw2});
 }
 
 // store a copy of an existing histogram (or group of histograms) under a different name

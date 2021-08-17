@@ -89,20 +89,38 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
     //LOG(info) << "Got " << ioPtr.nTOFClusters << " TOF Clusters";
   }
 
-  if ((maskMatch[GID::TOF] || maskMatch[GID::ITSTPCTOF] || maskMatch[GID::ITSTPCTRDTOF]) && ioPtr.nTOFMatches == 0) {
-    const auto& tofMatches = recoCont.getTOFMatches();
-    if (tofMatches.size()) {
-      ioPtr.nTOFMatches = tofMatches.size();
-      ioPtr.tofMatches = tofMatches.data();
+  if ((maskMatch[GID::TOF] || maskMatch[GID::ITSTPCTOF]) && ioPtr.nITSTPCTOFMatches == 0) {
+    const auto& itstpctofMatches = recoCont.getITSTPCTOFMatches();
+    if (itstpctofMatches.size()) {
+      ioPtr.nITSTPCTOFMatches = itstpctofMatches.size();
+      ioPtr.itstpctofMatches = itstpctofMatches.data();
     }
-    //LOG(info) << "Got " << ioPtr.nTOFMatches << " TOF Matches";
+    //LOG(info) << "Got " << ioPtr.nITSTPCTOFMatches << " ITS-TPC-TOF Matches";
   }
 
-  if (maskMatch[GID::TPCTOF] && ioPtr.nTPCTOFMatches == 0) {
+  if ((maskMatch[GID::TOF] || maskMatch[GID::ITSTPCTRDTOF]) && ioPtr.nITSTPCTRDTOFMatches == 0) {
+    const auto& itstpctrdtofMatches = recoCont.getITSTPCTRDTOFMatches();
+    if (itstpctrdtofMatches.size()) {
+      ioPtr.nITSTPCTRDTOFMatches = itstpctrdtofMatches.size();
+      ioPtr.itstpctrdtofMatches = itstpctrdtofMatches.data();
+    }
+    //LOG(info) << "Got " << ioPtr.nITSTPCTRDTOFMatches << " ITS-TPC-TRD-TOF Matches";
+  }
+
+  if ((maskMatch[GID::TOF] || maskMatch[GID::TPCTOF]) && ioPtr.nTPCTOFMatches == 0) {
     const auto& tpctofMatches = recoCont.getTPCTOFMatches();
     if (tpctofMatches.size()) {
       ioPtr.nTPCTOFMatches = tpctofMatches.size();
       ioPtr.tpctofMatches = tpctofMatches.data();
+    }
+    //LOG(info) << "Got " << ioPtr.nTPCTOFMatches << " TPC-TOF Matches";
+  }
+
+  if ((maskMatch[GID::TOF] || maskMatch[GID::TPCTRDTOF]) && ioPtr.nTPCTRDTOFMatches == 0) {
+    const auto& tpctrdtofMatches = recoCont.getTPCTRDTOFMatches();
+    if (tpctrdtofMatches.size()) {
+      ioPtr.nTPCTRDTOFMatches = tpctrdtofMatches.size();
+      ioPtr.tpctrdtofMatches = tpctrdtofMatches.data();
     }
     //LOG(info) << "Got " << ioPtr.nTPCTOFMatches << " TPC-TOF Matches";
   }
@@ -150,7 +168,7 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
       retVal->tpcLinkITS.resize(ioPtr.nOutputTracksTPCO2, -1);
       ioPtr.tpcLinkITS = retVal->tpcLinkITS.data();
     }
-    if (ioPtr.nTOFMatches || ioPtr.nTPCTOFMatches) {
+    if (ioPtr.nITSTPCTOFMatches || ioPtr.nTPCTRDTOFMatches || ioPtr.nITSTPCTRDTOFMatches || ioPtr.nTPCTOFMatches) {
       retVal->tpcLinkTOF.resize(ioPtr.nOutputTracksTPCO2, -1);
       ioPtr.tpcLinkTOF = retVal->tpcLinkTOF.data();
     }

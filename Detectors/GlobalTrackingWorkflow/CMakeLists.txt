@@ -25,6 +25,7 @@ o2_add_library(GlobalTrackingWorkflow
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflowHelpers
+                                     O2::DataFormatsGlobalTracking
                                      O2::ITStracking
                                      O2::ITSWorkflow
                                      O2::MFTTracking

@@ -14,7 +14,7 @@
 #include <string>
 #include <FairMQParts.h>
 
-class FairMQChannel;
+#include <fairmq/FwdDecls.h>
 
 namespace o2::framework
 {

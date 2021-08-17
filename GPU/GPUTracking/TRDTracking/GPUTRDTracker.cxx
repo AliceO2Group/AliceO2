@@ -454,7 +454,10 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::DoTrackingThread(int iTrk, int thread
     auto trkCopy = trkStart;
     prop.setTrack(&trkCopy);
     prop.setFitInProjections(true);
-    FollowProlongation(&prop, &trkCopy, iTrk, threadId, collisionIds[iColl]);
+    if (!FollowProlongation(&prop, &trkCopy, iTrk, threadId, collisionIds[iColl])) {
+      // track following failed
+      continue;
+    }
     if (trkCopy.getReducedChi2() < mTracks[iTrk].getReducedChi2()) {
       mTracks[iTrk] = trkCopy; // copy back the resulting track
     }
@@ -585,7 +588,8 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
     mCandidates[candidateIdxOffset] = *t;
   }
 
-  int nCandidates = 1;
+  int nCandidates = 1;     // we always start with one candidate
+  int nCurrHypothesis = 0; // the number of track hypothesis in given iLayer
 
   // search window
   float roadY = 0.f;
@@ -595,7 +599,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
   mDebug->SetGeneralInfo(mNEvents, mNTracks, iTrk, t->getPt());
 
   for (int iLayer = 0; iLayer < kNLayers; ++iLayer) {
-    int nCurrHypothesis = 0;
+    nCurrHypothesis = 0;
     bool isOK = false; // if at least one candidate could be propagated or the track was stopped this becomes true
     int currIdx = candidateIdxOffset + iLayer % 2;
     int nextIdx = candidateIdxOffset + (iLayer + 1) % 2;
@@ -745,12 +749,9 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       if (mHypothesis[iUpdate + hypothesisIdxOffset].mCandidateId == -1) {
         // no more candidates
         if (iUpdate == 0) {
-          if (ENABLE_WARNING) {
-            GPUWarning("No valid candidates for track %i in layer %i", iTrk, iLayer);
-          }
-          nCandidates = 0;
+          return false; // no valid candidates for this track (probably propagation failed)
         }
-        break;
+        break; // go to next layer
       }
       nCandidates = iUpdate + 1;
       if (mNCandidates > 1) {
@@ -875,6 +876,11 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
   }
   if (ENABLE_INFO) {
     GPUInfo("Ended track following for track %i at x=%f with pt=%f. Attached %i tracklets", t->getRefGlobalTrackIdRaw(), t->getX(), t->getPt(), t->getNtracklets());
+  }
+  if (nCurrHypothesis > 1) {
+    if (CAMath::Abs(mHypothesis[hypothesisIdxOffset + 1].GetReducedChi2() - mHypothesis[hypothesisIdxOffset].GetReducedChi2()) < Param().rec.trd.chi2SeparationCut) {
+      t->setIsAmbiguous();
+    }
   }
   return true;
 }

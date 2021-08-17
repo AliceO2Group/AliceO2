@@ -25,9 +25,8 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/Task.h"
 
+#include <fairmq/FwdDecls.h>
 #include "DataSampling/DataSamplingHeader.h"
-
-class FairMQDevice;
 
 namespace o2::monitoring
 {

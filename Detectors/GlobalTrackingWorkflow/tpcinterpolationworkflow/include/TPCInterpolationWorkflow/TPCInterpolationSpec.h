@@ -16,11 +16,18 @@
 
 #include "DataFormatsTPC/Constants.h"
 #include "SpacePoints/TrackInterpolation.h"
+#include "SpacePoints/TrackResiduals.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "TStopwatch.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
 using namespace o2::framework;
+
+namespace o2::globaltracking
+{
+struct DataRequest;
+} // namespace o2::globaltracking
 
 namespace o2
 {
@@ -29,20 +36,23 @@ namespace tpc
 class TPCInterpolationDPL : public Task
 {
  public:
-  TPCInterpolationDPL(bool useMC) : mUseMC(useMC) {}
+  TPCInterpolationDPL(std::shared_ptr<o2::globaltracking::DataRequest> dr, bool useMC, bool processITSTPConly) : mDataRequest(dr), mUseMC(useMC), mProcessITSTPConly(processITSTPConly) {}
   ~TPCInterpolationDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
 
  private:
-  o2::tpc::TrackInterpolation mInterpolation; // track interpolation engine
+  o2::tpc::TrackInterpolation mInterpolation;                    ///< track interpolation engine
+  o2::tpc::TrackResiduals mResidualProcessor;                    ///< conversion and avg. distortion map creation engine
+  std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< steers the input
   bool mUseMC{false}; ///< MC flag
+  bool mProcessITSTPConly{false}; ///< should also tracks without outer point (ITS-TPC only) be processed?
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTPCInterpolationSpec(bool useMC);
+framework::DataProcessorSpec getTPCInterpolationSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool processITSTPConly);
 
 } // namespace tpc
 } // namespace o2

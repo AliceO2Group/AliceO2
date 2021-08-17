@@ -32,6 +32,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"eff-ka", VariantType::Int, 1, {"Efficiency for the Kaon PDG code"}},
     {"eff-pr", VariantType::Int, 1, {"Efficiency for the Proton PDG code"}},
     {"eff-de", VariantType::Int, 0, {"Efficiency for the Deuteron PDG code"}},
+    {"eff-tr", VariantType::Int, 0, {"Efficiency for the Triton PDG code"}},
     {"eff-he", VariantType::Int, 0, {"Efficiency for the Helium3 PDG code"}}};
   std::swap(workflowOptions, options);
 }
@@ -229,7 +230,7 @@ struct QaTrackingEfficiency {
         return true;
       }
       histos.fill(h, 5);
-      if ((selPrim == 1) && (!MC::isPhysicalPrimary<o2::aod::McParticles>(p))) { // Requiring is physical primary
+      if ((selPrim == 1) && (!MC::isPhysicalPrimary(p))) { // Requiring is physical primary
         return true;
       }
       histos.fill(h, 6);
@@ -328,6 +329,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
   if (cfgc.options().get<int>("eff-de")) {
     w.push_back(adaptAnalysisTask<QaTrackingEfficiency<o2::track::PID::Deuteron>>(cfgc, TaskName{"qa-tracking-efficiency-deuteron"}));
+  }
+  if (cfgc.options().get<int>("eff-tr")) {
+    w.push_back(adaptAnalysisTask<QaTrackingEfficiency<o2::track::PID::Triton>>(cfgc, TaskName{"qa-tracking-efficiency-triton"}));
   }
   if (cfgc.options().get<int>("eff-he")) {
     w.push_back(adaptAnalysisTask<QaTrackingEfficiency<o2::track::PID::Helium3>>(cfgc, TaskName{"qa-tracking-efficiency-helium3"}));

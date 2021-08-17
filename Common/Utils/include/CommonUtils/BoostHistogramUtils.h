@@ -17,6 +17,9 @@
 #include <algorithm>
 #include <vector>
 #include <array>
+#include <TH1.h>
+#include <TH2.h>
+#include <TFile.h>
 
 #include "Rtypes.h"
 #include "TLinearFitter.h"
@@ -31,6 +34,11 @@
 #include "Fit/BinData.h"
 #include "Math/WrappedMultiTF1.h"
 #include <boost/histogram.hpp>
+#include <boost/histogram/histogram.hpp>
+#include <boost/format.hpp>
+#include <boost/histogram/axis.hpp>
+#include <boost/histogram/make_histogram.hpp>
+#include <boost/histogram/accumulators/mean.hpp>
 
 namespace o2
 {
@@ -371,6 +379,46 @@ template <typename valuetype, typename... axes>
 std::vector<double> fitBoostHistoWithGaus(boost::histogram::histogram<axes...>& hist)
 {
   return fitGaus<valuetype>(hist.begin(), hist.end(), BinCenterView(hist.axis(0).begin()));
+}
+
+/// \brief Convert a 1D root histogram to a Boost histogram
+auto boosthistoFromRoot_1D(TH1D* inHist1D)
+{
+  // first setup the proper boost histogram
+  int nBins = inHist1D->GetNbinsX();
+  int xMin = inHist1D->GetXaxis()->GetXmin();
+  int xMax = inHist1D->GetXaxis()->GetXmax();
+  const char* title = inHist1D->GetXaxis()->GetTitle();
+  auto mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nBins, xMin, xMax, title));
+
+  // trasfer the acutal values
+  for (Int_t x = 1; x < nBins + 1; x++) {
+    mHisto.at(x) = inHist1D->GetBinContent(x);
+  }
+  return mHisto;
+}
+
+// \brief Convert a 2D root histogram to a Boost histogram
+auto boostHistoFromRoot_2D(TH2D* inHist2D)
+{
+  // first setup the proper boost histogram
+  int nBinsX = inHist2D->GetNbinsX();
+  int xMin = inHist2D->GetXaxis()->GetXmin();
+  int xMax = inHist2D->GetXaxis()->GetXmax();
+  const char* xTitle = inHist2D->GetXaxis()->GetTitle();
+  int nBinsY = inHist2D->GetNbinsY();
+  int yMin = inHist2D->GetYaxis()->GetXmin();
+  int yMax = inHist2D->GetYaxis()->GetXmax();
+  const char* yTitle = inHist2D->GetYaxis()->GetTitle();
+  auto mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nBinsX, xMin, xMax, xTitle), boost::histogram::axis::regular<>(nBinsY, yMin,
+                                                                                                                                                  yMax, yTitle));
+  // trasfer the acutal values
+  for (Int_t x = 1; x < nBinsX + 1; x++) {
+    for (Int_t y = 1; y < nBinsY + 1; y++) {
+      mHisto.at(x, y) = inHist2D->GetBinContent(x, y);
+    }
+  }
+  return mHisto;
 }
 
 } // end namespace utils

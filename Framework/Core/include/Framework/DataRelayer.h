@@ -24,7 +24,7 @@
 #include <mutex>
 #include <vector>
 
-class FairMQMessage;
+#include <fairmq/FwdDecls.h>
 
 namespace o2::monitoring
 {

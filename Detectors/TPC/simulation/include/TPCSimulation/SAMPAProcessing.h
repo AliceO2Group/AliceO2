@@ -46,7 +46,7 @@ class SAMPAProcessing
     return sampaProcessing;
   }
   /// Destructor
-  ~SAMPAProcessing();
+  ~SAMPAProcessing() = default;
 
   /// Update the OCDB parameters cached in the class. To be called once per event
   void updateParameters();
@@ -210,33 +210,28 @@ inline T SAMPAProcessing::getGamma4(T time, T startTime, T ADC) const
 
 inline TimeBin SAMPAProcessing::getTimeBin(float zPos) const
 {
-  float timeBin = (mDetParam->TPClength - std::abs(zPos)) / (mGasParam->DriftV * mEleParam->ZbinWidth);
-  return static_cast<TimeBin>(timeBin);
+  return static_cast<TimeBin>((mDetParam->TPClength - std::abs(zPos)) / (mGasParam->DriftV * mEleParam->ZbinWidth));
 }
 
 inline float SAMPAProcessing::getZfromTimeBin(float timeBin, Side s) const
 {
-  float zSign = (s == 0) ? 1 : -1;
-  float zAbs = zSign * (mDetParam->TPClength - (timeBin * mGasParam->DriftV * mEleParam->ZbinWidth));
-  return zAbs;
+  const float zSign = (s == 0) ? 1 : -1;
+  return zSign * (mDetParam->TPClength - (timeBin * mGasParam->DriftV * mEleParam->ZbinWidth));
 }
 
 inline TimeBin SAMPAProcessing::getTimeBinFromTime(float time) const
 {
-  float timeBin = time / mEleParam->ZbinWidth;
-  return static_cast<TimeBin>(timeBin);
+  return static_cast<TimeBin>(time / mEleParam->ZbinWidth);
 }
 
 inline float SAMPAProcessing::getTimeFromBin(TimeBin timeBin) const
 {
-  float time = static_cast<float>(timeBin) * mEleParam->ZbinWidth;
-  return time;
+  return static_cast<float>(timeBin) * mEleParam->ZbinWidth;
 }
 
 inline float SAMPAProcessing::getTimeBinTime(float time) const
 {
-  TimeBin timeBin = getTimeBinFromTime(time);
-  return getTimeFromBin(timeBin);
+  return getTimeFromBin(getTimeBinFromTime(time));
 }
 
 inline float SAMPAProcessing::getNoise(const int sector, const int globalPadInSector)

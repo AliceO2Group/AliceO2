@@ -181,7 +181,7 @@ class AlignmentTrack : public trackParam_t, public TObject
  private:
   bool propagate(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT);
   //
-  ClassDef(AlignmentTrack, 2)
+  ClassDefOverride(AlignmentTrack, 2)
 };
 
 //____________________________________________________________________________________________

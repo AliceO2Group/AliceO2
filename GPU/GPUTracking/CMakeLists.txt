@@ -157,7 +157,7 @@ set(HDRS_INSTALL
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   set(SRCS ${SRCS} Interface/GPUO2InterfaceConfigurableParam.cxx)
   set(HDRS_CINT_O2 ${HDRS_CINT_O2} DataTypes/TPCdEdxCalibrationSplines.h Interface/GPUO2InterfaceConfigurableParam.h)
-  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h DataTypes/GPUTRDTrack.h DataTypes/GPUTRDO2BaseTrack.h) # Manual dependencies for ROOT dictionary generation
+  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h DataTypes/GPUTRDTrack.h DataTypes/GPUTRDO2BaseTrack.h Merger/GPUTPCGMMergedTrack.h) # Manual dependencies for ROOT dictionary generation
 endif()
 
 # Sources for O2 and for Standalone if requested in config file
@@ -242,10 +242,17 @@ if(GPUCA_EVENT_DISPLAY)
                    display/GPUDisplayBackendGlfw.cxx)
   set(SRCS_NO_H ${SRCS_NO_H} display/GPUDisplayQuaternion.cxx
                 display/GPUDisplayInterpolation.cxx
-                display/GPUDisplayKeys.cxx)
+                display/GPUDisplayKeys.cxx
+                display/GPUDisplayROOT.cxx)
   set(HDRS_INSTALL ${HDRS_INSTALL}
                    display/GPUDisplayExt.h
                    display/GPUDisplayShaders.h)
+  if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+    install(DIRECTORY display/filterMacros/ DESTINATION displayTrackFilter FILES_MATCHING PATTERN "*.C")
+    get_property(GPU_DISPLAY_INCLUDE_PATH DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+    configure_file(display/filterMacros/setinclude.sh.in setinclude.sh @ONLY)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/setinclude.sh PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE DESTINATION displayTrackFilter)
+  endif()
 else()
   set(HDRS_INSTALL ${HDRS_INSTALL} display/GPUDisplay.h)
 endif()

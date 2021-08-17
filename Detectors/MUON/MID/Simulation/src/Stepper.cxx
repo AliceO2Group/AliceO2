@@ -12,6 +12,7 @@
 #include "MIDSimulation/Stepper.h"
 
 #include "CommonUtils/ShmAllocator.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "TVirtualMC.h"
@@ -47,7 +48,8 @@ bool Stepper::process(const TVirtualMC& vmc)
 
   if (ts.isEntering() || ts.isExiting()) {
     // generate a track referenced
-    o2::TrackReference tr{vmc, detElemId};
+    o2::TrackReference tr{vmc, o2::detectors::DetID::MID};
+    tr.setUserId(detElemId);
     stack->addTrackReference(tr);
   }
 

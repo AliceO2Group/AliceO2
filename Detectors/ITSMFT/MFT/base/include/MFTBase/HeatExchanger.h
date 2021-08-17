@@ -140,7 +140,7 @@ class HeatExchanger
   Double_t mAngle4fifth[4];  // angle of torus for fifth pipe of disk 4
   Double_t mRadius4fifth[4]; // radius of torus for fifth pipe of disk 4
 
-  ClassDef(HeatExchanger, 2);
+  ClassDefNV(HeatExchanger, 2);
 };
 } // namespace mft
 } // namespace o2

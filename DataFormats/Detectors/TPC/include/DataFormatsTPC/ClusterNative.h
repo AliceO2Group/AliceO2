@@ -82,6 +82,8 @@ struct ClusterNative {
     setTimePackedFlags(time, flags);
   }
 
+  GPUd() uint16_t getQmax() const { return qMax; }
+  GPUd() uint16_t getQtot() const { return qTot; }
   GPUd() uint8_t getFlags() const { return timeFlagsPacked >> 24; }
   GPUd() uint32_t getTimePacked() const { return timeFlagsPacked & 0xFFFFFF; }
   GPUd() void setTimePackedFlags(uint32_t timePacked, uint8_t flags)

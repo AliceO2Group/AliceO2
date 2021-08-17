@@ -21,7 +21,7 @@
 #include "TPCBase/Mapper.h"
 
 #ifndef GPUCA_ALIGPUCODE
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 #include <boost/format.hpp>
 #endif
 

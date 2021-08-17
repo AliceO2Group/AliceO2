@@ -552,12 +552,12 @@ int GPUReconstructionCUDA::PrepareTextures()
 
 int GPUReconstructionCUDA::registerMemoryForGPU(const void* ptr, size_t size)
 {
-  return GPUFailedMsgI(cudaHostRegister((void*)ptr, size, cudaHostRegisterDefault));
+  return mProcessingSettings.noGPUMemoryRegistration ? 0 : GPUFailedMsgI(cudaHostRegister((void*)ptr, size, cudaHostRegisterDefault));
 }
 
 int GPUReconstructionCUDA::unregisterMemoryForGPU(const void* ptr)
 {
-  return GPUFailedMsgI(cudaHostUnregister((void*)ptr));
+  return mProcessingSettings.noGPUMemoryRegistration ? 0 : GPUFailedMsgI(cudaHostUnregister((void*)ptr));
 }
 
 void GPUReconstructionCUDA::startGPUProfiling()

@@ -86,7 +86,7 @@ class MagFieldFast
   float mFactorSol; // scaling factor
   SolParam mSolPar[kNSolRRanges][kNSolZRanges][kNQuadrants];
 
-  ClassDef(MagFieldFast, 1);
+  ClassDefNV(MagFieldFast, 1);
 };
 
 inline float MagFieldFast::CalcPol(const float* cf, float x, float y, float z) const

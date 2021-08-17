@@ -41,7 +41,8 @@ enum BasicOp : unsigned int {
   Acos,
   Atan,
   Abs,
-  BitwiseNot
+  BitwiseNot,
+  Conditional
 };
 } // namespace o2::framework
 

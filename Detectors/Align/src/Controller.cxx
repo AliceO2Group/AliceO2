@@ -15,18 +15,17 @@
 /// @brief  Steering class for the global alignment
 
 #include "Align/Controller.h"
+#include "Align/AlignConfig.h"
 #include "Framework/Logger.h"
 #include "Align/utils.h"
 #include "Align/AlignmentPoint.h"
 #include "Align/AlignableDetector.h"
 #include "Align/AlignableVolume.h"
-//#include "Align/AlignableDetectorITS.h"
+#include "Align/AlignableDetectorITS.h"
 //#include "Align/AlignableDetectorTPC.h"
 //#include "Align/AlignableDetectorTRD.h"
 //#include "Align/AlignableDetectorTOF.h"
 #include "Align/EventVertex.h"
-#include "Align/Millepede2Record.h"
-#include "Align/ResidualsController.h"
 #include "Align/ResidualsControllerFast.h"
 #include "Align/GeometricalConstraint.h"
 #include "Align/DOFStatistics.h"
@@ -39,11 +38,11 @@
 //#include "AliCDBRunRange.h"
 //#include "AliCDBManager.h"
 //#include "AliCDBEntry.h"
-#include "Align/Mille.h"
+#include "MathUtils/Utils.h"
+
 #include <TMath.h>
 #include <TString.h>
-#include <TTree.h>
-#include <TFile.h>
+
 #include <TROOT.h>
 #include <TSystem.h>
 #include <TRandom.h>
@@ -56,125 +55,51 @@
 
 using namespace TMath;
 using namespace o2::align::utils;
-using std::ifstream;
+using namespace o2::dataformats;
+using namespace o2::globaltracking;
 
-ClassImp(o2::align::Controller);
+using std::ifstream;
 
 namespace o2
 {
 namespace align
 {
 
+void Controller::ProcStat::print() const
+{
+  // TODO RS
+  //  const Char_t* Controller::sStatClName[Controller::kNStatCl] = {"Inp: ", "Acc: "};
+  //  const Char_t* Controller::sStatName[Controller::kMaxStat] =
+  //  {"runs", "Ev.Coll", "Ev.Cosm", "Trc.Coll", "Trc.Cosm"};
+}
+
 const Char_t* Controller::sMPDataExt = ".mille";
-const Char_t* Controller::sDetectorName[Controller::kNDetectors] = {"ITS", "TPC", "TRD", "TOF", "HMPID"};
+
+const Char_t* Controller::sDetectorName[Controller::kNDetectors] = {"ITS", "TPC", "TRD", "TOF", "HMPID"}; //RSREM
+
 //const int Controller::mgkSkipLayers[Controller::kNLrSkip] = {AliGeomManager::kPHOS1, AliGeomManager::kPHOS2,
 //                                                                 AliGeomManager::kMUON, AliGeomManager::kEMCAL}; TODO(milettri, shahoian): needs detector IDs previously stored in AliGeomManager
 const int Controller::sSkipLayers[Controller::kNLrSkip] = {0, 0, 0, 0}; // TODO(milettri, shahoian): needs AliGeomManager - remove this line after fix.
 
-const Char_t* Controller::sStatClName[Controller::kNStatCl] = {"Inp: ", "Acc: "};
-const Char_t* Controller::sStatName[Controller::kMaxStat] =
-  {"runs", "Ev.Coll", "Ev.Cosm", "Trc.Coll", "Trc.Cosm"};
 
 const Char_t* Controller::sHStatName[Controller::kNHVars] = {
   "Runs", "Ev.Inp", "Ev.VtxOK", "Tr.Inp", "Tr.2Fit", "Tr.2FitVC", "Tr.2PrMat", "Tr.2ResDer", "Tr.Stored", "Tr.Acc", "Tr.ContRes"};
 
 //________________________________________________________________
-Controller::Controller(const char* configMacro, int refRun)
-  : mNDet(0), mNDOFs(0), mRunNumber(-1), mFieldOn(false), mTracksType(Coll), mAlgTrack(nullptr), mVtxSens(nullptr), mConstraints(),
-    //	fSelEventSpecii(AliRecoParam::kCosmic | AliRecoParam::kLowMult | AliRecoParam::kHighMult | AliRecoParam::kDefault), FIXME(milettri): needs AliRecoParam
-    mSelEventSpecii(0), // FIXME(milettri): needs AliRecoParam
-    mCosmicSelStrict(false),
-    mVtxMinCont(-1),
-    mVtxMaxCont(-1),
-    mVtxMinContVC(10),
-    mMinITSClforVC(3),
-    //    mITSPattforVC(AlignableDetectorITS::kSPDAny), FIXME(milettri): needs AlignableDetectorITS
-    mITSPattforVC(0), //  FIXME(milettri): needs AlignableDetectorITS
-    mMaxChi2forVC(10)
-    //
-    ,
-    mGloParVal(nullptr),
-    mGloParErr(nullptr),
-    mGloParLab(nullptr),
-    mOrderedLbl(nullptr),
-    mLbl2ID(nullptr),
-    mRefPoint(nullptr),
-    mESDTree(nullptr),
-    //    fESDEvent(0), FIXME(milettri): needs AliESDEvent
-    //    fVertex(0), FIXME(milettri): needs AliESDVertex
-    mControlFrac(1.0),
-    mMPOutType(kMille | kMPRec | kContR),
-    mMille(nullptr),
-    mMPRecord(nullptr),
-    mCResid(nullptr),
-    mMPRecTree(nullptr),
-    mResidTree(nullptr),
-    mMPRecFile(nullptr),
-    mResidFile(nullptr),
-    mMilleDBuffer(),
-    mMilleIBuffer(),
-    mMPDatFileName("mpData"),
-    mMPParFileName("mpParams.txt"),
-    mMPConFileName("mpConstraints.txt"),
-    mMPSteerFileName("mpSteer.txt"),
-    mResidFileName("mpControlRes.root"),
-    mMilleOutBin(true),
-    mDoKalmanResid(true)
-    //
-    ,
-    mOutCDBPath("local://outOCDB"),
-    mOutCDBComment("Controller"),
-    mOutCDBResponsible("")
-    //
-    ,
-    mDOFStat(nullptr),
-    mHistoStat(nullptr)
-    //
-    ,
-    mConfMacroName(configMacro),
-    mRecoOCDBConf("configRecoOCDB.C"),
-    mRefOCDBConf("configRefOCDB.C"),
-    mRefRunNumber(refRun),
-    mRefOCDBLoaded(0),
-    mUseRecoOCDB(true)
+Controller::Controller(DetID::mask_t detmask)
+  : mDetMask(detmask)
 {
   // def c-tor
-  for (int i = kNDetectors; i--;) {
-    mDetectors[i] = nullptr;
-    mDetPos[i] = -1;
-  }
-  setPtMinColl();
-  setPtMinCosm();
-  setEtaMaxColl();
-  setEtaMaxCosm();
-  setMinDetAccColl();
-  setMinDetAccCosm();
-  for (int i = 0; i < NTrackTypes; i++) {
-    mObligatoryDetPattern[i] = 0;
-  }
-  //
-  setMinPointsColl();
-  setMinPointsCosm();
-  //
-  for (int i = kNCosmLegs; i--;) {
-    //    fESDTrack[i] = 0; FIXME(milettri): needs AliESDtrack
-  }
-  memset(mStat, 0, kNStatCl * kMaxStat * sizeof(float));
-  setMaxDCAforVC();
-  setMaxChi2forVC();
+
   //  SetOutCDBRunRange();   FIXME(milettri): needs OCDB
-  setDefPtBOffCosm();
-  setDefPtBOffColl();
-  //
+  init();
+
   // run config macro if provided
-  if (!mConfMacroName.IsNull()) {
-    gROOT->ProcessLine(Form(".x %s+g((Controller*)%p)", mConfMacroName.Data(), this));
-    if (!getInitDOFsDone()) {
-      initDOFs();
-    }
-    if (!getNDOFs()) {
-      LOG(FATAL) << "No DOFs found, initialization with " << mConfMacroName.Data() << " failed";
-    }
+  if (!getInitDOFsDone()) {
+    initDOFs();
+  }
+  if (!getNDOFs()) {
+    LOG(FATAL) << "No DOFs found, initialization failed";
   }
 }
 
@@ -192,18 +117,46 @@ Controller::~Controller()
     closeResidOutput();
   }
   //
-  delete mAlgTrack;
-  delete[] mGloParVal;
-  delete[] mGloParErr;
-  delete[] mGloParLab;
-  for (int i = 0; i < mNDet; i++) {
+  for (int i = 0; i < DetID::nDetectors; i++) {
     delete mDetectors[i];
   }
-  delete mVtxSens;
-  delete mRefPoint;
-  delete mDOFStat;
   delete mHistoStat;
   //
+}
+
+//________________________________________________________________
+void Controller::init()
+{
+  if (mDetMask[DetID::ITS]) {
+    addDetector(new AlignableDetectorITS(this));
+  }
+  mVtxSens = std::make_unique<EventVertex>(this);
+}
+
+//________________________________________________________________
+void Controller::process(const RecoContainer& recodata)
+{
+  /*
+  auto creator = [](auto& _tr, GTrackID _origID, float t0, float terr) {
+    if (!_origID.includesDet(DetID::ITS)) {
+      return true; // just in case this selection was not done on RecoContainer filling level
+    }
+    if constexpr (isITSTrack<decltype(_tr)>()) {
+      t0 += halfROFITS;  // ITS time is supplied in \mus as beginning of ROF
+      terr *= hw2ErrITS; // error is supplied as a half-ROF duration, convert to \mus
+    }
+    // for all other tracks the time is in \mus with gaussian error
+    if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
+      if (terr < maxTrackTimeError) {
+        tracks.emplace_back(TrackWithTimeStamp{_tr, {t0, terr}});
+        gids.emplace_back(_origID);
+      }
+    }
+
+    return true;
+  };
+  recoData.createTracksVariadic(creator); // create track sample considered for vertexing
+*/
 }
 
 //________________________________________________________________
@@ -217,44 +170,37 @@ void Controller::initDetectors()
   //
 
   //
-  mAlgTrack = new AlignmentTrack();
-  mRefPoint = new AlignmentPoint();
+  mAlgTrack = std::make_unique<AlignmentTrack>();
+  mRefPoint = std::make_unique<AlignmentPoint>();
   //
   int dofCnt = 0;
   // special fake sensor for vertex constraint point
   // it has special T2L matrix adjusted for each track, no need to init it here
-  mVtxSens = new EventVertex();
+  mVtxSens = std::make_unique<EventVertex>(this);
   mVtxSens->setInternalID(1);
   mVtxSens->prepareMatrixL2G();
   mVtxSens->prepareMatrixL2GIdeal();
   dofCnt += mVtxSens->getNDOFs();
   //
-  for (int i = 0; i < mNDet; i++) {
-    dofCnt += mDetectors[i]->initGeom();
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    auto* det = getDetector(id);
+    if (det) {
+      dofCnt += det->initGeom();
+    }
   }
   if (!dofCnt) {
     LOG(FATAL) << "No DOFs found";
   }
   //
   //
-  for (int idt = 0; idt < kNDetectors; idt++) {
-    AlignableDetector* det = getDetectorByDetID(idt);
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    auto* det = getDetector(id);
     if (!det || det->isDisabled()) {
       continue;
     }
     det->cacheReferenceOCDB();
   }
   //
-  mGloParVal = new float[dofCnt];
-  mGloParErr = new float[dofCnt];
-  mGloParLab = new int[dofCnt];
-  mOrderedLbl = new int[dofCnt];
-  mLbl2ID = new int[dofCnt];
-  memset(mGloParVal, 0, dofCnt * sizeof(float));
-  memset(mGloParErr, 0, dofCnt * sizeof(float));
-  memset(mGloParLab, 0, dofCnt * sizeof(int));
-  memset(mOrderedLbl, 0, dofCnt * sizeof(int));
-  memset(mLbl2ID, 0, dofCnt * sizeof(int));
   assignDOFs();
   LOG(INFO) << "Booked " << dofCnt << " global parameters";
   //
@@ -268,36 +214,32 @@ void Controller::initDOFs()
   // scan all free global parameters, link detectors to array of params
   //
   if (getInitDOFsDone()) {
-    LOG(INFO) << "initDOFs was already done, just reassigning " << mNDOFs << "DOFs arrays/labels";
+    LOG(INFO) << "initDOFs was already done, just reassigning " << getNDOFs() << "DOFs arrays/labels";
     assignDOFs();
     return;
   }
-  //
+  const auto& conf = AlignConfig::Instance();
+
   mNDOFs = 0;
   int ndfAct = 0;
   assignDOFs();
-  //
   int nact = 0;
   mVtxSens->initDOFs();
-  for (int i = 0; i < mNDet; i++) {
-    AlignableDetector* det = getDetector(i);
-    det->initDOFs();
-    if (det->isDisabled()) {
-      continue;
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    AlignableDetector* det = getDetector(id);
+    if (det && !det->isDisabled()) {
+      det->initDOFs();
+      nact++;
+      ndfAct += det->getNDOFsTot();
     }
-    nact++;
-    ndfAct += det->getNDOFs();
   }
   for (int i = 0; i < NTrackTypes; i++) {
-    if (nact < mMinDetAcc[i]) {
-      LOG(FATAL) << nact << " detectors are active, while " << mMinDetAcc[i] << " in track are asked";
+    if (nact < conf.minDetAcc[i]) {
+      LOG(FATAL) << nact << " detectors are active, while " << conf.minDetAcc[i] << " in track are asked";
     }
   }
-  //
   LOG(INFO) << mNDOFs << " global parameters " << mNDet << " detectors, " << ndfAct << " in " << nact << " active detectors";
-  //
   addAutoConstraints();
-  //
   setInitDOFsDone();
 }
 
@@ -313,14 +255,33 @@ void Controller::assignDOFs()
   }
   mNDOFs = 0;
   //
-  mVtxSens->assignDOFs(mNDOFs, mGloParVal, mGloParErr, mGloParLab);
-  //
-  for (int idt = 0; idt < kNDetectors; idt++) {
-    AlignableDetector* det = getDetectorByDetID(idt);
+  // reserve
+  int ndofTOT = mVtxSens->getNDOFs();
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    AlignableDetector* det = getDetector(id);
     if (!det) {
       continue;
     }
-    //if (det->isDisabled()) continue;
+    ndofTOT += det->getNDOFsTot();
+  }
+  mGloParVal.clear();
+  mGloParErr.clear();
+  mGloParLab.clear();
+  mOrderedLbl.clear();
+  mLbl2ID.clear();
+  mGloParVal.reserve(ndofTOT);
+  mGloParErr.reserve(ndofTOT);
+  mGloParLab.reserve(ndofTOT);
+  mOrderedLbl.reserve(ndofTOT);
+  mLbl2ID.reserve(ndofTOT);
+
+  mVtxSens->assignDOFs();
+
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    AlignableDetector* det = getDetector(id);
+    if (!det) {
+      continue;
+    }
     mNDOFs += det->assignDOFs();
   }
   LOG(INFO) << "Assigned parameters/labels arrays for " << mNDOFs << " DOFs";
@@ -329,56 +290,12 @@ void Controller::assignDOFs()
   }
   //
   // build Lbl <-> parID table
+  /* FIXME RS TODO
   Sort(mNDOFs, mGloParLab, mLbl2ID, false); // sort in increasing order
   for (int i = mNDOFs; i--;) {
     mOrderedLbl[i] = mGloParLab[mLbl2ID[i]];
   }
-  //
-}
-
-//________________________________________________________________
-void Controller::addDetector(uint32_t id, AlignableDetector* det)
-{
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  // add detector participating in the alignment, optionally constructed externally
-  //
-  if (!mRefOCDBLoaded) {
-    //    LoadRefOCDB(); FIXME(milettri): needs OCDB
-  }
-  if (id >= kNDetectors) {
-    LOG(FATAL) << "Detector typeID " << id << " exceeds allowed range " << 0 << ":" << (kNDetectors - 1);
-  }
-  //
-  if (mDetPos[id] != -1) {
-    LOG(FATAL) << "Detector " << id << " was already added";
-  }
-  if (!det) {
-    switch (id) {
-        //      case kITS:
-        //        det = new AlignableDetectorITS(getDetNameByDetID(kITS)); FIXME(milettri): needs AlignableDetectorITS
-        //        break;
-        //      case kTPC:
-        //        det = new AlignableDetectorTPC(getDetNameByDetID(kTPC)); FIXME(milettri): needs AlignableDetectorTPC
-        //        break;
-        //      case kTRD:
-        //        det = new AlignableDetectorTRD(getDetNameByDetID(kTRD)); FIXME(milettri): needs AlignableDetectorTRD
-        //        break;
-        //      case kTOF:
-        //        det = new AlignableDetectorTOF(getDetNameByDetID(kTOF)); FIXME(milettri): needs AlignableDetectorTOF
-        //        break;
-      default:
-        LOG(FATAL) << id << " not implemented yet";
-        break;
-    };
-  }
-  //
-  mDetectors[mNDet] = det;
-  mDetPos[id] = mNDet;
-  det->setAlgSteer(this);
-  for (int i = 0; i < NTrackTypes; i++) {
-    setObligatoryDetector(id, i, det->isObligatory(i));
-  }
-  mNDet++;
+  */
   //
 }
 
@@ -386,16 +303,16 @@ void Controller::addDetector(uint32_t id, AlignableDetector* det)
 void Controller::addDetector(AlignableDetector* det)
 {
   // add detector constructed externally to alignment framework
-  addDetector(det->getDetID(), det);
+  mDetectors[det->getDetID()] = det;
+  mNDet++;
 }
 
 //_________________________________________________________
-bool Controller::checkDetectorPattern(uint32_t patt) const
+bool Controller::checkDetectorPattern(DetID::mask_t patt) const
 {
   //validate detector pattern
-  return ((patt & mObligatoryDetPattern[mTracksType]) ==
-          mObligatoryDetPattern[mTracksType]) &&
-         numberOfBitsSet(patt) >= mMinDetAcc[mTracksType];
+  return ((patt & mObligatoryDetPattern[mTracksType]) == mObligatoryDetPattern[mTracksType]) &&
+         patt.count() >= AlignConfig::Instance().minDetAcc[mTracksType];
 }
 
 //_________________________________________________________
@@ -403,12 +320,12 @@ bool Controller::checkDetectorPoints(const int* npsel) const
 {
   //validate detectors pattern according to number of selected points
   int ndOK = 0;
-  for (int idt = 0; idt < kNDetectors; idt++) {
-    AlignableDetector* det = getDetectorByDetID(idt);
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    AlignableDetector* det = getDetector(id);
     if (!det || det->isDisabled(mTracksType)) {
       continue;
     }
-    if (npsel[idt] < det->getNPointsSel(mTracksType)) {
+    if (npsel[id] < det->getNPointsSel(mTracksType)) {
       if (det->isObligatory(mTracksType)) {
         return false;
       }
@@ -416,7 +333,7 @@ bool Controller::checkDetectorPoints(const int* npsel) const
     }
     ndOK++;
   }
-  return ndOK >= mMinDetAcc[mTracksType];
+  return ndOK >= AlignConfig::Instance().minDetAcc[mTracksType];
 }
 
 //FIXME(milettri): needs AliESDtrack
@@ -431,8 +348,9 @@ bool Controller::checkDetectorPoints(const int* npsel) const
 //  if (Abs(esdTr->Eta()) > mEtaMax[mTracksType]){
 //    return 0;}
 //  //
-//  for (int idet = 0; idet < kNDetectors; idet++) {
-//    if (!(det = getDetectorByDetID(idet)) || det->isDisabled(mTracksType)){
+//  for (auto id=DetID::First; id<=DetID::Last; id++) {
+//
+//    if (!(det = getDetector(id)) || det->isDisabled(mTracksType)){
 //      continue;}
 //    if (!det->AcceptTrack(esdTr, mTracksType)) {
 //      if (strict && det->isObligatory(mTracksType)){
@@ -502,13 +420,7 @@ bool Controller::checkDetectorPoints(const int* npsel) const
 //  SetESDEvent(esdEv);
 //  //
 //  if (esdEv->getRunNumber() != getRunNumber()){
-//    SetRunNumber(esdEv->getRunNumber());}
-//  //
-//  if (!(esdEv->GetEventSpecie() & fSelEventSpecii)) {
-//#if DEBUG > 2
-//    LOG(INFO) << "Reject: specie does not match, allowed " << fSelEventSpecii;
-//#endif
-//    return false;
+//    SetRunNumber(esdEv->getRunNumber());
 //  }
 //  //
 //  setCosmic(esdEv->GetEventSpecie() == AliRecoParam::kCosmic ||
@@ -544,12 +456,12 @@ bool Controller::checkDetectorPoints(const int* npsel) const
 //      accTr += ProcessTrack(esdEv->GetTrack(itr));
 //      /*
 //      if (accTr>accTrOld && mCResid) {
-//	int ndf = mCResid->getNPoints()*2-5;
-//	if (mCResid->getChi2()/ndf>20 || !mCResid->getKalmanDone()
-//	    || mCResid->getChi2K()/ndf>20) {
-//	  printf("BAD FIT for %d\n",itr);
-//	}
-//       	mCResid->Print("er");
+// int ndf = mCResid.getNPoints()*2-5;
+// if (mCResid.getChi2()/ndf>20 || !mCResid.getKalmanDone()
+//     || mCResid.getChi2K()/ndf>20) {
+//   printf("BAD FIT for %d\n",itr);
+// }
+//        mCResid.Print("er");
 //      }
 //      */
 //    }
@@ -592,10 +504,10 @@ bool Controller::checkDetectorPoints(const int* npsel) const
 //  //
 //  // process the track points for each detector,
 //  AlignableDetector* det = 0;
-//  for (int idet = 0; idet < kNDetectors; idet++) {
-//    if (!(detAcc & (0x1 << idet))){
+//  for (auto id=DetID::First; id<=DetID::Last; id++) {
+//    if (!(detAcc & (0x1 << idet))){  // RS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //      continue;}
-//    det = getDetectorByDetID(idet);
+//    det = getDetector(id);
 //    if (det->ProcessPoints(esdTr, mAlgTrack) < det->getNPointsSel(kColl)) {
 //      detAcc &= ~(0x1 << idet); // did not survive, suppress detector in the track
 //      if (det->isObligatory(kColl)){
@@ -730,17 +642,17 @@ bool Controller::checkDetectorPoints(const int* npsel) const
 //  AlignableDetector* det = 0;
 //  int npsel[kNDetectors] = {0};
 //  for (int nPleg = 0, leg = kNCosmLegs; leg--;) {
-//    for (int idet = 0; idet < kNDetectors; idet++) {
+//    for (auto id=DetID::First; id<=DetID::Last; id++) {
 //      if (!(detAcc & (0x1 << idet))){
 //        continue;}
-//      det = getDetectorByDetID(idet);
+//      det = getDetector(id);
 //      //
 //      // upper leg points marked as the track going in inverse direction
 //      int np = det->ProcessPoints(fESDTrack[leg], mAlgTrack, leg == kCosmUp);
 //      if (np < det->getNPointsSel(Cosm) && mCosmicSelStrict &&
 //          det->isObligatory(Cosm))
 //        return false;
-//      npsel[idet] += np;
+//      npsel[id] += np;
 //      nPleg += np;
 //    }
 //    if (nPleg < getMinPoints()){
@@ -818,11 +730,7 @@ bool Controller::fillMilleData()
 {
   // store MP2 data in Mille format
   if (!mMille) {
-    TString mo = Form("%s%s", mMPDatFileName.Data(), sMPDataExt);
-    mMille = new Mille(mo.Data(), mMilleOutBin);
-    if (!mMille) {
-      LOG(FATAL) << "Failed to create output file " << mo.Data();
-    }
+    mMille = std::make_unique<Mille>(fmt::format("{}{}", mMPDatFileName, sMPDataExt).c_str());
   }
   //
   if (!mAlgTrack->getDerivDone()) {
@@ -951,16 +859,16 @@ bool Controller::fillControlData()
   //  if (nps < 0){
   //    return true;}
   //  //
-  //  mCResid->Clear();
-  //  if (!mCResid->fillTrack(mAlgTrack, mDoKalmanResid)){
+  //  mCResid.Clear();
+  //  if (!mCResid.fillTrack(mAlgTrack, mDoKalmanResid)){
   //    return false;}
-  //  mCResid->setRun(mRunNumber);
-  //  mCResid->setTimeStamp(fESDEvent->GetTimeStamp());
-  //  mCResid->setBz(fESDEvent->GetMagneticField());
+  //  mCResid.setRun(mRunNumber);
+  //  mCResid.setTimeStamp(fESDEvent->GetTimeStamp());
+  //  mCResid.setBz(fESDEvent->GetMagneticField());
   //  uint32_t tID = 0xffff & uint(fESDTrack[0]->GetID());
   //  if (isCosmic()){
   //    tID |= (0xffff & uint(fESDTrack[1]->GetID())) << 16;}
-  //  mCResid->setTrackID(tID);
+  //  mCResid.setTrackID(tID);
   //  //
   //  mResidTree->Fill();
   //  fillStatHisto(kTrackControl);
@@ -1012,8 +920,8 @@ void Controller::acknowledgeNewRun(int run)
   //  }
   //  LoadRecoTimeOCDB();
   //  //
-  //  for (int idet = 0; idet < mNDet; idet++) {
-  //    AlignableDetector* det = getDetector(idet);
+  //  for (auto id=DetID::First; id<=DetID::Last; id++) {
+  //    AlignableDetector* det = getDetector(id);
   //    if (!det->isDisabled()){
   //      det->acknowledgeNewRun(run);}
   //  }
@@ -1038,14 +946,14 @@ void Controller::acknowledgeNewRun(int run)
 //  //
 //  CleanOCDB();
 //  //
-//  if (!mRecoOCDBConf.IsNull() && !gSystem->AccessPathName(mRecoOCDBConf.Data(), kFileExists)) {
-//    LOG(INFO) << "Executing reco-time OCDB setup macro " << mRecoOCDBConf.Data();
-//    gROOT->ProcessLine(Form(".x %s(%d)", mRecoOCDBConf.Data(), mRunNumber));
+//  if (!mRecoOCDBConf.IsNull() && !gSystem->AccessPathName(mRecoOCDBConf.c_str(), kFileExists)) {
+//    LOG(INFO) << "Executing reco-time OCDB setup macro " << mRecoOCDBConf.c_str();
+//    gROOT->ProcessLine(Form(".x %s(%d)", mRecoOCDBConf.c_str(), mRunNumber));
 //    if (AliCDBManager::Instance()->IsDefaultStorageSet()){
 //      return true;}
-//    LOG(FATAL) << "macro " << mRecoOCDBConf.Data() << " failed to configure reco-time OCDB";
+//    LOG(FATAL) << "macro " << mRecoOCDBConf.c_str() << " failed to configure reco-time OCDB";
 //  } else
-//    LOG(WARNING) << "No reco-time OCDB config macro" << mRecoOCDBConf.Data() << "  is found, will use ESD:UserInfo";
+//    LOG(WARNING) << "No reco-time OCDB config macro" << mRecoOCDBConf.c_str() << "  is found, will use ESD:UserInfo";
 //  //
 //  if (!mESDTree){
 //    LOG(FATAL) << "Cannot preload Reco-Time OCDB since the ESD tree is not set";}
@@ -1065,35 +973,19 @@ void Controller::acknowledgeNewRun(int run)
 //  return PreloadOCDB(mRunNumber, cdbMap, cdbList);
 //}
 
-//_________________________________________________________
-AlignableDetector* Controller::getDetectorByVolID(int vid) const
-{
-  // get detector by sensor volid
-  for (int i = mNDet; i--;) {
-    if (mDetectors[i]->sensorOfDetector(vid)) {
-      return mDetectors[i];
-    }
-  }
-  return nullptr;
-}
-
 //____________________________________________
 void Controller::Print(const Option_t* opt) const
 {
   // print info
   TString opts = opt;
   opts.ToLower();
-  printf("%5d DOFs in %d detectors", mNDOFs, mNDet);
-  if (!mConfMacroName.IsNull()) {
-    printf("(config: %s)", mConfMacroName.Data());
-  }
-  printf("\n");
+  printf("%5d DOFs in %d detectors\n", mNDOFs, mNDet);
   if (getMPAlignDone()) {
     printf("ALIGNMENT FROM MILLEPEDE SOLUTION IS APPLIED\n");
   }
   //
-  for (int idt = 0; idt < kNDetectors; idt++) {
-    AlignableDetector* det = getDetectorByDetID(idt);
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    AlignableDetector* det = getDetector(id);
     if (!det) {
       continue;
     }
@@ -1104,57 +996,35 @@ void Controller::Print(const Option_t* opt) const
     mVtxSens->Print(opt);
   }
   //
-  // event selection
-  printf("\n");
-  printf("%-40s:\t", "Alowed event specii mask");
-  printBits((uint64_t)mSelEventSpecii, 5);
-  printf("\n");
-  printf("%-40s:\t%d/%d\n", "Min points per collisions track (BOff/ON)",
-         mMinPoints[Coll][0], mMinPoints[Coll][1]);
-  printf("%-40s:\t%d/%d\n", "Min points per cosmic track leg (BOff/ON)",
-         mMinPoints[Cosm][0], mMinPoints[Cosm][1]);
-  printf("%-40s:\t%d\n", "Min detectots per collision track", mMinDetAcc[Coll]);
-  printf("%-40s:\t%d (%s)\n", "Min detectots per cosmic track/leg", mMinDetAcc[Cosm],
-         mCosmicSelStrict ? "STRICT" : "SOFT");
-  printf("%-40s:\t%d/%d\n", "Min/Max vertex contrib. to accept event", mVtxMinCont, mVtxMaxCont);
-  printf("%-40s:\t%d\n", "Min vertex contrib. for constraint", mVtxMinContVC);
-  printf("%-40s:\t%d\n", "Min Ncl ITS for vertex constraint", mMinITSClforVC);
-  printf("%-40s:\t%s\n", "SPD request for vertex constraint",
-         //         AlignableDetectorITS::GetITSPattName(mITSPattforVC)); FIXME(milettri): needs AlignableDetectorITS
-         "ITSNAME"); // FIXME(milettri): needs AlignableDetectorITS
-  printf("%-40s:\t%.4f/%.4f/%.2f\n", "DCAr/DCAz/Chi2 cut for vertex constraint",
-         mMaxDCAforVC[0], mMaxDCAforVC[1], mMaxChi2forVC);
-  printf("Collision tracks: Min pT: %5.2f |etaMax|: %5.2f\n", mPtMin[Coll], mEtaMax[Coll]);
-  printf("Cosmic    tracks: Min pT: %5.2f |etaMax|: %5.2f\n", mPtMin[Cosm], mEtaMax[Cosm]);
-  //
-  printf("%-40s:\t%s", "Config. for reference OCDB", mRefOCDBConf.Data());
   if (mRefRunNumber >= 0) {
     printf("(%d)", mRefRunNumber);
   }
-  printf("\n");
-  printf("%-40s:\t%s\n", "Config. for reco-time OCDB", mRecoOCDBConf.Data());
   //
-  printf("%-40s:\t%s\n", "Output OCDB path", mOutCDBPath.Data());
+  printf("%-40s:\t%s\n", "Output OCDB path", mOutCDBPath.c_str());
   printf("%-40s:\t%s/%s\n", "Output OCDB comment/responsible",
-         mOutCDBComment.Data(), mOutCDBResponsible.Data());
+         mOutCDBComment.c_str(), mOutCDBResponsible.c_str());
   printf("%-40s:\t%6d:%6d\n", "Output OCDB run range", mOutCDBRunRange[0], mOutCDBRunRange[1]);
   //
-  printf("%-40s:\t%s\n", "Filename for MillePede steering", mMPSteerFileName.Data());
-  printf("%-40s:\t%s\n", "Filename for MillePede parameters", mMPParFileName.Data());
-  printf("%-40s:\t%s\n", "Filename for MillePede constraints", mMPConFileName.Data());
-  printf("%-40s:\t%s\n", "Filename for control residuals:", mResidFileName.Data());
+  printf("%-40s:\t%s\n", "Filename for MillePede steering", mMPSteerFileName.c_str());
+  printf("%-40s:\t%s\n", "Filename for MillePede parameters", mMPParFileName.c_str());
+  printf("%-40s:\t%s\n", "Filename for MillePede constraints", mMPConFileName.c_str());
+  printf("%-40s:\t%s\n", "Filename for control residuals:", mResidFileName.c_str());
   printf("%-40s:\t%.3f\n", "Fraction of control tracks", mControlFrac);
   printf("MPData output :\t");
   if (getProduceMPData()) {
-    printf("%s%s ", mMPDatFileName.Data(), sMPDataExt);
+    printf("%s%s ", mMPDatFileName.c_str(), sMPDataExt);
   }
   if (getProduceMPRecord()) {
-    printf("%s%s ", mMPDatFileName.Data(), ".root");
+    printf("%s%s ", mMPDatFileName.c_str(), ".root");
   }
   printf("\n");
   //
   if (opts.Contains("stat")) {
     printStatistics();
+  }
+
+  if (opts.Contains("conf")) {
+    AlignConfig::Instance().printKeyValues(true);
   }
 }
 
@@ -1162,19 +1032,7 @@ void Controller::Print(const Option_t* opt) const
 void Controller::printStatistics() const
 {
   // print processing stat
-  printf("\nProcessing Statistics\n");
-  printf("Type: ");
-  for (int i = 0; i < kMaxStat; i++) {
-    printf("%s ", sStatName[i]);
-  }
-  printf("\n");
-  for (int icl = 0; icl < kNStatCl; icl++) {
-    printf("%s ", sStatClName[icl]);
-    for (int i = 0; i < kMaxStat; i++) {
-      printf(Form("%%%dd ", (int)strlen(sStatName[i])), (int)mStat[icl][i]);
-    }
-    printf("\n");
-  }
+  mStat.print();
 }
 
 //________________________________________________________
@@ -1182,9 +1040,11 @@ void Controller::resetDetectors()
 {
   // reset detectors for next track
   mRefPoint->Clear();
-  for (int idet = mNDet; idet--;) {
-    AlignableDetector* det = getDetector(idet);
-    det->resetPool(); // reset used alignment points
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    AlignableDetector* det = getDetector(id);
+    if (det) {
+      det->resetPool(); // reset used alignment points
+    }
   }
 }
 
@@ -1223,7 +1083,7 @@ bool Controller::testLocalSolution()
   //      int parI = offs + ipar;
   //      double err = Sqrt(expMatCov[ipar]);
   //      printf("Pnt:%3d MatVar:%d DOF %3d | %+.3e(%+.3e) -> sig:%+.3e -> pull: %+.2e\n",
-  //      	     ip,ipar,parI,vsl[parI],Sqrt((*mat)(parI,parI)), err,vsl[parI]/err);
+  //            ip,ipar,parI,vsl[parI],Sqrt((*mat)(parI,parI)), err,vsl[parI]/err);
   //    }
   //  }
   //  */
@@ -1265,7 +1125,7 @@ bool Controller::testLocalSolution()
 //        for (int parI = nlocpar; parI--;) {
 //          vec[parI] -= deriv[parI] * resid * sg2inv;
 //          //  printf("%d %d %d %+e %+e %+e -> %+e\n",ip,idim,parI,sg2inv,deriv[parI],resid,vec[parI]);
-//          //	  for (int parJ=nlocpar;parJ--;) {
+//          //   for (int parJ=nlocpar;parJ--;) {
 //          for (int parJ = parI + 1; parJ--;) {
 //            mat(parI, parJ) += deriv[parI] * deriv[parJ] * sg2inv;
 //          }
@@ -1284,7 +1144,7 @@ bool Controller::testLocalSolution()
 //      for (int ipar = 0; ipar < npm; ipar++) {
 //        int parI = offs + ipar;
 //        // expected
-//        //	vec[parI] -= expMatCorr[ipar]/expMatCov[ipar]; // consider expectation as measurement
+//        // vec[parI] -= expMatCorr[ipar]/expMatCov[ipar]; // consider expectation as measurement
 //        mat(parI, parI) += 1. / expMatCov[ipar]; // this measurement is orthogonal to all others
 //                                                 //printf("Pnt:%3d MatVar:%d DOF %3d | ExpVal: %+e Cov: %+e\n",ip,ipar,parI, expMatCorr[ipar], expMatCov[ipar]);
 //      }
@@ -1299,18 +1159,9 @@ bool Controller::testLocalSolution()
 void Controller::initMPRecOutput()
 {
   // prepare MP record output
-  if (!mMPRecord) {
-    mMPRecord = new Millepede2Record();
-  }
-  //
-  TString mo = Form("%s%s", mMPDatFileName.Data(), ".root");
-  mMPRecFile = TFile::Open(mo.Data(), "recreate");
-  if (!mMPRecFile) {
-    LOG(FATAL) << "Failed to create output file " << mo.Data();
-  }
-  //
-  mMPRecTree = new TTree("mpTree", "MPrecord Tree");
-  mMPRecTree->Branch("mprec", "Millepede2Record", &mMPRecord);
+  mMPRecFile.reset(TFile::Open(fmt::format("{}{}", mMPDatFileName, ".root").c_str(), "recreate"));
+  mMPRecTree = std::make_unique<TTree>("mpTree", "MPrecord Tree");
+  mMPRecTree->Branch("mprec", "Millepede2Record", &mMPRecordPtr);
   //
 }
 
@@ -1318,17 +1169,9 @@ void Controller::initMPRecOutput()
 void Controller::initResidOutput()
 {
   // prepare residual output
-  if (!mCResid) {
-    mCResid = new ResidualsController();
-  }
-  //
-  mResidFile = TFile::Open(mResidFileName.Data(), "recreate");
-  if (!mResidFile) {
-    LOG(FATAL) << "Failed to create output file " << mResidFileName.Data();
-  }
-  //
-  mResidTree = new TTree("res", "Control Residuals");
-  mResidTree->Branch("t", "ResidualsController", &mCResid);
+  mResidFile.reset(TFile::Open(mResidFileName.c_str(), "recreate"));
+  mResidTree = std::make_unique<TTree>("res", "Control Residuals");
+  mResidTree->Branch("t", "ResidualsController", &mCResidPtr);
   //
 }
 
@@ -1342,13 +1185,9 @@ void Controller::closeMPRecOutput()
   LOG(INFO) << "Closing " << mMPRecFile->GetName();
   mMPRecFile->cd();
   mMPRecTree->Write();
-  delete mMPRecTree;
-  mMPRecTree = nullptr;
+  mMPRecTree.reset();
   mMPRecFile->Close();
-  delete mMPRecFile;
-  mMPRecFile = nullptr;
-  delete mMPRecord;
-  mMPRecord = nullptr;
+  mMPRecFile.reset();
 }
 
 //____________________________________________
@@ -1361,13 +1200,10 @@ void Controller::closeResidOutput()
   LOG(INFO) << "Closing " << mResidFile->GetName();
   mResidFile->cd();
   mResidTree->Write();
-  delete mResidTree;
-  mResidTree = nullptr;
+  mResidTree.reset();
   mResidFile->Close();
-  delete mResidFile;
-  mResidFile = nullptr;
-  delete mCResid;
-  mCResid = nullptr;
+  mResidFile.reset();
+  mCResid.Clear();
 }
 
 //____________________________________________
@@ -1375,10 +1211,9 @@ void Controller::closeMilleOutput()
 {
   // close output
   if (mMille) {
-    LOG(INFO) << "Closing " << mMPDatFileName.Data() << sMPDataExt;
+    LOG(INFO) << "Closing " << mMPDatFileName.c_str() << sMPDataExt;
   }
-  delete mMille;
-  mMille = nullptr;
+  mMille.reset();
 }
 
 //____________________________________________
@@ -1386,14 +1221,7 @@ void Controller::setMPDatFileName(const char* name)
 {
   // set output file name
   mMPDatFileName = name;
-  // strip root or mille extensions, they will be added automatically later
-  if (mMPDatFileName.EndsWith(sMPDataExt)) {
-    mMPDatFileName.Remove(mMPDatFileName.Length() - strlen(sMPDataExt));
-  } else if (mMPDatFileName.EndsWith(".root")) {
-    mMPDatFileName.Remove(mMPDatFileName.Length() - strlen(".root"));
-  }
-  //
-  if (mMPDatFileName.IsNull()) {
+  if (mMPDatFileName.empty()) {
     mMPDatFileName = "mpData";
   }
   //
@@ -1404,7 +1232,7 @@ void Controller::setMPParFileName(const char* name)
 {
   // set MP params output file name
   mMPParFileName = name;
-  if (mMPParFileName.IsNull()) {
+  if (mMPParFileName.empty()) {
     mMPParFileName = "mpParams.txt";
   }
   //
@@ -1415,7 +1243,7 @@ void Controller::setMPConFileName(const char* name)
 {
   // set MP constraints output file name
   mMPConFileName = name;
-  if (mMPConFileName.IsNull()) {
+  if (mMPConFileName.empty()) {
     mMPConFileName = "mpConstraints.txt";
   }
   //
@@ -1426,7 +1254,7 @@ void Controller::setMPSteerFileName(const char* name)
 {
   // set MP constraints output file name
   mMPSteerFileName = name;
-  if (mMPSteerFileName.IsNull()) {
+  if (mMPSteerFileName.empty()) {
     mMPSteerFileName = "mpConstraints.txt";
   }
   //
@@ -1437,7 +1265,7 @@ void Controller::setResidFileName(const char* name)
 {
   // set output file name
   mResidFileName = name;
-  if (mResidFileName.IsNull()) {
+  if (mResidFileName.empty()) {
     mResidFileName = "mpControlRes.root";
   }
   //
@@ -1448,24 +1276,24 @@ void Controller::setOutCDBPath(const char* name)
 {
   // set output storage name
   mOutCDBPath = name;
-  if (mOutCDBPath.IsNull()) {
+  if (mOutCDBPath.empty()) {
     mOutCDBPath = "local://outOCDB";
   }
   //
 }
 
 //____________________________________________
-void Controller::setObligatoryDetector(int detID, int trtype, bool v)
+void Controller::setObligatoryDetector(DetID detID, int trtype, bool v)
 {
   // mark detector presence obligatory in the track of given type
-  AlignableDetector* det = getDetectorByDetID(detID);
+  AlignableDetector* det = getDetector(detID);
   if (!det) {
     LOG(ERROR) << "Detector " << detID << " is not defined";
   }
   if (v) {
-    mObligatoryDetPattern[trtype] |= 0x1 << detID;
+    mObligatoryDetPattern[trtype] |= detID.getMask();
   } else {
-    mObligatoryDetPattern[trtype] &= ~(0x1 << detID);
+    mObligatoryDetPattern[trtype] &= ~detID.getMask();
   }
   if (det->isObligatory(trtype) != v) {
     det->setObligatory(trtype, v);
@@ -1529,12 +1357,13 @@ bool Controller::addVertexConstraint()
 //{
 //  // writes output calibration
 //  CleanOCDB();
-//  AliCDBManager::Instance()->SetDefaultStorage(mOutCDBPath.Data());
+//  AliCDBManager::Instance()->SetDefaultStorage(mOutCDBPath.c_str());
 //  //
 //  AlignableDetector* det;
-//  for (int idet = 0; idet < kNDetectors; idet++) {
-//    if (!(det = getDetectorByDetID(idet)) || det->isDisabled()){
-//      continue;}
+//  for (auto id=DetID::First; id<=DetID::Last; id++) {
+//    if (!(det = getDetector(id)) || det->isDisabled()){
+//      continue;
+//    }
 //    det->writeCalibrationResults();
 //  }
 //  //
@@ -1562,14 +1391,14 @@ bool Controller::addVertexConstraint()
 //  CleanOCDB();
 //  AliCDBManager* man = AliCDBManager::Instance();
 //  //
-//  if (!mRefOCDBConf.IsNull() && !gSystem->AccessPathName(mRefOCDBConf.Data(), kFileExists)) {
-//    LOG(INFO) << "Executing reference OCDB setup macro %s", mRefOCDBConf.Data());
+//  if (!mRefOCDBConf.IsNull() && !gSystem->AccessPathName(mRefOCDBConf.c_str(), kFileExists)) {
+//    LOG(INFO) << "Executing reference OCDB setup macro %s", mRefOCDBConf.c_str());
 //    if (mRefRunNumber > 0){
-//      gROOT->ProcessLine(Form(".x %s(%d)", mRefOCDBConf.Data(), mRefRunNumber));}
+//      gROOT->ProcessLine(Form(".x %s(%d)", mRefOCDBConf.c_str(), mRefRunNumber));}
 //    else
-//      gROOT->ProcessLine(Form(".x %s", mRefOCDBConf.Data()));
+//      gROOT->ProcessLine(Form(".x %s", mRefOCDBConf.c_str()));
 //  } else {
-//    LOG(WARNING) << "No reference OCDB config macro "<<mRefOCDBConf.Data()<<" is found, assume raw:// with run " << AliCDBRunRange::Infinity();
+//    LOG(WARNING) << "No reference OCDB config macro "<<mRefOCDBConf.c_str()<<" is found, assume raw:// with run " << AliCDBRunRange::Infinity();
 //    man->SetRaw(true);
 //    man->SetRun(AliCDBRunRange::Infinity());
 //  }
@@ -1587,7 +1416,7 @@ bool Controller::addVertexConstraint()
 //    detList += getDetNameByDetID(i);
 //    detList += " ";
 //  }
-//  AliGeomManager::ApplyAlignObjsFromCDB(detList.Data());
+//  AliGeomManager::ApplyAlignObjsFromCDB(detList.c_str());
 //  //
 //  mRefOCDBLoaded++;
 //  //
@@ -1598,9 +1427,9 @@ bool Controller::addVertexConstraint()
 AlignableDetector* Controller::getDetOfDOFID(int id) const
 {
   // return detector owning DOF with this ID
-  for (int i = mNDet; i--;) {
-    AlignableDetector* det = getDetector(i);
-    if (det->ownsDOFID(id)) {
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    AlignableDetector* det = getDetector(id);
+    if (det && det->ownsDOFID(id)) {
       return det;
     }
   }
@@ -1611,14 +1440,14 @@ AlignableDetector* Controller::getDetOfDOFID(int id) const
 AlignableVolume* Controller::getVolOfDOFID(int id) const
 {
   // return volume owning DOF with this ID
-  for (int i = mNDet; i--;) {
-    AlignableDetector* det = getDetector(i);
-    if (det->ownsDOFID(id)) {
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    AlignableDetector* det = getDetector(id);
+    if (det && det->ownsDOFID(id)) {
       return det->getVolOfDOFID(id);
     }
   }
   if (mVtxSens && mVtxSens->ownsDOFID(id)) {
-    return mVtxSens;
+    return mVtxSens.get();
   }
   return nullptr;
 }
@@ -1631,17 +1460,15 @@ void Controller::terminate(bool doStat)
     fillStatHisto(kRunDone);
   }
   if (doStat) {
-    if (mDOFStat) {
-      delete mDOFStat;
+    if (mVtxSens) {
+      mVtxSens->fillDOFStat(mDOFStat);
     }
-    mDOFStat = new DOFStatistics(mNDOFs);
-  }
-  if (mVtxSens) {
-    mVtxSens->fillDOFStat(mDOFStat);
   }
   //
-  for (int i = mNDet; i--;) {
-    getDetector(i)->terminate();
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    if (getDetector(id)) {
+      getDetector(id)->terminate();
+    }
   }
   closeMPRecOutput();
   closeMilleOutput();
@@ -1686,16 +1513,16 @@ void Controller::genPedeSteerFile(const Option_t* opt) const
   TString opts = opt;
   opts.ToLower();
   LOG(INFO) << "Generating MP2 templates:\n "
-            << "Steering   :\t" << mMPSteerFileName.Data() << "\n"
-            << "Parameters :\t" << mMPParFileName.Data() << "\n"
-            << "Constraints:\t" << mMPConFileName.Data() << "\n";
+            << "Steering   :\t" << mMPSteerFileName << "\n"
+            << "Parameters :\t" << mMPParFileName << "\n"
+            << "Constraints:\t" << mMPConFileName << "\n";
   //
-  FILE* parFl = fopen(mMPParFileName.Data(), "w+");
-  FILE* strFl = fopen(mMPSteerFileName.Data(), "w+");
+  FILE* parFl = fopen(mMPParFileName.c_str(), "w+");
+  FILE* strFl = fopen(mMPSteerFileName.c_str(), "w+");
   //
   // --- template of steering file
-  fprintf(strFl, "%-20s%s %s\n", mMPParFileName.Data(), cmt[kOnOn], "parameters template");
-  fprintf(strFl, "%-20s%s %s\n", mMPConFileName.Data(), cmt[kOnOn], "constraints template");
+  fprintf(strFl, "%-20s%s %s\n", mMPParFileName.c_str(), cmt[kOnOn], "parameters template");
+  fprintf(strFl, "%-20s%s %s\n", mMPConFileName.c_str(), cmt[kOnOn], "constraints template");
   //
   fprintf(strFl, "\n\n%s %s\n", cmt[kOnOn], "MUST uncomment 1 solving methods and tune it");
   //
@@ -1725,8 +1552,8 @@ void Controller::genPedeSteerFile(const Option_t* opt) const
     mVtxSens->writePedeInfo(parFl, opt);
   }
   //
-  for (int idt = 0; idt < kNDetectors; idt++) {
-    AlignableDetector* det = getDetectorByDetID(idt);
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    AlignableDetector* det = getDetector(id);
     if (!det || det->isDisabled()) {
       continue;
     }
@@ -1745,17 +1572,17 @@ void Controller::genPedeSteerFile(const Option_t* opt) const
 bool Controller::readParameters(const char* parfile, bool useErrors)
 {
   // read parameters file (millepede output)
-  if (mNDOFs < 1 || !mGloParVal || !mGloParErr) {
-    LOG(ERROR) << "Something is wrong in init: mNDOFs=" << mNDOFs << " mGloParVal=" << mGloParVal << " mGloParErr=" << mGloParErr;
+  if (mNDOFs < 1 || mGloParVal.size() || mGloParErr.size()) {
+    LOG(ERROR) << "Something is wrong in init: mNDOFs=" << mNDOFs << " N GloParVal=" << mGloParVal.size() << " N GloParErr=" << mGloParErr.size();
   }
   ifstream inpf(parfile);
   if (!inpf.good()) {
     printf("Failed on input filename %s\n", parfile);
     return false;
   }
-  memset(mGloParVal, 0, mNDOFs * sizeof(float));
+  mGloParVal.resize(mNDOFs);
   if (useErrors) {
-    memset(mGloParErr, 0, mNDOFs * sizeof(float));
+    mGloParErr.resize(mNDOFs);
   }
   int cnt = 0;
   TString fline;
@@ -1763,8 +1590,7 @@ bool Controller::readParameters(const char* parfile, bool useErrors)
   fline = fline.Strip(TString::kBoth, ' ');
   fline.ToLower();
   if (!fline.BeginsWith("parameter")) {
-    LOG(ERROR) << "First line is not parameter keyword:\n"
-               << fline.Data();
+    LOG(ERROR) << "First line is not parameter keyword: " << fline.Data();
     return false;
   }
   double v0, v1, v2;
@@ -1932,7 +1758,7 @@ void Controller::printLabels() const
 int Controller::label2ParID(int lab) const
 {
   // convert Mille label to ParID (slow)
-  int ind = findKeyIndex(lab, mOrderedLbl, mNDOFs);
+  int ind = 0; // FIXME RS TODO // findKeyIndex(lab, mOrderedLbl, mNDOFs);
   if (ind < 0) {
     return -1;
   }
@@ -1943,9 +1769,9 @@ int Controller::label2ParID(int lab) const
 void Controller::addAutoConstraints()
 {
   // add default constraints on children cumulative corrections within the volumes
-  for (int idet = 0; idet < mNDet; idet++) {
-    AlignableDetector* det = getDetector(idet);
-    if (det->isDisabled()) {
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    AlignableDetector* det = getDetector(id);
+    if (!det || det->isDisabled()) {
       continue;
     }
     det->addAutoConstraints();
@@ -1957,7 +1783,7 @@ void Controller::addAutoConstraints()
 void Controller::writePedeConstraints() const
 {
   // write constraints file
-  FILE* conFl = fopen(mMPConFileName.Data(), "w+");
+  FILE* conFl = fopen(mMPConFileName.c_str(), "w+");
   //
   int nconstr = getNConstraints();
   for (int icon = 0; icon < nconstr; icon++) {
@@ -1972,16 +1798,12 @@ void Controller::fixLowStatFromDOFStat(int thresh)
 {
   // fix DOFs having stat below threshold
   //
-  if (!mDOFStat) {
-    LOG(ERROR) << "No object with DOFs statistics";
-    return;
-  }
-  if (mNDOFs != mDOFStat->getNDOFs()) {
-    LOG(ERROR) << "Discrepancy between NDOFs=" << mNDOFs << " of and statistics object: " << mDOFStat->getNDOFs();
+  if (mNDOFs != mDOFStat.getNDOFs()) {
+    LOG(ERROR) << "Discrepancy between NDOFs=" << mNDOFs << " of and statistics object: " << mDOFStat.getNDOFs();
     return;
   }
   for (int parID = 0; parID < mNDOFs; parID++) {
-    if (mDOFStat->getStat(parID) >= thresh) {
+    if (mDOFStat.getStat(parID) >= thresh) {
       continue;
     }
     mGloParErr[parID] = -999.;
@@ -2024,7 +1846,7 @@ void Controller::loadStat(const char* flname)
   }
   //
   setHistoStat(hst);
-  setDOFStat(dofSt);
+  setDOFStat(*dofSt); // FIXME RS TODO
   //
   fl->Close();
   delete fl;
@@ -2357,8 +2179,8 @@ void Controller::applyAlignmentFromMPSol()
 {
   // apply alignment from millepede solution array to reference alignment level
   LOG(INFO) << "Applying alignment from Millepede solution";
-  for (int idt = 0; idt < kNDetectors; idt++) {
-    AlignableDetector* det = getDetectorByDetID(idt);
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    AlignableDetector* det = getDetector(id);
     if (!det || det->isDisabled()) {
       continue;
     }
@@ -2366,6 +2188,19 @@ void Controller::applyAlignmentFromMPSol()
   }
   setMPAlignDone();
   //
+}
+
+//______________________________________________
+void Controller::expandGlobalsBy(int n)
+{
+  // expand global param contaiers by n
+  int snew = n + mGloParVal.size();
+  mGloParVal.resize(snew);
+  mGloParErr.resize(snew);
+  mGloParLab.resize(snew);
+  mOrderedLbl.resize(snew);
+  mLbl2ID.resize(snew);
+  mNDOFs += n;
 }
 
 } // namespace align

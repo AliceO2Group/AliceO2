@@ -76,7 +76,7 @@
 #define ALICEO2_TPC_KrBoxClusterFinder_H_
 
 #include "DataFormatsTPC/Digit.h"
-#include "TPCReconstruction/KrCluster.h"
+#include "DataFormatsTPC/KrCluster.h"
 #include "TPCReconstruction/KrBoxClusterFinderParam.h"
 
 #include "TPCBase/Mapper.h"
@@ -87,6 +87,7 @@
 #include <vector>
 #include <array>
 #include <deque>
+#include <gsl/span>
 
 namespace o2
 {
@@ -171,14 +172,17 @@ class KrBoxClusterFinder
     mMaxClusterSizeTime = maxClusterSizeTime;
   }
 
-  void fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue);
-  void resetADCMap();
+  void loopOverSector(const gsl::span<const Digit> eventSector, const int sector);
 
-  void loopOverSector(std::vector<o2::tpc::Digit>& eventSector, const int sector);
+  void loopOverSector(const std::vector<Digit>& eventSector, const int sector)
+  {
+    loopOverSector(gsl::span(eventSector.data(), eventSector.size()), sector);
+  }
 
  private:
   // These variables can be varied
   // They were choses such that the box in each readout chamber is approx. the same size
+  // NOTE: They will be overwritten by the values in KrBoxClusterFinderParam in case the init() function is called
   int mMaxClusterSizeTime = 3; ///< The "radius" of a cluster in time direction
   int mMaxClusterSizeRow;      ///< The "radius" of a cluster in row direction
   int mMaxClusterSizePad;      ///< The "radius" of a cluster in pad direction
@@ -196,6 +200,18 @@ class KrBoxClusterFinder
   float mQThresholdMax = 30.0;    ///< the Maximum charge in a cluster must exceed this value or it is discarded
   float mQThreshold = 1.0;        ///< every charge which is added to a cluster must exceed this value or it is discarded
   int mMinNumberOfNeighbours = 2; ///< amount of direct neighbours required for a cluster maximum
+
+  float mCutMinSigmaTime{0};      ///< Min sigma time to accept cluster
+  float mCutMaxSigmaTime{1000};   ///< Min sigma time to accept cluster
+  float mCutMinSigmaPad{0};       ///< Min sigma pad to accept cluster
+  float mCutMaxSigmaPad{1000};    ///< Min sigma pad to accept cluster
+  float mCutMinSigmaRow{0};       ///< Min sigma row to accept cluster
+  float mCutMaxSigmaRow{1000};    ///< Min sigma row to accept cluster
+  float mCutMaxQtot{1e10};        ///< Max Qtot to accept cluster
+  float mCutQtot0{1e10};          ///< Max Qtot at zero size for Qtot vs. size correlation cut
+  float mCutQtotSizeSlope{0};     ///< Max Qtot over size slope for Qtot vs. size correlation cut
+  unsigned char mCutMaxSize{255}; ///< Max cluster size in number of digits
+  bool mApplyCuts{false};         ///< if to apply cluster cuts above
 
   int mSector = -1;                 ///< sector being processed in this instance
   std::unique_ptr<CalPad> mGainMap; ///< Gain map object
@@ -243,10 +259,22 @@ class KrBoxClusterFinder
   /// Time slice four is the interesting one. In there, local maxima are found and clusters are built from it. After it is processed, timeslice number 1 will be dropped and another timeslice will be put at the end of the set.
   std::deque<TimeSliceSector> mSetOfTimeSlices{};
 
-  void createInitialMap(std::vector<o2::tpc::Digit>& eventSector);
-  void popFirstTimeSliceFromMap();
+  /// pre-store if complete time bins and rows within time bins have charges above mQThresholdMax
+  struct ThresholdInfo {
+    bool digitAboveThreshold{};
+    std::array<bool, MaxRows> rowAboveThreshold{};
+  };
+
+  std::deque<ThresholdInfo> mThresholdInfo{};
+
+  void createInitialMap(const gsl::span<const Digit> eventSector);
+  void popFirstTimeSliceFromMap()
+  {
+    mSetOfTimeSlices.pop_front();
+    mThresholdInfo.pop_front();
+  }
   void fillADCValueInLastSlice(int cru, int rowInSector, int padInRow, float adcValue);
-  void addTimeSlice(std::vector<o2::tpc::Digit>& eventSector, const int timeSlice);
+  void addTimeSlice(const gsl::span<const Digit> eventSector, const int timeSlice);
 
   /// For each ROC, the maximum cluster size has to be chosen
   void setMaxClusterSize(int row);
@@ -258,6 +286,9 @@ class KrBoxClusterFinder
 
   /// Returns sign of val (in a crazy way)
   int signnum(int val) { return (0 < val) - (val < 0); }
+
+  /// Cluster acceptance cuts
+  bool acceptCluster(const KrCluster& cl);
 
   ClassDefNV(KrBoxClusterFinder, 0);
 };

@@ -30,7 +30,6 @@
 #include "TRDSimulation/Trap2CRU.h"
 #include "TRDSimulation/TrapSimulator.h"
 #include "CommonUtils/StringUtils.h"
-#include "TRDBase/CommonParam.h"
 #include "TFile.h"
 #include "TTree.h"
 #include <TStopwatch.h>
@@ -573,7 +572,7 @@ int Trap2CRU::writeDigitHCHeader(const int eventcount, const uint32_t linkid)
   digitheader.supermodule = linkid / 60;
   digitheader.numberHCW = 1; // number of additional words in th header, we are using 2 header words so 1 here.
   digitheader.minor = 42;    // my (shtm) version, not used
-  digitheader.major = 4;     // zero suppressed
+  digitheader.major = 0x20;  // zero suppressed
   digitheader.version = 1;   //new version of the header. we only have 1 version
   digitheader.res1 = 1;
   digitheader.ptrigcount = 1;             //TODO put something more real in here?
@@ -661,10 +660,16 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
       if (isTrackletOnLink(linkid, mCurrentTracklet) || isDigitOnLink(linkid, mCurrentDigit)) {
         // we have some data somewhere for this link
         //write tracklet half chamber header irrespective of there being tracklet data
-        int hcheaderwords = writeTrackletHCHeader(triggercount, linkid);
-        linkwordswritten += hcheaderwords;
-        rawwords += hcheaderwords;
-
+        if (mUseTrackletHCHeader != 0) {
+          if (isTrackletOnLink(linkid, mCurrentTracklet) || mUseTrackletHCHeader == 2) {
+            //write tracklethcheader if there is tracklet data or if we always have tracklethcheader
+            //first part of the if statement handles the mUseTrackletHCHeader==1 option
+            int hcheaderwords = writeTrackletHCHeader(triggercount, linkid);
+            linkwordswritten += hcheaderwords;
+            rawwords += hcheaderwords;
+          }
+          //else do nothing as we dont want/have tracklethcheader
+        }
         while (isTrackletOnLink(linkid, mCurrentTracklet) && mCurrentTracklet < endtrackletindex) {
           // still on an mcm on this link
           tracklets = buildTrackletRawData(mCurrentTracklet, linkid); //returns # of 32 bits, header plus trackletdata words that would have come from the mcm.
@@ -683,7 +688,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
         adccounter = 0;
         rawwordsbefore = rawwords;
         //always write the digit hc header
-        hcheaderwords = writeDigitHCHeader(triggercount, linkid);
+        int hcheaderwords = writeDigitHCHeader(triggercount, linkid);
         linkwordswritten += hcheaderwords;
         rawwords += hcheaderwords;
         //although if there are trackelts there better be some digits unless the digits are switched off.
