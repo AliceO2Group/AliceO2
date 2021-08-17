@@ -33,9 +33,9 @@ using namespace o2::aod::hf_cand_prong2;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
-  {"doMC", VariantType::Bool, true, {"Fill MC histograms."}},
-  {"dimu-sel", VariantType::Bool, true, {"Enable Jpsi dimuon decay channel"}},
-  {"diel-sel", VariantType::Bool, true, {"Enable Jpsi dieletron decay channel"}}};
+    {"doMC", VariantType::Bool, true, {"Fill MC histograms."}},
+    {"dimu-sel", VariantType::Bool, true, {"Enable Jpsi dimuon decay channel"}},
+    {"diel-sel", VariantType::Bool, true, {"Enable Jpsi dieletron decay channel"}}};
   std::swap(workflowOptions, options);
 }
 
@@ -237,10 +237,10 @@ struct TaskXMC {
         registry.fill(HIST("hQSig"), InvQXToJpsiPiPi(candidate), candidate.pt());
         registry.fill(HIST("hDPhiJpsiPiPosSig"), DeltaPhiXToJpsiPiPos(candidate), candidate.pt());
         registry.fill(HIST("hDEtaJpsiPiPosSig"), DeltaEtaXToJpsiPiPos(candidate), candidate.pt());
-	      registry.fill(HIST("hDRJpsiPiPosSig"), DeltaRXToJpsiPiPos(candidate), candidate.pt());
+	registry.fill(HIST("hDRJpsiPiPosSig"), DeltaRXToJpsiPiPos(candidate), candidate.pt());
         registry.fill(HIST("hDPhiJpsiPiNegSig"), DeltaPhiXToJpsiPiNeg(candidate), candidate.pt());
         registry.fill(HIST("hDEtaJpsiPiNegSig"), DeltaEtaXToJpsiPiNeg(candidate), candidate.pt());
-	      registry.fill(HIST("hDRJpsiPiNegSig"), DeltaRXToJpsiPiNeg(candidate), candidate.pt());
+	registry.fill(HIST("hDRJpsiPiNegSig"), DeltaRXToJpsiPiNeg(candidate), candidate.pt());
         registry.fill(HIST("hPhiJpsiSig"), RecoDecay::Phi(candidate.pxProng0(), candidate.pyProng0()), candidate.pt());
         registry.fill(HIST("hPhiPiPosSig"), RecoDecay::Phi(candidate.pxProng1(), candidate.pyProng1()), candidate.pt());
         registry.fill(HIST("hPhiPiNegSig"), RecoDecay::Phi(candidate.pxProng2(), candidate.pyProng2()), candidate.pt());
@@ -266,10 +266,10 @@ struct TaskXMC {
         registry.fill(HIST("hQBg"), InvQXToJpsiPiPi(candidate), candidate.pt());
         registry.fill(HIST("hDPhiJpsiPiPosBg"), DeltaPhiXToJpsiPiPos(candidate), candidate.pt());
         registry.fill(HIST("hDEtaJpsiPiPosBg"), DeltaEtaXToJpsiPiPos(candidate), candidate.pt());
-	      registry.fill(HIST("hDRJpsiPiPosBg"), DeltaRXToJpsiPiPos(candidate), candidate.pt());
+	registry.fill(HIST("hDRJpsiPiPosBg"), DeltaRXToJpsiPiPos(candidate), candidate.pt());
         registry.fill(HIST("hDPhiJpsiPiNegBg"), DeltaPhiXToJpsiPiNeg(candidate), candidate.pt());
         registry.fill(HIST("hDEtaJpsiPiNegBg"), DeltaEtaXToJpsiPiNeg(candidate), candidate.pt());
-	      registry.fill(HIST("hDRJpsiPiNegBg"), DeltaRXToJpsiPiNeg(candidate), candidate.pt());
+	registry.fill(HIST("hDRJpsiPiNegBg"), DeltaRXToJpsiPiNeg(candidate), candidate.pt());
         registry.fill(HIST("hPhiJpsiBg"), RecoDecay::Phi(candidate.pxProng0(), candidate.pyProng0()), candidate.pt());
         registry.fill(HIST("hPhiPiPosBg"), RecoDecay::Phi(candidate.pxProng1(), candidate.pyProng1()), candidate.pt());
         registry.fill(HIST("hPhiPiNegBg"), RecoDecay::Phi(candidate.pxProng2(), candidate.pyProng2()), candidate.pt());
@@ -309,17 +309,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // Enable to run simultaneously e+e- and mu+mu-
   const bool doMC = cfgc.options().get<bool>("doMC");
   WorkflowSpec w;
-   if (cfgc.options().get<bool>("diel-sel")) {
-     w.push_back(adaptAnalysisTask<TaskX>(cfgc, TaskName{"hf-task-x-elel"}));
-     if (doMC) {
-       w.push_back(adaptAnalysisTask<TaskXMC>(cfgc, TaskName{"hf-task-x-mc-elel"}));
-     }
-   }
-   if (cfgc.options().get<bool>("dimu-sel")) {
-     w.push_back(adaptAnalysisTask<TaskX>(cfgc, TaskName{"hf-task-x-mumu"}));
-     if (doMC) {
-       w.push_back(adaptAnalysisTask<TaskXMC>(cfgc, TaskName{"hf-task-x-mc-mumu"}));
-     }
-   }
-   return w;
+  if (cfgc.options().get<bool>("diel-sel")) {
+    w.push_back(adaptAnalysisTask<TaskX>(cfgc, TaskName{"hf-task-x-elel"}));
+    if (doMC) {
+      w.push_back(adaptAnalysisTask<TaskXMC>(cfgc, TaskName{"hf-task-x-mc-elel"}));
+    }
+  }
+  if (cfgc.options().get<bool>("dimu-sel")) {
+    w.push_back(adaptAnalysisTask<TaskX>(cfgc, TaskName{"hf-task-x-mumu"}));
+    if (doMC) {
+      w.push_back(adaptAnalysisTask<TaskXMC>(cfgc, TaskName{"hf-task-x-mc-mumu"}));
+    }
+  }
+  return w;
 }

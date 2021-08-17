@@ -193,9 +193,9 @@ struct HFCandidateCreatorX {
           int hfFlag = 0;
 
           if (jpsiCand.hfflag() & 1 << JpsiToMuMu) {
-            hfFlag = 1 << XToJpsiToMuMuPiPi;                                    // dimuon channel
+            hfFlag = 1 << XToJpsiToMuMuPiPi; // dimuon channel
           } else {
-            hfFlag = 1 << XToJpsiPiPi;                                          // dielectron channel
+            hfFlag = 1 << XToJpsiPiPi; // dielectron channel
           }
 
           if (jpsiCand.isSelJpsiToEE() > 0) {

@@ -672,8 +672,8 @@ auto DeltaPhiXToJpsiPiPos(const T& candidate)
   double deltaPhiPos = std::abs(phiJpsi - phiPiPos);
 
   if (deltaPhiPos > g_Pi) {
-		deltaPhiPos = 2 * g_Pi - deltaPhiPos;
-	}
+    deltaPhiPos = 2 * g_Pi - deltaPhiPos;
+  }
 
   return deltaPhiPos;
 }
@@ -685,9 +685,9 @@ auto DeltaPhiXToJpsiPiNeg(const T& candidate)
   double phiPiNeg = RecoDecay::Phi(candidate.pxProng2(), candidate.pyProng2());
 
   double deltaPhiNeg = std::abs(phiJpsi - phiPiNeg);
-	if (deltaPhiNeg > g_Pi) {
-		deltaPhiNeg = 2 * g_Pi - deltaPhiNeg;
-	}
+  if (deltaPhiNeg > g_Pi) {
+    deltaPhiNeg = 2 * g_Pi - deltaPhiNeg;
+  }
 
   return deltaPhiNeg;
 }
@@ -721,9 +721,9 @@ auto DeltaRXToJpsiPiPos(const T& candidate)
 
   double deltaEtaPos = etaJpsi - etaPiPos;
   double deltaPhiPos = std::abs(phiJpsi - phiPiPos);
-	if (deltaPhiPos > g_Pi) {
-		deltaPhiPos = 2 * g_Pi - deltaPhiPos;
-	}
+  if (deltaPhiPos > g_Pi) {
+    deltaPhiPos = 2 * g_Pi - deltaPhiPos;
+  }
 
   double deltaRPos = std::sqrt(deltaEtaPos * deltaEtaPos + deltaPhiPos * deltaPhiPos);
   return deltaRPos;
@@ -740,9 +740,9 @@ auto DeltaRXToJpsiPiNeg(const T& candidate)
 
   double deltaEtaNeg = etaJpsi - etaPiNeg;
   double deltaPhiNeg = std::abs(phiJpsi - phiPiNeg);
-	if (deltaPhiNeg > g_Pi) {
-		deltaPhiNeg = 2 * g_Pi - deltaPhiNeg;
-	}
+  if (deltaPhiNeg > g_Pi) {
+    deltaPhiNeg = 2 * g_Pi - deltaPhiNeg;
+  }
 
   double deltaRNeg = std::sqrt(deltaEtaNeg * deltaEtaNeg + deltaPhiNeg * deltaPhiNeg);
   return deltaRNeg;

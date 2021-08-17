@@ -99,17 +99,17 @@ struct HFXToJpsiPiPiCandidateSelector {
 
     // add more cuts: d0 product? PCA?
     // Cut on Q of the X candidate as reported in https://arxiv.org/pdf/1112.5310.pdf
-    if (InvQXToJpsiPiPi(hfCandX) >  cuts->get(pTBin, "Q value")) {
+    if (InvQXToJpsiPiPi(hfCandX) > cuts->get(pTBin, "Q value")) {
       return false;
     }
 
     // Cut on Delta R (Jpsi - pi+)
-    if (DeltaRXToJpsiPiPos(hfCandX) >  cuts->get(pTBin, "Delta R")) {
+    if (DeltaRXToJpsiPiPos(hfCandX) > cuts->get(pTBin, "Delta R")) {
       return false;
     }
 
     // Cut on Delta R (Jpsi - pi-)
-    if (DeltaRXToJpsiPiNeg(hfCandX) >  cuts->get(pTBin, "Delta R")) {
+    if (DeltaRXToJpsiPiNeg(hfCandX) > cuts->get(pTBin, "Delta R")) {
       return false;
     }
 
@@ -210,9 +210,9 @@ struct HFXToJpsiPiPiCandidateSelector {
 
       // check if flagged as X --> Jpsi Pi Pi
       //if (!(hfCandX.hfflag() & 1 << XToJpsiPiPi)) {
-        //hfSelXToJpsiPiPiCandidate(0, 0);
-        // Printf("X candidate selection failed at hfflag check");
-        //continue;
+      //hfSelXToJpsiPiPiCandidate(0, 0);
+      // Printf("X candidate selection failed at hfflag check");
+      //continue;
       //}
 
       if (!(hfCandX.hfflag() & 1 << XToJpsiPiPi)) {
