@@ -50,7 +50,7 @@ struct HfCandidateCreatorBplus {
   Configurable<double> bz{"bz", 5., "magnetic field"};
   Configurable<bool> propdca{"propdca", true, "create tracks version propagated to PCA"};
   Configurable<double> maxr{"maxr", 5., "reject PCA's above this radius"};
-  Configurable<double> maxdzini{"maxdzini",999, "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
+  Configurable<double> maxdzini{"maxdzini", 999, "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
   Configurable<double> minparamchange{"minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> minrelchi2change{"minrelchi2change", 0.9, "stop iterations if chi2/chi2old > this"};
   Configurable<bool> UseAbsDCA{"UseAbsDCA", true, "Use Abs DCAs"};
@@ -139,7 +139,7 @@ struct HfCandidateCreatorBplus {
           continue;
         }
 
-	hPiEta->Fill(track.eta());
+        hPiEta->Fill(track.eta());
 
         if (candidate.index0Id() == track.globalIndex() || candidate.index1Id() == track.globalIndex()) {
           continue; //daughter track id and bachelor track id not the same

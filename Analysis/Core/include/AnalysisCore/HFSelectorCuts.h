@@ -30,7 +30,7 @@ enum Code {
   kLambdaCPlus = 4122,
   kXiCPlus = 4232,
   kJpsi = 443,
-  kBPlus = 521
+  kBPlus = 521,
   kX3872 = 9920443
 };
 } // namespace pdg
@@ -482,7 +482,7 @@ static const std::vector<std::string> pTBinLabels = {
   "pT bin 11"};
 
 // column labels
-static const std::vector<std::string> cutVarLabels = {"m", "CPA", "d0 D0", "d0 Pi", "pT D0", "pT Pi", "B decLen","B decLenXY" ,"Imp. Par. Product", "DeltaMD0", "Cos ThetaStar"};
+static const std::vector<std::string> cutVarLabels = {"m", "CPA", "d0 D0", "d0 Pi", "pT D0", "pT Pi", "B decLen", "B decLenXY", "Imp. Par. Product", "DeltaMD0", "Cos ThetaStar"};
 } // namespace hf_cuts_bplus_tod0pi
 
 namespace hf_cuts_x_tojpsipipi

@@ -96,15 +96,15 @@ struct HfTaskBplus {
       registry.fill(HIST("hd0Prong1"), candidate.impactParameter1(), candidate.pt());
       registry.fill(HIST("hCPA"), candidate.cpa(), candidate.pt());
       registry.fill(HIST("hEta"), candidate.eta(), candidate.pt());
-      registry.fill(HIST("hRapidity"),YBPlus(candidate), candidate.pt());
+      registry.fill(HIST("hRapidity"), YBPlus(candidate), candidate.pt());
       registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter0(), candidate.pt());
       registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter1(), candidate.pt());
       registry.fill(HIST("hDecLenErr"), candidate.errorDecayLength(), candidate.pt());
       registry.fill(HIST("hDecLenXYErr"), candidate.errorDecayLengthXY(), candidate.pt());
-      if(pion.sign() > 0)
-         registry.fill(HIST("hInvMassD0"), InvMassD0bar(D0cand), candidate.pt());
-      if(pion.sign() < 0)
-         registry.fill(HIST("hInvMassD0"), InvMassD0(D0cand), candidate.pt());
+      if (pion.sign() > 0)
+        registry.fill(HIST("hInvMassD0"), InvMassD0bar(D0cand), candidate.pt());
+      if (pion.sign() < 0)
+        registry.fill(HIST("hInvMassD0"), InvMassD0(D0cand), candidate.pt());
     } // candidate loop
   }   // process
 };    // struct
