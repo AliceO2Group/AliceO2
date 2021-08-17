@@ -143,3 +143,8 @@ o2_add_dpl_workflow(hf-task-correlation-ddbar
                     SOURCES taskCorrelationDDbar.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(hf-sel-optimisation
+                    SOURCES HFSelOptimisation.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
+                    COMPONENT_NAME Analysis)
