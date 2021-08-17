@@ -36,7 +36,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
                                             auto& aData = outputs.make<int>(OutputRef{"a"});
                                             LOG(info) << count;
                                             aData = count++;
-                                            if (count > 3000) {
+                                            if (count > 1000) {
                                               control.endOfStream();
                                               control.readyToQuit(QuitRequest::Me);
                                             }
