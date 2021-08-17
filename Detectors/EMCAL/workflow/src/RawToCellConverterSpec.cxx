@@ -9,6 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <string>
+#include <iostream>
+#include <bitset>
 
 #include <InfoLogger/InfoLogger.hxx>
 
@@ -217,6 +219,12 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         LOG(DEBUG4) << decoder.getRCUTrailer();
       }
       // Apply zero suppression only in case it was enabled
+      std::cout << "ALTRO CFG1" << std::bitset<32>(decoder.getRCUTrailer().getAltroCFGReg1()) << ", CFG2: " << std::bitset<32>(decoder.getRCUTrailer().getAltroCFGReg2()) << std::endl;
+      if (decoder.getRCUTrailer().hasZeroSuppression()) {
+        std::cout << "Zero suppression enabled" << std::endl;
+      } else {
+        std::cout << "Zero suppression disabled" << std::endl;
+      }
       mRawFitter->setIsZeroSuppressed(decoder.getRCUTrailer().hasZeroSuppression());
 
       const auto& map = mMapper->getMappingForDDL(feeID);
@@ -302,7 +310,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
         CaloFitResults fitResults;
         try {
-          fitResults = mRawFitter->evaluate(chan.getBunches(), 0, 0);
+          fitResults = mRawFitter->evaluate(chan.getBunches());
           // Prevent negative entries - we should no longer get here as the raw fit usually will end in an error state
           if (fitResults.getAmp() < 0) {
             fitResults.setAmp(0.);

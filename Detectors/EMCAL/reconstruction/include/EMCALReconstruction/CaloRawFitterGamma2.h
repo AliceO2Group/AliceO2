@@ -58,9 +58,7 @@ class CaloRawFitterGamma2 final : public CaloRawFitter
   /// \param altrocfg2 ALTRO config register 2 from RCU trailer
   /// \throw RawFitterError_t::FIT_ERROR in case the peak fit failed
   /// \return Container with the fit results (amp, time, chi2, ...)
-  CaloFitResults evaluate(const gsl::span<const Bunch> bunchvector,
-                          std::optional<unsigned int> altrocfg1,
-                          std::optional<unsigned int> altrocfg2) final;
+  CaloFitResults evaluate(const gsl::span<const Bunch> bunchvector) final;
 
  private:
   int mNiter = 0;           ///< number of iteraions
