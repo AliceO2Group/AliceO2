@@ -50,7 +50,7 @@ struct HfCandidateCreatorBplus {
   Configurable<double> bz{"bz", 5., "magnetic field"};
   Configurable<bool> propdca{"propdca", true, "create tracks version propagated to PCA"};
   Configurable<double> maxr{"maxr", 5., "reject PCA's above this radius"};
-  Configurable<double> maxdzini{"maxdzini", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
+  Configurable<double> maxdzini{"maxdzini",999, "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
   Configurable<double> minparamchange{"minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> minrelchi2change{"minrelchi2change", 0.9, "stop iterations if chi2/chi2old > this"};
   Configurable<bool> UseAbsDCA{"UseAbsDCA", true, "Use Abs DCAs"};
@@ -58,11 +58,13 @@ struct HfCandidateCreatorBplus {
   OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "2-prong candidates;XX element of cov. matrix of prim. vtx. position (cm^{2});entries", 100, 0., 1.e-4)};
   OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "2-prong candidates;XX element of cov. matrix of sec. vtx. position (cm^{2});entries", 100, 0., 0.2)};
   OutputObj<TH1F> hNevents{TH1F("hNevents", "Number of events;Nevents;entries", 1, 0., 1)};
+  OutputObj<TH1F> hD0Rapidity{TH1F("hD0Rapidity", "D0 candidates;#it{y};entries", 100, -2, 2)};
+  OutputObj<TH1F> hPiEta{TH1F("hPiEta", "Pion track;#it{#eta};entries", 400, 2, 2)};
 
   Configurable<int> selectionFlagD0{"selectionFlagD0", 1, "Selection Flag for D0"};
   Configurable<int> selectionFlagD0bar{"selectionFlagD0bar", 1, "Selection Flag for D0bar"};
-  Configurable<double> cutYCandMax{"cutYCandMax", 1., "max. cand. rapidity"};
-  Configurable<double> cutEtaTrkMax{"cutEtaTrkMax", 1.44, "max. bach track. pseudorapidity"};
+  Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
+  Configurable<double> cutEtaTrkMax{"cutEtaTrkMax", -1, "max. bach track. pseudorapidity"};
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= selectionFlagD0bar);
 
@@ -97,6 +99,8 @@ struct HfCandidateCreatorBplus {
       if (cutYCandMax >= 0. && std::abs(YD0(candidate)) > cutYCandMax) {
         continue;
       }
+
+      hD0Rapidity->Fill(YD0(candidate));
 
       const std::array<float, 3> vertexD0 = {candidate.xSecondaryVertex(), candidate.ySecondaryVertex(), candidate.zSecondaryVertex()};
       const std::array<float, 3> momentumD0 = {candidate.px(), candidate.py(), candidate.pz()};
@@ -134,6 +138,8 @@ struct HfCandidateCreatorBplus {
         if (cutEtaTrkMax >= 0. && std::abs(track.eta()) > cutEtaTrkMax) {
           continue;
         }
+
+	hPiEta->Fill(track.eta());
 
         if (candidate.index0Id() == track.globalIndex() || candidate.index1Id() == track.globalIndex()) {
           continue; //daughter track id and bachelor track id not the same

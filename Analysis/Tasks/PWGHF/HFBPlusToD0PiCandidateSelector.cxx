@@ -44,7 +44,7 @@ struct HfBplusTod0piCandidateSelector {
   Configurable<double> TPCNClsFindablePIDCut{"TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
   Configurable<double> nSigmaTPC{"nSigmaTPC", 5., "Nsigma cut on TPC only"};
   Configurable<double> nSigmaTPCCombined{"nSigmaTPCCombined", 5., "Nsigma cut on TPC combined with TOF"};
-  Configurable<double> nSigmaTOF{"nSigmaTOF", 2., "Nsigma cut on TOF only"};
+  Configurable<double> nSigmaTOF{"nSigmaTOF", 5., "Nsigma cut on TOF only"};
   Configurable<double> nSigmaTOFCombined{"nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
 
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_bplus_tod0pi::pTBins_v}, "pT bin limits"};
@@ -87,6 +87,11 @@ struct HfBplusTod0piCandidateSelector {
 
     //B Decay length
     if (hfCandBPlus.decayLength() < cuts->get(pTBin, "B decLen")) {
+      return false;
+    }
+
+    //B Decay length XY
+    if (hfCandBPlus.decayLengthXY() < cuts->get(pTBin, "B decLenXY")) {
       return false;
     }
 
