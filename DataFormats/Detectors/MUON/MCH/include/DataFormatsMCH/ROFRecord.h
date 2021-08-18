@@ -19,7 +19,6 @@
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
-#include <ostream>
 
 #include <iosfwd>
 
@@ -55,15 +54,25 @@ class ROFRecord
   /// set the number of associated objects and the index of the first one
   void setDataRef(int firstIdx, int nEntries) { mDataRef.set(firstIdx, nEntries); }
 
+  /// get the time span by this ROF, in BC unit
+  int getBCWidth() const { return mBCWidth; }
+  /// set the time span by this ROF, in BC unit
+  void setBCWidth(int bcWidth);
+
   bool operator==(const ROFRecord& other) const
   {
     return mBCData == other.mBCData &&
-           mDataRef == other.mDataRef;
+           mDataRef == other.mDataRef &&
+           mBCWidth == other.mBCWidth;
   }
   bool operator<(const ROFRecord& other) const
   {
     if (mBCData == other.mBCData) {
-      return mDataRef.getFirstEntry() < other.mDataRef.getFirstEntry();
+      if (mBCWidth == other.mBCWidth) {
+        return mDataRef.getFirstEntry() < other.mDataRef.getFirstEntry();
+      } else {
+        return mBCWidth < other.mBCWidth;
+      }
     }
     return mBCData < other.mBCData;
   }
@@ -71,8 +80,9 @@ class ROFRecord
  private:
   BCData mBCData{};   ///< interaction record
   DataRef mDataRef{}; ///< reference to the associated objects
+  int mBCWidth{4};    ///< time span of this ROF
 
-  ClassDefNV(ROFRecord, 1);
+  ClassDefNV(ROFRecord, 2);
 };
 
 std::ostream& operator<<(std::ostream& os, const ROFRecord& rof);

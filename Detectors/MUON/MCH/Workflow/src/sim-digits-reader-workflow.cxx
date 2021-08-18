@@ -41,7 +41,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool useMC = !cfgc.options().get<bool>("disable-mc");
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::mch::getDigitReaderSpec(useMC, "DIGIT"));
+  specs.emplace_back(o2::mch::getDigitReaderSpec(useMC));
 
   return specs;
 }

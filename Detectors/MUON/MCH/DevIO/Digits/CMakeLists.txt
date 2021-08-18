@@ -14,6 +14,7 @@ o2_add_library(MCHDigitIO
                     DigitReaderImpl.cxx DigitWriterImpl.cxx
                     DigitIOV0.cxx DigitIOV1.cxx
                     DigitIOV2.cxx DigitIOV3.cxx
+                    DigitIOV4.cxx
                     IO.cxx
             PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL fmt::fmt O2::DataFormatsMCH)
 

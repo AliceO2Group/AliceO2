@@ -28,10 +28,10 @@ namespace o2::mch
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-DataProcessorSpec getTrackWriterSpec(bool useMC, const char* name)
+DataProcessorSpec getTrackWriterSpec(bool useMC, const char* specName, const char* fileName)
 {
-  return MakeRootTreeWriterSpec(name,
-                                "mchtracks.root",
+  return MakeRootTreeWriterSpec(specName,
+                                fileName,
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree MCH Standalone Tracks"},
                                 BranchDefinition<std::vector<TrackMCH>>{InputSpec{"tracks", "MCH", "TRACKS"}, "tracks"},
                                 BranchDefinition<std::vector<ROFRecord>>{InputSpec{"trackrofs", "MCH", "TRACKROFS"}, "trackrofs"},

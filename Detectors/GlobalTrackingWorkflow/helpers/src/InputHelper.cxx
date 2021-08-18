@@ -29,6 +29,7 @@
 #include "FT0Workflow/RecPointReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackReaderSpec.h"
+#include "MCHWorkflow/TrackReaderSpec.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -59,6 +60,9 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   }
   if (maskTracks[GID::MFT]) {
     specs.emplace_back(o2::mft::getMFTTrackReaderSpec(maskTracksMC[GID::MFT]));
+  }
+  if (maskTracks[GID::MCH]) {
+    specs.emplace_back(o2::mch::getTrackReaderSpec(maskTracksMC[GID::MCH]));
   }
   if (maskTracks[GID::TPC]) {
     specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(maskTracksMC[GID::TPC]));

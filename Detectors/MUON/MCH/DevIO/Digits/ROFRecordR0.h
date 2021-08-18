@@ -9,19 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_DEVIO_DIGITS_IO_H
-#define O2_MCH_DEVIO_DIGITS_IO_H
+#ifndef O2_MCH_DEVIO_DIGITS_ROFRECORD_R0_H
 
-#include <iosfwd>
-#include <cstdint>
-#include <utility>
+#include "CommonDataFormat/InteractionRecord.h"
+#include "CommonDataFormat/RangeReference.h"
 
 namespace o2::mch::io::impl
 {
-int readNofItems(std::istream& in, const char* itemName);
-void writeNofItems(std::ostream& out, uint32_t nofItems);
-int advance(std::istream& in, size_t itemByteSize, const char* itemName);
-std::pair<int, int> advanceOneEvent(std::istream& in, int fileFormatVersion);
+
+struct ROFRecordR0 {
+  o2::InteractionRecord ir;
+  o2::dataformats::RangeReference<int, int> ref;
+};
 
 } // namespace o2::mch::io::impl
 

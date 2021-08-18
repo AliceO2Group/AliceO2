@@ -107,6 +107,9 @@ class ClusterFinderOriginalTask
       clusterROFs.emplace_back(preClusterROF.getBCData(), clusters.size(), mClusterFinder.getClusters().size());
       writeClusters(clusters, usedDigits);
     }
+
+    LOGP(info, "Found {:4d} clusters from {:4d} preclusters in {:2d} ROFs",
+         clusters.size(), preClusters.size(), preClusterROFs.size());
   }
 
  private:

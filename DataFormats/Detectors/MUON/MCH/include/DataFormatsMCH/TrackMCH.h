@@ -18,6 +18,7 @@
 #define ALICEO2_MCH_TRACKMCH_H_
 
 #include <TMatrixD.h>
+#include <iosfwd>
 
 #include "CommonDataFormat/RangeReference.h"
 
@@ -112,6 +113,10 @@ class TrackMCH
 
   ClassDefNV(TrackMCH, 1);
 };
+
+std::ostream& operator<<(std::ostream& os, const TrackMCH& t);
+
+std::string asString(const o2::mch::TrackMCH& t);
 
 } // namespace mch
 } // namespace o2

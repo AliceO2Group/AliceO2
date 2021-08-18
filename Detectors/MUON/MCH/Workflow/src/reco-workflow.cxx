@@ -12,16 +12,19 @@
 #include "ClusterTransformerSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "DigitReaderSpec.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/Logger.h"
 #include "Framework/Variant.h"
 #include "Framework/WorkflowSpec.h"
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
 #include "MCHWorkflow/PreClusterFinderSpec.h"
+#include "MCHWorkflow/TrackWriterSpec.h"
 #include "TrackAtVertexSpec.h"
 #include "TrackAtVertexSpec.h"
 #include "TrackFinderSpec.h"
 #include "TrackFitterSpec.h"
+#include "TrackMCLabelFinderSpec.h"
 #include "VertexSamplerSpec.h"
 
 using o2::framework::ConfigContext;
@@ -32,6 +35,9 @@ using o2::framework::WorkflowSpec;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -45,16 +51,27 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
 
-  // auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
+  auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
+  auto disableRootInput = configcontext.options().get<bool>("disable-root-input");
+  auto useMC = !configcontext.options().get<bool>("disable-mc");
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
+  if (!disableRootInput) {
+    specs.emplace_back(o2::mch::getDigitReaderSpec(useMC, "mch-sim-digit-reader"));
+  }
   specs.emplace_back(o2::mch::getPreClusterFinderSpec("mch-precluster-finder"));
   specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
   specs.emplace_back(o2::mch::getClusterTransformerSpec());
   specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder"));
   specs.emplace_back(o2::mch::getVertexSamplerSpec("mch-vertex-sampler"));
   specs.emplace_back(o2::mch::getTrackAtVertexSpec("mch-track-at-vertex"));
+  if (!disableRootOutput) {
+    if (useMC) {
+      specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder"));
+    }
+    specs.emplace_back(o2::mch::getTrackWriterSpec(useMC, "mch-track-writer", "mchtracks.root"));
+  }
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
