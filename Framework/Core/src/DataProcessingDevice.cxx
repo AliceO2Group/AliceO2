@@ -673,7 +673,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
     // to process.
     bool newMessages = false;
     while (true) {
-      if (info.parts.Size() < 16) {
+      if (info.parts.Size() < 64) {
         FairMQParts parts;
         info.channel->Receive(parts, 0);
         for (auto&& part : parts) {
