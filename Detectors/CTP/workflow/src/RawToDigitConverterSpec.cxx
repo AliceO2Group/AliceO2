@@ -66,6 +66,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     } else {
       LOG(ERROR) << "Unxpected  CTP CRU link:" << linkCRU;
     }
+    LOG(INFO) << "RDH FEEid: " << feeID << " CTP CRU link:"<< linkCRU << " Orbit:" << triggerOrbit;
     pldmask = 0;
     for (uint32_t i = 0; i < payloadCTP; i++) {
       pldmask[12 + i] = 1;
@@ -78,13 +79,19 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     int wordCount = 0;
     std::vector<gbtword80_t> diglets;
     for (auto payloadWord : payload) {
+      //LOG(DEBUG) << "payload:" <<  int(payloadWord);  
       if (wordCount == 15) {
         wordCount = 0;
       } else if (wordCount > 9) {
         wordCount++;
       } else if (wordCount == 9) {
+        //std::cout << "wordCount:" << wordCount << std::endl;
+        for(int i=0; i < 8; i++) {
+          gbtWord[wordCount*8+i] = bool(int(payloadWord) & (1<<i));
+        }
         wordCount++;
         diglets.clear();
+        //LOG(DEBUG) << " gbtword:" << gbtWord;
         makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
         // save digit in buffer recs
         for (auto diglet : diglets) {
@@ -104,7 +111,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
               if (digits[ir].CTPInputMask.count() == 0) {
                 digits[ir].setInputMask(pld);
               } else {
-                LOG(ERROR) << "Two CTP IRs for same timestamp.";
+                //LOG(ERROR) << "Two CTP IRs for same timestamp.";
               }
             } else {
               digit.setInputMask(pld);
@@ -127,7 +134,10 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
         }
         gbtWord = 0;
       } else {
-        gbtWord |= payloadWord >> (wordCount * 8);
+        //std::cout << "wordCount:" << wordCount << std::endl;
+        for(int i=0; i < 8; i++) {
+          gbtWord[wordCount*8+i] = bool(int(payloadWord) & (1<<i));
+        }
         wordCount++;
       }
     }
