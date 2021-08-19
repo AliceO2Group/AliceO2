@@ -573,6 +573,9 @@ GPUd() void GPUTPCGMTrackParam::AttachClustersPropagate(const GPUTPCGMMerger* GP
   if (Merger->Param().rec.tpc.disableRefitAttachment & 2) {
     return;
   }
+  if (CAMath::Abs(lastRow - toRow) < 2) {
+    return;
+  }
   int step = toRow > lastRow ? 1 : -1;
   float xx = mX - Merger->Param().tpcGeometry.Row2X(lastRow);
   for (int iRow = lastRow + step; iRow != toRow; iRow += step) {
