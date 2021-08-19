@@ -607,7 +607,11 @@ GPUd() void PropagatorImpl<value_T>::getFieldXYZImpl(const math_utils::Point3D<T
     if (mFieldFast) {
       mFieldFast->Field(xyz, bxyz); // Must not call the host-only function in GPU compilation
     } else {
+#ifdef GPUCA_STANDALONE
+      LOG(FATAL) << "Normal field cannot be used in standalone benchmark";
+#else
       mField->field(xyz, bxyz);
+#endif
     }
 #endif
   }
