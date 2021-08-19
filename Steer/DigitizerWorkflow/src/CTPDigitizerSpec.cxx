@@ -60,7 +60,7 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0});
     }
     for (const auto& inp : fv0inputs) {
-      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0});
+      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FV0});
     }
     gsl::span<CTPInputDigit> ginputs(finputs);
     auto digits = mDigitizer.process(ginputs);

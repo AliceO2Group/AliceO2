@@ -68,7 +68,7 @@ class Digits2Raw
   //const uint32_t mGBTLinkIR = 0; // Interaction record CTP GBT link
   //const uint32_t mGBTLinkTC = 1; // Trigger Class Record CTP GBT link
   //const uint32_t mGBTLinkMisc = 2; // HBrecord, Counters, ...
-  uint32_t mBoardId = 64;
+  uint32_t mBoardId = 33;
   bool mZeroSuppressedIntRec = false;
   bool mZeroSuppressedClassRec = true;
   //constexpr uint32_t CTPCRULinkIDMisc = 2;
