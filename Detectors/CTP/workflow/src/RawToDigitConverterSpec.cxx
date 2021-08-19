@@ -66,7 +66,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     } else {
       LOG(ERROR) << "Unxpected  CTP CRU link:" << linkCRU;
     }
-    LOG(INFO) << "RDH FEEid: " << feeID << " CTP CRU link:"<< linkCRU << " Orbit:" << triggerOrbit;
+    LOG(INFO) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit;
     pldmask = 0;
     for (uint32_t i = 0; i < payloadCTP; i++) {
       pldmask[12 + i] = 1;
@@ -79,15 +79,15 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     int wordCount = 0;
     std::vector<gbtword80_t> diglets;
     for (auto payloadWord : payload) {
-      //LOG(DEBUG) << "payload:" <<  int(payloadWord);  
+      //LOG(DEBUG) << "payload:" <<  int(payloadWord);
       if (wordCount == 15) {
         wordCount = 0;
       } else if (wordCount > 9) {
         wordCount++;
       } else if (wordCount == 9) {
         //std::cout << "wordCount:" << wordCount << std::endl;
-        for(int i=0; i < 8; i++) {
-          gbtWord[wordCount*8+i] = bool(int(payloadWord) & (1<<i));
+        for (int i = 0; i < 8; i++) {
+          gbtWord[wordCount * 8 + i] = bool(int(payloadWord) & (1 << i));
         }
         wordCount++;
         diglets.clear();
@@ -135,8 +135,8 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
         gbtWord = 0;
       } else {
         //std::cout << "wordCount:" << wordCount << std::endl;
-        for(int i=0; i < 8; i++) {
-          gbtWord[wordCount*8+i] = bool(int(payloadWord) & (1<<i));
+        for (int i = 0; i < 8; i++) {
+          gbtWord[wordCount * 8 + i] = bool(int(payloadWord) & (1 << i));
         }
         wordCount++;
       }
