@@ -102,7 +102,7 @@ class DataDecoderTask
     mFirstTForbit = dh->firstTForbit;
 
     if (!mDecoder->getFirstOrbitInRun()) {
-      uint32_t firstRunOrbit = mFirstTForbit - dh->tfCounter * o2::raw::HBFUtils::Instance().getNOrbitsPerTF();
+      int firstRunOrbit = std::max<int>(0, mFirstTForbit - dh->tfCounter * o2::raw::HBFUtils::Instance().getNOrbitsPerTF());
       mDecoder->setFirstOrbitInRun(firstRunOrbit);
     }
     mDecoder->setFirstOrbitInTF(mFirstTForbit);
