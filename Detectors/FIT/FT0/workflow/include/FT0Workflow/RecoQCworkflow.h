@@ -1,5 +1,3 @@
-
-
 // Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
@@ -10,7 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-/// @file   RecoCalibInfoWorkflow.h
+
+/// \file   RecoQCworkflow.h
+///\ brief QC for  reconstructed data
+/// \author Alla.Maevskaya@cern.ch
 
 #ifndef O2_RECOQC_WORKFLOW
 #define O2_RECOQC_WORKFLOW
@@ -55,9 +56,9 @@ class RecoQCworkflow final : public o2::framework::Task
   const float cSpeed = 0.029979246f; // speed of light in TOF units
   GID::mask_t mInputSources;
   TStopwatch mTimer;
-  TFile *mFileOut ;
+  TFile* mFileOut;
   TH1F* mHisto[10];
-  TH2F *mVertexComp;
+  TH2F* mVertexComp;
   TH1F* mVertexT0;
   TH1F* mPV;
 };

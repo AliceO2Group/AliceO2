@@ -94,7 +94,7 @@ class FT0CalibCollectorWriter : public o2::framework::Task
     mfileOut->cd();
     mOutputTree->Write();
     mOutputTree->Reset();
-     mCount++;
+    mCount++;
     if (!mIsEndOfStream) {
       createAndOpenFileAndTree();
     }

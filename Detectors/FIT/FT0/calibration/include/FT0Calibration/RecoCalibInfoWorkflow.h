@@ -1,4 +1,3 @@
-
 // Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
@@ -9,7 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-/// @file   RecoCalibInfoWorkflow.h
+
+/// \file   RecoCalibInfoWorkflow.h
+///\ brief  Collect data for global offsets calibration
+/// \author Alla.Maevskaya@cern.ch
 
 #ifndef O2_RECOCALIBINFO_WORKFLOW
 #define O2_RECOCALIBINFO_WORKFLOW
@@ -41,7 +43,6 @@ namespace o2::ft0
 class RecoCalibInfoWorkflow final : public o2::framework::Task
 {
  public:
-  //  RecoCalibInfoWorkflow(std::shared_ptr<DataRequest> const& dataRequest) : mDataRequest(dataRequest) {}
   RecoCalibInfoWorkflow(GID::mask_t src, std::shared_ptr<DataRequest> const& dataRequest) : mInputSources(src), mDataRequest(dataRequest) {}
   void run(o2::framework::ProcessingContext& pc) final;
   void init(InitContext& ic) final;
@@ -52,8 +53,6 @@ class RecoCalibInfoWorkflow final : public o2::framework::Task
   const float cSpeed = 0.029979246f; // speed of light in TOF units
   GID::mask_t mInputSources;
   TStopwatch mTimer;
-  //  TFile *mFile ;
-  //  TTree *mTree;
 };
 framework::DataProcessorSpec getRecoCalibInfoWorkflow(GID::mask_t src, bool useMC);
 

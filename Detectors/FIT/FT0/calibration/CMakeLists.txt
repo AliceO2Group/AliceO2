@@ -76,7 +76,7 @@ o2_add_library(FT0Calibration
         COMPONENT_NAME calibration
         SOURCES testWorkflow/GlobalOffsetsCalibrationWorkflow.cxx
         PUBLIC_LINK_LIBRARIES
-        O2::DetectorsCalibration  O2::FITCalibration 
+        O2::DetectorsCalibration  O2::FITCalibration
         )
 
       o2_add_executable(ft0-dummy-example

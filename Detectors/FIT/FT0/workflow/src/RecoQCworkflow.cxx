@@ -1,4 +1,3 @@
-
 // Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
@@ -9,6 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+/// \file   RecoQCworkflow.cxx
+///\ brief QC for  reconstructed data
+/// \author Alla.Maevskaya@cern.ch
 
 #include <FairLogger.h>
 #include <Framework/ConfigContext.h>
@@ -44,10 +47,9 @@ namespace o2::ft0
 
 void RecoQCworkflow::init(InitContext& ic)
 {
-  LOG(INFO) << "@@@ init";
   mFileOut = TFile::Open("RecoQChistos.root", "RECREATE");
-  TString histnames[9] = {"hT0AcorrPV", "hT0CcorrPV", "resolution", "hT0AcorrT0", "hT0CcorrT0", "hT0AC", "corrT0"};
-  for (int ihist = 0; ihist < 8; ihist++) {
+  TString histnames[9] = {"hT0AcorrPV", "hT0CcorrPV", "resolution", "hT0A", "hT0C", "hT0AC"};
+  for (int ihist = 0; ihist < 6; ihist++) {
     mHisto[ihist] = new TH1F(histnames[ihist].Data(), histnames[ihist].Data(), 300, -1000, 1000);
   }
   mVertexT0 = new TH1F("VertexT0", "T0 vertex", 100, -30, 30);
@@ -67,35 +69,28 @@ void RecoQCworkflow::run(o2::framework::ProcessingContext& pc)
     auto& timeStamp = vertex.getTimeStamp();
     double tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
     uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
-    LOG(DEBUG) << "@@@ primVertices " << globalBC;
     auto [iter, inserted] = bcsMap.try_emplace(globalBC, &vertex);
-    if (!inserted)
+    if (!inserted) {
       iter->second = nullptr;
+    }
   }
   float vertexT0;
   for (auto& ft0RecPoint : ft0RecPoints) {
     uint64_t bc = ft0RecPoint.getInteractionRecord().toLong();
     auto item = bcsMap.find(bc);
-    LOG(DEBUG) << " <<ft0RecPoints " << bc;
-    /*
-    if (ft0RecPoint.getCollisionTimeA() < 2000 && ft0RecPoint.getCollisionTimeA() > -2000) {
+
+    if (std::abs(ft0RecPoint.getCollisionTimeA()) < 2000) {
       mHisto[3]->Fill(ft0RecPoint.getCollisionTimeA());
     }
-    if (ft0RecPoint.getCollisionTimeC() < 2000 && ft0RecPoint.getCollisionTimeC() > -2000) {
+    if (std::abs(ft0RecPoint.getCollisionTimeC()) < 2000) {
       mHisto[4]->Fill(ft0RecPoint.getCollisionTimeC());
     }
-    */
-    if (ft0RecPoint.getCollisionTimeC() < 2000 && ft0RecPoint.getCollisionTimeC() > -2000 &&
-        ft0RecPoint.getCollisionTimeA() < 2000 && ft0RecPoint.getCollisionTimeA() > -2000) {
+
+    if (std::abs(ft0RecPoint.getCollisionTimeC()) < 2000 &&
+        std::abs(ft0RecPoint.getCollisionTimeA()) < 2000) {
       mHisto[5]->Fill(ft0RecPoint.getCollisionTimeMean());
       vertexT0 = 0.5 * (ft0RecPoint.getCollisionTimeC() - ft0RecPoint.getCollisionTimeA()) * cSpeed;
       mVertexT0->Fill(vertexT0);
-      auto shiftT0 = vertexT0 / cSpeed;
-      short corrT0A = ft0RecPoint.getCollisionTimeA() + shiftT0;
-      short corrT0C = ft0RecPoint.getCollisionTimeC() - shiftT0;
-      mHisto[3]->Fill(corrT0A);
-      mHisto[4]->Fill(corrT0C);
-      mHisto[6]->Fill((corrT0C - corrT0A) / 2);
     }
     if (item == bcsMap.end() || item->second == nullptr) {
       LOG(DEBUG) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
@@ -105,9 +100,10 @@ void RecoQCworkflow::run(o2::framework::ProcessingContext& pc)
     auto currentVertex = vertex.getZ();
     mPV->Fill(currentVertex);
     ushort ncont = vertex.getNContributors();
-    LOG(INFO) << "@@@ currentVertex " << currentVertex << " ncont " << int(ncont);
-    if (ncont < 3)
+    LOG(DEBUG) << "CurrentVertex " << currentVertex << " ncont " << int(ncont);
+    if (ncont < 3) {
       continue;
+    }
     auto shift = currentVertex / cSpeed;
     short t0A = ft0RecPoint.getCollisionTimeA() + shift;
     short t0C = ft0RecPoint.getCollisionTimeC() - shift;
@@ -115,17 +111,15 @@ void RecoQCworkflow::run(o2::framework::ProcessingContext& pc)
     LOG(INFO) << " BC  t0  " << bc << " shift " << shift << " A " << t0A << " C " << t0C << " vertex " << vertexT0 << " PV " << currentVertex;
     mHisto[0]->Fill(t0A);
     mHisto[1]->Fill(t0C);
-    mHisto[2]->Fill(t0C - t0A) / 2;
+    mHisto[2]->Fill((t0C - t0A) / 2);
     mVertexComp->Fill(vertexT0, currentVertex);
   }
   mTimer.Stop();
 }
 void RecoQCworkflow::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "@@@ reco calib info workflow  dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
-       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   mFileOut->cd();
-  for (int ihist = 0; ihist < 7; ihist++) {
+  for (int ihist = 0; ihist < 6; ihist++) {
     mHisto[ihist]->Write();
   }
   mPV->Write();

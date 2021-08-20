@@ -43,10 +43,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   WorkflowSpec specs;
   specs.emplace_back(o2::ft0::getRecoQCworkflow(src));
-  
+
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, false, src);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, false);
   o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
-  
+
   return std::move(specs);
 }
