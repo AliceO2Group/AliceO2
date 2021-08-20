@@ -1474,7 +1474,7 @@ std::vector<GlobalPosition3D> SpaceCharge<DataT>::calculateElectronDriftPath(con
 template <typename DataT>
 void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Side side, const int nZPoints, const int nRPoints, const int nPhiPoints) const
 {
-  const DataT phiSpacing = GridProp::getGridSpacingR(nPhiPoints);
+  const DataT phiSpacing = GridProp::getGridSpacingPhi(nPhiPoints);
   const DataT rSpacing = GridProp::getGridSpacingR(nRPoints);
   const DataT zSpacing = side == Side::A ? GridProp::getGridSpacingZ(nZPoints) : -GridProp::getGridSpacingZ(nZPoints);
 
