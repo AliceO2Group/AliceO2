@@ -122,6 +122,7 @@ bool ELinkDataShaper::processTrigger(const ELinkDecoder& decoder, EventType& eve
   // From here we treat triggered events
   bool goOn = false;
   correctedClock = localClock;
+  eventType = EventType::Standard;
   if (decoder.getTriggerWord() & raw::sCALIBRATE) {
     // This is an answer to a calibration trigger
     eventType = processCalibrationTrigger(localClock);
@@ -131,7 +132,6 @@ bool ELinkDataShaper::processTrigger(const ELinkDecoder& decoder, EventType& eve
   if (decoder.getTriggerWord() & raw::sORB) {
     // This is the answer to an orbit trigger
     processOrbitTrigger(localClock, decoder.getTriggerWord());
-    eventType = EventType::Standard;
   }
 
   return goOn;
