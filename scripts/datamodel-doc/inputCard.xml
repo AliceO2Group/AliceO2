@@ -67,7 +67,7 @@
   
     <!-- relative to mainDir/local -->
     <mainDir>
-      Analysis/DataModel/include/AnalysisDataModel
+      ../O2Physics/DataModel/include/AnalysisDataModel
     </mainDir>
     
     <!-- relative to headerFiles/mainDir -->
@@ -88,7 +88,7 @@
   
     <!-- relative to mainDir/local -->
     <mainDir>
-      Analysis/Tasks
+      ../O2Physics/Tasks
     </mainDir>
     
     <!-- relative to CMLfiles/mainDir -->
@@ -109,7 +109,7 @@
   
     <!-- relative to mainDir/local -->
     <mainDir>
-      Analysis/Tasks
+      ../O2Physics/Tasks
     </mainDir>
     
     <!-- relative to codeFiles/mainDir -->

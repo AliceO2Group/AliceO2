@@ -11,19 +11,23 @@ import nltk
 # 0: COLUMN
 # 1: INDEX_COLUMN_FULL
 # 2: INDEX_COLUMN
-# 3: EXPRESSION_COLUMN
-# 4: DYNAMIC_COLUMN
-#
+# 3: SELF_INDEX_COLUMN_FULL
+# 4: SELF_INDEX_COLUMN
+# 5: EXPRESSION_COLUMN
+# 6: DYNAMIC_COLUMN
 
 
 def columnTypes(abbr=0):
   if abbr == 0:
-    types = ["", "INDEX_", "INDEX_", "EXPRESSION_", "DYNAMIC_"]
+    types = ["", "INDEX_", "INDEX_", "INDEX_", "INDEX_", "EXPRESSION_", "DYNAMIC_"]
+    types[3] = "SELF_"+types[3]
+    types[4] = "SELF_"+types[4]
     types = [s+"COLUMN" for s in types]
     types = ["DECLARE_SOA_"+s for s in types]
     types[1] = types[1]+"_FULL"
+    types[3] = types[3]+"_FULL"
   else:
-    types = ["", "I", "I", "E", "D", "GI"]
+    types = ["", "I", "I", "SI", "SI", "E", "D", "GI"]
 
   return types
 
@@ -591,7 +595,7 @@ class datamodel:
       print(delimJoins)
       print("")
       print("<a name=\"usings\"></a>")
-      print("## List of defined joins and iterators")
+      print("# List of defined joins and iterators")
       print("<div>")
       for use in uses:
         print("")
@@ -957,7 +961,7 @@ def extractColumns(nslevel, content):
     kind = [i for i, x in enumerate(types) if x == words[icol].txt][0]
     cname = words[icol+2].txt
     gname = words[icol+4].txt
-    if kind in [1, 2]:
+    if kind in [1, 2, 3, 4]:
       cname = cname+"Id"
       gname = gname+"Id"
 
@@ -971,10 +975,14 @@ def extractColumns(nslevel, content):
     elif words[icol].txt == types[2]:
       type = "int32"
     elif words[icol].txt == types[3]:
+      type = words[icol+6].txt
+    elif words[icol].txt == types[4]:
+      type = words[icol+6].txt
+    elif words[icol].txt == types[5]:
       iend = [i for i, x in enumerate(
           list_in([","], words[icol+6:])) if x == True]
       type = block(words[icol+6:icol++6+iend[0]], False)
-    elif words[icol].txt == types[4]:
+    elif words[icol].txt == types[6]:
       iarr = [i for i, x in enumerate(
           list_in(["-", ">"], cont)) if x == True]
       if len(iarr) > 0:
@@ -1219,6 +1227,5 @@ class CERelations:
       print(" path  :", relation[0])
       print("  cname:", relation[1])
       print("  ename:", self.exePreamble+relation[2])
-
 
 # -----------------------------------------------------------------------------
