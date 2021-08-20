@@ -1,4 +1,3 @@
-
 // Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
@@ -9,6 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+/// \file   RecoCalibInfoWorkflow.cxx
+///\ brief  Collect data for global offsets calibration
+/// \author Alla.Maevskaya@cern.ch
 
 #include <FairLogger.h>
 #include <Framework/ConfigContext.h>
@@ -37,34 +40,28 @@ namespace o2::ft0
 {
 void RecoCalibInfoWorkflow::init(InitContext& ic)
 {
-  LOG(INFO) << "@@@ init";
   mTimer.Stop();
   mTimer.Reset();
 }
 void RecoCalibInfoWorkflow::run(o2::framework::ProcessingContext& pc)
 {
-  LOG(INFO) << "@@@ RecoCalibInfoWorkflow run";
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest);
-  LOG(INFO) << " @@@read RecoContainer";
   auto primVertices = recoData.getPrimaryVertices();
-  LOG(INFO) << "@@@ primVertices  ";
   auto ft0RecPoints = recoData.getFT0RecPoints();
-  LOG(INFO) << "@@@@ read T0 recpoints ";
   std::map<uint64_t, o2::dataformats::PrimaryVertex const*> bcsMap;
   auto& calib_data = pc.outputs().make<std::vector<o2::ft0::RecoCalibInfoObject>>(o2::framework::OutputRef{"calib", 0});
   calib_data.reserve(ft0RecPoints.size());
-  LOG(INFO)<<"@@@@ ft0RecPoints.size() "<<ft0RecPoints.size();
   for (auto& vertex : primVertices) {
     auto& timeStamp = vertex.getTimeStamp();
     double tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
     uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
-    LOG(DEBUG) << "@@@ primVertices " << globalBC;
+    LOG(DEBUG) << "PrimVertices " << globalBC;
     auto [iter, inserted] = bcsMap.try_emplace(globalBC, &vertex);
-    if (!inserted)
+    if (!inserted) {
       iter->second = nullptr;
+    }
   }
-  LOG(DEBUG) << " @@@ vertices collected";
   for (auto& ft0RecPoint : ft0RecPoints) {
     uint64_t bc = ft0RecPoint.getInteractionRecord().toLong();
     auto item = bcsMap.find(bc);
@@ -76,43 +73,36 @@ void RecoCalibInfoWorkflow::run(o2::framework::ProcessingContext& pc)
     auto& vertex = *item->second;
     auto currentVertex = vertex.getZ();
     ushort ncont = vertex.getNContributors();
-    LOG(INFO) << "@@@ currentVertex " << currentVertex << " ncont " << int(ncont);
-    if (ncont == 0)
+    LOG(DEBUG) << "CurrentVertex " << currentVertex << " ncont " << int(ncont);
+    if (ncont < 3) {
       continue;
+    }
     auto shift = currentVertex / cSpeed;
     short t0A = ft0RecPoint.getCollisionTimeA() + shift;
     short t0C = ft0RecPoint.getCollisionTimeC() - shift;
     short t0AC = ft0RecPoint.getCollisionTimeMean();
-    LOG(INFO) << " BC  t0  " << bc << " shift " << shift << " A " << t0A << " C " << t0C << " AC " << t0AC;
-    std::vector<o2::ft0::RecoCalibInfoObject> calibInfo;
-    //   auto& calib_data = pc.outputs().make<calibInfo>>(o2::framework::OutputRef{"calib", 0});
- 
+    LOG(DEBUG) << " BC  t0  " << bc << " shift " << shift << " A " << t0A << " C " << t0C << " AC " << t0AC;
     calib_data.emplace_back(t0A, t0C, t0AC);
-    calibInfo.emplace_back(t0A, t0C, t0AC);
-    LOG(INFO)<<" @@@@ run: calib_data "<<calib_data.size()<<" m "<<calibInfo.size();
-
   }
   mTimer.Stop();
 }
 void RecoCalibInfoWorkflow::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "@@@ reco calib info workflow  dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(INFO, "Reco calib info workflow  dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getRecoCalibInfoWorkflow(GID::mask_t src, bool useMC)
 {
-   auto dataRequest = std::make_shared<DataRequest>();
-  LOG(INFO) << "@@ request primary vertex";
+  auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->requestPrimaryVertertices(false);
   dataRequest->requestFT0RecPoints(false);
-  LOG(INFO) << "@@@ requested T0";
 
   return DataProcessorSpec{
     "calib-global-offsets",
     dataRequest->inputs,
     Outputs{
-    {{"calib"}, "FT0", "CALIB_INFO"}},
+      {{"calib"}, "FT0", "CALIB_INFO"}},
     AlgorithmSpec{adaptFromTask<o2::ft0::RecoCalibInfoWorkflow>(src, dataRequest)},
     Options{}};
 }

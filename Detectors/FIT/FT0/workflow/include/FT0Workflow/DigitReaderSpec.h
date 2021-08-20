@@ -36,7 +36,7 @@ class DigitReader : public framework::Task
   std::unique_ptr<TTree> mTree;
   std::unique_ptr<TFile> mFile;
 };
- 
+
 /// create a processor spec
 /// read simulated FT0 digits from a root file
 framework::DataProcessorSpec getDigitReaderSpec(bool useMC, bool useTrgInput = true);

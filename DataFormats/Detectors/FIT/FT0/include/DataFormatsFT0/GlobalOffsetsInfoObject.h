@@ -21,8 +21,8 @@ namespace ft0
 class GlobalOffsetsInfoObject
 {
  public:
-  GlobalOffsetsInfoObject(short t0A, short t0C, short t0AC) : mT0A(t0A), mT0C(t0C),  mT0AC(t0AC);
-   GlobalOffsetsInfoObject() = default;
+  GlobalOffsetsInfoObject(short t0A, short t0C, short t0AC) : mT0A(t0A), mT0C(t0C), mT0AC(t0AC);
+  GlobalOffsetsInfoObject() = default;
   ~GlobalOffsetsInfoObject() = default;
 
   void setT0A(short t0A) { mT0A = t0A; }
@@ -31,7 +31,6 @@ class GlobalOffsetsInfoObject
   short getT0A() const { return mT0A; }
   void setT0AC(short t0AC) { mT0AC = t0AC; }
   short getT0AC() const { return mT0AC; }
-  
 
  private:
   short mT0A;

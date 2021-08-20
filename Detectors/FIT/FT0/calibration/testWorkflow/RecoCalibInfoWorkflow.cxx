@@ -49,12 +49,13 @@ class RecoCalibInfoWorkflow final : public o2::framework::Task
     auto ft0RecPoints = recoData.getFT0RecPoints();
     LOG(INFO) << "@@@@ read T0 recpoints ";
     std::map<uint64_t, o2::dataformats::PrimaryVertex const*> bcsMap;
-    for (auto & vertex : primVertices) {
+    for (auto& vertex : primVertices) {
       auto& timeStamp = vertex.getTimeStamp();
       double tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
       uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
       auto [iter, inserted] = bcsMap.try_emplace(globalBC, &vertex);
-      if (!inserted) iter->second = nullptr;
+      if (!inserted)
+        iter->second = nullptr;
     }
     /* collectBCs(ft0RecPoints, primVertices, bcsMap); */
 
@@ -63,7 +64,7 @@ class RecoCalibInfoWorkflow final : public o2::framework::Task
       /* uint64_t bc = globalBC; */
       auto item = bcsMap.find(bc);
       if (item == bcsMap.end() || item->second == nullptr) {
-          LOG(FATAL) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
+        LOG(FATAL) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
         continue;
       }
       auto& vertex = *item->second;
@@ -87,6 +88,7 @@ class RecoCalibInfoWorkflow final : public o2::framework::Task
       calib_data.emplace_back(t0A, t0C, t0AC);
     }
   }
+
  private:
   std::shared_ptr<DataRequest> mDataRequest;
 };

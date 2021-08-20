@@ -12,41 +12,33 @@
 #ifndef O2_GLOBALOFFSETSCONTAINER_H
 #define O2_GLOBALOFFSETSCONTAINER_H
 
-#include <array>
-#include <vector>
-#include <gsl/span>
 #include "DataFormatsFT0/RecoCalibInfoObject.h"
 #include "DataFormatsFT0/GlobalOffsetsCalibrationObject.h"
 #include "Rtypes.h"
-#include <boost/histogram.hpp>
 #include <TH1F.h>
+#include <array>
+#include <vector>
+#include <gsl/span>
 
 namespace o2::ft0
 {
 class GlobalOffsetsContainer final
 {
+  static constexpr int HISTOGRAM_RANGE = 1000;
+  static constexpr unsigned int NUMBER_OF_HISTOGRAM_BINS = 0.5 * HISTOGRAM_RANGE;
 
-  //ranges to be discussed
-  static constexpr int HISTOGRAM_RANGE = 500;
-  static constexpr unsigned int NUMBER_OF_HISTOGRAM_BINS = 2 * HISTOGRAM_RANGE;
-
-   using BoostHistogramType = boost::histogram::histogram<std::tuple<boost::histogram::axis::integer<>,
-                                                                  boost::histogram::axis::integer<>>,
-                                                       boost::histogram::unlimited_storage<std::allocator<char>>>;
  public:
-
   explicit GlobalOffsetsContainer(std::size_t minEntries);
   bool hasEnoughEntries() const;
   void fill(const gsl::span<const o2::ft0::RecoCalibInfoObject>& data);
-  int16_t getMeanGaussianFitValue(std::size_t side) const;
+  short getMeanGaussianFitValue(std::size_t side) const;
   void merge(GlobalOffsetsContainer* prev);
   void print() const;
 
  private:
   std::size_t mMinEntries;
   std::array<uint64_t, 3> mEntriesCollTime{};
-   BoostHistogramType mHistogram;
-
+  TH1F* mHistogram[3];
   ClassDefNV(GlobalOffsetsContainer, 1);
 };
 
