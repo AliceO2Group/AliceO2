@@ -591,7 +591,7 @@ class datamodel:
       print(delimJoins)
       print("")
       print("<a name=\"usings\"></a>")
-      print("## List of defined joins and iterators")
+      print("# List of defined joins and iterators")
       print("<div>")
       for use in uses:
         print("")
