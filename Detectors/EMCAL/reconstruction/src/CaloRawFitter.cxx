@@ -55,6 +55,8 @@ int CaloRawFitter::getErrorNumber(CaloRawFitter::RawFitterError_t fiterror)
       return 2;
     case RawFitterError_t::BUNCH_NOT_OK:
       return 3;
+    case RawFitterError_t::LOW_SIGNAL:
+      return 4;
   };
   // Silence compiler warnings for false positives
   // can never enter here due to usage of enum class
