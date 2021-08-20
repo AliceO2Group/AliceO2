@@ -38,6 +38,7 @@
   
     <!-- leading string of task executables -->
     <exePreamble>
+      o2-analysis-
     </exePreamble>
     
     <!-- string used in CMakefiles.txt to define a task executable -->
