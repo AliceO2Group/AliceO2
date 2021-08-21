@@ -84,6 +84,12 @@ void on_idle_timer(uv_timer_t* handle)
   state->loopReason |= DeviceState::TIMER_EXPIRED;
 }
 
+void on_communication_requested(uv_async_t* s)
+{
+  DeviceState* state = (DeviceState*)s->data;
+  state->loopReason |= DeviceState::METRICS_MUST_FLUSH;
+}
+
 DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry& registry)
   : mSpec{registry.get<RunningWorkflowInfo const>().devices[ref.index]},
     mState{registry.get<DeviceState>()},
@@ -94,7 +100,8 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
     mConfigRegistry{nullptr},
     mServiceRegistry{registry},
     mAllocator{&mTimingInfo, &registry, mSpec.outputs},
-    mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>()}
+    mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>()},
+    mAwakeHandle{nullptr}
 {
   /// FIXME: move erro handling to a service?
   if (mError != nullptr) {
@@ -127,6 +134,29 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
   // One task for now.
   mStreams.resize(1);
   mHandles.resize(1);
+
+  mDeviceContext.device = this;
+  mDeviceContext.spec = &mSpec;
+  mDeviceContext.state = &mState;
+  mDeviceContext.quotaEvaluator = &mQuotaEvaluator;
+  mDeviceContext.stats = &mStats;
+
+  mAwakeHandle = (uv_async_t*)malloc(sizeof(uv_async_t));
+  assert(mState.loop);
+  int res = uv_async_init(mState.loop, mAwakeHandle, on_communication_requested);
+  mAwakeHandle->data = &mState;
+  if (res < 0) {
+    LOG(ERROR) << "Unable to initialise subscription";
+  }
+
+  /// This should post a message on the queue...
+  SubscribeToNewTransition("dpl", [wakeHandle = mAwakeHandle, deviceContext = &mDeviceContext](fair::mq::Transition t) {
+    int res = uv_async_send(wakeHandle);
+    if (res < 0) {
+      LOG(ERROR) << "Unable to notify subscription";
+    }
+    LOG(debug) << "State transition requested";
+  });
 }
 
 // Callback to execute the processing. Notice how the data is
@@ -193,11 +223,6 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
   // We do nothing, all the logic for now stays in DataProcessingDevice::doRun()
 }
 
-void on_communication_requested(uv_async_t* s)
-{
-  DeviceState* state = (DeviceState*)s->data;
-  state->loopReason |= DeviceState::METRICS_MUST_FLUSH;
-}
 
 /// This  takes care  of initialising  the device  from its  specification. In
 /// particular it needs to:
@@ -275,22 +300,6 @@ void DataProcessingDevice::Init()
       mState.inputChannelInfos[ci].state = InputChannelState::Pull;
     }
   }
-  uv_async_t* wakeHandle = (uv_async_t*)malloc(sizeof(uv_async_t));
-  assert(mState.loop);
-  int res = uv_async_init(mState.loop, wakeHandle, on_communication_requested);
-  wakeHandle->data = &mState;
-  if (res < 0) {
-    LOG(ERROR) << "Unable to initialise subscription";
-  }
-
-  /// This should post a message on the queue...
-  SubscribeToNewTransition("dpl", [wakeHandle](fair::mq::Transition t) {
-    int res = uv_async_send(wakeHandle);
-    if (res < 0) {
-      LOG(ERROR) << "Unable to notify subscription";
-    }
-    LOG(debug) << "State transition requested";
-  });
 }
 
 void on_signal_callback(uv_signal_t* handle, int signum)
@@ -355,8 +364,11 @@ void DataProcessingDevice::InitTask()
     uv_async_init(mState.loop, mState.awakeMainThread, on_awake_main_thread);
   }
 
+  mDeviceContext.expectedRegionCallbacks = std::stoi(fConfig->GetValue<std::string>("expected-region-callbacks"));
+
   for (auto& channel : fChannels) {
     channel.second.at(0).Transport()->SubscribeToRegionEvents([this,
+                                                               &context = mDeviceContext,
                                                                &registry = mServiceRegistry,
                                                                &pendingRegionInfos = mPendingRegionInfos,
                                                                &regionInfoMutex = mRegionInfoMutex](FairMQRegionInfo info) {
@@ -366,13 +378,10 @@ void DataProcessingDevice::InitTask()
       LOG(debug) << "ptr: " << info.ptr;
       LOG(debug) << "size: " << info.size;
       LOG(debug) << "flags: " << info.flags;
+      context.expectedRegionCallbacks -= 1;
       pendingRegionInfos.push_back(info);
-      // When not running we can handle the callbacks synchronously.
-      if (this->GetCurrentState() != fair::mq::State::Running) {
-        handleRegionCallbacks(registry, pendingRegionInfos);
-      } else {
-        uv_async_send(registry.get<DeviceState>().awakeMainThread);
-      }
+      // We always want to handle these on the main loop
+      uv_async_send(registry.get<DeviceState>().awakeMainThread);
     });
   }
 
@@ -475,6 +484,18 @@ void DataProcessingDevice::InitTask()
   // do so on a per thread basis, with fine grained locks.
   mDataProcessorContexes.resize(1);
   this->fillContext(mDataProcessorContexes.at(0), mDeviceContext);
+
+  /// We now run an event loop also in InitTask. This is needed to:
+  /// * Make sure region registration callbacks are invoked
+  /// on the main thread.
+  /// * Wait for enough callbacks to be delivered before moving to START
+  while (mDeviceContext.expectedRegionCallbacks > 0 && uv_run(mState.loop, UV_RUN_ONCE)) {
+    // Handle callbacks if any
+    {
+      std::lock_guard<std::mutex> lock(mRegionInfoMutex);
+      handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
+    }
+  }
 }
 
 void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceContext& deviceContext)
