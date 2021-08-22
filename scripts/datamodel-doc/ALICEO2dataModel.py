@@ -295,6 +295,8 @@ class table:
 
 
 # -----------------------------------------------------------------------------
+
+
 class namespace:
   def __init__(self, nslevel, cont):
     self.nslevel = nslevel
@@ -448,18 +450,30 @@ class datamodel:
 
   def printHTML(self):
     # get some variables
-    tmp = self.initCard.find("O2general/mainDir/local")
+    tmp = self.initCard.find("O2general/mainDir/O2local")
     if tmp == None:
       tmp = ""
     else:
       tmp = tmp.text.strip()
     O2path = tmp
-    tmp = self.initCard.find("O2general/mainDir/GitHub")
+    tmp = self.initCard.find("O2general/mainDir/O2Physicslocal")
+    if tmp == None:
+      tmp = ""
+    else:
+      tmp = tmp.text.strip()
+    O2Physicspath = tmp
+    tmp = self.initCard.find("O2general/mainDir/O2GitHub")
     if tmp == None:
       tmp = ""
     else:
       tmp = tmp.text.strip()
     O2href = tmp
+    tmp = self.initCard.find("O2general/mainDir/O2PhysicsGitHub")
+    if tmp == None:
+      tmp = ""
+    else:
+      tmp = tmp.text.strip()
+    O2Physicshref = tmp
     tmp = self.initCard.find("O2general/delimAO2D")
     if tmp == None:
       tmp = ""
@@ -498,13 +512,19 @@ class datamodel:
       if len(inds) == 0:
         continue
 
+      # first producer is AO2D tables
       if amFirst == True:
         print(delimAO2D)
+        href2u = O2href
+        path2u = O2path
       else:
+        # helper tasks header
         if HTheaderToWrite == True:
           print(delimAO2D)
           print("")
           print(delimHelpers)
+          href2u = O2Physicshref
+          path2u = O2Physicspath
           HTheaderToWrite = False
 
       print("")
@@ -512,8 +532,8 @@ class datamodel:
 
       # add source code information if available
       if CErelation[1] != "":
-        if O2href != "":
-          print("Code file: <a href=\""+O2href+"/"+CErelation[0].split(O2path)[
+        if href2u != "":
+          print("Code file: <a href=\""+href2u+"/"+CErelation[0].split(path2u)[
                 1]+"/"+CErelation[1]+"\" target=\"_blank\">"+CErelation[1]+"</a>")
         else:
           print("Code file: "+CErelation[0]+"/"+CErelation[1])
@@ -521,6 +541,7 @@ class datamodel:
       print("<div>")
       print("")
 
+      # print all tables of given producer
       for ind in inds:
         tab = tabs[ind]
 
@@ -533,10 +554,10 @@ class datamodel:
         print("    </div>")
 
         # print header file
-        hf2u = block(tab.hfile.split(O2path)[
+        hf2u = block(tab.hfile.split(path2u)[
                      1:], False).strip().lstrip("/")
         print("    <div>")
-        print("      Header file: <a href=\""+O2href +
+        print("      Header file: <a href=\""+href2u +
               "/"+hf2u+"\" target=\"_blank\">"+hf2u+"</a>")
         print("    </div>")
 
@@ -595,7 +616,7 @@ class datamodel:
       print(delimJoins)
       print("")
       print("<a name=\"usings\"></a>")
-      print("# List of defined joins and iterators")
+      print("#### List of defined joins and iterators")
       print("<div>")
       for use in uses:
         print("")
@@ -1181,7 +1202,7 @@ class CERelations:
     self.CEdeclarationString = initCard.find(
         'O2general/CEdeclarationString')
     if self.CEdeclarationString == None:
-      self.CEdeclarationString = "o2_add_dpl_workflow"
+      self.CEdeclarationString = "o2physics_add_dpl_workflow"
     else:
       self.CEdeclarationString = self.CEdeclarationString.text.strip()
 
@@ -1227,5 +1248,6 @@ class CERelations:
       print(" path  :", relation[0])
       print("  cname:", relation[1])
       print("  ename:", self.exePreamble+relation[2])
+
 
 # -----------------------------------------------------------------------------
