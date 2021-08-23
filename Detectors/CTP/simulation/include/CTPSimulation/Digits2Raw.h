@@ -48,12 +48,13 @@ class Digits2Raw
   void setOutDir(const std::string& outDir) { mOutDir = outDir; }
   void processDigits(const std::string& fileDigitsName);
   void emptyHBFMethod(const header::RDHAny* rdh, std::vector<char>& toAdd) const;
-  std::vector<char> digits2HBTPayload(const gsl::span<std::bitset<NGBT>> digits, uint32_t Npld) const;
+  std::vector<char> digits2HBTPayload(const gsl::span<gbtword80_t> digits, uint32_t Npld) const;
   bool makeGBTWord(const gbtword80_t& pld, gbtword80_t& gbtword, uint32_t& size_gbt, uint32_t Npld, gbtword80_t& gbtsend) const;
   //void makeGBTWordInverse(std::vector<gbtword80_t> diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld) const;
-  int digit2GBTdigit(std::bitset<NGBT>& gbtdigitIR, std::bitset<NGBT>& gbtdigitTR, const CTPDigit& digit);
-  std::vector<std::bitset<NGBT>> addEmptyBC(std::vector<std::bitset<NGBT>>& hbfIRZS);
-
+  int digit2GBTdigit(gbtword80_t& gbtdigitIR, gbtword80_t& gbtdigitTR, const CTPDigit& digit);
+  std::vector<gbtword80_t> addEmptyBC(std::vector<gbtword80_t>& hbfIRZS);
+  void printDigit(std::string text, const gbtword80_t& dig) const;
+  void dumpRawData(std::string filename = "ctp.raw");
  private:
   // Raw Writer
   o2::raw::RawFileWriter mWriter{"CTP"};
