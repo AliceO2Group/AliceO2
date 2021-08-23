@@ -23,8 +23,10 @@ export SEVERITY=error
 
 if [ $1 == "dd" ]; then
   export CMD=datadistribution.sh
+  export GPU_NUM_MEM_REG_CALLBACKS=5
 else
   export CMD=raw-reader.sh
+  export GPU_NUM_MEM_REG_CALLBACKS=3
 fi
 
 if [ ! -f matbud.root -a -f ctf_dictionary.root ]; then

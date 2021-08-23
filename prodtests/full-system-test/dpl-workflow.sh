@@ -81,6 +81,10 @@ else
   GPU_CONFIG_KEY+="GPU_proc.deviceNum=-2;"
 fi
 
+if [ ! -z $GPU_NUM_MEM_REG_CALLBACKS ]; then
+  GPU_CONFIG+=" --expected-region-callbacks $GPU_NUM_MEM_REG_CALLBACKS"
+fi
+
 if [ $GPUTYPE != "CPU" ]; then
   GPU_CONFIG_KEY+="GPU_proc.forceMemoryPoolSize=$GPUMEMSIZE;"
   if [ $HOSTMEMSIZE == "0" ]; then
