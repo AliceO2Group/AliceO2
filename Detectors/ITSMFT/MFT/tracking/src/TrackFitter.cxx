@@ -44,6 +44,7 @@ bool TrackFitter::fit(TrackLTF& track, bool outward)
   /// Returns false in case of failure
 
   auto nClusters = track.getNumberOfPoints();
+  auto lastLayer = track.getLayers()[(outward ? 0 : nClusters - 1)];
 
   if (mVerbose) {
     std::cout << "Seed covariances: \n"
@@ -54,14 +55,14 @@ bool TrackFitter::fit(TrackLTF& track, bool outward)
   // recursively compute clusters, updating the track parameters
   if (!outward) { // Inward for vertexing
     while (nClusters-- > 0) {
-      if (!computeCluster(track, nClusters)) {
+      if (!computeCluster(track, nClusters, lastLayer)) {
         return false;
       }
     }
   } else { // Outward for MCH matching
     int ncl = 0;
     while (ncl < nClusters) {
-      if (!computeCluster(track, ncl)) {
+      if (!computeCluster(track, ncl, lastLayer)) {
         return false;
       }
       ncl++;
@@ -188,27 +189,28 @@ bool TrackFitter::propagateToZ(TrackLTF& track, double z)
 }
 
 //_________________________________________________________________________________________________
-bool TrackFitter::propagateToNextClusterWithMCS(TrackLTF& track, double z)
+bool TrackFitter::propagateToNextClusterWithMCS(TrackLTF& track, double z, int& startingLayerID, const int& newLayerID)
 {
 
   // Propagate track to the next cluster z position, adding angular MCS effects at the center of
-  // each disk crossed by the track
+  // each disk crossed by the track. This method is valid only for track propagation between
+  // clusters at MFT layers positions.
+
+  if (startingLayerID == newLayerID) { // Same layer, nothing to do.
+    if (mVerbose) {
+      std::cout << " => Propagate to next cluster with MCS : startingLayerID = " << startingLayerID << " = > "
+                << " newLayerID = " << newLayerID << " (NLayers = " << std::abs(newLayerID - startingLayerID);
+      std::cout << ") ; track.getZ() = " << track.getZ() << " => ";
+      std::cout << "destination cluster z = " << z << " ; => Same layer: no MCS effects." << std::endl;
+    }
+    if (z != track.getZ()) {
+      propagateToZ(track, z);
+    }
+    return true;
+  }
 
   using o2::mft::constants::LayerZPosition;
-  int startingLayerID, newLayerID;
   auto startingZ = track.getZ();
-
-  //LayerID of each cluster from ZPosition // TODO: Use ChipMapping
-  for (auto layer = 10; layer--;) {
-    if (startingZ<LayerZPosition[layer] + .3 & startingZ> LayerZPosition[layer] - .3) {
-      startingLayerID = layer;
-    }
-  }
-  for (auto layer = 10; layer--;) {
-    if (z<LayerZPosition[layer] + .3 & z> LayerZPosition[layer] - .3) {
-      newLayerID = layer;
-    }
-  }
 
   //https://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
   auto signum = [](auto a) {
@@ -264,11 +266,12 @@ bool TrackFitter::propagateToNextClusterWithMCS(TrackLTF& track, double z)
   if (z != track.getZ()) {
     propagateToZ(track, z);
   }
+  startingLayerID = newLayerID;
   return true;
 }
 
 //_________________________________________________________________________________________________
-bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
+bool TrackFitter::computeCluster(TrackLTF& track, int cluster, int& startingLayerID)
 {
   /// Propagate track to the z position of the new cluster
   /// accounting for MCS dispersion in the current layer and the other(s) crossed
@@ -280,12 +283,13 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
   const auto& clz = track.getZCoordinates()[cluster];
   const auto& sigmaX2 = track.getSigmasX2()[cluster];
   const auto& sigmaY2 = track.getSigmasY2()[cluster];
+  const auto& newLayerID = track.getLayers()[cluster];
 
   if (mVerbose) {
-    std::cout << "computeCluster:     X = " << clx << " Y = " << cly << " Z = " << clz << " nCluster = " << cluster << std::endl;
+    std::cout << "computeCluster:     X = " << clx << " Y = " << cly << " Z = " << clz << " nCluster = " << cluster << " Layer = " << newLayerID << std::endl;
   }
 
-  if (!propagateToNextClusterWithMCS(track, clz)) {
+  if (!propagateToNextClusterWithMCS(track, clz, startingLayerID, newLayerID)) {
     return false;
   }
 
