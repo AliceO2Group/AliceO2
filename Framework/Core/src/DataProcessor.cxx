@@ -119,6 +119,7 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
       int64_t toRemove = std::min((int64_t)bytesSent, offer.sharedMemory);
       offer.sharedMemory -= toRemove;
       bytesSent -= toRemove;
+      disposed.sharedMemory += toRemove;
       if (bytesSent <= 0) {
         break;
       }
