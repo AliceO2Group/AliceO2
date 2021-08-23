@@ -55,6 +55,7 @@ class Digits2Raw
   std::vector<gbtword80_t> addEmptyBC(std::vector<gbtword80_t>& hbfIRZS);
   void printDigit(std::string text, const gbtword80_t& dig) const;
   void dumpRawData(std::string filename = "ctp.raw");
+
  private:
   // Raw Writer
   o2::raw::RawFileWriter mWriter{"CTP"};
