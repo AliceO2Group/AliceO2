@@ -58,8 +58,8 @@ class TrackFitter
 
  private:
   bool propagateToZ(TrackLTF& track, double z);
-  bool propagateToNextClusterWithMCS(TrackLTF& track, double z);
-  bool computeCluster(TrackLTF& track, int cluster);
+  bool propagateToNextClusterWithMCS(TrackLTF& track, double z, int& startingLayerID, const int& newLayerID);
+  bool computeCluster(TrackLTF& track, int cluster, int& startingLayerID);
 
   bool mFieldON = true;
   Float_t mBZField; // kiloGauss.
