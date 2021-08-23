@@ -49,6 +49,10 @@
 
 #include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
 
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
+
 using namespace o2::globaltracking;
 
 using MatrixDSym4 = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepSym<double, 4>>;
@@ -150,7 +154,6 @@ void MatchTPCITS::clear()
   mITSROFTimes.clear();
   mITSTrackROFContMapping.clear();
   mITSClustersArray.clear();
-  mITSChipClustersRefs.clear();
   mTPCABSeeds.clear();
   mTPCABIndexCache.clear();
   mABWinnersIDs.clear();
@@ -566,7 +569,6 @@ bool MatchTPCITS::prepareITSData()
       mITSTrackROFContMapping[irofCont] = irof;
     }
 
-    int cluROFOffset = mITSClusterROFRec[irof].getFirstEntry(); // clusters of this ROF start at this offset
     mITSROFTimes.emplace_back(tMin, tMax);                      // ITS ROF min/max time
 
     for (int sec = o2::constants::math::NSectors; sec--;) {         // start of sector's tracks for this ROF
@@ -577,7 +579,7 @@ bool MatchTPCITS::prepareITSData()
     for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
       const auto& trcOrig = mITSTracksArray[it];
       if (mParams->runAfterBurner) {
-        flagUsedITSClusters(trcOrig, cluROFOffset);
+        flagUsedITSClusters(trcOrig);
       }
       if (trcOrig.getParamOut().getX() < 1.) {
         continue; // backward refit failed
@@ -1230,9 +1232,6 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   float chi2 = 0.f;
   auto geom = o2::its::GeometryTGeo::Instance();
   auto propagator = o2::base::Propagator::Instance();
-  // NOTE: the ITS cluster index is stored wrt 1st cluster of relevant ROF, while here we extract clusters from the
-  // buffer for the whole TF. Therefore, we should shift the index by the entry of the ROF's 1st cluster in the global cluster buffer
-  int clusIndOffs = mITSClusterROFRec[tITS.roFrame].getFirstEntry();
   int clEntry = itsTrOrig.getFirstClusterEntry();
 
   float addErr2 = 0;
@@ -1244,7 +1243,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   }
 
   for (int icl = 0; icl < ncl; icl++) {
-    const auto& clus = mITSClustersArray[clusIndOffs + mITSTrackClusIdx[clEntry++]];
+    const auto& clus = mITSClustersArray[mITSTrackClusIdx[clEntry++]];
     float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
     if (!trfit.rotate(alpha) ||
         // note: here we also calculate the L,T integral (in the inward direction, but this is irrelevant)
@@ -1261,8 +1260,8 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     nclRefit++;
   }
   if (nclRefit != ncl) {
-    LOGP(WARNING, "Refit in ITS failed after ncl={}, match between TPC track #{} and ITS track #{}", nclRefit, tTPC.sourceID, tITS.sourceID);
-    LOGP(WARNING, "{:s}", trfit.asString());
+    LOGP(DEBUG, "Refit in ITS failed after ncl={}, match between TPC track #{} and ITS track #{}", nclRefit, tTPC.sourceID, tITS.sourceID);
+    LOGP(DEBUG, "{:s}", trfit.asString());
     mMatchedTracks.pop_back(); // destroy failed track
     return false;
   }
@@ -1296,6 +1295,12 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     }
     float chi2Out = 0;
     auto posStart = tracOut.getXYZGlo();
+    auto tImposed = timeC * mTPCTBinMUSInv;
+    if (std::abs(tImposed - mTPCTracksArray[tTPC.sourceID].getTime0()) > 550) { // RS FIXME: should be removed once TOF fixes https://github.com/AliceO2Group/AliceO2/pull/6540#issuecomment-880060760
+      LOG(ERROR) << "Impossible imposed timebin " << tImposed << " for TPC track with timebin0 " << mTPCTracksArray[tTPC.sourceID].getTime0() << " TB";
+      mMatchedTracks.pop_back(); // destroy failed track
+      return false;
+    }
     int retVal = mTPCRefitter->RefitTrackAsTrackParCov(tracOut, mTPCTracksArray[tTPC.sourceID].getClusterRef(), timeC * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
     if (retVal < 0) {
       LOG(DEBUG) << "Refit failed";
@@ -1366,6 +1371,7 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed)
   // refit track outward in the ITS
   const auto& itsClRefs = mABTrackletRefs[iITSAB];
   int nclRefit = 0, ncl = itsClRefs.getNClusters();
+  uint16_t patt = 0;
   float chi2 = 0.f;
   // NOTE: the ITS cluster absolute indices are stored from inner to outer layers
   for (int icl = itsClRefs.getFirstEntry(); icl < itsClRefs.getEntriesBound(); icl++) {
@@ -1575,17 +1581,26 @@ void MatchTPCITS::runAfterBurner()
     return;
   }
   mTimer[SWABMatch].Start(false);
+  std::vector<ITSChipClustersRefs> itsChipClRefsBuff(mNThreads);
+#ifdef WITH_OPENMP
+#pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
+#endif
   for (int ic = 0; ic < nIntCand; ic++) {
     const auto& intCand = mInteractions[ic];
     if (!intCand.seedsRef.getEntries()) {
       continue;
     }
-    fillClustersForAfterBurner(intCand.rofITS, 1);                                                   // RS FIXME account for possibility of filling 2 ROFs
+#ifdef WITH_OPENMP
+    int tid = omp_get_thread_num();
+#else
+    int tid = 0;
+#endif
+    fillClustersForAfterBurner(intCand.rofITS, 1, itsChipClRefsBuff[tid]);                           // RS FIXME account for possibility of filling 2 ROFs
     for (int is = intCand.seedsRef.getFirstEntry(); is < intCand.seedsRef.getEntriesBound(); is++) { // loop over all seeds of this interaction candidate
-      processABSeed(is);
+      processABSeed(is, itsChipClRefsBuff[tid]);
     }
   }
-
+  mTimer[SWABMatch].Stop();
   mTimer[SWABWinners].Start(false);
   int nwin = 0;
   // select winners
@@ -1668,18 +1683,19 @@ void MatchTPCITS::refitABWinners()
     const auto& ABSeed = mTPCABSeeds[wid];
     int start = mABTrackletClusterIDs.size();
     int lID = ABSeed.winLinkID, ncl = 0;
+    auto& clref = mABTrackletRefs.emplace_back(start, ncl);
     while (lID > MinusOne) {
       const auto& winL = ABSeed.getLink(lID);
       if (winL.clID > MinusOne) {
         mABTrackletClusterIDs.push_back(winL.clID);
         ncl++;
+        clref.pattern |= 0x1 << winL.layerID;
         if (mMCTruthON) {
           accountClusterLabel(winL.clID);
         }
       }
       lID = winL.parentID;
     }
-    mABTrackletRefs.emplace_back(start, ncl);
     if (!refitABTrack(mABTrackletRefs.size() - 1, ABSeed)) { // on failure, destroy added tracklet reference
       mABTrackletRefs.pop_back();
       mABTrackletClusterIDs.resize(start);
@@ -1706,14 +1722,15 @@ void MatchTPCITS::refitABWinners()
     }
     // build MC label
   }
+  LOG(INFO) << "AfterBurner validated " << mABTrackletRefs.size() << " tracks";
 }
 
 //______________________________________________
-void MatchTPCITS::processABSeed(int sid)
+void MatchTPCITS::processABSeed(int sid, const ITSChipClustersRefs& itsChipClRefs)
 {
   // prepare matching hypothesis tree for given seed
   auto& ABSeed = mTPCABSeeds[sid];
-  followABSeed(ABSeed.track, MinusTen, NITSLayers - 1, ABSeed); // check matches on outermost layer
+  followABSeed(ABSeed.track, itsChipClRefs, MinusTen, NITSLayers - 1, ABSeed); // check matches on outermost layer
   for (int ilr = NITSLayers - 1; ilr > mParams->lowestLayerAB; ilr--) {
     int nextLinkID = ABSeed.firstInLr[ilr];
     if (nextLinkID < 0) {
@@ -1724,7 +1741,7 @@ void MatchTPCITS::processABSeed(int sid)
       if (seedLink.isDisabled()) {
         continue;
       }
-      followABSeed(seedLink, nextLinkID, ilr - 1, ABSeed); // check matches on the next layer
+      followABSeed(seedLink, itsChipClRefs, nextLinkID, ilr - 1, ABSeed); // check matches on the next layer
       nextLinkID = seedLink.nextOnLr;
       // RS FIXME account for possibility of missing a layer
     }
@@ -1742,7 +1759,7 @@ void MatchTPCITS::processABSeed(int sid)
 }
 
 //______________________________________________
-int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, int seedID, int lrID, TPCABSeed& ABSeed)
+int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, const ITSChipClustersRefs& itsChipClRefs, int seedID, int lrID, TPCABSeed& ABSeed)
 {
   auto propagator = o2::base::Propagator::Instance();
   float xTgt;
@@ -1798,7 +1815,7 @@ int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, int seedID, in
       if (lad.chips[chipID].zRange.isOutside(zCross, mParams->nABSigmaZ * errZ)) {
         continue;
       }
-      const auto& clRange = mITSChipClustersRefs.chipRefs[lad.chips[chipID].id];
+      const auto& clRange = itsChipClRefs.chipRefs[lad.chips[chipID].id];
       if (!clRange.getEntries()) {
         continue;
       }
@@ -1806,7 +1823,7 @@ int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, int seedID, in
       float errYcalp = errY * (csa * chipC.csAlp + sna * chipC.snAlp); // sigY_rotate(from alpha0 to alpha1) = sigY * cos(alpha1 - alpha0);
       float tolerZ = errZ * mParams->nABSigmaZ, tolerY = errYcalp * mParams->nABSigmaY;
       float yTrack = -xCross * chipC.snAlp + yCross * chipC.csAlp;                            // track-chip crossing Y in chip frame
-      if (!preselectChipClusters(chipSelClusters, clRange, yTrack, zCross, tolerY, tolerZ)) { // select candidate clusters for this chip
+      if (!preselectChipClusters(chipSelClusters, clRange, itsChipClRefs, yTrack, zCross, tolerY, tolerZ)) { // select candidate clusters for this chip
         continue;
       }
       o2::track::TrackParCov trcLC = seedC;
@@ -2017,7 +2034,7 @@ float MatchTPCITS::correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTP
 }
 
 //______________________________________________
-void MatchTPCITS::fillClustersForAfterBurner(int rofStart, int nROFs)
+void MatchTPCITS::fillClustersForAfterBurner(int rofStart, int nROFs, ITSChipClustersRefs& itsChipClRefs)
 {
   // Prepare unused clusters of given ROFs range for matching in the afterburner
   // Note: normally only 1 ROF needs to be filled (nROFs==1 ) unless we want
@@ -2026,8 +2043,8 @@ void MatchTPCITS::fillClustersForAfterBurner(int rofStart, int nROFs)
   for (int ir = nROFs; ir--;) {
     last += mITSClusterROFRec[rofStart + ir].getNEntries();
   }
-  mITSChipClustersRefs.clear();
-  auto& idxSort = mITSChipClustersRefs.clusterID;
+  itsChipClRefs.clear();
+  auto& idxSort = itsChipClRefs.clusterID;
   for (int icl = first; icl < last; icl++) {
     if (mABClusterLinkIndex[icl] != MinusTen) { // clusters with MinusOne are used in main matching
       idxSort.push_back(icl);
@@ -2057,7 +2074,7 @@ void MatchTPCITS::fillClustersForAfterBurner(int rofStart, int nROFs)
         chipClRefs->setEntries(nClInSens);
         nClInSens = 0;
       }
-      chipClRefs = &mITSChipClustersRefs.chipRefs[(lastSens = sens)];
+      chipClRefs = &itsChipClRefs.chipRefs[(lastSens = sens)];
       chipClRefs->setFirstEntry(icl);
     }
     nClInSens++;
@@ -2184,22 +2201,23 @@ void MatchTPCITS::removeITSfromTPC(int itsID, int tpcID)
 }
 
 //______________________________________________
-void MatchTPCITS::flagUsedITSClusters(const o2::its::TrackITS& track, int rofOffset)
+void MatchTPCITS::flagUsedITSClusters(const o2::its::TrackITS& track)
 {
   // flag clusters used by this track
   int clEntry = track.getFirstClusterEntry();
   for (int icl = track.getNumberOfClusters(); icl--;) {
-    mABClusterLinkIndex[rofOffset + mITSTrackClusIdx[clEntry++]] = MinusTen;
+    mABClusterLinkIndex[mITSTrackClusIdx[clEntry++]] = MinusTen;
   }
 }
+
 //__________________________________________________________
-int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange,
+int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& itsChipClRefs,
                                        float trackY, float trackZ, float tolerY, float tolerZ) const
 {
   clVecOut.clear();
   int icID = clRange.getFirstEntry();
   for (int icl = clRange.getEntries(); icl--;) { // note: clusters within a chip are sorted in Z
-    int clID = mITSChipClustersRefs.clusterID[icID++]; // so, we go in clusterID increasing direction
+    int clID = itsChipClRefs.clusterID[icID++];  // so, we go in clusterID increasing direction
     const auto& cls = mITSClustersArray[clID];
     float dz = trackZ - cls.getZ();
     auto label = mITSClsLabels->getLabels(clID)[0]; // tmp
@@ -2220,6 +2238,17 @@ int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const ClusRan
     clVecOut.push_back(clID);
   }
   return clVecOut.size();
+}
+
+//__________________________________________________________
+void MatchTPCITS::setNThreads(int n)
+{
+#ifdef WITH_OPENMP
+  mNThreads = n > 0 ? n : 1;
+#else
+  LOG(WARNING) << "Multithreading is not supported, imposing single thread";
+  mNThreads = 1;
+#endif
 }
 
 //<<============================= AfterBurner for TPC-track / ITS cluster matching ===================<<

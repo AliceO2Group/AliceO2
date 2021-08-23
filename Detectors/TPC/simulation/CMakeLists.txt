@@ -12,14 +12,12 @@
 o2_add_library(TPCSimulation
                SOURCES src/CommonMode.cxx
                        src/Detector.cxx
-                       src/DigitMCMetaData.cxx
                        src/DigitContainer.cxx
                        src/DigitGlobalPad.cxx
                        src/Digitizer.cxx
                        src/DigitTime.cxx
                        src/ElectronTransport.cxx
                        src/GEMAmplification.cxx
-                       src/PadResponse.cxx
                        src/Point.cxx
                        src/SAMPAProcessing.cxx
                        src/IDCSim.cxx
@@ -30,14 +28,12 @@ o2_add_library(TPCSimulation
 o2_target_root_dictionary(TPCSimulation
                           HEADERS include/TPCSimulation/CommonMode.h
                                   include/TPCSimulation/Detector.h
-                                  include/TPCSimulation/DigitMCMetaData.h
                                   include/TPCSimulation/DigitContainer.h
                                   include/TPCSimulation/DigitGlobalPad.h
                                   include/TPCSimulation/Digitizer.h
                                   include/TPCSimulation/DigitTime.h
                                   include/TPCSimulation/ElectronTransport.h
                                   include/TPCSimulation/GEMAmplification.h
-                                  include/TPCSimulation/PadResponse.h
                                   include/TPCSimulation/Point.h
                                   include/TPCSimulation/SAMPAProcessing.h
                                   include/TPCSimulation/IDCSim.h)

@@ -26,6 +26,7 @@
 #include "Framework/RoutingIndices.h"
 #include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
+#include "InputRouteHelpers.h"
 
 #include "Headers/DataHeaderHelpers.h"
 
@@ -57,7 +58,8 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
     mMetrics{metrics},
     mCompletionPolicy{policy},
     mDistinctRoutesIndex{DataRelayerHelpers::createDistinctRouteIndex(routes)},
-    mInputMatchers{DataRelayerHelpers::createInputMatchers(routes)}
+    mInputMatchers{DataRelayerHelpers::createInputMatchers(routes)},
+    mMaxLanes{InputRouteHelpers::maxLanes(routes)}
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
@@ -208,6 +210,7 @@ DataRelayer::RelayChoice
                      size_t restOfPartsSize)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+  DataProcessingHeader const* dph = o2::header::get<DataProcessingHeader*>(firstPart->GetData());
   // STATE HOLDING VARIABLES
   // This is the class level state of the relaying. If we start supporting
   // multithreading this will have to be made thread safe before we can invoke
@@ -221,6 +224,10 @@ DataRelayer::RelayChoice
 
   // IMPLEMENTATION DETAILS
   //
+  // This returns true if a given slot is available for the current number of lanes
+  auto isSlotInLane = [currentLane = dph->startTime, maxLanes = mMaxLanes](TimesliceSlot slot) {
+    return (slot.index % maxLanes) == (currentLane % maxLanes);
+  };
   // This returns the identifier for the given input. We use a separate
   // function because while it's trivial now, the actual matchmaking will
   // become more complicated when we will start supporting ranges.
@@ -329,6 +336,9 @@ DataRelayer::RelayChoice
   // partial match.
   for (size_t ci = 0; ci < index.size(); ++ci) {
     slot = TimesliceSlot{ci};
+    if (!isSlotInLane(slot)) {
+      continue;
+    }
     if (index.isValid(slot) == false) {
       continue;
     }
@@ -344,6 +354,9 @@ DataRelayer::RelayChoice
     for (size_t ci = 0; ci < index.size(); ++ci) {
       slot = TimesliceSlot{ci};
       if (index.isValid(slot) == true) {
+        continue;
+      }
+      if (!isSlotInLane(slot)) {
         continue;
       }
       std::tie(input, timeslice) = getInputTimeslice(index.getVariablesForSlot(slot));
@@ -408,7 +421,7 @@ DataRelayer::RelayChoice
   }
 
   TimesliceIndex::ActionTaken action;
-  std::tie(action, slot) = index.replaceLRUWith(pristineContext);
+  std::tie(action, slot) = index.replaceLRUWith(pristineContext, timeslice);
 
   updateStatistics(action);
 
@@ -492,8 +505,8 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
   size_t cacheLines = cache.size() / numInputTypes;
   assert(cacheLines * numInputTypes == cache.size());
 
-  for (size_t li = 0; li < cacheLines; ++li) {
-    TimesliceSlot slot{li};
+  for (int li = cacheLines - 1; li >= 0; --li) {
+    TimesliceSlot slot{(size_t)li};
     // We only check the cachelines which have been updated by an incoming
     // message.
     if (mTimesliceIndex.isDirty(slot) == false) {

@@ -29,6 +29,7 @@
 #include <TGeoMatrix.h>
 #include <cstdio>
 #include "Align/DOFStatistics.h"
+#include "Align/DOFSet.h"
 
 class TObjArray;
 class TClonesArray;
@@ -39,7 +40,9 @@ namespace o2
 namespace align
 {
 
-class AlignableVolume : public TNamed
+class Controller;
+
+class AlignableVolume : public DOFSet
 {
  public:
   enum DOFGeom_t { kDOFTX,
@@ -57,6 +60,7 @@ class AlignableVolume : public TNamed
          kDOFBitTH = BIT(kDOFTH),
          kDOFBitPH = BIT(kDOFPH) };
   enum { kNDOFMax = 32 };
+
   enum Frame_t { kLOC,
                  kTRA,
                  kNVarFrames }; // variation frames defined
@@ -65,7 +69,8 @@ class AlignableVolume : public TNamed
          kExclFromParentConstraintBit = BIT(16) };
   enum { kDefChildConstr = 0xff };
   //
-  AlignableVolume(const char* symname = nullptr, int iid = 0);
+  AlignableVolume() = default;
+  AlignableVolume(const char* symname, int iid, Controller* ctr);
   ~AlignableVolume() override;
   //
   const char* getSymName() const { return GetName(); }
@@ -76,9 +81,11 @@ class AlignableVolume : public TNamed
   void setInternalID(int v) { mIntID = v; }
   //
   //
-  void assignDOFs(int& cntDOFs, float* pars, float* errs, int* labs);
+  void assignDOFs();
   void initDOFs();
   //
+  void getParValGeom(double* delta) const;
+
   Frame_t getVarFrame() const { return mVarFrame; }
   void setVarFrame(Frame_t f) { mVarFrame = f; }
   bool isFrameTRA() const { return mVarFrame == kTRA; }
@@ -130,30 +137,10 @@ class AlignableVolume : public TNamed
   double getAlpTracking() const { return mAlp; }
   //
   int getNProcessedPoints() const { return mNProcPoints; }
-  virtual int finalizeStat(DOFStatistics* h = nullptr);
-  void fillDOFStat(DOFStatistics* h) const;
+  virtual int finalizeStat(DOFStatistics& h);
+  void fillDOFStat(DOFStatistics& h) const;
   //
-  float* getParVals() const { return mParVals; }
-  double getParVal(int par) const { return mParVals[par]; }
-  double getParErr(int par) const { return mParErrs[par]; }
-  int getParLab(int par) const { return mParLabs[par]; }
-  void getParValGeom(double* delta) const
-  {
-    for (int i = kNDOFGeom; i--;) {
-      delta[i] = mParVals[i];
-    }
-  }
-  //
-  void setParVals(int npar, double* vl, double* er);
-  void setParVal(int par, double v = 0) { mParVals[par] = v; }
-  void setParErr(int par, double e = 0) { mParErrs[par] = e; }
-  //
-  int getNDOFs() const { return mNDOFs; }
-  int getNDOFFree() const { return mNDOFFree; }
   int getNDOFGeomFree() const { return mNDOFGeomFree; }
-  int getFirstParGloID() const { return mFirstParGloID; }
-  int getParGloID(int par) const { return mFirstParGloID + par; }
-  void setFirstParGloID(int id) { mFirstParGloID = id; }
   //
   virtual void prepareMatrixT2L();
   virtual void setTrackingFrame();
@@ -215,7 +202,6 @@ class AlignableVolume : public TNamed
   static uint8_t getDefGeomFree() { return sDefGeomFree; }
   //
  protected:
-  void setNDOFs(int n = kNDOFGeom);
   void calcFree(bool condFree = false);
   //
   // ------- dummies -------
@@ -224,37 +210,31 @@ class AlignableVolume : public TNamed
   //
  protected:
   //
-  Frame_t mVarFrame; // Variation frame for this volume
-  int mIntID;        // internal id within the detector
-  double mX;         // tracking frame X offset
-  double mAlp;       // tracking frame alpa
+  Frame_t mVarFrame = kTRA; // Variation frame for this volume
+  int mIntID = -1;          // internal id within the detector
+  double mX = 0.;           // tracking frame X offset
+  double mAlp = 0.;         // tracking frame alpa
   //
-  char mNDOFs;          // number of degrees of freedom, including fixed ones
-  uint32_t mDOF;        // bitpattern degrees of freedom
-  char mNDOFGeomFree;   // number of free geom degrees of freedom
-  char mNDOFFree;       // number of all free degrees of freedom
-  uint8_t mConstrChild; // bitpattern for constraints on children corrections
+  uint32_t mDOF = 0;        // pattern of DOFs
+  char mNDOFGeomFree = 0;   // number of free geom degrees of freedom
+  uint8_t mConstrChild = 0; // bitpattern for constraints on children corrections
   //
-  AlignableVolume* mParent; // parent volume
-  TObjArray* mChildren;     // array of childrens
+  AlignableVolume* mParent = nullptr; // parent volume
+  TObjArray* mChildren = nullptr;     // array of childrens
   //
-  int mNProcPoints;   // n of processed points
-  int mFirstParGloID; // ID of the 1st parameter in the global results array
-  float* mParVals;    //! values of the fitted params
-  float* mParErrs;    //! errors of the fitted params
-  int* mParLabs;      //! labels for parameters
-  //
-  TGeoHMatrix mMatL2GReco;     // local to global matrix used for reco of data being processed
-  TGeoHMatrix mMatL2G;         // local to global matrix, including current alignment
-  TGeoHMatrix mMatL2GIdeal;    // local to global matrix, ideal
-  TGeoHMatrix mMatT2L;         // tracking to local matrix (ideal)
-  TGeoHMatrix mMatDeltaRefGlo; // global reference delta from Align/Data
+  int mNProcPoints = 0; // n of processed points
+
+  TGeoHMatrix mMatL2GReco{};     // local to global matrix used for reco of data being processed
+  TGeoHMatrix mMatL2G{};         // local to global matrix, including current alignment
+  TGeoHMatrix mMatL2GIdeal{};    // local to global matrix, ideal
+  TGeoHMatrix mMatT2L{};         // tracking to local matrix (ideal)
+  TGeoHMatrix mMatDeltaRefGlo{}; // global reference delta from Align/Data
   //
   static const char* sDOFName[kNDOFGeom];
   static const char* sFrameName[kNVarFrames];
   static uint32_t sDefGeomFree;
   //
-  ClassDef(AlignableVolume, 2)
+  ClassDefOverride(AlignableVolume, 2);
 };
 
 //___________________________________________________________

@@ -238,7 +238,10 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 
       auto ioStart = uv_hrtime();
 
-      for (auto route : requestedTables) {
+      for (auto& route : requestedTables) {
+        if ((device.inputTimesliceId % route.maxTimeslices) != route.timeslice) {
+          continue;
+        }
 
         // create header
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);

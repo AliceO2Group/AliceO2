@@ -25,11 +25,8 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/LabelContainer.h"
 #include "DataFormatsTPC/Defs.h"
-#include "TPCBase/CRU.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCBase/Mapper.h"
-#include "TPCBase/ParameterElectronics.h"
-#include "TPCSimulation/DigitMCMetaData.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 
 namespace o2
@@ -40,8 +37,8 @@ namespace tpc
 /// \class DigitGlobalPad
 /// This is the lowest class of the intermediate Digit Containers, in which all incoming electrons from the
 /// hits are sorted into after amplification
-/// The structure assures proper sorting of the Digits when later on written out for further processing.
-/// This class holds the individual GlobalPad containers and is contained within the Row Container.
+/// The structure assures proper sorting of the Digits and proper propagation of the MC labels when later on
+/// written out for further processing.
 
 class DigitGlobalPad
 {

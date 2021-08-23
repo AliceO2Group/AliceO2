@@ -25,6 +25,7 @@ o2_add_library(Framework
                        src/CommonDataProcessors.cxx
                        src/CommonServices.cxx
                        src/CommonMessageBackends.cxx
+                       src/CommonDriverServices.cxx
                        src/CompletionPolicy.cxx
                        src/CompletionPolicyHelpers.cxx
                        src/ComputingQuotaEvaluator.cxx
@@ -42,6 +43,7 @@ o2_add_library(Framework
                        src/DataProcessingDevice.cxx
                        src/DataProcessingHeader.cxx
                        src/DataProcessingHelpers.cxx
+                       src/DataRefUtils.cxx
                        src/SourceInfoHeader.cxx
                        src/DataProcessor.cxx
                        src/DataRelayer.cxx
@@ -67,6 +69,7 @@ o2_add_library(Framework
                        src/GraphvizHelpers.cxx
                        src/HTTPParser.cxx
                        src/InputRecord.cxx
+                       src/InputRouteHelpers.cxx
                        src/InputSpan.cxx
                        src/InputSpec.cxx
                        src/OutputSpec.cxx
@@ -126,6 +129,7 @@ o2_add_library(Framework
                                      FairMQ::FairMQ
                                      O2::CommonUtils
                                      O2::MathUtils
+                                     O2::CCDB
                                      O2::FrameworkFoundation
                                      O2::Headers
                                      O2::MemoryResources

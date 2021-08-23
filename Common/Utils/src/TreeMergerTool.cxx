@@ -18,7 +18,6 @@
 
 #include <TTree.h>
 #include <TFile.h>
-#include <ROOT/RDataFrame.hxx>
 #include <boost/program_options.hpp>
 #include <set>
 #include <vector>
@@ -29,6 +28,16 @@ struct Options {
   std::string treename;
   std::string outfilename;
   bool asfriend = false;
+};
+
+// just to make a protected interface accessible
+class MyTTreeHelper : public TTree
+{
+ public:
+  TBranch* PublicBranchImp(const char* branchname, TClass* ptrClass, void* addobj, Int_t bufsize, Int_t splitlevel)
+  {
+    return BranchImp(branchname, ptrClass, addobj, bufsize, splitlevel);
+  }
 };
 
 bool parseOptions(int argc, char* argv[], Options& optvalues)
@@ -97,6 +106,59 @@ bool checkFiles(std::vector<std::string> const& filenames, std::string const& tr
   return ok;
 }
 
+// a helper function taken from TTree.cxx
+static char DataTypeToChar(EDataType datatype)
+{
+  // Return the leaflist 'char' for a given datatype.
+
+  switch (datatype) {
+    case kChar_t:
+      return 'B';
+    case kUChar_t:
+      return 'b';
+    case kBool_t:
+      return 'O';
+    case kShort_t:
+      return 'S';
+    case kUShort_t:
+      return 's';
+    case kCounter:
+    case kInt_t:
+      return 'I';
+    case kUInt_t:
+      return 'i';
+    case kDouble_t:
+      return 'D';
+    case kDouble32_t:
+      return 'd';
+    case kFloat_t:
+      return 'F';
+    case kFloat16_t:
+      return 'f';
+    case kLong_t:
+      return 'G';
+    case kULong_t:
+      return 'g';
+    case kchar:
+      return 0; // unsupported
+    case kLong64_t:
+      return 'L';
+    case kULong64_t:
+      return 'l';
+
+    case kCharStar:
+      return 'C';
+    case kBits:
+      return 0; //unsupported
+
+    case kOther_t:
+    case kNoType_t:
+    default:
+      return 0;
+  }
+  return 0;
+}
+
 void merge(Options const& options)
 {
   if (options.asfriend) {
@@ -121,22 +183,66 @@ void merge(Options const& options)
     //maintree->AddFriend(friendcopy);
     //mainfile->Write();
   } else {
-    // NOTE: This is functional but potentially slow solution.
-    // We should adapt this function as soon as more performant
-    // ways are known.
-    // See also: https://root-forum.cern.ch/t/make-a-new-ttree-from-a-deep-vertical-union-of-existing-ttrees/44250
+    // a deep copy solution
 
-    // open the first Tree
-    TFile _tmpfile(options.infilenames[0].c_str(), "OPEN");
-    auto t1 = (TTree*)_tmpfile.Get(options.treename.c_str());
+    auto copyBranch = [](TTree* t, TBranch* br) -> bool {
+      // Get data from original branch and copy to new
+      // by using generic type/class information of old.
+      // We are using some internals of the TTree implementation. (Luckily these
+      // functions are not marked private ... so that we can still access them).
+      TClass* clptr = nullptr;
+      EDataType type;
+      if (br->GetExpectedType(clptr, type) == 0) {
+        char* data = nullptr;
+        TBranch* newbr = nullptr;
+        if (clptr != nullptr) {
+          newbr = ((MyTTreeHelper*)t)->PublicBranchImp(br->GetName(), clptr, &data, 32000, br->GetSplitLevel());
+        } else if (type != EDataType::kOther_t) {
+          TString varname;
+          varname.Form("%s/%c", br->GetName(), DataTypeToChar(type));
+          newbr = t->Branch(br->GetName(), &data, varname.Data());
+        } else {
+          std::cerr << "Could not retrieve class/type information. Branch " << br->GetName() << "cannot be copied.\n";
+          return false;
+        }
+        if (newbr) {
+          br->SetAddress(&data);
+          for (int e = 0; e < br->GetEntries(); ++e) {
+            auto size = br->GetEntry(e);
+            newbr->Fill();
+          }
+          br->ResetAddress();
+          br->DropBaskets("all");
+          return true;
+          // TODO: data is leaking? (but deleting it here causes a crash)
+        }
+      } // end good
+      return false;
+    };
 
-    // add remaining stuff as friend
-    for (int i = 1; i < options.infilenames.size(); ++i) {
-      t1->AddFriend(options.treename.c_str(), options.infilenames[i].c_str());
+    TFile outfile(options.outfilename.c_str(), "RECREATE");
+    auto outtree = new TTree(options.treename.c_str(), options.treename.c_str());
+    // iterate over files and branches
+    for (auto filename : options.infilenames) {
+      TFile _tmp(filename.c_str(), "OPEN");
+      auto t = (TTree*)_tmp.Get(options.treename.c_str());
+      auto brlist = t->GetListOfBranches();
+      for (int i = 0; i < brlist->GetEntries(); ++i) {
+        auto br = (TBranch*)brlist->At(i);
+        if (!copyBranch(outtree, br)) {
+          std::cerr << "Error copying branch " << br->GetName() << "\n";
+        }
+      }
+      outtree->SetEntries(t->GetEntries());
     }
-    ROOT::RDataFrame df(*t1);
-    df.Snapshot(options.treename, options.outfilename);
+    outfile.Write();
+    outfile.Close();
   }
+
+  // Note: There is/was also an elegant solution based on RDataFrames (snapshot) as discussed here:
+  // https://root-forum.cern.ch/t/make-a-new-ttree-from-a-deep-vertical-union-of-existing-ttrees/44250
+  // ... but this solution has problems since ROOT 6-24 since RDataFrame may change the internal type
+  // of std::vector<> using a non-default allocator which may cause problem when reading data back.
 }
 
 int main(int argc, char* argv[])

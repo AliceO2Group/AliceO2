@@ -14,21 +14,12 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DigitFileFormat.h"
 #include "DigitReader.h"
-#include <iostream>
+#include "IO.h"
 #include "IOStruct.h"
+#include <iostream>
 
 namespace o2::mch::io::impl
 {
-std::pair<int, int> advanceOneEvent(std::istream& in)
-{
-  auto dff = digitFileFormats[3];
-  int nrofs = advance(in, dff.rofSize, "rofs");
-  if (nrofs < 0) {
-    return std::make_pair(-1, -1);
-  }
-  int ndigits = advance(in, dff.digitSize, "digits");
-  return std::make_pair(nrofs, ndigits);
-}
 
 void DigitReaderV3::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t& ndigits)
 {
@@ -39,7 +30,7 @@ void DigitReaderV3::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t&
   std::pair<int, int> pairs;
   std::pair<int, int> invalid{-1, -1};
 
-  while ((pairs = advanceOneEvent(in)) != invalid) {
+  while ((pairs = advanceOneEvent(in, 3)) != invalid) {
     ndigits += pairs.second;
     nrofs += pairs.first;
     ++ntfs;

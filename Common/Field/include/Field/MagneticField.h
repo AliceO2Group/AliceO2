@@ -78,6 +78,11 @@ class MagneticField : public FairField
   /// allow fast field param
   void AllowFastField(bool v = true);
 
+  bool fastFieldExists() const
+  {
+    return !(mMapType == MagFieldParam::k5kGUniform || mDipoleOnOffFlag == true);
+  }
+
   /// Virtual methods from FairField
 
   /// X component, avoid using since slow
@@ -106,6 +111,35 @@ class MagneticField : public FairField
   /// Method to calculate the field at point xyz
   /// Main interface from TVirtualMagField used in simulation
   void Field(const Double_t* __restrict__ point, Double_t* __restrict__ bField) override;
+
+  void field(const math_utils::Point3D<float> xyz, float bxyz[3])
+  {
+    double xyzd[3] = {xyz.X(), xyz.Y(), xyz.Z()}, bxyzd[3] = {0};
+    Field(xyzd, bxyzd);
+    bxyz[0] = bxyzd[0];
+    bxyz[1] = bxyzd[1];
+    bxyz[2] = bxyzd[2];
+  }
+
+  void field(const math_utils::Point3D<double> xyz, double bxyz[3])
+  {
+    double xyzd[3] = {xyz.X(), xyz.Y(), xyz.Z()};
+    Field(xyzd, bxyz);
+  }
+
+  void field(const double* __restrict__ point, double* __restrict__ bField)
+  {
+    Field(point, bField);
+  }
+
+  void field(const float* __restrict__ point, float* __restrict__ bField)
+  {
+    double xyz[3] = {point[0], point[1], point[2]}, bxyz[3] = {0};
+    Field(xyz, bxyz);
+    bField[0] = bxyz[0];
+    bField[1] = bxyz[1];
+    bField[2] = bxyz[2];
+  }
 
   /// 3d field query alias for Alias Method to calculate the field at point xyz
   void GetBxyz(const Double_t p[3], Double_t* b) override { MagneticField::Field(p, b); }

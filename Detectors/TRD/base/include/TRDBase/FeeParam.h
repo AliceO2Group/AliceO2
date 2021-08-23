@@ -28,14 +28,10 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "DataFormatsTRD/Constants.h"
-#include "TRDBase/CommonParam.h"
 
 #include <array>
 #include <vector>
 
-class CommonParam;
-class PadPlane;
-class Geometry;
 
 namespace o2
 {
@@ -139,8 +135,6 @@ class FeeParam
 
  protected:
   static FeeParam* mgInstance; // Singleton instance
-
-  CommonParam* mCP{CommonParam::instance()}; // TRD common parameters class
 
   std::array<short, constants::NCOLUMN> mLUTPadNumbering; // Lookup table mapping Pad to MCM
 

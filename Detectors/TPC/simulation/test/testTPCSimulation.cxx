@@ -18,7 +18,6 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "TPCSimulation/Point.h"
-#include "TPCSimulation/DigitMCMetaData.h"
 #include "MathUtils/Cartesian.h"
 
 template <typename T>
@@ -43,15 +42,5 @@ BOOST_AUTO_TEST_CASE(Point_test)
   BOOST_CHECK_CLOSE(testpoint.GetDetectorID(), 8., 1E-12);
 }
 
-/// \brief Trivial test of the initialization of a DigitMCMetaData and its getters
-/// Precision: 1E-12 %
-BOOST_AUTO_TEST_CASE(DigitMCMetaData_test)
-{
-  DigitMCMetaData testdigit(1.f, 2.f, 3.f, 4.f);
-  BOOST_CHECK_CLOSE(testdigit.getRawADC(), 1.f, 1E-12);
-  BOOST_CHECK_CLOSE(testdigit.getCommonMode(), 2.f, 1E-12);
-  BOOST_CHECK_CLOSE(testdigit.getPedestal(), 3.f, 1E-12);
-  BOOST_CHECK_CLOSE(testdigit.getNoise(), 4.f, 1E-12);
-}
 } // namespace tpc
 } // namespace o2

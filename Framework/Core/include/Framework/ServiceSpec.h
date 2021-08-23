@@ -90,6 +90,9 @@ using ServicePostDispatching = std::function<void(ProcessingContext&, void*)>;
 /// Callback invoked when the driver enters the init phase.
 using ServiceDriverInit = std::function<void(ServiceRegistry&, boost::program_options::variables_map const&)>;
 
+/// Callback invoked when the driver enters the init phase.
+using ServiceDriverStartup = std::function<void(ServiceRegistry&, boost::program_options::variables_map const&)>;
+
 /// A specification for a Service.
 /// A Service is a utility class which does not perform
 /// data processing itself, but it can be used by the data processor
@@ -142,6 +145,8 @@ struct ServiceSpec {
   ServiceExitCallback exit = nullptr;
   /// Callback invoked on driver entering the INIT state
   ServiceDriverInit driverInit = nullptr;
+  /// Callback invoked when starting the driver
+  ServiceDriverStartup driverStartup = nullptr;
 
   /// Kind of service being specified.
   ServiceKind kind = ServiceKind::Serial;

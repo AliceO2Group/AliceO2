@@ -1,4 +1,4 @@
-#!/usr/bin/python3.6
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -19,7 +19,7 @@ def main(initCard):
     todo = int(todo.text)
 
   # O2dir and main header file
-  O2dir = initCard.find('O2general/mainDir/local')
+  O2dir = initCard.find('O2general/mainDir/O2local')
   if O2dir == None:
     return
   O2dir = O2dir.text.strip()
@@ -48,12 +48,18 @@ def main(initCard):
     print("Other header files")
 
   # =============================================== other header files ==========
+  # O2Physicsdir
+  O2Physicsdir = initCard.find('O2general/mainDir/O2Physicslocal')
+  if O2Physicsdir == None:
+    return
+  O2Physicsdir = O2Physicsdir.text.strip()
+
   hfMainDir = initCard.find('headerFiles/mainDir')
   if hfMainDir == None:
     hfMainDir = ""
   else:
     hfMainDir = hfMainDir.text.strip()
-  hfMainDir = O2dir+"/"+hfMainDir
+  hfMainDir = O2Physicsdir+"/"+hfMainDir
 
   hfSubDirs = initCard.find('headerFiles/subDirs')
   if hfSubDirs == None:
@@ -98,7 +104,7 @@ def main(initCard):
     cmMainDir = ""
   else:
     cmMainDir = cmMainDir.text.strip()
-  cmMainDir = O2dir+"/"+cmMainDir
+  cmMainDir = O2Physicsdir+"/"+cmMainDir
 
   cmSubDirs = initCard.find('CMLfiles/subDirs')
   if cmSubDirs == None:
@@ -137,7 +143,7 @@ def main(initCard):
     codeMainDir = ""
   else:
     codeMainDir = codeMainDir.text.strip()
-  codeMainDir = O2dir+"/"+codeMainDir
+  codeMainDir = O2Physicsdir+"/"+codeMainDir
 
   codeSubDirs = initCard.find('codeFiles/subDirs')
   if codeSubDirs == None:

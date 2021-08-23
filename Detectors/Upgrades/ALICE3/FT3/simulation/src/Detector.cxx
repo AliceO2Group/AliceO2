@@ -186,9 +186,9 @@ void Detector::buildFT3V1()
   Float_t sensorThickness = 30.e-4;
   Float_t layersx2X0 = 1.e-2;
   std::vector<std::array<Float_t, 5>> layersConfig{
-    {16., .5, 3., 0.1f * layersx2X0}, // {z_layer, r_in, r_out, Layerx2X0}
-    {20., .5, 3., 0.1f * layersx2X0},
-    {24., .5, 3., 0.1f * layersx2X0},
+    {26., .5, 3., 0.1f * layersx2X0}, // {z_layer, r_in, r_out, Layerx2X0}
+    {30., .5, 3., 0.1f * layersx2X0},
+    {34., .5, 3., 0.1f * layersx2X0},
     {77., 3.5, 35., layersx2X0},
     {100., 3.5, 35., layersx2X0},
     {122., 3.5, 35., layersx2X0},
@@ -517,13 +517,24 @@ void Detector::createGeometry()
     }
   }
 
-  // Unsupported with beampipe
   if (mLayers.size() == 1) { // All layers registered at mLayers[0], used when building from file
     LOG(INFO) << "Creating FT3 layers:";
-    for (Int_t iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
-      mLayers[0][iLayer].createLayer(volFT3);
+    if (A3IPvac) {
+      for (Int_t iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
+        if (std::abs(mLayers[0][iLayer].getZ()) < 25) {
+          mLayers[0][iLayer].createLayer(volIFT3);
+        } else {
+          mLayers[0][iLayer].createLayer(volFT3);
+        }
+      }
+      A3IPvac->AddNode(volIFT3, 2, new TGeoTranslation(0., 0., 0.));
+      vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
+    } else {
+      for (Int_t iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
+        mLayers[0][iLayer].createLayer(volFT3);
+      }
+      vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
     }
-    vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
     LOG(INFO) << "Registering FT3 LayerIDs:";
     for (int iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
       auto layerID = gMC ? TVirtualMC::GetMC()->VolId(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), 0, iLayer)) : 0;

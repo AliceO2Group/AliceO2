@@ -44,6 +44,18 @@ struct KrBoxClusterFinderParam : public o2::conf::ConfigurableParamHelper<KrBoxC
   float QThreshold{1.0};        ///< every charge which is added to a cluster must exceed this value or it is discarded
   int MinNumberOfNeighbours{2}; ///< amount of direct neighbours required for a cluster maximum
 
+  float CutMinSigmaTime{0};      ///< Min sigma time to accept cluster
+  float CutMaxSigmaTime{1000};   ///< Min sigma time to accept cluster
+  float CutMinSigmaPad{0};       ///< Min sigma pad to accept cluster
+  float CutMaxSigmaPad{1000};    ///< Min sigma pad to accept cluster
+  float CutMinSigmaRow{0};       ///< Min sigma row to accept cluster
+  float CutMaxSigmaRow{1000};    ///< Min sigma row to accept cluster
+  float CutMaxQtot{1e10};        ///< Max Qtot to accept cluster
+  float CutQtot0{1e10};          ///< Max Qtot at zero size for Qtot vs. size correlation cut
+  float CutQtotSizeSlope{0};     ///< Max Qtot over size slope for Qtot vs. size correlation cut
+  unsigned char CutMaxSize{255}; ///< Max cluster size in number of digits
+  bool ApplyCuts{false};         ///< if to apply cluster cuts above
+
   O2ParamDef(KrBoxClusterFinderParam, "TPCKrBoxClusterFinder");
 };
 } // namespace tpc

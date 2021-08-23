@@ -87,11 +87,16 @@ void Dispatcher::run(ProcessingContext& ctx)
     if (firstPart.header == nullptr) {
       continue;
     }
-    const auto* inputHeader = header::get<header::DataHeader*>(firstPart.header);
-    ConcreteDataMatcher inputMatcher{inputHeader->dataOrigin, inputHeader->dataDescription, inputHeader->subSpecification};
+    const auto* firstInputHeader = header::get<header::DataHeader*>(firstPart.header);
+    ConcreteDataMatcher inputMatcher{firstInputHeader->dataOrigin, firstInputHeader->dataDescription, firstInputHeader->subSpecification};
 
     for (auto& policy : mPolicies) {
+      // fixme: in principle matching could be broken by having query "TST/RAWDATA/0" and having parts with just
+      //  the first subspec == 0, but others could be different. However, we trust that DPL does necessary checks
+      //  during workflow validation and when passing messages (e.g. query "TST/RAWDATA/0" should not match
+      //  a "TST/RAWDATA/*" output.
       if (auto route = policy->match(inputMatcher); route != nullptr && policy->decide(firstPart)) {
+        auto routeAsConcreteDataType = DataSpecUtils::asConcreteDataTypeMatcher(*route);
         auto dsheader = prepareDataSamplingHeader(*policy);
         for (const auto& part : inputIt) {
           if (part.header != nullptr) {
@@ -101,12 +106,12 @@ void Dispatcher::run(ProcessingContext& ctx)
             header::Stack headerStack{
               std::move(extractAdditionalHeaders(part.header)),
               dsheader};
+            const auto* partInputHeader = header::get<header::DataHeader*>(part.header);
 
-            auto routeAsConcreteDataType = DataSpecUtils::asConcreteDataTypeMatcher(*route);
             Output output{
               routeAsConcreteDataType.origin,
               routeAsConcreteDataType.description,
-              inputMatcher.subSpec,
+              partInputHeader->subSpecification,
               part.spec->lifetime,
               std::move(headerStack)};
             send(ctx.outputs(), part, output);

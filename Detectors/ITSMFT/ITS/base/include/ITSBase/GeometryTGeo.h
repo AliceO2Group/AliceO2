@@ -103,34 +103,39 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   int getNumberOfChipsPerModule(int lay) const { return mNumberOfChipsPerModule[lay]; }
   int getNumberOfChipsPerHalfStave(int lay) const { return mNumberOfChipsPerHalfStave[lay]; }
   int getNumberOfChipsPerStave(int lay) const { return mNumberOfChipsPerStave[lay]; }
+  int getNumberOfChipsPerHalfBarrel(int lay) const { return mNumberOfChipsPerHalfBarrel[lay]; }
   int getNumberOfChipsPerLayer(int lay) const { return mNumberOfChipsPerLayer[lay]; }
   int getNumberOfModules(int lay) const { return mNumberOfModules[lay]; }
   int getNumberOfHalfStaves(int lay) const { return mNumberOfHalfStaves[lay]; }
   int getNumberOfStaves(int lay) const { return mNumberOfStaves[lay]; }
+  int getNumberOfHalfBarrels() const { return mNumberOfHalfBarrels; }
   int getNumberOfLayers() const { return mNumberOfLayers; }
   int getChipIndex(int lay, int detInLay) const { return getFirstChipIndex(lay) + detInLay; }
   /// This routine computes the chip index number from the layer, stave, and chip number in stave
   /// \param int lay The layer number. Starting from 0.
+  /// \param int hba The halfbarrel number. Starting from 0
   /// \param int sta The stave number. Starting from 0
   /// \param int chipInStave The chip number in the stave. Starting from 0
-  int getChipIndex(int lay, int sta, int detInSta) const;
+  int getChipIndex(int lay, int hba, int sta, int detInSta) const;
 
   /// This routine computes the chip index number from the layer, stave, substave and chip number
   /// in substave
   /// \param int lay The layer number. Starting from 0.
+  /// \param int hba The halfbarrel number. Starting from 0
   /// \param int sta The stave number. Starting from 0
   /// \param int substa The substave number. Starting from 0
   /// \param int chipInSStave The chip number in the sub stave. Starting from 0
-  int getChipIndex(int lay, int sta, int subSta, int detInSubSta) const;
+  int getChipIndex(int lay, int hba, int sta, int subSta, int detInSubSta) const;
 
   /// This routine computes the chip index number from the layer,stave, substave module and
   /// chip number in module.
   /// \param int lay The layer number. Starting from 0.
+  /// \param int hba The halfbarrel number. Starting from 0
   /// \param int sta The stave number. Starting from 0
   /// \param int substa The substave number. Starting from 0
   /// \param int module The module number ...
   /// \param int chipInSStave The chip number in the module. Starting from 0
-  int getChipIndex(int lay, int sta, int subSta, int md, int detInMod) const;
+  int getChipIndex(int lay, int hba, int sta, int subSta, int md, int detInMod) const;
 
   /// This routine computes the layer, stave, substave, module and chip number
   /// given the chip index number
@@ -142,8 +147,22 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   /// \param int chip The detector number. Starting from 0
   bool getChipId(int index, int& lay, int& sta, int& ssta, int& mod, int& chip) const;
 
+  /// This routine computes the layer, half barrel, stave, substave,
+  /// module and chip number given the chip index number
+  /// \param int index The chip index number, starting from zero.
+  /// \param int lay The layer number. Starting from 0
+  /// \param int hba The half barrel number. Starting from 0
+  /// \param int sta The stave number. Starting from 0
+  /// \param int ssta The halfstave number. Starting from 0
+  /// \param int mod The module number. Starting from 0
+  /// \param int chip The detector number. Starting from 0
+  bool getChipId(int index, int& lay, int& hba, int& sta, int& ssta, int& mod, int& chip) const;
+
   /// Get chip layer, from 0
   int getLayer(int index) const;
+
+  /// Get chip half barrel, from 0
+  int getHalfBarrel(int index) const;
 
   /// Get chip stave, from 0
   int getStave(int index) const;
@@ -174,15 +193,15 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
     return o2::base::GeometryManager::getSymbolicName(getDetID(), index);
   }
 
-  const char* getSymbolicName(int lay, int sta, int det) const
+  const char* getSymbolicName(int lay, int hba, int sta, int det) const
   {
     /// return symbolic name of sensor
-    return getSymbolicName(getChipIndex(lay, sta, det));
+    return getSymbolicName(getChipIndex(lay, hba, sta, det));
   }
 
   /// Get the transformation matrix for a given chip (NOT A SENSOR!!!) 'index' by quering the TGeoManager
   TGeoHMatrix* getMatrix(int index) const { return o2::base::GeometryManager::getMatrix(getDetID(), index); }
-  TGeoHMatrix* getMatrix(int lay, int sta, int sens) const { return getMatrix(getChipIndex(lay, sta, sens)); }
+  TGeoHMatrix* getMatrix(int lay, int hba, int sta, int sens) const { return getMatrix(getChipIndex(lay, hba, sta, sens)); }
   bool getOriginalMatrix(int index, TGeoHMatrix& m) const
   {
     /// Get the original (ideal geometry) TGeo matrix for a given chip identified by 'index'
@@ -190,25 +209,25 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
     return o2::base::GeometryManager::getOriginalMatrix(getDetID(), index, m);
   }
 
-  bool getOriginalMatrix(int lay, int sta, int det, TGeoHMatrix& m) const
+  bool getOriginalMatrix(int lay, int hba, int sta, int det, TGeoHMatrix& m) const
   {
     /// Get the original (ideal geometry) TGeo matrix for a given chip identified by 'index'
     /// The method is slow, so it should be used with great care (for caching only)
-    return getOriginalMatrix(getChipIndex(lay, sta, det), m);
+    return getOriginalMatrix(getChipIndex(lay, hba, sta, det), m);
   }
 
-  const Mat3D& getMatrixT2L(int lay, int sta, int det) const { return getMatrixT2L(getChipIndex(lay, sta, det)); }
+  const Mat3D& getMatrixT2L(int lay, int hba, int sta, int det) const { return getMatrixT2L(getChipIndex(lay, hba, sta, det)); }
   const Mat3D& getMatrixSensor(int index) const { return getMatrixL2G(index); }
-  const Mat3D& getMatrixSensor(int lay, int sta, int det)
+  const Mat3D& getMatrixSensor(int lay, int hba, int sta, int det)
   {
     // get positioning matrix of the sensor, alias to getMatrixL2G
-    return getMatrixSensor(getChipIndex(lay, sta, det));
+    return getMatrixSensor(getChipIndex(lay, hba, sta, det));
   }
 
-  const Rot2D& getMatrixT2GRot(int lay, int sta, int sens)
+  const Rot2D& getMatrixT2GRot(int lay, int hba, int sta, int sens)
   {
     /// get matrix for tracking to global frame transformation
-    return getMatrixT2GRot(getChipIndex(lay, sta, sens));
+    return getMatrixT2GRot(getChipIndex(lay, hba, sta, sens));
   }
 
   bool isTrackingFrameCached() const { return !mCacheRefX.empty(); }
@@ -237,6 +256,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
 
   static const char* getITSVolPattern() { return sVolumeName.c_str(); }
   static const char* getITSLayerPattern() { return sLayerName.c_str(); }
+  static const char* getITSHalfBarrelPattern() { return sHalfBarrelName.c_str(); }
   static const char* getITSWrapVolPattern() { return sWrapperVolumeName.c_str(); }
   static const char* getITSStavePattern() { return sStaveName.c_str(); }
   static const char* getITSHalfStavePattern() { return sHalfStaveName.c_str(); }
@@ -245,6 +265,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static const char* getITSSensorPattern() { return sSensorName.c_str(); }
   static void setITSVolPattern(const char* nm) { sVolumeName = nm; }
   static void setITSLayerPattern(const char* nm) { sLayerName = nm; }
+  static void setITSHalfBarrelPattern(const char* nm) { sHalfBarrelName = nm; }
   static void setITSWrapVolPattern(const char* nm) { sWrapperVolumeName = nm; }
   static void setITSStavePattern(const char* nm) { sStaveName = nm; }
   static void setITSHalfStavePattern(const char* nm) { sHalfStaveName = nm; }
@@ -256,17 +277,20 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   /// sym name of the layer
   static const char* composeSymNameLayer(int lr);
 
-  /// Sym name of the stave at given layer
-  static const char* composeSymNameStave(int lr, int sta);
+  /// Sym name of the half barrel at given layer
+  static const char* composeSymNameHalfBarrel(int lr, int hba);
 
   /// Sym name of the stave at given layer
-  static const char* composeSymNameHalfStave(int lr, int sta, int ssta);
+  static const char* composeSymNameStave(int lr, int hba, int sta);
 
-  /// Sym name of the substave at given layer/stave
-  static const char* composeSymNameModule(int lr, int sta, int ssta, int mod);
+  /// Sym name of the stave at given layer/halfbarrel
+  static const char* composeSymNameHalfStave(int lr, int hba, int sta, int ssta);
 
-  /// Sym name of the chip in the given layer/stave/substave/module
-  static const char* composeSymNameChip(int lr, int sta, int ssta, int mod, int chip);
+  /// Sym name of the substave at given layer/halfbarrel/stave
+  static const char* composeSymNameModule(int lr, int hba, int sta, int ssta, int mod);
+
+  /// Sym name of the chip in the given layer/halfbarrel/stave/substave/module
+  static const char* composeSymNameChip(int lr, int hba, int sta, int ssta, int mod, int chip);
 
  protected:
   /// Get the transformation matrix of the SENSOR (not necessary the same as the chip)
@@ -289,6 +313,10 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   /// Also extract the layout: span of module centers in Z and X
   /// \param lay: layer number from 0
   int extractNumberOfChipsPerModule(int lay, int& nrow) const;
+
+  /// Determines the number of halfbarrels in the layer
+  /// \param lay: layer number, starting from 0
+  int extractNumberOfHalfBarrels() const;
 
   /// Determines the number of layers in the Geometry
   /// \param lay: layer number, starting from 0
@@ -325,23 +353,26 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
  protected:
   static constexpr int MAXLAYERS = 15; ///< max number of active layers
 
-  Int_t mNumberOfLayers;                       ///< number of layers
-  std::vector<int> mNumberOfStaves;            ///< number of staves/layer(layer)
-  std::vector<int> mNumberOfHalfStaves;        ///< the number of substaves/stave(layer)
-  std::vector<int> mNumberOfModules;           ///< number of modules/substave(layer)
-  std::vector<int> mNumberOfChipsPerModule;    ///< number of chips per module (group of chips on substaves)
-  std::vector<int> mNumberOfChipRowsPerModule; ///< number of chips rows per module (relevant for OB modules)
-  std::vector<int> mNumberOfChipsPerHalfStave; ///< number of chips per substave
-  std::vector<int> mNumberOfChipsPerStave;     ///< number of chips per stave
-  std::vector<int> mNumberOfChipsPerLayer;     ///< number of chips per stave
-  std::vector<int> mLastChipIndex;             ///< max ID of the detctor in the layer
-  std::array<char, MAXLAYERS> mLayerToWrapper; ///< Layer to wrapper correspondence
+  Int_t mNumberOfLayers;                        ///< number of layers
+  Int_t mNumberOfHalfBarrels;                   ///< number of halfbarrels
+  std::vector<int> mNumberOfStaves;             ///< number of staves/layer(layer)
+  std::vector<int> mNumberOfHalfStaves;         ///< the number of substaves/stave(layer)
+  std::vector<int> mNumberOfModules;            ///< number of modules/substave(layer)
+  std::vector<int> mNumberOfChipsPerModule;     ///< number of chips per module (group of chips on substaves)
+  std::vector<int> mNumberOfChipRowsPerModule;  ///< number of chips rows per module (relevant for OB modules)
+  std::vector<int> mNumberOfChipsPerHalfStave;  ///< number of chips per substave
+  std::vector<int> mNumberOfChipsPerStave;      ///< number of chips per stave
+  std::vector<int> mNumberOfChipsPerHalfBarrel; ///< number of chips per halfbarrel
+  std::vector<int> mNumberOfChipsPerLayer;      ///< number of chips per stave
+  std::vector<int> mLastChipIndex;              ///< max ID of the detctor in the layer
+  std::array<char, MAXLAYERS> mLayerToWrapper;  ///< Layer to wrapper correspondence
 
   std::vector<float> mCacheRefX;     ///< sensors tracking plane reference X
   std::vector<float> mCacheRefAlpha; ///< sensors tracking plane reference alpha
 
   static std::string sVolumeName;        ///< Mother volume name
   static std::string sLayerName;         ///< Layer name
+  static std::string sHalfBarrelName;    ///< HalfBarrel name
   static std::string sStaveName;         ///< Stave name
   static std::string sHalfStaveName;     ///< HalfStave name
   static std::string sModuleName;        ///< Module name

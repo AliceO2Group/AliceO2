@@ -14,19 +14,27 @@
     
     <mainDir>
       <!-- main path to the local O2 installation -->
-      <local>
-        /home/pbuehler/alice/O2
-      </local>
+      <O2local>
+        ../..
+      </O2local>
+
+      <O2Physicslocal>
+        ../../../O2Physics
+      </O2Physicslocal>
     
-      <!-- ALICE O2 gitHub repository -->
-      <GitHub> 
-        https://github.com/AliceO2Group/AliceO2/blob/dev
-      </GitHub>
+      <!-- ALICE O2Physics gitHub repository -->
+      <O2GitHub> 
+        https://github.com/AliceO2Group/AliceO2/tree/dev
+      </O2GitHub>
+      
+      <O2PhysicsGitHub> 
+        https://github.com/AliceO2Group/O2Physics/tree/master
+      </O2PhysicsGitHub>
       
     </mainDir>
 
     <!-- definition of the main AnalysisDataModel header file -->
-    <!-- relative to mainDir/local -->
+    <!-- relative to mainDir/O2local -->
     <DataModelHeader>
       Framework/Core/include/Framework/AnalysisDataModel.h
     </DataModelHeader>
@@ -43,8 +51,21 @@
     
     <!-- string used in CMakefiles.txt to define a task executable -->
     <CEdeclarationString>
-      o2_add_dpl_workflow
+      o2physics_add_dpl_workflow
     </CEdeclarationString>
+    
+    <!-- delimiters used to mark text blocks to be replaced in html files -->
+    <delimAO2D>
+      &lt;!-- Block with AO2D tables --&gt;
+    </delimAO2D>
+    
+    <delimHelpers>
+      &lt;!-- Block with helper tasks --&gt;
+    </delimHelpers>
+    
+    <delimJoins>
+      &lt;!-- Block with joins and iterators --&gt;
+    </delimJoins>
     
   </O2general>
   
@@ -52,9 +73,9 @@
   <!-- where to get the extra header files from -->
   <headerFiles>
   
-    <!-- relative to mainDir/local -->
+    <!-- relative to mainDir/O2Physicslocal -->
     <mainDir>
-      Analysis/DataModel/include/AnalysisDataModel
+      DataModel/include/AnalysisDataModel
     </mainDir>
     
     <!-- relative to headerFiles/mainDir -->
@@ -73,9 +94,9 @@
   <!-- where to get the CMakeLists.txt files from -->
   <CMLfiles>
   
-    <!-- relative to mainDir/local -->
+    <!-- relative to mainDir/O2Physicslocal -->
     <mainDir>
-      Analysis/Tasks
+      Tasks
     </mainDir>
     
     <!-- relative to CMLfiles/mainDir -->
@@ -94,9 +115,9 @@
   <!-- where to get the task code files from -->
   <codeFiles>
   
-    <!-- relative to mainDir/local -->
+    <!-- relative to mainDir/O2Physicslocal -->
     <mainDir>
-      Analysis/Tasks
+      Tasks
     </mainDir>
     
     <!-- relative to codeFiles/mainDir -->

@@ -229,9 +229,9 @@ BOOST_AUTO_TEST_CASE(ParameterGEM_test1)
   BOOST_CHECK_CLOSE(ParameterGEM::Instance().AbsoluteGain[1], 8.f, 1e-3);
   BOOST_CHECK_CLOSE(ParameterGEM::Instance().AbsoluteGain[2], 53.f, 1e-3);
   BOOST_CHECK_CLOSE(ParameterGEM::Instance().AbsoluteGain[3], 240.f, 1e-3);
-  BOOST_CHECK_CLOSE(ParameterGEM::Instance().TotalGainStack, 1644.f, 1e-3);
-  BOOST_CHECK_CLOSE(ParameterGEM::Instance().KappaStack, 1.2295f, 1e-3);
-  BOOST_CHECK_CLOSE(ParameterGEM::Instance().EfficiencyStack, 0.473805f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().TotalGainStack, 2000.f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().KappaStack, 1.205f, 1e-3);
+  BOOST_CHECK_CLOSE(ParameterGEM::Instance().EfficiencyStack, 0.528f, 1e-3);
   BOOST_CHECK(ParameterGEM::Instance().AmplMode == AmplificationMode::EffectiveMode);
 
   BOOST_CHECK(o2::conf::ConfigurableParam::getValueAs<int>("TPCGEMParam.Geometry[0]") == 0);
@@ -256,9 +256,9 @@ BOOST_AUTO_TEST_CASE(ParameterGEM_test1)
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.AbsoluteGain[1]"), 8.f, 1e-3);
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.AbsoluteGain[2]"), 53.f, 1e-3);
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.AbsoluteGain[3]"), 240.f, 1e-3);
-  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.TotalGainStack"), 1644.f, 1e-3);
-  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.KappaStack"), 1.2295f, 1e-3);
-  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.EfficiencyStack"), 0.473805f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.TotalGainStack"), 2000.f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.KappaStack"), 1.205f, 1e-3);
+  BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCGEMParam.EfficiencyStack"), 0.528f, 1e-3);
 
   // For fixed values
   BOOST_CHECK_CLOSE(ParameterGEM::Instance().CollectionEfficiency[0], 1.f, 1e-3);

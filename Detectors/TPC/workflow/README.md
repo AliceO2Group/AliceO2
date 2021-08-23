@@ -190,6 +190,77 @@ Remove the `--no-write-ccdb` option and add
 | o2-calibration-ccdb-populator-workflow
 ```
 
+### Laser track calibration
+#### Laser track filter
+`o2-tpc-laser-track-filter` filters `TPC/TRACKS` looking for laser track candidates. The output is provided as `TPC/LASERTRACKS`.
+With the option `--enable-writer`, the filtere tracks can be writte to file (`tpc-laser-tracks.root`).
+
+#### linear workflow reading from a local track file, direclty running the calibration component
+By default `o2-tpc-calib-laser-tracks` assumes non-filtered `TPC/TRACKS` as input.
+Using the option `--use-filtered-tracks` the input `TPC/LASERTRACKS` will be used.
+
+**running without laser track filter**
+```bash
+o2-tpc-file-reader --input-type tracks --disable-mc --tpc-track-reader '--infile tpctracks.root' \
+  | o2-tpc-calib-laser-tracks --write-debug
+```
+
+**running with laser track filter**
+```bash
+o2-tpc-file-reader --input-type tracks --disable-mc --tpc-track-reader '--infile tpctracks.root' \
+  | o2-tpc-laser-track-filter \
+  |  o2-tpc-calib-laser-tracks --use-filtered-tracks --write-debug --run
+```
+
+#### linear workflow reading from a local track file, running with time slot calibration
+The time slot calibration assumes as input prefiltered laser track candates (`o2-tpc-laser-track-filter`).
+They are published as `TPC/LASERTRACKS`.
+
+##### Options
+  --tf-per-slot arg (=5000)             number of TFs per calibration time slot
+  --max-delay arg (=3)                  number of slots in past to consider
+  --min-entries arg (=100)              minimum number of TFs with at least 50 tracks on each sideto finalize a slot
+                                        so 100 means 5000 matched laser tracks on each side.
+  --write-debug                         write a debug output tree.
+
+```bash
+o2-tpc-file-reader --input-type tracks --disable-mc --tpc-track-reader '--infile tpctracks.root' \
+ | o2-tpc-laser-track-filter \
+ | o2-tpc-laser-tracks-calibrator --write-debug --min-entries 100 --tf-per-slot 5000 --run
+```
+
+#### simple distributed workflow with output and input proxy, running with time slot calibration
+**Sending side zeromq**
+```bash
+o2-tpc-file-reader --input-type tracks --disable-mc --tpc-track-reader '--infile tpctracks.root' \
+ | o2-tpc-laser-track-filter \
+ | o2-dpl-output-proxy --channel-config "name=downstream,method=connect,address=tcp://localhost:30453,type=push,transport=zeromq" --dataspec lasertracks:TPC/LASERTRACKS -b --run
+```
+
+**Receeving side zeromq**
+```bash
+o2-dpl-raw-proxy --dataspec lasertracks:TPC/LASERTRACKS/0 --channel-config "name=readout-proxy,type=pull,method=bind,address=tcp://localhost:30453,rateLogging=1,transport=zeromq" \
+  | o2-tpc-laser-tracks-calibrator --write-debug --min-entries 100 --tf-per-slot 5000 --run
+```
+
+**Sending side shmem**
+```bash
+ARGS_ALL="--session tpc-laser-tracks -b"
+o2-tpc-file-reader $ARGS_ALL --input-type tracks --disable-mc --tpc-track-reader '--infile tpctracks.root' \
+ | o2-tpc-laser-track-filter $ARGS_ALL \
+ | o2-dpl-output-proxy $ARGS_ALL --channel-config "name=downstream,type=push,method=bind,address=ipc://@tpc-laser-tracks-0,transport=shmem,rateLogging=1" --dataspec lasertracks:TPC/LASERTRACKS \
+ | o2-dpl-run $ARGS_ALL --run
+
+```
+
+**Receeving side shmem**
+```bash
+ARGS_ALL="--session tpc-laser-tracks -b"
+o2-dpl-raw-proxy $ARGS_ALL --dataspec lasertracks:TPC/LASERTRACKS/0 --channel-config "name=readout-proxy,type=pull,method=connect,address=ipc://@tpc-laser-tracks-0,transport=shmem,rateLogging=1" \
+  | o2-tpc-laser-tracks-calibrator $ARGS_ALL --write-debug --min-entries 100 --tf-per-slot 5000 \
+  | o2-dpl-run $ARGS_ALL --run
+```
+
 ## Running the recontruction on GBT raw data
 This requires to do zero suppression in the first stage. For this the `DigiDump` class is used, wrapped in an o2 workflow.
 

@@ -40,12 +40,12 @@ bool CalibParams::setGain(TH2* h, short module)
     return false;
   }
 
-  short relid[3] = {module, 1, 1};
+  short relid[3] = {module, 0, 0};
   unsigned short absId;
   for (short ix = 1; ix <= MAXX; ix++) {
-    relid[1] = ix;
+    relid[1] = ix - 1;
     for (short iz = 1; iz <= MAXZ; iz++) {
-      relid[2] = iz;
+      relid[2] = iz - 1;
 
       if (Geometry::relToAbsNumbering(relid, absId)) {
         mGainCalib[absId] = h->GetBinContent(ix, iz);

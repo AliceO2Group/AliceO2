@@ -98,11 +98,11 @@ class ClusterTransformerTask
   o2::mch::geo::TransformationCreator transformation;
 };
 
-DataProcessorSpec getClusterTransformerSpec()
+DataProcessorSpec getClusterTransformerSpec(const char* name)
 {
   std::string inputConfig = fmt::format("rofs:MCH/CLUSTERROFS;clusters:MCH/CLUSTERS");
   return DataProcessorSpec{
-    "mch-clusters-transformer",
+    name,
     Inputs{o2::framework::select(inputConfig.c_str())},
     Outputs{OutputSpec{{"globalclusters"}, "MCH", "GLOBALCLUSTERS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<ClusterTransformerTask>()},

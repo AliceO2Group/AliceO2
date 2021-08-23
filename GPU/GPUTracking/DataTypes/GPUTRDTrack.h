@@ -62,6 +62,7 @@ class GPUTRDTrack_t : public T
  public:
   enum EGPUTRDTrack {
     kNLayers = 6,
+    kAmbiguousFlag = 6,
     kStopFlag = 7
   };
 
@@ -76,7 +77,7 @@ class GPUTRDTrack_t : public T
   GPUd() GPUTRDTrack_t(const T& t);
   GPUd() GPUTRDTrack_t& operator=(const GPUTRDTrack_t& t);
 
-  // attach a tracklet to this track; this overwrites the mIsFindable flag to true for this layer
+  // attach a tracklet to this track; this overwrites the mFlags flag to true for this layer
   GPUd() void addTracklet(int iLayer, int idx) { mAttachedTracklets[iLayer] = idx; }
 
   // getters
@@ -89,8 +90,9 @@ class GPUTRDTrack_t : public T
   GPUd() int getNtracklets() const;
   GPUd() float getChi2() const { return mChi2; }
   GPUd() float getReducedChi2() const { return getNlayersFindable() == 0 ? mChi2 : mChi2 / getNlayersFindable(); }
-  GPUd() bool getIsStopped() const { return (mIsFindable >> kStopFlag) & 0x1; }
-  GPUd() bool getIsFindable(int iLayer) const { return (mIsFindable >> iLayer) & 0x1; }
+  GPUd() bool getIsStopped() const { return (mFlags >> kStopFlag) & 0x1; }
+  GPUd() bool getIsAmbiguous() const { return (mFlags >> kAmbiguousFlag) & 0x1; }
+  GPUd() bool getIsFindable(int iLayer) const { return (mFlags >> iLayer) & 0x1; }
   GPUd() int getNmissingConsecLayers(int iLayer) const;
   // for AliRoot compatibility. To be removed once HLT/global/AliHLTGlobalEsdConverterComponent.cxx does not require them anymore
   GPUd() int GetTPCtrackId() const { return mRefGlobalTrackId; }
@@ -102,8 +104,9 @@ class GPUTRDTrack_t : public T
   // This method is only defined in TrackTRD.h and is intended to be used only with that TRD track type
   GPUd() void setRefGlobalTrackId(o2::dataformats::GlobalTrackID id);
   GPUd() void setCollisionId(short id) { mCollisionId = id; }
-  GPUd() void setIsFindable(int iLayer) { mIsFindable |= (1U << iLayer); }
-  GPUd() void setIsStopped() { mIsFindable |= (1U << kStopFlag); }
+  GPUd() void setIsFindable(int iLayer) { mFlags |= (1U << iLayer); }
+  GPUd() void setIsStopped() { mFlags |= (1U << kStopFlag); }
+  GPUd() void setIsAmbiguous() { mFlags |= (1U << kAmbiguousFlag); }
   GPUd() void setChi2(float chi2) { mChi2 = chi2; }
 
   // conversion to / from HLT track structure (only for AliRoot)
@@ -115,12 +118,12 @@ class GPUTRDTrack_t : public T
   unsigned int mRefGlobalTrackId;   // raw GlobalTrackID of the seeding track (either ITS-TPC or TPC)
   int mAttachedTracklets[kNLayers]; // indices of the tracklets attached to this track; -1 means no tracklet in that layer
   short mCollisionId;               // the collision ID of the tracklets attached to this track; is used to retrieve the BC information for this track after the tracking is done
-  unsigned char mIsFindable;        // bitfield; LSB indicates whether track is findable in layer 0; MSB flags whether the track is stopped in the TRD; one bit is currently not used
+  unsigned char mFlags;             // bits 0 to 5 indicate whether track is findable in layer 0 to 5, bit 6 indicates an ambiguous track and bit 8 flags if the track is stopped in the TRD
 
  private:
   GPUd() void initialize();
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
-  ClassDefNV(GPUTRDTrack_t, 1);
+  ClassDefNV(GPUTRDTrack_t, 2);
 #endif
 };
 

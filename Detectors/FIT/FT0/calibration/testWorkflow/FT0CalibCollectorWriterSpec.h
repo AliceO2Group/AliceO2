@@ -35,7 +35,7 @@ class FT0CalibCollectorWriter : public o2::framework::Task
  public:
   void createAndOpenFileAndTree()
   {
-    TString filename = TString::Format("collFT0_%d.root", mCount);
+    TString filename = TString::Format("collFT0%d.root", mCount);
     LOG(DEBUG) << "opening file " << filename.Data();
     mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
     mOutputTree = std::make_unique<TTree>("treeCollectedCalibInfo", "Tree with FT0 calib info for Time Slewing");

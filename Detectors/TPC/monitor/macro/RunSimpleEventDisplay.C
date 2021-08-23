@@ -580,7 +580,7 @@ void Next(int eventNumber = -1)
     }
     case Status::NoMoreData: {
       std::cout << "No more data to be read\n";
-      return;
+      //return;
       break;
     }
     case Status::NoReaders: {

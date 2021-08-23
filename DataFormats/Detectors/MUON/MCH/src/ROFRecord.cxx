@@ -12,13 +12,22 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include <fmt/format.h>
 #include <iostream>
+#include <stdexcept>
 
 namespace o2::mch
 {
 std::ostream& operator<<(std::ostream& os, const ROFRecord& rof)
 {
-  os << fmt::format("{} FirstIdx: {:5d} LastIdx: {:5d}",
-                    rof.getBCData().asString(), rof.getFirstIdx(), rof.getLastIdx());
+  os << fmt::format("{} FirstIdx: {:5d} LastIdx: {:5d} Width: {:2d} BCs",
+                    rof.getBCData().asString(), rof.getFirstIdx(), rof.getLastIdx(),
+                    rof.getBCWidth());
   return os;
 }
+void ROFRecord::setBCWidth(int bcWidth)
+{
+  if (bcWidth < 4) {
+    throw std::invalid_argument(fmt::format("bcWidth must be strictly greater than 4 bunch-crossings"));
+  }
+}
+
 } // namespace o2::mch

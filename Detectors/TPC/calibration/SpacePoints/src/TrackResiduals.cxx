@@ -59,6 +59,11 @@ using namespace o2::tpc;
 //______________________________________________________________________________
 void TrackResiduals::init()
 {
+#ifdef TPC_RUN2
+  // Run 2 geometry should only be defined for tests with Run 2 data, i.e. not in production so we send an error message here
+  LOG(ERROR) << "Run 2 parameters compiled for the TPC geometry. Will lead to errors in case of processing residuals from O2.";
+#endif
+
   // initialize binning
   initBinning();
 
@@ -154,7 +159,7 @@ void TrackResiduals::initBinning()
     mDY2X[ix] = 1.f / mDY2XI[ix];
   }
   if (mUniformBins[VoxF]) {
-    O2INFO("Y/X-binning is uniform with %i bins from -MaxY2X to +MaxY2X", mNY2XBins);
+    O2INFO("Y/X-binning is uniform with %i bins from -MaxY2X to +MaxY2X (values depend on X-bin)", mNY2XBins);
     for (int ip = 0; ip < mNY2XBins; ++ip) {
       mY2XBinsDH.push_back(1.f / mNY2XBins);
       mY2XBinsDI.push_back(.5f / mY2XBinsDH[ip]);
@@ -167,7 +172,7 @@ void TrackResiduals::initBinning()
   mDZ2XI = mNZ2XBins / sMaxZ2X;
   mDZ2X = 1.0f / mDZ2XI; // for uniform case only
   if (mUniformBins[VoxZ]) {
-    O2INFO("Z/X-binning is uniform with %i bins from 0 to sMaxZ2X", mNY2XBins);
+    O2INFO("Z/X-binning is uniform with %i bins from 0 to %f", mNY2XBins, sMaxZ2X);
     for (int iz = 0; iz < mNZ2XBins; ++iz) {
       mZ2XBinsDH.push_back(.5f * mDZ2X);
       mZ2XBinsDI.push_back(mDZ2XI);
@@ -177,6 +182,7 @@ void TrackResiduals::initBinning()
   }
   //
   mNVoxPerSector = mNY2XBins * mNZ2XBins * mNXBins;
+  O2INFO("Each TPC sector is divided into %i voxels", mNVoxPerSector);
 }
 
 //______________________________________________________________________________
@@ -253,7 +259,7 @@ int TrackResiduals::getRowID(float x) const
   } else if (x >= param::RowX[param::NRowsAccumulated[param::NROCTypes - 2]] - .5f * param::RowDX[param::NROCTypes - 1]) {
     // we are in the OROC3
     ix = (x - (param::RowX[param::NRowsAccumulated[param::NROCTypes - 2]] - .5f * param::RowDX[param::NROCTypes - 1])) / param::RowDX[param::NROCTypes - 1] + param::NRowsAccumulated[param::NROCTypes - 2];
-    if (ix >= param::nPadRows) {
+    if (ix >= param::NPadRows) {
       // x is larger than the outer radius of the last OROC pad row
       ix = -1;
     }
@@ -714,15 +720,8 @@ void TrackResiduals::writeLocalResidualTreesToFile()
   }
 }
 
-void TrackResiduals::convertToLocalResiduals()
+void TrackResiduals::loadInputFromFile()
 {
-  // When using data generated with o2 without distortions the residuals can easily be converted
-  // without the need of outlier filtering (is this really true?).
-  // Probably a lot of the functionality from buildLocalResidualTreesFromRun2Data() have to be
-  // added here as well.
-  if (!mIsInitialized) {
-    init();
-  }
   // open input file and access track data
   mFileIn = std::make_unique<TFile>(mInputFileNameResiduals.data(), "open");
   if (!mFileIn) {
@@ -744,24 +743,46 @@ void TrackResiduals::convertToLocalResiduals()
   }
   mTreeInClRes->SetBranchAddress("residuals", &mClResPtr);
   mTreeInClRes->GetEntry(0);
+}
+
+void TrackResiduals::setInputData(std::vector<TrackData>& trkData, std::vector<TPCClusterResiduals>& clResiduals)
+{
+  mTrackDataPtr = &trkData;
+  mClResPtr = &clResiduals;
+}
+
+void TrackResiduals::convertToLocalResiduals(bool loadFromFile)
+{
+  // When using data generated with o2 without distortions the residuals can easily be converted
+  // without the need of outlier filtering (is this really true?).
+  // Probably a lot of the functionality from buildLocalResidualTreesFromRun2Data() have to be
+  // added here as well.
+  if (!mIsInitialized) {
+    init();
+  }
+
+  if (loadFromFile) {
+    LOG(INFO) << "Loading TPC cluster residuals (unfiltered) from file.";
+    loadInputFromFile();
+  }
 
   prepareLocalResidualTrees();
 
   // loop over tracks
-  for (const auto& trk : mTrackData) {
+  for (const auto& trk : *mTrackDataPtr) {
     int iRow = 0;
     for (int iCl = 0; iCl < trk.clIdx.getEntries(); ++iCl) {
       int clIdx = trk.clIdx.getFirstEntry() + iCl;
-      int sec = mClRes[clIdx].z < 0 ? mClRes[clIdx].sec : mClRes[clIdx].sec + SECTORSPERSIDE; // sector numbering 0..35 a.k.a. A0..C17
+      int sec = (*mClResPtr)[clIdx].z < 0 ? (*mClResPtr)[clIdx].sec : (*mClResPtr)[clIdx].sec + SECTORSPERSIDE; // sector numbering 0..35 a.k.a. A0..C17
       std::array<unsigned char, VoxDim> bvox;
-      iRow += mClRes[clIdx].dRow;
+      iRow += (*mClResPtr)[clIdx].dRow;
       float xPos = param::RowX[iRow];
-      if (!findVoxelBin(sec, xPos, mClRes[clIdx].y * param::MaxY / 0x7fff, mClRes[clIdx].z * param::MaxZ / 0x7fff, bvox)) {
+      if (!findVoxelBin(sec, xPos, (*mClResPtr)[clIdx].y * param::MaxY / 0x7fff, (*mClResPtr)[clIdx].z * param::MaxZ / 0x7fff, bvox)) {
         continue;
       }
-      mLocalResid.dy = mClRes[clIdx].dy;
-      mLocalResid.dz = mClRes[clIdx].dz;
-      mLocalResid.tgSlp = mClRes[clIdx].phi;
+      mLocalResid.dy = (*mClResPtr)[clIdx].dy;
+      mLocalResid.dz = (*mClResPtr)[clIdx].dz;
+      mLocalResid.tgSlp = (*mClResPtr)[clIdx].phi;
       mLocalResid.bvox = bvox;
       mTmpTree[sec]->Fill();
       // TODO calculate mean position of clusters in each voxel (can be updated each time a new measurement is found inside voxel)

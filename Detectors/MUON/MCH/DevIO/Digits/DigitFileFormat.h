@@ -38,7 +38,7 @@ struct DigitFileFormat {
   };
 };
 
-extern std::array<DigitFileFormat, 4> digitFileFormats;
+extern std::array<DigitFileFormat, 5> digitFileFormats;
 
 std::ostream& operator<<(std::ostream&, const DigitFileFormat&);
 

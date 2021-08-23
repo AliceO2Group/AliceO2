@@ -13,6 +13,8 @@ o2_add_library(TPCSpaceCharge
                TARGETVARNAME targetName
                SOURCES src/SpaceCharge.cxx
                        src/PoissonSolver.cxx
+                       src/SpaceChargeParameter.cxx
+                       src/TriCubic.cxx
                PUBLIC_LINK_LIBRARIES O2::TPCBase
                                      Vc::Vc
                                      ROOT::Core)
@@ -27,6 +29,7 @@ o2_target_root_dictionary(TPCSpaceCharge
                                   include/TPCSpaceCharge/TriCubic.h
                                   include/TPCSpaceCharge/Vector.h
                                   include/TPCSpaceCharge/Vector3D.h
+                                  include/TPCSpaceCharge/SpaceChargeParameter.h
                           LINKDEF src/TPCSpacechargeLinkDef.h)
 
 o2_add_test_root_macro(macro/calculateDistortionsCorrections.C
@@ -40,7 +43,7 @@ o2_add_test_root_macro(macro/createResidualDistortionObject.C
 
 
 install(FILES macro/createSCHistosFromHits.C
-	DESTINATION share/macro/)
+        DESTINATION share/macro/)
 
 o2_add_test_root_macro(macro/createSCHistosFromHits.C
                       PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge

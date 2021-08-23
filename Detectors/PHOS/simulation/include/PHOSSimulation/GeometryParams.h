@@ -48,7 +48,7 @@ class GeometryParams final : public TNamed
   int getNZ() const { return mNz; }
   int getNCristalsInModule() const { return mNPhi * mNz; }
   int getNModules() const { return mNModules; }
-  float getPHOSAngle(int index) const { return mPHOSAngle[index - 1]; }
+  float getPHOSAngle(int index) const { return mPHOSAngle[index]; }
   float* getPHOSParams() { return mPHOSParams; }       // Half-sizes of PHOS trapecoid
   float* getPHOSATBParams() { return mPHOSATBParams; } // Half-sizes of PHOS trapecoid
   float getOuterBoxSize(int index) const { return 2. * mPHOSParams[index]; }

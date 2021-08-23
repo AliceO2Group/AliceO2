@@ -16,6 +16,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/ComputingQuotaEvaluator.h"
+#include "CommonDriverServices.h"
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Plugins.h"
@@ -1100,6 +1101,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                           //
       ("driver-client-backend", bpo::value<std::string>()->default_value(defaultDriverClient), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
       ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                           //
+      ("expected-region-callbacks", bpo::value<std::string>()->default_value("0"), "how many region callbacks we are expecting")                                                           //
       ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
       ("infologger-mode", bpo::value<std::string>()->default_value(""), "O2_INFOLOGGER_MODE override");
     r.fConfig.AddToCmdLineOptions(optsDesc, true);
@@ -1301,6 +1303,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   std::vector<ServicePreSchedule> preScheduleCallbacks;
   std::vector<ServicePostSchedule> postScheduleCallbacks;
   std::vector<ServiceDriverInit> driverInitCallbacks;
+  std::vector<ServiceSpec> driverServices = CommonDriverServices::defaultServices();
+  for (auto& service : driverServices) {
+    service.driverStartup(serviceRegistry, varmap);
+  }
 
   serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DevicesManager>(devicesManager));
 
@@ -1474,7 +1480,89 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (driverInfo.batch == true && workflowState == WorkflowParsingState::Empty) {
             throw runtime_error("Empty workflow provided while running in batch mode.");
           }
-          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
+
+          /// extract and apply process switches
+          /// prune device inputs
+          auto altered_workflow = workflow;
+
+          auto confNameFromParam = [](std::string const& paramName) {
+            std::regex name_regex(R"(^control:([\w-]+)\/(\w+))");
+            auto match = std::sregex_token_iterator(paramName.begin(), paramName.end(), name_regex, 0);
+            if (match == std::sregex_token_iterator()) {
+              throw runtime_error_f("Malformed process control spec: %s", paramName.c_str());
+            }
+            std::string task = std::sregex_token_iterator(paramName.begin(), paramName.end(), name_regex, 1)->str();
+            std::string conf = std::sregex_token_iterator(paramName.begin(), paramName.end(), name_regex, 2)->str();
+            return std::pair{task, conf};
+          };
+          bool altered = false;
+          for (auto& device : altered_workflow) {
+            LOGF(DEBUG, "Adjusting device %s", device.name.c_str());
+            // ignore internal devices
+            if (device.name.find("internal") != std::string::npos) {
+              continue;
+            }
+            // ignore devices with no inputs
+            if (device.inputs.empty() == true) {
+              continue;
+            }
+            //ignore devices with no metadata in inputs
+            auto hasMetadata = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
+              return spec.metadata.empty() == false;
+            });
+            if (!hasMetadata) {
+              continue;
+            }
+            // ignore devices with no control options
+            auto hasControls = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
+              return std::any_of(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& param) {
+                return param.type == VariantType::Bool && param.name.find("control:") != std::string::npos;
+              });
+            });
+            if (!hasControls) {
+              continue;
+            }
+
+            auto configStore = DeviceConfigurationHelpers::getConfiguration(serviceRegistry, device.name.c_str(), device.options);
+            if (configStore != nullptr) {
+              auto reg = std::make_unique<ConfigParamRegistry>(std::move(configStore));
+              for (auto& input : device.inputs) {
+                for (auto& param : input.metadata) {
+                  if (param.type == VariantType::Bool && param.name.find("control:") != std::string::npos) {
+                    if (param.name != "control:default" && param.name != "control:spawn" && param.name != "control:build") {
+                      auto confName = confNameFromParam(param.name).second;
+                      param.defaultValue = reg->get<bool>(confName.c_str());
+                    }
+                  }
+                }
+              }
+            }
+            /// FIXME: use commandline arguments as alternative
+            LOGF(DEBUG, "Original inputs: ");
+            for (auto& input : device.inputs) {
+              LOGF(DEBUG, "-> %s", input.binding);
+            }
+            auto end = device.inputs.end();
+            auto new_end = std::remove_if(device.inputs.begin(), device.inputs.end(), [](InputSpec& input) {
+              return !std::any_of(input.metadata.begin(), input.metadata.end(), [](ConfigParamSpec& param) {
+                if (param.type == VariantType::Bool && param.name.find("control:") != std::string::npos) {
+                  return param.defaultValue.get<bool>() == true;
+                }
+                return true;
+              });
+            });
+            device.inputs.erase(new_end, end);
+            LOGF(DEBUG, "Adjusted inputs: ");
+            for (auto& input : device.inputs) {
+              LOGF(DEBUG, "-> %s", input.binding);
+            }
+            altered = true;
+          }
+          if (altered) {
+            WorkflowHelpers::adjustServiceDevices(altered_workflow);
+          }
+
+          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(altered_workflow,
                                                             driverInfo.channelPolicies,
                                                             driverInfo.completionPolicies,
                                                             driverInfo.dispatchPolicies,

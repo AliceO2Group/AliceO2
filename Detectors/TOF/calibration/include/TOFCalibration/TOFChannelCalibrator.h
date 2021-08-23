@@ -27,6 +27,9 @@
 #include "TGraphErrors.h"
 #include "TF1.h"
 #include "MathUtils/fit.h"
+#include "TLinearFitter.h"
+#include "Fit/Fitter.h"
+
 #include "DetectorsCalibration/Utils.h"
 #include <boost/histogram.hpp>
 #include <boost/histogram/ostream.hpp>
@@ -142,8 +145,19 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
   }
 
   static constexpr int NCOMBINSTRIP = o2::tof::Geo::NPADX + o2::tof::Geo::NPADS;
+  static constexpr int NMAXTHREADS = o2::tof::Geo::NSECTORS; // number of max threads that we allow OpenMP to use;
+                                                             // since at max we parallelize the processing of the sectors,
+                                                             // the number if sectors is what we use
 
-  TOFChannelCalibrator(int minEnt = 500, int nb = 1000, float r = 24400) : mMinEntries(minEnt), mNBins(nb), mRange(r){};
+  TOFChannelCalibrator(int minEnt = 500, int nb = 1000, float r = 24400) : mMinEntries(minEnt), mNBins(nb), mRange(r)
+  {
+    setStripFunction();
+    for (int i = 0; i < NMAXTHREADS; ++i) {
+      //mLinFitters[i] = new TLinearFitter(3, "pol2");
+      mLinFitters[i].SetDim(3);
+      mLinFitters[i].SetFormula("pol2");
+    }
+  }
 
   ~TOFChannelCalibrator() final = default;
 
@@ -171,224 +185,8 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
     return;
   }
 
-  void finalizeSlotWithCosmics(Slot& slot)
-  {
-    // Extract results for the single slot
-    o2::tof::TOFChannelData* c = slot.getContainer();
-    LOG(INFO) << "Finalize slot for calibration with cosmics " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
-
-    if (!mFuncDeltaOffset) {
-      mFuncDeltaOffset = new TF1("fChanOffset", FuncDeltaOffset, 0, NCOMBINSTRIP, Geo::NPADS);
-      mFuncDeltaOffset->FixParameter(24, 0); // fix one pad to fixed offset (as reference)
-      for (int ichLocal = 0; ichLocal < Geo::NPADS; ichLocal++) {
-        if (ichLocal == 24) {
-          continue; //already fixed
-          mFuncDeltaOffset->SetParLimits(ichLocal, -mRange, mRange);
-        }
-      }
-    }
-
-    // for the CCDB entry
-    std::map<std::string, std::string> md;
-    TimeSlewing& ts = mCalibTOFapi->getSlewParamObj(); // we take the current CCDB object, since we want to simply update the offset
-
-    float xp[NCOMBINSTRIP], exp[NCOMBINSTRIP], deltat[NCOMBINSTRIP], edeltat[NCOMBINSTRIP], fracUnderPeak[Geo::NPADS];
-
-    for (int sector = 0; sector < Geo::NSECTORS; sector++) {
-      int offsetsector = sector * Geo::NSTRIPXSECTOR * Geo::NPADS;
-      for (int istrip = 0; istrip < Geo::NSTRIPXSECTOR; istrip++) {
-        int offsetstrip = istrip * Geo::NPADS + offsetsector;
-        int goodpoints = 0;
-
-        memset(&fracUnderPeak[0], 0, sizeof(fracUnderPeak));
-
-        for (int ipair = 0; ipair < NCOMBINSTRIP; ipair++) {
-          int chinsector = ipair + istrip * NCOMBINSTRIP;
-          int ich = chinsector + sector * Geo::NSTRIPXSECTOR * NCOMBINSTRIP;
-          auto entriesInPair = c->integral(ich);
-          if (entriesInPair < mMinEntries && entriesInPair != 0) {
-            LOG(DEBUG) << "pair " << ich << " will not be calibrated since it has only " << entriesInPair << " entries (min = " << mMinEntries << ")";
-            continue;
-          }
-          // make the slice of the 2D histogram so that we have the 1D of the current channel
-          std::vector<float> fitValues;
-          std::vector<float> histoValues;
-          std::vector<int> entriesPerChannel = c->getEntriesPerChannel();
-          if (entriesPerChannel.at(ich) == 0) {
-            continue; // skip always since a channel with 0 entries is normal, it will be flagged as problematic
-            if (mTest) {
-              LOG(INFO) << "Skipping channel " << ich << " because it has zero entries, but it should not be"; // should become error!
-              continue;
-            } else {
-              throw std::runtime_error("We found one channel with no entries, we cannot calibrate!");
-            }
-          }
-
-          // more efficient way
-          auto histo = c->getHisto(sector);
-          for (unsigned j = chinsector; j <= chinsector; ++j) {
-            for (unsigned i = 0; i < c->getNbins(); ++i) {
-              const auto& v = histo.at(i, j);
-              LOG(DEBUG) << "channel = " << ich << ", in sector = " << sector << " (where it is channel = " << chinsector << ") bin = " << i << " value = " << v;
-              histoValues.push_back(v);
-            }
-          }
-
-          double fitres = fitGaus(c->getNbins(), histoValues.data(), -(c->getRange()), c->getRange(), fitValues);
-
-          if (fitres >= 0) {
-            LOG(DEBUG) << "Pair " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
-          } else {
-            //LOG(INFO) << "Pair " << ich << " :: Fit failed with result = " << fitres;
-            continue;
-          }
-
-          if (fitValues[2] < 0) {
-            fitValues[2] = -fitValues[2];
-          }
-
-          float intmin = fitValues[1] - 5 * fitValues[2]; // mean - 5*sigma
-          float intmax = fitValues[1] + 5 * fitValues[2]; // mean + 5*sigma
-
-          if (intmin < -mRange) {
-            intmin = -mRange;
-          }
-          if (intmax < -mRange) {
-            intmax = -mRange;
-          }
-          if (intmin > mRange) {
-            intmin = mRange;
-          }
-          if (intmax > mRange) {
-            intmax = mRange;
-          }
-
-          xp[goodpoints] = ipair + 0.5;      // pair index
-          exp[goodpoints] = 0.0;             // error on pair index (dummy since it is on the pair index)
-          deltat[goodpoints] = fitValues[1]; // delta between offsets from channels in pair (from the fit) - in ps
-          edeltat[goodpoints] = 20;          // TODO: for now put by default to 20 ps since it was seen to be reasonable; but it should come from the fit: who gives us the error from the fit ??????
-          goodpoints++;
-          int ch1 = ipair % 96;
-          int ch2 = ipair / 96 ? ch1 + 48 : ch1 + 1;
-          float fractionUnderPeak = entriesInPair > 0 ? c->integral(ich, intmin, intmax) / entriesInPair : 0;
-          // we keep as fractionUnderPeak of the channel the largest one that is found in the 3 possible pairs with that channel (for both channels ch1 and ch2 in the pair)
-          if (fracUnderPeak[ch1] < fractionUnderPeak) {
-            fracUnderPeak[ch1] = fractionUnderPeak;
-          }
-          if (fracUnderPeak[ch2] < fractionUnderPeak) {
-            fracUnderPeak[ch2] = fractionUnderPeak;
-          }
-        } // end loop pairs
-
-        // fit strip offset
-        if (goodpoints == 0) {
-          //LOG(INFO) << "We did not find any good point for strip " << istrip << " in sector " << sector;
-          continue;
-        }
-        LOG(DEBUG) << "We found " << goodpoints << " good points for strip " << istrip << " in sector " << sector << " --> we can fit the TGraph";
-        TGraphErrors g(goodpoints, xp, deltat, exp, edeltat);
-        g.Fit(mFuncDeltaOffset, "Q0");
-
-        //update calibrations
-        for (int ichLocal = 0; ichLocal < Geo::NPADS; ichLocal++) {
-          int ich = ichLocal + offsetstrip;
-          ts.updateOffsetInfo(ich, mFuncDeltaOffset->GetParameter(ichLocal));
-          ts.setFractionUnderPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, fracUnderPeak[ichLocal]);
-          ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, abs(mFuncDeltaOffset->GetParError(ichLocal)));
-        }
-
-      } // end loop strips
-    }   // end loop sectors
-
-    auto clName = o2::utils::MemFileHelper::getClassName(ts);
-    auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-    mInfoVector.emplace_back("TOF/ChannelCalib", clName, flName, md, slot.getTFStart(), 99999999999999);
-    mTimeSlewingVector.emplace_back(ts);
-  }
-
-  void finalizeSlotWithTracks(Slot& slot)
-  {
-    // Extract results for the single slot
-    o2::tof::TOFChannelData* c = slot.getContainer();
-    LOG(INFO) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
-
-    // for the CCDB entry
-    std::map<std::string, std::string> md;
-    TimeSlewing& ts = mCalibTOFapi->getSlewParamObj(); // we take the current CCDB object, since we want to simply update the offset
-
-    for (int ich = 0; ich < Geo::NCHANNELS; ich++) {
-      // make the slice of the 2D histogram so that we have the 1D of the current channel
-      int sector = ich / Geo::NPADSXSECTOR;
-      int chinsector = ich % Geo::NPADSXSECTOR;
-      auto entriesInChannel = c->integral(ich);
-      if (entriesInChannel < mMinEntries) {
-        LOG(DEBUG) << "channel " << ich << " will not be calibrated since it has only " << entriesInChannel << " entries (min = " << mMinEntries << ")";
-        continue;
-      }
-      std::vector<float> fitValues;
-      std::vector<float> histoValues;
-      std::vector<int> entriesPerChannel = c->getEntriesPerChannel();
-      if (entriesPerChannel.at(ich) == 0) {
-        continue; // skip always since a channel with 0 entries is normal, it will be flagged as problematic
-        if (mTest) {
-          LOG(DEBUG) << "Skipping channel " << ich << " because it has zero entries, but it should not be"; // should become error!
-          continue;
-        } else {
-          throw std::runtime_error("We found one channel with no entries, we cannot calibrate!");
-        }
-      }
-
-      // more efficient way
-      auto histo = c->getHisto(sector);
-      for (unsigned j = chinsector; j <= chinsector; ++j) {
-        for (unsigned i = 0; i < c->getNbins(); ++i) {
-          const auto& v = histo.at(i, j);
-          LOG(DEBUG) << "channel = " << ich << ", in sector = " << sector << " (where it is channel = " << chinsector << ") bin = " << i << " value = " << v;
-          histoValues.push_back(v);
-        }
-      }
-
-      double fitres = fitGaus(c->getNbins(), histoValues.data(), -(c->getRange()), c->getRange(), fitValues);
-
-      if (fitres >= 0) {
-        LOG(DEBUG) << "Channel " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
-      } else {
-        //        LOG(INFO) << "Channel " << ich << " :: Fit failed with result = " << fitres;
-        continue;
-      }
-
-      if (fitValues[2] < 0) {
-        fitValues[2] = -fitValues[2];
-      }
-
-      float fractionUnderPeak;
-      float intmin = fitValues[1] - 5 * fitValues[2]; // mean - 5*sigma
-      float intmax = fitValues[1] + 5 * fitValues[2]; // mean + 5*sigma
-
-      if (intmin < -mRange) {
-        intmin = -mRange;
-      }
-      if (intmax < -mRange) {
-        intmax = -mRange;
-      }
-      if (intmin > mRange) {
-        intmin = mRange;
-      }
-      if (intmax > mRange) {
-        intmax = mRange;
-      }
-
-      fractionUnderPeak = entriesInChannel > 0 ? c->integral(ich, intmin, intmax) / entriesInChannel : 0;
-      // now we need to store the results in the TimeSlewingObject
-      ts.setFractionUnderPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, fractionUnderPeak);
-      ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, abs(fitValues[2]));
-      ts.updateOffsetInfo(ich, fitValues[1]);
-    }
-    auto clName = o2::utils::MemFileHelper::getClassName(ts);
-    auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-    mInfoVector.emplace_back("TOF/ChannelCalib", clName, flName, md, slot.getTFStart(), 99999999999999);
-    mTimeSlewingVector.emplace_back(ts);
-  }
+  void finalizeSlotWithCosmics(Slot& slot);
+  void finalizeSlotWithTracks(Slot& slot);
 
   Slot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final
   {
@@ -415,12 +213,54 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
   void setDoCalibWithCosmics(bool doCalibWithCosmics = true) { mCalibWithCosmics = doCalibWithCosmics; }
   bool doCalibWithCosmics() const { return mCalibWithCosmics; }
 
+  void setNThreads(int n) { mNThreads = std::min(n, NMAXTHREADS); }
+  int getNThreads() const { return mNThreads; }
+
+  void setStripFunction()
+  {
+    mStripOffsetFunction.clear();
+    for (int i = 0; i < 96; i++) {
+      int irow = i % 48;
+      int icolumn = i / 48;
+      if (i > 0) {
+        mStripOffsetFunction.append(Form("++ ("));
+      } else {
+        mStripOffsetFunction.append(Form("("));
+      }
+      bool kadd = false;
+      if (irow < 47) {
+        mStripOffsetFunction.append(Form("(x > %d && x < %d)", irow + icolumn * 48, irow + icolumn * 48 + 1));
+        kadd = true;
+      }
+      if (irow > 0) {
+        mStripOffsetFunction.append("-");
+        mStripOffsetFunction.append(Form("(x > %d && x < %d)", irow + icolumn * 48 - 1, irow + icolumn * 48));
+        kadd = true;
+      }
+      if (icolumn < 1) {
+        if (kadd) {
+          mStripOffsetFunction.append("+");
+        }
+        mStripOffsetFunction.append(Form("(x > %d && x < %d)", irow + 96, irow + 96 + 1));
+      } else {
+        mStripOffsetFunction.append("-");
+        mStripOffsetFunction.append(Form("(x > %d && x < %d)", irow + 96, irow + 96 + 1));
+      }
+      mStripOffsetFunction.append(Form(") "));
+    }
+    TLinearFitter localFitter2(1, mStripOffsetFunction.c_str()); // this is a workaround: when we define the TLinearFitter,
+                                                                 // the function is sort of added in some global namespace
+                                                                 // or somthing analogous; when then we use more than 1 thread,
+                                                                 // the threads conflict with each other in this operation, and
+                                                                 // it does not work. So we do the operation of adding the
+                                                                 // function to this global namespece in advance.
+  }
+
  private:
   int mMinEntries = 0; // min number of entries to calibrate the TimeSlot
   int mNBins = 0;      // bins of the histogram with the t-text per channel
   float mRange = 0.;   // range of the histogram with the t-text per channel
   bool mTest = false;  // flag to be used when running in test mode: it simplify the processing (e.g. does not go through all channels)
-  TF1* mFuncDeltaOffset = nullptr;
 
   CalibTOFapi* mCalibTOFapi = nullptr; // CalibTOFapi needed to get the previous calibrations read from CCDB (do we need that it is a pointer?)
 
@@ -434,6 +274,12 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
                                         // we still fill the TimeSlewing object
 
   bool mCalibWithCosmics = false; // flag to indicate whether we are calibrating with cosmics
+
+  int mNThreads = 0; // number of threads from OpenMP
+
+  std::string mStripOffsetFunction; // TLinear functon for fitting channel offset within the strip in cosmic data
+
+  TLinearFitter mLinFitters[NMAXTHREADS]; // fitters for OpenMP for fitGaus
 
   ClassDefOverride(TOFChannelCalibrator, 1);
 };

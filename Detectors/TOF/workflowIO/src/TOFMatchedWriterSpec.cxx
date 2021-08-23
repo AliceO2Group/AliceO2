@@ -19,7 +19,9 @@
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/MatchingType.h"
 #include "ReconstructionDataFormats/TrackTPCTOF.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
 #include "DataFormatsTOF/Cluster.h"
 #include "CommonUtils/StringUtils.h"
@@ -38,7 +40,7 @@ using TrackInfo = std::vector<o2::dataformats::TrackTPCTOF>;
 using LabelsType = std::vector<o2::MCCompLabel>;
 using namespace o2::header;
 
-DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool writeTOFTPC)
+DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool writeTOFTPC, bool strictMode)
 {
   // spectators for logging
   auto loggerMatched = [](MatchInfo const& indata) {
@@ -47,22 +49,22 @@ DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool w
   auto loggerTofLabels = [](LabelsType const& labeltof) {
     LOG(INFO) << "TOF LABELS GOT " << labeltof.size() << " LABELS ";
   };
-  o2::header::DataDescription ddMatchInfo{"MATCHINFOS"}, ddMatchInfo_tpc{"MATCHINFOS_TPC"},
-    ddMCMatchTOF{"MCMATCHINFOS"}, ddMCMatchTOF_tpc{"MCMATCHINFOS_TPC"};
-
+  o2::header::DataDescription ddMatchInfo{"MTC_ITSTPC"}, ddMatchInfo_tpc{"MTC_TPC"},
+    ddMCMatchTOF{"MCMTC_ITSTPC"}, ddMCMatchTOF_tpc{"MCMTC_TPC"};
+  uint32_t ss = o2::globaltracking::getSubSpec(strictMode && writeTOFTPC ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   return MakeRootTreeWriterSpec(writeTOFTPC ? "TOFMatchedWriter_TPC" : "TOFMatchedWriter",
                                 outdef,
                                 "matchTOF",
-                                BranchDefinition<MatchInfo>{InputSpec{"tofmatching", gDataOriginTOF, writeTOFTPC ? ddMatchInfo_tpc : ddMatchInfo, 0},
+                                BranchDefinition<MatchInfo>{InputSpec{"tofmatching", gDataOriginTOF, writeTOFTPC ? ddMatchInfo_tpc : ddMatchInfo, ss},
                                                             "TOFMatchInfo",
                                                             "TOFMatchInfo-branch-name",
                                                             1,
                                                             loggerMatched},
-                                BranchDefinition<TrackInfo>{InputSpec{"tpctofTracks", gDataOriginTOF, "TOFTRACKS_TPC", 0},
+                                BranchDefinition<TrackInfo>{InputSpec{"tpctofTracks", gDataOriginTOF, "TOFTRACKS_TPC", ss},
                                                             "TPCTOFTracks",
                                                             "TPCTOFTracks-branch-name",
                                                             writeTOFTPC},
-                                BranchDefinition<LabelsType>{InputSpec{"matchtoflabels", gDataOriginTOF, writeTOFTPC ? ddMCMatchTOF_tpc : ddMCMatchTOF, 0},
+                                BranchDefinition<LabelsType>{InputSpec{"matchtoflabels", gDataOriginTOF, writeTOFTPC ? ddMCMatchTOF_tpc : ddMCMatchTOF, ss},
                                                              "MatchTOFMCTruth",
                                                              "MatchTOFMCTruth-branch-name",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled

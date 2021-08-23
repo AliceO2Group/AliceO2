@@ -11,6 +11,8 @@
 
 #include "TRDWorkflowIO/TRDCalibratedTrackletWriterSpec.h"
 #include "DataFormatsTRD/CalibratedTracklet.h"
+#include <SimulationDataFormat/MCTruthContainer.h>
+#include <SimulationDataFormat/MCCompLabel.h>
 
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 
@@ -24,7 +26,7 @@ namespace trd
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getTRDCalibratedTrackletWriterSpec()
+o2::framework::DataProcessorSpec getTRDCalibratedTrackletWriterSpec(bool useMC)
 {
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
 
@@ -32,6 +34,7 @@ o2::framework::DataProcessorSpec getTRDCalibratedTrackletWriterSpec()
                                 "trdcalibratedtracklets.root",
                                 "ctracklets",
                                 BranchDefinition<std::vector<CalibratedTracklet>>{InputSpec{"ctracklets", "TRD", "CTRACKLETS"}, "CTracklets"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"trklabels", "TRD", "TRKLABELS"}, "TRKLabels", (useMC ? 1 : 0), "TRKLABELS"},
                                 BranchDefinition<std::vector<char>>{InputSpec{"trigrecmask", "TRD", "TRIGRECMASK"}, "TrigRecMask"})();
 };
 

@@ -85,6 +85,7 @@ void TRDTrackletReader::run(ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, mTriggerRecords);
   if (mUseMC) {
+    LOG(INFO) << "Pushing " << mLabels.getNElements() << " TRD tracklet labels";
     pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}, mLabels);
   }
 

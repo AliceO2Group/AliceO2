@@ -143,6 +143,7 @@ include_directories(${GPU_DIR}/Common
 if(CONFIG_O2_EXTENSIONS)
 include_directories(${GPUTRACKING_DIR}/TPCClusterFinder
                     ${GPUTRACKING_DIR}/ITS
+                    ${GPUTRACKING_DIR}/Interface
                     ${O2_DIR}/Common/Field/include
                     ${O2_DIR}/Common/Constants/include
                     ${O2_DIR}/Common/MathUtils/include

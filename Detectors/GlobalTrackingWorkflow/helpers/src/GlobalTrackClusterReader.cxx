@@ -22,8 +22,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable visualization of MC data"}},
-    {"track-types", VariantType::String, std::string{GlobalTrackID::ALL}, {"comma-separated list of track sources to read"}},
-    {"cluster-types", VariantType::String, std::string{GlobalTrackID::ALL}, {"comma-separated list of cluster sources to read"}},
+    {"track-types", VariantType::String, std::string{GlobalTrackID::NONE}, {"comma-separated list of track sources to read"}},
+    {"cluster-types", VariantType::String, std::string{GlobalTrackID::NONE}, {"comma-separated list of cluster sources to read"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable reading root files, essentially making this workflow void, but needed for compatibility"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
@@ -40,6 +40,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool useMC = !cfgc.options().get<bool>("disable-mc");
   GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("track-types"));
   GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("cluster-types"));
+  if (!cfgc.helpOnCommandLine() && srcTrk.none() && srcCl.none()) {
+    throw std::runtime_error("no tracks or clusters requested");
+  }
   InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, useMC);
 
   return std::move(specs);

@@ -42,10 +42,6 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
 
   Float_t sideAtime = 0, sideCtime = 0;
 
-  // auto timeStamp = o2::InteractionRecord::bc2ns(bcd.mIntRecord.bc, bcd.mIntRecord.orbit);
-
-  // LOG(DEBUG) << " event time " << timeStamp << " orbit " << bcd.mIntRecord.orbit << " bc " << bcd.mIntRecord.bc;
-
   int nch = inChData.size();
   const auto parInv = DigitizationParameters::Instance().mMV_2_NchannelsInverse;
   for (int ich = 0; ich < nch; ich++) {
@@ -53,7 +49,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
 
     outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
                                                (inChData[ich].CFDTime - offsetChannel) * Geometry::ChannelWidth,
-                                               (double)inChData[ich].QTCAmpl * parInv,
+                                               (float)inChData[ich].QTCAmpl * parInv,
                                                inChData[ich].ChainQTC};
 
     //  only signals with amplitude participate in collision time
@@ -67,13 +63,11 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
       }
     }
   }
-  std::array<Float_t, 4> mCollisionTime = {2 * o2::InteractionRecord::DummyTime,
-                                           2 * o2::InteractionRecord::DummyTime,
-                                           2 * o2::InteractionRecord::DummyTime,
-                                           2 * o2::InteractionRecord::DummyTime};
+  auto sDummyCollissionTime = o2::ft0::RecPoints::sDummyCollissionTime;
+  std::array<short, 4> mCollisionTime = {sDummyCollissionTime, sDummyCollissionTime, sDummyCollissionTime, sDummyCollissionTime};
   // !!!! tobe done::should be fix with ITS vertex
-  mCollisionTime[TimeA] = (ndigitsA > 0) ? sideAtime / Float_t(ndigitsA) : 2 * o2::InteractionRecord::DummyTime;
-  mCollisionTime[TimeC] = (ndigitsC > 0) ? sideCtime / Float_t(ndigitsC) : 2 * o2::InteractionRecord::DummyTime;
+  mCollisionTime[TimeA] = (ndigitsA > 0) ? sideAtime / ndigitsA : sDummyCollissionTime; // 2 * o2::InteractionRecord::DummyTime;
+  mCollisionTime[TimeC] = (ndigitsC > 0) ? sideCtime / ndigitsC : sDummyCollissionTime; //2 * o2::InteractionRecord::DummyTime;
 
   if (ndigitsA > 0 && ndigitsC > 0) {
     mCollisionTime[Vertex] = (mCollisionTime[TimeA] - mCollisionTime[TimeC]) / 2.;

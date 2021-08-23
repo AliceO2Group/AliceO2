@@ -302,7 +302,7 @@ float GPUbenchmark<chunk_type>::benchmarkSync(void (*kernel)(T...),
 
   GPUCHECK(cudaEventRecord(start));
   for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) { // Schedule all the requested kernel launches
-    (*kernel)<<<blocks, threads, 0, 0>>>(args...);
+    (*kernel)<<<blocks, threads, 0, 0>>>(args...);        // NOLINT: clang-tidy false-positive
   }
   GPUCHECK(cudaEventRecord(stop)); // record checkpoint
 

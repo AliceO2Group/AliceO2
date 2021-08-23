@@ -67,6 +67,7 @@ class TimesliceIndex
     DropObsolete     /// An obsolete context is not inserted in the index and dropped
   };
 
+  TimesliceIndex(size_t maxLanes);
   inline void resize(size_t s);
   inline size_t size() const;
   inline bool isValid(TimesliceSlot const& slot) const;
@@ -103,14 +104,15 @@ class TimesliceIndex
 
   /// Find the LRU entry in the cache and replace it with @a newContext
   /// @a slot is filled with the slot used to hold the context, if applicable.
+  /// @a timestamp must be provided to select the correct lane, in case of pipelining
   /// @return the action taken on insertion, which can be used for bookkeeping
   ///         of the messages.
-  inline std::tuple<ActionTaken, TimesliceSlot> replaceLRUWith(data_matcher::VariableContext& newContext);
+  inline std::tuple<ActionTaken, TimesliceSlot> replaceLRUWith(data_matcher::VariableContext& newContext, TimesliceId timestamp);
 
  private:
   /// @return the oldest slot possible so that we can eventually override it.
   /// This is the timeslices for all the in flight parts.
-  inline TimesliceSlot findOldestSlot() const;
+  inline TimesliceSlot findOldestSlot(TimesliceId) const;
 
   /// The variables for each cacheline.
   std::vector<data_matcher::VariableContext> mVariables;
@@ -124,6 +126,8 @@ class TimesliceIndex
 
   /// What to do in case of backpressure
   BackpressureOp mBackpressurePolicy = BackpressureOp::Wait;
+  /// The maximum number of lanes for this timeslice index
+  size_t mMaxLanes;
 };
 
 } // namespace o2::framework

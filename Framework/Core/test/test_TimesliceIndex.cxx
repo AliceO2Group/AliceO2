@@ -19,7 +19,7 @@
 BOOST_AUTO_TEST_CASE(TestBasics)
 {
   using namespace o2::framework;
-  TimesliceIndex index;
+  TimesliceIndex index{1};
   TimesliceSlot slot;
 
   BOOST_REQUIRE_EQUAL(index.size(), 0);
@@ -51,49 +51,49 @@ BOOST_AUTO_TEST_CASE(TestBasics)
 BOOST_AUTO_TEST_CASE(TestLRUReplacement)
 {
   using namespace o2::framework;
-  TimesliceIndex index;
+  TimesliceIndex index{1};
   index.resize(3);
   data_matcher::VariableContext context;
 
   {
     context.put({0, uint64_t{10}});
     context.commit();
-    auto [action, slot] = index.replaceLRUWith(context);
+    auto [action, slot] = index.replaceLRUWith(context, {10});
     BOOST_CHECK_EQUAL(slot.index, 0);
     BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceUnused);
   }
   {
     context.put({0, uint64_t{20}});
     context.commit();
-    auto [action, slot] = index.replaceLRUWith(context);
+    auto [action, slot] = index.replaceLRUWith(context, {20});
     BOOST_CHECK_EQUAL(slot.index, 1);
     BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceUnused);
   }
   {
     context.put({0, uint64_t{30}});
     context.commit();
-    auto [action, slot] = index.replaceLRUWith(context);
+    auto [action, slot] = index.replaceLRUWith(context, {30});
     BOOST_CHECK_EQUAL(slot.index, 2);
     BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceUnused);
   }
   {
     context.put({0, uint64_t{40}});
     context.commit();
-    auto [action, slot] = index.replaceLRUWith(context);
+    auto [action, slot] = index.replaceLRUWith(context, {40});
     BOOST_CHECK_EQUAL(slot.index, TimesliceSlot::INVALID);
     BOOST_CHECK(action == TimesliceIndex::ActionTaken::Wait);
   }
   {
     context.put({0, uint64_t{50}});
     context.commit();
-    auto [action, slot] = index.replaceLRUWith(context);
+    auto [action, slot] = index.replaceLRUWith(context, {50});
     BOOST_CHECK_EQUAL(slot.index, TimesliceSlot::INVALID);
     BOOST_CHECK(action == TimesliceIndex::ActionTaken::Wait);
   }
   {
     context.put({0, uint64_t{10}});
     context.commit();
-    auto [action, slot] = index.replaceLRUWith(context);
+    auto [action, slot] = index.replaceLRUWith(context, {10});
     BOOST_CHECK_EQUAL(slot.index, TimesliceSlot::INVALID);
     BOOST_CHECK(action == TimesliceIndex::ActionTaken::Wait);
   }

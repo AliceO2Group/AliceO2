@@ -29,6 +29,7 @@ o2_add_library(TPCCalibration
                        src/IDCGroupHelperRegion.cxx
                        src/IDCGroupingParameter.cxx
                        src/IDCFactorization.cxx
+                       src/IDCFourierTransformBase.cxx
                        src/IDCFourierTransform.cxx
                        src/RobustAverage.cxx
                        src/IDCCCDBHelper.cxx
@@ -61,10 +62,16 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/IDCGroupingParameter.h
                                   include/TPCCalibration/IDCContainer.h
                                   include/TPCCalibration/RobustAverage.h
+                                  include/TPCCalibration/IDCFourierTransformBase.h
                                   include/TPCCalibration/IDCFourierTransform.h
                                   include/TPCCalibration/IDCCCDBHelper.h
                                   include/TPCCalibration/dEdxHistos.h
                                   include/TPCCalibration/CalibdEdx.h)
+
+o2_add_executable(dcs-sim-workflow
+                  COMPONENT_NAME tpc
+                  SOURCES testWorkflow/tpc-dcs-sim-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow)
 
 o2_add_test_root_macro(macro/comparePedestalsAndNoise.C
                        PUBLIC_LINK_LIBRARIES O2::TPCBase
@@ -97,6 +104,9 @@ o2_add_test_root_macro(macro/extractGainMap.C
 o2_add_test_root_macro(macro/preparePedestalFiles.C
                        PUBLIC_LINK_LIBRARIES O2::TPCCalibration
                        LABELS tpc)
+o2_add_test_root_macro(macro/makeTPCCCDBEntryForDCS.C
+                       PUBLIC_LINK_LIBRARIES O2::DetectorsDCS
+                       LABELS tpc)
 
 o2_add_test(IDCFourierTransform
             COMPONENT_NAME calibration
@@ -110,3 +120,5 @@ if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
+
+target_link_libraries(${targetName} PRIVATE FFTW3::fftw3f)

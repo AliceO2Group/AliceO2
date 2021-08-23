@@ -123,6 +123,7 @@ fi
 
 
 if [ "$doreco" == "1" ]; then
+
   echo "Running TPC reco flow"
   #needs TPC digitized data
   taskwrapper tpcreco.log o2-tpc-reco-workflow $gloOpt --input-type digits --output-type clusters,tracks
@@ -141,12 +142,16 @@ if [ "$doreco" == "1" ]; then
   taskwrapper mftreco.log  o2-mft-reco-workflow  $gloOpt
   echo "Return status of mftreco: $?"
 
+  echo "Running MCH reco flow"
+  taskwrapper mchreco.log o2-mch-reco-workflow $gloOpt
+  echo "Return status of mchreco: $?"
+
   echo "Running FT0 reco flow"
   #needs FT0 digitized data
   taskwrapper ft0reco.log o2-ft0-reco-workflow $gloOpt
   echo "Return status of ft0reco: $?"
 
-  echo "Running ITS-TPC macthing flow"
+  echo "Running ITS-TPC matching flow"
   #needs results of o2-tpc-reco-workflow, o2-its-reco-workflow and o2-fit-reco-workflow
   taskwrapper itstpcMatch.log o2-tpcits-match-workflow $gloOpt
   echo "Return status of itstpcMatch: $?"

@@ -11,7 +11,7 @@
 #ifndef O2_FRAMEWORK_DATAPROCESSINGHELPERS_H_
 #define O2_FRAMEWORK_DATAPROCESSINGHELPERS_H_
 
-class FairMQDevice;
+#include <fairmq/FwdDecls.h>
 
 namespace o2::framework
 {

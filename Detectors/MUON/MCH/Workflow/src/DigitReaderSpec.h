@@ -23,8 +23,8 @@ namespace o2
 {
 namespace mch
 {
-framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* baseDescription = "DATAMC");
+framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* name = "mch-sim-digit-reader");
 }
 } // namespace o2
 
-#endif //O2_MCH_DIGITREADERSPEC_H
+#endif

@@ -14,19 +14,20 @@ The reconstruction workflow consists of the following DPL processors:
 * `tpc-track-reader`
 * `itstpc-track-reader`
 * `trd-globaltracking[TPC_ITS-TPC]` using [o2::gpu::GPUTRDTracker_t<TrackType,PropagatorType>](../../../../tree/dev/GPU/GPUTracking/TRDTracking/GPUTRDTracker.h)
-* `trd-trackbased-calib` using [o2::trd::TrackBasedCalib](../../../../tree/dev/Detectors/TRD/calibration/include/TRDCalibration/TrackBasedCalib.h) 
+* `trd-trackbased-calib` using [o2::trd::TrackBasedCalib](../../../../tree/dev/Detectors/TRD/calibration/include/TRDCalibration/TrackBasedCalib.h)
 * `trd-track-writer-tpc`
 * `trd-track-writer-tpcits`
 * `TRDCalibWriter`
 
 The different track reader and writer are only added to the workflow if the respective tracking source is configured. The workflow is started with the command:
 `o2-trd-global-tracking`. Available options are:
-* `--disable-mc` disable MC labels (the MC labels are currently ignored by the reconstruction workflow in anycase)
+* `--disable-mc` disable MC labels
 * `--disable-root-input` the input is provided by another DPL device
 * `--disable-root-output` the output is not written to file
-* `--tracking-sources ITS-TPC,TPC` a comma-seperated list of sources to use for the tracking. Default is `ALL` which results in the same workflow as `ITS-TPC,TPC`
+* `--track-sources ITS-TPC,TPC` a comma-seperated list of sources to use for the tracking. Default is `ALL` which results in the same workflow as `ITS-TPC,TPC`
+* `--strict-matching` if enabled, TPC-TRD tracks which have another hypothesis close to the best one are flagged as ambiguous and not written out. The minimum chi2 gap between best and second best hypothesis can be configured with `GPU_rec_trd.chi2SeparationCut`
 * `--filter-trigrec` if enabled, the trigger records for which no ITS information is available are ignored. Per default on in the synchronous reconstruction, since there is no matching to TPC-only tracks in that case.
-* `--configKeyValues "GPU_rec_trd.nSigmaTerrITSTPC=4;"` only one example for the different options for the TRD tracker. All are listed in [GPUSettingsList.h](../../../../tree/dev/GPU/GPUTracking/Definitions/GPUSettingsList.h). Search for GPUSettingsRecTRD
+* `--configKeyValues "GPU_rec_trd.nSigmaTerrITSTPC=4;"` only one example for the different options for the TRD tracker. All are listed in [GPUSettingsList.h](../../../../dev/GPU/GPUTracking/Definitions/GPUSettingsList.h). Search for GPUSettingsRecTRD
 
 
 ## Input data
