@@ -79,8 +79,8 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
     digiTree->GetEntry(ient);
     int nbc = CTPDigits.size();
     LOG(INFO) << "Entry " << ient << " : " << nbc << " BCs stored";
-    std::vector<std::bitset<NGBT>> hbfIR;
-    std::vector<std::bitset<NGBT>> hbfTC;
+    std::vector<gbtword80_t> hbfIR;
+    std::vector<gbtword80_t> hbfTC;
     for (auto const& ctpdig : CTPDigits) {
       LOG(DEBUG) << ctpdig.intRecord.orbit << " orbit bc " << ctpdig.intRecord.bc;
       if ((orbit0 == ctpdig.intRecord.orbit) || firstorbit) {
@@ -89,8 +89,8 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
           orbit0 = ctpdig.intRecord.orbit;
           LOG(INFO) << "First orbit:" << orbit0;
         }
-        std::bitset<NGBT> gbtdigIR;
-        std::bitset<NGBT> gbtdigTC;
+        gbtword80_t gbtdigIR;
+        gbtword80_t gbtdigTC;
         digit2GBTdigit(gbtdigIR, gbtdigTC, ctpdig);
         LOG(DEBUG) << "ir:" << gbtdigIR;
         hbfIR.push_back(gbtdigIR);
@@ -104,7 +104,7 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
         if (mZeroSuppressedIntRec == true) {
           buffer = digits2HBTPayload(hbfIR, NIntRecPayload);
         } else {
-          std::vector<std::bitset<NGBT>> hbfIRnonZS = addEmptyBC(hbfIR);
+          std::vector<gbtword80_t> hbfIRnonZS = addEmptyBC(hbfIR);
           buffer = digits2HBTPayload(hbfIRnonZS, NIntRecPayload);
         }
         // add data for IR
@@ -112,6 +112,7 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
         mWriter.addData(getFEEIDIR(), mCruID, GBTLinkIDIntRec, mEndPointID, intRec, buffer);
         // add data for Trigger Class Record
         buffer.clear();
+        buffer = digits2HBTPayload(hbfTC, NClassPayload);
         mWriter.addData(getFEEIDTC(), mCruID, GBTLinkIDClassRec, mEndPointID, intRec, buffer);
         //
         orbit0 = ctpdig.intRecord.orbit;
@@ -128,23 +129,22 @@ void Digits2Raw::emptyHBFMethod(const header::RDHAny* rdh, std::vector<char>& to
   if (((o2::raw::RDHUtils::getFEEID(rdh) & 0xf00) >> 8) == GBTLinkIDIntRec) {
     if (mZeroSuppressedIntRec == false) {
       toAdd.clear();
-      std::vector<std::bitset<NGBT>> digits;
+      std::vector<gbtword80_t> digits;
       for (uint32_t i = 0; i < o2::constants::lhc::LHCMaxBunches; i++) {
-        std::bitset<NGBT> dig = i;
+        gbtword80_t dig = i;
         digits.push_back(dig);
       }
       toAdd = digits2HBTPayload(digits, NIntRecPayload);
     }
   }
 }
-std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<std::bitset<NGBT>> digits, uint32_t Npld) const
+std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<gbtword80_t> digits, uint32_t Npld) const
 {
   std::vector<char> toAdd;
   uint32_t size_gbt = 0;
-  std::bitset<NGBT> gbtword;
-  // if not zero suppressed add (bcid,0)
+  gbtword80_t gbtword;
   for (auto const& dig : digits) {
-    std::bitset<NGBT> gbtsend;
+    gbtword80_t gbtsend;
     if (makeGBTWord(dig, gbtword, size_gbt, Npld, gbtsend) == true) {
       for (uint32_t i = 0; i < NGBT; i += 8) {
         uint32_t w = 0;
@@ -162,9 +162,29 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<std::bitset<NGBT
       }
     }
   }
+  // add what is left: maybe never left anything - tbc
+  //std::cout << "left:" << gbtword.count() << std::endl;
+  if(gbtword.count()>0) {
+    LOG(INFO) << "Adding left over.";
+    gbtword80_t gbtsend = gbtword;
+    for (uint32_t i = 0; i < NGBT; i += 8) {
+        uint32_t w = 0;
+        for (uint32_t j = 0; j < 8; j++) {
+          w += (1 << j) * gbtsend[i + j];
+        }
+        char c = w;
+        toAdd.push_back(c);
+      }
+      // Pad zeros up to 128 bits
+      uint32_t NZeros = (o2::raw::RDHUtils::GBTWord * 8 - NGBT) / 8;
+      for (uint32_t i = 0; i < NZeros; i++) {
+        char c = 0;
+        toAdd.push_back(c);
+      }
+  }
   return std::move(toAdd);
 }
-// Adding payload of size<NGBT to GBT words of size NGBT
+// Adding payload of size < NGBT to GBT words of size NGBT
 // gbtsend valid only when return 1
 bool Digits2Raw::makeGBTWord(const gbtword80_t& pld, gbtword80_t& gbtword, uint32_t& size_gbt, uint32_t Npld, gbtword80_t& gbtsend) const
 {
@@ -181,9 +201,14 @@ bool Digits2Raw::makeGBTWord(const gbtword80_t& pld, gbtword80_t& gbtword, uint3
     size_gbt = size_gbt + Npld - NGBT;
     valid = true;
   }
+  //printDigit("pld:", pld);
+  //printDigit("gbtword:", gbtword);
+  //std::cout << valid << " ";
+  //printDigit("gbtsend:", gbtsend);
+  //std::cout << gbtsend << std::endl;
   return valid;
 }
-int Digits2Raw::digit2GBTdigit(std::bitset<NGBT>& gbtdigitIR, std::bitset<NGBT>& gbtdigitTR, const CTPDigit& digit)
+int Digits2Raw::digit2GBTdigit(gbtword80_t& gbtdigitIR, gbtword80_t& gbtdigitTR, const CTPDigit& digit)
 {
   //
   // CTP Interaction record (CTP inputs)
@@ -199,18 +224,52 @@ int Digits2Raw::digit2GBTdigit(std::bitset<NGBT>& gbtdigitIR, std::bitset<NGBT>&
   gbtdigitTR |= digit.intRecord.bc;
   return 0;
 }
-std::vector<std::bitset<NGBT>> Digits2Raw::addEmptyBC(std::vector<std::bitset<NGBT>>& hbfIRZS)
+std::vector<gbtword80_t> Digits2Raw::addEmptyBC(std::vector<gbtword80_t>& hbfIRZS)
 {
-  std::vector<std::bitset<NGBT>> hbfIRnonZS;
+  std::vector<gbtword80_t> hbfIRnonZS;
+  if(hbfIRZS.size() == 0) {
+    LOG(ERROR) << "Int record with zero size not expected here.";
+    return hbfIRnonZS;
+  }
   uint32_t bcnonzero = 0;
+  if(hbfIRZS[0] != 0) {
+    gbtword80_t bs = 0;
+    hbfIRnonZS.push_back(bs);
+  }
   for (auto const& item : hbfIRZS) {
     uint32_t bcnonzeroNext = (item.to_ulong()) & 0xfff;
     for (int i = (bcnonzero + 1); i < bcnonzeroNext; i++) {
-      std::bitset<NGBT> bs = i;
+      gbtword80_t bs = i;
       hbfIRnonZS.push_back(bs);
-      bcnonzero = bcnonzeroNext;
     }
+    bcnonzero = bcnonzeroNext;
     hbfIRnonZS.push_back(item);
   }
+  for (int i = (bcnonzero + 1); i < 3564; i++) {
+    gbtword80_t bs = i;
+    hbfIRnonZS.push_back(bs);
+  }
   return hbfIRnonZS;
+}
+void Digits2Raw::printDigit(std::string text, const gbtword80_t& dig) const {
+  int bcid = 0 ;
+  uint64_t payload1 = 0;
+  uint64_t payload2 = 0;
+  std::cout << text;
+  for(int i = 0; i< 12 ; i++) {
+    bcid += dig[i] << i;
+  }
+  for(uint64_t i = 0; i < 64; i++) {
+    payload1 += uint64_t(dig[i]) << i;
+  }
+  for(uint64_t i = 64; i < NGBT; i++) {
+    payload2 += uint64_t(dig[i]) << (i-64ull);
+  }
+  std::cout << "BCID:"<< std::hex << bcid << " " << payload2 << payload1 << std::endl;
+}
+void Digits2Raw::dumpRawData(std::string filename) {
+  std::ifstream input( filename, std::ios::binary );
+  std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(input),{});
+  for(auto const &cc: buffer) {
+  }
 }
