@@ -1129,7 +1129,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     deviceState->loop = loop;
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
 
-    quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(serviceRegistry);
+    quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(uv_now(loop));
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(quotaEvaluator.get()));
 
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec const>(&spec));

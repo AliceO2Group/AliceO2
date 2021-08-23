@@ -65,6 +65,14 @@ struct ComputingQuotaInfo {
   size_t lastUsed = 0;
 };
 
+/// Statistics on the offers consumed, expired
+struct ComputingQuotaStats {
+  int64_t totalConsumedBytes = 0;
+  int64_t totalConsumedOffers = 0;
+  int64_t totalExpiredBytes = 0;
+  int64_t totalExpiredOffers = 0;
+};
+
 /// A request is a function which gets applied to all available
 /// offers one after the other. If the offer itself is deemed
 /// is ok for running.
@@ -72,7 +80,7 @@ using ComputingQuotaRequest = std::function<OfferScore(ComputingQuotaOffer const
 
 /// A consumer is a function which updates a given function removing the
 /// amount of resources which are considered as consumed.
-using ComputingQuotaConsumer = std::function<void(int id, std::array<ComputingQuotaOffer, 16>&, std::function<void(ComputingQuotaOffer const&)>)>;
+using ComputingQuotaConsumer = std::function<void(int id, std::array<ComputingQuotaOffer, 16>&, ComputingQuotaStats&, std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats& stats)>)>;
 
 } // namespace o2::framework
 

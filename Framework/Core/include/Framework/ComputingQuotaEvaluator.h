@@ -18,6 +18,7 @@
 #include <functional>
 #include <array>
 #include <vector>
+#include <cstddef>
 
 typedef struct uv_loop_s uv_loop_t;
 
@@ -30,17 +31,25 @@ class ComputingQuotaEvaluator
  public:
   // Maximum number of offers this evaluator can hold
   static constexpr int MAX_INFLIGHT_OFFERS = 16;
-  ComputingQuotaEvaluator(ServiceRegistry&);
-  bool selectOffer(int task, ComputingQuotaRequest const& request);
-
+  // @a now the current time when the register was created. E.g. what uv_now returns.
+  ComputingQuotaEvaluator(uint64_t now);
+  /// @a task the task which needs some quota
+  /// @a request the resource request the @a task needs
+  /// @a now the time (e.g. uv_now) when invoked.
+  bool selectOffer(int task, ComputingQuotaRequest const& request, uint64_t now);
   /// Consume offers for a given taskId
-  void consume(int taskId, ComputingQuotaConsumer& consumed);
+  /// @a reportConsumedOffer callback which reports back that an offer has been consumed.
+  void consume(int taskId,
+               ComputingQuotaConsumer& consumed,
+               std::function<void(ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats&)>& reportConsumedOffer);
   /// Dispose offers for a given taskId
   void dispose(int taskId);
   /// Handle all the offers which have timed out giving
   /// them back to the driver.
-  void handleExpired();
-  void updateOffers(std::vector<ComputingQuotaOffer>& offers);
+  /// @a expirator callback with expired offers
+  void handleExpired(std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const&)> reportExpired);
+  /// @a now the time (e.g. uv_now) when invoked.
+  void updateOffers(std::vector<ComputingQuotaOffer>& offers, uint64_t now);
 
   /// All the available offerts
   std::array<ComputingQuotaOffer, MAX_INFLIGHT_OFFERS> mOffers;
@@ -48,9 +57,7 @@ class ComputingQuotaEvaluator
   std::vector<ComputingQuotaOfferRef> mExpiredOffers;
   /// Information about a given computing offer (e.g. when it was started to be used)
   std::array<ComputingQuotaInfo, MAX_INFLIGHT_OFFERS> mInfos;
-  ServiceRegistry& mRegistry;
-  uv_loop_t* mLoop;
-  uint64_t mTotalDisposedSharedMemory = 0;
+  ComputingQuotaStats mStats;
 };
 
 } // namespace o2::framework

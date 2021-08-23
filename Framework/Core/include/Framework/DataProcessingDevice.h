@@ -61,6 +61,7 @@ struct DeviceContext {
   DeviceState* state = nullptr;
   ComputingQuotaEvaluator* quotaEvaluator = nullptr;
   DataProcessingStats* stats = nullptr;
+  ComputingQuotaStats* quotaStats = nullptr;
   int expectedRegionCallbacks = 0;
 };
 

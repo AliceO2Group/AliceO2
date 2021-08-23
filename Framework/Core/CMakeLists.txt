@@ -163,6 +163,7 @@ foreach(t
         CheckTypes
         CompletionPolicy
         ComputingResourceHelpers
+        ComputingQuotaEvaluator
         ConfigParamStore
         ConfigParamRegistry
         DataDescriptorMatcher
