@@ -31,7 +31,7 @@ namespace mid
 class GBTUserLogicEncoder
 {
  public:
-  void process(gsl::span<const ROBoard> data, const InteractionRecord& ir);
+  void process(gsl::span<const ROBoard> data, InteractionRecord ir);
   void processTrigger(const InteractionRecord& ir, uint8_t triggerWord);
 
   void flush(std::vector<char>& buffer, const InteractionRecord& ir);

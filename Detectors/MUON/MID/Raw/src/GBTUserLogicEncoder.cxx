@@ -62,7 +62,7 @@ void GBTUserLogicEncoder::processTrigger(const InteractionRecord& ir, uint8_t tr
 void GBTUserLogicEncoder::addRegionalBoards(uint8_t activeBoards, InteractionRecord ir)
 {
   /// Adds the regional board information
-  ir += mElectronicsDelay.BCToLocal + mElectronicsDelay.regToLocal;
+  ir += mElectronicsDelay.regToLocal;
   auto& vec = mBoards[ir];
   for (uint8_t ireg = 0; ireg < 2; ++ireg) {
     uint8_t firedLoc = (activeBoards >> (4 * ireg)) & 0xF;
@@ -72,9 +72,10 @@ void GBTUserLogicEncoder::addRegionalBoards(uint8_t activeBoards, InteractionRec
   }
 }
 
-void GBTUserLogicEncoder::process(gsl::span<const ROBoard> data, const InteractionRecord& ir)
+void GBTUserLogicEncoder::process(gsl::span<const ROBoard> data, InteractionRecord ir)
 {
   /// Encode data
+  ir += mElectronicsDelay.BCToLocal;
   auto& vec = mBoards[ir];
   uint8_t activeBoards = 0;
   for (auto& loc : data) {
