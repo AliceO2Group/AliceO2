@@ -164,23 +164,23 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<gbtword80_t> dig
   }
   // add what is left: maybe never left anything - tbc
   //std::cout << "left:" << gbtword.count() << std::endl;
-  if(gbtword.count()>0) {
+  if (gbtword.count() > 0) {
     LOG(INFO) << "Adding left over.";
     gbtword80_t gbtsend = gbtword;
     for (uint32_t i = 0; i < NGBT; i += 8) {
-        uint32_t w = 0;
-        for (uint32_t j = 0; j < 8; j++) {
-          w += (1 << j) * gbtsend[i + j];
-        }
-        char c = w;
-        toAdd.push_back(c);
+      uint32_t w = 0;
+      for (uint32_t j = 0; j < 8; j++) {
+        w += (1 << j) * gbtsend[i + j];
       }
-      // Pad zeros up to 128 bits
-      uint32_t NZeros = (o2::raw::RDHUtils::GBTWord * 8 - NGBT) / 8;
-      for (uint32_t i = 0; i < NZeros; i++) {
-        char c = 0;
-        toAdd.push_back(c);
-      }
+      char c = w;
+      toAdd.push_back(c);
+    }
+    // Pad zeros up to 128 bits
+    uint32_t NZeros = (o2::raw::RDHUtils::GBTWord * 8 - NGBT) / 8;
+    for (uint32_t i = 0; i < NZeros; i++) {
+      char c = 0;
+      toAdd.push_back(c);
+    }
   }
   return std::move(toAdd);
 }
@@ -227,12 +227,12 @@ int Digits2Raw::digit2GBTdigit(gbtword80_t& gbtdigitIR, gbtword80_t& gbtdigitTR,
 std::vector<gbtword80_t> Digits2Raw::addEmptyBC(std::vector<gbtword80_t>& hbfIRZS)
 {
   std::vector<gbtword80_t> hbfIRnonZS;
-  if(hbfIRZS.size() == 0) {
+  if (hbfIRZS.size() == 0) {
     LOG(ERROR) << "Int record with zero size not expected here.";
     return hbfIRnonZS;
   }
   uint32_t bcnonzero = 0;
-  if(hbfIRZS[0] != 0) {
+  if (hbfIRZS[0] != 0) {
     gbtword80_t bs = 0;
     hbfIRnonZS.push_back(bs);
   }
@@ -251,25 +251,27 @@ std::vector<gbtword80_t> Digits2Raw::addEmptyBC(std::vector<gbtword80_t>& hbfIRZ
   }
   return hbfIRnonZS;
 }
-void Digits2Raw::printDigit(std::string text, const gbtword80_t& dig) const {
-  int bcid = 0 ;
+void Digits2Raw::printDigit(std::string text, const gbtword80_t& dig) const
+{
+  int bcid = 0;
   uint64_t payload1 = 0;
   uint64_t payload2 = 0;
   std::cout << text;
-  for(int i = 0; i< 12 ; i++) {
+  for (int i = 0; i < 12; i++) {
     bcid += dig[i] << i;
   }
-  for(uint64_t i = 0; i < 64; i++) {
+  for (uint64_t i = 0; i < 64; i++) {
     payload1 += uint64_t(dig[i]) << i;
   }
-  for(uint64_t i = 64; i < NGBT; i++) {
-    payload2 += uint64_t(dig[i]) << (i-64ull);
+  for (uint64_t i = 64; i < NGBT; i++) {
+    payload2 += uint64_t(dig[i]) << (i - 64ull);
   }
-  std::cout << "BCID:"<< std::hex << bcid << " " << payload2 << payload1 << std::endl;
+  std::cout << "BCID:" << std::hex << bcid << " " << payload2 << payload1 << std::endl;
 }
-void Digits2Raw::dumpRawData(std::string filename) {
-  std::ifstream input( filename, std::ios::binary );
-  std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(input),{});
-  for(auto const &cc: buffer) {
+void Digits2Raw::dumpRawData(std::string filename)
+{
+  std::ifstream input(filename, std::ios::binary);
+  std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(input), {});
+  for (auto const& cc : buffer) {
   }
 }
