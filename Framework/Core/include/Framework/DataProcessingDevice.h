@@ -61,6 +61,7 @@ struct DeviceContext {
   DeviceState* state = nullptr;
   ComputingQuotaEvaluator* quotaEvaluator = nullptr;
   DataProcessingStats* stats = nullptr;
+  int expectedRegionCallbacks = 0;
 };
 
 struct DataProcessorContext {
@@ -166,6 +167,9 @@ class DataProcessingDevice : public FairMQDevice
   std::vector<uv_work_t> mHandles;                               /// Handles to use to schedule work.
   std::vector<TaskStreamInfo> mStreams;                          /// Information about the task running in the associated mHandle.
   ComputingQuotaEvaluator& mQuotaEvaluator;                      /// The component which evaluates if the offer can be used to run a task
+  /// Handle to wake up the main loop from other threads
+  /// e.g. when FairMQ notifies some callback in an asynchronous way
+  uv_async_t* mAwakeHandle = nullptr;
 };
 
 } // namespace o2::framework
