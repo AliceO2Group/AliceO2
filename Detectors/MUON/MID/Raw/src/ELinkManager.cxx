@@ -32,8 +32,7 @@ void ELinkManager::init(uint16_t feeId, bool isDebugMode, bool isBare, const Ele
     for (int ilink = 0; ilink < 10; ++ilink) {
       bool isLoc = ilink < 8;
       auto uniqueId = raw::makeUniqueLocID(crateId, ilink % 8 + offset);
-      ELinkDataShaper shaper(isDebugMode, isLoc, uniqueId);
-      shaper.setElectronicsDelay(electronicsDelay);
+      ELinkDataShaper shaper(isDebugMode, isLoc, uniqueId, electronicsDelay);
 #if defined(MID_RAW_VECTORS)
       mDataShapers.emplace_back(shaper);
 #else

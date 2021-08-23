@@ -31,20 +31,17 @@ namespace mid
 class ELinkDataShaper
 {
  public:
-  ELinkDataShaper(bool isDebugMode, bool isLoc, uint8_t uniqueId);
+  ELinkDataShaper(bool isDebugMode, bool isLoc, uint8_t uniqueId, const ElectronicsDelay& electronicsDelay);
   /// Main function to be executed when decoding is done
   inline void onDone(const ELinkDecoder& decoder, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs) { std::invoke(mOnDone, this, decoder, data, rofs); }
 
   void set(uint32_t orbit);
 
-  /// Sets the delay in the electronics
-  void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mElectronicsDelay = electronicsDelay; }
-
  private:
   uint8_t mUniqueId{0};                 /// UniqueId
+  ElectronicsDelay mElectronicsDelay{}; /// Delays in the electronics
   uint32_t mRDHOrbit{0};                /// RDH orbit
   bool mReceivedCalibration{false};     /// Flag to indicate if the  calibration trigger was received
-  ElectronicsDelay mElectronicsDelay{}; /// Delays in the electronics
 
   InteractionRecord mIR{};      /// Interaction record
   uint16_t mExpectedFETClock{}; /// Expected FET clock
@@ -58,12 +55,12 @@ class ELinkDataShaper
   void onDoneReg(const ELinkDecoder&, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs){}; /// Dummy function
   void onDoneRegDebug(const ELinkDecoder& decoder, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs);
 
-  void addLoc(const ELinkDecoder& decoder, EventType eventType, uint16_t correctedClock, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs);
+  void addLoc(const ELinkDecoder& decoder, EventType eventType, InteractionRecord ir, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs);
   bool checkLoc(const ELinkDecoder& decoder);
   EventType processCalibrationTrigger(uint16_t localClock);
   void processOrbitTrigger(uint16_t localClock, uint8_t triggerWord);
-  EventType processSelfTriggered(uint16_t localClock, uint16_t& correctedClock);
-  bool processTrigger(const ELinkDecoder& decoder, EventType& eventType, uint16_t& correctedClock);
+  EventType processSelfTriggered(uint16_t localClock, InteractionRecord& ir);
+  bool processTrigger(const ELinkDecoder& decoder, EventType& eventType, InteractionRecord& ir);
 };
 } // namespace mid
 } // namespace o2
