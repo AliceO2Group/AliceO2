@@ -177,11 +177,27 @@ void run_completion(uv_work_t* handle, int status)
 {
   TaskStreamInfo* task = (TaskStreamInfo*)handle->data;
   DataProcessorContext& context = *task->context;
+
+  using o2::monitoring::Metric;
+  using o2::monitoring::Monitoring;
+  using o2::monitoring::tags::Key;
+  using o2::monitoring::tags::Value;
+
+  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> reportConsumedOffer = [&monitoring = context.registry->get<Monitoring>()](ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats& stats) {
+    stats.totalConsumedBytes += accumulatedConsumed.sharedMemory;
+    monitoring.send(Metric{(uint64_t)stats.totalConsumedBytes, "shm-offer-consumed"}.addTag(Key::Subsystem, Value::DPL));
+  };
+
+  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const&)> reportExpiredOffer = [&monitoring = context.registry->get<Monitoring>()](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
+    monitoring.send(Metric{(uint64_t)stats.totalExpiredOffers, "resource-offer-expired"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
+  };
+
   for (auto& consumer : context.deviceContext->state->offerConsumers) {
-    context.deviceContext->quotaEvaluator->consume(task->id.index, consumer);
+    context.deviceContext->quotaEvaluator->consume(task->id.index, consumer, reportConsumedOffer);
   }
   context.deviceContext->state->offerConsumers.clear();
-  context.deviceContext->quotaEvaluator->handleExpired();
+  context.deviceContext->quotaEvaluator->handleExpired(reportExpiredOffer);
   context.deviceContext->quotaEvaluator->dispose(task->id.index);
   task->running = false;
   ZoneScopedN("run_completion");
@@ -564,7 +580,7 @@ bool DataProcessingDevice::ConditionalRun()
 
     mState.loopReason = DeviceState::NO_REASON;
     if (!mState.pendingOffers.empty()) {
-      mQuotaEvaluator.updateOffers(mState.pendingOffers);
+      mQuotaEvaluator.updateOffers(mState.pendingOffers, uv_now(mState.loop));
     }
 
     // A new state was requested, we exit.
@@ -594,6 +610,10 @@ bool DataProcessingDevice::ConditionalRun()
     }
     streamRef.index = ti;
   }
+  using o2::monitoring::Metric;
+  using o2::monitoring::Monitoring;
+  using o2::monitoring::tags::Key;
+  using o2::monitoring::tags::Value;
   // We have an empty stream, let's check if we have enough
   // resources for it to run something
   if (streamRef.index != -1) {
@@ -603,10 +623,15 @@ bool DataProcessingDevice::ConditionalRun()
     auto& stream = mStreams[streamRef.index];
     handle.data = &mStreams[streamRef.index];
 
+    static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const& stats)> reportExpiredOffer = [&monitoring = mServiceRegistry.get<o2::monitoring::Monitoring>()](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
+      monitoring.send(Metric{(uint64_t)stats.totalExpiredOffers, "resource-offer-expired"}.addTag(Key::Subsystem, Value::DPL));
+      monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
+    };
+
     // Deciding wether to run or not can be done by passing a request to
     // the evaluator. In this case, the request is always satisfied and
     // we run on whatever resource is available.
-    bool enough = mQuotaEvaluator.selectOffer(streamRef.index, mSpec.resourcePolicy.request);
+    bool enough = mQuotaEvaluator.selectOffer(streamRef.index, mSpec.resourcePolicy.request, uv_now(mState.loop));
 
     if (enough) {
       stream.id = streamRef;
@@ -620,7 +645,7 @@ bool DataProcessingDevice::ConditionalRun()
       run_completion(&handle, 0);
 #endif
     } else {
-      mDataProcessorContexes.at(0).deviceContext->quotaEvaluator->handleExpired();
+      mDataProcessorContexes.at(0).deviceContext->quotaEvaluator->handleExpired(reportExpiredOffer);
       mWasActive = false;
     }
   } else {
