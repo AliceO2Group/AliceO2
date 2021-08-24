@@ -553,108 +553,104 @@ void DataProcessingDevice::PostRun()
 
 void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Reset); }
 
-bool DataProcessingDevice::ConditionalRun()
+void DataProcessingDevice::Run()
 {
-  // Notify on the main thread the new region callbacks, making sure
-  // no callback is issued if there is something still processing.
-  {
-    std::lock_guard<std::mutex> lock(mRegionInfoMutex);
-    handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
-  }
-  // This will block for the correct delay (or until we get data
-  // on a socket). We also do not block on the first iteration
-  // so that devices which do not have a timer can still start an
-  // enumeration.
-  if (mState.loop) {
-    ZoneScopedN("uv idle");
-    TracyPlot("past activity", (int64_t)mWasActive);
-    mServiceRegistry.get<DriverClient>().flushPending();
-    auto shouldNotWait = (mWasActive &&
-                          (mState.streaming != StreamingState::Idle) && (mState.activeSignals.empty())) ||
-                         (mState.streaming == StreamingState::EndOfStreaming);
-    if (NewStatePending()) {
-      shouldNotWait = true;
+  while (!NewStatePending()) {
+    // Notify on the main thread the new region callbacks, making sure
+    // no callback is issued if there is something still processing.
+    {
+      std::lock_guard<std::mutex> lock(mRegionInfoMutex);
+      handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
     }
-    TracyPlot("shouldNotWait", (int)shouldNotWait);
-    uv_run(mState.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
-    TracyPlot("loopReason", (int64_t)(uint64_t)mState.loopReason);
+    // This will block for the correct delay (or until we get data
+    // on a socket). We also do not block on the first iteration
+    // so that devices which do not have a timer can still start an
+    // enumeration.
+    {
+      ZoneScopedN("uv idle");
+      TracyPlot("past activity", (int64_t)mWasActive);
+      mServiceRegistry.get<DriverClient>().flushPending();
+      auto shouldNotWait = (mWasActive &&
+                            (mState.streaming != StreamingState::Idle) && (mState.activeSignals.empty())) ||
+                           (mState.streaming == StreamingState::EndOfStreaming);
+      if (NewStatePending()) {
+        shouldNotWait = true;
+      }
+      TracyPlot("shouldNotWait", (int)shouldNotWait);
+      uv_run(mState.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
+      TracyPlot("loopReason", (int64_t)(uint64_t)mState.loopReason);
 
-    mState.loopReason = DeviceState::NO_REASON;
-    if (!mState.pendingOffers.empty()) {
-      mQuotaEvaluator.updateOffers(mState.pendingOffers, uv_now(mState.loop));
+      mState.loopReason = DeviceState::NO_REASON;
+      if (!mState.pendingOffers.empty()) {
+        mQuotaEvaluator.updateOffers(mState.pendingOffers, uv_now(mState.loop));
+      }
     }
 
-    // A new state was requested, we exit.
-    if (NewStatePending()) {
-      return false;
+    // Notify on the main thread the new region callbacks, making sure
+    // no callback is issued if there is something still processing.
+    // Notice that we still need to perform callbacks also after
+    // the socket epolled, because otherwise we would end up serving
+    // the callback after the first data arrives is the system is too
+    // fast to transition from Init to Run.
+    {
+      std::lock_guard<std::mutex> lock(mRegionInfoMutex);
+      handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
     }
-  }
 
-  // Notify on the main thread the new region callbacks, making sure
-  // no callback is issued if there is something still processing.
-  // Notice that we still need to perform callbacks also after
-  // the socket epolled, because otherwise we would end up serving
-  // the callback after the first data arrives is the system is too
-  // fast to transition from Init to Run.
-  {
-    std::lock_guard<std::mutex> lock(mRegionInfoMutex);
-    handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
-  }
-
-  assert(mStreams.size() == mHandles.size());
-  /// Decide which task to use
-  TaskStreamRef streamRef{-1};
-  for (int ti = 0; ti < mStreams.size(); ti++) {
-    auto& taskInfo = mStreams[ti];
-    if (taskInfo.running) {
-      continue;
+    assert(mStreams.size() == mHandles.size());
+    /// Decide which task to use
+    TaskStreamRef streamRef{-1};
+    for (int ti = 0; ti < mStreams.size(); ti++) {
+      auto& taskInfo = mStreams[ti];
+      if (taskInfo.running) {
+        continue;
+      }
+      streamRef.index = ti;
     }
-    streamRef.index = ti;
-  }
-  using o2::monitoring::Metric;
-  using o2::monitoring::Monitoring;
-  using o2::monitoring::tags::Key;
-  using o2::monitoring::tags::Value;
-  // We have an empty stream, let's check if we have enough
-  // resources for it to run something
-  if (streamRef.index != -1) {
-    // Synchronous execution of the callbacks. This will be moved in the
-    // moved in the on_socket_polled once we have threading in place.
-    auto& handle = mHandles[streamRef.index];
-    auto& stream = mStreams[streamRef.index];
-    handle.data = &mStreams[streamRef.index];
+    using o2::monitoring::Metric;
+    using o2::monitoring::Monitoring;
+    using o2::monitoring::tags::Key;
+    using o2::monitoring::tags::Value;
+    // We have an empty stream, let's check if we have enough
+    // resources for it to run something
+    if (streamRef.index != -1) {
+      // Synchronous execution of the callbacks. This will be moved in the
+      // moved in the on_socket_polled once we have threading in place.
+      auto& handle = mHandles[streamRef.index];
+      auto& stream = mStreams[streamRef.index];
+      handle.data = &mStreams[streamRef.index];
 
-    static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const& stats)> reportExpiredOffer = [&monitoring = mServiceRegistry.get<o2::monitoring::Monitoring>()](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
-      monitoring.send(Metric{(uint64_t)stats.totalExpiredOffers, "resource-offer-expired"}.addTag(Key::Subsystem, Value::DPL));
-      monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
-      monitoring.flushBuffer();
-    };
+      static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const& stats)> reportExpiredOffer = [&monitoring = mServiceRegistry.get<o2::monitoring::Monitoring>()](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
+        monitoring.send(Metric{(uint64_t)stats.totalExpiredOffers, "resource-offer-expired"}.addTag(Key::Subsystem, Value::DPL));
+        monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
+        monitoring.flushBuffer();
+      };
 
-    // Deciding wether to run or not can be done by passing a request to
-    // the evaluator. In this case, the request is always satisfied and
-    // we run on whatever resource is available.
-    bool enough = mQuotaEvaluator.selectOffer(streamRef.index, mSpec.resourcePolicy.request, uv_now(mState.loop));
+      // Deciding wether to run or not can be done by passing a request to
+      // the evaluator. In this case, the request is always satisfied and
+      // we run on whatever resource is available.
+      bool enough = mQuotaEvaluator.selectOffer(streamRef.index, mSpec.resourcePolicy.request, uv_now(mState.loop));
 
-    if (enough) {
-      stream.id = streamRef;
-      stream.running = true;
-      stream.context = &mDataProcessorContexes.at(0);
+      if (enough) {
+        stream.id = streamRef;
+        stream.running = true;
+        stream.context = &mDataProcessorContexes.at(0);
 #ifdef DPL_ENABLE_THREADING
-      stream.task.data = &handle;
-      uv_queue_work(mState.loop, &stream.task, run_callback, run_completion);
+        stream.task.data = &handle;
+        uv_queue_work(mState.loop, &stream.task, run_callback, run_completion);
 #else
-      run_callback(&handle);
-      run_completion(&handle, 0);
+        run_callback(&handle);
+        run_completion(&handle, 0);
 #endif
+      } else {
+        mDataProcessorContexes.at(0).deviceContext->quotaEvaluator->handleExpired(reportExpiredOffer);
+        mWasActive = false;
+      }
     } else {
-      mDataProcessorContexes.at(0).deviceContext->quotaEvaluator->handleExpired(reportExpiredOffer);
       mWasActive = false;
     }
-  } else {
-    mWasActive = false;
+    FrameMark;
   }
-  FrameMark;
-  return true;
 }
 
 /// We drive the state loop ourself so that we will be able to support
