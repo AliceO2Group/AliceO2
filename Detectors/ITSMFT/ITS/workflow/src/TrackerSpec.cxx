@@ -23,7 +23,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "CommonDataFormat/IRFrame.h"
+
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/TrackingConfigParam.h"
@@ -185,16 +185,11 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
 
-  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0, Lifetime::Timeframe});
-
   std::uint32_t roFrame = 0;
   ROframe event(0, 7);
 
   bool continuous = mGRP->isDetContinuousReadOut("ITS");
   LOG(INFO) << "ITSTracker RO: continuous=" << continuous;
-
-  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
-  int nBCPerTF = continuous ? alpParams.roFrameLengthInBC : alpParams.roFrameLengthTrig;
 
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
