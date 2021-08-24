@@ -25,6 +25,7 @@ o2_add_library(Framework
                        src/CommonDataProcessors.cxx
                        src/CommonServices.cxx
                        src/CommonMessageBackends.cxx
+                       src/CommonDriverServices.cxx
                        src/CompletionPolicy.cxx
                        src/CompletionPolicyHelpers.cxx
                        src/ComputingQuotaEvaluator.cxx
@@ -42,6 +43,7 @@ o2_add_library(Framework
                        src/DataProcessingDevice.cxx
                        src/DataProcessingHeader.cxx
                        src/DataProcessingHelpers.cxx
+                       src/DataRefUtils.cxx
                        src/SourceInfoHeader.cxx
                        src/DataProcessor.cxx
                        src/DataRelayer.cxx
@@ -67,6 +69,7 @@ o2_add_library(Framework
                        src/GraphvizHelpers.cxx
                        src/HTTPParser.cxx
                        src/InputRecord.cxx
+                       src/InputRouteHelpers.cxx
                        src/InputSpan.cxx
                        src/InputSpec.cxx
                        src/OutputSpec.cxx
@@ -126,6 +129,7 @@ o2_add_library(Framework
                                      FairMQ::FairMQ
                                      O2::CommonUtils
                                      O2::MathUtils
+                                     O2::CCDB
                                      O2::FrameworkFoundation
                                      O2::Headers
                                      O2::MemoryResources
@@ -305,6 +309,7 @@ foreach(w
               COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run --shm-segment-size 20000000)
 endforeach()
 
+if (BUILD_TESTING)
 # TODO: DanglingInput test not working for the moment [ERROR] Unable to relay
 # part. [WARN] Incoming data is already obsolete, not relaying.
 set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
@@ -312,6 +317,7 @@ set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
 # TODO: investigate the problem and re-enable
 set_property(TEST test_Framework_test_BoostSerializedProcessing
              PROPERTY DISABLED TRUE)
+endif()
 
 # specific tests which needs command line options
 o2_add_test(

@@ -1,0 +1,72 @@
+name: Rebuild data model documentation
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 1 * * *'  # 01:17 every night
+jobs:
+  datamodel-doc:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout O2
+        uses: actions/checkout@v2
+        with:
+          path: O2
+          persist-credentials: false
+
+      - name: Checkout O2Physics
+        uses: actions/checkout@v2
+        with:
+          repository: AliceO2Group/O2Physics
+          path: O2Physics
+          persist-credentials: false
+
+      - name: Checkout documentation
+        uses: actions/checkout@v2
+        with:
+          repository: AliceO2Group/analysis-framework
+          path: analysis-framework
+          persist-credentials: false
+
+      - name: Create PR branch in docs
+        working-directory: analysis-framework
+        run: |
+          git config --global user.email 'alibuild@cern.ch'
+          git config --global user.name 'ALICE Action Bot'
+          # Overwrite branch, creating a new one based on HEAD
+          git checkout -B auto-datamodel-doc
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+
+      - name: Install prerequisites
+        run: |
+          python3 -m pip install --user -U numpy nltk
+          python3 -m nltk.downloader -d ~/nltk_data punkt
+
+      - name: Generate documentation
+        run: exec bash -eo pipefail O2/scripts/datamodel-doc/update-datamodel.sh
+
+      - name: Send pull request with updated docs
+        env:
+          GITHUB_TOKEN: ${{ secrets.ALIBUILD_GITHUB_TOKEN }}
+        working-directory: analysis-framework/docs/datamodel
+        run: |
+          # git diff --quiet exits with 1 if any tracked files have changed, and
+          # with 0 otherwise.
+          if git diff --quiet; then
+            exit  # Nothing has changed, so no need to send a PR.
+          fi
+          git add ao2dTables.md helperTaskTables.md joinsAndIterators.md
+          git commit -m 'Automatic data model update'
+          git remote set-url origin "https://alibuild:$GITHUB_TOKEN@github.com/alibuild/analysis-framework"
+          git push -f origin auto-datamodel-doc
+
+          # Send pull request
+          # We need to use "hub" ourselves because alisw/pull-request gets
+          # confused when multiple repos are checked out.
+          hub pull-request -b AliceO2Group:master -h alibuild:auto-datamodel-doc \
+              --no-edit --no-maintainer-edits -m 'Automatic data model update'   \
+              -m "This update to the data model documentation was automatically created from tonight's O2 dev branch."

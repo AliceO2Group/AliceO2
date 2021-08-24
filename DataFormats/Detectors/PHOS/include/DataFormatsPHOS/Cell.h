@@ -32,8 +32,8 @@ constexpr float kTimeAccuracy = 0.25e-9; //Time digitization step
 constexpr float kTime0 = -500.e-9;       //Minimal time to be digitized with 13 bits -500,1548 ns
 
 enum ChannelType_t {
-  HIGH_GAIN, ///< High gain channel
   LOW_GAIN,  ///< Low gain channel
+  HIGH_GAIN, ///< High gain channel
   TRU2x2,    ///< TRU channel, 2x2 trigger
   TRU4x4     ///< TRU channel, 4x4 trigger
 };

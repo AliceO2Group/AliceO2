@@ -18,6 +18,9 @@
 
 #include <cmath>
 #include <limits>
+#include <fmt/format.h>
+#include <string>
+#include <iostream>
 
 namespace o2
 {
@@ -79,6 +82,18 @@ void TrackMCH::setCovariances(const TMatrixD& cov)
       mCov[SCovIdx[i][j]] = cov(i, j);
     }
   }
+}
+
+std::ostream& operator<<(std::ostream& os, const o2::mch::TrackMCH& t)
+{
+  os << asString(t);
+  return os;
+}
+
+std::string asString(const o2::mch::TrackMCH& t)
+{
+  auto pt = std::sqrt(t.getPx() * t.getPx() + t.getPy() * t.getPy());
+  return fmt::format("({:s}) p {:7.2f} pt {:7.2f} nclusters: {} z: {:7.2f}", t.getSign() == -1 ? "-" : "+", t.getP(), pt, t.getNClusters(), t.getZ());
 }
 
 } // namespace mch

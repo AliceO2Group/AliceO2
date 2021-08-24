@@ -28,17 +28,19 @@ struct FV0DigParam : public o2::conf::ConfigurableParamHelper<FV0DigParam> {
   // NOTUSED float pmtGain = 5e4;                 // value for PMT R5924-70 at default FV0 gain
   // NOTUSED float pmtTransitTime = 9.5;          // PMT response time (corresponds to 1.9 ns rise time)
   // NOTUSED float pmtTransparency = 0.25;        // Transparency of the first dynode of the PMT
+  float adcChannelsPerMip = 16;                         // Default: 16 for pp and 8 for PbPb
+  float adcChannelsPerMilivolt = adcChannelsPerMip / 7; // Non-trivial conversion depending on the pulseshape: amplitude to charge
   /// Parameter for the FV0 waveform [Conv. of expo. with Landau]
   // For ring 1-4
   float offsetRingA1ToA4 = 15.87e-09;
-  float normRingA1ToA4 = 7.9061033e-13;
+  float normRingA1ToA4 = 7.9061033e-13 * adcChannelsPerMip / 16;
   float constRingA1ToA4 = -25.6165;
   float slopeRingA1ToA4 = 4.7942e+08;
   float mpvRingA1ToA4 = -6.38203e-08;
   float sigmaRingA1ToA4 = 2.12167e-09;
   // For ring 5
   float offsetRing5 = 16.38e-09;
-  float normRing5 = 8.0303587e-13;
+  float normRing5 = 8.0303587e-13 * adcChannelsPerMip / 16;
   float constRing5 = -66.76;
   float slopeRing5 = 9.43117e+08;
   float mpvRing5 = -6.44167e-08;

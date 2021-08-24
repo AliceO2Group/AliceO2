@@ -13,15 +13,14 @@
 #define O2_TRD_DIFFANDTIMESTRUCTESTIMATOR_H
 
 #include <array>
+#include "DataFormatsTRD/Constants.h"
+#include "TRDBase/Garfield.h"
 
 namespace o2
 {
 namespace trd
 {
 
-// CONTANT TIME STRUCTURE DATA FROM GARFIELD
-constexpr int ktimebin = 38;
-constexpr int kZbin = 11;
 
 /// A class to calculate diffusion and time structure values (GARFIELD model)
 /// (used in digitization). Class was split off trom CommonParam
@@ -32,20 +31,20 @@ class DiffusionAndTimeStructEstimator
   DiffusionAndTimeStructEstimator() = default;
 
   /// determines the diffusion coefficients as a function of drift velocity
-  bool GetDiffCoeff(float& dl, float& dt, float vdrift);
+  bool getDiffCoeff(float& dl, float& dt, float vdrift);
 
   /// determines drift time as function of drift velocity and coordinates
-  float TimeStruct(float vdrift, float xd, float z);
+  float timeStruct(float vdrift, float xd, float z, bool* errFlag = nullptr);
 
  private:
-  void SampleTimeStruct(float vdrift);
+  bool sampleTimeStruct(float vdrift);
 
-  std::array<float, ktimebin * kZbin> mTimeStruct1; //! cached Time Structure of Drift Cells (for last vdrift value)
-  std::array<float, ktimebin * kZbin> mTimeStruct2; //! cached Time Structure of Drift Cells (for last vdrift value)
-  float mVDlo;                                      //!  Lower drift velocity, for interpolation
-  float mVDhi;                                      //!  Higher drift velocity, for interpolation
-  float mInvBinWidth;                               //!  caching 1/(mVDhi - mVDlo)
-  float mTimeLastVdrift = -1.f;                     //!  The structures are valid for this mLastVdrift (caching)
+  std::array<float, garfield::TIMEBINSGARFIELD * garfield::ZBINSGARFIELD> mTimeStruct1; ///< cached Time Structure of Drift Cells (for last vdrift value)
+  std::array<float, garfield::TIMEBINSGARFIELD * garfield::ZBINSGARFIELD> mTimeStruct2; ///< cached Time Structure of Drift Cells (for last vdrift value)
+  float mVDlo;                                                                          ///<  Lower drift velocity, for interpolation
+  float mVDhi;                                                                          ///<  Higher drift velocity, for interpolation
+  float mInvBinWidth;                                                                   ///<  caching 1/(mVDhi - mVDlo)
+  float mTimeLastVdrift = -1.f;                                                         ///<  The structures are valid for this mLastVdrift (caching)
 
   // for the diffusion part
   float mDiffLastVdrift = -1.f;

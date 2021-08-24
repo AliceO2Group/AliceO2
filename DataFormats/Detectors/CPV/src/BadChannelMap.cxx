@@ -20,28 +20,32 @@
 
 using namespace o2::cpv;
 
-BadChannelMap::BadChannelMap(short /*dummy*/)
+BadChannelMap::BadChannelMap(short test)
 {
+  //reset all channels to be good
+  mBadCells.reset();
 
-  //Mark few channels as bad for test peurposes
-  for (short i = 0; i < 60; i++) {
-    //module 2
-    unsigned short channelID = 3584 + i * 57;
-    mBadCells.set(channelID);
-    channelID = 3640 + i * 55;
-    mBadCells.set(channelID);
-  }
+  if (test == 2) {
+    //Mark few channels as bad for test peurposes
+    for (short i = 0; i < 60; i++) {
+      //module 2
+      unsigned short channelID = 3584 + i * 57;
+      mBadCells.set(channelID);
+      channelID = 3640 + i * 55;
+      mBadCells.set(channelID);
+    }
 
-  for (short i = 0; i < 16; i++) {
-    //module 3
-    unsigned short channelID = 8972 + i * 57;
-    mBadCells.set(channelID);
-    channelID = 8092 + i * 57;
-    mBadCells.set(channelID);
-    channelID = 8147 + i * 55;
-    mBadCells.set(channelID);
-    channelID = 9059 + i * 55;
-    mBadCells.set(channelID);
+    for (short i = 0; i < 16; i++) {
+      //module 3
+      unsigned short channelID = 8972 + i * 57;
+      mBadCells.set(channelID);
+      channelID = 8092 + i * 57;
+      mBadCells.set(channelID);
+      channelID = 8147 + i * 55;
+      mBadCells.set(channelID);
+      channelID = 9059 + i * 55;
+      mBadCells.set(channelID);
+    }
   }
 }
 

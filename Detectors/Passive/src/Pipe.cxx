@@ -108,6 +108,7 @@ void Pipe::ConstructGeometry()
   const TGeoMedium* kMedRohacell = matmgr.getTGeoMedium("PIPE_ROHACELL");
   const TGeoMedium* kMedPolyimide = matmgr.getTGeoMedium("PIPE_POLYIMIDE");
   const TGeoMedium* kMedCarbonFiber = matmgr.getTGeoMedium("PIPE_M55J6K");
+  const TGeoMedium* kMedTitanium = matmgr.getTGeoMedium("PIPE_TITANIUM");
 
   // Top volume
   TGeoVolume* top = gGeoManager->GetVolume("cave");
@@ -226,7 +227,6 @@ void Pipe::ConstructGeometry()
 
   beamPipeCsideSection->AddNode(voberylliumTubeVacuum, 1,
                                 new TGeoTranslation(0., 0., (kBeryliumSectionZmax + kBeryliumSectionZmin) / 2));
-
 
   //----------------  Al tube ------------------
   TGeoPcon* aluBeforeBellows = new TGeoPcon(0., 360., 9);
@@ -347,144 +347,169 @@ void Pipe::ConstructGeometry()
   // Dimensions :
 
   const Float_t kSupportXdim = 20.67;
-  const Float_t kBeamPipeRingZdim = 4.0;
+  const Float_t kBeamPipeRingZdim = 3.6;
   const Float_t kVespelRmax = 2.3;
   const Float_t kVespelRmin = 2.22;
-  const Float_t kBeampipeCarbonCollarRmin = 2.4;
+  const Float_t kBeampipeCarbonCollarRmin = 2.5;
   const Float_t kBeampipeCarbonCollarRmax = 2.7;
 
   const Float_t kFixationCarbonCollarRmin = 1.5;
   const Float_t kFixationCarbonCollarRmax = 1.7;
   const Float_t kFixationCarbonCollarDZ = 2.5;
 
-  const Float_t kSkinThickness = 0.1;
-  const Float_t kSkinXdim = 14.25;
-  const Float_t kSkinYdim = 1.;
+  const Float_t kSkinThickness = 0.3;
+  const Float_t kSkinXdim = 14.2;
+  const Float_t kSkinYdim = 1.4;
   const Float_t kSkinZdim = kFixationCarbonCollarDZ;
-  const Float_t kCarbonEarsXdim = 1.01;
-  const Float_t kCarbonEarsYdim = 0.2;
+  const Float_t kCarbonEarsXdim = 2.8;
+  const Float_t kCarbonEarsYdimIn = 1.1;
+  const Float_t kCarbonEarsYdimOut = 0.6;
   const Float_t kCarbonEarsZdim = kFixationCarbonCollarDZ;
+  const Float_t kScrewDiameter = 0.4;
+  const Float_t kScrewHeadHeight = 0.2;
+  const Float_t kScrewHeadDiameter = 0.6;
+  const Float_t kScrewPositionIn = 3.25;
+  const Float_t kScrewPositionOut = 21.80;
+  const Float_t kScrewThreadLength = 1.0;
+  const Float_t holeSightDiameterOut = 0.60;
+  const Float_t holeSightDiameterIn = 0.25;
 
   // Support Bar
   TGeoVolumeAssembly* supportBar = new TGeoVolumeAssembly("BPS_SupportBar");
-
-  TGeoBBox* carbonSkinBPS = new TGeoBBox(kSkinXdim / 2., kSkinYdim / 2., kSkinZdim / 2.);
-  carbonSkinBPS->SetName("carbonSkinBPS");
-
+  TGeoBBox* carbonSkinBPS = new TGeoBBox("carbonSkinBPS", kSkinXdim / 2., kSkinYdim / 2., kSkinZdim / 2.);
   TGeoBBox* foambarBPS = new TGeoBBox("foambarBPS", kSkinXdim / 2. - kSkinThickness, kSkinYdim / 2. - kSkinThickness,
                                       kSkinZdim / 2. - kSkinThickness / 2.);
-  TGeoBBox* carbonEarsBPS = new TGeoBBox(kCarbonEarsXdim / 2., kCarbonEarsYdim / 2., kCarbonEarsZdim / 2.);
-  carbonEarsBPS->SetName("carbonEarsBPS");
+  TGeoBBox* carbonEarsBPSin = new TGeoBBox("carbonEarsBPSin", kCarbonEarsXdim / 2., kCarbonEarsYdimIn / 2., kCarbonEarsZdim / 2.);
+  TGeoBBox* carbonEarsBPSout = new TGeoBBox("carbonEarsBPSout", kCarbonEarsXdim / 2., kCarbonEarsYdimOut / 2., kCarbonEarsZdim / 2.);
 
-  TGeoTranslation* transBP1 = new TGeoTranslation("transBP1", (kSkinXdim + kCarbonEarsXdim) / 2., 0., 0.);
-  transBP1->RegisterYourself();
-  TGeoTranslation* transBP2 = new TGeoTranslation("transBP2", -(kSkinXdim + kCarbonEarsXdim) / 2., 0., 0.);
-  transBP2->RegisterYourself();
+  //===== building the main support bar in carbon ====
+  TGeoTranslation* tBP1 = new TGeoTranslation("tBP1", (kSkinXdim + kCarbonEarsXdim) / 2., -(kSkinYdim - kCarbonEarsYdimIn) / 2., 0.);
+  TGeoTranslation* tBP2 = new TGeoTranslation("tBP2", -(kSkinXdim + kCarbonEarsXdim) / 2., 0., 0.);
+  tBP1->RegisterYourself();
+  tBP2->RegisterYourself();
+
+  TGeoRotation* rotScrew = new TGeoRotation("rotScrew", 0., 90., 0.);
+  rotScrew->RegisterYourself();
+
+  TGeoTube* holeScrew = new TGeoTube("holeScrew", 0., kScrewDiameter / 2., kCarbonEarsYdimIn / 2. + 0.001);
+  TGeoTube* holeSight = new TGeoTube("holeSight", 0., holeSightDiameterOut / 2., kSkinZdim / 2. + 0.001);
+  TGeoTranslation* tHoleSight = new TGeoTranslation("tHoleSight", kSkinXdim / 2. + kCarbonEarsXdim + kBeampipeCarbonCollarRmax - 6.55, 0., 0.);
+  tHoleSight->RegisterYourself();
+  Double_t kXHoleIn = kSkinXdim / 2. + kCarbonEarsXdim + kBeampipeCarbonCollarRmax - kScrewPositionIn;
+  Double_t kXHoleOut = kSkinXdim / 2. + kCarbonEarsXdim + kBeampipeCarbonCollarRmax - kScrewPositionOut;
+  TGeoCombiTrans* tHoleScrew1 = new TGeoCombiTrans("tHoleScrew1", kXHoleIn, -(kSkinYdim - kCarbonEarsYdimIn) / 2., -0.7, rotScrew);
+  TGeoCombiTrans* tHoleScrew2 = new TGeoCombiTrans("tHoleScrew2", kXHoleIn, -(kSkinYdim - kCarbonEarsYdimIn) / 2., 0.7, rotScrew);
+  TGeoCombiTrans* tHoleScrew3 = new TGeoCombiTrans("tHoleScrew3", kXHoleOut, -(kSkinYdim - kCarbonEarsYdimIn) / 2., -0.7, rotScrew);
+  TGeoCombiTrans* tHoleScrew4 = new TGeoCombiTrans("tHoleScrew4", kXHoleOut, -(kSkinYdim - kCarbonEarsYdimIn) / 2., 0.7, rotScrew);
+  tHoleScrew1->RegisterYourself();
+  tHoleScrew2->RegisterYourself();
+  tHoleScrew3->RegisterYourself();
+  tHoleScrew4->RegisterYourself();
+
   TGeoCompositeShape* supportBarCarbon = new TGeoCompositeShape(
-    "BPS_supportBarCarbon", "(carbonSkinBPS-foambarBPS)+carbonEarsBPS:transBP1+carbonEarsBPS:transBP2");
-
+    "BPS_supportBarCarbon", "(carbonSkinBPS-foambarBPS)+carbonEarsBPSin:tBP1-holeScrew:tHoleScrew1-holeScrew:tHoleScrew2+carbonEarsBPSout:tBP2-holeSight:tHoleSight-holeScrew:tHoleScrew3-holeScrew:tHoleScrew4");
   TGeoVolume* supportBarCarbonVol = new TGeoVolume("BPS_supportBarCarbon", supportBarCarbon, kMedCarbonFiber);
-  supportBarCarbonVol->SetLineColor(kGray + 3);
+  supportBarCarbonVol->SetLineColor(kGray + 2);
+  supportBar->AddNode(supportBarCarbonVol, 1, new TGeoTranslation(-(kSkinXdim / 2. + kCarbonEarsXdim + kBeampipeCarbonCollarRmax), 0, 0));
+  TGeoRotation* rotBar1 = new TGeoRotation("rotBar1", 0., 180., 180.);
+  rotBar1->RegisterYourself();
+  TGeoCombiTrans* transBar1 = new TGeoCombiTrans("transBar1", kSkinXdim / 2. + kCarbonEarsXdim + kBeampipeCarbonCollarRmax, 0, 0, rotBar1);
+  transBar1->RegisterYourself();
+  supportBar->AddNode(supportBarCarbonVol, 2, transBar1);
+  //==================================================
 
-  supportBar->AddNode(supportBarCarbonVol, 1,
-                      new TGeoTranslation(kSkinXdim / 2. + kCarbonEarsXdim + kBeampipeCarbonCollarRmax, 0, 0));
-  supportBar->AddNode(supportBarCarbonVol, 2,
-                      new TGeoTranslation(-(kSkinXdim / 2. + kCarbonEarsXdim + kBeampipeCarbonCollarRmax), 0, 0));
+  //==== Adding the internal foam volumes ============
+  TGeoCompositeShape* foamVolume = new TGeoCompositeShape("foamVolume", "foambarBPS-holeSight:tHoleSight");
+  TGeoVolume* FoamVolume = new TGeoVolume("supportBarFoam", foamVolume, kMedRohacell);
+  FoamVolume->SetLineColor(kGreen);
+  TGeoRotation* rotBar2 = new TGeoRotation("rotBar2", 0., 0., 180.);
+  rotBar2->RegisterYourself();
+  TGeoCombiTrans* transBar2 = new TGeoCombiTrans("transBar2", kSkinXdim / 2. + kCarbonEarsXdim + kBeampipeCarbonCollarRmax, 0, 0, rotBar2);
+  transBar2->RegisterYourself();
+  supportBar->AddNode(FoamVolume, 1, transBar1);
+  supportBar->AddNode(FoamVolume, 2, new TGeoTranslation(-(kSkinXdim / 2. + kCarbonEarsXdim + kBeampipeCarbonCollarRmax), 0, 0));
+  //==================================================
 
-  TGeoVolume* foamVol = new TGeoVolume("supportBarFoam", foambarBPS, kMedRohacell);
-  foamVol->SetLineColor(kGray);
-  supportBar->AddNode(foamVol, 1,
-                      new TGeoTranslation(kSkinXdim / 2. + kCarbonEarsXdim + kBeampipeCarbonCollarRmax, 0, 0));
-  supportBar->AddNode(foamVol, 2,
-                      new TGeoTranslation(-(kSkinXdim / 2. + kCarbonEarsXdim + kBeampipeCarbonCollarRmax), 0, 0));
+  //================= Screws ====================
+  TGeoVolumeAssembly* screw = new TGeoVolumeAssembly("screw");
+  TGeoTube* headScrew = new TGeoTube("headScrew", 0., kScrewHeadDiameter / 2., kScrewHeadHeight / 2.);
+  TGeoVolume* HeadScrew = new TGeoVolume("HeadScrew", headScrew, kMedTitanium);
+  HeadScrew->SetLineColor(kRed);
+  TGeoTube* threadScrew = new TGeoTube("threadScrew", 0., kScrewDiameter / 2., kCarbonEarsYdimIn / 2.);
+  TGeoVolume* ThreadScrew = new TGeoVolume("ThreadScrew", threadScrew, kMedTitanium);
+  ThreadScrew->SetLineColor(kRed);
+  screw->AddNode(HeadScrew, 1, new TGeoTranslation(0., 0., -(kCarbonEarsYdimIn + kScrewHeadHeight) / 2.));
+  screw->AddNode(ThreadScrew, 1);
+  TGeoCombiTrans* tScrew1 = new TGeoCombiTrans("transScrew1", kScrewPositionIn, (kCarbonEarsYdimIn - kSkinYdim) / 2., -0.7, rotScrew);
+  TGeoCombiTrans* tScrew2 = new TGeoCombiTrans("transScrew2", kScrewPositionIn, (kCarbonEarsYdimIn - kSkinYdim) / 2., 0.7, rotScrew);
+  TGeoCombiTrans* tScrew3 = new TGeoCombiTrans("transScrew3", -kScrewPositionIn, (kCarbonEarsYdimIn - kSkinYdim) / 2., -0.7, rotScrew);
+  TGeoCombiTrans* tScrew4 = new TGeoCombiTrans("transScrew4", -kScrewPositionIn, (kCarbonEarsYdimIn - kSkinYdim) / 2., 0.7, rotScrew);
+  tScrew1->RegisterYourself();
+  tScrew2->RegisterYourself();
+  tScrew3->RegisterYourself();
+  tScrew4->RegisterYourself();
+  supportBar->AddNode(screw, 1, tScrew1);
+  supportBar->AddNode(screw, 2, tScrew2);
+  supportBar->AddNode(screw, 3, tScrew3);
+  supportBar->AddNode(screw, 4, tScrew4);
+  //==============================================
+
+  // === Optical sights ===
+  TGeoVolumeAssembly* fixationSight = new TGeoVolumeAssembly("fixationSight");
+  TGeoTube* screwSight = new TGeoTube("screwSight", holeSightDiameterIn / 2., holeSightDiameterOut / 2., kScrewThreadLength / 2.);
+  TGeoVolume* ScrewSight = new TGeoVolume("ScrewSight", screwSight, kMedSteel);
+  ScrewSight->SetLineColor(kBlue);
+  Double_t supportSightLength = 0.5;
+  TGeoTube* supportSight = new TGeoTube("supportSight", holeSightDiameterIn / 2., 1.4 / 2., supportSightLength / 2.);
+  TGeoVolume* SupportSight = new TGeoVolume("SupportSight", supportSight, kMedSteel);
+  SupportSight->SetLineColor(kBlue);
+  fixationSight->AddNode(ScrewSight, 1);
+  fixationSight->AddNode(SupportSight, 1, new TGeoTranslation(0., 0., (kScrewThreadLength + supportSightLength) / 2.));
+  SupportSight->SetVisibility(kTRUE);
+  fixationSight->SetVisibility(kTRUE);
+  TGeoTranslation* tSight1 = new TGeoTranslation("tSight1", 6.55, 0., (kSkinZdim - kScrewThreadLength) / 2.);
+  TGeoTranslation* tSight2 = new TGeoTranslation("tSight2", -6.55, 0., (kSkinZdim - kScrewThreadLength) / 2.);
+  tSight1->RegisterYourself();
+  tSight2->RegisterYourself();
+  supportBar->AddNode(fixationSight, 1, tSight1);
+  supportBar->AddNode(fixationSight, 2, tSight2);
+  // =====================
 
   beamPipeSupport->AddNode(supportBar, 1);
 
-  // Fixation to wings
-
-  TGeoVolumeAssembly* fixationToWings = new TGeoVolumeAssembly("BPS_fixationToWings");
-
-  Float_t delatX = 0.1;
-
-  TGeoTubeSeg* fixationTube =
-    new TGeoTubeSeg(kFixationCarbonCollarRmin, kFixationCarbonCollarRmax, kFixationCarbonCollarDZ / 2., -90., 90.);
-  fixationTube->SetName("fixationTube");
-  TGeoBBox* fixationToBar = new TGeoBBox(kCarbonEarsXdim / 2. + delatX, kCarbonEarsYdim / 2., kCarbonEarsZdim / 2.);
-  fixationToBar->SetName("fixationToBar");
-
-  TGeoTranslation* transBP3 =
-    new TGeoTranslation("transBP3", kFixationCarbonCollarRmax + kCarbonEarsXdim / 2. - delatX, kCarbonEarsYdim, 0.);
-  transBP3->RegisterYourself();
-  TGeoTranslation* transBP4 =
-    new TGeoTranslation("transBP4", kFixationCarbonCollarRmax + kCarbonEarsXdim / 2. - delatX, -kCarbonEarsYdim, 0.);
-  transBP4->RegisterYourself();
-  TGeoCompositeShape* fixationToWing =
-    new TGeoCompositeShape("fixationToWing", "fixationTube+fixationToBar:transBP3+fixationToBar:transBP4");
-
-  TGeoVolume* fixationToWingVol = new TGeoVolume("fixationToWing", fixationToWing, kMedCarbonFiber);
-  fixationToWingVol->SetLineColor(kGray + 2);
-
-  fixationToWings->AddNode(fixationToWingVol, 1, new TGeoTranslation(-kSupportXdim, 0, 0));
-  fixationToWings->AddNode(fixationToWingVol, 2,
-                           new TGeoCombiTrans(+kSupportXdim, 0, 0, new TGeoRotation("rot", 0., 0., 180.)));
-
-  beamPipeSupport->AddNode(fixationToWings, 1);
-
-  // Fixation to pipe
-
+  //=======================  Fixation to pipe ========================
   TGeoVolumeAssembly* fixationToPipe = new TGeoVolumeAssembly("fixationToPipe");
-
-  TGeoTubeSeg* pipeSupportTubeCarbon =
-    new TGeoTubeSeg(kBeampipeCarbonCollarRmin, kBeampipeCarbonCollarRmax, kFixationCarbonCollarDZ / 2., 0., 180.);
+  TGeoTube* pipeSupportTubeCarbon =
+    new TGeoTube(kBeampipeCarbonCollarRmin, kBeampipeCarbonCollarRmax, kFixationCarbonCollarDZ / 2.);
   pipeSupportTubeCarbon->SetName("pipeSupportTubeCarbon");
-
-  TGeoBBox* fixationTubeToBar = new TGeoBBox(kCarbonEarsXdim / 2. + delatX, kCarbonEarsYdim / 2., kCarbonEarsZdim / 2.);
-  fixationTubeToBar->SetName("fixationTubeToBar");
-  TGeoBBox* hole =
-    new TGeoBBox((kBeampipeCarbonCollarRmax - kVespelRmin) / 2., kCarbonEarsYdim / 2., kCarbonEarsZdim / 2. + 1e-3);
-  hole->SetName("hole");
-
-  TGeoTranslation* transBP5 =
-    new TGeoTranslation("transBP5", kBeampipeCarbonCollarRmax + kCarbonEarsXdim / 2. - delatX, kCarbonEarsYdim, 0.);
-  transBP5->RegisterYourself();
-  TGeoTranslation* transBP6 =
-    new TGeoTranslation("transBP6", -(kBeampipeCarbonCollarRmax + kCarbonEarsXdim / 2. - delatX), kCarbonEarsYdim, 0.);
-  transBP6->RegisterYourself();
-  TGeoTranslation* transBP7 = new TGeoTranslation("transBP7", (kBeampipeCarbonCollarRmax + kVespelRmin) / 2., 0., 0.);
-  transBP7->RegisterYourself();
-  TGeoTranslation* transBP8 =
-    new TGeoTranslation("transBP8", -((kBeampipeCarbonCollarRmax + kVespelRmin) / 2.), 0., 0.);
-  transBP8->RegisterYourself();
   TGeoCompositeShape* halfFixationToPipe = new TGeoCompositeShape(
     "halfFixationToPipe",
-    "(pipeSupportTubeCarbon-hole:transBP7-hole:transBP8)+fixationTubeToBar:transBP5+fixationTubeToBar:transBP6");
-
-  TGeoVolume* halfFixationToPipeVol = new TGeoVolume("halfFixationToPipe", halfFixationToPipe, kMedCarbonFiber);
-  halfFixationToPipeVol->SetLineColor(kRed + 2);
-
-  fixationToPipe->AddNode(halfFixationToPipeVol, 1);
-  fixationToPipe->AddNode(halfFixationToPipeVol, 2, new TGeoCombiTrans(0, 0, 0, new TGeoRotation("rot", 0., 0., 180.)));
-
+    "pipeSupportTubeCarbon");
+  TGeoVolume* FixationToPipeVol = new TGeoVolume("FixationToPipe", pipeSupportTubeCarbon, kMedCarbonFiber);
+  FixationToPipeVol->SetLineColor(kGray + 2);
+  fixationToPipe->AddNode(FixationToPipeVol, 1);
   beamPipeSupport->AddNode(fixationToPipe, 1);
+  //==================================================================
 
-  // Beam Pipe Ring
-
+  //================ Beam Pipe Ring =================
   TGeoVolumeAssembly* beamPipeRing = new TGeoVolumeAssembly("beamPipeRing");
-
   TGeoTube* beamPipeRingCarbon = new TGeoTube(kVespelRmax, kBeampipeCarbonCollarRmin, kBeamPipeRingZdim / 2.);
   TGeoVolume* beamPipeRingCarbonVol = new TGeoVolume("beamPipeRingCarbon", beamPipeRingCarbon, kMedCarbonFiber);
-  beamPipeRingCarbonVol->SetLineColor(kGreen + 2);
+  beamPipeRingCarbonVol->SetLineColor(kGray + 2);
   beamPipeRing->AddNode(beamPipeRingCarbonVol, 1,
                         new TGeoTranslation(0., 0, (kBeamPipeRingZdim - kFixationCarbonCollarDZ) / 2.));
-
-  TGeoTube* beamPipeRingVespel = new TGeoTube(kVespelRmin, kVespelRmax, kBeamPipeRingZdim / 2.);
+  TGeoTube* beamPipeRingVespel = new TGeoTube(kVespelRmin, kVespelRmax, (kBeamPipeRingZdim + 0.4) / 2.);
   TGeoVolume* beamPipeRingVespelVol = new TGeoVolume("beamPipeRingVespel", beamPipeRingVespel, kMedPolyimide);
-  beamPipeRingVespelVol->SetLineColor(kGreen + 4);
+  beamPipeRingVespelVol->SetLineColor(kGreen + 2);
   beamPipeRing->AddNode(beamPipeRingVespelVol, 1,
                         new TGeoTranslation(0., 0, (kBeamPipeRingZdim - kFixationCarbonCollarDZ) / 2.));
-
   beamPipeSupport->AddNode(beamPipeRing, 1);
-  beamPipeSupport->SetVisibility(0);
+  beamPipeSupport->SetVisibility(1);
+  beamPipeSupport->IsVisible();
+  //==================================================
+
+  // Wings
+  //TGeoVolumeAssembly* Wing = new TGeoVolumeAssembly("Wing"); not yet, be patient...
 
   barrel->AddNode(beamPipeSupport, 1, new TGeoTranslation(0., 30, kBeamPipesupportZpos + kFixationCarbonCollarDZ / 2.));
 
@@ -2580,12 +2605,10 @@ void Pipe::createMaterials()
   Float_t aAlBe[2] = {26.98, 9.01}; // al=2.702 be=1.8477
   Float_t zAlBe[2] = {13.00, 4.00};
   Float_t wAlBe[2] = {0.4, 0.6};
-  //
   // Polyamid
   Float_t aPA[4] = {16., 14., 12., 1.};
   Float_t zPA[4] = {8., 7., 6., 1.};
   Float_t wPA[4] = {1., 1., 6., 11.};
-  //
   // Polyimide film
   Float_t aPI[4] = {16., 14., 12., 1.};
   Float_t zPI[4] = {8., 7., 6., 1.};
@@ -2594,15 +2617,12 @@ void Pipe::createMaterials()
   Float_t aRohacell[4] = {16., 14., 12., 1.};
   Float_t zRohacell[4] = {8., 7., 6., 1.};
   Float_t wRohacell[4] = {2., 1., 9., 13.};
-  //
   // Air
-  //
   Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
   Float_t zAir[4] = {6., 7., 8., 18.};
   Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   Float_t dAir = 1.20479E-3;
   Float_t dAir1 = 1.20479E-11;
-  //
   // Insulation powder
   //                    Si         O       Ti     Al
   Float_t ains[4] = {28.0855, 15.9994, 47.867, 26.982};
@@ -2723,6 +2743,10 @@ void Pipe::createMaterials()
   // Rohacell
   matmgr.Mixture("PIPE", 67, "Rohacell$", aRohacell, zRohacell, 0.03, -4, wRohacell);
   matmgr.Medium("PIPE", 67, "ROHACELL", 67, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+
+  // Titanium
+  matmgr.Material("PIPE", 22, "Titanium", 47.867, 22, 4.54, 3.560, 27.80);
+  matmgr.Medium("PIPE", 22, "TITANIUM", 22, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 TGeoPcon* Pipe::MakeMotherFromTemplate(const TGeoPcon* shape, Int_t imin, Int_t imax, Float_t r0, Int_t nz)

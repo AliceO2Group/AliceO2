@@ -12,6 +12,8 @@
 #include "MCHWorkflow/TrackReaderSpec.h"
 
 #include "DPLUtils/RootTreeReader.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -46,25 +48,47 @@ RootTreeReader::SpecialPublishHook logging{
     if (name == "tracks") {
       printBranch<TrackMCH>(data, "TRACKS");
     }
+    if (name == "tracklabels") {
+      auto tdata = reinterpret_cast<dataformats::MCTruthContainer<MCCompLabel>*>(data);
+      LOGP(info, "MCH {:d} {:s}", tdata->getIndexedSize(), "LABELS");
+    }
     return false;
   }};
 
 struct TrackReader {
   std::unique_ptr<RootTreeReader> mTreeReader;
+  bool mUseMC = false;
+  TrackReader(bool useMC = false) : mUseMC(useMC) {}
   void init(InitContext& ic)
   {
+    if (!mUseMC) {
+      LOGP(warning, "Not reading MCH Track Labels");
+    }
     auto treeName = "o2sim";
     auto fileName = ic.options().get<std::string>("infile");
     auto nofEntries{-1};
-    mTreeReader = std::make_unique<RootTreeReader>(
-      treeName,
-      fileName.c_str(),
-      nofEntries,
-      RootTreeReader::PublishingMode::Single,
-      RootTreeReader::BranchDefinition<std::vector<TrackMCH>>{Output{"MCH", "TRACKS", 0}, "tracks"},
-      RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "TRACKROFS", 0}, "trackrofs"},
-      RootTreeReader::BranchDefinition<std::vector<ClusterStruct>>{Output{"MCH", "TRACKCLUSTERS", 0}, "trackclusters"},
-      &logging);
+    if (mUseMC) {
+      mTreeReader = std::make_unique<RootTreeReader>(
+        treeName,
+        fileName.c_str(),
+        nofEntries,
+        RootTreeReader::PublishingMode::Single,
+        RootTreeReader::BranchDefinition<std::vector<TrackMCH>>{Output{"MCH", "TRACKS", 0}, "tracks"},
+        RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "TRACKROFS", 0}, "trackrofs"},
+        RootTreeReader::BranchDefinition<std::vector<ClusterStruct>>{Output{"MCH", "TRACKCLUSTERS", 0}, "trackclusters"},
+        RootTreeReader::BranchDefinition<dataformats::MCTruthContainer<MCCompLabel>>{Output{"MCH", "TRACKLABELS", 0}, "tracklabels"},
+        &logging);
+    } else {
+      mTreeReader = std::make_unique<RootTreeReader>(
+        treeName,
+        fileName.c_str(),
+        nofEntries,
+        RootTreeReader::PublishingMode::Single,
+        RootTreeReader::BranchDefinition<std::vector<TrackMCH>>{Output{"MCH", "TRACKS", 0}, "tracks"},
+        RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "TRACKROFS", 0}, "trackrofs"},
+        RootTreeReader::BranchDefinition<std::vector<ClusterStruct>>{Output{"MCH", "TRACKCLUSTERS", 0}, "trackclusters"},
+        &logging);
+    }
   }
 
   void
@@ -84,9 +108,8 @@ DataProcessorSpec getTrackReaderSpec(bool useMC, const char* name)
   outputSpecs.emplace_back(OutputSpec{{"tracks"}, "MCH", "TRACKS", 0, Lifetime::Timeframe});
   outputSpecs.emplace_back(OutputSpec{{"trackrofs"}, "MCH", "TRACKROFS", 0, Lifetime::Timeframe});
   outputSpecs.emplace_back(OutputSpec{{"trackclusters"}, "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
-
-  if (useMC == true) {
-    LOGP(warning, "MC handling not yet implemented");
+  if (useMC) {
+    outputSpecs.emplace_back(OutputSpec{{"tracklabels"}, "MCH", "TRACKLABELS", 0, Lifetime::Timeframe});
   }
 
   auto options = Options{
@@ -97,7 +120,7 @@ DataProcessorSpec getTrackReaderSpec(bool useMC, const char* name)
     name,
     Inputs{},
     outputSpecs,
-    adaptFromTask<TrackReader>(),
+    adaptFromTask<TrackReader>(useMC),
     options};
 }
 } // namespace o2::mch

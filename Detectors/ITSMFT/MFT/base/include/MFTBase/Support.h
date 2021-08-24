@@ -111,7 +111,7 @@ class Support
   Double_t mHeight_D2;
   Double_t (*mD2Holes[5])[2]; // Positions of D2 mm holes on disk
 
-  ClassDef(Support, 1);
+  ClassDefNV(Support, 1);
 };
 
 //Template to reduce boilerplate for TGeo boolean operations

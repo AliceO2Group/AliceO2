@@ -9,8 +9,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(
-  GlobalTracking
+o2_add_library(GlobalTracking
+  TARGETVARNAME targetName
   SOURCES src/MatchTPCITS.cxx
           src/MatchTOF.cxx
           src/MatchTPCITSParams.cxx
@@ -41,3 +41,8 @@ o2_target_root_dictionary(
   GlobalTracking
   HEADERS include/GlobalTracking/MatchTPCITSParams.h
           include/GlobalTracking/MatchTOF.h include/GlobalTracking/MatchCosmics.h include/GlobalTracking/MatchCosmicsParams.h)
+
+if (OpenMP_CXX_FOUND)
+  target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+  target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()

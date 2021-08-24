@@ -64,6 +64,7 @@ class EventRecord
   void addTracklets(std::vector<Tracklet64>::iterator& start, std::vector<Tracklet64>::iterator& end);
   void addTracklets(std::vector<Tracklet64>& tracklets);
   //void printStream(std::ostream& stream) const;
+  void sortByHCID();
 
   bool operator==(const EventRecord& o) const
   {
@@ -96,7 +97,7 @@ class EventStorage
   void addTracklets(InteractionRecord& ir, std::vector<Tracklet64>& tracklets);
   void addTracklets(InteractionRecord& ir, std::vector<Tracklet64>::iterator& start, std::vector<Tracklet64>::iterator& end);
   void unpackData(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits);
-  void sendData(o2::framework::ProcessingContext& pc);
+  void sendData(o2::framework::ProcessingContext& pc, bool displaytracklets = false);
   //this could replace by keeing a running total on addition TODO
   void sumTrackletsDigitsTriggers(uint64_t& tracklets, uint64_t& digits, uint64_t& triggers);
   int sumTracklets();

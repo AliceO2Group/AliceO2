@@ -25,20 +25,18 @@ namespace dataformats
 {
 class MatchInfoTOF
 {
-  using evGIdx = o2::dataformats::EvIndex<int, o2::dataformats::GlobalTrackID>;
-  using evIdx = o2::dataformats::EvIndex<int, int>;
+  using GTrackID = o2::dataformats::GlobalTrackID;
 
  public:
-  MatchInfoTOF(evIdx evIdxTOFCl, double time, float chi2, o2::track::TrackLTIntegral trkIntLT, evGIdx evIdxTrack, float dt = 0, float z = 0) : mEvIdxTOFCl(evIdxTOFCl), mSignal(time), mChi2(chi2), mIntLT(trkIntLT), mEvIdxTrack(evIdxTrack), mDeltaT(dt), mZatTOF(z){};
+  MatchInfoTOF(int idLocal, int idxTOFCl, double time, float chi2, o2::track::TrackLTIntegral trkIntLT, GTrackID idxTrack, float dt = 0, float z = 0) : mIdLocal(idLocal), mIdxTOFCl(idxTOFCl), mSignal(time), mChi2(chi2), mIntLT(trkIntLT), mIdxTrack(idxTrack), mDeltaT(dt), mZatTOF(z){};
   MatchInfoTOF() = default;
-  void setEvIdxTOFCl(evIdx index) { mEvIdxTOFCl = index; }
-  void setEvIdxTrack(evGIdx index) { mEvIdxTrack = index; }
-  evIdx getEvIdxTOFCl() const { return mEvIdxTOFCl; }
-  evGIdx getEvIdxTrack() const { return mEvIdxTrack; }
-  int getEventTOFClIndex() const { return mEvIdxTOFCl.getEvent(); }
-  int getTOFClIndex() const { return mEvIdxTOFCl.getIndex(); }
-  int getEventTrackIndex() const { return mEvIdxTrack.getEvent(); }
-  int getTrackIndex() const { return mEvIdxTrack.getIndex(); }
+  void setIdxTOFCl(int index) { mIdxTOFCl = index; }
+  void setIdxTrack(GTrackID index) { mIdxTrack = index; }
+  int getIdxTOFCl() const { return mIdxTOFCl; }
+  GTrackID getTrackRef() const { return mIdxTrack; }
+  int getEventTOFClIndex() const { return mIdxTOFCl; }
+  int getTOFClIndex() const { return mIdxTOFCl; }
+  int getTrackIndex() const { return mIdxTrack.getIndex(); }
 
   void setChi2(int chi2) { mChi2 = chi2; }
   float getChi2() const { return mChi2; }
@@ -54,16 +52,19 @@ class MatchInfoTOF
   void setSignal(double time) { mSignal = time; }
   double getSignal() const { return mSignal; }
 
+  int getIdLocal() const { return mIdLocal; }
+
  private:
+  int mIdLocal;                      // track id in sector of the pair track-TOFcluster
   float mChi2;                       // chi2 of the pair track-TOFcluster
   o2::track::TrackLTIntegral mIntLT; ///< L,TOF integral calculated during the propagation
-  evIdx mEvIdxTOFCl;                 ///< EvIdx for TOF cluster (first: ev index; second: cluster index)
-  evGIdx mEvIdxTrack;                ///< EvIdx for track (first: ev index; second: track global index)
+  int mIdxTOFCl;                     ///< Idx for TOF cluster
+  GTrackID mIdxTrack;                ///< Idx for track
   float mZatTOF = 0.0;               ///< Z position at  TOF
   float mDeltaT = 0.0;               ///< tTOF - TPC (microsec)
   double mSignal = 0.0;              ///< TOF time in ps
 
-  ClassDefNV(MatchInfoTOF, 3);
+  ClassDefNV(MatchInfoTOF, 4);
 };
 } // namespace dataformats
 } // namespace o2

@@ -23,7 +23,6 @@
 
 #include "FairLogger.h"
 #include "TRDBase/SimParam.h"
-#include "TRDBase/CommonParam.h"
 #include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/Constants.h"
 #endif

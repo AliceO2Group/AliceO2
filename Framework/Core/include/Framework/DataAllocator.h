@@ -41,8 +41,7 @@
 #include <cstddef>
 
 // Do not change this for a full inclusion of FairMQDevice.
-class FairMQDevice;
-class FairMQMessage;
+#include <fairmq/FwdDecls.h>
 
 namespace arrow
 {

@@ -61,15 +61,6 @@ class RawReaderMemory
   /// it should not be called directly by the user.
   void nextPage(bool resetPayload = true);
 
-  /// \brief Read page with a given index
-  /// \param page Index of the page to be decoded
-  /// \throw RawDecodingError if the page cannot be read or header or payload cannot be deocded
-  ///
-  /// The reader will try to read the page with a certain index. In
-  /// case the page cannot be decoded (page index outside range,
-  /// decoding of header or payload failed), and excpetion is raised.
-  void readPage(int page);
-
   /// \brief access to the raw header of the current page
   /// \return Raw header of the current page
   /// \throw RawDecodingError with HEADER_INVALID if the header was not decoded
@@ -92,10 +83,6 @@ class RawReaderMemory
   /// \return size of the file in byte
   int getFileSize() const noexcept { return mRawMemoryBuffer.size(); }
 
-  /// \brief get the number of pages in the file
-  /// \return number of pages in the file
-  int getNumberOfPages() const noexcept { return mNumData; }
-
   /// \brief check if more pages are available in the raw file
   /// \return true if there is a next page
   bool hasNext() const { return mCurrentPosition < mRawMemoryBuffer.size(); }
@@ -116,7 +103,7 @@ class RawReaderMemory
   RCUTrailer mCurrentTrailer;             ///< RCU trailer
   uint64_t mTrailerPayloadWords = 0;      ///< Payload words in common trailer
   int mCurrentPosition = 0;               ///< Current page in file
-  int mNumData = 0;                       ///< Number of pages
+  int mCurrentFEE = -1;                   ///< Current FEE in the data stream
   bool mRawHeaderInitialized = false;     ///< RDH for current page initialized
   bool mPayloadInitialized = false;       ///< Payload for current page initialized
 

@@ -14,6 +14,7 @@
 /// @since  2021-02-01
 /// @brief  Base class for detector: wrapper for set of volumes
 
+#include "Align/Controller.h"
 #include "Align/AlignableDetector.h"
 #include "Align/AlignableSensor.h"
 #include "Align/Controller.h"
@@ -43,44 +44,9 @@ namespace o2
 {
 namespace align
 {
-
 //____________________________________________
-AlignableDetector::AlignableDetector()
-  : mNDOFs(0), mVolIDMin(-1), mVolIDMax(-1), mNSensors(0), mSID2VolID(nullptr), mNProcPoints(0)
-    //
-    ,
-    mNCalibDOF(0),
-    mNCalibDOFFree(0),
-    mCalibDOF(0),
-    mFirstParGloID(-1),
-    mParVals(nullptr),
-    mParErrs(nullptr),
-    mParLabs(nullptr)
-    //
-    ,
-    mUseErrorParam(0),
-    mSensors(),
-    mVolumes()
-    //
-    ,
-    mNPoints(0),
-    mPoolNPoints(0),
-    mPoolFreePointID(0),
-    mPointsPool(),
-    mAlgSteer(nullptr)
+AlignableDetector::AlignableDetector(DetID id, Controller* ctr) : DOFSet(id.getName(), ctr), mDetID(id)
 {
-  // def c-tor
-  SetUniqueID(Controller::kUndefined); // derived detectors must override this
-  SetUniqueID(6);
-  mAddError[0] = mAddError[1] = 0;
-  //
-  for (int i = 0; i < NTrackTypes; i++) {
-    mDisabled[i] = false;
-    mObligatory[i] = false;
-    mTrackFlagSel[i] = 0;
-    mNPointsSel[i] = 0;
-  }
-  //
 }
 
 //____________________________________________
@@ -90,6 +56,16 @@ AlignableDetector::~AlignableDetector()
   mSensors.Clear();  // sensors are also attached as volumes, don't delete them here
   mVolumes.Delete(); // here all is deleted
   mPointsPool.Delete();
+}
+
+//____________________________________________
+int AlignableDetector::getNDOFsTot() const
+{
+  int n = getNDOFs();
+  for (int i = 0; i < getNVolumes(); i++) {
+    n += getVolume(i)->getNDOFs();
+  }
+  return n;
 }
 
 //FIXME(milettri): needs AliESDtrack
@@ -141,7 +117,7 @@ void AlignableDetector::updateL2GRecoMatrices()
   //  // Update L2G matrices used for data reconstruction
   //  //
   //  AliCDBManager* man = AliCDBManager::Instance();
-  //  AliCDBEntry* ent = man->Get(Form("%s/Align/Data", GetName()));
+  //  AliCDBEntry* ent = man->Get(Form("%s/Align/Data", mDetID.getName()));
   //  const TClonesArray* algArr = (const TClonesArray*)ent->GetObject();
   //  //
   //  int nvol = getNVolumes();
@@ -173,7 +149,7 @@ void AlignableDetector::cacheReferenceOCDB()
   //  //
   //  // cache global deltas to avoid preicision problem
   //  AliCDBManager* man = AliCDBManager::Instance();
-  //  AliCDBEntry* ent = man->Get(Form("%s/Align/Data", GetName()));
+  //  AliCDBEntry* ent = man->Get(Form("%s/Align/Data", mDetID.getName()));
   //  TObjArray* arr = (TObjArray*)ent->GetObject();
   //  for (int i = arr->GetEntriesFast(); i--;) {
   //    const AliAlignObjParams* par = (const AliAlignObjParams*)arr->At(i);
@@ -213,18 +189,11 @@ void AlignableDetector::resetPool()
 }
 
 //_________________________________________________________
-void AlignableDetector::defineVolumes()
-{
-  // dummy method
-  LOG(ERROR) << "This method must be implemented by specific detector";
-}
-
-//_________________________________________________________
 void AlignableDetector::addVolume(AlignableVolume* vol)
 {
   // add volume
   if (getVolume(vol->getSymName())) {
-    LOG(FATAL) << "Volume " << vol->GetName() << " was already added to " << GetName();
+    LOG(FATAL) << "Volume " << vol->GetName() << " was already added to " << mDetID.getName();
   }
   mVolumes.AddLast(vol);
   if (vol->isSensor()) {
@@ -310,7 +279,7 @@ int AlignableDetector::initGeom()
     mNDOFs += vol->getNDOFs();
   }
   //
-  mNDOFs += mNCalibDOF;
+  mNDOFs += mNCalibDOFs;
   setInitGeomDone();
   return mNDOFs;
 }
@@ -320,31 +289,20 @@ int AlignableDetector::assignDOFs()
 {
   // assign DOFs IDs, parameters
   //
-  int gloCount0(mAlgSteer->getNDOFs()), gloCount(mAlgSteer->getNDOFs());
-  float* pars = mAlgSteer->getGloParVal();
-  float* errs = mAlgSteer->getGloParErr();
-  int* labs = mAlgSteer->getGloParLab();
-  //
-  // assign calibration DOFs
-  mFirstParGloID = gloCount;
-  mParVals = pars + gloCount;
-  mParErrs = errs + gloCount;
-  mParLabs = labs + gloCount;
-  for (int icl = 0; icl < mNCalibDOF; icl++) {
-    mParLabs[icl] = (getDetLabel() + 10000) * 100 + icl;
-    gloCount++;
+  setFirstParGloID(mController->getNDOFs());
+  if (mFirstParGloID == (int)mController->getGloParVal().size()) {
+    mController->expandGlobalsBy(mNCalibDOFs);
+  }
+  for (int icl = 0; icl < mNCalibDOFs; icl++) {
+    setParLab(icl, icl); // TODO RS FIXME
   }
   //
   int nvol = getNVolumes();
   for (int iv = 0; iv < nvol; iv++) {
     AlignableVolume* vol = getVolume(iv);
-    // call init for root level volumes, they will take care of their children
-    if (!vol->getParent()) {
-      vol->assignDOFs(gloCount, pars, errs, labs);
+    if (!vol->getParent()) { // call init for root level volumes, they will take care of their children
+      vol->assignDOFs();
     }
-  }
-  if (mNDOFs != gloCount - gloCount0) {
-    LOG(FATAL) << "Mismatch between declared " << mNDOFs << " and initialized " << (gloCount - gloCount0) << " DOFs for " << GetName();
   }
   return mNDOFs;
 }
@@ -354,12 +312,14 @@ void AlignableDetector::initDOFs()
 {
   // initialize free parameters
   if (getInitDOFsDone()) {
-    LOG(FATAL) << "DOFs are already initialized for " << GetName();
+    LOG(FATAL) << "DOFs are already initialized for " << mDetID.getName();
   }
   //
+  auto pars = getParVals();
+  auto errs = getParErrs();
   // process calibration DOFs
-  for (int i = 0; i < mNCalibDOF; i++) {
-    if (mParErrs[i] < -9999 && isZeroAbs(mParVals[i])) {
+  for (int i = 0; i < mNCalibDOFs; i++) {
+    if (errs[i] < -9999 && isZeroAbs(pars[i])) {
       fixDOF(i);
     }
   }
@@ -400,7 +360,7 @@ void AlignableDetector::Print(const Option_t* opt) const
   TString opts = opt;
   opts.ToLower();
   printf("\nDetector:%5s %5d volumes %5d sensors {VolID: %5d-%5d} Def.Sys.Err: %.4e %.4e | Stat:%d\n",
-         GetName(), getNVolumes(), getNSensors(), getVolIDMin(),
+         mDetID.getName(), getNVolumes(), getNSensors(), getVolIDMin(),
          getVolIDMax(), mAddError[0], mAddError[1], mNProcPoints);
   //
   printf("Errors assignment: ");
@@ -433,14 +393,6 @@ void AlignableDetector::Print(const Option_t* opt) const
 }
 
 //____________________________________________
-void AlignableDetector::setDetID(uint32_t tp)
-{
-  o2::detectors::DetID detID(tp);
-  SetUniqueID(detID);
-  LOG(WARNING) << __PRETTY_FUNCTION__ << "Possible discrepancies with o2 detector ID";
-}
-
-//____________________________________________
 void AlignableDetector::setAddError(double sigy, double sigz)
 {
   // add syst error to all sensors
@@ -457,7 +409,7 @@ void AlignableDetector::setAddError(double sigy, double sigz)
 void AlignableDetector::setUseErrorParam(int v)
 {
   // set type of points error parameterization
-  LOG(FATAL) << "UpdatePointByTrackInfo is not implemented for this detector";
+  LOG(FATAL) << "setUseErrorParam is not implemented for this detector";
   //
 }
 
@@ -469,18 +421,25 @@ void AlignableDetector::updatePointByTrackInfo(AlignmentPoint* pnt, const trackP
 }
 
 //____________________________________________
+void AlignableDetector::defineVolumes()
+{
+  // define alignment volumes
+  LOG(FATAL) << "defineVolumes method has to be implemented for specific detector";
+}
+
+//____________________________________________
 void AlignableDetector::setObligatory(int tp, bool v)
 {
   // mark detector presence obligatory in the track
   mObligatory[tp] = v;
-  mAlgSteer->setObligatoryDetector(getDetID(), tp, v);
+  mController->setObligatoryDetector(getDetID(), tp, v);
 }
 
 //______________________________________________________
 void AlignableDetector::writePedeInfo(FILE* parOut, const Option_t* opt) const
 {
   // contribute to params and constraints template files for PEDE
-  fprintf(parOut, "\n!!\t\tDetector:\t%s\tNDOFs: %d\n", GetName(), getNDOFs());
+  fprintf(parOut, "\n!!\t\tDetector:\t%s\tNDOFs: %d\n", mDetID.getName(), getNDOFs());
   //
   // parameters
   int nvol = getNVolumes();
@@ -520,10 +479,10 @@ void AlignableDetector::writeAlignmentResults() const
   //  //
   //  AliCDBManager* man = AliCDBManager::Instance();
   //  AliCDBMetaData* md = new AliCDBMetaData();
-  //  md->SetResponsible(mAlgSteer->getOutCDBResponsible());
-  //  md->SetComment(mAlgSteer->getOutCDBResponsible());
+  //  md->SetResponsible(mController->getOutCDBResponsible());
+  //  md->SetComment(mController->getOutCDBResponsible());
   //  //
-  //  AliCDBId id(Form("%s/Align/Data", GetName()), mAlgSteer->getOutCDBRunMin(), mAlgSteer->getOutCDBRunMax());
+  //  AliCDBId id(Form("%s/Align/Data", mDetID.getName()), mController->getOutCDBRunMin(), mController->getOutCDBRunMax());
   //  man->Put(arr, id, md);
   //  //
   //  delete arr;
@@ -540,7 +499,7 @@ bool AlignableDetector::ownsDOFID(int id) const
     }
   }
   // calibration DOF?
-  if (id >= mFirstParGloID && id < mFirstParGloID + mNCalibDOF) {
+  if (id >= mFirstParGloID && id < mFirstParGloID + mNCalibDOFs) {
     return true;
   }
   //
@@ -570,7 +529,7 @@ void AlignableDetector::terminate()
   //  if (isDisabled()) return;
   int nvol = getNVolumes();
   mNProcPoints = 0;
-  DOFStatistics* st = mAlgSteer->GetDOFStat();
+  auto& st = mController->GetDOFStat();
   for (int iv = 0; iv < nvol; iv++) {
     AlignableVolume* vol = getVolume(iv);
     // call init for root level volumes, they will take care of their children
@@ -589,7 +548,7 @@ void AlignableDetector::addAutoConstraints() const
   for (int iv = 0; iv < nvol; iv++) { // call for root level volumes, they will take care of their children
     AlignableVolume* vol = getVolume(iv);
     if (!vol->getParent()) {
-      vol->addAutoConstraints((TObjArray*)mAlgSteer->getConstraints());
+      vol->addAutoConstraints((TObjArray*)mController->getConstraints());
     }
   }
 }
@@ -713,7 +672,7 @@ void AlignableDetector::constrainOrphans(const double* sigma, const char* match)
     LOG(INFO) << "No volume passed filter " << match;
     delete constr;
   } else {
-    ((TObjArray*)mAlgSteer->getConstraints())->Add(constr);
+    ((TObjArray*)mController->getConstraints())->Add(constr);
   }
 }
 
@@ -750,32 +709,29 @@ bool AlignableDetector::isCondDOF(int i) const
 void AlignableDetector::calcFree(bool condFix)
 {
   // calculate free calib dofs. If condFix==true, condition parameter a la pede, i.e. error < 0
-  mNCalibDOFFree = 0;
-  for (int i = 0; i < mNCalibDOF; i++) {
+  mNCalibDOFsFree = 0;
+  for (int i = 0; i < mNCalibDOFs; i++) {
     if (!isFreeDOF(i)) {
       if (condFix) {
         setParErr(i, -999);
       }
       continue;
     }
-    mNCalibDOFFree++;
+    mNCalibDOFsFree++;
   }
   //
 }
 
 //______________________________________________________
-void AlignableDetector::fillDOFStat(DOFStatistics* st) const
+void AlignableDetector::fillDOFStat(DOFStatistics& st) const
 {
   // fill statistics info hist
-  if (!st) {
-    return;
-  }
   int ndf = getNCalibDOFs();
   int dof0 = getFirstParGloID();
   int stat = getNProcessedPoints();
   for (int idf = 0; idf < ndf; idf++) {
     int dof = idf + dof0;
-    st->addStat(dof, stat);
+    st.addStat(dof, stat);
   }
   //
 }
@@ -795,7 +751,7 @@ void AlignableDetector::writeSensorPositions(const char* outFName)
   } snpos_t;
   snpos_t spos; //
   TFile* fl = TFile::Open(outFName, "recreate");
-  TTree* tr = new TTree("snpos", Form("sensor poisitions for %s", GetName()));
+  TTree* tr = new TTree("snpos", Form("sensor poisitions for %s", mDetID.getName()));
   tr->Branch("volID", &spos.volID, "volID/I");
   tr->Branch("pId", &spos.pId, "pId[3]/D");
   tr->Branch("pRf", &spos.pRf, "pRf[3]/D");

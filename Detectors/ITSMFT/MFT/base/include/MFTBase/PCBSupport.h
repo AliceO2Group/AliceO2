@@ -74,7 +74,7 @@ class PCBSupport
   Int_t mNumberOfHoles[5];    // Number of Holes in each PCB
   Double_t (*mHoles[5])[3];   // Holes on each PCB
 
-  ClassDef(PCBSupport, 1);
+  ClassDefNV(PCBSupport, 1);
 };
 } // namespace mft
 } // namespace o2

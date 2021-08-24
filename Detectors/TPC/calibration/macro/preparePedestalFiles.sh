@@ -13,6 +13,7 @@ optional arguments:
 -s, --sigmaNoise=     : number of sigmas for the threshold (default: 3)
 -p, --pedestalOffset= : pedestal offset value
 -f, --onlyFilled      : only write links which have data
+-k, --noMaskZero      : don't set pedetal value of missing pads to 512
 -h, --help            : show this help message"
 
   echo "$usage"
@@ -34,9 +35,10 @@ minADC=2
 sigmaNoise=3
 pedestalOffset=0
 onlyFilled=0
+maskZero=1
 
 # ===| parse command line options |=============================================
-OPTIONS=$(getopt -l "inputFile:,outputDir:,minADC:,sigmaNoise:,pedestalOffset:,onlyFilled,help" -o "i:o:t:m:s:p:fh" -n "preparePedestalFiles.sh" -- "$@")
+OPTIONS=$(getopt -l "inputFile:,outputDir:,minADC:,sigmaNoise:,pedestalOffset:,onlyFilled,noMaskZero,help" -o "i:o:t:m:s:p:fkh" -n "preparePedestalFiles.sh" -- "$@")
 
 if [ $? != 0 ] ; then
   usageAndExit
@@ -53,6 +55,7 @@ while true; do
     -s|--sigmaNoise) sigmaNoise=$2; shift 2;;
     -p|--pedestalOffset) pedestalOffset=$2; shift 2;;
     -f|--onlyFilled) onlyFilled=1; shift;;
+    -k|--noMaskZero) maskZero=0; shift;;
     -h|--help) usageAndExit;;
      *) echo "Internal error!" ; exit 1 ;;
    esac
@@ -64,6 +67,6 @@ if [[ -z "$inputFile" ]]; then
 fi
 
 # ===| command building and execution |=========================================
-cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/preparePedestalFiles.C+g'(\"$inputFile\",\"$outputDir\", $sigmaNoise, $minADC, $pedestalOffset, $onlyFilled)'"
+cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/preparePedestalFiles.C+g'(\"$inputFile\",\"$outputDir\", $sigmaNoise, $minADC, $pedestalOffset, $onlyFilled, $maskZero)'"
 echo "running: $cmd"
 eval $cmd

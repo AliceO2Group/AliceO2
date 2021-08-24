@@ -28,13 +28,13 @@ namespace mid
 {
 
 /// Header for a single CTF
-struct CTFHeader {
+struct CTFHeader : public o2::ctf::CTFDictHeader {
   uint32_t nROFs = 0;      /// number of ROFrames in TF
   uint32_t nColumns = 0;   /// number of referred columns in TF
   uint32_t firstOrbit = 0; /// 1st orbit of TF
   uint16_t firstBC = 0;    /// 1st BC of TF
 
-  ClassDefNV(CTFHeader, 1);
+  ClassDefNV(CTFHeader, 2);
 };
 
 /// wrapper for the Entropy-encoded clusters of the TF

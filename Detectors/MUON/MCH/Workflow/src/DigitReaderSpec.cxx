@@ -108,15 +108,15 @@ class DigitsReaderDeviceDPL
   bool mUseMC = true;
 };
 
-framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* baseDescription)
+framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* name)
 {
   std::vector<of::OutputSpec> outputs;
   std::vector<header::DataDescription> descriptions;
   std::stringstream ss;
-  ss << "A:" << header::gDataOriginMCH.as<std::string>() << "/" << baseDescription << "S/0";
-  ss << ";B:" << header::gDataOriginMCH.as<std::string>() << "/" << baseDescription << "ROFS/0";
+  ss << "A:" << header::gDataOriginMCH.as<std::string>() << "/DIGITS/0";
+  ss << ";B:" << header::gDataOriginMCH.as<std::string>() << "/DIGITROFS/0";
   if (useMC) {
-    ss << ";C:" << header::gDataOriginMCH.as<std::string>() << "/" << baseDescription << "LABELS/0";
+    ss << ";C:" << header::gDataOriginMCH.as<std::string>() << "/DIGITLABELS/0";
   }
   auto matchers = of::select(ss.str().c_str());
   for (auto& matcher : matchers) {
@@ -125,7 +125,7 @@ framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* baseDesc
   }
 
   return of::DataProcessorSpec{
-    "MCHDigitsReader",
+    name,
     of::Inputs{},
     outputs,
     of::AlgorithmSpec{of::adaptFromTask<o2::mch::DigitsReaderDeviceDPL>(useMC, descriptions)},

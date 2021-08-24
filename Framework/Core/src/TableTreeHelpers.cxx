@@ -13,6 +13,7 @@
 #include "Framework/Logger.h"
 
 #include "arrow/type_traits.h"
+#include <arrow/util/key_value_metadata.h>
 
 namespace o2::framework
 {
@@ -142,16 +143,7 @@ BranchIterator::~BranchIterator()
 {
   delete mBranchBuffer;
 
-  delete mVariable_o;
-  delete mVariable_ub;
-  delete mVariable_us;
-  delete mVariable_ui;
-  delete mVariable_ul;
-  delete mVariable_s;
-  delete mVariable_i;
-  delete mVariable_l;
-  delete mVariable_f;
-  delete mVariable_d;
+  delete[] mVariable_o;
 }
 
 bool BranchIterator::getStatus()
@@ -208,11 +200,7 @@ bool BranchIterator::initBranch(TTree* tree)
   }
 
   mBranchPtr = tree->Branch(mBranchName.c_str(), mBranchBuffer, mLeaflistString.c_str());
-  if (mBranchPtr) {
-    return true;
-  } else {
-    return false;
-  }
+  return mBranchPtr != nullptr;
 }
 
 bool BranchIterator::initDataBuffer(Int_t ib)
@@ -230,7 +218,7 @@ bool BranchIterator::initDataBuffer(Int_t ib)
   switch (mElementType) {
     case arrow::Type::type::BOOL:
       if (!mVariable_o) {
-        mVariable_o = new bool(mNumberElements);
+        mVariable_o = new bool[mNumberElements];
       }
       mArray_o = std::dynamic_pointer_cast<arrow::BooleanArray>(chunkToUse);
       for (int ii = 0; ii < mNumberElements; ii++) {
@@ -385,34 +373,23 @@ TableToTree::TableToTree(std::shared_ptr<arrow::Table> table,
   }
 }
 
-TableToTree::~TableToTree()
-{
-  // clean up branch iterators
-  mBranchIterators.clear();
-}
-
 bool TableToTree::addBranch(std::shared_ptr<arrow::ChunkedArray> col, std::shared_ptr<arrow::Field> field)
 {
-  BranchIterator* brit = new BranchIterator(mTreePtr, col, field);
-  if (brit->getStatus()) {
-    mBranchIterators.push_back(brit);
+  auto brit = std::make_unique<BranchIterator>(mTreePtr, col, field);
+  if (!brit->getStatus()) {
+    return false;
   }
-
-  return brit->getStatus();
+  mBranchIterators.emplace_back(std::move(brit));
+  return true;
 }
 
 bool TableToTree::addAllBranches()
 {
 
   bool status = mTable->num_columns() > 0;
+
   for (auto ii = 0; ii < mTable->num_columns(); ii++) {
-    BranchIterator* brit =
-      new BranchIterator(mTreePtr, mTable->column(ii), mTable->schema()->field(ii));
-    if (brit->getStatus()) {
-      mBranchIterators.push_back(brit);
-    } else {
-      status = false;
-    }
+    status &= addBranch(mTable->column(ii), mTable->schema()->field(ii));
   }
 
   return status;
@@ -427,7 +404,7 @@ TTree* TableToTree::process()
     mTreePtr->Fill();
 
     // update the branches
-    for (auto brit : mBranchIterators) {
+    for (auto& brit : mBranchIterators) {
       togo &= brit->push();
     }
   }
@@ -837,6 +814,11 @@ void ColumnIterator::finish()
   }
 }
 
+void TreeToTable::setLabel(const char* label)
+{
+  mTableLabel = label;
+}
+
 void TreeToTable::addColumn(const char* colname)
 {
   mColumnNames.push_back(colname);
@@ -898,7 +880,7 @@ void TreeToTable::fill(TTree* tree)
     array_vector.push_back(colit->getArray());
     schema_vector.push_back(colit->getSchema());
   }
-  auto fields = std::make_shared<arrow::Schema>(schema_vector);
+  auto fields = std::make_shared<arrow::Schema>(schema_vector, std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{mTableLabel}));
 
   // create the final table
   // ta is of type std::shared_ptr<arrow::Table>

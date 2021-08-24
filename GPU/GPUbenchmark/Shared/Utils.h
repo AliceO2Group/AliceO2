@@ -34,19 +34,34 @@
 
 #define GB (1024 * 1024 * 1024)
 
-namespace o2
-{
-namespace benchmark
-{
+enum class Test {
+  Read,
+  Write,
+  Copy
+};
+
+enum class Mode {
+  Sequential,
+  Concurrent
+};
 
 enum class SplitLevel {
   Blocks,
   Threads
 };
 
+namespace o2
+{
+namespace benchmark
+{
+
 struct benchmarkOpts {
   benchmarkOpts() = default;
 
+  int deviceId = 0;
+  std::vector<Test> tests = {Test::Read, Test::Write, Test::Copy};
+  std::vector<Mode> modes = {Mode::Sequential, Mode::Concurrent};
+  std::vector<SplitLevel> pools = {SplitLevel::Blocks, SplitLevel::Threads};
   float chunkReservedGB = 1.f;
   int nRegions = 2;
   float freeMemoryFractionToAllocate = 0.95f;
@@ -117,7 +132,6 @@ class ResultWriter
   explicit ResultWriter(const std::string resultsTreeFilename = "benchmark_results.root");
   ~ResultWriter() = default;
   void storeBenchmarkEntry(int chunk, float entry);
-  void storeEntryForRegion(std::string benchmarkName, std::string region, std::string type, float entry);
   void addBenchmarkEntry(const std::string bName, const std::string type, const int nChunks);
   void snapshotBenchmark();
   void saveToFile();
@@ -158,14 +172,6 @@ inline void ResultWriter::saveToFile()
     t->Write();
   }
   mOutfile->Close();
-}
-
-inline void ResultWriter::storeEntryForRegion(std::string benchmarkName, std::string region, std::string type, float entry)
-{
-  // (*mTree)
-  //   << (benchmarkName + "_" + type + "_region_" + region).data()
-  //   << "elapsed=" << entry
-  //   << "\n";
 }
 
 } // namespace benchmark

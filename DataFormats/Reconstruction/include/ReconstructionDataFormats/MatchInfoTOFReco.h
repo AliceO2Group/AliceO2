@@ -23,8 +23,7 @@ namespace dataformats
 {
 class MatchInfoTOFReco : public MatchInfoTOF
 {
-  using evGIdx = o2::dataformats::EvIndex<int, o2::dataformats::GlobalTrackID>;
-  using evIdx = o2::dataformats::EvIndex<int, int>;
+  using GTrackID = o2::dataformats::GlobalTrackID;
 
  public:
   enum TrackType : int8_t { UNCONS = 0,
@@ -36,7 +35,7 @@ class MatchInfoTOFReco : public MatchInfoTOF
                             ITSTPCTRD,
                             SIZEALL };
 
-  MatchInfoTOFReco(evIdx evIdxTOFCl, double time, float chi2, o2::track::TrackLTIntegral trkIntLT, evGIdx evIdxTrack, TrackType trkType, float dt = 0, float z = 0) : MatchInfoTOF(evIdxTOFCl, time, chi2, trkIntLT, evIdxTrack, dt, z), mTrackType(trkType){};
+  MatchInfoTOFReco(int idLocal, int idxTOFCl, double time, float chi2, o2::track::TrackLTIntegral trkIntLT, GTrackID idxTrack, TrackType trkType, float dt = 0, float z = 0) : MatchInfoTOF(idLocal, idxTOFCl, time, chi2, trkIntLT, idxTrack, dt, z), mTrackType(trkType){};
 
   MatchInfoTOFReco() = default;
 

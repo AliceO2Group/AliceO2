@@ -110,7 +110,9 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
   for (int i = 0; i != mOffers.size(); ++i) {
     auto& offer = mOffers[i];
     auto& info = mInfos[i];
-
+    if (enough) {
+      break;
+    }
     // Ignore:
     // - Invalid offers
     // - Offers which belong to another task

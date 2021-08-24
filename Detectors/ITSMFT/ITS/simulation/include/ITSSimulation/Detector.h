@@ -183,39 +183,50 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param lastUID on output, UID of the last volume
   void addAlignableVolumesLayer(Int_t lr, TString& parent, Int_t& lastUID) const;
 
+  /// Add alignable Half Barrel volumes
+  /// \param lr layer number
+  /// \param hb half barrel number
+  /// \param parent path of the parent volume
+  /// \param lastUID on output, UID of the last volume
+  void addAlignableVolumesHalfBarrel(Int_t lr, Int_t hb, TString& parent, Int_t& lastUID) const;
+
   /// Add alignable Stave volumes
   /// \param lr layer number
+  /// \param hb half barrel number
   /// \param st stave number
   /// \param parent path of the parent volume
   /// \param lastUID on output, UID of the last volume
-  void addAlignableVolumesStave(Int_t lr, Int_t st, TString& parent, Int_t& lastUID) const;
+  void addAlignableVolumesStave(Int_t lr, Int_t hb, Int_t st, TString& parent, Int_t& lastUID) const;
 
   /// Add alignable HalfStave volumes
   /// \param lr layer number
+  /// \param hb half barrel number
   /// \param st stave number
   /// \param hst half stave number
   /// \param parent path of the parent volume
   /// \param lastUID on output, UID of the last volume
-  void addAlignableVolumesHalfStave(Int_t lr, Int_t st, Int_t hst, TString& parent, Int_t& lastUID) const;
+  void addAlignableVolumesHalfStave(Int_t lr, Int_t hb, Int_t st, Int_t hst, TString& parent, Int_t& lastUID) const;
 
   /// Add alignable Module volumes
   /// \param lr layer number
+  /// \param hb half barrel number
   /// \param st stave number
   /// \param hst half stave number
   /// \param md module number
   /// \param parent path of the parent volume
   /// \param lastUID on output, UID of the last volume
-  void addAlignableVolumesModule(Int_t lr, Int_t st, Int_t hst, Int_t md, TString& parent, Int_t& lastUID) const;
+  void addAlignableVolumesModule(Int_t lr, Int_t hb, Int_t st, Int_t hst, Int_t md, TString& parent, Int_t& lastUID) const;
 
   /// Add alignable Chip volumes
   /// \param lr layer number
+  /// \param hb half barrel number
   /// \param st stave number
   /// \param hst half stave number
   /// \param md module number
   /// \param ch chip number
   /// \param parent path of the parent volume
   /// \param lastUID on output, UID of the last volume
-  void addAlignableVolumesChip(Int_t lr, Int_t st, Int_t hst, Int_t md, Int_t ch, TString& parent,
+  void addAlignableVolumesChip(Int_t lr, Int_t hb, Int_t st, Int_t hst, Int_t md, Int_t ch, TString& parent,
                                Int_t& lastUID) const;
 
   /// Return Chip Volume UID

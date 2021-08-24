@@ -90,7 +90,9 @@ void defaultConfiguration(std::vector<o2::framework::DispatchPolicy>& dispatchPo
 void defaultConfiguration(std::vector<o2::framework::ResourcePolicy>& resourcePolicies) {}
 void defaultConfiguration(std::vector<o2::framework::ServiceSpec>& services)
 {
-  services = o2::framework::CommonServices::defaultServices();
+  if (services.empty()) {
+    services = o2::framework::CommonServices::defaultServices();
+  }
 }
 
 /// Workflow options which are required by DPL in order to work.
@@ -236,7 +238,7 @@ int main(int argc, char** argv)
     UserCustomizationsHelper::userDefinedCustomization(onWorkflowTerminationHook, 0);
     onWorkflowTerminationHook(idstring);
     doDefaultWorkflowTerminationHook();
-    return result;
   }
+  return result;
 }
 #endif

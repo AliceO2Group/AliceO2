@@ -17,6 +17,7 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/Pack.h"
 #include <boost/test/unit_test.hpp>
+#include <arrow/util/config.h>
 
 using namespace o2::framework;
 using namespace arrow;
@@ -37,7 +38,11 @@ BOOST_AUTO_TEST_CASE(TestSlicing)
   rowWriter(0, 5, 10);
   auto table = builder.finalize();
 
+#if ARROW_VERSION_MAJOR > 4
+  auto options = arrow::compute::ScalarAggregateOptions::Defaults();
+#else
   auto options = arrow::compute::CountOptions::Defaults();
+#endif
   auto value_counts = arrow::compute::CallFunction("value_counts", {table->GetColumnByName("x")}, &options).ValueOrDie();
   auto array = static_cast<arrow::StructArray>(value_counts.array());
 

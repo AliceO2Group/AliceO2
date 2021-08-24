@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_CALIBRATION_LHCCLOCK_CALIBRATOR_H
-#define O2_CALIBRATION_LHCCLOCK_CALIBRATOR_H
+#ifndef O2_TPC_CalibLaserTracksSpec_H
+#define O2_TPC_CalibLaserTracksSpec_H
 
 /// @file   CalibLaserTracksSpec.h
 /// @brief  Device to run tpc laser track calibration
@@ -40,20 +40,22 @@ class CalibLaserTracksDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    const auto dph = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header);
+    const auto startTime = dph->startTime;
+    const auto endTime = dph->startTime + dph->duration;
+
     auto data = pc.inputs().get<gsl::span<TrackTPC>>("input");
-    //LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
+    mCalib.setTFtimes(startTime, endTime);
     mCalib.fill(data);
-    sendOutput(pc.outputs());
-    //const auto& infoVec = mCalib->getLHCphaseInfoVector();
-    //LOG(INFO) << "Created " << infoVec.size() << " objects for TF " << tfcounter;
+
+    //sendOutput(pc.outputs());
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     LOGP(info, "CalibLaserTracksDevice::endOfStream: Finalizing calibration");
     mCalib.finalize();
-    const auto& dvData = mCalib.getDVall();
-    LOGP(info, "T0 offset: {}, dv correction factor: {}", dvData.x1, dvData.x2);
+    mCalib.print();
     sendOutput(ec.outputs());
   }
 
@@ -68,19 +70,18 @@ class CalibLaserTracksDevice : public o2::framework::Task
   }
 };
 
-DataProcessorSpec getCalibLaserTracks()
+DataProcessorSpec getCalibLaserTracks(const std::string inputSpec)
 {
   using device = o2::tpc::CalibLaserTracksDevice;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{"TPC", "LtrZmatch"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{"TPC", "LtrCalibData"});
   return DataProcessorSpec{
     "tpc-calib-laser-tracks",
-    Inputs{{"input", "TPC", "TRACKS"}},
+    select(inputSpec.data()),
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{
-      //{"tf-per-slot", VariantType::Int, 5, {"number of TFs per calibration time slot"}},
       {"write-debug", VariantType::Bool, false, {"write a debug output tree."}},
     }};
 }

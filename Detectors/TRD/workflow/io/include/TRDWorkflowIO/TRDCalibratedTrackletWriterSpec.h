@@ -19,7 +19,7 @@ namespace o2
 namespace trd
 {
 
-framework::DataProcessorSpec getTRDCalibratedTrackletWriterSpec();
+framework::DataProcessorSpec getTRDCalibratedTrackletWriterSpec(bool useMC);
 
 } // end namespace trd
 } // end namespace o2

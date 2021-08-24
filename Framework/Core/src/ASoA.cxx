@@ -11,6 +11,9 @@
 
 #include "Framework/ASoA.h"
 #include "ArrowDebugHelpers.h"
+#include "Framework/RuntimeError.h"
+#include <arrow/util/key_value_metadata.h>
+#include <arrow/util/config.h>
 
 namespace o2::soa
 {
@@ -21,7 +24,13 @@ std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_p
     return tables[0];
   }
   for (auto i = 0u; i < tables.size() - 1; ++i) {
-    assert(tables[i]->num_rows() == tables[i + 1]->num_rows());
+    if (tables[i]->num_rows() != tables[i + 1]->num_rows()) {
+      throw o2::framework::runtime_error_f("Tables %s and %s have different sizes (%d vs %d) and cannot be joined!",
+                                           tables[i]->schema()->metadata()->Get("label").ValueOrDie().c_str(),
+                                           tables[i + 1]->schema()->metadata()->Get("label").ValueOrDie().c_str(),
+                                           tables[i]->num_rows(),
+                                           tables[i + 1]->num_rows());
+    }
   }
   std::vector<std::shared_ptr<arrow::Field>> fields;
   std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
@@ -94,7 +103,11 @@ arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, const char* label)
 arrow::Status getSliceFor(int value, char const* key, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset)
 {
   arrow::Datum value_counts;
+#if ARROW_VERSION_MAJOR > 4
+  auto options = arrow::compute::ScalarAggregateOptions::Defaults();
+#else
   auto options = arrow::compute::CountOptions::Defaults();
+#endif
   ARROW_ASSIGN_OR_RAISE(value_counts,
                         arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
                                                      &options));

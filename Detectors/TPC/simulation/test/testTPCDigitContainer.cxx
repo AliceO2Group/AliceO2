@@ -21,7 +21,6 @@
 #include <vector>
 #include "DataFormatsTPC/Digit.h"
 #include "TPCSimulation/DigitContainer.h"
-#include "TPCSimulation/DigitMCMetaData.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 #include "TPCBase/CDBInterface.h"
 

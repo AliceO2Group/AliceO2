@@ -86,7 +86,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // for the moment no parallel workflow, so just one lane hard coded
   auto tpcSectors = o2::RangeTokenizer::tokenize<int>(configcontext.options().get<std::string>("tpc-sectors"));
-  auto lanes = 1; //getNumTPCLanes(tpcSectors, config);
+  auto lanes = 1; //getNumTPCLanes(tpcSectors, configcontext);
 
   int fanoutsize = 0;
   for (int l = 0; l < lanes; ++l) {

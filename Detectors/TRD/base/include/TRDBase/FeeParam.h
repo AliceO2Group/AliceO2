@@ -28,14 +28,10 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "DataFormatsTRD/Constants.h"
-#include "TRDBase/CommonParam.h"
 
 #include <array>
 #include <vector>
 
-class CommonParam;
-class PadPlane;
-class Geometry;
 
 namespace o2
 {
@@ -71,10 +67,10 @@ class FeeParam
 
   // wiring
   static int getORI(int detector, int readoutboard);
-  static int getORIinSM(int detector, int readoutboard);
   static void unpackORI(int link, int side, int& stack, int& layer, int& halfchamberside);
   //  void createORILookUpTable();
-  static int getORIfromHCID(int hcid);
+  static int getORIinSuperModule(int detector, int readoutboard);
+  static int getLinkIDfromHCID(int hcid);
   static int getHCIDfromORI(int ori, int readoutboard); // TODO we need more info than just ori, for now readoutboard is there ... might change
 
   // tracklet simulation
@@ -139,8 +135,6 @@ class FeeParam
 
  protected:
   static FeeParam* mgInstance; // Singleton instance
-
-  CommonParam* mCP{CommonParam::instance()}; // TRD common parameters class
 
   std::array<short, constants::NCOLUMN> mLUTPadNumbering; // Lookup table mapping Pad to MCM
 

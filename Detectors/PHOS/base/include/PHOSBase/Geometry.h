@@ -120,6 +120,10 @@ class Geometry
   // convert local position in module to global position in ALICE
   void local2Global(char module, float x, float z, TVector3& globaPos) const;
 
+  // calculate impact position on PHOS
+  bool impactOnPHOS(const TVector3& vtx, const TVector3& p,
+                    short& module, float& z, float& x) const;
+
   static int getTotalNCells() { return 56 * 64 * 4; } // TODO: evaluate from real geometry
   static bool isCellExists(short absId)
   {

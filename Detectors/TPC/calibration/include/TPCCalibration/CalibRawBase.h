@@ -453,7 +453,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
       return ProcessStatus::NoMoreData;
     } else if (!isPresentEventComplete()) {
       status = ProcessStatus::IncompleteEvent;
-    } else if (mPresentEventNumber == size_t(lastEvent)) {
+    } else if (mPresentEventNumber >= size_t(lastEvent)) {
       status = ProcessStatus::LastEvent;
     }
 
@@ -461,7 +461,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
     ++mNevents;
   } else {
     status = ProcessStatus::IncompleteEvent;
-    if (mPresentEventNumber == size_t(lastEvent)) {
+    if (mPresentEventNumber >= size_t(lastEvent)) {
       status = ProcessStatus::LastEvent;
     }
   }

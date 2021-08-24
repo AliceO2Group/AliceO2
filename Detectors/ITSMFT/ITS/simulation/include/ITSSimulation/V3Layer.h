@@ -39,7 +39,8 @@ class V3Layer : public V11Geometry
 {
 
  public:
-  enum { kStave,
+  enum { kHalfBarrel,
+         kStave,
          kHalfStave,
          kModule,
          kChip,
@@ -86,6 +87,8 @@ class V3Layer : public V11Geometry
   Double_t getOBModuleZLength() const { return mOBModuleZLength; };
 
   Int_t getChipType() const { return mChipTypeID; }
+
+  Int_t getNumberOfHalfBarrelsPerParent() const { return mHierarchy[kHalfBarrel]; }
 
   Int_t getNumberOfStavesPerParent() const { return mHierarchy[kStave]; }
 
@@ -145,12 +148,15 @@ class V3Layer : public V11Geometry
   virtual void createLayer(TGeoVolume* motherVolume);
 
  private:
-  /// Creates the actual Layer and places inside its mother volume
+  /// Creates a half barrel
+  TGeoVolume* createHalfBarrel();
+
+  /// Creates a "turbo" half barrel
   /// A so-called "turbo" layer is a layer where staves overlap in phi
   /// User can set width and tilt angle, no check is performed here
   /// to avoid volume overlaps
   /// \param motherVolume The TGeoVolume owing the volume structure
-  void createLayerTurbo(TGeoVolume* motherVolume);
+  TGeoVolume* createHalfBarrelTurbo();
 
   /// Computes the inner radius of the air container for the Turbo configuration
   /// as the radius of either the circle tangent to the stave or the circle

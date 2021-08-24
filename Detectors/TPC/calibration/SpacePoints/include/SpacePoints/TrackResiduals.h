@@ -18,7 +18,7 @@
 #ifndef ALICEO2_TPC_TRACKRESIDUALS_H_
 #define ALICEO2_TPC_TRACKRESIDUALS_H_
 
-#define TPC_RUN2
+//#define TPC_RUN2
 
 #include <memory>
 #include <vector>
@@ -78,6 +78,7 @@ class TrackResiduals
 
   /// Structure which gets filled with the results for each voxel
   struct VoxRes {
+    VoxRes() = default;
     std::array<float, ResDim> D{};            ///< values of extracted distortions
     std::array<float, ResDim> E{};            ///< their errors
     std::array<float, ResDim> DS{};           ///< smoothed residual
@@ -93,9 +94,10 @@ class TrackResiduals
 
   /// Structure for local residuals (y/z position, dip angle, voxel identifier)
   struct LocalResid {
-    short dy;                                 ///< residual in y, ranges from -param::sMaxResid to +param::sMaxResid
-    short dz;                                 ///< residual in z, ranges from -param::sMaxResid to +param::sMaxResid
-    short tgSlp;                              ///< track dip angle, ranges from -param::sMaxAngle to +param::sMaxAngle
+    LocalResid() = default;
+    short dy{0};                              ///< residual in y, ranges from -param::sMaxResid to +param::sMaxResid
+    short dz{0};                              ///< residual in z, ranges from -param::sMaxResid to +param::sMaxResid
+    short tgSlp{0};                           ///< track dip angle, ranges from -param::sMaxAngle to +param::sMaxAngle
     std::array<unsigned char, VoxDim> bvox{}; ///< voxel identifier: VoxZ, VoxF, VoxX
   };
 
@@ -117,6 +119,7 @@ class TrackResiduals
   };
 
   struct DebugOutliers {
+    DebugOutliers() = default;
     int idx{-1};
     std::array<float, param::NPadRows> x{};
     std::array<float, param::NPadRows> xFlagged{};
@@ -154,6 +157,14 @@ class TrackResiduals
 
   // -------------------------------------- steering functions --------------------------------------------------
 
+  /// Load input from file
+  void loadInputFromFile();
+
+  /// Set input directly
+  /// \param trkData Vector with seeding track information (contains range ref to related TPC cluster residuals)
+  /// \param clResiduals Vector of all TPC cluster residuals
+  void setInputData(std::vector<TrackData>& trkData, std::vector<TPCClusterResiduals>& clResiduals);
+
   /// Build local residual trees from Run 2 legacy data in the same way as in AliRoot
   void buildLocalResidualTreesFromRun2Data();
 
@@ -170,7 +181,8 @@ class TrackResiduals
   void writeLocalResidualTreesToFile();
 
   /// Loads residual data from track interpolation and fills voxel data structures local residuals
-  void convertToLocalResiduals();
+  /// \param loadFromFile Flag if the input should be read from a file. If not, setInputData() must be called before
+  void convertToLocalResiduals(bool loadFromFile = false);
 
   /// Steers the processing of the residuals for all sectors.
   void processResiduals();
@@ -520,7 +532,7 @@ class TrackResiduals
   static constexpr int sMaxSmtDim{7};       ///< max matrix size for smoothing (pol2)
 
   // input data
-  std::unique_ptr<TFile> mFileIn{};                     ///< input file with residuals data
+  std::unique_ptr<TFile> mFileIn;                       ///< input file with residuals data
   TTree* mTreeInTracks{nullptr};                        ///< tree with input track information
   std::vector<TrackData> mTrackData{};                  ///< vector with input track information
   std::vector<TrackData>* mTrackDataPtr{&mTrackData};   ///< pointer to mTrackData
@@ -528,8 +540,8 @@ class TrackResiduals
   std::vector<TPCClusterResiduals> mClRes{};            ///< vector with TPC cluster residuals
   std::vector<TPCClusterResiduals>* mClResPtr{&mClRes}; ///< pointer to mClRes
   // output data
-  std::unique_ptr<TFile> mFileOut{}; ///< output debug file
-  std::unique_ptr<TTree> mTreeOut{}; ///< tree holding debug output
+  std::unique_ptr<TFile> mFileOut; ///< output debug file
+  std::unique_ptr<TTree> mTreeOut; ///< tree holding debug output
   // status flags
   bool mIsInitialized{}; ///< initialize only once
   bool mPrintMem{};      ///< turn on to print memory usage at certain points
@@ -595,7 +607,7 @@ class TrackResiduals
   std::string mPathToResidualFiles{"~/tmp/"};              ///< path to folder with Run 2 cluster residual data
   std::string mResidualDataFileName{"ResidualTrees.root"}; ///< filename of Run 2 cluster residual data
   std::string mResidualDataTreeName{"delta"};              ///< name of tree with cluster residuals
-  DeltaStruct mDeltaStruct;                                ///< helper structure to access the data stored in the residual tree
+  DeltaStruct mDeltaStruct{};                              ///< helper structure to access the data stored in the residual tree
   std::unique_ptr<TChain> mRun2DeltaTree{};                ///< tree with Run 2 cluster residuals
   bool mFilterOutliers = true;                             ///< flag, if outliers from the cluster residual trees should be rejected
   int mNMALong{15}; ///< number of points to be used for moving average (long range)
@@ -603,23 +615,25 @@ class TrackResiduals
   float mMaxRejFrac{.15f}; ///< if the fraction of rejected clusters of a track is higher, the full track is invalidated
   float mMaxRMSLong{.8f};  ///< maximum variance of the cluster residuals wrt moving avarage for a track to be considered
   // buffer arrays as in AliTPCDcalibRes
-  std::array<float, param::NPadRows> mArrX;     ///< calculated cluster x position (pad row x)
-  std::array<float, param::NPadRows> mArrR;     ///< cluster radius
-  std::array<float, param::NPadRows> mArrYTr;   ///< reference track y (sector coordinates)
-  std::array<float, param::NPadRows> mArrZTr;   ///< reference track z (sector coordinates)
-  std::array<float, param::NPadRows> mArrYCl;   ///< cluster y (sector coordinates)
-  std::array<float, param::NPadRows> mArrZCl;   ///< cluster z
-  std::array<float, param::NPadRows> mArrDZ;    ///< cluster z residual
-  std::array<float, param::NPadRows> mArrDY;    ///< cluster y residual
-  std::array<float, param::NPadRows> mArrPhi;   ///< cluster phi angle (cluster residuals in Run 2 are stored in cluster frame instead of sector frame)
-  std::array<float, param::NPadRows> mArrTgSlp; ///< track inclination angle at pad row (azimuthal plane)
-  std::array<int, param::NPadRows> mArrSecId;   ///< cluster sector ID
+  std::array<float, param::NPadRows> mArrX{};     ///< calculated cluster x position (pad row x)
+  std::array<float, param::NPadRows> mArrR{};     ///< cluster radius
+  std::array<float, param::NPadRows> mArrYTr{};   ///< reference track y (sector coordinates)
+  std::array<float, param::NPadRows> mArrZTr{};   ///< reference track z (sector coordinates)
+  std::array<float, param::NPadRows> mArrYCl{};   ///< cluster y (sector coordinates)
+  std::array<float, param::NPadRows> mArrZCl{};   ///< cluster z
+  std::array<float, param::NPadRows> mArrDZ{};    ///< cluster z residual
+  std::array<float, param::NPadRows> mArrDY{};    ///< cluster y residual
+  std::array<float, param::NPadRows> mArrPhi{};   ///< cluster phi angle (cluster residuals in Run 2 are stored in cluster frame instead of sector frame)
+  std::array<float, param::NPadRows> mArrTgSlp{}; ///< track inclination angle at pad row (azimuthal plane)
+  std::array<int, param::NPadRows> mArrSecId{};   ///< cluster sector ID
   float mQpt{0.f};                              ///< fitted track q/pt
   float mTgl{0.f};                              ///< fitted track dip angle
   int mNCl{0};                                  ///< number of clusters in the track
   // debugging
   std::vector<DebugOutliers> mOutVector{};                ///< this vector can be filled with data to stream it to a ROOT tree
   std::vector<DebugOutliers>* mOutVectorPtr{&mOutVector}; ///< pointer to set the branch address of the debug ROOT tree to
+
+  ClassDefNV(TrackResiduals, 1);
 };
 
 //_____________________________________________________

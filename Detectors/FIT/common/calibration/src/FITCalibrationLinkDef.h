@@ -16,6 +16,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::ft0::FT0CalibrationInfoObject, o2::ft0::FT0ChannelTimeTimeSlotContainer>;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::fv0::FV0CalibrationInfoObject, o2::fv0::FV0ChannelTimeTimeSlotContainer>;
 //#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::ft0::FT0CalibrationInfoObject, o2::ft0::FT0SlewingCalibContainer >;
 
 #endif

@@ -53,26 +53,30 @@ std::vector<unsigned int> getIntegrationIntervalsPerTF(const unsigned int integr
   return intervals;
 }
 
-BOOST_AUTO_TEST_CASE(IDCFourierTransform_test)
+// testing FT of aggregator
+BOOST_AUTO_TEST_CASE(IDCFourierTransformAggregator_test)
 {
   const unsigned int integrationIntervals = 10;    // number of integration intervals for first TF
   const unsigned int tfs = 200;                    // number of aggregated TFs
   const unsigned int rangeIDC = 200;               // number of IDCs used to calculate the fourier coefficients
   const unsigned int nFourierCoeff = rangeIDC + 2; // number of fourier coefficients which will be calculated/stored needs to be the maximum value to be able to perform IFT
+  using FtType = IDCFourierTransform<IDCFourierTransformBaseAggregator>;
   gRandom->SetSeed(0);
 
   for (int iType = 0; iType < 2; ++iType) {
     const bool fft = iType == 0 ? false : true;
-    o2::tpc::IDCFourierTransform::setFFT(fft);
-    o2::tpc::IDCFourierTransform idcFourierTransform{rangeIDC, tfs, nFourierCoeff};
+    FtType::setFFT(fft);
+    FtType::setNThreads(2);
+
+    FtType idcFourierTransform{rangeIDC, tfs, nFourierCoeff};
     const auto intervalsPerTF = getIntegrationIntervalsPerTF(integrationIntervals, tfs);
     idcFourierTransform.setIDCs(get1DIDCs(intervalsPerTF), intervalsPerTF);
     idcFourierTransform.setIDCs(get1DIDCs(intervalsPerTF), intervalsPerTF);
     idcFourierTransform.calcFourierCoefficients();
 
-    const std::vector<unsigned int> offsetIndex = idcFourierTransform.getLastIntervals();
     for (unsigned int iSide = 0; iSide < o2::tpc::SIDES; ++iSide) {
       const o2::tpc::Side side = iSide == 0 ? Side::A : Side::C;
+      const std::vector<unsigned int> offsetIndex = idcFourierTransform.getLastIntervals(side);
       const auto idcOneExpanded = idcFourierTransform.getExpandedIDCOne(side);
       const auto inverseFourier = idcFourierTransform.inverseFourierTransform(side);
       for (unsigned int interval = 0; interval < idcFourierTransform.getNIntervals(); ++interval) {
@@ -83,6 +87,46 @@ BOOST_AUTO_TEST_CASE(IDCFourierTransform_test)
             BOOST_CHECK_SMALL(iFTIDCOne - origIDCOne, ABSTOLERANCE);
           } else {
             BOOST_CHECK_CLOSE(iFTIDCOne, origIDCOne, TOLERANCE);
+          }
+        }
+      }
+    }
+  }
+}
+
+// testing FT of EPN
+BOOST_AUTO_TEST_CASE(IDCFourierTransformEPN_test)
+{
+  const int nIter = 100;                                    // number of iterations
+  const unsigned int integrationIntervals = 10;             // number of integration intervals for first TF
+  const unsigned int rangeIDC = 200;                        // number of IDCs used to calculate the fourier coefficients
+  const unsigned int tfs = rangeIDC / integrationIntervals; // number of aggregated TFs (minimum number of 1D-IDCs obtained by get1DIDCs must be>rangeIDC)
+  const unsigned int nFourierCoeff = rangeIDC + 2;          // number of fourier coefficients which will be calculated/stored needs to be the maximum value to be able to perform IFT
+  using FtType = o2::tpc::IDCFourierTransform<o2::tpc::IDCFourierTransformBaseEPN>;
+  gRandom->SetSeed(0);
+
+  for (int iter = 0; iter < nIter; ++iter) {
+    for (int iType = 0; iType < 2; ++iType) {
+      const bool fft = iType == 0 ? false : true;
+      FtType::setFFT(fft);
+      FtType idcFourierTransform{rangeIDC, nFourierCoeff};
+      const auto intervalsPerTF = getIntegrationIntervalsPerTF(integrationIntervals, tfs);
+      idcFourierTransform.setIDCs(get1DIDCs(intervalsPerTF));
+      idcFourierTransform.calcFourierCoefficients();
+      for (unsigned int iSide = 0; iSide < o2::tpc::SIDES; ++iSide) {
+        const o2::tpc::Side side = iSide == 0 ? Side::A : Side::C;
+        const std::vector<unsigned int> offsetIndex = idcFourierTransform.getLastIntervals(side);
+        const auto idcOneExpanded = idcFourierTransform.getExpandedIDCOne(side);
+        const auto inverseFourier = idcFourierTransform.inverseFourierTransform(side);
+        for (unsigned int interval = 0; interval < idcFourierTransform.getNIntervals(); ++interval) {
+          for (unsigned int index = 0; index < rangeIDC; ++index) {
+            const float origIDCOne = idcOneExpanded[index + offsetIndex[interval]];
+            const float iFTIDCOne = inverseFourier[interval][index];
+            if (std::fabs(origIDCOne) < ABSTOLERANCE) {
+              BOOST_CHECK_SMALL(iFTIDCOne - origIDCOne, ABSTOLERANCE);
+            } else {
+              BOOST_CHECK_CLOSE(iFTIDCOne, origIDCOne, TOLERANCE);
+            }
           }
         }
       }

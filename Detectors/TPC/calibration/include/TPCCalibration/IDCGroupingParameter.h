@@ -25,12 +25,20 @@ namespace o2
 namespace tpc
 {
 
+/// averaging methods which is used for averaging IDCs from grouped pads
+enum class AveragingMethod : char {
+  FAST = 0, ///< no outlier filtering performed. Only averaging
+  SLOW = 1  ///< Outlier filtering performed. Filtering + averaging
+};
+
 /// struct for setting the parameters for the grouping of IDCs
 struct ParameterIDCGroup : public o2::conf::ConfigurableParamHelper<ParameterIDCGroup> {
   unsigned char GroupPads[Mapper::NREGIONS]{7, 7, 7, 7, 6, 6, 6, 6, 5, 5};              ///< grouping parameter in pad direction (how many pads are grouped)
   unsigned char GroupRows[Mapper::NREGIONS]{5, 5, 5, 5, 4, 4, 4, 4, 3, 3};              ///< group parameter in row direction (how many rows are grouped)
   unsigned char GroupLastRowsThreshold[Mapper::NREGIONS]{3, 3, 3, 3, 2, 2, 2, 2, 2, 2}; ///< if the last group (region edges) consists in row direction less then mGroupLastRowsThreshold pads then it will be grouped into the previous group
   unsigned char GroupLastPadsThreshold[Mapper::NREGIONS]{3, 3, 3, 3, 2, 2, 2, 2, 1, 1}; ///< if the last group (sector edges) consists in pad direction less then mGroupLastPadsThreshold pads then it will be grouped into the previous group
+  AveragingMethod Method = AveragingMethod::SLOW;                                       ///< method which is used for averaging
+
   O2ParamDef(ParameterIDCGroup, "TPCIDCGroupParam");
 };
 

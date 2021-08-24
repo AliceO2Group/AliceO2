@@ -29,14 +29,14 @@ class ROFRecord;
 class CompClusterExt;
 
 /// Header for a single CTF
-struct CTFHeader {
+struct CTFHeader : public o2::ctf::CTFDictHeader {
   uint32_t nROFs = 0;         /// number of ROFrame in TF
   uint32_t nDigits = 0;       /// number of digits in TF
   uint32_t nPatternBytes = 0; /// number of bytes for explict patterns
   uint32_t firstOrbit = 0;    /// 1st orbit of TF
   uint16_t firstBC = 0;       /// 1st BC of TF
 
-  ClassDefNV(CTFHeader, 1);
+  ClassDefNV(CTFHeader, 2);
 };
 
 /// Compressed but not yet entropy-encoded infos

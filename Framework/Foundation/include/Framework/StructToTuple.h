@@ -55,8 +55,9 @@ constexpr long brace_constructible_size()
 {
   using A = any_type;
   using type = std::decay_t<T>;
-
-  if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
+  if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
+    return 40;
+  } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
     return 39;
   } else if constexpr (is_braces_constructible<type, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A, A>{}) {
     return 38;

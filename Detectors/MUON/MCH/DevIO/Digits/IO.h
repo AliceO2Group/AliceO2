@@ -14,12 +14,14 @@
 
 #include <iosfwd>
 #include <cstdint>
+#include <utility>
 
 namespace o2::mch::io::impl
 {
 int readNofItems(std::istream& in, const char* itemName);
 void writeNofItems(std::ostream& out, uint32_t nofItems);
 int advance(std::istream& in, size_t itemByteSize, const char* itemName);
+std::pair<int, int> advanceOneEvent(std::istream& in, int fileFormatVersion);
 
 } // namespace o2::mch::io::impl
 

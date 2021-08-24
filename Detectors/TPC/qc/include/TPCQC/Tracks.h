@@ -60,6 +60,9 @@ class Tracks
   /// Reset all histograms
   void resetHistograms();
 
+  /// Function to be called at each endOfCycle
+  void processEndOfCycle();
+
   /// Dump results to a file
   void dumpToFile(std::string_view filename);
 
@@ -71,11 +74,16 @@ class Tracks
   std::vector<TH2F>& getHistograms2D() { return mHist2D; }
   const std::vector<TH2F>& getHistograms2D() const { return mHist2D; }
 
- private:
-  std::vector<TH1F> mHist1D{}; ///< Initialize vector of 1D histograms
-  std::vector<TH2F> mHist2D{}; ///< Initialize vector of 2D histograms
+  /// get ratios of 1D histograms
+  std::vector<TH1F>& getHistogramRatios1D() { return mHistRatio1D; }
+  const std::vector<TH1F>& getHistogramRatios1D() const { return mHistRatio1D; }
 
-  ClassDefNV(Tracks, 1)
+ private:
+  std::vector<TH1F> mHist1D{};      ///< Initialize vector of 1D histograms
+  std::vector<TH2F> mHist2D{};      ///< Initialize vector of 2D histograms
+  std::vector<TH1F> mHistRatio1D{}; ///< Initialize vector of ratios of 1D histograms
+
+  ClassDefNV(Tracks, 2)
 };
 } // namespace qc
 } // namespace tpc

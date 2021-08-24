@@ -26,8 +26,6 @@ ElectronTransport::ElectronTransport() : mRandomGaus(), mRandomFlat(RandomRing<>
   updateParameters();
 }
 
-ElectronTransport::~ElectronTransport() = default;
-
 void ElectronTransport::updateParameters()
 {
   mGasParam = &(ParameterGas::Instance());

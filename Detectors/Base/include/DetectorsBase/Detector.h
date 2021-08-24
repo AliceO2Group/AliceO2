@@ -36,8 +36,7 @@
 #include <unistd.h>
 #include <cassert>
 
-class FairMQParts;
-class FairMQChannel;
+#include <fairmq/FwdDecls.h>
 
 namespace o2
 {

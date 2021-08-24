@@ -29,7 +29,7 @@ class ROFRecord;
 class CompClusterExt;
 
 /// Header for a single CTF
-struct CTFHeader {
+struct CTFHeader : public o2::ctf::CTFDictHeader {
   uint32_t nROFs = 0;         /// number of ROFrame in TF
   uint32_t nClusters = 0;     /// number of clusters in TF
   uint32_t nChips = 0;        /// number of fired chips in TF : this is for the version with chipInc stored once per new chip
@@ -37,7 +37,7 @@ struct CTFHeader {
   uint32_t firstOrbit = 0;    /// 1st orbit of TF
   uint16_t firstBC = 0;       /// 1st BC of TF
 
-  ClassDefNV(CTFHeader, 1);
+  ClassDefNV(CTFHeader, 2);
 };
 
 /// Compressed but not yet entropy-encoded clusters

@@ -80,6 +80,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   using ECB = CTF::base;
 
   ec->setHeader(helper.createHeader());
+  assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
@@ -88,7 +89,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   ENCODECPV(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
   ENCODECPV(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
   ENCODECPV(helper.begin_entriesTrig(),  helper.end_entriesTrig(),   CTF::BLC_entriesTrig,  0);
-  
+
   ENCODECPV(helper.begin_posX(),        helper.end_posX(),           CTF::BLC_posX,         0);
   ENCODECPV(helper.begin_posZ(),        helper.end_posZ(),           CTF::BLC_posZ,         0);
   ENCODECPV(helper.begin_energy(),      helper.end_energy(),         CTF::BLC_energy,       0);
@@ -102,6 +103,7 @@ template <typename VTRG, typename VCLUSTER>
 void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCLUSTER& cluVec)
 {
   auto header = ec.getHeader();
+  checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix());
   std::vector<uint16_t> bcInc, entries, posX, posZ;
   std::vector<uint32_t> orbitInc;

@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/Logger.h"
+#include <fmt/format.h>
 
 #include "TPCCalibration/LaserTracksCalibrator.h"
 
@@ -17,7 +17,7 @@ using namespace o2::tpc;
 
 void LaserTracksCalibrator::initOutput()
 {
-  mDVperSlot.clear();
+  mCalibPerSlot.clear();
 }
 
 //______________________________________________________________________________
@@ -27,7 +27,7 @@ void LaserTracksCalibrator::finalizeSlot(Slot& slot)
   calibLaser.finalize();
   calibLaser.print();
 
-  mDVperSlot.emplace_back(calibLaser.getDVall());
+  mCalibPerSlot.emplace_back(calibLaser.getCalibData());
 }
 
 //______________________________________________________________________________
@@ -36,5 +36,13 @@ LaserTracksCalibrator::Slot& LaserTracksCalibrator::emplaceNewSlot(bool front, T
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
   slot.setContainer(std::make_unique<CalibLaserTracks>());
+  auto& calibLaser = *slot.getContainer();
+  //calibLaser.setTFtimes(tstart, tend);
+
+  if (mWriteDebug) {
+    calibLaser.setWriteDebugTree(mWriteDebug);
+    calibLaser.setDebugOutputName(fmt::format("CalibLaserTracks_debug_{}_{}.root", tstart, tend));
+  }
+
   return slot;
 }

@@ -96,6 +96,8 @@ O2_ARROW_STL_CONVERSION(double, DoubleType)
 O2_ARROW_STL_CONVERSION(std::string, StringType)
 } // namespace detail
 
+void addLabelToSchema(std::shared_ptr<arrow::Schema>& schema, const char* label);
+
 struct BuilderUtils {
   template <typename T>
   static arrow::Status appendToList(std::unique_ptr<arrow::FixedSizeListBuilder>& builder, T* data, int size = 1)
@@ -617,6 +619,8 @@ class TableBuilder
   }
 
  public:
+  void setLabel(const char* label);
+
   TableBuilder(arrow::MemoryPool* pool = arrow::default_memory_pool())
     : mHolders{nullptr},
       mMemoryPool{pool}
@@ -785,10 +789,11 @@ class TableBuilder
 };
 
 template <typename T>
-auto makeEmptyTable()
+auto makeEmptyTable(const char* name)
 {
   TableBuilder b;
-  auto writer = b.cursor<T>();
+  [[maybe_unused]] auto writer = b.cursor<T>();
+  b.setLabel(name);
   return b.finalize();
 }
 
@@ -796,8 +801,9 @@ auto makeEmptyTable()
 template <typename... C>
 auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* name)
 {
+  std::string s = std::string{name} + "Extension";
   if (atable->num_rows() == 0) {
-    return makeEmptyTable<soa::Table<C...>>();
+    return makeEmptyTable<soa::Table<C...>>(s.c_str());
   }
   static auto new_schema = o2::soa::createSchemaFromColumns(columns);
   static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
@@ -834,6 +840,7 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* na
     arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
   }
 
+  addLabelToSchema(new_schema, s.c_str());
   return arrow::Table::Make(new_schema, arrays);
 }
 

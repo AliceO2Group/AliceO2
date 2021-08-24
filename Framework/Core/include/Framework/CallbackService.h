@@ -15,7 +15,7 @@
 #include "Framework/ServiceHandle.h"
 #include <tuple>
 
-class FairMQRegionInfo;
+#include <fairmq/FwdDecls.h>
 
 namespace o2
 {

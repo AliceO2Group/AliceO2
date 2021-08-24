@@ -59,7 +59,7 @@ class TOFDCSConfigProcessor : public o2::framework::Task
     LOG(INFO) << "got input file " << configFileName << " of size " << configBuff.size();
     mTOFFEElightReader.loadFEElightConfig(configBuff);
     mTOFFEElightReader.parseFEElightConfig(mVerbose);
-    //auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().getByPos(0).header)->startTime;
+    //auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().getFirstValid(true).header)->startTime;
     sendOutput(pc.outputs(), timer);
   }
 

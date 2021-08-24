@@ -55,6 +55,9 @@ RawErrorType_t RawDecoder::readChannels()
   while (b != e) { //payload must start with cpvheader folowed by cpvwords and finished with cpvtrailer
     CpvHeader header(b, e);
     if (header.isOK()) {
+      LOG(DEBUG) << "RawDecoder::readChannels() : "
+                 << "I read cpv header for orbit = " << header.orbit()
+                 << " and BC = " << header.bc();
       if (!isHeaderExpected) { //actually, header was not expected
         LOG(ERROR) << "RawDecoder::readChannels() : "
                    << "header was not expected";
@@ -82,9 +85,15 @@ RawErrorType_t RawDecoder::readChannels()
         wordCountFromLastHeader++;
         for (int i = 0; i < 3; i++) {
           PadWord pw = {word.cpvPadWord(i)};
-          if (pw.zero == 0) {
-            addDigit(pw.mDataWord, word.ccId(), currentBC);
-            nDigitsAddedFromLastHeader++;
+          if (pw.zero == 0) { //cpv pad word, not control or empty
+            if (addDigit(pw.mDataWord, word.ccId(), currentBC)) {
+              nDigitsAddedFromLastHeader++;
+            } else {
+              LOG(DEBUG) << "RawDecoder::readChannels() : "
+                         << "read pad word with non-valid pad address";
+              unsigned int dil = pw.dil, gas = pw.gas, address = pw.address;
+              mErrors.emplace_back(word.ccId(), dil, gas, address, kPadAddress);
+            }
           }
         }
       } else { //this may be trailer
@@ -126,8 +135,15 @@ RawErrorType_t RawDecoder::readChannels()
   return kOK;
 }
 
-void RawDecoder::addDigit(uint32_t w, short ccId, uint16_t bc)
+bool RawDecoder::addDigit(uint32_t w, short ccId, uint16_t bc)
 {
+  //add digit
+  PadWord pad = {w};
+  unsigned short absId;
+  if (!o2::cpv::Geometry::hwaddressToAbsId(ccId, pad.dil, pad.gas, pad.address, absId)) {
+    return false;
+  }
+
   //new bc -> add bc reference
   if (mBCRecords.empty() || (mBCRecords.back().bc != bc)) {
     mBCRecords.push_back(BCRecord(bc, mDigits.size(), mDigits.size()));
@@ -135,15 +151,12 @@ void RawDecoder::addDigit(uint32_t w, short ccId, uint16_t bc)
     mBCRecords.back().lastDigit++;
   }
 
-  //add digit
-  PadWord pad = {w};
-  unsigned short absId;
-  o2::cpv::Geometry::hwaddressToAbsId(ccId, pad.dil, pad.gas, pad.address, absId);
-
   AddressCharge ac = {0};
   ac.Address = absId;
   ac.Charge = pad.charge;
   mDigits.push_back(ac.mDataWord);
+
+  return true;
 }
 
 void RawDecoder::removeLastNDigits(int n)

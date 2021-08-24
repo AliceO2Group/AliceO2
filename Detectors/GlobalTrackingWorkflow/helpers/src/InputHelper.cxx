@@ -29,13 +29,17 @@
 #include "FT0Workflow/RecPointReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackReaderSpec.h"
+#include "MCHWorkflow/TrackReaderSpec.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
 using namespace o2::dataformats;
 using GID = o2::dataformats::GlobalTrackID;
 
-int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec& specs, GID::mask_t maskClusters, GID::mask_t maskMatches, GID::mask_t maskTracks, bool useMC, GID::mask_t maskClustersMC, GID::mask_t maskTracksMC)
+int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec& specs,
+                               GID::mask_t maskClusters, GID::mask_t maskMatches, GID::mask_t maskTracks,
+                               bool useMC, GID::mask_t maskClustersMC, GID::mask_t maskTracksMC,
+                               bool subSpecStrict)
 {
   if (configcontext.options().get<bool>("disable-root-input")) {
     return 0;
@@ -57,6 +61,9 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskTracks[GID::MFT]) {
     specs.emplace_back(o2::mft::getMFTTrackReaderSpec(maskTracksMC[GID::MFT]));
   }
+  if (maskTracks[GID::MCH]) {
+    specs.emplace_back(o2::mch::getTrackReaderSpec(maskTracksMC[GID::MCH]));
+  }
   if (maskTracks[GID::TPC]) {
     specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(maskTracksMC[GID::TPC]));
   }
@@ -76,7 +83,7 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
     specs.emplace_back(o2::tof::getClusterReaderSpec(maskClustersMC[GID::TOF]));
   }
   if (maskMatches[GID::TPCTOF]) {
-    specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTOF], true, maskTracks[GID::TPCTOF]));
+    specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTOF], true, maskTracks[GID::TPCTOF], subSpecStrict));
   }
   if (maskTracks[GID::FT0] || maskClusters[GID::FT0]) {
     specs.emplace_back(o2::ft0::getRecPointReaderSpec(maskTracksMC[GID::FT0] || maskClustersMC[GID::FT0]));
@@ -85,10 +92,10 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
     specs.emplace_back(o2::trd::getTRDTrackletReaderSpec(maskClustersMC[GID::TRD], true));
   }
   if (maskTracks[GID::ITSTPCTRD]) {
-    specs.emplace_back(o2::trd::getTRDGlobalTrackReaderSpec(false));
+    specs.emplace_back(o2::trd::getTRDGlobalTrackReaderSpec(maskTracksMC[GID::ITSTPCTRD]));
   }
   if (maskTracks[GID::TPCTRD]) {
-    specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(false));
+    specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(maskTracksMC[GID::TPCTRD], subSpecStrict));
   }
 
   return 0;

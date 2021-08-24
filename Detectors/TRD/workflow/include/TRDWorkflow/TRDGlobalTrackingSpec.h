@@ -24,6 +24,8 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsTRD/TrackTriggerRecord.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include <memory>
 
 namespace o2
@@ -34,10 +36,11 @@ namespace trd
 class TRDGlobalTracking : public o2::framework::Task
 {
  public:
-  TRDGlobalTracking(bool useMC, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive) : mUseMC(useMC), mDataRequest(dataRequest), mTrkMask(src), mTrigRecFilter(trigRecFilterActive) {}
+  TRDGlobalTracking(bool useMC, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict) : mUseMC(useMC), mDataRequest(dataRequest), mTrkMask(src), mTrigRecFilter(trigRecFilterActive), mStrict(strict) {}
   ~TRDGlobalTracking() override = default;
   void init(o2::framework::InitContext& ic) final;
   void updateTimeDependentParams();
+  void fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lblSeed, std::vector<o2::MCCompLabel>& lblContainerTrd, std::vector<o2::MCCompLabel>& lblContainerMatch, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkltLabels) const;
   void fillTrackTriggerRecord(const std::vector<TrackTRD>& tracks, std::vector<TrackTriggerRecord>& trigRec, const gsl::span<const o2::trd::TriggerRecord>& trackletTrigRec) const;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
@@ -49,6 +52,7 @@ class TRDGlobalTracking : public o2::framework::Task
   std::unique_ptr<GeometryFlat> mFlatGeo{nullptr};    ///< flat TRD geometry
   bool mUseMC{false};                                 ///< MC flag
   bool mTrigRecFilter{false};                         ///< if true, TRD trigger records without matching ITS IR are filtered out
+  bool mStrict{false};                                ///< preliminary matching in strict mode
   float mTPCTBinMUS{.2f};                             ///< width of a TPC time bin in us
   float mTPCVdrift{2.58f};                            ///< TPC drift velocity (for shifting TPC tracks along Z)
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< seeding input (TPC-only, ITS-TPC or both)
@@ -57,7 +61,7 @@ class TRDGlobalTracking : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive);
+framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict = false);
 
 } // namespace trd
 } // namespace o2

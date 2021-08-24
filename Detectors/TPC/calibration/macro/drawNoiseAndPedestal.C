@@ -12,6 +12,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <string>
 #include <string_view>
+#include <fmt/format.h>
 
 #include "TROOT.h"
 #include "TMath.h"
@@ -68,6 +69,10 @@ TObjArray* drawNoiseAndPedestal(std::string_view pedestalFile, int mode = 0, std
     gROOT->cd();
     f.GetObject("Pedestals", calPedestal);
     f.GetObject("Noise", calNoise);
+    if (!calNoise) {
+      calNoise = new CalDet<float>("Noise");
+      fmt::print("Noise object not found in file {}, creating a dummy object\n", pedestalFile);
+    }
   }
 
   // mode 1 handling

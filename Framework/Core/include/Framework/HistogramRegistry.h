@@ -90,9 +90,9 @@ class HistogramRegistry
   HistogramRegistry(char const* const name, std::vector<HistogramSpec> histSpecs = {}, OutputObjHandlingPolicy policy = OutputObjHandlingPolicy::AnalysisObject, bool sortHistos = true, bool createRegistryDir = false);
 
   // functions to add histograms to the registry
-  void add(const HistogramSpec& histSpec);
-  void add(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2 = false);
-  void add(char const* const name, char const* const title, HistType histType, std::vector<AxisSpec> axes, bool callSumw2 = false);
+  HistPtr add(const HistogramSpec& histSpec);
+  HistPtr add(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2 = false);
+  HistPtr add(char const* const name, char const* const title, HistType histType, std::vector<AxisSpec> axes, bool callSumw2 = false);
   void addClone(const std::string& source, const std::string& target);
 
   // function to query if name is already in use
@@ -137,11 +137,11 @@ class HistogramRegistry
 
  private:
   // create histogram from specification and insert it into the registry
-  void insert(const HistogramSpec& histSpec);
+  HistPtr insert(const HistogramSpec& histSpec);
 
   // clone an existing histogram and insert it into the registry
   template <typename T>
-  void insertClone(const HistName& histName, const std::shared_ptr<T>& originalHist);
+  HistPtr insertClone(const HistName& histName, const std::shared_ptr<T>& originalHist);
 
   // helper function that checks if histogram name can be used in registry
   void validateHistName(const char* name, const uint32_t hash);
@@ -345,7 +345,7 @@ auto& HistogramRegistry::operator()(const HistName& histName)
 }
 
 template <typename T>
-void HistogramRegistry::insertClone(const HistName& histName, const std::shared_ptr<T>& originalHist)
+HistPtr HistogramRegistry::insertClone(const HistName& histName, const std::shared_ptr<T>& originalHist)
 {
   validateHistName(histName.str, histName.hash);
   for (auto i = 0u; i < MAX_REGISTRY_SIZE; ++i) {
@@ -356,10 +356,11 @@ void HistogramRegistry::insertClone(const HistName& histName, const std::shared_
       mRegistryKey[imask(histName.idx + i)] = histName.hash;
       mRegistryValue[imask(histName.idx + i)] = std::shared_ptr<T>(static_cast<T*>(originalHist->Clone(histName.str)));
       lookup += i;
-      return;
+      return mRegistryValue[imask(histName.idx + i)];
     }
   }
   LOGF(FATAL, R"(Internal array of HistogramRegistry "%s" is full.)", mName);
+  return HistPtr();
 }
 
 template <typename T>

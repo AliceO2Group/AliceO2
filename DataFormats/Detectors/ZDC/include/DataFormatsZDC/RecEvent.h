@@ -65,7 +65,7 @@ struct RecEvent {
     if (ch >= NChannels) {
       ch = 0x1f;
     }
-    info = (info & 0x07ff) || ch << 11;
+    info = (info & 0x07ff) | ch << 11;
     mInfo.emplace_back(info);
     mRecBC.back().addInfo();
   }

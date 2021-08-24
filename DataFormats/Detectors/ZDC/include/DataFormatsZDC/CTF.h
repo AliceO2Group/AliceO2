@@ -29,7 +29,7 @@ namespace zdc
 {
 
 /// Header for a single CTF
-struct CTFHeader {
+struct CTFHeader : public o2::ctf::CTFDictHeader {
   uint32_t nTriggers = 0;                        /// number of triggers
   uint32_t nChannels = 0;                        /// number of referred channels
   uint32_t nEOData = 0;                          /// number of end-of-orbit data objects (pedestal + scalers)
@@ -37,7 +37,7 @@ struct CTFHeader {
   uint32_t firstOrbitEOData = 0;                 /// orbit of 1st end-of-orbit data
   uint16_t firstBC = 0;                          /// bc of 1st trigger
   std::array<uint16_t, NChannels> firstScaler{}; // inital scaler values
-  ClassDefNV(CTFHeader, 1);
+  ClassDefNV(CTFHeader, 2);
 };
 
 /// wrapper for the Entropy-encoded triggers and cells of the TF

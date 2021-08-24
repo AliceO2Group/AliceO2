@@ -43,21 +43,22 @@ PropagatorImpl<value_T>::PropagatorImpl(bool uninitialized)
     LOG(FATAL) << "No active geometry!";
   }
 
-  o2::field::MagneticField* slowField = nullptr;
-  slowField = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-  if (!slowField) {
+  mField = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  if (!mField) {
     LOG(WARNING) << "No Magnetic Field in TGeoGlobalMagField, checking legacy FairRunAna";
-    slowField = dynamic_cast<o2::field::MagneticField*>(FairRunAna::Instance()->GetField());
+    mField = dynamic_cast<o2::field::MagneticField*>(FairRunAna::Instance()->GetField());
   }
-  if (!slowField) {
+  if (!mField) {
     LOG(FATAL) << "Magnetic field is not initialized!";
   }
-  if (!slowField->getFastField()) {
-    slowField->AllowFastField(true);
-  }
-  mField = slowField->getFastField();
   const value_type xyz[3] = {0.};
-  mField->GetBz(xyz, mBz);
+  if (!mField->getFastField() && mField->fastFieldExists()) {
+    mField->AllowFastField(true);
+    mFieldFast = mField->getFastField();
+    mFieldFast->GetBz(xyz, mBz);
+  } else {
+    mBz = mField->GetBz(xyz[0], xyz[1], xyz[2]);
+  }
 }
 
 //____________________________________________________________
@@ -603,7 +604,15 @@ GPUd() void PropagatorImpl<value_T>::getFieldXYZImpl(const math_utils::Point3D<T
 
   } else {
 #ifndef GPUCA_GPUCODE
-    mField->Field(xyz, bxyz); // Must not call the host-only function in GPU compilation
+    if (mFieldFast) {
+      mFieldFast->Field(xyz, bxyz); // Must not call the host-only function in GPU compilation
+    } else {
+#ifdef GPUCA_STANDALONE
+      LOG(FATAL) << "Normal field cannot be used in standalone benchmark";
+#else
+      mField->field(xyz, bxyz);
+#endif
+    }
 #endif
   }
 }
