@@ -121,7 +121,7 @@ class DataProcessingDevice : public FairMQDevice
   void PostRun() final;
   void Reset() final;
   void ResetTask() final;
-  bool ConditionalRun() final;
+  void Run() final;
   void SetErrorPolicy(enum TerminationPolicy policy) { mErrorPolicy = policy; }
 
   // Processing functions are now renetrant
