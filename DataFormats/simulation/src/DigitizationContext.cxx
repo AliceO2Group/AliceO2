@@ -190,6 +190,11 @@ void DigitizationContext::saveToFile(std::string_view filename) const
 
 DigitizationContext const* DigitizationContext::loadFromFile(std::string_view filename)
 {
+  std::string tmpFile;
+  if (filename == "") {
+    tmpFile = o2::base::NameConf::getCollisionContextFileName();
+    filename = tmpFile;
+  }
   DigitizationContext* incontext = nullptr;
   TFile file(filename.data(), "OPEN");
   file.GetObject("DigitizationContext", incontext);
