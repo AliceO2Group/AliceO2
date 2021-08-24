@@ -28,12 +28,21 @@ void DevicesManager::queueMessage(char const* target, char const* message)
 
 void DevicesManager::flush()
 {
+  static bool notifiedUnavailable = false;
+  static bool notifiedAvailable = false;
   for (auto& handle : messages) {
     auto controller = controls[handle.ref.index].controller;
     // Device might not be started yet, by the time we write to it.
     if (!controller) {
-      LOGP(INFO, "Controller for {} not yet available.", specs[handle.ref.index].name);
+      if (!notifiedUnavailable) {
+        LOGP(INFO, "Controller for {} not yet available.", specs[handle.ref.index].id);
+        notifiedUnavailable = true;
+      }
       continue;
+    }
+    if (notifiedUnavailable && !notifiedAvailable) {
+      LOGP(INFO, "Controller for {} now available.", specs[handle.ref.index].id);
+      notifiedAvailable = true;
     }
     controller->write(handle.message.c_str(), handle.message.size());
   }
