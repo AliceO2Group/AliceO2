@@ -32,7 +32,7 @@ if(HIP_ENABLED)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CU_KERNEL})
     add_custom_command(
       OUTPUT ${HIP_KERNEL_PATH}
-      COMMAND ${HIPIFY_EXECUTABLE} --quiet-warnings ${CU_KERNEL} | sed '1{/\#include "hip\\/hip_runtime.h"/d}' > ${HIP_KERNEL_PATH}
+      COMMAND ${HIPIFY_EXECUTABLE} --quiet-warnings ${CU_KERNEL} | sed '1{/\#include \"hip\\/hip_runtime.h\"/d}' > ${HIP_KERNEL_PATH}
     )
     set(CMAKE_CXX_COMPILER ${HIP_HIPCC_EXECUTABLE})
     set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
