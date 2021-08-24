@@ -185,12 +185,13 @@ void run_completion(uv_work_t* handle, int status)
 
   static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> reportConsumedOffer = [&monitoring = context.registry->get<Monitoring>()](ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats& stats) {
     stats.totalConsumedBytes += accumulatedConsumed.sharedMemory;
-    monitoring.send(Metric{(uint64_t)stats.totalConsumedBytes, "shm-offer-consumed"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{(uint64_t)stats.totalConsumedBytes, "shm-offer-bytes-consumed"}.addTag(Key::Subsystem, Value::DPL));
   };
 
   static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const&)> reportExpiredOffer = [&monitoring = context.registry->get<Monitoring>()](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
     monitoring.send(Metric{(uint64_t)stats.totalExpiredOffers, "resource-offer-expired"}.addTag(Key::Subsystem, Value::DPL));
     monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.flushBuffer();
   };
 
   for (auto& consumer : context.deviceContext->state->offerConsumers) {
@@ -626,6 +627,7 @@ bool DataProcessingDevice::ConditionalRun()
     static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const& stats)> reportExpiredOffer = [&monitoring = mServiceRegistry.get<o2::monitoring::Monitoring>()](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
       monitoring.send(Metric{(uint64_t)stats.totalExpiredOffers, "resource-offer-expired"}.addTag(Key::Subsystem, Value::DPL));
       monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
+      monitoring.flushBuffer();
     };
 
     // Deciding wether to run or not can be done by passing a request to
