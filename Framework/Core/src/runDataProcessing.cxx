@@ -988,7 +988,7 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
         info.history[info.historyPos] = token;
         info.historyLevel[info.historyPos] = logLevel;
         info.historyPos = (info.historyPos + 1) % info.history.size();
-        std::cout << "[" << info.pid << ":" << spec.name << "]: " << token << std::endl;
+        fmt::print("[{}:{}]: {}\n", info.pid, spec.id, token);
         result.didProcessLog = true;
       }
       // We keep track of the maximum log error a
