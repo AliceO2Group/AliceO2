@@ -159,6 +159,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
     monitoring.send(Metric{(uint64_t)0, "arrow-messages-created"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
     monitoring.send(Metric{(uint64_t)0, "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
     monitoring.send(Metric{(uint64_t)0, "arrow-messages-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+    monitoring.send(Metric{(uint64_t)0, "arrow-bytes-expired"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
     monitoring.flushBuffer();
 
     if (!options.isSet("aod-file")) {
