@@ -38,7 +38,7 @@ if(HIP_ENABLED)
     set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
     set(CMAKE_CXX_EXTENSIONS OFF)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
-  
+
     o2_add_executable(gpu-memory-benchmark-hip
                       SOURCES benchmark.cxx
                               hip/Kernels.hip.cxx
@@ -46,7 +46,7 @@ if(HIP_ENABLED)
                                             Boost::program_options
                                             ROOT::Tree
                       TARGETVARNAME targetName)
-  
+
     if(HIP_AMDGPUTARGET)
       # Need to add gpu target also to link flags due to gpu-rdc option
       target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
