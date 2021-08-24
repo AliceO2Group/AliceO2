@@ -110,7 +110,7 @@ class DigiReco
   std::map<uint32_t, int> mOrbit;                   /// Information about orbit
   float mOffset[NChannels];                         /// Offset in current orbit
   uint32_t mOffsetOrbit = 0xffffffff;               /// Current orbit
-  uint8_t mSource[NChannels];                       /// Source of pedestal
+  uint32_t mSource[NChannels];                      /// Source of pedestal
   static constexpr int mNSB = TSN * NTimeBinsPerBC; /// Total number of interpolated points per bunch crossing
   RecEventAux mRec;                                 /// Debug reconstruction event
   int mNBC = 0;

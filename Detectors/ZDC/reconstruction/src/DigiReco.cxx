@@ -215,6 +215,9 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   // Initialization of lookup structure for pedestals
   mOrbit.clear();
   int norb = mOrbitData.size();
+  if (mVerbosity >= DbgFull) {
+    LOG(INFO) << "Dump of pedestal data lookup table";
+  }
   for (int iorb = 0; iorb < norb; iorb++) {
     mOrbit[mOrbitData[iorb].ir.orbit] = iorb;
     if (mVerbosity >= DbgFull) {
@@ -356,7 +359,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
 #ifdef O2_ZDC_DEBUG
       if (rec.fired[itdc] != 0x0) {
-        printf("%d %u.%u TDC %d %x", ibun, rec.ir.orbit, rec.ir.bc, itdc, rec.fired[itdc]);
+        printf("%d %u.%u TDC %d [%s] %04hx -> ", ibun, rec.ir.orbit, rec.ir.bc, itdc, ChannelNames[TDCSignal[itdc]].data(), rec.fired[itdc]);
         for (int isam = 0; isam < NTimeBinsPerBC; isam++) {
           printf("%d", rec.fired[itdc] & mMask[isam] ? 1 : 0);
         }
@@ -967,10 +970,6 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
 
   // Assign to correct bunch
   auto myamp = std::nearbyint(amp / FTDCAmp);
-#ifdef O2_ZDC_DEBUG
-  LOG(INFO) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
-            << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp << " -> " << myamp;
-#endif
   rec.TDCVal[itdc].push_back(tdc_cor);
   rec.TDCAmp[itdc].push_back(myamp);
   int& ihit = mReco[ibun].ntdc[itdc];
@@ -995,6 +994,11 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   } else {
     rec.tdcPedMissing[ich] = true;
   }
+#ifdef O2_ZDC_DEBUG
+  LOG(INFO) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc
+            << " ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp << " -> " << myamp
+            << " pedSrc = " << mSource[ich];
+#endif
   ihit++;
 } // assignTDC
 

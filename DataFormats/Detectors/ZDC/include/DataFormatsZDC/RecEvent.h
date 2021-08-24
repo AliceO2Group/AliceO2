@@ -90,7 +90,7 @@ struct RecEvent {
     int cnt = 0;
     std::array<int, NChannels> active;
     for (uint8_t ich = 0; ich < NChannels; ich++) {
-      if (vec[ich]) {
+      if (vec[ich] == true) {
         active[cnt] = ich;
         cnt++;
       }
@@ -98,6 +98,17 @@ struct RecEvent {
     if (cnt == 0) {
       return;
     }
+#ifdef O2_ZDC_DEBUG
+    printf("addInfo(");
+    for (uint8_t ich = 0; ich < NChannels; ich++) {
+      if (vec[ich] == true) {
+        printf("1");
+      } else {
+        printf("0");
+      }
+    }
+    printf(", code=%u \"%s\") %d active\n", code, MsgText[code].data(), cnt);
+#endif
     if (cnt <= 3) {
       // Transmission of single channels
       for (uint8_t i = 0; i < cnt; i++) {
