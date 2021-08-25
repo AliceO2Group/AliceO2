@@ -40,7 +40,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!configcontext.options().get<bool>("disable-root-input")) {
     spec.emplace_back(o2::trd::getTRDGlobalTrackReaderSpec(useMC));
     spec.emplace_back(o2::trd::getTRDTrackletReaderSpec(useMC, false));
-    spec.emplace_back(o2::trd::getTRDDigitReaderSpec(1, useMC));
+    spec.emplace_back(o2::trd::getTRDDigitReaderSpec(useMC));
   }
 
   int nEventsMax = configcontext.options().get<int>("nEventsMax");
