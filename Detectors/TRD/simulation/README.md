@@ -14,7 +14,7 @@ o2-sim -m PIPE MAG TRD -n 1000 -g boxgen --configKeyValues 'BoxGun.pdg=11;BoxGun
 ```
 - Generate events with a pion particle gun in |eta| < 0.84:
 ```
-o2-sim -m PIPE MAG TRD -n 1000 -g boxgen --configKeyValues 'BoxGun.pdg=11;BoxGun.eta[0]=-0.84;BoxGun.eta[1]=0.84'
+o2-sim -m PIPE MAG TRD -n 1000 -g boxgen --configKeyValues 'BoxGun.pdg=211;BoxGun.eta[0]=-0.84;BoxGun.eta[1]=0.84'
 ```
 - Generate events with a pion particle gun with p = 2 GeV and |eta| < 0.84:
 ```
