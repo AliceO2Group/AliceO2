@@ -44,6 +44,8 @@ inline uint8_t getGBTIdInCrate(uint16_t gbtUniqueId) { return gbtUniqueId % sNGB
 inline uint8_t getGBTIdFromBoardInCrate(uint16_t locId) { return locId / sMaxNBoardsInLink; }
 /// Gets the absolute crate ID
 inline uint8_t getCrateId(bool isRightSide, uint8_t crateIdOneSide) { return isRightSide ? crateIdOneSide : crateIdOneSide + sNCratesPerSide; }
+// Gets the locId in crate from the loc position in the GBT
+inline uint8_t getLocIdInCrate(uint16_t gbtUniqueId, int iloc) { return getGBTIdInCrate(gbtUniqueId) * sMaxNBoardsInLink + iloc; }
 /// Tests if the crate is in the right side
 inline bool isRightSide(uint8_t crateId) { return (crateId / sNCratesPerSide) == 0; }
 } // namespace crateparams
