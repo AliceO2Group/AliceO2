@@ -110,17 +110,26 @@ N_ITSTRK=1
 N_MCHTRK=1
 N_TOFMATCH=1
 if [ $OPTIMIZED_PARALLEL_ASYNC == 1 ]; then
-  if [ $GPUTYPE != "CPU" ] || [ $SYNCMODE == "1" ]; then echo "Must not use OPTIMIZED_PARALLEL_ASYNC with GPU or SYNCMODE"; exit 1; fi
+  if [ $SYNCMODE == "1" ]; then echo "Must not use OPTIMIZED_PARALLEL_ASYNC with GPU or SYNCMODE"; exit 1; fi
   if [ $NUMAGPUIDS == 1 ]; then N_NUMAFACTOR=1; else N_NUMAFACTOR=2; fi
-  N_TPCENTDEC=$(expr 2 \* $N_NUMAFACTOR)
-  N_MFTTRK=$(expr 3 \* $N_NUMAFACTOR)
-  N_ITSTRK=$(expr 3 \* $N_NUMAFACTOR)
-  N_TPCITS=$(expr 2 \* $N_NUMAFACTOR)
-  N_MCHTRK=$(expr 1 \* $N_NUMAFACTOR)
-  N_TOFMATCH=$(expr 9 \* $N_NUMAFACTOR)
   GPU_CONFIG_KEY+="GPU_proc.ompThreads=6;"
   TRD_CONFIG_KEY+="GPU_proc.ompThreads=2;"
-  NGPUS=$(expr 6 \* $N_NUMAFACTOR)
+  if [ $GPUTYPE == "CPU" ]; then
+    N_TPCENTDEC=$(expr 2 \* $N_NUMAFACTOR)
+    N_MFTTRK=$(expr 3 \* $N_NUMAFACTOR)
+    N_ITSTRK=$(expr 3 \* $N_NUMAFACTOR)
+    N_TPCITS=$(expr 2 \* $N_NUMAFACTOR)
+    N_MCHTRK=$(expr 1 \* $N_NUMAFACTOR)
+    N_TOFMATCH=$(expr 9 \* $N_NUMAFACTOR)
+    NGPUS=$(expr 6 \* $N_NUMAFACTOR)
+  else
+    N_TPCENTDEC=3
+    N_MFTTRK=6
+    N_ITSTRK=6
+    N_TPCITS=4
+    N_MCHTRK=2
+    N_TOFMATCH=20
+  fi
 elif [ $EPNPIPELINES != 0 ]; then
   N_TPCENT=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
   N_TPCITS=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
