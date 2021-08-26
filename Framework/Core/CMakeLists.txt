@@ -163,6 +163,7 @@ foreach(t
         CheckTypes
         CompletionPolicy
         ComputingResourceHelpers
+        ComputingQuotaEvaluator
         ConfigParamStore
         ConfigParamRegistry
         DataDescriptorMatcher
@@ -192,6 +193,7 @@ foreach(t
         InputSpec
         Kernels
         LogParsingHelpers
+        OverrideLabels
         PtrHelpers
         Root2ArrowTable
         RootConfigParamHelpers

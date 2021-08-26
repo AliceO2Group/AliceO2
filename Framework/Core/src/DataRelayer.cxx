@@ -48,7 +48,7 @@ constexpr int INVALID_INPUT = -1;
 
 // 16 is just some reasonable numer
 // The number should really be tuned at runtime for each processor.
-constexpr int DEFAULT_PIPELINE_LENGTH = 16;
+constexpr int DEFAULT_PIPELINE_LENGTH = 32;
 
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,

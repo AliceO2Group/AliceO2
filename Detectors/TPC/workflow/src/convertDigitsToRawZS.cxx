@@ -69,7 +69,7 @@ struct ProcessAttributes {
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer);
 #include "DetectorsRaw/HBFUtils.h"
 void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, std::string_view fileFor,
-                            bool sectorBySector, uint32_t rdhV, bool stopPage, bool noPadding, bool createParentDir)
+                            bool sectorBySector, uint32_t rdhV, bool stopPage, bool padding, bool createParentDir)
 {
 
   // ===| open file and get tree |==============================================
@@ -145,7 +145,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   treeSim->SetBranchStatus("TPCDigit_*", 1);
 
   ProcessAttributes attr;
-  attr.padding = !noPadding;
+  attr.padding = padding;
 
   for (int iSecBySec = 0; iSecBySec < Sector::MAXSECTOR; ++iSecBySec) {
     treeSim->ResetBranchAddresses();
@@ -224,7 +224,7 @@ int main(int argc, char** argv)
     add_option("sector-by-sector,s", bpo::value<bool>()->default_value(false)->implicit_value(true), "Run one TPC sector after another");
     add_option("file-for,f", bpo::value<std::string>()->default_value("sector"), "single file per: link,sector,all");
     add_option("stop-page,p", bpo::value<bool>()->default_value(false)->implicit_value(true), "HBF stop on separate CRU page");
-    add_option("no-padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "Don't pad pages to 8kb");
+    add_option("padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "Pad all pages to 8kb");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
@@ -261,7 +261,7 @@ int main(int argc, char** argv)
     vm["sector-by-sector"].as<bool>(),
     vm["rdh-version"].as<uint32_t>(),
     vm["stop-page"].as<bool>(),
-    vm["no-padding"].as<bool>(),
+    vm["padding"].as<bool>(),
     !vm.count("no-parent-directories"));
 
   o2::raw::HBFUtils::Instance().print();

@@ -45,8 +45,8 @@ class PreClusterizer
 
  private:
   struct PatternStruct {
-    int deId;                          ///< Detection element ID
-    int firedColumns;                  ///< Fired columns
+    int deId = 0;                      ///< Detection element ID
+    int firedColumns = 0;              ///< Fired columns
     std::array<ColumnData, 7> columns; ///< Array of strip patterns
   };
 

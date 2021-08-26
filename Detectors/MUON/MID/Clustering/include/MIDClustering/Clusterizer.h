@@ -61,7 +61,8 @@ class Clusterizer
   std::vector<Cluster2D> mClusters{};                       ///< List of clusters
   std::vector<ROFRecord> mROFRecords{};                     ///< List of cluster RO frame records
   size_t mPreClusterOffset{0};                              //!< RO offset for pre-cluster
-  std::function<void(size_t, size_t)> mFunction;            ///! Function to keep track of input-output relation
+
+  std::function<void(size_t, size_t)> mFunction{[](size_t, size_t) {}}; ///! Function to keep track of input-output relation
 };
 } // namespace mid
 } // namespace o2

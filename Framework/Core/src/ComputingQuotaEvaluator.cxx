@@ -24,9 +24,7 @@
 namespace o2::framework
 {
 
-ComputingQuotaEvaluator::ComputingQuotaEvaluator(ServiceRegistry& registry)
-  : mRegistry{registry},
-    mLoop{registry.get<DeviceState>().loop}
+ComputingQuotaEvaluator::ComputingQuotaEvaluator(uint64_t now)
 {
   // The first offer is valid, but does not contain any resource
   // so this will only work with some device which does not require
@@ -41,7 +39,7 @@ ComputingQuotaEvaluator::ComputingQuotaEvaluator(ServiceRegistry& registry)
     OfferScore::Unneeded,
     true};
   mInfos[0] = {
-    uv_now(mLoop),
+    now,
     0,
     0};
 }
@@ -54,16 +52,16 @@ struct QuotaEvaluatorStats {
   std::vector<int> expired;
 };
 
-bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const& selector)
+bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const& selector, uint64_t now)
 {
-  auto selectOffer = [&loop = mLoop, &offers = this->mOffers, &infos = this->mInfos, task](int ref) {
+  auto selectOffer = [&offers = this->mOffers, &infos = this->mInfos, task](int ref, uint64_t now) {
     auto& selected = offers[ref];
     auto& info = infos[ref];
     selected.user = task;
     if (info.firstUsed == 0) {
-      info.firstUsed = uv_now(loop);
+      info.firstUsed = now;
     }
-    info.lastUsed = uv_now(loop);
+    info.lastUsed = now;
   };
 
   ComputingQuotaOffer accumulated;
@@ -110,7 +108,9 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
   for (int i = 0; i != mOffers.size(); ++i) {
     auto& offer = mOffers[i];
     auto& info = mInfos[i];
-
+    if (enough) {
+      break;
+    }
     // Ignore:
     // - Invalid offers
     // - Offers which belong to another task
@@ -125,13 +125,13 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
     }
     if (offer.runtime < 0) {
       stats.unexpiring.push_back(i);
-    } else if (offer.runtime + info.received < uv_now(mLoop)) {
-      LOGP(INFO, "Offer {} expired since {} milliseconds and holds {}MB", i, uv_now(mLoop) - offer.runtime - info.received, offer.sharedMemory / 1000000);
+    } else if (offer.runtime + info.received < now) {
+      LOGP(INFO, "Offer {} expired since {} milliseconds and holds {}MB", i, now - offer.runtime - info.received, offer.sharedMemory / 1000000);
       mExpiredOffers.push_back(ComputingQuotaOfferRef{i});
       stats.expired.push_back(i);
       continue;
     } else {
-      LOGP(INFO, "Offer {} still valid for {} milliseconds, providing {}MB", i, offer.runtime + info.received - uv_now(mLoop), offer.sharedMemory / 1000000);
+      LOGP(INFO, "Offer {} still valid for {} milliseconds, providing {}MB", i, offer.runtime + info.received - now, offer.sharedMemory / 1000000);
     }
     /// We then check if the offer is suitable
     assert(offer.sharedMemory >= 0);
@@ -146,12 +146,12 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
       case OfferScore::Unsuitable:
         continue;
       case OfferScore::More:
-        selectOffer(i);
+        selectOffer(i, now);
         accumulated = tmp;
         stats.selectedOffers.push_back(i);
         continue;
       case OfferScore::Enough:
-        selectOffer(i);
+        selectOffer(i, now);
         accumulated = tmp;
         stats.selectedOffers.push_back(i);
         enough = true;
@@ -162,20 +162,12 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
   return summarizeWhatHappended(enough, stats.selectedOffers, accumulated, stats);
 }
 
-void ComputingQuotaEvaluator::consume(int id, ComputingQuotaConsumer& consumer)
+void ComputingQuotaEvaluator::consume(int id, ComputingQuotaConsumer& consumer, std::function<void(ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats& reportConsumedOffer)>& reportConsumedOffer)
 {
-  using o2::monitoring::Metric;
-  using o2::monitoring::Monitoring;
-  using o2::monitoring::tags::Key;
-  using o2::monitoring::tags::Value;
   // This will report how much of the offers has to be considered consumed.
   // Notice that actual memory usage might be larger, because we can over
   // allocate.
-  auto reportConsumedOffer = [&totalDisposedMemory = mTotalDisposedSharedMemory, &monitoring = mRegistry.get<Monitoring>()](ComputingQuotaOffer const& accumulatedConsumed) {
-    totalDisposedMemory += accumulatedConsumed.sharedMemory;
-    monitoring.send(Metric{(uint64_t)totalDisposedMemory, "shm-offer-consumed"}.addTag(Key::Subsystem, Value::DPL));
-  };
-  consumer(id, mOffers, reportConsumedOffer);
+  consumer(id, mOffers, mStats, reportConsumedOffer);
 }
 
 void ComputingQuotaEvaluator::dispose(int taskId)
@@ -203,7 +195,7 @@ void ComputingQuotaEvaluator::dispose(int taskId)
 }
 
 /// Move offers from the pending list to the actual available offers
-void ComputingQuotaEvaluator::updateOffers(std::vector<ComputingQuotaOffer>& pending)
+void ComputingQuotaEvaluator::updateOffers(std::vector<ComputingQuotaOffer>& pending, uint64_t now)
 {
   for (size_t oi = 0; oi < mOffers.size(); oi++) {
     auto& storeOffer = mOffers[oi];
@@ -214,14 +206,15 @@ void ComputingQuotaEvaluator::updateOffers(std::vector<ComputingQuotaOffer>& pen
     if (storeOffer.valid == true) {
       continue;
     }
-    info.received = uv_now(mLoop);
+    info.received = now;
     auto& offer = pending.back();
     storeOffer = offer;
+    storeOffer.valid = true;
     pending.pop_back();
   }
 }
 
-void ComputingQuotaEvaluator::handleExpired()
+void ComputingQuotaEvaluator::handleExpired(std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const& stats)> expirator)
 {
   static int nothingToDoCount = mExpiredOffers.size();
   if (mExpiredOffers.size()) {
@@ -233,16 +226,8 @@ void ComputingQuotaEvaluator::handleExpired()
       LOGP(INFO, "No expired offers");
     }
   }
-  using o2::monitoring::Metric;
-  using o2::monitoring::Monitoring;
-  using o2::monitoring::tags::Key;
-  using o2::monitoring::tags::Value;
-  auto& monitoring = mRegistry.get<o2::monitoring::Monitoring>();
   /// Whenever an offer is expired, we give back the resources
   /// to the driver.
-  static uint64_t expiredOffers = 0;
-  static uint64_t expiredBytes = 0;
-
   for (auto& ref : mExpiredOffers) {
     auto& offer = mOffers[ref.index];
     if (offer.sharedMemory < 0) {
@@ -253,11 +238,11 @@ void ComputingQuotaEvaluator::handleExpired()
     }
     // FIXME: offers should go through the driver client, not the monitoring
     // api.
-    auto& monitoring = mRegistry.get<o2::monitoring::Monitoring>();
-    monitoring.send(o2::monitoring::Metric{expiredOffers++, "resource-offer-expired"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-    expiredBytes += offer.sharedMemory;
-    monitoring.send(o2::monitoring::Metric{(uint64_t)expiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
     LOGP(INFO, "Offer {} expired. Giving back {}MB and {} cores", ref.index, offer.sharedMemory / 1000000, offer.cpu);
+    assert(offer.sharedMemory > 0);
+    mStats.totalExpiredBytes += offer.sharedMemory;
+    mStats.totalExpiredOffers++;
+    expirator(offer, mStats);
     //driverClient.tell("expired shmem {}", offer.sharedMemory);
     //driverClient.tell("expired cpu {}", offer.cpu);
     offer.sharedMemory = -1;

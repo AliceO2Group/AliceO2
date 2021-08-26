@@ -11,6 +11,7 @@
 
 #include "DataFormatsTRD/Digit.h"
 #include <iostream>
+#include <algorithm>
 
 namespace o2::trd
 {
@@ -58,6 +59,13 @@ bool Digit::isSharedDigit() const
   } else {
     return 0;
   }
+}
+
+ADC_t Digit::getADCmax(int& idx) const
+{
+  auto itMax = std::max_element(mADC.begin(), mADC.end());
+  idx = std::distance(mADC.begin(), itMax);
+  return *itMax;
 }
 
 std::ostream& operator<<(std::ostream& stream, const Digit& d)

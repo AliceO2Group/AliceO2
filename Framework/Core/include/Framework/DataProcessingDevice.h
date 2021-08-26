@@ -61,6 +61,7 @@ struct DeviceContext {
   DeviceState* state = nullptr;
   ComputingQuotaEvaluator* quotaEvaluator = nullptr;
   DataProcessingStats* stats = nullptr;
+  ComputingQuotaStats* quotaStats = nullptr;
   int expectedRegionCallbacks = 0;
 };
 
@@ -120,7 +121,7 @@ class DataProcessingDevice : public FairMQDevice
   void PostRun() final;
   void Reset() final;
   void ResetTask() final;
-  bool ConditionalRun() final;
+  void Run() final;
   void SetErrorPolicy(enum TerminationPolicy policy) { mErrorPolicy = policy; }
 
   // Processing functions are now renetrant

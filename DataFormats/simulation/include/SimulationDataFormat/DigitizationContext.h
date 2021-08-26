@@ -110,7 +110,7 @@ class DigitizationContext
   // helper functions to save and load a context
   void saveToFile(std::string_view filename) const;
 
-  static DigitizationContext const* loadFromFile(std::string_view filename = "collisioncontext.root");
+  static DigitizationContext const* loadFromFile(std::string_view filename = "");
 
  private:
   int mNofEntries = 0;

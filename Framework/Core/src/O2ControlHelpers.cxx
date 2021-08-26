@@ -169,6 +169,7 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
 {
   dumpOut << indLevel << "shell: true\n";
   dumpOut << indLevel << "log: \"{{ log_task_output }}\"\n";
+  dumpOut << indLevel << "env: [\"O2_DETECTOR={{ detector }}\"]\n";
   dumpOut << indLevel << "user: \"{{ user }}\"\n";
   dumpOut << indLevel << "value: \"{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}\"\n";
 

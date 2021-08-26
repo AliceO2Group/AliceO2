@@ -97,7 +97,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootInput = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
   if (!disableRootInput) {
-    specs.emplace_back(o2::trd::getTRDDigitReaderSpec(1, useMC));
+    specs.emplace_back(o2::trd::getTRDDigitReaderSpec(useMC));
   }
   specs.emplace_back(o2::trd::getTRDTrapSimulatorSpec(useMC));
   if (!disableRootOutput) {
