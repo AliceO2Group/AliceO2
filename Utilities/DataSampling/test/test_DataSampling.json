@@ -4,7 +4,8 @@
       "id" : "tpcclusters",
       "active" : "true",
       "query" : "clusters:TPC/CLUSTERS;clusters_p:TPC/CLUSTERS_P",
-      "samplingConditions" : []
+      "samplingConditions" : [],
+      "bindLocation" : "local"
     },
     {
       "id" : "tpcraw",

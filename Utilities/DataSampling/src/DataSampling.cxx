@@ -169,4 +169,14 @@ std::vector<std::string> DataSampling::MachinesForPolicy(const boost::property_t
   throw std::runtime_error("Could not find the policy '" + policyName + "'");
 }
 
+std::string DataSampling::BindLocationForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName)
+{
+  for (auto&& policyConfig : policiesTree) {
+    if (policyConfig.second.get<std::string>("id") == policyName) {
+      return policyConfig.second.get_optional<std::string>("bindLocation").value_or("remote");
+    }
+  }
+  throw std::runtime_error("Could not find the policy '" + policyName + "'");
+}
+
 } // namespace o2::utilities

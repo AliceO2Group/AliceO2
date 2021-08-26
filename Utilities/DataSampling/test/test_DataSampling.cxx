@@ -226,6 +226,7 @@ BOOST_AUTO_TEST_CASE(MultinodeUtilities)
   {
     BOOST_CHECK_THROW(DataSampling::PortForPolicy(policiesTree, "no such policy"), std::runtime_error);
     BOOST_CHECK_THROW(DataSampling::MachinesForPolicy(policiesTree, "no such policy"), std::runtime_error);
+    BOOST_CHECK_THROW(DataSampling::BindLocationForPolicy(policiesTree, "no such policy"), std::runtime_error);
   }
   {
     auto port = DataSampling::PortForPolicy(policiesTree, "tpcclusters");
@@ -239,6 +240,10 @@ BOOST_AUTO_TEST_CASE(MultinodeUtilities)
     BOOST_CHECK_EQUAL(port.value(), 1234);
     auto machines = DataSampling::MachinesForPolicy(policiesTree, "tpcraw");
     BOOST_CHECK_EQUAL(machines.size(), 2);
+  }
+  {
+    BOOST_CHECK_EQUAL(DataSampling::BindLocationForPolicy(policiesTree, "tpcclusters"), "local");
+    BOOST_CHECK_EQUAL(DataSampling::BindLocationForPolicy(policiesTree, "tpcraw"), "remote");
   }
   {
     // empty host -> match any policy
