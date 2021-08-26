@@ -17,10 +17,7 @@ o2_add_library(FDDWorkflow
                        src/ReconstructorSpec.cxx
                        src/RecPointWriterSpec.cxx
                        src/RecPointReaderSpec.cxx
-                       src/RawDataProcessSpec.cxx
-                       src/RawDataReaderSpec.cxx
                        src/RawReaderFDD.cxx
-                       src/RawWorkflow.cxx
 
                PUBLIC_LINK_LIBRARIES O2::DataFormatsFDD
                                      O2::FDDReconstruction
