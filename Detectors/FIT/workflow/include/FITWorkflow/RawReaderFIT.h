@@ -98,10 +98,9 @@ class RawReaderFIT : public RawReaderType
   auto callGetDigitDirectly(o2::framework::ProcessingContext& pc, std::index_sequence<IDigits...>)
   {
     if constexpr (sUseTrgInput) {
-      RawReader_t::getDigits(getRefVec<std::tuple_element_t<IDigits,typename DigitBlockFIT_t::TupleVecDigitObjs_t > >(pc)...,getRefVec<typename std::vector<DetTrigInput_t> >(pc));
-    }
-    else {
-      RawReader_t::getDigits(getRefVec<std::tuple_element_t<IDigits,typename DigitBlockFIT_t::TupleVecDigitObjs_t > >(pc)...);
+      RawReader_t::getDigits(getRefVec<std::tuple_element_t<IDigits, typename DigitBlockFIT_t::TupleVecDigitObjs_t>>(pc)..., getRefVec<typename std::vector<DetTrigInput_t>>(pc));
+    } else {
+      RawReader_t::getDigits(getRefVec<std::tuple_element_t<IDigits, typename DigitBlockFIT_t::TupleVecDigitObjs_t>>(pc)...);
     }
   }
   template <std::size_t... IsubDigits, std::size_t... IsingleSubDigits>
@@ -109,8 +108,9 @@ class RawReaderFIT : public RawReaderType
   {
     DigitBlockFIT_t::print(mVecDigit, std::get<IsubDigits>(mVecSubDigit)..., std::get<IsingleSubDigits>(mVecSingleSubDigit)...);
   }
-  void accumulateDigits(o2::framework::ProcessingContext& pc) {
-    callGetDigitDirectly(pc,IndexesAllDigits{});
+  void accumulateDigits(o2::framework::ProcessingContext& pc)
+  {
+    callGetDigitDirectly(pc, IndexesAllDigits{});
   }
   void accumulateDigits()
   {
@@ -158,9 +158,10 @@ class RawReaderFIT : public RawReaderType
       pc.outputs().snapshot(o2::framework::Output{mDataOrigin, DetTrigInput_t::sChannelNameDPL, 0, o2::framework::Lifetime::Timeframe}, mVecTrgInput);
     }
   }
-  template<typename VecDigitType>
-  auto & getRefVec(o2::framework::ProcessingContext& pc) {
-    auto &refVec= pc.outputs().make<VecDigitType>(o2::framework::Output{mDataOrigin, VecDigitType::value_type::sChannelNameDPL, 0, o2::framework::Lifetime::Timeframe});
+  template <typename VecDigitType>
+  auto& getRefVec(o2::framework::ProcessingContext& pc)
+  {
+    auto& refVec = pc.outputs().make<VecDigitType>(o2::framework::Output{mDataOrigin, VecDigitType::value_type::sChannelNameDPL, 0, o2::framework::Lifetime::Timeframe});
     return refVec;
   }
 };

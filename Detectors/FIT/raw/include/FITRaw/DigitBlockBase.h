@@ -171,7 +171,7 @@ class DigitBlockBase //:public DigitBlock
   DigitBlockBase(const DigitBlockBase& other) = default;
   ~DigitBlockBase() = default;
   typedef DigitType Digit_t;
-  typedef std::tuple<std::vector<DigitType>,std::vector<SubDigitTypes>...> TupleVecDigitObjs_t;
+  typedef std::tuple<std::vector<DigitType>, std::vector<SubDigitTypes>...> TupleVecDigitObjs_t;
   typedef boost::mpl::vector<SubDigitTypes...> VecAllSubDigit_t;
   typedef DigitBlockHelper::GetVecSubDigit<VecAllSubDigit_t> VecSubDigit_t;
   typedef DigitBlockHelper::GetVecSingleSubDigit<VecAllSubDigit_t> VecSingleSubDigit_t;
@@ -182,7 +182,7 @@ class DigitBlockBase //:public DigitBlock
   Digit_t mDigit;
   SubDigit_t mSubDigit;
   SingleSubDigit_t mSingleSubDigit;
-  template <typename VecDigit,typename... VecSubDigits>
+  template <typename VecDigit, typename... VecSubDigits>
   auto getSubDigits(VecDigit& vecDigits, VecSubDigits&... vecSubDigits)
     -> std::enable_if_t<sizeof...(VecSubDigits) == sNSubDigits>
   {

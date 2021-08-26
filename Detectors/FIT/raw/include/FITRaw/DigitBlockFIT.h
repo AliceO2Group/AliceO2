@@ -183,7 +183,7 @@ auto ConvertTCMData2Digit(DigitType& digit, const TCMDataType& tcmData) -> std::
 template <typename LookupTableType, typename ChannelDataType, typename PMDataType>
 auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDataType& pmData, int linkID, int ep) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().QTCAmpl), int16_t>::value>
 {
-  vecChData.emplace_back(static_cast<uint8_t>(LookupTableType::Instance().getChannel(linkID, static_cast<int>(pmData.channelID),ep)), static_cast<int>(pmData.time), static_cast<int>(pmData.charge), static_cast<uint8_t>(pmData.getFlagWord()));
+  vecChData.emplace_back(static_cast<uint8_t>(LookupTableType::Instance().getChannel(linkID, static_cast<int>(pmData.channelID), ep)), static_cast<int>(pmData.time), static_cast<int>(pmData.charge), static_cast<uint8_t>(pmData.getFlagWord()));
 }
 //FV0
 template <typename LookupTableType, typename ChannelDataType, typename PMDataType>
@@ -314,13 +314,13 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
       digitBlockProc.processDigitBlockPerTF(DigitBlockBase_t::template makeDigitBlock<DigitBlockFIT_t>(vecDigit, vecChannelData));
     }
   }
-  template <typename VecDigitType ,typename VecChannelDataType,typename VecDetTrigInputType>
+  template <typename VecDigitType, typename VecChannelDataType, typename VecDetTrigInputType>
   void getDigits(VecDigitType& vecDigits, VecChannelDataType& vecChannelData, VecDetTrigInputType& vecTriggerInput)
   {
     DigitBlockBase_t::mDigit.fillTrgInputVec(vecTriggerInput);
     DigitBlockBase_t::getSubDigits(vecDigits, vecChannelData);
   }
-  template <typename VecDigitType ,typename VecChannelDataType>
+  template <typename VecDigitType, typename VecChannelDataType>
   void getDigits(VecDigitType& vecDigits, VecChannelDataType& vecChannelData)
   {
     DigitBlockBase_t::getSubDigits(vecDigits, vecChannelData);
@@ -438,13 +438,13 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::mNelements = 1;
     return {LookupTable_t::Instance().getTopoTCM(), dataBlockTCM};
   }
-  template <typename VecDigitType ,typename VecChannelDataType,typename VecTriggersExtType,typename VecDetTrigInputType>
-  void getDigits(VecDigitType& vecDigits, VecChannelDataType& vecChannelData, VecTriggersExtType& vecTriggersExt,VecDetTrigInputType& vecTriggerInput)
+  template <typename VecDigitType, typename VecChannelDataType, typename VecTriggersExtType, typename VecDetTrigInputType>
+  void getDigits(VecDigitType& vecDigits, VecChannelDataType& vecChannelData, VecTriggersExtType& vecTriggersExt, VecDetTrigInputType& vecTriggerInput)
   {
     DigitBlockBase_t::mDigit.fillTrgInputVec(vecTriggerInput);
     getDigits(vecDigits, vecChannelData, vecTriggersExt);
   }
-  template <typename VecDigitType ,typename VecChannelDataType,typename VecTriggersExtType>
+  template <typename VecDigitType, typename VecChannelDataType, typename VecTriggersExtType>
   void getDigits(VecDigitType& vecDigits, VecChannelDataType& vecChannelData, VecTriggersExtType& vecTriggersExt)
   {
     DigitBlockBase_t::getSubDigits(vecDigits, vecChannelData);
