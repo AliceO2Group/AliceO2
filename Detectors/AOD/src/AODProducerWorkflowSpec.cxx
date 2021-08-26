@@ -834,7 +834,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   // vector of FT0 amplitudes
-  int nFT0Channels = o2::ft0::Geometry::Nchannels;
+  int nFT0Channels = o2::ft0::Geometry::Nsensors;
   int nFT0ChannelsAside = o2::ft0::Geometry::NCellsA * 4;
   std::vector<float> vAmplitudes(nFT0Channels, 0.);
   // filling FT0 table
@@ -845,7 +845,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       vAmplitudes[channel.ChId] = channel.QTCAmpl; // amplitude, mV
     }
     float aAmplitudesA[nFT0ChannelsAside];
-    float aAmplitudesC[133];
+    float aAmplitudesC[nFT0Channels - nFT0ChannelsAside];
     for (int i = 0; i < nFT0Channels; i++) {
       if (i < nFT0ChannelsAside) {
         aAmplitudesA[i] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);
