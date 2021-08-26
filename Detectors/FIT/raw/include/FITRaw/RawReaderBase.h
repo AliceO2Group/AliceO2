@@ -86,10 +86,26 @@ class RawReaderBase
       digitIter->second.template processDigits<DataBlockType>(dataBlock, std::forward<T>(feeParameters)...);
     }
     vecDataBlocks.clear();
+    /* //Must be checked for perfomance
+    std::size_t srcPos = 0;
+    while (srcPos < payload.size()) {
+      DataBlockType dataBlock{};
+      dataBlock.decodeBlock(payload, srcPos);
+      srcPos += dataBlock.mSize;
+      if (!dataBlock.isCorrect()) {
+        LOG(WARNING) << "INCORRECT DATA BLOCK! Byte position: " << srcPos << " | Payload size: " << payload.size() << " | DataBlock size: " << dataBlock.mSize;
+        //dataBlock.print();
+        return;
+      }
+      auto intRec = dataBlock.getInteractionRecord();
+      auto [digitIter, isNew] = mMapDigits.try_emplace(intRec, intRec);
+      digitIter->second.template processDigits<DataBlockType>(dataBlock, std::forward<T>(feeParameters)...);
+    }
+    */
   }
   //pop digits
-  template <class... DigitType>
-  int getDigits(std::vector<DigitType>&... vecDigit)
+  template <typename... VecDigitType>
+  int getDigits(VecDigitType&... vecDigit)
   {
     int digitCounter = mMapDigits.size();
     for (auto& digit : mMapDigits) {
