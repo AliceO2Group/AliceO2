@@ -22,6 +22,7 @@
 
 #include "CCDB/BasicCCDBManager.h"
 #include "FT0Base/Constants.h"
+#include "DataFormatsFIT/LookUpTable.h"
 #include <Rtypes.h>
 #include <cassert>
 #include <exception>
@@ -271,7 +272,8 @@ class LookUpTable
 
   ClassDefNV(LookUpTable, 2);
 };
-
+namespace deprecated //keeping old LUT version
+{
 //Singleton for LookUpTable
 class SingleLUT : public LookUpTable
 {
@@ -353,6 +355,8 @@ class SingleLUT : public LookUpTable
     return mapResult;
   }
 };
+} // namespace deprecated
+using SingleLUT = o2::fit::LUT;
 } // namespace ft0
 } // namespace o2
 #endif
