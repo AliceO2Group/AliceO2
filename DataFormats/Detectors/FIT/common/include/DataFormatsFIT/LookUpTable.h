@@ -14,22 +14,16 @@
 // Look Up Table FIT
 //////////////////////////////////////////////
 
-//#include "CCDB/BasicCCDBManager.h"
+#include "CCDB/BasicCCDBManager.h"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <Rtypes.h>
-#include <cassert>
-#include <exception>
 #include <iostream>
-#include <fstream>
-#include <stdexcept>
 #include <tuple>
 #include <TSystem.h>
-#include <cstdlib>
 #include <map>
-#include <string_view>
+#include <string>
 #include <vector>
-#include <cstdlib>
 #include <istream>
 #include <ostream>
 #include <algorithm>
@@ -59,8 +53,11 @@ struct EntryCRU {//This is specific struct for CRU entry
 };
 
 struct HasherCRU {
+  // Hash-function without any collisions due to technical bit size of fields:
+  // RDH::EndPointID :  4 bits
+  // RDH::LinkID : 8 bits
   std::size_t operator()(const EntryCRU& entryCRU) const {
-    return entryCRU.mLinkID | (entryCRU.mEndPointID << 4);
+    return (entryCRU.mLinkID << 4) | entryCRU.mEndPointID;
   }
 };
 
@@ -84,7 +81,7 @@ struct EntryPM {
 
 inline bool operator<(EntryPM const& entryPM1, EntryPM const& entryPM2)
 {
-  auto comparer = [](const EntryPM & entryPM) -> decltype(auto) { return std::tie(entryPM.mEntryCRU.mLinkID, entryPM.mEntryCRU.mEndPointID, entryPM.mLocalChannelID); };
+  auto comparer = [](const EntryPM & entryPM) -> decltype(auto) { return std::tie(entryPM.mEntryCRU.mEndPointID, entryPM.mEntryCRU.mLinkID, entryPM.mLocalChannelID ); };
   return comparer(entryPM1) < comparer(entryPM2);
 }
 
@@ -99,13 +96,6 @@ struct HasherPM {
 };
 
 struct ComparerPM {
-/* // Normal comparer
-  bool operator()(const EntryPM& entry1,const EntryPM& entry2) const {
-    return entry1.mEntryCRU.mLinkID==entry2.mEntryCRU.mLinkID 
-    && entry1.mEntryCRU.mEndPointID==entry2.mEntryCRU.mEndPointID
-    && entry1.mLocalChannelID==entry2.mLocalChannelID;
-  }
-*/
   //Always true due to perfect hasher
   bool operator()(const EntryPM& entry1,const EntryPM& entry2) const {
     return true;
@@ -130,25 +120,25 @@ struct EntryFEE {
       os<<"LocalChannelID: "<<entryFEE.mLocalChannelID<<"|";
       os<<"ModuleType: "<<entryFEE.mModuleType<<"|";
       os<<"ModuleName: "<<entryFEE.mModuleName<<"|";
-      os<<"BoardHV: "<<entryFEE.mBoardHV<<"|";
-      os<<"ChannelHV: "<<entryFEE.mChannelHV<<"|";
-      os<<"SerialNumberMCP: "<<entryFEE.mSerialNumberMCP<<"|";
-      os<<"CableHV: "<<entryFEE.mCableHV<<"|";
-      os<<"CableSignal: "<<entryFEE.mCableSignal<<"|";
+      os<<"HV board: "<<entryFEE.mBoardHV<<"|";
+      os<<"HV channel: "<<entryFEE.mChannelHV<<"|";
+      os<<"MCP S/N: "<<entryFEE.mSerialNumberMCP<<"|";
+      os<<"HV cable: "<<entryFEE.mCableHV<<"|";
+      os<<"signal cable: "<<entryFEE.mCableSignal<<"|";
     return os;
   }
 
   void parse(const boost::property_tree::ptree& propertyTree) {
     mEntryCRU.parse(propertyTree);
-    mChannelID = propertyTree.get<std::string>("ChannelID");
+    mChannelID = propertyTree.get<std::string>("channel #");
     mLocalChannelID = propertyTree.get<std::string>("LocalChannelID");
     mModuleType = propertyTree.get<std::string>("ModuleType");
-    mModuleName = propertyTree.get<std::string>("ModuleName");
-    mBoardHV = propertyTree.get<std::string>("BoardHV");
-    mChannelHV = propertyTree.get<std::string>("ChannelHV");
-    mSerialNumberMCP = propertyTree.get<std::string>("SerialNumberMCP");
-    mCableHV = propertyTree.get<std::string>("CableHV");
-    mCableSignal = propertyTree.get<std::string>("CableSignal");
+    mModuleName = propertyTree.get<std::string>("Module");
+    mBoardHV = propertyTree.get<std::string>("HV board");
+    mChannelHV = propertyTree.get<std::string>("HV channel");
+    mSerialNumberMCP = propertyTree.get<std::string>("MCP S/N");
+    mCableHV = propertyTree.get<std::string>("HV cable");
+    mCableSignal = propertyTree.get<std::string>("signal cable");
   }
   ClassDefNV(EntryFEE, 1);
 };
@@ -162,16 +152,15 @@ class LookupTable
 {
  public:
   LookupTable() {init();}
+  LookupTable(const std::string& ccdbPath,const std::string& ccdbPathToLUT) {initCCDB(ccdbPath,ccdbPathToLUT);}
   typedef MapEntryPM2ChannelID MapEntryPM2ChannelID_t;
   typedef MapEntryCRU2ModuleType MapEntryCRU2ModuleType_t;
   typedef ChannelID ChannelID_t;
-  
   //Map of str module names -> enum types
   const std::map<std::string,EModuleType> mMapModuleTypeStr2Enum = {{"PM",EModuleType::kPM},{"PM-LCS",EModuleType::kPM_LCS},{"TCM",EModuleType::kTCM}};
   //Warning! To exclude double mapping do not use isTCM and isPM in the same time
   bool isTCM(int linkID, int epID) const {
     return mEntryCRU_TCM.mLinkID==linkID && mEntryCRU_TCM.mEndPointID==epID;
-    //return isTCM(EntryCRU{linkID, epID});
   }
   bool isTCM(const EntryCRU & entryCRU) const {
     if(getModuleType(entryCRU)==EModuleType::kTCM) {
@@ -220,43 +209,40 @@ class LookupTable
     prepareEntriesFEE(filepath);
     prepareLUT();
   }
-  std::pair<ChannelID_t,bool> getGlobalChannelID(const EntryPM &entryPM) const {
+  void initCCDB(const std::string& ccdbPath,const std::string& ccdbPathToLUT) {
+    auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+    mgr.setURL(ccdbPath);
+    mVecEntryFEE = *(mgr.get<std::vector<EntryFEE>>(ccdbPathToLUT));
+    prepareLUT();
+  }
+  ChannelID_t getGlobalChannelID(const EntryPM &entryPM) const {
     const auto &it = mMapEntryPM2ChannelID.find(entryPM);
     if(it!=mMapEntryPM2ChannelID.end()) {
-      return {it->second,true};
+      return it->second;
     }
     else {
-      return {ChannelID_t{},false};
+      return -1;
     }
   }
-  
-
- /* template<typename... Args>
-  ChannelID_t getChannel (Args&&... args) {
-    //return mMapEntryPM2ChannelID.find(EntryPM{linkID,ep,0,0,chID})->second;
-    return mMapEntryPM2ChannelID.find(EntryPM{std::forward<Args>(args)...})->second;
-//    const auto &it = mMapEntryPM2ChannelID.find(EntryPM{linkID,ep,0,0,chID});
-//    return getGlobalChannelID(EntryPM{linkID,ep,0,0,chID}).first;
-  }
-  */
-  
   int getChannel (int linkID, int chID, int ep=0) {
     return mMapEntryPM2ChannelID.find(std::move(EntryPM{EntryCRU{linkID,ep,0,0},chID}))->second;
   }
   void prepareEntriesFEE(const std::string& pathToConfigFile) {
     boost::property_tree::ptree propertyTree;
     boost::property_tree::read_json(pathToConfigFile.c_str(), propertyTree);
-    prepareEntriesFEE(propertyTree);
+    mVecEntryFEE = prepareEntriesFEE(propertyTree);
   }
-  void prepareEntriesFEE(const boost::property_tree::ptree& propertyTree) {
-    mVecEntryFEE.clear();
+  std::vector<EntryFEE> prepareEntriesFEE(const boost::property_tree::ptree& propertyTree) {
+    std::vector<EntryFEE> vecEntryFEE;
     for (const auto &pairEntry : propertyTree) {
       const auto &propertyTreeSingle = pairEntry.second;
       EntryFEE entryFEE{};
       entryFEE.parse(propertyTreeSingle);
-      mVecEntryFEE.push_back(entryFEE);
+      vecEntryFEE.push_back(entryFEE);
     }
+    return vecEntryFEE;
   }
+  
   void prepareLUT() {
     mMapEntryCRU2ModuleType.clear();
     mMapEntryPM2ChannelID.clear();
@@ -281,8 +267,9 @@ class LookupTable
   }
   void printFullMap() const {
     for(const auto& entry: mVecEntryFEE) {
-      std::cout<<std::endl<<entry<<std::endl;
+      LOG(INFO)<<entry;
     }
+    /*
     std::cout<<std::endl<<"------------------------------------------------------------------------------"<<std::endl;
     for(const auto &entry:mMapEntryPM2ChannelID) {
       std::cout<<entry.first<<"| GlChID: "<<entry.second<<std::endl;
@@ -291,21 +278,12 @@ class LookupTable
     for(const auto &entry:mMapEntryCRU2ModuleType) {
       std::cout<<entry.first<<"| ModuleType: "<<static_cast<int>(entry.second)<<std::endl;
     }
-
+    */
   }
-  /* //TODO
-  static boost::property_tree::ptree parseCSV(std::string filepath,std::string delimeter=";",const std::map<std::string,std::string> headerMap={}) {
-    bool useHeaderMap=false;
-    if(headerMap.size()>0) {
-      useHeaderMap=true;
-    }
-    boost::property_tree::ptree propertyTree;
-    
-  }
-  */
   const std::vector<EntryFEE>& getVecMetadataFEE() const {return mVecEntryFEE;}
   const MapEntryCRU2ModuleType_t& getMapEntryCRU2ModuleType() const {return mMapEntryCRU2ModuleType;}
   const MapEntryPM2ChannelID_t& getMapEntryPM2ChannelID() const {return mMapEntryPM2ChannelID;}
+  const EntryCRU& getEntryCRU_TCM() const {return mEntryCRU_TCM;}
  private:
   EntryCRU mEntryCRU_TCM;
   std::vector<EntryFEE> mVecEntryFEE;
@@ -317,18 +295,16 @@ template<typename LUT>
 class SingleLUT : public LUT
 {
  private:
-  SingleLUT() : LUT() {}
+  SingleLUT(const std::string& ccdbPath,const std::string& ccdbPathToLUT) : LUT(ccdbPath,ccdbPathToLUT) {}
   SingleLUT(const SingleLUT&) = delete;
   SingleLUT& operator=(SingleLUT&) = delete;
 
  public:
   typedef EntryPM Topo_t;
-
-  //static constexpr const char *sDetectorName = "FT0";
   static constexpr char sDetectorName[] = "FT0";
-  static SingleLUT& Instance()
+  static SingleLUT& Instance(std::string ccdbPath="http://ccdb-test.cern.ch:8080/",std::string ccdbPathToLUT="FT0/LookUpTableNew")
   {
-    static SingleLUT instanceLUT;
+    static SingleLUT instanceLUT(ccdbPath,ccdbPathToLUT);
     return instanceLUT;
   }
   //Temporary
@@ -357,25 +333,28 @@ class SingleLUT : public LUT
     });
     return Topo_t{findResult->first, 0};
   }
-  //Prepare full map for FEE metadata
+  //Prepare full map for FEE metadata(for digit2raw convertion)
   template <typename RDHtype, typename RDHhelper = void>
   auto makeMapFEEmetadata() -> std::map<Topo_t, RDHtype>
   {
     std::map<Topo_t, RDHtype> mapResult;
     const uint16_t cruID = 0;      //constant
     uint64_t feeID = 0;            //increments
-    uint64_t feeIDbuf = 0;
-    const auto &mapEntryCRU2ModuleType = Instance().getMapEntryCRU2ModuleType();
-    uint64_t feeIDtcm= mapEntryCRU2ModuleType.size();
-    for(const auto &pairEntry: mapEntryCRU2ModuleType) {
-      EntryCRU entryCRU = pairEntry.first;
-      auto pairInserted = mapResult.insert({Topo_t{entryCRU,0}, RDHtype{}});
+    const auto &mapEntryPM2ChannelID = Instance().getMapEntryPM2ChannelID();
+    //Temporary for sorting FEEIDs without using them from LUT(for digit2raw convertion), and by using GlobalChannelID
+    std::map<int,Topo_t> mapBuf;
+    for(const auto &entry: mapEntryPM2ChannelID) {
+      mapBuf.insert({entry.second,entry.first});
+    }
+    const auto &cru_tcm = Instance().getEntryCRU_TCM();
+    mapBuf.insert({static_cast<int>(mapBuf.size()),Topo_t{cru_tcm,0}});
+    //
+    for(const auto &pairEntry: mapBuf) {
+      auto en = pairEntry.second;
+      auto pairInserted = mapResult.insert({makeGlobalTopo(en), RDHtype{}});
       if (pairInserted.second) {
         auto& rdhObj = pairInserted.first->second;
         const auto& topoObj = pairInserted.first->first;
-        if(pairEntry.second==EModuleType::kTCM) {
-          
-        }
         if constexpr (std::is_same<RDHhelper, void>::value) {
           rdhObj.linkID = topoObj.mEntryCRU.mLinkID;
           rdhObj.endPointID = topoObj.mEntryCRU.mEndPointID;
@@ -390,6 +369,9 @@ class SingleLUT : public LUT
         }
         feeID++;
       }
+    }
+    for(const auto&entry: mapResult) {
+      std::cout<<"\nTEST: "<<entry.first<<std::endl;
     }
     return mapResult;
   }

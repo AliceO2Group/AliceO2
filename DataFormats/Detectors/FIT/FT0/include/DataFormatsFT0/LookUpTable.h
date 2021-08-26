@@ -357,6 +357,7 @@ class SingleLUT : public LookUpTable
 };
 } // namespace deprecated
 using SingleLUT = o2::fit::LUT;
+//using SingleLUT = deprecated::SingleLUT;
 } // namespace ft0
 } // namespace o2
 #endif
