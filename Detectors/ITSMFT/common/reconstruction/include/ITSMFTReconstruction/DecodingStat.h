@@ -39,7 +39,8 @@ struct ChipStat {
     TruncatedLondData,    // Data was truncated in the LongData record
     WrongDataLongPattern, // LongData pattern has highest bit set
     NoDataFound,          // Region is not followed by Short or Long data
-    UnknownWord,          // Unknow word was seen
+    UnknownWord,          // Unknown word was seen
+    RepeatingPixel,       // Same pixel fired more than once
     NErrorsDefined
   };
 
@@ -55,7 +56,8 @@ struct ChipStat {
     "Data truncated after LongData",                // TruncatedLondData
     "LongData pattern has highest bit set",         // WrongDataLongPattern
     "Region is not followed by Short or Long data", // NoDataFound
-    "Unknown word"                                  // UnknownWord
+    "Unknown word",                                 // UnknownWord
+    "Same pixel fired multiple times"               // RepeatingPixel
   };
 
   uint16_t id = -1;
