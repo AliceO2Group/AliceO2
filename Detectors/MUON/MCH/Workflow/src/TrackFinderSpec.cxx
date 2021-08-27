@@ -151,7 +151,7 @@ class TrackFinderTask
     for (const auto& track : tracks) {
 
       TrackParam paramAtMID(track.last());
-      if (!TrackExtrap::extrapToMID(&paramAtMID)) {
+      if (!TrackExtrap::extrapToMID(paramAtMID)) {
         LOG(WARNING) << "propagation to MID failed --> track discarded";
         continue;
       }

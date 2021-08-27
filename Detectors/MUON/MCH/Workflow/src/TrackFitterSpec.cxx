@@ -105,7 +105,7 @@ class TrackFitterTask
 
         // propagate the parameters to the MID
         TrackParam paramAtMID(track.last());
-        if (!TrackExtrap::extrapToMID(&paramAtMID)) {
+        if (!TrackExtrap::extrapToMID(paramAtMID)) {
           LOG(ERROR) << "propagation to MID failed --> track discarded";
           continue;
         }

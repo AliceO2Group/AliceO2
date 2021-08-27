@@ -158,7 +158,7 @@ class TrackAtVertexTask
 
       // extrapolate to vertex
       TrackParam trackParamAtVertex(track.getZ(), track.getParameters());
-      if (!TrackExtrap::extrapToVertex(&trackParamAtVertex, vertex.x(), vertex.y(), vertex.z(), 0., 0.)) {
+      if (!TrackExtrap::extrapToVertex(trackParamAtVertex, vertex.x(), vertex.y(), vertex.z(), 0., 0.)) {
         tracksAtVtx.pop_back();
         continue;
       }
@@ -172,7 +172,7 @@ class TrackAtVertexTask
 
       // extrapolate to DCA
       TrackParam trackParamAtDCA(track.getZ(), track.getParameters());
-      if (!TrackExtrap::extrapToVertexWithoutBranson(&trackParamAtDCA, vertex.z())) {
+      if (!TrackExtrap::extrapToVertexWithoutBranson(trackParamAtDCA, vertex.z())) {
         tracksAtVtx.pop_back();
         continue;
       }
@@ -182,7 +182,7 @@ class TrackAtVertexTask
 
       // extrapolate to the end of the absorber
       TrackParam trackParamAtRAbs(track.getZ(), track.getParameters());
-      if (!TrackExtrap::extrapToZ(&trackParamAtRAbs, -505.)) {
+      if (!TrackExtrap::extrapToZ(trackParamAtRAbs, -505.)) {
         tracksAtVtx.pop_back();
         continue;
       }
