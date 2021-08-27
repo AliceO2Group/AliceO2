@@ -153,6 +153,7 @@ std::vector<T> injectCustomizations()
   auto defaultPolicies = T::createDefaultPolicies();
   policies.insert(std::end(policies), std::begin(policies), std::end(policies));
 }
+void silenceUserOutput(int argc, char** argv, bool enable);
 
 int mainNoCatch(int argc, char** argv)
 {
@@ -187,7 +188,10 @@ int mainNoCatch(int argc, char** argv)
   workflowOptionsStore->activate();
   ConfigParamRegistry workflowOptionsRegistry(std::move(workflowOptionsStore));
   ConfigContext configContext(workflowOptionsRegistry, argc, argv);
+  silenceUserOutput(argc, argv, true);
   o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
+  silenceUserOutput(argc, argv, false);
+
   overrideCloning(configContext, specs);
   overridePipeline(configContext, specs);
   overrideLabels(configContext, specs);

@@ -2628,3 +2628,36 @@ void doBoostException(boost::exception& e, char const* processName)
   LOGP(ERROR, "error while setting up workflow in {}: {}",
        processName, boost::current_exception_diagnostic_information(true));
 }
+
+void silenceUserOutput(int argc, char** argv, bool enable)
+{
+  static bool shouldSilence = false;
+  for (size_t i = 0; i < argc; i++) {
+    if (strcmp(argv[i], "--dds") == 0) {
+      shouldSilence = true;
+      break;
+    }
+    if (strcmp(argv[i], "--dump") == 0) {
+      shouldSilence = true;
+      break;
+    }
+  }
+
+  static std::streambuf* coutSbuf = nullptr;
+  static std::streambuf* cerrSbuf = nullptr;
+  static std::ofstream fout("/dev/null");
+  static fair::Severity severity = fair::Logger::GetConsoleSeverity();
+
+  if (shouldSilence && (enable == true)) {
+    fair::Logger::SetConsoleSeverity(fair::Severity::error);
+    coutSbuf = std::cout.rdbuf();
+    cerrSbuf = std::cerr.rdbuf();
+    std::cout.rdbuf(fout.rdbuf());
+    std::cerr.rdbuf(fout.rdbuf());
+  }
+  if (shouldSilence && (enable == false)) {
+    fair::Logger::SetConsoleSeverity(severity);
+    std::cout.rdbuf(coutSbuf);
+    std::cerr.rdbuf(cerrSbuf);
+  }
+}
