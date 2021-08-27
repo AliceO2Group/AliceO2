@@ -28,7 +28,7 @@ void CTPScalerRaw::printStream(std::ostream& stream) const
   stream << " L1B:" << std::setw(10) << l1Before << " L1A:" << std::setw(10) << l1After << std::endl;
 }
 //
-void CTPScalerO2::createCTPScalerO2FromRaw(CTPScalerRaw raw, std::array<uint32_t, 6>& overflow)
+void CTPScalerO2::createCTPScalerO2FromRaw(const CTPScalerRaw& raw, const std::array<uint32_t, 6>& overflow)
 {
   classIndex = raw.classIndex;
   lmBefore = (uint64_t)(raw.lmBefore) + 0xffffffffull * (uint64_t)(overflow[0]);
@@ -124,7 +124,7 @@ int CTPRunScalers::readScalers(const std::string& rawscalers)
   }
   return 0;
 }
-int CTPRunScalers::processScalerLine(std::string& line, int& level, int& nclasses)
+int CTPRunScalers::processScalerLine(const std::string& line, int& level, int& nclasses)
 {
   //std::cout << "Processing line" << std::endl;
   if (line.size() == 0) {
@@ -228,7 +228,7 @@ int CTPRunScalers::convertRawToO2()
   CTPScalerRecordO2 o2rec;
   copyRawToO2ScalerRecord(mScalerRecordRaw[0], o2rec, overflows);
   mScalerRecordO2.push_back(o2rec);
-  for (int i = 1; i < mScalerRecordRaw.size(); i++) {
+  for (uint32_t i = 1; i < mScalerRecordRaw.size(); i++) {
     //update overflows
     updateOverflows(mScalerRecordRaw[i - 1], mScalerRecordRaw[i], overflows);
     //
@@ -250,7 +250,7 @@ int CTPRunScalers::copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec, CTP
   o2rec.intRecord = rawrec.intRecord;
   o2rec.seconds = rawrec.seconds;
   o2rec.microSeconds = rawrec.microSeconds;
-  for (int i = 0; i < rawrec.scalers.size(); i++) {
+  for (uint32_t i = 0; i < rawrec.scalers.size(); i++) {
     CTPScalerRaw rawscal = rawrec.scalers[i];
     CTPScalerO2 o2scal;
     int k = (getClassIndexes())[i];
