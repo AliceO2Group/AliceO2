@@ -20,8 +20,13 @@ namespace o2::mch
 
 struct DigitizerParam : public o2::conf::ConfigurableParamHelper<DigitizerParam> {
 
-  bool continuous = true;           // whether we assume continuous mode or not
-  float noiseProba = 3.1671242e-05; // by default = proba to be above 4*sigma of a gaussian noise
+  bool continuous = true;   // whether we assume continuous mode or not
+  float noiseProba = 1E-6;  // noise proba (per pad per ROF=100ns)
+  float noiseMean = 42;     // mean noise (in ADC counts). default value assumes 3 ADC count per sample, 14 samples for a signal.
+  float noiseSigma = 11.22; // noise sigma (in ADC counts) = sqrt(14)*sigma_for_one_sample
+  float timeSpread = 150;   // time spread added to digit times (in nanoseconds)
+  int seed = 0;             // seed for random number generator(s) used for time and noise (0 means no seed given)
+  bool onlyNoise = false;   // for debug only : disable treatment of signal (i.e. keep only noise)
 
   O2ParamDef(DigitizerParam, "MCHDigitizerParam")
 };

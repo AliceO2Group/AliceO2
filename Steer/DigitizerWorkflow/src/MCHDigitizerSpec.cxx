@@ -47,7 +47,12 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   void initDigitizerTask(framework::InitContext& ic) override
   {
     auto transformation = o2::mch::geo::transformationFromTGeoManager(*gGeoManager);
-    mDigitizer = std::make_unique<Digitizer>(transformation);
+    auto& params = DigitizerParam::Instance();
+    mDigitizer = std::make_unique<Digitizer>(transformation,
+                                             params.timeSpread,
+                                             params.noiseMean,
+                                             params.noiseSigma,
+                                             params.seed);
   }
 
   void logStatus(gsl::span<Digit> digits, gsl::span<ROFRecord> rofs,
@@ -73,33 +78,32 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       return;
     }
     float noiseProba = DigitizerParam::Instance().noiseProba;
+    bool onlyNoise = DigitizerParam::Instance().onlyNoise;
     auto tStart = std::chrono::high_resolution_clock::now();
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     context->initSimChains(o2::detectors::DetID::MCH, mSimChains);
     const auto& eventRecords = context->getEventRecords();
     const auto& eventParts = context->getEventParts();
+    if (!onlyNoise) {
+      for (auto i = 0; i < eventRecords.size(); i++) {
+        auto ir = eventRecords[i];
+        for (const auto& part : eventParts[i]) {
+          std::vector<o2::mch::Hit> hits;
+          context->retrieveHits(mSimChains, "MCHHit", part.sourceID, part.entryID, &hits);
+          mDigitizer->processHits(ir, hits, part.entryID, part.sourceID);
+        }
+      }
+    }
+
+    // we generate noise only (for the moment ?) between first and last collision
+    auto firstIR = eventRecords.front();
+    auto lastIR = eventRecords.back();
+    mDigitizer->addNoise(noiseProba, firstIR, lastIR);
+
     std::vector<o2::mch::Digit> digits;
     std::vector<o2::mch::ROFRecord> rofs;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
-    size_t firstIdx = 0;
-    auto mchRecords = groupIR(eventRecords);
-    for (auto mrec : mchRecords) {
-      auto collisionIndices = mrec.second;
-      const auto& mchIR = mrec.first;
-      mDigitizer->startCollision(mchIR);
-      for (auto collisionIndex : collisionIndices) {
-        for (const auto& part : eventParts[collisionIndex]) {
-          std::vector<o2::mch::Hit> hits;
-          context->retrieveHits(mSimChains, "MCHHit", part.sourceID, part.entryID, &hits);
-          mDigitizer->processHits(hits, part.entryID, part.sourceID);
-        }
-      }
-      mDigitizer->addNoise(noiseProba);
-      mDigitizer->extractDigitsAndLabels(digits, labels);
-      auto nEntries = digits.size() - firstIdx;
-      rofs.emplace_back(ROFRecord(mchIR, firstIdx, nEntries));
-      firstIdx = digits.size();
-    }
+    mDigitizer->extract(rofs, digits, labels);
     pc.outputs().snapshot(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, digits);
     pc.outputs().snapshot(Output{"MCH", "DIGITROFS", 0, Lifetime::Timeframe}, rofs);
     if (pc.outputs().isAllowed({"MCH", "DIGITSLABELS", 0})) {
@@ -116,7 +120,8 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   }
 
  private:
-  std::unique_ptr<Digitizer> mDigitizer;
+  std::unique_ptr<Digitizer>
+    mDigitizer;
   std::vector<TChain*> mSimChains;
 };
 

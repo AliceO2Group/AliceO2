@@ -10,41 +10,65 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHSimulation/DEDigitizer.h"
+#include "CommonConstants/LHCConstants.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include <cmath>
 #include <random>
 
 using o2::math_utils::Point3D;
 
+o2::InteractionRecord ir2sampaIR(o2::InteractionRecord collisionTime)
+{
+  collisionTime.bc = collisionTime.bc - collisionTime.bc % 4;
+  return collisionTime;
+}
+
 namespace o2::mch
 {
 
-DEDigitizer::DEDigitizer(int deId, o2::math_utils::Transform3D transformation)
+DEDigitizer::DEDigitizer(int deId,
+                         o2::math_utils::Transform3D transformation,
+                         float timeSpread,
+                         float noiseChargeMean,
+                         float noiseChargeSigma,
+                         int seed)
   : mDeId{deId},
     mResponse{deId < 300 ? Station::Type1 : Station::Type2345},
     mTransformation{transformation},
     mSegmentation{o2::mch::mapping::segmentation(deId)},
-    mCharges(mSegmentation.nofPads()),
-    mLabels(mSegmentation.nofPads())
+    mTimeDist{0.0, timeSpread},
+    mChargeDist{noiseChargeMean, noiseChargeSigma},
+    mGene{seed == 0 ? std::random_device{}() : seed}
 {
 }
 
-void DEDigitizer::startCollision(o2::InteractionRecord collisionTime)
+void DEDigitizer::addNoise(float noiseProba,
+                           const o2::InteractionRecord& firstIR,
+                           const o2::InteractionRecord& lastIR)
 {
-  mIR = collisionTime;
-  clear();
+  float mean = noiseProba * mSegmentation.nofPads();
+
+  std::poisson_distribution<int> nofPadsDist(mean);
+  std::uniform_int_distribution<int> ids(0, mSegmentation.nofPads() - 1);
+
+  for (auto rof = firstIR; rof < lastIR; rof += 4) {
+    // draw a number of noisy pad for this IR
+    int nofNoisyPads = nofPadsDist(mGene);
+    for (auto i = 0; i < nofNoisyPads; i++) {
+      auto padid = ids(mGene);
+      float chargeNoise = mChargeDist(mGene);
+      appendDigit(rof, padid, chargeNoise, MCCompLabel{true});
+    }
+  }
 }
 
-void DEDigitizer::process(const Hit& hit, int evID, int srcID)
+void DEDigitizer::process(const o2::InteractionRecord& collisionTime, const Hit& hit, int evID, int srcID)
 {
   MCCompLabel label(hit.GetTrackID(), evID, srcID);
   Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
 
   //convert energy to charge
   auto charge = mResponse.etocharge(hit.GetEnergyLoss());
-
-  auto time = mIR.differenceInBC(o2::raw::HBFUtils::Instance().orbitFirst);
-  // digit time will disappear anyway ? (same information in ROFRecord)
 
   //transformation from global to local
   Point3D<float> lpos;
@@ -93,73 +117,98 @@ void DEDigitizer::process(const Hit& hit, int evID, int srcID)
     auto ymin = (localY - mSegmentation.padPositionY(padid)) - dy;
     auto ymax = ymin + 2 * dy;
     auto q = mResponse.chargePadfraction(xmin, xmax, ymin, ymax);
-    if (mResponse.aboveThreshold(q)) {
+    if (mResponse.isAboveThreshold(q)) {
       if (mSegmentation.isBendingPad(padid)) {
         q *= chargebend;
       } else {
         q *= chargenon;
       }
       if (q > 0) {
-        mCharges[padid] += q;
-        mLabels[padid].emplace_back(label);
+        // shift the initial ROF time by some random bc value
+        // so that each digits gets its own ROF (close to the initial one
+        // but not quite equal to that original one)
+        o2::InteractionRecord ir = shiftTime(collisionTime);
+        appendDigit(ir, padid, q, label);
       }
     }
   }
 }
 
-void DEDigitizer::addNoise(float noiseProba)
+int64_t DEDigitizer::drawRandomTimeShift()
 {
-  std::random_device rd;
-  std::mt19937 mt(rd());
-
-  float mean = noiseProba * mSegmentation.nofPads();
-  float sigma = mean / std::sqrt(mean);
-
-  std::normal_distribution<float> gaus(mean, sigma);
-
-  int nofNoisyPads = std::ceil(gaus(mt));
-
-  std::uniform_int_distribution<int> ids(0, mSegmentation.nofPads() - 1);
-
-  float chargeNoise = 1.2;
-  // FIXME: draw this also from some distribution (according to
-  // some parameters in DigitizerParam)
-  for (auto i = 0; i < nofNoisyPads; i++) {
-    auto padid = ids(mt);
-    mCharges[padid] += chargeNoise;
-    mLabels[padid].emplace_back(true);
-  }
+  return std::round(mTimeDist(mGene) / constants::lhc::LHCBunchSpacingNS);
 }
 
-void DEDigitizer::extractDigitsAndLabels(std::vector<Digit>& digits,
-                                         o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels)
+o2::InteractionRecord DEDigitizer::shiftTime(o2::InteractionRecord ir)
 {
-  int dataindex = labels.getIndexedSize();
-  for (auto padid = 0; padid < mCharges.size(); ++padid) {
-    auto q = mCharges[padid];
-    if (q <= 0) {
-      continue;
-    }
-    // FIXME: this is just to compare with previous MCHDigitizer
-    auto signal = (uint32_t)q * mResponse.getInverseChargeThreshold();
-    auto padc = signal * mResponse.getChargeThreshold();
-    auto adc = mResponse.response(TMath::Nint(padc));
-    if (adc > 0) {
-      auto time = mIR.differenceInBC(o2::raw::HBFUtils::Instance().orbitFirst);
-      digits.emplace_back(mDeId, padid, adc, time, 1);
-      for (auto element : mLabels[padid]) {
-        labels.addElement(dataindex, element);
-      }
-      ++dataindex;
-    }
+  auto tshift = drawRandomTimeShift();
+  if (tshift > 0) {
+    ir += tshift;
+  } else {
+    ir -= -tshift;
+  }
+  return ir;
+}
+
+void DEDigitizer::appendDigit(o2::InteractionRecord ir, int padid, float charge, const MCCompLabel& label)
+{
+  // ensure that time is aligned to 4-BCs
+  ir = ir2sampaIR(ir);
+
+  auto& pads = mPadMap[ir]; // get the set of pads for that time
+
+  // search if we already have that pad (identified by its padid) in that set
+  auto f = std::find_if(pads.begin(), pads.end(), [padid](const Pad& pad) {
+    return pad.padid == padid;
+  });
+  if (f != pads.end()) {
+    // pad is already present, let's merge the charge
+    (*f).charge += charge;
+    (*f).labels.push_back(label);
+  } else {
+    // otherwise create a new pad
+    pads.emplace_back(padid, charge, label);
   }
 }
 
 void DEDigitizer::clear()
 {
-  std::fill(mCharges.begin(), mCharges.end(), 0);
-  for (auto& label : mLabels) {
-    label.clear();
+  mPadMap.clear();
+}
+
+void DEDigitizer::extractRofs(std::set<o2::InteractionRecord>& rofs)
+{
+  for (const auto& p : mPadMap) {
+    rofs.emplace(p.first.bc, p.first.orbit);
+  }
+}
+
+void DEDigitizer::extractDigitsAndLabels(const o2::InteractionRecord& rof,
+                                         std::vector<Digit>& digits,
+                                         o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels)
+{
+  auto& pads = mPadMap[rof];
+  if (pads.empty()) {
+    return;
+  }
+  int dataindex = labels.getIndexedSize();
+  for (auto pad : pads) {
+    auto q = pad.charge;
+    if (q <= 0) {
+      continue;
+    }
+    auto adc = std::round(q); // FIXME: trivial, should we allow for a scale factor here ?
+    if (adc > 1023) {
+      adc = 1023;
+    }
+    if (adc > 0) {
+      auto time = rof.differenceInBC(o2::raw::HBFUtils::Instance().orbitFirst);
+      digits.emplace_back(mDeId, pad.padid, adc, time, 1);
+      for (auto element : pad.labels) {
+        labels.addElement(dataindex, element);
+      }
+      ++dataindex;
+    }
   }
 }
 
