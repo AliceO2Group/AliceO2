@@ -330,17 +330,17 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& sigmai
 
   // Fast Circle Fit (Hansroul, Jeremie, Savard, 1987)
   auto nPoints = track.getNumberOfPoints();
-  Double_t* xVal = new Double_t[nPoints];
-  Double_t* yVal = new Double_t[nPoints];
-  Double_t* zVal = new Double_t[nPoints];
-  Double_t* xErr = new Double_t[nPoints];
-  Double_t* yErr = new Double_t[nPoints];
-  Double_t* uVal = new Double_t[nPoints - 1];
-  Double_t* vVal = new Double_t[nPoints - 1];
-  Double_t* vErr = new Double_t[nPoints - 1];
-  Double_t* fweight = new Double_t[nPoints - 1];
-  Double_t* Rn = new Double_t[nPoints - 1];
-  Double_t* Pn = new Double_t[nPoints - 1];
+  std::vector<double> xVal(nPoints);
+  std::vector<double> yVal(nPoints);
+  std::vector<double> zVal(nPoints);
+  std::vector<double> xErr(nPoints);
+  std::vector<double> yErr(nPoints);
+  std::vector<double> uVal(nPoints - 1);
+  std::vector<double> vVal(nPoints - 1);
+  std::vector<double> vErr(nPoints - 1);
+  std::vector<double> fweight(nPoints - 1);
+  std::vector<double> Rn(nPoints - 1);
+  std::vector<double> Pn(nPoints - 1);
   Double_t A, Aerr, B, Berr, x2, y2, invx2y2, a, b, r, sigmaRsq, u2, sigma;
   Double_t F0, F1, F2, F3, F4, SumSRn, SumSPn, SumRn, SumUPn, SumRP;
 
@@ -459,7 +459,7 @@ Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& sigmai
 }
 
 ////_________________________________________________________________________________________________
-Bool_t LinearRegression(Int_t nVal, Double_t* xVal, Double_t* yVal, Double_t* yErr, Double_t& B, Double_t& Berr, Double_t& A, Double_t& Aerr)
+Bool_t LinearRegression(Int_t nVal, std::vector<double>& xVal, std::vector<double>& yVal, std::vector<double>& yErr, Double_t& B, Double_t& Berr, Double_t& A, Double_t& Aerr)
 {
   // linear regression y = B * x + A
 

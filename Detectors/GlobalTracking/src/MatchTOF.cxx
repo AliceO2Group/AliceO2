@@ -70,7 +70,21 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
     mMatchedTracks[i].clear();
     mTracksWork[i].clear();
     mOutTOFLabels[i].clear();
+    mTrackGid[i].clear();
   }
+  for (int it = 0; it < trkType::SIZE; it++) {
+    mMatchedTracksIndex[it].clear();
+    mLTinfos[it].clear();
+    if (mMCTruthON) {
+      mTracksLblWork[it].clear();
+    }
+    for (int sec = o2::constants::math::NSectors; sec--;) {
+      mTracksSectIndexCache[it][sec].clear();
+    }
+  }
+
+  mSideTPC.clear();
+  mExtraTPCFwdTime.clear();
 
   if (!prepareTOFClusters()) { // check cluster before of tracks to see also if MC is required
     return;
@@ -148,19 +162,6 @@ bool MatchTOF::prepareTPCData()
 {
   mNotPropagatedToTOF[trkType::UNCONS] = 0;
   mNotPropagatedToTOF[trkType::CONSTR] = 0;
-
-  for (int it = 0; it < trkType::SIZE; it++) {
-    mMatchedTracksIndex[it].clear();
-
-    mLTinfos[it].clear();
-
-    if (mMCTruthON) {
-      mTracksLblWork[it].clear();
-    }
-    for (int sec = o2::constants::math::NSectors; sec--;) {
-      mTracksSectIndexCache[it][sec].clear();
-    }
-  }
 
   auto creator = [this](auto& trk, GTrackID gid, float time0, float terr) {
     const int nclustersMin = 0;

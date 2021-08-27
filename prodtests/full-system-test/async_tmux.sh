@@ -3,13 +3,18 @@
 MYDIR="$(dirname $(readlink -f $0))"
 source $MYDIR/setenv.sh
 
-# This sets up the hardcoded configuration to run the full system workflow on the EPN
-export SHMSIZE=$(( 112 << 30 ))
+# This sets up the hardcoded configuration to run the async full system test workflow on the EPN
+if [ $GPUTYPE == "CPU" ]; then
+  export SHMSIZE=$(( 112 << 30 ))
+else
+  export SHMSIZE=$(( 144 << 30 ))
+fi
 export NUMAGPUIDS=1
 export OPTIMIZED_PARALLEL_ASYNC=1
 export CTFINPUT=1
 export SHMTHROW=0
 export SEVERITY=error
+export GPU_NUM_MEM_REG_CALLBACKS=2
 
 if [ ! -f matbud.root ]; then
   echo matbud.root missing
@@ -25,8 +30,8 @@ if [ "0$FST_TMUX_LOGPREFIX" != "0" ]; then
   LOGCMD1=" &> ${FST_TMUX_LOGPREFIX}_1.log"
 fi
 
-export TFDELAY=$(expr $TFDELAY \* 2)
-export NTIMEFRAMES=$(expr $(expr $NTIMEFRAMES + 1) / 2)
+export TFDELAY=$(($TFDELAY * 2))
+export NTIMEFRAMES=$((($NTIMEFRAMES + 1) / 2))
 
 rm -f /dev/shm/*fmq*
 
