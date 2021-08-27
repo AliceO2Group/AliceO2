@@ -212,7 +212,7 @@ void CTFCoder::decompress(const CompressedClusters& cc, VROF& rofRecVec, VCLUS& 
   assert(chipCount == cc.header.nChips);
 
   if (clCount != cc.header.nClusters) {
-    LOG(ERROR) << "expected " << cc.header.nClusters << " but counted " << clCount << " in " << cc.header.nROFs << " ROFRecords";
+    LOG(ERROR) << "expected " << cc.header.nClusters << " but counted " << clCount << " in ROFRecords";
     throw std::runtime_error("mismatch between expected and counter number of clusters");
   }
 }
