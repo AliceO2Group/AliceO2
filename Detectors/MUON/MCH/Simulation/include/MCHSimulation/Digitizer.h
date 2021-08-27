@@ -12,13 +12,14 @@
 #ifndef O2_MCH_SIMULATION_DIGITIZER_H
 #define O2_MCH_SIMULATION_DIGITIZER_H
 
-#include "MCHSimulation/Hit.h"
+#include "DataFormatsMCH/ROFRecord.h"
 #include "MCHGeometryTransformer/Transformations.h"
 #include "MCHSimulation/DEDigitizer.h"
-#include <map>
-#include <gsl/span>
+#include "MCHSimulation/Hit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include <gsl/span>
+#include <map>
 
 namespace o2::mch
 {
@@ -32,43 +33,38 @@ class Digitizer
  public:
   /** Constructor.
    * @param transformationCreator is a function that is able to create
-   * a geo::TransformationCreator
+   *        a geo::TransformationCreator
+   *
+   * for the other parameters @see DEDigitizer::DEDigitizer
    */
-  Digitizer(geo::TransformationCreator transformationCreator);
+  Digitizer(geo::TransformationCreator transformationCreator,
+            float timeSpread,
+            float noiseChargeMean,
+            float noiseChargeSigma,
+            int seed);
 
-  // @see DEDigitizer::addNoise
-  void addNoise(float noiseProba);
+  /** @see DEDigitizer::addNoise */
+  void addNoise(float noiseProba,
+                const o2::InteractionRecord& firstIR,
+                const o2::InteractionRecord& lastIR);
 
-  // @see DEDigitizer::startCollision
-  void startCollision(o2::InteractionRecord collisionTime);
+  /** @see DEDigitizer::processHit */
+  void processHits(const o2::InteractionRecord& collisionTime,
+                   gsl::span<Hit> hits, int evID, int srcID);
 
-  // @see DEDigitizer::processHit
-  void processHits(gsl::span<Hit> hits, int evID, int srcID);
+  /** fills (adds to) the given vectors of rofs, digits and labels with our internal
+   *  information so far.
+   */
+  void extract(std::vector<o2::mch::ROFRecord>& rofs,
+               std::vector<Digit>& digits,
+               o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels);
 
-  // @see DEDigitizer::extractDigitsAndLabels
-  void extractDigitsAndLabels(std::vector<Digit>& digits,
-                              o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels);
-
-  // @see DEDigitizer:clear
+  /** Clear our internal storage. */
   void clear();
 
  private:
   std::map<int, std::unique_ptr<DEDigitizer>> mDEDigitizers; // list of workers
 };
-
-/** Group Interaction Record that are "too close" in time (BC).
- *
- * @param records : a list of input IR to group
- * @param width (in BC unit) : all IRs within this distance will be considered
- * to be a single group
- *
- * @returns a map of IRs->{index} where index is relative to input records
- *
- */
-std::map<o2::InteractionRecord, std::vector<int>> groupIR(gsl::span<const o2::InteractionRecord> records, uint32_t width = 4);
-
-/** Same as above for InteractionTimeRecord. */
-std::map<o2::InteractionRecord, std::vector<int>> groupIR(gsl::span<const o2::InteractionTimeRecord> records, uint32_t width = 4);
 
 } // namespace o2::mch
 #endif

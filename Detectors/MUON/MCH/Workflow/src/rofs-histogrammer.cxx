@@ -80,10 +80,13 @@ struct Histogrammer {
     THnSparseL h("rof_times", "rof times", 1, bins, xmin, xmax);
     for (const auto& p : mRofs) {
       const auto& rof = p.first;
-      Double_t x[1] = {1.0 * rof.getBCData().differenceInBC(firstRof)};
       Double_t w = rof.getNEntries();
-      h.Fill(x, w);
-      h.SetBinError(h.GetBin(x), sqrt(w));
+      Double_t x[1] = {1.0 * rof.getBCData().differenceInBC(firstRof)};
+      for (auto i = 0; i < rof.getBCWidth(); i++) {
+        x[0] += 1.0;
+        h.Fill(x, w);
+        h.SetBinError(h.GetBin(x), sqrt(w));
+      }
     }
     h.Write("", TObject::kWriteDelete);
   }

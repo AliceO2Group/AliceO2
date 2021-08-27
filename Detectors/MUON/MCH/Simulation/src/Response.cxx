@@ -19,6 +19,7 @@
 
 #include "TMath.h"
 #include "TRandom.h"
+#include <cmath>
 
 using namespace o2::mch;
 
@@ -51,23 +52,11 @@ Response::Response(Station station) : mStation(station)
     mQspreadY = 0.18;
     mSigmaIntegration = 10.;
   }
-
-  if (mSampa) {
-    mChargeThreshold = 1e-4; // 1e-4 refers to charge fraction in aliroot
-    mInverseChargeThreshold = 10000.;
-    //not actual charge, hence normalise
-    mMaxADC = (1 << 20) - 1;
-    mFCtoADC = 1 / (0.61 * 1.25 * 0.2);
-    mADCtoFC = 0.61 * 1.25 * 0.2;
-    //TODO: potentially other parameters e.g. for gain
-  }
 }
 
 //_____________________________________________________________________
-float Response::etocharge(float edepos)
-{ // AliMUONResponseV0::IntPH(Float_t eloss) const
-  //confirmed 20.03.2020
-  //expression in PH, i.e. ADC!
+float Response::etocharge(float edepos) const
+{
   int nel = int(edepos * 1.e9 / 27.4);
   float charge = 0;
   if (nel == 0) {
@@ -80,15 +69,12 @@ float Response::etocharge(float edepos)
     }
     charge -= mChargeSlope * TMath::Log(arg);
   }
-  //no translation to fC, as in Aliroot
   return charge;
 }
 //_____________________________________________________________________
-double Response::chargePadfraction(float xmin, float xmax, float ymin, float ymax)
+double Response::chargePadfraction(float xmin, float xmax, float ymin, float ymax) const
 {
-  //see AliMUONResponseV0.cxx (inside DisIntegrate)
-  // and AliMUONMathieson.cxx (IntXY)
-  //see: https://edms.cern.ch/ui/file/1054937/1/ALICE-INT-2009-044.pdf
+  // see: https://edms.cern.ch/ui/file/1054937/1/ALICE-INT-2009-044.pdf
   // normalise w.r.t. Pitch
   xmin *= mInversePitch;
   xmax *= mInversePitch;
@@ -98,45 +84,23 @@ double Response::chargePadfraction(float xmin, float xmax, float ymin, float yma
   return chargefrac1d(xmin, xmax, mK2x, mSqrtK3x, mK4x) * chargefrac1d(ymin, ymax, mK2y, mSqrtK3y, mK4y);
 }
 //______________________________________________________________________
-double Response::chargefrac1d(float min, float max, double k2, double sqrtk3, double k4)
+double Response::chargefrac1d(float min, float max, double k2, double sqrtk3, double k4) const
 {
   // The Mathieson function integral (1D)
   double u1 = sqrtk3 * TMath::TanH(k2 * min);
   double u2 = sqrtk3 * TMath::TanH(k2 * max);
   return 2. * k4 * (TMath::ATan(u2) - TMath::ATan(u1));
 }
-//______________________________________________________________________
-uint32_t Response::response(uint32_t adc)
-{
-  //DecalibrateTrackerDigit functionality from
-  //AliMuonDigitizerV3 in aliroot
-  int fgNSigma = 5.0; //aliroot no
-  //no channel-by-channel noise map as in aliroot
-  float pedestalSigma = 0.0; //channnel noise 0.5 aliroot
-  float adc_out = adc;
-  float pedestalMean = 0;
-  float adcNoise = 0.0;
-  //TODO: parameter choices for match with aliroot
 
-  adc = TMath::Nint(adc_out + pedestalMean + adcNoise + 0.5);
-
-  if (adc_out < TMath::Nint(pedestalMean + fgNSigma * pedestalSigma + 0.5)) {
-    adc = 0;
-  }
-  if (adc > mMaxADC) {
-    adc = mMaxADC;
-  }
-  return adc;
-}
 //______________________________________________________________________
-float Response::getAnod(float x)
+float Response::getAnod(float x) const
 {
   int n = Int_t(x * mInversePitch);
   float wire = (x > 0) ? n + 0.5 : n - 0.5;
   return wire * mPitch;
 }
 //______________________________________________________________________
-float Response::chargeCorr()
+float Response::chargeCorr() const
 {
   //taken from AliMUONResponseV0
   //conceptually not at all understood why this should make sense

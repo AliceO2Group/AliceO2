@@ -33,7 +33,6 @@
 
 using IR = o2::InteractionRecord;
 using o2::mch::Digit;
-using o2::mch::groupIR;
 using o2::mch::Hit;
 using o2::mch::mapping::Segmentation;
 
@@ -87,11 +86,10 @@ BOOST_FIXTURE_TEST_SUITE(digitization, GEOMETRY)
 
 BOOST_AUTO_TEST_CASE(DigitizerTest)
 {
-  // FIXME: must set a (global) seed here to get reproducible results
-
   auto transformation = o2::mch::geo::transformationFromTGeoManager(*gGeoManager);
 
-  o2::mch::Digitizer digitizer(transformation);
+  int seed = 1235;
+  o2::mch::Digitizer digitizer(transformation, 0.0, 0.0, 0.0, seed);
   int trackId1 = 0;
   int trackId2 = 1;
   short detElemId1 = 101;
@@ -109,15 +107,14 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
   Segmentation seg1{detElemId1};
   Segmentation seg2{detElemId2};
 
-  digitizer.startCollision({0, 0});
-
   o2::conf::ConfigurableParam::setValue("MCHDigitizer", "noiseProba", 0.0);
-  digitizer.processHits(hits, 0, 0);
+  digitizer.processHits(o2::InteractionRecord{0, 0}, hits, 0, 0);
 
+  std::vector<o2::mch::ROFRecord> rofs;
   std::vector<Digit> digits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
 
-  digitizer.extractDigitsAndLabels(digits, labels);
+  digitizer.extract(rofs, digits, labels);
 
   int digitcounter1 = 0;
   int digitcounter2 = 0;
@@ -169,72 +166,4 @@ bool isSame(const std::map<IR, std::vector<int>>& result,
   return false;
 }
 
-const std::vector<IR> testIRs = {
-  /* bc, orbit */
-  {123, 0},
-  {125, 0},
-  {125, 0},
-  {125, 1},
-  {130, 1},
-  {134, 1},
-  {135, 1},
-  {137, 1},
-};
-
-BOOST_AUTO_TEST_CASE(GroupIRMustBeAlignedOn4BCMarks)
-{
-  std::map<IR, std::vector<int>> expected;
-  expected[IR{120, 0}] = {0};
-  expected[IR{124, 0}] = {1, 2};
-  expected[IR{124, 1}] = {3};
-  expected[IR{128, 1}] = {4};
-  expected[IR{132, 1}] = {5, 6};
-  expected[IR{136, 1}] = {7};
-
-  auto g = groupIR(testIRs, 4);
-  BOOST_CHECK_EQUAL(isSame(g, expected), true);
-}
-
-BOOST_AUTO_TEST_CASE(GroupIRMustThrowOnNonSortedRecords)
-{
-  const std::vector<IR> notSorted = {
-    {125, 0},
-    {123, 0},
-  };
-  BOOST_CHECK_THROW(groupIR(notSorted), std::invalid_argument);
-}
-
-BOOST_AUTO_TEST_CASE(GroupIRInvalidWidthMustThrow)
-{
-  BOOST_CHECK_THROW(groupIR(testIRs, 0), std::invalid_argument);
-}
-
-BOOST_AUTO_TEST_CASE(IdenticalIRsShouldBeMerged)
-{
-  std::map<IR, std::vector<int>> expected;
-  expected[IR{123, 0}] = {0};
-  expected[IR{125, 0}] = {1, 2};
-  expected[IR{125, 1}] = {3};
-  expected[IR{130, 1}] = {4};
-  expected[IR{134, 1}] = {5};
-  expected[IR{135, 1}] = {6};
-  expected[IR{137, 1}] = {7};
-
-  auto g = groupIR(testIRs, 1);
-  BOOST_CHECK_EQUAL(isSame(g, expected), true);
-}
-
-BOOST_AUTO_TEST_CASE(IRSeparatedByLessThan4BCShouldBeMerged)
-{
-  std::map<IR, std::vector<int>> expected;
-  expected[IR{120, 0}] = {0};
-  expected[IR{124, 0}] = {1, 2};
-  expected[IR{124, 1}] = {3};
-  expected[IR{128, 1}] = {4};
-  expected[IR{132, 1}] = {5, 6};
-  expected[IR{136, 1}] = {7};
-
-  auto g = groupIR(testIRs, 4);
-  BOOST_CHECK_EQUAL(isSame(g, expected), true);
-}
 BOOST_AUTO_TEST_SUITE_END()

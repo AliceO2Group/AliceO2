@@ -13,45 +13,71 @@
 #include "MCHMappingInterface/Segmentation.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include <algorithm>
+#include <set>
 
 namespace o2::mch
 {
 
-Digitizer::Digitizer(geo::TransformationCreator transformationCreator)
+Digitizer::Digitizer(geo::TransformationCreator transformationCreator,
+                     float timeSpread,
+                     float noiseChargeMean,
+                     float noiseChargeSigma,
+                     int seed)
 {
-  mapping::forEachDetectionElement([&transformation = transformationCreator, &digitizers = this->mDEDigitizers](int deId) {
-    digitizers[deId] = std::make_unique<DEDigitizer>(deId, transformation(deId));
+  mapping::forEachDetectionElement([&transformation = transformationCreator,
+                                    &digitizers = this->mDEDigitizers,
+                                    timeSpread,
+                                    noiseChargeMean,
+                                    noiseChargeSigma,
+                                    seed](int deId) {
+    digitizers[deId] = std::make_unique<DEDigitizer>(deId, transformation(deId),
+                                                     timeSpread,
+                                                     noiseChargeMean,
+                                                     noiseChargeSigma,
+                                                     seed);
   });
 }
 
-void Digitizer::addNoise(float noiseProba)
+void Digitizer::addNoise(float noiseProba,
+                         const o2::InteractionRecord& firstIR,
+                         const o2::InteractionRecord& lastIR)
 {
   if (noiseProba > 0) {
     for (auto& d : mDEDigitizers) {
-      d.second->addNoise(noiseProba);
+      d.second->addNoise(noiseProba, firstIR, lastIR);
     }
   }
 }
 
-void Digitizer::startCollision(o2::InteractionRecord collisionTime)
-{
-  for (auto& d : mDEDigitizers) {
-    d.second->startCollision(collisionTime);
-  }
-}
-
-void Digitizer::processHits(gsl::span<Hit> hits, int evID, int srcID)
+void Digitizer::processHits(const o2::InteractionRecord& collisionTime,
+                            gsl::span<Hit> hits, int evID, int srcID)
 {
   for (const auto& hit : hits) {
-    mDEDigitizers[hit.detElemId()]->process(hit, evID, srcID);
+    mDEDigitizers[hit.detElemId()]->process(collisionTime, hit, evID, srcID);
   }
 }
 
-void Digitizer::extractDigitsAndLabels(std::vector<Digit>& digits,
-                                       o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels)
+void Digitizer::extract(std::vector<o2::mch::ROFRecord>& rofs,
+                        std::vector<Digit>& digits,
+                        o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels)
 {
+  // get unique rofs
+  std::set<o2::InteractionRecord> irs;
   for (auto& d : mDEDigitizers) {
-    d.second->extractDigitsAndLabels(digits, labels);
+    d.second->extractRofs(irs);
+  }
+
+  // loop over those unique rofs and find out the digits (and labels)
+  // associated to them
+  for (auto ir : irs) {
+    std::vector<o2::mch::Digit> irDigits;
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> irLabels;
+    for (auto& d : mDEDigitizers) {
+      d.second->extractDigitsAndLabels(ir, irDigits, irLabels);
+    }
+    rofs.emplace_back(ROFRecord(ir, digits.size(), irDigits.size()));
+    digits.insert(digits.end(), irDigits.begin(), irDigits.end());
+    labels.mergeAtBack(irLabels);
   }
 }
 
@@ -60,34 +86,6 @@ void Digitizer::clear()
   for (auto& d : mDEDigitizers) {
     d.second->clear();
   }
-}
-
-std::map<o2::InteractionRecord, std::vector<int>> groupIR(gsl::span<const o2::InteractionTimeRecord> records, uint32_t width)
-{
-  std::vector<o2::InteractionRecord> irs;
-  for (const auto& ir : records) {
-    irs.emplace_back(ir.bc, ir.orbit);
-  }
-  return groupIR(irs, width);
-}
-
-std::map<o2::InteractionRecord, std::vector<int>> groupIR(gsl::span<const o2::InteractionRecord> records, uint32_t width)
-{
-  if (!std::is_sorted(records.begin(), records.end())) {
-    throw std::invalid_argument("input records must be sorted");
-  }
-  if (width < 1) {
-    throw std::invalid_argument("width must be >=1");
-  }
-  std::map<o2::InteractionRecord, std::vector<int>> binned;
-  auto ir0 = records[0];
-  for (auto i = 0; i < records.size(); ++i) {
-    auto ir = records[i];
-    auto mchIR = ir;
-    mchIR.bc = mchIR.bc - mchIR.bc % width;
-    binned[mchIR].emplace_back(i);
-  }
-  return binned;
 }
 
 } // namespace o2::mch
