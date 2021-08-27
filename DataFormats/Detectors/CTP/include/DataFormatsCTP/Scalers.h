@@ -42,7 +42,7 @@ struct CTPScalerRaw {
 /// Scalers produced from raw scalers corrected for overflow
 struct CTPScalerO2 {
   CTPScalerO2() = default;
-  void createCTPScalerO2FromRaw(CTPScalerRaw raw, std::array<uint32_t, 6>& overfow);
+  void createCTPScalerO2FromRaw(const CTPScalerRaw& raw, const std::array<uint32_t, 6>& overfow);
   uint32_t classIndex;
   uint64_t lmBefore;
   uint64_t lmAfter;
@@ -93,7 +93,7 @@ class CTPRunScalers
   std::bitset<CTP_NCLASSES> mClassMask;
   std::vector<CTPScalerRecordRaw> mScalerRecordRaw;
   std::vector<CTPScalerRecordO2> mScalerRecordO2;
-  int processScalerLine(std::string& line, int& level, int& nclasses);
+  int processScalerLine(const std::string& line, int& level, int& nclasses);
   int copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec, CTPScalerRecordO2& o2rec, overflows_t& classesoverflows);
   int updateOverflows(const CTPScalerRecordRaw& rec0, const CTPScalerRecordRaw& rec1, overflows_t& classesoverflows) const;
   int updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw& scal1, std::array<uint32_t, 6>& overflow) const;
