@@ -24,6 +24,8 @@ ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id $NUMAID --shm-
 if [ $EPNMODE == 1 ]; then
   ARGS_ALL+=" --infologger-severity $SEVERITY"
   #ARGS_ALL+=" --monitoring-backend influxdb-unix:///tmp/telegraf.sock"
+else
+  ARGS_ALL+=" --monitoring-backend no-op://"
 fi
 if [ $EXTINPUT == 1 ] || [ $NUMAGPUIDS == 1 ]; then
   ARGS_ALL+=" --no-cleanup"
