@@ -11,7 +11,6 @@ test -z ${MYDIR+x} && MYDIR="$(dirname $(readlink -f $0))"
 
 source $MYDIR/setenv.sh
 
-if [ -z $RUN_EVENT_DISPLAY ]; then RUN_EVENT_DISPLAY=0; fi
 if [ -z $OPTIMIZED_PARALLEL_ASYNC ]; then OPTIMIZED_PARALLEL_ASYNC=0; fi
 
 if [ "0$O2_ROOT" == "0" ]; then
@@ -234,9 +233,7 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="$CMD_CTF | "
 fi
 
-if [ $RUN_EVENT_DISPLAY == 1 ]; then
-  WORKFLOW+="o2-eve-display $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --display-tracks TPC --display-clusters TPC $DISABLE_MC | "
-fi
+workflow_has_parameter EVENT_DISPLAY && WORKFLOW+="o2-eve-display $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --display-tracks TPC --display-clusters TPC $DISABLE_MC | "
 
 # DPL run binary
 WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
