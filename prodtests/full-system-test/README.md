@@ -72,50 +72,7 @@ The `dpl-workflow.sh` can run both the synchronous and the asynchronous workflow
 All settings are configured via environment variables.
 The default settings (if no env variable is exported) are defined in `setenv.sh` which is sourced by all other scripts.
 (Please note that `start_tmux.sh` overrides a couple of options with EPN defaults).
-The following options exist (some of the options are not used in all scripts, and might behave slightly differently as noted):
-* `NTIMEFRAMES`: Number of time frames to process.
-  * `dpl-workflow.sh` without `EXTINPUT`: Will replay the timeframe `NTIMEFRAMES` time and then exit.
-  * `raw-reader.sh` : Will replay the timeframe `NTIMEFRAMES` time and `raw-reader.sh` will exit, the dpl-workflows will keep running.
-  * Ignored by `datadistribution.sh`, it will always run in an endless loop.
-* `TFDELAY`: Delay in seconds between publishing time frames (1 / rate).
-* `NGPUS`: Number of GPUs to use, data distributed round-robin.
-* `GPUTYPE`: GPU Tracking backend to use, can be CPU / CUDA / HIP / OCL / OCL2.
-* `SHMSIZE`: Size of the global shared memory segment.
-* `DDSHMSIZE`: Size of shared memory unmanaged region for DataDistribution Input.
-* `GPUMEMSIZE`: Size of allocated GPU memory (if GPUTYPE != CPU)
-* `HOSTMEMSIZE`: Size of allocated host memory for GPU reconstruction (0 = default).
-  * For `GPUTYPE = CPU`: TPC Tracking scratch memory size. (Default 0 -> dynamic allocation.)
-  * Otherwise : Size of page-locked host memory for GPU processing. (Defauls 0 -> 1 GB.)
-* `SAVECTF`: Save the CTF to a root file.
-* `CREATECTFDICT`: Create CTF dictionary.
-  * 0: Read `ctf_dictionary.root` as input.
-  * 1: Create `ctf_dictionary.root`. Note that this was already done automatically if the raw data was simulated with `full_system_test.sh`.
-* `SYNCMODE`: Run only reconstruction steps of the synchronous reconstruction.
-  * Note that there is no `ASYNCMODE` but instead the `CTFINPUT` option already enforces asynchronous processing.
-* `NUMAGPUIDS`: NUMAID-aware GPU id selection. Needed for the full EPN configuration with 8 GPUs, 2 NUMA domains, 4 GPUs per domain.
-  In this configuration, 2 instances of `dpl-workflow.sh` must run in parallel.
-  To be used in combination with `NUMAID` to select the id per workflow.
-  `start_tmux.sh` will set up these variables automatically.
-* `NUMAID`: SHM segment id to use for shipping data as well as set of GPUs to use (use `0` / `1` for 2 NUMA domains, 0 = GPUS `0` to `NGPUS - 1`, 1 = GPUS `NGPUS` to `2 * NGPUS - 1`)
-* 0: Runs all reconstruction steps, of sync and of async reconstruction, using raw data input.
-* 1: Runs only the steps of synchronous reconstruction, using raw data input.
-* `EXTINPUT`: Receive input from raw FMQ channel instead of running o2-raw-file-reader.
-  * 0: `dpl-workflow.sh` can run as standalone benchmark, and will read the input itself.
-  * 1: To be used in combination with either `datadistribution.sh` or `raw-reader.sh` or with another DataDistribution instance.
-* `CTFINPUT`: Read input from CTF ROOT file. This option is incompatible to EXTINPUT=1. The CTF ROOT file can be stored via SAVECTF=1.
-* `NHBPERTF`: Time frame length (in HBF)
-* `GLOBALDPLOPT`: Global DPL workflow options appended to o2-dpl-run.
-* `EPNPIPELINES`: Set default EPN pipeline multiplicities.
-  Normally the workflow will start 1 dpl device per processor.
-  For some of the CPU parts, this is insufficient to keep step with the GPU processing rate, e.g. one ITS-TPC matcher on the CPU is slower than the TPC tracking on multiple GPUs.
-  This option adds some multiplicies for CPU processes using DPL's pipeline feature.
-  The settings were tuned for EPN processing with 8 GPUs.
-  It is auto-selected by `start-tmux.sh`.
-* `SEVERITY`: Log verbosity (e.g. info or error)
-* `SHMTHROW`: Throw exception when running out of SHM memory.
-  It is suggested to leave this enabled (default) on tests on the laptop to get an actual error when it runs out of memory.
-  This is disabled in `start_tmux.sh`, to avoid breaking the processing while there is a chance that another process might free memory and we can continue.
-* `NORATELOG`: Disable FairMQ Rate Logging.
+The environment variables are documented here: https://github.com/AliceO2Group/O2DataProcessing/blob/dev/common/README.md
 
 ## Files produced / required by the full system test
 
