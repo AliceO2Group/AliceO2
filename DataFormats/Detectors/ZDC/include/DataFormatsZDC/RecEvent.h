@@ -107,7 +107,7 @@ struct RecEvent {
         printf("0");
       }
     }
-    printf(", code=%u \"%s\") %d active\n", code, MsgText[code].data(), cnt);
+    printf(", code=%u \"%s\") %d active.\n", code, MsgText[code].data(), cnt);
 #endif
     if (cnt <= 3) {
       // Transmission of single channels
