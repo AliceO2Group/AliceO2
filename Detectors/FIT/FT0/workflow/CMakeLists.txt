@@ -17,9 +17,6 @@ o2_add_library(FT0Workflow
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
                        src/DigitReaderSpec.cxx
-                       src/FT0Workflow.cxx
-                       src/FT0DataProcessDPLSpec.cxx
-                       src/FT0DataReaderDPLSpec.cxx
                        src/FT0DigitWriterSpec.cxx
                        src/RawReaderFT0.cxx
                        src/RecoQCworkflow.cxx

@@ -51,7 +51,7 @@ class RawReaderFIT : public RawReaderType
   typedef typename Digit_t::DetTrigInput_t DetTrigInput_t;
   typedef std::make_index_sequence<DigitBlockFIT_t::sNSubDigits> IndexesSubDigit;
   typedef std::make_index_sequence<DigitBlockFIT_t::sNSingleSubDigits> IndexesSingleSubDigit;
-
+  typedef std::make_index_sequence<std::tuple_size_v<typename DigitBlockFIT_t::TupleVecDigitObjs_t>> IndexesAllDigits;
   static constexpr bool sSubDigitExists = !std::is_same<SubDigitTmp_t, std::tuple<>>::value;
   static constexpr bool sSingleSubDigitExists = !std::is_same<SingleSubDigitTmp_t, std::tuple<>>::value;
   //Wrapping by std::tuple
@@ -94,30 +94,28 @@ class RawReaderFIT : public RawReaderType
       RawReader_t::getDigits(mVecDigit, std::get<IsubDigits>(mVecSubDigit)..., std::get<IsingleSubDigits>(mVecSingleSubDigit)...);
     }
   }
-
+  template <std::size_t... IDigits>
+  auto callGetDigitDirectly(o2::framework::ProcessingContext& pc, std::index_sequence<IDigits...>)
+  {
+    if constexpr (sUseTrgInput) {
+      RawReader_t::getDigits(getRefVec<std::tuple_element_t<IDigits, typename DigitBlockFIT_t::TupleVecDigitObjs_t>>(pc)..., getRefVec<typename std::vector<DetTrigInput_t>>(pc));
+    } else {
+      RawReader_t::getDigits(getRefVec<std::tuple_element_t<IDigits, typename DigitBlockFIT_t::TupleVecDigitObjs_t>>(pc)...);
+    }
+  }
   template <std::size_t... IsubDigits, std::size_t... IsingleSubDigits>
   auto callPrint(std::index_sequence<IsubDigits...>, std::index_sequence<IsingleSubDigits...>) const
   {
     DigitBlockFIT_t::print(mVecDigit, std::get<IsubDigits>(mVecSubDigit)..., std::get<IsingleSubDigits>(mVecSingleSubDigit)...);
   }
+  void accumulateDigits(o2::framework::ProcessingContext& pc)
+  {
+    callGetDigitDirectly(pc, IndexesAllDigits{});
+  }
   void accumulateDigits()
   {
     callGetDigit(IndexesSubDigit{}, IndexesSingleSubDigit{});
-    LOG(INFO) << "Number of Digits: " << mVecDigit.size();
-    /*
-    if constexpr (sSubDigitExists) {
-      std::apply([](const auto&... subDigit) {
-            ((LOG(INFO)<<"Total "<<std::decay<decltype(subDigit)>::type::value_type::sDigitName<<":"<<subDigit.size()), ...);
-        },
-      mVecSubDigit);
-    }
-    if constexpr (sSingleSubDigitExists) {
-      std::apply([](const auto&... singleSubDigit) {
-            ((LOG(INFO)<<"Total "<<std::decay<decltype(singleSubDigit)>::type::value_type::sDigitName<<":"<<singleSubDigit.size()), ...);
-        },
-      mVecSingleSubDigit);
-    }
-    */
+    LOG(DEBUG) << "Number of Digits: " << mVecDigit.size();
     if (mDumpData) {
       callPrint(IndexesSubDigit{}, IndexesSingleSubDigit{});
     }
@@ -159,6 +157,12 @@ class RawReaderFIT : public RawReaderType
     if constexpr (sUseTrgInput) {
       pc.outputs().snapshot(o2::framework::Output{mDataOrigin, DetTrigInput_t::sChannelNameDPL, 0, o2::framework::Lifetime::Timeframe}, mVecTrgInput);
     }
+  }
+  template <typename VecDigitType>
+  auto& getRefVec(o2::framework::ProcessingContext& pc)
+  {
+    auto& refVec = pc.outputs().make<VecDigitType>(o2::framework::Output{mDataOrigin, VecDigitType::value_type::sChannelNameDPL, 0, o2::framework::Lifetime::Timeframe});
+    return refVec;
   }
 };
 

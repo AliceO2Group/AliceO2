@@ -162,6 +162,7 @@ class DigitBlockBase //:public DigitBlock
   DigitBlockBase(o2::InteractionRecord intRec)
   {
     mDigit.setIntRecord(intRec);
+    mSubDigit.reserve(256);
   }
   DigitBlockBase(const DigitType& digit) : mDigit(digit)
   {
@@ -170,6 +171,7 @@ class DigitBlockBase //:public DigitBlock
   DigitBlockBase(const DigitBlockBase& other) = default;
   ~DigitBlockBase() = default;
   typedef DigitType Digit_t;
+  typedef std::tuple<std::vector<DigitType>, std::vector<SubDigitTypes>...> TupleVecDigitObjs_t;
   typedef boost::mpl::vector<SubDigitTypes...> VecAllSubDigit_t;
   typedef DigitBlockHelper::GetVecSubDigit<VecAllSubDigit_t> VecSubDigit_t;
   typedef DigitBlockHelper::GetVecSingleSubDigit<VecAllSubDigit_t> VecSingleSubDigit_t;
@@ -180,18 +182,18 @@ class DigitBlockBase //:public DigitBlock
   Digit_t mDigit;
   SubDigit_t mSubDigit;
   SingleSubDigit_t mSingleSubDigit;
-  template <typename... T>
-  auto getSubDigits(std::vector<Digit_t>& vecDigits, std::vector<T>&... vecSubDigits)
-    -> std::enable_if_t<sizeof...(T) == sNSubDigits>
+  template <typename VecDigit, typename... VecSubDigits>
+  auto getSubDigits(VecDigit& vecDigits, VecSubDigits&... vecSubDigits)
+    -> std::enable_if_t<sizeof...(VecSubDigits) == sNSubDigits>
   {
     if constexpr (sNSubDigits > 0) {
-      getSubDigit<sizeof...(T), sizeof...(T)>(std::tie(vecSubDigits...));
+      getSubDigit<sizeof...(VecSubDigits), sizeof...(VecSubDigits)>(std::tie(vecSubDigits...));
     }
     vecDigits.push_back(std::move(mDigit));
   }
 
   template <typename... T>
-  auto getSingleSubDigits(std::vector<T>&... vecSingleSubDigits)
+  auto getSingleSubDigits(T&... vecSingleSubDigits)
     -> std::enable_if_t<sizeof...(T) == sNSingleSubDigits>
   {
     if constexpr (sNSingleSubDigits > 0) {

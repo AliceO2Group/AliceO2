@@ -16,7 +16,7 @@
 #include "FT0Workflow/DigitReaderSpec.h"
 #include "FT0Workflow/RecPointWriterSpec.h"
 #include "FT0Workflow/ReconstructionSpec.h"
-#include "FT0Workflow/FT0DataReaderDPLSpec.h"
+//#include "FT0Workflow/FT0DataReaderDPLSpec.h"
 
 namespace o2
 {
