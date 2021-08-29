@@ -37,7 +37,7 @@ void Digitizer::clear()
 //_______________________________________________________________________
 void Digitizer::init()
 {
-  LOG(INFO) << "V0Digitizer::init -> start = ";
+  LOG(INFO) << "init";
   mNBins = FV0DigParam::Instance().waveformNbins;      //Will be computed using detector set-up from CDB
   mBinSize = FV0DigParam::Instance().waveformBinWidth; //Will be set-up from CDB
   mNTimeBinsPerBC = std::lround(o2::constants::lhc::LHCBunchSpacingNS / mBinSize); // 1920 bins/BC
@@ -77,7 +77,7 @@ void Digitizer::init()
   }
   mLastBCCache.clear();
   mCfdStartIndex.fill(0);
-  LOG(INFO) << "V0Digitizer::init -> finished";
+  LOG(INFO) << "init -> finished";
 }
 
 void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
@@ -86,7 +86,7 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
                         std::vector<o2::fv0::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
 {
-  LOG(INFO) << "[FV0] Digitizer::process(): begin with " << hits.size() << " hits";
+  LOG(DEBUG) << "Begin with " << hits.size() << " hits";
   flush(digitsBC, digitsCh, digitsTrig, labels); // flush cached signal which cannot be affect by new event
 
   std::vector<int> hitIdx(hits.size());
