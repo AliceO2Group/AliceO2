@@ -323,9 +323,9 @@ class SingleLUT : public LUT
  public:
   typedef EntryPM Topo_t;
   static constexpr char sDetectorName[] = "FT0";
-  static SingleLUT& Instance(std::string ccdbPath = "http://ccdb-test.cern.ch:8080/", std::string ccdbPathToLUT = "FT0/LookUpTableNew")
+  static SingleLUT& Instance()
   {
-    static SingleLUT instanceLUT(ccdbPath, ccdbPathToLUT);
+    static SingleLUT instanceLUT("http://ccdb-test.cern.ch:8080/", "FT0/LookUpTableNew");
     return instanceLUT;
   }
   //Temporary
