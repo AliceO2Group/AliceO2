@@ -49,7 +49,7 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
-    LOG(INFO) << "FV0DPLDigitizerTask:init";
+    LOG(DEBUG) << "FV0DPLDigitizerTask:init";
     mDigitizer.init();
     mDisableQED = ic.options().get<bool>("disable-qed"); //TODO: QED implementation to be tested
   }
@@ -59,7 +59,7 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (mFinished) {
       return;
     }
-    LOG(INFO) << "FV0DPLDigitizerTask:run";
+    LOG(DEBUG) << "FV0DPLDigitizerTask:run";
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
@@ -83,14 +83,14 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
       for (auto& part : eventParts[collID]) {
         hits.clear();
         context->retrieveHits(mSimChains, "FV0Hit", part.sourceID, part.entryID, &hits);
-        LOG(INFO) << "[FV0] For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
+        LOG(DEBUG) << "[FV0] For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
         mDigitizer.setEventId(part.entryID);
         mDigitizer.setSrcId(part.sourceID);
         mDigitizer.process(hits, mDigitsBC, mDigitsCh, mDigitsTrig, mLabels);
       }
-      LOG(INFO) << "[FV0] Has " << mDigitsBC.size() << " BC elements,   " << mDigitsCh.size() << " mDigitsCh elements";
+      LOG(DEBUG) << "[FV0] Has " << mDigitsBC.size() << " BC elements,   " << mDigitsCh.size() << " mDigitsCh elements";
     }
 
     o2::InteractionTimeRecord terminateIR;
