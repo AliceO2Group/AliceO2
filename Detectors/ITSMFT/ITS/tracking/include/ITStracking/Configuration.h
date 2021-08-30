@@ -48,6 +48,21 @@ class Configuration : public Param
 
 struct TrackingParameters {
   TrackingParameters& operator=(const TrackingParameters& t) = default;
+  void CopyCuts(TrackingParameters& other, float scale = 1.)
+  {
+    TrackletMaxDeltaPhi = other.TrackletMaxDeltaPhi * scale;
+    for (unsigned int ii{0}; ii < TrackletMaxDeltaZ.size(); ++ii) {
+      TrackletMaxDeltaZ[ii] = other.TrackletMaxDeltaZ[ii] * scale;
+    }
+    CellMaxDeltaTanLambda = other.CellMaxDeltaTanLambda * scale;
+    for (unsigned int ii{0}; ii < CellMaxDCA.size(); ++ii) {
+      CellMaxDCA[ii] = other.CellMaxDCA[ii] * scale;
+    }
+    for (unsigned int ii{0}; ii < NeighbourMaxDeltaCurvature.size(); ++ii) {
+      NeighbourMaxDeltaCurvature[ii] = other.NeighbourMaxDeltaCurvature[ii] * scale;
+      NeighbourMaxDeltaN[ii] = other.NeighbourMaxDeltaN[ii] * scale;
+    }
+  }
 
   int CellMinimumLevel();
   int CellsPerRoad() const { return NLayers - 2; }
@@ -76,7 +91,7 @@ struct TrackingParameters {
   std::vector<float> NeighbourMaxDeltaN = {0.002f, 0.0090f, 0.002f, 0.005f};
   /// Fitter parameters
   bool UseMatBudLUT = false;
-  std::array<float, 2> FitIterationMaxChi2 = {o2::constants::math::VeryBig, o2::constants::math::VeryBig};
+  std::array<float, 2> FitIterationMaxChi2 = {100, 50};
 };
 
 struct MemoryParameters {

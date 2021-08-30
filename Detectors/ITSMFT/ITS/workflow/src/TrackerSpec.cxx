@@ -90,11 +90,14 @@ void TrackerDPL::init(InitContext& ic)
     if (mMode == "async") {
 
       trackParams.resize(3);
-      memParams.resize(3);
       trackParams[0].TrackletMaxDeltaPhi = 0.05f;
-      trackParams[1].TrackletMaxDeltaPhi = 0.1f;
+      trackParams[0].DeltaROF = 0;
+      trackParams[1].CopyCuts(trackParams[0], 2.);
+      trackParams[1].DeltaROF = 0;
+      trackParams[2].CopyCuts(trackParams[1], 2.);
+      trackParams[2].DeltaROF = 1;
       trackParams[2].MinTrackLength = 4;
-      trackParams[2].TrackletMaxDeltaPhi = 0.3;
+      memParams.resize(3);
       LOG(INFO) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
 
     } else if (mMode == "sync") {

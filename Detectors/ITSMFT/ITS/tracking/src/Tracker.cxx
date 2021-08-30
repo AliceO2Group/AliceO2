@@ -296,7 +296,7 @@ void Tracker::findTracks()
     CA_DEBUGGER(backpropagatedCounters[nClusters - 4]++);
     temporaryTrack.getParamOut() = temporaryTrack;
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1]);
+    fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1], 50.);
     if (!fitSuccess) {
       continue;
     }
@@ -347,10 +347,11 @@ void Tracker::findTracks()
   }
 }
 
-bool Tracker::fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut)
+bool Tracker::fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut, const float maxQoverPt)
 {
   auto propInstance = o2::base::Propagator::Instance();
   track.setChi2(0);
+  int nCl{0};
   for (int iLayer{start}; iLayer != end; iLayer += step) {
     if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
       continue;
@@ -366,15 +367,16 @@ bool Tracker::fitTrack(TrackITSExt& track, int start, int end, int step, const f
     }
 
     auto predChi2{track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
-    if (predChi2 > chi2cut) {
+    if (nCl >= 3 && predChi2 > chi2cut * (nCl * 2 - 5)) {
       return false;
     }
     track.setChi2(track.getChi2() + predChi2);
     if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
       return false;
     }
+    nCl++;
   }
-  return true;
+  return std::abs(track.getQ2Pt()) < maxQoverPt;
 }
 
 void Tracker::traverseCellsTree(const int currentCellId, const int currentLayerId)
