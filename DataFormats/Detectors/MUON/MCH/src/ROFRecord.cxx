@@ -23,11 +23,5 @@ std::ostream& operator<<(std::ostream& os, const ROFRecord& rof)
                     rof.getBCWidth());
   return os;
 }
-void ROFRecord::setBCWidth(int bcWidth)
-{
-  if (bcWidth < 4) {
-    throw std::invalid_argument(fmt::format("bcWidth must be strictly greater than 4 bunch-crossings"));
-  }
-}
 
 } // namespace o2::mch

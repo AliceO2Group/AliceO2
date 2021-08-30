@@ -64,8 +64,7 @@ bool DigitReaderV4::read(std::istream& in,
     in.read(reinterpret_cast<char*>(&firstIdx), sizeof(uint32_t));
     in.read(reinterpret_cast<char*>(&nentries), sizeof(uint32_t));
     in.read(reinterpret_cast<char*>(&bcWidth), sizeof(uint32_t));
-    rofs.emplace_back(o2::InteractionRecord{bc, orbit}, firstIdx, nentries);
-    rofs.back().setBCWidth(bcWidth);
+    rofs.emplace_back(o2::InteractionRecord{bc, orbit}, firstIdx, nentries, bcWidth);
     if (in.fail()) {
       return false;
     }

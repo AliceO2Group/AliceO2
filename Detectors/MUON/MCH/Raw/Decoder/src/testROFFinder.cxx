@@ -76,6 +76,7 @@ BOOST_AUTO_TEST_CASE(TwoDigitsInOneROF)
   BOOST_CHECK_EQUAL(rofRecords[0].getNEntries(), 2);
 
   BOOST_CHECK_EQUAL(rofRecords[0].getBCData(), rofFinder.digitTime2IR(digits[0]));
+  BOOST_CHECK_EQUAL(rofRecords[0].getBCWidth(), 4);
 
   BOOST_CHECK_EQUAL(rofFinder.isDigitsTimeAligned(), true);
 }
@@ -103,6 +104,7 @@ BOOST_AUTO_TEST_CASE(TwoDigitsInOneROFUnaligned)
   BOOST_CHECK_EQUAL(rofRecords[0].getNEntries(), 2);
 
   BOOST_CHECK_EQUAL(rofRecords[0].getBCData(), rofFinder.digitTime2IR(digits[0]));
+  BOOST_CHECK_EQUAL(rofRecords[0].getBCWidth(), 4);
 
   BOOST_CHECK_EQUAL(rofFinder.isDigitsTimeAligned(), false);
 }
@@ -130,6 +132,7 @@ BOOST_AUTO_TEST_CASE(TwoDigitsInOneROFsConsecutiveOrbits)
   BOOST_CHECK_EQUAL(rofRecords[0].getNEntries(), 2);
 
   BOOST_CHECK_EQUAL(rofRecords[0].getBCData(), rofFinder.digitTime2IR(digits[0]));
+  BOOST_CHECK_EQUAL(rofRecords[0].getBCWidth(), 4);
 }
 
 //----------------------------------------------------------------------------
@@ -154,10 +157,12 @@ BOOST_AUTO_TEST_CASE(TwoDigitsInTwoROFs)
   BOOST_CHECK_EQUAL(rofRecords[0].getFirstIdx(), 0);
   BOOST_CHECK_EQUAL(rofRecords[0].getNEntries(), 1);
   BOOST_CHECK_EQUAL(rofRecords[0].getBCData(), rofFinder.digitTime2IR(digits[0]));
+  BOOST_CHECK_EQUAL(rofRecords[0].getBCWidth(), 4);
 
   BOOST_CHECK_EQUAL(rofRecords[1].getFirstIdx(), 1);
   BOOST_CHECK_EQUAL(rofRecords[1].getNEntries(), 1);
   BOOST_CHECK_EQUAL(rofRecords[1].getBCData(), rofFinder.digitTime2IR(digits[1]));
+  BOOST_CHECK_EQUAL(rofRecords[1].getBCWidth(), 4);
 
   const auto rofDigit1 = rofFinder.getOrderedDigit(rofRecords[0].getFirstIdx());
   const auto rofDigit2 = rofFinder.getOrderedDigit(rofRecords[1].getFirstIdx());
@@ -194,10 +199,12 @@ BOOST_AUTO_TEST_CASE(TwoDigitsInTwoROFsConsecutiveOrbits)
   BOOST_CHECK_EQUAL(rofRecords[0].getFirstIdx(), 0);
   BOOST_CHECK_EQUAL(rofRecords[0].getNEntries(), 1);
   BOOST_CHECK_EQUAL(rofRecords[0].getBCData(), rofFinder.digitTime2IR(digits[1]));
+  BOOST_CHECK_EQUAL(rofRecords[0].getBCWidth(), 4);
 
   BOOST_CHECK_EQUAL(rofRecords[1].getFirstIdx(), 1);
   BOOST_CHECK_EQUAL(rofRecords[1].getNEntries(), 1);
   BOOST_CHECK_EQUAL(rofRecords[1].getBCData(), rofFinder.digitTime2IR(digits[0]));
+  BOOST_CHECK_EQUAL(rofRecords[1].getBCWidth(), 4);
 
   const auto rofDigit1 = rofFinder.getOrderedDigit(rofRecords[0].getFirstIdx());
   const auto rofDigit2 = rofFinder.getOrderedDigit(rofRecords[1].getFirstIdx());

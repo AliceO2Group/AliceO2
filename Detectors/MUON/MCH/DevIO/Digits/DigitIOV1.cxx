@@ -53,8 +53,7 @@ bool DigitReaderV1::read(std::istream& in,
     return false;
   }
   for (auto r0 : rofsr0) {
-    ROFRecord r(r0.ir, r0.ref.getFirstEntry(), r0.ref.getEntries());
-    r.setBCWidth(4);
+    ROFRecord r(r0.ir, r0.ref.getFirstEntry(), r0.ref.getEntries(), 4);
     rofs.push_back(r);
   }
 
