@@ -57,6 +57,7 @@ ITS_CONFIG_KEY=
 TRD_CONFIG=
 TRD_CONFIG_KEY=
 TRD_TRANSFORMER_CONFIG=
+EVE_CONFIG=
 if [ $SYNCMODE == 1 ]; then
   ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
@@ -72,6 +73,9 @@ else
   ITS_CONFIG+=" --entropy-encoding"
   TOF_OUTPUT+=",ctf"
   GPU_OUTPUT+=",compressed-clusters-ctf"
+fi
+if [ $EPNMODE == 1 ]; then
+  EVE_CONFIG+=" --eve-dds-collection-index 0"
 fi
 
 if [ $GPUTYPE == "HIP" ]; then
@@ -233,7 +237,7 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="$CMD_CTF | "
 fi
 
-workflow_has_parameter EVENT_DISPLAY && WORKFLOW+="o2-eve-display $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --display-tracks TPC --display-clusters TPC $DISABLE_MC | "
+workflow_has_parameter EVENT_DISPLAY && [ $NUMAID == 0 ] && WORKFLOW+="o2-eve-display $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --display-tracks TPC --display-clusters TPC $EVE_CONFIG $DISABLE_MC | "
 
 # DPL run binary
 WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
