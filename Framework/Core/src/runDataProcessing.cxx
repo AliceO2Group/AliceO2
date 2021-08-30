@@ -1153,44 +1153,56 @@ struct WorkflowInfo {
 void gui_callback(uv_timer_s* ctx)
 {
   GuiCallbackContext* gui = reinterpret_cast<GuiCallbackContext*>(ctx->data);
-  if (gui->plugin == nullptr) {
+  if (!gui->plugin || (!gui->window && gui->renderers.empty())) {
     return;
   }
   
-  // only render if the window or at least one draw callback is present
-  if (gui->window || !gui->renderers.empty()) {
-    void *frame = nullptr;
-    int size;
-    uint64_t frameStart = uv_hrtime();
-    uint64_t frameLatency = frameStart - gui->frameLast;
+  void *draw_data = nullptr;
+  void *frame = nullptr;
+  int size;
+  uint64_t frameStart = uv_hrtime();
+  uint64_t frameLatency = frameStart - gui->frameLast;
 
-    if (gui->plugin->pollGUIPreRender(gui->window)) {
-      void *draw_data = gui->plugin->pollGUIRender(gui->callback);
-      for (const auto& [key, renderer] : gui->renderers) {
-        uint64_t remoteFrameLatency = frameStart - renderer->frameLast;
+  // handle remote renderers
+  for (const auto& renderer : gui->renderers) {
+    uint64_t remoteFrameLatency = frameStart - renderer->frameLast;
 
-        if (remoteFrameLatency > 1000000*renderer->latency) {
-          renderer->frameLast = frameStart;
-          // get frame if at first renderer
-          if (!frame) {
-            gui->plugin->getFrameRaw(draw_data, &frame, &size);
-          }
-          renderer->drawCallback(frame, size);
+    if (remoteFrameLatency > 1000000*renderer->latency) {
+      renderer->frameLast = frameStart;
+      // get frame if at first renderer
+      if (!draw_data) {
+        if (!gui->plugin->pollGUIPreRender(gui->window, (float)frameLatency/1000.0f)) {
+          *(gui->guiQuitRequested) = true;
+          return;
         }
+        draw_data = gui->plugin->pollGUIRender(gui->callback);
+        gui->plugin->getFrameRaw(draw_data, &frame, &size);
       }
-      if (frame) {
-        free(frame);
-      }
-      gui->plugin->pollGUIPostRender(gui->window, draw_data);
-    } else {
-      *(gui->guiQuitRequested) = true;
+      renderer->drawCallback(frame, size);
     }
+  }
+  if (frame) {
+    free(frame);
+  }
 
+  // handle local renderer
+  if (gui->window && !draw_data) {
+    if (!gui->plugin->pollGUIPreRender(gui->window, (float)frameLatency/1000.0f)) {
+      *(gui->guiQuitRequested) = true;
+      return;
+    }
+    draw_data = gui->plugin->pollGUIRender(gui->callback);
+  }
+
+  //update metrics only if frame was rendered
+  if (draw_data) {
+    gui->plugin->pollGUIPostRender(gui->window, draw_data);
     uint64_t frameEnd = uv_hrtime();
     *(gui->frameCost) = (frameEnd - frameStart) / 1000000;
     *(gui->frameLatency) = frameLatency / 1000000;
     gui->frameLast = frameStart;
   }
+
 }
 
 /// Force single stepping of the children
@@ -1250,7 +1262,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   decltype(debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
 
   // An empty frameworkId means this is the driver, so we initialise the GUI
-  if (driverInfo.batch == false && frameworkId.empty()) {
+  if (frameworkId.empty()) {
     auto initDebugGUI = []() -> DebugGUI* {
       uv_lib_t supportLib;
       int result = 0;
@@ -1276,8 +1288,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     };
     debugGUI = initDebugGUI();
     if (debugGUI) {
-      //window = debugGUI->initGUI("O2 Framework debug GUI");
-      window = debugGUI->initGUI(nullptr);
+      if (driverInfo.batch == false) {
+        window = debugGUI->initGUI("O2 Framework debug GUI");
+      } else {
+        window = debugGUI->initGUI(nullptr);
+      }
     }
   }
   if (driverInfo.batch == false && window == nullptr && frameworkId.empty()) {

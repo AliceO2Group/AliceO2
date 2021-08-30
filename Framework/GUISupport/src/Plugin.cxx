@@ -49,6 +49,18 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
   {
     o2::framework::gui::updateWindowSize(x, y);
   }
+  void keyDown(char key) override
+  {
+    o2::framework::gui::keyDown(key);
+  }
+  void keyUp(char key) override
+  {
+    o2::framework::gui::keyUp(key);
+  }
+  void charIn(char key) override
+  {
+    o2::framework::gui::charIn(key);
+  }
   void* initGUI(char const* windowTitle) override
   {
     return o2::framework::initGUI(windowTitle);
@@ -65,9 +77,9 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
   {
     o2::framework::getFrameRaw(data, raw_data, size);
   }
-  bool pollGUIPreRender(void* context) override
+  bool pollGUIPreRender(void* context, float delta) override
   {
-    return o2::framework::pollGUIPreRender(context);
+    return o2::framework::pollGUIPreRender(context, delta);
   }
   void* pollGUIRender(std::function<void(void)> guiCallback) override
   {

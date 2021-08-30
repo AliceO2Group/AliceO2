@@ -97,7 +97,10 @@ enum struct GUIOpcodes : uint8_t {
   Mouseclick = 2,
   Mousewheel = 3,
   Window = 4,
-  Latency = 5
+  Latency = 5,
+  Keydown = 6,
+  Keyup = 7,
+  Charin = 8
 };
 
 /// An handler for a websocket message stream.
@@ -140,12 +143,26 @@ struct GUIWebSocketHandler : public WebSocketHandler {
       }
       case GUIOpcodes::Latency:
       {
-        char dir = *frame;
-        if (dir > 0) {
-          mRenderer->latency += 20;
-        } else if (mRenderer->latency > 20) {
-          mRenderer->latency -= 20;
-        }
+        int lat = *((int*)frame);
+        mRenderer->latency = lat < 20 ? 20 : lat;
+        break;
+      }
+      case GUIOpcodes::Keydown:
+      {
+        char key = *frame;
+        mContext.gui->plugin->keyDown(key);
+        break;
+      }
+      case GUIOpcodes::Keyup:
+      {
+        char key = *frame;
+        mContext.gui->plugin->keyUp(key);
+        break;
+      }
+      case GUIOpcodes::Charin:
+      {
+        char key = *frame;
+        mContext.gui->plugin->charIn(key);
         break;
       }
     }
@@ -170,9 +187,8 @@ WSDPLHandler::WSDPLHandler(uv_stream_t* s, DriverServerContext* context)
 WSDPLHandler::~WSDPLHandler()
 {
   if (mGUI) {
-    auto renderer = mServerContext->gui->renderers[mHeaders["sec-websocket-key"]];
-    mServerContext->gui->renderers.erase(mHeaders["sec-websocket-key"]);
-    delete renderer;
+    mServerContext->gui->renderers.erase(((GUIWebSocketHandler*)mHandler.get())->mRenderer);
+    delete ((GUIWebSocketHandler*)mHandler.get())->mRenderer;
   }
 }
 
@@ -259,7 +275,7 @@ void WSDPLHandler::endHeaders()
     mHandler = std::make_unique<GUIWebSocketHandler>(*mServerContext, renderer);
     mHandler->headers(mHeaders);
     mGUI = true;
-    mServerContext->gui->renderers.insert(std::pair<std::string, GuiRenderer*>(mHeaders["sec-websocket-key"], renderer));
+    mServerContext->gui->renderers.insert(renderer);
   }
 }
 

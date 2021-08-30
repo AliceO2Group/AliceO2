@@ -33,7 +33,7 @@ struct GuiCallbackContext {
   void* window;
   bool* guiQuitRequested;
   std::function<void(void)> callback;
-  std::map<std::string, GuiRenderer*> renderers;
+  std::set<GuiRenderer*> renderers;
 };
 } // namespace o2::framework
 

@@ -43,7 +43,7 @@ static inline void getFrameRaw(void *data, void **raw_data, int *size) override
 {
 }
 
-static inline bool pollGUIPreRender(void* context) override
+static inline bool pollGUIPreRender(void* context, float delta) override
 {
   return true;
 }

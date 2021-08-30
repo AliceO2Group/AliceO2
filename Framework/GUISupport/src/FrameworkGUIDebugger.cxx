@@ -1087,4 +1087,19 @@ void updateWindowSize(int x, int y) {
   io.DisplaySize = ImVec2(x, y);
 }
 
+void keyDown(char key) {
+  ImGuiIO& io = ImGui::GetIO();
+  io.KeysDown[io.KeyMap[key]] = true;
+}
+
+void keyUp(char key) {
+  ImGuiIO& io = ImGui::GetIO();
+  io.KeysDown[io.KeyMap[key]] = false;
+}
+
+void charIn(char key) {
+  ImGuiIO& io = ImGui::GetIO();
+  io.AddInputCharacter((unsigned short) key);
+}
+
 } // namespace o2::framework::gui

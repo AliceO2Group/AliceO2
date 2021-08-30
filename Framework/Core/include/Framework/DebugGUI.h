@@ -37,11 +37,14 @@ struct DebugGUI {
   virtual void updateMouseButton(bool isClicked) = 0;
   virtual void updateMouseWheel(int direction) = 0;
   virtual void updateWindowSize(int x, int y) = 0;
+  virtual void keyDown(char key) = 0;
+  virtual void keyUp(char key) = 0;
+  virtual void charIn(char key) = 0;
   virtual void* initGUI(char const* windowTitle) = 0;
   virtual bool pollGUI(void* context, std::function<void(void)> guiCallback) = 0;
   virtual void getFrameJSON(void *data, std::ostream& json_data) = 0;
   virtual void getFrameRaw(void *data, void **raw_data, int *size) = 0;
-  virtual bool pollGUIPreRender(void* context) = 0;
+  virtual bool pollGUIPreRender(void* context, float delta) = 0;
   virtual void* pollGUIRender(std::function<void(void)> guiCallback) = 0;
   virtual void pollGUIPostRender(void* context, void* draw_data) = 0;
   virtual void disposeGUI() = 0;
