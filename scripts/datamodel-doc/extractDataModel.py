@@ -81,7 +81,7 @@ def main(initCard):
 
   # loop over these header files and join the related datamodels
   # with the AO2D datamodel
-  for infile in inclfiles:
+  for infile in sorted(inclfiles):
     # extract datamodel name
     path = infile.split('/')[:-1]
     cfile = infile.split('/')[-1]
@@ -127,7 +127,7 @@ def main(initCard):
     cmakefiles.extend(stream.readlines())
 
   cerelations = DM.CERelations(initCard)
-  for cfile in cmakefiles:
+  for cfile in sorted(cmakefiles):
     cfile = cfile.rstrip("\n")
     cerelations.addRelations(cfile)
 
