@@ -83,6 +83,7 @@ struct DeviceMetricsInfo {
   std::vector<std::array<size_t, 1024>> timestamps;
   std::vector<float> max;
   std::vector<float> min;
+  std::vector<float> average;
   std::vector<size_t> minDomain;
   std::vector<size_t> maxDomain;
   std::vector<MetricLabel> metricLabels;
