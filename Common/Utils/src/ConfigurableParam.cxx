@@ -170,6 +170,10 @@ int EnumLegalValues::getIntValue(const std::string& value) const
 
 void ConfigurableParam::writeINI(std::string const& filename, std::string const& keyOnly)
 {
+  if (sOutputDir == "/dev/null") {
+    LOG(INFO) << "ignoring writing of ini file " << filename;
+    return;
+  }
   auto outfilename = o2::utils::Str::concat_string(sOutputDir, filename);
   initPropertyTree();     // update the boost tree before writing
   if (!keyOnly.empty()) { // write ini for selected key only
@@ -242,6 +246,10 @@ boost::property_tree::ptree ConfigurableParam::readJSON(std::string const& filep
 
 void ConfigurableParam::writeJSON(std::string const& filename, std::string const& keyOnly)
 {
+  if (sOutputDir == "/dev/null") {
+    LOG(INFO) << "ignoring writing of json file " << filename;
+    return;
+  }
   initPropertyTree();     // update the boost tree before writing
   auto outfilename = o2::utils::Str::concat_string(sOutputDir, filename);
   if (!keyOnly.empty()) { // write ini for selected key only
@@ -509,7 +517,11 @@ void ConfigurableParam::updateFromString(std::string const& configString)
     sInputDir = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(kv.input_dir));
   }
   if (getProvenance("keyval.output_dir") != kCODE) {
-    sOutputDir = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(kv.output_dir));
+    if (kv.output_dir == "/dev/null") {
+      sOutputDir = kv.output_dir;
+    } else {
+      sOutputDir = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(kv.output_dir));
+    }
   }
 }
 
@@ -728,14 +740,14 @@ ConfigurableParam::EParamUpdateStatus ConfigurableParam::updateThroughStorageMap
       break;
     }
     /*
- 	  case kDataTypeAliasSignedChar_t: {
- 	    unsupp();
- 	    break;
- 	  }
- 	  case kNumDataTypes: {
- 	    unsupp();
- 	    break;
- 	}*/
+    case kDataTypeAliasSignedChar_t: {
+      unsupp();
+      break;
+    }
+    case kNumDataTypes: {
+      unsupp();
+      break;
+  }*/
     default: {
       unsupp();
       break;
@@ -917,14 +929,14 @@ ConfigurableParam::EParamUpdateStatus ConfigurableParam::updateThroughStorageMap
       break;
     }
     /*
- 	  case kDataTypeAliasSignedChar_t: {
- 	    unsupp();
- 	    break;
- 	  }
- 	  case kNumDataTypes: {
- 	    unsupp();
- 	    break;
- 	}*/
+    case kDataTypeAliasSignedChar_t: {
+      unsupp();
+      break;
+    }
+    case kNumDataTypes: {
+      unsupp();
+      break;
+  }*/
     default: {
       unsupp();
       break;
