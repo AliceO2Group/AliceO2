@@ -40,7 +40,7 @@ set(OCL_DEFINECL "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS
 set(SRCS GPUReconstructionOCL2.cxx)
 set(HDRS GPUReconstructionOCL2.h GPUReconstructionOCL2Internals.h)
 
-if(GPUCA_GPUCA_OPENCL2_ENABLED_AMD) # BUILD OpenCL2 binaries for AMD target
+if(OPENCL2_ENABLED_AMD) # BUILD OpenCL2 binaries for AMD target
   if(NOT DEFINED OCL2_GPUTARGET)
     execute_process(COMMAND ${ROCM_AGENT_ENUMERATOR} COMMAND "sort" COMMAND "tail -n 1" OUTPUT_VARIABLE OCL2_GPUTARGET)
   endif()
@@ -79,7 +79,7 @@ if(GPUCA_GPUCA_OPENCL2_ENABLED_AMD) # BUILD OpenCL2 binaries for AMD target
   set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.S)
 endif()
 
-if(GPUCA_GPUCA_OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
+if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
   # executes clang to create llvm IL code
   add_custom_command(
       OUTPUT ${CL_BIN}.bc
@@ -120,7 +120,7 @@ if(GPUCA_GPUCA_OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR
   set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.S)
 endif()
 
-if(GPUCA_GPUCA_OPENCL2_ENABLED) # BUILD OpenCL2 source code for runtime compilation target
+if(OPENCL2_ENABLED) # BUILD OpenCL2 source code for runtime compilation target
   # executes clang to preprocess
   add_custom_command(
       OUTPUT ${CL_BIN}.src
@@ -197,10 +197,10 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(targetName ${MODULE})
 endif()
 
-if(GPUCA_GPUCA_OPENCL2_ENABLED_AMD)
-  target_compile_definitions(${targetName} PRIVATE GPUCA_GPUCA_OPENCL2_ENABLED_AMD)
+if(OPENCL2_ENABLED_AMD)
+  target_compile_definitions(${targetName} PRIVATE OPENCL2_ENABLED_AMD)
 endif()
-if(GPUCA_GPUCA_OPENCL2_ENABLED_SPIRV)
-  target_compile_definitions(${targetName} PRIVATE GPUCA_GPUCA_OPENCL2_ENABLED_SPIRV)
+if(OPENCL2_ENABLED_SPIRV)
+  target_compile_definitions(${targetName} PRIVATE OPENCL2_ENABLED_SPIRV)
 endif()
 target_compile_definitions(${targetName} PRIVATE OCL_FLAGS=$<JOIN:${OCL_FLAGS},\ >)
