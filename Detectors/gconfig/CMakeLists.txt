@@ -23,16 +23,20 @@ o2_add_library(FLUKASetup
                SOURCES src/FlukaConfig.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimulationDataFormat O2::Generators ROOT::EGPythia6 O2::SimSetup
 	      )
-
+o2_add_library(MCReplaySetup
+               SOURCES src/MCReplayConfig.cxx
+               PUBLIC_LINK_LIBRARIES MC::MCReplay FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup
+)
 o2_add_library(SimSetup
-               SOURCES  src/GlobalProcessCutSimParam.cxx src/SimSetup.cxx src/SetCuts.cxx src/FlukaParam.cxx
+               SOURCES  src/GlobalProcessCutSimParam.cxx src/SimSetup.cxx src/SetCuts.cxx src/FlukaParam.cxx src/MCReplayParam.cxx
 	       PUBLIC_LINK_LIBRARIES O2::CommonUtils O2::DetectorsBase
               )
 
 o2_target_root_dictionary(SimSetup
                           HEADERS include/SimSetup/SimSetup.h
                                   include/SimSetup/GlobalProcessCutSimParam.h
-				  include/SimSetup/FlukaParam.h
+                                  include/SimSetup/FlukaParam.h
+                                  include/SimSetup/MCReplayParam.h
                           LINKDEF src/GConfLinkDef.h)
 o2_add_test_root_macro(DecayConfig.C
                        PUBLIC_LINK_LIBRARIES O2::SimSetup
@@ -53,6 +57,10 @@ o2_add_test_root_macro(g3Config.C
                        LABELS simsetup)
 
 o2_add_test_root_macro(g4Config.C
+                       PUBLIC_LINK_LIBRARIES O2::SimSetup
+                       LABELS simsetup)
+
+o2_add_test_root_macro(mcreplayConfig.C
                        PUBLIC_LINK_LIBRARIES O2::SimSetup
                        LABELS simsetup)
 
