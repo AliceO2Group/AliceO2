@@ -356,7 +356,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                      [](ServiceRegistry& registry, boost::program_options::variables_map const& vm) {
                        auto config = new RateLimitConfig{};
                        int readers = std::stoll(vm["readers"].as<std::string>());
-                       if (vm.count("aod-memory-rate-limit")) {
+                       if (vm.count("aod-memory-rate-limit") && vm["aod-memory-rate-limit"].defaulted() == false) {
                          config->maxMemory = std::stoll(vm["aod-memory-rate-limit"].as<std::string>()) / 1000000;
                        } else {
                          config->maxMemory = readers * 500;
