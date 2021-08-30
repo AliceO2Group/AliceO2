@@ -158,7 +158,7 @@ if [ "$doreco" == "1" ]; then
 
   echo "Running MID reco flow"
   #needs MID digitized data
-  taskwrapper midreco.log o2-mid-reco-workflow $gloOpt
+  taskwrapper midreco.log o2-mid-digits-reader-workflow | o2-mid-reco-workflow $gloOpt
   echo "Return status of midreco: $?"
 
   echo "Running ITS-TPC matching flow"
