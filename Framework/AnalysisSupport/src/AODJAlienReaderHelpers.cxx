@@ -132,13 +132,13 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
   return std::make_tuple(extractTypedOriginal<Os>(pc)...);
 }
 
-void AODJAlienReaderHelpers::dumpFileMetrics(Monitoring& monitoring, TFile* currentFile, uint64_t startedAt, uint64_t ioTime, int tfPerFile, int tfRead)
+void AODJAlienReaderHelpers::dumpFileMetrics(Monitoring& monitoring, TFile* currentFile, uint64_t startedAt, uint64_t ioTime, int dfPerFile, int dfRead)
 {
   if (currentFile == nullptr) {
     return;
   }
-  std::string monitoringInfo(fmt::format("lfn={},size={},total_tf={},read_tf={},read_bytes={},read_calls={},io_time={:.1f},wait_time={:.1f}", currentFile->GetName(),
-                                         currentFile->GetSize(), tfPerFile, tfRead, currentFile->GetBytesRead(), currentFile->GetReadCalls(),
+  std::string monitoringInfo(fmt::format("lfn={},size={},total_df={},read_df={},read_bytes={},read_calls={},io_time={:.1f},wait_time={:.1f}", currentFile->GetName(),
+                                         currentFile->GetSize(), dfPerFile, dfRead, currentFile->GetBytesRead(), currentFile->GetReadCalls(),
                                          ((float)ioTime / 1e9), ((float)(uv_hrtime() - startedAt - ioTime) / 1e9)));
 #if __has_include(<TJAlienFile.h>)
   auto alienFile = dynamic_cast<TJAlienFile*>(currentFile);
@@ -317,7 +317,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 
         first = false;
       }
-      monitoring.send(Metric{(uint64_t)ntf, "tf-sent"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+      monitoring.send(Metric{(uint64_t)ntf, "df-sent"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
       monitoring.send(Metric{(uint64_t)totalSizeUncompressed / 1000, "aod-bytes-read-uncompressed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
       monitoring.send(Metric{(uint64_t)totalSizeCompressed / 1000, "aod-bytes-read-compressed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
 
