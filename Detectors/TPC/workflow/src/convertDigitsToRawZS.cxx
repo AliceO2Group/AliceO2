@@ -125,7 +125,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
         outfname = fmt::format("{}tpc_all.raw", outDir);
       } else if (fileFor == "sector") {
         outfname = fmt::format("{}tpc_sector{}.raw", outDir, i);
-      } else if (fileFor == "link") {
+      } else if (fileFor == "link" || fileFor == "cru") {
         outfname = fmt::format("{}cru{}_{}.raw", outDir, cruID, j & 1);
       } else {
         throw std::runtime_error("invalid option provided for file grouping");
