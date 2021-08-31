@@ -48,7 +48,8 @@ Solar2LinkInfo createSolar2LinkInfo();
 void registerLinks(o2::raw::RawFileWriter& rawFileWriter,
                    std::string outputBase,
                    const std::set<LinkInfo>& links,
-                   bool filePerLink);
+                   bool filePerLink,
+                   bool filePerCru);
 
 void paginate(o2::raw::RawFileWriter& rawFileWriter,
               gsl::span<const std::byte> buffer,

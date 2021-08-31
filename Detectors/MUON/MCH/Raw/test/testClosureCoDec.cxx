@@ -81,7 +81,7 @@ std::vector<std::byte> paginate(gsl::span<const std::byte> buffer, const std::st
     links.insert(solar2LinkInfo(solarId).value());
   }
 
-  registerLinks(fw, tmpbasename, links, false);
+  registerLinks(fw, tmpbasename, links, false, false);
 
   paginate(fw, buffer, links, solar2LinkInfo);
 

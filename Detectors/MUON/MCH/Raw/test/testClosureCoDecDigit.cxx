@@ -88,11 +88,11 @@ void writeDigits(bool useDummyElecMap)
     digits.emplace_back(100, 6664, 664, 123, 1);
 
     DigitRawEncoderOptions opts;
-    opts.filePerLink = false;  // to get only one file
-    opts.noGRP = true;         // as we don't have a GRP at hand
-    opts.noEmptyHBF = true;    // as we don't want to create big files
-    opts.writeHB = false;      // as we'd like to keep it simple
-    opts.userLogicVersion = 1; // test only the latest version
+    opts.splitMode = OutputSplit::None; // to get only one file
+    opts.noGRP = true;                  // as we don't have a GRP at hand
+    opts.noEmptyHBF = true;             // as we don't want to create big files
+    opts.writeHB = false;               // as we'd like to keep it simple
+    opts.userLogicVersion = 1;          // test only the latest version
     opts.dummyElecMap = useDummyElecMap;
 
     DigitRawEncoder dre(opts);
