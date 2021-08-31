@@ -68,13 +68,9 @@ class RawWriterFIT
     mMapTopo2FEEmetadata.clear();
     mMapTopo2FEEmetadata = LookupTable_t::Instance().template makeMapFEEmetadata<o2::header::RAWDataHeader, RDHUtils>();
     //Preparing filenames
-    //std::string detNameLowCase = LookupTable_t::sDetectorName;
     std::string detName = LookupTable_t::sDetectorName;
-    //std::for_each(detNameLowCase.begin(), detNameLowCase.end(), [](char& c) { c = ::tolower(c); });
     auto makeFilename = [&](const o2::header::RAWDataHeader& rdh) -> std::string {
-      //std::string maskName = detName;
       std::string maskName{};
-      //outFileLink = o2::utils::Str::concat_string(outDir, "/", outPrefix);
       if (mFileFor != "all") { // single file for all links
         maskName += fmt::format("_{}", mFlpName);
         if (mFileFor != "flp") {
@@ -87,9 +83,7 @@ class RawWriterFIT
           }
         }
       }
-      //      maskName += ".raw";
       std::string outputFilename = o2::utils::Str::concat_string(outputDir, detName, maskName, ".raw");
-      //std::string outputFilename = mOutputPerLink ? o2::utils::Str::concat_string(outputDir, maskName, std::to_string(RDHUtils::getFEEID(rdh)), ".raw") : o2::utils::Str::concat_string(outputDir, detNameLowCase + ".raw");
       return outputFilename;
     };
     //Registering links
