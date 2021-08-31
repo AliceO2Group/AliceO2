@@ -18,7 +18,6 @@ AlgPar generateMisalignment(double x, double y, double z, double psi, double the
 
 void ITSMisaligner(const std::string& ccdbHost = "http://localhost:8080", long tmin = 0, long tmax = -1,
                    double xEnv = 0., double yEnv = 0., double zEnv = 0., double psiEnv = 0., double thetaEnv = 0., double phiEnv = 0.,
-                   double xLay = 0., double yLay = 0., double zLay = 0., double psiLay = 0., double thetaLay = 0., double phiLay = 0.,
                    double xHBa = 0., double yHBa = 0., double zHBa = 0., double psiHBa = 0., double thetaHBa = 0., double phiHBa = 0.,
                    double xSta = 0., double ySta = 0., double zSta = 0., double psiSta = 0., double thetaSta = 0., double phiSta = 0.,
                    double xHSt = 0., double yHSt = 0., double zHSt = 0., double psiHSt = 0., double thetaHSt = 0., double phiHSt = 0.,
@@ -42,9 +41,6 @@ void ITSMisaligner(const std::string& ccdbHost = "http://localhost:8080", long t
   params.emplace_back(symname.c_str(), -1, pars[0], pars[1], pars[2], pars[3], pars[4], pars[5], glo);
 
   for (int ilr = 0; ilr < geom->getNumberOfLayers(); ilr++) {
-    symname = geom->composeSymNameLayer(ilr);
-    pars = generateMisalignment(xLay, yLay, zLay, psiLay, thetaLay, phiLay);
-    params.emplace_back(symname.c_str(), -1, pars[0], pars[1], pars[2], pars[3], pars[4], pars[5], glo);
 
     for (int ihb = 0; ihb < geom->getNumberOfHalfBarrels(); ihb++) {
       symname = geom->composeSymNameHalfBarrel(ilr, ihb);
