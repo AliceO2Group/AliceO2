@@ -183,19 +183,40 @@ auto ConvertTCMData2Digit(DigitType& digit, const TCMDataType& tcmData) -> std::
 template <typename LookupTableType, typename ChannelDataType, typename PMDataType>
 auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDataType& pmData, int linkID, int ep) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().QTCAmpl), int16_t>::value>
 {
-  vecChData.emplace_back(static_cast<uint8_t>(LookupTableType::Instance().getChannel(linkID, static_cast<int>(pmData.channelID), ep)), static_cast<int>(pmData.time), static_cast<int>(pmData.charge), static_cast<uint8_t>(pmData.getFlagWord()));
+  bool isValid{};
+  const auto globalChID = LookupTableType::Instance().getChannel(linkID, ep, pmData.channelID, isValid);
+  if(isValid) {
+    vecChData.emplace_back(static_cast<uint8_t>(globalChID), static_cast<int>(pmData.time), static_cast<int>(pmData.charge), static_cast<uint8_t>(pmData.getFlagWord()));
+  }
+  else {
+    LOG(WARNING) << "Incorrect global channel! linkID: "<<linkID<<" | EndPoint: "<<ep<<" | LocalChID: "<<pmData.channelID;
+  }
 }
 //FV0
 template <typename LookupTableType, typename ChannelDataType, typename PMDataType>
-auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDataType& pmData, int linkID, int) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().chargeAdc), Short_t>::value>
+auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDataType& pmData, int linkID, int ep) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().chargeAdc), Short_t>::value>
 {
-  vecChData.emplace_back(static_cast<Short_t>(LookupTableType::Instance().getChannel(linkID, pmData.channelID)), static_cast<Float_t>(pmData.time), static_cast<Short_t>(pmData.charge));
+  bool isValid{};
+  const auto globalChID = LookupTableType::Instance().getChannel(linkID, ep, pmData.channelID, isValid);
+  if(isValid) {
+    vecChData.emplace_back(static_cast<Short_t>(globalChID), static_cast<Float_t>(pmData.time), static_cast<Short_t>(pmData.charge));
+  }
+  else {
+    LOG(WARNING) << "Incorrect global channel! linkID: "<<linkID<<" | EndPoint: "<<ep<<" | LocalChID: "<<pmData.channelID;
+  }
 }
 //FDD
 template <typename LookupTableType, typename ChannelDataType, typename PMDataType>
 auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDataType& pmData, int linkID, int ep) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().mChargeADC), int16_t>::value>
 {
-  vecChData.emplace_back(static_cast<uint8_t>(LookupTableType::Instance().getChannel(linkID, pmData.channelID, ep)), static_cast<int>(pmData.time), static_cast<int>(pmData.charge), static_cast<uint8_t>(pmData.getFlagWord()));
+  bool isValid{};
+  const auto globalChID = LookupTableType::Instance().getChannel(linkID, ep, pmData.channelID, isValid);
+  if(isValid) {
+    vecChData.emplace_back(static_cast<uint8_t>(globalChID), static_cast<int>(pmData.time), static_cast<int>(pmData.charge), static_cast<uint8_t>(pmData.getFlagWord()));
+  }
+  else {
+    LOG(WARNING) << "Incorrect global channel! linkID: "<<linkID<<" | EndPoint: "<<ep<<" | LocalChID: "<<pmData.channelID;
+  }
 }
 //Interface for extracting interaction record from Digit
 template <typename T>
