@@ -28,6 +28,35 @@ class Geo
  public:
   //  static void updateNSinTF() { NS_IN_TF = o2::constants::lhc::LHCOrbitNS * o2::raw::HBFUtils::getNOrbitsPerTF(); }
 
+  // FLP <-> CRU <-> LINKS mapping
+  static Int_t getCRU(int link)
+  {
+    return CRUFROMLINK[link];
+  }
+  static Int_t getCRUlink(int link)
+  {
+    return CRULINK[link];
+  }
+  static Int_t getCRUendpoint(int link)
+  {
+    return CRUENDPOINT[link];
+  }
+  static Int_t getCONETlink(int link) { return (link % 4); }
+  static Int_t getCRUid(int link)
+  {
+    return CRUID[CRUFROMLINK[link]];
+  }
+  static Int_t getCRUid(int iflp, int icru) { return CRUFROMFLP[iflp][icru]; }
+  static Int_t getFLPid(int link)
+  {
+    return FLPFROMCRU[CRUFROMLINK[link]];
+  }
+  static Int_t getFEEid(int link)
+  {
+    return FEEID[link];
+  }
+  static Int_t getFLP(int iflp) { return FLP[iflp]; }
+
   // From AliTOFGeometry
   static void translate(Float_t* xyz, Float_t translationVector[3]);
   static void rotate(Float_t* xyz, Double_t rotationAngles[6]);
@@ -134,6 +163,35 @@ class Geo
   static constexpr Double_t LATENCYWINDOW = LATENCYWINDOW_IN_BC * o2::constants::lhc::LHCBunchSpacingNS;   // Latency window  in ns
   static constexpr Double_t MATCHINGWINDOW = MATCHINGWINDOW_IN_BC * o2::constants::lhc::LHCBunchSpacingNS; // Matching window  in ns
   static constexpr Double_t WINDOWOVERLAP = MATCHINGWINDOW - READOUTWINDOW;                                // overlap between two consecutive matchingwindow
+
+  static constexpr Int_t CRUFROMLINK[kNCrate] = {
+    3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+
+  static constexpr Int_t FEEID[kNCrate] = {
+    327680, 327681, 327682, 327683, 327684, 327685, 327686, 327687, 327688, 327689, 327690, 327691, 327692, 327693, 327694, 327695, 327696, 327697,
+    327698, 327699, 327700, 327701, 327702, 327703, 327704, 327705, 327706, 327707, 327708, 327709, 327710, 327711, 327712, 327713, 327714, 327715,
+    327716, 327717, 327718, 327719, 327720, 327721, 327722, 327723, 327724, 327725, 327726, 327727, 327728, 327729, 327730, 327731, 327732, 327733,
+    327734, 327735, 327736, 327737, 327738, 327739, 327740, 327741, 327742, 327743, 327744, 327745, 327746, 327747, 327748, 327749, 327750, 327751};
+
+  static constexpr Int_t FLP[2] = {178, 179};
+  static constexpr Int_t CRUFROMFLP[2][2] = {{227, 228}, {225, 226}};
+  static constexpr Int_t FLPFROMCRU[4] = {179, 179, 178, 178};
+  static constexpr Int_t CRUID[4] = {225, 226, 227, 228};
+
+  static constexpr Int_t CRULINK[kNCrate] = {
+    11, 10, 0, 1, 9, 8, 2, 3, 7, 6, 4, 5, 5, 4, 6, 7, 3, 2,
+    3, 9, 11, 10, 0, 1, 9, 8, 2, 3, 7, 6, 4, 5, 5, 4, 6, 7,
+    11, 10, 0, 1, 9, 8, 2, 3, 7, 6, 4, 5, 5, 4, 6, 7, 3, 2,
+    8, 9, 11, 10, 0, 1, 9, 8, 2, 3, 7, 6, 4, 5, 5, 4, 6, 7};
+
+  static constexpr Int_t CRUENDPOINT[kNCrate] = {
+    0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0,
+    0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1,
+    0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0,
+    1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1};
 
   static constexpr Float_t ANGLES[NPLATES][NMAXNSTRIP] = { // Strip Tilt Angles
     {43.99, 43.20, 42.40, 41.59, 40.77, 39.94, 39.11, 38.25, 37.40, 36.53,

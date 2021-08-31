@@ -64,22 +64,22 @@ bool Encoder::open(const std::string& name, const std::string& path, const std::
   // register links
   o2::header::RAWDataHeader rdh;
   mFileWriter.useRDHVersion(RDHUtils::getVersion<o2::header::RAWDataHeader>());
-  for (int feeid = 0; feeid < 72; feeid++) {
-    // cru=0 --> FLP 0, endpoint 0 --> 18 links -> fees 0-17
-    // cru=1 --> FLP 0, endpoint 1 --> 18 links -> fees 18-35
-    // cru=2 --> FLP 1, endpoint 0 --> 18 links -> fees 36-53
-    // cru=3 --> FLP 1, endpoint 1 --> 18 links -> fees 54-71
-    RDHUtils::setFEEID(rdh, feeid);
-    RDHUtils::setCRUID(rdh, feeid / NLINKSPERCRU);
-    RDHUtils::setLinkID(rdh, feeid % NLINKSPERCRU);
-    RDHUtils::setEndPointID(rdh, RDHUtils::getCRUID(rdh) % 2);
+  for (int crateid = 0; crateid < 72; crateid++) {
+    // cru=0 --> FLP 1, ... defined in Geo
+    // cru=1 --> FLP 1, ... defined in Geo
+    // cru=2 --> FLP 0, ... defined in Geo
+    // cru=3 --> FLP 0, ... defined in Geo
+    RDHUtils::setFEEID(rdh, Geo::getFEEid(crateid));
+    RDHUtils::setCRUID(rdh, Geo::getCRUid(crateid));
+    RDHUtils::setLinkID(rdh, Geo::getCRUlink(crateid));
+    RDHUtils::setEndPointID(rdh, Geo::getCRUendpoint(crateid));
     // currently storing each CRU in a separate file
     std::string outFileLink;
-    if (mCrateOn[feeid]) {
+    if (mCrateOn[crateid]) {
       if (fileFor == "all") { // single file for all links
         outFileLink = o2::utils::Str::concat_string(path, "/TOF.raw");
       } else if (fileFor == "cru") {
-        outFileLink = o2::utils::Str::concat_string(path, "/", "TOF_cru", std::to_string(RDHUtils::getCRUID(rdh)), ".raw");
+        outFileLink = o2::utils::Str::concat_string(path, "/", "TOF_alio2-cr1-flp", std::to_string(Geo::getFLPid(crateid)), "_cru", std::to_string(Geo::getCRUid(crateid)), "_", std::to_string(Geo::getCRUendpoint(crateid)), ".raw");
       } else if (fileFor == "link") {
         outFileLink = o2::utils::Str::concat_string(path, "/", "TOF_cru", std::to_string(RDHUtils::getCRUID(rdh)), "_link",
                                                     std::to_string(RDHUtils::getLinkID(rdh)), "_ep", std::to_string(RDHUtils::getEndPointID(rdh)), ".raw");
@@ -100,11 +100,10 @@ bool Encoder::open(const std::string& name, const std::string& path, const std::
 bool Encoder::flush(int icrate)
 {
   int nbyte = getSize(mStart[icrate], mUnion[icrate]);
-  int cru = icrate / NLINKSPERCRU;
   if (nbyte) {
     if (mCrateOn[icrate]) {
       //printf("flush crate %d -- byte = %d -- orbit = %d, bc = %d\n",icrate, nbyte, mIR.orbit, mIR.bc);
-      mFileWriter.addData(icrate, cru, icrate % NLINKSPERCRU, cru % 2, mIR, gsl::span(mBuffer[icrate], nbyte));
+      mFileWriter.addData(Geo::getFEEid(icrate), Geo::getCRUid(icrate), Geo::getCRUlink(icrate), Geo::getCRUendpoint(icrate), mIR, gsl::span(mBuffer[icrate], nbyte));
     }
     mIntegratedAllBytes += nbyte;
   }
