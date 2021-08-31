@@ -185,11 +185,10 @@ auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDa
 {
   bool isValid{};
   const auto globalChID = LookupTableType::Instance().getChannel(linkID, ep, pmData.channelID, isValid);
-  if(isValid) {
+  if (isValid) {
     vecChData.emplace_back(static_cast<uint8_t>(globalChID), static_cast<int>(pmData.time), static_cast<int>(pmData.charge), static_cast<uint8_t>(pmData.getFlagWord()));
-  }
-  else {
-    LOG(WARNING) << "Incorrect global channel! linkID: "<<linkID<<" | EndPoint: "<<ep<<" | LocalChID: "<<pmData.channelID;
+  } else {
+    LOG(WARNING) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
   }
 }
 //FV0
@@ -198,11 +197,10 @@ auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDa
 {
   bool isValid{};
   const auto globalChID = LookupTableType::Instance().getChannel(linkID, ep, pmData.channelID, isValid);
-  if(isValid) {
+  if (isValid) {
     vecChData.emplace_back(static_cast<Short_t>(globalChID), static_cast<Float_t>(pmData.time), static_cast<Short_t>(pmData.charge));
-  }
-  else {
-    LOG(WARNING) << "Incorrect global channel! linkID: "<<linkID<<" | EndPoint: "<<ep<<" | LocalChID: "<<pmData.channelID;
+  } else {
+    LOG(WARNING) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
   }
 }
 //FDD
@@ -211,11 +209,10 @@ auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDa
 {
   bool isValid{};
   const auto globalChID = LookupTableType::Instance().getChannel(linkID, ep, pmData.channelID, isValid);
-  if(isValid) {
+  if (isValid) {
     vecChData.emplace_back(static_cast<uint8_t>(globalChID), static_cast<int>(pmData.time), static_cast<int>(pmData.charge), static_cast<uint8_t>(pmData.getFlagWord()));
-  }
-  else {
-    LOG(WARNING) << "Incorrect global channel! linkID: "<<linkID<<" | EndPoint: "<<ep<<" | LocalChID: "<<pmData.channelID;
+  } else {
+    LOG(WARNING) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
   }
 }
 //Interface for extracting interaction record from Digit

@@ -169,9 +169,9 @@ class LookupTableBase
   typedef typename MapEntryPM2ChannelID_t::key_type EntryPM_t;
   typedef typename MapEntryCRU2ModuleType_t::key_type EntryCRU_t;
   typedef typename MapEntryPM2ChannelID_t::mapped_type ChannelID_t;
-  typedef std::map<ChannelID_t,EntryPM_t> MapChannelID2EntryPM_t;  // for digit2raw
-  typedef std::map<EModuleType,EntryCRU_t> MapModuleType2EntryCRU;  // for digit2raw
-  typedef EntryPM_t Topo_t; //temporary for common interface
+  typedef std::map<ChannelID_t, EntryPM_t> MapChannelID2EntryPM_t;  // for digit2raw
+  typedef std::map<EModuleType, EntryCRU_t> MapModuleType2EntryCRU; // for digit2raw
+  typedef EntryPM_t Topo_t;                                         //temporary for common interface
   //Map of str module names -> enum types
   const std::map<std::string, EModuleType> mMapModuleTypeStr2Enum = {{"PM", EModuleType::kPM}, {"PM-LCS", EModuleType::kPM_LCS}, {"TCM", EModuleType::kTCM}};
   //Warning! To exclude double mapping do not use isTCM and isPM in the same time
@@ -214,10 +214,10 @@ class LookupTableBase
       return EModuleType::kUnknown;
     }
   }
-  void initFromFile(const std::string &pathToFile)
+  void initFromFile(const std::string& pathToFile)
   {
     std::string filepath{};
-    if(pathToFile=="") {
+    if (pathToFile == "") {
       std::string inputDir;
       const char* aliceO2env = std::getenv("O2_ROOT");
       if (aliceO2env) {
@@ -226,8 +226,7 @@ class LookupTableBase
       inputDir += "/share/Detectors/FT0/files/";
       filepath = inputDir + "LookupTable_FT0.json";
       filepath = gSystem->ExpandPathName(filepath.data()); // Expand $(ALICE_ROOT) into real system path
-    }
-    else {
+    } else {
       filepath = pathToFile;
     }
     prepareEntriesFEE(filepath);
@@ -240,7 +239,7 @@ class LookupTableBase
     mVecEntryFEE = *(mgr.get<std::vector<EntryFEE>>(pathToStorageInCCDB));
     prepareLUT();
   }
-  ChannelID_t getGlobalChannelID(const EntryPM_t& entryPM, bool &isValid) const
+  ChannelID_t getGlobalChannelID(const EntryPM_t& entryPM, bool& isValid) const
   {
     const auto& it = mMapEntryPM2ChannelID.find(entryPM);
     if (it != mMapEntryPM2ChannelID.end()) {
@@ -255,7 +254,7 @@ class LookupTableBase
   {
     return mMapEntryPM2ChannelID.find(std::move(EntryPM_t{EntryCRU_t{linkID, ep, 0, 0}, chID}))->second;
   }
-  ChannelID_t getChannel(int linkID, int ep, int chID, bool &isValid)
+  ChannelID_t getChannel(int linkID, int ep, int chID, bool& isValid)
   {
     const auto& it = mMapEntryPM2ChannelID.find(std::move(EntryPM_t{EntryCRU_t{linkID, ep, 0, 0}, chID}));
     if (it != mMapEntryPM2ChannelID.end()) {
@@ -395,6 +394,7 @@ class LookupTableBase
     }
     return mapResult;
   }
+
  private:
   EntryCRU_t mEntryCRU_TCM;
   std::vector<EntryFEE> mVecEntryFEE;

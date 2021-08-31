@@ -116,7 +116,8 @@ class LookUpTable
   ClassDefNV(LookUpTable, 1);
 };
 
-namespace deprecated {
+namespace deprecated
+{
 //Singleton for LookUpTable
 class SingleLUT : public LookUpTable
 {
@@ -198,8 +199,9 @@ class SingleLUT : public LookUpTable
     return mapResult;
   }
 };
-}// namespace deprecated
-namespace new_lut {
+} // namespace deprecated
+namespace new_lut
+{
 //Singleton for LookUpTable
 template <typename LUT>
 class SingleLUT : public LUT
@@ -211,7 +213,6 @@ class SingleLUT : public LUT
   SingleLUT& operator=(SingleLUT&) = delete;
 
  public:
-
   static constexpr char sDetectorName[] = "FDD";
   static SingleLUT& Instance()
   {
@@ -219,7 +220,7 @@ class SingleLUT : public LUT
     return instanceLUT;
   }
   // temporary unused
-  static SingleLUT& InstanceCCDB(const std::string& urlCCDB,const std::string &pathToStorageInCCDB)
+  static SingleLUT& InstanceCCDB(const std::string& urlCCDB, const std::string& pathToStorageInCCDB)
   {
     static SingleLUT instanceLUT(urlCCDB, pathToStorageInCCDB);
     return instanceLUT;
