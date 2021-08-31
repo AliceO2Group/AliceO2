@@ -63,7 +63,9 @@ void setupRawFileWriter(o2::raw::RawFileWriter& fw, const std::set<LinkInfo>& li
   std::string output = fmt::format("{:s}/mch", opt.outputDir);
 
   // Register the corresponding links (might have several solars for 1 link)
-  registerLinks(fw, output, links, opt.filePerLink);
+  registerLinks(fw, output, links,
+                opt.splitMode == OutputSplit::PerLink,
+                opt.splitMode == OutputSplit::PerCruEndpoint);
 }
 
 Solar2LinkInfo getSolar2LinkInfo(bool userLogic, bool dummyElecMap, int userLogicVersion)
@@ -149,8 +151,11 @@ Digit2ElecMapper getDigit2Elec(bool dummyElecMap)
 
 std::ostream& operator<<(std::ostream& os, const DigitRawEncoderOptions& opt)
 {
-  os << fmt::format("output dir {} filePerLink {} userLogic {} dummyElecMap {} ulVersion {}\n",
-                    opt.outputDir, opt.filePerLink, opt.userLogic, opt.dummyElecMap, opt.userLogicVersion);
+  os << fmt::format("output dir {} filePerLink {} filePerCruEndpoint {} userLogic {} dummyElecMap {} ulVersion {}\n",
+                    opt.outputDir,
+                    opt.splitMode == OutputSplit::PerLink,
+                    opt.splitMode == OutputSplit::PerCruEndpoint,
+                    opt.userLogic, opt.dummyElecMap, opt.userLogicVersion);
   return os;
 }
 
