@@ -43,9 +43,9 @@ def RAWTask(name, command):
 
 ITSRAW=RAWTask('itsraw', 'o2-its-digi2raw --file-for link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" -o raw/ITS')
 MFTRAW=RAWTask('mftraw', 'o2-mft-digi2raw --file-for link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" -o raw/MFT')
-FT0RAW=RAWTask('ft0raw', 'o2-ft0-digi2raw --file-per-link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" -o raw/FT0')
-FV0RAW=RAWTask('fv0raw', 'o2-fv0-digi2raw --file-per-link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" -o raw/FV0')
-FDDRAW=RAWTask('fddraw', 'o2-fdd-digit2raw --file-per-link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" -o raw/FDD')
+FT0RAW=RAWTask('ft0raw', 'o2-ft0-digi2raw --file-for link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" -o raw/FT0')
+FV0RAW=RAWTask('fv0raw', 'o2-fv0-digi2raw --file-for link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" -o raw/FV0')
+FDDRAW=RAWTask('fddraw', 'o2-fdd-digit2raw --file-for link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" -o raw/FDD')
 TPCRAW=RAWTask('tpcraw', 'o2-tpc-digits-to-rawzs  --file-for link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" -i tpcdigits.root -o raw/TPC')
 TOFRAW=RAWTask('tofraw', 'o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" --output-type raw --tof-raw-outdir raw/TOF')
 TOFRAW=RAWTask('midraw', 'o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink  --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\"')
