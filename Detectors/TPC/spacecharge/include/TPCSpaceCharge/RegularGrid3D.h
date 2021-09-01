@@ -137,19 +137,19 @@ struct RegularGrid3D {
 
  private:
   inline static auto& mParamGrid = ParameterSpaceCharge::Instance();
-  static constexpr unsigned int FDIM = 3;                                                                                                                                                   ///< dimensions of the grid (only 3 supported)
-  static constexpr unsigned int FZ = 0;                                                                                                                                                     ///< index for x coordinate
-  static constexpr unsigned int FR = 1;                                                                                                                                                     ///< index for y coordinate
-  static constexpr unsigned int FPHI = 2;                                                                                                                                                   ///< index for z coordinate
-  const Vector<DataT, FDIM> mMin{};                                                                                                                                                         ///< min vertices positions of the grid
-  const Vector<DataT, FDIM> mMax{};                                                                                                                                                         ///< max vertices positions of the grid
-  const Vector<DataT, FDIM> mSpacing{};                                                                                                                                                     ///<  spacing of the grid
-  const Vector<DataT, FDIM> mInvSpacing{};                                                                                                                                                  ///< inverse spacing of grid
-  const Vector<DataT, FDIM> sMaxIndex{{static_cast<double>(mParamGrid.NZVertices - 1.), static_cast<double>(mParamGrid.NRVertices - 1), static_cast<double>(mParamGrid.NPhiVertices - 1)}}; ///< max index which is on the grid in all dimensions
-  const Vector<int, FDIM> sNdim{{static_cast<int>(mParamGrid.NZVertices), static_cast<int>(mParamGrid.NRVertices), static_cast<int>(mParamGrid.NPhiVertices)}};                             ///< number of vertices for each dimension
-  std::vector<DataT> mZVertices{};                                                                                                                                                          ///< positions of vertices in x direction
-  std::vector<DataT> mRVertices{};                                                                                                                                                          ///< positions of vertices in y direction
-  std::vector<DataT> mPhiVertices{};                                                                                                                                                        ///< positions of vertices in z direction
+  static constexpr unsigned int FDIM = 3;                                                                                                                                                ///< dimensions of the grid (only 3 supported)
+  static constexpr unsigned int FZ = 0;                                                                                                                                                  ///< index for x coordinate
+  static constexpr unsigned int FR = 1;                                                                                                                                                  ///< index for y coordinate
+  static constexpr unsigned int FPHI = 2;                                                                                                                                                ///< index for z coordinate
+  const Vector<DataT, FDIM> mMin{};                                                                                                                                                      ///< min vertices positions of the grid
+  const Vector<DataT, FDIM> mMax{};                                                                                                                                                      ///< max vertices positions of the grid
+  const Vector<DataT, FDIM> mSpacing{};                                                                                                                                                  ///<  spacing of the grid
+  const Vector<DataT, FDIM> mInvSpacing{};                                                                                                                                               ///< inverse spacing of grid
+  const Vector<DataT, FDIM> sMaxIndex{{static_cast<DataT>(mParamGrid.NZVertices - 1.), static_cast<DataT>(mParamGrid.NRVertices - 1), static_cast<DataT>(mParamGrid.NPhiVertices - 1)}}; ///< max index which is on the grid in all dimensions
+  const Vector<int, FDIM> sNdim{{static_cast<int>(mParamGrid.NZVertices), static_cast<int>(mParamGrid.NRVertices), static_cast<int>(mParamGrid.NPhiVertices)}};                          ///< number of vertices for each dimension
+  std::vector<DataT> mZVertices{};                                                                                                                                                       ///< positions of vertices in x direction
+  std::vector<DataT> mRVertices{};                                                                                                                                                       ///< positions of vertices in y direction
+  std::vector<DataT> mPhiVertices{};                                                                                                                                                     ///< positions of vertices in z direction
 
   void initLists();
 

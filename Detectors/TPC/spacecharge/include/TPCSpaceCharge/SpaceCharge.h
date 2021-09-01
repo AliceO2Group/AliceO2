@@ -28,6 +28,7 @@
 
 class TH3;
 class TH3D;
+class TH3F;
 
 namespace o2
 {
@@ -50,11 +51,15 @@ class SpaceCharge
   using DataContainer = DataContainer3D<DataT>;
   using GridProp = GridProperties<DataT>;
   using TriCubic = TriCubicInterpolator<DataT>;
+  using TH3DataT = std::conditional_t<std::is_same<DataT, double>::value, TH3D, TH3F>; // datatype for TH3 (TH3F for DataT==float and TH3D for DataT==double)
 
  public:
   /// default constructor
   /// grid granularity has to set before constructing an object using the static function setGrid(nZVertices, nRVertices, nPhiVertices)!
-  SpaceCharge() = default;
+  /// \param omegaTau \omega \tau value
+  /// \param t1 value for t1
+  /// \param t2 value for t2
+  SpaceCharge(const DataT omegaTau = -0.35f, const DataT t1 = 1, const DataT t2 = 1) { setOmegaTauT1T2(omegaTau, t1, t2); };
 
   /// \param nZVertices number of vertices of the grid in z direction
   /// \param nRVertices number of vertices of the grid in z direction
@@ -182,7 +187,7 @@ class SpaceCharge
   /// \param z global z coordinate
   /// \param r global r coordinate
   /// \param phi global phi coordinate
-  DataT getChargeCyl(const DataT z, const DataT r, const DataT phi, const Side side) const;
+  DataT getDensityCyl(const DataT z, const DataT r, const DataT phi, const Side side) const;
 
   /// get the potential for given coordinate
   /// \param z global z coordinate
@@ -538,7 +543,7 @@ class SpaceCharge
   /// \param omegaTau \omega \tau value
   /// \param t1 value for t1 see: ???
   /// \param t2 value for t2 see: ???
-  void setOmegaTauT1T2(const DataT omegaTau, const DataT t1, const DataT t2)
+  void setOmegaTauT1T2(const DataT omegaTau = -0.35f, const DataT t1 = 1, const DataT t2 = 1)
   {
     const DataT wt0 = t2 * omegaTau;
     mC0 = 1 / (1 + wt0 * wt0);
@@ -567,7 +572,7 @@ class SpaceCharge
   static void setNThreads(const int nThreads)
   {
     sNThreads = nThreads;
-    o2::tpc::TriCubicInterpolator<DataT>::setNThreads(nThreads);
+    TriCubic::setNThreads(nThreads);
   }
 
   /// set which kind of numerical integration is used for calcution of the integrals int Er/Ez dz, int Ephi/Ez dz, int Ez dz
@@ -596,6 +601,14 @@ class SpaceCharge
   /// \param outf output file
   /// \side side of the TPC
   void dumpToFile(TFile& outf, const Side side) const;
+
+  /// dump sc density, potential, electric fields, global distortions/corrections to tree
+  /// \param outFileName name of the output file
+  /// \side side of the TPC
+  /// \param nZPoints number of vertices of the output in z
+  /// \param nRPoints number of vertices of the output in r
+  /// \param nPhiPoints number of vertices of the output in phi
+  void dumpToTree(const char* outFileName, const Side side, const int nZPoints = 50, const int nRPoints = 150, const int nPhiPoints = 180) const;
 
   /// write electric fields to root file
   /// \param outf output file where the electrical fields will be written to
@@ -716,7 +729,13 @@ class SpaceCharge
   /// \param nBinsZNew number of z bins of rebinned histogram
   /// \param nBinsRNew number of r bins of rebinned histogram
   /// \param nBinsPhiNew number of phi bins of rebinned histogram
-  static TH3D rebinDensityHisto(const TH3& hOrig, const unsigned short nBinsZNew, const unsigned short nBinsRNew, const unsigned short nBinsPhiNew);
+  static TH3DataT rebinDensityHisto(const TH3& hOrig, const unsigned short nBinsZNew, const unsigned short nBinsRNew, const unsigned short nBinsPhiNew);
+
+  /// function to calculate the drift paths of the electron whose starting position is delivered. Electric fields must be set!
+  /// \param elePos global position of the start position of the electron
+  /// \param nSamplingPoints number of output points of the electron drift path
+  /// \return returns the input electron a vector of 3D-points describing the drift path of the electron
+  std::vector<GlobalPosition3D> calculateElectronDriftPath(const GlobalPosition3D& elePos, const int nSamplingPoints) const;
 
  private:
   inline static auto& mParamGrid = ParameterSpaceCharge::Instance(); ///< parameters of the grid on which the calculations are performed

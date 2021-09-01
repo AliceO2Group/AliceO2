@@ -74,7 +74,7 @@ void PoissonSolver<DataT>::poissonMultiGrid2D(DataContainer& matricesV, const Da
     return;
   }
   if (!isPowerOfTwo(mParamGrid.NZVertices - 1)) {
-    LOGP(ERROR, "PoissonMultiGrid2D: PoissonMultiGrid - Error in the number of mParamGrid.NZVertices. Must be 2**N - 1");
+    LOGP(ERROR, "PoissonMultiGrid2D: PoissonMultiGrid - Error in the number of mParamGrid.NZVertices. Must be 2**N + 1");
     return;
   }
 
@@ -82,8 +82,8 @@ void PoissonSolver<DataT>::poissonMultiGrid2D(DataContainer& matricesV, const Da
 
   LOGP(info, "{}", fmt::format("PoissonMultiGrid2D: nGridRow={}, nGridCol={}, nLoop={}, nMGCycle={}", nGridRow, nGridCol, nLoop, MGParameters::nMGCycle));
 
-  int iOne = 1; // in/dex
-  int jOne = 1; // index
+  unsigned int iOne = 1; // index
+  unsigned int jOne = 1; // index
   int tnRRow = mParamGrid.NRVertices;
   int tnZColumn = mParamGrid.NZVertices;
 
@@ -98,26 +98,27 @@ void PoissonSolver<DataT>::poissonMultiGrid2D(DataContainer& matricesV, const Da
     tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
     tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
     // if one just address to matrixV
-    tvResidue[count - 1].resize(tnRRow, tnZColumn, 1);
-    tvChargeFMG[count - 1].resize(tnRRow, tnZColumn, 1);
-    tvArrayV[count - 1].resize(tnRRow, tnZColumn, 1);
-    tvCharge[count - 1].resize(tnRRow, tnZColumn, 1);
+    const int index = count - 1;
+    tvResidue[index].resize(tnRRow, tnZColumn, 1);
+    tvChargeFMG[index].resize(tnRRow, tnZColumn, 1);
+    tvArrayV[index].resize(tnRRow, tnZColumn, 1);
+    tvCharge[index].resize(tnRRow, tnZColumn, 1);
 
     if (count == 1) {
       for (int iphi = iPhi; iphi <= iPhi; ++iphi) {
         for (int ir = 0; ir < mParamGrid.NRVertices; ++ir) {
           for (int iz = 0; iz < mParamGrid.NZVertices; ++iz) {
-            tvChargeFMG[count - 1](ir, iz, iphi) = matricesCharge(iz, ir, iphi);
-            tvCharge[count - 1](ir, iz, iphi) = matricesCharge(iz, ir, iphi);
-            tvArrayV[count - 1](ir, iz, iphi) = matricesV(iz, ir, iphi);
+            tvChargeFMG[index](ir, iz, iphi) = matricesCharge(iz, ir, iphi);
+            tvCharge[index](ir, iz, iphi) = matricesCharge(iz, ir, iphi);
+            tvArrayV[index](ir, iz, iphi) = matricesV(iz, ir, iphi);
           }
         }
       }
     } else {
-      restrict2D(tvChargeFMG[count - 1], tvChargeFMG[count - 2], tnRRow, tnZColumn, 0);
+      restrict2D(tvChargeFMG[index], tvChargeFMG[count - 2], tnRRow, tnZColumn, 0);
     }
-    iOne = 2 * iOne;
-    jOne = 2 * jOne;
+    iOne *= 2;
+    jOne *= 2;
   }
 
   /// full multi grid
@@ -126,14 +127,14 @@ void PoissonSolver<DataT>::poissonMultiGrid2D(DataContainer& matricesV, const Da
     LOGP(info, "PoissonMultiGrid2D: Do full cycle");
     // FMG
     // 1) Relax on the coarsest grid
-    iOne = iOne * 0.5;
-    jOne = jOne * 0.5;
+    iOne /= 2;
+    jOne /= 2;
     tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
     tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
     const DataT h = gridSpacingR * nLoop;
     const DataT h2 = h * h;
     const DataT tempRatio = ratioZ * iOne * iOne / (jOne * jOne);
-    const DataT tempFourth = 1.0 / (2.0 + 2.0 * tempRatio);
+    const DataT tempFourth = 1 / (2 + 2 * tempRatio);
 
     std::vector<DataT> coefficient1(tnRRow);
     std::vector<DataT> coefficient2(tnRRow);
@@ -143,9 +144,8 @@ void PoissonSolver<DataT>::poissonMultiGrid2D(DataContainer& matricesV, const Da
 
     // Do VCycle from nLoop H to h
     for (int count = nLoop - 2; count >= 0; --count) {
-
-      iOne = iOne * 0.5;
-      jOne = jOne * 0.5;
+      iOne /= 2;
+      jOne /= 2;
 
       tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
       tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
@@ -202,15 +202,11 @@ void PoissonSolver<DataT>::poissonMultiGrid3D2D(DataContainer& matricesV, const 
     return;
   }
   if (!isPowerOfTwo((mParamGrid.NZVertices - 1))) {
-    LOGP(ERROR, "PoissonMultiGrid3D2D: Poisson3DMultiGrid - Error in the number of mParamGrid.NZVertices. Must be 2**N - 1");
+    LOGP(ERROR, "PoissonMultiGrid3D2D: Poisson3DMultiGrid - Error in the number of mParamGrid.NZVertices. Must be 2**N + 1");
     return;
   }
   if (mParamGrid.NPhiVertices <= 3) {
     LOGP(ERROR, "PoissonMultiGrid3D2D: Poisson3DMultiGrid - Error in the number of mParamGrid.NPhiVertices. Must be larger than 3");
-    return;
-  }
-  if (mParamGrid.NPhiVertices > 1000) {
-    LOGP(ERROR, "PoissonMultiGrid3D2D: Poisson3D  mParamGrid.NPhiVertices > 1000 is not allowed (nor wise)");
     return;
   }
 
@@ -248,29 +244,30 @@ void PoissonSolver<DataT>::poissonMultiGrid3D2D(DataContainer& matricesV, const 
   for (unsigned int count = 1; count <= nLoop; count++) {
     const unsigned int tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
     const unsigned int tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
-    tvResidue[count - 1].resize(tnRRow, tnZColumn, mParamGrid.NPhiVertices);
-    tvPrevArrayV[count - 1].resize(tnRRow, tnZColumn, mParamGrid.NPhiVertices);
+    const unsigned int index = count - 1;
+    tvResidue[index].resize(tnRRow, tnZColumn, mParamGrid.NPhiVertices);
+    tvPrevArrayV[index].resize(tnRRow, tnZColumn, mParamGrid.NPhiVertices);
 
     // memory for the finest grid is from parameters
-    tvChargeFMG[count - 1].resize(tnRRow, tnZColumn, mParamGrid.NPhiVertices);
-    tvArrayV[count - 1].resize(tnRRow, tnZColumn, mParamGrid.NPhiVertices);
-    tvCharge[count - 1].resize(tnRRow, tnZColumn, mParamGrid.NPhiVertices);
+    tvChargeFMG[index].resize(tnRRow, tnZColumn, mParamGrid.NPhiVertices);
+    tvArrayV[index].resize(tnRRow, tnZColumn, mParamGrid.NPhiVertices);
+    tvCharge[index].resize(tnRRow, tnZColumn, mParamGrid.NPhiVertices);
 
     if (count == 1) {
       for (int iphi = 0; iphi < mParamGrid.NPhiVertices; ++iphi) {
         for (int ir = 0; ir < mParamGrid.NRVertices; ++ir) {
           for (int iz = 0; iz < mParamGrid.NZVertices; ++iz) {
-            tvChargeFMG[count - 1](ir, iz, iphi) = matricesCharge(iz, ir, iphi);
-            tvArrayV[count - 1](ir, iz, iphi) = matricesV(iz, ir, iphi);
+            tvChargeFMG[index](ir, iz, iphi) = matricesCharge(iz, ir, iphi);
+            tvArrayV[index](ir, iz, iphi) = matricesV(iz, ir, iphi);
           }
         }
       }
     } else {
-      restrict3D(tvChargeFMG[count - 1], tvChargeFMG[count - 2], tnRRow, tnZColumn, mParamGrid.NPhiVertices, mParamGrid.NPhiVertices);
-      restrictBoundary3D(tvArrayV[count - 1], tvArrayV[count - 2], tnRRow, tnZColumn, mParamGrid.NPhiVertices, mParamGrid.NPhiVertices);
+      restrict3D(tvChargeFMG[index], tvChargeFMG[count - 2], tnRRow, tnZColumn, mParamGrid.NPhiVertices, mParamGrid.NPhiVertices);
+      restrictBoundary3D(tvArrayV[index], tvArrayV[count - 2], tnRRow, tnZColumn, mParamGrid.NPhiVertices, mParamGrid.NPhiVertices);
     }
-    iOne = 2 * iOne; // doubling
-    jOne = 2 * jOne; // doubling
+    iOne *= 2; // doubling
+    jOne *= 2; // doubling
   }
 
   std::vector<DataT> coefficient1(mParamGrid.NRVertices);        // coefficient1(mParamGrid.NRVertices) for storing (1 + h_{r}/2r_{i}) from central differences in r direction
@@ -282,8 +279,8 @@ void PoissonSolver<DataT>::poissonMultiGrid3D2D(DataContainer& matricesV, const 
   // Case full multi grid (FMG)
   if (MGParameters::cycleType == CycleType::FCycle) {
     // 1) Relax on the coarsest grid
-    iOne = iOne * 0.5;
-    jOne = jOne * 0.5;
+    iOne /= 2;
+    jOne /= 2;
     int tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
     int tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
 
@@ -301,8 +298,8 @@ void PoissonSolver<DataT>::poissonMultiGrid3D2D(DataContainer& matricesV, const 
     // 2) Do multiGrid v-cycle from coarsest to finest
     for (int count = nLoop - 2; count >= 0; --count) {
       // move to finer grid
-      iOne = iOne * 0.5;
-      jOne = jOne * 0.5;
+      iOne /= 2;
+      jOne /= 2;
       tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
       tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
 
@@ -355,15 +352,11 @@ void PoissonSolver<DataT>::poissonMultiGrid3D(DataContainer& matricesV, const Da
     return;
   }
   if (!isPowerOfTwo((mParamGrid.NZVertices - 1))) {
-    LOGP(ERROR, "PoissonMultiGrid3D: Poisson3DMultiGrid - Error in the number of mParamGrid.NZVertices. Must be 2**N - 1");
+    LOGP(ERROR, "PoissonMultiGrid3D: Poisson3DMultiGrid - Error in the number of mParamGrid.NZVertices. Must be 2**N + 1");
     return;
   }
   if (mParamGrid.NPhiVertices <= 3) {
     LOGP(ERROR, "PoissonMultiGrid3D: Poisson3DMultiGrid - Error in the number of mParamGrid.NPhiVertices. Must be larger than 3");
-    return;
-  }
-  if (mParamGrid.NPhiVertices > 1000) {
-    LOGP(ERROR, "PoissonMultiGrid3D: Poisson3D  mParamGrid.NPhiVertices > 1000 is not allowed (nor wise)");
     return;
   }
 
@@ -386,16 +379,16 @@ void PoissonSolver<DataT>::poissonMultiGrid3D(DataContainer& matricesV, const Da
   int nnPhi = mParamGrid.NPhiVertices;
   while (nnPhi % 2 == 0) {
     ++nGridPhi;
-    nnPhi *= 0.5;
+    nnPhi /= 2;
   }
 
   LOGP(info, "{}", fmt::format("PoissonMultiGrid3D: nGridRow={}, nGridCol={}, nGridPhi={}", nGridRow, nGridCol, nGridPhi));
   const int nLoop = std::max({nGridRow, nGridCol, nGridPhi}); // Calculate the number of nLoop for the binary expansion
 
   // Vector for storing multi grid array
-  int iOne = 1; // index i in gridSize r (original)
-  int jOne = 1; // index j in gridSize z (original)
-  int kOne = 1; // index k in gridSize phi
+  unsigned int iOne = 1; // index i in gridSize r (original)
+  unsigned int jOne = 1; // index j in gridSize z (original)
+  unsigned int kOne = 1; // index k in gridSize phi
   int tnRRow = mParamGrid.NRVertices;
   int tnZColumn = mParamGrid.NZVertices;
   int tPhiSlice = mParamGrid.NPhiVertices;
@@ -421,27 +414,28 @@ void PoissonSolver<DataT>::poissonMultiGrid3D(DataContainer& matricesV, const Da
     tPhiSlice = tPhiSlice < nnPhi ? nnPhi : tPhiSlice;
 
     // allocate memory for residue
-    tvResidue[count - 1].resize(tnRRow, tnZColumn, tPhiSlice);
-    tvPrevArrayV[count - 1].resize(tnRRow, tnZColumn, tPhiSlice);
-    tvChargeFMG[count - 1].resize(tnRRow, tnZColumn, tPhiSlice);
-    tvArrayV[count - 1].resize(tnRRow, tnZColumn, tPhiSlice);
-    tvCharge[count - 1].resize(tnRRow, tnZColumn, tPhiSlice);
+    const int index = count - 1;
+    tvResidue[index].resize(tnRRow, tnZColumn, tPhiSlice);
+    tvPrevArrayV[index].resize(tnRRow, tnZColumn, tPhiSlice);
+    tvChargeFMG[index].resize(tnRRow, tnZColumn, tPhiSlice);
+    tvArrayV[index].resize(tnRRow, tnZColumn, tPhiSlice);
+    tvCharge[index].resize(tnRRow, tnZColumn, tPhiSlice);
 
     // memory for the finest grid is from parameters
     if (count == 1) {
       for (int iphi = 0; iphi < mParamGrid.NPhiVertices; ++iphi) {
         for (int ir = 0; ir < mParamGrid.NRVertices; ++ir) {
           for (int iz = 0; iz < mParamGrid.NZVertices; ++iz) {
-            tvChargeFMG[count - 1](ir, iz, iphi) = matricesCharge(iz, ir, iphi);
-            tvArrayV[count - 1](ir, iz, iphi) = matricesV(iz, ir, iphi);
+            tvChargeFMG[index](ir, iz, iphi) = matricesCharge(iz, ir, iphi);
+            tvArrayV[index](ir, iz, iphi) = matricesV(iz, ir, iphi);
           }
         }
       }
-      tvCharge[count - 1] = tvChargeFMG[count - 1];
+      tvCharge[index] = tvChargeFMG[index];
     }
-    iOne = 2 * iOne; // doubling
-    jOne = 2 * jOne; // doubling
-    kOne = 2 * kOne;
+    iOne *= 2; // doubling
+    jOne *= 2; // doubling
+    kOne *= 2;
   }
 
   // Case full multi grid (FMG)
@@ -466,18 +460,18 @@ void PoissonSolver<DataT>::poissonMultiGrid3D(DataContainer& matricesV, const Da
       restrictBoundary3D(tvArrayV[count - 1], tvArrayV[count - 2], tnRRow, tnZColumn, tPhiSlice, otPhiSlice);
       otPhiSlice = tPhiSlice;
 
-      iOne = 2 * iOne; // doubling
-      jOne = 2 * jOne; // doubling
-      kOne = 2 * kOne;
+      iOne *= 2; // doubling
+      jOne *= 2; // doubling
+      kOne *= 2;
     }
 
     // Relax on the coarsest grid
     // FMG
     // 2) Relax on the coarsest grid
     // move to the coarsest + 1
-    iOne = iOne * 0.5;
-    jOne = jOne * 0.5;
-    kOne = kOne * 0.5;
+    iOne /= 2;
+    jOne /= 2;
+    kOne /= 2;
     tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
     tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
     tPhiSlice = kOne == 1 ? mParamGrid.NPhiVertices : mParamGrid.NPhiVertices / kOne;
@@ -504,9 +498,9 @@ void PoissonSolver<DataT>::poissonMultiGrid3D(DataContainer& matricesV, const Da
       std::fill(std::begin(coefficient4), std::end(coefficient4), 0);
       std::fill(std::begin(inverseCoefficient4), std::end(inverseCoefficient4), 0);
 
-      iOne = iOne * 0.5;
-      jOne = jOne * 0.5;
-      kOne = kOne * 0.5;
+      iOne /= 2;
+      jOne /= 2;
+      kOne /= 2;
 
       tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
       tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
@@ -572,8 +566,8 @@ template <typename DataT>
 void PoissonSolver<DataT>::wCycle2D(const int gridFrom, const int gridTo, const int gamma, const int nPre, const int nPost, const DataT gridSizeR, const DataT ratio,
                                     std::vector<Vector>& tvArrayV, std::vector<Vector>& tvCharge, std::vector<Vector>& tvResidue)
 {
-  int iOne = 1 << (gridFrom - 1);
-  int jOne = 1 << (gridFrom - 1);
+  unsigned int iOne = 1 << (gridFrom - 1);
+  unsigned int jOne = 1 << (gridFrom - 1);
 
   int tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
   int tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
@@ -583,16 +577,17 @@ void PoissonSolver<DataT>::wCycle2D(const int gridFrom, const int gridTo, const 
 
   // 1) Go to coarsest level
   for (int count = gridFrom; count <= gridTo - 2; ++count) {
+    const int index = count - 1;
     const DataT h = gridSizeR * iOne;
     const DataT h2 = h * h;
-    const DataT ih2 = 1.0 / h2;
+    const DataT ih2 = 1 / h2;
     const DataT tempRatio = ratio * iOne * iOne / (jOne * jOne);
-    const DataT tempFourth = 1.0 / (2.0 + 2.0 * tempRatio);
-    const DataT inverseTempFourth = 1.0 / tempFourth;
+    const DataT tempFourth = 1 / (2 + 2 * tempRatio);
+    const DataT inverseTempFourth = 1 / tempFourth;
     calcCoefficients2D(1, tnRRow - 1, h, coefficient1, coefficient2);
-    Vector matricesCurrentV = tvArrayV[count - 1];
-    Vector matricesCurrentCharge = tvCharge[count - 1];
-    Vector residue = tvResidue[count - 1];
+    Vector matricesCurrentV = tvArrayV[index];
+    Vector matricesCurrentCharge = tvCharge[index];
+    Vector residue = tvResidue[index];
 
     // 1) Pre-Smoothing: Gauss-Seidel Relaxation or Jacobi
     for (int jPre = 1; jPre <= nPre; ++jPre) {
@@ -602,8 +597,8 @@ void PoissonSolver<DataT>::wCycle2D(const int gridFrom, const int gridTo, const 
     // 2) Residue calculation
     residue2D(residue, matricesCurrentV, matricesCurrentCharge, tnRRow, tnZColumn, ih2, inverseTempFourth, tempRatio, coefficient1, coefficient2);
 
-    iOne = 2 * iOne;
-    jOne = 2 * jOne;
+    iOne *= 2;
+    jOne *= 2;
     tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
     tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
 
@@ -621,13 +616,13 @@ void PoissonSolver<DataT>::wCycle2D(const int gridFrom, const int gridTo, const 
 
   // Go to finest grid
   for (int count = gridTo - 2; count >= gridFrom; --count) {
-    iOne = iOne * 0.5;
-    jOne = jOne * 0.5;
+    iOne /= 2;
+    jOne /= 2;
 
     const DataT h = gridSizeR * iOne;
     const DataT h2 = h * h;
     const DataT tempRatio = ratio * iOne * iOne / (jOne * jOne);
-    const DataT tempFourth = 1.0 / (2.0 + 2.0 * tempRatio);
+    const DataT tempFourth = 1 / (2 + 2 * tempRatio);
 
     tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
     tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
@@ -651,8 +646,8 @@ template <typename DataT>
 void PoissonSolver<DataT>::vCycle2D(const int gridFrom, const int gridTo, const int nPre, const int nPost, const DataT gridSizeR, const DataT ratio, std::vector<Vector>& tvArrayV,
                                     std::vector<Vector>& tvCharge, std::vector<Vector>& tvResidue)
 {
-  int iOne = 1 << (gridFrom - 1);
-  int jOne = 1 << (gridFrom - 1);
+  unsigned int iOne = 1 << (gridFrom - 1);
+  unsigned int jOne = 1 << (gridFrom - 1);
 
   int tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
   int tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
@@ -662,28 +657,29 @@ void PoissonSolver<DataT>::vCycle2D(const int gridFrom, const int gridTo, const 
 
   // 1) Go to coarsest level
   for (int count = gridFrom; count <= gridTo - 1; ++count) {
+    const int index = count - 1;
     const DataT h = gridSizeR * iOne;
     const DataT h2 = h * h;
-    const DataT ih2 = 1.0 / h2;
+    const DataT ih2 = 1 / h2;
     const DataT tempRatio = ratio * iOne * iOne / (jOne * jOne);
-    const DataT tempFourth = 1.0 / (2.0 + 2.0 * tempRatio);
-    const DataT inverseTempFourth = 1.0 / tempFourth;
+    const DataT tempFourth = 1 / (2 + 2 * tempRatio);
+    const DataT inverseTempFourth = 1 / tempFourth;
     calcCoefficients2D(1, tnRRow - 1, h, coefficient1, coefficient2);
 
     for (int jPre = 1; jPre <= nPre; ++jPre) {
-      relax2D(tvArrayV[count - 1], tvCharge[count - 1], tnRRow, tnZColumn, h2, tempFourth, tempRatio, coefficient1, coefficient2);
+      relax2D(tvArrayV[index], tvCharge[index], tnRRow, tnZColumn, h2, tempFourth, tempRatio, coefficient1, coefficient2);
     }
 
     // 2) Residue calculation
-    residue2D(tvResidue[count - 1], tvArrayV[count - 1], tvCharge[count - 1], tnRRow, tnZColumn, ih2, inverseTempFourth, tempRatio, coefficient1, coefficient2);
+    residue2D(tvResidue[index], tvArrayV[index], tvCharge[index], tnRRow, tnZColumn, ih2, inverseTempFourth, tempRatio, coefficient1, coefficient2);
 
-    iOne = 2 * iOne;
-    jOne = 2 * jOne;
+    iOne *= 2;
+    jOne *= 2;
     tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
     tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
 
     //3) Restriction
-    restrict2D(tvCharge[count], tvResidue[count - 1], tnRRow, tnZColumn, 0);
+    restrict2D(tvCharge[count], tvResidue[index], tnRRow, tnZColumn, 0);
 
     //4) Zeroing coarser V
     std::fill(tvArrayV[count].begin(), tvArrayV[count].end(), 0); // is this necessary???
@@ -693,33 +689,33 @@ void PoissonSolver<DataT>::vCycle2D(const int gridFrom, const int gridTo, const 
   const DataT h = gridSizeR * iOne;
   const DataT h2 = h * h;
   const DataT tempRatio = ratio * iOne * iOne / (jOne * jOne);
-  const DataT tempFourth = 1.0 / (2.0 + 2.0 * tempRatio);
+  const DataT tempFourth = 1 / (2 + 2 * tempRatio);
   calcCoefficients2D(1, tnRRow - 1, h, coefficient1, coefficient2);
 
   relax2D(tvArrayV[gridTo - 1], tvCharge[gridTo - 1], tnRRow, tnZColumn, h2, tempFourth, tempRatio, coefficient1, coefficient2);
 
   // Go to finest grid
   for (int count = gridTo - 1; count >= gridFrom; count--) {
+    const int index = count - 1;
+    iOne /= 2;
+    jOne /= 2;
 
-    iOne = iOne * 0.5;
-    jOne = jOne * 0.5;
-
-    const DataT h = gridSizeR * iOne;
-    const DataT h2 = h * h;
-    const DataT tempRatio = ratio * iOne * iOne / (jOne * jOne);
-    const DataT tempFourth = 1.0 / (2.0 + 2.0 * tempRatio);
+    const DataT hTmp = gridSizeR * iOne;
+    const DataT h2Tmp = hTmp * hTmp;
+    const DataT tempRatioTmp = ratio * iOne * iOne / (jOne * jOne);
+    const DataT tempFourthTmp = 1 / (2 + 2 * tempRatioTmp);
 
     tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
     tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
 
     // 6) Interpolation/Prolongation
-    addInterp2D(tvArrayV[count - 1], tvArrayV[count], tnRRow, tnZColumn, 0);
+    addInterp2D(tvArrayV[index], tvArrayV[count], tnRRow, tnZColumn, 0);
 
-    calcCoefficients2D(1, tnRRow - 1, h, coefficient1, coefficient2);
+    calcCoefficients2D(1, tnRRow - 1, hTmp, coefficient1, coefficient2);
 
     // 7) Post-Smoothing: Gauss-Seidel Relaxation
     for (int jPost = 1; jPost <= nPost; ++jPost) {
-      relax2D(tvArrayV[count - 1], tvCharge[count - 1], tnRRow, tnZColumn, h2, tempFourth, tempRatio, coefficient1, coefficient2);
+      relax2D(tvArrayV[index], tvCharge[index], tnRRow, tnZColumn, h2Tmp, tempFourthTmp, tempRatioTmp, coefficient1, coefficient2);
     } // end post smoothing
   }
 }
@@ -729,62 +725,64 @@ void PoissonSolver<DataT>::vCycle3D2D(const int symmetry, const int gridFrom, co
                                       std::vector<Vector>& tvArrayV, std::vector<Vector>& tvCharge, std::vector<Vector>& tvResidue, std::vector<DataT>& coefficient1,
                                       std::vector<DataT>& coefficient2, std::vector<DataT>& coefficient3, std::vector<DataT>& coefficient4, std::vector<DataT>& inverseCoefficient4) const
 {
-  int iOne = 1 << (gridFrom - 1);
-  int jOne = 1 << (gridFrom - 1);
+  unsigned int iOne = 1 << (gridFrom - 1);
+  unsigned int jOne = 1 << (gridFrom - 1);
   int tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
   int tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
 
   for (int count = gridFrom; count <= gridTo - 1; ++count) {
+    const int index = count - 1;
     const DataT h = getSpacingR() * iOne;
     const DataT h2 = h * h;
-    const DataT ih2 = 1.0 / h2;
+    const DataT ih2 = 1 / h2;
     const int iOne2 = iOne * iOne;
     const DataT tempRatioPhi = ratioPhi * iOne2; // Used tobe divided by ( m_one * m_one ) when m_one was != 1
     const DataT tempRatioZ = ratioZ * iOne2 / (jOne * jOne);
 
     calcCoefficients(1, tnRRow - 1, h, tempRatioZ, tempRatioPhi, coefficient1, coefficient2, coefficient3, coefficient4);
     for (unsigned int i = 1; i < tnRRow - 1; ++i) {
-      inverseCoefficient4[i] = 1.0 / coefficient4[i];
+      inverseCoefficient4[i] = 1 / coefficient4[i];
     }
 
     //Info("VCycle3D2D","Before Pre-smoothing");
     // 1) Pre-Smoothing: Gauss-Seidel Relaxation or Jacobi
     for (int jPre = 1; jPre <= nPre; ++jPre) {
-      relax3D(tvArrayV[count - 1], tvCharge[count - 1], tnRRow, tnZColumn, mParamGrid.NPhiVertices, symmetry, h2, tempRatioZ, coefficient1, coefficient2, coefficient3, coefficient4);
+      relax3D(tvArrayV[index], tvCharge[index], tnRRow, tnZColumn, mParamGrid.NPhiVertices, symmetry, h2, tempRatioZ, coefficient1, coefficient2, coefficient3, coefficient4);
     } // end pre smoothing
 
     // 2) Residue calculation
-    residue3D(tvResidue[count - 1], tvArrayV[count - 1], tvCharge[count - 1], tnRRow, tnZColumn, mParamGrid.NPhiVertices, symmetry, ih2, tempRatioZ, coefficient1, coefficient2, coefficient3, inverseCoefficient4);
+    residue3D(tvResidue[index], tvArrayV[index], tvCharge[index], tnRRow, tnZColumn, mParamGrid.NPhiVertices, symmetry, ih2, tempRatioZ, coefficient1, coefficient2, coefficient3, inverseCoefficient4);
 
-    iOne = 2 * iOne;
-    jOne = 2 * jOne;
+    iOne *= 2;
+    jOne *= 2;
     tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
     tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
 
     //3) Restriction
-    restrict3D(tvCharge[count], tvResidue[count - 1], tnRRow, tnZColumn, mParamGrid.NPhiVertices, mParamGrid.NPhiVertices);
+    restrict3D(tvCharge[count], tvResidue[index], tnRRow, tnZColumn, mParamGrid.NPhiVertices, mParamGrid.NPhiVertices);
 
     //4) Zeroing coarser V
     std::fill(tvArrayV[count].begin(), tvArrayV[count].end(), 0);
   }
 
   // coarsest grid
-  const DataT h = getSpacingR() * iOne;
-  const DataT h2 = h * h;
+  const DataT hTmp = getSpacingR() * iOne;
+  const DataT h2Tmp = hTmp * hTmp;
 
-  const int iOne2 = iOne * iOne;
-  const DataT tempRatioPhi = ratioPhi * iOne2;
-  const DataT tempRatioZ = ratioZ * iOne2 / (jOne * jOne);
+  const int iOne2Tmp = iOne * iOne;
+  const DataT tempRatioPhiTmp = ratioPhi * iOne2Tmp;
+  const DataT tempRatioZTmp = ratioZ * iOne2Tmp / (jOne * jOne);
 
-  calcCoefficients(1, tnRRow - 1, h, tempRatioZ, tempRatioPhi, coefficient1, coefficient2, coefficient3, coefficient4);
+  calcCoefficients(1, tnRRow - 1, hTmp, tempRatioZTmp, tempRatioPhiTmp, coefficient1, coefficient2, coefficient3, coefficient4);
 
   // 3) Relax on the coarsest grid
-  relax3D(tvArrayV[gridTo - 1], tvCharge[gridTo - 1], tnRRow, tnZColumn, mParamGrid.NPhiVertices, symmetry, h2, tempRatioZ, coefficient1, coefficient2, coefficient3, coefficient4);
+  relax3D(tvArrayV[gridTo - 1], tvCharge[gridTo - 1], tnRRow, tnZColumn, mParamGrid.NPhiVertices, symmetry, h2Tmp, tempRatioZTmp, coefficient1, coefficient2, coefficient3, coefficient4);
 
   // back to fine
   for (int count = gridTo - 1; count >= gridFrom; --count) {
-    iOne = iOne * 0.5;
-    jOne = jOne * 0.5;
+    const int index = count - 1;
+    iOne /= 2;
+    jOne /= 2;
 
     tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
     tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
@@ -796,13 +794,13 @@ void PoissonSolver<DataT>::vCycle3D2D(const int symmetry, const int gridFrom, co
     const DataT tempRatioZ = ratioZ * iOne2 / (jOne * jOne);
 
     // 4) Interpolation/Prolongation
-    addInterp3D(tvArrayV[count - 1], tvArrayV[count], tnRRow, tnZColumn, mParamGrid.NPhiVertices, mParamGrid.NPhiVertices);
+    addInterp3D(tvArrayV[index], tvArrayV[count], tnRRow, tnZColumn, mParamGrid.NPhiVertices, mParamGrid.NPhiVertices);
 
     calcCoefficients(1, tnRRow - 1, h, tempRatioZ, tempRatioPhi, coefficient1, coefficient2, coefficient3, coefficient4);
 
     // 5) Post-Smoothing: Gauss-Seidel Relaxation
     for (int jPost = 1; jPost <= nPost; ++jPost) {
-      relax3D(tvArrayV[count - 1], tvCharge[count - 1], tnRRow, tnZColumn, mParamGrid.NPhiVertices, symmetry, h2, tempRatioZ, coefficient1, coefficient2, coefficient3, coefficient4);
+      relax3D(tvArrayV[index], tvCharge[index], tnRRow, tnZColumn, mParamGrid.NPhiVertices, symmetry, h2, tempRatioZ, coefficient1, coefficient2, coefficient3, coefficient4);
     } // end post smoothing
   }
 }
@@ -814,13 +812,13 @@ void PoissonSolver<DataT>::vCycle3D(const int symmetry, const int gridFrom, cons
 {
   const DataT gridSpacingR = getSpacingR();
 
-  int iOne = 1 << (gridFrom - 1);
-  int jOne = 1 << (gridFrom - 1);
-  int kOne = 1 << (gridFrom - 1);
+  unsigned int iOne = 1 << (gridFrom - 1);
+  unsigned int jOne = 1 << (gridFrom - 1);
+  unsigned int kOne = 1 << (gridFrom - 1);
 
   int nnPhi = mParamGrid.NPhiVertices;
   while (nnPhi % 2 == 0) {
-    nnPhi *= 0.5;
+    nnPhi /= 2;
   }
 
   int tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
@@ -829,10 +827,11 @@ void PoissonSolver<DataT>::vCycle3D(const int symmetry, const int gridFrom, cons
   tPhiSlice = tPhiSlice < nnPhi ? nnPhi : tPhiSlice;
 
   for (int count = gridFrom; count <= gridTo - 1; ++count) {
+    const int index = count - 1;
     const int otPhiSlice = tPhiSlice;
     const DataT h = gridSpacingR * iOne;
     const DataT h2 = h * h;
-    const DataT ih2 = 1.0 / h2;
+    const DataT ih2 = 1 / h2;
     const DataT tempGridSizePhiInv = tPhiSlice * INVTWOPI;                   // phi now is multiGrid
     const DataT tempRatioPhi = h2 * tempGridSizePhiInv * tempGridSizePhiInv; // ratio_{phi} = gridSize_{r} / gridSize_{phi}
     const DataT tempRatioZ = ratioZ * iOne * iOne / (jOne * jOne);
@@ -840,49 +839,50 @@ void PoissonSolver<DataT>::vCycle3D(const int symmetry, const int gridFrom, cons
     calcCoefficients(1, tnRRow - 1, h, tempRatioZ, tempRatioPhi, coefficient1, coefficient2, coefficient3, coefficient4);
 
     for (int i = 1; i < tnRRow - 1; ++i) {
-      inverseCoefficient4[i] = 1.0 / coefficient4[i];
+      inverseCoefficient4[i] = 1 / coefficient4[i];
     }
 
     // 1) Pre-Smoothing: Gauss-Seidel Relaxation or Jacobi
     for (int jPre = 1; jPre <= nPre; ++jPre) {
-      relax3D(tvArrayV[count - 1], tvCharge[count - 1], tnRRow, tnZColumn, tPhiSlice, symmetry, h2, tempRatioZ, coefficient1, coefficient2, coefficient3, coefficient4);
+      relax3D(tvArrayV[index], tvCharge[index], tnRRow, tnZColumn, tPhiSlice, symmetry, h2, tempRatioZ, coefficient1, coefficient2, coefficient3, coefficient4);
     } // end pre smoothing
 
     // 2) Residue calculation
-    residue3D(tvResidue[count - 1], tvArrayV[count - 1], tvCharge[count - 1], tnRRow, tnZColumn, tPhiSlice, symmetry, ih2, tempRatioZ, coefficient1, coefficient2, coefficient3, inverseCoefficient4);
+    residue3D(tvResidue[index], tvArrayV[index], tvCharge[index], tnRRow, tnZColumn, tPhiSlice, symmetry, ih2, tempRatioZ, coefficient1, coefficient2, coefficient3, inverseCoefficient4);
 
-    iOne = 2 * iOne;
-    jOne = 2 * jOne;
-    kOne = 2 * kOne;
+    iOne *= 2;
+    jOne *= 2;
+    kOne *= 2;
     tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
     tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
     tPhiSlice = mParamGrid.NPhiVertices / kOne;
     tPhiSlice = tPhiSlice < nnPhi ? nnPhi : tPhiSlice;
 
     //3) Restriction
-    restrict3D(tvCharge[count], tvResidue[count - 1], tnRRow, tnZColumn, tPhiSlice, otPhiSlice);
+    restrict3D(tvCharge[count], tvResidue[index], tnRRow, tnZColumn, tPhiSlice, otPhiSlice);
 
     //4) Zeroing coarser V
     std::fill(tvArrayV[count].begin(), tvArrayV[count].end(), 0);
   }
 
   // coarsest grid
-  const DataT h = gridSpacingR * iOne;
-  const DataT h2 = h * h;
-  const DataT tempGridSizePhiInv = tPhiSlice * INVTWOPI;                   // phi now is multiGrid
-  const DataT tempRatioPhi = h2 * tempGridSizePhiInv * tempGridSizePhiInv; // ratio_{phi} = gridSize_{r} / gridSize_{phi}
-  const DataT tempRatioZ = ratioZ * iOne * iOne / (jOne * jOne);
+  const DataT hTmp = gridSpacingR * iOne;
+  const DataT h2Tmp = hTmp * hTmp;
+  const DataT tempGridSizePhiInvTmp = tPhiSlice * INVTWOPI;                            // phi now is multiGrid
+  const DataT tempRatioPhiTmp = h2Tmp * tempGridSizePhiInvTmp * tempGridSizePhiInvTmp; // ratio_{phi} = gridSize_{r} / gridSize_{phi}
+  const DataT tempRatioZTmp = ratioZ * iOne * iOne / (jOne * jOne);
 
-  calcCoefficients(1, tnRRow - 1, h, tempRatioZ, tempRatioPhi, coefficient1, coefficient2, coefficient3, coefficient4);
+  calcCoefficients(1, tnRRow - 1, hTmp, tempRatioZTmp, tempRatioPhiTmp, coefficient1, coefficient2, coefficient3, coefficient4);
 
   // 3) Relax on the coarsest grid
-  relax3D(tvArrayV[gridTo - 1], tvCharge[gridTo - 1], tnRRow, tnZColumn, tPhiSlice, symmetry, h2, tempRatioZ, coefficient1, coefficient2, coefficient3, coefficient4);
+  relax3D(tvArrayV[gridTo - 1], tvCharge[gridTo - 1], tnRRow, tnZColumn, tPhiSlice, symmetry, h2Tmp, tempRatioZTmp, coefficient1, coefficient2, coefficient3, coefficient4);
   // back to fine
   for (int count = gridTo - 1; count >= gridFrom; --count) {
+    const int index = count - 1;
     const int otPhiSlice = tPhiSlice;
-    iOne = iOne * 0.5;
-    jOne = jOne * 0.5;
-    kOne = kOne * 0.5;
+    iOne /= 2;
+    jOne /= 2;
+    kOne /= 2;
 
     tnRRow = iOne == 1 ? mParamGrid.NRVertices : mParamGrid.NRVertices / iOne + 1;
     tnZColumn = jOne == 1 ? mParamGrid.NZVertices : mParamGrid.NZVertices / jOne + 1;
@@ -896,13 +896,13 @@ void PoissonSolver<DataT>::vCycle3D(const int symmetry, const int gridFrom, cons
     const DataT tempRatioZ = ratioZ * iOne * iOne / (jOne * jOne);
 
     // 4) Interpolation/Prolongation
-    addInterp3D(tvArrayV[count - 1], tvArrayV[count], tnRRow, tnZColumn, tPhiSlice, otPhiSlice);
+    addInterp3D(tvArrayV[index], tvArrayV[count], tnRRow, tnZColumn, tPhiSlice, otPhiSlice);
 
     calcCoefficients(1, tnRRow - 1, h, tempRatioZ, tempRatioPhi, coefficient1, coefficient2, coefficient3, coefficient4);
 
     // 5) Post-Smoothing: Gauss-Seidel Relaxation
     for (int jPost = 1; jPost <= nPost; ++jPost) {
-      relax3D(tvArrayV[count - 1], tvCharge[count - 1], tnRRow, tnZColumn, tPhiSlice, symmetry, h2, tempRatioZ, coefficient1, coefficient2, coefficient3, coefficient4);
+      relax3D(tvArrayV[index], tvCharge[index], tnRRow, tnZColumn, tPhiSlice, symmetry, h2, tempRatioZ, coefficient1, coefficient2, coefficient3, coefficient4);
     }
   }
 }
@@ -985,7 +985,7 @@ void PoissonSolver<DataT>::interp3D(Vector& matricesCurrentV, const Vector& matr
   if (newPhiSlice == 2 * oldPhiSlice) {
     for (int m = 0; m < newPhiSlice; m += 2) {
       // assuming no symmetry
-      int mm = m * 0.5;
+      int mm = m / 2;
       int mmPlus = mm + 1;
       int mp1 = m + 1;
 
@@ -999,42 +999,43 @@ void PoissonSolver<DataT>::interp3D(Vector& matricesCurrentV, const Vector& matr
 
       for (int j = 2; j < tnZColumn - 1; j += 2) {
         for (int i = 2; i < tnRRow - 1; i += 2) {
-          const int iHalf = i * 0.5;
-          const int jHalf = j * 0.5;
+          const int iHalf = i / 2;
+          const int jHalf = j / 2;
           matricesCurrentV(i, j, m) = matricesCurrentVC(iHalf, jHalf, mm);
           // point on corner lines at phi direction
-          matricesCurrentV(i, j, mp1) = 0.5 * (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus));
+          matricesCurrentV(i, j, mp1) = (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus)) / 2;
         }
       }
 
       for (int j = 1; j < tnZColumn - 1; j += 2) {
         for (int i = 2; i < tnRRow - 1; i += 2) {
-          const int iHalf = i * 0.5;
-          const int jHalf = j * 0.5;
-          matricesCurrentV(i, j, m) = 0.5 * (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm));
+          const int iHalf = i / 2;
+          const int jHalf = j / 2;
+          matricesCurrentV(i, j, m) = (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm)) / 2;
           // point on corner lines at phi direction
-          matricesCurrentV(i, j, mp1) = 0.25 * (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus) + matricesCurrentVC(iHalf, jHalf + 1, mmPlus));
+          matricesCurrentV(i, j, mp1) = (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus) + matricesCurrentVC(iHalf, jHalf + 1, mmPlus)) / 4;
         }
       }
 
       for (int j = 2; j < tnZColumn - 1; j += 2) {
         for (int i = 1; i < tnRRow - 1; i += 2) {
-          const int iHalf = i * 0.5;
-          const int jHalf = j * 0.5;
-          matricesCurrentV(i, j, m) = 0.5 * (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf + 1, jHalf, mm));
+          const int iHalf = i / 2;
+          const int jHalf = j / 2;
+          matricesCurrentV(i, j, m) = (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf + 1, jHalf, mm)) / 2;
           // point on line at phi direction
-          matricesCurrentV(i, j, mp1) = 0.25 * ((matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus)) + (matricesCurrentVC(iHalf + 1, jHalf, mmPlus) + matricesCurrentVC(iHalf + 1, jHalf, mm)));
+          matricesCurrentV(i, j, mp1) = ((matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus)) + (matricesCurrentVC(iHalf + 1, jHalf, mmPlus) + matricesCurrentVC(iHalf + 1, jHalf, mm))) / 4;
         }
       }
 
       for (int j = 1; j < tnZColumn - 1; j += 2) {
         for (int i = 1; i < tnRRow - 1; i += 2) {
-          const int iHalf = i * 0.5;
-          const int jHalf = j * 0.5;
-          matricesCurrentV(i, j, m) = 0.25 * ((matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm)) + (matricesCurrentVC(iHalf + 1, jHalf, mm) + matricesCurrentVC(iHalf + 1, jHalf + 1, mm)));
+          const int iHalf = i / 2;
+          const int jHalf = j / 2;
+          matricesCurrentV(i, j, m) = ((matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm)) + (matricesCurrentVC(iHalf + 1, jHalf, mm) + matricesCurrentVC(iHalf + 1, jHalf + 1, mm))) / 4;
           // point at the center at phi direction
-          matricesCurrentV(i, j, mp1) = 0.125 * ((matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus) + matricesCurrentVC(iHalf, jHalf + 1, mmPlus)) +
-                                                 (matricesCurrentVC(iHalf + 1, jHalf, mm) + matricesCurrentVC(iHalf + 1, jHalf + 1, mm) + matricesCurrentVC(iHalf + 1, jHalf, mmPlus) + matricesCurrentVC(iHalf + 1, jHalf + 1, mmPlus)));
+          matricesCurrentV(i, j, mp1) = ((matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus) + matricesCurrentVC(iHalf, jHalf + 1, mmPlus)) +
+                                         (matricesCurrentVC(iHalf + 1, jHalf, mm) + matricesCurrentVC(iHalf + 1, jHalf + 1, mm) + matricesCurrentVC(iHalf + 1, jHalf, mmPlus) + matricesCurrentVC(iHalf + 1, jHalf + 1, mmPlus))) /
+                                        8;
         }
       }
     }
@@ -1052,23 +1053,24 @@ void PoissonSolver<DataT>::interp2D(Vector& matricesCurrentV, const Vector& matr
 {
   for (int j = 2; j < tnZColumn - 1; j += 2) {
     for (int i = 2; i < tnRRow - 1; i += 2) {
-      matricesCurrentV(i, j, iphi) = matricesCurrentVC(i * 0.5, j * 0.5, iphi);
+      const int jHalf = j / 2;
+      matricesCurrentV(i, j, iphi) = matricesCurrentVC(i / 2, jHalf, iphi);
     }
   }
 
   for (int j = 1; j < tnZColumn - 1; j += 2) {
     for (int i = 2; i < tnRRow - 1; i += 2) {
-      const int iHalf = i * 0.5;
-      const int jHalf = j * 0.5;
-      matricesCurrentV(i, j, iphi) = 0.5 * (matricesCurrentVC(iHalf, jHalf, iphi) + matricesCurrentVC(iHalf, jHalf + 1, iphi));
+      const int iHalf = i / 2;
+      const int jHalf = j / 2;
+      matricesCurrentV(i, j, iphi) = (matricesCurrentVC(iHalf, jHalf, iphi) + matricesCurrentVC(iHalf, jHalf + 1, iphi)) / 2;
     }
   }
 
   for (int j = 2; j < tnZColumn - 1; j += 2) {
     for (int i = 1; i < tnRRow - 1; i += 2) {
-      const int iHalf = i * 0.5;
-      const int jHalf = j * 0.5;
-      matricesCurrentV(i, j, iphi) = 0.5 * (matricesCurrentVC(iHalf, jHalf, iphi) + matricesCurrentVC(iHalf + 1, jHalf, iphi));
+      const int iHalf = i / 2;
+      const int jHalf = j / 2;
+      matricesCurrentV(i, j, iphi) = (matricesCurrentVC(iHalf, jHalf, iphi) + matricesCurrentVC(iHalf + 1, jHalf, iphi)) / 2;
     }
   }
 
@@ -1076,9 +1078,9 @@ void PoissonSolver<DataT>::interp2D(Vector& matricesCurrentV, const Vector& matr
   if (MGParameters::gtType == GridTransferType::Full) {
     for (int j = 1; j < tnZColumn - 1; j += 2) {
       for (int i = 1; i < tnRRow - 1; i += 2) {
-        const int iHalf = i * 0.5;
-        const int jHalf = j * 0.5;
-        matricesCurrentV(i, j, iphi) = 0.25 * (matricesCurrentVC(iHalf, jHalf, iphi) + matricesCurrentVC(iHalf, jHalf + 1, iphi) + matricesCurrentVC(iHalf + 1, jHalf, iphi) + matricesCurrentVC(iHalf + 1, jHalf + 1, iphi));
+        const int iHalf = i / 2;
+        const int jHalf = j / 2;
+        matricesCurrentV(i, j, iphi) = (matricesCurrentVC(iHalf, jHalf, iphi) + matricesCurrentVC(iHalf, jHalf + 1, iphi) + matricesCurrentVC(iHalf + 1, jHalf, iphi) + matricesCurrentVC(iHalf + 1, jHalf + 1, iphi)) / 4;
       }
     }
   }
@@ -1091,7 +1093,7 @@ void PoissonSolver<DataT>::addInterp3D(Vector& matricesCurrentV, const Vector& m
   if (newPhiSlice == 2 * oldPhiSlice) {
     for (int m = 0; m < newPhiSlice; m += 2) {
       // assuming no symmetry
-      int mm = m * 0.5;
+      int mm = m / 2;
       int mmPlus = mm + 1;
       int mp1 = m + 1;
 
@@ -1105,42 +1107,43 @@ void PoissonSolver<DataT>::addInterp3D(Vector& matricesCurrentV, const Vector& m
 
       for (int j = 2; j < tnZColumn - 1; j += 2) {
         for (int i = 2; i < tnRRow - 1; i += 2) {
-          const int iHalf = i * 0.5;
-          const int jHalf = j * 0.5;
+          const int iHalf = i / 2;
+          const int jHalf = j / 2;
           matricesCurrentV(i, j, m) += matricesCurrentVC(iHalf, jHalf, mm);
           // point on corner lines at phi direction
-          matricesCurrentV(i, j, mp1) += 0.5 * (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus));
+          matricesCurrentV(i, j, mp1) += (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus)) / 2;
         }
       }
 
       for (int j = 1; j < tnZColumn - 1; j += 2) {
         for (int i = 2; i < tnRRow - 1; i += 2) {
-          const int iHalf = i * 0.5;
-          const int jHalf = j * 0.5;
-          matricesCurrentV(i, j, m) += 0.5 * (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm));
+          const int iHalf = i / 2;
+          const int jHalf = j / 2;
+          matricesCurrentV(i, j, m) += (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm)) / 2;
           // point on corner lines at phi direction
-          matricesCurrentV(i, j, mp1) += 0.25 * (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus) + matricesCurrentVC(iHalf, jHalf + 1, mmPlus));
+          matricesCurrentV(i, j, mp1) += (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus) + matricesCurrentVC(iHalf, jHalf + 1, mmPlus)) / 4;
         }
       }
 
       for (int j = 2; j < tnZColumn - 1; j += 2) {
         for (int i = 1; i < tnRRow - 1; i += 2) {
-          const int iHalf = i * 0.5;
-          const int jHalf = j * 0.5;
-          matricesCurrentV(i, j, m) += 0.5 * (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf + 1, jHalf, mm));
+          const int iHalf = i / 2;
+          const int jHalf = j / 2;
+          matricesCurrentV(i, j, m) += (matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf + 1, jHalf, mm)) / 2;
           // point on line at phi direction
-          matricesCurrentV(i, j, mp1) += 0.25 * ((matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus)) + (matricesCurrentVC(iHalf + 1, jHalf, mmPlus) + matricesCurrentVC(iHalf + 1, jHalf, mm)));
+          matricesCurrentV(i, j, mp1) += ((matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus)) + (matricesCurrentVC(iHalf + 1, jHalf, mmPlus) + matricesCurrentVC(iHalf + 1, jHalf, mm))) / 4;
         }
       }
 
       for (int j = 1; j < tnZColumn - 1; j += 2) {
         for (int i = 1; i < tnRRow - 1; i += 2) {
-          const int iHalf = i * 0.5;
-          const int jHalf = j * 0.5;
-          matricesCurrentV(i, j, m) += 0.25 * ((matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm)) + (matricesCurrentVC(iHalf + 1, jHalf, mm) + matricesCurrentVC(iHalf + 1, jHalf + 1, mm)));
+          const int iHalf = i / 2;
+          const int jHalf = j / 2;
+          matricesCurrentV(i, j, m) += ((matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm)) + (matricesCurrentVC(iHalf + 1, jHalf, mm) + matricesCurrentVC(iHalf + 1, jHalf + 1, mm))) / 4;
           // point at the center at phi direction
-          matricesCurrentV(i, j, mp1) += 0.125 * ((matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus) + matricesCurrentVC(iHalf, jHalf + 1, mmPlus)) +
-                                                  (matricesCurrentVC(iHalf + 1, jHalf, mm) + matricesCurrentVC(iHalf + 1, jHalf + 1, mm) + matricesCurrentVC(iHalf + 1, jHalf, mmPlus) + matricesCurrentVC(iHalf + 1, jHalf + 1, mmPlus)));
+          matricesCurrentV(i, j, mp1) += ((matricesCurrentVC(iHalf, jHalf, mm) + matricesCurrentVC(iHalf, jHalf + 1, mm) + matricesCurrentVC(iHalf, jHalf, mmPlus) + matricesCurrentVC(iHalf, jHalf + 1, mmPlus)) +
+                                          (matricesCurrentVC(iHalf + 1, jHalf, mm) + matricesCurrentVC(iHalf + 1, jHalf + 1, mm) + matricesCurrentVC(iHalf + 1, jHalf, mmPlus) + matricesCurrentVC(iHalf + 1, jHalf + 1, mmPlus))) /
+                                         8;
         }
       }
     }
@@ -1158,23 +1161,23 @@ void PoissonSolver<DataT>::addInterp2D(Vector& matricesCurrentV, const Vector& m
 {
   for (int j = 2; j < tnZColumn - 1; j += 2) {
     for (int i = 2; i < tnRRow - 1; i += 2) {
-      matricesCurrentV(i, j, tnPhi) = matricesCurrentV(i, j, tnPhi) + matricesCurrentVC(i * 0.5, j * 0.5, tnPhi);
+      matricesCurrentV(i, j, tnPhi) = matricesCurrentV(i, j, tnPhi) + matricesCurrentVC(i / 2, j / 2, tnPhi);
     }
   }
 
   for (int j = 1; j < tnZColumn - 1; j += 2) {
     for (int i = 2; i < tnRRow - 1; i += 2) {
-      const int iHalf = 0.5 * i;
-      const int jHalf = 0.5 * j;
-      matricesCurrentV(i, j, tnPhi) = matricesCurrentV(i, j, tnPhi) + 0.5 * (matricesCurrentVC(iHalf, jHalf, tnPhi) + matricesCurrentVC(iHalf, jHalf + 1, tnPhi));
+      const int iHalf = i / 2;
+      const int jHalf = j / 2;
+      matricesCurrentV(i, j, tnPhi) = matricesCurrentV(i, j, tnPhi) + (matricesCurrentVC(iHalf, jHalf, tnPhi) + matricesCurrentVC(iHalf, jHalf + 1, tnPhi)) / 2;
     }
   }
 
   for (int j = 2; j < tnZColumn - 1; j += 2) {
     for (int i = 1; i < tnRRow - 1; i += 2) {
-      const int iHalf = 0.5 * i;
-      const int jHalf = 0.5 * j;
-      matricesCurrentV(i, j, tnPhi) = matricesCurrentV(i, j, tnPhi) + 0.5 * (matricesCurrentVC(iHalf, jHalf, tnPhi) + matricesCurrentVC(iHalf + 1, jHalf, tnPhi));
+      const int iHalf = i / 2;
+      const int jHalf = j / 2;
+      matricesCurrentV(i, j, tnPhi) = matricesCurrentV(i, j, tnPhi) + (matricesCurrentVC(iHalf, jHalf, tnPhi) + matricesCurrentVC(iHalf + 1, jHalf, tnPhi)) / 2;
     }
   }
 
@@ -1182,9 +1185,9 @@ void PoissonSolver<DataT>::addInterp2D(Vector& matricesCurrentV, const Vector& m
   if (MGParameters::gtType == GridTransferType::Full) {
     for (int j = 1; j < tnZColumn - 1; j += 2) {
       for (int i = 1; i < tnRRow - 1; i += 2) {
-        const int iHalf = 0.5 * i;
-        const int jHalf = 0.5 * j;
-        matricesCurrentV(i, j, tnPhi) = matricesCurrentV(i, j, tnPhi) + 0.25 * (matricesCurrentVC(iHalf, jHalf, tnPhi) + matricesCurrentVC(iHalf, jHalf + 1, tnPhi) + matricesCurrentVC(iHalf + 1, jHalf, tnPhi) + matricesCurrentVC(iHalf + 1, jHalf + 1, tnPhi));
+        const int iHalf = i / 2;
+        const int jHalf = j / 2;
+        matricesCurrentV(i, j, tnPhi) = matricesCurrentV(i, j, tnPhi) + (matricesCurrentVC(iHalf, jHalf, tnPhi) + matricesCurrentVC(iHalf, jHalf + 1, tnPhi) + matricesCurrentVC(iHalf + 1, jHalf, tnPhi) + matricesCurrentVC(iHalf + 1, jHalf + 1, tnPhi)) / 4;
       }
     }
   }
@@ -1393,7 +1396,7 @@ void PoissonSolver<DataT>::restrict3D(Vector& matricesCurrentCharge, const Vecto
           const DataT s3 = (residue(iip1, jjp1, mp1) + residue(iip1, jjm1, mp1) + residue(iip1, jjp1, mm1) + residue(iip1, jjm1, mm1)) +
                            (residue(iim1, jjm1, mm1) + residue(iim1, jjp1, mm1) + residue(iim1, jjm1, mp1) + residue(iim1, jjp1, mp1));
 
-          matricesCurrentCharge(i, j, m) = 0.125 * residue(ii, jj, mm) + 0.0625 * s1 + 0.03125 * s2 + 0.015625 * s3;
+          matricesCurrentCharge(i, j, m) = residue(ii, jj, mm) / 8 + s1 / 16 + s2 / 32 + s3 / 64;
         } // end cols
       }   // end mParamGrid.NRVertices
 
@@ -1428,10 +1431,10 @@ void PoissonSolver<DataT>::restrict2D(Vector& matricesCurrentCharge, const Vecto
       const int jjm1 = jj - 1;
       if (MGParameters::gtType == GridTransferType::Half) {
         // half
-        matricesCurrentCharge(i, j, iphi) = 0.5 * residue(ii, jj, iphi) + 0.125 * (residue(iip1, jj, iphi) + residue(iim1, jj, iphi) + residue(ii, jjp1, iphi) + residue(ii, jjm1, iphi));
+        matricesCurrentCharge(i, j, iphi) = residue(ii, jj, iphi) / 2 + (residue(iip1, jj, iphi) + residue(iim1, jj, iphi) + residue(ii, jjp1, iphi) + residue(ii, jjm1, iphi)) / 8;
       } else if (MGParameters::gtType == GridTransferType::Full) {
-        matricesCurrentCharge(i, j, iphi) = 0.25 * residue(ii, jj, iphi) + 0.125 * (residue(iip1, jj, iphi) + residue(iim1, jj, iphi) + residue(ii, jjp1, iphi) + residue(ii, jjm1, iphi)) +
-                                            0.0625 * (residue(iip1, jjp1, iphi) + residue(iim1, jjp1, iphi) + residue(iip1, jjm1, iphi) + residue(iim1, jjm1, iphi));
+        matricesCurrentCharge(i, j, iphi) = residue(ii, jj, iphi) / 4 + (residue(iip1, jj, iphi) + residue(iim1, jj, iphi) + residue(ii, jjp1, iphi) + residue(ii, jjm1, iphi)) / 8 +
+                                            (residue(iip1, jjp1, iphi) + residue(iim1, jjp1, iphi) + residue(iip1, jjm1, iphi) + residue(iim1, jjm1, iphi)) / 16;
       }
     } // end cols
   }   // end mParamGrid.NRVertices
@@ -1462,7 +1465,7 @@ DataT PoissonSolver<DataT>::getConvergenceError(const Vector& matricesCurrentV, 
     const auto phiStep = prevArrayV.getNr() * prevArrayV.getNz(); // number of points in one phi slice
     const auto start = prevArrayV.begin() + m * phiStep;
     const auto end = start + phiStep;
-    errorArr[m] = std::inner_product(start, end, start, 0.); // inner product "Sum (matrix[a]*matrix[a])"
+    errorArr[m] = std::inner_product(start, end, start, DataT(0)); // inner product "Sum (matrix[a]*matrix[a])"
   }
   // return largest error
   return *std::max_element(std::begin(errorArr), std::end(errorArr));
@@ -1472,12 +1475,12 @@ template <typename DataT>
 void PoissonSolver<DataT>::calcCoefficients(unsigned int from, unsigned int to, const DataT h, const DataT tempRatioZ, const DataT tempRatioPhi, std::vector<DataT>& coefficient1, std::vector<DataT>& coefficient2, std::vector<DataT>& coefficient3, std::vector<DataT>& coefficient4) const
 {
   for (unsigned int i = from; i < to; ++i) {
-    const DataT radiusInv = 1. / (TPCParameters<DataT>::IFCRADIUS + i * h);
-    const DataT hRadiusTmp = h * 0.5 * radiusInv;
-    coefficient1[i] = 1.0 + hRadiusTmp;
-    coefficient2[i] = 1.0 - hRadiusTmp;
+    const DataT radiusInv = 1 / (TPCParameters<DataT>::IFCRADIUS + i * h);
+    const DataT hRadiusTmp = h * radiusInv / 2;
+    coefficient1[i] = 1 + hRadiusTmp;
+    coefficient2[i] = 1 - hRadiusTmp;
     coefficient3[i] = tempRatioPhi * radiusInv * radiusInv;
-    coefficient4[i] = 0.5 / (1.0 + tempRatioZ + coefficient3[i]);
+    coefficient4[i] = 1 / (2 * (1 + tempRatioZ + coefficient3[i]));
   }
 }
 
@@ -1485,10 +1488,11 @@ template <typename DataT>
 void PoissonSolver<DataT>::calcCoefficients2D(unsigned int from, unsigned int to, const DataT h, std::vector<DataT>& coefficient1, std::vector<DataT>& coefficient2) const
 {
   for (int i = from; i < to; ++i) {
-    DataT radiusInvHalf = h * 0.5 / (TPCParameters<DataT>::IFCRADIUS + i * h);
-    coefficient1[i] = 1.0 + radiusInvHalf;
-    coefficient2[i] = 1.0 - radiusInvHalf;
+    DataT radiusInvHalf = h / (2 * (TPCParameters<DataT>::IFCRADIUS + i * h));
+    coefficient1[i] = 1 + radiusInvHalf;
+    coefficient2[i] = 1 - radiusInvHalf;
   }
 }
 
 template class o2::tpc::PoissonSolver<double>;
+template class o2::tpc::PoissonSolver<float>;
