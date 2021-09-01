@@ -100,10 +100,12 @@ void registerLinks(o2::raw::RawFileWriter& rawFileWriter,
 {
   std::string output = fmt::format("{:s}.raw", outputBase);
   for (auto li : links) {
-    if (filePerLink) {
-      output = fmt::format("{:s}_feeid{:d}.raw", outputBase, li.feeId);
-    } else if (filePerCru) {
-      output = fmt::format("{:s}_{:s}_cru{:d}_{:d}.raw", outputBase, flpName(li), li.cruId, li.endPoint);
+    if (filePerLink || filePerCru) {
+      output = fmt::format("{:s}_{:s}_cru{:d}_{:d}", outputBase, flpName(li), li.cruId, li.endPoint);
+      if (filePerLink) {
+        output += fmt::format("_feedid{:d}", li.feeId);
+      }
+      output += ".raw";
     }
     rawFileWriter.registerLink(rdhFromLinkInfo(li), output);
   }
