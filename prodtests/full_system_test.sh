@@ -64,7 +64,7 @@ HOST=`hostname`
 TAG="conf=${CONFIG},host=${HOST}${ALIDISTCOMMIT:+,alidist=$ALIDISTCOMMIT}${O2COMMIT:+,o2=$O2COMMIT}"
 echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " > ${METRICFILE}
 
-GLOBALDPLOPT="-b" #  --monitoring-backend no-op:// is currently removed due to https://alice.its.cern.ch/jira/browse/O2-1887
+GLOBALDPLOPT="-b" # --monitoring-backend no-op:// is currently removed due to https://alice.its.cern.ch/jira/browse/O2-1887
 
 HBFUTILPARAMS="HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=${RUNFIRSTORBIT};HBFUtils.orbitFirstSampled=${FIRSTSAMPLEDORBIT}"
 [ "0$ALLOW_MULTIPLE_TF" != "01" ] && HBFUTILPARAMS+=";HBFUtils.maxNOrbits=${NHBPERTF};"
@@ -104,10 +104,10 @@ fi
 
 mkdir -p raw
 taskwrapper itsraw.log o2-its-digi2raw --file-for cru -o raw/ITS
-taskwrapper mftraw.log o2-mft-digi2raw --file-for link  -o raw/MFT
-taskwrapper ft0raw.log o2-ft0-digi2raw --file-for link  -o raw/FT0
-taskwrapper fv0raw.log o2-fv0-digi2raw --file-for link  -o raw/FV0
-taskwrapper fddraw.log o2-fdd-digit2raw --file-for link  -o raw/FDD
+taskwrapper mftraw.log o2-mft-digi2raw --file-for link -o raw/MFT
+taskwrapper ft0raw.log o2-ft0-digi2raw --file-for link -o raw/FT0
+taskwrapper fv0raw.log o2-fv0-digi2raw --file-for link -o raw/FV0
+taskwrapper fddraw.log o2-fdd-digit2raw --file-for link -o raw/FDD
 taskwrapper tpcraw.log o2-tpc-digits-to-rawzs --file-for cru -i tpcdigits.root -o raw/TPC
 taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --output-type raw --tof-raw-outdir raw/TOF
 taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink
@@ -188,8 +188,8 @@ for STAGE in $STAGES; do
     echo "gpurecotime_${STAGE},${TAG} value=${gpurecotime}" >> ${METRICFILE}
 
     # memory
-    maxmem=`awk '/PROCESS MAX MEM/{print $5}' ${logfile}`  # in MB
-    avgmem=`awk '/PROCESS AVG MEM/{print $5}' ${logfile}`  # in MB
+    maxmem=`awk '/PROCESS MAX MEM/{print $5}' ${logfile}` # in MB
+    avgmem=`awk '/PROCESS AVG MEM/{print $5}' ${logfile}` # in MB
     echo "maxmem_${STAGE},${TAG} value=${maxmem}" >> ${METRICFILE}
     echo "avgmem_${STAGE},${TAG} value=${avgmem}" >> ${METRICFILE}
 
