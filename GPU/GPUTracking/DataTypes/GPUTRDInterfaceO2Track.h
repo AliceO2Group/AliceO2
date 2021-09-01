@@ -67,6 +67,8 @@ class trackInterface<o2::track::TrackParCov> : public o2::track::TrackParCov
   GPUd() void updateCovZ2(float addZerror) { updateCov(addZerror, o2::track::CovLabels::kSigZ2); }
   GPUd() o2::track::TrackLTIntegral& getLTIntegralOut() { return mLTOut; }
   GPUd() const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mLTOut; }
+  GPUd() o2::track::TrackParCov& getOuterParam() { return mParamOut; }
+  GPUd() const o2::track::TrackParCov& getOuterParam() const { return mParamOut; }
 
   GPUdi() const float* getPar() const { return getParams(); }
 
@@ -76,6 +78,7 @@ class trackInterface<o2::track::TrackParCov> : public o2::track::TrackParCov
 
  private:
   o2::track::TrackLTIntegral mLTOut;
+  o2::track::TrackParCov mParamOut;
 
   ClassDefNV(trackInterface, 1);
 };

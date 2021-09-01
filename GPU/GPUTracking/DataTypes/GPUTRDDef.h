@@ -33,7 +33,7 @@ namespace track
 {
 template <typename>
 class TrackParametrizationWithError;
-} // namespace dataformats
+} // namespace track
 namespace base
 {
 template <typename>
