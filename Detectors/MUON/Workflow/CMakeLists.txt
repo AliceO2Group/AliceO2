@@ -9,8 +9,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(Common)
-add_subdirectory(Matching)
-add_subdirectory(MCH)
-add_subdirectory(MID)
-add_subdirectory(Workflow)
+o2_add_executable(
+        tracks-matcher-workflow
+        SOURCES src/TrackMatcherSpec.cxx src/tracks-matcher-workflow.cxx
+        COMPONENT_NAME muon
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::MUONMatching)
+
+o2_add_executable(
+        tracks-writer-workflow
+        SOURCES src/TrackWriterSpec.cxx src/tracks-writer-workflow.cxx
+        COMPONENT_NAME muon
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::ReconstructionDataFormats)

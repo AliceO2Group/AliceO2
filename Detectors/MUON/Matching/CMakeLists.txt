@@ -9,8 +9,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(Common)
-add_subdirectory(Matching)
-add_subdirectory(MCH)
-add_subdirectory(MID)
-add_subdirectory(Workflow)
+o2_add_library(MUONMatching
+        SOURCES
+        src/TrackMatcher.cxx
+        src/TrackMatcherParam.cxx
+        PUBLIC_LINK_LIBRARIES O2::CommonUtils O2::DataFormatsMCH O2::DataFormatsMID O2::ReconstructionDataFormats)
+
+o2_target_root_dictionary(MUONMatching
+                          HEADERS include/MUONMatching/TrackMatcherParam.h)
