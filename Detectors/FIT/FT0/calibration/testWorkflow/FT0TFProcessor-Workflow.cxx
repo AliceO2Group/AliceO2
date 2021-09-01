@@ -46,7 +46,6 @@ class FT0TFProcessor final : public o2::framework::Task
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-
   DataProcessorSpec dataProcessorSpec{
     "FT0TFProcessor",
     Inputs{

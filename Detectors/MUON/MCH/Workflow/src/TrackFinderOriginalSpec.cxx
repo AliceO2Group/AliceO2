@@ -41,6 +41,7 @@
 #include "MCHTracking/Cluster.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFinderOriginal.h"
+#include "MCHTracking/TrackExtrap.h"
 
 namespace o2
 {
@@ -113,10 +114,9 @@ class TrackFinderTask
       mElapsedTime += tEnd - tStart;
 
       // fill the ouput messages
-      trackROFs.emplace_back(clusterROF.getBCData(), mchTracks.size(), tracks.size());
-      if (tracks.size() > 0) {
-        writeTracks(tracks, mchTracks, usedClusters);
-      }
+      int trackOffset(mchTracks.size());
+      writeTracks(tracks, mchTracks, usedClusters);
+      trackROFs.emplace_back(clusterROF.getBCData(), trackOffset, mchTracks.size() - trackOffset);
     }
   }
 
@@ -130,9 +130,16 @@ class TrackFinderTask
 
     for (const auto& track : tracks) {
 
+      TrackParam paramAtMID(track.last());
+      if (!TrackExtrap::extrapToMID(paramAtMID)) {
+        LOG(WARNING) << "propagation to MID failed --> track discarded";
+        continue;
+      }
+
       const auto& param = track.first();
       mchTracks.emplace_back(param.getZ(), param.getParameters(), param.getCovariances(),
-                             param.getTrackChi2(), usedClusters.size(), track.getNClusters());
+                             param.getTrackChi2(), usedClusters.size(), track.getNClusters(),
+                             paramAtMID.getZ(), paramAtMID.getParameters(), paramAtMID.getCovariances());
 
       for (const auto& param : track) {
         usedClusters.emplace_back(param.getClusterPtr()->getClusterStruct());

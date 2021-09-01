@@ -205,3 +205,10 @@ o2_add_executable(
         SOURCES src/TrackMCLabelFinderSpec.cxx src/tracks-mc-label-finder-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::Steer O2::DataFormatsMCH O2::MCHBase)
+
+o2_add_executable(rofs-histogrammer
+        SOURCES src/rofs-histogrammer.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH)
+
+

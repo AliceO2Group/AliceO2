@@ -43,7 +43,7 @@ struct HeatMapHelper {
     constexpr float MAX_BOX_X_SIZE = 16.f;
     constexpr float MAX_BOX_Y_SIZE = 16.f;
     ImDrawList* drawList = ImGui::GetWindowDrawList();
-    ImVec2 winPos = ImGui::GetCursorScreenPos();
+    ImVec2 winPos = ImGui::GetCursorScreenPos() + ImVec2{0, 7};
     auto records = getNumRecords();
     auto boxSizeX = std::min(size.x / records, MAX_BOX_X_SIZE);
 
@@ -60,8 +60,8 @@ struct HeatMapHelper {
       ImVec2{size.x, size.y} + winPos,
       BACKGROUND_COLOR);
     drawList->AddRect(
-      ImVec2(0., 0.) + winPos,
-      ImVec2{size.x - 1, size.y} + winPos,
+      ImVec2(0. - 1, -1) + winPos,
+      ImVec2{size.x + 1, size.y - 1} + winPos,
       BORDER_COLOR);
     float padding = 1;
     for (size_t ri = 0, re = getNumRecords(); ri < re; ri++) {

@@ -20,12 +20,9 @@
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
 #include "MCHWorkflow/PreClusterFinderSpec.h"
 #include "MCHWorkflow/TrackWriterSpec.h"
-#include "TrackAtVertexSpec.h"
-#include "TrackAtVertexSpec.h"
 #include "TrackFinderSpec.h"
 #include "TrackFitterSpec.h"
 #include "TrackMCLabelFinderSpec.h"
-#include "VertexSamplerSpec.h"
 
 using o2::framework::ConfigContext;
 using o2::framework::ConfigParamSpec;
@@ -64,8 +61,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
   specs.emplace_back(o2::mch::getClusterTransformerSpec());
   specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder"));
-  specs.emplace_back(o2::mch::getVertexSamplerSpec("mch-vertex-sampler"));
-  specs.emplace_back(o2::mch::getTrackAtVertexSpec("mch-track-at-vertex"));
+
   if (!disableRootOutput) {
     if (useMC) {
       specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder"));

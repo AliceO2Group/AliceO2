@@ -53,8 +53,7 @@ class PreClustersDE
   BP& getPreClusterBP(int icolumn, int idx) { return mPreClustersBP[icolumn][idx]; }
 
   /// Gets pre-cluster in the BP (const version)
-  const BP&
-    getPreClusterBP(int icolumn, int idx) const { return mPreClustersBP[icolumn][idx]; }
+  const BP& getPreClusterBP(int icolumn, int idx) const { return mPreClustersBP[icolumn][idx]; }
 
   /// Gets the number of pre-clusters in the NBP
   size_t getNPreClustersNBP() const { return mPreClustersNBP.size(); }

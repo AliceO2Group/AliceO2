@@ -37,6 +37,7 @@ class ROFRecord
  public:
   ROFRecord() = default;
   ROFRecord(const BCData& bc, int firstIdx, int nEntries) : mBCData(bc), mDataRef(firstIdx, nEntries) {}
+  ROFRecord(const BCData& bc, int firstIdx, int nEntries, int bcWidth) : mBCData(bc), mDataRef(firstIdx, nEntries), mBCWidth(bcWidth) {}
 
   /// get the interaction record
   const BCData& getBCData() const { return mBCData; }
@@ -56,8 +57,6 @@ class ROFRecord
 
   /// get the time span by this ROF, in BC unit
   int getBCWidth() const { return mBCWidth; }
-  /// set the time span by this ROF, in BC unit
-  void setBCWidth(int bcWidth);
 
   bool operator==(const ROFRecord& other) const
   {

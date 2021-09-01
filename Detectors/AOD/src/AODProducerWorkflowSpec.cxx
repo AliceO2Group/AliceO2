@@ -323,19 +323,19 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   o2::mch::TrackParam trackParamAtVertex(track.getZ(), track.getParameters());
   double errVtx{0.0}; // FIXME: get errors associated with vertex if available
   double errVty{0.0};
-  if (!o2::mch::TrackExtrap::extrapToVertex(&trackParamAtVertex, vertex.x(), vertex.y(), vertex.z(), errVtx, errVty)) {
+  if (!o2::mch::TrackExtrap::extrapToVertex(trackParamAtVertex, vertex.x(), vertex.y(), vertex.z(), errVtx, errVty)) {
     return;
   }
 
   // extrapolate to DCA
   o2::mch::TrackParam trackParamAtDCA(track.getZ(), track.getParameters());
-  if (!o2::mch::TrackExtrap::extrapToVertexWithoutBranson(&trackParamAtDCA, vertex.z())) {
+  if (!o2::mch::TrackExtrap::extrapToVertexWithoutBranson(trackParamAtDCA, vertex.z())) {
     return;
   }
 
   // extrapolate to the end of the absorber
   o2::mch::TrackParam trackParamAtRAbs(track.getZ(), track.getParameters());
-  if (!o2::mch::TrackExtrap::extrapToZ(&trackParamAtRAbs, -505.)) { // FIXME: replace hardcoded 505
+  if (!o2::mch::TrackExtrap::extrapToZ(trackParamAtRAbs, -505.)) { // FIXME: replace hardcoded 505
     return;
   }
 
@@ -834,7 +834,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   // vector of FT0 amplitudes
-  int nFT0Channels = o2::ft0::Geometry::Nchannels;
+  int nFT0Channels = o2::ft0::Geometry::Nsensors;
   int nFT0ChannelsAside = o2::ft0::Geometry::NCellsA * 4;
   std::vector<float> vAmplitudes(nFT0Channels, 0.);
   // filling FT0 table
@@ -845,7 +845,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       vAmplitudes[channel.ChId] = channel.QTCAmpl; // amplitude, mV
     }
     float aAmplitudesA[nFT0ChannelsAside];
-    float aAmplitudesC[133];
+    float aAmplitudesC[nFT0Channels - nFT0ChannelsAside];
     for (int i = 0; i < nFT0Channels; i++) {
       if (i < nFT0ChannelsAside) {
         aAmplitudesA[i] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);

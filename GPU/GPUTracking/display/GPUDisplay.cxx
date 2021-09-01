@@ -975,16 +975,8 @@ GPUDisplay::vboList GPUDisplay::DrawTracks(const GPUTPCTracker& tracker, int glo
 void GPUDisplay::DrawTrackITS(int trackId, int iSlice)
 {
   const auto& trk = mIOPtrs->itsTracks[trackId];
-  unsigned int rof;
-  for (rof = 1; rof < mIOPtrs->nItsTrackROF; rof++) {
-    if (mIOPtrs->itsTrackROF[rof].getFirstEntry() > trackId) {
-      break;
-    }
-  }
-  rof--;
-  int clusIndOffs = mIOPtrs->itsClusterROF[rof].getFirstEntry();
   for (int k = 0; k < trk.getNClusters(); k++) {
-    int cid = clusIndOffs + mIOPtrs->itsTrackClusIdx[trk.getFirstClusterEntry() + k];
+    int cid = mIOPtrs->itsTrackClusIdx[trk.getFirstClusterEntry() + k];
     mVertexBuffer[iSlice].emplace_back(mGlobalPosITS[cid].x, mGlobalPosITS[cid].y, mCfgH.projectXY ? 0 : mGlobalPosITS[cid].z);
     mGlobalPosITS[cid].w = tITSATTACHED;
   }

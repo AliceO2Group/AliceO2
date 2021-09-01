@@ -16,8 +16,8 @@
 
 #ifndef ALICEO2_ENCODED_BLOCKS_H
 #define ALICEO2_ENCODED_BLOCKS_H
-//#undef NDEBUG
-//#include <cassert>
+#undef NDEBUG
+#include <cassert>
 #include <type_traits>
 #include <Rtypes.h>
 #include "rANS/rans.h"
@@ -484,7 +484,7 @@ void EncodedBlocks<H, N, W>::readFromTree(TTree& tree, const std::string& name, 
 {
   readTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), *this, ev);
   for (int i = 0; i < N; i++) {
-    readTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), mBlocks[i]);
+    readTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), mBlocks[i], ev);
   }
 }
 
@@ -497,9 +497,13 @@ void EncodedBlocks<H, N, W>::readFromTree(VD& vec, TTree& tree, const std::strin
   auto tmp = create(vec);
   readTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), *tmp, ev);
   tmp = tmp->expand(vec, tmp->estimateSizeFromMetadata());
+  const auto& meta = tmp->getMetadata();
   for (int i = 0; i < N; i++) {
     Block<W> bl;
-    readTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), bl);
+    readTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), bl, ev);
+    assert(meta[i].nDictWords == bl.getNDict());
+    assert(meta[i].nDataWords == bl.getNData());
+    assert(meta[i].nLiteralWords == bl.getNLiterals());
     tmp->mBlocks[i].store(bl.getNDict(), bl.getNData(), bl.getNLiterals(), bl.getDict(), bl.getData(), bl.getLiterals());
   }
 }

@@ -76,16 +76,15 @@ std::map<o2::InteractionRecord, std::vector<int>> groupIR(gsl::span<const o2::In
   if (!std::is_sorted(records.begin(), records.end())) {
     throw std::invalid_argument("input records must be sorted");
   }
+  if (width < 1) {
+    throw std::invalid_argument("width must be >=1");
+  }
   std::map<o2::InteractionRecord, std::vector<int>> binned;
   auto ir0 = records[0];
   for (auto i = 0; i < records.size(); ++i) {
     auto ir = records[i];
     auto mchIR = ir;
-    if (ir.differenceInBC(ir0) < width) {
-      mchIR = ir0;
-    } else {
-      ir0 = ir;
-    }
+    mchIR.bc = mchIR.bc - mchIR.bc % width;
     binned[mchIR].emplace_back(i);
   }
   return binned;

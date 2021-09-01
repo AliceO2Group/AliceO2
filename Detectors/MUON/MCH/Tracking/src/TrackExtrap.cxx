@@ -84,34 +84,34 @@ double TrackExtrap::getBendingMomentumFromImpactParam(double impactParam)
 }
 
 //__________________________________________________________________________
-void TrackExtrap::linearExtrapToZ(TrackParam* trackParam, double zEnd)
+void TrackExtrap::linearExtrapToZ(TrackParam& trackParam, double zEnd)
 {
   /// Track parameters linearly extrapolated to the plane at "zEnd".
   /// On return, results from the extrapolation are updated in trackParam.
 
-  if (trackParam->getZ() == zEnd) {
+  if (trackParam.getZ() == zEnd) {
     return; // nothing to be done if same z
   }
 
   // Compute track parameters
-  double dZ = zEnd - trackParam->getZ();
-  trackParam->setNonBendingCoor(trackParam->getNonBendingCoor() + trackParam->getNonBendingSlope() * dZ);
-  trackParam->setBendingCoor(trackParam->getBendingCoor() + trackParam->getBendingSlope() * dZ);
-  trackParam->setZ(zEnd);
+  double dZ = zEnd - trackParam.getZ();
+  trackParam.setNonBendingCoor(trackParam.getNonBendingCoor() + trackParam.getNonBendingSlope() * dZ);
+  trackParam.setBendingCoor(trackParam.getBendingCoor() + trackParam.getBendingSlope() * dZ);
+  trackParam.setZ(zEnd);
 }
 
 //__________________________________________________________________________
-void TrackExtrap::linearExtrapToZCov(TrackParam* trackParam, double zEnd, bool updatePropagator)
+void TrackExtrap::linearExtrapToZCov(TrackParam& trackParam, double zEnd, bool updatePropagator)
 {
   /// Track parameters and their covariances linearly extrapolated to the plane at "zEnd".
   /// On return, results from the extrapolation are updated in trackParam.
 
-  if (trackParam->getZ() == zEnd) {
+  if (trackParam.getZ() == zEnd) {
     return; // nothing to be done if same z
   }
 
   // No need to propagate the covariance matrix if it does not exist
-  if (!trackParam->hasCovariances()) {
+  if (!trackParam.hasCovariances()) {
     LOG(WARNING) << "Covariance matrix does not exist";
     // Extrapolate linearly track parameters to "zEnd"
     linearExtrapToZ(trackParam, zEnd);
@@ -119,10 +119,10 @@ void TrackExtrap::linearExtrapToZCov(TrackParam* trackParam, double zEnd, bool u
   }
 
   // Compute track parameters
-  double dZ = zEnd - trackParam->getZ();
-  trackParam->setNonBendingCoor(trackParam->getNonBendingCoor() + trackParam->getNonBendingSlope() * dZ);
-  trackParam->setBendingCoor(trackParam->getBendingCoor() + trackParam->getBendingSlope() * dZ);
-  trackParam->setZ(zEnd);
+  double dZ = zEnd - trackParam.getZ();
+  trackParam.setNonBendingCoor(trackParam.getNonBendingCoor() + trackParam.getNonBendingSlope() * dZ);
+  trackParam.setBendingCoor(trackParam.getBendingCoor() + trackParam.getBendingSlope() * dZ);
+  trackParam.setZ(zEnd);
 
   // Calculate the jacobian related to the track parameters linear extrapolation to "zEnd"
   TMatrixD jacob(5, 5);
@@ -131,18 +131,18 @@ void TrackExtrap::linearExtrapToZCov(TrackParam* trackParam, double zEnd, bool u
   jacob(2, 3) = dZ;
 
   // Extrapolate track parameter covariances to "zEnd"
-  TMatrixD tmp(trackParam->getCovariances(), TMatrixD::kMultTranspose, jacob);
+  TMatrixD tmp(trackParam.getCovariances(), TMatrixD::kMultTranspose, jacob);
   TMatrixD tmp2(jacob, TMatrixD::kMult, tmp);
-  trackParam->setCovariances(tmp2);
+  trackParam.setCovariances(tmp2);
 
   // Update the propagator if required
   if (updatePropagator) {
-    trackParam->updatePropagator(jacob);
+    trackParam.updatePropagator(jacob);
   }
 }
 
 //__________________________________________________________________________
-bool TrackExtrap::extrapToZ(TrackParam* trackParam, double zEnd)
+bool TrackExtrap::extrapToZ(TrackParam& trackParam, double zEnd)
 {
   /// Interface to track parameter extrapolation to the plane at "Z" using Helix or Rungekutta algorithm.
   /// On return, the track parameters resulting from the extrapolation are updated in trackParam.
@@ -157,14 +157,14 @@ bool TrackExtrap::extrapToZ(TrackParam* trackParam, double zEnd)
 }
 
 //__________________________________________________________________________
-bool TrackExtrap::extrapToZCov(TrackParam* trackParam, double zEnd, bool updatePropagator)
+bool TrackExtrap::extrapToZCov(TrackParam& trackParam, double zEnd, bool updatePropagator)
 {
   /// Track parameters and their covariances extrapolated to the plane at "zEnd".
   /// On return, results from the extrapolation are updated in trackParam.
 
   ++sNCallExtrapToZCov;
 
-  if (trackParam->getZ() == zEnd) {
+  if (trackParam.getZ() == zEnd) {
     return true; // nothing to be done if same z
   }
 
@@ -174,19 +174,19 @@ bool TrackExtrap::extrapToZCov(TrackParam* trackParam, double zEnd, bool updateP
   }
 
   // No need to propagate the covariance matrix if it does not exist
-  if (!trackParam->hasCovariances()) {
+  if (!trackParam.hasCovariances()) {
     LOG(WARNING) << "Covariance matrix does not exist";
     // Extrapolate track parameters to "zEnd"
     return extrapToZ(trackParam, zEnd);
   }
 
   // Save the actual track parameters
-  TrackParam trackParamSave(*trackParam);
+  TrackParam trackParamSave(trackParam);
   TMatrixD paramSave(trackParamSave.getParameters());
   double zBegin = trackParamSave.getZ();
 
   // Get reference to the parameter covariance matrix
-  const TMatrixD& kParamCov = trackParam->getCovariances();
+  const TMatrixD& kParamCov = trackParam.getCovariances();
 
   // Extrapolate track parameters to "zEnd"
   // Do not update the covariance matrix if the extrapolation failed
@@ -195,7 +195,7 @@ bool TrackExtrap::extrapToZCov(TrackParam* trackParam, double zEnd, bool updateP
   }
 
   // Get reference to the extrapolated parameters
-  const TMatrixD& extrapParam = trackParam->getParameters();
+  const TMatrixD& extrapParam = trackParam.getParameters();
 
   // Calculate the jacobian related to the track parameters extrapolation to "zEnd"
   TMatrixD jacob(5, 5);
@@ -224,7 +224,7 @@ bool TrackExtrap::extrapToZCov(TrackParam* trackParam, double zEnd, bool updateP
     trackParamSave.setZ(zBegin);
 
     // Extrapolate new track parameters to "zEnd"
-    if (!extrapToZ(&trackParamSave, zEnd)) {
+    if (!extrapToZ(trackParamSave, zEnd)) {
       LOG(WARNING) << "Bad covariance matrix";
       return false;
     }
@@ -238,18 +238,44 @@ bool TrackExtrap::extrapToZCov(TrackParam* trackParam, double zEnd, bool updateP
   // Extrapolate track parameter covariances to "zEnd"
   TMatrixD tmp(kParamCov, TMatrixD::kMultTranspose, jacob);
   TMatrixD tmp2(jacob, TMatrixD::kMult, tmp);
-  trackParam->setCovariances(tmp2);
+  trackParam.setCovariances(tmp2);
 
   // Update the propagator if required
   if (updatePropagator) {
-    trackParam->updatePropagator(jacob);
+    trackParam.updatePropagator(jacob);
   }
 
   return true;
 }
 
 //__________________________________________________________________________
-bool TrackExtrap::extrapToVertex(TrackParam* trackParam, double xVtx, double yVtx, double zVtx,
+bool TrackExtrap::extrapToMID(TrackParam& trackParam)
+{
+  /// Extrapolate the track parameters and their covariances to the z position of the first MID chamber
+  /// Add to the track parameter covariances the effects of multiple Coulomb scattering in the muon filter
+
+  if (trackParam.getZ() == SMIDZ) {
+    return true; // nothing to be done
+  }
+
+  // check the track position with respect to the muon filter (spectro z<0)
+  if (trackParam.getZ() < SMuonFilterZBeg) {
+    LOG(WARNING) << "The track already passed the beginning of the muon filter";
+    return false;
+  }
+
+  // propagate through the muon filter and add MCS effets
+  if (!extrapToZCov(trackParam, SMuonFilterZEnd)) {
+    return false;
+  }
+  addMCSEffect(trackParam, -SMuonFilterThickness, SMuonFilterX0);
+
+  // propagate to the first MID chamber
+  return extrapToZCov(trackParam, SMIDZ);
+}
+
+//__________________________________________________________________________
+bool TrackExtrap::extrapToVertex(TrackParam& trackParam, double xVtx, double yVtx, double zVtx,
                                  double errXVtx, double errYVtx, bool correctForMCS, bool correctForEnergyLoss)
 {
   /// Main method for extrapolation to the vertex:
@@ -260,7 +286,7 @@ bool TrackExtrap::extrapToVertex(TrackParam* trackParam, double xVtx, double yVt
   /// if correctForEnergyLoss=true:  correct parameters for energy loss and add energy loss fluctuation to covariances
   /// if correctForEnergyLoss=false: do nothing about energy loss
 
-  if (trackParam->getZ() == zVtx) {
+  if (trackParam.getZ() == zVtx) {
     return true; // nothing to be done if already at vertex
   }
 
@@ -276,42 +302,42 @@ bool TrackExtrap::extrapToVertex(TrackParam* trackParam, double xVtx, double yVt
   }
 
   // Check the track position with respect to the vertex and the absorber (spectro z<0)
-  if (trackParam->getZ() > SAbsZEnd) {
-    if (trackParam->getZ() > zVtx) {
-      LOG(WARNING) << "Starting Z (" << trackParam->getZ() << ") upstream the vertex (zVtx = " << zVtx << ")";
+  if (trackParam.getZ() > SAbsZEnd) {
+    if (trackParam.getZ() > zVtx) {
+      LOG(WARNING) << "Starting Z (" << trackParam.getZ() << ") upstream the vertex (zVtx = " << zVtx << ")";
       return false;
-    } else if (trackParam->getZ() > SAbsZBeg) {
-      LOG(WARNING) << "Starting Z (" << trackParam->getZ() << ") upstream the front absorber (zAbsorberBegin = " << SAbsZBeg << ")";
+    } else if (trackParam.getZ() > SAbsZBeg) {
+      LOG(WARNING) << "Starting Z (" << trackParam.getZ() << ") upstream the front absorber (zAbsorberBegin = " << SAbsZBeg << ")";
       return false;
     } else {
-      LOG(WARNING) << "Starting Z (" << trackParam->getZ() << ") inside the front absorber (" << SAbsZBeg << ", " << SAbsZEnd << ")";
+      LOG(WARNING) << "Starting Z (" << trackParam.getZ() << ") inside the front absorber (" << SAbsZBeg << ", " << SAbsZEnd << ")";
       return false;
     }
   }
 
   // Extrapolate track parameters (and covariances if any) to the end of the absorber
-  if ((trackParam->hasCovariances() && !extrapToZCov(trackParam, SAbsZEnd)) ||
-      (!trackParam->hasCovariances() && !extrapToZ(trackParam, SAbsZEnd))) {
+  if ((trackParam.hasCovariances() && !extrapToZCov(trackParam, SAbsZEnd)) ||
+      (!trackParam.hasCovariances() && !extrapToZ(trackParam, SAbsZEnd))) {
     return false;
   }
 
   // Get absorber correction parameters assuming linear propagation in absorber
-  double trackXYZOut[3] = {trackParam->getNonBendingCoor(), trackParam->getBendingCoor(), trackParam->getZ()};
+  double trackXYZOut[3] = {trackParam.getNonBendingCoor(), trackParam.getBendingCoor(), trackParam.getZ()};
   double trackXYZIn[3] = {0., 0., 0.};
   if (correctForMCS) { // assume linear propagation to the vertex
     trackXYZIn[2] = SAbsZBeg;
     trackXYZIn[0] = trackXYZOut[0] + (xVtx - trackXYZOut[0]) / (zVtx - trackXYZOut[2]) * (trackXYZIn[2] - trackXYZOut[2]);
     trackXYZIn[1] = trackXYZOut[1] + (yVtx - trackXYZOut[1]) / (zVtx - trackXYZOut[2]) * (trackXYZIn[2] - trackXYZOut[2]);
   } else { // or standard propagation without vertex constraint
-    TrackParam trackParamIn(*trackParam);
-    if (!extrapToZ(&trackParamIn, SAbsZBeg)) {
+    TrackParam trackParamIn(trackParam);
+    if (!extrapToZ(trackParamIn, SAbsZBeg)) {
       return false;
     }
     trackXYZIn[0] = trackParamIn.getNonBendingCoor();
     trackXYZIn[1] = trackParamIn.getBendingCoor();
     trackXYZIn[2] = trackParamIn.getZ();
   }
-  double pTot = trackParam->p();
+  double pTot = trackParam.p();
   double pathLength(0.), f0(0.), f1(0.), f2(0.), meanRho(0.), totalELoss(0.), sigmaELoss2(0.);
   if (!getAbsorberCorrectionParam(trackXYZIn, trackXYZOut, pTot, pathLength, f0, f1, f2, meanRho, totalELoss, sigmaELoss2)) {
     return false;
@@ -484,7 +510,7 @@ double TrackExtrap::getMCSAngle2(const TrackParam& param, double dZ, double x0)
 }
 
 //__________________________________________________________________________
-void TrackExtrap::addMCSEffect(TrackParam* trackParam, double dZ, double x0)
+void TrackExtrap::addMCSEffect(TrackParam& trackParam, double dZ, double x0)
 {
   /// Add to the track parameter covariances the effects of multiple Coulomb scattering
   /// through a material of thickness "abs(dZ)" and of radiation length "x0"
@@ -492,9 +518,9 @@ void TrackExtrap::addMCSEffect(TrackParam* trackParam, double dZ, double x0)
   /// dZ = zOut - zIn (sign is important) and "param" is assumed to be given zOut.
   /// If x0 <= 0., assume dZ = pathLength/x0 and consider the material thickness as negligible.
 
-  double bendingSlope = trackParam->getBendingSlope();
-  double nonBendingSlope = trackParam->getNonBendingSlope();
-  double inverseBendingMomentum = trackParam->getInverseBendingMomentum();
+  double bendingSlope = trackParam.getBendingSlope();
+  double nonBendingSlope = trackParam.getNonBendingSlope();
+  double inverseBendingMomentum = trackParam.getInverseBendingMomentum();
   double inverseTotalMomentum2 = inverseBendingMomentum * inverseBendingMomentum * (1.0 + bendingSlope * bendingSlope) /
                                  (1.0 + bendingSlope * bendingSlope + nonBendingSlope * nonBendingSlope);
   // Path length in the material
@@ -511,7 +537,7 @@ void TrackExtrap::addMCSEffect(TrackParam* trackParam, double dZ, double x0)
   double covCorrSlope = (x0 > 0.) ? signedPathLength * theta02 / 2. : 0.;
 
   // Set MCS covariance matrix
-  TMatrixD newParamCov(trackParam->getCovariances());
+  TMatrixD newParamCov(trackParam.getCovariances());
   // Non bending plane
   newParamCov(0, 0) += varCoor;
   newParamCov(0, 1) += covCorrSlope;
@@ -544,19 +570,19 @@ void TrackExtrap::addMCSEffect(TrackParam* trackParam, double dZ, double x0)
   }
 
   // Set new covariances
-  trackParam->setCovariances(newParamCov);
+  trackParam.setCovariances(newParamCov);
 }
 
 //__________________________________________________________________________
-void TrackExtrap::addMCSEffectInAbsorber(TrackParam* param, double signedPathLength, double f0, double f1, double f2)
+void TrackExtrap::addMCSEffectInAbsorber(TrackParam& param, double signedPathLength, double f0, double f1, double f2)
 {
   /// Add to the track parameter covariances the effects of multiple Coulomb scattering
   /// signedPathLength must have the sign of (zOut - zIn) where all other parameters are assumed to be given at zOut.
 
   // absorber related covariance parameters
-  double bendingSlope = param->getBendingSlope();
-  double nonBendingSlope = param->getNonBendingSlope();
-  double inverseBendingMomentum = param->getInverseBendingMomentum();
+  double bendingSlope = param.getBendingSlope();
+  double nonBendingSlope = param.getNonBendingSlope();
+  double inverseBendingMomentum = param.getInverseBendingMomentum();
   double alpha2 = 0.0136 * 0.0136 * inverseBendingMomentum * inverseBendingMomentum * (1.0 + bendingSlope * bendingSlope) /
                   (1.0 + bendingSlope * bendingSlope + nonBendingSlope * nonBendingSlope); // velocity = 1
   double pathLength = TMath::Abs(signedPathLength);
@@ -565,7 +591,7 @@ void TrackExtrap::addMCSEffectInAbsorber(TrackParam* param, double signedPathLen
   double varSlop = alpha2 * f0;
 
   // Set MCS covariance matrix
-  TMatrixD newParamCov(param->getCovariances());
+  TMatrixD newParamCov(param.getCovariances());
   // Non bending plane
   newParamCov(0, 0) += varCoor;
   newParamCov(0, 1) += covCorrSlope;
@@ -596,7 +622,7 @@ void TrackExtrap::addMCSEffectInAbsorber(TrackParam* param, double signedPathLen
   }
 
   // Set new covariances
-  param->setCovariances(newParamCov);
+  param.setCovariances(newParamCov);
 }
 
 //__________________________________________________________________________
@@ -649,7 +675,7 @@ double TrackExtrap::energyLossFluctuation(double pTotal, double pathLength, doub
 }
 
 //__________________________________________________________________________
-bool TrackExtrap::correctMCSEffectInAbsorber(TrackParam* param, double xVtx, double yVtx, double zVtx, double errXVtx, double errYVtx,
+bool TrackExtrap::correctMCSEffectInAbsorber(TrackParam& param, double xVtx, double yVtx, double zVtx, double errXVtx, double errYVtx,
                                              double absZBeg, double pathLength, double f0, double f1, double f2)
 {
   /// Correct parameters and corresponding covariances using Branson correction
@@ -672,16 +698,16 @@ bool TrackExtrap::correctMCSEffectInAbsorber(TrackParam* param, double xVtx, dou
   // compute track parameters at vertex
   TMatrixD newParam(5, 1);
   newParam(0, 0) = xVtx;
-  newParam(1, 0) = (param->getNonBendingCoor() - xVtx) / (zB - zVtx);
+  newParam(1, 0) = (param.getNonBendingCoor() - xVtx) / (zB - zVtx);
   newParam(2, 0) = yVtx;
-  newParam(3, 0) = (param->getBendingCoor() - yVtx) / (zB - zVtx);
-  newParam(4, 0) = param->getCharge() / param->p() *
+  newParam(3, 0) = (param.getBendingCoor() - yVtx) / (zB - zVtx);
+  newParam(4, 0) = param.getCharge() / param.p() *
                    TMath::Sqrt(1.0 + newParam(1, 0) * newParam(1, 0) + newParam(3, 0) * newParam(3, 0)) /
                    TMath::Sqrt(1.0 + newParam(3, 0) * newParam(3, 0));
 
   // Get covariances in (X, SlopeX, Y, SlopeY, q*PTot) coordinate system
-  TMatrixD paramCovP(param->getCovariances());
-  cov2CovP(param->getParameters(), paramCovP);
+  TMatrixD paramCovP(param.getCovariances());
+  cov2CovP(param.getParameters(), paramCovP);
 
   // Get the covariance matrix in the (XVtx, X, YVtx, Y, q*PTot) coordinate system
   TMatrixD paramCovVtx(5, 5);
@@ -714,41 +740,41 @@ bool TrackExtrap::correctMCSEffectInAbsorber(TrackParam* param, double xVtx, dou
   covP2Cov(newParam, newParamCov);
 
   // Set parameters and covariances at vertex
-  param->setParameters(newParam);
-  param->setZ(zVtx);
-  param->setCovariances(newParamCov);
+  param.setParameters(newParam);
+  param.setZ(zVtx);
+  param.setCovariances(newParamCov);
 
   return true;
 }
 
 //__________________________________________________________________________
-void TrackExtrap::correctELossEffectInAbsorber(TrackParam* param, double eLoss, double sigmaELoss2)
+void TrackExtrap::correctELossEffectInAbsorber(TrackParam& param, double eLoss, double sigmaELoss2)
 {
   /// Correct parameters for energy loss and add energy loss fluctuation effect to covariances
 
   // Get parameter covariances in (X, SlopeX, Y, SlopeY, q*PTot) coordinate system
-  TMatrixD newParamCov(param->getCovariances());
-  cov2CovP(param->getParameters(), newParamCov);
+  TMatrixD newParamCov(param.getCovariances());
+  cov2CovP(param.getParameters(), newParamCov);
 
   // Compute new parameters corrected for energy loss
-  double p = param->p();
+  double p = param.p();
   double e = TMath::Sqrt(p * p + SMuMass * SMuMass);
   double eCorr = e + eLoss;
   double pCorr = TMath::Sqrt(eCorr * eCorr - SMuMass * SMuMass);
-  double nonBendingSlope = param->getNonBendingSlope();
-  double bendingSlope = param->getBendingSlope();
-  param->setInverseBendingMomentum(param->getCharge() / pCorr *
-                                   TMath::Sqrt(1.0 + nonBendingSlope * nonBendingSlope + bendingSlope * bendingSlope) /
-                                   TMath::Sqrt(1.0 + bendingSlope * bendingSlope));
+  double nonBendingSlope = param.getNonBendingSlope();
+  double bendingSlope = param.getBendingSlope();
+  param.setInverseBendingMomentum(param.getCharge() / pCorr *
+                                  TMath::Sqrt(1.0 + nonBendingSlope * nonBendingSlope + bendingSlope * bendingSlope) /
+                                  TMath::Sqrt(1.0 + bendingSlope * bendingSlope));
 
   // Add effects of energy loss fluctuation to covariances
   newParamCov(4, 4) += eCorr * eCorr / pCorr / pCorr * sigmaELoss2;
 
   // Get new parameter covariances in (X, SlopeX, Y, SlopeY, q/Pyz) coordinate system
-  covP2Cov(param->getParameters(), newParamCov);
+  covP2Cov(param.getParameters(), newParamCov);
 
   // Set new parameter covariances
-  param->setCovariances(newParamCov);
+  param.setCovariances(newParamCov);
 }
 
 //__________________________________________________________________________
@@ -798,67 +824,67 @@ void TrackExtrap::covP2Cov(const TMatrixD& param, TMatrixD& covP)
 }
 
 //__________________________________________________________________________
-void TrackExtrap::convertTrackParamForExtrap(TrackParam* trackParam, double forwardBackward, double* v3)
+void TrackExtrap::convertTrackParamForExtrap(TrackParam& trackParam, double forwardBackward, double* v3)
 {
   /// Set vector of Geant3 parameters pointed to by "v3" from track parameters in trackParam.
   /// Since TrackParam is only geometry, one uses "forwardBackward"
   /// to know whether the particle is going forward (+1) or backward (-1).
-  v3[0] = trackParam->getNonBendingCoor(); // X
-  v3[1] = trackParam->getBendingCoor();    // Y
-  v3[2] = trackParam->getZ();              // Z
-  double pYZ = TMath::Abs(1.0 / trackParam->getInverseBendingMomentum());
-  double pZ = pYZ / TMath::Sqrt(1.0 + trackParam->getBendingSlope() * trackParam->getBendingSlope());
-  v3[6] = TMath::Sqrt(pYZ * pYZ + pZ * pZ * trackParam->getNonBendingSlope() * trackParam->getNonBendingSlope()); // P
-  v3[5] = -forwardBackward * pZ / v3[6];                                                                          // PZ/P spectro. z<0
-  v3[3] = trackParam->getNonBendingSlope() * v3[5];                                                               // PX/P
-  v3[4] = trackParam->getBendingSlope() * v3[5];                                                                  // PY/P
+  v3[0] = trackParam.getNonBendingCoor(); // X
+  v3[1] = trackParam.getBendingCoor();    // Y
+  v3[2] = trackParam.getZ();              // Z
+  double pYZ = TMath::Abs(1.0 / trackParam.getInverseBendingMomentum());
+  double pZ = pYZ / TMath::Sqrt(1.0 + trackParam.getBendingSlope() * trackParam.getBendingSlope());
+  v3[6] = TMath::Sqrt(pYZ * pYZ + pZ * pZ * trackParam.getNonBendingSlope() * trackParam.getNonBendingSlope()); // P
+  v3[5] = -forwardBackward * pZ / v3[6];                                                                        // PZ/P spectro. z<0
+  v3[3] = trackParam.getNonBendingSlope() * v3[5];                                                              // PX/P
+  v3[4] = trackParam.getBendingSlope() * v3[5];                                                                 // PY/P
 }
 
 //__________________________________________________________________________
-void TrackExtrap::recoverTrackParam(double* v3, double charge, TrackParam* trackParam)
+void TrackExtrap::recoverTrackParam(double* v3, double charge, TrackParam& trackParam)
 {
   /// Set track parameters in trackParam from Geant3 parameters pointed to by "v3",
   /// assumed to be calculated for forward motion in Z.
   /// "InverseBendingMomentum" is signed with "charge".
-  trackParam->setNonBendingCoor(v3[0]); // X
-  trackParam->setBendingCoor(v3[1]);    // Y
-  trackParam->setZ(v3[2]);              // Z
+  trackParam.setNonBendingCoor(v3[0]); // X
+  trackParam.setBendingCoor(v3[1]);    // Y
+  trackParam.setZ(v3[2]);              // Z
   double pYZ = v3[6] * TMath::Sqrt((1. - v3[3]) * (1. + v3[3]));
-  trackParam->setInverseBendingMomentum(charge / pYZ);
-  trackParam->setBendingSlope(v3[4] / v3[5]);
-  trackParam->setNonBendingSlope(v3[3] / v3[5]);
+  trackParam.setInverseBendingMomentum(charge / pYZ);
+  trackParam.setBendingSlope(v3[4] / v3[5]);
+  trackParam.setNonBendingSlope(v3[3] / v3[5]);
 }
 
 //__________________________________________________________________________
-bool TrackExtrap::extrapToZRungekutta(TrackParam* trackParam, double zEnd)
+bool TrackExtrap::extrapToZRungekutta(TrackParam& trackParam, double zEnd)
 {
   /// Track parameter extrapolation to the plane at "Z" using Rungekutta algorithm.
   /// On return, the track parameters resulting from the extrapolation are updated in trackParam.
   /// Return false in case of failure and let the trackParam as they were when that happened
-  if (trackParam->getZ() == zEnd) {
+  if (trackParam.getZ() == zEnd) {
     return true; // nothing to be done if same Z
   }
   double forwardBackward; // +1 if forward, -1 if backward
-  if (zEnd < trackParam->getZ()) {
+  if (zEnd < trackParam.getZ()) {
     forwardBackward = 1.0; // spectro. z<0
   } else {
     forwardBackward = -1.0;
   }
   // sign of charge (sign of fInverseBendingMomentum if forward motion)
   // must be changed if backward extrapolation
-  double chargeExtrap = forwardBackward * TMath::Sign(double(1.0), trackParam->getInverseBendingMomentum());
+  double chargeExtrap = forwardBackward * TMath::Sign(double(1.0), trackParam.getInverseBendingMomentum());
   double v3[7] = {0.}, v3New[7] = {0.};
   double dZ(0.), step(0.);
   int stepNumber = 0;
 
   // Extrapolation loop (until within tolerance or the track turn around)
-  double residue = zEnd - trackParam->getZ();
+  double residue = zEnd - trackParam.getZ();
   while (TMath::Abs(residue) > SRungeKuttaMaxResidue) {
 
-    dZ = zEnd - trackParam->getZ();
+    dZ = zEnd - trackParam.getZ();
     // step length assuming linear trajectory
-    step = dZ * TMath::Sqrt(1.0 + trackParam->getBendingSlope() * trackParam->getBendingSlope() +
-                            trackParam->getNonBendingSlope() * trackParam->getNonBendingSlope());
+    step = dZ * TMath::Sqrt(1.0 + trackParam.getBendingSlope() * trackParam.getBendingSlope() +
+                            trackParam.getNonBendingSlope() * trackParam.getNonBendingSlope());
     convertTrackParamForExtrap(trackParam, forwardBackward, v3);
 
     do { // reduce step length while zEnd overstepped
@@ -871,7 +897,7 @@ bool TrackExtrap::extrapToZRungekutta(TrackParam* trackParam, double zEnd)
         return false;
       }
       residue = zEnd - v3New[2];
-      step *= dZ / (v3New[2] - trackParam->getZ());
+      step *= dZ / (v3New[2] - trackParam.getZ());
     } while (residue * dZ < 0 && TMath::Abs(residue) > SRungeKuttaMaxResidue);
 
     if (v3New[5] * v3[5] < 0) { // the track turned around
@@ -883,29 +909,29 @@ bool TrackExtrap::extrapToZRungekutta(TrackParam* trackParam, double zEnd)
   }
 
   // terminate the extropolation with a straight line up to the exact "zEnd" value
-  trackParam->setNonBendingCoor(trackParam->getNonBendingCoor() + residue * trackParam->getNonBendingSlope());
-  trackParam->setBendingCoor(trackParam->getBendingCoor() + residue * trackParam->getBendingSlope());
-  trackParam->setZ(zEnd);
+  trackParam.setNonBendingCoor(trackParam.getNonBendingCoor() + residue * trackParam.getNonBendingSlope());
+  trackParam.setBendingCoor(trackParam.getBendingCoor() + residue * trackParam.getBendingSlope());
+  trackParam.setZ(zEnd);
 
   return true;
 }
 
 //__________________________________________________________________________
-bool TrackExtrap::extrapToZRungekuttaV2(TrackParam* trackParam, double zEnd)
+bool TrackExtrap::extrapToZRungekuttaV2(TrackParam& trackParam, double zEnd)
 {
   /// Track parameter extrapolation to the plane at "Z" using Rungekutta algorithm.
   /// On return, the track parameters resulting from the extrapolation are updated in trackParam.
   /// Return false in case of failure and let the trackParam as they were when that happened
 
-  if (trackParam->getZ() == zEnd) {
+  if (trackParam.getZ() == zEnd) {
     return true; // nothing to be done if same Z
   }
 
-  double residue = zEnd - trackParam->getZ();
+  double residue = zEnd - trackParam.getZ();
   double forwardBackward = (residue < 0) ? 1. : -1.; // +1 if forward, -1 if backward
   double v3[7] = {0.};
   convertTrackParamForExtrap(trackParam, forwardBackward, v3);
-  double charge = TMath::Sign(double(1.), trackParam->getInverseBendingMomentum());
+  double charge = TMath::Sign(double(1.), trackParam.getInverseBendingMomentum());
 
   // Extrapolation loop (until within tolerance or the track turn around)
   double v3New[7] = {0.};
@@ -952,9 +978,9 @@ bool TrackExtrap::extrapToZRungekuttaV2(TrackParam* trackParam, double zEnd)
   recoverTrackParam(v3New, charge, trackParam);
 
   // terminate the extrapolation with a straight line up to the exact "zEnd" value
-  trackParam->setNonBendingCoor(trackParam->getNonBendingCoor() + residue * trackParam->getNonBendingSlope());
-  trackParam->setBendingCoor(trackParam->getBendingCoor() + residue * trackParam->getBendingSlope());
-  trackParam->setZ(zEnd);
+  trackParam.setNonBendingCoor(trackParam.getNonBendingCoor() + residue * trackParam.getNonBendingSlope());
+  trackParam.setBendingCoor(trackParam.getBendingCoor() + residue * trackParam.getBendingSlope());
+  trackParam.setZ(zEnd);
 
   return true;
 }

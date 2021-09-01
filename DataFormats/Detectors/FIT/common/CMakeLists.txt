@@ -11,4 +11,8 @@
 
 o2_add_library(DataFormatsFIT
   SOURCES src/RawEventData.cxx
-  PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)
+  PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
+                        O2::CCDB)
+
+o2_target_root_dictionary(DataFormatsFIT
+                          HEADERS include/DataFormatsFIT/LookUpTable.h)

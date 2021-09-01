@@ -107,7 +107,10 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
     device.Send(parts, messageRef.channel, 0);
   }
   static int64_t previousBytesSent = 0;
-  auto disposeResources = [bs = context.bytesSent() - previousBytesSent](int taskId, std::array<ComputingQuotaOffer, 16>& offers, std::function<void(ComputingQuotaOffer&)> accountDisposed) {
+  auto disposeResources = [bs = context.bytesSent() - previousBytesSent](int taskId,
+                                                                         std::array<ComputingQuotaOffer, 16>& offers,
+                                                                         ComputingQuotaStats& stats,
+                                                                         std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> accountDisposed) {
     ComputingQuotaOffer disposed;
     disposed.sharedMemory = 0;
     int64_t bytesSent = bs;
@@ -124,7 +127,7 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
         break;
       }
     }
-    return accountDisposed(disposed);
+    return accountDisposed(disposed, stats);
   };
   registry.get<DeviceState>().offerConsumers.push_back(disposeResources);
   previousBytesSent = context.bytesSent();

@@ -111,24 +111,6 @@ void DataSampling::CustomizeInfrastructure(std::vector<ChannelConfigurationPolic
   // now it cannot be done, since matching is possible only using data processors names
 }
 
-std::vector<InputSpec> DataSampling::InputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName)
-{
-  std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);
-  return InputSpecsForPolicy(config.get(), policyName);
-}
-
-std::vector<InputSpec> DataSampling::InputSpecsForPolicy(ConfigurationInterface* const config, const std::string& policyName)
-{
-  auto policiesTree = config->getRecursive("dataSamplingPolicies");
-  return InputSpecsForPolicy(policiesTree, policyName);
-}
-
-std::vector<InputSpec> DataSampling::InputSpecsForPolicy(std::shared_ptr<configuration::ConfigurationInterface> config, const std::string& policyName)
-{
-  auto policiesTree = config->getRecursive("dataSamplingPolicies");
-  return InputSpecsForPolicy(policiesTree, policyName);
-}
-
 std::vector<framework::InputSpec> DataSampling::InputSpecsForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName)
 {
   std::vector<InputSpec> inputs;
@@ -143,18 +125,6 @@ std::vector<framework::InputSpec> DataSampling::InputSpecsForPolicy(const boost:
     }
   }
   return inputs;
-}
-
-std::vector<OutputSpec> DataSampling::OutputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName)
-{
-  std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);
-  return OutputSpecsForPolicy(config.get(), policyName);
-}
-
-std::vector<OutputSpec> DataSampling::OutputSpecsForPolicy(ConfigurationInterface* const config, const std::string& policyName)
-{
-  auto policiesTree = config->getRecursive("dataSamplingPolicies");
-  return OutputSpecsForPolicy(policiesTree, policyName);
 }
 
 std::vector<framework::OutputSpec> DataSampling::OutputSpecsForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName)
@@ -172,18 +142,6 @@ std::vector<framework::OutputSpec> DataSampling::OutputSpecsForPolicy(const boos
   return outputs;
 }
 
-std::optional<uint16_t> DataSampling::PortForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName)
-{
-  auto policiesTree = config->getRecursive("dataSamplingPolicies");
-  return PortForPolicy(policiesTree, policyName);
-}
-
-std::optional<uint16_t> DataSampling::PortForPolicy(const std::string& policiesSource, const std::string& policyName)
-{
-  std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);
-  return PortForPolicy(config.get(), policyName);
-}
-
 std::optional<uint16_t> DataSampling::PortForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName)
 {
   for (auto&& policyConfig : policiesTree) {
@@ -193,18 +151,6 @@ std::optional<uint16_t> DataSampling::PortForPolicy(const boost::property_tree::
     }
   }
   throw std::runtime_error("Could not find the policy '" + policyName + "'");
-}
-
-std::vector<std::string> DataSampling::MachinesForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName)
-{
-  auto policiesTree = config->getRecursive("dataSamplingPolicies");
-  return MachinesForPolicy(policiesTree, policyName);
-}
-
-std::vector<std::string> DataSampling::MachinesForPolicy(const std::string& policiesSource, const std::string& policyName)
-{
-  std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);
-  return MachinesForPolicy(config.get(), policyName);
 }
 
 std::vector<std::string> DataSampling::MachinesForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName)
@@ -218,6 +164,16 @@ std::vector<std::string> DataSampling::MachinesForPolicy(const boost::property_t
         }
       }
       return machines;
+    }
+  }
+  throw std::runtime_error("Could not find the policy '" + policyName + "'");
+}
+
+std::string DataSampling::BindLocationForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName)
+{
+  for (auto&& policyConfig : policiesTree) {
+    if (policyConfig.second.get<std::string>("id") == policyName) {
+      return policyConfig.second.get_optional<std::string>("bindLocation").value_or("remote");
     }
   }
   throw std::runtime_error("Could not find the policy '" + policyName + "'");

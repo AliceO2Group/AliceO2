@@ -126,6 +126,9 @@ class AlpideCoder
     //
     uint8_t dataC = 0, timestamp = 0;
     uint16_t dataS = 0, region = 0;
+#ifdef ALPIDE_DECODING_STAT
+    uint16_t rowPrev = 0xffff;
+#endif
     //
     int nRightCHits = 0;               // counter for the hits in the right column of the current double column
     std::uint16_t rightColHits[NRows]; // buffer for the accumulation of hits in the right column
@@ -231,8 +234,28 @@ class AlpideCoder
             }
             colDPrev = colD;
             nRightCHits = 0; // reset the buffer
+#ifdef ALPIDE_DECODING_STAT
+            rowPrev = 0xffff;
           }
-
+          // this is a special test to exclude repeated data of the same pixel fired
+          else if (row == rowPrev) { // same row/column fired repeatedly, hope this check is temporary
+            chipData.setError(ChipStat::RepeatingPixel);
+            if ((dataS & (~MaskDColID)) == DATALONG) { // skip pattern w/o decoding
+              uint8_t hitsPattern = 0;
+              if (!buffer.next(hitsPattern)) {
+                chipData.setError(ChipStat::TruncatedLondData);
+                return unexpectedEOF("CHIP_DATA_LONG:Pattern");
+              }
+              if (hitsPattern & (~MaskHitMap)) {
+                return unexpectedEOF("CHIP_DATA_LONG:Pattern");
+              }
+            }
+            expectInp = ExpectChipTrailer | ExpectData | ExpectRegion;
+            continue; // end of DATA(SHORT or LONG) processing
+          } else {
+            rowPrev = row;
+#endif
+          }
           bool rightC = (row & 0x1) ? !(pixID & 0x1) : (pixID & 0x1); // true for right column / lalse for left
 
           // we want to have hits sorted in column/row, so the hits in right column of given double column
@@ -302,7 +325,6 @@ class AlpideCoder
 #endif
       return unexpectedEOF(fmt::format("Unknown word 0x{:x} [expectation = 0x{:x}]", int(dataC), int(expectInp))); // error
     }
-
     return chipData.getData().size();
   }
 

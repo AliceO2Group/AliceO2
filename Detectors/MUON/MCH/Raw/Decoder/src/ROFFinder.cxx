@@ -37,6 +37,8 @@ namespace raw
 
 using namespace std;
 
+static constexpr int sBcInOneADCclock = 4;
+
 //_________________________________________________________________________________________________
 ROFFinder::ROFFinder(const DataDecoder::RawDigitVector& digits, uint32_t firstTForbit) : mInputDigits(digits), mFirstTForbit(firstTForbit)
 {
@@ -115,9 +117,8 @@ void ROFFinder::process(bool dummyROFs)
       std::cout << fmt::format("  checking digit {} -> {}\n", id2, inputId2);
 #endif
 
-      constexpr int oneADCclock = 4;
       auto tdiff = digit.getTime() - rofSeed.getTime();
-      if (std::abs(tdiff) < oneADCclock) {
+      if (std::abs(tdiff) < sBcInOneADCclock) {
         mEntries += 1;
 #ifdef ROFDEBUG
         std::cout << fmt::format("  digit {} -> {} added to current ROF\n", id2, inputId2);
@@ -196,7 +197,7 @@ o2::InteractionRecord ROFFinder::digitTime2IR(const RawDigit& digit)
 void ROFFinder::storeROF()
 {
   if (mEntries > 0) {
-    mOutputROFs.emplace_back(mIR, mFirstIdx, mEntries);
+    mOutputROFs.emplace_back(mIR, mFirstIdx, mEntries, sBcInOneADCclock);
   }
 }
 

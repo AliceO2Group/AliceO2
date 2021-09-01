@@ -30,7 +30,7 @@ void decode(o2::mid::Decoder& decoder, gsl::span<const uint8_t> payload, const R
   decoder.clear();
   decoder.process(payload, rdh);
   for (auto& rof : decoder.getROFRecords()) {
-    out << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}", rof.interactionRecord.bc, rof.interactionRecord.orbit) << std::endl;
+    out << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}  EvtType: {:d}", rof.interactionRecord.bc, rof.interactionRecord.orbit, rof.eventType) << std::endl;
     for (auto colIt = decoder.getData().begin() + rof.firstEntry; colIt != decoder.getData().begin() + rof.firstEntry + rof.nEntries; ++colIt) {
       out << *colIt << std::endl;
     }
@@ -53,7 +53,8 @@ int main(int argc, char* argv[])
           ("nHBs", po::value<unsigned long int>(&nHBs),"Number of HBs read")
           ("rdh-only", po::value<bool>()->implicit_value(true),"Only show RDHs")
           ("decode", po::value<bool>()->implicit_value(true),"Decode output")
-          ("feeId-config-file", po::value<std::string>()->default_value(""),"Filename with crate FEE ID correspondence");
+          ("feeId-config-file", po::value<std::string>()->default_value(""),"Filename with crate FEE ID correspondence")
+          ("electronics-delay-file", po::value<std::string>()->default_value(""),"Filename with electronics delay");
 
 
   po::options_description hidden("hidden options");
@@ -110,7 +111,7 @@ int main(int argc, char* argv[])
           gsl::span<const uint8_t> payload(it.data(), it.size());
           if (runDecoder) {
             if (!decoder) {
-              decoder = o2::mid::createDecoder(*rdhPtr, true, "", "", vm["feeId-config-file"].as<std::string>().c_str());
+              decoder = o2::mid::createDecoder(*rdhPtr, true, vm["electronics-delay-file"].as<std::string>().c_str(), "", vm["feeId-config-file"].as<std::string>().c_str());
             }
             decode(*decoder, payload, *rdhPtr, out);
           } else if (!isRdhOnly) {

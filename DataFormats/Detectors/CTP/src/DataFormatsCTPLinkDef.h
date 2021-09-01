@@ -31,4 +31,13 @@
 #pragma link C++ class o2::ctp::CTPClass + ;
 #pragma link C++ class vector < o2::ctp::CTPClass> + ;
 #pragma link C++ class o2::ctp::CTPConfiguration + ;
+#pragma link C++ class o2::ctp::CTPScalerRaw + ;
+#pragma link C++ class vector < o2::ctp::CTPScalerRaw> + ;
+#pragma link C++ class o2::ctp::CTPScalerO2 + ;
+#pragma link C++ class vector < o2::ctp::CTPScalerO2> + ;
+#pragma link C++ class o2::ctp::CTPScalerRecordRaw + ;
+#pragma link C++ class vector < o2::ctp::CTPScalerRecordRaw> + ;
+#pragma link C++ class o2::ctp::CTPScalerRecordO2 + ;
+#pragma link C++ class vector < o2::ctp::CTPScalerRecordO2> + ;
+#pragma link C++ class o2::ctp::CTPRunScalers + ;
 #endif

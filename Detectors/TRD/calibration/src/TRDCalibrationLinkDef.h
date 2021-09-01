@@ -19,5 +19,6 @@
 #pragma link C++ class o2::calibration::TimeSlot < o2::trd::AngularResidHistos> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::trd::AngularResidHistos, o2::trd::AngularResidHistos> + ;
 #pragma link C++ class o2::trd::TrackBasedCalib + ;
+#pragma link C++ class o2::trd::KrClusterFinder + ;
 
 #endif

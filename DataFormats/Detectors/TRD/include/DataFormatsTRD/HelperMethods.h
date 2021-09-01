@@ -68,10 +68,16 @@ struct HelperMethods {
     return irob % 2;
   }
 
+  static int getSector(int det)
+  {
+    return det / constants::NCHAMBERPERSEC;
+  }
+
   static int getStack(int det)
   {
     return det % (constants::NSTACK * constants::NLAYER) / constants::NLAYER;
   }
+
   static int getLayer(int det)
   {
     return det % constants::NLAYER;

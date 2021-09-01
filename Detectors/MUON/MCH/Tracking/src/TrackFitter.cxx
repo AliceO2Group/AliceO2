@@ -184,7 +184,7 @@ void TrackFitter::addCluster(const TrackParam& startingParam, const Cluster& cl,
 
   // add MCS effect in the current chamber
   int currentChamber(startingParam.getClusterPtr()->getChamberId());
-  TrackExtrap::addMCSEffect(&param, SChamberThicknessInX0[currentChamber], -1.);
+  TrackExtrap::addMCSEffect(param, SChamberThicknessInX0[currentChamber], -1.);
 
   // reset propagator for smoother
   if (mSmooth) {
@@ -195,15 +195,15 @@ void TrackFitter::addCluster(const TrackParam& startingParam, const Cluster& cl,
   int expectedChamber(currentChamber - 1);
   currentChamber = cl.getChamberId();
   while (currentChamber < expectedChamber) {
-    if (!TrackExtrap::extrapToZCov(&param, SDefaultChamberZ[expectedChamber], mSmooth)) {
+    if (!TrackExtrap::extrapToZCov(param, SDefaultChamberZ[expectedChamber], mSmooth)) {
       throw runtime_error("Track extrapolation failed");
     }
-    TrackExtrap::addMCSEffect(&param, SChamberThicknessInX0[expectedChamber], -1.);
+    TrackExtrap::addMCSEffect(param, SChamberThicknessInX0[expectedChamber], -1.);
     expectedChamber--;
   }
 
   // extrapolate to the z position of the new cluster
-  if (!TrackExtrap::extrapToZCov(&param, cl.getZ(), mSmooth)) {
+  if (!TrackExtrap::extrapToZCov(param, cl.getZ(), mSmooth)) {
     throw runtime_error("Track extrapolation failed");
   }
 

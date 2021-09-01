@@ -31,6 +31,8 @@
 #include <boost/program_options/variables_map.hpp>
 #include <csignal>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 namespace o2::framework
 {
 
@@ -54,12 +56,12 @@ struct RateLimitConfig {
 static int64_t memLimit = 0;
 
 struct MetricIndices {
-  size_t arrowBytesCreated = 0;
-  size_t shmOfferConsumed = 0;
-  size_t arrowBytesDestroyed = 0;
-  size_t arrowMessagesCreated = 0;
-  size_t arrowMessagesDestroyed = 0;
-  size_t arrowBytesExpired = 0;
+  size_t arrowBytesCreated = -1;
+  size_t arrowBytesDestroyed = -1;
+  size_t arrowMessagesCreated = -1;
+  size_t arrowMessagesDestroyed = -1;
+  size_t arrowBytesExpired = -1;
+  size_t shmOfferConsumed = -1;
 };
 
 std::vector<MetricIndices> createDefaultIndices(std::vector<DeviceMetricsInfo>& allDevicesMetrics)
@@ -73,6 +75,7 @@ std::vector<MetricIndices> createDefaultIndices(std::vector<DeviceMetricsInfo>& 
     indices.arrowMessagesCreated = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-messages-created");
     indices.arrowMessagesDestroyed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-messages-destroyed");
     indices.arrowBytesExpired = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-bytes-expired");
+    indices.shmOfferConsumed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "shm-offer-bytes-consumed");
     results.push_back(indices);
   }
   return results;
@@ -119,10 +122,10 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static RateLimitingState currentState = RateLimitingState::UNKNOWN;
                        static auto stateMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "rate-limit-state");
                        static auto totalBytesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-created");
-                       static auto shmOfferConsumedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "shm-offer-bytes-consumed");
-                       static auto unusedOfferedMemoryMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "unusedOfferedMemory");
-                       static auto availableSharedMemoryMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "available-shared-memory");
-                       static auto offeredSharedMemoryMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "offered-shared-memory");
+                       static auto shmOfferConsumedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-shm-offer-bytes-consumed");
+                       static auto unusedOfferedMemoryMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "total-unusedOfferedMemory");
+                       static auto availableSharedMemoryMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "total-available-shared-memory");
+                       static auto offeredSharedMemoryMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "total-offered-shared-memory");
                        static auto totalBytesDestroyedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-destroyed");
                        static auto totalBytesExpiredMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-expired");
                        static auto totalMessagesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-created");
@@ -201,6 +204,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            size_t index = indices.arrowMessagesCreated;
                            if (index < deviceMetrics.metrics.size()) {
                              MetricInfo info = deviceMetrics.metrics.at(index);
+                             changed |= deviceMetrics.changed.at(index);
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalMessagesCreated += (int64_t)data.at((info.pos - 1) % data.size());
                            }
@@ -209,6 +213,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            size_t index = indices.arrowMessagesDestroyed;
                            if (index < deviceMetrics.metrics.size()) {
                              MetricInfo info = deviceMetrics.metrics.at(index);
+                             changed |= deviceMetrics.changed.at(index);
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalMessagesDestroyed += (int64_t)data.at((info.pos - 1) % data.size());
                            }
@@ -233,13 +238,13 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static uint64_t lastReportTime = 0;
                        static int64_t MAX_SHARED_MEMORY = calculateAvailableSharedMemory(registry);
                        constexpr int64_t MAX_QUANTUM_SHARED_MEMORY = 300;
-                       constexpr int64_t MIN_QUANTUM_SHARED_MEMORY = 100;
+                       constexpr int64_t MIN_QUANTUM_SHARED_MEMORY = 50;
 
                        static int64_t availableSharedMemory = MAX_SHARED_MEMORY;
                        static int64_t offeredSharedMemory = 0;
                        static int64_t lastDeviceOffered = 0;
                        /// We loop over the devices, starting from where we stopped last time
-                       /// offering 1 GB of shared memory to each reader.
+                       /// offering MIN_QUANTUM_SHARED_MEMORY of shared memory to each reader.
                        int64_t lastCandidate = -1;
                        static int enoughSharedMemoryCount = availableSharedMemory - MIN_QUANTUM_SHARED_MEMORY > 0 ? 1 : 0;
                        static int lowSharedMemoryCount = availableSharedMemory - MIN_QUANTUM_SHARED_MEMORY > 0 ? 0 : 1;
@@ -260,6 +265,15 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            lowSharedMemoryCount = 0;
                          }
                          size_t candidate = (lastDeviceOffered + di) % specs.size();
+
+                         auto& spec = specs[candidate];
+                         auto& info = infos[candidate];
+                         // Do not bother for inactive devices
+                         // FIXME: there is probably a race condition if the device died and we did not
+                         //        took notice yet...
+                         if (info.active == false || info.readyToQuit) {
+                           continue;
+                         }
                          if (specs[candidate].name != "internal-dpl-aod-reader") {
                            continue;
                          }
@@ -287,7 +301,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        }
                        int unusedOfferedMemory = (offeredSharedMemory - (totalBytesExpired + shmOfferConsumed) / 1000000);
                        if (lastUnusedOfferedMemory != unusedOfferedMemory) {
-                         LOGP(INFO, "Unused offer {}", unusedOfferedMemory);
+                         LOGP(INFO, "unusedOfferedMemory:{} = offered:{} - (expired:{} + consumed:{}) / 1000000", unusedOfferedMemory, offeredSharedMemory, totalBytesExpired / 1000000, shmOfferConsumed / 1000000);
                          lastUnusedOfferedMemory = unusedOfferedMemory;
                        }
                        // availableSharedMemory is the amount of memory which we know is available to be offered.
@@ -342,7 +356,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                      [](ServiceRegistry& registry, boost::program_options::variables_map const& vm) {
                        auto config = new RateLimitConfig{};
                        int readers = std::stoll(vm["readers"].as<std::string>());
-                       if (vm.count("aod-memory-rate-limit")) {
+                       if (vm.count("aod-memory-rate-limit") && vm["aod-memory-rate-limit"].defaulted() == false) {
                          config->maxMemory = std::stoll(vm["aod-memory-rate-limit"].as<std::string>()) / 1000000;
                        } else {
                          config->maxMemory = readers * 500;
@@ -360,3 +374,4 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
 }
 
 } // namespace o2::framework
+#pragma GGC diagnostic pop
