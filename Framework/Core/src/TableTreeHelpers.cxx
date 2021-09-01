@@ -14,6 +14,7 @@
 
 #include "arrow/type_traits.h"
 #include <arrow/util/key_value_metadata.h>
+#include <TBufferFile.h>
 
 namespace o2::framework
 {
@@ -36,32 +37,6 @@ class ColumnIterator
 {
 
  private:
-  // all the possible TTreeReaderValue<T> types
-  TTreeReaderValue<bool>* mReaderValue_o = nullptr;
-  TTreeReaderValue<uint8_t>* mReaderValue_ub = nullptr;
-  TTreeReaderValue<uint16_t>* mReaderValue_us = nullptr;
-  TTreeReaderValue<uint32_t>* mReaderValue_ui = nullptr;
-  TTreeReaderValue<ULong64_t>* mReaderValue_ul = nullptr;
-  TTreeReaderValue<int8_t>* mReaderValue_b = nullptr;
-  TTreeReaderValue<int16_t>* mReaderValue_s = nullptr;
-  TTreeReaderValue<int32_t>* mReaderValue_i = nullptr;
-  TTreeReaderValue<int64_t>* mReaderValue_l = nullptr;
-  TTreeReaderValue<float>* mReaderValue_f = nullptr;
-  TTreeReaderValue<double>* mReaderValue_d = nullptr;
-
-  // all the possible TTreeReaderArray<T> types
-  TTreeReaderArray<bool>* mReaderArray_o = nullptr;
-  TTreeReaderArray<uint8_t>* mReaderArray_ub = nullptr;
-  TTreeReaderArray<uint16_t>* mReaderArray_us = nullptr;
-  TTreeReaderArray<uint32_t>* mReaderArray_ui = nullptr;
-  TTreeReaderArray<uint64_t>* mReaderArray_ul = nullptr;
-  TTreeReaderArray<int8_t>* mReaderArray_b = nullptr;
-  TTreeReaderArray<int16_t>* mReaderArray_s = nullptr;
-  TTreeReaderArray<int32_t>* mReaderArray_i = nullptr;
-  TTreeReaderArray<int64_t>* mReaderArray_l = nullptr;
-  TTreeReaderArray<float>* mReaderArray_f = nullptr;
-  TTreeReaderArray<double>* mReaderArray_d = nullptr;
-
   // all the possible arrow::TBuilder types
   arrow::FixedSizeListBuilder* mTableBuilder_list = nullptr;
 
@@ -81,19 +56,22 @@ class ColumnIterator
   EDataType mElementType;
   int64_t mNumberElements;
   const char* mColumnName;
+  int mPos = 0;
+  int mNumEntries = 0;
+  TBranch* mBranch = nullptr;
 
   std::shared_ptr<arrow::Field> mField;
   std::shared_ptr<arrow::Array> mArray;
 
  public:
-  ColumnIterator(TTreeReader& reader, const char* colname);
+  ColumnIterator(TTree* reader, const char* colname);
   ~ColumnIterator();
 
   // has the iterator been properly initialized
   bool getStatus();
 
-  // copy the TTreeReaderValue to the arrow::TBuilder
-  void push();
+  // copy the contents of the associated branch to the arrow::TBuilder
+  size_t push();
 
   // reserve enough space to push s elements without reallocating
   void reserve(size_t s);
@@ -443,18 +421,12 @@ TTree* TableToTree::process()
   }
 
 // is used in TreeToTable
-ColumnIterator::ColumnIterator(TTreeReader& reader, const char* colname)
+ColumnIterator::ColumnIterator(TTree* tree, const char* colname)
 {
+  mBranch = tree->GetBranch(colname);
+  mNumEntries = mBranch->GetEntries();
 
-  // find branch
-  auto tree = reader.GetTree();
-  if (!tree) {
-    LOGP(FATAL, "Can not locate tree!");
-    return;
-  }
-
-  auto br = tree->GetBranch(colname);
-  if (!br) {
+  if (!mBranch) {
     LOGP(WARNING, "Can not locate branch {}", colname);
     return;
   }
@@ -462,13 +434,13 @@ ColumnIterator::ColumnIterator(TTreeReader& reader, const char* colname)
 
   // type of the branch elements
   TClass* cl;
-  br->GetExpectedType(cl, mElementType);
+  mBranch->GetExpectedType(cl, mElementType);
 
   // currently only single-value or single-array branches are accepted
   // thus of the form e.g. alpha/D or alpha[5]/D
   // check if this is a single-value or single-array branch
   mNumberElements = 1;
-  std::string branchTitle = br->GetTitle();
+  std::string branchTitle = mBranch->GetTitle();
   Int_t pos0 = branchTitle.find("[");
   Int_t pos1 = branchTitle.find("]");
   if (pos0 > 0 && pos1 > 0) {
@@ -485,47 +457,36 @@ ColumnIterator::ColumnIterator(TTreeReader& reader, const char* colname)
   if (mNumberElements == 1) {
     switch (mElementType) {
       case EDataType::kBool_t:
-        mReaderValue_o = new TTreeReaderValue<bool>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(bool, 1, mTableBuilder_o);
         break;
       case EDataType::kUChar_t:
-        mReaderValue_ub = new TTreeReaderValue<uint8_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint8_t, 1, mTableBuilder_ub);
         break;
       case EDataType::kUShort_t:
-        mReaderValue_us = new TTreeReaderValue<uint16_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint16_t, 1, mTableBuilder_us);
         break;
       case EDataType::kUInt_t:
-        mReaderValue_ui = new TTreeReaderValue<uint32_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint32_t, 1, mTableBuilder_ui);
         break;
       case EDataType::kULong64_t:
-        mReaderValue_ul = new TTreeReaderValue<ULong64_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint64_t, 1, mTableBuilder_ul);
         break;
       case EDataType::kChar_t:
-        mReaderValue_b = new TTreeReaderValue<int8_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int8_t, 1, mTableBuilder_b);
         break;
       case EDataType::kShort_t:
-        mReaderValue_s = new TTreeReaderValue<int16_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int16_t, 1, mTableBuilder_s);
         break;
       case EDataType::kInt_t:
-        mReaderValue_i = new TTreeReaderValue<int32_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int32_t, 1, mTableBuilder_i);
         break;
       case EDataType::kLong64_t:
-        mReaderValue_l = new TTreeReaderValue<int64_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int64_t, 1, mTableBuilder_l);
         break;
       case EDataType::kFloat_t:
-        mReaderValue_f = new TTreeReaderValue<float>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(float, 1, mTableBuilder_f);
         break;
       case EDataType::kDouble_t:
-        mReaderValue_d = new TTreeReaderValue<double>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(double, 1, mTableBuilder_d);
         break;
       default:
@@ -535,47 +496,36 @@ ColumnIterator::ColumnIterator(TTreeReader& reader, const char* colname)
   } else {
     switch (mElementType) {
       case EDataType::kBool_t:
-        mReaderArray_o = new TTreeReaderArray<bool>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(bool, mNumberElements, mTableBuilder_o);
         break;
       case EDataType::kUChar_t:
-        mReaderArray_ub = new TTreeReaderArray<uint8_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint8_t, mNumberElements, mTableBuilder_ub);
         break;
       case EDataType::kUShort_t:
-        mReaderArray_us = new TTreeReaderArray<uint16_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint16_t, mNumberElements, mTableBuilder_us);
         break;
       case EDataType::kUInt_t:
-        mReaderArray_ui = new TTreeReaderArray<uint32_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint32_t, mNumberElements, mTableBuilder_ui);
         break;
       case EDataType::kULong64_t:
-        mReaderArray_ul = new TTreeReaderArray<uint64_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(uint64_t, mNumberElements, mTableBuilder_ul);
         break;
       case EDataType::kChar_t:
-        mReaderArray_b = new TTreeReaderArray<int8_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int8_t, mNumberElements, mTableBuilder_b);
         break;
       case EDataType::kShort_t:
-        mReaderArray_s = new TTreeReaderArray<int16_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int16_t, mNumberElements, mTableBuilder_s);
         break;
       case EDataType::kInt_t:
-        mReaderArray_i = new TTreeReaderArray<int32_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int32_t, mNumberElements, mTableBuilder_i);
         break;
       case EDataType::kLong64_t:
-        mReaderArray_l = new TTreeReaderArray<int64_t>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(int64_t, mNumberElements, mTableBuilder_l);
         break;
       case EDataType::kFloat_t:
-        mReaderArray_f = new TTreeReaderArray<float>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(float, mNumberElements, mTableBuilder_f);
         break;
       case EDataType::kDouble_t:
-        mReaderArray_d = new TTreeReaderArray<double>(reader, mColumnName);
         MAKE_FIELD_AND_BUILDER(double, mNumberElements, mTableBuilder_d);
         break;
       default:
@@ -587,31 +537,6 @@ ColumnIterator::ColumnIterator(TTreeReader& reader, const char* colname)
 
 ColumnIterator::~ColumnIterator()
 {
-  // delete all pointers
-  delete mReaderValue_o;
-  delete mReaderValue_ub;
-  delete mReaderValue_us;
-  delete mReaderValue_ui;
-  delete mReaderValue_ul;
-  delete mReaderValue_b;
-  delete mReaderValue_s;
-  delete mReaderValue_i;
-  delete mReaderValue_l;
-  delete mReaderValue_f;
-  delete mReaderValue_d;
-
-  delete mReaderArray_o;
-  delete mReaderArray_ub;
-  delete mReaderArray_us;
-  delete mReaderArray_ui;
-  delete mReaderArray_ul;
-  delete mReaderArray_b;
-  delete mReaderArray_s;
-  delete mReaderArray_i;
-  delete mReaderArray_l;
-  delete mReaderArray_f;
-  delete mReaderArray_d;
-
   if (mTableBuilder_list) {
     delete mTableBuilder_list;
   } else {
@@ -637,6 +562,9 @@ bool ColumnIterator::getStatus()
 void ColumnIterator::reserve(size_t s)
 {
   arrow::Status stat;
+  if (mNumberElements != 1) {
+    stat = mTableBuilder_list->Reserve(s);
+  }
 
   switch (mElementType) {
     case EDataType::kBool_t:
@@ -678,99 +606,81 @@ void ColumnIterator::reserve(size_t s)
   }
 }
 
-void ColumnIterator::push()
+template <typename T, typename Builder>
+arrow::Status appendValues(Builder builder, TBuffer& buffer, int64_t size)
+{
+  return builder->AppendValues(reinterpret_cast<T const*>(buffer.GetCurrent()), size, nullptr);
+}
+
+size_t ColumnIterator::push()
 {
   arrow::Status stat;
 
-  // switch according to mElementType
-  if (mNumberElements == 1) {
-    switch (mElementType) {
-      case EDataType::kBool_t:
-        mTableBuilder_o->UnsafeAppend((bool)**mReaderValue_o);
-        break;
-      case EDataType::kUChar_t:
-        mTableBuilder_ub->UnsafeAppend(**mReaderValue_ub);
-        break;
-      case EDataType::kUShort_t:
-        mTableBuilder_us->UnsafeAppend(**mReaderValue_us);
-        break;
-      case EDataType::kUInt_t:
-        mTableBuilder_ui->UnsafeAppend(**mReaderValue_ui);
-        break;
-      case EDataType::kULong64_t:
-        mTableBuilder_ul->UnsafeAppend(**mReaderValue_ul);
-        break;
-      case EDataType::kChar_t:
-        mTableBuilder_b->UnsafeAppend(**mReaderValue_b);
-        break;
-      case EDataType::kShort_t:
-        mTableBuilder_s->UnsafeAppend(**mReaderValue_s);
-        break;
-      case EDataType::kInt_t:
-        mTableBuilder_i->UnsafeAppend(**mReaderValue_i);
-        break;
-      case EDataType::kLong64_t:
-        mTableBuilder_l->UnsafeAppend(**mReaderValue_l);
-        break;
-      case EDataType::kFloat_t:
-        mTableBuilder_f->UnsafeAppend(**mReaderValue_f);
-        break;
-      case EDataType::kDouble_t:
-        mTableBuilder_d->UnsafeAppend(**mReaderValue_d);
-        break;
-      default:
-        LOGP(FATAL, "Type {} not handled!", mElementType);
-        break;
-    }
-  } else {
-    stat = mTableBuilder_list->AppendValues(1);
-    switch (mElementType) {
-      case EDataType::kBool_t:
-        stat &= mTableBuilder_o->AppendValues((uint8_t*)&((*mReaderArray_o)[0]), mNumberElements);
-        break;
-      case EDataType::kUChar_t:
-        stat &= mTableBuilder_ub->AppendValues(&((*mReaderArray_ub)[0]), mNumberElements);
-        break;
-      case EDataType::kUShort_t:
-        stat &= mTableBuilder_us->AppendValues(&((*mReaderArray_us)[0]), mNumberElements);
-        break;
-      case EDataType::kUInt_t:
-        stat &= mTableBuilder_ui->AppendValues(&((*mReaderArray_ui)[0]), mNumberElements);
-        break;
-      case EDataType::kULong64_t:
-        stat &= mTableBuilder_ul->AppendValues(&((*mReaderArray_ul)[0]), mNumberElements);
-        break;
-      case EDataType::kChar_t:
-        stat &= mTableBuilder_b->AppendValues(&((*mReaderArray_b)[0]), mNumberElements);
-        break;
-      case EDataType::kShort_t:
-        stat &= mTableBuilder_s->AppendValues(&((*mReaderArray_s)[0]), mNumberElements);
-        break;
-      case EDataType::kInt_t:
-        stat &= mTableBuilder_i->AppendValues(&((*mReaderArray_i)[0]), mNumberElements);
-        break;
-      case EDataType::kLong64_t:
-        stat &= mTableBuilder_l->AppendValues(&((*mReaderArray_l)[0]), mNumberElements);
-        break;
-      case EDataType::kFloat_t:
-        stat &= mTableBuilder_f->AppendValues(&((*mReaderArray_f)[0]), mNumberElements);
-        break;
-      case EDataType::kDouble_t:
-        stat &= mTableBuilder_d->AppendValues(&((*mReaderArray_d)[0]), mNumberElements);
-        break;
-      default:
-        LOGP(FATAL, "Type {} not handled!", mElementType);
-        break;
-    }
+  TBufferFile buffer{TBuffer::EMode::kWrite, 64 * 1024};
+  auto size = mBranch->GetBulkRead().GetBulkEntries(mPos, buffer);
+  if (size < 0) {
+    return 0;
   }
+  if ((mPos + size) > mNumEntries) {
+    size = mNumEntries - mPos;
+  }
+  mPos += size;
+
+  // switch according to mElementType
+  switch (mElementType) {
+    case EDataType::kBool_t:
+      stat = appendValues<unsigned char>(mTableBuilder_o, buffer, size * mNumberElements);
+      break;
+    case EDataType::kUChar_t:
+      stat = appendValues<unsigned char>(mTableBuilder_ub, buffer, size * mNumberElements);
+      break;
+    case EDataType::kUShort_t:
+      stat = appendValues<unsigned short>(mTableBuilder_us, buffer, size * mNumberElements);
+      break;
+    case EDataType::kUInt_t:
+      stat = appendValues<unsigned int>(mTableBuilder_ui, buffer, size * mNumberElements);
+      break;
+    case EDataType::kULong64_t:
+      stat = appendValues<uint64_t>(mTableBuilder_ul, buffer, size * mNumberElements);
+      break;
+    case EDataType::kChar_t:
+      stat = appendValues<signed char>(mTableBuilder_b, buffer, size * mNumberElements);
+      break;
+    case EDataType::kShort_t:
+      stat = appendValues<short>(mTableBuilder_s, buffer, size * mNumberElements);
+      break;
+    case EDataType::kInt_t:
+      stat = appendValues<int>(mTableBuilder_i, buffer, size * mNumberElements);
+      break;
+    case EDataType::kLong64_t:
+      stat = appendValues<int64_t>(mTableBuilder_l, buffer, size * mNumberElements);
+      break;
+    case EDataType::kFloat_t:
+      stat = appendValues<float>(mTableBuilder_f, buffer, size * mNumberElements);
+      break;
+    case EDataType::kDouble_t:
+      stat = appendValues<double>(mTableBuilder_d, buffer, size * mNumberElements);
+      break;
+    default:
+      LOGP(FATAL, "Type {} not handled!", mElementType);
+      break;
+  }
+  if (mNumberElements != 1) {
+    stat = mTableBuilder_list->AppendValues(size);
+  }
+  return size;
 }
 
 void ColumnIterator::finish()
 {
   arrow::Status stat;
 
+  if (mNumberElements != 1) {
+    stat = mTableBuilder_list->Finish(&mArray);
+    return;
+  }
+
   // switch according to mElementType
-  if (mNumberElements == 1) {
     switch (mElementType) {
       case EDataType::kBool_t:
         stat = mTableBuilder_o->Finish(&mArray);
@@ -809,9 +719,6 @@ void ColumnIterator::finish()
         LOGP(FATAL, "Type {} not handled!", mElementType);
         break;
     }
-  } else {
-    stat = mTableBuilder_list->Finish(&mArray);
-  }
 }
 
 void TreeToTable::setLabel(const char* label)
@@ -844,13 +751,12 @@ bool TreeToTable::addAllColumns(TTree* tree)
 void TreeToTable::fill(TTree* tree)
 {
   std::vector<std::unique_ptr<ColumnIterator>> columnIterators;
-  TTreeReader treeReader{tree};
 
   tree->SetCacheSize(50000000);
   tree->SetClusterPrefetch(true);
   for (auto&& columnName : mColumnNames) {
     tree->AddBranchToCache(columnName.c_str(), true);
-    auto colit = std::make_unique<ColumnIterator>(treeReader, columnName.c_str());
+    auto colit = std::make_unique<ColumnIterator>(tree, columnName.c_str());
     auto stat = colit->getStatus();
     if (!stat) {
       throw std::runtime_error("Unable to convert column " + columnName);
@@ -858,16 +764,14 @@ void TreeToTable::fill(TTree* tree)
     columnIterators.push_back(std::move(colit));
   }
   tree->StopCacheLearningPhase();
-  auto numEntries = treeReader.GetEntries(true);
+  auto numEntries = tree->GetEntries();
   if (numEntries > 0) {
-    for (auto&& column : columnIterators) {
+
+    for (size_t ci = 0; ci < columnIterators.size(); ++ci) {
+      auto& column = columnIterators[ci];
+      auto& columnName = mColumnNames[ci];
       column->reserve(numEntries);
-    }
-    // copy all values from the tree to the table builders
-    treeReader.Restart();
-    while (treeReader.Next()) {
-      for (auto&& column : columnIterators) {
-        column->push();
+      while (column->push() != 0) {
       }
     }
   }
