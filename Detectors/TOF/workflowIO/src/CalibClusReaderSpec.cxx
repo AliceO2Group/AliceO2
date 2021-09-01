@@ -44,6 +44,8 @@ void CalibClusReader::run(ProcessingContext& pc)
   if (mIsCosmics) {
     LOG(DEBUG) << "Pushing " << mPcosmicInfo->size() << " TOF cosmics info at entry " << ent;
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCOSMICS", 0, Lifetime::Timeframe}, mCosmicInfo);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOTRACKCOS", 0, Lifetime::Timeframe}, mCosmicTrack);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOTRACKSIZE", 0, Lifetime::Timeframe}, mCosmicTrackSize);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
@@ -62,6 +64,8 @@ void CalibClusReader::connectTree(const std::string& filename)
   mTree->SetBranchAddress("TOFClusterCalInfo", &mPclusInfos);
   if (mIsCosmics) {
     mTree->SetBranchAddress("TOFCosmics", &mPcosmicInfo);
+    mTree->SetBranchAddress("TOFTracks", &mPcosmicTrack);
+    mTree->SetBranchAddress("TOFTracksSize", &mPcosmicTrackSize);
   }
   LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
@@ -72,6 +76,8 @@ DataProcessorSpec getCalibClusReaderSpec(bool isCosmics)
   outputs.emplace_back(o2::header::gDataOriginTOF, "INFOCALCLUS", 0, Lifetime::Timeframe);
   if (isCosmics) {
     outputs.emplace_back(o2::header::gDataOriginTOF, "INFOCOSMICS", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "INFOTRACKCOS", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "INFOTRACKSIZE", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

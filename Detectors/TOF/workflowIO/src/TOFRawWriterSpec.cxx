@@ -35,7 +35,7 @@ void RawWriter::init(InitContext& ic)
   // get the option from the init context
   mOutFileName = ic.options().get<std::string>("tof-raw-outfile");
   mOutDirName = ic.options().get<std::string>("tof-raw-outdir");
-  mFileFor = ic.options().get<std::string>("tof-raw-file-for");
+  mFileFor = ic.options().get<std::string>("file-for");
   LOG(INFO) << "Raw output file: " << mOutFileName.c_str();
 
   // if needed, create output directory
@@ -119,7 +119,7 @@ DataProcessorSpec getTOFRawWriterSpec()
     Options{
       {"tof-raw-outfile", VariantType::String, "tof.raw", {"Name of the output file"}},
       {"tof-raw-outdir", VariantType::String, ".", {"Name of the output dir"}},
-      {"tof-raw-file-for", VariantType::String, "cru", {"Single file per: all,cru,link"}}}};
+      {"file-for", VariantType::String, "cru", {"Single file per: all,cru,link"}}}};
 }
 } // namespace tof
 } // namespace o2

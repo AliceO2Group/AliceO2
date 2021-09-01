@@ -81,8 +81,7 @@ bool Encoder::open(const std::string& name, const std::string& path, const std::
       } else if (fileFor == "cru") {
         outFileLink = o2::utils::Str::concat_string(path, "/", "TOF_alio2-cr1-flp", std::to_string(Geo::getFLPid(crateid)), "_cru", std::to_string(Geo::getCRUid(crateid)), "_", std::to_string(Geo::getCRUendpoint(crateid)), ".raw");
       } else if (fileFor == "link") {
-        outFileLink = o2::utils::Str::concat_string(path, "/", "TOF_cru", std::to_string(RDHUtils::getCRUID(rdh)), "_link",
-                                                    std::to_string(RDHUtils::getLinkID(rdh)), "_ep", std::to_string(RDHUtils::getEndPointID(rdh)), ".raw");
+        outFileLink = o2::utils::Str::concat_string(path, "/", "TOF_alio2-cr1-flp", std::to_string(Geo::getFLPid(crateid)), "_cru", std::to_string(Geo::getCRUid(crateid)), "_", std::to_string(Geo::getCRUendpoint(crateid)), "_link", std::to_string(RDHUtils::getLinkID(rdh)), ".raw");
       } else {
         throw std::runtime_error("invalid option provided for file grouping");
       }
