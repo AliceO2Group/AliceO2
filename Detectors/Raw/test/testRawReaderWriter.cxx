@@ -22,8 +22,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
-#include "DetectorsRaw/SimpleRawReader.h"
-#include "DetectorsRaw/SimpleSTF.h"
+#include "DetectorsRaw/RawFileReader.h"
 #include "CommonConstants/Triggers.h"
 #include "Framework/Logger.h"
 #include "Framework/InputRecord.h"
@@ -317,38 +316,6 @@ BOOST_AUTO_TEST_CASE(RawReaderWriter_CRU)
   TestRawReader dr{"TST", "test_raw_conf_GBT.cfg"}; // here we set the reader wrapper name just to deduce the input config name, everything else will be deduced from the config
   dr.init();
   dr.run(); // read back and check
-
-  // test SimpleReader
-  int nLoops = 5;
-  SimpleRawReader sr(dr.confName, false, nLoops);
-  int ntf = 0;
-  while (sr.loadNextTF()) {
-    ntf++;
-    auto& record = *sr.getInputRecord();
-    BOOST_CHECK(record.size() == NCRU * NLinkPerCRU);
-    o2::header::DataHeader const* dhPrev = nullptr;
-    DPLRawParser parser(record);
-    for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-      //      auto const* rdh = &get_if<RDHAny>();
-      auto const* rdh = reinterpret_cast<const RDHAny*>(it.raw()); // RSTODO this is a hack in absence of generic header getter
-      auto const* dh = it.o2DataHeader();
-      BOOST_REQUIRE(rdh != nullptr);
-      bool newLink = false;
-      if (dh != dhPrev) {
-        dhPrev = dh;
-        newLink = true;
-      }
-      if (RDHUtils::getCRUID(*rdh) == NCRU - 1) {
-        if (newLink) {
-          LOGP(INFO, "{}", *dh);
-        }
-        RDHUtils::printRDH(rdh);
-        if (RDHUtils::getMemorySize(*rdh) > sizeof(RDHAny) + RDHUtils::GBTWord) { // special CRU with predefined sizes
-          BOOST_CHECK(it.size() + sizeof(RDHAny) == SpecSize[RDHUtils::getLinkID(*rdh)]);
-        }
-      }
-    }
-  }
 }
 
 BOOST_AUTO_TEST_CASE(RawReaderWriter_RORC)
@@ -360,31 +327,6 @@ BOOST_AUTO_TEST_CASE(RawReaderWriter_RORC)
   TestRawReader dr{"TST", "test_raw_conf_DDL.cfg"}; // here we set the reader wrapper name just to deduce the input config name, everything else will be deduced from the config
   dr.init();
   dr.run(); // read back and check
-
-  // test SimpleReader
-  int nLoops = 5;
-  SimpleRawReader sr(dr.confName, false, nLoops);
-  int ntf = 0;
-  while (sr.loadNextTF()) {
-    ntf++;
-    auto& record = *sr.getInputRecord();
-    LOG(INFO) << "FAIL? " << record.size() << " " << NCRU * NLinkPerCRU;
-
-    BOOST_CHECK(record.size() == NCRU * NLinkPerCRU);
-    o2::header::DataHeader const* dhPrev = nullptr;
-    DPLRawParser parser(record);
-    for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-      //      auto const* rdh = &get_if<RDHAny>();
-      auto const* rdh = reinterpret_cast<const RDHAny*>(it.raw()); // RSTODO this is a hack in absence of generic header getter
-      auto const* dh = it.o2DataHeader();
-      BOOST_REQUIRE(rdh != nullptr);
-      bool newLink = false;
-      if (dh != dhPrev) {
-        dhPrev = dh;
-        newLink = true;
-      }
-    }
-  }
 }
 
 } // namespace o2
