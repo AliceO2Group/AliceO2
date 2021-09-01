@@ -20,7 +20,6 @@
 #pragma link C++ class o2::raw::RawFileWriter + ;
 #pragma link C++ class o2::raw::RawFileWriter::PayloadCache + ;
 #pragma link C++ class o2::raw::RawFileWriter::LinkData + ;
-#pragma link C++ class o2::raw::SimpleRawReader + ;
 
 #pragma link C++ class o2::raw::RDHUtils + ;
 #pragma link C++ class o2::raw::HBFUtils + ;

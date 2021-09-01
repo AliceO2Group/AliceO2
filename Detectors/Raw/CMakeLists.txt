@@ -12,8 +12,6 @@
 o2_add_library(DetectorsRaw
                SOURCES src/RawFileReader.cxx
                        src/RawFileWriter.cxx
-                       src/SimpleRawReader.cxx
-                       src/SimpleSTF.cxx
                        src/HBFUtils.cxx
                        src/RDHUtils.cxx
                        src/HBFUtilsInitializer.cxx
@@ -27,7 +25,6 @@ o2_add_library(DetectorsRaw
 o2_target_root_dictionary(DetectorsRaw
                           HEADERS include/DetectorsRaw/RawFileReader.h
                           include/DetectorsRaw/RawFileWriter.h
-                          include/DetectorsRaw/SimpleRawReader.h
                           include/DetectorsRaw/HBFUtils.h
                           include/DetectorsRaw/RDHUtils.h)
 
