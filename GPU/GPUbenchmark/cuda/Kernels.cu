@@ -75,13 +75,11 @@ __global__ void readChunkSBKernel(
   chunk_type* results,
   size_t chunkSize)
 {
-  if (chunkId == blockIdx.x) { // runs only if blockIdx.x is allowed in given split
-    chunk_type sink{0};
-    for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
-      sink += chunkPtr[i];
-    }
-    results[chunkId] = sink;
+  chunk_type sink{0};
+  for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
+    sink += chunkPtr[i];
   }
+  results[chunkId] = sink;
 }
 
 template <class chunk_type>
@@ -106,10 +104,8 @@ __global__ void writeChunkSBKernel(
   chunk_type* results,
   size_t chunkSize)
 {
-  if (chunkId == blockIdx.x) { // runs only if blockIdx.x is allowed in given split
-    for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
-      chunkPtr[i] = 0;
-    }
+  for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
+    chunkPtr[i] = 0;
   }
 }
 
@@ -133,10 +129,8 @@ __global__ void copyChunkSBKernel(
   chunk_type* inputs,
   size_t chunkSize)
 {
-  if (chunkId == blockIdx.x) { // runs only if blockIdx.x is allowed in given split
-    for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
-      chunkPtr[i] = inputs[chunkId];
-    }
+  for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
+    chunkPtr[i] = inputs[chunkId];
   }
 }
 
@@ -409,7 +403,7 @@ void GPUbenchmark<chunk_type>::readSequential(SplitLevel sl)
   switch (sl) {
     case SplitLevel::Blocks: {
       mResultWriter.get()->addBenchmarkEntry("seq_read_SB", getType<chunk_type>(), mState.getMaxChunks());
-      auto nBlocks{mState.nMultiprocessors};
+      // auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto capacity{mState.getChunkCapacity()};
 
@@ -419,7 +413,7 @@ void GPUbenchmark<chunk_type>::readSequential(SplitLevel sl)
           auto result = benchmarkSync(&gpu::readChunkSBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
                                       iChunk,
-                                      nBlocks,
+                                      1,
                                       nThreads, // args...
                                       mState.deviceReadResultsPtr,
                                       capacity);
@@ -536,7 +530,7 @@ void GPUbenchmark<chunk_type>::writeSequential(SplitLevel sl)
   switch (sl) {
     case SplitLevel::Blocks: {
       mResultWriter.get()->addBenchmarkEntry("seq_write_SB", getType<chunk_type>(), mState.getMaxChunks());
-      auto nBlocks{mState.nMultiprocessors};
+      // auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto capacity{mState.getChunkCapacity()};
 
@@ -546,7 +540,7 @@ void GPUbenchmark<chunk_type>::writeSequential(SplitLevel sl)
           auto result = benchmarkSync(&gpu::writeChunkSBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
                                       iChunk,
-                                      nBlocks,
+                                      1,
                                       nThreads,
                                       mState.deviceWriteResultsPtr,
                                       capacity);
@@ -665,7 +659,7 @@ void GPUbenchmark<chunk_type>::copySequential(SplitLevel sl)
   switch (sl) {
     case SplitLevel::Blocks: {
       mResultWriter.get()->addBenchmarkEntry("seq_copy_SB", getType<chunk_type>(), mState.getMaxChunks());
-      auto nBlocks{mState.nMultiprocessors};
+      // auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto capacity{mState.getChunkCapacity()};
 
@@ -675,7 +669,7 @@ void GPUbenchmark<chunk_type>::copySequential(SplitLevel sl)
           auto result = benchmarkSync(&gpu::copyChunkSBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
                                       iChunk,
-                                      nBlocks,
+                                      1,
                                       nThreads,
                                       mState.deviceCopyInputsPtr,
                                       capacity);
