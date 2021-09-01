@@ -112,6 +112,8 @@ int main(int argc, char* argv[])
     opts.splitMode = OutputSplit::PerCruEndpoint;
   } else if (fileFor == "all") {
     opts.splitMode = OutputSplit::None;
+  } else {
+    throw po::validation_error(po::validation_error::invalid_option_value, "file-for");
   }
   opts.userLogic = vm["userLogic"].as<bool>();
   opts.dummyElecMap = vm["dummy-elecmap"].as<bool>();
