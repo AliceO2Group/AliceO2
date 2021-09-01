@@ -323,19 +323,19 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   o2::mch::TrackParam trackParamAtVertex(track.getZ(), track.getParameters());
   double errVtx{0.0}; // FIXME: get errors associated with vertex if available
   double errVty{0.0};
-  if (!o2::mch::TrackExtrap::extrapToVertex(&trackParamAtVertex, vertex.x(), vertex.y(), vertex.z(), errVtx, errVty)) {
+  if (!o2::mch::TrackExtrap::extrapToVertex(trackParamAtVertex, vertex.x(), vertex.y(), vertex.z(), errVtx, errVty)) {
     return;
   }
 
   // extrapolate to DCA
   o2::mch::TrackParam trackParamAtDCA(track.getZ(), track.getParameters());
-  if (!o2::mch::TrackExtrap::extrapToVertexWithoutBranson(&trackParamAtDCA, vertex.z())) {
+  if (!o2::mch::TrackExtrap::extrapToVertexWithoutBranson(trackParamAtDCA, vertex.z())) {
     return;
   }
 
   // extrapolate to the end of the absorber
   o2::mch::TrackParam trackParamAtRAbs(track.getZ(), track.getParameters());
-  if (!o2::mch::TrackExtrap::extrapToZ(&trackParamAtRAbs, -505.)) { // FIXME: replace hardcoded 505
+  if (!o2::mch::TrackExtrap::extrapToZ(trackParamAtRAbs, -505.)) { // FIXME: replace hardcoded 505
     return;
   }
 
