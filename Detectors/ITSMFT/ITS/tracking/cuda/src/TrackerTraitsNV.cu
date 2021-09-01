@@ -313,19 +313,9 @@ TrackerTraits* createTrackerTraitsNV()
   return new TrackerTraitsNV;
 }
 
-TrackerTraitsNV::TrackerTraitsNV()
-{
-  //mPrimaryVertexContext = new PrimaryVertexContextNV;
-}
-
-TrackerTraitsNV::~TrackerTraitsNV()
-{
-  //delete mPrimaryVertexContext;
-}
-
 void TrackerTraitsNV::computeLayerTracklets()
 {
-  PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(0x0); //TODO: FIX THIS with Time Frames
+  PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(nullptr); //TODO: FIX THIS with Time Frames
 
   // cudaMemcpyToSymbol(gpu::kTrkPar, &mTrkParams, sizeof(TrackingParameters));
   std::array<size_t, constants::its2::CellsPerRoad> tempSize;
@@ -415,7 +405,7 @@ void TrackerTraitsNV::computeLayerTracklets()
 void TrackerTraitsNV::computeLayerCells()
 {
 
-  PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(0x0); //TODO: FIX THIS with Time Frames
+  PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(nullptr); //TODO: FIX THIS with Time Frames
   std::array<size_t, constants::its2::CellsPerRoad - 1> tempSize;
   std::array<int, constants::its2::CellsPerRoad - 1> trackletsNum;
   std::array<int, constants::its2::CellsPerRoad - 1> cellsNum;
@@ -530,7 +520,7 @@ void TrackerTraitsNV::computeLayerCells()
 
 void TrackerTraitsNV::refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
 {
-  PrimaryVertexContextNV* pvctx = static_cast<PrimaryVertexContextNV*>(0x0); //TODO: FIX THIS with Time Frames
+  PrimaryVertexContextNV* pvctx = static_cast<PrimaryVertexContextNV*>(nullptr); //TODO: FIX THIS with Time Frames
 
   std::array<const Cell*, 5> cells;
   for (int iLayer = 0; iLayer < 5; iLayer++) {

@@ -226,8 +226,9 @@ void Tracker::findTracks()
       if (cellIndex == constants::its::UnusedIndex) {
         continue;
       } else {
-        if (firstTracklet == constants::its::UnusedIndex)
+        if (firstTracklet == constants::its::UnusedIndex) {
           firstTracklet = iCell;
+        }
         tracklets[iCell] = mTimeFrame->getCells()[iCell][cellIndex].getFirstTrackletIndex();
         tracklets[iCell + 1] = mTimeFrame->getCells()[iCell][cellIndex].getSecondTrackletIndex();
         clusters[iCell] = mTimeFrame->getCells()[iCell][cellIndex].getFirstClusterIndex();
@@ -245,15 +246,17 @@ void Tracker::findTracks()
     int count{1};
     unsigned short rof{mTimeFrame->getTracklets()[firstTracklet][tracklets[firstTracklet]].rof[0]};
     for (int iT = firstTracklet; iT < 6; ++iT) {
-      if (tracklets[iT] == constants::its::UnusedIndex)
+      if (tracklets[iT] == constants::its::UnusedIndex) {
         continue;
-      if (rof == mTimeFrame->getTracklets()[iT][tracklets[iT]].rof[1])
+      }
+      if (rof == mTimeFrame->getTracklets()[iT][tracklets[iT]].rof[1]) {
         count++;
-      else {
-        if (count == 1)
+      } else {
+        if (count == 1) {
           rof = mTimeFrame->getTracklets()[iT][tracklets[iT]].rof[1];
-        else
+        } else {
           count--;
+        }
       }
     }
 

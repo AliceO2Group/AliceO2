@@ -241,8 +241,9 @@ void TrackerTraitsCPU::computeLayerCells()
           unsigned short romax = std::max(std::max(currentTracklet.rof[0], currentTracklet.rof[1]), nextTracklet.rof[1]);
           bool deltaZflag{false};
           gsl::span<const Vertex> primaryVertices{tf->getPrimaryVertices(romin, romax)};
-          for (const auto& primaryVertex : primaryVertices)
+          for (const auto& primaryVertex : primaryVertices) {
             deltaZflag |= std::abs(directionZIntersection - primaryVertex.getZ()) < mTrkParams.CellMaxDeltaZ[iLayer];
+          }
 
           if (deltaZflag) {
 

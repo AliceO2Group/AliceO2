@@ -34,8 +34,8 @@ class PrimaryVertexContext;
 class TrackerTraitsNV : public TrackerTraits
 {
  public:
-  TrackerTraitsNV();
-  ~TrackerTraitsNV() override;
+  TrackerTraitsNV() = default;
+  ~TrackerTraitsNV() override = default;
 
   void computeLayerCells() final;
   void computeLayerTracklets() final;
