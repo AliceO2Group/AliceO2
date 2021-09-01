@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "Framework/ConfigParamSpec.h"
 #include <Framework/ConfigContext.h>
 #include "Framework/DeviceSpec.h"
 #include "Framework/WorkflowSpec.h"
@@ -42,16 +43,34 @@ class FT0TFProcessor final : public o2::framework::Task
 
 } // namespace o2::ft0
 
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  std::vector<ConfigParamSpec> options;
+  options.push_back(ConfigParamSpec{"dispatcher-mode", VariantType::Bool, false, {"Dispatcher mode (FT0/SUB_DIGITSCH and FT0/SUB_DIGITSBC DPL channels should be applied as dispatcher output)."}});
+  std::swap(workflowOptions, options);
+}
+
 #include "Framework/runDataProcessing.h"
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
+  Inputs inputs{};
+  if (cfgc.options().get<bool>("dispatcher-mode")) {
+    inputs.push_back(InputSpec{{"channels"}, "FT0", "SUB_DIGITSCH"});
+    inputs.push_back(InputSpec{{"digits"}, "FT0", "SUB_DIGITSBC"});
+  } else {
+    inputs.push_back(InputSpec{{"channels"}, "FT0", "DIGITSCH"});
+    inputs.push_back(InputSpec{{"digits"}, "FT0", "DIGITSBC"});
+  }
   DataProcessorSpec dataProcessorSpec{
     "FT0TFProcessor",
+    /*
     Inputs{
       {{"channels"}, "FT0", "DIGITSCH"},
       {{"digits"}, "FT0", "DIGITSBC"},
     },
+*/
+    inputs,
     Outputs{
       {{"calib"}, "FT0", "CALIB_INFO"}},
     AlgorithmSpec{adaptFromTask<o2::ft0::FT0TFProcessor>()},
