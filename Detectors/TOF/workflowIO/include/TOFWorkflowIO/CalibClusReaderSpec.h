@@ -48,6 +48,8 @@ class CalibClusReader : public Task
   bool mIsCosmics = false;
   std::vector<CalibInfoCluster> mClusInfos, *mPclusInfos = &mClusInfos;
   std::vector<CosmicInfo> mCosmicInfo, *mPcosmicInfo = &mCosmicInfo;
+  std::vector<o2::tof::CalibInfoTrackCl> mCosmicTrack, *mPcosmicTrack = &mCosmicTrack;
+  std::vector<int> mCosmicTrackSize, *mPcosmicTrackSize = &mCosmicTrackSize;
 };
 
 /// create a processor spec
