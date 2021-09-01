@@ -66,7 +66,7 @@ class DigitizationContext
 
   bool isQEDProvided() const { return !mEventRecordsWithQED.empty(); }
 
-  o2::BunchFilling& getBunchFilling() { return mBCFilling; }
+  void setBunchFilling(o2::BunchFilling const& bf) { mBCFilling = bf; }
   const o2::BunchFilling& getBunchFilling() const { return (const o2::BunchFilling&)mBCFilling; }
 
   void setMuPerBC(float m) { mMuBC = m; }
