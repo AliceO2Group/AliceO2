@@ -113,7 +113,7 @@ void RawWriter::digitsToRaw(gsl::span<o2::cpv::Digit> digitsbranch, gsl::span<o2
 
 //prepare preformatted data for one orbit and send it to RawFileWriter
 bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const gsl::span<o2::cpv::TriggerRecord> trgs)
-{ 
+{
   static int nMaxGbtWordsPerPage = o2::raw::RDHUtils::MAXCRUPage / o2::raw::RDHUtils::GBTWord - 4; //512*16/16 - 4 = 508;
                                                                                                    //4 gbt words are reserved for RDH
 
@@ -157,7 +157,7 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
         charge = 4095;
       }
       mPadCharge[ccId][dil][gas].emplace_back(charge, pad);
-      nDigsInTrg[ccId / (kNcc / kNGBTLinks) ]++; //linkId = ccId/8 or absId/7680
+      nDigsInTrg[ccId / (kNcc / kNGBTLinks)]++; //linkId = ccId/8 or absId/7680
     }
     LOG(DEBUG) << "I produced " << nDigsInTrg << " digits for this trigger record";
 
@@ -166,7 +166,7 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
       gbtWordCounterBeforeCPVTrailer[iLink] = 0;
       if (nMaxGbtWordsPerPage - gbtWordCounter[iLink] < 3) { //otherwise flush already prepared data to file
         LOG(DEBUG) << "RawWriter::processOrbit() : before header: adding preformatted dma page of size " << mPayload[iLink].size();
-        mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId, trg.getBCData(), 
+        mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId, trg.getBCData(),
                             gsl::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
         mPayload[iLink].clear();
         gbtWordCounter[iLink] = 0;
@@ -218,7 +218,7 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
                   }
                   isHeaderClosedWithTrailer[iLink] = true;
                   LOG(DEBUG) << "RawWriter::processOrbit() : middle of payload: adding preformatted dma page of size " << mPayload[iLink].size();
-                  mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId, trg.getBCData(), 
+                  mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId, trg.getBCData(),
                                       gsl::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
 
                   mPayload[iLink].clear();
@@ -258,7 +258,7 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
             }
             isHeaderClosedWithTrailer[iLink] = true;
             LOG(DEBUG) << "RawWriter::processOrbit() : middle of payload (after filling empty words): adding preformatted dma page of size " << mPayload[iLink].size();
-            mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId, trg.getBCData(), 
+            mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId, trg.getBCData(),
                                 gsl::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
             mPayload[iLink].clear();
             gbtWordCounter[iLink] = 0;
@@ -283,14 +283,14 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
         gbtWordCounterBeforeCPVTrailer[iLink] = 0;
         gbtWordCounter[iLink]++;
       }
-    } //end of iLink cycle                 
-  } //end of "for (auto& trg : trgs)""
+    } //end of iLink cycle
+  }   //end of "for (auto& trg : trgs)""
 
   //flush payload to file (if any)
   for (int iLink = 0; iLink < kNGBTLinks; iLink++) {
     if (mPayload[iLink].size()) {
       LOG(DEBUG) << "RawWriter::processOrbit() : final payload: adding preformatted dma page of size " << mPayload[iLink].size();
-      mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId, 
+      mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId,
                           trgs.back().getBCData(), gsl::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
       mPayload[iLink].clear();
     }

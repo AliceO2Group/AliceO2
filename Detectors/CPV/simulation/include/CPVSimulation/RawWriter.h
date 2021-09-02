@@ -49,8 +49,8 @@ struct GBTLinkAttributes {
   short endPointId;
   std::string flpId;
 };
-static constexpr short kNGBTLinks = 3;  ///< Number of GBT links
-const GBTLinkAttributes links[kNGBTLinks] = 
+static constexpr short kNGBTLinks = 3; ///< Number of GBT links
+const GBTLinkAttributes links[kNGBTLinks] =
   {
     {0, 0, 0, 0, "alio2-cr1-flp163"},
     {1, 1, 0, 0, "alio2-cr1-flp163"},
