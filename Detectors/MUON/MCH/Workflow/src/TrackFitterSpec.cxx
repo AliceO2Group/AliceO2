@@ -103,10 +103,18 @@ class TrackFitterTask
           continue;
         }
 
+        // propagate the parameters to the MID
+        TrackParam paramAtMID(track.last());
+        if (!TrackExtrap::extrapToMID(paramAtMID)) {
+          LOG(ERROR) << "propagation to MID failed --> track discarded";
+          continue;
+        }
+
         // write the refitted track and attached clusters (same as those of the input track)
         const auto& param = track.first();
         tracksOut.emplace_back(param.getZ(), param.getParameters(), param.getCovariances(),
-                               param.getTrackChi2(), clustersOut.size(), track.getNClusters());
+                               param.getTrackChi2(), clustersOut.size(), track.getNClusters(),
+                               paramAtMID.getZ(), paramAtMID.getParameters(), paramAtMID.getCovariances());
         clustersOut.insert(clustersOut.end(), trackClusters.begin(), trackClusters.end());
       }
 

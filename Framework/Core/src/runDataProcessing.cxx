@@ -973,7 +973,7 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
         info.history[info.historyPos] = token;
         info.historyLevel[info.historyPos] = logLevel;
         info.historyPos = (info.historyPos + 1) % info.history.size();
-        std::cout << "[" << info.pid << ":" << spec.name << "]: " << token << std::endl;
+        fmt::print("[{}:{}]: {}\n", info.pid, spec.id, token);
         result.didProcessLog = true;
       }
       // We keep track of the maximum log error a
@@ -1086,6 +1086,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                           //
       ("driver-client-backend", bpo::value<std::string>()->default_value(defaultDriverClient), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
       ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                           //
+      ("expected-region-callbacks", bpo::value<std::string>()->default_value("0"), "how many region callbacks we are expecting")                                                           //
       ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
       ("infologger-mode", bpo::value<std::string>()->default_value(""), "O2_INFOLOGGER_MODE override");
     r.fConfig.AddToCmdLineOptions(optsDesc, true);
@@ -1113,7 +1114,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     deviceState->loop = loop;
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
 
-    quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(serviceRegistry);
+    quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(uv_now(loop));
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(quotaEvaluator.get()));
 
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec const>(&spec));
@@ -1499,7 +1500,89 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (driverInfo.batch == true && workflowState == WorkflowParsingState::Empty) {
             throw runtime_error("Empty workflow provided while running in batch mode.");
           }
-          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
+
+          /// extract and apply process switches
+          /// prune device inputs
+          auto altered_workflow = workflow;
+
+          auto confNameFromParam = [](std::string const& paramName) {
+            std::regex name_regex(R"(^control:([\w-]+)\/(\w+))");
+            auto match = std::sregex_token_iterator(paramName.begin(), paramName.end(), name_regex, 0);
+            if (match == std::sregex_token_iterator()) {
+              throw runtime_error_f("Malformed process control spec: %s", paramName.c_str());
+            }
+            std::string task = std::sregex_token_iterator(paramName.begin(), paramName.end(), name_regex, 1)->str();
+            std::string conf = std::sregex_token_iterator(paramName.begin(), paramName.end(), name_regex, 2)->str();
+            return std::pair{task, conf};
+          };
+          bool altered = false;
+          for (auto& device : altered_workflow) {
+            LOGF(DEBUG, "Adjusting device %s", device.name.c_str());
+            // ignore internal devices
+            if (device.name.find("internal") != std::string::npos) {
+              continue;
+            }
+            // ignore devices with no inputs
+            if (device.inputs.empty() == true) {
+              continue;
+            }
+            //ignore devices with no metadata in inputs
+            auto hasMetadata = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
+              return spec.metadata.empty() == false;
+            });
+            if (!hasMetadata) {
+              continue;
+            }
+            // ignore devices with no control options
+            auto hasControls = std::any_of(device.inputs.begin(), device.inputs.end(), [](InputSpec const& spec) {
+              return std::any_of(spec.metadata.begin(), spec.metadata.end(), [](ConfigParamSpec const& param) {
+                return param.type == VariantType::Bool && param.name.find("control:") != std::string::npos;
+              });
+            });
+            if (!hasControls) {
+              continue;
+            }
+
+            auto configStore = DeviceConfigurationHelpers::getConfiguration(serviceRegistry, device.name.c_str(), device.options);
+            if (configStore != nullptr) {
+              auto reg = std::make_unique<ConfigParamRegistry>(std::move(configStore));
+              for (auto& input : device.inputs) {
+                for (auto& param : input.metadata) {
+                  if (param.type == VariantType::Bool && param.name.find("control:") != std::string::npos) {
+                    if (param.name != "control:default" && param.name != "control:spawn" && param.name != "control:build") {
+                      auto confName = confNameFromParam(param.name).second;
+                      param.defaultValue = reg->get<bool>(confName.c_str());
+                    }
+                  }
+                }
+              }
+            }
+            /// FIXME: use commandline arguments as alternative
+            LOGF(DEBUG, "Original inputs: ");
+            for (auto& input : device.inputs) {
+              LOGF(DEBUG, "-> %s", input.binding);
+            }
+            auto end = device.inputs.end();
+            auto new_end = std::remove_if(device.inputs.begin(), device.inputs.end(), [](InputSpec& input) {
+              return !std::any_of(input.metadata.begin(), input.metadata.end(), [](ConfigParamSpec& param) {
+                if (param.type == VariantType::Bool && param.name.find("control:") != std::string::npos) {
+                  return param.defaultValue.get<bool>() == true;
+                }
+                return true;
+              });
+            });
+            device.inputs.erase(new_end, end);
+            LOGF(DEBUG, "Adjusted inputs: ");
+            for (auto& input : device.inputs) {
+              LOGF(DEBUG, "-> %s", input.binding);
+            }
+            altered = true;
+          }
+          if (altered) {
+            WorkflowHelpers::adjustServiceDevices(altered_workflow);
+          }
+
+          DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(altered_workflow,
                                                             driverInfo.channelPolicies,
                                                             driverInfo.completionPolicies,
                                                             driverInfo.dispatchPolicies,
@@ -2011,6 +2094,71 @@ void overridePipeline(ConfigContext& ctx, WorkflowSpec& workflow)
     for (auto& processor : workflow) {
       if (processor.name == spec.matcher) {
         processor.maxInputTimeslices = spec.pipeline;
+      }
+    }
+  }
+}
+
+void overrideLabels(ConfigContext& ctx, WorkflowSpec& workflow)
+{
+  struct LabelsSpec {
+    std::string_view matcher;
+    std::vector<std::string> labels;
+  };
+  std::vector<LabelsSpec> specs;
+
+  auto labelsString = ctx.options().get<std::string>("labels");
+  if (labelsString.empty()) {
+    return;
+  }
+  std::string_view sv{labelsString};
+
+  size_t specStart = 0;
+  size_t specEnd = 0;
+  constexpr char specDelim = ',';
+  constexpr char labelDelim = ':';
+  do {
+    specEnd = sv.find(specDelim, specStart);
+    auto token = sv.substr(specStart, specEnd == std::string_view::npos ? std::string_view::npos : specEnd - specStart);
+    if (token.empty()) {
+      throw std::runtime_error("bad labels definition. Syntax <processor>:<label>[:<label>][,<processor>:<label>[:<label>]");
+    }
+
+    size_t labelDelimPos = token.find(labelDelim);
+    if (labelDelimPos == 0 || labelDelimPos == std::string_view::npos) {
+      throw std::runtime_error("bad labels definition. Syntax <processor>:<label>[:<label>][,<processor>:<label>[:<label>]");
+    }
+    LabelsSpec spec{token.substr(0, labelDelimPos)};
+
+    size_t labelEnd = labelDelimPos + 1;
+    do {
+      size_t labelStart = labelDelimPos + 1;
+      labelEnd = token.find(labelDelim, labelStart);
+      auto label = labelEnd == std::string_view::npos ? token.substr(labelStart) : token.substr(labelStart, labelEnd - labelStart);
+      if (label.empty()) {
+        throw std::runtime_error("bad labels definition. Syntax <processor>:<label>[:<label>][,<processor>:<label>[:<label>]");
+      }
+      spec.labels.emplace_back(label);
+      labelDelimPos = labelEnd;
+    } while (labelEnd != std::string_view::npos);
+
+    specs.push_back(spec);
+    specStart = specEnd + 1;
+  } while (specEnd != std::string_view::npos);
+
+  if (labelsString.empty() == false && specs.empty() == true) {
+    throw std::runtime_error("bad labels definition. Syntax <processor>:<label>[:<label>][,<processor>:<label>[:<label>]");
+  }
+
+  for (auto& spec : specs) {
+    for (auto& processor : workflow) {
+      if (processor.name == spec.matcher) {
+        for (const auto& label : spec.labels) {
+          if (std::find_if(processor.labels.begin(), processor.labels.end(),
+                           [label](const auto& procLabel) { return procLabel.value == label; }) == processor.labels.end()) {
+            processor.labels.push_back({label});
+          }
+        }
       }
     }
   }

@@ -40,16 +40,9 @@ void Digitizer::init()
 {
   mGeo = Geometry::instance();
   mGeo->createClusterMatrixArray();          // Requiered for chamberInGeometry()
-  mPRF = new PadResponse();                  // Pad response function initialization
   mSimParam = SimParam::instance();          // Instance for simulation parameters
   mCommonParam = CommonParam::instance();    // Instance for common parameters
-  if (!mSimParam) {
-  }
-  if (!mCommonParam) {
-  } else {
-    if (!mCommonParam->cacheMagField()) {
-    }
-  }
+  mCommonParam->cacheMagField();
 
   // obtain the number of threads from configuration
 #ifdef WITH_OPENMP
@@ -316,7 +309,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
           zz = 0.5 - zz;
         }
         // Use drift time map (GARFIELD)
-        driftTime = mDriftEstimators[thread].TimeStruct(driftVelocity, 0.5 * AmWidth - 1.0 * locTd, zz) + hit.GetTime();
+        driftTime = mDriftEstimators[thread].timeStruct(driftVelocity, 0.5 * AmWidth - 1.0 * locTd, zz, &(mFlagVdriftOutOfRange[det])) + hit.GetTime();
       } else {
         // Use constant drift velocity
         driftTime = std::fabs(locTd) / driftVelocity + hit.GetTime(); // drift time in microseconds
@@ -332,7 +325,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
         // ********************************************************************************
         // This is a fixed parametrization, i.e. not dependent on calibration values !
         // ********************************************************************************
-        if (!(mPRF->getPRF(signal, dist, layer, padSignal))) {
+        if (!(mPRF.getPRF(signal, dist, layer, padSignal))) {
           continue;
         }
       } else {
@@ -506,7 +499,7 @@ bool Digitizer::diffusion(float vdrift, float absdriftlength, float exbvalue,
   //
   float diffL = 0.0;
   float diffT = 0.0;
-  if (mDriftEstimators[thread].GetDiffCoeff(diffL, diffT, vdrift)) {
+  if (mDriftEstimators[thread].getDiffCoeff(diffL, diffT, vdrift)) {
     float driftSqrt = std::sqrt(absdriftlength);
     float sigmaT = driftSqrt * diffT;
     float sigmaL = driftSqrt * diffL;
@@ -523,4 +516,19 @@ bool Digitizer::diffusion(float vdrift, float absdriftlength, float exbvalue,
   } else {
     return false;
   }
+}
+
+std::string Digitizer::dumpFlaggedChambers() const
+{
+  std::string retVal = "";
+  for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
+    if (mFlagVdriftOutOfRange[iDet]) {
+      retVal += std::to_string(iDet);
+      retVal += ", ";
+    }
+  }
+  if (!retVal.empty()) {
+    retVal.erase(retVal.size() - 2);
+  }
+  return retVal;
 }

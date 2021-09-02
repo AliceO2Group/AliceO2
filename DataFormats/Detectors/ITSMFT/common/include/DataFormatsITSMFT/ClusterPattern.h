@@ -67,7 +67,7 @@ class ClusterPattern
   /// Maximum number of bytes for the cluster puttern + 2 bytes respectively for the number of rows and columns of the bounding box
   static constexpr int kExtendedPatternBytes = MaxPatternBytes + 2;
   /// Returns the pattern
-  std::array<unsigned char, kExtendedPatternBytes> getPattern() const { return mBitmap; }
+  const std::array<unsigned char, kExtendedPatternBytes>& getPattern() const { return mBitmap; }
   /// Returns a specific byte of the pattern
   unsigned char getByte(int n) const;
   /// Returns the number of rows
@@ -76,6 +76,8 @@ class ClusterPattern
   int getColumnSpan() const { return (int)mBitmap[1]; }
   /// Returns the number of bytes used for the pattern
   int getUsedBytes() const;
+  /// Returns the number of fired pixels
+  int getNPixels() const;
   /// Prints the pattern
   friend std::ostream& operator<<(std::ostream& os, const ClusterPattern& top);
   /// Sets the pattern
@@ -85,7 +87,7 @@ class ClusterPattern
   /// Static: Compute pattern's COG position. Returns the number of fired pixels
   static int getCOG(int rowSpan, int colSpan, const unsigned char patt[MaxPatternBytes], float& xCOG, float& zCOG);
   /// Compute pattern's COG position. Returns the number of fired pixels
-  int getCOG(float& xCOG, float& zCOG) const;
+  int getCOG(float& xCOG, float& zCOG) const { return ClusterPattern::getCOG(getRowSpan(), getColumnSpan(), mBitmap.data() + 2, xCOG, zCOG); }
 
   friend ClusterTopology;
   friend TopologyDictionary;

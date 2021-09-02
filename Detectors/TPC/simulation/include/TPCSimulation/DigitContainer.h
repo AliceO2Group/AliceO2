@@ -31,13 +31,12 @@ namespace tpc
 {
 
 class Digit;
-class DigitMCMetaData;
 
 /// \class DigitContainer
 /// This is the base class of the intermediate Digit Containers, in which all incoming electrons from the hits are
 /// sorted into after amplification
 /// The structure assures proper sorting of the Digits when later on written out for further processing.
-/// This class holds the CRU containers.
+/// This class holds the time bin containers.
 
 class DigitContainer
 {

@@ -83,24 +83,14 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
   return std::make_tuple(extractTypedOriginal<Os>(pc)...);
 }
 
-AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requested)
+AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec>& requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
       for (auto& input : requested) {
-        auto description = std::visit(
-          overloaded{
-            [](ConcreteDataMatcher const& matcher) { return matcher.description; },
-            [](auto&&) { return header::DataDescription{""}; }},
-          input.matcher);
-
-        auto origin = std::visit(
-          overloaded{
-            [](ConcreteDataMatcher const& matcher) { return matcher.origin; },
-            [](auto&&) { return header::DataOrigin{""}; }},
-          input.matcher);
+        auto&& [origin, description] = DataSpecUtils::asConcreteDataTypeMatcher(input);
 
         auto maker = [&](auto metadata) {
           using metadata_t = decltype(metadata);
@@ -144,24 +134,14 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requ
   }};
 }
 
-AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> requested)
+AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
       for (auto& input : requested) {
-        auto description = std::visit(
-          overloaded{
-            [](ConcreteDataMatcher const& matcher) { return matcher.description; },
-            [](auto&&) { return header::DataDescription{""}; }},
-          input.matcher);
-
-        auto origin = std::visit(
-          overloaded{
-            [](ConcreteDataMatcher const& matcher) { return matcher.origin; },
-            [](auto&&) { return header::DataOrigin{""}; }},
-          input.matcher);
+        auto&& [origin, description] = DataSpecUtils::asConcreteDataTypeMatcher(input);
 
         auto maker = [&](auto metadata) {
           using metadata_t = decltype(metadata);
@@ -180,6 +160,8 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
           outputs.adopt(Output{origin, description}, maker(o2::aod::FwdTracksExtensionMetadata{}));
         } else if (description == header::DataDescription{"FWDTRACKCOV"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::FwdTracksCovExtensionMetadata{}));
+        } else if (description == header::DataDescription{"MCPARTICLE"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::McParticlesExtensionMetadata{}));
         } else {
           throw runtime_error("Not an extended table");
         }

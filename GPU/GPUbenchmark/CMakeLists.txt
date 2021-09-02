@@ -12,7 +12,6 @@
 set(HDRS_INSTALL ../Shared/Kernels.h)
 
 if(CUDA_ENABLED)
-  # add_subdirectory(cuda)
   o2_add_executable(gpu-memory-benchmark-cuda
                   SOURCES benchmark.cxx
                           cuda/Kernels.cu
@@ -31,29 +30,27 @@ if(HIP_ENABLED)
 
   if(EXISTS ${HIPIFY_EXECUTABLE})
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CU_KERNEL})
-    message("Generating HIP kernel code ...")
-    execute_process(COMMAND /bin/sh -c "${HIPIFY_EXECUTABLE} --quiet-warnings ${CU_KERNEL} | sed '1{/\\#include \"hip\\/hip_runtime.h\"/d}' > ${HIP_KERNEL_PATH}")
-    elseif()
-    message(STATUS "Could not generate ${HIP_KERNEL} HIP kernel, skipping...")
-  endif()
+    add_custom_command(
+      OUTPUT ${HIP_KERNEL_PATH}
+      COMMAND ${HIPIFY_EXECUTABLE} --quiet-warnings ${CU_KERNEL} | sed '1{/\#include \"hip\\/hip_runtime.h\"/d}' > ${HIP_KERNEL_PATH}
+    )
+    set(CMAKE_CXX_COMPILER ${HIP_HIPCC_EXECUTABLE})
+    set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
+    set(CMAKE_CXX_EXTENSIONS OFF)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
 
-  set(CMAKE_CXX_COMPILER ${HIP_HIPCC_EXECUTABLE})
-  set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
+    o2_add_executable(gpu-memory-benchmark-hip
+                      SOURCES benchmark.cxx
+                              hip/Kernels.hip.cxx
+                      PUBLIC_LINK_LIBRARIES hip::host
+                                            Boost::program_options
+                                            ROOT::Tree
+                      TARGETVARNAME targetName)
 
-  set(CMAKE_CXX_EXTENSIONS OFF)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
-
-  o2_add_executable(gpu-memory-benchmark-hip
-                    SOURCES benchmark.cxx
-                            hip/Kernels.hip.cxx
-                    PUBLIC_LINK_LIBRARIES hip::host
-                                          Boost::program_options
-                                          ROOT::Tree
-                    TARGETVARNAME targetName)
-
-  if(HIP_AMDGPUTARGET)
-    # Need to add gpu target also to link flags due to gpu-rdc option
-    target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
+    if(HIP_AMDGPUTARGET)
+      # Need to add gpu target also to link flags due to gpu-rdc option
+      target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
+    endif()
   endif()
 endif()
 

@@ -11,10 +11,10 @@
 
 #include "TRDWorkflowIO/TRDDigitReaderSpec.h"
 
-// this is somewhat assuming that a DPL workflow will run on one node
 
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
+#include "CommonUtils/StringUtils.h"
 #include "fairlogger/Logger.h"
 
 #include <SimulationDataFormat/MCCompLabel.h>
@@ -33,25 +33,18 @@ namespace trd
 
 void TRDDigitReaderSpec::init(InitContext& ic)
 {
-  LOG(info) << "input filename is :  " << ic.options().get<std::string>("digitsfile").c_str();
 
-  mInputFileName = ic.options().get<std::string>("digitsfile");
-  mFile = std::make_unique<TFile>(mInputFileName.c_str(), "OLD");
-  if (!mFile->IsOpen()) {
-    LOG(error) << "Cannot open digits input file : " << mInputFileName;
-    mState = 0; //prevent from getting into run method.
+  auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                ic.options().get<std::string>("digitsfile"));
 
-  } else {
-    mState = 1;
+  mFile = std::make_unique<TFile>(filename.c_str(), "OLD");
+  if (!(mFile && !mFile->IsZombie())) {
+    throw std::runtime_error("Error opening TRD digits file");
   }
 }
 
 void TRDDigitReaderSpec::run(ProcessingContext& pc)
 {
-  if (mState != 1) {
-    LOG(info) << "mState is not 1";
-    return;
-  }
   auto DPLTree = ((TTree*)mFile->Get(mDigitTreeName.c_str()));
   if (DPLTree) {
     std::vector<o2::trd::Digit>* digits = nullptr;
@@ -71,23 +64,24 @@ void TRDDigitReaderSpec::run(ProcessingContext& pc)
       // publish labels in shared memory
       auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TRD", "LABELS", 0, Lifetime::Timeframe});
       ioLabels->copyandflatten(sharedlabels);
-      LOG(info) << "TRDDigitReader labels size (in bytes) = " << sharedlabels.size();
+      LOG(INFO) << "Labels size (in bytes) = " << sharedlabels.size();
     }
 
     pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, *digits);
     pc.outputs().snapshot(Output{"TRD", "TRGRDIG", 0, Lifetime::Timeframe}, *triggerRecords);
-    LOG(info) << "TRDDigitReader digits size=" << digits->size() << " triggerrecords size=" << triggerRecords->size();
+    LOG(INFO) << "Digits size=" << digits->size() << " triggerrecords size=" << triggerRecords->size();
+  } else {
+    LOG(ERROR) << "Error opening TTree";
   }
-  //delete DPLTree; // next line will delete the pointer as well.
+
   mFile->Close();
 
-  mState = 2; // prevent coming in here again.
-              // send endOfData control event and mark the reader as ready to finish
+  // send endOfData control event and mark the reader as ready to finish
   pc.services().get<ControlService>().endOfStream();
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
-DataProcessorSpec getTRDDigitReaderSpec(int channels, bool useMC)
+DataProcessorSpec getTRDDigitReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
@@ -98,10 +92,10 @@ DataProcessorSpec getTRDDigitReaderSpec(int channels, bool useMC)
   return DataProcessorSpec{"TRDDIGITREADER",
                            Inputs{},
                            outputs,
-                           AlgorithmSpec{adaptFromTask<TRDDigitReaderSpec>(channels, useMC)},
+                           AlgorithmSpec{adaptFromTask<TRDDigitReaderSpec>(useMC)},
                            Options{
                              {"digitsfile", VariantType::String, "trddigits.root", {"Input data file containing run3 digitizer going into Trap Simulator"}},
-                             {"run2digitsfile", VariantType::String, "run2digits.root", {"Input data file containing run2 digitis going into Trap Simulator"}}}};
+                             {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 };
 
 } //end namespace trd

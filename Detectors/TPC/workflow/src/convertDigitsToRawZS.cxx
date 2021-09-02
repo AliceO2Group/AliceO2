@@ -55,6 +55,28 @@ constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
 constexpr static size_t NEndpoints = o2::gpu::GPUTrackingInOutZS::NENDPOINTS;
 using DigitArray = std::array<gsl::span<const o2::tpc::Digit>, Sector::MAXSECTOR>;
 
+static constexpr const char* CRU_FLPS[360] = {
+  "alio2-cr1-flp070", "alio2-cr1-flp069", "alio2-cr1-flp070", "alio2-cr1-flp069", "alio2-cr1-flp072", "alio2-cr1-flp071", "alio2-cr1-flp072", "alio2-cr1-flp071", "alio2-cr1-flp072", "alio2-cr1-flp071", "alio2-cr1-flp002", "alio2-cr1-flp001", "alio2-cr1-flp002", "alio2-cr1-flp001", "alio2-cr1-flp004", "alio2-cr1-flp003", "alio2-cr1-flp004", "alio2-cr1-flp003",
+  "alio2-cr1-flp004", "alio2-cr1-flp003", "alio2-cr1-flp006", "alio2-cr1-flp005", "alio2-cr1-flp006", "alio2-cr1-flp005", "alio2-cr1-flp008", "alio2-cr1-flp007", "alio2-cr1-flp008", "alio2-cr1-flp007", "alio2-cr1-flp008", "alio2-cr1-flp007", "alio2-cr1-flp010", "alio2-cr1-flp009", "alio2-cr1-flp010", "alio2-cr1-flp009", "alio2-cr1-flp012", "alio2-cr1-flp011",
+  "alio2-cr1-flp012", "alio2-cr1-flp011", "alio2-cr1-flp012", "alio2-cr1-flp011", "alio2-cr1-flp014", "alio2-cr1-flp013", "alio2-cr1-flp014", "alio2-cr1-flp013", "alio2-cr1-flp016", "alio2-cr1-flp015", "alio2-cr1-flp016", "alio2-cr1-flp015", "alio2-cr1-flp016", "alio2-cr1-flp015", "alio2-cr1-flp018", "alio2-cr1-flp017", "alio2-cr1-flp018", "alio2-cr1-flp017",
+  "alio2-cr1-flp020", "alio2-cr1-flp019", "alio2-cr1-flp020", "alio2-cr1-flp019", "alio2-cr1-flp020", "alio2-cr1-flp019", "alio2-cr1-flp022", "alio2-cr1-flp021", "alio2-cr1-flp022", "alio2-cr1-flp021", "alio2-cr1-flp024", "alio2-cr1-flp023", "alio2-cr1-flp024", "alio2-cr1-flp023", "alio2-cr1-flp024", "alio2-cr1-flp023", "alio2-cr1-flp026", "alio2-cr1-flp025",
+  "alio2-cr1-flp026", "alio2-cr1-flp025", "alio2-cr1-flp028", "alio2-cr1-flp027", "alio2-cr1-flp028", "alio2-cr1-flp027", "alio2-cr1-flp028", "alio2-cr1-flp027", "alio2-cr1-flp030", "alio2-cr1-flp029", "alio2-cr1-flp030", "alio2-cr1-flp029", "alio2-cr1-flp032", "alio2-cr1-flp031", "alio2-cr1-flp032", "alio2-cr1-flp031", "alio2-cr1-flp032", "alio2-cr1-flp031",
+  "alio2-cr1-flp034", "alio2-cr1-flp033", "alio2-cr1-flp034", "alio2-cr1-flp033", "alio2-cr1-flp036", "alio2-cr1-flp035", "alio2-cr1-flp036", "alio2-cr1-flp035", "alio2-cr1-flp036", "alio2-cr1-flp035", "alio2-cr1-flp038", "alio2-cr1-flp037", "alio2-cr1-flp038", "alio2-cr1-flp037", "alio2-cr1-flp040", "alio2-cr1-flp039", "alio2-cr1-flp040", "alio2-cr1-flp039",
+  "alio2-cr1-flp040", "alio2-cr1-flp039", "alio2-cr1-flp042", "alio2-cr1-flp041", "alio2-cr1-flp042", "alio2-cr1-flp041", "alio2-cr1-flp044", "alio2-cr1-flp043", "alio2-cr1-flp044", "alio2-cr1-flp043", "alio2-cr1-flp044", "alio2-cr1-flp043", "alio2-cr1-flp046", "alio2-cr1-flp045", "alio2-cr1-flp046", "alio2-cr1-flp045", "alio2-cr1-flp048", "alio2-cr1-flp047",
+  "alio2-cr1-flp048", "alio2-cr1-flp047", "alio2-cr1-flp048", "alio2-cr1-flp047", "alio2-cr1-flp050", "alio2-cr1-flp049", "alio2-cr1-flp050", "alio2-cr1-flp049", "alio2-cr1-flp052", "alio2-cr1-flp051", "alio2-cr1-flp052", "alio2-cr1-flp051", "alio2-cr1-flp052", "alio2-cr1-flp051", "alio2-cr1-flp054", "alio2-cr1-flp053", "alio2-cr1-flp054", "alio2-cr1-flp053",
+  "alio2-cr1-flp056", "alio2-cr1-flp055", "alio2-cr1-flp056", "alio2-cr1-flp055", "alio2-cr1-flp056", "alio2-cr1-flp055", "alio2-cr1-flp058", "alio2-cr1-flp057", "alio2-cr1-flp058", "alio2-cr1-flp057", "alio2-cr1-flp060", "alio2-cr1-flp059", "alio2-cr1-flp060", "alio2-cr1-flp059", "alio2-cr1-flp060", "alio2-cr1-flp059", "alio2-cr1-flp062", "alio2-cr1-flp061",
+  "alio2-cr1-flp062", "alio2-cr1-flp061", "alio2-cr1-flp064", "alio2-cr1-flp063", "alio2-cr1-flp064", "alio2-cr1-flp063", "alio2-cr1-flp064", "alio2-cr1-flp063", "alio2-cr1-flp066", "alio2-cr1-flp065", "alio2-cr1-flp066", "alio2-cr1-flp065", "alio2-cr1-flp068", "alio2-cr1-flp067", "alio2-cr1-flp068", "alio2-cr1-flp067", "alio2-cr1-flp068", "alio2-cr1-flp067",
+  "alio2-cr1-flp074", "alio2-cr1-flp073", "alio2-cr1-flp074", "alio2-cr1-flp073", "alio2-cr1-flp076", "alio2-cr1-flp075", "alio2-cr1-flp076", "alio2-cr1-flp075", "alio2-cr1-flp076", "alio2-cr1-flp075", "alio2-cr1-flp078", "alio2-cr1-flp077", "alio2-cr1-flp078", "alio2-cr1-flp077", "alio2-cr1-flp080", "alio2-cr1-flp079", "alio2-cr1-flp080", "alio2-cr1-flp079",
+  "alio2-cr1-flp080", "alio2-cr1-flp079", "alio2-cr1-flp082", "alio2-cr1-flp081", "alio2-cr1-flp082", "alio2-cr1-flp081", "alio2-cr1-flp084", "alio2-cr1-flp083", "alio2-cr1-flp084", "alio2-cr1-flp083", "alio2-cr1-flp084", "alio2-cr1-flp083", "alio2-cr1-flp086", "alio2-cr1-flp085", "alio2-cr1-flp086", "alio2-cr1-flp085", "alio2-cr1-flp088", "alio2-cr1-flp087",
+  "alio2-cr1-flp088", "alio2-cr1-flp087", "alio2-cr1-flp088", "alio2-cr1-flp087", "alio2-cr1-flp090", "alio2-cr1-flp089", "alio2-cr1-flp090", "alio2-cr1-flp089", "alio2-cr1-flp092", "alio2-cr1-flp091", "alio2-cr1-flp092", "alio2-cr1-flp091", "alio2-cr1-flp092", "alio2-cr1-flp091", "alio2-cr1-flp094", "alio2-cr1-flp093", "alio2-cr1-flp094", "alio2-cr1-flp093",
+  "alio2-cr1-flp096", "alio2-cr1-flp095", "alio2-cr1-flp096", "alio2-cr1-flp095", "alio2-cr1-flp096", "alio2-cr1-flp095", "alio2-cr1-flp098", "alio2-cr1-flp097", "alio2-cr1-flp098", "alio2-cr1-flp097", "alio2-cr1-flp100", "alio2-cr1-flp099", "alio2-cr1-flp100", "alio2-cr1-flp099", "alio2-cr1-flp100", "alio2-cr1-flp099", "alio2-cr1-flp102", "alio2-cr1-flp101",
+  "alio2-cr1-flp102", "alio2-cr1-flp101", "alio2-cr1-flp104", "alio2-cr1-flp103", "alio2-cr1-flp104", "alio2-cr1-flp103", "alio2-cr1-flp104", "alio2-cr1-flp103", "alio2-cr1-flp106", "alio2-cr1-flp105", "alio2-cr1-flp106", "alio2-cr1-flp105", "alio2-cr1-flp108", "alio2-cr1-flp107", "alio2-cr1-flp108", "alio2-cr1-flp107", "alio2-cr1-flp108", "alio2-cr1-flp107",
+  "alio2-cr1-flp110", "alio2-cr1-flp109", "alio2-cr1-flp110", "alio2-cr1-flp109", "alio2-cr1-flp112", "alio2-cr1-flp111", "alio2-cr1-flp112", "alio2-cr1-flp111", "alio2-cr1-flp112", "alio2-cr1-flp111", "alio2-cr1-flp114", "alio2-cr1-flp113", "alio2-cr1-flp114", "alio2-cr1-flp113", "alio2-cr1-flp116", "alio2-cr1-flp115", "alio2-cr1-flp116", "alio2-cr1-flp115",
+  "alio2-cr1-flp116", "alio2-cr1-flp115", "alio2-cr1-flp118", "alio2-cr1-flp117", "alio2-cr1-flp118", "alio2-cr1-flp117", "alio2-cr1-flp120", "alio2-cr1-flp119", "alio2-cr1-flp120", "alio2-cr1-flp119", "alio2-cr1-flp120", "alio2-cr1-flp119", "alio2-cr1-flp122", "alio2-cr1-flp121", "alio2-cr1-flp122", "alio2-cr1-flp121", "alio2-cr1-flp124", "alio2-cr1-flp123",
+  "alio2-cr1-flp124", "alio2-cr1-flp123", "alio2-cr1-flp124", "alio2-cr1-flp123", "alio2-cr1-flp126", "alio2-cr1-flp125", "alio2-cr1-flp126", "alio2-cr1-flp125", "alio2-cr1-flp128", "alio2-cr1-flp127", "alio2-cr1-flp128", "alio2-cr1-flp127", "alio2-cr1-flp128", "alio2-cr1-flp127", "alio2-cr1-flp130", "alio2-cr1-flp129", "alio2-cr1-flp130", "alio2-cr1-flp129",
+  "alio2-cr1-flp132", "alio2-cr1-flp131", "alio2-cr1-flp132", "alio2-cr1-flp131", "alio2-cr1-flp132", "alio2-cr1-flp131", "alio2-cr1-flp134", "alio2-cr1-flp133", "alio2-cr1-flp134", "alio2-cr1-flp133", "alio2-cr1-flp136", "alio2-cr1-flp135", "alio2-cr1-flp136", "alio2-cr1-flp135", "alio2-cr1-flp136", "alio2-cr1-flp135", "alio2-cr1-flp138", "alio2-cr1-flp137",
+  "alio2-cr1-flp138", "alio2-cr1-flp137", "alio2-cr1-flp140", "alio2-cr1-flp139", "alio2-cr1-flp140", "alio2-cr1-flp139", "alio2-cr1-flp140", "alio2-cr1-flp139", "alio2-cr1-flp142", "alio2-cr1-flp141", "alio2-cr1-flp142", "alio2-cr1-flp141", "alio2-cr1-flp144", "alio2-cr1-flp143", "alio2-cr1-flp144", "alio2-cr1-flp143", "alio2-cr1-flp144", "alio2-cr1-flp143"};
+
 struct ProcessAttributes {
   std::unique_ptr<unsigned long long int[]> zsoutput;
   std::vector<unsigned int> sizes;
@@ -69,7 +91,7 @@ struct ProcessAttributes {
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer);
 #include "DetectorsRaw/HBFUtils.h"
 void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, std::string_view fileFor,
-                            bool sectorBySector, uint32_t rdhV, bool stopPage, bool noPadding, bool createParentDir)
+                            bool sectorBySector, uint32_t rdhV, bool stopPage, bool padding, bool createParentDir)
 {
 
   // ===| open file and get tree |==============================================
@@ -125,8 +147,8 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
         outfname = fmt::format("{}tpc_all.raw", outDir);
       } else if (fileFor == "sector") {
         outfname = fmt::format("{}tpc_sector{}.raw", outDir, i);
-      } else if (fileFor == "link") {
-        outfname = fmt::format("{}cru{}_{}.raw", outDir, cruID, j & 1);
+      } else if (fileFor == "link" || fileFor == "cru") {
+        outfname = fmt::format("{}TPC_{}_cru{}_{}.raw", outDir, CRU_FLPS[cruID], cruID, j & 1);
       } else {
         throw std::runtime_error("invalid option provided for file grouping");
       }
@@ -145,7 +167,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   treeSim->SetBranchStatus("TPCDigit_*", 1);
 
   ProcessAttributes attr;
-  attr.padding = !noPadding;
+  attr.padding = padding;
 
   for (int iSecBySec = 0; iSecBySec < Sector::MAXSECTOR; ++iSecBySec) {
     treeSim->ResetBranchAddresses();
@@ -224,7 +246,7 @@ int main(int argc, char** argv)
     add_option("sector-by-sector,s", bpo::value<bool>()->default_value(false)->implicit_value(true), "Run one TPC sector after another");
     add_option("file-for,f", bpo::value<std::string>()->default_value("sector"), "single file per: link,sector,all");
     add_option("stop-page,p", bpo::value<bool>()->default_value(false)->implicit_value(true), "HBF stop on separate CRU page");
-    add_option("no-padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "Don't pad pages to 8kb");
+    add_option("padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "Pad all pages to 8kb");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
@@ -261,7 +283,7 @@ int main(int argc, char** argv)
     vm["sector-by-sector"].as<bool>(),
     vm["rdh-version"].as<uint32_t>(),
     vm["stop-page"].as<bool>(),
-    vm["no-padding"].as<bool>(),
+    vm["padding"].as<bool>(),
     !vm.count("no-parent-directories"));
 
   o2::raw::HBFUtils::Instance().print();

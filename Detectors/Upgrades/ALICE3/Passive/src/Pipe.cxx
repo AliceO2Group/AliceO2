@@ -114,9 +114,9 @@ void Alice3Pipe::ConstructGeometry()
 
   if (!mIsTRKActivated) {
     std::vector<TGeoTube*> trkLayerShapes;
-    std::vector<std::array<float, 3>> layersQuotas = {std::array<float, 3>{0.5f, 15.f, 50.e-4}, // TODO: Set layers dynamically. {radius, zLen, thickness}
-                                                      std::array<float, 3>{1.2f, 15.f, 50.e-4},
-                                                      std::array<float, 3>{2.5f, 15.f, 50.e-4}};
+    std::vector<std::array<float, 3>> layersQuotas = {std::array<float, 3>{0.5f, 50.f, 50.e-4}, // TODO: Set layers dynamically. {radius, zLen, thickness}
+                                                      std::array<float, 3>{1.2f, 50.f, 50.e-4},
+                                                      std::array<float, 3>{2.5f, 50.f, 50.e-4}};
 
     subtractorsFormula = "TRKLAYER_0sh";                           // First volume to be subctracted (at least one has to be provided)
     for (auto iLayer{0}; iLayer < layersQuotas.size(); ++iLayer) { // Create TRK layers shapes

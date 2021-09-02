@@ -17,7 +17,8 @@
 #ifndef ALICEO2_TPC_VECTOR_H_
 #define ALICEO2_TPC_VECTOR_H_
 
-#include <Vc/Vc>
+#include <Vc/vector>
+#include <Vc/Memory>
 
 namespace o2
 {

@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <fmt/format.h>
 #include <iostream>
+#include "DigitFileFormat.h"
 
 namespace o2::mch::io::impl
 {
@@ -42,5 +43,16 @@ int advance(std::istream& in, size_t itemByteSize, const char* itemName)
   auto current = in.tellg();
   in.seekg(current + static_cast<decltype(current)>(nitems * itemByteSize));
   return nitems;
+}
+
+std::pair<int, int> advanceOneEvent(std::istream& in, int fileFormatVersion)
+{
+  auto dff = digitFileFormats[fileFormatVersion];
+  int nrofs = advance(in, dff.rofSize, "rofs");
+  if (nrofs < 0) {
+    return std::make_pair(-1, -1);
+  }
+  int ndigits = advance(in, dff.digitSize, "digits");
+  return std::make_pair(nrofs, ndigits);
 }
 } // namespace o2::mch::io::impl

@@ -576,7 +576,7 @@ TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter, int nu
     treename = fileAndFolder.folderName + "/" + treename;
     tree = (TTree*)fileAndFolder.file->Get(treename.c_str());
     if (!tree) {
-      throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}")", treename, fileAndFolder.file->GetName()));
+      throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/treenotfound.html for more information.)", treename, fileAndFolder.file->GetName()));
     }
   }
 

@@ -12,6 +12,8 @@
 o2_add_library(FITCalibration
         PUBLIC_LINK_LIBRARIES
         O2::FT0Calibration
+        O2::FV0Calibration
+        O2::DataFormatsFT0
         O2::Framework
         O2::CCDB
         O2::DetectorsCalibration

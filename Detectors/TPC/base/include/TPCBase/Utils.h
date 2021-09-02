@@ -59,7 +59,7 @@ std::vector<CalPad*> readCalPads(const std::string_view fileName, const std::str
 /// \param outputFileName name of the output file
 /// \param inputFileNames input file names. Perforams file system 'ls' in case the string includes '.root'. Otherwise it assumes a text input file with line by line file names.
 /// \param calPadNames comma separated list of names of the CalPad objects as stored in the file.
-void mergeCalPads(std::string_view outputFileName, std::string_view inputFileNames, std::string_view calPadNames);
+void mergeCalPads(std::string_view outputFileName, std::string_view inputFileNames, std::string_view calPadNames, bool average = false);
 
 /// Build a chain interpreting a command line argument
 ///

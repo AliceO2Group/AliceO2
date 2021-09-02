@@ -16,7 +16,9 @@
 
 namespace o2::mch
 {
-o2::framework::DataProcessorSpec getTrackWriterSpec(bool useMC, const char* name = "mch-tracks-writer");
+o2::framework::DataProcessorSpec getTrackWriterSpec(bool useMC,
+                                                    const char* specName = "mch-track-writer",
+                                                    const char* fileName = "mchtracks.root");
 }
 
 #endif

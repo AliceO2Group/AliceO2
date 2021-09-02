@@ -83,6 +83,7 @@ bool DeviceMetricsHelper::parseMetric(std::string_view const s, ParsedMetricMatc
       if (ep != *(space - 2)) {
         return false;
       }
+      match.floatValue = (float)match.intValue;
       break;
     case MetricType::Float:
       match.floatValue = strtof(spaces[1] + 1, &ep);
@@ -93,12 +94,14 @@ bool DeviceMetricsHelper::parseMetric(std::string_view const s, ParsedMetricMatc
     case MetricType::String:
       match.beginStringValue = spaces[1] + 1;
       match.endStringValue = *(space - 2);
+      match.floatValue = 0;
       break;
     case MetricType::Uint64:
       match.uint64Value = strtoul(spaces[1] + 1, &ep, 10);
       if (ep != *(space - 2)) {
         return false;
       }
+      match.floatValue = (float)match.uint64Value;
       break;
 
     default:
@@ -159,6 +162,7 @@ size_t DeviceMetricsHelper::bookMetricInfo(DeviceMetricsInfo& info, char const* 
   info.timestamps.emplace_back(std::array<size_t, 1024>{});
   info.max.push_back(std::numeric_limits<float>::lowest());
   info.min.push_back(std::numeric_limits<float>::max());
+  info.average.push_back(0);
   info.maxDomain.push_back(std::numeric_limits<size_t>::lowest());
   info.minDomain.push_back(std::numeric_limits<size_t>::max());
   info.changed.push_back(true);
@@ -237,6 +241,7 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
     info.timestamps.emplace_back(std::array<size_t, 1024>{});
     info.max.push_back(std::numeric_limits<float>::lowest());
     info.min.push_back(std::numeric_limits<float>::max());
+    info.average.push_back(0);
     info.maxDomain.push_back(std::numeric_limits<size_t>::lowest());
     info.minDomain.push_back(std::numeric_limits<size_t>::max());
     info.changed.push_back(false);
@@ -270,55 +275,43 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
   MetricInfo& metricInfo = info.metrics[metricIndex];
 
   //  auto mod = info.timestamps[metricIndex].size();
-  info.minDomain[metricIndex] = std::min(info.minDomain[metricIndex], (size_t)match.timestamp);
-  info.maxDomain[metricIndex] = std::max(info.maxDomain[metricIndex], (size_t)match.timestamp);
-
+  auto sizeOfCollection = 0;
   switch (metricInfo.type) {
     case MetricType::Int: {
       info.intMetrics[metricInfo.storeIdx][metricInfo.pos] = match.intValue;
-      info.max[metricIndex] = std::max(info.max[metricIndex], (float)match.intValue);
-      info.min[metricIndex] = std::min(info.min[metricIndex], (float)match.intValue);
-      // Save the timestamp for the current metric we do it here
-      // so that we do not update timestamps for broken metrics
-      info.timestamps[metricIndex][metricInfo.pos] = match.timestamp;
-      // Update the position where to write the next metric
-      metricInfo.pos = (metricInfo.pos + 1) % info.intMetrics[metricInfo.storeIdx].size();
-      ++metricInfo.filledMetrics;
+      sizeOfCollection = info.intMetrics[metricInfo.storeIdx].size();
     } break;
     case MetricType::String: {
       info.stringMetrics[metricInfo.storeIdx][metricInfo.pos] = stringValue;
-      // Save the timestamp for the current metric we do it here
-      // so that we do not update timestamps for broken metrics
-      info.timestamps[metricIndex][metricInfo.pos] = match.timestamp;
-      metricInfo.pos = (metricInfo.pos + 1) % info.stringMetrics[metricInfo.storeIdx].size();
-      ++metricInfo.filledMetrics;
+      sizeOfCollection = info.stringMetrics[metricInfo.storeIdx].size();
     } break;
     case MetricType::Float: {
       info.floatMetrics[metricInfo.storeIdx][metricInfo.pos] = match.floatValue;
-      info.max[metricIndex] = std::max(info.max[metricIndex], match.floatValue);
-      info.min[metricIndex] = std::min(info.min[metricIndex], match.floatValue);
-      // Save the timestamp for the current metric we do it here
-      // so that we do not update timestamps for broken metrics
-      info.timestamps[metricIndex][metricInfo.pos] = match.timestamp;
-      metricInfo.pos = (metricInfo.pos + 1) % info.floatMetrics[metricInfo.storeIdx].size();
-      ++metricInfo.filledMetrics;
+      sizeOfCollection = info.floatMetrics[metricInfo.storeIdx].size();
     } break;
     case MetricType::Uint64: {
       info.uint64Metrics[metricInfo.storeIdx][metricInfo.pos] = match.uint64Value;
-      info.max[metricIndex] = std::max(info.max[metricIndex], (float)match.uint64Value);
-      info.min[metricIndex] = std::min(info.min[metricIndex], (float)match.uint64Value);
-      // Save the timestamp for the current metric we do it here
-      // so that we do not update timestamps for broken metrics
-      info.timestamps[metricIndex][metricInfo.pos] = match.timestamp;
-      // Update the position where to write the next metric
-      metricInfo.pos = (metricInfo.pos + 1) % info.uint64Metrics[metricInfo.storeIdx].size();
-      ++metricInfo.filledMetrics;
+      sizeOfCollection = info.uint64Metrics[metricInfo.storeIdx].size();
     } break;
-
     default:
       return false;
       break;
   };
+  // We do all the updates here, so that not update timestamps for broken metrics
+  // Notice how we always fill floatValue with the float equivalent of the metric
+  // regardless of it's type.
+  info.minDomain[metricIndex] = std::min(info.minDomain[metricIndex], (size_t)match.timestamp);
+  info.maxDomain[metricIndex] = std::max(info.maxDomain[metricIndex], (size_t)match.timestamp);
+  info.max[metricIndex] = std::max(info.max[metricIndex], match.floatValue);
+  info.min[metricIndex] = std::min(info.min[metricIndex], match.floatValue);
+  auto onlineAverage = [](float nextValue, float previousAverage, float previousCount) {
+    return previousAverage + (nextValue - previousAverage) / (previousCount + 1);
+  };
+  info.average[metricIndex] = onlineAverage(match.floatValue, info.average[metricIndex], metricInfo.filledMetrics);
+  info.timestamps[metricIndex][metricInfo.pos] = match.timestamp;
+  // We point to the next metric
+  metricInfo.pos = (metricInfo.pos + 1) % sizeOfCollection;
+  ++metricInfo.filledMetrics;
   // Note that we updated a given metric.
   info.changed[metricIndex] = true;
   return true;

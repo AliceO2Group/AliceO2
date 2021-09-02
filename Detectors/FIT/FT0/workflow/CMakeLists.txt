@@ -17,15 +17,14 @@ o2_add_library(FT0Workflow
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
                        src/DigitReaderSpec.cxx
-                       src/FT0Workflow.cxx
-                       src/FT0DataProcessDPLSpec.cxx
-                       src/FT0DataReaderDPLSpec.cxx
                        src/FT0DigitWriterSpec.cxx
                        src/RawReaderFT0.cxx
+                       src/RecoQCworkflow.cxx
                        PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsFT0
                                      O2::FT0Reconstruction
                                      O2::DetectorsCommonDataFormats
+                                     O2::DataFormatsGlobalTracking
                                      O2::DPLUtils
                                      O2::FT0Raw)
 
@@ -50,6 +49,13 @@ o2_add_executable(flp-dpl-workflow
                   SOURCES src/ft0-flp-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::FT0Workflow  O2::FT0Raw O2::FITWorkflow
                   TARGETVARNAME ft0flpexe)
+
+o2_add_executable(reco-qc
+                  COMPONENT_NAME ft0
+                  SOURCES src/reco-qc.cxx
+                  PUBLIC_LINK_LIBRARIES
+                  O2::FT0Workflow O2::FITCalibration O2::GlobalTrackingWorkflowHelpers)
+
 
 if(NOT APPLE)
 

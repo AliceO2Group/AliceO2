@@ -49,6 +49,17 @@ void BunchFilling::setBC(int bcID, bool active)
 }
 
 //_________________________________________________
+void BunchFilling::mergeWith(o2::BunchFilling const& other)
+{
+  for (int bc = o2::constants::lhc::LHCMaxBunches; bc--;) {
+    if (other.testBC(bc)) {
+      // if the other one is filled we need to fill "this" also
+      setBC(bc, true);
+    }
+  }
+}
+
+//_________________________________________________
 void BunchFilling::setBCTrain(int nBC, int bcSpacing, int firstBC)
 {
   // add interacting BC train with given spacing starting at given place, i.e.

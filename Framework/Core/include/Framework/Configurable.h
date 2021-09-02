@@ -84,11 +84,26 @@ using MutableConfigurable = Configurable<T, K, ConfigurablePolicyMutable<T, K>>;
 
 using ConfigurableAxis = Configurable<std::vector<double>, ConfigParamKind::kAxisSpec, ConfigurablePolicyConst<std::vector<double>, ConfigParamKind::kAxisSpec>>;
 
+template <typename R, typename T, typename... As>
+struct ProcessConfigurable : Configurable<bool, ConfigParamKind::kProcessFlag> {
+  ProcessConfigurable(R (T::*process_)(As...), std::string const& name_, bool&& value_, std::string const& help_)
+    : process{process_},
+      Configurable<bool, ConfigParamKind::kProcessFlag>(name_, std::forward<bool>(value_), help_)
+  {
+  }
+  R(T::*process)
+  (As...);
+};
+
+#define PROCESS_SWITCH(_Class_, _Name_, _Help_, _Default_) \
+  decltype(ProcessConfigurable{&_Class_ ::_Name_, #_Name_, _Default_, _Help_}) do##_Name_ = ProcessConfigurable{&_Class_ ::_Name_, #_Name_, _Default_, _Help_};
+
 template <typename T, ConfigParamKind K, typename IP>
 std::ostream& operator<<(std::ostream& os, Configurable<T, K, IP> const& c)
 {
   os << c.value;
   return os;
 }
+
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_CONFIGURABLE_H_

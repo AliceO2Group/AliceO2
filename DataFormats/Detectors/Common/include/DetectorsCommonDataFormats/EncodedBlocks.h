@@ -16,7 +16,8 @@
 
 #ifndef ALICEO2_ENCODED_BLOCKS_H
 #define ALICEO2_ENCODED_BLOCKS_H
-
+#undef NDEBUG
+#include <cassert>
 #include <type_traits>
 #include <Rtypes.h>
 #include "rANS/rans.h"
@@ -168,7 +169,8 @@ struct Block {
   W* payload = nullptr;         //[nStored];
 
   inline const W* getDict() const { return nDict ? payload : nullptr; }
-  inline const W* getData() const { return payload ? (payload + nDict) : nullptr; }
+  inline const W* getData() const { return nData ? (payload + nDict) : nullptr; }
+  inline const W* getDataPointer() const { return payload ? (payload + nDict) : nullptr; } // needed when nData is not set yet
   inline const W* getLiterals() const { return nLiterals ? (payload + nDict + nData) : nullptr; }
 
   inline W* getCreatePayload() { return payload ? payload : (registry ? (payload = reinterpret_cast<W*>(registry->getFreeBlockStart())) : nullptr); }
@@ -482,7 +484,7 @@ void EncodedBlocks<H, N, W>::readFromTree(TTree& tree, const std::string& name, 
 {
   readTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), *this, ev);
   for (int i = 0; i < N; i++) {
-    readTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), mBlocks[i]);
+    readTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), mBlocks[i], ev);
   }
 }
 
@@ -495,9 +497,13 @@ void EncodedBlocks<H, N, W>::readFromTree(VD& vec, TTree& tree, const std::strin
   auto tmp = create(vec);
   readTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), *tmp, ev);
   tmp = tmp->expand(vec, tmp->estimateSizeFromMetadata());
+  const auto& meta = tmp->getMetadata();
   for (int i = 0; i < N; i++) {
     Block<W> bl;
-    readTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), bl);
+    readTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), bl, ev);
+    assert(meta[i].nDictWords == bl.getNDict());
+    assert(meta[i].nDataWords == bl.getNData());
+    assert(meta[i].nLiteralWords == bl.getNLiterals());
     tmp->mBlocks[i].store(bl.getNDict(), bl.getNData(), bl.getNLiterals(), bl.getDict(), bl.getData(), bl.getLiterals());
   }
 }
@@ -603,7 +609,6 @@ template <typename H, int N, typename W>
 template <typename buffer_T>
 auto EncodedBlocks<H, N, W>::expand(buffer_T& buffer, size_t newsizeBytes)
 {
-
   auto buftypesize = sizeof(typename std::remove_reference<decltype(buffer)>::type::value_type);
   auto* oldHead = get(buffer.data())->mRegistry.head;
   buffer.resize(alignSize(newsizeBytes) / buftypesize);
@@ -820,7 +825,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     if (additionalSize >= thisBlock->registry->getFreeSize()) {
       LOG(INFO) << "Slot " << slot << ": free size: " << thisBlock->registry->getFreeSize() << ", need " << additionalSize << " for " << additionalElements << " words";
       if (buffer) {
-        blockHead->expand(*buffer, size() + (additionalSize - getFreeSize()));
+        blockHead->expand(*buffer, blockHead->size() + (additionalSize - blockHead->getFreeSize()));
         thisMetadata = &(get(buffer->data())->mMetadata[slot]);
         thisBlock = &(get(buffer->data())->mBlocks[slot]); // in case of resizing this and any this.xxx becomes invalid
       } else {
@@ -862,7 +867,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     const size_t maxBufferSize = thisBlock->registry->getFreeSize(); // note: "this" might be not valid after expandStorage call!!!
     const auto encodedMessageEnd = encoder->process(srcBegin, srcEnd, blockBufferBegin, literals);
     rans::utils::checkBounds(encodedMessageEnd, blockBufferBegin + maxBufferSize);
-    dataSize = encodedMessageEnd - thisBlock->getData();
+    dataSize = encodedMessageEnd - thisBlock->getDataPointer();
     thisBlock->setNData(dataSize);
     thisBlock->realignBlock();
     // update the size claimed by encode message directly inside the block

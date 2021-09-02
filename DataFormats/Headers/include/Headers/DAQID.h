@@ -41,7 +41,7 @@ class DAQID
   static constexpr ID INVALID = 9; // 1st invalid slot starting from meaningful values
   static constexpr ID MCH = 10;
   static constexpr ID ZDC = 15;
-  static constexpr ID TRG = 17;
+  static constexpr ID TRG = 17; // == CTP
   static constexpr ID EMC = 18;
   static constexpr ID TST = 19;
   static constexpr ID ITS = 32;
@@ -84,7 +84,7 @@ class DAQID
     "NIL", "NIL", "NIL", "NIL",
     "ZDC",
     "NIL",
-    "TRG", "EMC", "TST",
+    "CTP", "EMC", "TST",
     "NIL", "NIL", "NIL", "NIL", "NIL", "NIL", "NIL", "NIL", "NIL", "NIL", "NIL", "NIL",
     "ITS", "FDD", "FT0", "FV0", "MFT", "MID", "DCS", "FOC",               // 39
     "NIL", "NIL", "NIL", "NIL", "NIL", "NIL", "NIL", "NIL", "NIL", "NIL", // 49

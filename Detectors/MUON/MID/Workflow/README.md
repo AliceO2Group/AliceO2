@@ -2,7 +2,12 @@
 \page refMUONMIDWorkflow MID Workflow
 /doxy -->
 
-# MID reconstruction workflow
+# MID workflows
+
+1. [MID reconstruction workflow](#MID-reconstruction-workflow)
+2. [MID raw data checker](#MID-raw-data-checker)
+
+## MID reconstruction workflow
 
 The MID reconstruction starts from the digits and produced MID tracks.
 The input digits can be:
@@ -14,7 +19,7 @@ The input digits can be:
 In the case of the MC digits, the MC labels are propagated as well, thus allowing to relate the reconstructed tracks with the corresponding generated particles.
 The procedure to run the reconstruction, either from the digits or from raw data, is detailed in the following.
 
-## Preface: getting the digits
+### Preface: getting the digits
 
 If you do not have the digits, you can obtain a sample with:
 
@@ -23,7 +28,7 @@ o2-sim -g fwmugen -m MID -n 100
 o2-sim-digitizer-workflow
 ```
 
-## Reconstruction from MC digits
+### Reconstruction from MC digits
 
 To reconstruct the MC digits, run:
 
@@ -31,7 +36,7 @@ To reconstruct the MC digits, run:
 o2-mid-digits-reader-workflow | o2-mid-reco-workflow
 ```
 
-### Zero suppression
+#### Zero suppression
 
 The MID electronics has a default zero suppression mode. Digits are transmitted only if there is at least one strip fired in both the bending and non-bending plane in at least one of the 4 RPCs which are read-out by a local board.
 The zero suppression is not applied to the MC digits that are stored on disk.
@@ -44,7 +49,7 @@ However, one can disable the zero suppression by running the digits reader with:
 o2-mid-digits-reader-workflow --disable-zero-suppression
 ```
 
-## Reconstruction from raw data
+### Reconstruction from raw data
 
 To reconstruct the raw data (either from converted MC digits or real data), run:
 
@@ -54,7 +59,7 @@ o2-raw-file-reader-workflow --input-conf MIDraw.cfg | o2-mid-raw-to-digits-workf
 
 The reconstruction from raw data can also be tested using as input raw data obtained from the MC digits.
 
-### From MC digits to raw data
+#### From MC digits to raw data
 
 To convert the MC digits into raw data format, run:
 
@@ -65,7 +70,7 @@ o2-mid-digits-to-raw-workflow
 The output will be a binary file named by default *raw_mid.dat*.
 Notice that the executable also generates a configuration file that is needed to read the file with the raw reader workflow (see [here](../../../Raw/README.md) for further details)
 
-## From CTF
+### From CTF
 
 The CTF for MID corresponds to the digit.
 So one can retrieve the digits from the CTF and run the reconstruction with the usual workflow with:
@@ -74,7 +79,7 @@ So one can retrieve the digits from the CTF and run the reconstruction with the 
 o2-ctf-reader-workflow --ctf-input o2_ctf_0000000000.root --onlyDet MID | o2-mid-reco-workflow --disable-mc
 ```
 
-### Generate CTF
+#### Generate CTF
 
 The MID contribution can be added to CTF by attaching the `o2-mid-entropy-encoder-workflow` device to reconstruction workflow ending by CTF writer, e.g.:
 
@@ -82,7 +87,7 @@ The MID contribution can be added to CTF by attaching the `o2-mid-entropy-encode
 o2-raw-file-reader-workflow --input-conf MIDraw.cfg | o2-mid-raw-to-digits-workflow | o2-mid-entropy-encoder-workflow | o2-ctf-writer-workflow
 ```
 
-## Timing
+### Timing
 
 In each device belonging to the reconstruction workflow, the execution time is measured using the `chrono` c++ library.
 At the end of the execution, when the *stop* command is launched, the execution time is written to the `LOG(INFO)`.
@@ -95,7 +100,7 @@ Processing time / 90 ROFs: full: 3.55542 us  tracking: 2.02182 us
 Two timing values are provided: one is for the full execution of the device (including retrieval and sending of the DPL messages) and one which concerns only the execution of the algorithm (the tracking algorithm in the above example)
 The timing refers to the time needed to process one read-out-frame, i.e. one event.
 
-## Reconstruction options
+### Reconstruction options
 
 By default, the reconstruction produces clusters and tracks that are written on file.
 It is however possible to only run clustering with:
@@ -109,3 +114,28 @@ It is also possible to avoid producing a root file with:
 ```bash
 o2-mid-reco-workflow --disable-root-output
 ```
+
+## MID raw data checker
+
+This workflow is used to check the consistency of the raw data produced from the CRU.
+The input is provided by either reading a raw file with the file reader workflow or by using the DPL-proxy.
+The common usage is:
+
+```bash
+o2-raw-file-reader-workflow --input-conf MIDraw.cfg | o2-mid-raw-checker-workflow --feeId-config-file "feeId_filename"
+```
+
+The `feeId_filename` is a file allowing to tell which feeId is readout by the configured GBT.
+The file should be in the form explained [here](../Raw/README.md)/
+
+The workflow generates an output file where one can find:
+
+- the details of the event where the data from one GBT lnk is not consistent (with the reason of the inconsistency)
+- a summary of the number of analysed events and the number of events with errors
+
+The default output file name is `raw_checker_out.txt`, but it can be changed with the option: `--mid-checker-outfile`
+
+The decoding and checking of raw data produced without the user logic is time consuming.
+In order to be able to speed-up the process, the check can be launch per gbt link.
+This is achieved by adding the option: `--per-gbt`.
+In this case, the workflow will produce one output per link, which is called: `raw_checker_out_GBT_LINKID.txt`, where `LINKID` is the link number.

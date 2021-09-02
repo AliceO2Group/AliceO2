@@ -181,8 +181,8 @@ class MatchTOF
   bool prepareFITData();
   int prepareInteractionTimes();
   bool prepareTPCData();
-  void addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
-  void addITSTPCSeed(const o2::dataformats::TrackTPCITS& _tr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
+  void addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalTrackID srcGID);
+  void addITSTPCSeed(const o2::dataformats::TrackTPCITS& _tr, o2::dataformats::GlobalTrackID srcGID);
   //  void addTPCTRDSeed(const o2::track::TrackParCov& _tr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
   //  void addITSTPCTRDSeed(const o2::track::TrackParCov& _tr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
   bool prepareTOFClusters();
@@ -238,7 +238,6 @@ class MatchTOF
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
   //  std::vector<o2::dataformats::TrackTPCITS> mITSTPCTracksArrayInp;  ///< input tracks
-  std::vector<o2::tpc::TrackTPC> mTPCTracksArrayInp; ///< input TPC tracks
   gsl::span<const Cluster> mTOFClustersArrayInp;     ///< input TOF clusters
 
   /// data needed for refit of time-constrained TPC tracks
@@ -249,7 +248,6 @@ class MatchTOF
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter;         ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabels; ///< input TOF clusters MC labels (pointer to read from tree)
-  std::vector<o2::MCCompLabel> mTracksLblWork[trkType::SIZE];               ///<TPCITS track labels
 
   int mNotPropagatedToTOF[trkType::SIZE]; ///< number of tracks failing in propagation
 
@@ -259,14 +257,16 @@ class MatchTOF
 
   ///<working copy of the input tracks
   std::vector<matchTrack> mTracksWork[trkType::SIZE]; ///<track params prepared for matching + time value
+  std::vector<o2::MCCompLabel> mTracksLblWork[trkType::SIZE];           ///<TPCITS track labels
+  std::vector<o2::track::TrackLTIntegral> mLTinfos[trkType::SIZE];      ///<expected times and others
+  std::vector<o2::dataformats::GlobalTrackID> mTrackGid[trkType::SIZE]; ///<expected times and others
+  ///< per sector indices of track entry in mTracksWork
+  std::array<std::vector<int>, o2::constants::math::NSectors> mTracksSectIndexCache[trkType::SIZE];
 
   std::vector<float> mExtraTPCFwdTime;                             ///<track extra params for TPC tracks: Fws Max time
-  std::vector<o2::track::TrackLTIntegral> mLTinfos[trkType::SIZE]; ///<expected times and others
   std::vector<Cluster> mTOFClusWork;                               ///<track params prepared for matching
   std::vector<int8_t> mSideTPC;                                    ///<track side for TPC tracks
 
-  ///< per sector indices of track entry in mTracksWork
-  std::array<std::vector<int>, o2::constants::math::NSectors> mTracksSectIndexCache[trkType::SIZE];
   ///< per sector indices of TOF cluster entry in mTOFClusWork
   std::array<std::vector<int>, o2::constants::math::NSectors> mTOFClusSectIndexCache;
 
@@ -297,7 +297,7 @@ class MatchTOF
 
   TStopwatch mTimerTot;
   TStopwatch mTimerDBG;
-  ClassDefNV(MatchTOF, 1);
+  ClassDefNV(MatchTOF, 2);
 };
 } // namespace globaltracking
 } // namespace o2

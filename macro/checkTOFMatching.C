@@ -157,7 +157,7 @@ void checkTOFMatching(bool batchMode = true)
 #ifdef DEBUG
       LOGF(INFO, "The TOF cluster has %d contributing channels, and the main one is %d", nContributingChannels, mainContributingChannel);
 #endif
-      int* indices = new int();
+      int indices[5];
       o2::tof::Geo::getVolumeIndices(mainContributingChannel, indices);
 #ifdef DEBUG
       LOGF(INFO, "Indices of main contributing channel are %d, %d, %d, %d, %d", indices[0], indices[1], indices[2], indices[3], indices[4]);
@@ -173,7 +173,7 @@ void checkTOFMatching(bool batchMode = true)
 #ifdef DEBUG
       LOGF(INFO, "isUpLeft = %d, isUp = %d, isUpRight = %d, isRight = %d, isDownRight = %d, isDown = %d, isDownLeft = %d, isLeft = %d", isUpLeft, isUp, isUpRight, isRight, isDownRight, isDown, isDownLeft, isLeft);
 #endif
-      int* indexCont = new int();
+      int indexCont[5];
       indexCont[0] = indices[0];
       indexCont[1] = indices[1];
       indexCont[2] = indices[2];

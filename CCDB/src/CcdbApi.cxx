@@ -75,7 +75,7 @@ void CcdbApi::init(std::string const& host)
 
   // find out if we can can in principle connect to Alien
   mHaveAlienToken = checkAlienToken();
-  LOG(INFO) << "WITH ALIEN TOKEN?: " << mHaveAlienToken;
+  LOG(INFO) << "Is alien token present?: " << mHaveAlienToken;
 }
 
 /**

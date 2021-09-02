@@ -23,9 +23,10 @@ export SEVERITY=error
 
 if [ $1 == "dd" ]; then
   export CMD=datadistribution.sh
+  export GPU_NUM_MEM_REG_CALLBACKS=5
 else
   export CMD=raw-reader.sh
-  export NTIMEFRAMES=1000000
+  export GPU_NUM_MEM_REG_CALLBACKS=3
 fi
 
 if [ ! -f matbud.root -a -f ctf_dictionary.root ]; then
@@ -33,10 +34,23 @@ if [ ! -f matbud.root -a -f ctf_dictionary.root ]; then
   exit 1
 fi
 
+if [ "0$FST_TMUX_NOWAIT" != "01" ]; then
+  ENDCMD="echo END; sleep 1000"
+fi
+
+if [ "0$FST_TMUX_KILLCHAINS" == "01" ]; then
+  KILLCMD="sleep 60; ps aux | grep 'o2-dpl-run --session' | grep -v grep | awk '{print \$2}' | xargs kill -s INT --;"
+fi
+
+if [ "0$FST_TMUX_LOGPREFIX" != "0" ]; then
+  LOGCMD0=" &> ${FST_TMUX_LOGPREFIX}_0.log"
+  LOGCMD1=" &> ${FST_TMUX_LOGPREFIX}_1.log"
+fi
+
 rm -f /dev/shm/*fmq*
 
 tmux \
-    new-session "NUMAID=0 $MYDIR/dpl-workflow.sh; echo END; sleep 1000" \; \
-    split-window "sleep 45; NUMAID=1 $MYDIR/dpl-workflow.sh; echo END; sleep 1000" \; \
-    split-window "sleep 90; SEVERITY=debug numactl --interleave=all $MYDIR/$CMD; echo END; sleep 1000" \; \
+    new-session  "sleep  0; NUMAID=0 $MYDIR/dpl-workflow.sh $LOGCMD0; $ENDCMD" \; \
+    split-window "sleep 45; NUMAID=1 $MYDIR/dpl-workflow.sh $LOGCMD1; $ENDCMD" \; \
+    split-window "sleep 90; SEVERITY=debug numactl --interleave=all $MYDIR/$CMD; $KILLCMD $ENDCMD" \; \
     select-layout even-vertical

@@ -70,7 +70,7 @@ struct TPCParameters {
   inline static DataT vg1t{-3260};                              ///< GEM 1 Top voltage. (setting with reduced ET1,2,4 = 3.5kV/cm)
 };
 
-template <typename DataT = double, size_t Nz = 129, size_t Nr = 129, size_t Nphi = 180>
+template <typename DataT = double>
 struct GridProperties {
   static constexpr DataT RMIN{TPCParameters<DataT>::IFCRADIUS};                  ///< min radius
   static constexpr DataT ZMIN{0};                                                ///< min z coordinate
@@ -78,9 +78,15 @@ struct GridProperties {
   static constexpr DataT RMAX{TPCParameters<DataT>::OFCRADIUS};                  ///< max radius
   static constexpr DataT ZMAX{TPCParameters<DataT>::TPCZ0};                      ///< max z coordinate
   static constexpr DataT PHIMAX{static_cast<DataT>(o2::constants::math::TwoPI)}; ///< max phi coordinate
-  static constexpr DataT GRIDSPACINGR{(RMAX - RMIN) / (Nr - 1)};                 ///< grid spacing in r direction
-  static constexpr DataT GRIDSPACINGZ{(ZMAX - ZMIN) / (Nz - 1)};                 ///< grid spacing in z direction
-  static constexpr DataT GRIDSPACINGPHI{PHIMAX / Nphi};                          ///< grid spacing in phi direction
+
+  ///< \return returns grid spacing in r direction
+  static constexpr DataT getGridSpacingR(const unsigned int nR) { return (RMAX - RMIN) / (nR - 1); }
+
+  ///< \return returns grid spacing in z direction
+  static constexpr DataT getGridSpacingZ(const unsigned int nZ) { return (ZMAX - ZMIN) / (nZ - 1); }
+
+  ///< \return returns grid spacing in phi direction
+  static constexpr DataT getGridSpacingPhi(const unsigned int nPhi) { return PHIMAX / nPhi; }
 };
 
 } // namespace tpc

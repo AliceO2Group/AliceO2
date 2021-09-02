@@ -764,7 +764,6 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        unsigned short resourcesMonitoringInterval,
                                                        std::string const& channelPrefix)
 {
-
   std::vector<LogicalForwardInfo> availableForwardsInfo;
   std::vector<DeviceConnectionEdge> logicalEdges;
   std::vector<DeviceConnectionId> connections;
@@ -1123,6 +1122,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("severity", bpo::value<std::string>());
         realOdesc.add_options()("child-driver", bpo::value<std::string>());
         realOdesc.add_options()("rate", bpo::value<std::string>());
+        realOdesc.add_options()("expected-region-callbacks", bpo::value<std::string>());
         realOdesc.add_options()("environment", bpo::value<std::string>());
         realOdesc.add_options()("stacktrace-on-signal", bpo::value<std::string>());
         realOdesc.add_options()("post-fork-command", bpo::value<std::string>());
@@ -1271,6 +1271,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("plugin-search-path,S", bpo::value<std::string>(), "FairMQ plugins search path")                                                         //
     ("control-port", bpo::value<std::string>(), "Utility port to be used by O2 Control")                                                      //
     ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                                                 //
+    ("expected-region-callbacks", bpo::value<std::string>(), "region callbacks to expect before starting")                                    //
     ("shm-monitor", bpo::value<std::string>(), "whether to use the shared memory monitor")                                                    //
     ("channel-prefix", bpo::value<std::string>()->default_value(""), "prefix to use for multiplexing multiple workflows in the same session") //
     ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")                                             //

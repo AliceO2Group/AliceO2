@@ -71,7 +71,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto& irecords = context->getEventRecords();
 
     for (auto& record : irecords) {
-      LOG(INFO) << "TRD TIME RECEIVED " << record.getTimeNS();
+      LOG(DEBUG) << "TRD TIME RECEIVED " << record.getTimeNS();
     }
 
     auto& eventParts = context->getEventParts();
@@ -146,8 +146,9 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (mctruth) {
       labelsAccum.mergeAtBack(labels);
     }
+    LOGF(INFO, "List of TRD chambers with at least one drift velocity out of range: %s", mDigitizer.dumpFlaggedChambers());
     timer.Stop();
-    LOG(INFO) << "TRD: Digitization took " << timer.RealTime() << "s";
+    LOGF(INFO, "TRD digitization timing: Cpu: %.3e Real: %.3e s", timer.CpuTime(), timer.RealTime());
 
     LOG(INFO) << "TRD: Sending " << digitsAccum.size() << " digits";
     pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);

@@ -81,40 +81,33 @@ class DataSampling
   ///                              QC tasks.
   /// \param policiesSource        Path to configuration file.
   /// \param threads               Number of dispatcher threads, that will handle the data
-  static void GenerateInfrastructure(framework::WorkflowSpec& workflow, const std::string& policiesSource, size_t threads = 1);
+  /// \param host                  Host name. If the host or a policy machine list are empty, the policy will always be created.
+  static void GenerateInfrastructure(framework::WorkflowSpec& workflow, const std::string& policiesSource, size_t threads = 1, const std::string& host = "");
 
   /// \brief Generates data sampling infrastructure.
   /// \param workflow              DPL workflow with already declared data processors which provide data desired by
   ///                              QC tasks.
   /// \param policiesSource        boost::property_tree::ptree with the configuration
   /// \param threads               Number of dispatcher threads, that will handle the data
-  static void GenerateInfrastructure(framework::WorkflowSpec& workflow, boost::property_tree::ptree const& policies, size_t threads = 1);
+  /// \param host                  Host name. If the host or a policy machine list are empty, the policy will always be created.
+  static void GenerateInfrastructure(framework::WorkflowSpec& workflow, boost::property_tree::ptree const& policies, size_t threads = 1, const std::string& host = "");
   /// \brief Configures dispatcher to consume any data immediately.
   static void CustomizeInfrastructure(std::vector<framework::CompletionPolicy>&);
   /// \brief Applies blocking/nonblocking data sampling configuration to the workflow.
   static void CustomizeInfrastructure(std::vector<framework::ChannelConfigurationPolicy>&);
-  /// \brief Provides InputSpecs to receive data for given DataSamplingPolicy
-  static std::vector<framework::InputSpec> InputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName);
-  /// \brief Provides InputSpecs to receive data for given DataSamplingPolicy
-  /// @deprecated
-  static std::vector<framework::InputSpec> InputSpecsForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
-  /// \brief Provides InputSpecs to receive data for given DataSamplingPolicy
-  static std::vector<framework::InputSpec> InputSpecsForPolicy(std::shared_ptr<configuration::ConfigurationInterface> config, const std::string& policyName);
-  /// \brief Provides OutputSpecs of given DataSamplingPolicy
-  static std::vector<framework::OutputSpec> OutputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName);
-  /// \brief Provides OutputSpecs of given DataSamplingPolicy
-  static std::vector<framework::OutputSpec> OutputSpecsForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
-  /// \brief Provides the port to be used for a proxy of given DataSamplingPolicy
-  static std::optional<uint16_t> PortForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
-  /// \brief Provides the port to be used for a proxy of given DataSamplingPolicy
-  static std::optional<uint16_t> PortForPolicy(const std::string& policiesSource, const std::string& policyName);
-  /// \brief Provides the machines where given DataSamplingPolicy is enabled
-  static std::vector<std::string> MachinesForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName);
-  /// \brief Provides the port to be used for a proxy of given DataSamplingPolicy
-  static std::vector<std::string> MachinesForPolicy(const std::string& policiesSource, const std::string& policyName);
+  /// \brief Provides InputSpecs to receive data for given DataSamplingPolicy. Expects the "dataSamplingPolicies" tree.
+  static std::vector<framework::InputSpec> InputSpecsForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName);
+  /// \brief Provides OutputSpecs of given DataSamplingPolicy. Expects the "dataSamplingPolicies" tree.
+  static std::vector<framework::OutputSpec> OutputSpecsForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName);
+  /// \brief Provides the port to be used for a proxy of given DataSamplingPolicy. Expects the "dataSamplingPolicies" tree.
+  static std::optional<uint16_t> PortForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName);
+  /// \brief Provides the machines where given DataSamplingPolicy is enabled. Expects the "dataSamplingPolicies" tree.
+  static std::vector<std::string> MachinesForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName);
+  /// \brief Says if remote part (e.g. QC server) should bind the inter-machine channel, according to the configuration. Expects the "dataSamplingPolicies" tree.
+  static std::string BindLocationForPolicy(const boost::property_tree::ptree& policiesTree, const std::string& policyName);
 
  private:
-  static void DoGenerateInfrastructure(Dispatcher&, framework::WorkflowSpec& workflow, boost::property_tree::ptree const& policies, size_t threads = 1);
+  static void DoGenerateInfrastructure(Dispatcher&, framework::WorkflowSpec& workflow, boost::property_tree::ptree const& policies, size_t threads = 1, const std::string& host = "");
   // Internal functions, used by GenerateInfrastructure()
   static std::string createDispatcherName();
 };

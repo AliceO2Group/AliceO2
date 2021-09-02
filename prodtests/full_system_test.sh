@@ -64,7 +64,7 @@ HOST=`hostname`
 TAG="conf=${CONFIG},host=${HOST}${ALIDISTCOMMIT:+,alidist=$ALIDISTCOMMIT}${O2COMMIT:+,o2=$O2COMMIT}"
 echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " > ${METRICFILE}
 
-GLOBALDPLOPT="-b" #  --monitoring-backend no-op:// is currently removed due to https://alice.its.cern.ch/jira/browse/O2-1887
+GLOBALDPLOPT="-b" # --monitoring-backend no-op:// is currently removed due to https://alice.its.cern.ch/jira/browse/O2-1887
 
 HBFUTILPARAMS="HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=${RUNFIRSTORBIT};HBFUtils.orbitFirstSampled=${FIRSTSAMPLEDORBIT}"
 [ "0$ALLOW_MULTIPLE_TF" != "01" ] && HBFUTILPARAMS+=";HBFUtils.maxNOrbits=${NHBPERTF};"
@@ -103,19 +103,19 @@ if [ "0$GENERATE_ITSMFT_DICTIONARIES" == "01" ]; then
 fi
 
 mkdir -p raw
-taskwrapper itsraw.log o2-its-digi2raw --file-for link  -o raw/ITS
-taskwrapper mftraw.log o2-mft-digi2raw --file-for link  -o raw/MFT
-taskwrapper ft0raw.log o2-ft0-digi2raw --file-per-link  -o raw/FT0
-taskwrapper fv0raw.log o2-fv0-digi2raw --file-per-link  -o raw/FV0
-taskwrapper fddraw.log o2-fdd-digit2raw --file-per-link  -o raw/FDD
-taskwrapper tpcraw.log o2-tpc-digits-to-rawzs  --file-for link  -i tpcdigits.root -o raw/TPC
+taskwrapper itsraw.log o2-its-digi2raw --file-for cru -o raw/ITS
+taskwrapper mftraw.log o2-mft-digi2raw --file-for link -o raw/MFT
+taskwrapper ft0raw.log o2-ft0-digi2raw --file-for link -o raw/FT0
+taskwrapper fv0raw.log o2-fv0-digi2raw --file-for link -o raw/FV0
+taskwrapper fddraw.log o2-fdd-digit2raw --file-for link -o raw/FDD
+taskwrapper tpcraw.log o2-tpc-digits-to-rawzs --file-for cru -i tpcdigits.root -o raw/TPC
 taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --output-type raw --tof-raw-outdir raw/TOF
 taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink
-taskwrapper mchraw.log o2-mch-digits-to-raw --input-file mchdigits.root --output-dir raw/MCH --file-per-link
+taskwrapper mchraw.log o2-mch-digits-to-raw --input-file mchdigits.root --output-dir raw/MCH --file-for link
 taskwrapper emcraw.log o2-emcal-rawcreator --file-for link -o raw/EMC
-taskwrapper phsraw.log o2-phos-digi2raw  --file-for link -o raw/PHS
-taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link -o raw/CPV
-taskwrapper zdcraw.log o2-zdc-digi2raw  --file-per-link -o raw/ZDC
+taskwrapper phsraw.log o2-phos-digi2raw --file-for link -o raw/PHS
+taskwrapper cpvraw.log o2-cpv-digi2raw --file-for link -o raw/CPV
+taskwrapper zdcraw.log o2-zdc-digi2raw --file-per-link -o raw/ZDC
 taskwrapper hmpraw.log o2-hmpid-digits-to-raw-workflow --file-for link --outdir raw/HMP
 taskwrapper trdraw.log o2-trd-trap2raw -o raw/TRD --fileper halfcru
 cat raw/*/*.cfg > rawAll.cfg
@@ -188,8 +188,8 @@ for STAGE in $STAGES; do
     echo "gpurecotime_${STAGE},${TAG} value=${gpurecotime}" >> ${METRICFILE}
 
     # memory
-    maxmem=`awk '/PROCESS MAX MEM/{print $5}' ${logfile}`  # in MB
-    avgmem=`awk '/PROCESS AVG MEM/{print $5}' ${logfile}`  # in MB
+    maxmem=`awk '/PROCESS MAX MEM/{print $5}' ${logfile}` # in MB
+    avgmem=`awk '/PROCESS AVG MEM/{print $5}' ${logfile}` # in MB
     echo "maxmem_${STAGE},${TAG} value=${maxmem}" >> ${METRICFILE}
     echo "avgmem_${STAGE},${TAG} value=${avgmem}" >> ${METRICFILE}
 

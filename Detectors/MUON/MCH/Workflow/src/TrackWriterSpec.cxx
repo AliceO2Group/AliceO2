@@ -12,6 +12,8 @@
 #include "MCHWorkflow/TrackWriterSpec.h"
 
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "Framework/Logger.h"
@@ -26,17 +28,15 @@ namespace o2::mch
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-DataProcessorSpec getTrackWriterSpec(bool useMC, const char* name)
+DataProcessorSpec getTrackWriterSpec(bool useMC, const char* specName, const char* fileName)
 {
-  if (useMC == true) {
-    LOGP(warning, "MC handling not yet implemented");
-  }
-  return MakeRootTreeWriterSpec("mch-tracks-writer",
-                                name,
+  return MakeRootTreeWriterSpec(specName,
+                                fileName,
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree MCH Standalone Tracks"},
                                 BranchDefinition<std::vector<TrackMCH>>{InputSpec{"tracks", "MCH", "TRACKS"}, "tracks"},
                                 BranchDefinition<std::vector<ROFRecord>>{InputSpec{"trackrofs", "MCH", "TRACKROFS"}, "trackrofs"},
-                                BranchDefinition<std::vector<ClusterStruct>>{InputSpec{"trackclusters", "MCH", "TRACKCLUSTERS"}, "trackclusters"})();
+                                BranchDefinition<std::vector<ClusterStruct>>{InputSpec{"trackclusters", "MCH", "TRACKCLUSTERS"}, "trackclusters"},
+                                BranchDefinition<dataformats::MCTruthContainer<MCCompLabel>>{InputSpec{"tracklabels", "MCH", "TRACKLABELS"}, "tracklabels", useMC ? 1 : 0})();
 }
 
 } // namespace o2::mch

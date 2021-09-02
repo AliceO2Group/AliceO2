@@ -25,16 +25,16 @@
 #include "TH3.h"
 
 #include "DataFormatsTPC/Defs.h"
-#include "TPCSpaceCharge/SpaceCharge.h"
 #include "GPU/TPCFastTransform.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "TPCSpaceCharge/SpaceCharge.h"
 
 #endif
 
 // define number of bins in r, rphi, z for the lookup tables
 // o2::tpc::SpaceCharge<double, nZ, nR, nPhi>
 // for valid values see the definitions in TPCSpacechargeLinkDef.h
-using SC = o2::tpc::SpaceCharge<double, 129, 129, 180>;
+using SC = o2::tpc::SpaceCharge<double>;
 SC* sc = nullptr;
 
 using namespace o2::tpc;

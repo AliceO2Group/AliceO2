@@ -156,4 +156,7 @@ find_package(O2GPU)
 
 find_package(FastJet)
 
+find_package(FFTW3f CONFIG)
+set_package_properties(FFTW3f PROPERTIES TYPE REQUIRED)
+
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)

@@ -17,18 +17,16 @@
 #ifndef ALIGNABLEDETECTOR_H
 #define ALIGNABLEDETECTOR_H
 
-#include <TNamed.h>
+#include "DetectorsCommonDataFormats/DetID.h"
 #include <TObjArray.h>
 #include <cstdio>
+#include "Align/DOFSet.h"
 #include "Align/utils.h"
 #include "Align/AlignmentTrack.h"
 #include "Align/DOFStatistics.h"
 #include "Align/AlignmentPoint.h"
 #include "Align/AlignableSensor.h"
 #include "Align/AlignableVolume.h"
-#include "Align/Controller.h"
-//#include "AliESDtrack.h"
-//class AliTrackPointArray;
 
 class TH1;
 
@@ -37,27 +35,30 @@ namespace o2
 namespace align
 {
 
+class Controller;
+
 //TODO(milettri) : fix possibly incompatible Detector IDs of O2 and AliROOT
-class AlignableDetector : public TNamed
+class AlignableDetector : public DOFSet
 {
  public:
+  using DetID = o2::detectors::DetID;
+
   enum { kInitGeomDone = BIT(14),
          kInitDOFsDone = BIT(15) };
   enum { kNMaxKalibDOF = 64 };
   //
-  AlignableDetector();
-  AlignableDetector(const char* name, const char* title = "", int id = -1) : TNamed(name, title) { SetUniqueID(id); };
+  AlignableDetector() = default;
+  AlignableDetector(DetID id, Controller* ctr);
   ~AlignableDetector() override;
-  int getDetID() const { return GetUniqueID(); }
-  detectors::DetID getO2DetID() const { return detectors::DetID(GetUniqueID()); };
-  void setDetID(uint32_t tp);
-  void SetDetID(detectors::DetID id) { SetUniqueID(id); }
+
+  auto getDetID() const { return mDetID; }
   //
   virtual void cacheReferenceOCDB();
   virtual void acknowledgeNewRun(int run);
   virtual void updateL2GRecoMatrices();
   virtual void applyAlignmentFromMPSol();
   //
+  int getNDOFsTot() const;
   int volID2SID(int vid) const;
   int sID2VolID(int sid) const { return sid < getNSensors() ? mSID2VolID[sid] : -1; } //todo
   int getNSensors() const { return mSensors.GetEntriesFast(); }
@@ -70,7 +71,6 @@ class AlignableDetector : public TNamed
   //
   int getNPoints() const { return mNPoints; }
   //
-  void setAlgSteer(Controller* s) { mAlgSteer = s; }
   AlignableSensor* getSensor(int id) const { return (AlignableSensor*)mSensors.UncheckedAt(id); }
   AlignableSensor* getSensorByVolId(int vid) const
   {
@@ -84,7 +84,12 @@ class AlignableDetector : public TNamed
   bool ownsDOFID(int id) const;
   AlignableVolume* getVolOfDOFID(int id) const;
   //
-  int getDetLabel() const { return (getDetID() + 1) * 1000000; }
+  int getDetLabel() const { return (getDetID() + 1) * 100000; }
+  int getSensLabel(int i) const { return getDetLabel() + i + 1; }
+  int getNonSensLabel(int i) const { return getDetLabel() + i + 50001; }
+  int getSensID(int lbl) const { return (lbl % 100000) < 50001 ? (lbl % 100000) - 1 : -1; }
+  int getNonSensID(int lbl) const { return (lbl % 100000) < 50001 ? -1 : (lbl % 100000) - 50001; }
+
   void setFreeDOF(int dof);
   void fixDOF(int dof);
   void setFreeDOFPattern(uint64_t pat)
@@ -104,7 +109,7 @@ class AlignableDetector : public TNamed
   virtual int assignDOFs();
   virtual void initDOFs();
   virtual void terminate();
-  void fillDOFStat(DOFStatistics* dofst = nullptr) const;
+  void fillDOFStat(DOFStatistics& dofst) const;
   virtual void addVolume(AlignableVolume* vol);
   virtual void defineVolumes();
   virtual void defineMatrices();
@@ -130,10 +135,6 @@ class AlignableDetector : public TNamed
   void setFreeDOFPattern(uint32_t pat = 0xffffffff, int lev = -1, const char* match = nullptr);
   void setDOFCondition(int dof, float condErr, int lev = -1, const char* match = nullptr);
   int selectVolumes(TObjArray* arr, int lev = -1, const char* match = nullptr);
-  //
-  int getNDOFs() const { return mNDOFs; }
-  int getNCalibDOFs() const { return mNCalibDOF; }
-  int getNCalibDOFsFree() const { return mNCalibDOFFree; }
   //
   void setDisabled(int tp, bool v)
   {
@@ -181,19 +182,6 @@ class AlignableDetector : public TNamed
   virtual void writeCalibrationResults() const;
   virtual void writeAlignmentResults() const;
   //
-  float* getParVals() const { return mParVals; }
-  double getParVal(int par) const { return mParVals ? mParVals[par] : 0; }
-  double getParErr(int par) const { return mParErrs ? mParErrs[par] : 0; }
-  int getParLab(int par) const { return mParLabs ? mParLabs[par] : 0; }
-  //
-  void setParVals(int npar, double* vl, double* er);
-  void setParVal(int par, double v = 0) { mParVals[par] = v; }
-  void setParErr(int par, double e = 0) { mParErrs[par] = e; }
-  //
-  int getFirstParGloID() const { return mFirstParGloID; }
-  int getParGloID(int par) const { return mFirstParGloID + par; }
-  void setFirstParGloID(int id) { mFirstParGloID = id; }
-  //
  protected:
   void sortSensors();
   void calcFree(bool condFree = false);
@@ -204,42 +192,35 @@ class AlignableDetector : public TNamed
   //
  protected:
   //
-  int mNDOFs;       // number of DOFs free
-  int mVolIDMin;    // min volID for this detector (for sensors only)
-  int mVolIDMax;    // max volID for this detector (for sensors only)
-  int mNSensors;    // number of sensors (i.e. volID's)
-  int* mSID2VolID;  //[mNSensors] table of conversion from VolID to sid
-  int mNProcPoints; // total number of points processed
+  DetID mDetID{}; // detector ID
+
+  int mVolIDMin = -1;        // min volID for this detector (for sensors only)
+  int mVolIDMax = -1;        // max volID for this detector (for sensors only)
+  int mNSensors = 0;         // number of sensors (i.e. volID's)
+  int* mSID2VolID = nullptr; //[mNSensors] table of conversion from VolID to sid
+  int mNProcPoints = 0;      // total number of points processed
   //
   // Detector specific calibration degrees of freedom
-  int mNCalibDOF;     // number of calibDOFs for detector (preset)
-  int mNCalibDOFFree; // number of calibDOFs for detector (preset)
-  uint64_t mCalibDOF; // status of calib dof
-  int mFirstParGloID; // ID of the 1st parameter in the global results array
-  float* mParVals;    //! values of the fitted params
-  float* mParErrs;    //! errors of the fitted params
-  int* mParLabs;      //! labels for parameters
+  uint64_t mCalibDOF = 0; // status of calib dof
   //
   // Track selection
-  bool mDisabled[utils::NTrackTypes];         // detector disabled/enabled in the track
-  bool mObligatory[utils::NTrackTypes];       // detector must be present in the track
-  uint64_t mTrackFlagSel[utils::NTrackTypes]; // flag for track selection
-  int mNPointsSel[utils::NTrackTypes];        // min number of points to require
+  bool mDisabled[utils::NTrackTypes] = {};         // detector disabled/enabled in the track
+  bool mObligatory[utils::NTrackTypes] = {};       // detector must be present in the track
+  uint64_t mTrackFlagSel[utils::NTrackTypes] = {}; // flag for track selection
+  int mNPointsSel[utils::NTrackTypes] = {};        // min number of points to require
   //
-  int mUseErrorParam;  // signal that points need to be updated using track info, 0 - no
-  double mAddError[2]; // additional error increment for measurement
+  int mUseErrorParam = 0;   // signal that points need to be updated using track info, 0 - no
+  double mAddError[2] = {}; // additional error increment for measurement
   TObjArray mSensors;  // all sensors of the detector
   TObjArray mVolumes;  // all volumes of the detector
   //
   // this is transient info
-  int mNPoints;          //! number of points from this detector
-  int mPoolNPoints;      //! number of points in the pool
-  int mPoolFreePointID;  //! id of the last free point in the pool
-  TObjArray mPointsPool; //! pool of aligment points
-                         //
-  Controller* mAlgSteer; // pointer to alignment steering object
+  int mNPoints = 0;         //! number of points from this detector
+  int mPoolNPoints = 0;     //! number of points in the pool
+  int mPoolFreePointID = 0; //! id of the last free point in the pool
+  TObjArray mPointsPool;    //! pool of aligment points
   //
-  ClassDef(AlignableDetector, 1); // base class for detector global alignment
+  ClassDefOverride(AlignableDetector, 1); // base class for detector global alignment
 };
 
 //FIXME(milettri): needs AliESDtrack

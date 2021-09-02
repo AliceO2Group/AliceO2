@@ -10,26 +10,15 @@
 // or submit itself to any jurisdiction.
 
 #include "DigitIOV1.h"
-#include "DigitD0.h"
 #include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/ROFRecord.h"
+#include "DigitD0.h"
 #include "DigitFileFormat.h"
 #include "DigitReader.h"
-#include <iostream>
+#include "IO.h"
 #include "IOStruct.h"
-
-namespace
-{
-std::pair<int, int> advanceOneEvent(std::istream& in)
-{
-  int nrofs = o2::mch::io::impl::advance(in, sizeof(o2::mch::ROFRecord), "rofs");
-  if (nrofs < 0) {
-    return std::make_pair(-1, -1);
-  }
-  int ndigits = o2::mch::io::impl::advance(in, sizeof(o2::mch::io::impl::DigitD0), "digits");
-  return std::make_pair(nrofs, ndigits);
-}
-} // namespace
+#include "ROFRecordR0.h"
+#include <iostream>
 
 namespace o2::mch::io::impl
 {
@@ -42,7 +31,7 @@ void DigitReaderV1::count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t&
   std::pair<int, int> pairs;
   std::pair<int, int> invalid{-1, -1};
 
-  while ((pairs = advanceOneEvent(in)) != invalid) {
+  while ((pairs = advanceOneEvent(in, 1)) != invalid) {
     ndigits += pairs.second;
     nrofs += pairs.first;
     ++ntfs;
@@ -57,10 +46,17 @@ bool DigitReaderV1::read(std::istream& in,
   // note the input vectors are not cleared as this is the responsability
   // of the calling class, if need be.
 
-  bool ok = readBinaryStruct(in, rofs, "rofs");
+  std::vector<ROFRecordR0> rofsr0;
+
+  bool ok = readBinaryStruct(in, rofsr0, "rofs");
   if (!ok) {
     return false;
   }
+  for (auto r0 : rofsr0) {
+    ROFRecord r(r0.ir, r0.ref.getFirstEntry(), r0.ref.getEntries(), 4);
+    rofs.push_back(r);
+  }
+
   std::vector<DigitD0> digitsd0;
 
   ok = readBinaryStruct(in, digitsd0, "digits");
@@ -87,7 +83,13 @@ bool DigitWriterV1::write(std::ostream& out,
   if (rofs.empty()) {
     return false;
   }
-  bool ok = writeBinaryStruct(out, rofs);
+  std::vector<ROFRecordR0> rofsr0;
+  for (const auto& r : rofs) {
+    rofsr0.push_back(ROFRecordR0{r.getBCData(), {r.getFirstIdx(), r.getNEntries()}});
+  }
+  gsl::span<const ROFRecordR0> r0(rofsr0);
+
+  bool ok = writeBinaryStruct(out, r0);
 
   std::vector<DigitD0> digitsd0;
   for (const auto& d : digits) {

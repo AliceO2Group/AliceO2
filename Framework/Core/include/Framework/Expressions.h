@@ -47,7 +47,7 @@ class Filter;
 using atype = arrow::Type;
 struct ExpressionInfo {
   int argumentIndex;
-  int processIndex;
+  size_t processHash;
   std::set<size_t> hashes;
   gandiva::SchemaPtr schema;
   gandiva::NodePtr tree;

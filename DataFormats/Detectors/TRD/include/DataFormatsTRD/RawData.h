@@ -43,8 +43,8 @@ Word 1  |  link 7 error flags   |   link 6 error flags  |  link 5 error flags   
         -------------------------------------------------------------------------------------------------
 Word 2  |  link 11 error flags  |   link 10 error flags |  link 9 error flags   |  link 8 error flags   |
         -------------------------------------------------------------------------------------------------
-Word 2  |  link 12 error flags  |  link 13 error flags  |  link 14 error flags  |      reserved 2       |
-        -------------------------------------------------------------------------------------------------
+Word 2  |      reserved 2       |  link 14 error flags  |  link 13 error flags  |  link 12 error flags  |
+         ------------------------------------------------------------------------------------------------
 Word 3  |                                          reserved 3                                           |
         -------------------------------------------------------------------------------------------------
 Word 3  |                                          reserved 4                                           |
@@ -307,10 +307,10 @@ struct DigitMCMADCMask {
   union {
     uint32_t word; //MCM ADC MASK header
     struct {
-      uint32_t n : 2; // unused always 0x3
-      uint32_t c : 5; // unused always 0x1f
+      uint32_t j : 4; // 0xc
       uint32_t adcmask : 21;
-      uint32_t j : 4; // unused always 0xc
+      uint32_t c : 5; // ~(number of bits set in adcmask)
+      uint32_t n : 2; // 0b01
     } __attribute__((__packed__));
   };
 };
@@ -440,6 +440,8 @@ std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru);
 bool trackletMCMHeaderSanityCheck(o2::trd::TrackletMCMHeader& header);
 bool trackletHCHeaderSanityCheck(o2::trd::TrackletHCHeader& header);
 bool digitMCMHeaderSanityCheck(o2::trd::DigitMCMHeader* header);
+bool digitMCMADCMaskSanityCheck(o2::trd::DigitMCMADCMask& mask, int numberofbitsset);
+bool digitMCMWordSanityCheck(o2::trd::DigitMCMData* word, int adcchannel);
 void printDigitMCMHeader(o2::trd::DigitMCMHeader& header);
 void printDigitHCHeader(o2::trd::DigitHCHeader& header);
 DigitMCMADCMask buildBlankADCMask();

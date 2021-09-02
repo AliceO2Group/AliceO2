@@ -18,6 +18,7 @@
 #define ALICEO2_MCH_TRACKMCH_H_
 
 #include <TMatrixD.h>
+#include <iosfwd>
 
 #include "CommonDataFormat/RangeReference.h"
 
@@ -33,7 +34,8 @@ class TrackMCH
 
  public:
   TrackMCH() = default;
-  TrackMCH(double z, const TMatrixD& param, const TMatrixD& cov, double chi2, int firstClIdx, int nClusters);
+  TrackMCH(double z, const TMatrixD& param, const TMatrixD& cov, double chi2, int firstClIdx, int nClusters,
+           double zAtMID, const TMatrixD& paramAtMID, const TMatrixD& covAtMID);
   ~TrackMCH() = default;
 
   TrackMCH(const TrackMCH& track) = default;
@@ -67,8 +69,25 @@ class TrackMCH
   const double* getCovariances() const { return mCov; }
   /// get the covariance between track parameters i and j
   double getCovariance(int i, int j) const { return mCov[SCovIdx[i][j]]; }
-  // set the track parameter covariances
-  void setCovariances(const TMatrixD& cov);
+  /// set the track parameter covariances
+  void setCovariances(const TMatrixD& cov) { setCovariances(cov, mCov); }
+
+  /// get the track z position on the MID side where the parameters are evaluated
+  double getZAtMID() const { return mZAtMID; }
+  /// set the track z position on the MID side where the parameters are evaluated
+  void setZAtMID(double z) { mZAtMID = z; }
+
+  /// get the track parameters on the MID side
+  const double* getParametersAtMID() const { return mParamAtMID; }
+  /// set the track parameters on the MID side
+  void setParametersAtMID(const TMatrixD& param) { param.GetMatrix2Array(mParamAtMID); }
+
+  /// get the track parameter covariances on the MID side
+  const double* getCovariancesAtMID() const { return mCovAtMID; }
+  /// get the covariance between track parameters i and j on the MID side
+  double getCovarianceAtMID(int i, int j) const { return mCovAtMID[SCovIdx[i][j]]; }
+  /// set the track parameter covariances on the MID side
+  void setCovariancesAtMID(const TMatrixD& cov) { setCovariances(cov, mCovAtMID); }
 
   /// get the track chi2
   double getChi2() const { return mChi2; }
@@ -98,6 +117,8 @@ class TrackMCH
                                                       {6, 7, 8, 9, 13},
                                                       {10, 11, 12, 13, 14}};
 
+  void setCovariances(const TMatrixD& src, double (&dest)[SCovSize]);
+
   double mZ = 0.;                 ///< z position where the parameters are evaluated
   double mParam[SNParams] = {0.}; ///< 5 parameters: X (cm), SlopeX, Y (cm), SlopeY, q/pYZ ((GeV/c)^-1)
   /// reduced covariance matrix of track parameters, formated as follow: <pre>
@@ -107,11 +128,21 @@ class TrackMCH
   /// [6] = <SlopeY,X>  [7] = <SlopeY,SlopeX>  [8] = <SlopeY,Y>  [9] = <SlopeY,SlopeY>
   /// [10]= <q/pYZ,X>   [11]= <q/pYZ,SlopeX>   [12]= <q/pYZ,Y>   [13]= <q/pYZ,SlopeY>   [14]= <q/pYZ,q/pYZ> </pre>
   double mCov[SCovSize] = {0.};
-  double mChi2 = 0.;  ///< chi2 of track
+
+  double mChi2 = 0.; ///< chi2 of track
+
   ClusRef mClusRef{}; ///< reference to external cluster indices
 
-  ClassDefNV(TrackMCH, 1);
+  double mZAtMID = 0.;                 ///< z position on the MID side where the parameters are evaluated
+  double mParamAtMID[SNParams] = {0.}; ///< 5 parameters: X (cm), SlopeX, Y (cm), SlopeY, q/pYZ ((GeV/c)^-1)
+  double mCovAtMID[SCovSize] = {0.};   ///< reduced covariance matrix of track parameters, formated as above
+
+  ClassDefNV(TrackMCH, 2);
 };
+
+std::ostream& operator<<(std::ostream& os, const TrackMCH& t);
+
+std::string asString(const o2::mch::TrackMCH& t);
 
 } // namespace mch
 } // namespace o2

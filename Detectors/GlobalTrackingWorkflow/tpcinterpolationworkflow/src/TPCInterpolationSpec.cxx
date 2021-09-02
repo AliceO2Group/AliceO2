@@ -18,11 +18,19 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
+#include "DataFormatsTRD/TrackTRD.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "TPCInterpolationWorkflow/TPCInterpolationSpec.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "SpacePoints/SpacePointsCalibParam.h"
 
 using namespace o2::framework;
+using namespace o2::globaltracking;
+using GTrackID = o2::dataformats::GlobalTrackID;
+using DetID = o2::detectors::DetID;
 
 namespace o2
 {
@@ -37,37 +45,81 @@ void TPCInterpolationDPL::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   mInterpolation.init();
+  //mResidualProcessor.init(); // FIXME: add this once the track refits are implemented in the global tracking workflows
 }
 
 void TPCInterpolationDPL::run(ProcessingContext& pc)
 {
+  LOG(INFO) << "TPC Interpolation Workflow initialized. Start processing...";
   mTimer.Start(false);
-  const auto tracksITS = pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS");
-  const auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
-  const auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("match");
-  const auto tracksTPCClRefs = pc.inputs().get<gsl::span<o2::tpc::TPCClRefElem>>("trackTPCClRefs");
-  const auto trackMatchesTOF = pc.inputs().get<gsl::span<o2::dataformats::MatchInfoTOF>>("matchTOF"); // FIXME missing reader
-  const auto clustersTOF = pc.inputs().get<gsl::span<o2::tof::Cluster>>("clustersTOF");
+  RecoContainer recoData;
+  recoData.collectData(pc, *mDataRequest.get());
 
-  const auto& inputsTPCclusters = getWorkflowTPCInput(pc);
+  std::vector<o2::globaltracking::RecoContainer::GlobalIDSet> gidTables;
+  std::vector<o2::track::TrackParCov> seeds;
+  std::vector<float> trkTimes;
+  std::vector<GTrackID> gids;
+  bool processITSTPConly = mProcessITSTPConly; // so that the flag can be used inside the lambda
+  // the creator goes from most complete track (ITS-TPC-TRD-TOF) to least complete one (ITS-TPC)
+  auto creator = [&gidTables, &seeds, &trkTimes, &recoData, &processITSTPConly, &gids](auto& _tr, GTrackID _origID, float t0, float tErr) {
+    if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
+      bool trackGood = true;
+      bool hasOuterPoint = false;
+      auto gidTable = recoData.getSingleDetectorRefs(_origID);
+      if (!gidTable[GTrackID::ITS].isIndexSet() || !gidTable[GTrackID::TPC].isIndexSet()) {
+        // ITS and TPC track is always needed. At this stage ITS afterburner tracks are also rejected
+        return true;
+      }
+      if (gidTable[GTrackID::TRD].isIndexSet() || gidTable[GTrackID::TOF].isIndexSet()) {
+        hasOuterPoint = true;
+      }
+      const auto itstpcTrk = &recoData.getTPCITSTrack(gidTable[GTrackID::ITSTPC]);
+      const auto itsTrk = &recoData.getITSTrack(gidTable[GTrackID::ITS]);
+      const auto tpcTrk = &recoData.getTPCTrack(gidTable[GTrackID::TPC]);
+      // apply track quality cuts
+      if (itsTrk->getChi2() / itsTrk->getNumberOfClusters() > param::MaxITSChi2 || tpcTrk->getChi2() / tpcTrk->getNClusterReferences() > param::MaxTPCChi2) {
+        // reduced chi2 cut is the same for all track types
+        trackGood = false;
+      }
+      if (!hasOuterPoint) {
+        // ITS-TPC track (does not have outer points in TRD or TOF)
+        if (!processITSTPConly) {
+          return true;
+        }
+        if (itsTrk->getNumberOfClusters() < param::MinITSNClsNoOuterPoint || tpcTrk->getNClusterReferences() < param::MinTPCNClsNoOuterPoint) {
+          trackGood = false;
+        }
+      } else {
+        if (itsTrk->getNumberOfClusters() < param::MinITSNCls || tpcTrk->getNClusterReferences() < param::MinTPCNCls) {
+          trackGood = false;
+        }
+      }
+      if (trackGood) {
+        trkTimes.push_back(t0);
+        seeds.emplace_back(itsTrk->getParamOut()); // FIXME: should this not be a refit of the ITS track?
+        gidTables.emplace_back(gidTable);
+        gids.push_back(_origID);
+      }
+      return true;
+    } else {
+      return false;
+    }
+  };
+  recoData.createTracksVariadic(creator); // create track sample considered for interpolation
 
-  // pass input data to TrackInterpolation object
-  mInterpolation.setITSTracksInp(tracksITS);
-  mInterpolation.setTPCTracksInp(tracksTPC);
-  mInterpolation.setTPCTrackClusIdxInp(tracksTPCClRefs);
-  mInterpolation.setTPCClustersInp(&inputsTPCclusters->clusterIndex);
-  mInterpolation.setTOFMatchesInp(trackMatchesTOF);
-  mInterpolation.setITSTPCTrackMatchesInp(tracksITSTPC);
-  mInterpolation.setTOFClustersInp(clustersTOF);
+  LOG(INFO) << "Created " << seeds.size() << " seeds.";
 
   if (mUseMC) {
     // possibly MC labels will be used to check filtering procedure performance before interpolation
     // not yet implemented
   }
 
-  LOG(INFO) << "TPC Interpolation Workflow initialized. Start processing...";
-
-  mInterpolation.process();
+  mInterpolation.process(recoData, gids, gidTables, seeds, trkTimes);
+  mTimer.Stop();
+  LOGF(INFO, "TPC insterpolation timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
+  mTimer.Start(0);
+  //mResidualProcessor.setInputData(mInterpolation.getReferenceTracks(), mInterpolation.getClusterResiduals());
+  //mResidualProcessor.convertToLocalResiduals(); // FIXME this will create one output file per TPC sector with local residuals. TODO Add filtering of residuals
 
   pc.outputs().snapshot(Output{"GLO", "TPCINT_TRK", 0, Lifetime::Timeframe}, mInterpolation.getReferenceTracks());
   pc.outputs().snapshot(Output{"GLO", "TPCINT_RES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResiduals());
@@ -80,33 +132,26 @@ void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCInterpolationSpec(bool useMC)
+DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool processITSTPConly)
 {
-  std::vector<InputSpec> inputs;
+  auto dataRequest = std::make_shared<DataRequest>();
   std::vector<OutputSpec> outputs;
-
-  inputs.emplace_back("trackITS", "ITS", "TRACKS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackTPCClRefs", "TPC", "CLUSREFS", 0, Lifetime::Timeframe);
-
-  inputs.emplace_back("clusTPC", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe);
-
-  inputs.emplace_back("match", "GLO", "TPCITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("matchTOF", "TOF", "MATCHINFOS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("clustersTOF", "TOF", "CLUSTERS", 0, Lifetime::Timeframe);
 
   if (useMC) {
     LOG(FATAL) << "MC usage must be disabled for this workflow, since it is not yet implemented";
   }
+
+  dataRequest->requestTracks(src, useMC);
+  dataRequest->requestClusters(src, useMC);
 
   outputs.emplace_back("GLO", "TPCINT_TRK", 0, Lifetime::Timeframe);
   outputs.emplace_back("GLO", "TPCINT_RES", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "tpc-track-interpolation",
-    inputs,
+    dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(useMC)},
+    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, useMC, processITSTPConly)},
     Options{}};
 }
 

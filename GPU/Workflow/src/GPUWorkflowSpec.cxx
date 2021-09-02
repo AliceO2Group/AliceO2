@@ -38,6 +38,7 @@
 #include "TPCFastTransform.h"
 #include "TPCdEdxCalibrationSplines.h"
 #include "DPLUtils/DPLRawParser.h"
+#include "DPLUtils/DPLRawPageSequencer.h"
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -412,51 +413,19 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
       if (specconfig.zsDecoder) {
         std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
-        for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
-          const DataHeader* dh = DataRefUtils::getHeader<DataHeader*>(ref);
-          if (dh->payloadSize == 0 && dh->subSpecification == 0xDEADBEEF) {
-            LOG(INFO) << "Received 0xDEADBEEF message with no RAW input, performing dummy processing on emtpry input data";
-            continue; // Dummy message inserted if there is no input, just ignore
-          }
-          const gsl::span<const char> raw = pc.inputs().get<gsl::span<char>>(ref);
-          o2::framework::RawParser parser(raw.data(), raw.size());
+        auto isSameRdh = [](const char* left, const char* right) -> bool {
+          return o2::raw::RDHUtils::getFEEID(left) == o2::raw::RDHUtils::getFEEID(right);
+        };
+        auto insertPages = [&tpcZSmetaPointers, &tpcZSmetaSizes](const char* ptr, size_t count) -> void {
+          int rawcru = rdh_utils::getCRU(ptr);
+          int rawendpoint = rdh_utils::getEndPoint(ptr);
+          tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
+          tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
+        };
+        // the sequencer processes all inputs matching the filter and finds sequences of consecutive
+        // raw pages based on the matcher predicate, and calls the inserter for each sequence
+        DPLRawPageSequencer(pc.inputs(), filter)(isSameRdh, insertPages);
 
-          const unsigned char* ptr = nullptr;
-          int count = 0;
-          rdh_utils::FEEIDType lastFEE = -1;
-          int rawcru = 0;
-          int rawendpoint = 0;
-          size_t totalSize = 0;
-          for (auto it = parser.begin(); it != parser.end(); it++) {
-            const unsigned char* current = it.raw();
-            const RAWDataHeader* rdh = (const RAWDataHeader*)current;
-            if (current == nullptr || it.size() == 0 || (current - ptr) % TPCZSHDR::TPC_ZS_PAGE_SIZE || o2::raw::RDHUtils::getFEEID(*rdh) != lastFEE) {
-              if (count) {
-                tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
-                tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
-              }
-              count = 0;
-              lastFEE = o2::raw::RDHUtils::getFEEID(*rdh);
-              rawcru = o2::raw::RDHUtils::getCRUID(*rdh);
-              rawendpoint = o2::raw::RDHUtils::getEndPointID(*rdh);
-              //lastFEE = int(rdh->feeId);
-              //rawcru = int(rdh->cruID);
-              //rawendpoint = int(rdh->endPointID);
-              if (it.size() == 0 && tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].size()) {
-                ptr = nullptr;
-                continue;
-              }
-              ptr = current;
-            } else if (ptr == nullptr) {
-              ptr = current;
-            }
-            count++;
-          }
-          if (count) {
-            tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
-            tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
-          }
-        }
         int totalCount = 0;
         for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
           for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
@@ -468,22 +437,6 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
             totalCount += tpcZSmetaPointers[i][j].size();
           }
         }
-        /*DPLRawParser parser(pc.inputs(), filter);
-        for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-          // retrieving RDH v4
-          auto const* rdh = it.get_if<RAWDataHeaderV4>();
-          // retrieving the raw pointer of the page
-          auto const* raw = it.raw();
-          // retrieving payload pointer of the page
-          auto const* payload = it.data();
-          // size of payload
-          size_t payloadSize = it.size();
-          // offset of payload in the raw page
-          size_t offset = it.offset();
-          const auto* dh = it.o2DataHeader();
-          unsigned long subspec = dh->subSpecification;
-          printf("Test: rdh %p, raw %p, payload %p, payloadSize %lld, offset %lld, %s %s %lld\n", rdh, raw, payload, (long long int)payloadSize, (long long int)offset, dh->dataOrigin.as<std::string>().c_str(), dh->dataDescription.as<std::string>().c_str(), (long long int)dh->subSpecification);
-        }*/
       } else if (specconfig.decompressTPC) {
         if (specconfig.decompressTPCFromROOT) {
           compClustersDummy = *pc.inputs().get<CompressedClustersROOT*>("input");
@@ -631,7 +584,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         outputRegions.clusterLabels.allocator = [&clustersMCBuffer](size_t size) -> void* { return &clustersMCBuffer; };
       }
 
-      const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
+      const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
       processAttributes->tfSettings.tfStartOrbit = dh->firstTForbit;
       processAttributes->tfSettings.hasTfStartOrbit = 1;
       ptrs.settingsTF = &processAttributes->tfSettings;

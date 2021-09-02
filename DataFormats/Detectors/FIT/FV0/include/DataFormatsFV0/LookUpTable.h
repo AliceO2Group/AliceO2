@@ -20,6 +20,7 @@
 // Look Up Table FV0
 //////////////////////////////////////////////
 
+#include "DataFormatsFIT/LookUpTable.h"
 #include <Rtypes.h>
 #include <cassert>
 #include <iostream>
@@ -110,7 +111,8 @@ class LookUpTable
 
   ClassDefNV(LookUpTable, 1);
 };
-
+namespace deprecated
+{
 //Singleton for LookUpTable
 class SingleLUT : public LookUpTable
 {
@@ -192,6 +194,44 @@ class SingleLUT : public LookUpTable
     return mapResult;
   }
 };
+} //namespace deprecated
+
+namespace new_lut
+{
+//Singleton for LookUpTable
+template <typename LUT>
+class SingleLUT : public LUT
+{
+ private:
+  SingleLUT(const std::string& ccdbPath, const std::string& ccdbPathToLUT) : LUT(ccdbPath, ccdbPathToLUT) {}
+  SingleLUT(const std::string& pathToFile) : LUT(pathToFile) {}
+  SingleLUT(const SingleLUT&) = delete;
+  SingleLUT& operator=(SingleLUT&) = delete;
+
+ public:
+  static constexpr char sDetectorName[] = "FV0";
+  static SingleLUT& Instance()
+  {
+    static SingleLUT instanceLUT("http://ccdb-test.cern.ch:8080/", "FV0/LookUpTable");
+    return instanceLUT;
+  }
+  static SingleLUT& InstanceCCDB(const std::string& urlCCDB, const std::string& pathToStorageInCCDB)
+  {
+    static SingleLUT instanceLUT(urlCCDB, pathToStorageInCCDB);
+    return instanceLUT;
+  }
+
+  static SingleLUT& InstanceFile(const std::string& pathToFile)
+  {
+    static SingleLUT instanceLUT(pathToFile);
+    return instanceLUT;
+  }
+};
+} //namespace new_lut
+
+using SingleLUT = new_lut::SingleLUT<o2::fit::LookupTableBase<>>;
+//using SingleLUT = deprecated::SingleLUT;
+
 } // namespace fv0
 } // namespace o2
 #endif

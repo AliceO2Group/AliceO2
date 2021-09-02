@@ -26,11 +26,10 @@
   */
 
 #ifndef EVENTVERTEX_H
-#define EventVertex_H
+#define EVENTVERTEX_H
 
 #include "Align/AlignableSensor.h"
-// class AliTrackPointArray; FIXME(milettri): needs AliTrackPointArray
-//class AliESDtrack; FIXME(milettri): needs AliESDtrack
+
 class AlignmentPoint;
 
 namespace o2
@@ -38,10 +37,13 @@ namespace o2
 namespace align
 {
 
+class Controller;
+
 class EventVertex : public AlignableSensor
 {
  public:
-  EventVertex();
+  EventVertex() = default;
+  EventVertex(Controller* ctr);
   //
   void applyCorrection(double* vtx) const;
   bool isSensor() const final { return true; }

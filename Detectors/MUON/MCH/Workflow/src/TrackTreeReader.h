@@ -15,7 +15,10 @@
 #include "MCHBase/ClusterBlock.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/ROFRecord.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include <TTreeReader.h>
+#include <memory>
 #include <vector>
 
 namespace o2::mch
@@ -28,13 +31,17 @@ class TrackTreeReader
 
   bool next(ROFRecord& rof,
             std::vector<TrackMCH>& tracks,
-            std::vector<ClusterStruct>& clusters);
+            std::vector<ClusterStruct>& clusters,
+            o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels);
+
+  bool hasLabels() { return mLabels.get() != nullptr; }
 
  private:
   TTreeReader mTreeReader;
   TTreeReaderValue<std::vector<o2::mch::TrackMCH>> mTracks = {mTreeReader, "tracks"};
   TTreeReaderValue<std::vector<o2::mch::ROFRecord>> mRofs = {mTreeReader, "trackrofs"};
   TTreeReaderValue<std::vector<o2::mch::ClusterStruct>> mClusters = {mTreeReader, "trackclusters"};
+  std::unique_ptr<TTreeReaderValue<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>> mLabels{};
   size_t mCurrentRof;
 };
 } // namespace o2::mch

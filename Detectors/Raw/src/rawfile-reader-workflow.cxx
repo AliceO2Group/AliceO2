@@ -31,7 +31,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"delay", VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
   options.push_back(ConfigParamSpec{"buffer-size", VariantType::Int64, 5 * 1024L, {"buffer size for files preprocessing"}});
   options.push_back(ConfigParamSpec{"super-page-size", VariantType::Int64, 1024L * 1024L, {"super-page size for FMQ parts definition"}});
-  options.push_back(ConfigParamSpec{"part-per-hbf", VariantType::Bool, false, {"FMQ parts per superpage (default) of HBF"}});
+  options.push_back(ConfigParamSpec{"part-per-sp", VariantType::Bool, false, {"FMQ parts per superpage instead of per HBF"}});
   options.push_back(ConfigParamSpec{"raw-channel-config", VariantType::String, "", {"optional raw FMQ channel for non-DPL output"}});
   options.push_back(ConfigParamSpec{"cache-data", VariantType::Bool, false, {"cache data at 1st reading, may require excessive memory!!!"}});
   options.push_back(ConfigParamSpec{"detect-tf0", VariantType::Bool, false, {"autodetect HBFUtils start Orbit/BC from 1st TF seen"}});
@@ -60,7 +60,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   rinp.minTF = uint32_t(configcontext.options().get<int64_t>("min-tf"));
   rinp.bufferSize = uint64_t(configcontext.options().get<int64_t>("buffer-size"));
   rinp.spSize = uint64_t(configcontext.options().get<int64_t>("super-page-size"));
-  rinp.partPerSP = !configcontext.options().get<bool>("part-per-hbf");
+  rinp.partPerSP = configcontext.options().get<bool>("part-per-sp");
   rinp.cache = configcontext.options().get<bool>("cache-data");
   rinp.autodetectTF0 = configcontext.options().get<bool>("detect-tf0");
   rinp.preferCalcTF = configcontext.options().get<bool>("calculate-tf-start");

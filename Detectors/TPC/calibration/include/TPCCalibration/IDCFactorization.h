@@ -208,7 +208,8 @@ class IDCFactorization : public IDCGroupHelperSector
   void dumpToFile(const char* outFileName = "IDCFactorized.root", const char* outName = "IDCFactorized") const;
 
   /// \param integrationIntervals number of integration intervals which will be dumped to the tree (-1: all integration intervalls)
-  void dumpToTree(int integrationIntervals = -1) const;
+  /// \param outFileName name of the output file
+  void dumpToTree(int integrationIntervals = -1, const char* outFileName = "IDCTree.root") const;
 
   /// \returns vector containing the number of integration intervals for each stored TF
   std::vector<unsigned int> getIntegrationIntervalsPerTF(const unsigned int region = 0) const;

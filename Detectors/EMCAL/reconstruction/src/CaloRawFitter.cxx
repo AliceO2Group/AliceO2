@@ -11,17 +11,16 @@
 
 /// \file CaloRawFitter.cxx
 /// \author Hadi Hassan (hadi.hassan@cern.ch)
-
-#include "FairLogger.h"
+#include <numeric>
 #include <gsl/span>
 
 // ROOT sytem
 #include "TMath.h"
 
+#include "FairLogger.h"
+#include "DataFormatsEMCAL/Constants.h"
 #include "EMCALReconstruction/Bunch.h"
 #include "EMCALReconstruction/CaloFitResults.h"
-#include "DataFormatsEMCAL/Constants.h"
-
 #include "EMCALReconstruction/CaloRawFitter.h"
 
 using namespace o2::emcal;
@@ -37,6 +36,8 @@ std::string CaloRawFitter::createErrorMessage(CaloRawFitter::RawFitterError_t er
       return "Chi2 of the fit could not be determined";
     case RawFitterError_t::BUNCH_NOT_OK:
       return "Calo bunch could not be selected";
+    case RawFitterError_t::LOW_SIGNAL:
+      return "No ADC value above threshold found";
   };
   // Silence compiler warnings for false positives
   // can never enter here due to usage of enum class
@@ -54,6 +55,8 @@ int CaloRawFitter::getErrorNumber(CaloRawFitter::RawFitterError_t fiterror)
       return 2;
     case RawFitterError_t::BUNCH_NOT_OK:
       return 3;
+    case RawFitterError_t::LOW_SIGNAL:
+      return 4;
   };
   // Silence compiler warnings for false positives
   // can never enter here due to usage of enum class
@@ -85,41 +88,41 @@ void CaloRawFitter::setTimeConstraint(int min, int max)
   }
 }
 
-unsigned short CaloRawFitter::maxAmp(const gsl::span<unsigned short> data) const
+unsigned short CaloRawFitter::getMaxAmplitudeBunch(const gsl::span<unsigned short> data) const
 {
   return *std::max_element(data.begin(), data.end());
 }
 
-std::tuple<int, int> CaloRawFitter::selectSubarray(const gsl::span<double> data, short maxindex, int cut) const
+std::tuple<int, int> CaloRawFitter::findPeakRegion(const gsl::span<double> adcValues, short indexMaxADC, int threshold) const
 {
 
   int first(0), last(0);
-  int tmpfirst = maxindex;
-  int tmplast = maxindex;
-  double prevFirst = data[maxindex];
-  double prevLast = data[maxindex];
+  int tmpfirst = indexMaxADC;
+  int tmplast = indexMaxADC;
+  double prevFirst = adcValues[indexMaxADC];
+  double prevLast = adcValues[indexMaxADC];
   bool firstJump = false;
   bool lastJump = false;
 
-  while ((tmpfirst >= 0) && (data[tmpfirst] >= cut) && (!firstJump)) {
+  while ((tmpfirst >= 0) && (adcValues[tmpfirst] >= threshold) && (!firstJump)) {
     // jump check:
-    if (tmpfirst != maxindex) { // neighbor to maxindex can share peak with maxindex
-      if (data[tmpfirst] >= prevFirst) {
+    if (tmpfirst != indexMaxADC) { // neighbor to maxindex can share peak with maxindex
+      if (adcValues[tmpfirst] >= prevFirst) {
         firstJump = true;
       }
     }
-    prevFirst = data[tmpfirst];
+    prevFirst = adcValues[tmpfirst];
     tmpfirst--;
   }
 
-  while ((tmplast < data.size()) && (data[tmplast] >= cut) && (!lastJump)) {
+  while ((tmplast < adcValues.size()) && (adcValues[tmplast] >= threshold) && (!lastJump)) {
     // jump check:
-    if (tmplast != maxindex) { // neighbor to maxindex can share peak with maxindex
-      if (data[tmplast] >= prevLast) {
+    if (tmplast != indexMaxADC) { // neighbor to maxindex can share peak with maxindex
+      if (adcValues[tmplast] >= prevLast) {
         lastJump = true;
       }
     }
-    prevLast = data[tmplast];
+    prevLast = adcValues[tmplast];
     tmplast++;
   }
 
@@ -128,7 +131,7 @@ std::tuple<int, int> CaloRawFitter::selectSubarray(const gsl::span<double> data,
   if (firstJump || tmpfirst < 0) {
     tmpfirst++;
   }
-  if (lastJump || tmplast >= data.size()) {
+  if (lastJump || tmplast >= adcValues.size()) {
     tmplast--;
   }
 
@@ -138,14 +141,13 @@ std::tuple<int, int> CaloRawFitter::selectSubarray(const gsl::span<double> data,
   return std::make_tuple(first, last);
 }
 
-std::tuple<float, std::array<double, constants::EMCAL_MAXTIMEBINS>> CaloRawFitter::reverseAndSubtractPed(const Bunch& bunch,
-                                                                                                         std::optional<unsigned int> altrocfg1, std::optional<unsigned int> altrocfg2) const
+std::tuple<float, std::array<double, constants::EMCAL_MAXTIMEBINS>> CaloRawFitter::reverseAndSubtractPed(const Bunch& bunch) const
 {
   std::array<double, constants::EMCAL_MAXTIMEBINS> outarray;
   int length = bunch.getBunchLength();
   const gsl::span<const uint16_t> sig(bunch.getADC());
 
-  double ped = evaluatePedestal(sig, length);
+  double ped = mIsZerosupressed ? 0. : evaluatePedestal(sig, length);
 
   for (int i = 0; i < length; i++) {
     outarray[i] = sig[length - i - 1] - ped;
@@ -154,99 +156,84 @@ std::tuple<float, std::array<double, constants::EMCAL_MAXTIMEBINS>> CaloRawFitte
   return std::make_tuple(ped, outarray);
 }
 
-float CaloRawFitter::evaluatePedestal(const gsl::span<const uint16_t> data, std::optional<int> length) const
+double CaloRawFitter::evaluatePedestal(const gsl::span<const uint16_t> data, std::optional<int> length) const
 {
   if (!mNsamplePed) {
     throw RawFitterError_t::SAMPLE_UNINITIALIZED;
   }
-  double tmp = 0;
-
-  if (mIsZerosupressed == false) {
-    for (int i = 0; i < mNsamplePed; i++) {
-      tmp += data[i];
-    }
-  }
-
-  return tmp / mNsamplePed;
+  return static_cast<double>(std::accumulate(data.begin(), data.begin() + mNsamplePed, 0)) / mNsamplePed;
 }
 
-short CaloRawFitter::maxAmp(const Bunch& bunch, int& maxindex) const
+std::tuple<short, int> CaloRawFitter::getMaxAmplitudeBunch(const Bunch& bunch) const
 {
-  short tmpmax = -1;
-  int tmpindex = -1;
+  short maxADC = -1;
+  int maxIndex = -1;
   const std::vector<uint16_t>& sig = bunch.getADC();
 
   for (int i = 0; i < bunch.getBunchLength(); i++) {
-    if (sig[i] > tmpmax) {
-      tmpmax = sig[i];
-      tmpindex = i;
+    if (sig[i] > maxADC) {
+      maxADC = sig[i];
+      maxIndex = i;
     }
   }
 
-  if (maxindex != 0) {
-    maxindex = bunch.getBunchLength() - 1 - tmpindex + bunch.getStartTime();
-  }
-
-  return tmpmax;
+  return std::make_tuple(maxADC, bunch.getBunchLength() - 1 - maxIndex + bunch.getStartTime());
 }
 
-bool CaloRawFitter::checkBunchEdgesForMax(const Bunch& bunch) const
+bool CaloRawFitter::isMaxADCBunchEdge(const Bunch& bunch) const
 {
-  short tmpmax = -1;
-  int tmpindex = -1;
+  short maxADC = -1;
+  int indexMax = -1;
   const std::vector<uint16_t>& sig = bunch.getADC();
 
   for (int i = 0; i < bunch.getBunchLength(); i++) {
-    if (sig[i] > tmpmax) {
-      tmpmax = sig[i];
-      tmpindex = i;
+    if (sig[i] > maxADC) {
+      maxADC = sig[i];
+      indexMax = i;
     }
   }
 
-  bool bunchOK = true;
-  if (tmpindex == 0 || tmpindex == (bunch.getBunchLength() - 1)) {
-    bunchOK = false;
+  bool isBunchEdge = false;
+  if (indexMax == 0 || indexMax == (bunch.getBunchLength() - 1)) {
+    isBunchEdge = true;
   }
 
-  return bunchOK;
+  return isBunchEdge;
 }
 
-std::tuple<short, short, short> CaloRawFitter::selectBunch(const gsl::span<const Bunch>& bunchvector)
+std::tuple<short, short, short> CaloRawFitter::selectMaximumBunch(const gsl::span<const Bunch>& bunchvector)
 {
   short bunchindex = -1;
-  short maxall = -1;
-  int indx = -1;
-  short maxampbin(0), maxamplitude(0);
+  short indexMaxInBunch(0), maxADCallBunches(-1);
 
   for (unsigned int i = 0; i < bunchvector.size(); i++) {
-    short max = maxAmp(bunchvector[i], indx); // CRAP PTH, bug fix, trouble if more than one bunches
-    if (isInTimeRange(indx, mMaxTimeIndex, mMinTimeIndex)) {
-      if (max > maxall) {
-        maxall = max;
+    auto [maxADC, maxIndex] = getMaxAmplitudeBunch(bunchvector[i]); // CRAP PTH, bug fix, trouble if more than one bunches
+    if (isInTimeRange(maxIndex, mMaxTimeIndex, mMinTimeIndex)) {
+      if (maxADC > maxADCallBunches) {
         bunchindex = i;
-        maxampbin = indx;
-        maxamplitude = max;
+        indexMaxInBunch = maxIndex;
+        maxADCallBunches = maxADC;
       }
     }
   }
 
   if (bunchindex >= 0) {
-    bool bunchOK = checkBunchEdgesForMax(bunchvector[bunchindex]);
-    if (!bunchOK) {
+    // reject bunch if the max. ADC value is at the edges of a bunch
+    if (isMaxADCBunchEdge(bunchvector[bunchindex])) {
       throw RawFitterError_t::BUNCH_NOT_OK;
     }
   }
 
-  return std::make_tuple(bunchindex, maxampbin, maxamplitude);
+  return std::make_tuple(bunchindex, indexMaxInBunch, maxADCallBunches);
 }
 
-bool CaloRawFitter::isInTimeRange(int maxindex, int maxtindx, int mintindx) const
+bool CaloRawFitter::isInTimeRange(int indexMaxADC, int maxtime, int mintime) const
 {
-  if ((mintindx < 0 && maxtindx < 0) || maxtindx < 0) {
+  if ((mintime < 0 && maxtime < 0) || maxtime < 0) {
     return true;
   }
 
-  return (maxindex < maxtindx) && (maxindex > mintindx) ? true : false;
+  return (indexMaxADC < maxtime) && (indexMaxADC > mintime) ? true : false;
 }
 
 double CaloRawFitter::calculateChi2(double amp, double time,
@@ -281,50 +268,61 @@ double CaloRawFitter::calculateChi2(double amp, double time,
 
   return chi2;
 }
-std::tuple<int, int, float, short, short, float, int, int> CaloRawFitter::preFitEvaluateSamples(const gsl::span<const Bunch> bunchvector,
-                                                                                                std::optional<unsigned int> altrocfg1, std::optional<unsigned int> altrocfg2, int acut)
+std::tuple<int, int, float, short, short, float, int, int> CaloRawFitter::preFitEvaluateSamples(const gsl::span<const Bunch> bunchvector, int adcThreshold)
 {
 
-  float maxf(0), ped(0);
-  int nsamples(0), first(0), last(0);
-  short maxrev(0);
+  int nsamples(0), first(0), last(0), indexMaxADCRReveresed(0);
+  double peakADC(0.), pedestal(0.);
+
+  // Reset buffer for reversed bunch, no matter whether the bunch could be selected or not
+  mReversed.fill(0);
 
   // select the bunch with the highest amplitude unless any time constraints is set
-  auto [index, maxampindex, maxamp] = selectBunch(bunchvector);
+  auto [bunchindex, indexMaxADC, adcMAX] = selectMaximumBunch(bunchvector);
 
   // something valid was found, and non-zero amplitude
-  if (index >= 0 && maxamp >= acut) {
-    // use more convenient numbering and possibly subtract pedestal
+  if (bunchindex >= 0) {
+    if (adcMAX >= adcThreshold) {
+      // use more convenient numbering and possibly subtract pedestal
 
-    //std::tie(ped, mReversed) = reverseAndSubtractPed((bunchvector.at(index)), altrocfg1, altrocfg2);
-    //maxf = (float)*std::max_element(mReversed.begin(), mReversed.end());
+      //std::tie(ped, mReversed) = reverseAndSubtractPed((bunchvector.at(index)), altrocfg1, altrocfg2);
+      //maxf = (float)*std::max_element(mReversed.begin(), mReversed.end());
 
-    int length = bunchvector[index].getBunchLength();
-    const std::vector<uint16_t>& sig = bunchvector[index].getADC();
+      int bunchlength = bunchvector[bunchindex].getBunchLength();
+      const std::vector<uint16_t>& sig = bunchvector[bunchindex].getADC();
 
-    ped = evaluatePedestal(sig, length);
-
-    for (int i = 0; i < length; i++) {
-      mReversed[i] = sig[length - i - 1] - ped;
-      if (maxf < mReversed[i]) {
-        maxf = mReversed[i];
+      if (!mIsZerosupressed) {
+        pedestal = evaluatePedestal(sig, bunchlength);
       }
-    }
 
-    if (maxf >= acut) // possibly significant signal
-    {
-      // select array around max to possibly be used in fit
-      maxrev = maxampindex - bunchvector[index].getStartTime();
-      std::tie(first, last) = selectSubarray(gsl::span<double>(&mReversed[0], bunchvector[index].getBunchLength()), maxrev, acut);
-
-      // sanity check: maximum should not be in first or last bin
-      // if we should do a fit
-      if (first != maxrev && last != maxrev) {
-        // calculate how many samples we have
-        nsamples = last - first + 1;
+      int testindexReverse = -1;
+      for (int i = 0; i < bunchlength; i++) {
+        mReversed[i] = sig[bunchlength - i - 1] - pedestal;
+        if (mReversed[i] > peakADC) {
+          peakADC = mReversed[i];
+          testindexReverse = i;
+        }
       }
+
+      if (peakADC >= adcThreshold) // possibly significant signal
+      {
+        // select array around max to possibly be used in fit
+        indexMaxADCRReveresed = indexMaxADC - bunchvector[bunchindex].getStartTime();
+        std::tie(first, last) = findPeakRegion(gsl::span<double>(&mReversed[0], bunchvector[bunchindex].getBunchLength()), indexMaxADCRReveresed, adcThreshold);
+
+        // sanity check: maximum should not be in first or last bin
+        // if we should do a fit
+        if (first != indexMaxADCRReveresed && last != indexMaxADCRReveresed) {
+          // calculate how many samples we have
+          nsamples = last - first + 1;
+        }
+      }
+    } else {
+      throw RawFitterError_t::LOW_SIGNAL;
     }
+  } else {
+    throw RawFitterError_t::BUNCH_NOT_OK;
   }
 
-  return std::make_tuple(nsamples, index, maxf, maxamp, maxrev, ped, first, last);
+  return std::make_tuple(nsamples, bunchindex, peakADC, adcMAX, indexMaxADCRReveresed, pedestal, first, last);
 }

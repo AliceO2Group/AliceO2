@@ -16,7 +16,7 @@
 #include <functional>
 #include <arrow/buffer.h>
 
-class FairMQMessage;
+#include <fairmq/FwdDecls.h>
 
 namespace o2
 {

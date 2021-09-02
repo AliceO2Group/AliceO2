@@ -92,7 +92,7 @@ class Geometry
   /// and continues clockwise one ring at a time.
   /// \param  fMC The virtual Monte Carlo interface.
   /// \return The ID of the current scintillator cell during simulation.
-  const int getCurrentCellId(const TVirtualMC* fMC) const;
+  int getCurrentCellId(const TVirtualMC* fMC) const;
 
   /// Get the names of all the sensitive volumes of the geometry.
   /// \return The names of all the sensitive volumes of the geometry.
@@ -103,7 +103,7 @@ class Geometry
   /// \param  component   The geometry component to be enabled/disabled.
   /// \param  enable      Setting the enabled state. Default is true.
   /// \return The enabled state of the geometry component.
-  const bool enableComponent(EGeoComponent component, bool enable = true);
+  bool enableComponent(EGeoComponent component, bool enable = true);
 
   /// Build the geometry.
   void buildGeometry() const;

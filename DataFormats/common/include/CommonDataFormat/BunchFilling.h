@@ -39,6 +39,9 @@ class BunchFilling
     setBCTrains(12, 96, 48, 2, 0);
   }
 
+  // merge this bunch filling with other
+  void mergeWith(o2::BunchFilling const& other);
+
   static BunchFilling* loadFrom(const std::string& fileName, const std::string& objName = "");
 
  private:

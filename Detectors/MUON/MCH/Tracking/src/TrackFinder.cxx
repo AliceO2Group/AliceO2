@@ -786,7 +786,7 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
 
   // add MCS effects in that chamber before going further with this track or stop here if the track could not reach that chamber
   if (itTrack->areCurrentParamValid()) {
-    TrackExtrap::addMCSEffect(&(itTrack->getCurrentParam()), SChamberThicknessInX0[chamber], -1.);
+    TrackExtrap::addMCSEffect(itTrack->getCurrentParam(), SChamberThicknessInX0[chamber], -1.);
   } else {
     return itFirstNewTrack;
   }
@@ -871,7 +871,7 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
 
   // extrapolate the candidate to the chamber if not already there
   TrackParam paramAtChamber = itTrack->getCurrentParam();
-  if (itTrack->getCurrentChamber() != chamber && !TrackExtrap::extrapToZCov(&paramAtChamber, SDefaultChamberZ[chamber], true)) {
+  if (itTrack->getCurrentChamber() != chamber && !TrackExtrap::extrapToZCov(paramAtChamber, SDefaultChamberZ[chamber], true)) {
     itTrack->invalidateCurrentParam();
     return mTracks.end();
   }
@@ -922,7 +922,7 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
       // save the current parameters at cluster1, reset the propagator and add MCS effects before going to plane2
       currentParamAtCluster1 = paramAtCluster1;
       currentParamAtCluster1.resetPropagator();
-      TrackExtrap::addMCSEffect(&currentParamAtCluster1, SChamberThicknessInX0[chamber], -1.);
+      TrackExtrap::addMCSEffect(currentParamAtCluster1, SChamberThicknessInX0[chamber], -1.);
 
       // loop over all DEs of plane2
       bool cluster2Found(false);
@@ -1395,7 +1395,7 @@ void TrackFinder::setCurrentParam(Track& track, const TrackParam& param, int cha
   if (param.getClusterPtr()) {
     TrackParam& currentParam = track.getCurrentParam();
     currentParam.resetPropagator();
-    TrackExtrap::addMCSEffect(&currentParam, SChamberThicknessInX0[chamber], -1.);
+    TrackExtrap::addMCSEffect(currentParam, SChamberThicknessInX0[chamber], -1.);
   }
 }
 
@@ -1412,12 +1412,12 @@ bool TrackFinder::propagateCurrentParam(Track& track, int chamber)
 
     currentChamber += (chamber < currentChamber) ? -1 : 1;
 
-    if (!TrackExtrap::extrapToZCov(&currentParam, SDefaultChamberZ[currentChamber], true)) {
+    if (!TrackExtrap::extrapToZCov(currentParam, SDefaultChamberZ[currentChamber], true)) {
       track.invalidateCurrentParam();
       return false;
     }
 
-    TrackExtrap::addMCSEffect(&currentParam, SChamberThicknessInX0[currentChamber], -1.);
+    TrackExtrap::addMCSEffect(currentParam, SChamberThicknessInX0[currentChamber], -1.);
   }
 
   return true;
@@ -1553,7 +1553,7 @@ double TrackFinder::tryOneCluster(const TrackParam& param, const Cluster& cluste
   // Extrapolate the track parameters and covariances at the z position of the cluster
   paramAtCluster = param;
   paramAtCluster.setClusterPtr(&cluster);
-  if (!TrackExtrap::extrapToZCov(&paramAtCluster, cluster.getZ(), true)) {
+  if (!TrackExtrap::extrapToZCov(paramAtCluster, cluster.getZ(), true)) {
     return mTrackFitter.getMaxChi2();
   }
 

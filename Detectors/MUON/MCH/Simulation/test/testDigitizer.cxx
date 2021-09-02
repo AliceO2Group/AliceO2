@@ -142,18 +142,6 @@ BOOST_AUTO_TEST_CASE(DigitizerTest)
   BOOST_TEST(digitcounter2 < 10);
 }
 
-const std::vector<IR> testIRs = {
-  /* bc, orbit */
-  {123, 0},
-  {125, 0},
-  {125, 0},
-  {125, 1},
-  {130, 1},
-  {134, 1},
-  {135, 1},
-  {137, 1},
-};
-
 bool isSame(const std::map<IR, std::vector<int>>& result,
             const std::map<IR, std::vector<int>>& expected)
 {
@@ -181,6 +169,32 @@ bool isSame(const std::map<IR, std::vector<int>>& result,
   return false;
 }
 
+const std::vector<IR> testIRs = {
+  /* bc, orbit */
+  {123, 0},
+  {125, 0},
+  {125, 0},
+  {125, 1},
+  {130, 1},
+  {134, 1},
+  {135, 1},
+  {137, 1},
+};
+
+BOOST_AUTO_TEST_CASE(GroupIRMustBeAlignedOn4BCMarks)
+{
+  std::map<IR, std::vector<int>> expected;
+  expected[IR{120, 0}] = {0};
+  expected[IR{124, 0}] = {1, 2};
+  expected[IR{124, 1}] = {3};
+  expected[IR{128, 1}] = {4};
+  expected[IR{132, 1}] = {5, 6};
+  expected[IR{136, 1}] = {7};
+
+  auto g = groupIR(testIRs, 4);
+  BOOST_CHECK_EQUAL(isSame(g, expected), true);
+}
+
 BOOST_AUTO_TEST_CASE(GroupIRMustThrowOnNonSortedRecords)
 {
   const std::vector<IR> notSorted = {
@@ -188,6 +202,11 @@ BOOST_AUTO_TEST_CASE(GroupIRMustThrowOnNonSortedRecords)
     {123, 0},
   };
   BOOST_CHECK_THROW(groupIR(notSorted), std::invalid_argument);
+}
+
+BOOST_AUTO_TEST_CASE(GroupIRInvalidWidthMustThrow)
+{
+  BOOST_CHECK_THROW(groupIR(testIRs, 0), std::invalid_argument);
 }
 
 BOOST_AUTO_TEST_CASE(IdenticalIRsShouldBeMerged)
@@ -201,17 +220,19 @@ BOOST_AUTO_TEST_CASE(IdenticalIRsShouldBeMerged)
   expected[IR{135, 1}] = {6};
   expected[IR{137, 1}] = {7};
 
-  auto g = groupIR(testIRs, 0);
+  auto g = groupIR(testIRs, 1);
   BOOST_CHECK_EQUAL(isSame(g, expected), true);
 }
 
 BOOST_AUTO_TEST_CASE(IRSeparatedByLessThan4BCShouldBeMerged)
 {
   std::map<IR, std::vector<int>> expected;
-  expected[IR{123, 0}] = {0, 1, 2};
-  expected[IR{125, 1}] = {3};
-  expected[IR{130, 1}] = {4};
-  expected[IR{134, 1}] = {5, 6, 7};
+  expected[IR{120, 0}] = {0};
+  expected[IR{124, 0}] = {1, 2};
+  expected[IR{124, 1}] = {3};
+  expected[IR{128, 1}] = {4};
+  expected[IR{132, 1}] = {5, 6};
+  expected[IR{136, 1}] = {7};
 
   auto g = groupIR(testIRs, 4);
   BOOST_CHECK_EQUAL(isSame(g, expected), true);

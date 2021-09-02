@@ -71,15 +71,41 @@ o2::header::RDHAny rdhFromLinkInfo(LinkInfo li)
   return rdh;
 }
 
+std::string flpName(LinkInfo li)
+{
+  static std::array<int, 33> cru2flp = {
+    148, 148, 148, //  0, 1, 2 // FIXME: to be x-checked for St12
+    149, 149, 149, //  3, 4, 5 // FIXME: to be x-checked for St12
+    150, 150, 150, //  6, 7, 8 // FIXME: to be x-checked for St12
+    151, 151, 151, //  9,10,11 CH5
+    152, 152, 152, // 12,13,14 CH6
+    153, 153, 153, // 15,16,17 CH7o+CH8o (L)
+    154, 154, 154, // 18,19,20 CH7i+CH8i (R)
+    155, 155, 155, // 21,22,23 CH8i+CH9i (L)
+    156, 156, 156, // 24,25,26 CH8o+CH9o (R)
+    157, 157, 0,   // 27,28,xx CH10o (L)
+    158, 158, 0    // 30,31,xx CH10i (R)
+  };
+  if (li.cruId > 32) {
+    throw std::invalid_argument("cruId should be <= 32");
+  }
+  return fmt::format("alio2-cr1-flp{}", cru2flp[li.cruId]);
+}
+
 void registerLinks(o2::raw::RawFileWriter& rawFileWriter,
                    std::string outputBase,
                    const std::set<LinkInfo>& links,
-                   bool filePerLink)
+                   bool filePerLink,
+                   bool filePerCru)
 {
   std::string output = fmt::format("{:s}.raw", outputBase);
   for (auto li : links) {
-    if (filePerLink) {
-      output = fmt::format("{:s}_feeid{:d}.raw", outputBase, li.feeId);
+    if (filePerLink || filePerCru) {
+      output = fmt::format("{:s}_{:s}_cru{:d}_{:d}", outputBase, flpName(li), li.cruId, li.endPoint);
+      if (filePerLink) {
+        output += fmt::format("_feedid{:d}", li.feeId);
+      }
+      output += ".raw";
     }
     rawFileWriter.registerLink(rdhFromLinkInfo(li), output);
   }

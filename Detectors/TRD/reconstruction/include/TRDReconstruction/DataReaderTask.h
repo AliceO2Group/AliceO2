@@ -55,6 +55,8 @@ class DataReaderTask : public Task
   bool mCompressedData{false};   // are we dealing with the compressed data from the flp (send via option)
   bool mByteSwap{true};          // whether we are to byteswap the incoming data, mc is not byteswapped, raw data is (too be changed in cru at some point)
                                  //  o2::header::DataDescription mDataDesc; // Data description of the incoming data
+  uint64_t mWordsRead = 0;
+  uint64_t mWordsRejected = 0;
   int mTrackletHCHeaderState{0}; // what to do about tracklethcheader, 0 never there, 2 always there, 1 there iff tracklet data, i.e. only there if next word is *not* endmarker 10001000.
 
   std::string mDataDesc;

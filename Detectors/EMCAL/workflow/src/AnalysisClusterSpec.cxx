@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 #include <gsl/span>
 
-#include "FairLogger.h"
+#include <InfoLogger/InfoLogger.hxx>
 
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/Cluster.h"
@@ -18,6 +18,7 @@
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "EMCALWorkflow/AnalysisClusterSpec.h"
 #include "Framework/ControlService.h"
+#include "Framework/Logger.h"
 #include "EMCALBase/Geometry.h"
 #include "DetectorsBase/GeometryManager.h"
 #include <TGeoManager.h>
@@ -27,6 +28,9 @@ using namespace o2::emcal::reco_workflow;
 template <class InputType>
 void AnalysisClusterSpec<InputType>::init(framework::InitContext& ctx)
 {
+  auto& ilctx = ctx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
+  ilctx.setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, "EMC");
+
   LOG(DEBUG) << "[EMCALClusterizer - init] Initialize clusterizer ...";
 
   // FIXME: Placeholder configuration -> get config from CCDB object

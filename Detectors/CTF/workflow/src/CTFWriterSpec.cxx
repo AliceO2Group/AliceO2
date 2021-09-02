@@ -15,8 +15,11 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/InputSpec.h"
-#include "CTFWorkflow/CTFWriterSpec.h"
+#include "Framework/RawDeviceService.h"
+#include "Framework/CommonServices.h"
+#include <FairMQDevice.h>
 
+#include "CTFWorkflow/CTFWriterSpec.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
@@ -103,6 +106,7 @@ class CTFWriterSpec : public o2::framework::Task
   bool mWriteCTF = false;
   bool mCreateDict = false;
   bool mDictPerDetector = false;
+  bool mCreateRunEnvDir = true;
   int mSaveDictAfter = -1; // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
   uint64_t mRun = 0;
   size_t mMinSize = 0;     // if > 0, accumulate CTFs in the same tree until the total size exceeds this minimum
@@ -113,6 +117,7 @@ class CTFWriterSpec : public o2::framework::Task
   size_t mNAccCTF = 0;     // total number of CTFs accumulated in the current file
   size_t mNCTFFiles = 0;   // total number of CTF files written
 
+  std::string mEnvironmentID = ""; // partition env. id
   std::string mDictDir = "";
   std::string mCTFDir = "";
   std::string mCurrentCTFFileName = "";
@@ -234,6 +239,7 @@ void CTFWriterSpec::init(InitContext& ic)
   mSaveDictAfter = ic.options().get<int>("save-dict-after");
   mDictDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("ctf-dict-dir"));
   mCTFDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("output-dir"));
+  mCreateRunEnvDir = !ic.options().get<bool>("ignore-partition-run-dir");
   if (mWriteCTF) {
     if (mMinSize > 0) {
       LOG(INFO) << "Multiple CTFs will be accumulated in the tree/file until its size exceeds " << mMinSize << " bytes";
@@ -261,9 +267,39 @@ size_t CTFWriterSpec::estimateCTFSize(ProcessingContext& pc)
 //___________________________________________________________________
 void CTFWriterSpec::run(ProcessingContext& pc)
 {
+  const std::string NAStr = "NA";
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-  const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getByPos(0));
+
+  const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
+  auto oldRun = mRun;
+  if (dh->runNumber != 0) {
+    mRun = dh->runNumber;
+  }
+  // check runNumber with FMQ property, if set, override DH number
+  {
+    auto runNStr = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", NAStr);
+    if (runNStr != NAStr) {
+      size_t nc = 0;
+      auto runNProp = std::stol(runNStr, &nc);
+      if (nc != runNStr.size()) {
+        LOGP(ERROR, "Property runNumber={} is provided but is not a number, ignoring", runNStr);
+      } else {
+        mRun = runNProp;
+      }
+    }
+  }
+  auto oldEnv = mEnvironmentID;
+  {
+    auto envN = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("environment_id", NAStr);
+    if (envN != NAStr) {
+      mEnvironmentID = envN;
+    }
+  }
+  if ((oldRun != 0 && oldRun != mRun) || (!oldEnv.empty() && oldEnv != mEnvironmentID)) {
+    LOGP(WARNING, "RunNumber/Environment changed from {}/{} to {}/{}", oldRun, oldEnv, mRun, mEnvironmentID);
+    closeTFTreeAndFile();
+  }
 
   mCurrCTFSize = estimateCTFSize(pc);
   if (mWriteCTF) {
@@ -295,7 +331,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
     szCTF += appendToTree(*mCTFTreeOut.get(), "CTFHeader", header);
     mAccCTFSize += szCTF;
     mCTFTreeOut->SetEntries(++mNAccCTF);
-    LOG(INFO) << "TF#" << mNCTF << ": wrote CTF{" << header << "} of size " << szCTF << " to " << mCTFFileOut->GetName() << " in " << mTimer.CpuTime() - cput << " s";
+    LOG(INFO) << "TF#" << mNCTF << ": wrote CTF{" << header << "} of size " << szCTF << " to " << mCurrentCTFFileName << " in " << mTimer.CpuTime() - cput << " s";
     if (mNAccCTF > 1) {
       LOG(INFO) << "Current CTF tree has " << mNAccCTF << " entries with total size of " << mAccCTFSize << " bytes";
     }
@@ -337,16 +373,27 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
   if (!mCTFTreeOut) {
     needToOpen = true;
   } else {
-    if ((mAccCTFSize >= mMinSize) ||                                                         // min size exceeded, may close the file
+    if ((mAccCTFSize >= mMinSize) ||                                                         // min size exceeded, may close the file.
         (mAccCTFSize && mMaxSize > mMinSize && ((mAccCTFSize + mCurrCTFSize) > mMaxSize))) { // this is not the 1st CTF in the file and the new size will exceed allowed max
       needToOpen = true;
     } else {
       LOGP(INFO, "Will add new CTF of estimated size {} to existing file of size {}", mCurrCTFSize, mAccCTFSize);
     }
   }
+  auto ctfDir = mCTFDir;
   if (needToOpen) {
     closeTFTreeAndFile();
-    mCurrentCTFFileName = o2::utils::Str::concat_string(mCTFDir, o2::base::NameConf::getCTFFileName(dh->runNumber, dh->firstTForbit, dh->tfCounter));
+    if (mCreateRunEnvDir && !mEnvironmentID.empty()) {
+      ctfDir += fmt::format("{}_{}/", mEnvironmentID, mRun);
+      if (!std::filesystem::exists(ctfDir)) {
+        if (!std::filesystem::create_directories(ctfDir)) {
+          throw std::runtime_error(fmt::format("Failed to create {} directory", ctfDir));
+        } else {
+          LOG(INFO) << "Created {} directory for CTFs output" << ctfDir;
+        }
+      }
+    }
+    mCurrentCTFFileName = o2::utils::Str::concat_string(ctfDir, o2::base::NameConf::getCTFFileName(mRun, dh->firstTForbit, dh->tfCounter));
     mCTFFileOut.reset(TFile::Open(o2::utils::Str::concat_string(mCurrentCTFFileName, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
     mCTFTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
     mNCTFFiles++;
@@ -455,8 +502,9 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF,
     Outputs{},
     AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, doCTF, doDict, dictPerDet, szmn, szmx)},
     Options{{"save-dict-after", VariantType::Int, -1, {"In dictionary generation mode save it dictionary after certain number of TFs processed"}},
-            {"ctf-dict-dir", VariantType::String, "none", {"CTF dictionary directory"}},
-            {"output-dir", VariantType::String, "none", {"CTF output directory"}}}};
+            {"ctf-dict-dir", VariantType::String, "none", {"CTF dictionary directory, must exist"}},
+            {"output-dir", VariantType::String, "none", {"CTF output directory, must exist"}},
+            {"ignore-partition-run-dir", VariantType::Bool, false, {"Do not creare partition-run directory in output-dir"}}}};
 }
 
 } // namespace ctf

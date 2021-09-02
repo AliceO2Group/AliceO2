@@ -57,14 +57,16 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   for (auto it = parser.begin(); it != parser.end(); ++it) {
     auto rdh = it.get_if<o2::header::RAWDataHeader>();
     auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
-    auto linkCRU = o2::raw::RDHUtils::getLinkID(rdh); // 0 = IR, 1 = TCR
-    if (linkCRU == o2::ctp::CRULinkIDIntRec) {
+    auto feeID = o2::raw::RDHUtils::getFEEID(rdh); // 0 = IR, 1 = TCR
+    auto linkCRU = (feeID & 0xf00) >> 8;
+    if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
       payloadCTP = o2::ctp::NIntRecPayload;
-    } else if (linkCRU == o2::ctp::CRULinkIDClassRec) {
+    } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
       payloadCTP = o2::ctp::NClassPayload;
     } else {
       LOG(ERROR) << "Unxpected  CTP CRU link:" << linkCRU;
     }
+    LOG(INFO) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit;
     pldmask = 0;
     for (uint32_t i = 0; i < payloadCTP; i++) {
       pldmask[12 + i] = 1;
@@ -77,13 +79,19 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     int wordCount = 0;
     std::vector<gbtword80_t> diglets;
     for (auto payloadWord : payload) {
+      //LOG(DEBUG) << "payload:" <<  int(payloadWord);
       if (wordCount == 15) {
         wordCount = 0;
       } else if (wordCount > 9) {
         wordCount++;
       } else if (wordCount == 9) {
+        //std::cout << "wordCount:" << wordCount << std::endl;
+        for (int i = 0; i < 8; i++) {
+          gbtWord[wordCount * 8 + i] = bool(int(payloadWord) & (1 << i));
+        }
         wordCount++;
         diglets.clear();
+        //LOG(DEBUG) << " gbtword:" << gbtWord;
         makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
         // save digit in buffer recs
         for (auto diglet : diglets) {
@@ -98,18 +106,18 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
           ir.orbit = triggerOrbit;
           ir.bc = bcid;
           digit.intRecord = ir;
-          if (linkCRU == o2::ctp::CRULinkIDIntRec) {
+          if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
             if (digits.count(ir) == 1) {
               if (digits[ir].CTPInputMask.count() == 0) {
                 digits[ir].setInputMask(pld);
               } else {
-                LOG(ERROR) << "Two CTP IRs for same timestamp.";
+                //LOG(ERROR) << "Two CTP IRs for same timestamp.";
               }
             } else {
               digit.setInputMask(pld);
               digits[ir] = digit;
             }
-          } else if (linkCRU == o2::ctp::CRULinkIDClassRec) {
+          } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
             if (digits.count(ir) == 1) {
               if (digits[ir].CTPClassMask.count() == 0) {
                 digits[ir].setClassMask(pld);
@@ -126,7 +134,10 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
         }
         gbtWord = 0;
       } else {
-        gbtWord |= payloadWord >> (wordCount * 8);
+        //std::cout << "wordCount:" << wordCount << std::endl;
+        for (int i = 0; i < 8; i++) {
+          gbtWord[wordCount * 8 + i] = bool(int(payloadWord) & (1 << i));
+        }
         wordCount++;
       }
     }

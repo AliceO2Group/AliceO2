@@ -66,7 +66,7 @@ class DigitizationContext
 
   bool isQEDProvided() const { return !mEventRecordsWithQED.empty(); }
 
-  o2::BunchFilling& getBunchFilling() { return mBCFilling; }
+  void setBunchFilling(o2::BunchFilling const& bf) { mBCFilling = bf; }
   const o2::BunchFilling& getBunchFilling() const { return (const o2::BunchFilling&)mBCFilling; }
 
   void setMuPerBC(float m) { mMuBC = m; }
@@ -110,7 +110,7 @@ class DigitizationContext
   // helper functions to save and load a context
   void saveToFile(std::string_view filename) const;
 
-  static DigitizationContext const* loadFromFile(std::string_view filename = "collisioncontext.root");
+  static DigitizationContext const* loadFromFile(std::string_view filename = "");
 
  private:
   int mNofEntries = 0;

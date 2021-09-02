@@ -379,13 +379,15 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   }
 
   mRec->MemoryScalers()->nTPCHits = mRec->MemoryScalers()->NTPCClusters(mRec->MemoryScalers()->nTPCdigits);
+  float tpcHitLowOccupancyScalingFactor = 1.f;
   if (mIOPtrs.settingsTF && mIOPtrs.settingsTF->hasNHBFPerTF) {
     unsigned int nHitsBase = mRec->MemoryScalers()->nTPCHits;
     unsigned int threshold = 30000000 / 256 * mIOPtrs.settingsTF->nHBFPerTF;
     mRec->MemoryScalers()->nTPCHits = std::max<unsigned int>(nHitsBase, std::min<unsigned int>(threshold, nHitsBase * 3)); // Increase the buffer size for low occupancy data to compensate for noisy pads creating exceiive clusters
     if (nHitsBase < threshold) {
-      float maxFactor = mRec->MemoryScalers()->nTPCHits < threshold ? 2.0 : 1.5;
+      float maxFactor = mRec->MemoryScalers()->nTPCHits < threshold ? 2.25 : 1.75;
       mRec->MemoryScalers()->temporaryFactor *= std::min(maxFactor, (float)threshold / nHitsBase);
+      tpcHitLowOccupancyScalingFactor = std::min(3.f, (float)threshold / nHitsBase);
     }
   }
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
@@ -422,7 +424,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   bool buildNativeGPU = (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression);
   bool buildNativeHost = mRec->GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCClusters; // TODO: Should do this also when clusters are needed for later steps on the host but not requested as output
 
-  mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = mRec->MemoryScalers()->nTPCHits;
+  mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = mRec->MemoryScalers()->nTPCHits * tpcHitLowOccupancyScalingFactor;
   if (buildNativeGPU) {
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
   }

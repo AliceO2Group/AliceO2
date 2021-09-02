@@ -49,7 +49,7 @@ using namespace gpu;
 const int nPhi = 180;
 const int nR = 129;
 const int nZ = 129;
-using SC = o2::tpc::SpaceCharge<double, nZ, nR, nPhi>;
+using SC = o2::tpc::SpaceCharge<double>;
 std::unique_ptr<SC> spaceCharge;
 
 void getSpaceChargeCorrection(const int roc, const double XYZ[3], double dXdYdZ[3]);
@@ -72,6 +72,7 @@ void createTPCSpaceChargeCorrection(
   const char* outputFileName = "tpctransform.root",
   const int debug = 0)
 {
+  SC::setGrid(nZ, nR, nPhi);
   initSpaceCharge(histoFileName, histoName);
   TPCFastTransformHelperO2::instance()->setSpaceChargeCorrection(getSpaceChargeCorrection);
 
@@ -221,7 +222,7 @@ void debugInterpolation(utils::TreeStreamRedirector& pcstream,
           float gxyzf[3] = {gx, gy, gz};
           float pointCyl[3] = {gz, r, phi};
           double efield[3] = {0.0, 0.0, 0.0};
-          double charge = spaceCharge->getChargeCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
+          double charge = spaceCharge->getDensityCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
           double potential = spaceCharge->getPotentialCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
           spaceCharge->getElectricFieldsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, efield[0], efield[1], efield[2]);
           spaceCharge->getLocalDistortionsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, ldD[0], ldD[1], ldD[2]);
@@ -378,7 +379,7 @@ void debugGridpoints(utils::TreeStreamRedirector& pcstream, const o2::gpu::TPCFa
           double efield[3] = {0.0, 0.0, 0.0};
           double distLocal[3] = {0.0, 0.0, 0.0};
           double dist[3] = {0.0, 0.0, 0.0};
-          double charge = spaceCharge->getChargeCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
+          double charge = spaceCharge->getDensityCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
           double potential = spaceCharge->getPotentialCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
           spaceCharge->getElectricFieldsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, efield[0], efield[1], efield[2]);
           spaceCharge->getLocalDistortionsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, distLocal[0], distLocal[1], distLocal[2]);

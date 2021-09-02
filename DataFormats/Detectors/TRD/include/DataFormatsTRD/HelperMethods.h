@@ -68,14 +68,20 @@ struct HelperMethods {
     return irob % 2;
   }
 
+  static int getSector(int det)
+  {
+    return det / constants::NCHAMBERPERSEC;
+  }
+
   static int getStack(int det)
   {
     return det % (constants::NSTACK * constants::NLAYER) / constants::NLAYER;
-  };
+  }
+
   static int getLayer(int det)
   {
     return det % constants::NLAYER;
-  };
+  }
 
   static int getORIinSuperModule(int detector, int readoutboard)
   {
@@ -112,7 +118,7 @@ struct HelperMethods {
     }
     //see TDP for explanation of mapping TODO should probably come from CCDB
     return ori;
-  };
+  }
 
   static int getLinkIDfromHCID(int hcid)
   {
@@ -125,7 +131,23 @@ struct HelperMethods {
     int ori = -1;
     // now offset for supermodule (+60*supermodule);
     return HelperMethods::getORIinSuperModule(detector, chamberside) + 60 * supermodule; // it takes readoutboard but only cares if its odd or even hence side here.
-  };
+  }
+
+  inline static void swapByteOrder(unsigned int& word)
+  {
+    word = (word >> 24) |
+           ((word << 8) & 0x00FF0000) |
+           ((word >> 8) & 0x0000FF00) |
+           (word << 24);
+  }
+  inline static unsigned int swapByteOrderreturn(unsigned int word)
+  {
+    //    word = (word >> 24) |
+    //         ((word << 8) & 0x00FF0000) |
+    //        ((word >> 8) & 0x0000FF00) |
+    //       (word << 24);
+    return word;
+  }
 };
 
 } // namespace trd

@@ -90,7 +90,9 @@ void defaultConfiguration(std::vector<o2::framework::DispatchPolicy>& dispatchPo
 void defaultConfiguration(std::vector<o2::framework::ResourcePolicy>& resourcePolicies) {}
 void defaultConfiguration(std::vector<o2::framework::ServiceSpec>& services)
 {
-  services = o2::framework::CommonServices::defaultServices();
+  if (services.empty()) {
+    services = o2::framework::CommonServices::defaultServices();
+  }
 }
 
 /// Workflow options which are required by DPL in order to work.
@@ -125,6 +127,9 @@ void overridePipeline(o2::framework::ConfigContext& ctx, std::vector<o2::framewo
 
 /// Helper used to customize a workflow via a template data processor
 void overrideCloning(o2::framework::ConfigContext& ctx, std::vector<o2::framework::DataProcessorSpec>& workflow);
+
+/// Helper used to add labels to Data Processors
+void overrideLabels(o2::framework::ConfigContext& ctx, std::vector<o2::framework::DataProcessorSpec>& workflow);
 
 // This comes from the framework itself. This way we avoid code duplication.
 int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
@@ -185,6 +190,7 @@ int mainNoCatch(int argc, char** argv)
   o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
   overrideCloning(configContext, specs);
   overridePipeline(configContext, specs);
+  overrideLabels(configContext, specs);
   for (auto& spec : specs) {
     UserCustomizationsHelper::userDefinedCustomization(spec.requiredServices, 0);
   }
@@ -236,7 +242,7 @@ int main(int argc, char** argv)
     UserCustomizationsHelper::userDefinedCustomization(onWorkflowTerminationHook, 0);
     onWorkflowTerminationHook(idstring);
     doDefaultWorkflowTerminationHook();
-    return result;
   }
+  return result;
 }
 #endif

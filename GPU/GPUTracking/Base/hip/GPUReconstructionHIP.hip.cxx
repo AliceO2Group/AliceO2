@@ -566,12 +566,12 @@ int GPUReconstructionHIPBackend::GPUDebug(const char* state, int stream, bool fo
 
 int GPUReconstructionHIPBackend::registerMemoryForGPU(const void* ptr, size_t size)
 {
-  return GPUFailedMsgI(hipHostRegister((void*)ptr, size, hipHostRegisterDefault));
+  return mProcessingSettings.noGPUMemoryRegistration ? 0 : GPUFailedMsgI(hipHostRegister((void*)ptr, size, hipHostRegisterDefault));
 }
 
 int GPUReconstructionHIPBackend::unregisterMemoryForGPU(const void* ptr)
 {
-  return GPUFailedMsgI(hipHostUnregister((void*)ptr));
+  return mProcessingSettings.noGPUMemoryRegistration ? 0 : GPUFailedMsgI(hipHostUnregister((void*)ptr));
 }
 
 void* GPUReconstructionHIPBackend::getGPUPointer(void* ptr)

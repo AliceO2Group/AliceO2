@@ -18,6 +18,9 @@
 
 #include <cmath>
 #include <limits>
+#include <fmt/format.h>
+#include <string>
+#include <iostream>
 
 namespace o2
 {
@@ -25,12 +28,15 @@ namespace mch
 {
 
 //__________________________________________________________________________
-TrackMCH::TrackMCH(double z, const TMatrixD& param, const TMatrixD& cov, double chi2, int firstClIdx, int nClusters)
-  : mZ(z), mChi2(chi2), mClusRef(firstClIdx, nClusters)
+TrackMCH::TrackMCH(double z, const TMatrixD& param, const TMatrixD& cov, double chi2, int firstClIdx, int nClusters,
+                   double zAtMID, const TMatrixD& paramAtMID, const TMatrixD& covAtMID)
+  : mZ(z), mChi2(chi2), mClusRef(firstClIdx, nClusters), mZAtMID(zAtMID)
 {
   /// constructor
   setParameters(param);
   setCovariances(cov);
+  setParametersAtMID(paramAtMID);
+  setCovariancesAtMID(covAtMID);
 }
 
 //__________________________________________________________________________
@@ -71,14 +77,26 @@ double TrackMCH::getP() const
 }
 
 //__________________________________________________________________________
-void TrackMCH::setCovariances(const TMatrixD& cov)
+void TrackMCH::setCovariances(const TMatrixD& src, double (&dest)[SCovSize])
 {
   /// set the track parameter covariances
   for (int i = 0; i < SNParams; i++) {
     for (int j = 0; j <= i; j++) {
-      mCov[SCovIdx[i][j]] = cov(i, j);
+      dest[SCovIdx[i][j]] = src(i, j);
     }
   }
+}
+
+std::ostream& operator<<(std::ostream& os, const o2::mch::TrackMCH& t)
+{
+  os << asString(t);
+  return os;
+}
+
+std::string asString(const o2::mch::TrackMCH& t)
+{
+  auto pt = std::sqrt(t.getPx() * t.getPx() + t.getPy() * t.getPy());
+  return fmt::format("({:s}) p {:7.2f} pt {:7.2f} nclusters: {} z: {:7.2f}", t.getSign() == -1 ? "-" : "+", t.getP(), pt, t.getNClusters(), t.getZ());
 }
 
 } // namespace mch

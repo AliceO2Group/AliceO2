@@ -12,6 +12,7 @@
 o2_add_library(TRDCalibration
                SOURCES src/TrackBasedCalib.cxx
                        src/CalibratorVdExB.cxx
+                       src/KrClusterFinder.cxx
                PUBLIC_LINK_LIBRARIES O2::TRDBase
                                      O2::DataFormatsTRD
                                      O2::DataFormatsGlobalTracking
@@ -22,4 +23,5 @@ o2_add_library(TRDCalibration
 
  o2_target_root_dictionary(TRDCalibration
                            HEADERS include/TRDCalibration/TrackBasedCalib.h
-                                   include/TRDCalibration/CalibratorVdExB.h)
+                                   include/TRDCalibration/CalibratorVdExB.h
+                                   include/TRDCalibration/KrClusterFinder.h)

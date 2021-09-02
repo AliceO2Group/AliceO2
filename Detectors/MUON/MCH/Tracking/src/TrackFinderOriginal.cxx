@@ -687,7 +687,7 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
 
   // Add MCS effects in the current chamber
   int currentChamber(extrapTrackParamAtCh.getClusterPtr()->getChamberId());
-  TrackExtrap::addMCSEffect(&extrapTrackParamAtCh, SChamberThicknessInX0[currentChamber], -1.);
+  TrackExtrap::addMCSEffect(extrapTrackParamAtCh, SChamberThicknessInX0[currentChamber], -1.);
 
   // Reset the propagator for the smoother
   if (mTrackFitter.isSmootherEnabled()) {
@@ -697,15 +697,15 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
   // Add MCS effects in the missing chamber(s) if any
   while (ch1 < ch2 && currentChamber > ch2 + 1) {
     --currentChamber;
-    if (!TrackExtrap::extrapToZCov(&extrapTrackParamAtCh, SDefaultChamberZ[currentChamber],
+    if (!TrackExtrap::extrapToZCov(extrapTrackParamAtCh, SDefaultChamberZ[currentChamber],
                                    mTrackFitter.isSmootherEnabled())) {
       return mTracks.end();
     }
-    TrackExtrap::addMCSEffect(&extrapTrackParamAtCh, SChamberThicknessInX0[currentChamber], -1.);
+    TrackExtrap::addMCSEffect(extrapTrackParamAtCh, SChamberThicknessInX0[currentChamber], -1.);
   }
 
   //Extrapolate the track candidate to chamber 2
-  if (!TrackExtrap::extrapToZCov(&extrapTrackParamAtCh, SDefaultChamberZ[ch2], mTrackFitter.isSmootherEnabled())) {
+  if (!TrackExtrap::extrapToZCov(extrapTrackParamAtCh, SDefaultChamberZ[ch2], mTrackFitter.isSmootherEnabled())) {
     return mTracks.end();
   }
 
@@ -746,7 +746,7 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
 
     // copy the new track parameters for the next step and add MCS effects in chamber 2
     extrapTrackParam = extrapTrackParamAtCluster2;
-    TrackExtrap::addMCSEffect(&extrapTrackParam, SChamberThicknessInX0[ch2], -1.);
+    TrackExtrap::addMCSEffect(extrapTrackParam, SChamberThicknessInX0[ch2], -1.);
 
     // Reset the propagator for the smoother
     if (mTrackFitter.isSmootherEnabled()) {
@@ -755,7 +755,7 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
 
     //Extrapolate the track candidate to chamber 1
     bool foundSecondCluster(false);
-    if (TrackExtrap::extrapToZCov(&extrapTrackParam, SDefaultChamberZ[ch1], mTrackFitter.isSmootherEnabled())) {
+    if (TrackExtrap::extrapToZCov(extrapTrackParam, SDefaultChamberZ[ch1], mTrackFitter.isSmootherEnabled())) {
 
       // look for second cluster candidates in chamber 1
       int iCluster1(-1);
@@ -812,10 +812,10 @@ std::list<Track>::iterator TrackFinderOriginal::followTrackInStation(const std::
   }
 
   // Add MCS effects in chamber 2
-  TrackExtrap::addMCSEffect(&extrapTrackParamAtCh, SChamberThicknessInX0[ch2], -1.);
+  TrackExtrap::addMCSEffect(extrapTrackParamAtCh, SChamberThicknessInX0[ch2], -1.);
 
   //Extrapolate the track candidate to chamber 1
-  if (!TrackExtrap::extrapToZCov(&extrapTrackParamAtCh, SDefaultChamberZ[ch1], mTrackFitter.isSmootherEnabled())) {
+  if (!TrackExtrap::extrapToZCov(extrapTrackParamAtCh, SDefaultChamberZ[ch1], mTrackFitter.isSmootherEnabled())) {
     return (itNewTrack == itTrack) ? mTracks.end() : itNewTrack;
   }
 
@@ -885,7 +885,7 @@ std::list<Track>::iterator TrackFinderOriginal::followLinearTrackInChamber(const
   TrackParam trackParam = (nextChamber > 7) ? itTrack->last() : itTrack->first();
 
   // Add MCS effects in the current chamber
-  TrackExtrap::addMCSEffect(&trackParam, SChamberThicknessInX0[trackParam.getClusterPtr()->getChamberId()], -1.);
+  TrackExtrap::addMCSEffect(trackParam, SChamberThicknessInX0[trackParam.getClusterPtr()->getChamberId()], -1.);
 
   // Look for cluster candidates in the next chamber
   for (const auto& cluster : mClusters->at(nextChamber)) {
@@ -897,7 +897,7 @@ std::list<Track>::iterator TrackFinderOriginal::followLinearTrackInChamber(const
 
     // propagate linearly the track to the z position of the current cluster
     extrapTrackParamAtCluster = trackParam;
-    TrackExtrap::linearExtrapToZCov(&extrapTrackParamAtCluster, cluster.getZ());
+    TrackExtrap::linearExtrapToZCov(extrapTrackParamAtCluster, cluster.getZ());
 
     // Try to add the current cluster accurately
     if (tryOneCluster(extrapTrackParamAtCluster, cluster, extrapTrackParamAtCluster, false) >= mMaxChi2ForTracking) {
@@ -953,7 +953,7 @@ double TrackFinderOriginal::tryOneCluster(const TrackParam& param, const Cluster
   // Extrapolate the track parameters and covariances at the z position of the cluster
   paramAtCluster = param;
   paramAtCluster.setClusterPtr(&cluster);
-  if (!TrackExtrap::extrapToZCov(&paramAtCluster, cluster.getZ(), updatePropagator)) {
+  if (!TrackExtrap::extrapToZCov(paramAtCluster, cluster.getZ(), updatePropagator)) {
     return mTrackFitter.getMaxChi2();
   }
 
@@ -1014,7 +1014,7 @@ void TrackFinderOriginal::updateTrack(Track& track, TrackParam& trackParamAtClus
   // Compute the local chi2 at cluster2
   const Cluster* cluster2(trackParamAtCluster2.getClusterPtr());
   TrackParam extrapTrackParamAtCluster2(trackParamAtCluster1);
-  TrackExtrap::extrapToZ(&extrapTrackParamAtCluster2, trackParamAtCluster2.getZ());
+  TrackExtrap::extrapToZ(extrapTrackParamAtCluster2, trackParamAtCluster2.getZ());
   deltaX = extrapTrackParamAtCluster2.getNonBendingCoor() - cluster2->getX();
   deltaY = extrapTrackParamAtCluster2.getBendingCoor() - cluster2->getY();
   localChi2 = deltaX * deltaX / mChamberResolutionX2 + deltaY * deltaY / mChamberResolutionY2;

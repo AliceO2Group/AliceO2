@@ -65,10 +65,15 @@ ObjectStore extractObjectFrom(const framework::DataRef& ref)
       errorPrefix + "Failed to read object with name '" + storedClass->GetName() + "' from message using ROOT serialization.");
   }
 
-  if (inheritsFromTObject) {
-    return TObjectPtr(static_cast<TObject*>(object), algorithm::deleteTCollections);
+  if (inheritsFromMergeInterface) {
+    MergeInterface* objectAsMergeInterface = inheritsFromTObject ? dynamic_cast<MergeInterface*>(static_cast<TObject*>(object)) : static_cast<MergeInterface*>(object);
+    if (objectAsMergeInterface == nullptr) {
+      throw std::runtime_error(errorPrefix + "Could not cast '" + storedClass->GetName() + "' to MergeInterface");
+    }
+    objectAsMergeInterface->postDeserialization();
+    return MergeInterfacePtr(objectAsMergeInterface);
   } else {
-    return MergeInterfacePtr(static_cast<MergeInterface*>(object));
+    return TObjectPtr(static_cast<TObject*>(object), algorithm::deleteTCollections);
   }
 }
 

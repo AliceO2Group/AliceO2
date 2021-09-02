@@ -1,4 +1,4 @@
-#!/usr/bin/python3.6
+#!/usr/bin/env python3
 import sys
 import numpy as np
 import nltk
@@ -11,19 +11,23 @@ import nltk
 # 0: COLUMN
 # 1: INDEX_COLUMN_FULL
 # 2: INDEX_COLUMN
-# 3: EXPRESSION_COLUMN
-# 4: DYNAMIC_COLUMN
-#
+# 3: SELF_INDEX_COLUMN_FULL
+# 4: SELF_INDEX_COLUMN
+# 5: EXPRESSION_COLUMN
+# 6: DYNAMIC_COLUMN
 
 
 def columnTypes(abbr=0):
   if abbr == 0:
-    types = ["", "INDEX_", "INDEX_", "EXPRESSION_", "DYNAMIC_"]
+    types = ["", "INDEX_", "INDEX_", "INDEX_", "INDEX_", "EXPRESSION_", "DYNAMIC_"]
+    types[3] = "SELF_"+types[3]
+    types[4] = "SELF_"+types[4]
     types = [s+"COLUMN" for s in types]
     types = ["DECLARE_SOA_"+s for s in types]
     types[1] = types[1]+"_FULL"
+    types[3] = types[3]+"_FULL"
   else:
-    types = ["", "I", "I", "E", "D", "GI"]
+    types = ["", "I", "I", "SI", "SI", "E", "D", "GI"]
 
   return types
 
@@ -291,6 +295,8 @@ class table:
 
 
 # -----------------------------------------------------------------------------
+
+
 class namespace:
   def __init__(self, nslevel, cont):
     self.nslevel = nslevel
@@ -444,18 +450,30 @@ class datamodel:
 
   def printHTML(self):
     # get some variables
-    tmp = self.initCard.find("O2general/mainDir/local")
+    tmp = self.initCard.find("O2general/mainDir/O2local")
     if tmp == None:
       tmp = ""
     else:
       tmp = tmp.text.strip()
     O2path = tmp
-    tmp = self.initCard.find("O2general/mainDir/GitHub")
+    tmp = self.initCard.find("O2general/mainDir/O2Physicslocal")
+    if tmp == None:
+      tmp = ""
+    else:
+      tmp = tmp.text.strip()
+    O2Physicspath = tmp
+    tmp = self.initCard.find("O2general/mainDir/O2GitHub")
     if tmp == None:
       tmp = ""
     else:
       tmp = tmp.text.strip()
     O2href = tmp
+    tmp = self.initCard.find("O2general/mainDir/O2PhysicsGitHub")
+    if tmp == None:
+      tmp = ""
+    else:
+      tmp = tmp.text.strip()
+    O2Physicshref = tmp
     tmp = self.initCard.find("O2general/delimAO2D")
     if tmp == None:
       tmp = ""
@@ -494,13 +512,19 @@ class datamodel:
       if len(inds) == 0:
         continue
 
+      # first producer is AO2D tables
       if amFirst == True:
         print(delimAO2D)
+        href2u = O2href
+        path2u = O2path
       else:
+        # helper tasks header
         if HTheaderToWrite == True:
           print(delimAO2D)
           print("")
           print(delimHelpers)
+          href2u = O2Physicshref
+          path2u = O2Physicspath
           HTheaderToWrite = False
 
       print("")
@@ -508,8 +532,8 @@ class datamodel:
 
       # add source code information if available
       if CErelation[1] != "":
-        if O2href != "":
-          print("Code file: <a href=\""+O2href+"/"+CErelation[0].split(O2path)[
+        if href2u != "":
+          print("Code file: <a href=\""+href2u+"/"+CErelation[0].split(path2u)[
                 1]+"/"+CErelation[1]+"\" target=\"_blank\">"+CErelation[1]+"</a>")
         else:
           print("Code file: "+CErelation[0]+"/"+CErelation[1])
@@ -517,6 +541,7 @@ class datamodel:
       print("<div>")
       print("")
 
+      # print all tables of given producer
       for ind in inds:
         tab = tabs[ind]
 
@@ -529,10 +554,10 @@ class datamodel:
         print("    </div>")
 
         # print header file
-        hf2u = block(tab.hfile.split(O2path)[
+        hf2u = block(tab.hfile.split(path2u)[
                      1:], False).strip().lstrip("/")
         print("    <div>")
-        print("      Header file: <a href=\""+O2href +
+        print("      Header file: <a href=\""+href2u +
               "/"+hf2u+"\" target=\"_blank\">"+hf2u+"</a>")
         print("    </div>")
 
@@ -591,7 +616,7 @@ class datamodel:
       print(delimJoins)
       print("")
       print("<a name=\"usings\"></a>")
-      print("## List of defined joins and iterators")
+      print("#### List of defined joins and iterators")
       print("<div>")
       for use in uses:
         print("")
@@ -957,7 +982,7 @@ def extractColumns(nslevel, content):
     kind = [i for i, x in enumerate(types) if x == words[icol].txt][0]
     cname = words[icol+2].txt
     gname = words[icol+4].txt
-    if kind in [1, 2]:
+    if kind in [1, 2, 3, 4]:
       cname = cname+"Id"
       gname = gname+"Id"
 
@@ -971,10 +996,14 @@ def extractColumns(nslevel, content):
     elif words[icol].txt == types[2]:
       type = "int32"
     elif words[icol].txt == types[3]:
+      type = words[icol+6].txt
+    elif words[icol].txt == types[4]:
+      type = words[icol+6].txt
+    elif words[icol].txt == types[5]:
       iend = [i for i, x in enumerate(
           list_in([","], words[icol+6:])) if x == True]
       type = block(words[icol+6:icol++6+iend[0]], False)
-    elif words[icol].txt == types[4]:
+    elif words[icol].txt == types[6]:
       iarr = [i for i, x in enumerate(
           list_in(["-", ">"], cont)) if x == True]
       if len(iarr) > 0:
@@ -1173,7 +1202,7 @@ class CERelations:
     self.CEdeclarationString = initCard.find(
         'O2general/CEdeclarationString')
     if self.CEdeclarationString == None:
-      self.CEdeclarationString = "o2_add_dpl_workflow"
+      self.CEdeclarationString = "o2physics_add_dpl_workflow"
     else:
       self.CEdeclarationString = self.CEdeclarationString.text.strip()
 

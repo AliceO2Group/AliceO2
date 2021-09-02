@@ -22,41 +22,48 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "Align/AlignmentTrack.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
 // #include "AliSymMatrix.h" FIXME(milettri): needs AliSymMatrix
+
+#include "Align/Millepede2Record.h"
+#include "Align/ResidualsController.h"
 
 #include <TMatrixDSym.h>
 #include <TVectorD.h>
 #include <TObjArray.h>
-#include <TString.h>
+#include <string>
 #include <TArrayF.h>
 #include <TArrayI.h>
 #include <TH1F.h>
 #include "Align/utils.h"
 
-//class AliESDEvent; FIXME(milettri): needs AliESDEvent
-//class AliESDtrack; FIXME(milettri): needs AliESDtrack
-//class AliESDCosmicTrack; FIXME(milettri): needs AliESDCosmicTrack
-//class AliESDVertex; FIXME(milettri): needs AliESDVertex
+// can be fwd declared if we don't require root dict.
+//class TTree;
+//class TFile;
 
-class TTree;
-class TFile;
-//
+#include <TTree.h>
+#include <TFile.h>
+#include "Align/Mille.h"
 
 namespace o2
 {
+namespace globaltracking
+{
+class RecoContainer;
+}
+
 namespace align
 {
 
-class Mille;
+//class Mille;
 
+class EventVertex;
 class AlignableDetector;
 class AlignableVolume;
-class EventVertex;
 class AlignmentPoint;
-class Millepede2Record;
-class ResidualsController;
 class ResidualsControllerFast;
 class GeometricalConstraint;
 class DOFStatistics;
@@ -64,6 +71,22 @@ class DOFStatistics;
 class Controller : public TObject
 {
  public:
+  struct ProcStat {
+    enum { kInput,
+           kAccepted,
+           kNStatCl };
+    enum { kRun,
+           kEventColl,
+           kEventCosm,
+           kTrackColl,
+           kTrackCosm,
+           kMaxStat };
+    std::array<std::array<int, kMaxStat>, kNStatCl> data{};
+    void print() const;
+  };
+
+  using DetID = o2::detectors::DetID;
+
   enum { kNLrSkip = 4 };
   enum { kITS,
          kTPC,
@@ -75,15 +98,6 @@ class Controller : public TObject
   enum { kCosmLow,
          kCosmUp,
          kNCosmLegs };
-  enum { kInpStat,
-         kAccStat,
-         kNStatCl };
-  enum { kRun,
-         kEventColl,
-         kEventCosm,
-         kTrackColl,
-         kTrackCosm,
-         kMaxStat };
   enum MPOut_t { kMille = BIT(0),
                  kMPRec = BIT(1),
                  kContR = BIT(2) };
@@ -118,9 +132,13 @@ class Controller : public TObject
     kNHVars
   };
 
-  //
-  Controller(const char* configMacro = nullptr, int refRun = -1);
+  Controller() = default;
+  Controller(DetID::mask_t detmask);
   ~Controller() final;
+
+  void expandGlobalsBy(int n);
+  void process(const o2::globaltracking::RecoContainer& recodata);
+
   //  bool LoadRefOCDB(); FIXME(milettri): needs OCDB
   //  bool LoadRecoTimeOCDB(); FIXME(milettri): needs OCDB
   bool getUseRecoOCDB() const { return mUseRecoOCDB; }
@@ -142,7 +160,6 @@ class Controller : public TObject
 
   void assignDOFs();
   //
-  void addDetector(uint32_t id, AlignableDetector* det = nullptr);
   void addDetector(AlignableDetector* det);
   //
   void addConstraint(const GeometricalConstraint* cs) { mConstraints.AddLast((TObject*)cs); }
@@ -161,95 +178,32 @@ class Controller : public TObject
   bool isCosmic() const { return mTracksType == utils::Cosm; }
   bool isCollision() const { return mTracksType == utils::Coll; }
   void setCosmic(bool v = true) { mTracksType = v ? utils::Cosm : utils::Coll; }
-  float getStat(int cls, int tp) const { return mStat[cls][tp]; }
+  float getStat(int cls, int tp) const { return mStat.data[cls][tp]; }
   //
-  void setESDTree(const TTree* tr) { mESDTree = tr; }
-  const TTree* getESDTree() const { return mESDTree; }
-  //  void SetESDEvent(const AliESDEvent* ev); FIXME(milettri): needs AliESDEvent
-  //  const AliESDEvent* GetESDEvent() const { return fESDEvent; } FIXME(milettri): needs AliESDEvent
-  //  void SetESDtrack(const AliESDtrack* tr, int i = 0) { fESDTrack[i] = tr; } FIXME(milettri): needs AliESDtrack
-  //  const AliESDtrack* GetESDtrack(int i = 0) const { return fESDTrack[i]; } FIXME(milettri): needs AliESDtrack
-  //
-  // Track selection
-  void setCosmicSelStrict(bool v = true) { mCosmicSelStrict = v; }
-  bool getCosmicSelStrict() const { return mCosmicSelStrict; }
-  //
-  int getMinPoints() const { return mMinPoints[mTracksType][getFieldOn()]; }
-  int getMinPoints(bool tp, bool bON) const { return mMinPoints[tp][bON]; }
-  void setMinPoints(bool tp, bool bON, int n)
-  {
-    int mn = bON ? 4 : 3;
-    mMinPoints[tp][bON] = n > mn ? n : mn;
-  }
-  void setMinPointsColl(int vbOff = 3, int vbOn = 4);
-  void setMinPointsCosm(int vbOff = 3, int vbOn = 4);
-  //
-  double getPtMin(bool tp) const { return mPtMin[tp]; }
-  void setPtMin(bool tp, double pt) { mPtMin[tp] = pt; }
-  void setPtMinColl(double pt = 0.7) { setPtMin(utils::Coll, pt); }
-  void setPtMinCosm(double pt = 1.0) { setPtMin(utils::Cosm, pt); }
-  //
-  double getEtaMax(bool tp) const { return mEtaMax[tp]; }
-  void setEtaMax(bool tp, double eta) { mEtaMax[tp] = eta; }
-  void setEtaMaxColl(double eta = 1.5) { setEtaMax(utils::Coll, eta); }
-  void setEtaMaxCosm(double eta = 1.5) { setEtaMax(utils::Cosm, eta); }
-  //
-  void setDefPtBOffCosm(double pt = 5.0) { mDefPtBOff[utils::Cosm] = pt > 0.3 ? pt : 0.3; }
-  void setDefPtBOffColl(double pt = 0.6) { mDefPtBOff[utils::Coll] = pt > 0.3 ? pt : 0.3; }
-  double getDefPtBOff(bool tp) { return mDefPtBOff[tp]; }
-  //
-  int getMinDetAcc(bool tp) const { return mMinDetAcc[tp]; }
-  void setMinDetAcc(bool tp, int n) { mMinDetAcc[tp] = n; }
-  void setMinDetAccColl(int n = 1) { setMinDetAcc(utils::Coll, n); }
-  void setMinDetAccCosm(int n = 1) { setMinDetAcc(utils::Cosm, n); }
-  //
-  int getVtxMinCont() const { return mVtxMinCont; }
-  void setVtxMinCont(int n) { mVtxMinCont = n; }
-  int getVtxMaxCont() const { return mVtxMaxCont; }
-  void setVtxMaxCont(int n) { mVtxMaxCont = n; }
-  int getVtxMinContVC() const { return mVtxMinContVC; }
-  void setVtxMinContVC(int n) { mVtxMinContVC = n; }
-  //
-  int getMinITSClforVC() const { return mMinITSClforVC; }
-  void setMinITSClforVC(int n) { mMinITSClforVC = n; }
-  int getITSPattforVC() const { return mITSPattforVC; }
-  void setITSPattforVC(int p) { mITSPattforVC = p; }
-  double getMaxDCARforVC() const { return mMaxDCAforVC[0]; }
-  double getMaxDCAZforVC() const { return mMaxDCAforVC[1]; }
-  void setMaxDCAforVC(double dr = 0.1, double dz = 0.6)
-  {
-    mMaxDCAforVC[0] = dr;
-    mMaxDCAforVC[1] = dz;
-  }
-  double getMaxChi2forVC() const { return mMaxChi2forVC; }
-  void setMaxChi2forVC(double chi2 = 10) { mMaxChi2forVC = chi2; }
-  //
-  bool checkDetectorPattern(uint32_t patt) const;
+  bool checkDetectorPattern(DetID::mask_t patt) const;
   bool checkDetectorPoints(const int* npsel) const;
-  void setObligatoryDetector(int detID, int tp, bool v = true);
-  void setEventSpeciiSelection(uint32_t sel) { mSelEventSpecii = sel; }
-  uint32_t getEventSpeciiSelection() const { return mSelEventSpecii; }
+  void setObligatoryDetector(DetID id, int tp, bool v = true);
   //
   //  void SetVertex(const AliESDVertex* v) { fVertex = v; } FIXME(milettri): needs AliESDVertex
   //  const AliESDVertex* GetVertex() const { return fVertex; } FIXME(milettri): needs AliESDVertex
   //
   //----------------------------------------
   bool readParameters(const char* parfile = "millepede.res", bool useErrors = true);
-  float* getGloParVal() const { return (float*)mGloParVal; }
-  float* getGloParErr() const { return (float*)mGloParErr; }
-  int* getGloParLab() const { return (int*)mGloParLab; }
-  int getGloParLab(int i) const { return (int)mGloParLab[i]; }
+  auto& getGloParVal() { return mGloParVal; }
+  auto& getGloParErr() { return mGloParErr; }
+  auto& getGloParLab() { return mGloParLab; }
+  int getGloParLab(int i) const { return mGloParLab[i]; }
   int parID2Label(int i) const { return getGloParLab(i); }
   int label2ParID(int lab) const;
   AlignableVolume* getVolOfDOFID(int id) const;
   AlignableDetector* getDetOfDOFID(int id) const;
   //
-  AlignmentPoint* getRefPoint() const { return (AlignmentPoint*)mRefPoint; }
+  AlignmentPoint* getRefPoint() const { return mRefPoint.get(); }
   //
-  ResidualsController* getContResid() const { return (ResidualsController*)mCResid; }
-  Millepede2Record* getMPRecord() const { return (Millepede2Record*)mMPRecord; }
-  TTree* getMPRecTree() const { return mMPRecTree; }
-  AlignmentTrack* getAlgTrack() const { return (AlignmentTrack*)mAlgTrack; }
+  const ResidualsController& getContResid() const { return mCResid; }
+  const Millepede2Record& getMPRecord() const { return mMPRecord; }
+  TTree* getMPRecTree() const { return mMPRecTree.get(); }
+  AlignmentTrack* getAlgTrack() const { return mAlgTrack.get(); }
   //  bool ProcessEvent(const AliESDEvent* esdEv); FIXME(milettri): needs AliESDEvent
   //  bool ProcessTrack(const AliESDtrack* esdTr); FIXME(milettri): needs AliESDtrack
   //  bool ProcessTrack(const AliESDCosmicTrack* esdCTr); FIXME(milettri): needs AliESDCosmicTrack
@@ -258,22 +212,12 @@ class Controller : public TObject
   //  bool CheckSetVertex(const AliESDVertex* vtx); FIXME(milettri): needs AliESDVertex
   bool addVertexConstraint();
   int getNDetectors() const { return mNDet; }
-  AlignableDetector* getDetector(int i) const { return mDetectors[i]; }
-  AlignableDetector* getDetectorByDetID(int i) const
-  {
-    if (mDetPos[i] < 0) {
-      return nullptr;
-    } else {
-      return mDetectors[mDetPos[i]];
-    }
-  }
-  AlignableDetector* getDetectorByVolID(int id) const;
-  EventVertex* getVertexSensor() const { return mVtxSens; }
+  AlignableDetector* getDetector(DetID id) const { return mDetectors[id]; }
+
+  EventVertex* getVertexSensor() const { return mVtxSens.get(); }
   //
   void resetDetectors();
-  int getNDOFs() const { return mNDOFs; }
-  //
-  const char* getConfMacroName() const { return mConfMacroName.Data(); }
+  int getNDOFs() const { return mGloParVal.size(); }
   //----------------------------------------
   // output related
   void setMPDatFileName(const char* name = "mpData");
@@ -292,14 +236,14 @@ class Controller : public TObject
   void setControlFrac(float v = 1.) { mControlFrac = v; }
   //  void writeCalibrationResults() const; FIXME(milettri): needs OCDB
   void applyAlignmentFromMPSol();
-  const char* getOutCDBComment() const { return mOutCDBComment.Data(); }
-  const char* getOutCDBResponsible() const { return mOutCDBResponsible.Data(); }
-  const char* getOutCDBPath() const { return mOutCDBPath.Data(); }
-  const char* getMPDatFileName() const { return mMPDatFileName.Data(); }
-  const char* getResidFileName() const { return mResidFileName.Data(); }
-  const char* getMPParFileName() const { return mMPParFileName.Data(); }
-  const char* getMPConFileName() const { return mMPConFileName.Data(); }
-  const char* getMPSteerFileName() const { return mMPSteerFileName.Data(); }
+  const char* getOutCDBComment() const { return mOutCDBComment.c_str(); }
+  const char* getOutCDBResponsible() const { return mOutCDBResponsible.c_str(); }
+  const char* getOutCDBPath() const { return mOutCDBPath.c_str(); }
+  const char* getMPDatFileName() const { return mMPDatFileName.c_str(); }
+  const char* getResidFileName() const { return mResidFileName.c_str(); }
+  const char* getMPParFileName() const { return mMPParFileName.c_str(); }
+  const char* getMPConFileName() const { return mMPConFileName.c_str(); }
+  const char* getMPSteerFileName() const { return mMPSteerFileName.c_str(); }
   //
   bool fillMPRecData();
   bool fillMilleData();
@@ -349,9 +293,8 @@ class Controller : public TObject
   void genPedeSteerFile(const Option_t* opt = "") const;
   void writePedeConstraints() const;
   void checkConstraints(const char* params = nullptr);
-  DOFStatistics* GetDOFStat() const { return mDOFStat; }
-  void setDOFStat(DOFStatistics* st) { mDOFStat = st; }
-  void detachDOFStat() { setDOFStat(nullptr); }
+  DOFStatistics& GetDOFStat() { return mDOFStat; }
+  void setDOFStat(const DOFStatistics& st) { mDOFStat = st; }
   TH1* getHistoStat() const { return mHistoStat; }
   void detachHistoStat() { setHistoStat(nullptr); }
   void setHistoStat(TH1F* h) { mHistoStat = h; }
@@ -365,17 +308,13 @@ class Controller : public TObject
   int getRefRunNumber() const { return mRefRunNumber; }
   void setRefRunNumber(int r = -1) { mRefRunNumber = r; }
   //
-  void setRefOCDBConfigMacro(const char* nm = "configRefOCDB.C") { mRefOCDBConf = nm; }
-  const char* getRefOCDBConfigMacro() const { return mRefOCDBConf.Data(); }
-  void setRecoOCDBConfigMacro(const char* nm = "configRecoOCDB.C") { mRecoOCDBConf = nm; }
-  const char* getRecoOCDBConfigMacro() const { return mRecoOCDBConf.Data(); }
   int getRefOCDBLoaded() const { return mRefOCDBLoaded; }
   //
   void Print(const Option_t* opt = "") const final;
   void printLabels() const;
   Char_t* getDOFLabelTxt(int idf) const;
   //
-  static Char_t* getDetNameByDetID(int id) { return (Char_t*)sDetectorName[id]; }
+  static Char_t* getDetNameByDetID(int id) { return (Char_t*)sDetectorName[id]; } //RSREM
   static void mPRec2Mille(const char* mprecfile, const char* millefile = "mpData.mille", bool bindata = true);
   static void mPRec2Mille(TTree* mprTree, const char* millefile = "mpData.mille", bool bindata = true);
   //
@@ -386,6 +325,12 @@ class Controller : public TObject
   void checkSol(TTree* mpRecTree, bool store = true, bool verbose = false, bool loc = true, const char* outName = "resFast");
   bool checkSol(Millepede2Record* rec, ResidualsControllerFast* rLG = nullptr, ResidualsControllerFast* rL = nullptr, bool verbose = true, bool loc = true);
   //
+  // RSTMP new code
+  void init();
+
+  void setDetectorsMask(DetID::mask_t m) { mDetMask = m; }
+  DetID::mask_t getDetectorsMask() const { return mDetMask; }
+
  protected:
   //
   // --------- dummies -----------
@@ -394,113 +339,78 @@ class Controller : public TObject
   //
  protected:
   //
-  int mNDet;                                  // number of deectors participating in the alignment
-  int mNDOFs;                                 // number of degrees of freedom
-  int mRunNumber;                             // current run number
-  bool mFieldOn;                              // field on flag
-  int mTracksType;                            // collision/cosmic event type
-  AlignmentTrack* mAlgTrack;                  // current alignment track
-  AlignableDetector* mDetectors[kNDetectors]; // detectors participating in the alignment
-  int mDetPos[kNDetectors];                   // entry of detector in the mDetectors array
-  EventVertex* mVtxSens;                      // fake sensor for the vertex
-  TObjArray mConstraints;                     // array of constraints
+  DetID::mask_t mDetMask{};
+
+  int mNDet = 0;                             // number of deectors participating in the alignment
+  int mNDOFs = 0;                            // number of degrees of freedom
+  int mRunNumber = -1;                       // current run number
+  bool mFieldOn = false;                     // field on flag
+  int mTracksType = utils::Coll;             // collision/cosmic event type
+  std::unique_ptr<AlignmentTrack> mAlgTrack; // current alignment track
+
+  std::array<AlignableDetector*, DetID::nDetectors> mDetectors{}; // detectors participating in the alignment
+
+  std::unique_ptr<EventVertex> mVtxSens; // fake sensor for the vertex
+  TObjArray mConstraints{};              // array of constraints
   //
   // Track selection
-  uint32_t mSelEventSpecii;                           // consider only these event specii
-  uint32_t mObligatoryDetPattern[utils::NTrackTypes]; // pattern of obligatory detectors
-  bool mCosmicSelStrict;                              // if true, each cosmic track leg selected like separate track
-  int mMinPoints[utils::NTrackTypes][2];              // require min points per leg (case Boff,Bon)
-  int mMinDetAcc[utils::NTrackTypes];                 // min number of detector required in track
-  double mDefPtBOff[utils::NTrackTypes];              // nominal pt for tracks in Boff run
-  double mPtMin[utils::NTrackTypes];                  // min pT of tracks to consider
-  double mEtaMax[utils::NTrackTypes];                 // eta cut on tracks
-  int mVtxMinCont;                                    // require min number of contributors in Vtx
-  int mVtxMaxCont;                                    // require max number of contributors in Vtx
-  int mVtxMinContVC;                                  // min number of contributors to use as constraint
+  std::array<DetID::mask_t, utils::NTrackTypes> mObligatoryDetPattern{}; // pattern of obligatory detectors
   //
-  int mMinITSClforVC;     // use vertex constraint for tracks with enough points
-  int mITSPattforVC;      // optional request on ITS hits to allow vertex constraint
-  double mMaxDCAforVC[2]; // DCA cut in R,Z to allow vertex constraint
-  double mMaxChi2forVC;   // track-vertex chi2 cut to allow vertex constraint
+  std::vector<float> mGloParVal; // parameters for DOFs
+  std::vector<float> mGloParErr; // errors for DOFs
+  std::vector<int> mGloParLab;   // labels for DOFs
+  std::vector<int> mOrderedLbl;  //ordered labels
+  std::vector<int> mLbl2ID;      //Label order in mOrderedLbl -> parID
   //
-  //
-  float* mGloParVal; //[mNDOFs] parameters for DOFs
-  float* mGloParErr; //[mNDOFs] errors for DOFs
-  int* mGloParLab;   //[mNDOFs] labels for DOFs
-  int* mOrderedLbl;  //[mNDOFs] ordered labels
-  int* mLbl2ID;      //[mNDOFs] Label order in mOrderedLbl -> parID
-  //
-  AlignmentPoint* mRefPoint; // reference point for track definition
-  //
-  const TTree* mESDTree; //! externally set esdTree, needed to access UserInfo list
-                         //  const AliESDEvent* fESDEvent;             //! externally set event  FIXME(milettri): needs AliESDEvent
-                         //  const AliESDtrack* fESDTrack[kNCosmLegs]; //! externally set ESD tracks  FIXME(milettri): needs AliESDtrack
-                         //  const AliESDVertex* fVertex;              //! event vertex FIXME(milettri): needs AliESDVertex
+  std::unique_ptr<AlignmentPoint> mRefPoint; //! reference point for track definition
   //
   // statistics
-  float mStat[kNStatCl][kMaxStat];            // processing statistics
-  static const Char_t* sStatClName[kNStatCl]; // stat classes names
-  static const Char_t* sStatName[kMaxStat];   // stat type names
+  ProcStat mStat{}; // processing statistics
   //
   // output related
-  float mControlFrac;           //  fraction of tracks to process control residuals
-  int mMPOutType;               // What to store as an output, see storeProcessedTrack
-  Mille* mMille;                //! Mille interface
-  Millepede2Record* mMPRecord;  //! MP record
-  ResidualsController* mCResid; //! control residuals
-  TTree* mMPRecTree;            //! tree to store MP record
-  TTree* mResidTree;            //! tree to store control residuals
-  TFile* mMPRecFile;            //! file to store MP record tree
-  TFile* mResidFile;            //! file to store control residuals tree
+  float mControlFrac = 1.0;                    //  fraction of tracks to process control residuals
+  int mMPOutType = kMille | kMPRec | kContR;   // What to store as an output, see storeProcessedTrack
+  std::unique_ptr<Mille> mMille;               //! Mille interface
+  Millepede2Record mMPRecord;                  //! MP record
+  Millepede2Record* mMPRecordPtr = &mMPRecord; //! MP record
+  ResidualsController mCResid;                 //! control residuals
+  ResidualsController* mCResidPtr = &mCResid;  //! control residuals
+
+  std::unique_ptr<TTree> mMPRecTree; //! tree to store MP record
+  std::unique_ptr<TTree> mResidTree; //! tree to store control residuals
+  std::unique_ptr<TFile> mMPRecFile; //! file to store MP record tree
+  std::unique_ptr<TFile> mResidFile; //! file to store control residuals tree
   TArrayF mMilleDBuffer;        //! buffer for Mille Derivatives output
   TArrayI mMilleIBuffer;        //! buffer for Mille Indecis output
-  TString mMPDatFileName;       //  file name for records binary data output
-  TString mMPParFileName;       //  file name for MP params
-  TString mMPConFileName;       //  file name for MP constraints
-  TString mMPSteerFileName;     //  file name for MP steering
-  TString mResidFileName;       //  file name for optional control residuals
-  bool mMilleOutBin;            //  optionally text output for Mille debugging
-  bool mDoKalmanResid;          //  calculate residuals with smoothed kalman in the ControlRes
+  std::string mMPDatFileName{"mpData"};            //  file name for records binary data output
+  std::string mMPParFileName{"mpParams.txt"};      //  file name for MP params
+  std::string mMPConFileName{"mpConstraints.txt"}; //  file name for MP constraints
+  std::string mMPSteerFileName{"mpSteer.txt"};     //  file name for MP steering
+  std::string mResidFileName{"mpContolRes.root"};  //  file name for optional control residuals
+  bool mMilleOutBin = true;                        //  optionally text output for Mille debugging
+  bool mDoKalmanResid = true;                      //  calculate residuals with smoothed kalman in the ControlRes
   //
-  TString mOutCDBPath;        // output OCDB path
-  TString mOutCDBComment;     // optional comment to add to output cdb objects
-  TString mOutCDBResponsible; // optional responsible for output metadata
-  int mOutCDBRunRange[2];     // run range for output storage
+  std::string mOutCDBPath{};        // output OCDB path
+  std::string mOutCDBComment{};     // optional comment to add to output cdb objects
+  std::string mOutCDBResponsible{}; // optional responsible for output metadata
+  int mOutCDBRunRange[2] = {};      // run range for output storage
   //
-  DOFStatistics* mDOFStat; // stat of entries per dof
-  TH1F* mHistoStat;        // histo with general statistics
+  DOFStatistics mDOFStat;     // stat of entries per dof
+  TH1F* mHistoStat = nullptr; // histo with general statistics
   //
   // input related
-  TString mConfMacroName; // optional configuration macro
-  TString mRecoOCDBConf;  // optional macro name for reco-time OCDB setup: void fun(int run)
-  TString mRefOCDBConf;   // optional macro name for prealignment OCDB setup: void fun()
-  int mRefRunNumber;      // optional run number used for reference
-  int mRefOCDBLoaded;     // flag/counter for ref.OCDB loading
-  bool mUseRecoOCDB;      // flag to preload reco-time calib objects
+  int mRefRunNumber = 0;    // optional run number used for reference
+  int mRefOCDBLoaded = 0;   // flag/counter for ref.OCDB loading
+  bool mUseRecoOCDB = true; // flag to preload reco-time calib objects
   //
   static const int sSkipLayers[kNLrSkip];          // detector layers for which we don't need module matrices
-  static const Char_t* sDetectorName[kNDetectors]; // names of detectors
+  static const Char_t* sDetectorName[kNDetectors]; // names of detectors //RSREM
   static const Char_t* sHStatName[kNHVars];        // names for stat.bins in the stat histo
   static const Char_t* sMPDataExt;                 // extension for MP2 binary data
   //
-  ClassDef(Controller, 3)
+  ClassDefOverride(Controller, 1)
 };
 
-//__________________________________________________________
-inline void Controller::setMinPointsColl(int vbOff, int vbOn)
-{
-  // ask min number of points per track
-  setMinPoints(utils::Coll, false, vbOff);
-  setMinPoints(utils::Coll, true, vbOn);
-}
-
-//__________________________________________________________
-inline void Controller::setMinPointsCosm(int vbOff, int vbOn)
-{
-  // ask min number of points per track
-  setMinPoints(utils::Cosm, false, vbOff);
-  setMinPoints(utils::Cosm, true, vbOn);
-}
 } // namespace align
 } // namespace o2
 #endif

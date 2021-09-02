@@ -30,7 +30,7 @@
 *
 * Typical usage :
 *
-* o2-mch-digits-to-raw --input-file mchdigits.root --file-per-link
+* o2-mch-digits-to-raw --input-file mchdigits.root --file-for link
 *
 * Note: the dummy-elecmap adds some complexity here,
 * but is used as a mean to get the electronic mapping for the whole detector
@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
       ("userLogic,u",po::bool_switch()->default_value(true),"user logic format")
       ("dummy-elecmap,d",po::bool_switch()->default_value(false),"use a dummy electronic mapping (for testing only, to be removed at some point)")
       ("output-dir,o",po::value<std::string>()->default_value("./"),"output directory for file(s)")
-      ("file-per-link,l", po::value<bool>()->default_value(false)->implicit_value(true), "produce single file per link")
+      ("file-for,f", po::value<std::string>()->default_value("all"), "output one file (file-for=all), per link (file-for=link) or per cru end point (file-for=cru)")
       ("input-file,i",po::value<std::string>(&input)->default_value("mchdigits.root"),"input file name")
       ("configKeyValues", po::value<std::string>()->default_value(""), "comma-separated configKeyValues")
       ("no-empty-hbf,e", po::value<bool>()->default_value(false), "do not create empty HBF pages (except for HBF starting TF)")
@@ -105,7 +105,16 @@ int main(int argc, char* argv[])
 
   opts.noEmptyHBF = vm["no-empty-hbf"].as<bool>();
   opts.outputDir = vm["output-dir"].as<std::string>();
-  opts.filePerLink = vm["file-per-link"].as<bool>();
+  auto fileFor = vm["file-for"].as<std::string>();
+  if (fileFor == "link") {
+    opts.splitMode = OutputSplit::PerLink;
+  } else if (fileFor == "cru") {
+    opts.splitMode = OutputSplit::PerCruEndpoint;
+  } else if (fileFor == "all") {
+    opts.splitMode = OutputSplit::None;
+  } else {
+    throw po::validation_error(po::validation_error::invalid_option_value, "file-for");
+  }
   opts.userLogic = vm["userLogic"].as<bool>();
   opts.dummyElecMap = vm["dummy-elecmap"].as<bool>();
   opts.rawFileWriterVerbosity = vm["raw-file-writer-verbosity"].as<int>();

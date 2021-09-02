@@ -13,21 +13,20 @@ o2_add_library(
         AODProducerWorkflow
         SOURCES src/AODProducerWorkflowSpec.cxx
         PUBLIC_LINK_LIBRARIES
-          O2::AnalysisDataModel
           O2::DetectorsVertexing
-          O2::Framework
           O2::FT0Workflow
+          O2::Framework
           O2::GlobalTracking
           O2::GlobalTrackingWorkflow
           O2::ITSMFTWorkflow
-          O2::ITStracking
           O2::ITSWorkflow
+          O2::ITStracking
+          O2::MCHTracking
           O2::MFTWorkflow
+          O2::MathUtils
           O2::SimulationDataFormat
           O2::Steer
           O2::TPCWorkflow
-          O2::CCDB
-          O2::MathUtils
 )
 o2_add_executable(
   workflow
@@ -54,6 +53,5 @@ o2_add_executable(
           O2::TOFCalibration
           O2::SimConfig
           O2::DataFormatsFT0
-          O2::AnalysisDataModel
           O2::Steer
 )

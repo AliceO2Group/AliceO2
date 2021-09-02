@@ -29,18 +29,24 @@
 namespace o2::mch::raw
 {
 
+enum class OutputSplit : int {
+  None,          // no splitting, i.e. one file for all
+  PerLink,       // one file per link
+  PerCruEndpoint // one file per CRU endpoint
+};
+
 struct DigitRawEncoderOptions {
-  std::string outputDir = ".";    // directory where the raw data files will be written
-  bool chargeSumMode = true;      // whether to encode only charge sum or all samples (usually true)
-  bool filePerLink = true;        // whether or not to output one file per link (usually true)
-  bool userLogic = true;          // whether or not to use user logic (usually true)
-  int userLogicVersion = 1;       // UL version (only relevant if userLogic=true)
-  bool noEmptyHBF = false;        // disable writing of empty HBFs (for debug)
-  bool noGRP = false;             // do not try to read GRP information (for debug or unit tests)
-  bool dummyElecMap = false;      // use dummy electronic mapping (for debug only, temporary)
-  bool writeHB = true;            // write Heatbeat headers at start of time frame
-  int rawFileWriterVerbosity = 0; // verbosity of the RawFileWriter
-  int rdhVersion = 6;             // RDH version to use
+  std::string outputDir = ".";                  // directory where the raw data files will be written
+  bool chargeSumMode = true;                    // whether to encode only charge sum or all samples (usually true)
+  OutputSplit splitMode = OutputSplit::PerLink; // how to organize raw output file(s)
+  bool userLogic = true;                        // whether or not to use user logic (usually true)
+  int userLogicVersion = 1;                     // UL version (only relevant if userLogic=true)
+  bool noEmptyHBF = false;                      // disable writing of empty HBFs (for debug)
+  bool noGRP = false;                           // do not try to read GRP information (for debug or unit tests)
+  bool dummyElecMap = false;                    // use dummy electronic mapping (for debug only, temporary)
+  bool writeHB = true;                          // write Heatbeat headers at start of time frame
+  int rawFileWriterVerbosity = 0;               // verbosity of the RawFileWriter
+  int rdhVersion = 6;                           // RDH version to use
 };
 
 class DigitRawEncoder

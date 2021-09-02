@@ -61,6 +61,8 @@ struct DeviceContext {
   DeviceState* state = nullptr;
   ComputingQuotaEvaluator* quotaEvaluator = nullptr;
   DataProcessingStats* stats = nullptr;
+  ComputingQuotaStats* quotaStats = nullptr;
+  int expectedRegionCallbacks = 0;
 };
 
 struct DataProcessorContext {
@@ -103,6 +105,10 @@ struct TaskStreamInfo {
   bool running = false;
 };
 
+struct DeviceConfigurationHelpers {
+  static std::unique_ptr<ConfigParamStore> getConfiguration(ServiceRegistry& registry, const char* name, std::vector<ConfigParamSpec> const& options);
+};
+
 /// A device actually carrying out all the DPL
 /// Data Processing needs.
 class DataProcessingDevice : public FairMQDevice
@@ -115,7 +121,7 @@ class DataProcessingDevice : public FairMQDevice
   void PostRun() final;
   void Reset() final;
   void ResetTask() final;
-  bool ConditionalRun() final;
+  void Run() final;
   void SetErrorPolicy(enum TerminationPolicy policy) { mErrorPolicy = policy; }
 
   // Processing functions are now renetrant
@@ -162,6 +168,9 @@ class DataProcessingDevice : public FairMQDevice
   std::vector<uv_work_t> mHandles;                               /// Handles to use to schedule work.
   std::vector<TaskStreamInfo> mStreams;                          /// Information about the task running in the associated mHandle.
   ComputingQuotaEvaluator& mQuotaEvaluator;                      /// The component which evaluates if the offer can be used to run a task
+  /// Handle to wake up the main loop from other threads
+  /// e.g. when FairMQ notifies some callback in an asynchronous way
+  uv_async_t* mAwakeHandle = nullptr;
 };
 
 } // namespace o2::framework

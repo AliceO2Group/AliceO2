@@ -143,7 +143,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   std::vector<o2::MCEventLabel> lblVtx;
 
   // RS FIXME this will not have effect until the 1st orbit is propagated, until that will work only for TF starting at orbit 0
-  mVertexer.setStartIR({0, DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getByPos(0))->firstTForbit});
+  mVertexer.setStartIR({0, DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit});
 
   std::vector<o2::InteractionRecord> ft0Data;
   if (mValidateWithIR) { // select BCs for validation

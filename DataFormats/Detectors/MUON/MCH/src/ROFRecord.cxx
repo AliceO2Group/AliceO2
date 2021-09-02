@@ -12,13 +12,16 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include <fmt/format.h>
 #include <iostream>
+#include <stdexcept>
 
 namespace o2::mch
 {
 std::ostream& operator<<(std::ostream& os, const ROFRecord& rof)
 {
-  os << fmt::format("{} FirstIdx: {:5d} LastIdx: {:5d}",
-                    rof.getBCData().asString(), rof.getFirstIdx(), rof.getLastIdx());
+  os << fmt::format("{} FirstIdx: {:5d} LastIdx: {:5d} Width: {:2d} BCs",
+                    rof.getBCData().asString(), rof.getFirstIdx(), rof.getLastIdx(),
+                    rof.getBCWidth());
   return os;
 }
+
 } // namespace o2::mch

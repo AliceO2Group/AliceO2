@@ -1,0 +1,183 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+#define BOOST_TEST_MODULE Test Framework ComputingQuotaEvaluator
+#define BOOST_TEST_MAIN
+#define BOOST_TEST_DYN_LINK
+
+#include <boost/test/unit_test.hpp>
+#include "Framework/ComputingQuotaEvaluator.h"
+#include "Framework/ResourcePolicyHelpers.h"
+#include "Framework/Logger.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+using namespace o2::framework;
+
+BOOST_AUTO_TEST_CASE(TestBasics)
+{
+  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> reportConsumedOffer = [](ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats& stats) {
+    stats.totalConsumedBytes += accumulatedConsumed.sharedMemory;
+  };
+
+  ComputingQuotaConsumer dispose2MB = [bs = 2000000](int taskId,
+                                                     std::array<ComputingQuotaOffer, 16>& offers,
+                                                     ComputingQuotaStats& stats,
+                                                     std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> accountDisposed) {
+    ComputingQuotaOffer disposed;
+    disposed.sharedMemory = 0;
+    int64_t bytesSent = bs;
+    for (size_t oi = 0; oi < offers.size(); oi++) {
+      auto& offer = offers[oi];
+      if (offer.user != taskId) {
+        continue;
+      }
+      int64_t toRemove = std::min((int64_t)bytesSent, offer.sharedMemory);
+      offer.sharedMemory -= toRemove;
+      bytesSent -= toRemove;
+      disposed.sharedMemory += toRemove;
+      if (bytesSent <= 0) {
+        break;
+      }
+    }
+    return accountDisposed(disposed, stats);
+  };
+
+  ComputingQuotaConsumer dispose10MB = [bs = 10000000](int taskId,
+                                                       std::array<ComputingQuotaOffer, 16>& offers,
+                                                       ComputingQuotaStats& stats,
+                                                       std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> accountDisposed) {
+    ComputingQuotaOffer disposed;
+    disposed.sharedMemory = 0;
+    int64_t bytesSent = bs;
+    for (size_t oi = 0; oi < offers.size(); oi++) {
+      auto& offer = offers[oi];
+      if (offer.user != taskId) {
+        continue;
+      }
+      int64_t toRemove = std::min((int64_t)bytesSent, offer.sharedMemory);
+      offer.sharedMemory -= toRemove;
+      bytesSent -= toRemove;
+      disposed.sharedMemory += toRemove;
+      if (bytesSent <= 0) {
+        break;
+      }
+    }
+    return accountDisposed(disposed, stats);
+  };
+
+  ComputingQuotaEvaluator evaluator{0};
+  std::vector<ComputingQuotaOffer> offers{{.sharedMemory = 1000000}};
+  evaluator.updateOffers(offers, 1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[1].sharedMemory, 1000000);
+  std::vector<ComputingQuotaOffer> offers2{{.sharedMemory = 1000000}};
+  evaluator.updateOffers(offers2, 2);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, 1000000);
+  std::vector<ComputingQuotaOffer> offers3{{.sharedMemory = 2000000}, {.sharedMemory = 3000000}};
+  evaluator.updateOffers(offers3, 3);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 3000000);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[4].sharedMemory, 2000000);
+  auto policy = ResourcePolicyHelpers::sharedMemoryBoundTask("internal-dpl-aod-reader.*", 2000000);
+  bool selected = evaluator.selectOffer(1, policy.request, 3);
+  BOOST_CHECK(selected);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[0].user, -1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[1].user, -1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[2].user, -1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].user, 1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[4].user, -1);
+
+  evaluator.consume(1, dispose2MB, reportConsumedOffer);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 1000000);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].user, 1);
+
+  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const&)> reportExpiredOffer = [](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
+  };
+
+  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, 1000000);
+  evaluator.handleExpired(reportExpiredOffer);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, -1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 1000000);
+  evaluator.dispose(1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].user, -1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 1000000);
+  BOOST_CHECK_EQUAL(evaluator.mStats.totalExpiredBytes, 2000000);
+  BOOST_CHECK_EQUAL(evaluator.mStats.totalConsumedBytes, 2000000);
+
+  selected = evaluator.selectOffer(1, policy.request, 3);
+  BOOST_CHECK(selected);
+
+  BOOST_CHECK_EQUAL(evaluator.mOffers[0].user, -1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[1].user, -1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[2].user, -1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].user, 1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].valid, true);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 1000000);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[4].user, 1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[4].sharedMemory, 2000000);
+
+  evaluator.consume(1, dispose2MB, reportConsumedOffer);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, -1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 0);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[4].sharedMemory, 1000000);
+  evaluator.handleExpired(reportExpiredOffer);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 0);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[4].sharedMemory, 1000000);
+  evaluator.dispose(1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].user, -1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[4].user, -1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 0);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[4].sharedMemory, 1000000);
+  BOOST_CHECK_EQUAL(evaluator.mStats.totalExpiredBytes, 2000000);
+  BOOST_CHECK_EQUAL(evaluator.mStats.totalConsumedBytes, 4000000);
+
+  std::vector<ComputingQuotaOffer> offers4{{.sharedMemory = 1000000, .runtime = 100}};
+  evaluator.updateOffers(offers4, 2);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[1].sharedMemory, 1000000);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, -1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 0);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[4].sharedMemory, 1000000);
+
+  selected = evaluator.selectOffer(1, policy.request, 10);
+  evaluator.handleExpired(reportExpiredOffer);
+  selected = evaluator.selectOffer(1, policy.request, 11);
+  evaluator.handleExpired(reportExpiredOffer);
+  std::vector<ComputingQuotaOffer> offers5{{.sharedMemory = 1000000, .runtime = 100}};
+  evaluator.updateOffers(offers5, 4);
+  selected = evaluator.selectOffer(1, policy.request, 13);
+  evaluator.consume(1, dispose2MB, reportConsumedOffer);
+  evaluator.handleExpired(reportExpiredOffer);
+  evaluator.dispose(1);
+  BOOST_CHECK_EQUAL(evaluator.mStats.totalExpiredBytes, 3000000);
+  BOOST_CHECK_EQUAL(evaluator.mStats.totalConsumedBytes, 6000000);
+
+  BOOST_CHECK_EQUAL(evaluator.mOffers[1].sharedMemory, 0);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, 0);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 0);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[4].sharedMemory, -1);
+
+  std::vector<ComputingQuotaOffer> offers6{{.sharedMemory = 2000000, .runtime = 100}, {.sharedMemory = 1000000, .runtime = 100}};
+  evaluator.updateOffers(offers6, 19);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[1].sharedMemory, 1000000);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, 2000000);
+  /// Check if we request 2MB and consume 10 works
+  selected = evaluator.selectOffer(1, policy.request, 20);
+  evaluator.consume(1, dispose10MB, reportConsumedOffer);
+  evaluator.handleExpired(reportExpiredOffer);
+  evaluator.dispose(1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[1].sharedMemory, 0);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, 0);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[1].user, -1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[2].user, -1);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[1].valid, false);
+  BOOST_CHECK_EQUAL(evaluator.mOffers[2].valid, false);
+}
+
+#pragma GGC diagnostic pop

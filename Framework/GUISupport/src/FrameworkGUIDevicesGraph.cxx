@@ -25,6 +25,8 @@
 #include <cmath>
 #include <vector>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
 static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
 
@@ -39,37 +41,34 @@ struct NodeColor {
 
 using LogLevel = LogParsingHelpers::LogLevel;
 
-NodeColor
-  decideColorForNode(const DeviceInfo& info)
+NodeColor decideColorForNode(const DeviceInfo& info)
 {
-  NodeColor result;
   if (info.active == false) {
-    result.normal = PaletteHelpers::RED;
-    result.hovered = PaletteHelpers::SHADED_RED;
-    return result;
+    return NodeColor{
+      .normal = PaletteHelpers::RED,
+      .hovered = PaletteHelpers::SHADED_RED};
   }
   switch (info.streamingState) {
     case StreamingState::EndOfStreaming:
-      result.normal = PaletteHelpers::SHADED_YELLOW;
-      result.hovered = PaletteHelpers::YELLOW;
-      result.title = PaletteHelpers::YELLOW;
-      result.title_hovered = PaletteHelpers::DARK_YELLOW;
-      break;
+      return NodeColor{
+        .normal = PaletteHelpers::SHADED_YELLOW,
+        .hovered = PaletteHelpers::YELLOW,
+        .title = PaletteHelpers::YELLOW,
+        .title_hovered = PaletteHelpers::DARK_YELLOW};
     case StreamingState::Idle:
-      result.normal = PaletteHelpers::SHADED_GREEN;
-      result.hovered = PaletteHelpers::GREEN;
-      result.title = PaletteHelpers::GREEN;
-      result.title_hovered = PaletteHelpers::DARK_GREEN;
-      break;
+      return NodeColor{
+        .normal = PaletteHelpers::SHADED_GREEN,
+        .hovered = PaletteHelpers::GREEN,
+        .title = PaletteHelpers::GREEN,
+        .title_hovered = PaletteHelpers::DARK_GREEN};
     case StreamingState::Streaming:
     default:
-      result.normal = PaletteHelpers::GRAY;
-      result.hovered = PaletteHelpers::LIGHT_GRAY;
-      result.title = PaletteHelpers::GRAY;
-      result.title_hovered = PaletteHelpers::BLACK;
-      break;
+      return NodeColor{
+        .normal = PaletteHelpers::GRAY,
+        .hovered = PaletteHelpers::LIGHT_GRAY,
+        .title = PaletteHelpers::GRAY,
+        .title_hovered = PaletteHelpers::BLACK};
   }
-  return result;
 }
 
 /// Color choices
@@ -626,3 +625,4 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
 }
 
 } // namespace o2::framework::gui
+#pragma GGC diagnostic pop

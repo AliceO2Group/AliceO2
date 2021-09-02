@@ -58,8 +58,8 @@ class TrackFitter
 
  private:
   bool propagateToZ(TrackLTF& track, double z);
-  bool propagateToNextClusterWithMCS(TrackLTF& track, double z);
-  bool computeCluster(TrackLTF& track, int cluster);
+  bool propagateToNextClusterWithMCS(TrackLTF& track, double z, int& startingLayerID, const int& newLayerID);
+  bool computeCluster(TrackLTF& track, int cluster, int& startingLayerID);
 
   bool mFieldON = true;
   Float_t mBZField; // kiloGauss.
@@ -72,7 +72,7 @@ class TrackFitter
 
 // Functions to estimate momentum and charge from track curvature
 Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& chi2);
-Bool_t LinearRegression(Int_t nVal, Double_t* xVal, Double_t* yVal, Double_t* yErr, Double_t& a, Double_t& ae, Double_t& b, Double_t& be);
+Bool_t LinearRegression(Int_t nVal, std::vector<double>& xVal, std::vector<double>& yVal, std::vector<double>& yErr, Double_t& a, Double_t& ae, Double_t& b, Double_t& be);
 
 } // namespace mft
 } // namespace o2

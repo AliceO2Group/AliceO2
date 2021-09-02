@@ -72,7 +72,7 @@ EncoderBase<coder_T, stream_T, source_T>::EncoderBase(encoderSymbolTable_t&& e, 
 
 template <typename coder_T, typename stream_T, typename source_T>
 EncoderBase<coder_T, stream_T, source_T>::EncoderBase(const FrequencyTable& frequencies,
-                                                      size_t symbolTablePrecission)
+                                                      size_t symbolTablePrecission) : mSymbolTablePrecission{symbolTablePrecission}
 {
   SymbolStatistics stats{frequencies, mSymbolTablePrecission};
   mSymbolTablePrecission = stats.getSymbolTablePrecision();
