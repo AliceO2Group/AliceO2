@@ -38,7 +38,7 @@
 
 namespace bpo = boost::program_options;
 
-void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, bool filePerLink, uint32_t rdhV = 4,
+void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, int filePer, uint32_t rdhV = 4,
               const std::string& ccdbHost = "", int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
@@ -56,7 +56,9 @@ int main(int argc, char** argv)
     add_option("verbosity,v", bpo::value<int>()->default_value(0), "verbosity level");
     //    add_option("input-file,i", bpo::value<std::string>()->default_value(o2::base::NameConf::getDigitsFileName(o2::detectors::DetID::ZDC)),"input ZDC digits file"); // why not used?
     add_option("input-file,i", bpo::value<std::string>()->default_value("zdcdigits.root"), "input ZDC digits file");
-    add_option("file-per-link,l", bpo::value<bool>()->default_value(false)->implicit_value(true), "create output file per CRU (default: write single file)");
+    add_option("file-per-flp", bpo::value<bool>()->default_value(false)->implicit_value(true), "create output file per FLP (default: write single file)");
+    add_option("file-per-cru", bpo::value<bool>()->default_value(false)->implicit_value(true), "create output file per CRU");
+    add_option("file-per-link", bpo::value<bool>()->default_value(false)->implicit_value(true), "create output file per link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("ccdb-url,c", bpo::value<std::string>()->default_value(""), "url of the ccdb repository");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
@@ -95,11 +97,19 @@ int main(int argc, char** argv)
     ccdbHost = ccdb_url;
     LOG(INFO) << "CCDB url set to " << ccdb_url;
   }
+  int filePer = 0;
+  if(vm["file-per-flp"].as<bool>()){
+    filePer = 1;
+  }else if(vm["file-per-cru"].as<bool>()){
+    filePer = 2;
+  }else if(vm["file-per-link"].as<bool>()){
+    filePer = 3;
+  }
   LOG(INFO) << "CCDB url " << ccdbHost;
   digi2raw(vm["input-file"].as<std::string>(),
            vm["output-dir"].as<std::string>(),
            vm["verbosity"].as<int>(),
-           vm["file-per-link"].as<bool>(),
+           filePer,
            vm["rdh-version"].as<uint32_t>(),
            ccdbHost);
 
@@ -108,7 +118,7 @@ int main(int argc, char** argv)
   return 0;
 }
 
-void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, bool filePerLink, uint32_t rdhV, const std::string& ccdbHost, int superPageSizeInB)
+void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, int filePer, uint32_t rdhV, const std::string& ccdbHost, int superPageSizeInB)
 {
   long timeStamp = 0;
   //std::string ccdbHost = "http://ccdb-test.cern.ch:8080";
@@ -145,7 +155,10 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   swTot.Start();
 
   o2::zdc::Digits2Raw d2r;
-  d2r.setFilePerLink(filePerLink);
+  if(filePer == 1)d2r.setFilePer("flp");
+  else if(filePer == 2)d2r.setFilePer("cru");
+  else if(filePer == 3)d2r.setFilePer("link");
+  else d2r.setFilePer("all");
   d2r.setVerbosity(verbosity);
   auto& wr = d2r.getWriter();
   std::string inputGRP = o2::base::NameConf::getGRPFileName();
