@@ -48,7 +48,7 @@ int main(int argc, const char** argv)
     add_option("help,h", "Print this help message");
     add_option("verbose,v", bpo::value<uint32_t>()->default_value(0), "Select verbosity level [0 = no output]");
     add_option("input-file,i", bpo::value<std::string>()->default_value("cpvdigits.root"), "Specifies digit input file.");
-    add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,link");
+    add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,cru,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("debug,d", bpo::value<uint32_t>()->default_value(0), "Select debug output level [0 = no debug output]");
     add_option("ccdb-url,c", bpo::value<std::string>()->default_value("http://ccdb-test.cern.ch:8080"), "CCDB Url ['localtest' for local testing]");
@@ -100,7 +100,7 @@ int main(int argc, const char** argv)
   TTreeReaderValue<std::vector<o2::cpv::TriggerRecord>> triggerbranch(*treereader, "CPVDigitTrigRecords");
 
   o2::cpv::RawWriter::FileFor_t granularity = o2::cpv::RawWriter::FileFor_t::kFullDet;
-  if (filefor == "all") {
+  if ((filefor == "all") || (filefor == "cru")) { //CPV has only 1 cru so "all" is identical to "cru"
     granularity = o2::cpv::RawWriter::FileFor_t::kFullDet;
   } else if (filefor == "link") {
     granularity = o2::cpv::RawWriter::FileFor_t::kLink;

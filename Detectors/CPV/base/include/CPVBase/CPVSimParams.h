@@ -23,7 +23,7 @@ namespace cpv
 // (mostly used in GEANT stepping and Digitizer)
 struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
 
-  std::string mCCDBPath = "localtest"; ///< use "localtest" to avoid connecting ccdb server, otherwise use ccdb-test.cern.ch
+  std::string mCCDBPath = "http://ccdb-test.cern.ch:8080"; ///< use "localtest" to avoid connecting ccdb server, otherwise use ccdb-test.cern.ch
 
   //Parameters used in conversion of deposited energy to APD response
   int mnCellX = 128;
