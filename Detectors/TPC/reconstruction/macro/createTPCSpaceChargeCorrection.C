@@ -222,7 +222,7 @@ void debugInterpolation(utils::TreeStreamRedirector& pcstream,
           float gxyzf[3] = {gx, gy, gz};
           float pointCyl[3] = {gz, r, phi};
           double efield[3] = {0.0, 0.0, 0.0};
-          double charge = spaceCharge->getChargeCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
+          double charge = spaceCharge->getDensityCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
           double potential = spaceCharge->getPotentialCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
           spaceCharge->getElectricFieldsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, efield[0], efield[1], efield[2]);
           spaceCharge->getLocalDistortionsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, ldD[0], ldD[1], ldD[2]);
@@ -379,7 +379,7 @@ void debugGridpoints(utils::TreeStreamRedirector& pcstream, const o2::gpu::TPCFa
           double efield[3] = {0.0, 0.0, 0.0};
           double distLocal[3] = {0.0, 0.0, 0.0};
           double dist[3] = {0.0, 0.0, 0.0};
-          double charge = spaceCharge->getChargeCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
+          double charge = spaceCharge->getDensityCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
           double potential = spaceCharge->getPotentialCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
           spaceCharge->getElectricFieldsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, efield[0], efield[1], efield[2]);
           spaceCharge->getLocalDistortionsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, distLocal[0], distLocal[1], distLocal[2]);

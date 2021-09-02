@@ -9,6 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <string>
+#include <iostream>
+#include <bitset>
 
 #include <InfoLogger/InfoLogger.hxx>
 
@@ -217,12 +219,18 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         LOG(DEBUG4) << decoder.getRCUTrailer();
       }
       // Apply zero suppression only in case it was enabled
+      if (decoder.getRCUTrailer().hasZeroSuppression()) {
+        LOG(DEBUG3) << "Zero suppression enabled";
+      } else {
+        LOG(DEBUG3) << "Zero suppression disabled";
+      }
       mRawFitter->setIsZeroSuppressed(decoder.getRCUTrailer().hasZeroSuppression());
 
       const auto& map = mMapper->getMappingForDDL(feeID);
       int iSM = feeID / 2;
 
       // Loop over all the channels
+      int nBunchesNotOK = 0;
       for (auto& chan : decoder.getChannels()) {
 
         int iRow, iCol;
@@ -232,7 +240,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           iCol = map.getColumn(chan.getHardwareAddress());
           chantype = map.getChannelType(chan.getHardwareAddress());
         } catch (Mapper::AddressNotFoundException& ex) {
-          std::cerr << ex.what() << std::endl;
+          LOG(ERROR) << ex.what();
           continue;
         };
 
@@ -302,7 +310,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
         CaloFitResults fitResults;
         try {
-          fitResults = mRawFitter->evaluate(chan.getBunches(), 0, 0);
+          fitResults = mRawFitter->evaluate(chan.getBunches());
           // Prevent negative entries - we should no longer get here as the raw fit usually will end in an error state
           if (fitResults.getAmp() < 0) {
             fitResults.setAmp(0.);
@@ -311,18 +319,27 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             fitResults.setTime(0.);
           }
         } catch (CaloRawFitter::RawFitterError_t& fiterror) {
-          if (mNumErrorMessages < mMaxErrorMessages) {
-            LOG(ERROR) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
-            mNumErrorMessages++;
-            if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+          if (fiterror != CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK) {
+            // Display
+            if (mNumErrorMessages < mMaxErrorMessages) {
+              LOG(ERROR) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+              mNumErrorMessages++;
+              if (mNumErrorMessages == mMaxErrorMessages) {
+                LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+              }
+            } else {
+              mErrorMessagesSuppressed++;
             }
           } else {
-            mErrorMessagesSuppressed++;
+            LOG(DEBUG2) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+            nBunchesNotOK++;
           }
           mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror));
         }
         currentCellContainer->emplace_back(CellID, fitResults.getAmp() * CONVADCGEV, fitResults.getTime(), chantype);
+      }
+      if (nBunchesNotOK) {
+        LOG(DEBUG) << "Number of failed bunches: " << nBunchesNotOK;
       }
     }
   }

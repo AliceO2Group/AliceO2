@@ -158,16 +158,20 @@ enum class EModuleType : int { kUnknown,
 
 template <typename MapEntryCRU2ModuleType = std::unordered_map<EntryCRU, EModuleType, HasherCRU, ComparerCRU>,
           typename MapEntryPM2ChannelID = std::unordered_map<EntryPM, int, HasherPM, ComparerPM>,
-          typename ChannelID = int,
-          typename = typename std::enable_if_t<std::is_integral<ChannelID>::value>>
-class LookupTable
+          typename = typename std::enable_if_t<std::is_integral<typename MapEntryPM2ChannelID::mapped_type>::value>>
+class LookupTableBase
 {
  public:
-  LookupTable() { init(); }
-  LookupTable(const std::string& ccdbPath, const std::string& ccdbPathToLUT) { initCCDB(ccdbPath, ccdbPathToLUT); }
+  LookupTableBase(const std::string& pathToFile) { initFromFile(pathToFile); }
+  LookupTableBase(const std::string& urlCCDB, const std::string& pathToStorageInCCDB) { initCCDB(urlCCDB, pathToStorageInCCDB); }
   typedef MapEntryPM2ChannelID MapEntryPM2ChannelID_t;
   typedef MapEntryCRU2ModuleType MapEntryCRU2ModuleType_t;
-  typedef ChannelID ChannelID_t;
+  typedef typename MapEntryPM2ChannelID_t::key_type EntryPM_t;
+  typedef typename MapEntryCRU2ModuleType_t::key_type EntryCRU_t;
+  typedef typename MapEntryPM2ChannelID_t::mapped_type ChannelID_t;
+  typedef std::map<ChannelID_t, EntryPM_t> MapChannelID2EntryPM_t;  // for digit2raw
+  typedef std::map<EModuleType, EntryCRU_t> MapModuleType2EntryCRU; // for digit2raw
+  typedef EntryPM_t Topo_t;                                         //temporary for common interface
   //Map of str module names -> enum types
   const std::map<std::string, EModuleType> mMapModuleTypeStr2Enum = {{"PM", EModuleType::kPM}, {"PM-LCS", EModuleType::kPM_LCS}, {"TCM", EModuleType::kTCM}};
   //Warning! To exclude double mapping do not use isTCM and isPM in the same time
@@ -175,7 +179,7 @@ class LookupTable
   {
     return mEntryCRU_TCM.mLinkID == linkID && mEntryCRU_TCM.mEndPointID == epID;
   }
-  bool isTCM(const EntryCRU& entryCRU) const
+  bool isTCM(const EntryCRU_t& entryCRU) const
   {
     if (getModuleType(entryCRU) == EModuleType::kTCM) {
       return true;
@@ -183,7 +187,7 @@ class LookupTable
       return false;
     }
   }
-  bool isPM(const EntryCRU& entryCRU) const
+  bool isPM(const EntryCRU_t& entryCRU) const
   {
     if (getModuleType(entryCRU) == EModuleType::kPM || getModuleType(entryCRU) == EModuleType::kPM_LCS) {
       return true;
@@ -191,7 +195,7 @@ class LookupTable
       return false;
     }
   }
-  EModuleType getModuleType(const EntryCRU& entryCRU) const
+  EModuleType getModuleType(const EntryCRU_t& entryCRU) const
   {
     const auto& mapEntries = getMapEntryCRU2ModuleType();
     const auto& it = mapEntries.find(entryCRU);
@@ -210,38 +214,56 @@ class LookupTable
       return EModuleType::kUnknown;
     }
   }
-  void init()
+  void initFromFile(const std::string& pathToFile)
   {
-    std::string inputDir;
-    const char* aliceO2env = std::getenv("O2_ROOT");
-    if (aliceO2env) {
-      inputDir = aliceO2env;
+    std::string filepath{};
+    if (pathToFile == "") {
+      std::string inputDir;
+      const char* aliceO2env = std::getenv("O2_ROOT");
+      if (aliceO2env) {
+        inputDir = aliceO2env;
+      }
+      inputDir += "/share/Detectors/FT0/files/";
+      filepath = inputDir + "LookupTable_FT0.json";
+      filepath = gSystem->ExpandPathName(filepath.data()); // Expand $(ALICE_ROOT) into real system path
+    } else {
+      filepath = pathToFile;
     }
-    inputDir += "/share/Detectors/FT0/files/";
-    std::string filepath = inputDir + "LookupTable_FT0.json";
-    filepath = gSystem->ExpandPathName(filepath.data()); // Expand $(ALICE_ROOT) into real system path
     prepareEntriesFEE(filepath);
     prepareLUT();
   }
-  void initCCDB(const std::string& ccdbPath, const std::string& ccdbPathToLUT)
+  void initCCDB(const std::string& urlCCDB, const std::string& pathToStorageInCCDB)
   {
     auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-    mgr.setURL(ccdbPath);
-    mVecEntryFEE = *(mgr.get<std::vector<EntryFEE>>(ccdbPathToLUT));
+    mgr.setURL(urlCCDB);
+    mVecEntryFEE = *(mgr.get<std::vector<EntryFEE>>(pathToStorageInCCDB));
     prepareLUT();
   }
-  ChannelID_t getGlobalChannelID(const EntryPM& entryPM) const
+  ChannelID_t getGlobalChannelID(const EntryPM_t& entryPM, bool& isValid) const
   {
     const auto& it = mMapEntryPM2ChannelID.find(entryPM);
     if (it != mMapEntryPM2ChannelID.end()) {
+      isValid = true;
       return it->second;
     } else {
+      isValid = false;
       return -1;
     }
   }
-  int getChannel(int linkID, int chID, int ep = 0)
+  ChannelID_t getChannel(int linkID, int chID, int ep = 0)
   {
-    return mMapEntryPM2ChannelID.find(std::move(EntryPM{EntryCRU{linkID, ep, 0, 0}, chID}))->second;
+    return mMapEntryPM2ChannelID.find(std::move(EntryPM_t{EntryCRU_t{linkID, ep, 0, 0}, chID}))->second;
+  }
+  ChannelID_t getChannel(int linkID, int ep, int chID, bool& isValid)
+  {
+    const auto& it = mMapEntryPM2ChannelID.find(std::move(EntryPM_t{EntryCRU_t{linkID, ep, 0, 0}, chID}));
+    if (it != mMapEntryPM2ChannelID.end()) {
+      isValid = true;
+      return it->second;
+    } else {
+      isValid = false;
+      return -1;
+    }
   }
   void prepareEntriesFEE(const std::string& pathToConfigFile)
   {
@@ -267,7 +289,7 @@ class LookupTable
     mMapEntryPM2ChannelID.clear();
     const auto& vecEntryFEE = getVecMetadataFEE();
     for (const auto entryFEE : vecEntryFEE) {
-      EntryCRU entryCRU = entryFEE.mEntryCRU;
+      EntryCRU_t entryCRU = entryFEE.mEntryCRU;
       std::string strModuleType = entryFEE.mModuleType;
       EModuleType moduleType = getModuleType(strModuleType);
       if (moduleType != EModuleType::kUnknown) {
@@ -276,7 +298,7 @@ class LookupTable
       if (moduleType == EModuleType::kPM || moduleType == EModuleType::kPM_LCS) {
         const std::string& strChannelID = entryFEE.mChannelID;
         const std::string& strLocalChannelID = entryFEE.mLocalChannelID;
-        EntryPM entryPM{entryCRU, std::stoi(strLocalChannelID)};
+        EntryPM_t entryPM{entryCRU, std::stoi(strLocalChannelID)};
         mMapEntryPM2ChannelID.insert({entryPM, std::stoi(strChannelID)});
       }
       if (moduleType == EModuleType::kTCM) {
@@ -303,31 +325,7 @@ class LookupTable
   const std::vector<EntryFEE>& getVecMetadataFEE() const { return mVecEntryFEE; }
   const MapEntryCRU2ModuleType_t& getMapEntryCRU2ModuleType() const { return mMapEntryCRU2ModuleType; }
   const MapEntryPM2ChannelID_t& getMapEntryPM2ChannelID() const { return mMapEntryPM2ChannelID; }
-  const EntryCRU& getEntryCRU_TCM() const { return mEntryCRU_TCM; }
-
- private:
-  EntryCRU mEntryCRU_TCM;
-  std::vector<EntryFEE> mVecEntryFEE;
-  MapEntryCRU2ModuleType_t mMapEntryCRU2ModuleType;
-  MapEntryPM2ChannelID_t mMapEntryPM2ChannelID;
-};
-//Singleton for LookUpTable
-template <typename LUT>
-class SingleLUT : public LUT
-{
- private:
-  SingleLUT(const std::string& ccdbPath, const std::string& ccdbPathToLUT) : LUT(ccdbPath, ccdbPathToLUT) {}
-  SingleLUT(const SingleLUT&) = delete;
-  SingleLUT& operator=(SingleLUT&) = delete;
-
- public:
-  typedef EntryPM Topo_t;
-  static constexpr char sDetectorName[] = "FT0";
-  static SingleLUT& Instance()
-  {
-    static SingleLUT instanceLUT("http://ccdb-test.cern.ch:8080/", "FT0/LookUpTableNew");
-    return instanceLUT;
-  }
+  const EntryCRU_t& getEntryCRU_TCM() const { return mEntryCRU_TCM; }
   //Temporary
   //Making topo for FEE recognizing(Local channelID is supressed)
   static Topo_t makeGlobalTopo(const Topo_t& topo)
@@ -340,7 +338,7 @@ class SingleLUT : public LUT
   }
   Topo_t getTopoPM(int globalChannelID) const
   {
-    const auto& mapChannels = Instance().getMapEntryPM2ChannelID();
+    const auto& mapChannels = getMapEntryPM2ChannelID();
     auto findResult = std::find_if(mapChannels.begin(), mapChannels.end(), [&](const auto& pairEntry) {
       return pairEntry.second == globalChannelID;
     });
@@ -348,7 +346,7 @@ class SingleLUT : public LUT
   }
   Topo_t getTopoTCM() const
   {
-    const auto& mapModuleType = Instance().getMapEntryCRU2ModuleType();
+    const auto& mapModuleType = getMapEntryCRU2ModuleType();
     auto findResult = std::find_if(mapModuleType.begin(), mapModuleType.end(), [&](const auto& pairEntry) {
       return pairEntry.second == EModuleType::kTCM;
     });
@@ -361,13 +359,13 @@ class SingleLUT : public LUT
     std::map<Topo_t, RDHtype> mapResult;
     const uint16_t cruID = 0; //constant
     uint64_t feeID = 0;       //increments
-    const auto& mapEntryPM2ChannelID = Instance().getMapEntryPM2ChannelID();
+    const auto& mapEntryPM2ChannelID = getMapEntryPM2ChannelID();
     //Temporary for sorting FEEIDs without using them from LUT(for digit2raw convertion), and by using GlobalChannelID
     std::map<int, Topo_t> mapBuf;
     for (const auto& entry : mapEntryPM2ChannelID) {
       mapBuf.insert({entry.second, entry.first});
     }
-    const auto& cru_tcm = Instance().getEntryCRU_TCM();
+    const auto& cru_tcm = getEntryCRU_TCM();
     mapBuf.insert({static_cast<int>(mapBuf.size()), Topo_t{cru_tcm, 0}});
     //
     for (const auto& pairEntry : mapBuf) {
@@ -396,8 +394,13 @@ class SingleLUT : public LUT
     }
     return mapResult;
   }
+
+ private:
+  EntryCRU_t mEntryCRU_TCM;
+  std::vector<EntryFEE> mVecEntryFEE;
+  MapEntryCRU2ModuleType_t mMapEntryCRU2ModuleType;
+  MapEntryPM2ChannelID_t mMapEntryPM2ChannelID;
 };
-using LUT = SingleLUT<LookupTable<>>;
 } // namespace fit
 } // namespace o2
 #endif

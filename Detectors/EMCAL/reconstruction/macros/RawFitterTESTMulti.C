@@ -85,7 +85,7 @@ void RawFitterTESTMulti(const char* configfile = "")
           //continue;
           std::cout << "Channel has " << chan.getBunches().size() << " bunches " << std::endl;
           try {
-            o2::emcal::CaloFitResults fitResults = RawFitter.evaluate(chan.getBunches(), 0, 0);
+            o2::emcal::CaloFitResults fitResults = RawFitter.evaluate(chan.getBunches());
 
             // print the fit output
             //std::cout << "The Time is : " << fitResults.getTime() << " And the Amplitude is : " << fitResults.getAmp() << std::endl;

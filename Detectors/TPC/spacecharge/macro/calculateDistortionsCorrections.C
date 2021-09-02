@@ -6,11 +6,15 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 
 template <typename DataT>
-void calculateDistortionsAnalytical(const int globalEFieldTypeAna = 1, const int globalDistTypeAna = 1, const int eFieldTypeAna = 1, const int usePoissonSolverAna = 1, const int nSteps = 1, const int simpsonIterations = 3, const int nThreads = -1);
+void calculateDistortionsAnalytical(const int sides = 0, const int globalEFieldTypeAna = 1, const int globalDistTypeAna = 1, const int eFieldTypeAna = 1, const int usePoissonSolverAna = 1, const int nSteps = 1, const int simpsonIterations = 3, const int nThreads = -1);
 
 template <typename DataT>
 void calculateDistortionsFromHist(const char* path, const char* histoName, const int sides, const int globalEFieldType = 1, const int globalDistType = 1, const int nSteps = 1, const int simpsonIterations = 3, const int nThreads = -1);
 
+int getSideStart(const int sides);
+int getSideEnd(const int sides);
+
+/// \param sides set which sides will be simulated. sides=0: A- and C-Side, sides=1: A-Side only, sides=2: C-Side only
 /// \param nZVertices number of vertices of the grid in z direction
 /// \param nRVertices number of vertices of the grid in z direction
 /// \param nPhiVertices number of vertices of the grid in z direction
@@ -21,10 +25,11 @@ void calculateDistortionsFromHist(const char* path, const char* histoName, const
 /// \param nSteps number of which are used for calculation of distortions/corrections per z-bin
 /// \param simpsonIterations number of iterations used in the simpson intergration
 /// \param nThreads number of threads which are used (if the value is -1 all threads should be used)
-void calcDistAna(const unsigned short nZVertices = 129, const unsigned short nRVertices = 129, const unsigned short nPhiVertices = 180, const int globalEFieldTypeAna = 1, const int globalDistTypeAna = 1, const int eFieldTypeAna = 1, const int usePoissonSolverAna = 1, const int nSteps = 1, const int simpsonIterations = 3, const int nThreads = -1)
+template <typename DataT>
+void calcDistAna(const int sides = 0, const unsigned short nZVertices = 129, const unsigned short nRVertices = 129, const unsigned short nPhiVertices = 180, const int globalEFieldTypeAna = 1, const int globalDistTypeAna = 1, const int eFieldTypeAna = 1, const int usePoissonSolverAna = 1, const int nSteps = 1, const int simpsonIterations = 3, const int nThreads = -1)
 {
-  o2::tpc::SpaceCharge<double>::setGrid(nZVertices, nRVertices, nPhiVertices);
-  calculateDistortionsAnalytical<double>(globalEFieldTypeAna, globalDistTypeAna, eFieldTypeAna, usePoissonSolverAna, nSteps, simpsonIterations, nThreads);
+  o2::tpc::SpaceCharge<DataT>::setGrid(nZVertices, nRVertices, nPhiVertices);
+  calculateDistortionsAnalytical<DataT>(sides, globalEFieldTypeAna, globalDistTypeAna, eFieldTypeAna, usePoissonSolverAna, nSteps, simpsonIterations, nThreads);
 }
 
 /// \param path path to the root file containing the 3D density histogram
@@ -271,7 +276,7 @@ void writeToTree(o2::tpc::SpaceCharge<DataT>& spaceCharge3D, o2::utils::TreeStre
 /// \param nSteps number of which are used for calculation of distortions/corrections per z-bin
 /// \param simpsonIterations number of iterations used in the simpson intergration
 template <typename DataT = double>
-void calculateDistortionsAnalytical(const int globalEFieldTypeAna, const int globalDistTypeAna, const int eFieldTypeAna, const int usePoissonSolverAna, const int nSteps, const int simpsonIterations, const int nThreads)
+void calculateDistortionsAnalytical(const int sides, const int globalEFieldTypeAna, const int globalDistTypeAna, const int eFieldTypeAna, const int usePoissonSolverAna, const int nSteps, const int simpsonIterations, const int nThreads)
 {
   const auto integrationStrategy = o2::tpc::SpaceCharge<DataT>::IntegrationStrategy::SimpsonIterative;
   o2::tpc::SpaceCharge<DataT> spaceCharge3D;
@@ -286,7 +291,7 @@ void calculateDistortionsAnalytical(const int globalEFieldTypeAna, const int glo
   // write to root file
   o2::utils::TreeStreamRedirector pcstream(TString::Format("distortions_ana_nR%hu_nZ%hu_nPhi%hu_SimpsonsIter%i.root", spaceCharge3D.getNRVertices(), spaceCharge3D.getNZVertices(), spaceCharge3D.getNPhiVertices(), simpsonIterations).Data(), "RECREATE");
 
-  for (int iside = 0; iside < 2; ++iside) {
+  for (int iside = getSideStart(sides); iside < getSideEnd(sides); ++iside) {
     std::cout << "side: " << iside << std::endl;
     o2::tpc::Side side = (iside == 0) ? o2::tpc::Side::A : o2::tpc::Side::C;
     o2::tpc::AnalyticalFields<DataT> anaFields(side);
@@ -327,16 +332,7 @@ void calculateDistortionsFromHist(const char* path, const char* histoName, const
   fileOutSCDensity.Close();
 
   o2::utils::TreeStreamRedirector pcstream(TString::Format("distortions_real_nR%hu_nZ%hu_nPhi%hu_SimpsonsIter%i.root", spaceCharge3D.getNRVertices(), spaceCharge3D.getNZVertices(), spaceCharge3D.getNPhiVertices(), simpsonIterations).Data(), "RECREATE");
-  int iSideStart = 0;
-  int iSideEnd = 2;
-  if (sides == 1) {
-    // a side only
-    iSideEnd = 1;
-  } else if (sides == 2) {
-    // c side only
-    iSideStart = 1;
-  }
-  for (int iside = iSideStart; iside < iSideEnd; ++iside) {
+  for (int iside = getSideStart(sides); iside < getSideEnd(sides); ++iside) {
     std::cout << "side: " << iside << std::endl;
     o2::tpc::Side side = (iside == 0) ? o2::tpc::Side::A : o2::tpc::Side::C;
     const auto distType = globalDistType == 0 ? SC::GlobalDistType::Standard : SC ::GlobalDistType::Fast;
@@ -363,4 +359,24 @@ void calculateDistortionsFromHist(const char* path, const char* histoName, const
     spaceCharge3D.dumpGlobalCorrections(fOut, o2::tpc::Side::C);
   }
   fOut.Close();
+}
+
+/// helper function to set the loop over the sides for the tpc
+/// \param sides set for which sides the distortions/corrections will be calculated. sides=0: A- and C-Side, sides=1: A-Side only, sides=2: C-Side only
+int getSideStart(const int sides)
+{
+  if (sides == 2) {
+    return 1;
+  }
+  return 0;
+}
+
+/// helper function to set the loop over the sides for the tpc
+/// \param sides set for which sides the distortions/corrections will be calculated. sides=0: A- and C-Side, sides=1: A-Side only, sides=2: C-Side only
+int getSideEnd(const int sides)
+{
+  if (sides == 1) {
+    return 1;
+  }
+  return 2;
 }

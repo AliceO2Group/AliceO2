@@ -25,9 +25,9 @@
 #include "TH3.h"
 
 #include "DataFormatsTPC/Defs.h"
-#include "TPCSpaceCharge/SpaceCharge.h"
 #include "GPU/TPCFastTransform.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "TPCSpaceCharge/SpaceCharge.h"
 
 #endif
 

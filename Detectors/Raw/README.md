@@ -1,5 +1,5 @@
 <!-- doxy
-\page refDetectorsRaw Raw Data 
+\page refDetectorsRaw Raw Data
 /doxy -->
 
 # Raw data tools
@@ -63,7 +63,7 @@ auto& lnkB = writer.registerLink(fee_1, cru_0, link_1, endpoint_0, "outfile_0.ra
 ..
 // or
 o2::header::RawDataHeader rdh; // by default, v4 is used currently.
-// also o2::header::RDHAny rdh(4);  can be used with the same effect 
+// also o2::header::RDHAny rdh(4);  can be used with the same effect
 rdh.feeId = feeX;
 rdh.cruID = cruY;
 rdh.linkID = linkZ;
@@ -102,7 +102,7 @@ also triggered by `write.close()`.
 In case detector link payload for given HBF exceeds the maximum CRU page size of 8KB (including the RDH added by the writer;
 this may happen even if it the payload size is less than 8KB, since it might be added to already partially populated CRU page of
 the same HBF) it will write on the page only part of the payload and carry over the rest on the extra page(s).
-By default the RawFileWriter will simply chunk payload as it considers necessary, but some 
+By default the RawFileWriter will simply chunk payload as it considers necessary, but some
 detectors want their CRU pages to be self-consistent: they add to their payload detector-specific trailer and header in the
 beginning and in the end of the CRU page. In case part of the data is carried over to another page, this extra information
 need to be repeated (possibly, with some modifications).
@@ -120,7 +120,7 @@ It provides to the converter carryOverMethod method the following info:
 rdh     : RDH of the CRU page being written (pointer to o2::header::RDHAny)
 data    : original payload received by the RawFileWriter
 ptr     : pointer on the data in the payload which was not yet added to the link CRU pages
-maxSize : maximum size (multiple of 16 bytes) of the bloc starting at ptr which it can 
+maxSize : maximum size (multiple of 16 bytes) of the bloc starting at ptr which it can
           accomodate at the current CRU page (i.e. what it would write by default)
 splitID : number of times this payload was already split, 0 at 1st call
 trailer : what it wants to add in the end of the CRU page where the data starting from ptr
@@ -199,7 +199,7 @@ For further details see  ``ITSMFT/common/simulation/MC2RawEncoder`` class and th
 A class for parsing raw data file(s) with "variable-size" CRU format.
 For every encountered link the DPL `SubSpecification` is assigned according to the formula used by DataDistribution:
 ```cpp
-SubSpec = (RDH.cruID<<16) | ((RDH.linkID + 1)<<(RDH.endPointID == 1 ? 8 : 0)); 
+SubSpec = (RDH.cruID<<16) | ((RDH.linkID + 1)<<(RDH.endPointID == 1 ? 8 : 0));
 ```
 
 This `SubSpecification` is used to define the DPL InputSpecs (and match the OutputSpecs).
@@ -247,7 +247,7 @@ The input configuration must have following format (parsed using `Common-O2::Con
 
 # optional, will override defaults set by RawFileReader
 [defaults]
-# optional, initial default is FLP 
+# optional, initial default is FLP
 dataOrigin = ITS
 # optional, initial default is RAWDATA
 dataDescription = RAWRDATA    
@@ -272,7 +272,7 @@ filePath = path_and_name_of_the_data_file2
 dataOrigin = EMC
 filePath = path_and_name_of_the_data_fileX
 # for RORC detectors the record below is obligatory
-readoutCard = RORC 
+readoutCard = RORC
 
 
 
@@ -281,7 +281,7 @@ readoutCard = RORC
 
 ```
 
-The typical loop to read the data from already initialized reader is: 
+The typical loop to read the data from already initialized reader is:
 ```cpp
 int nlinks = reader.getNLinks();
 bool readPerTF = true; // data can be read per TF or per HBF
@@ -302,7 +302,7 @@ while(1) {
       link.readNextTF(dataTF.data());
       // use data ...
     }    
-    else {                // read data per HBF 
+    else {                // read data per HBF
       int nHBF = link.getNHBFinTF(); // number of HBFs in the TF
       for (int ihb=0;ihb<nHBF;ihb++) {
         auto sz = link.getNextHBSize(); // size in bytes needed for the next HBF of this link
@@ -320,7 +320,7 @@ Note: every input file may contain data from different CRUs or GBT links, but mi
 `o2::header::DataOrigin` and  `o2::header::DataDescription`) is not allowed.
 Data from the same detector may be split to multiple files link-wise and/or time-wise. In the latter case the input files must be provided ordered in time (HBF orbit in the RDH).
 
-## Raw data file reader workflow 
+## Raw data file reader workflow
 
 ```cpp
 o2-raw-file-reader-workflow
@@ -331,7 +331,7 @@ o2-raw-file-reader-workflow
   --delay arg (=0)                      delay in seconds between consecutive TFs sending
   --buffer-size arg (=1048576)          buffer size for files preprocessing
   --super-page-size arg (=1048576)      super-page size for FMQ parts definition
-  --part-per-hbf                        FMQ parts per superpage (default) of HBF
+  --part-per-sp                         FMQ parts per superpage instead of per HBF
   --raw-channel-config arg              optional raw FMQ channel for non-DPL output
   --cache-data                          cache data at 1st reading, may require excessive memory!!!
   --detect-tf0                          autodetect HBFUtils start Orbit/BC from 1st TF seen (at SOX)
@@ -362,7 +362,7 @@ If `--loop` argument is provided, data will be re-played in loop. The delay (in 
 Using `--cache-data` option one can force caching the data to memory during the 1st reading, this avoiding disk I/O for following iterations, but this option should be used with care as it will eventually create a memory copy of all TFs to read.
 
 At every invocation of the device `processing` callback a full TimeFrame for every link will be added as a multi-part `FairMQ` message and relayed by the relevant channel.
-By default each part will be a single CRU super-page of the link. This behaviour can be changed by providing `part-per-hbf` option, in which case each HBF will be added as a separate HBF.
+By default each HBF will start a new part in the multipart message. This behaviour can be changed by providing `part-per-sp` option, in which case there will be one part per superpage (Note that this is incompatible to the DPLRawSequencer).
 
 The standard use case of this workflow is to provide the input for other worfklows using the piping, e.g.
 ```cpp
@@ -430,7 +430,7 @@ A warning is printed if this size exceeds the nominal SuperPage size (D=1MB, can
 
 For the correct data the output should look like this:
 ```cpp
-o2-raw-filecheck ALPIDE_DATA/rawits_pseudoCalib_RU46_49.bin 
+o2-raw-filecheck ALPIDE_DATA/rawits_pseudoCalib_RU46_49.bin
 [INFO] RawDataHeader v4 is assumed
 [INFO] #0: 182108928 bytes scanned, 69552 RDH read for 12 links from ALPIDE_DATA/rawits_pseudoCalib_RU46_49.bin
 

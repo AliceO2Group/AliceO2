@@ -125,7 +125,7 @@ void HitProcessingManager::sampleCollisionTimes()
 {
   mDigitizationContext.getEventRecords().resize(mDigitizationContext.getNCollisions());
   mInteractionSampler.generateCollisionTimes(mDigitizationContext.getEventRecords());
-  mDigitizationContext.getBunchFilling() = mInteractionSampler.getBunchFilling();
+  mDigitizationContext.setBunchFilling(mInteractionSampler.getBunchFilling());
   mDigitizationContext.setMuPerBC(mInteractionSampler.getMuPerBC());
 }
 

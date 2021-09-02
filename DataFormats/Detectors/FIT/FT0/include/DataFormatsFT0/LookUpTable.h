@@ -356,7 +356,42 @@ class SingleLUT : public LookUpTable
   }
 };
 } // namespace deprecated
-using SingleLUT = o2::fit::LUT;
+
+namespace new_lut
+{
+//Singleton for LookUpTable
+template <typename LUT>
+class SingleLUT : public LUT
+{
+ private:
+  SingleLUT(const std::string& ccdbPath, const std::string& ccdbPathToLUT) : LUT(ccdbPath, ccdbPathToLUT) {}
+  SingleLUT(const std::string& pathToFile) : LUT(pathToFile) {}
+  SingleLUT(const SingleLUT&) = delete;
+  SingleLUT& operator=(SingleLUT&) = delete;
+
+ public:
+  static constexpr char sDetectorName[] = "FT0";
+  static SingleLUT& Instance()
+  {
+    static SingleLUT instanceLUT("http://ccdb-test.cern.ch:8080/", "FT0/LookUpTableNew");
+    return instanceLUT;
+  }
+  // temporary unused
+  static SingleLUT& InstanceCCDB(const std::string& urlCCDB, const std::string& pathToStorageInCCDB)
+  {
+    static SingleLUT instanceLUT(urlCCDB, pathToStorageInCCDB);
+    return instanceLUT;
+  }
+
+  static SingleLUT& InstanceFile(const std::string& pathToFile)
+  {
+    static SingleLUT instanceLUT(pathToFile);
+    return instanceLUT;
+  }
+};
+} //namespace new_lut
+
+using SingleLUT = new_lut::SingleLUT<o2::fit::LookupTableBase<>>;
 //using SingleLUT = deprecated::SingleLUT;
 } // namespace ft0
 } // namespace o2

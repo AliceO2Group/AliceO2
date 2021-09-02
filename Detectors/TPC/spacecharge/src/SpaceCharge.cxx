@@ -23,6 +23,7 @@
 #include "TGeoGlobalMagField.h"
 #include "TPCBase/ParameterGas.h"
 #include "Field/MagneticField.h"
+#include "CommonUtils/TreeStreamRedirector.h"
 
 #include <chrono>
 #include "TF1.h"
@@ -670,14 +671,15 @@ void SpaceCharge<DataT>::setLocalDistCorrVectorsFromFile(TFile& inpf, const Side
 template <typename DataT>
 void SpaceCharge<DataT>::fillChargeDensityFromFile(TFile& fInp, const char* name)
 {
-  const TH3* hisSCDensity3D = (TH3*)fInp.Get(name);
+  TH3* hisSCDensity3D = (TH3*)fInp.Get(name);
   fillChargeDensityFromHisto(*hisSCDensity3D);
+  delete hisSCDensity3D;
 }
 
 template <typename DataT>
 void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hisSCDensity3D)
 {
-  TH3D hRebin = rebinDensityHisto(hisSCDensity3D, mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices);
+  TH3DataT hRebin = rebinDensityHisto(hisSCDensity3D, mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices);
   for (int side = Side::A; side < SIDES; ++side) {
     for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
       for (size_t iR = 0; iR < mParamGrid.NRVertices; ++iR) {
@@ -692,9 +694,9 @@ void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hisSCDensity3D)
 }
 
 template <typename DataT>
-TH3D SpaceCharge<DataT>::rebinDensityHisto(const TH3& hOrig, const unsigned short nBinsZNew, const unsigned short nBinsRNew, const unsigned short nBinsPhiNew)
+typename SpaceCharge<DataT>::TH3DataT SpaceCharge<DataT>::rebinDensityHisto(const TH3& hOrig, const unsigned short nBinsZNew, const unsigned short nBinsRNew, const unsigned short nBinsPhiNew)
 {
-  TH3D hRebin{};
+  TH3DataT hRebin{};
   const int nBinsZNewTwo = 2 * nBinsZNew;
 
   const auto phiLow = hOrig.GetXaxis()->GetBinLowEdge(1);
@@ -1246,7 +1248,7 @@ void SpaceCharge<DataT>::distortElectron(GlobalPosition3D& point) const
 }
 
 template <typename DataT>
-DataT SpaceCharge<DataT>::getChargeCyl(const DataT z, const DataT r, const DataT phi, const Side side) const
+DataT SpaceCharge<DataT>::getDensityCyl(const DataT z, const DataT r, const DataT phi, const Side side) const
 {
   return mInterpolatorDensity[side](z, r, phi);
 }
@@ -1407,23 +1409,163 @@ void SpaceCharge<DataT>::integrateEFieldsRoot(const DataT p1r, const DataT p1phi
   localIntDeltaEz = getSign(formulaStruct.getSide()) * static_cast<DataT>(fEz.Integral(p1z, p2z));
 }
 
+template <typename DataT>
+std::vector<GlobalPosition3D> SpaceCharge<DataT>::calculateElectronDriftPath(const GlobalPosition3D& elePos, const int nSamplingPoints) const
+{
+  std::vector<GlobalPosition3D> elePaths;
+  elePaths.reserve(nSamplingPoints + 1);
+
+  const DataT z0 = elePos.Z();
+  const DataT r0 = elePos.Rho();
+  const DataT phi0 = elePos.Phi();
+  const Side side = getSide(z0);
+  const NumericalFields<DataT> numEFields{getElectricFieldsInterpolator(side)};
+  const DataT stepSize = std::abs(getZMax(side) - z0) / nSamplingPoints;
+
+  DataT drDist = 0.0;   // global distortion dR
+  DataT dPhiDist = 0.0; // global distortion dPhi (multiplication with R has to be done at the end)
+  DataT dzDist = 0.0;   // global distortion dZ
+  int iter = 0;
+  for (;;) {
+    const DataT z0Tmp = z0 + dzDist + iter * stepSize;     // starting z position
+    const DataT z1Tmp = regulateZ(z0Tmp + stepSize, side); // electron drifts from z0Tmp to z1Tmp
+    const DataT radius = regulateR(r0 + drDist, side);     // current radial position of the electron
+    const DataT phi = regulatePhi(phi0 + dPhiDist, side);  // current phi position of the electron
+    elePaths.emplace_back(GlobalPosition3D(radius * std::cos(phi), radius * std::sin(phi), z0Tmp));
+
+    DataT ddR = 0;   // distortion dR for drift from z0Tmp to z1Tmp
+    DataT ddPhi = 0; // distortion dPhi for drift from z0Tmp to z1Tmp
+    DataT ddZ = 0;   // distortion dZ for drift from z0Tmp to z1Tmp
+
+    // get the distortion from interpolation of local distortions or calculate distortions with the electric field
+    processGlobalDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, numEFields);
+
+    // add local distortions to global distortions
+    drDist += ddR;
+    dPhiDist += ddPhi;
+    dzDist += ddZ;
+
+    // if one uses local distortions the interpolated value for the last bin has to be scaled.
+    // This has to be done because of the interpolated value is defined for a drift length of one z bin, but in the last bin the distance to the readout can be smaller than one z bin.
+    const bool checkReached = side == Side::A ? z1Tmp >= getZMax(side) : z1Tmp <= getZMax(side);
+
+    // set loop to exit if the readout is reached and approximate distortion of 'missing' (one never ends exactly on the readout: z1Tmp + ddZ != ZMAX) drift distance.
+    // approximation is done by the current calculated values of the distortions and scaled linear to the 'missing' distance.
+    if (checkReached) {
+      const DataT endPoint = z1Tmp + ddZ;
+      const DataT deltaZ = getZMax(side) - endPoint; // distance from last point to read out
+      const DataT diff = endPoint - z0Tmp;
+      const DataT fac = diff != 0 ? std::abs(deltaZ / diff) : 0; // approximate the distortions for the 'missing' distance deltaZ
+      drDist += ddR * fac;
+      dPhiDist += ddPhi * fac;
+      dzDist += ddZ * fac;
+      const DataT z1TmpEnd = regulateZ(z0Tmp + stepSize, side); // electron drifts from z0Tmp to z1Tmp
+      const DataT radiusEnd = regulateR(r0 + drDist, side);     // current radial position of the electron
+      const DataT phiEnd = regulatePhi(phi0 + dPhiDist, side);  // current phi position of the electron
+      elePaths.emplace_back(GlobalPosition3D(radiusEnd * std::cos(phiEnd), radiusEnd * std::sin(phiEnd), z1TmpEnd));
+      break;
+    }
+    ++iter;
+  }
+
+  return elePaths;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Side side, const int nZPoints, const int nRPoints, const int nPhiPoints) const
+{
+  const DataT phiSpacing = GridProp::getGridSpacingPhi(nPhiPoints);
+  const DataT rSpacing = GridProp::getGridSpacingR(nRPoints);
+  const DataT zSpacing = side == Side::A ? GridProp::getGridSpacingZ(nZPoints) : -GridProp::getGridSpacingZ(nZPoints);
+
+  o2::utils::TreeStreamRedirector pcstream(outFileName, "RECREATE");
+  pcstream.GetFile()->cd();
+  for (int iPhi = 0; iPhi < nPhiPoints; ++iPhi) {
+    DataT phiPos = iPhi * phiSpacing;
+    for (int iR = 0; iR < nRPoints; ++iR) {
+      DataT rPos = getRMin(side) + iR * rSpacing;
+      for (int iZ = 0; iZ < nZPoints; ++iZ) {
+        DataT zPos = getZMin(side) + iZ * zSpacing;
+        DataT density = getDensityCyl(zPos, rPos, phiPos, side);
+        DataT potential = getPotentialCyl(zPos, rPos, phiPos, side);
+
+        DataT distZ{};
+        DataT distR{};
+        DataT distRPhi{};
+        getDistortionsCyl(zPos, rPos, phiPos, side, distZ, distR, distRPhi);
+
+        // get average distortions
+        DataT corrZ{};
+        DataT corrR{};
+        DataT corrRPhi{};
+        getCorrectionsCyl(zPos, rPos, phiPos, side, corrZ, corrR, corrRPhi);
+
+        // get average distortions
+        DataT eZ{};
+        DataT eR{};
+        DataT ePhi{};
+        getElectricFieldsCyl(zPos, rPos, phiPos, side, eZ, eR, ePhi);
+
+        pcstream << "sc"
+                 << "phi=" << phiPos
+                 << "r=" << rPos
+                 << "z=" << zPos
+                 << "scdensity=" << density
+                 << "potential=" << potential
+                 << "eZ=" << eZ
+                 << "eR=" << eR
+                 << "ePhi=" << ePhi
+                 << "distZ=" << distZ
+                 << "distR=" << distR
+                 << "distRPhi=" << distRPhi
+                 << "corrZ=" << corrZ
+                 << "corrR=" << corrR
+                 << "corrRPhi=" << corrRPhi
+                 << "\n";
+      }
+    }
+  }
+  pcstream.Close();
+}
+
 using DataTD = double;
 template class o2::tpc::SpaceCharge<DataTD>;
 
-using NumFields = NumericalFields<DataTD>;
-using AnaFields = AnalyticalFields<DataTD>;
-using DistCorrInterp = DistCorrInterpolator<DataTD>;
-using O2TPCSpaceCharge3DCalc = SpaceCharge<DataTD>;
+using NumFieldsD = NumericalFields<DataTD>;
+using AnaFieldsD = AnalyticalFields<DataTD>;
+using DistCorrInterpD = DistCorrInterpolator<DataTD>;
+using O2TPCSpaceCharge3DCalcD = SpaceCharge<DataTD>;
 
-template void O2TPCSpaceCharge3DCalc::integrateEFieldsRoot(const DataTD, const DataTD, const DataTD, const DataTD, DataTD&, DataTD&, DataTD&, const NumFields&) const;
-template void O2TPCSpaceCharge3DCalc::integrateEFieldsRoot(const DataTD, const DataTD, const DataTD, const DataTD, DataTD&, DataTD&, DataTD&, const AnaFields&) const;
-template void O2TPCSpaceCharge3DCalc::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc::Type, const NumFields&);
-template void O2TPCSpaceCharge3DCalc::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc::Type, const AnaFields&);
-template void O2TPCSpaceCharge3DCalc::calcLocalDistortionCorrectionVector(const NumFields&);
-template void O2TPCSpaceCharge3DCalc::calcLocalDistortionCorrectionVector(const AnaFields&);
-template void O2TPCSpaceCharge3DCalc::calcGlobalCorrections(const NumFields&);
-template void O2TPCSpaceCharge3DCalc::calcGlobalCorrections(const AnaFields&);
-template void O2TPCSpaceCharge3DCalc::calcGlobalCorrections(const DistCorrInterp&);
-template void O2TPCSpaceCharge3DCalc::calcGlobalDistortions(const NumFields&);
-template void O2TPCSpaceCharge3DCalc::calcGlobalDistortions(const AnaFields&);
-template void O2TPCSpaceCharge3DCalc::calcGlobalDistortions(const DistCorrInterp&);
+template void O2TPCSpaceCharge3DCalcD::integrateEFieldsRoot(const DataTD, const DataTD, const DataTD, const DataTD, DataTD&, DataTD&, DataTD&, const NumFieldsD&) const;
+template void O2TPCSpaceCharge3DCalcD::integrateEFieldsRoot(const DataTD, const DataTD, const DataTD, const DataTD, DataTD&, DataTD&, DataTD&, const AnaFieldsD&) const;
+template void O2TPCSpaceCharge3DCalcD::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalcD::Type, const NumFieldsD&);
+template void O2TPCSpaceCharge3DCalcD::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalcD::Type, const AnaFieldsD&);
+template void O2TPCSpaceCharge3DCalcD::calcLocalDistortionCorrectionVector(const NumFieldsD&);
+template void O2TPCSpaceCharge3DCalcD::calcLocalDistortionCorrectionVector(const AnaFieldsD&);
+template void O2TPCSpaceCharge3DCalcD::calcGlobalCorrections(const NumFieldsD&);
+template void O2TPCSpaceCharge3DCalcD::calcGlobalCorrections(const AnaFieldsD&);
+template void O2TPCSpaceCharge3DCalcD::calcGlobalCorrections(const DistCorrInterpD&);
+template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const NumFieldsD&);
+template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const AnaFieldsD&);
+template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const DistCorrInterpD&);
+
+using DataTF = float;
+template class o2::tpc::SpaceCharge<DataTF>;
+
+using NumFieldsF = NumericalFields<DataTF>;
+using AnaFieldsF = AnalyticalFields<DataTF>;
+using DistCorrInterpF = DistCorrInterpolator<DataTF>;
+using O2TPCSpaceCharge3DCalcF = SpaceCharge<DataTF>;
+
+template void O2TPCSpaceCharge3DCalcF::integrateEFieldsRoot(const DataTF, const DataTF, const DataTF, const DataTF, DataTF&, DataTF&, DataTF&, const NumFieldsF&) const;
+template void O2TPCSpaceCharge3DCalcF::integrateEFieldsRoot(const DataTF, const DataTF, const DataTF, const DataTF, DataTF&, DataTF&, DataTF&, const AnaFieldsF&) const;
+template void O2TPCSpaceCharge3DCalcF::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalcF::Type, const NumFieldsF&);
+template void O2TPCSpaceCharge3DCalcF::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalcF::Type, const AnaFieldsF&);
+template void O2TPCSpaceCharge3DCalcF::calcLocalDistortionCorrectionVector(const NumFieldsF&);
+template void O2TPCSpaceCharge3DCalcF::calcLocalDistortionCorrectionVector(const AnaFieldsF&);
+template void O2TPCSpaceCharge3DCalcF::calcGlobalCorrections(const NumFieldsF&);
+template void O2TPCSpaceCharge3DCalcF::calcGlobalCorrections(const AnaFieldsF&);
+template void O2TPCSpaceCharge3DCalcF::calcGlobalCorrections(const DistCorrInterpF&);
+template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const NumFieldsF&);
+template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const AnaFieldsF&);
+template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const DistCorrInterpF&);

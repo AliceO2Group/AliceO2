@@ -1253,3 +1253,4 @@ void TriCubicInterpolator<DataT>::setValues(const int iz, const int ir, const in
 }
 
 template class o2::tpc::TriCubicInterpolator<double>;
+template class o2::tpc::TriCubicInterpolator<float>;

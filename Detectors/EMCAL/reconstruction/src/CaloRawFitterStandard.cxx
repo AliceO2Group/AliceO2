@@ -50,10 +50,8 @@ double CaloRawFitterStandard::rawResponseFunction(double* x, double* par)
   return signal;
 }
 
-CaloFitResults CaloRawFitterStandard::evaluate(const gsl::span<const Bunch> bunchlist,
-                                               std::optional<unsigned int> altrocfg1, std::optional<unsigned int> altrocfg2)
+CaloFitResults CaloRawFitterStandard::evaluate(const gsl::span<const Bunch> bunchlist)
 {
-
   float time = 0;
   float amp = 0;
   float chi2 = 0;
@@ -61,7 +59,7 @@ CaloFitResults CaloRawFitterStandard::evaluate(const gsl::span<const Bunch> bunc
   bool fitDone = kFALSE;
 
   auto [nsamples, bunchIndex, ampEstimate,
-        maxADC, timeEstimate, pedEstimate, first, last] = preFitEvaluateSamples(bunchlist, altrocfg1, altrocfg2, mAmpCut);
+        maxADC, timeEstimate, pedEstimate, first, last] = preFitEvaluateSamples(bunchlist, mAmpCut);
 
   if (bunchIndex >= 0 && ampEstimate >= mAmpCut) {
     time = timeEstimate;
@@ -69,10 +67,14 @@ CaloFitResults CaloRawFitterStandard::evaluate(const gsl::span<const Bunch> bunc
     amp = ampEstimate;
 
     if (nsamples > 1 && maxADC < constants::OVERFLOWCUT) {
-      std::tie(amp, time, chi2) = fitRaw(first, last);
-      time += timebinOffset;
-      timeEstimate += timebinOffset;
-      ndf = nsamples - 2;
+      try {
+        std::tie(amp, time, chi2) = fitRaw(first, last);
+        time += timebinOffset;
+        timeEstimate += timebinOffset;
+        ndf = nsamples - 2;
+        fitDone = true;
+      } catch (RawFitterError_t& error) {
+      }
     }
   }
   if (fitDone) {
