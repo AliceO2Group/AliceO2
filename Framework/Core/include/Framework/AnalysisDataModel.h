@@ -69,7 +69,6 @@ DECLARE_SOA_COLUMN(Chi2, chi2, float);                             //! Chi2 of v
 DECLARE_SOA_COLUMN(NumContrib, numContrib, uint16_t);              //! Number of tracks used for the vertex
 DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);           //! Collision time in ns relative to BC stored in bc()
 DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float);     //! Resolution of collision time
-DECLARE_SOA_COLUMN(CollisionTimeMask, collisionTimeMask, uint8_t); //! Nature of CollisionTimeRes, MSB 0 = exact range / 1 = Gaussian uncertainty
 } // namespace collision
 
 DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", //! Time and vertex information of collision
@@ -77,12 +76,12 @@ DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", //! Time and vertex informatio
                   collision::PosX, collision::PosY, collision::PosZ,
                   collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ,
                   collision::Flags, collision::Chi2, collision::NumContrib,
-                  collision::CollisionTime, collision::CollisionTimeRes, collision::CollisionTimeMask);
+                  collision::CollisionTime, collision::CollisionTimeRes);
 
 using Collision = Collisions::iterator;
 
 // NOTE Relation between Collisions and BC table
-// (important for pp in case of ambigous assignment)
+// (important for pp in case of ambiguous assignment)
 // A collision entry points to the entry in the BC table based on the calculated BC from the collision time
 // To study other compatible triggers with the collision time, check the tutorial: compatibleBCs.cxx
 

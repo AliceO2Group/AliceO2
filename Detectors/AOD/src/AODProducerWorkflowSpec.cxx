@@ -904,8 +904,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     } else {
       LOG(FATAL) << "Error: could not find a corresponding BC ID for a collision; BC = " << globalBC << ", collisionID = " << collisionID;
     }
-    // TODO: get real collision time mask
-    int collisionTimeMask = 0;
+
     collisionsCursor(0,
                      bcID,
                      truncateFloatFraction(vertex.getX(), mCollisionPosition),
@@ -921,8 +920,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                      truncateFloatFraction(vertex.getChi2(), mCollisionPositionCov),
                      vertex.getNContributors(),
                      truncateFloatFraction(relInteractionTime, mCollisionPosition),
-                     truncateFloatFraction(timeStamp.getTimeStampError() * 1E3, mCollisionPositionCov),
-                     collisionTimeMask);
+                     truncateFloatFraction(timeStamp.getTimeStampError() * 1E3, mCollisionPositionCov));
     auto& trackRef = primVer2TRefs[collisionID];
     // passing interaction time in [ps]
     fillTrackTablesPerCollision(collisionID, interactionTime * 1E3, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor, fwdTracksCursor, vertex);
