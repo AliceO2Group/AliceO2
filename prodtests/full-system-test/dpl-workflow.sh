@@ -13,6 +13,9 @@ source $MYDIR/setenv.sh
 
 if [ -z $OPTIMIZED_PARALLEL_ASYNC ]; then OPTIMIZED_PARALLEL_ASYNC=0; fi
 
+workflow_has_parameter CTF && export SAVECTF=1
+workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
+
 if [ "0$O2_ROOT" == "0" ]; then
   eval "`alienv shell-helper`"
   alienv --no-refresh load O2/latest
@@ -21,8 +24,9 @@ fi
 # Set general arguments
 ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE"
 if [ $EPNMODE == 1 ]; then
-  ARGS_ALL+=" --infologger-severity $SEVERITY"
+  ARGS_ALL+=" --infologger-severity $INFOLOGGER_SEVERITY"
   #ARGS_ALL+=" --monitoring-backend influxdb-unix:///tmp/telegraf.sock"
+  ARGS_ALL+=" --monitoring-backend no-op://"
 else
   ARGS_ALL+=" --monitoring-backend no-op://"
 fi
@@ -106,6 +110,7 @@ if [ $HOSTMEMSIZE != "0" ]; then
   GPU_CONFIG_KEY+="GPU_proc.forceHostMemoryPoolSize=$HOSTMEMSIZE;"
 fi
 
+N_TPCTRK=1
 N_TPCENT=1
 N_TPCITS=1
 N_ITSDEC=1
@@ -129,7 +134,7 @@ if [ $OPTIMIZED_PARALLEL_ASYNC != 0 ]; then
     N_TPCITS=$(expr 2 \* $N_NUMAFACTOR)
     N_MCHTRK=$(expr 1 \* $N_NUMAFACTOR)
     N_TOFMATCH=$(expr 9 \* $N_NUMAFACTOR)
-    NGPUS=$(expr 6 \* $N_NUMAFACTOR)
+    N_TPCTRK=$(expr 6 \* $N_NUMAFACTOR)
   else
     N_TPCENTDEC=$((3 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4 > 0 ? 3 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4 : 1))
     N_MFTTRK=$((6 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4 > 0 ? 6 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4 : 1))
@@ -137,6 +142,7 @@ if [ $OPTIMIZED_PARALLEL_ASYNC != 0 ]; then
     N_TPCITS=$((4 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4 > 0 ? 4 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4 : 1))
     N_MCHTRK=$((2 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4 > 0 ? 2 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4 : 1))
     N_TOFMATCH=$((20 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4 > 0 ? 20 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4 : 1))
+    N_TPCTRK=$NGPUS
   fi
 elif [ $EPNPIPELINES != 0 ]; then
   N_TPCENT=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
@@ -145,6 +151,12 @@ elif [ $EPNPIPELINES != 0 ]; then
   N_EMC=$(($(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
   N_TRDENT=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
   N_TRDTRK=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  if [ $GPUTYPE == "CPU" ]; then
+    N_TPCTRK=8
+    GPU_CONFIG_KEY+="GPU_proc.ompThreads=4;"
+  else
+    N_TPCTRK=$NGPUS
+  fi
 fi
 
 # Input workflow
@@ -159,16 +171,22 @@ else
   WORKFLOW="o2-raw-file-reader-workflow --detect-tf0 $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG;HBFUtils.nHBFPerTF=$NHBPERTF;\" --delay $TFDELAY --loop $NTIMEFRAMES --max-tf 0 --input-conf $FILEWORKDIR/rawAll.cfg | "
 fi
 
+if [ $EPNMODE == 1 ]; then
+  GPU_INPUT=zsonthefly
+  WORKFLOW+="o2-tpc-raw-to-digits-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --input-spec \"A:TPC/RAWDATA;dd:FLP/DISTSUBTIMEFRAME/0\" --remove-duplicates --pipeline tpc-raw-to-digits-0:6 | "
+  WORKFLOW+="o2-tpc-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --input-type digitizer --output-type zsraw,disable-writer --pipeline tpc-zsEncoder:6 | "
+fi
+
 #Decoder workflows
 if [ $CTFINPUT == 0 ]; then
   has_detector ITS && WORKFLOW+="o2-itsmft-stf-decoder-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --dict-file $FILEWORKDIR/ITSdictionary.bin --pipeline its-stf-decoder:$N_ITSDEC | "
   has_detector MFT && WORKFLOW+="o2-itsmft-stf-decoder-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --dict-file $FILEWORKDIR/MFTdictionary.bin --runmft true | "
-  has_detector FT0 && WORKFLOW+="o2-ft0-flp-dpl-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-output | "
-  has_detector FV0 && WORKFLOW+="o2-fv0-flp-dpl-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-output | "
-  has_detector MID && WORKFLOW+="o2-mid-raw-to-digits-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" | "
+  has_detector FT0 && [ $EPNMODE == 0 ] && WORKFLOW+="o2-ft0-flp-dpl-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-output | "
+  has_detector FV0 && [ $EPNMODE == 0 ] && WORKFLOW+="o2-fv0-flp-dpl-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-output | "
+  has_detector MID && [ $EPNMODE == 0 ] && WORKFLOW+="o2-mid-raw-to-digits-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" | "
   has_detector MCH && WORKFLOW+="o2-mch-raw-to-digits-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" | "
-  has_detector TOF && WORKFLOW+="o2-tof-compressor $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" | "
-  has_detector FDD && WORKFLOW+="o2-fdd-flp-dpl-workflow --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-output $ARGS_ALL | "
+  has_detector TOF && [ $EPNMODE == 0 ] && WORKFLOW+="o2-tof-compressor $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" | "
+  has_detector FDD && [ $EPNMODE == 0 ] && WORKFLOW+="o2-fdd-flp-dpl-workflow --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-output $ARGS_ALL | "
   has_detector TRD && WORKFLOW+="o2-trd-datareader $ARGS_ALL | "
   has_detector ZDC && WORKFLOW+="o2-zdc-raw2digits $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-output | "
   has_detector HMP && WORKFLOW+="o2-hmpid-raw-to-digits-stream-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" | "
@@ -176,7 +194,7 @@ fi
 
 # Common workflows
 has_detector ITS && WORKFLOW+="o2-its-reco-workflow $ARGS_ALL --trackerCA $DISABLE_MC --clusters-from-upstream --disable-root-output $ITS_CONFIG --configKeyValues \"$ARGS_ALL_CONFIG;$ITS_CONFIG_KEY\" --its-dictionary-path $FILEWORKDIR --pipeline its-tracker:$N_ITSTRK | "
-has_detector TPC && WORKFLOW+="o2-gpu-reco-workflow ${ARGS_ALL/-severity $SEVERITY/-severity $SEVERITY_TPC} --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT --pipeline gpu-reconstruction:$NGPUS $GPU_CONFIG --configKeyValues \"$ARGS_ALL_CONFIG;GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$GPU_EXTRA_CONFIG\" | "
+has_detector TPC && WORKFLOW+="o2-gpu-reco-workflow ${ARGS_ALL//-severity $SEVERITY/-severity $SEVERITY_TPC} --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT --pipeline gpu-reconstruction:$N_TPCTRK $GPU_CONFIG --configKeyValues \"$ARGS_ALL_CONFIG;GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$GPU_EXTRA_CONFIG\" | "
 has_detectors ITS TPC && WORKFLOW+="o2-tpcits-match-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output $DISABLE_MC --its-dictionary-path $FILEWORKDIR --pipeline itstpc-track-matcher:$N_TPCITS | "
 has_detector FT0 && WORKFLOW+="o2-ft0-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output $DISABLE_MC | "
 has_detector TOF && WORKFLOW+="o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --input-type $TOF_INPUT --output-type $TOF_OUTPUT --disable-root-input --disable-root-output $DISABLE_MC | "
@@ -238,6 +256,8 @@ if [ $CTFINPUT == 0 ]; then
 fi
 
 workflow_has_parameter EVENT_DISPLAY && [ $NUMAID == 0 ] && WORKFLOW+="o2-eve-display $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --display-tracks TPC --display-clusters TPC $EVE_CONFIG $DISABLE_MC | "
+
+workflow_has_parameter QC && source $MYDIR/qc-workflow.sh
 
 # DPL run binary
 WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
