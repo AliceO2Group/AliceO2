@@ -64,14 +64,14 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
   for (int ilink = 0; ilink < NLinks; ilink++) {
     uint64_t FeeID = uint64_t(ilink);
     std::string outFileLink = o2::utils::Str::concat_string(outDir, "/", "ZDC");
-    if (mFilePer != "all") {
+    if (mFileFor != "all") {
       outFileLink += fmt::format("_{}", mFLP);
-      if (mFilePer != "flp") {
+      if (mFileFor != "flp") {
         outFileLink += fmt::format("_cru{}_{}", mCruID, mEndPointID);
-        if (mFilePer != "cru") {
+        if (mFileFor != "cru") {
           outFileLink += fmt::format("_lnk{}_feeid{}", ilink, FeeID);
-          if (mFilePer != "link") {
-            LOG(FATAL) << "Not supported output file splitting: " << mFilePer;
+          if (mFileFor != "link") {
+            LOG(FATAL) << "Not supported output file splitting: " << mFileFor;
             throw std::runtime_error("invalid option provided for file grouping");
           }
         }
