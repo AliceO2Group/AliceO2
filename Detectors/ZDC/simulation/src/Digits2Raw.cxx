@@ -58,11 +58,26 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
 
   mLinkID = uint32_t(0);
   mCruID = uint16_t(0);
+  mFLPID = uint16_t(0);
   mEndPointID = uint32_t(0);
   // TODO: assign FeeID from configuration object
   for (int ilink = 0; ilink < NLinks; ilink++) {
     uint64_t FeeID = uint64_t(ilink);
-    std::string outFileLink = mOutputPerLink ? o2::utils::Str::concat_string(outd, "zdc_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, "zdc.raw");
+    std::string outFileLink = o2::utils::Str::concat_string(outDir, "/", "ZDC");
+    if (mFileFor != "all") {
+      outFileLink += fmt::format("_{}", mFLP);
+      if (mFileFor != "flp") {
+        outFileLink += fmt::format("_cru{}_{}", mCruID, mEndPointID);
+        if (mFileFor != "cru") {
+          outFileLink += fmt::format("_lnk{}_feeid{}", ilink, FeeID);
+          if (mFileFor != "link") {
+            LOG(FATAL) << "Not supported output file splitting: " << mFileFor;
+            throw std::runtime_error("invalid option provided for file grouping");
+          }
+        }
+      }
+    }
+    outFileLink += ".raw";
     mWriter.registerLink(FeeID, mCruID, mLinkID, mEndPointID, outFileLink);
   }
 

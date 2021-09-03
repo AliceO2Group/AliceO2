@@ -46,8 +46,8 @@ class Digits2Raw
 
   o2::raw::RawFileWriter& getWriter() { return mWriter; }
 
-  void setFilePerLink(bool v) { mOutputPerLink = v; }
-  bool getFilePerLink() const { return mOutputPerLink; }
+  void setFileFor(const std::string v) { mFileFor = v; }
+  std::string getFileFor() const { return mFileFor; }
 
   void setVerbosity(int v)
   {
@@ -88,10 +88,12 @@ class Digits2Raw
   uint32_t mLastNEmpty = 0;                                             /// Last number of empty bunches used
   double mSumPed[NModules][NChPerModule] = {0};                         /// Pedestal integrated on clean empty bunches
   uint16_t mPed[NModules][NChPerModule] = {0};                          /// Current pedestal
-
+  std::string mFileFor = "all";                                         /// Output file splitting
+  std::string mFLP = "alio2-cr1-flp181";                                /// FLP assigned to ZDC
   o2::raw::RawFileWriter mWriter{"ZDC"};
   uint32_t mLinkID = 0;
   uint16_t mCruID = 0;
+  uint16_t mFLPID = 0;
   uint32_t mEndPointID = 0;
 
   int mVerbosity = 0;
