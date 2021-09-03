@@ -292,10 +292,6 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
 
       const auto& mcTrack = (*mcArr)[mc];
 
-      if (mapNFakes[mc] > 0) { // Fake-track rate calculation
-        nFak += mapNFakes[mc];
-        fak->Fill(mcTrack.GetPt(), mapNFakes[mc]);
-      }
       auto x = mcTrack.Vx();
       auto y = mcTrack.Vy();
       if (x * x + y * y > 1)
@@ -305,8 +301,16 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
       if (TMath::Abs(pdg) != 211)
         continue; // Select pions
 
+      if (TMath::Abs(mcTrack.GetEta()) > 1.2)
+        continue; // Select within the acceptance in eta
+
       if (clusMap[mc] != 0b1111111)
-        continue;
+        continue; // Select only if all 7 layers have a cluster
+
+      if (mapNFakes[mc] > 0) { // Fake-track rate calculation
+        nFak += mapNFakes[mc];
+        fak->Fill(mcTrack.GetPt(), mapNFakes[mc]);
+      }
 
       nGen++; // Generated tracks for the efficiency calculation
 
