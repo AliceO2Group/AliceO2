@@ -138,7 +138,6 @@ void TrackerDPL::run(ProcessingContext& pc)
   };
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
-  if (continuous) {
     for (auto& rof : rofs) {
       int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, mTracker.get());
       if (nclUsed) {
@@ -171,7 +170,6 @@ void TrackerDPL::run(ProcessingContext& pc)
       }
       roFrame++;
     }
-  }
 
   LOG(INFO) << "MFTTracker found " << nTracksLTF << " tracks LTF";
   LOG(INFO) << "MFTTracker found " << nTracksCA << " tracks CA";
