@@ -13,6 +13,9 @@
 #include <TMath.h>
 #include <TString.h>
 
+#include "TGeoGlobalMagField.h"
+#include "Field/MagneticField.h"
+#include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "SimulationDataFormat/MCTrack.h"
@@ -50,7 +53,7 @@ struct DataFrames {
   int lastIndex = -1;
 };
 
-void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string kinefile = "o2sim_Kine.root")
+void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string kinefile = "o2sim_Kine.root", std::string grpfile = "o2sim_grp.root")
 {
   using namespace o2::itsmft;
   using namespace o2::its;
@@ -65,6 +68,12 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
                             "mcLam:recLam:"
                             "mcPt:recPt:"
                             "ipD:ipZ:label");
+
+  // Magnetic field
+  o2::base::Propagator::initFieldFromGRP(grpfile.data());
+  auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  double orig[3] = {0., 0., 0.};
+  float bz = field->getBz(orig);
 
   // Geometry
   o2::base::GeometryManager::loadGeometry();
@@ -351,7 +360,6 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
         recPhi = TMath::ATan2(p[1], p[0]);
         recLam = TMath::ATan2(p[2], recPt);
         Float_t vx = 0., vy = 0., vz = 0.; // Assumed primary vertex
-        Float_t bz = 5.;                   // Assumed magnetic field
         recTrack.getImpactParams(vx, vy, vz, bz, ip);
       }
 
