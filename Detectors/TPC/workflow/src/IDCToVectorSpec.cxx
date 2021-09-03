@@ -62,9 +62,9 @@ class IDCToVectorDevice : public o2::framework::Task
     const auto pedestalFile = ic.options().get<std::string>("pedestal-file");
     if (pedestalFile.length()) {
       LOGP(info, "Setting pedestal file: {}", pedestalFile);
-      auto calPads = utils::readCalPads(pedestalFile, "Pedestals,Noise");
-      if (calPads.size() != 2) {
-        LOGP(error, "Pedestals and noise not loaded correctly, size {} != 2", calPads.size());
+      auto calPads = utils::readCalPads(pedestalFile, "Pedestals");
+      if (calPads.size() != 1) {
+        LOGP(error, "Pedestal could not be loaded from file {}", pedestalFile);
       } else {
         for (auto p : calPads) {
           mNoisePedestal.emplace_back(p);
@@ -84,6 +84,11 @@ class IDCToVectorDevice : public o2::framework::Task
     uint32_t heartbeatBC = 0;
     uint32_t tfCounter = 0;
     bool first = true;
+
+    CalPad* pedestals = nullptr;
+    if (mNoisePedestal.size() && mNoisePedestal[0]) {
+      pedestals = mNoisePedestal[0].get();
+    }
 
     for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
       const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
@@ -116,11 +121,6 @@ class IDCToVectorDevice : public o2::framework::Task
       int sampaOnFEC{}, channelOnSAMPA{};
       auto& idcVec = mIDCvectors[cruID];
       auto& infoVec = mIDCInfos[cruID];
-
-      CalPad* pedestals = nullptr;
-      if (mNoisePedestal.size() && mNoisePedestal[0]) {
-        pedestals = mNoisePedestal[0].get();
-      }
 
       // ---| data loop |---
       const gsl::span<const char> raw = pc.inputs().get<gsl::span<char>>(ref);
@@ -319,13 +319,13 @@ class IDCToVectorDevice : public o2::framework::Task
       for (int i = 0; i < infos.size(); ++i) {
         auto& info = infos[i];
 
-        auto idcFirst = idcVec.begin() + i * Mapper::PADSPERREGION[cru];
-        auto idcLast = idcFirst + Mapper::PADSPERREGION[cru];
+        auto idcFirst = idcVec.begin() + i * Mapper::PADSPERREGION[cru % Mapper::NREGIONS];
+        auto idcLast = idcFirst + Mapper::PADSPERREGION[cru % Mapper::NREGIONS];
         std::vector<float> idcs(idcFirst, idcLast);
         std::vector<short> cpad(idcs.size());
         std::vector<short> row(idcs.size());
         for (int ipad = 0; ipad < idcs.size(); ++ipad) {
-          const auto& padPos = mapper.padPos(ipad + Mapper::GLOBALPADOFFSET[cru % 10]);
+          const auto& padPos = mapper.padPos(ipad + Mapper::GLOBALPADOFFSET[cru % Mapper::NREGIONS]);
           row[ipad] = (short)padPos.getRow();
           const short pads = (short)mapper.getNumberOfPadsInRowSector(row[ipad]);
           cpad[ipad] = (short)padPos.getPad() - pads / 2;
