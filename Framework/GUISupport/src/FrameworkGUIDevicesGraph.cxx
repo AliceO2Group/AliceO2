@@ -480,8 +480,15 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     NodePos* pos = &positions[node_idx];
     const DeviceInfo& info = infos[node_idx];
 
-    ImGui::PushID(node->ID);
     ImVec2 node_rect_min = offset + pos->pos;
+
+    // Do not even start if we are sure the box is not visible
+    if ((node_rect_min.x > ImGui::GetCursorScreenPos().x + ImGui::GetWindowSize().x + 50) ||
+        (node_rect_min.y > ImGui::GetCursorScreenPos().y + ImGui::GetWindowSize().y + 50)) {
+      continue;
+    }
+
+    ImGui::PushID(node->ID);
 
     // Display node contents first
     draw_list->ChannelsSetCurrent(foregroundLayer);
