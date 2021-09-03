@@ -294,14 +294,11 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
         nFak += mapNFakes[mc];
         fak->Fill(mcTrack.GetPt(), mapNFakes[mc]);
       }
+      auto x = mcTrack.Vx();
+      auto y = mcTrack.Vy();
+      if (x * x + y * y > 1)
+        continue; // Select quasi-primary particles, originating from within the beam pipe
 
-      Int_t mID = mcTrack.getMotherTrackId();
-      if (mID >= 0) {
-        const auto& mom = (*mcArr)[mID];
-        int pdg = std::abs(mom.GetPdgCode());
-        if (pdg > 100 || (pdg < 20 && pdg > 10))
-          continue; // Select primary particles
-      }
       Int_t pdg = mcTrack.GetPdgCode();
       if (TMath::Abs(pdg) != 211)
         continue; // Select pions
