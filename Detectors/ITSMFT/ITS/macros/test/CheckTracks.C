@@ -52,8 +52,6 @@ struct DataFrames {
 
 void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string kinefile = "o2sim_Kine.root")
 {
-  bool filterMultiROFTracks = 1;
-
   using namespace o2::itsmft;
   using namespace o2::its;
 
@@ -261,13 +259,6 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
 
         const CompClusterExt& c = (*clusArr)[i];
 
-        /* FIXME
-        if (clusRofMap[mcid] < 0) {
-          clusRofMap[mcid] = c.getROFrame();
-        }
-        if (filterMultiROFTracks && (clusRofMap[mcid] != (int)c.getROFrame()))
-          continue;
-*/
         nClusters++;
 
         int& ok = clusMap[mcid];
@@ -355,8 +346,8 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
         recTrack.getImpactParams(vx, vy, vz, bz, ip);
 
         nt->Fill( // mcYOut,recYOut,
-          mcZOut, recZOut, mcPhiOut, recPhiOut, mcThetaOut, recThetaOut, mcPhi, recPhi, mcLam, recLam, mcPt, recPt, ip[0],
-          ip[1], mc);
+          mcZOut, recZOut, mcPhiOut, recPhiOut, mcThetaOut, recThetaOut, mcPhi, recPhi,
+          mcLam, recLam, mcPt, recPt, ip[0], ip[1], mc);
       }
 
       if (mapNClones[mc] > 0) { // Clone-track rate calculation
