@@ -52,9 +52,9 @@ install(FILES CheckDigits_mft.C
               run_rawdecoding_mft.C
               run_trac_ca_its.C
               run_trac_its.C
-              run_trac_alice3.C
               CreateBCPattern.C
               UploadDummyAlignment.C
+       CreateCTPOrbitResetObject.C
         DESTINATION share/macro/)
 
 # FIXME: a lot of macros that are here should really be elsewhere. Those which
@@ -328,6 +328,9 @@ o2_add_test_root_macro(UploadDummyAlignment.C
                                             O2::DetectorsCommonDataFormats
                                             O2::CommonDataFormat)
 
+o2_add_test_root_macro(CreateCTPOrbitResetObject.C
+                      PUBLIC_LINK_LIBRARIES O2::CCDB)
+
 # FIXME: move to subsystem dir + check compilation o2_add_test_root_macro(
 # run_rec_ca.C PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats
 # O2::DataFormatsITSMFT O2::DataFormatsParameters O2::DetectorsBase O2::Field
@@ -352,11 +355,6 @@ o2_add_test_root_macro(run_trac_its.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                         LABELS its)
-
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(run_trac_alice3.C
-                       PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITSMFTSimulation
-                       LABELS its COMPILE_ONLY)
 
 #
 # NOTE: commented out until unit testing reenabled FIXME : re-enable or delete ?

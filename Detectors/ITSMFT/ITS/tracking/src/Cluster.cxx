@@ -22,16 +22,16 @@ namespace o2
 namespace its
 {
 
-using math_utils::calculatePhiCoordinate;
-using math_utils::calculateRCoordinate;
-using math_utils::getNormalizedPhiCoordinate;
+using math_utils::computePhi;
+using math_utils::getNormalizedPhi;
+using math_utils::hypot;
 
 Cluster::Cluster(const float x, const float y, const float z, const int index)
   : xCoordinate{x},
     yCoordinate{y},
     zCoordinate{z},
-    phiCoordinate{getNormalizedPhiCoordinate(calculatePhiCoordinate(x, y))},
-    rCoordinate{calculateRCoordinate(x, y)},
+    phi{getNormalizedPhi(computePhi(x, y))},
+    radius{hypot(x, y)},
     clusterId{index},
     indexTableBinIndex{0}
 {
@@ -42,11 +42,11 @@ Cluster::Cluster(const int layerIndex, const IndexTableUtils& utils, const Clust
   : xCoordinate{other.xCoordinate},
     yCoordinate{other.yCoordinate},
     zCoordinate{other.zCoordinate},
-    phiCoordinate{getNormalizedPhiCoordinate(calculatePhiCoordinate(other.xCoordinate, other.yCoordinate))},
-    rCoordinate{calculateRCoordinate(other.xCoordinate, other.yCoordinate)},
+    phi{getNormalizedPhi(computePhi(other.xCoordinate, other.yCoordinate))},
+    radius{hypot(other.xCoordinate, other.yCoordinate)},
     clusterId{other.clusterId},
     indexTableBinIndex{utils.getBinIndex(utils.getZBinIndex(layerIndex, zCoordinate),
-                                         utils.getPhiBinIndex(phiCoordinate))}
+                                         utils.getPhiBinIndex(phi))}
 //, montecarloId{ other.montecarloId }
 {
   // Nothing to do
@@ -56,12 +56,12 @@ Cluster::Cluster(const int layerIndex, const float3& primaryVertex, const IndexT
   : xCoordinate{other.xCoordinate},
     yCoordinate{other.yCoordinate},
     zCoordinate{other.zCoordinate},
-    phiCoordinate{getNormalizedPhiCoordinate(
-      calculatePhiCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y))},
-    rCoordinate{calculateRCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y)},
+    phi{getNormalizedPhi(
+      computePhi(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y))},
+    radius{hypot(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y)},
     clusterId{other.clusterId},
     indexTableBinIndex{utils.getBinIndex(utils.getZBinIndex(layerIndex, zCoordinate),
-                                         utils.getPhiBinIndex(phiCoordinate))}
+                                         utils.getPhiBinIndex(phi))}
 {
   // Nothing to do
 }
@@ -71,12 +71,12 @@ void Cluster::Init(const int layerIndex, const float3& primaryVertex, const Inde
   xCoordinate = other.xCoordinate;
   yCoordinate = other.yCoordinate;
   zCoordinate = other.zCoordinate;
-  phiCoordinate = getNormalizedPhiCoordinate(
-    calculatePhiCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y));
-  rCoordinate = calculateRCoordinate(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y);
+  phi = getNormalizedPhi(
+    computePhi(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y));
+  radius = hypot(xCoordinate - primaryVertex.x, yCoordinate - primaryVertex.y);
   clusterId = other.clusterId;
   indexTableBinIndex = utils.getBinIndex(utils.getZBinIndex(layerIndex, zCoordinate),
-                                         utils.getPhiBinIndex(phiCoordinate));
+                                         utils.getPhiBinIndex(phi));
 }
 
 TrackingFrameInfo::TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArray<float, 2>&& posTF,

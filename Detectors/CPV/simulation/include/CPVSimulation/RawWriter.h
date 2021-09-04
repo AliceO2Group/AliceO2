@@ -42,6 +42,20 @@ static constexpr short kNDilogic = 4;  ///< Number of dilogics
 static constexpr short kNGasiplex = 5; ///< Number of dilogic per row
 static constexpr short kNRow = 48;     ///< number of rows 16*3 mod
 
+struct GBTLinkAttributes {
+  short linkId;
+  short feeId;
+  short cruId;
+  short endPointId;
+  std::string flpId;
+};
+static constexpr short kNGBTLinks = 3; ///< Number of GBT links
+const GBTLinkAttributes links[kNGBTLinks] =
+  {
+    {0, 0, 0, 0, "alio2-cr1-flp162"},
+    {1, 1, 0, 0, "alio2-cr1-flp162"},
+    {2, 2, 0, 0, "alio2-cr1-flp162"}};
+
 struct padCharge {
   short charge;
   short pad;
@@ -82,15 +96,12 @@ class RawWriter
   FileFor_t mFileFor = FileFor_t::kFullDet;                       ///< Granularity of the output files
   std::string mOutputLocation = "./";                             ///< Rawfile name
   std::string mCcdbUrl = "http://ccdb-test.cern.ch:8080";         ///< CCDB Url
-  std::unique_ptr<CalibParams> mCalibParamsTst;                   ///< CPV calibration
-  std::unique_ptr<Pedestals> mPedestalsTst;                       ///< CPV pedestals
-  std::unique_ptr<BadChannelMap> mBadMapTst;                      ///< CPV bad channel map
   CalibParams* mCalibParams = nullptr;                            ///< CPV calibration
   Pedestals* mPedestals = nullptr;                                ///< CPV pedestals
   BadChannelMap* mBadMap = nullptr;                               ///< CPV bad channel map
 
-  std::vector<char> mPayload;                                     ///< Payload to be written
-  gsl::span<o2::cpv::Digit> mDigits;                              ///< Digits input vector - must be in digitized format including the time response
+  std::vector<char> mPayload[kNGBTLinks];                         ///< Preformatted payload for every link to be written
+  gsl::span<o2::cpv::Digit> mDigits;                              ///< Digits input vector - must be in digitized format
   std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;             ///< Raw writer
 
   ClassDefNV(RawWriter, 2);

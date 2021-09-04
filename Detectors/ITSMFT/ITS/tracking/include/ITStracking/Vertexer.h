@@ -60,7 +60,8 @@ class Vertexer
   std::vector<Vertex> exportVertices();
   VertexerTraits* getTraits() const { return mTraits; };
 
-  float clustersToVertices(ROframe&, const bool useMc = false, std::ostream& = std::cout);
+  float clustersToVertices(
+    ROframe&, const bool useMc = false, std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
   void filterMCTracklets();
   void validateTracklets();
 
@@ -77,7 +78,7 @@ class Vertexer
   // Utils
   void dumpTraits();
   template <typename... T>
-  float evaluateTask(void (Vertexer::*)(T...), const char*, std::ostream& ostream, T&&... args);
+  float evaluateTask(void (Vertexer::*)(T...), const char*, std::function<void(std::string s)> logger, T&&... args);
 
   // debug
   void setDebugCombinatorics();
@@ -140,9 +141,6 @@ inline std::vector<Vertex> Vertexer::exportVertices()
 {
   std::vector<Vertex> vertices;
   for (auto& vertex : mTraits->getVertices()) {
-    if (fair::Logger::Logging(fair::Severity::info)) {
-      std::cout << "\t\tFound vertex with: " << std::setw(6) << vertex.mContributors << " contributors" << std::endl;
-    }
     vertices.emplace_back(o2::math_utils::Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
     vertices.back().setTimeStamp(vertex.mTimeStamp);
   }
@@ -150,7 +148,7 @@ inline std::vector<Vertex> Vertexer::exportVertices()
 }
 
 template <typename... T>
-float Vertexer::evaluateTask(void (Vertexer::*task)(T...), const char* taskName, std::ostream& ostream,
+float Vertexer::evaluateTask(void (Vertexer::*task)(T...), const char* taskName, std::function<void(std::string s)> logger,
                              T&&... args)
 {
   float diff{0.f};
@@ -163,13 +161,13 @@ float Vertexer::evaluateTask(void (Vertexer::*task)(T...), const char* taskName,
     std::chrono::duration<double, std::milli> diff_t{end - start};
     diff = diff_t.count();
 
-    if (fair::Logger::Logging(fair::Severity::info)) {
-      if (taskName == nullptr) {
-        ostream << diff << "\t";
-      } else {
-        ostream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
-      }
+    std::stringstream sstream;
+    if (taskName == nullptr) {
+      sstream << diff << "\t";
+    } else {
+      sstream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms";
     }
+    logger(sstream.str());
   } else {
     (this->*task)(std::forward<T>(args)...);
   }

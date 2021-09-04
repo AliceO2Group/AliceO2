@@ -115,7 +115,7 @@ taskwrapper mchraw.log o2-mch-digits-to-raw --input-file mchdigits.root --output
 taskwrapper emcraw.log o2-emcal-rawcreator --file-for link -o raw/EMC
 taskwrapper phsraw.log o2-phos-digi2raw --file-for link -o raw/PHS
 taskwrapper cpvraw.log o2-cpv-digi2raw --file-for link -o raw/CPV
-taskwrapper zdcraw.log o2-zdc-digi2raw --file-per-link -o raw/ZDC
+taskwrapper zdcraw.log o2-zdc-digi2raw --file-for link -o raw/ZDC
 taskwrapper hmpraw.log o2-hmpid-digits-to-raw-workflow --file-for link --outdir raw/HMP
 taskwrapper trdraw.log o2-trd-trap2raw -o raw/TRD --fileper halfcru
 cat raw/*/*.cfg > rawAll.cfg

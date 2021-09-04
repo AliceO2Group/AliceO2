@@ -340,6 +340,11 @@ DataProcessorSpec
         }
 
         // get the TableConsumer and corresponding arrow table
+        auto msg = pc.inputs().get(ref.spec->binding);
+        if (msg.header == nullptr) {
+          LOGP(ERROR, "No header for message {}:{}", ref.spec->binding, *ref.spec);
+          continue;
+        }
         auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
         auto table = s->asArrowTable();
         if (!table->Validate().ok()) {

@@ -21,6 +21,19 @@ For the storage optimization reason one can request multiple CTFs stored in the 
 o2-ctf-writer --min-file-size <min> --max-file-size <max> ...
 ```
 will accumulate CTFs in entries of the same tree/file until its size fits exceeds `min` and does not exceed `max` (`max` check is disabled if `max<=min`) or EOS received.
+The `--max-file-size` limit will be ignored if the very first CTF already exceeds it.
+
+The output directory (by default: `cwd`) for CTFs can be set via `--output-dir` option and must exist. Since in on the EPNs we may store the CTFs on the RAM disk of limited capacity, one can indicate the fall-back storage via `--output-dir-alt` option. The writer will switch to it if
+(i) `szCheck = max(min-file-size*1.1, max-file-size)` is positive and (ii) estimated (accounting for eventual other CTFs files written concurrently) available space on the primary storage is below the `szCheck`. The available space is estimated as:
+````
+current physically available space
+-
+number still open CTF files from concurrent writers * szCheck
++
+the current size of these files
+````
+
+Option `--ctf-dict-dir <dir>` can be provided to indicate the (existing) directory for the dictionary IO.
 
 ## CTF reader workflow
 

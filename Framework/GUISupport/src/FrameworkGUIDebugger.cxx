@@ -610,7 +610,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
           auto& label = metricInfo.metricLabels[li];
           auto& state = metricDisplayState[gmi];
           if (state.selected) {
-            selectedMetricIndex.push_back(MetricIndex{si, di, li, gmi});
+            selectedMetricIndex.emplace_back(MetricIndex{si, di, li, gmi});
           }
           gmi++;
         }
@@ -1014,8 +1014,10 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
 
     showTopologyNodeGraph(guiState, infos, devices, metadata, controls, metricsInfos);
 
-    AllMetricsStore metricsStore;
-    std::vector<DeviceMetricsInfo> driverMetrics{driverInfo.metrics};
+    static AllMetricsStore metricsStore;
+    static std::vector<DeviceMetricsInfo> driverMetrics{driverInfo.metrics};
+    driverMetrics.clear();
+
     metricsStore.metrics[DEVICE_METRICS] = &metricsInfos;
     metricsStore.metrics[DRIVER_METRICS] = &driverMetrics;
     metricsStore.specs[DEVICE_METRICS] = &deviceNodesInfos;
