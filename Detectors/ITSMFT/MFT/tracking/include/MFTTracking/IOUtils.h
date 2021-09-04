@@ -60,6 +60,10 @@ int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span
                     gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
                     const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr, const o2::mft::Tracker* tracker = nullptr);
 
+void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
+                            gsl::span<const unsigned char>::iterator& pattIt,
+                            std::vector<o2::BaseCluster<float>>& output,
+                            const itsmft::TopologyDictionary& dict);
 } // namespace ioutils
 } // namespace mft
 } // namespace o2

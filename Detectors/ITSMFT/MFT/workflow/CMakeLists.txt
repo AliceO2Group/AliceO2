@@ -14,7 +14,6 @@ o2_add_library(MFTWorkflow
                SOURCES src/RecoWorkflow.cxx
                        src/ClustererSpec.cxx
                        src/ClusterWriterSpec.cxx
-                       src/ClusterReaderSpec.cxx
                        src/TrackerSpec.cxx
                        src/TrackReaderSpec.cxx
                        src/TrackWriterSpec.cxx
