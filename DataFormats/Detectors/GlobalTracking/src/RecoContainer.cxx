@@ -83,11 +83,11 @@ void DataRequest::requestMCHTracks(bool mc)
 {
   addInput({"trackMCH", "MCH", "TRACKS", 0, Lifetime::Timeframe});
   addInput({"trackMCHROF", "MCH", "TRACKROFS", 0, Lifetime::Timeframe});
-  // FIXME-LA : add trackclusters and labels
+  if (mc) {
+    addInput({"trackMCHMCTR", "MCH", "TRACKLABELS", 0, Lifetime::Timeframe});
+  }
+  // FIXME-LA : add trackclusters
   // addInput({"trackMCHTRACKCLUSTERS", "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
-  // if (mc) {
-  //   addInput({"trackMFTMCTR", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe});
-  // }
   requestMap["trackMCH"] = mc;
 }
 
@@ -168,6 +168,17 @@ void DataRequest::requestITSClusters(bool mc)
     addInput({"clusITSMC", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
   }
   requestMap["clusITS"] = mc;
+}
+
+void DataRequest::requestMFTClusters(bool mc)
+{
+  addInput({"clusMFT", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe});
+  addInput({"clusMFTPatt", "MFT", "PATTERNS", 0, Lifetime::Timeframe});
+  addInput({"clusMFTROF", "MFT", "CLUSTERSROF", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"clusMFTMC", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
+  }
+  requestMap["clusMFT"] = mc;
 }
 
 void DataRequest::requestTPCClusters(bool mc)
@@ -326,6 +337,9 @@ void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
   if (GTrackID::includesDet(DetID::ITS, src)) {
     requestITSClusters(useMC);
   }
+  if (GTrackID::includesDet(DetID::MFT, src)) {
+    requestMFTClusters(useMC);
+  }
   if (GTrackID::includesDet(DetID::TPC, src)) {
     requestTPCClusters(useMC);
   }
@@ -393,6 +407,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   req = reqMap.find("clusITS");
   if (req != reqMap.end()) {
     addITSClusters(pc, req->second);
+  }
+
+  req = reqMap.find("clusMFT");
+  if (req != reqMap.end()) {
+    addMFTClusters(pc, req->second);
   }
 
   req = reqMap.find("clusTPC");
@@ -536,10 +555,10 @@ void RecoContainer::addMCHTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::TrackMCH>>("trackMCH"), TRACKS);
   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("trackMCHROF"), TRACKREFS);
-  // FIXME-LA : add track labels and track clusters:
-  // if (mc) {
-  //   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMCHMC"), MCLABELS);
-  // }
+  if (mc) {
+    mcMCHTracks = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("trackMCHMCTR");
+  }
+  // FIXME-LA : add track clusters
 }
 
 //____________________________________________________________
@@ -614,6 +633,14 @@ void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
   if (mc) {
     mcITSClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("clusITSMC");
   }
+}
+
+//__________________________________________________________
+void RecoContainer::addMFTClusters(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusMFTROF"), CLUSREFS);
+  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusMFT"), CLUSTERS);
+  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<unsigned char>>("clusMFTPatt"), PATTERNS);
 }
 
 //__________________________________________________________

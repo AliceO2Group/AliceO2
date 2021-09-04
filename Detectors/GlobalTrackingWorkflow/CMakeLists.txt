@@ -18,10 +18,12 @@ o2_add_library(GlobalTrackingWorkflow
                        src/PrimaryVertexWriterSpec.cxx
                        src/VertexTrackMatcherSpec.cxx
                        src/SecondaryVertexingSpec.cxx
+                       src/GlobalFwdMatchingSpec.cxx
                        src/SecondaryVertexWriterSpec.cxx
                        src/CosmicsMatchingSpec.cxx
                        src/TrackCosmicsWriterSpec.cxx
                        src/TOFMatcherSpec.cxx
+                       src/TrackWriterGlobalFwdSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflowHelpers
@@ -33,6 +35,7 @@ o2_add_library(GlobalTrackingWorkflow
                                      O2::TPCWorkflow
                                      O2::FT0Workflow
                                      O2::ITSMFTWorkflow
+                                     O2::MCHWorkflow
                                      O2::SimulationDataFormat
                                      O2::DetectorsVertexing)
 
@@ -71,6 +74,10 @@ o2_add_executable(matcher-workflow
                   SOURCES src/tof-matcher-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow O2::TOFWorkflowIO)
 
+o2_add_executable(matcher-workflow
+                  COMPONENT_NAME globalfwd
+                  SOURCES src/globalfwd-matcher-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow)
 
 add_subdirectory(tofworkflow)
 add_subdirectory(tpcinterpolationworkflow)

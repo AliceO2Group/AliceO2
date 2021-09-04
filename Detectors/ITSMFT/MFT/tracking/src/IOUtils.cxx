@@ -35,6 +35,7 @@ namespace o2
 namespace mft
 {
 
+//_________________________________________________________
 int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, const o2::mft::Tracker* tracker)
 {
   event.clear();
@@ -80,6 +81,43 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     clusterId++;
   }
   return clusters_in_frame.size();
+}
+
+//_________________________________________________________
+/// convert compact clusters to 3D spacepoints into std::vector<o2::BaseCluster<float>>
+void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
+                                     gsl::span<const unsigned char>::iterator& pattIt,
+                                     std::vector<o2::BaseCluster<float>>& output,
+                                     const itsmft::TopologyDictionary& dict)
+{
+  GeometryTGeo* geom = GeometryTGeo::Instance();
+  geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
+
+  for (auto& c : clusters) {
+    auto chipID = c.getChipID();
+    auto pattID = c.getPatternID();
+    o2::math_utils::Point3D<float> locXYZ;
+    float sigmaX2 = DefClusError2Row, sigmaY2 = DefClusError2Col;
+    if (pattID != itsmft::CompCluster::InvalidPatternID) {
+      sigmaX2 = dict.getErr2X(pattID); // ALPIDE local Y coordinate => MFT global X coordinate (ALPIDE rows)
+      sigmaY2 = dict.getErr2Z(pattID); // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
+      if (!dict.isGroup(pattID)) {
+        locXYZ = dict.getClusterCoordinates(c);
+      } else {
+        o2::itsmft::ClusterPattern patt(pattIt);
+        locXYZ = dict.getClusterCoordinates(c, patt);
+      }
+    } else {
+      o2::itsmft::ClusterPattern patt(pattIt);
+      locXYZ = dict.getClusterCoordinates(c, patt, false);
+    }
+
+    // Transformation to the local --> global
+    auto gloXYZ = geom->getMatrixL2G(chipID) * locXYZ;
+
+    auto& cl3d = output.emplace_back(c.getSensorID(), gloXYZ); // local --> global
+    cl3d.setErrors(sigmaX2, sigmaY2, 0);
+  }
 }
 
 } // namespace mft
