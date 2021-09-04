@@ -218,11 +218,12 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
           cout << "track mc label is too big!!!" << endl;
           continue;
         }
-        if (lab.isFake()) {
-          mapNFakes[mcid]++;
-        } else if (trackMap[mcid] >= 0) {
+        if (trackMap[mcid] >= 0) {
           mapNClones[mcid]++;
         } else {
+          if (lab.isFake()) {
+            mapNFakes[mcid]++;
+          }
           trackMap[mcid] = trackStore.size();
           const TrackITS& recTrack = (*recArr)[i];
           trackStore.emplace_back(recTrack);
@@ -307,13 +308,6 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
       if (clusMap[mc] != 0b1111111)
         continue; // Select only if all 7 layers have a cluster
 
-      if (mapNFakes[mc] > 0) { // Fake-track rate calculation
-        nFak += mapNFakes[mc];
-        fak->Fill(mcTrack.GetPt(), mapNFakes[mc]);
-      }
-
-      nGen++; // Generated tracks for the efficiency calculation
-
       // Float_t mcYOut=-1., recYOut=-1.;
       Float_t mcZOut = -1., recZOut = -1.;
       Float_t mcPhiOut = -1., recPhiOut = -1.;
@@ -325,14 +319,26 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
       Float_t mcPt = mcTrack.GetPt(), recPt = -1.;
       Float_t mcLam = TMath::ATan2(mcPz, mcPt), recLam = -1.;
       Float_t ip[2]{0., 0.};
-      Float_t label = -123456789.;
+      Float_t label = mc;
 
+      nGen++; // Generated tracks for the efficiency calculation
       den->Fill(mcPt);
 
-      if (trackMap[mc] >= 0) {
-        nGoo++; // Good found tracks for the efficiency calculation
-        num->Fill(mcPt);
+      if (mapNClones[mc] > 0) { // Clone-track rate calculation
+        nClone += mapNClones[mc];
+        clone->Fill(mcPt, mapNClones[mc]);
+        continue;
+      }
 
+      if (trackMap[mc] > 0) {
+        if (mapNFakes[mc] > 0) { // Fake-track rate calculation
+          nFak += mapNFakes[mc];
+          fak->Fill(mcTrack.GetPt(), mapNFakes[mc]);
+          label = -mc;
+        } else { // Good found tracks for the efficiency calculation
+          nGoo++;
+          num->Fill(mcPt);
+        }
         const TrackITS& recTrack = trackStore[trackMap[mc]];
         auto out = recTrack.getParamOut();
         // recYOut = out.getY();
@@ -347,16 +353,11 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
         Float_t vx = 0., vy = 0., vz = 0.; // Assumed primary vertex
         Float_t bz = 5.;                   // Assumed magnetic field
         recTrack.getImpactParams(vx, vy, vz, bz, ip);
-
-        nt->Fill( // mcYOut,recYOut,
-          mcZOut, recZOut, mcPhiOut, recPhiOut, mcThetaOut, recThetaOut, mcPhi, recPhi,
-          mcLam, recLam, mcPt, recPt, ip[0], ip[1], mc);
       }
 
-      if (mapNClones[mc] > 0) { // Clone-track rate calculation
-        nClone += mapNClones[mc];
-        clone->Fill(mcPt, mapNClones[mc]);
-      }
+      nt->Fill( // mcYOut,recYOut,
+        mcZOut, recZOut, mcPhiOut, recPhiOut, mcThetaOut, recThetaOut, mcPhi, recPhi,
+        mcLam, recLam, mcPt, recPt, ip[0], ip[1], label);
     }
 
     statGen += nGen;
