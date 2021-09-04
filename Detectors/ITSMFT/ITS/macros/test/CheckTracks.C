@@ -383,12 +383,27 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
     std::cout << "Good found tracks/event: " << statGoo / nDataEvents << ",  efficiency: " << eff << ",  fake-track rate: " << rat << " clone rate " << clonerat << std::endl;
   }
 
+  TH1F* hg = new TH1F("hg", "Transverse impact parameter; D (cm)", 30, -0.1, 0.1);
+  hg->SetLineColor(4);
+  TH1F* hf = new TH1F("hf", "Transverse impact parameter; D (cm)", 30, -0.1, 0.1);
+  hf->SetLineColor(2);
+
   // "recPt>0" means "found tracks only"
   // "label>0" means "found good tracks only"
+  nt->Draw("ipD>>hg", "recPt>0 && label>0", "goff");
+  auto norm = hg->Integral();
+  if (norm > 0)
+    hg->Scale(1. / norm);
+  nt->Draw("ipD>>hf", "recPt>0 && label<0", "goff");
+  norm = hf->Integral();
+  if (norm > 0)
+    hf->Scale(1. / norm);
+
+  new TCanvas("d", "d", 600, 600);
+  hg->Draw("hist");
+  hf->Draw("histsame");
 
   /*
-  new TCanvas;
-  nt->Draw("ipD", "recPt>0 && label>0");
   new TCanvas;
   nt->Draw("mcLam-recLam", "recPt>0 && label>0");
   new TCanvas;
