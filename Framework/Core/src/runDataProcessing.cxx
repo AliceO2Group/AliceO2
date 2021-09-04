@@ -1172,7 +1172,7 @@ void gui_callback(uv_timer_s* ctx)
       renderer->frameLast = frameStart;
       // get frame if at first renderer
       if (!draw_data) {
-        if (!gui->plugin->pollGUIPreRender(gui->window, (float)frameLatency/1000.0f)) {
+        if (!gui->plugin->pollGUIPreRender(gui->window, (float)frameLatency/1000000000.0f)) {
           *(gui->guiQuitRequested) = true;
           return;
         }
@@ -1188,7 +1188,7 @@ void gui_callback(uv_timer_s* ctx)
 
   // handle local renderer
   if (gui->window && !draw_data) {
-    if (!gui->plugin->pollGUIPreRender(gui->window, (float)frameLatency/1000.0f)) {
+    if (!gui->plugin->pollGUIPreRender(gui->window, (float)frameLatency/1000000000.0f)) {
       *(gui->guiQuitRequested) = true;
       return;
     }
@@ -1369,7 +1369,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       if (driverInfo.port > 64000) {
         throw runtime_error_f("Unable to find a free port for the driver. Last attempt returned %d", result);
       }
-      LOGP(info, "Driver listening on port: {}.", driverInfo.port);
+      LOGP(info, "Driver listening on port: {}", driverInfo.port);
       serverAddr = (sockaddr_in*)malloc(sizeof(sockaddr_in));
       uv_ip4_addr("0.0.0.0", driverInfo.port, serverAddr);
       auto bindResult = uv_tcp_bind(&serverHandle, (const struct sockaddr*)serverAddr, 0);

@@ -41,7 +41,6 @@ struct WSDPLHandler : public HTTPParser {
   /// @a handler is the websocket handler to react on the
   /// various frames
   WSDPLHandler(uv_stream_t* stream, DriverServerContext* context);
-  ~WSDPLHandler();
   void method(std::string_view const& s) override;
   void target(std::string_view const& s) override;
   void header(std::string_view const& k, std::string_view const& v) override;
@@ -60,7 +59,6 @@ struct WSDPLHandler : public HTTPParser {
   std::unique_ptr<WebSocketHandler> mHandler;
   bool mHandshaken = false;
   uv_stream_t* mStream = nullptr;
-  bool mGUI = false;
   std::map<std::string, std::string> mHeaders;
   DriverServerContext* mServerContext;
 };

@@ -109,7 +109,12 @@ struct GUIWebSocketHandler : public WebSocketHandler {
     : mContext{context}, mRenderer{renderer}
   {
   }
-  ~GUIWebSocketHandler() override = default;
+  ~GUIWebSocketHandler() override {
+    mContext.gui->renderers.erase(mRenderer);
+    delete mRenderer;
+    LOGP(INFO, "RemoteGUI disconnected, {} left", mContext.gui->renderers.size());
+  }
+
 
   void headers(std::map<std::string, std::string> const& headers) override{}
   void beginFragmentation() override {}
@@ -184,14 +189,6 @@ WSDPLHandler::WSDPLHandler(uv_stream_t* s, DriverServerContext* context)
 {
 }
 
-WSDPLHandler::~WSDPLHandler()
-{
-  if (mGUI) {
-    mServerContext->gui->renderers.erase(((GUIWebSocketHandler*)mHandler.get())->mRenderer);
-    delete ((GUIWebSocketHandler*)mHandler.get())->mRenderer;
-  }
-}
-
 void WSDPLHandler::method(std::string_view const& s)
 {
   if (s != "GET") {
@@ -263,7 +260,6 @@ void WSDPLHandler::endHeaders()
       }
     }
   } else {
-    LOG(INFO) << "Connection not bound to a PID";
     GuiRenderer *renderer = new GuiRenderer;
     renderer->latency = 200;
     renderer->frameLast = uv_hrtime();
@@ -274,8 +270,8 @@ void WSDPLHandler::endHeaders()
     };
     mHandler = std::make_unique<GUIWebSocketHandler>(*mServerContext, renderer);
     mHandler->headers(mHeaders);
-    mGUI = true;
     mServerContext->gui->renderers.insert(renderer);
+    LOGP(INFO, "RemoteGUI connected, {} running", mServerContext->gui->renderers.size());
   }
 }
 
