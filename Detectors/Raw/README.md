@@ -250,19 +250,19 @@ The input configuration must have following format (parsed using `Common-O2::Con
 # optional, initial default is FLP
 dataOrigin = ITS
 # optional, initial default is RAWDATA
-dataDescription = RAWRDATA    
+dataDescription = RAWRDATA
 
 [input-0]
 #optional, if missing then default is used
 dataOrigin = ITS
 #optional, if missing then default is used
-dataDescription = RAWDATA     
+dataDescription = RAWDATA
 filePath = path_and_name_of_the_data_file0
 # for CRU detectors the "readoutCard" record below is optional
 # readoutCard = CRU
 
 [input-1]
-dataOrigin = TPC              
+dataOrigin = TPC
 filePath = path_and_name_of_the_data_file1
 
 [input-2]
@@ -292,7 +292,7 @@ while(1) {
     LOG(INFO) << "nothing left to read after " << tfID << " TFs read";
     break;
   }
-  std::vector<char> dataBuffer; // where to put extracted data  
+  std::vector<char> dataBuffer; // where to put extracted data
   for (int il = 0; il < reader.getNLinks(); il++) {
     auto& link = reader.getLink(il);
 
@@ -301,14 +301,14 @@ while(1) {
       dataBuffer.resize(sz);
       link.readNextTF(dataTF.data());
       // use data ...
-    }    
+    }
     else {                // read data per HBF
       int nHBF = link.getNHBFinTF(); // number of HBFs in the TF
       for (int ihb=0;ihb<nHBF;ihb++) {
         auto sz = link.getNextHBSize(); // size in bytes needed for the next HBF of this link
-	dataBuffer.resize(sz);
-	link.readNextHBF(dataTF.data());
-	// use data ...
+ dataBuffer.resize(sz);
+ link.readNextHBF(dataTF.data());
+ // use data ...
       }
     }
   }
@@ -450,6 +450,69 @@ L11  | Spec:0x3211267  FEE:0x3201 CRU:  49 Lnk:  2 EP:0 | SPages:  31 Pages:  76
 Largest super-page: 1047008 B, largest TF: 4070048 B
 Real time 0:00:00, CP time 0.120
 ```
+## DataDistribution TF reader workflow
+
+`o2-raw-tf-reader-workflow` allows to inject into the DPL the `(s)TF` data produced by the DataDistribution, avoiding running DD sTFReader in a separate terminal and sending data via proxies.
+The relevant command line options are:
+```
+--input-data arg
+```
+input data (obligatory): comma-separated list of input data files and/or files with list of data files and/or directories containing files
+
+```
+--onlyDet arg (=all)
+```
+list of dectors to select from available in the data. AT THE MOMENT NOT FUNCTIONAL
+
+```
+--max-tf arg (=-1)
+```
+max TF ID to process (<= 0 : infinite)
+
+```
+--loop arg (=0)
+```
+loop N times (-1 = infinite) over input files (but max-tf has priority if positive)
+
+```
+--delay arg (=0)
+```
+delay in seconds between consecutive TFs sending (provided TFs can be read fast enough)
+
+```
+--copy-cmd arg (=XrdSecPROTOCOL=sss,unix xrdcp -N root://eosaliceo2.cern.ch/?src ?dst)
+```
+copy command for remote files
+
+```
+--tf-file-regex arg (=.+\.tf$)
+```
+regex string to identify TF files: optional to filter data files (if the input contains directories, it will be used to avoid picking non-TF files)
+
+```
+--remote-regex arg (=^/eos/aliceo2/.+)
+```
+regex string to identify remote files (they will be copied to `/tmp/<random>/` directory, then removed after processing)
+
+```
+--max-cached-tf arg (=3)
+```
+max TFs to cache in memory: builds TFs asynchrously to sending, may speed up processing but needs more shmem.
+
+```
+--max-cached-files arg (=3)
+```
+max TF files queued (copied for remote source). For local files almost irrelevant, for remote ones asynchronously creates local copy.
+
+```
+--tf-reader-verbosity arg (=0)
+```
+verbosity level (1 or 2: check RDH, print DH/DPH for 1st or all slices, >2 print RDH)
+
+```
+--raw-channel-config arg
+```
+optional raw FMQ channel for non-DPL output, similar to `o2-raw-file-reader-workflow`.
 
 ## Miscellaneous macros
 
