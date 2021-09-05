@@ -22,6 +22,8 @@ o2_add_library(DetectorsRaw
                                      O2::Framework
                                      FairMQ::FairMQ)
 
+add_subdirectory(TFReaderDD)
+
 o2_target_root_dictionary(DetectorsRaw
                           HEADERS include/DetectorsRaw/RawFileReader.h
                           include/DetectorsRaw/RawFileWriter.h
