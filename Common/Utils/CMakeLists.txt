@@ -18,6 +18,7 @@ o2_add_library(CommonUtils
                        src/KeyValParam.cxx
                        src/FileSystemUtils.cxx
                        src/FIFO.cxx
+                       src/FileFetcher.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Hist ROOT::Tree Boost::iostreams O2::CommonDataFormat O2::Headers
                                      FairLogger::FairLogger)
 
@@ -36,6 +37,7 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/ConfigurationMacroHelper.h
                                   include/CommonUtils/RootSerializableKeyValueStore.h
                                   include/CommonUtils/KeyValParam.h
+                                  include/CommonUtils/FileFetcher.h
         )
 
 o2_add_test(TreeStream

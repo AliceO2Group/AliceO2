@@ -93,8 +93,12 @@ struct Str {
   {
     std::string ss = s;
     rtrim(ss);
-    ltrim(ss);
     return ss;
+  }
+
+  static inline bool endsWith(const std::string& s, const std::string& ending)
+  {
+    return (ending.size() > s.size()) ? false : std::equal(ending.rbegin(), ending.rend(), s.rbegin());
   }
 
   // return vector of tokens from the string with provided delimiter. If requested, trim the spaces from tokens

@@ -1,0 +1,282 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \author ruben.shahoyan@cern.ch
+/// Code mostly based on DataDistribution:SubTimeFrameFileSource by Gvozden Nescovic
+
+#include "CommonUtils/FileFetcher.h"
+#include "CommonUtils/StringUtils.h"
+#include "Framework/Logger.h"
+#include <filesystem>
+#include <fstream>
+#include <memory>
+#include <thread>
+#include <chrono>
+#include <boost/process.hpp>
+
+using namespace o2::utils;
+using namespace std::chrono_literals;
+namespace fs = std::filesystem;
+namespace bp = boost::process;
+
+//____________________________________________________________
+FileFetcher::FileFetcher(const std::string& input, const std::string& selRegex, const std::string& remRegex,
+                         const std::string& copyCmd, const std::string& copyDir)
+  : mCopyCmd(copyCmd), mCopyDirName(copyDir)
+{
+  if (!selRegex.empty()) {
+    mSelRegex = std::make_unique<std::regex>(selRegex.c_str());
+  }
+  if (!remRegex.empty()) {
+    mRemRegex = std::make_unique<std::regex>(remRegex);
+  }
+  // parse input list
+  mCopyDirName = o2::utils::Str::create_unique_path(mCopyDirName, 8);
+  processInput(input);
+  if (mNRemote) {
+    // make sure the copy command is provided
+    if (mCopyCmd.find("?src") == std::string::npos || mCopyCmd.find("?dst") == std::string::npos) {
+      throw std::runtime_error(fmt::format("remote files asked but copy cmd \"{}\" is not valid", mCopyCmd));
+    }
+    try {
+      fs::create_directories(mCopyDirName);
+    } catch (...) {
+      throw std::runtime_error(fmt::format("failed to create scratch directory {}", mCopyDirName));
+    }
+    mCopyCmdLogFile = fmt::format("{}/{}", mCopyDirName, "copy-cmd.log");
+    LOGP(INFO, "FileFetcher tmp scratch directory is set to {}", mCopyDirName);
+  }
+}
+
+//____________________________________________________________
+FileFetcher::~FileFetcher()
+{
+  stop();
+  cleanup();
+}
+
+//____________________________________________________________
+void FileFetcher::processInput(const std::string& input)
+{
+  auto ftokens = o2::utils::Str::tokenize(input, ',', true); // in case multiple inputs are provided
+  processInput(ftokens);
+}
+
+//____________________________________________________________
+void FileFetcher::processInput(const std::vector<std::string>& input)
+{
+  for (auto inp : input) {
+    o2::utils::Str::trim(inp);
+
+    if (fs::is_directory(inp)) {
+      processDirectory(inp);
+    } else if (mSelRegex && !std::regex_match(inp, *mSelRegex.get())) { // provided selector does not match, treat as a txt file with list
+      std::ifstream listFile(inp);
+      if (!listFile.good()) {
+        LOGP(ERROR, "file {} pretends to be a list of inputs but does not exist", inp);
+        continue;
+      }
+      std::string line;
+      std::vector<std::string> newInput;
+      while (getline(listFile, line)) {
+        o2::utils::Str::trim(line);
+        if (line[0] == '#') { // ignore commented file
+          continue;
+        }
+        newInput.push_back(line);
+      }
+      processInput(newInput);
+    } else { // should be local or remote data file
+      addInputFile(inp);
+    }
+  }
+}
+
+//____________________________________________________________
+void FileFetcher::processDirectory(const std::string& name)
+{
+  std::vector<std::string> vs;
+  for (auto const& entry : fs::directory_iterator{name}) {
+    const auto& fnm = entry.path().native();
+    if (fs::is_regular_file(fnm) && (!mSelRegex || std::regex_match(fnm, *mSelRegex.get()))) {
+      vs.push_back(fnm);
+    }
+  }
+  std::sort(vs.begin(), vs.end());
+  for (const auto& s : vs) {
+    addInputFile(s); // local files only
+  }
+}
+
+//____________________________________________________________
+bool FileFetcher::addInputFile(const std::string& fname)
+{
+  if (mRemRegex && std::regex_match(fname, *mRemRegex.get())) {
+    mInputFiles.emplace_back(FileRef{fname, createCopyName(fname), true, false});
+    mNRemote++;
+  } else if (fs::exists(fname)) { // local file
+    mInputFiles.emplace_back(FileRef{fname, "", false, false});
+  } else {
+    LOGP(ERROR, "file {} pretends to be local but does not exist", fname);
+    return false;
+  }
+  return true;
+}
+
+//____________________________________________________________
+std::string FileFetcher::createCopyName(const std::string& fname) const
+{
+  std::string cpnam{}, cpnamP = fname;
+  for (auto& c : cpnamP) {
+    if (!std::isalnum(c) && c != '.' && c != '-') {
+      c = '_';
+    }
+  }
+  while (1) {
+    cpnam = fmt::format("{}/{}_{}", mCopyDirName, o2::utils::Str::getRandomString(12), cpnamP);
+    if (!fs::exists(cpnam)) {
+      break;
+    }
+  }
+  return cpnam;
+}
+
+//____________________________________________________________
+size_t FileFetcher::popFromQueue(bool discard)
+{
+  // remove file from the queue, if requested and if it was copied, remove copy
+  std::lock_guard<std::mutex> lock(mMtx);
+  const auto* ptr = mQueue.frontPtr();
+  if (mQueue.empty()) {
+    return -1ul;
+  }
+  auto id = mQueue.front();
+  mQueue.pop();
+  if (discard) {
+    discardFile(mInputFiles[id].getLocalName());
+  }
+  return id;
+}
+
+//____________________________________________________________
+size_t FileFetcher::nextInQueue() const
+{
+  return mQueue.empty() ? -1ul : mQueue.front();
+}
+
+//____________________________________________________________
+std::string FileFetcher::getNextFileInQueue() const
+{
+  if (mQueue.empty()) {
+    return {};
+  }
+  return mQueue.empty() ? "" : mInputFiles[mQueue.front()].getLocalName();
+}
+
+//____________________________________________________________
+void FileFetcher::start()
+{
+  if (mRunning) {
+    return;
+  }
+  mRunning = true;
+  mFetcherThread = std::thread(&FileFetcher::fetcher, this);
+}
+
+//____________________________________________________________
+void FileFetcher::stop()
+{
+  mRunning = false;
+  if (mFetcherThread.joinable()) {
+    mFetcherThread.join();
+  }
+}
+
+//____________________________________________________________
+void FileFetcher::cleanup()
+{
+  if (mRunning) {
+    throw std::runtime_error("FileFetcher thread is still active, cannot cleanup");
+  }
+  if (mNRemote && o2::utils::Str::pathExists(mCopyDirName)) {
+    try {
+      fs::remove_all(mCopyDirName);
+    } catch (...) {
+      LOGP(ERROR, "FileFetcher failed to remove sctrach directory {}", mCopyDirName);
+    }
+  }
+}
+
+//____________________________________________________________
+void FileFetcher::fetcher()
+{
+  // data fetching/copying thread
+  size_t filesProc = 0, filesProcOK = 0, fileEntry = -1ul;
+
+  while (mRunning) {
+    if (getQueueSize() >= mMaxInQueue) {
+      std::this_thread::sleep_for(5ms);
+      continue;
+    }
+    if (filesProc >= getNFiles() && !mLoop) {
+      LOGP(INFO, "Finished file fetching: {} of {} files fetched successfully", filesProcOK, filesProc);
+      mRunning = false;
+      break;
+    }
+    fileEntry = (fileEntry + 1) % getNFiles();
+    filesProc++;
+    auto& fileRef = mInputFiles[fileEntry];
+    if (fileRef.copied || !fileRef.remote) {
+      mQueue.push(fileEntry);
+      filesProcOK++;
+    } else { // need to copy
+      if (copyFile(fileEntry)) {
+        fileRef.copied = true;
+        mQueue.push(fileEntry);
+        filesProcOK++;
+      }
+    }
+  }
+}
+
+//____________________________________________________________
+void FileFetcher::discardFile(const std::string& fname)
+{
+  // delete file if it is copied.
+  auto ent = mCopied.find(fname);
+  if (ent != mCopied.end()) {
+    mInputFiles[ent->second - 1].copied = false;
+    fs::remove(fname);
+    mCopied.erase(fname);
+  }
+}
+
+//____________________________________________________________
+bool FileFetcher::copyFile(size_t id)
+{
+  // copy remote file to local setCopyDirName. Adaptation for Gvozden's code from SubTimeFrameFileSource::DataFetcherThread()
+  auto realCmd = std::regex_replace(std::regex_replace(mCopyCmd, std::regex("\\?src"), mInputFiles[id].getOrigName()), std::regex("\\?dst"), mInputFiles[id].getLocalName());
+  std::vector<std::string> copyParams{"-c", realCmd};
+  bp::child copyChild(bp::search_path("sh"), copyParams, bp::std_err > mCopyCmdLogFile, bp::std_out > mCopyCmdLogFile);
+  while (!copyChild.wait_for(5s)) {
+    LOGP(INFO, "FileFetcher: waiting for copy command. cmd={}", realCmd);
+  }
+  const auto sysRet = copyChild.exit_code();
+  if (sysRet != 0) {
+    LOGP(WARNING, "FileFetcher: non-zero exit code {} for cmd={}", sysRet, realCmd);
+  }
+  if (!fs::is_regular_file(mInputFiles[id].getLocalName()) || fs::is_empty(mInputFiles[id].getLocalName())) {
+    LOGP(ERROR, "FileFetcher: failed for copy command {}", realCmd);
+    return false;
+  }
+  mCopied[mInputFiles[id].getLocalName()] = id + 1;
+  return true;
+}
