@@ -873,9 +873,10 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     // update the size claimed by encode message directly inside the block
 
     // store incompressible symbols if any
-    const size_t nLiteralSymbols = [&]() {
-      const size_t nSymbols = literals.size();
+    const size_t nLiteralSymbols = literals.size();
+    const size_t nLiteralWords = [&]() {
       if (!literals.empty()) {
+        const size_t nSymbols = literals.size();
         // introduce padding in case literals don't align;
         const size_t nLiteralSymbolsPadded = calculatePaddedSize<input_t, storageBuffer_t>(nSymbols);
         literals.resize(nLiteralSymbolsPadded, {});
@@ -883,8 +884,9 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
         const size_t nLiteralStorageElems = calculateNDestTElements<input_t, storageBuffer_t>(nSymbols);
         expandStorage(nLiteralStorageElems);
         thisBlock->storeLiterals(nLiteralStorageElems, reinterpret_cast<const storageBuffer_t*>(literals.data()));
+        return nLiteralStorageElems;
       }
-      return nSymbols;
+      return size_t(0);
     }();
 
     *thisMetadata = Metadata{messageLength,
@@ -897,7 +899,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
                              encoder->getMaxSymbol(),
                              static_cast<int32_t>(frequencyTable.size()),
                              dataSize,
-                             static_cast<int32_t>(literals.size())};
+                             static_cast<int32_t>(nLiteralWords)};
   } else { // store original data w/o EEncoding
     //FIXME(milettri): we should be able to do without an intermediate vector;
     // provided iterator is not necessarily pointer, need to use intermediate vector!!!
