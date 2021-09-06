@@ -50,9 +50,9 @@ class ClusterPattern
   ClusterPattern();
   /// Standard constructor
   ClusterPattern(int nRow, int nCol, const unsigned char patt[MaxPatternBytes]);
-  /// Constructor from cluster patterns
+
   template <class iterator>
-  ClusterPattern(iterator& pattIt)
+  void acquirePattern(iterator& pattIt)
   {
     mBitmap[0] = *pattIt++;
     mBitmap[1] = *pattIt++;
@@ -64,6 +64,14 @@ class ClusterPattern
     memcpy(&mBitmap[2], &(*pattIt), nBytes);
     pattIt += nBytes;
   }
+
+  /// Constructor from cluster patterns
+  template <class iterator>
+  ClusterPattern(iterator& pattIt)
+  {
+    acquirePattern(pattIt);
+  }
+
   /// Maximum number of bytes for the cluster puttern + 2 bytes respectively for the number of rows and columns of the bounding box
   static constexpr int kExtendedPatternBytes = MaxPatternBytes + 2;
   /// Returns the pattern
