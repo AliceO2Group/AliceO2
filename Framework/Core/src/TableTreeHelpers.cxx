@@ -753,7 +753,9 @@ void TreeToTable::fill(TTree* tree)
   std::vector<std::unique_ptr<ColumnIterator>> columnIterators;
 
   tree->SetCacheSize(50000000);
-  tree->SetClusterPrefetch(true);
+  // FIXME: see https://github.com/root-project/root/issues/8962 and enable
+  // again once fixed.
+  //tree->SetClusterPrefetch(true);
   for (auto&& columnName : mColumnNames) {
     tree->AddBranchToCache(columnName.c_str(), true);
     auto colit = std::make_unique<ColumnIterator>(tree, columnName.c_str());
