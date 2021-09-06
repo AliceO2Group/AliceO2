@@ -47,7 +47,7 @@ class Decoder : public WindowFiller
   bool decode();
   void readTRM(int icru, int icrate, uint32_t orbit, uint16_t bunchid);
   void InsertDigit(int icrate, int itrm, int itdc, int ichain, int channel, uint32_t orbit, uint16_t bunchid, int time_ext, int tdc, int tot);
-  void FillWindows();
+  void fillWindows();
   void clear();
 
   bool close();

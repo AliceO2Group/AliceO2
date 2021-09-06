@@ -17,6 +17,7 @@
 #include "TOFBase/Strip.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DataFormatsTOF/Diagnostic.h"
 
 namespace o2
 {
@@ -65,6 +66,8 @@ class WindowFiller
   void setContinuous(bool value = true) { mContinuous = value; }
   bool isContinuous() const { return mContinuous; }
 
+  void fillDiagnosticFrequency();
+
   void resizeVectorFutureDigit(int size) { mFutureDigits.resize(size); }
 
   void setFirstIR(const o2::InteractionRecord& ir) { mFirstIR = ir; }
@@ -79,6 +82,7 @@ class WindowFiller
   std::vector<uint8_t>& getPatterns() { return mPatterns; }
   void addPattern(const uint32_t val, int icrate, int orbit, int bc) { mCratePatterns.emplace_back(val, icrate, orbit * 3 + (bc + 100) / Geo::BC_IN_WINDOW); }
   void addCrateHeaderData(unsigned long orbit, int crate, int32_t bc, uint32_t eventCounter);
+  Diagnostic getDiagnosticFrequency() { return mDiagnosticFrequency; }
 
  protected:
   // info TOF timewindow
@@ -114,6 +118,8 @@ class WindowFiller
 
   std::vector<uint8_t> mPatterns;
   std::vector<uint64_t> mErrors;
+
+  Diagnostic mDiagnosticFrequency;
 
   std::vector<PatternData> mCratePatterns;
   std::vector<CrateHeaderData> mCrateHeaderData;
