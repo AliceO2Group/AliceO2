@@ -1017,8 +1017,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
             mcMFTTrackLabelCursor(0,
                                   labelHolder.labelID,
                                   labelHolder.mftLabelMask);
-          } else {
-            if (mcTruth.isValid()) { // if not set, -1 will be stored
+          } else if (src != GIndex::Source::MCH) { // todo: implement mc labels for forward tracks and remove the placeholder
+            if (mcTruth.isValid()) {               // if not set, -1 will be stored
               labelHolder.labelID = mToStore.at(Triplet_t(mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID()));
             }
             // treating possible mismatches for global tracks
