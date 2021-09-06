@@ -117,7 +117,7 @@ void DigitPixelReader::openInput(const std::string inpName, o2::detectors::DetID
   }
 
   mInputTree->SetBranchAddress((detName + "DigitMCTruth").data(), &mDigitsMCTruthSelf);
-  setDigitsMCTruth(mDigitsMCTruthSelf); // it will be assigned again at the reading, this is just to signal that the MCtruth is there
+  //setDigitsMCTruth(mDigitsMCTruthSelf); // it will be assigned again at the reading, this is just to signal that the MCtruth is there
 }
 
 //______________________________________________________________________________
@@ -135,7 +135,7 @@ bool DigitPixelReader::readNextEntry()
     setDigits(gsl::span(mDigitsSelf->data(), mDigitsSelf->size()));
     setROFRecords(gsl::span(mROFRecVecSelf->data(), mROFRecVecSelf->size()));
     setMC2ROFRecords(gsl::span(mMC2ROFRecVecSelf->data(), mMC2ROFRecVecSelf->size()));
-    setDigitsMCTruth(mDigitsMCTruthSelf);
+    //setDigitsMCTruth(mDigitsMCTruthSelf);
     return true;
   } else {
     return false;

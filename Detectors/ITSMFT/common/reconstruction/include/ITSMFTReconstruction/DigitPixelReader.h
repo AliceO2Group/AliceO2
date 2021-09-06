@@ -20,6 +20,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <TTree.h>
@@ -100,7 +101,7 @@ class DigitPixelReader : public PixelReader
   std::vector<o2::itsmft::Digit>* mDigitsSelf = nullptr;
   std::vector<o2::itsmft::ROFRecord>* mROFRecVecSelf = nullptr;
   std::vector<o2::itsmft::MC2ROFRecord>* mMC2ROFRecVecSelf = nullptr;
-  const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* mDigitsMCTruthSelf = nullptr;
+  const o2::dataformats::IOMCTruthContainerView* mDigitsMCTruthSelf = nullptr;
 
   gsl::span<const o2::itsmft::Digit> mDigits;
   gsl::span<const o2::itsmft::ROFRecord> mROFRecVec;
