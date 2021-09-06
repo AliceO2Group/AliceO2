@@ -51,6 +51,13 @@ static TGNumberEntry* gChipID;
 class Data
 {
  public:
+  void loadTF(int tf)
+  {
+    if (mClusTree)
+      mClusTree->GetEntry(tf);
+    if (mTracTree)
+      mTracTree->GetEntry(tf);
+  }
   void loadData(int entry);
   void displayData(int entry, int chip);
   int getLastEvent() const { return mLastEvent; }
@@ -160,7 +167,6 @@ void Data::setClusTree(TTree* tree)
   }
   tree->SetBranchAddress("ITSClusterComp", &mClusterBuffer);
   tree->SetBranchAddress("ITSClustersROF", &mClustersROF);
-  tree->GetEntry(0);
   mClusTree = tree;
 }
 
@@ -189,7 +195,6 @@ void Data::setTracTree(TTree* tree)
   tree->SetBranchAddress("ITSTrack", &mTrackBuffer);
   tree->SetBranchAddress("ITSTrackClusIdx", &mClIdxBuffer);
   tree->SetBranchAddress("ITSTracksROF", &mTracksROF);
-  tree->GetEntry(0);
   mTracTree = tree;
 }
 
@@ -423,7 +428,7 @@ void load(int entry, int chip)
   evdata.displayData(entry, chip);
 }
 
-void init(int entry = 0, int chip = 13,
+void init(int tf, int trigger, int chip,
           std::string digifile = "itsdigits.root",
           bool rawdata = false,
           std::string clusfile = "o2clus_its.root",
@@ -531,7 +536,9 @@ void init(int entry = 0, int chip = 13,
   std::cout << " nextChip() \t\t load the next chip within the current event \n";
   std::cout << " prevChip() \t\t load the previous chip within the current event \n";
 
-  load(entry, chip);
+  evdata.loadTF(tf);
+
+  load(trigger, chip);
   gEve->Redraw3D(kTRUE);
 }
 
@@ -586,9 +593,9 @@ void prevChip()
   loadChip(chip);
 }
 
-void DisplayEventsComp()
+void DisplayEventsComp(int tf = 0, int trigger = 0, int chip = 7)
 {
   // A dummy function with the same name as this macro
-  init(0, 7);
+  init(tf, trigger, chip);
   gEve->GetBrowser()->GetTabRight()->SetTab(1);
 }
