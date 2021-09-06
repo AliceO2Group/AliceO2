@@ -46,16 +46,15 @@ bool TriggerSTUDCS::operator==(const TriggerSTUDCS& other) const
 
 void TriggerSTUDCS::PrintStream(std::ostream& stream) const
 {
+  stream << "PatchSize: " << mPatchSize
+         << ", GetRawData: " << mGetRawData
+         << ", Region: 0x" << std::hex << mRegion << std::dec << " (b'" << std::bitset<sizeof(mRegion) * 8>(mRegion) << ")"
+         << ", Median: " << mMedian
+         << ", Firmware: 0x" << std::hex << mFw << std::dec << std::endl;
   stream << "Gamma High: (" << mGammaHigh[0] << ", " << mGammaHigh[1] << ", " << mGammaHigh[2] << ")" << std::endl;
   stream << "Gamma Low:  (" << mGammaLow[0] << ", " << mGammaLow[1] << ", " << mGammaLow[2] << ")" << std::endl;
   stream << "Jet High:   (" << mJetHigh[0] << ", " << mJetHigh[1] << ", " << mJetHigh[2] << ")" << std::endl;
   stream << "Jet Low:    (" << mJetLow[0] << ", " << mJetLow[1] << ", " << mJetLow[2] << ")" << std::endl;
-  stream << "GetRawData: " << mGetRawData
-         << ", Region: " << std::hex << mRegion << std::dec << " (" << std::bitset<sizeof(mRegion) * 8>(mRegion) << ")"
-         << ", Median: " << mMedian
-         << ", Firmware: " << std::hex << mFw << std::dec
-         << ", PHOS Scale: (" << mPHOSScale[0] << ", " << mPHOSScale[1] << ", " << mPHOSScale[2] << ", " << mPHOSScale[3]
-         << ")" << std::endl;
 }
 
 std::ostream& o2::emcal::operator<<(std::ostream& stream, const TriggerSTUDCS& stu)

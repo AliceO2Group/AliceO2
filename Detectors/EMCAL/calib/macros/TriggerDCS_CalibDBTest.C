@@ -96,7 +96,7 @@ void TriggerDCS_CalibDBTest(const std::string_view ccdbserver = "emcccdb-test.ce
 
   dcs->setSTUEMCal(stuEMCal);
   dcs->setSTUDCal(stuDCal);
-  dcs->setTRU(tru);
+  dcs->setTRU(0, tru);
 
   // Set time limits: These are from the start of the run validity range (252235) to the end of the run validity range (267166) LHC16
   auto rangestart = create_timestamp(2016, 4, 23, 0, 58, 40),

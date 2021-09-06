@@ -39,11 +39,12 @@ bool TriggerTRUDCS::operator==(const TriggerTRUDCS& other) const
 
 void TriggerTRUDCS::PrintStream(std::ostream& stream) const
 {
-  stream << "SELPF: " << std::hex << mSELPF << ", L0SEL: " << mL0SEL << ", L0COSM: " << std::dec
-         << mL0COSM << ", GTHRL0: " << mGTHRL0 << ", RLBKSTU: " << mRLBKSTU << ", FW: " << std::hex
+  stream << "SELPF: 0x" << std::hex << mSELPF << ", L0SEL: 0x" << std::hex << mL0SEL << ", L0COSM: 0x" << std::hex
+         << mL0COSM << ", GTHRL0: 0x" << std::hex << mGTHRL0 << ", RLBKSTU: 0x" << std::hex << mRLBKSTU << ", FW: 0x" << std::hex
          << mFw << std::dec << std::endl;
+
   for (int ireg = 0; ireg < 6; ireg++) {
-    stream << "Reg" << ireg << ": " << std::bitset<sizeof(uint32_t) * 8>(mMaskReg[ireg]) << " (" << mMaskReg[ireg] << ")" << std::endl;
+    stream << "Reg" << ireg << ": b'" << std::bitset<sizeof(uint32_t) * 8>(mMaskReg[ireg]) << " (" << mMaskReg[ireg] << ")" << std::endl;
   }
 }
 

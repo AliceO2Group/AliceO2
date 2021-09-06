@@ -33,3 +33,16 @@ o2_add_executable(entropy-encoder-workflow
                   COMPONENT_NAME emcal
                   SOURCES src/entropy-encoder-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
+
+o2_add_executable(emc-dcs-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES src/emc-dcs-data-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                       O2::EMCALCalib
+                                       O2::EMCALWorkflow
+                                       O2::DetectorsDCS)
+
+o2_add_executable(emc-dcs-sim-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES src/emc-dcs-sim-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow)

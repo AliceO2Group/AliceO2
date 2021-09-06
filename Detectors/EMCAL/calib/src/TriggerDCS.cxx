@@ -42,11 +42,12 @@ std::ostream& o2::emcal::operator<<(std::ostream& stream, const TriggerDCS& conf
   stream << "================================" << std::endl;
   for (int i = 0; i < config.getTRUArr().size(); i++) {
     TriggerTRUDCS tru = config.getTRUDCS(i);
-    stream << "TRU" << i << ": " << tru << std::endl;
+    stream << "TRU" << i << ": " << tru;
   }
+
   TriggerSTUDCS emcalstu(config.getSTUDCSEMCal()), dcalstu(config.getSTUDCSDCal());
-  std::cout << "EMCAL STU: " << emcalstu << std::endl;
-  std::cout << "DCAL STU:  " << dcalstu << std::endl;
+  stream << "EMCAL STU: " << emcalstu;
+  stream << "DCAL STU:  " << dcalstu;
   return stream;
 }
 

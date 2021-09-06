@@ -8,6 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+#ifndef ALICEO2_EMCAL_TRIGGERDCS_H
+#define ALICEO2_EMCAL_TRIGGERDCS_H
+
 #include <iosfwd>
 #include <array>
 #include <Rtypes.h>
@@ -38,6 +42,12 @@ class TriggerDCS
   /// \brief Destructor
   ~TriggerDCS() = default;
 
+  /// \brief copy constructor
+  TriggerDCS(const TriggerDCS& trg) = default;
+
+  /// \brief Assignment operator
+  TriggerDCS& operator=(const TriggerDCS& source) = default;
+
   /// \brief Comparison of two DCS data
   /// \return true if the TRU data are identical, false otherwise
   ///
@@ -49,17 +59,16 @@ class TriggerDCS
   /// \return JSON-serialized trigger DCS config object
   std::string toJSON() const;
 
-  void setTRUArr(std::vector<TriggerTRUDCS>& ta) { mTRUArr = ta; }
-  void setTRU(TriggerTRUDCS tru) { mTRUArr.emplace_back(tru); }
-
   void setSTUEMCal(TriggerSTUDCS so) { mSTUEMCal = so; }
   void setSTUDCal(TriggerSTUDCS so) { mSTUDCAL = so; }
 
-  std::vector<TriggerTRUDCS> getTRUArr() const { return mTRUArr; }
+  std::array<TriggerTRUDCS, 46> getTRUArr() const { return mTRUArr; }
 
   TriggerSTUDCS getSTUDCSEMCal() const { return mSTUEMCal; }
   TriggerSTUDCS getSTUDCSDCal() const { return mSTUDCAL; }
   TriggerTRUDCS getTRUDCS(Int_t iTRU) const { return mTRUArr.at(iTRU); }
+
+  void setTRU(Int_t iTRU, TriggerTRUDCS a) { mTRUArr.at(iTRU) = a; }
 
   /// \brief Check whether TRU is enabled
   /// \param iTRU Index of the TRU
@@ -68,9 +77,9 @@ class TriggerDCS
   bool isTRUEnabled(int iTRU) const;
 
  private:
-  std::vector<TriggerTRUDCS> mTRUArr; ///< TRU array
-  TriggerSTUDCS mSTUEMCal;            ///< STU of EMCal
-  TriggerSTUDCS mSTUDCAL;             ///< STU of DCAL
+  TriggerSTUDCS mSTUEMCal;               ///< STU of EMCal
+  TriggerSTUDCS mSTUDCAL;                ///< STU of DCAL
+  std::array<TriggerTRUDCS, 46> mTRUArr; ///< TRU array
 
   ClassDefNV(TriggerDCS, 1);
 };
@@ -84,3 +93,5 @@ std::ostream& operator<<(std::ostream& in, const TriggerDCS& dcs);
 } // namespace emcal
 
 } // namespace o2
+
+#endif
