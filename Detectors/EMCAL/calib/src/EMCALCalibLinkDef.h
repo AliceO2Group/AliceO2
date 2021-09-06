@@ -26,5 +26,9 @@
 #pragma link C++ class o2::emcal::TriggerSTUDCS + ;
 #pragma link C++ class o2::emcal::TriggerSTUErrorCounter + ;
 #pragma link C++ class o2::emcal::TriggerDCS + ;
+#pragma link C++ class o2::emcal::FeeDCS + ;
+#pragma link C++ class o2::emcal::ElmbData + ;
+#pragma link C++ class o2::emcal::ElmbMeasurement + ;
+#pragma link C++ class o2::emcal::EMCDCSProcessor + ;
 
 #endif

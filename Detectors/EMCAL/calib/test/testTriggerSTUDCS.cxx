@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(TriggerSTUDCS_test)
   /// Test if operator<< for a reference configuration produces
   /// the expected reference string. Test is implemented using a streaming
   /// operator.
-  std::string reference = std::string("Gamma High: (0, 0, 115)\nGamma Low:  (0, 0, 51)\nJet High:   (0, 0, 255)\nJet Low:    (0, 0, 204)\n") + std::string("GetRawData: 1, Region: ffffffff (11111111111111111111111111111111), Median: 0, Firmware: 2a012, PHOS Scale: (0, 0, 0, 0)\n");
+  std::string reference = std::string("PatchSize: 2, GetRawData: 1, Region: 0xffffffff (b'11111111111111111111111111111111), Median: 0, Firmware: 0x2a012\n") + std::string("Gamma High: (0, 0, 115)\nGamma Low:  (0, 0, 51)\nJet High:   (0, 0, 255)\nJet Low:    (0, 0, 204)\n");
 
   TriggerSTUDCS test;
   ConfigureReference(test);

@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(TriggerDCS_test)
   TriggerDCS testobject;
   testobject.setSTUEMCal(testSTUEMCal);
   testobject.setSTUDCal(testSTUDCal);
-  testobject.setTRU(testTRU);
+  testobject.setTRU(0, testTRU);
 
   BOOST_CHECK_EQUAL(testobject.getSTUDCSEMCal(), testSTUEMCal);
   BOOST_CHECK_EQUAL(testobject.getSTUDCSDCal(), testSTUDCal);
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(TriggerDCS_test)
   testTRU1.setSELPF(7000);
   ref.setSTUEMCal(testSTUEMCal);
   ref.setSTUDCal(testSTUDCal);
-  ref.setTRU(testTRU1);
+  ref.setTRU(0, testTRU1);
   BOOST_CHECK_EQUAL(ref == testobject, false);
 }
 
