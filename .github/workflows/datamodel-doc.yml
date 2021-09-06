@@ -6,6 +6,7 @@ on:
 jobs:
   datamodel-doc:
     runs-on: ubuntu-latest
+    if: github.repository == 'AliceO2Group/AliceO2'
     steps:
 
       - name: Checkout O2
