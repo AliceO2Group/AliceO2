@@ -1154,9 +1154,6 @@ struct WorkflowInfo {
 void gui_callback(uv_timer_s* ctx)
 {
   GuiCallbackContext* gui = reinterpret_cast<GuiCallbackContext*>(ctx->data);
-  if (!gui->plugin || (!gui->window && gui->renderers.empty())) {
-    return;
-  }
   
   void *draw_data = nullptr;
   void *frame = nullptr;
@@ -1164,40 +1161,20 @@ void gui_callback(uv_timer_s* ctx)
   uint64_t frameStart = uv_hrtime();
   uint64_t frameLatency = frameStart - gui->frameLast;
 
-  // handle remote renderers
-  for (const auto& renderer : gui->renderers) {
-    uint64_t remoteFrameLatency = frameStart - renderer->frameLast;
-
-    if (remoteFrameLatency > 1000000*renderer->latency) {
-      renderer->frameLast = frameStart;
-      // get frame if at first renderer
-      if (!draw_data) {
-        if (!gui->plugin->pollGUIPreRender(gui->window, (float)frameLatency/1000000000.0f)) {
-          *(gui->guiQuitRequested) = true;
-          return;
-        }
-        draw_data = gui->plugin->pollGUIRender(gui->callback);
-        gui->plugin->getFrameRaw(draw_data, &frame, &size);
-      }
-      renderer->drawCallback(frame, size);
-    }
-  }
-  if (frame) {
-    free(frame);
-  }
-
-  // handle local renderer
-  if (gui->window && !draw_data) {
+  // if less than 15ms have passed reuse old frame
+  if (frameLatency/1000000 > 15) {
     if (!gui->plugin->pollGUIPreRender(gui->window, (float)frameLatency/1000000000.0f)) {
       *(gui->guiQuitRequested) = true;
       return;
     }
     draw_data = gui->plugin->pollGUIRender(gui->callback);
+  } else {
+    draw_data = gui->lastFrame;
   }
 
-  //update metrics only if frame was rendered
-  if (draw_data) {
-    gui->plugin->pollGUIPostRender(gui->window, draw_data);
+  gui->plugin->pollGUIPostRender(gui->window, draw_data);
+
+  if (frameLatency/1000000 > 15) {
     uint64_t frameEnd = uv_hrtime();
     *(gui->frameCost) = (frameEnd - frameStart) / 1000000;
     *(gui->frameLatency) = frameLatency / 1000000;
@@ -1679,11 +1656,15 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // has been added to the topology.
         // We need to recreate the GUI callback every time we reschedule
         // because getGUIDebugger actually recreates the GUI state.
-        uv_timer_stop(&gui_timer);
+        if (!driverInfo.batch) {
+          uv_timer_stop(&gui_timer);
+        }
         guiContext.callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
         guiContext.window = window;
         gui_timer.data = &guiContext;
-        uv_timer_start(&gui_timer, gui_callback, 0, 20);
+        if (!driverInfo.batch) {
+          uv_timer_start(&gui_timer, gui_callback, 0, 20);
+        }
         guiDeployedOnce = true;
         break;
       case DriverState::MERGE_CONFIGS: {

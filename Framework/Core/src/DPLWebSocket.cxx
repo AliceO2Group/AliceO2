@@ -23,7 +23,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <iostream>
 
 namespace o2::framework
 {
@@ -111,6 +110,7 @@ struct GUIWebSocketHandler : public WebSocketHandler {
   }
   ~GUIWebSocketHandler() override {
     mContext.gui->renderers.erase(mRenderer);
+    uv_timer_stop(&(mRenderer->drawTimer));
     delete mRenderer;
     LOGP(INFO, "RemoteGUI disconnected, {} left", mContext.gui->renderers.size());
   }
@@ -149,7 +149,8 @@ struct GUIWebSocketHandler : public WebSocketHandler {
       case GUIOpcodes::Latency:
       {
         int lat = *((int*)frame);
-        mRenderer->latency = lat < 20 ? 20 : lat;
+        lat = lat < 20 ? 20 : lat;
+        uv_timer_set_repeat(&(mRenderer->drawTimer), lat);
         break;
       }
       case GUIOpcodes::Keydown:
@@ -221,6 +222,38 @@ void WSDPLHandler::header(std::string_view const& k, std::string_view const& v)
   populateHeader(mHeaders, k, v);
 }
 
+void remoteGuiCallback(uv_timer_s* ctx) {
+  GuiRenderer* renderer = reinterpret_cast<GuiRenderer*>(ctx->data);
+
+  void *frame = nullptr;
+  void *draw_data = nullptr;
+  int size;
+  uint64_t frameStart = uv_hrtime();
+  uint64_t frameLatency = frameStart - renderer->gui->frameLast;
+
+  // if less than 15ms have passed reuse old frame
+  if (frameLatency/1000000 > 15) {
+    renderer->gui->plugin->pollGUIPreRender(renderer->gui->window, (float)frameLatency/1000000000.0f);
+    draw_data = renderer->gui->plugin->pollGUIRender(renderer->gui->callback);
+  } else {
+    draw_data = renderer->gui->lastFrame;
+  }
+
+  renderer->gui->plugin->getFrameRaw(draw_data, &frame, &size);
+  std::vector<uv_buf_t> outputs;
+  encode_websocket_frames(outputs, (const char*)frame, size, WebSocketOpCode::Binary, 0);
+  renderer->handler->write(outputs);
+  free(frame);
+
+  if (frameLatency/1000000 > 15) {
+    uint64_t frameEnd = uv_hrtime();
+    *(renderer->gui->frameCost) = (frameEnd - frameStart) / 1000000;
+    *(renderer->gui->frameLatency) = frameLatency / 1000000;
+    renderer->gui->frameLast = frameStart;
+    renderer->gui->lastFrame = draw_data;
+  }
+}
+
 void WSDPLHandler::endHeaders()
 {
   /// Make sure this is a websocket upgrade request.
@@ -261,13 +294,11 @@ void WSDPLHandler::endHeaders()
     }
   } else {
     GuiRenderer *renderer = new GuiRenderer;
-    renderer->latency = 200;
-    renderer->frameLast = uv_hrtime();
-    renderer->drawCallback = [this](void *data, int size) {
-      std::vector<uv_buf_t> outputs;
-      encode_websocket_frames(outputs, (const char*)data, size, WebSocketOpCode::Binary, 0);
-      write(outputs);
-    };
+    renderer->gui = mServerContext->gui;
+    renderer->handler = this;
+    uv_timer_init(mServerContext->loop, &(renderer->drawTimer));
+    renderer->drawTimer.data = renderer;
+    uv_timer_start(&(renderer->drawTimer), remoteGuiCallback, 0, 200);
     mHandler = std::make_unique<GUIWebSocketHandler>(*mServerContext, renderer);
     mHandler->headers(mHeaders);
     mServerContext->gui->renderers.insert(renderer);

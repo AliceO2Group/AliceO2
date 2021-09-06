@@ -13,22 +13,27 @@
 #define O2_FRAMEWORK_GUICALLBACKCONTEXT_H_
 
 #include "Framework/DebugGUI.h"
+#include "Framework/DeviceState.h"
 
 #include <functional>
 
 namespace o2::framework
 {
 
+struct GuiCallbackContext;
+class WSDPLHandler;
+
 struct GuiRenderer {
-  uint64_t latency;
-  uint64_t frameLast;
-  std::function<void(void*,int)> drawCallback;
+  uv_timer_t drawTimer;
+  WSDPLHandler *handler;
+  GuiCallbackContext *gui;
 };
 
 struct GuiCallbackContext {
   uint64_t frameLast;
   float* frameLatency;
   float* frameCost;
+  void* lastFrame;
   DebugGUI* plugin;
   void* window;
   bool* guiQuitRequested;
