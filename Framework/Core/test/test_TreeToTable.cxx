@@ -38,9 +38,11 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   uint8_t b;
   const Int_t nelem = 9;
   Double_t ij[nelem] = {0};
+  float xyzw[96];
+  memset(xyzw, 1, 96 * 4);
   TString leaflist = Form("ij[%i]/D", nelem);
 
-  Int_t ncols = 9;
+  Int_t ncols = 10;
   t1.Branch("ok", &ok, "ok/O");
   t1.Branch("px", &px, "px/F");
   t1.Branch("py", &py, "py/F");
@@ -49,6 +51,7 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   t1.Branch("ev", &ev, "ev/I");
   t1.Branch("ij", ij, leaflist.Data());
   t1.Branch("tests", ts, "tests[5]/O");
+  t1.Branch("xyzw", xyzw, "xyzw[96]/F");
   t1.Branch("small", &b, "small/b");
 
   //fill the tree
@@ -100,7 +103,8 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   BOOST_REQUIRE_EQUAL(table->column(4)->type()->id(), arrow::float64()->id());
   BOOST_REQUIRE_EQUAL(table->column(5)->type()->id(), arrow::int32()->id());
   BOOST_REQUIRE_EQUAL(table->column(6)->type()->id(), arrow::fixed_size_list(arrow::float64(), nelem)->id());
-  BOOST_REQUIRE_EQUAL(table->column(7)->type()->id(), arrow::fixed_size_list(arrow::boolean(), 5)->id());
+  BOOST_REQUIRE_EQUAL(table->column(7)->type()->id(), arrow::fixed_size_list(arrow::float32(), 96)->id());
+  BOOST_REQUIRE_EQUAL(table->column(8)->type()->id(), arrow::fixed_size_list(arrow::boolean(), 5)->id());
 
   // count number of rows with ok==true
   int ntrueout = 0;
