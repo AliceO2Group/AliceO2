@@ -28,6 +28,8 @@ jobs:
           repository: AliceO2Group/analysis-framework
           path: analysis-framework
           persist-credentials: false
+          # To push the updated branch, we need a non-shallow clone.
+          depth: 0
 
       - name: Create PR branch in docs
         working-directory: analysis-framework
