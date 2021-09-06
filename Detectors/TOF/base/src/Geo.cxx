@@ -225,12 +225,21 @@ void Geo::getDetID(Float_t* pos, Int_t* det)
   }
 
   det[0] = getSector(posLocal);
+  if (det[0] == -1) {
+    return;
+  }
 
   fromGlobalToSector(posLocal, det[0]);
 
   det[1] = getPlate(posLocal);
+  if (det[1] == -1) {
+    return;
+  }
 
   det[2] = fromPlateToStrip(posLocal, det[1]);
+  if (det[2] == -1) {
+    return;
+  }
 
   det[3] = getPadZ(posLocal);
   det[4] = getPadX(posLocal);
@@ -403,7 +412,22 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
     step[1] = getHeights(iplate, istrip);
     step[2] = -getDistances(iplate, istrip);
     translate(posLoc2, step);
+
+    if (fabs(posLoc2[1]) > 10) {
+      continue;
+    }
+    if (fabs(posLoc2[2]) > 10) {
+      continue;
+    }
+
+    float distanceSquared = posLoc2[0] * posLoc2[0] * 0 + posLoc2[1] * posLoc2[1] + posLoc2[2] * posLoc2[2];
+
+    if (distanceSquared > 45) {
+      continue;
+    }
+
     rotateToStrip(posLoc2, iplate, istrip);
+
     if ((TMath::Abs(posLoc2[0]) <= STRIPLENGTH * 0.5) && (TMath::Abs(posLoc2[1]) <= HSTRIPY * 0.5) &&
         (TMath::Abs(posLoc2[2]) <= WCPCBZ * 0.5)) {
       step[0] = -0.5 * NPADX * XPAD;
@@ -461,9 +485,21 @@ void Geo::getPadDxDyDz(const Float_t* pos, Int_t* det, Float_t* DeltaPos)
   }
 
   det[0] = getSector(DeltaPos);
+  if (det[0] == -1) {
+    return;
+  }
+
   fromGlobalToSector(DeltaPos, det[0]);
   det[1] = getPlate(DeltaPos);
+  if (det[1] == -1) {
+    return;
+  }
+
   det[2] = fromPlateToStrip(DeltaPos, det[1]);
+  if (det[2] == -1) {
+    return;
+  }
+
   det[3] = getPadZ(DeltaPos);
   det[4] = getPadX(DeltaPos);
   // translate to the pad center
