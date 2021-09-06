@@ -353,7 +353,7 @@ TEveElement* Data::getEveTracks()
 
     while (nc--) {
       Int_t idx = (*mClIdxBuffer)[idxRef + nc];
-      const CompClusterExt& c = mClusters[idx];
+      const CompClusterExt& c = (*mClusterBuffer)[idx];
       auto locC = dict.getClusterCoordinates(c);
       auto id = c.getSensorID();
       const auto gloC = gman->getMatrixL2G(id) * locC;
