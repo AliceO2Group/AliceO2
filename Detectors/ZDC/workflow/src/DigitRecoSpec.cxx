@@ -148,7 +148,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
           recEvent.addBC(reca.ir, reca.channels, reca.triggers);
         }
         nt++;
-        recEvent.addTDC(it, reca.tdcVal[it][ih], reca.tdcAmp[it][ih]);
+        recEvent.addTDC(it, reca.TDCVal[it][ih], reca.TDCAmp[it][ih]);
       }
     }
     if (ne > 0 && nt == 0) {
@@ -165,6 +165,12 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     if (mVerbosity > 0 && (nt > 0 || ne > 0)) {
       printf("Orbit %9u bc %4u ntdc %2d ne %2d\n", reca.ir.orbit, reca.ir.bc, nt, ne);
     }
+    // Event information
+    recEvent.addInfo(reca.tdcPedQC, MsgTDCPedQC);
+    recEvent.addInfo(reca.tdcPedMissing, MsgTDCPedMissing);
+    recEvent.addInfo(reca.adcPedOr, MsgADCPedOr);
+    recEvent.addInfo(reca.adcPedQC, MsgADCPedQC);
+    recEvent.addInfo(reca.adcPedMissing, MsgADCPedMissing);
   }
   LOG(INFO) << "Reconstructed " << ntt << " signal TDCs and " << nte << " energies";
   // TODO: rate information for all channels
@@ -172,6 +178,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, recEvent.mRecBC);
   pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0, Lifetime::Timeframe}, recEvent.mEnergy);
   pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0, Lifetime::Timeframe}, recEvent.mTDCData);
+  pc.outputs().snapshot(Output{"ZDC", "INFO", 0, Lifetime::Timeframe}, recEvent.mInfo);
   mTimer.Stop();
   LOG(INFO) << "Reconstructed ZDC data for " << recEvent.mRecBC.size() << " b.c. in " << mTimer.CpuTime() - cput << " s";
 }
@@ -194,6 +201,7 @@ framework::DataProcessorSpec getDigitRecoSpec(const int verbosity = 0, const boo
   outputs.emplace_back("ZDC", "BCREC", 0, Lifetime::Timeframe);
   outputs.emplace_back("ZDC", "ENERGY", 0, Lifetime::Timeframe);
   outputs.emplace_back("ZDC", "TDCDATA", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "INFO", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "zdc-digi-reco",

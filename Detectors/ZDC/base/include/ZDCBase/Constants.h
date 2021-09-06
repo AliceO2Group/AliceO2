@@ -20,8 +20,12 @@
 #include <string>
 #include <type_traits>
 
-// Enable debug output in reconstruction
+// Enable debug printout in reconstruction
 //#define O2_ZDC_DEBUG
+// TDC arrays in debug output
+//#define O2_ZDC_TDC_C_ARRAY
+// Debug output of full interpolated function
+//#define O2_ZDC_INTERP_DEBUG
 
 namespace o2
 {
@@ -82,6 +86,7 @@ constexpr uint32_t ZDCRefInitVal = 0xffffffff;
 // Parameters of interpolating function
 constexpr int TSL = 6;                      // number of zeros on the right (and on the left) of central peak
 constexpr int TSN = 200;                    // Number of interpolated points between each pair = TSN-1
+constexpr int TSNH = TSN / 2;               // Half of TSN
 constexpr int TSNS = 96;                    // Number of interpolated points per ns
 constexpr int NTS = 2 * TSL * TSN + 1;      // Tapered sinc function array size
 constexpr static float FTDCAmp = 1. / 8.;   // Multiplication factor in conversion from integer
@@ -209,6 +214,28 @@ const std::string CCDBPathRecoConfigZDC = "ZDC/Calib/RecoConfigZDC";
 const std::string CCDBPathTDCCalib = "ZDC/Calib/TDCCalib";
 const std::string CCDBPathEnergyCalib = "ZDC/Calib/EnergyCalib";
 const std::string CCDBPathTowerCalib = "ZDC/Calib/TowerCalib";
+
+enum Ped { PedND = 0,
+           PedEv = 1,
+           PedOr = 2,
+           PedQC = 3,
+           PedMissing = 4 };
+
+enum Msg { MsgGeneric = 0,
+           MsgTDCPedQC = 1,
+           MsgTDCPedMissing = 2,
+           MsgADCPedOr = 3,
+           MsgADCPedQC = 4,
+           MsgADCPedMissing = 5,
+           MsgEnd };
+
+constexpr std::string_view MsgText[] = {
+  "generic error",
+  "TDC QC ped",
+  "TDC missing ped",
+  "ADC Orbit ped",
+  "ADC QC ped",
+  "ADC missing ped"};
 
 // List of channels that can be calibrated
 constexpr std::array<int, 10> ChEnergyCalib{IdZNAC, IdZNASum, IdZPAC, IdZPASum,
