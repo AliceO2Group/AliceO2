@@ -60,6 +60,8 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
   mStartIR = inp.startIR;
   updateTimeDependentParams();
 
+  mTimerMatchTPC.Reset();
+  mTimerMatchITSTPC.Reset();
   mTimerTot.Start();
 
   mTimerTot.Stop();
@@ -102,10 +104,14 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
     mMatchedTracksPairs.clear(); // new sector
     LOG(INFO) << "Doing matching for sector " << sec << "...";
     if (mIsITSTPCused || mIsTPCTRDused || mIsITSTPCTRDused) {
+      mTimerMatchITSTPC.Start(sec == o2::constants::math::NSectors - 1);
       doMatching(sec);
+      mTimerMatchITSTPC.Stop();
     }
     if (mIsTPCused) {
+      mTimerMatchTPC.Start(sec == o2::constants::math::NSectors - 1);
       doMatchingForTPC(sec);
+      mTimerMatchTPC.Stop();
     }
     LOG(INFO) << "...done. Now check the best matches";
     selectBestMatches();
@@ -121,6 +127,8 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
 
   mTimerTot.Stop();
   LOGF(INFO, "Timing Do Matching: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
+  LOGF(INFO, "Timing Do Matching ITSTPC: Cpu: %.3e s Real: %.3e s in %d slots", mTimerMatchITSTPC.CpuTime(), mTimerMatchITSTPC.RealTime(), mTimerMatchITSTPC.Counter() - 1);
+  LOGF(INFO, "Timing Do Matching TPC   : Cpu: %.3e s Real: %.3e s in %d slots", mTimerMatchTPC.CpuTime(), mTimerMatchTPC.RealTime(), mTimerMatchTPC.Counter() - 1);
 }
 //______________________________________________
 void MatchTOF::print() const
@@ -682,7 +690,6 @@ void MatchTOF::doMatchingForTPC(int sec)
 
     int side = mSideTPC[cacheTrk[itrk]];
     // look at BC candidates for the track
-    itof0 = 0;
     double minTrkTime = (trackWork.second.getTimeStamp() - trackWork.second.getTimeStampError()) * 1.E6; // minimum time in ps
     minTrkTime = int(minTrkTime / BCgranularity) * BCgranularity;                                        // align min to a BC
     double maxTrkTime = (trackWork.second.getTimeStamp() + mExtraTPCFwdTime[cacheTrk[itrk]]) * 1.E6;     // maximum time in ps
@@ -695,6 +702,8 @@ void MatchTOF::doMatchingForTPC(int sec)
       }
     }
 
+    int itofMax = nTOFCls;
+
     for (auto itof = itof0; itof < nTOFCls; itof++) {
       auto& trefTOF = mTOFClusWork[cacheTOF[itof]];
 
@@ -704,6 +713,7 @@ void MatchTOF::doMatchingForTPC(int sec)
       }
 
       if (trefTOF.getTime() > maxTrkTime) { // this cluster has a time that is too large for the current track, close loop
+        itofMax = itof;
         break;
       }
 
@@ -850,24 +860,34 @@ void MatchTOF::doMatchingForTPC(int sec)
       }
 
       bool foundCluster = false;
-      itof0 = 0;
-      for (auto itof = itof0; itof < nTOFCls; itof++) {
+      for (auto itof = itof0; itof < itofMax; itof++) {
         //      printf("itof = %d\n", itof);
         auto& trefTOF = mTOFClusWork[cacheTOF[itof]];
         // compare the times of the track and the TOF clusters - remember that they both are ordered in time!
 
         if (trefTOF.getTime() < minTime) { // this cluster has a time that is too small for the current track, we will get to the next one
-          itof0 = itof + 1;                // but for the next track that we will check, we will ignore this cluster (the time is anyway too small)
           continue;
         }
         if (trefTOF.getTime() > maxTime) { // no more TOF clusters can be matched to this track
           break;
         }
-        unsigned long bcClus = trefTOF.getTime() * Geo::BC_TIME_INPS_INV;
 
         int mainChannel = trefTOF.getMainContributingChannel();
         int indices[5];
         Geo::getVolumeIndices(mainChannel, indices);
+
+        bool isInStrip = false;
+        for (auto iPropagation = 0; iPropagation < nStripsCrossedInPropagation[ibc]; iPropagation++) {
+          if (detId[ibc][iPropagation][1] == indices[1] && detId[ibc][iPropagation][2] == indices[2]) {
+            isInStrip = true;
+          }
+        }
+
+        if (!isInStrip) {
+          continue;
+        }
+
+        unsigned long bcClus = trefTOF.getTime() * Geo::BC_TIME_INPS_INV;
 
         // compute fine correction using cluster position instead of pad center
         // this because in case of multiple-hit cluster position is averaged on all pads contributing to the cluster (then error position matrix can be used for Chi2 if nedeed)
@@ -910,6 +930,10 @@ void MatchTOF::doMatchingForTPC(int sec)
         int eventIdTOF;
         int sourceIdTOF;
         for (auto iPropagation = 0; iPropagation < nStripsCrossedInPropagation[ibc]; iPropagation++) {
+          if (detId[ibc][iPropagation][1] != indices[1] || detId[ibc][iPropagation][2] != indices[2]) {
+            continue;
+          }
+
           LOG(DEBUG) << "TOF Cluster [" << itof << ", " << cacheTOF[itof] << "]:      indices   = " << indices[0] << ", " << indices[1] << ", " << indices[2] << ", " << indices[3] << ", " << indices[4];
           LOG(DEBUG) << "Propagated Track [" << itrk << "]: detId[" << iPropagation << "]  = " << detId[ibc][iPropagation][0] << ", " << detId[ibc][iPropagation][1] << ", " << detId[ibc][iPropagation][2] << ", " << detId[ibc][iPropagation][3] << ", " << detId[ibc][iPropagation][4];
           float resX = deltaPos[ibc][iPropagation][0] - (indices[4] - detId[ibc][iPropagation][4]) * Geo::XPAD + posCorr[0]; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster

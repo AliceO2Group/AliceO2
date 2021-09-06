@@ -296,8 +296,10 @@ class MatchTOF
   static constexpr float MAXSNP = 0.85; // max snp of ITS or TPC track at xRef to be matched
 
   TStopwatch mTimerTot;
+  TStopwatch mTimerMatchITSTPC;
+  TStopwatch mTimerMatchTPC;
   TStopwatch mTimerDBG;
-  ClassDefNV(MatchTOF, 2);
+  ClassDefNV(MatchTOF, 3);
 };
 } // namespace globaltracking
 } // namespace o2
