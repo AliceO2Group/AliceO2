@@ -122,6 +122,7 @@ void Decoder::clear()
   mCratePatterns.clear();
   mCrateHeaderData.clear();
   mErrors.clear();
+  mDiagnosticFrequency.clear();
 }
 
 void Decoder::InsertDigit(int icrate, int itrm, int itdc, int ichain, int channel, uint32_t orbit, uint16_t bunchid, int time_ext, int tdc, int tot)
@@ -324,12 +325,13 @@ bool Decoder::decode() // return a vector of digits in a TOF readout window
 
   // since digits are not yet divided in tof readout window we need to do it
   // flushOutputContainer does the job
-  FillWindows();
+  fillWindows();
+  fillDiagnosticFrequency();
 
   return false;
 }
 
-void Decoder::FillWindows()
+void Decoder::fillWindows()
 {
   std::vector<Digit> digTemp;
   flushOutputContainer(digTemp);

@@ -442,3 +442,37 @@ void WindowFiller::checkIfReuseFutureDigitsRO() // the same but using readout in
     idigit--; // go back to the next position in the reverse iterator
   }           // close future digit loop
 }
+
+void WindowFiller::fillDiagnosticFrequency()
+{
+  // fill diagnostic frequency
+  for (int j = 0; j < mReadoutWindowData.size(); j++) {
+    mDiagnosticFrequency.fillROW();
+    for (int ic = 0; ic < 72; ic++) {
+      int dia = mReadoutWindowData[j].getDiagnosticInCrate(ic);
+      int slot = 0;
+      if (mReadoutWindowData[j].isEmptyCrate(ic)) {
+        mDiagnosticFrequency.fillEmptyCrate(ic);
+      }
+      if (dia) {
+        int fd = mReadoutWindowData[j].firstDia();
+        int lastdia = fd + dia;
+
+        ULong64_t key;
+        for (int dd = fd; dd < lastdia; dd++) {
+          if (mPatterns[dd] >= 28) {
+            slot = mPatterns[dd] - 28;
+            key = (ULong64_t(slot) << 32) + (ULong64_t(ic) << 36);
+            continue;
+          }
+
+          key += (1 << mPatterns[dd]);
+
+          if (dd + 1 == lastdia || mPatterns[dd + 1] >= 28) {
+            mDiagnosticFrequency.fill(key);
+          }
+        }
+      }
+    }
+  }
+}
