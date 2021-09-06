@@ -146,11 +146,12 @@ class TopologyDictionary
     return mVectorOfIDs[n].mIsGroup;
   }
   /// Returns the pattern of the topology
-  inline ClusterPattern getPattern(int n) const
+  inline const ClusterPattern& getPattern(int n) const
   {
     assert(n >= 0 || n < (int)mVectorOfIDs.size());
     return mVectorOfIDs[n].mPattern;
   }
+
   /// Fills a hostogram with the distribution of the IDs
   static void getTopologyDistribution(const TopologyDictionary& dict, TH1F*& histo, const char* histName);
   /// Returns the number of elements in the dicionary;
