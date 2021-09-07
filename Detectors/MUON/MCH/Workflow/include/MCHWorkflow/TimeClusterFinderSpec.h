@@ -9,13 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file PreClusterFinderSpec.h
-/// \brief Definition of a data processor to run the preclusterizer
+/// \file TimeClusterFinderSpec.h
+/// \brief Definition of a data processor to run the time clusterizer
 ///
-/// \author Philippe Pillot, Subatech
+/// \author Andrea Ferrero, CEA
 
-#ifndef O2_MCH_PRECLUSTERFINDERSPEC_H_
-#define O2_MCH_PRECLUSTERFINDERSPEC_H_
+#ifndef O2_MCH_TIMECLUSTERFINDERSPEC_H_
+#define O2_MCH_TIMECLUSTERFINDERSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
 
@@ -24,9 +24,9 @@ namespace o2
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getPreClusterFinderSpec(const char* rofDesc, const char* name = "PreClusterFinder");
+o2::framework::DataProcessorSpec getTimeClusterFinderSpec(const char* specName = "mch-time-cluster-finder");
 
 } // end namespace mch
 } // end namespace o2
 
-#endif // O2_MCH_PRECLUSTERFINDERSPEC_H_
+#endif // O2_MCH_TIMECLUSTERFINDERSPEC_H_
