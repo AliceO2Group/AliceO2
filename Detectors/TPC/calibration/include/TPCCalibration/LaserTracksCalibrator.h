@@ -31,21 +31,25 @@ class LaserTracksCalibrator : public o2::calibration::TimeSlotCalibration<TrackT
 
  public:
   LaserTracksCalibrator() = default;
-  LaserTracksCalibrator(size_t minEntries) : mMinEntries(minEntries) {}
+  LaserTracksCalibrator(size_t minTFs) : mMinTFs(minTFs) {}
   ~LaserTracksCalibrator() final = default;
 
-  bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->hasEnoughData(mMinEntries); }
+  bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->hasEnoughData(mMinTFs); }
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
 
   const auto& getCalibPerSlot() { return mCalibPerSlot; }
+  bool hasCalibrationData() const { return mCalibPerSlot.size() > 0; }
 
   void setWriteDebug(bool debug = true) { mWriteDebug = debug; }
   bool getWriteDebug() const { return mWriteDebug; }
 
+  void setMinTFs(size_t minTFs) { mMinTFs = minTFs; }
+  size_t getMinTFs() const { return mMinTFs; }
+
  private:
-  size_t mMinEntries = 100;                ///< laser tracks of these amount of time frames
+  size_t mMinTFs = 100;                    ///< laser tracks of these amount of time frames
   std::vector<LtrCalibData> mCalibPerSlot; ///< drift velocity per slot
   bool mWriteDebug = false;                ///< if to save debug trees
 

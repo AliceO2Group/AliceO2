@@ -35,12 +35,12 @@ class LaserTracksCalibratorDevice : public o2::framework::Task
  public:
   void init(o2::framework::InitContext& ic) final
   {
-    const int minEnt = ic.options().get<int>("min-tfs");
+    const int minTFs = ic.options().get<int>("min-tfs");
     const int slotL = ic.options().get<int>("tf-per-slot");
     const int delay = ic.options().get<int>("max-delay");
     const bool debug = ic.options().get<bool>("write-debug");
 
-    mCalibrator = std::make_unique<LaserTracksCalibrator>(minEnt);
+    mCalibrator = std::make_unique<LaserTracksCalibrator>(minTFs);
     mCalibrator->setSlotLength(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
     mCalibrator->setWriteDebug(debug);
@@ -58,7 +58,9 @@ class LaserTracksCalibratorDevice : public o2::framework::Task
     mCalibrator->getSlotForTF(startTime).getContainer()->setTFtimes(startTime, endTime);
     mCalibrator->process(startTime, data);
 
-    //sendOutput(pc.outputs());
+    if (mCalibrator->hasCalibrationData()) {
+      sendOutput(pc.outputs());
+    }
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
@@ -76,24 +78,22 @@ class LaserTracksCalibratorDevice : public o2::framework::Task
   void sendOutput(DataAllocator& output)
   {
     using clbUtils = o2::calibration::Utils;
-    // TODO: save vector of objects or single objects
-    const auto& object = mCalibrator->getCalibPerSlot();
+    const auto& calibrations = mCalibrator->getCalibPerSlot();
+    const long timeEnd = 99999999999999;
+    for (uint32_t iCalib = 0; iCalib < calibrations.size(); ++iCalib) {
+      const auto& object = calibrations[iCalib];
+      o2::ccdb::CcdbObjectInfo w;
+      auto image = o2::ccdb::CcdbApi::createObjectImage(&object, &w);
 
-    if (!object.size()) {
-      LOGP(error, "drift velocity calibration vector is empty");
-      return;
+      w.setPath("TPC/Calib/LaserTracks");
+      w.setStartValidityTimestamp(object.firstTime);
+      //w.setEndValidityTimestamp(object.lastTime);
+      w.setEndValidityTimestamp(timeEnd);
+
+      LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", w.getPath(), w.getFileName(), image->size(), w.getStartValidityTimestamp(), w.getEndValidityTimestamp());
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibLtr", iCalib}, *image.get());
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibLtr", iCalib}, w);
     }
-
-    o2::ccdb::CcdbObjectInfo w;
-    auto image = o2::ccdb::CcdbApi::createObjectImage(&object, &w);
-
-    w.setPath("TPC/Calib/LaserTracks");
-    w.setStartValidityTimestamp(object.front().firstTime);
-    w.setEndValidityTimestamp(object.back().lastTime);
-
-    LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", w.getPath(), w.getFileName(), image->size(), w.getStartValidityTimestamp(), w.getEndValidityTimestamp());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibLtr", 0}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibLtr", 0}, w);
     mCalibrator->initOutput();
   }
 };
