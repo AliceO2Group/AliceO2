@@ -92,6 +92,9 @@ Int_t DigitDump::updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
   // fill digits
   addDigit(cru, signalCorr, globalRow, pad, timeBin);
 
+  // fill time bin occupancy
+  ++mTimeBinOccupancy[timeBin - mFirstTimeBin];
+
   return 0;
 }
 
@@ -168,6 +171,7 @@ void DigitDump::initInputOutput()
   if (!mInMemoryOnly) {
     setupOutputTree();
   }
+  mTimeBinOccupancy.resize(mLastTimeBin - mFirstTimeBin + 1);
   mInitialized = true;
 }
 
@@ -205,5 +209,69 @@ void DigitDump::checkDuplicates(bool removeDuplicates)
     if (nDuplicates) {
       LOGP(warning, "{} {} duplicate digits in sector {}", removeDuplicates ? "removed" : "found", nDuplicates, iSec);
     }
+  }
+}
+
+//______________________________________________________________________________
+void DigitDump::removeCEdigits(uint32_t removeNtimeBinsBefore, uint32_t removeNtimeBinsAfter, std::array<std::vector<Digit>, Sector::MAXSECTOR>* removedDigits)
+{
+  // ===| check if proper CE signal was found |===
+  const auto sectorsWithDigits = std::count_if(mDigits.begin(), mDigits.end(), [](const auto& v) { return v.size(); });
+  const auto maxElem = std::max_element(mTimeBinOccupancy.begin(), mTimeBinOccupancy.end());
+  const auto maxVal = *maxElem;
+  // at least 20% of all pad should have fired in sectors wich have digits
+  const size_t threshold = Mapper::getPadsInSector() * sectorsWithDigits / 5;
+  if (maxVal < threshold) {
+    LOGP(warning, "No CE signal found. Number of fired pads is too small {} < {} (with {} sectors having digits)", maxVal, threshold, sectorsWithDigits);
+    return;
+  }
+
+  // identify the first time bin to remove
+  const auto posMaxElem = std::distance(mTimeBinOccupancy.begin(), maxElem);
+  const auto cePos = posMaxElem + mFirstTimeBin;
+
+  if (cePos < posMaxElem) {
+    LOGP(warning, "Number of time bins to be removed {} is bigger than the CE peak position {}", removeNtimeBinsBefore, posMaxElem);
+    return;
+  }
+
+  const auto firstTimeBin = cePos - removeNtimeBinsBefore;
+  const auto lastTimeBin = cePos + removeNtimeBinsAfter;
+  LOGP(info, "CE position found at time bin {}, removing the range {} - {}", cePos, firstTimeBin, lastTimeBin);
+
+  for (size_t iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
+    auto& digits = mDigits[iSec];
+    if (!digits.size()) {
+      continue;
+    }
+
+    //LOGP(info, "processing sector iSec");
+    const auto itFirstTB = std::lower_bound(digits.begin(), digits.end(),
+                                            firstTimeBin,
+                                            [](const auto& digit, const auto val) {
+                                              return digit.getTimeStamp() < val;
+                                            });
+
+    //LOGP(info, "first time bin to remove is {} at position {} / {}", *itFirstTB, std::distance(digits.begin(), itFirstTB), digits.size());
+    if (itFirstTB == digits.end()) {
+      continue;
+    }
+
+    const auto itLastTB = std::upper_bound(digits.begin(), digits.end(),
+                                           lastTimeBin,
+                                           [](const auto val, const auto& digit) {
+                                             return val < digit.getTimeStamp();
+                                           });
+
+    //LOGP(info, "last time bin to remove is {} at position {} / {}", *(itLastTB - 1), std::distance(digits.begin(), itLastTB), digits.size());
+    if (removedDigits) {
+      //LOGP(info, "copy removed digits");
+      auto& cpDigits = (*removedDigits)[iSec];
+      cpDigits.clear();
+      std::copy(itFirstTB, itLastTB, std::back_inserter(cpDigits));
+    }
+
+    //LOGP(info, "erasing {} digits", std::distance(itFirstTB, itLastTB));
+    digits.erase(itFirstTB, itLastTB);
   }
 }
