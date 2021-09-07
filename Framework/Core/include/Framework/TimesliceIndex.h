@@ -92,6 +92,10 @@ class TimesliceIndex
   /// Given @a slot, @return the TFcounter (i.e. the variable at positiorn 14)
   /// associated to it.
   inline uint32_t getFirstTFCounterForSlot(TimesliceSlot slot) const;
+
+  /// Given @a slot, @return the runNumber (i.e. the variable at positiorn 13)
+  /// associated to it.
+  inline uint32_t getRunNumberForSlot(TimesliceSlot slot) const;
   /// Given a slot, @return the VariableContext associated to it.
   /// This effectively means that the TimesliceIndex is now owner of the
   /// VariableContext.

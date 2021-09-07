@@ -1109,6 +1109,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     timingInfo->timeslice = timeslice.value;
     timingInfo->tfCounter = relayer->getFirstTFCounterForSlot(i);
     timingInfo->firstTFOrbit = relayer->getFirstTFOrbitForSlot(i);
+    timingInfo->runNumber = relayer->getRunNumberForSlot(i);
   };
 
   // When processing them, timers will have to be cleaned up

@@ -21,6 +21,7 @@ struct TimingInfo {
   size_t timeslice; /// the timeslice associated to current processing
   uint32_t firstTFOrbit = -1; /// the orbit the TF begins
   uint32_t tfCounter = -1;    // the counter associated to a TF
+  uint32_t runNumber = -1;
 };
 
 #endif // O2_FRAMEWORK_TIMINGINFO_H_
