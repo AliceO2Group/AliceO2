@@ -376,7 +376,7 @@ bool TableToTree::addAllBranches()
 TTree* TableToTree::process()
 {
 
-  bool togo = mTreePtr->GetNbranches() > 0;
+  bool togo = (mTreePtr->GetNbranches() > 0) && (mTable->num_rows() > 0);
   while (togo) {
     // fill the tree
     mTreePtr->Fill();
