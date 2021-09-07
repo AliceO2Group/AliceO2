@@ -65,8 +65,21 @@ class CalibLaserTracksDevice : public o2::framework::Task
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
   {
-    // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
-    // TODO in principle, this routine is generic, can be moved to Utils.h
+    using clbUtils = o2::calibration::Utils;
+    const auto& object = mCalib.getCalibData();
+
+    o2::ccdb::CcdbObjectInfo w;
+    auto image = o2::ccdb::CcdbApi::createObjectImage(&object, &w);
+
+    const long timeEnd = 99999999999999;
+
+    w.setPath("TPC/Calib/LaserTracks");
+    w.setStartValidityTimestamp(object.firstTime);
+    w.setEndValidityTimestamp(timeEnd);
+
+    LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", w.getPath(), w.getFileName(), image->size(), w.getStartValidityTimestamp(), w.getEndValidityTimestamp());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibLtr", 0}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibLtr", 0}, w);
   }
 };
 
@@ -76,6 +89,9 @@ DataProcessorSpec getCalibLaserTracks(const std::string inputSpec)
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{"TPC", "LtrCalibData"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibLtr"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibLtr"});
+
   return DataProcessorSpec{
     "tpc-calib-laser-tracks",
     select(inputSpec.data()),
