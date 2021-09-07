@@ -32,6 +32,7 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
+#include "Framework/WorkflowSpec.h"
 
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/Digit.h"
@@ -186,13 +187,18 @@ class PreClusterFinderTask
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getPreClusterFinderSpec(const char* name)
+o2::framework::DataProcessorSpec getPreClusterFinderSpec(const char* rofDesc, const char* name)
 {
+  std::string rofSpec = std::string("digitrofs:MCH/") + rofDesc;
+  auto inputs = o2::framework::select(rofSpec.c_str());
+  for (auto& inp : inputs) {
+    inp.lifetime = Lifetime::Timeframe;
+  }
+  inputs.emplace_back("digits", "MCH", "DIGITS", 0, Lifetime::Timeframe);
+
   std::string helpstr = "[off/error/fatal] check that all digits are included in pre-clusters";
   return DataProcessorSpec{
-    name,
-    Inputs{InputSpec{"digitrofs", "MCH", "DIGITROFS", 0, Lifetime::Timeframe},
-           InputSpec{"digits", "MCH", "DIGITS", 0, Lifetime::Timeframe}},
+    name, inputs,
     Outputs{OutputSpec{{"preclusterrofs"}, "MCH", "PRECLUSTERROFS", 0, Lifetime::Timeframe},
             OutputSpec{{"preclusters"}, "MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
             OutputSpec{{"preclusterdigits"}, "MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
