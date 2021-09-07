@@ -71,7 +71,20 @@ DataRef InputRecord::getByPos(int pos, int part) const
     throw runtime_error_f("Unknown schema at position %d", pos);
   }
   auto ref = mSpan.get(pos, part);
-  ref.spec = &mInputsSchema[pos].matcher;
+  auto inputIndex = 0;
+  auto schemaIndex = 0;
+  for (size_t i = 0; i < mInputsSchema.size(); ++i) {
+    schemaIndex = i;
+    auto& route = mInputsSchema[i];
+    if (route.timeslice != 0) {
+      continue;
+    }
+    if (inputIndex == pos) {
+      break;
+    }
+    ++inputIndex;
+  }
+  ref.spec = &mInputsSchema[schemaIndex].matcher;
   return ref;
 }
 
