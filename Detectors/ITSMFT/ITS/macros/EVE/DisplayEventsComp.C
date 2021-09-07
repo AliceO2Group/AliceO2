@@ -467,7 +467,7 @@ void init(int entry = 0, int chip = 13,
   auto h = new TGHorizontalFrame(frame);
   auto b = new TGTextButton(h, "PrevEvnt", "prev()");
   h->AddFrame(b);
-  gEntry = new TGNumberEntry(h, 0, 5, -1, TGNumberFormat::kNESInteger, TGNumberFormat::kNEANonNegative, TGNumberFormat::kNELLimitMinMax, 0, 10000);
+  gEntry = new TGNumberEntry(h, 0, 7, -1, TGNumberFormat::kNESInteger, TGNumberFormat::kNEANonNegative, TGNumberFormat::kNELLimitMinMax, 0, 1000000);
   gEntry->Connect("ValueSet(Long_t)", 0, 0, "load()");
   h->AddFrame(gEntry);
   b = new TGTextButton(h, "NextEvnt", "next()");
