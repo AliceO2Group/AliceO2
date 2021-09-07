@@ -95,7 +95,7 @@ option, where `<signal>` can be: all, segv, bus, ill, abrt, fpe and sys.
 
 The demonstator also includes a simple GUI to help debugging problems:
 
-![](https://user-images.githubusercontent.com/10544/29307499-75bb8550-81a2-11e7-9aa6-96b7613288b5.png)
+![image](https://user-images.githubusercontent.com/54279461/132369550-34f41cd6-9db0-4d28-91c3-a1f210316b89.png)
 
 The GUI provides the following facilities:
 
@@ -103,6 +103,16 @@ The GUI provides the following facilities:
 * One log window  per DataProcessor, allowing filtering and  triggering on log
   messages
 * Metrics inspector
+
+### Remote GUI
+
+The Debug GUI can be accessed from remote through a [dedicated webapp](https://htmlpreview.github.io/?https://github.com/AliceO2Group/DebugGUI/blob/master/remote/remote.html). It currently officially supports Firefox and Safari, both on desktop and on mobile. The IP of the machine running the Driver process and the port can be specified. The Remote GUI is launched using the **LAUNCH** button. At this point a live mirror of the Debug GUI should start being displayed in the browser. A menu on the upper right corner offers the following functionalities:
+- interactive: enters interactive mode, capturing mouse and keyboard input
+- fit: fits the gui to the screen
+- latency: adjusts the latency in milliseconds between frames
+- input: dummy input used to bring up the keyboard on mobile devices
+
+The interactive and fit to screen functionalities have full support only when running in batch mode.
 
 ### Integrating with non-DPL devices
 
