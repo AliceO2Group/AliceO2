@@ -182,7 +182,9 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
                     truncateFloatFraction(extraInfoHolder.length, mTrackSignal),
                     truncateFloatFraction(extraInfoHolder.tofExpMom, mTrack1Pt),
                     truncateFloatFraction(extraInfoHolder.trackEtaEMCAL, mTrackPosEMCAL),
-                    truncateFloatFraction(extraInfoHolder.trackPhiEMCAL, mTrackPosEMCAL));
+                    truncateFloatFraction(extraInfoHolder.trackPhiEMCAL, mTrackPosEMCAL),
+                    0,
+                    0);
 }
 
 template <typename mftTracksCursorType>

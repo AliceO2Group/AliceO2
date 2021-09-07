@@ -33,6 +33,9 @@ enum TrackTypeEnum : uint8_t {
   Run2Track = 254,
   Run2Tracklet = 255
 };
+enum TrackFlags {
+  TrackTimeResIsRange = 0x1 // Gaussian or range
+};
 enum TrackFlagsRun2Enum {
   ITSrefit = 0x1,
   TPCrefit = 0x2,

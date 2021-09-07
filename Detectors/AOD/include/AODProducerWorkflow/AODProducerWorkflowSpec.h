@@ -92,7 +92,9 @@ using TracksExtraTable = o2::soa::Table<o2::aod::track::TPCInnerParam,
                                         o2::aod::track::Length,
                                         o2::aod::track::TOFExpMom,
                                         o2::aod::track::TrackEtaEMCAL,
-                                        o2::aod::track::TrackPhiEMCAL>;
+                                        o2::aod::track::TrackPhiEMCAL,
+                                        o2::aod::track::TrackTime,
+                                        o2::aod::track::TrackTimeRes>;
 
 using MFTTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
                                       o2::aod::fwdtrack::X,

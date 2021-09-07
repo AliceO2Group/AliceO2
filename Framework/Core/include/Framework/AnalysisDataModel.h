@@ -54,21 +54,21 @@ using BCsWithTimestamps = soa::Join<aod::BCs, aod::Timestamps>;
 
 namespace collision
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                                  //! Most probably BC to where this collision has occured
-DECLARE_SOA_COLUMN(PosX, posX, float);                             //! X Vertex position in cm
-DECLARE_SOA_COLUMN(PosY, posY, float);                             //! Y Vertex position in cm
-DECLARE_SOA_COLUMN(PosZ, posZ, float);                             //! Z Vertex position in cm
-DECLARE_SOA_COLUMN(CovXX, covXX, float);                           //! Vertex covariance matrix
-DECLARE_SOA_COLUMN(CovXY, covXY, float);                           //! Vertex covariance matrix
-DECLARE_SOA_COLUMN(CovXZ, covXZ, float);                           //! Vertex covariance matrix
-DECLARE_SOA_COLUMN(CovYY, covYY, float);                           //! Vertex covariance matrix
-DECLARE_SOA_COLUMN(CovYZ, covYZ, float);                           //! Vertex covariance matrix
-DECLARE_SOA_COLUMN(CovZZ, covZZ, float);                           //! Vertex covariance matrix
-DECLARE_SOA_COLUMN(Flags, flags, uint16_t);                        //! Run 2: see CollisionFlagsRun2 | Run 3: see Vertex::Flags
-DECLARE_SOA_COLUMN(Chi2, chi2, float);                             //! Chi2 of vertex fit
-DECLARE_SOA_COLUMN(NumContrib, numContrib, uint16_t);              //! Number of tracks used for the vertex
-DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);           //! Collision time in ns relative to BC stored in bc()
-DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float);     //! Resolution of collision time
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                              //! Most probably BC to where this collision has occured
+DECLARE_SOA_COLUMN(PosX, posX, float);                         //! X Vertex position in cm
+DECLARE_SOA_COLUMN(PosY, posY, float);                         //! Y Vertex position in cm
+DECLARE_SOA_COLUMN(PosZ, posZ, float);                         //! Z Vertex position in cm
+DECLARE_SOA_COLUMN(CovXX, covXX, float);                       //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(CovXY, covXY, float);                       //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(CovXZ, covXZ, float);                       //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(CovYY, covYY, float);                       //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(CovYZ, covYZ, float);                       //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(CovZZ, covZZ, float);                       //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(Flags, flags, uint16_t);                    //! Run 2: see CollisionFlagsRun2 | Run 3: see Vertex::Flags
+DECLARE_SOA_COLUMN(Chi2, chi2, float);                         //! Chi2 of vertex fit
+DECLARE_SOA_COLUMN(NumContrib, numContrib, uint16_t);          //! Number of tracks used for the vertex
+DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);       //! Collision time in ns relative to BC stored in bc()
+DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float); //! Resolution of collision time
 } // namespace collision
 
 DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", //! Time and vertex information of collision
@@ -192,7 +192,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, //!
 
 // TRACKEXTRA TABLE definition
 DECLARE_SOA_COLUMN(TPCInnerParam, tpcInnerParam, float);                                      //! Momentum at inner wall of the TPC
-DECLARE_SOA_COLUMN(Flags, flags, uint32_t);                                                   //! Track flags. Run 2: see TrackFlagsRun2Enum | Run 3: TODO
+DECLARE_SOA_COLUMN(Flags, flags, uint32_t);                                                   //! Track flags. Run 2: see TrackFlagsRun2Enum | Run 3: see TrackFlags
 DECLARE_SOA_COLUMN(ITSClusterMap, itsClusterMap, uint8_t);                                    //! ITS cluster map, one bit per a layer, starting from the innermost
 DECLARE_SOA_COLUMN(TPCNClsFindable, tpcNClsFindable, uint8_t);                                //! Findable TPC clusters for this track geometry
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t);             //! TPC Clusters: Findable - Found
@@ -210,6 +210,8 @@ DECLARE_SOA_COLUMN(Length, length, float);                                      
 DECLARE_SOA_COLUMN(TOFExpMom, tofExpMom, float);                                              //! TOF expected momentum obtained in tracking, used to compute the expected times
 DECLARE_SOA_COLUMN(TrackEtaEMCAL, trackEtaEmcal, float);                                      //!
 DECLARE_SOA_COLUMN(TrackPhiEMCAL, trackPhiEmcal, float);                                      //!
+DECLARE_SOA_COLUMN(TrackTime, trackTime, float);                                              //! Estimated time of the track in ns wrt collision().bc() or ambiguoustrack.bcSlice()[0]
+DECLARE_SOA_COLUMN(TrackTimeRes, trackTimeRes, float);                                        //! Resolution of the track time in ns (see TrackFlags::TrackTimeResIsRange)
 DECLARE_SOA_DYNAMIC_COLUMN(HasTOF, hasTOF,                                                    //! Flag to check if track has a TOF measurement
                            [](float tofSignal, float tofExpMom) -> bool { return (tofSignal > 0.f) && (tofExpMom > 0.f); });
 DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, //! PID hypothesis used during tracking. See the constants in the class PID in PID.h
@@ -311,7 +313,7 @@ DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA", //! Additional track informa
                   track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                   track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
-                  track::TrackEtaEMCAL, track::TrackPhiEMCAL);
+                  track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
 
 using Track = Tracks::iterator;
 using TrackCov = TracksCov::iterator;
@@ -350,7 +352,7 @@ DECLARE_SOA_COLUMN(MatchScoreMCHMFT, matchScoreMCHMFT, float); //! MCH-MFT Machi
 DECLARE_SOA_COLUMN(MatchMFTTrackID, matchMFTTrackID, int);     //! ID of matching MFT track for GlobalMuonTrack (ints while self indexing not available)
 DECLARE_SOA_COLUMN(MatchMCHTrackID, matchMCHTrackID, int);     //! ID of matching MCH track for GlobalMuonTracks  (ints while self indexing not available)
 DECLARE_SOA_COLUMN(MCHBitMap, MchBitMap, uint16_t);            //! Fired muon trackig chambers bitmap
-DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, //!
+DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign,                         //!
                            [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //!
                               -1.f * nlog(ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::fwdtrack::tgl))));
