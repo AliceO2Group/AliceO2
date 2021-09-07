@@ -325,7 +325,10 @@ class O2HitMerger : public FairMQDevice
       LOG(ERROR) << "Some error occurred on socket during receive on sim data";
       return true; // keep going
     }
+    TStopwatch timer;
+    timer.Start();
     auto more = handleSimData(request, 0);
+    LOG(INFO) << "HitMerger processing took " << timer.RealTime();
     if (!more && mAsService) {
       LOG(INFO) << " CONTROL ";
       // if we are done treating data we may go back to init phase
