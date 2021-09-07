@@ -45,9 +45,9 @@ enum ParsingErrors { TRDParsingNoError,
                      TRDParsingDigitSanityCheck,                        // adc failed sanity check see RawData.cxx for faiulre reasons
                      TRDParsingDigitExcessTimeBins,                     // ADC has more than 30 timebins (10 adc words)
                      TRDParsingDigitParsingExitInWrongState,            // exiting parsing in the wrong state ... got to the end of the buffer in wrong state.
-                     TRDParsingDigitStackMisMatch,                      // mismatch between rdh and hcheader stack calculation/value
-                     TRDParsingDigitLayerMisMatch,                      // mismatch between rdh and hcheader stack calculation/value
-                     TRDParsingDigitSectorMisMatch,                     // mismatch between rdh and hcheader stack calculation/value
+                     TRDParsingDigitStackMismatch,                      // mismatch between rdh and hcheader stack calculation/value
+                     TRDParsingDigitLayerMismatch,                      // mismatch between rdh and hcheader stack calculation/value
+                     TRDParsingDigitSectorMismatch,                     // mismatch between rdh and hcheader stack calculation/value
                      TRDParsingTrackletCRUPaddingWhileParsingTracklets, // reading a padding word while expecting tracklet data
                      TRDParsingTrackletBit11NotSetInTrackletHCHeader,   // bit 11 not set in hc header for tracklets.
                      TRDParsingTrackletHCHeaderSanityCheckFailure,      // HCHeader sanity check failure, see RawData.cxx for reasons.
@@ -59,8 +59,17 @@ enum ParsingErrors { TRDParsingNoError,
                      TRDParsingTrackletPadRowIncreaseError,                    // subsequent padrow can not be less than previous one.
                      TRDParsingTrackletColIncreaseError,                       // subsequent col can not be less than previous one
                      TRDParsingTrackletNoTrackletEndMarker,                    // got to the end of the buffer with out finding a tracklet end marker.
-                     TRDParsingTrackletExitingNoTrackletEndMarker              // got to the end of the buffer exiting tracklet parsing with no tracklet end marker
+                     TRDParsingTrackletExitingNoTrackletEndMarker,             // got to the end of the buffer exiting tracklet parsing with no tracklet end marker
+                     TRDParsingDigitHeaderCountGT3,                            // digital half chamber header had more than 3 additional words expected by header. most likely corruption above somewhere.
+                     TRDParsingDigitHeaderWrong1,                              // expected header word1 but wrong ending marker
+                     TRDParsingDigitHeaderWrong2,                              // expected header word2 but wrong ending marker
+                     TRDParsingDigitHeaderWrong3,                              // expected header word3 but wrong ending marker
+                     TRDParsingDigitHeaderWrong4,                              // expected header word but have no idea what we are looking at default of switch statement
+                     TRDParsingDigitDataStillOnLink,                           // got to the end of digit parsing and there is still data on link, normally not advancing far enough when dumping data.
+                     TRDParsingTrackletIgnoringDataTillEndMarker               // for some reason we are bouncing to the end word by word, this counts those words
 };
+
+extern std::vector<std::string> ParsingErrorsString;
 
 //enumerations for the options, saves on having a long parameter list.
 enum OptionBits {
