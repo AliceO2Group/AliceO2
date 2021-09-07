@@ -75,12 +75,12 @@
   
     <!-- relative to mainDir/O2Physicslocal -->
     <mainDir>
-      DataModel/include/AnalysisDataModel
+      .
     </mainDir>
     
     <!-- relative to headerFiles/mainDir -->
     <subDirs>
-      ., PID
+      Common/Core/PID, Common/DataModel
     </subDirs>
     
     <!-- selection of files to consider as header files -->
@@ -96,12 +96,12 @@
   
     <!-- relative to mainDir/O2Physicslocal -->
     <mainDir>
-      Tasks
+      .
     </mainDir>
     
     <!-- relative to CMLfiles/mainDir -->
     <subDirs>
-      ., PID, PWGLF, PWGHF
+      Common/TableProducer, Common/TableProducer/PID
     </subDirs>
     
     <!-- selection of files to consider as CMakeLists files -->
@@ -117,12 +117,12 @@
   
     <!-- relative to mainDir/O2Physicslocal -->
     <mainDir>
-      Tasks
+      .
     </mainDir>
     
     <!-- relative to codeFiles/mainDir -->
     <subDirs>
-      ., PID, PWGLF, PWGHF
+      Common/TableProducer, Common/TableProducer/PID
     </subDirs>
     
     <!-- selection of files to consider as task code files -->
