@@ -26,6 +26,7 @@ o2_add_library(TPCWorkflow
                        src/CalibdEdxSpec.cxx
                        src/MIPTrackFilterSpec.cxx
                        src/LaserTrackFilterSpec.cxx
+                       src/ApplyCCDBCalibSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
@@ -78,6 +79,11 @@ o2_add_executable(calib-laser-tracks
 o2_add_executable(laser-track-filter
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-laser-track-filter.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(apply-ccdb-calib
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-apply-ccdb-calib.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_executable(idc-integrate
