@@ -108,6 +108,7 @@ int TrackletsParser::Parse()
   //we are handed the buffer payload of an rdh and need to parse its contents.
   //producing a vector of digits.
 
+  mTrackletParsingBad = false;
   if (mHeaderVerbose) {
     OutputIncomingData();
   }
@@ -180,10 +181,11 @@ int TrackletsParser::Parse()
     if (*word == o2::trd::constants::CRUPADDING32) {
       //padding word first as it clashes with the hcheader.
       mState = StatePadding;
-      LOG(warn) << "CRU Padding word while parsing tracklets. Corrupt data dumping the rest of this link";
+      //LOG(warn) << "CRU Padding word while parsing tracklets. Corrupt data dumping the rest of this link";
       //mEventRecord.ErrorStats[TRDParsingTrackletCRUPaddingWhileParsingTracklets]++;
       if (mOptions[TRDEnableRootOutputBit]) {
         mParsingErrors->Fill(TRDParsingTrackletCRUPaddingWhileParsingTracklets);
+        increment2dHist(TRDParsingTrackletCRUPaddingWhileParsingTracklets);
       }
       //TOOD replace warning with stats increment
       mWordsDumped = std::distance(word, mEndParse);
@@ -199,17 +201,22 @@ int TrackletsParser::Parse()
         mWordsDumped++;
         //LOG(info) << "ignoring till end marker ..... word read:0x"<<std::hex << *word << " at offset 0x"<< std::distance(mStartParse,word);
         //TODO increment counter instead of above log message
+        if (mOptions[TRDEnableRootOutputBit]) {
+          mParsingErrors->Fill(TRDParsingTrackletBit11NotSetInTrackletHCHeader);
+          increment2dHist(TRDParsingTrackletBit11NotSetInTrackletHCHeader);
+        }
         continue; //go back to the start of loop, walk the data till the above code of the tracklet end marker is hit, padding is hit or we get to the end of the data.
         //TODO might be good to check for end of digit marker as well?
       }
       //now for Tracklet hc header
       if ((((*word) & (0x1 << 11)) != 0) && !mIgnoreTrackletHCHeader && mState == StateTrackletHCHeader) { //TrackletHCHeader has bit 11 set to 1 always. Check for state because raw data can have bit 11 set!
         if (mState != StateTrackletHCHeader) {
-          LOG(warn) << "Something wrong with TrackletHCHeader bit 11 is set but state is not " << StateTrackletMCMHeader << " its :" << mState;
+          //   LOG(warn) << "Something wrong with TrackletHCHeader bit 11 is set but state is not " << StateTrackletMCMHeader << " its :" << mState;
           //TODO count remove warning
           //mEventRecord.ErrorStats[TRDParsingTrackletBit11NotSetInTrackletHCHeader]++;
           if (mOptions[TRDEnableRootOutputBit]) {
             mParsingErrors->Fill(TRDParsingTrackletBit11NotSetInTrackletHCHeader);
+            increment2dHist(TRDParsingTrackletBit11NotSetInTrackletHCHeader);
           }
         }
         //read the header
@@ -220,11 +227,12 @@ int TrackletsParser::Parse()
         mTrackletHCHeader = (TrackletHCHeader*)&word;
         //sanity check of trackletheader ??
         if (!trackletHCHeaderSanityCheck(*mTrackletHCHeader)) {
-          LOG(warn) << "Sanity check Failure HCHeader : " << std::hex << *word << " at offset :0x" << std::distance(mStartParse, word);
+          //  LOG(warn) << "Sanity check Failure HCHeader : " << std::hex << *word << " at offset :0x" << std::distance(mStartParse, word);
           //TODO count remove warning
           //mEventRecord.ErrorStats[TRDParsingTrackletHCHeaderSanityCheckFailure]++;
           if (mOptions[TRDEnableRootOutputBit]) {
             mParsingErrors->Fill(TRDParsingTrackletHCHeaderSanityCheckFailure);
+            increment2dHist(TRDParsingTrackletHCHeaderSanityCheckFailure);
           }
         }
         mWordsRead++;
@@ -240,10 +248,11 @@ int TrackletsParser::Parse()
             printTrackletMCMHeader(a);
           }
           if (!trackletMCMHeaderSanityCheck(*mTrackletMCMHeader)) {
-            LOG(warn) << "***TrackletMCMHeader SanityCheckFailure: 0x" << std::hex << *word << " at offset: 0x" << std::distance(mStartParse, word);
+            //   LOG(warn) << "***TrackletMCMHeader SanityCheckFailure: 0x" << std::hex << *word << " at offset: 0x" << std::distance(mStartParse, word);
             //mEventRecord.ErrorStats[TRDParsingTrackletMCMHeaderSanityCheckFailure]++;
             if (mOptions[TRDEnableRootOutputBit]) {
               mParsingErrors->Fill(TRDParsingTrackletMCMHeaderSanityCheckFailure);
+              increment2dHist(TRDParsingTrackletMCMHeaderSanityCheckFailure);
             }
           }
           headertrackletcount = getNumberofTracklets(*mTrackletMCMHeader);
@@ -256,14 +265,18 @@ int TrackletsParser::Parse()
           mcmtrackletcount = 0;
           mWordsRead++;
         } else {
-          if (mState == StateTrackletMCMHeader) {
+          if (mState == StateTrackletMCMHeader || (mState == StateTrackletHCHeader && !mOptions[mIgnoreTrackletHCHeader])) {
             // if we are here something is wrong, dump the data. The else of line 227 should imply we are in StateTrackletMCMData;
             ignoreDataTillTrackletEndMarker = true;
             //mEventRecord.ErrorStats[
             if (mOptions[TRDEnableRootOutputBit]) {
               mParsingErrors->Fill(TRDParsingTrackletStateMCMHeaderButParsingMCMData);
+              increment2dHist(TRDParsingTrackletStateMCMHeaderButParsingMCMData);
             }
-            mWordsRead++;
+            //mWordsRead++;
+            mWordsDumped = std::distance(word, mEndParse);
+            ignoreDataTillTrackletEndMarker = true;
+            word = mEndParse;
             continue;
           }
           mState = StateTrackletMCMData;
@@ -283,6 +296,7 @@ int TrackletsParser::Parse()
             //mEventRecord.ErrorStats[TRDParsingTrackletTrackletCountGTThatDeclaredInMCMHeader]++;
             if (mOptions[TRDEnableRootOutputBit]) {
               mParsingErrors->Fill(TRDParsingTrackletTrackletCountGTThatDeclaredInMCMHeader);
+              increment2dHist(TRDParsingTrackletTrackletCountGTThatDeclaredInMCMHeader);
             }
             mEventRecord->popTracklets(mcmtrackletcount); // our format is always 4
             //TODO count remove warning
@@ -305,6 +319,7 @@ int TrackletsParser::Parse()
               //mEventRecord.ErrorStats[TRDParsingTrackletInvalidTrackletCount]++;
               if (mOptions[TRDEnableRootOutputBit]) {
                 mParsingErrors->Fill(TRDParsingTrackletInvalidTrackletCount);
+                increment2dHist(TRDParsingTrackletInvalidTrackletCount);
               }
               //this should have been caught above by the headertrackletcount to mcmtrackletcount
               ignoreDataTillTrackletEndMarker = true;
@@ -327,7 +342,6 @@ int TrackletsParser::Parse()
               }
             }
             //TODO cross reference hcid to somewhere for a check. mDetector is assigned at the time of parser init.
-            //
             //mEventRecord.TrackletCounts[mcm][mcmtrackletcount]++;
             mEventRecord->getTracklets().emplace_back(4, hcid, padrow, col, pos, slope, q0, q1, q2); // our format is always 4
             if (mDataVerbose) {
@@ -357,12 +371,14 @@ int TrackletsParser::Parse()
     trackletloopcount++;
   } //end of for loop
   //sanity check
-  LOG(warn) << " end of Trackelt parsing but we are exiting with out a tracklet end marker with " << mWordsRead << " 32bit words read";
+  //LOG(warn) << " end of Trackelt parsing but we are exiting with out a tracklet end marker with " << mWordsRead << " 32bit words read";
   //mEventRecord.ErrorStats[TRDParsingTrackletExitingNoTrackletEndMarker]++;
   if (mOptions[TRDEnableRootOutputBit]) {
     mParsingErrors->Fill(TRDParsingTrackletExitingNoTrackletEndMarker);
+    increment2dHist(TRDParsingTrackletExitingNoTrackletEndMarker);
   }
   mTrackletparsetime += std::chrono::high_resolution_clock::now() - parsetimestart;
+  mTrackletParsingBad = true;
   return mWordsRead;
 }
 

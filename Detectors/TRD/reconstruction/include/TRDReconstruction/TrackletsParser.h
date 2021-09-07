@@ -21,6 +21,8 @@
 #include <bitset>
 
 #include "TH1F.h"
+#include "TH2F.h"
+#include "TList.h"
 
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Tracklet64.h"
@@ -61,14 +63,20 @@ class TrackletsParser
                              StateFinished };
   std::vector<Tracklet64>& getTracklets() { return mTracklets; }
   inline void swapByteOrder(unsigned int& ui);
+  bool getTrackletParsingState() { return mTrackletParsingBad; }
   void clear()
   {
     mTracklets.clear();
   }
   void OutputIncomingData();
-  void setErrorHistos(TH1F* parsingerrors)
+  void setErrorHistos(TH1F* parsingerrors, TList* parsingerrors2d)
   {
     mParsingErrors = parsingerrors;
+    mParsingErrors2d = parsingerrors2d;
+  }
+  void increment2dHist(int hist)
+  {
+    ((TH2F*)mParsingErrors2d->At(hist))->Fill(mFEEID.supermodule * 2 + mFEEID.side, mStack * constants::NLAYER + mLayer);
   }
 
  private:
@@ -92,6 +100,7 @@ class TrackletsParser
   bool mIgnoreTrackletHCHeader{false}; // Is the data with out the tracklet HC Header? defaults to having it in.
   bool mByteOrderFix{false};           // simulated data is not byteswapped, real is, so deal with it accodringly.
   std::bitset<16> mOptions;
+  bool mTrackletParsingBad{false}; // store weather we should dump the rest of the link buffer after working through this tracklet buffer.
   uint16_t mEventCounter;
   std::chrono::duration<double> mTrackletparsetime;                                        // store the time it takes to parse
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
@@ -111,6 +120,7 @@ class TrackletsParser
   uint16_t mROB;
   //  std::array<uint32_t, 16> mAverageNumTrackletsPerTrap; TODO come back to this stat.
   TH1F* mParsingErrors;
+  TList* mParsingErrors2d;
 };
 
 } // namespace o2::trd

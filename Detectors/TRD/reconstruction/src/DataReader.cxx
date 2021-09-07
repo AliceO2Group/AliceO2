@@ -43,8 +43,11 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"enable-stats", VariantType::Bool, false, {"enable the reader stats"}},
     {"enable-root-output", VariantType::Bool, false, {"Write the data to file"}},
     {"ignore-tracklethcheader", VariantType::Bool, false, {"Ignore the tracklethalf chamber header for cross referencing"}},
+    {"halfchamberwords", VariantType::Int, 0, {"Fix half chamber for when it is version is 0.0 integer value of additional header words, ignored if version is not 0.0"}},
+    {"halfchambermajor", VariantType::Int, 0, {"Fix half chamber for when it is version is 0.0 integer value of major version, ignored if version is not 0.0"}},
     {"ignore-digithcheader", VariantType::Bool, false, {"Ignore the digithalf chamber header for cross referencing, take rdh/cru as authorative."}},
     {"tracklethcheader", VariantType::Int, 0, {"Status of TrackletHalfChamberHeader 0 off always, 1 iff tracklet data, 2 on always"}},
+    {"histogramsfile", VariantType::String, "histos.root", {"Name of the histogram file, so one can run multiple per node"}},
     {"trd-datareader-enablebyteswapdata", VariantType::Bool, false, {"byteswap the incoming data, raw data needs it and simulation does not."}}};
 
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -72,6 +75,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto tracklethcheader = cfgc.options().get<int>("tracklethcheader");
   auto enabletimeinfo = cfgc.options().get<bool>("enable-timing");
   auto enablestats = cfgc.options().get<bool>("enable-stats");
+  auto halfchamberwords = cfgc.options().get<int>("halfchamberwords");
+  auto halfchambermajor = cfgc.options().get<int>("halfchambermajor");
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("TRD", "TRACKLETS", 0, Lifetime::Timeframe);
@@ -93,7 +98,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   binaryoptions[o2::trd::TRDByteSwapBit] = cfgc.options().get<bool>("trd-datareader-enablebyteswapdata");
 
   AlgorithmSpec algoSpec;
-  algoSpec = AlgorithmSpec{adaptFromTask<o2::trd::DataReaderTask>(tracklethcheader, binaryoptions)};
+  algoSpec = AlgorithmSpec{adaptFromTask<o2::trd::DataReaderTask>(tracklethcheader, halfchamberwords, halfchambermajor, cfgc.options().get<std::string>("histogramsfile"), binaryoptions)};
 
   WorkflowSpec workflow;
 
