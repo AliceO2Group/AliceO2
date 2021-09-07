@@ -397,10 +397,13 @@ double fitGaus(size_t nBins, const T* arr, const T xMin, const T xMax, std::arra
   if (np < 1) {
     return -10;
   }
-  if (np < 3) {
+  auto recover = [&param, binW, np, s0, s1, s2, sy0]() {
     param[0] = std::exp(sy0 / s0); // recover center of gravity
     param[1] = s1 / s0;            // mean x;
     param[2] = np == 1 ? binW / std::sqrt(12) : std::sqrt(std::abs(param[1] * param[1] - s2 / s0));
+  };
+  if (np < 3) {
+    recover();
     return -np;
   }
   ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>> m33{};
@@ -413,21 +416,25 @@ double fitGaus(size_t nBins, const T* arr, const T xMin, const T xMax, std::arra
   int res = 0;
   auto m33i = m33.Inverse(res);
   if (res) {
+    recover();
     LOG(ERROR) << np << " points collected, matrix inversion failed " << m33;
-    return -1.;
+    return -10;
   }
   auto v = m33i * v3;
-  if (v(2) > 0.) {                 // fit failed, use mean amd RMS
-    param[0] = std::exp(sy0 / s0); // recover center of gravity
-    param[1] = s1 / s0;            // mean x;
-    param[2] = np == 1 ? binW / std::sqrt(12) : std::sqrt(std::abs(param[1] * param[1] - s2 / s0));
+  if (v(2) >= 0.) { // fit failed, use mean amd RMS
+    recover();
     return -3;
   }
+
   double chi2 = v(0) * v(0) * s0 + v(1) * v(1) * s2 + v(2) * v(2) * s4 + syy +
                 2. * (v(0) * v(1) * s1 + v(0) * v(2) * s2 + v(1) * v(2) * s3 - v(0) * sy0 - v(1) * sy1 - v(2) * sy2);
   param[1] = -0.5 * v(1) / v(2);
   param[2] = 1. / std::sqrt(-2. * v(2));
   param[0] = std::exp(v(0) - param[1] * param[1] * v(2));
+  if (std::isnan(param[0]) || std::isnan(param[1]) || std::isnan(param[2])) {
+    recover();
+    return -3;
+  }
   if (covMat) {
     // build jacobian of transformation from log-normal to normal params
     ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepStd<double, 3, 3>> j33{};
