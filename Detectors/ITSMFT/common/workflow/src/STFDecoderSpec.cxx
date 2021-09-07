@@ -62,7 +62,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   mDecoder->setFormat(ic.options().get<bool>("old-format") ? GBTLink::OldFormat : GBTLink::NewFormat);
   mDecoder->setVerbosity(ic.options().get<int>("decoder-verbosity"));
   mDecoder->setFillCalibData(mDoCalibData);
-  std::string noiseFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mNoiseName, "root");
+  std::string noiseFile = o2::base::NameConf::getNoiseFileName(detID, mNoiseName, "root");
   if (o2::utils::Str::pathExists(noiseFile)) {
     TFile* f = TFile::Open(noiseFile.data(), "old");
     auto pnoise = (NoiseMap*)f->Get("Noise");

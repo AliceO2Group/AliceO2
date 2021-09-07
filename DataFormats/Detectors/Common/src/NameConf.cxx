@@ -61,10 +61,16 @@ std::string NameConf::getCutProcFileName(std::string_view prefix)
   return buildFileName(prefix, "_", STANDARDSIMPREFIX, CUT_FILE_STRING, DAT_EXT_STRING);
 }
 
-// Filename to store ITSMFT dictionary
+// Filename to store ITSMFT cluster dictionary
 std::string NameConf::getAlpideClusterDictionaryFileName(DId det, const std::string_view prefix, const std::string_view ext)
 {
   return buildFileName(prefix, "", det.getName(), ALPIDECLUSDICTFILENAME, ext);
+}
+
+// Filename to store detector specific noise maps
+std::string NameConf::getNoiseFileName(DId det, const std::string_view prefix, const std::string_view ext)
+{
+  return buildFileName(prefix, "", det.getName(), NOISEFILENAME, ext);
 }
 
 // Filename to store material LUT file
