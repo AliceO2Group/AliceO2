@@ -155,9 +155,6 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
   std::shared_ptr<TableBuilder> p(tb);
   auto finalizer = [payload = p](std::shared_ptr<FairMQResizableBuffer> b) -> void {
     auto table = payload->finalize();
-    if (O2_BUILTIN_UNLIKELY(table->num_rows() == 0)) {
-      LOG(DEBUG) << "Empty table was produced: " << table->ToString();
-    }
 
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
 #if ARROW_VERSION_MAJOR < 3
@@ -165,13 +162,25 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
 #else
     auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
 #endif
-    if (outBatch.ok() == true) {
-      auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
-      if (outStatus.ok() == false) {
-        throw std::runtime_error("Unable to Write table");
-      }
-    } else {
+    if (outBatch.ok() == false) {
       throw ::std::runtime_error("Unable to create batch writer");
+    }
+    arrow::Status outStatus;
+
+    if (O2_BUILTIN_UNLIKELY(table->num_rows() == 0)) {
+      std::vector<std::shared_ptr<arrow::Array>> columns;
+      columns.resize(table->columns().size());
+      for (size_t ci = 0; ci < table->columns().size(); ci++) {
+        columns[ci] = table->column(ci)->chunk(0);
+      }
+      auto batch = arrow::RecordBatch::Make(table->schema(), 0, columns);
+      outStatus = outBatch.ValueOrDie()->WriteRecordBatch(*batch);
+    } else {
+      outStatus = outBatch.ValueOrDie()->WriteTable(*table);
+    }
+
+    if (outStatus.ok() == false) {
+      throw std::runtime_error("Unable to Write table");
     }
   };
 
