@@ -511,24 +511,24 @@ using FullFwdTracks = soa::Join<FwdTracks, FwdTracksCov>;
 using FullFwdTrack = FullFwdTracks::iterator;
 
 // Some tracks cannot be uniquely identified with a collision. Some tracks cannot be assigned to a collision at all.
-// Those tracks have -1 as collision index and have an entry in the following table. Either of the two following then applies:
-// If a track has several matching collisions these are listed in the Collision slice. In this case the BC slice is not filled
-// If on the contrary, a track has not a single matching collision a BCs slice is assigned. In this case the Collision slice is not filled.
+// Those tracks have -1 as collision index and have an entry in the AmbiguousTracks table. 
+// The estimated track time is used to assign BCs which are compatible with this track. Those are stored as a slice.
+// All collisions compatible with these BCs may then have produced the ambiguous track.
+// In the future possibly the DCA information can be exploited to reduce the possible collisions and then this table will be extended.
 namespace ambiguous
 {
 DECLARE_SOA_INDEX_COLUMN(Track, track);               //! Track index
 DECLARE_SOA_INDEX_COLUMN(MFTTrack, mfttrack);         //! MFTTrack index
 DECLARE_SOA_SLICE_INDEX_COLUMN(BC, bc);               //! BC index (slice for 1 to N entries)
-DECLARE_SOA_SLICE_INDEX_COLUMN(Collision, collision); //! Collision index (slice for 1 to N entries)
 } // namespace ambiguous
 
 DECLARE_SOA_TABLE(AmbiguousTracks, "AOD", "AMBIGUOUSTRACK", //! Table for tracks which are not uniquely associated with a collision
-                  ambiguous::TrackId, ambiguous::BCIdSlice, ambiguous::CollisionIdSlice);
+                  ambiguous::TrackId, ambiguous::BCIdSlice);
 
 using AmbiguousTrack = AmbiguousTracks::iterator;
 
 DECLARE_SOA_TABLE(AmbiguousMFTTracks, "AOD", "AMBIGUOUSMFTTR", //! Table for MFT tracks which are not uniquely associated with a collision
-                  ambiguous::MFTTrackId, ambiguous::BCIdSlice, ambiguous::CollisionIdSlice);
+                  ambiguous::MFTTrackId, ambiguous::BCIdSlice);
 
 using AmbiguousMFTTrack = AmbiguousMFTTracks::iterator;
 
