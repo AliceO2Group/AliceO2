@@ -1346,7 +1346,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       if (driverInfo.port > 64000) {
         throw runtime_error_f("Unable to find a free port for the driver. Last attempt returned %d", result);
       }
-      LOGP(info, "Driver listening on port: {}", driverInfo.port);
       serverAddr = (sockaddr_in*)malloc(sizeof(sockaddr_in));
       uv_ip4_addr("0.0.0.0", driverInfo.port, serverAddr);
       auto bindResult = uv_tcp_bind(&serverHandle, (const struct sockaddr*)serverAddr, 0);
@@ -1413,6 +1412,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     switch (current) {
       case DriverState::INIT:
         LOGP(info, "Initialising O2 Data Processing Layer. Driver PID: {}.", getpid());
+        LOGP(info, "Driver listening on port: {}", driverInfo.port);
 
         // Install signal handler for quitting children.
         driverInfo.sa_handle_child.sa_handler = &handle_sigchld;
