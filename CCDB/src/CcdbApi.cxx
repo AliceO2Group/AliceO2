@@ -354,8 +354,11 @@ void CcdbApi::curlSetSSLOptions(CURL* curl_handle)
 
   TJAlienCredentialsObject cmo = mJAlienCredentials->get(cmk);
 
-  string CAPath = getenv("X509_CERT_DIR");
-  curl_easy_setopt(curl_handle, CURLOPT_CAPATH, CAPath.c_str());
+  char const* CAPath = getenv("X509_CERT_DIR");
+  if (!CAPath) {
+    throw std::runtime_error("Please, make sure X509_CERT_DIR is corrctly set");
+  }
+  curl_easy_setopt(curl_handle, CURLOPT_CAPATH, CAPath);
   curl_easy_setopt(curl_handle, CURLOPT_CAINFO, nullptr);
   curl_easy_setopt(curl_handle, CURLOPT_SSLCERT, cmo.certpath.c_str());
   curl_easy_setopt(curl_handle, CURLOPT_SSLKEY, cmo.keypath.c_str());
