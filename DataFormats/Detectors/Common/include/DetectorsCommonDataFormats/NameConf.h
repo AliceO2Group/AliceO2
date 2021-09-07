@@ -73,11 +73,8 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   // Filename to for decoding dictionaries
   static std::string getAlpideClusterDictionaryFileName(DId det, const std::string_view prefix = "", const std::string_view ext = "");
 
-  // Temporary alias to not crash the QC: Filename to for decoding dictionaries
-  static std::string getDictionaryFileName(DId det, const std::string_view prefix = "", const std::string_view ext = "")
-  {
-    return getAlpideClusterDictionaryFileName(det, prefix, ext);
-  }
+  // Filename to for noise maps
+  static std::string getNoiseFileName(DId det, const std::string_view prefix = "", const std::string_view ext = "");
 
   // Filename to store material LUT file
   static std::string getMatLUTFileName(const std::string_view prefix = "");
@@ -130,6 +127,7 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   static constexpr std::string_view ROOT_EXT_STRING = "root";
   static constexpr std::string_view DAT_EXT_STRING = "dat";
   static constexpr std::string_view ALPIDECLUSDICTFILENAME = "dictionary";
+  static constexpr std::string_view NOISEFILENAME = "NoiseMap";
   static constexpr std::string_view MATBUDLUT = "matbud";
   static constexpr std::string_view COLLISIONCONTEXT = "collisioncontext";
   static constexpr std::string_view ALIGNPATH = "Align";
