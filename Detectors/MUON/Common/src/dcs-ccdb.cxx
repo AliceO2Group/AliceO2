@@ -80,13 +80,14 @@ void doQueryHVLV(const std::string ccdbUrl, uint64_t timestamp, bool hv, bool lv
   }
 }
 
-void doQueryDataPointConfig(const std::string ccdbUrl, uint64_t timestamp)
+void doQueryDataPointConfig(const std::string ccdbUrl, uint64_t timestamp,
+                            const std::string dpConfName)
 {
   o2::ccdb::CcdbApi api;
   api.init(ccdbUrl);
   using DPCONF = std::unordered_map<DPID, std::string>;
   std::map<std::string, std::string> metadata;
-  auto* m = api.retrieveFromTFileAny<DPCONF>(CcdbDpConfName().c_str(), metadata, timestamp);
+  auto* m = api.retrieveFromTFileAny<DPCONF>(dpConfName.c_str(), metadata, timestamp);
   std::cout << "size of dpconf map = " << m->size() << std::endl;
   if (verbose) {
     for (auto& i : *m) {
@@ -131,13 +132,14 @@ int main(int argc, char** argv)
   po::options_description usage("Usage");
 
   std::string ccdbUrl;
+  std::string dpConfName;
   uint64_t timestamp;
   bool lv;
   bool hv;
   bool dpconf;
   bool put;
 
-  std::time_t now = std::time(nullptr);
+  uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
   // clang-format off
   usage.add_options()
@@ -147,6 +149,7 @@ int main(int argc, char** argv)
       ("timestamp,t",po::value<uint64_t>(&timestamp)->default_value(now),"timestamp for query or put")
       ("put-datapoint-config,p",po::bool_switch(&put),"upload datapoint configuration")
       ("verbose,v",po::bool_switch(&verbose),"verbose output")
+      ("datapoint-conf-name",po::value<std::string>(&dpConfName)->default_value(CcdbDpConfName()),"dp conf name (only if not from mch or mid)")
       ;
   // clang-format on
 
@@ -196,7 +199,7 @@ int main(int argc, char** argv)
     }
 
     if (dpconf) {
-      doQueryDataPointConfig(ccdbUrl, timestamp);
+      doQueryDataPointConfig(ccdbUrl, timestamp, dpConfName);
     }
   }
 
