@@ -19,6 +19,7 @@
 #include "Framework/DataProcessingHeader.h"
 
 #include "PCG/pcg_random.hpp"
+#include <random>
 
 #include <boost/property_tree/ptree.hpp>
 
@@ -48,7 +49,10 @@ class DataSamplingConditionRandom : public DataSamplingCondition
   void configure(const boost::property_tree::ptree& config) override
   {
     mThreshold = static_cast<uint32_t>(config.get<double>("fraction") * std::numeric_limits<uint32_t>::max());
-    mGenerator.seed(config.get<uint64_t>("seed"));
+
+    auto seed = config.get<uint64_t>("seed");
+    mGenerator.seed((seed == 0) ? std::random_device()() : seed);
+
     mCurrentTimesliceID = 0;
     mLastDecision = false;
   };
