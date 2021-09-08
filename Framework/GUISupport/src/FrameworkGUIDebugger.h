@@ -36,6 +36,15 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
                                          DriverInfo const& driverInfo,
                                          std::vector<DeviceControl>& controls,
                                          DriverControl& driverControl);
+
+void updateMousePos(float x, float y);
+void updateMouseButton(bool clicked);
+void updateMouseWheel(int direction);
+void updateWindowSize(int x, int y);
+void keyDown(char key);
+void keyUp(char key);
+void charIn(char key);
+
 } // namespace gui
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_FRAMEWORKGUIDEBUGGER_H_

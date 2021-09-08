@@ -1065,4 +1065,50 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
   };
 }
 
+void updateMousePos(float x, float y)
+{
+  ImGuiIO& io = ImGui::GetIO();
+  io.MousePos = ImVec2(x, y);
+}
+
+void updateMouseButton(bool clicked)
+{
+  ImGuiIO& io = ImGui::GetIO();
+  io.MouseDown[0] = clicked;
+}
+
+void updateMouseWheel(int direction)
+{
+  ImGuiIO& io = ImGui::GetIO();
+  if (direction > 0) {
+    io.MouseWheel++;
+  } else {
+    io.MouseWheel--;
+  }
+}
+
+void updateWindowSize(int x, int y)
+{
+  ImGuiIO& io = ImGui::GetIO();
+  io.DisplaySize = ImVec2(x, y);
+}
+
+void keyDown(char key)
+{
+  ImGuiIO& io = ImGui::GetIO();
+  io.KeysDown[io.KeyMap[key]] = true;
+}
+
+void keyUp(char key)
+{
+  ImGuiIO& io = ImGui::GetIO();
+  io.KeysDown[io.KeyMap[key]] = false;
+}
+
+void charIn(char key)
+{
+  ImGuiIO& io = ImGui::GetIO();
+  io.AddInputCharacter((unsigned short)key);
+}
+
 } // namespace o2::framework::gui
