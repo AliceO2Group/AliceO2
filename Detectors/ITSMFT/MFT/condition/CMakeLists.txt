@@ -31,3 +31,5 @@ o2_add_executable(mft-dcs-workflow
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::MFTCondition
                                         O2::DetectorsDCS)
+
+add_subdirectory(macros)
