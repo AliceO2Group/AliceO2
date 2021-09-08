@@ -86,8 +86,8 @@ class TimeFrame final
   const std::vector<TrackingFrameInfo>& getTrackingFrameInfoOnLayer(int layerId) const;
 
   const TrackingFrameInfo& getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const;
-  const MCCompLabel& getClusterLabels(int layerId, const Cluster& cl) const;
-  const MCCompLabel& getClusterLabels(int layerId, const int clId) const;
+  const gsl::span<const MCCompLabel> getClusterLabels(int layerId, const Cluster& cl) const;
+  const gsl::span<const MCCompLabel> getClusterLabels(int layerId, const int clId) const;
   int getClusterExternalIndex(int layerId, const int clId) const;
 
   std::vector<MCCompLabel>& getTrackletsLabel(int layer) { return mTrackletLabels[layer]; }
@@ -135,7 +135,6 @@ class TimeFrame final
   void addClusterToLayer(int layer, T&&... args);
   template <typename... T>
   void addTrackingFrameInfoToLayer(int layer, T&&... args);
-  void addClusterLabelToLayer(int layer, const MCCompLabel label);
   void addClusterExternalIndexToLayer(int layer, const int idx);
 
   int mNrof = 0;
@@ -150,7 +149,7 @@ class TimeFrame final
   std::vector<std::vector<Cluster>> mUnsortedClusters;
   std::vector<std::vector<bool>> mUsedClusters;
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
-  std::vector<std::vector<MCCompLabel>> mClusterLabels;
+  const dataformats::MCTruthContainer<MCCompLabel>* mClusterLabels = nullptr;
   std::vector<std::vector<MCCompLabel>> mTrackletLabels;
   std::vector<std::vector<MCCompLabel>> mCellLabels;
   std::vector<std::vector<int>> mClusterExternalIndices;
@@ -239,14 +238,14 @@ inline const TrackingFrameInfo& TimeFrame::getClusterTrackingFrameInfo(int layer
   return mTrackingFrameInfo[layerId][cl.clusterId];
 }
 
-inline const MCCompLabel& TimeFrame::getClusterLabels(int layerId, const Cluster& cl) const
+inline const gsl::span<const MCCompLabel> TimeFrame::getClusterLabels(int layerId, const Cluster& cl) const
 {
-  return mClusterLabels[layerId][cl.clusterId];
+  return getClusterLabels(layerId, cl.clusterId);
 }
 
-inline const MCCompLabel& TimeFrame::getClusterLabels(int layerId, const int clId) const
+inline const gsl::span<const MCCompLabel> TimeFrame::getClusterLabels(int layerId, int clId) const
 {
-  return mClusterLabels[layerId][clId];
+  return mClusterLabels->getLabels(mClusterExternalIndices[layerId][clId]);
 }
 
 inline int TimeFrame::getClusterExternalIndex(int layerId, const int clId) const
@@ -271,8 +270,6 @@ void TimeFrame::addTrackingFrameInfoToLayer(int layer, T&&... values)
   mTrackingFrameInfo[layer].emplace_back(std::forward<T>(values)...);
 }
 
-inline void TimeFrame::addClusterLabelToLayer(int layer, const MCCompLabel label) { mClusterLabels[layer].emplace_back(label); }
-
 inline void TimeFrame::addClusterExternalIndexToLayer(int layer, const int idx)
 {
   mClusterExternalIndices[layer].push_back(idx);
@@ -283,7 +280,7 @@ inline void TimeFrame::clear()
   for (unsigned int iL = 0; iL < mClusters.size(); ++iL) {
     mClusters[iL].clear();
     mTrackingFrameInfo[iL].clear();
-    mClusterLabels[iL].clear();
+    mClusterLabels = nullptr;
     mClusterExternalIndices[iL].clear();
   }
   mPrimaryVertices.clear();
@@ -291,12 +288,7 @@ inline void TimeFrame::clear()
 
 inline bool TimeFrame::hasMCinformation() const
 {
-  for (const auto& vect : mClusterLabels) {
-    if (!vect.empty()) {
-      return true;
-    }
-  }
-  return false;
+  return mClusterLabels;
 }
 
 inline bool TimeFrame::isClusterUsed(int layer, int clusterId) const
