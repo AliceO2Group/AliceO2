@@ -24,6 +24,9 @@
 #include <TTree.h>
 #include <TFile.h>
 #include <gsl/span>
+#include "Framework/ParallelContext.h"
+
+#define MAXINSTANCE 32
 
 using namespace o2::framework;
 
@@ -44,26 +47,32 @@ class TOFDigitWriterSplitter : public Task
  public:
   TOFDigitWriterSplitter(int nTF, bool storeErr = false) : mTFthr(nTF), mStoreErrors(storeErr) {}
 
-  void createAndOpenFileAndTree()
+  void createAndOpenFileAndTree(int ithread = 0)
   {
-    TString filename = TString::Format("%s_%06d.root", mBaseName.c_str(), mCount);
+    TString filename = TString::Format("%s_%02d_%06d.root", mBaseName.c_str(), ithread, mCount);
     LOG(DEBUG) << "opening file " << filename.Data();
-    mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
-    mOutputTree = std::make_unique<TTree>("o2sim", "Tree with TOF digits");
-    mOutputTree->Branch("TOFHeader", &mPHeader);
-    mOutputTree->Branch("TOFDigit", &mPDigits);
-    mOutputTree->Branch("TOFReadoutWindow", &mPROW);
-    mOutputTree->Branch("TOFPatterns", &mPDia);
+    mfileOut[ithread].reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
+    mOutputTree[ithread] = std::make_unique<TTree>("o2sim", "Tree with TOF digits");
+    mOutputTree[ithread]->Branch("TOFHeader", &mPHeader);
+    mOutputTree[ithread]->Branch("TOFDigit", &mPDigits);
+    mOutputTree[ithread]->Branch("TOFReadoutWindow", &mPROW);
+    mOutputTree[ithread]->Branch("TOFPatterns", &mPDia);
     if (mStoreErrors) {
-      mOutputTree->Branch("TOFErrors", &mPErr);
+      mOutputTree[ithread]->Branch("TOFErrors", &mPErr);
     }
 
-    mNTF = 0;
+    mNTF[ithread] = 0;
   }
 
   void init(o2::framework::InitContext& ic) final
   {
     mBaseName = ic.options().get<std::string>("output-base-name");
+
+    for (int i = 0; i < MAXINSTANCE; i++) {
+      mIsStarted[i] = false;
+      mNTF[i] = 0;
+      mfileOut[i] = nullptr;
+    }
 
     mCount = 0;
     createAndOpenFileAndTree();
@@ -71,6 +80,14 @@ class TOFDigitWriterSplitter : public Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    auto const& parallelContext = pc.services().get<ParallelContext>();
+    auto instance = parallelContext.index1D();
+
+    if (instance >= MAXINSTANCE) {
+      LOG(ERROR) << "You are using more instances (in --pipeline) of the allowed (MAX=" << MAXINSTANCE << ") -> thread " << instance << " skipped";
+      return;
+    }
+
     auto digits = pc.inputs().get<OutputType>("digits");
     mPDigits = &digits;
     auto header = pc.inputs().get<HeaderType>("header");
@@ -83,26 +100,32 @@ class TOFDigitWriterSplitter : public Task
       auto error = pc.inputs().get<ErrorType>("errors");
       mPErr = &error;
 
-      mOutputTree->Fill();
+      mOutputTree[instance]->Fill();
     } else {
-      mOutputTree->Fill();
+      mOutputTree[instance]->Fill();
     }
-    mNTF++;
+    mNTF[instance]++;
 
-    if (mNTF >= mTFthr) {
-      sendOutput();
+    if (mNTF[instance] >= mTFthr) {
+      sendOutput(instance);
     }
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     mIsEndOfStream = true;
-    sendOutput();
+
+    for (int i = 0; i < MAXINSTANCE; i++) {
+      if (mfileOut[i] != nullptr) {
+        sendOutput(i);
+      }
+    }
   }
 
  private:
   int mCount = 0; // how many times we filled the tree
-  int mNTF = 0;
+  bool mIsStarted[MAXINSTANCE];
+  int mNTF[MAXINSTANCE];
   int mTFthr = 1;
   bool mStoreErrors = false;
   bool mIsEndOfStream = false;
@@ -116,24 +139,24 @@ class TOFDigitWriterSplitter : public Task
   const ErrorType* mPErr = &mErr;
   HeaderType mHeader;
   const HeaderType* mPHeader = &mHeader;
-  std::unique_ptr<TTree> mOutputTree;        ///< tree for the collected calib tof info
-  std::unique_ptr<TFile> mfileOut = nullptr; // file in which to write the output
+  std::unique_ptr<TTree> mOutputTree[MAXINSTANCE]; ///< tree for the collected calib tof info
+  std::unique_ptr<TFile> mfileOut[MAXINSTANCE];    // file in which to write the output
 
   //________________________________________________________________
-  void sendOutput()
+  void sendOutput(int instance = 0)
   {
     // This is to fill the tree.
     // One file with an empty tree will be created at the end, because we have to have a
     // tree opened before processing, since we do not know a priori if something else
     // will still come. The size of this extra file is ~6.5 kB
 
-    mfileOut->cd();
-    mOutputTree->Write();
-    mOutputTree.reset();
-    mfileOut.reset();
+    mfileOut[instance]->cd();
+    mOutputTree[instance]->Write();
+    mOutputTree[instance].reset();
+    mfileOut[instance].reset();
     mCount++;
     if (!mIsEndOfStream) {
-      createAndOpenFileAndTree();
+      createAndOpenFileAndTree(instance);
     }
   }
 };
