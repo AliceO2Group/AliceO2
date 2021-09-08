@@ -429,7 +429,7 @@ class O2HitMerger : public FairMQDevice
       for (int entry = entries - 1; entry >= 0; --entry) {
         int index = nsubevents[entry];
         nprimTot += nprimaries[index];
-        printf("merge %lld %5d %5d %5d \n", entry, index, nsubevents[entry], nsubevents[index]);
+        printf("merge %d %5d %5d %5d \n", entry, index, nsubevents[entry], nsubevents[index]);
         for (int i = 0; i < nprimaries[index]; i++) {
           auto& track = (*vectorOfSubEventMCTracks[index])[i];
           if (track.isTransported()) { // reset daughters only if track was transported, it will be fixed below
@@ -664,7 +664,7 @@ class O2HitMerger : public FairMQDevice
       std::vector<int> subevOrdered((int)(nsubevents.size()));
       for (int entry = entries - 1; entry >= 0; --entry) {
         subevOrdered[nsubevents[entry] - 1] = entry;
-        printf("HitMerger entry: %lld nprimry: %5d trackoffset: %5d \n", entry, nprimaries[entry], trackoffsets[entry]);
+        printf("HitMerger entry: %d nprimry: %5d trackoffset: %5d \n", entry, nprimaries[entry], trackoffsets[entry]);
       }
 
       reorderAndMergeMCTracks(flusheventID, *mOutTree, nprimaries, subevOrdered);
