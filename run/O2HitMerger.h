@@ -34,6 +34,7 @@
 #include <TMessage.h>
 #include <FairMQParts.h>
 #include <ctime>
+#include <cinttypes>
 #include <TStopwatch.h>
 #include <sstream>
 #include <cassert>
@@ -420,7 +421,7 @@ class O2HitMerger : public FairMQDevice
       for (int entry = entries - 1; entry >= 0; --entry) {
         int index = nsubevents[entry];
         nprimTot += nprimaries[index];
-        printf("merge %lld %5d %5d %5d \n", entry, index, nsubevents[entry], nsubevents[index]);
+        printf("merge %" PRIi64 " %5d %5d %5d \n", entry, index, nsubevents[entry], nsubevents[index]);
         for (int i = 0; i < nprimaries[index]; i++) {
           auto& track = (*vectorOfSubEventMCTracks[index])[i];
           if (track.isTransported()) { // reset daughters only if track was transported, it will be fixed below
