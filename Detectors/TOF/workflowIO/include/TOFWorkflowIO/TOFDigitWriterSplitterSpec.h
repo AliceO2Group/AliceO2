@@ -16,6 +16,7 @@
 /// @brief  Device to write to tree the information for TOF time slewing calibration.
 
 #include "Framework/ControlService.h"
+#include "Framework/DeviceSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -44,9 +45,9 @@ class TOFDigitWriterSplitter : public Task
  public:
   TOFDigitWriterSplitter(int nTF, bool storeErr = false) : mTFthr(nTF), mStoreErrors(storeErr) {}
 
-  void createAndOpenFileAndTree()
+  void createAndOpenFileAndTree(int ithread = 0)
   {
-    TString filename = TString::Format("%s_%06d.root", mBaseName.c_str(), mCount);
+    TString filename = TString::Format("%s_%02d_%06d.root", mBaseName.c_str(), ithread, mCount);
     LOG(DEBUG) << "opening file " << filename.Data();
     mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
     mOutputTree = std::make_unique<TTree>("o2sim", "Tree with TOF digits");
@@ -66,11 +67,17 @@ class TOFDigitWriterSplitter : public Task
     mBaseName = ic.options().get<std::string>("output-base-name");
 
     mCount = 0;
-    createAndOpenFileAndTree();
+
+    auto instance = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+
+    createAndOpenFileAndTree(instance);
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    auto instance = pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+    //pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
+
     auto digits = pc.inputs().get<OutputType>("digits");
     mPDigits = &digits;
     auto header = pc.inputs().get<HeaderType>("header");
@@ -90,14 +97,16 @@ class TOFDigitWriterSplitter : public Task
     mNTF++;
 
     if (mNTF >= mTFthr) {
-      sendOutput();
+      sendOutput(instance);
     }
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     mIsEndOfStream = true;
-    sendOutput();
+    auto instance = ec.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+
+    sendOutput(instance);
   }
 
  private:
@@ -120,7 +129,7 @@ class TOFDigitWriterSplitter : public Task
   std::unique_ptr<TFile> mfileOut = nullptr; // file in which to write the output
 
   //________________________________________________________________
-  void sendOutput()
+  void sendOutput(int instance)
   {
     // This is to fill the tree.
     // One file with an empty tree will be created at the end, because we have to have a
@@ -133,7 +142,7 @@ class TOFDigitWriterSplitter : public Task
     mfileOut.reset();
     mCount++;
     if (!mIsEndOfStream) {
-      createAndOpenFileAndTree();
+      createAndOpenFileAndTree(instance);
     }
   }
 };
