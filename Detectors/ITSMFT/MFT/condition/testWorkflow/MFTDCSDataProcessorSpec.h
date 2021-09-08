@@ -83,10 +83,10 @@ class MFTDCSDataProcessor : public o2::framework::Task
 
     else {
       LOG(INFO) << "Configuring via hardcoded strings";
-      std::vector<std::string> aliases = {"mft_main/MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3]/Monitoirng/Current/Analog",
-                                          "mft_main/MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3]/Monitoirng/Current/Digital",
-                                          "mft_main/MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3]/Monitoirng/Current/BackBias",
-                                          "mft_main/MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3]/Monitoirng/Voltage/BackBias"};
+      std::vector<std::string> aliases = {"mft_main/MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3]/Monitoring/Current/Analog",
+                                          "mft_main/MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3]/Monitoring/Current/Digital",
+                                          "mft_main/MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3]/Monitoring/Current/BackBias",
+                                          "mft_main/MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3]/Monitoring/Voltage/BackBias"};
 
       std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
       for (const auto& i : expaliases) {
