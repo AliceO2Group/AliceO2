@@ -54,21 +54,21 @@ using BCsWithTimestamps = soa::Join<aod::BCs, aod::Timestamps>;
 
 namespace collision
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                                  //! Most probably BC to where this collision has occured
-DECLARE_SOA_COLUMN(PosX, posX, float);                             //! X Vertex position in cm
-DECLARE_SOA_COLUMN(PosY, posY, float);                             //! Y Vertex position in cm
-DECLARE_SOA_COLUMN(PosZ, posZ, float);                             //! Z Vertex position in cm
-DECLARE_SOA_COLUMN(CovXX, covXX, float);                           //! Vertex covariance matrix
-DECLARE_SOA_COLUMN(CovXY, covXY, float);                           //! Vertex covariance matrix
-DECLARE_SOA_COLUMN(CovXZ, covXZ, float);                           //! Vertex covariance matrix
-DECLARE_SOA_COLUMN(CovYY, covYY, float);                           //! Vertex covariance matrix
-DECLARE_SOA_COLUMN(CovYZ, covYZ, float);                           //! Vertex covariance matrix
-DECLARE_SOA_COLUMN(CovZZ, covZZ, float);                           //! Vertex covariance matrix
-DECLARE_SOA_COLUMN(Flags, flags, uint16_t);                        //! Run 2: see CollisionFlagsRun2 | Run 3: see Vertex::Flags
-DECLARE_SOA_COLUMN(Chi2, chi2, float);                             //! Chi2 of vertex fit
-DECLARE_SOA_COLUMN(NumContrib, numContrib, uint16_t);              //! Number of tracks used for the vertex
-DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);           //! Collision time in ns relative to BC stored in bc()
-DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float);     //! Resolution of collision time
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                              //! Most probably BC to where this collision has occured
+DECLARE_SOA_COLUMN(PosX, posX, float);                         //! X Vertex position in cm
+DECLARE_SOA_COLUMN(PosY, posY, float);                         //! Y Vertex position in cm
+DECLARE_SOA_COLUMN(PosZ, posZ, float);                         //! Z Vertex position in cm
+DECLARE_SOA_COLUMN(CovXX, covXX, float);                       //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(CovXY, covXY, float);                       //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(CovXZ, covXZ, float);                       //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(CovYY, covYY, float);                       //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(CovYZ, covYZ, float);                       //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(CovZZ, covZZ, float);                       //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(Flags, flags, uint16_t);                    //! Run 2: see CollisionFlagsRun2 | Run 3: see Vertex::Flags
+DECLARE_SOA_COLUMN(Chi2, chi2, float);                         //! Chi2 of vertex fit
+DECLARE_SOA_COLUMN(NumContrib, numContrib, uint16_t);          //! Number of tracks used for the vertex
+DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);       //! Collision time in ns relative to BC stored in bc()
+DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float); //! Resolution of collision time
 } // namespace collision
 
 DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", //! Time and vertex information of collision
@@ -350,7 +350,7 @@ DECLARE_SOA_COLUMN(MatchScoreMCHMFT, matchScoreMCHMFT, float); //! MCH-MFT Machi
 DECLARE_SOA_COLUMN(MatchMFTTrackID, matchMFTTrackID, int);     //! ID of matching MFT track for GlobalMuonTrack (ints while self indexing not available)
 DECLARE_SOA_COLUMN(MatchMCHTrackID, matchMCHTrackID, int);     //! ID of matching MCH track for GlobalMuonTracks  (ints while self indexing not available)
 DECLARE_SOA_COLUMN(MCHBitMap, MchBitMap, uint16_t);            //! Fired muon trackig chambers bitmap
-DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, //!
+DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign,                         //!
                            [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //!
                               -1.f * nlog(ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::fwdtrack::tgl))));
@@ -511,32 +511,24 @@ using FullFwdTracks = soa::Join<FwdTracks, FwdTracksCov>;
 using FullFwdTrack = FullFwdTracks::iterator;
 
 // Some tracks cannot be uniquely identified with a collision. Some tracks cannot be assigned to a collision at all.
-// Those tracks have -1 as collision index and have an entry in the following table. Either of the two following then applies:
-// If a track has several matching collisions these are listed in the Collision array. In this case the BC slice is not filled
-// If on the contrary, a track has no matching collision and can only be assigned through its estimated time, it is assigned all
-//   BCs which are compatible with this time. As the BCs are time ordered, a slice is used to store the relation. In this case
-//   no entry is found in the collision member.
-namespace ambiguoustracks
+// Those tracks have -1 as collision index and have an entry in the AmbiguousTracks table.
+// The estimated track time is used to assign BCs which are compatible with this track. Those are stored as a slice.
+// All collisions compatible with these BCs may then have produced the ambiguous track.
+// In the future possibly the DCA information can be exploited to reduce the possible collisions and then this table will be extended.
+namespace ambiguous
 {
-DECLARE_SOA_INDEX_COLUMN(Track, track); //! Track index
-DECLARE_SOA_SLICE_INDEX_COLUMN(BC, bc); //! BC index (slice for 1 to N entries)
-// TODO to be replaced by a variable length array
-DECLARE_SOA_ARRAY_INDEX_COLUMN(Collision, collision, 2); //! Collision index
-} // namespace ambiguoustracks
+DECLARE_SOA_INDEX_COLUMN(Track, track);       //! Track index
+DECLARE_SOA_INDEX_COLUMN(MFTTrack, mfttrack); //! MFTTrack index
+DECLARE_SOA_SLICE_INDEX_COLUMN(BC, bc);       //! BC index (slice for 1 to N entries)
+} // namespace ambiguous
 
 DECLARE_SOA_TABLE(AmbiguousTracks, "AOD", "AMBIGUOUSTRACK", //! Table for tracks which are not uniquely associated with a collision
-                  ambiguoustracks::TrackId, ambiguoustracks::BCIdSlice, ambiguoustracks::CollisionIds);
+                  ambiguous::TrackId, ambiguous::BCIdSlice);
 
 using AmbiguousTrack = AmbiguousTracks::iterator;
 
-namespace ambiguousmfttracks
-{
-DECLARE_SOA_INDEX_COLUMN(Collision, collision); //! Collision index
-DECLARE_SOA_INDEX_COLUMN(MFTTrack, mfttrack);   //! MFTTrack index
-} // namespace ambiguousmfttracks
-
-DECLARE_SOA_TABLE(AmbiguousMFTTracks, "AOD", "UNASSIGNEDMFTTR", //! Table for MFT tracks which are not uniquely associated with a collision
-                  ambiguousmfttracks::CollisionId, ambiguousmfttracks::MFTTrackId);
+DECLARE_SOA_TABLE(AmbiguousMFTTracks, "AOD", "AMBIGUOUSMFTTR", //! Table for MFT tracks which are not uniquely associated with a collision
+                  ambiguous::MFTTrackId, ambiguous::BCIdSlice);
 
 using AmbiguousMFTTrack = AmbiguousMFTTracks::iterator;
 
