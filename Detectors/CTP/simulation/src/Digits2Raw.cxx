@@ -82,25 +82,24 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
     std::vector<gbtword80_t> hbfIR;
     std::vector<gbtword80_t> hbfTC;
     for (auto const& ctpdig : CTPDigits) {
-      LOG(DEBUG) << ctpdig.intRecord.orbit << " orbit bc " << ctpdig.intRecord.bc;
       if ((orbit0 == ctpdig.intRecord.orbit) || firstorbit) {
         if (firstorbit == true) {
           firstorbit = false;
           orbit0 = ctpdig.intRecord.orbit;
           LOG(INFO) << "First orbit:" << orbit0;
         }
+        LOG(INFO) << ctpdig.intRecord.orbit << " orbit bc " << ctpdig.intRecord.bc;
         gbtword80_t gbtdigIR;
         gbtword80_t gbtdigTC;
         digit2GBTdigit(gbtdigIR, gbtdigTC, ctpdig);
-        LOG(DEBUG) << "ir:" << gbtdigIR;
+        LOG(INFO) << "ir:" << gbtdigIR;
         hbfIR.push_back(gbtdigIR);
         hbfTC.push_back(gbtdigTC);
       } else {
         std::vector<char> buffer;
-        //std::string PLTrailer;
-        //std::memcpy(buffer.data() + buffer.size() - o2::raw::RDHUtils::GBTWord, PLTrailer.c_str(), o2::raw::RDHUtils::GBTWord);
-        //addData for IR
+        LOG(INFO) << "Packing orbit:" << orbit0;
         intRec.orbit = orbit0;
+        LOG(INFO) << "hbfIR:" << hbfIR.size() << " hbfTC:" << hbfTC.size();
         if (mZeroSuppressedIntRec == true) {
           buffer = digits2HBTPayload(hbfIR, NIntRecPayload);
         } else {
@@ -108,7 +107,7 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
           buffer = digits2HBTPayload(hbfIRnonZS, NIntRecPayload);
         }
         // add data for IR
-        LOG(DEBUG) << "buffer size:" << buffer.size() << ":";
+        LOG(INFO) << "buffer size:" << buffer.size() << ":";
         mWriter.addData(getFEEIDIR(), mCruID, GBTLinkIDIntRec, mEndPointID, intRec, buffer);
         // add data for Trigger Class Record
         buffer.clear();
@@ -120,6 +119,28 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
         hbfTC.clear();
       }
     }
+    // Last orbit in record
+    std::vector<char> buffer;
+    LOG(INFO) << "Packing orbit:" << orbit0;
+    intRec.orbit = orbit0;
+    if (mZeroSuppressedIntRec == true) {
+      buffer = digits2HBTPayload(hbfIR, NIntRecPayload);
+    } else {
+      std::vector<gbtword80_t> hbfIRnonZS = addEmptyBC(hbfIR);
+      buffer = digits2HBTPayload(hbfIRnonZS, NIntRecPayload);
+    }
+    // add data for IR
+    LOG(INFO) << "buffer size:" << buffer.size() << ":";
+    mWriter.addData(getFEEIDIR(), mCruID, GBTLinkIDIntRec, mEndPointID, intRec, buffer);
+    // add data for Trigger Class Record
+    buffer.clear();
+    buffer = digits2HBTPayload(hbfTC, NClassPayload);
+    mWriter.addData(getFEEIDTC(), mCruID, GBTLinkIDClassRec, mEndPointID, intRec, buffer);
+    //
+    //orbit0 = ctpdig.intRecord.orbit;
+    firstorbit = true;
+    hbfIR.clear();
+    hbfTC.clear();
   }
 }
 void Digits2Raw::emptyHBFMethod(const header::RDHAny* rdh, std::vector<char>& toAdd) const
