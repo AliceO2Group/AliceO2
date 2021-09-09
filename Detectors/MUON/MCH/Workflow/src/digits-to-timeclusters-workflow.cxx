@@ -27,10 +27,5 @@ using namespace o2::framework;
 
 WorkflowSpec defineDataProcessing(const ConfigContext&)
 {
-  WorkflowSpec specs;
-
-  DataProcessorSpec producer = o2::mch::getTimeClusterFinderSpec();
-  specs.push_back(producer);
-
-  return specs;
+  return {o2::mch::getTimeClusterFinderSpec()};
 }
