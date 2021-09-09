@@ -27,19 +27,13 @@ using namespace o2::framework;
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(ConfigParamSpec{"rof-desc", VariantType::String, "TIMECLUSTERROFS", {"description string for the input ROF data"}});
+  workflowOptions.push_back(ConfigParamSpec{"input-digitrofs-data-description", VariantType::String, "TIMECLUSTERROFS", {"description string for the input ROF data"}});
 }
 
 #include "Framework/runDataProcessing.h"
 
 WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
 {
-  WorkflowSpec specs;
-
-  auto rofDesc = configcontext.options().get<std::string>("rof-desc");
-
-  DataProcessorSpec producer = o2::mch::getPreClusterFinderSpec(rofDesc.c_str());
-  specs.push_back(producer);
-
-  return specs;
+  auto rofDesc = configcontext.options().get<std::string>("input-digitrofs-data-description");
+  return {o2::mch::getPreClusterFinderSpec(rofDesc.c_str())};
 }

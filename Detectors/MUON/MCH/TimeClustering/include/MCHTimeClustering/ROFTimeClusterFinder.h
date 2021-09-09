@@ -42,7 +42,7 @@ class ROFTimeClusterFinder
   void process();
 
   /// return the vector of time-cluster ROFs
-  ROFVector getROFRecords() { return mOutputROFs; }
+  const ROFVector& getROFRecords() const { return mOutputROFs; }
 
   /// stores the output ROFs into a flat memory buffer
   char* saveROFRsToBuffer(size_t& bufSize);

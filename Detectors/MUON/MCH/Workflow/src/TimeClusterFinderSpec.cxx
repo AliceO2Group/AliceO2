@@ -53,6 +53,12 @@ class TimeClusterFinderTask
   {
     mTimeClusterWidth = ic.options().get<int>("max-cluster-width");
     mNbinsInOneWindow = ic.options().get<int>("peak-search-nbins");
+    mMinDigitPerROF = ic.options().get<int>("min-digits-per-rof");
+    mDebug = ic.options().get<bool>("debug");
+
+    if (mDebug) {
+      fair::Logger::SetConsoleColor(true);
+    }
     // number of bins must be >= 3
     if (mNbinsInOneWindow < 3) {
       mNbinsInOneWindow = 3;
@@ -62,6 +68,8 @@ class TimeClusterFinderTask
       mNbinsInOneWindow += 1;
     }
 
+    LOGP(info, "mTimeClusterWidth={} mNbinsInOneWindow={} mMinDigitPerROF={} mDebug={}",
+         mTimeClusterWidth, mNbinsInOneWindow, mMinDigitPerROF, mDebug);
     auto stop = [this]() {
       LOGP(info, "\nfinder duration = {} us / TF\n", mTimeProcess.count() * 1000 / mTFcount);
     };
@@ -71,27 +79,13 @@ class TimeClusterFinderTask
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
-    const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
-    auto firstTForbit = dh->firstTForbit;
-    // get the input rofs
     auto rofs = pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("rofs");
-
-    /*auto orbits = pc.inputs().get<gsl::span<uint64_t>>("orbits");
-    std::set<uint32_t> ordered_orbits;
-    for (auto orbitInfo : orbits) {
-      ordered_orbits.insert(orbitInfo & 0xFFFFFFFF);
-    }
-
-    firstTForbit = *(ordered_orbits.begin());
-    if (mDebug) {
-      std::cout << "First TF orbit: " << firstTForbit << std::endl;
-    }*/
 
     o2::mch::ROFTimeClusterFinder rofProcessor(rofs, mTimeClusterWidth, mNbinsInOneWindow, 0);
 
     if (mDebug) {
-      std::cout << "\n\n=====================\nInput ROFs:\n";
-      rofProcessor.dumpInputROFs();
+      LOGP(warning, "{:=>60} ", fmt::format("{:6d} Input ROFS", rofs.size()));
+      //rofProcessor.dumpInputROFs();
     }
 
     auto tStart = std::chrono::high_resolution_clock::now();
@@ -100,18 +94,17 @@ class TimeClusterFinderTask
     mTimeProcess += tEnd - tStart;
 
     if (mDebug) {
-      std::cout << "\n=====================\nOutput ROFs:\n";
-      rofProcessor.dumpOutputROFs();
+      LOGP(warning, "{:=>60} ", fmt::format("{:6d} Output ROFS", rofProcessor.getROFRecords().size()));
+      //rofProcessor.dumpOutputROFs();
     }
 
-    // send the output buffer via DPL
-    size_t rofsSize;
-    char* rofsBuffer = rofProcessor.saveROFRsToBuffer(rofsSize);
-
-    // create the output message
-    auto freefct = [](void* data, void*) { free(data); };
-    pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "TIMECLUSTERROFS", 0}, rofsBuffer, rofsSize, freefct, nullptr);
-
+    auto& outRofs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"rofs"});
+    std::copy_if(rofProcessor.getROFRecords().begin(),
+                 rofProcessor.getROFRecords().end(),
+                 std::back_inserter(outRofs),
+                 [this](const o2::mch::ROFRecord& rof) {
+                   return rof.getNEntries() > mMinDigitPerROF;
+                 });
     mTFcount += 1;
   }
 
@@ -122,6 +115,7 @@ class TimeClusterFinderTask
   uint32_t mNbinsInOneWindow; ///< number of time bins considered for the peak search
   int mTFcount{0};            ///< number of processed time frames
   int mDebug{0};              ///< verbosity flag
+  int mMinDigitPerROF;        // minimum digit per ROF threshold
 };
 
 //_________________________________________________________________________________________________
@@ -129,13 +123,13 @@ o2::framework::DataProcessorSpec getTimeClusterFinderSpec(const char* specName)
 {
   return DataProcessorSpec{
     specName,
-    Inputs{InputSpec{"rofs", header::gDataOriginMCH, "DIGITROFS", 0, Lifetime::Timeframe},
-           InputSpec{"orbits", header::gDataOriginMCH, "ORBITS", 0, Lifetime::Timeframe}},
-    Outputs{OutputSpec{header::gDataOriginMCH, "TIMECLUSTERROFS", 0, Lifetime::Timeframe}},
+    Inputs{InputSpec{"rofs", header::gDataOriginMCH, "DIGITROFS", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{{"rofs"}, header::gDataOriginMCH, "TIMECLUSTERROFS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<TimeClusterFinderTask>()},
     Options{{"debug", VariantType::Bool, false, {"enable verbose output"}},
             {"max-cluster-width", VariantType::Int, 1000 / 25, {"maximum time width of time clusters, in BC units"}},
-            {"peak-search-nbins", VariantType::Int, 5, {"number of time bins for the peak search algorithm (must be an odd number >= 3)"}}}};
+            {"peak-search-nbins", VariantType::Int, 5, {"number of time bins for the peak search algorithm (must be an odd number >= 3)"}},
+            {"min-digits-per-rof", VariantType::Int, 0, {"minimum number of digits per ROF (below that threshold ROF is discarded)"}}}};
 }
 
 } // end namespace mch
