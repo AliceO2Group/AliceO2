@@ -41,8 +41,8 @@ StandaloneDebugger::~StandaloneDebugger()
 // Monte carlo oracle part
 int StandaloneDebugger::getEventId(int firstClusterId, int secondClusterId, ROframe* event)
 {
-  o2::MCCompLabel lblClus0 = *(event->getClusterLabels(0, firstClusterId).begin());
-  o2::MCCompLabel lblClus1 = *(event->getClusterLabels(1, secondClusterId).begin());
+  o2::MCCompLabel lblClus0 = event->getClusterLabels(0, firstClusterId);
+  o2::MCCompLabel lblClus1 = event->getClusterLabels(1, secondClusterId);
   return lblClus0.compare(lblClus1) == 1 ? lblClus0.getEventID() : -1;
 }
 
@@ -55,8 +55,8 @@ void StandaloneDebugger::fillCombinatoricsTree(std::array<std::vector<Cluster>, 
   assert(mTreeStream != nullptr);
 
   for (auto& combination : comb01) {
-    o2::MCCompLabel lblClus0 = *(event->getClusterLabels(0, clusters[0][combination.firstClusterIndex].clusterId).begin());
-    o2::MCCompLabel lblClus1 = *(event->getClusterLabels(1, clusters[1][combination.secondClusterIndex].clusterId).begin());
+    o2::MCCompLabel lblClus0 = event->getClusterLabels(0, clusters[0][combination.firstClusterIndex].clusterId);
+    o2::MCCompLabel lblClus1 = event->getClusterLabels(1, clusters[1][combination.secondClusterIndex].clusterId);
     float c0z{clusters[0][combination.firstClusterIndex].zCoordinate};
     float c1z{clusters[1][combination.secondClusterIndex].zCoordinate};
     unsigned char isValidated{lblClus0.compare(lblClus1) == 1};
@@ -73,8 +73,8 @@ void StandaloneDebugger::fillCombinatoricsTree(std::array<std::vector<Cluster>, 
   }
 
   for (auto& combination : comb12) {
-    o2::MCCompLabel lblClus1 = *(event->getClusterLabels(1, clusters[1][combination.secondClusterIndex].clusterId).begin());
-    o2::MCCompLabel lblClus2 = *(event->getClusterLabels(2, clusters[2][combination.secondClusterIndex].clusterId).begin());
+    o2::MCCompLabel lblClus1 = event->getClusterLabels(1, clusters[1][combination.secondClusterIndex].clusterId);
+    o2::MCCompLabel lblClus2 = event->getClusterLabels(2, clusters[2][combination.secondClusterIndex].clusterId);
     float c1z{clusters[1][combination.firstClusterIndex].zCoordinate};
     float c2z{clusters[2][combination.secondClusterIndex].zCoordinate};
     unsigned char isValidated{lblClus1.compare(lblClus2) == 1};
@@ -101,9 +101,9 @@ void StandaloneDebugger::fillTrackletSelectionTree(std::array<std::vector<Cluste
   assert(mTreeStream != nullptr);
   int id = event->getROFrameId();
   for (auto& trackletPair : allowedTracklets) {
-    o2::MCCompLabel lblClus0 = *(event->getClusterLabels(0, clusters[0][comb01[trackletPair[0]].firstClusterIndex].clusterId).begin());
-    o2::MCCompLabel lblClus1 = *(event->getClusterLabels(1, clusters[1][comb01[trackletPair[0]].secondClusterIndex].clusterId).begin());
-    o2::MCCompLabel lblClus2 = *(event->getClusterLabels(2, clusters[2][comb12[trackletPair[1]].secondClusterIndex].clusterId).begin());
+    o2::MCCompLabel lblClus0 = event->getClusterLabels(0, clusters[0][comb01[trackletPair[0]].firstClusterIndex].clusterId);
+    o2::MCCompLabel lblClus1 = event->getClusterLabels(1, clusters[1][comb01[trackletPair[0]].secondClusterIndex].clusterId);
+    o2::MCCompLabel lblClus2 = event->getClusterLabels(2, clusters[2][comb12[trackletPair[1]].secondClusterIndex].clusterId);
     unsigned char isValidated{lblClus0.compare(lblClus1) == 1 && lblClus0.compare(lblClus2) == 1};
     float deltaPhi{comb01[trackletPair[0]].phi - comb12[trackletPair[1]].phi};
     float deltaTanLambda{comb01[trackletPair[0]].tanLambda - comb12[trackletPair[1]].tanLambda};

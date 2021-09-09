@@ -50,6 +50,7 @@ TimeFrame::TimeFrame(int nLayers)
   mClusters.resize(nLayers);
   mUnsortedClusters.resize(nLayers);
   mTrackingFrameInfo.resize(nLayers);
+  mClusterLabels.resize(nLayers);
   mClusterExternalIndices.resize(nLayers);
   mUsedClusters.resize(nLayers);
   mROframesClusters.resize(nLayers, {0}); ///TBC: if resetting the timeframe is required, then this has to be done
@@ -87,15 +88,15 @@ int TimeFrame::loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const
 
     /// Rotate to the global frame
     addClusterToLayer(layer, xyz.x(), xyz.y(), xyz.z(), mUnsortedClusters[layer].size());
+    if (mcLabels) {
+      addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
+    }
     addClusterExternalIndexToLayer(layer, first + clusterId);
     clusterId++;
   }
 
   for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
     mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
-  }
-  if (mcLabels) {
-    mClusterLabels = mcLabels;
   }
   mNrof++;
   return clusters_in_frame.size();
@@ -140,6 +141,9 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs, gsl::span<
 
     /// Rotate to the global frame
     addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), mUnsortedClusters[layer].size());
+    if (mcLabels) {
+      addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
+    }
     addClusterExternalIndexToLayer(layer, clusterId);
 
     if (clusterId == rofs[mNrof].getFirstEntry() + rofs[mNrof].getNEntries() - 1) {
@@ -148,9 +152,6 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs, gsl::span<
       }
       mNrof++;
     }
-  }
-  if (mcLabels) {
-    mClusterLabels = mcLabels;
   }
   return mNrof;
 }
