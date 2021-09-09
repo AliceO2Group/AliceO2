@@ -34,10 +34,10 @@ void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU
 void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, uint32_t firstOrbit, uint32_t syncOffsetReference);
 uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSpec>& filter);
 
-uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors)
+uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors, size_t* nerrors)
 {
   std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
-
+  size_t errorCount = 0;
   // TODO: check if presence of data sampling can be checked in another way
   bool sampledData = true;
   for ([[maybe_unused]] auto const& ref : InputRecordWalker(inputs, filter)) {
@@ -98,44 +98,55 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
     rdh_utils::FEEIDType cruID, linkID, endPoint;
     rdh_utils::getMapping(feeID, cruID, endPoint, linkID);
     const auto globalLinkID = linkID + endPoint * 12;
-    LOGP(debug, "Specifier: {}/{}/{}", dh->dataOrigin, dh->dataDescription, subSpecification);
+    LOGP(debug, "Specifier: {}/{}/{} Part {} of {}", dh->dataOrigin, dh->dataDescription, subSpecification, dh->splitPayloadIndex, dh->splitPayloadParts);
     LOGP(debug, "Payload size: {}", dh->payloadSize);
     LOGP(debug, "CRU: {}; linkID: {}; endPoint: {}; globalLinkID: {}", cruID, linkID, endPoint, globalLinkID);
     // ^^^^^^
 
     // TODO: exception handling needed?
     const gsl::span<const char> raw = inputs.get<gsl::span<char>>(ref);
-    o2::framework::RawParser parser(raw.data(), raw.size());
+    std::unique_ptr<o2::framework::RawParser<8192>> rawparserPtr;
+    try {
 
-    // detect decoder type by analysing first RDH
-    if (!readFirst) {
-      auto it = parser.begin();
-      auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
-      if (!rdhPtr) {
-        LOGP(fatal, "could not get RDH from packet");
-      }
-      const auto link = RDHUtils::getLinkID(*rdhPtr);
-      const auto detField = RDHUtils::getDetectorField(*rdhPtr);
-      if ((link == rdh_utils::UserLogicLinkID) || (detField == 1)) {
-        LOGP(info, "Detected Link-based zero suppression");
-        isLinkZS = true;
-        if (!reader->getManager() || !reader->getManager()->getLinkZSCallback()) {
-          LOGP(fatal, "LinkZSCallback must be set in RawReaderCRUManager");
+      o2::framework::RawParser parser(raw.data(), raw.size());
+      // detect decoder type by analysing first RDH
+      if (!readFirst) {
+        auto it = parser.begin();
+        auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
+        if (!rdhPtr) {
+          LOGP(fatal, "could not get RDH from packet");
         }
+        const auto link = RDHUtils::getLinkID(*rdhPtr);
+        const auto detField = RDHUtils::getDetectorField(*rdhPtr);
+        if ((link == rdh_utils::UserLogicLinkID) || (detField == 1)) {
+          LOGP(info, "Detected Link-based zero suppression");
+          isLinkZS = true;
+          if (!reader->getManager() || !reader->getManager()->getLinkZSCallback()) {
+            LOGP(fatal, "LinkZSCallback must be set in RawReaderCRUManager");
+          }
+        }
+
+        //firstOrbit = RDHUtils::getHeartBeatOrbit(*rdhPtr);
+        LOGP(info, "First orbit in present TF: {}", firstOrbit);
+        readFirst = true;
       }
 
-      //firstOrbit = RDHUtils::getHeartBeatOrbit(*rdhPtr);
-      LOGP(info, "First orbit in present TF: {}", firstOrbit);
-      readFirst = true;
-    }
+      if (isLinkZS) {
+        processLinkZS(parser, reader, firstOrbit, syncOffsetReference);
+      } else {
+        processGBT(parser, reader, feeID);
+      }
 
-    if (isLinkZS) {
-      processLinkZS(parser, reader, firstOrbit, syncOffsetReference);
-    } else {
-      processGBT(parser, reader, feeID);
+    } catch (const std::exception& e) {
+      LOGP(ERROR, "EXCEPTIION in processRawData: {} -> skipping part:{}/{} of spec:{}/{}/{}, size:{}", e.what(), dh->splitPayloadIndex, dh->splitPayloadParts,
+           dh->dataOrigin, dh->dataDescription, subSpecification, dh->payloadSize);
+      errorCount++;
+      continue;
     }
   }
-
+  if (nerrors) {
+    *nerrors += errorCount;
+  }
   return activeSectors;
 }
 
