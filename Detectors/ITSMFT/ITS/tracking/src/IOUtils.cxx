@@ -78,6 +78,56 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
   }
 }
 
+std::vector<ROframe> ioutils::loadEventData(const std::string& fileName)
+{
+  std::vector<ROframe> events{};
+  std::ifstream inputStream{};
+  std::string line{}, unusedVariable{};
+  int layerId{}, monteCarlo{};
+  int clusterId{EventLabelsSeparator};
+  float xCoordinate{}, yCoordinate{}, zCoordinate{}, alphaAngle{};
+  float varZ{-1.f}, varY{-1.f};
+
+  inputStream.open(fileName);
+
+  /// THIS IS LEAKING IN THE BACKWARD COMPATIBLE MODE. KEEP IT IN MIND.
+  dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr;
+  while (std::getline(inputStream, line)) {
+
+    std::istringstream inputStringStream(line);
+    if (inputStringStream >> layerId >> xCoordinate >> yCoordinate >> zCoordinate) {
+
+      if (layerId == PrimaryVertexLayerId) {
+
+        if (clusterId != 0) {
+          events.emplace_back(events.size(), 7);
+        }
+
+        events.back().addPrimaryVertex(xCoordinate, yCoordinate, zCoordinate);
+        clusterId = 0;
+
+      } else {
+
+        if (inputStringStream >> varY >> varZ >> unusedVariable >> alphaAngle >> monteCarlo) {
+          events.back().addClusterToLayer(layerId, xCoordinate, yCoordinate, zCoordinate,
+                                          events.back().getClustersOnLayer(layerId).size());
+          const float sinAlpha = std::sin(alphaAngle);
+          const float cosAlpha = std::cos(alphaAngle);
+          const float xTF = xCoordinate * cosAlpha - yCoordinate * sinAlpha;
+          const float yTF = xCoordinate * sinAlpha + yCoordinate * cosAlpha;
+          events.back().addTrackingFrameInfoToLayer(layerId, xCoordinate, yCoordinate, zCoordinate, xTF, alphaAngle,
+                                                    std::array<float, 2>{yTF, zCoordinate}, std::array<float, 3>{varY, 0.f, varZ});
+          events.back().addClusterLabelToLayer(layerId, MCCompLabel(monteCarlo));
+
+          ++clusterId;
+        }
+      }
+    }
+  }
+
+  return events;
+}
+
 void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters,
                             gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
                             const dataformats::MCTruthContainer<MCCompLabel>* clsLabels)
@@ -123,8 +173,7 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
     /// Rotate to the global frame
     event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), event.getClustersOnLayer(layer).size());
     if (clsLabels) {
-      // event.addClusterLabelToLayer(layer, *(clsLabels->getLabels(clusterId).begin()));
-      event.setMClabelsContainer(clsLabels);
+      event.addClusterLabelToLayer(layer, *(clsLabels->getLabels(clusterId).begin()));
     }
     event.addClusterExternalIndexToLayer(layer, clusterId);
     clusterId++;
@@ -173,14 +222,41 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     /// Rotate to the global frame
     event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), event.getClustersOnLayer(layer).size());
     if (mcLabels) {
-      // event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
-      event.setMClabelsContainer(mcLabels);
+      event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
     }
     event.addClusterExternalIndexToLayer(layer, first + clusterId);
     clusterId++;
   }
   return clusters_in_frame.size();
 }
+
+// void ioutils::generateSimpleData(ROframe& event, const int phiDivs, const int zDivs = 1)
+// {
+//   const float angleOffset = constants::math::TwoPi / static_cast<float>(phiDivs);
+//   // Maximum z allowed on innermost layer should be: ~9,75
+//   const float zOffsetFirstLayer = (zDivs == 1) ? 0 : 1.5 * (LayersZCoordinate()[6] * LayersRCoordinate()[0]) / (LayersRCoordinate()[6] * (static_cast<float>(zDivs) - 1));
+//   std::vector<float> x, y;
+//   std::array<std::vector<float>, 7> z;
+//   for (size_t j{0}; j < zDivs; ++j) {
+//     for (size_t i{0}; i < phiDivs; ++i) {
+//       x.emplace_back(cos(i * angleOffset + 0.001)); // put an epsilon to move from periods (e.g. 20 clusters vs 20 cells)
+//       y.emplace_back(sin(i * angleOffset + 0.001));
+//       const float zFirstLayer{-static_cast<float>((zDivs - 1.) / 2.) * zOffsetFirstLayer + zOffsetFirstLayer * static_cast<float>(j)};
+//       z[0].emplace_back(zFirstLayer);
+//       for (size_t iLayer{1}; iLayer < 7; ++iLayer) {
+//         z[iLayer].emplace_back(zFirstLayer * LayersRCoordinate()[iLayer] / LayersRCoordinate()[0]);
+//       }
+//     }
+//   }
+
+//   for (int iLayer{0}; iLayer < 7; ++iLayer) {
+//     for (int i = 0; i < phiDivs * zDivs; i++) {
+//       o2::MCCompLabel label{i, 0, 0, false};
+//       event.addClusterLabelToLayer(iLayer, label);                                                                              //last argument : label, goes into mClustersLabel
+//       event.addClusterToLayer(iLayer, LayersRCoordinate()[iLayer] * x[i], LayersRCoordinate()[iLayer] * y[i], z[iLayer][i], i); //uses 1st constructor for clusters
+//     }
+//   }
+// }
 
 std::vector<std::unordered_map<int, Label>> ioutils::loadLabels(const int eventsNum, const std::string& fileName)
 {
@@ -273,6 +349,8 @@ void ioutils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofs
     }
   }
 }
+
+
 
 } // namespace its
 } // namespace o2
