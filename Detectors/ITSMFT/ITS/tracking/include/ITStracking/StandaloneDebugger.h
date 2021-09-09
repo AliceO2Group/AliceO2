@@ -60,7 +60,7 @@ struct FakeTrackInfo {
       if (extIndex == -1) {
         continue;
       }
-      o2::MCCompLabel mcLabel = event.getClusterLabels(iCluster, extIndex);
+      o2::MCCompLabel mcLabel = *(event.getClusterLabels(iCluster, extIndex).begin());
       bool found = false;
 
       for (size_t iOcc{0}; iOcc < occurrences.size(); ++iOcc) {
@@ -96,7 +96,7 @@ struct FakeTrackInfo {
       if (extIndex == -1) {
         continue;
       }
-      o2::MCCompLabel lbl = event.getClusterLabels(iCluster, extIndex);
+      o2::MCCompLabel lbl = *(event.getClusterLabels(iCluster, extIndex).begin());
       if (lbl == mainLabel && occurrences[0].second > 1 && !lbl.isNoise()) { // if we have MaxClusters fake clusters -> occurrences[0].second = 1
         clusStatuses[iCluster] = 1;
       } else {

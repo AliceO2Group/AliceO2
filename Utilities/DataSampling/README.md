@@ -72,7 +72,7 @@ The [o2-datasampling-pod-and-root](https://github.com/AliceO2Group/AliceO2/blob/
 ## Data Sampling Conditions
 
 The following sampling conditions are available. When more than one is used, a positive decision is taken when all the conditions are fulfilled.
-- **DataSamplingConditionRandom** - pseudo-randomly accepts specified fraction of incoming messages.
+- **DataSamplingConditionRandom** - pseudo-randomly accepts specified fraction of incoming messages. Use seed "0" to have it randomly selected.
 ```json
 {
   "condition": "random",

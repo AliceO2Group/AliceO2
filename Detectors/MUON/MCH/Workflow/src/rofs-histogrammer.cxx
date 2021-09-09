@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "CommonConstants/LHCConstants.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/ConfigParamSpec.h"
@@ -63,12 +64,15 @@ struct Histogrammer {
     if (ic.options().get<bool>("verbose")) {
       fair::Logger::SetConsoleColor(true);
     }
+    mFirstOrbit = ic.options().get<int>("first-orbit");
+    mLastOrbit = ic.options().get<int>("last-orbit");
   }
 
   void writeHisto()
   {
-    auto firstRof = mRofs.begin()->first.getBCData();
-    auto lastRof = mRofs.rbegin()->first.getBCData();
+    auto firstRof = (mFirstOrbit >= 0) ? o2::InteractionRecord(0, mFirstOrbit) : mRofs.begin()->first.getBCData();
+
+    auto lastRof = (mLastOrbit >= 0) ? o2::InteractionRecord(o2::constants::lhc::LHCMaxBunches, mLastOrbit) : mRofs.rbegin()->first.getBCData();
     auto nbins = static_cast<Int_t>(lastRof.differenceInBC(firstRof));
     Int_t bins[1] = {nbins};
     Double_t xmin[1] = {0.0};
@@ -110,6 +114,8 @@ struct Histogrammer {
   size_t mTFid{0};                                              // current timeframe index
   std::unique_ptr<TFile> mHistoFile;                            // output histogram file
   std::map<o2::mch::ROFRecord, int> mRofs;                      // accumulation of rofs
+  uint32_t mFirstOrbit;
+  uint16_t mLastOrbit;
 };
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -135,6 +141,8 @@ WorkflowSpec defineDataProcessing(const ConfigContext& cc)
       {"verbose", VariantType::Bool, false, {"verbose output"}},
       {"max-nof-tfs", VariantType::Int, 10, {"max number of timeframes to process"}},
       {"first-tf", VariantType::Int, 0, {"first timeframe to process"}},
+      {"first-orbit", VariantType::Int, 0, {"force first orbit to use as first orbit (for histogram) (default=-1=auto)"}},
+      {"last-orbit", VariantType::Int, 0, {"force last orbit to use as last orbit (for histogram) (default=-1=auto)"}},
       {"outfile", VariantType::String, "rofs-times.root", {"name of the histogram output file"}}}};
 
   specs.push_back(rofHistogrammer);

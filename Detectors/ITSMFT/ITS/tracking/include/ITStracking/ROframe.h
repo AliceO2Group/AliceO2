@@ -56,8 +56,10 @@ class ROframe final
   const auto& getTrackingFrameInfo() const { return mTrackingFrameInfo; }
 
   const TrackingFrameInfo& getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const;
-  const MCCompLabel& getClusterLabels(int layerId, const Cluster& cl) const;
-  const MCCompLabel& getClusterLabels(int layerId, const int clId) const;
+  const MCCompLabel& getClusterFirstLabel(int layerId, const Cluster& cl) const;
+  const MCCompLabel& getClusterFirstLabel(int layerId, const int clId) const;
+  gsl::span<o2::MCCompLabel> getClusterLabels(int layerId, const int clId) const;
+  gsl::span<o2::MCCompLabel> getClusterLabels(int layerId, const Cluster& cl) const;
   int getClusterExternalIndex(int layerId, const int clId) const;
   std::vector<int> getTracksId(const int layerId, const std::vector<Cluster>& cl);
 
@@ -65,7 +67,7 @@ class ROframe final
   void addClusterToLayer(int layer, T&&... args);
   template <typename... T>
   void addTrackingFrameInfoToLayer(int layer, T&&... args);
-  void addClusterLabelToLayer(int layer, const MCCompLabel label);
+  void setMClabelsContainer(const dataformats::MCTruthContainer<MCCompLabel>* ptr);
   void addClusterExternalIndexToLayer(int layer, const int idx);
   bool hasMCinformation() const;
 
@@ -73,10 +75,10 @@ class ROframe final
 
  private:
   const int mROframeId;
+  o2::dataformats::MCTruthContainer<MCCompLabel>* mMClabels = nullptr;
   std::vector<float3> mPrimaryVertices;
   std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
-  std::vector<std::vector<MCCompLabel>> mClusterLabels;
   std::vector<std::vector<int>> mClusterExternalIndices;
 };
 
@@ -103,14 +105,24 @@ inline const TrackingFrameInfo& ROframe::getClusterTrackingFrameInfo(int layerId
   return mTrackingFrameInfo[layerId][cl.clusterId];
 }
 
-inline const MCCompLabel& ROframe::getClusterLabels(int layerId, const Cluster& cl) const
+inline const MCCompLabel& ROframe::getClusterFirstLabel(int layerId, const Cluster& cl) const
 {
-  return mClusterLabels[layerId][cl.clusterId];
+  return getClusterFirstLabel(layerId, cl.clusterId);
 }
 
-inline const MCCompLabel& ROframe::getClusterLabels(int layerId, const int clId) const
+inline const MCCompLabel& ROframe::getClusterFirstLabel(int layerId, const int clId) const
 {
-  return mClusterLabels[layerId][clId];
+  return *(mMClabels->getLabels(getClusterExternalIndex(layerId, clId)).begin());
+}
+
+inline gsl::span<o2::MCCompLabel> ROframe::getClusterLabels(int layerId, const int clId) const
+{
+  return mMClabels->getLabels(getClusterExternalIndex(layerId, clId));
+}
+
+inline gsl::span<o2::MCCompLabel> ROframe::getClusterLabels(int layerId, const Cluster& cl) const
+{
+  return getClusterLabels(layerId, cl.clusterId);
 }
 
 inline int ROframe::getClusterExternalIndex(int layerId, const int clId) const
@@ -122,7 +134,7 @@ inline std::vector<int> ROframe::getTracksId(const int layerId, const std::vecto
 {
   std::vector<int> tracksId;
   for (auto& cluster : cl) {
-    tracksId.push_back(getClusterLabels(layerId, cluster).isNoise() ? -1 : getClusterLabels(layerId, cluster).getTrackID());
+    tracksId.push_back(getClusterFirstLabel(layerId, cluster).isNoise() ? -1 : getClusterFirstLabel(layerId, cluster).getTrackID());
   }
   return tracksId;
 }
@@ -139,7 +151,10 @@ void ROframe::addTrackingFrameInfoToLayer(int layer, T&&... values)
   mTrackingFrameInfo[layer].emplace_back(std::forward<T>(values)...);
 }
 
-inline void ROframe::addClusterLabelToLayer(int layer, const MCCompLabel label) { mClusterLabels[layer].emplace_back(label); }
+inline void ROframe::setMClabelsContainer(const dataformats::MCTruthContainer<MCCompLabel>* ptr)
+{
+  mMClabels = const_cast<dataformats::MCTruthContainer<MCCompLabel>*>(ptr);
+}
 
 inline void ROframe::addClusterExternalIndexToLayer(int layer, const int idx)
 {
@@ -151,20 +166,22 @@ inline void ROframe::clear()
   for (unsigned int iL = 0; iL < mClusters.size(); ++iL) {
     mClusters[iL].clear();
     mTrackingFrameInfo[iL].clear();
-    mClusterLabels[iL].clear();
+    // mClusterLabels[iL].clear();
     mClusterExternalIndices[iL].clear();
   }
   mPrimaryVertices.clear();
+  mMClabels = nullptr;
 }
 
 inline bool ROframe::hasMCinformation() const
 {
-  for (const auto& vect : mClusterLabels) {
-    if (!vect.empty()) {
-      return true;
-    }
-  }
-  return false;
+  // for (const auto& vect : mClusterLabels) {
+  //   if (!vect.empty()) {
+  //     return true;
+  //   }
+  // }
+  // return false;
+  return mMClabels;
 }
 
 } // namespace its

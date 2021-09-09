@@ -8,14 +8,12 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_NODEBUGGUI_H
-#define FRAMEWORK_NODEBUGGUI_H
+#ifndef O2_FRAMEWORK_NODEBUGGUI_H_
+#define O2_FRAMEWORK_NODEBUGGUI_H_
 
 #include <functional>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 // The DebugGUI has been moved to a separate package, this is a dummy header file
@@ -34,7 +32,28 @@ static inline void disposeGUI()
 {
 }
 
-} // namespace framework
-} // namespace o2
+static inline void getFrameJSON(void* data, std::ostream& json_data) override
+{
+}
 
-#endif // FRAMEWORK_NODEBUGGUI_H
+static inline void getFrameRaw(void* data, void** raw_data, int* size) override
+{
+}
+
+static inline bool pollGUIPreRender(void* context, float delta) override
+{
+  return true;
+}
+
+static inline void* pollGUIRender(std::function<void(void)> guiCallback) override
+{
+  return nullptr;
+}
+
+static inline void pollGUIPostRender(void* context, void* draw_data) override
+{
+}
+
+} // namespace o2::framework
+
+#endif // O2_FRAMEWORK_NODEBUGGUI_H_

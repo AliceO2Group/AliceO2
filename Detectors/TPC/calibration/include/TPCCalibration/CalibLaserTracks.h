@@ -53,6 +53,8 @@ struct LtrCalibData {
   uint16_t nTracksC{};                 ///< number of tracks used for C-Side fit
   std::vector<uint16_t> matchedLtrIDs; ///< list of matched laser track IDs
 
+  float getDriftVCorrection() const { return 0.5f * (dvCorrectionA + dvCorrectionC); }
+
   void reset()
   {
     processedTFs = 0;
@@ -67,6 +69,8 @@ struct LtrCalibData {
 
     matchedLtrIDs.clear();
   }
+
+  ClassDefNV(LtrCalibData, 1);
 };
 
 class CalibLaserTracks
