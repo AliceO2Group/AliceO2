@@ -20,6 +20,7 @@
 #include "FairLogger.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
@@ -30,6 +31,17 @@ namespace its
 
 void NoiseCalibratorSpec::init(InitContext& ic)
 {
+  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(
+    o2::detectors::DetID::ITS, dictPath, "bin");
+  if (o2::utils::Str::pathExists(dictFile)) {
+    mCalibrator->loadDictionary(dictFile);
+    LOG(INFO) << "ITS NoiseCalibrator is running with a provided dictionary: " << dictFile;
+  } else {
+    LOG(INFO) << "Dictionary " << dictFile
+              << " is absent, ITS NoiseCalibrator expects cluster patterns for all clusters";
+  }
+
   auto onepix = ic.options().get<bool>("1pix-only");
   LOG(INFO) << "Fast 1=pixel calibration: " << onepix;
   auto probT = ic.options().get<float>("prob-threshold");
@@ -98,6 +110,7 @@ DataProcessorSpec getNoiseCalibratorSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>()},
     Options{
+      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"1pix-only", VariantType::Bool, false, {"Fast 1-pixel calibration only"}},
       {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}}}};
 }
