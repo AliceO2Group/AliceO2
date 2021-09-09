@@ -16,10 +16,6 @@
 #ifndef TRACKINGITSU_INCLUDE_TRACKERTRAITSNV_H_
 #define TRACKINGITSU_INCLUDE_TRACKERTRAITSNV_H_
 
-#ifndef GPUCA_GPUCODE_GENRTC
-#include <cub/cub.cuh>
-#include <cstdint>
-#endif
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/TrackerTraits.h"
@@ -34,8 +30,8 @@ class PrimaryVertexContext;
 class TrackerTraitsNV : public TrackerTraits
 {
  public:
-  TrackerTraitsNV() = default;
-  ~TrackerTraitsNV() override = default;
+  TrackerTraitsNV();
+  ~TrackerTraitsNV() override;
 
   void computeLayerCells() final;
   void computeLayerTracklets() final;

@@ -213,8 +213,8 @@ class TrackParametrization
   GPUd() bool isValid() const;
   GPUd() void invalidate();
 
-  GPUhd() uint16_t getUserField() const;
-  GPUhd() void setUserField(uint16_t v);
+  GPUd() uint16_t getUserField() const;
+  GPUd() void setUserField(uint16_t v);
 
   GPUd() void printParam() const;
 #ifndef GPUCA_ALIGPUCODE
@@ -655,13 +655,13 @@ GPUdi() void TrackParametrization<value_T>::invalidate()
 }
 
 template <typename value_T>
-GPUhdi() uint16_t TrackParametrization<value_T>::getUserField() const
+GPUdi() uint16_t TrackParametrization<value_T>::getUserField() const
 {
   return mUserField;
 }
 
 template <typename value_T>
-GPUhdi() void TrackParametrization<value_T>::setUserField(uint16_t v)
+GPUdi() void TrackParametrization<value_T>::setUserField(uint16_t v)
 {
   mUserField = v;
 }

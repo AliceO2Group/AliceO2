@@ -265,7 +265,7 @@ std::vector<std::unordered_map<int, Label>> ioutils::loadLabels(const int events
   std::ifstream inputStream{};
   std::string line{};
   int monteCarloId{}, pdgCode{}, numberOfClusters{};
-  float transverseMomentum{}, phi{}, pseudorapidity{};
+  float transverseMomentum{}, phiCoordinate{}, pseudorapidity{};
 
   labelsMap.reserve(eventsNum);
 
@@ -285,12 +285,12 @@ std::vector<std::unordered_map<int, Label>> ioutils::loadLabels(const int events
 
       } else {
 
-        if (inputStringStream >> transverseMomentum >> phi >> pseudorapidity >> pdgCode >> numberOfClusters) {
+        if (inputStringStream >> transverseMomentum >> phiCoordinate >> pseudorapidity >> pdgCode >> numberOfClusters) {
 
           if (std::abs(pdgCode) == constants::pdgcodes::PionCode && numberOfClusters == 7) {
 
             currentEventLabelsMap.emplace(std::piecewise_construct, std::forward_as_tuple(monteCarloId),
-                                          std::forward_as_tuple(monteCarloId, transverseMomentum, phi,
+                                          std::forward_as_tuple(monteCarloId, transverseMomentum, phiCoordinate,
                                                                 pseudorapidity, pdgCode, numberOfClusters));
           }
         }

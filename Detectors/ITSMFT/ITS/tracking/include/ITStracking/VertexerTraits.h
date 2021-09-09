@@ -210,8 +210,8 @@ GPUhdi() const int2 VertexerTraits::getPhiBins(float phi, float dPhi)
 
 GPUhdi() const int2 VertexerTraits::getPhiBins(float phi, float dPhi, const IndexTableUtils& utils)
 {
-  return int2{utils.getPhiBinIndex(math_utils::getNormalizedPhi(phi - dPhi)),
-              utils.getPhiBinIndex(math_utils::getNormalizedPhi(phi + dPhi))};
+  return int2{utils.getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi - dPhi)),
+              utils.getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phi + dPhi))};
 }
 
 GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
@@ -219,9 +219,9 @@ GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, c
                                                 const IndexTableUtils& utils)
 {
   const float zRangeMin = directionZIntersection - 2 * maxdeltaz;
-  const float phiRangeMin = currentCluster.phi - maxdeltaphi;
+  const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
   const float zRangeMax = directionZIntersection + 2 * maxdeltaz;
-  const float phiRangeMax = currentCluster.phi + maxdeltaphi;
+  const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
 
   if (zRangeMax < -utils.getLayerZ(layerIndex + 1) ||
       zRangeMin > utils.getLayerZ(layerIndex + 1) || zRangeMin > zRangeMax) {
@@ -230,9 +230,9 @@ GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, c
   }
 
   return int4{o2::gpu::GPUCommonMath::Max(0, utils.getZBinIndex(layerIndex + 1, zRangeMin)),
-              utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMin)),
+              utils.getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMin)),
               o2::gpu::GPUCommonMath::Min(utils.getNzBins() - 1, utils.getZBinIndex(layerIndex + 1, zRangeMax)),
-              utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
+              utils.getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax))};
 }
 
 GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,

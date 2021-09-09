@@ -73,7 +73,7 @@ void trackleterKernelSerial(
         // loop on clusters next layer
         for (int iNextLayerClusterIndex{firstRowClusterIndex}; iNextLayerClusterIndex < maxRowClusterIndex && iNextLayerClusterIndex < static_cast<int>(clustersNextLayer.size()); ++iNextLayerClusterIndex) {
           const Cluster& nextCluster{clustersNextLayer[iNextLayerClusterIndex]};
-          if (o2::gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi) < phiCut) {
+          if (o2::gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate) < phiCut) {
             if (storedTracklets < maxTrackletsPerCluster) {
               if (pairOfLayers == LAYER0_TO_LAYER1) {
                 Tracklets.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster);
@@ -114,7 +114,7 @@ void trackletSelectionKernelSerial(
     for (int iTracklet12{offset12}; iTracklet12 < offset12 + foundTracklets12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{offset01}; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
         const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].tanLambda - tracklets12[iTracklet12].tanLambda)};
-        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].phi - tracklets12[iTracklet12].phi)};
+        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].phiCoordinate - tracklets12[iTracklet12].phiCoordinate)};
         if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
           assert(tracklets01[iTracklet01].secondClusterIndex == tracklets12[iTracklet12].firstClusterIndex);
 #ifdef _ALLOW_DEBUG_TREES_ITS_
@@ -199,7 +199,7 @@ void VertexerTraits::arrangeClusters(ROframe* event)
       }
       for (unsigned int iCluster{0}; iCluster < clustersNum; ++iCluster) {
         mClusters[iLayer].emplace_back(iLayer, mIndexTableUtils, currentLayer.at(iCluster));
-        mAverageClustersRadii[iLayer] += mClusters[iLayer].back().radius;
+        mAverageClustersRadii[iLayer] += mClusters[iLayer].back().rCoordinate;
       }
       mAverageClustersRadii[iLayer] *= 1.f / clustersNum;
 

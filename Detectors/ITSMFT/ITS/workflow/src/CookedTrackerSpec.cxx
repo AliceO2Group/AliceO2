@@ -153,7 +153,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
       }
     }
 
-    vertexer.clustersToVertices(event, false, [&](std::string s) { LOG(INFO) << s; });
+    vertexer.clustersToVertices(event);
     auto vtxVecLoc = vertexer.exportVertices();
 
     if (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0) { // cut was requested

@@ -16,11 +16,6 @@
 #ifndef TRACKINGITSU_INCLUDE_GPU_UTILS_H_
 #define TRACKINGITSU_INCLUDE_GPU_UTILS_H_
 
-#ifndef GPUCA_GPUCODE_GENRTC
-#include <cub/cub.cuh>
-#include <cstdint>
-#endif
-
 #include "GPUCommonDef.h"
 #include "ITStrackingCUDA/Stream.h"
 

@@ -29,7 +29,7 @@
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/MathUtils.h"
-#include "ITStracking/TimeFrame.h"
+#include "ITStracking/PrimaryVertexContext.h"
 #include "ITStracking/Road.h"
 
 namespace o2
@@ -63,10 +63,10 @@ class TrackerTraits
   virtual void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&){};
 
   void UpdateTrackingParameters(const TrackingParameters& trkPar);
-  TimeFrame* getTimeFrame() { return mTimeFrame; }
+  PrimaryVertexContext* getPrimaryVertexContext() { return mPrimaryVertexContext; }
 
  protected:
-  TimeFrame* mTimeFrame;
+  PrimaryVertexContext* mPrimaryVertexContext;
   TrackingParameters mTrkParams;
 
   o2::gpu::GPUChainITS* mChain = nullptr;
@@ -82,9 +82,9 @@ inline GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCl
                                                         const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = o2::gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
-  const float phiRangeMin = currentCluster.phi - maxdeltaphi;
+  const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
   const float zRangeMax = o2::gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
-  const float phiRangeMax = currentCluster.phi + maxdeltaphi;
+  const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
 
   if (zRangeMax < -mTrkParams.LayerZ[layerIndex + 1] ||
       zRangeMin > mTrkParams.LayerZ[layerIndex + 1] || zRangeMin > zRangeMax) {
@@ -92,11 +92,11 @@ inline GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCl
     return getEmptyBinsRect();
   }
 
-  const IndexTableUtils& utils{mTimeFrame->mIndexTableUtils};
+  const IndexTableUtils& utils{mPrimaryVertexContext->mIndexTableUtils};
   return int4{o2::gpu::GPUCommonMath::Max(0, utils.getZBinIndex(layerIndex + 1, zRangeMin)),
-              utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMin)),
+              utils.getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMin)),
               o2::gpu::GPUCommonMath::Min(mTrkParams.ZBins - 1, utils.getZBinIndex(layerIndex + 1, zRangeMax)),
-              utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
+              utils.getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax))};
 }
 } // namespace its
 } // namespace o2

@@ -24,7 +24,6 @@
 #include <iosfwd>
 #include <memory>
 #include <utility>
-#include <sstream>
 
 #include "ITStracking/Configuration.h"
 #include "DetectorsBase/MatLayerCylSet.h"
@@ -32,12 +31,14 @@
 #include "ITStracking/Definitions.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/MathUtils.h"
+#include "ITStracking/PrimaryVertexContext.h"
 #include "DetectorsBase/Propagator.h"
-#include "ITStracking/TimeFrame.h"
 #include "ITStracking/Road.h"
 
 #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+
+#include "Framework/Logger.h"
 
 #ifdef CA_DEBUG
 #include "ITStracking/StandaloneDebugger.h"
@@ -53,7 +54,7 @@ class GPUChainITS;
 namespace its
 {
 
-class TimeFrame;
+class PrimaryVertexContext;
 class TrackerTraits;
 
 class Tracker
@@ -69,7 +70,10 @@ class Tracker
   void setBz(float bz);
   float getBz() const;
 
-  void clustersToTracks(std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
+  std::vector<TrackITSExt>& getTracks();
+  auto& getTrackLabels() { return mTrackLabels; }
+
+  void clustersToTracks(const ROframe&, std::ostream& = std::cout);
 
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
@@ -82,23 +86,23 @@ class Tracker
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
                                     const TrackingFrameInfo& tf3);
   template <typename... T>
-  void initialiseTimeFrame(T&&... args);
+  void initialisePrimaryVertexContext(T&&... args);
   void computeTracklets();
   void computeCells();
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
-  void findTracks();
-  bool fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut = o2::constants::math::VeryBig, const float maxQoverPt = o2::constants::math::VeryBig);
+  void findTracks(const ROframe& ev);
+  bool fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step, const float chi2cut = o2::constants::math::VeryBig);
   void traverseCellsTree(const int, const int);
-  void computeRoadsMClabels();
-  void computeTracksMClabels();
-  void rectifyClusterIndices();
+  void computeRoadsMClabels(const ROframe&);
+  void computeTracksMClabels(const ROframe&);
+  void rectifyClusterIndices(const ROframe& event);
 
   template <typename... T>
-  float evaluateTask(void (Tracker::*)(T...), const char*, std::function<void(std::string s)> logger, T&&... args);
+  float evaluateTask(void (Tracker::*)(T...), const char*, std::ostream& ostream, T&&... args);
 
   TrackerTraits* mTraits = nullptr;                      /// Observer pointer, not owned by this class
-  TimeFrame* mTimeFrame = nullptr;                       /// Observer pointer, not owned by this class
+  PrimaryVertexContext* mPrimaryVertexContext = nullptr; /// Observer pointer, not owned by this class
 
   std::vector<MemoryParameters> mMemParams;
   std::vector<TrackingParameters> mTrkParams;
@@ -107,6 +111,8 @@ class Tracker
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
   float mBz = 5.f;
   std::uint32_t mROFrame = 0;
+  std::vector<TrackITSExt> mTracks;
+  std::vector<MCCompLabel> mTrackLabels;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 
 #ifdef CA_DEBUG
@@ -131,13 +137,18 @@ inline void Tracker::setBz(float bz)
 }
 
 template <typename... T>
-void Tracker::initialiseTimeFrame(T&&... args)
+void Tracker::initialisePrimaryVertexContext(T&&... args)
 {
-  mTimeFrame->initialise(std::forward<T>(args)...);
+  mPrimaryVertexContext->initialise(std::forward<T>(args)...);
+}
+
+inline std::vector<TrackITSExt>& Tracker::getTracks()
+{
+  return mTracks;
 }
 
 template <typename... T>
-float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, std::function<void(std::string s)> logger,
+float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, std::ostream& ostream,
                             T&&... args)
 {
   float diff{0.f};
@@ -150,13 +161,13 @@ float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, s
     std::chrono::duration<double, std::milli> diff_t{end - start};
     diff = diff_t.count();
 
-    std::stringstream sstream;
-    if (taskName == nullptr) {
-      sstream << diff << "\t";
-    } else {
-      sstream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms";
+    if (fair::Logger::Logging(fair::Severity::info)) {
+      if (taskName == nullptr) {
+        ostream << diff << "\t";
+      } else {
+        ostream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
+      }
     }
-    logger(sstream.str());
   } else {
     (this->*task)(std::forward<T>(args)...);
   }

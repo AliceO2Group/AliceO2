@@ -18,11 +18,6 @@
 
 #include <array>
 
-#ifndef GPUCA_GPUCODE_GENRTC
-#include <cub/cub.cuh>
-#include <cstdint>
-#endif
-
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Definitions.h"

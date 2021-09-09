@@ -16,11 +16,6 @@
 #ifndef TRACKINGITSU_INCLUDE_DEVICESTORENV_H_
 #define TRACKINGITSU_INCLUDE_DEVICESTORENV_H_
 
-#ifndef GPUCA_GPUCODE_GENRTC
-#include <cub/cub.cuh>
-#include <cstdint>
-#endif
-
 #include "ITStracking/Cell.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Cluster.h"
