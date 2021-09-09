@@ -28,10 +28,8 @@
 
 #include "ITSBase/GeometryTGeo.h"
 
-#include "DataFormatsITSMFT/CompCluster.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
-#include "ITStracking/TimeFrame.h"
 #include "ITStracking/Tracker.h"
 #include "ITStracking/TrackerTraitsCPU.h"
 #include "ITStracking/Vertexer.h"
@@ -69,6 +67,13 @@ void run_trac_ca_its(bool cosmics = false,
 
   gSystem->Load("libO2ITStracking");
 
+  //std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
+  // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance("CUDA", true)); // for GPU with CUDA
+  // auto* chainITS = rec->AddChain<GPUChainITS>();
+  // rec->Init();
+
+  // o2::its::Tracker tracker(chainITS->GetITSTrackerTraits());
+  o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU());
   o2::its::ROframe event(0, 7);
 
   if (path.back() != '/') {
@@ -87,6 +92,21 @@ void run_trac_ca_its(bool cosmics = false,
     LOG(FATAL) << "Failed to load ma";
   }
   double origD[3] = {0., 0., 0.};
+  tracker.setBz(field->getBz(origD));
+
+  //-------- init lookuptable --------//
+  if (useLUT) {
+    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
+    o2::base::Propagator::Instance()->setMatLUT(lut);
+  } else {
+    tracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
+  }
+
+  if (tracker.isMatLUT()) {
+    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+  } else {
+    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+  }
 
   //
 
@@ -211,42 +231,42 @@ void run_trac_ca_its(bool cosmics = false,
     memParams.resize(3);
     trackParams[0].TrackletMaxDeltaPhi = 0.05f;
     trackParams[1].TrackletMaxDeltaPhi = 0.1f;
-    trackParams[2].MinTrackLength = 5;
+    trackParams[2].MinTrackLength = 4;
     trackParams[2].TrackletMaxDeltaPhi = 0.3;
     // ---
-    // Uncomment for pp
-    trackParams.resize(2);
-    std::array<const float, 5> kmaxDCAxy1 = {1.f * 2.0, 0.4f * 2.0, 0.4f * 2.0, 2.0f * 2.0, 3.f * 2.0};
-    std::array<const float, 5> kmaxDCAz1 = {1.f * 2.0, 0.4f * 2.0, 0.4f * 2.0, 2.0f * 2.0, 3.f * 2.0};
-    std::array<const float, 4> kmaxDN1 = {0.005f * 2.0, 0.0035f * 2.0, 0.009f * 2.0, 0.03f * 2.0};
-    std::array<const float, 4> kmaxDP1 = {0.02f * 2.0, 0.005f * 2.0, 0.006f * 2.0, 0.007f * 2.0};
-    std::array<const float, 6> kmaxDZ1 = {1.f * 2.0, 1.f * 2.0, 2.0f * 2.0, 2.0f * 2.0, 2.0f * 2.0, 2.0f * 2.0};
-    const float kDoublTanL1 = 0.05f * 5.;
-    const float kDoublPhi1 = 0.2f * 5.;
-    trackParams[1].MinTrackLength = 4;
-    trackParams[1].TrackletMaxDeltaPhi = 0.3;
-    trackParams[1].CellMaxDeltaPhi = 0.2 * 2;
-    trackParams[1].CellMaxDeltaTanLambda = 0.05 * 2;
-    std::copy(kmaxDZ1.begin(), kmaxDZ1.end(), trackParams[1].TrackletMaxDeltaZ.begin());
-    std::copy(kmaxDCAxy1.begin(), kmaxDCAxy1.end(), trackParams[1].CellMaxDCA.begin());
-    std::copy(kmaxDCAz1.begin(), kmaxDCAz1.end(), trackParams[1].CellMaxDeltaZ.begin());
-    std::copy(kmaxDP1.begin(), kmaxDP1.end(), trackParams[1].NeighbourMaxDeltaCurvature.begin());
-    std::copy(kmaxDN1.begin(), kmaxDN1.end(), trackParams[1].NeighbourMaxDeltaN.begin());
-    memParams.resize(2);
+    // pp tracking params
+    // trackParams.resize(2);
+    // std::array<const float, 5> kmaxDCAxy1 = {1.f * 2.0, 0.4f * 2.0, 0.4f * 2.0, 2.0f * 2.0, 3.f * 2.0};
+    // std::array<const float, 5> kmaxDCAz1 = {1.f * 2.0, 0.4f * 2.0, 0.4f * 2.0, 2.0f * 2.0, 3.f * 2.0};
+    // std::array<const float, 4> kmaxDN1 = {0.005f * 2.0, 0.0035f * 2.0, 0.009f * 2.0, 0.03f * 2.0};
+    // std::array<const float, 4> kmaxDP1 = {0.02f * 2.0, 0.005f * 2.0, 0.006f * 2.0, 0.007f * 2.0};
+    // std::array<const float, 6> kmaxDZ1 = {1.f * 2.0, 1.f * 2.0, 2.0f * 2.0, 2.0f * 2.0, 2.0f * 2.0, 2.0f * 2.0};
+    // const float kDoublTanL1 = 0.05f * 5.;
+    // const float kDoublPhi1 = 0.2f * 5.;
+    // trackParams[1].MinTrackLength = 7;
+    // trackParams[1].TrackletMaxDeltaPhi = 0.3;
+    // trackParams[1].CellMaxDeltaPhi = 0.2 * 2;
+    // trackParams[1].CellMaxDeltaTanLambda = 0.05 * 2;
+    // std::copy(kmaxDZ1.begin(), kmaxDZ1.end(), trackParams[1].TrackletMaxDeltaZ.begin());
+    // std::copy(kmaxDCAxy1.begin(), kmaxDCAxy1.end(), trackParams[1].CellMaxDCA.begin());
+    // std::copy(kmaxDCAz1.begin(), kmaxDCAz1.end(), trackParams[1].CellMaxDeltaZ.begin());
+    // std::copy(kmaxDP1.begin(), kmaxDP1.end(), trackParams[1].NeighbourMaxDeltaCurvature.begin());
+    // std::copy(kmaxDN1.begin(), kmaxDN1.end(), trackParams[1].NeighbourMaxDeltaN.begin());
+    // memParams.resize(2);
+    // for (auto& coef : memParams[1].CellsMemoryCoefficients)
+    //   coef *= 40;
+    // for (auto& coef : memParams[1].TrackletsMemoryCoefficients)
+    //   coef *= 40;
     // ---
   }
 
+  tracker.setParameters(memParams, trackParams);
 
   int currentEvent = -1;
   gsl::span<const unsigned char> patt(patterns->data(), patterns->size());
   auto pattIt = patt.begin();
   auto clSpan = gsl::span(cclusters->data(), cclusters->size());
 
-  o2::its::TimeFrame tf;
-  gsl::span<o2::itsmft::ROFRecord> rofspan(*rofs);
-  tf.loadROFrameData(rofspan, clSpan, pattIt, dict, labels);
-  pattIt = patt.begin();
-  int rofId{0};
   for (auto& rof : *rofs) {
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -255,11 +275,10 @@ void run_trac_ca_its(bool cosmics = false,
 
     vertexer.initialiseVertexer(&event);
     vertexer.findTracklets();
+    // vertexer.filterMCTracklets(); // to use MC check
     vertexer.validateTracklets();
     vertexer.findVertices();
     std::vector<Vertex> vertITS = vertexer.exportVertices();
-    rofId++;
-    tf.addPrimaryVertices(vertITS);
     auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
     vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
     vtxROF.setNEntries(vertITS.size());
@@ -276,36 +295,19 @@ void run_trac_ca_its(bool cosmics = false,
     }
     trackClIdx.clear();
     tracksITS.clear();
+    tracker.clustersToTracks(event);
+
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> diff_t{end - start};
 
     ncls.push_back(event.getTotalClusters());
     time.push_back(diff_t.count());
-    roFrameCounter++;
-  }
-  tf.printVertices();
 
-  o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU(&tf));
-  tracker.setBz(field->getBz(origD));
-  tracker.setParameters(memParams, trackParams);
-  tracker.clustersToTracks();
-  //-------- init lookuptable --------//
-  if (useLUT) {
-    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
-    o2::base::Propagator::Instance()->setMatLUT(lut);
-  } else {
-    tracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
-  }
-
-  if (tracker.isMatLUT()) {
-    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
-  } else {
-    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
-  }
-
-  for (int iROF{0}; iROF < tf.getNrof(); ++iROF) {
-    tracksITS.clear();
-    for (auto& trc : tf.getTracks(iROF)) {
+    tracks.swap(tracker.getTracks());
+    if (tracks.size()) {
+      std::cout << "\t\tFound " << tracks.size() << " tracks" << std::endl;
+    }
+    for (auto& trc : tracks) {
       trc.setFirstClusterEntry(trackClIdx.size()); // before adding tracks, create final cluster indices
       int ncl = trc.getNumberOfClusters();
       for (int ic = 0; ic < ncl; ic++) {
@@ -313,13 +315,15 @@ void run_trac_ca_its(bool cosmics = false,
       }
       tracksITS.emplace_back(trc);
     }
-    trackLabels = tf.getTracksLabel(iROF); /// FIXME: assignment ctor is not optimal.
+
+    trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.
     outTree.Fill();
+    roFrameCounter++;
   }
 
   outFile.cd();
   outTree.Write();
-  // outFile.Close();
+  outFile.Close();
 
   TGraph* graph = new TGraph(ncls.size(), ncls.data(), time.data());
   graph->SetMarkerStyle(20);

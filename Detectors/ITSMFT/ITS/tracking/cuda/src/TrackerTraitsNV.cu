@@ -13,8 +13,6 @@
 /// \brief
 ///
 
-#include "GPUCommonRtypes.h"
-
 #include "ITStrackingCUDA/TrackerTraitsNV.h"
 
 #include <array>
@@ -46,9 +44,9 @@ GPU_DEVICE const int4 getBinsRect(const Cluster& currentCluster, const int layer
                                   const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = o2::gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
-  const float phiRangeMin = currentCluster.phi - maxdeltaphi;
+  const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
   const float zRangeMax = o2::gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
-  const float phiRangeMax = currentCluster.phi + maxdeltaphi;
+  const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
 
   if (zRangeMax < -LayersZCoordinate()[layerIndex + 1] ||
       zRangeMin > LayersZCoordinate()[layerIndex + 1] || zRangeMin > zRangeMax) {
@@ -103,9 +101,9 @@ __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIn
      continue;
      }*/
 
-    const float tanLambda{(currentCluster.zCoordinate - devStore.getPrimaryVertex().z) / currentCluster.radius};
-    const float zAtRmin{tanLambda * (devStore.getRmin(layerIndex + 1) - currentCluster.radius) + currentCluster.zCoordinate};
-    const float zAtRmax{tanLambda * (devStore.getRmax(layerIndex + 1) - currentCluster.radius) + currentCluster.zCoordinate};
+    const float tanLambda{(currentCluster.zCoordinate - devStore.getPrimaryVertex().z) / currentCluster.rCoordinate};
+    const float zAtRmin{tanLambda * (devStore.getRmin(layerIndex + 1) - currentCluster.rCoordinate) + currentCluster.zCoordinate};
+    const float zAtRmax{tanLambda * (devStore.getRmax(layerIndex + 1) - currentCluster.rCoordinate) + currentCluster.zCoordinate};
 
     const int4 selectedBinsRect{getBinsRect(currentCluster, layerIndex, zAtRmin, zAtRmax,
                                             kTrkPar.TrackletMaxDeltaZ[layerIndex], kTrkPar.TrackletMaxDeltaPhi)};
@@ -133,8 +131,8 @@ __device__ void computeLayerTracklets(DeviceStoreNV& devStore, const int layerIn
           const Cluster& nextCluster{nextLayerClusters[iNextLayerCluster]};
 
           const float deltaZ{o2::gpu::GPUCommonMath::Abs(
-            tanLambda * (nextCluster.radius - currentCluster.radius) + currentCluster.zCoordinate - nextCluster.zCoordinate)};
-          const float deltaPhi{o2::gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi)};
+            tanLambda * (nextCluster.rCoordinate - currentCluster.rCoordinate) + currentCluster.zCoordinate - nextCluster.zCoordinate)};
+          const float deltaPhi{o2::gpu::GPUCommonMath::Abs(currentCluster.phiCoordinate - nextCluster.phiCoordinate)};
 
           if (deltaZ < kTrkPar.TrackletMaxDeltaZ[layerIndex] && (deltaPhi < kTrkPar.TrackletMaxDeltaPhi || o2::gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < kTrkPar.TrackletMaxDeltaPhi)) {
 
@@ -183,8 +181,8 @@ __device__ void computeLayerCells(DeviceStoreNV& devStore, const int layerIndex,
         devStore.getClusters()[layerIndex][currentTracklet.firstClusterIndex]};
       const Cluster& secondCellCluster{
         devStore.getClusters()[layerIndex + 1][currentTracklet.secondClusterIndex]};
-      const float firstCellClusterQuadraticRCoordinate{firstCellCluster.radius * firstCellCluster.radius};
-      const float secondCellClusterQuadraticRCoordinate{secondCellCluster.radius * secondCellCluster.radius};
+      const float firstCellClusterQuadraticRCoordinate{firstCellCluster.rCoordinate * firstCellCluster.rCoordinate};
+      const float secondCellClusterQuadraticRCoordinate{secondCellCluster.rCoordinate * secondCellCluster.rCoordinate};
       const float3 firstDeltaVector{secondCellCluster.xCoordinate - firstCellCluster.xCoordinate,
                                     secondCellCluster.yCoordinate - firstCellCluster.yCoordinate, secondCellClusterQuadraticRCoordinate - firstCellClusterQuadraticRCoordinate};
 
@@ -193,12 +191,12 @@ __device__ void computeLayerCells(DeviceStoreNV& devStore, const int layerIndex,
 
         const Tracklet& nextTracklet{devStore.getTracklets()[layerIndex + 1][iNextLayerTracklet]};
         const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
-        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(currentTracklet.phi - nextTracklet.phi)};
+        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(currentTracklet.phiCoordinate - nextTracklet.phiCoordinate)};
 
         if (deltaTanLambda < kTrkPar.CellMaxDeltaTanLambda && (deltaPhi < kTrkPar.CellMaxDeltaPhi || o2::gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < kTrkPar.CellMaxDeltaPhi)) {
 
           const float averageTanLambda{0.5f * (currentTracklet.tanLambda + nextTracklet.tanLambda)};
-          const float directionZIntersection{-averageTanLambda * firstCellCluster.radius + firstCellCluster.zCoordinate};
+          const float directionZIntersection{-averageTanLambda * firstCellCluster.rCoordinate + firstCellCluster.zCoordinate};
           const float deltaZ{o2::gpu::GPUCommonMath::Abs(directionZIntersection - primaryVertex.z)};
 
           if (deltaZ < kTrkPar.CellMaxDeltaZ[layerIndex]) {
@@ -206,7 +204,7 @@ __device__ void computeLayerCells(DeviceStoreNV& devStore, const int layerIndex,
             const Cluster& thirdCellCluster{
               devStore.getClusters()[layerIndex + 2][nextTracklet.secondClusterIndex]};
 
-            const float thirdCellClusterQuadraticRCoordinate{thirdCellCluster.radius * thirdCellCluster.radius};
+            const float thirdCellClusterQuadraticRCoordinate{thirdCellCluster.rCoordinate * thirdCellCluster.rCoordinate};
 
             const float3 secondDeltaVector{thirdCellCluster.xCoordinate - firstCellCluster.xCoordinate,
                                            thirdCellCluster.yCoordinate - firstCellCluster.yCoordinate, thirdCellClusterQuadraticRCoordinate - firstCellClusterQuadraticRCoordinate};
@@ -313,9 +311,19 @@ TrackerTraits* createTrackerTraitsNV()
   return new TrackerTraitsNV;
 }
 
+TrackerTraitsNV::TrackerTraitsNV()
+{
+  mPrimaryVertexContext = new PrimaryVertexContextNV;
+}
+
+TrackerTraitsNV::~TrackerTraitsNV()
+{
+  delete mPrimaryVertexContext;
+}
+
 void TrackerTraitsNV::computeLayerTracklets()
 {
-  PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(nullptr); //TODO: FIX THIS with Time Frames
+  PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
 
   // cudaMemcpyToSymbol(gpu::kTrkPar, &mTrkParams, sizeof(TrackingParameters));
   std::array<size_t, constants::its2::CellsPerRoad> tempSize;
@@ -405,7 +413,7 @@ void TrackerTraitsNV::computeLayerTracklets()
 void TrackerTraitsNV::computeLayerCells()
 {
 
-  PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(nullptr); //TODO: FIX THIS with Time Frames
+  PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
   std::array<size_t, constants::its2::CellsPerRoad - 1> tempSize;
   std::array<int, constants::its2::CellsPerRoad - 1> trackletsNum;
   std::array<int, constants::its2::CellsPerRoad - 1> cellsNum;
@@ -520,7 +528,7 @@ void TrackerTraitsNV::computeLayerCells()
 
 void TrackerTraitsNV::refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
 {
-  PrimaryVertexContextNV* pvctx = static_cast<PrimaryVertexContextNV*>(nullptr); //TODO: FIX THIS with Time Frames
+  PrimaryVertexContextNV* pvctx = static_cast<PrimaryVertexContextNV*>(mPrimaryVertexContext);
 
   std::array<const Cell*, 5> cells;
   for (int iLayer = 0; iLayer < 5; iLayer++) {

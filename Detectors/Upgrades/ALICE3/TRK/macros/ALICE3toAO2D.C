@@ -34,7 +34,6 @@
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Tracker.h"
 #include "ITStracking/TrackerTraitsCPU.h"
-#include "ITStracking/TimeFrame.h"
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/VertexerTraits.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -100,8 +99,7 @@ void ALICE3toAO2D()
 
   itsHits.AddFile(hitsFileName.data());
 
-  o2::its::TimeFrame tf;
-  o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU(&tf));
+  o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU());
   tracker.setBz(5.f);
 
   std::uint32_t roFrame;
@@ -441,16 +439,10 @@ void ALICE3toAO2D()
     std::vector<Vertex> vertices = vertexer.exportVertices();
     std::cout << "*- Number of vertices found: " << vertices.size() << endl;
     hNVertices->Fill(vertices.size());
-
-    tf.addPrimaryVertices(vertices);
-  }
-
-  tracker.clustersToTracks();
-
-  for (int iROF{0}; iROF < tf.getNrof(); ++iROF) {
-    auto vertices{tf.getPrimaryVertices(iROF)};
+    //Skip events with no vertex
     if (vertices.size() == 0) {
       std::cout << "*- No primary vertex found, skipping event" << std::endl;
+      continue;
     }
 
     o2::math_utils::Point3D<float> pos{vertices[0].getX(), vertices[0].getY(), vertices[0].getZ()};
@@ -509,8 +501,11 @@ void ALICE3toAO2D()
       bc.fTriggerMask |= 1ull << iii;
     bc.fRunNumber = 246087; //ah, the good old days
 
-    auto& lTracks = tf.getTracks(iROF);
-    auto& lTracksLabels = tf.getTracksLabel(iROF);
+    std::cout << "*- Event " << iEvent << " tracking" << std::endl;
+    tracker.clustersToTracks(event);
+    auto& lTracks = tracker.getTracks();
+    auto& lTracksLabels = tracker.getTrackLabels();
+    std::cout << "*- Event " << iEvent << " done tracking!" << std::endl;
     hNTracks->Fill(lTracks.size());
 
     //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

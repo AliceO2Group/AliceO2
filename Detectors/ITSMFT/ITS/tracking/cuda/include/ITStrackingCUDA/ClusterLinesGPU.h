@@ -17,7 +17,6 @@
 #define O2_ITSMFT_TRACKING_CLUSTERLINESGPU_H_
 
 #include "GPUCommonDef.h"
-#include <cstdint> /// Required to properly compile MathUtils
 #include "ITStracking/ClusterLines.h"
 
 namespace o2

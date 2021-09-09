@@ -33,19 +33,19 @@ Vertexer::Vertexer(VertexerTraits* traits)
   mTraits = traits;
 }
 
-float Vertexer::clustersToVertices(ROframe& event, const bool useMc, std::function<void(std::string s)> logger)
+float Vertexer::clustersToVertices(ROframe& event, const bool useMc, std::ostream& timeBenchmarkOutputStream)
 {
   ROframe* eventptr = &event;
   float total{0.f};
-  total += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", logger, eventptr);
-  total += evaluateTask(&Vertexer::findTracklets, "Tracklet finding", logger);
+  total += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", timeBenchmarkOutputStream, eventptr);
+  total += evaluateTask(&Vertexer::findTracklets, "Tracklet finding", timeBenchmarkOutputStream);
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   if (useMc) {
-    total += evaluateTask(&Vertexer::filterMCTracklets, "MC tracklets filtering", logger);
+    total += evaluateTask(&Vertexer::filterMCTracklets, "MC tracklets filtering", timeBenchmarkOutputStream);
   }
 #endif
-  total += evaluateTask(&Vertexer::validateTracklets, "Adjacent tracklets validation", logger);
-  total += evaluateTask(&Vertexer::findVertices, "Vertex finding", logger);
+  total += evaluateTask(&Vertexer::validateTracklets, "Adjacent tracklets validation", timeBenchmarkOutputStream);
+  total += evaluateTask(&Vertexer::findVertices, "Vertex finding", timeBenchmarkOutputStream);
 
   return total;
 }

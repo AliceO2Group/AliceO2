@@ -28,7 +28,7 @@ namespace its
 
 struct Tracklet final {
   Tracklet();
-  GPUdi() Tracklet(const int, const int, const Cluster&, const Cluster&, int rof0, int rof1);
+  GPUdi() Tracklet(const int, const int, const Cluster&, const Cluster&);
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   unsigned char isEmpty() const;
   void dump();
@@ -38,24 +38,22 @@ struct Tracklet final {
   int firstClusterIndex;
   int secondClusterIndex;
   float tanLambda;
-  float phi;
-  unsigned short rof[2];
+  float phiCoordinate;
 };
 
-inline Tracklet::Tracklet() : firstClusterIndex{0}, secondClusterIndex{0}, tanLambda{0.0f}, phi{0.0f}
+inline Tracklet::Tracklet() : firstClusterIndex{0}, secondClusterIndex{0}, tanLambda{0.0f}, phiCoordinate{0.0f}
 {
   // Nothing to do
 }
 
 GPUdi() Tracklet::Tracklet(const int firstClusterOrderingIndex, const int secondClusterOrderingIndex,
-                           const Cluster& firstCluster, const Cluster& secondCluster, int rof0 = -1, int rof1 = -1)
+                           const Cluster& firstCluster, const Cluster& secondCluster)
   : firstClusterIndex{firstClusterOrderingIndex},
     secondClusterIndex{secondClusterOrderingIndex},
     tanLambda{(firstCluster.zCoordinate - secondCluster.zCoordinate) /
-              (firstCluster.radius - secondCluster.radius)},
-    phi{o2::gpu::GPUCommonMath::ATan2(firstCluster.yCoordinate - secondCluster.yCoordinate,
-                                      firstCluster.xCoordinate - secondCluster.xCoordinate)},
-    rof{static_cast<unsigned short>(rof0), static_cast<unsigned short>(rof1)}
+              (firstCluster.rCoordinate - secondCluster.rCoordinate)},
+    phiCoordinate{o2::gpu::GPUCommonMath::ATan2(firstCluster.yCoordinate - secondCluster.yCoordinate,
+                                                firstCluster.xCoordinate - secondCluster.xCoordinate)}
 {
   // Nothing to do
 }
@@ -63,7 +61,7 @@ GPUdi() Tracklet::Tracklet(const int firstClusterOrderingIndex, const int second
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 inline unsigned char Tracklet::isEmpty() const
 {
-  return !firstClusterIndex && !secondClusterIndex && !tanLambda && !phi;
+  return !firstClusterIndex && !secondClusterIndex && !tanLambda && !phiCoordinate;
 }
 
 inline unsigned char Tracklet::operator<(const Tracklet& t) const
@@ -82,7 +80,7 @@ inline void Tracklet::dump()
   std::cout << "firstClusterIndex: " << firstClusterIndex << std::endl;
   std::cout << "secondClusterIndex: " << secondClusterIndex << std::endl;
   std::cout << "tanLambda: " << tanLambda << std::endl;
-  std::cout << "phi: " << phi << std::endl;
+  std::cout << "phiCoordinate: " << phiCoordinate << std::endl;
 }
 #endif
 

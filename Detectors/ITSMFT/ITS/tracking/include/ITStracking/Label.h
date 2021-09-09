@@ -28,7 +28,7 @@ struct Label final {
 
   int monteCarloId;
   float transverseMomentum;
-  float phi;
+  float phiCoordinate;
   float pseudorapidity;
   int pdgCode;
   int numberOfClusters;

@@ -23,7 +23,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-
+#include "CommonDataFormat/IRFrame.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/TrackingConfigParam.h"
@@ -33,7 +33,6 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "CommonDataFormat/IRFrame.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 
 #include "ITSReconstruction/FastMultEstConfig.h"
@@ -81,7 +80,7 @@ void TrackerDPL::init(InitContext& ic)
     auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
     mRecChain->Init();
     mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
-    mTracker = std::make_unique<Tracker>(new TrackerTraitsCPU(&mTimeFrame));
+    mTracker = std::make_unique<Tracker>(chainITS->GetITSTrackerTraits());
 
     std::vector<TrackingParameters> trackParams;
     std::vector<MemoryParameters> memParams;
@@ -90,14 +89,11 @@ void TrackerDPL::init(InitContext& ic)
     if (mMode == "async") {
 
       trackParams.resize(3);
-      trackParams[0].TrackletMaxDeltaPhi = 0.05f;
-      trackParams[0].DeltaROF = 0;
-      trackParams[1].CopyCuts(trackParams[0], 2.);
-      trackParams[1].DeltaROF = 0;
-      trackParams[2].CopyCuts(trackParams[1], 2.);
-      trackParams[2].DeltaROF = 1;
-      trackParams[2].MinTrackLength = 4;
       memParams.resize(3);
+      trackParams[0].TrackletMaxDeltaPhi = 0.05f;
+      trackParams[1].TrackletMaxDeltaPhi = 0.1f;
+      trackParams[2].MinTrackLength = 4;
+      trackParams[2].TrackletMaxDeltaPhi = 0.3;
       LOG(INFO) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
 
     } else if (mMode == "sync") {
@@ -163,11 +159,6 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
-  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0, Lifetime::Timeframe});
-
-  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
-  int nBCPerTF = alpParams.roFrameLengthInBC;
-
   LOG(INFO) << "ITSTracker pulled " << compClusters.size() << " clusters, " << rofs.size() << " RO frames";
 
   const dataformats::MCTruthContainer<MCCompLabel>* labels = nullptr;
@@ -188,28 +179,47 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
 
+  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0, Lifetime::Timeframe});
+
   std::uint32_t roFrame = 0;
   ROframe event(0, 7);
 
   bool continuous = mGRP->isDetContinuousReadOut("ITS");
   LOG(INFO) << "ITSTracker RO: continuous=" << continuous;
 
+  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
+  int nBCPerTF = continuous ? alpParams.roFrameLengthInBC : alpParams.roFrameLengthTrig;
+
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
 
+  // snippet to convert found tracks to final output tracks with separate cluster indices
+  auto copyTracks = [](auto& tracks, auto& allTracks, auto& allClusIdx) {
+    for (auto& trc : tracks) {
+      trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
+      int ncl = trc.getNumberOfClusters(), nclf = 0;
+      uint8_t patt = 0;
+      for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
+        auto clid = trc.getClusterIndex(ic);
+        if (clid >= 0) {
+          allClusIdx.push_back(clid);
+          nclf++;
+          patt |= 0x1 << ic;
+        }
+      }
+      assert(ncl == nclf);
+      trc.setPattern(patt);
+      allTracks.emplace_back(trc);
+    }
+  };
+
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
-  if (continuous) {
-    gsl::span<itsmft::ROFRecord> rofspan(rofs);
-    mTimeFrame.loadROFrameData(rofspan, compClusters, pattIt, mDict, labels);
-    pattIt = patterns.begin();
-    std::vector<int> savedROF;
-    auto logger = [&](std::string s) { LOG(INFO) << s; };
-    for (auto& rof : rofspan) {
+  for (auto& rof : rofs) {
+    int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
+    // prepare in advance output ROFRecords, even if this ROF to be rejected
+    int first = allTracks.size();
 
-      int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
-      // prepare in advance output ROFRecords, even if this ROF to be rejected
-      int first = allTracks.size();
-
+    if (nclUsed) {
       LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
 
       // for vertices output
@@ -217,62 +227,70 @@ void TrackerDPL::run(ProcessingContext& pc)
       vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
       vtxROF.setNEntries(0);
 
+      if (multEstConf.cutMultClusLow > 0 || multEstConf.cutMultClusHigh > 0) { // cut was requested
+        auto mult = multEst.process(rof.getROFData(compClusters));
+        if (mult < multEstConf.cutMultClusLow || mult > multEstConf.cutMultClusHigh) {
+          LOG(INFO) << "Estimated cluster mult. " << mult << " is outside of requested range "
+                    << multEstConf.cutMultClusLow << " : " << multEstConf.cutMultClusHigh << " | ROF " << rof.getBCData();
+          rof.setFirstEntry(first);
+          rof.setNEntries(0);
+          continue;
+        }
+      }
+
       std::vector<Vertex> vtxVecLoc;
       if (mRunVertexer) {
-        mVertexer->clustersToVertices(event, false, logger);
+        mVertexer->clustersToVertices(event);
         vtxVecLoc = mVertexer->exportVertices();
       }
-      mTimeFrame.addPrimaryVertices(vtxVecLoc);
 
+      if (mRunVertexer && (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0)) { // cut was requested
+        std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecSel;
+        vtxVecSel.swap(vtxVecLoc);
+        for (const auto& vtx : vtxVecSel) {
+          if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
+            LOG(INFO) << "Found vertex mult. " << vtx.getNContributors() << " is outside of requested range "
+                      << multEstConf.cutMultVtxLow << " : " << multEstConf.cutMultVtxHigh << " | ROF " << rof.getBCData();
+            continue; // skip vertex of unwanted multiplicity
+          }
+          vtxVecLoc.push_back(vtx);
+        }
+        if (vtxVecLoc.empty()) { // reject ROF
+          rof.setFirstEntry(first);
+          rof.setNEntries(0);
+          continue;
+        }
+      }
+
+      if (mRunVertexer) {
+        event.addPrimaryVertices(vtxVecLoc);
+      } else {
+        event.addPrimaryVertex(0.f, 0.f, 0.f);
+      }
+      mTracker->setROFrame(roFrame);
+      mTracker->clustersToTracks(event);
+      tracks.swap(mTracker->getTracks());
+      LOG(INFO) << "Found tracks: " << tracks.size();
+      int number = tracks.size();
+      trackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
+      rof.setFirstEntry(first);
+      rof.setNEntries(number);
+      copyTracks(tracks, allTracks, allClusIdx);
+      std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+      trackLabels.clear();
       vtxROF.setNEntries(vtxVecLoc.size());
       for (const auto& vtx : vtxVecLoc) {
         vertices.push_back(vtx);
       }
-      savedROF.push_back(roFrame);
-      roFrame++;
-    }
-    mTracker->clustersToTracks(logger);
-
-    for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
-
-      auto& rof{rofs[iROF]};
-      tracks = mTimeFrame.getTracks(iROF);
-      trackLabels = mTimeFrame.getTracksLabel(iROF);
-      auto number{tracks.size()};
-      auto first{allTracks.size()};
-      int offset = -rof.getFirstEntry(); // cluster entry!!!
-      rof.setFirstEntry(first);
-      rof.setNEntries(number);
-
-      if (tracks.size()) {
+      if (number) {
         irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
       }
-      std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
-      // Some conversions that needs to be moved in the tracker internals
-      for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
-        auto& trc{tracks[iTrk]};
-        trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
-        int ncl = trc.getNumberOfClusters(), nclf = 0;
-        uint8_t patt = 0;
-        for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
-          auto clid = trc.getClusterIndex(ic);
-          if (clid >= 0) {
-            allClusIdx.push_back(clid);
-            nclf++;
-            patt |= 0x1 << ic;
-          }
-        }
-        assert(ncl == nclf);
-        trc.setPattern(patt);
-        allTracks.emplace_back(trc);
-      }
     }
-  } //MP: no triggered mode for the time being
+    roFrame++;
+  }
 
   LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
   if (mIsMC) {
-    LOG(INFO) << "ITSTracker pushed " << allTrackLabels.size() << " track labels";
-
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
     pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
