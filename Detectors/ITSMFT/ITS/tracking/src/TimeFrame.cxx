@@ -142,7 +142,7 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs, gsl::span<
     addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), mUnsortedClusters[layer].size());
     addClusterExternalIndexToLayer(layer, clusterId);
 
-    if (clusterId == rofs[mNrof].getFirstEntry() + rofs[mNrof].getNEntries() - 1) {
+    while (mNrof < rofs.size() && clusterId >= rofs[mNrof].getFirstEntry() + rofs[mNrof].getNEntries() - 1) {
       for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
         mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
       }
