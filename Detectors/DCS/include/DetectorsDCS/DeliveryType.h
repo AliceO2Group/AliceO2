@@ -116,6 +116,22 @@ enum DeliveryType {
          * numerical value of <tt>RAW_BOOL</tt> corresponds with the WinCC
          * constant <tt>DPEL_BOOL</tt>.
          */
+
+  RAW_FLOAT = 28,
+
+  /**
+         * <tt>Float</tt> stands for IEEE 754 single precision floating point
+         * number (64 bit). This is the raw variant. The numerical value of
+         * <tt>RAW_INT</tt> corresponds with the WinCC constant
+         * <tt>DPEL_FLOAT</tt>.
+         */
+  DPVAL_FLOAT = 156,
+
+  /**
+         * <tt>Float</tt> stands for IEEE 754 single precision floating point
+         * number (64 bit). This is the DPVAL variant.
+         */
+
   RAW_BOOL = 23,
 
   /**
@@ -174,6 +190,8 @@ inline DeliveryType read(const std::string& str)
     return RAW_UINT;
   } else if (str == "Raw/Double") {
     return RAW_DOUBLE;
+  } else if (str == "Raw/Float") {
+    return RAW_FLOAT;
   } else if (str == "Raw/Bool") {
     return RAW_BOOL;
   } else if (str == "Raw/Char") {
@@ -220,6 +238,8 @@ inline std::string show(const DeliveryType type)
       return "Raw/Bool";
     case RAW_CHAR:
       return "Raw/Char";
+    case RAW_FLOAT:
+      return "Raw/Float";
     case RAW_DOUBLE:
       return "Raw/Double";
     case RAW_TIME:
