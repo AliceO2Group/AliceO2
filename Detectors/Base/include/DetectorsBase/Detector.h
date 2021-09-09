@@ -535,7 +535,7 @@ class DetImpl : public o2::base::Detector
     int probe = 0;
     bool* busy = nullptr;
     using HitPtr_t = decltype(static_cast<Det*>(this)->Det::getHits(probe));
-    std::string name = static_cast<Det*>(this)->getHitBranchNames(probe++);
+    std::string name = static_cast<Det*>(this)->getHitBranchNames(probe);
 
     auto copyToBuffer = [eventID](HitPtr_t hitdata, Collector_t& collectbuffer, int probe) {
       auto eventIter = collectbuffer.find(eventID);
@@ -569,7 +569,8 @@ class DetImpl : public o2::base::Detector
         copyToBuffer(hitsptr, hitcollector, probe);
       }
       // next name
-      name = static_cast<Det*>(this)->getHitBranchNames(probe++);
+      probe++;
+      name = static_cast<Det*>(this)->getHitBranchNames(probe);
     }
     // there is only one busy flag per detector so we need to clear it only
     // at the end (after all branches have been treated)
