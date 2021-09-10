@@ -573,7 +573,6 @@ void Tracker::computeTracksMClabels()
               break;
             }
           }
-          track.setExternalClusterIndex(ic, mTimeFrame->getClusterExternalIndex(ic, clid));
         }
       }
       track.setPattern(pattern);
