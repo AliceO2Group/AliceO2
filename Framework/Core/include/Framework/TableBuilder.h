@@ -73,6 +73,11 @@ struct ConversionTraits<T[N]> {
   using ArrowType = ::arrow::FixedSizeListType;
 };
 
+template <typename T>
+struct ConversionTraits<std::vector<T>> {
+  using ArrowType = ::arrow::ListType;
+};
+
 #define O2_ARROW_STL_CONVERSION(c_type, ArrowType_) \
   template <>                                       \
   struct ConversionTraits<c_type> {                 \
@@ -149,6 +154,29 @@ struct BuilderUtils {
   static arrow::Status append(HolderType& holder, std::array<T, N> const& data)
   {
     return holder.builder->Append(reinterpret_cast<const uint8_t*>(data.data()));
+  }
+
+  /// Appender for the vector case.
+  template <typename HolderType, typename T>
+  static arrow::Status append(HolderType& holder, std::vector<T> const& data)
+  {
+    using ArrowType = typename detail::ConversionTraits<T>::ArrowType;
+    using ValueBuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
+    auto status = holder.builder->Reserve(data.size());
+    status &= holder.builder->Append();
+    auto vbuilder = static_cast<ValueBuilderType*>(holder.builder->value_builder());
+    status &= vbuilder->AppendValues(data.begin(), data.end());
+
+    return status;
+  }
+
+  template <typename HolderType, typename T>
+  static void unsafeAppend(HolderType& holder, std::vector<T> const& value)
+  {
+    auto status = append(holder, value);
+    if (!status.ok()) {
+      throw runtime_error("Unable to append to column");
+    }
   }
 
   template <typename HolderType, typename T>
@@ -338,6 +366,28 @@ struct BuilderMaker<T[N]> {
     return arrow::fixed_size_list(arrow::TypeTraits<ElementType>::type_singleton(), N);
   }
 };
+
+template <typename T>
+struct BuilderMaker<std::vector<T>> {
+  using FillType = std::vector<T>;
+  using BuilderType = arrow::ListBuilder;
+  using ArrowType = arrow::ListType;
+  using ElementType = typename detail::ConversionTraits<T>::ArrowType;
+
+  static std::unique_ptr<BuilderType> make(arrow::MemoryPool* pool)
+  {
+    std::unique_ptr<arrow::ArrayBuilder> valueBuilder;
+    auto status =
+      arrow::MakeBuilder(pool, arrow::TypeTraits<ElementType>::type_singleton(), &valueBuilder);
+    return std::make_unique<BuilderType>(pool, std::move(valueBuilder));
+  }
+
+  static std::shared_ptr<arrow::DataType> make_datatype()
+  {
+    return arrow::list(arrow::TypeTraits<ElementType>::type_singleton());
+  }
+};
+
 template <typename... ARGS>
 auto make_builders()
 {
@@ -364,6 +414,12 @@ template <typename T, int N>
 struct BuilderTraits<T[N]> {
   using ArrowType = arrow::FixedSizeListType;
   using BuilderType = arrow::FixedSizeListBuilder;
+};
+
+template <typename T>
+struct BuilderTraits<std::vector<T>> {
+  using ArrowType = arrow::ListType;
+  using BuilderType = arrow::ListBuilder;
 };
 
 template <typename T>
@@ -590,7 +646,7 @@ class TableBuilder
   /// Get the builders, assumning they were created with a given pack
   ///  of basic types
   template <typename... ARGS>
-  auto getBuilders(o2::framework::pack<ARGS...> pack)
+  auto getBuilders(o2::framework::pack<ARGS...>)
   {
     return (HoldersTuple<ARGS...>*)mHolders;
   }
