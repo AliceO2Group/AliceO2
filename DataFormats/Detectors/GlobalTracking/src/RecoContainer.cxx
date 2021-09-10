@@ -208,6 +208,37 @@ void DataRequest::requestFT0RecPoints(bool mc)
   requestMap["FT0"] = false;
 }
 
+void DataRequest::requestFV0RecPoints(bool mc)
+{
+  addInput({"fv0recpoints", "FV0", "RECPOINTS", 0, Lifetime::Timeframe});
+  addInput({"fv0channels", "FV0", "RECCHDATA", 0, Lifetime::Timeframe});
+  if (mc) {
+    LOG(ERROR) << "FV0 RecPoint does not support MC truth";
+  }
+  requestMap["FV0"] = false;
+}
+
+void DataRequest::requestFDDRecPoints(bool mc)
+{
+  addInput({"fddrecpoints", "FDD", "RECPOINTS", 0, Lifetime::Timeframe});
+  if (mc) {
+    LOG(ERROR) << "FDD RecPoint does not support MC truth";
+  }
+  requestMap["FDD"] = false;
+}
+
+void DataRequest::requestZDCRecEvents(bool mc)
+{
+  addInput({"zdcbcrec", "ZDC", "BCREC", 0, Lifetime::Timeframe});
+  addInput({"zdcenergy", "ZDC", "ENERGY", 0, Lifetime::Timeframe});
+  addInput({"zdctdcdata", "ZDC", "TDCDATA", 0, Lifetime::Timeframe});
+  addInput({"zdcinfo", "ZDC", "INFO", 0, Lifetime::Timeframe});
+  if (mc) {
+    LOG(ERROR) << "ZDC RecEvent does not support MC truth";
+  }
+  requestMap["ZDC"] = false;
+}
+
 void DataRequest::requestCoscmicTracks(bool mc)
 {
   addInput({"cosmics", "GLO", "COSMICTRC", 0, Lifetime::Timeframe});
@@ -372,6 +403,21 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   req = reqMap.find("FT0");
   if (req != reqMap.end()) {
     addFT0RecPoints(pc, req->second);
+  }
+
+  req = reqMap.find("FV0");
+  if (req != reqMap.end()) {
+    addFV0RecPoints(pc, req->second);
+  }
+
+  req = reqMap.find("FDD");
+  if (req != reqMap.end()) {
+    addFDDRecPoints(pc, req->second);
+  }
+
+  req = reqMap.find("ZDC");
+  if (req != reqMap.end()) {
+    addZDCRecEvents(pc, req->second);
   }
 
   req = reqMap.find("trackletTRD");
@@ -597,6 +643,40 @@ void RecoContainer::addFT0RecPoints(ProcessingContext& pc, bool mc)
 
   if (mc) {
     LOG(ERROR) << "FT0 RecPoint does not support MC truth";
+  }
+}
+
+//__________________________________________________________
+void RecoContainer::addFV0RecPoints(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::FV0].registerContainer(pc.inputs().get<gsl::span<o2::fv0::RecPoints>>("fv0recpoints"), TRACKS);
+  commonPool[GTrackID::FV0].registerContainer(pc.inputs().get<gsl::span<o2::fv0::ChannelDataFloat>>("fv0channels"), CLUSTERS);
+
+  if (mc) {
+    LOG(ERROR) << "FV0 RecPoint does not support MC truth";
+  }
+}
+
+//__________________________________________________________
+void RecoContainer::addFDDRecPoints(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::FDD].registerContainer(pc.inputs().get<gsl::span<o2::fdd::RecPoint>>("fddrecpoints"), TRACKS);
+
+  if (mc) {
+    LOG(ERROR) << "FDD RecPoint does not support MC truth";
+  }
+}
+
+//__________________________________________________________
+void RecoContainer::addZDCRecEvents(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::ZDC].registerContainer(pc.inputs().get<gsl::span<o2::zdc::BCRecData>>("zdcbcrecdata"), MATCHES);
+  commonPool[GTrackID::ZDC].registerContainer(pc.inputs().get<gsl::span<o2::zdc::ZDCEnergy>>("zdcenergy"), TRACKS);
+  commonPool[GTrackID::ZDC].registerContainer(pc.inputs().get<gsl::span<o2::zdc::ZDCTDCData>>("zdctdcdata"), CLUSTERS);
+  commonPool[GTrackID::ZDC].registerContainer(pc.inputs().get<gsl::span<uint16_t>>("zdcinfo"), PATTERNS);
+
+  if (mc) {
+    LOG(ERROR) << "ZDC RecEvent does not support MC truth";
   }
 }
 

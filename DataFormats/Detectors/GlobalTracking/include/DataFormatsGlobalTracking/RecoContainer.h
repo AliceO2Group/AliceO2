@@ -91,6 +91,24 @@ class RecPoints;
 class ChannelDataFloat;
 } // namespace o2::ft0
 
+namespace o2::fv0
+{
+class RecPoints;
+class ChannelDataFloat;
+} // namespace o2::fv0
+
+namespace o2::fdd
+{
+class RecPoint;
+} // namespace o2::fdd
+
+namespace o2::zdc
+{
+class BCRecData;
+class ZDCEnergy;
+class ZDCTDCData;
+} // namespace o2::zdc
+
 namespace o2::dataformats
 {
 class TrackTPCITS;
@@ -143,6 +161,9 @@ struct DataRequest {
   void requestTPCTRDTracks(bool mc);
   void requestTOFMatches(bool mc);
   void requestFT0RecPoints(bool mc);
+  void requestFV0RecPoints(bool mc);
+  void requestFDDRecPoints(bool mc);
+  void requestZDCRecEvents(bool mc);
 
   void requestITSClusters(bool mc);
   void requestTPCClusters(bool mc);
@@ -251,6 +272,10 @@ struct RecoContainer {
   void addTRDTracklets(o2::framework::ProcessingContext& pc, bool mc);
 
   void addFT0RecPoints(o2::framework::ProcessingContext& pc, bool mc);
+  void addFV0RecPoints(o2::framework::ProcessingContext& pc, bool mc);
+  void addFDDRecPoints(o2::framework::ProcessingContext& pc, bool mc);
+
+  void addZDCRecEvents(o2::framework::ProcessingContext& pc, bool mc);
 
   void addCosmicTracks(o2::framework::ProcessingContext& pc, bool mc);
 
@@ -458,6 +483,19 @@ struct RecoContainer {
   // FT0
   auto getFT0RecPoints() const { return getSpan<o2::ft0::RecPoints>(GTrackID::FT0, TRACKS); }
   auto getFT0ChannelsData() const { return getSpan<o2::ft0::ChannelDataFloat>(GTrackID::FT0, CLUSTERS); }
+
+  // FV0
+  auto getFV0RecPoints() const { return getSpan<o2::fv0::RecPoints>(GTrackID::FV0, TRACKS); }
+  auto getFV0ChannelsData() const { return getSpan<o2::fv0::ChannelDataFloat>(GTrackID::FV0, CLUSTERS); }
+
+  // FDD
+  auto getFDDRecPoints() const { return getSpan<o2::fdd::RecPoint>(GTrackID::FDD, TRACKS); }
+
+  // ZDC
+  auto getZDCBCRecData() const { return getSpan<o2::zdc::BCRecData>(GTrackID::ZDC, MATCHES); }
+  auto getZDCEnergy() const { return getSpan<o2::zdc::ZDCEnergy>(GTrackID::ZDC, TRACKS); }
+  auto getZDCTDCData() const { return getSpan<o2::zdc::ZDCTDCData>(GTrackID::ZDC, CLUSTERS); }
+  auto getZDCInfo() const { return getSpan<uint16_t>(GTrackID::ZDC, PATTERNS); }
 
   // Primary vertices
   const o2::dataformats::PrimaryVertex& getPrimaryVertex(int i) const { return pvtxPool.get_as<o2::dataformats::PrimaryVertex>(PVTX, i); }

@@ -19,8 +19,10 @@ o2_add_library(
     O2::DataFormatsMFT
     O2::DataFormatsMCH
     O2::DataFormatsFT0
+    O2::DataFormatsFV0
+    O2::DataFormatsFDD
+    O2::DataFormatsZDC
     O2::DataFormatsTOF
-    O2::DataFormatsFT0
     O2::ReconstructionDataFormats
     O2::DataFormatsTRD
     O2::GPUDataTypeHeaders
