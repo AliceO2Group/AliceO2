@@ -45,11 +45,16 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options;
-  options.push_back(ConfigParamSpec{"onlyDet", VariantType::String, std::string{DetID::NONE}, {"comma-separated list of detectors to accept. Overrides skipDet"}});
-  options.push_back(ConfigParamSpec{"skipDet", VariantType::String, std::string{DetID::NONE}, {"comma-separate list of detectors to skip"}});
   options.push_back(ConfigParamSpec{"ctf-input", VariantType::String, "none", {"comma-separated list CTF input files"}});
-  options.push_back(ConfigParamSpec{"loop", VariantType::Int, 1, {"loop N times (infinite for N<=0)"}});
+  options.push_back(ConfigParamSpec{"onlyDet", VariantType::String, std::string{DetID::ALL}, {"comma-separated list of detectors to accept. Overrides skipDet"}});
+  options.push_back(ConfigParamSpec{"skipDet", VariantType::String, std::string{DetID::NONE}, {"comma-separate list of detectors to skip"}});
+  options.push_back(ConfigParamSpec{"max-tf", VariantType::Int, -1, {"max CTFs to process (<= 0 : infinite)"}});
+  options.push_back(ConfigParamSpec{"loop", VariantType::Int, 0, {"loop N times (infinite for N<0)"}});
   options.push_back(ConfigParamSpec{"delay", VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
+  options.push_back(ConfigParamSpec{"copy-cmd", VariantType::String, "XrdSecPROTOCOL=sss,unix xrdcp -N root://eosaliceo2.cern.ch/?src ?dst", {"copy command for remote files"}});
+  options.push_back(ConfigParamSpec{"ctf-file-regex", VariantType::String, ".+o2_ctf_run.+\\.root$", {"regex string to identify CTF files"}});
+  options.push_back(ConfigParamSpec{"remote-regex", VariantType::String, "^/eos/aliceo2/.+", {"regex string to identify remote files"}});
+  options.push_back(ConfigParamSpec{"max-cached-files", VariantType::Int, 3, {"max CTF files queued (copied for remote source)"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 
   std::swap(workflowOptions, options);
@@ -61,81 +66,88 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  DetID::mask_t dets;
-  dets.set(); // by default read all
+  o2::ctf::CTFReaderInp ctfInput;
+
   WorkflowSpec specs;
 
   auto mskOnly = DetID::getMask(configcontext.options().get<std::string>("onlyDet"));
   auto mskSkip = DetID::getMask(configcontext.options().get<std::string>("skipDet"));
   if (mskOnly.any()) {
-    dets &= mskOnly;
+    ctfInput.detMask &= mskOnly;
   } else {
-    dets ^= mskSkip;
+    ctfInput.detMask ^= mskSkip;
   }
-
-  std::string inpNames = configcontext.options().get<std::string>("ctf-input");
-  if (inpNames.empty() || inpNames == "none") {
+  ctfInput.inpdata = configcontext.options().get<std::string>("ctf-input");
+  if (ctfInput.inpdata.empty() || ctfInput.inpdata == "none") {
     if (!configcontext.helpOnCommandLine()) {
       throw std::runtime_error("--ctf-input <file,...> is not provided");
     }
-    inpNames = "";
+    ctfInput.inpdata = "";
   }
 
-  int loop = configcontext.options().get<int>("loop");
-  if (loop < 1) {
-    loop = 0x7fffffff;
+  ctfInput.maxLoops = configcontext.options().get<int>("loop");
+  if (ctfInput.maxLoops < 0) {
+    ctfInput.maxLoops = 0x7fffffff;
   }
-  int delayMUS = int32_t(1e6 * configcontext.options().get<float>("delay")); // delay in microseconds
-  if (delayMUS < 0) {
-    delayMUS = 0;
+  ctfInput.delay_us = int32_t(1e6 * configcontext.options().get<float>("delay")); // delay in microseconds
+  if (ctfInput.delay_us < 0) {
+    ctfInput.delay_us = 0;
   }
+  int n = configcontext.options().get<int>("max-tf");
+  ctfInput.maxTFs = n > 0 ? n : 0x7fffffff;
 
-  specs.push_back(o2::ctf::getCTFReaderSpec(dets, inpNames, loop, delayMUS));
+  ctfInput.maxFileCache = std::max(1, configcontext.options().get<int>("max-cached-files"));
+
+  ctfInput.copyCmd = configcontext.options().get<std::string>("copy-cmd");
+  ctfInput.tffileRegex = configcontext.options().get<std::string>("ctf-file-regex");
+  ctfInput.remoteRegex = configcontext.options().get<std::string>("remote-regex");
+
+  specs.push_back(o2::ctf::getCTFReaderSpec(ctfInput));
 
   // add decodors for all allowed detectors.
-  if (dets[DetID::ITS]) {
+  if (ctfInput.detMask[DetID::ITS]) {
     specs.push_back(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::ITS)));
   }
-  if (dets[DetID::MFT]) {
+  if (ctfInput.detMask[DetID::MFT]) {
     specs.push_back(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::MFT)));
   }
-  if (dets[DetID::TPC]) {
+  if (ctfInput.detMask[DetID::TPC]) {
     specs.push_back(o2::tpc::getEntropyDecoderSpec());
   }
-  if (dets[DetID::TRD]) {
+  if (ctfInput.detMask[DetID::TRD]) {
     specs.push_back(o2::trd::getEntropyDecoderSpec());
   }
-  if (dets[DetID::TOF]) {
+  if (ctfInput.detMask[DetID::TOF]) {
     specs.push_back(o2::tof::getEntropyDecoderSpec());
   }
-  if (dets[DetID::FT0]) {
+  if (ctfInput.detMask[DetID::FT0]) {
     specs.push_back(o2::ft0::getEntropyDecoderSpec());
   }
-  if (dets[DetID::FV0]) {
+  if (ctfInput.detMask[DetID::FV0]) {
     specs.push_back(o2::fv0::getEntropyDecoderSpec());
   }
-  if (dets[DetID::FDD]) {
+  if (ctfInput.detMask[DetID::FDD]) {
     specs.push_back(o2::fdd::getEntropyDecoderSpec());
   }
-  if (dets[DetID::MID]) {
+  if (ctfInput.detMask[DetID::MID]) {
     specs.push_back(o2::mid::getEntropyDecoderSpec());
   }
-  if (dets[DetID::MCH]) {
+  if (ctfInput.detMask[DetID::MCH]) {
     specs.push_back(o2::mch::getEntropyDecoderSpec());
   }
-  if (dets[DetID::EMC]) {
+  if (ctfInput.detMask[DetID::EMC]) {
     specs.push_back(o2::emcal::getEntropyDecoderSpec());
   }
-  if (dets[DetID::PHS]) {
+  if (ctfInput.detMask[DetID::PHS]) {
     specs.push_back(o2::phos::getEntropyDecoderSpec());
   }
-  if (dets[DetID::CPV]) {
+  if (ctfInput.detMask[DetID::CPV]) {
     specs.push_back(o2::cpv::getEntropyDecoderSpec());
   }
-  if (dets[DetID::ZDC]) {
+  if (ctfInput.detMask[DetID::ZDC]) {
     specs.push_back(o2::zdc::getEntropyDecoderSpec());
   }
-  if (dets[DetID::HMP]) {
+  if (ctfInput.detMask[DetID::HMP]) {
     specs.push_back(o2::hmpid::getEntropyDecoderSpec());
   }
 
