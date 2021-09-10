@@ -58,6 +58,8 @@ class FEEIdConfig
 
  private:
   bool load(const char* filename);
+  void add(uint16_t gbtUniqueId, uint8_t linkId, uint8_t epId, uint16_t cruId, uint16_t feeId);
+  void add(uint16_t gbtUniqueId, uint8_t linkId, uint8_t epId, uint16_t cruId);
 
   std::unordered_map<uint32_t, uint16_t> mLinkUniqueIdToGBTUniqueId{};       /// Correspondence between link unique ID and GBT unique Id
   std::unordered_map<uint16_t, uint16_t> mGBTUniqueIdToFeeId{};              /// Correspondence between GBT unique ID and FEE ID

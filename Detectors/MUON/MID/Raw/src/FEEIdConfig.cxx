@@ -31,16 +31,25 @@ namespace mid
 FEEIdConfig::FEEIdConfig() : mLinkUniqueIdToGBTUniqueId(), mGBTUniqueIdToFeeId(), mGBTUniqueIdsInLink()
 {
   /// Default constructor
-  for (uint16_t iside = 0; iside < 2; ++iside) {
-    uint16_t cruId = iside;
-    for (uint8_t igbt = 0; igbt < crateparams::sNGBTsPerSide; ++igbt) {
-      uint8_t epId = igbt / 8;
-      uint16_t feeId = 2 * cruId + epId;
-      uint16_t gbtUniqueId = igbt + crateparams::sNGBTsPerSide * iside;
-      mLinkUniqueIdToGBTUniqueId[getLinkUniqueId(igbt % 8, epId, iside)] = gbtUniqueId;
-      mGBTUniqueIdToFeeId[gbtUniqueId] = feeId;
-      mGBTUniqueIdsInLink[feeId].emplace_back(gbtUniqueId);
-    }
+  for (uint16_t icru = 0; icru < 2; ++icru) {
+    uint16_t offset = 16 * icru;
+    add(offset + 0, 6, 0, icru);
+    add(offset + 1, 7, 0, icru);
+    add(offset + 2, 4, 0, icru);
+    add(offset + 3, 5, 0, icru);
+    add(offset + 8, 2, 0, icru);
+    add(offset + 9, 3, 0, icru);
+    add(offset + 10, 0, 0, icru);
+    add(offset + 11, 1, 0, icru);
+
+    add(offset + 4, 0, 1, icru);
+    add(offset + 5, 1, 1, icru);
+    add(offset + 6, 2, 1, icru);
+    add(offset + 7, 3, 1, icru);
+    add(offset + 12, 6, 1, icru);
+    add(offset + 13, 7, 1, icru);
+    add(offset + 14, 4, 1, icru);
+    add(offset + 15, 5, 1, icru);
   }
 }
 
@@ -48,6 +57,20 @@ FEEIdConfig::FEEIdConfig(const char* filename) : mLinkUniqueIdToGBTUniqueId()
 {
   /// Construct from file
   load(filename);
+}
+
+void FEEIdConfig::add(uint16_t gbtUniqueId, uint8_t linkId, uint8_t epId, uint16_t cruId, uint16_t feeId)
+{
+  /// Adds a link
+  mLinkUniqueIdToGBTUniqueId[getLinkUniqueId(linkId, epId, cruId)] = gbtUniqueId;
+  mGBTUniqueIdToFeeId[gbtUniqueId] = feeId;
+  mGBTUniqueIdsInLink[feeId].emplace_back(gbtUniqueId);
+}
+
+void FEEIdConfig::add(uint16_t gbtUniqueId, uint8_t linkId, uint8_t epId, uint16_t cruId)
+{
+  /// Adds a link assigning the feed from cruId and epId
+  add(gbtUniqueId, linkId, epId, cruId, 2 * cruId + epId);
 }
 
 uint16_t FEEIdConfig::getGBTUniqueId(uint32_t linkUniqueId) const
@@ -124,18 +147,16 @@ bool FEEIdConfig::load(const char* filename)
     std::getline(ss, token, ' ');
     uint8_t linkId = std::atoi(token.c_str());
     std::getline(ss, token, ' ');
-    uint8_t endPointId = std::atoi(token.c_str());
+    uint8_t epId = std::atoi(token.c_str());
     std::getline(ss, token, ' ');
     uint16_t cruId = std::atoi(token.c_str());
     std::getline(ss, token, ' ');
-    uint16_t feeId = 2 * cruId + endPointId;
     if (nSpaces > 3) {
-      feeId = std::atoi(token.c_str());
-      std::getline(ss, token, ' ');
+      uint16_t feeId = std::atoi(token.c_str());
+      add(gbtUniqueId, linkId, epId, cruId, feeId);
+    } else {
+      add(gbtUniqueId, linkId, epId, cruId);
     }
-    mLinkUniqueIdToGBTUniqueId[getLinkUniqueId(linkId, endPointId, cruId)] = gbtUniqueId;
-    mGBTUniqueIdToFeeId[gbtUniqueId] = feeId;
-    mGBTUniqueIdsInLink[feeId].emplace_back(gbtUniqueId);
   }
   inFile.close();
   return true;
