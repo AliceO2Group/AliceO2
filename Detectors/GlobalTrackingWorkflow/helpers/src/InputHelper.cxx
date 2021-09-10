@@ -27,6 +27,9 @@
 #include "TOFWorkflowIO/ClusterReaderSpec.h"
 #include "TOFWorkflowIO/TOFMatchedReaderSpec.h"
 #include "FT0Workflow/RecPointReaderSpec.h"
+#include "FV0Workflow/RecPointReaderSpec.h"
+#include "FDDWorkflow/RecPointReaderSpec.h"
+#include "ZDCWorkflow/RecEventReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackReaderSpec.h"
 #include "MCHWorkflow/TrackReaderSpec.h"
@@ -88,6 +91,16 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskTracks[GID::FT0] || maskClusters[GID::FT0]) {
     specs.emplace_back(o2::ft0::getRecPointReaderSpec(maskTracksMC[GID::FT0] || maskClustersMC[GID::FT0]));
   }
+  if (maskTracks[GID::FV0] || maskClusters[GID::FV0]) {
+    specs.emplace_back(o2::fv0::getRecPointReaderSpec(maskTracksMC[GID::FV0] || maskClustersMC[GID::FV0]));
+  }
+  if (maskTracks[GID::FDD] || maskClusters[GID::FDD]) {
+    specs.emplace_back(o2::fdd::getFDDRecPointReaderSpec(maskTracksMC[GID::FDD] || maskClustersMC[GID::FDD]));
+  }
+  if (maskTracks[GID::ZDC] || maskClusters[GID::ZDC]) {
+    specs.emplace_back(o2::zdc::getRecEventReaderSpec(maskTracksMC[GID::ZDC] || maskClustersMC[GID::ZDC]));
+  }
+
   if (maskClusters[GID::TRD]) {
     specs.emplace_back(o2::trd::getTRDTrackletReaderSpec(maskClustersMC[GID::TRD], true));
   }
