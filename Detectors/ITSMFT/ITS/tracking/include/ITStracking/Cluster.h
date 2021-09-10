@@ -41,8 +41,8 @@ struct Cluster final {
   float xCoordinate;      // = -999.f;
   float yCoordinate;      // = -999.f;
   float zCoordinate;      // = -999.f;
-  float phiCoordinate;    // = -999.f;
-  float rCoordinate;      // = -999.f;
+  float phi;              // = -999.f;
+  float radius;           // = -999.f;
   int clusterId;          // = -1;
   int indexTableBinIndex; // = -1;
 

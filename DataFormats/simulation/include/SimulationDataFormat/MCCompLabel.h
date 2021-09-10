@@ -21,13 +21,13 @@ namespace o2
 class MCCompLabel
 {
  private:
-  static constexpr ULong64_t ul0x1 = 0x1;
-  static constexpr ULong64_t NotSet = 0xffffffffffffffff;
-  static constexpr ULong64_t Noise = 0xfffffffffffffffe;
-  static constexpr ULong64_t Fake = ul0x1 << 63;
+  static constexpr uint64_t ul0x1 = 0x1;
+  static constexpr uint64_t NotSet = 0xffffffffffffffff;
+  static constexpr uint64_t Noise = 0xfffffffffffffffe;
+  static constexpr uint64_t Fake = ul0x1 << 63;
   static constexpr int NReservedBits = 1;
 
-  ULong64_t mLabel = NotSet; ///< MC label encoding MCtrack ID and MCevent origin
+  uint64_t mLabel = NotSet; ///< MC label encoding MCtrack ID and MCevent origin
 
  public:
   // number of bits reserved for MC track ID, DON'T modify this, since the
@@ -38,17 +38,17 @@ class MCCompLabel
   // the rest of the bits is reserved at the moment
 
   // check if the fields are defined consistently
-  static_assert(nbitsTrackID + nbitsEvID + nbitsSrcID <= sizeof(ULong64_t) * 8 - NReservedBits,
+  static_assert(nbitsTrackID + nbitsEvID + nbitsSrcID <= sizeof(uint64_t) * 8 - NReservedBits,
                 "Fields cannot be stored in 64 bits");
 
   // mask to extract MC track ID
-  static constexpr ULong64_t maskTrackID = (ul0x1 << nbitsTrackID) - 1;
+  static constexpr uint64_t maskTrackID = (ul0x1 << nbitsTrackID) - 1;
   // mask to extract MC track ID
-  static constexpr ULong64_t maskEvID = (ul0x1 << nbitsEvID) - 1;
+  static constexpr uint64_t maskEvID = (ul0x1 << nbitsEvID) - 1;
   // mask to extract MC track ID
-  static constexpr ULong64_t maskSrcID = (ul0x1 << nbitsSrcID) - 1;
+  static constexpr uint64_t maskSrcID = (ul0x1 << nbitsSrcID) - 1;
   // mask for all used fields
-  static constexpr ULong64_t maskFull = (ul0x1 << (nbitsTrackID + nbitsEvID + nbitsSrcID)) - 1;
+  static constexpr uint64_t maskFull = (ul0x1 << (nbitsTrackID + nbitsEvID + nbitsSrcID)) - 1;
 
   MCCompLabel(int trackID, int evID, int srcID, bool fake = false) { set(trackID, evID, srcID, fake); }
   MCCompLabel(bool noise = false)
@@ -88,7 +88,7 @@ class MCCompLabel
   }
 
   // allow to retrieve bare label
-  ULong64_t getRawValue() const { return mLabel; }
+  uint64_t getRawValue() const { return mLabel; }
 
   // comparison operator, compares only label, not eventual weight or correctness info
   bool operator==(const MCCompLabel& other) const { return (mLabel & maskFull) == (other.mLabel & maskFull); }
@@ -112,9 +112,9 @@ class MCCompLabel
   void set(unsigned int trackID, int evID, int srcID, bool fake)
   {
     /// compose label: the track 1st cast to UInt32_t to preserve the sign!
-    mLabel = (maskTrackID & static_cast<ULong64_t>(trackID)) |
-             (maskEvID & static_cast<ULong64_t>(evID)) << nbitsTrackID |
-             (maskSrcID & static_cast<ULong64_t>(srcID)) << (nbitsTrackID + nbitsEvID);
+    mLabel = (maskTrackID & static_cast<uint64_t>(trackID)) |
+             (maskEvID & static_cast<uint64_t>(evID)) << nbitsTrackID |
+             (maskSrcID & static_cast<uint64_t>(srcID)) << (nbitsTrackID + nbitsEvID);
     if (fake) {
       setFakeFlag();
     }
@@ -124,7 +124,7 @@ class MCCompLabel
   int getTrackIDSigned() const { return isFake() ? -getTrackID() : getTrackID(); }
   int getEventID() const { return (mLabel >> nbitsTrackID) & maskEvID; }
   int getSourceID() const { return (mLabel >> (nbitsTrackID + nbitsEvID)) & maskSrcID; }
-  ULong64_t getTrackEventSourceID() const { return static_cast<ULong64_t>(mLabel & maskFull); }
+  uint64_t getTrackEventSourceID() const { return static_cast<uint64_t>(mLabel & maskFull); }
   void get(int& trackID, int& evID, int& srcID, bool& fake)
   {
     /// parse label

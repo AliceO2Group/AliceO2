@@ -35,9 +35,9 @@ namespace its
 
 namespace math_utils
 {
-GPUhdni() float calculatePhiCoordinate(const float, const float);
-GPUhdni() float calculateRCoordinate(const float, const float);
-GPUhdni() constexpr float getNormalizedPhiCoordinate(const float);
+GPUhdni() float computePhi(const float, const float);
+GPUhdni() float hypot(const float, const float);
+GPUhdni() constexpr float getNormalizedPhi(const float);
 GPUhdni() constexpr float3 crossProduct(const float3&, const float3&);
 GPUhdni() float computeCurvature(float x1, float y1, float x2, float y2, float x3, float y3);
 GPUhdni() float computeCurvatureCentreX(float x1, float y1, float x2, float y2, float x3, float y3);
@@ -45,22 +45,21 @@ GPUhdni() float computeTanDipAngle(float x1, float y1, float x2, float y2, float
 
 } // namespace math_utils
 
-GPUhdi() float math_utils::calculatePhiCoordinate(const float xCoordinate, const float yCoordinate)
+GPUhdi() float math_utils::computePhi(const float x, const float y)
 {
   //return o2::gpu::CAMath::ATan2(-yCoordinate, -xCoordinate) + constants::math::Pi;
-  return o2::math_utils::fastATan2(-yCoordinate, -xCoordinate) + constants::math::Pi;
+  return o2::math_utils::fastATan2(-y, -x) + constants::math::Pi;
 }
 
-GPUhdi() float math_utils::calculateRCoordinate(const float xCoordinate, const float yCoordinate)
+GPUhdi() float math_utils::hypot(const float x, const float y)
 {
-  return o2::gpu::CAMath::Sqrt(xCoordinate * xCoordinate + yCoordinate * yCoordinate);
+  return o2::gpu::CAMath::Sqrt(x * x + y * y);
 }
 
-GPUhdi() constexpr float math_utils::getNormalizedPhiCoordinate(const float phiCoordinate)
+GPUhdi() constexpr float math_utils::getNormalizedPhi(const float phi)
 {
-  return (phiCoordinate < 0)
-           ? phiCoordinate + constants::math::TwoPi
-           : (phiCoordinate > constants::math::TwoPi) ? phiCoordinate - constants::math::TwoPi : phiCoordinate;
+  return (phi < 0) ? phi + constants::math::TwoPi : (phi > constants::math::TwoPi) ? phi - constants::math::TwoPi
+                                                                                   : phi;
 }
 
 GPUhdi() constexpr float3 math_utils::crossProduct(const float3& firstVector, const float3& secondVector)

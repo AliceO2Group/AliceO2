@@ -75,12 +75,12 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Tr
         ClusterHelper& h = cHelper[iCluster];
         float x = c.xCoordinate - mPrimaryVertex.x;
         float y = c.yCoordinate - mPrimaryVertex.y;
-        float phi = math_utils::calculatePhiCoordinate(x, y);
+        float phi = math_utils::computePhi(x, y);
         const int zBin{mIndexTableUtils.getZBinIndex(iLayer, c.zCoordinate)};
         int bin = mIndexTableUtils.getBinIndex(zBin, mIndexTableUtils.getPhiBinIndex(phi));
         CA_DEBUGGER(assert(zBin > 0));
         h.phi = phi;
-        h.r = math_utils::calculateRCoordinate(x, y);
+        h.r = std::hypot(x, y);
         mMinR[iLayer] = o2::gpu::GPUCommonMath::Min(h.r, mMinR[iLayer]);
         mMaxR[iLayer] = o2::gpu::GPUCommonMath::Max(h.r, mMaxR[iLayer]);
         h.bin = bin;
@@ -97,8 +97,8 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const Tr
         ClusterHelper& h = cHelper[iCluster];
         Cluster& c = mClusters[iLayer][lutPerBin[h.bin] + h.ind];
         c = currentLayer[iCluster];
-        c.phiCoordinate = h.phi;
-        c.rCoordinate = h.r;
+        c.phi = h.phi;
+        c.radius = h.r;
         c.indexTableBinIndex = h.bin;
       }
 
