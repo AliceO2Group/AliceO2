@@ -156,6 +156,11 @@ if [ "$doreco" == "1" ]; then
   taskwrapper fddreco.log o2-fdd-reco-workflow $gloOpt
   echo "Return status of fddreco: $?"
 
+  echo "Running FV0 reco flow"
+  #needs FV0 digitized data
+  taskwrapper fv0reco.log o2-fv0-reco-workflow $gloOpt
+  echo "Return status of fv0reco: $?"
+
   echo "Running MID reco flow"
   #needs MID digitized data
   taskwrapper midreco.log "o2-mid-digits-reader-workflow | o2-mid-reco-workflow $gloOpt"
