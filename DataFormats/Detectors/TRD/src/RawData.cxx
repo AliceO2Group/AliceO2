@@ -68,7 +68,7 @@ void buildTrackletMCMData(TrackletMCMData& trackletword, const uint slope, const
 {
   trackletword.slope = slope;
   trackletword.pos = pos;
-  trackletword.pid = (q0 & 0x7f) | ((q1 & 0x1f) << 7); //q2 sits with upper 2 bits of q1 in the header pid word, hence the 0x1f so 5 bits are used here.
+  trackletword.pid = (q0 & 0x7f) & ((q1 & 0x1f) << 7); //q2 sits with upper 2 bits of q1 in the header pid word, hence the 0x1f so 5 bits are used here.
   trackletword.checkbit = 1;
 }
 
@@ -470,7 +470,7 @@ DigitMCMADCMask buildBlankADCMask()
   //set the default values for the mask.
   DigitMCMADCMask mask;
   mask.c = 0x1f;
-  mask.n = 0x3;
+  mask.n = 0x1;
   mask.j = 0xc;
   // actual mask will beset somewhere else, the above values are *always* that.
   return mask;
