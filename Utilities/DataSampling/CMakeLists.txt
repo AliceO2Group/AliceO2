@@ -24,7 +24,7 @@ o2_add_library(DataSampling
                          src/DataSamplingReadoutAdapter.cxx
                          src/Dispatcher.cxx
 
-  PUBLIC_LINK_LIBRARIES O2::Framework O2::DataSampling)
+  PUBLIC_LINK_LIBRARIES O2::Framework)
 
 #o2_target_root_dictionary(
 #  Mergers
