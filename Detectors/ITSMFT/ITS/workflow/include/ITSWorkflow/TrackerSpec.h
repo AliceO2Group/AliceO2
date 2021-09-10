@@ -20,6 +20,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
+#include "ITStracking/TimeFrame.h"
 #include "ITStracking/Tracker.h"
 #include "ITStracking/TrackerTraitsCPU.h"
 #include "ITStracking/Vertexer.h"
@@ -50,6 +51,7 @@ class TrackerDPL : public framework::Task
   bool mRunVertexer = true;
   std::string mMode = "sync";
   o2::itsmft::TopologyDictionary mDict;
+  TimeFrame mTimeFrame;
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;
   std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<Tracker> mTracker = nullptr;

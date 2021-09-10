@@ -43,7 +43,7 @@ struct MCTruthHeaderElement {
   MCTruthHeaderElement() = default; // for ROOT IO
 
   MCTruthHeaderElement(uint32_t i) : index(i) {}
-  uint32_t index = -1; // the index into the actual MC track storage (-1 if invalid)
+  uint32_t index = (uint32_t)-1; // the index into the actual MC track storage (-1 if invalid)
   ClassDefNV(MCTruthHeaderElement, 1);
 };
 
