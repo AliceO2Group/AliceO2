@@ -48,7 +48,7 @@ FV0RAW=RAWTask('fv0raw', 'o2-fv0-digi2raw --file-for link --configKeyValues \"HB
 FDDRAW=RAWTask('fddraw', 'o2-fdd-digit2raw --file-for link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" -o raw/FDD')
 TPCRAW=RAWTask('tpcraw', 'o2-tpc-digits-to-rawzs  --file-for link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" -i tpcdigits.root -o raw/TPC')
 TOFRAW=RAWTask('tofraw', 'o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" --output-type raw --tof-raw-outdir raw/TOF')
-TOFRAW=RAWTask('midraw', 'o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink  --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\"')
+TOFRAW=RAWTask('midraw', 'o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --file-for link  --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\"')
 EMCRAW=RAWTask('emcraw', 'o2-emcal-rawcreator --file-for link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" -o raw/EMC')
 PHSRAW=RAWTask('phsraw', 'o2-phos-digi2raw  --file-for link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" -o raw/PHS')
 CPVRAW=RAWTask('cpvraw', 'o2-cpv-digi2raw  --file-for link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\" -o raw/CPV')

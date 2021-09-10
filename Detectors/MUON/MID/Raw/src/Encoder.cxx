@@ -27,7 +27,7 @@ namespace o2
 namespace mid
 {
 
-void Encoder::init(const char* filename, bool perLink, int verbosity, bool debugMode)
+void Encoder::init(std::string_view outDir, std::string_view fileFor, int verbosity, bool debugMode)
 {
   /// Initializes links
 
@@ -48,7 +48,21 @@ void Encoder::init(const char* filename, bool perLink, int verbosity, bool debug
   for (uint16_t cruId = 0; cruId < 2; ++cruId) {
     for (uint8_t epId = 0; epId < 2; ++epId) {
       uint16_t feeId = 2 * cruId + epId;
-      mRawWriter.registerLink(feeId, cruId, raw::sUserLogicLinkID, epId, perLink ? fmt::format("{:s}_L{:d}.raw", filename, feeId) : fmt::format("{:s}.raw", filename));
+      std::string outFileLink = fmt::format("{}/MID", outDir);
+      if (fileFor != "all") { // single file for all links
+        outFileLink += "_alio2-cr1-flp159";
+        if (fileFor != "flp") {
+          outFileLink += fmt::format("_cru{}_{}", cruId, epId);
+          if (fileFor != "cru") {
+            outFileLink += fmt::format("_lnk{}_feeid{}", raw::sUserLogicLinkID, feeId);
+            if (fileFor != "link") {
+              throw std::runtime_error("invalid option provided for file grouping");
+            }
+          }
+        }
+      }
+      outFileLink += ".raw";
+      mRawWriter.registerLink(feeId, cruId, raw::sUserLogicLinkID, epId, outFileLink);
 
       for (auto gbtUniqueId : mFEEIdConfig.getGBTUniqueIdsInLink(feeId)) {
         // Initializes the trigger response to be added to the empty HBs

@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <array>
 #include <map>
+#include <string_view>
 #include <vector>
 #include <gsl/gsl>
 #include "CommonDataFormat/InteractionRecord.h"
@@ -39,7 +40,7 @@ namespace mid
 class Encoder
 {
  public:
-  void init(const char* filename, bool perLink = false, int verbosity = 0, bool debugMode = false);
+  void init(std::string_view outDir = ".", std::string_view fileFor = "all", int verbosity = 0, bool debugMode = false);
   void process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType = EventType::Standard);
   /// Sets the maximum size of the superpage
   void setSuperpageSize(int maxSize) { mRawWriter.setSuperPageSize(maxSize); }

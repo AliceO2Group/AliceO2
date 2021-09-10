@@ -47,6 +47,8 @@ class FEEIdConfig
   inline uint8_t getEndPointId(uint32_t linkUniqueId) const { return (linkUniqueId & 0xFF00) ? 1 : 0; }
   /// Gets the Link ID
   inline uint8_t getLinkId(uint32_t linkUniqueId) const { return ((linkUniqueId >> (8U * getEndPointId(linkUniqueId))) & 0xFF) - 1; }
+  /// Gets the FEE ID from the GBT unique ID
+  uint16_t getFEEId(uint16_t gbtUniqueId) const;
 
   std::vector<uint16_t> getConfiguredGBTUniqueIDs() const;
   std::vector<uint32_t> getConfiguredLinkUniqueIDs() const;
