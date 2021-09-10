@@ -26,7 +26,7 @@ ROframe::ROframe(int ROframeId, int nLayers) : mROframeId{ROframeId}
 {
   mClusters.resize(nLayers);
   mTrackingFrameInfo.resize(nLayers);
-  mClusterLabels.resize(nLayers);
+  // mClusterLabels.resize(nLayers);
   mClusterExternalIndices.resize(nLayers);
 }
 

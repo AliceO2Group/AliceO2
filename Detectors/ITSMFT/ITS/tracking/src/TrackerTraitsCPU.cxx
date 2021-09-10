@@ -177,11 +177,21 @@ void TrackerTraitsCPU::computeLayerTracklets()
   if (tf->hasMCinformation()) {
     for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
       for (auto& trk : tf->getTracklets()[iLayer]) {
+        MCCompLabel label;
         int currentId{tf->getClusters()[iLayer][trk.firstClusterIndex].clusterId};
         int nextId{tf->getClusters()[iLayer + 1][trk.secondClusterIndex].clusterId};
-        MCCompLabel currentLab{tf->getClusterLabels(iLayer, currentId)};
-        MCCompLabel nextLab{tf->getClusterLabels(iLayer + 1, nextId)};
-        tf->getTrackletsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
+        for (auto& lab1 : tf->getClusterLabels(iLayer, currentId)) {
+          for (auto& lab2 : tf->getClusterLabels(iLayer, nextId)) {
+            if (lab1 == lab2 && lab1.isValid()) {
+              label = lab1;
+              break;
+            }
+          }
+          if (label.isValid()) {
+            break;
+          }
+        }
+        tf->getTrackletsLabel(iLayer).emplace_back(label);
       }
     }
   }
