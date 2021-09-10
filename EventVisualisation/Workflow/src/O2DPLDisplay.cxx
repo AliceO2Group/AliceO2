@@ -205,8 +205,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool eveHostNameMatch = eveHostName.empty() || eveHostName == hostname;
 
   int eveDDSColIdx = cfgc.options().get<int>("eve-dds-collection-index");
-  char* colIdx = getenv("DDS_COLLECTION_INDEX");
-  eveHostNameMatch &= eveDDSColIdx == -1 || (colIdx && atoi(colIdx) == eveDDSColIdx);
+  if (eveDDSColIdx != -1) {
+    char* colIdx = getenv("DDS_COLLECTION_INDEX");
+    int myIdx = colIdx ? atoi(colIdx) : -1;
+    LOG(info) << "Restricting DPL Display to collection index, my index " << myIdx << ", enabled " << int(myIdx == eveDDSColIdx);
+    eveHostNameMatch &= myIdx == eveDDSColIdx;
+  }
 
   std::chrono::milliseconds timeInterval(cfgc.options().get<int>("time-interval"));
   int numberOfFiles = cfgc.options().get<int>("number-of_files");
