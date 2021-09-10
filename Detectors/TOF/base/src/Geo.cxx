@@ -16,6 +16,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "CommonUtils/StringUtils.h"
 #include <string>
+#include "MathUtils/Utils.h"
 
 ClassImp(o2::tof::Geo);
 
@@ -31,6 +32,9 @@ Bool_t Geo::mToBeIntit = kTRUE;
 Float_t Geo::mRotationMatrixSector[NSECTORS + 1][3][3];
 Float_t Geo::mRotationMatrixPlateStrip[NPLATES][NMAXNSTRIP][3][3];
 Float_t Geo::mPadPosition[NSECTORS][NPLATES][NMAXNSTRIP][NPADZ][NPADX][3];
+Int_t Geo::mPlate[NSTRIPXSECTOR];
+Int_t Geo::mStripInPlate[NSTRIPXSECTOR];
+std::array<std::vector<float>, 5> Geo::mDistances;
 
 void Geo::Init()
 {
@@ -143,6 +147,38 @@ void Geo::Init()
     }
   }
 
+  for (Int_t istrip = 0; istrip < NSTRIPXSECTOR; ++istrip) {
+    if (istrip < NSTRIPC) {
+      mPlate[istrip] = 0;
+      mStripInPlate[istrip] = istrip;
+    } else if (istrip >= NSTRIPC && istrip < NSTRIPC + NSTRIPB) {
+      mPlate[istrip] = 1;
+      mStripInPlate[istrip] = istrip - NSTRIPC;
+    } else if (istrip >= NSTRIPC + NSTRIPB && istrip < NSTRIPC + NSTRIPB + NSTRIPA) {
+      mPlate[istrip] = 2;
+      mStripInPlate[istrip] = istrip - NSTRIPC - NSTRIPB;
+    } else if (istrip >= NSTRIPC + NSTRIPB + NSTRIPA && istrip < NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB) {
+      mPlate[istrip] = 3;
+      mStripInPlate[istrip] = istrip - NSTRIPC - NSTRIPB - NSTRIPA;
+    } else if (istrip >= NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB && istrip < NSTRIPXSECTOR) {
+      mPlate[istrip] = 4;
+      mStripInPlate[istrip] = istrip - NSTRIPC - NSTRIPB - NSTRIPA - NSTRIPB;
+    }
+  }
+
+  Int_t nstrips = NSTRIPC;
+  for (int iplate = 0; iplate < 5; ++iplate) {
+    if (iplate == 1 || iplate == 3) {
+      nstrips = NSTRIPB;
+    } else if (iplate == 2) {
+      nstrips = NSTRIPA;
+    }
+    mDistances[iplate].reserve(nstrips);
+    for (int i = 0; i < nstrips; ++i) {
+      mDistances[iplate].push_back(DISTANCES[iplate][nstrips - i - 1]);
+    }
+  }
+
   mToBeIntit = kFALSE;
 }
 
@@ -250,30 +286,12 @@ void Geo::getVolumeIndices(Int_t index, Int_t* detId)
   //
   // Retrieve volume indices from the calibration channel index
   //
-  Int_t npadxstrip = NPADX * NPADZ;
+  detId[0] = index * NPADS_INV_INT * NSTRIPXSECTOR_INV_INT;
 
-  detId[0] = index / npadxstrip / NSTRIPXSECTOR;
-
-  Int_t dummyStripPerModule =
-    (index - (NSTRIPXSECTOR * npadxstrip * detId[0])) / npadxstrip;
-  if (dummyStripPerModule < NSTRIPC) {
-    detId[1] = 0;
-    detId[2] = dummyStripPerModule;
-  } else if (dummyStripPerModule >= NSTRIPC && dummyStripPerModule < NSTRIPC + NSTRIPB) {
-    detId[1] = 1;
-    detId[2] = dummyStripPerModule - NSTRIPC;
-  } else if (dummyStripPerModule >= NSTRIPC + NSTRIPB && dummyStripPerModule < NSTRIPC + NSTRIPB + NSTRIPA) {
-    detId[1] = 2;
-    detId[2] = dummyStripPerModule - NSTRIPC - NSTRIPB;
-  } else if (dummyStripPerModule >= NSTRIPC + NSTRIPB + NSTRIPA && dummyStripPerModule < NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB) {
-    detId[1] = 3;
-    detId[2] = dummyStripPerModule - NSTRIPC - NSTRIPB - NSTRIPA;
-  } else if (dummyStripPerModule >= NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB && dummyStripPerModule < NSTRIPXSECTOR) {
-    detId[1] = 4;
-    detId[2] = dummyStripPerModule - NSTRIPC - NSTRIPB - NSTRIPA - NSTRIPB;
-  }
-
-  Int_t padPerStrip = (index - (NSTRIPXSECTOR * npadxstrip * detId[0])) - dummyStripPerModule * npadxstrip;
+  Int_t dummyStripPerModule = index / NPADS - NSTRIPXSECTOR * detId[0];
+  detId[1] = mPlate[dummyStripPerModule];
+  detId[2] = mStripInPlate[dummyStripPerModule];
+  Int_t padPerStrip = index - (NSTRIPXSECTOR * detId[0] + dummyStripPerModule) * NPADS;
 
   detId[3] = padPerStrip / NPADX;            // padZ
   detId[4] = padPerStrip - detId[3] * NPADX; // padX
@@ -405,13 +423,31 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
   Float_t step[3];
 
   // FTOA/B/C = FLTA/B/C reference frame -> FSTR reference frame
-  for (Int_t istrip = 0; istrip < nstrips; istrip++) {
+
+  // we restrict the search of the strip to a more reasonable range, considering that the
+  // DISTANCES are never larger than 10 between consecutive strips
+  auto ilower = std::lower_bound(mDistances[iplate].begin(), mDistances[iplate].end(), -pos[2]);
+  int stripFound = mDistances[iplate].size() - 1 - std::distance(mDistances[iplate].begin(), ilower);
+  int firstStripToCheck = stripFound;
+  int lastStripToCheck = stripFound;
+  if (stripFound != 0) {
+    while (std::abs(pos[2] + DISTANCES[iplate][firstStripToCheck - 1]) < 10) {
+      --firstStripToCheck;
+    }
+  }
+  if (stripFound != nstrips - 1) {
+    while (std::abs(pos[2] + DISTANCES[iplate][lastStripToCheck + 1]) < 10) {
+      ++lastStripToCheck;
+    }
+  }
+
+  for (Int_t istrip = firstStripToCheck; istrip <= lastStripToCheck; ++istrip) {
     Float_t posLoc2[3] = {pos[0], pos[1], pos[2]};
 
     step[0] = 0.;
     step[1] = getHeights(iplate, istrip);
     step[2] = -getDistances(iplate, istrip);
-    translate(posLoc2, step);
+    translate(posLoc2[0], posLoc2[1], posLoc2[2], step);
 
     if (fabs(posLoc2[1]) > 10) {
       continue;
@@ -420,7 +456,7 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
       continue;
     }
 
-    float distanceSquared = posLoc2[0] * posLoc2[0] * 0 + posLoc2[1] * posLoc2[1] + posLoc2[2] * posLoc2[2];
+    float distanceSquared = posLoc2[1] * posLoc2[1] + posLoc2[2] * posLoc2[2];
 
     if (distanceSquared > 45) {
       continue;
@@ -433,9 +469,10 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
       step[0] = -0.5 * NPADX * XPAD;
       step[1] = 0.;
       step[2] = -0.5 * NPADZ * ZPAD;
-      translate(posLoc2, step);
+      //translate(posLoc2, step);
+      translate(posLoc2[0], posLoc2[1], posLoc2[2], step);
 
-      for (Int_t jj = 0; jj < 3; jj++) {
+      for (Int_t jj = 0; jj < 3; ++jj) {
         pos[jj] = posLoc2[jj];
       }
 
@@ -453,20 +490,20 @@ Int_t Geo::getSector(const Float_t* pos)
 
   Int_t iSect = -1;
 
-  Float_t x = pos[0];
-  Float_t y = pos[1];
-  Float_t z = pos[2];
+  //Float_t x = pos[0];
+  //Float_t y = pos[1];
+  //Float_t z = pos[2];
 
-  Float_t rho2 = x * x + y * y;
+  Float_t rho2 = pos[0] * pos[0] + pos[1] * pos[1];
 
-  if (!((z >= -ZLENA * 0.5 && z <= ZLENA * 0.5) && (rho2 >= (RMIN2) && rho2 <= (RMAX2)))) {
+  if (!((pos[2] >= -ZLENA * 0.5 && pos[2] <= ZLENA * 0.5) && (rho2 >= (RMIN2) && rho2 <= (RMAX2)))) {
     // AliError("Detector Index could not be determined");
     return iSect;
   }
 
-  Float_t phi = TMath::Pi() + TMath::ATan2(-y, -x);
+  Float_t phi = TMath::Pi() + o2::math_utils::fastATan2(-pos[1], -pos[0]);
 
-  iSect = (Int_t)(phi * TMath::RadToDeg() / PHISEC);
+  iSect = (Int_t)(phi * TMath::RadToDeg() * PHISECINV);
 
   return iSect;
 }
@@ -621,6 +658,23 @@ void Geo::translate(Float_t* xyz, Float_t translationVector[3])
     xyz[ii] -= translationVector[ii];
   }
 
+  return;
+}
+void Geo::translate(Float_t& x, Float_t& y, Float_t& z, Float_t translationVector[3])
+{
+  //
+  // Return the vector xyz translated by translationVector vector
+  //
+
+  x -= translationVector[0];
+  y -= translationVector[1];
+  z -= translationVector[2];
+
+  /*
+  for (Int_t ii = 0; ii < 3; ii++) {
+    xyz[ii] -= translationVector[ii];
+  }
+  */
   return;
 }
 void Geo::antiRotateToSector(Float_t* xyz, Int_t isector)

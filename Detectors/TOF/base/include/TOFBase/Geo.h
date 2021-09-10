@@ -13,6 +13,8 @@
 #define ALICEO2_TOF_GEO_H
 
 #include "Rtypes.h"
+#include <array>
+#include <vector>
 #include "CommonConstants/LHCConstants.h"
 //#include "DetectorsRaw/HBFUtils.h"
 
@@ -30,6 +32,7 @@ class Geo
 
   // From AliTOFGeometry
   static void translate(Float_t* xyz, Float_t translationVector[3]);
+  static void translate(Float_t& x, Float_t& y, Float_t& z, Float_t translationVector[3]);
   static void rotate(Float_t* xyz, Double_t rotationAngles[6]);
 
   static void rotateToSector(Float_t* xyz, Int_t isector);
@@ -71,13 +74,16 @@ class Geo
   static constexpr int BC_IN_ORBIT = o2::constants::lhc::LHCMaxBunches;     // N. bunch crossing in 1 orbit
 
   static constexpr Int_t NPADX = 48;
+  static constexpr Float_t NPADX_INV_INT = 1. / NPADX;
   static constexpr Int_t NPADZ = 2;
   static constexpr Int_t NPADS = NPADX * NPADZ;
+  static constexpr Float_t NPADS_INV_INT = 1. / NPADS;
   static constexpr Int_t NSTRIPA = 15;
   static constexpr Int_t NSTRIPB = 19;
   static constexpr Int_t NSTRIPC = 19;
   static constexpr Int_t NMAXNSTRIP = 20;
   static constexpr Int_t NSTRIPXSECTOR = NSTRIPA + 2 * NSTRIPB + 2 * NSTRIPC;
+  static constexpr Float_t NSTRIPXSECTOR_INV_INT = 1. / NSTRIPXSECTOR;
   static constexpr Int_t NPADSXSECTOR = NSTRIPXSECTOR * NPADS;
 
   static constexpr Int_t NSECTORS = 18;
@@ -107,6 +113,7 @@ class Geo
   static constexpr Float_t SIGMAFORTAIL12 = 0.5; // Sig2 for simulation of TDC tails
 
   static constexpr Float_t PHISEC = 20; // sector Phi width (deg)
+  static constexpr Float_t PHISECINV = 1. / PHISEC; // sector Phi width (deg)
 
   static constexpr Float_t TDCBIN = o2::constants::lhc::LHCBunchSpacingNS * 1E3 / 1024; ///< TDC bin width [ps]
   static constexpr Float_t NTDCBIN_PER_PS = 1. / TDCBIN;     ///< number of TDC bins in 1 ns
@@ -295,6 +302,9 @@ class Geo
   static Float_t mRotationMatrixSector[NSECTORS + 1][3][3]; // rotation matrixes
   static Float_t mRotationMatrixPlateStrip[NPLATES][NMAXNSTRIP][3][3];
   static Float_t mPadPosition[NSECTORS][NPLATES][NMAXNSTRIP][NPADZ][NPADX][3];
+  static Int_t mPlate[NSTRIPXSECTOR];
+  static Int_t mStripInPlate[NSTRIPXSECTOR];
+  static std::array<std::vector<float>, 5> mDistances;
 
   // cable length map
   static constexpr Float_t CABLEPROPAGATIONDELAY = 0.0513;           // Propagation delay [ns/cm]
@@ -302,7 +312,7 @@ class Geo
   static const Int_t CHAN_TO_ELCHAN[NCHANNELS];
   static const Int_t ELCHAN_TO_CHAN[N_ELECTRONIC_CHANNELS];
 
-  ClassDefNV(Geo, 1);
+  ClassDefNV(Geo, 2);
 };
 } // namespace tof
 } // namespace o2
