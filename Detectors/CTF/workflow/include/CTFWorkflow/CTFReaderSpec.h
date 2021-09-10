@@ -23,9 +23,20 @@ namespace o2
 {
 namespace ctf
 {
+struct CTFReaderInp {
+  std::string inpdata{};
+  o2::detectors::DetID::mask_t detMask = o2::detectors::DetID::FullMask;
+  std::string copyCmd{};
+  std::string tffileRegex{};
+  std::string remoteRegex{};
+  int maxFileCache = 1;
+  int64_t delay_us = 0;
+  int maxLoops = 0;
+  int maxTFs = -1;
+};
 
 /// create a processor spec
-framework::DataProcessorSpec getCTFReaderSpec(o2::detectors::DetID::mask_t dets, const std::string& inp, int loop, int delayMUS);
+framework::DataProcessorSpec getCTFReaderSpec(const o2::ctf::CTFReaderInp& inp);
 
 } // namespace ctf
 } // namespace o2

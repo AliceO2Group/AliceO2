@@ -133,7 +133,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       stopProcessing(ctx);
       break;
     }
-    usleep(10); // wait for new TF to be built
+    usleep(5000); // wait 5ms for new TF to be built
   }
 }
 
