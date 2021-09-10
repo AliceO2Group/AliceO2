@@ -280,9 +280,9 @@ inline void TimeFrame::clear()
   for (unsigned int iL = 0; iL < mClusters.size(); ++iL) {
     mClusters[iL].clear();
     mTrackingFrameInfo[iL].clear();
-    mClusterLabels = nullptr;
     mClusterExternalIndices[iL].clear();
   }
+  mClusterLabels = nullptr;
   mPrimaryVertices.clear();
 }
 
