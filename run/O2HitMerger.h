@@ -34,7 +34,6 @@
 #include <TMessage.h>
 #include <FairMQParts.h>
 #include <ctime>
-#include <cinttypes>
 #include <TStopwatch.h>
 #include <sstream>
 #include <cassert>
@@ -357,15 +356,20 @@ class O2HitMerger : public FairMQDevice
     }
 
     if (isDataComplete<uint32_t>(accum, info.nparts)) {
-      LOG(INFO) << "EVERYTHING IS HERE FOR EVENT " << info.eventID << "\n";
+      LOG(INFO) << "Event " << info.eventID << " complete. Marking as flushable";
+      mFlushableEvents[info.eventID] = true;
 
       // check if previous flush finished
-      if (mMergerIOThread.joinable()) {
-        mMergerIOThread.join();
+      // start merging only when no merging currently happening
+      // Like this we don't have to join/wait on the thread here and do not block the outer ConditionalRun handling
+      // TODO: Let this run fully asynchronously (not even triggered by ConditionalRun)
+      if (!mergingInProgress) {
+        if (mMergerIOThread.joinable()) {
+          mMergerIOThread.join();
+        }
+        // start hit merging and flushing in a separate thread in order not to block
+        mMergerIOThread = std::thread([info, this]() { mergingInProgress = true; mergeAndFlushData(); mergingInProgress = false; });
       }
-
-      // start hit merging and flushing in a separate thread in order not to block
-      mMergerIOThread = std::thread([info, this]() { mergeAndFlushData(info.eventID); });
 
       mEventChecksum += info.eventID;
       // we also need to check if we have all events
@@ -373,6 +377,10 @@ class O2HitMerger : public FairMQDevice
         LOG(INFO) << "ALL EVENTS HERE; CHECKSUM " << mEventChecksum;
 
         // flush remaining data and close file
+        if (mMergerIOThread.joinable()) {
+          mMergerIOThread.join();
+        }
+        mMergerIOThread = std::thread([info, this]() { mergingInProgress = true; mergeAndFlushData(); mergingInProgress = false; });
         if (mMergerIOThread.joinable()) {
           mMergerIOThread.join();
         }
@@ -421,7 +429,7 @@ class O2HitMerger : public FairMQDevice
       for (int entry = entries - 1; entry >= 0; --entry) {
         int index = nsubevents[entry];
         nprimTot += nprimaries[index];
-        printf("merge %" PRIi64 " %5d %5d %5d \n", entry, index, nsubevents[entry], nsubevents[index]);
+        printf("merge %d %5d %5d %5d \n", entry, index, nsubevents[entry], nsubevents[index]);
         for (int i = 0; i < nprimaries[index]; i++) {
           auto& track = (*vectorOfSubEventMCTracks[index])[i];
           if (track.isTransported()) { // reset daughters only if track was transported, it will be fixed below
@@ -570,17 +578,18 @@ class O2HitMerger : public FairMQDevice
   // This method goes over the buffers containing data for a given event; potentially merges
   // them and flushes into the actual output file.
   // The method can be called asynchronously to data collection
-  bool mergeAndFlushData(int eventID)
+  bool mergeAndFlushData()
   {
     auto checkIfNextFlushable = [this]() -> bool {
       mNextFlushID++;
       return mFlushableEvents.find(mNextFlushID) != mFlushableEvents.end() && mFlushableEvents[mNextFlushID] == true;
     };
 
-    LOG(INFO) << "Marking event " << eventID << " as flushable";
-    mFlushableEvents[eventID] = true;
-
+    LOG(INFO) << "Launching merge kernel ";
     bool canflush = mFlushableEvents.find(mNextFlushID) != mFlushableEvents.end() && mFlushableEvents[mNextFlushID] == true;
+    if (!canflush) {
+      return false;
+    }
     while (canflush == true) {
       auto flusheventID = mNextFlushID;
       LOG(INFO) << "Merge and flush event " << flusheventID;
@@ -655,7 +664,7 @@ class O2HitMerger : public FairMQDevice
       std::vector<int> subevOrdered((int)(nsubevents.size()));
       for (int entry = entries - 1; entry >= 0; --entry) {
         subevOrdered[nsubevents[entry] - 1] = entry;
-        printf("HitMerger entry: %lld nprimry: %5d trackoffset: %5d \n", entry, nprimaries[entry], trackoffsets[entry]);
+        printf("HitMerger entry: %d nprimry: %5d trackoffset: %5d \n", entry, nprimaries[entry], trackoffsets[entry]);
       }
 
       reorderAndMergeMCTracks(flusheventID, *mOutTree, nprimaries, subevOrdered);
@@ -672,21 +681,28 @@ class O2HitMerger : public FairMQDevice
           det->mergeHitEntriesAndFlush(flusheventID, *hittree, trackoffsets, nprimaries, subevOrdered);
           hittree->SetEntries(hittree->GetEntries() + 1);
           LOG(INFO) << "flushing tree to file " << hittree->GetDirectory()->GetFile()->GetName();
-          mDetectorOutFiles[id]->Write("", TObject::kOverwrite);
         }
       }
 
       // increase the entry count in the tree
       mOutTree->SetEntries(mOutTree->GetEntries() + 1);
       LOG(INFO) << "outtree has file " << mOutTree->GetDirectory()->GetFile()->GetName();
-      mOutFile->Write("", TObject::kOverwrite);
 
       cleanEvent(flusheventID);
       LOG(INFO) << "Merge/flush for event " << flusheventID << " took " << timer.RealTime();
       if (!checkIfNextFlushable()) {
-        return true;
+        break;
       }
     } // end while
+    LOG(INFO) << "Writing TTrees";
+    mOutFile->Write("", TObject::kOverwrite);
+    for (int id = 0; id < mDetectorInstances.size(); ++id) {
+      auto& det = mDetectorInstances[id];
+      if (det) {
+        mDetectorOutFiles[id]->Write("", TObject::kOverwrite);
+      }
+    }
+
     return true;
   }
 
@@ -702,6 +718,7 @@ class O2HitMerger : public FairMQDevice
   // intermediate structures to collect data per event
   std::thread mMergerIOThread;                            //! a thread used to do hit merging and IO flushing asynchronously
   std::mutex mMapsMtx;                                    //!
+  bool mergingInProgress = false;
 
   std::unordered_map<int, std::vector<std::vector<o2::MCTrack>*>> mMCTrackBuffer;         //! vector of sub-event track vectors; one per event
   std::unordered_map<int, std::vector<std::vector<o2::TrackReference>*>> mTrackRefBuffer; //!
