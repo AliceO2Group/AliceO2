@@ -16,6 +16,7 @@ o2_add_library(ZDCWorkflow
                        src/ZDCDataReaderDPLSpec.cxx
                        src/ZDCDigitWriterDPLSpec.cxx
                        src/ZDCRecoWriterDPLSpec.cxx
+         src/RecEventReaderSpec.cxx
                        src/RecoWorkflow.cxx
                        src/DigitRecoSpec.cxx
                        src/DigitReaderSpec.cxx
