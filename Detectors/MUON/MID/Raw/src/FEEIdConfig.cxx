@@ -16,6 +16,7 @@
 
 #include "MIDRaw/FEEIdConfig.h"
 
+#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -138,6 +139,16 @@ bool FEEIdConfig::load(const char* filename)
   }
   inFile.close();
   return true;
+}
+
+uint16_t FEEIdConfig::getFEEId(uint16_t gbtUniqueId) const
+{
+  auto feeId = mGBTUniqueIdToFeeId.find(gbtUniqueId);
+  if (feeId == mGBTUniqueIdToFeeId.end()) {
+    std::cout << "Error:  GBT ID " << gbtUniqueId << "not found" << std::endl;
+    return 0;
+  }
+  return feeId->second;
 }
 
 void FEEIdConfig::write(const char* filename) const

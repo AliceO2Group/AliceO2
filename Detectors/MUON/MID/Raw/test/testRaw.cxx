@@ -55,7 +55,7 @@ o2::mid::ColumnData getColData(uint8_t deId, uint8_t columnId, uint16_t nbp = 0,
 std::vector<o2::mid::ColumnData> sortData(const std::vector<o2::mid::ColumnData>& data, size_t first, size_t last)
 {
   std::vector<o2::mid::ColumnData> sortedData(data.begin() + first, data.begin() + last);
-  std::sort(sortedData.begin(), sortedData.end(), [](o2::mid::ColumnData& a, o2::mid::ColumnData& b) { if (a.deId == b.deId ) { return (a.columnId < b.columnId); 
+  std::sort(sortedData.begin(), sortedData.end(), [](o2::mid::ColumnData& a, o2::mid::ColumnData& b) { if (a.deId == b.deId ) { return (a.columnId < b.columnId);
 
 }return (a.deId < b.deId); });
   return sortedData;
@@ -88,10 +88,8 @@ std::tuple<std::vector<o2::mid::ColumnData>, std::vector<o2::mid::ROFRecord>> en
 {
   auto severity = fair::Logger::GetConsoleSeverity();
   fair::Logger::SetConsoleSeverity(fair::Severity::WARNING);
-  std::string tmpFilename0 = "tmp_mid_raw";
-  std::string tmpFilename = tmpFilename0 + ".raw";
   o2::mid::Encoder encoder;
-  encoder.init(tmpFilename0.c_str());
+  encoder.init();
   std::string tmpConfigFilename = "tmp_MIDConfig.cfg";
   encoder.getWriter().writeConfFile("MID", "RAWDATA", tmpConfigFilename.c_str(), false);
   for (auto& item : inData) {
@@ -117,7 +115,7 @@ std::tuple<std::vector<o2::mid::ColumnData>, std::vector<o2::mid::ROFRecord>> en
   }
   fair::Logger::SetConsoleSeverity(severity);
 
-  std::remove(tmpFilename.c_str());
+  std::remove("MID.raw");
   std::remove(tmpConfigFilename.c_str());
 
   o2::mid::Decoder decoder;
@@ -192,6 +190,7 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
   loc.patternsNBP[2] = 0x5;
   inData[bc].emplace_back(loc);
 
+  o2::mid::FEEIdConfig feeIdConfig;
   uint8_t crateId = 5;
   uint8_t linkInCrate = 0;
   uint16_t gbtUniqueId = o2::mid::crateparams::makeGBTUniqueId(crateId, linkInCrate);
@@ -206,7 +205,7 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
   auto memSize = buf.size() + 64;
   rdh.word1 |= (memSize | (memSize << 16));
   // Sets the linkId
-  uint16_t feeId = gbtUniqueId / 8;
+  uint16_t feeId = feeIdConfig.getFEEId(gbtUniqueId);
   rdh.word0 |= (feeId << 16);
   auto decoder = o2::mid::createLinkDecoder(feeId);
   std::vector<o2::mid::ROBoard> data;

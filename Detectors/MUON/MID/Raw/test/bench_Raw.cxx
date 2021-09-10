@@ -62,9 +62,8 @@ std::vector<uint8_t> generateTestData(size_t nTF, size_t nDataInTF, size_t nColD
 
   auto severity = fair::Logger::GetConsoleSeverity();
   fair::Logger::SetConsoleSeverity(fair::Severity::WARNING);
-  std::string tmpFilename = "tmp_mid_raw.raw";
   o2::mid::Encoder encoder;
-  encoder.init(tmpFilename.c_str());
+  encoder.init();
   std::string tmpConfigFilename = "tmp_MIDConfig.cfg";
   encoder.getWriter().writeConfFile("MID", "RAWDATA", tmpConfigFilename.c_str(), false);
   // Fill TF
@@ -95,7 +94,7 @@ std::vector<uint8_t> generateTestData(size_t nTF, size_t nDataInTF, size_t nColD
   }
   fair::Logger::SetConsoleSeverity(severity);
 
-  std::remove(tmpFilename.c_str());
+  std::remove("MID.raw");
   std::remove(tmpConfigFilename.c_str());
 
   std::vector<uint8_t> data(buffer.size());
