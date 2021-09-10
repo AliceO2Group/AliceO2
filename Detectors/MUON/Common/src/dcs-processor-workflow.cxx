@@ -19,6 +19,7 @@
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/runDataProcessing.h"
+#include "aliasFixer.h"
 #include "subsysname.h"
 #include <array>
 #include <gsl/span>
@@ -74,10 +75,10 @@ o2::ccdb::CcdbObjectInfo createDefaultInfo(const char* path)
 
 #if defined(MUON_SUBSYSTEM_MCH)
 #define NOBJECTS 2
-std::array<o2::ccdb::CcdbObjectInfo, NOBJECTS> info{createDefaultInfo("MCH/HV"), createDefaultInfo("MCH/LV")};
+std::array<o2::ccdb::CcdbObjectInfo, NOBJECTS> info{createDefaultInfo("MCH/Calib/HV"), createDefaultInfo("MCH/Calib/LV")};
 #elif defined(MUON_SUBSYSTEM_MID)
-#define NOBJECTS 2
-std::array<o2::ccdb::CcdbObjectInfo, NOBJECTS> info{createDefaultInfo("MID/HV")};
+#define NOBJECTS 1
+std::array<o2::ccdb::CcdbObjectInfo, NOBJECTS> info{createDefaultInfo("MID/Calib/HV")};
 #endif
 
 std::array<DPMAP, NOBJECTS> dataPoints;
@@ -87,7 +88,7 @@ int t0{-1};
 /*
 * Send a DPMAP to the output.
 *
-* @param dpmap a map of string to vector of DataPointValue 
+* @param dpmap a map of string to vector of DataPointValue
 * @param output a DPL data allocator
 * @param info a CCDB object info describing the dpmap
 * @param reason (optional, can be empty) a string description why the dpmap
@@ -103,8 +104,11 @@ void sendOutput(const DPMAP& dpmap, o2::framework::DataAllocator& output, o2::cc
   md["upload reason"] = reason;
   info.setMetaData(md);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&dpmap, &info);
-  LOG(DEBUG) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+  LOG(INFO) << "Sending object " << info.getPath() << "/"
+            << info.getFileName() << " of size " << image->size()
+            << " bytes, valid for " << info.getStartValidityTimestamp()
+            << " : " << info.getEndValidityTimestamp()
+            << " | reason: " << reason;
   output.snapshot(o2::framework::Output{Utils::gDataOriginCDBPayload, CCDBOBJ, 0}, *image.get());
   output.snapshot(o2::framework::Output{Utils::gDataOriginCDBWrapper, CCDBOBJ, 0}, info);
 }
@@ -158,9 +162,9 @@ int computeDuration(const DPMAP& dpmap)
 /*
 * Decides whether or not the dpmap should be sent to the output.
 *
-* @param maxSize if the dpmap size is above this size, 
+* @param maxSize if the dpmap size is above this size,
 * then it should go to output
-* @param maxDuration if the dpmap spans more than this duration, 
+* @param maxDuration if the dpmap spans more than this duration,
 * then it should go to output
 *
 * @returns a boolean stating if the dpmap should be output and a string
@@ -216,9 +220,9 @@ o2::ccdb::CcdbObjectInfo addTFInfo(o2::ccdb::CcdbObjectInfo inf,
 * the output.
 *
 * @param aliases an array of one or two vectors of aliases (one for HV values,
-* one for LV values) 
+* one for LV values)
 * @param maxSize an array of one or two values for the
-* maxsizes of the HV and LV values respectively 
+* maxsizes of the HV and LV values respectively
 * @param maxDuration an array of
 * one or two values for the max durations of the HV and LV values respectively
 */
@@ -252,10 +256,19 @@ void processDataPoints(o2::framework::ProcessingContext& pc,
   }
 }
 
+std::vector<std::string> replaceDotByUnderscore(const std::vector<std::string>& aliases)
+{
+  std::vector<std::string> fixed;
+  for (const auto& a : aliases) {
+    fixed.emplace_back(o2::muon::replaceDotByUnderscore(a));
+  }
+  return fixed;
+}
+
 /*
 * Creates the main processing function.
 *
-* @param ic InitContext which is used to get the options and set the end of 
+* @param ic InitContext which is used to get the options and set the end of
 * stream callback
 */
 o2::framework::AlgorithmSpec::ProcessCallback createProcessFunction(o2::framework::InitContext& ic)
@@ -267,11 +280,11 @@ o2::framework::AlgorithmSpec::ProcessCallback createProcessFunction(o2::framewor
   // we are interested to transit to the CCDB
 #if defined(MUON_SUBSYSTEM_MCH)
   std::array<std::vector<std::string>, NOBJECTS> aliases = {
-    o2::mch::dcs::aliases({o2::mch::dcs::MeasurementType::HV_V,
-                           o2::mch::dcs::MeasurementType::HV_I}),
-    o2::mch::dcs::aliases({o2::mch::dcs::MeasurementType::LV_V_FEE_ANALOG,
-                           o2::mch::dcs::MeasurementType::LV_V_FEE_DIGITAL,
-                           o2::mch::dcs::MeasurementType::LV_V_SOLAR})};
+    replaceDotByUnderscore(o2::mch::dcs::aliases({o2::mch::dcs::MeasurementType::HV_V,
+                                                  o2::mch::dcs::MeasurementType::HV_I})),
+    replaceDotByUnderscore(o2::mch::dcs::aliases({o2::mch::dcs::MeasurementType::LV_V_FEE_ANALOG,
+                                                  o2::mch::dcs::MeasurementType::LV_V_FEE_DIGITAL,
+                                                  o2::mch::dcs::MeasurementType::LV_V_SOLAR}))};
   std::array<int, 2> maxSize{
     ic.options().get<int>("hv-max-size"),
     ic.options().get<int>("lv-max-size")};
@@ -281,8 +294,8 @@ o2::framework::AlgorithmSpec::ProcessCallback createProcessFunction(o2::framewor
     ic.options().get<int>("lv-max-duration")};
 #elif defined(MUON_SUBSYSTEM_MID)
   std::array<std::vector<std::string>, NOBJECTS> aliases = {
-    o2::mid::dcs::aliases({o2::mid::dcs::MeasurementType::HV_V,
-                           o2::mid::dcs::MeasurementType::HV_I})};
+    replaceDotByUnderscore(o2::mid::dcs::aliases({o2::mid::dcs::MeasurementType::HV_V,
+                                                  o2::mid::dcs::MeasurementType::HV_I}))};
   std::array<int, NOBJECTS> maxSize{ic.options().get<int>("hv-max-size")};
   std::array<int, NOBJECTS> maxDuration{ic.options().get<int>("hv-max-duration")};
 #endif
@@ -297,9 +310,9 @@ o2::framework::AlgorithmSpec::ProcessCallback createProcessFunction(o2::framewor
 }
 
 /* Helper function to create a ConfigParamSpec option object.
-* 
+*
 * @param name is either 'size' or 'duration'
-* @param value is the default value to be used (i.e. when the option is not 
+* @param value is the default value to be used (i.e. when the option is not
 * specified on the command line)
 * @param what is either 'hv' or 'lv'
 * @param unit is the unit in which the values are given
