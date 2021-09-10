@@ -13,6 +13,7 @@ o2_add_library(FV0Workflow
                SOURCES src/RecoWorkflow.cxx
                        src/ReconstructionSpec.cxx
                        src/RecPointWriterSpec.cxx
+                       src/RecPointReaderSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
                        src/DigitReaderSpec.cxx
