@@ -133,15 +133,18 @@ def bytes16(n=10):
           diglets = []
           if feeid == 0x121: diglets,remnant,size_gbt = makeGBTWordInverse(diglets,uss,remnant,size_gbt,64+12)
           else : diglets,remnant,size_gbt = makeGBTWordInverse(diglets,uss,remnant,size_gbt,48+12)
-          pss=""
+          pss="i:"+f'{i:10d}'
           flag = 0
           for d in diglets: 
             if feeid == 0x121: flag += d & 0xffffffffffffffff000
             else: flag+= d & 0xffffffffffff000
-            pss += f'{d:010x}'
-          flag=1  
-          if flag: 
-             print(pp,len(pp),"pld:",pss, flag)
+            pss += " "+f'{d:010x}'
+            bcid = d & 0xfff;
+            pss += f'{bcid:5d}'
+            pss += " orb:"+""f'{orbit:4d}'
+          #flag=1  
+          if flag: flag = 123456789
+          print(pp,len(pp),"pld:",pss, " flag:",flag)
           #print("payload:",pss)
           #print(ss)
           prtflag = 1

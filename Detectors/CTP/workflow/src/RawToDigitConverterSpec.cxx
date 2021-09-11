@@ -113,7 +113,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
             continue;
           }
           //LOG(INFO) << "    pld:" << pld;
-          pld <<= 12;
+          pld >>= 12;
           CTPDigit digit;
           uint32_t bcid = (diglet & bcidmask).to_ulong();
           o2::InteractionRecord ir;
