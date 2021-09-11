@@ -800,7 +800,7 @@ BOOST_AUTO_TEST_CASE(TestListColumns)
     floats.clear();
     ints.clear();
     for (auto j = 0; j < i; ++j) {
-      floats.push_back(0.1231233 * (float)j + 0.1982798);
+      floats.push_back(0.1231233f * (float)j + 0.1982798f);
       ints.push_back(j + 10);
     }
 
@@ -812,17 +812,17 @@ BOOST_AUTO_TEST_CASE(TestListColumns)
   for (auto& row : tbl) {
     auto f = row.l1();
     auto i = row.l2();
-    auto constexpr bf = std::is_same_v<decltype(f), std::vector<float>>;
-    auto constexpr bi = std::is_same_v<decltype(i), std::vector<int>>;
+    auto constexpr bf = std::is_same_v<decltype(f), gsl::span<const float, (size_t)-1>>;
+    auto constexpr bi = std::is_same_v<decltype(i), gsl::span<const int, (size_t)-1>>;
     BOOST_CHECK(bf);
     BOOST_CHECK(bi);
     BOOST_CHECK_EQUAL(f.size(), s);
     BOOST_CHECK_EQUAL(i.size(), s);
 
-    for (auto j = 0; j < f.size(); ++j) {
-      BOOST_CHECK_CLOSE(f[j], 0.1231233 * (float)j + 0.1982798, 0.0001);
+    for (auto j = 0u; j < f.size(); ++j) {
+      BOOST_CHECK_EQUAL(f[j], 0.1231233f * (float)j + 0.1982798f);
       BOOST_CHECK_EQUAL(i[j], j + 10);
     }
     ++s;
-  }
+  } 
 }

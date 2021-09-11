@@ -29,6 +29,7 @@
 #include <cassert>
 #include <fmt/format.h>
 #include <typeinfo>
+#include <gsl/span>
 
 namespace o2::soa
 {
@@ -253,7 +254,7 @@ class ColumnIterator : ChunkingPolicy
       auto list = std::static_pointer_cast<arrow::ListArray>(mColumn->chunk(mCurrentChunk));
       auto offset = list->value_offset(*mCurrentPos - mFirstIndex);
       auto length = list->value_length(*mCurrentPos - mFirstIndex);
-      return T{mCurrent + offset, mCurrent + offset + length};
+      return gsl::span{mCurrent + offset, mCurrent + offset + length};
     } else {
       return *(mCurrent + (*mCurrentPos >> SCALE_FACTOR));
     }
