@@ -180,7 +180,7 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<gbtword80_t> dig
   bool valid;
   for (auto const& dig : digits) {
     valid = makeGBTWord(dig, gbtword, size_gbt, Npld, gbtsend);
-    if ( valid == true) {
+    if (valid == true) {
       for (uint32_t i = 0; i < NGBT; i += 8) {
         uint32_t w = 0;
         for (uint32_t j = 0; j < 8; j++) {
@@ -259,8 +259,8 @@ int Digits2Raw::digit2GBTdigit(gbtword80_t& gbtdigitIR, gbtword80_t& gbtdigitTR,
   gbtdigitTR = 0;
   //gbtdigitTR = (digit.CTPClassMask).to_ullong() << 12;
   gbtdigitTR |= digit.intRecord.bc;
-  for(int i = 0; i < CTP_NCLASSES; i++) {
-    gbtdigitTR[i+12] = digit.CTPClassMask[i];
+  for (int i = 0; i < CTP_NCLASSES; i++) {
+    gbtdigitTR[i + 12] = digit.CTPClassMask[i];
   }
   return 0;
 }
