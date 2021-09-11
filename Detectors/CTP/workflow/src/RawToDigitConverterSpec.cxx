@@ -122,28 +122,34 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
           digit.intRecord = ir;
           if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
             LOG(DEBUG) << "InputMaskCount:" <<   digits[ir].CTPInputMask.count();
-            if (digits.count(ir) <= 1) {
+            if (digits.count(ir) == 0) {
+                digit.setInputMask(pld);
+                digits[ir] = digit;
+                LOG(INFO) << bcid << " inputs case 0 bcid orbit " << triggerOrbit << " pld:" << pld;
+            } else if(digits.count(ir) == 1) {
               if (digits[ir].CTPInputMask.count() == 0) {
                 digits[ir].setInputMask(pld);
-                LOG(INFO) << bcid << " inputs bcid orbit " << triggerOrbit << " pld:" << pld;
+                LOG(INFO) << bcid << " inputs bcid vase 1 orbit " << triggerOrbit << " pld:" << pld;
               } else {
-                LOG(ERROR) << "Two CTP IRs for same timestamp.";
+                LOG(ERROR) << "Two CTP IRs with the same timestamp.";
               }
             } else {
-              digit.setInputMask(pld);
-              digits[ir] = digit;
+                LOG(ERROR) << "Two digits with the same rimestamp.";
             }
           } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
-            if (digits.count(ir) <= 1) {
+            if (digits.count(ir) == 0) {
+                digit.setClassMask(pld);
+                digits[ir] = digit;
+                LOG(INFO) << bcid << " class bcid case 0 orbit " << triggerOrbit << " pld:" << pld;
+            } else if (digits.count(ir) == 1) {
               if (digits[ir].CTPClassMask.count() == 0) {
                 digits[ir].setClassMask(pld);
-                LOG(INFO) << bcid << " class bcid orbit " << triggerOrbit << " pld:" << pld;
+                LOG(INFO) << bcid << " class bcid case 1 orbit " << triggerOrbit << " pld:" << pld;
               } else {
                 LOG(ERROR) << "Two CTP Class masks for same timestamp";
               }
             } else {
-              digit.setClassMask(pld);
-              digits[ir] = digit;
+              
             }
           } else {
             LOG(ERROR) << "Unxpected  CTP CRU link:" << linkCRU;
