@@ -44,7 +44,7 @@ class RawWriterDeviceDPL
   void init(o2::framework::InitContext& ic)
   {
     auto dirname = ic.options().get<std::string>("mid-raw-outdir");
-    auto fileFor = ic.options().get<std::string>("mid-file-for");
+    auto fileFor = ic.options().get<std::string>("file-for");
     if (!std::filesystem::exists(dirname)) {
       if (!std::filesystem::create_directories(dirname)) {
         LOG(FATAL) << "could not create output directory " << dirname;
