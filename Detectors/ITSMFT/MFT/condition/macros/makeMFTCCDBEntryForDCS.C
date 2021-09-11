@@ -28,10 +28,31 @@ int makeMFTCCDBEntryForDCS(const std::string url = "http://ccdb-test.cern.ch:808
   //  std::string url(argv[0]);
   // macro to populate CCDB for TOF with the configuration for DCS
   std::unordered_map<DPID, std::string> dpid2DataDesc;
-  std::vector<std::string> aliases = {"mft_main/MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3]/Monitoring/Current/Analog",
-                                      "mft_main/MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3]/Monitoring/Current/Digital",
-                                      "mft_main/MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3]/Monitoring/Current/BackBias",
-                                      "mft_main/MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3]/Monitoring/Voltage/BackBias"};
+
+  std::vector<std::string> aliases = {"MFT_PSU_ZONE/H[0..1]/D[0..4]/F[0..1]/Z[0..3]/Current/Analog",
+                                      "MFT_PSU_ZONE/H[0..1]/D[0..4]/F[0..1]/Z[0..3]/Current/BackBias",
+                                      "MFT_PSU_ZONE/H[0..1]/D[0..4]/F[0..1]/Z[0..3]/Current/Digital",
+                                      "MFT_PSU_ZONE/H[0..1]/D[0..4]/F[0..1]/Z[0..3]/Voltage/BackBias",
+                                      "MFT_RU_LV/H0/D0/F0/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H0/D1/F0/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H0/D2/F0/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H0/D3/F0/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H0/D4/F0/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H0/D0/F1/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H0/D1/F1/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H0/D2/F1/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H0/D3/F1/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H0/D4/F1/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H1/D0/F0/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H1/D1/F0/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H1/D2/F0/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H1/D3/F0/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H1/D4/F0/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H1/D0/F1/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H1/D1/F1/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H1/D2/F1/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H1/D3/F1/Z[0..3]/iMon",
+                                      "MFT_RU_LV/H1/D4/F1/Z[0..3]/iMon"};
 
   std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
 

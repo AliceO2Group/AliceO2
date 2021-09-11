@@ -84,7 +84,14 @@ int MFTDCSProcessor::process(const gsl::span<const DPCOM> dps)
       LOG(INFO) << "DP " << it.id << " not found in MFTDCSProcessor, we will not process it";
       continue;
     }
+    /*
+    //it.id = DataPointIdentifier
+    //id.data = DataPointValue    
+    const DPCOM new_it(new_id,it.data);
+    processDP(new_it);
+    */
     processDP(it);
+
     mPids[it.id] = true;
   }
 

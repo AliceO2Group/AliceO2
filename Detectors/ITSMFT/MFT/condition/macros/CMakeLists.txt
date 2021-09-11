@@ -10,9 +10,14 @@
 # or submit itself to any jurisdiction.
 
 o2_add_test_root_macro(
+  readMFTDCSentries.C
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB O2::MFTCondition)
+
+o2_add_test_root_macro(
   makeMFTCCDBEntryForDCS.C
   PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
 
 install(
   FILES makeMFTCCDBEntryForDCS.C
+        readMFTDCSentries.C
   DESTINATION share/macro/)
