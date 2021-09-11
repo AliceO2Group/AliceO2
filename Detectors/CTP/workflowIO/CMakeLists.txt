@@ -15,5 +15,4 @@ o2_add_library(CTPWorkflowIO
                                      O2::DataFormatsCTP
                                      O2::DPLUtils
                                      O2::DetectorsRaw
-                                     O2::Algorithm
-                                     O2::CTPWorkflowIO)
+                                     O2::Algorithm)
