@@ -34,12 +34,21 @@ bool NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClusterEx
   for (const auto& rof : rofs) {
     auto clustersInFrame = rof.getROFData(clusters);
     for (const auto& c : clustersInFrame) {
-      if (c.getPatternID() != o2::itsmft::CompCluster::InvalidPatternID) {
-        // For the noise calibration, we use "pass1" clusters...
-        continue;
+      auto pattID = c.getPatternID();
+      o2::itsmft::ClusterPattern patt;
+      if (mDict.getSize() == 0) {
+        if (pattID == o2::itsmft::CompCluster::InvalidPatternID) {
+          o2::itsmft::ClusterPattern tmp(pattIt);
+          patt = tmp;
+        } else {
+          LOG(FATAL) << "Clusters contain pattern IDs, but no dictionary is provided...";
+        }
+      } else if ((pattID == o2::itsmft::CompCluster::InvalidPatternID) || mDict.isGroup(pattID)) {
+        o2::itsmft::ClusterPattern tmp(pattIt);
+        patt = tmp;
+      } else {
+        patt = mDict.getPattern(pattID);
       }
-      o2::itsmft::ClusterPattern patt(pattIt);
-
       auto id = c.getSensorID();
       auto row = c.getRow();
       auto col = c.getCol();

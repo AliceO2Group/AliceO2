@@ -16,6 +16,7 @@
 
 #include <string>
 
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
 
@@ -61,6 +62,10 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
     slot.getContainer()->applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
   }
 
+  void loadDictionary(std::string fname)
+  {
+    mDict.readBinaryFile(fname);
+  }
   const o2::itsmft::NoiseMap& getNoiseMap(long& start, long& end)
   {
     const auto& slot = getSlots().back();
@@ -79,6 +84,7 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
   bool hasEnoughData(const Slot& slot) const final;
 
  private:
+  o2::itsmft::TopologyDictionary mDict;
   float mProbabilityThreshold = 3e-6f;
   unsigned int mThreshold = 100;
   unsigned int mNumberOfStrobes = 0;
