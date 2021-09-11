@@ -824,5 +824,5 @@ BOOST_AUTO_TEST_CASE(TestListColumns)
       BOOST_CHECK_EQUAL(i[j], j + 10);
     }
     ++s;
-  } 
+  }
 }
