@@ -74,6 +74,7 @@ class Digits2Raw
   bool mZeroSuppressedIntRec = false;
   bool mZeroSuppressedClassRec = true;
   //constexpr uint32_t CTPCRULinkIDMisc = 2;
+  std::string mCTPRawDataFileName = "CTP_alio2-cr1-flp163_cru1111_0.raw";
 };
 } // namespace ctp
 } // namespace o2
