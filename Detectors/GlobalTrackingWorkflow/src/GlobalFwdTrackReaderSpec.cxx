@@ -9,12 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TrackWriterGlobalFwdSpec.cxx
+/// @file   GlobalFwdTrackWriterSpec.cxx
 
 #include <vector>
-#include "GlobalTrackingWorkflow/TrackWriterGlobalFwdSpec.h"
+#include "GlobalTrackingWorkflow/GlobalFwdTrackWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "ReconstructionDataFormats/TrackGlobalFwd.h"
+#include "ReconstructionDataFormats/GlobalFwdTrack.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 using namespace o2::framework;
@@ -26,10 +26,10 @@ namespace globaltracking
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
-using TracksType = std::vector<o2::dataformats::TrackGlobalFwd>;
+using TracksType = std::vector<o2::dataformats::GlobalFwdTrack>;
 using LabelsType = std::vector<o2::MCCompLabel>;
 
-DataProcessorSpec getTrackWriterGlobalFwdSpec(bool useMC)
+DataProcessorSpec getGlobalFwdTrackWriterSpec(bool useMC)
 {
   // A spectator for logging
   auto logger = [](TracksType const& tracks) {

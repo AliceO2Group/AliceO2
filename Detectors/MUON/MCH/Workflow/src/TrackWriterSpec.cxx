@@ -13,7 +13,6 @@
 
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "Framework/Logger.h"
@@ -36,7 +35,7 @@ DataProcessorSpec getTrackWriterSpec(bool useMC, const char* specName, const cha
                                 BranchDefinition<std::vector<TrackMCH>>{InputSpec{"tracks", "MCH", "TRACKS"}, "tracks"},
                                 BranchDefinition<std::vector<ROFRecord>>{InputSpec{"trackrofs", "MCH", "TRACKROFS"}, "trackrofs"},
                                 BranchDefinition<std::vector<ClusterStruct>>{InputSpec{"trackclusters", "MCH", "TRACKCLUSTERS"}, "trackclusters"},
-                                BranchDefinition<dataformats::MCTruthContainer<MCCompLabel>>{InputSpec{"tracklabels", "MCH", "TRACKLABELS"}, "tracklabels", useMC ? 1 : 0})();
+                                BranchDefinition<std::vector<o2::MCCompLabel>>{InputSpec{"tracklabels", "MCH", "TRACKLABELS"}, "tracklabels", useMC ? 1 : 0})();
 }
 
 } // namespace o2::mch

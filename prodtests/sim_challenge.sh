@@ -178,6 +178,11 @@ if [ "$doreco" == "1" ]; then
   taskwrapper trdMatch.log o2-trd-global-tracking $gloOpt
   echo "Return status of trdTracker: $?"
 
+  echo "Running MFT-MCH matching flow"
+  #needs results of o2-mch-reco-workflow and o2-mft-reco-workflow
+  taskwrapper mftmchMatch.log o2-globalfwd-matcher-workflow $gloOpt
+  echo "Return status of mftmchMatch: $?"
+
   echo "Running TOF reco flow to produce clusters"
   #needs results of TOF digitized data and results of o2-tpcits-match-workflow
   taskwrapper tofReco.log o2-tof-reco-workflow $gloOpt

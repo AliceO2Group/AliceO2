@@ -23,7 +23,7 @@ o2_add_library(GlobalTrackingWorkflow
                        src/CosmicsMatchingSpec.cxx
                        src/TrackCosmicsWriterSpec.cxx
                        src/TOFMatcherSpec.cxx
-                       src/TrackWriterGlobalFwdSpec.cxx
+                       src/GlobalFwdTrackWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflowHelpers

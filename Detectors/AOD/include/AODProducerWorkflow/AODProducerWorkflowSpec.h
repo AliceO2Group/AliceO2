@@ -265,7 +265,7 @@ class AODProducerWorkflowDPL : public Task
     uint32_t labelITS = -1;
     uint32_t labelTPC = -1;
     uint16_t labelMask = 0;
-    uint8_t mftLabelMask = 0;
+    uint8_t fwdLabelMask = 0;
   };
 
   void collectBCs(gsl::span<const o2::fdd::RecPoint>& fddRecPoints,
@@ -287,8 +287,8 @@ class AODProducerWorkflowDPL : public Task
   template <typename mftTracksCursorType>
   void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, const o2::mft::TrackMFT& track, int collisionID);
 
-  template <typename fwdTracksCursorType>
-  void addToFwdTracksTable(fwdTracksCursorType& fwdTracksCursor, const o2::mch::TrackMCH& track, int collisionID,
+  template <typename fwdTracksCursorType, typename fwdTrackType>
+  void addToFwdTracksTable(fwdTracksCursorType& fwdTracksCursor, const fwdTrackType& track, int collisionID,
                            const math_utils::Point3D<double>& vertex);
 
   // helper for track tables
@@ -315,9 +315,10 @@ class AODProducerWorkflowDPL : public Task
                             o2::globaltracking::RecoContainer& data,
                             std::vector<std::pair<int, int>> const& mcColToEvSrc);
 
-  template <typename MCTrackLabelCursorType, typename MCMFTTrackLabelCursorType>
+  template <typename MCTrackLabelCursorType, typename MCMFTTrackLabelCursorType, typename MCFwdTrackLabelCursorType>
   void fillMCTrackLabelsTable(const MCTrackLabelCursorType& mcTrackLabelCursor,
                               const MCMFTTrackLabelCursorType& mcMFTTrackLabelCursor,
+                              const MCFwdTrackLabelCursorType& mcFwdTrackLabelCursor,
                               o2::dataformats::VtxTrackRef const& trackRef,
                               gsl::span<const GIndex>& primVerGIs,
                               o2::globaltracking::RecoContainer& data);

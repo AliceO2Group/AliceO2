@@ -9,13 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackGlobalFwd.h
+/// \file GlobalFwdTrack.h
 /// \brief Global Forward Muon tracks
 
 #ifndef ALICEO2_TRACKGLOBALFWD_H
 #define ALICEO2_TRACKGLOBALFWD_H
 
 #include "ReconstructionDataFormats/TrackFwd.h"
+#include "CommonDataFormat/TimeStamp.h"
 #include "Math/SMatrix.h"
 
 namespace o2
@@ -24,13 +25,14 @@ namespace dataformats
 {
 using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
+using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 
-class TrackGlobalFwd : public o2::track::TrackParCovFwd
+class GlobalFwdTrack : public o2::track::TrackParCovFwd
 {
  public:
-  TrackGlobalFwd() = default;
-  TrackGlobalFwd(const TrackGlobalFwd& t) = default;
-  ~TrackGlobalFwd() = default;
+  GlobalFwdTrack() = default;
+  GlobalFwdTrack(const GlobalFwdTrack& t) = default;
+  ~GlobalFwdTrack() = default;
 
   void setMatchingChi2(double chi2) { mMatchingChi2 = chi2; }
   const auto& getMatchingChi2() const { return mMatchingChi2; }
@@ -43,6 +45,15 @@ class TrackGlobalFwd : public o2::track::TrackParCovFwd
 
   void setCloseMatch() { mCloseMatch = true; }
   const auto& isCloseMatch() const { return mCloseMatch; }
+
+  const timeEst& getTimeMUS() const { return mTimeMUS; }
+  timeEst& getTimeMUS() { return mTimeMUS; }
+  void setTimeMUS(const timeEst& t) { mTimeMUS = t; }
+  void setTimeMUS(float t, float te)
+  {
+    mTimeMUS.setTimeStamp(t);
+    mTimeMUS.setTimeStampError(te);
+  }
 
   SMatrix5 computeResiduals2Cov(const o2::track::TrackParCovFwd& t) const
   {
@@ -68,11 +79,23 @@ class TrackGlobalFwd : public o2::track::TrackParCovFwd
   int mMCHTrackID = -1;           ///< MCH Track ID
   int mNMFTCandidates = 0;        ///< Number of MFT candidates within search cut
   bool mCloseMatch = false;       ///< Close match = correct MFT pair tested (MC-only)
-
-  ClassDefNV(TrackGlobalFwd, 1);
+  float mTrackTime = 0.f;         ///< Track time
+  float mTrackTimeRes = 0.f;      ///< Track time resolution
+  timeEst mTimeMUS;               ///< time estimate in ns
+  ClassDefNV(GlobalFwdTrack, 1);
 };
 
 } // namespace dataformats
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::dataformats::GlobalFwdTrack> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif

@@ -35,6 +35,7 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackTPCTOF.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/GlobalFwdTrack.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 
 //________________________________________________________
@@ -72,6 +73,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   const auto tracksMCH = getMCHTracks();
   const auto tracksTPC = getTPCTracks();
   const auto tracksTPCITS = getTPCITSTracks();
+  const auto tracksMFTMCH = getGlobalFwdTracks();
   const auto tracksTPCTOF = getTPCTOFTracks();   // TOF-TPC tracks with refit
   const auto matchesTPCTOF = getTPCTOFMatches(); // and corresponding matches
   const auto tracksTPCTRD = getTPCTRDTracks<o2::trd::TrackTRD>();
@@ -86,6 +88,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   usedData[GTrackID::MFT].resize(tracksMFT.size());                   // to flag used MFT tracks
   usedData[GTrackID::TPC].resize(tracksTPC.size());                   // to flag used TPC tracks
   usedData[GTrackID::ITSTPC].resize(tracksTPCITS.size());             // to flag used ITSTPC tracks
+  usedData[GTrackID::MFTMCH].resize(tracksMFTMCH.size());             // to flag used MFTMCH tracks
   usedData[GTrackID::ITSTPCTRD].resize(tracksITSTPCTRD.size());       // to flag used ITSTPCTRD tracks
   usedData[GTrackID::TPCTRD].resize(tracksTPCTRD.size());             // to flag used TPCTRD tracks
   usedData[GTrackID::ITSTPCTOF].resize(getITSTPCTOFMatches().size()); // to flag used ITSTPC-TOF matches
@@ -189,6 +192,16 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       const auto& trc = tracksTPCTOF[i];
       if (creator(trc, {i, GTrackID::TPCTOF}, trc.getTimeMUS().getTimeStamp(), trc.getTimeMUS().getTimeStampError())) {
         flagUsed(gidx); // flag used TPC tracks
+      }
+    }
+  }
+
+  // MFT-MCH tracks
+  {
+    for (unsigned i = 0; i < tracksMFTMCH.size(); i++) {
+      const auto& matchTr = tracksMFTMCH[i];
+      if (creator(matchTr, {i, GTrackID::MFTMCH}, matchTr.getTimeMUS().getTimeStamp(), matchTr.getTimeMUS().getTimeStampError())) {
+        flagUsed2(i, GTrackID::MFTMCH);
       }
     }
   }
@@ -317,6 +330,12 @@ template <class T>
 inline constexpr auto isTPCITSTrack()
 {
   return std::is_same_v<std::decay_t<T>, o2::dataformats::TrackTPCITS>;
+}
+
+template <class T>
+inline constexpr auto isGlobalFwdTrack()
+{
+  return std::is_same_v<std::decay_t<T>, o2::dataformats::GlobalFwdTrack>;
 }
 
 template <class T>
