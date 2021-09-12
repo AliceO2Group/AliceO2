@@ -14,6 +14,7 @@ o2_add_library(GlobalTrackingWorkflowReaders
                        src/SecondaryVertexReaderSpec.cxx
                        src/PrimaryVertexReaderSpec.cxx
                        src/TrackTPCITSReaderSpec.cxx
+                       src/GlobalFwdTrackReaderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
                                      O2::GlobalTracking
                                      O2::SimulationDataFormat)

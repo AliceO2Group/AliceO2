@@ -35,7 +35,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
-#include "ReconstructionDataFormats/TrackGlobalFwd.h"
+#include "ReconstructionDataFormats/GlobalFwdTrack.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -70,7 +70,7 @@ struct TrackLocMFT : public o2::track::TrackParCovFwd {
 ///< MCH track uncorrected parameters propagated to reference Z,
 ///<  with time bracket and index of original track in the
 ///<  currently loaded MCH reco output
-struct TrackLocMCH : public o2::dataformats::TrackGlobalFwd {
+struct TrackLocMCH : public o2::dataformats::GlobalFwdTrack {
   o2::math_utils::Bracketf_t tBracket; ///< bracketing time in \mus
   ClassDefNV(TrackLocMCH, 0);
 };
@@ -79,7 +79,6 @@ class MatchGlobalFwd
 {
  public:
   using MFTCluster = o2::BaseCluster<float>;
-  using MCLabContCl = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
   using BracketF = o2::math_utils::Bracket<float>;
   using SMatrix55Std = ROOT::Math::SMatrix<double, 5>;
   using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
@@ -117,7 +116,7 @@ class MatchGlobalFwd
   void setMFTROFrameLengthMUS(float fums);
   ///< set MFT ROFrame duration in BC (continuous mode only)
   void setMFTROFrameLengthInBC(int nbc);
-  const std::vector<o2::dataformats::TrackGlobalFwd>& getMatchedFwdTracks() const { return mMatchedTracks; }
+  const std::vector<o2::dataformats::GlobalFwdTrack>& getMatchedFwdTracks() const { return mMatchedTracks; }
   const std::vector<o2::MCCompLabel>& getMatchLabels() const { return mMatchLabels; }
 
  private:
@@ -130,8 +129,8 @@ class MatchGlobalFwd
   ///< Matches MFT tracks in one MFT ROFrame with all MCH tracks in the overlapping MCH ROFrames
   void ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId);
   void fitTracks();                                          // Fit all matched tracks
-  void fitGlobalMuonTrack(o2::dataformats::TrackGlobalFwd&); // Kalman filter fit global Forward track by attaching MFT clusters
-  bool computeCluster(o2::dataformats::TrackGlobalFwd& track, const MFTCluster& cluster, int& startingLayerID);
+  void fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack&); // Kalman filter fit global Forward track by attaching MFT clusters
+  bool computeCluster(o2::dataformats::GlobalFwdTrack& track, const MFTCluster& cluster, int& startingLayerID);
 
   template <typename T>
   bool propagateToNextClusterWithMCS(T& track, double z, int& startingLayerID, const int& newLayerID)
@@ -231,7 +230,7 @@ class MatchGlobalFwd
   bool cutDisabled(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack) { return true; };
 
   /// Converts mchTrack parameters to Forward coordinate system
-  o2::dataformats::TrackGlobalFwd MCHtoFwd(const o2::mch::TrackParam& mchTrack);
+  o2::dataformats::GlobalFwdTrack MCHtoFwd(const o2::mch::TrackParam& mchTrack);
 
   float mBz = -5.f;              ///< nominal Bz in kGauss
   float mMatchingPlaneZ = -77.5; ///< MCH-MFT matching plane Z position TODO: Make configurable
@@ -258,15 +257,15 @@ class MatchGlobalFwd
   gsl::span<const int> mMFTTrackClusIdx;                    ///< input MFT track cluster indices span
   gsl::span<const o2::itsmft::ROFRecord> mMFTClusterROFRec; ///< input MFT clusters ROFRecord span
   gsl::span<const o2::MCCompLabel> mMFTTrkLabels;           ///< input MFT Track MC labels
+  gsl::span<const o2::MCCompLabel> mMCHTrkLabels;           ///< input MCH Track MC labels
 
   std::vector<BracketF> mMCHROFTimes;                          ///< min/max times of MCH ROFs in \mus
   std::vector<TrackLocMCH> mMCHWork;                           ///< MCH track params prepared for matching
   std::vector<BracketF> mMFTROFTimes;                          ///< min/max times of MFT ROFs in \mus
   std::vector<TrackLocMFT> mMFTWork;                           ///< MFT track params prepared for matching
   std::vector<MFTCluster> mMFTClusters;                        ///< input MFT clusters
-  std::vector<o2::dataformats::TrackGlobalFwd> mMatchedTracks; ///< MCH-MFT(-MID) Matched tracks
+  std::vector<o2::dataformats::GlobalFwdTrack> mMatchedTracks; ///< MCH-MFT(-MID) Matched tracks
   std::vector<o2::MCCompLabel> mMatchLabels;                   ///< Output labels
-  const MCLabContCl* mMCHTrkLabels;                            ///< input MCH Track MC labels
 
   const o2::itsmft::TopologyDictionary* mMFTDict{nullptr}; // cluster patterns dictionary
   o2::itsmft::ChipMappingMFT mMFTMapping;

@@ -34,7 +34,6 @@
 #include "Steer/MCKinematicsReader.h"
 
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/TrackReference.h"
 
 #include "DataFormatsMCH/ROFRecord.h"
@@ -81,7 +80,7 @@ class TrackMCLabelFinderTask
       throw length_error(fmt::format("inconsistent ROFs: {} tracksROFs vs {} digitROFs", trackROFs.size(), nROFs));
     }
 
-    dataformats::MCTruthContainer<MCCompLabel> tracklabels;
+    std::vector<o2::MCCompLabel> tracklabels;
 
     for (int iROF = 0; iROF < nROFs; ++iROF) {
 
@@ -112,11 +111,12 @@ class TrackMCLabelFinderTask
       for (int iTrack = trackROF.getFirstIdx(); iTrack <= trackROF.getLastIdx(); ++iTrack) {
         for (const auto& [label, mcClusters] : mcClusterMap) {
           if (match(clusters.subspan(tracks[iTrack].getFirstClusterIdx(), tracks[iTrack].getNClusters()), mcClusters)) {
-            tracklabels.addElement(iTrack, label);
+            tracklabels.push_back(label);
+            break;
           }
         }
-        if (tracklabels.getIndexedSize() != iTrack + 1) {
-          tracklabels.addElement(iTrack, MCCompLabel());
+        if (tracklabels.size() != iTrack + 1) {
+          tracklabels.push_back(MCCompLabel());
         }
       }
     }

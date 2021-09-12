@@ -118,10 +118,11 @@ bool MatchGlobalFwd::prepareMCHData()
       o2::mch::TrackParam tempParam(trcOrig.getZ(), trcOrig.getParameters(), trcOrig.getCovariances());
       if (!o2::mch::TrackExtrap::extrapToVertexWithoutBranson(tempParam, mMatchingPlaneZ)) {
         LOG(WARNING) << "MCH track propagation to matching plane failed!";
-        continue; // Does this break indices?
+        continue;
       }
       auto convertedTrack = MCHtoFwd(tempParam);
-      mMCHWork.emplace_back(TrackLocMCH{convertedTrack, {tMin, tMax}});
+      auto& thisMCHTrack = mMCHWork.emplace_back(TrackLocMCH{convertedTrack, {tMin, tMax}});
+      thisMCHTrack.setMCHTrackID(it);
     }
   }
 
@@ -261,8 +262,7 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
     const o2::MCCompLabel* thisMCHLabel;
     const o2::MCCompLabel* thisMFTLabel;
     if (mMCTruthON) {
-      thisMCHLabel = &mMCHTrkLabels->getElement(MCHid);
-      //thisMCHLabel = &mMatchLabels[MCHid];
+      thisMCHLabel = &mMCHTrkLabels[MCHid];
       matchLabel = *thisMCHLabel;
     }
     for (auto MFTid = firstMFTTrackID; MFTid <= lastMFTTrackID; MFTid++) {
@@ -302,6 +302,7 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
       }
 
       thisMCHTrack.setMFTTrackID(bestMatchID);
+      thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
       std::cout << "    thisMCHTrack.getMFTTrackID() = " << thisMCHTrack.getMFTTrackID()
                 << "; thisMCHTrack.getMatchingChi2() = " << thisMCHTrack.getMatchingChi2()
                 << "; Label: " << matchLabel << std::endl;
@@ -334,7 +335,7 @@ void MatchGlobalFwd::fitTracks()
 }
 
 //_________________________________________________________________________________________________
-void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::TrackGlobalFwd& gTrack)
+void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
 {
   const auto& MFTMatchId = gTrack.getMFTTrackID();
   const auto& mftTrack = mMFTTracks[MFTMatchId];
@@ -345,7 +346,6 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::TrackGlobalFwd& gTrack)
   auto sigmainvQPtsq = gTrack.getCovariances()(4, 4);
 
   // initialize the starting track parameters and cluster
-  auto nPoints = mftTrack.getNumberOfPoints();
   auto k = TMath::Abs(o2::constants::math::B2C * mBz);
   auto Hz = std::copysign(1, mBz);
 
@@ -396,7 +396,7 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::TrackGlobalFwd& gTrack)
 }
 
 //_________________________________________________________________________________________________
-bool MatchGlobalFwd::computeCluster(o2::dataformats::TrackGlobalFwd& track, const MFTCluster& cluster, int& startingLayerID)
+bool MatchGlobalFwd::computeCluster(o2::dataformats::GlobalFwdTrack& track, const MFTCluster& cluster, int& startingLayerID)
 {
   /// Propagate track to the z position of the new cluster
   /// accounting for MCS dispersion in the current layer and the other(s) crossed
@@ -512,8 +512,7 @@ double MatchGlobalFwd::matchMFT_MCH_TracksAllParam(const TrackLocMCH& mchTrack, 
   H_k(4, 4) = 1.0;
 
   // Covariance of residuals
-  SMatrix55Std invResCov =
-    (V_k + ROOT::Math::Similarity(H_k, GlobalMuonTrackCovariances));
+  SMatrix55Std invResCov = (V_k + ROOT::Math::Similarity(H_k, GlobalMuonTrackCovariances));
   invResCov.Invert();
 
   // Kalman Gain Matrix
@@ -528,12 +527,12 @@ double MatchGlobalFwd::matchMFT_MCH_TracksAllParam(const TrackLocMCH& mchTrack, 
 }
 
 //_________________________________________________________________________________________________
-o2::dataformats::TrackGlobalFwd MatchGlobalFwd::MCHtoFwd(const o2::mch::TrackParam& mchParam)
+o2::dataformats::GlobalFwdTrack MatchGlobalFwd::MCHtoFwd(const o2::mch::TrackParam& mchParam)
 {
   // Convert a MCH Track parameters and covariances matrix to the
   // Forward track format. Must be called after propagation though the absorber
 
-  o2::dataformats::TrackGlobalFwd convertedTrack;
+  o2::dataformats::GlobalFwdTrack convertedTrack;
 
   // Parameter conversion
   double alpha1, alpha3, alpha4, x2, x3, x4;
@@ -629,29 +628,16 @@ double MatchGlobalFwd::matchMFT_MCH_TracksXY(const TrackLocMCH& mchTrack, const 
   H_k(1, 1) = 1.0;
 
   // Covariance of residuals
-  SMatrix22 invResCov =
-    (V_k + ROOT::Math::Similarity(H_k, GlobalMuonTrackCovariances));
+  SMatrix22 invResCov = (V_k + ROOT::Math::Similarity(H_k, GlobalMuonTrackCovariances));
   invResCov.Invert();
 
   // Kalman Gain Matrix
-  SMatrix52 K_k =
-    GlobalMuonTrackCovariances * ROOT::Math::Transpose(H_k) * invResCov;
+  SMatrix52 K_k = GlobalMuonTrackCovariances * ROOT::Math::Transpose(H_k) * invResCov;
 
-  // Update Parameters
-  r_k_kminus1 =
-    m_k - H_k * GlobalMuonTrackParameters; // Residuals of prediction
-  // GlobalMuonTrackParameters = GlobalMuonTrackParameters + K_k * r_k_kminus1;
-
-  // Update covariances Matrix
-  // SMatrix55Std updatedCov = (I - K_k * H_k) * GlobalMuonTrackCovariances;
-
+  // Residuals of prediction
+  r_k_kminus1 = m_k - H_k * GlobalMuonTrackParameters;
   auto matchChi2Track = ROOT::Math::Similarity(r_k_kminus1, invResCov);
 
-  // GlobalMuonTrack matchTrack(mchTrack);
-  // matchTrack.setZ(mchTrack.getZ());
-  // matchTrack.setParameters(GlobalMuonTrackParameters);
-  // matchTrack.setCovariances(GlobalMuonTrackCovariances);
-  // matchTrack.setMatchingChi2(matchChi2Track);
   return matchChi2Track;
 }
 
@@ -678,29 +664,17 @@ double MatchGlobalFwd::matchMFT_MCH_TracksXYPhiTanl(const TrackLocMCH& mchTrack,
   H_k(3, 3) = 1.0;
 
   // Covariance of residuals
-  SMatrix44 invResCov =
-    (V_k + ROOT::Math::Similarity(H_k, GlobalMuonTrackCovariances));
+  SMatrix44 invResCov = (V_k + ROOT::Math::Similarity(H_k, GlobalMuonTrackCovariances));
   invResCov.Invert();
 
   // Kalman Gain Matrix
-  SMatrix54 K_k =
-    GlobalMuonTrackCovariances * ROOT::Math::Transpose(H_k) * invResCov;
+  SMatrix54 K_k = GlobalMuonTrackCovariances * ROOT::Math::Transpose(H_k) * invResCov;
 
-  // Update Parameters
-  r_k_kminus1 =
-    m_k - H_k * GlobalMuonTrackParameters; // Residuals of prediction
-  // GlobalMuonTrackParameters = GlobalMuonTrackParameters + K_k * r_k_kminus1;
-
-  // Update covariances Matrix
-  // SMatrix55Std updatedCov = (I - K_k * H_k) * GlobalMuonTrackCovariances;
+  // Residuals of prediction
+  r_k_kminus1 = m_k - H_k * GlobalMuonTrackParameters;
 
   auto matchChi2Track = ROOT::Math::Similarity(r_k_kminus1, invResCov);
 
-  // GlobalMuonTrack matchTrack(mchTrack);
-  // matchTrack.setZ(mchTrack.getZ());
-  // matchTrack.setParameters(GlobalMuonTrackParameters);
-  // matchTrack.setCovariances(GlobalMuonTrackCovariances);
-  // matchTrack.setMatchingChi2(matchChi2Track);
   return matchChi2Track;
 }
 

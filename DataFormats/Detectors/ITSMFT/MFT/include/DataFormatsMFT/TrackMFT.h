@@ -41,8 +41,8 @@ class TrackMFT : public o2::track::TrackParCovFwd
 
   // Track finding method
   void setCA(Bool_t method = true) { mIsCA = method; }
-  const Bool_t isCA() const { return mIsCA; }
-  const Bool_t isLTF() const { return !mIsCA; }
+  const Bool_t isCA() const { return mIsCA; }   ///< Track found by CA algorithm
+  const Bool_t isLTF() const { return !mIsCA; } ///< Track found by Linear Track Finder
 
   // Tracking seed charge and momentum from Fast Circle Fit of clusters X,Y positions
   void setInvQPtSeed(Double_t invqpt) { mInvQPtSeed = invqpt; }
@@ -52,36 +52,30 @@ class TrackMFT : public o2::track::TrackParCovFwd
   void setChi2QPtSeed(Double_t chi2) { mSeedinvQPtFitChi2 = chi2; }
   const Double_t getChi2QPtSeed() const { return mSeedinvQPtFitChi2; }
 
-  std::uint32_t getROFrame() const { return mROFrame; }
-  void setROFrame(std::uint32_t f) { mROFrame = f; }
-
-  const int getNumberOfPoints() const { return mClusRef.getEntries(); }
+  const int getNumberOfPoints() const { return mClusRef.getEntries(); } //< Get number of clusters
 
   const int getExternalClusterIndexOffset() const { return mClusRef.getFirstEntry(); }
 
   void setExternalClusterIndexOffset(int offset = 0) { mClusRef.setFirstEntry(offset); }
 
-  void setNumberOfPoints(int n) { mClusRef.setEntries(n); }
+  void setNumberOfPoints(int n) { mClusRef.setEntries(n); } ///< Set number of clusters
 
   void print() const;
 
-  const o2::track::TrackParCovFwd& getOutParam() const { return mOutParameters; }
-  void setOutParam(const o2::track::TrackParCovFwd parcov) { mOutParameters = parcov; }
+  const o2::track::TrackParCovFwd& getOutParam() const { return mOutParameters; }       ///< Returns track parameters fitted outwards
+  void setOutParam(const o2::track::TrackParCovFwd parcov) { mOutParameters = parcov; } ///< Set track out parameters
 
  private:
-  std::uint32_t mROFrame = 0; ///< RO Frame
-  Bool_t mIsCA = false;       // Track finding method CA vs. LTF
+  Bool_t mIsCA = false; ///< Track finding method CA vs. LTF
 
-  ClusRefs mClusRef; ///< references on clusters
+  ClusRefs mClusRef; ///< Clusters references
 
-  // Outward parameters for MCH matching
-  o2::track::TrackParCovFwd mOutParameters;
+  o2::track::TrackParCovFwd mOutParameters; ///< Outward parameters for MCH matching
 
-  // Seed InveQPt and Chi2 from fitting clusters X,Y positions
-  Double_t mSeedinvQPtFitChi2 = 0.;
-  Double_t mInvQPtSeed;
+  Double_t mSeedinvQPtFitChi2 = 0.; ///< Seed InvQPt Chi2 from FCF clusters X,Y positions
+  Double_t mInvQPtSeed;             ///< Seed InvQPt from FCF clusters X,Y positions
 
-  ClassDefNV(TrackMFT, 1);
+  ClassDefNV(TrackMFT, 2);
 };
 
 class TrackMFTExt : public TrackMFT

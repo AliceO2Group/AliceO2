@@ -15,7 +15,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "GlobalTrackingWorkflow/GlobalFwdMatchingSpec.h"
-#include "GlobalTrackingWorkflow/TrackWriterGlobalFwdSpec.h"
+#include "GlobalTrackingWorkflow/GlobalFwdTrackWriterSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 
 using namespace o2::framework;
@@ -53,7 +53,7 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   o2::framework::WorkflowSpec specs;
   specs.emplace_back(o2::globaltracking::getGlobalFwdMatchingSpec(useMC));
   if (!configcontext.options().get<bool>("disable-root-output")) {
-    specs.emplace_back(o2::globaltracking::getTrackWriterGlobalFwdSpec(useMC));
+    specs.emplace_back(o2::globaltracking::getGlobalFwdTrackWriterSpec(useMC));
   }
 
   auto srcTracks = GID::getSourcesMask("MFT,MCH");

@@ -116,6 +116,15 @@ void DataRequest::requestITSTPCTracks(bool mc)
   requestMap["trackITSTPC"] = mc;
 }
 
+void DataRequest::requestGlobalFwdTracks(bool mc)
+{
+  addInput({"fwdtracks", "GLO", "GLFWD", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"MCTruth", "GLO", "GLFWD_MC", 0, Lifetime::Timeframe});
+  }
+  requestMap["fwdtracks"] = mc;
+}
+
 void DataRequest::requestTPCTOFTracks(bool mc)
 {
   auto ss = getMatchingInputSubSpec();
@@ -313,6 +322,9 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (src[GTrackID::ITSTPC] || src[GTrackID::ITSTPCTOF]) {
     requestITSTPCTracks(useMC);
   }
+  if (src[GTrackID::MFTMCH]) {
+    requestGlobalFwdTracks(useMC);
+  }
   if (src[GTrackID::TPCTOF]) {
     requestTPCTOFTracks(useMC);
   }
@@ -382,6 +394,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   req = reqMap.find("trackITSTPC");
   if (req != reqMap.end()) {
     addITSTPCTracks(pc, req->second);
+  }
+
+  req = reqMap.find("fwdtracks");
+  if (req != reqMap.end()) {
+    addGlobalFwdTracks(pc, req->second);
   }
 
   req = reqMap.find("trackITSTPCTRD");
@@ -556,7 +573,7 @@ void RecoContainer::addMCHTracks(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::TrackMCH>>("trackMCH"), TRACKS);
   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("trackMCHROF"), TRACKREFS);
   if (mc) {
-    mcMCHTracks = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("trackMCHMCTR");
+    commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMCHMCTR"), MCLABELS);
   }
   // FIXME-LA : add track clusters
 }
@@ -580,6 +597,15 @@ void RecoContainer::addITSTPCTracks(ProcessingContext& pc, bool mc)
   if (mc) {
     commonPool[GTrackID::ITSTPC].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSTPCMCTR"), MCLABELS);
     commonPool[GTrackID::ITSAB].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSTPCABMCTR"), MCLABELS);
+  }
+}
+
+//__________________________________________________________
+void RecoContainer::addGlobalFwdTracks(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::MFTMCH].registerContainer(pc.inputs().get<gsl::span<o2d::GlobalFwdTrack>>("fwdtracks"), TRACKS);
+  if (mc) {
+    commonPool[GTrackID::MFTMCH].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("MCTruth"), MCLABELS);
   }
 }
 

@@ -118,7 +118,7 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
       // track matches to vertex, register
       vtxList.push_back(vto.origID); // flag matching vertex
     }
-    if (tro.origID.getSource() == GIndex::Source::MFT) { // MFT tracks are treated differently: tracks with unresolved ambiguities are marked as orphans -> unassigned
+    if ((tro.origID.getSource() == GIndex::Source::MFT) || (tro.origID.getSource() == GIndex::Source::MFTMCH)) { // Fwd tracks are treated differently: tracks with unresolved ambiguities are marked as orphans -> unassigned
       if (vtxList.size() == 1) {
         nAssigned++;
         tmpMap[vtxList[0]].emplace_back(tro.origID).setAmbiguous();
@@ -188,12 +188,15 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
       // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
       t0 *= this->mTPCBin2MUS;
       terr *= this->mTPCBin2MUS;
-    } else if (isITSTrack<decltype(_tr)>()) {
+    } else if constexpr (isITSTrack<decltype(_tr)>()) {
       t0 += 0.5 * this->mITSROFrameLengthMUS; // ITS time is supplied in \mus as beginning of ROF
       terr *= this->mITSROFrameLengthMUS;     // error is supplied as a half-ROF duration, convert to \mus
-    } else if (isMFTTrack<decltype(_tr)>()) { // Same for MFT
+    } else if constexpr (isMFTTrack<decltype(_tr)>()) { // Same for MFT
       t0 += 0.5 * this->mMFTROFrameLengthMUS;
       terr *= this->mMFTROFrameLengthMUS;
+    } else if constexpr (isGlobalFwdTrack<decltype(_tr)>()) {
+      t0 = _tr.getTimeMUS().getTimeStamp();
+      terr = _tr.getTimeMUS().getTimeStampError();
     }
     // for all other tracks the time is in \mus with gaussian error
     mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});

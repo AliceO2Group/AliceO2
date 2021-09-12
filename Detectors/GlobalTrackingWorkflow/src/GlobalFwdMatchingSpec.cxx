@@ -25,7 +25,7 @@
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "ReconstructionDataFormats/TrackGlobalFwd.h"
+#include "ReconstructionDataFormats/GlobalFwdTrack.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "GlobalTracking/MatchGlobalFwd.h"

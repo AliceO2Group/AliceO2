@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TrackWriterGlobalFwdSpec.h
+/// @file   GlobalFwdTrackWriterSpec.h
 
 #ifndef O2_TRACKWRITER_GLOBALFWD
 #define O2_TRACKWRITER_GLOBALFWD
@@ -25,7 +25,7 @@ namespace globaltracking
 
 /// create a processor spec
 /// write GlobalMuonTracks a root file
-framework::DataProcessorSpec getTrackWriterGlobalFwdSpec(bool useMC);
+framework::DataProcessorSpec getGlobalFwdTrackWriterSpec(bool useMC);
 
 } // namespace globaltracking
 } // namespace o2

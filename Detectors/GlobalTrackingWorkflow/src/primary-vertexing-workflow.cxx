@@ -13,6 +13,7 @@
 #include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
 #include "GlobalTrackingWorkflow/PrimaryVertexWriterSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/GlobalFwdTrackReaderSpec.h"
 #include "GlobalTrackingWorkflow/VertexTrackMatcherSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
@@ -58,7 +59,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   WorkflowSpec specs;
 
   GID::mask_t allowedSourcesPV = GID::getSourcesMask("ITS,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF");
-  GID::mask_t allowedSourcesVT = GID::getSourcesMask("ITS,MFT,TPC,ITS-TPC,MCH,TPC-TOF,TPC-TRD,ITS-TPC-TRD,ITS-TPC-TOF");
+  GID::mask_t allowedSourcesVT = GID::getSourcesMask("ITS,MFT,TPC,ITS-TPC,MCH,MFT-MCH,TPC-TOF,TPC-TRD,ITS-TPC-TRD,ITS-TPC-TOF");
 
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
