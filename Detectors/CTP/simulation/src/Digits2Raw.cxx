@@ -39,14 +39,12 @@ void Digits2Raw::init()
   // Interaction Record
   int ilink = 0;
   uint64_t feeID = getFEEIDIR();
-  //std::string outFileLink0 = mOutputPerLink ? o2::utils::Str::concat_string(outd, "ctp_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, "ctp.raw");
-  std::string outFileLink0 = mOutputPerLink ? o2::utils::Str::concat_string(outd, "ctp_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, mCTPRawDataFileName);
+  std::string outFileLink0 = mOutputPerLink ? fmt::format("{}{}_feeid{}.raw",outd, mCTPRawDataFileName, feeID) : fmt::format("{}{}.raw",outd, mCTPRawDataFileName, feeID);
   mWriter.registerLink(feeID, mCruID, ilink, mEndPointID, outFileLink0);
   // Trigger Class record
   ilink = 1;
   feeID = getFEEIDTC();
-  //std::string outFileLink1 = mOutputPerLink ? o2::utils::Str::concat_string(outd, "ctp_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, "ctp.raw");
-  std::string outFileLink1 = mOutputPerLink ? o2::utils::Str::concat_string(outd, "ctp_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, mCTPRawDataFileName);
+  std::string outFileLink1 = mOutputPerLink ? fmt::format("{}{}_feeid{}.raw",outd, mCTPRawDataFileName, feeID) : fmt::format("{}{}.raw",outd, mCTPRawDataFileName, feeID);
   mWriter.registerLink(feeID, mCruID, ilink, mEndPointID, outFileLink1);
   // ilink = 2: HBMap, Counters - tbd
   mWriter.setEmptyPageCallBack(this);
