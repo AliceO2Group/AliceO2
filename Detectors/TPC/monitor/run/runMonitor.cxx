@@ -17,16 +17,39 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 
-namespace bpo = boost::program_options;
+#include "TApplication.h"
+
+#include "TPCMonitor/SimpleEventDisplayGUI.h"
+
+namespace po = boost::program_options;
 
 int main(int argc, char* argv[])
 {
   // Arguments parsing
-  bpo::variables_map vm;
-  bpo::options_description desc("Allowed options");
-  desc.add_options()("help,h", "Produce help message.")("file,f", "input file(s)");
-  bpo::store(parse_command_line(argc, argv, desc), vm);
-  bpo::notify(vm);
+  std::string file;
+  std::string pedestalFile;
+  int lastTimeBin{512};
+  int firstTimeBin{0};
+  int verbosity{0};
+  int debugLevel{0};
+  int sector{0};
+  bool overview{true};
+
+  po::variables_map vm;
+  po::options_description desc("Allowed options");
+  desc.add_options()                                                                                 //
+    ("fileInfo,i", po::value<std::string>(&file)->required(), "input file(s)")                       //
+    ("pedestalFile,p", po::value<std::string>(&pedestalFile), "pedestal file")                       //
+    ("firstTimeBin,f", po::value<int>(&firstTimeBin)->default_value(0), "first time bin to process") //
+    ("lastTimeBin,l", po::value<int>(&lastTimeBin)->default_value(512), "last time bin to process")  //
+    ("verbosity,v", po::value<int>(&verbosity)->default_value(0), "verbosity level")                 //
+    ("debugLevel,d", po::value<int>(&debugLevel)->default_value(0), "debug level")                   //
+    ("sector,s", po::value<int>(&sector)->default_value(0), "sector to be shown on startup")         //
+    ("overview,o", po::value<bool>(&overview)->default_value(true), "show sides overview")           //
+    ("help,h", "Produce help message.")                                                              //
+    ;                                                                                                //
+
+  po::store(parse_command_line(argc, argv, desc), vm);
 
   // help
   if (vm.count("help")) {
@@ -34,8 +57,7 @@ int main(int argc, char* argv[])
     return EXIT_SUCCESS;
   }
 
-  // Actual "work"
-  const std::string file = vm["file"].as<std::string>();
+  po::notify(vm);
 
   std::cout << "####" << '\n';
   std::cout << "#### Starting TPC simple online monitor" << '\n';
@@ -43,6 +65,13 @@ int main(int argc, char* argv[])
   std::cout << "####" << '\n';
   std::cout << '\n'
             << '\n';
+
+  TApplication rootApp("TPC Event Monitor", &argc, argv);
+
+  o2::tpc::SimpleEventDisplayGUI g;
+  g.runSimpleEventDisplay(file + ":" + std::to_string(lastTimeBin), pedestalFile, firstTimeBin, lastTimeBin, lastTimeBin, verbosity, debugLevel, sector, overview);
+
+  rootApp.Run(true);
 
   return EXIT_SUCCESS;
 }
