@@ -31,8 +31,6 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "ITStracking/Configuration.h"
 
-#endif
-
 using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
@@ -183,7 +181,6 @@ void RunGPUTracking(bool useLUT = true,
     } else {
       std::cout << " - Vertex not reconstructed" << std::endl;
     }
-
-    // return;
   }
 }
+#endif

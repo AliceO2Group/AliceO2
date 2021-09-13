@@ -16,11 +16,6 @@
 #ifndef ITSTRACKINGGPU_UTILS_H_
 #define ITSTRACKINGGPU_UTILS_H_
 
-#ifndef GPUCA_GPUCODE_GENRTC
-#include <cub/cub.cuh>
-#include <cstdint>
-#endif
-
 #include "GPUCommonDef.h"
 #include "Stream.h"
 
