@@ -85,310 +85,123 @@ class ColumnIterator
 };
 } // namespace
 
-// is used in TableToTree
-BranchIterator::BranchIterator(TTree* tree, std::shared_ptr<arrow::ChunkedArray> col, std::shared_ptr<arrow::Field> field)
+ColumnToBranchBase::ColumnToBranchBase(arrow::ChunkedArray* column, arrow::Field* field, int size)
+  : mBranchName{field->name()},
+    mColumn{column},
+    listSize{size}
 {
-  mField = field.get();
-  mBranchName = mField->name();
-
-  mFieldType = mField->type()->id();
-  mChunks = col->chunks();
-  mNumberChuncs = mChunks.size();
-
-  mLeaflistString = mBranchName;
-  mElementType = mFieldType;
-  mNumberElements = 1;
-  if (mFieldType == arrow::Type::type::FIXED_SIZE_LIST) {
-
-    // element type
-    if (mField->type()->num_fields() <= 0) {
-      LOGP(FATAL, "Field {} of type {} has no children!", mField->name(), mField->type()->ToString().c_str());
-    }
-    mElementType = mField->type()->field(0)->type()->id();
-    // number of elements
-    mNumberElements = static_cast<const arrow::FixedSizeListType*>(mField->type().get())->list_size();
-    mLeaflistString += "[" + std::to_string(mNumberElements) + "]";
-  }
-
-  // initialize the branch
-  mStatus = initBranch(tree);
-
-  mCounterChunk = 0;
-  mStatus &= initDataBuffer(mCounterChunk);
 }
 
-BranchIterator::~BranchIterator()
+TableToTree::TableToTree(TFile* file, const char* treename)
 {
-  delete mBranchBuffer;
-
-  delete[] mVariable_o;
-}
-
-bool BranchIterator::getStatus()
-{
-  return mStatus;
-}
-
-bool BranchIterator::initBranch(TTree* tree)
-{
-  // try to find branch in tree
-  mBranchPtr = tree->GetBranch(mBranchName.c_str());
-  if (mBranchPtr) {
-    return true;
-  }
-
-  // create new branch of given data type
-  switch (mElementType) {
-    case arrow::Type::type::BOOL:
-      mLeaflistString += "/O";
-      break;
-    case arrow::Type::type::UINT8:
-      mLeaflistString += "/b";
-      break;
-    case arrow::Type::type::UINT16:
-      mLeaflistString += "/s";
-      break;
-    case arrow::Type::type::UINT32:
-      mLeaflistString += "/i";
-      break;
-    case arrow::Type::type::UINT64:
-      mLeaflistString += "/l";
-      break;
-    case arrow::Type::type::INT8:
-      mLeaflistString += "/B";
-      break;
-    case arrow::Type::type::INT16:
-      mLeaflistString += "/S";
-      break;
-    case arrow::Type::type::INT32:
-      mLeaflistString += "/I";
-      break;
-    case arrow::Type::type::INT64:
-      mLeaflistString += "/L";
-      break;
-    case arrow::Type::type::FLOAT:
-      mLeaflistString += "/F";
-      break;
-    case arrow::Type::type::DOUBLE:
-      mLeaflistString += "/D";
-      break;
-    default:
-      LOGP(FATAL, "Type {} not handled!", mElementType);
-      break;
-  }
-
-  mBranchPtr = tree->Branch(mBranchName.c_str(), mBranchBuffer, mLeaflistString.c_str());
-  return mBranchPtr != nullptr;
-}
-
-bool BranchIterator::initDataBuffer(Int_t ib)
-{
-
-  auto chunkToUse = mChunks.at(ib);
-  if (mFieldType == arrow::Type::type::FIXED_SIZE_LIST) {
-    chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
-  }
-
-  // reset actual row number
-  mCounterRow = 0;
-
-  // get next chunk of given data type mElementType
-  switch (mElementType) {
-    case arrow::Type::type::BOOL:
-      if (!mVariable_o) {
-        mVariable_o = new bool[mNumberElements];
-      }
-      mArray_o = std::dynamic_pointer_cast<arrow::BooleanArray>(chunkToUse);
-      for (int ii = 0; ii < mNumberElements; ii++) {
-        mVariable_o[ii] = (bool)mArray_o->Value(ii);
-      }
-      mValueBuffer = (void*)mVariable_o;
-      break;
-    case arrow::Type::type::UINT8:
-      mVariable_ub = (uint8_t*)std::dynamic_pointer_cast<arrow::UInt8Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)mVariable_ub;
-      break;
-    case arrow::Type::type::UINT16:
-      mVariable_us = (uint16_t*)std::dynamic_pointer_cast<arrow::UInt16Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)mVariable_us;
-      break;
-    case arrow::Type::type::UINT32:
-      mVariable_ui = (uint32_t*)std::dynamic_pointer_cast<arrow::UInt32Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)mVariable_ui;
-      break;
-    case arrow::Type::type::UINT64:
-      mVariable_ul = (uint64_t*)std::dynamic_pointer_cast<arrow::UInt64Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)mVariable_ul;
-      break;
-    case arrow::Type::type::INT8:
-      mVariable_b = (int8_t*)std::dynamic_pointer_cast<arrow::Int8Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)mVariable_b;
-      break;
-    case arrow::Type::type::INT16:
-      mVariable_s = (int16_t*)std::dynamic_pointer_cast<arrow::Int16Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)mVariable_s;
-      break;
-    case arrow::Type::type::INT32:
-      mVariable_i = (int32_t*)std::dynamic_pointer_cast<arrow::Int32Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)mVariable_i;
-      break;
-    case arrow::Type::type::INT64:
-      mVariable_l = (int64_t*)std::dynamic_pointer_cast<arrow::Int64Array>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)mVariable_l;
-      break;
-    case arrow::Type::type::FLOAT:
-      mVariable_f = (Float_t*)std::dynamic_pointer_cast<arrow::FloatArray>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)mVariable_f;
-      break;
-    case arrow::Type::type::DOUBLE:
-      mVariable_d = (double*)std::dynamic_pointer_cast<arrow::DoubleArray>(chunkToUse)->raw_values();
-      mValueBuffer = (void*)mVariable_d;
-    default:
-      break;
-      LOGP(FATAL, "Type {} not handled!", mElementType);
-      break;
-  }
-  mBranchPtr->SetAddress(mValueBuffer);
-
-  // reset number of rows mNumberRows and row counter mCounterRow
-  mNumberRows = mChunks.at(ib)->length();
-
-  return true;
-}
-
-bool BranchIterator::push()
-{
-  // increment row counter
-  mCounterRow++;
-
-  // mCounterChunk and mCounterRow contain the current chunk and row
-  // return the next element if available
-  if (mCounterRow >= mNumberRows) {
-    mCounterChunk++;
-    if (mCounterChunk < mNumberChuncs) {
-      initDataBuffer(mCounterChunk);
-    } else {
-      // end of data buffer reached
-      return false;
-    }
-  } else {
-    switch (mElementType) {
-      case arrow::Type::type::BOOL:
-        for (int ii = 0; ii < mNumberElements; ii++) {
-          mVariable_o[ii] = (bool)mArray_o->Value(mCounterRow * mNumberElements + ii);
-        }
-        mValueBuffer = (void*)mVariable_o;
-        break;
-      case arrow::Type::type::UINT8:
-        mVariable_ub += mNumberElements;
-        mValueBuffer = (void*)mVariable_ub;
-        break;
-      case arrow::Type::type::UINT16:
-        mVariable_us += mNumberElements;
-        mValueBuffer = (void*)mVariable_us;
-        break;
-      case arrow::Type::type::UINT32:
-        mVariable_ui += mNumberElements;
-        mValueBuffer = (void*)mVariable_ui;
-        break;
-      case arrow::Type::type::UINT64:
-        mVariable_ul += mNumberElements;
-        mValueBuffer = (void*)mVariable_ul;
-        break;
-      case arrow::Type::type::INT8:
-        mVariable_b += mNumberElements;
-        mValueBuffer = (void*)mVariable_b;
-        break;
-      case arrow::Type::type::INT16:
-        mVariable_s += mNumberElements;
-        mValueBuffer = (void*)mVariable_s;
-        break;
-      case arrow::Type::type::INT32:
-        mVariable_i += mNumberElements;
-        mValueBuffer = (void*)mVariable_i;
-        break;
-      case arrow::Type::type::INT64:
-        mVariable_l += mNumberElements;
-        mValueBuffer = (void*)mVariable_l;
-        break;
-      case arrow::Type::type::FLOAT:
-        mVariable_f += mNumberElements;
-        mValueBuffer = (void*)mVariable_f;
-        break;
-      case arrow::Type::type::DOUBLE:
-        mVariable_d += mNumberElements;
-        mValueBuffer = (void*)mVariable_d;
-        break;
-      default:
-        LOGP(FATAL, "Type {} not handled!", mElementType);
-        break;
-    }
-  }
-  mBranchPtr->SetAddress(mValueBuffer);
-
-  return true;
-}
-
-TableToTree::TableToTree(std::shared_ptr<arrow::Table> table,
-                         TFile* file,
-                         const char* treename)
-{
-  mTable = table;
-
-  // try to get the tree
-  mTreePtr = (TTree*)file->Get(treename);
-
-  // create the tree if it does not exist already
-  if (!mTreePtr) {
-    // does treename containe folder?
+  mTree = static_cast<TTree*>(file->Get(treename));
+  if (mTree == nullptr) {
     std::string treeName(treename);
-    auto pos = treeName.find_first_of("/");
+    auto pos = treeName.find_first_of('/');
     if (pos != std::string::npos) {
       file->cd(treeName.substr(0, pos).c_str());
+      treeName = treeName.substr(pos + 1, std::string::npos);
     }
-    treeName = treeName.substr(pos + 1, std::string::npos);
-    mTreePtr = new TTree(treeName.c_str(), treeName.c_str());
+    mTree = new TTree(treeName.c_str(), treeName.c_str());
   }
 }
 
-bool TableToTree::addBranch(std::shared_ptr<arrow::ChunkedArray> col, std::shared_ptr<arrow::Field> field)
+void TableToTree::addBranches(arrow::Table* table)
 {
-  auto brit = std::make_unique<BranchIterator>(mTreePtr, col, field);
-  if (!brit->getStatus()) {
-    return false;
+  mRows = table->num_rows();
+  auto columns = table->columns();
+  auto fields = table->schema()->fields();
+  assert(columns.size() == fields.size());
+  for (auto i = 0u; i < columns.size(); ++i) {
+    addBranch(columns[i].get(), fields[i].get());
   }
-  mBranchIterators.emplace_back(std::move(brit));
-  return true;
 }
 
-bool TableToTree::addAllBranches()
+void TableToTree::addBranch(arrow::ChunkedArray* column, arrow::Field* field)
 {
-
-  bool status = mTable->num_columns() > 0;
-
-  for (auto ii = 0; ii < mTable->num_columns(); ii++) {
-    status &= addBranch(mTable->column(ii), mTable->schema()->field(ii));
-  }
-
-  return status;
-}
-
-TTree* TableToTree::process()
-{
-
-  bool togo = (mTreePtr->GetNbranches() > 0) && (mTable->num_rows() > 0);
-  while (togo) {
-    // fill the tree
-    mTreePtr->Fill();
-
-    // update the branches
-    for (auto& brit : mBranchIterators) {
-      togo &= brit->push();
+  if (mRows == 0) {
+    mRows = column->length();
+  } else {
+    if (mRows != column->length()) {
+      throw runtime_error_f("Adding incompatible column with size %d (num rows = %d)", column->length(), mRows);
     }
   }
-  mTreePtr->Write("", TObject::kOverwrite);
+  switch (field->type()->id()) {
+    case arrow::Type::type::BOOL:
+      mColumnReaders.emplace_back(new ColumnToBranch<bool>(mTree, column, field));
+      break;
+    case arrow::Type::type::UINT8:
+      mColumnReaders.emplace_back(new ColumnToBranch<uint8_t>(mTree, column, field));
+      break;
+    case arrow::Type::type::UINT16:
+      mColumnReaders.emplace_back(new ColumnToBranch<uint16_t>(mTree, column, field));
+      break;
+    case arrow::Type::type::UINT32:
+      mColumnReaders.emplace_back(new ColumnToBranch<uint32_t>(mTree, column, field));
+      break;
+    case arrow::Type::type::UINT64:
+      mColumnReaders.emplace_back(new ColumnToBranch<uint64_t>(mTree, column, field));
+      break;
+    case arrow::Type::type::INT8:
+      mColumnReaders.emplace_back(new ColumnToBranch<int8_t>(mTree, column, field));
+      break;
+    case arrow::Type::type::INT16:
+      mColumnReaders.emplace_back(new ColumnToBranch<int16_t>(mTree, column, field));
+      break;
+    case arrow::Type::type::INT32:
+      mColumnReaders.emplace_back(new ColumnToBranch<int>(mTree, column, field));
+      break;
+    case arrow::Type::type::INT64:
+      mColumnReaders.emplace_back(new ColumnToBranch<int64_t>(mTree, column, field));
+      break;
+    case arrow::Type::type::FLOAT:
+      mColumnReaders.emplace_back(new ColumnToBranch<float>(mTree, column, field));
+      break;
+    case arrow::Type::type::DOUBLE:
+      mColumnReaders.emplace_back(new ColumnToBranch<double>(mTree, column, field));
+      break;
+    case arrow::Type::type::FIXED_SIZE_LIST: {
+      auto size = static_cast<const arrow::FixedSizeListType*>(field->type().get())->list_size();
+      switch (field->type()->field(0)->type()->id()) {
+        case arrow::Type::type::BOOL:
+          mColumnReaders.emplace_back(new ColumnToBranch<bool*>(mTree, column, field, size));
+          break;
+        case arrow::Type::type::INT32:
+          mColumnReaders.emplace_back(new ColumnToBranch<int*>(mTree, column, field, size));
+          break;
+        case arrow::Type::type::FLOAT:
+          mColumnReaders.emplace_back(new ColumnToBranch<float*>(mTree, column, field, size));
+          break;
+        case arrow::Type::type::DOUBLE:
+          mColumnReaders.emplace_back(new ColumnToBranch<double*>(mTree, column, field, size));
+          break;
+        default:
+          throw runtime_error_f("Unsupported array column type for %s", field->name().c_str());
+      }
+    };
+      break;
+    case arrow::Type::type::LIST:
+      throw runtime_error("Not implemented");
+    default:
+      throw runtime_error_f("Unsupported column type for %s", field->name().c_str());
+  }
+}
 
-  return mTreePtr;
+TTree* TableToTree::write()
+{
+  int64_t mRow = 0;
+  bool writable = (mTree->GetNbranches() > 0) && (mRows > 0);
+  if (writable) {
+    while (mRow < mRows) {
+      for (auto& reader : mColumnReaders) {
+        reader->at(&mRow);
+      }
+      mTree->Fill();
+      ++mRow;
+    }
+  }
+  mTree->Write("", TObject::kOverwrite);
+  return mTree;
 }
 
 // -----------------------------------------------------------------------------

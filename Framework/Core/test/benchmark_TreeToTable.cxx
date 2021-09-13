@@ -57,9 +57,9 @@ static void BM_TreeToTable(benchmark::State& state)
 
   // now convert the table to a tree
   TFile fout("tree2table.root", "RECREATE");
-  TableToTree ta2tr(table, &fout, "tree2table");
-  ta2tr.addAllBranches();
-  ta2tr.process();
+  TableToTree ta2tr(&fout, "tree2table");
+  ta2tr.addBranches(table.get());
+  ta2tr.write();
   fout.Close();
 
   // read tree and convert to table again

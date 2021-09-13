@@ -289,7 +289,7 @@ DataProcessorSpec
     std::map<uint64_t, uint64_t> tfNumbers;
 
     // this functor is called once per time frame
-    return std::move([dod, tfNumbers](ProcessingContext& pc) mutable -> void {
+    return [dod, tfNumbers](ProcessingContext& pc) mutable -> void {
       LOGP(DEBUG, "======== getGlobalAODSink::processing ==========");
       LOGP(DEBUG, " processing data set with {} entries", pc.inputs().size());
 
@@ -360,8 +360,7 @@ DataProcessorSpec
         for (auto d : ds) {
           auto fileAndFolder = dod->getFileFolder(d, tfNumber);
           auto treename = fileAndFolder.folderName + d->treename;
-          TableToTree ta2tr(table,
-                            fileAndFolder.file,
+          TableToTree ta2tr(fileAndFolder.file,
                             treename.c_str());
 
           if (d->colnames.size() > 0) {
@@ -370,16 +369,16 @@ DataProcessorSpec
               auto col = table->column(idx);
               auto field = table->schema()->field(idx);
               if (idx != -1) {
-                ta2tr.addBranch(col, field);
+                ta2tr.addBranch(col.get(), field.get());
               }
             }
           } else {
-            ta2tr.addAllBranches();
+            ta2tr.addBranches(table.get());
           }
-          ta2tr.process();
+          ta2tr.write();
         }
       }
-    });
+    };
   }; // end of writerFunction
 
   // the command line options relevant for the writer are global

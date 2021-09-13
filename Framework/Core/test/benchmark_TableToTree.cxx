@@ -61,10 +61,9 @@ static void BM_TableToTree(benchmark::State& state)
     TFile fout("table2tree.root", "RECREATE");
 
     // benchmark TableToTree
-    TableToTree ta2tr(table, &fout, "table2tree");
-    if (ta2tr.addAllBranches()) {
-      ta2tr.process();
-    }
+    TableToTree ta2tr(&fout, "table2tree");
+    ta2tr.addBranches(table.get());
+    ta2tr.write();
 
     // clean up
     fout.Close();
