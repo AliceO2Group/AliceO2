@@ -35,7 +35,6 @@ enum TreeIndex {     // Index of the output trees
   kCalo,             //N/A
   kCaloTrigger,      //N/A
   kMuon,             //N/A
-  kMuonCls,          //N/A
   kZdc,              //N/A
   kFV0A,             //N/A
   kFV0C,             //N/A
@@ -57,10 +56,10 @@ enum MCParticleFlags : uint8_t {
   ProducedInTransport = 1 // Bit 0: 0 = from generator; 1 = from transport
 };
 
-const TString gTreeName[kTrees] = {"O2collision", "DbgEventExtra", "O2track", "O2calo", "O2calotrigger", "O2muon", "O2muoncluster", "O2zdc", "O2fv0a", "O2fv0c", "O2ft0", "O2fdd", "O2v0", "O2cascade", "O2tof", "O2mcparticle", "O2mccollision", "O2mctracklabel", "O2mccalolabel", "O2mccollisionlabel", "O2bc"};
-const TString gTreeTitle[kTrees] = {"Collision tree", "Collision extra", "Barrel tracks", "Calorimeter cells", "Calorimeter triggers", "MUON tracks", "MUON clusters", "ZDC", "FV0A", "FV0C", "FT0", "FDD", "V0s", "Cascades", "TOF hits", "Kinematics", "MC collisions", "MC track labels", "MC calo labels", "MC collision labels", "BC info"};
+const TString gTreeName[kTrees] = {"O2collision", "DbgEventExtra", "O2track", "O2calo", "O2calotrigger", "O2muon", "O2zdc", "O2fv0a", "O2fv0c", "O2ft0", "O2fdd", "O2v0", "O2cascade", "O2tof", "O2mcparticle", "O2mccollision", "O2mctracklabel", "O2mccalolabel", "O2mccollisionlabel", "O2bc"};
+const TString gTreeTitle[kTrees] = {"Collision tree", "Collision extra", "Barrel tracks", "Calorimeter cells", "Calorimeter triggers", "MUON tracks", "ZDC", "FV0A", "FV0C", "FT0", "FDD", "V0s", "Cascades", "TOF hits", "Kinematics", "MC collisions", "MC track labels", "MC calo labels", "MC collision labels", "BC info"};
 
-const Bool_t gSaveTree[kTrees] = {kTRUE, kFALSE, kTRUE, kFALSE, kFALSE, kFALSE, kFALSE, kTRUE, kTRUE, kTRUE, kTRUE, kTRUE,
+const Bool_t gSaveTree[kTrees] = {kTRUE, kFALSE, kTRUE, kFALSE, kFALSE, kFALSE, kTRUE, kTRUE, kTRUE, kTRUE, kTRUE,
                                   //V0 and cascade (not done for now)
                                   kFALSE, kFALSE,
                                   //TOF

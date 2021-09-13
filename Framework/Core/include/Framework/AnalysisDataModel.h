@@ -351,7 +351,7 @@ DECLARE_SOA_COLUMN(MatchMFTTrackID, matchMFTTrackID, int);     //! ID of matchin
 DECLARE_SOA_COLUMN(MatchMCHTrackID, matchMCHTrackID, int);     //! ID of matching MCH track for GlobalMuonTracks  (ints while self indexing not available)
 DECLARE_SOA_COLUMN(MCHBitMap, MchBitMap, uint16_t);            //! Fired muon trackig chambers bitmap
 DECLARE_SOA_COLUMN(MIDBitMap, midBitMap, uint8_t);             //! MID bitmap: non-bending plane (4bit), bending plane (4bit)
-DECLARE_SOA_COLUMN(MIDBoards, midBoards, uint32_t);            //! Local boards on each MID plane (8 bits plane)
+DECLARE_SOA_COLUMN(MIDBoards, midBoards, uint32_t);            //! Local boards on each MID plane (8 bits per plane)
 DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign,                         //!
                            [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //!
@@ -481,26 +481,6 @@ DECLARE_SOA_EXTENDED_TABLE(FwdTracksCov, StoredFwdTracksCov, "FWDTRACKCOV", //!
 
 using FwdTrack = FwdTracks::iterator;
 using FwdTrackCovFwd = FwdTracksCov::iterator;
-
-namespace muoncluster
-{
-DECLARE_SOA_INDEX_COLUMN(FwdTrack, fwdtrack); //! points to a fwdtrack in the fwdtrack table
-DECLARE_SOA_COLUMN(X, x, float);              //!
-DECLARE_SOA_COLUMN(Y, y, float);              //!
-DECLARE_SOA_COLUMN(Z, z, float);              //!
-DECLARE_SOA_COLUMN(ErrX, errX, float);        //!
-DECLARE_SOA_COLUMN(ErrY, errY, float);        //!
-DECLARE_SOA_COLUMN(Charge, charge, float);    //!
-DECLARE_SOA_COLUMN(Chi2, chi2, float);        //!
-} // namespace muoncluster
-
-DECLARE_SOA_TABLE(MuonClusters, "AOD", "MUONCLUSTER", //!
-                  muoncluster::FwdTrackId,
-                  muoncluster::X, muoncluster::Y, muoncluster::Z,
-                  muoncluster::ErrX, muoncluster::ErrY,
-                  muoncluster::Charge, muoncluster::Chi2);
-
-using MuonCluster = MuonClusters::iterator;
 
 } // namespace aod
 namespace soa
