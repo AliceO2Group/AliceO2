@@ -68,6 +68,7 @@ o2_add_test_root_macro(CheckTracksCA.C
 
 o2_add_test_root_macro(RunGPUTracking.C
                        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+                                             O2::GPUTracking
                                              O2::ITSBase
                                              O2::DataFormatsITS
                                              O2::DataFormatsITSMFT
