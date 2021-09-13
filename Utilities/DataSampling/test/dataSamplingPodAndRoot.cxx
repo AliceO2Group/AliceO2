@@ -31,6 +31,7 @@ void customize(std::vector<ChannelConfigurationPolicy>& policies)
 #include "Framework/TMessageSerializer.h"
 #include "DataSampling/DataSamplingHeader.h"
 #include "Framework/Logger.h"
+#include "Framework/DataRefUtils.h"
 #include <TClonesArray.h>
 #include <TObjString.h>
 #include <TH1F.h>
@@ -98,8 +99,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         auto inputDataTpcProcessed = reinterpret_cast<const FakeCluster*>(ctx.inputs().get(
           "TPC_CLUSTERS_P_S").payload);
 
-        const auto* header = ctx.inputs().get("TPC_CLUSTERS_S").header;
-        const auto* dataHeader = o2::header::get<DataHeader*>(header);
+        auto ref = ctx.inputs().get("TPC_CLUSTERS_S");
+        const auto* dataHeader = DataRefUtils::getHeader<DataHeader*>(ref);
 
         bool dataGood = true;
         for (int j = 0; j < dataHeader->payloadSize / sizeof(FakeCluster); ++j) {
@@ -115,7 +116,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
 
         LOG(INFO) << "qcTaskTPC - received data is " << (dataGood ? "correct" : "wrong");
 
-        const auto* dsHeader = o2::header::get<DataSamplingHeader*>(header);
+        const auto* dsHeader = DataRefUtils::getHeader<DataSamplingHeader*>(ref);
         if (dsHeader) {
           LOG(INFO) << "Matching messages seen by Dispatcher: " << dsHeader->totalEvaluatedMessages
                     << ", accepted: " << dsHeader->totalAcceptedMessages

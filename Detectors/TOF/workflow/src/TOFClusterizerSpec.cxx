@@ -29,6 +29,7 @@
 #include "TOFCalibration/CalibTOFapi.h"
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/DataRefUtils.h"
 
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
@@ -78,7 +79,7 @@ class TOFDPLClustererTask
     auto digits = pc.inputs().get<gsl::span<o2::tof::Digit>>("tofdigits");
     auto row = pc.inputs().get<gsl::span<o2::tof::ReadoutWindowData>>("readoutwin");
 
-    const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
+    const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
     mClusterer.setFirstOrbit(dh->firstTForbit);
 
     auto labelvector = std::make_shared<std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>>();

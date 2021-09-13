@@ -16,7 +16,6 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Lifetime.h"
-#include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h"
 #include "Steer/InteractionSampler.h"
 #include "CommonDataFormat/InteractionRecord.h"

@@ -18,6 +18,7 @@
 #include "DataFormatsTPC/Constants.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "Framework/DataRefUtils.h"
 #include <string>
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -131,7 +132,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
 
 void TPCITSMatchingDPL::run(ProcessingContext& pc)
 {
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
+  const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
   LOG(INFO) << " startOrbit: " << dh->firstTForbit;
   mTimer.Start(false);
   RecoContainer recoData;

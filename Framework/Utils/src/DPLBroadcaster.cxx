@@ -17,6 +17,7 @@
 #include "DPLUtils/Utils.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/DataRefUtils.h"
 #include "Headers/DataHeader.h"
 
 namespace o2f = o2::framework;
@@ -69,8 +70,8 @@ o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usr
 o2f::DataProcessorSpec defineBroadcaster(std::string devName, o2f::InputSpec usrInput, o2f::Outputs usrOutputs)
 {
   // This lambda retrieves the message size using the API
-  auto funcSize = [](o2f::DataRef d) -> size_t {
-    return (o2::header::get<o2::header::DataHeader*>(d.header))->payloadSize;
+  auto funcSize = [](o2f::DataRef ref) -> size_t {
+    return o2::framework::DataRefUtils::getPayloadSize(ref);
   };
   // Callling complete implementation
   return defineBroadcaster(devName, usrInput, usrOutputs, funcSize);

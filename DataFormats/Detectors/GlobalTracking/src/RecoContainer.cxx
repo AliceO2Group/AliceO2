@@ -28,6 +28,11 @@
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
+// FIXME: ideally, the data formats definition should be independent of the framework
+// collectData is using the input of ProcessingContext to extract the first valid
+// header and the TF orbit from it
+#include "Framework/ProcessingContext.h"
+#include "Framework/DataRefUtils.h"
 
 using namespace o2::globaltracking;
 using namespace o2::framework;
@@ -337,7 +342,7 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
 {
   auto& reqMap = requests.requestMap;
 
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
+  const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
   startIR = {0, dh->firstTForbit};
 
   auto req = reqMap.find("trackITS");

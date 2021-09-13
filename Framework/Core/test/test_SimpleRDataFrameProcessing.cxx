@@ -24,7 +24,6 @@
 #include <memory>
 
 using namespace o2::framework;
-using DataHeader = o2::header::DataHeader;
 
 /// Example of how to use ROOT::RDataFrame using DPL.
 WorkflowSpec defineDataProcessing(ConfigContext const&)

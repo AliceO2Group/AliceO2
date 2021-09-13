@@ -22,6 +22,7 @@
 #include "Framework/SerializationMethods.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/ConcreteDataMatcher.h"
+#include "Framework/DataRefUtils.h"
 #include "Headers/DataHeader.h"
 #include "TestClasses.h"
 #include "Framework/Logger.h"
@@ -192,7 +193,7 @@ DataProcessorSpec getSinkSpec()
       if (iit.isValid() == false) {
         continue;
       }
-      auto* dh = o2::header::get<const DataHeader*>(input.header);
+      auto* dh = DataRefUtils::getHeader<const DataHeader*>(input);
       LOG(INFO) << "{" << dh->dataOrigin.str << ":" << dh->dataDescription.str << ":" << dh->subSpecification << "}"
                 << " payload size " << dh->payloadSize;
 
@@ -322,7 +323,7 @@ DataProcessorSpec getSinkSpec()
     auto pmrspan = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("inputPMR");
     ASSERT_ERROR((pmrspan[0] == o2::test::TriviallyCopyable{1, 2, 3}));
     auto dataref = pc.inputs().get<DataRef>("inputPMR");
-    auto header = o2::header::get<const o2::header::DataHeader*>(dataref.header);
+    auto header = DataRefUtils::getHeader<const o2::header::DataHeader*>(dataref);
     ASSERT_ERROR((header->payloadSize == sizeof(o2::test::TriviallyCopyable)));
 
     LOG(INFO) << "extracting POD vector";
@@ -371,7 +372,7 @@ DataProcessorSpec getSpectatorSinkSpec()
       if (iit.isValid() == false) {
         continue;
       }
-      auto* dh = o2::header::get<const DataHeader*>(input.header);
+      auto* dh = DataRefUtils::getHeader<const DataHeader*>(input);
       LOG(INFO) << "{" << dh->dataOrigin.str << ":" << dh->dataDescription.str << ":" << dh->subSpecification << "}"
                 << " payload size " << dh->payloadSize;
 

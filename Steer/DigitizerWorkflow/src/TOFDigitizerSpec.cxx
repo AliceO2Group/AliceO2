@@ -16,7 +16,6 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Framework/Task.h"
-#include "Headers/DataHeader.h"
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"

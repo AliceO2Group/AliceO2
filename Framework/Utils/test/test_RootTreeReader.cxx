@@ -18,6 +18,7 @@
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/ControlService.h"
+#include "Framework/DataRefUtils.h"
 #include "DPLUtils/RootTreeReader.h"
 #include "Headers/DataHeader.h"
 #include "Headers/NameHeader.h"
@@ -109,7 +110,7 @@ DataProcessorSpec getSinkSpec()
     static int counter = 0;
     using DataHeader = o2::header::DataHeader;
     for (auto& input : pc.inputs()) {
-      auto dh = o2::header::get<const DataHeader*>(input.header);
+      auto dh = DataRefUtils::getHeader<const DataHeader*>(input);
       LOG(INFO) << dh->dataOrigin.str << " " << dh->dataDescription.str << " " << dh->payloadSize;
     }
     auto data = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input1");

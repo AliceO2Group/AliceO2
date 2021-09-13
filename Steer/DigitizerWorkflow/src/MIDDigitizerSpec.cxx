@@ -17,7 +17,6 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Framework/Task.h"
-#include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
