@@ -24,10 +24,16 @@
 #include "TPCBase/ParameterGas.h"
 #include "Field/MagneticField.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include "TPCBase/CalDet.h"
+#include "TPCBase/Painter.h"
 
+#include <numeric>
 #include <chrono>
 #include "TF1.h"
 #include "TH3.h"
+#include "TH2F.h"
+#include "TGraph.h"
+#include "TCanvas.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -691,6 +697,21 @@ void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hisSCDensity3D)
     }
     mIsChargeSet[side] = true;
   }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::fillChargeDensityFromCalDet(const std::vector<CalDet<float>>& calSCDensity3D)
+{
+  const auto hConverted = o2::tpc::painter::convertCalDetToTH3(calSCDensity3D, true, mParamGrid.NRVertices, getRMin(Side::A), getRMax(Side::A), mParamGrid.NPhiVertices, getZMax(Side::A));
+  fillChargeDensityFromHisto(hConverted);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::fillChargeFromCalDet(const std::vector<CalDet<float>>& calCharge3D)
+{
+  auto hConverted = o2::tpc::painter::convertCalDetToTH3(calCharge3D, false, mParamGrid.NRVertices, getRMin(Side::A), getRMax(Side::A), mParamGrid.NPhiVertices, getZMax(Side::A));
+  normalizeHistoQVEps0(hConverted);
+  fillChargeDensityFromHisto(hConverted);
 }
 
 template <typename DataT>
@@ -1410,65 +1431,202 @@ void SpaceCharge<DataT>::integrateEFieldsRoot(const DataT p1r, const DataT p1phi
 }
 
 template <typename DataT>
-std::vector<GlobalPosition3D> SpaceCharge<DataT>::calculateElectronDriftPath(const GlobalPosition3D& elePos, const int nSamplingPoints) const
+void SpaceCharge<DataT>::calculateElectronDriftPath(const std::vector<GlobalPosition3D>& elePos, const int nSamplingPoints, const char* outFile) const
 {
-  std::vector<GlobalPosition3D> elePaths;
-  elePaths.reserve(nSamplingPoints + 1);
-
-  const DataT z0 = elePos.Z();
-  const DataT r0 = elePos.Rho();
-  const DataT phi0 = elePos.Phi();
-  const Side side = getSide(z0);
-  const NumericalFields<DataT> numEFields{getElectricFieldsInterpolator(side)};
-  const DataT stepSize = std::abs(getZMax(side) - z0) / nSamplingPoints;
-
-  DataT drDist = 0.0;   // global distortion dR
-  DataT dPhiDist = 0.0; // global distortion dPhi (multiplication with R has to be done at the end)
-  DataT dzDist = 0.0;   // global distortion dZ
-  int iter = 0;
-  for (;;) {
-    const DataT z0Tmp = z0 + dzDist + iter * stepSize;     // starting z position
-    const DataT z1Tmp = regulateZ(z0Tmp + stepSize, side); // electron drifts from z0Tmp to z1Tmp
-    const DataT radius = regulateR(r0 + drDist, side);     // current radial position of the electron
-    const DataT phi = regulatePhi(phi0 + dPhiDist, side);  // current phi position of the electron
-    elePaths.emplace_back(GlobalPosition3D(radius * std::cos(phi), radius * std::sin(phi), z0Tmp));
-
-    DataT ddR = 0;   // distortion dR for drift from z0Tmp to z1Tmp
-    DataT ddPhi = 0; // distortion dPhi for drift from z0Tmp to z1Tmp
-    DataT ddZ = 0;   // distortion dZ for drift from z0Tmp to z1Tmp
-
-    // get the distortion from interpolation of local distortions or calculate distortions with the electric field
-    processGlobalDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, numEFields);
-
-    // add local distortions to global distortions
-    drDist += ddR;
-    dPhiDist += ddPhi;
-    dzDist += ddZ;
-
-    // if one uses local distortions the interpolated value for the last bin has to be scaled.
-    // This has to be done because of the interpolated value is defined for a drift length of one z bin, but in the last bin the distance to the readout can be smaller than one z bin.
-    const bool checkReached = side == Side::A ? z1Tmp >= getZMax(side) : z1Tmp <= getZMax(side);
-
-    // set loop to exit if the readout is reached and approximate distortion of 'missing' (one never ends exactly on the readout: z1Tmp + ddZ != ZMAX) drift distance.
-    // approximation is done by the current calculated values of the distortions and scaled linear to the 'missing' distance.
-    if (checkReached) {
-      const DataT endPoint = z1Tmp + ddZ;
-      const DataT deltaZ = getZMax(side) - endPoint; // distance from last point to read out
-      const DataT diff = endPoint - z0Tmp;
-      const DataT fac = diff != 0 ? std::abs(deltaZ / diff) : 0; // approximate the distortions for the 'missing' distance deltaZ
-      drDist += ddR * fac;
-      dPhiDist += ddPhi * fac;
-      dzDist += ddZ * fac;
-      const DataT z1TmpEnd = regulateZ(z0Tmp + stepSize, side); // electron drifts from z0Tmp to z1Tmp
-      const DataT radiusEnd = regulateR(r0 + drDist, side);     // current radial position of the electron
-      const DataT phiEnd = regulatePhi(phi0 + dPhiDist, side);  // current phi position of the electron
-      elePaths.emplace_back(GlobalPosition3D(radiusEnd * std::cos(phiEnd), radiusEnd * std::sin(phiEnd), z1TmpEnd));
-      break;
-    }
-    ++iter;
+  const unsigned int nElectrons = elePos.size();
+  std::vector<std::vector<GlobalPosition3D>> electronTracks(nElectrons);
+  for (unsigned int i = 0; i < nElectrons; ++i) {
+    electronTracks[i].reserve(nSamplingPoints + 1);
   }
 
-  return elePaths;
+  for (unsigned int i = 0; i < nElectrons; ++i) {
+    const DataT z0 = elePos[i].Z();
+    const DataT r0 = elePos[i].Rho();
+    const DataT phi0 = elePos[i].Phi();
+    const Side side = getSide(z0);
+    if (!mIsEfieldSet[side]) {
+      LOGP(warning, "E-Fields are not set! Calculation of drift path is not possible\n");
+      continue;
+    }
+    const NumericalFields<DataT> numEFields{getElectricFieldsInterpolator(side)};
+    const DataT stepSize = getZMax(side) / nSamplingPoints;
+
+    DataT drDist = 0.0;   // global distortion dR
+    DataT dPhiDist = 0.0; // global distortion dPhi (multiplication with R has to be done at the end)
+    DataT dzDist = 0.0;   // global distortion dZ
+    int iter = 0;
+    for (;;) {
+      const DataT z0Tmp = z0 + dzDist + iter * stepSize;     // starting z position
+      const DataT z1Tmp = regulateZ(z0Tmp + stepSize, side); // electron drifts from z0Tmp to z1Tmp
+      const DataT radius = r0 + drDist;                      // current radial position of the electron
+
+      // abort calculation of drift path if electron reached inner/outer field cage or central electrode
+      if (radius <= getRMin(side) || radius >= getRMax(side) || getSide(z0Tmp) != side) {
+        break;
+      }
+
+      const DataT phi = regulatePhi(phi0 + dPhiDist, side); // current phi position of the electron
+      electronTracks[i].emplace_back(GlobalPosition3D(radius * std::cos(phi), radius * std::sin(phi), z0Tmp));
+
+      DataT ddR = 0;   // distortion dR for drift from z0Tmp to z1Tmp
+      DataT ddPhi = 0; // distortion dPhi for drift from z0Tmp to z1Tmp
+      DataT ddZ = 0;   // distortion dZ for drift from z0Tmp to z1Tmp
+
+      // get the distortion from interpolation of local distortions or calculate distortions with the electric field
+      processGlobalDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, numEFields);
+
+      // add local distortions to global distortions
+      drDist += ddR;
+      dPhiDist += ddPhi;
+      dzDist += ddZ;
+
+      // if one uses local distortions the interpolated value for the last bin has to be scaled.
+      // This has to be done because of the interpolated value is defined for a drift length of one z bin, but in the last bin the distance to the readout can be smaller than one z bin.
+      const bool checkReached = side == Side::A ? z1Tmp >= getZMax(side) : z1Tmp <= getZMax(side);
+
+      // set loop to exit if the readout is reached and approximate distortion of 'missing' (one never ends exactly on the readout: z1Tmp + ddZ != ZMAX) drift distance.
+      // approximation is done by the current calculated values of the distortions and scaled linear to the 'missing' distance.
+      if (checkReached) {
+        const DataT endPoint = z1Tmp + ddZ;
+        const DataT deltaZ = getZMax(side) - endPoint; // distance from last point to read out
+        const DataT diff = endPoint - z0Tmp;
+        const DataT fac = diff != 0 ? std::abs(deltaZ / diff) : 0; // approximate the distortions for the 'missing' distance deltaZ
+        drDist += ddR * fac;
+        dPhiDist += ddPhi * fac;
+        dzDist += ddZ * fac;
+        const DataT z1TmpEnd = regulateZ(z0Tmp + stepSize, side); // electron drifts from z0Tmp to z1Tmp
+        const DataT radiusEnd = regulateR(r0 + drDist, side);     // current radial position of the electron
+        const DataT phiEnd = regulatePhi(phi0 + dPhiDist, side);  // current phi position of the electron
+        electronTracks[i].emplace_back(GlobalPosition3D(radiusEnd * std::cos(phiEnd), radiusEnd * std::sin(phiEnd), z1TmpEnd));
+        break;
+      }
+      ++iter;
+    }
+  }
+  dumpElectronTracksToTree(electronTracks, nSamplingPoints, outFile);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::dumpElectronTracksToTree(const std::vector<std::vector<GlobalPosition3D>>& electronTracks, const int nSamplingPoints, const char* outFile) const
+{
+  o2::utils::TreeStreamRedirector pcstream(outFile, "RECREATE");
+  pcstream.GetFile()->cd();
+
+  for (int i = 0; i < electronTracks.size(); ++i) {
+    auto electronPath = electronTracks[i];
+    const auto nPoints = electronTracks[i].size();
+    std::vector<float> relDriftVel;
+    relDriftVel.reserve(nPoints);
+
+    for (int iPoint = 0; iPoint < nPoints; ++iPoint) {
+      const DataT relDriftVelTmp = iPoint == (nPoints - 1) ? 1 : (electronPath[iPoint + 1].Z() - electronPath[iPoint].Z()) / getZMax(getSide(electronPath[iPoint].Z())) * nSamplingPoints; // comparison of drift distance without distortions and with distortions (rel. drift velocity)
+      relDriftVel.emplace_back(std::abs(relDriftVelTmp));
+    }
+
+    pcstream << "drift"
+             << "electronPath=" << electronPath
+             << "relDriftVel.=" << relDriftVel // relative drift velocity in z direction
+             << "\n";
+  }
+  pcstream.Close();
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::makeElectronDriftPathGif(const char* inpFile, TH2F& hDummy, const int type, const int gifSpeed, const int maxsamplingpoints, const char* outName)
+{
+  // read in the tree and convert to vector of std::vector<o2::tpc::GlobalPosition3D>
+  TFile fInp(inpFile, "READ");
+  TTree* tree = (TTree*)fInp.Get("drift");
+  std::vector<o2::tpc::GlobalPosition3D>* electronPathTree = new std::vector<o2::tpc::GlobalPosition3D>;
+  tree->SetBranchAddress("electronPath", &electronPathTree);
+
+  std::vector<std::vector<o2::tpc::GlobalPosition3D>> electronPaths;
+  std::vector<o2::tpc::GlobalPosition3D> elePosTmp;
+  const int entries = tree->GetEntriesFast();
+  for (int i = 0; i < entries; ++i) {
+    tree->GetEntry(i);
+    electronPaths.emplace_back(*electronPathTree);
+  }
+  delete electronPathTree;
+  fInp.Close();
+
+  TCanvas can("canvas", "canvas", 1000, 600);
+  can.SetTopMargin(0.04f);
+  can.SetRightMargin(0.04f);
+  can.SetBottomMargin(0.12f);
+  can.SetLeftMargin(0.11f);
+
+  const int nElectrons = electronPaths.size();
+  std::vector<int> indexStartEle(nElectrons);
+  std::vector<int> countReadoutReached(nElectrons);
+
+  // define colors of electrons
+  const std::vector<int> colorsPalette{kViolet + 2, kViolet + 1, kViolet, kViolet - 1, kGreen + 3, kGreen + 2, kGreen + 1, kOrange - 1, kOrange, kOrange + 1, kOrange + 2, kRed - 1, kRed, kRed + 1, kRed + 2, kBlue - 1, kBlue, kBlue + 1, kBlue + 2};
+
+  // create for each electron an individual graph
+  unsigned int maxPoints = 0;
+  std::vector<TGraph> gr(nElectrons);
+  for (int i = 0; i < nElectrons; ++i) {
+    gr[i].SetMarkerColor(colorsPalette[i % colorsPalette.size()]);
+
+    if (electronPaths[i].size() > maxPoints) {
+      maxPoints = electronPaths[i].size();
+    }
+  }
+
+  const DataT pointsPerIteration = maxPoints / static_cast<DataT>(maxsamplingpoints);
+  std::vector<DataT> zRemainder(nElectrons);
+
+  for (;;) {
+    for (auto& graph : gr) {
+      graph.Set(0);
+    }
+
+    for (int iEle = 0; iEle < nElectrons; ++iEle) {
+      const int nSamplingPoints = electronPaths[iEle].size();
+      const int nPoints = std::round(pointsPerIteration + zRemainder[iEle]);
+      zRemainder[iEle] = pointsPerIteration - nPoints;
+      const auto& electronPath = electronPaths[iEle];
+
+      if (nPoints == 0 && countReadoutReached[iEle] == 0) {
+        const int indexPoint = indexStartEle[iEle];
+        const DataT radius = electronPath[indexPoint].Rho();
+        const DataT z = electronPath[indexPoint].Z();
+        const DataT phi = electronPath[indexPoint].Phi();
+        type == 0 ? gr[iEle].AddPoint(z, radius) : gr[iEle].AddPoint(phi, radius);
+      }
+
+      for (int iPoint = 0; iPoint < nPoints; ++iPoint) {
+        const int indexPoint = indexStartEle[iEle];
+        if (indexPoint >= nSamplingPoints) {
+          countReadoutReached[iEle] = 1;
+          break;
+        }
+
+        const DataT radius = electronPath[indexPoint].Rho();
+        const DataT z = electronPath[indexPoint].Z();
+        const DataT phi = electronPath[indexPoint].Phi();
+        if (iPoint == nPoints / 2) {
+          type == 0 ? gr[iEle].AddPoint(z, radius) : gr[iEle].AddPoint(phi, radius);
+        }
+        ++indexStartEle[iEle];
+      }
+    }
+    hDummy.Draw();
+    for (auto& graph : gr) {
+      if (graph.GetN() > 0) {
+        graph.Draw("P SAME");
+      }
+    }
+    can.Print(Form("%s.gif+%i", outName, gifSpeed));
+
+    const int sumReadoutReached = std::accumulate(countReadoutReached.begin(), countReadoutReached.end(), 0);
+    if (sumReadoutReached == nElectrons) {
+      break;
+    }
+  }
+
+  can.Print(Form("%s.gif++", outName));
 }
 
 template <typename DataT>
@@ -1500,6 +1658,16 @@ void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Side side, co
         DataT corrRPhi{};
         getCorrectionsCyl(zPos, rPos, phiPos, side, corrZ, corrR, corrRPhi);
 
+        DataT lcorrZ{};
+        DataT lcorrR{};
+        DataT lcorrRPhi{};
+        getLocalCorrectionsCyl(zPos, rPos, phiPos, side, lcorrZ, lcorrR, lcorrRPhi);
+
+        DataT ldistZ{};
+        DataT ldistR{};
+        DataT ldistRPhi{};
+        getLocalDistortionsCyl(zPos, rPos, phiPos, side, ldistZ, ldistR, ldistRPhi);
+
         // get average distortions
         DataT eZ{};
         DataT eR{};
@@ -1521,11 +1689,36 @@ void SpaceCharge<DataT>::dumpToTree(const char* outFileName, const Side side, co
                  << "corrZ=" << corrZ
                  << "corrR=" << corrR
                  << "corrRPhi=" << corrRPhi
+                 << "lcorrZ=" << lcorrZ
+                 << "lcorrR=" << lcorrR
+                 << "lcorrRPhi=" << lcorrRPhi
+                 << "ldistZ=" << ldistZ
+                 << "ldistR=" << ldistR
+                 << "ldistRPhi=" << ldistRPhi
                  << "\n";
       }
     }
   }
   pcstream.Close();
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::normalizeHistoQVEps0(TH3& histoIonsPhiRZ)
+{
+  const auto deltaPhi = histoIonsPhiRZ.GetXaxis()->GetBinWidth(1);
+  const auto deltaZ = histoIonsPhiRZ.GetZaxis()->GetBinWidth(1);
+  const auto fac = deltaPhi * deltaZ * o2::tpc::TPCParameters<DataT>::E0 / (2 * 100 * TMath::Qe()); // 100 to normalize to cm: vacuum permittivity [A·s/(V·cm)]
+  for (int ir = 1; ir <= histoIonsPhiRZ.GetNbinsY(); ++ir) {
+    const auto r0 = histoIonsPhiRZ.GetYaxis()->GetBinLowEdge(ir);
+    const auto r1 = histoIonsPhiRZ.GetYaxis()->GetBinUpEdge(ir);
+    const auto norm = fac * (r1 * r1 - r0 * r0);
+    for (int iphi = 1; iphi <= histoIonsPhiRZ.GetNbinsX(); ++iphi) {
+      for (int iz = 1; iz <= histoIonsPhiRZ.GetNbinsZ(); ++iz) {
+        const auto charge = histoIonsPhiRZ.GetBinContent(iphi, ir, iz);
+        histoIonsPhiRZ.SetBinContent(iphi, ir, iz, charge / norm);
+      }
+    }
+  }
 }
 
 using DataTD = double;

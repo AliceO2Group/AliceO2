@@ -134,9 +134,6 @@ static constexpr unsigned short NR = 129;   // grid in r
 static constexpr unsigned short NZ = 129;   // grid in z
 static constexpr unsigned short NPHI = 180; // grid in phi
 
-// Physics parameters
-const float mEpsilon0 = o2::tpc::TPCParameters<double>::E0 * 0.01; //8.854187817e-14; // vacuum permittivity [A·s/(V·cm)]
-
 // Gas parameters
 // const float mK0 = 2.92f;            // in cm^2 / (Vs), reduced ion mobility K0 for Ne-CO2-N2 (90-10-5) with H2O content 130 ppm. Deisting thesis page 88
 // const float mTNull = 273.15f;       // in K, zero temperature
@@ -148,6 +145,7 @@ const float mEpsilon0 = o2::tpc::TPCParameters<double>::E0 * 0.01; //8.854187817
 const float mZROC = o2::tpc::TPCParameters<double>::TPCZ0;     // absolute - position of G1T
 const float mRIFC = o2::tpc::TPCParameters<double>::IFCRADIUS; // inner field cage radius in cm
 const float mROFC = o2::tpc::TPCParameters<double>::OFCRADIUS; // outer field cage radius in cm
+const float mOmegatau = 0.32f;
 
 const char* outfnameHists = "spaceChargeDensityHist"; // name of the output file for the histograms
 const char* outfnameIDC = "spaceChargeDensityIDC";    // name of the output file for the IDCs
@@ -156,15 +154,15 @@ const char* hisSCIBFRandomName = "hisIBF";            // name of the histogram o
 const char* hisSCPIRandomName = "hisPI";              // name of the histogram of the space charge density of PI
 
 CalPad loadMap(std::string mapfile, std::string mapName);
-void normalizeHistoQVEps0(TH3& histoIonsPhiRZ);
-
-template <typename DataT>
-void setOmegaTauT1T2(o2::tpc::SpaceCharge<DataT>& sc);
 
 float get0DIDCs(const std::vector<float>& oneDIDC);
 float get1DIDCs(const CalPad& calPad, const o2::tpc::Side side);
 
 void scale(TH3& hist, const float fac);
+const std::string getNameSide(const o2::tpc::Side side, const char* name);
+Side getSide(const float z) { return z < 0 ? Side::C : Side::A; }
+int getSideStart(const int sides);
+int getSideEnd(const int sides);
 
 /// Create SC density histograms and IDC containers from simulated TPC hits
 /// An interaction rate of 50 kHz is assumed. Therefore, the ion drift time determines the number of ion pile-up events.
@@ -177,7 +175,7 @@ void scale(TH3& hist, const float fac);
 /// \nPhiBins number of phi bins the sc density histograms
 /// \nRBins number of phi bins the sc density histograms
 /// \nZBins number of phi bins the sc density histograms
-void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, const int debug = 1, const int sides = 0, const char* inputfolder = "", const int distortionType = 0, const int nPhiBins = 720, const int nRBins = 257, const int nZBins = 514 /*, const int nThreads = 1*/)
+void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, const int sides = 0, const char* inputfolder = "", const int distortionType = 0, const int nPhiBins = 720, const int nRBins = 257, const int nZBins = 514 /*, const int nThreads = 1*/)
 {
   o2::tpc::SpaceCharge<double>::setGrid(NZ, NR, NPHI);
 
@@ -186,13 +184,9 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
   if (distortionType == 1) {
     const std::string inpFileDistortions = Form("%sdistortions.root", inputfolder);
     TFile fInp(inpFileDistortions.data(), "READ");
-    if (sides == 1) { // A-side
-      spacecharge.setGlobalDistortionsFromFile(fInp, Side::A);
-    } else if (sides == 2) { // C-side
-      spacecharge.setGlobalDistortionsFromFile(fInp, Side::C);
-    } else {
-      spacecharge.setGlobalDistortionsFromFile(fInp, Side::A);
-      spacecharge.setGlobalDistortionsFromFile(fInp, Side::C);
+    for (int iside = getSideStart(sides); iside < getSideEnd(sides); ++iside) {
+      o2::tpc::Side side = (iside == 0) ? o2::tpc::Side::A : o2::tpc::Side::C;
+      spacecharge.setGlobalDistortionsFromFile(fInp, side);
     }
   }
 
@@ -234,15 +228,25 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
   const int nHitFiles = arrHitFiles->GetEntries(); // number of files with TPC hits
   std::cout << "Number of Hit Files: " << nHitFiles << std::endl;
 
-  TH3F hisSCRandom(hisSCRandomName, hisSCRandomName, nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, -mZROC, mZROC);
-  TH3F hisIBF(hisSCIBFRandomName, hisSCIBFRandomName, nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, -mZROC, mZROC);
-  TH3F hisPI(hisSCPIRandomName, hisSCPIRandomName, nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, -mZROC, mZROC);
+  std::array<TH3F, SIDES> hisSCRandom{TH3F(getNameSide(Side::A, hisSCRandomName).data(), getNameSide(Side::A, hisSCRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, 0, mZROC),
+                                      TH3F(getNameSide(Side::C, hisSCRandomName).data(), getNameSide(Side::C, hisSCRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, 0, mZROC)};
+
+  std::array<TH3F, SIDES> hisIBF{TH3F(getNameSide(Side::A, hisSCIBFRandomName).data(), getNameSide(Side::A, hisSCIBFRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, 0, mZROC),
+                                 TH3F(getNameSide(Side::C, hisSCIBFRandomName).data(), getNameSide(Side::C, hisSCIBFRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, 0, mZROC)};
+
+  std::array<TH3F, SIDES> hisPI{TH3F(getNameSide(Side::A, hisSCPIRandomName).data(), getNameSide(Side::A, hisSCPIRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, 0, mZROC),
+                                TH3F(getNameSide(Side::C, hisSCPIRandomName).data(), getNameSide(Side::C, hisSCPIRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, 0, mZROC)};
 
   const int nZBinsSide = ionDriftTime;
   // vector with CalDet objects for IDCs (1 / ms)
   std::vector<CalPad> vecIDC(nZBinsSide);
   for (auto& calpadIDC : vecIDC) {
     calpadIDC = CalPad("IDC", PadSubset::ROC);
+  }
+
+  std::vector<CalPad> vecCalCharge(nZBinsSide);
+  for (auto& calpadIDC : vecCalCharge) {
+    calpadIDC = CalPad("charge", PadSubset::ROC);
   }
 
   for (int iev = 0; iev < nEvIon; ++iev) {
@@ -291,9 +295,9 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
 
     // set sector loop depending on the side which was set
     if (sides == 1) { // A-side
-      endSec *= 0.5;
+      endSec /= 2;
     } else if (sides == 2) { // C-side
-      startSec = endSec * 0.5;
+      startSec = endSec / 2;
     }
 
     // #pragma omp parallel for num_threads(nThreads) // comment in for using multi threading
@@ -325,12 +329,13 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
 
           // Primary ionization
           if (std::signbit(zIonsPI) == std::signbit(posHit.Z())) {
-            const auto binPhi = hisSCRandom.GetXaxis()->FindBin(phiHit);
-            const auto binR = hisSCRandom.GetYaxis()->FindBin(rHit);
-            const auto binZ = hisSCRandom.GetZaxis()->FindBin(zIonsPI);
-            const auto globBin = hisSCRandom.GetBin(binPhi, binR, binZ);
-            hisSCRandom.AddBinContent(globBin, nEle);
-            hisPI.AddBinContent(globBin, nEle);
+            const Side side = getSide(posHit.Z());
+            const auto binPhi = hisSCRandom[side].GetXaxis()->FindBin(phiHit);
+            const auto binR = hisSCRandom[side].GetYaxis()->FindBin(rHit);
+            const auto binZ = hisSCRandom[side].GetZaxis()->FindBin(zIonsPI);
+            const auto globBin = hisSCRandom[side].GetBin(binPhi, binR, binZ);
+            hisSCRandom[side].AddBinContent(globBin, nEle);
+            hisPI[side].AddBinContent(globBin, nEle);
           }
 
           // apply distortion of electron if specified
@@ -366,12 +371,14 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
             }
             const int epsilon = static_cast<int>(gain * ibfMap.getValue(cru, row, pad) * 0.01); // IBF value is in % -> convert to absolute value
 
-            const auto binPhi = hisSCRandom.GetXaxis()->FindBin(phiHitDiff);
-            const auto binR = hisSCRandom.GetYaxis()->FindBin(posHitDiff.rho());
-            const auto binZ = hisSCRandom.GetZaxis()->FindBin(zIonsIBFTmp);
-            const auto globBin = hisSCRandom.GetBin(binPhi, binR, binZ);
-            hisSCRandom.AddBinContent(globBin, epsilon);
-            hisIBF.AddBinContent(globBin, epsilon);
+            const Side sideIBF = getSide(zIonsIBFTmp);
+            const auto binPhi = hisSCRandom[sideIBF].GetXaxis()->FindBin(phiHitDiff);
+            const auto binR = hisSCRandom[sideIBF].GetYaxis()->FindBin(posHitDiff.rho());
+            const auto binZ = hisSCRandom[sideIBF].GetZaxis()->FindBin(zIonsIBFTmp);
+
+            const auto globBin = hisSCRandom[sideIBF].GetBin(binPhi, binR, binZ);
+            hisSCRandom[sideIBF].AddBinContent(globBin, epsilon);
+            hisIBF[sideIBF].AddBinContent(globBin, epsilon);
 
             // convert electrons to ADC signal
             const float adcsignal = sampaProcessing.getADCvalue(static_cast<float>(gain));
@@ -387,6 +394,9 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
 
             const float charge = vecIDC[zbinIDC].getValue(cru, row, pad) + signaladc;
             ((CalPadArr&)(vecIDC[zbinIDC].getCalArray(static_cast<size_t>(cru.roc().getRoc())))).setValue(rowRoc, pad, charge);
+
+            const float chargeEpsilon = vecCalCharge[zbinIDC].getValue(cru, row, pad) + epsilon;
+            ((CalPadArr&)(vecCalCharge[zbinIDC].getCalArray(static_cast<size_t>(cru.roc().getRoc())))).setValue(rowRoc, pad, chargeEpsilon);
           } // electron loop
         }   // hit loop
       }     // track loop
@@ -398,50 +408,22 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
   } // event loop
 
   // normalize histograms to Q / cm^3 / epsilon0
-  normalizeHistoQVEps0(hisSCRandom);
-  normalizeHistoQVEps0(hisIBF);
-  normalizeHistoQVEps0(hisPI);
+  for (int iside = getSideStart(sides); iside < getSideEnd(sides); ++iside) {
+    o2::tpc::SpaceCharge<float>::normalizeHistoQVEps0(hisSCRandom[iside]);
+    o2::tpc::SpaceCharge<float>::normalizeHistoQVEps0(hisIBF[iside]);
+    o2::tpc::SpaceCharge<float>::normalizeHistoQVEps0(hisPI[iside]);
+  }
 
   auto stopTotal = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsedTotal = stopTotal - startTotal;
   printf("Total time: %f sec for %d events\n", elapsedTotal.count(), nEvIon);
 
-  o2::utils::TreeStreamRedirector pcstream(Form("%s.root", outfnameHists), "recreate");
-  pcstream.GetFile()->cd();
-  if (debug > 0) {
-    printf("Dumping space-charge density to debug tree...\n");
-    for (int iphi = 1; iphi <= hisSCRandom.GetNbinsX(); ++iphi) {
-      float phi = hisSCRandom.GetXaxis()->GetBinCenter(iphi);
-
-      for (int ir = 1; ir <= hisSCRandom.GetNbinsY(); ++ir) {
-        float r = hisSCRandom.GetYaxis()->GetBinCenter(ir);
-
-        for (int iz = 1; iz <= hisSCRandom.GetNbinsZ(); ++iz) {
-          float z = hisSCRandom.GetZaxis()->GetBinCenter(iz);
-
-          float density = hisSCRandom.GetBinContent(iphi, ir, iz);
-          float densityIBF = hisIBF.GetBinContent(iphi, ir, iz);
-          float densityPI = hisPI.GetBinContent(iphi, ir, iz);
-
-          pcstream << "density"
-                   << "iphi=" << iphi
-                   << "ir=" << ir
-                   << "iz=" << iz
-                   << "phi=" << phi
-                   << "r=" << r
-                   << "z=" << z
-                   << "scdensity=" << density
-                   << "scibf=" << densityIBF
-                   << "scpi=" << densityPI
-                   << "\n";
-        }
-      }
-    }
+  TFile fOut(Form("%s.root", outfnameHists), "READ");
+  for (int iside = getSideStart(sides); iside < getSideEnd(sides); ++iside) {
+    hisSCRandom[iside].Write();
+    hisIBF[iside].Write();
+    hisPI[iside].Write();
   }
-  hisSCRandom.Write();
-  hisIBF.Write();
-  hisPI.Write();
-  pcstream.Close();
 
   // write idcs in different files than the histogram to be able to use "hadd" for merging
   // make 1D-IDCs and 0D-IDCs
@@ -476,32 +458,11 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
   std::cout << "output path is: " << outfnameIDC << std::endl;
   TFile fIDC(Form("%s.root", outfnameIDC), "RECREATE");
   fIDC.WriteObject(&vecIDC, "IDC");
+  fIDC.WriteObject(&vecCalCharge, "charge");
   fIDC.WriteObject(&idc1DASide, "IDC_1D_A_Side");
   fIDC.WriteObject(&idc1DCSide, "IDC_1D_C_Side");
   fIDC.WriteObject(&idc0DASide, "IDC_0D_A_Side");
   fIDC.WriteObject(&idc0DCSide, "IDC_0D_C_Side");
-}
-
-/// Normalize histogram with number of ions per bin to charge per bin volume
-/// \param histoIonsPhiRZ TH3 histogram. Content: number of ions. Axes: phi, r, z
-void normalizeHistoQVEps0(TH3& histoIonsPhiRZ)
-{
-  for (int iphi = 1; iphi <= histoIonsPhiRZ.GetNbinsX(); ++iphi) {
-    const float deltaPhi = histoIonsPhiRZ.GetXaxis()->GetBinWidth(iphi);
-
-    for (int ir = 1; ir <= histoIonsPhiRZ.GetNbinsY(); ++ir) {
-      const float r0 = histoIonsPhiRZ.GetYaxis()->GetBinLowEdge(ir);
-      const float r1 = histoIonsPhiRZ.GetYaxis()->GetBinUpEdge(ir);
-
-      for (int iz = 1; iz <= histoIonsPhiRZ.GetNbinsZ(); ++iz) {
-        const float deltaZ = histoIonsPhiRZ.GetZaxis()->GetBinWidth(iz);
-        const float volume = deltaPhi * 0.5 * (r1 * r1 - r0 * r0) * deltaZ;
-
-        const float charge = histoIonsPhiRZ.GetBinContent(iphi, ir, iz) * TMath::Qe();
-        histoIonsPhiRZ.SetBinContent(iphi, ir, iz, charge / (volume * mEpsilon0));
-      }
-    }
-  }
 }
 
 /// load gain or ibf map
@@ -627,8 +588,7 @@ void makeDistortionsCorrections(const char* outFileDistortions = "distortions.ro
   std::cout << "input file: " << inpFile << std::endl;
   std::cout << "output file: " << outFileDistortions << std::endl;
 
-  o2::tpc::SpaceCharge<DataT> spacecharge;
-  setOmegaTauT1T2<DataT>(spacecharge);
+  o2::tpc::SpaceCharge<DataT> spacecharge(mOmegatau, 1, 1);
   spacecharge.fillChargeDensityFromFile(fSCDensity, histName);
   const bool calcLocalVectors = true;
 
@@ -769,7 +729,7 @@ void createScaledMeanMap(const std::string inpFile, const std::string outFile, c
   // load the mean histo
   using SC = o2::tpc::SpaceCharge<DataT>;
   SC scOriginal;
-  SC scScaled;
+  SC scScaled(mOmegatau, 1, 1);
 
   TFile fInp(inpFile.data(), "READ");
   if (sides != 2) {
@@ -779,16 +739,7 @@ void createScaledMeanMap(const std::string inpFile, const std::string outFile, c
     scOriginal.setDensityFromFile(fInp, Side::C);
   }
 
-  setOmegaTauT1T2<DataT>(scScaled);
-  int sideStart = 0;
-  int sideEnd = 2;
-  if (sides == 1) {
-    sideEnd = 1;
-  } else if (sides == 2) {
-    sideStart = 1;
-  }
-
-  for (int iSide = sideStart; iSide < sideEnd; ++iSide) {
+  for (int iSide = getSideStart(sides); iSide < getSideEnd(sides); ++iSide) {
     const Side side = iSide == 0 ? Side::A : Side::C;
     for (size_t iZ = 0; iZ < scOriginal.getNZVertices(); ++iZ) {
       const float zPos = std::abs(scScaled.getZVertex(iZ, side));
@@ -814,7 +765,7 @@ void createScaledMeanMap(const std::string inpFile, const std::string outFile, c
 
   // dump distortion object to file if output file is specified
   TFile fOut(outFile.data(), "RECREATE");
-  for (int iSide = sideStart; iSide < sideEnd; ++iSide) {
+  for (int iSide = getSideStart(sides); iSide < getSideEnd(sides); ++iSide) {
     const Side side = iSide == 0 ? Side::A : Side::C;
     scScaled.dumpGlobalCorrections(fOut, side);
     scScaled.dumpGlobalDistortions(fOut, side);
@@ -880,13 +831,6 @@ void scaleIDCs(const char* inpIDCs, const char* outFile, const float scaleFactor
   delete idc1DCSide;
 }
 
-/// helper function to set omegatau for the space charge class
-template <typename DataT = double>
-void setOmegaTauT1T2(o2::tpc::SpaceCharge<DataT>& sc)
-{
-  sc.setOmegaTauT1T2(0.32f, 1, 1);
-}
-
 /// \param calPad create 1D-IDCs from calpad object
 /// \side side of the calpad
 float get1DIDCs(const CalPad& calPad, const o2::tpc::Side side)
@@ -941,4 +885,30 @@ void scale(TH3& hist, const float fac)
       }
     }
   }
+}
+
+const std::string getNameSide(const o2::tpc::Side side, const char* name)
+{
+  const std::string nameTmp = (side == Side::A) ? Form("%s_A", name) : Form("%s_C", name);
+  return nameTmp;
+}
+
+/// helper function to set the loop over the sides for the tpc
+/// \param sides set for which sides the distortions/corrections will be calculated. sides=0: A- and C-Side, sides=1: A-Side only, sides=2: C-Side only
+int getSideStart(const int sides)
+{
+  if (sides == 2) {
+    return 1;
+  }
+  return 0;
+}
+
+/// helper function to set the loop over the sides for the tpc
+/// \param sides set for which sides the distortions/corrections will be calculated. sides=0: A- and C-Side, sides=1: A-Side only, sides=2: C-Side only
+int getSideEnd(const int sides)
+{
+  if (sides == 1) {
+    return 1;
+  }
+  return 2;
 }

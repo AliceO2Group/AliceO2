@@ -29,11 +29,15 @@
 class TH3;
 class TH3D;
 class TH3F;
+class TH2F;
 
 namespace o2
 {
 namespace tpc
 {
+
+template <class T>
+class CalDet;
 
 /// \class SpaceCharge
 /// this class provides the algorithms for calculating the global distortions and corrections from the space charge density.
@@ -59,7 +63,7 @@ class SpaceCharge
   /// \param omegaTau \omega \tau value
   /// \param t1 value for t1
   /// \param t2 value for t2
-  SpaceCharge(const DataT omegaTau = -0.35f, const DataT t1 = 1, const DataT t2 = 1) { setOmegaTauT1T2(omegaTau, t1, t2); };
+  SpaceCharge(const DataT omegaTau = 0.32f, const DataT t1 = 1, const DataT t2 = 1) { setOmegaTauT1T2(omegaTau, t1, t2); };
 
   /// \param nZVertices number of vertices of the grid in z direction
   /// \param nRVertices number of vertices of the grid in z direction
@@ -98,6 +102,15 @@ class SpaceCharge
   /// step 0: set the charge density from TH3 histogram containing the space charge density
   /// \param hisSCDensity3D histogram for the space charge density
   void fillChargeDensityFromHisto(const TH3& hisSCDensity3D);
+
+  /// step 0: set the space charge density from std::vector<CalDet> containing the space charge density. Each entry in the object corresponds to one z slice
+  /// \param calSCDensity3D histogram for the space charge density
+  void fillChargeDensityFromCalDet(const std::vector<CalDet<float>>& calSCDensity3D);
+
+  /// step 0: set the charge (number of ions) from std::vector<CalDet> containing the charge. Each entry in the object corresponds to one z slice.
+  /// Normalization to the space charge is also done automatically
+  /// \param calCharge3D histogram for the charge
+  void fillChargeFromCalDet(const std::vector<CalDet<float>>& calCharge3D);
 
   /// step 0: set the charge density from TH3 histogram containing the space charge density
   /// \param fInp input file containing a histogram for the space charge density
@@ -543,7 +556,7 @@ class SpaceCharge
   /// \param omegaTau \omega \tau value
   /// \param t1 value for t1 see: ???
   /// \param t2 value for t2 see: ???
-  void setOmegaTauT1T2(const DataT omegaTau = -0.35f, const DataT t1 = 1, const DataT t2 = 1)
+  void setOmegaTauT1T2(const DataT omegaTau = 0.32f, const DataT t1 = 1, const DataT t2 = 1)
   {
     const DataT wt0 = t2 * omegaTau;
     mC0 = 1 / (1 + wt0 * wt0);
@@ -735,7 +748,19 @@ class SpaceCharge
   /// \param elePos global position of the start position of the electron
   /// \param nSamplingPoints number of output points of the electron drift path
   /// \return returns the input electron a vector of 3D-points describing the drift path of the electron
-  std::vector<GlobalPosition3D> calculateElectronDriftPath(const GlobalPosition3D& elePos, const int nSamplingPoints) const;
+  void calculateElectronDriftPath(const std::vector<GlobalPosition3D>& elePos, const int nSamplingPoints, const char* outFile = "electron_tracks.root") const;
+
+  /// \param inpFile input file containing the electron tracks tree, which is the output file of calculateElectronDriftPath()
+  /// \param hBorder histogram which defines the borders for the drawing and also the axis titles
+  /// \param type setting dimensions: type=0: radius vs z, type=0: radius vs phi
+  /// \param gifSpeed speed of the output gif file (fastest is 2, slowest is 99)
+  /// \param maxsamplingpoints maximum number of frames which will be drawn (higher number increases processing time)
+  /// \param outName name of the output file
+  static void makeElectronDriftPathGif(const char* inpFile, TH2F& hBorder, const int type = 0, const int gifSpeed = 2, const int maxsamplingpoints = 100, const char* outName = "electron_drift_path");
+
+  /// normalize a histogram containing the charge to the space charge density
+  /// \param histoIonsPhiRZ histogram which will be normalized to the sapce charge density
+  static void normalizeHistoQVEps0(TH3& histoIonsPhiRZ);
 
  private:
   inline static auto& mParamGrid = ParameterSpaceCharge::Instance(); ///< parameters of the grid on which the calculations are performed
@@ -882,6 +907,9 @@ class SpaceCharge
     ddZ = localDistCorr.evaldZ(z0Tmp, radius, phi);
     ddPhi = localDistCorr.evaldRPhi(z0Tmp, radius, phi) / radius;
   }
+
+  /// dump the created electron tracks with calculateElectronDriftPath function to a tree
+  void dumpElectronTracksToTree(const std::vector<std::vector<GlobalPosition3D>>& electronTracks, const int nSamplingPoints, const char* outFile) const;
 };
 
 ///
@@ -904,8 +932,8 @@ void SpaceCharge<DataT>::integrateEFieldsTrapezoidal(const DataT p1r, const Data
   const DataT fieldephi1 = formulaStruct.evalEphi(p2z, p1r, p1phi);
 
   const DataT ezField = getEzField(formulaStruct.getSide());
-  const DataT eZ0 = 1. / (ezField + fieldez0);
-  const DataT eZ1 = 1. / (ezField + fieldez1);
+  const DataT eZ0 = (ezField + fieldez0) == 0 ? 0 : 1. / (ezField + fieldez0);
+  const DataT eZ1 = (ezField + fieldez1) == 0 ? 0 : 1. / (ezField + fieldez1);
 
   const DataT deltaX = 0.5 * (p2z - p1z);
   localIntErOverEz = deltaX * (fielder0 * eZ0 + fielder1 * eZ1);
@@ -930,12 +958,12 @@ void SpaceCharge<DataT>::integrateEFieldsSimpson(const DataT p1r, const DataT p1
   const DataT ezField = getEzField(formulaStruct.getSide());
   const DataT xk2N = (p2z - static_cast<DataT>(0.5) * deltaX);
   const DataT ezField2 = formulaStruct.evalEz(xk2N, p1r, p1phi);
-  const DataT ezField2Denominator = 1. / (ezField + ezField2);
+  const DataT ezField2Denominator = (ezField + ezField2) == 0 ? 0 : 1. / (ezField + ezField2);
   const DataT fieldSum2ErOverEz = formulaStruct.evalEr(xk2N, p1r, p1phi) * ezField2Denominator;
   const DataT fieldSum2EphiOverEz = formulaStruct.evalEphi(xk2N, p1r, p1phi) * ezField2Denominator;
 
-  const DataT eZ0 = 1. / (ezField + fieldez0);
-  const DataT eZ1 = 1. / (ezField + fieldez1);
+  const DataT eZ0 = (ezField + fieldez0) == 0 ? 0 : 1. / (ezField + fieldez0);
+  const DataT eZ1 = (ezField + fieldez1) == 0 ? 0 : 1. / (ezField + fieldez1);
 
   const DataT deltaXSimpsonSixth = deltaX / 6.;
   localIntErOverEz = deltaXSimpsonSixth * (4. * fieldSum2ErOverEz + fielder0 * eZ0 + fielder1 * eZ1);
@@ -960,15 +988,15 @@ void SpaceCharge<DataT>::integrateEFieldsSimpsonIterative(const DataT p1r, const
   const DataT fieldez1 = formulaStruct.evalEz(p2z, p2r, p2phiSave);
   const DataT fieldephi1 = formulaStruct.evalEphi(p2z, p2r, p2phiSave);
 
-  const DataT eZ0Inv = 1. / (ezField + fieldez0);
-  const DataT eZ1Inv = 1. / (ezField + fieldez1);
+  const DataT eZ0Inv = (ezField + fieldez0) == 0 ? 0 : 1. / (ezField + fieldez0);
+  const DataT eZ1Inv = (ezField + fieldez1) == 0 ? 0 : 1. / (ezField + fieldez1);
 
   const DataT pHalfZ = 0.5 * (p1z + p2z);                              // dont needs to be regulated since p1z and p2z are already regulated
   const DataT pHalfPhiSave = regulatePhi(0.5 * (p1phi + p2phi), side); // needs to be regulated since p2phi is not regulated
   const DataT pHalfR = 0.5 * (p1r + p2r);
 
   const DataT ezField2 = formulaStruct.evalEz(pHalfZ, pHalfR, pHalfPhiSave);
-  const DataT eZHalfInv = 1. / (ezField + ezField2);
+  const DataT eZHalfInv = (ezField + ezField2) == 0 ? 0 : 1. / (ezField + ezField2);
   const DataT fieldSum2ErOverEz = formulaStruct.evalEr(pHalfZ, pHalfR, pHalfPhiSave);
   const DataT fieldSum2EphiOverEz = formulaStruct.evalEphi(pHalfZ, pHalfR, pHalfPhiSave);
 
