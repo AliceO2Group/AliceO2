@@ -303,7 +303,7 @@ class AODProducerWorkflowDPL : public Task
                             gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
                             gsl::span<const GIndex>& GIndices,
                             o2::globaltracking::RecoContainer& data,
-                            std::vector<std::pair<int, int>> const& mccolid_to_eventandsource);
+                            std::vector<std::pair<int, int>> const& mcColToEvSrc);
 
   // helper for tpc clusters
   void countTPCClusters(const o2::tpc::TrackTPC& track,
