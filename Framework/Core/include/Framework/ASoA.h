@@ -29,6 +29,7 @@
 #include <cassert>
 #include <fmt/format.h>
 #include <typeinfo>
+#include <gsl/span>
 
 namespace o2::soa
 {
@@ -145,6 +146,20 @@ struct Flat {
   constexpr static bool chunked = false;
 };
 
+/// unwrapper
+template <typename T>
+struct unwrap {
+  using type = T;
+};
+
+template <typename T>
+struct unwrap<std::vector<T>> {
+  using type = T;
+};
+
+template <typename T>
+using unwrap_t = typename unwrap<T>::type;
+
 /// Iterator on a single column.
 /// FIXME: the ChunkingPolicy for now is fixed to Flat and is a mere boolean
 /// which is used to switch off slow "chunking aware" parts. This is ok for
@@ -166,7 +181,7 @@ class ColumnIterator : ChunkingPolicy
       mCurrentChunk{0}
   {
     auto array = getCurrentArray();
-    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset();
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + array->offset();
     mLast = mCurrent + array->length();
   }
 
@@ -185,7 +200,7 @@ class ColumnIterator : ChunkingPolicy
 
     mCurrentChunk++;
     auto array = getCurrentArray();
-    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
@@ -196,7 +211,7 @@ class ColumnIterator : ChunkingPolicy
 
     mCurrentChunk--;
     auto array = getCurrentArray();
-    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
@@ -219,7 +234,7 @@ class ColumnIterator : ChunkingPolicy
     mCurrentChunk = mColumn->num_chunks() - 1;
     auto array = getCurrentArray();
     mFirstIndex = mColumn->length() - array->length();
-    mCurrent = reinterpret_cast<T const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
@@ -235,6 +250,11 @@ class ColumnIterator : ChunkingPolicy
       //        masked char to a bool, because it's undefined behavior.
       // FIXME: check if shifting the masked bit to the first position is better than != 0
       return (*((char*)mCurrent + (*mCurrentPos >> SCALE_FACTOR)) & (1 << (*mCurrentPos & 0x7))) != 0;
+    } else if constexpr (o2::framework::is_base_of_template<std::vector, T>::value) {
+      auto list = std::static_pointer_cast<arrow::ListArray>(mColumn->chunk(mCurrentChunk));
+      auto offset = list->value_offset(*mCurrentPos - mFirstIndex);
+      auto length = list->value_length(*mCurrentPos - mFirstIndex);
+      return gsl::span{mCurrent + offset, mCurrent + offset + length};
     } else {
       return *(mCurrent + (*mCurrentPos >> SCALE_FACTOR));
     }
@@ -264,9 +284,9 @@ class ColumnIterator : ChunkingPolicy
     return *this;
   }
 
-  mutable T const* mCurrent;
+  mutable unwrap_t<T> const* mCurrent;
   int64_t const* mCurrentPos;
-  mutable T const* mLast;
+  mutable unwrap_t<T> const* mLast;
   arrow::ChunkedArray const* mColumn;
   mutable int mFirstIndex;
   mutable int mCurrentChunk;
@@ -278,6 +298,9 @@ class ColumnIterator : ChunkingPolicy
     std::shared_ptr<arrow::Array> chunkToUse = mColumn->chunk(mCurrentChunk);
     if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
       chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
+      return std::static_pointer_cast<arrow_array_for_t<value_for_t<T>>>(chunkToUse);
+    } else if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::ListArray>) {
+      chunkToUse = std::dynamic_pointer_cast<arrow::ListArray>(chunkToUse)->values();
       return std::static_pointer_cast<arrow_array_for_t<value_for_t<T>>>(chunkToUse);
     } else {
       return std::static_pointer_cast<arrow_array_for_t<T>>(chunkToUse);

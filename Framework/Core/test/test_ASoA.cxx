@@ -61,6 +61,14 @@ DECLARE_SOA_COLUMN_FULL(Thickness, thickness, int, "thickness");
 DECLARE_SOA_TABLE(Segments, "TST", "SEGMENTS", test::N, test::PointAId, test::PointBId, test::InfoId);
 DECLARE_SOA_TABLE(SegmentsExtras, "TST", "SEGMENTSEX", test::Thickness);
 
+namespace test
+{
+DECLARE_SOA_COLUMN(L1, l1, std::vector<float>);
+DECLARE_SOA_COLUMN(L2, l2, std::vector<int>);
+} // namespace test
+
+DECLARE_SOA_TABLE(Lists, "TST", "LISTS", o2::soa::Index<>, test::L1, test::L2);
+
 BOOST_AUTO_TEST_CASE(TestTableIteration)
 {
   TableBuilder builder;
@@ -779,5 +787,42 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
     BOOST_CHECK(bbb);
     BOOST_CHECK_EQUAL(op.globalIndex(), references[i]);
     ++i;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(TestListColumns)
+{
+  TableBuilder b;
+  auto writer = b.cursor<Lists>();
+  std::vector<float> floats;
+  std::vector<int> ints;
+  for (auto i = 1; i < 11; ++i) {
+    floats.clear();
+    ints.clear();
+    for (auto j = 0; j < i; ++j) {
+      floats.push_back(0.1231233f * (float)j + 0.1982798f);
+      ints.push_back(j + 10);
+    }
+
+    writer(0, floats, ints);
+  }
+  auto lt = b.finalize();
+  Lists tbl{lt};
+  int s = 1;
+  for (auto& row : tbl) {
+    auto f = row.l1();
+    auto i = row.l2();
+    auto constexpr bf = std::is_same_v<decltype(f), gsl::span<const float, (size_t)-1>>;
+    auto constexpr bi = std::is_same_v<decltype(i), gsl::span<const int, (size_t)-1>>;
+    BOOST_CHECK(bf);
+    BOOST_CHECK(bi);
+    BOOST_CHECK_EQUAL(f.size(), s);
+    BOOST_CHECK_EQUAL(i.size(), s);
+
+    for (auto j = 0u; j < f.size(); ++j) {
+      BOOST_CHECK_EQUAL(f[j], 0.1231233f * (float)j + 0.1982798f);
+      BOOST_CHECK_EQUAL(i[j], j + 10);
+    }
+    ++s;
   }
 }

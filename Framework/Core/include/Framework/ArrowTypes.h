@@ -77,6 +77,21 @@ struct arrow_array_for<double[N]> {
   using type = arrow::FixedSizeListArray;
   using value_type = double;
 };
+template <>
+struct arrow_array_for<std::vector<int>> {
+  using type = arrow::ListArray;
+  using value_type = int;
+};
+template <>
+struct arrow_array_for<std::vector<float>> {
+  using type = arrow::ListArray;
+  using value_type = float;
+};
+template <>
+struct arrow_array_for<std::vector<double>> {
+  using type = arrow::ListArray;
+  using value_type = double;
+};
 
 template <typename T>
 using arrow_array_for_t = typename arrow_array_for<T>::type;
