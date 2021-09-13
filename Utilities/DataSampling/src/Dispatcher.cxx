@@ -23,6 +23,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/InputRecordWalker.h"
 #include "Framework/Monitoring.h"
+#include "Framework/DataRefUtils.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
@@ -87,7 +88,7 @@ void Dispatcher::run(ProcessingContext& ctx)
     if (firstPart.header == nullptr) {
       continue;
     }
-    const auto* firstInputHeader = header::get<header::DataHeader*>(firstPart.header);
+    const auto* firstInputHeader = DataRefUtils::getHeader<header::DataHeader*>(firstPart);
     ConcreteDataMatcher inputMatcher{firstInputHeader->dataOrigin, firstInputHeader->dataDescription, firstInputHeader->subSpecification};
 
     for (auto& policy : mPolicies) {
@@ -106,7 +107,7 @@ void Dispatcher::run(ProcessingContext& ctx)
             header::Stack headerStack{
               std::move(extractAdditionalHeaders(part.header)),
               dsheader};
-            const auto* partInputHeader = header::get<header::DataHeader*>(part.header);
+            const auto* partInputHeader = DataRefUtils::getHeader<header::DataHeader*>(part);
 
             Output output{
               routeAsConcreteDataType.origin,
@@ -168,7 +169,7 @@ header::Stack Dispatcher::extractAdditionalHeaders(const char* inputHeaderStack)
 
 void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, const Output& output) const
 {
-  const auto* inputHeader = header::get<header::DataHeader*>(inputData.header);
+  const auto* inputHeader = DataRefUtils::getHeader<header::DataHeader*>(inputData);
   dataAllocator.snapshot(output, inputData.payload, inputHeader->payloadSize, inputHeader->payloadSerializationMethod);
 }
 

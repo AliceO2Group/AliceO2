@@ -16,6 +16,7 @@
 #include "DPLUtils/Utils.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ControlService.h"
+#include "Framework/DataRefUtils.h"
 #include "random"
 #include "Framework/Logger.h"
 #include <thread>
@@ -83,7 +84,7 @@ o2f::DataProcessorSpec definePipeline(std::string devName, o2f::InputSpec usrInp
             // Processing context in captured from return on InitCallback
             return [output_sharedptr](o2f::ProcessingContext& ctx) {
               auto inputMsg = ctx.inputs().getByPos(0);
-              auto msgSize = (o2::header::get<o2::header::DataHeader*>(inputMsg.header))->payloadSize;
+              auto msgSize = o2::framework::DataRefUtils::getPayloadSize(inputMsg);
 
               auto& fwdMsg = ctx.outputs().newChunk((*output_sharedptr), msgSize);
               std::memcpy(fwdMsg.data(), inputMsg.payload, msgSize);

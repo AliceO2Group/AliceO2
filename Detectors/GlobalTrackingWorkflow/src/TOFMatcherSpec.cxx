@@ -19,7 +19,6 @@
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "Headers/DataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "Framework/Task.h"

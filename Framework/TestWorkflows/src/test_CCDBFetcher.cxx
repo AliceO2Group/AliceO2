@@ -12,13 +12,13 @@
 #include "Framework/ServiceRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/DataRefUtils.h"
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
 
 #include <chrono>
 #include <thread>
 
 using namespace o2::framework;
-using namespace o2::header;
 
 // This is how you can define your processing in a declarative way
 WorkflowSpec defineDataProcessing(ConfigContext const&)
@@ -32,9 +32,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       AlgorithmSpec{
         adaptStateless([](DataAllocator& outputs, InputRecord& inputs, ControlService& control) {
           auto ref = inputs.get("somecondition");
-          auto header = o2::header::get<o2::header::DataHeader*>(ref.header);
-          if (header->payloadSize != 2048) {
-            LOGP(ERROR, "Wrong size for condition payload (expected {}, found {}", 2048, header->payloadSize);
+          auto payloadSize = DataRefUtils::getPayloadSize(ref);
+          if (payloadSize != 2048) {
+            LOGP(ERROR, "Wrong size for condition payload (expected {}, found {}", 2048, payloadSize);
           }
           auto condition = inputs.get<o2::dataformats::CalibLHCphaseTOF*>("somecondition");
           for (size_t pi = 0; pi < condition->size(); pi++) {

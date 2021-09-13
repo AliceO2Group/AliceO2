@@ -21,7 +21,6 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Logger.h"
 #include "Framework/InputRecordWalker.h"
-#include "Headers/DataHeader.h"
 #include <utility> // std::declval
 
 namespace o2::framework

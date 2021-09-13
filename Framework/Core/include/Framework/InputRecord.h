@@ -234,7 +234,7 @@ class InputRecord
       // the buffer to be deleted when it goes out of scope. The string is built
       // from the data and its lengh, null-termination is not necessary.
       // return std::string object
-      auto header = header::get<const header::DataHeader*>(ref.header);
+      auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
       assert(header);
       return std::string(ref.payload, header->payloadSize);
 
@@ -253,7 +253,7 @@ class InputRecord
       // substitution for TableConsumer
       // For the moment this is dummy, as it requires proper support to
       // create the RDataSource from the arrow buffer.
-      auto header = header::get<const header::DataHeader*>(ref.header);
+      auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
       assert(header);
       auto data = reinterpret_cast<uint8_t const*>(ref.payload);
       return std::make_unique<TableConsumer>(data, header->payloadSize);
@@ -264,7 +264,7 @@ class InputRecord
       // We have to deserialize the ostringstream.
       // FIXME: check that the string is null terminated.
       // @return deserialized copy of payload
-      auto header = header::get<const header::DataHeader*>(ref.header);
+      auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
       assert(header);
       auto str = std::string(ref.payload, header->payloadSize);
       assert(header->payloadSize == sizeof(T));
@@ -279,7 +279,7 @@ class InputRecord
       // substitution for span of messageable objects
       // FIXME: there will be std::span in C++20
       static_assert(is_messageable<typename T::value_type>::value, "span can only be created for messageable types");
-      auto header = header::get<const header::DataHeader*>(ref.header);
+      auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
       assert(header);
       if (sizeof(typename T::value_type) > 1 && header->payloadSerializationMethod != o2::header::gSerializationMethodNone) {
         throw runtime_error("Inconsistent serialization method for extracting span");
@@ -297,7 +297,7 @@ class InputRecord
     } else if constexpr (is_container<T>::value) {
       // currently implemented only for vectors
       if constexpr (is_specialization<typename std::remove_const<T>::type, std::vector>::value) {
-        auto header = o2::header::get<const DataHeader*>(ref.header);
+        auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
         auto method = header->payloadSerializationMethod;
         if (method == o2::header::gSerializationMethodNone) {
           // TODO: construct a vector spectator
@@ -340,7 +340,7 @@ class InputRecord
       // unserialized objects
       using DataHeader = o2::header::DataHeader;
 
-      auto header = o2::header::get<const DataHeader*>(ref.header);
+      auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
       auto method = header->payloadSerializationMethod;
       if (method != o2::header::gSerializationMethodNone) {
         // FIXME: we could in principle support serialized content here as well if we
@@ -357,7 +357,7 @@ class InputRecord
       using DataHeader = o2::header::DataHeader;
       using ValueT = typename std::remove_pointer<T>::type;
 
-      auto header = o2::header::get<const DataHeader*>(ref.header);
+      auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
       auto method = header->payloadSerializationMethod;
       if (method == o2::header::gSerializationMethodNone) {
         if constexpr (is_messageable<ValueT>::value) {
@@ -402,7 +402,7 @@ class InputRecord
       // the operation depends on the transmitted serialization method
       using DataHeader = o2::header::DataHeader;
 
-      auto header = o2::header::get<const DataHeader*>(ref.header);
+      auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
       auto method = header->payloadSerializationMethod;
       if (method == o2::header::gSerializationMethodNone) {
         // this code path is only selected if the type is non-messageable
@@ -425,7 +425,7 @@ class InputRecord
   T get_boost(char const* binding) const
   {
     DataRef ref = get<DataRef>(binding);
-    auto header = header::get<const header::DataHeader*>(ref.header);
+    auto header = DataRefUtils::getHeader<header::DataHeader*>(ref);
     assert(header);
     auto str = std::string(ref.payload, header->payloadSize);
     auto desData = o2::utils::BoostDeserialize<T>(str);

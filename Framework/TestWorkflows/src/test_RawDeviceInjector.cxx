@@ -15,7 +15,6 @@
 
 using namespace o2::framework;
 
-using DataHeader = o2::header::DataHeader;
 using DataOrigin = o2::header::DataOrigin;
 
 // A simple workflow which takes heartbeats from

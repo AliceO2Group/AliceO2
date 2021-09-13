@@ -15,6 +15,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Logger.h"
+#include "Framework/DataRefUtils.h"
 #include <iostream>
 #include <algorithm>
 #include <memory>
@@ -59,7 +60,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
                }
                for (size_t i = 0; i < n; ++i) {
                  auto ref = inputs.getByPos(0, i);
-                 auto dh = o2::header::get<o2::header::DataHeader*>(ref.header);
+                 auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
                  LOG(INFO) << "String is " << s->GetString().Data() << " " << dh->subSpecification;
                }
              }); })}}};

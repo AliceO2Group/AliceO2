@@ -16,6 +16,7 @@
 
 #include "DPLUtils/Utils.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataRefUtils.h"
 #include <vector>
 
 namespace o2f = o2::framework;
@@ -41,7 +42,7 @@ o2f::DataProcessorSpec defineGatherer(std::string devName, o2f::Inputs usrInputs
               // Iterating over the Inputs to forward them on the same Output
               for (const auto& itInputs : ctx.inputs()) {
                 // Retrieving message size from API
-                auto msgSize = (o2::header::get<o2::header::DataHeader*>(itInputs.header))->payloadSize;
+                auto msgSize = o2::framework::DataRefUtils::getPayloadSize(itInputs);
                 // Allocating new chunk
                 auto& fwdMsg = ctx.outputs().newChunk((*outputPtr), msgSize);
                 // Moving the input to the output chunk

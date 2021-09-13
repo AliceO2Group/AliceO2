@@ -23,10 +23,6 @@
 using namespace o2::framework;
 using namespace o2::workflows;
 
-using DataHeader = o2::header::DataHeader;
-using DataOrigin = o2::header::DataOrigin;
-using DataDescription = o2::header::DataDescription;
-
 // This is how you can define your processing in a declarative way
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {

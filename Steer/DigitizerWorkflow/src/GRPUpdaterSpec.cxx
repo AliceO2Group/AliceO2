@@ -17,7 +17,6 @@
 #include "Framework/Task.h"
 #include "Framework/Lifetime.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "Headers/DataHeader.h"
 #include <TFile.h>
 #include <FairLogger.h>
 #include <memory> // for make_shared, make_unique, unique_ptr
