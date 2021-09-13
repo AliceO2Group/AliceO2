@@ -104,6 +104,7 @@ class FileFetcher
   size_t mNFilesProc = 0;
   size_t mNFilesProcOK = 0;
   mutable std::mutex mMtx;
+  std::mutex mMtxStop;
   std::thread mFetcherThread{};
 
   ClassDefNV(FileFetcher, 1);

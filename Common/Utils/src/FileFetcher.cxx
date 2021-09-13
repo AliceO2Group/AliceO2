@@ -196,6 +196,7 @@ void FileFetcher::start()
 void FileFetcher::stop()
 {
   mRunning = false;
+  std::lock_guard<std::mutex> lock(mMtxStop);
   if (mFetcherThread.joinable()) {
     mFetcherThread.join();
   }
