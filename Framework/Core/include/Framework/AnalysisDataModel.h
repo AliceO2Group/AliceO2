@@ -350,6 +350,8 @@ DECLARE_SOA_COLUMN(MatchScoreMCHMFT, matchScoreMCHMFT, float); //! MCH-MFT Machi
 DECLARE_SOA_COLUMN(MatchMFTTrackID, matchMFTTrackID, int);     //! ID of matching MFT track for GlobalMuonTrack (ints while self indexing not available)
 DECLARE_SOA_COLUMN(MatchMCHTrackID, matchMCHTrackID, int);     //! ID of matching MCH track for GlobalMuonTracks  (ints while self indexing not available)
 DECLARE_SOA_COLUMN(MCHBitMap, MchBitMap, uint16_t);            //! Fired muon trackig chambers bitmap
+DECLARE_SOA_COLUMN(MIDBitMap, midBitMap, uint8_t);             //! MID bitmap: non-bending plane (4bit), bending plane (4bit)
+DECLARE_SOA_COLUMN(MIDBoards, midBoards, uint32_t);            //! Local boards on each MID plane (8 bits plane)
 DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign,                         //!
                            [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //!
@@ -448,7 +450,7 @@ DECLARE_SOA_TABLE_FULL(StoredFwdTracks, "FwdTracks", "AOD", "FWDTRACK",
                        fwdtrack::Sign<fwdtrack::Signed1Pt>,
                        fwdtrack::Chi2, fwdtrack::Chi2MatchMCHMID, fwdtrack::Chi2MatchMCHMFT,
                        fwdtrack::MatchScoreMCHMFT, fwdtrack::MatchMFTTrackID, fwdtrack::MatchMCHTrackID,
-                       fwdtrack::MCHBitMap);
+                       fwdtrack::MCHBitMap, fwdtrack::MIDBitMap, fwdtrack::MIDBoards);
 
 DECLARE_SOA_EXTENDED_TABLE(FwdTracks, StoredFwdTracks, "FWDTRACK", //!
                            aod::fwdtrack::Eta,                     // NOTE the order is different here than in MFTTracks as table extension has to be unique
