@@ -36,6 +36,18 @@ class CalibLaserTracksDevice : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     mCalib.setWriteDebugTree(ic.options().get<bool>("write-debug"));
+    mMinNumberTFs = ic.options().get<int>("min-tfs");
+    mOnlyPublishOnEOS = ic.options().get<bool>("only-publish-on-eos");
+
+    auto finishFunction = [this]() {
+      if (!mPublished) {
+        const auto nTFs = mCalib.getCalibData().processedTFs;
+        const auto nMatchA = mCalib.getMatchedPairsA();
+        const auto nMatchC = mCalib.getMatchedPairsC();
+        LOGP(error, "Calibration data was not published, laser track calibration might have enough statistics: {} ({}) matched tracks in {} TFs on the A (C) < {} min TFs * {} min matches per side per TF ", nMatchA, nMatchC, nTFs, mMinNumberTFs, CalibLaserTracks::MinTrackPerSidePerTF);
+      }
+    };
+    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -48,23 +60,35 @@ class CalibLaserTracksDevice : public o2::framework::Task
     mCalib.setTFtimes(startTime, endTime);
     mCalib.fill(data);
 
-    //sendOutput(pc.outputs());
+    if (!mOnlyPublishOnEOS && mCalib.hasEnoughData(mMinNumberTFs) && !mPublished) {
+      sendOutput(pc.outputs());
+    }
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     LOGP(info, "CalibLaserTracksDevice::endOfStream: Finalizing calibration");
-    mCalib.finalize();
-    mCalib.print();
+    if (!mCalib.hasEnoughData(mMinNumberTFs)) {
+      const auto nTFs = mCalib.getCalibData().processedTFs;
+      const auto nMatchA = mCalib.getMatchedPairsA();
+      const auto nMatchC = mCalib.getMatchedPairsC();
+      LOGP(warning, "laser track calibration does not have enough statistics: {} ({}) matched tracks in {} TFs on the A (C) < {} min TFs * {} min matches per side per TF ", nMatchA, nMatchC, nTFs, mMinNumberTFs, CalibLaserTracks::MinTrackPerSidePerTF);
+    }
     sendOutput(ec.outputs());
   }
 
  private:
-  CalibLaserTracks mCalib;
+  CalibLaserTracks mCalib;       ///< laser track calibration component
+  int mMinNumberTFs{100};        ///< minimum number of TFs required for good calibration
+  bool mPublished{false};        ///< if calibration was already published
+  bool mOnlyPublishOnEOS{false}; ///< if to only publish the calibration on EOS, not during running
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
   {
+    mCalib.finalize();
+    mCalib.print();
+
     using clbUtils = o2::calibration::Utils;
     const auto& object = mCalib.getCalibData();
 
@@ -80,6 +104,8 @@ class CalibLaserTracksDevice : public o2::framework::Task
     LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", w.getPath(), w.getFileName(), image->size(), w.getStartValidityTimestamp(), w.getEndValidityTimestamp());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibLtr", 0}, *image.get());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibLtr", 0}, w);
+
+    mPublished = true;
   }
 };
 
@@ -99,6 +125,8 @@ DataProcessorSpec getCalibLaserTracks(const std::string inputSpec)
     AlgorithmSpec{adaptFromTask<device>()},
     Options{
       {"write-debug", VariantType::Bool, false, {"write a debug output tree."}},
+      {"min-tfs", VariantType::Int, 100, {"minimum number of TFs with enough laser tracks to finalize the calibration."}},
+      {"only-publish-on-eos", VariantType::Bool, false, {"only publish the calibration on eos, not during running"}},
     }};
 }
 

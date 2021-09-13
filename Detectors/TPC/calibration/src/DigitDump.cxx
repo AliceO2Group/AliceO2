@@ -215,6 +215,9 @@ void DigitDump::checkDuplicates(bool removeDuplicates)
 //______________________________________________________________________________
 void DigitDump::removeCEdigits(uint32_t removeNtimeBinsBefore, uint32_t removeNtimeBinsAfter, std::array<std::vector<Digit>, Sector::MAXSECTOR>* removedDigits)
 {
+  if (!mInitialized || !mTimeBinOccupancy.size()) {
+    return;
+  }
   // ===| check if proper CE signal was found |===
   const auto sectorsWithDigits = std::count_if(mDigits.begin(), mDigits.end(), [](const auto& v) { return v.size(); });
   const auto maxElem = std::max_element(mTimeBinOccupancy.begin(), mTimeBinOccupancy.end());

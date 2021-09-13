@@ -68,7 +68,7 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
       const auto triggerOrbit = triggerInfo->triggerInfo.getOrbit();
       const auto triggerBC = triggerInfo->triggerInfo.bunchCrossing;
       triggerBCOffset = (int(triggerOrbit) - int(referenceOrbit)) * maxBunches + triggerBC;
-      LOGP(debug, "orbit: {}, triggerOrbit: {}, triggerBC: {}, triggerBCOffset: {}\n", orbit, triggerOrbit, triggerBC, triggerBCOffset);
+      LOGP(debug, "orbit: {}, triggerOrbit: {}, triggerBC: {}, triggerBCOffset: {}", orbit, triggerOrbit, triggerBC, triggerBCOffset);
       zsdata = (zerosupp_link_based::ContainerZS*)((const char*)zsdata + sizeof(zerosupp_link_based::Header) * (1 + header.numWordsPayload));
       continue;
     }
