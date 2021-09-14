@@ -292,8 +292,7 @@ DataRelayer::RelayChoice
     cachedStateMetrics[cacheIdx] = CacheEntryStatus::PENDING;
     // TODO: make sure that multiple parts can only be added within the same call of
     // DataRelayer::relay
-    assert(nPayloads == 1);
-    assert(nMessages % 2 == 0);
+    assert(nPayloads > 0);
     for (size_t mi = 0; mi < nMessages; ++mi) {
       assert(mi + nPayloads < nMessages);
       target.add([&messages, &mi](size_t i) -> FairMQMessagePtr& { return messages[mi + i]; }, nPayloads + 1);

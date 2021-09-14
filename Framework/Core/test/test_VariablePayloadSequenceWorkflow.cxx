@@ -107,7 +107,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     outputs.make<int>(OutputRef{"allocator", 0}) = counter;
 
     if (channelName.empty()) {
-      OutputSpec const query{"TST", "PAIR", 0};
+      OutputSpec const query{"TST", "SEQUENCE", 0};
       auto outputRoutes = rds.spec().outputs;
       for (auto& route : outputRoutes) {
         if (DataSpecUtils::match(route.matcher, query)) {
@@ -161,7 +161,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       }
     };
 
-    //createSequence(attributes->distrib(attributes->gen), DataHeader{"SEQUENCE", "TST", 0});
+    createSequence(attributes->distrib(attributes->gen), DataHeader{"SEQUENCE", "TST", 0});
     createPairs(counter + 1, DataHeader{"PAIR", "TST", 0});
 
     // using utility from ExternalFairMQDeviceProxy
@@ -178,6 +178,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   workflow.emplace_back(DataProcessorSpec{"producer",
                                           {InputSpec{"timer", "TST", "TIMER", 0, Lifetime::Timer}},
                                           {OutputSpec{{"pair"}, "TST", "PAIR", 0, Lifetime::Timeframe},
+                                           OutputSpec{{"sequence"}, "TST", "SEQUENCE", 0, Lifetime::Timeframe},
                                            OutputSpec{{"allocator"}, "TST", "ALLOCATOR", 0, Lifetime::Timeframe}},
                                           AlgorithmSpec{adaptStateless(producerCallback)},
                                           {ConfigParamSpec{"period-timer", VariantType::Int, 100000, {"period of timer"}}}});
@@ -223,7 +224,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     }
   };
 
-  auto createCounters = [](RawDeviceService& rds) -> std::shared_ptr<ConsumerCounters> {
+  auto createCounters = [](RawDeviceService const& rds) -> std::shared_ptr<ConsumerCounters> {
     auto counters = std::make_shared<ConsumerCounters>();
     ConsumerCounters& c = *counters;
     for (auto const& channelSpec : rds.spec().inputChannels) {
@@ -248,7 +249,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // the consumer process connects to the producer
   //
-  auto consumerInit = [createCounters, checkCounters, inputChecker](RawDeviceService& rds, CallbackService& callbacks) {
+  auto consumerInit = [createCounters, checkCounters, inputChecker](RawDeviceService const& rds, CallbackService& callbacks) {
     auto counters = createCounters(rds);
     callbacks.set(CallbackService::Id::Stop, [counters, checkCounters]() {
       ASSERT_ERROR(checkCounters(counters));
@@ -267,6 +268,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
 
   workflow.emplace_back(DataProcessorSpec{"consumer",
                                           {InputSpec{"pairin", "TST", "PAIR", 0, Lifetime::Timeframe},
+                                           InputSpec{"sequencein", "TST", "SEQUENCE", 0, Lifetime::Timeframe},
                                            InputSpec{"dpldefault", "TST", "ALLOCATOR", 0, Lifetime::Timeframe}},
                                           {},
                                           AlgorithmSpec{adaptStateful(consumerInit)}});
@@ -276,6 +278,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   //
   workflow.emplace_back(DataProcessorSpec{"spectator",
                                           {InputSpec{"pairin", "TST", "PAIR", 0, Lifetime::Timeframe},
+                                           InputSpec{"sequencein", "TST", "SEQUENCE", 0, Lifetime::Timeframe},
                                            InputSpec{"dpldefault", "TST", "ALLOCATOR", 0, Lifetime::Timeframe}},
                                           {},
                                           AlgorithmSpec{adaptStateful(consumerInit)}});
