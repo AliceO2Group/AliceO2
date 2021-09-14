@@ -48,7 +48,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto& digitheader = pc.outputs().make<DigitHeader>(OutputRef{"digitheader"});
   auto& digits = pc.outputs().make<std::vector<Digit>>(OutputRef{"digits"});
   auto& row = pc.outputs().make<std::vector<ReadoutWindowData>>(OutputRef{"row"});
-  auto& patterns = pc.outputs().make<std::vector<uint32_t>>(OutputRef{"patterns"});
+  auto& patterns = pc.outputs().make<std::vector<uint8_t>>(OutputRef{"patterns"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   const auto ctfImage = o2::tof::CTF::getImage(buff.data());
