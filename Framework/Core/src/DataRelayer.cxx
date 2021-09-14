@@ -24,6 +24,7 @@
 #include "Framework/TimesliceIndex.h"
 #include "Framework/Signpost.h"
 #include "Framework/RoutingIndices.h"
+#include "Framework/VariableContextHelpers.h"
 #include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
 #include "InputRouteHelpers.h"
@@ -83,7 +84,8 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
 TimesliceId DataRelayer::getTimesliceForSlot(TimesliceSlot slot)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
-  return mTimesliceIndex.getTimesliceForSlot(slot);
+  auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
+  return VariableContextHelpers::getTimeslice(variables);
 }
 
 DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
@@ -114,8 +116,8 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       continue;
     }
     assert(mDistinctRoutesIndex.empty() == false);
-    auto timestamp = mTimesliceIndex.getTimesliceForSlot(slot);
     auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
+    auto timestamp = VariableContextHelpers::getTimeslice(variables);
     // We iterate on all the hanlders checking if they need to be expired.
     for (size_t ei = 0; ei < expirationHandlers.size(); ++ei) {
       auto& expirator = expirationHandlers[ei];
@@ -145,7 +147,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       if (part.size() == 0) {
         part.parts.resize(1);
       }
-      expirator.handler(services, part[0], timestamp.value, variables);
+      expirator.handler(services, part[0], variables);
       activity.expiredSlots++;
 
       mTimesliceIndex.markAsDirty(slot, true);
@@ -688,19 +690,19 @@ DataRelayerStats const& DataRelayer::getStats() const
 uint32_t DataRelayer::getFirstTFOrbitForSlot(TimesliceSlot slot)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
-  return mTimesliceIndex.getFirstTFOrbitForSlot(slot);
+  return VariableContextHelpers::getFirstTFOrbit(mTimesliceIndex.getVariablesForSlot(slot));
 }
 
 uint32_t DataRelayer::getFirstTFCounterForSlot(TimesliceSlot slot)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
-  return mTimesliceIndex.getFirstTFCounterForSlot(slot);
+  return VariableContextHelpers::getFirstTFCounter(mTimesliceIndex.getVariablesForSlot(slot));
 }
 
 uint32_t DataRelayer::getRunNumberForSlot(TimesliceSlot slot)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
-  return mTimesliceIndex.getRunNumberForSlot(slot);
+  return VariableContextHelpers::getRunNumber(mTimesliceIndex.getVariablesForSlot(slot));
 }
 
 void DataRelayer::sendContextState()

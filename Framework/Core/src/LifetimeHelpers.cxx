@@ -17,6 +17,8 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/TimesliceIndex.h"
+#include "Framework/VariableContextHelpers.h"
+#include "Framework/DataTakingContext.h"
 
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
@@ -91,7 +93,8 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
       if (index.isValid(slot) == false) {
         continue;
       }
-      if (index.getTimesliceForSlot(slot).value == current) {
+      auto& variables = index.getVariablesForSlot(slot);
+      if (VariableContextHelpers::getTimeslice(variables).value == current) {
         return TimesliceSlot{TimesliceSlot::INVALID};
       }
     }
@@ -146,7 +149,7 @@ ExpirationHandler::Checker LifetimeHelpers::expireTimed(std::chrono::microsecond
 /// expires via this mechanism).
 ExpirationHandler::Handler LifetimeHelpers::doNothing()
 {
-  return [](ServiceRegistry&, PartRef& ref, uint64_t, data_matcher::VariableContext&) -> void { return; };
+  return [](ServiceRegistry&, PartRef& ref, data_matcher::VariableContext&) -> void { return; };
 }
 
 // We simply put everything in a stringstream and read it afterwards.
@@ -191,7 +194,7 @@ ExpirationHandler::Handler
   if (matcher == nullptr) {
     throw runtime_error("InputSpec for Conditions must be fully qualified");
   }
-  return [spec, matcher, sourceChannel, serverUrl = prefix, overrideTimestampMilliseconds](ServiceRegistry& services, PartRef& ref, uint64_t timestamp, data_matcher::VariableContext&) -> void {
+  return [spec, matcher, sourceChannel, serverUrl = prefix, overrideTimestampMilliseconds](ServiceRegistry& services, PartRef& ref, data_matcher::VariableContext& variables) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
@@ -268,7 +271,7 @@ ExpirationHandler::Handler
 /// FIXME: provide a way to customise the histogram from the configuration.
 ExpirationHandler::Handler LifetimeHelpers::fetchFromQARegistry()
 {
-  return [](ServiceRegistry&, PartRef& ref, uint64_t, data_matcher::VariableContext&) -> void {
+  return [](ServiceRegistry&, PartRef& ref, data_matcher::VariableContext&) -> void {
     throw runtime_error("fetchFromQARegistry: Not yet implemented");
     return;
   };
@@ -279,7 +282,7 @@ ExpirationHandler::Handler LifetimeHelpers::fetchFromQARegistry()
 /// FIXME: provide a way to customise the histogram from the configuration.
 ExpirationHandler::Handler LifetimeHelpers::fetchFromObjectRegistry()
 {
-  return [](ServiceRegistry&, PartRef& ref, uint64_t, data_matcher::VariableContext&) -> void {
+  return [](ServiceRegistry&, PartRef& ref, data_matcher::VariableContext&) -> void {
     throw runtime_error("fetchFromObjectRegistry: Not yet implemented");
     return;
   };
@@ -291,12 +294,13 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
 {
   using counter_t = int64_t;
   auto counter = std::make_shared<counter_t>(0);
-  return [matcher, counter, sourceChannel, orbitOffset, orbitMultiplier](ServiceRegistry& services, PartRef& ref, uint64_t timestamp, data_matcher::VariableContext& variables) -> void {
+  return [matcher, counter, sourceChannel, orbitOffset, orbitMultiplier](ServiceRegistry& services, PartRef& ref, data_matcher::VariableContext& variables) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
     auto& rawDeviceService = services.get<RawDeviceService>();
 
+    auto timestamp = VariableContextHelpers::getTimeslice(variables).value;
     DataHeader dh;
     dh.dataOrigin = matcher.origin;
     dh.dataDescription = matcher.description;
@@ -327,12 +331,13 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
 {
   using counter_t = int64_t;
   auto counter = std::make_shared<counter_t>(0);
-  auto f = [matcher, counter, sourceChannel](ServiceRegistry& services, PartRef& ref, uint64_t timestamp, data_matcher::VariableContext& variables) -> void {
+  auto f = [matcher, counter, sourceChannel](ServiceRegistry& services, PartRef& ref, data_matcher::VariableContext& variables) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
     auto& rawDeviceService = services.get<RawDeviceService>();
 
+    auto timestamp = VariableContextHelpers::getTimeslice(variables).value;
     DataHeader dh;
     dh.dataOrigin = matcher.origin;
     dh.dataDescription = matcher.description;
