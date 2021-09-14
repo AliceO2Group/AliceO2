@@ -120,7 +120,7 @@ using FwdTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
                                       o2::aod::fwdtrack::Chi2MatchMCHMFT,
                                       o2::aod::fwdtrack::MatchScoreMCHMFT,
                                       o2::aod::fwdtrack::MFTTrackId,
-                                      o2::aod::fwdtrack::MatchMCHTrackId,
+                                      o2::aod::fwdtrack::MCHTrackId,
                                       o2::aod::fwdtrack::TrackTime,
                                       o2::aod::fwdtrack::TrackTimeRes>;
 
