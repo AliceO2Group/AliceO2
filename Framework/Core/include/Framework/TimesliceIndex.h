@@ -80,22 +80,7 @@ class TimesliceIndex
   /// now the information about the timeslot to associate needs to be
   /// determined outside the TimesliceIndex.
   inline void associate(TimesliceId timestamp, TimesliceSlot slot);
-  /// Give a slot, @return the TimesliceId (i.e. the variable at position 0)
-  /// associated to it. Notice that there is no unique way to
-  /// determine the other way around anymore, because a single TimesliceId
-  /// could correspond to different slots once we implement wildcards
-  /// (e.g. if we ask for InputSpec{"*", "CLUSTERS"}).
-  inline TimesliceId getTimesliceForSlot(TimesliceSlot slot) const;
-  /// Given @a slot, @return the firstTFOrbit (i.e. the variable at positiorn 15)
-  /// associated to it.
-  inline uint32_t getFirstTFOrbitForSlot(TimesliceSlot slot) const;
-  /// Given @a slot, @return the TFcounter (i.e. the variable at positiorn 14)
-  /// associated to it.
-  inline uint32_t getFirstTFCounterForSlot(TimesliceSlot slot) const;
 
-  /// Given @a slot, @return the runNumber (i.e. the variable at positiorn 13)
-  /// associated to it.
-  inline uint32_t getRunNumberForSlot(TimesliceSlot slot) const;
   /// Given a slot, @return the VariableContext associated to it.
   /// This effectively means that the TimesliceIndex is now owner of the
   /// VariableContext.

@@ -15,6 +15,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include "Framework/TimesliceIndex.h"
+#include "Framework/VariableContextHelpers.h"
 
 BOOST_AUTO_TEST_CASE(TestBasics)
 {
@@ -32,11 +33,11 @@ BOOST_AUTO_TEST_CASE(TestBasics)
   BOOST_CHECK(index.isDirty({0}) == true);
   index.associate(TimesliceId{20}, TimesliceSlot{0});
   BOOST_CHECK(index.isValid(TimesliceSlot{0}));
-  BOOST_CHECK_EQUAL(index.getTimesliceForSlot(TimesliceSlot{0}).value, 20);
+  BOOST_CHECK_EQUAL(VariableContextHelpers::getTimeslice(index.getVariablesForSlot(TimesliceSlot{0})).value, 20);
   BOOST_CHECK(index.isDirty(TimesliceSlot{0}));
   index.associate(TimesliceId{1}, TimesliceSlot{1});
-  BOOST_CHECK_EQUAL(index.getTimesliceForSlot(TimesliceSlot{0}).value, 20);
-  BOOST_CHECK_EQUAL(index.getTimesliceForSlot(TimesliceSlot{1}).value, 1);
+  BOOST_CHECK_EQUAL(VariableContextHelpers::getTimeslice(index.getVariablesForSlot(TimesliceSlot{0})).value, 20);
+  BOOST_CHECK_EQUAL(VariableContextHelpers::getTimeslice(index.getVariablesForSlot(TimesliceSlot{1})).value, 1);
   BOOST_CHECK(index.isValid(TimesliceSlot{2}) == false);
   slot = TimesliceSlot{0};
   BOOST_CHECK(index.isDirty(slot));
