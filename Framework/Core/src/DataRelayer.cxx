@@ -137,7 +137,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       if (slotsCreatedByHandlers[ei] != slot) {
         continue;
       }
-      if (expirator.checker(timestamp.value) == false) {
+      if (expirator.checker(services, timestamp.value) == false) {
         continue;
       }
 
