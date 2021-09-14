@@ -105,7 +105,6 @@ using MFTTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
                                       o2::aod::fwdtrack::Chi2>;
 
 using FwdTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
-                                      o2::aod::fwdtrack::BCId,
                                       o2::aod::fwdtrack::TrackType,
                                       o2::aod::fwdtrack::X,
                                       o2::aod::fwdtrack::Y,
@@ -120,8 +119,10 @@ using FwdTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
                                       o2::aod::fwdtrack::Chi2MatchMCHMID,
                                       o2::aod::fwdtrack::Chi2MatchMCHMFT,
                                       o2::aod::fwdtrack::MatchScoreMCHMFT,
-                                      o2::aod::fwdtrack::MatchMFTTrackID,
-                                      o2::aod::fwdtrack::MatchMCHTrackID>;
+                                      o2::aod::fwdtrack::MFTTrackId,
+                                      o2::aod::fwdtrack::MatchMCHTrackId,
+                                      o2::aod::fwdtrack::TrackTime,
+                                      o2::aod::fwdtrack::TrackTimeRes>;
 
 using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
                                         o2::aod::mcparticle::PdgCode,
@@ -278,7 +279,6 @@ class AODProducerWorkflowDPL : public Task
 
   template <typename fwdTracksCursorType>
   void addToFwdTracksTable(fwdTracksCursorType& fwdTracksCursor, const o2::mch::TrackMCH& track, int collisionID,
-                           int bcID,
                            const math_utils::Point3D<double>& vertex);
 
   // helper for track tables

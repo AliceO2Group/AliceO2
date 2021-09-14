@@ -331,26 +331,27 @@ using FullTrack = FullTracks::iterator;
 namespace fwdtrack
 {
 // FwdTracks and MFTTracks Columns definitions
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);                //!
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                              //!
-DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t);             //! TODO change to ForwardTrackTypeEnum when enums are supported
-DECLARE_SOA_COLUMN(X, x, float);                               //! TrackParFwd parameters: x, y, z, phi, tan(lamba), q/pt
-DECLARE_SOA_COLUMN(Y, y, float);                               //!
-DECLARE_SOA_COLUMN(Z, z, float);                               //!
-DECLARE_SOA_COLUMN(Phi, phi, float);                           //!
-DECLARE_SOA_COLUMN(Tgl, tgl, float);                           //!
-DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);               //!
-DECLARE_SOA_COLUMN(NClusters, nClusters, int8_t);              //!
-DECLARE_SOA_COLUMN(Chi2, chi2, float);                         //!
-DECLARE_SOA_COLUMN(PDca, pDca, float);                         //! PDca for MUONStandalone
-DECLARE_SOA_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, float);     //! RAtAbsorberEnd for MUONStandalone tracks and GlobalMuonTrackstracks
-DECLARE_SOA_COLUMN(Chi2MatchMCHMID, chi2MatchMCHMID, float);   //! MCH-MID Match Chi2 for MUONStandalone tracks
-DECLARE_SOA_COLUMN(Chi2MatchMCHMFT, chi2MatchMCHMFT, float);   //! MCH-MFT Match Chi2 for GlobalMuonTracks
-DECLARE_SOA_COLUMN(MatchScoreMCHMFT, matchScoreMCHMFT, float); //! MCH-MFT Machine Learning Matching Score for GlobalMuonTracks
-DECLARE_SOA_COLUMN(MatchMFTTrackID, matchMFTTrackID, int);     //! ID of matching MFT track for GlobalMuonTrack (ints while self indexing not available)
-DECLARE_SOA_COLUMN(MatchMCHTrackID, matchMCHTrackID, int);     //! ID of matching MCH track for GlobalMuonTracks  (ints while self indexing not available)
-DECLARE_SOA_COLUMN(MCHBitMap, MchBitMap, uint16_t);            //! Fired muon trackig chambers bitmap
-DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign,                         //!
+DECLARE_SOA_INDEX_COLUMN(Collision, collision); //! Collision ID for mft tracks
+// TODO change to ForwardTrackTypeEnum when enums are supported
+DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t);                                      //! Type of track. See enum ForwardTrackTypeEnum
+DECLARE_SOA_COLUMN(X, x, float);                                                        //! TrackParFwd parameter x
+DECLARE_SOA_COLUMN(Y, y, float);                                                        //! TrackParFwd parameter y
+DECLARE_SOA_COLUMN(Z, z, float);                                                        //! TrackParFwd propagation parameter z
+DECLARE_SOA_COLUMN(Phi, phi, float);                                                    //! TrackParFwd parameter phi; (i.e. pt pointing direction)
+DECLARE_SOA_COLUMN(Tgl, tgl, float);                                                    //! TrackParFwd parameter tan(\lamba); (\lambda = 90 - \theta_{polar})
+DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);                                        //! TrackParFwd parameter: charged inverse transverse momentum; (q/pt)
+DECLARE_SOA_COLUMN(NClusters, nClusters, int8_t);                                       //! Number of clusters
+DECLARE_SOA_COLUMN(Chi2, chi2, float);                                                  //! Track chi^2
+DECLARE_SOA_COLUMN(PDca, pDca, float);                                                  //! PDca for MUONStandalone
+DECLARE_SOA_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, float);                              //! RAtAbsorberEnd for MUONStandalone tracks and GlobalMuonTrackstracks
+DECLARE_SOA_COLUMN(Chi2MatchMCHMID, chi2MatchMCHMID, float);                            //! MCH-MID Match Chi2 for MUONStandalone tracks
+DECLARE_SOA_COLUMN(Chi2MatchMCHMFT, chi2MatchMCHMFT, float);                            //! MCH-MFT Match Chi2 for GlobalMuonTracks
+DECLARE_SOA_COLUMN(MatchScoreMCHMFT, matchScoreMCHMFT, float);                          //! MCH-MFT Machine Learning Matching Score for GlobalMuonTracks
+DECLARE_SOA_COLUMN(TrackTime, trackTime, float);                                        //! Estimated time of the track in ns wrt collision().bc() or ambiguoustrack.bcSlice()[0]
+DECLARE_SOA_COLUMN(TrackTimeRes, trackTimeRes, float);                                  //! Resolution of the track time in ns
+DECLARE_SOA_SELF_INDEX_COLUMN_FULL(MatchMCHTrack, matchMCHTrack, int, "MatchMCHTrack"); //! ID of matching MCH track for GlobalMuonTracks
+DECLARE_SOA_COLUMN(MCHBitMap, MchBitMap, uint16_t);                                     //! Fired muon trackig chambers bitmap
+DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign,                                                  //! Sign of the track eletric charge
                            [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //!
                               -1.f * nlog(ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::fwdtrack::tgl))));
@@ -372,21 +373,21 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //!
                            });
 
 // FwdTracksCov columns definitions
-DECLARE_SOA_COLUMN(SigmaX, sigmaX, float);        //!
-DECLARE_SOA_COLUMN(SigmaY, sigmaY, float);        //!
-DECLARE_SOA_COLUMN(SigmaPhi, sigmaPhi, float);    //!
-DECLARE_SOA_COLUMN(SigmaTgl, sigmaTgl, float);    //!
-DECLARE_SOA_COLUMN(Sigma1Pt, sigma1Pt, float);    //!
-DECLARE_SOA_COLUMN(RhoXY, rhoXY, int8_t);         //!
-DECLARE_SOA_COLUMN(RhoPhiX, rhoPhiX, int8_t);     //!
-DECLARE_SOA_COLUMN(RhoPhiY, rhoPhiY, int8_t);     //!
-DECLARE_SOA_COLUMN(RhoTglX, rhoTglX, int8_t);     //!
-DECLARE_SOA_COLUMN(RhoTglY, rhoTglY, int8_t);     //!
-DECLARE_SOA_COLUMN(RhoTglPhi, rhoTglPhi, int8_t); //!
-DECLARE_SOA_COLUMN(Rho1PtX, rho1PtX, int8_t);     //!
-DECLARE_SOA_COLUMN(Rho1PtY, rho1PtY, int8_t);     //!
-DECLARE_SOA_COLUMN(Rho1PtPhi, rho1PtPhi, int8_t); //!
-DECLARE_SOA_COLUMN(Rho1PtTgl, rho1PtTgl, int8_t); //!
+DECLARE_SOA_COLUMN(SigmaX, sigmaX, float);        //! Covariance matrix
+DECLARE_SOA_COLUMN(SigmaY, sigmaY, float);        //! Covariance matrix
+DECLARE_SOA_COLUMN(SigmaPhi, sigmaPhi, float);    //! Covariance matrix
+DECLARE_SOA_COLUMN(SigmaTgl, sigmaTgl, float);    //! Covariance matrix
+DECLARE_SOA_COLUMN(Sigma1Pt, sigma1Pt, float);    //! Covariance matrix
+DECLARE_SOA_COLUMN(RhoXY, rhoXY, int8_t);         //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(RhoPhiX, rhoPhiX, int8_t);     //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(RhoPhiY, rhoPhiY, int8_t);     //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(RhoTglX, rhoTglX, int8_t);     //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(RhoTglY, rhoTglY, int8_t);     //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(RhoTglPhi, rhoTglPhi, int8_t); //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(Rho1PtX, rho1PtX, int8_t);     //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(Rho1PtY, rho1PtY, int8_t);     //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(Rho1PtPhi, rho1PtPhi, int8_t); //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(Rho1PtTgl, rho1PtTgl, int8_t); //! Covariance matrix in compressed form
 
 DECLARE_SOA_EXPRESSION_COLUMN(CXX, cXX, float, //!
                               aod::fwdtrack::sigmaX* aod::fwdtrack::sigmaX);
@@ -437,9 +438,14 @@ DECLARE_SOA_EXTENDED_TABLE(MFTTracks, StoredMFTTracks, "MFTTRACK", //!
 
 using MFTTrack = MFTTracks::iterator;
 
+namespace fwdtrack // Index to MFTtrack column must be defined after table definition.
+{
+DECLARE_SOA_INDEX_COLUMN(MFTTrack, matchMFTTrack); //! ID of matching MFT track for GlobalMuonTracks
+}
+
 // Tracks including MCH and/or MCH (plus optionally MFT)          //!
 DECLARE_SOA_TABLE_FULL(StoredFwdTracks, "FwdTracks", "AOD", "FWDTRACK",
-                       o2::soa::Index<>, fwdtrack::CollisionId, fwdtrack::BCId, fwdtrack::TrackType,
+                       o2::soa::Index<>, fwdtrack::CollisionId, fwdtrack::TrackType,
                        fwdtrack::X, fwdtrack::Y, fwdtrack::Z, fwdtrack::Phi, fwdtrack::Tgl,
                        fwdtrack::Signed1Pt, fwdtrack::NClusters, fwdtrack::PDca, fwdtrack::RAtAbsorberEnd,
                        fwdtrack::Px<fwdtrack::Pt, fwdtrack::Phi>,
@@ -447,8 +453,8 @@ DECLARE_SOA_TABLE_FULL(StoredFwdTracks, "FwdTracks", "AOD", "FWDTRACK",
                        fwdtrack::Pz<fwdtrack::Pt, fwdtrack::Tgl>,
                        fwdtrack::Sign<fwdtrack::Signed1Pt>,
                        fwdtrack::Chi2, fwdtrack::Chi2MatchMCHMID, fwdtrack::Chi2MatchMCHMFT,
-                       fwdtrack::MatchScoreMCHMFT, fwdtrack::MatchMFTTrackID, fwdtrack::MatchMCHTrackID,
-                       fwdtrack::MCHBitMap);
+                       fwdtrack::MatchScoreMCHMFT, fwdtrack::MFTTrackId, fwdtrack::MatchMCHTrackId,
+                       fwdtrack::MCHBitMap, fwdtrack::TrackTime, fwdtrack::TrackTimeRes);
 
 DECLARE_SOA_EXTENDED_TABLE(FwdTracks, StoredFwdTracks, "FWDTRACK", //!
                            aod::fwdtrack::Eta,                     // NOTE the order is different here than in MFTTracks as table extension has to be unique
@@ -519,6 +525,7 @@ namespace ambiguous
 {
 DECLARE_SOA_INDEX_COLUMN(Track, track);       //! Track index
 DECLARE_SOA_INDEX_COLUMN(MFTTrack, mfttrack); //! MFTTrack index
+DECLARE_SOA_INDEX_COLUMN(FwdTrack, fwdtrack); //! FwdTrack index
 DECLARE_SOA_SLICE_INDEX_COLUMN(BC, bc);       //! BC index (slice for 1 to N entries)
 } // namespace ambiguous
 
@@ -531,6 +538,11 @@ DECLARE_SOA_TABLE(AmbiguousMFTTracks, "AOD", "AMBIGUOUSMFTTR", //! Table for MFT
                   ambiguous::MFTTrackId, ambiguous::BCIdSlice);
 
 using AmbiguousMFTTrack = AmbiguousMFTTracks::iterator;
+
+DECLARE_SOA_TABLE(AmbiguousFwdTracks, "AOD", "AMBIGUOUSFWDTR", //! Table for Fwd tracks which are not uniquely associated with a collision
+                  ambiguous::FwdTrackId, ambiguous::BCIdSlice);
+
+using AmbiguousFwdTrack = AmbiguousFwdTracks::iterator;
 
 // HMPID information
 namespace hmpid
