@@ -122,19 +122,19 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
 
 ExpirationHandler::Checker LifetimeHelpers::expireNever()
 {
-  return [](int64_t) -> bool { return false; };
+  return [](ServiceRegistry&, int64_t) -> bool { return false; };
 }
 
 ExpirationHandler::Checker LifetimeHelpers::expireAlways()
 {
-  return [](int64_t) -> bool { return true; };
+  return [](ServiceRegistry&, int64_t) -> bool { return true; };
 }
 
 ExpirationHandler::Checker LifetimeHelpers::expireTimed(std::chrono::microseconds period)
 {
   auto start = getCurrentTime();
   auto last = std::make_shared<decltype(start)>(start);
-  return [last, period](int64_t) -> bool {
+  return [last, period](ServiceRegistry&, int64_t) -> bool {
     auto current = getCurrentTime();
     auto delta = current - *last;
     if (delta > period.count()) {
