@@ -333,25 +333,25 @@ namespace fwdtrack
 // FwdTracks and MFTTracks Columns definitions
 DECLARE_SOA_INDEX_COLUMN(Collision, collision); //! Collision ID for mft tracks
 // TODO change to ForwardTrackTypeEnum when enums are supported
-DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t);                                 //! Type of track. See enum ForwardTrackTypeEnum
-DECLARE_SOA_COLUMN(X, x, float);                                                   //! TrackParFwd parameter x
-DECLARE_SOA_COLUMN(Y, y, float);                                                   //! TrackParFwd parameter y
-DECLARE_SOA_COLUMN(Z, z, float);                                                   //! TrackParFwd propagation parameter z
-DECLARE_SOA_COLUMN(Phi, phi, float);                                               //! TrackParFwd parameter phi; (i.e. pt pointing direction)
-DECLARE_SOA_COLUMN(Tgl, tgl, float);                                               //! TrackParFwd parameter tan(\lamba); (\lambda = 90 - \theta_{polar})
-DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);                                   //! TrackParFwd parameter: charged inverse transverse momentum; (q/pt)
-DECLARE_SOA_COLUMN(NClusters, nClusters, int8_t);                                  //! Number of clusters
-DECLARE_SOA_COLUMN(Chi2, chi2, float);                                             //! Track chi^2
-DECLARE_SOA_COLUMN(PDca, pDca, float);                                             //! PDca for MUONStandalone
-DECLARE_SOA_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, float);                         //! RAtAbsorberEnd for MUONStandalone tracks and GlobalMuonTrackstracks
-DECLARE_SOA_COLUMN(Chi2MatchMCHMID, chi2MatchMCHMID, float);                       //! MCH-MID Match Chi2 for MUONStandalone tracks
-DECLARE_SOA_COLUMN(Chi2MatchMCHMFT, chi2MatchMCHMFT, float);                       //! MCH-MFT Match Chi2 for GlobalMuonTracks
-DECLARE_SOA_COLUMN(MatchScoreMCHMFT, matchScoreMCHMFT, float);                     //! MCH-MFT Machine Learning Matching Score for GlobalMuonTracks
-DECLARE_SOA_COLUMN(TrackTime, trackTime, float);                                   //! Estimated time of the track in ns wrt collision().bc() or ambiguoustrack.bcSlice()[0]
-DECLARE_SOA_COLUMN(TrackTimeRes, trackTimeRes, float);                             //! Resolution of the track time in ns
-DECLARE_SOA_SELF_INDEX_COLUMN_FULL(MCHTrack, matchMCHTrack, int, "MatchMCHTrack"); //! ID of matching MCH track for GlobalMuonTracks and GlobalForwardTracks
-DECLARE_SOA_COLUMN(MCHBitMap, MchBitMap, uint16_t);                                //! Fired muon trackig chambers bitmap
-DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign,                                             //! Sign of the track eletric charge
+DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t);                                           //! Type of track. See enum ForwardTrackTypeEnum
+DECLARE_SOA_COLUMN(X, x, float);                                                             //! TrackParFwd parameter x
+DECLARE_SOA_COLUMN(Y, y, float);                                                             //! TrackParFwd parameter y
+DECLARE_SOA_COLUMN(Z, z, float);                                                             //! TrackParFwd propagation parameter z
+DECLARE_SOA_COLUMN(Phi, phi, float);                                                         //! TrackParFwd parameter phi; (i.e. pt pointing direction)
+DECLARE_SOA_COLUMN(Tgl, tgl, float);                                                         //! TrackParFwd parameter tan(\lamba); (\lambda = 90 - \theta_{polar})
+DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);                                             //! TrackParFwd parameter: charged inverse transverse momentum; (q/pt)
+DECLARE_SOA_COLUMN(NClusters, nClusters, int8_t);                                            //! Number of clusters
+DECLARE_SOA_COLUMN(Chi2, chi2, float);                                                       //! Track chi^2
+DECLARE_SOA_COLUMN(PDca, pDca, float);                                                       //! PDca for MUONStandalone
+DECLARE_SOA_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, float);                                   //! RAtAbsorberEnd for MUONStandalone tracks and GlobalMuonTrackstracks
+DECLARE_SOA_COLUMN(Chi2MatchMCHMID, chi2MatchMCHMID, float);                                 //! MCH-MID Match Chi2 for MUONStandalone tracks
+DECLARE_SOA_COLUMN(Chi2MatchMCHMFT, chi2MatchMCHMFT, float);                                 //! MCH-MFT Match Chi2 for GlobalMuonTracks
+DECLARE_SOA_COLUMN(MatchScoreMCHMFT, matchScoreMCHMFT, float);                               //! MCH-MFT Machine Learning Matching Score for GlobalMuonTracks
+DECLARE_SOA_COLUMN(TrackTime, trackTime, float);                                             //! Estimated time of the track in ns wrt collision().bc() or ambiguoustrack.bcSlice()[0]
+DECLARE_SOA_COLUMN(TrackTimeRes, trackTimeRes, float);                                       //! Resolution of the track time in ns
+DECLARE_SOA_SELF_INDEX_COLUMN_FULL(MCHTrack, matchMCHTrack, int, "FwdTracks_MatchMCHTrack"); //! Self Index ID of matching MCH track for GlobalMuonTracks and GlobalForwardTracks
+DECLARE_SOA_COLUMN(MCHBitMap, MchBitMap, uint16_t);                                          //! Fired muon trackig chambers bitmap
+DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign,                                                       //! Sign of the track eletric charge
                            [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //!
                               -1.f * nlog(ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::fwdtrack::tgl))));
