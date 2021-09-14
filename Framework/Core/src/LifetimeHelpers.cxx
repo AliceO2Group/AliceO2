@@ -23,6 +23,7 @@
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
 #include "Headers/Stack.h"
+#include "CommonConstants/LHCConstants.h"
 #include "MemoryResources/MemoryResources.h"
 #include <curl/curl.h>
 
@@ -200,6 +201,8 @@ ExpirationHandler::Handler
     assert(!ref.payload);
 
     auto& rawDeviceService = services.get<RawDeviceService>();
+    auto& dataTakingContext = services.get<DataTakingContext>();
+
     auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);
     o2::vector<char> payloadBuffer{transport->GetMemoryResource()};
@@ -210,8 +213,19 @@ ExpirationHandler::Handler
       throw runtime_error("fetchFromCCDBCache: Unable to initialise CURL");
     }
     CURLcode res;
+
+    // * By default we use the time when the data was created.
+    // * If an override is specified, we use it.
+    // * If the orbit reset time comes from CTP, we use it for precise
+    //   timestamp evaluation via the firstTFOrbit
+    uint64_t timestamp = -1;
     if (overrideTimestampMilliseconds) {
       timestamp = overrideTimestampMilliseconds;
+    } else if (dataTakingContext.source == OrbitResetTimeSource::CTP) {
+      // Orbit reset time is in microseconds, LHCOrbitNS is in nanoseconds, CCDB uses milliseconds
+      timestamp = ceilf((VariableContextHelpers::getFirstTFOrbit(variables) * o2::constants::lhc::LHCOrbitNS / 1000 + dataTakingContext.orbitResetTime) / 1000);
+    } else {
+      timestamp = VariableContextHelpers::getTimeslice(variables).value;
     }
 
     std::string path = "";

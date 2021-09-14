@@ -25,12 +25,13 @@ enum struct OrbitResetTimeSource : int {
 };
 
 struct DataTakingContext {
+  static constexpr uint64_t INVALID_RESET_TIME = 490917600;
   /// The current run number
   std::string runNumber = "unknown";
   /// How many orbits in a timeframe
   uint64_t nOrbitsPerTF = 128;
   /// The start time of the first orbit
-  uint64_t orbitResetTime = 490917600;
+  uint64_t orbitResetTime = INVALID_RESET_TIME;
   // What currently set the orbitResetTime value.
   OrbitResetTimeSource source = OrbitResetTimeSource::Default;
 };
