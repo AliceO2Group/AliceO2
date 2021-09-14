@@ -372,6 +372,22 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //!
                            [](float pt, float tgl) -> float {
                              return pt * tgl;
                            });
+DECLARE_SOA_DYNAMIC_COLUMN(MIDBoardCh1, midBoardCh1, //!
+                           [](uint32_t midBoards) -> int {
+                             return static_cast<int>(midBoards & 0xFF);
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(MIDBoardCh2, midBoardCh2, //!
+                           [](uint32_t midBoards) -> int {
+                             return static_cast<int>((midBoards >> 8) & 0xFF);
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(MIDBoardCh3, midBoardCh3, //!
+                           [](uint32_t midBoards) -> int {
+                             return static_cast<int>((midBoards >> 16) & 0xFF);
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(MIDBoardCh4, midBoardCh4, //!
+                           [](uint32_t midBoards) -> int {
+                             return static_cast<int>((midBoards >> 24) & 0xFF);
+                           });
 
 // FwdTracksCov columns definitions
 DECLARE_SOA_COLUMN(SigmaX, sigmaX, float);        //!
