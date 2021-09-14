@@ -144,8 +144,7 @@ void run_trac_ca_its(bool cosmics = false,
 
   o2::itsmft::TopologyDictionary dict;
   if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", "bin");
-    std::cout << dictfile;
+    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", "bin");
   }
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
@@ -206,7 +205,7 @@ void run_trac_ca_its(bool cosmics = false,
       memParams[0].CellsMemoryCoefficients[iLayer] = 0.001f;
     }
   } else {
-    // Comment for pp
+    // PbPb tracking params
     // ----
     trackParams.resize(3);
     memParams.resize(3);
@@ -249,11 +248,7 @@ void run_trac_ca_its(bool cosmics = false,
   pattIt = patt.begin();
   int rofId{0};
   for (auto& rof : *rofs) {
-    counterEvent++;
-    // if (counterEvent != 111) {
-    //   continue;
-    // }
-    std::cout << "ROF: " << counterEvent << std::endl;
+
     auto start = std::chrono::high_resolution_clock::now();
     auto it = pattIt;
     o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, dict, labels);
@@ -275,9 +270,7 @@ void run_trac_ca_its(bool cosmics = false,
     if (!vertITS.empty()) {
       // Using only the first vertex in the list
       std::cout << " - Reconstructed vertex: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
-      // LOG(FATAL) << event.getPrimaryVertex(0).x << " " << event.getPrimaryVertex(0).y << " " << event.getPrimaryVertex(0).z;
-      // LOG(FATAL) << " --- " << event.getPrimaryVerticesNum();
-      // event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
+      event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
     } else {
       std::cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
     }
