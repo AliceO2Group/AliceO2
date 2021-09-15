@@ -141,7 +141,7 @@ class ReadOut
     uint8_t Cru;
     uint8_t Lnk;
     uint8_t Flp;
-    std::string FlpHostName;
+    std::string_view FlpHostName;
   };
   union Lnk {
     LinkAddr Id;
