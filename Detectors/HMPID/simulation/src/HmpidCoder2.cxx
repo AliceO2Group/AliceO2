@@ -255,7 +255,7 @@ void HmpidCoder2::openOutputStream(const std::string& outputFileName, const std:
       outfname = fmt::format("{}.raw", outputFileName);
     } else if (fileFor == "cru") {
       outfname = fmt::format("{}_{}.raw", outputFileName, ReadOut::FlpHostName(eq));
-    } else{
+    } else {
       throw std::runtime_error(fmt::format("unknown raw file grouping option {}", fileFor));
     }
 
