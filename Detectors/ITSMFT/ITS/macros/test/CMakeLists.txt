@@ -66,6 +66,10 @@ o2_add_test_root_macro(CheckTracksCA.C
                                              O2::DataFormatsITSMFT
                        LABELS its)
 
+o2_add_test_root_macro(RunGPUTracking.C
+                       PUBLIC_LINK_LIBRARIES O2::GPUTracking
+                       LABELS its)
+
 o2_add_test_root_macro(DisplayTrack.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
                                              O2::DataFormatsITSMFT

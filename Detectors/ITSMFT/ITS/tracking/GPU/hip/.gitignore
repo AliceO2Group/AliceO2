@@ -1,0 +1,2 @@
+# Don't track generated hip sources
+*.hip.cxx

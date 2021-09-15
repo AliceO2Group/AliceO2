@@ -21,7 +21,6 @@
 #include <vector>
 #endif
 
-#include "ITStracking/Definitions.h"
 #include "GPUCommonDef.h"
 
 namespace o2
@@ -32,17 +31,17 @@ namespace its
 class Cell final
 {
  public:
-  GPU_DEVICE Cell(const int, const int, const int, const int, const int, const float3&, const float);
+  GPUd() Cell(const int, const int, const int, const int, const int, const float3&, const float);
 
-  GPUhdni() int getFirstClusterIndex() const;
-  GPUhdni() int getSecondClusterIndex() const;
-  GPUhdni() int getThirdClusterIndex() const;
-  GPU_HOST_DEVICE int getFirstTrackletIndex() const;
-  int getSecondTrackletIndex() const;
-  int getLevel() const;
-  float getCurvature() const;
-  const float3& getNormalVectorCoordinates() const;
-  void setLevel(const int level);
+  GPUhdni() int getFirstClusterIndex() const { return mFirstClusterIndex; };
+  GPUhdni() int getSecondClusterIndex() const { return mSecondClusterIndex; };
+  GPUhdni() int getThirdClusterIndex() const { return mThirdClusterIndex; };
+  GPUhd() int getFirstTrackletIndex() const { return mFirstTrackletIndex; };
+  int getSecondTrackletIndex() const { return mSecondTrackletIndex; };
+  int getLevel() const { return mLevel; };
+  float getCurvature() const { return mCurvature; };
+  const float3& getNormalVectorCoordinates() const { return mNormalVectorCoordinates; };
+  void setLevel(const int level) { mLevel = level; };
 
  private:
   const int mFirstClusterIndex;
@@ -55,9 +54,9 @@ class Cell final
   int mLevel;
 };
 
-inline GPU_DEVICE Cell::Cell(const int firstClusterIndex, const int secondClusterIndex, const int thirdClusterIndex,
-                             const int firstTrackletIndex, const int secondTrackletIndex,
-                             const float3& normalVectorCoordinates, const float curvature)
+GPUdi() Cell::Cell(const int firstClusterIndex, const int secondClusterIndex, const int thirdClusterIndex,
+                   const int firstTrackletIndex, const int secondTrackletIndex,
+                   const float3& normalVectorCoordinates, const float curvature)
   : mFirstClusterIndex{firstClusterIndex},
     mSecondClusterIndex{secondClusterIndex},
     mThirdClusterIndex{thirdClusterIndex},
@@ -70,23 +69,6 @@ inline GPU_DEVICE Cell::Cell(const int firstClusterIndex, const int secondCluste
   // Nothing to do
 }
 
-GPUhdi() int Cell::getFirstClusterIndex() const { return mFirstClusterIndex; }
-
-GPUhdi() int Cell::getSecondClusterIndex() const { return mSecondClusterIndex; }
-
-GPUhdi() int Cell::getThirdClusterIndex() const { return mThirdClusterIndex; }
-
-GPU_HOST_DEVICE inline int Cell::getFirstTrackletIndex() const { return mFirstTrackletIndex; }
-
-inline int Cell::getSecondTrackletIndex() const { return mSecondTrackletIndex; }
-
-inline int Cell::getLevel() const { return mLevel; }
-
-inline float Cell::getCurvature() const { return mCurvature; }
-
-inline const float3& Cell::getNormalVectorCoordinates() const { return mNormalVectorCoordinates; }
-
-inline void Cell::setLevel(const int level) { mLevel = level; }
 } // namespace its
 } // namespace o2
 #endif /* TRACKINGITSU_INCLUDE_CACELL_H_ */

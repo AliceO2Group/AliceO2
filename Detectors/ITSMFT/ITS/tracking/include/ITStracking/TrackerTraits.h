@@ -49,8 +49,8 @@ class TrackerTraits
  public:
   virtual ~TrackerTraits() = default;
 
-  GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
-  GPU_DEVICE const int4 getBinsRect(const Cluster&, const int, const float, const float, float maxdeltaz, float maxdeltaphi);
+  GPUhd() static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
+  const int4 getBinsRect(const Cluster&, const int, const float, const float, float maxdeltaz, float maxdeltaphi);
 
   void SetRecoChain(o2::gpu::GPUChainITS* chain, FuncRunITSTrackFit_t&& funcRunITSTrackFit)
   {
@@ -78,8 +78,8 @@ inline void TrackerTraits::UpdateTrackingParameters(const TrackingParameters& tr
   mTrkParams = trkPar;
 }
 
-inline GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                                        const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
+inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
+                                             const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = o2::gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
   const float phiRangeMin = currentCluster.phi - maxdeltaphi;

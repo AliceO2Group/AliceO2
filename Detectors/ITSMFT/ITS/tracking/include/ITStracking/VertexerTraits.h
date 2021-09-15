@@ -96,7 +96,7 @@ class VertexerTraits
   virtual ~VertexerTraits();
 #else
   VertexerTraits();
-  virtual ~VertexerTraits() = default;
+  ~VertexerTraits() = default;
 #endif
 
   GPUhd() static constexpr int4 getEmptyBinsRect()
@@ -135,6 +135,7 @@ class VertexerTraits
 
   // utils
   void setIsGPU(const unsigned char);
+  unsigned char getIsGPU() const;
   void dumpVertexerTraits();
   void arrangeClusters(ROframe*);
   std::vector<int> getMClabelsLayer(const int layer) const;
@@ -190,6 +191,8 @@ inline void VertexerTraits::setIsGPU(const unsigned char isgpu)
 {
   mIsGPU = isgpu;
 }
+
+inline unsigned char VertexerTraits::getIsGPU() const { return mIsGPU; }
 
 inline void VertexerTraits::updateVertexingParameters(const VertexingParameters& vrtPar)
 {
