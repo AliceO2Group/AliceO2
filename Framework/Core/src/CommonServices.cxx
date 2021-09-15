@@ -119,6 +119,10 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
       if (context.source == OrbitResetTimeSource::Data) {
         return;
       }
+      // Only if we do not have already the proper number from CTP
+      if (context.source == OrbitResetTimeSource::CTP) {
+        return;
+      }
       context.source = OrbitResetTimeSource::Data;
       context.orbitResetTime = -1;
       for (auto const& ref : processingContext.inputs()) {

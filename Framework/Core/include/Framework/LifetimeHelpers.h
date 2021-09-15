@@ -52,6 +52,9 @@ struct LifetimeHelpers {
   /// expires via this mechanism).
   static ExpirationHandler::Handler doNothing();
 
+  /// Fetches CTP if not requested via @a waitForCTP and not available
+  /// Sets DataTakingContext::orbitResetTime accordingly
+  static ExpirationHandler::Checker expectCTP(std::string const& serverUrl, bool waitForCTP);
   /// Build a fetcher for an object from CCDB when the record is expired.
   /// @a spec is the associated InputSpec
   /// @a prefix is the lookup prefix in CCDB
