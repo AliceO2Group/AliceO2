@@ -122,9 +122,8 @@ FairRunSim* o2sim_init(bool asservice)
     // somewhat ugly, but this is the most straighforward way to make sure the detectors to align
     // don't include detectors which are not activated
     auto& aligner = o2::base::Aligner::Instance();
-    if (aligner.getDetectorsMask().any()) {
-      aligner.setValue(fmt::format("{}.mDetectors", aligner.getName()), o2::detectors::DetID::getNames(detMask, ','));
-    }
+    auto detMaskAlign = aligner.getDetectorsMask() & detMask;
+    aligner.setValue(fmt::format("{}.mDetectors", aligner.getName()), o2::detectors::DetID::getNames(detMaskAlign, ','));
   }
 
   // set global density scaling factor
