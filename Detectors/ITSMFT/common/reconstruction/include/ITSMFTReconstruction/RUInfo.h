@@ -17,6 +17,7 @@
 
 #include <Rtypes.h>
 #include <cstdint>
+#include <string>
 
 namespace o2
 {
@@ -48,6 +49,7 @@ struct ChipOnRUInfo {
   std::uint8_t cableHWPos = DUMMY8;     // position of the bit of this cable in the activeLanes
   std::uint8_t chipOnCable = DUMMY8;    // chip within the cable (0 = master)
 
+  std::string asString() const;
   void print() const;
 };
 
@@ -61,6 +63,7 @@ struct ChipInfo {
   std::uint16_t ru = DUMMY16;     // RU sequential id
   std::uint16_t ruType = DUMMY16; // RU (or subBarrel) type
 
+  std::string asString() const;
   void print() const;
 };
 } // namespace itsmft
