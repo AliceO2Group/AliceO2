@@ -21,6 +21,7 @@ void CTPDigit::printStream(std::ostream& stream) const
 {
   stream << "CTP Digit:  BC " << intRecord.bc << " orbit " << intRecord.orbit << std::endl;
   stream << "Input Mask: " << CTPInputMask << std::endl;
+  stream << "Class Mask: " << CTPClassMask << std::endl;
 }
 void CTPDigit::setInputMask(gbtword80_t mask)
 {
