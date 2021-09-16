@@ -166,6 +166,7 @@ class ReadOut
   static inline int CruId(unsigned int idx) { return (idx > Geo::MAXEQUIPMENTS) ? -1 : mEq[idx].Id.Cru; };
   static inline int LnkId(unsigned int idx) { return (idx > Geo::MAXEQUIPMENTS) ? -1 : mEq[idx].Id.Lnk; };
   static inline int FlpId(unsigned int idx) { return (idx > Geo::MAXEQUIPMENTS) ? -1 : mEq[idx].Id.Flp; };
+  static inline std::string_view FlpHostName(unsigned int idx) { return (idx > Geo::MAXEQUIPMENTS) ? "" : mEq[idx].Id.FlpHostName; };
   static inline uint32_t UniqueId(unsigned int idx) { return (idx > Geo::MAXEQUIPMENTS) ? -1 : mEq[idx].LinkUId; };
 
   static unsigned int searchIdx(int FeeId)
