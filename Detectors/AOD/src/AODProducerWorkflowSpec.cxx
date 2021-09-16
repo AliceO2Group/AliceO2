@@ -182,7 +182,9 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
                     truncateFloatFraction(extraInfoHolder.length, mTrackSignal),
                     truncateFloatFraction(extraInfoHolder.tofExpMom, mTrack1Pt),
                     truncateFloatFraction(extraInfoHolder.trackEtaEMCAL, mTrackPosEMCAL),
-                    truncateFloatFraction(extraInfoHolder.trackPhiEMCAL, mTrackPosEMCAL));
+                    truncateFloatFraction(extraInfoHolder.trackPhiEMCAL, mTrackPosEMCAL),
+                    0,
+                    0);
 }
 
 template <typename mftTracksCursorType>
@@ -246,13 +248,12 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
               math_utils::Point3D<double> vertex{};
               // FIXME: should we get better
               // than {0,0,0} as vertex here ?
-              addToFwdTracksTable(fwdTracksCursor, track, -1, meanIR.toLong(), vertex);
+              addToFwdTracksTable(fwdTracksCursor, track, -1, vertex);
             }
           } else {
-            long bcID{-1}; // FIXME: how do I get bcID ?
             math_utils::Point3D<double> vtx{vertex.getX(),
                                             vertex.getY(), vertex.getZ()};
-            addToFwdTracksTable(fwdTracksCursor, track, collisionID, bcID, vtx);
+            addToFwdTracksTable(fwdTracksCursor, track, collisionID, vtx);
           }
         } else {
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
@@ -308,7 +309,6 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
 template <typename FwdTracksCursorType>
 void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksCursor,
                                                  const o2::mch::TrackMCH& track, int collisionID,
-                                                 int bcID,
                                                  const math_utils::Point3D<double>& vertex)
 
 {
@@ -370,7 +370,6 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
 
   fwdTracksCursor(0,
                   collisionID,
-                  bcID,
                   o2::aod::fwdtrack::MCHStandaloneTrack,
                   x,
                   y,
@@ -386,7 +385,9 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
                   -1.0, // chi2matchmchmft,
                   -1.0, // matchscoremchmft,
                   -1,   // matchmfttrackid,
-                  -1    // matchmchtrackid
+                  -1,   // matchmchtrackid
+                  -1.f, // trackTime
+                  -1.f  // trackTimeRes
   );
 }
 
