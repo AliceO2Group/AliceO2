@@ -13,7 +13,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #endif
 
-void CheckMCTracks(const std::string tracfile = "o2trac_its.root")
+void CheckFakeClustersTracks(const std::string tracfile = "o2trac_its.root")
 {
   TFile* file1 = TFile::Open(tracfile.data());
   TTree* recTree = (TTree*)file1->Get("o2sim");
