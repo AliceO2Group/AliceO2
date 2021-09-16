@@ -544,6 +544,76 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
   }
 }
 
+template <typename MCTrackLabelCursorType, typename MCMFTTrackLabelCursorType>
+void AODProducerWorkflowDPL::fillMCTrackLabelsTable(const MCTrackLabelCursorType& mcTrackLabelCursor,
+                                                    const MCMFTTrackLabelCursorType& mcMFTTrackLabelCursor,
+                                                    o2::dataformats::VtxTrackRef const& trackRef,
+                                                    gsl::span<const GIndex>& primVerGIs,
+                                                    o2::globaltracking::RecoContainer& data)
+{
+  // labelMask (temporary) usage:
+  //   bit 13 -- ITS and TPC labels are not equal
+  //   bit 14 -- isNoise() == true
+  //   bit 15 -- isFake() == true
+  // labelID = -1 -- label is not set
+
+  for (int src = GIndex::NSources; src--;) {
+    int start = trackRef.getFirstEntryOfSource(src);
+    int end = start + trackRef.getEntriesOfSource(src);
+    for (int ti = start; ti < end; ti++) {
+      auto& trackIndex = primVerGIs[ti];
+      if (GIndex::includesSource(src, mInputSources)) {
+        auto mcTruth = data.getTrackMCLabel(trackIndex);
+        MCLabels labelHolder;
+        if (src == GIndex::Source::MFT) { // treating mft labels separately
+          if (mcTruth.isValid()) {        // if not set, -1 will be stored
+            labelHolder.labelID = mToStore.at(Triplet_t(mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID()));
+          }
+          if (mcTruth.isFake()) {
+            labelHolder.mftLabelMask |= (0x1 << 7);
+          }
+          if (mcTruth.isNoise()) {
+            labelHolder.mftLabelMask |= (0x1 << 6);
+          }
+          mcMFTTrackLabelCursor(0,
+                                labelHolder.labelID,
+                                labelHolder.mftLabelMask);
+        } else if (src != GIndex::Source::MCH) { // todo: implement mc labels for forward tracks and remove the placeholder
+          if (mcTruth.isValid()) {               // if not set, -1 will be stored
+            labelHolder.labelID = mToStore.at(Triplet_t(mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID()));
+          }
+          // treating possible mismatches for global tracks
+          auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
+          if (contributorsGID[GIndex::Source::ITS].isIndexSet() && contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+            auto mcTruthITS = data.getTrackMCLabel(contributorsGID[GIndex::Source::ITS]);
+            if (mcTruthITS.isValid()) {
+              labelHolder.labelITS = mToStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+            }
+            auto mcTruthTPC = data.getTrackMCLabel(contributorsGID[GIndex::Source::TPC]);
+            if (mcTruthTPC.isValid()) {
+              labelHolder.labelTPC = mToStore.at(Triplet_t(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
+              labelHolder.labelID = labelHolder.labelTPC;
+            }
+            if (labelHolder.labelITS != labelHolder.labelTPC) {
+              LOG(DEBUG) << "ITS-TPC MCTruth: labelIDs do not match at " << trackIndex.getIndex() << ", src = " << src;
+              labelHolder.labelMask |= (0x1 << 13);
+            }
+          }
+          if (mcTruth.isFake()) {
+            labelHolder.labelMask |= (0x1 << 15);
+          }
+          if (mcTruth.isNoise()) {
+            labelHolder.labelMask |= (0x1 << 14);
+          }
+          mcTrackLabelCursor(0,
+                             labelHolder.labelID,
+                             labelHolder.labelMask);
+        }
+      }
+    }
+  }
+}
+
 void AODProducerWorkflowDPL::countTPCClusters(const o2::tpc::TrackTPC& track,
                                               const gsl::span<const o2::tpc::TPCClRefElem>& tpcClusRefs,
                                               const gsl::span<const unsigned char>& tpcClusShMap,
@@ -989,69 +1059,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // ------------------------------------------------------
   // filling track labels
 
-  // labelMask (temporary) usage:
-  //   bit 13 -- ITS and TPC labels are not equal
-  //   bit 14 -- isNoise() == true
-  //   bit 15 -- isFake() == true
-  // labelID = -1 -- label is not set
-
   // need to go through labels in the same order as for tracks
-  for (auto& trackRef : primVer2TRefs) {
-    for (int src = GIndex::NSources; src--;) {
-      int start = trackRef.getFirstEntryOfSource(src);
-      int end = start + trackRef.getEntriesOfSource(src);
-      for (int ti = start; ti < end; ti++) {
-        auto& trackIndex = primVerGIs[ti];
-        if (GIndex::includesSource(src, mInputSources)) {
-          auto mcTruth = recoData.getTrackMCLabel(trackIndex);
-          MCLabels labelHolder;
-          if (src == GIndex::Source::MFT) { // treating mft labels separately
-            if (mcTruth.isValid()) {        // if not set, -1 will be stored
-              labelHolder.labelID = mToStore.at(Triplet_t(mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID()));
-            }
-            if (mcTruth.isFake()) {
-              labelHolder.mftLabelMask |= (0x1 << 7);
-            }
-            if (mcTruth.isNoise()) {
-              labelHolder.mftLabelMask |= (0x1 << 6);
-            }
-            mcMFTTrackLabelCursor(0,
-                                  labelHolder.labelID,
-                                  labelHolder.mftLabelMask);
-          } else if (src != GIndex::Source::MCH) { // todo: implement mc labels for forward tracks and remove the placeholder
-            if (mcTruth.isValid()) {               // if not set, -1 will be stored
-              labelHolder.labelID = mToStore.at(Triplet_t(mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID()));
-            }
-            // treating possible mismatches for global tracks
-            auto contributorsGID = recoData.getSingleDetectorRefs(trackIndex);
-            if (contributorsGID[GIndex::Source::ITS].isIndexSet() && contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-              auto mcTruthITS = recoData.getTrackMCLabel(contributorsGID[GIndex::Source::ITS]);
-              if (mcTruthITS.isValid()) {
-                labelHolder.labelITS = mToStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
-              }
-              auto mcTruthTPC = recoData.getTrackMCLabel(contributorsGID[GIndex::Source::TPC]);
-              if (mcTruthTPC.isValid()) {
-                labelHolder.labelTPC = mToStore.at(Triplet_t(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
-                labelHolder.labelID = labelHolder.labelTPC;
-              }
-              if (labelHolder.labelITS != labelHolder.labelTPC) {
-                LOG(DEBUG) << "ITS-TPC MCTruth: labelIDs do not match at " << trackIndex.getIndex() << ", src = " << src;
-                labelHolder.labelMask |= (0x1 << 13);
-              }
-            }
-            if (mcTruth.isFake()) {
-              labelHolder.labelMask |= (0x1 << 15);
-            }
-            if (mcTruth.isNoise()) {
-              labelHolder.labelMask |= (0x1 << 14);
-            }
-            mcTrackLabelCursor(0,
-                               labelHolder.labelID,
-                               labelHolder.labelMask);
-          }
-        }
-      }
-    }
+  fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, primVer2TRefs.back(), primVerGIs, recoData);
+  for (int iref = 0; iref < primVer2TRefs.size() - 1; iref++) {
+    auto& trackRef = primVer2TRefs[iref];
+    fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, trackRef, primVerGIs, recoData);
   }
 
   mToStore.clear();

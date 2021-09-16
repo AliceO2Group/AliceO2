@@ -305,6 +305,13 @@ class AODProducerWorkflowDPL : public Task
                             o2::globaltracking::RecoContainer& data,
                             std::vector<std::pair<int, int>> const& mcColToEvSrc);
 
+  template <typename MCTrackLabelCursorType, typename MCMFTTrackLabelCursorType>
+  void fillMCTrackLabelsTable(const MCTrackLabelCursorType& mcTrackLabelCursor,
+                              const MCMFTTrackLabelCursorType& mcMFTTrackLabelCursor,
+                              o2::dataformats::VtxTrackRef const& trackRef,
+                              gsl::span<const GIndex>& primVerGIs,
+                              o2::globaltracking::RecoContainer& data);
+
   // helper for tpc clusters
   void countTPCClusters(const o2::tpc::TrackTPC& track,
                         const gsl::span<const o2::tpc::TPCClRefElem>& tpcClusRefs,
