@@ -449,7 +449,17 @@ class DetImpl : public o2::base::Detector
         // number of primaries for this event
         int nprim = nprimaries[index];
         idelta1 -= nprim;
-        auto incomingdata = &hitbufferlist.back();
+
+        // fetch correct list item
+        // TODO: we can go to an indexed container (but this little loop is cheap
+        // compared to the rest)
+        auto iter = hitbufferlist.begin();
+        int listindex = 0;
+        while (listindex < index) {
+          listindex++;
+          iter++;
+        }
+        auto incomingdata = &(*iter);
         if (incomingdata) {
           // fix the trackIDs for this data
           for (auto& hit : *incomingdata) {
@@ -460,8 +470,6 @@ class DetImpl : public o2::base::Detector
           }
           // this could be further generalized by using a policy for T
           std::copy(incomingdata->begin(), incomingdata->end(), std::back_inserter(*targetdata));
-          // adjust offset
-          hitbufferlist.pop_back();
         }
         // adjust offsets for next subevent
         idelta0 += nprim;
