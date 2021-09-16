@@ -84,7 +84,9 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
       o2::monitoring::Monitoring* monitoring;
       if (useDPL) {
         monitoring = new Monitoring();
-        monitoring->addBackend(std::make_unique<DPLMonitoringBackend>(registry));
+        auto dplBackend = std::make_unique<DPLMonitoringBackend>(registry);
+        (dynamic_cast<o2::monitoring::Backend*>(dplBackend.get()))->setVerbosisty(o2::monitoring::Verbosity::Debug);
+        monitoring->addBackend(std::move(dplBackend));
       } else {
         auto backend = isDefault ? "infologger://" : options.GetPropertyAsString("monitoring-backend");
         monitoring = MonitoringFactory::Get(backend).release();
