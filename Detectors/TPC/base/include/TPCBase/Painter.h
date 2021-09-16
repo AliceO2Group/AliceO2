@@ -24,6 +24,7 @@
 
 class TH1;
 class TH2;
+class TH3F;
 class TH2Poly;
 class TCanvas;
 
@@ -167,6 +168,17 @@ void drawSectorLocalPadNumberPoly(short padTextColor = kBlack, float lineScalePS
 /// \param regionLineColor color of the line which is drawn at the start of a sector
 /// \param rowTextColor color of the text which is drawn
 void drawSectorInformationPoly(short regionLineColor = kRed, short rowTextColor = kRed);
+
+/// convert std::vector<CalDet> objects (pad granularity) to a 3D-histogram with rxphixz binning. Each CalDet will be filled in a unique slice in the histogram
+/// \param calDet input objects which will be converted to a 3D histogram
+/// \param norm whether to normalize the histogram (weighted mean) or to just integrate the values of the CalDet
+/// \param nRBins number of bins in r direction of the output histogram
+/// \param rMin min r value of the output histogram
+/// \param rMax max r value of the output histogram
+/// \param nPhiBins number of bins in phi direction of the output histogram
+/// \param zMax z range of the output histogram (-zMax to zMax)
+template <typename DataT>
+TH3F convertCalDetToTH3(const std::vector<CalDet<DataT>>& calDet, const bool norm = true, const int nRBins = 150, const float rMin = 83.5, const float rMax = 254.5, const int nPhiBins = 720, const float zMax = 1);
 
 } // namespace painter
 
