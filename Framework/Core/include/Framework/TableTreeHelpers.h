@@ -22,12 +22,12 @@ namespace o2::framework
 {
 
 // -----------------------------------------------------------------------------
-// GenericTableToTree allows to save the contents of a given arrow::Table into
+// TableToTree allows to save the contents of a given arrow::Table into
 // a TTree
-// BranchFiller is used by GenericTableToTree
+// ColumnToBranch is used by GenericTableToTree
 //
 // To write the contents of a table ta to a tree tr on file f do:
-//  . GenericTableToTree t2t(f,treename);
+//  . TableToTree t2t(f,treename);
 //  . t2t.addBranches(ta);
 //    OR t2t.addBranch(column.get(), field.get()), ...;
 //  . t2t.write();
@@ -198,6 +198,159 @@ class ColumnToBranch : public ColumnToBranchBase
   TBranch* mBranch = nullptr;
 };
 
+namespace
+{
+std::shared_ptr<arrow::DataType> arrowTypeFromROOT(EDataType type, int size)
+{
+  auto typeGenerator = [](std::shared_ptr<arrow::DataType>&& type, int size) -> std::shared_ptr<arrow::DataType> {
+    if (size == 1) {
+      return std::move(type);
+    }
+    return arrow::fixed_size_list(type, size);
+  };
+
+  switch (type) {
+    case EDataType::kBool_t:
+      return typeGenerator(arrow::boolean(), size);
+    case EDataType::kUChar_t:
+      return typeGenerator(arrow::uint8(), size);
+    case EDataType::kUShort_t:
+      return typeGenerator(arrow::uint16(), size);
+    case EDataType::kUInt_t:
+      return typeGenerator(arrow::uint32(), size);
+    case EDataType::kULong64_t:
+      return typeGenerator(arrow::uint64(), size);
+    case EDataType::kChar_t:
+      return typeGenerator(arrow::int8(), size);
+    case EDataType::kShort_t:
+      return typeGenerator(arrow::int16(), size);
+    case EDataType::kInt_t:
+      return typeGenerator(arrow::int32(), size);
+    case EDataType::kLong64_t:
+      return typeGenerator(arrow::int64(), size);
+    case EDataType::kFloat_t:
+      return typeGenerator(arrow::float32(), size);
+    case EDataType::kDouble_t:
+      return typeGenerator(arrow::float64(), size);
+    default:
+      throw runtime_error("Unsupported branch type");
+  }
+}
+} // namespace
+
+class BranchToColumnBase
+{
+ public:
+  BranchToColumnBase(TBranch* branch, const char* name, EDataType type, int listSize);
+  virtual ~BranchToColumnBase(){};
+
+  TBranch* branch()
+  {
+    return mBranch;
+  }
+
+  virtual std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> read(TBuffer* buffer) = 0;
+
+ protected:
+  TBranch* mBranch = nullptr;
+  std::string mColumnName;
+  EDataType mType;
+  arrow::ArrayBuilder* mValueBuilder = nullptr;
+  std::unique_ptr<arrow::FixedSizeListBuilder> mListBuilder = nullptr;
+  int mListSize = 1;
+  std::unique_ptr<arrow::ArrayBuilder> builder = nullptr;
+};
+
+template <typename T>
+class BranchToColumn : public BranchToColumnBase
+{
+  using ArrowType = typename detail::ConversionTraits<T>::ArrowType;
+  using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
+
+ public:
+  BranchToColumn(TBranch* branch, const char* name, EDataType type, int listSize, arrow::MemoryPool* pool = arrow::default_memory_pool())
+    : BranchToColumnBase(branch, name, type, listSize)
+  {
+    if (mListSize > 1) {
+      auto status = arrow::MakeBuilder(pool, arrow::TypeTraits<ArrowType>::type_singleton(), &builder);
+      if (!status.ok()) {
+        throw runtime_error("Cannot create value builder");
+      }
+      mListBuilder = std::make_unique<arrow::FixedSizeListBuilder>(pool, std::move(builder), mListSize);
+      mValueBuilder = static_cast<BuilderType*>(mListBuilder->value_builder());
+    } else {
+      auto status = arrow::MakeBuilder(pool, arrow::TypeTraits<ArrowType>::type_singleton(), &builder);
+      if (!status.ok()) {
+        throw runtime_error("Cannot create builder");
+      }
+      mValueBuilder = builder.get();
+    }
+  }
+
+  std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> read(TBuffer* buffer) override
+  {
+    auto arrowType = arrowTypeFromROOT(mType, mListSize);
+
+    auto totalEntries = static_cast<int>(mBranch->GetEntries());
+    auto status = Reserve(totalEntries);
+    if (!status.ok()) {
+      throw runtime_error("Failed to reserve memory for array builder");
+    }
+    int readEntries = 0;
+    buffer->Reset();
+    while (readEntries < totalEntries) {
+      auto read = mBranch->GetBulkRead().GetBulkEntries(readEntries, *buffer);
+      readEntries += read;
+      status &= AppendValues(reinterpret_cast<unsigned char const*>(buffer->GetCurrent()), read);
+    }
+    if (!status.ok()) {
+      throw runtime_error("Failed to append values to array");
+    }
+    std::shared_ptr<arrow::Array> array;
+    status &= Finish(&array);
+    if (!status.ok()) {
+      throw runtime_error("Failed to create boolean array");
+    }
+    auto chunk = std::make_shared<arrow::ChunkedArray>(array);
+    auto field = std::make_shared<arrow::Field>(mBranch->GetName(), arrowType);
+    return std::tie(chunk, field);
+  }
+
+ private:
+  arrow::Status AppendValues(unsigned char const* buffer, int numEntries)
+  {
+    using B = typename std::conditional<std::is_same_v<T, bool>, uint8_t, T>::type;
+    if (mListSize > 1) {
+      auto status = static_cast<BuilderType*>(mValueBuilder)->AppendValues(reinterpret_cast<B const*>(buffer), numEntries * mListSize);
+      status &= mListBuilder->AppendValues(numEntries);
+      return status;
+    } else {
+      auto status = static_cast<BuilderType*>(mValueBuilder)->AppendValues(reinterpret_cast<B const*>(buffer), numEntries);
+      return status;
+    }
+  }
+
+  arrow::Status Finish(std::shared_ptr<arrow::Array>* array)
+  {
+    if (mListSize > 1) {
+      return mListBuilder->Finish(array);
+    } else {
+      return mValueBuilder->Finish(array);
+    }
+  }
+
+  arrow::Status Reserve(int numEntries)
+  {
+    if (mListSize > 1) {
+      auto status = mListBuilder->Reserve(numEntries);
+      status &= mValueBuilder->Reserve(numEntries * mListSize);
+      return status;
+    } else {
+      return mValueBuilder->Reserve(numEntries);
+    }
+  }
+};
+
 class TableToTree
 {
  public:
@@ -210,41 +363,31 @@ class TableToTree
  private:
   int64_t mRows = 0;
   TTree* mTree = nullptr;
-  std::vector<std::unique_ptr<ColumnToBranchBase>> ColumnExtractors;
-};
-
-class GenericTreeToTable
-{
- public:
- private:
-  std::shared_ptr<arrow::Table> mTable;
-  std::vector<std::shared_ptr<arrow::Field>> mFields;
-  std::string mTableLabel;
+  std::vector<std::unique_ptr<ColumnToBranchBase>> mColumnReaders;
 };
 
 class TreeToTable
 {
+ public:
+  TreeToTable(arrow::MemoryPool* pool = arrow::default_memory_pool())
+    : mArrowMemoryPool{pool}
+  {
+  }
+  void setLabel(const char* label);
+  void addColumns(TTree* tree, std::vector<const char*>&& names = {});
+  void read();
+  auto finalize()
+  {
+    return mTable;
+  }
 
  private:
-  std::shared_ptr<arrow::Table> mTable;
-  std::vector<std::string> mColumnNames;
+  arrow::MemoryPool* mArrowMemoryPool;
+  std::vector<std::unique_ptr<BranchToColumnBase>> mBranchReaders;
   std::string mTableLabel;
+  std::shared_ptr<arrow::Table> mTable;
 
- public:
-  // set table label to be added into schema metadata
-  void setLabel(const char* label);
-
-  // add a column to be included in the arrow::table
-  void addColumn(const char* colname);
-
-  // add all branches in @a tree as columns
-  bool addAllColumns(TTree* tree);
-
-  // do the looping with the TTreeReader
-  void fill(TTree* tree);
-
-  // create the table
-  std::shared_ptr<arrow::Table> finalize();
+  void AddReader(TBranch* branch, const char* name);
 };
 
 // -----------------------------------------------------------------------------
