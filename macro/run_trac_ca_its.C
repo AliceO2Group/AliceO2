@@ -208,34 +208,36 @@ void run_trac_ca_its(bool cosmics = false,
     // PbPb tracking params
     // ----
     trackParams.resize(3);
-    memParams.resize(3);
     trackParams[0].TrackletMaxDeltaPhi = 0.05f;
-    trackParams[1].TrackletMaxDeltaPhi = 0.1f;
-    trackParams[2].MinTrackLength = 5;
-    trackParams[2].TrackletMaxDeltaPhi = 0.3;
+    trackParams[0].DeltaROF = 0;
+    trackParams[1].CopyCuts(trackParams[0], 2.);
+    trackParams[1].DeltaROF = 0;
+    trackParams[2].CopyCuts(trackParams[1], 2.);
+    trackParams[2].DeltaROF = 1;
+    trackParams[2].MinTrackLength = 4;
+    memParams.resize(3);
     // ---
     // Uncomment for pp
-    trackParams.resize(2);
-    std::array<const float, 5> kmaxDCAxy1 = {1.f * 2.0, 0.4f * 2.0, 0.4f * 2.0, 2.0f * 2.0, 3.f * 2.0};
-    std::array<const float, 5> kmaxDCAz1 = {1.f * 2.0, 0.4f * 2.0, 0.4f * 2.0, 2.0f * 2.0, 3.f * 2.0};
-    std::array<const float, 4> kmaxDN1 = {0.005f * 2.0, 0.0035f * 2.0, 0.009f * 2.0, 0.03f * 2.0};
-    std::array<const float, 4> kmaxDP1 = {0.02f * 2.0, 0.005f * 2.0, 0.006f * 2.0, 0.007f * 2.0};
-    std::array<const float, 6> kmaxDZ1 = {1.f * 2.0, 1.f * 2.0, 2.0f * 2.0, 2.0f * 2.0, 2.0f * 2.0, 2.0f * 2.0};
-    const float kDoublTanL1 = 0.05f * 5.;
-    const float kDoublPhi1 = 0.2f * 5.;
-    trackParams[1].MinTrackLength = 4;
-    trackParams[1].TrackletMaxDeltaPhi = 0.3;
-    trackParams[1].CellMaxDeltaPhi = 0.2 * 2;
-    trackParams[1].CellMaxDeltaTanLambda = 0.05 * 2;
-    std::copy(kmaxDZ1.begin(), kmaxDZ1.end(), trackParams[1].TrackletMaxDeltaZ.begin());
-    std::copy(kmaxDCAxy1.begin(), kmaxDCAxy1.end(), trackParams[1].CellMaxDCA.begin());
-    std::copy(kmaxDCAz1.begin(), kmaxDCAz1.end(), trackParams[1].CellMaxDeltaZ.begin());
-    std::copy(kmaxDP1.begin(), kmaxDP1.end(), trackParams[1].NeighbourMaxDeltaCurvature.begin());
-    std::copy(kmaxDN1.begin(), kmaxDN1.end(), trackParams[1].NeighbourMaxDeltaN.begin());
-    memParams.resize(2);
+    // trackParams.resize(2);
+    // std::array<const float, 5> kmaxDCAxy1 = {1.f * 2.0, 0.4f * 2.0, 0.4f * 2.0, 2.0f * 2.0, 3.f * 2.0};
+    // std::array<const float, 5> kmaxDCAz1 = {1.f * 2.0, 0.4f * 2.0, 0.4f * 2.0, 2.0f * 2.0, 3.f * 2.0};
+    // std::array<const float, 4> kmaxDN1 = {0.005f * 2.0, 0.0035f * 2.0, 0.009f * 2.0, 0.03f * 2.0};
+    // std::array<const float, 4> kmaxDP1 = {0.02f * 2.0, 0.005f * 2.0, 0.006f * 2.0, 0.007f * 2.0};
+    // std::array<const float, 6> kmaxDZ1 = {1.f * 2.0, 1.f * 2.0, 2.0f * 2.0, 2.0f * 2.0, 2.0f * 2.0, 2.0f * 2.0};
+    // const float kDoublTanL1 = 0.05f * 5.;
+    // const float kDoublPhi1 = 0.2f * 5.;
+    // trackParams[1].MinTrackLength = 4;
+    // trackParams[1].TrackletMaxDeltaPhi = 0.3;
+    // trackParams[1].CellMaxDeltaPhi = 0.2 * 2;
+    // trackParams[1].CellMaxDeltaTanLambda = 0.05 * 2;
+    // std::copy(kmaxDZ1.begin(), kmaxDZ1.end(), trackParams[1].TrackletMaxDeltaZ.begin());
+    // std::copy(kmaxDCAxy1.begin(), kmaxDCAxy1.end(), trackParams[1].CellMaxDCA.begin());
+    // std::copy(kmaxDCAz1.begin(), kmaxDCAz1.end(), trackParams[1].CellMaxDeltaZ.begin());
+    // std::copy(kmaxDP1.begin(), kmaxDP1.end(), trackParams[1].NeighbourMaxDeltaCurvature.begin());
+    // std::copy(kmaxDN1.begin(), kmaxDN1.end(), trackParams[1].NeighbourMaxDeltaN.begin());
+    // memParams.resize(2);
     // ---
   }
-
 
   int currentEvent = -1;
   gsl::span<const unsigned char> patt(patterns->data(), patterns->size());
@@ -286,10 +288,6 @@ void run_trac_ca_its(bool cosmics = false,
   tf.printVertices();
 
   o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU(&tf));
-  tracker.setBz(field->getBz(origD));
-  tracker.setParameters(memParams, trackParams);
-  tracker.clustersToTracks();
-  //-------- init lookuptable --------//
   if (useLUT) {
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
@@ -302,6 +300,11 @@ void run_trac_ca_its(bool cosmics = false,
   } else {
     LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
+
+  tracker.setBz(field->getBz(origD));
+  tracker.setParameters(memParams, trackParams);
+  tracker.clustersToTracks();
+  //-------- init lookuptable --------//
 
   for (int iROF{0}; iROF < tf.getNrof(); ++iROF) {
     tracksITS.clear();

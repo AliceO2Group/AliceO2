@@ -70,7 +70,7 @@ o2_add_test_root_macro(RunGPUTracking.C
                        PUBLIC_LINK_LIBRARIES O2::GPUTracking
                        LABELS its)
 
-o2_add_test_root_macro(CheckTrackerFakeClusters.C
+o2_add_test_root_macro(CheckFakeClustersTracks.C
                        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
                                              O2::ITSBase
                                              O2::DataFormatsITS

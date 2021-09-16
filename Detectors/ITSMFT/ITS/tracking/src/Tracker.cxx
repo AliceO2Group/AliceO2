@@ -527,9 +527,6 @@ void Tracker::computeRoadsMClabels()
 
 void Tracker::computeTracksMClabels()
 {
-  if (!mTimeFrame->hasMCinformation()) {
-    return;
-  }
 
   for (int iROF{0}; iROF < mTimeFrame->getNrof(); ++iROF) {
     for (auto& track : mTimeFrame->getTracks(iROF)) {
