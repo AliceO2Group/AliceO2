@@ -249,6 +249,8 @@ class AODProducerWorkflowDPL : public Task
     float tofExpMom = -999.f;
     float trackEtaEMCAL = -999.f;
     float trackPhiEMCAL = -999.f;
+    float trackTime = -999.f;
+    float trackTimeRes = -999.f;
   };
 
   // helper struct for mc track labels
