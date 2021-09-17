@@ -116,7 +116,7 @@ void Detector::ConstructGeometry()
     tr[itr] = new TGeoTranslation(nameTr.Data(), mPosModuleAx[itr], mPosModuleAy[itr], z);
     tr[itr]->RegisterYourself();
     stlinA->AddNode(ins, itr, tr[itr]);
-    LOG(INFO) << " A geom " << itr << " " << mPosModuleAx[itr] << " " << mPosModuleAy[itr];
+    LOG(DEBUG) << " A geom " << itr << " " << mPosModuleAx[itr] << " " << mPosModuleAy[itr];
   }
   SetCablesA(stlinA);
   //Add FT0-A support Structure to the geometry
@@ -137,7 +137,7 @@ void Detector::ConstructGeometry()
     float bc1 = geometry.tiltMCP(ic).Y();
     float gc1 = geometry.tiltMCP(ic).Z();
     rot[ic] = new TGeoRotation(nameRot.Data(), ac1, bc1, gc1);
-    LOG(INFO) << " rot geom " << ic << " " << ac1 << " " << bc1 << " " << gc1;
+    LOG(DEBUG) << " rot geom " << ic << " " << ac1 << " " << bc1 << " " << gc1;
     rot[ic]->RegisterYourself();
     mPosModuleCx[ic] = geometry.centerMCP(ic + nCellsA).X();
     mPosModuleCy[ic] = geometry.centerMCP(ic + nCellsA).Y();
@@ -148,6 +148,8 @@ void Detector::ConstructGeometry()
     stlinC->AddNode(ins, itr, ph);
     //cables
     TGeoVolume* cables = SetCablesSize(itr);
+    LOG(DEBUG) << " C " << mPosModuleCx[ic] << " " << mPosModuleCy[ic];
+    //    cables->Print();
     comCable[ic] = new TGeoCombiTrans(mPosModuleCx[ic], mPosModuleCy[ic], mPosModuleCz[ic] + mInStart[2] + 0.2, rot[ic]);
     TGeoHMatrix hmCable = *comCable[ic];
     TGeoHMatrix* phCable = new TGeoHMatrix(hmCable);
@@ -236,7 +238,6 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   // MCP
   TVirtualMC::GetMC()->Gsvolu("0MTO", "BOX", getMediumID(kOpGlass), pmcptopglass, 3); //Op  Glass
   TGeoVolume* mcptop = gGeoManager->GetVolume("0MTO");
-  mcptop->Print();
   z = -mInStart[2] + 2 * ptopref[2] + pmcptopglass[2];
   ins->AddNode(mcptop, 1, new TGeoTranslation(0, 0, z));
 
@@ -247,7 +248,6 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 
   TVirtualMC::GetMC()->Gsvolu("0MSI", "BOX", getMediumID(kMCPwalls), pmcpside, 3); //glass
   TGeoVolume* mcpside = gGeoManager->GetVolume("0MSI");
-  mcpside->Print();
   x = -pmcp[0] + pmcpside[0];
   y = -pmcp[1] + pmcpside[1];
   mcp->AddNode(mcpside, 1, new TGeoTranslation(x, y, 0));
@@ -263,7 +263,6 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 
   TVirtualMC::GetMC()->Gsvolu("0MBA", "BOX", getMediumID(kCeramic), pmcpbase, 3); //glass
   TGeoVolume* mcpbase = gGeoManager->GetVolume("0MBA");
-  mcpbase->Print();
   z = -mInStart[2] + 2 * ptopref[2] + pmcptopglass[2] + 2 * pmcp[2] + pmcpbase[2];
   ins->AddNode(mcpbase, 1, new TGeoTranslation(0, 0, z));
 }
@@ -310,17 +309,19 @@ TGeoVolume* Detector::SetCablesSize(int mod)
 {
   int na = 0;
   int ncells = Geometry::NCellsC;
+
   int mcpcables[52] = {2, 1, 2, 1, 2,
                        2, 1, 1, 1, 2,
                        2, 1, 1, 2,
                        2, 1, 1, 1, 2,
                        2, 1, 2, 1, 2,
-                       2, 1, 1, 2,
-                       3, 2, 1, 1, 2, 3,
-                       2, 1, 1, 2,
-                       2, 1, 1, 2,
-                       3, 2, 1, 1, 2, 3,
-                       2, 1, 1, 2};
+                       2, 2, 3, 3, 1,
+                       1, 2, 2, 2, 2,
+                       1, 1, 1, 1, 1,
+                       1, 1, 1, 1, 1,
+                       2, 2, 2, 2, 2,
+                       2, 3, 3};
+
   // cable D=0.257cm, Weight: 13 lbs/1000ft = 0.197g/cm; 1 piece 0.65cm
   //1st 8 pieces - tube  8*0.65cm = 5.2cm; V = 0.0531cm2 -> box {0.27*0.27*1}cm; W = 0.66g
   //2nd 24 pieces 24*0.65cm; V = 0.76 -> {0.44, 0.447 1}; W = 3.07g
@@ -338,8 +339,7 @@ TGeoVolume* Detector::SetCablesSize(int mod)
   const std::string volName = Form("CAB%2.i", mod);
   TVirtualMC::GetMC()->Gsvolu(volName.c_str(), "BOX", getMediumID(kCable), calblesize, 3); // cables
   TGeoVolume* vol = gGeoManager->GetVolume(volName.c_str());
-  //  vol->Print();
-  //  vol->Weight();
+  LOG(DEBUG) << "C cables " << mod << " " << volName << " " << ic;
   return vol;
 }
 
