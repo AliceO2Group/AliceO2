@@ -518,7 +518,7 @@ Int_t Geo::getSector(const Float_t* pos)
   return iSect;
 }
 
-void Geo::getPadDxDyDz(const Float_t* pos, Int_t* det, Float_t* DeltaPos)
+void Geo::getPadDxDyDz(const Float_t* pos, Int_t* det, Float_t* DeltaPos, int sector)
 {
   //
   // Returns the x coordinate in the Pad reference frame
@@ -531,9 +531,13 @@ void Geo::getPadDxDyDz(const Float_t* pos, Int_t* det, Float_t* DeltaPos)
     DeltaPos[ii] = pos[ii];
   }
 
-  det[0] = getSector(DeltaPos);
+  det[0] = sector;
   if (det[0] == -1) {
-    return;
+    det[0] = getSector(DeltaPos);
+
+    if (det[0] == -1) {
+      return;
+    }
   }
 
   fromGlobalToSector(DeltaPos, det[0]);

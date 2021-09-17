@@ -492,7 +492,7 @@ void MatchTOF::doMatching(int sec)
         detIdTemp[idet] = -1;
       }
 
-      Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp);
+      Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp, sec);
 
       reachedPoint += step;
 
@@ -814,7 +814,7 @@ void MatchTOF::doMatchingForTPC(int sec)
           posFloat[2] = pos[2];
         }
 
-        Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp);
+        Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp, sec);
 
         if (detIdTemp[2] == -1) {
           continue;
