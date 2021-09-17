@@ -107,10 +107,10 @@ o2_add_test_command(NAME o2sim_G4
                                       TGeant4
                                       -o
                                       o2simG4
-                                      -g 
-                                      pythia8pp
                                       --chunkSize
-                                      10
+                                      2
+                                      --skipModules
+                                      MFT ZDC
                     ENVIRONMENT "${SIMENV}"
                     LABELS "g4;sim;long")
 
