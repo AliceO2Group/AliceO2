@@ -107,6 +107,10 @@ o2_add_test_command(NAME o2sim_G4
                                       TGeant4
                                       -o
                                       o2simG4
+                                      -g 
+                                      pythia8pp
+                                      --chunkSize
+                                      10
                     ENVIRONMENT "${SIMENV}"
                     LABELS "g4;sim;long")
 
@@ -142,7 +146,7 @@ o2_add_test(CheckStackG4
   NAME o2sim_checksimkinematics_G4
   WORKING_DIRECTORY ${SIMTESTDIR}
   COMMAND_LINE_ARGS o2simG4
-  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::Steer
+  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::Steer O2::ITSSimulation
   NO_BOOST_TEST
   LABELS "g4;sim;long")
 
@@ -160,6 +164,10 @@ o2_add_test_command(NAME o2sim_G3
                                       TGeant3
                                       -o
                                       o2simG3
+                                      -g 
+                                      pythia8pp
+                                      --chunkSize
+                                      10
                     LABELS g3 sim long
                     ENVIRONMENT "${SIMENV}"
 )
@@ -179,7 +187,7 @@ o2_add_test(CheckStackG3
   NAME o2sim_checksimkinematics_G3
   WORKING_DIRECTORY ${SIMTESTDIR}
   COMMAND_LINE_ARGS o2simG3
-  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::Steer
+  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::Steer O2::ITSSimulation
   NO_BOOST_TEST
   LABELS "g3;sim;long")
 
