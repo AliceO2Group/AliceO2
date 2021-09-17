@@ -97,6 +97,34 @@ class ClusterPattern
   /// Compute pattern's COG position. Returns the number of fired pixels
   int getCOG(float& xCOG, float& zCOG) const { return ClusterPattern::getCOG(getRowSpan(), getColumnSpan(), mBitmap.data() + 2, xCOG, zCOG); }
 
+  bool isSet(int row, int col) const
+  {
+    const auto bmap = mBitmap.data() + 2;
+    int pos = row * getColumnSpan() + col;
+    return pos < getColumnSpan() * getRowSpan() && (bmap[pos >> 3] & (0x1 << (7 - (pos % 8))));
+  }
+
+  void resetPixel(int row, int col)
+  {
+    const auto bmap = mBitmap.data() + 2;
+    int pos = row * getColumnSpan() + col;
+    if (pos < getColumnSpan() * getRowSpan()) {
+      bmap[pos >> 3] &= 0xff & ~(0x1 << (7 - (pos % 8)));
+    }
+  }
+
+  void setPixel(int row, int col)
+  {
+    const auto bmap = mBitmap.data() + 2;
+    int pos = row * getColumnSpan() + col;
+    if (pos < getColumnSpan() * getRowSpan()) {
+      bmap[pos >> 3] |= 0x1 << (7 - (pos % 8));
+    }
+  }
+
+  template <typename Processor>
+  void process(Processor procRowCol);
+
   friend ClusterTopology;
   friend TopologyDictionary;
   friend BuildTopologyDictionary;
@@ -114,6 +142,37 @@ class ClusterPattern
 
   ClassDefNV(ClusterPattern, 1);
 };
+
+template <typename Processor>
+void ClusterPattern::process(Processor procRowCol)
+{
+  auto cspan = getColumnSpan(), rspan = getRowSpan();
+  uint32_t nBits = cspan * rspan;
+  uint32_t nBytes = (nBits >> 3) + (nBits % 8 != 0);
+  const auto bmap = mBitmap.data() + 2;
+  uint16_t ic = 0, ir = 0;
+  for (unsigned int i = 0; i < nBytes; i++) {
+    int s = 128; // 0b10000000
+    while (s > 0) {
+      if ((bmap[i] & s) != 0) {
+        procRowCol(ir, ic);
+      }
+      ic++;
+      s >>= 1;
+      if (uint32_t(ir + 1) * ic == nBits) {
+        break;
+      }
+      if (ic == cspan) {
+        ic = 0;
+        ir++;
+      }
+    }
+    if (uint32_t(ir + 1) * ic == nBits) {
+      break;
+    }
+  }
+}
+
 } // namespace itsmft
 } // namespace o2
 #endif /* ALICEO2_ITS_CLUSTERPATTERN_H */

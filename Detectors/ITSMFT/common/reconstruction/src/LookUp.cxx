@@ -57,7 +57,7 @@ int LookUp::groupFinder(int nRow, int nCol)
   return grNum;
 }
 
-int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes])
+int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes]) const
 {
   int nBits = nRow * nCol;
   // Small topology
@@ -67,7 +67,8 @@ int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[ClusterPatt
       return ID;
     } else { //small rare topology (inside groups)
       int index = groupFinder(nRow, nCol);
-      return mDictionary.mGroupMap[index];
+      auto res = mDictionary.mGroupMap.find(index);
+      return res == mDictionary.mGroupMap.end() ? -1 : res->second;
     }
   }
   // Big topology
@@ -77,13 +78,9 @@ int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[ClusterPatt
     return ret->second;
   } else { // Big rare topology (inside groups)
     int index = groupFinder(nRow, nCol);
-    return mDictionary.mGroupMap[index];
+    auto res = mDictionary.mGroupMap.find(index);
+    return res == mDictionary.mGroupMap.end() ? -1 : res->second;
   }
-}
-
-bool LookUp::isGroup(int id) const
-{
-  return mDictionary.isGroup(id);
 }
 
 } // namespace itsmft
