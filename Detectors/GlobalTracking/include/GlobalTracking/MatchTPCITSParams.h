@@ -35,8 +35,8 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
   float crudeAbsDiffCut[o2::track::kNParams] = {2.f, 2.f, 0.2f, 0.2f, 4.f};
   float crudeNSigma2Cut[o2::track::kNParams] = {49.f, 49.f, 49.f, 49.f, 49.f};
 
-  float minTPCTrackR = 26.6; ///< cut on minimal TPC tracks radius to consider for matching, 666*pt_gev*B_kgaus/5
-  float minITSTrackR = 26.6; ///< cut on minimal ITS tracks radius to consider for matching, 666*pt_gev*B_kgaus/5
+  float minTPCTrackR = 50.; ///< cut on minimal TPC tracks radius to consider for matching, 666*pt_gev*B_kgaus/5
+  float minITSTrackR = 50.; ///< cut on minimal ITS tracks radius to consider for matching, 666*pt_gev*B_kgaus/5
   int minTPCClusters = 25; ///< minimum number of clusters to consider
   int askMinTPCRow = 15;   ///< disregard tracks starting above this row
 
@@ -48,11 +48,11 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
 
   float safeMarginTPCTimeEdge = 20.f; ///< safety margin in cm when estimating TPC track tMin and tMax from assigned time0 and its track Z position
 
-  float timeBinTolerance = 10.f; ///<tolerance in time-bin for ITS-TPC time bracket matching (not used ? TODO)
-
   float tpcTimeICMatchingNSigma = 4.; ///< nsigma for matching TPC corrected time and InteractionCandidate from FT0
 
   float tpcExtConstrainedNSigma = 4.; ///< nsigma to apply to externally (TRD,TOF) time-constrained TPC tracks time error
+
+  float tfEdgeTimeToleranceMUS = 1.; ///< corrected TPC time allowed to go out from the TF time edges by this amount
 
   float maxVDriftUncertainty = 0.; ///< max assumed VDrift uncertainty, used only in VDrift calibration mode
 

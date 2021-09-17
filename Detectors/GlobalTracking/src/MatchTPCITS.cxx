@@ -427,6 +427,11 @@ bool MatchTPCITS::prepareTPCData()
     if constexpr (isITSTrack<decltype(trk)>()) {
       // do nothing, ITS tracks will be processed in a direct loop over ROFs
     }
+    if constexpr (!std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(trk)>>) {
+      return true;
+    } else if (std::abs(trk.getQ2Pt()) > mMinTPCTrackPtInv) {
+      return true;
+    }
     if constexpr (isTPCTrack<decltype(trk)>()) {
       // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
       if (!this->mSkipTPCOnly) {
@@ -737,6 +742,11 @@ void MatchTPCITS::doMatching(int sec)
       o2::math_utils::Bracketf_t trange(timeCorr - timeCorrErr, timeCorr + timeCorrErr);
       if (trefITS.tBracket.isOutside(trange)) {
         continue;
+      }
+      if (timeCorr < 0) { // RS TODO: similar check will be needed to other TF edge
+        if (timeCorr + mParams->tfEdgeTimeToleranceMUS < 0) {
+          //continue;
+        }
       }
 
       nCheckITSControl++;
@@ -1165,7 +1175,6 @@ void MatchTPCITS::print() const
   }
   printf("\n");
 
-  printf("TPC-ITS time(bins) bracketing safety margin: %6.2f\n", mParams->timeBinTolerance);
   printf("TPC Z->time(bins) bracketing safety margin: %6.2f\n", mParams->safeMarginTPCTimeEdge);
 
 #ifdef _ALLOW_DEBUG_TREES_
@@ -1226,6 +1235,15 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     trfit.setZ(tITS.getZ()); // fix the seed Z
   }
   float deltaT = (trfit.getZ() - tTPC.getZ()) * mTPCVDrift0Inv; // time correction in \mus
+  float timeC = tTPC.getCorrectedTime(deltaT);                  /// precise time estimate
+  float timeErr = tTPC.constraint == TrackLocTPC::Constrained ? tTPC.timeErr : std::sqrt(tITS.getSigmaZ2() + tTPC.getSigmaZ2()) * mTPCVDrift0Inv; // estimate the error on time
+  if (timeC < 0) {                                                                                                                                // RS TODO similar check is needed for other edge of TF
+    if (timeC + std::min(timeErr, mParams->tfEdgeTimeToleranceMUS * mTPCTBinMUSInv) < 0) {
+      mMatchedTracks.pop_back(); // destroy failed track
+      return false;
+    }
+    timeC = 0.;
+  }
 
   // refit TPC track inward into the ITS
   int nclRefit = 0, ncl = itsTrOrig.getNumberOfClusters();
@@ -1275,9 +1293,6 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
                                   maxStep, MatCorrType::USEMatCorrNONE, nullptr, &trfit.getLTIntegralOut())) {
     LOG(ERROR) << "LTOF integral might be incorrect";
   }
-
-  float timeC = tTPC.getCorrectedTime(deltaT);                                                                                                    /// precise time estimate
-  float timeErr = tTPC.constraint == TrackLocTPC::Constrained ? tTPC.timeErr : std::sqrt(tITS.getSigmaZ2() + tTPC.getSigmaZ2()) * mTPCVDrift0Inv; // estimate the error on time
 
   // outward refit
   auto& tracOut = trfit.getParamOut(); // this is a clone of ITS outward track already at the matching reference X
