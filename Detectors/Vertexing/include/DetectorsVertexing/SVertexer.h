@@ -63,8 +63,9 @@ class SVertexer
 
   static constexpr int POS = 0, NEG = 1;
   struct TrackCand : o2::track::TrackParCov {
-    GIndex gid;
-    VBracket vBracket;
+    GIndex gid{};
+    VBracket vBracket{};
+    float minR = 0; // track lowest point r
   };
 
   SVertexer(bool enabCascades = true) : mEnableCascades(enabCascades) {}
@@ -82,8 +83,8 @@ class SVertexer
   void extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs);
 
  private:
-  bool checkV0(TrackCand& seed0, TrackCand& seed1, int iP, int iN, int ithread);
-  int checkCascades(float r2v0, std::array<float, 3> pV0, float p2v0, int avoidTrackID, int posneg, int ithread);
+  bool checkV0(const TrackCand& seed0, const TrackCand& seed1, int iP, int iN, int ithread);
+  int checkCascades(float rv0, std::array<float, 3> pV0, float p2v0, int avoidTrackID, int posneg, int ithread);
   void setupThreads();
   void buildT2V(const o2::globaltracking::RecoContainer& recoTracks);
   void updateTimeDependentParams();
@@ -111,7 +112,10 @@ class SVertexer
   float mMaxDCAXY2ToMeanVertexV0Casc = 0;
   float mMinR2DiffV0Casc = 0;
   float mMaxR2ToMeanVertexCascV0 = 0;
-
+  float mMinPt2V0 = 1e-6;
+  float mMaxTgl2V0 = 2. * 2.;
+  float mMinPt2Casc = 1e-4;
+  float mMaxTgl2Casc = 2. * 2.;
   bool mEnableCascades = true;
 };
 
