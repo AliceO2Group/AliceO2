@@ -12,6 +12,9 @@
 #include <TClonesArray.h>
 #include <TH2F.h>
 #include <TCanvas.h>
+#include <THStack.h>
+#include <TLegend.h>
+#include <TPad.h>
 
 #include "ITSBase/GeometryTGeo.h"
 #include "SimulationDataFormat/TrackReference.h"
@@ -43,7 +46,7 @@ struct ParticleInfo {
 
 #pragma link C++ class ParticleInfo + ;
 
-void CheckTracksCA(std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string kinefile = "o2sim_Kine.root")
+void CheckTracksCA(bool doFakeClStud = true, std::string tracfile = "o2trac_its.root", std::string clusfile = "o2clus_its.root", std::string kinefile = "o2sim_Kine.root")
 {
 
   using namespace o2::itsmft;
@@ -271,4 +274,93 @@ void CheckTracksCA(std::string tracfile = "o2trac_its.root", std::string clusfil
   clone->Write("clones");
   file.Close();
   std::cout << " done." << std::endl;
+
+  //////////////////////
+  // Fake clusters study
+  if (doFakeClStud) {
+    std::vector<TH1I*> histLength, histLength1Fake, histLengthNoCl, histLength1FakeNoCl;
+    std::vector<THStack*> stackLength, stackLength1Fake;
+    std::vector<TLegend*> legends, legends1Fake;
+    histLength.resize(4);
+    histLength1Fake.resize(4);
+    histLengthNoCl.resize(4);
+    histLength1FakeNoCl.resize(4);
+    stackLength.resize(4);
+    stackLength1Fake.resize(4);
+    legends.resize(4);
+    legends1Fake.resize(4);
+
+    for (int iH{4}; iH < 8; ++iH) {
+      histLength[iH - 4] = new TH1I(Form("trk_len_%d", iH), "#exists cluster", 7, -.5, 6.5);
+      histLength[iH - 4]->SetFillColor(kBlue);
+      histLength[iH - 4]->SetLineColor(kBlue);
+      histLength[iH - 4]->SetFillStyle(3352);
+      histLengthNoCl[iH - 4] = new TH1I(Form("trk_len_%d_nocl", iH), "#slash{#exists} cluster", 7, -.5, 6.5);
+      histLengthNoCl[iH - 4]->SetFillColor(kRed);
+      histLengthNoCl[iH - 4]->SetLineColor(kRed);
+      histLengthNoCl[iH - 4]->SetFillStyle(3352);
+      stackLength[iH - 4] = new THStack(Form("stack_trk_len_%d", iH), Form("trk_len=%d", iH));
+      stackLength[iH - 4]->Add(histLength[iH - 4]);
+      stackLength[iH - 4]->Add(histLengthNoCl[iH - 4]);
+    }
+    for (int iH{4}; iH < 8; ++iH) {
+      histLength1Fake[iH - 4] = new TH1I(Form("trk_len_%d_1f", iH), "#exists cluster", 7, -.5, 6.5);
+      histLength1Fake[iH - 4]->SetFillColor(kBlue);
+      histLength1Fake[iH - 4]->SetLineColor(kBlue);
+      histLength1Fake[iH - 4]->SetFillStyle(3352);
+      histLength1FakeNoCl[iH - 4] = new TH1I(Form("trk_len_%d_1f_nocl", iH), "#slash{#exists} cluster", 7, -.5, 6.5);
+      histLength1FakeNoCl[iH - 4]->SetFillColor(kRed);
+      histLength1FakeNoCl[iH - 4]->SetLineColor(kRed);
+      histLength1FakeNoCl[iH - 4]->SetFillStyle(3352);
+      stackLength1Fake[iH - 4] = new THStack(Form("stack_trk_len_%d_1f", iH), Form("trk_len=%d, 1 Fake", iH));
+      stackLength1Fake[iH - 4]->Add(histLength1Fake[iH - 4]);
+      stackLength1Fake[iH - 4]->Add(histLength1FakeNoCl[iH - 4]);
+    }
+
+    for (auto& event : info) {
+      for (auto& part : event) {
+        int nCl{0};
+        for (unsigned int bit{0}; bit < sizeof(pInfo.clusters) * 8; ++bit) {
+          nCl += bool(part.clusters & (1 << bit));
+        }
+        if (nCl < 3) {
+          continue;
+        }
+
+        auto& track = part.track;
+        auto len = track.getNClusters();
+        for (int iLayer{0}; iLayer < 7; ++iLayer) {
+          if (track.hasHitOnLayer(iLayer)) {
+            if (track.isFakeOnLayer(iLayer)) {       // Reco track has fake cluster
+              if (part.clusters & (0x1 << iLayer)) { // Correct cluster exists
+                histLength[len - 4]->Fill(iLayer);
+                if (track.getNFakeClusters() == 1) {
+                  histLength1Fake[len - 4]->Fill(iLayer);
+                }
+              } else {
+                histLengthNoCl[len - 4]->Fill(iLayer);
+                if (track.getNFakeClusters() == 1) {
+                  histLength1FakeNoCl[len - 4]->Fill(iLayer);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    auto canvas = new TCanvas("fc_canvas", "Fake clusters", 1600, 1000);
+    canvas->Divide(4, 2);
+    for (int iH{0}; iH < 4; ++iH) {
+      canvas->cd(iH + 1);
+      stackLength[iH]->Draw();
+      gPad->BuildLegend();
+    }
+    for (int iH{0}; iH < 4; ++iH) {
+      canvas->cd(iH + 5);
+      stackLength1Fake[iH]->Draw();
+      gPad->BuildLegend();
+    }
+    canvas->SaveAs("fakeClusters.png", "recreate");
+  }
 }
