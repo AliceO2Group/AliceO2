@@ -358,7 +358,11 @@ void Clusterer::ClustererThread::updateChip(const ChipPixelData* curChipData, ui
       return;
     }
   } else {
+#ifdef _ALLOW_DIAGONAL_ALPIDE_CLUSTERS_
     int neighbours[]{curr[row - 1], prev[row], prev[row + 1], prev[row - 1]};
+#else
+    int neighbours[]{curr[row - 1], prev[row]};
+#endif
     for (auto pci : neighbours) {
       if (pci < 0) {
         continue;

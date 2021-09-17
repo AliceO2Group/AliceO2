@@ -167,9 +167,15 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VCL
 
   // >> ====== Helper functions for reclusterization after masking some pixels in decoded clusters ======
   // clusterize the pmat matrix holding pixels of the single cluster after masking the noisy ones
+
   auto clusterize = [&](uint16_t chipID, int16_t row, int16_t col, int leftFired) {
+#ifdef _ALLOW_DIAGONAL_ALPIDE_CLUSTERS_
     const std::array<int16_t, 8> walkRow = {1, -1, 0, 0, 1, 1, -1, -1};
     const std::array<int16_t, 8> walkCol = {0, 0, -1, 1, 1, -1, 1, 1};
+#else
+    const std::array<int16_t, 4> walkRow = {1, -1, 0, 0};
+    const std::array<int16_t, 4> walkCol = {0, 0, -1, 1};
+#endif
     Clusterer::BBox bbox(chipID);
     // check and add to new cluster seed fired pixels around ir1, ic1, return true if there are still fired pixels left
     std::function<bool(int16_t, int16_t)> checkPixelAndNeighbours = [&](int16_t ir1, int16_t ic1) {

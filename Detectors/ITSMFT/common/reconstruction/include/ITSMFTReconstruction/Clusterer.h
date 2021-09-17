@@ -16,6 +16,10 @@
 
 #define _PERFORM_TIMING_
 
+// uncomment this to not allow diagonal clusters, e.g. like |* |
+//                                                          | *|
+#define _ALLOW_DIAGONAL_ALPIDE_CLUSTERS_
+
 #include <utility>
 #include <vector>
 #include <cstring>
