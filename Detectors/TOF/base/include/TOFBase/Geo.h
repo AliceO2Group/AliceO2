@@ -288,6 +288,7 @@ class Geo
   static Int_t getCHFromECH(int echan) { return ELCHAN_TO_CHAN[echan]; }
 
   static void Init();
+  static void InitIndices();
 
  private:
   static Int_t getSector(const Float_t* pos);

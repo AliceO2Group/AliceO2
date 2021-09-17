@@ -146,7 +146,14 @@ void Geo::Init()
       }
     }
   }
+  InitIndices();
+  mToBeIntit = kFALSE;
+}
 
+void Geo::InitIndices() {
+
+  // initialization of some indices arrays
+  
   for (Int_t istrip = 0; istrip < NSTRIPXSECTOR; ++istrip) {
     if (istrip < NSTRIPC) {
       mPlate[istrip] = 0;
@@ -178,8 +185,6 @@ void Geo::Init()
       mDistances[iplate].push_back(DISTANCES[iplate][nstrips - i - 1]);
     }
   }
-
-  mToBeIntit = kFALSE;
 }
 
 std::string Geo::getVolumePath(const Int_t* ind)
@@ -286,6 +291,10 @@ void Geo::getVolumeIndices(Int_t index, Int_t* detId)
   //
   // Retrieve volume indices from the calibration channel index
   //
+
+  if (mToBeIntit) {
+    InitIndices();
+  }
   detId[0] = index * NPADS_INV_INT * NSTRIPXSECTOR_INV_INT;
 
   Int_t dummyStripPerModule = index / NPADS - NSTRIPXSECTOR * detId[0];
