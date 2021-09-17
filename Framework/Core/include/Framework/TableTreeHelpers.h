@@ -313,7 +313,7 @@ class BranchToColumn : public BranchToColumnBase
     }
     auto chunk = std::make_shared<arrow::ChunkedArray>(array);
     auto field = std::make_shared<arrow::Field>(mBranch->GetName(), arrowType);
-    return std::tie(chunk, field);
+    return std::make_pair(chunk, field);
   }
 
  private:
