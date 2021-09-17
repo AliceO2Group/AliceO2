@@ -19,7 +19,10 @@
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
 #include "ITSMFTReconstruction/CTFCoder.h"
+#include "DataFormatsITSMFT/NoiseMap.h"
+#include "ITSMFTReconstruction/LookUp.h"
 #include <TStopwatch.h>
+#include <memory>
 
 namespace o2
 {
@@ -29,20 +32,33 @@ namespace itsmft
 class EntropyDecoderSpec : public o2::framework::Task
 {
  public:
-  EntropyDecoderSpec(o2::header::DataOrigin orig);
+  EntropyDecoderSpec(o2::header::DataOrigin orig, bool getDigits = false);
   ~EntropyDecoderSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
+  static auto getName(o2::header::DataOrigin orig) { return std::string{orig == o2::header::gDataOriginITS ? ITSDeviceName : MFTDeviceName}; }
+
  private:
+  void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
+
+  static constexpr std::string_view ITSDeviceName = "its-entropy-decoder";
+  static constexpr std::string_view MFTDeviceName = "mft-entropy-decoder";
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
   o2::itsmft::CTFCoder mCTFCoder;
+  std::unique_ptr<NoiseMap> mNoiseMap;
+  LookUp mPattIdConverter;
+  bool mGetDigits{false};
+  bool mMaskNoise{false};
+  std::string mCTFDictPath{};
+  std::string mClusDictPath{};
+  std::string mNoiseFilePath{};
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig);
+framework::DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, bool getDigits = false);
 
 } // namespace itsmft
 } // namespace o2

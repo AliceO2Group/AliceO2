@@ -25,8 +25,8 @@ namespace o2
 namespace itsmft
 {
 
-EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig)
-  : mOrigin(orig), mCTFCoder(orig == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT)
+EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig, bool getDigits)
+  : mOrigin(orig), mCTFCoder(orig == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT), mGetDigits(getDigits)
 {
   assert(orig == o2::header::gDataOriginITS || orig == o2::header::gDataOriginMFT);
   mTimer.Stop();
@@ -35,29 +35,35 @@ EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig)
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>("ctf-dict");
-  if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
-  }
+  auto detID = mOrigin == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT;
+  mCTFDictPath = ic.options().get<std::string>("ctf-dict");
+  mClusDictPath = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, ic.options().get<std::string>("cluster-dict-file"), "bin");
+  mMaskNoise = ic.options().get<bool>("mask-noise");
+  mNoiseFilePath = o2::base::NameConf::getNoiseFileName(detID, ic.options().get<std::string>("noise-file"), "root");
 }
 
 void EntropyDecoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
+  updateTimeDependentParams(pc);
 
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
-
-  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(OutputRef{"ROframes"});
-  auto& compcl = pc.outputs().make<std::vector<o2::itsmft::CompClusterExt>>(OutputRef{"compClusters"});
-  auto& patterns = pc.outputs().make<std::vector<unsigned char>>(OutputRef{"patterns"});
-
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   const auto ctfImage = o2::itsmft::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, rofs, compcl, patterns);
 
-  mTimer.Stop();
-  LOG(INFO) << "Decoded " << compcl.size() << " clusters in " << rofs.size() << " RO frames in " << mTimer.CpuTime() - cput << " s";
+  if (mGetDigits) {
+    auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(OutputRef{"ROframes"});
+    auto& digits = pc.outputs().make<std::vector<o2::itsmft::Digit>>(OutputRef{"Digits"});
+    mCTFCoder.decode(ctfImage, rofs, digits, mNoiseMap.get(), mPattIdConverter);
+  } else {
+    auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(OutputRef{"ROframes"});
+    auto& compcl = pc.outputs().make<std::vector<o2::itsmft::CompClusterExt>>(OutputRef{"compClusters"});
+    auto& patterns = pc.outputs().make<std::vector<unsigned char>>(OutputRef{"patterns"});
+    mCTFCoder.decode(ctfImage, rofs, compcl, patterns, mNoiseMap.get(), mPattIdConverter);
+    mTimer.Stop();
+    LOG(INFO) << "Decoded " << compcl.size() << " clusters in " << rofs.size() << " RO frames in " << mTimer.CpuTime() - cput << " s";
+  }
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -66,19 +72,59 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mOrigin.as<std::string>(), mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig)
+void EntropyDecoderSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
-  std::vector<OutputSpec> outputs{
-    OutputSpec{{"compClusters"}, orig, "COMPCLUSTERS", 0, Lifetime::Timeframe},
-    OutputSpec{{"patterns"}, orig, "PATTERNS", 0, Lifetime::Timeframe},
-    OutputSpec{{"ROframes"}, orig, "CLUSTERSROF", 0, Lifetime::Timeframe}};
+  static bool coderUpdated = false; // with dicts loaded from CCDB one should check also the validity of current object
+  if (!coderUpdated) {
+    coderUpdated = true;
+    if (!mCTFDictPath.empty() && mCTFDictPath != "none") {
+      mCTFCoder.createCoders(mCTFDictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
+    }
+
+    if (mMaskNoise) {
+      if (o2::utils::Str::pathExists(mNoiseFilePath)) {
+        TFile* f = TFile::Open(mNoiseFilePath.data(), "old");
+        mNoiseMap.reset((NoiseMap*)f->Get("Noise"));
+        LOG(INFO) << "Loaded noise map from " << mNoiseFilePath;
+      }
+      if (!mNoiseMap) {
+        throw std::runtime_error("Noise masking was requested but noise mask was not provided");
+      }
+    }
+
+    if (mGetDigits || mMaskNoise) {
+      if (o2::utils::Str::pathExists(mClusDictPath)) {
+        mPattIdConverter.loadDictionary(mClusDictPath);
+        LOG(INFO) << "Loaded cluster topology dictionary from " << mClusDictPath;
+      } else {
+        LOG(INFO) << "Cluster topology dictionary is absent, all cluster patterns expected to be stored explicitly";
+      }
+    }
+  }
+}
+
+DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, bool getDigits)
+{
+  std::vector<OutputSpec> outputs;
+  if (getDigits) {
+    outputs.emplace_back(OutputSpec{{"Digits"}, orig, "DIGITS", 0, Lifetime::Timeframe});
+    outputs.emplace_back(OutputSpec{{"ROframes"}, orig, "DIGITSROF", 0, Lifetime::Timeframe});
+  } else {
+    outputs.emplace_back(OutputSpec{{"compClusters"}, orig, "COMPCLUSTERS", 0, Lifetime::Timeframe});
+    outputs.emplace_back(OutputSpec{{"ROframes"}, orig, "CLUSTERSROF", 0, Lifetime::Timeframe});
+    outputs.emplace_back(OutputSpec{{"patterns"}, orig, "PATTERNS", 0, Lifetime::Timeframe});
+  }
 
   return DataProcessorSpec{
-    orig == o2::header::gDataOriginITS ? "its-entropy-decoder" : "mft-entropy-decoder",
+    EntropyDecoderSpec::getName(orig),
     Inputs{InputSpec{"ctf", orig, "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(orig)},
-    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(orig, getDigits)},
+    Options{
+      {"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}},
+      {"mask-noise", VariantType::Bool, false, {"apply noise mask to digits or clusters (involves reclusterization)"}},
+      {"noise-file", VariantType::String, "", {"name of the noise map file"}},
+      {"cluster-dict-file", VariantType::String, "", {"name of the cluster-topology dictionary file"}}}};
 }
 
 } // namespace itsmft
