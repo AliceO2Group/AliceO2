@@ -39,7 +39,8 @@ enum TrackFlags {
 enum TrackFlagsRun2Enum {
   ITSrefit = 0x1,
   TPCrefit = 0x2,
-  GoldenChi2 = 0x4
+  GoldenChi2 = 0x4,
+  // NOTE Highest 4 (29..32) bits reserved for PID hypothesis
 };
 } // namespace o2::aod::track
 

@@ -178,7 +178,6 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
                     truncateFloatFraction(extraInfoHolder.tofChi2, mTrackCovOffDiag),
                     truncateFloatFraction(extraInfoHolder.tpcSignal, mTrackSignal),
                     truncateFloatFraction(extraInfoHolder.trdSignal, mTrackSignal),
-                    truncateFloatFraction(extraInfoHolder.tofSignal, mTrackSignal),
                     truncateFloatFraction(extraInfoHolder.length, mTrackSignal),
                     truncateFloatFraction(extraInfoHolder.tofExpMom, mTrack1Pt),
                     truncateFloatFraction(extraInfoHolder.trackEtaEMCAL, mTrackPosEMCAL),
