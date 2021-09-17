@@ -56,6 +56,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"remote-regex", VariantType::String, "^/eos/aliceo2/.+", {"regex string to identify remote files"}});
   options.push_back(ConfigParamSpec{"max-cached-files", VariantType::Int, 3, {"max CTF files queued (copied for remote source)"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
+  //
+  options.push_back(ConfigParamSpec{"its-digits", VariantType::Bool, false, {"convert ITS clusters to digits"}});
+  options.push_back(ConfigParamSpec{"mft-digits", VariantType::Bool, false, {"convert MFT clusters to digits"}});
 
   std::swap(workflowOptions, options);
 }
@@ -106,10 +109,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // add decodors for all allowed detectors.
   if (ctfInput.detMask[DetID::ITS]) {
-    specs.push_back(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::ITS)));
+    specs.push_back(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::ITS), configcontext.options().get<bool>("its-digits")));
   }
   if (ctfInput.detMask[DetID::MFT]) {
-    specs.push_back(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::MFT)));
+    specs.push_back(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::MFT), configcontext.options().get<bool>("mft-digits")));
   }
   if (ctfInput.detMask[DetID::TPC]) {
     specs.push_back(o2::tpc::getEntropyDecoderSpec());
