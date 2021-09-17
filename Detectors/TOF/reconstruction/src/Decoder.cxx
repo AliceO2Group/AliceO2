@@ -130,6 +130,11 @@ void Decoder::InsertDigit(int icrate, int itrm, int itdc, int ichain, int channe
   DigitInfo digitInfo;
 
   fromRawHit2Digit(icrate, itrm, itdc, ichain, channel, orbit, bunchid, time_ext + tdc, tot, digitInfo);
+
+  if (digitInfo.channel < 0) { // check needed for the moment. To be removed once debugged
+    return;
+  }
+
   if (mMaskNoiseRate > 0) {
     mChannelCounts[digitInfo.channel]++;
   }
@@ -217,6 +222,11 @@ void Decoder::fromRawHit2Digit(int icrate, int itrm, int itdc, int ichain, int c
   // tdc = packetHit.time + (frameHeader.frameID << 13)
   int echannel = Geo::getECHFromIndexes(icrate, itrm, ichain, itdc, channel);
   dinfo.channel = Geo::getCHFromECH(echannel);
+
+  if (dinfo.channel < 0) { // it should not happen!
+    LOG(ERROR) << "No valid channel for icrate = " << icrate << ", itrm = " << itrm << ", ichain = " << ichain << ", itdc = " << itdc << ", channel = " << channel;
+  }
+
   dinfo.tot = tot;
   dinfo.bcAbs = uint64_t(orbit) * o2::tof::Geo::BC_IN_ORBIT + bunchid + tdc / 1024;
   dinfo.tdc = tdc % 1024;
