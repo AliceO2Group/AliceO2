@@ -374,7 +374,7 @@ class TreeToTable
   {
   }
   void setLabel(const char* label);
-  void addColumns(TTree* tree, std::vector<const char*>&& names = {});
+  void addColumns(TTree* tree, std::vector<std::string>&& names = {});
   void read();
   auto finalize()
   {

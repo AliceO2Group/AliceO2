@@ -186,7 +186,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
     header::DataHeader TFNumberHeader;
     std::vector<OutputRoute> requestedTables;
     std::vector<OutputRoute> routes(spec.outputs);
-    for (auto route : routes) {
+    for (auto& route : routes) {
       if (DataSpecUtils::partialMatch(route.matcher, header::DataOrigin("TFN"))) {
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
         TFNumberHeader = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
@@ -294,19 +294,19 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
         // fill the table
         auto colnames = getColumnNames(dh);
         t2t.setLabel(tr->GetName());
-        if (colnames.size() == 0) {
+        if (colnames.empty()) {
           totalSizeCompressed += tr->GetZipBytes();
           totalSizeUncompressed += tr->GetTotBytes();
-          t2t.addAllColumns(tr);
+          t2t.addColumns(tr);
         } else {
           for (auto& colname : colnames) {
             TBranch* branch = tr->GetBranch(colname.c_str());
             totalSizeCompressed += branch->GetZipBytes("*");
             totalSizeUncompressed += branch->GetTotBytes("*");
-            t2t.addColumn(colname.c_str());
           }
+          t2t.addColumns(tr, std::move(colnames));
         }
-        t2t.fill(tr);
+        t2t.read();
         delete tr;
 
         // needed for metrics dumping (upon next file read, or terminate due to watchdog)

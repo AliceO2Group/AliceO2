@@ -156,7 +156,7 @@ TTree* TableToTree::write()
   return mTree;
 }
 
-void TreeToTable::addColumns(TTree* tree, std::vector<const char*>&& names)
+void TreeToTable::addColumns(TTree* tree, std::vector<std::string>&& names)
 {
   auto branches = tree->GetListOfBranches();
   auto n = branches->GetEntries();
