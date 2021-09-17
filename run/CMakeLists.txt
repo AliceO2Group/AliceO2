@@ -121,24 +121,25 @@ set_tests_properties(o2sim_G4
 set_property(TEST o2sim_G4 APPEND PROPERTY ENVIRONMENT ${G4ENV})
 
 # # note that the MT is currently only supported in the non FairMQ version
-o2_add_test_command(NAME o2sim_G4_mt
-                    WORKING_DIRECTORY ${SIMTESTDIR}
-                    TIMEOUT 400
-                    COMMAND $<TARGET_FILE:${o2simSerialExecutable}>
-                    COMMAND_LINE_ARGS -n
-                                       1
-                                       -e
-                                       TGeant4
-                                       --isMT
-                                       on
-                                       -o
-                                       o2simG4MT
-                    ENVIRONMENT "${SIMENV}"
-                    LABELS "g4;sim;long")
-set_tests_properties(o2sim_G4_mt
-                     PROPERTIES PASS_REGULAR_EXPRESSION
-                                "Macro finished succesfully")
-set_property(TEST o2sim_G4_mt APPEND PROPERTY ENVIRONMENT ${G4ENV})
+# # switched off 
+# o2_add_test_command(NAME o2sim_G4_mt
+#                   WORKING_DIRECTORY ${SIMTESTDIR}
+#                   TIMEOUT 400
+#                   COMMAND $<TARGET_FILE:${o2simSerialExecutable}>
+#                   COMMAND_LINE_ARGS -n
+#                                      1
+#                                      -e
+#                                      TGeant4
+#                                      --isMT
+#                                      on
+#                                      -o
+#                                      o2simG4MT
+#                   ENVIRONMENT "${SIMENV}"
+#                   LABELS "g4;sim;long")
+#set_tests_properties(o2sim_G4_mt
+#                     PROPERTIES PASS_REGULAR_EXPRESSION
+#                                "Macro finished succesfully")
+#set_property(TEST o2sim_G4_mt APPEND PROPERTY ENVIRONMENT ${G4ENV})
 
 
 o2_add_test(CheckStackG4
