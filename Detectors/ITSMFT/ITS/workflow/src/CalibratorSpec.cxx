@@ -68,6 +68,7 @@ void ITSCalibrator<Mapping>::init(InitContext& ic)
     mDecoder->init();
     mDecoder->setFormat(GBTLink::NewFormat);    //Using RDHv6 (NewFormat)
     mDecoder->setVerbosity(0);
+
     //mChipsBuffer.resize(2);
     mChipsBuffer.resize(mGeom->getNumberOfChips());
 
