@@ -31,6 +31,7 @@
 
 #include "Headers/DataHeaderHelpers.h"
 
+#include <Monitoring/Metric.h>
 #include <Monitoring/Monitoring.h>
 
 #include <fmt/format.h>
@@ -41,6 +42,7 @@
 using namespace o2::framework::data_matcher;
 using DataHeader = o2::header::DataHeader;
 using DataProcessingHeader = o2::framework::DataProcessingHeader;
+using Verbosity = o2::monitoring::Verbosity;
 
 namespace o2::framework
 {
@@ -69,15 +71,15 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   // The queries are all the same, so we only have width 1
   auto numInputTypes = mDistinctRoutesIndex.size();
   sQueriesMetricsNames.resize(numInputTypes * 1);
-  mMetrics.send({(int)numInputTypes, "data_queries/h"});
-  mMetrics.send({(int)1, "data_queries/w"});
+  mMetrics.send({(int)numInputTypes, "data_queries/h", Verbosity::Debug});
+  mMetrics.send({(int)1, "data_queries/w", Verbosity::Debug});
   for (size_t i = 0; i < numInputTypes; ++i) {
     sQueriesMetricsNames[i] = std::string("data_queries/") + std::to_string(i);
     char buffer[128];
     assert(mDistinctRoutesIndex[i] < routes.size());
     auto& matcher = routes[mDistinctRoutesIndex[i]].matcher;
     DataSpecUtils::describe(buffer, 127, matcher);
-    mMetrics.send({std::string{buffer}, sQueriesMetricsNames[i]});
+    mMetrics.send({std::string{buffer}, sQueriesMetricsNames[i], Verbosity::Debug});
   }
 }
 
@@ -187,14 +189,15 @@ void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
 
   for (size_t i = 0; i < MAX_MATCHING_VARIABLE; i++) {
     auto& var = context.get(i);
+    auto& name = names[16 * slot.index + i];
     if (auto pval = std::get_if<uint64_t>(&var)) {
-      metrics.send(monitoring::Metric{std::to_string(*pval), names[16 * slot.index + i]});
+      metrics.send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
     } else if (auto pval = std::get_if<uint32_t>(&var)) {
-      metrics.send(monitoring::Metric{std::to_string(*pval), names[16 * slot.index + i]});
+      metrics.send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
     } else if (auto pval2 = std::get_if<std::string>(&var)) {
-      metrics.send(monitoring::Metric{*pval2, names[16 * slot.index + i]});
+      metrics.send(monitoring::Metric{*pval2, name, Verbosity::Debug});
     } else {
-      metrics.send(monitoring::Metric{nullstring, names[16 * slot.index + i]});
+      metrics.send(monitoring::Metric{nullstring, name, Verbosity::Debug});
     }
   }
 }
@@ -654,8 +657,8 @@ void DataRelayer::publishMetrics()
 
   auto numInputTypes = mDistinctRoutesIndex.size();
   mCache.resize(numInputTypes * mTimesliceIndex.size());
-  mMetrics.send({(int)numInputTypes, "data_relayer/h"});
-  mMetrics.send({(int)mTimesliceIndex.size(), "data_relayer/w"});
+  mMetrics.send({(int)numInputTypes, "data_relayer/h", Verbosity::Debug});
+  mMetrics.send({(int)mTimesliceIndex.size(), "data_relayer/w", Verbosity::Debug});
   sMetricsNames.resize(mCache.size());
   mCachedStateMetrics.resize(mCache.size());
   for (size_t i = 0; i < sMetricsNames.size(); ++i) {
@@ -665,20 +668,20 @@ void DataRelayer::publishMetrics()
   // that we can take mod 16 of the index to understand which variable we
   // are talking about.
   sVariablesMetricsNames.resize(mVariableContextes.size() * 16);
-  mMetrics.send({(int)16, "matcher_variables/w"});
-  mMetrics.send({(int)mVariableContextes.size(), "matcher_variables/h"});
+  mMetrics.send({(int)16, "matcher_variables/w", Verbosity::Debug});
+  mMetrics.send({(int)mVariableContextes.size(), "matcher_variables/h", Verbosity::Debug});
   for (size_t i = 0; i < sVariablesMetricsNames.size(); ++i) {
     sVariablesMetricsNames[i] = std::string("matcher_variables/") + std::to_string(i);
-    mMetrics.send({std::string("null"), sVariablesMetricsNames[i % 16]});
+    mMetrics.send({std::string("null"), sVariablesMetricsNames[i % 16], Verbosity::Debug});
   }
 
   for (size_t ci = 0; ci < mCache.size(); ci++) {
     assert(ci < sMetricsNames.size());
-    mMetrics.send({0, sMetricsNames[ci]});
+    mMetrics.send({0, sMetricsNames[ci], Verbosity::Debug});
   }
   for (size_t ci = 0; ci < mVariableContextes.size() * 16; ci++) {
     assert(ci < sVariablesMetricsNames.size());
-    mMetrics.send({std::string("null"), sVariablesMetricsNames[ci]});
+    mMetrics.send({std::string("null"), sVariablesMetricsNames[ci], Verbosity::Debug});
   }
 }
 
@@ -714,7 +717,7 @@ void DataRelayer::sendContextState()
                                mMetrics, sVariablesMetricsNames);
   }
   for (size_t si = 0; si < mCachedStateMetrics.size(); ++si) {
-    mMetrics.send({static_cast<int>(mCachedStateMetrics[si]), sMetricsNames[si]});
+    mMetrics.send({static_cast<int>(mCachedStateMetrics[si]), sMetricsNames[si], Verbosity::Debug});
     // Anything which is done is actually already empty,
     // so after we report it we mark it as such.
     if (mCachedStateMetrics[si] == CacheEntryStatus::DONE) {
