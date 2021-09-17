@@ -12,8 +12,12 @@
 #include <ITSMFTReconstruction/ChipMappingITS.h>
 #include <ITSMFTReconstruction/PixelData.h>
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
+#include "DataFormatsITSMFT/GBTCalibData.h"
 
 #include <ITSBase/GeometryTGeo.h>
+
+#include <iostream>
+#include <fstream>
 
 using namespace o2::framework;
 using namespace o2::itsmft;
@@ -67,22 +71,23 @@ class ITSCalibrator : public Task
     std::string mRunID;
 
     int16_t partID = 0;
-    int ruID = 0;
+
 
     int mTimeFrameId = 0;
     std::unique_ptr<RawPixelDecoder<Mapping>> mDecoder;
     ChipPixelData* mChipDataBuffer = nullptr;
     int mHitNumberOfChip[7][48][2][14][14] = { { { { { 0 } } } } }; //layer, stave, substave, hic, chip
     std::vector<ChipPixelData> mChipsBuffer;  // currently processed ROF's chips data
-
-    int hitmap[50][512][1024] = {{{0}}};
     
-    int hitmap_row_5[40][1024] = {{0}};
     //RawPixelDecoder<ChipMappingITS>* mRawPixelDecoder;
     //std::unique_ptr<ChipPixelData<Mapping>> mChipPixelData;
     //int mHitNumberOfChip[7][48][2][14][14] = { { { { { 0 } } } } }; //layer, stave, substave, hic, chip
 
     o2::its::GeometryTGeo* mGeom;
+    std::string mGeomPath;
+
+    //output file (temp solution)
+    std::ofstream outfile;
 };
 
 //using ITSCalibrator = ITSCalibrator<ChipMappingITS>;
