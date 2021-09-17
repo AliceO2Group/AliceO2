@@ -150,10 +150,11 @@ void Geo::Init()
   mToBeIntit = kFALSE;
 }
 
-void Geo::InitIndices() {
+void Geo::InitIndices()
+{
 
   // initialization of some indices arrays
-  
+
   for (Int_t istrip = 0; istrip < NSTRIPXSECTOR; ++istrip) {
     if (istrip < NSTRIPC) {
       mPlate[istrip] = 0;
