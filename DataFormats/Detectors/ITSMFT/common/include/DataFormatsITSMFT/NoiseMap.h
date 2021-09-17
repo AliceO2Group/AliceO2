@@ -57,8 +57,7 @@ class NoiseMap
     if (chip > mNoisyPixels.size()) {
       return 0;
     }
-    auto key = row * 1024 + col;
-    const auto keyIt = mNoisyPixels[chip].find(key);
+    const auto keyIt = mNoisyPixels[chip].find(getKey(row, col));
     if (keyIt != mNoisyPixels[chip].end()) {
       return keyIt->second;
     }
@@ -70,8 +69,7 @@ class NoiseMap
     if (chip > mNoisyPixels.size()) {
       return;
     }
-    auto key = row * 1024 + col;
-    mNoisyPixels[chip][key]++;
+    mNoisyPixels[chip][getKey(row, col)]++;
   }
 
   int dumpAboveThreshold(int t = 3) const
@@ -86,8 +84,8 @@ class NoiseMap
         }
         n++;
         auto key = pair.first;
-        auto row = key / 1024;
-        auto col = key % 1024;
+        auto row = key2Row(key);
+        auto col = key2Col(key);
         std::cout << "chip, row, col, noise: " << chipID << ' ' << row << ' ' << col << ' ' << pair.second << '\n';
       }
     }
@@ -119,23 +117,22 @@ class NoiseMap
 
   bool isNoisy(int chip, int row, int col) const
   {
-    if (chip > mNoisyPixels.size()) {
-      return false;
-    }
-    auto key = row * 1024 + col;
-    const auto keyIt = mNoisyPixels[chip].find(key);
-    if (keyIt != mNoisyPixels[chip].end()) {
-      return true;
-    }
-    return false;
+    return chip < mNoisyPixels.size() && (mNoisyPixels[chip].find(getKey(row, col)) != mNoisyPixels[chip].end());
   }
+
+  bool isNoisy(int chip) const { return chip < mNoisyPixels.size() && !mNoisyPixels[chip].empty(); }
 
   // Methods required by the calibration framework
   void print();
   void fill(const gsl::span<const CompClusterExt> data);
   void merge(const NoiseMap* prev) {}
+  const std::map<int, int>* getChipMap(int chip) const { return chip < mNoisyPixels.size() ? &mNoisyPixels[chip] : nullptr; }
 
  private:
+  static constexpr int SHIFT = 10, MASK = (0x1 << SHIFT) - 1;
+  int getKey(int row, int col) const { return (row << SHIFT) + col; }
+  int key2Row(int key) const { return key >> SHIFT; }
+  int key2Col(int key) const { return key & MASK; }
   std::vector<std::map<int, int>> mNoisyPixels; ///< Internal noise map representation
   long int mNumOfStrobes = 0;                   ///< Accumulated number of ALPIDE strobes
   float mProbThreshold = 0;                     ///< Probability threshold for noisy pixels
