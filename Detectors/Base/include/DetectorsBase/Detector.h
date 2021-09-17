@@ -36,6 +36,8 @@
 #include <unistd.h>
 #include <cassert>
 #include <list>
+#include <mutex>
+#include <thread>
 
 #include <fairmq/FwdDecls.h>
 
@@ -421,16 +423,16 @@ class DetImpl : public o2::base::Detector
   // into a single entry in a target TTree / same branch
   // (assuming T is typically a vector; merging is simply done by appending)
   template <typename T, typename L>
-  void mergeAndAdjustHits(std::string const& brname, L& hitbufferlist, TTree& target,
+  void mergeAndAdjustHits(std::string const& brname, L& hitbuffervector, TTree& target,
                           std::vector<int> const& trackoffsets, std::vector<int> const& nprimaries,
                           std::vector<int> const& subevtsOrdered)
   {
-    auto entries = hitbufferlist.size();
+    auto entries = hitbuffervector.size();
 
     auto targetdata = new T;  // used to collect data inside a single container
     T* filladdress = nullptr; // pointer used for final ROOT IO
     if (entries == 1) {
-      filladdress = &hitbufferlist.front();
+      filladdress = hitbuffervector[0].get();
       // nothing to do; we can directly do IO from the existing buffer
     } else {
       // here we need to do merging and index adjustment
@@ -450,16 +452,8 @@ class DetImpl : public o2::base::Detector
         int nprim = nprimaries[index];
         idelta1 -= nprim;
 
-        // fetch correct list item
-        // TODO: we can go to an indexed container (but this little loop is cheap
-        // compared to the rest)
-        auto iter = hitbufferlist.begin();
-        int listindex = 0;
-        while (listindex < index) {
-          listindex++;
-          iter++;
-        }
-        auto incomingdata = &(*iter);
+        // fetch correct data item
+        auto incomingdata = hitbuffervector[index].get();
         if (incomingdata) {
           // fix the trackIDs for this data
           for (auto& hit : *incomingdata) {
@@ -482,7 +476,7 @@ class DetImpl : public o2::base::Detector
     targetbr->Fill();
     targetbr->ResetAddress();
     targetdata->clear();
-    hitbufferlist.clear();
+    hitbuffervector.clear();
     delete targetdata;
   }
 
@@ -507,7 +501,7 @@ class DetImpl : public o2::base::Detector
     int probe = 0;
     using Hit_t = typename std::remove_pointer<decltype(static_cast<Det*>(this)->Det::getHits(0))>::type;
     // remove buffered event from the hit store
-    using Collector_t = std::map<int, std::vector<std::list<Hit_t>>>;
+    using Collector_t = std::map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
     auto hitbufferPtr = reinterpret_cast<Collector_t*>(mHitCollectorBufferPtr);
     auto iter = hitbufferPtr->find(eventID);
     if (iter == hitbufferPtr->end()) {
@@ -517,14 +511,17 @@ class DetImpl : public o2::base::Detector
 
     std::string name = static_cast<Det*>(this)->getHitBranchNames(probe);
     while (name.size() > 0) {
-      auto& listofHitBuffers = (*iter).second[probe];
+      auto& vectorofHitBuffers = (*iter).second[probe];
       // flushing and buffer removal is done inside here:
-      mergeAndAdjustHits<Hit_t>(name, listofHitBuffers, target, trackoffsets, nprimaries, subevtsOrdered);
+      mergeAndAdjustHits<Hit_t>(name, vectorofHitBuffers, target, trackoffsets, nprimaries, subevtsOrdered);
       // next name
       probe++;
       name = static_cast<Det*>(this)->getHitBranchNames(probe);
     }
-    hitbufferPtr->erase(eventID);
+    {
+      // std::lock_guard<std::mutex> l(mHitBufferMutex);
+      hitbufferPtr->erase(eventID);
+    }
   }
 
  public:
@@ -534,7 +531,7 @@ class DetImpl : public o2::base::Detector
   void collectHits(int eventID, FairMQParts& parts, int& index) override
   {
     using Hit_t = typename std::remove_pointer<decltype(static_cast<Det*>(this)->Det::getHits(0))>::type;
-    using Collector_t = std::map<int, std::vector<std::list<Hit_t>>>;
+    using Collector_t = std::map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
     static Collector_t hitcollector; // note: we can't put this as member because
     // decltype type deduction doesn't seem to work for class members; so we use a static member
     // and will use some pointer member to communicate this data to other functions
@@ -545,20 +542,25 @@ class DetImpl : public o2::base::Detector
     using HitPtr_t = decltype(static_cast<Det*>(this)->Det::getHits(probe));
     std::string name = static_cast<Det*>(this)->getHitBranchNames(probe);
 
-    auto copyToBuffer = [eventID](HitPtr_t hitdata, Collector_t& collectbuffer, int probe) {
-      auto eventIter = collectbuffer.find(eventID);
-      if (eventIter == collectbuffer.end()) {
-        collectbuffer[eventID] = std::vector<std::list<Hit_t>>();
+    auto copyToBuffer = [this, eventID](HitPtr_t hitdata, Collector_t& collectbuffer, int probe) {
+      std::vector<std::vector<std::unique_ptr<Hit_t>>>* hitvector = nullptr;
+      {
+        // we protect reading from this map by a lock
+        // since other threads might delete from the buffer at the same time
+        // std::lock_guard<std::mutex> l(mHitBufferMutex);
+        auto eventIter = collectbuffer.find(eventID);
+        if (eventIter == collectbuffer.end()) {
+          collectbuffer[eventID] = std::vector<std::vector<std::unique_ptr<Hit_t>>>();
+        }
+        hitvector = &(collectbuffer[eventID]);
       }
-      auto& hitvector = collectbuffer[eventID];
-
-      if (probe >= hitvector.size()) {
-        hitvector.resize(probe + 1);
+      if (probe >= hitvector->size()) {
+        hitvector->resize(probe + 1);
       }
       // add empty hit bucket to list for this event and probe
-      hitvector[probe].push_back(Hit_t());
+      (*hitvector)[probe].emplace_back(new Hit_t());
       // copy the data into this bucket
-      hitvector[probe].back() = *hitdata;
+      *((*hitvector)[probe].back()) = *hitdata;
     };
 
     while (name.size() > 0) {
