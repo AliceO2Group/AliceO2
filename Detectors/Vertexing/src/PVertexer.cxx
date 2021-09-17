@@ -751,7 +751,10 @@ bool PVertexer::setCompatibleIR(PVertex& vtx)
   if (t > rangeT) {
     irMin += o2::InteractionRecord(1.e3 * (t - rangeT));
   }
-  irMax += o2::InteractionRecord(1.e3 * (t + rangeT));
+  if (t < -rangeT) {
+    return false; // discard vertex at negative time
+  }
+  irMax += o2::InteractionRecord(1.e3 * (t + rangeT)); // RS TODO: make sure that irMax does not exceed TF edge
   irMax++; // to account for rounding
   // restrict using bunch filling
   int bc = mClosestBunchAbove[irMin.bc];
