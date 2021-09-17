@@ -16,6 +16,8 @@
 
 #include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsFT0/RecPoints.h"
+#include "DataFormatsFDD/RecPoint.h"
+#include "DataFormatsFV0/RecPoints.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMFT/TrackMFT.h"
@@ -259,7 +261,9 @@ class AODProducerWorkflowDPL : public Task
     uint8_t mftLabelMask = 0;
   };
 
-  void collectBCs(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
+  void collectBCs(gsl::span<const o2::fdd::RecPoint>& fddRecPoints,
+                  gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
+                  gsl::span<const o2::fv0::RecPoints>& fv0RecPoints,
                   gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
                   const std::vector<o2::InteractionTimeRecord>& mcRecords,
                   std::map<uint64_t, int>& bcsMap);

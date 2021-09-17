@@ -32,7 +32,9 @@
 #include "Framework/Logger.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/TableTreeHelpers.h"
+#include "FDDBase/Geometry.h"
 #include "FT0Base/Geometry.h"
+#include "FV0Base/Geometry.h"
 #include "GlobalTracking/MatchTOF.h"
 #include "ReconstructionDataFormats/Cascade.h"
 #include "MCHTracking/TrackExtrap.h"
@@ -63,7 +65,9 @@ using GID = o2::dataformats::GlobalTrackID;
 namespace o2::aodproducer
 {
 
-void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
+void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddRecPoints,
+                                        gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
+                                        gsl::span<const o2::fv0::RecPoints>& fv0RecPoints,
                                         gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
                                         const std::vector<o2::InteractionTimeRecord>& mcRecords,
                                         std::map<uint64_t, int>& bcsMap)
@@ -74,8 +78,18 @@ void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::ft0::RecPoints>& ft0
     bcsMap[globalBC] = 1;
   }
 
+  for (auto& fddRecPoint : fddRecPoints) {
+    uint64_t globalBC = fddRecPoint.mIntRecord.toLong();
+    bcsMap[globalBC] = 1;
+  }
+
   for (auto& ft0RecPoint : ft0RecPoints) {
     uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
+    bcsMap[globalBC] = 1;
+  }
+
+  for (auto& fv0RecPoint : fv0RecPoints) {
+    uint64_t globalBC = fv0RecPoint.getInteractionRecord().toLong();
     bcsMap[globalBC] = 1;
   }
 
@@ -225,7 +239,6 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
   for (int src = GIndex::NSources; src--;) {
     int start = trackRef.getFirstEntryOfSource(src);
     int end = start + trackRef.getEntriesOfSource(src);
-    LOG(DEBUG) << "Unassigned tracks: src = " << src << ", start = " << start << ", end = " << end;
     for (int ti = start; ti < end; ti++) {
       TrackExtraInfo extraInfoHolder;
       auto& trackIndex = GIndices[ti];
@@ -738,11 +751,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto secVertices = recoData.getV0s();
   auto cascades = recoData.getCascades();
 
+  auto fddRecPoints = recoData.getFDDRecPoints();
   auto ft0ChData = recoData.getFT0ChannelsData();
   auto ft0RecPoints = recoData.getFT0RecPoints();
+  auto fv0ChData = recoData.getFV0ChannelsData();
+  auto fv0RecPoints = recoData.getFV0RecPoints();
 
   LOG(DEBUG) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(DEBUG) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
+  LOG(DEBUG) << "FOUND " << fv0RecPoints.size() << " FV0 rec. points";
 
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& cascadesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CASCADE"});
@@ -793,7 +810,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   LOG(DEBUG) << "FOUND " << mcParts.size() << " parts";
 
   std::map<uint64_t, int> bcsMap;
-  collectBCs(ft0RecPoints, primVertices, mcRecords, bcsMap);
+  collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, primVertices, mcRecords, bcsMap);
 
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
   o2::InteractionRecord startIR = {0, dh->firstTForbit};
@@ -807,16 +824,35 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     tfNumber = mTFNumber;
   }
 
-  // TODO: add real FV0A, FV0C, FDD, ZDC tables instead of dummies
   uint64_t dummyBC = 0;
   float dummyTime = 0.f;
-  float dummyFV0AmplA[48] = {0.};
   uint8_t dummyTriggerMask = 0;
-  fv0aCursor(0,
-             dummyBC,
-             dummyFV0AmplA,
-             dummyTime,
-             dummyTriggerMask);
+
+  int nFV0ChannelsAside = o2::fv0::Geometry::getNumberOfReadoutChannels();
+  std::vector<float> vFV0Amplitudes(nFV0ChannelsAside, 0.);
+  for (auto& fv0RecPoint : fv0RecPoints) {
+    const auto channelData = fv0RecPoint.getBunchChannelData(fv0ChData);
+    for (auto& channel : channelData) {
+      vFV0Amplitudes[channel.channel] = channel.charge; // amplitude, mV
+    }
+    float aAmplitudesA[nFV0ChannelsAside];
+    for (int i = 0; i < nFV0ChannelsAside; i++) {
+      aAmplitudesA[i] = truncateFloatFraction(vFV0Amplitudes[i], mV0Amplitude);
+    }
+    uint64_t bc = fv0RecPoint.getInteractionRecord().toLong();
+    auto item = bcsMap.find(bc);
+    int bcID = -1;
+    if (item != bcsMap.end()) {
+      bcID = item->second;
+    } else {
+      LOG(FATAL) << "Error: could not find a corresponding BC ID for a FV0 rec. point; BC = " << bc;
+    }
+    fv0aCursor(0,
+               bcID,
+               aAmplitudesA,
+               truncateFloatFraction(fv0RecPoint.getCollisionGlobalMeanTime() * 1E-3, mV0Time), // ps to ns
+               fv0RecPoint.getTrigger().triggerSignals);
+  }
 
   float dummyFV0AmplC[32] = {0.};
   fv0cCursor(0,
@@ -826,13 +862,23 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   float dummyFDDAmplA[4] = {0.};
   float dummyFDDAmplC[4] = {0.};
-  fddCursor(0,
-            dummyBC,
-            dummyFDDAmplA,
-            dummyFDDAmplC,
-            dummyTime,
-            dummyTime,
-            dummyTriggerMask);
+  for (auto& fddRecPoint : fddRecPoints) {
+    uint64_t bc = fddRecPoint.mIntRecord.toLong();
+    auto item = bcsMap.find(bc);
+    int bcID = -1;
+    if (item != bcsMap.end()) {
+      bcID = item->second;
+    } else {
+      LOG(FATAL) << "Error: could not find a corresponding BC ID for a FDD rec. point; BC = " << bc;
+    }
+    fddCursor(0,
+              bcID,
+              dummyFDDAmplA,
+              dummyFDDAmplC,
+              truncateFloatFraction(fddRecPoint.mMeanTimeFDA * 1E-3, mFDDTime), // ps to ns
+              truncateFloatFraction(fddRecPoint.mMeanTimeFDC * 1E-3, mFDDTime), // ps to ns
+              dummyTriggerMask);
+  }
 
   float dummyEnergyZEM1 = 0;
   float dummyEnergyZEM2 = 0;
@@ -1088,7 +1134,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
   dataRequest->requestPrimaryVertertices(useMC);
   dataRequest->requestSecondaryVertertices(useMC);
   dataRequest->requestFT0RecPoints(false);
-  dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false);
+  dataRequest->requestFV0RecPoints(false);
+  dataRequest->requestFDDRecPoints(false);
+  dataRequest->requestClusters(GIndex::getSourcesMask("TPC,TOF"), false);
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2cascade"}, "AOD", "CASCADE", 0, Lifetime::Timeframe);

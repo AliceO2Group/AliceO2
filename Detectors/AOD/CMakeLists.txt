@@ -15,6 +15,8 @@ o2_add_library(
         PUBLIC_LINK_LIBRARIES
           O2::DetectorsVertexing
           O2::FT0Workflow
+          O2::FDDWorkflow
+          O2::FV0Workflow
           O2::Framework
           O2::GlobalTracking
           O2::GlobalTrackingWorkflow
@@ -43,6 +45,8 @@ o2_add_executable(
           O2::DataFormatsITSMFT
           O2::DataFormatsITS
           O2::DataFormatsFT0
+          O2::DataFormatsFDD
+          O2::DataFormatsFV0
           O2::DataFormatsTOF
           O2::ITSReconstruction
           O2::FT0Reconstruction
