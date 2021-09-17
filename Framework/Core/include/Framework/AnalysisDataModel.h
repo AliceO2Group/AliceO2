@@ -581,19 +581,14 @@ using Calo = Calos::iterator;
 namespace calotrigger
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //! BC index
-DECLARE_SOA_COLUMN(FastOrAbsId, fastOrAbsId, int32_t); //!
-DECLARE_SOA_COLUMN(L0Amplitude, l0Amplitude, float);   //!
-DECLARE_SOA_COLUMN(L0Time, l0Time, float);             //!
-DECLARE_SOA_COLUMN(L1TimeSum, l1TimeSum, int32_t);     //!
-DECLARE_SOA_COLUMN(NL0Times, nl0Times, int8_t);        //!
-DECLARE_SOA_COLUMN(TriggerBits, triggerBits, int32_t); //!
-DECLARE_SOA_COLUMN(CaloType, caloType, int8_t);        //!
+DECLARE_SOA_COLUMN(FastOrAbsID, fastOrAbsID, int16_t); //! FastOR absolute ID
+DECLARE_SOA_COLUMN(LnAmplitude, lnAmplitude, int16_t); //! L0 amplitude (ADC) := Peak Amplitude
+DECLARE_SOA_COLUMN(TriggerBits, triggerBits, int32_t); //! Online trigger bits
+DECLARE_SOA_COLUMN(CaloType, caloType, int8_t);        //! Calorimeter type (-1 is undefined, 0 is PHOS, 1 is EMCAL)
 } // namespace calotrigger
 
-DECLARE_SOA_TABLE(CaloTriggers, "AOD", "CALOTRIGGER", //!
-                  calotrigger::BCId, calotrigger::FastOrAbsId,
-                  calotrigger::L0Amplitude, calotrigger::L0Time,
-                  calotrigger::L1TimeSum, calotrigger::NL0Times,
+DECLARE_SOA_TABLE(CaloTriggers, "AOD", "CALOTRIGGER", //! Trigger information from the calorimeter detectors
+                  calotrigger::BCId, calotrigger::FastOrAbsID, calotrigger::LnAmplitude,
                   calotrigger::TriggerBits, calotrigger::CaloType);
 using CaloTrigger = CaloTriggers::iterator;
 
