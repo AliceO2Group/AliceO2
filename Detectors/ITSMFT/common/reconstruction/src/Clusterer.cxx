@@ -162,7 +162,6 @@ void Clusterer::ClustererThread::process(uint16_t chip, uint16_t nChips, CompClu
   if (stats.empty() || stats.back().firstChip + stats.back().nChips < chip) { // there is a jump, register new block
     stats.emplace_back(ThreadStat{chip, 0, uint32_t(compClusPtr->size()), patternsPtr ? uint32_t(patternsPtr->size()) : 0, 0, 0});
   }
-
   for (int ic = 0; ic < nChips; ic++) {
     auto* curChipData = parent->mFiredChipsPtr[chip + ic];
     auto chipID = curChipData->getChipID();
@@ -172,6 +171,7 @@ void Clusterer::ClustererThread::process(uint16_t chip, uint16_t nChips, CompClu
         parent->mMaxRowColDiffToMask ? curChipData->maskFiredInSample(parent->mChipsOld[chipID], parent->mMaxRowColDiffToMask) : curChipData->maskFiredInSample(parent->mChipsOld[chipID]);
       }
     }
+    auto nclus0 = compClusPtr->size();
     auto validPixID = curChipData->getFirstUnmasked();
     auto npix = curChipData->getData().size();
     if (validPixID < npix) { // chip data may have all of its pixels masked!
@@ -209,8 +209,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
     if (ci < 0) {
       continue;
     }
-    uint16_t rowMax = 0, rowMin = 65535;
-    uint16_t colMax = 0, colMin = 65535;
+    BBox bbox(curChipData->getChipID());
     int nlab = 0;
     int next = preClusterHeads[i1];
     pixArrBuff.clear();
@@ -218,7 +217,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
       const auto& pixEntry = pixels[next];
       const auto pix = pixData[pixEntry.second];
       pixArrBuff.push_back(pix); // needed for cluster topology
-      adjustBoundingBox(pix.getRowDirect(), pix.getCol(), rowMin, rowMax, colMin, colMax);
+      bbox.adjust(pix.getRowDirect(), pix.getCol());
       if (labelsClusPtr) { // the MCtruth for this pixel is at curChipData->startID+pixEntry.second
         fetchMCLabels(pixEntry.second + curChipData->getStartID(), labelsDigPtr, nlab);
       }
@@ -234,7 +233,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
         const auto& pixEntry = pixels[next];
         const auto pix = pixData[pixEntry.second]; // PixelData
         pixArrBuff.push_back(pix);                 // needed for cluster topology
-        adjustBoundingBox(pix.getRowDirect(), pix.getCol(), rowMin, rowMax, colMin, colMax);
+        bbox.adjust(pix.getRowDirect(), pix.getCol());
         if (labelsClusPtr) { // the MCtruth for this pixel is at curChipData->startID+pixEntry.second
           fetchMCLabels(pixEntry.second + curChipData->getStartID(), labelsDigPtr, nlab);
         }
@@ -243,91 +242,32 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
       preClusterIndices[i2] = -1;
     }
 
-    auto chipID = curChipData->getChipID();
-    uint16_t colSpan = (colMax - colMin + 1);
-    uint16_t rowSpan = (rowMax - rowMin + 1);
-    if (colSpan <= o2::itsmft::ClusterPattern::MaxColSpan &&
-        rowSpan <= o2::itsmft::ClusterPattern::MaxRowSpan) {
-      streamCluster(pixArrBuff, rowMin, rowSpan, colMin, colSpan, chipID,
-                    compClusPtr, patternsPtr, labelsClusPtr, nlab);
+    if (bbox.isAcceptableSize()) {
+      parent->streamCluster(pixArrBuff, &labelsBuff, bbox, parent->mPattIdConverter, compClusPtr, patternsPtr, labelsClusPtr, nlab);
     } else {
-      LOG(WARNING) << "Splitting a huge cluster !  ChipID: " << chipID;
-
-      colSpan %= o2::itsmft::ClusterPattern::MaxColSpan;
-      if (colSpan == 0) {
-        colSpan = o2::itsmft::ClusterPattern::MaxColSpan;
-      }
-
-      rowSpan %= o2::itsmft::ClusterPattern::MaxRowSpan;
-      if (rowSpan == 0) {
-        rowSpan = o2::itsmft::ClusterPattern::MaxRowSpan;
-      }
-
+      LOG(WARNING) << "Splitting a huge cluster !  ChipID: " << bbox.chipID;
+      BBox bboxT(bbox); // truncated box
+      std::vector<PixelData> pixbuf;
       do {
-        uint16_t r = rowMin, rsp = rowSpan;
-
-        do {
-          // Select a subset of pixels fitting the reduced bounding box
-          std::vector<PixelData> pixbuf;
-          auto colMax = colMin + colSpan, rowMax = r + rsp;
+        bboxT.rowMin = bbox.rowMin;
+        bboxT.colMax = std::min(bbox.colMax, uint16_t(bboxT.colMin + o2::itsmft::ClusterPattern::MaxColSpan - 1));
+        do { // Select a subset of pixels fitting the reduced bounding box
+          bboxT.rowMax = std::min(bbox.rowMax, uint16_t(bboxT.rowMin + o2::itsmft::ClusterPattern::MaxRowSpan - 1));
           for (const auto& pix : pixArrBuff) {
-            if (pix.getRowDirect() >= r && pix.getRowDirect() < rowMax &&
-                pix.getCol() >= colMin && pix.getCol() < colMax) {
+            if (bbox.isInside(pix.getRowDirect(), pix.getCol())) {
               pixbuf.push_back(pix);
             }
           }
-          // Stream a piece of cluster only if the reduced bounding box is not empty
-          if (!pixbuf.empty()) {
-            streamCluster(pixbuf, r, rsp, colMin, colSpan, chipID,
-                          compClusPtr, patternsPtr, labelsClusPtr, nlab, true);
+          if (!pixbuf.empty()) { // Stream a piece of cluster only if the reduced bounding box is not empty
+            parent->streamCluster(pixbuf, &labelsBuff, bboxT, parent->mPattIdConverter, compClusPtr, patternsPtr, labelsClusPtr, nlab, true);
+            pixbuf.clear();
           }
-          r += rsp;
-          rsp = o2::itsmft::ClusterPattern::MaxRowSpan;
-        } while (r < rowMax);
-
-        colMin += colSpan;
-        colSpan = o2::itsmft::ClusterPattern::MaxColSpan;
-      } while (colMin < colMax);
+          bboxT.rowMin = bboxT.rowMax + 1;
+        } while (bboxT.rowMin < bbox.rowMax);
+        bboxT.colMin = bboxT.colMax + 1;
+      } while (bboxT.colMin < bbox.colMax);
     }
   }
-}
-
-void Clusterer::ClustererThread::streamCluster(const std::vector<PixelData>& pixbuf, uint16_t rowMin, uint16_t rowSpanW, uint16_t colMin, uint16_t colSpanW, uint16_t chipID, CompClusCont* compClusPtr, PatternCont* patternsPtr, MCTruth* labelsClusPtr, int nlab, bool isHuge)
-{
-  if (labelsClusPtr) { // MC labels were requested
-    auto cnt = compClusPtr->size();
-    for (int i = nlab; i--;) {
-      labelsClusPtr->addElement(cnt, labelsBuff[i]);
-    }
-  }
-
-  // add to compact clusters, which must be always filled
-  unsigned char patt[ClusterPattern::MaxPatternBytes] = {0}; // RSTODO FIX pattern filling
-  for (const auto& pix : pixbuf) {
-    unsigned short ir = pix.getRowDirect() - rowMin, ic = pix.getCol() - colMin;
-    int nbits = ir * colSpanW + ic;
-    patt[nbits >> 3] |= (0x1 << (7 - (nbits % 8)));
-  }
-  uint16_t pattID = (isHuge || parent->mPattIdConverter.size() == 0) ? CompCluster::InvalidPatternID : parent->mPattIdConverter.findGroupID(rowSpanW, colSpanW, patt);
-  if (pattID == CompCluster::InvalidPatternID || parent->mPattIdConverter.isGroup(pattID)) {
-    if (pattID != CompCluster::InvalidPatternID) {
-      //For groupped topologies, the reference pixel is the COG pixel
-      float xCOG = 0., zCOG = 0.;
-      ClusterPattern::getCOG(rowSpanW, colSpanW, patt, xCOG, zCOG);
-      rowMin += round(xCOG);
-      colMin += round(zCOG);
-    }
-    if (patternsPtr) {
-      patternsPtr->emplace_back((unsigned char)rowSpanW);
-      patternsPtr->emplace_back((unsigned char)colSpanW);
-      int nBytes = rowSpanW * colSpanW / 8;
-      if (((rowSpanW * colSpanW) % 8) != 0) {
-        nBytes++;
-      }
-      patternsPtr->insert(patternsPtr->end(), std::begin(patt), std::begin(patt) + nBytes);
-    }
-  }
-  compClusPtr->emplace_back(rowMin, colMin, pattID, chipID);
 }
 
 //__________________________________________________

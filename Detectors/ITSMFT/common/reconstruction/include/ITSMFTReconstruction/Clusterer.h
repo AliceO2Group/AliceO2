@@ -70,6 +70,40 @@ class Clusterer
 
  public:
   static constexpr int MaxLabels = 10;
+
+  struct BBox {
+    uint16_t chipID = 0xffff;
+    uint16_t rowMin = 0xffff;
+    uint16_t colMin = 0xffff;
+    uint16_t rowMax = 0;
+    uint16_t colMax = 0;
+    BBox(uint16_t c) : chipID(c) {}
+    bool isInside(uint16_t row, uint16_t col) const { return row >= rowMin && row <= rowMax && col >= colMin && col <= colMax; }
+    auto rowSpan() const { return rowMax - rowMin + 1; }
+    auto colSpan() const { return colMax - colMin + 1; }
+    bool isAcceptableSize() const { return colMax - colMin < o2::itsmft::ClusterPattern::MaxColSpan && rowMax - rowMin < o2::itsmft::ClusterPattern::MaxRowSpan; }
+    void clear()
+    {
+      rowMin = colMin = 0xffff;
+      rowMax = colMax = 0;
+    }
+    void adjust(uint16_t row, uint16_t col)
+    {
+      if (row < rowMin) {
+        rowMin = row;
+      }
+      if (row > rowMax) {
+        rowMax = row;
+      }
+      if (col < colMin) {
+        colMin = col;
+      }
+      if (col > colMax) {
+        colMax = col;
+      }
+    }
+  };
+
   //=========================================================
   /// methods and transient data used within a thread
   struct ThreadStat {
@@ -133,11 +167,6 @@ class Clusterer
       curr[row] = lastIndex; // store index of the new precluster in the current column buffer
     }
 
-    void streamCluster(const std::vector<PixelData>& pixbuf, uint16_t rowMin, uint16_t rowSpanW, uint16_t colMin, uint16_t colSpanW,
-                       uint16_t chipID,
-                       CompClusCont* compClusPtr, PatternCont* patternsPtr,
-                       MCTruth* labelsClusPtr, int nlab, bool isHuge = false);
-
     void fetchMCLabels(int digID, const ConstMCTruth* labelsDig, int& nfilled);
     void initChip(const ChipPixelData* curChipData, uint32_t first);
     void updateChip(const ChipPixelData* curChipData, uint32_t ip);
@@ -163,6 +192,10 @@ class Clusterer
   Clusterer& operator=(const Clusterer&) = delete;
 
   void process(int nThreads, PixelReader& r, CompClusCont* compClus, PatternCont* patterns, ROFRecCont* vecROFRec, MCTruth* labelsCl = nullptr);
+
+  template <typename VCLUS, typename VPAT>
+  static void streamCluster(const std::vector<PixelData>& pixbuf, const std::array<Label, MaxLabels>* lblBuff, const BBox& bbox, const LookUp& pattIdConverter,
+                            VCLUS* compClusPtr, VPAT* patternsPtr, MCTruth* labelsClusPtr, int nlab, bool isHuge = false);
 
   bool isContinuousReadOut() const { return mContinuousReadout; }
   void setContinuousReadOut(bool v) { mContinuousReadout = v; }
@@ -190,23 +223,6 @@ class Clusterer
 
  private:
 
-  ///< recalculate min max row and column of the cluster accounting for the position of pix
-  static void adjustBoundingBox(uint16_t row, uint16_t col, uint16_t& rMin, uint16_t& rMax, uint16_t& cMin, uint16_t& cMax)
-  {
-    if (row < rMin) {
-      rMin = row;
-    }
-    if (row > rMax) {
-      rMax = row;
-    }
-    if (col < cMin) {
-      cMin = col;
-    }
-    if (col > cMax) {
-      cMax = col;
-    }
-  }
-
   void flushClusters(CompClusCont* compClus, MCTruth* labels);
 
   // clusterization options
@@ -227,6 +243,47 @@ class Clusterer
   TStopwatch mTimerMerge;
 };
 
+template <typename VCLUS, typename VPAT>
+void Clusterer::streamCluster(const std::vector<PixelData>& pixbuf, const std::array<Label, MaxLabels>* lblBuff, const Clusterer::BBox& bbox, const LookUp& pattIdConverter,
+                              VCLUS* compClusPtr, VPAT* patternsPtr, MCTruth* labelsClusPtr, int nlab, bool isHuge)
+{
+  if (labelsClusPtr && lblBuff) { // MC labels were requested
+    auto cnt = compClusPtr->size();
+    for (int i = nlab; i--;) {
+      labelsClusPtr->addElement(cnt, (*lblBuff)[i]);
+    }
+  }
+  auto colSpanW = bbox.colSpan();
+  auto rowSpanW = bbox.rowSpan();
+  // add to compact clusters, which must be always filled
+  std::array<unsigned char, ClusterPattern::MaxPatternBytes> patt{};
+  for (const auto& pix : pixbuf) {
+    uint16_t ir = pix.getRowDirect() - bbox.rowMin, ic = pix.getCol() - bbox.colMin;
+    int nbits = ir * colSpanW + ic;
+    patt[nbits >> 3] |= (0x1 << (7 - (nbits % 8)));
+  }
+  uint16_t pattID = (isHuge || pattIdConverter.size() == 0) ? CompCluster::InvalidPatternID : pattIdConverter.findGroupID(rowSpanW, colSpanW, patt.data());
+  uint16_t row = bbox.rowMin, col = bbox.colMin;
+  if (pattID == CompCluster::InvalidPatternID || pattIdConverter.isGroup(pattID)) {
+    if (pattID != CompCluster::InvalidPatternID) {
+      //For groupped topologies, the reference pixel is the COG pixel
+      float xCOG = 0., zCOG = 0.;
+      ClusterPattern::getCOG(rowSpanW, colSpanW, patt.data(), xCOG, zCOG);
+      row += round(xCOG);
+      col += round(zCOG);
+    }
+    if (patternsPtr) {
+      patternsPtr->emplace_back((unsigned char)rowSpanW);
+      patternsPtr->emplace_back((unsigned char)colSpanW);
+      int nBytes = rowSpanW * colSpanW / 8;
+      if (((rowSpanW * colSpanW) % 8) != 0) {
+        nBytes++;
+      }
+      patternsPtr->insert(patternsPtr->end(), std::begin(patt), std::begin(patt) + nBytes);
+    }
+  }
+  compClusPtr->emplace_back(row, col, pattID, bbox.chipID);
+}
 
 } // namespace itsmft
 } // namespace o2
