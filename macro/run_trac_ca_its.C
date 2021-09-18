@@ -207,12 +207,15 @@ void run_trac_ca_its(bool cosmics = false,
   } else {
     // PbPb tracking params
     // ----
-    trackParams.resize(3);
-    memParams.resize(3);
-    trackParams[0].TrackletMaxDeltaPhi = 0.05f;
-    trackParams[1].TrackletMaxDeltaPhi = 0.1f;
-    trackParams[2].MinTrackLength = 5;
-    trackParams[2].TrackletMaxDeltaPhi = 0.3;
+    // trackParams.resize(3);
+    // trackParams[0].TrackletMaxDeltaPhi = 0.05f;
+    // trackParams[0].DeltaROF = 0;
+    // trackParams[1].CopyCuts(trackParams[0], 2.);
+    // trackParams[1].DeltaROF = 0;
+    // trackParams[2].CopyCuts(trackParams[1], 2.);
+    // trackParams[2].DeltaROF = 1;
+    // trackParams[2].MinTrackLength = 4;
+    // memParams.resize(3);
     // ---
     // Uncomment for pp
     trackParams.resize(2);
@@ -235,7 +238,6 @@ void run_trac_ca_its(bool cosmics = false,
     memParams.resize(2);
     // ---
   }
-
 
   int currentEvent = -1;
   gsl::span<const unsigned char> patt(patterns->data(), patterns->size());
@@ -286,10 +288,6 @@ void run_trac_ca_its(bool cosmics = false,
   tf.printVertices();
 
   o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU(&tf));
-  tracker.setBz(field->getBz(origD));
-  tracker.setParameters(memParams, trackParams);
-  tracker.clustersToTracks();
-  //-------- init lookuptable --------//
   if (useLUT) {
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
@@ -302,6 +300,11 @@ void run_trac_ca_its(bool cosmics = false,
   } else {
     LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
+
+  tracker.setBz(field->getBz(origD));
+  tracker.setParameters(memParams, trackParams);
+  tracker.clustersToTracks();
+  //-------- init lookuptable --------//
 
   for (int iROF{0}; iROF < tf.getNrof(); ++iROF) {
     tracksITS.clear();

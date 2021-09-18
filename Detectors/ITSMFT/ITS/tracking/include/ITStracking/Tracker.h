@@ -70,6 +70,10 @@ class Tracker
   float getBz() const;
 
   void clustersToTracks(std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
+  void setSmoothing(bool v) { mApplySmoothing = v; }
+  bool getSmoothing() const { return mApplySmoothing; }
+
+  std::vector<TrackITSExt>& getTracks();
 
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
@@ -104,6 +108,7 @@ class Tracker
   std::vector<TrackingParameters> mTrkParams;
 
   bool mCUDA = false;
+  bool mApplySmoothing = false;
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
   float mBz = 5.f;
   std::uint32_t mROFrame = 0;
