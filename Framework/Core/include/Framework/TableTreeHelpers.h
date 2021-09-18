@@ -37,7 +37,7 @@ class ColumnToBranchBase
 {
  public:
   ColumnToBranchBase(arrow::ChunkedArray* column, arrow::Field* field, int size = 1);
-  virtual ~ColumnToBranchBase(){};
+  virtual ~ColumnToBranchBase() = default;
   void at(int64_t* pos)
   {
     mCurrentPos = pos;
@@ -242,7 +242,7 @@ class BranchToColumnBase
 {
  public:
   BranchToColumnBase(TBranch* branch, const char* name, EDataType type, int listSize);
-  virtual ~BranchToColumnBase(){};
+  virtual ~BranchToColumnBase() = default;
 
   TBranch* branch()
   {
