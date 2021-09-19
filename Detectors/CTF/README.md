@@ -81,7 +81,7 @@ delay in seconds between consecutive CTFs sending (depends also on file fetching
 ```
 --copy-cmd arg (=XrdSecPROTOCOL=sss,unix xrdcp -N root://eosaliceo2.cern.ch/?src ?dst)
 ```
-copy command for remote files
+copy command for remote files or `no-copy` to avoid copying
 
 ```
 --ctf-file-regex arg (=.+o2_ctf_run.+\.root$)
@@ -97,6 +97,12 @@ regex string to identify remote files
 --max-cached-files arg (=3)
 ```
 max CTF files queued (copied for remote source).
+
+There is a possibility to read remote root files directly, w/o caching them locally. For that one should:
+1) provide the full URL the remote files, e.g. if the files are supposed to be accessed by `xrootd` (the `XrdSecPROTOCOL` and `XrdSecSSSKT` env. variables should be set up in advance), use
+`root://eosaliceo2.cern.ch//eos/aliceo2/ls2data/...root` (use `xrdfs root://eosaliceo2.cern.ch ls -u <path>` to list full URL).
+2) provide proper regex to define remote files, e.g. for the example above: `--remote-regex "^root://.+/eos/aliceo2/.+"`.
+3) pass an option `--copy-cmd no-copy`.
 
 For the ITS and MFT entropy decoding one can request either to decompose clusters to digits and send them instead of clusters (via `o2-ctf-reader-workflow` global options `--its-digits` and `--mft-digits` respectively)
 or to apply the noise mask to decoded clusters (or decoded digits). If the masking (e.g. via option `--its-entropy-decoder " --mask-noise "`) is requested, user should provide to the entropy decoder the noise mask file (eventually will be loaded from CCDB) and cluster patterns decoding dictionary (if the clusters were encoded with patterns IDs).
