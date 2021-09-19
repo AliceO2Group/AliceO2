@@ -44,21 +44,17 @@ std::map<o2::mch::ROFRecord, int64_t> computeMinTimeDistances(gsl::span<const o2
 {
   std::map<o2::mch::ROFRecord, int64_t> minTimeDistances;
 
-  for (auto i = 0; i < rofs.size(); i++) {
+  for (auto i = 0; i < rofs.size() - 1; i++) {
     auto const& r = rofs[i];
     o2::InteractionRecord iri{r.getBCData().bc,
                               r.getBCData().orbit};
     minTimeDistances[r] = std::numeric_limits<int64_t>::max();
-    for (auto j = 0; j < rofs.size(); j++) {
-      if (i == j) {
-        continue;
-      }
-      o2::InteractionRecord irj{rofs[j].getBCData().bc,
-                                rofs[j].getBCData().orbit};
-      auto d = irj.differenceInBC(iri);
-      if (d >= 0) {
-        minTimeDistances[rofs[i]] = std::min(minTimeDistances[rofs[i]], d);
-      }
+    auto j = i + 1;
+    o2::InteractionRecord irj{rofs[j].getBCData().bc,
+                              rofs[j].getBCData().orbit};
+    auto d = irj.differenceInBC(iri);
+    if (d >= 0) {
+      minTimeDistances[rofs[i]] = std::min(minTimeDistances[rofs[i]], d);
     }
   }
   return minTimeDistances;
@@ -67,24 +63,6 @@ std::map<o2::mch::ROFRecord, int64_t> computeMinTimeDistances(gsl::span<const o2
 void printRofs(std::ostream& os, gsl::span<const o2::mch::ROFRecord> rofs)
 {
   auto minTimeDistances = computeMinTimeDistances(rofs);
-
-  for (auto i = 0; i < rofs.size(); i++) {
-    auto const& r = rofs[i];
-    o2::InteractionRecord iri{r.getBCData().bc,
-                              r.getBCData().orbit};
-    minTimeDistances[r] = std::numeric_limits<int64_t>::max();
-    for (auto j = 0; j < rofs.size(); j++) {
-      if (i == j) {
-        continue;
-      }
-      o2::InteractionRecord irj{rofs[j].getBCData().bc,
-                                rofs[j].getBCData().orbit};
-      auto d = irj.differenceInBC(iri);
-      if (d >= 0) {
-        minTimeDistances[rofs[i]] = std::min(minTimeDistances[rofs[i]], d);
-      }
-    }
-  }
 
   os << fmt::format("{:=^70}\n", fmt::format("{} rofs", rofs.size()));
   size_t i{0};

@@ -17,6 +17,7 @@
 #include "DigitIOV1.h"
 #include "DigitIOV2.h"
 #include "DigitIOV3.h"
+#include "DigitIOV4.h"
 #include <memory>
 
 namespace o2::mch::io::impl
@@ -33,6 +34,8 @@ std::unique_ptr<DigitReaderImpl> createDigitReaderImpl(int version)
       return std::make_unique<DigitReaderV2>();
     case 3:
       return std::make_unique<DigitReaderV3>();
+    case 4:
+      return std::make_unique<DigitReaderV4>();
     default:
       break;
   };
