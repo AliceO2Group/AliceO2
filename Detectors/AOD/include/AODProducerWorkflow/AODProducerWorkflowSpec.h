@@ -88,11 +88,12 @@ using TracksExtraTable = o2::soa::Table<o2::aod::track::TPCInnerParam,
                                         o2::aod::track::TOFChi2,
                                         o2::aod::track::TPCSignal,
                                         o2::aod::track::TRDSignal,
-                                        o2::aod::track::TOFSignal,
                                         o2::aod::track::Length,
                                         o2::aod::track::TOFExpMom,
                                         o2::aod::track::TrackEtaEMCAL,
-                                        o2::aod::track::TrackPhiEMCAL>;
+                                        o2::aod::track::TrackPhiEMCAL,
+                                        o2::aod::track::TrackTime,
+                                        o2::aod::track::TrackTimeRes>;
 
 using MFTTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
                                       o2::aod::fwdtrack::X,
@@ -105,7 +106,6 @@ using MFTTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
                                       o2::aod::fwdtrack::Chi2>;
 
 using FwdTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
-                                      o2::aod::fwdtrack::BCId,
                                       o2::aod::fwdtrack::TrackType,
                                       o2::aod::fwdtrack::X,
                                       o2::aod::fwdtrack::Y,
@@ -120,8 +120,10 @@ using FwdTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
                                       o2::aod::fwdtrack::Chi2MatchMCHMID,
                                       o2::aod::fwdtrack::Chi2MatchMCHMFT,
                                       o2::aod::fwdtrack::MatchScoreMCHMFT,
-                                      o2::aod::fwdtrack::MatchMFTTrackID,
-                                      o2::aod::fwdtrack::MatchMCHTrackID>;
+                                      o2::aod::fwdtrack::MFTTrackId,
+                                      o2::aod::fwdtrack::MCHTrackId,
+                                      o2::aod::fwdtrack::TrackTime,
+                                      o2::aod::fwdtrack::TrackTimeRes>;
 
 using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
                                         o2::aod::mcparticle::PdgCode,
@@ -247,6 +249,8 @@ class AODProducerWorkflowDPL : public Task
     float tofExpMom = -999.f;
     float trackEtaEMCAL = -999.f;
     float trackPhiEMCAL = -999.f;
+    float trackTime = -999.f;
+    float trackTimeRes = -999.f;
   };
 
   // helper struct for mc track labels
@@ -278,7 +282,6 @@ class AODProducerWorkflowDPL : public Task
 
   template <typename fwdTracksCursorType>
   void addToFwdTracksTable(fwdTracksCursorType& fwdTracksCursor, const o2::mch::TrackMCH& track, int collisionID,
-                           int bcID,
                            const math_utils::Point3D<double>& vertex);
 
   // helper for track tables

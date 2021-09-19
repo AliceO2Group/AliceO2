@@ -178,11 +178,12 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
                     truncateFloatFraction(extraInfoHolder.tofChi2, mTrackCovOffDiag),
                     truncateFloatFraction(extraInfoHolder.tpcSignal, mTrackSignal),
                     truncateFloatFraction(extraInfoHolder.trdSignal, mTrackSignal),
-                    truncateFloatFraction(extraInfoHolder.tofSignal, mTrackSignal),
                     truncateFloatFraction(extraInfoHolder.length, mTrackSignal),
                     truncateFloatFraction(extraInfoHolder.tofExpMom, mTrack1Pt),
                     truncateFloatFraction(extraInfoHolder.trackEtaEMCAL, mTrackPosEMCAL),
-                    truncateFloatFraction(extraInfoHolder.trackPhiEMCAL, mTrackPosEMCAL));
+                    truncateFloatFraction(extraInfoHolder.trackPhiEMCAL, mTrackPosEMCAL),
+                    truncateFloatFraction(extraInfoHolder.trackTime, mTrackSignal),
+                    truncateFloatFraction(extraInfoHolder.trackTimeRes, mTrackSignal));
 }
 
 template <typename mftTracksCursorType>
@@ -221,6 +222,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
   const auto& tpcTracks = data.getTPCTracks();
   const auto& itsTracks = data.getITSTracks();
   const auto& itsABRefs = data.getITSABRefs();
+  const auto& tofClus = data.getTOFClusters();
 
   for (int src = GIndex::NSources; src--;) {
     int start = trackRef.getFirstEntryOfSource(src);
@@ -246,13 +248,12 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
               math_utils::Point3D<double> vertex{};
               // FIXME: should we get better
               // than {0,0,0} as vertex here ?
-              addToFwdTracksTable(fwdTracksCursor, track, -1, meanIR.toLong(), vertex);
+              addToFwdTracksTable(fwdTracksCursor, track, -1, vertex);
             }
           } else {
-            long bcID{-1}; // FIXME: how do I get bcID ?
             math_utils::Point3D<double> vtx{vertex.getX(),
                                             vertex.getY(), vertex.getZ()};
-            addToFwdTracksTable(fwdTracksCursor, track, collisionID, bcID, vtx);
+            addToFwdTracksTable(fwdTracksCursor, track, collisionID, vtx);
           }
         } else {
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
@@ -288,6 +289,13 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
               const float expBeta = (intLen / (tofInt.getTOF(o2::track::PID::Pion) * cSpeed));
               extraInfoHolder.tofExpMom = mass * expBeta / std::sqrt(1.f - expBeta * expBeta);
             }
+
+            const auto& tpcTrOrig = data.getTPCTrack(trackIndex);
+            const auto& tofCl = tofClus[contributorsGID[GIndex::Source::TOF]];
+
+            // correct the time of the track
+            extraInfoHolder.trackTime = (tofCl.getTime() - tofInt.getTOF(tpcTrOrig.getPID())) * 1e-3; // tof time in \mus, FIXME: account for time of flight to R TOF
+            extraInfoHolder.trackTimeRes = 200e-3;                                                    // FIXME: calculate actual resolution (if possible?)
           }
           if (src == GIndex::Source::TPCTRD || src == GIndex::Source::ITSTPCTRD) {
             const auto& trdOrig = data.getTrack<o2::trd::TrackTRD>(src, contributorsGID[src].getIndex());
@@ -308,7 +316,6 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
 template <typename FwdTracksCursorType>
 void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksCursor,
                                                  const o2::mch::TrackMCH& track, int collisionID,
-                                                 int bcID,
                                                  const math_utils::Point3D<double>& vertex)
 
 {
@@ -370,7 +377,6 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
 
   fwdTracksCursor(0,
                   collisionID,
-                  bcID,
                   o2::aod::fwdtrack::MCHStandaloneTrack,
                   x,
                   y,
@@ -386,7 +392,9 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
                   -1.0, // chi2matchmchmft,
                   -1.0, // matchscoremchmft,
                   -1,   // matchmfttrackid,
-                  -1    // matchmchtrackid
+                  -1,   // matchmchtrackid
+                  -1.f, // trackTime
+                  -1.f  // trackTimeRes
   );
 }
 
