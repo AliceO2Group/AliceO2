@@ -348,7 +348,7 @@ DECLARE_SOA_COLUMN(Chi2MatchMCHMID, chi2MatchMCHMID, float);                    
 DECLARE_SOA_COLUMN(Chi2MatchMCHMFT, chi2MatchMCHMFT, float);                                 //! MCH-MFT Match Chi2 for GlobalMuonTracks
 DECLARE_SOA_COLUMN(MatchScoreMCHMFT, matchScoreMCHMFT, float);                               //! MCH-MFT Machine Learning Matching Score for GlobalMuonTracks
 DECLARE_SOA_SELF_INDEX_COLUMN_FULL(MCHTrack, matchMCHTrack, int, "FwdTracks_MatchMCHTrack"); //! Index of matching MCH track for GlobalMuonTracks and GlobalForwardTracks
-DECLARE_SOA_COLUMN(MCHBitMap, MchBitMap, uint16_t);                                          //! Fired muon trackig chambers bitmap
+DECLARE_SOA_COLUMN(MCHBitMap, mchBitMap, uint16_t);                                          //! Fired muon trackig chambers bitmap
 DECLARE_SOA_COLUMN(MIDBitMap, midBitMap, uint8_t);                                           //! MID bitmap: non-bending plane (4bit), bending plane (4bit)
 DECLARE_SOA_COLUMN(MIDBoards, midBoards, uint32_t);                                          //! Local boards on each MID plane (8 bits per plane)
 DECLARE_SOA_COLUMN(TrackTime, trackTime, float);                                             //! Estimated time of the track in ns wrt collision().bc() or ambiguoustrack.bcSlice()[0]
