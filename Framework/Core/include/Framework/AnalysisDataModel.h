@@ -211,7 +211,12 @@ DECLARE_SOA_COLUMN(TrackEtaEMCAL, trackEtaEmcal, float);                        
 DECLARE_SOA_COLUMN(TrackPhiEMCAL, trackPhiEmcal, float);                                      //!
 DECLARE_SOA_COLUMN(TrackTime, trackTime, float);                                              //! Estimated time of the track in ns wrt collision().bc() or ambiguoustrack.bcSlice()[0]
 DECLARE_SOA_COLUMN(TrackTimeRes, trackTimeRes, float);                                        //! Resolution of the track time in ns (see TrackFlags::TrackTimeResIsRange)
-DECLARE_SOA_DYNAMIC_COLUMN(HasTOF, hasTOF,                                                    //! Flag to check if track has a TOF measurement
+DECLARE_SOA_EXPRESSION_COLUMN(DetectorMap, detectorMap, uint8_t,                              //! Detector map: see enum DetectorMapEnum
+                              ifnode(aod::track::itsClusterMap > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::ITS), (uint8_t)0x0) |
+                                ifnode(aod::track::tpcNClsFindable > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TPC), (uint8_t)0x0) |
+                                ifnode(aod::track::trdPattern > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TRD), (uint8_t)0x0) |
+                                ifnode((aod::track::tofChi2 >= 0.f) && (aod::track::tofExpMom > 0.f), static_cast<uint8_t>(o2::aod::track::TOF), (uint8_t)0x0));
+DECLARE_SOA_DYNAMIC_COLUMN(HasTOF, hasTOF, //! Flag to check if track has a TOF measurement
                            [](float tofChi2, float tofExpMom) -> bool { return (tofChi2 >= 0.f) && (tofExpMom > 0.f); });
 DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, //! PID hypothesis used during tracking. See the constants in the class PID in PID.h
                            [](uint32_t flags) -> uint32_t { return flags >> 28; });
@@ -298,21 +303,24 @@ DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKCOV", //! Track cov
                            aod::track::C1PtTgl,
                            aod::track::C1Pt21Pt2);
 
-DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
-                  track::TPCInnerParam, track::Flags, track::ITSClusterMap,
-                  track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
-                  track::TPCNClsShared, track::TRDPattern, track::ITSChi2NCl,
-                  track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
-                  track::TPCSignal, track::TRDSignal, track::Length, track::TOFExpMom,
-                  track::PIDForTracking<track::Flags>,
-                  track::HasTOF<track::TOFChi2, track::TOFExpMom>,
-                  track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
-                  track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
-                  track::ITSNCls<track::ITSClusterMap>, track::ITSNClsInnerBarrel<track::ITSClusterMap>,
-                  track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
-                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
-                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
-                  track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
+DECLARE_SOA_TABLE_FULL(StoredTracksExtra, "TracksExtra", "AOD", "TRACKEXTRA", //! On disk version of TracksExtra
+                       track::TPCInnerParam, track::Flags, track::ITSClusterMap,
+                       track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
+                       track::TPCNClsShared, track::TRDPattern, track::ITSChi2NCl,
+                       track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
+                       track::TPCSignal, track::TRDSignal, track::Length, track::TOFExpMom,
+                       track::PIDForTracking<track::Flags>,
+                       track::HasTOF<track::TOFChi2, track::TOFExpMom>,
+                       track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                       track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
+                       track::ITSNCls<track::ITSClusterMap>, track::ITSNClsInnerBarrel<track::ITSClusterMap>,
+                       track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
+                       track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                       track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
+                       track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
+
+DECLARE_SOA_EXTENDED_TABLE(TracksExtra, StoredTracksExtra, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
+                           track::DetectorMap);
 
 using Track = Tracks::iterator;
 using TrackCov = TracksCov::iterator;

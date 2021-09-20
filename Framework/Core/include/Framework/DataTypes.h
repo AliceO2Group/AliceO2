@@ -42,6 +42,12 @@ enum TrackFlagsRun2Enum {
   GoldenChi2 = 0x4,
   // NOTE Highest 4 (29..32) bits reserved for PID hypothesis
 };
+enum DetectorMapEnum : uint8_t {
+  ITS = 0x1,
+  TPC = 0x2,
+  TRD = 0x4,
+  TOF = 0x8
+};
 } // namespace o2::aod::track
 
 namespace o2::aod::fwdtrack
