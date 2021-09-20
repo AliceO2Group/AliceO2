@@ -393,6 +393,8 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
                   -1.0, // matchscoremchmft,
                   -1,   // matchmfttrackid,
                   -1,   // matchmchtrackid
+                  0,    // MIDBitMap
+                  0,    // MIDBoards
                   -1.f, // trackTime
                   -1.f  // trackTimeRes
   );
