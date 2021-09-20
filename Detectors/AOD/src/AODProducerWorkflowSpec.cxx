@@ -385,14 +385,15 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
                   tanl,
                   invqpt,
                   track.getNClusters(),
-                  chi2,
                   pdca,
                   rabs,
+                  chi2,
                   -1.0, // chi2matchmchmid,
                   -1.0, // chi2matchmchmft,
                   -1.0, // matchscoremchmft,
                   -1,   // matchmfttrackid,
                   -1,   // matchmchtrackid
+                  0,    // MCHBitMap
                   0,    // MIDBitMap
                   0,    // MIDBoards
                   -1.f, // trackTime
