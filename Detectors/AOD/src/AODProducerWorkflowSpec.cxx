@@ -289,12 +289,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
               const float expBeta = (intLen / (tofInt.getTOF(o2::track::PID::Pion) * cSpeed));
               extraInfoHolder.tofExpMom = mass * expBeta / std::sqrt(1.f - expBeta * expBeta);
             }
-
-            const auto& tpcTrOrig = data.getTPCTrack(trackIndex);
             const auto& tofCl = tofClus[contributorsGID[GIndex::Source::TOF]];
-
             // correct the time of the track
-            extraInfoHolder.trackTime = (tofCl.getTime() - tofInt.getTOF(tpcTrOrig.getPID())) * 1e-3; // tof time in \mus, FIXME: account for time of flight to R TOF
+            extraInfoHolder.trackTime = (tofCl.getTime() - tofInt.getTOF(trackPar.getPID())) * 1e-3;  // tof time in \mus, FIXME: account for time of flight to R TOF
             extraInfoHolder.trackTimeRes = 200e-3;                                                    // FIXME: calculate actual resolution (if possible?)
           }
           if (src == GIndex::Source::TPCTRD || src == GIndex::Source::ITSTPCTRD) {
