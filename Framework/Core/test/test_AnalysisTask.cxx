@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   BOOST_CHECK_EQUAL(task1.outputs[0].binding.value, std::string("FooBars"));
 
   auto task2 = adaptAnalysisTask<BTask>(*cfgc, TaskName{"test2"});
-  BOOST_CHECK_EQUAL(task2.inputs.size(), 9);
+  BOOST_CHECK_EQUAL(task2.inputs.size(), 10);
   BOOST_CHECK_EQUAL(task2.inputs[1].binding, "CaloTriggers");
   BOOST_CHECK_EQUAL(task2.inputs[2].binding, "Calos");
   BOOST_CHECK_EQUAL(task2.inputs[3].binding, "Collisions");
@@ -166,6 +166,7 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   BOOST_CHECK_EQUAL(task2.inputs[6].binding, "TracksCovExtension");
   BOOST_CHECK_EQUAL(task2.inputs[7].binding, "TracksExtension");
   BOOST_CHECK_EQUAL(task2.inputs[8].binding, "TracksExtra");
+  BOOST_CHECK_EQUAL(task2.inputs[9].binding, "TracksExtraExtension");
   BOOST_CHECK_EQUAL(task2.inputs[0].binding, "AmbiguousTracks");
 
   auto task3 = adaptAnalysisTask<CTask>(*cfgc, TaskName{"test3"});
