@@ -262,6 +262,10 @@ class ConfigurableParam
   // be updated, absence of data for any of requested params will lead to fatal
   static void updateFromFile(std::string const&, std::string const& paramsList = "", bool unchangedOnly = false);
 
+  // interface for use from the CCDB API; allows to sync objects read from CCDB with the information
+  // stored in the registry; modifies given object as well as registry
+  virtual void syncCCDBandRegistry(void* obj) = 0;
+
  protected:
   // constructor is doing nothing else but
   // registering the concrete parameters
@@ -299,6 +303,7 @@ class ConfigurableParam
   void setRegisterMode(bool b) { sRegisterMode = b; }
   bool isInitialized() const { return sIsFullyInitialized; }
 
+  // friend class o2::ccdb::CcdbApi;
  private:
   // static registry for implementations of this type
   static std::vector<ConfigurableParam*>* sRegisteredParamClasses; //!

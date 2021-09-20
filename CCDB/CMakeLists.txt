@@ -53,6 +53,13 @@ o2_add_test(CcdbApi
             PUBLIC_LINK_LIBRARIES O2::CCDB
             LABELS ccdb)
 
+o2_add_test(CcdbApiConfigParam
+		SOURCES test/testCcdbApi_ConfigParam.cxx
+		COMPONENT_NAME ccdb
+		PUBLIC_LINK_LIBRARIES O2::CCDB O2::DetectorsVertexing
+		LABELS ccdb)
+
+
 o2_add_test(CcdbApi-Alien
 		SOURCES test/testCcdbApi_alien.cxx
 		COMPONENT_NAME ccdb
