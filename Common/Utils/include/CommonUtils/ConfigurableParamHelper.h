@@ -55,6 +55,8 @@ class _ParamHelper
 
   static void assignmentImpl(std::string const& mainkey, TClass* cl, void* to, void* from,
                              std::map<std::string, ConfigurableParam::EParamProvenance>* provmap);
+  static void syncCCDBandRegistry(std::string const& mainkey, TClass* cl, void* to, void* from,
+                                  std::map<std::string, ConfigurableParam::EParamProvenance>* provmap);
 
   static void outputMembersImpl(std::ostream& out, std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv);
   static void printMembersImpl(std::string const& mainkey, std::vector<ParamDataMember> const* members, bool showProv);
@@ -160,6 +162,22 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
                                    sValueProvenanceMap);
       delete readback;
     }
+    setRegisterMode(true);
+  }
+
+  // ----------------------------------------------------------------
+
+  void syncCCDBandRegistry(void* externalobj) final
+  {
+    // We may be getting an external copy from CCDB which is passed as externalobj.
+    // The task of this function is to
+    // a) update the internal registry with fields coming from CCDB
+    //    but only if keys have not been modified via RT == command line / ini file
+    // b) update the external object with with fields having RT provenance
+    //
+    setRegisterMode(false);
+    _ParamHelper::syncCCDBandRegistry(getName(), TClass::GetClass(typeid(P)), (void*)this, (void*)externalobj,
+                                      sValueProvenanceMap);
     setRegisterMode(true);
   }
 
