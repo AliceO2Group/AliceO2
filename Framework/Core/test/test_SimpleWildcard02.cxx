@@ -54,14 +54,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
              return adaptStateless([](InputRecord& inputs) {
                auto s = inputs.get<TObjString*>("in");
                auto n = inputs.getNofParts(0);
-               LOG(INFO) << "Number of parts " << inputs.getNofParts(0);
+               LOG(info) << "Number of parts " << inputs.getNofParts(0);
                if (n != 2) {
-                 LOG(ERROR) << "Bad number of parts" << inputs.getNofParts(0);
+                 LOG(error) << "Bad number of parts" << inputs.getNofParts(0);
                }
                for (size_t i = 0; i < n; ++i) {
                  auto ref = inputs.getByPos(0, i);
                  auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-                 LOG(INFO) << "String is " << s->GetString().Data() << " " << dh->subSpecification;
+                 LOG(info) << "String is " << s->GetString().Data() << " " << dh->subSpecification;
                }
              }); })}}};
 }

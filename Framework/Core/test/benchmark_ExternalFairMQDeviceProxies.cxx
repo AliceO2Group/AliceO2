@@ -104,7 +104,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       float msgPerSec = eventRate * state.nChannels;
       float kbPerSec = msgPerSec * state.msgSize / 1024;
       auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(benchclock::now() - state.startTime);
-      LOG(INFO) << fmt::format(
+      LOG(info) << fmt::format(
         "{: 3d} Total messages: {} - Event rate {:.2f} Hz  {:.2f} msg/s  {:.2f} MB/s, "
         "Accumulated idle time {:.2f} ms",
         elapsedTime.count(), state.totalCount, eventRate, msgPerSec,
@@ -138,7 +138,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     float eventRate = state.totalCount / totalTime.count();
     float msgPerSec = eventRate * state.nChannels;
     float kbPerSec = msgPerSec * state.msgSize / 1024;
-    LOG(INFO) << fmt::format(
+    LOG(info) << fmt::format(
       "Benchmarking "
 #ifndef NDEBUG
       "accumulated "
@@ -272,12 +272,12 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     int msgidx = 0;
     auto dh = o2::header::get<o2::header::DataHeader*>(inputs.At(msgidx)->GetData());
     if (!dh) {
-      LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
+      LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
       return;
     }
     auto dph = o2::header::get<DataProcessingHeader*>(inputs.At(msgidx)->GetData());
     if (!dph) {
-      LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
+      LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
       return;
     }
     // Note: we want to run both the output and input proxy in the same workflow and thus we need

@@ -201,7 +201,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
           auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
           if (input.spec->binding.compare(0, 6, "datain") == 0) {
             if (input.spec->binding != bindings.at(dataheader->subSpecification)) {
-              LOG(ERROR) << "data with subspec " << dataheader->subSpecification << " at unexpected binding " << input.spec->binding << ", expected " << bindings.at(dataheader->subSpecification);
+              LOG(error) << "data with subspec " << dataheader->subSpecification << " at unexpected binding " << input.spec->binding << ", expected " << bindings.at(dataheader->subSpecification);
             }
             haveDataIn = true;
             ASSERT_ERROR(checkMap->at(dataheader->subSpecification) == inputs.get<int>(input.spec->binding.c_str()));
