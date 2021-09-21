@@ -15,6 +15,7 @@
 #include <iosfwd>
 #include "Rtypes.h"
 #include "TH2F.h"
+#include <array>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "FairLogger.h"
@@ -67,6 +68,21 @@ class EventRecord
   //void printStream(std::ostream& stream) const;
   void sortByHCID();
 
+  //statistics stuff these get passed to the per tf data at the end of the timeframe,
+  //but as we read in per link, events are seperated hence these counters
+  void clearStats();
+  void incTrackletTime(double timeadd) { mEventStats.mTimeTakenForTracklets += timeadd; }
+
+  void incDigitTime(double timeadd) { mEventStats.mTimeTakenForDigits += timeadd; }
+  void incTime(double duration) { mEventStats.mTimeTaken += duration; }
+  void incWordsRead(int count) { mEventStats.mWordsRead += count; }         // words read in
+  void incWordsRejected(int count) { mEventStats.mWordsRejected += count; } // words read in
+  void incTrackletsFound(int count) { mEventStats.mTrackletsFound += count; }
+  void incDigitsFound(int count) { mEventStats.mDigitsFound += count; }
+  void setDataPerLink(int link, int length)
+  { /* mEventStats.mLinkLength[link] = length;*/
+  }
+  //std::array<uint8_t, 1080> mLinkErrorFlag{}; //status of the error flags for this event, 8bit values from cru halfchamber header.
   bool operator==(const EventRecord& o) const
   {
     return mBCData == o.mBCData; //&& mDigits == o.mDigits && mTracklets == o.mTracklets ;
@@ -77,11 +93,15 @@ class EventRecord
     mTracklets.clear();
   }
 
+  void incStats(int tracklets, int digits, int wordsread, int wordsrejected);
+  o2::trd::TRDDataCountersPerEvent mEventStats;
+
  private:
   BCData mBCData;                       /// orbit and Bunch crossing data of the physics trigger
   std::vector<Digit> mDigits{};         /// digit data, for this event
   std::vector<Tracklet64> mTracklets{}; /// tracklet data, for this event
-  o2::trd::TRDDataCountersPerEvent mEventStats;
+  //statistics stuff these get passed to the per tf data at the end of the timeframe,
+  //but as we read in per link, events are seperated hence these counters
 };
 
 class EventStorage
@@ -99,7 +119,7 @@ class EventStorage
   void addTracklets(InteractionRecord& ir, std::vector<Tracklet64>& tracklets);
   void addTracklets(InteractionRecord& ir, std::vector<Tracklet64>::iterator& start, std::vector<Tracklet64>::iterator& end);
   void unpackData(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits);
-  void sendData(o2::framework::ProcessingContext& pc, bool displaytracklets = false);
+  void sendData(o2::framework::ProcessingContext& pc, bool generatestats);
   EventRecord& getEventRecord(InteractionRecord& ir);
   //this could replace by keeing a running total on addition TODO
   void sumTrackletsDigitsTriggers(uint64_t& tracklets, uint64_t& digits, uint64_t& triggers);
@@ -109,14 +129,46 @@ class EventStorage
   std::vector<Digit>& getDigits(InteractionRecord& ir);
   void printIR();
   void setHisto(TH1F* packagetime) { mPackagingTime = packagetime; }
-  //TODO what would be nice is to write this out as a root tree event by event instead of using the sendData method where its all packaged together to then be unpackaged again.
-  TRDDataCountersPerTimeFrame mTFStats;
+
+  //statistics to keep
+  void incTrackletTime(double timeadd) { mTFStats.mTimeTakenForTracklets += timeadd; }
+  void incDigitTime(double timeadd) { mTFStats.mTimeTakenForDigits += timeadd; }
+  void incTrackletsFound(int count) { mTFStats.mTrackletsFound += count; }
+  void incDigitsFound(int count) { mTFStats.mDigitsFound += count; }
+  void incLinkErrorFlags(int sm, int side, int stacklayer, unsigned int flag) { mTFStats.mLinkErrorFlag[(sm * 2 + side) * 30 + stacklayer] |= flag; }
+  void incLinkNoData(int sm, int side, int stacklayer) { mTFStats.mLinkNoData[(sm * 2 + side) * 30 + stacklayer]++; }
+  void incLinkWords(int sm, int side, int stacklayer, int count) { mTFStats.mLinkWords[(sm * 2 + side) * 30 + stacklayer] += count; }
+  void incLinkWordsRead(int sm, int side, int stacklayer, int count) { mTFStats.mLinkWordsRead[(sm * 2 + side) * 30 + stacklayer] += count; }
+  void incLinkWordsRejected(int sm, int side, int stacklayer, int count) { mTFStats.mLinkWordsRejected[(sm * 2 + side) * 30 + stacklayer] += count; }
+  void incMajorVersion(int version) { mTFStats.mDataFormatRead[version]++; }
+  // left here for now, but this can be calculated inside qc, so possibly no point having it here.
+  /*   void incMCMTrackletCount(int hcid, int rob, int mcm, int count)
+  {
+    LOG(info) << " mcm tracklet count increment for mcm : " << hcid / 2 * constants::NROBC1 * constants::NMCMROB + rob * constants::NMCMROB + mcm << " made up of hcid:" << hcid << " rob : " << rob << " mcm : " << mcm;
+    mTFStats.mMCMTrackletsFound[hcid / 2 * constants::NROBC1 * constants::NMCMROB + rob * constants::NMCMROB + mcm] += count;
+  }
+  void incMCMDigitCount(int hcid, int rob, int mcm, int count)
+  {
+    LOG(info) << " mcm tracklet count increment for mcm : " << hcid / 2 * constants::NROBC1 * constants::NMCMROB + rob * constants::NMCMROB + mcm << " made up of hcid:" << hcid << " rob : " << rob << " mcm : " << mcm;
+    mTFStats.mMCMDigitsFound[hcid / 2 * constants::NROBC1 * constants::NMCMROB + rob * constants::NMCMROB + mcm] += count;
+  }*/
+
+  void incParsingError(int error, int sm, int side, int stacklayer)
+  {
+    mTFStats.mParsingErrors[error]++;
+    mTFStats.mParsingErrorsByLink[(sm * 2 + side) * 30 * TRDLastParsingError + TRDLastParsingError * stacklayer + error]++;
+  } // halfsm and stacklayer are the x and y of the 2d histograms
+  void resetCounters();
+  void accumulateStats();
 
  private:
   std::vector<EventRecord> mEventRecords;
   //these 2 are hacks to be able to send bak a blank vector if interaction record is not found.
   std::vector<Tracklet64> mDummyTracklets;
   std::vector<Digit> mDummyDigits;
+
+  TRDDataCountersPerTimeFrame mTFStats;
+
   TH1F* mPackagingTime{nullptr};
 };
 
