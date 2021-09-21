@@ -333,8 +333,7 @@ void TableToTree::addBranch(std::shared_ptr<arrow::ChunkedArray> column, std::sh
 TTree* TableToTree::process()
 {
   int64_t row = 0;
-  bool writable = (mTree->GetNbranches() > 0) && (mRows > 0);
-  if (!writable) {
+  if (mTree->GetNbranches() == 0 || mRows == 0) {
     mTree->Write("", TObject::kOverwrite);
     return mTree;
   }
