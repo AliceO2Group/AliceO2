@@ -226,11 +226,13 @@ void DataRequest::requestFV0RecPoints(bool mc)
 void DataRequest::requestFDDRecPoints(bool mc)
 {
   addInput({"fddrecpoints", "FDD", "RECPOINTS", 0, Lifetime::Timeframe});
+  addInput({"fddchannels", "FDD", "RECCHDATA", 0, Lifetime::Timeframe});
   if (mc) {
     LOG(ERROR) << "FDD RecPoint does not support MC truth";
   }
   requestMap["FDD"] = false;
 }
+
 
 void DataRequest::requestZDCRecEvents(bool mc)
 {
@@ -410,20 +412,24 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addFT0RecPoints(pc, req->second);
   }
 
+
   req = reqMap.find("FV0");
   if (req != reqMap.end()) {
     addFV0RecPoints(pc, req->second);
   }
+
 
   req = reqMap.find("FDD");
   if (req != reqMap.end()) {
     addFDDRecPoints(pc, req->second);
   }
 
+
   req = reqMap.find("ZDC");
   if (req != reqMap.end()) {
     addZDCRecEvents(pc, req->second);
   }
+
 
   req = reqMap.find("trackletTRD");
   if (req != reqMap.end()) {
@@ -652,6 +658,7 @@ void RecoContainer::addFT0RecPoints(ProcessingContext& pc, bool mc)
 }
 
 //__________________________________________________________
+<<<<<<< Updated upstream
 void RecoContainer::addFV0RecPoints(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::FV0].registerContainer(pc.inputs().get<gsl::span<o2::fv0::RecPoints>>("fv0recpoints"), TRACKS);
@@ -666,12 +673,19 @@ void RecoContainer::addFV0RecPoints(ProcessingContext& pc, bool mc)
 void RecoContainer::addFDDRecPoints(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::FDD].registerContainer(pc.inputs().get<gsl::span<o2::fdd::RecPoint>>("fddrecpoints"), TRACKS);
+=======
+void RecoContainer::addFDDRecPoints(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::FDD].registerContainer(pc.inputs().get<gsl::span<o2::fdd::RecPoint>>("fddrecpoints"), TRACKS);
+  commonPool[GTrackID::FDD].registerContainer(pc.inputs().get<gsl::span<o2::fdd::ChannelDataFloat>>("fddchannels"), CLUSTERS);
+>>>>>>> Stashed changes
 
   if (mc) {
     LOG(ERROR) << "FDD RecPoint does not support MC truth";
   }
 }
 
+<<<<<<< Updated upstream
 //__________________________________________________________
 void RecoContainer::addZDCRecEvents(ProcessingContext& pc, bool mc)
 {
@@ -685,6 +699,8 @@ void RecoContainer::addZDCRecEvents(ProcessingContext& pc, bool mc)
   }
 }
 
+=======
+>>>>>>> Stashed changes
 const o2::tpc::ClusterNativeAccess& RecoContainer::getTPCClusters() const
 {
   return inputsTPCclusters->clusterIndex;

@@ -29,6 +29,7 @@ using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 DataProcessorSpec getFDDRecPointWriterSpec(bool useMC)
 {
   using RecPointsType = std::vector<o2::fdd::RecPoint>;
+  using ChanDataType = std::vector<o2::fdd::ChannelDataFloat>;
   // Spectators for logging
   auto logger = [](RecPointsType const& recPoints) {
     LOG(INFO) << "FDDRecPointWriter pulled " << recPoints.size() << " RecPoints";
@@ -40,7 +41,10 @@ DataProcessorSpec getFDDRecPointWriterSpec(bool useMC)
                                                                 "FDDCluster",
                                                                 "fdd-recpoint-branch-name",
                                                                 1,
-                                                                logger})();
+                                                                logger},
+                                BranchDefinition<ChanDataType>{InputSpec{"recChData", "FDD", "RECCHDATA", 0},
+                                                               "FDDRecChData",
+                                                               "fdd-rechhdata-branch-name"})();
 }
 
 } // namespace fdd

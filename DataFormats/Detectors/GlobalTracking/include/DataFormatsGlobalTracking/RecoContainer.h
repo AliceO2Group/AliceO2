@@ -91,6 +91,7 @@ class RecPoints;
 class ChannelDataFloat;
 } // namespace o2::ft0
 
+<<<<<<< Updated upstream
 namespace o2::fv0
 {
 class RecPoints;
@@ -109,6 +110,14 @@ class ZDCEnergy;
 class ZDCTDCData;
 } // namespace o2::zdc
 
+=======
+namespace o2::fdd
+{
+class RecPoint;
+class ChannelDataFloat;
+} // namespace o2::fdd
+
+>>>>>>> Stashed changes
 namespace o2::dataformats
 {
 class TrackTPCITS;
@@ -161,9 +170,13 @@ struct DataRequest {
   void requestTPCTRDTracks(bool mc);
   void requestTOFMatches(bool mc);
   void requestFT0RecPoints(bool mc);
+<<<<<<< Updated upstream
   void requestFV0RecPoints(bool mc);
   void requestFDDRecPoints(bool mc);
   void requestZDCRecEvents(bool mc);
+=======
+  void requestFDDRecPoints(bool mc);
+>>>>>>> Stashed changes
 
   void requestITSClusters(bool mc);
   void requestTPCClusters(bool mc);
@@ -272,10 +285,14 @@ struct RecoContainer {
   void addTRDTracklets(o2::framework::ProcessingContext& pc, bool mc);
 
   void addFT0RecPoints(o2::framework::ProcessingContext& pc, bool mc);
+<<<<<<< Updated upstream
   void addFV0RecPoints(o2::framework::ProcessingContext& pc, bool mc);
   void addFDDRecPoints(o2::framework::ProcessingContext& pc, bool mc);
 
   void addZDCRecEvents(o2::framework::ProcessingContext& pc, bool mc);
+=======
+  void addFDDRecPoints(o2::framework::ProcessingContext& pc, bool mc);
+>>>>>>> Stashed changes
 
   void addCosmicTracks(o2::framework::ProcessingContext& pc, bool mc);
 
@@ -484,6 +501,7 @@ struct RecoContainer {
   auto getFT0RecPoints() const { return getSpan<o2::ft0::RecPoints>(GTrackID::FT0, TRACKS); }
   auto getFT0ChannelsData() const { return getSpan<o2::ft0::ChannelDataFloat>(GTrackID::FT0, CLUSTERS); }
 
+<<<<<<< Updated upstream
   // FV0
   auto getFV0RecPoints() const { return getSpan<o2::fv0::RecPoints>(GTrackID::FV0, TRACKS); }
   auto getFV0ChannelsData() const { return getSpan<o2::fv0::ChannelDataFloat>(GTrackID::FV0, CLUSTERS); }
@@ -496,6 +514,11 @@ struct RecoContainer {
   auto getZDCEnergy() const { return getSpan<o2::zdc::ZDCEnergy>(GTrackID::ZDC, TRACKS); }
   auto getZDCTDCData() const { return getSpan<o2::zdc::ZDCTDCData>(GTrackID::ZDC, CLUSTERS); }
   auto getZDCInfo() const { return getSpan<uint16_t>(GTrackID::ZDC, PATTERNS); }
+=======
+  // FDD
+  auto getFDDRecPoints() const { return getSpan<o2::fdd::RecPoint>(GTrackID::FDD, TRACKS); }
+  auto getFDDChannelsData() const { return getSpan<o2::fdd::ChannelDataFloat>(GTrackID::FDD, CLUSTERS); }
+>>>>>>> Stashed changes
 
   // Primary vertices
   const o2::dataformats::PrimaryVertex& getPrimaryVertex(int i) const { return pvtxPool.get_as<o2::dataformats::PrimaryVertex>(PVTX, i); }

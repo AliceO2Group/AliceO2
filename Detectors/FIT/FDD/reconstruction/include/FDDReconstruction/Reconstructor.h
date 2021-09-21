@@ -26,11 +26,14 @@ class Reconstructor
  public:
   Reconstructor() = default;
   ~Reconstructor() = default;
-  void process(const o2::fdd::Digit& digitBC, gsl::span<const o2::fdd::ChannelData> digitCh, std::vector<o2::fdd::RecPoint>& recPoints) const;
+  o2::fdd::RecPoint process(o2::fdd::Digit const& digitBC,
+                            gsl::span<const o2::fdd::ChannelData> inChData,
+                            gsl::span<o2::fdd::ChannelDataFloat> outChData);
+
   void finish();
 
  private:
-  ClassDefNV(Reconstructor, 2);
+  ClassDefNV(Reconstructor, 3);
 };
 } // namespace fdd
 } // namespace o2

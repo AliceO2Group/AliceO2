@@ -48,16 +48,20 @@ void FDDReconstructorDPL::run(ProcessingContext& pc)
   }
   int nDig = digitsBC.size();
   mRecPoints.reserve(nDig);
+  mRecChData.resize(digitsCh.size());
   for (int id = 0; id < nDig; id++) {
     const auto& digit = digitsBC[id];
     auto channels = digit.getBunchChannelData(digitsCh);
-    mReco.process(digit, channels, mRecPoints);
+    gsl::span<o2::fdd::ChannelDataFloat> out_ch(mRecChData);
+    out_ch = out_ch.subspan(digit.ref.getFirstEntry(), digit.ref.getEntries());
+    mRecPoints.emplace_back(mReco.process(digit, channels, out_ch));
   }
 
   // do we ignore MC in this task?
 
   LOG(INFO) << "FDD reconstruction pushes " << mRecPoints.size() << " RecPoints";
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, mRecPoints);
+  pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0, Lifetime::Timeframe}, mRecChData);
 
   mFinished = true;
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -74,6 +78,7 @@ DataProcessorSpec getFDDReconstructorSpec(bool useMC)
     // inputSpec.emplace_back("labels", o2::header::gDataOriginFDD, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
   outputSpec.emplace_back(o2::header::gDataOriginFDD, "RECPOINTS", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back(o2::header::gDataOriginFDD, "RECCHDATA", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "fdd-reconstructor",
