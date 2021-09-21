@@ -114,7 +114,7 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
         auto it = parser.begin();
         auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
         if (!rdhPtr) {
-          LOGP(fatal, "could not get RDH from packet");
+          throw std::runtime_error("could not get RDH from packet");
         }
         const auto link = RDHUtils::getLinkID(*rdhPtr);
         const auto detField = RDHUtils::getDetectorField(*rdhPtr);
@@ -195,7 +195,7 @@ void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReader
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
     if (!rdhPtr) {
-      LOGP(fatal, "could not get RDH from packet");
+      throw std::runtime_error("could not get RDH from packet");
     }
     // workaround for MW2 data
     //const bool useTimeBins = true;
@@ -236,7 +236,7 @@ uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSp
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
       auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
       if (!rdhPtr) {
-        LOGP(fatal, "could not get RDH from packet");
+        throw std::runtime_error("could not get RDH from packet"); // RS: this method is not used at the moment
       }
 
       // only process LinkZSdata, only supported for data where this is already set in the UL
