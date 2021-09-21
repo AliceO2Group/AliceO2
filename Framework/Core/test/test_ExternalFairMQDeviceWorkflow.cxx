@@ -120,7 +120,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   auto checkCounter = [counter, nRolls](EndOfStreamContext&) {
     ASSERT_ERROR(*counter == nRolls);
     if (*counter == nRolls) {
-      LOG(INFO) << "checker has received " << nRolls << " successful event(s)";
+      LOG(info) << "checker has received " << nRolls << " successful event(s)";
     }
   };
   auto checkerInit = [checkerCallback, checkCounter](CallbackService& callbacks) {
@@ -147,12 +147,12 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     int msgidx = 0;
     auto dh = o2::header::get<o2::header::DataHeader*>(inputs.At(msgidx)->GetData());
     if (!dh) {
-      LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
+      LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
       return;
     }
     auto dph = o2::header::get<DataProcessingHeader*>(inputs.At(msgidx)->GetData());
     if (!dph) {
-      LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
+      LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
       return;
     }
     // Note: we want to run both the output and input proxy in the same workflow and thus we need

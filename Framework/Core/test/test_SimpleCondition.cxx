@@ -36,9 +36,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           auto s = ctx.inputs().get<std::string>("condition");
 
           if (s != "Hello") {
-            LOG(ERROR) << "Expecting `Hello', found `" << s << "'";
+            LOG(error) << "Expecting `Hello', found `" << s << "'";
           } else {
-            LOG(INFO) << "Everything OK";
+            LOG(info) << "Everything OK";
           }
           ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
         } //
