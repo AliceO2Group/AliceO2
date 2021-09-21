@@ -49,7 +49,7 @@ void dumpDeviceSpec2DDS(std::ostream& out,
         << fmt::format("<decltask name=\"{}\">\n", spec.id);
     out << "       "
         << R"(<exe reachable="true">)";
-    out << replaceFirstOccurrence(commandInfo.command, "--dds", "--dump") << " | ";
+    out << replaceFirstOccurrence(commandInfo.command, "--odc", "--dump") << " | ";
     for (size_t ei = 0; ei < execution.environ.size(); ++ei) {
       out << fmt::format(execution.environ[ei],
                          fmt::arg("timeslice0", spec.inputTimesliceId),
@@ -89,7 +89,7 @@ void dumpDeviceSpec2DDS(std::ostream& out,
         out << fmt::format(R"({} )", arg);
       }
     }
-    out << "--plugin dds";
+    out << "--plugin odc";
     if (accumulatedChannelPrefix.empty() == false) {
       out << " --channel-config \"" << accumulatedChannelPrefix << "\"";
     }
