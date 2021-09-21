@@ -34,5 +34,5 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(const ConfigContext& config)
 {
   bool forTrackFitter = config.options().get<bool>("forTrackFitter");
-  return WorkflowSpec{o2::mch::getTrackSamplerSpec(forTrackFitter)};
+  return WorkflowSpec{o2::mch::getTrackSamplerSpec("mch-track-sampler", forTrackFitter)};
 }

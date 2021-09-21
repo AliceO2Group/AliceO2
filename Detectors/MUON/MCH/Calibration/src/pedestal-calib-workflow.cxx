@@ -17,11 +17,13 @@
 
 using namespace o2::framework;
 
+const char* specName = "mch-calib-pedestals";
+
 // customize the completion policy
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName(getMCHPedestalCalibDeviceName(), CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName(specName, CompletionPolicy::CompletionOp::Consume));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -41,6 +43,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   const std::string inputSpec = configcontext.options().get<std::string>("input-spec");
   WorkflowSpec specs;
-  specs.emplace_back(getMCHPedestalCalibSpec(inputSpec));
+  specs.emplace_back(getMCHPedestalCalibSpec(specName, inputSpec));
   return specs;
 }

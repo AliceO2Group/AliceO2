@@ -157,14 +157,14 @@ class ClusterSamplerTask
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getClusterSamplerSpec(bool globalReferenceSystem)
+o2::framework::DataProcessorSpec getClusterSamplerSpec(const char* specName, bool globalReferenceSystem)
 {
 
   std::string spec = fmt::format("clusters:MCH/{}CLUSTERS/0", globalReferenceSystem ? "GLOBAL" : "");
   InputSpec itmp = o2::framework::select(spec.c_str())[0];
 
   return DataProcessorSpec{
-    "ClusterSampler",
+    specName,
     Inputs{},
     Outputs{OutputSpec{{"rofs"}, "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe},
             DataSpecUtils::asOutputSpec(itmp)},
@@ -176,5 +176,5 @@ o2::framework::DataProcessorSpec getClusterSamplerSpec(bool globalReferenceSyste
 //_________________________________________________________________________________________________
 WorkflowSpec defineDataProcessing(const ConfigContext& cc)
 {
-  return WorkflowSpec{getClusterSamplerSpec(cc.options().get<bool>("global"))};
+  return WorkflowSpec{getClusterSamplerSpec("mch-cluster-sampler", cc.options().get<bool>("global"))};
 }

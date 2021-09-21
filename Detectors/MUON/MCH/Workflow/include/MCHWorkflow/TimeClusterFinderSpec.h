@@ -24,7 +24,7 @@ namespace o2
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getTimeClusterFinderSpec(const char* specName = "TimeClusterFinder");
+o2::framework::DataProcessorSpec getTimeClusterFinderSpec(const char* specName = "mch-time-cluster-finder");
 
 } // end namespace mch
 } // end namespace o2

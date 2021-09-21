@@ -102,7 +102,7 @@ struct TrackReader {
   }
 };
 
-DataProcessorSpec getTrackReaderSpec(bool useMC, const char* name)
+DataProcessorSpec getTrackReaderSpec(bool useMC, const char* specName)
 {
   std::vector<OutputSpec> outputSpecs;
   outputSpecs.emplace_back(OutputSpec{{"tracks"}, "MCH", "TRACKS", 0, Lifetime::Timeframe});
@@ -117,7 +117,7 @@ DataProcessorSpec getTrackReaderSpec(bool useMC, const char* name)
   };
 
   return DataProcessorSpec{
-    name,
+    specName,
     Inputs{},
     outputSpecs,
     adaptFromTask<TrackReader>(useMC),

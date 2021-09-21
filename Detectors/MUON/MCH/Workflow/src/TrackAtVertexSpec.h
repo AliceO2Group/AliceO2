@@ -24,7 +24,7 @@ namespace o2
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getTrackAtVertexSpec(const char* name = "TrackAtVertex");
+o2::framework::DataProcessorSpec getTrackAtVertexSpec(const char* specName = "mch-track-at-vertex");
 
 } // end namespace mch
 } // end namespace o2

@@ -389,16 +389,13 @@ class PedestalsTask
 
 using namespace o2::framework;
 
-std::string getMCHPedestalDecodingDeviceName()
-{
-  return "mch-pedestal-decoder";
-}
+const char* specName = "mch-pedestal-decoder";
 
 // customize the completion policy
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName(getMCHPedestalDecodingDeviceName(), CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName(specName, CompletionPolicy::CompletionOp::Consume));
 }
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -413,11 +410,11 @@ using namespace o2;
 using namespace o2::framework;
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getMCHPedestalDecodingSpec(std::string inputSpec)
+o2::framework::DataProcessorSpec getMCHPedestalDecodingSpec(const char* specName, std::string inputSpec)
 {
   //o2::mch::raw::PedestalsTask task();
   return DataProcessorSpec{
-    getMCHPedestalDecodingDeviceName(),
+    specName,
     o2::framework::select(inputSpec.c_str()),
     Outputs{OutputSpec{header::gDataOriginMCH, "PDIGITS", 0, Lifetime::Timeframe},
             OutputSpec{header::gDataOriginMCH, "ERRORS", 0, Lifetime::Timeframe}},
@@ -437,7 +434,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& config)
 
   WorkflowSpec specs;
 
-  DataProcessorSpec producer = getMCHPedestalDecodingSpec(inputSpec);
+  DataProcessorSpec producer = getMCHPedestalDecodingSpec(specName, inputSpec);
   specs.push_back(producer);
 
   return specs;

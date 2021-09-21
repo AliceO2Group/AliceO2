@@ -6,6 +6,7 @@
 
 <!-- vim-markdown-toc GFM -->
 
+* [A note for developers](#a-note-for-developers)
 * [Raw to digits](#raw-to-digits)
 * [Time clustering](#time-clustering)
 * [Preclustering](#preclustering)
@@ -30,6 +31,17 @@
   * [Track writer](#track-writer)
 
 <!-- vim-markdown-toc -->
+
+
+## A note for developers
+
+When defining a function that returns a `DataProcessorSpec`, please stick to the following pattern for its parameters :
+
+    DataProcessorSpec getXXX([bool useMC], const char* specName="mch-xxx", other parameters);
+
+* first parameter, if relevant, should be a boolean indicating whether the processor has to deal with Monte Carlo data or not. For a processor that never has to deal with MC, leave that parameter out
+* second parameter is the name by which that device will be referenced in all log files, so, in order to be easily recognizable, it *must* start with the prefix `mch-`
+* the rest of the parameters (if any) is specific to each device
 
 ## Raw to digits
 

@@ -214,10 +214,10 @@ class DigitSamplerTask
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getDigitSamplerSpec()
+o2::framework::DataProcessorSpec getDigitSamplerSpec(const char* specName)
 {
   return DataProcessorSpec{
-    "DigitSampler",
+    specName,
     Inputs{},
     Outputs{OutputSpec{{"rofs"}, "MCH", "DIGITROFS", 0, Lifetime::Timeframe},
             OutputSpec{{"digits"}, "MCH", "DIGITS", 0, Lifetime::Timeframe}},

@@ -24,7 +24,7 @@ namespace o2
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getTrackSinkSpec(bool mchTracks, bool tracksAtVtx);
+o2::framework::DataProcessorSpec getTrackSinkSpec(const char* specName, bool mchTracks, bool tracksAtVtx);
 
 } // end namespace mch
 } // end namespace o2

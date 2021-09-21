@@ -23,7 +23,7 @@ namespace o2
 {
 namespace mch
 {
-framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* name = "mch-sim-digit-reader");
+framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* specName = "mch-sim-digit-reader");
 }
 } // namespace o2
 

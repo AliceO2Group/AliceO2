@@ -79,14 +79,14 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec()
+DataProcessorSpec getEntropyDecoderSpec(const char* specName)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"rofs"}, "MCH", "DIGITROFS", 0, Lifetime::Timeframe},
     OutputSpec{{"digits"}, "MCH", "DIGITS", 0, Lifetime::Timeframe}};
 
   return DataProcessorSpec{
-    "mch-entropy-decoder",
+    specName,
     Inputs{InputSpec{"ctf", "MCH", "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},

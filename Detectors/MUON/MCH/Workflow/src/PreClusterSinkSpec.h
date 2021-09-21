@@ -24,7 +24,7 @@ namespace o2
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getPreClusterSinkSpec();
+o2::framework::DataProcessorSpec getPreClusterSinkSpec(const char* specName = "mch-precluster-sink");
 
 } // end namespace mch
 } // end namespace o2
