@@ -275,7 +275,7 @@ class AODProducerWorkflowDPL : public Task
 
   template <typename TracksCursorType, typename TracksCovCursorType>
   void addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
-                        const o2::track::TrackParCov& track, int collisionID, int src);
+                        const o2::track::TrackParCov& track, int collisionID);
 
   template <typename TracksExtraCursorType>
   void addToTracksExtraTable(TracksExtraCursorType& tracksExtraCursor, TrackExtraInfo& extraInfoHolder);
