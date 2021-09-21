@@ -127,12 +127,12 @@ uint64_t AODProducerWorkflowDPL::getTFNumber(const o2::InteractionRecord& tfStar
 
 template <typename TracksCursorType, typename TracksCovCursorType>
 void AODProducerWorkflowDPL::addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
-                                              const o2::track::TrackParCov& track, int collisionID, int src)
+                                              const o2::track::TrackParCov& track, int collisionID)
 {
   // tracks
   tracksCursor(0,
                collisionID,
-               src,
+               o2::aod::track::Track,
                truncateFloatFraction(track.getX(), mTrackX),
                truncateFloatFraction(track.getAlpha(), mTrackAlpha),
                track.getY(),
@@ -291,15 +291,15 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             }
             const auto& tofCl = tofClus[contributorsGID[GIndex::Source::TOF]];
             // correct the time of the track
-            extraInfoHolder.trackTime = (tofCl.getTime() - tofInt.getTOF(trackPar.getPID())) * 1e-3;  // tof time in \mus, FIXME: account for time of flight to R TOF
-            extraInfoHolder.trackTimeRes = 200e-3;                                                    // FIXME: calculate actual resolution (if possible?)
+            extraInfoHolder.trackTime = (tofCl.getTime() - tofInt.getTOF(trackPar.getPID())) * 1e-3; // tof time in \mus, FIXME: account for time of flight to R TOF
+            extraInfoHolder.trackTimeRes = 200e-3;                                                   // FIXME: calculate actual resolution (if possible?)
           }
           if (src == GIndex::Source::TPCTRD || src == GIndex::Source::ITSTPCTRD) {
             const auto& trdOrig = data.getTrack<o2::trd::TrackTRD>(src, contributorsGID[src].getIndex());
             extraInfoHolder.trdChi2 = trdOrig.getChi2();
             extraInfoHolder.trdPattern = getTRDPattern(trdOrig);
           }
-          addToTracksTable(tracksCursor, tracksCovCursor, trackPar, collisionID, src);
+          addToTracksTable(tracksCursor, tracksCovCursor, trackPar, collisionID);
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
           // collecting table indices of barrel tracks for V0s table
           mGIDToTableID.emplace(trackIndex, mTableTrID);
