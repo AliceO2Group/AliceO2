@@ -240,15 +240,16 @@ TableToTree::TableToTree(std::shared_ptr<arrow::Table> table, TFile* file, const
 {
   mTable = table.get();
   mTree = static_cast<TTree*>(file->Get(treename));
-  if (mTree == nullptr) {
-    std::string treeName(treename);
-    auto pos = treeName.find_first_of('/');
-    if (pos != std::string::npos) {
-      file->cd(treeName.substr(0, pos).c_str());
-      treeName = treeName.substr(pos + 1, std::string::npos);
-    }
-    mTree = new TTree(treeName.c_str(), treeName.c_str());
+  if (mTree != nullptr) {
+    return;
   }
+  std::string treeName(treename);
+  auto pos = treeName.find_first_of('/');
+  if (pos != std::string::npos) {
+    file->cd(treeName.substr(0, pos).c_str());
+    treeName = treeName.substr(pos + 1, std::string::npos);
+  }
+  mTree = new TTree(treeName.c_str(), treeName.c_str());
 }
 
 void TableToTree::addAllBranches()
