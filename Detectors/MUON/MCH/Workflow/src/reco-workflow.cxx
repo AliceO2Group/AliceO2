@@ -64,7 +64,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::mch::getDigitReaderSpec(useMC, "mch-sim-digit-reader"));
   }
   if (enableTimeClustering) {
-    specs.emplace_back(o2::mch::getTimeClusterFinderSpec("mch-time-clustering"));
+    specs.emplace_back(o2::mch::getTimeClusterFinderSpec("mch-time-cluster-finder"));
   }
 
   specs.emplace_back(o2::mch::getPreClusterFinderSpec("mch-precluster-finder",

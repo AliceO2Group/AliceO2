@@ -16,7 +16,7 @@
 
 namespace o2::mch
 {
-o2::framework::DataProcessorSpec getTrackReaderSpec(bool useMC, const char* name = "mch-tracks-reader");
+o2::framework::DataProcessorSpec getTrackReaderSpec(bool useMC, const char* specName = "mch-tracks-reader");
 }
 
 #endif

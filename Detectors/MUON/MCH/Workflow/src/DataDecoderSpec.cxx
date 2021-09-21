@@ -89,8 +89,8 @@ class DataDecoderTask
                                useDummyElecMap);
 
     auto stop = [this]() {
-      LOG(INFO) << "decoding duration = " << mTimeDecoding.count() * 1000 / mTFcount << " us / TF";
-      LOG(INFO) << "ROF finder duration = " << mTimeROFFinder.count() * 1000 / mTFcount << " us / TF";
+      LOG(error) << "mch-data-decoder: decoding duration = " << mTimeDecoding.count() * 1000 / mTFcount << " us / TF";
+      LOG(error) << "mch-data-decoder: ROF finder duration = " << mTimeROFFinder.count() * 1000 / mTFcount << " us / TF";
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
   }
@@ -301,7 +301,7 @@ class DataDecoderTask
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec,
+o2::framework::DataProcessorSpec getDecodingSpec(const char* specName, std::string inputSpec,
                                                  bool askSTFDist)
 {
   auto inputs = o2::framework::select(inputSpec.c_str());
@@ -317,7 +317,7 @@ o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec,
   }
   o2::mch::raw::DataDecoderTask task(inputSpec);
   return DataProcessorSpec{
-    "DataDecoder",
+    specName,
     inputs,
     Outputs{OutputSpec{header::gDataOriginMCH, "DIGITS", 0, Lifetime::Timeframe},
             OutputSpec{header::gDataOriginMCH, "DIGITROFS", 0, Lifetime::Timeframe},

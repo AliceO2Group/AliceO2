@@ -121,7 +121,7 @@ class DigitSamplerTask : public io::DigitIOBaseTask
   }
 };
 
-o2::framework::DataProcessorSpec getDataProcessorSpec(bool run2)
+o2::framework::DataProcessorSpec getDigitsFileReaderSpec(const char* specName, bool run2)
 {
   std::string spec = fmt::format("digits:MCH/DIGITS{}/0", run2 ? "R2" : "");
   InputSpec itmp = o2::framework::select(spec.c_str())[0];
@@ -134,7 +134,7 @@ o2::framework::DataProcessorSpec getDataProcessorSpec(bool run2)
   options.insert(options.end(), commonOptions.begin(), commonOptions.end());
 
   return DataProcessorSpec{
-    "mch-digits-file-reader",
+    specName,
     Inputs{},
     Outputs{{DataSpecUtils::asOutputSpec(itmp)},
             OutputSpec{{"rofs"}, "MCH", "DIGITROFS", 0, Lifetime::Timeframe}},
@@ -142,7 +142,7 @@ o2::framework::DataProcessorSpec getDataProcessorSpec(bool run2)
     options};
 }
 
-/** add workflow options. Note that customization needs to be declared 
+/** add workflow options. Note that customization needs to be declared
 * before including Framework/runDataProcessing
 */
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -156,5 +156,5 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 //_________________________________________________________________________________________________
 WorkflowSpec defineDataProcessing(const ConfigContext& cc)
 {
-  return WorkflowSpec{getDataProcessorSpec(cc.options().get<bool>(OPTNAME_RUN2))};
+  return WorkflowSpec{getDigitsFileReaderSpec("mch-digits-file-reader", cc.options().get<bool>(OPTNAME_RUN2))};
 }

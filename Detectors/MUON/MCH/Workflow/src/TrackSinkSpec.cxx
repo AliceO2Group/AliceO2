@@ -204,7 +204,7 @@ class TrackSinkTask
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getTrackSinkSpec(bool mchTracks, bool tracksAtVtx)
+o2::framework::DataProcessorSpec getTrackSinkSpec(const char* specName, bool mchTracks, bool tracksAtVtx)
 {
   Inputs inputs{};
   if (mchTracks) {
@@ -220,7 +220,7 @@ o2::framework::DataProcessorSpec getTrackSinkSpec(bool mchTracks, bool tracksAtV
   }
 
   return DataProcessorSpec{
-    "TrackSink",
+    specName,
     inputs,
     Outputs{},
     AlgorithmSpec{adaptFromTask<TrackSinkTask>()},

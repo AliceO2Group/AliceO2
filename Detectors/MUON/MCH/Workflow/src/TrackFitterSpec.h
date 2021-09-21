@@ -24,7 +24,7 @@ namespace o2
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getTrackFitterSpec();
+o2::framework::DataProcessorSpec getTrackFitterSpec(const char* specName = "mch-track-fitter");
 
 } // end namespace mch
 } // end namespace o2

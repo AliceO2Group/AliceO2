@@ -108,7 +108,7 @@ class DigitsReaderDeviceDPL
   bool mUseMC = true;
 };
 
-framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* name)
+framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* specName)
 {
   std::vector<of::OutputSpec> outputs;
   std::vector<header::DataDescription> descriptions;
@@ -125,7 +125,7 @@ framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* name)
   }
 
   return of::DataProcessorSpec{
-    name,
+    specName,
     of::Inputs{},
     outputs,
     of::AlgorithmSpec{of::adaptFromTask<o2::mch::DigitsReaderDeviceDPL>(useMC, descriptions)},

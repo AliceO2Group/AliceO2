@@ -244,7 +244,7 @@ if [ $CTFINPUT == 0 ]; then
   has_detector FT0 && WORKFLOW+="o2-ft0-flp-dpl-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-output --pipeline ft0-datareader-dpl:$N_F_RAW | "
   has_detector FV0 && WORKFLOW+="o2-fv0-flp-dpl-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-output --pipeline fv0-datareader-dpl:$N_F_RAW | "
   has_detector MID && WORKFLOW+="o2-mid-raw-to-digits-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" $MIDDEC_CONFIG --pipeline MIDRawDecoder:$N_F_RAW,MIDDecodedDataAggregator:$N_F_RAW | "
-  has_detector MCH && WORKFLOW+="o2-mch-raw-to-digits-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline DataDecoder:$N_F_RAW | "
+  has_detector MCH && WORKFLOW+="o2-mch-raw-to-digits-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline mch-data-decoder:$N_F_RAW | "
   has_detector TOF && [ $EPNMODE == 0 ] && WORKFLOW+="o2-tof-compressor $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" | "
   has_detector FDD && WORKFLOW+="o2-fdd-flp-dpl-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-output --pipeline fdd-datareader-dpl:$N_F_RAW | "
   has_detector TRD && WORKFLOW+="o2-trd-datareader $ARGS_ALL --pipeline trd-datareader:$N_F_RAW | "

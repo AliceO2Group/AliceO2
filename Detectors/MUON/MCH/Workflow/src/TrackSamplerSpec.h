@@ -24,7 +24,7 @@ namespace o2
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getTrackSamplerSpec(bool forTrackFitter);
+o2::framework::DataProcessorSpec getTrackSamplerSpec(const char* specName, bool forTrackFitter);
 
 } // end namespace mch
 } // end namespace o2
