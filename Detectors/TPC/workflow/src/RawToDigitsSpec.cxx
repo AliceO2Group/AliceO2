@@ -24,6 +24,8 @@
 #include "Headers/DataHeader.h"
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #include "TPCQC/Clusters.h"
 #include "TPCBase/Mapper.h"
@@ -60,6 +62,16 @@ class TPCDigitDumpDevice : public o2::framework::Task
 
     // set up ADC value filling
     mRawReader.createReader("");
+
+    const auto inputGRP = o2::base::NameConf::getGRPFileName();
+    const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+    if (grp) {
+      const auto nhbf = (int)grp->getNHBFPerTF();
+      const int lastTimeBin = nhbf * 891 / 2;
+      mDigitDump.setTimeBinRange(0, lastTimeBin);
+      LOGP(info, "Using GRP NHBF = {} to set last time bin to {}, might be overwritte via --configKeyValues", nhbf, lastTimeBin);
+    }
+
     mDigitDump.init();
     mDigitDump.setInMemoryOnly();
     const auto pedestalFile = ic.options().get<std::string>("pedestal-file");

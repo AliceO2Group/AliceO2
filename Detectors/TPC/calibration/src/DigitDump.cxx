@@ -15,7 +15,7 @@
 #include "TTree.h"
 #include "TString.h"
 
-#include <fairlogger/Logger.h>
+#include "Framework/Logger.h"
 
 #include "TPCBase/Mapper.h"
 #include "TPCBase/ROC.h"
@@ -37,8 +37,14 @@ void DigitDump::init()
 {
   const auto& param = DigitDumpParam::Instance();
 
-  mFirstTimeBin = param.FirstTimeBin;
-  mLastTimeBin = param.LastTimeBin;
+  if (param.FirstTimeBin >= 0) {
+    mFirstTimeBin = param.FirstTimeBin;
+    LOGP(info, "Setting FirstTimeBin = {} from TPCDigitDump.FirstTimeBin", mFirstTimeBin);
+  }
+  if (param.LastTimeBin >= 0) {
+    mLastTimeBin = param.LastTimeBin;
+    LOGP(info, "Setting LastTimeBin = {} from TPCDigitDump.LastTimeBin", mLastTimeBin);
+  }
   mADCMin = param.ADCMin;
   mADCMax = param.ADCMax;
   mNoiseThreshold = param.NoiseThreshold;
