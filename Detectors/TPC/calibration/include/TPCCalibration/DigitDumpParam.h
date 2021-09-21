@@ -25,8 +25,8 @@ namespace tpc
 {
 
 struct DigitDumpParam : public o2::conf::ConfigurableParamHelper<DigitDumpParam> {
-  int FirstTimeBin{0};                ///< first time bin used in analysis
-  int LastTimeBin{1000};              ///< first time bin used in analysis
+  int FirstTimeBin{-1};               ///< first time bin used in analysis
+  int LastTimeBin{-1};                ///< first time bin used in analysis
   int ADCMin{-100};                   ///< minimum adc value
   int ADCMax{1024};                   ///< maximum adc value
   float NoiseThreshold{-1};           ///< zero suppression threshold in noise sigma
