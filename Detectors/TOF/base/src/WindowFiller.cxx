@@ -108,7 +108,9 @@ void WindowFiller::reset()
 //______________________________________________________________________
 void WindowFiller::fillDigitsInStrip(std::vector<Strip>* strips, int channel, int tdc, int tot, uint64_t nbc, UInt_t istrip, uint32_t triggerorbit, uint16_t triggerbunch)
 {
-  (*strips)[istrip].addDigit(channel, tdc, tot, nbc, 0, triggerorbit, triggerbunch);
+  if (channel > -1) { // check channel validity
+    (*strips)[istrip].addDigit(channel, tdc, tot, nbc, 0, triggerorbit, triggerbunch);
+  }
 }
 //______________________________________________________________________
 void WindowFiller::addCrateHeaderData(unsigned long orbit, int crate, int32_t bc, uint32_t eventCounter)
