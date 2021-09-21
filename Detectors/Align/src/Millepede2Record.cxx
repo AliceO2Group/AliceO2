@@ -89,7 +89,7 @@ bool Millepede2Record::fillTrack(const AlignmentTrack* trc, const int* id2Lab)
   // fill track info, optionally substitutind glopar par ID by label
   //
   if (!trc->getDerivDone()) {
-    LOG(ERROR) << "Track derivatives are not yet evaluated";
+    LOG(error) << "Track derivatives are not yet evaluated";
     return false;
   }
   mNVarLoc = trc->getNLocPar(); // number of local degrees of freedom in the track
@@ -208,7 +208,7 @@ bool Millepede2Record::fillTrack(const AlignmentTrack* trc, const int* id2Lab)
   }
   //
   if (!mNDGloTot) {
-    LOG(INFO) << "Track does not depend on free global parameters, discard";
+    LOG(info) << "Track does not depend on free global parameters, discard";
     return false;
   }
   return true;

@@ -52,13 +52,13 @@ BadChannelMap::BadChannelMap(short test)
 void BadChannelMap::getHistogramRepresentation(short module, TH2* h) const
 {
   if (!h) {
-    LOG(ERROR) << "provide histogram to be filled";
+    LOG(error) << "provide histogram to be filled";
   }
 
   const short MAXX = 128,
               MAXZ = 60;
   if (h->GetNbinsX() != MAXX || h->GetNbinsY() != MAXZ) {
-    LOG(ERROR) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
+    LOG(error) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
     return;
   }
 

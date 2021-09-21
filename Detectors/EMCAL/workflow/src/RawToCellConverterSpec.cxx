@@ -41,7 +41,7 @@ using namespace o2::emcal::reco_workflow;
 RawToCellConverterSpec::~RawToCellConverterSpec()
 {
   if (mErrorMessagesSuppressed) {
-    LOG(WARNING) << "Suppressed further " << mErrorMessagesSuppressed << " error messages";
+    LOG(warning) << "Suppressed further " << mErrorMessagesSuppressed << " error messages";
   }
 }
 
@@ -50,36 +50,36 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   auto& ilctx = ctx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
   ilctx.setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, "EMC");
 
-  LOG(DEBUG) << "[EMCALRawToCellConverter - init] Initialize converter ";
+  LOG(debug) << "[EMCALRawToCellConverter - init] Initialize converter ";
   if (!mGeometry) {
     mGeometry = Geometry::GetInstanceFromRunNumber(223409);
   }
   if (!mGeometry) {
-    LOG(ERROR) << "Failure accessing geometry";
+    LOG(error) << "Failure accessing geometry";
   }
 
   if (!mMapper) {
     mMapper = std::unique_ptr<MappingHandler>(new o2::emcal::MappingHandler);
   }
   if (!mMapper) {
-    LOG(ERROR) << "Failed to initialize mapper";
+    LOG(error) << "Failed to initialize mapper";
   }
 
   auto fitmethod = ctx.options().get<std::string>("fitmethod");
   if (fitmethod == "standard") {
-    LOG(INFO) << "Using standard raw fitter";
+    LOG(info) << "Using standard raw fitter";
     mRawFitter = std::unique_ptr<CaloRawFitter>(new o2::emcal::CaloRawFitterStandard);
   } else if (fitmethod == "gamma2") {
-    LOG(INFO) << "Using gamma2 raw fitter";
+    LOG(info) << "Using gamma2 raw fitter";
     mRawFitter = std::unique_ptr<CaloRawFitter>(new o2::emcal::CaloRawFitterGamma2);
   } else {
-    LOG(FATAL) << "Unknown fit method" << fitmethod;
+    LOG(fatal) << "Unknown fit method" << fitmethod;
   }
 
   mPrintTrailer = ctx.options().get<bool>("printtrailer");
 
   mMaxErrorMessages = ctx.options().get<int>("maxmessage");
-  LOG(INFO) << "Suppressing error messages after " << mMaxErrorMessages << " messages";
+  LOG(info) << "Suppressing error messages after " << mMaxErrorMessages << " messages";
 
   mRawFitter->setAmpCut(mNoiseThreshold);
   mRawFitter->setL1Phase(0.);
@@ -87,7 +87,7 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 {
-  LOG(DEBUG) << "[EMCALRawToCellConverter - run] called";
+  LOG(debug) << "[EMCALRawToCellConverter - run] called";
   const double CONVADCGEV = 0.016; // Conversion from ADC counts to energy: E = 16 MeV / ADC
   constexpr auto originEMC = o2::header::gDataOriginEMC;
   constexpr auto descRaw = o2::header::gDataDescriptionRawData;
@@ -127,10 +127,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       } catch (RawDecodingError& e) {
         mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()));
         if (mNumErrorMessages < mMaxErrorMessages) {
-          LOG(ERROR) << " EMCAL raw task: " << e.what() << " in FEC " << e.getFECID() << std::endl;
+          LOG(error) << " EMCAL raw task: " << e.what() << " in FEC " << e.getFECID() << std::endl;
           mNumErrorMessages++;
           if (mNumErrorMessages == mMaxErrorMessages) {
-            LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+            LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
           }
         } else {
           mErrorMessagesSuppressed++;
@@ -200,10 +200,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             break;
         }
         if (mNumErrorMessages < mMaxErrorMessages) {
-          LOG(ERROR) << " EMCAL raw task: " << errormessage << " in Supermodule " << feeID << std::endl;
+          LOG(error) << " EMCAL raw task: " << errormessage << " in Supermodule " << feeID << std::endl;
           mNumErrorMessages++;
           if (mNumErrorMessages == mMaxErrorMessages) {
-            LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+            LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
           }
         } else {
           mErrorMessagesSuppressed++;
@@ -216,13 +216,13 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       if (mPrintTrailer) {
         // Can become very verbose, therefore must be switched on explicitly in addition
         // to high debug level
-        LOG(DEBUG4) << decoder.getRCUTrailer();
+        LOG(debug4) << decoder.getRCUTrailer();
       }
       // Apply zero suppression only in case it was enabled
       if (decoder.getRCUTrailer().hasZeroSuppression()) {
-        LOG(DEBUG3) << "Zero suppression enabled";
+        LOG(debug3) << "Zero suppression enabled";
       } else {
-        LOG(DEBUG3) << "Zero suppression disabled";
+        LOG(debug3) << "Zero suppression disabled";
       }
       mRawFitter->setIsZeroSuppressed(decoder.getRCUTrailer().hasZeroSuppression());
 
@@ -240,7 +240,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           iCol = map.getColumn(chan.getHardwareAddress());
           chantype = map.getChannelType(chan.getHardwareAddress());
         } catch (Mapper::AddressNotFoundException& ex) {
-          LOG(ERROR) << ex.what();
+          LOG(error) << ex.what();
           continue;
         };
 
@@ -267,10 +267,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                 celltypename = "LEDMON";
                 break;
             };
-            LOG(ERROR) << "Sending invalid cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
+            LOG(error) << "Sending invalid cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
             mNumErrorMessages++;
             if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+              LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
             }
           } else {
             mErrorMessagesSuppressed++;
@@ -295,10 +295,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                 celltypename = "LEDMON";
                 break;
             };
-            LOG(ERROR) << "Sending negative cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
+            LOG(error) << "Sending negative cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
             mNumErrorMessages++;
             if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+              LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
             }
           } else {
             mErrorMessagesSuppressed++;
@@ -322,16 +322,16 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           if (fiterror != CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK) {
             // Display
             if (mNumErrorMessages < mMaxErrorMessages) {
-              LOG(ERROR) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+              LOG(error) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
               mNumErrorMessages++;
               if (mNumErrorMessages == mMaxErrorMessages) {
-                LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+                LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
               }
             } else {
               mErrorMessagesSuppressed++;
             }
           } else {
-            LOG(DEBUG2) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+            LOG(debug2) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
             nBunchesNotOK++;
           }
           mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror));
@@ -339,7 +339,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         currentCellContainer->emplace_back(CellID, fitResults.getAmp() * CONVADCGEV, fitResults.getTime(), chantype);
       }
       if (nBunchesNotOK) {
-        LOG(DEBUG) << "Number of failed bunches: " << nBunchesNotOK;
+        LOG(debug) << "Number of failed bunches: " << nBunchesNotOK;
       }
     }
   }
@@ -348,7 +348,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   for (auto [bc, cells] : cellBuffer) {
     mOutputTriggerRecords.emplace_back(bc, triggerBuffer[bc], mOutputCells.size(), cells->size());
     if (cells->size()) {
-      LOG(DEBUG) << "Event has " << cells->size() << " cells";
+      LOG(debug) << "Event has " << cells->size() << " cells";
       // Sort cells according to cell ID
       std::sort(cells->begin(), cells->end(), [](Cell& lhs, Cell& rhs) { return lhs.getTower() < rhs.getTower(); });
       for (auto cell : *cells) {
@@ -357,7 +357,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     }
   }
 
-  LOG(DEBUG) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
+  LOG(debug) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
   sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
 }
 

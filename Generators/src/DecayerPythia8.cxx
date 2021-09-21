@@ -37,16 +37,16 @@ void DecayerPythia8::Init()
 
   /** config **/
   auto& param = DecayerPythia8Param::Instance();
-  LOG(INFO) << "Init \'DecayerPythia8\' with following parameters";
-  LOG(INFO) << param;
+  LOG(info) << "Init \'DecayerPythia8\' with following parameters";
+  LOG(info) << param;
   for (int i = 0; i < 8; ++i) {
     if (param.config[i].empty()) {
       continue;
     }
     std::string config = gSystem->ExpandPathName(param.config[i].c_str());
-    LOG(INFO) << "Reading configuration from file: " << config;
+    LOG(info) << "Reading configuration from file: " << config;
     if (!mPythia.readFile(config, true)) {
-      LOG(FATAL) << "Failed to init \'DecayerPythia8\': problems with configuration file "
+      LOG(fatal) << "Failed to init \'DecayerPythia8\': problems with configuration file "
                  << config;
       return;
     }
@@ -64,7 +64,7 @@ void DecayerPythia8::Init()
 
   /** initialise **/
   if (!mPythia.init()) {
-    LOG(FATAL) << "Failed to init \'DecayerPythia8\': init returned with error";
+    LOG(fatal) << "Failed to init \'DecayerPythia8\': init returned with error";
     return;
   }
 }

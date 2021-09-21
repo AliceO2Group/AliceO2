@@ -22,7 +22,7 @@ std::unique_ptr<T> HistFactory::createHist(const HistogramSpec& histSpec)
   constexpr std::size_t MAX_DIM{10};
   const std::size_t nAxes{histSpec.config.axes.size()};
   if (nAxes == 0 || nAxes > MAX_DIM) {
-    LOGF(FATAL, "The histogram specification contains no (or too many) axes.");
+    LOGF(fatal, "The histogram specification contains no (or too many) axes.");
     return nullptr;
   }
 
@@ -40,7 +40,7 @@ std::unique_ptr<T> HistFactory::createHist(const HistogramSpec& histSpec)
   // create histogram
   std::unique_ptr<T> hist{generateHist<T>(histSpec.name, histSpec.title, nAxes, nBins, lowerBounds, upperBounds, histSpec.config.nSteps)};
   if (!hist) {
-    LOGF(FATAL, "The number of dimensions specified for histogram %s does not match the type.", histSpec.name);
+    LOGF(fatal, "The number of dimensions specified for histogram %s does not match the type.", histSpec.name);
     return nullptr;
   }
 
@@ -62,7 +62,7 @@ std::unique_ptr<T> HistFactory::createHist(const HistogramSpec& histSpec)
       // move the bin edges in case a variable binning was requested
       if (!histSpec.config.axes[i].nBins) {
         if (!std::is_sorted(std::begin(histSpec.config.axes[i].binEdges), std::end(histSpec.config.axes[i].binEdges))) {
-          LOGF(FATAL, "The bin edges in histogram %s are not in increasing order!", histSpec.name);
+          LOGF(fatal, "The bin edges in histogram %s are not in increasing order!", histSpec.name);
           return nullptr;
         }
         axis->Set(nBins[i], histSpec.config.axes[i].binEdges.data());

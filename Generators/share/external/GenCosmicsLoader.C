@@ -28,7 +28,7 @@ FairGenerator* GenCosmicsLoader()
   std::ostringstream mstr;
   mstr << __FILE__;
   TString macroFullName = Form("%s/%s.C", gSystem->DirName(mstr.str().c_str()), macroName.Data());
-  LOG(INFO) << "\nLoading " << macroFullName.Data() << "\n";
+  LOG(info) << "\nLoading " << macroFullName.Data() << "\n";
 
   gROOT->LoadMacro(macroFullName.Data());
   gInterpreter->ProcessLine(Form("%s()", macroName.Data()));

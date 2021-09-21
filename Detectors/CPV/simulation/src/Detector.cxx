@@ -321,7 +321,7 @@ float Detector::CPVCumulPadResponse(float x, float y)
 
 void Detector::addHit(int trackID, short detID, const math_utils::Point3D<float>& pos, double time, float qdep)
 {
-  LOG(DEBUG) << "Adding hit for track " << trackID << " in a pad " << detID << " with position (" << pos.X() << ", "
+  LOG(debug) << "Adding hit for track " << trackID << " in a pad " << detID << " with position (" << pos.X() << ", "
              << pos.Y() << ", " << pos.Z() << "), time" << time << ", qdep =" << qdep << std::endl;
   mHits->emplace_back(trackID, detID, pos, time, qdep);
   // register hit creation with MCStack
@@ -337,7 +337,7 @@ void Detector::ConstructGeometry()
   cpv::GeometryParams* geomParams = cpv::GeometryParams::GetInstance("CPVRun3Params");
 
   if (!geomParams) {
-    LOG(ERROR) << "ConstructGeometry: CPV Geometry class has not been set up.\n";
+    LOG(error) << "ConstructGeometry: CPV Geometry class has not been set up.\n";
   }
 
   if (!fMC) {
@@ -536,7 +536,7 @@ void Detector::defineSensitiveVolumes()
     if (vsense) {
       AddSensitiveVolume(vsense);
     } else {
-      LOG(ERROR) << "CPV Sensitive volume CPVQ not found ... No hit creation!\n";
+      LOG(error) << "CPV Sensitive volume CPVQ not found ... No hit creation!\n";
     }
   }
 }
@@ -571,24 +571,24 @@ void Detector::addAlignableVolumes() const
 
     int modUID = o2::base::GeometryManager::getSensID(idCPV, iModule);
 
-    LOG(DEBUG) << "--------------------------------------------"
+    LOG(debug) << "--------------------------------------------"
                << "\n";
-    LOG(DEBUG) << "Alignable object" << iModule << "\n";
-    LOG(DEBUG) << "volPath=" << volPath << "\n";
-    LOG(DEBUG) << "symName=" << symName << "\n";
-    LOG(DEBUG) << "--------------------------------------------"
+    LOG(debug) << "Alignable object" << iModule << "\n";
+    LOG(debug) << "volPath=" << volPath << "\n";
+    LOG(debug) << "symName=" << symName << "\n";
+    LOG(debug) << "--------------------------------------------"
                << "\n";
 
-    LOG(DEBUG) << "Check for alignable entry: " << symName;
+    LOG(debug) << "Check for alignable entry: " << symName;
 
     if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data(), modUID)) {
-      LOG(ERROR) << "Alignable entry " << symName << " NOT set";
+      LOG(error) << "Alignable entry " << symName << " NOT set";
     }
-    LOG(DEBUG) << "Alignable entry " << symName << " set";
+    LOG(debug) << "Alignable entry " << symName << " set";
 
     // Create the Tracking to Local transformation matrix for PHOS modules
     TGeoPNEntry* alignableEntry = gGeoManager->GetAlignableEntryByUID(modUID);
-    LOG(DEBUG) << "Got TGeoPNEntry " << alignableEntry;
+    LOG(debug) << "Got TGeoPNEntry " << alignableEntry;
 
     if (alignableEntry) {
       Float_t angle = geom->GetCPVAngle(iModule);

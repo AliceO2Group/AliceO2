@@ -268,7 +268,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   }
 
   auto current_time = std::chrono::high_resolution_clock::now();
-  LOG(INFO) << "RecoContainer::createTracks took " << std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count() * 1e-6 << " CPU s.";
+  LOG(info) << "RecoContainer::createTracks took " << std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count() * 1e-6 << " CPU s.";
 }
 
 template <class T>

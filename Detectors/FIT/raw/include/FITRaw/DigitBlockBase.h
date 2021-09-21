@@ -282,7 +282,7 @@ class DigitBlockBase //:public DigitBlock
     mDigit.printLog();
     if constexpr (DigitBlockHelper::IsSpecOfType<std::tuple, decltype(mSubDigit)>::value) {
       if constexpr ((std::tuple_size<decltype(mSubDigit)>::value) > 1) {
-        LOG(INFO) << "______________SUB DIGITS____________";
+        LOG(info) << "______________SUB DIGITS____________";
         std::apply([](const auto&... vecSubDigit) {
           ((std::for_each(vecSubDigit.begin(), vecSubDigit.end(), [](const auto& subDigit) {
              subDigit.printLog();
@@ -292,25 +292,25 @@ class DigitBlockBase //:public DigitBlock
                    mSubDigit);
       }
     } else {
-      LOG(INFO) << "______________SUB DIGITS____________";
+      LOG(info) << "______________SUB DIGITS____________";
       std::for_each(mSubDigit.begin(), mSubDigit.end(), [](const auto& subDigit) {
         subDigit.printLog();
       });
     }
     if constexpr (DigitBlockHelper::IsSpecOfType<std::tuple, decltype(mSingleSubDigit)>::value) {
       if constexpr ((std::tuple_size<decltype(mSingleSubDigit)>::value) > 1) {
-        LOG(INFO) << "______________SINGLE SUB DIGITS____________";
+        LOG(info) << "______________SINGLE SUB DIGITS____________";
         std::apply([](const auto&... singleSubDigit) {
           ((singleSubDigit.printLog()), ...);
         },
                    mSingleSubDigit);
       }
     } else {
-      LOG(INFO) << "______________SINGLE SUB DIGITS____________";
+      LOG(info) << "______________SINGLE SUB DIGITS____________";
       mSingleSubDigit.printLog();
     }
-    LOG(INFO) << std::dec;
-    LOG(INFO) << "______________________________________";
+    LOG(info) << std::dec;
+    LOG(info) << "______________________________________";
   }
 };
 

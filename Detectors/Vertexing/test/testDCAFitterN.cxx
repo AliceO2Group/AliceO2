@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
   double bz = 5.0;
   // 2 prongs vertices
   {
-    LOG(INFO) << "Processing 2-prong Helix - Helix case";
+    LOG(info) << "Processing 2-prong Helix - Helix case";
     std::vector<int> forceQ{1, 1};
 
     o2::vertexing::DCAFitterN<2> ft; // 2 prong fitter
@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       swA.Start(false);
       int ncA = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swA.Stop();
-      LOG(DEBUG) << "fit abs.dist " << iev << " NC: " << ncA << " Chi2: " << (ncA ? ft.getChi2AtPCACandidate(0) : -1);
+      LOG(debug) << "fit abs.dist " << iev << " NC: " << ncA << " Chi2: " << (ncA ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncA) {
         auto minD = checkResults(outStream, treeName2A, ft, vtxGen, genParent, k0dec);
         meanDA += minD;
@@ -189,7 +189,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       swW.Start(false);
       int ncW = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swW.Stop();
-      LOG(DEBUG) << "fit wgh.dist " << iev << " NC: " << ncW << " Chi2: " << (ncW ? ft.getChi2AtPCACandidate(0) : -1);
+      LOG(debug) << "fit wgh.dist " << iev << " NC: " << ncW << " Chi2: " << (ncW ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncW) {
         auto minD = checkResults(outStream, treeName2W, ft, vtxGen, genParent, k0dec);
         meanDW += minD;
@@ -199,10 +199,10 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
     ft.print();
     meanDA /= nfoundA ? nfoundA : 1;
     meanDW /= nfoundW ? nfoundW : 1;
-    LOG(INFO) << "Processed " << NTest << " 2-prong vertices Helix : Helix";
-    LOG(INFO) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
+    LOG(info) << "Processed " << NTest << " 2-prong vertices Helix : Helix";
+    LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
               << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
-    LOG(INFO) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
+    LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
               << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
     BOOST_CHECK(nfoundA > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
@@ -213,7 +213,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
   // 2 prongs vertices with one of charges set to 0: Helix : Line
   {
     std::vector<int> forceQ{1, 1};
-    LOG(INFO) << "Processing 2-prong Helix - Line case";
+    LOG(info) << "Processing 2-prong Helix - Line case";
     o2::vertexing::DCAFitterN<2> ft; // 2 prong fitter
     ft.setBz(bz);
     ft.setPropagateToPCA(true);  // After finding the vertex, propagate tracks to the DCA. This is default anyway
@@ -237,7 +237,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       swA.Start(false);
       int ncA = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swA.Stop();
-      LOG(DEBUG) << "fit abs.dist " << iev << " NC: " << ncA << " Chi2: " << (ncA ? ft.getChi2AtPCACandidate(0) : -1);
+      LOG(debug) << "fit abs.dist " << iev << " NC: " << ncA << " Chi2: " << (ncA ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncA) {
         auto minD = checkResults(outStream, treeName2A, ft, vtxGen, genParent, k0dec);
         meanDA += minD;
@@ -248,7 +248,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       swW.Start(false);
       int ncW = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swW.Stop();
-      LOG(DEBUG) << "fit wgh.dist " << iev << " NC: " << ncW << " Chi2: " << (ncW ? ft.getChi2AtPCACandidate(0) : -1);
+      LOG(debug) << "fit wgh.dist " << iev << " NC: " << ncW << " Chi2: " << (ncW ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncW) {
         auto minD = checkResults(outStream, treeName2W, ft, vtxGen, genParent, k0dec);
         meanDW += minD;
@@ -258,10 +258,10 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
     ft.print();
     meanDA /= nfoundA ? nfoundA : 1;
     meanDW /= nfoundW ? nfoundW : 1;
-    LOG(INFO) << "Processed " << NTest << " 2-prong vertices: Helix : Line";
-    LOG(INFO) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
+    LOG(info) << "Processed " << NTest << " 2-prong vertices: Helix : Line";
+    LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
               << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
-    LOG(INFO) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
+    LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
               << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
     BOOST_CHECK(nfoundA > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
@@ -272,7 +272,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
   // 2 prongs vertices with both of charges set to 0: Line : Line
   {
     std::vector<int> forceQ{0, 0};
-    LOG(INFO) << "Processing 2-prong Line - Line case";
+    LOG(info) << "Processing 2-prong Line - Line case";
     o2::vertexing::DCAFitterN<2> ft; // 2 prong fitter
     ft.setBz(bz);
     ft.setPropagateToPCA(true);  // After finding the vertex, propagate tracks to the DCA. This is default anyway
@@ -295,7 +295,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       swA.Start(false);
       int ncA = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swA.Stop();
-      LOG(DEBUG) << "fit abs.dist " << iev << " NC: " << ncA << " Chi2: " << (ncA ? ft.getChi2AtPCACandidate(0) : -1);
+      LOG(debug) << "fit abs.dist " << iev << " NC: " << ncA << " Chi2: " << (ncA ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncA) {
         auto minD = checkResults(outStream, treeName2A, ft, vtxGen, genParent, k0dec);
         meanDA += minD;
@@ -306,7 +306,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       swW.Start(false);
       int ncW = ft.process(vctracks[0], vctracks[1]); // HERE WE FIT THE VERTICES
       swW.Stop();
-      LOG(DEBUG) << "fit wgh.dist " << iev << " NC: " << ncW << " Chi2: " << (ncW ? ft.getChi2AtPCACandidate(0) : -1);
+      LOG(debug) << "fit wgh.dist " << iev << " NC: " << ncW << " Chi2: " << (ncW ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncW) {
         auto minD = checkResults(outStream, treeName2W, ft, vtxGen, genParent, k0dec);
         meanDW += minD;
@@ -316,10 +316,10 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
     ft.print();
     meanDA /= nfoundA ? nfoundA : 1;
     meanDW /= nfoundW ? nfoundW : 1;
-    LOG(INFO) << "Processed " << NTest << " 2-prong vertices: Line : Line";
-    LOG(INFO) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
+    LOG(info) << "Processed " << NTest << " 2-prong vertices: Line : Line";
+    LOG(info) << "2-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
               << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
-    LOG(INFO) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
+    LOG(info) << "2-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
               << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
     BOOST_CHECK(nfoundA > 0.99 * NTest);
     BOOST_CHECK(nfoundW > 0.99 * NTest);
@@ -352,7 +352,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       swA.Start(false);
       int ncA = ft.process(vctracks[0], vctracks[1], vctracks[2]); // HERE WE FIT THE VERTICES
       swA.Stop();
-      LOG(DEBUG) << "fit abs.dist " << iev << " NC: " << ncA << " Chi2: " << (ncA ? ft.getChi2AtPCACandidate(0) : -1);
+      LOG(debug) << "fit abs.dist " << iev << " NC: " << ncA << " Chi2: " << (ncA ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncA) {
         auto minD = checkResults(outStream, treeName3A, ft, vtxGen, genParent, dchdec);
         meanDA += minD;
@@ -363,7 +363,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
       swW.Start(false);
       int ncW = ft.process(vctracks[0], vctracks[1], vctracks[2]); // HERE WE FIT THE VERTICES
       swW.Stop();
-      LOG(DEBUG) << "fit wgh.dist " << iev << " NC: " << ncW << " Chi2: " << (ncW ? ft.getChi2AtPCACandidate(0) : -1);
+      LOG(debug) << "fit wgh.dist " << iev << " NC: " << ncW << " Chi2: " << (ncW ? ft.getChi2AtPCACandidate(0) : -1);
       if (ncW) {
         auto minD = checkResults(outStream, treeName3W, ft, vtxGen, genParent, dchdec);
         meanDW += minD;
@@ -373,10 +373,10 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
     ft.print();
     meanDA /= nfoundA ? nfoundA : 1;
     meanDW /= nfoundW ? nfoundW : 1;
-    LOG(INFO) << "Processed " << NTest << " 3-prong vertices";
-    LOG(INFO) << "3-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
+    LOG(info) << "Processed " << NTest << " 3-prong vertices";
+    LOG(info) << "3-prongs with abs.dist minization: eff= " << float(nfoundA) / NTest
               << " mean.dist to truth: " << meanDA << " CPU time: " << swA.CpuTime();
-    LOG(INFO) << "3-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
+    LOG(info) << "3-prongs with wgh.dist minization: eff= " << float(nfoundW) / NTest
               << " mean.dist to truth: " << meanDW << " CPU time: " << swW.CpuTime();
     BOOST_CHECK(nfoundA > 0.9 * NTest);
     BOOST_CHECK(nfoundW > 0.9 * NTest);

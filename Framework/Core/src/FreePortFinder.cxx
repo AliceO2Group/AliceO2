@@ -50,7 +50,7 @@ void FreePortFinder::scan()
       continue;
     }
     if (mVerbose) {
-      LOG(INFO) << "Using port range [" << mPort << ", " << mPort + mStep << "]";
+      LOG(info) << "Using port range [" << mPort << ", " << mPort + mStep << "]";
     }
     break;
   }

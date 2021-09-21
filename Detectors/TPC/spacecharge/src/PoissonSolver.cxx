@@ -70,11 +70,11 @@ void PoissonSolver<DataT>::poissonMultiGrid2D(DataContainer& matricesV, const Da
 
   //Check that number of mParamGrid.NRVertices and mParamGrid.NZVertices is suitable for multi grid
   if (!isPowerOfTwo(mParamGrid.NRVertices - 1)) {
-    LOGP(ERROR, "PoissonMultiGrid2D: PoissonMultiGrid - Error in the number of mParamGrid.NRVertices. Must be 2**M + 1");
+    LOGP(error, "PoissonMultiGrid2D: PoissonMultiGrid - Error in the number of mParamGrid.NRVertices. Must be 2**M + 1");
     return;
   }
   if (!isPowerOfTwo(mParamGrid.NZVertices - 1)) {
-    LOGP(ERROR, "PoissonMultiGrid2D: PoissonMultiGrid - Error in the number of mParamGrid.NZVertices. Must be 2**N + 1");
+    LOGP(error, "PoissonMultiGrid2D: PoissonMultiGrid - Error in the number of mParamGrid.NZVertices. Must be 2**N + 1");
     return;
   }
 
@@ -198,15 +198,15 @@ void PoissonSolver<DataT>::poissonMultiGrid3D2D(DataContainer& matricesV, const 
 
   // Check that the number of mParamGrid.NRVertices and mParamGrid.NZVertices is suitable for a binary expansion
   if (!isPowerOfTwo((mParamGrid.NRVertices - 1))) {
-    LOGP(ERROR, "PoissonMultiGrid3D2D: Poisson3DMultiGrid - Error in the number of mParamGrid.NRVertices. Must be 2**M + 1");
+    LOGP(error, "PoissonMultiGrid3D2D: Poisson3DMultiGrid - Error in the number of mParamGrid.NRVertices. Must be 2**M + 1");
     return;
   }
   if (!isPowerOfTwo((mParamGrid.NZVertices - 1))) {
-    LOGP(ERROR, "PoissonMultiGrid3D2D: Poisson3DMultiGrid - Error in the number of mParamGrid.NZVertices. Must be 2**N + 1");
+    LOGP(error, "PoissonMultiGrid3D2D: Poisson3DMultiGrid - Error in the number of mParamGrid.NZVertices. Must be 2**N + 1");
     return;
   }
   if (mParamGrid.NPhiVertices <= 3) {
-    LOGP(ERROR, "PoissonMultiGrid3D2D: Poisson3DMultiGrid - Error in the number of mParamGrid.NPhiVertices. Must be larger than 3");
+    LOGP(error, "PoissonMultiGrid3D2D: Poisson3DMultiGrid - Error in the number of mParamGrid.NPhiVertices. Must be larger than 3");
     return;
   }
 
@@ -348,15 +348,15 @@ void PoissonSolver<DataT>::poissonMultiGrid3D(DataContainer& matricesV, const Da
 
   // Check that the number of mParamGrid.NRVertices and mParamGrid.NZVertices is suitable for a binary expansion
   if (!isPowerOfTwo((mParamGrid.NRVertices - 1))) {
-    LOGP(ERROR, "PoissonMultiGrid3D: Poisson3DMultiGrid - Error in the number of mParamGrid.NRVertices. Must be 2**M + 1");
+    LOGP(error, "PoissonMultiGrid3D: Poisson3DMultiGrid - Error in the number of mParamGrid.NRVertices. Must be 2**M + 1");
     return;
   }
   if (!isPowerOfTwo((mParamGrid.NZVertices - 1))) {
-    LOGP(ERROR, "PoissonMultiGrid3D: Poisson3DMultiGrid - Error in the number of mParamGrid.NZVertices. Must be 2**N + 1");
+    LOGP(error, "PoissonMultiGrid3D: Poisson3DMultiGrid - Error in the number of mParamGrid.NZVertices. Must be 2**N + 1");
     return;
   }
   if (mParamGrid.NPhiVertices <= 3) {
-    LOGP(ERROR, "PoissonMultiGrid3D: Poisson3DMultiGrid - Error in the number of mParamGrid.NPhiVertices. Must be larger than 3");
+    LOGP(error, "PoissonMultiGrid3D: Poisson3DMultiGrid - Error in the number of mParamGrid.NPhiVertices. Must be larger than 3");
     return;
   }
 

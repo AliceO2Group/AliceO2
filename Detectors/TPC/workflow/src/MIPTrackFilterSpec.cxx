@@ -66,7 +66,7 @@ void MIPTrackFilterDevice::run(ProcessingContext& pc)
   std::copy_if(tracks.begin(), tracks.end(), std::back_inserter(mMIPTracks),
                [this](const auto& track) { return this->mCuts.goodTrack(track); });
 
-  LOG(INFO) << mMIPTracks.size() << " MIP tracks in a total of " << tracks.size() << " tracks";
+  LOG(info) << mMIPTracks.size() << " MIP tracks in a total of " << tracks.size() << " tracks";
 
   pc.outputs().snapshot(Output{"TPC", "MIPS", 0, Lifetime::Timeframe}, mMIPTracks);
   mMIPTracks.clear();
@@ -74,7 +74,7 @@ void MIPTrackFilterDevice::run(ProcessingContext& pc)
 
 void MIPTrackFilterDevice::endOfStream(EndOfStreamContext& eos)
 {
-  LOG(INFO) << "Finalizig MIP Tracks filter";
+  LOG(info) << "Finalizig MIP Tracks filter";
 }
 
 DataProcessorSpec getMIPTrackFilterSpec()

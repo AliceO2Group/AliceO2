@@ -62,13 +62,13 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
     auto& patterns = pc.outputs().make<std::vector<unsigned char>>(OutputRef{"patterns"});
     mCTFCoder.decode(ctfImage, rofs, compcl, patterns, mNoiseMap.get(), mPattIdConverter);
     mTimer.Stop();
-    LOG(INFO) << "Decoded " << compcl.size() << " clusters in " << rofs.size() << " RO frames in " << mTimer.CpuTime() - cput << " s";
+    LOG(info) << "Decoded " << compcl.size() << " clusters in " << rofs.size() << " RO frames in " << mTimer.CpuTime() - cput << " s";
   }
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "%s Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "%s Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mOrigin.as<std::string>(), mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
@@ -85,7 +85,7 @@ void EntropyDecoderSpec::updateTimeDependentParams(ProcessingContext& pc)
       if (o2::utils::Str::pathExists(mNoiseFilePath)) {
         TFile* f = TFile::Open(mNoiseFilePath.data(), "old");
         mNoiseMap.reset((NoiseMap*)f->Get("Noise"));
-        LOG(INFO) << "Loaded noise map from " << mNoiseFilePath;
+        LOG(info) << "Loaded noise map from " << mNoiseFilePath;
       }
       if (!mNoiseMap) {
         throw std::runtime_error("Noise masking was requested but noise mask was not provided");
@@ -95,9 +95,9 @@ void EntropyDecoderSpec::updateTimeDependentParams(ProcessingContext& pc)
     if (mGetDigits || mMaskNoise) {
       if (o2::utils::Str::pathExists(mClusDictPath)) {
         mPattIdConverter.loadDictionary(mClusDictPath);
-        LOG(INFO) << "Loaded cluster topology dictionary from " << mClusDictPath;
+        LOG(info) << "Loaded cluster topology dictionary from " << mClusDictPath;
       } else {
-        LOG(INFO) << "Cluster topology dictionary is absent, all cluster patterns expected to be stored explicitly";
+        LOG(info) << "Cluster topology dictionary is absent, all cluster patterns expected to be stored explicitly";
       }
     }
   }

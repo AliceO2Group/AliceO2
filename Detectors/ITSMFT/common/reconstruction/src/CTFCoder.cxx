@@ -79,7 +79,7 @@ void CTFCoder::compress(CompressedClusters& cc,
       cc.orbitIncROF[irof] = 0;
 #ifdef _CHECK_INCREMENTES_
       if (intRec.bc < prevBC) {
-        LOG(WARNING) << "Negative BC increment " << intRec.bc << " -> " << prevBC;
+        LOG(warning) << "Negative BC increment " << intRec.bc << " -> " << prevBC;
       }
 #endif
       cc.bcIncROF[irof] = intRec.bc - prevBC; // store increment of BC if in the same orbit
@@ -87,7 +87,7 @@ void CTFCoder::compress(CompressedClusters& cc,
       cc.orbitIncROF[irof] = intRec.orbit - prevOrbit;
 #ifdef _CHECK_INCREMENTES_
       if (intRec.orbit < prevOrbit) {
-        LOG(WARNING) << "Negative Orbit increment " << intRec.orbit << " -> " << prevOrbit;
+        LOG(warning) << "Negative Orbit increment " << intRec.orbit << " -> " << prevOrbit;
       }
 #endif
       cc.bcIncROF[irof] = intRec.bc; // otherwise, store absolute bc
@@ -117,7 +117,7 @@ void CTFCoder::compress(CompressedClusters& cc,
         cc.chipMul.back()++; // this is the version with chipInc stored once per new chip
 #ifdef _CHECK_INCREMENTES_   // RS FIXME with current clusterization column increment can be slightly negative
 //        if (cl.getCol() < prevCol) {
-//          LOG(WARNING) << "Negative Column increment " << cl.getCol() << " -> " << prevCol << " in chip " << prevChip << " of ROF " << irof;
+//          LOG(warning) << "Negative Column increment " << cl.getCol() << " -> " << prevCol << " in chip " << prevChip << " of ROF " << irof;
 //        }
 #endif
         cc.colInc[icl] = cl.getCol() - prevCol;
@@ -127,7 +127,7 @@ void CTFCoder::compress(CompressedClusters& cc,
         cc.chipInc.push_back(cl.getChipID() - prevChip); // this is the version with chipInc stored once per new chip
 #ifdef _CHECK_INCREMENTES_
         if (cl.getChipID() < prevChip) {
-          LOG(WARNING) << "Negative Chip increment " << cl.getChipID() << " -> " << prevChip;
+          LOG(warning) << "Negative Chip increment " << cl.getChipID() << " -> " << prevChip;
         }
 #endif
         cc.chipMul.push_back(1);                         // this is the version with chipInc stored once per new chip
@@ -205,7 +205,7 @@ size_t CTFCoder::estimateCompressedSize(const CompressedClusters& cc)
 
   // clang-format on
   sz *= 2. / 3; // if needed, will be autoexpanded
-  LOG(INFO) << "Estimated output size is " << sz << " bytes";
+  LOG(info) << "Estimated output size is " << sz << " bytes";
   return sz;
 }
 

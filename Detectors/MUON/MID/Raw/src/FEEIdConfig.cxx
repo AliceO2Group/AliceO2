@@ -78,7 +78,7 @@ uint16_t FEEIdConfig::getGBTUniqueId(uint32_t linkUniqueId) const
   /// Gets the feeId from the physical ID of the link
   auto feeId = mLinkUniqueIdToGBTUniqueId.find(linkUniqueId);
   if (feeId == mLinkUniqueIdToGBTUniqueId.end()) {
-    LOGF(ERROR, "No FeeId found for: CRUId: %i  LinkId: %i  EndPointId: %i", getCRUId(linkUniqueId), getLinkId(linkUniqueId), getEndPointId(linkUniqueId));
+    LOGF(error, "No FeeId found for: CRUId: %i  LinkId: %i  EndPointId: %i", getCRUId(linkUniqueId), getLinkId(linkUniqueId), getEndPointId(linkUniqueId));
     return 0xFFFF;
   }
   return feeId->second;

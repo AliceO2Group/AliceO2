@@ -87,13 +87,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
       for (int i = 1; i <= histo->GetNbinsX(); i++) {
         bins += " " + std::to_string((int)histo->GetBinContent(i));
         if (i >= 100) {
-          LOG(INFO) << "Trimming the output to 100 entries, total is: " << histo->GetNbinsX();
+          LOG(info) << "Trimming the output to 100 entries, total is: " << histo->GetNbinsX();
           break;
         }
       }
-      LOG(INFO) << bins;
+      LOG(info) << bins;
     } else {
-      LOG(INFO) << "they asked me to print a nullptr";
+      LOG(info) << "they asked me to print a nullptr";
     }
   };
 
@@ -112,7 +112,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
           if (auto histo = dynamic_cast<const TH1F*>(tobject.get())) {
             printHisto(histo);
           } else if (auto collection = dynamic_cast<TCollection*>(tobject.get())) {
-            LOG(INFO) << "Received a collection, printing the first and the last histogram, total is: " << std::to_string(collection->GetEntries());
+            LOG(info) << "Received a collection, printing the first and the last histogram, total is: " << std::to_string(collection->GetEntries());
             printHisto(dynamic_cast<TH1*>(collection->begin()()));
             printHisto(dynamic_cast<TH1*>(collection->FindObject(std::to_string(collection->GetEntries() - 1).c_str())));
             collection->SetOwner(true);

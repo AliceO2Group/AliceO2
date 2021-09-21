@@ -66,18 +66,18 @@ class CalibdEdxDevice : public Task
     const auto tfcounter = o2::header::get<DataProcessingHeader*>(pc.inputs().get("tracks").header)->startTime;
     const auto tracks = pc.inputs().get<gsl::span<tpc::TrackTPC>>("tracks");
 
-    LOG(INFO) << "Processing TF " << tfcounter << " with " << tracks.size() << " tracks";
+    LOG(info) << "Processing TF " << tfcounter << " with " << tracks.size() << " tracks";
 
     mCalibrator->process(tfcounter, tracks);
     sendOutput(pc.outputs());
 
     const auto& infoVec = mCalibrator->getInfoVector();
-    LOG(INFO) << "Created " << infoVec.size() << " objects for TF " << tfcounter;
+    LOG(info) << "Created " << infoVec.size() << " objects for TF " << tfcounter;
   }
 
   void endOfStream(EndOfStreamContext& eos) final
   {
-    LOG(INFO) << "Finalizing calibration";
+    LOG(info) << "Finalizing calibration";
     constexpr calibration::TFType INFINITE_TF = 0xffffffffffffffff;
     mCalibrator->checkSlotsToFinalize(INFINITE_TF);
     sendOutput(eos.outputs());
@@ -100,7 +100,7 @@ class CalibdEdxDevice : public Task
     for (unsigned int i = 0; i < payloadVec.size(); i++) {
       auto& entry = infoVec[i];
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &entry);
-      LOG(INFO) << "Sending object " << entry.getPath() << "/" << entry.getFileName() << " of size " << image->size()
+      LOG(info) << "Sending object " << entry.getPath() << "/" << entry.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << entry.getStartValidityTimestamp() << " : " << entry.getEndValidityTimestamp();
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_MIPS", i}, *image.get()); // vector<char>
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_MIPS", i}, entry);        // root-serialized

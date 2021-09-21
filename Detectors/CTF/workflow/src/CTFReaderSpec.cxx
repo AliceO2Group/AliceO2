@@ -107,8 +107,8 @@ void CTFReaderSpec::stop()
   if (!mFileFetcher) {
     return;
   }
-  LOG(INFO) << "CTFReader stops processing";
-  LOGP(INFO, "CTF reading total timing: Cpu: {:.3f} Real: {:.3f} s for {} TFs in {} loops",
+  LOG(info) << "CTFReader stops processing";
+  LOGP(info, "CTF reading total timing: Cpu: {:.3f} Real: {:.3f} s for {} TFs in {} loops",
        mTimer.CpuTime(), mTimer.RealTime(), mCTFCounter, mFileFetcher->getNLoops());
   mRunning = false;
   mFileFetcher->stop();
@@ -135,7 +135,7 @@ void CTFReaderSpec::openCTFFile(const std::string& flname)
 {
   mCTFFile.reset(TFile::Open(flname.c_str()));
   if (!mCTFFile->IsOpen() || mCTFFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open file " << flname;
+    LOG(error) << "Failed to open file " << flname;
     throw std::runtime_error("failed to open CTF file");
   }
   mCTFTree.reset((TTree*)mCTFFile->Get(std::string(o2::base::NameConf::CTFTREENAME).c_str()));
@@ -155,7 +155,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
 
   while (mRunning) {
     if (mCTFTree) { // there is a tree open with multiple CTF
-      LOG(INFO) << "TF " << mCTFCounter << " of " << mInput.maxTFs << " loop " << mFileFetcher->getNLoops();
+      LOG(info) << "TF " << mCTFCounter << " of " << mInput.maxTFs << " loop " << mFileFetcher->getNLoops();
       processTF(pc);
       break;
     }
@@ -169,7 +169,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
       usleep(5000); // wait 5ms for the files cache to be filled
       continue;
     }
-    LOG(INFO) << "Reading CTF input " << ' ' << tfFileName;
+    LOG(info) << "Reading CTF input " << ' ' << tfFileName;
     openCTFFile(tfFileName);
   }
 
@@ -190,7 +190,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   if (!readFromTree(*(mCTFTree.get()), "CTFHeader", ctfHeader, mCurrTreeEntry)) {
     throw std::runtime_error("did not find CTFHeader");
   }
-  LOG(INFO) << ctfHeader;
+  LOG(info) << ctfHeader;
 
   auto setFirstTFOrbit = [&pc, &ctfHeader, this](const std::string& label) {
     auto* hd = pc.outputs().findMessageHeader({label});
@@ -333,7 +333,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
     mLastSendTime = tNow;
   }
   tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-  LOGP(INFO, "Read CTF#{} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, 1e-6 * (tNow - mLastSendTime));
+  LOGP(info, "Read CTF#{} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, 1e-6 * (tNow - mLastSendTime));
   mLastSendTime = tNow;
   mCTFCounter++;
 }

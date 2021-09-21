@@ -58,11 +58,11 @@ class MaskHandlerDeviceDPL
     for (auto& masks : mMasksHandlers) {
       auto maskVec = masks.getMasks();
       if (maskVec.empty()) {
-        LOG(INFO) << "No problematic digit found in " << name << " events";
+        LOG(info) << "No problematic digit found in " << name << " events";
       } else {
-        LOG(INFO) << "Problematic digits found in " << name << " events. Corresponding masks:";
+        LOG(info) << "Problematic digits found in " << name << " events. Corresponding masks:";
         for (auto& mask : maskVec) {
-          LOG(INFO) << mask;
+          LOG(info) << mask;
         }
         std::cout << "\nCorresponding boards masks:" << std::endl;
         colToBoard.process(maskVec);

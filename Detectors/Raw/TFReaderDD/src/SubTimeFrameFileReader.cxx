@@ -41,7 +41,7 @@ SubTimeFrameFileReader::SubTimeFrameFileReader(const std::string& pFileName)
   mFileName = pFileName;
   mFileMap.open(mFileName);
   if (!mFileMap.is_open()) {
-    LOG(ERROR) << "Failed to open TF file for reading (mmap).";
+    LOG(error) << "Failed to open TF file for reading (mmap).";
     return;
   }
 
@@ -97,7 +97,7 @@ std::size_t SubTimeFrameFileReader::getHeaderStackSize() // throws ios_base::fai
   set_position(lFilePosStart);
 
   if (lNumHeaders >= cMaxHeaders) {
-    LOGP(ERROR, "FileReader: Reached max number of headers allowed: {}.", cMaxHeaders);
+    LOGP(error, "FileReader: Reached max number of headers allowed: {}.", cMaxHeaders);
     return 0;
   }
 
@@ -144,9 +144,9 @@ Stack SubTimeFrameFileReader::getHeaderStack(std::size_t& pOrigsize)
     if (lBaseOfDH->headerVersion == 1 || lBaseOfDH->headerVersion == 2) {
       /* nothing to do for the upgrade */
     } else {
-      LOGP(ERROR, "FileReader: DataHeader v{} read from file is not upgraded to the current version {}",
+      LOGP(error, "FileReader: DataHeader v{} read from file is not upgraded to the current version {}",
            lBaseOfDH->headerVersion, DataHeader::sVersion);
-      LOGP(ERROR, "Try using a newer version of DataDistribution or file a BUG");
+      LOGP(error, "Try using a newer version of DataDistribution or file a BUG");
     }
 
     if (lBaseOfDH->size() == lStackSize) {
@@ -177,14 +177,14 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
       return std::string{rawChannel};
     } else {
       for (auto& oroute : outputRoutes) {
-        LOG(DEBUG) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
+        LOG(debug) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
         if (o2f::DataSpecUtils::match(oroute.matcher, h->dataOrigin, h->dataDescription, h->subSpecification) && ((h->tfCounter % oroute.maxTimeslices) == oroute.timeslice)) {
-          LOG(DEBUG) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
+          LOG(debug) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
           return std::string{oroute.channel};
         }
       }
     }
-    LOGP(ERROR, "Failed to find output channel for {}/{}/{} @ timeslice {}", h->dataOrigin.str, h->dataDescription.str, h->subSpecification, h->tfCounter);
+    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h->dataOrigin.str, h->dataDescription.str, h->subSpecification, h->tfCounter);
     return std::string{};
   };
 
@@ -213,7 +213,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
   auto printStack = [tfID](const o2::header::Stack& st) {
     auto dph = o2::header::get<o2f::DataProcessingHeader*>(st.data());
     auto dh = o2::header::get<o2::header::DataHeader*>(st.data());
-    LOGP(INFO, "TF#{} Header for {}/{}/{} @ timeslice {} run {} | {} of {} size {}, TForbit {} | DPH: {}/{}/{}", tfID,
+    LOGP(info, "TF#{} Header for {}/{}/{} @ timeslice {} run {} | {} of {} size {}, TForbit {} | DPH: {}/{}/{}", tfID,
          dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->runNumber,
          dh->splitPayloadIndex, dh->splitPayloadParts, dh->payloadSize, dh->firstTForbit,
          dph ? dph->startTime : 0, dph ? dph->duration : 0, dph ? dph->creation : 0);
@@ -222,7 +222,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
   // Read DataHeader + SubTimeFrameFileMeta
   auto lMetaHdrStack = getHeaderStack(lMetaHdrStackSize);
   if (lMetaHdrStackSize == 0) {
-    LOG(ERROR) << "Failed to read the TF file header. The file might be corrupted.";
+    LOG(error) << "Failed to read the TF file header. The file might be corrupted.";
     mFileMap.close();
     return nullptr;
   }
@@ -234,7 +234,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
 
   // verify we're actually reading the correct data in
   if (!(SubTimeFrameFileMeta::getDataHeader().dataDescription == lStfMetaDataHdr->dataDescription)) {
-    LOGP(WARNING, "Reading bad data: SubTimeFrame META header");
+    LOGP(warning, "Reading bad data: SubTimeFrame META header");
     mFileMap.close();
     return nullptr;
   }
@@ -242,14 +242,14 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
   // prepare to read the TF data
   const auto lStfSizeInFile = lStfFileMeta.mStfSizeInFile;
   if (lStfSizeInFile == (sizeof(DataHeader) + sizeof(SubTimeFrameFileMeta))) {
-    LOGP(WARNING, "Reading an empty TF from file. Only meta information present");
+    LOGP(warning, "Reading an empty TF from file. Only meta information present");
     mFileMap.close();
     return nullptr;
   }
 
   // check there's enough data in the file
   if ((lTfStartPosition + lStfSizeInFile) > this->size()) {
-    LOGP(WARNING, "Not enough data in file for this TF. Required: {}, available: {}", lStfSizeInFile, (this->size() - lTfStartPosition));
+    LOGP(warning, "Not enough data in file for this TF. Required: {}, available: {}", lStfSizeInFile, (this->size() - lTfStartPosition));
     mFileMap.close();
     return nullptr;
   }
@@ -266,7 +266,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
   }
   lStfIndexHdr = o2::header::DataHeader::Get(lStfIndexHdrStack.first());
   if (!lStfIndexHdr) {
-    LOG(ERROR) << "Failed to read the TF index structure. The file might be corrupted.";
+    LOG(error) << "Failed to read the TF index structure. The file might be corrupted.";
     return nullptr;
   }
 
@@ -293,7 +293,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
     }
     const DataHeader* lDataHeader = o2::header::DataHeader::Get(lDataHeaderStack.first());
     if (!lDataHeader) {
-      LOG(ERROR) << "Failed to read the TF HBF DataHeader structure. The file might be corrupted.";
+      LOG(error) << "Failed to read the TF HBF DataHeader structure. The file might be corrupted.";
       mFileMap.close();
       return nullptr;
     }
@@ -334,7 +334,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
   }
 
   if (lLeftToRead < 0) {
-    LOG(ERROR) << "FileRead: Read more data than it is indicated in the META header!";
+    LOG(error) << "FileRead: Read more data than it is indicated in the META header!";
     return nullptr;
   }
 

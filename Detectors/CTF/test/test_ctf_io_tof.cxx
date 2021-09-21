@@ -77,10 +77,10 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
               });
 
     //    for (int i = 0; i < ndig; i++)
-    //        LOG(INFO) << "ROW = " << irof << " - Strip = " << digits[i].getChannel() / Geo::NPADS << " - BC = " << digits[i].getBC() << " - TDC = " << digits[i].getTDC();
+    //        LOG(info) << "ROW = " << irof << " - Strip = " << digits[i].getChannel() / Geo::NPADS << " - BC = " << digits[i].getBC() << " - TDC = " << digits[i].getTDC();
   }
   sw.Stop();
-  LOG(INFO) << "Generated " << digits.size() << " in " << rows.size() << " ROFs in " << sw.CpuTime() << " s";
+  LOG(info) << "Generated " << digits.size() << " in " << rows.size() << " ROFs in " << sw.CpuTime() << " s";
 
   sw.Start();
   std::vector<o2::ctf::BufferType> vec;
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
     coder.encode(vec, rows, digits, pattVec); // compress
   }
   sw.Stop();
-  LOG(INFO) << "Compressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Compressed in " << sw.CpuTime() << " s";
 
   // writing
   {
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
     ctfImage->appendToTree(ctfTree, "TOF");
     ctfTree.Write();
     sw.Stop();
-    LOG(INFO) << "Wrote to tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Wrote to tree in " << sw.CpuTime() << " s";
   }
 
   // reading
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
     BOOST_CHECK(tree);
     CTF::readFromTree(vec, *(tree.get()), "TOF");
     sw.Stop();
-    LOG(INFO) << "Read back from tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Read back from tree in " << sw.CpuTime() << " s";
   }
 
   std::vector<Digit> digitsD;
@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
     coder.decode(ctfImage, rowsD, digitsD, pattVecD); // decompress
   }
   sw.Stop();
-  LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
 
   //
   // simple checks

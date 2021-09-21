@@ -19,10 +19,10 @@ o2::eventgen::GeneratorTGenerator* QEDepem()
   auto& qedParam = o2::eventgen::QEDGenParam::Instance();
   auto& diamond = o2::eventgen::InteractionDiamondParam::Instance();
   if (qedParam.yMin >= qedParam.yMax) {
-    LOG(FATAL) << "QEDGenParam.yMin(" << qedParam.yMin << ") >= QEDGenParam.yMax(" << qedParam.yMax << ")";
+    LOG(fatal) << "QEDGenParam.yMin(" << qedParam.yMin << ") >= QEDGenParam.yMax(" << qedParam.yMax << ")";
   }
   if (qedParam.ptMin >= qedParam.ptMax) {
-    LOG(FATAL) << "QEDGenParam.ptMin(" << qedParam.ptMin << ") >= QEDGenParam.ptMax(" << qedParam.ptMax << ")";
+    LOG(fatal) << "QEDGenParam.ptMin(" << qedParam.ptMin << ") >= QEDGenParam.ptMax(" << qedParam.ptMax << ")";
   }
 
   auto genBg = new TGenEpEmv1();
@@ -40,7 +40,7 @@ o2::eventgen::GeneratorTGenerator* QEDepem()
   const std::string qedIniFileName = "qedgenparam.ini";
   qedParam.writeINI(qedIniFileName, "QEDGenParam");
   qedParam.printKeyValues(true);
-  LOG(INFO) << "Info: QED background generation parameters stored to " << qedIniFileName;
+  LOG(info) << "Info: QED background generation parameters stored to " << qedIniFileName;
 
   // instance and configure TGenerator interface
   auto tgen = new o2::eventgen::GeneratorTGenerator();

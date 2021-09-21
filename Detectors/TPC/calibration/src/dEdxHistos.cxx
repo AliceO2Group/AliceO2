@@ -63,7 +63,7 @@ void dEdxHistos::merge(const dEdxHistos* other)
 
 void dEdxHistos::print() const
 {
-  LOG(INFO) << "Total number of entries: " << mEntries[0] << " in A side, " << mEntries[1] << " in C side";
+  LOG(info) << "Total number of entries: " << mEntries[0] << " in A side, " << mEntries[1] << " in C side";
 }
 
 void dEdxHistos::dumpToFile(std::string_view fileName) const

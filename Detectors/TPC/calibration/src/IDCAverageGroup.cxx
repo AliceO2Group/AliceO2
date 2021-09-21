@@ -112,7 +112,7 @@ bool o2::tpc::IDCAverageGroup::setFromFile(const char* fileName, const char* nam
   idcAverageGroupTmp = reinterpret_cast<IDCAverageGroup*>(inpf.GetObjectChecked(name, IDCAverageGroup::Class()));
 
   if (!idcAverageGroupTmp) {
-    LOGP(ERROR, "Failed to load {} from {}", name, inpf.GetName());
+    LOGP(error, "Failed to load {} from {}", name, inpf.GetName());
     return false;
   }
   setIDCs(idcAverageGroupTmp->getIDCsUngrouped());

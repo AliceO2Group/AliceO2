@@ -191,9 +191,9 @@ void CTFWriterSpec::init(InitContext& ic)
   mMaxSize = ic.options().get<int64_t>("max-file-size");
   if (mWriteCTF) {
     if (mMinSize > 0) {
-      LOG(INFO) << "Multiple CTFs will be accumulated in the tree/file until its size exceeds " << mMinSize << " bytes";
+      LOG(info) << "Multiple CTFs will be accumulated in the tree/file until its size exceeds " << mMinSize << " bytes";
       if (mMaxSize > mMinSize) {
-        LOG(INFO) << "but does not exceed " << mMaxSize << " bytes";
+        LOG(info) << "but does not exceed " << mMaxSize << " bytes";
       }
     }
   }
@@ -310,7 +310,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
       size_t nc = 0;
       auto runNProp = std::stol(runNStr, &nc);
       if (nc != runNStr.size()) {
-        LOGP(ERROR, "Property runNumber={} is provided but is not a number, ignoring", runNStr);
+        LOGP(error, "Property runNumber={} is provided but is not a number, ignoring", runNStr);
       } else {
         mRun = runNProp;
       }
@@ -324,7 +324,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
     }
   }
   if ((oldRun != 0 && oldRun != mRun) || (!oldEnv.empty() && oldEnv != mEnvironmentID)) {
-    LOGP(WARNING, "RunNumber/Environment changed from {}/{} to {}/{}", oldRun, oldEnv, mRun, mEnvironmentID);
+    LOGP(warning, "RunNumber/Environment changed from {}/{} to {}/{}", oldRun, oldEnv, mRun, mEnvironmentID);
     closeTFTreeAndFile();
   }
 
@@ -358,16 +358,16 @@ void CTFWriterSpec::run(ProcessingContext& pc)
     szCTF += appendToTree(*mCTFTreeOut.get(), "CTFHeader", header);
     mAccCTFSize += szCTF;
     mCTFTreeOut->SetEntries(++mNAccCTF);
-    LOG(INFO) << "TF#" << mNCTF << ": wrote CTF{" << header << "} of size " << szCTF << " to " << mCurrentCTFFileName << " in " << mTimer.CpuTime() - cput << " s";
+    LOG(info) << "TF#" << mNCTF << ": wrote CTF{" << header << "} of size " << szCTF << " to " << mCurrentCTFFileName << " in " << mTimer.CpuTime() - cput << " s";
     if (mNAccCTF > 1) {
-      LOG(INFO) << "Current CTF tree has " << mNAccCTF << " entries with total size of " << mAccCTFSize << " bytes";
+      LOG(info) << "Current CTF tree has " << mNAccCTF << " entries with total size of " << mAccCTFSize << " bytes";
     }
     if (mLockFD) {
       lseek(mLockFD, 0, SEEK_SET);
       write(mLockFD, &mAccCTFSize, sizeof(size_t));
     }
   } else {
-    LOG(INFO) << "TF#" << mNCTF << " CTF writing is disabled, size was " << szCTF << " bytes";
+    LOG(info) << "TF#" << mNCTF << " CTF writing is disabled, size was " << szCTF << " bytes";
   }
 
   if (mWriteCTF && mAccCTFSize >= mMinSize) {
@@ -390,7 +390,7 @@ void CTFWriterSpec::endOfStream(EndOfStreamContext& ec)
   if (mWriteCTF) {
     closeTFTreeAndFile();
   }
-  LOGF(INFO, "CTF writing total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "CTF writing total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
@@ -408,7 +408,7 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
         (mAccCTFSize && mMaxSize > mMinSize && ((mAccCTFSize + mCurrCTFSize) > mMaxSize))) { // this is not the 1st CTF in the file and the new size will exceed allowed max
       needToOpen = true;
     } else {
-      LOGP(INFO, "Will add new CTF of estimated size {} to existing file of size {}", mCurrCTFSize, mAccCTFSize);
+      LOGP(info, "Will add new CTF of estimated size {} to existing file of size {}", mCurrCTFSize, mAccCTFSize);
     }
   }
   if (needToOpen) {
@@ -420,7 +420,7 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
       auto sz = getAvailableDiskSpace(ctfDir, 0); // check main storage
       if (sz < mChkSize) {
         removeLockFile();
-        LOG(WARNING) << "Primary CTF output device has available size " << sz << " while " << mChkSize << " is requested: will write on secondary one";
+        LOG(warning) << "Primary CTF output device has available size " << sz << " while " << mChkSize << " is requested: will write on secondary one";
         ctfDir = mCTFDirFallBack;
       }
     }
@@ -430,7 +430,7 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
         if (!std::filesystem::create_directories(ctfDir)) {
           throw std::runtime_error(fmt::format("Failed to create {} directory", ctfDir));
         } else {
-          LOG(INFO) << "Created {} directory for CTFs output" << ctfDir;
+          LOG(info) << "Created {} directory for CTFs output" << ctfDir;
         }
       }
     }
@@ -512,7 +512,7 @@ void CTFWriterSpec::storeDictionaries()
   if (mDictTreeOut) {
     closeDictionaryTreeAndFile(header);
   }
-  LOG(INFO) << "Saved CTF dictionary after " << mNCTF << " TFs processed";
+  LOG(info) << "Saved CTF dictionary after " << mNCTF << " TFs processed";
 }
 
 //___________________________________________________________________
@@ -604,7 +604,7 @@ size_t CTFWriterSpec::getAvailableDiskSpace(const std::string& path, int level)
   }
   const auto si = std::filesystem::space(path, ec);
   int64_t avail = int64_t(si.available) - nLocked * mChkSize + written; // account already written part of unfinished files
-  LOGP(DEBUG, "{} CTF files open (curr.size: {}) -> can use {} of {} bytes", nLocked, written, avail, si.available);
+  LOGP(debug, "{} CTF files open (curr.size: {}) -> can use {} of {} bytes", nLocked, written, avail, si.available);
   return avail > 0 ? avail : 0;
 }
 
@@ -612,11 +612,11 @@ size_t CTFWriterSpec::getAvailableDiskSpace(const std::string& path, int level)
 DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF, bool doDict, bool dictPerDet)
 {
   std::vector<InputSpec> inputs;
-  LOG(DEBUG) << "Detectors list:";
+  LOG(debug) << "Detectors list:";
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (dets[id]) {
       inputs.emplace_back(DetID::getName(id), DetID::getDataOrigin(id), "CTFDATA", 0, Lifetime::Timeframe);
-      LOG(DEBUG) << "Det " << DetID::getName(id) << " added";
+      LOG(debug) << "Det " << DetID::getName(id) << " added";
     }
   }
   return DataProcessorSpec{

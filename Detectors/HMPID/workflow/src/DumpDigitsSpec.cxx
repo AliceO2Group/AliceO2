@@ -59,7 +59,7 @@ using RDH = o2::header::RDHAny;
 // Data decoder
 void DumpDigitsTask::init(framework::InitContext& ic)
 {
-  LOG(INFO) << "[HMPID Dump Digits - init() ] ";
+  LOG(info) << "[HMPID Dump Digits - init() ] ";
   mPrintDigits = ic.options().get<bool>("print");
 
   mIsOutputOnFile = false;
@@ -86,18 +86,18 @@ void DumpDigitsTask::init(framework::InitContext& ic)
 
 void DumpDigitsTask::run(framework::ProcessingContext& pc)
 {
-  LOG(INFO) << "[HMPID Dump Digits - run() ] Enter Dump ...";
+  LOG(info) << "[HMPID Dump Digits - run() ] Enter Dump ...";
   std::vector<o2::hmpid::Trigger> triggers;
   std::vector<o2::hmpid::Digit> digits;
 
   for (auto const& ref : InputRecordWalker(pc.inputs())) {
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{gDataOriginHMP, "INTRECORDS"}})) {
       triggers = pc.inputs().get<std::vector<o2::hmpid::Trigger>>(ref);
-      LOG(INFO) << "We receive triggers =" << triggers.size();
+      LOG(info) << "We receive triggers =" << triggers.size();
     }
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{gDataOriginHMP, "DIGITS"}})) {
       digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
-      LOG(INFO) << "The size of the vector =" << digits.size();
+      LOG(info) << "The size of the vector =" << digits.size();
       mDigitsReceived += digits.size();
     }
     for (int i = 0; i < triggers.size(); i++) {

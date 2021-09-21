@@ -84,7 +84,7 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
       auto const* sectorHeader = o2::framework::DataRefUtils::getHeader<TPCSectorHeader*>(ref);
       if (sectorHeader == nullptr) {
         // FIXME: think about error policy
-        LOG(ERROR) << "sector header missing on header stack";
+        LOG(error) << "sector header missing on header stack";
         return retVal;
       }
       const int sector = sectorHeader->sector();
@@ -108,7 +108,7 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
       for (unsigned int i = 0; i < constants::MAXSECTOR; i++) {
         if (tpcSectorMask & (1ul << i)) {
           if (verbosity >= 1) {
-            LOG(INFO) << "GOT MC LABELS FOR SECTOR " << i << " -> " << retVal->internal.inputDigitsMC[inputDigitsMCIndex[i]].getNElements();
+            LOG(info) << "GOT MC LABELS FOR SECTOR " << i << " -> " << retVal->internal.inputDigitsMC[inputDigitsMCIndex[i]].getNElements();
           }
           if (inputDigitsMCIndex[i] == -1) {
             throw std::runtime_error("digit mc labels missing");
@@ -145,7 +145,7 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
         if (tpcSectorMask & (1ul << sector)) {
           retVal->inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
           if (verbosity >= 1) {
-            LOG(INFO) << "GOT DIGITS SPAN FOR SECTOR " << sector << " -> " << retVal->inputDigits[sector].size();
+            LOG(info) << "GOT DIGITS SPAN FOR SECTOR " << sector << " -> " << retVal->inputDigits[sector].size();
           }
         }
       }
@@ -171,7 +171,7 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
         retVal->internal.inputs.emplace_back(gsl::span(ref.payload, o2::framework::DataRefUtils::getPayloadSize(ref)));
       }
       if (verbosity > 1) {
-        LOG(INFO) << "received " << *(ref.spec) << ", size " << o2::framework::DataRefUtils::getPayloadSize(ref) << " for sector " << sector;
+        LOG(info) << "received " << *(ref.spec) << ", size " << o2::framework::DataRefUtils::getPayloadSize(ref) << " for sector " << sector;
       }
     }
   }

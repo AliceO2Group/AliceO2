@@ -31,7 +31,7 @@ void Clusterer::process(DataReader& reader, std::vector<Cluster>& clusters, MCLa
   int totNumDigits = 0;
 
   while (reader.getNextStripData(mStripData)) {
-    LOG(DEBUG) << "TOFClusterer got Strip " << mStripData.stripID << " with Ndigits "
+    LOG(debug) << "TOFClusterer got Strip " << mStripData.stripID << " with Ndigits "
                << mStripData.digits.size();
     totNumDigits += mStripData.digits.size();
 
@@ -39,7 +39,7 @@ void Clusterer::process(DataReader& reader, std::vector<Cluster>& clusters, MCLa
     processStrip(clusters, digitMCTruth);
   }
 
-  LOG(DEBUG) << "We had " << totNumDigits << " digits in this event";
+  LOG(debug) << "We had " << totNumDigits << " digits in this event";
   timerProcess.Stop();
 }
 
@@ -49,7 +49,7 @@ void Clusterer::calibrateStrip()
   // method to calibrate the times from the current strip
 
   for (int idig = 0; idig < mStripData.digits.size(); idig++) {
-    //    LOG(DEBUG) << "Checking digit " << idig;
+    //    LOG(debug) << "Checking digit " << idig;
     Digit* dig = &mStripData.digits[idig];
     dig->setBC(dig->getBC() - mBCOffset); // RS Don't use raw BC, always start from the beginning of the TF
     double calib = mCalibApi->getTimeCalibration(dig->getChannel(), dig->getTOT() * Geo::TOTBIN_NS);
@@ -72,7 +72,7 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
   Int_t ieta, ieta2, ieta3; // it is the number of padz-row increasing along the various strips
 
   for (int idig = 0; idig < mStripData.digits.size(); idig++) {
-    //    LOG(DEBUG) << "Checking digit " << idig;
+    //    LOG(debug) << "Checking digit " << idig;
     Digit* dig = &mStripData.digits[idig];
     //printf("checking digit %d - alreadyUsed=%d   -  problematic=%d\n",idig,dig->isUsedInCluster(),dig->isProblematic()); // toberem
     if (dig->isUsedInCluster() || dig->isProblematic()) {
@@ -82,12 +82,12 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
     mNumberOfContributingDigits = 0;
     dig->getPhiAndEtaIndex(iphi, ieta);
     if (mStripData.digits.size() > 1) {
-      LOG(DEBUG) << "idig = " << idig;
+      LOG(debug) << "idig = " << idig;
     }
 
     // first we make a cluster out of the digit
     int noc = clusters.size();
-    //    LOG(DEBUG) << "noc = " << noc << "\n";
+    //    LOG(debug) << "noc = " << noc << "\n";
     clusters.emplace_back();
     Cluster& c = clusters[noc];
     addContributingDigit(dig);
@@ -100,15 +100,15 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
       }
       // check if the TOF time are close enough to be merged; if not, it means that nothing else will contribute to the cluster (since digits are ordered in time)
       double timeDigNext = digNext->getCalibratedTime(); // in ps
-      LOG(DEBUG) << "Time difference = " << timeDigNext - timeDig;
+      LOG(debug) << "Time difference = " << timeDigNext - timeDig;
       if (timeDigNext - timeDig > mDeltaTforClustering /*in ps*/) { // to be change to 500 ps
         break;
       }
       digNext->getPhiAndEtaIndex(iphi2, ieta2);
 
       // check if the fired pad are close in space
-      LOG(DEBUG) << "phi difference = " << iphi - iphi2;
-      LOG(DEBUG) << "eta difference = " << ieta - ieta2;
+      LOG(debug) << "phi difference = " << iphi - iphi2;
+      LOG(debug) << "eta difference = " << ieta - ieta2;
       if ((std::abs(iphi - iphi2) > 1) || (std::abs(ieta - ieta2) > 1)) {
         continue;
       }
@@ -130,16 +130,16 @@ void Clusterer::addContributingDigit(Digit* dig)
   // adding a digit to the array that stores the contributing ones
 
   if (mNumberOfContributingDigits == 6) {
-    LOG(DEBUG) << "The cluster has already 6 digits associated to it, we cannot add more; returning without doing anything";
+    LOG(debug) << "The cluster has already 6 digits associated to it, we cannot add more; returning without doing anything";
 
     int phi, eta;
     for (int i = 0; i < mNumberOfContributingDigits; i++) {
       mContributingDigit[i]->getPhiAndEtaIndex(phi, eta);
-      LOG(DEBUG) << "digit already in " << i << ", channel = " << mContributingDigit[i]->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << mContributingDigit[i]->getTDC() << ", calibrated time = " << mContributingDigit[i]->getCalibratedTime();
+      LOG(debug) << "digit already in " << i << ", channel = " << mContributingDigit[i]->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << mContributingDigit[i]->getTDC() << ", calibrated time = " << mContributingDigit[i]->getCalibratedTime();
     }
 
     dig->getPhiAndEtaIndex(phi, eta);
-    LOG(DEBUG) << "skipped digit"
+    LOG(debug) << "skipped digit"
                << ", channel = " << dig->getChannel() << ",phi,eta = (" << phi << "," << eta << "), TDC = " << dig->getTDC() << ", calibrated time = " << dig->getCalibratedTime();
 
     dig->setIsUsedInCluster(); // flag is at used in any case
@@ -223,7 +223,7 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
       } else if (deltaEta == -1) { // the digit is UP wrt the cluster
         mask = Cluster::kUp;
       } else { // same channel!
-        LOG(DEBUG) << " Check what is going on, the digit you are trying to merge to the cluster must be in a different channels... ";
+        LOG(debug) << " Check what is going on, the digit you are trying to merge to the cluster must be in a different channels... ";
       }
     } else { // |delataphi| > 1
       isOk = false;

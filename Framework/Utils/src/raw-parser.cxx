@@ -63,7 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
             if (loglevel > 0) {
               if (dh != lastDataHeader) {
                 if (!rdhprintout.str().empty()) {
-                  LOG(INFO) << rdhprintout.str();
+                  LOG(info) << rdhprintout.str();
                   rdhprintout.str(std::string());
                 }
                 // print the DataHeader information only for the first part or if we have high verbosity
@@ -93,7 +93,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
             lastDataHeader = dh;
           }
           if (loglevel > 0) {
-            LOG(INFO) << rdhprintout.str();
+            LOG(info) << rdhprintout.str();
           }
         }); }},
     Options{

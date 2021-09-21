@@ -296,7 +296,7 @@ void MaterialManager::insertTGeoMedium(std::string modname, int localindex)
   auto list = gGeoManager->GetListOfMedia();
   mTGeoMediumMap[p] = (TGeoMedium*)list->At(list->GetEntries() - 1);
 
-  LOG(DEBUG) << "mapping " << modname << " " << localindex << " to " << mTGeoMediumMap[p]->GetName();
+  LOG(debug) << "mapping " << modname << " " << localindex << " to " << mTGeoMediumMap[p]->GetName();
 }
 
 void MaterialManager::insertMediumName(const char* uniquename, int index)
@@ -311,7 +311,7 @@ TGeoMedium* MaterialManager::getTGeoMedium(std::string const& modname, int local
   auto p = std::make_pair(modname, localindex);
   auto iter = mTGeoMediumMap.find(p);
   if (iter == mTGeoMediumMap.end()) {
-    LOG(WARNING) << "No medium registered for " << modname << " index " << localindex << "\n";
+    LOG(warning) << "No medium registered for " << modname << " index " << localindex << "\n";
     return nullptr;
   }
   return iter->second;

@@ -45,18 +45,18 @@ T GetFromMacro(const std::string& file, const std::string& funcname, const std::
   /** load macro is global function is not already defined **/
   if (!gROOT->GetGlobalFunction(gfunc.c_str())) {
     if (gROOT->LoadMacro(file.c_str()) != 0) {
-      LOG(FATAL) << "Cannot find " << file;
+      LOG(fatal) << "Cannot find " << file;
       return nullptr;
     }
     if (!gROOT->GetGlobalFunction(gfunc.c_str())) {
-      LOG(FATAL) << "Global function '" << gfunc << "' not defined";
+      LOG(fatal) << "Global function '" << gfunc << "' not defined";
       return nullptr;
     }
   }
 
   /** check the return type matches the required one **/
   if (strcmp(gROOT->GetGlobalFunction(gfunc.c_str())->GetReturnTypeName(), type.c_str())) {
-    LOG(INFO) << "Global function '" << gfunc << "' does not return a '" << type << "' type";
+    LOG(info) << "Global function '" << gfunc << "' does not return a '" << type << "' type";
     return nullptr;
   }
 

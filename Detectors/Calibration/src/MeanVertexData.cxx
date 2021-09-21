@@ -29,13 +29,13 @@ using clbUtils = o2::calibration::Utils;
 //_____________________________________________
 MeanVertexData::MeanVertexData()
 {
-  LOG(INFO) << "Default c-tor, not to be used";
+  LOG(info) << "Default c-tor, not to be used";
 }
 
 //_____________________________________________
 void MeanVertexData::print() const
 {
-  LOG(INFO) << entries << " entries";
+  LOG(info) << entries << " entries";
 }
 
 //_____________________________________________
@@ -43,13 +43,13 @@ void MeanVertexData::fill(const gsl::span<const PVertex> data)
 {
   // fill container
 
-  LOG(INFO) << "input size = " << data.size();
+  LOG(info) << "input size = " << data.size();
   for (int i = data.size(); i--;) {
     // filling the histogram in binned mode
     auto x = data[i].getX();
     auto y = data[i].getY();
     auto z = data[i].getZ();
-    LOG(DEBUG) << "i = " << i << " --> x = " << x << ", y = " << y << ", z = " << z;
+    LOG(debug) << "i = " << i << " --> x = " << x << ", y = " << y << ", z = " << z;
     auto dx = x + rangeX;
     uint32_t binx = dx < 0 ? 0xffffffff : (x + rangeX) * v2BinX;
     auto dy = y + rangeY;
@@ -65,13 +65,13 @@ void MeanVertexData::fill(const gsl::span<const PVertex> data)
   }
 
   for (int i = 0; i < histoX.size(); i++) {
-    LOG(DEBUG) << "histoX, bin " << i << ": entries = " << histoX[i];
+    LOG(debug) << "histoX, bin " << i << ": entries = " << histoX[i];
   }
   for (int i = 0; i < histoY.size(); i++) {
-    LOG(DEBUG) << "histoY, bin " << i << ": entries = " << histoY[i];
+    LOG(debug) << "histoY, bin " << i << ": entries = " << histoY[i];
   }
   for (int i = 0; i < histoZ.size(); i++) {
-    LOG(DEBUG) << "histoZ, bin " << i << ": entries = " << histoZ[i];
+    LOG(debug) << "histoZ, bin " << i << ": entries = " << histoZ[i];
   }
 }
 

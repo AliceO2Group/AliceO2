@@ -37,7 +37,7 @@ void stackSetup(T* vmc, R* run)
       }
     }
     if (!foundCave) {
-      LOG(FATAL) << "Cave volume not found; Could not attach observers";
+      LOG(fatal) << "Cave volume not found; Could not attach observers";
     }
   }
 */

@@ -87,7 +87,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                   rdhprintout << " payload size " << dh->payloadSize << std::endl;
                 }
                 if (!rdhprintout.str().empty()) {
-                  LOG(INFO) << rdhprintout.str();
+                  LOG(info) << rdhprintout.str();
                   rdhprintout.str(std::string());
                 }
               }
@@ -101,7 +101,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
             lastDataHeader = dh;
           }
           if (loglevel > 0) {
-            LOG(INFO) << rdhprintout.str();
+            LOG(info) << rdhprintout.str();
           }
           zdc_dr.write();
         }); }},

@@ -29,7 +29,7 @@ bool Geometry::absToRelNumbering(unsigned short absId, short* relid)
   //  relid[1] = Column number inside a CPV module (Phi coordinate)
   //  relid[2] = Row number inside a CPV module (Z coordinate)
   if (absId >= kNCHANNELS) {
-    LOG(DEBUG) << "Wrong absId = " << absId << " > kNCHANNELS=" << kNCHANNELS;
+    LOG(debug) << "Wrong absId = " << absId << " > kNCHANNELS=" << kNCHANNELS;
     return false;
   }
   const short nCPV = kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ;
@@ -110,15 +110,15 @@ bool Geometry::hwaddressToAbsId(short ccId, short dil, short gas, short pad, uns
   //check if hw address is valid
   bool isGoodHWAddress = true;
   if (pad < 0 || pad >= kNPAD) {
-    LOG(DEBUG) << "Geometry::hwaddressToAbsId() : Wrong pad address: pad=" << pad << " >= kNPAD=" << kNPAD;
+    LOG(debug) << "Geometry::hwaddressToAbsId() : Wrong pad address: pad=" << pad << " >= kNPAD=" << kNPAD;
     isGoodHWAddress = false;
   }
   if (dil < 0 || dil >= kNDilogic) {
-    LOG(DEBUG) << "Geometry::hwaddressToAbsId() : Wrong dil address: dil=" << dil << " >= kNDilogic=" << kNDilogic;
+    LOG(debug) << "Geometry::hwaddressToAbsId() : Wrong dil address: dil=" << dil << " >= kNDilogic=" << kNDilogic;
     isGoodHWAddress = false;
   }
   if (gas < 0 || gas >= kNGas) {
-    LOG(DEBUG) << "Geometry::hwaddressToAbsId() : Wrong gasiplex address: gas=" << gas << " >= kNGas=" << kNGas;
+    LOG(debug) << "Geometry::hwaddressToAbsId() : Wrong gasiplex address: gas=" << gas << " >= kNGas=" << kNGas;
     isGoodHWAddress = false;
   }
   //return false in no success case
@@ -151,15 +151,15 @@ bool Geometry::absIdToHWaddress(unsigned short absId, short& ccId, short& dil, s
 
   bool isAbsIdOk = true;
   if (pad < 0 || pad >= kNPAD) {
-    LOG(DEBUG) << "Wrong pad address: pad=" << pad << " >= kNPAD=" << kNPAD;
+    LOG(debug) << "Wrong pad address: pad=" << pad << " >= kNPAD=" << kNPAD;
     isAbsIdOk = false;
   }
   if (dil < 0 || dil >= kNDilogic) {
-    LOG(DEBUG) << "Wrong dil address: dil=" << dil << " >= kNDilogic=" << kNDilogic;
+    LOG(debug) << "Wrong dil address: dil=" << dil << " >= kNDilogic=" << kNDilogic;
     isAbsIdOk = false;
   }
   if (gas < 0 || gas >= kNGas) {
-    LOG(DEBUG) << "Wrong gasiplex address: gas=" << gas << " >= kNGas=" << kNGas;
+    LOG(debug) << "Wrong gasiplex address: gas=" << gas << " >= kNGas=" << kNGas;
     isAbsIdOk = false;
   }
   return isAbsIdOk;

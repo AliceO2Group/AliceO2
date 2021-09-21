@@ -36,15 +36,15 @@ void CalibdEdx::initOutput()
 
 void CalibdEdx::finalizeSlot(Slot& slot)
 {
-  LOG(INFO) << "Finalizing slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
+  LOG(info) << "Finalizing slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
 
   const dEdxHistos* container = slot.getContainer();
   const auto statsASide = container->getHists()[0].getStatisticsData();
   const auto statsCSide = container->getHists()[1].getStatisticsData();
 
   slot.print();
-  LOG(INFO) << "A side, truncated mean statistics: Mean = " << statsASide.mCOG << ", StdDev = " << statsCSide.mStdDev << ", Entries = " << statsASide.mSum;
-  LOG(INFO) << "C side, truncated mean statistics: Mean = " << statsCSide.mCOG << ", StdDev = " << statsCSide.mStdDev << ", Entries = " << statsCSide.mSum;
+  LOG(info) << "A side, truncated mean statistics: Mean = " << statsASide.mCOG << ", StdDev = " << statsCSide.mStdDev << ", Entries = " << statsASide.mSum;
+  LOG(info) << "C side, truncated mean statistics: Mean = " << statsCSide.mCOG << ", StdDev = " << statsCSide.mStdDev << ", Entries = " << statsCSide.mSum;
 
   CalibMIP mips{statsASide.mCOG, statsCSide.mCOG};
 
@@ -59,7 +59,7 @@ void CalibdEdx::finalizeSlot(Slot& slot)
   mMIPVector.push_back(mips);
 
   if (mDebugOutputStreamer) {
-    LOG(INFO) << "Dumping time slot data to file";
+    LOG(info) << "Dumping time slot data to file";
 
     *mDebugOutputStreamer << "mipPosition"
                           << "timeFrame=" << timeFrame            // Initial time frame of time slot
@@ -95,7 +95,7 @@ void CalibdEdx::disableDebugOutput()
 void CalibdEdx::finalizeDebugOutput() const
 {
   if (mDebugOutputStreamer) {
-    LOG(INFO) << "Closing dump file";
+    LOG(info) << "Closing dump file";
     mDebugOutputStreamer->Close();
   }
 }

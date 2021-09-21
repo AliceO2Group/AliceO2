@@ -55,7 +55,7 @@ class MaskMakerDeviceDPL
 
     auto stop = [this]() {
       double scaleFactor = (mCounter == 0) ? 0 : 1.e6 / mCounter;
-      LOG(INFO) << "Processing time / " << mCounter << " events: full: " << mTimer.count() * scaleFactor << " us  mask maker: " << mTimerMaskMaker.count() * scaleFactor << " us";
+      LOG(info) << "Processing time / " << mCounter << " events: full: " << mTimer.count() * scaleFactor << " us  mask maker: " << mTimerMaskMaker.count() * scaleFactor << " us";
     };
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
   }

@@ -402,7 +402,7 @@ DataRelayer::RelayChoice
   };
 
   if (input == INVALID_INPUT) {
-    LOG(ERROR) << "Could not match incoming data to any input route: " << DataHeaderInfo();
+    LOG(error) << "Could not match incoming data to any input route: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
     firstPart.reset(nullptr);
@@ -414,7 +414,7 @@ DataRelayer::RelayChoice
   }
 
   if (TimesliceId::isValid(timeslice) == false) {
-    LOG(ERROR) << "Could not determine the timeslice for input: " << DataHeaderInfo();
+    LOG(error) << "Could not determine the timeslice for input: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
     firstPart.reset(nullptr);
@@ -437,14 +437,14 @@ DataRelayer::RelayChoice
       static std::atomic<size_t> obsoleteCount = 0;
       static std::atomic<size_t> mult = 1;
       if ((obsoleteCount++ % (1 * mult)) == 0) {
-        LOGP(WARNING, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount);
+        LOGP(warning, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount);
         if (obsoleteCount > mult * 10) {
           mult = mult * 10;
         }
       }
       return Dropped;
     case TimesliceIndex::ActionTaken::DropInvalid:
-      LOG(WARNING) << "Incoming data is invalid, not relaying.";
+      LOG(warning) << "Incoming data is invalid, not relaying.";
       mStats.malformedInputs++;
       mStats.droppedIncomingMessages++;
       firstPart.reset(nullptr);

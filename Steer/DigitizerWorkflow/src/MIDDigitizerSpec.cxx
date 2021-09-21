@@ -45,7 +45,7 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
-    LOG(INFO) << "initializing MID digitization";
+    LOG(info) << "initializing MID digitization";
 
     mDigitizer = std::make_unique<Digitizer>(createDefaultChamberResponse(), createDefaultChamberEfficiencyResponse(), createTransformationFromManager(gGeoManager));
   }
@@ -56,7 +56,7 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (finished) {
       return;
     }
-    LOG(DEBUG) << "Doing MID digitization";
+    LOG(debug) << "Doing MID digitization";
 
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
@@ -81,7 +81,7 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         // get the hits for this event and this source
         std::vector<o2::mid::Hit> hits;
         context->retrieveHits(mSimChains, "MIDHit", part.sourceID, part.entryID, &hits);
-        LOG(DEBUG) << "For collision " << collID << " eventID " << part.entryID << " found MID " << hits.size() << " hits ";
+        LOG(debug) << "For collision " << collID << " eventID " << part.entryID << " found MID " << hits.size() << " hits ";
 
         mDigitizer->process(hits, digits, labels);
         if (digits.empty()) {
@@ -98,13 +98,13 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     mDigitsMerger.process(digitsAccum, labelsAccum, rofRecords);
 
-    LOG(DEBUG) << "MID: Sending " << digitsAccum.size() << " digits.";
+    LOG(debug) << "MID: Sending " << digitsAccum.size() << " digits.";
     pc.outputs().snapshot(Output{"MID", "DIGITS", 0, Lifetime::Timeframe}, mDigitsMerger.getColumnData());
     pc.outputs().snapshot(Output{"MID", "DIGITSROF", 0, Lifetime::Timeframe}, mDigitsMerger.getROFRecords());
     if (pc.outputs().isAllowed({"MID", "DIGITLABELS", 0})) {
       pc.outputs().snapshot(Output{"MID", "DIGITLABELS", 0, Lifetime::Timeframe}, mDigitsMerger.getMCContainer());
     }
-    LOG(DEBUG) << "MID: Sending ROMode= " << mROMode << " to GRPUpdater";
+    LOG(debug) << "MID: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"MID", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit

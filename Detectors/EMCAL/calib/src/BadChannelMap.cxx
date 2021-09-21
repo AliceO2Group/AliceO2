@@ -67,7 +67,7 @@ TH2* BadChannelMap::getHistogramRepresentation() const
   hist->SetDirectory(nullptr);
   auto geo = Geometry::GetInstance();
   if (!geo) {
-    LOG(ERROR) << "Geometry needs to be initialized";
+    LOG(error) << "Geometry needs to be initialized";
     return hist;
   }
 

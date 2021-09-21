@@ -41,7 +41,7 @@ MagFieldFast::MagFieldFast(const string inpFName) : mFactorSol(1.f)
 {
   // c-tor
   if (!inpFName.empty() && !LoadData(inpFName)) {
-    LOG(FATAL) << "Failed to initialize from " << inpFName;
+    LOG(fatal) << "Failed to initialize from " << inpFName;
   }
 }
 
@@ -50,12 +50,12 @@ MagFieldFast::MagFieldFast(float factor, int nomField, const string inpFmt) : mF
 {
   // c-tor
   if (nomField != 2 && nomField != 5) {
-    LOG(FATAL) << "No parametrization for nominal field of " << nomField << " kG";
+    LOG(fatal) << "No parametrization for nominal field of " << nomField << " kG";
   }
   TString pth;
   pth.Form(inpFmt.data(), nomField);
   if (!LoadData(pth.Data())) {
-    LOG(FATAL) << "Failed to initialize from " << pth.Data();
+    LOG(fatal) << "Failed to initialize from " << pth.Data();
   }
 }
 
@@ -66,7 +66,7 @@ bool MagFieldFast::LoadData(const string inpFName)
 
   std::ifstream in(gSystem->ExpandPathName(inpFName.data()), std::ifstream::in);
   if (in.fail()) {
-    LOG(FATAL) << "Failed to open file " << inpFName;
+    LOG(fatal) << "Failed to open file " << inpFName;
     return false;
   }
   std::string line;
@@ -85,7 +85,7 @@ bool MagFieldFast::LoadData(const string inpFName)
         ;
       }
       if (cnt != 4) {
-        LOG(FATAL) << "Wrong header " << line;
+        LOG(fatal) << "Wrong header " << line;
         return false;
       }
       curParam = &mSolPar[header[0]][header[1]][header[2]];
@@ -94,7 +94,7 @@ bool MagFieldFast::LoadData(const string inpFName)
         ;
       }
       if (cnt != header[3]) {
-        LOG(FATAL) << "Wrong data (npar=" << cnt << ") for param " << header[0] << " " << header[1] << " " << header[2]
+        LOG(fatal) << "Wrong data (npar=" << cnt << ") for param " << header[0] << " " << header[1] << " " << header[2]
                    << " " << header[3] << " " << line;
         return false;
       }
@@ -106,9 +106,9 @@ bool MagFieldFast::LoadData(const string inpFName)
     }
   }
   //
-  LOG(INFO) << "Loaded " << nParams << " params from " << inpFName;
+  LOG(info) << "Loaded " << nParams << " params from " << inpFName;
   if (nParams != kNSolRRanges * kNSolZRanges * kNQuadrants) {
-    LOG(FATAL) << "Was expecting " << kNSolRRanges * kNSolZRanges * kNQuadrants << " params";
+    LOG(fatal) << "Was expecting " << kNSolRRanges * kNSolZRanges * kNQuadrants << " params";
   }
   return true;
 }

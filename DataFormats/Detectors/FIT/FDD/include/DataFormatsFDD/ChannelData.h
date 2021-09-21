@@ -62,7 +62,7 @@ struct ChannelData {
   }
   void printLog() const
   {
-    LOG(INFO) << "ChId: " << static_cast<uint16_t>(mPMNumber) << " |  FEE bits:" << static_cast<uint16_t>(mFEEBits) << " | Time: " << mTime << " | Charge: " << mChargeADC;
+    LOG(info) << "ChId: " << static_cast<uint16_t>(mPMNumber) << " |  FEE bits:" << static_cast<uint16_t>(mFEEBits) << " | Time: " << mTime << " | Charge: " << mChargeADC;
   }
   ClassDefNV(ChannelData, 3);
 };

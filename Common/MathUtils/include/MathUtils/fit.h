@@ -417,7 +417,7 @@ double fitGaus(size_t nBins, const T* arr, const T xMin, const T xMax, std::arra
   auto m33i = m33.Inverse(res);
   if (res) {
     recover();
-    LOG(ERROR) << np << " points collected, matrix inversion failed " << m33;
+    LOG(error) << np << " points collected, matrix inversion failed " << m33;
     return -10;
   }
   auto v = m33i * v3;

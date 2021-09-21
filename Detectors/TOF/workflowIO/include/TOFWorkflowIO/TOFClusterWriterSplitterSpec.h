@@ -43,7 +43,7 @@ class TOFClusterWriterSplitter : public Task
   void createAndOpenFileAndTree()
   {
     TString filename = TString::Format("%s_%06d.root", mBaseName.c_str(), mCount);
-    LOG(DEBUG) << "opening file " << filename.Data();
+    LOG(debug) << "opening file " << filename.Data();
     mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
     mOutputTree = std::make_unique<TTree>("o2sim", "Tree with TOF clusters");
     mOutputTree->Branch("TOFCluster", &mPClusters);

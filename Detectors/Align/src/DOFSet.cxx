@@ -21,7 +21,7 @@ using namespace o2::align;
 DOFSet::DOFSet(const char* symname, Controller* ctr) : TNamed(symname, ""), mController(ctr)
 {
   if (!ctr) {
-    LOG(FATAL) << "Controller has to be provided :" << symname;
+    LOG(fatal) << "Controller has to be provided :" << symname;
   }
 }
 

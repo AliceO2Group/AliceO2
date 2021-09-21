@@ -102,7 +102,7 @@ BranchIterator::BranchIterator(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
 
     // element type
     if (mField->type()->num_fields() <= 0) {
-      LOGP(FATAL, "Field {} of type {} has no children!", mField->name(), mField->type()->ToString().c_str());
+      LOGP(fatal, "Field {} of type {} has no children!", mField->name(), mField->type()->ToString().c_str());
     }
     mElementType = mField->type()->field(0)->type()->id();
     // number of elements
@@ -173,7 +173,7 @@ bool BranchIterator::initBranch(TTree* tree)
       mLeaflistString += "/D";
       break;
     default:
-      LOGP(FATAL, "Type {} not handled!", mElementType);
+      LOGP(fatal, "Type {} not handled!", mElementType);
       break;
   }
 
@@ -245,7 +245,7 @@ bool BranchIterator::initDataBuffer(Int_t ib)
       mValueBuffer = (void*)mVariable_d;
     default:
       break;
-      LOGP(FATAL, "Type {} not handled!", mElementType);
+      LOGP(fatal, "Type {} not handled!", mElementType);
       break;
   }
   mBranchPtr->SetAddress(mValueBuffer);
@@ -320,7 +320,7 @@ bool BranchIterator::push()
         mValueBuffer = (void*)mVariable_d;
         break;
       default:
-        LOGP(FATAL, "Type {} not handled!", mElementType);
+        LOGP(fatal, "Type {} not handled!", mElementType);
         break;
     }
   }
@@ -427,7 +427,7 @@ ColumnIterator::ColumnIterator(TTree* tree, const char* colname)
   mNumEntries = mBranch->GetEntries();
 
   if (!mBranch) {
-    LOGP(WARNING, "Can not locate branch {}", colname);
+    LOGP(warning, "Can not locate branch {}", colname);
     return;
   }
   mColumnName = colname;
@@ -490,7 +490,7 @@ ColumnIterator::ColumnIterator(TTree* tree, const char* colname)
         MAKE_FIELD_AND_BUILDER(double, 1, mTableBuilder_d);
         break;
       default:
-        LOGP(FATAL, "Type {} not handled!", mElementType);
+        LOGP(fatal, "Type {} not handled!", mElementType);
         break;
     }
   } else {
@@ -529,7 +529,7 @@ ColumnIterator::ColumnIterator(TTree* tree, const char* colname)
         MAKE_FIELD_AND_BUILDER(double, mNumberElements, mTableBuilder_d);
         break;
       default:
-        LOGP(FATAL, "Type {} not handled!", mElementType);
+        LOGP(fatal, "Type {} not handled!", mElementType);
         break;
     }
   }
@@ -601,7 +601,7 @@ void ColumnIterator::reserve(size_t s)
       stat = mTableBuilder_d->Reserve(s * mNumberElements);
       break;
     default:
-      LOGP(FATAL, "Type {} not handled!", mElementType);
+      LOGP(fatal, "Type {} not handled!", mElementType);
       break;
   }
 }
@@ -663,7 +663,7 @@ size_t ColumnIterator::push()
       stat = appendValues<double>(mTableBuilder_d, buffer, size * mNumberElements);
       break;
     default:
-      LOGP(FATAL, "Type {} not handled!", mElementType);
+      LOGP(fatal, "Type {} not handled!", mElementType);
       break;
   }
   if (mNumberElements != 1) {
@@ -717,7 +717,7 @@ void ColumnIterator::finish()
         stat = mTableBuilder_d->Finish(&mArray);
         break;
       default:
-        LOGP(FATAL, "Type {} not handled!", mElementType);
+        LOGP(fatal, "Type {} not handled!", mElementType);
         break;
     }
 }

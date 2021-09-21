@@ -113,7 +113,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   Int_t sensorIndex =
     mGeometryTGeo->getSensorIndex(halfID, diskID, ladderID, sensorID);
 
-  // LOG(INFO) << "Found hit into half = " << halfID << "; disk = " << diskID <<
+  // LOG(info) << "Found hit into half = " << halfID << "; disk = " << diskID <<
   // "; ladder = " << ladderID << "; sensor = " << sensorID ;
 
   bool startHit = false, stopHit = false;
@@ -372,7 +372,7 @@ void Detector::createMaterials()
   Float_t maxField;
   o2::base::Detector::initFieldTrackingParams(fieldType, maxField);
 
-  LOG(DEBUG) << "Detector::createMaterials >>>>> fieldType " << fieldType
+  LOG(debug) << "Detector::createMaterials >>>>> fieldType " << fieldType
              << " maxField " << maxField;
 
   matId = 0; // starting value
@@ -566,7 +566,7 @@ void Detector::createMaterials()
                              tmaxfd, stemax, deemax, epsil, stmin);
   matId++;
 
-  LOG(DEBUG) << "Detector::createMaterials -----> matId = " << matId;
+  LOG(debug) << "Detector::createMaterials -----> matId = " << matId;
 }
 
 //_____________________________________________________________________________
@@ -592,7 +592,7 @@ void Detector::defineSensitiveVolumes()
 
   auto id = registerSensitiveVolumeAndGetVolID("MFTSensor");
   if (id <= 0) {
-    LOG(FATAL) << "Can't register volume MFTSensor";
+    LOG(fatal) << "Can't register volume MFTSensor";
   }
   if (!mftGeom->getSensorVolumeID()) {
     mftGeom->setSensorVolumeID(id);
@@ -608,7 +608,7 @@ void Detector::addAlignableVolumes() const
   // Modified: 21 Apr 2021 Robin Caron
 
   if (!gGeoManager) {
-    LOG(FATAL) << "TGeoManager doesn't exist !";
+    LOG(fatal) << "TGeoManager doesn't exist !";
     return;
   }
 
@@ -616,7 +616,7 @@ void Detector::addAlignableVolumes() const
   TString sname = GeometryTGeo::composeSymNameMFT();
 
   if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+    LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
 
   Int_t lastUID = 0;
@@ -636,7 +636,7 @@ void Detector::addAlignableVolumesHalf(int hf, TString& parent, Int_t& lastUID) 
   TString sname = mGeometryTGeo->composeSymNameHalf(hf);
 
   if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+    LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
 
   Int_t nDisks = mGeometryTGeo->getNumberOfDisksPerHalf(hf);
@@ -656,7 +656,7 @@ void Detector::addAlignableVolumesDisk(Int_t hf, Int_t dk,
   TString sname = mGeometryTGeo->composeSymNameDisk(hf, dk);
 
   if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+    LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
 
   Int_t nLadders = 0;
@@ -681,7 +681,7 @@ void Detector::addAlignableVolumesLadder(Int_t hf, Int_t dk, Int_t lr,
   TString sname = mGeometryTGeo->composeSymNameLadder(hf, dk, lr);
 
   if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+    LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
 
   Int_t nSensors = mGeometryTGeo->getNumberOfSensorsPerLadder(hf, dk, lr);
@@ -703,7 +703,7 @@ void Detector::addAlignableVolumesChip(Int_t hf, Int_t dk, Int_t lr, Int_t ms,
   Int_t uid = o2::base::GeometryManager::getSensID(o2::detectors::DetID::MFT, lastUID++);
 
   if (!gGeoManager->SetAlignableEntry(sname, path.Data(), uid)) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+    LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
 }
 

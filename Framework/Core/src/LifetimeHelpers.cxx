@@ -197,7 +197,7 @@ ExpirationHandler::Checker
     if (waitForCTP == false || dataTakingContext.source == OrbitResetTimeSource::CTP) {
       return true;
     }
-    LOG(INFO) << "CTP is not there, fetching.";
+    LOG(info) << "CTP is not there, fetching.";
     std::vector<char> buffer;
     CURL* curl = curl_easy_init();
     if (curl == nullptr) {
@@ -206,7 +206,7 @@ ExpirationHandler::Checker
     CURLcode res;
     std::string path = "CTP/OrbitReset";
     auto url = fmt::format("{}/{}/{}", serverUrl, path, timestamp / 1000);
-    LOG(INFO) << "Fetching CTP from " << url;
+    LOG(info) << "Fetching CTP from " << url;
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &buffer);
@@ -240,7 +240,7 @@ ExpirationHandler::Checker
     }
     memFile.Close();
     std::vector<Long64_t>* ctp = (std::vector<Long64_t>*)result;
-    LOG(INFO) << "Orbit reset time now at " << (*ctp)[0];
+    LOG(info) << "Orbit reset time now at " << (*ctp)[0];
     dataTakingContext.orbitResetTime = (*ctp)[0];
     dataTakingContext.source = OrbitResetTimeSource::CTP;
     return true;
@@ -317,7 +317,7 @@ ExpirationHandler::Handler
       path = fmt::format("{}/{}", matcher->origin, matcher->description);
     }
     auto url = fmt::format("{}/{}/{}", serverUrl, path, timestamp);
-    LOG(INFO) << "fetchFromCCDBCache: Fetching " << url;
+    LOG(info) << "fetchFromCCDBCache: Fetching " << url;
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &payloadBuffer);

@@ -302,7 +302,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
         auto const& outName = input.name;
         auto const& out = linkToIndex.find(input.name);
         if (out == linkToIndex.end()) {
-          LOG(ERROR) << "Could not find suitable node for " << outName;
+          LOG(error) << "Could not find suitable node for " << outName;
           continue;
         }
         links.push_back(NodeLink{out->second.specId, out->second.outputId, si, ii});

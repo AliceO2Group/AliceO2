@@ -50,7 +50,7 @@ void DigiParams::setChargeThreshold(int v, float frac2Account)
   if (mMinChargeToAccount < 0 || mMinChargeToAccount > mChargeThreshold) {
     mMinChargeToAccount = mChargeThreshold;
   }
-  LOG(INFO) << "Set Alpide charge threshold to " << mChargeThreshold
+  LOG(info) << "Set Alpide charge threshold to " << mChargeThreshold
             << ", single hit will be accounted from " << mMinChargeToAccount
             << " electrons";
 }

@@ -37,14 +37,14 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
 
   std::vector<o2::itsmft::Digit> digiVec, *digiVecP = &digiVec;
   if (!digTree.GetBranch(digBranchName.c_str())) {
-    LOG(FATAL) << "Failed to find the branch " << digBranchName << " in the tree " << digTreeName;
+    LOG(fatal) << "Failed to find the branch " << digBranchName << " in the tree " << digTreeName;
   }
   digTree.SetBranchAddress(digBranchName.c_str(), &digiVecP);
 
   // ROF record entries in the digit tree
   ROFRVEC rofRecVec, *rofRecVecP = &rofRecVec;
   if (!digTree.GetBranch(rofRecName.c_str())) {
-    LOG(FATAL) << "Failed to find the branch " << rofRecName << " in the tree " << digTreeName;
+    LOG(fatal) << "Failed to find the branch " << rofRecName << " in the tree " << digTreeName;
   }
   digTree.SetBranchAddress(rofRecName.c_str(), &rofRecVecP);
   ///-------< input
@@ -52,14 +52,14 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
   ///-------> output
   if (outName.empty()) {
     outName = "raw" + digBranchName + ".raw";
-    LOG(INFO) << "Output file name is not provided, set to " << outName;
+    LOG(info) << "Output file name is not provided, set to " << outName;
   }
   auto outFl = fopen(outName.c_str(), "wb");
   if (!outFl) {
-    LOG(FATAL) << "failed to open raw data output file " << outName;
+    LOG(fatal) << "failed to open raw data output file " << outName;
     ;
   } else {
-    LOG(INFO) << "opened raw data output file " << outName;
+    LOG(info) << "opened raw data output file " << outName;
   }
   o2::itsmft::PayLoadCont outBuffer;
   ///-------< output
@@ -94,7 +94,7 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
         link->cruID = il;
         link->feeID = mp.RUSW2FEEId(ir, il);
         accL += lnkAs[il];
-        LOG(INFO) << "RU " << std::setw(3) << ir << " on lr" << int(ru.ruInfo->layer)
+        LOG(info) << "RU " << std::setw(3) << ir << " on lr" << int(ru.ruInfo->layer)
                   << " : FEEId 0x" << std::hex << std::setfill('0') << std::setw(6) << link->feeID
                   << " reads lanes " << std::bitset<28>(link->lanes);
       }
@@ -108,22 +108,22 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
     for (const auto& rofRec : rofRecVec) {
       int rofEntry = rofRec.getFirstEntry();
       int nDigROF = rofRec.getNEntries();
-      LOG(INFO) << "Processing ROF:" << rofRec.getROFrame() << " with " << nDigROF << " entries";
+      LOG(info) << "Processing ROF:" << rofRec.getROFrame() << " with " << nDigROF << " entries";
       rofRec.print();
       if (!nDigROF) {
-        LOG(INFO) << "Frame is empty"; // ??
+        LOG(info) << "Frame is empty"; // ??
         continue;
       }
       int maxDigIndex = rofEntry + nDigROF;
 
       int nPagesCached = rawReader.digits2raw(digiVec, rofEntry, nDigROF, rofRec.getBCData(),
                                               ruSWMin, ruSWMax);
-      LOG(INFO) << "Pages chached " << nPagesCached << " superpage: " << int(superPageSize);
+      LOG(info) << "Pages chached " << nPagesCached << " superpage: " << int(superPageSize);
       if (nPagesCached >= superPageSize) {
         int nPagesFlushed = rawReader.flushSuperPages(superPageSize, outBuffer);
         fwrite(outBuffer.data(), 1, outBuffer.getSize(), outFl); //write to file
         outBuffer.clear();
-        LOG(INFO) << "Flushed " << nPagesFlushed << " CRU pages";
+        LOG(info) << "Flushed " << nPagesFlushed << " CRU pages";
       }
     }
   } // loop over multiple ROFvectors (in case of chaining)
@@ -134,7 +134,7 @@ void run_digi2raw_its(std::string outName = "rawits.bin",                       
     flushed = rawReader.flushSuperPages(superPageSize, outBuffer, false);
     fwrite(outBuffer.data(), 1, outBuffer.getSize(), outFl); //write to file
     if (flushed) {
-      LOG(INFO) << "Flushed final " << flushed << " CRU pages";
+      LOG(info) << "Flushed final " << flushed << " CRU pages";
     }
     outBuffer.clear();
   } while (flushed);

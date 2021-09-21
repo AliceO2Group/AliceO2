@@ -74,9 +74,9 @@ void TrackerDPL::init(InitContext& ic)
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath, "bin");
   if (o2::utils::Str::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
-    LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
+    LOG(info) << "Tracker running with a provided dictionary: " << dictFile;
   } else {
-    LOG(INFO) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
+    LOG(info) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
   }
 }
 
@@ -95,7 +95,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto rofsinput = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"MFT", "MFTTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
-  LOG(INFO) << "MFTTracker pulled " << compClusters.size() << " compressed clusters in "
+  LOG(info) << "MFTTracker pulled " << compClusters.size() << " compressed clusters in "
             << rofsinput.size() << " RO frames";
 
   const dataformats::MCTruthContainer<MCCompLabel>* labels = mUseMC ? pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("labels").release() : nullptr;
@@ -103,7 +103,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     // get the array as read-only span, a snapshot of the object is sent forward
     mc2rofs = pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("MC2ROframes");
-    LOG(INFO) << labels->getIndexedSize() << " MC label objects , in "
+    LOG(info) << labels->getIndexedSize() << " MC label objects , in "
               << mc2rofs.size() << " MC events";
   }
 
@@ -119,7 +119,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   o2::mft::ROframe event(0);
 
   Bool_t continuous = mGRP->isDetContinuousReadOut("MFT");
-  LOG(INFO) << "MFTTracker RO: continuous=" << continuous;
+  LOG(info) << "MFTTracker RO: continuous=" << continuous;
 
   // tracking configuration parameters
   auto& trackingParam = MFTTrackingParam::Instance();
@@ -143,7 +143,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       if (nclUsed) {
         event.setROFrameId(roFrame);
         event.initialize(trackingParam.FullClusterScan);
-        LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+        LOG(info) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mTracker->setROFrame(roFrame);
         mTracker->clustersToTracks(event);
         tracksLTF.swap(event.getTracksLTF());
@@ -159,8 +159,8 @@ void TrackerDPL::run(ProcessingContext& pc)
           trackLabels.clear();
         }
 
-        LOG(INFO) << "Found tracks LTF: " << tracksLTF.size();
-        LOG(INFO) << "Found tracks CA: " << tracksCA.size();
+        LOG(info) << "Found tracks LTF: " << tracksLTF.size();
+        LOG(info) << "Found tracks CA: " << tracksCA.size();
         int first = allTracksMFT.size();
         int number = tracksLTF.size() + tracksCA.size();
         rof.setFirstEntry(first);
@@ -171,9 +171,9 @@ void TrackerDPL::run(ProcessingContext& pc)
       roFrame++;
     }
 
-  LOG(INFO) << "MFTTracker found " << nTracksLTF << " tracks LTF";
-  LOG(INFO) << "MFTTracker found " << nTracksCA << " tracks CA";
-  LOG(INFO) << "MFTTracker pushed " << allTracksMFT.size() << " tracks";
+  LOG(info) << "MFTTracker found " << nTracksLTF << " tracks LTF";
+  LOG(info) << "MFTTracker found " << nTracksCA << " tracks CA";
+  LOG(info) << "MFTTracker pushed " << allTracksMFT.size() << " tracks";
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{"MFT", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
@@ -184,7 +184,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
 void TrackerDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "MFT Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "MFT Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

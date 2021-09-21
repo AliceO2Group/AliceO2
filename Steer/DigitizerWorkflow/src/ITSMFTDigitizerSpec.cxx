@@ -52,7 +52,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     auto& digipar = mDigitizer.getParams();
 
     mROMode = digipar.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
-    LOG(INFO) << mID.getName() << " simulated in "
+    LOG(info) << mID.getName() << " simulated in "
               << ((mROMode == o2::parameters::GRPObject::CONTINUOUS) ? "CONTINUOUS" : "TRIGGERED")
               << " RO mode";
 
@@ -85,8 +85,8 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     context->initSimChains(mID, mSimChains);
     const bool withQED = context->isQEDProvided() && !mDisableQED;
     auto& timesview = context->getEventRecords(withQED);
-    LOG(INFO) << "GOT " << timesview.size() << " COLLISSION TIMES";
-    LOG(INFO) << "SIMCHAINS " << mSimChains.size();
+    LOG(info) << "GOT " << timesview.size() << " COLLISSION TIMES";
+    LOG(info) << "SIMCHAINS " << mSimChains.size();
 
     // if there is nothing to do ... return
     if (timesview.size() == 0) {
@@ -94,7 +94,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     }
     TStopwatch timer;
     timer.Start();
-    LOG(INFO) << " CALLING ITS DIGITIZATION ";
+    LOG(info) << " CALLING ITS DIGITIZATION ";
 
     mDigitizer.setDigits(&mDigits);
     mDigitizer.setROFRecords(&mROFRecords);
@@ -138,7 +138,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
       if (mWithMCTruth) {
         mLabelsAccum.mergeAtBack(mLabels);
       }
-      LOG(INFO) << "Added " << mDigits.size() << " digits ";
+      LOG(info) << "Added " << mDigits.size() << " digits ";
       // clean containers from already accumulated stuff
       mLabels.clear();
       mDigits.clear();
@@ -161,7 +161,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
         context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
 
         if (mHits.size() > 0) {
-          LOG(DEBUG) << "For collision " << collID << " eventID " << part.entryID
+          LOG(debug) << "For collision " << collID << " eventID " << part.entryID
                      << " found " << mHits.size() << " hits ";
           mDigitizer.process(&mHits, part.entryID, part.sourceID); // call actual digitization procedure
         }
@@ -183,11 +183,11 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
       mLabels.clear_andfreememory();
       mLabelsAccum.clear_andfreememory();
     }
-    LOG(INFO) << mID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
+    LOG(info) << mID.getName() << ": Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{mOrigin, "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     timer.Stop();
-    LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
+    LOG(info) << "Digitization took " << timer.CpuTime() << "s";
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);

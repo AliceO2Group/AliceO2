@@ -255,7 +255,7 @@ bool HmpidDecoder::isSegmentMarker(uint32_t wp, int* Err, int* segSize, int* Seg
     *mark = (wp & 0xfff00000) >> 20;
     *Seg = wp & 0x0000000F;
     if (*Seg > 3 || *Seg < 1) {
-      LOG(INFO) << " Wrong segment Marker Word, bad Number of segment" << *Seg << "!";
+      LOG(info) << " Wrong segment Marker Word, bad Number of segment" << *Seg << "!";
       *Err = true;
     }
     return (true);
@@ -291,7 +291,7 @@ bool HmpidDecoder::isPadWord(uint32_t wp, int* Err, int* Col, int* Dilogic, int*
     }
   } else {
     if (*Dilogic > 10 || *Channel > 47 || *Dilogic < 1 || *Col > 24 || *Col < 1) {
-      //    LOG(WARNING) << " Wrong Pad values Col=" << *Col << " Dilogic=" << *Dilogic << " Channel=" << *Channel << " Charge=" << *Charge << " wp:0x" << std::hex << wp << std::dec;
+      //    LOG(warning) << " Wrong Pad values Col=" << *Col << " Dilogic=" << *Dilogic << " Channel=" << *Channel << " Charge=" << *Charge << " wp:0x" << std::hex << wp << std::dec;
       *Err = true;
       return (false);
     }
@@ -315,7 +315,7 @@ bool HmpidDecoder::isEoEmarker(uint32_t wp, int* Err, int* Col, int* Dilogic, in
     *Dilogic = (wp & 0x003C0000) >> 18;
     *Eoesize = (wp & 0x0000007F);
     if (*Col > 24 || *Dilogic > 10) {
-      LOG(INFO) << " EoE size wrong definition. Col=" << *Col << " Dilogic=" << *Dilogic;
+      LOG(info) << " EoE size wrong definition. Col=" << *Col << " Dilogic=" << *Dilogic;
       *Err = true;
     }
     return (true);
@@ -413,13 +413,13 @@ int HmpidDecoder::decodeHeader(uint32_t* streamPtrAdr, int* EquipIndex)
   // ---- Event ID  : Actualy based on ORBIT NUMBER and BC
   mHeEvent = (mHeORBIT << 12) | mHeBCDI;
 
-  LOG(DEBUG) << "FEE-ID=" << mHeFEEID << " HeSize=" << mHeSize << " HePrior=" << mHePrior << " Det.Id=" << mHeDetectorID << " HeMemorySize=" << mHeMemorySize << " HeOffsetNewPack=" << mHeOffsetNewPack;
-  LOG(DEBUG) << "      Equipment=" << mEquipment << " PakCounter=" << mHePackNum << " Link=" << mHeLinkNum << " CruID=" << mHeCruID << " DW=" << mHeDW << " BC=" << mHeBCDI << " ORBIT=" << mHeORBIT;
-  LOG(DEBUG) << "      TType=" << mHeTType << " HeStop=" << mHeStop << " PagesCounter=" << mHePageNum << " FirmVersion=" << mHeFirmwareVersion << " BusyTime=" << mHeBusy << " Error=" << mHeHmpidError << " PAR=" << mHePAR;
-  LOG(DEBUG) << "      EquIdx = " << *EquipIndex << " Event = " << mHeEvent << " Payload :  Words to read=" << mNumberWordToRead << " PailoadTail=" << mPayloadTail;
+  LOG(debug) << "FEE-ID=" << mHeFEEID << " HeSize=" << mHeSize << " HePrior=" << mHePrior << " Det.Id=" << mHeDetectorID << " HeMemorySize=" << mHeMemorySize << " HeOffsetNewPack=" << mHeOffsetNewPack;
+  LOG(debug) << "      Equipment=" << mEquipment << " PakCounter=" << mHePackNum << " Link=" << mHeLinkNum << " CruID=" << mHeCruID << " DW=" << mHeDW << " BC=" << mHeBCDI << " ORBIT=" << mHeORBIT;
+  LOG(debug) << "      TType=" << mHeTType << " HeStop=" << mHeStop << " PagesCounter=" << mHePageNum << " FirmVersion=" << mHeFirmwareVersion << " BusyTime=" << mHeBusy << " Error=" << mHeHmpidError << " PAR=" << mHePAR;
+  LOG(debug) << "      EquIdx = " << *EquipIndex << " Event = " << mHeEvent << " Payload :  Words to read=" << mNumberWordToRead << " PailoadTail=" << mPayloadTail;
 
   if (*EquipIndex == -1) {
-    LOG(ERROR) << "ERROR ! Bad equipment Number: " << mEquipment;
+    LOG(error) << "ERROR ! Bad equipment Number: " << mEquipment;
     throw TH_WRONGEQUIPINDEX;
   }
   // std::cout << "HMPID ! Exit decode header" << std::endl;
@@ -470,7 +470,7 @@ HmpidEquipment* HmpidDecoder::evaluateHeaderContents(int EquipmentIndex)
   }
   eq->mEventSize += mNumberWordToRead * sizeof(uint32_t); // Calculate the size in bytes
   if (mHeHmpidError != 0) {
-    LOG(INFO) << "HMPID Header reports an error : " << mHeHmpidError;
+    LOG(info) << "HMPID Header reports an error : " << mHeHmpidError;
     dumpHmpidError(mHeHmpidError);
     eq->setError(ERR_HMPID);
   }
@@ -490,13 +490,13 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
     getHeaderFromStream(streamBuf);
   } catch (int e) {
     // The stream end !
-    LOG(DEBUG) << "End main decoding loop !";
+    LOG(debug) << "End main decoding loop !";
     throw TH_BUFFEREMPTY;
   }
   try {
     decodeHeader(*streamBuf, &equipmentIndex);
   } catch (int e) {
-    LOG(ERROR) << "Failed to decode the Header !";
+    LOG(error) << "Failed to decode the Header !";
     throw TH_WRONGHEADER;
   }
 
@@ -527,7 +527,7 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
           }
         }
         eq->setError(ERR_NOTKNOWN);
-        LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_NOTKNOWN] << " [" << wp << "]";
+        LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_NOTKNOWN] << " [" << wp << "]";
         eq->mWordsPerRowCounter++;
         eq->mWordsPerSegCounter++;
         payIndex++;
@@ -535,7 +535,7 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
       }
     }
     if (mEquipment == 8) {
-      LOG(INFO) << "Event" << eq->mEventNumber << " >" << std::hex << wp << std::dec << "<" << type;
+      LOG(info) << "Event" << eq->mEventNumber << " >" << std::hex << wp << std::dec << "<" << type;
     }
     if (eq->mWillBeRowMarker == true) { // #shoud be a Row Marker
       if (type == WTYPE_ROW) {
@@ -545,16 +545,16 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
         switch (p2) {
           case 0: // Empty column
             eq->setError(ERR_ROWMARKEMPTY);
-            LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKEMPTY] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
+            LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKEMPTY] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
             eq->mWillBeRowMarker = true;
             break;
           case 0x3FF: // Error in column
             eq->setError(ERR_ROWMARKERROR);
-            LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKERROR] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
+            LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKERROR] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
             eq->mWillBeRowMarker = true;
             break;
           case 0x3FE: // Masked column
-            LOG(INFO) << "Equip=" << mEquipment << "The column=" << (eq->mSegment) * 8 + eq->mColumnCounter << " is Masked !";
+            LOG(info) << "Equip=" << mEquipment << "The column=" << (eq->mSegment) * 8 + eq->mColumnCounter << " is Masked !";
             eq->mWillBeRowMarker = true;
             break;
           default:
@@ -566,7 +566,7 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
       } else {
         if (wp == wpprev) {
           eq->setError(ERR_DUPLICATEPAD);
-          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
+          LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
           newOne = true;
         } else if (type == WTYPE_EOE) { // # Could be a EoE
           eq->mColumnCounter++;
@@ -577,7 +577,7 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
         } else if (type == WTYPE_PAD) { //# Could be a PAD
           eq->mColumnCounter++;
           eq->setError(ERR_ROWMARKLOST);
-          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKLOST] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
+          LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKLOST] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
           eq->mWillBeRowMarker = false;
           eq->mWillBePad = true;
           newOne = true;
@@ -588,7 +588,7 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
         } else {
           eq->mColumnCounter++;
           eq->setError(ERR_ROWMARKLOST);
-          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKLOST] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
+          LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKLOST] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
           eq->mWillBeRowMarker = false;
           eq->mWillBePad = true;
           newOne = true;
@@ -601,7 +601,7 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
         newOne = true;
         if (wp == wpprev) {
           eq->setError(ERR_DUPLICATEPAD);
-          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
+          LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
         } else if (p1 != (eq->mSegment * 8 + eq->mColumnCounter)) { // # Manage
           // We try to recover the RowMarker misunderstanding
           isIt = isRowMarker(wp, &error, &p2, &p1);
@@ -611,14 +611,14 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
             eq->mWillBeEoE = true;
             eq->mWillBePad = false;
           } else {
-            LOG(DEBUG) << "Equip=" << mEquipment << " Mismatch in column"
+            LOG(debug) << "Equip=" << mEquipment << " Mismatch in column"
                        << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
             eq->mColumnCounter = p1 % 8;
           }
         } else {
           setPad(eq, p1 - 1, p2 - 1, p3, p4);
           if (mEquipment == 8) {
-            LOG(INFO) << "Event" << eq->mEventNumber << " >" << p1 - 1 << "," << p2 - 1 << "," << p3 << "," << p4;
+            LOG(info) << "Event" << eq->mEventNumber << " >" << p1 - 1 << "," << p2 - 1 << "," << p3 << "," << p4;
           }
           eq->mWordsPerDilogicCounter++;
           eq->mSampleNumber++;
@@ -641,14 +641,14 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
           newOne = false; // # reprocess as pad
         } else {
           eq->setError(ERR_LOSTEOEMARK);
-          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
+          LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
           eq->mWillBeRowMarker = true;
           eq->mWillBePad = false;
           newOne = false;
         }
       } else if (type == WTYPE_EOS) { // # We Lost the EoE !
         eq->setError(ERR_LOSTEOEMARK);
-        LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
+        LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
         eq->mWillBeSegmentMarker = true;
         eq->mWillBePad = false;
         newOne = false;
@@ -659,10 +659,10 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
         eq->mWordsPerSegCounter++;
         if (wpprev == wp) {
           eq->setError(ERR_DOUBLEEOEMARK);
-          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DOUBLEEOEMARK] << " col=" << p1;
+          LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_DOUBLEEOEMARK] << " col=" << p1;
         } else if (p3 != eq->mWordsPerDilogicCounter) {
           eq->setError(ERR_WRONGSIZEINEOE);
-          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_WRONGSIZEINEOE] << " col=" << p1;
+          LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_WRONGSIZEINEOE] << " col=" << p1;
         }
         eq->mWordsPerDilogicCounter = 0;
         if (p2 == 10) {
@@ -678,13 +678,13 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
         newOne = true;
       } else if (type == WTYPE_EOS) { // We Lost the EoE !
         eq->setError(ERR_LOSTEOEMARK);
-        LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
+        LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
         eq->mWillBeSegmentMarker = true;
         eq->mWillBeEoE = false;
         newOne = false;
       } else if (type == WTYPE_ROW) { //# We Lost the EoE !
         eq->setError(ERR_LOSTEOEMARK);
-        LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
+        LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
         eq->mWillBeRowMarker = true;
         eq->mWillBeEoE = false;
         newOne = false;
@@ -700,7 +700,7 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
           newOne = false; // # reprocess as EoE
         } else {
           eq->setError(ERR_LOSTEOEMARK);
-          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
+          LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
           eq->mWillBePad = true;
           eq->mWillBeEoE = false;
           newOne = false;
@@ -709,12 +709,12 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
     } else if (eq->mWillBeSegmentMarker == true) { // # We expect a EoSegment
       if (wpprev == wp) {
         eq->setError(ERR_DOUBLEMARKWORD);
-        LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DOUBLEMARKWORD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
+        LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_DOUBLEMARKWORD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
         newOne = true;
       } else if (type == 2) {
         if (abs(eq->mWordsPerSegCounter - p2) > 5) {
           eq->setError(ERR_WRONGSIZESEGMENTMARK);
-          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_WRONGSIZESEGMENTMARK] << " Seg=" << p2;
+          LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_WRONGSIZESEGMENTMARK] << " Seg=" << p2;
         }
         eq->mWordsPerSegCounter = 0;
         eq->mWordsPerRowCounter = 0;
@@ -725,7 +725,7 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
         newOne = true;
       } else {
         eq->setError(ERR_LOSTEOSMARK);
-        LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOSMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
+        LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOSMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << p1 << "]";
         eq->mWillBeSegmentMarker = false;
         eq->mWillBeRowMarker = true;
         newOne = false;
@@ -758,14 +758,14 @@ bool HmpidDecoder::decodeBuffer()
   int isIt;
   HmpidEquipment* eq;
   uint32_t* streamBuf;
-  LOG(DEBUG) << "Enter decoding !";
+  LOG(debug) << "Enter decoding !";
 
   // Input Stream Main Loop
   while (true) {
     try {
       decodePage(&streamBuf);
     } catch (int e) {
-      LOG(DEBUG) << "End main buffer decoding loop !";
+      LOG(debug) << "End main buffer decoding loop !";
       break;
     }
   } // this is the end of stream
@@ -791,13 +791,13 @@ void HmpidDecoder::decodePageFast(uint32_t** streamBuf)
     getHeaderFromStream(streamBuf);
   } catch (int e) {
     // The stream end !
-    LOG(INFO) << "End Fast Page decoding loop !";
+    LOG(info) << "End Fast Page decoding loop !";
     throw TH_BUFFEREMPTY;
   }
   try {
     decodeHeader(*streamBuf, &equipmentIndex);
   } catch (int e) {
-    LOG(INFO) << "Failed to decode the Header !";
+    LOG(info) << "Failed to decode the Header !";
     throw TH_WRONGHEADER;
   }
   HmpidEquipment* eq = evaluateHeaderContents(equipmentIndex);
@@ -813,7 +813,7 @@ void HmpidDecoder::decodePageFast(uint32_t** streamBuf)
       break;
     }
     if (wp == wpprev) {
-      LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << Column << "]";
+      LOG(debug) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << "[" << Column << "]";
     } else {
       if (isPadWord(wp, &pwer, &Column, &Dilogic, &Channel, &Charge) == true) {
         if (pwer != true) {
@@ -843,14 +843,14 @@ bool HmpidDecoder::decodeBufferFast()
   }
 
   uint32_t* streamBuf;
-  LOG(INFO) << "Enter FAST decoding !";
+  LOG(info) << "Enter FAST decoding !";
 
   // Input Stream Main Loop
   while (true) {
     try {
       decodePageFast(&streamBuf);
     } catch (int e) {
-      LOG(INFO) << " End Buffer Fast Decoding !";
+      LOG(info) << " End Buffer Fast Decoding !";
       break;
     }
   } // this is the end of stream
@@ -1043,7 +1043,7 @@ void HmpidDecoder::dumpHmpidError(int ErrorField)
 {
   char printbuf[MAXHMPIDERRORS * MAXDESCRIPTIONLENGHT];
   if (decodeHmpidError(ErrorField, printbuf) == true) {
-    LOG(ERROR) << "HMPID Error field = " << ErrorField << " : " << printbuf;
+    LOG(error) << "HMPID Error field = " << ErrorField << " : " << printbuf;
   }
   return;
 }

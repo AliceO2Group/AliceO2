@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     digits[idig].setEventStatus(eventFlag);
   }
 
-  LOG(INFO) << "Generated " << channels.size() << " channels in " << digits.size() << " digits " << sw.CpuTime() << " s";
+  LOG(info) << "Generated " << channels.size() << " channels in " << digits.size() << " digits " << sw.CpuTime() << " s";
 
   sw.Start();
   std::vector<o2::ctf::BufferType> vec;
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     coder.encode(vec, digits, channels); // compress
   }
   sw.Stop();
-  LOG(INFO) << "Compressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Compressed in " << sw.CpuTime() << " s";
 
   // writing
   {
@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     ctfImage->appendToTree(ctfTree, "FT0");
     ctfTree.Write();
     sw.Stop();
-    LOG(INFO) << "Wrote to tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Wrote to tree in " << sw.CpuTime() << " s";
   }
 
   // reading
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     BOOST_CHECK(tree);
     o2::ft0::CTF::readFromTree(vec, *(tree.get()), "FT0");
     sw.Stop();
-    LOG(INFO) << "Read back from tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Read back from tree in " << sw.CpuTime() << " s";
   }
 
   std::vector<Digit> digitsD;
@@ -120,17 +120,17 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     coder.decode(ctfImage, digitsD, channelsD); // decompress
   }
   sw.Stop();
-  LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
 
   BOOST_CHECK(digitsD.size() == digits.size());
   BOOST_CHECK(channelsD.size() == channels.size());
-  LOG(DEBUG) << "  BOOST_CHECK digitsD.size() " << digitsD.size() << " digits.size() " << digits.size() << " BOOST_CHECK(channelsD.size()  " << channelsD.size() << " channels.size()) " << channels.size();
+  LOG(debug) << "  BOOST_CHECK digitsD.size() " << digitsD.size() << " digits.size() " << digits.size() << " BOOST_CHECK(channelsD.size()  " << channelsD.size() << " channels.size()) " << channels.size();
 
   for (int i = digits.size(); i--;) {
     const auto& dor = digits[i];
     const auto& ddc = digitsD[i];
-    LOG(DEBUG) << " dor " << dor.mTriggers.nChanA << " " << dor.mTriggers.nChanC << " " << dor.mTriggers.amplA << " " << dor.mTriggers.amplC;
-    LOG(DEBUG) << " ddc " << ddc.mTriggers.nChanA << " " << ddc.mTriggers.nChanC << " " << ddc.mTriggers.amplA << " " << ddc.mTriggers.amplC;
+    LOG(debug) << " dor " << dor.mTriggers.nChanA << " " << dor.mTriggers.nChanC << " " << dor.mTriggers.amplA << " " << dor.mTriggers.amplC;
+    LOG(debug) << " ddc " << ddc.mTriggers.nChanA << " " << ddc.mTriggers.nChanC << " " << ddc.mTriggers.amplA << " " << ddc.mTriggers.amplC;
 
     BOOST_CHECK(dor.mIntRecord == ddc.mIntRecord);
     BOOST_CHECK(dor.mTriggers.nChanA == ddc.mTriggers.nChanA);

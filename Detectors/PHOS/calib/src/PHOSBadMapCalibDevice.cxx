@@ -61,7 +61,7 @@ void PHOSCalibCollector::init(o2::framework::InitContext& ic)
       fcalib.GetObject("PHOSCalibration", cp);
       mCalibParams.reset(cp);
     } else {
-      LOG(ERROR) << "can not read calibration <PHOSCalibration> from file " << mfilenameCalib;
+      LOG(error) << "can not read calibration <PHOSCalibration> from file " << mfilenameCalib;
     }
     fcalib.Close();
   }
@@ -103,7 +103,7 @@ void PHOSCalibCollector::scanClusters(o2::framework::ProcessingContext& pc)
 
   auto clusters = pc.inputs().get<gsl::span<o2::phos::Cluster>>("clusters");
   auto cluTR = pc.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cluTR");
-  LOG(INFO) << "Processing TF with " << clusters.size() << " clusters and " << cluTR.size() << " TriggerRecords";
+  LOG(info) << "Processing TF with " << clusters.size() << " clusters and " << cluTR.size() << " TriggerRecords";
 
   for (auto& tr : cluTR) {
 
@@ -144,7 +144,7 @@ void PHOSCalibCollector::scanClusters(o2::framework::ProcessingContext& pc)
         mDigits.push_back(d.mDataWord);
         if (i - firstCluInEvent > kMaxCluInEvent) {
           //Normally this is not critical as indexes are used "locally", i.e. are compared to previous/next
-          LOG(INFO) << "Too many clusters per event:" << i - firstCluInEvent << ", apply more strict selection; clusters with same indexes will appear";
+          LOG(info) << "Too many clusters per event:" << i - firstCluInEvent << ", apply more strict selection; clusters with same indexes will appear";
         }
       }
     }
@@ -158,7 +158,7 @@ void PHOSCalibCollector::readDigits()
   // fill inv mass and time (for check) histograms
   std::ifstream ifs(mdigitsfilelist, std::ifstream::in);
   if (!ifs.is_open()) {
-    LOG(ERROR) << "can not open file " << mdigitsfilelist;
+    LOG(error) << "can not open file " << mdigitsfilelist;
     return;
   }
 
@@ -166,7 +166,7 @@ void PHOSCalibCollector::readDigits()
   while (ifs >> filename) {
     TFile f(filename.data(), "READ");
     if (!f.IsOpen()) {
-      LOG(ERROR) << "can not read file " << filename;
+      LOG(error) << "can not read file " << filename;
       continue;
     }
     std::vector<uint32_t>* digits;

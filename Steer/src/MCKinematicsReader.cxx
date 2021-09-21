@@ -135,7 +135,7 @@ void MCKinematicsReader::loadTrackRefsForSource(int source) const
 bool MCKinematicsReader::initFromDigitContext(std::string_view name)
 {
   if (mInitialized) {
-    LOG(INFO) << "MCKinematicsReader already initialized; doing nothing";
+    LOG(info) << "MCKinematicsReader already initialized; doing nothing";
     return false;
   }
 
@@ -163,7 +163,7 @@ bool MCKinematicsReader::initFromDigitContext(std::string_view name)
 bool MCKinematicsReader::initFromKinematics(std::string_view name)
 {
   if (mInitialized) {
-    LOG(INFO) << "MCKinematicsReader already initialized; doing nothing";
+    LOG(info) << "MCKinematicsReader already initialized; doing nothing";
     return false;
   }
   mInputChains.emplace_back(new TChain("o2sim"));

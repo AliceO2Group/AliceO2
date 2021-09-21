@@ -119,7 +119,7 @@ unsigned long ClusterTopology::getCompleteHash(int nRow, int nCol,
     completeHash += ((((unsigned long)extended_pattern[2]) << 24) + (((unsigned long)extended_pattern[3]) << 16) +
                      (((unsigned long)extended_pattern[4]) << 8) + ((unsigned long)extended_pattern[5]));
   } else {
-    LOG(ERROR) << "No fired pixels in small topology";
+    LOG(error) << "No fired pixels in small topology";
     throw std::runtime_error("No fired pixels in small topology");
   }
   return completeHash;
@@ -145,7 +145,7 @@ unsigned long ClusterTopology::getCompleteHash(const ClusterTopology& topology)
     completeHash += ((((unsigned long)patt[2]) << 24) + (((unsigned long)patt[3]) << 16) +
                      (((unsigned long)patt[4]) << 8) + ((unsigned long)patt[5]));
   } else {
-    LOG(ERROR) << "No fired pixels in small topology";
+    LOG(error) << "No fired pixels in small topology";
     throw std::runtime_error("No fired pixels in small topology");
   }
   return completeHash;

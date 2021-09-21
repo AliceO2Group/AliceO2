@@ -53,7 +53,7 @@ void Digitizer::init()
   } else {
     mNumThreads = std::min(maxthreads, askedthreads);
   }
-  LOG(INFO) << "TRD: Digitizing with " << mNumThreads << " threads ";
+  LOG(info) << "TRD: Digitizing with " << mNumThreads << " threads ";
 #endif
 
   // initialize structures that we need per thread
@@ -142,7 +142,7 @@ void Digitizer::clearContainers()
 void Digitizer::process(std::vector<Hit> const& hits)
 {
   if (!mCalib) {
-    LOG(FATAL) << "TRD Calibration database not available";
+    LOG(fatal) << "TRD Calibration database not available";
   }
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
@@ -441,7 +441,7 @@ bool Digitizer::convertSignalsToADC(SignalContainer& signalMapCont, DigitContain
 
     float padgain = mCalib->getPadGainFactor(det, row, col); // The gain factor
     if (padgain <= 0) {
-      LOG(FATAL) << "Not a valid gain " << padgain << ", " << det << ", " << col << ", " << row;
+      LOG(fatal) << "Not a valid gain " << padgain << ", " << det << ", " << col << ", " << row;
     }
 
     signalMapIter.second.isDigit = true; // flag the signal as digit

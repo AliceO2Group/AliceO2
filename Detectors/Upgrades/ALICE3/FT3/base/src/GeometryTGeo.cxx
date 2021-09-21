@@ -61,7 +61,7 @@ GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached
   if (sInstance) {
-    LOG(FATAL) << "Invalid use of public constructor: o2::ft3::GeometryTGeo instance exists";
+    LOG(fatal) << "Invalid use of public constructor: o2::ft3::GeometryTGeo instance exists";
     // throw std::runtime_error("Invalid use of public constructor: o2::ft3::GeometryTGeo instance exists");
   }
 
@@ -74,13 +74,13 @@ GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo
 void GeometryTGeo::Build(int loadTrans)
 {
   if (isBuilt()) {
-    LOG(WARNING) << "Already built";
+    LOG(warning) << "Already built";
     return; // already initialized
   }
 
   if (!gGeoManager) {
     // RSTODO: in future there will be a method to load matrices from the CDB
-    LOG(FATAL) << "Geometry is not loaded";
+    LOG(fatal) << "Geometry is not loaded";
   }
 
   fillMatrixCache(loadTrans);

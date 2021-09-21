@@ -67,7 +67,7 @@ int getNumTPCLanes(std::vector<int> const& sectors, ConfigContext const& configc
 {
   auto lanes = configcontext.options().get<int>("tpc-lanes");
   if (lanes < 0) {
-    LOG(FATAL) << "tpc-lanes needs to be positive\n";
+    LOG(fatal) << "tpc-lanes needs to be positive\n";
     return 0;
   }
   // crosscheck with sectors

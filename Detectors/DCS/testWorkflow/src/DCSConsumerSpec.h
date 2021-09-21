@@ -48,20 +48,20 @@ class DCSConsumer : public o2::framework::Task
     uint64_t tfid;
     for (auto& input : pc.inputs()) {
       tfid = header::get<o2::framework::DataProcessingHeader*>(input.header)->startTime;
-      LOG(DEBUG) << "tfid = " << tfid;
+      LOG(debug) << "tfid = " << tfid;
       break; // we break because one input is enough to get the TF ID
     }
 
-    LOG(DEBUG) << "TF: " << tfid << " --> reading binary blob...";
+    LOG(debug) << "TF: " << tfid << " --> reading binary blob...";
     mTFs++;
     auto vect = pc.inputs().get<gsl::span<DPCOM>>("COMMONDPs");
-    LOG(INFO) << "vector has " << vect.size() << " Data Points inside";
+    LOG(info) << "vector has " << vect.size() << " Data Points inside";
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
 
-    LOG(INFO) << "Number of processed TFs = " << mTFs;
+    LOG(info) << "Number of processed TFs = " << mTFs;
   }
 
  private:

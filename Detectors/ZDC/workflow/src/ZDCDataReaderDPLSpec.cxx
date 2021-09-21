@@ -42,7 +42,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     for (const auto& ref : InputRecordWalker(pc.inputs(), dummy)) {
       const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       if (dh->payloadSize == 0) {
-        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+        LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
              dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
         mRawReader.makeSnapshot(pc); // send empty output
         return;
@@ -59,15 +59,15 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     mgr.setTimestamp(timeStamp);
     auto moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
     if (!moduleConfig) {
-      LOG(FATAL) << "Cannot module configuratio for timestamp " << timeStamp;
+      LOG(fatal) << "Cannot module configuratio for timestamp " << timeStamp;
       return;
     } else {
-      LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
+      LOG(info) << "Loaded module configuration for timestamp " << timeStamp;
     }
     mRawReader.setModuleConfig(moduleConfig);
     mRawReader.setTriggerMask();
     mRawReader.setVerifyTrigger(mVerifyTrigger);
-    LOG(INFO) << "Check of trigger condition during conversion is " << (mVerifyTrigger ? "ON" : "OFF");
+    LOG(info) << "Check of trigger condition during conversion is " << (mVerifyTrigger ? "ON" : "OFF");
   }
   uint64_t count = 0;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
@@ -77,14 +77,14 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     gsl::span<const uint8_t> payload(it.data(), it.size());
     mRawReader.processBinaryData(payload, rdhPtr->linkID);
   }
-  LOG(INFO) << "Pages: " << count;
+  LOG(info) << "Pages: " << count;
   mRawReader.accumulateDigits();
   mRawReader.makeSnapshot(pc);
 }
 
 framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger, const bool askSTFDist)
 {
-  LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderZDC";
+  LOG(info) << "DataProcessorSpec initDataProcSpec() for RawReaderZDC";
   std::vector<OutputSpec> outputSpec;
   RawReaderZDC::prepareOutputSpec(outputSpec);
   std::vector<InputSpec> inputSpec{{"STF", ConcreteDataTypeMatcher{o2::header::gDataOriginZDC, "RAWDATA"}, Lifetime::Optional}};

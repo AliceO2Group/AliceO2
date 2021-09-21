@@ -132,7 +132,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
         if (!dph) {
           continue;
         }
-        LOGP(DEBUG, "Orbit reset time from data: {} ", dph->creation);
+        LOGP(debug, "Orbit reset time from data: {} ", dph->creation);
         context.orbitResetTime = dph->creation;
         break;
       } },

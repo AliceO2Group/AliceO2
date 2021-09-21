@@ -94,7 +94,7 @@ int main(int argc, char** argv)
            vm["verbosity"].as<uint32_t>(),
            vm["rdh-version"].as<uint32_t>(),
            vm["no-empty-hbf"].as<bool>());
-  LOG(INFO) << "HBFUtils settings used for conversion:";
+  LOG(info) << "HBFUtils settings used for conversion:";
 
   o2::raw::HBFUtils::Instance().print();
 
@@ -109,15 +109,15 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
   using ROFRVEC = std::vector<o2::itsmft::ROFRecord>;
   const uint8_t ruSWMin = 0, ruSWMax = 0xff; // seq.ID of 1st and last RU (stave) to convert
 
-  LOG(INFO) << "HBFUtil settings:";
+  LOG(info) << "HBFUtil settings:";
   o2::raw::HBFUtils::Instance().print();
 
   // if needed, create output directory
   if (!std::filesystem::exists(outDir)) {
     if (!std::filesystem::create_directories(outDir)) {
-      LOG(FATAL) << "could not create output directory " << outDir;
+      LOG(fatal) << "could not create output directory " << outDir;
     } else {
-      LOG(INFO) << "created output directory " << outDir;
+      LOG(info) << "created output directory " << outDir;
     }
   }
 
@@ -130,7 +130,7 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
   std::vector<o2::itsmft::Digit> digiVec, *digiVecP = &digiVec;
   std::string digBranchName = o2::utils::Str::concat_string(MAP::getName(), "Digit");
   if (!digTree.GetBranch(digBranchName.c_str())) {
-    LOG(FATAL) << "Failed to find the branch " << digBranchName << " in the tree " << digTreeName;
+    LOG(fatal) << "Failed to find the branch " << digBranchName << " in the tree " << digTreeName;
   }
   digTree.SetBranchAddress(digBranchName.c_str(), &digiVecP);
 
@@ -138,7 +138,7 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
   ROFRVEC rofRecVec, *rofRecVecP = &rofRecVec;
   std::string rofRecName = o2::utils::Str::concat_string(MAP::getName(), "DigitROF");
   if (!digTree.GetBranch(rofRecName.c_str())) {
-    LOG(FATAL) << "Failed to find the branch " << rofRecName << " in the tree " << digTreeName;
+    LOG(fatal) << "Failed to find the branch " << rofRecName << " in the tree " << digTreeName;
   }
   digTree.SetBranchAddress(rofRecName.c_str(), &rofRecVecP);
   ///-------< input
@@ -164,12 +164,12 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
     for (const auto& rofRec : rofRecVec) {
       int nDigROF = rofRec.getNEntries();
       if (verbosity) {
-        LOG(INFO) << "Processing ROF:" << rofRec.getROFrame() << " with " << nDigROF << " entries";
+        LOG(info) << "Processing ROF:" << rofRec.getROFrame() << " with " << nDigROF << " entries";
         rofRec.print();
       }
       if (!nDigROF) {
         if (verbosity) {
-          LOG(INFO) << "Frame is empty"; // ??
+          LOG(info) << "Frame is empty"; // ??
         }
         continue;
       }
@@ -256,7 +256,7 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
           //printf("Register link: FeeID 0x%02x , CRU ID 0x%x , link ID %2d \n", link->feeID, link->cruID, link->idInCRU);
           //printf("RU SW: %2d   HW: 0x%02x   Type: %2d   %s \n", ruSW, ruHW, ruType, outFileLink.data());
           //std::bitset<32> bv_lanes(link->lanes);
-          //LOG(INFO) << "with lanes " << bv_lanes;
+          //LOG(info) << "with lanes " << bv_lanes;
 
           if (fileFor == "all") { // single file for all links
             outFileLink = o2::utils::Str::concat_string(outDir, "/", outPrefix, ".raw");
@@ -292,5 +292,5 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
 
   } // end half loop
 
-  LOG(INFO) << "Distributed " << nLinks << " links on " << nRU << " RUs in " << nCRU << " CRUs";
+  LOG(info) << "Distributed " << nLinks << " links on " << nRU << " RUs in " << nCRU << " CRUs";
 }

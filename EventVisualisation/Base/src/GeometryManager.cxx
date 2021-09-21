@@ -50,10 +50,10 @@ TEveGeoShape* GeometryManager::getGeometryForDetector(string detectorName)
   // load ROOT file with geometry
   TFile* f = TFile::Open(Form("%s/simple_geom_%s.root", geomPath.c_str(), detectorName.c_str()));
   if (!f) {
-    LOG(ERROR) << "GeometryManager::GetSimpleGeom -- no file with geometry found for: " << detectorName << "!";
+    LOG(error) << "GeometryManager::GetSimpleGeom -- no file with geometry found for: " << detectorName << "!";
     return nullptr;
   }
-  LOG(INFO) << "GeometryManager::GetSimpleGeom for: " << detectorName << " from " << Form("%s/simple_geom_%s.root", geomPath.c_str(), detectorName.c_str());
+  LOG(info) << "GeometryManager::GetSimpleGeom for: " << detectorName << " from " << Form("%s/simple_geom_%s.root", geomPath.c_str(), detectorName.c_str());
 
   TEveGeoShapeExtract* geomShapreExtract = static_cast<TEveGeoShapeExtract*>(f->Get(detectorName.c_str()));
   TEveGeoShape* geomShape = TEveGeoShape::ImportShapeExtract(geomShapreExtract);

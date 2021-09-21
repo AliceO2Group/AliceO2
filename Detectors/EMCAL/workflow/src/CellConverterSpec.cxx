@@ -22,17 +22,17 @@ using namespace o2::emcal::reco_workflow;
 
 void CellConverterSpec::init(framework::InitContext& ctx)
 {
-  LOG(DEBUG) << "[EMCALCellConverter - init] Initialize converter " << (mPropagateMC ? "with" : "without") << " MC truth container";
+  LOG(debug) << "[EMCALCellConverter - init] Initialize converter " << (mPropagateMC ? "with" : "without") << " MC truth container";
 }
 
 void CellConverterSpec::run(framework::ProcessingContext& ctx)
 {
-  LOG(DEBUG) << "[EMCALCellConverter - run] called";
+  LOG(debug) << "[EMCALCellConverter - run] called";
   mOutputCells.clear();
   mOutputTriggers.clear();
   auto digitsAll = ctx.inputs().get<gsl::span<o2::emcal::Digit>>("digits");
   auto triggers = ctx.inputs().get<gsl::span<o2::emcal::TriggerRecord>>("triggers");
-  LOG(DEBUG) << "[EMCALCellConverter - run]  Received " << digitsAll.size() << " digits from " << triggers.size() << " trigger ...";
+  LOG(debug) << "[EMCALCellConverter - run]  Received " << digitsAll.size() << " digits from " << triggers.size() << " trigger ...";
   int currentstart = mOutputCells.size(), ncellsTrigger = 0;
   for (const auto& trg : triggers) {
     if (!trg.getNumberOfObjects()) {
@@ -58,7 +58,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
     currentstart = mOutputCells.size();
     ncellsTrigger = 0;
   }
-  LOG(DEBUG) << "[EMCALCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
+  LOG(debug) << "[EMCALCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
   ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
   ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggers);
   if (mPropagateMC) {

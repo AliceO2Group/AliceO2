@@ -188,7 +188,7 @@ auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDa
   if (isValid) {
     vecChData.emplace_back(static_cast<uint8_t>(globalChID), static_cast<int>(pmData.time), static_cast<int>(pmData.charge), static_cast<uint8_t>(pmData.getFlagWord()));
   } else {
-    LOG(WARNING) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
+    LOG(warning) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
   }
 }
 //FV0
@@ -200,7 +200,7 @@ auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDa
   if (isValid) {
     vecChData.emplace_back(static_cast<Short_t>(globalChID), static_cast<Float_t>(pmData.time), static_cast<Short_t>(pmData.charge));
   } else {
-    LOG(WARNING) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
+    LOG(warning) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
   }
 }
 //FDD
@@ -212,7 +212,7 @@ auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDa
   if (isValid) {
     vecChData.emplace_back(static_cast<uint8_t>(globalChID), static_cast<int>(pmData.time), static_cast<int>(pmData.charge), static_cast<uint8_t>(pmData.getFlagWord()));
   } else {
-    LOG(WARNING) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
+    LOG(warning) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
   }
 }
 //Interface for extracting interaction record from Digit
@@ -328,7 +328,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
     inputTree->SetBranchAddress(decltype(vecChannelData)::value_type::sDigitBranchName, &ptrVecChannelData);
     for (int iEntry = 0; iEntry < inputTree->GetEntries(); iEntry++) {
       inputTree->GetEntry(iEntry);
-      LOG(INFO) << "Processing TF " << iEntry;
+      LOG(info) << "Processing TF " << iEntry;
       digitBlockProc.processDigitBlockPerTF(DigitBlockBase_t::template makeDigitBlock<DigitBlockFIT_t>(vecDigit, vecChannelData));
     }
   }
@@ -347,11 +347,11 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
   {
     for (const auto& digit : vecDigit) {
       digit.printLog();
-      LOG(INFO) << "______________CHANNEL DATA____________";
+      LOG(info) << "______________CHANNEL DATA____________";
       for (int iChData = digit.ref.getFirstEntry(); iChData < digit.ref.getFirstEntry() + digit.ref.getEntries(); iChData++) {
         vecChannelData[iChData].printLog();
       }
-      LOG(INFO) << "______________________________________";
+      LOG(info) << "______________________________________";
     }
   }
   void print() const
@@ -472,17 +472,17 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
   {
     for (const auto& digit : vecDigit) {
       digit.printLog();
-      LOG(INFO) << "______________CHANNEL DATA____________";
+      LOG(info) << "______________CHANNEL DATA____________";
       for (int iChData = digit.ref.getFirstEntry(); iChData < digit.ref.getFirstEntry() + digit.ref.getEntries(); iChData++) {
         vecChannelData[iChData].printLog();
       }
-      LOG(INFO) << "______________________________________";
+      LOG(info) << "______________________________________";
     }
-    LOG(INFO) << "______________EXTENDED TRIGGERS____________";
+    LOG(info) << "______________EXTENDED TRIGGERS____________";
     for (const auto& trgExt : vecTriggersExt) {
       trgExt.printLog();
     }
-    LOG(INFO) << "______________________________________";
+    LOG(info) << "______________________________________";
   }
   void print() const
   {

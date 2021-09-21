@@ -42,9 +42,9 @@ class RawDecoderDeviceDPL
   {
     auto stop = [this]() {
       if (mDecoder) {
-        LOG(INFO) << "Capacities: ROFRecords: " << mDecoder->getROFRecords().capacity() << "  LocalBoards: " << mDecoder->getData().capacity();
+        LOG(info) << "Capacities: ROFRecords: " << mDecoder->getROFRecords().capacity() << "  LocalBoards: " << mDecoder->getData().capacity();
         double scaleFactor = (mNROFs == 0) ? 0. : 1.e6 / mNROFs;
-        LOG(INFO) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  decoding: " << mTimerAlgo.count() * scaleFactor << " us";
+        LOG(info) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  decoding: " << mTimerAlgo.count() * scaleFactor << " us";
       }
     };
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);

@@ -52,13 +52,13 @@ InitStatus ClustererTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ...";
+    LOG(error) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   const gsl::span<const o2::tof::Digit>* arr = mgr->InitObjectAs<const gsl::span<const o2::tof::Digit>*>("TOFDigit");
   if (!arr) {
-    LOG(ERROR) << "TOF digits not registered in the FairRootManager. Exiting ...";
+    LOG(error) << "TOF digits not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
   mReader.setDigitArray(arr);
@@ -67,7 +67,7 @@ InitStatus ClustererTask::Init()
     mDigitMCTruth =
       mgr->InitObjectAs<const dataformats::MCTruthContainer<MCCompLabel>*>("TOFDigitMCTruth");
     if (!mDigitMCTruth) {
-      LOG(ERROR) << "TOF MC Truth not registered in the FairRootManager. Exiting ...";
+      LOG(error) << "TOF MC Truth not registered in the FairRootManager. Exiting ...";
       return kERROR;
     }
   }
@@ -94,7 +94,7 @@ void ClustererTask::Exec(Option_t* option)
   if (mClsLabels) {
     mClsLabels->clear();
   }
-  LOG(DEBUG) << "Running clusterization on new event";
+  LOG(debug) << "Running clusterization on new event";
 
   mClusterer.process(mReader, *mClustersArray, mDigitMCTruth);
 }

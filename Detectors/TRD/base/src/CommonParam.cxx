@@ -58,7 +58,7 @@ void CommonParam::cacheMagField()
   // The magnetic field strength
   const o2::field::MagneticField* fld = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!fld) {
-    LOG(FATAL) << "Magnetic field is not initialized!";
+    LOG(fatal) << "Magnetic field is not initialized!";
     return;
   }
   mField = 0.1 * fld->solenoidField(); // kGauss -> Tesla

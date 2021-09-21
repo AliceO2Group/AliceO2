@@ -48,7 +48,7 @@ class TOFDigitWriterSplitter : public Task
   void createAndOpenFileAndTree(int ithread = 0)
   {
     TString filename = TString::Format("%s_%02d_%06d.root", mBaseName.c_str(), ithread, mCount);
-    LOG(DEBUG) << "opening file " << filename.Data();
+    LOG(debug) << "opening file " << filename.Data();
     mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
     mOutputTree = std::make_unique<TTree>("o2sim", "Tree with TOF digits");
     mOutputTree->Branch("TOFHeader", &mPHeader);

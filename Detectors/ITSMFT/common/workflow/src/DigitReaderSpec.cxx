@@ -68,7 +68,7 @@ void DigitReader::run(ProcessingContext& pc)
     mTree->SetBranchAddress(mDigtMCTruthBranchName.c_str(), &plabels);
   }
   mTree->GetEntry(ent);
-  LOG(INFO) << mDetName << "DigitReader pushes " << mDigROFRec.size() << " ROFRecords, "
+  LOG(info) << mDetName << "DigitReader pushes " << mDigROFRec.size() << " ROFRecords, "
             << mDigits.size() << " digits at entry " << ent;
 
   // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
@@ -114,7 +114,7 @@ void DigitReader::connectTree(const std::string& filename)
     }
     mTree->SetBranchAddress(mDigtMC2ROFBranchName.c_str(), &mDigMC2ROFsPtr);
   }
-  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getITSDigitReaderSpec(bool useMC, bool useCalib, std::string defname)

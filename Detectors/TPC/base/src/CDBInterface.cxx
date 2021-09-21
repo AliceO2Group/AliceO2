@@ -62,7 +62,7 @@ const CalPad& CDBInterface::getPedestals()
   }
 
   if (!mPedestals) {
-    LOG(FATAL) << "No valid pedestal object was loaded";
+    LOG(fatal) << "No valid pedestal object was loaded";
   }
 
   return *mPedestals;
@@ -86,7 +86,7 @@ const CalPad& CDBInterface::getNoise()
   }
 
   if (!mNoise) {
-    LOG(FATAL) << "No valid noise object was loaded";
+    LOG(fatal) << "No valid noise object was loaded";
   }
 
   return *mNoise;
@@ -110,7 +110,7 @@ const CalPad& CDBInterface::getGainMap()
   }
 
   if (!mGainMap) {
-    LOG(FATAL) << "No valid gain object was loaded";
+    LOG(fatal) << "No valid gain object was loaded";
   }
 
   return *mGainMap;
@@ -176,17 +176,17 @@ void CDBInterface::loadNoiseAndPedestalFromFile()
   file->GetObject("Noise", noise);
 
   if (!pedestals) {
-    LOG(FATAL) << "No valid pedestal object was loaded";
+    LOG(fatal) << "No valid pedestal object was loaded";
   }
 
   if (!noise) {
-    LOG(FATAL) << "No valid noise object was loaded";
+    LOG(fatal) << "No valid noise object was loaded";
   }
 
   mPedestals.reset(pedestals);
   mNoise.reset(noise);
 
-  LOG(INFO) << "Loaded Noise and pedestal from file '" << mPedestalNoiseFileName << "'";
+  LOG(info) << "Loaded Noise and pedestal from file '" << mPedestalNoiseFileName << "'";
 }
 
 //______________________________________________________________________________
@@ -197,12 +197,12 @@ void CDBInterface::loadGainMapFromFile()
   file->GetObject("GainMap", gain);
 
   if (!gain) {
-    LOG(FATAL) << "No valid gain map object was loaded";
+    LOG(fatal) << "No valid gain map object was loaded";
   }
 
   mGainMap.reset(gain);
 
-  LOG(INFO) << "Loaded gain map from file '" << mGainMapFileName << "'";
+  LOG(info) << "Loaded gain map from file '" << mGainMapFileName << "'";
 }
 //______________________________________________________________________________
 void CDBInterface::createDefaultPedestals()
@@ -358,7 +358,7 @@ void CDBStorage::uploadGainMap(std::string_view fileName, bool isFull, long firs
   file->GetObject("GainMap", gain);
 
   if (!gain) {
-    LOG(FATAL) << "No valid gain map object was loaded";
+    LOG(fatal) << "No valid gain map object was loaded";
   }
 
   storeObject(gain, isFull ? CDBType::CalPadGainFull : CDBType::CalPadGainResidual, first, last);

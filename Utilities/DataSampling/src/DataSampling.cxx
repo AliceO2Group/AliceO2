@@ -56,7 +56,7 @@ void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const boost::p
 
 void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec& workflow, const boost::property_tree::ptree& policiesTree, size_t threads, const std::string& host)
 {
-  LOG(DEBUG) << "Generating Data Sampling infrastructure...";
+  LOG(debug) << "Generating Data Sampling infrastructure...";
 
   for (auto&& policyConfig : policiesTree) {
 
@@ -95,7 +95,7 @@ void DataSampling::DoGenerateInfrastructure(Dispatcher& dispatcher, WorkflowSpec
 
     workflow.emplace_back(std::move(spec));
   } else {
-    LOG(DEBUG) << "No input to this dispatcher, it won't be added to the workflow.";
+    LOG(debug) << "No input to this dispatcher, it won't be added to the workflow.";
   }
 }
 

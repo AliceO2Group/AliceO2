@@ -23,12 +23,12 @@ std::unique_ptr<TChain> RootChain::load(const std::string trName, const std::str
   // create chain from the single root file or list of files
   std::unique_ptr<TChain> chain;
   if (trName.empty() || inpFile.empty()) {
-    LOG(ERROR) << "Tree name or input file is not provided";
+    LOG(error) << "Tree name or input file is not provided";
     return chain;
   }
   chain = std::make_unique<TChain>(trName.data());
   addFile(chain.get(), inpFile);
-  LOG(INFO) << "Created chain " << chain->GetName() << " with " << chain->GetEntries()
+  LOG(info) << "Created chain " << chain->GetName() << " with " << chain->GetEntries()
             << " from " << inpFile;
   return chain;
 }
@@ -38,12 +38,12 @@ void RootChain::addFile(TChain* ch, const std::string inp)
   // add root file or files from the list extracted from the inp text file
   TString inpS = inp.data();
   if (inpS.EndsWith(".root")) {
-    LOG(INFO) << "Adding " << inp;
+    LOG(info) << "Adding " << inp;
     ch->AddFile(inp.data());
   } else {
     std::ifstream inpF(inpS.Data());
     if (!inpF.good()) {
-      LOG(ERROR) << "Failed to open input file " << inp << " as a text one";
+      LOG(error) << "Failed to open input file " << inp << " as a text one";
       return;
     }
     //

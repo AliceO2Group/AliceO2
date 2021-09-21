@@ -37,7 +37,7 @@ void ChipStat::addErrors(uint32_t mask, uint16_t id)
     for (int i = NErrorsDefined; i--;) {
       if (mask & (0x1 << i)) {
         if (!errorCounts[i]) {
-          LOGP(ERROR, "New error registered on the link: chip#{}: {}", id, ErrNames[i]);
+          LOGP(error, "New error registered on the link: chip#{}: {}", id, ErrNames[i]);
         }
         errorCounts[i]++;
       }
@@ -54,10 +54,10 @@ void ChipStat::print(bool skipNoErr, const std::string& pref) const
     nErr += errorCounts[i];
   }
   if (!skipNoErr || nErr) {
-    LOGP(INFO, "{}#{:x} NHits: {}  errors: {}", pref.c_str(), id, nHits, nErr);
+    LOGP(info, "{}#{:x} NHits: {}  errors: {}", pref.c_str(), id, nHits, nErr);
     for (int i = 0; i < NErrorsDefined; i++) {
       if (!skipNoErr || errorCounts[i]) {
-        LOGP(INFO, "Err.: {}: {}", ErrNames[i].data(), errorCounts[i]);
+        LOGP(info, "Err.: {}: {}", ErrNames[i].data(), errorCounts[i]);
       }
     }
   }
@@ -72,17 +72,17 @@ void GBTLinkDecodingStat::print(bool skipNoErr) const
     nErr += errorCounts[i];
   }
   if (!skipNoErr || nErr) {
-    LOGP(INFO, "FEEID#{%s} Packet States Statistics (total packets: {}, triggers: {})", ruLinkID, nPackets, nTriggers);
+    LOGP(info, "FEEID#{%s} Packet States Statistics (total packets: {}, triggers: {})", ruLinkID, nPackets, nTriggers);
     for (int i = 0; i < GBTDataTrailer::MaxStateCombinations; i++) {
       if (packetStates[i]) {
         std::bitset<GBTDataTrailer::NStatesDefined> patt(i);
-        LOGP(INFO, "counts for triggers B{:s}: {}", patt.to_string().c_str(), packetStates[i]);
+        LOGP(info, "counts for triggers B{:s}: {}", patt.to_string().c_str(), packetStates[i]);
       }
     }
-    LOGP(INFO, "Decoding errors: {}", nErr);
+    LOGP(info, "Decoding errors: {}", nErr);
     for (int i = 0; i < NErrorsDefined; i++) {
       if (!skipNoErr || errorCounts[i]) {
-        LOGF(INFO, "{<}: {}", ErrNames[i].data(), errorCounts[i]);
+        LOGF(info, "{<}: {}", ErrNames[i].data(), errorCounts[i]);
       }
     }
   }

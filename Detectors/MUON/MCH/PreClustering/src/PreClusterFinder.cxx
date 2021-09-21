@@ -526,7 +526,7 @@ void PreClusterFinder::createMapping()
   }
 
   auto tEnd = std::chrono::high_resolution_clock::now();
-  LOG(INFO) << "create mapping in: " << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms";
+  LOG(info) << "create mapping in: " << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms";
 }
 
 } // namespace mch

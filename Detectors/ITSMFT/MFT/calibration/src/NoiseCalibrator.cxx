@@ -28,7 +28,7 @@ bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
                                        gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   static int nTF = 0;
-  LOG(INFO) << "Processing TF# " << nTF++;
+  LOG(info) << "Processing TF# " << nTF++;
 
   for (const auto& rof : rofs) {
     auto digitsInFrame = rof.getROFData(digits);
@@ -50,7 +50,7 @@ bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
                                        gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   static int nTF = 0;
-  LOG(INFO) << "Processing TF# " << nTF++;
+  LOG(info) << "Processing TF# " << nTF++;
 
   auto pattIt = patterns.begin();
   for (const auto& rof : rofs) {
@@ -106,7 +106,7 @@ bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
 
 void NoiseCalibrator::finalize()
 {
-  LOG(INFO) << "Number of processed strobes is " << mNumberOfStrobes;
+  LOG(info) << "Number of processed strobes is " << mNumberOfStrobes;
   mNoiseMap.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
 }
 

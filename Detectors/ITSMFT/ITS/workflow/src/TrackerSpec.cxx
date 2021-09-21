@@ -73,9 +73,9 @@ void TrackerDPL::init(InitContext& ic)
     if (o2::utils::Str::pathExists(matLUTFile)) {
       auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
       o2::base::Propagator::Instance()->setMatLUT(lut);
-      LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+      LOG(info) << "Loaded material LUT from " << matLUTFile;
     } else {
-      LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+      LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
     }
 
     auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
@@ -97,13 +97,13 @@ void TrackerDPL::init(InitContext& ic)
       trackParams[2].DeltaROF = 1;
       trackParams[2].MinTrackLength = 4;
       memParams.resize(3);
-      LOG(INFO) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
+      LOG(info) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
 
     } else if (mMode == "sync") {
 
       trackParams.resize(1);
       memParams.resize(1);
-      LOG(INFO) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
+      LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
 
     } else if (mMode == "cosmics") {
 
@@ -122,7 +122,7 @@ void TrackerDPL::init(InitContext& ic)
         trackParams[0].CellMaxDeltaZ[iLayer] = 10000.f; //cm
         memParams[0].CellsMemoryCoefficients[iLayer] = 0.001f;
       }
-      LOG(INFO) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
+      LOG(info) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
 
     } else {
       throw std::runtime_error(fmt::format("Unsupported ITS tracking mode {:s} ", mMode));
@@ -131,7 +131,7 @@ void TrackerDPL::init(InitContext& ic)
 
     mVertexer->getGlobalConfiguration();
     mTracker->getGlobalConfiguration();
-    LOG(INFO) << Form("Using %s for material budget approximation", (mTracker->isMatLUT() ? "lookup table" : "TGeometry"));
+    LOG(info) << Form("Using %s for material budget approximation", (mTracker->isMatLUT() ? "lookup table" : "TGeometry"));
 
     double origD[3] = {0., 0., 0.};
     mTracker->setBz(field->getBz(origD));
@@ -143,9 +143,9 @@ void TrackerDPL::init(InitContext& ic)
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
   if (o2::utils::Str::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
-    LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
+    LOG(info) << "Tracker running with a provided dictionary: " << dictFile;
   } else {
-    LOG(INFO) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
+    LOG(info) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
   }
 }
 
@@ -167,7 +167,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
   int nBCPerTF = alpParams.roFrameLengthInBC;
 
-  LOG(INFO) << "ITSTracker pulled " << compClusters.size() << " clusters, " << rofs.size() << " RO frames";
+  LOG(info) << "ITSTracker pulled " << compClusters.size() << " clusters, " << rofs.size() << " RO frames";
 
   const dataformats::MCTruthContainer<MCCompLabel>* labels = nullptr;
   gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
@@ -175,7 +175,7 @@ void TrackerDPL::run(ProcessingContext& pc)
     labels = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("labels").release();
     // get the array as read-only span, a snapshot is send forward
     mc2rofs = pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("MC2ROframes");
-    LOG(INFO) << labels->getIndexedSize() << " MC label objects , in " << mc2rofs.size() << " MC events";
+    LOG(info) << labels->getIndexedSize() << " MC label objects , in " << mc2rofs.size() << " MC events";
   }
 
   std::vector<o2::its::TrackITSExt> tracks;
@@ -191,7 +191,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   ROframe event(0, 7);
 
   bool continuous = mGRP->isDetContinuousReadOut("ITS");
-  LOG(INFO) << "ITSTracker RO: continuous=" << continuous;
+  LOG(info) << "ITSTracker RO: continuous=" << continuous;
 
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
@@ -202,14 +202,14 @@ void TrackerDPL::run(ProcessingContext& pc)
     mTimeFrame.loadROFrameData(rofspan, compClusters, pattIt, mDict, labels);
     pattIt = patterns.begin();
     std::vector<int> savedROF;
-    auto logger = [&](std::string s) { LOG(INFO) << s; };
+    auto logger = [&](std::string s) { LOG(info) << s; };
     for (auto& rof : rofspan) {
 
       int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
       // prepare in advance output ROFRecords, even if this ROF to be rejected
       int first = allTracks.size();
 
-      LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+      LOG(info) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
 
       // for vertices output
       auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
@@ -265,9 +265,9 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
   } //MP: no triggered mode for the time being
 
-  LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
+  LOG(info) << "ITSTracker pushed " << allTracks.size() << " tracks";
   if (mIsMC) {
-    LOG(INFO) << "ITSTracker pushed " << allTrackLabels.size() << " track labels";
+    LOG(info) << "ITSTracker pushed " << allTrackLabels.size() << " track labels";
 
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
     pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
@@ -277,7 +277,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
 void TrackerDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "ITS CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "ITS CA-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

@@ -38,7 +38,7 @@ namespace trd
 
 void CruCompressorTask::init(InitContext& ic)
 {
-  LOG(INFO) << "FLP Compressore Task init";
+  LOG(info) << "FLP Compressore Task init";
 
   auto finishFunction = [this]() {
     mReader.checkSummary();

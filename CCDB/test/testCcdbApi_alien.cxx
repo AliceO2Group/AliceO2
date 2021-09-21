@@ -87,11 +87,11 @@ BOOST_AUTO_TEST_CASE(retrieveTemplated_ALIEN, *utf::precondition(if_reachable())
   {
     auto* object = f.api.retrieveFromTFileAny<TH1>(path, meta, -1, &headers);
     BOOST_CHECK(object != nullptr);
-    LOG(INFO) << headers["Content-Location"];
+    LOG(info) << headers["Content-Location"];
     if (object) {
       BOOST_CHECK(headers.size() > 0);
-      LOG(INFO) << "Histo name " << object->GetName();
-      LOG(INFO) << "Number of bins " << object->GetNbinsX() << " Mean " << object->GetMean();
+      LOG(info) << "Histo name " << object->GetName();
+      LOG(info) << "Number of bins " << object->GetNbinsX() << " Mean " << object->GetMean();
     }
   }
 

@@ -101,7 +101,7 @@ Bool_t
   Generator::Init();
 
   if (!mTGenerator) {
-    LOG(FATAL) << "No TGenerator inteface assigned" << std::endl;
+    LOG(fatal) << "No TGenerator inteface assigned" << std::endl;
     return kFALSE;
   }
 

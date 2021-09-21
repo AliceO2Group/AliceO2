@@ -42,7 +42,7 @@ o2::framework::DataProcessorSpec getTRDDigitWriterSpec(bool mctruth, bool writeT
     for (const auto* brc : *brArr) {
       int64_t n = ((const TBranch*)brc)->GetEntries();
       if (nent && (nent != n)) {
-        LOG(ERROR) << "Branches have different number of entries";
+        LOG(error) << "Branches have different number of entries";
       }
       nent = n;
     }

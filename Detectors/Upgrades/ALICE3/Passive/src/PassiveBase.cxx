@@ -20,7 +20,7 @@ void Alice3PassiveBase::SetSpecialPhysicsCuts()
   // we try to read an external text file supposed to be installed
   // in a standard directory
   // ${O2_ROOT}/share/Detectors/DETECTORNAME/simulation/data/simcuts.dat
-  LOG(INFO) << "Setting special cuts for passive module " << GetName();
+  LOG(info) << "Setting special cuts for passive module " << GetName();
   const char* aliceO2env = std::getenv("O2_ROOT");
   std::string inputFile;
   if (aliceO2env) {

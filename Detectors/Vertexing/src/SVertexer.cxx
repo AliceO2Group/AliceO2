@@ -69,7 +69,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     mCascadesTmp[i].clear();
   }
 #endif
-  LOG(INFO) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size();
+  LOG(info) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size();
 }
 
 //__________________________________________________________________
@@ -206,7 +206,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
     }
   }
 
-  LOG(INFO) << "Collected " << mTracksPool[POS].size() << " positive and " << mTracksPool[NEG].size() << " negative seeds";
+  LOG(info) << "Collected " << mTracksPool[POS].size() << " positive and " << mTracksPool[NEG].size() << " negative seeds";
 }
 
 //__________________________________________________________________
@@ -348,7 +348,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       break; // all other bachelor candidates will be also not compatible with this PV
     }
     if (bach.vBracket.isOutside(v0.getVertexID())) {
-      LOG(ERROR) << "Incompatible bachelor: PV " << bach.vBracket.asString() << " vs V0 " << v0.getVertexID();
+      LOG(error) << "Incompatible bachelor: PV " << bach.vBracket.asString() << " vs V0 " << v0.getVertexID();
     }
     if (bach.minR > rv0 + mSVParams->causalityRTolerance) {
       continue;
@@ -388,7 +388,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
     if (pCasc[2] * pCasc[2] / pt2Casc > mMaxTgl2Casc) { // tgLambda cut
       continue;
     }
-    //    LOG(INFO) << "ptcasc2 " << pt2Casc << " tglcasc2 " << pCasc[2]*pCasc[2] / pt2Casc << " cut " << mMaxTgl2Casc;
+    //    LOG(info) << "ptcasc2 " << pt2Casc << " tglcasc2 " << pCasc[2]*pCasc[2] / pt2Casc << " cut " << mMaxTgl2Casc;
     float cosPA = (pCasc[0] * dxc + pCasc[1] * dyc + pCasc[2] * dzc) / std::sqrt(p2Casc * (r2casc + dzc * dzc));
     if (cosPA < mSVParams->minCosPACasc) {
       continue;

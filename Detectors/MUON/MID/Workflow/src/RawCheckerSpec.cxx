@@ -79,10 +79,10 @@ class RawCheckerDeviceDPL
     auto stop = [this]() {
       bool hasProcessed = (mChecker.getNEventsProcessed() > 0);
       double scaleFactor = (mChecker.getNEventsProcessed() > 0) ? 1.e6 / static_cast<double>(mChecker.getNEventsProcessed()) : 0.;
-      LOG(INFO) << "Processing time / " << mChecker.getNEventsProcessed() << " BCs: full: " << mTimer.count() * scaleFactor << " us  checker: " << mTimerAlgo.count() * scaleFactor << " us";
+      LOG(info) << "Processing time / " << mChecker.getNEventsProcessed() << " BCs: full: " << mTimer.count() * scaleFactor << " us  checker: " << mTimerAlgo.count() * scaleFactor << " us";
       std::string summary = getSummary(mChecker, mMaxErrors);
       mOutFile << summary << "\n";
-      LOG(INFO) << summary;
+      LOG(info) << summary;
     };
     ic.services().get<o2::framework::CallbackService>().set(o2::framework::CallbackService::Id::Stop, stop);
 

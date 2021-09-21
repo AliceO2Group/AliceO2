@@ -70,7 +70,7 @@ void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
 
 void TRDTrackBasedCalibDevice::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "Added in total %i entries to angular residual histograms",
+  LOGF(info, "Added in total %i entries to angular residual histograms",
        mCalibrator.getAngResHistos().getNEntries());
 }
 

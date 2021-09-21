@@ -110,7 +110,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       0,
       inputSpec->lifetime};
 
-    LOG(DEBUG) << "DataSampler sends data from subSpec: " << matcher.subSpec;
+    LOG(debug) << "DataSampler sends data from subSpec: " << matcher.subSpec;
 
     const auto* inputHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
     auto& output = ctx.outputs().make<char>(description, inputHeader->size());
@@ -137,7 +137,7 @@ DataProcessorSpec qcTask{
       const FakeCluster* inputDataTpc = reinterpret_cast<const FakeCluster*>(ctx.inputs().get("dataTPC-sampled").payload);
 const InputSpec* inputSpec = ctx.inputs().get("dataTPC-sampled").spec;
 auto matcher = DataSpecUtils::asConcreteDataMatcher(*inputSpec);
-LOG(DEBUG) << "qcTask received data with subSpec: " << matcher.subSpec;
+LOG(debug) << "qcTask received data with subSpec: " << matcher.subSpec;
 }
 }
 }

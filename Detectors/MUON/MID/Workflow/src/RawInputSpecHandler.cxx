@@ -31,7 +31,7 @@ bool isDroppedTF(o2::framework::ProcessingContext& pc, o2::header::DataOrigin or
   for (const auto& ref : o2::framework::InputRecordWalker(pc.inputs(), dummy)) {
     const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     if (dh->payloadSize == 0) {
-      // LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+      // LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
       //      dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
       return true;
     }

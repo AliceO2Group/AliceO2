@@ -318,7 +318,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
     }
 
     if (isnext < 0) {
-      LOG(ERROR) << "error: isnext =" << isnext << "(current window = " << mReadoutWindowCurrent << ")"
+      LOG(error) << "error: isnext =" << isnext << "(current window = " << mReadoutWindowCurrent << ")"
                  << " nbc = " << nbc << " -- event time = " << mEventTime.getTimeNS() << "\n";
 
       return;
@@ -804,7 +804,7 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
   for (auto& strip : *mStripsCurrent) {
     strip.fillOutputContainer(digits);
     if (strip.getNumberOfDigits()) {
-      LOG(INFO) << "strip size = " << strip.getNumberOfDigits() << " - digit size = " << digits.size() << "\n";
+      LOG(info) << "strip size = " << strip.getNumberOfDigits() << " - digit size = " << digits.size() << "\n";
     }
   }
 
@@ -909,7 +909,7 @@ void Digitizer::checkIfReuseFutureDigits()
     }
 
     if (isnext < 0) { // we jump too ahead in future, digit will be not stored
-      LOG(INFO) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
+      LOG(info) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
 
       // remove digit from array in the future
       int labelremoved = digit->getLabel();

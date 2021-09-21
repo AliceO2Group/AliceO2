@@ -38,11 +38,11 @@ using namespace o2::header;
 DataProcessorSpec getSecondaryVertexWriterSpec()
 {
   auto loggerV = [](std::vector<V0> const& v) {
-    LOG(INFO) << "SecondaryVertexWriter pulled " << v.size() << " v0s";
+    LOG(info) << "SecondaryVertexWriter pulled " << v.size() << " v0s";
   };
 
   auto loggerC = [](std::vector<Cascade> const& v) {
-    LOG(INFO) << "SecondaryVertexWriter pulled " << v.size() << " cascades";
+    LOG(info) << "SecondaryVertexWriter pulled " << v.size() << " cascades";
   };
 
   auto inpV0ID = InputSpec{"v0s", "GLO", "V0S", 0};

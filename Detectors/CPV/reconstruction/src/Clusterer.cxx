@@ -53,7 +53,7 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
     int indexStart = clusters->size();
     mClusters.clear(); // internal list of FullClusters
 
-    LOG(DEBUG) << "Starting clusteriztion digits from " << mFirstDigitInEvent << " to " << mLastDigitInEvent;
+    LOG(debug) << "Starting clusteriztion digits from " << mFirstDigitInEvent << " to " << mLastDigitInEvent;
 
     // Collect digits to clusters
     makeClusters(digits);
@@ -67,7 +67,7 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
     // Calculate properties of collected clusters (Local position, energy, disp etc.)
     evalCluProperties(digits, clusters, dmc, cluMC);
 
-    LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters->size();
+    LOG(debug) << "Found clusters from " << indexStart << " to " << clusters->size();
 
     trigRec->emplace_back(tr.getBCData(), indexStart, clusters->size() - indexStart);
   }
@@ -339,7 +339,7 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
     // may be soft digits remain after unfolding
     clu->purify();
 
-    //  LOG(DEBUG) << "Purify done";
+    //  LOG(debug) << "Purify done";
     clu->evalAll();
 
     if (clu->getEnergy() > 1.e-4) { //Non-empty cluster

@@ -33,24 +33,24 @@ namespace its
 
 void TestDataGetter::init(InitContext& ic)
 {
-  LOG(DEBUG) << "Now Working on the GETTER BROS";
+  LOG(debug) << "Now Working on the GETTER BROS";
 }
 
 void TestDataGetter::run(ProcessingContext& pc)
 {
-  LOG(DEBUG) << "START Getter";
+  LOG(debug) << "START Getter";
   auto digits = pc.inputs().get<const std::vector<o2::itsmft::Digit>>("digits");
-  LOG(DEBUG) << "Digit Size Getting For This TimeFrame (Event) = " << digits.size();
+  LOG(debug) << "Digit Size Getting For This TimeFrame (Event) = " << digits.size();
 
   int Run = pc.inputs().get<int>("Run");
-  LOG(DEBUG) << "New " << Run;
+  LOG(debug) << "New " << Run;
 
   /*
 			int ResetDecision = pc.inputs().get<int>("in");
-			LOG(DEBUG) << "Reset Histogram Decision = " << ResetDecision;
+			LOG(debug) << "Reset Histogram Decision = " << ResetDecision;
 		
 			o2::itsmft::Digit digit = pc.inputs().get<o2::itsmft::Digit>("digits");
-			LOG(DEBUG) << "Chip ID Getting " << digit.getChipIndex() << " Row = " << digit.getRow() << "   Column = " << digit.getColumn();
+			LOG(debug) << "Chip ID Getting " << digit.getChipIndex() << " Row = " << digit.getRow() << "   Column = " << digit.getColumn();
 			*/
 
   //pc.services().get<ControlService>().readyToQuit(QuitRequest::All);

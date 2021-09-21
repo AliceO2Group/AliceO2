@@ -89,8 +89,8 @@ class DataDecoderTask
                                useDummyElecMap);
 
     auto stop = [this]() {
-      LOG(INFO) << "decoding duration = " << mTimeDecoding.count() * 1000 / mTFcount << " us / TF";
-      LOG(INFO) << "ROF finder duration = " << mTimeROFFinder.count() * 1000 / mTFcount << " us / TF";
+      LOG(info) << "decoding duration = " << mTimeDecoding.count() * 1000 / mTFcount << " us / TF";
+      LOG(info) << "ROF finder duration = " << mTimeROFFinder.count() * 1000 / mTFcount << " us / TF";
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
   }

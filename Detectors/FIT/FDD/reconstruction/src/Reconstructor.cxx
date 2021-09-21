@@ -28,7 +28,7 @@ void Reconstructor::process(const o2::fdd::Digit& digitBC, gsl::span<const o2::f
   for (const auto& channel : digitCh) {
     Float_t adc = channel.mChargeADC;
     Float_t time = channel.mTime;
-    //LOG(INFO) <<adc <<"  "<<time;
+    //LOG(info) <<adc <<"  "<<time;
     if (time == o2::InteractionRecord::DummyTime) {
       continue;
     }

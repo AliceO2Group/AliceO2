@@ -39,25 +39,25 @@ std::unique_ptr<TFile> CTFCoderBase::loadDictionaryTreeFile(const std::string& d
   std::unique_ptr<TFile> fileDict(!std::filesystem::exists(dictPath) ? nullptr : TFile::Open(dictPath.c_str()));
   if (!fileDict || fileDict->IsZombie()) {
     if (mayFail) {
-      LOG(INFO) << "CTF dictionary file " << dictPath << " for detector " << mDet.getName() << " is absent, will use dictionaries stored in CTF";
+      LOG(info) << "CTF dictionary file " << dictPath << " for detector " << mDet.getName() << " is absent, will use dictionaries stored in CTF";
       fileDict.reset();
       return std::move(fileDict);
     }
-    LOG(ERROR) << "Failed to open CTF dictionary file " << dictPath << " for detector " << mDet.getName();
+    LOG(error) << "Failed to open CTF dictionary file " << dictPath << " for detector " << mDet.getName();
     throw std::runtime_error("Failed to open dictionary file");
   }
   auto tnm = std::string(o2::base::NameConf::CTFDICT);
   std::unique_ptr<TTree> tree((TTree*)fileDict->Get(tnm.c_str()));
   if (!tree) {
     fileDict.reset();
-    LOG(ERROR) << "Did not find CTF dictionary tree " << tnm << " in " << dictPath;
+    LOG(error) << "Did not find CTF dictionary tree " << tnm << " in " << dictPath;
     throw std::runtime_error("Did not fine CTF dictionary tree in the file");
   }
   CTFHeader ctfHeader;
   if (!readFromTree(*tree.get(), "CTFHeader", ctfHeader) || !ctfHeader.detectors[mDet]) {
     tree.reset();
     fileDict.reset();
-    LOG(ERROR) << "Did not find CTF dictionary header or Detector " << mDet.getName() << " in it";
+    LOG(error) << "Did not find CTF dictionary header or Detector " << mDet.getName() << " in it";
     if (!mayFail) {
       throw std::runtime_error("did not find CTFHeader with needed detector");
     }

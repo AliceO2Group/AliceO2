@@ -50,7 +50,7 @@ void ClusterizerTask<InputType>::init()
     mGeometry = Geometry::GetInstanceFromRunNumber(223409); // NOTE: Hardcoded for run II run
   }
   if (!mGeometry) {
-    LOG(ERROR) << "Failure accessing geometry";
+    LOG(error) << "Failure accessing geometry";
   }
 
   // Set geometry object in clusterizer
@@ -58,7 +58,7 @@ void ClusterizerTask<InputType>::init()
     mClusterizer.setGeometry(mGeometry);
   }
   if (!mClusterizer.getGeometry()) {
-    LOG(ERROR) << "Could not set geometry in clusterizer";
+    LOG(error) << "Could not set geometry in clusterizer";
   }
 
   mClustersArray = new std::vector<o2::emcal::Cluster>();
@@ -71,7 +71,7 @@ void ClusterizerTask<InputType>::init()
 template <class InputType>
 void ClusterizerTask<InputType>::process(const std::string inputFileName, const std::string outputFileName)
 {
-  LOG(DEBUG) << "Running clusterization on new event";
+  LOG(debug) << "Running clusterization on new event";
 
   // Create reader, initilize clusterizer geometry
   init();
@@ -79,7 +79,7 @@ void ClusterizerTask<InputType>::process(const std::string inputFileName, const 
   // Load output file
   std::unique_ptr<TFile> outFile(TFile::Open(outputFileName.data(), "recreate"));
   if (!outFile || outFile->IsZombie()) {
-    LOG(FATAL) << "Failed to open output file " << outputFileName;
+    LOG(fatal) << "Failed to open output file " << outputFileName;
   }
 
   // Create output tree

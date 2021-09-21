@@ -35,14 +35,14 @@ static void my_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* bu
 /// Free any resource associated with the device - driver channel
 void websocket_server_close_callback(uv_handle_t* handle)
 {
-  LOG(DEBUG) << "socket closed";
+  LOG(debug) << "socket closed";
   delete (WSDPLHandler*)handle->data;
   free(handle);
 }
 
 void ws_error_write_callback(uv_write_t* h, int status)
 {
-  LOG(ERROR) << "Error in write callback: " << uv_strerror(status);
+  LOG(error) << "Error in write callback: " << uv_strerror(status);
   if (h->data) {
     free(h->data);
   }
@@ -59,12 +59,12 @@ void websocket_server_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
     return;
   }
   if (nread == UV_EOF) {
-    LOG(DEBUG) << "websocket_server_callback: communication with driver closed";
+    LOG(debug) << "websocket_server_callback: communication with driver closed";
     uv_close((uv_handle_t*)stream, websocket_server_close_callback);
     return;
   }
   if (nread < 0) {
-    LOG(ERROR) << "websocket_server_callback: Error while reading from websocket";
+    LOG(error) << "websocket_server_callback: Error while reading from websocket";
     uv_close((uv_handle_t*)stream, websocket_server_close_callback);
     return;
   }
@@ -73,7 +73,7 @@ void websocket_server_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
     free(buf->base);
   } catch (RuntimeErrorRef& ref) {
     auto& err = o2::framework::error_from_ref(ref);
-    LOG(ERROR) << "Error while parsing request: " << err.what;
+    LOG(error) << "Error while parsing request: " << err.what;
   }
 }
 
@@ -82,7 +82,7 @@ void websocket_server_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
 void ws_handshake_done_callback(uv_write_t* h, int status)
 {
   if (status) {
-    LOG(ERROR) << "uv_write error: " << uv_err_name(status);
+    LOG(error) << "uv_write error: " << uv_err_name(status);
     free(h);
     return;
   }
@@ -165,7 +165,7 @@ void WSDPLHandler::endHeaders()
       }
     }
   } else {
-    LOG(INFO) << "Connection not bound to a PID";
+    LOG(info) << "Connection not bound to a PID";
   }
 }
 
@@ -178,7 +178,7 @@ void WSDPLHandler::body(char* data, size_t s)
 void ws_server_write_callback(uv_write_t* h, int status)
 {
   if (status) {
-    LOG(ERROR) << "uv_write error: " << uv_err_name(status);
+    LOG(error) << "uv_write error: " << uv_err_name(status);
     free(h);
     return;
   }
@@ -191,7 +191,7 @@ void ws_server_write_callback(uv_write_t* h, int status)
 void ws_server_bulk_write_callback(uv_write_t* h, int status)
 {
   if (status) {
-    LOG(ERROR) << "uv_write error: " << uv_err_name(status);
+    LOG(error) << "uv_write error: " << uv_err_name(status);
     free(h);
     return;
   }
@@ -259,7 +259,7 @@ void websocket_client_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
   if (nread < 0) {
     // FIXME: improve error message
     // FIXME: should I close?
-    LOG(ERROR) << "Error while reading from websocket";
+    LOG(error) << "Error while reading from websocket";
     uv_read_stop(stream);
     uv_close((uv_handle_t*)stream, close_client_websocket);
     return;
@@ -269,7 +269,7 @@ void websocket_client_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
     parse_http_request(buf->base, nread, context->client);
   } catch (RuntimeErrorRef& ref) {
     auto& err = o2::framework::error_from_ref(ref);
-    LOG(ERROR) << "Error while parsing request: " << err.what;
+    LOG(error) << "Error while parsing request: " << err.what;
   }
 }
 
@@ -318,7 +318,7 @@ void WSDPLClient::header(std::string_view const& k, std::string_view const& v)
 void WSDPLClient::dumpHeaders()
 {
   for (auto [k, v] : mHeaders) {
-    LOG(INFO) << k << ": " << v;
+    LOG(info) << k << ": " << v;
   }
 }
 
@@ -340,7 +340,7 @@ void WSDPLClient::endHeaders()
     throw runtime_error_f(R"(Invalid accept received: "%s", expected "%s")", mHeaders["sec-websocket-accept"].c_str(), expectedAccept.c_str());
   }
 
-  LOG(INFO) << "Correctly handshaken websocket connection.";
+  LOG(info) << "Correctly handshaken websocket connection.";
   /// Create an appropriate reply
   mHandshaken = true;
   mHandshake();
@@ -360,7 +360,7 @@ void ws_client_write_callback(uv_write_t* h, int status)
 {
   WriteRequestContext* context = (WriteRequestContext*)h->data;
   if (status) {
-    LOG(ERROR) << "uv_write error: " << uv_err_name(status);
+    LOG(error) << "uv_write error: " << uv_err_name(status);
     free(h);
     return;
   }
@@ -377,7 +377,7 @@ void ws_client_bulk_write_callback(uv_write_t* h, int status)
   BulkWriteRequestContext* context = (BulkWriteRequestContext*)h->data;
   context->state->loopReason |= DeviceState::WS_COMMUNICATION;
   if (status < 0) {
-    LOG(ERROR) << "uv_write error: " << uv_err_name(status);
+    LOG(error) << "uv_write error: " << uv_err_name(status);
     free(h);
     return;
   }

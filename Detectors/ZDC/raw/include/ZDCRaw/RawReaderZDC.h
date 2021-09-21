@@ -70,9 +70,9 @@ class RawReaderZDC
   void accumulateDigits()
   {
     getDigits(mDigitsBC, mDigitsCh, mOrbitData);
-    LOG(INFO) << "Number of Digits: " << mDigitsBC.size();
-    LOG(INFO) << "Number of ChannelData: " << mDigitsCh.size();
-    LOG(INFO) << "Number of OrbitData: " << mOrbitData.size();
+    LOG(info) << "Number of Digits: " << mDigitsBC.size();
+    LOG(info) << "Number of ChannelData: " << mDigitsCh.size();
+    LOG(info) << "Number of OrbitData: " << mOrbitData.size();
   }
 
   int getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelData>& digitsCh, std::vector<OrbitData>& orbitData);

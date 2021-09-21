@@ -41,7 +41,7 @@ float FT0CalibTimeSlewing::getChannelOffset(int channel, int amplitude) const
 //______________________________________________
 void FT0CalibTimeSlewing::fillGraph(int channel, TH2F* histo)
 {
-  LOG(INFO) << "FT0CalibTimeSlewing::fillGraph " << channel << " entries " << int(histo->GetEntries());
+  LOG(info) << "FT0CalibTimeSlewing::fillGraph " << channel << " entries " << int(histo->GetEntries());
   double shiftchannel = 0;
   TH1D* hist_Proj = histo->ProjectionY();
   TFitResultPtr res = hist_Proj->Fit("gaus", "SQ");
@@ -64,7 +64,7 @@ void FT0CalibTimeSlewing::fillGraph(int channel, TH2F* histo)
       ygr[ibin] = r->Parameter(1) - shiftchannel;
     }
     nbins++;
-    LOG(INFO) << "channel " << channel << " bin " << ibin << " x " << xgr[ibin] << " y " << ygr[ibin] << " ent " << proj->GetEntries() << " sigma " << r->Parameter(2) << " shiftchannel " << shiftchannel;
+    LOG(info) << "channel " << channel << " bin " << ibin << " x " << xgr[ibin] << " y " << ygr[ibin] << " ent " << proj->GetEntries() << " sigma " << r->Parameter(2) << " shiftchannel " << shiftchannel;
   }
   TGraph* grTimeAmp = new TGraph(nbins + 5, xgr, ygr);
   mTimeSlewing[channel] = *grTimeAmp;
@@ -92,12 +92,12 @@ void FT0CalibTimeSlewing::mergeFilesWithTree()
     }
   }
   if (!merger.Merge()) {
-    LOG(FATAL) << "Could not merge files";
+    LOG(fatal) << "Could not merge files";
   }
   TFile mMergedFile{merger.GetOutputFileName()};
   TTree* tr = (TTree*)mMergedFile.Get("treeCollectedCalibInfo");
   if (!tr) {
-    LOG(FATAL) << "Could not get tree with calib info";
+    LOG(fatal) << "Could not get tree with calib info";
   }
   fillHistos(tr);
 }
@@ -107,13 +107,13 @@ void FT0CalibTimeSlewing::fillHistos(TTree* tr)
 {
   std::vector<o2::ft0::FT0CalibrationInfoObject>* localCalibInfoFT0 = nullptr;
   if (!tr->GetBranch("FT0CollectedCalibInfo")) {
-    LOG(FATAL) << "Did not find collected FT0 calib info branch  in the input tree";
+    LOG(fatal) << "Did not find collected FT0 calib info branch  in the input tree";
   }
   tr->SetBranchAddress("FT0CollectedCalibInfo", &localCalibInfoFT0);
   for (Int_t ievent = 0; ievent < tr->GetEntries(); ievent++) {
     tr->GetEvent(ievent);
     for (auto& info : *localCalibInfoFT0) {
-      LOG(DEBUG) << " ch " << int(info.getChannelIndex()) << " time " << info.getTime() << " amp " << info.getAmp();
+      LOG(debug) << " ch " << int(info.getChannelIndex()) << " time " << info.getTime() << " amp " << info.getAmp();
       int iCh = info.getChannelIndex();
       mTimeAmpHist[iCh]->Fill(info.getAmp(), info.getTime());
     }

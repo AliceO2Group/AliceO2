@@ -52,7 +52,7 @@ class PreClusterSinkTask
   void init(framework::InitContext& ic)
   {
     /// Get the output file from the context
-    LOG(INFO) << "initializing precluster sink";
+    LOG(info) << "initializing precluster sink";
 
     mText = ic.options().get<bool>("txt");
 
@@ -66,7 +66,7 @@ class PreClusterSinkTask
 
     auto stop = [this]() {
       /// close the output file
-      LOG(INFO) << "stop precluster sink";
+      LOG(info) << "stop precluster sink";
       this->mOutputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);

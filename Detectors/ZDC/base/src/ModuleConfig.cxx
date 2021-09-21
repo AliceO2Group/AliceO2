@@ -79,7 +79,7 @@ void Module::check() const
   }
   if (ntr > Module::MaxTriggChannels) {
     print();
-    LOG(FATAL) << "ZDC Module can have at most " << Module::MaxTriggChannels << " trigger channels";
+    LOG(fatal) << "ZDC Module can have at most " << Module::MaxTriggChannels << " trigger channels";
   }
 }
 
@@ -87,7 +87,7 @@ void Module::check() const
 void Module::setChannel(int slot, int8_t chID, int16_t fID, bool read, bool trig, int tF, int tL, int tS, int tT)
 {
   if (slot < 0 || slot >= MaxChannels || chID < 0 || chID > NChannels) {
-    LOG(FATAL) << "Improper module channel settings" << slot << ' ' << chID << ' ' << fID << ' ' << read << ' ' << trig
+    LOG(fatal) << "Improper module channel settings" << slot << ' ' << chID << ' ' << fID << ' ' << read << ' ' << trig
                << ' ' << tF << ' ' << tL << ' ' << tS << ' ' << tT;
   }
   feeID[slot] = fID;
@@ -99,7 +99,7 @@ void Module::setChannel(int slot, int8_t chID, int16_t fID, bool read, bool trig
   trigChannel[slot] = trig;
   if (tS > 0 && tT > 0) {
     if (tL + tS + 1 >= NTimeBinsPerBC) {
-      LOG(FATAL) << "Sum of Last and Shift trigger parameters exceed allowed range";
+      LOG(fatal) << "Sum of Last and Shift trigger parameters exceed allowed range";
     }
     trigChannelConf[slot].id = chID;
     trigChannelConf[slot].first = tF;

@@ -49,14 +49,14 @@ void EMCALChannelData::fill(const gsl::span<const o2::emcal::Cell> data)
   for (auto cell : data) {
     Double_t cellEnergy = cell.getEnergy();
     Int_t id = cell.getTower();
-    LOG(DEBUG) << "inserting in cell ID " << id << ": energy = " << cellEnergy;
+    LOG(debug) << "inserting in cell ID " << id << ": energy = " << cellEnergy;
     mHisto(cellEnergy, id);
   }
 }
 //_____________________________________________
 void EMCALChannelData::print()
 {
-  LOG(DEBUG) << *this;
+  LOG(debug) << *this;
 }
 //_____________________________________________
 void EMCALChannelData::merge(const EMCALChannelData* prev)

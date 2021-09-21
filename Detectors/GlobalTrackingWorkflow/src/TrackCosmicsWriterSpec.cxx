@@ -33,7 +33,7 @@ DataProcessorSpec getTrackCosmicsWriterSpec(bool useMC)
 {
   // A spectator for logging
   auto logger = [](TracksType const& tracks) {
-    LOG(INFO) << "Writing " << tracks.size() << " Cosmics Tracks";
+    LOG(info) << "Writing " << tracks.size() << " Cosmics Tracks";
   };
   return MakeRootTreeWriterSpec("cosmic-track-writer",
                                 "cosmics.root",

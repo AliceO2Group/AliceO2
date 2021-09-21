@@ -21,7 +21,7 @@ GlobalOffsetsCalibrationObject GlobalOffsetsCalibrationObjectAlgorithm::generate
   TString side[3] = {"A", "C", "AC"};
   for (unsigned int iCh = 0; iCh < 3; ++iCh) {
     calibrationObject.mCollisionTimeOffsets[iCh] = container.getMeanGaussianFitValue(iCh);
-    LOG(DEBUG) << "GlobalOffsetsCalibrationObjectAlgorithm generate CalibrationObject for T0" << side[iCh].Data() << " = " << calibrationObject.mCollisionTimeOffsets[iCh];
+    LOG(debug) << "GlobalOffsetsCalibrationObjectAlgorithm generate CalibrationObject for T0" << side[iCh].Data() << " = " << calibrationObject.mCollisionTimeOffsets[iCh];
   }
 
   return calibrationObject;

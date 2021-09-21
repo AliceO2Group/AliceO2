@@ -346,11 +346,11 @@ void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) cons
   const Mapper& mapper = Mapper::instance();
 
   if (geo.getNumberOfSlices() != Sector::MAXSECTOR) {
-    LOG(FATAL) << "Wrong number of sectors :" << geo.getNumberOfSlices() << " instead of " << Sector::MAXSECTOR << std::endl;
+    LOG(fatal) << "Wrong number of sectors :" << geo.getNumberOfSlices() << " instead of " << Sector::MAXSECTOR << std::endl;
   }
 
   if (geo.getNumberOfRows() != mapper.getNumberOfRows()) {
-    LOG(FATAL) << "Wrong number of rows :" << geo.getNumberOfRows() << " instead of " << mapper.getNumberOfRows() << std::endl;
+    LOG(fatal) << "Wrong number of rows :" << geo.getNumberOfRows() << " instead of " << mapper.getNumberOfRows() << std::endl;
   }
 
   double maxDx = 0, maxDy = 0;
@@ -360,7 +360,7 @@ void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) cons
     const int nPads = geo.getRowInfo(row).maxPad + 1;
 
     if (nPads != mapper.getNumberOfPadsInRowSector(row)) {
-      LOG(FATAL) << "Wrong number of pads :" << nPads << " instead of " << mapper.getNumberOfPadsInRowSector(row) << std::endl;
+      LOG(fatal) << "Wrong number of pads :" << nPads << " instead of " << mapper.getNumberOfPadsInRowSector(row) << std::endl;
     }
 
     const double x = geo.getRowInfo(row).x;
@@ -377,7 +377,7 @@ void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) cons
       const double dy = u - (-c.Y()); // diferent sign convention for Y coordinate in the map
 
       if (fabs(dx) >= 1.e-6 || fabs(dy) >= 1.e-5) {
-        LOG(WARNING) << "wrong calculated pad position:"
+        LOG(warning) << "wrong calculated pad position:"
                      << " row " << row << " pad " << pad << " x calc " << x << " x in map " << c.X() << " dx " << (x - c.X())
                      << " y calc " << u << " y in map " << -c.Y() << " dy " << dy << std::endl;
       }
@@ -391,7 +391,7 @@ void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) cons
   }
 
   if (fabs(maxDx) >= 1.e-4 || fabs(maxDy) >= 1.e-4) {
-    LOG(FATAL) << "wrong calculated pad position:"
+    LOG(fatal) << "wrong calculated pad position:"
                << " max Dx " << maxDx << " max Dy " << maxDy << std::endl;
   }
 }

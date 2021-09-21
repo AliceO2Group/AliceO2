@@ -37,7 +37,7 @@ std::string VtxTrackRef::asString(bool skipEmpty) const
 // set the last +1 element index and finalize all references
 void VtxTrackRef::print(bool skipEmpty) const
 {
-  LOG(INFO) << asString(skipEmpty);
+  LOG(info) << asString(skipEmpty);
 }
 
 // set the last +1 element index and check consistency

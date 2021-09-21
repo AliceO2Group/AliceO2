@@ -41,7 +41,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
-    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed)"; \
+    LOG(fatal) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
 std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
@@ -113,14 +113,14 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   // the compute callback of the checker
   auto counter = std::make_shared<int>(0);
   auto checkerCallback = [counter](InputRecord& inputs, ControlService& control) {
-    LOG(DEBUG) << "got inputs " << inputs.size();
+    LOG(debug) << "got inputs " << inputs.size();
     ASSERT_ERROR(inputs.get<int>("datain") == *counter);
     ++(*counter);
   };
   auto checkCounter = [counter, nRolls](EndOfStreamContext&) {
     ASSERT_ERROR(*counter == nRolls);
     if (*counter == nRolls) {
-      LOG(INFO) << "checker has received " << nRolls << " successful event(s)";
+      LOG(info) << "checker has received " << nRolls << " successful event(s)";
     }
   };
   auto checkerInit = [checkerCallback, checkCounter](CallbackService& callbacks) {
@@ -147,12 +147,12 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     int msgidx = 0;
     auto dh = o2::header::get<o2::header::DataHeader*>(inputs.At(msgidx)->GetData());
     if (!dh) {
-      LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
+      LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
       return;
     }
     auto dph = o2::header::get<DataProcessingHeader*>(inputs.At(msgidx)->GetData());
     if (!dph) {
-      LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
+      LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
       return;
     }
     // Note: we want to run both the output and input proxy in the same workflow and thus we need
@@ -164,7 +164,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     // the forwarded SourceInfoHeader created by the output proxy will be skipped here since the
     // input proxy handles this internally
     ASSERT_ERROR(!isData || !channelName.empty());
-    LOG(DEBUG) << "using channel '" << channelName << "' for " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification});
+    LOG(debug) << "using channel '" << channelName << "' for " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification});
     if (channelName.empty()) {
       return;
     }
@@ -178,7 +178,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     FairMQParts output;
     output.AddPart(std::move(outHeaderMessage));
     output.AddPart(std::move(inputs.At(msgidx + 1)));
-    LOG(DEBUG) << "sending " << DataSpecUtils::describe(OutputSpec{odh->dataOrigin, odh->dataDescription, odh->subSpecification});
+    LOG(debug) << "sending " << DataSpecUtils::describe(OutputSpec{odh->dataOrigin, odh->dataDescription, odh->subSpecification});
     o2::framework::sendOnChannel(device, output, channelName);
   };
 

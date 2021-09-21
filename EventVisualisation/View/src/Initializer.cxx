@@ -57,7 +57,7 @@ void Initializer::setup(EventManager::EDataSource defaultDataSource)
 
   const bool fullscreen = settings.GetValue("fullscreen.mode", false);                           // hide left and bottom tabs
   const string ocdbStorage = settings.GetValue("OCDB.default.path", "local://$ALICE_ROOT/OCDB"); // default path to OCDB
-  LOG(INFO) << "Initializer -- OCDB path:" << ocdbStorage;
+  LOG(info) << "Initializer -- OCDB path:" << ocdbStorage;
 
   auto& eventManager = EventManager::getInstance();
   eventManager.setCdbPath(ocdbStorage);
@@ -137,7 +137,7 @@ void Initializer::setupGeometry()
 
     EVisualisationGroup det = static_cast<EVisualisationGroup>(iDet);
     string detName = gVisualisationGroupName[det];
-    LOG(INFO) << detName;
+    LOG(info) << detName;
 
     if (settings.GetValue((detName + ".draw").c_str(), false)) {
       if (detName == "TPC" || detName == "MCH" || detName == "MID" || detName == "MFT") { // don't load MUON+MFT and AD and standard TPC to R-Phi view

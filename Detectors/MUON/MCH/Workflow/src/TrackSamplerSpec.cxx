@@ -51,7 +51,7 @@ class TrackSamplerTask
   void init(framework::InitContext& ic)
   {
     /// Get the input file from the context
-    LOG(INFO) << "initializing track sampler";
+    LOG(info) << "initializing track sampler";
 
     auto inputFileName = ic.options().get<std::string>("infile");
     mInputFile.open(inputFileName, ios::binary);
@@ -69,7 +69,7 @@ class TrackSamplerTask
 
     auto stop = [this]() {
       /// close the input file
-      LOG(INFO) << "stop track sampler";
+      LOG(info) << "stop track sampler";
       this->mInputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);

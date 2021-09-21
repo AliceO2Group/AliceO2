@@ -53,13 +53,13 @@ class DigitsReaderDeviceDPL
                                                   ic.options().get<std::string>("mid-digit-infile"));
     mFile = std::make_unique<TFile>(filename.c_str());
     if (!mFile->IsOpen()) {
-      LOG(ERROR) << "Cannot open the " << filename << " file !";
+      LOG(error) << "Cannot open the " << filename << " file !";
       mState = 1;
       return;
     }
     mTree = static_cast<TTree*>(mFile->Get("o2sim"));
     if (!mTree) {
-      LOG(ERROR) << "Cannot find tree in " << filename;
+      LOG(error) << "Cannot find tree in " << filename;
       mState = 1;
       return;
     }
@@ -90,10 +90,10 @@ class DigitsReaderDeviceDPL
       }
     }
 
-    LOG(DEBUG) << "MIDDigitsReader pushed " << digits.size() << " merged digits";
+    LOG(debug) << "MIDDigitsReader pushed " << digits.size() << " merged digits";
     pc.outputs().snapshot(of::Output{header::gDataOriginMID, mDescriptions[0], 0, of::Lifetime::Timeframe}, digits);
     pc.outputs().snapshot(of::Output{header::gDataOriginMID, mDescriptions[1], 0, of::Lifetime::Timeframe}, rofRecords);
-    LOG(DEBUG) << "MIDDigitsReader pushed " << digits.size() << " indexed digits";
+    LOG(debug) << "MIDDigitsReader pushed " << digits.size() << " indexed digits";
     if (mUseMC) {
       pc.outputs().snapshot(of::Output{header::gDataOriginMID, mDescriptions[2], 0, of::Lifetime::Timeframe}, mcContainer);
     }

@@ -101,13 +101,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       AlgorithmSpec{
         (AlgorithmSpec::InitCallback) [](InitContext&) {
           return (AlgorithmSpec::ProcessCallback) [](ProcessingContext& processingContext) mutable {
-//            LOG(INFO) << "printer invoked";
+//            LOG(info) << "printer invoked";
             auto histo = processingContext.inputs().get<TH1F*>("histo");
             std::string bins = "BINS:";
             for (int i = 1; i <= histo->GetNbinsX(); i++) {
               bins += " " + std::to_string((int) histo->GetBinContent(i));
             }
-            LOG(INFO) << bins;
+            LOG(info) << bins;
           };
         }
       }
@@ -169,7 +169,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         (AlgorithmSpec::InitCallback) [](InitContext&) {
           return (AlgorithmSpec::ProcessCallback) [](ProcessingContext& processingContext) mutable {
             auto obj = processingContext.inputs().get<CustomMergeableObject*>("custom");
-            LOG(INFO) << "SECRET:" << obj->getSecret();
+            LOG(info) << "SECRET:" << obj->getSecret();
           };
         }
       }

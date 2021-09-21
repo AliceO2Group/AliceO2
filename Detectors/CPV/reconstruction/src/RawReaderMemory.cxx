@@ -40,7 +40,7 @@ o2::header::RDHAny RawReaderMemory::decodeRawHeader(const void* payloadwords)
   } else if (headerversion == 6) {
     return o2::header::RDHAny(*reinterpret_cast<const o2::header::RAWDataHeaderV6*>(payloadwords));
   }
-  LOG(ERROR) << "RawReaderMemory::decodeRawHeader() : Unknown RDH version";
+  LOG(error) << "RawReaderMemory::decodeRawHeader() : Unknown RDH version";
   return o2::header::RDHAny(*reinterpret_cast<const o2::header::RAWDataHeaderV6*>(payloadwords));
 }
 

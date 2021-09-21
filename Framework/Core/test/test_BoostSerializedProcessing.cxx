@@ -93,7 +93,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       Outputs{},                             //
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
-          LOG(INFO) << "Buffer ready to receive";
+          LOG(info) << "Buffer ready to receive";
 
           auto in = ctx.inputs().get<BoostSerialized<std::vector<Foo>>>("make");
           std::vector<Foo> check;

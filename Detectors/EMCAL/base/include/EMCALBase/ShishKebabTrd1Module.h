@@ -57,7 +57,7 @@ class ShishKebabTrd1Module
 
   ShishKebabTrd1Module& operator=(const ShishKebabTrd1Module& /*rvalue*/)
   {
-    LOG(FATAL) << "operator = not implemented";
+    LOG(fatal) << "operator = not implemented";
     return *this;
   }
 
@@ -105,7 +105,7 @@ class ShishKebabTrd1Module
       xr = mOK1.Y();
       zr = mOK1.X();
     }
-    LOG(DEBUG2) << " ieta " << std::setw(2) << std::setprecision(2) << ieta << " xr " << std::setw(8)
+    LOG(debug2) << " ieta " << std::setw(2) << std::setprecision(2) << ieta << " xr " << std::setw(8)
                 << std::setprecision(4) << xr << " zr " << std::setw(8) << std::setprecision(4) << zr;
   }
 

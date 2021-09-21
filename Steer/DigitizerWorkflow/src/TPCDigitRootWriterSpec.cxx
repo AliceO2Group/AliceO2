@@ -66,11 +66,11 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
       int brentries = br->GetEntries();
       entries = std::max(entries, brentries);
       if (brentries != entries && !TString(br->GetName()).Contains("CommonMode")) {
-        LOG(WARNING) << "INCONSISTENT NUMBER OF ENTRIES IN BRANCH " << br->GetName() << ": " << entries << " vs " << brentries;
+        LOG(warning) << "INCONSISTENT NUMBER OF ENTRIES IN BRANCH " << br->GetName() << ": " << entries << " vs " << brentries;
       }
     }
     if (entries > 0) {
-      LOG(INFO) << "Setting entries to " << entries;
+      LOG(info) << "Setting entries to " << entries;
       outputtree->SetEntries(entries);
       // outputtree->Write("", TObject::kOverwrite);
       outputfile->Close();
@@ -135,13 +135,13 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
     for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
       auto sector = extractSector(ref);
       auto const* dh = DataRefUtils::getHeader<DataHeader*>(ref);
-      LOG(INFO) << "HAVE TRIGGER DATA FOR SECTOR " << sector << " ON CHANNEL " << dh->subSpecification;
+      LOG(info) << "HAVE TRIGGER DATA FOR SECTOR " << sector << " ON CHANNEL " << dh->subSpecification;
       if (sector >= 0) {
         // extract the trigger information and make it available for the other handlers
         auto triggers = pc.inputs().get<std::vector<DigiGroupRef>>(ref);
         (*trigP2Sect)[sector].assign(triggers.begin(), triggers.end());
         const auto& trigS = (*trigP2Sect)[sector];
-        LOG(INFO) << "GOT Triggers of sector " << sector << " | SIZE " << trigS.size();
+        LOG(info) << "GOT Triggers of sector " << sector << " | SIZE " << trigS.size();
       }
     }
   };
@@ -151,9 +151,9 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
   auto fillDigits = [extractSector, trigP2Sect](TBranch& branch, DigitsOutputType const& digiData, DataRef const& ref) {
     auto sector = extractSector(ref);
     auto const* dh = DataRefUtils::getHeader<DataHeader*>(ref);
-    LOG(INFO) << "HAVE DIGIT DATA FOR SECTOR " << sector << " ON CHANNEL " << dh->subSpecification;
+    LOG(info) << "HAVE DIGIT DATA FOR SECTOR " << sector << " ON CHANNEL " << dh->subSpecification;
     if (sector >= 0) {
-      LOG(INFO) << "DIGIT SIZE " << digiData.size();
+      LOG(info) << "DIGIT SIZE " << digiData.size();
       const auto& trigS = (*trigP2Sect.get())[sector];
       int entries = 0;
       if (!trigS.size()) {
@@ -161,7 +161,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
       } else { // check consistency of Ndigits with that of expected from the trigger
         int nExp = trigS.back().getFirstEntry() + trigS.back().getEntries() - trigS.front().getFirstEntry();
         if (nExp != digiData.size()) {
-          LOG(ERROR) << "Number of digits " << digiData.size() << " is inconsistent with expectation " << nExp
+          LOG(error) << "Number of digits " << digiData.size() << " is inconsistent with expectation " << nExp
                      << " from digits grouping for sector " << sector;
         }
       }
@@ -208,10 +208,10 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
     auto br = framework::RootTreeWriter::remapBranch(branch, &ptr);
 
     auto const* dh = DataRefUtils::getHeader<DataHeader*>(ref);
-    LOG(INFO) << "HAVE LABEL DATA FOR SECTOR " << sector << " ON CHANNEL " << dh->subSpecification;
+    LOG(info) << "HAVE LABEL DATA FOR SECTOR " << sector << " ON CHANNEL " << dh->subSpecification;
     int entries = 0;
     if (sector >= 0) {
-      LOG(INFO) << "MCTRUTH ELEMENTS " << labeldata.getIndexedSize()
+      LOG(info) << "MCTRUTH ELEMENTS " << labeldata.getIndexedSize()
                 << " WITH " << labeldata.getNElements() << " LABELS";
       const auto& trigS = (*trigP2Sect.get())[sector];
       if (!trigS.size()) {
@@ -219,7 +219,7 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
       } else {
         int nExp = trigS.back().getFirstEntry() + trigS.back().getEntries() - trigS.front().getFirstEntry();
         if (nExp != labeldata.getIndexedSize()) {
-          LOG(ERROR) << "Number of indexed (label) slots " << labeldata.getIndexedSize()
+          LOG(error) << "Number of indexed (label) slots " << labeldata.getIndexedSize()
                      << " is inconsistent with expectation " << nExp
                      << " from digits grouping for sector " << sector;
         }
@@ -259,8 +259,8 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
   auto commonModeSpectator = [extractSector](CommonModeOutputType const& commonModeData, DataRef const& ref) {
     auto sector = extractSector(ref);
     auto const* dh = DataRefUtils::getHeader<DataHeader*>(ref);
-    LOG(INFO) << "HAVE COMMON MODE DATA FOR SECTOR " << sector << " ON CHANNEL " << dh->subSpecification;
-    LOG(INFO) << "COMMON MODE SIZE " << commonModeData.size();
+    LOG(info) << "HAVE COMMON MODE DATA FOR SECTOR " << sector << " ON CHANNEL " << dh->subSpecification;
+    LOG(info) << "COMMON MODE SIZE " << commonModeData.size();
   };
 
   auto digitsdef = BranchDefinition<DigitsOutputType>{InputSpec{"digits", ConcreteDataTypeMatcher{"TPC", "DIGITS"}},

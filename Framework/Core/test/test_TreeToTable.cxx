@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   TreeToTable tr2ta;
   auto stat = tr2ta.addAllColumns(&t1);
   if (!stat) {
-    LOG(ERROR) << "Table was not created!";
+    LOG(error) << "Table was not created!";
     return;
   }
 

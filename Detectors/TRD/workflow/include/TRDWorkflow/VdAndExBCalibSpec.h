@@ -51,14 +51,14 @@ class VdAndExBCalibDevice : public o2::framework::Task
   {
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
     auto data = pc.inputs().get<gsl::span<o2::trd::AngularResidHistos>>("input");
-    LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " AngularResidHistos objects";
+    LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " AngularResidHistos objects";
     mCalibrator->process(tfcounter, data);
     sendOutput(pc.outputs());
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    LOG(INFO) << "Finalizing calibration";
+    LOG(info) << "Finalizing calibration";
     constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
     mCalibrator->checkSlotsToFinalize(INFINITE_TF);
     sendOutput(ec.outputs());

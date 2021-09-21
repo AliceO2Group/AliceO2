@@ -227,7 +227,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
   for (int src = GIndex::NSources; src--;) {
     int start = trackRef.getFirstEntryOfSource(src);
     int end = start + trackRef.getEntriesOfSource(src);
-    LOG(DEBUG) << "Unassigned tracks: src = " << src << ", start = " << start << ", end = " << end;
+    LOG(debug) << "Unassigned tracks: src = " << src << ", start = " << start << ", end = " << end;
     for (int ti = start; ti < end; ti++) {
       TrackExtraInfo extraInfoHolder;
       auto& trackIndex = GIndices[ti];
@@ -603,7 +603,7 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(const MCTrackLabelCursorType
               labelHolder.labelID = labelHolder.labelTPC;
             }
             if (labelHolder.labelITS != labelHolder.labelTPC) {
-              LOG(DEBUG) << "ITS-TPC MCTruth: labelIDs do not match at " << trackIndex.getIndex() << ", src = " << src;
+              LOG(debug) << "ITS-TPC MCTruth: labelIDs do not match at " << trackIndex.getIndex() << ", src = " << src;
               labelHolder.labelMask |= (0x1 << 13);
             }
           }
@@ -687,11 +687,11 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mTruncate = ic.options().get<int>("enable-truncation");
 
   if (mTFNumber == -1L) {
-    LOG(INFO) << "TFNumber will be obtained from CCDB";
+    LOG(info) << "TFNumber will be obtained from CCDB";
   }
 
   if (mTruncate != 1) {
-    LOG(INFO) << "Truncation is not used!";
+    LOG(info) << "Truncation is not used!";
     mCollisionPosition = 0xFFFFFFFF;
     mCollisionPositionCov = 0xFFFFFFFF;
     mTrackX = 0xFFFFFFFF;
@@ -749,8 +749,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto ft0ChData = recoData.getFT0ChannelsData();
   auto ft0RecPoints = recoData.getFT0RecPoints();
 
-  LOG(DEBUG) << "FOUND " << primVertices.size() << " primary vertices";
-  LOG(DEBUG) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
+  LOG(debug) << "FOUND " << primVertices.size() << " primary vertices";
+  LOG(debug) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
 
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& cascadesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CASCADE"});
@@ -797,8 +797,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   const auto& mcRecords = mcContext->getEventRecords();
   const auto& mcParts = mcContext->getEventParts();
 
-  LOG(DEBUG) << "FOUND " << mcRecords.size() << " records";
-  LOG(DEBUG) << "FOUND " << mcParts.size() << " parts";
+  LOG(debug) << "FOUND " << mcRecords.size() << " records";
+  LOG(debug) << "FOUND " << mcParts.size() << " parts";
 
   std::map<uint64_t, int> bcsMap;
   collectBCs(ft0RecPoints, primVertices, mcRecords, bcsMap);
@@ -886,7 +886,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     if (item != bcsMap.end()) {
       bcID = item->second;
     } else {
-      LOG(FATAL) << "Error: could not find a corresponding BC ID for MC collision; BC = " << globalBC << ", index = " << index;
+      LOG(fatal) << "Error: could not find a corresponding BC ID for MC collision; BC = " << globalBC << ", index = " << index;
     }
     auto& colParts = mcParts[index];
     for (auto colPart : colParts) {
@@ -937,7 +937,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     if (item != bcsMap.end()) {
       bcID = item->second;
     } else {
-      LOG(FATAL) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
+      LOG(fatal) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
     }
     ft0Cursor(0,
               bcID,
@@ -973,7 +973,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto& timeStamp = vertex.getTimeStamp();
     const double interactionTime = timeStamp.getTimeStamp() * 1E3; // mus to ns
     uint64_t globalBC = std::round(interactionTime / o2::constants::lhc::LHCBunchSpacingNS);
-    LOG(DEBUG) << globalBC << " " << interactionTime;
+    LOG(debug) << globalBC << " " << interactionTime;
     // collision timestamp in ns wrt the beginning of collision BC
     const float relInteractionTime = static_cast<float>(globalBC * o2::constants::lhc::LHCBunchSpacingNS - interactionTime);
     auto item = bcsMap.find(globalBC);
@@ -981,7 +981,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     if (item != bcsMap.end()) {
       bcID = item->second;
     } else {
-      LOG(FATAL) << "Error: could not find a corresponding BC ID for a collision; BC = " << globalBC << ", collisionID = " << collisionID;
+      LOG(fatal) << "Error: could not find a corresponding BC ID for a collision; BC = " << globalBC << ", collisionID = " << collisionID;
     }
 
     collisionsCursor(0,
@@ -1016,13 +1016,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     if (item != mGIDToTableID.end()) {
       posTableIdx = item->second;
     } else {
-      LOG(FATAL) << "Could not find a positive track index";
+      LOG(fatal) << "Could not find a positive track index";
     }
     item = mGIDToTableID.find(trNegID);
     if (item != mGIDToTableID.end()) {
       negTableIdx = item->second;
     } else {
-      LOG(FATAL) << "Could not find a negative track index";
+      LOG(fatal) << "Could not find a negative track index";
     }
     v0sCursor(0, posTableIdx, negTableIdx);
   }
@@ -1035,7 +1035,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     if (item != mGIDToTableID.end()) {
       bachTableIdx = item->second;
     } else {
-      LOG(FATAL) << "Could not find a bachelor track index";
+      LOG(fatal) << "Could not find a bachelor track index";
     }
     cascadesCursor(0, cascade.getV0ID(), bachTableIdx);
   }
@@ -1083,7 +1083,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
 void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "aod producer dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "aod producer dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

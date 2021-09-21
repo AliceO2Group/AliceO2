@@ -29,7 +29,7 @@ void FT0CalibInfoSlot::fill(const gsl::span<const o2::ft0::FT0CalibrationInfoObj
   // fill container
   // we first order the data that arrived, to improve speed when filling
   int nd = data.size();
-  LOG(INFO) << "FT0CalibInfoSlot::fill entries in incoming data = " << nd;
+  LOG(info) << "FT0CalibInfoSlot::fill entries in incoming data = " << nd;
   std::vector<int> ord(nd);
   std::iota(ord.begin(), ord.end(), 0);
   std::sort(ord.begin(), ord.end(), [&data](int i, int j) { return data[i].getChannelIndex() < data[j].getChannelIndex(); });
@@ -55,7 +55,7 @@ void FT0CalibInfoSlot::merge(const FT0CalibInfoSlot* prev)
 {
   // merge data of 2 slots
 
-  LOG(INFO) << "Merging two slots with entries: current slot -> " << mFT0CollectedCalibInfoSlot.size() << " , previous slot -> " << prev->mFT0CollectedCalibInfoSlot.size();
+  LOG(info) << "Merging two slots with entries: current slot -> " << mFT0CollectedCalibInfoSlot.size() << " , previous slot -> " << prev->mFT0CollectedCalibInfoSlot.size();
 
   int offset = 0, offsetPrev = 0;
   std::vector<o2::ft0::FT0CalibrationInfoObject> tmpVector;
@@ -75,7 +75,7 @@ void FT0CalibInfoSlot::merge(const FT0CalibInfoSlot* prev)
     }
   }
   mFT0CollectedCalibInfoSlot.swap(tmpVector);
-  LOG(DEBUG) << "After merging the size is " << mFT0CollectedCalibInfoSlot.size();
+  LOG(debug) << "After merging the size is " << mFT0CollectedCalibInfoSlot.size();
   return;
 }
 //_____________________________________________
@@ -83,10 +83,10 @@ void FT0CalibInfoSlot::print() const
 {
   // to print number of entries in the tree and the channel with the max number of entries
 
-  LOG(INFO) << "Total number of entries " << mFT0CollectedCalibInfoSlot.size();
+  LOG(info) << "Total number of entries " << mFT0CollectedCalibInfoSlot.size();
   auto maxElementIndex = std::max_element(mEntriesSlot.begin(), mEntriesSlot.end());
   auto channelIndex = std::distance(mEntriesSlot.begin(), maxElementIndex);
-  LOG(INFO) << "The maximum number of entries per channel in the current mFT0CollectedCalibInfo is " << *maxElementIndex << " for channel " << channelIndex;
+  LOG(info) << "The maximum number of entries per channel in the current mFT0CollectedCalibInfo is " << *maxElementIndex << " for channel " << channelIndex;
   return;
 }
 
@@ -95,10 +95,10 @@ void FT0CalibInfoSlot::printEntries() const
 {
   // to print number of entries in the tree and per channel
 
-  LOG(DEBUG) << "Total number of entries " << mFT0CollectedCalibInfoSlot.size();
+  LOG(debug) << "Total number of entries " << mFT0CollectedCalibInfoSlot.size();
   for (int i = 0; i < mEntriesSlot.size(); ++i) {
     if (mEntriesSlot[i] != 0) {
-      LOG(INFO) << "channel " << i << " has " << mEntriesSlot[i] << " entries";
+      LOG(info) << "channel " << i << " has " << mEntriesSlot[i] << " entries";
     }
   }
   return;
@@ -131,7 +131,7 @@ bool FT0CalibCollector::hasEnoughData(const Slot& slot) const
     return true;
   }
   const o2::ft0::FT0CalibInfoSlot* c = slot.getContainer();
-  LOG(INFO) << "we have " << c->getCollectedCalibInfoSlot().size() << " entries";
+  LOG(info) << "we have " << c->getCollectedCalibInfoSlot().size() << " entries";
   int maxNumberOfHits = mAbsMaxNumOfHits ? mMaxNumOfHits : mMaxNumOfHits * NCHANNELS;
   if (mTFsendingPolicy || c->getCollectedCalibInfoSlot().size() > maxNumberOfHits) {
     return true;
@@ -145,7 +145,7 @@ void FT0CalibCollector::finalizeSlot(Slot& slot)
 
   o2::ft0::FT0CalibInfoSlot* c = slot.getContainer();
   mFT0CollectedCalibInfo = c->getCollectedCalibInfoSlot();
-  LOG(INFO) << "vector of  received with size = " << mFT0CollectedCalibInfo.size();
+  LOG(info) << "vector of  received with size = " << mFT0CollectedCalibInfo.size();
   mEntries = c->getEntriesPerChannel();
   return;
 }

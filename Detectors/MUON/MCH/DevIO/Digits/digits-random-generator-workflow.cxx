@@ -101,7 +101,7 @@ class DigitGenerator : public o2::mch::io::DigitIOBaseTask
     }
     mMersenneTwister.seed(mSeed);
 
-    LOGP(INFO,
+    LOGP(info,
          "Will generate {:7.2f}% of pads in {:4d} ROFs "
          "per timeframe, for {:4d} timeframes",
          mOccupancy * 100.0, mNofRofPerTimeFrame, mMaxNofTimeFrames);

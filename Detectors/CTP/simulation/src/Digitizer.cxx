@@ -56,7 +56,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
         }
         default:
           // Error
-          LOG(FATAL) << "CTP Digitizer: unknown detector:" << inp->detector;
+          LOG(fatal) << "CTP Digitizer: unknown detector:" << inp->detector;
           break;
       }
     }
@@ -79,12 +79,12 @@ void Digitizer::init()
 {
   // CTP Configuration
   if (mCCDBServer.empty()) {
-    LOG(FATAL) << "CTP digitizer: CCDB server is not set";
+    LOG(fatal) << "CTP digitizer: CCDB server is not set";
   } else {
-    LOG(INFO) << "CTP digitizer:: CCDB server:" << mCCDBServer;
+    LOG(info) << "CTP digitizer:: CCDB server:" << mCCDBServer;
   }
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBServer);
   mCTPConfiguration = mgr.get<CTPConfiguration>(o2::ctp::CCDBPathCTPConfig);
-  LOG(INFO) << " @@@ CTP Digitizer:: CCDB connected " << std::endl;
+  LOG(info) << " @@@ CTP Digitizer:: CCDB connected " << std::endl;
 }

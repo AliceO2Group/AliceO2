@@ -31,7 +31,7 @@ RecEventReader::RecEventReader(bool useMC)
 {
   mUseMC = useMC;
   if (useMC) {
-    LOG(WARNING) << "ZDC RecEvent reader at the moment does not process MC";
+    LOG(warning) << "ZDC RecEvent reader at the moment does not process MC";
   }
 }
 
@@ -48,7 +48,7 @@ void RecEventReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
 
-  LOG(INFO) << "ZDC RecEventReader pushes " << mBCRecData->size() << " events with " << mBCRecData->size() << " energy, " << mZDCTDCData->size() << " TDC and " << mZDCInfo->size() << " info records at entry " << ent;
+  LOG(info) << "ZDC RecEventReader pushes " << mBCRecData->size() << " events with " << mBCRecData->size() << " energy, " << mZDCTDCData->size() << " TDC and " << mZDCInfo->size() << " info records at entry " << ent;
   pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, *mBCRecData);
   pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0, Lifetime::Timeframe}, *mZDCEnergy);
   pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0, Lifetime::Timeframe}, *mZDCTDCData);
@@ -73,11 +73,11 @@ void RecEventReader::connectTree(const std::string& filename)
   mTree->SetBranchAddress(mZDCTDCDataBranchName.c_str(), &mZDCTDCData);
   mTree->SetBranchAddress(mZDCInfoBranchName.c_str(), &mZDCInfo);
   if (mUseMC) {
-    LOG(WARNING) << "MC-truth is not supported for ZDC recpoints currently";
+    LOG(warning) << "MC-truth is not supported for ZDC recpoints currently";
     mUseMC = false;
   }
 
-  LOG(INFO) << "Loaded ZDC RecEvents tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded ZDC RecEvents tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getRecEventReaderSpec(bool useMC)
@@ -88,7 +88,7 @@ DataProcessorSpec getRecEventReaderSpec(bool useMC)
   outputs.emplace_back("ZDC", "TDCDATA", 0, Lifetime::Timeframe);
   outputs.emplace_back("ZDC", "INFO", 0, Lifetime::Timeframe);
   if (useMC) {
-    LOG(WARNING) << "MC-truth is not supported for ZDC RecEvents currently";
+    LOG(warning) << "MC-truth is not supported for ZDC RecEvents currently";
   }
 
   return DataProcessorSpec{

@@ -52,7 +52,7 @@ class ClusterSinkTask
   void init(InitContext& ic)
   {
     /// Get the output file from the context
-    LOG(INFO) << "initializing cluster sink";
+    LOG(info) << "initializing cluster sink";
 
     mText = ic.options().get<bool>("txt");
 
@@ -66,7 +66,7 @@ class ClusterSinkTask
 
     auto stop = [this]() {
       /// close the output file
-      LOG(INFO) << "stop cluster sink";
+      LOG(info) << "stop cluster sink";
       this->mOutputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);

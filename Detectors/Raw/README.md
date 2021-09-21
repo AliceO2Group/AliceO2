@@ -289,7 +289,7 @@ bool readPerTF = true; // data can be read per TF or per HBF
 while(1) {
   int tfID = reader.getNextTFToRead();
   if (tfID >= reader.getNTimeFrames()) {
-    LOG(INFO) << "nothing left to read after " << tfID << " TFs read";
+    LOG(info) << "nothing left to read after " << tfID << " TFs read";
     break;
   }
   std::vector<char> dataBuffer; // where to put extracted data

@@ -62,7 +62,7 @@ class DigitsSinkTask
   void init(framework::InitContext& ic)
   {
     /// Get the input file and other options from the context
-    LOG(INFO) << "initializing digits sink";
+    LOG(info) << "initializing digits sink";
 
     mText = ic.options().get<bool>("txt");
 
@@ -74,7 +74,7 @@ class DigitsSinkTask
 
     auto stop = [this]() {
       /// close the input file
-      LOG(INFO) << "stop file reader";
+      LOG(info) << "stop file reader";
       this->mOutputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);

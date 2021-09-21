@@ -25,7 +25,7 @@ framework::WorkflowSpec getFDDRawWorkflow(bool useProcess,
                                           bool dumpProcessor, bool dumpReader,
                                           bool disableRootOut)
 {
-  LOG(INFO) << "framework::WorkflowSpec getFDDWorkflow";
+  LOG(info) << "framework::WorkflowSpec getFDDWorkflow";
   framework::WorkflowSpec specs;
   specs.emplace_back(o2::fdd::getFDDRawDataReaderSpec(RawReaderFDD{dumpReader}));
 

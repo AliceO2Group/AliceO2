@@ -264,7 +264,7 @@ void AlignableSensor::dPosTraDParGeom(const AlignmentPoint* pnt, double* deriv, 
       parent ? dPosTraDParGeomTRA(pnt, deriv, parent) : dPosTraDParGeomTRA(pnt, deriv);
       break;
     default:
-      LOG(ERROR) << "Alignment frame " << parent->getVarFrame() << " is not implemented";
+      LOG(error) << "Alignment frame " << parent->getVarFrame() << " is not implemented";
       break;
   }
 }
@@ -292,7 +292,7 @@ void AlignableSensor::getModifiedMatrixT2LmodTRA(TGeoHMatrix& matMod, const doub
 //__________________________________________________________________
 void AlignableSensor::addChild(AlignableVolume*)
 {
-  LOG(FATAL) << "Sensor volume cannot have children: id=" << getVolID() << " " << GetName();
+  LOG(fatal) << "Sensor volume cannot have children: id=" << getVolID() << " " << GetName();
 }
 
 //__________________________________________________________________
@@ -385,7 +385,7 @@ void AlignableSensor::prepareMatrixT2L()
   //  const if (!t2l)
   //  {
   //    Print("long");
-  //    LOG(FATAL) << "Failed to find T2L matrix for VID: " << getVolID() << ", " << getSymName();
+  //    LOG(fatal) << "Failed to find T2L matrix for VID: " << getVolID() << ", " << getSymName();
   //  }
   //  setMatrixT2L(*t2l);
   //  //

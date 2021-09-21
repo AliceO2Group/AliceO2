@@ -197,7 +197,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   auto preprocessor = [](ProcessingContext& ctx) {
     for (auto const& ref : InputRecordWalker(ctx.inputs())) {
       auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      LOGP(INFO, "got data: {}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification);
+      LOGP(info, "got data: {}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification);
     }
   };
 

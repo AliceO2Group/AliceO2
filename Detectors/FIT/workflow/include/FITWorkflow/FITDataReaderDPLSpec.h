@@ -53,7 +53,7 @@ class FITDataReaderDPLSpec : public Task
       for (const auto& ref : InputRecordWalker(pc.inputs(), dummy)) {
         const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
         if (dh->payloadSize == 0) {
-          LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+          LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
                dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
           mRawReader.makeSnapshot(pc); // send empty output
           return;
@@ -70,7 +70,7 @@ class FITDataReaderDPLSpec : public Task
       gsl::span<const uint8_t> payload(it.data(), it.size());
       mRawReader.process(payload, int(rdhPtr->linkID), int(rdhPtr->endPointID));
     }
-    LOG(INFO) << "Pages: " << count;
+    LOG(info) << "Pages: " << count;
     mRawReader.accumulateDigits();
     mRawReader.makeSnapshot(pc);
     mRawReader.clear();
@@ -89,7 +89,7 @@ framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawRea
   std::string dataProcName = rawReader.mDataOrigin.template as<std::string>();
   std::for_each(dataProcName.begin(), dataProcName.end(), [](char& c) { c = ::tolower(c); });
   dataProcName += "-datareader-dpl";
-  LOG(INFO) << dataProcName;
+  LOG(info) << dataProcName;
   return DataProcessorSpec{
     dataProcName,
     inputSpec,

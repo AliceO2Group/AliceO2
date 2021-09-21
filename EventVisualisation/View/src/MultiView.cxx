@@ -162,7 +162,7 @@ void MultiView::drawGeometryForDetector(string detectorName, bool threeD, bool r
 void MultiView::registerGeometry(TEveGeoShape* geom, bool threeD, bool rPhi, bool zRho)
 {
   if (!geom) {
-    LOG(ERROR) << "MultiView::registerGeometry -- geometry is NULL!";
+    LOG(error) << "MultiView::registerGeometry -- geometry is NULL!";
     exit(-1);
   }
   //mGeomVector.push_back(geom);

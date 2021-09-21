@@ -347,31 +347,31 @@ TGeoVolume* V3Layer::createHalfBarrel()
 
   // Check if the user set the proper parameters
   if (mLayerRadius <= 0) {
-    LOG(FATAL) << "Wrong layer radius " << mLayerRadius;
+    LOG(fatal) << "Wrong layer radius " << mLayerRadius;
   }
 
   if (mNumberOfStaves <= 0) {
-    LOG(FATAL) << "Wrong number of staves " << mNumberOfStaves;
+    LOG(fatal) << "Wrong number of staves " << mNumberOfStaves;
   }
 
   if (mNumberOfChips <= 0) {
-    LOG(FATAL) << "Wrong number of chips " << mNumberOfChips;
+    LOG(fatal) << "Wrong number of chips " << mNumberOfChips;
   }
 
   if (mLayerNumber >= sNumberOfInnerLayers && mNumberOfModules <= 0) {
-    LOG(FATAL) << "Wrong number of modules " << mNumberOfModules;
+    LOG(fatal) << "Wrong number of modules " << mNumberOfModules;
   }
 
   if (mChipThickness <= 0) {
-    LOG(FATAL) << "Chip thickness wrong or not set " << mChipThickness;
+    LOG(fatal) << "Chip thickness wrong or not set " << mChipThickness;
   }
 
   if (mSensorThickness <= 0) {
-    LOG(FATAL) << "Sensor thickness wrong or not set " << mSensorThickness;
+    LOG(fatal) << "Sensor thickness wrong or not set " << mSensorThickness;
   }
 
   if (mSensorThickness > mChipThickness) {
-    LOG(FATAL) << "Sensor thickness " << mSensorThickness << " is greater than chip thickness " << mChipThickness;
+    LOG(fatal) << "Sensor thickness " << mSensorThickness << " is greater than chip thickness " << mChipThickness;
   }
 
   // First create the stave container
@@ -416,11 +416,11 @@ TGeoVolume* V3Layer::createHalfBarrelTurbo()
 
   // Check if the user set the proper (remaining) parameters
   if (mStaveWidth <= 0) {
-    LOG(FATAL) << "Wrong stave width " << mStaveWidth;
+    LOG(fatal) << "Wrong stave width " << mStaveWidth;
   }
 
   if (Abs(mStaveTilt) > 45) {
-    LOG(WARNING) << "Stave tilt angle (" << mStaveTilt << ") greater than 45deg";
+    LOG(warning) << "Stave tilt angle (" << mStaveTilt << ") greater than 45deg";
   }
 
   snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSHalfBarrelPattern(), mLayerNumber);
@@ -920,13 +920,13 @@ TGeoVolume* V3Layer::createStaveStructInnerB(const TGeoManager* mgr)
     case Detector::kIBModel21:
     case Detector::kIBModel22:
     case Detector::kIBModel3:
-      LOG(FATAL) << "Stave model " << mStaveModel << " obsolete and no longer supported";
+      LOG(fatal) << "Stave model " << mStaveModel << " obsolete and no longer supported";
       break;
     case Detector::kIBModel4:
       mechStavVol = createStaveModelInnerB4(mgr);
       break;
     default:
-      LOG(FATAL) << "Unknown stave model " << mStaveModel;
+      LOG(fatal) << "Unknown stave model " << mStaveModel;
       break;
   }
   return mechStavVol;
@@ -1798,13 +1798,13 @@ TGeoVolume* V3Layer::createStaveOuterB(const TGeoManager* mgr)
       break;
     case Detector::kOBModel0:
     case Detector::kOBModel1:
-      LOG(FATAL) << "Stave model " << mStaveModel << " obsolete and no longer supported";
+      LOG(fatal) << "Stave model " << mStaveModel << " obsolete and no longer supported";
       break;
     case Detector::kOBModel2:
       mechStavVol = createStaveModelOuterB2(mgr);
       break;
     default:
-      LOG(FATAL) << "Unknown stave model " << mStaveModel;
+      LOG(fatal) << "Unknown stave model " << mStaveModel;
       break;
   }
   return mechStavVol;
@@ -2689,7 +2689,7 @@ TGeoVolume* V3Layer::createSpaceFrameOuterB(const TGeoManager* mgr)
       mechStavVol = createSpaceFrameOuterB2(mgr);
       break;
     default:
-      LOG(FATAL) << "Unknown stave model " << mStaveModel;
+      LOG(fatal) << "Unknown stave model " << mStaveModel;
       break;
   }
 
@@ -3676,7 +3676,7 @@ Double_t V3Layer::getGammaConversionRodDiam()
   //
 
   if (!mAddGammaConv) {
-    LOG(WARNING) << "Gamma Conversion rods not defined for this layer";
+    LOG(warning) << "Gamma Conversion rods not defined for this layer";
   }
   return mGammaConvDiam;
 }
@@ -3699,7 +3699,7 @@ Double_t V3Layer::getGammaConversionRodXPos()
   //
 
   if (!mAddGammaConv) {
-    LOG(WARNING) << "Gamma Conversion rods not defined for this layer";
+    LOG(warning) << "Gamma Conversion rods not defined for this layer";
   }
   return mGammaConvXPos;
 }
@@ -3741,7 +3741,7 @@ void V3Layer::setStaveTilt(const Double_t t)
   if (mIsTurbo) {
     mStaveTilt = t;
   } else {
-    LOG(ERROR) << "Not a Turbo layer";
+    LOG(error) << "Not a Turbo layer";
   }
 }
 
@@ -3750,7 +3750,7 @@ void V3Layer::setStaveWidth(const Double_t w)
   if (mIsTurbo) {
     mStaveWidth = w;
   } else {
-    LOG(ERROR) << "Not a Turbo layer";
+    LOG(error) << "Not a Turbo layer";
   }
 }
 

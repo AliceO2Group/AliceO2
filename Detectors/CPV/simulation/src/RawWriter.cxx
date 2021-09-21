@@ -41,50 +41,50 @@ void RawWriter::init()
   }
 
   //CCDB setup
-  LOG(INFO) << "CCDB Url: " << mCcdbUrl;
+  LOG(info) << "CCDB Url: " << mCcdbUrl;
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
   ccdbMgr.setURL(mCcdbUrl);
   bool isCcdbReachable = ccdbMgr.isHostReachable(); //if host is not reachable we can use only dummy calibration
   if (!isCcdbReachable) {
     if (mCcdbUrl.compare("localtest") != 0) {
-      LOG(ERROR) << "Host " << mCcdbUrl << " is not reachable!!!";
+      LOG(error) << "Host " << mCcdbUrl << " is not reachable!!!";
     }
-    LOG(INFO) << "Using dummy calibration";
+    LOG(info) << "Using dummy calibration";
     mCalibParams = new o2::cpv::CalibParams(1);
     mBadMap = new o2::cpv::BadChannelMap(1);
     mPedestals = new o2::cpv::Pedestals(1);
   } else {
     ccdbMgr.setCaching(true);                     //make local cache of remote objects
     ccdbMgr.setLocalObjectValidityChecking(true); //query objects from remote site only when local one is not valid
-    LOG(INFO) << "Successfully initializated BasicCCDBManager with caching option";
+    LOG(info) << "Successfully initializated BasicCCDBManager with caching option";
 
     //read calibration from ccdb (for now do it only at the beginning of dataprocessing)
     //TODO: setup timestam according to anchors
     ccdbMgr.setTimestamp(o2::ccdb::getCurrentTimestamp());
 
-    LOG(INFO) << "CCDB: Reading o2::cpv::CalibParams from CPV/Calib/Gains";
+    LOG(info) << "CCDB: Reading o2::cpv::CalibParams from CPV/Calib/Gains";
     mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");
     if (!mCalibParams) {
-      LOG(ERROR) << "Cannot get o2::cpv::CalibParams from CCDB. using dummy calibration!";
+      LOG(error) << "Cannot get o2::cpv::CalibParams from CCDB. using dummy calibration!";
       mCalibParams = new o2::cpv::CalibParams(1);
     }
 
     /*
-    LOG(INFO) << "CCDB: Reading o2::cpv::BadChannelMap from CPV/Calib/BadChannelMap";
+    LOG(info) << "CCDB: Reading o2::cpv::BadChannelMap from CPV/Calib/BadChannelMap";
     mBadMap = ccdbMgr.get<o2::cpv::BadChannelMap>("CPV/Calib/BadChannelMap"));
     if (!mBadMap) {
-      LOG(ERROR) << "Cannot get o2::cpv::BadChannelMap from CCDB. using dummy calibration!";
+      LOG(error) << "Cannot get o2::cpv::BadChannelMap from CCDB. using dummy calibration!";
       mBadMap = new o2::cpv::BadChannelMap(1);
     }
     */
 
-    LOG(INFO) << "CCDB: Reading o2::cpv::Pedestals from CPV/Calib/Pedestals";
+    LOG(info) << "CCDB: Reading o2::cpv::Pedestals from CPV/Calib/Pedestals";
     mPedestals = ccdbMgr.get<o2::cpv::Pedestals>("CPV/Calib/Pedestals");
     if (!mPedestals) {
-      LOG(ERROR) << "Cannot get o2::cpv::Pedestals from CCDB. using dummy calibration!";
+      LOG(error) << "Cannot get o2::cpv::Pedestals from CCDB. using dummy calibration!";
       mPedestals = new o2::cpv::Pedestals(1);
     }
-    LOG(INFO) << "Task configuration is done.";
+    LOG(info) << "Task configuration is done.";
   }
 }
 
@@ -129,10 +129,10 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
   int gbtWordCounterBeforeCPVTrailer[kNGBTLinks] = {0, 0, 0};
   bool isHeaderClosedWithTrailer[kNGBTLinks] = {false, false, false};
   for (auto& trg : trgs) {
-    LOG(DEBUG) << "RawWriter::processOrbit() : "
+    LOG(debug) << "RawWriter::processOrbit() : "
                << "I start to process trigger record (orbit = " << trg.getBCData().orbit
                << ", BC = " << trg.getBCData().bc << ")";
-    LOG(DEBUG) << "First entry = " << trg.getFirstEntry() << ", Number of objects = " << trg.getNumberOfObjects();
+    LOG(debug) << "First entry = " << trg.getFirstEntry() << ", Number of objects = " << trg.getNumberOfObjects();
 
     //Clear array which is used to store digits
     for (int i = kNcc; i--;) {
@@ -159,13 +159,13 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
       mPadCharge[ccId][dil][gas].emplace_back(charge, pad);
       nDigsInTrg[ccId / (kNcc / kNGBTLinks)]++; //linkId = ccId/8 or absId/7680
     }
-    LOG(DEBUG) << "I produced " << nDigsInTrg << " digits for this trigger record";
+    LOG(debug) << "I produced " << nDigsInTrg << " digits for this trigger record";
 
     //we need to write header + at least 1 payload word + trailer
     for (int iLink = 0; iLink < kNGBTLinks; iLink++) { //looping links
       gbtWordCounterBeforeCPVTrailer[iLink] = 0;
       if (nMaxGbtWordsPerPage - gbtWordCounter[iLink] < 3) { //otherwise flush already prepared data to file
-        LOG(DEBUG) << "RawWriter::processOrbit() : before header: adding preformatted dma page of size " << mPayload[iLink].size();
+        LOG(debug) << "RawWriter::processOrbit() : before header: adding preformatted dma page of size " << mPayload[iLink].size();
         mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId, trg.getBCData(),
                             gsl::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
         mPayload[iLink].clear();
@@ -179,7 +179,7 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
         mPayload[iLink].push_back(header.mBytes[i]);
       }
       isHeaderClosedWithTrailer[iLink] = false;
-      LOG(DEBUG) << "RawWriter::processOrbit() : "
+      LOG(debug) << "RawWriter::processOrbit() : "
                  << "I wrote cpv header for orbit = " << trg.getBCData().orbit
                  << " and BC = " << trg.getBCData().bc;
 
@@ -217,7 +217,7 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
                     mPayload[iLink].push_back(tr.mBytes[i]);
                   }
                   isHeaderClosedWithTrailer[iLink] = true;
-                  LOG(DEBUG) << "RawWriter::processOrbit() : middle of payload: adding preformatted dma page of size " << mPayload[iLink].size();
+                  LOG(debug) << "RawWriter::processOrbit() : middle of payload: adding preformatted dma page of size " << mPayload[iLink].size();
                   mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId, trg.getBCData(),
                                       gsl::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
 
@@ -257,7 +257,7 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
               mPayload[iLink].push_back(tr.mBytes[i]);
             }
             isHeaderClosedWithTrailer[iLink] = true;
-            LOG(DEBUG) << "RawWriter::processOrbit() : middle of payload (after filling empty words): adding preformatted dma page of size " << mPayload[iLink].size();
+            LOG(debug) << "RawWriter::processOrbit() : middle of payload (after filling empty words): adding preformatted dma page of size " << mPayload[iLink].size();
             mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId, trg.getBCData(),
                                 gsl::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
             mPayload[iLink].clear();
@@ -289,7 +289,7 @@ bool RawWriter::processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const
   //flush payload to file (if any)
   for (int iLink = 0; iLink < kNGBTLinks; iLink++) {
     if (mPayload[iLink].size()) {
-      LOG(DEBUG) << "RawWriter::processOrbit() : final payload: adding preformatted dma page of size " << mPayload[iLink].size();
+      LOG(debug) << "RawWriter::processOrbit() : final payload: adding preformatted dma page of size " << mPayload[iLink].size();
       mRawWriter->addData(links[iLink].feeId, links[iLink].cruId, links[iLink].linkId, links[iLink].endPointId,
                           trgs.back().getBCData(), gsl::span<char>(mPayload[iLink].data(), mPayload[iLink].size()), preformatted);
       mPayload[iLink].clear();

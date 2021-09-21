@@ -74,7 +74,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& context)
     AlgorithmSpec{[](InitContext& setup) {
       return [](ProcessingContext& ctx) {
         // Create a single output.
-        LOG(DEBUG) << "Invoked" << std::endl;
+        LOG(debug) << "Invoked" << std::endl;
       };
     }}});
 

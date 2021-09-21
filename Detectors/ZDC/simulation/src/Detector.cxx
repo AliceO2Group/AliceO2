@@ -95,11 +95,11 @@ int loadLightTable(T& table, int beta, int NRADBINS, std::string filename)
         //printf("\n");
       }
     }
-    LOG(DEBUG) << "Read " << counter << " values from ZDC data file " << filename;
+    LOG(debug) << "Read " << counter << " values from ZDC data file " << filename;
     input.close();
     return counter;
   } else {
-    LOG(ERROR) << "Could not open file " << filename;
+    LOG(error) << "Could not open file " << filename;
     return 0;
   }
 }
@@ -140,7 +140,7 @@ void Detector::InitializeO2Detector()
 //_____________________________________________________________________________
 void Detector::ConstructGeometry()
 {
-  LOG(DEBUG) << "Creating ZDC  geometry\n";
+  LOG(debug) << "Creating ZDC  geometry\n";
 
   createMaterials();
 
@@ -153,7 +153,7 @@ void Detector::ConstructGeometry()
 //_____________________________________________________________________________
 void Detector::defineSensitiveVolumes()
 {
-  LOG(INFO) << "defining sensitive for ZDC";
+  LOG(info) << "defining sensitive for ZDC";
   auto vol = gGeoManager->GetVolume("ZNENV");
   if (vol) {
     AddSensitiveVolume(vol);
@@ -164,7 +164,7 @@ void Detector::defineSensitiveVolumes()
     AddSensitiveVolume(gGeoManager->GetVolume("ZNF3"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZNF4"));
   } else {
-    LOG(FATAL) << "can't find volume ZNENV";
+    LOG(fatal) << "can't find volume ZNENV";
   }
   vol = gGeoManager->GetVolume("ZPENV");
   if (vol) {
@@ -176,7 +176,7 @@ void Detector::defineSensitiveVolumes()
     AddSensitiveVolume(gGeoManager->GetVolume("ZPF3"));
     AddSensitiveVolume(gGeoManager->GetVolume("ZPF4"));
   } else {
-    LOG(FATAL) << "can't find volume ZPENV";
+    LOG(fatal) << "can't find volume ZPENV";
   }
   // em calorimeter
   vol = gGeoManager->GetVolume("ZEM ");
@@ -185,7 +185,7 @@ void Detector::defineSensitiveVolumes()
     mZEMVolID = vol->GetNumber();
     AddSensitiveVolume(gGeoManager->GetVolume("ZEMF"));
   } else {
-    LOG(FATAL) << "can't find volume ZEM";
+    LOG(fatal) << "can't find volume ZEM";
   }
 }
 
@@ -478,7 +478,7 @@ bool Detector::createHitsFromImage(SpatialPhotonResponse const& image, int detec
       int sector = determineSectorID(detector, x, y);
       // get medium PMQ and PMC
       int currentMediumid = determineMediumID(detector, x, y);
-      // LOG(INFO) << " x " << x << " y " << y << " sec " << sector << " medium " << currentMediumid;
+      // LOG(info) << " x " << x << " y " << y << " sec " << sector << " medium " << currentMediumid;
       int nphe = pixels[x][y];
       float tof = 0.;        // needs to be in nanoseconds ---> to be filled later on (should be meta-data of image or calculated otherwise)
       float trackenergy = 0; // energy of the primary (need to fill good value)
@@ -503,7 +503,7 @@ o2::zdc::Hit* Detector::addHit(int32_t trackID, int32_t parentID, int32_t sFlag,
                                int32_t secID, math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, float tof, math_utils::Vector3D<float> xImpact,
                                double energyloss, int32_t nphePMC, int32_t nphePMQ)
 {
-  LOG(DEBUG4) << "Adding hit for track " << trackID << " X (" << pos.X() << ", " << pos.Y() << ", "
+  LOG(debug4) << "Adding hit for track " << trackID << " X (" << pos.X() << ", " << pos.Y() << ", "
               << pos.Z() << ") P (" << mom.X() << ", " << mom.Y() << ", " << mom.Z() << ")  Ekin "
               << primaryEnergy << " lightPMC  " << nphePMC << " lightPMQ  " << nphePMQ << std::endl;
   mHits->emplace_back(trackID, parentID, sFlag, primaryEnergy, detID, secID, pos, mom,
@@ -517,7 +517,7 @@ void Detector::createMaterials()
   int32_t ifield = 2;
   float fieldm = 10.0;
   o2::base::Detector::initFieldTrackingParams(ifield, fieldm);
-  LOG(INFO) << "Detector::CreateMaterials >>>>> magnetic field: type " << ifield << " max " << fieldm << "\n";
+  LOG(info) << "Detector::CreateMaterials >>>>> magnetic field: type " << ifield << " max " << fieldm << "\n";
 
   // ******** MATERIAL DEFINITION ********
   // --- W alloy -> ZN passive material
@@ -1281,7 +1281,7 @@ void Detector::createAsideBeamLine()
     boxpar[2] = mLumiLength / 2.;
     TVirtualMC::GetMC()->Gsvolu("QLUA", "BOX ", getMediumID(kCuLumi), boxpar, 3);
     TVirtualMC::GetMC()->Gspos("QLUA", 1, "ZDCA", 0., 0., Geometry::ZNAPOSITION[1] /*fPosZNA[2]*/ - 66. - boxpar[2], 0, "ONLY");
-    LOG(DEBUG) << "A-side luminometer positioned in front of ZNA\n";
+    LOG(debug) << "A-side luminometer positioned in front of ZNA\n";
   }
 }
 
@@ -1694,7 +1694,7 @@ void Detector::createCsideBeamLine()
     boxpar[2] = mLumiLength / 2.; // FIX IT!!!!!!!!!!!!!!!!!!!!!!!!
     TVirtualMC::GetMC()->Gsvolu("QLUC", "BOX ", getMediumID(kCuLumi), boxpar, 3);
     TVirtualMC::GetMC()->Gspos("QLUC", 1, "ZDCC", 0., 0., Geometry::ZNCPOSITION[1] + 66. + boxpar[2], 0, "ONLY");
-    LOG(DEBUG) << "C-side luminometer positioned in front of ZNC\n";
+    LOG(debug) << "C-side luminometer positioned in front of ZNC\n";
   }
 }
 

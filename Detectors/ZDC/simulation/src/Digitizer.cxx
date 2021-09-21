@@ -30,7 +30,7 @@ Digitizer::BCCache::BCCache()
 Digitizer::ModuleConfAux::ModuleConfAux(const Module& md) : id(md.id)
 {
   if (md.id < 0 || md.id >= NModules) {
-    LOG(FATAL) << "Module id = " << md.id << " not in allowed range [0:" << NModules << ")";
+    LOG(fatal) << "Module id = " << md.id << " not in allowed range [0:" << NModules << ")";
   }
   // construct aux helper from full module description
   for (int ic = Module::MaxChannels; ic--;) {
@@ -53,7 +53,7 @@ void Digitizer::process(const std::vector<o2::zdc::Hit>& hits,
                         o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>& labels)
 {
   // loop over all hits and produce digits
-  LOG(DEBUG) << "Processing IR = " << mIR << " | NHits = " << hits.size();
+  LOG(debug) << "Processing IR = " << mIR << " | NHits = " << hits.size();
 
   flush(digitsBC, digitsCh, labels); // flush cached signal which cannot be affect by new event
 
@@ -76,7 +76,7 @@ void Digitizer::process(const std::vector<o2::zdc::Hit>& hits,
     }
     if (nPhotons < 0 || nPhotons > 1e6) {
       int chan = toChannel(detID, secID);
-      LOG(ERROR) << "Anomalous number of photons " << nPhotons << " for channel " << chan << '(' << channelName(chan) << ')';
+      LOG(error) << "Anomalous number of photons " << nPhotons << " for channel " << chan << '(' << channelName(chan) << ')';
       continue;
     }
 
@@ -115,14 +115,14 @@ void Digitizer::flush(std::vector<o2::zdc::BCData>& digitsBC,
     return;
   }
   if (mIR.differenceInBC(mCache.back()) > -BCCacheMin) {
-    LOG(DEBUG) << "Generating new pedestal BL fluct. for BC range " << mCache.front() << " : " << mCache.back();
+    LOG(debug) << "Generating new pedestal BL fluct. for BC range " << mCache.front() << " : " << mCache.back();
     generatePedestal();
   } else {
     return;
   }
   o2::InteractionRecord ir0(mCache.front());
   int cacheSpan = 1 + mCache.back().differenceInBC(ir0);
-  LOG(DEBUG) << "Cache spans " << cacheSpan << " with " << nCached << " BCs cached";
+  LOG(debug) << "Cache spans " << cacheSpan << " with " << nCached << " BCs cached";
 
   mFastCache.clear();
   mFastCache.resize(cacheSpan, nullptr);
@@ -165,7 +165,7 @@ void Digitizer::flush(std::vector<o2::zdc::BCData>& digitsBC,
   } // all allowed BCs are checked for trigger
 
   // clean cache for BCs which are not needed anymore
-  LOG(DEBUG) << "Cleaning cache";
+  LOG(debug) << "Cleaning cache";
   mCache.erase(mCache.begin(), mCache.end());
 }
 
@@ -231,7 +231,7 @@ void Digitizer::digitizeBC(BCCache& bc)
             int adc = std::nearbyint(bcdigi[ipos][ib]);
             bcdigi[ipos][ib] = adc < ADCMax ? (adc > ADCMin ? adc : ADCMin) : ADCMax;
           }
-          LOG(DEBUG) << "md " << md.id << " ch " << ic << " sig " << id << " " << ChannelNames[id]
+          LOG(debug) << "md " << md.id << " ch " << ic << " sig " << id << " " << ChannelNames[id]
                      << bcdigi[ipos][0] << " " << bcdigi[ipos][1] << " " << bcdigi[ipos][2] << " " << bcdigi[ipos][3] << " " << bcdigi[ipos][4] << " " << bcdigi[ipos][5] << " "
                      << bcdigi[ipos][6] << " " << bcdigi[ipos][7] << " " << bcdigi[ipos][8] << " " << bcdigi[ipos][9] << " " << bcdigi[ipos][10] << " " << bcdigi[ipos][11];
         }
@@ -247,7 +247,7 @@ bool Digitizer::triggerBC(int ibc)
   // check trigger for the cached BC in the position ibc
   auto& bcCached = *mFastCache[ibc];
 
-  LOG(DEBUG) << "CHECK TRIGGER " << ibc << " IR=" << bcCached;
+  LOG(debug) << "CHECK TRIGGER " << ibc << " IR=" << bcCached;
 
   // Check trigger condition regardless of run type, will apply later the trigger mask
   for (const auto& md : mModuleConfig->modules) {
@@ -271,8 +271,8 @@ bool Digitizer::triggerBC(int ibc)
             bool ok = bcF.digi[ipos][binF] - bcL.digi[ipos][binL] > trigCh.threshold;
             if (ok && okPrev) {                                            // trigger ok!
               bcCached.trigChanMask |= 0x1 << (NChPerModule * md.id + ic); // register trigger mask
-              LOG(DEBUG) << bcF.digi[ipos][binF] << " - " << bcL.digi[ipos][binL] << " = " << bcF.digi[ipos][binF] - bcL.digi[ipos][binL] << " > " << trigCh.threshold;
-              LOG(DEBUG) << " hit [" << md.id << "," << ic << "] " << int(id) << "(" << ChannelNames[id] << ") => " << bcCached.trigChanMask;
+              LOG(debug) << bcF.digi[ipos][binF] << " - " << bcL.digi[ipos][binL] << " = " << bcF.digi[ipos][binF] - bcL.digi[ipos][binL] << " > " << trigCh.threshold;
+              LOG(debug) << " hit [" << md.id << "," << ic << "] " << int(id) << "(" << ChannelNames[id] << ") => " << bcCached.trigChanMask;
               break;
             }
             okPrev = ok;
@@ -289,8 +289,8 @@ bool Digitizer::triggerBC(int ibc)
             bool ok = bcF.digi[ipos][binF] - bcL.digi[ipos][binL] > trigCh.threshold;
             if (ok && okPrev && okPPrev) {                                 // trigger ok!
               bcCached.trigChanMask |= 0x1 << (NChPerModule * md.id + ic); // register trigger mask
-              LOG(DEBUG) << bcF.digi[ipos][binF] << " - " << bcL.digi[ipos][binL] << " = " << bcF.digi[ipos][binF] - bcL.digi[ipos][binL] << " > " << trigCh.threshold;
-              LOG(DEBUG) << " hit [" << md.id << "," << ic << "] " << int(id) << "(" << ChannelNames[id] << ") => " << bcCached.trigChanMask;
+              LOG(debug) << bcF.digi[ipos][binF] << " - " << bcL.digi[ipos][binL] << " = " << bcF.digi[ipos][binF] - bcL.digi[ipos][binL] << " > " << trigCh.threshold;
+              LOG(debug) << " hit [" << md.id << "," << ic << "] " << int(id) << "(" << ChannelNames[id] << ") => " << bcCached.trigChanMask;
               break;
             }
             okPPrev = okPrev;
@@ -331,7 +331,7 @@ void Digitizer::storeBC(const BCCache& bc, uint32_t chan2Store,
   if (!chan2Store) {
     return;
   }
-  LOG(DEBUG) << "Storing ch: " << chanPattern(chan2Store) << " trigger: " << chanPattern(bc.trigChanMask) << " for BC " << bc;
+  LOG(debug) << "Storing ch: " << chanPattern(chan2Store) << " trigger: " << chanPattern(bc.trigChanMask) << " for BC " << bc;
 
   int first = digitsCh.size(), nSto = 0;
   for (const auto& md : mModuleConfig->modules) {
@@ -438,7 +438,7 @@ o2::zdc::Digitizer::BCCache* Digitizer::getBCCache(const o2::InteractionRecord& 
 void Digitizer::init()
 {
   if (mCCDBServer.empty()) {
-    LOG(FATAL) << "ZDC digitizer: CCDB server is not set";
+    LOG(fatal) << "ZDC digitizer: CCDB server is not set";
   }
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBServer);
@@ -446,10 +446,10 @@ void Digitizer::init()
   auto& sopt = ZDCSimParam::Instance();
   mIsContinuous = sopt.continuous;
   mNBCAHead = mIsContinuous ? sopt.nBCAheadCont : sopt.nBCAheadTrig;
-  LOG(INFO) << "Initialized in " << (mIsContinuous ? "Cont" : "Trig") << " mode, " << mNBCAHead
+  LOG(info) << "Initialized in " << (mIsContinuous ? "Cont" : "Trig") << " mode, " << mNBCAHead
             << " BCs will be stored ahead of Trigger";
-  LOG(INFO) << "Trigger bit masking is " << (mMaskTriggerBits ? "ON (default)" : "OFF (debugging)");
-  LOG(INFO) << "MC Labels are " << (mSkipMCLabels ? "SKIPPED" : "SAVED (default)");
+  LOG(info) << "Trigger bit masking is " << (mMaskTriggerBits ? "ON (default)" : "OFF (debugging)");
+  LOG(info) << "MC Labels are " << (mSkipMCLabels ? "SKIPPED" : "SAVED (default)");
 }
 
 //______________________________________________________________________________
@@ -464,7 +464,7 @@ void Digitizer::refreshCCDB()
 
   if (!mModuleConfig) { // load this only once
     mModuleConfig = mgr.get<ModuleConfig>(CCDBPathConfigModule);
-    LOG(INFO) << "Loaded module configuration for timestamp " << mTimeStamp;
+    LOG(info) << "Loaded module configuration for timestamp " << mTimeStamp;
     // fetch trigger info
     mTriggerConfig.clear();
     mModConfAux.clear();
@@ -476,18 +476,18 @@ void Digitizer::refreshCCDB()
           if (md.trigChannel[ic] || (md.trigChannelConf[ic].shift > 0 && md.trigChannelConf[ic].threshold > 0)) {
             const auto& trgChanConf = md.trigChannelConf[ic];
             if (trgChanConf.last + trgChanConf.shift + 1 >= NTimeBinsPerBC) {
-              LOG(ERROR) << "Wrong trigger settings";
+              LOG(error) << "Wrong trigger settings";
             }
             mTriggerConfig.emplace_back(trgChanConf);
             // We insert in the trigger mask only the channels that are actually triggering
             // Trigger mask is geographical, bit position is relative to the module and channel
             // where signal is connected
             if (md.trigChannel[ic]) {
-              LOG(INFO) << "Adding channel [" << md.id << "," << ic << "] " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as triggering one";
+              LOG(info) << "Adding channel [" << md.id << "," << ic << "] " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as triggering one";
               // TODO insert check if bit is already used. Should never happen
               mTriggerableChanMask |= 0x1 << (NChPerModule * md.id + ic);
             } else {
-              LOG(INFO) << "Adding channel [" << md.id << "," << ic << "] " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as discriminator";
+              LOG(info) << "Adding channel [" << md.id << "," << ic << "] " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as discriminator";
             }
             if (trgChanConf.first < mTrigBinMin) {
               mTrigBinMin = trgChanConf.first;
@@ -497,11 +497,11 @@ void Digitizer::refreshCCDB()
             }
           }
           if (md.feeID[ic] < 0 || md.feeID[ic] >= NLinks) {
-            LOG(FATAL) << "FEEID " << md.feeID[ic] << " not in allowed range [0:" << NLinks << ")";
+            LOG(fatal) << "FEEID " << md.feeID[ic] << " not in allowed range [0:" << NLinks << ")";
           }
         }
       } else {
-        LOG(FATAL) << "Module id: " << md.id << " is out of range";
+        LOG(fatal) << "Module id: " << md.id << " is out of range";
       }
     }
     mModuleConfig->print();
@@ -509,7 +509,7 @@ void Digitizer::refreshCCDB()
 
   if (!mSimCondition) { // load this only once
     mSimCondition = mgr.get<SimCondition>(CCDBPathConfigSim);
-    LOG(INFO) << "Loaded simulation configuration for timestamp " << mTimeStamp;
+    LOG(info) << "Loaded simulation configuration for timestamp " << mTimeStamp;
     mSimCondition->print();
   }
 
@@ -555,10 +555,10 @@ void Digitizer::setTriggerMask()
     }
     printTriggerMask += "]";
     uint32_t mytmask = mTriggerMask >> (im * NChPerModule);
-    LOGF(INFO, "Trigger mask for module %d 0123 %c%c%c%c\n", im,
+    LOGF(info, "Trigger mask for module %d 0123 %c%c%c%c\n", im,
          mytmask & 0x1 ? 'T' : 'N', mytmask & 0x2 ? 'T' : 'N', mytmask & 0x4 ? 'T' : 'N', mytmask & 0x8 ? 'T' : 'N');
   }
-  LOGF(INFO, "TriggerMask=0x%08x %s\n", mTriggerMask, printTriggerMask.c_str());
+  LOGF(info, "TriggerMask=0x%08x %s\n", mTriggerMask, printTriggerMask.c_str());
 }
 
 //______________________________________________________________________________
@@ -584,10 +584,10 @@ void Digitizer::setReadoutMask()
     }
     printReadoutMask += "]";
     uint32_t myrmask = mReadoutMask >> (im * NChPerModule);
-    LOGF(INFO, "Readout mask for module %d 0123 %c%c%c%c\n", im,
+    LOGF(info, "Readout mask for module %d 0123 %c%c%c%c\n", im,
          myrmask & 0x1 ? 'R' : 'N', myrmask & 0x2 ? 'R' : 'N', myrmask & 0x4 ? 'R' : 'N', myrmask & 0x8 ? 'R' : 'N');
   }
-  LOGF(INFO, "ReadoutMask=0x%08x %s\n", mReadoutMask, printReadoutMask.c_str());
+  LOGF(info, "ReadoutMask=0x%08x %s\n", mReadoutMask, printReadoutMask.c_str());
 }
 
 //______________________________________________________________________________
@@ -691,7 +691,7 @@ void Digitizer::findEmptyBunches(const std::bitset<o2::constants::lhc::LHCMaxBun
       mNEmptyBCs++;
     }
   }
-  LOG(INFO) << "There are " << mNEmptyBCs << " clean empty bunches";
+  LOG(info) << "There are " << mNEmptyBCs << " clean empty bunches";
 }
 
 //______________________________________________________________________________

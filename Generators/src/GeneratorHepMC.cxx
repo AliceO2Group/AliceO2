@@ -154,7 +154,7 @@ Bool_t GeneratorHepMC::Init()
   std::string filename = gSystem->ExpandPathName(mFileName.c_str());
   mStream.open(filename);
   if (!mStream.is_open()) {
-    LOG(FATAL) << "Cannot open input file: " << filename << std::endl;
+    LOG(fatal) << "Cannot open input file: " << filename << std::endl;
     return kFALSE;
   }
 
@@ -168,7 +168,7 @@ Bool_t GeneratorHepMC::Init()
       mReader = new HepMC3::ReaderAscii(mStream);
       break;
     default:
-      LOG(FATAL) << "Unsupported HepMC version: " << mVersion << std::endl;
+      LOG(fatal) << "Unsupported HepMC version: " << mVersion << std::endl;
       return kFALSE;
   }
 

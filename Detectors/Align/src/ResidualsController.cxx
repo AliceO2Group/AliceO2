@@ -246,7 +246,7 @@ bool ResidualsController::fillTrack(AlignmentTrack* trc, bool doKalman)
   }
   if (nfill != nps) {
     trc->Print("p");
-    LOG(FATAL) << nfill << " residuals were stored instead of " << nps;
+    LOG(fatal) << nfill << " residuals were stored instead of " << nps;
   }
   //
   setKalmanDone(false);
@@ -258,7 +258,7 @@ bool ResidualsController::fillTrack(AlignmentTrack* trc, bool doKalman)
         continue;
       }
       if (mVolID[nfilk] != int(pnt->getVolID())) {
-        LOG(FATAL) << "Mismatch in Kalman filling for point " << i << ": filled VID:" << mVolID[nfilk] << ", point VID:" << pnt->getVolID();
+        LOG(fatal) << "Mismatch in Kalman filling for point " << i << ": filled VID:" << mVolID[nfilk] << ", point VID:" << pnt->getVolID();
       }
       const double* wsA = pnt->getTrParamWSA();
       mDYK[nfilk] = pnt->getResidY();

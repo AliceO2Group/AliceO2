@@ -40,11 +40,11 @@ bool DiffusionAndTimeStructEstimator::sampleTimeStruct(float vdrift)
   constexpr float fVDsmp[8] = {1.032, 1.158, 1.299, 1.450, 1.610, 1.783, 1.959, 2.134};
 
   if (vdrift < fVDsmp[0]) {
-    LOG(DEBUG) << "TRD: Drift Velocity too small " << vdrift << " < " << fVDsmp[0];
+    LOG(debug) << "TRD: Drift Velocity too small " << vdrift << " < " << fVDsmp[0];
     vdrift = fVDsmp[0];
     retVal = false;
   } else if (vdrift > fVDsmp[7]) {
-    LOG(DEBUG) << "TRD: Drift Velocity too large " << vdrift << " > " << fVDsmp[7];
+    LOG(debug) << "TRD: Drift Velocity too large " << vdrift << " > " << fVDsmp[7];
     vdrift = fVDsmp[7];
     retVal = false;
   }

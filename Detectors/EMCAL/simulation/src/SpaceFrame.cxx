@@ -26,7 +26,7 @@ using namespace o2::emcal;
 
 void SpaceFrame::CreateGeometry()
 {
-  LOG(DEBUG) << "Create CalFrame Geometry" << std::endl;
+  LOG(debug) << "Create CalFrame Geometry" << std::endl;
 
   /************ Definition of constants *****************************/
 
@@ -211,5 +211,5 @@ void SpaceFrame::CreateGeometry()
   calFrameMO->AddNode(calHalfFrameMO, 2, halfTrans2);
 
   top->AddNode(calFrameMO, 1, new TGeoTranslation(0., 30., 0.));
-  LOG(DEBUG) << "**********************************\nmEndRadius:\t" << ENDRADIUS << std::endl;
+  LOG(debug) << "**********************************\nmEndRadius:\t" << ENDRADIUS << std::endl;
 }

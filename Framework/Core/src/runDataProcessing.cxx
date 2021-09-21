@@ -325,7 +325,7 @@ int calculateExitCode(DriverInfo& driverInfo, DeviceSpecs& deviceSpecs, DeviceIn
     auto& info = infos[di];
     auto& spec = deviceSpecs[di];
     if (info.maxLogLevel >= driverInfo.minFailureLevel) {
-      LOGP(ERROR, "SEVERE: Device {} ({}) had at least one message above severity {}: {}",
+      LOGP(error, "SEVERE: Device {} ({}) had at least one message above severity {}: {}",
            spec.name,
            info.pid,
            info.minFailureLevel,
@@ -403,7 +403,7 @@ void spawnRemoteDevice(std::string const& forwardedStdin,
                        DeviceExecution& execution,
                        std::vector<DeviceInfo>& deviceInfos)
 {
-  LOG(INFO) << "Starting " << spec.id << " as remote device";
+  LOG(info) << "Starting " << spec.id << " as remote device";
   DeviceInfo info;
   // FIXME: we should make sure we do not sent a kill to pid 0.
   info.pid = 0;
@@ -466,7 +466,7 @@ void websocket_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
   }
   if (nread < 0) {
     // FIXME: should I close?
-    LOG(ERROR) << "websocket_callback: Error while reading from websocket";
+    LOG(error) << "websocket_callback: Error while reading from websocket";
     uv_read_stop(stream);
     uv_close((uv_handle_t*)stream, close_websocket);
     return;
@@ -475,7 +475,7 @@ void websocket_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
     LOG(debug3) << "Parsing request with " << handler << " with " << nread << " bytes";
     parse_http_request(buf->base, nread, handler);
   } catch (WSError& e) {
-    LOG(ERROR) << "Error while parsing request: " << e.message;
+    LOG(error) << "Error while parsing request: " << e.message;
     handler->error(e.code, e.message.c_str());
   }
 }
@@ -655,22 +655,22 @@ void stream_config(uv_work_t* req)
   StreamConfigContext* context = (StreamConfigContext*)req->data;
   size_t result = write(context->fd, context->configuration.data(), context->configuration.size());
   if (result != context->configuration.size()) {
-    LOG(ERROR) << "Unable to pass configuration to children";
+    LOG(error) << "Unable to pass configuration to children";
   }
   {
     auto error = fsync(context->fd);
     switch (error) {
       case EBADF:
-        LOGP(ERROR, "EBADF while flushing child stdin");
+        LOGP(error, "EBADF while flushing child stdin");
         break;
       case EINVAL:
-        LOGP(ERROR, "EINVAL while flushing child stdin");
+        LOGP(error, "EINVAL while flushing child stdin");
         break;
       case EINTR:
-        LOGP(ERROR, "EINTR while flushing child stdin");
+        LOGP(error, "EINTR while flushing child stdin");
         break;
       case EIO:
-        LOGP(ERROR, "EIO while flushing child stdin");
+        LOGP(error, "EIO while flushing child stdin");
         break;
       default:;
     }
@@ -679,13 +679,13 @@ void stream_config(uv_work_t* req)
     auto error = close(context->fd); // Not allowing further communication...
     switch (error) {
       case EBADF:
-        LOGP(ERROR, "EBADF while closing child stdin");
+        LOGP(error, "EBADF while closing child stdin");
         break;
       case EINTR:
-        LOGP(ERROR, "EINTR while closing child stdin");
+        LOGP(error, "EINTR while closing child stdin");
         break;
       case EIO:
-        LOGP(ERROR, "EIO while closing child stdin");
+        LOGP(error, "EIO while closing child stdin");
         break;
       default:;
     }
@@ -752,11 +752,11 @@ void handleChildrenStdio(uv_loop_t* loop,
     // reading from child.
     int resultCode = fcntl(childstdout[0], F_SETFL, O_NONBLOCK);
     if (resultCode == -1) {
-      LOGP(ERROR, "Error while setting the socket to non-blocking: {}", strerror(errno));
+      LOGP(error, "Error while setting the socket to non-blocking: {}", strerror(errno));
     }
     resultCode = fcntl(childstderr[0], F_SETFL, O_NONBLOCK);
     if (resultCode == -1) {
-      LOGP(ERROR, "Error while setting the socket to non-blocking: {}", strerror(errno));
+      LOGP(error, "Error while setting the socket to non-blocking: {}", strerror(errno));
     }
 
     /// Add pollers for stdout and stderr
@@ -884,7 +884,7 @@ void spawnDevice(DeviceRef ref,
     }
   }
 
-  LOG(INFO) << "Starting " << spec.id << " on pid " << id;
+  LOG(info) << "Starting " << spec.id << " on pid " << id;
   DeviceInfo info;
   info.pid = id;
   info.active = true;
@@ -1051,14 +1051,14 @@ void doDPLException(RuntimeErrorRef& e, char const* processName)
 {
   auto& err = o2::framework::error_from_ref(e);
   if (err.maxBacktrace != 0) {
-    LOGP(ERROR,
+    LOGP(error,
          "Unhandled o2::framework::runtime_error reached the top of main of {}, device shutting down."
          "\n Reason: "
          "\n Backtrace follow: \n",
          processName, err.what);
     backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
   } else {
-    LOGP(ERROR,
+    LOGP(error,
          "Unhandled o2::framework::runtime_error reached the top of main of {}, device shutting down."
          "\n Reason: "
          "\n Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.",
@@ -1069,15 +1069,15 @@ void doDPLException(RuntimeErrorRef& e, char const* processName)
 void doUnknownException(std::string const& s, char const* processName)
 {
   if (s.empty()) {
-    LOGP(ERROR, "unknown error while setting up workflow in {}.", processName);
+    LOGP(error, "unknown error while setting up workflow in {}.", processName);
   } else {
-    LOGP(ERROR, "error while setting up workflow in {}: {}", processName, s);
+    LOGP(error, "error while setting up workflow in {}: {}", processName, s);
   }
 }
 
 void doDefaultWorkflowTerminationHook()
 {
-  //LOG(INFO) << "Process " << getpid() << " is exiting.";
+  //LOG(info) << "Process " << getpid() << " is exiting.";
 }
 
 int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
@@ -1089,7 +1089,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
 {
   fair::Logger::SetConsoleColor(false);
   DeviceSpec const& spec = runningWorkflow.devices[ref.index];
-  LOG(INFO) << "Spawing new device " << spec.id << " in process with pid " << getpid();
+  LOG(info) << "Spawing new device " << spec.id << " in process with pid " << getpid();
 
   fair::mq::DeviceRunner runner{argc, argv};
 
@@ -1257,7 +1257,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       result = uv_dlopen("libO2FrameworkGUISupport.so", &supportLib);
 #endif
       if (result == -1) {
-        LOG(ERROR) << uv_dlerror(&supportLib);
+        LOG(error) << uv_dlerror(&supportLib);
         return nullptr;
       }
       void* callback = nullptr;
@@ -1265,7 +1265,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
       result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
       if (result == -1) {
-        LOG(ERROR) << uv_dlerror(&supportLib);
+        LOG(error) << uv_dlerror(&supportLib);
         return nullptr;
       }
       DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
@@ -1390,7 +1390,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       auto currentTime = uv_hrtime();
       uint64_t diff = (currentTime - driverInfo.startTime) / 1000000000LL;
       if ((graceful_exit == false) && (driverInfo.timeout > 0) && (diff > driverInfo.timeout)) {
-        LOG(INFO) << "Timout ellapsed. Requesting to quit.";
+        LOG(info) << "Timout ellapsed. Requesting to quit.";
         graceful_exit = true;
       }
     }
@@ -1442,9 +1442,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         driverInfo.states.push_back(DriverState::RUNNING);
         //        driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
-        LOG(INFO) << "O2 Data Processing Layer initialised. We brake for nobody.";
+        LOG(info) << "O2 Data Processing Layer initialised. We brake for nobody.";
 #ifdef NDEBUG
-        LOGF(info, "Optimised build. O2DEBUG / LOG(DEBUG) / LOGF(DEBUG) / assert statement will not be shown.");
+        LOGF(info, "Optimised build. O2DEBUG / LOG(debug) / LOGF(debug) / assert statement will not be shown.");
 #endif
         break;
       case DriverState::IMPORT_CURRENT_WORKFLOW:
@@ -1497,7 +1497,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           };
           bool altered = false;
           for (auto& device : altered_workflow) {
-            LOGF(DEBUG, "Adjusting device %s", device.name.c_str());
+            LOGF(debug, "Adjusting device %s", device.name.c_str());
             // ignore internal devices
             if (device.name.find("internal") != std::string::npos) {
               continue;
@@ -1538,9 +1538,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               }
             }
             /// FIXME: use commandline arguments as alternative
-            LOGF(DEBUG, "Original inputs: ");
+            LOGF(debug, "Original inputs: ");
             for (auto& input : device.inputs) {
-              LOGF(DEBUG, "-> %s", input.binding);
+              LOGF(debug, "-> %s", input.binding);
             }
             auto end = device.inputs.end();
             auto new_end = std::remove_if(device.inputs.begin(), device.inputs.end(), [](InputSpec& input) {
@@ -1552,9 +1552,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               });
             });
             device.inputs.erase(new_end, end);
-            LOGF(DEBUG, "Adjusted inputs: ");
+            LOGF(debug, "Adjusted inputs: ");
             for (auto& input : device.inputs) {
-              LOGF(DEBUG, "-> %s", input.binding);
+              LOGF(debug, "-> %s", input.binding);
             }
             altered = true;
           }
@@ -1608,17 +1608,17 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
-          LOGP(ERROR, "invalid workflow in {}: {}", driverInfo.argv[0], e.what());
+          LOGP(error, "invalid workflow in {}: {}", driverInfo.argv[0], e.what());
           return 1;
         } catch (o2::framework::RuntimeErrorRef ref) {
           auto& err = o2::framework::error_from_ref(ref);
 #ifdef DPL_ENABLE_BACKTRACE
           backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
 #endif
-          LOGP(ERROR, "invalid workflow in {}: {}", driverInfo.argv[0], err.what);
+          LOGP(error, "invalid workflow in {}: {}", driverInfo.argv[0], err.what);
           return 1;
         } catch (...) {
-          LOGP(ERROR, "invalid workflow in {}: Unknown error while materialising workflow", driverInfo.argv[0]);
+          LOGP(error, "invalid workflow in {}: Unknown error while materialising workflow", driverInfo.argv[0]);
           return 1;
         }
         break;
@@ -1647,7 +1647,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             ss << " - " << spec.name << "(" << spec.id << ")"
                << "\n";
           }
-          LOG(ERROR) << "Unable to find component with id "
+          LOG(error) << "Unable to find component with id "
                      << frameworkId << ". Available options:\n"
                      << ss.str();
           driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
@@ -1706,7 +1706,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                               driverInfo.uniqueWorkflowId);
         } catch (o2::framework::RuntimeErrorRef& ref) {
           auto& err = o2::framework::error_from_ref(ref);
-          LOGP(ERROR, "unable to merge configurations in {}: {}", driverInfo.argv[0], err.what);
+          LOGP(error, "unable to merge configurations in {}: {}", driverInfo.argv[0], err.what);
 #ifdef DPL_ENABLE_BACKTRACE
           std::cerr << "\nStacktrace follows:\n\n";
           backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
@@ -1719,7 +1719,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         //        all the devices and we restart them. This is also what DDS does at
         //        a larger scale. In principle one could try to do a delta and only
         //        restart the data processors which need to be restarted.
-        LOG(INFO) << "Redeployment of configuration asked.";
+        LOG(info) << "Redeployment of configuration asked.";
         std::ostringstream forwardedStdin;
         WorkflowSerializationHelpers::dump(forwardedStdin, workflow, dataProcessorInfos, commandInfo);
         infos.reserve(runningWorkflow.devices.size());
@@ -1769,7 +1769,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                          driverInfo.resourcesMonitoringDumpInterval * 1000,
                          driverInfo.resourcesMonitoringDumpInterval * 1000);
         }
-        LOG(INFO) << "Redeployment of configuration done.";
+        LOG(info) << "Redeployment of configuration done.";
       } break;
       case DriverState::RUNNING:
         // Run any pending libUV event loop, block if
@@ -1786,7 +1786,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           // interaction with the GUI or (if --completion-policy=quit)
           // it could mean that the workflow does not have anything else to do.
           // Let's update the GUI one more time and then EXIT.
-          LOG(INFO) << "Quitting";
+          LOG(info) << "Quitting";
           driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
         } else if (infos.size() != runningWorkflow.devices.size()) {
           // If the number of devices is different from
@@ -1798,7 +1798,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::SCHEDULE);
           driverInfo.states.push_back(DriverState::MERGE_CONFIGS);
         } else if (runningWorkflow.devices.empty() && driverInfo.batch == true) {
-          LOG(INFO) << "No device resulting from the workflow. Quitting.";
+          LOG(info) << "No device resulting from the workflow. Quitting.";
           // If there are no deviceSpecs, we exit.
           driverInfo.states.push_back(DriverState::EXIT);
         } else if (runningWorkflow.devices.empty() && driverInfo.batch == false && !guiDeployedOnce) {
@@ -1828,7 +1828,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         break;
       case DriverState::QUIT_REQUESTED:
-        LOG(INFO) << "QUIT_REQUESTED";
+        LOG(info) << "QUIT_REQUESTED";
         guiQuitRequested = true;
         // We send SIGCONT to make sure stopped children are resumed
         killChildren(infos, SIGCONT);
@@ -1851,7 +1851,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         if (forceful_exit == true) {
           static bool forcefulExitMessage = true;
           if (forcefulExitMessage) {
-            LOG(INFO) << "Forceful exit requested.";
+            LOG(info) << "Forceful exit requested.";
             forcefulExitMessage = false;
           }
           killChildren(infos, SIGCONT);
@@ -1887,7 +1887,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (driverInfo.resourcesMonitoringDumpInterval) {
             uv_timer_stop(&metricDumpTimer);
           }
-          LOG(INFO) << "Dumping performance metrics to performanceMetrics.json file";
+          LOG(info) << "Dumping performance metrics to performanceMetrics.json file";
           dumpMetricsCallback(&metricDumpTimer);
         }
         // This is a clean exit. Before we do so, if required,
@@ -1906,7 +1906,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           auto spec = runningWorkflow.devices[di];
           finalConfig.put_child(spec.name, info.currentConfig);
         }
-        LOG(INFO) << "Dumping used configuration in dpl-config.json";
+        LOG(info) << "Dumping used configuration in dpl-config.json";
         boost::property_tree::write_json("dpl-config.json", finalConfig);
         if (driverInfo.noSHMCleanup) {
           LOGP(warning, "Not cleaning up shared memory.");
@@ -1922,7 +1922,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         driverControl.callbacks.clear();
         break;
       default:
-        LOG(ERROR) << "Driver transitioned in an unknown state("
+        LOG(error) << "Driver transitioned in an unknown state("
                    << "current: " << (int)current
                    << ", previous: " << (int)previous
                    << "). Shutting down.";
@@ -2547,7 +2547,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
         .run(),
       varmap);
   } catch (std::exception const& e) {
-    LOGP(ERROR, "error parsing options of {}: {}", argv[0], e.what());
+    LOGP(error, "error parsing options of {}: {}", argv[0], e.what());
     exit(1);
   }
   conflicting_options(varmap, "dds", "o2-control");
@@ -2625,6 +2625,6 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
 
 void doBoostException(boost::exception& e, char const* processName)
 {
-  LOGP(ERROR, "error while setting up workflow in {}: {}",
+  LOGP(error, "error while setting up workflow in {}: {}",
        processName, boost::current_exception_diagnostic_information(true));
 }

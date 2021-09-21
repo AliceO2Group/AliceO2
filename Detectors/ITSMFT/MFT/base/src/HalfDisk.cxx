@@ -54,7 +54,7 @@ HalfDisk::HalfDisk(HalfDiskSegmentation* segmentation)
   SetUniqueID(mSegmentation->GetUniqueID());
   auto& mftBaseParam = MFTBaseParam::Instance();
 
-  LOG(DEBUG1) << "HalfDisk " << Form("creating half-disk: %s Unique ID = %d ", GetName(), mSegmentation->GetUniqueID());
+  LOG(debug1) << "HalfDisk " << Form("creating half-disk: %s Unique ID = %d ", GetName(), mSegmentation->GetUniqueID());
 
   mHalfDiskVolume = new TGeoVolumeAssembly(GetName());
 
@@ -138,7 +138,7 @@ TGeoVolumeAssembly* HalfDisk::createPCBSupport()
 void HalfDisk::createLadders()
 {
 
-  LOG(DEBUG1) << "CreateLadders: start building ladders";
+  LOG(debug1) << "CreateLadders: start building ladders";
   for (Int_t iLadder = 0; iLadder < mSegmentation->getNLadders(); iLadder++) {
 
     LadderSegmentation* ladderSeg = mSegmentation->getLadder(iLadder);

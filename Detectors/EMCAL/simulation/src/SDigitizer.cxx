@@ -57,7 +57,7 @@ std::vector<o2::emcal::LabeledDigit> SDigitizer::process(const std::vector<Hit>&
       Int_t tower = hit.GetDetectorID();
 
       if (tower < 0 || tower > mGeometry->GetNCells()) {
-        LOG(WARNING) << "tower index out of range: " << tower;
+        LOG(warning) << "tower index out of range: " << tower;
         continue;
       }
 
@@ -75,7 +75,7 @@ std::vector<o2::emcal::LabeledDigit> SDigitizer::process(const std::vector<Hit>&
       digitsPerTower[tower].push_back(d);
 
     } catch (InvalidPositionException& e) {
-      LOG(ERROR) << "Error in creating the digit: " << e.what();
+      LOG(error) << "Error in creating the digit: " << e.what();
     }
   }
 
@@ -106,7 +106,7 @@ void SDigitizer::setCurrSrcID(int v)
 {
   // set current MC source ID
   if (v > MCCompLabel::maxSourceID()) {
-    LOG(FATAL) << "MC source id " << v << " exceeds max storable in the label " << MCCompLabel::maxSourceID();
+    LOG(fatal) << "MC source id " << v << " exceeds max storable in the label " << MCCompLabel::maxSourceID();
   }
   mCurrSrcID = v;
 }
@@ -116,7 +116,7 @@ void SDigitizer::setCurrEvID(int v)
 {
   // set current MC event ID
   if (v > MCCompLabel::maxEventID()) {
-    LOG(FATAL) << "MC event id " << v << " exceeds max storable in the label " << MCCompLabel::maxEventID();
+    LOG(fatal) << "MC event id " << v << " exceeds max storable in the label " << MCCompLabel::maxEventID();
   }
   mCurrEvID = v;
 }

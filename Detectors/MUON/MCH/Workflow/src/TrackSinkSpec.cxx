@@ -52,7 +52,7 @@ class TrackSinkTask
   void init(framework::InitContext& ic)
   {
     /// Get the output file from the context
-    LOG(INFO) << "initializing track sink";
+    LOG(info) << "initializing track sink";
 
     auto outputFileName = ic.options().get<std::string>("outfile");
     mOutputFile.open(outputFileName, ios::out | ios::binary);
@@ -62,7 +62,7 @@ class TrackSinkTask
 
     auto stop = [this]() {
       /// close the output file
-      LOG(INFO) << "stop track sink";
+      LOG(info) << "stop track sink";
       this->mOutputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);

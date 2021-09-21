@@ -62,7 +62,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   std::transform(trmode.begin(), trmode.end(), trmode.begin(), [](unsigned char c) { return std::tolower(c); });
   if (trmode != "sync" && !useCAtracker) {
-    LOG(ERROR) << "requested CookedTracker supports only sync tracking-mode, use --trackerCA";
+    LOG(error) << "requested CookedTracker supports only sync tracking-mode, use --trackerCA";
     throw std::runtime_error("incompatible options provided");
   }
 

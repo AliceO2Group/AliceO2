@@ -67,15 +67,15 @@ bool HmpidDecodeRawMem::setUpStream(void* Buffer, long BufferLen)
 {
   long wordsBufferLen = BufferLen / (sizeof(int32_t) / sizeof(char)); // Converts the len in words
   if (Buffer == nullptr) {
-    LOG(ERROR) << "Raw data buffer null Pointer ! ";
+    LOG(error) << "Raw data buffer null Pointer ! ";
     throw TH_NULLBUFFERPOINTER;
   }
   if (wordsBufferLen == 0) {
-    LOG(ERROR) << "Raw data buffer Empty ! ";
+    LOG(error) << "Raw data buffer Empty ! ";
     throw TH_BUFFEREMPTY;
   }
   if (wordsBufferLen < 16) {
-    LOG(ERROR) << "Raw data buffer less then the Header Dimension = " << wordsBufferLen;
+    LOG(error) << "Raw data buffer less then the Header Dimension = " << wordsBufferLen;
     throw TH_WRONGBUFFERDIM;
   }
 

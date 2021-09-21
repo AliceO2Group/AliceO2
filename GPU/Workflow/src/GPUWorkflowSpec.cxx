@@ -152,7 +152,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       auto& hbfu = o2::raw::HBFUtils::Instance();
       processAttributes->tfSettings.simStartOrbit = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).orbit;
 
-      LOG(INFO) << "Initializing run paramerers from GRP bz=" << config.configGRP.solenoidBz << " cont=" << grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
+      LOG(info) << "Initializing run paramerers from GRP bz=" << config.configGRP.solenoidBz << " cont=" << grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
 
       confParam = config.ReadConfigurableParam();
       processAttributes->allocateOutputOnTheFly = confParam.allocateOutputOnTheFly;
@@ -163,7 +163,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
         processAttributes->displayBackend.reset(new GPUDisplayBackendGlfw);
         config.configProcessing.eventDisplay = processAttributes->displayBackend.get();
-        LOG(INFO) << "Event display enabled";
+        LOG(info) << "Event display enabled";
 #else
         throw std::runtime_error("Standalone Event Display not enabled at build time!");
 #endif
@@ -176,7 +176,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         int myId = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
         int idMax = ic.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
         config.configProcessing.deviceNum = myId;
-        LOG(INFO) << "GPU device number selected from pipeline id: " << myId << " / " << idMax;
+        LOG(info) << "GPU device number selected from pipeline id: " << myId << " / " << idMax;
       }
       if (config.configProcessing.debugLevel >= 3 && processAttributes->verbosity == 0) {
         processAttributes->verbosity = 1;
@@ -259,7 +259,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       config.configCalib.dEdxSplines = processAttributes->dEdxSplines.get();
 
       if (std::filesystem::exists(confParam.gainCalibFile)) {
-        LOG(INFO) << "Loading tpc gain correction from file " << confParam.gainCalibFile;
+        LOG(info) << "Loading tpc gain correction from file " << confParam.gainCalibFile;
         const auto* gainMap = o2::tpc::utils::readCalPads(confParam.gainCalibFile, "GainMap")[0];
         processAttributes->tpcPadGainCalib = GPUO2Interface::getPadGainCalib(*gainMap);
       } else {
@@ -325,7 +325,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
     // the callback to be set as hook at stop of processing for the framework
     auto printTiming = []() {
-      LOGF(INFO, "TPC CATracker total timing: Cpu: %.3e Real: %.3e s in %d slots", timer.CpuTime(), timer.RealTime(), timer.Counter() - 1);
+      LOGF(info, "TPC CATracker total timing: Cpu: %.3e Real: %.3e s in %d slots", timer.CpuTime(), timer.RealTime(), timer.Counter() - 1);
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, printTiming);
 
@@ -407,7 +407,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
             offset += tpcZSonTheFlySizes[i * NEndpoints + j];
           }
           if (verbosity >= 1) {
-            LOG(INFO) << "GOT ZS on the fly pages FOR SECTOR " << i << " ->  pages: " << pageSector;
+            LOG(info) << "GOT ZS on the fly pages FOR SECTOR " << i << " ->  pages: " << pageSector;
           }
         }
       }
@@ -447,7 +447,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         }
       } else if (!specconfig.zsOnTheFly) {
         if (verbosity) {
-          LOGF(INFO, "running tracking for sector(s) 0x%09x", processAttributes->tpcSectorMask);
+          LOGF(info, "running tracking for sector(s) 0x%09x", processAttributes->tpcSectorMask);
         }
       }
 
@@ -522,7 +522,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
             region.allocator = [name, &buffer, &pc, outputSpec = std::move(outputSpec), verbosity, offset](size_t size) -> void* {
               size += offset;
               if (verbosity) {
-                LOG(INFO) << "ALLOCATING " << size << " bytes for " << std::get<DataOrigin>(outputSpec).template as<std::string>() << "/" << std::get<DataDescription>(outputSpec).template as<std::string>() << "/" << std::get<2>(outputSpec);
+                LOG(info) << "ALLOCATING " << size << " bytes for " << std::get<DataOrigin>(outputSpec).template as<std::string>() << "/" << std::get<DataDescription>(outputSpec).template as<std::string>() << "/" << std::get<2>(outputSpec);
               }
               std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
               if (verbosity) {
@@ -532,7 +532,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
               if (verbosity) {
                 end = std::chrono::high_resolution_clock::now();
                 std::chrono::duration<double> elapsed_seconds = end - start;
-                LOG(INFO) << "Allocation time for " << name << " (" << size << " bytes)" << ": " << elapsed_seconds.count() << "s";
+                LOG(info) << "Allocation time for " << name << " (" << size << " bytes)" << ": " << elapsed_seconds.count() << "s";
               }
               return (buffer.second = buffer.first->get().data()) + offset;
             };
@@ -619,7 +619,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       bool createEmptyOutput = false;
       if (retVal != 0) {
         if (retVal == 3 && processAttributes->config->configProcessing.ignoreNonFatalGPUErrors) {
-          LOG(ERROR) << "GPU Reconstruction aborted with non fatal error code, ignoring";
+          LOG(error) << "GPU Reconstruction aborted with non fatal error code, ignoring";
           createEmptyOutput = true;
         } else {
           throw std::runtime_error("tracker returned error code " + std::to_string(retVal));
@@ -677,7 +677,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         }
       }
 
-      LOG(INFO) << "found " << ptrs.nOutputTracksTPCO2 << " track(s)";
+      LOG(info) << "found " << ptrs.nOutputTracksTPCO2 << " track(s)";
 
       if (specconfig.outputCompClusters) {
         CompressedClustersROOT compressedClusters = *ptrs.tpcCompressedClusters;
@@ -735,7 +735,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         processAttributes->qa->cleanup();
       }
       timer.Stop();
-      LOG(INFO) << "GPU Reoncstruction time for this TF " << timer.CpuTime() - cput << " s (cpu), " << timer.RealTime() - realt << " s (wall)";
+      LOG(info) << "GPU Reoncstruction time for this TF " << timer.CpuTime() - cput << " s (cpu), " << timer.RealTime() - realt << " s (wall)";
     };
 
     return processingFct;

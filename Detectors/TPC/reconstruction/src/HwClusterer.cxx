@@ -60,7 +60,7 @@ HwClusterer::HwClusterer(
     mClusterMcLabelArray(labelOutput),
     mClusterArray(clusterOutputContainer)
 {
-  LOG(DEBUG) << "Enter Initializer of HwClusterer";
+  LOG(debug) << "Enter Initializer of HwClusterer";
 
   // Given sector ID must be within 0 and 35 for a proper CRU ID calculation
   assert(sectorid >= 0 && sectorid < 36);
@@ -272,7 +272,7 @@ void HwClusterer::process(gsl::span<o2::tpc::Digit const> const& digits, ConstMC
   }
 
   if (digits.size() != 0) {
-    LOG(DEBUG) << "Event ranged from time bin " << digits[0].getTimeStamp() << " to " << digits[digits.size() - 1].getTimeStamp() << ".";
+    LOG(debug) << "Event ranged from time bin " << digits[0].getTimeStamp() << " to " << digits[digits.size() - 1].getTimeStamp() << ".";
   }
 }
 

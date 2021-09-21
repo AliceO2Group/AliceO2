@@ -95,7 +95,7 @@ struct AxisSpec {
       name(name_)
   {
     if (binMin_ > binMax_) {
-      LOG(FATAL) << "Defined ill-defined axis";
+      LOG(fatal) << "Defined ill-defined axis";
     }
   }
 
@@ -120,7 +120,7 @@ struct AxisSpec {
   void makeLogaritmic()
   {
     if (binEdges.size() > 2) {
-      LOG(FATAL) << "Cannot make a variabled bin width axis logaritmic";
+      LOG(fatal) << "Cannot make a variabled bin width axis logaritmic";
     }
 
     const double min = binEdges[0];

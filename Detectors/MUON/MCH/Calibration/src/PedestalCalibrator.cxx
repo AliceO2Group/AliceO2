@@ -45,7 +45,7 @@ void PedestalData::merge(const PedestalData* prev)
 //_____________________________________________
 void PedestalData::print() const
 {
-  LOG(INFO) << "Printing MCH pedestals:";
+  LOG(info) << "Printing MCH pedestals:";
   std::ostringstream os;
 }
 
@@ -67,7 +67,7 @@ bool PedestalCalibrator::hasEnoughData(const Slot& slot) const
   // Delegating this to PedestalData
 
   const o2::mch::calibration::PedestalData* c = slot.getContainer();
-  LOG(INFO) << "Checking statistics";
+  LOG(info) << "Checking statistics";
   return (true);
 }
 
@@ -76,7 +76,7 @@ void PedestalCalibrator::finalizeSlot(Slot& slot)
 {
   // Extract results for the single slot
   o2::mch::calibration::PedestalData* c = slot.getContainer();
-  LOG(INFO) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
+  LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
 
   // keep track of first TimeFrame
   if (slot.getTFStart() < mTFStart) {
@@ -105,7 +105,7 @@ void PedestalCalibrator::finalizeSlot(Slot& slot)
         }
 
         if (bad) {
-          LOG(INFO) << "S " << p.first << "  DS " << dsId << "  CH " << ch
+          LOG(info) << "S " << p.first << "  DS " << dsId << "  CH " << ch
                     << "  ENTRIES " << pRecord.mEntries << "  PED " << pRecord.mPedestal << "  RMS " << pRecord.getRms();
           mBadChannelsVector.getChannels().emplace_back(p.first, dsId, ch);
         }

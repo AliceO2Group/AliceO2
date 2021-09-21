@@ -73,7 +73,7 @@ struct RecEvent {
   inline void addInfo(uint8_t ch, uint16_t code)
   {
     if (ch >= NChannels && ch != 0x1f) {
-      LOGF(ERROR, "Adding info (0x%x) for not existent channel %u", code, ch);
+      LOGF(error, "Adding info (0x%x) for not existent channel %u", code, ch);
       return;
     }
     uint16_t info = (code & 0x03ff) | ((ch & 0x1f) << 10);

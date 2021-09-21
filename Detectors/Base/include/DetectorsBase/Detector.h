@@ -505,7 +505,7 @@ class DetImpl : public o2::base::Detector
     auto hitbufferPtr = reinterpret_cast<Collector_t*>(mHitCollectorBufferPtr);
     auto iter = hitbufferPtr->find(eventID);
     if (iter == hitbufferPtr->end()) {
-      LOG(ERROR) << "No buffered hits available for event " << eventID;
+      LOG(error) << "No buffered hits available for event " << eventID;
       return;
     }
 
@@ -698,7 +698,7 @@ class DetImpl : public o2::base::Detector
       mCurrentBuffer = (mCurrentBuffer + 1) % NHITBUFFERS;
       while (mShmBusy[mCurrentBuffer] != nullptr && *mShmBusy[mCurrentBuffer]) {
         // this should ideally never happen
-        LOG(INFO) << " BUSY WAITING SIZE ";
+        LOG(info) << " BUSY WAITING SIZE ";
         sleep(1);
       }
 

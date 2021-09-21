@@ -148,7 +148,7 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
       w.setStartValidityTimestamp(timeStart);
       w.setEndValidityTimestamp(timeEnd);
 
-      LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
 
       o2::header::DataHeader::SubSpecificationType subSpec{(o2::header::DataHeader::SubSpecificationType)type};

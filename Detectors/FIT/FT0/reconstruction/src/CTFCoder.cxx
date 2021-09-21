@@ -85,7 +85,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
     // fill channels info
     cd.nChan[idig] = chanels.size();
     if (!cd.nChan[idig]) {
-      LOG(ERROR) << "Digits with no channels";
+      LOG(error) << "Digits with no channels";
       continue;
     }
     uint8_t prevChan = 0;
@@ -160,6 +160,6 @@ size_t CTFCoder::estimateCompressedSize(const CompressedDigits& cd)
   sz += ESTSIZE(cd.qtcAmpl,   CTF::BLC_qtcAmpl);
   // clang-format on
 
-  LOG(INFO) << "Estimated output size is " << sz << " bytes";
+  LOG(info) << "Estimated output size is " << sz << " bytes";
   return sz;
 }

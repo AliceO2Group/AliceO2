@@ -67,7 +67,7 @@ void EventVertex::applyCorrection(double* vtx) const
 //{
 //  // convert the pntId-th point to AlignmentPoint
 //  static int cnt = 0;
-//  LOG(ERROR) << "This method shound not have been called," << cnt++;
+//  LOG(error) << "This method shound not have been called," << cnt++;
 //  return 0;
 //}
 

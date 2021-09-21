@@ -40,7 +40,7 @@ using RDHUtils = o2::raw::RDHUtils;
 
 void CompressedDecodingTask::init(InitContext& ic)
 {
-  LOG(INFO) << "CompressedDecoding init";
+  LOG(info) << "CompressedDecoding init";
 
   mMaskNoise = ic.options().get<bool>("mask-noise");
   mNoiseRate = ic.options().get<int>("noise-counts");
@@ -51,7 +51,7 @@ void CompressedDecodingTask::init(InitContext& ic)
   }
 
   auto finishFunction = [this]() {
-    LOG(INFO) << "CompressedDecoding finish";
+    LOG(info) << "CompressedDecoding finish";
   };
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
   mTimer.Stop();
@@ -97,7 +97,7 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   int n_orbits = n_tof_window / 3;
   int digit_size = alldigits->size();
 
-  // LOG(INFO) << "TOF: N tof window decoded = " << n_tof_window << "(orbits = " << n_orbits << ") with " << digit_size << " digits";
+  // LOG(info) << "TOF: N tof window decoded = " << n_tof_window << "(orbits = " << n_orbits << ") with " << digit_size << " digits";
 
   // add digits in the output snapshot
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *alldigits);
@@ -151,7 +151,7 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
 
 void CompressedDecodingTask::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "TOF CompressedDecoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "TOF CompressedDecoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
@@ -166,7 +166,7 @@ void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
     for (const auto& ref : InputRecordWalker(inputs, dummy)) {
       const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       if (dh->payloadSize == 0) {
-        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+        LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
              dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
         return;
       }
@@ -202,7 +202,7 @@ void CompressedDecodingTask::headerHandler(const CrateHeader_t* crateHeader, con
       mDecoder.setFirstIR({0, mInitOrbit});
     }
 
-    LOG(DEBUG) << "Crate found" << crateHeader->drmID;
+    LOG(debug) << "Crate found" << crateHeader->drmID;
     mNCrateOpenTF++;
   }
 }
@@ -211,7 +211,7 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
                                             const Error_t* errors)
 {
   if (mConetMode) {
-    LOG(DEBUG) << "Crate closed " << crateHeader->drmID;
+    LOG(debug) << "Crate closed " << crateHeader->drmID;
     mNCrateCloseTF++;
   }
 

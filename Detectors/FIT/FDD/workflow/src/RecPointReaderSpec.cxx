@@ -33,7 +33,7 @@ RecPointReader::RecPointReader(bool useMC)
 {
   mUseMC = useMC;
   if (useMC) {
-    LOG(WARNING) << "FDD RecPoint reader at the moment does not process MC";
+    LOG(warning) << "FDD RecPoint reader at the moment does not process MC";
   }
 }
 
@@ -50,7 +50,7 @@ void RecPointReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
 
-  LOG(INFO) << "FDD RecPointReader pushes " << mRecPoints->size() << " recpoints at entry " << ent;
+  LOG(info) << "FDD RecPointReader pushes " << mRecPoints->size() << " recpoints at entry " << ent;
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, *mRecPoints);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
@@ -69,11 +69,11 @@ void RecPointReader::connectTree(const std::string& filename)
 
   mTree->SetBranchAddress(mRecPointBranchName.c_str(), &mRecPoints);
   if (mUseMC) {
-    LOG(WARNING) << "MC-truth is not supported for FDD recpoints currently";
+    LOG(warning) << "MC-truth is not supported for FDD recpoints currently";
     mUseMC = false;
   }
 
-  LOG(INFO) << "Loaded FDD RecPoints tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded FDD RecPoints tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getFDDRecPointReaderSpec(bool useMC)
@@ -81,7 +81,7 @@ DataProcessorSpec getFDDRecPointReaderSpec(bool useMC)
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back(o2::header::gDataOriginFDD, "RECPOINTS", 0, Lifetime::Timeframe);
   if (useMC) {
-    LOG(WARNING) << "MC-truth is not supported for FDD recpoints currently";
+    LOG(warning) << "MC-truth is not supported for FDD recpoints currently";
   }
 
   return DataProcessorSpec{

@@ -36,7 +36,7 @@ class TOFCalibCollectorWriter : public o2::framework::Task
   void createAndOpenFileAndTree()
   {
     TString filename = TString::Format("collTOF_%d.root", mCount);
-    LOG(DEBUG) << "opening file " << filename.Data();
+    LOG(debug) << "opening file " << filename.Data();
     mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
     mOutputTree = std::make_unique<TTree>("treeCollectedCalibInfo", "Tree with TOF calib info for Time Slewing");
     mOutputTree->Branch(mOutputBranchName.data(), &mPTOFCalibInfoOut);

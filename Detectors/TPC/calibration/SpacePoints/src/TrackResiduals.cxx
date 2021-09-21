@@ -61,7 +61,7 @@ void TrackResiduals::init()
 {
 #ifdef TPC_RUN2
   // Run 2 geometry should only be defined for tests with Run 2 data, i.e. not in production so we send an error message here
-  LOG(ERROR) << "Run 2 parameters compiled for the TPC geometry. Will lead to errors in case of processing residuals from O2.";
+  LOG(error) << "Run 2 parameters compiled for the TPC geometry. Will lead to errors in case of processing residuals from O2.";
 #endif
 
   // initialize binning
@@ -762,7 +762,7 @@ void TrackResiduals::convertToLocalResiduals(bool loadFromFile)
   }
 
   if (loadFromFile) {
-    LOG(INFO) << "Loading TPC cluster residuals (unfiltered) from file.";
+    LOG(info) << "Loading TPC cluster residuals (unfiltered) from file.";
     loadInputFromFile();
   }
 

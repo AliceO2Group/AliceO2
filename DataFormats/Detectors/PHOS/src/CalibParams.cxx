@@ -34,17 +34,17 @@ bool CalibParams::setGain(TH2* h, char module)
   const char MAXX = 64,
              MAXZ = 56;
   if (module < 1 || module > 4) {
-    LOG(ERROR) << "module " << module << "does not exist";
+    LOG(error) << "module " << module << "does not exist";
     return false;
   }
 
   if (!h) {
-    LOG(ERROR) << "no input histogam";
+    LOG(error) << "no input histogam";
     return false;
   }
 
   if (h->GetNbinsX() != MAXX || h->GetNbinsY() != MAXZ) {
-    LOG(ERROR) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
+    LOG(error) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
     return false;
   }
 
@@ -71,16 +71,16 @@ bool CalibParams::setHGLGRatio(TH2* h, char module)
   const char MAXX = 64,
              MAXZ = 56;
   if (module < 1 || module > 4) {
-    LOG(ERROR) << "module " << module << "does not exist";
+    LOG(error) << "module " << module << "does not exist";
     return false;
   }
   if (!h) {
-    LOG(ERROR) << "no input histogam";
+    LOG(error) << "no input histogam";
     return false;
   }
 
   if (h->GetNbinsX() != MAXX || h->GetNbinsY() != MAXZ) {
-    LOG(ERROR) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
+    LOG(error) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
     return false;
   }
 
@@ -107,16 +107,16 @@ bool CalibParams::setHGTimeCalib(TH2* h, char module)
   const char MAXX = 64,
              MAXZ = 56;
   if (module < 1 || module > 4) {
-    LOG(ERROR) << "module " << module << "does not exist";
+    LOG(error) << "module " << module << "does not exist";
     return false;
   }
   if (!h) {
-    LOG(ERROR) << "no input histogam";
+    LOG(error) << "no input histogam";
     return false;
   }
 
   if (h->GetNbinsX() != MAXX || h->GetNbinsY() != MAXZ) {
-    LOG(ERROR) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
+    LOG(error) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
     return false;
   }
 
@@ -143,16 +143,16 @@ bool CalibParams::setLGTimeCalib(TH2* h, char module)
   const char MAXX = 64,
              MAXZ = 56;
   if (module < 1 || module > 4) {
-    LOG(ERROR) << "module " << module << "does not exist";
+    LOG(error) << "module " << module << "does not exist";
     return false;
   }
   if (!h) {
-    LOG(ERROR) << "no input histogam";
+    LOG(error) << "no input histogam";
     return false;
   }
 
   if (h->GetNbinsX() != MAXX || h->GetNbinsY() != MAXZ) {
-    LOG(ERROR) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
+    LOG(error) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
     return false;
   }
 

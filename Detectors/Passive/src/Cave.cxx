@@ -42,7 +42,7 @@ void Cave::createMaterials()
   Int_t isxfld;
   Float_t sxmgmx;
   o2::base::Detector::initFieldTrackingParams(isxfld, sxmgmx);
-  LOG(INFO) << "Field in CAVE: " << isxfld;
+  LOG(info) << "Field in CAVE: " << isxfld;
   // AIR
   isxfld = 1;
   Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
@@ -67,13 +67,13 @@ void Cave::ConstructGeometry()
   Float_t dALIC[3];
 
   if (mHasZDC) {
-    LOG(INFO) << "Setting up CAVE to host ZDC";
+    LOG(info) << "Setting up CAVE to host ZDC";
     // dimensions taken from ALIROOT
     dALIC[0] = 2500;
     dALIC[1] = 2500;
     dALIC[2] = 15000;
   } else {
-    LOG(INFO) << "Setting up CAVE without ZDC";
+    LOG(info) << "Setting up CAVE without ZDC";
     dALIC[0] = 2000;
     dALIC[1] = 2000;
     dALIC[2] = 3000;
@@ -128,7 +128,7 @@ Cave& Cave::operator=(const Cave& rhs)
 FairModule* Cave::CloneModule() const { return new Cave(*this); }
 void Cave::FinishPrimary()
 {
-  LOG(DEBUG) << "CAVE: Primary finished";
+  LOG(debug) << "CAVE: Primary finished";
   for (auto& f : mFinishPrimaryHooks) {
     f();
   }
@@ -159,7 +159,7 @@ void Cave::BeginPrimary()
 
 bool Cave::ProcessHits(FairVolume*)
 {
-  LOG(FATAL) << "CAVE ProcessHits called; should never happen";
+  LOG(fatal) << "CAVE ProcessHits called; should never happen";
   return false;
 }
 

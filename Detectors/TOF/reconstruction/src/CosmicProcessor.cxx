@@ -155,6 +155,6 @@ void CosmicProcessor::process(DigitDataReader& reader, bool fill)
     processTrack();
   }
 
-  LOG(DEBUG) << "We had " << ndig << " digits in this event";
+  LOG(debug) << "We had " << ndig << " digits in this event";
   timerProcess.Stop();
 }

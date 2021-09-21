@@ -146,7 +146,7 @@ inline void DigitizationContext::retrieveHits(std::vector<TChain*> const& chains
 {
   auto br = chains[sourceID]->GetBranch(brname);
   if (!br) {
-    LOG(ERROR) << "No branch found with name " << brname;
+    LOG(error) << "No branch found with name " << brname;
     return;
   }
   br->SetAddress(&hits);

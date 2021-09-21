@@ -28,7 +28,7 @@ using namespace o2::cpv::reco_workflow;
 
 void RawToDigitConverterSpec::init(framework::InitContext& ctx)
 {
-  LOG(DEBUG) << "Initializing RawToDigitConverterSpec...";
+  LOG(debug) << "Initializing RawToDigitConverterSpec...";
 
   //Read command-line options
   //Pedestal flag true/false
@@ -36,7 +36,7 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
   if (ctx.options().isSet("pedestal")) {
     mIsPedestalData = ctx.options().get<bool>("pedestal");
   }
-  LOG(INFO) << "Pedestal data: " << mIsPedestalData;
+  LOG(info) << "Pedestal data: " << mIsPedestalData;
   if (mIsPedestalData) { //no calibration for pedestal runs needed
     return;              //skip CCDB initialization for pedestal runs
   }
@@ -46,7 +46,7 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
   if (ctx.options().isSet("ccdb-url")) {
     ccdbUrl = ctx.options().get<std::string>("ccdb-url");
   }
-  LOG(INFO) << "CCDB Url: " << ccdbUrl;
+  LOG(info) << "CCDB Url: " << ccdbUrl;
 
   //dummy calibration objects
   if (ccdbUrl.compare("localtest") == 0) { // test default calibration
@@ -54,8 +54,8 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
     mCalibParams = new o2::cpv::CalibParams(1);
     mBadMap = new o2::cpv::BadChannelMap(1);
     mPedestals = new o2::cpv::Pedestals(1);
-    LOG(INFO) << "No reading calibration from ccdb requested, using dummy calibration for testing";
-    LOG(INFO) << "Task configuration is done.";
+    LOG(info) << "No reading calibration from ccdb requested, using dummy calibration for testing";
+    LOG(info) << "Task configuration is done.";
     return; //localtest = no reading ccdb
   }
 
@@ -64,8 +64,8 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
   ccdbMgr.setURL(ccdbUrl);
   mIsUsingCcdbMgr = ccdbMgr.isHostReachable(); //if host is not reachable we can use only dummy calibration
   if (!mIsUsingCcdbMgr) {
-    LOG(ERROR) << "Host " << ccdbUrl << " is not reachable!!!";
-    LOG(ERROR) << "Using dummy calibration";
+    LOG(error) << "Host " << ccdbUrl << " is not reachable!!!";
+    LOG(error) << "Using dummy calibration";
     mCalibParams = new o2::cpv::CalibParams(1);
     mBadMap = new o2::cpv::BadChannelMap(1);
     mPedestals = new o2::cpv::Pedestals(1);
@@ -73,7 +73,7 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
   } else {
     ccdbMgr.setCaching(true);                     //make local cache of remote objects
     ccdbMgr.setLocalObjectValidityChecking(true); //query objects from remote site only when local one is not valid
-    LOG(INFO) << "Successfully initializated BasicCCDBManager with caching option";
+    LOG(info) << "Successfully initializated BasicCCDBManager with caching option";
 
     //read calibration from ccdb (for now do it only at the beginning of dataprocessing)
     //probably later we can check bad channel map more oftenly
@@ -82,20 +82,20 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
 
     mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");
     if (!mCalibParams) {
-      LOG(ERROR) << "Cannot get o2::cpv::CalibParams from CCDB. Using dummy calibration!";
+      LOG(error) << "Cannot get o2::cpv::CalibParams from CCDB. Using dummy calibration!";
       mCalibParams = new o2::cpv::CalibParams(1);
     }
     mBadMap = ccdbMgr.get<o2::cpv::BadChannelMap>("CPV/Calib/BadChannelMap");
     if (!mBadMap) {
-      LOG(ERROR) << "Cannot get o2::cpv::BadChannelMap from CCDB. Using dummy calibration!";
+      LOG(error) << "Cannot get o2::cpv::BadChannelMap from CCDB. Using dummy calibration!";
       mBadMap = new o2::cpv::BadChannelMap(1);
     }
     mPedestals = ccdbMgr.get<o2::cpv::Pedestals>("CPV/Calib/Pedestals");
     if (!mPedestals) {
-      LOG(ERROR) << "Cannot get o2::cpv::Pedestals from CCDB. Using dummy calibration!";
+      LOG(error) << "Cannot get o2::cpv::Pedestals from CCDB. Using dummy calibration!";
       mPedestals = new o2::cpv::Pedestals(1);
     }
-    LOG(INFO) << "Task configuration is done.";
+    LOG(info) << "Task configuration is done.";
   }
 }
 
@@ -112,7 +112,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   for (const auto& ref : framework::InputRecordWalker(ctx.inputs(), dummy)) {
     const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     if (dh->payloadSize == 0) { // send empty output
-      LOG(INFO) << "Sending empty output due to data type input with 0xDEADBEEF";
+      LOG(info) << "Sending empty output due to data type input with 0xDEADBEEF";
       mOutputDigits.clear();
       ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
       mOutputTriggerRecords.clear();
@@ -133,7 +133,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       try {
         rawreader.next();
       } catch (RawErrorType_t e) {
-        LOG(ERROR) << "Raw decoding error " << (int)e;
+        LOG(error) << "Raw decoding error " << (int)e;
         //add error list
         //RawErrorType_t is defined in O2/Detectors/CPV/reconstruction/include/CPVReconstruction/RawReaderMemory.h
         //RawDecoderError(short c, short d, short g, short p, RawErrorType_t e)
@@ -150,7 +150,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       auto mod = o2::raw::RDHUtils::getLinkID(rdh) + 2; //link=0,1,2 -> mod=2,3,4
       //for now all modules are written to one LinkID
       if (mod > o2::cpv::Geometry::kNMod || mod < 2) { //only 3 correct modules:2,3,4
-        LOG(ERROR) << "module=" << mod << "do not exist";
+        LOG(error) << "module=" << mod << "do not exist";
         mOutputHWErrors.emplace_back(25, mod, 0, 0, kRDH_INVALID); //Add non-existing modules to non-existing ccId 25 and dilogic = mod
         continue;                                                  //skip STU mod
       }
@@ -224,7 +224,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   }
   digitBuffer.clear();
 
-  LOG(DEBUG) << "[CPVRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits ...";
+  LOG(debug) << "[CPVRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits ...";
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);

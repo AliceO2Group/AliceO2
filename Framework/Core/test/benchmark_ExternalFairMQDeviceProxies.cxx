@@ -48,7 +48,7 @@ using benchclock = std::chrono::high_resolution_clock;
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
-    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed)"; \
+    LOG(fatal) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
 std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
@@ -104,7 +104,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       float msgPerSec = eventRate * state.nChannels;
       float kbPerSec = msgPerSec * state.msgSize / 1024;
       auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(benchclock::now() - state.startTime);
-      LOG(INFO) << fmt::format(
+      LOG(info) << fmt::format(
         "{: 3d} Total messages: {} - Event rate {:.2f} Hz  {:.2f} msg/s  {:.2f} MB/s, "
         "Accumulated idle time {:.2f} ms",
         elapsedTime.count(), state.totalCount, eventRate, msgPerSec,
@@ -138,7 +138,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     float eventRate = state.totalCount / totalTime.count();
     float msgPerSec = eventRate * state.nChannels;
     float kbPerSec = msgPerSec * state.msgSize / 1024;
-    LOG(INFO) << fmt::format(
+    LOG(info) << fmt::format(
       "Benchmarking "
 #ifndef NDEBUG
       "accumulated "
@@ -235,7 +235,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   auto cState = makeBenchmarkState();
   auto checkerCallback = [cState, loggerCycle](InputRecord& inputs) {
     ActiveGuard g(*cState);
-    LOG(DEBUG) << "got inputs " << inputs.size();
+    LOG(debug) << "got inputs " << inputs.size();
     for (auto const& ref : InputRecordWalker(inputs)) {
       auto data = inputs.get<gsl::span<char>>(ref);
     }
@@ -272,12 +272,12 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     int msgidx = 0;
     auto dh = o2::header::get<o2::header::DataHeader*>(inputs.At(msgidx)->GetData());
     if (!dh) {
-      LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
+      LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
       return;
     }
     auto dph = o2::header::get<DataProcessingHeader*>(inputs.At(msgidx)->GetData());
     if (!dph) {
-      LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
+      LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
       return;
     }
     // Note: we want to run both the output and input proxy in the same workflow and thus we need
@@ -289,7 +289,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     // the forwarded SourceInfoHeader created by the output proxy will be skipped here since the
     // input proxy handles this internally
     ASSERT_ERROR(!isData || !channelName.empty());
-    LOG(DEBUG) << "using channel '" << channelName << "' for " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification});
+    LOG(debug) << "using channel '" << channelName << "' for " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification});
     if (channelName.empty()) {
       return;
     }
@@ -303,7 +303,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     FairMQParts output;
     output.AddPart(std::move(outHeaderMessage));
     output.AddPart(std::move(inputs.At(msgidx + 1)));
-    LOG(DEBUG) << "sending " << DataSpecUtils::describe(OutputSpec{odh->dataOrigin, odh->dataDescription, odh->subSpecification});
+    LOG(debug) << "sending " << DataSpecUtils::describe(OutputSpec{odh->dataOrigin, odh->dataDescription, odh->subSpecification});
     o2::framework::sendOnChannel(device, output, channelName);
   };
 

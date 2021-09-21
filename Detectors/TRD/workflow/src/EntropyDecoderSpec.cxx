@@ -70,12 +70,12 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mCTFCoder.decode(ctfImage, triggers, tracklets, digits);
 
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << tracklets.size() << " TRD tracklets and " << digits.size() << " digits in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << tracklets.size() << " TRD tracklets and " << digits.size() << " digits in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "TRD Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "TRD Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

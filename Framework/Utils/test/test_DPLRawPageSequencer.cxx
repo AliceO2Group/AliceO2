@@ -96,8 +96,8 @@ BOOST_AUTO_TEST_CASE(test_DPLRawPageSequencer)
   };
   DPLRawPageSequencer(inputs).forward(isSameRdh, insertForwardPages);
 
-  LOG(INFO) << "called RDH amend: " << rdhCount;
-  LOG(INFO) << "created " << feeids.size() << " id(s), got " << pages.size() << " page(s)";
+  LOG(info) << "called RDH amend: " << rdhCount;
+  LOG(info) << "created " << feeids.size() << " id(s), got " << pages.size() << " page(s)";
   BOOST_REQUIRE(pages.size() == feeids.size());
   BOOST_REQUIRE(pages.size() == pagesByForwardSearch.size());
 

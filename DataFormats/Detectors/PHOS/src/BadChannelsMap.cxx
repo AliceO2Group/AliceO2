@@ -50,14 +50,14 @@ void BadChannelsMap::getHistogramRepresentation(char module, TH2* h) const
   const char MAXX = 64,
              MAXZ = 56;
   if (module < 1 || module > 4) {
-    LOG(ERROR) << "module " << module << "does not exist";
+    LOG(error) << "module " << module << "does not exist";
     return;
   }
   if (!h) {
-    LOG(ERROR) << "provide histogram to be filled";
+    LOG(error) << "provide histogram to be filled";
   }
   if (h->GetNbinsX() != MAXX || h->GetNbinsY() != MAXZ) {
-    LOG(ERROR) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
+    LOG(error) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
     return;
   }
 

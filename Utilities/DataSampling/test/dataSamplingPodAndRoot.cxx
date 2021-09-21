@@ -114,16 +114,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           }
         }
 
-        LOG(INFO) << "qcTaskTPC - received data is " << (dataGood ? "correct" : "wrong");
+        LOG(info) << "qcTaskTPC - received data is " << (dataGood ? "correct" : "wrong");
 
         const auto* dsHeader = DataRefUtils::getHeader<DataSamplingHeader*>(ref);
         if (dsHeader) {
-          LOG(INFO) << "Matching messages seen by Dispatcher: " << dsHeader->totalEvaluatedMessages
+          LOG(info) << "Matching messages seen by Dispatcher: " << dsHeader->totalEvaluatedMessages
                     << ", accepted: " << dsHeader->totalAcceptedMessages
                     << ", sample time: " << dsHeader->sampleTimeUs
                     << ", device ID: " << dsHeader->deviceID.str;
         } else {
-          LOG(ERROR) << "DataSamplingHeader missing!";
+          LOG(error) << "DataSamplingHeader missing!";
         }
 
       }
@@ -146,7 +146,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         singleHisto.FillRandom("gaus", 1000);
         Double_t stats[4];
         singleHisto.GetStats(stats);
-        LOG(INFO) << "sumw" << stats[0] << "\n"
+        LOG(info) << "sumw" << stats[0] << "\n"
                   << "sumw2" << stats[1] << "\n"
                   << "sumwx" << stats[2] << "\n"
                   << "sumwx2" << stats[3] << "\n";
@@ -169,13 +169,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         }
         Double_t stats[4];
         h->GetStats(stats);
-        LOG(INFO) << "sumw" << stats[0] << "\n"
+        LOG(info) << "sumw" << stats[0] << "\n"
                   << "sumw2" << stats[1] << "\n"
                   << "sumwx" << stats[2] << "\n"
                   << "sumwx2" << stats[3] << "\n";
         auto s = ctx.inputs().get<TObjString*>("string");
 
-        LOG(INFO) << "String is " << s->GetString().Data();
+        LOG(info) << "String is " << s->GetString().Data();
       } }
   };
 
@@ -194,13 +194,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         }
         Double_t stats[4];
         h->GetStats(stats);
-        LOG(INFO) << "sumw" << stats[0] << "\n"
+        LOG(info) << "sumw" << stats[0] << "\n"
                   << "sumw2" << stats[1] << "\n"
                   << "sumwx" << stats[2] << "\n"
                   << "sumwx2" << stats[3] << "\n";
         auto s = ctx.inputs().get<TObjString*>("TST_STRING_S");
 
-        LOG(INFO) << "qcTaskTst: TObjString is " << (std::string("foo") == s->GetString().Data() ? "correct" : "wrong");
+        LOG(info) << "qcTaskTst: TObjString is " << (std::string("foo") == s->GetString().Data() ? "correct" : "wrong");
       }
     }
   };
@@ -221,7 +221,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     throw std::runtime_error("The O2_ROOT environment variable is not set, probably the O2 environment has not been loaded.");
   }
   std::string configurationSource = std::string("json:/") + o2Root + "/share/etc/exampleDataSamplingConfig.json";
-  LOG(INFO) << "Using config source: " << configurationSource;
+  LOG(info) << "Using config source: " << configurationSource;
   DataSampling::GenerateInfrastructure(specs, configurationSource, 1);
   return specs;
 }

@@ -165,11 +165,11 @@ void DataDecoder::setFirstOrbitInTF(uint32_t orbit)
   constexpr int BCINORBIT = o2::constants::lhc::LHCMaxBunches;
   constexpr int TWENTYBITSATONE = 0xFFFFF;
   if (!mFirstOrbitInRun) {
-    LOG(ERROR) << "[setFirstOrbitInTF] first orbit in run not set!";
+    LOG(error) << "[setFirstOrbitInTF] first orbit in run not set!";
     return;
   }
   if (orbit < mFirstOrbitInRun) {
-    LOG(ERROR) << "[setFirstOrbitInTF] first TF orbit smaller than first orbit in run!";
+    LOG(error) << "[setFirstOrbitInTF] first TF orbit smaller than first orbit in run!";
     return;
   }
 

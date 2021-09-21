@@ -208,7 +208,7 @@ void DataRequest::requestFT0RecPoints(bool mc)
   addInput({"ft0recpoints", "FT0", "RECPOINTS", 0, Lifetime::Timeframe});
   addInput({"ft0channels", "FT0", "RECCHDATA", 0, Lifetime::Timeframe});
   if (mc) {
-    LOG(ERROR) << "FT0 RecPoint does not support MC truth";
+    LOG(error) << "FT0 RecPoint does not support MC truth";
   }
   requestMap["FT0"] = false;
 }
@@ -218,7 +218,7 @@ void DataRequest::requestFV0RecPoints(bool mc)
   addInput({"fv0recpoints", "FV0", "RECPOINTS", 0, Lifetime::Timeframe});
   addInput({"fv0channels", "FV0", "RECCHDATA", 0, Lifetime::Timeframe});
   if (mc) {
-    LOG(ERROR) << "FV0 RecPoint does not support MC truth";
+    LOG(error) << "FV0 RecPoint does not support MC truth";
   }
   requestMap["FV0"] = false;
 }
@@ -227,7 +227,7 @@ void DataRequest::requestFDDRecPoints(bool mc)
 {
   addInput({"fddrecpoints", "FDD", "RECPOINTS", 0, Lifetime::Timeframe});
   if (mc) {
-    LOG(ERROR) << "FDD RecPoint does not support MC truth";
+    LOG(error) << "FDD RecPoint does not support MC truth";
   }
   requestMap["FDD"] = false;
 }
@@ -239,7 +239,7 @@ void DataRequest::requestZDCRecEvents(bool mc)
   addInput({"zdctdcdata", "ZDC", "TDCDATA", 0, Lifetime::Timeframe});
   addInput({"zdcinfo", "ZDC", "INFO", 0, Lifetime::Timeframe});
   if (mc) {
-    LOG(ERROR) << "ZDC RecEvent does not support MC truth";
+    LOG(error) << "ZDC RecEvent does not support MC truth";
   }
   requestMap["ZDC"] = false;
 }
@@ -647,7 +647,7 @@ void RecoContainer::addFT0RecPoints(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::FT0].registerContainer(pc.inputs().get<gsl::span<o2::ft0::ChannelDataFloat>>("ft0channels"), CLUSTERS);
 
   if (mc) {
-    LOG(ERROR) << "FT0 RecPoint does not support MC truth";
+    LOG(error) << "FT0 RecPoint does not support MC truth";
   }
 }
 
@@ -658,7 +658,7 @@ void RecoContainer::addFV0RecPoints(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::FV0].registerContainer(pc.inputs().get<gsl::span<o2::fv0::ChannelDataFloat>>("fv0channels"), CLUSTERS);
 
   if (mc) {
-    LOG(ERROR) << "FV0 RecPoint does not support MC truth";
+    LOG(error) << "FV0 RecPoint does not support MC truth";
   }
 }
 
@@ -668,7 +668,7 @@ void RecoContainer::addFDDRecPoints(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::FDD].registerContainer(pc.inputs().get<gsl::span<o2::fdd::RecPoint>>("fddrecpoints"), TRACKS);
 
   if (mc) {
-    LOG(ERROR) << "FDD RecPoint does not support MC truth";
+    LOG(error) << "FDD RecPoint does not support MC truth";
   }
 }
 
@@ -681,7 +681,7 @@ void RecoContainer::addZDCRecEvents(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::ZDC].registerContainer(pc.inputs().get<gsl::span<uint16_t>>("zdcinfo"), PATTERNS);
 
   if (mc) {
-    LOG(ERROR) << "ZDC RecEvent does not support MC truth";
+    LOG(error) << "ZDC RecEvent does not support MC truth";
   }
 }
 

@@ -108,7 +108,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     AlgorithmSpec{
       (AlgorithmSpec::ProcessCallback) [](ProcessingContext& ctx) {
         if (ctx.inputs().isValid("test-timer")) {
-          LOG(INFO) << "Planned exit";
+          LOG(info) << "Planned exit";
           ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
         }
       }

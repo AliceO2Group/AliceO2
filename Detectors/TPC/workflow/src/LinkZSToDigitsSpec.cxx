@@ -181,7 +181,7 @@ o2::framework::DataProcessorSpec getLinkZSToDigitsSpec(int channel, const std::s
 
             if ((lastOrbit > 0) && (hbOrbit > (lastOrbit + 3))) {
               ++processAttributes->processedEvents;
-              LOG(INFO) << fmt::format("Number of processed events: {} ({})", processAttributes->processedEvents, processAttributes->maxEvents);
+              LOG(info) << fmt::format("Number of processed events: {} ({})", processAttributes->processedEvents, processAttributes->maxEvents);
               processAttributes->sortDigits();
 
               // publish digits of all configured sectors
@@ -279,9 +279,9 @@ o2::framework::DataProcessorSpec getLinkZSToDigitsSpec(int channel, const std::s
           }
 
         } catch (const std::runtime_error& e) {
-          LOG(ERROR) << "can not create raw parser form input data";
+          LOG(error) << "can not create raw parser form input data";
           o2::header::hexDump("payload", input.payload, dh->payloadSize, 64);
-          LOG(ERROR) << e.what();
+          LOG(error) << e.what();
         }
       }
     };

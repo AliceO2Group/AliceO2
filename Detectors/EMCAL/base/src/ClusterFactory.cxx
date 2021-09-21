@@ -146,7 +146,7 @@ void ClusterFactory<InputType>::evalDispersion(gsl::span<const int> inputsIndice
     phiMean /= wtot;
     etaMean /= wtot;
   } else {
-    LOG(ERROR) << Form("Wrong weight %f\n", wtot);
+    LOG(error) << Form("Wrong weight %f\n", wtot);
   }
 
   // Calculate dispersion
@@ -200,7 +200,7 @@ void ClusterFactory<InputType>::evalLocalPosition(gsl::span<const int> inputsInd
     try {
       mGeomPtr->RelPosCellInSModule(mInputsContainer[iInput].getTower(), dist).GetCoordinates(xyzi[0], xyzi[1], xyzi[2]);
     } catch (InvalidCellIDException& e) {
-      LOG(ERROR) << e.what();
+      LOG(error) << e.what();
       continue;
     }
 
@@ -274,7 +274,7 @@ void ClusterFactory<InputType>::evalGlobalPosition(gsl::span<const int> inputsIn
     try {
       mGeomPtr->RelPosCellInSModule(mInputsContainer[iInput].getTower(), dist).GetCoordinates(xyzi[0], xyzi[1], xyzi[2]);
     } catch (InvalidCellIDException& e) {
-      LOG(ERROR) << e.what();
+      LOG(error) << e.what();
       continue;
     }
 
@@ -342,7 +342,7 @@ void ClusterFactory<InputType>::evalLocalPositionFit(double deff, double mLogWei
     try {
       mGeomPtr->RelPosCellInSModule(mInputsContainer[iInput].getTower(), deff).GetCoordinates(xyzi[0], xyzi[1], xyzi[2]);
     } catch (InvalidCellIDException& e) {
-      LOG(ERROR) << e.what();
+      LOG(error) << e.what();
       continue;
     }
 

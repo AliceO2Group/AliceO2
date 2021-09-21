@@ -87,11 +87,11 @@ BOOST_AUTO_TEST_CASE(AbstractRefAccess)
     auto gid = vid[i];
     const auto& obj = acc.get(gid);
     int expect = gid.getSource() * 100 + i / GloIdx::NSources;
-    LOG(INFO) << i << " ? " << obj.b << " == " << expect << " for " << gid.getRaw();
+    LOG(info) << i << " ? " << obj.b << " == " << expect << " for " << gid.getRaw();
     BOOST_CHECK(obj.b == expect);
   }
 
   const auto& barEl = acc.get_as<Bar1>(vid.back());
-  LOG(INFO) << " ? " << barEl.b1 << " == " << bar.back().b1;
+  LOG(info) << " ? " << barEl.b1 << " == " << bar.back().b1;
   BOOST_CHECK(barEl.b1 == bar.back().b1);
 }

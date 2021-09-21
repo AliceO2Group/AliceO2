@@ -31,7 +31,7 @@ class MCTruthSourceTask : public o2::framework::Task
 
   void init(framework::InitContext& ic) override
   {
-    LOG(INFO) << "Initializing MCTruth source";
+    LOG(info) << "Initializing MCTruth source";
     mSize = ic.options().get<int>("size");
   }
 
@@ -40,7 +40,7 @@ class MCTruthSourceTask : public o2::framework::Task
     if (mFinished) {
       return;
     }
-    LOG(INFO) << "Creating MCTruth container";
+    LOG(info) << "Creating MCTruth container";
 
     using TruthElement = o2::MCCompLabel;
     using Container = dataformats::MCTruthContainer<TruthElement>;
@@ -52,13 +52,13 @@ class MCTruthSourceTask : public o2::framework::Task
     }
 
     if (mNew) {
-      LOG(INFO) << "New serialization";
+      LOG(info) << "New serialization";
       // we need to flatten it and write to managed shared memory container
       auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TST", "LABELS", 0, Lifetime::Timeframe});
       container.flatten_to(sharedlabels);
       sleep(1);
     } else {
-      LOG(INFO) << "Old serialization";
+      LOG(info) << "Old serialization";
       pc.outputs().snapshot({"TST", "LABELS", 0, Lifetime::Timeframe}, container);
       sleep(1);
     }

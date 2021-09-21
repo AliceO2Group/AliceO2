@@ -439,7 +439,7 @@ class AlpideCoder
   ///< error message on unexpected EOF
   static int unexpectedEOF(const std::string& message)
   {
-    LOG(DEBUG) << message;
+    LOG(debug) << message;
     return Error;
   }
 

@@ -39,7 +39,7 @@ void ClusterReader::init(InitContext& ic)
                                                 ic.options().get<std::string>("mft-cluster-infile"));
   mFile = std::make_unique<TFile>(filename.c_str(), "OLD");
   if (!mFile->IsOpen()) {
-    LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
+    LOG(error) << "Cannot open the " << filename.c_str() << " file !";
     mState = 0;
     return;
   }
@@ -70,7 +70,7 @@ void ClusterReader::run(ProcessingContext& pc)
     }
     tree->GetEntry(0);
 
-    LOG(INFO) << "MFTClusterReader pulled " << compClusters.size() << " compressed clusters, in "
+    LOG(info) << "MFTClusterReader pulled " << compClusters.size() << " compressed clusters, in "
               << rofs.size() << " RO frames";
 
     pc.outputs().snapshot(Output{"MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe}, compClusters);
@@ -80,7 +80,7 @@ void ClusterReader::run(ProcessingContext& pc)
       pc.outputs().snapshot(Output{"MFT", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
     }
   } else {
-    LOG(ERROR) << "Cannot read the MFT clusters !";
+    LOG(error) << "Cannot read the MFT clusters !";
     return;
   }
   mState = 2;

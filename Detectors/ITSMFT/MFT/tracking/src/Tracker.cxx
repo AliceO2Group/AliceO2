@@ -76,17 +76,17 @@ void Tracker::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
   mPhiBinSize = (constants::index_table::PhiMax - constants::index_table::PhiMin) / mPhiBins;
 
   if (printConfig) {
-    LOG(INFO) << "Configurable tracker parameters:";
-    LOG(INFO) << "MinTrackPointsLTF   = " << mMinTrackPointsLTF;
-    LOG(INFO) << "MinTrackPointsCA    = " << mMinTrackPointsCA;
-    LOG(INFO) << "MinTrackStationsLTF = " << mMinTrackStationsLTF;
-    LOG(INFO) << "MinTrackStationsCA  = " << mMinTrackStationsCA;
-    LOG(INFO) << "LTFclsRCut          = " << mLTFclsRCut;
-    LOG(INFO) << "ROADclsRCut         = " << mROADclsRCut;
-    LOG(INFO) << "RBins               = " << mRBins;
-    LOG(INFO) << "PhiBins             = " << mPhiBins;
-    LOG(INFO) << "LTFseed2BinWin      = " << mLTFseed2BinWin;
-    LOG(INFO) << "LTFinterBinWin      = " << mLTFinterBinWin;
+    LOG(info) << "Configurable tracker parameters:";
+    LOG(info) << "MinTrackPointsLTF   = " << mMinTrackPointsLTF;
+    LOG(info) << "MinTrackPointsCA    = " << mMinTrackPointsCA;
+    LOG(info) << "MinTrackStationsLTF = " << mMinTrackStationsLTF;
+    LOG(info) << "MinTrackStationsCA  = " << mMinTrackStationsCA;
+    LOG(info) << "LTFclsRCut          = " << mLTFclsRCut;
+    LOG(info) << "ROADclsRCut         = " << mROADclsRCut;
+    LOG(info) << "RBins               = " << mRBins;
+    LOG(info) << "PhiBins             = " << mPhiBins;
+    LOG(info) << "LTFseed2BinWin      = " << mLTFseed2BinWin;
+    LOG(info) << "LTFinterBinWin      = " << mLTFinterBinWin;
   }
 }
 
@@ -774,7 +774,7 @@ void Tracker::computeCellsInRoad(ROframe& event)
         nPtsInLayer2 = mRoad.getNPointsInLayer(layer2);
         /*
         if (nPtsInLayer2 > 1) {
-          LOG(INFO) << "BV===== more than one point in road " << mRoad.getRoadId() << " in layer " << layer2 << " : " << nPtsInLayer2 << "\n";
+          LOG(info) << "BV===== more than one point in road " << mRoad.getRoadId() << " in layer " << layer2 << " : " << nPtsInLayer2 << "\n";
         }
   */
         for (Int_t point2 = 0; point2 < nPtsInLayer2; ++point2) {

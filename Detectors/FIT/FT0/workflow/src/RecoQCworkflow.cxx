@@ -93,14 +93,14 @@ void RecoQCworkflow::run(o2::framework::ProcessingContext& pc)
       mVertexT0->Fill(vertexT0);
     }
     if (item == bcsMap.end() || item->second == nullptr) {
-      LOG(DEBUG) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
+      LOG(debug) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
       continue;
     }
     auto& vertex = *item->second;
     auto currentVertex = vertex.getZ();
     mPV->Fill(currentVertex);
     ushort ncont = vertex.getNContributors();
-    LOG(DEBUG) << "CurrentVertex " << currentVertex << " ncont " << int(ncont);
+    LOG(debug) << "CurrentVertex " << currentVertex << " ncont " << int(ncont);
     if (ncont < 3) {
       continue;
     }
@@ -108,7 +108,7 @@ void RecoQCworkflow::run(o2::framework::ProcessingContext& pc)
     short t0A = ft0RecPoint.getCollisionTimeA() + shift;
     short t0C = ft0RecPoint.getCollisionTimeC() - shift;
 
-    LOG(INFO) << " BC  t0  " << bc << " shift " << shift << " A " << t0A << " C " << t0C << " vertex " << vertexT0 << " PV " << currentVertex;
+    LOG(info) << " BC  t0  " << bc << " shift " << shift << " A " << t0A << " C " << t0C << " vertex " << vertexT0 << " PV " << currentVertex;
     mHisto[0]->Fill(t0A);
     mHisto[1]->Fill(t0C);
     mHisto[2]->Fill((t0C - t0A) / 2);
@@ -131,10 +131,10 @@ void RecoQCworkflow::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getRecoQCworkflow(GID::mask_t src)
 {
   auto dataRequest = std::make_shared<DataRequest>();
-  LOG(INFO) << "@@ request primary vertex";
+  LOG(info) << "@@ request primary vertex";
   dataRequest->requestPrimaryVertertices(false);
   dataRequest->requestFT0RecPoints(false);
-  LOG(INFO) << "@@@ requested T0";
+  LOG(info) << "@@@ requested T0";
   std::vector<OutputSpec> outputs; // empty
 
   return DataProcessorSpec{

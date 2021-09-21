@@ -106,7 +106,7 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
       int irof = mc2rof.rofRecordID + irfd;
 
       if (irof >= nROFRec) {
-        LOG(ERROR) << "ROF=" << irof << " from MC2ROF record is >= N ROFs=" << nROFRec;
+        LOG(error) << "ROF=" << irof << " from MC2ROF record is >= N ROFs=" << nROFRec;
       }
       if (mcEvMin[irof] > imc) {
         mcEvMin[irof] = imc;
@@ -190,7 +190,7 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
 
         if (hitEntry == mc2hit->end()) {
 
-          LOG(ERROR) << "Failed to find MC hit entry for Tr" << trID << " chipID" << chipID;
+          LOG(error) << "Failed to find MC hit entry for Tr" << trID << " chipID" << chipID;
           continue;
         }
 

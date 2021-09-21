@@ -309,7 +309,7 @@ class LookupTableBase
   void printFullMap() const
   {
     for (const auto& entry : mVecEntryFEE) {
-      LOG(INFO) << entry;
+      LOG(info) << entry;
     }
     /*
     std::cout<<std::endl<<"------------------------------------------------------------------------------"<<std::endl;

@@ -29,7 +29,7 @@ void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
 {
   TFile sourceData(sourceDataPath.c_str());
   if (!sourceData.IsOpen() || sourceData.IsZombie()) {
-    LOG(FATAL) << "Failed to open input file " << sourceDataPath;
+    LOG(fatal) << "Failed to open input file " << sourceDataPath;
   }
   o2::zdc::SimCondition conf;
 
@@ -57,7 +57,7 @@ void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
     std::string histoShapeName = "hw_" + ShapeName[ic];
     TH1* histoShape = (TH1*)sourceData.GetObjectUnchecked(histoShapeName.c_str());
     if (!histoShape) {
-      LOG(FATAL) << "Failed to extract the shape histogram  " << histoShapeName;
+      LOG(fatal) << "Failed to extract the shape histogram  " << histoShapeName;
     }
     int nb = histoShape->GetNbinsX();
     channel.shape.resize(nb);
@@ -72,7 +72,7 @@ void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
       }
     }
     if (ampMin == 0.) {
-      LOG(FATAL) << "Amplitude minimum =0 for histo " << histoShapeName;
+      LOG(fatal) << "Amplitude minimum =0 for histo " << histoShapeName;
     }
     auto ampMinAInv = 1. / std::abs(ampMin);
     for (int i = 0; i < nb; i++) {
@@ -84,14 +84,14 @@ void CreateSimCondition(std::string sourceDataPath = "signal_shapes.root",
     std::string histoPedNoiseName = "hb_" + ShapeName[ic];
     TH1* histoPedNoise = (TH1*)sourceData.GetObjectUnchecked(histoPedNoiseName.c_str());
     if (!histoPedNoise) {
-      LOG(FATAL) << "Failed to extract the pedestal noise histogram  " << histoPedNoise;
+      LOG(fatal) << "Failed to extract the pedestal noise histogram  " << histoPedNoise;
     }
     channel.pedestalNoise = histoPedNoise->GetRMS();
     //
     std::string histoPedFluctName = "hp_" + ShapeName[ic];
     TH1* histoPedFluct = (TH1*)sourceData.GetObjectUnchecked(histoPedFluctName.c_str());
     if (!histoPedFluct) {
-      LOG(FATAL) << "Failed to extract the pedestal fluctuation histogram  " << histoPedFluct;
+      LOG(fatal) << "Failed to extract the pedestal fluctuation histogram  " << histoPedFluct;
     }
     channel.pedestalFluct = histoPedFluct->GetRMS();
     //

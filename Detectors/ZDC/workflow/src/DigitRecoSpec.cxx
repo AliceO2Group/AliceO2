@@ -71,45 +71,45 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     mgr.setTimestamp(timeStamp);
     auto* moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
     if (!moduleConfig) {
-      LOG(FATAL) << "Missing configuration object";
+      LOG(fatal) << "Missing configuration object";
       return;
     }
-    LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
+    LOG(info) << "Loaded module configuration for timestamp " << timeStamp;
     moduleConfig->print();
 
     // Configuration parameters for ZDC reconstruction
     auto* recoConfigZDC = mgr.get<o2::zdc::RecoConfigZDC>(o2::zdc::CCDBPathRecoConfigZDC);
     if (!recoConfigZDC) {
-      LOG(FATAL) << "Missing RecoConfigZDC object";
+      LOG(fatal) << "Missing RecoConfigZDC object";
       return;
     }
-    LOG(INFO) << "Loaded RecoConfigZDC for timestamp " << timeStamp;
+    LOG(info) << "Loaded RecoConfigZDC for timestamp " << timeStamp;
     recoConfigZDC->print();
 
     // TDC centering
     auto* tdcParam = mgr.get<o2::zdc::ZDCTDCParam>(o2::zdc::CCDBPathTDCCalib);
     if (!tdcParam) {
-      LOG(FATAL) << "Missing ZDCTDCParam calibration object";
+      LOG(fatal) << "Missing ZDCTDCParam calibration object";
       return;
     }
-    LOG(INFO) << "Loaded TDC centering ZDCTDCParam for timestamp " << timeStamp;
+    LOG(info) << "Loaded TDC centering ZDCTDCParam for timestamp " << timeStamp;
     tdcParam->print();
 
     // Energy calibration
     auto* energyParam = mgr.get<o2::zdc::ZDCEnergyParam>(o2::zdc::CCDBPathEnergyCalib);
     if (!energyParam) {
-      LOG(WARNING) << "Missing ZDCEnergyParam calibration object - using default";
+      LOG(warning) << "Missing ZDCEnergyParam calibration object - using default";
     } else {
-      LOG(INFO) << "Loaded Energy calibration ZDCEnergyParam for timestamp " << timeStamp;
+      LOG(info) << "Loaded Energy calibration ZDCEnergyParam for timestamp " << timeStamp;
       energyParam->print();
     }
 
     // Tower calibration
     auto* towerParam = mgr.get<o2::zdc::ZDCTowerParam>(o2::zdc::CCDBPathTowerCalib);
     if (!towerParam) {
-      LOG(WARNING) << "Missing ZDCTowerParam calibration object - using default";
+      LOG(warning) << "Missing ZDCTowerParam calibration object - using default";
     } else {
-      LOG(INFO) << "Loaded Tower calibration ZDCTowerParam for timestamp " << timeStamp;
+      LOG(info) << "Loaded Tower calibration ZDCTowerParam for timestamp " << timeStamp;
       towerParam->print();
     }
 
@@ -137,7 +137,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   const std::vector<o2::zdc::RecEventAux>& recAux = mDR.getReco();
 
   RecEvent recEvent;
-  LOG(INFO) << "BC processed during reconstruction " << recAux.size();
+  LOG(info) << "BC processed during reconstruction " << recAux.size();
   int32_t nte = 0, ntt = 0;
   for (auto reca : recAux) {
     int32_t ne = reca.ezdc.size();
@@ -172,7 +172,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     recEvent.addInfo(reca.adcPedQC, MsgADCPedQC);
     recEvent.addInfo(reca.adcPedMissing, MsgADCPedMissing);
   }
-  LOG(INFO) << "Reconstructed " << ntt << " signal TDCs and " << nte << " energies";
+  LOG(info) << "Reconstructed " << ntt << " signal TDCs and " << nte << " energies";
   // TODO: rate information for all channels
   // TODO: summary of reconstruction to be collected by DQM?
   pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, recEvent.mRecBC);
@@ -180,13 +180,13 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0, Lifetime::Timeframe}, recEvent.mTDCData);
   pc.outputs().snapshot(Output{"ZDC", "INFO", 0, Lifetime::Timeframe}, recEvent.mInfo);
   mTimer.Stop();
-  LOG(INFO) << "Reconstructed ZDC data for " << recEvent.mRecBC.size() << " b.c. in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Reconstructed ZDC data for " << recEvent.mRecBC.size() << " b.c. in " << mTimer.CpuTime() - cput << " s";
 }
 
 void DigitRecoSpec::endOfStream(EndOfStreamContext& ec)
 {
   mDR.eor();
-  LOGF(INFO, "ZDC Reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "ZDC Reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

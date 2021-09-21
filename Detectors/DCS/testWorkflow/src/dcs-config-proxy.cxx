@@ -34,7 +34,7 @@ using DetID = o2::detectors::DetID;
 void sendAnswer(const std::string& what, const std::string& ack_chan, FairMQDevice& device)
 {
   if (!ack_chan.empty()) {
-    LOG(INFO) << "Sending acknowledgment " << what;
+    LOG(info) << "Sending acknowledgment " << what;
     auto fmqFactory = device.GetChannel(ack_chan).Transport();
     auto msg = fmqFactory->CreateMessage(what.size(), fair::mq::Alignment{64});
     memcpy(msg->GetData(), what.c_str(), what.size());
@@ -58,16 +58,16 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
   return [acknowledge, timesliceId](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
     // make sure just 2 messages received
     if (parts.Size() != 2) {
-      LOG(ERROR) << "received " << parts.Size() << " instead of 2 expected";
+      LOG(error) << "received " << parts.Size() << " instead of 2 expected";
       sendAnswer("error0: wrong number of messages", acknowledge, device);
       return;
     }
     std::string filename{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
     size_t filesize = parts.At(1)->GetSize();
-    LOG(INFO) << "received file " << filename << " of size " << filesize;
+    LOG(info) << "received file " << filename << " of size " << filesize;
     int dID = getDetID(filename);
     if (dID < 0) {
-      LOG(ERROR) << "unknown detector for " << filename;
+      LOG(error) << "unknown detector for " << filename;
       sendAnswer("error1: unrecognized filename", acknowledge, device);
       return;
     }
@@ -77,7 +77,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     OutputSpec outsp{hdrN.dataOrigin, hdrN.dataDescription, hdrN.subSpecification};
     auto channel = channelRetriever(outsp, *timesliceId);
     if (channel.empty()) {
-      LOG(ERROR) << "No output channel found for OutputSpec " << outsp;
+      LOG(error) << "No output channel found for OutputSpec " << outsp;
       sendAnswer("error2: no channel to send", acknowledge, device);
       return;
     }
@@ -118,7 +118,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     sendOnChannel(device, outParts, channel);
 
     sendAnswer("OK", acknowledge, device);
-    LOG(INFO) << "Sent DPL message and acknowledgment for file " << filename;
+    LOG(info) << "Sent DPL message and acknowledgment for file " << filename;
   };
 }
 
@@ -158,7 +158,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     ackChan = "ackChan";
     chan = o2::utils::Str::concat_string(chan, ";", setChanName(chanTo, ackChan));
   }
-  LOG(INFO) << "Channels setup: " << chan;
+  LOG(info) << "Channels setup: " << chan;
   Outputs dcsOutputs;
   for (int id = DetID::First; id <= DetID::Last; id++) {
     dcsOutputs.emplace_back(DetID(id).getDataOrigin(), "DCS_CONFIG_FILE", 0, Lifetime::Timeframe);

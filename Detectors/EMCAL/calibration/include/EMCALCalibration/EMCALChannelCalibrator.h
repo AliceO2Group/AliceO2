@@ -93,7 +93,7 @@ bool EMCALChannelCalibrator<DataInput, HistContainer>::hasEnoughData(const o2::c
 {
 
   const DataInput* c = slot.getContainer();
-  LOG(INFO) << "Checking statistics";
+  LOG(info) << "Checking statistics";
   return (mTest ? true : c->hasEnoughData());
 }
 
@@ -103,7 +103,7 @@ void EMCALChannelCalibrator<DataInput, HistContainer>::finalizeSlot(o2::calibrat
 {
   // Extract results for the single slot
   DataInput* c = slot.getContainer();
-  LOG(INFO) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
+  LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
 
   // for the CCDB entry
   std::map<std::string, std::string> md;

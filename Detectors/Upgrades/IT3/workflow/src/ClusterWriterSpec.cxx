@@ -45,7 +45,7 @@ DataProcessorSpec getClusterWriterSpec(bool useMC)
     *compClustersSize = compClusters.size();
   };
   auto logger = [compClustersSize](std::vector<o2::itsmft::ROFRecord> const& rofs) {
-    LOG(INFO) << "ITS3ClusterWriter pulled " << *compClustersSize << " clusters, in " << rofs.size() << " RO frames";
+    LOG(info) << "ITS3ClusterWriter pulled " << *compClustersSize << " clusters, in " << rofs.size() << " RO frames";
   };
   return MakeRootTreeWriterSpec("its3-cluster-writer",
                                 "o2clus_it3.root",

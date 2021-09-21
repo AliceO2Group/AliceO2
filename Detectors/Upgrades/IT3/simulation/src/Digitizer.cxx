@@ -59,7 +59,7 @@ void Digitizer::process(const std::vector<itsmft::Hit>* hits, int evID, int srcI
 {
   // digitize single event, the time must have been set beforehand
 
-  LOG(INFO) << "Digitizing " << mGeometry->getName() << " hits of entry " << evID << " from source "
+  LOG(info) << "Digitizing " << mGeometry->getName() << " hits of entry " << evID << " from source "
             << srcID << " at time " << mEventTime << " ROFrame= " << mNewROFrame << ")"
             << " cont.mode: " << isContinuous()
             << " Min/Max ROFrames " << mROFrameMin << "/" << mROFrameMax;
@@ -111,7 +111,7 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
   }
 
   if (mNewROFrame < mROFrameMin) {
-    LOG(ERROR) << "New ROFrame " << mNewROFrame << " (" << irt << ") precedes currently cashed " << mROFrameMin;
+    LOG(error) << "New ROFrame " << mNewROFrame << " (" << irt << ") precedes currently cashed " << mROFrameMin;
     throw std::runtime_error("deduced ROFrame precedes already processed one");
   }
 
@@ -129,7 +129,7 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
   // make sure all buffers for extra digits are created up to the maxFrame
   getExtraDigBuffer(mROFrameMax);
 
-  LOG(INFO) << "Filling " << mGeometry->getName() << " digits output for RO frames " << mROFrameMin << ":"
+  LOG(info) << "Filling " << mGeometry->getName() << " digits output for RO frames " << mROFrameMin << ":"
             << frameLast;
 
   o2::itsmft::ROFRecord rcROF;
@@ -197,7 +197,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     const int maxWarn = 10;
     static int warnNo = 0;
     if (warnNo < maxWarn) {
-      LOG(WARNING) << "Ignoring hit with time_in_event = " << timeInROF << " ns"
+      LOG(warning) << "Ignoring hit with time_in_event = " << timeInROF << " ns"
                    << ((++warnNo < maxWarn) ? "" : " (suppressing further warnings)");
     }
     return;

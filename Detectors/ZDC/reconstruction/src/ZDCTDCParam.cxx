@@ -19,7 +19,7 @@ void ZDCTDCParam::setShift(uint32_t ich, float val)
   if (ich >= 0 && ich < NTDCChannels) {
     tdc_shift[ich] = val;
   } else {
-    LOG(FATAL) << __func__ << " channel " << ich << " not in allowed range";
+    LOG(fatal) << __func__ << " channel " << ich << " not in allowed range";
   }
 }
 
@@ -28,7 +28,7 @@ float ZDCTDCParam::getShift(uint32_t ich) const
   if (ich >= 0 && ich < NTDCChannels) {
     return tdc_shift[ich];
   } else {
-    LOG(FATAL) << __func__ << " channel " << ich << " not in allowed range";
+    LOG(fatal) << __func__ << " channel " << ich << " not in allowed range";
     return 0;
   }
 }
@@ -36,6 +36,6 @@ float ZDCTDCParam::getShift(uint32_t ich) const
 void ZDCTDCParam::print()
 {
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
-    LOG(INFO) << ChannelNames[TDCSignal[itdc]] << " shift = " << tdc_shift[itdc] << " ns";
+    LOG(info) << ChannelNames[TDCSignal[itdc]] << " shift = " << tdc_shift[itdc] << " ns";
   }
 }

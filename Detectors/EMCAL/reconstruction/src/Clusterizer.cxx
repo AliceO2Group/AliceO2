@@ -205,7 +205,7 @@ void Clusterizer<InputType>::findClusters(const gsl::span<InputType const>& inpu
     // Now form cluster object from cells/digits
     mFoundClusters.emplace_back(mInputMap[row][column].mInput->getTimeStamp(), inputIndexStart, inputIndexSize); // Cluster object initialized w/ time of seed cell, start + size of associated cells
   }
-  LOG(DEBUG) << mFoundClusters.size() << "clusters found from " << nCells << " cells/digits (total=" << inputArray.size() << ")-> ehs " << ehs << " (minE " << mThresholdCellEnergy << ")";
+  LOG(debug) << mFoundClusters.size() << "clusters found from " << nCells << " cells/digits (total=" << inputArray.size() << ")-> ehs " << ehs << " (minE " << mThresholdCellEnergy << ")";
 }
 
 template class o2::emcal::Clusterizer<o2::emcal::Cell>;

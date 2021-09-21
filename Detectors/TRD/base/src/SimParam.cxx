@@ -79,7 +79,7 @@ void SimParam::reInit()
     // Higher gas gain
     mGasGain = 8000.0;
   } else {
-    LOG(FATAL) << "Not a valid gas mixture!\n";
+    LOG(fatal) << "Not a valid gas mixture!\n";
   }
   mInvTRFwid = ((float)mTRFbin) / (mTRFhi - mTRFlo); // Inverse of the bin width of the integrated TRF
 

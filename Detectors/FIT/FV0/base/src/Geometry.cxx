@@ -70,7 +70,7 @@ int Geometry::getCurrentCellId(const TVirtualMC* fMC) const
 
   sectorID += detectorHalfID * sNumberOfCellSectors;
 
-  LOG(DEBUG) << "FV0 Geometry::getCurrentCellId(): \n"
+  LOG(debug) << "FV0 Geometry::getCurrentCellId(): \n"
              << "Half id:     " << detectorHalfID << "\n"
              << "Half name:   " << fMC->CurrentVolOffName(2) << "\n"
              << "Sector id:   " << sectorID << "\n"
@@ -85,7 +85,7 @@ int Geometry::getCurrentCellId(const TVirtualMC* fMC) const
 bool Geometry::enableComponent(const EGeoComponent component, const bool enable)
 {
   if (mEnabledComponents.find(component) == mEnabledComponents.end()) {
-    LOG(DEBUG) << "FV0 Geometry::enableComponent(): Component not initialized and cannot be enabled/disabled!";
+    LOG(debug) << "FV0 Geometry::enableComponent(): Component not initialized and cannot be enabled/disabled!";
     return false;
   }
 
@@ -96,12 +96,12 @@ void Geometry::buildGeometry() const
 {
   TGeoVolume* vALIC = gGeoManager->GetVolume("barrel");
   if (!vALIC) {
-    LOG(FATAL) << "FV0: Could not find the top volume";
+    LOG(fatal) << "FV0: Could not find the top volume";
   }
 
   // Top volume of FV0 detector
   TGeoVolumeAssembly* vFV0 = new TGeoVolumeAssembly(sDetectorName.c_str());
-  LOG(INFO) << "FV0: Building geometry. FV0 volume name is '" << vFV0->GetName() << "'";
+  LOG(info) << "FV0: Building geometry. FV0 volume name is '" << vFV0->GetName() << "'";
 
   assembleSensVols(vFV0);
   assembleNonSensVols(vFV0);
@@ -1057,7 +1057,7 @@ void Geometry::assembleFibers(TGeoVolume* vFV0) const
   for (int i = 0; i < mRMinFiber.size(); ++i) {
     TGeoVolume* fiber = gGeoManager->GetVolume(createVolumeName(sFiberName, i).c_str());
     if (!fiber) {
-      LOG(WARNING) << "FV0 Geometry::assembleFibers(): Fiber volume no. " << i << " not found.";
+      LOG(warning) << "FV0 Geometry::assembleFibers(): Fiber volume no. " << i << " not found.";
     }
     fibers->AddNode(fiber, i);
   }
@@ -1074,7 +1074,7 @@ void Geometry::assembleScrews(TGeoVolume* vFV0) const
   for (int i = 0; i < mScrewPos.size(); ++i) {
     TGeoVolume* screw = gGeoManager->GetVolume(createVolumeName(sScrewName, mScrewTypeIDs[i]).c_str());
     if (!screw) {
-      LOG(WARNING) << "FV0 Geometry::assembleScrews(): Screw no. " << i << " not found";
+      LOG(warning) << "FV0 Geometry::assembleScrews(): Screw no. " << i << " not found";
     } else {
       screws->AddNode(screw, i, new TGeoTranslation(mScrewPos[i][0] + sXShiftScrews, mScrewPos[i][1], mScrewPos[i][2]));
     }
@@ -1093,7 +1093,7 @@ void Geometry::assembleRods(TGeoVolume* vFV0) const
     TGeoVolume* rod = gGeoManager->GetVolume(createVolumeName(sRodName, mRodTypeIDs[i]).c_str());
 
     if (!rod) {
-      LOG(INFO) << "FV0 Geometry::assembleRods(): Rod no. " << i << " not found";
+      LOG(info) << "FV0 Geometry::assembleRods(): Rod no. " << i << " not found";
     } else {
       rods->AddNode(rod, i, new TGeoTranslation(mRodPos[i][0] + sXShiftScrews, mRodPos[i][1], mRodPos[i][2]));
     }
@@ -1107,7 +1107,7 @@ void Geometry::assembleMetalContainer(TGeoVolume* volV0) const
 {
   TGeoVolume* container = gGeoManager->GetVolume(createVolumeName(sContainerName).c_str());
   if (!container) {
-    LOG(WARNING) << "FV0: Could not find container volume";
+    LOG(warning) << "FV0: Could not find container volume";
   } else {
     volV0->AddNode(container, 1, mLeftTransformation);
     volV0->AddNode(container, 2, mRightTransformation);
@@ -1134,7 +1134,7 @@ TGeoVolumeAssembly* Geometry::buildSector(const std::string& cellType, const int
     TGeoVolume* cell = gGeoManager->GetVolume(createVolumeName(cellType + sCellName + sCellTypes[iSector], i).c_str());
 
     if (!cell) {
-      LOG(WARNING) << "FV0 Geometry::buildSector(): Couldn't find cell volume no. " << i;
+      LOG(warning) << "FV0 Geometry::buildSector(): Couldn't find cell volume no. " << i;
     } else {
       sector->AddNode(cell, i, new TGeoTranslation(sXScintillator, 0, 0));
     }
@@ -1259,7 +1259,7 @@ Geometry* Geometry::sInstance = nullptr;
 Geometry* Geometry::instance(EGeoType initType)
 {
   if (!sInstance) {
-    LOG(INFO) << "FV0 geometry instance created";
+    LOG(info) << "FV0 geometry instance created";
   }
   sInstance = new Geometry(initType);
   return sInstance;

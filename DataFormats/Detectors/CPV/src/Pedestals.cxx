@@ -26,18 +26,18 @@ Pedestals::Pedestals(int /*dummy*/)
 bool Pedestals::setPedestals(TH1* h)
 {
   if (!h) {
-    LOG(ERROR) << "no input histogam";
+    LOG(error) << "no input histogam";
     return false;
   }
 
   if (h->GetNbinsX() != NCHANNELS) {
-    LOG(ERROR) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << " instead of " << NCHANNELS;
+    LOG(error) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << " instead of " << NCHANNELS;
     return false;
   }
 
   for (short i = 1; i <= NCHANNELS; i++) {
     if (h->GetBinContent(i) > 511) {
-      LOG(ERROR) << "setPedestals : pedestal value = " << h->GetBinContent(i)
+      LOG(error) << "setPedestals : pedestal value = " << h->GetBinContent(i)
                  << " in channel " << i
                  << " exceeds max possible value 511 (limited by CPV electronics)";
       continue;
@@ -50,18 +50,18 @@ bool Pedestals::setPedestals(TH1* h)
 bool Pedestals::setPedSigmas(TH1F* h)
 {
   if (!h) {
-    LOG(ERROR) << "no input histogam";
+    LOG(error) << "no input histogam";
     return false;
   }
 
   if (h->GetNbinsX() != NCHANNELS) {
-    LOG(ERROR) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << " instead of " << NCHANNELS;
+    LOG(error) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << " instead of " << NCHANNELS;
     return false;
   }
 
   for (short i = 1; i <= NCHANNELS; i++) {
     if (h->GetBinContent(i) < 0) {
-      LOG(ERROR) << "pedestal sigma = " << h->GetBinContent(i)
+      LOG(error) << "pedestal sigma = " << h->GetBinContent(i)
                  << " in channel " << i
                  << " cannot be less than 0";
       continue;

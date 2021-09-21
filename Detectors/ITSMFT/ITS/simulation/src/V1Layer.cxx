@@ -241,39 +241,39 @@ void V1Layer::createLayer(TGeoVolume* motherVolume)
 
   // Check if the user set the proper parameters
   if (mLayerRadius <= 0) {
-    LOG(FATAL) << "Wrong layer radius " << mLayerRadius;
+    LOG(fatal) << "Wrong layer radius " << mLayerRadius;
   }
 
   if (mZLength <= 0) {
-    LOG(FATAL) << "Wrong layer length " << mZLength;
+    LOG(fatal) << "Wrong layer length " << mZLength;
   }
 
   if (mNumberOfStaves <= 0) {
-    LOG(FATAL) << "Wrong number of staves " << mNumberOfStaves;
+    LOG(fatal) << "Wrong number of staves " << mNumberOfStaves;
   }
 
   if (mNumberOfChips <= 0) {
-    LOG(FATAL) << "Wrong number of chips " << mNumberOfChips;
+    LOG(fatal) << "Wrong number of chips " << mNumberOfChips;
   }
 
   if (mLayerNumber >= sNumberOmInnerLayers && mNumberOfModules <= 0) {
-    LOG(FATAL) << "Wrong number of modules " << mNumberOfModules;
+    LOG(fatal) << "Wrong number of modules " << mNumberOfModules;
   }
 
   if (mStaveThickness <= 0) {
-    LOG(INFO) << "Stave thickness wrong or not set " << mStaveThickness << " using default "
+    LOG(info) << "Stave thickness wrong or not set " << mStaveThickness << " using default "
               << sDefaultStaveThick;
     mStaveThickness = sDefaultStaveThick;
   }
 
   if (mSensorThickness <= 0) {
-    LOG(INFO) << "Sensor thickness wrong or not set " << mSensorThickness << " using default "
+    LOG(info) << "Sensor thickness wrong or not set " << mSensorThickness << " using default "
               << sDefaultSensorThick;
     mSensorThickness = sDefaultSensorThick;
   }
 
   if (mSensorThickness > mStaveThickness) {
-    LOG(WARNING) << "Sensor thickness " << mSensorThickness << " is greater than stave thickness "
+    LOG(warning) << "Sensor thickness " << mSensorThickness << " is greater than stave thickness "
                  << mStaveThickness << " fixing";
     mSensorThickness = mStaveThickness;
   }
@@ -327,11 +327,11 @@ void V1Layer::createLayerTurbo(TGeoVolume* motherVolume)
 
   // Check if the user set the proper (remaining) parameters
   if (mStaveWidth <= 0) {
-    LOG(FATAL) << "Wrong stave width " << mStaveWidth;
+    LOG(fatal) << "Wrong stave width " << mStaveWidth;
   }
 
   if (Abs(mStaveTilt) > 45) {
-    LOG(WARNING) << "Stave tilt angle (" << mStaveTilt << ") greater than 45deg";
+    LOG(warning) << "Stave tilt angle (" << mStaveTilt << ") greater than 45deg";
   }
 
   snprintf(volumeName, 30, "%s%d", GeometryTGeo::getITSLayerPattern(), mLayerNumber);
@@ -520,7 +520,7 @@ TGeoVolume* V1Layer::createStaveStructInnerB(const Double_t xsta, const Double_t
       mechStavVol = createStaveModelInnerB3(xsta, zsta, mgr);
       break;
     default:
-      LOG(FATAL) << "Unknown stave model " << mStaveModel;
+      LOG(fatal) << "Unknown stave model " << mStaveModel;
       break;
   }
   return mechStavVol;
@@ -564,7 +564,7 @@ TGeoVolume* V1Layer::createStaveModelInnerB0(const Double_t xsta, const Double_t
   // Double_t s3 = kWidth/(2*TMath::Sin(kTheta));
   // Double_t s4 = 3*kWidth/(2*TMath::Sin(kTheta));
 
-  LOG(DEBUG1) << "BuildLevel " << mBuildLevel;
+  LOG(debug1) << "BuildLevel " << mBuildLevel;
 
   char volumeName[30];
   snprintf(volumeName, 30, "%s%d_StaveStruct", GeometryTGeo::getITSStavePattern(),
@@ -1953,7 +1953,7 @@ TGeoVolume* V1Layer::createStaveOuterB(const TGeoManager* mgr)
       mechStavVol = createStaveModelOuterB1(mgr);
       break;
     default:
-      LOG(FATAL) << "Unknown stave model " << mStaveModel;
+      LOG(fatal) << "Unknown stave model " << mStaveModel;
       break;
   }
   return mechStavVol;
@@ -2303,7 +2303,7 @@ TGeoVolume* V1Layer::createSpaceFrameOuterB(const TGeoManager* mgr)
       mechStavVol = createSpaceFrameOuterB1(mgr);
       break;
     default:
-      LOG(FATAL) << "Unknown stave model " << mStaveModel;
+      LOG(fatal) << "Unknown stave model " << mStaveModel;
       break;
   }
 
@@ -2692,7 +2692,7 @@ void V1Layer::setStaveTilt(const Double_t t)
   if (mIsTurbo) {
     mStaveTilt = t;
   } else {
-    LOG(ERROR) << "Not a Turbo layer";
+    LOG(error) << "Not a Turbo layer";
   }
 }
 
@@ -2701,7 +2701,7 @@ void V1Layer::setStaveWidth(const Double_t w)
   if (mIsTurbo) {
     mStaveWidth = w;
   } else {
-    LOG(ERROR) << "Not a Turbo layer";
+    LOG(error) << "Not a Turbo layer";
   }
 }
 

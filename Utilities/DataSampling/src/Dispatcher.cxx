@@ -44,7 +44,7 @@ Dispatcher::~Dispatcher() = default;
 
 void Dispatcher::init(InitContext& ctx)
 {
-  LOG(DEBUG) << "Reading Data Sampling Policies...";
+  LOG(debug) << "Reading Data Sampling Policies...";
 
   boost::property_tree::ptree policiesTree;
 

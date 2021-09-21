@@ -37,7 +37,7 @@ DataProcessorSpec getTrackWriterTPCITSSpec(bool useMC)
 {
   // A spectator for logging
   auto logger = [](TracksType const& tracks) {
-    LOG(INFO) << "Writing " << tracks.size() << " TPC-ITS matches";
+    LOG(info) << "Writing " << tracks.size() << " TPC-ITS matches";
   };
   return MakeRootTreeWriterSpec("itstpc-track-writer",
                                 "o2match_itstpc.root",

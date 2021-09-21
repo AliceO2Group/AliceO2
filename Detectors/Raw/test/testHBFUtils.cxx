@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(HBFUtils)
   std::vector<o2::InteractionTimeRecord> irs(nIRs);
   irSampler.generateCollisionTimes(irs);
 
-  LOG(INFO) << "Emulate RDHs for raw data between IRs " << irs.front() << " and " << irs.back();
+  LOG(info) << "Emulate RDHs for raw data between IRs " << irs.front() << " and " << irs.back();
 
   uint8_t packetCounter = 0;
   std::vector<o2::InteractionRecord> HBIRVec;

@@ -35,7 +35,7 @@ int main(int argc, char** argv)
   FairLogger::GetLogger()->SetLogScreenLevel("DEBUG");
   TFile f(o2::base::NameConf::getMCKinematicsFileName(nameprefix).c_str());
 
-  LOG(DEBUG) << "Checking input file :" << f.GetPath();
+  LOG(debug) << "Checking input file :" << f.GetPath();
 
   std::vector<o2::MCTrack>* mctracks = nullptr;
   auto tr = (TTree*)f.Get("o2sim");
@@ -64,13 +64,13 @@ int main(int argc, char** argv)
   for (int eventID = 0; eventID < mcbr->GetEntries(); ++eventID) {
     mcbr->GetEntry(eventID);
     refbr->GetEntry(eventID);
-    LOG(DEBUG) << "-- Entry --" << eventID;
-    LOG(DEBUG) << "Have " << mctracks->size() << " tracks";
+    LOG(debug) << "-- Entry --" << eventID;
+    LOG(debug) << "Have " << mctracks->size() << " tracks";
 
     std::unordered_map<int, bool> trackidsinITS_fromhits;
     if (hitbr) {
       hitbr->GetEntry(eventID);
-      LOG(DEBUG) << "Have " << hits->size() << " hits";
+      LOG(debug) << "Have " << hits->size() << " hits";
 
       // check that trackIDs from the hits are within range
       int maxid = 0;
@@ -98,7 +98,7 @@ int main(int argc, char** argv)
       if (t.leftTrace(o2::detectors::DetID::ITS)) {
         trackidsinITS.emplace_back(ti);
       }
-      LOG(DEBUG) << " track " << ti << "\t" << t.getMotherTrackId() << " hits " << t.hasHits();
+      LOG(debug) << " track " << ti << "\t" << t.getMotherTrackId() << " hits " << t.hasHits();
       ti++;
     }
 
@@ -109,8 +109,8 @@ int main(int argc, char** argv)
       }
     }
 
-    LOG(DEBUG) << "Have " << trackidsinTPC.size() << " tracks with hits in TPC";
-    LOG(DEBUG) << "Have " << trackrefs->size() << " track refs";
+    LOG(debug) << "Have " << trackidsinTPC.size() << " tracks with hits in TPC";
+    LOG(debug) << "Have " << trackrefs->size() << " track refs";
 
     // check correct working of MCKinematicsReader
     bool havereferences = trackrefs->size();
@@ -118,13 +118,13 @@ int main(int argc, char** argv)
       for (auto& trackID : trackidsinTPC) {
         auto trackrefs = mcreader.getTrackRefs(eventID, trackID);
         assert(trackrefs.size() > 0);
-        LOG(DEBUG) << " Track " << trackID << " has " << trackrefs.size() << " TrackRefs";
+        LOG(debug) << " Track " << trackID << " has " << trackrefs.size() << " TrackRefs";
         for (auto& ref : trackrefs) {
           assert(ref.getTrackID() == trackID);
         }
       }
     }
   }
-  LOG(INFO) << "STACK TEST SUCCESSFULL\n";
+  LOG(info) << "STACK TEST SUCCESSFULL\n";
   return 0;
 }

@@ -40,7 +40,7 @@ std::pair<uint32_t, uint16_t> getDate(const std::string& refDate)
       std::istringstream sss(refDate);
       sss >> std::get_time(&tt, "%Y-%m-%d %H:%M:%S");
       if (sss.fail()) {
-        LOG(ERROR) << "We cannot parse the date";
+        LOG(error) << "We cannot parse the date";
       }
       seconds = mktime(&tt);
     } else {

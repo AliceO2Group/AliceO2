@@ -53,12 +53,12 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mCTFCoder.decode(ctfImage, triggers, cells);
 
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << cells.size() << " PHOS cells in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << cells.size() << " PHOS cells in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "PHOS Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "PHOS Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

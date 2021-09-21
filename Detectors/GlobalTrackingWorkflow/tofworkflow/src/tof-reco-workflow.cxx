@@ -134,61 +134,61 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto isCosmics = cfgc.options().get<bool>("cosmics");
   auto ignoreDistStf = cfgc.options().get<bool>("ignore-dist-stf");
 
-  LOG(INFO) << "TOF RECO WORKFLOW configuration";
-  LOG(INFO) << "TOF input = " << cfgc.options().get<std::string>("input-type");
-  LOG(INFO) << "TOF output = " << cfgc.options().get<std::string>("output-type");
-  LOG(INFO) << "TOF sectors = " << cfgc.options().get<std::string>("tof-sectors");
-  LOG(INFO) << "TOF disable-mc = " << cfgc.options().get<std::string>("disable-mc");
-  LOG(INFO) << "TOF lanes = " << cfgc.options().get<std::string>("tof-lanes");
-  LOG(INFO) << "TOF use-ccdb = " << cfgc.options().get<std::string>("use-ccdb");
-  LOG(INFO) << "TOF disable-root-input = " << disableRootInput;
-  LOG(INFO) << "TOF disable-root-output = " << disableRootOutput;
-  LOG(INFO) << "TOF conet-mode = " << conetmode;
-  LOG(INFO) << "TOF ignore Dist Stf = " << ignoreDistStf;
-  LOG(INFO) << "TOF disable-row-writing = " << disableROWwriting;
-  LOG(INFO) << "TOF write-decoding-errors = " << writeerr;
+  LOG(info) << "TOF RECO WORKFLOW configuration";
+  LOG(info) << "TOF input = " << cfgc.options().get<std::string>("input-type");
+  LOG(info) << "TOF output = " << cfgc.options().get<std::string>("output-type");
+  LOG(info) << "TOF sectors = " << cfgc.options().get<std::string>("tof-sectors");
+  LOG(info) << "TOF disable-mc = " << cfgc.options().get<std::string>("disable-mc");
+  LOG(info) << "TOF lanes = " << cfgc.options().get<std::string>("tof-lanes");
+  LOG(info) << "TOF use-ccdb = " << cfgc.options().get<std::string>("use-ccdb");
+  LOG(info) << "TOF disable-root-input = " << disableRootInput;
+  LOG(info) << "TOF disable-root-output = " << disableRootOutput;
+  LOG(info) << "TOF conet-mode = " << conetmode;
+  LOG(info) << "TOF ignore Dist Stf = " << ignoreDistStf;
+  LOG(info) << "TOF disable-row-writing = " << disableROWwriting;
+  LOG(info) << "TOF write-decoding-errors = " << writeerr;
 
   if (clusterinput && !disableRootInput) {
-    LOG(INFO) << "Insert TOF Cluster Reader";
+    LOG(info) << "Insert TOF Cluster Reader";
     specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
   } else if (dgtinput) {
     // TOF clusterizer
     if (!disableRootInput) {
-      LOG(INFO) << "Insert TOF Digit reader from file";
+      LOG(info) << "Insert TOF Digit reader from file";
       specs.emplace_back(o2::tof::getDigitReaderSpec(useMC));
     }
     if (writeraw) {
-      LOG(INFO) << "Insert TOF Raw writer";
+      LOG(info) << "Insert TOF Raw writer";
       specs.emplace_back(o2::tof::getTOFRawWriterSpec());
     }
   } else if (rawinput) {
-    LOG(INFO) << "Insert TOF Compressed Raw Decoder";
+    LOG(info) << "Insert TOF Compressed Raw Decoder";
     auto inputDesc = cfgc.options().get<std::string>("input-desc");
     specs.emplace_back(o2::tof::getCompressedDecodingSpec(inputDesc, conetmode, !ignoreDistStf));
     useMC = 0;
 
     if (writedigit && !disableRootOutput) {
       // add TOF digit writer without mc labels
-      LOG(INFO) << "Insert TOF Digit Writer";
+      LOG(info) << "Insert TOF Digit Writer";
       specs.emplace_back(o2::tof::getTOFDigitWriterSpec(0, writeerr));
     }
   }
 
   if (!clusterinput && writecluster) {
-    LOG(INFO) << "Insert TOF Clusterizer";
+    LOG(info) << "Insert TOF Clusterizer";
     specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC, useCCDB, isCalibFromCluster, isCosmics));
     if (writecluster && !disableRootOutput) {
-      LOG(INFO) << "Insert TOF Cluster Writer";
+      LOG(info) << "Insert TOF Cluster Writer";
       specs.emplace_back(o2::tof::getTOFClusterWriterSpec(useMC));
     }
   }
 
   if (writectf) {
-    LOG(INFO) << "Insert TOF CTF encoder";
+    LOG(info) << "Insert TOF CTF encoder";
     specs.emplace_back(o2::tof::getEntropyEncoderSpec());
   }
 
-  LOG(INFO) << "Number of active devices = " << specs.size();
+  LOG(info) << "Number of active devices = " << specs.size();
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

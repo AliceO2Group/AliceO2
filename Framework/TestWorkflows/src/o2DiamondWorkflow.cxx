@@ -40,7 +40,7 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 {
   return AlgorithmSpec{adaptStateful([what, minDelay](RunningWorkflowInfo const& runningWorkflow) {
     srand(getpid());
-    LOG(INFO) << "There are " << runningWorkflow.devices.size() << "  devices in the workflow";
+    LOG(info) << "There are " << runningWorkflow.devices.size() << "  devices in the workflow";
     return adaptStateless([what, minDelay](DataAllocator& outputs, RawDeviceService& device) {
       device.device()->WaitFor(std::chrono::milliseconds(minDelay));
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
@@ -81,6 +81,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      AlgorithmSpec{adaptStateless([](InputRecord& inputs) {
        auto ref = inputs.get("b");
        auto header = o2::header::get<const DataProcessingHeader*>(ref.header);
-       LOG(INFO) << header->startTime;
+       LOG(info) << header->startTime;
      })}}};
 }

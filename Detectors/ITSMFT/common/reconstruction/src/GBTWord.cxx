@@ -22,11 +22,11 @@ void GBTWord::printX(bool padded) const
 {
   /// print in right aligned hex format, optionally padding to 128 bits
   if (padded) {
-    LOGF(INFO, "0x: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+    LOGF(info, "0x: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
          data8[15], data8[14], data8[13], data8[12], data8[11], data8[10],
          data8[9], data8[8], data8[7], data8[6], data8[5], data8[4], data8[3], data8[2], data8[1], data8[0]);
   } else {
-    LOGF(INFO, "0x: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+    LOGF(info, "0x: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
          data8[9], data8[8], data8[7], data8[6], data8[5], data8[4], data8[3], data8[2], data8[1], data8[0]);
   }
 }
@@ -43,5 +43,5 @@ void GBTWord::printB(bool padded) const
       ss << ((v & (0x1 << j)) ? '1' : '0');
     }
   }
-  LOGF(INFO, "0b: %s", ss.str());
+  LOGF(info, "0b: %s", ss.str());
 }

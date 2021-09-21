@@ -31,12 +31,12 @@ bool CalibParams::setGain(TH2* h, short module)
   const short MAXX = 128,
               MAXZ = 60;
   if (!h) {
-    LOG(ERROR) << "no input histogam";
+    LOG(error) << "no input histogam";
     return false;
   }
 
   if (h->GetNbinsX() != MAXX || h->GetNbinsY() != MAXZ) {
-    LOG(ERROR) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
+    LOG(error) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
     return false;
   }
 

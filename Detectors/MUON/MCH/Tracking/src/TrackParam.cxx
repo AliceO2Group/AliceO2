@@ -423,7 +423,7 @@ Bool_t TrackParam::isCompatibleTrackParam(const TrackParam& trackParam, Double_t
 
   // ckeck covariance matrices
   if (!mCovariances && !trackParam.mCovariances) {
-    LOG(ERROR) << "Covariance matrix must exist for at least one set of parameters";
+    LOG(error) << "Covariance matrix must exist for at least one set of parameters";
     return kFALSE;
   }
 
@@ -449,7 +449,7 @@ Bool_t TrackParam::isCompatibleTrackParam(const TrackParam& trackParam, Double_t
 
   // invert the error matrix to get the parameter weights if possible
   if (weight.Determinant() == 0) {
-    LOG(ERROR) << "Cannot compute the compatibility chi2";
+    LOG(error) << "Cannot compute the compatibility chi2";
     return kFALSE;
   }
   weight.Invert();

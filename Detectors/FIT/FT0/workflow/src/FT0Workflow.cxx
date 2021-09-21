@@ -25,7 +25,7 @@ framework::WorkflowSpec getFT0Workflow(bool isExtendedMode, bool useProcess,
                                        bool dumpProcessor, bool dumpReader,
                                        bool disableRootOut, bool askSTFDist)
 {
-  LOG(INFO) << "framework::WorkflowSpec getFT0Workflow";
+  LOG(info) << "framework::WorkflowSpec getFT0Workflow";
   framework::WorkflowSpec specs;
   if (isExtendedMode) {
     specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0ext{dumpReader}, askSTFDist));

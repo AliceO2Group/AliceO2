@@ -71,7 +71,7 @@ using namespace o2::hmpid::raw;
 // Data decoder
 void RawToDigitsTask::init(framework::InitContext& ic)
 {
-  LOG(INFO) << "[HMPID Write Root File From Raw Files - init()]";
+  LOG(info) << "[HMPID Write Root File From Raw Files - init()]";
 
   // get line command options
   mOutRootFileName = ic.options().get<std::string>("out-file");
@@ -108,18 +108,18 @@ void RawToDigitsTask::run(framework::ProcessingContext& pc)
   while (isInLoop) {
     tfID = mReader.getNextTFToRead();
     if (tfID >= mReader.getNTimeFrames()) {
-      LOG(INFO) << "nothing left to read after " << tfID << " TFs read";
+      LOG(info) << "nothing left to read after " << tfID << " TFs read";
       break;
     }
     for (int il = 0; il < mReader.getNLinks(); il++) {
       auto& link = mReader.getLink(il);
-      LOG(INFO) << "Decoding link " << il;
+      LOG(info) << "Decoding link " << il;
       auto sz = link.getNextTFSize(); // size in char needed for the next TF of this link
       dataBuffer.resize(sz);
       link.readNextTF(dataBuffer.data());
       link.rewindToTF(tfID);
       int nhbf = link.getNHBFinTF();
-      LOG(DEBUG) << " Number of HBF " << nhbf;
+      LOG(debug) << " Number of HBF " << nhbf;
       for (int ib = 0; ib < nhbf; ib++) {
         auto zs = link.getNextHBFSize(); // size in char needed for the next TF of this link
         dataBuffer.resize(zs);
@@ -137,7 +137,7 @@ void RawToDigitsTask::run(framework::ProcessingContext& pc)
             }
           } catch (int e) {
             // The stream end !
-            LOG(DEBUG) << "End Page decoding !";
+            LOG(debug) << "End Page decoding !";
           }
           int first = mAccumulateDigits.size();
           mAccumulateDigits.insert(mAccumulateDigits.end(), mDecod->mDigits.begin(), mDecod->mDigits.end());
@@ -147,7 +147,7 @@ void RawToDigitsTask::run(framework::ProcessingContext& pc)
             mDigitsReceived += mDecod->mDigits.size();
           }
           mFramesReceived++;
-          LOG(DEBUG) << "run() Digits received =" << mDigitsReceived << " frames = " << mFramesReceived << " size=" << sz << " F-L " << first << "," << last << " " << mDecod->mIntReco;
+          LOG(debug) << "run() Digits received =" << mDigitsReceived << " frames = " << mFramesReceived << " size=" << sz << " F-L " << first << "," << last << " " << mDecod->mIntReco;
           mDecod->mDigits.clear();
         }
       }
@@ -179,9 +179,9 @@ void RawToDigitsTask::parseNoTF()
 
   for (int il = 0; il < mReader.getNLinks(); il++) {
     auto& link = mReader.getLink(il);
-    LOG(INFO) << "Decoding link " << il;
+    LOG(info) << "Decoding link " << il;
     auto sz = link.getNextTFSize(); // size in char needed for the next TF of this link
-    LOG(INFO) << " Size TF " << sz;
+    LOG(info) << " Size TF " << sz;
     dataBuffer.resize(sz);
     link.readNextTF(dataBuffer.data());
 
@@ -197,7 +197,7 @@ void RawToDigitsTask::parseNoTF()
         }
       } catch (int e) {
         // The stream end !
-        LOG(DEBUG) << "End Fast Page decoding !";
+        LOG(debug) << "End Fast Page decoding !";
       }
       int first = mAccumulateDigits.size();
       mAccumulateDigits.insert(mAccumulateDigits.end(), mDecod->mDigits.begin(), mDecod->mDigits.end());
@@ -207,7 +207,7 @@ void RawToDigitsTask::parseNoTF()
         mDigitsReceived += mDecod->mDigits.size();
       }
       mFramesReceived++;
-      LOG(INFO) << "run() Digits received =" << mDigitsReceived << " frames = " << mFramesReceived << " size=" << sz << " F-L " << first << "," << last << " " << mDecod->mIntReco;
+      LOG(info) << "run() Digits received =" << mDigitsReceived << " frames = " << mFramesReceived << " size=" << sz << " F-L " << first << "," << last << " " << mDecod->mIntReco;
       mDecod->mDigits.clear();
     }
   }
@@ -223,7 +223,7 @@ void RawToDigitsTask::writeResults()
     }
   }
   if (mEvents.size() == 0) { // check if no evwnts
-    LOG(INFO) << "There are not Event recorded ! Abort. ";
+    LOG(info) << "There are not Event recorded ! Abort. ";
     mExTimer.stop();
     return;
   }
@@ -242,7 +242,7 @@ void RawToDigitsTask::writeResults()
   TString tit;
 
   filename = TString::Format("%s", mOutRootFileName.c_str());
-  LOG(INFO) << "Create the ROOT file " << filename.Data();
+  LOG(info) << "Create the ROOT file " << filename.Data();
   TFile mfileOut(TString::Format("%s", filename.Data()), "RECREATE");
   TTree* theTree;
   TBranch* theDigits;
@@ -257,7 +257,7 @@ void RawToDigitsTask::writeResults()
   uint32_t theFirstDigit = 0;
   uint32_t theLastDigit = 0;
   for (int e = 0; e < mEvents.size(); e++) {
-    LOG(INFO) << "Manage event " << mEvents[e];
+    LOG(info) << "Manage event " << mEvents[e];
     if (prevEvent != mEvents[e]) { // changes the event Flush It
       event = prevEvent;
       event.setDataRange(theFirstDigit, theLastDigit-theFirstDigit);
@@ -288,7 +288,7 @@ void RawToDigitsTask::writeResults()
   std::vector<o2::hmpid::Trigger> eventVec;
 
   filename = TString::Format("%s", mOutRootFileName.c_str());
-  LOG(INFO) << "Create the ROOT file " << filename.Data();
+  LOG(info) << "Create the ROOT file " << filename.Data();
   TFile mfileOut(TString::Format("%s", filename.Data()), "RECREATE");
   tit = TString::Format("HMPID Raw File Decoding");
   TTree* theTree = new TTree("o2hmp", tit);
@@ -301,7 +301,7 @@ void RawToDigitsTask::writeResults()
   uint32_t theFirstDigit = 0;
   uint32_t theLastDigit = 0;
   for (int e = 0; e < mEvents.size(); e++) {
-    LOG(DEBUG) << "Manage event " << mEvents[e];
+    LOG(debug) << "Manage event " << mEvents[e];
     if (prevEvent != mEvents[e]) { // changes the event Flush It
       eventVec.emplace_back(o2::InteractionRecord(prevEvent.getBc(), prevEvent.getOrbit()), theFirstDigit, theLastDigit - theFirstDigit);
       theFirstDigit = theLastDigit;
@@ -330,7 +330,7 @@ void RawToDigitsTask::writeResults()
   float yb;
 
   filename = TString::Format("%s_stat.root", mBaseFileName.c_str());
-  LOG(INFO) << "Create the ROOT file " << filename.Data();
+  LOG(info) << "Create the ROOT file " << filename.Data();
   TFile mfileOutStat(TString::Format("%s", filename.Data()), "RECREATE");
   TTree* theObj[Geo::N_MODULES + 1];
   for (int i = 0; i < Geo::N_MODULES; i++) { // Create the TTree array

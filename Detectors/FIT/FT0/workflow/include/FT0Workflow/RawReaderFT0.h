@@ -61,10 +61,10 @@ class RawReaderFT0 : public RawReaderFT0BaseNorm
     } else {
       getDigits(mVecDigits, mVecChannelData);
     }
-    LOG(INFO) << "Number of Digits: " << mVecDigits.size();
-    LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
+    LOG(info) << "Number of Digits: " << mVecDigits.size();
+    LOG(info) << "Number of ChannelData: " << mVecChannelData.size();
     if constexpr (sUseTrgInput) {
-      LOG(INFO) << "Number of TriggerInput: " << mVecTriggerInput.size();
+      LOG(info) << "Number of TriggerInput: " << mVecTriggerInput.size();
     }
     if (mDumpData) {
       DigitBlockFT0::print(mVecDigits, mVecChannelData);
@@ -118,9 +118,9 @@ class RawReaderFT0ext : public RawReaderFT0BaseExt
     } else {
       getDigits(mVecDigits, mVecChannelData, mVecTrgExt);
     }
-    LOG(INFO) << "Number of Digits: " << mVecDigits.size();
-    LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
-    LOG(INFO) << "Number of TriggerExt: " << mVecTrgExt.size();
+    LOG(info) << "Number of Digits: " << mVecDigits.size();
+    LOG(info) << "Number of ChannelData: " << mVecChannelData.size();
+    LOG(info) << "Number of TriggerExt: " << mVecTrgExt.size();
     if (mDumpData) {
       DigitBlockFT0ext::print(mVecDigits, mVecChannelData, mVecTrgExt);
     }

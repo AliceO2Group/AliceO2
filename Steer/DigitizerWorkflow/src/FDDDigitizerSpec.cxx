@@ -44,7 +44,7 @@ class FDDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
  public:
   void initDigitizerTask(framework::InitContext& ic) override
   {
-    LOG(INFO) << "initializing FDD digitization";
+    LOG(info) << "initializing FDD digitization";
 
     //mDigitizer.setCCDBServer(dopt.ccdb);
     mDigitizer.init();
@@ -55,7 +55,7 @@ class FDDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (mFinished) {
       return;
     }
-    LOG(INFO) << "Doing FDD digitization";
+    LOG(info) << "Doing FDD digitization";
 
     // TODO: this should eventually come from the framework and depend on the TF timestamp
     //mDigitizer.refreshCCDB();
@@ -67,7 +67,7 @@ class FDDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     context->initSimChains(o2::detectors::DetID::FDD, mSimChains);
     mDigitizer.setEventTime(context->getGRP().getTimeStart());
     for (auto& record : irecords) {
-      LOG(INFO) << "FDD TIME RECEIVED " << record.getTimeNS();
+      LOG(info) << "FDD TIME RECEIVED " << record.getTimeNS();
     }
 
     auto& eventParts = context->getEventParts();
@@ -86,7 +86,7 @@ class FDDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
         // get the hits for this event and this source
         context->retrieveHits(mSimChains, "FDDHit", part.sourceID, part.entryID, &hits);
-        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found FDD " << hits.size() << " hits ";
+        LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found FDD " << hits.size() << " hits ";
 
         mDigitizer.setEventID(part.entryID);
         mDigitizer.setSrcID(part.sourceID);
@@ -110,7 +110,7 @@ class FDDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       labels.clear_andfreememory();
     }
 
-    LOG(INFO) << "FDD: Sending ROMode= " << mROMode << " to GRPUpdater";
+    LOG(info) << "FDD: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"FDD", "ROMode", 0, Lifetime::Timeframe}, mROMode);
 
     // we should be only called once; tell DPL that this process is ready to exit

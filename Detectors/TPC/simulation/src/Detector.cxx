@@ -106,7 +106,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   auto& gasParam = ParameterGas::Instance();
 
   /* This method is called from the MC stepping for the sensitive volume only */
-  //   LOG(INFO) << "tpc::ProcessHits";
+  //   LOG(info) << "tpc::ProcessHits";
   const double trackCharge = fMC->TrackCharge();
   if (static_cast<int>(trackCharge) == 0) {
 
@@ -198,7 +198,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     numberOfElectrons += nel_step;
   }
 
-  // LOG(INFO) << "tpc::AddHit" << FairLogger::endl << "Eloss: "
+  // LOG(info) << "tpc::AddHit" << FairLogger::endl << "Eloss: "
   //<< fMC->Edep() << ", Nelectrons: "
   //<< numberOfElectrons;
 
@@ -231,7 +231,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     groupCounter = 0;
   }
 
-  // LOG(INFO) << "tpc::AddHit" << FairLogger::endl
+  // LOG(info) << "tpc::AddHit" << FairLogger::endl
   //<< "   -- " << trackNumberID <<","  << volumeID << " " << vol->GetName()
   //<< ", Pos: (" << position.X() << ", "  << position.Y() <<", "<<  position.Z()<< ", " << r << ") "
   //<< ", Mom: (" << momentum.Px() << ", " << momentum.Py() << ", "  <<  momentum.Pz() << ") "
@@ -905,7 +905,7 @@ void Detector::ConstructTPCGeometry()
   //
 
   //   if (!mParam) {
-  //     LOG(ERROR) << "TPC Parameters not available, cannot create Geometry";
+  //     LOG(error) << "TPC Parameters not available, cannot create Geometry";
   //     return;
   //   }
 
@@ -1650,7 +1650,7 @@ void Detector::ConstructTPCGeometry()
   ifstream in;
   in.open(fileName.Data(), ios_base::in); // asci file
   if (!in.is_open()) {
-    LOG(FATAL) << "Cannot open input file : " << fileName.Data();
+    LOG(fatal) << "Cannot open input file : " << fileName.Data();
   }
   for (Int_t i = 0; i < 132; i++) {
     Double_t x, z, ang;
@@ -1794,7 +1794,7 @@ void Detector::ConstructTPCGeometry()
   fileName += "/Detectors/Geometry/TPC/conn_oroc.dat";
   in.open(fileName.Data(), ios_base::in); // asci file
   if (!in.is_open()) {
-    LOG(FATAL) << "Cannot open input file : " << fileName.Data();
+    LOG(fatal) << "Cannot open input file : " << fileName.Data();
   }
   for (Int_t i = 0; i < 232; i++) {
     Double_t x, z, ang;
@@ -3071,23 +3071,23 @@ void Detector::LoadGeometryFromFile()
 {
   // ===| Read the TPC geometry from file |=====================================
   if (mGeoFileName.IsNull()) {
-    LOG(FATAL) << "TPC geometry file name not set";
+    LOG(fatal) << "TPC geometry file name not set";
     return;
   }
 
   TFile* fGeoFile = TFile::Open(mGeoFileName);
   if (!fGeoFile || !fGeoFile->IsOpen() || fGeoFile->IsZombie()) {
-    LOG(FATAL) << "Could not open TPC geometry file '" << mGeoFileName << "'";
+    LOG(fatal) << "Could not open TPC geometry file '" << mGeoFileName << "'";
     return;
   }
 
   TGeoVolume* tpcVolume = dynamic_cast<TGeoVolume*>(fGeoFile->Get("TPC_M"));
   if (!tpcVolume) {
-    LOG(FATAL) << "Could not retrieve TPC geometry from file '" << mGeoFileName << "'";
+    LOG(fatal) << "Could not retrieve TPC geometry from file '" << mGeoFileName << "'";
     return;
   }
 
-  LOG(INFO) << "Loaded TPC geometry from file '" << mGeoFileName << "'";
+  LOG(info) << "Loaded TPC geometry from file '" << mGeoFileName << "'";
   TGeoVolume* alice = gGeoManager->GetVolume("barrel");
   alice->AddNode(tpcVolume, 1, new TGeoTranslation(0., 30., 0.));
 }
@@ -3107,7 +3107,7 @@ void Detector::defineSensitiveVolumes()
     TString volumeName = volumeNames[ivol];
     v = geoManager->GetVolume(volumeName.Data());
     if (!v) {
-      LOG(ERROR) << "Could not find volume '" << volumeName << "'";
+      LOG(error) << "Could not find volume '" << volumeName << "'";
       continue;
     }
 
@@ -3118,7 +3118,7 @@ void Detector::defineSensitiveVolumes()
   // Special sensitive volume parameters in case FLUKA is used as transport engine
   auto vmc = TVirtualMC::GetMC();
   if (strcmp(vmc->GetName(), "TFluka") == 0) {
-    LOG(INFO) << "Setting special FLUKA parameters for  TPC Driftgas";
+    LOG(info) << "Setting special FLUKA parameters for  TPC Driftgas";
     auto& mgr = o2::base::MaterialManager::Instance();
     Int_t index = mgr.getMediumID("TPC", kDriftGas2);
     vmc->Gstpar(index, "PRIMIO_E", 20.77);

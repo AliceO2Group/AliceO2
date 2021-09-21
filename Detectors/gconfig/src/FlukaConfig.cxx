@@ -60,16 +60,16 @@ void Config()
     stackSetup(fluka, run);
     decayerSetup(fluka);
   } else {
-    LOG(ERROR) << "FLUKA is not available in the runtime environment";
-    LOG(ERROR) << "Please compile and load by including FLUKA_VMC/latest in the alienv package list";
-    LOG(FATAL) << "Quitting here due to FLUKA_VMC not being available";
+    LOG(error) << "FLUKA is not available in the runtime environment";
+    LOG(error) << "Please compile and load by including FLUKA_VMC/latest in the alienv package list";
+    LOG(fatal) << "Quitting here due to FLUKA_VMC not being available";
   }
   return;
 }
 
 void FlukaConfig()
 {
-  LOG(INFO) << "Setting up FLUKA sim from library code";
+  LOG(info) << "Setting up FLUKA sim from library code";
   Config();
 }
 } // namespace flukaconfig

@@ -35,11 +35,11 @@ constexpr o2::header::DataDescription ddCalib{"CALIBDATA"}, ddCalib_tpc{"CALIBDA
 
 void CalibInfoReader::init(InitContext& ic)
 {
-  LOG(INFO) << "Init CalibInfo reader!";
+  LOG(info) << "Init CalibInfo reader!";
   auto fname = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")), mFileName);
   mFile = fopen(fname.c_str(), "r");
   if (!mFile) {
-    LOG(ERROR) << "Cannot open the " << fname << " file !";
+    LOG(error) << "Cannot open the " << fname << " file !";
     mState = 0;
     return;
   }
@@ -63,7 +63,7 @@ void CalibInfoReader::run(ProcessingContext& pc)
     }
     if ((mGlobalEntry % mNinstances) == mInstance) {
       mTree->GetEvent(mCurrentEntry);
-      LOG(INFO) << "Send " << mVect.size() << " calib infos";
+      LOG(info) << "Send " << mVect.size() << " calib infos";
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTOFTPC ? ddCalib_tpc : ddCalib, 0, Lifetime::Timeframe}, mVect);
       usleep(10000);
     }

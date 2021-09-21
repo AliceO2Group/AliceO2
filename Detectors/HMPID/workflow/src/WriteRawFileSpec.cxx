@@ -64,7 +64,7 @@ using RDH = o2::header::RDHAny;
 // Data decoder
 void WriteRawFileTask::init(framework::InitContext& ic)
 {
-  LOG(INFO) << "[HMPID Write Raw File From Digits vector - init()]";
+  LOG(info) << "[HMPID Write Raw File From Digits vector - init()]";
   mBaseFileName = ic.options().get<std::string>("out-file");
   mSkipEmpty = ic.options().get<bool>("skip-empty");
   mFixedPacketLenght = ic.options().get<bool>("fixed-lenght");
@@ -91,7 +91,7 @@ void WriteRawFileTask::run(framework::ProcessingContext& pc)
     }
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{gDataOriginHMP, "DIGITS"}})) {
       digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
-      LOG(DEBUG) << "The size of the vector =" << digits.size();
+      LOG(debug) << "The size of the vector =" << digits.size();
     }
   }
 
@@ -107,7 +107,7 @@ void WriteRawFileTask::run(framework::ProcessingContext& pc)
   }
   mDigitsReceived += digits.size();
   mFramesReceived++;
-  LOG(DEBUG) << "run() Digits received =" << mDigitsReceived << " frames = " << mFramesReceived;
+  LOG(debug) << "run() Digits received =" << mDigitsReceived << " frames = " << mFramesReceived;
 
   mExTimer.elapseMes("Write raw file ... Digits received = " + std::to_string(mDigitsReceived) + " Frames received = " + std::to_string(mFramesReceived));
   return;
@@ -128,7 +128,7 @@ void WriteRawFileTask::endOfStream(framework::EndOfStreamContext& ec)
       }
       if (mEvents[idx].getOrbit() != orbit || mEvents[idx].getBc() != bc) {
         mCod->codeEventChunkDigits(dig, o2::InteractionRecord(bc, orbit));
-        LOG(INFO) << " Event :" << idx << " orbit=" << orbit << " bc=" << bc << " Digits:" << dig.size();
+        LOG(info) << " Event :" << idx << " orbit=" << orbit << " bc=" << bc << " Digits:" << dig.size();
         dig.clear();
         orbit = mEvents[idx].getOrbit();
         bc = mEvents[idx].getBc();
@@ -138,7 +138,7 @@ void WriteRawFileTask::endOfStream(framework::EndOfStreamContext& ec)
       }
     }
     mCod->codeEventChunkDigits(dig, o2::InteractionRecord(bc, orbit));
-    LOG(INFO) << " Event :" << mEvents.size() - 1 << " orbit=" << orbit << " bc=" << bc << " Digits:" << dig.size();
+    LOG(info) << " Event :" << mEvents.size() - 1 << " orbit=" << orbit << " bc=" << bc << " Digits:" << dig.size();
   }
   mCod->closeOutputStream();
   mCod->dumpResults("all");

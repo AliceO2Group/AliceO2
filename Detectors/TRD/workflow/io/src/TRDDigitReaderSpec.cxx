@@ -64,14 +64,14 @@ void TRDDigitReaderSpec::run(ProcessingContext& pc)
       // publish labels in shared memory
       auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TRD", "LABELS", 0, Lifetime::Timeframe});
       ioLabels->copyandflatten(sharedlabels);
-      LOG(INFO) << "Labels size (in bytes) = " << sharedlabels.size();
+      LOG(info) << "Labels size (in bytes) = " << sharedlabels.size();
     }
 
     pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, *digits);
     pc.outputs().snapshot(Output{"TRD", "TRGRDIG", 0, Lifetime::Timeframe}, *triggerRecords);
-    LOG(INFO) << "Digits size=" << digits->size() << " triggerrecords size=" << triggerRecords->size();
+    LOG(info) << "Digits size=" << digits->size() << " triggerrecords size=" << triggerRecords->size();
   } else {
-    LOG(ERROR) << "Error opening TTree";
+    LOG(error) << "Error opening TTree";
   }
 
   mFile->Close();

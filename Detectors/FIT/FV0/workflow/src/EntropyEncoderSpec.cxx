@@ -52,12 +52,12 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   eeb->compactify();                  // eliminate unnecessary padding
   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
   mTimer.Stop();
-  LOG(INFO) << "Created encoded data of size " << eeb->size() << " for FV0 in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Created encoded data of size " << eeb->size() << " for FV0 in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "FV0 Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "FV0 Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

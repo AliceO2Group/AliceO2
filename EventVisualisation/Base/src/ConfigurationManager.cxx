@@ -44,13 +44,13 @@ void ConfigurationManager::getConfig(TEnv& settings) const
         if (settings.ReadFile(fileName = Form("%s/EventVisualisation/o2eve_config",
                                               gSystem->Getenv("ALICEO2_INSTALL_PATH")),
                               kEnvUser) < 0) {
-          LOG(FATAL) << "could not find .o2eve_config or o2eve_config file!.";
+          LOG(fatal) << "could not find .o2eve_config or o2eve_config file!.";
           exit(0);
         }
       }
     }
   }
-  LOG(INFO) << Form("using %s config settings", fileName.Data());
+  LOG(info) << Form("using %s config settings", fileName.Data());
 }
 
 } // namespace event_visualisation

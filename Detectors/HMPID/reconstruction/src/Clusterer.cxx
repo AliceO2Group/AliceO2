@@ -32,14 +32,14 @@ void Clusterer::process(std::vector<o2::hmpid::Digit> const& digits, std::vector
   //  int totNumDigits = 0;
   //
   //  while (reader.getNextStripData(mStripData)) {
-  //    LOG(DEBUG) << "HMPIDClusterer got Strip " << mStripData.stripID << " with Ndigits "
+  //    LOG(debug) << "HMPIDClusterer got Strip " << mStripData.stripID << " with Ndigits "
   //               << mStripData.digits.size();
   //    totNumDigits += mStripData.digits.size();
   //
   //    processStrip(clusters, digitMCTruth);
   //  }
 
-  //  LOG(DEBUG) << "We had " << totNumDigits << " digits in this event";
+  //  LOG(debug) << "We had " << totNumDigits << " digits in this event";
   timerProcess.Stop();
   printf("Timing:\n");
   printf("Clusterer::process:        ");

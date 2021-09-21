@@ -76,7 +76,7 @@ struct MemFileHelper {
     auto tcl = TClass::GetClass(tinfo);
     std::string clname;
     if (!tcl) {
-      LOG(ERROR) << "Could not retrieve ROOT dictionary for type " << tinfo.name();
+      LOG(error) << "Could not retrieve ROOT dictionary for type " << tinfo.name();
     } else {
       clname = tcl->GetName();
       o2::utils::Str::trim(clname);

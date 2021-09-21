@@ -22,8 +22,8 @@ namespace eventgen
 
 Trigger TriggerParticle(const TriggerParticleParam& param)
 {
-  LOG(INFO) << "Init trigger \'particle\' with following parameters";
-  LOG(INFO) << param;
+  LOG(info) << "Init trigger \'particle\' with following parameters";
+  LOG(info) << param;
   return [&param](const std::vector<TParticle>& particles) -> bool {
     for (const auto& particle : particles) {
       if (particle.GetPdgCode() != param.pdg) {

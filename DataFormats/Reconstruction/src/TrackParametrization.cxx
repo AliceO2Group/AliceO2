@@ -71,7 +71,7 @@ GPUd() TrackParametrization<value_T>::TrackParametrization(const dim3_t& xyz, co
   math_utils::detail::sincos(alp, sn, cs);
   // protection against cosp<0
   if (cs * pxpypz[0] + sn * pxpypz[1] < 0) {
-    LOG(WARNING) << "alpha from phiPos() will invalidate this track parameters, overriding to alpha from phi()";
+    LOG(warning) << "alpha from phiPos() will invalidate this track parameters, overriding to alpha from phi()";
     alp = math_utils::detail::atan2<value_T>(pxpypz[1], pxpypz[0]);
     if (sectorAlpha) {
       alp = math_utils::detail::angle2Alpha<value_t>(alp);
@@ -170,7 +170,7 @@ GPUd() bool TrackParametrization<value_T>::rotateParam(value_t alpha)
 {
   // rotate to alpha frame
   if (math_utils::detail::abs<value_T>(getSnp()) > constants::math::Almost1) {
-    LOGP(WARNING, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", getSnp());
+    LOGP(warning, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", getSnp());
     return false;
   }
   //
@@ -182,13 +182,13 @@ GPUd() bool TrackParametrization<value_T>::rotateParam(value_t alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    //LOGF(WARNING,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
+    //LOGF(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
     return false;
   }
   //
   value_t tmp = snp * ca - csp * sa;
   if (math_utils::detail::abs<value_T>(tmp) > constants::math::Almost1) {
-    LOGP(WARNING, "Rotation failed: new snp {:.2f}", tmp);
+    LOGP(warning, "Rotation failed: new snp {:.2f}", tmp);
     return false;
   }
   value_t xold = getX(), yold = getY();
@@ -216,7 +216,7 @@ GPUd() bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const di
   }
   // Do not propagate tracks outside the ALICE detector
   if (math_utils::detail::abs<value_T>(dx) > 1e5 || math_utils::detail::abs<value_T>(getY()) > 1e5 || math_utils::detail::abs<value_T>(getZ()) > 1e5) {
-    LOGP(WARNING, "Anomalous track, target X:{:f}", xk);
+    LOGP(warning, "Anomalous track, target X:{:f}", xk);
     //    print();
     return false;
   }
@@ -397,7 +397,7 @@ GPUd() bool TrackParametrization<value_T>::propagateParamToDCA(const math_utils:
   auto tmpT(*this); // operate on the copy to recover after the failure
   alp += math_utils::detail::asin<value_T>(sn);
   if (!tmpT.rotateParam(alp) || !tmpT.propagateParamTo(xv, b)) {
-    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
+    LOG(warning) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
                  << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
     tmpT.printParam();
     return false;

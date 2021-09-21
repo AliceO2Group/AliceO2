@@ -22,7 +22,7 @@ o2::eventgen::DeepTrigger
       auto py6 = reinterpret_cast<TPythia6*>(interface);
       nMPI = py6->GetMSTI(31);
     } else
-      LOG(FATAL) << "Cannot define MPI for generator interface \'" << name << "\'";
+      LOG(fatal) << "Cannot define MPI for generator interface \'" << name << "\'";
     return nMPI >= mpiMin;
   };
 }

@@ -56,7 +56,7 @@ class CTFCoderBase
       CTF::readFromTree(bufVec, *tree.get(), mDet.getName());
       if (bufVec.size()) {
         mExtHeader = static_cast<CTFDictHeader&>(CTF::get(bufVec.data())->getHeader());
-        LOGP(INFO, "Found {} {} in {}", mDet.getName(), mExtHeader.asString(), dictPath);
+        LOGP(info, "Found {} {} in {}", mDet.getName(), mExtHeader.asString(), dictPath);
       }
     }
     return bufVec;
@@ -66,7 +66,7 @@ class CTFCoderBase
   void createCoder(OpType op, const o2::rans::FrequencyTable& freq, uint8_t probabilityBits, int slot)
   {
     if (!freq.size()) {
-      LOG(WARNING) << "Empty dictionary provided for slot " << slot << ", " << (op == OpType::Encoder ? "encoding" : "decoding") << " will assume literal symbols only";
+      LOG(warning) << "Empty dictionary provided for slot " << slot << ", " << (op == OpType::Encoder ? "encoding" : "decoding") << " will assume literal symbols only";
     }
 
     switch (op) {

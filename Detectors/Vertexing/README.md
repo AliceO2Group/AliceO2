@@ -41,10 +41,10 @@ Track tr0,tr1,tr2;                  // decide candidate tracks
 int nc = ft.process(tr0,tr1,tr2);   // one can have up to 2 candidates, though the 2nd (if any) will have worse quality
 if (nc) {
    Vec3D vtx = ft.getPCACandidate(); // same as ft.getPCACandidate(0);
-   LOG(INFO) << "found vertex " << vtx[0] << ' ' << vtx[1] << ' ' << vtx[2];
+   LOG(info) << "found vertex " << vtx[0] << ' ' << vtx[1] << ' ' << vtx[2];
    // access the track's X parameters at PCA
    for (int i=0;i<3;i++) {
-    LOG(INFO) << "Track " << i << " at PCA for X = " << ft.getTrackX(i);
+    LOG(info) << "Track " << i << " at PCA for X = " << ft.getTrackX(i);
    }
    // access directly the tracks propagated to the DCA
    for (int i=0;i<3;i++) {

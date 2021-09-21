@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     coder.encode(vec, triggers, digits); // compress
   }
   sw.Stop();
-  LOG(INFO) << "Compressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Compressed in " << sw.CpuTime() << " s";
 
   // writing
   {
@@ -68,12 +68,12 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     ctfImage->appendToTree(ctfTree, "HMP");
     ctfTree.Write();
     sw.Stop();
-    LOG(INFO) << "Wrote to tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Wrote to tree in " << sw.CpuTime() << " s";
   }
 
   // reading
   vec.clear();
-  LOG(INFO) << "Start reading from tree ";
+  LOG(info) << "Start reading from tree ";
   {
     sw.Start();
     TFile flIn("test_ctf_hmpid.root");
@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     BOOST_CHECK(tree);
     o2::hmpid::CTF::readFromTree(vec, *(tree.get()), "HMP");
     sw.Stop();
-    LOG(INFO) << "Read back from tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Read back from tree in " << sw.CpuTime() << " s";
   }
 
   std::vector<Trigger> triggersD;
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     coder.decode(ctfImage, triggersD, digitsD); // decompress
   }
   sw.Stop();
-  LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
 
   BOOST_CHECK(triggersD.size() == triggers.size());
   BOOST_CHECK(digitsD.size() == digits.size());

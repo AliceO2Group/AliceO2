@@ -21,7 +21,7 @@ namespace o2
 
 void SetCuts()
 {
-  LOG(INFO) << "Setup global cuts and processes";
+  LOG(info) << "Setup global cuts and processes";
 
   // ------>>>> IMPORTANT!!!!
   // For a correct comparison between GEANE and MC (pull distributions)
@@ -39,7 +39,7 @@ void SetCuts()
   auto& mgr = o2::base::MaterialManager::Instance();
   auto& params = o2::GlobalProcessCutSimParam::Instance();
 
-  LOG(INFO) << "Set default settings for processes and cuts.";
+  LOG(info) << "Set default settings for processes and cuts.";
   mgr.DefaultProcesses({{EProc::kPAIR, params.PAIR},   /** pair production */
                         {EProc::kCOMP, params.COMP},   /** Compton scattering */
                         {EProc::kPHOT, params.PHOT},   /** photo electric effect */
@@ -68,8 +68,8 @@ void SetCuts()
 
   const char* settingProc = mgr.specialProcessesEnabled() ? "enabled" : "disabled";
   const char* settingCut = mgr.specialCutsEnabled() ? "enabled" : "disabled";
-  LOG(INFO) << "Special process settings are " << settingProc << ".";
-  LOG(INFO) << "Special cut settings are " << settingCut << ".";
+  LOG(info) << "Special process settings are " << settingProc << ".";
+  LOG(info) << "Special cut settings are " << settingCut << ".";
 }
 
 } // namespace o2

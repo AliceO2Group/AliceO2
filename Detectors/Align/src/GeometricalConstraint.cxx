@@ -140,7 +140,7 @@ void GeometricalConstraint::writeChildrenConstraints(FILE* conOut) const
     int cmtStatus = nContCh[ics] > 0 ? kOff : kOn; // do we comment this constraint?
     //
     if (cmtStatus) {
-      LOG(INFO) << "No contributors to constraint of " << getDOFName(ics) << " of " << GetName();
+      LOG(info) << "No contributors to constraint of " << getDOFName(ics) << " of " << GetName();
     }
     if (mSigma[ics] > 0) {
       fprintf(conOut, "\n%s%s\t%e\t%e\t%s %s of %s %s\n", comment[cmtStatus], kKeyConstr[kMeas], 0.0, mSigma[ics],

@@ -54,7 +54,7 @@ void TestDataReader::init(InitContext& ic)
   std::ifstream RunFileType(sRunTypeFileName);
   RunFileType >> mRunType;
 
-  LOG(DEBUG) << "OLD CONFIG: RunFileType = " << mRunType;
+  LOG(debug) << "OLD CONFIG: RunFileType = " << mRunType;
 
   if (mRunType == "FakeHitRate") {
     std::ifstream EventPush(sFakeRateDefConfig);
@@ -66,8 +66,8 @@ void TestDataReader::init(InitContext& ic)
     EventPush >> mEventPerPush >> mTrackError >> mWorkDir;
   }
 
-  LOG(DEBUG) << "OLD CONFIG: EventPerPush = " << mEventPerPush << "   TrackError = " << mTrackError << "  WorkDir = " << mWorkDir;
-  LOG(DEBUG) << "DONE Reset Histogram Decision";
+  LOG(debug) << "OLD CONFIG: EventPerPush = " << mEventPerPush << "   TrackError = " << mTrackError << "  WorkDir = " << mWorkDir;
+  LOG(debug) << "DONE Reset Histogram Decision";
 
   o2::base::GeometryManager::loadGeometry();
 
@@ -100,7 +100,7 @@ void TestDataReader::init(InitContext& ic)
   //
 
   const Int_t numOfChips = o2::itsmft::ChipMappingITS::getNChips();
-  LOG(DEBUG) << "numOfChips = " << numOfChips;
+  LOG(debug) << "numOfChips = " << numOfChips;
   setNChips(numOfChips);
   //  j = 0;
   mFileDone = 1;
@@ -160,7 +160,7 @@ void TestDataReader::run(ProcessingContext& pc)
     std::ifstream RunFileType(sRunTypeFileName);
     RunFileType >> mRunType;
 
-    LOG(DEBUG) << "NEW CONFIG: RunFileType = " << mRunType;
+    LOG(debug) << "NEW CONFIG: RunFileType = " << mRunType;
 
     if (mRunType == "FakeHitRate") {
       std::ifstream EventPush(sFakeRateDefConfig);
@@ -172,13 +172,13 @@ void TestDataReader::run(ProcessingContext& pc)
       EventPush >> mEventPerPush >> mTrackError >> mWorkDir;
     }
 
-    LOG(DEBUG) << "NEW CONFIG: EventPerPush = " << mEventPerPush << "   TrackError = " << mTrackError << "  mWorkDir = " << mWorkDir;
-    LOG(DEBUG) << "DONE Reset Histogram Decision";
+    LOG(debug) << "NEW CONFIG: EventPerPush = " << mEventPerPush << "   TrackError = " << mTrackError << "  mWorkDir = " << mWorkDir;
+    LOG(debug) << "DONE Reset Histogram Decision";
   }
 
-  LOG(DEBUG) << "Start Creating New Now Vector";
+  LOG(debug) << "Start Creating New Now Vector";
 
-  LOG(DEBUG) << "Get IN LOOP";
+  LOG(debug) << "Get IN LOOP";
   // Checking for new files, extract them into new vector
   for (int i = 0; i < mFolderNames.size(); i++) {
     std::set_difference(mNowFileNames[i].begin(), mNowFileNames[i].end(), mFileNames[i].begin(), mFileNames[i].end(), std::inserter(mDiffFileNamePush, mDiffFileNamePush.begin()));
@@ -188,7 +188,7 @@ void TestDataReader::run(ProcessingContext& pc)
     mDiffFileNamePush.clear();
   }
 
-  LOG(DEBUG) << "DONE GRABING Existing";
+  LOG(debug) << "DONE GRABING Existing";
 
   //Getting the new files from new folders that does not exist in the previous cycle
   for (int i = mFolderNames.size(); i < mNowFolderNames.size(); i++) {
@@ -196,19 +196,19 @@ void TestDataReader::run(ProcessingContext& pc)
     cout << "New File Size Between New and Initial Runs " << mDiffFileNames[i].size() << endl;
   }
 
-  LOG(DEBUG) << "Total New Files = " << mDiffFileNames.size();
+  LOG(debug) << "Total New Files = " << mDiffFileNames.size();
 
-  LOG(DEBUG) << "DONE Creating Difference";
+  LOG(debug) << "DONE Creating Difference";
 
-  LOG(DEBUG) << "mDiffFileNames Size = " << mDiffFileNames.size();
+  LOG(debug) << "mDiffFileNames Size = " << mDiffFileNames.size();
 
-  LOG(DEBUG) << "Start Loop";
+  LOG(debug) << "Start Loop";
 
   //Start Decoding New Files by loop through the new file vector
 
   for (int i = 0; i < mNowFolderNames.size(); i++) {
 
-    LOG(DEBUG) << "i = " << i << "    mDiffFileNames[i].size() = " << mDiffFileNames[i].size();
+    LOG(debug) << "i = " << i << "    mDiffFileNames[i].size() = " << mDiffFileNames[i].size();
 
     //Getting the folder name ID
 
@@ -218,7 +218,7 @@ void TestDataReader::run(ProcessingContext& pc)
       mRunID = mNowFolderNames[i].substr(pos + 1);
     }
 
-    LOG(DEBUG) << "FileDone = " << mFileDone << endl;
+    LOG(debug) << "FileDone = " << mFileDone << endl;
 
     //Reading files one by one
 
@@ -256,7 +256,7 @@ void TestDataReader::run(ProcessingContext& pc)
       mInputName = mDiffFileNames[i][0];
 
       mEventRegistered = 0;
-      LOG(DEBUG) << "mInputName = " << mInputName;
+      LOG(debug) << "mInputName = " << mInputName;
 
       //Inject fake thing digits for the QC to update immediately
       //mDigitsTest is the fake digit for updating the QC immediately on the QC GUI
@@ -398,7 +398,7 @@ void TestDataReader::run(ProcessingContext& pc)
       cout << "Final TotalPixelSize = " << mTotalPixelSize << endl;
       mNDigits.push_back(mTotalPixelSize);
       mErrorsVec.push_back(mErrors);
-      LOG(DEBUG) << "Run " << mNowFolderNames[i] << " File " << mInputName << "    Integrated Raw Pixel Pushed " << mDigits.size();
+      LOG(debug) << "Run " << mNowFolderNames[i] << " File " << mInputName << "    Integrated Raw Pixel Pushed " << mDigits.size();
       if (mFolderNames.size() < mNowFolderNames.size()) {
         mFileNames.push_back(NewNextFold);
       }
@@ -407,9 +407,9 @@ void TestDataReader::run(ProcessingContext& pc)
     }
   }
 
-  LOG(DEBUG) << "DONE Pushing";
+  LOG(debug) << "DONE Pushing";
 
-  LOG(DEBUG) << "mIndexPush Before = " << mIndexPush << "  mDigits.size() =  " << mDigits.size();
+  LOG(debug) << "mIndexPush Before = " << mIndexPush << "  mDigits.size() =  " << mDigits.size();
 
   if (mDigits.size() > 0) {
     PercentDone = double(mIndexPush) / double(mDigits.size());
@@ -420,8 +420,8 @@ void TestDataReader::run(ProcessingContext& pc)
     for (int i = 0; i < mNDigits[j]; i++) {
       mMultiDigits.push_back(mDigits[mIndexPush + i]);
     }
-    LOG(DEBUG) << "j = " << j << "   NDgits = " << mNDigits[j] << "    mMultiDigits Pushed = " << mMultiDigits.size();
-    LOG(DEBUG) << "i = " << 10 << "  ErrorShould = " << mErrors[10] << "  ErrorInjected = " << mErrorsVec[j][10];
+    LOG(debug) << "j = " << j << "   NDgits = " << mNDigits[j] << "    mMultiDigits Pushed = " << mMultiDigits.size();
+    LOG(debug) << "i = " << 10 << "  ErrorShould = " << mErrors[10] << "  ErrorInjected = " << mErrorsVec[j][10];
     ;
 
     cout << "RunIDS = " << mRunNumber << "   FileIDS = " << mFileID << endl;
@@ -431,18 +431,18 @@ void TestDataReader::run(ProcessingContext& pc)
 
     pc.outputs().snapshot(Output{"ITS", "Error", 0, Lifetime::Timeframe}, mErrorsVec[j]);
     mIndexPushEx = mIndexPush + mNDigits[j];
-    LOG(DEBUG) << "IndexPushEx = " << mIndexPushEx << "  mDigits.size() " << mDigits.size();
+    LOG(debug) << "IndexPushEx = " << mIndexPushEx << "  mDigits.size() " << mDigits.size();
     if (mIndexPushEx > mDigits.size() - 5) {
       mFileDone = 1;
     }
-    LOG(DEBUG) << "FileDone = " << mFileDone;
-    LOG(DEBUG) << "FileRemain = " << mFileRemain;
+    LOG(debug) << "FileDone = " << mFileDone;
+    LOG(debug) << "FileRemain = " << mFileRemain;
 
     mFileInfo = mFileDone + mFileRemain * 10;
 
     pc.outputs().snapshot(Output{"ITS", "Finish", 0, Lifetime::Timeframe}, mFileInfo);
 
-    LOG(DEBUG) << "mIndexPush = " << mIndexPush << "    Chip ID Pushing " << mDigits[mIndexPush].getChipIndex();
+    LOG(debug) << "mIndexPush = " << mIndexPush << "    Chip ID Pushing " << mDigits[mIndexPush].getChipIndex();
 
     pc.outputs().snapshot(Output{"ITS", "DIGITS", 0, Lifetime::Timeframe}, mMultiDigits);
 
@@ -451,17 +451,17 @@ void TestDataReader::run(ProcessingContext& pc)
     j = j + 1;
   }
 
-  LOG(DEBUG) << "mIndexPush After = " << mIndexPush;
+  LOG(debug) << "mIndexPush After = " << mIndexPush;
 
   /*
-			   LOG(DEBUG) << "Before:  " << "mIndexPush = " << mIndexPush << "     mDigits.size() = " <<  mDigits.size(); 
+			   LOG(debug) << "Before:  " << "mIndexPush = " << mIndexPush << "     mDigits.size() = " <<  mDigits.size(); 
 			   while(mIndexPush < mDigits.size()){
-			//	LOG(DEBUG) << "mDigits.size() = " << mDigits.size();
+			//	LOG(debug) << "mDigits.size() = " << mDigits.size();
 			pc.outputs().snapshot(Output{ "ITS", "DIGITS", 0, Lifetime::Timeframe }, mDigits[mIndexPush++]);
-			if(mIndexPush%100000==0) 	LOG(DEBUG) << "mIndexPush = " << mIndexPush << "    Chip ID Pushing " << mDigits[mIndexPush].getChipIndex();
+			if(mIndexPush%100000==0) 	LOG(debug) << "mIndexPush = " << mIndexPush << "    Chip ID Pushing " << mDigits[mIndexPush].getChipIndex();
 			}
 			//pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
-			LOG(DEBUG) << "After:  " << "mIndexPush = " << mIndexPush << "     mDigits.size() = " <<  mDigits.size(); 
+			LOG(debug) << "After:  " << "mIndexPush = " << mIndexPush << "     mDigits.size() = " <<  mDigits.size(); 
 			*/
 
   mFolderNames.clear();
@@ -475,7 +475,7 @@ void TestDataReader::run(ProcessingContext& pc)
   mDiffFileNames.clear();
   mDiffFolderName.clear();
 
-  LOG(DEBUG) << "Pushing Reset Histogram Decision";
+  LOG(debug) << "Pushing Reset Histogram Decision";
 
   cout << "Resetting Pushing Things" << endl;
 

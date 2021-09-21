@@ -31,24 +31,24 @@ void Digitizer::init()
   if (!mCalibParams) {
     if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
       mCalibParams.reset(new CalibParams(1)); // test default calibration
-      LOG(INFO) << "[PHOSDigitizer] No reading calibration from ccdb requested, set default";
+      LOG(info) << "[PHOSDigitizer] No reading calibration from ccdb requested, set default";
     } else {
-      LOG(ERROR) << "[PHOSDigitizer] can not get calibration object from ccdb yet";
+      LOG(error) << "[PHOSDigitizer] can not get calibration object from ccdb yet";
       // o2::ccdb::CcdbApi ccdb;
       // std::map<std::string, std::string> metadata; // do we want to store any meta data?
       // ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
       // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, mEventTime);
       // if (!mCalibParams) {
-      //   LOG(FATAL) << "[PHOSDigitizer] can not get calibration object from ccdb";
+      //   LOG(fatal) << "[PHOSDigitizer] can not get calibration object from ccdb";
       // }
     }
   }
   if (!mTrigUtils) {
     if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
       mTrigUtils.reset(new TriggerMap(0)); // test default calibration
-      LOG(INFO) << "[PHOSDigitizer] No reading trigger map from ccdb requested, set default";
+      LOG(info) << "[PHOSDigitizer] No reading trigger map from ccdb requested, set default";
     } else {
-      LOG(ERROR) << "[PHOSDigitizer] can not get trigger map object from ccdb yet";
+      LOG(error) << "[PHOSDigitizer] can not get trigger map object from ccdb yet";
     }
   }
 }

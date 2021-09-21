@@ -54,7 +54,7 @@ EventManager& EventManager::getInstance()
 
 EventManager::EventManager() : TEveEventManager("Event", "")
 {
-  LOG(INFO) << "Initializing TEveManager";
+  LOG(info) << "Initializing TEveManager";
   for (unsigned int i = 0; i < elemof(dataTypeLists); i++) {
     dataTypeLists[i] = nullptr;
   }

@@ -49,7 +49,7 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
 
   bool hasEnoughData(const Slot& slot) const final
   {
-    LOG(INFO) << "container entries = " << slot.getContainer()->entries << ", minEntries = " << mMinEntries;
+    LOG(info) << "container entries = " << slot.getContainer()->entries << ", minEntries = " << mMinEntries;
     return slot.getContainer()->entries >= mMinEntries;
   }
   void initOutput() final;

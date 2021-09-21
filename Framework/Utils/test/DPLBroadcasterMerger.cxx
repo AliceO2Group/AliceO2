@@ -40,7 +40,7 @@ o2f::DataProcessorSpec defineGenerator(o2f::OutputSpec usrOutput)
             auto msgCounter_shptr = std::make_shared<int>(msgCounter);
             auto usrOutput_shptr = std::make_shared<o2f::Output>(getOutput(usrOutput));
 
-            LOG(INFO) << ">>>>>>>>>>>>>> Generator initialised";
+            LOG(info) << ">>>>>>>>>>>>>> Generator initialised";
 
             // Processing context in captured from return on InitCallback
             return [usrOutput_shptr, msgCounter_shptr](o2f::ProcessingContext& ctx) {
@@ -48,25 +48,25 @@ o2f::DataProcessorSpec defineGenerator(o2f::OutputSpec usrOutput)
               if (msgIndex > 10) {
                 ctx.services().get<framework::ControlService>().endOfStream();
               }
-              LOG(INFO) << ">>> MSG:" << msgIndex;
+              LOG(info) << ">>> MSG:" << msgIndex;
               std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-              LOG(INFO) << ">>> Preparing MSG:" << msgIndex;
+              LOG(info) << ">>> Preparing MSG:" << msgIndex;
 
               auto& outputMsg =
                 ctx.outputs().newChunk(*usrOutput_shptr, (msgIndex + 1) * sizeof(uint32_t) / sizeof(char));
 
-              LOG(INFO) << ">>> Preparing1 MSG:" << msgIndex;
+              LOG(info) << ">>> Preparing1 MSG:" << msgIndex;
 
               auto payload = reinterpret_cast<uint32_t*>(outputMsg.data());
 
               payload[0] = msgIndex;
 
-              LOG(INFO) << ">>> Preparing2 MSG:" << msgIndex;
+              LOG(info) << ">>> Preparing2 MSG:" << msgIndex;
 
               for (int k = 0; k < msgIndex; ++k) {
                 payload[k + 1] = (uint32_t)32;
-                LOG(INFO) << ">>>>\t" << payload[k + 1];
+                LOG(info) << ">>>>\t" << payload[k + 1];
               }
 
               return;
@@ -101,17 +101,17 @@ o2f::DataProcessorSpec defineSink(o2f::InputSpec usrInput)
           o2f::AlgorithmSpec{[](o2f::InitContext&) {
             // Processing context in captured from return on InitCallback
             return [](o2f::ProcessingContext& ctx) {
-              LOG(INFO) << "Received message ";
+              LOG(info) << "Received message ";
 
               auto inputMsg = ctx.inputs().getByPos(0);
               auto payload = reinterpret_cast<const uint32_t*>(inputMsg.payload);
 
-              LOG(INFO) << "Received message containing" << payload[0] << "elements";
+              LOG(info) << "Received message containing" << payload[0] << "elements";
 
               for (int j = 0; j < payload[0]; ++j) {
-                LOG(INFO) << payload[j + 1] << "\t";
+                LOG(info) << payload[j + 1] << "\t";
               }
-              LOG(INFO);
+              LOG(info);
             };
           }}};
 }

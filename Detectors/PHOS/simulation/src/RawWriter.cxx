@@ -63,9 +63,9 @@ void RawWriter::digitsToRaw(gsl::span<o2::phos::Digit> digitsbranch, gsl::span<o
   if (!mCalibParams) {
     if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
       mCalibParams = std::make_unique<CalibParams>(1); // test default calibration
-      LOG(INFO) << "[RawWriter] No reading calibration from ccdb requested, set default";
+      LOG(info) << "[RawWriter] No reading calibration from ccdb requested, set default";
     } else {
-      LOG(INFO) << "[RawWriter] getting calibration object from ccdb";
+      LOG(info) << "[RawWriter] getting calibration object from ccdb";
       o2::ccdb::CcdbApi ccdb;
       std::map<std::string, std::string> metadata;
       ccdb.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
@@ -76,7 +76,7 @@ void RawWriter::digitsToRaw(gsl::span<o2::phos::Digit> digitsbranch, gsl::span<o
       // }
       // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, eventTime);
       if (!mCalibParams) {
-        LOG(FATAL) << "[RawWriter] can not get calibration object from ccdb";
+        LOG(fatal) << "[RawWriter] can not get calibration object from ccdb";
       }
     }
   }
@@ -104,7 +104,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       short ddl, hwAddr;
       //get ddl and High Gain hw addresses
       if (Mapping::Instance()->absIdTohw(absId, Mapping::kTRU, ddl, hwAddr) != o2::phos::Mapping::kOK) {
-        LOG(ERROR) << "Wrong truId=" << absId;
+        LOG(error) << "Wrong truId=" << absId;
       }
       //Collect possible several digits (signal+pileup) into one map record
       auto celldata = mTRUdata[ddl].mChannels.find(absId);
@@ -119,7 +119,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       short ddl, hwAddr;
       //get ddl and High Gain hw addresses
       if (Mapping::Instance()->absIdTohw(absId, Mapping::kHighGain, ddl, hwAddr) != o2::phos::Mapping::kOK) {
-        LOG(ERROR) << "Wrong AbsId" << absId;
+        LOG(error) << "Wrong AbsId" << absId;
       }
 
       //Collect possible several digits (signal+pileup) into one map record
@@ -146,7 +146,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       short truId = ch->first;
       short hwAddr, iddl;
       if ((Mapping::Instance()->absIdTohw(truId, Mapping::kTRU, iddl, hwAddr) != o2::phos::Mapping::kOK) || iddl != ddl) {
-        LOG(ERROR) << "Wrong truId=" << truId << ", iDDL=" << iddl << "!=" << ddl;
+        LOG(error) << "Wrong truId=" << truId << ", iDDL=" << iddl << "!=" << ddl;
       }
       rawbunchesTRU.clear();
       createTRUBunches(truId, ch->second, rawbunchesTRU);
@@ -237,7 +237,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
 
       short hwAddrHG; //High gain always filled
       if (Mapping::Instance()->absIdTohw(ch->first, Mapping::kHighGain, ddl, hwAddrHG) != o2::phos::Mapping::kOK) {
-        LOG(ERROR) << "Wrong AbsId" << ch->first;
+        LOG(error) << "Wrong AbsId" << ch->first;
       }
       rawbunches.clear();
       for (auto& bunch : rawbunchesHG) {
@@ -268,7 +268,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       if (isLGfilled) { //fill both HighGain, and LowGain channels in case of saturation
         short hwAddrLG; //High gain always filled
         if (Mapping::Instance()->absIdTohw(ch->first, 1, ddl, hwAddrLG) != o2::phos::Mapping::kOK) {
-          LOG(ERROR) << "Wrong AbsId" << ch->first;
+          LOG(error) << "Wrong AbsId" << ch->first;
         }
 
         rawbunches.clear();
@@ -304,7 +304,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
     }
 
     // register output data
-    LOG(DEBUG1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
+    LOG(debug1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
 
     short crorc, link;
     Mapping::ddlToCrorcLink(ddl, crorc, link);

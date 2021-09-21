@@ -45,7 +45,7 @@ class ClusterizerMCDeviceDPL
   void init(o2::framework::InitContext& ic)
   {
     if (!mPreClusterizer.init()) {
-      LOG(ERROR) << "Initialization of MID pre-clusterizer device failed";
+      LOG(error) << "Initialization of MID pre-clusterizer device failed";
     }
 
     mCorrelation.clear();
@@ -53,7 +53,7 @@ class ClusterizerMCDeviceDPL
     bool isClusterizerInit = mClusterizer.init([&](size_t baseIndex, size_t relatedIndex) { mCorrelation.push_back({baseIndex, relatedIndex}); });
 
     if (!isClusterizerInit) {
-      LOG(ERROR) << "Initialization of MID clusterizer device failed";
+      LOG(error) << "Initialization of MID clusterizer device failed";
     }
   }
   void run(o2::framework::ProcessingContext& pc)
@@ -68,7 +68,7 @@ class ClusterizerMCDeviceDPL
 
     // Pre-clustering
     mPreClusterizer.process(patterns, inROFRecords);
-    LOG(DEBUG) << "Generated " << mPreClusterizer.getPreClusters().size() << " PreClusters";
+    LOG(debug) << "Generated " << mPreClusterizer.getPreClusters().size() << " PreClusters";
 
     // Clustering
     mClusterizer.process(mPreClusterizer.getPreClusters(), mPreClusterizer.getROFRecords());
@@ -80,12 +80,12 @@ class ClusterizerMCDeviceDPL
     mCorrelation.clear();
 
     pc.outputs().snapshot(of::Output{"MID", "CLUSTERS", 0, of::Lifetime::Timeframe}, mClusterizer.getClusters());
-    LOG(DEBUG) << "Sent " << mClusterizer.getClusters().size() << " clusters";
+    LOG(debug) << "Sent " << mClusterizer.getClusters().size() << " clusters";
     pc.outputs().snapshot(of::Output{"MID", "CLUSTERSROF", 0, of::Lifetime::Timeframe}, mClusterizer.getROFRecords());
-    LOG(DEBUG) << "Sent " << mClusterizer.getROFRecords().size() << " ROF";
+    LOG(debug) << "Sent " << mClusterizer.getROFRecords().size() << " ROF";
 
     pc.outputs().snapshot(of::Output{"MID", "CLUSTERSLABELS", 0, of::Lifetime::Timeframe}, mClusterLabeler.getContainer());
-    LOG(DEBUG) << "Sent " << mClusterLabeler.getContainer().getIndexedSize() << " indexed clusters";
+    LOG(debug) << "Sent " << mClusterLabeler.getContainer().getIndexedSize() << " indexed clusters";
   }
 
  private:

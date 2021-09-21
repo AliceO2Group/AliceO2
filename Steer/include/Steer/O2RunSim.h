@@ -53,7 +53,7 @@ class O2RunSim : public FairRunSim
 
   void Init() final
   {
-    LOG(INFO) << "O2RUNSIM SPECIFIC INIT CALLED";
+    LOG(info) << "O2RUNSIM SPECIFIC INIT CALLED";
 
     fRootManager->InitSink();
 

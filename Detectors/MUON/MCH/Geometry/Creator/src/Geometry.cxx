@@ -56,10 +56,10 @@ void addAlignableVolumesHalfChamber(TGeoManager& geom, int hc, std::string& pare
     TString path = Form("%s%s", parent.c_str(), volPathName.c_str());
     TString sname = Form("MCH/HC%d/DE%d", hc, DEofHC[hc][i]);
 
-    LOG(DEBUG) << "Add " << sname << " <-> " << path;
+    LOG(debug) << "Add " << sname << " <-> " << path;
 
     if (!geom.SetAlignableEntry(sname.Data(), path.Data())) {
-      LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+      LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
     }
   }
 
@@ -102,7 +102,7 @@ void addAlignableVolumes(TGeoManager& geom)
     geom.CloseGeometry();
   }
 
-  LOG(INFO) << "Add MCH alignable volumes";
+  LOG(info) << "Add MCH alignable volumes";
 
   for (int hc = 0; hc < 20; hc++) {
     int nCh = hc / 2 + 1;
@@ -122,11 +122,11 @@ void addAlignableVolumes(TGeoManager& geom)
     std::string path = fmt::format("{0}SC{1}{2}{3}_{4}", volPathName.c_str(), nCh < 10 ? "0" : "", nCh, hc % 2 ? "O" : "I", hc);
     std::string sname = fmt::format("MCH/HC{}", hc);
 
-    LOG(DEBUG) << sname << " <-> " << path;
+    LOG(debug) << sname << " <-> " << path;
 
     auto ae = geom.SetAlignableEntry(sname.c_str(), path.c_str());
     if (!ae) {
-      LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+      LOG(fatal) << "Unable to set alignable entry ! " << sname << " : " << path;
     }
 
     Int_t lastUID = 0;

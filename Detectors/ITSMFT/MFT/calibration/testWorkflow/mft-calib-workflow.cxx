@@ -32,8 +32,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec specs;
   auto useDigits = cfgc.options().get<bool>("useDigits");
 
-  LOG(INFO) << "MFT calibration workflow options";
-  LOG(INFO) << "Use Digits: " << useDigits;
+  LOG(info) << "MFT calibration workflow options";
+  LOG(info) << "Use Digits: " << useDigits;
 
   specs.emplace_back(o2::mft::getNoiseCalibratorSpec(useDigits));
 

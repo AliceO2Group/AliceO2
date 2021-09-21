@@ -54,7 +54,7 @@ void CheckHits(const int detector = 50, // 354, 14, 242, 50
   TH2F* h2locClocT = new TH2F("h2locClocT", ";locC (cm);locT(cm)", 100, -60, 60, 100, -3.5, 0.5);
   TH2F* h2locClocTnEl = new TH2F("h2locClocTnEl", "nEl;locC (cm);locT(cm)", 100, -60, 60, 100, -3.5, 0.5);
 
-  LOG(INFO) << nev << " entries found";
+  LOG(info) << nev << " entries found";
   for (int iev = 0; iev < nev; ++iev) {
     hitTree->GetEvent(iev);
     for (const auto& hit : *hits) {
@@ -64,10 +64,10 @@ void CheckHits(const int detector = 50, // 354, 14, 242, 50
       //   continue;
       // }
       if (det != detector) {
-        // LOG(INFO) << "REJECTED Detector = " << det <<"\t Stack = " << o2::trd::Geometry::getStack(det) << "\t Sector = " << o2::trd::Geometry::getSector(det);
+        // LOG(info) << "REJECTED Detector = " << det <<"\t Stack = " << o2::trd::Geometry::getStack(det) << "\t Sector = " << o2::trd::Geometry::getSector(det);
         continue;
       }
-      LOG(INFO) << "ACCEPTED Detector = " << det << "\t Stack = " << o2::trd::Geometry::getStack(det) << "\t Sector = " << o2::trd::Geometry::getSector(det);
+      LOG(info) << "ACCEPTED Detector = " << det << "\t Stack = " << o2::trd::Geometry::getStack(det) << "\t Sector = " << o2::trd::Geometry::getSector(det);
       // loop over det, pad, row?
       double locC = hit.getLocalC(); // col direction in amplification or drift volume
       double locR = hit.getLocalR(); // row direction in amplification or drift volume

@@ -45,7 +45,7 @@ FairParSet* MagFieldContFact::createContainer(FairContainer* c)
 {
   // calls the constructor of the corresponding parameter container.
   const char* name = c->GetName();
-  LOG(INFO) << "MagFieldContFact::createContainer: Creating mag.field container " << name;
+  LOG(info) << "MagFieldContFact::createContainer: Creating mag.field container " << name;
   FairParSet* p = nullptr;
   if (strcmp(name, "MagFieldParam") == 0) {
     p = new MagFieldParam(c->getConcatName().Data(), c->GetTitle(), c->getContext());

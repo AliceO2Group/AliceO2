@@ -107,7 +107,7 @@ std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, floa
   if (xMax > 0) {
     xMax = std::sqrt(xMax);
   }
-  LOG(INFO) << "R: " << minR << " " << maxR << " || X: " << xMin << " " << xMax;
+  LOG(info) << "R: " << minR << " " << maxR << " || X: " << xMin << " " << xMax;
   float dx = (xMax - xMin) / nSteps;
   auto tp = trc;
   float dxmin = std::abs(xMin - tp.getX()), dxmax = std::abs(xMax - tp.getX());

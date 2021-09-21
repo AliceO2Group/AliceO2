@@ -373,14 +373,14 @@ void StepTHn::createTarget(Int_t step, Bool_t sparse)
 void StepTHn::Fill(int iStep, int nParams, double positionAndWeight[])
 {
   if (iStep >= mNSteps) {
-    LOGF(FATAL, "Selected step for filling is not in range of StepTHn.");
+    LOGF(fatal, "Selected step for filling is not in range of StepTHn.");
   }
 
   double weight = 1.0;
   if (nParams == mNVars + 1) {
     weight = positionAndWeight[mNVars];
   } else if (nParams != mNVars) {
-    LOGF(FATAL, "Fill called with invalid number of parameters (%d vs %d)", mNVars, nParams);
+    LOGF(fatal, "Fill called with invalid number of parameters (%d vs %d)", mNVars, nParams);
   }
 
   // fill axis cache

@@ -20,7 +20,7 @@ using namespace o2::cpv::reco_workflow;
 
 void ClusterizerSpec::init(framework::InitContext& ctx)
 {
-  LOG(DEBUG) << "[CPVClusterizer - init] Initialize clusterizer ...";
+  LOG(debug) << "[CPVClusterizer - init] Initialize clusterizer ...";
 
   // Initialize clusterizer and link geometry
   mClusterizer.initialize();
@@ -29,8 +29,8 @@ void ClusterizerSpec::init(framework::InitContext& ctx)
 
 void ClusterizerSpec::run(framework::ProcessingContext& ctx)
 {
-  LOG(INFO) << "Start run ";
-  LOG(DEBUG) << "CPVClusterizer - run on digits called";
+  LOG(info) << "Start run ";
+  LOG(debug) << "CPVClusterizer - run on digits called";
   auto digits = ctx.inputs().get<std::vector<Digit>>("digits");
   // auto digitsTR = ctx.inputs().get<std::span<TriggerRecord>>("digitTriggerRecords"); //TODO:: Why span does not work???
   // auto digits = ctx.inputs().get<std::vector<o2::cpv::Digit>>("digits");
@@ -38,7 +38,7 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
 
   // printf("CluSpec: digits=%d, TR=%d \n",digits.size(),digitsTR.size()) ;
 
-  LOG(DEBUG) << "[CPVClusterizer - run]  Received " << digitsTR.size() << " TR, running clusterizer ...";
+  LOG(debug) << "[CPVClusterizer - run]  Received " << digitsTR.size() << " TR, running clusterizer ...";
   std::unique_ptr<const o2::dataformats::MCTruthContainer<MCCompLabel>> truthcont;
   if (mPropagateMC) {
     truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("digitsmctr");
@@ -51,7 +51,7 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
   if (mPropagateMC) {
     ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
   }
-  LOG(INFO) << "Finished, wrote  " << mOutputClusters.size() << " clusters, " << mOutputClusterTrigRecs.size() << "TR and " << mOutputTruthCont.getIndexedSize() << " Labels";
+  LOG(info) << "Finished, wrote  " << mOutputClusters.size() << " clusters, " << mOutputClusterTrigRecs.size() << "TR and " << mOutputTruthCont.getIndexedSize() << " Labels";
 }
 o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getClusterizerSpec(bool propagateMC)
 {

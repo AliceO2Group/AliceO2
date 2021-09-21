@@ -115,7 +115,7 @@ class RawReaderFIT : public RawReaderType
   void accumulateDigits()
   {
     callGetDigit(IndexesSubDigit{}, IndexesSingleSubDigit{});
-    LOG(DEBUG) << "Number of Digits: " << mVecDigit.size();
+    LOG(debug) << "Number of Digits: " << mVecDigit.size();
     if (mDumpData) {
       callPrint(IndexesSubDigit{}, IndexesSingleSubDigit{});
     }

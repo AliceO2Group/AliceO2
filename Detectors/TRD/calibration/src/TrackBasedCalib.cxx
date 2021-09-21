@@ -51,7 +51,7 @@ void TrackBasedCalib::calculateAngResHistos(const o2::globaltracking::RecoContai
   mTrackletsCalib = input.getTRDCalibratedTracklets();
 
   if (mTrackletsRaw.size() != mTrackletsCalib.size()) {
-    LOG(ERROR) << "TRD raw tracklet container size differs from calibrated tracklet container size";
+    LOG(error) << "TRD raw tracklet container size differs from calibrated tracklet container size";
     return;
   }
 
@@ -122,7 +122,7 @@ void TrackBasedCalib::calculateAngResHistos(const o2::globaltracking::RecoContai
     // here we can count the number of successfully processed tracks
     ++nTracksSuccess;
   } // end of track loop
-  LOGF(INFO, "Successfully processed %i tracks and collected %i angular residuals", nTracksSuccess, nAngularResidualsCollected);
+  LOGF(info, "Successfully processed %i tracks and collected %i angular residuals", nTracksSuccess, nAngularResidualsCollected);
   //mAngResHistos.print();
 }
 
@@ -140,13 +140,13 @@ bool TrackBasedCalib::propagateAndUpdate(TrackTRD& trk, int iLayer, bool doUpdat
 
   if (trkltSec != o2::math_utils::angle2Sector(trk.getAlpha())) {
     if (!trk.rotate(o2::math_utils::sector2Angle(trkltSec))) {
-      LOGF(DEBUG, "Track could not be rotated in tracklet coordinate system");
+      LOGF(debug, "Track could not be rotated in tracklet coordinate system");
       return 1;
     }
   }
 
   if (!propagator->PropagateToXBxByBz(trk, mTrackletsCalib[trkltId].getX(), mMaxSnp, mMaxStep, mMatCorr)) {
-    LOGF(DEBUG, "Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", iLayer, trk.getPt(), trk.getX(), mTrackletsCalib[trkltId].getX());
+    LOGF(debug, "Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", iLayer, trk.getPt(), trk.getX(), mTrackletsCalib[trkltId].getX());
     return 1;
   }
 
@@ -169,7 +169,7 @@ bool TrackBasedCalib::propagateAndUpdate(TrackTRD& trk, int iLayer, bool doUpdat
   mRecoParam.recalcTrkltCov(tilt, trk.getSnp(), pad->getRowSize(mTrackletsRaw[trkltId].getPadRow()), trkltCovUp);
 
   if (!trk.update(trkltPosUp, trkltCovUp)) {
-    LOGF(INFO, "Failed to update track with space point in layer %i", iLayer);
+    LOGF(info, "Failed to update track with space point in layer %i", iLayer);
     return 1;
   }
   return 0;

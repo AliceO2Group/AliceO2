@@ -23,7 +23,7 @@ ClassImp(Digits2Raw);
 //_____________________________________________________________________________________
 void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDigitsName)
 {
-  LOG(INFO) << "==============FDD: Digits2Raw::convertDigits" << std::endl;
+  LOG(info) << "==============FDD: Digits2Raw::convertDigits" << std::endl;
   mWriter.setCarryOverCallBack(this);
   LookUpTable lut(true);
 
@@ -37,18 +37,18 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
     uint16_t feeId = uint16_t(iPmLink);
     uint8_t linkId = uint8_t(iPmLink);
     std::string outFileLink = mOutputPerLink ? (outd + "fdd_link" + std::to_string(iPmLink) + ".raw") : (outd + "fdd.raw");
-    LOG(INFO) << " Register PM link: " << iPmLink << " to file: " << outFileLink;
+    LOG(info) << " Register PM link: " << iPmLink << " to file: " << outFileLink;
     mWriter.registerLink(feeId, sCruId, linkId, sEndPointId, outFileLink);
   }
 
   // Register TCM link separately
   std::string outFileLink = mOutputPerLink ? (outd + "fdd_link" + std::to_string(sTcmLink) + ".raw") : (outd + "fdd.raw");
-  LOG(INFO) << " Register TCM link: " << outFileLink;
+  LOG(info) << " Register TCM link: " << outFileLink;
   mWriter.registerLink(uint16_t(sTcmLink), sCruId, sTcmLink, sEndPointId, outFileLink);
 
   TFile* fdig = TFile::Open(fileDigitsName.data());
   assert(fdig != nullptr);
-  LOG(INFO) << "Open digits file: " << fileDigitsName.data();
+  LOG(info) << "Open digits file: " << fileDigitsName.data();
 
   TTree* digTree = (TTree*)fdig->Get("o2sim");
   std::vector<o2::fdd::Digit> digitsBC, *fddDigitPtr = &digitsBC;
@@ -64,7 +64,7 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
       auto channels = bcd.getBunchChannelData(digitsCh);
 
       if (!channels.empty()) {
-        LOG(DEBUG) << "o2::fdd::Digits2Raw::readDigits(): Start to convertDigits() at ibc = " << ibc << "  " << bcd.mIntRecord
+        LOG(debug) << "o2::fdd::Digits2Raw::readDigits(): Start to convertDigits() at ibc = " << ibc << "  " << bcd.mIntRecord
                    << " iCh0:" << bcd.ref.getFirstEntry() << "  nentries:" << bcd.ref.getEntries();
         convertDigits(bcd, channels, lut);
       }
@@ -90,7 +90,7 @@ void Digits2Raw::convertDigits(o2::fdd::Digit bcdigits, gsl::span<const ChannelD
          << std::setw(7) << std::setprecision(3) << pmchannels[ich].mTime << "\n";
     }
   }
-  LOG(DEBUG) << ss.str().substr(0, ss.str().size() - 1);
+  LOG(debug) << ss.str().substr(0, ss.str().size() - 1);
 
   for (int ich = 0; ich < nch; ich++) {
     int nLinkPm = lut.getLink(pmchannels[ich].mPMNumber);
@@ -102,7 +102,7 @@ void Digits2Raw::convertDigits(o2::fdd::Digit bcdigits, gsl::span<const ChannelD
       iChannelPerLink = 0;
       prevPmLink = nLinkPm;
     }
-    LOG(DEBUG) << "    Store data for channel: " << ich << " PmLink = " << nLinkPm << "  ";
+    LOG(debug) << "    Store data for channel: " << ich << " PmLink = " << nLinkPm << "  ";
     auto& newData = mRawEventData.mEventData[iChannelPerLink];
     newData.charge = pmchannels[ich].mChargeADC;
     newData.time = pmchannels[ich].mTime;
@@ -148,14 +148,14 @@ void Digits2Raw::convertDigits(o2::fdd::Digit bcdigits, gsl::span<const ChannelD
   tcmdata.amplC = ampC;
   tcmdata.timeA = mTriggers.timeA;
   tcmdata.timeC = mTriggers.timeC;
-  LOG(DEBUG) << " TCM  triggers read "
+  LOG(debug) << " TCM  triggers read "
              << " time A " << mTriggers.timeA << " time C " << mTriggers.timeC
              << " amp A " << ampA << " amp C " << ampC
              << " N A " << int(mTriggers.nChanA) << " N C " << int(mTriggers.nChanC)
              << " trig "
              << " ver " << mTriggers.getVertex() << " A " << mTriggers.getOrA() << " C " << mTriggers.getOrC();
 
-  LOG(DEBUG) << "TCMdata"
+  LOG(debug) << "TCMdata"
              << " time A " << tcmdata.timeA << " time C " << tcmdata.timeC
              << " amp A " << tcmdata.amplA << " amp C " << tcmdata.amplC
              << " N A " << int(tcmdata.nChanA) << " N C " << int(tcmdata.nChanC)
@@ -174,7 +174,7 @@ void Digits2Raw::convertDigits(o2::fdd::Digit bcdigits, gsl::span<const ChannelD
     mRawEventData.mEventData[iChannelPerLink] = {};
   }
   mRawEventData.mEventHeader.nGBTWords = nGBTWords;
-  //  LOG(DEBUG) << " last link: " << prevPmLink;
+  //  LOG(debug) << " last link: " << prevPmLink;
 }
 //_____________________________________________________________________________________
 void Digits2Raw::makeGBTHeader(EventHeader& eventHeader, int link, o2::InteractionRecord const& mIntRecord)
@@ -185,7 +185,7 @@ void Digits2Raw::makeGBTHeader(EventHeader& eventHeader, int link, o2::Interacti
   eventHeader.reservedField3 = 0;
   eventHeader.bc = mIntRecord.bc;
   eventHeader.orbit = mIntRecord.orbit;
-  LOG(DEBUG) << "  makeGBTHeader for link: " << link;
+  LOG(debug) << "  makeGBTHeader for link: " << link;
 }
 //_____________________________________________________________________________________
 void Digits2Raw::fillSecondHalfWordAndAddData(int iChannelPerLink, int prevPmLink, const o2::InteractionRecord& ir)
@@ -193,14 +193,14 @@ void Digits2Raw::fillSecondHalfWordAndAddData(int iChannelPerLink, int prevPmLin
   uint nGBTWords = uint((iChannelPerLink + 1) / 2);
   if ((iChannelPerLink % 2) == 1) {
     mRawEventData.mEventData[iChannelPerLink] = {};
-    LOG(DEBUG) << "    Fill up empty second half-word.";
+    LOG(debug) << "    Fill up empty second half-word.";
   }
   mRawEventData.mEventHeader.nGBTWords = nGBTWords;
   auto data = mRawEventData.to_vector(false);
   uint32_t linkId = uint32_t(prevPmLink);
   uint64_t feeId = uint64_t(prevPmLink);
   mWriter.addData(feeId, sCruId, linkId, sEndPointId, ir, data);
-  LOG(DEBUG) << "  Switch prevPmLink:  " << prevPmLink << ". Save data with nGBTWords="
+  LOG(debug) << "  Switch prevPmLink:  " << prevPmLink << ". Save data with nGBTWords="
              << nGBTWords << " in header. Last channel: " << iChannelPerLink;
 }
 

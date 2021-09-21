@@ -56,7 +56,7 @@ void RecoCalibInfoWorkflow::run(o2::framework::ProcessingContext& pc)
     auto& timeStamp = vertex.getTimeStamp();
     double tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
     uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
-    LOG(DEBUG) << "PrimVertices " << globalBC;
+    LOG(debug) << "PrimVertices " << globalBC;
     auto [iter, inserted] = bcsMap.try_emplace(globalBC, &vertex);
     if (!inserted) {
       iter->second = nullptr;
@@ -65,15 +65,15 @@ void RecoCalibInfoWorkflow::run(o2::framework::ProcessingContext& pc)
   for (auto& ft0RecPoint : ft0RecPoints) {
     uint64_t bc = ft0RecPoint.getInteractionRecord().toLong();
     auto item = bcsMap.find(bc);
-    LOG(DEBUG) << " <<ft0RecPoints " << bc;
+    LOG(debug) << " <<ft0RecPoints " << bc;
     if (item == bcsMap.end() || item->second == nullptr) {
-      LOG(DEBUG) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
+      LOG(debug) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
       continue;
     }
     auto& vertex = *item->second;
     auto currentVertex = vertex.getZ();
     ushort ncont = vertex.getNContributors();
-    LOG(DEBUG) << "CurrentVertex " << currentVertex << " ncont " << int(ncont);
+    LOG(debug) << "CurrentVertex " << currentVertex << " ncont " << int(ncont);
     if (ncont < 3) {
       continue;
     }
@@ -81,14 +81,14 @@ void RecoCalibInfoWorkflow::run(o2::framework::ProcessingContext& pc)
     short t0A = ft0RecPoint.getCollisionTimeA() + shift;
     short t0C = ft0RecPoint.getCollisionTimeC() - shift;
     short t0AC = ft0RecPoint.getCollisionTimeMean();
-    LOG(DEBUG) << " BC  t0  " << bc << " shift " << shift << " A " << t0A << " C " << t0C << " AC " << t0AC;
+    LOG(debug) << " BC  t0  " << bc << " shift " << shift << " A " << t0A << " C " << t0C << " AC " << t0AC;
     calib_data.emplace_back(t0A, t0C, t0AC);
   }
   mTimer.Stop();
 }
 void RecoCalibInfoWorkflow::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "Reco calib info workflow  dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "Reco calib info workflow  dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

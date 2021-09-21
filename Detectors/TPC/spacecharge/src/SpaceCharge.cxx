@@ -57,7 +57,7 @@ void SpaceCharge<DataT>::calculateDistortionsCorrections(const o2::tpc::Side sid
   using timer = std::chrono::high_resolution_clock;
   using SC = o2::tpc::SpaceCharge<DataT>;
   if (!mIsChargeSet[side]) {
-    LOGP(ERROR, "the charge is not set!");
+    LOGP(error, "the charge is not set!");
   }
 
   const std::array<std::string, 2> sglobalType{"local distortion/correction interpolator", "Electric fields"};
@@ -771,7 +771,7 @@ typename SpaceCharge<DataT>::TH3DataT SpaceCharge<DataT>::rebinDensityHisto(cons
           do {
             zLowBinOrig += 1;
             if (zLowBinOrig > zUpBinOrig) {
-              LOGP(WARNING, "SOMETHING WENT WRONG: SETTING BINS TO: {}", zUpBinOrig);
+              LOGP(warning, "SOMETHING WENT WRONG: SETTING BINS TO: {}", zUpBinOrig);
               zLowBinOrig = zUpBinOrig;
               notequal = false;
             }
@@ -788,7 +788,7 @@ typename SpaceCharge<DataT>::TH3DataT SpaceCharge<DataT>::rebinDensityHisto(cons
           do {
             zUpBinOrig -= 1;
             if (zUpBinOrig < zLowBinOrig) {
-              LOGP(WARNING, "SOMETHING WENT WRONG: SETTING BINS TO: {}", zLowBinOrig);
+              LOGP(warning, "SOMETHING WENT WRONG: SETTING BINS TO: {}", zLowBinOrig);
               zUpBinOrig = zLowBinOrig;
               notequal = false;
             }
@@ -1392,7 +1392,7 @@ void SpaceCharge<DataT>::init()
     const float omegaTau = -10. * bzField * vDrift / std::abs(getEzField(Side::A));
     setOmegaTauT1T2(omegaTau, t1, t2);
     if (mUseInitialSCDensity) {
-      LOG(WARNING) << "mUseInitialSCDensity" << mUseInitialSCDensity;
+      LOG(warning) << "mUseInitialSCDensity" << mUseInitialSCDensity;
       calculateDistortionsCorrections(Side::A);
       calculateDistortionsCorrections(Side::C);
       mInitLookUpTables = true;

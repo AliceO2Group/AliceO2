@@ -1196,7 +1196,7 @@ void TrackFinderOriginal::improveTracks()
 
   // The smoother must be enabled to compute the local chi2 at each cluster
   if (!mTrackFitter.isSmootherEnabled()) {
-    LOG(ERROR) << "Smoother disabled --> tracks cannot be improved";
+    LOG(error) << "Smoother disabled --> tracks cannot be improved";
     return;
   }
 
@@ -1299,7 +1299,7 @@ void TrackFinderOriginal::finalize()
 
   // The smoother must be enabled to compute the final parameters at each cluster
   if (!mTrackFitter.isSmootherEnabled()) {
-    LOG(ERROR) << "Smoother disabled --> tracks cannot be finalized";
+    LOG(error) << "Smoother disabled --> tracks cannot be finalized";
     return;
   }
 
@@ -1389,23 +1389,23 @@ void TrackFinderOriginal::print(Args... args) const
 void TrackFinderOriginal::printStats() const
 {
   /// print the timers
-  LOG(INFO) << "number of candidates tracked = " << mNCandidates;
+  LOG(info) << "number of candidates tracked = " << mNCandidates;
   TrackExtrap::printNCalls();
-  LOG(INFO) << "number of times tryOneClusterFast() is called = " << mNCallTryOneClusterFast;
-  LOG(INFO) << "number of times tryOneCluster() is called = " << mNCallTryOneCluster;
+  LOG(info) << "number of times tryOneClusterFast() is called = " << mNCallTryOneClusterFast;
+  LOG(info) << "number of times tryOneCluster() is called = " << mNCallTryOneCluster;
 }
 
 //_________________________________________________________________________________________________
 void TrackFinderOriginal::printTimers() const
 {
   /// print the timers
-  LOG(INFO) << "findTrackCandidates duration = " << mTimeFindCandidates.count() << " s";
-  LOG(INFO) << "findMoreTrackCandidates duration = " << mTimeFindMoreCandidates.count() << " s";
-  LOG(INFO) << "followTracks duration = " << mTimeFollowTracks.count() << " s";
-  LOG(INFO) << "completeTracks duration = " << mTimeCompleteTracks.count() << " s";
-  LOG(INFO) << "improveTracks duration = " << mTimeImproveTracks.count() << " s";
-  LOG(INFO) << "removeConnectedTracks duration = " << mTimeCleanTracks.count() << " s";
-  LOG(INFO) << "refineTracks duration = " << mTimeRefineTracks.count() << " s";
+  LOG(info) << "findTrackCandidates duration = " << mTimeFindCandidates.count() << " s";
+  LOG(info) << "findMoreTrackCandidates duration = " << mTimeFindMoreCandidates.count() << " s";
+  LOG(info) << "followTracks duration = " << mTimeFollowTracks.count() << " s";
+  LOG(info) << "completeTracks duration = " << mTimeCompleteTracks.count() << " s";
+  LOG(info) << "improveTracks duration = " << mTimeImproveTracks.count() << " s";
+  LOG(info) << "removeConnectedTracks duration = " << mTimeCleanTracks.count() << " s";
+  LOG(info) << "refineTracks duration = " << mTimeRefineTracks.count() << " s";
 }
 
 } // namespace mch

@@ -27,7 +27,7 @@ void RawEventData::printHexEventHeader() const
            << std::setw(1) << (0x0000000f & mEventHeader.nGBTWords) << " "
            << std::setw(1) << (0x0000000f & mEventHeader.startDescriptor) << " "
            << std::setw(12) << (0xffffffffffff & mEventHeader.reservedField3);
-  LOG(DEBUG) << ssheader.str();
+  LOG(debug) << ssheader.str();
 }
 
 void RawEventData::printHexEventData(uint64_t i) const
@@ -41,5 +41,5 @@ void RawEventData::printHexEventData(uint64_t i) const
   ssdata << std::setfill('0') << std::hex << std::setw(16) << mEventData[2 * i + 1].word << "\n                   ";
   ssdata << std::setw(3) << (0x0fff & mEventData[2 * i + 1].time) << " "
          << std::setw(8) << (0x1fff & mEventData[2 * i + 1].charge);
-  LOG(DEBUG) << "    | " << ssdata.str();
+  LOG(debug) << "    | " << ssdata.str();
 }

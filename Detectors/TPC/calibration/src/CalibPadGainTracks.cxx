@@ -167,7 +167,7 @@ void CalibPadGainTracks::fillgainMap()
     }
     iROC++;
   }
-  LOG(INFO) << "GAINMAP SUCCESFULLY FILLED";
+  LOG(info) << "GAINMAP SUCCESFULLY FILLED";
 }
 
 void CalibPadGainTracks::dumpGainMap()

@@ -83,7 +83,7 @@ Stack::Stack(Int_t size)
   }
 
   auto& param = o2::sim::StackParam::Instance();
-  LOG(INFO) << param;
+  LOG(info) << param;
   TransportFcn transportPrimary;
   if (param.transportPrimary.compare("none") == 0) {
     transportPrimary = [](const TParticle& p, const std::vector<TParticle>& particles) {
@@ -102,11 +102,11 @@ Stack::Stack(Int_t size)
                                                                              param.transportPrimaryFuncName,
                                                                              "o2::data::Stack::TransportFcn", "stack_transport_primary");
     if (!mTransportPrimary) {
-      LOG(FATAL) << "Failed to retrieve external \'transportPrimary\' function: problem with configuration ";
+      LOG(fatal) << "Failed to retrieve external \'transportPrimary\' function: problem with configuration ";
     }
-    LOG(INFO) << "Successfully retrieve external \'transportPrimary\' frunction: " << param.transportPrimaryFileName;
+    LOG(info) << "Successfully retrieve external \'transportPrimary\' frunction: " << param.transportPrimaryFileName;
   } else {
-    LOG(FATAL) << "unsupported \'trasportPrimary\' mode: " << param.transportPrimary;
+    LOG(fatal) << "unsupported \'trasportPrimary\' mode: " << param.transportPrimary;
   }
 
   if (param.transportPrimaryInvert) {
@@ -136,7 +136,7 @@ Stack::Stack(const Stack& rhs)
     mTrackRefs(new std::vector<o2::TrackReference>),
     mIsG4Like(rhs.mIsG4Like)
 {
-  LOG(DEBUG) << "copy constructor called";
+  LOG(debug) << "copy constructor called";
   mTracks = new std::vector<MCTrack>();
 }
 
@@ -149,7 +149,7 @@ Stack::~Stack()
 
 Stack& Stack::operator=(const Stack& rhs)
 {
-  LOG(FATAL) << "operator= called";
+  LOG(fatal) << "operator= called";
   // check assignment to self
   if (this == &rhs) {
     return *this;
@@ -360,7 +360,7 @@ TParticle* Stack::PopNextTrack(Int_t& iTrack)
       iTrack = mIndexOfCurrentTrack;
       if (o2::conf::SimCutParams::Instance().trackSeed) {
         auto hash = getHash(mCurrentParticle);
-        // LOG(INFO) << "SEEDING NEW TRACK USING HASH" << hash;
+        // LOG(info) << "SEEDING NEW TRACK USING HASH" << hash;
         // init seed per track
         gRandom->SetSeed(hash);
         // NOTE: THE BETTER PLACE WOULD BE IN PRETRACK HOOK BUT THIS DOES NOT SEEM TO WORK
@@ -385,7 +385,7 @@ TParticle* Stack::PopPrimaryForTracking(Int_t iPrim)
 
   // Test for index
   if (iPrim < 0 || iPrim >= mNumberOfPrimaryParticles) {
-    LOG(FATAL) << "Stack::PopPrimaryForTracking: Stack: Primary index out of range! " << iPrim << " ";
+    LOG(fatal) << "Stack::PopPrimaryForTracking: Stack: Primary index out of range! " << iPrim << " ";
     return nullptr;
   }
   // Return the iPrim-th TParticle from the fParticle array. This should be
@@ -411,7 +411,7 @@ void Stack::FillTrackArray()
 {
   /// This interface is not implemented since we are filtering/filling the output array
   /// after each primary ... just give a summary message
-  LOG(INFO) << "Stack: " << mTracks->size() << " out of " << mNumberOfEntriesInParticles << " stored \n";
+  LOG(info) << "Stack: " << mTracks->size() << " out of " << mNumberOfEntriesInParticles << " stored \n";
 }
 
 void Stack::FinishPrimary()
@@ -419,7 +419,7 @@ void Stack::FinishPrimary()
   // Here transport of a primary and all its secondaries is finished
   // we can do some cleanup of the memory structures
   mPrimariesDone++;
-  LOG(DEBUG) << "Finish primary hook " << mPrimariesDone;
+  LOG(debug) << "Finish primary hook " << mPrimariesDone;
   // preserve particles and theire ancestors that produced hits
 
   auto selected = selectTracks();
@@ -530,7 +530,7 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
   // we can avoid any updating in case no tracks have been filtered out
   // check this like this
   if (mIndexMap.size() == 0) {
-    LOG(INFO) << "No TrackIndex update necessary\n";
+    LOG(info) << "No TrackIndex update necessary\n";
     return;
   }
 
@@ -539,7 +539,7 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
   // as the right type to avoid repeated dynamic casts
   if (mActiveDetectors.size() == 0) {
     if (detList == nullptr) {
-      LOG(FATAL) << "No detList passed to Stack";
+      LOG(fatal) << "No detList passed to Stack";
     }
     auto iter = detList->MakeIterator();
     while (auto det = iter->Next()) {
@@ -547,12 +547,12 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
       if (o2det) {
         mActiveDetectors.emplace_back(o2det);
       } else {
-        LOG(INFO) << "Found nonconforming detector " << det->GetName();
+        LOG(info) << "Found nonconforming detector " << det->GetName();
       }
     }
   }
 
-  LOG(DEBUG) << "Stack::UpdateTrackIndex: Stack: Updating track indices...";
+  LOG(debug) << "Stack::UpdateTrackIndex: Stack: Updating track indices...";
   Int_t nColl = 0;
 
   // update track references
@@ -561,7 +561,7 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
     const auto id = ref.getTrackID();
     auto iter = mIndexMap.find(id);
     if (iter == mIndexMap.end()) {
-      LOG(INFO) << "Invalid trackref ... needs to be rmoved \n";
+      LOG(info) << "Invalid trackref ... needs to be rmoved \n";
       ref.setTrackID(-1);
     } else {
       ref.setTrackID(iter->second);
@@ -582,7 +582,7 @@ void Stack::UpdateTrackIndex(TRefArray* detList)
     det->updateHitTrackIndices(mIndexMap);
   } // List of active detectors
 
-  LOG(DEBUG) << "Stack::UpdateTrackIndex: ...stack and " << nColl << " collections updated.";
+  LOG(debug) << "Stack::UpdateTrackIndex: ...stack and " << nColl << " collections updated.";
 }
 
 void Stack::Reset()
@@ -596,7 +596,7 @@ void Stack::Reset()
   mParticles.clear();
   mTracks->clear();
   if (!mIsExternalMode && (mPrimariesDone != mNumberOfPrimariesforTracking)) {
-    LOG(FATAL) << "Inconsistency in primary particles treated " << mPrimariesDone << " vs expected "
+    LOG(fatal) << "Inconsistency in primary particles treated " << mPrimariesDone << " vs expected "
                << mNumberOfPrimariesforTracking << "\n(This points to a flaw in the stack logic)";
   }
   mPrimariesDone = 0;
@@ -670,7 +670,7 @@ bool Stack::selectTracks()
   bool tracksdiscarded = false;
   // Check particles in the fParticle array
   int prim = -1; // counter how many primaries seen (mainly to constrain search in motherindex remapping)
-  LOG(DEBUG) << "Stack: Entering track selection on " << mParticles.size() << " tracks";
+  LOG(debug) << "Stack: Entering track selection on " << mParticles.size() << " tracks";
   for (auto& thisPart : mParticles) {
     Bool_t store = kTRUE;
     // Get track parameters
@@ -817,7 +817,7 @@ bool Stack::keepPhysics(const MCTrack& part)
 
 TClonesArray* Stack::GetListOfParticles()
 {
-  LOG(FATAL) << "Stack::GetListOfParticles interface not implemented\n";
+  LOG(fatal) << "Stack::GetListOfParticles interface not implemented\n";
   return nullptr;
 }
 

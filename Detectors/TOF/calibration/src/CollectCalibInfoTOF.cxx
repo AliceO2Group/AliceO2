@@ -31,7 +31,7 @@ void CollectCalibInfoTOF::run()
   ///< finally, we will write whatever is left at the end of the processing.
 
   if (!mInitDone) {
-    LOG(FATAL) << "init() was not done yet";
+    LOG(fatal) << "init() was not done yet";
   }
 
   mTimerTot.Start();
@@ -58,7 +58,7 @@ void CollectCalibInfoTOF::init()
   ///< initizalizations
 
   if (mInitDone) {
-    LOG(ERROR) << "Initialization was already done";
+    LOG(error) << "Initialization was already done";
     return;
   }
 
@@ -67,10 +67,10 @@ void CollectCalibInfoTOF::init()
   // create output branch with track-tof matching
   if (mOutputTree) {
     mOutputTree->Branch(mOutputBranchName.data(), &mTOFCalibInfoOut);
-    LOG(INFO) << "Accumulated calib info TOF will be stored in " << mOutputBranchName << " branch of tree "
+    LOG(info) << "Accumulated calib info TOF will be stored in " << mOutputBranchName << " branch of tree "
               << mOutputTree->GetName();
   } else {
-    LOG(ERROR) << "Output tree is not attached, accumulated CalibInfoTOFshort will not be stored";
+    LOG(error) << "Output tree is not attached, accumulated CalibInfoTOFshort will not be stored";
   }
   mInitDone = true;
 
@@ -87,13 +87,13 @@ void CollectCalibInfoTOF::print() const
 {
   ///< print the settings
 
-  LOG(INFO) << "****** component for calibration of TOF channels ******";
+  LOG(info) << "****** component for calibration of TOF channels ******";
   if (!mInitDone) {
-    LOG(INFO) << "init is not done yet - nothing to print";
+    LOG(info) << "init is not done yet - nothing to print";
     return;
   }
 
-  LOG(INFO) << "**********************************************************************";
+  LOG(info) << "**********************************************************************";
 }
 
 //______________________________________________
@@ -102,14 +102,14 @@ void CollectCalibInfoTOF::attachInputTrees()
   ///< attaching the input tree
 
   if (!mTreeTOFCalibInfo) {
-    LOG(FATAL) << "Input tree with TOF calib infos is not set";
+    LOG(fatal) << "Input tree with TOF calib infos is not set";
   }
 
   if (!mTreeTOFCalibInfo->GetBranch(mTOFCalibInfoBranchName.data())) {
-    LOG(FATAL) << "Did not find TOF calib info branch " << mTOFCalibInfoBranchName << " in the input tree";
+    LOG(fatal) << "Did not find TOF calib info branch " << mTOFCalibInfoBranchName << " in the input tree";
   }
   mTreeTOFCalibInfo->SetBranchAddress(mTOFCalibInfoBranchName.data(), &mTOFCalibInfo);
-  LOG(INFO) << "Attached tracksTOF calib info " << mTOFCalibInfoBranchName << " branch with " << mTreeTOFCalibInfo->GetEntries()
+  LOG(info) << "Attached tracksTOF calib info " << mTOFCalibInfoBranchName << " branch with " << mTreeTOFCalibInfo->GetEntries()
             << " entries";
 
   mCurrTOFInfoTreeEntry = -1;
@@ -123,7 +123,7 @@ bool CollectCalibInfoTOF::loadTOFCalibInfo()
 
   while (++mCurrTOFInfoTreeEntry < mTreeTOFCalibInfo->GetEntries()) {
     mTreeTOFCalibInfo->GetEntry(mCurrTOFInfoTreeEntry);
-    LOG(INFO) << "Loading TOF calib info entry " << mCurrTOFInfoTreeEntry << " -> " << mTOFCalibInfo->size() << " infos";
+    LOG(info) << "Loading TOF calib info entry " << mCurrTOFInfoTreeEntry << " -> " << mTOFCalibInfo->size() << " infos";
 
     if (!mTOFCalibInfo->size()) {
       continue;

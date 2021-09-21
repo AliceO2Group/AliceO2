@@ -40,16 +40,16 @@ PropagatorImpl<value_T>::PropagatorImpl(bool uninitialized)
 
   // we need the geoemtry loaded
   if (!gGeoManager) {
-    LOG(FATAL) << "No active geometry!";
+    LOG(fatal) << "No active geometry!";
   }
 
   mField = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!mField) {
-    LOG(WARNING) << "No Magnetic Field in TGeoGlobalMagField, checking legacy FairRunAna";
+    LOG(warning) << "No Magnetic Field in TGeoGlobalMagField, checking legacy FairRunAna";
     mField = dynamic_cast<o2::field::MagneticField*>(FairRunAna::Instance()->GetField());
   }
   if (!mField) {
-    LOG(FATAL) << "Magnetic field is not initialized!";
+    LOG(fatal) << "Magnetic field is not initialized!";
   }
   const value_type xyz[3] = {0.};
   if (!mField->getFastField() && mField->fastFieldExists()) {
@@ -67,7 +67,7 @@ int PropagatorImpl<value_T>::initFieldFromGRP(const std::string grpFileName, std
 {
   /// load grp and init magnetic field
   if (verbose) {
-    LOG(INFO) << "Loading field from GRP of " << grpFileName;
+    LOG(info) << "Loading field from GRP of " << grpFileName;
   }
   const auto grp = o2::parameters::GRPObject::loadFrom(grpFileName, grpName);
   if (!grp) {
@@ -88,11 +88,11 @@ int PropagatorImpl<value_T>::initFieldFromGRP(const o2::parameters::GRPObject* g
 
   if (TGeoGlobalMagField::Instance()->IsLocked()) {
     if (TGeoGlobalMagField::Instance()->GetField()->TestBit(o2::field::MagneticField::kOverrideGRP)) {
-      LOG(WARNING) << "ExpertMode!!! GRP information will be ignored";
-      LOG(WARNING) << "ExpertMode!!! Running with the externally locked B field";
+      LOG(warning) << "ExpertMode!!! GRP information will be ignored";
+      LOG(warning) << "ExpertMode!!! Running with the externally locked B field";
       return 0;
     } else {
-      LOG(INFO) << "Destroying existing B field instance";
+      LOG(info) << "Destroying existing B field instance";
       delete TGeoGlobalMagField::Instance();
     }
   }
@@ -100,9 +100,9 @@ int PropagatorImpl<value_T>::initFieldFromGRP(const o2::parameters::GRPObject* g
   TGeoGlobalMagField::Instance()->SetField(fld);
   TGeoGlobalMagField::Instance()->Lock();
   if (verbose) {
-    LOG(INFO) << "Running with the B field constructed out of GRP";
-    LOG(INFO) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via";
-    LOG(INFO) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
+    LOG(info) << "Running with the B field constructed out of GRP";
+    LOG(info) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via";
+    LOG(info) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
   }
   return 0;
 }
@@ -387,7 +387,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const o2::dataformats::Verte
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += math_utils::detail::asin<value_type>(sn);
   if (!tmpT.rotate(alp) || !propagateToX(tmpT, xv, bZ, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
-    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
+    LOG(warning) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
     tmpT.print();
     return false;
   }
@@ -433,7 +433,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const o2::dataformats:
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += math_utils::detail::asin<value_type>(sn);
   if (!tmpT.rotate(alp) || !PropagateToXBxByBz(tmpT, xv, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
-    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
+    LOG(warning) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
     tmpT.print();
     return false;
   }
@@ -479,7 +479,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const math_utils::Point3D<va
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += math_utils::detail::asin<value_type>(sn);
   if (!tmpT.rotateParam(alp) || !propagateToX(tmpT, xv, bZ, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
-    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
+    LOG(warning) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
                  << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
     tmpT.printParam();
     return false;
@@ -524,7 +524,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += math_utils::detail::asin<value_type>(sn);
   if (!tmpT.rotateParam(alp) || !PropagateToXBxByBz(tmpT, xv, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
-    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
+    LOG(warning) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
                  << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
     tmpT.printParam();
     return false;
@@ -608,7 +608,7 @@ GPUd() void PropagatorImpl<value_T>::getFieldXYZImpl(const math_utils::Point3D<T
       mFieldFast->Field(xyz, bxyz); // Must not call the host-only function in GPU compilation
     } else {
 #ifdef GPUCA_STANDALONE
-      LOG(FATAL) << "Normal field cannot be used in standalone benchmark";
+      LOG(fatal) << "Normal field cannot be used in standalone benchmark";
 #else
       mField->field(xyz, bxyz);
 #endif

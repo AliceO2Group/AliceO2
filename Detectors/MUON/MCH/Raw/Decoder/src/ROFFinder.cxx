@@ -64,7 +64,7 @@ void ROFFinder::process(bool dummyROFs)
   auto checkDigitId = [&](RawDigitId id) -> bool {
     bool ok = id < mInputDigits.size();
     if (!ok) {
-      LOG(ERROR) << "Invalid digit ID " << id << " (digits vector size is " << mInputDigits.size() << ")\n";
+      LOG(error) << "Invalid digit ID " << id << " (digits vector size is " << mInputDigits.size() << ")\n";
     }
     return ok;
   };
@@ -145,7 +145,7 @@ void ROFFinder::sortDigits()
   for (size_t i = 0; i < mInputDigits.size(); i++) {
     auto& digit = mInputDigits[i];
     if (!digit.timeValid()) {
-      LOG(ERROR) << "Digit with invalid time, DS " << digit.info.solar << "," << digit.info.ds << "," << digit.info.chip
+      LOG(error) << "Digit with invalid time, DS " << digit.info.solar << "," << digit.info.ds << "," << digit.info.chip
                  << "  pad " << digit.getDetID() << "," << digit.getPadID() << "  "
                  << digit.getOrbit() << " (" << mFirstTForbit << ") "
                  << digit.getTime() << digit.getBXTime();
@@ -154,7 +154,7 @@ void ROFFinder::sortDigits()
 
     auto orbit = digit.getOrbit();
     if (orbit < mFirstTForbit) {
-      LOG(ERROR) << "[ROFFinder::fillDigitsArray] orbit smaller than first TF orbit: " << orbit << ", " << mFirstTForbit;
+      LOG(error) << "[ROFFinder::fillDigitsArray] orbit smaller than first TF orbit: " << orbit << ", " << mFirstTForbit;
       continue;
     }
 
@@ -265,16 +265,16 @@ bool ROFFinder::isRofTimeMonotonic()
     const auto& rofPrev = mOutputROFs[i - 1];
     int64_t delta = rof.getBCData().differenceInBC(rofPrev.getBCData());
     if (rof.getBCData() < rofPrev.getBCData()) {
-      LOG(ERROR) << "Non-monotonic ROFs encountered:";
-      LOG(ERROR) << fmt::format("ROF1 {}-{} {},{}  ", rofPrev.getFirstIdx(), rofPrev.getLastIdx(),
+      LOG(error) << "Non-monotonic ROFs encountered:";
+      LOG(error) << fmt::format("ROF1 {}-{} {},{}  ", rofPrev.getFirstIdx(), rofPrev.getLastIdx(),
                                 rofPrev.getBCData().orbit, rofPrev.getBCData().bc)
                  << fmt::format("ROF2 {}-{} {},{}", rof.getFirstIdx(), rof.getLastIdx(),
                                 rof.getBCData().orbit, rof.getBCData().bc);
       result = false;
     }
     if ((delta % 4) != 0) {
-      LOG(ERROR) << "Mis-aligned ROFs encountered:";
-      LOG(ERROR) << fmt::format("ROF1 {}-{} {},{}  ", rofPrev.getFirstIdx(), rofPrev.getLastIdx(),
+      LOG(error) << "Mis-aligned ROFs encountered:";
+      LOG(error) << fmt::format("ROF1 {}-{} {},{}  ", rofPrev.getFirstIdx(), rofPrev.getLastIdx(),
                                 rofPrev.getBCData().orbit, rofPrev.getBCData().bc)
                  << fmt::format("ROF2 {}-{} {},{}", rof.getFirstIdx(), rof.getLastIdx(),
                                 rof.getBCData().orbit, rof.getBCData().bc);
@@ -295,8 +295,8 @@ bool ROFFinder::isDigitsTimeAligned()
       const auto& digit = mInputDigits[id];
       const auto& digitPrev = mInputDigits[idPrev];
       if (digit.getTime() != digitPrev.getTime()) {
-        LOG(ERROR) << "Mis-aligned digits encountered:";
-        LOG(ERROR) << fmt::format("TIME1 {}  ", digitPrev.getTime()) << fmt::format("TIME2 {}", digit.getTime());
+        LOG(error) << "Mis-aligned digits encountered:";
+        LOG(error) << fmt::format("TIME1 {}  ", digitPrev.getTime()) << fmt::format("TIME2 {}", digit.getTime());
         return false;
       }
     }

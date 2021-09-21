@@ -65,7 +65,7 @@ class TimeSlot
 
   void print() const
   {
-    LOGF(INFO, "Calibration slot %5d <=TF<=  %5d", mTFStart, mTFEnd);
+    LOGF(info, "Calibration slot %5d <=TF<=  %5d", mTFStart, mTFEnd);
     mContainer->print();
   }
 

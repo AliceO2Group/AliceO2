@@ -27,7 +27,7 @@ framework::DataProcessorSpec getDigitWriterSpec(bool raw)
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
   // Spectators for logging
   auto logger = [](std::vector<o2::ctp::CTPDigit> const& vecDigits) {
-    LOG(INFO) << "CTPDigitWriter pulled " << vecDigits.size() << " digits";
+    LOG(info) << "CTPDigitWriter pulled " << vecDigits.size() << " digits";
   };
   return MakeRootTreeWriterSpec(raw ? "ctp-digit-writer-dec" : "ctp-digit-writer",
                                 raw ? "o2_ctpdigits.root" : "ctpdigits.root",

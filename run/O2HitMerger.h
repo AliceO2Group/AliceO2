@@ -111,9 +111,9 @@ class O2HitMerger : public FairMQDevice
   ~O2HitMerger() override
   {
     FairSystemInfo sysinfo;
-    LOG(INFO) << "TIME-STAMP " << mTimer.RealTime() << "\t";
+    LOG(info) << "TIME-STAMP " << mTimer.RealTime() << "\t";
     mTimer.Continue();
-    LOG(INFO) << "MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " "
+    LOG(info) << "MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " "
               << sysinfo.GetMaxMemory() << " MB\n";
   }
 
@@ -121,7 +121,7 @@ class O2HitMerger : public FairMQDevice
   /// Overloads the InitTask() method of FairMQDevice
   void InitTask() final
   {
-    LOG(INFO) << "INIT HIT MERGER";
+    LOG(info) << "INIT HIT MERGER";
     // signal(SIGSEGV, sighandler);
     ROOT::EnableThreadSafety();
 
@@ -150,9 +150,9 @@ class O2HitMerger : public FairMQDevice
     auto pipeenv = getenv("ALICE_O2SIMMERGERTODRIVER_PIPE");
     if (pipeenv) {
       mPipeToDriver = atoi(pipeenv);
-      LOG(INFO) << "ASSIGNED PIPE HANDLE " << mPipeToDriver;
+      LOG(info) << "ASSIGNED PIPE HANDLE " << mPipeToDriver;
     } else {
-      LOG(WARNING) << "DID NOT FIND ENVIRONMENT VARIABLE TO INIT PIPE";
+      LOG(warning) << "DID NOT FIND ENVIRONMENT VARIABLE TO INIT PIPE";
     }
 
     // if no data to expect we shut down the device NOW since it would otherwise hang
@@ -160,7 +160,7 @@ class O2HitMerger : public FairMQDevice
       if (mAsService) {
         waitForControlInput();
       } else {
-        LOG(INFO) << "NOT EXPECTING ANY DATA; SHUTTING DOWN";
+        LOG(info) << "NOT EXPECTING ANY DATA; SHUTTING DOWN";
         raise(SIGINT);
       }
     }
@@ -183,7 +183,7 @@ class O2HitMerger : public FairMQDevice
         auto absolutePath = fs::absolute(fs::path(dir));
         if (!fs::exists(absolutePath)) {
           if (!fs::create_directory(absolutePath)) {
-            LOG(ERROR) << "Could not create directory " << absolutePath.string();
+            LOG(error) << "Could not create directory " << absolutePath.string();
             return false;
           }
         }
@@ -191,9 +191,9 @@ class O2HitMerger : public FairMQDevice
         fs::current_path(absolutePath.string().c_str());
         mCurrentOutputDir = fs::current_path().string();
       }
-      LOG(INFO) << "FINAL PATH " << mCurrentOutputDir;
+      LOG(info) << "FINAL PATH " << mCurrentOutputDir;
     } catch (std::exception e) {
-      LOG(ERROR) << " could not change path to " << dir;
+      LOG(error) << " could not change path to " << dir;
     }
     return true;
   }
@@ -253,7 +253,7 @@ class O2HitMerger : public FairMQDevice
     if (detIDmessage->GetSize() == 4) {
       auto ptr = (int*)detIDmessage->GetData();
       o2::detectors::DetID id(ptr[0]);
-      LOG(DEBUG2) << "I1 " << ptr[0] << " NAME " << id.getName() << " MB "
+      LOG(debug2) << "I1 " << ptr[0] << " NAME " << id.getName() << " MB "
                   << data.At(index)->GetSize() / 1024. / 1024.;
 
       // get the detector that can interpret it
@@ -294,24 +294,24 @@ class O2HitMerger : public FairMQDevice
     auto factory = FairMQTransportFactory::CreateTransportFactory("zeromq");
     auto channel = FairMQChannel{"o2sim-control", "sub", factory};
     auto controlsocketname = getenv("ALICE_O2SIMCONTROL");
-    LOG(INFO) << "SOCKETNAME " << controlsocketname;
+    LOG(info) << "SOCKETNAME " << controlsocketname;
     channel.Connect(std::string(controlsocketname));
     channel.Validate();
     std::unique_ptr<FairMQMessage> reply(channel.NewMessage());
 
-    LOG(INFO) << "WAITING FOR INPUT";
+    LOG(info) << "WAITING FOR INPUT";
     if (channel.Receive(reply) > 0) {
       auto data = reply->GetData();
       auto size = reply->GetSize();
 
       std::string command(reinterpret_cast<char const*>(data), size);
-      LOG(INFO) << "message: " << command;
+      LOG(info) << "message: " << command;
 
       o2::conf::SimReconfigData reconfig;
       o2::conf::parseSimReconfigFromString(command, reconfig);
       return ReInit(reconfig);
     } else {
-      LOG(INFO) << "NOTHING RECEIVED";
+      LOG(info) << "NOTHING RECEIVED";
     }
     return true;
   }
@@ -322,15 +322,15 @@ class O2HitMerger : public FairMQDevice
     FairMQParts request;
     auto bytes = channel.Receive(request);
     if (bytes < 0) {
-      LOG(ERROR) << "Some error occurred on socket during receive on sim data";
+      LOG(error) << "Some error occurred on socket during receive on sim data";
       return true; // keep going
     }
     TStopwatch timer;
     timer.Start();
     auto more = handleSimData(request, 0);
-    LOG(INFO) << "HitMerger processing took " << timer.RealTime();
+    LOG(info) << "HitMerger processing took " << timer.RealTime();
     if (!more && mAsService) {
-      LOG(INFO) << " CONTROL ";
+      LOG(info) << " CONTROL ";
       // if we are done treating data we may go back to init phase
       // for the next batch
       return waitForControlInput();
@@ -346,7 +346,7 @@ class O2HitMerger : public FairMQDevice
     o2::data::SubEventInfo& info = *infoptr;
     auto accum = insertAdd<uint32_t, uint32_t>(mPartsCheckSum, info.eventID, (uint32_t)info.part);
 
-    LOG(INFO) << "SIMDATA channel got " << data.Size() << " parts for event " << info.eventID << " part " << info.part << " out of " << info.nparts;
+    LOG(info) << "SIMDATA channel got " << data.Size() << " parts for event " << info.eventID << " part " << info.part << " out of " << info.nparts;
 
     fillSubEventInfoEntry(info);
     consumeData<std::vector<o2::MCTrack>>(info.eventID, data, index, mMCTrackBuffer);
@@ -356,7 +356,7 @@ class O2HitMerger : public FairMQDevice
     }
 
     if (isDataComplete<uint32_t>(accum, info.nparts)) {
-      LOG(INFO) << "Event " << info.eventID << " complete. Marking as flushable";
+      LOG(info) << "Event " << info.eventID << " complete. Marking as flushable";
       mFlushableEvents[info.eventID] = true;
 
       // check if previous flush finished
@@ -374,7 +374,7 @@ class O2HitMerger : public FairMQDevice
       mEventChecksum += info.eventID;
       // we also need to check if we have all events
       if (isDataComplete<uint32_t>(mEventChecksum, info.maxEvents)) {
-        LOG(INFO) << "ALL EVENTS HERE; CHECKSUM " << mEventChecksum;
+        LOG(info) << "ALL EVENTS HERE; CHECKSUM " << mEventChecksum;
 
         // flush remaining data and close file
         if (mMergerIOThread.joinable()) {
@@ -390,7 +390,7 @@ class O2HitMerger : public FairMQDevice
 
       if (mPipeToDriver != -1) {
         if (write(mPipeToDriver, &info.eventID, sizeof(info.eventID)) == -1) {
-          LOG(ERROR) << "FAILED WRITING TO PIPE";
+          LOG(error) << "FAILED WRITING TO PIPE";
         };
       }
     }
@@ -585,17 +585,17 @@ class O2HitMerger : public FairMQDevice
       return mFlushableEvents.find(mNextFlushID) != mFlushableEvents.end() && mFlushableEvents[mNextFlushID] == true;
     };
 
-    LOG(INFO) << "Launching merge kernel ";
+    LOG(info) << "Launching merge kernel ";
     bool canflush = mFlushableEvents.find(mNextFlushID) != mFlushableEvents.end() && mFlushableEvents[mNextFlushID] == true;
     if (!canflush) {
       return false;
     }
     while (canflush == true) {
       auto flusheventID = mNextFlushID;
-      LOG(INFO) << "Merge and flush event " << flusheventID;
+      LOG(info) << "Merge and flush event " << flusheventID;
       auto iter = mSubEventInfoBuffer.find(flusheventID);
       if (iter == mSubEventInfoBuffer.end()) {
-        LOG(ERROR) << "No info/data found for event " << flusheventID;
+        LOG(error) << "No info/data found for event " << flusheventID;
         if (!checkIfNextFlushable()) {
           return false;
         }
@@ -603,7 +603,7 @@ class O2HitMerger : public FairMQDevice
 
       auto& subEventInfoList = (*iter).second;
       if (subEventInfoList.size() == 0 || mNExpectedEvents == 0) {
-        LOG(ERROR) << "No data entries found for event " << flusheventID;
+        LOG(error) << "No data entries found for event " << flusheventID;
         if (!checkIfNextFlushable()) {
           return false;
         }
@@ -640,7 +640,7 @@ class O2HitMerger : public FairMQDevice
       // now see which events can be discarded in any case due to no hits
       if (confref.isFilterOutNoHitEvents()) {
         if (eventheader && eventheader->getMCEventStats().getNHits() == 0) {
-          LOG(INFO) << " Taking out event " << flusheventID << " due to no hits ";
+          LOG(info) << " Taking out event " << flusheventID << " due to no hits ";
           cleanEvent(flusheventID);
           if (!checkIfNextFlushable()) {
             return true;
@@ -680,21 +680,21 @@ class O2HitMerger : public FairMQDevice
           // det->mergeHitEntries(*tree, *hittree, trackoffsets, nprimaries, subevOrdered);
           det->mergeHitEntriesAndFlush(flusheventID, *hittree, trackoffsets, nprimaries, subevOrdered);
           hittree->SetEntries(hittree->GetEntries() + 1);
-          LOG(INFO) << "flushing tree to file " << hittree->GetDirectory()->GetFile()->GetName();
+          LOG(info) << "flushing tree to file " << hittree->GetDirectory()->GetFile()->GetName();
         }
       }
 
       // increase the entry count in the tree
       mOutTree->SetEntries(mOutTree->GetEntries() + 1);
-      LOG(INFO) << "outtree has file " << mOutTree->GetDirectory()->GetFile()->GetName();
+      LOG(info) << "outtree has file " << mOutTree->GetDirectory()->GetFile()->GetName();
 
       cleanEvent(flusheventID);
-      LOG(INFO) << "Merge/flush for event " << flusheventID << " took " << timer.RealTime();
+      LOG(info) << "Merge/flush for event " << flusheventID << " took " << timer.RealTime();
       if (!checkIfNextFlushable()) {
         break;
       }
     } // end while
-    LOG(INFO) << "Writing TTrees";
+    LOG(info) << "Writing TTrees";
     mOutFile->Write("", TObject::kOverwrite);
     for (int id = 0; id < mDetectorInstances.size(); ++id) {
       auto& det = mDetectorInstances[id];
@@ -865,7 +865,7 @@ void O2HitMerger::initDetInstances()
 #endif
   }
   if (counter != DetID::nDetectors) {
-    LOG(WARNING) << " O2HitMerger: Some Detectors are potentially missing in this initialization ";
+    LOG(warning) << " O2HitMerger: Some Detectors are potentially missing in this initialization ";
   }
 }
 

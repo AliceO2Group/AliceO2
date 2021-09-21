@@ -262,7 +262,7 @@ void Geometry::createGeometry(std::vector<int> const& idtmed)
 
   if (!gGeoManager) {
     // RSTODO: in future there will be a method to load matrices from the CDB
-    LOG(FATAL) << "Geometry is not loaded";
+    LOG(fatal) << "Geometry is not loaded";
   }
 
   createVolumes(idtmed);
@@ -2645,7 +2645,7 @@ void Geometry::addAlignableVolumes() const
   // define alignable volumes of the TRD
   //
   if (!gGeoManager) {
-    LOG(FATAL) << "Geometry is not loaded";
+    LOG(fatal) << "Geometry is not loaded";
   }
 
   std::string volPath;
@@ -2731,7 +2731,7 @@ void Geometry::addAlignableVolumes() const
           t2lMatrix->MultiplyLeft(&globmatrixi);
           alignableEntry->SetMatrix(t2lMatrix);
         } else {
-          LOG(ERROR) << "Alignable entry is not valid: ModID:" << modID << " Sector:" << isector << " Lr:" << ilayer
+          LOG(error) << "Alignable entry is not valid: ModID:" << modID << " Sector:" << isector << " Lr:" << ilayer
                      << " Stack: " << istack << " name: " << symName.c_str() << " vol: " << volPath.c_str();
         }
       }
@@ -2744,12 +2744,12 @@ bool Geometry::createClusterMatrixArray()
 {
 
   if (!gGeoManager) {
-    LOG(ERROR) << "Geometry is not loaded yet";
+    LOG(error) << "Geometry is not loaded yet";
     return false;
   }
 
   if (isBuilt()) {
-    LOG(WARNING) << "Already built";
+    LOG(warning) << "Already built";
     return true; // already initialized
   }
 

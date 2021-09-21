@@ -33,7 +33,7 @@ void PluginManager::load(std::vector<PluginInfo>& libs, const char* dso, std::fu
   std::string filename = fmt::format("lib{}.{}", dso, extension);
   result = uv_dlopen(filename.c_str(), supportLib);
   if (result == -1) {
-    LOG(FATAL) << uv_dlerror(supportLib);
+    LOG(fatal) << uv_dlerror(supportLib);
     return;
   }
   void* callback = nullptr;
@@ -41,11 +41,11 @@ void PluginManager::load(std::vector<PluginInfo>& libs, const char* dso, std::fu
 
   result = uv_dlsym(supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
   if (result == -1) {
-    LOG(FATAL) << uv_dlerror(supportLib);
+    LOG(fatal) << uv_dlerror(supportLib);
     return;
   }
   if (dpl_plugin_callback == nullptr) {
-    LOGP(FATAL, "Could not find the {} plugin.", dso);
+    LOGP(fatal, "Could not find the {} plugin.", dso);
     return;
   }
   DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);

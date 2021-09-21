@@ -34,7 +34,7 @@
   errRes = errEval;                                \
   if ((errRes) == Abort) {                         \
     discardData();                                 \
-    LOG(ERROR) << "Aborting decoding";             \
+    LOG(error) << "Aborting decoding";             \
     return AbortedOnError;                         \
   }
 

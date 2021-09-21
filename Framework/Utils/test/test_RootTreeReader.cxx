@@ -33,7 +33,7 @@ using namespace o2::framework;
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
-    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed)"; \
+    LOG(fatal) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
 const int gTreeSize = 10; // elements in the test tree
@@ -111,7 +111,7 @@ DataProcessorSpec getSinkSpec()
     using DataHeader = o2::header::DataHeader;
     for (auto& input : pc.inputs()) {
       auto dh = DataRefUtils::getHeader<const DataHeader*>(input);
-      LOG(INFO) << dh->dataOrigin.str << " " << dh->dataDescription.str << " " << dh->payloadSize;
+      LOG(info) << dh->dataOrigin.str << " " << dh->dataDescription.str << " " << dh->payloadSize;
     }
     auto data = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input1");
     if (counter == 0) {
@@ -126,7 +126,7 @@ DataProcessorSpec getSinkSpec()
       }
     }
 
-    LOG(INFO) << "count: " << counter << "  data elements:" << data.size();
+    LOG(info) << "count: " << counter << "  data elements:" << data.size();
     ASSERT_ERROR(counter + 1 == data.size());
 
     // retrieving the unserialized message as vector
@@ -138,7 +138,7 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(counter + 1 == msgblspan.size());
 
     for (unsigned int idx = 0; idx < data.size(); idx++) {
-      LOG(INFO) << data[idx].get();
+      LOG(info) << data[idx].get();
       auto expected = 10 * counter + idx;
       ASSERT_ERROR(data[idx].get() == expected);
       ASSERT_ERROR(((*msgblvec)[idx] == o2::test::TriviallyCopyable{expected, 0, 0}));

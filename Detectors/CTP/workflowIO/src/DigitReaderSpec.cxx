@@ -38,7 +38,7 @@ struct ProcessAttributes {
 DataProcessorSpec getDigitsReaderSpec(bool propagateMC)
 {
   if (propagateMC) {
-    LOG(WARNING) << "MC truth not implemented for CTP, continouing wothout MC";
+    LOG(warning) << "MC truth not implemented for CTP, continouing wothout MC";
     propagateMC = false;
   }
   auto initFunction = [propagateMC](InitContext& ic) {

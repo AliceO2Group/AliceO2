@@ -65,7 +65,7 @@ TGeoVolume* AlpideChip::createChip(const Double_t ychip,
   // First create all needed shapes
   ylen = ysens;
   if (ysens > ychip) {
-    LOG(WARNING) << "Sensor half thickness (" << ysens
+    LOG(warning) << "Sensor half thickness (" << ysens
                  << ") greater than chip half thickness (" << ychip
                  << "), setting equal";
     ylen = ychip;

@@ -33,7 +33,7 @@ void RawBuffer::readFromStream(std::istream& in, uint32_t payloadsize)
     in.read(address, sizeof(word));
     nbyte += sizeof(word);
     if ((word & 0xFFFFFF) == 0x1d3082) {
-      LOG(ERROR) << "Found stop word" << std::endl;
+      LOG(error) << "Found stop word" << std::endl;
       // Termination word
       // should normally not be decoded in case the payload size
       // is determined correctly

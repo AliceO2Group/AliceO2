@@ -50,7 +50,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
                                             device.device()->WaitFor(std::chrono::milliseconds(3));
                                             auto& count = inputs.get<int>("x");
                                             if (expected != count) {
-                                              LOGP(ERROR, "Missing message. Expected: {}, Found {}.", expected, count);
+                                              LOGP(error, "Missing message. Expected: {}, Found {}.", expected, count);
                                               control.readyToQuit(QuitRequest::All);
                                             }
                                             expected++;

@@ -20,5 +20,5 @@ void CreateCTPOrbitResetObject(const std::string& ccdbHost = "http://ccdb-test.c
   map<string, string> metadata; // can be empty
   metadata["comment"] = "CTP Orbit reset";
   api.storeAsTFileAny(&rt, objName, metadata, tmin, tmax);
-  LOGP(INFO, "Uploaded CTP Oribt reset time {} to {}", t, objName);
+  LOGP(info, "Uploaded CTP Oribt reset time {} to {}", t, objName);
 }

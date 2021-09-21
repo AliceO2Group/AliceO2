@@ -240,7 +240,7 @@ o2::eventgen::DeepTrigger
       auto py8 = reinterpret_cast<Pythia8::Pythia*>(interface);
       return py8->info.nMPI() >= mpiMin;
     }
-    LOG(FATAL) << "Cannot define MPI for generator interface \'" << name << "\'";
+    LOG(fatal) << "Cannot define MPI for generator interface \'" << name << "\'";
     return false;
   };
 }
@@ -313,7 +313,7 @@ o2::eventgen::DeepTrigger
       nMPI = py6->GetMSTI(31);
     }
     else
-      LOG(FATAL) << "Cannot define MPI for generator interface \'" << name << "\'";
+      LOG(fatal) << "Cannot define MPI for generator interface \'" << name << "\'";
     return nMPI >= mpiMin;
   };
 }

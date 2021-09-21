@@ -54,9 +54,9 @@ FT3Layer::FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerNam
   auto Si_X0 = 9.5;
   mChipThickness = Layerx2X0 * Si_X0;
 
-  LOG(INFO) << "Creating FT3 Layer " << mLayerNumber << " ; direction " << mDirection;
-  LOG(INFO) << "   Using silicon X0 = " << Si_X0 << " to emulate layer radiation length.";
-  LOG(INFO) << "   Layer z = " << mZ << " ; R_in = " << mInnerRadius << " ; R_out = " << mOuterRadius << " ; x2X0 = " << mx2X0 << " ; ChipThickness = " << mChipThickness;
+  LOG(info) << "Creating FT3 Layer " << mLayerNumber << " ; direction " << mDirection;
+  LOG(info) << "   Using silicon X0 = " << Si_X0 << " to emulate layer radiation length.";
+  LOG(info) << "   Layer z = " << mZ << " ; R_in = " << mInnerRadius << " ; R_out = " << mOuterRadius << " ; x2X0 = " << mx2X0 << " ; ChipThickness = " << mChipThickness;
 }
 
 void FT3Layer::createLayer(TGeoVolume* motherVolume)
@@ -77,17 +77,17 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
     TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
 
-    LOG(INFO) << "Inserting " << sensVol->GetName() << " inside " << chipVol->GetName();
+    LOG(info) << "Inserting " << sensVol->GetName() << " inside " << chipVol->GetName();
     chipVol->AddNode(sensVol, 1, nullptr);
 
-    LOG(INFO) << "Inserting " << chipVol->GetName() << " inside " << layerVol->GetName();
+    LOG(info) << "Inserting " << chipVol->GetName() << " inside " << layerVol->GetName();
     layerVol->AddNode(chipVol, 1, nullptr);
 
     // Finally put everything in the mother volume
     auto* FwdDiskRotation = new TGeoRotation("FwdDiskRotation", 0, 0, 180);
     auto* FwdDiskCombiTrans = new TGeoCombiTrans(0, 0, mZ, FwdDiskRotation);
 
-    LOG(INFO) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
+    LOG(info) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
     motherVolume->AddNode(layerVol, 1, FwdDiskCombiTrans);
 
     return;

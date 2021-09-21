@@ -172,7 +172,7 @@ MagneticField* MagneticField::createNominalField(int fld, bool uniform)
         fldCoeffL3 = fldCoeffDip = fld > 0 ? 1. : -1;
         break;
       default:
-        LOG(FATAL) << "Field option " << fld << " is not supported, use +-2, +-5 or 0 or <int_kilogauss>U";
+        LOG(fatal) << "Field option " << fld << " is not supported, use +-2, +-5 or 0 or <int_kilogauss>U";
     };
   }
   return new o2::field::MagneticField("Maps", "Maps", fldCoeffL3, fldCoeffDip, fldType);
@@ -188,7 +188,7 @@ void MagneticField::CreateField()
 
   // does real creation of the field
   if (mDefaultIntegration < 0 || mDefaultIntegration > 2) {
-    LOG(WARNING) << "MagneticField::CreateField: Invalid magnetic field flag: " << mDefaultIntegration
+    LOG(warning) << "MagneticField::CreateField: Invalid magnetic field flag: " << mDefaultIntegration
                  << "; Helix tracking chosen instead";
     mDefaultIntegration = 2;
   }
@@ -205,7 +205,7 @@ void MagneticField::CreateField()
       mBeamEnergy = 2760; // same rigitiy max PbPb energy
     }
     //
-    LOG(INFO) << "MagneticField::CreateField: Maximim possible beam energy for requested beam is assumed";
+    LOG(info) << "MagneticField::CreateField: Maximim possible beam energy for requested beam is assumed";
   }
 
   const char* parname = nullptr;
@@ -217,7 +217,7 @@ void MagneticField::CreateField()
   } else if (mMapType == MagFieldParam::k5kGUniform) {
     parname = "Sol30_Dip6_Uniform";
   } else {
-    LOG(FATAL) << "MagneticField::CreateField: Unknown field identifier " << mMapType << " is requested\n";
+    LOG(fatal) << "MagneticField::CreateField: Unknown field identifier " << mMapType << " is requested\n";
   }
 
   setParameterName(parname);
@@ -239,19 +239,19 @@ Bool_t MagneticField::loadParameterization()
    */
 
   if (mMeasuredMap) {
-    LOG(FATAL) << "MagneticField::loadParameterization: Field data " << getParameterName()
+    LOG(fatal) << "MagneticField::loadParameterization: Field data " << getParameterName()
                << " are already loaded from " << getDataFileName() << "\n";
   }
   const char* fname = gSystem->ExpandPathName(getDataFileName());
   TFile* file = TFile::Open(fname);
   if (!file) {
-    LOG(FATAL) << "MagneticField::loadParameterization: Failed to open magnetic field data file " << fname << "\n";
+    LOG(fatal) << "MagneticField::loadParameterization: Failed to open magnetic field data file " << fname << "\n";
   }
 
   mMeasuredMap =
     std::unique_ptr<MagneticWrapperChebyshev>(dynamic_cast<MagneticWrapperChebyshev*>(file->Get(getParameterName())));
   if (!mMeasuredMap) {
-    LOG(FATAL) << "MagneticField::loadParameterization: Did not find field " << getParameterName() << " in " << fname
+    LOG(fatal) << "MagneticField::loadParameterization: Did not find field " << getParameterName() << " in " << fname
                << "%s\n";
   }
   file->Close();
@@ -556,7 +556,7 @@ MagneticField* MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t
     if (diCur <= zero) {
       sclDip = 0.; // some small current.. -> Dipole OFF
     } else {
-      LOG(FATAL) << "MagneticField::createFieldMap: Wrong dipole current (" << diCur << " A)!";
+      LOG(fatal) << "MagneticField::createFieldMap: Wrong dipole current (" << diCur << " A)!";
     }
   }
 
@@ -575,14 +575,14 @@ MagneticField* MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t
       sclDip = 0;
       map = MagFieldParam::k5kGUniform;
     } else {
-      LOG(FATAL) << "MagneticField::createFieldMap: Wrong L3 current (" << l3Cur << "  A)!";
+      LOG(fatal) << "MagneticField::createFieldMap: Wrong L3 current (" << l3Cur << "  A)!";
     }
   }
 
   if (sclDip != 0 && map != MagFieldParam::k5kGUniform) {
     if ((l3Cur <= zero) ||
         ((convention == kConvLHC && l3Pol != diPol) || (convention == kConvDCS2008 && l3Pol == diPol))) {
-      LOG(FATAL) << "MagneticField::createFieldMap: Wrong combination for L3/Dipole polarities ("
+      LOG(fatal) << "MagneticField::createFieldMap: Wrong combination for L3/Dipole polarities ("
                  << (l3Pol > 0 ? '+' : '-') << "/" << (diPol > 0 ? '+' : '-') << ") for convention "
                  << getPolarityConvention();
     }
@@ -611,7 +611,7 @@ MagneticField* MagneticField::createFieldMap(Float_t l3Cur, Float_t diCur, Int_t
   } else if (btypestr.Contains(ionprotonBeam)) {
     btype = MagFieldParam::kBeamTypeAp;
   } else {
-    LOG(INFO) << "Assume no LHC magnet field for the beam type " << beamtype;
+    LOG(info) << "Assume no LHC magnet field for the beam type " << beamtype;
   }
   char ttl[80];
   snprintf(ttl, 79, "L3: %+5d Dip: %+4d kA; %s | Polarities in %s convention", (int)TMath::Sign(l3Cur, float(sclL3)),
@@ -651,15 +651,15 @@ void MagneticField::Print(Option_t* opt) const
 {
   TString opts = opt;
   opts.ToLower();
-  LOG(INFO) << "MagneticField::Print: " << GetName() << ":" << GetTitle();
-  LOG(INFO) << "MagneticField::Print: Solenoid (" << getFactorSolenoid() << "*)"
+  LOG(info) << "MagneticField::Print: " << GetName() << ":" << GetTitle();
+  LOG(info) << "MagneticField::Print: Solenoid (" << getFactorSolenoid() << "*)"
             << ((mMapType == MagFieldParam::k5kG || mMapType == MagFieldParam::k5kGUniform) ? 5. : 2) << " kG, Dipole "
             << (mDipoleOnOffFlag ? "OFF" : "ON") << " (" << getFactorDipole() << ") "
             << (mMapType == MagFieldParam::k5kGUniform ? " |Constant Field!" : "");
   if (opts.Contains("a")) {
-    LOG(INFO) << "MagneticField::Print: Machine B fields for " << getBeamTypeText() << "  beam (" << mBeamEnergy
+    LOG(info) << "MagneticField::Print: Machine B fields for " << getBeamTypeText() << "  beam (" << mBeamEnergy
               << " GeV): QGrad: " << mQuadrupoleGradient << " Dipole: " << mDipoleField;
-    LOG(INFO) << "MagneticField::Print: Uses " << getParameterName() << "  of " << getDataFileName();
+    LOG(info) << "MagneticField::Print: Uses " << getParameterName() << "  of " << getDataFileName();
   }
 }
 

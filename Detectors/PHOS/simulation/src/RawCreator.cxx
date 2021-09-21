@@ -83,9 +83,9 @@ int main(int argc, const char** argv)
   // if needed, create output directory
   if (!std::filesystem::exists(outputdir)) {
     if (!std::filesystem::create_directories(outputdir)) {
-      LOG(FATAL) << "could not create output directory " << outputdir;
+      LOG(fatal) << "could not create output directory " << outputdir;
     } else {
-      LOG(INFO) << "created output directory " << outputdir;
+      LOG(info) << "created output directory " << outputdir;
     }
   }
 

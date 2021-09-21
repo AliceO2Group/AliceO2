@@ -31,22 +31,22 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
   mIsContinuous = sopt.continuous;
 
   if (!mModuleConfig) {
-    LOG(FATAL) << "Missing ModuleConfig configuration object";
+    LOG(fatal) << "Missing ModuleConfig configuration object";
     return;
   }
 
   if (!mSimCondition) {
-    LOG(FATAL) << "Missing SimCondition configuration object";
+    LOG(fatal) << "Missing SimCondition configuration object";
     return;
   }
 
   if (mNEmpty < 0) {
-    LOG(FATAL) << "Bunch crossing map is not initialized";
+    LOG(fatal) << "Bunch crossing map is not initialized";
     return;
   }
 
   if (mNEmpty == 0) {
-    LOG(WARNING) << "Bunch crossing map has zero clean empty bunches";
+    LOG(warning) << "Bunch crossing map has zero clean empty bunches";
   }
 
   setTriggerMask();
@@ -71,7 +71,7 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
         if (mFileFor != "cru") {
           outFileLink += fmt::format("_lnk{}_feeid{}", ilink, FeeID);
           if (mFileFor != "link") {
-            LOG(FATAL) << "Not supported output file splitting: " << mFileFor;
+            LOG(fatal) << "Not supported output file splitting: " << mFileFor;
             throw std::runtime_error("invalid option provided for file grouping");
           }
         }
@@ -83,34 +83,34 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
 
   std::unique_ptr<TFile> digiFile(TFile::Open(fileDigitsName.c_str()));
   if (!digiFile || digiFile->IsZombie()) {
-    LOG(FATAL) << "Failed to open input digits file " << fileDigitsName;
+    LOG(fatal) << "Failed to open input digits file " << fileDigitsName;
     return;
   }
 
   TTree* digiTree = (TTree*)digiFile->Get("o2sim");
   if (!digiTree) {
-    LOG(FATAL) << "Failed to get digits tree";
+    LOG(fatal) << "Failed to get digits tree";
     return;
   }
 
   if (digiTree->GetBranch("ZDCDigitBC")) {
     digiTree->SetBranchAddress("ZDCDigitBC", &mzdcBCDataPtr);
   } else {
-    LOG(FATAL) << "Branch ZDCDigitBC is missing";
+    LOG(fatal) << "Branch ZDCDigitBC is missing";
     return;
   }
 
   if (digiTree->GetBranch("ZDCDigitCh")) {
     digiTree->SetBranchAddress("ZDCDigitCh", &mzdcChDataPtr);
   } else {
-    LOG(FATAL) << "Branch ZDCDigitCh is missing";
+    LOG(fatal) << "Branch ZDCDigitCh is missing";
     return;
   }
 
   if (digiTree->GetBranch("ZDCDigitOrbit")) {
     digiTree->SetBranchAddress("ZDCDigitOrbit", &mzdcPedDataPtr);
   } else {
-    LOG(FATAL) << "Branch ZDCDigitOrbit is missing";
+    LOG(fatal) << "Branch ZDCDigitOrbit is missing";
     return;
   }
 
@@ -121,7 +121,7 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
   for (int ient = 0; ient < digiTree->GetEntries(); ient++) {
     digiTree->GetEntry(ient);
     mNbc = mzdcBCData.size();
-    LOG(INFO) << "Entry " << ient << " : " << mNbc << " BCs stored";
+    LOG(info) << "Entry " << ient << " : " << mNbc << " BCs stored";
     for (int ibc = 0; ibc < mNbc; ibc++) {
       mBCD = mzdcBCData[ibc];
       convertDigits(ibc);
@@ -210,7 +210,7 @@ inline void Digits2Raw::updatePedestalReference(int bc)
       }
     }
     if (io == mzdcPedData.size()) {
-      LOG(FATAL) << "Cannot find orbit";
+      LOG(fatal) << "Cannot find orbit";
     }
 
     for (int32_t im = 0; im < NModules; im++) {
@@ -618,5 +618,5 @@ void Digits2Raw::emptyBunches(std::bitset<3564>& bunchPattern)
       mEmpty[ib] = mNEmpty;
     }
   }
-  LOG(INFO) << "There are " << mNEmpty << " clean empty bunches";
+  LOG(info) << "There are " << mNEmpty << " clean empty bunches";
 }

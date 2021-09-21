@@ -42,7 +42,7 @@ void FV0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FV0CalibrationI
       mHistogram(chTime, chID);
       ++mEntriesPerChannel[chID];
     } else {
-      LOG(FATAL) << "Invalid channel data";
+      LOG(fatal) << "Invalid channel data";
     }
   }
 }
@@ -74,7 +74,7 @@ int16_t FV0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t cha
   double returnCode = math_utils::fitGaus<double>(NUMBER_OF_HISTOGRAM_BINS, channelHistogramData.data(),
                                                   -HISTOGRAM_RANGE, HISTOGRAM_RANGE, outputGaussianFitValues);
   if (returnCode < 0) {
-    LOG(ERROR) << "Gaussian fit error!";
+    LOG(error) << "Gaussian fit error!";
     return 0;
   }
 

@@ -32,7 +32,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
                                                   gsl::span<const o2::ft0::ChannelData> inChData,
                                                   gsl::span<o2::ft0::ChannelDataFloat> outChData)
 {
-  LOG(DEBUG) << "Running reconstruction on new event";
+  LOG(debug) << "Running reconstruction on new event";
 
   Int_t ndigitsC = 0, ndigitsA = 0;
 
@@ -75,7 +75,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   } else {
     mCollisionTime[TimeMean] = std::min(mCollisionTime[TimeA], mCollisionTime[TimeC]);
   }
-  LOG(INFO) << " Nch " << nch << " Collision time " << mCollisionTime[TimeA] << " " << mCollisionTime[TimeC] << " " << mCollisionTime[TimeMean] << " " << mCollisionTime[Vertex];
+  LOG(info) << " Nch " << nch << " Collision time " << mCollisionTime[TimeA] << " " << mCollisionTime[TimeC] << " " << mCollisionTime[TimeMean] << " " << mCollisionTime[Vertex];
   return RecPoints{
     mCollisionTime, bcd.ref.getFirstEntry(), bcd.ref.getEntries(), bcd.mIntRecord, bcd.mTriggers};
 }
@@ -94,6 +94,6 @@ int CollisionTimeRecoTask::getOffset(int channel, int amp)
   int offsetChannel = mCalibOffset->mTimeOffsets[channel];
   TGraph& gr = mCalibSlew->at(channel);
   double slewoffset = gr.Eval(amp);
-  LOG(DEBUG) << "@@@CollisionTimeRecoTask::getOffset(int channel, int amp) " << channel << " " << amp << " " << offsetChannel << " " << slewoffset;
+  LOG(debug) << "@@@CollisionTimeRecoTask::getOffset(int channel, int amp) " << channel << " " << amp << " " << offsetChannel << " " << slewoffset;
   return offsetChannel + int(slewoffset);
 }

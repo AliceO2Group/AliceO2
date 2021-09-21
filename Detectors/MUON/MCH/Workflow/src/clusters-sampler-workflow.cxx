@@ -56,7 +56,7 @@ class ClusterSamplerTask
   void init(InitContext& ic)
   {
     /// Get the input file from the context
-    LOG(INFO) << "initializing cluster sampler";
+    LOG(info) << "initializing cluster sampler";
 
     auto inputFileName = ic.options().get<std::string>("infile");
     mInputFile.open(inputFileName, std::ios::binary);
@@ -74,7 +74,7 @@ class ClusterSamplerTask
 
     auto stop = [this]() {
       /// close the input file
-      LOG(INFO) << "stop cluster sampler";
+      LOG(info) << "stop cluster sampler";
       this->mInputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
@@ -138,7 +138,7 @@ class ClusterSamplerTask
         throw std::length_error("invalid input");
       }
     } else {
-      LOG(INFO) << "event is empty";
+      LOG(info) << "event is empty";
     }
 
     // skip the digits if any

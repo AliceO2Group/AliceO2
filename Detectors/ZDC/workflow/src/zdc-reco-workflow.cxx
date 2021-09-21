@@ -35,7 +35,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  LOG(INFO) << "WorkflowSpec defineDataProcessing";
+  LOG(info) << "WorkflowSpec defineDataProcessing";
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the digitizer workflow
@@ -47,6 +47,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto verbosity = configcontext.options().get<int>("reco-verbosity");
   auto enableDebugOut = configcontext.options().get<bool>("enable-debug-output");
 
-  LOG(INFO) << "WorkflowSpec getRecoWorkflow useMC " << useMC;
+  LOG(info) << "WorkflowSpec getRecoWorkflow useMC " << useMC;
   return std::move(o2::zdc::getRecoWorkflow(useMC, disableRootInp, disableRootOut, verbosity, enableDebugOut));
 }
