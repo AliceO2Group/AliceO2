@@ -114,7 +114,7 @@ class GPUTRDTrack_t : public T
   GPUd() void ConvertFrom(const GPUTRDTrackDataRecord& t);
 
  protected:
-  float mChi2;                      // total chi2
+  float mChi2;                      // total chi2.
   unsigned int mRefGlobalTrackId;   // raw GlobalTrackID of the seeding track (either ITS-TPC or TPC)
   int mAttachedTracklets[kNLayers]; // indices of the tracklets attached to this track; -1 means no tracklet in that layer
   short mCollisionId;               // the collision ID of the tracklets attached to this track; is used to retrieve the BC information for this track after the tracking is done
