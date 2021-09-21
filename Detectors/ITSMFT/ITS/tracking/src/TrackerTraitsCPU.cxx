@@ -40,6 +40,8 @@ void TrackerTraitsCPU::computeLayerTracklets()
 
   for (int rof0{0}; rof0 < tf->getNrof(); ++rof0) {
     gsl::span<const Vertex> primaryVertices = tf->getPrimaryVertices(rof0);
+    int minRof = (rof0 >= mTrkParams.DeltaROF) ? rof0 - mTrkParams.DeltaROF : 0;
+    int maxRof = (rof0 == tf->getNrof() - mTrkParams.DeltaROF) ? rof0 : rof0 + mTrkParams.DeltaROF;
     for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
       gsl::span<const Cluster> layer0 = tf->getClustersOnLayer(rof0, iLayer);
       if (layer0.empty()) {
@@ -74,8 +76,6 @@ void TrackerTraitsCPU::computeLayerTracklets()
             phiBinsNum += mTrkParams.PhiBins;
           }
 
-          int minRof = (rof0 >= mTrkParams.DeltaROF) ? rof0 - mTrkParams.DeltaROF : 0;
-          int maxRof = (rof0 == tf->getNrof() - mTrkParams.DeltaROF) ? rof0 : rof0 + mTrkParams.DeltaROF;
           for (int rof1{minRof}; rof1 <= maxRof; ++rof1) {
             gsl::span<const Cluster> layer1 = tf->getClustersOnLayer(rof1, iLayer + 1);
             if (layer1.empty()) {
@@ -100,7 +100,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
               const int maxRowClusterIndex = tf->getIndexTables(rof1)[iLayer][maxBinIndex];
 
               for (int iNextCluster{firstRowClusterIndex}; iNextCluster < maxRowClusterIndex; ++iNextCluster) {
-                if (iNextCluster >= (int)tf->getClusters()[iLayer + 1].size()) {
+                if (iNextCluster >= (int)layer1.size()) {
                   break;
                 }
                 const Cluster& nextCluster{layer1[iNextCluster]};
