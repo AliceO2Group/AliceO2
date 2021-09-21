@@ -43,7 +43,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   //if (doBadMap) {
   //  specs.emplace_back(getCPVBadMapCalibDeviceSpec());
   //}
-  
+
   if (doPedestals) {
     specs.emplace_back(getCPVPedestalCalibDeviceSpec());
   }

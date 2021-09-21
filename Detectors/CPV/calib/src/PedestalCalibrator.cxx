@@ -73,7 +73,7 @@ void PedestalSpectrum::analyze()
   peakLowEdge.push_back(mSpectrumContainer.begin()->first);
   peakHighEdge.push_back((--mSpectrumContainer.end())->first);
   uint32_t peakCounts(0);
-  float peakSumA(0.), peakSumA2(0.), totalSumA(0.), totalSumA2(0.); 
+  float peakSumA(0.), peakSumA2(0.), totalSumA(0.), totalSumA2(0.);
 
   auto iNextAmpl = mSpectrumContainer.begin();
   iNextAmpl++;
@@ -83,13 +83,13 @@ void PedestalSpectrum::analyze()
     peakSumA2 += (iAmpl->first * iAmpl->first) * iAmpl->second; // rms = sum [(A_i)^2 * w_i] - mean^2
     totalSumA += iAmpl->first * iAmpl->second;
     totalSumA2 += (iAmpl->first * iAmpl->first) * iAmpl->second;
-    if ((iAmpl->first - iNextAmpl->first) > mToleratedGapWidth) { // let's consider |bin1-bin2|<=5 belong to same peak 
-      // firts, save peak low and high edge (just for the future cases) 
+    if ((iAmpl->first - iNextAmpl->first) > mToleratedGapWidth) { // let's consider |bin1-bin2|<=5 belong to same peak
+      // firts, save peak low and high edge (just for the future cases)
       if (iNextAmpl != mSpectrumContainer.end()) {
         peakLowEdge.push_back(iNextAmpl->first);
       }
       peakHighEdge.push_back(iAmpl->first);
-      // 
+      //
       mMeanOfPeaks.push_back(peakSumA / peakCounts);
       mRMSOfPeaks.push_back(sqrt(peakSumA2 / peakCounts - mMeanOfPeaks.back() * mMeanOfPeaks.back()));
       mPeakCounts.push_back(peakCounts);
@@ -108,16 +108,16 @@ void PedestalSpectrum::analyze()
     if ((mPedestalRMS > mSuspiciousPedestalRMS) && ((mPedestalValue + mPedestalRMS * mZSnSigmas) < peakHighEdge.back())) {
       mPedestalRMS = (peakHighEdge.back() - mPedestalValue) / mZSnSigmas;
     }
-  } else { //there are some problems with several pedestal peaks
+  } else {                                //there are some problems with several pedestal peaks
     mPedestalValue = mMeanOfPeaks.back(); // total mean of distribution
-    mPedestalRMS = mRMSOfPeaks.back(); // total RMS of distribution
+    mPedestalRMS = mRMSOfPeaks.back();    // total RMS of distribution
     if ((mPedestalValue + mPedestalRMS * mZSnSigmas) < peakHighEdge.back()) {
       mPedestalRMS = (peakHighEdge.back() - mPedestalValue) / mZSnSigmas;
     }
   }
   if (mPedestalRMS < 1. / mZSnSigmas) {
     float epsilon = fabs(float(1. - (1. / mZSnSigmas) * mZSnSigmas));
-    mPedestalRMS = (1. / mZSnSigmas) + epsilon; // just to be sure that mPedestalRMS * mZSnSigmas >= 1. 
+    mPedestalRMS = (1. / mZSnSigmas) + epsilon; // just to be sure that mPedestalRMS * mZSnSigmas >= 1.
   }
   mIsAnalyzed = true;
 }
@@ -204,7 +204,7 @@ void PedestalCalibData::merge(const PedestalCalibData* prev)
 //___________________________________________________________________
 void PedestalCalibData::print()
 {
-  LOG(INFO) << "PedestalCalibData::mNEvents = " <<mNEvents;
+  LOG(INFO) << "PedestalCalibData::mNEvents = " << mNEvents;
 }
 //___________________________________________________________________
 //=======================PedestalCalibrator==========================
@@ -228,7 +228,7 @@ void PedestalCalibrator::finalizeSlot(TimeSlot& slot)
   auto& toleratedChannelEfficiencyHigh = cpvParams.mPedClbToleratedChannelEfficiencyHigh;
 
   PedestalCalibData* calibData = slot.getContainer();
-  LOG(INFO) << "PedestalCalibrator::finalizeSlot() : finalizing slot " 
+  LOG(INFO) << "PedestalCalibrator::finalizeSlot() : finalizing slot "
             << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with " << calibData->mNEvents << " events.";
   o2::cpv::Pedestals* peds = new o2::cpv::Pedestals();
   for (int i = 0; i < Geometry::kNCHANNELS; i++) {

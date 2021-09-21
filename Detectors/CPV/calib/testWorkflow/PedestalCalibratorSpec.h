@@ -57,11 +57,11 @@ class CPVPedestalCalibDevice : public o2::framework::Task
     auto&& trigrecs = pc.inputs().get<gsl::span<o2::cpv::TriggerRecord>>("trigrecs");
     LOG(INFO) << "Processing TF " << tfcounter << " with " << digits.size() << " digits in " << trigrecs.size() << " trigger records.";
     auto& slotTF = mCalibrator->getSlotForTF(tfcounter);
-    
+
     for (auto trigrec = trigrecs.begin(); trigrec != trigrecs.end(); trigrec++) { //event loop
       // here we're filling TimeSlot event by event
       // and when last event is reached we call mCalibrator->process() to finalize the TimeSlot
-      auto&& digitsInOneEvent = digits.subspan((*trigrec).getFirstEntry(),(*trigrec).getNumberOfObjects()); 
+      auto&& digitsInOneEvent = digits.subspan((*trigrec).getFirstEntry(), (*trigrec).getNumberOfObjects());
       if ((trigrec + 1) == trigrecs.end()) { //last event in current TF, let's process corresponding TimeSlot
         //LOG(INFO) << "last event, I call mCalibrator->process()";
         mCalibrator->process(tfcounter, digitsInOneEvent); //fill TimeSlot with digits from 1 event and check slots for finalization
