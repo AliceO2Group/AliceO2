@@ -82,8 +82,8 @@ void TrackerTraitsCPU::computeLayerTracklets()
               continue;
             }
 
-            for (int iPhiBin{selectedBinsRect.y}, iPhiCount{0}; iPhiCount < phiBinsNum;
-                 iPhiBin = (++iPhiBin == tf->mIndexTableUtils.getNphiBins()) ? 0 : iPhiBin, iPhiCount++) {
+            for (int iPhiCount{0}; iPhiCount < phiBinsNum; iPhiCount++) {
+              int iPhiBin = (selectedBinsRect.y + iPhiCount) % mTrkParams.PhiBins;
               const int firstBinIndex{tf->mIndexTableUtils.getBinIndex(selectedBinsRect.x, iPhiBin)};
               const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
               if constexpr (debugLevel) {
