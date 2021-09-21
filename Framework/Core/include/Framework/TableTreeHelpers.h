@@ -214,15 +214,6 @@ class TableToTree
   std::vector<std::unique_ptr<ColumnToBranchBase>> mColumnReaders;
 };
 
-class GenericTreeToTable
-{
- public:
- private:
-  std::shared_ptr<arrow::Table> mTable;
-  std::vector<std::shared_ptr<arrow::Field>> mFields;
-  std::string mTableLabel;
-};
-
 class TreeToTable
 {
 

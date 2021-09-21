@@ -92,6 +92,12 @@ ColumnToBranchBase::ColumnToBranchBase(arrow::ChunkedArray* column, arrow::Field
 {
 }
 
+void ColumnToBranchBase::at(int64_t* pos)
+{
+  mCurrentPos = pos;
+  resetBuffer();
+}
+
 TableToTree::TableToTree(std::shared_ptr<arrow::Table> table, TFile* file, const char* treename)
 {
   mTable = table.get();
@@ -122,10 +128,8 @@ void TableToTree::addBranch(std::shared_ptr<arrow::ChunkedArray> column, std::sh
 {
   if (mRows == 0) {
     mRows = column->length();
-  } else {
-    if (mRows != column->length()) {
-      throw runtime_error_f("Adding incompatible column with size %d (num rows = %d)", column->length(), mRows);
-    }
+  } else if (mRows != column->length()) {
+    throw runtime_error_f("Adding incompatible column with size %d (num rows = %d)", column->length(), mRows);
   }
   switch (field->type()->id()) {
     case arrow::Type::type::BOOL:
@@ -190,16 +194,19 @@ void TableToTree::addBranch(std::shared_ptr<arrow::ChunkedArray> column, std::sh
 
 TTree* TableToTree::process()
 {
-  int64_t mRow = 0;
+  int64_t row = 0;
   bool writable = (mTree->GetNbranches() > 0) && (mRows > 0);
-  if (writable) {
-    while (mRow < mRows) {
-      for (auto& reader : mColumnReaders) {
-        reader->at(&mRow);
-      }
-      mTree->Fill();
-      ++mRow;
+  if (!writable) {
+    mTree->Write("", TObject::kOverwrite);
+    return mTree;
+  }
+
+  while (row < mRows) {
+    for (auto& reader : mColumnReaders) {
+      reader->at(&row);
     }
+    mTree->Fill();
+    ++row;
   }
   mTree->Write("", TObject::kOverwrite);
   return mTree;
