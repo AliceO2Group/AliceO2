@@ -60,6 +60,13 @@ attach -pid <pid>
 Note: On some systems, attaching might fail due to missing permission, and `gdb`
 has to be started with `sudo`.
 
+Once you have attached to the children you are interested in, make sure you send a SIGCONT
+to the others by using something along the lines of:
+
+```
+kill -SIGCONT <all-other-pids>
+```
+
 In case you are building the DPL with the support for the debug GUI, you can
 also attach a debugger to the running process by clicking on the
 DataProcessorSpec you want to debug, which will show the Device inspector on
