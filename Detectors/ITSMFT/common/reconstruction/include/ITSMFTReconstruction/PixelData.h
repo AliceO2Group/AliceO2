@@ -18,6 +18,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "ITSMFTReconstruction/DecodingStat.h"
 
+#include <string>
 #include <vector>
 #include <utility>
 #include <cstdint>
@@ -120,10 +121,13 @@ class ChipPixelData
   void setTrigger(uint32_t t) { mTrigger = t; }
 
   void setError(ChipStat::DecErrors i) { mErrors |= 0x1 << i; }
+  void addErrorInfo(uint64_t b) { mErrorInfo |= b; }
   void setErrorFlags(uint32_t f) { mErrors |= f; }
   bool isErrorSet(ChipStat::DecErrors i) const { return mErrors & (0x1 << i); }
   bool isErrorSet() const { return mErrors != 0; }
-  uint32_t getErrorFlags() const { return mErrors; }
+  auto getErrorFlags() const { return mErrors; }
+  auto getErrorInfo() const { return mErrorInfo; }
+  std::string getErrorDetails(int pos) const;
 
   void clear()
   {
@@ -131,6 +135,7 @@ class ChipPixelData
     mROFlags = 0;
     mFirstUnmasked = 0;
     mErrors = 0;
+    mErrorInfo = 0;
   }
 
   void swap(ChipPixelData& other)
@@ -233,6 +238,7 @@ class ChipPixelData
   uint32_t mStartID = 0;                         // entry of the 1st pixel data in the whole detector data, for MCtruth access
   uint32_t mTrigger = 0;                         // trigger pattern
   uint32_t mErrors = 0;                          // errors set during decoding
+  uint64_t mErrorInfo = 0;                       // optional extra info on the error
   o2::InteractionRecord mInteractionRecord = {}; // interaction record
   std::vector<PixelData> mPixels;                // vector of pixeld
 

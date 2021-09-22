@@ -14,6 +14,7 @@
 
 #include <bitset>
 #include "ITSMFTReconstruction/DecodingStat.h"
+#include "ITSMFTReconstruction/PixelData.h"
 #include "Framework/Logger.h"
 
 using namespace o2::itsmft;
@@ -38,6 +39,22 @@ void ChipStat::addErrors(uint32_t mask, uint16_t id, int verbosity)
       if (mask & (0x1 << i)) {
         if (verbosity > -1 && (!errorCounts[i] || verbosity > 1)) {
           LOGP(ERROR, "New error registered on the link: chip#{}: {}", id, ErrNames[i]);
+        }
+        errorCounts[i]++;
+      }
+    }
+  }
+}
+
+///_________________________________________________________________
+/// print link decoding statistics
+void ChipStat::addErrors(const ChipPixelData& d, int verbosity)
+{
+  if (d.getErrorFlags()) {
+    for (int i = NErrorsDefined; i--;) {
+      if (d.getErrorFlags() & (0x1 << i)) {
+        if (verbosity > -1 && (!errorCounts[i] || verbosity > 1)) {
+          LOGP(ERROR, "New error registered on the link: chip#{}: {}{}", id, ErrNames[i], d.getErrorDetails(i));
         }
         errorCounts[i]++;
       }
