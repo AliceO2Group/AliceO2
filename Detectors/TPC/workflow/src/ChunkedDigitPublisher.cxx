@@ -178,7 +178,7 @@ void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> con
 
         using AccumType = std::decay_t<decltype(makePublishBuffer<decltype(data)>(pc, sector, activeSectors))>;
         AccumType accum;
-#pragma omp critical
+
         accum = makePublishBuffer<decltype(data)>(pc, sector, activeSectors);
 
         for (auto e = 0; e < br->GetEntries(); ++e) {
@@ -199,6 +199,7 @@ void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> con
     //data definitions
     using DigitsType = std::vector<o2::tpc::Digit>;
     using LabelType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+#pragma omp critical
     merge(DigitsType(), "TPCDigit_");
     if (domctruth) {
       merge(LabelType(), "TPCDigitMCTruth_");
