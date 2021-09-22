@@ -27,7 +27,7 @@ namespace o2
 namespace benchmark
 {
 
-template <class chunk_type>
+template <class chunk_t>
 class GPUbenchmark final
 {
  public:
@@ -41,7 +41,7 @@ class GPUbenchmark final
 
   // Single stream synchronous (sequential kernels) execution
   template <typename... T>
-  float benchmarkSync(void (*kernel)(int, chunk_type*, T...),
+  float benchmarkSync(void (*kernel)(int, chunk_t*, T...),
                       int nLaunches,
                       int chunkId,
                       int blocks,
@@ -50,7 +50,7 @@ class GPUbenchmark final
 
   // Multi-streams asynchronous executions on whole memory
   template <typename... T>
-  std::vector<float> benchmarkAsync(void (*kernel)(int, chunk_type*, T...),
+  std::vector<float> benchmarkAsync(void (*kernel)(int, chunk_t*, T...),
                                     int nStreams, int nLaunches, int blocks, int threads, T&... args);
 
   // Main interface
@@ -80,7 +80,7 @@ class GPUbenchmark final
   void copyConcurrent(SplitLevel sl, int nRegions = 2);
 
  private:
-  gpuState<chunk_type> mState;
+  gpuState<chunk_t> mState;
   std::shared_ptr<ResultWriter> mResultWriter;
   benchmarkOpts mOptions;
 };
