@@ -57,7 +57,7 @@ class CollisionTimeRecoTask
 
  private:
   o2::ft0::FT0ChannelTimeCalibrationObject* mCalibOffset;
-  std::array<TGraph, NCHANNELS>* mCalibSlew;
+  std::array<TGraph, NCHANNELS>* mCalibSlew = nullptr;
 
   ClassDefNV(CollisionTimeRecoTask, 3);
 };

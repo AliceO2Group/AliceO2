@@ -32,7 +32,8 @@ namespace o2
 {
 namespace ft0
 {
-constexpr int Nchannels_FT0 = o2::ft0::Geometry::Nchannels;
+//constexpr int Nchannels_FT0 = o2::ft0::Geometry::Nchannels;
+static constexpr int Nchannels_FT0 = o2::ft0::Constants::sNCHANNELS_PM;
 using EventHeader = o2::fit::EventHeader;
 using EventData = o2::fit::EventData;
 using TCMdata = o2::fit::TCMdata;

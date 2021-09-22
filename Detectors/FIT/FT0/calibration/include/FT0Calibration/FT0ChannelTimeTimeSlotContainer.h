@@ -46,7 +46,7 @@ class FT0ChannelTimeTimeSlotContainer final
 
  private:
   std::size_t mMinEntries;
-  std::array<uint64_t, o2::ft0::Nchannels_FT0> mEntriesPerChannel{};
+  std::array<uint64_t, o2::ft0::Geometry::Nchannels> mEntriesPerChannel{};
   BoostHistogramType mHistogram;
 
   ClassDefNV(FT0ChannelTimeTimeSlotContainer, 1);
