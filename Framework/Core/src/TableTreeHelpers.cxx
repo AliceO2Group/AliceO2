@@ -18,19 +18,6 @@
 
 namespace o2::framework
 {
-ColumnToBranchBase::ColumnToBranchBase(arrow::ChunkedArray* column, arrow::Field* field, int size)
-  : mBranchName{field->name()},
-    mColumn{column},
-    listSize{size}
-{
-}
-
-void ColumnToBranchBase::at(const int64_t* pos)
-{
-  mCurrentPos = pos;
-  resetBuffer();
-}
-
 namespace
 {
 // -----------------------------------------------------------------------------
@@ -95,148 +82,122 @@ class ColumnIterator
   // with this mArray is prepared to be used in arrow::Table::Make
   void finish();
 };
-
-template <typename T>
-struct ROOTTypeString {
-  static constexpr char const* str = "/E";
-};
-
-template <>
-struct ROOTTypeString<bool> {
-  static constexpr char const* str = "/O";
-};
-
-template <>
-struct ROOTTypeString<uint8_t> {
-  static constexpr char const* str = "/b";
-};
-
-template <>
-struct ROOTTypeString<uint16_t> {
-  static constexpr char const* str = "/s";
-};
-
-template <>
-struct ROOTTypeString<uint32_t> {
-  static constexpr char const* str = "/i";
-};
-
-template <>
-struct ROOTTypeString<uint64_t> {
-  static constexpr char const* str = "/l";
-};
-
-template <>
-struct ROOTTypeString<int8_t> {
-  static constexpr char const* str = "/B";
-};
-
-template <>
-struct ROOTTypeString<int16_t> {
-  static constexpr char const* str = "/S";
-};
-
-template <>
-struct ROOTTypeString<int32_t> {
-  static constexpr char const* str = "/I";
-};
-
-template <>
-struct ROOTTypeString<int64_t> {
-  static constexpr char const* str = "/L";
-};
-
-template <>
-struct ROOTTypeString<float> {
-  static constexpr char const* str = "/F";
-};
-
-template <>
-struct ROOTTypeString<double> {
-  static constexpr char const* str = "/D";
-};
-
-template <typename T>
-constexpr auto ROOTTypeString_t = ROOTTypeString<T>::str;
-
-template <typename T>
-class ColumnToBranch : public ColumnToBranchBase
-{
- public:
-  ColumnToBranch(TTree* tree, arrow::ChunkedArray* column, arrow::Field* field, int size = 1)
-    : ColumnToBranchBase(column, field, size)
-  {
-    if constexpr (std::is_pointer_v<T>) {
-      mLeaflist = mBranchName + "[" + std::to_string(listSize) + "]" + ROOTTypeString_t<std::remove_pointer_t<T>>;
-    } else {
-      mLeaflist = mBranchName + ROOTTypeString_t<T>;
-    }
-    mBranch = tree->GetBranch(mBranchName.c_str());
-    if (mBranch == nullptr) {
-      mBranch = tree->Branch(mBranchName.c_str(), (char*)nullptr, mLeaflist.c_str());
-    }
-    if constexpr (std::is_same_v<bool, std::remove_pointer_t<T>>) {
-      mCurrent = new bool[listSize];
-      mLast = mCurrent + listSize;
-      accessChunk(0);
-    } else {
-      accessChunk(0);
-    }
-  }
-
- private:
-  std::string mLeaflist;
-
-  void resetBuffer() override
-  {
-    if constexpr (std::is_same_v<bool, std::remove_pointer_t<T>>) {
-      if (O2_BUILTIN_UNLIKELY((*mCurrentPos - mFirstIndex) * listSize >= getCurrentArray()->length())) {
-        nextChunk();
-      }
-    } else {
-      if (O2_BUILTIN_UNLIKELY((mCurrent + (*mCurrentPos - mFirstIndex) * listSize) >= mLast)) {
-        nextChunk();
-      }
-    }
-    accessChunk(*mCurrentPos);
-    mBranch->SetAddress((void*)(mCurrent + (*mCurrentPos - mFirstIndex) * listSize));
-  }
-
-  auto getCurrentArray() const
-  {
-    if (listSize > 1) {
-      return std::static_pointer_cast<o2::soa::arrow_array_for_t<std::remove_pointer_t<T>>>(std::static_pointer_cast<arrow::FixedSizeListArray>(mColumn->chunk(mCurrentChunk))->values());
-    } else {
-      return std::static_pointer_cast<o2::soa::arrow_array_for_t<std::remove_pointer_t<T>>>(mColumn->chunk(mCurrentChunk));
-    }
-  }
-
-  void nextChunk() override
-  {
-    mFirstIndex += getCurrentArray()->length();
-    ++mCurrentChunk;
-  }
-
-  void accessChunk(int at)
-  {
-    auto array = getCurrentArray();
-    if constexpr (std::is_same_v<bool, std::remove_pointer_t<T>>) {
-      for (auto i = 0; i < listSize; ++i) {
-        mCurrent[i] = (bool)array->Value((at - mFirstIndex) * listSize + i);
-      }
-    } else {
-      mCurrent = (std::remove_pointer_t<T>*)array->raw_values();
-      mLast = mCurrent + array->length() * listSize;
-    }
-  }
-
-  mutable std::remove_pointer_t<T>* mCurrent = nullptr;
-  mutable std::remove_pointer_t<T>* mLast = nullptr;
-  TBranch* mBranch = nullptr;
-};
 } // namespace
 
-TableToTree::TableToTree(std::shared_ptr<arrow::Table> table, TFile* file, const char* treename)
+auto basicROOTTypeFromArrow(arrow::Type::type id)
+{
+  switch (id) {
+    case arrow::Type::BOOL:
+      return ROOTTypeInfo{EDataType::kBool_t, "/O", TDataType::GetDataType(EDataType::kBool_t)->Size()};
+    case arrow::Type::UINT8:
+      return ROOTTypeInfo{EDataType::kUChar_t, "/b", TDataType::GetDataType(EDataType::kUChar_t)->Size()};
+    case arrow::Type::UINT16:
+      return ROOTTypeInfo{EDataType::kUShort_t, "/s", TDataType::GetDataType(EDataType::kUShort_t)->Size()};
+    case arrow::Type::UINT32:
+      return ROOTTypeInfo{EDataType::kUInt_t, "/i", TDataType::GetDataType(EDataType::kUInt_t)->Size()};
+    case arrow::Type::UINT64:
+      return ROOTTypeInfo{EDataType::kULong64_t, "/l", TDataType::GetDataType(EDataType::kULong64_t)->Size()};
+    case arrow::Type::INT8:
+      return ROOTTypeInfo{EDataType::kChar_t, "/B", TDataType::GetDataType(EDataType::kChar_t)->Size()};
+    case arrow::Type::INT16:
+      return ROOTTypeInfo{EDataType::kShort_t, "/S", TDataType::GetDataType(EDataType::kShort_t)->Size()};
+    case arrow::Type::INT32:
+      return ROOTTypeInfo{EDataType::kInt_t, "/I", TDataType::GetDataType(EDataType::kInt_t)->Size()};
+    case arrow::Type::INT64:
+      return ROOTTypeInfo{EDataType::kLong64_t, "/L", TDataType::GetDataType(EDataType::kLong64_t)->Size()};
+    case arrow::Type::FLOAT:
+      return ROOTTypeInfo{EDataType::kFloat_t, "/F", TDataType::GetDataType(EDataType::kFloat_t)->Size()};
+    case arrow::Type::DOUBLE:
+      return ROOTTypeInfo{EDataType::kDouble_t, "/D", TDataType::GetDataType(EDataType::kDouble_t)->Size()};
+    default:
+      throw runtime_error("Unsupported arrow column type");
+  }
+}
+
+ColumnToBranch::ColumnToBranch(TTree* tree, arrow::ChunkedArray* column, arrow::Field* field)
+  : mBranchName{field->name()},
+    mColumn{column}
+{
+  auto arrowType = field->type();
+  switch (arrowType->id()) {
+    case arrow::Type::FIXED_SIZE_LIST:
+      mListSize = std::static_pointer_cast<arrow::FixedSizeListType>(arrowType)->list_size();
+      arrowType = arrowType->field(0)->type();
+      break;
+    default:
+      break;
+  }
+  mType = basicROOTTypeFromArrow(arrowType->id());
+  if (mListSize > 1) {
+    mLeafList = mBranchName + "[" + std::to_string(mListSize) + "]" + mType.suffix;
+  } else {
+    mLeafList = mBranchName + mType.suffix;
+  }
+  mBranch = tree->GetBranch(mBranchName.c_str());
+  if (mBranch == nullptr) {
+    mBranch = tree->Branch(mBranchName.c_str(), (char*)nullptr, mLeafList.c_str());
+  }
+  if (mType.type == EDataType::kBool_t) {
+    mCurrent = reinterpret_cast<uint8_t*>(std::malloc(mListSize * mType.size));
+    mLast = mCurrent + mListSize * mType.size;
+  }
+  accessChunk(0);
+}
+
+void ColumnToBranch::at(const int64_t* pos)
+{
+  mCurrentPos = pos;
+  resetBuffer();
+}
+
+auto ColumnToBranch::getCurrentBuffer()
+{
+  std::shared_ptr<arrow::PrimitiveArray> array;
+  if (mListSize > 1) {
+    array = std::static_pointer_cast<arrow::PrimitiveArray>(std::static_pointer_cast<arrow::FixedSizeListArray>(mColumn->chunk(mCurrentChunk))->values());
+  } else {
+    array = std::static_pointer_cast<arrow::PrimitiveArray>(mColumn->chunk(mCurrentChunk));
+  }
+  return array;
+}
+
+void ColumnToBranch::resetBuffer()
+{
+  if (mType.type == EDataType::kBool_t) {
+    if (O2_BUILTIN_UNLIKELY((*mCurrentPos - mFirstIndex) * mListSize >= getCurrentBuffer()->length())) {
+      nextChunk();
+    }
+  } else {
+    if (O2_BUILTIN_UNLIKELY(mCurrent >= mLast)) {
+      nextChunk();
+    }
+  }
+  accessChunk(*mCurrentPos);
+  mBranch->SetAddress((void*)(mCurrent));
+}
+
+void ColumnToBranch::accessChunk(int64_t at)
+{
+  auto array = getCurrentBuffer();
+
+  if (mType.type == EDataType::kBool_t) {
+    auto boolArray = std::static_pointer_cast<arrow::BooleanArray>(array);
+    for (auto i = 0; i < mListSize; ++i) {
+      (*reinterpret_cast<bool**>(&mCurrent))[i] = (bool)boolArray->Value((at - mFirstIndex) * mListSize + i);
+    }
+  } else {
+    mCurrent = array->values()->mutable_data() + (at - mFirstIndex) * mListSize * mType.size;
+    mLast = mCurrent + array->length() * mListSize * mType.size;
+  }
+}
+
+void ColumnToBranch::nextChunk()
+{
+  ++mCurrentChunk;
+  mFirstIndex += getCurrentBuffer()->length();
+}
+
+TableToTree::TableToTree(std::shared_ptr<arrow::Table> const& table, TFile* file, const char* treename)
 {
   mTable = table.get();
   mTree = static_cast<TTree*>(file->Get(treename));
@@ -263,72 +224,14 @@ void TableToTree::addAllBranches()
   }
 }
 
-void TableToTree::addBranch(std::shared_ptr<arrow::ChunkedArray> column, std::shared_ptr<arrow::Field> field)
+void TableToTree::addBranch(std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field)
 {
   if (mRows == 0) {
     mRows = column->length();
   } else if (mRows != column->length()) {
     throw runtime_error_f("Adding incompatible column with size %d (num rows = %d)", column->length(), mRows);
   }
-  switch (field->type()->id()) {
-    case arrow::Type::type::BOOL:
-      mColumnReaders.emplace_back(new ColumnToBranch<bool>(mTree, column.get(), field.get()));
-      break;
-    case arrow::Type::type::UINT8:
-      mColumnReaders.emplace_back(new ColumnToBranch<uint8_t>(mTree, column.get(), field.get()));
-      break;
-    case arrow::Type::type::UINT16:
-      mColumnReaders.emplace_back(new ColumnToBranch<uint16_t>(mTree, column.get(), field.get()));
-      break;
-    case arrow::Type::type::UINT32:
-      mColumnReaders.emplace_back(new ColumnToBranch<uint32_t>(mTree, column.get(), field.get()));
-      break;
-    case arrow::Type::type::UINT64:
-      mColumnReaders.emplace_back(new ColumnToBranch<uint64_t>(mTree, column.get(), field.get()));
-      break;
-    case arrow::Type::type::INT8:
-      mColumnReaders.emplace_back(new ColumnToBranch<int8_t>(mTree, column.get(), field.get()));
-      break;
-    case arrow::Type::type::INT16:
-      mColumnReaders.emplace_back(new ColumnToBranch<int16_t>(mTree, column.get(), field.get()));
-      break;
-    case arrow::Type::type::INT32:
-      mColumnReaders.emplace_back(new ColumnToBranch<int>(mTree, column.get(), field.get()));
-      break;
-    case arrow::Type::type::INT64:
-      mColumnReaders.emplace_back(new ColumnToBranch<int64_t>(mTree, column.get(), field.get()));
-      break;
-    case arrow::Type::type::FLOAT:
-      mColumnReaders.emplace_back(new ColumnToBranch<float>(mTree, column.get(), field.get()));
-      break;
-    case arrow::Type::type::DOUBLE:
-      mColumnReaders.emplace_back(new ColumnToBranch<double>(mTree, column.get(), field.get()));
-      break;
-    case arrow::Type::type::FIXED_SIZE_LIST: {
-      auto size = static_cast<const arrow::FixedSizeListType*>(field->type().get())->list_size();
-      switch (field->type()->field(0)->type()->id()) {
-        case arrow::Type::type::BOOL:
-          mColumnReaders.emplace_back(new ColumnToBranch<bool*>(mTree, column.get(), field.get(), size));
-          break;
-        case arrow::Type::type::INT32:
-          mColumnReaders.emplace_back(new ColumnToBranch<int*>(mTree, column.get(), field.get(), size));
-          break;
-        case arrow::Type::type::FLOAT:
-          mColumnReaders.emplace_back(new ColumnToBranch<float*>(mTree, column.get(), field.get(), size));
-          break;
-        case arrow::Type::type::DOUBLE:
-          mColumnReaders.emplace_back(new ColumnToBranch<double*>(mTree, column.get(), field.get(), size));
-          break;
-        default:
-          throw runtime_error_f("Unsupported array column type for %s", field->name().c_str());
-      }
-    };
-      break;
-    case arrow::Type::type::LIST:
-      throw runtime_error("Not implemented");
-    default:
-      throw runtime_error_f("Unsupported column type for %s", field->name().c_str());
-  }
+  mColumnReaders.emplace_back(ColumnToBranch{mTree, column.get(), field.get()});
 }
 
 TTree* TableToTree::process()
@@ -341,7 +244,7 @@ TTree* TableToTree::process()
 
   while (row < mRows) {
     for (auto& reader : mColumnReaders) {
-      reader->at(&row);
+      reader.at(&row);
     }
     mTree->Fill();
     ++row;

@@ -33,42 +33,53 @@ namespace o2::framework
 //  . t2t.process();
 //
 // .............................................................................
-class ColumnToBranchBase
+struct ROOTTypeInfo {
+  EDataType type;
+  char suffix[3];
+  int size;
+};
+
+auto basicROOTTypeFromArrow(arrow::Type::type id);
+
+class ColumnToBranch
 {
  public:
-  ColumnToBranchBase(arrow::ChunkedArray* column, arrow::Field* field, int size = 1);
-  virtual ~ColumnToBranchBase() = default;
+  ColumnToBranch(TTree* tree, arrow::ChunkedArray* column, arrow::Field* field);
   void at(const int64_t* pos);
 
- protected:
+ private:
+  auto getCurrentBuffer();
+  void resetBuffer();
+  void accessChunk(int64_t at);
+  void nextChunk();
+
   std::string mBranchName;
-
-  virtual void resetBuffer() = 0;
-  virtual void nextChunk() = 0;
-
+  std::string mLeafList;
+  TBranch* mBranch = nullptr;
   arrow::ChunkedArray* mColumn = nullptr;
-
   int64_t const* mCurrentPos = nullptr;
-  mutable int mFirstIndex = 0;
-  mutable int mCurrentChunk = 0;
-
-  int listSize = 1;
+  int64_t mFirstIndex = 0;
+  int mCurrentChunk = 0;
+  int mListSize = 1;
+  ROOTTypeInfo mType;
+  uint8_t* mCurrent = nullptr;
+  uint8_t* mLast = nullptr;
 };
 
 class TableToTree
 {
  public:
-  TableToTree(std::shared_ptr<arrow::Table> table, TFile* file, const char* treename);
+  TableToTree(std::shared_ptr<arrow::Table> const& table, TFile* file, const char* treename);
 
   TTree* process();
-  void addBranch(std::shared_ptr<arrow::ChunkedArray> column, std::shared_ptr<arrow::Field> field);
+  void addBranch(std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field);
   void addAllBranches();
 
  private:
   arrow::Table* mTable;
   int64_t mRows = 0;
   TTree* mTree = nullptr;
-  std::vector<std::unique_ptr<ColumnToBranchBase>> mColumnReaders;
+  std::vector<ColumnToBranch> mColumnReaders;
 };
 
 class TreeToTable
