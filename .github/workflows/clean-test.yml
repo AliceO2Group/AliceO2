@@ -8,7 +8,7 @@ on:
       checks:
         description: Checks to be cleaned
         required: true
-        default: 'build/O2/o2,build/AliceO2/O2/o2/macOS,build/O2/fullCI'
+        default: 'build/O2/o2,build/AliceO2/O2/o2/macOS,build/O2/fullCI,build/O2/o2-cs8,build/O2/o2-dataflow,build/O2/o2-dataflow-cs8'
       owner:
         description: Organization
         required: true
