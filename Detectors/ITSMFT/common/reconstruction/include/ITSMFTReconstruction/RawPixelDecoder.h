@@ -98,6 +98,11 @@ class RawPixelDecoder final : public PixelReader
   size_t getNChipsFired() const { return mNChipsFired; }
   size_t getNPixelsFired() const { return mNPixelsFired; }
 
+  void setInstanceID(size_t i) { mInstanceID = i; }
+  void setNInstances(size_t n) { mNInstances = n; }
+  auto getInstanceID() const { return mInstanceID; }
+  auto getNInstances() const { return mNInstances; }
+
   struct LinkEntry {
     int entry = -1;
   };
@@ -133,6 +138,8 @@ class RawPixelDecoder final : public PixelReader
   uint32_t mNLinksDone = 0;                       // number of links reached end of data
   size_t mNChipsFired = 0;                        // global counter
   size_t mNPixelsFired = 0;                       // global counter
+  size_t mInstanceID = 0;                         // pipeline instance
+  size_t mNInstances = 1;                         // total number of pipelines
   TStopwatch mTimerTFStart;
   TStopwatch mTimerDecode;
   TStopwatch mTimerFetchData;

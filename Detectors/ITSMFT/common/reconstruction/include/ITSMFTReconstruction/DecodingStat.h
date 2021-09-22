@@ -75,7 +75,7 @@ struct ChipStat {
   }
 
   uint32_t getNErrors() const;
-  void addErrors(uint32_t mask, uint16_t chID);
+  void addErrors(uint32_t mask, uint16_t chID, int verbosity);
   void print(bool skipNoErr = true, const std::string& pref = "FEEID") const;
 
   ClassDefNV(ChipStat, 1);
