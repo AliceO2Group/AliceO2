@@ -9,13 +9,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// @file   MonitorWorkflowSpec.h
+/// @author Jens Wiechula
+/// @since  2020-01-17
+/// @brief  Raw data monitor workflow
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#ifndef TPC_MonitorWorkflowSpec_H_
+#define TPC_MonitorWorkflowSpec_H_
 
-#pragma link C++ class o2::tpc::SimpleEventDisplay + ;
-#pragma link C++ class o2::tpc::SimpleEventDisplayGUI + ;
+#include "Framework/DataProcessorSpec.h"
 
-#endif
+namespace o2::tpc
+{
+
+/// create a processor spec
+/// read simulated TPC clusters from file and publish
+o2::framework::DataProcessorSpec getMonitorWorkflowSpec(bool useDigitsAsInput);
+
+} // namespace o2::tpc
+
+#endif // TPC_MonitorWorkflowSpec_H_

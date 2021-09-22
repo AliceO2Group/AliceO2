@@ -62,7 +62,7 @@ class SimpleEventDisplay : public CalibRawBase
   void setLastSelSector(Int_t lastSelSector) { mLastSelSector = lastSelSector; }
 
   void setPedstals(CalPad* pedestals) { mPedestals = pedestals; }
-  //   TH1D* makePadSignals(Int_t roc, Int_t channel);
+
   TH1D* makePadSignals(Int_t roc, Int_t row, Int_t pad);
 
   /// set time bin range

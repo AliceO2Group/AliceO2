@@ -47,10 +47,6 @@ SimpleEventDisplay::SimpleEventDisplay()
     mLastTimeBin(512),
     mTPCmapper(Mapper::instance())
 {
-  //
-  //
-  //
-
   initHistograms();
 }
 
@@ -63,16 +59,8 @@ void SimpleEventDisplay::initHistograms()
   const int nPadsOROC = mTPCmapper.getPadsInOROC();
   const int numberOfTimeBins = mLastTimeBin - mFirstTimeBin;
 
-  //Int_t binsIROC[3] = { 36, nPadsIROC, numberOfTimeBins };
-  //Double_t xminIROC[3] = { 0., 0, Double_t(mFirstTimeBin) };
-  //Double_t xmaxIROC[3] = { 36., Double_t(nPadsIROC), Double_t(mLastTimeBin) };
-  //Int_t binsOROC[3] = { 36, nPadsOROC, 1000 };
-  //Double_t xminOROC[3] = { 0., 0., Double_t(mFirstTimeBin) };
-  //Double_t xmaxOROC[3] = { 36., Double_t(nPadsOROC), Double_t(mLastTimeBin) };
-
   mHSigIROC = new TH2D("PadSigIROC", "Pad Signals IROC", numberOfTimeBins, mFirstTimeBin, mLastTimeBin, nPadsIROC, 0, nPadsIROC);
   mHSigOROC = new TH2D("PadSigOROC", "Pad Signals OROC", numberOfTimeBins, mFirstTimeBin, mLastTimeBin, nPadsOROC, 0, nPadsOROC);
-  //printf("Selected ini: %d %p\n",0, mPadMax.GetCalROC(0));
 }
 
 //_____________________________________________________________________
@@ -117,7 +105,6 @@ Int_t SimpleEventDisplay::updateROC(const Int_t roc,
   }
 
   const int iChannel = mTPCmapper.getPadNumberInROC(PadROCPos(roc, row, pad));
-  //Int_t iChannel = mTPCmapper.globalPadNumber(PadPos(row, pad)) - (roc >= mTPCmapper.getNumberOfIROCs()) * mTPCmapper.getPadsInIROC();
 
   //init first pad and roc in this event
   if (mCurrentChannel == -1) {
@@ -129,7 +116,6 @@ Int_t SimpleEventDisplay::updateROC(const Int_t roc,
 
   //process last pad if we change to a new one
   if (iChannel != mCurrentChannel) {
-    //ProcessPad();
     mLastSector = mCurrentROC;
     mCurrentChannel = iChannel;
     mCurrentROC = roc;
@@ -137,7 +123,7 @@ Int_t SimpleEventDisplay::updateROC(const Int_t roc,
     mCurrentPad = pad;
     mMaxPadSignal = 0;
   }
-  //  if (signal>0) printf("%02d:%03d:%03d:%05d: %.3f\n",mCurrentROC,mCurrentRow,mCurrentPad,mCurrentChannel,signal);
+
   //fill signals for current pad
   if (mCurrentROC % 36 == mSelectedSector % 36) {
     const Int_t nbins = mLastTimeBin - mFirstTimeBin;
@@ -151,31 +137,19 @@ Int_t SimpleEventDisplay::updateROC(const Int_t roc,
   }
 
   CalROC& calROC = mPadMax.getCalArray(mCurrentROC);
-  //auto val = calROC.getValue(mCurrentRow, mCurrentPad);
   auto val = calROC.getValue(row, pad);
 
   if (corrSignal > val) {
-    //printf("sec: %2d, row: %2d, pad: %3d, val: %.2f, sig: (%.2f) %.2f\n", mCurrentROC, mCurrentRow, mCurrentPad, val, corrSignal, signal);
-    //calROC.setValue(mCurrentRow,mCurrentPad,signal);
     calROC.setValue(row, pad, corrSignal);
     mMaxPadSignal = corrSignal;
     mMaxTimeBin = timeBin;
   }
-  //printf("update done\n");
   return 0;
 }
 
 //_____________________________________________________________________
 TH1D* SimpleEventDisplay::makePadSignals(Int_t roc, Int_t row, Int_t pad)
 {
-  // TODO: check
-  //if (roc<0||roc>=(Int_t)mROC->GetNSectors()) return nullptr;
-  //if (row<0||row>=(Int_t)mROC->GetNRows(roc)) return nullptr;
-  //if (pad<0||pad>=(Int_t)mROC->GetNPads(roc,row)) return nullptr;
-  // TODO: possible bug for OROC
-  //const Int_t channel =
-  //mTPCmapper.globalPadNumber(PadPos(row, pad)) - (roc >= mTPCmapper.getNumberOfIROCs()) * mTPCmapper.getPadsInIROC();
-
   const int padOffset = (roc > 35) * Mapper::getPadsInIROC();
   const int channel = mTPCmapper.getPadNumberInROC(PadROCPos(roc, row, pad));
 
@@ -190,7 +164,7 @@ TH1D* SimpleEventDisplay::makePadSignals(Int_t roc, Int_t row, Int_t pad)
   const int globalLinkID = (fecInPartition % fecOffset) + dataWrapperID * 12;
 
   mSelectedSector = roc;
-  //  mLastSelSector=roc;
+
   //attention change for if event has changed
   if (mSelectedSector % 36 != mLastSelSector % 36) {
     mSectorLoop = kTRUE;
@@ -228,14 +202,7 @@ TH1D* SimpleEventDisplay::makePadSignals(Int_t roc, Int_t row, Int_t pad)
   title += (roc / 18 % 2 == 0) ? "A" : "C";
   title += Form("%02d (%02d) row: %02d, pad: %03d, globalpad: %05d (in roc)}}}{#scale[.5]{FEC: %02d (%02d), Chip: %02d, Chn: %02d, CRU: %d, Link: %02d (%s%d)}}",
                 roc % 18, roc, row, pad, channel, fecInfo.getIndex(), fecInPartition, fecInfo.getSampaChip(), fecInfo.getSampaChannel(), cruNumber % CRU::CRUperSector, globalLinkID, dataWrapperID ? "B" : "A", globalLinkID % 12);
-  //title+=Form("row: %02d, pad: %03d, cpad: %03d, globalpad: %05d}}}{#scale[.5]{br: %d, FEC: %02d, Chip: %02d, Chn: %02d = HW: %d}}",
-  //row,pad,pad-mROC->GetNPads(roc,row)/2,channel,
-  //mTPCmapper.GetBranch(roc,row,pad),
-  //mTPCmapper.GetFEChw(roc,row,pad),
-  //mTPCmapper.GetChip(roc,row,pad),
-  //mTPCmapper.GetChannel(roc,row,pad),
-  //mTPCmapper.GetHWAddress(roc,row,pad)
-  //);
+
   h->SetTitle(title.Data());
   Int_t entries = 0;
   for (Int_t i = 0; i < nbins; i++) {
@@ -251,9 +218,6 @@ void SimpleEventDisplay::resetEvent()
   //
   //
   //
-  //for (auto reader : mGBTFrameContainers) {
-  //reader->reProcessAllFrames();
-  //}
   if (!mSectorLoop) {
     mPadMax.multiply(0.);
   }

@@ -15,7 +15,7 @@
 #include "TTree.h"
 #include "TString.h"
 
-#include <fairlogger/Logger.h>
+#include "Framework/Logger.h"
 
 #include "TPCBase/Mapper.h"
 #include "TPCBase/ROC.h"
@@ -37,8 +37,14 @@ void DigitDump::init()
 {
   const auto& param = DigitDumpParam::Instance();
 
-  mFirstTimeBin = param.FirstTimeBin;
-  mLastTimeBin = param.LastTimeBin;
+  if (param.FirstTimeBin >= 0) {
+    mFirstTimeBin = param.FirstTimeBin;
+    LOGP(info, "Setting FirstTimeBin = {} from TPCDigitDump.FirstTimeBin", mFirstTimeBin);
+  }
+  if (param.LastTimeBin >= 0) {
+    mLastTimeBin = param.LastTimeBin;
+    LOGP(info, "Setting LastTimeBin = {} from TPCDigitDump.LastTimeBin", mLastTimeBin);
+  }
   mADCMin = param.ADCMin;
   mADCMax = param.ADCMax;
   mNoiseThreshold = param.NoiseThreshold;
@@ -215,6 +221,9 @@ void DigitDump::checkDuplicates(bool removeDuplicates)
 //______________________________________________________________________________
 void DigitDump::removeCEdigits(uint32_t removeNtimeBinsBefore, uint32_t removeNtimeBinsAfter, std::array<std::vector<Digit>, Sector::MAXSECTOR>* removedDigits)
 {
+  if (!mInitialized || !mTimeBinOccupancy.size()) {
+    return;
+  }
   // ===| check if proper CE signal was found |===
   const auto sectorsWithDigits = std::count_if(mDigits.begin(), mDigits.end(), [](const auto& v) { return v.size(); });
   const auto maxElem = std::max_element(mTimeBinOccupancy.begin(), mTimeBinOccupancy.end());
