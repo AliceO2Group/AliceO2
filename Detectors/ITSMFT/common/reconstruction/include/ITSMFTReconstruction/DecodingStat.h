@@ -41,6 +41,7 @@ struct ChipStat {
     NoDataFound,          // Region is not followed by Short or Long data
     UnknownWord,          // Unknown word was seen
     RepeatingPixel,       // Same pixel fired more than once
+    WrongRow,             // Non-existing row decoded
     NErrorsDefined
   };
 
@@ -57,7 +58,8 @@ struct ChipStat {
     "LongData pattern has highest bit set",         // WrongDataLongPattern
     "Region is not followed by Short or Long data", // NoDataFound
     "Unknown word",                                 // UnknownWord
-    "Same pixel fired multiple times"               // RepeatingPixel
+    "Same pixel fired multiple times",              // RepeatingPixel
+    "Non-existing row decoded"                      // WrongRow
   };
 
   uint16_t id = -1;

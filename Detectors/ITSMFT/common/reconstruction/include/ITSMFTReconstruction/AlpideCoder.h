@@ -74,6 +74,7 @@ class AlpideCoder
   static constexpr uint32_t ExpectData = 0x1 << 4;
   static constexpr uint32_t ExpectBUSY = 0x1 << 5;
   static constexpr int NRows = 512;
+  static constexpr int RowMask = NRows - 1;
   static constexpr int NCols = 1024;
   static constexpr int NRegions = 32;
   static constexpr int NDColInReg = NCols / NRegions / 2;
@@ -283,6 +284,12 @@ class AlpideCoder
             for (int ip = 0; ip < HitMapSize; ip++) {
               if (hitsPattern & (0x1 << ip)) {
                 uint16_t addr = pixID + ip + 1, rowE = addr >> 1;
+                if (addr & ~MaskPixID) {
+#ifdef ALPIDE_DECODING_STAT
+                  chipData.setError(ChipStat::WrongRow);
+#endif
+                  return unexpectedEOF(fmt::format("Non-existing encoder {} decoded, DataLong was {:x}", pixID, dataS));
+                }
                 rightC = ((rowE & 0x1) ? !(addr & 0x1) : (addr & 0x1)); // true for right column / lalse for left
                 // the real columnt is int colE = colD + rightC;
                 if (rightC) { // same as above
