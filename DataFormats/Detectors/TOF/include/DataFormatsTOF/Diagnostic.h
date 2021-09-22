@@ -17,6 +17,7 @@
 
 #include <map>
 #include <TObject.h>
+#include <gsl/gsl>
 
 namespace o2
 {
@@ -38,8 +39,11 @@ class Diagnostic
   int fillROW() { return fill(0); }
   int fillEmptyCrate(int crate, int frequency = 1) { return fill(getEmptyCrateKey(crate), frequency); }
   ULong64_t getEmptyCrateKey(int crate);
-  void print();
+  void print() const;
   void clear() { mVector.clear(); }
+  void fill(const Diagnostic& diag);                       // for calibration
+  void fill(const gsl::span<const o2::tof::Diagnostic>){}; // for calibration
+  void merge(const Diagnostic* prev);
 
  private:
   std::map<ULong64_t, uint32_t> mVector; // diagnostic frequency vector (key/pattern , frequency)

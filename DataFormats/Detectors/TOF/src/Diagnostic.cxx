@@ -14,6 +14,7 @@
 
 #include "DataFormatsTOF/Diagnostic.h"
 #include <iostream>
+#include "Framework/Logger.h"
 
 using namespace o2::tof;
 
@@ -58,9 +59,9 @@ int Diagnostic::getFrequency(ULong64_t pattern)
   return 0;
 }
 
-void Diagnostic::print()
+void Diagnostic::print() const
 {
-  std::cout << "Diagnosti patterns" << std::endl;
+  LOG(INFO) << "Diagnostic patterns";
   for (const auto& [key, value] : mVector) {
     std::cout << key << " = " << value << "; ";
   }
@@ -71,4 +72,21 @@ ULong64_t Diagnostic::getEmptyCrateKey(int crate)
 {
   ULong64_t key = (ULong64_t(11) << 32) + (ULong64_t(crate) << 36); // slot=11 means empty crate
   return key;
+}
+
+void Diagnostic::fill(const Diagnostic& diag)
+{
+  LOG(DEBUG) << "Filling diagnostic word";
+  for (auto const& el : diag.mVector) {
+    LOG(DEBUG) << "Filling diagnostic pattern " << el.first << " adding " << el.second << " to " << getFrequency(el.first) << " --> " << el.second + getFrequency(el.first);
+    fill(el.first, el.second);
+  }
+}
+
+void Diagnostic::merge(const Diagnostic* prev)
+{
+  LOG(DEBUG) << "Merging diagnostic words";
+  for (auto const& el : prev->mVector) {
+    fill(el.first, el.second + getFrequency(el.first));
+  }
 }

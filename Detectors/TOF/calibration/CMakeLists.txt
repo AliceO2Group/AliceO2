@@ -20,6 +20,7 @@ o2_add_library(TOFCalibration
                        src/TOFDCSProcessor.cxx
                        src/TOFFEElightReader.cxx
                        src/TOFFEElightConfig.cxx
+           src/TOFDiagnosticCalibrator.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF O2::TOFBase
                                      O2::CCDB
                                      O2::DetectorsCalibration
@@ -37,7 +38,8 @@ o2_target_root_dictionary(TOFCalibration
                                   include/TOFCalibration/CollectCalibInfoTOF.h
                                   include/TOFCalibration/TOFDCSProcessor.h
                                   include/TOFCalibration/TOFFEElightReader.h
-                                  include/TOFCalibration/TOFFEElightConfig.h)
+                                  include/TOFCalibration/TOFFEElightConfig.h
+          include/TOFCalibration/TOFDiagnosticCalibrator.h)
 
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
@@ -47,6 +49,13 @@ endif()
 o2_add_executable(data-generator-workflow
                   COMPONENT_NAME calibration
                   SOURCES testWorkflow/data-generator-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                    O2::DataFormatsTOF
+                    O2::TOFBase)
+
+o2_add_executable(data-generator-diagnostic-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/data-generator-diagnostic-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                     O2::DataFormatsTOF
                     O2::TOFBase)
@@ -106,3 +115,9 @@ o2_add_executable(tof-dcs-config-processor-workflow
                                         O2::TOFCalibration
                                         O2::DetectorsCalibration)
 
+o2_add_executable(tof-diagnostic-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/tof-diagnostic-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  O2::TOFCalibration
+                  O2::DetectorsCalibration)

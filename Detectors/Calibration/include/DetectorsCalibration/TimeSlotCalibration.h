@@ -56,6 +56,8 @@ class TimeSlotCalibration
   const Slot& getLastSlot() const { return (Slot&)mSlots.back(); }
   const Slot& getFirstSlot() const { return (Slot&)mSlots.front(); }
 
+  template <typename DATA>
+  bool process(TFType tf, const DATA& data);
   virtual bool process(TFType tf, const gsl::span<const Input> data);
   virtual void checkSlotsToFinalize(TFType tf, int maxDelay = 0);
   virtual void finalizeOldestSlot();
@@ -100,6 +102,38 @@ class TimeSlotCalibration
 
   ClassDef(TimeSlotCalibration, 1);
 };
+
+//_________________________________________________
+template <typename Input, typename Container>
+template <typename DATA>
+bool TimeSlotCalibration<Input, Container>::process(TFType tf, const DATA& data)
+{
+
+  // process current TF
+
+  int maxDelay = mMaxSlotsDelay * mSlotLength;
+  if (!mUpdateAtTheEndOfRunOnly) {                                                               // if you update at the end of run only, then you accept everything
+    if (tf < mLastClosedTF || (!mSlots.empty() && getLastSlot().getTFStart() > tf + maxDelay)) { // ignore TF; note that if you have only 1 timeslot
+                                                                                                 // which is INFINITE_TF wide, then maxDelay
+                                                                                                 // does not matter: you won't accept TFs from the past,
+                                                                                                 // so the first condition will be used
+      LOG(INFO) << "Ignoring TF " << tf << ", mLastClosedTF = " << mLastClosedTF;
+      return false;
+    }
+  }
+
+  auto& slotTF = getSlotForTF(tf);
+  slotTF.getContainer()->fill(data);
+  if (tf > mMaxSeenTF) {
+    mMaxSeenTF = tf; // keep track of the most recent TF processed
+  }
+  if (!mUpdateAtTheEndOfRunOnly) { // if you update at the end of run only, you don't check at every TF which slots can be closed
+    // check if some slots are done
+    checkSlotsToFinalize(tf, maxDelay);
+  }
+
+  return true;
+}
 
 //_________________________________________________
 template <typename Input, typename Container>

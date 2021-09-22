@@ -44,6 +44,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     ngen = 1;
   }
   specs.emplace_back(getTFDispatcherSpec(slot, ngen, nlanes, std::max(1, int(float(latency) / nlanes / pressure))));
-  specs.emplace_back(timePipeline(getTFProcessorCalibInfoTOFSpec(latency, latencyRMS), nlanes));
+  specs.emplace_back(timePipeline(getTFProcessorDiagnosticSpec(latency, latencyRMS), nlanes));
   return specs;
 }
