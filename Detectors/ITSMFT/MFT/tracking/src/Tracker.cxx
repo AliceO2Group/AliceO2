@@ -27,13 +27,15 @@ namespace mft
 {
 
 //_________________________________________________________________________________________________
-Tracker::Tracker(bool useMC) : mUseMC{useMC}
+template <typename T>
+Tracker<T>::Tracker(bool useMC) : mUseMC{useMC}
 {
-  mTrackFitter = std::make_unique<o2::mft::TrackFitter>();
+  mTrackFitter = std::make_unique<o2::mft::TrackFitter<T>>();
 }
 
 //_________________________________________________________________________________________________
-void Tracker::setBz(Float_t bz)
+template <typename T>
+void Tracker<T>::setBz(Float_t bz)
 {
   /// Configure track propagation
   mBz = bz;
@@ -41,7 +43,8 @@ void Tracker::setBz(Float_t bz)
 }
 
 //_________________________________________________________________________________________________
-void Tracker::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
+template <typename T>
+void Tracker<T>::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
 {
   /// initialize from MFTTrackingParam (command line configuration parameters)
 
@@ -91,7 +94,8 @@ void Tracker::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
 }
 
 //_________________________________________________________________________________________________
-void Tracker::initialize(bool fullClusterScan)
+template <typename T>
+void Tracker<T>::initialize(bool fullClusterScan)
 {
   mRoad.initialize();
 
@@ -191,7 +195,8 @@ void Tracker::initialize(bool fullClusterScan)
 }
 
 //_________________________________________________________________________________________________
-void Tracker::clustersToTracks(ROframe& event, std::ostream& timeBenchmarkOutputStream)
+template <typename T>
+void Tracker<T>::clustersToTracks(ROframe<T>& event, std::ostream& timeBenchmarkOutputStream)
 {
   mTracks.clear();
   mTrackLabels.clear();
@@ -200,7 +205,8 @@ void Tracker::clustersToTracks(ROframe& event, std::ostream& timeBenchmarkOutput
 }
 
 //_________________________________________________________________________________________________
-void Tracker::findTracks(ROframe& event)
+template <typename T>
+void Tracker<T>::findTracks(ROframe<T>& event)
 {
   if (!mFullClusterScan) {
     findTracksLTF(event);
@@ -212,7 +218,8 @@ void Tracker::findTracks(ROframe& event)
 }
 
 //_________________________________________________________________________________________________
-void Tracker::findTracksLTF(ROframe& event)
+template <typename T>
+void Tracker<T>::findTracksLTF(ROframe<T>& event)
 {
   // find (high momentum) tracks by the Linear Track Finder (LTF) method
 
@@ -266,7 +273,7 @@ void Tracker::findTracksLTF(ROframe& event)
           }
           clsInLayer2 = it2 - event.getClustersInLayer(layer2).begin();
 
-          // start a TrackLTF
+          // start a Track type T
           nPoints = 0;
 
           // add the first seed point
@@ -340,15 +347,15 @@ void Tracker::findTracksLTF(ROframe& event)
             continue;
           }
 
-          // add a new TrackLTF
-          event.addTrackLTF();
+          // add a new Track
+          event.addTrack();
           for (Int_t point = 0; point < nPoints; ++point) {
             auto layer = trackPoints[point].layer;
             auto clsInLayer = trackPoints[point].idInLayer;
             Cluster& cluster = event.getClustersInLayer(layer)[clsInLayer];
             mcCompLabel = mUseMC ? event.getClusterLabels(layer, cluster.clusterId) : MCCompLabel();
             extClsIndex = event.getClusterExternalIndex(layer, cluster.clusterId);
-            event.getCurrentTrackLTF().setPoint(cluster, layer, clsInLayer, mcCompLabel, extClsIndex);
+            event.getCurrentTrack().setPoint(cluster, layer, clsInLayer, mcCompLabel, extClsIndex);
             // mark the used clusters
             cluster.setUsed(true);
           }
@@ -360,7 +367,8 @@ void Tracker::findTracksLTF(ROframe& event)
 }
 
 //_________________________________________________________________________________________________
-void Tracker::findTracksLTFfcs(ROframe& event)
+template <typename T>
+void Tracker<T>::findTracksLTFfcs(ROframe<T>& event)
 {
   // find (high momentum) tracks by the Linear Track Finder (LTF) method
   // with full scan of the clusters in the target plane
@@ -409,7 +417,7 @@ void Tracker::findTracksLTFfcs(ROframe& event)
         }
         clsInLayer2 = it2 - event.getClustersInLayer(layer2).begin();
 
-        // start a TrackLTF
+        // start a track type T
         nPoints = 0;
 
         // add the first seed point
@@ -474,15 +482,15 @@ void Tracker::findTracksLTFfcs(ROframe& event)
           continue;
         }
 
-        // add a new TrackLTF
-        event.addTrackLTF();
+        // add a new Track type T
+        event.addTrack();
         for (Int_t point = 0; point < nPoints; ++point) {
           auto layer = trackPoints[point].layer;
           auto clsInLayer = trackPoints[point].idInLayer;
           Cluster& cluster = event.getClustersInLayer(layer)[clsInLayer];
           mcCompLabel = mUseMC ? event.getClusterLabels(layer, cluster.clusterId) : MCCompLabel();
           extClsIndex = event.getClusterExternalIndex(layer, cluster.clusterId);
-          event.getCurrentTrackLTF().setPoint(cluster, layer, clsInLayer, mcCompLabel, extClsIndex);
+          event.getCurrentTrack().setPoint(cluster, layer, clsInLayer, mcCompLabel, extClsIndex);
           // mark the used clusters
           cluster.setUsed(true);
         }
@@ -493,7 +501,8 @@ void Tracker::findTracksLTFfcs(ROframe& event)
 }
 
 //_________________________________________________________________________________________________
-void Tracker::findTracksCA(ROframe& event)
+template <typename T>
+void Tracker<T>::findTracksCA(ROframe<T>& event)
 {
   // layers: 0, 1, 2, ..., 9
   // rules for combining first/last plane in a road:
@@ -627,7 +636,8 @@ void Tracker::findTracksCA(ROframe& event)
 }
 
 //_________________________________________________________________________________________________
-void Tracker::findTracksCAfcs(ROframe& event)
+template <typename T>
+void Tracker<T>::findTracksCAfcs(ROframe<T>& event)
 {
   // layers: 0, 1, 2, ..., 9
   // rules for combining first/last plane in a road:
@@ -742,7 +752,8 @@ void Tracker::findTracksCAfcs(ROframe& event)
 }
 
 //_________________________________________________________________________________________________
-void Tracker::computeCellsInRoad(ROframe& event)
+template <typename T>
+void Tracker<T>::computeCellsInRoad(ROframe<T>& event)
 {
   Int_t layer1, layer1min, layer1max, layer2, layer2min, layer2max;
   Int_t nPtsInLayer1, nPtsInLayer2;
@@ -793,7 +804,8 @@ void Tracker::computeCellsInRoad(ROframe& event)
 }
 
 //_________________________________________________________________________________________________
-void Tracker::runForwardInRoad()
+template <typename T>
+void Tracker<T>::runForwardInRoad()
 {
   Int_t layerR, layerL, icellR, icellL;
   Int_t iter = 0;
@@ -840,7 +852,8 @@ void Tracker::runForwardInRoad()
 }
 
 //_________________________________________________________________________________________________
-void Tracker::runBackwardInRoad(ROframe& event)
+template <typename T>
+void Tracker<T>::runBackwardInRoad(ROframe<T>& event)
 {
   if (mMaxCellLevel == 1) {
     return; // we have only isolated cells
@@ -947,8 +960,8 @@ void Tracker::runBackwardInRoad(ROframe& event)
         continue;
       }
 
-      // add a new TrackCA
-      event.addTrackCA(mRoad.getRoadId());
+      // add a new Track setting isCA = true
+      event.addTrack(true);
       for (icell = 0; icell < nCells; ++icell) {
         layerC = trackCells[icell].layer;
         cellIdC = trackCells[icell].idInLayer;
@@ -964,7 +977,8 @@ void Tracker::runBackwardInRoad(ROframe& event)
 }
 
 //_________________________________________________________________________________________________
-void Tracker::updateCellStatusInRoad()
+template <typename T>
+void Tracker<T>::updateCellStatusInRoad()
 {
   Int_t layerMin, layerMax;
   mRoad.getLength(layerMin, layerMax);
@@ -977,7 +991,8 @@ void Tracker::updateCellStatusInRoad()
 }
 
 //_________________________________________________________________________________________________
-void Tracker::addCellToCurrentRoad(ROframe& event, const Int_t layer1, const Int_t layer2, const Int_t clsInLayer1, const Int_t clsInLayer2, Int_t& cellId)
+template <typename T>
+void Tracker<T>::addCellToCurrentRoad(ROframe<T>& event, const Int_t layer1, const Int_t layer2, const Int_t clsInLayer1, const Int_t clsInLayer2, Int_t& cellId)
 {
   Cell& cell = mRoad.addCellInLayer(layer1, layer2, clsInLayer1, clsInLayer2, cellId);
 
@@ -997,9 +1012,10 @@ void Tracker::addCellToCurrentRoad(ROframe& event, const Int_t layer1, const Int
 }
 
 //_________________________________________________________________________________________________
-void Tracker::addCellToCurrentTrackCA(const Int_t layer1, const Int_t cellId, ROframe& event)
+template <typename T>
+void Tracker<T>::addCellToCurrentTrackCA(const Int_t layer1, const Int_t cellId, ROframe<T>& event)
 {
-  TrackCA& trackCA = event.getCurrentTrackCA();
+  auto& trackCA = event.getCurrentTrack();
   const Cell& cell = mRoad.getCellsInLayer(layer1)[cellId];
   const Int_t layer2 = cell.getSecondLayerId();
   const Int_t clsInLayer1 = cell.getFirstClusterIndex();
@@ -1023,28 +1039,22 @@ void Tracker::addCellToCurrentTrackCA(const Int_t layer1, const Int_t cellId, RO
 }
 
 //_________________________________________________________________________________________________
-bool Tracker::fitTracks(ROframe& event)
+template <typename T>
+bool Tracker<T>::fitTracks(ROframe<T>& event)
 {
-  for (auto& track : event.getTracksLTF()) {
-    TrackLTF outParam = track;
+  for (auto& track : event.getTracks()) {
+    T outParam = track;
     mTrackFitter->initTrack(track);
     mTrackFitter->fit(track);
     mTrackFitter->initTrack(outParam, true);
     mTrackFitter->fit(outParam, true);
     track.setOutParam(outParam);
   }
-  for (auto& track : event.getTracksCA()) {
-    track.sort();
-    TrackCA outParam = track;
-    mTrackFitter->initTrack(track);
-    mTrackFitter->fit(track);
-    mTrackFitter->initTrack(outParam, true);
-    mTrackFitter->fit(outParam, true);
-    track.setOutParam(outParam);
-  }
-
   return true;
 }
+
+template class Tracker<o2::mft::TrackLTF>;
+template class Tracker<o2::mft::TrackLTFL>;
 
 } // namespace mft
 } // namespace o2

@@ -38,7 +38,8 @@ namespace mft
 {
 
 //_________________________________________________________________________________________________
-bool TrackFitter::fit(TrackLTF& track, bool outward)
+template <typename T>
+bool TrackFitter<T>::fit(T& track, bool outward)
 {
   /// Fit a track using its attached clusters
   /// Returns false in case of failure
@@ -77,7 +78,8 @@ bool TrackFitter::fit(TrackLTF& track, bool outward)
 }
 
 //_________________________________________________________________________________________________
-bool TrackFitter::initTrack(TrackLTF& track, bool outward)
+template <typename T>
+bool TrackFitter<T>::initTrack(T& track, bool outward)
 {
 
   // initialize the starting track parameters and cluster
@@ -167,7 +169,8 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
 }
 
 //_________________________________________________________________________________________________
-bool TrackFitter::propagateToZ(TrackLTF& track, double z)
+template <typename T>
+bool TrackFitter<T>::propagateToZ(T& track, double z)
 {
   // Propagate track to the z position of the new cluster
   switch (mTrackModel) {
@@ -192,7 +195,8 @@ bool TrackFitter::propagateToZ(TrackLTF& track, double z)
 }
 
 //_________________________________________________________________________________________________
-bool TrackFitter::propagateToNextClusterWithMCS(TrackLTF& track, double z, int& startingLayerID, const int& newLayerID)
+template <typename T>
+bool TrackFitter<T>::propagateToNextClusterWithMCS(T& track, double z, int& startingLayerID, const int& newLayerID)
 {
 
   // Propagate track to the next cluster z position, adding angular MCS effects at the center of
@@ -274,7 +278,8 @@ bool TrackFitter::propagateToNextClusterWithMCS(TrackLTF& track, double z, int& 
 }
 
 //_________________________________________________________________________________________________
-bool TrackFitter::computeCluster(TrackLTF& track, int cluster, int& startingLayerID)
+template <typename T>
+bool TrackFitter<T>::computeCluster(T& track, int cluster, int& startingLayerID)
 {
   /// Propagate track to the z position of the new cluster
   /// accounting for MCS dispersion in the current layer and the other(s) crossed
@@ -322,7 +327,8 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster, int& startingLaye
 }
 
 //_________________________________________________________________________________________________
-Double_t invQPtFromFCF(const TrackLTF& track, Double_t bFieldZ, Double_t& sigmainvqptsq)
+template <typename T>
+Double_t invQPtFromFCF(const T& track, Double_t bFieldZ, Double_t& sigmainvqptsq)
 {
 
   const std::array<Float_t, constants::mft::LayersNumber>& xPositions = track.getXCoordinates();
@@ -511,6 +517,9 @@ Bool_t LinearRegression(Int_t nVal, std::vector<double>& xVal, std::vector<doubl
   }
   return kTRUE;
 }
+
+template class TrackFitter<o2::mft::TrackLTF>;
+template class TrackFitter<o2::mft::TrackLTFL>;
 
 } // namespace mft
 } // namespace o2

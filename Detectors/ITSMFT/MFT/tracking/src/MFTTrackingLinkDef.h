@@ -15,9 +15,9 @@
 #pragma link off all classes;
 #pragma link off all functions;
 #pragma link C++ class o2::mft::TrackLTF + ;
-#pragma link C++ class o2::mft::TrackCA + ;
+#pragma link C++ class o2::mft::TrackLTFL + ;
 #pragma link C++ class std::vector < o2::mft::TrackLTF> + ;
-#pragma link C++ class std::vector < o2::mft::TrackCA> + ;
+#pragma link C++ class std::vector < o2::mft::TrackLTFL> + ;
 #pragma link C++ class o2::mft::TrackerConfig + ;
 #pragma link C++ class o2::mft::MFTTrackingParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::mft::MFTTrackingParam> + ;

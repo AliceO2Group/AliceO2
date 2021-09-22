@@ -32,8 +32,11 @@ class TrackLTF : public TrackMFTExt
 {
  public:
   TrackLTF() = default;
+  TrackLTF(const bool isCA) { setCA(isCA); }
+
   TrackLTF(const TrackLTF& t) = default;
   ~TrackLTF() = default;
+
   const std::array<Float_t, constants::mft::LayersNumber>& getXCoordinates() const { return mX; }
   const std::array<Float_t, constants::mft::LayersNumber>& getYCoordinates() const { return mY; }
   const std::array<Float_t, constants::mft::LayersNumber>& getZCoordinates() const { return mZ; }
@@ -60,19 +63,16 @@ class TrackLTF : public TrackMFTExt
 };
 
 //_________________________________________________________________________________________________
-class TrackCA : public TrackLTF
+class TrackLTFL : public TrackLTF // A track for B=0
 {
  public:
-  TrackCA()
-  {
-    TrackLTF();
-    this->setCA(true);
-  }
-  TrackCA(const TrackCA& t) = default;
-  ~TrackCA() = default;
+  TrackLTFL() = default;
+  TrackLTFL(const bool isCA) { setCA(isCA); }
+  TrackLTFL(const TrackLTFL& t) = default;
+  ~TrackLTFL() = default;
 
  private:
-  ClassDefNV(TrackCA, 10);
+  ClassDefNV(TrackLTFL, 0);
 };
 
 //_________________________________________________________________________________________________
@@ -153,16 +153,17 @@ inline void TrackLTF::sort()
 
 namespace framework
 {
-template <typename T>
-struct is_messageable;
-template <>
-struct is_messageable<o2::mft::TrackCA> : std::true_type {
-};
 
 template <typename T>
 struct is_messageable;
 template <>
 struct is_messageable<o2::mft::TrackLTF> : std::true_type {
+};
+
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::mft::TrackLTFL> : std::true_type {
 };
 
 } // namespace framework
