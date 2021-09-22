@@ -15,6 +15,7 @@ o2_add_library(DetectorsCommonDataFormats
                        src/EncodedBlocks.cxx
                        src/CTFHeader.cxx
                        src/CTFDictHeader.cxx
+         src/FileMetaData.cxx
                PUBLIC_LINK_LIBRARIES
                ROOT::Core
                ROOT::Geom
