@@ -18,6 +18,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
+#include "Framework/DeviceSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
@@ -69,7 +70,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mNThreads = std::max(1, ic.options().get<int>("nthreads"));
     mDecoder->setNThreads(mNThreads);
     mDecoder->setFormat(ic.options().get<bool>("old-format") ? GBTLink::OldFormat : GBTLink::NewFormat);
-    mDecoder->setVerbosity(ic.options().get<int>("decoder-verbosity"));
+    mUnmutExtraLanes = ic.options().get<bool>("unmute-extra-lanes");
+    mVerbosity = ic.options().get<int>("decoder-verbosity");
     mDecoder->setFillCalibData(mDoCalibData);
     std::string noiseFile = o2::base::NameConf::getNoiseFileName(detID, mNoiseName, "root");
     if (o2::utils::Str::pathExists(noiseFile)) {
@@ -129,6 +131,13 @@ void STFDecoder<Mapping>::init(InitContext& ic)
 template <class Mapping>
 void STFDecoder<Mapping>::run(ProcessingContext& pc)
 {
+  static bool firstCall = true;
+  if (firstCall) {
+    firstCall = false;
+    mDecoder->setInstanceID(pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId);
+    mDecoder->setNInstances(pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices);
+    mDecoder->setVerbosity(mDecoder->getInstanceID() == 0 ? mVerbosity : (mUnmutExtraLanes ? mVerbosity : -1));
+  }
   int nSlots = pc.inputs().getNofParts(0);
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
@@ -246,7 +255,8 @@ DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool do
     Options{
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
-      {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data)"}}}};
+      {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data) of 1st lane"}},
+      {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}}}};
 }
 
 DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, bool doCalib, bool askDISTSTF, const std::string& dict, const std::string& noise)
@@ -282,7 +292,8 @@ DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool do
     Options{
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
-      {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data)"}}}};
+      {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data) of 1st lane"}},
+      {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}}}};
 }
 
 } // namespace itsmft

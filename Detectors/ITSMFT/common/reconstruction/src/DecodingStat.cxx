@@ -31,12 +31,12 @@ uint32_t ChipStat::getNErrors() const
 
 ///_________________________________________________________________
 /// print link decoding statistics
-void ChipStat::addErrors(uint32_t mask, uint16_t id)
+void ChipStat::addErrors(uint32_t mask, uint16_t id, int verbosity)
 {
   if (mask) {
     for (int i = NErrorsDefined; i--;) {
       if (mask & (0x1 << i)) {
-        if (!errorCounts[i]) {
+        if (verbosity > -1 && (!errorCounts[i] || verbosity > 1)) {
           LOGP(ERROR, "New error registered on the link: chip#{}: {}", id, ErrNames[i]);
         }
         errorCounts[i]++;

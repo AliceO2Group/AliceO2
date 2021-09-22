@@ -51,7 +51,9 @@ class STFDecoder : public Task
   bool mDoPatterns = false;
   bool mDoDigits = false;
   bool mDoCalibData = false;
+  bool mUnmutExtraLanes = false;
   int mNThreads = 1;
+  int mVerbosity = 0;
   size_t mTFCounter = 0;
   size_t mEstNDig = 0;
   size_t mEstNClus = 0;

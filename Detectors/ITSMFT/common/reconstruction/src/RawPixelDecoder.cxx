@@ -255,6 +255,7 @@ RUDecodeData& RawPixelDecoder<Mapping>::getCreateRUDecode(int ruSW)
     ru.ruSWID = ruSW;
     ru.ruInfo = mMAP.getRUInfoSW(ruSW); // info on the stave/RU
     ru.chipsData.resize(mMAP.getNChipsOnRUType(ru.ruInfo->ruType));
+    ru.verbosity = mVerbosity;
     LOG(INFO) << mSelfName << " Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
   }
   return mRUDecodeVec[mRUEntry[ruSW]];

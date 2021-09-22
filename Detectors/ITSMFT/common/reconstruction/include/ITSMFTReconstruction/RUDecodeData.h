@@ -45,6 +45,7 @@ struct RUDecodeData {
   int nCables = 0;         // total number of cables decoded for single trigger
   int nChipsFired = 0;     // number of chips with data or with errors
   int lastChipChecked = 0; // last chips checked among nChipsFired
+  int verbosity = 0;       // verbosity level, for -1,0 print only summary data, for 1: print once every error
   GBTCalibData calibData{}; // calibration info from GBT calibration word
 
   const RUInfo* ruInfo = nullptr;
