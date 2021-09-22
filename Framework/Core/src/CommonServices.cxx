@@ -483,7 +483,7 @@ auto flushMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
   for (size_t si = 0; si < stats.statesSize.load(); ++si) {
     auto value = std::atomic_load_explicit(&stats.relayerState[si], std::memory_order_relaxed);
     std::atomic_thread_fence(std::memory_order_acquire);
-    monitoring.send({value, fmt::format("data_relayer/{}", si)});
+    monitoring.send({value, fmt::format("data_relayer/{}", si, Verbosity::Debug)});
   }
   relayer.sendContextState();
   monitoring.flushBuffer();
