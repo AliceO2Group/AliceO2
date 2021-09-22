@@ -25,44 +25,6 @@
 
 using namespace o2::emcal;
 
-std::string CaloRawFitter::createErrorMessage(CaloRawFitter::RawFitterError_t errorcode)
-{
-  switch (errorcode) {
-    case RawFitterError_t::SAMPLE_UNINITIALIZED:
-      return "Sample for fit not initialzied or bunch length is 0";
-    case RawFitterError_t::FIT_ERROR:
-      return "Fit of the raw bunch was not successful";
-    case RawFitterError_t::CHI2_ERROR:
-      return "Chi2 of the fit could not be determined";
-    case RawFitterError_t::BUNCH_NOT_OK:
-      return "Calo bunch could not be selected";
-    case RawFitterError_t::LOW_SIGNAL:
-      return "No ADC value above threshold found";
-  };
-  // Silence compiler warnings for false positives
-  // can never enter here due to usage of enum class
-  return "Unknown error code";
-}
-
-int CaloRawFitter::getErrorNumber(CaloRawFitter::RawFitterError_t fiterror)
-{
-  switch (fiterror) {
-    case RawFitterError_t::SAMPLE_UNINITIALIZED:
-      return 0;
-    case RawFitterError_t::FIT_ERROR:
-      return 1;
-    case RawFitterError_t::CHI2_ERROR:
-      return 2;
-    case RawFitterError_t::BUNCH_NOT_OK:
-      return 3;
-    case RawFitterError_t::LOW_SIGNAL:
-      return 4;
-  };
-  // Silence compiler warnings for false positives
-  // can never enter here due to usage of enum class
-  return -1;
-}
-
 //Default constructor
 CaloRawFitter::CaloRawFitter(const char* name, const char* nameshort) : mMinTimeIndex(-1),
                                                                         mMaxTimeIndex(-1),
@@ -141,13 +103,22 @@ std::tuple<int, int> CaloRawFitter::findPeakRegion(const gsl::span<double> adcVa
   return std::make_tuple(first, last);
 }
 
-std::tuple<float, std::array<double, constants::EMCAL_MAXTIMEBINS>> CaloRawFitter::reverseAndSubtractPed(const Bunch& bunch) const
+std::optional<std::tuple<float, std::array<double, constants::EMCAL_MAXTIMEBINS>>> CaloRawFitter::reverseAndSubtractPed(const Bunch& bunch) const
 {
   std::array<double, constants::EMCAL_MAXTIMEBINS> outarray;
   int length = bunch.getBunchLength();
   const gsl::span<const uint16_t> sig(bunch.getADC());
 
-  double ped = mIsZerosupressed ? 0. : evaluatePedestal(sig, length);
+  double ped = 0.;
+  if (mIsZerosupressed) {
+    auto pedestalResult = evaluatePedestal(sig, length);
+    if (pedestalResult.has_value()) {
+      ped = pedestalResult.value();
+    } else {
+      std::optional<std::tuple<float, std::array<double, constants::EMCAL_MAXTIMEBINS>>> empty;
+      return empty;
+    }
+  }
 
   for (int i = 0; i < length; i++) {
     outarray[i] = sig[length - i - 1] - ped;
@@ -156,10 +127,10 @@ std::tuple<float, std::array<double, constants::EMCAL_MAXTIMEBINS>> CaloRawFitte
   return std::make_tuple(ped, outarray);
 }
 
-double CaloRawFitter::evaluatePedestal(const gsl::span<const uint16_t> data, std::optional<int> length) const
+std::optional<double> CaloRawFitter::evaluatePedestal(const gsl::span<const uint16_t> data, std::optional<int> length) const
 {
   if (!mNsamplePed) {
-    throw RawFitterError_t::SAMPLE_UNINITIALIZED;
+    return std::optional<double>();
   }
   return static_cast<double>(std::accumulate(data.begin(), data.begin() + mNsamplePed, 0)) / mNsamplePed;
 }
@@ -201,7 +172,7 @@ bool CaloRawFitter::isMaxADCBunchEdge(const Bunch& bunch) const
   return isBunchEdge;
 }
 
-std::tuple<short, short, short> CaloRawFitter::selectMaximumBunch(const gsl::span<const Bunch>& bunchvector)
+std::optional<std::tuple<short, short, short>> CaloRawFitter::selectMaximumBunch(const gsl::span<const Bunch>& bunchvector)
 {
   short bunchindex = -1;
   short indexMaxInBunch(0), maxADCallBunches(-1);
@@ -216,11 +187,11 @@ std::tuple<short, short, short> CaloRawFitter::selectMaximumBunch(const gsl::spa
       }
     }
   }
-
   if (bunchindex >= 0) {
     // reject bunch if the max. ADC value is at the edges of a bunch
     if (isMaxADCBunchEdge(bunchvector[bunchindex])) {
-      throw RawFitterError_t::BUNCH_NOT_OK;
+      std::optional<std::tuple<short, short, short>> emptyresult;
+      return emptyresult;
     }
   }
 
@@ -236,13 +207,13 @@ bool CaloRawFitter::isInTimeRange(int indexMaxADC, int maxtime, int mintime) con
   return (indexMaxADC < maxtime) && (indexMaxADC > mintime) ? true : false;
 }
 
-double CaloRawFitter::calculateChi2(double amp, double time,
-                                    int first, int last,
-                                    double adcErr, double tau) const
+std::optional<double> CaloRawFitter::calculateChi2(double amp, double time,
+                                                   int first, int last,
+                                                   double adcErr, double tau) const
 {
   if (first == last || first < 0) { // signal consists of single sample, chi2 estimate (0) not too well defined..
                                     // or, first is negative, the indices are not valid
-    throw RawFitterError_t::CHI2_ERROR;
+    return std::optional<double>();
   }
 
   int nsamples = last - first + 1;
@@ -268,20 +239,30 @@ double CaloRawFitter::calculateChi2(double amp, double time,
 
   return chi2;
 }
-std::tuple<int, int, float, short, short, float, int, int> CaloRawFitter::preFitEvaluateSamples(const gsl::span<const Bunch> bunchvector, int adcThreshold)
+
+CaloRawFitter::PreFitResults CaloRawFitter::preFitEvaluateSamples(const gsl::span<const Bunch> bunchvector, int adcThreshold)
 {
 
   int nsamples(0), first(0), last(0), indexMaxADCRReveresed(0);
   double peakADC(0.), pedestal(0.);
 
+  PreFitResults infos;
+
   // Reset buffer for reversed bunch, no matter whether the bunch could be selected or not
   mReversed.fill(0);
 
   // select the bunch with the highest amplitude unless any time constraints is set
-  auto [bunchindex, indexMaxADC, adcMAX] = selectMaximumBunch(bunchvector);
+  auto maxBunchSelection = selectMaximumBunch(bunchvector);
+  if (!maxBunchSelection.has_value()) {
+    infos.mErrorCode = PreFitError_t::BUNCH_NOT_SELECTED;
+    return infos;
+  }
+  auto [bunchindex, indexMaxADC, adcMAX] = maxBunchSelection.value();
 
   // something valid was found, and non-zero amplitude
   if (bunchindex >= 0) {
+    infos.mIndexMaxBunch = bunchindex;
+    infos.mADC = adcMAX;
     if (adcMAX >= adcThreshold) {
       // use more convenient numbering and possibly subtract pedestal
 
@@ -292,7 +273,12 @@ std::tuple<int, int, float, short, short, float, int, int> CaloRawFitter::preFit
       const std::vector<uint16_t>& sig = bunchvector[bunchindex].getADC();
 
       if (!mIsZerosupressed) {
-        pedestal = evaluatePedestal(sig, bunchlength);
+        auto pedestalTmp = evaluatePedestal(sig, bunchlength);
+        if (!pedestalTmp.has_value()) {
+          infos.mErrorCode = PreFitError_t::PEDESTAL_ERROR;
+          return infos;
+        }
+        pedestal = pedestalTmp.value();
       }
 
       int testindexReverse = -1;
@@ -303,26 +289,50 @@ std::tuple<int, int, float, short, short, float, int, int> CaloRawFitter::preFit
           testindexReverse = i;
         }
       }
+      infos.mPedestal = pedestal;
+      infos.mMaxAmplitude = peakADC;
 
       if (peakADC >= adcThreshold) // possibly significant signal
       {
         // select array around max to possibly be used in fit
         indexMaxADCRReveresed = indexMaxADC - bunchvector[bunchindex].getStartTime();
+        infos.mIndexMaxAmplitudeArray = indexMaxADCRReveresed;
         std::tie(first, last) = findPeakRegion(gsl::span<double>(&mReversed[0], bunchvector[bunchindex].getBunchLength()), indexMaxADCRReveresed, adcThreshold);
+        infos.mFirstTimebin = first;
+        infos.mLastTimebin = last;
 
         // sanity check: maximum should not be in first or last bin
         // if we should do a fit
         if (first != indexMaxADCRReveresed && last != indexMaxADCRReveresed) {
           // calculate how many samples we have
-          nsamples = last - first + 1;
+          infos.mSampleLength = last - first + 1;
         }
       }
     } else {
-      throw RawFitterError_t::LOW_SIGNAL;
+      infos.mErrorCode = PreFitError_t::BUNCH_LOW_SIGNAL;
+      return infos;
     }
   } else {
-    throw RawFitterError_t::BUNCH_NOT_OK;
+    infos.mErrorCode = PreFitError_t::BUNCH_NOT_SELECTED;
+    return infos;
   }
 
-  return std::make_tuple(nsamples, bunchindex, peakADC, adcMAX, indexMaxADCRReveresed, pedestal, first, last);
+  return infos;
+}
+
+CaloFitResults CaloRawFitter::buildErrorResultsForPrefit(CaloRawFitter::PreFitError_t error)
+{
+  CaloFitResults::RawFitterError_t fiterror = CaloFitResults::RawFitterError_t::NO_ERROR;
+  switch (error) {
+    case PreFitError_t::BUNCH_LOW_SIGNAL:
+      fiterror = CaloFitResults::RawFitterError_t::LOW_SIGNAL;
+      break;
+    case PreFitError_t::BUNCH_NOT_SELECTED:
+      fiterror = CaloFitResults::RawFitterError_t::BUNCH_NOT_OK;
+      break;
+    case PreFitError_t::PEDESTAL_ERROR:
+      fiterror = CaloFitResults::RawFitterError_t::SAMPLE_UNINITIALIZED;
+      break;
+  }
+  return CaloFitResults(fiterror);
 }

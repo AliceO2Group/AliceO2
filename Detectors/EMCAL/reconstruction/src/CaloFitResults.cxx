@@ -20,6 +20,44 @@
 
 using namespace o2::emcal;
 
+std::string CaloFitResults::createErrorMessage(CaloFitResults::RawFitterError_t errorcode)
+{
+  switch (errorcode) {
+    case RawFitterError_t::SAMPLE_UNINITIALIZED:
+      return "Sample for fit not initialzied or bunch length is 0";
+    case RawFitterError_t::FIT_ERROR:
+      return "Fit of the raw bunch was not successful";
+    case RawFitterError_t::CHI2_ERROR:
+      return "Chi2 of the fit could not be determined";
+    case RawFitterError_t::BUNCH_NOT_OK:
+      return "Calo bunch could not be selected";
+    case RawFitterError_t::LOW_SIGNAL:
+      return "No ADC value above threshold found";
+  };
+  // Silence compiler warnings for false positives
+  // can never enter here due to usage of enum class
+  return "Unknown error code";
+}
+
+int CaloFitResults::getErrorNumber(CaloFitResults::RawFitterError_t fiterror)
+{
+  switch (fiterror) {
+    case RawFitterError_t::SAMPLE_UNINITIALIZED:
+      return 0;
+    case RawFitterError_t::FIT_ERROR:
+      return 1;
+    case RawFitterError_t::CHI2_ERROR:
+      return 2;
+    case RawFitterError_t::BUNCH_NOT_OK:
+      return 3;
+    case RawFitterError_t::LOW_SIGNAL:
+      return 4;
+  };
+  // Silence compiler warnings for false positives
+  // can never enter here due to usage of enum class
+  return -1;
+}
+
 CaloFitResults::CaloFitResults(unsigned short maxSig, float ped,
                                int fitstatus, float amp,
                                double time, int maxTimebin,
@@ -51,26 +89,6 @@ CaloFitResults::CaloFitResults(int maxSig, int minSig) : mMaxSig(maxSig),
 {
 }
 
-CaloFitResults& CaloFitResults::operator=(const CaloFitResults& source)
+CaloFitResults::CaloFitResults(RawFitterError_t fitError) : mFitError(fitError)
 {
-  if (this != &source) {
-    mMaxSig = source.mMaxSig;
-    mPed = source.mPed;
-    mStatus = source.mStatus;
-    mAmpSig = source.mAmpSig;
-    mTime = source.mTime;
-    mMaxTimebin = source.mMaxTimebin;
-    mChi2Sig = source.mChi2Sig;
-    mNdfSig = source.mNdfSig;
-    mMinSig = source.mMinSig;
-  }
-  return *this;
-}
-
-bool CaloFitResults::operator==(const CaloFitResults& other) const
-{
-  return (mMaxSig == other.mMaxSig) && (mPed == other.mPed) &&
-         (mStatus == other.mStatus) && (mAmpSig == other.mAmpSig) && (mTime == other.mTime) &&
-         (mMaxTimebin == other.mMaxTimebin) && (mChi2Sig == other.mChi2Sig) &&
-         (mNdfSig == other.mNdfSig) && (mMinSig == other.mMinSig);
 }

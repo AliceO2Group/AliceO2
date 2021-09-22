@@ -59,15 +59,13 @@ class CaloRawFitterStandard final : public CaloRawFitter
   /// \brief Evaluation Amplitude and TOF
   /// \param bunchvector Calo bunches for the tower and event
   /// \return Container with the fit results (amp, time, chi2, ...)
-  /// \throw RawFitterError_t in case the fit failed (including all possible errors from upstream)
   CaloFitResults evaluate(const gsl::span<const Bunch> bunchvector) final;
 
   /// \brief Fits the raw signal time distribution using TMinuit
   /// \param firstTimeBin First timebin of the ALTRO bunch
   /// \param lastTimeBin Last timebin of the ALTRO bunch
   /// \return the fit parameters: amplitude, time, chi2
-  /// \throw RawFitter_t::FIT_ERROR in case the fit failed (insufficient number of samples or fit error from MINUIT)
-  std::tuple<float, float, float> fitRaw(int firstTimeBin, int lastTimeBin) const;
+  std::optional<std::tuple<float, float, float>> fitRaw(int firstTimeBin, int lastTimeBin) const;
 
  private:
   ClassDefNV(CaloRawFitterStandard, 1);

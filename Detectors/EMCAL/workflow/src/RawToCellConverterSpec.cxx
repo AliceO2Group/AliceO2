@@ -345,9 +345,8 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         }
 
         // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
-        CaloFitResults fitResults;
-        try {
-          fitResults = mRawFitter->evaluate(chan.getBunches());
+        CaloFitResults fitResults = mRawFitter->evaluate(chan.getBunches());
+        if (fitResults.isFitOK()) {
           // Prevent negative entries - we should no longer get here as the raw fit usually will end in an error state
           if (fitResults.getAmp() < 0) {
             fitResults.setAmp(0.);
@@ -355,6 +354,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           if (fitResults.getTime() < 0) {
             fitResults.setTime(0.);
           }
+<<<<<<< HEAD
           double amp = fitResults.getAmp() * CONVADCGEV;
           if (mMergeLGHG) {
             // Handling of HG/LG for ceratin cells
@@ -431,9 +431,16 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           }
         } catch (CaloRawFitter::RawFitterError_t& fiterror) {
           if (fiterror != CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK) {
+=======
+
+          currentCellContainer->emplace_back(CellID, fitResults.getAmp() * CONVADCGEV, fitResults.getTime(), chantype);
+        } else {
+          auto fiterror = fitResults.getFitError();
+          if (fiterror != CaloFitResults::RawFitterError_t::BUNCH_NOT_OK) {
+>>>>>>> 43f65c6cc7 ([EMCAL-534] Move error handling to CaloFitResults)
             // Display
             if (mNumErrorMessages < mMaxErrorMessages) {
-              LOG(ERROR) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+              LOG(ERROR) << "Failure in raw fitting: " << CaloFitResults::createErrorMessage(fiterror);
               mNumErrorMessages++;
               if (mNumErrorMessages == mMaxErrorMessages) {
                 LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
@@ -442,10 +449,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               mErrorMessagesSuppressed++;
             }
           } else {
-            LOG(DEBUG2) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+            LOG(DEBUG2) << "Failure in raw fitting: " << CaloFitResults::createErrorMessage(fiterror);
             nBunchesNotOK++;
           }
-          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror));
+          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloFitResults::getErrorNumber(fiterror));
         }
       }
       if (nBunchesNotOK) {

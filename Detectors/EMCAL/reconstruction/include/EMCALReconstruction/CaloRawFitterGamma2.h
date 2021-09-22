@@ -56,7 +56,6 @@ class CaloRawFitterGamma2 final : public CaloRawFitter
   /// \param bunchvector ALTRO bunches for the current channel
   /// \param altrocfg1 ALTRO config register 1 from RCU trailer
   /// \param altrocfg2 ALTRO config register 2 from RCU trailer
-  /// \throw RawFitterError_t::FIT_ERROR in case the peak fit failed
   /// \return Container with the fit results (amp, time, chi2, ...)
   CaloFitResults evaluate(const gsl::span<const Bunch> bunchvector) final;
 
@@ -72,8 +71,7 @@ class CaloRawFitterGamma2 final : public CaloRawFitter
   /// \param[in] time Initial guess of the time for the fit
   /// \param[out] time Time result of the peak fit
   /// \return chi2 of the fit
-  /// \throw RawFitterError_t::FIT_ERROR in case of fit errors (insufficient number of time samples, matrix diagonalization error, ...)
-  float doFit_1peak(int firstTimeBin, int nSamples, float& ampl, float& time);
+  std::optional<float> doFit_1peak(int firstTimeBin, int nSamples, float& ampl, float& time);
 
   /// \brief Fits the raw signal time distribution
   /// \param maxTimeBin Time bin of the max. amplitude

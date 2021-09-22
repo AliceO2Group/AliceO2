@@ -56,35 +56,35 @@ CaloFitResults CaloRawFitterStandard::evaluate(const gsl::span<const Bunch> bunc
   float amp = 0;
   float chi2 = 0;
   int ndf = 0;
-  bool fitDone = kFALSE;
+  bool fitDone = false;
 
-  auto [nsamples, bunchIndex, ampEstimate,
-        maxADC, timeEstimate, pedEstimate, first, last] = preFitEvaluateSamples(bunchlist, mAmpCut);
+  auto prefitstatus = preFitEvaluateSamples(bunchlist, mAmpCut);
+  float timeEstimate = prefitstatus.mIndexMaxAmplitudeArray;
 
-  if (bunchIndex >= 0 && ampEstimate >= mAmpCut) {
+  if (prefitstatus.mIndexMaxBunch >= 0 && prefitstatus.mMaxAmplitude >= mAmpCut) {
     time = timeEstimate;
-    int timebinOffset = bunchlist[bunchIndex].getStartTime() - (bunchlist[bunchIndex].getBunchLength() - 1);
-    amp = ampEstimate;
+    int timebinOffset = bunchlist[prefitstatus.mIndexMaxBunch].getStartTime() - (bunchlist[prefitstatus.mIndexMaxBunch].getBunchLength() - 1);
+    amp = prefitstatus.mMaxAmplitude;
 
-    if (nsamples > 1 && maxADC < constants::OVERFLOWCUT) {
-      try {
-        std::tie(amp, time, chi2) = fitRaw(first, last);
+    if (prefitstatus.mSampleLength > 1 && prefitstatus.mADC < constants::OVERFLOWCUT) {
+      auto fitresults = fitRaw(prefitstatus.mFirstTimebin, prefitstatus.mLastTimebin);
+      auto fitDone = fitresults.has_value();
+      if (fitDone) {
+        std::tie(amp, time, chi2) = fitresults.value();
         time += timebinOffset;
         timeEstimate += timebinOffset;
-        ndf = nsamples - 2;
-        fitDone = true;
-      } catch (RawFitterError_t& error) {
+        ndf = prefitstatus.mSampleLength - 2;
       }
     }
   }
   if (fitDone) {
-    float ampAsymm = (amp - ampEstimate) / (amp + ampEstimate);
+    float ampAsymm = (amp - prefitstatus.mMaxAmplitude) / (amp + prefitstatus.mMaxAmplitude);
     float timeDiff = time - timeEstimate;
 
-    if ((TMath::Abs(ampAsymm) > 0.1) || (TMath::Abs(timeDiff) > 2)) {
-      amp = ampEstimate;
+    if ((std::abs(ampAsymm) > 0.1) || (std::abs(timeDiff) > 2)) {
+      amp = prefitstatus.mMaxAmplitude;
       time = timeEstimate;
-      fitDone = kFALSE;
+      fitDone = false;
     }
   }
   if (amp >= mAmpCut) {
@@ -96,47 +96,49 @@ CaloFitResults CaloRawFitterStandard::evaluate(const gsl::span<const Bunch> bunc
     time = time * constants::EMCAL_TIMESAMPLE;
     time -= mL1Phase;
 
-    return CaloFitResults(maxADC, pedEstimate, mAlgo, amp, time, (int)time, chi2, ndf);
+    return CaloFitResults(prefitstatus.mADC, prefitstatus.mPedestal, mAlgo, amp, time, (int)time, chi2, ndf);
   }
-  throw RawFitterError_t::FIT_ERROR;
+  return CaloFitResults(CaloFitResults::RawFitterError_t::FIT_ERROR);
 }
 
-std::tuple<float, float, float> CaloRawFitterStandard::fitRaw(int firstTimeBin, int lastTimeBin) const
+std::optional<std::tuple<float, float, float>> CaloRawFitterStandard::fitRaw(int firstTimeBin, int lastTimeBin) const
 {
+  /// set to RawFitterError_t::FIT_ERROR if fit status is false
 
   float amp(0), time(0), chi2(0);
+  bool fitStatus = true;
 
   int nsamples = lastTimeBin - firstTimeBin + 1;
   if (nsamples < 3) {
-    throw RawFitterError_t::FIT_ERROR;
-  }
-
-  TGraph gSig(nsamples);
-
-  for (int i = 0; i < nsamples; i++) {
-    int timebin = firstTimeBin + i;
-    gSig.SetPoint(i, timebin, getReversed(timebin));
-  }
-
-  TF1 signalF("signal", CaloRawFitterStandard::rawResponseFunction, 0, constants::EMCAL_MAXTIMEBINS, 5);
-
-  signalF.SetParameters(10., 5., constants::TAU, constants::ORDER, 0.); //set all defaults once, just to be safe
-  signalF.SetParNames("amp", "t0", "tau", "N", "ped");
-  signalF.FixParameter(2, constants::TAU);
-  signalF.FixParameter(3, constants::ORDER);
-  signalF.FixParameter(4, 0);
-  signalF.SetParameter(1, time);
-  signalF.SetParameter(0, amp);
-  signalF.SetParLimits(0, 0.5 * amp, 2 * amp);
-  signalF.SetParLimits(1, time - 4, time + 4);
-
-  int status = gSig.Fit(&signalF, "QROW"); // Note option 'W': equal errors on all points
-  if (status == 0) {
-    amp = signalF.GetParameter(0);
-    time = signalF.GetParameter(1);
-    chi2 = signalF.GetChisquare();
+    std::optional<std::tuple<float, float, float>> empty;
+    return empty;
   } else {
-    throw RawFitterError_t::FIT_ERROR;
+    TGraph gSig(nsamples);
+
+    for (int i = 0; i < nsamples; i++) {
+      int timebin = firstTimeBin + i;
+      gSig.SetPoint(i, timebin, getReversed(timebin));
+    }
+
+    TF1 signalF("signal", CaloRawFitterStandard::rawResponseFunction, 0, constants::EMCAL_MAXTIMEBINS, 5);
+
+    signalF.SetParameters(10., 5., constants::TAU, constants::ORDER, 0.); //set all defaults once, just to be safe
+    signalF.SetParNames("amp", "t0", "tau", "N", "ped");
+    signalF.FixParameter(2, constants::TAU);
+    signalF.FixParameter(3, constants::ORDER);
+    signalF.FixParameter(4, 0);
+    signalF.SetParameter(1, time);
+    signalF.SetParameter(0, amp);
+    signalF.SetParLimits(0, 0.5 * amp, 2 * amp);
+    signalF.SetParLimits(1, time - 4, time + 4);
+    int status = gSig.Fit(&signalF, "QROW"); // Note option 'W': equal errors on all points
+    if (status == 0) {
+      amp = signalF.GetParameter(0);
+      time = signalF.GetParameter(1);
+      chi2 = signalF.GetChisquare();
+    } else {
+      fitStatus = false;
+    }
   }
 
   return std::make_tuple(amp, time, chi2);

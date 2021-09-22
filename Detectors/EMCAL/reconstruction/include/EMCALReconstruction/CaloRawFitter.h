@@ -41,32 +41,6 @@ class CaloRawFitter
 {
 
  public:
-  /**
-   * \enum RawFitterError_t
-   * \brief Error codes for failures in raw fitter procedure
-   */
-  enum class RawFitterError_t {
-    SAMPLE_UNINITIALIZED, ///< Samples not initialized or length is 0
-    FIT_ERROR,            ///< Fit procedure failed
-    CHI2_ERROR,           ///< Chi2 cannot be determined (usually due to insufficient amount of samples)
-    BUNCH_NOT_OK,         ///< Bunch selection failed
-    LOW_SIGNAL            ///< No ADC value above threshold found
-  };
-
-  /// \brief Create error message for a given error type
-  /// \param fiterror Fit error type
-  /// \return Error message connected to the error type
-  static std::string createErrorMessage(RawFitterError_t fiterror);
-
-  /// \brief Convert error type to numeric representation
-  /// \param fiterror Fit error type
-  /// \return Numeric representation of the raw fitter error
-  static int getErrorNumber(RawFitterError_t fiterror);
-
-  /// \brief Get the number of raw fit error types supported
-  /// \return Number of error types (4)
-  static constexpr int getNumberOfErrorTypes() noexcept { return 4; }
-
   /// \brief Constructor
   CaloRawFitter(const char* name, const char* nameshort);
 
@@ -74,19 +48,6 @@ class CaloRawFitter
   virtual ~CaloRawFitter() = default;
 
   virtual CaloFitResults evaluate(const gsl::span<const Bunch> bunchvector) = 0;
-
-  /// \brief Method to do the selection of what should possibly be fitted.
-  /// \param bunchvector ALTRO bunches for the current channel
-  /// \param adcThreshold ADC threshold applied in peak finding
-  /// \return Size of the sub-selected sample,
-  /// \return index of the bunch with maximum signal,
-  /// \return maximum signal,
-  /// \return maximum aplitude,
-  /// \return index of max aplitude in array,
-  /// \return pedestal,
-  /// \return first time bin,
-  /// \return last time bin,
-  std::tuple<int, int, float, short, short, float, int, int> preFitEvaluateSamples(const gsl::span<const Bunch> bunchvector, int adcThreshold);
 
   /// \brief The require time range if the maximum ADC value is between min and max (timebin)
   void setTimeConstraint(int min, int max);
@@ -108,6 +69,39 @@ class CaloRawFitter
   /// \brief Get Type of the fit algorithm
   /// \return Fit algorithm type
   FitAlgorithm getAlgo() const { return mAlgo; }
+
+ protected:
+  /// \enum PreFitError_t
+  /// \brief Error handling for error sources in pre-evaluation
+  enum class PreFitError_t {
+    BUNCH_NOT_SELECTED, ///< Bunch could not be selected
+    BUNCH_LOW_SIGNAL,   ///< Max. signal in bunch too low
+    PEDESTAL_ERROR,     ///< Pedestal could not be subtracted
+    NO_ERROR            ///< No error in pre-evaluation detected
+  };
+
+  /// \struct PreFitResults
+  /// \brief Results of the pre-fit evaluation
+  struct PreFitResults {
+    PreFitError_t mErrorCode = PreFitError_t::NO_ERROR; ///< Error status of the pre-evaluation
+    int mSampleLength = 0;                              ///< Size of the sub-selected sample
+    int mIndexMaxBunch = 0;                             ///< Index of the bunch with maximum signal,
+    float mMaxAmplitude = 0.;                           ///< Maximum signal
+    short mADC = 0;                                     ///< Maximum aplitude
+    short mIndexMaxAmplitudeArray = 0;                  ///< Index of max aplitude in array
+    float mPedestal = 0;                                ///< Pedestal
+    int mFirstTimebin = 0;                              ///< First time bin
+    int mLastTimebin = 0;                               ///< Last time bin
+  };
+
+  /// \brief Method to do the selection of what should possibly be fitted.
+  /// \param bunchvector ALTRO bunches for the current channel
+  /// \param adcThreshold ADC threshold applied in peak finding
+  PreFitResults preFitEvaluateSamples(const gsl::span<const Bunch> bunchvector, int adcThreshold);
+
+  /// \brief Build default fit result object in case the pre-evaluation goes into error
+  /// \return Fit results object with pre-evaluation error
+  CaloFitResults buildErrorResultsForPrefit(PreFitError_t error);
 
   /// \brief Get the maximum amplitude and its index of a bunch array
   /// \return Maximum ADC value of the bunch
@@ -133,15 +127,17 @@ class CaloRawFitter
   /// \brief Time sample comes in reversed order, revers them back Subtract the baseline based on content of altrocfg1 and altrocfg2.
   /// \return Pedestal
   /// \return Array with revered and pedestal subtracted ADC signals
-  std::tuple<float, std::array<double, constants::EMCAL_MAXTIMEBINS>> reverseAndSubtractPed(const Bunch& bunch) const;
+  std::optional<std::tuple<float, std::array<double, constants::EMCAL_MAXTIMEBINS>>> reverseAndSubtractPed(const Bunch& bunch) const;
 
   /// \brief We select the bunch with the highest amplitude unless any time constraints is set.
   /// \param bunchvector Bunches of the channel among which to select the maximium
   /// \return The index of the array with the maximum aplitude
   /// \return The bin where we have a maximum amp
   /// \return The maximum ADC signal
-  /// \throw RawFitterError_t::BUNCH_NOT_OK ADC value is at a bunch edge
-  std::tuple<short, short, short> selectMaximumBunch(const gsl::span<const Bunch>& bunchvector);
+  ///
+  /// The function fails in case the max. ADC in the max. bunch is at the
+  /// bunch edge, returning an empty optional
+  std::optional<std::tuple<short, short, short>> selectMaximumBunch(const gsl::span<const Bunch>& bunchvector);
 
   /// \brief Find region constrainded by its closest minima around the main peak
   /// \param adcValues ADC values of the bunch
@@ -154,8 +150,9 @@ class CaloRawFitter
   /// \brief Calculate the pedestal from the ADC values in a bunch
   /// \param data ADC values from which to calculate the pedestal
   /// \param length Optional bunch length
+  /// \return Status of the pedestal evaluation (false in case the sample is not initialized)
   /// \return Pedestal value
-  double evaluatePedestal(const gsl::span<const uint16_t> data, std::optional<int> length) const;
+  std::optional<double> evaluatePedestal(const gsl::span<const uint16_t> data, std::optional<int> length) const;
 
   /// \brief Calculates the chi2 of the fit
   ///
@@ -167,12 +164,11 @@ class CaloRawFitter
   /// \param tau    - filter time response (in timebin units)
   ///
   /// \return chi2
-  double calculateChi2(double amp, double time,
-                       int first, int last,
-                       double adcErr = 1,
-                       double tau = 2.35) const;
+  std::optional<double> calculateChi2(double amp, double time,
+                                      int first, int last,
+                                      double adcErr = 1,
+                                      double tau = 2.35) const;
 
- protected:
   std::array<double, constants::EMCAL_MAXTIMEBINS> mReversed; ///< Reversed sequence of samples (pedestalsubtracted)
 
   int mMinTimeIndex; ///< The timebin of the max signal value must be between fMinTimeIndex and fMaxTimeIndex
