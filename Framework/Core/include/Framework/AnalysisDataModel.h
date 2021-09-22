@@ -216,8 +216,14 @@ DECLARE_SOA_EXPRESSION_COLUMN(DetectorMap, detectorMap, uint8_t,                
                                 ifnode(aod::track::tpcNClsFindable > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TPC), (uint8_t)0x0) |
                                 ifnode(aod::track::trdPattern > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TRD), (uint8_t)0x0) |
                                 ifnode((aod::track::tofChi2 >= 0.f) && (aod::track::tofExpMom > 0.f), static_cast<uint8_t>(o2::aod::track::TOF), (uint8_t)0x0));
+DECLARE_SOA_DYNAMIC_COLUMN(HasITS, hasITS, //! Flag to check if track has a ITS match
+                           [](uint8_t detectorMap) -> bool { return detectorMap & o2::aod::track::ITS; });
+DECLARE_SOA_DYNAMIC_COLUMN(HasTPC, hasTPC, //! Flag to check if track has a TPC match
+                           [](uint8_t detectorMap) -> bool { return detectorMap & o2::aod::track::TPC; });
+DECLARE_SOA_DYNAMIC_COLUMN(HasTRD, hasTRD, //! Flag to check if track has a TRD match
+                           [](uint8_t detectorMap) -> bool { return detectorMap & o2::aod::track::TRD; });
 DECLARE_SOA_DYNAMIC_COLUMN(HasTOF, hasTOF, //! Flag to check if track has a TOF measurement
-                           [](float tofChi2, float tofExpMom) -> bool { return (tofChi2 >= 0.f) && (tofExpMom > 0.f); });
+                           [](uint8_t detectorMap) -> bool { return detectorMap & o2::aod::track::TOF; });
 DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, //! PID hypothesis used during tracking. See the constants in the class PID in PID.h
                            [](uint32_t flags) -> uint32_t { return flags >> 28; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, //! Number of found TPC clusters
@@ -310,7 +316,8 @@ DECLARE_SOA_TABLE_FULL(StoredTracksExtra, "TracksExtra", "AOD", "TRACKEXTRA", //
                        track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
                        track::TPCSignal, track::TRDSignal, track::Length, track::TOFExpMom,
                        track::PIDForTracking<track::Flags>,
-                       track::HasTOF<track::TOFChi2, track::TOFExpMom>,
+                       track::HasITS<track::DetectorMap>, track::HasTPC<track::DetectorMap>,
+                       track::HasTRD<track::DetectorMap>, track::HasTOF<track::DetectorMap>,
                        track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                        track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                        track::ITSNCls<track::ITSClusterMap>, track::ITSNClsInnerBarrel<track::ITSClusterMap>,
