@@ -1044,6 +1044,7 @@ bool Tracker<T>::fitTracks(ROframe<T>& event)
 {
   for (auto& track : event.getTracks()) {
     T outParam = track;
+    track.sort();
     mTrackFitter->initTrack(track);
     mTrackFitter->fit(track);
     mTrackFitter->initTrack(outParam, true);

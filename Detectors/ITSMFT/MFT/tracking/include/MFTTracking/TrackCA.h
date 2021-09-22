@@ -59,7 +59,7 @@ class TrackLTF : public TrackMFTExt
   std::array<Int_t, constants::mft::LayersNumber> mClusterId;
   std::array<MCCompLabel, constants::mft::LayersNumber> mMCCompLabels;
 
-  ClassDefNV(TrackLTF, 10);
+  ClassDefNV(TrackLTF, 11);
 };
 
 //_________________________________________________________________________________________________
