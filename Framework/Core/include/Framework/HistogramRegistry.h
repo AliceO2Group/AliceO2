@@ -93,6 +93,12 @@ class HistogramRegistry
   HistPtr add(const HistogramSpec& histSpec);
   HistPtr add(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2 = false);
   HistPtr add(char const* const name, char const* const title, HistType histType, std::vector<AxisSpec> axes, bool callSumw2 = false);
+
+  template <typename T>
+  std::shared_ptr<T> add(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2 = false);
+  template <typename T>
+  std::shared_ptr<T> add(char const* const name, char const* const title, HistType histType, std::vector<AxisSpec> axes, bool callSumw2 = false);
+
   void addClone(const std::string& source, const std::string& target);
 
   // function to query if name is already in use
@@ -326,6 +332,26 @@ constexpr HistogramRegistry::HistName::HistName(const ConstStr<chars...>& hashed
     hash(hashedHistName.hash),
     idx(hash & REGISTRY_BITMASK)
 {
+}
+
+template <typename T>
+std::shared_ptr<T> HistogramRegistry::add(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2)
+{
+  if (auto histPtr = std::get_if<std::shared_ptr<T>>(add(name, title, histConfigSpec, callSumw2))) {
+    return *histPtr;
+  } else {
+    throw runtime_error_f(R"(Histogram type specified in add<>("%s") does not match the actual type of the histogram!)", name);
+  }
+}
+
+template <typename T>
+std::shared_ptr<T> HistogramRegistry::add(char const* const name, char const* const title, HistType histType, std::vector<AxisSpec> axes, bool callSumw2)
+{
+  if (auto histPtr = std::get_if<std::shared_ptr<T>>(add(name, title, histType, axes, callSumw2))) {
+    return *histPtr;
+  } else {
+    throw runtime_error_f(R"(Histogram type specified in add<>("%s") does not match the actual type of the histogram!)", name);
+  }
 }
 
 template <typename T>
