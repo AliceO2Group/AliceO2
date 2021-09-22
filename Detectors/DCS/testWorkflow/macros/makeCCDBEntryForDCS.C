@@ -51,8 +51,8 @@ int makeCCDBEntryForDCS(const std::string url = "http://localhost:8080")
   api.init(url); // or http://localhost:8080 for a local installation
   std::map<std::string, std::string> md;
   long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-  api.storeAsTFileAny(&dpid2DataDesc_Common, "COMMON/DCSconfig", md, ts);
-  api.storeAsTFileAny(&dpid2DataDesc_Common_1, "COMMON1/DCSconfig", md, ts);
+  api.storeAsTFileAny(&dpid2DataDesc_Common, "COMMON/Config/DCSDPconfig", md, ts);
+  api.storeAsTFileAny(&dpid2DataDesc_Common_1, "COMMON1/Config/DCSDPconfig", md, ts);
 
   return 0;
 }

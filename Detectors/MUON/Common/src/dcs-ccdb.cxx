@@ -36,7 +36,7 @@ using DPMAP = std::unordered_map<DPID, std::vector<DPVAL>>;
 
 std::string CcdbDpConfName()
 {
-  return fmt::format("{}/DCSconfig", o2::muon::subsysname());
+  return fmt::format("{}/Config/DCSDPconfig", o2::muon::subsysname());
 }
 
 bool verbose;

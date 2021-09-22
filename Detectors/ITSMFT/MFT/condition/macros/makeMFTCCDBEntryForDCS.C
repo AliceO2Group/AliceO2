@@ -45,7 +45,7 @@ int makeMFTCCDBEntryForDCS(const std::string url = "http://ccdb-test.cern.ch:808
   api.init(url); // or http://localhost:8080 for a local installation
   std::map<std::string, std::string> md;
   long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-  api.storeAsTFileAny(&dpid2DataDesc, "MFT/DCSconfig", md, ts);
+  api.storeAsTFileAny(&dpid2DataDesc, "MFT/Config/DCSDPconfig", md, ts);
 
   return 0;
 }
