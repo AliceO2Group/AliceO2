@@ -75,7 +75,7 @@ class PedestalCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
 {
  public:
   PedestalCalibrator();
-  ~PedestalCalibrator() final {}
+  ~PedestalCalibrator() final = default;
   std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoVector() { return mCcdbInfoVec; }
   std::vector<o2::cpv::Pedestals> getPedestalsVector() { return mPedestalsVec; }
   bool hasEnoughData(const TimeSlot& slot) const final
