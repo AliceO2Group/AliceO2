@@ -115,7 +115,7 @@ O2MCHMAPPINGIMPL4_EXPORT void mchCathodeSegmentationForEachPadInDualSampa(
   MchCathodeSegmentationHandle segHandle, int dualSampaId,
   MchPadHandler handler, void* clientData)
 {
-  for (auto p : segHandle->impl->getCatPadIndexs(dualSampaId)) {
+  for (auto p : segHandle->impl->getCatPadIndices(dualSampaId)) {
     handler(clientData, p);
   }
 }
@@ -160,7 +160,7 @@ O2MCHMAPPINGIMPL4_EXPORT void mchCathodeSegmentationForEachPadInArea(
   MchCathodeSegmentationHandle segHandle, double xmin, double ymin, double xmax,
   double ymax, MchPadHandler handler, void* clientData)
 {
-  for (auto p : segHandle->impl->getCatPadIndexs(xmin, ymin, xmax, ymax)) {
+  for (auto p : segHandle->impl->getCatPadIndices(xmin, ymin, xmax, ymax)) {
     handler(clientData, p);
   }
 }
@@ -169,7 +169,7 @@ O2MCHMAPPINGIMPL4_EXPORT void mchCathodeSegmentationForEachNeighbouringPad(
   MchCathodeSegmentationHandle segHandle, int catPadIndex,
   MchPadHandler handler, void* userData)
 {
-  for (auto p : segHandle->impl->getNeighbouringCatPadIndexs(catPadIndex)) {
+  for (auto p : segHandle->impl->getNeighbouringCatPadIndices(catPadIndex)) {
     handler(userData, p);
   }
 }

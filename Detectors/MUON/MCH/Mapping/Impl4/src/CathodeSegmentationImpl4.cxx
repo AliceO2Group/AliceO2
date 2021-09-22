@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 #include <gsl/gsl>
+#include <fmt/format.h>
 
 using namespace o2::mch::mapping::impl4;
 
@@ -120,45 +121,48 @@ CathodeSegmentation::CathodeSegmentation(
     mPadSizes{std::move(padSizes)},
     mCatPadIndex2PadGroupIndex{},
     mCatPadIndex2PadGroupTypeFastIndex{},
-    mPadGroupIndex2CatPadIndexIndex{}
+    mPadGroupIndex2CatPadIndexIndex{},
+    mDualSampaId2CatPadIndices{}
 {
   fillRtree();
+  for (auto dualSampaId : mDualSampaIds) {
+    mDualSampaId2CatPadIndices.emplace(dualSampaId, getCatPadIndices(dualSampaId));
+  }
 }
 
-std::vector<int> CathodeSegmentation::getCatPadIndexs(int dualSampaId) const
+std::vector<int> CathodeSegmentation::getCatPadIndices(int dualSampaId) const
 {
   std::vector<int> pi;
 
   for (auto padGroupIndex = 0; padGroupIndex < mPadGroups.size();
        ++padGroupIndex) {
     if (mPadGroups[padGroupIndex].mFECId == dualSampaId) {
-      auto& pgt = mPadGroupTypes[mPadGroups[padGroupIndex].mPadGroupTypeId];
-      auto i1 = mPadGroupIndex2CatPadIndexIndex[padGroupIndex];
+      const auto& pgt = mPadGroupTypes[mPadGroups[padGroupIndex].mPadGroupTypeId];
+      const auto& i1 = mPadGroupIndex2CatPadIndexIndex[padGroupIndex];
       for (auto i = i1; i < i1 + pgt.getNofPads(); ++i) {
-        pi.push_back(i);
+        pi.emplace_back(i);
       }
     }
   }
-
   return pi;
 }
 
-std::vector<int> CathodeSegmentation::getCatPadIndexs(double xmin, double ymin,
-                                                      double xmax,
-                                                      double ymax) const
+std::vector<int> CathodeSegmentation::getCatPadIndices(double xmin, double ymin,
+                                                       double xmax,
+                                                       double ymax) const
 {
   std::vector<CathodeSegmentation::Value> result_n;
   mRtree.query(boost::geometry::index::intersects(
                  CathodeSegmentation::Box({xmin, ymin}, {xmax, ymax})),
                std::back_inserter(result_n));
-  std::vector<int> catPadIndexs;
+  std::vector<int> catPadIndices;
   for (auto& r : result_n) {
-    catPadIndexs.push_back(r.second);
+    catPadIndices.push_back(r.second);
   }
-  return catPadIndexs;
+  return catPadIndices;
 }
 
-std::vector<int> CathodeSegmentation::getNeighbouringCatPadIndexs(
+std::vector<int> CathodeSegmentation::getNeighbouringCatPadIndices(
   int catPadIndex) const
 {
   double x = padPositionX(catPadIndex);
@@ -168,8 +172,8 @@ std::vector<int> CathodeSegmentation::getNeighbouringCatPadIndexs(
 
   const double offset{0.1}; // 1 mm
 
-  auto pads = getCatPadIndexs(x - dx - offset, y - dy - offset, x + dx + offset,
-                              y + dy + offset);
+  auto pads = getCatPadIndices(x - dx - offset, y - dy - offset, x + dx + offset,
+                               y + dy + offset);
   pads.erase(std::remove(begin(pads), end(pads), catPadIndex), end(pads));
   return pads;
 }
@@ -191,7 +195,7 @@ int CathodeSegmentation::findPadByPosition(double x, double y) const
 {
   const double epsilon{1E-4};
   auto pads =
-    getCatPadIndexs(x - epsilon, y - epsilon, x + epsilon, y + epsilon);
+    getCatPadIndices(x - epsilon, y - epsilon, x + epsilon, y + epsilon);
 
   double dmin{std::numeric_limits<double>::max()};
   int catPadIndex{InvalidCatPadIndex};
@@ -220,7 +224,9 @@ const PadGroupType& CathodeSegmentation::padGroupType(int catPadIndex) const
 int CathodeSegmentation::findPadByFEE(int dualSampaId,
                                       int dualSampaChannel) const
 {
-  for (auto catPadIndex : getCatPadIndexs(dualSampaId)) {
+  auto it = mDualSampaId2CatPadIndices.find(dualSampaId);
+  const auto& padIndices = it->second;
+  for (const auto& catPadIndex : padIndices) {
     if (padGroupType(catPadIndex)
           .id(mCatPadIndex2PadGroupTypeFastIndex[catPadIndex]) ==
         dualSampaChannel) {

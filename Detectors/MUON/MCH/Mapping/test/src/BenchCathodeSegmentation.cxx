@@ -84,6 +84,28 @@ static void benchCathodeSegmentationConstructionAll(benchmark::State& state)
   }
 }
 
+BENCHMARK_DEFINE_F(BenchO2, findPadByFEE)
+(benchmark::State& state)
+{
+  int detElemId = state.range(0);
+  bool isBendingPlane = state.range(1);
+  o2::mch::mapping::CathodeSegmentation seg{detElemId, isBendingPlane};
+
+  int ntp{0};
+  for (auto _ : state) {
+    ntp = 0;
+    int nds = seg.nofDualSampas();
+    for (int ds = 0; ds < nds; ++ds) {
+      auto dualSampaId = seg.dualSampaId(ds);
+      for (int ch = 0; ch < 64; ch++) {
+        seg.findPadByFEE(dualSampaId, ch);
+      }
+      ++ntp;
+    }
+  }
+  state.counters["ntp"] = ntp;
+}
+
 // note: a bench is not a test, so here we assume findPadByPosition is correct,
 // we just time it.
 // so you must have a test of it somewhere else.
@@ -112,6 +134,7 @@ BENCHMARK_DEFINE_F(BenchO2, findPadByPosition)
 BENCHMARK(benchCathodeSegmentationConstructionAll)->Unit(benchmark::kMillisecond);
 
 BENCHMARK_REGISTER_F(BenchO2, findPadByPosition)->Apply(segmentationList)->Unit(benchmark::kMillisecond);
+BENCHMARK_REGISTER_F(BenchO2, findPadByFEE)->Apply(segmentationList)->Unit(benchmark::kMillisecond);
 
 BENCHMARK_REGISTER_F(BenchO2, ctor)->Apply(segmentationList)->Unit(benchmark::kMicrosecond);
 
