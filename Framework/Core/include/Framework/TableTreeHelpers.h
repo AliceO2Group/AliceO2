@@ -44,7 +44,10 @@ auto basicROOTTypeFromArrow(arrow::Type::type id);
 class ColumnToBranch
 {
  public:
-  ColumnToBranch(TTree* tree, arrow::ChunkedArray* column, arrow::Field* field);
+  ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field);
+  ColumnToBranch(ColumnToBranch const& other) = delete;
+  ColumnToBranch(ColumnToBranch&& other) = delete;
+  ~ColumnToBranch();
   void at(const int64_t* pos);
 
  private:
@@ -64,6 +67,7 @@ class ColumnToBranch
   ROOTTypeInfo mType;
   uint8_t* mCurrent = nullptr;
   uint8_t* mLast = nullptr;
+  bool allocated = false;
 };
 
 class TableToTree
@@ -79,7 +83,7 @@ class TableToTree
   arrow::Table* mTable;
   int64_t mRows = 0;
   TTree* mTree = nullptr;
-  std::vector<ColumnToBranch> mColumnReaders;
+  std::vector<std::unique_ptr<ColumnToBranch>> mColumnReaders;
 };
 
 class TreeToTable

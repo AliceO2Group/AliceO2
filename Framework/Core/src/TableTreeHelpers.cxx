@@ -114,9 +114,9 @@ auto basicROOTTypeFromArrow(arrow::Type::type id)
   }
 }
 
-ColumnToBranch::ColumnToBranch(TTree* tree, arrow::ChunkedArray* column, arrow::Field* field)
+ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field)
   : mBranchName{field->name()},
-    mColumn{column}
+    mColumn{column.get()}
 {
   auto arrowType = field->type();
   switch (arrowType->id()) {
@@ -140,8 +140,16 @@ ColumnToBranch::ColumnToBranch(TTree* tree, arrow::ChunkedArray* column, arrow::
   if (mType.type == EDataType::kBool_t) {
     mCurrent = reinterpret_cast<uint8_t*>(std::malloc(mListSize * mType.size));
     mLast = mCurrent + mListSize * mType.size;
+    allocated = true;
   }
   accessChunk(0);
+}
+
+ColumnToBranch::~ColumnToBranch()
+{
+  if (allocated) {
+    free(mCurrent);
+  }
 }
 
 void ColumnToBranch::at(const int64_t* pos)
@@ -231,7 +239,7 @@ void TableToTree::addBranch(std::shared_ptr<arrow::ChunkedArray> const& column, 
   } else if (mRows != column->length()) {
     throw runtime_error_f("Adding incompatible column with size %d (num rows = %d)", column->length(), mRows);
   }
-  mColumnReaders.emplace_back(ColumnToBranch{mTree, column.get(), field.get()});
+  mColumnReaders.emplace_back(new ColumnToBranch{mTree, column, field});
 }
 
 TTree* TableToTree::process()
@@ -244,7 +252,7 @@ TTree* TableToTree::process()
 
   while (row < mRows) {
     for (auto& reader : mColumnReaders) {
-      reader.at(&row);
+      reader->at(&row);
     }
     mTree->Fill();
     ++row;
