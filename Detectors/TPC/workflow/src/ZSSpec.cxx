@@ -154,7 +154,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
         if (useGrouping != LinksGrouping::Link) {
           writer.useCaching();
         }
-        ir = o2::raw::HBFUtils::Instance().getFirstIR();
+        ir = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
         o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(inputs->inputDigits, nullptr, nullptr, &writer, &ir, _GPUParam, true, false, config.configReconstruction.tpc.zsThreshold);
         writer.writeConfFile("TPC", "RAWDATA", fmt::format("{}tpcraw.cfg", outDir));
       }
@@ -253,7 +253,7 @@ DataProcessorSpec getZStoDigitsSpec(std::vector<int> const& tpcSectors)
       for (unsigned int i = 0; i < NSectors; i++) {
         outDigits[i].clear();
       }
-      o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
+      o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
       firstOrbit = ir.orbit;
       std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
       for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
