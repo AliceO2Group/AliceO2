@@ -72,7 +72,9 @@ class CPVPedestalCalibDevice : public o2::framework::Task
 
     auto infoVecSize = mCalibrator->getCcdbInfoVector().size();
     auto pedsVecSize = mCalibrator->getPedestalsVector().size();
-    //LOG(INFO) << "Created " << infoVecSize << " ccdb infos and " << pedsVecSize << " pedestal objects for TF " << tfcounter;
+    if (infoVecSize > 0) {
+      LOG(INFO) << "Created " << infoVecSize << " ccdb infos and " << pedsVecSize << " pedestal objects for TF " << tfcounter;
+    }
     sendOutput(pc.outputs());
   }
   //_________________________________________________________________
