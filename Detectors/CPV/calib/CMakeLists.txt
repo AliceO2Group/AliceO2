@@ -31,6 +31,10 @@ o2_add_executable(cpv-calib-workflow
                                         O2::DataFormatsCPV)
 
 if(BUILD_TESTING)
+  o2_add_test_root_macro(macros/readPedestalsFromCCDB.C
+                         PUBLIC_LINK_LIBRARIES O2::CCDB O2::DataFormatsCPV
+                         LABELS CPV COMPILE_ONLY)
+
   o2_add_test_root_macro(macros/PostBadMapCCDB.C
                          PUBLIC_LINK_LIBRARIES O2::CCDB O2::DataFormatsCPV
                          LABELS CPV COMPILE_ONLY)
