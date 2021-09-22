@@ -21,7 +21,7 @@ namespace o2::ft0
 
 struct FT0ChannelTimeCalibrationObject {
 
-  std::array<int16_t, o2::ft0::Nchannels_FT0> mTimeOffsets{};
+  std::array<int16_t, o2::ft0::Geometry::Nchannels> mTimeOffsets{};
 
   ClassDefNV(FT0ChannelTimeCalibrationObject, 1);
 };

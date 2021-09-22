@@ -51,7 +51,7 @@ void FT0ChannelTimeTimeSlotContainer::merge(FT0ChannelTimeTimeSlotContainer* pre
 {
 
   mHistogram += prev->mHistogram;
-  for (unsigned int iCh = 0; iCh < o2::ft0::Nchannels_FT0; ++iCh) {
+  for (unsigned int iCh = 0; iCh < o2::ft0::Geometry::Nchannels; ++iCh) {
     mEntriesPerChannel[iCh] += prev->mEntriesPerChannel[iCh];
   }
 }

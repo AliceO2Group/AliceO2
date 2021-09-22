@@ -88,12 +88,15 @@ void CollisionTimeRecoTask::FinishTask()
 //______________________________________________________
 int CollisionTimeRecoTask::getOffset(int channel, int amp)
 {
-  if (!mCalibSlew || !mCalibOffset) {
+  if (!mCalibOffset) {
     return 0;
   }
   int offsetChannel = mCalibOffset->mTimeOffsets[channel];
-  TGraph& gr = mCalibSlew->at(channel);
-  double slewoffset = gr.Eval(amp);
+  double slewoffset = 0;
+  if (mCalibSlew) {
+    TGraph& gr = mCalibSlew->at(channel);
+    slewoffset = gr.Eval(amp);
+  }
   LOG(DEBUG) << "@@@CollisionTimeRecoTask::getOffset(int channel, int amp) " << channel << " " << amp << " " << offsetChannel << " " << slewoffset;
   return offsetChannel + int(slewoffset);
 }
