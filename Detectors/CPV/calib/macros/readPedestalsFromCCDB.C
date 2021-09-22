@@ -2,9 +2,11 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "TH2F.h"
 #include "TH1F.h"
+#include "TCanvas.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "DataFormatsCPV/Pedestals.h"
 #include "CPVBase/Geometry.h"
+#include <iostream>
 #endif
 
 o2::cpv::Pedestals* readPedestalsFromCCDB(long timeStamp = 0, const char* ccdbURI = "http://ccdb-test.cern.ch:8080")
