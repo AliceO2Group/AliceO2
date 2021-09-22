@@ -220,7 +220,7 @@ void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::
   _GPUParam.SetDefaults(5.00668);
   const GPUParam mGPUParam = _GPUParam;
 
-  o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
+  o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
   ir.bc = 0; // By convention the TF starts at BC = 0
   o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, false, zsThreshold, processAttributes->padding);
 }
