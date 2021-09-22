@@ -82,7 +82,7 @@ void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddR
   }
 
   for (auto& fddRecPoint : fddRecPoints) {
-    uint64_t globalBC = fddRecPoint.mIntRecord.toLong();
+    uint64_t globalBC = fddRecPoint.getInteractionRecord().toLong();
     bcsMap[globalBC] = 1;
   }
 
@@ -762,18 +762,17 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto secVertices = recoData.getV0s();
   auto cascades = recoData.getCascades();
 
+  auto fddChData = recoData.getFDDChannelsData();
   auto fddRecPoints = recoData.getFDDRecPoints();
   auto ft0ChData = recoData.getFT0ChannelsData();
   auto ft0RecPoints = recoData.getFT0RecPoints();
   auto fv0ChData = recoData.getFV0ChannelsData();
   auto fv0RecPoints = recoData.getFV0RecPoints();
 
-  auto fddChData = recoData.getFDDChannelsData();
-  auto fddRecPoints = recoData.getFDDRecPoints();
-
   LOG(DEBUG) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(DEBUG) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
   LOG(DEBUG) << "FOUND " << fv0RecPoints.size() << " FV0 rec. points";
+  LOG(DEBUG) << "FOUND " << fddRecPoints.size() << " FDD rec. points";
 
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& cascadesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CASCADE"});
