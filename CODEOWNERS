@@ -7,7 +7,7 @@
 
 # These owners will be the default owners for everything in
 # the repo. Unless a later match takes precedence.
-# **DO NOT USE** @AliceO2Group/core for anything else. 
+# **DO NOT USE** @AliceO2Group/core for anything else.
 * @AliceO2Group/core
 
 /Algorithm  @matthiasrichter
@@ -25,8 +25,9 @@
 #/Common/maps
 
 /DataFormats                                   @AliceO2Group/framework-admins
+/DataFormats/Detectors/Common                  @shahor02
 /DataFormats/Detectors/CPV                     @peressounko @kharlov
-/DataFormats/Detectors/CTP                     @shahor02
+/DataFormats/Detectors/CTP                     @lietava
 /DataFormats/Detectors/EMCAL                   @mfasDa
 /DataFormats/Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
 /DataFormats/Detectors/GlobalTracking          @shahor02
@@ -36,7 +37,7 @@
 /DataFormats/Detectors/MUON                    @aphecetche
 /DataFormats/Detectors/PHOS                    @peressounko @kharlov
 /DataFormats/Detectors/Passive                 @sawenzel
-/DataFormats/Detectors/TOF                     @noferini 
+/DataFormats/Detectors/TOF                     @noferini
 /DataFormats/Detectors/TPC                     @davidrohr @wiechula @shahor02
 /DataFormats/Detectors/TRD                     @jolopezl @bazinski @tdietel @martenole
 /DataFormats/Detectors/Upgrades                @qgp @marcovanleeuwen @mconcas
@@ -65,11 +66,13 @@
 /Detectors/MUON                    @aphecetche
 /Detectors/PHOS                    @peressounko @kharlov
 /Detectors/Passive                 @sawenzel
-/Detectors/TOF                     @noferini 
+/Detectors/TOF                     @noferini
 /Detectors/TPC                     @davidrohr @wiechula @shahor02
 /Detectors/TRD                     @jolopezl @bazinski @tdietel @martenole
 /Detectors/Upgrades                @qgp @marcovanleeuwen @mconcas
 /Detectors/ZDC                     @coppedis
+/Detectors/CTF                     @shahor02
+/Detectors/Raw                     @shahor02
 
 /EventVisualisation  @jmyrcha
 #/EventVisualisation/Base
@@ -78,7 +81,7 @@
 #/EventVisualisation/View
 #/EventVisualisation/o2eve_config
 
-/Examples 
+/Examples
 #/Examples/Ex1
 #/Examples/Ex2
 #/Examples/Ex3
