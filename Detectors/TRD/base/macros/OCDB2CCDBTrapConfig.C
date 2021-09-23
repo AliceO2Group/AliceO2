@@ -160,8 +160,9 @@ void ParseTrapConfigs(TrapConfig* trapconfig, AliTRDtrapConfig* run2config)
                                                                                                  // the same way as it was done in run2 and nothing in the code allows you to change it.
     }*/
 }
+// choose ccdbPath = "http://ccdb-test.cern.ch:8080" to write to the test CCDB at CERN
 //__________________________________________________________________________________________
-void OCDB2CCDBTrapConfig(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data/2018/OCDB/")
+void OCDB2CCDBTrapConfig(TString ccdbPath = "http://localhost:8080", Int_t run = 297595, const Char_t* storageURI = "local:///cvmfs/alice-ocdb.cern.ch/calibration/data/2018/OCDB")
 {
   //
   // Main function to steer the extraction of TRD OCDB information
@@ -171,7 +172,7 @@ void OCDB2CCDBTrapConfig(Int_t run, const Char_t* storageURI = "alien://folder=/
   TTimeStamp jobStartTime;
   // if the storage is on alien than we need to do some extra stuff
   TString storageString(storageURI);
-  if (storageString.Contains("alien://")) {
+  if (storageString.Contains("raw://")) {
     TGrid::Connect("alien://");
   }
 
@@ -182,8 +183,6 @@ void OCDB2CCDBTrapConfig(Int_t run, const Char_t* storageURI = "alien://folder=/
   storage = manager->GetDefaultStorage();
   AliCDBEntry* entry = NULL;
   Run = run;
-
-  std::string TRDCalBase = "TRD_test";
 
   manager->SetRun(Run);
 
@@ -197,7 +196,7 @@ void OCDB2CCDBTrapConfig(Int_t run, const Char_t* storageURI = "alien://folder=/
   //
   o2::ccdb::CcdbApi ccdb;
   map<string, string> metadata;               // do we want to store any meta data?
-  ccdb.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
+  ccdb.init(ccdbPath.Data());
 
   /*
 AliTRDCalTrapConfig has a print command that outputs the list of trapconfigs stored.
@@ -249,7 +248,6 @@ its all going here unfortunately ....
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b5n-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en-pt100_ptrg.r5765",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b5p-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5570",
     "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b0-fs1e30-ht200-qs0e29s29e28-nb233-pidlhc11dv4en_ptrg.r5773",
-    "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549",
     "cf_pg-fpnp32_zs-s16-deh_tb26_trkl-b5n-fs1e24-ht200-qs0e23s23e22-pidlhc11dv3en-pt100_ptrg.r5771",
     "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e30-ht200-qs0e29s29e28-nb233-pidlhc11dv4en-pt100_ptrg.r5773",
     "cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b0-fs1e24-ht200-qs0e24s24e23-pidlinear_ptrg.r5570",
@@ -273,9 +271,8 @@ its all going here unfortunately ....
         auto o2trapconfig = new TrapConfig();
         run2trapconfig = run2caltrapconfig->Get(run2trapconfigname.c_str());
         ParseTrapConfigs(o2trapconfig, run2trapconfig);
-        ccdb.storeAsTFileAny(o2trapconfig, "TRD_test/TrapConfig", metadata, 1, 1670700184549); //upper time chosen into the future else the server simply adds a year
-        //    cout << "ccdb.storeAsTFileAny(o2trapconfig, Form(\"" << TRDCalBase.c_str() << "/TrapConfig/" << run2trapconfigname.c_str()<< endl; //upper time chosen into the future else the server simply adds a year
-        //AliTRDcalibDB *calibdb=AliTRDcalibDB::Instance();
+        std::string objectPath = "TRD/TrapConfig/" + run2trapconfigname;
+        ccdb.storeAsTFileAny(o2trapconfig, objectPath, metadata, 1, 1670700184549); //upper time chosen into the future else the server simply adds a year
       }
     }
   }

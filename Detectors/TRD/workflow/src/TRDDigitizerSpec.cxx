@@ -62,7 +62,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     bool mctruth = pc.outputs().isAllowed({"TRD", "LABELS", 0});
 
     Calibrations simcal;
-    simcal.setCCDBForSimulation(297595);
+    simcal.getCCDBObjects(297595);
     mDigitizer.setCalibrations(&simcal);
 
     // read collision context from input
