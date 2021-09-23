@@ -33,7 +33,7 @@
 #include "Framework/Logger.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/TableTreeHelpers.h"
-#include "FDDBase/Geometry.h"
+#include "FDDBase/Constants.h"
 #include "FT0Base/Geometry.h"
 #include "FV0Base/Geometry.h"
 #include "GlobalTracking/MatchTOF.h"
@@ -55,8 +55,7 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
-#include "FT0Base/Geometry.h"
-#include "FDDBase/Constants.h"
+
 
 using namespace o2::framework;
 using namespace o2::math_utils::detail;
