@@ -148,7 +148,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   static Float_t tlength_ad = 0.;
   static Int_t nPhotons_ad = 0;
 
-  TVector3 vPos;
+  static TVector3 vPos;
 
   eloss_ad += destep_ad;
 
