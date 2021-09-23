@@ -134,6 +134,50 @@ void publishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int secto
   delete accum;
 }
 
+template <typename T>
+void mergeHelper(const char* brprefix, std::vector<int> const& tpcsectors, uint64_t activeSectors,
+                 TFile& originfile, framework::ProcessingContext& pc)
+{
+  auto keyslist = originfile.GetListOfKeys();
+  for (int i = 0; i < keyslist->GetEntries(); ++i) {
+    auto key = keyslist->At(i);
+    int sector = atoi(key->GetName());
+    if (std::find(tpcsectors.begin(), tpcsectors.end(), sector) == tpcsectors.end()) {
+      // do nothing if sector not wanted
+      continue;
+    }
+
+    auto oldtree = (TTree*)originfile.Get(key->GetName());
+    assert(oldtree);
+    std::stringstream digitbrname;
+    digitbrname << brprefix << key->GetName();
+    auto br = oldtree->GetBranch(digitbrname.str().c_str());
+    if (!br) {
+      continue;
+    }
+    T* chunk = nullptr;
+    br->SetAddress(&chunk);
+
+    using AccumType = std::decay_t<decltype(makePublishBuffer<T>(pc, sector, activeSectors))>;
+    AccumType accum;
+#pragma omp critical
+    accum = makePublishBuffer<T>(pc, sector, activeSectors);
+
+    for (auto e = 0; e < br->GetEntries(); ++e) {
+      br->GetEntry(e);
+      copyHelper(*chunk, *accum);
+      delete chunk;
+      chunk = nullptr;
+    }
+    br->ResetAddress();
+    br->DropBaskets("all");
+    delete oldtree;
+
+    // some data (labels are published slightly differently)
+    publishBuffer(pc, sector, activeSectors, accum);
+  }
+}
+
 void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> const& tpcsectors, bool domctruth, framework::ProcessingContext& pc)
 {
   uint64_t activeSectors = 0;
@@ -155,53 +199,12 @@ void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> con
     auto originfile = new TFile(filename.c_str(), "OPEN");
     assert(originfile);
 
-    auto merge = [&tpcsectors, activeSectors, originfile, &pc](auto data, auto brprefix) {
-      auto keyslist = originfile->GetListOfKeys();
-      for (int i = 0; i < keyslist->GetEntries(); ++i) {
-        auto key = keyslist->At(i);
-        int sector = atoi(key->GetName());
-        if (std::find(tpcsectors.begin(), tpcsectors.end(), sector) == tpcsectors.end()) {
-          // do nothing if sector not wanted
-          continue;
-        }
-
-        auto oldtree = (TTree*)originfile->Get(key->GetName());
-        assert(oldtree);
-        std::stringstream digitbrname;
-        digitbrname << brprefix << key->GetName();
-        auto br = oldtree->GetBranch(digitbrname.str().c_str());
-        if (!br) {
-          continue;
-        }
-        decltype(data)* chunk = nullptr;
-        br->SetAddress(&chunk);
-
-        using AccumType = std::decay_t<decltype(makePublishBuffer<decltype(data)>(pc, sector, activeSectors))>;
-        AccumType accum;
-#pragma omp critical
-        accum = makePublishBuffer<decltype(data)>(pc, sector, activeSectors);
-
-        for (auto e = 0; e < br->GetEntries(); ++e) {
-          br->GetEntry(e);
-          copyHelper(*chunk, *accum);
-          delete chunk;
-          chunk = nullptr;
-        }
-        br->ResetAddress();
-        br->DropBaskets("all");
-        delete oldtree;
-
-        // some data (labels are published slightly differently)
-        publishBuffer(pc, sector, activeSectors, accum);
-      }
-    };
-
     //data definitions
     using DigitsType = std::vector<o2::tpc::Digit>;
     using LabelType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-    merge(DigitsType(), "TPCDigit_");
+    mergeHelper<DigitsType>("TPCDigit_", tpcsectors, activeSectors, *originfile, pc);
     if (domctruth) {
-      merge(LabelType(), "TPCDigitMCTruth_");
+      mergeHelper<LabelType>("TPCDigitMCTruth_", tpcsectors, activeSectors, *originfile, pc);
     }
     originfile->Close();
     delete originfile;
