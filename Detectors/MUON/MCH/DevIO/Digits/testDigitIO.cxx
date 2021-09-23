@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(DigitFileFormatV3Value)
 
 BOOST_AUTO_TEST_CASE(DigitFileFormatV4Value)
 {
-  DigitFileFormat v4 = createFormat(3, 0, 19, 2, 18, false, true);
+  DigitFileFormat v4 = createFormat(4, 0, 19, 2, 18, false, true);
   BOOST_CHECK_EQUAL(isValid(v4), true);
 }
 

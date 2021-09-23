@@ -20,11 +20,11 @@ namespace o2::mch::io
 {
 
 std::array<DigitFileFormat, 5> digitFileFormats = {
-  DigitFileFormat{2305844383603244847},
-  DigitFileFormat{1224998065220435759},
-  DigitFileFormat{63069292639436591},
-  DigitFileFormat{1215990797246349103},
-  DigitFileFormat{1234022787941875503}};
+  DigitFileFormat{2305844383603244847},  /* v0 */
+  DigitFileFormat{1224998065220435759},  /* v1 */
+  DigitFileFormat{63069292639436591},    /* v2 */
+  DigitFileFormat{1215990797246349103},  /* v3 */
+  DigitFileFormat{1234022787941941039}}; /* v4 */
 
 std::ostream& operator<<(std::ostream& os, const DigitFileFormat& dff)
 {
