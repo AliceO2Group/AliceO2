@@ -15,9 +15,10 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::cpv::BadChannelMap + ;
-#pragma link C++ class o2::TObjectWrapper < o2::cpv::BadChannelMap> + ;
-#pragma link C++ class o2::cpv::CalibParams + ;
-#pragma link C++ class o2::TObjectWrapper < o2::cpv::CalibParams> + ;
+#pragma link C++ class o2::cpv::PedestalSpectrum + ;
+#pragma link C++ class o2::cpv::PedestalCalibData + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::cpv::PedestalCalibData> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::cpv::Digit, o2::cpv::PedestalCalibData> + ;
+#pragma link C++ class o2::cpv::PedestalCalibrator + ;
 
 #endif
