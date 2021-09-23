@@ -186,6 +186,7 @@ void run_completion(uv_work_t* handle, int status)
   static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> reportConsumedOffer = [&monitoring = context.registry->get<Monitoring>()](ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats& stats) {
     stats.totalConsumedBytes += accumulatedConsumed.sharedMemory;
     monitoring.send(Metric{(uint64_t)stats.totalConsumedBytes, "shm-offer-bytes-consumed"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.flushBuffer();
   };
 
   static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const&)> reportExpiredOffer = [&monitoring = context.registry->get<Monitoring>()](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
@@ -794,6 +795,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
   }
 
   if (context.deviceContext->state->streaming == StreamingState::EndOfStreaming) {
+    context.registry->get<DriverClient>().flushPending();
     // We keep processing data until we are Idle.
     // FIXME: not sure this is the correct way to drain the queues, but
     // I guess we will see.
