@@ -56,7 +56,6 @@
 #include <unordered_map>
 #include <vector>
 
-
 using namespace o2::framework;
 using namespace o2::math_utils::detail;
 using PVertex = o2::dataformats::PrimaryVertex;
