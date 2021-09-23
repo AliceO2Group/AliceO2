@@ -47,7 +47,6 @@ class ColumnToBranch
   ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field);
   ColumnToBranch(ColumnToBranch const& other) = delete;
   ColumnToBranch(ColumnToBranch&& other) = delete;
-  ~ColumnToBranch();
   void at(const int64_t* pos);
 
  private:
@@ -65,8 +64,9 @@ class ColumnToBranch
   int mCurrentChunk = 0;
   int mListSize = 1;
   ROOTTypeInfo mType;
-  uint8_t* mCurrent = nullptr;
-  uint8_t* mLast = nullptr;
+  std::vector<uint8_t> cache;
+  uint8_t const* mCurrent = nullptr;
+  uint8_t const* mLast = nullptr;
   bool allocated = false;
 };
 

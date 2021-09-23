@@ -138,18 +138,12 @@ ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
     mBranch = tree->Branch(mBranchName.c_str(), (char*)nullptr, mLeafList.c_str());
   }
   if (mType.type == EDataType::kBool_t) {
-    mCurrent = reinterpret_cast<uint8_t*>(std::malloc(mListSize * mType.size));
+    cache.reserve(mListSize);
+    mCurrent = reinterpret_cast<uint8_t*>(cache.data());
     mLast = mCurrent + mListSize * mType.size;
     allocated = true;
   }
   accessChunk(0);
-}
-
-ColumnToBranch::~ColumnToBranch()
-{
-  if (allocated) {
-    free(mCurrent);
-  }
 }
 
 void ColumnToBranch::at(const int64_t* pos)
@@ -191,10 +185,10 @@ void ColumnToBranch::accessChunk(int64_t at)
   if (mType.type == EDataType::kBool_t) {
     auto boolArray = std::static_pointer_cast<arrow::BooleanArray>(array);
     for (auto i = 0; i < mListSize; ++i) {
-      (*reinterpret_cast<bool**>(&mCurrent))[i] = (bool)boolArray->Value((at - mFirstIndex) * mListSize + i);
+      cache[i] = (bool)boolArray->Value((at - mFirstIndex) * mListSize + i);
     }
   } else {
-    mCurrent = array->values()->mutable_data() + (at - mFirstIndex) * mListSize * mType.size;
+    mCurrent = array->values()->data() + (at - mFirstIndex) * mListSize * mType.size;
     mLast = mCurrent + array->length() * mListSize * mType.size;
   }
 }
