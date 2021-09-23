@@ -94,7 +94,7 @@ class KrClusterFinder
   LandauChi2Functor mLandauChi2Functor;                                         ///< stores the binned ADC data and provides a chi2 estimate
   std::shared_ptr<ROOT::Fit::FitResult> mFitResult{new ROOT::Fit::FitResult()}; ///< pointer to the results of the Landau fit
   ROOT::Fit::Fitter mFitter{mFitResult};                                        ///< an instance of the ROOT fitter
-  std::array<double, 3> mInitialFitParams{};                                    ///< initial fit parameters for the Landau fit
+  std::array<double, 3> mInitialFitParams{1., 1., 1.};                          ///< initial fit parameters for the Landau fit
   std::unique_ptr<TF1> mFuncLandauFit;                                          ///< helper function to approximate the binned ADC data with a Landau distribution
   // settings
   const int mBaselineAdc{10};        ///< ADC baseline for each pad (can maybe be moved into Constants.h)

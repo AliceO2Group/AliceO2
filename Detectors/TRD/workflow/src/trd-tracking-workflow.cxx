@@ -81,13 +81,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   // input
-  auto maskClusters = GTrackID::getSourcesMask("TRD");
-  auto maskTracks = srcTRD;
+  auto maskClusters = GTrackID::getSourcesMask("TRD,TPC");
+  auto maskTracks = srcTRD | GTrackID::getSourcesMask("TPC"); // we always need the TPC tracks for the refit
+  if (GTrackID::includesDet(GTrackID::DetID::ITS, srcTRD)) {
+    maskClusters |= GTrackID::getSourcesMask("ITS");
+    maskTracks |= GTrackID::getSourcesMask("ITS");
+  }
   auto maskMatches = GTrackID::getSourcesMask(GTrackID::NONE);
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, maskClusters, maskMatches, maskTracks, useMC);
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
-  return std::move(specs);
+  return specs;
 }
