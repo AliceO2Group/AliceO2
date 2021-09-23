@@ -482,7 +482,7 @@ void Tracker<T>::findTracksLTFfcs(ROframe<T>& event)
           continue;
         }
 
-        // add a new Track type T
+        // add a new Track
         event.addTrack();
         for (Int_t point = 0; point < nPoints; ++point) {
           auto layer = trackPoints[point].layer;
@@ -972,6 +972,7 @@ void Tracker<T>::runBackwardInRoad(ROframe<T>& event)
         event.getClustersInLayer(cellC.getFirstLayerId())[cellC.getFirstClusterIndex()].setUsed(true);
         event.getClustersInLayer(cellC.getSecondLayerId())[cellC.getSecondClusterIndex()].setUsed(true);
       }
+      event.getCurrentTrack().sort();
     } // end loop cells
   }   // end loop start layer
 }
@@ -1044,7 +1045,6 @@ bool Tracker<T>::fitTracks(ROframe<T>& event)
 {
   for (auto& track : event.getTracks()) {
     T outParam = track;
-    track.sort();
     mTrackFitter->initTrack(track);
     mTrackFitter->fit(track);
     mTrackFitter->initTrack(outParam, true);

@@ -176,15 +176,7 @@ void TrackerDPL::run(ProcessingContext& pc)
         rof.setNEntries(number);
         copyTracks(tracks, allTracksMFT, allClusIdx);
       }
-
-      LOG(INFO) << "Found tracks LTF: " << tracksLTF.size();
-      LOG(INFO) << "Found tracks CA: " << tracksCA.size();
-      int first = allTracksMFT.size();
-      int number = tracksLTF.size() + tracksCA.size();
-      rof.setFirstEntry(first);
-      rof.setNEntries(number);
-      copyTracks(tracksLTF, allTracksMFT, allClusIdx);
-      copyTracks(tracksCA, allTracksMFT, allClusIdx);
+      roFrame++;
     }
   } else { // Use Linear Tracker for Field off
     o2::mft::ROframe<TrackLTFL> event(0);
