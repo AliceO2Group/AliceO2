@@ -57,7 +57,6 @@ class RawReaderFIT : public RawReaderType
   //Wrapping by std::tuple
   typedef typename std::conditional<DigitBlockFIT_t::sNSubDigits != 1, SubDigitTmp_t, std::tuple<SubDigitTmp_t>>::type SubDigit_t;
   typedef typename std::conditional<DigitBlockFIT_t::sNSingleSubDigits != 1, SingleSubDigitTmp_t, std::tuple<SingleSubDigitTmp_t>>::type SingleSubDigit_t;
-
   static constexpr bool sUseTrgInput = useTrgInput;
   o2::header::DataOrigin mDataOrigin;
   std::vector<Digit_t> mVecDigit;
@@ -65,7 +64,20 @@ class RawReaderFIT : public RawReaderType
   SubDigit_t mVecSubDigit;             //tuple of vectors
   SingleSubDigit_t mVecSingleSubDigit; //tuple of vectors
   bool mDumpData;
-
+  void reserveVecDPL(std::size_t nDigits, std::size_t nSubDigits)
+  {
+    mVecDigit.reserve(nDigits);
+    reserveSubDigits1<DigitBlockFIT_t>(nSubDigits);
+  }
+  template <typename T>
+  auto reserveSubDigits1(std::size_t nElements) -> std::enable_if_t<(T::sNSubDigits > 0)>
+  {
+    std::get<0>(mVecSubDigit).reserve(nElements);
+  }
+  template <typename T>
+  auto reserveSubDigits1(std::size_t nElements) -> std::enable_if_t<(T::sNSubDigits < 1)>
+  {
+  } //empty
   void clear()
   {
     mVecDigit.clear();

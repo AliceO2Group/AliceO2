@@ -70,6 +70,10 @@ class RawReaderBase
         vecDataBlocks.pop_back();
         return srcPos;
       }
+      if(refDataBlock.getNgbtWords()==0) {
+        vecDataBlocks.pop_back();
+        continue;
+      }
     }
     return srcPos;
   }
@@ -80,7 +84,7 @@ class RawReaderBase
   {
     auto& vecDataBlocks = getVecDataBlocks<DataBlockType>();
     auto srcPos = decodeBlocks(payload, vecDataBlocks);
-    for (auto& dataBlock : vecDataBlocks) {
+    for (const auto& dataBlock : vecDataBlocks) {
       auto intRec = dataBlock.getInteractionRecord();
       auto [digitIter, isNew] = mMapDigits.try_emplace(intRec, intRec);
       digitIter->second.template processDigits<DataBlockType>(dataBlock, std::forward<T>(feeParameters)...);

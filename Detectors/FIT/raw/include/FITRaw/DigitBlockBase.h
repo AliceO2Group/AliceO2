@@ -159,10 +159,10 @@ template <typename DigitType, typename... SubDigitTypes>
 class DigitBlockBase //:public DigitBlock
 {
  public:
-  DigitBlockBase(o2::InteractionRecord intRec)
+  DigitBlockBase(const o2::InteractionRecord& intRec)
   {
     mDigit.setIntRecord(intRec);
-    mSubDigit.reserve(256);
+    //    mSubDigit.reserve(256);
   }
   DigitBlockBase(const DigitType& digit) : mDigit(digit)
   {

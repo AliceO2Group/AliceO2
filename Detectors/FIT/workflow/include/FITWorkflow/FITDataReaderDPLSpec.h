@@ -28,6 +28,7 @@
 #include <iostream>
 #include <vector>
 #include <gsl/span>
+#include <chrono>
 using namespace o2::framework;
 
 namespace o2
@@ -43,7 +44,28 @@ class FITDataReaderDPLSpec : public Task
   ~FITDataReaderDPLSpec() override = default;
   typedef RawReaderType RawReader_t;
   RawReader_t mRawReader;
-  void init(InitContext& ic) final { RawReader_t::LookupTable_t::Instance().printFullMap(); }
+  void init(InitContext& ic) final
+  {
+    auto ccdbUrl = ic.options().get<std::string>("ccdb-path");
+    auto lutPath = ic.options().get<std::string>("lut-path");
+    if (ccdbUrl != "") {
+      RawReader_t::LookupTable_t::setCCDBurl(ccdbUrl);
+    }
+    if (lutPath != "") {
+      RawReader_t::LookupTable_t::setLUTpath(lutPath);
+    }
+    RawReader_t::LookupTable_t::Instance().printFullMap();
+    auto nReserveVecDig = ic.options().get<int>("reserve-vec-dig");
+    auto nReserveVecChData = ic.options().get<int>("reserve-vec-chdata");
+    auto nReserveVecBuffer = ic.options().get<int>("reserve-vec-buffer");
+    auto nReserveMapDig = ic.options().get<int>("reserve-map-dig");
+    if (nReserveVecDig || nReserveVecChData) {
+      mRawReader.reserveVecDPL(nReserveVecDig, nReserveVecChData);
+    }
+    if (nReserveVecBuffer || nReserveMapDig) {
+      mRawReader.reserve(nReserveVecBuffer, nReserveMapDig);
+    }
+  }
   void run(ProcessingContext& pc) final
   {
     // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
@@ -62,15 +84,12 @@ class FITDataReaderDPLSpec : public Task
     }
     std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{mRawReader.mDataOrigin, o2::header::gDataDescriptionRawData}, Lifetime::Timeframe}};
     DPLRawParser parser(pc.inputs(), filter);
-    std::size_t count = 0;
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
       //Proccessing each page
-      count++;
       auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
       gsl::span<const uint8_t> payload(it.data(), it.size());
       mRawReader.process(payload, int(rdhPtr->linkID), int(rdhPtr->endPointID));
     }
-    LOG(INFO) << "Pages: " << count;
     mRawReader.accumulateDigits();
     mRawReader.makeSnapshot(pc);
     mRawReader.clear();
@@ -95,7 +114,12 @@ framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawRea
     inputSpec,
     outputSpec,
     adaptFromTask<FITDataReaderDPLSpec<RawReaderType>>(rawReader),
-    Options{}};
+    {o2::framework::ConfigParamSpec{"ccdb-path", VariantType::String, "", {"CCDB url which contains LookupTable"}},
+     o2::framework::ConfigParamSpec{"lut-path", VariantType::String, "", {"LookupTable path, e.g. FT0/LookupTable"}},
+     o2::framework::ConfigParamSpec{"reserve-vec-dig", VariantType::Int, 0, {"Reserve memory for Digit vector, to DPL channel"}},
+     o2::framework::ConfigParamSpec{"reserve-vec-chdata", VariantType::Int, 0, {"Reserve memory for ChannelData vector, to DPL channel"}},
+     o2::framework::ConfigParamSpec{"reserve-vec-buffer", VariantType::Int, 0, {"Reserve memory for DataBlock vector, buffer for each page"}},
+     o2::framework::ConfigParamSpec{"reserve-map-dig", VariantType::Int, 0, {"Reserve memory for Digit map, mapping in RawReader"}}}};
 }
 
 } // namespace fit

@@ -31,7 +31,7 @@
 namespace bpo = boost::program_options;
 
 void digit2raw(const std::string& inpName, const std::string& outDir, int verbosity, const std::string& fileFor, uint32_t rdhV, bool noEmptyHBF, const std::string& flpName,
-               int superPageSizeInB = 1024 * 1024);
+               const std::string& ccdbUrl, const std::string& lutPath, int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
 {
@@ -56,7 +56,8 @@ int main(int argc, char** argv)
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
-
+    add_option("ccdb-path", bpo::value<std::string>()->default_value(""), "CCDB url which contains LookupTable");
+    add_option("lut-path", bpo::value<std::string>()->default_value(""), "LookupTable path, e.g. FT0/LookupTable");
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
 
@@ -87,14 +88,16 @@ int main(int argc, char** argv)
             vm["file-for"].as<std::string>(),
             vm["rdh-version"].as<uint32_t>(),
             vm["no-empty-hbf"].as<bool>(),
-            vm["flp-name"].as<std::string>());
+            vm["flp-name"].as<std::string>(),
+            vm["ccdb-path"].as<std::string>(),
+            vm["lut-path"].as<std::string>());
 
   o2::raw::HBFUtils::Instance().print();
 
   return 0;
 }
 
-void digit2raw(const std::string& inpName, const std::string& outDir, int verbosity, const std::string& fileFor, uint32_t rdhV, bool noEmptyHBF, const std::string& flpName, int superPageSizeInB)
+void digit2raw(const std::string& inpName, const std::string& outDir, int verbosity, const std::string& fileFor, uint32_t rdhV, bool noEmptyHBF, const std::string& flpName, const std::string& ccdbUrl, const std::string& lutPath, int superPageSizeInB)
 {
   TStopwatch swTot;
   swTot.Start();
@@ -102,6 +105,12 @@ void digit2raw(const std::string& inpName, const std::string& outDir, int verbos
   m2r.setFileFor(fileFor);
   m2r.setFlpName(flpName);
   m2r.setVerbosity(verbosity);
+  if (ccdbUrl != "") {
+    m2r.setCCDBurl(ccdbUrl);
+  }
+  if (lutPath != "") {
+    m2r.setLUTpath(lutPath);
+  }
   auto& wr = m2r.getWriter();
   std::string inputGRP = o2::base::NameConf::getGRPFileName();
   const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);

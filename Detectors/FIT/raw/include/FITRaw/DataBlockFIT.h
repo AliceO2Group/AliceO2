@@ -45,6 +45,7 @@ class DataBlockPM : public DataBlockBase<DataBlockPM, RawHeaderPMtype, RawDataPM
     DataBlockWrapper<RawHeaderPM>::deserialize(srcBytes, DataBlockWrapper<RawHeaderPM>::MaxNwords, srcByteShift);
     DataBlockWrapper<RawDataPM>::deserialize(srcBytes, DataBlockWrapper<RawHeaderPM>::mData[0].nGBTWords, srcByteShift);
   }
+  const std::size_t &getNgbtWords() const {return DataBlockWrapper<RawHeaderPM>::mData[0].nGBTWords;}
   std::vector<char> serialize() const
   {
     std::size_t nBytes = DataBlockWrapper<RawHeaderPM>::MaxNwords * SIZE_WORD;
@@ -84,6 +85,7 @@ class DataBlockTCM : public DataBlockBase<DataBlockTCM, RawHeaderTCMtype, RawDat
     DataBlockWrapper<RawHeaderTCM>::deserialize(srcBytes, DataBlockWrapper<RawHeaderTCM>::MaxNwords, srcByteShift);
     DataBlockWrapper<RawDataTCM>::deserialize(srcBytes, DataBlockWrapper<RawHeaderTCM>::mData[0].nGBTWords, srcByteShift);
   }
+  const std::size_t &getNgbtWords() const {return DataBlockWrapper<RawHeaderPM>::mData[0].nGBTWords;}
   std::vector<char> serialize() const
   {
     std::size_t nBytes = DataBlockWrapper<RawHeaderTCM>::MaxNwords * SIZE_WORD;
@@ -112,7 +114,7 @@ class DataBlockTCMext : public DataBlockBase<DataBlockTCMext, RawHeaderTCMextTyp
   typedef RawHeaderTCMextType RawHeaderTCMext;
   typedef RawDataTCMtype RawDataTCM;
   typedef RawDataTCMextType RawDataTCMext;
-
+  const std::size_t &getNgbtWords() const {return DataBlockWrapper<RawHeaderPM>::mData[0].nGBTWords;}
   void deserialize(gsl::span<const uint8_t> srcBytes, size_t& srcByteShift)
   {
     DataBlockWrapper<RawHeaderTCMext>::deserialize(srcBytes, DataBlockWrapper<RawHeaderTCMext>::MaxNwords, srcByteShift);
