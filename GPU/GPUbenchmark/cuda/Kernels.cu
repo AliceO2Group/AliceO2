@@ -278,18 +278,21 @@ float GPUbenchmark<chunk_t>::benchmarkSync(void (*kernel)(int, chunk_t*, T...),
                                            T&... args) // run for each chunk
 {
   cudaEvent_t start, stop;
+  cudaStream_t stream;
+  GPUCHECK(cudaStreamCreate(&stream));
+
   GPUCHECK(cudaSetDevice(mOptions.deviceId));
   chunk_t* chunkPtr = getPartPtr<chunk_t>(mState.scratchPtr, mState.chunkReservedGB, chunkId);
 
   // Warm up
-  (*kernel)<<<blocks, threads, 0, 0>>>(0, chunkPtr, args...);
+  (*kernel)<<<blocks, threads, 0, stream>>>(0, chunkPtr, args...);
 
   GPUCHECK(cudaEventCreate(&start));
   GPUCHECK(cudaEventCreate(&stop));
 
   GPUCHECK(cudaEventRecord(start));
-  for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {             // Schedule all the requested kernel launches
-    (*kernel)<<<blocks, threads, 0, 0>>>(chunkId, chunkPtr, args...); // NOLINT: clang-tidy false-positive
+  for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {                  // Schedule all the requested kernel launches
+    (*kernel)<<<blocks, threads, 0, stream>>>(chunkId, chunkPtr, args...); // NOLINT: clang-tidy false-positive
   }
   GPUCHECK(cudaEventRecord(stop)); // record checkpoint
 
@@ -299,46 +302,49 @@ float GPUbenchmark<chunk_t>::benchmarkSync(void (*kernel)(int, chunk_t*, T...),
   GPUCHECK(cudaEventDestroy(start));
   GPUCHECK(cudaEventDestroy(stop));
 
+  GPUCHECK(cudaStreamDestroy(stream));
   return milliseconds;
 }
 
 template <class chunk_t>
 template <typename... T>
 std::vector<float> GPUbenchmark<chunk_t>::benchmarkAsync(void (*kernel)(int, chunk_t*, T...),
-                                                         int nStreams, int nLaunches, int blocks, int threads, T&... args)
+                                                         int nChunks, int nLaunches, int blocks, int threads, T&... args)
 {
-  std::vector<cudaEvent_t> starts(nStreams), stops(nStreams);
-  // std::vector<cudaStream_t> streams(nStreams);
-  std::vector<float> results(nStreams);
+  std::vector<cudaEvent_t> starts(nChunks), stops(nChunks);
+  // std::vector<cudaStream_t> streams(nChunks);
+  cudaStream_t stream;
+  std::vector<float> results(nChunks);
   GPUCHECK(cudaSetDevice(mOptions.deviceId));
-  for (auto iStream{0}; iStream < nStreams; ++iStream) { // one stream per chunk
-    GPUCHECK(cudaStreamCreate(&(streams.at(iStream))));
-    GPUCHECK(cudaEventCreate(&(starts[iStream])));
-    GPUCHECK(cudaEventCreate(&(stops[iStream])));
-  }
-  // Warm up on every stream
-  for (auto iStream{0}; iStream < nStreams; ++iStream) {
-    chunk_t* chunkPtr = getPartPtr<chunk_t>(mState.scratchPtr, mState.chunkReservedGB, iStream);
-    (*kernel)<<<blocks / mState.getMaxChunks(), threads, 0, streams[iStream]>>>(iStream, chunkPtr, args...);
+  GPUCHECK(cudaStreamCreate(&stream));
+  for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
+    GPUCHECK(cudaEventCreate(&(starts[iChunk])));
+    GPUCHECK(cudaEventCreate(&(stops[iChunk])));
   }
 
-  for (auto iStream{0}; iStream < nStreams; ++iStream) {
-    chunk_t* chunkPtr = getPartPtr<chunk_t>(mState.scratchPtr, mState.chunkReservedGB, iStream);
-    GPUCHECK(cudaEventRecord(starts[iStream], streams[iStream]));
+  // Warm up on every chunk
+  for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
+    chunk_t* chunkPtr = getPartPtr<chunk_t>(mState.scratchPtr, mState.chunkReservedGB, iChunk);
+    (*kernel)<<<blocks / mState.getMaxChunks(), threads, 0, stream>>>(iChunk, chunkPtr, args...);
+  }
+
+  for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
+    chunk_t* chunkPtr = getPartPtr<chunk_t>(mState.scratchPtr, mState.chunkReservedGB, iChunk);
+    GPUCHECK(cudaEventRecord(starts[iChunk], stream));
     for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {
-      (*kernel)<<<blocks / mState.getMaxChunks(), threads, 0 /*, streams[iStream]*/>>>(iStream, chunkPtr, args...);
+      (*kernel)<<<blocks / mState.getMaxChunks(), threads, 0, stream>>>(iChunk, chunkPtr, args...);
     }
-    GPUCHECK(cudaEventRecord(stops[iStream], streams[iStream]));
+    GPUCHECK(cudaEventRecord(stops[iChunk], stream));
   }
 
-  for (auto iStream{0}; iStream < nStreams; ++iStream) {
-    GPUCHECK(cudaEventSynchronize(stops[iStream]));
-    GPUCHECK(cudaEventElapsedTime(&(results.at(iStream)), starts[iStream], stops[iStream]));
-    GPUCHECK(cudaEventDestroy(starts[iStream]));
-    GPUCHECK(cudaEventDestroy(stops[iStream]));
-    GPUCHECK(cudaStreamDestroy(streams[iStream]));
+  for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
+    GPUCHECK(cudaEventSynchronize(stops[iChunk]));
+    GPUCHECK(cudaEventElapsedTime(&(results.at(iChunk)), starts[iChunk], stops[iChunk]));
+    GPUCHECK(cudaEventDestroy(starts[iChunk]));
+    GPUCHECK(cudaEventDestroy(stops[iChunk]));
   }
 
+  GPUCHECK(cudaStreamDestroy(stream));
   return results;
 }
 
