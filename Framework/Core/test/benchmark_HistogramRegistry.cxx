@@ -37,7 +37,7 @@ static void BM_HashedNameLookup(benchmark::State& state)
     state.ResumeTiming();
 
     for (auto i = 0; i < nLookups; ++i) {
-      auto& x = registry.get<TH1>(HIST("histo4"));
+      auto x = registry.get<TH1>(HIST("histo4"));
       benchmark::DoNotOptimize(x);
     }
     state.counters["Average lookup distance"] = ((double)registry.lookup / (double)(state.range(0)));

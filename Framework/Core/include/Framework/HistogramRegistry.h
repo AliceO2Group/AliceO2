@@ -42,15 +42,15 @@ namespace o2::framework
 struct HistFiller {
   // fill any type of histogram (if weight was requested it must be the last argument)
   template <typename T, typename... Ts>
-  static void fillHistAny(std::shared_ptr<T>& hist, const Ts&... positionAndWeight);
+  static void fillHistAny(std::shared_ptr<T> hist, const Ts&... positionAndWeight);
 
   // fill any type of histogram with columns (Cs) of a filtered table (if weight is requested it must reside the last specified column)
   template <typename... Cs, typename R, typename T>
-  static void fillHistAny(std::shared_ptr<R>& hist, const T& table, const o2::framework::expressions::Filter& filter);
+  static void fillHistAny(std::shared_ptr<R> hist, const T& table, const o2::framework::expressions::Filter& filter);
 
   // function that returns rough estimate for the size of a histogram in MB
   template <typename T>
-  static double getSize(std::shared_ptr<T>& hist, double fillFraction = 1.);
+  static double getSize(std::shared_ptr<T> hist, double fillFraction = 1.);
 
  private:
   // helper function to determine base element size of histograms (in bytes)
@@ -92,7 +92,13 @@ class HistogramRegistry
   // functions to add histograms to the registry
   HistPtr add(const HistogramSpec& histSpec);
   HistPtr add(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2 = false);
-  HistPtr add(char const* const name, char const* const title, HistType histType, std::vector<AxisSpec> axes, bool callSumw2 = false);
+  HistPtr add(char const* const name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2 = false);
+
+  template <typename T>
+  std::shared_ptr<T> add(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2 = false);
+  template <typename T>
+  std::shared_ptr<T> add(char const* const name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2 = false);
+
   void addClone(const std::string& source, const std::string& target);
 
   // function to query if name is already in use
@@ -100,11 +106,10 @@ class HistogramRegistry
 
   // get the underlying histogram pointer
   template <typename T>
-  std::shared_ptr<T>& get(const HistName& histName);
+  std::shared_ptr<T> get(const HistName& histName);
 
-  // get the underlying histogram pointer
   template <typename T>
-  auto& operator()(const HistName& histName);
+  std::shared_ptr<T> operator()(const HistName& histName);
 
   // return the OutputSpec associated to the HistogramRegistry
   OutputSpec const spec();
@@ -141,7 +146,7 @@ class HistogramRegistry
 
   // clone an existing histogram and insert it into the registry
   template <typename T>
-  HistPtr insertClone(const HistName& histName, const std::shared_ptr<T>& originalHist);
+  HistPtr insertClone(const HistName& histName, const std::shared_ptr<T> originalHist);
 
   // helper function that checks if histogram name can be used in registry
   void validateHistName(const char* name, const uint32_t hash);
@@ -186,7 +191,7 @@ class HistogramRegistry
 //--------------------------------------------------------------------------------------------------
 
 template <typename T, typename... Ts>
-void HistFiller::fillHistAny(std::shared_ptr<T>& hist, const Ts&... positionAndWeight)
+void HistFiller::fillHistAny(std::shared_ptr<T> hist, const Ts&... positionAndWeight)
 {
   constexpr int nArgs = sizeof...(Ts);
 
@@ -222,7 +227,7 @@ void HistFiller::fillHistAny(std::shared_ptr<T>& hist, const Ts&... positionAndW
 }
 
 template <typename... Cs, typename R, typename T>
-void HistFiller::fillHistAny(std::shared_ptr<R>& hist, const T& table, const o2::framework::expressions::Filter& filter)
+void HistFiller::fillHistAny(std::shared_ptr<R> hist, const T& table, const o2::framework::expressions::Filter& filter)
 {
   if constexpr (std::is_base_of_v<StepTHn, T>) {
     LOGF(FATAL, "Table filling is not (yet?) supported for StepTHn.");
@@ -235,7 +240,7 @@ void HistFiller::fillHistAny(std::shared_ptr<R>& hist, const T& table, const o2:
 }
 
 template <typename T>
-double HistFiller::getSize(std::shared_ptr<T>& hist, double fillFraction)
+double HistFiller::getSize(std::shared_ptr<T> hist, double fillFraction)
 {
   double size{0.};
   if constexpr (std::is_base_of_v<TH1, T>) {
@@ -329,7 +334,29 @@ constexpr HistogramRegistry::HistName::HistName(const ConstStr<chars...>& hashed
 }
 
 template <typename T>
-std::shared_ptr<T>& HistogramRegistry::get(const HistName& histName)
+std::shared_ptr<T> HistogramRegistry::add(char const* const name, char const* const title, const HistogramConfigSpec& histConfigSpec, bool callSumw2)
+{
+  auto histVariant = add(name, title, histConfigSpec, callSumw2);
+  if (auto histPtr = std::get_if<std::shared_ptr<T>>(&histVariant)) {
+    return *histPtr;
+  } else {
+    throw runtime_error_f(R"(Histogram type specified in add<>("%s") does not match the actual type of the histogram!)", name);
+  }
+}
+
+template <typename T>
+std::shared_ptr<T> HistogramRegistry::add(char const* const name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2)
+{
+  auto histVariant = add(name, title, histType, axes, callSumw2);
+  if (auto histPtr = std::get_if<std::shared_ptr<T>>(&histVariant)) {
+    return *histPtr;
+  } else {
+    throw runtime_error_f(R"(Histogram type specified in add<>("%s") does not match the actual type of the histogram!)", name);
+  }
+}
+
+template <typename T>
+std::shared_ptr<T> HistogramRegistry::get(const HistName& histName)
 {
   if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[getHistIndex(histName)])) {
     return *histPtr;
@@ -339,13 +366,13 @@ std::shared_ptr<T>& HistogramRegistry::get(const HistName& histName)
 }
 
 template <typename T>
-auto& HistogramRegistry::operator()(const HistName& histName)
+std::shared_ptr<T> HistogramRegistry::operator()(const HistName& histName)
 {
   return get<T>(histName);
 }
 
 template <typename T>
-HistPtr HistogramRegistry::insertClone(const HistName& histName, const std::shared_ptr<T>& originalHist)
+HistPtr HistogramRegistry::insertClone(const HistName& histName, const std::shared_ptr<T> originalHist)
 {
   validateHistName(histName.str, histName.hash);
   for (auto i = 0u; i < MAX_REGISTRY_SIZE; ++i) {
