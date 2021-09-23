@@ -462,7 +462,7 @@ struct alignas(64) DataPointValue final {
   {
 #if defined(__linux__) || defined(__APPLE__)
     // time_t should be uint64_t (compatible) on 64-bit Linux platforms:
-    char buffer[17];
+    char buffer[33];
     std::time_t ts((uint64_t)sec);
     std::strftime(buffer, 32, "%FT%T", std::gmtime(&ts));
     std::ostringstream oss;
