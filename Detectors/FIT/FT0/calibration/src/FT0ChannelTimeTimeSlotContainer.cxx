@@ -64,7 +64,7 @@ int16_t FT0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t cha
   if (0 == mEntriesPerChannel[channelID]) {
     return 0;
   }
-
+  LOG(DEBUG) << " for channel " << int(channelID) << " entries " << mEntriesPerChannel[channelID];
   std::vector<double> channelHistogramData(NUMBER_OF_HISTOGRAM_BINS);
   std::vector<double> outputGaussianFitValues;
   for (int iBin = 0; iBin < NUMBER_OF_HISTOGRAM_BINS; ++iBin) {

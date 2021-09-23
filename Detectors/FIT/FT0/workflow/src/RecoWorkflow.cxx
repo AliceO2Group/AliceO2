@@ -23,14 +23,13 @@ namespace o2
 namespace fit
 {
 
-framework::WorkflowSpec getRecoWorkflow(bool useMC, bool disableRootInp, bool disableRootOut)
+framework::WorkflowSpec getRecoWorkflow(bool useMC, std::string ccdbpath, bool disableRootInp, bool disableRootOut)
 {
   framework::WorkflowSpec specs;
   if (!disableRootInp) {
     specs.emplace_back(o2::ft0::getDigitReaderSpec(useMC));
   }
-
-  specs.emplace_back(o2::ft0::getReconstructionSpec(useMC));
+  specs.emplace_back(o2::ft0::getReconstructionSpec(useMC, ccdbpath));
   if (!disableRootOut) {
     specs.emplace_back(o2::ft0::getRecPointWriterSpec(useMC));
   }
