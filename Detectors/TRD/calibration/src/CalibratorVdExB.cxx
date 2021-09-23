@@ -163,7 +163,8 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
     calObject.setVdrift(iDet, vdFitResults[iDet]);
     calObject.setExB(iDet, laFitResults[iDet]);
   }
-  ccdb.storeAsTFileAny(&calObject, "TRD_test/CalVdriftExB", metadata, 265503, 265503 + 1); // temporary only short validity of 1 run
+  auto timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  ccdb.storeAsTFileAny(&calObject, "TRD/Calib/CalVdriftExB", metadata, timeStamp);
 }
 
 Slot& CalibratorVdExB::emplaceNewSlot(bool front, uint64_t tStart, uint64_t tEnd)

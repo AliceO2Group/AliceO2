@@ -44,65 +44,22 @@ namespace trd
 
 using namespace constants;
 
-TrapConfig* TRDDPLTrapSimulatorTask::getTrapConfig()
+void TRDDPLTrapSimulatorTask::initTrapConfig()
 {
-  // return an existing TRAPconfig or load it from the CCDB
-  // in case of failure, a default TRAPconfig is created
-  LOG(debug) << "start of gettrapconfig";
-  if (mTrapConfig) {
-    LOG(debug) << "mTrapConfig is valid : 0x" << std::hex << mTrapConfig << std::dec;
-    return mTrapConfig;
-  } else {
-    LOG(debug) << "mTrapConfig is invalid : 0x" << std::hex << mTrapConfig << std::dec;
-
-    //// bypass pulling in the traditional default trapconfigs from ccdb, will sort out latert
-    // try to load the requested configuration
-    loadTrapConfig();
-    //calib.
-    if (mTrapConfig->getConfigName() == "" && mTrapConfig->getConfigVersion() == "") {
-      //some trap configs dont have config name and version set, in those cases, just show the file name used.
-      LOG(info) << "using TRAPconfig :\"" << mTrapConfigName;
-    } else {
-      LOG(info) << "using TRAPconfig :\"" << mTrapConfig->getConfigName().c_str() << "\".\"" << mTrapConfig->getConfigVersion().c_str() << "\"";
-    }
-    // we still have to load the gain tables
-    // if the gain filter is active
-    return mTrapConfig;
-  } // end of else from if mTrapConfig
-}
-
-void TRDDPLTrapSimulatorTask::loadDefaultTrapConfig()
-{
-  //this loads a trap config from a root file for those times when the ccdb is not around and you want to keep working.
-  TFile* f;
-  f = new TFile("DefaultTrapConfig.root");
-  mTrapConfig = (o2::trd::TrapConfig*)f->Get("ccdb_object");
-  if (mTrapConfig == nullptr) {
-    LOG(fatal) << "failed to load from ccdb, and attempted to load from disk, you seem to be really out of luck.";
-  }
-  // else we have loaded the trap config successfully.
-}
-void TRDDPLTrapSimulatorTask::loadTrapConfig()
-{
-  // try to load the specified configuration from the CCDB
-
-  LOG(info) << "looking for TRAPconfig " << mTrapConfigName;
-
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+  //ccdbmgr.setURL("http://localhost:8080");
   ccdbmgr.setTimestamp(mRunNumber);
-  //default is : mTrapConfigName="cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549";
-  mTrapConfigName = "c"; //cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549";
-  mTrapConfig = ccdbmgr.get<o2::trd::TrapConfig>("TRD_test/TrapConfig2020/" + mTrapConfigName);
-  if (mTrapConfig == nullptr) {
-    //failed to find or open or connect or something to get the trapconfig from the ccdb.
-    //first check the directory listing.
-    LOG(warn) << " failed to get trapconfig from ccdb with name :  " << mTrapConfigName;
-    loadDefaultTrapConfig();
+  mTrapConfig = ccdbmgr.get<o2::trd::TrapConfig>("TRD/TrapConfig/" + mTrapConfigName);
+
+  if (mEnableTrapConfigDump) {
+    mTrapConfig->DumpTrapConfig2File("run3trapconfig_dump");
+  }
+
+  if (mTrapConfig->getConfigName() == "" && mTrapConfig->getConfigVersion() == "") {
+    //some trap configs dont have config name and version set, in those cases, just show the file name used.
+    LOG(info) << "using TRAPconfig: " << mTrapConfigName;
   } else {
-    //TODO figure out how to get the debug level from logger and only do this for debug option to --severity debug (or what ever the command actualy is)
-    if (mEnableTrapConfigDump) {
-      mTrapConfig->DumpTrapConfig2File("run3trapconfig_dump");
-    }
+    LOG(info) << "using TRAPconfig :\"" << mTrapConfig->getConfigName().c_str() << "\".\"" << mTrapConfig->getConfigVersion().c_str() << "\"";
   }
 }
 
@@ -182,8 +139,8 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
   //Connect to CCDB for all things needing access to ccdb, trapconfig and online gains
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   mCalib = std::make_unique<Calibrations>();
-  mCalib->setCCDBForSimulation(mRunNumber);
-  getTrapConfig();
+  mCalib->getCCDBObjects(mRunNumber);
+  initTrapConfig();
   setOnlineGainTables();
 #ifdef WITH_OPENMP
   int askedThreads = TRDSimParams::Instance().digithreads;
@@ -195,7 +152,6 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
   }
   LOG(info) << "Trap simulation running with " << mNumThreads << " threads ";
 #endif
-  LOG(info) << "Trap Simulator Device initialised for config : " << mTrapConfigName;
 }
 
 void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
@@ -356,7 +312,7 @@ o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC)
                            outputs,
                            AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>(useMC)},
                            Options{
-                             {"trd-trapconfig", VariantType::String, "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549", {"Name of the trap config from the CCDB default:cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549"}},
+                             {"trd-trapconfig", VariantType::String, "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549", {"TRAP config name"}},
                              {"trd-onlinegaincorrection", VariantType::Bool, false, {"Apply online gain calibrations, mostly for back checking to run2 by setting FGBY to 0"}},
                              {"trd-onlinegaintable", VariantType::String, "Krypton_2015-02", {"Online gain table to be use, names found in CCDB, obviously trd-onlinegaincorrection must be set as well."}},
                              {"trd-dumptrapconfig", VariantType::Bool, false, {"Dump the selected trap configuration at loading time, to text file"}},

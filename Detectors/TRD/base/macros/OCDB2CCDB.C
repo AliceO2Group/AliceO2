@@ -213,8 +213,9 @@ void UnpackGainTable(std::string& gainkey, CalOnlineGainTables* gtbl)
   }
 }
 
+// choose ccdbPath = "http://ccdb-test.cern.ch:8080" to write to the test CCDB at CERN
 //__________________________________________________________________________________________
-void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data/2010/OCDB/")
+void OCDB2CCDB(TString ccdbPath = "http://localhost:8080", Int_t run = 297595, const Char_t* storageURI = "local:///cvmfs/alice-ocdb.cern.ch/calibration/data/2018/OCDB")
 {
   //
   // Main function to steer the extraction of TRD OCDB information
@@ -236,7 +237,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
   AliCDBEntry* entry = NULL;
   Run = run;
 
-  std::string TRDCalBase = "TRD_test";
+  std::string TRDCalBase = "TRD";
 
   manager->SetRun(Run);
 
@@ -250,7 +251,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
   //
   o2::ccdb::CcdbApi ccdb;
   map<string, string> metadata;               // do we want to store any meta data?
-  ccdb.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
+  ccdb.init(ccdbPath.Data());
 
   AliTRDCalChamberStatus* chamberStatus = 0;
   AliTRDCalDet *chamberExB = 0, *chamberVDrift = 0, *chamberGainFactor = 0, *chamberT0 = 0;
@@ -265,9 +266,9 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
         o2chamberstatus->setRawStatus(i, a);
       }
       // store abitrary user object in strongly typed manner
-      ccdb.storeAsTFileAny(o2chamberstatus, "TRD_test/ChamberStatus", metadata, Run, Run + 1);
+      ccdb.storeAsTFileAny(o2chamberstatus, "TRD/Calib/ChamberStatus", metadata, Run, Run + 1);
       // // read like this (you have to specify the type)
-      //auto o2chamberstatusback = ccdb.retrieveFromTFileAny<o2::trd::ChamberStatus>("TRD_test/ChamberStatus", metadata);
+      //auto o2chamberstatusback = ccdb.retrieveFromTFileAny<o2::trd::ChamberStatus>("TRD/Calib/ChamberStatus", metadata);
     } else
       cout << "attempt to get object chamber status from ocdb entry. Ergo not writing one to ccdb." << endl;
   } else
@@ -314,7 +315,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
 
   if (chamberGainFactor && chamberExB && chamberT0 && chamberVDrift) {
     //if all 4 mmebers of calibrations is here then write to ccdb.
-    ccdb.storeAsTFileAny(o2chambercalibrations, "TRD_test/ChamberCalibrations", metadata, Run, Run + 1);
+    ccdb.storeAsTFileAny(o2chambercalibrations, "TRD/Calib/ChamberCalibrations", metadata, Run, Run + 1);
   } else
     cout << "something wrong with one of the members of ChamberCalibrations and not writing to ccdb, fix :: " << chamberGainFactor << "&&" << chamberExB << "&&" << chamberT0 << "&&" << chamberVDrift << endl;
 
@@ -334,7 +335,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
         } else
           cout << "calroc is undefiend" << endl;
       }
-      ccdb.storeAsTFileAny(o2localvdrift, "TRD_test/LocalVDrift", metadata, Run, Run + 1);
+      ccdb.storeAsTFileAny(o2localvdrift, "TRD/Calib/LocalVDrift", metadata, Run, Run + 1);
     } else
       cout << "attempt to get object LocalVdrift from ocdb entry. Will not be writing LocalVDritf" << endl;
   } else
@@ -352,7 +353,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
           o2localt0->setPadValue(i, j, calroc->GetValue(j));
         }
       }
-      ccdb.storeAsTFileAny(o2localt0, "TRD_test/LocalT0", metadata, Run, Run + 1);
+      ccdb.storeAsTFileAny(o2localt0, "TRD/Calib/LocalT0", metadata, Run, Run + 1);
     } else
       cout << "attempt to get object chamber LocalT0 from ocdb entry. Will not be writing LocalT0" << endl;
   } else
@@ -371,7 +372,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
           o2padnoise->setPadValue(i, j, calroc->GetValue(j));
         }
       }
-      ccdb.storeAsTFileAny(o2padnoise, "TRD_test/PadNoise", metadata, Run, Run + 1);
+      ccdb.storeAsTFileAny(o2padnoise, "TRD/Calib/PadNoise", metadata, Run, Run + 1);
     } else
       cout << "attempt to get object PadNoise from ocdb entry. Will not be writing PadNoise" << endl;
   }
@@ -388,7 +389,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
           o2localgainfactor->setPadValue(i, j, calroc->GetValue(j));
         }
       }
-      ccdb.storeAsTFileAny(o2localgainfactor, "TRD_test/LocalGainFactor", metadata, Run, Run + 1);
+      ccdb.storeAsTFileAny(o2localgainfactor, "TRD/Calib/LocalGainFactor", metadata, Run, Run + 1);
     } else
       cout << "attempt to get object LocalGainFactor from ocdb entry. Will not be writing LocalGainFactor" << endl;
   } else
@@ -406,7 +407,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
           o2padstatus->setStatus(i, j, rocstatus->GetStatus(j));
         }
       }
-      ccdb.storeAsTFileAny(o2padstatus, "TRD_test/PadStatus", metadata, Run, Run + 1);
+      ccdb.storeAsTFileAny(o2padstatus, "TRD/Calib/PadStatus", metadata, Run, Run + 1);
     }
   }
 
@@ -417,7 +418,7 @@ void OCDB2CCDB(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data
       for (int i = 0; i < AliTRDCalDet::kNdet; i++) {
         o2chambernoise->setNoise(i, chambernoise->GetValue(i));
       }
-      ccdb.storeAsTFileAny(o2chambernoise, "TRD_test/ChamberNoise", metadata, Run, Run + 1);
+      ccdb.storeAsTFileAny(o2chambernoise, "TRD/Calib/ChamberNoise", metadata, Run, Run + 1);
     } else
       cout << "attempt to get object ChamberNoise from ocdb entry. Will not be writing ChamberNoise" << endl;
   }

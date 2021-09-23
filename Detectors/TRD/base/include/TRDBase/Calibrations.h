@@ -47,7 +47,6 @@
 #include "TRDBase/PadStatus.h"
 #include "TRDBase/CalOnlineGainTables.h"
 
-class Geometry;
 namespace o2
 {
 namespace trd
@@ -55,22 +54,13 @@ namespace trd
 
 class Calibrations
 {
-  enum {
-    kSimulation = 1,
-    kReconstruction = 2,
-    kCalibration = 3
-  };
 
  public:
   Calibrations() = default;
   ~Calibrations() = default;
   //
-  int const getTimeStamp() { return mTimeStamp; }
-  void setTimeStamp(long timestamp) { mTimeStamp = timestamp; }
-  void setCCDB(int calibrationobjecttype, long timestamp);
-  void setCCDBForSimulation(long timestamp) { setCCDB(kSimulation, timestamp); };
-  void setCCDBForReconstruction(long timestamp) { setCCDB(kReconstruction, timestamp); };
-  void setCCDBForCalibration(long timestamp) { setCCDB(kCalibration, timestamp); };
+  int getTimeStamp() const { return mTimeStamp; }
+  void getCCDBObjects(long timestamp);
   void setOnlineGainTables(std::string& tablename);
   //
   double getVDrift(int roc, int col, int row) const;

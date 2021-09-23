@@ -234,8 +234,6 @@ void Readocdb(Int_t run, const Char_t* storageURI = "alien://folder=/alice/data/
   AliCDBEntry* entry = NULL;
   Run = run;
 
-  std::string TRDCalBase = "TRD_test";
-
   manager->SetRun(Run);
 
   time_t startTime = 0;

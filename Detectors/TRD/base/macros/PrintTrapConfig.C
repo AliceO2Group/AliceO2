@@ -217,7 +217,7 @@ void PrintTrapConfig(Int_t run, const Char_t* storageURI = "alien://folder=/alic
   AliCDBEntry* entry = NULL;
   Run = run;
 
-  std::string TRDCalBase = "TRD_test";
+  std::string TRDCalBase = "TRD";
 
   manager->SetRun(Run);
 
@@ -309,8 +309,8 @@ its all going here unfortunately ....
         PrintTrapConfigsAsStored(run2trapconfig);
         auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
         ccdbmgr.setTimestamp(297595);
-        // auto run3trapconfig = ccdbmgr.get<o2::trd::TrapConfig>("TRD_test/TrapConfig2020/cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549");
-        auto run3trapconfig = ccdbmgr.get<o2::trd::TrapConfig>("TRD_test/TrapConfig2020/c");
+        auto run3trapconfig = ccdbmgr.get<o2::trd::TrapConfig>("TRD/TrapConfig/cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549");
+        //auto run3trapconfig = ccdbmgr.get<o2::trd::TrapConfig>("TRD/Config/TrapConfig2020");
         if (run3trapconfig)
           PrintTrapConfigsAsStored3(run3trapconfig);
         //     ccdb.storeAsTFileAny(o2trapconfig, Form("%s/TrapConfig2020/%s", TRDCalBase.c_str(), run2trapconfigname.c_str()), metadata, 1, 1670700184549); //upper time chosen into the future else the server simply adds a year
