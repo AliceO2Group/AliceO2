@@ -26,7 +26,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     {
       "A",
-      {InputSpec{"somecondition", "TST", "textfile", 0, Lifetime::Condition, {ccdbParamSpec("TOF/LHCphase")}},
+      {InputSpec{"somecondition", "TST", "textfile", 0, Lifetime::Condition, ccdbParamSpec("TOF/LHCphase")},
        InputSpec{"somedata", "TST", "A1", 0, Lifetime::Timer, {startTimeParamSpec(1638548475370)}}},
       {},
       AlgorithmSpec{
