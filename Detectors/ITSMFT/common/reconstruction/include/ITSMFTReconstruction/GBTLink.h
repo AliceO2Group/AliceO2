@@ -124,6 +124,7 @@ struct GBTLink {
   }
 
  private:
+  bool needToPrintError(uint32_t count) { return verbosity == Silent ? false : (verbosity >= VerboseErrors || count == 1); }
   void discardData() { rawData.setDone(); }
   void printTrigger(const GBTTrigger* gbtTrg);
   void printHeader(const GBTDataHeader* gbtH);

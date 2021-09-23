@@ -13,6 +13,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/DataRefUtils.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
 
@@ -111,7 +112,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
 
     LOG(DEBUG) << "DataSampler sends data from subSpec: " << matcher.subSpec;
 
-    const auto* inputHeader = o2::header::get<o2::header::DataHeader*>(input.header);
+    const auto* inputHeader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
     auto& output = ctx.outputs().make<char>(description, inputHeader->size());
 
     //todo: use some std function or adopt(), when it is available for POD data

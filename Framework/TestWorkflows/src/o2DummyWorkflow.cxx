@@ -106,9 +106,9 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     AlgorithmSpec{
       [](ProcessingContext& ctx) {
         // We verify we got inputs in the correct order
-        auto h0 = o2::header::get<DataHeader*>(ctx.inputs().get("clusters").header);
-        auto h1 = o2::header::get<DataHeader*>(ctx.inputs().get("summary").header);
-        auto h2 = o2::header::get<DataHeader*>(ctx.inputs().get("other_summary").header);
+        auto h0 = DataRefUtils::getHeader<DataHeader*>(ctx.inputs().get("clusters"));
+        auto h1 = DataRefUtils::getHeader<DataHeader*>(ctx.inputs().get("summary"));
+        auto h2 = DataRefUtils::getHeader<DataHeader*>(ctx.inputs().get("other_summary"));
         // This should always be the case, since the
         // test for an actual DataHeader should happen in the device itself.
         assert(h0 && h1 && h2);

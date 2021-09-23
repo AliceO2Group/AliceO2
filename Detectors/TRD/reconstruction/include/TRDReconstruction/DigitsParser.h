@@ -25,6 +25,9 @@
 #include <fstream>
 #include <bitset>
 #include "TH1F.h"
+#include "TH2F.h"
+#include "TList.h"
+
 //using namespace o2::framework;
 
 namespace o2::trd
@@ -69,8 +72,17 @@ class DigitsParser
   uint64_t getDumpedDataCount() { return mWordsDumped; }
   uint64_t getDataWordsParsed() { return mDataWordsParsed; }
   void tryFindMCMHeaderAndDisplay(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse);
+  //void tryFindMCMHeaderAndDisplay(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse);
   void OutputIncomingData();
-  void setParsingHisto(TH1F* parsingerrors) { mParsingErrors = parsingerrors; }
+  void setParsingHisto(TH1F* parsingerrors, TList* parsingerrors2d)
+  {
+    mParsingErrors = parsingerrors;
+    mParsingErrors2d = parsingerrors2d;
+  }
+  void increment2dHist(int hist)
+  {
+    ((TH2F*)mParsingErrors2d->At(hist))->Fill(mFEEID.supermodule * 2 + mFEEID.side, mStack * constants::NLAYER + mLayer);
+  }
 
  private:
   int mState;
@@ -121,6 +133,7 @@ class DigitsParser
   std::array<uint16_t, constants::TIMEBINS> mADCValues{};
   std::array<uint16_t, constants::MAXMCMCOUNT> mMCMstats; // bit pattern for errors current event for a given mcm;
   TH1F* mParsingErrors;
+  TList* mParsingErrors2d;
 };
 
 } // namespace o2::trd

@@ -24,7 +24,7 @@ namespace o2
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getDigitSamplerSpec();
+o2::framework::DataProcessorSpec getDigitSamplerSpec(const char* specName = "mch-digit-sampler");
 
 } // end namespace mch
 } // end namespace o2

@@ -158,12 +158,7 @@ class PedestalCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-std::string getMCHPedestalCalibDeviceName()
-{
-  return "calib-mch-pedestal";
-}
-
-DataProcessorSpec getMCHPedestalCalibSpec(const std::string inputSpec)
+DataProcessorSpec getMCHPedestalCalibSpec(const char* specName, const std::string inputSpec)
 {
   constexpr int64_t INFINITE_TF = 0xffffffffffffffff;
   using device = o2::mch::calibration::PedestalCalibDevice;
@@ -175,7 +170,7 @@ DataProcessorSpec getMCHPedestalCalibSpec(const std::string inputSpec)
   outputs.emplace_back(OutputSpec{"MCH", "PEDESTALS", 0, Lifetime::Timeframe});
 
   return DataProcessorSpec{
-    getMCHPedestalCalibDeviceName(),
+    specName,
     select(inputSpec.data()),
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},

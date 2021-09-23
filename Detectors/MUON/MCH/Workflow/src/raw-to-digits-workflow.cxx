@@ -58,7 +58,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
 
   auto askSTFDist = !configcontext.options().get<bool>("ignore-dist-stf");
 
-  WorkflowSpec wf{o2::mch::raw::getDecodingSpec(inputSpec, askSTFDist)};
+  WorkflowSpec wf{o2::mch::raw::getDecodingSpec("mch-data-decoder", inputSpec, askSTFDist)};
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

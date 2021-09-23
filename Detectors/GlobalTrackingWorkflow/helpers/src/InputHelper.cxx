@@ -21,6 +21,7 @@
 #include "TPCReaderWorkflow/ClusterReaderSpec.h"
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/GlobalFwdTrackReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackCosmicsReaderSpec.h"
@@ -63,6 +64,9 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   }
   if (maskTracks[GID::MFT]) {
     specs.emplace_back(o2::mft::getMFTTrackReaderSpec(maskTracksMC[GID::MFT]));
+  }
+  if (maskClusters[GID::MFT]) {
+    specs.emplace_back(o2::itsmft::getMFTClusterReaderSpec(maskClustersMC[GID::MFT], true));
   }
   if (maskTracks[GID::MCH]) {
     specs.emplace_back(o2::mch::getTrackReaderSpec(maskTracksMC[GID::MCH]));
@@ -110,7 +114,9 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskTracks[GID::TPCTRD]) {
     specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(maskTracksMC[GID::TPCTRD], subSpecStrict));
   }
-
+  if (maskTracks[GID::MFTMCH]) {
+    specs.emplace_back(o2::globaltracking::getGlobalFwdTrackReaderSpec(maskTracksMC[GID::MFTMCH]));
+  }
   return 0;
 }
 

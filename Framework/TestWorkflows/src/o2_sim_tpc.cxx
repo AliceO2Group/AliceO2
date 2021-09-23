@@ -34,8 +34,6 @@
 
 using namespace o2::framework;
 
-using DataHeader = o2::header::DataHeader;
-
 #define BOX_GENERATOR 1
 
 namespace o2

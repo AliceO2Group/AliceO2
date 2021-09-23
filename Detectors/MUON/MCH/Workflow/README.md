@@ -6,7 +6,9 @@
 
 <!-- vim-markdown-toc GFM -->
 
+* [A note for developers](#a-note-for-developers)
 * [Raw to digits](#raw-to-digits)
+* [Time clustering](#time-clustering)
 * [Preclustering](#preclustering)
 * [Clustering](#clustering)
 * [CTF encoding/decoding](#ctf-encodingdecoding)
@@ -29,6 +31,17 @@
   * [Track writer](#track-writer)
 
 <!-- vim-markdown-toc -->
+
+
+## A note for developers
+
+When defining a function that returns a `DataProcessorSpec`, please stick to the following pattern for its parameters :
+
+    DataProcessorSpec getXXX([bool useMC], const char* specName="mch-xxx", other parameters);
+
+* first parameter, if relevant, should be a boolean indicating whether the processor has to deal with Monte Carlo data or not. For a processor that never has to deal with MC, leave that parameter out
+* second parameter is the name by which that device will be referenced in all log files, so, in order to be easily recognizable, it *must* start with the prefix `mch-`
+* the rest of the parameters (if any) is specific to each device
 
 ## Raw to digits
 
@@ -62,13 +75,28 @@ dataDescription = RAWDATA
 filePath = /home/data/data-de819-ped-raw.raw
 ```
 
+## Time clustering
+
+```shell
+o2-mch-digits-to-timeclusters-workflow
+```
+
+Take as input the list of all digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) in the current time frame, with the data description "DIGITS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the digits associated to each interaction, with the data description "DIGITROFS". Send a new list of ROF records that combine all the digits correlated in time within a user-defined time window, with the data description "TIMECLUSTERROFS".
+
+The option `--time-cluster-width xxx` allows to set the width of the time correlation window.
+
+The time clustering is based on a brute-force peak search algorithm, which arranges the input digits into coarse time bins. The number of bins in one time cluster window can be set via the `--peak-search-nbins` option.
+
 ## Preclustering
 
 ```shell
 o2-mch-digits-to-preclusters-workflow
 ```
 
-Take as input the list of all digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) in the current time frame, with the data description "DIGITS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the digits associated to each interaction, with the data description "DIGITROFS". Send the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction in three separate messages with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively.
+Take as input the list of all digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) in the current time frame, with the data description "DIGITS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the digits associated to each interaction.
+The ROF records input can have the data description "inputrofs:MCH/DIGITROFS" if the direct output of the raw decoder is used, or "inputrofs:MCH/TIMECLUSTERROFS" if the time clustering output is used (default option). The ROF input description can be set on the command line via the `rof-spec` option.
+
+Send the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction in three separate messages with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively.
 
 Option `--check-no-leftover-digits xxx` allows to drop an error message (`xxx = "error"` (default)) or an exception (`xxx = "fatal"`) in case not all the input digits end up in a precluster, or to disable this check (`xxx = "off"`).
 

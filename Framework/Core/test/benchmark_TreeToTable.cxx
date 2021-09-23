@@ -80,7 +80,7 @@ static void BM_TreeToTable(benchmark::State& state)
       }
 
     } else {
-      LOG(INFO) << "tree is empty!";
+      LOG(info) << "tree is empty!";
     }
 
     // clean up

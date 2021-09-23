@@ -38,7 +38,7 @@ namespace o2::trd
 class DataReaderTask : public Task
 {
  public:
-  DataReaderTask(int tracklethcheader, std::bitset<16> option) : mCompressedData(option[TRDCompressedDataBit]), mByteSwap(option[TRDByteSwapBit]), mFixDigitEndCorruption(option[TRDFixDigitCorruptionBit]), mTrackletHCHeaderState(tracklethcheader), mVerbose(option[TRDVerboseBit]), mHeaderVerbose(option[TRDHeaderVerboseBit]), mDataVerbose(option[TRDDataVerboseBit]), mEnableTimeInfo(option[TRDEnableTimeInfoBit]), mEnableStats(option[TRDEnableStatsBit]), mRootOutput(option[TRDEnableRootOutputBit]), mIgnoreTrackletHCHeader(option[TRDIgnoreTrackletHCHeaderBit]), mIgnoreDigitHCHeader(option[TRDIgnoreDigitHCHeaderBit]), mOptions(option) {}
+  DataReaderTask(int tracklethcheader, int halfchamberwords, int halfchambermajor, std::string histofilename, std::bitset<16> option) : mCompressedData(option[TRDCompressedDataBit]), mByteSwap(option[TRDByteSwapBit]), mFixDigitEndCorruption(option[TRDFixDigitCorruptionBit]), mTrackletHCHeaderState(tracklethcheader), mHalfChamberWords(halfchamberwords), mHalfChamberMajor(halfchambermajor), mHistogramsFilename(histofilename), mVerbose(option[TRDVerboseBit]), mHeaderVerbose(option[TRDHeaderVerboseBit]), mDataVerbose(option[TRDDataVerboseBit]), mEnableTimeInfo(option[TRDEnableTimeInfoBit]), mEnableStats(option[TRDEnableStatsBit]), mRootOutput(option[TRDEnableRootOutputBit]), mIgnoreTrackletHCHeader(option[TRDIgnoreTrackletHCHeaderBit]), mIgnoreDigitHCHeader(option[TRDIgnoreDigitHCHeaderBit]), mOptions(option) {}
   ~DataReaderTask() override = default;
   void init(InitContext& ic) final;
   void sendData(ProcessingContext& pc, bool blankframe = false);
@@ -47,6 +47,7 @@ class DataReaderTask : public Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) override;
 
   void setParsingErrorLabels();
+  void buildHistograms();
 
  private:
   CruRawReader mReader;                  // this will do the parsing, of raw data passed directly through the flp(no compression)
@@ -72,7 +73,9 @@ class DataReaderTask : public Task
   uint64_t mWordsRead = 0;
   uint64_t mWordsRejected = 0;
   int mTrackletHCHeaderState{0}; // what to do about tracklethcheader, 0 never there, 2 always there, 1 there iff tracklet data, i.e. only there if next word is *not* endmarker 10001000.
-
+  int mHalfChamberWords{0};      // if the halfchamber header is effectively blanked major.minor = 0.0 and halfchamberwords=0 then this value is used as the number of additional words to try recover the data
+  int mHalfChamberMajor{0};      // if the halfchamber header is effectively blanked major.minor = 0.0 and halfchamberwords=0 then this value is used as the major version to try recover the data
+  std::string mHistogramsFilename; // filename to use for histograms.
   std::string mDataDesc;
   o2::header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
   bool mFixDigitEndCorruption{false};                                                     // fix the parsing of corrupt end of digit data. bounce over it.
@@ -87,6 +90,10 @@ class DataReaderTask : public Task
   TH2F* LinkError5;
   TH2F* LinkError6;
   TH2F* LinkError7;
+  //std::array<TH2F*, constants::MAXLINKERRORHISTOGRAMS> mLinkErrors;
+  //std::array<TH2F*, constants::MAXPARSEERRORHISTOGRAMS> mParseErrors;
+  TList* mLinkErrors;
+  TList* mParseErrors;
   TH1F* mTimeFrameTime;
   TH1F* mTrackletParsingTime;
   TH1F* mDigitParsingTime;

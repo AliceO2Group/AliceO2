@@ -140,7 +140,7 @@ DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool usePatterns)
     outputSpec,
     AlgorithmSpec{adaptFromTask<MFTClusterReader>(useMC, usePatterns)},
     Options{
-      {"mft-cluster-infile", VariantType::String, "o2clus_mft.root", {"Name of the input cluster file"}},
+      {"mft-cluster-infile", VariantType::String, "mftclusters.root", {"Name of the input cluster file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 

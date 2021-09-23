@@ -95,9 +95,10 @@ class TrackITS : public o2::track::TrackParCov
   const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
 
   void setPattern(uint32_t p) { mPattern = p; }
-  int getPattern() const { return mPattern; }
+  uint32_t getPattern() const { return mPattern; }
   bool hasHitOnLayer(int i) { return mPattern & (0x1 << i); }
   bool isFakeOnLayer(int i) { return !(mPattern & (0x1 << (16 + i))); }
+  int getNFakeClusters();
 
   void setNextROFbit(bool toggle = true) { setUserField((getUserField() & ~kNextROF) | (-toggle & kNextROF)); }
   bool hasHitInNextROF() const { return getUserField() & kNextROF; }
@@ -131,6 +132,8 @@ class TrackITSExt : public TrackITS
   {
     setNumberOfClusters(ncl);
   }
+
+  GPUdDefault() TrackITSExt(const TrackITSExt& t) = default;
 
   void setClusterIndex(int l, int i)
   {

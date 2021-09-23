@@ -32,6 +32,8 @@ BOOST_AUTO_TEST_CASE(testTOFIndex)
   Bool_t ErrorPx = 0;
   Bool_t ErrorPz = 0;
 
+  o2::tof::Geo::InitIndices();
+
   for (Int_t i = 0; i < Geo::NSECTORS; i++) { // Loop on all Sectors
     indextof[0] = i;
     for (Int_t j = 0; j < Geo::NPLATES; j++) { // Loop on all Plates

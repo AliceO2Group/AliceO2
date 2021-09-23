@@ -17,6 +17,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/InputRecordWalker.h"
+#include "Framework/DataRefUtils.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/Helpers.h"
@@ -99,7 +100,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
 
       const auto& inputs = getWorkflowTPCInput(pc, 0, false, false, tpcSectorMask, true);
       sizes.resize(NSectors * NEndpoints);
-      const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
+      const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
       o2::InteractionRecord ir{0, dh->firstTForbit};
       o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit, DigitArray>(inputs->inputDigits, &zsoutput, sizes.data(), nullptr, &ir, _GPUParam, true, verify, config.configReconstruction.tpc.zsThreshold);
       ZeroSuppressedContainer8kb* page = reinterpret_cast<ZeroSuppressedContainer8kb*>(zsoutput.get());
@@ -153,7 +154,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
         if (useGrouping != LinksGrouping::Link) {
           writer.useCaching();
         }
-        ir = o2::raw::HBFUtils::Instance().getFirstIR();
+        ir = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
         o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(inputs->inputDigits, nullptr, nullptr, &writer, &ir, _GPUParam, true, false, config.configReconstruction.tpc.zsThreshold);
         writer.writeConfFile("TPC", "RAWDATA", fmt::format("{}tpcraw.cfg", outDir));
       }
@@ -252,7 +253,7 @@ DataProcessorSpec getZStoDigitsSpec(std::vector<int> const& tpcSectors)
       for (unsigned int i = 0; i < NSectors; i++) {
         outDigits[i].clear();
       }
-      o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
+      o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
       firstOrbit = ir.orbit;
       std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
       for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {

@@ -13,24 +13,27 @@
 // \brief Transient structures for ITS and MFT HW -> SW mapping
 
 #include "ITSMFTReconstruction/RUInfo.h"
-#include <bitset>
+#include "Framework/Logger.h"
 
 using namespace o2::itsmft;
 
+std::string ChipOnRUInfo::asString() const
+{
+  return fmt::format("ChonRu:{:3d} ModSW:{:2d} ChOnModSW:{:2d} CabSW:{:3d}| ChOnCab:{:1d} | CabHW:{:2d} | CabPos:{:2d} | ModHW:{:2d} | ChOnModHW:{:2d}",
+                     int(id), int(moduleSW), int(chipOnModuleSW), int(cableSW), int(chipOnCable), int(cableHW), int(cableHWPos), int(moduleHW), int(chipOnModuleHW));
+}
+
 void ChipOnRUInfo::print() const
 {
-  std::bitset<8> chw(cableHW), mhw(moduleHW);
-  printf("ChonRu:%3d ModSW:%2d ChOnModSW:%2d CabSW:%3d| ChOnCab:%d | CabHW: %8s (%2d) | ModHW: %8s | ChOnModHW: %2d\n",
-         id, moduleSW, chipOnModuleSW, cableSW, chipOnCable, chw.to_string().c_str(), cableHWPos,
-         mhw.to_string().c_str(), chipOnModuleHW);
+  LOG(INFO) << asString();
+}
+
+std::string ChipInfo::asString() const
+{
+  return fmt::format("CH{:5d} RUTyp:{:d} RU:{:3d} | {}", int(id), int(ruType), int(ru), chOnRU ? chOnRU->asString() : std::string{});
 }
 
 void ChipInfo::print() const
 {
-  printf("CH%5d RUTyp:%d RU:%3d | ", id, ruType, ru);
-  if (chOnRU) {
-    chOnRU->print();
-  } else {
-    printf("\n");
-  }
+  LOGP(INFO, asString());
 }

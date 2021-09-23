@@ -76,6 +76,8 @@ struct LtrCalibData {
 class CalibLaserTracks
 {
  public:
+  static constexpr size_t MinTrackPerSidePerTF = 50;
+
   CalibLaserTracks()
   {
     mLaserTracks.loadTracksFromFile();
@@ -136,8 +138,8 @@ class CalibLaserTracks
   void print() const;
 
   /// check amount of data (to be improved)
-  /// at least numTFs with laser track candidate and 50 tracks per side per TF
-  bool hasEnoughData(size_t numTFs = 1) const { return mCalibData.processedTFs >= numTFs && mZmatchPairsA.size() > 50 * numTFs && mZmatchPairsC.size() > 50 * numTFs; }
+  /// at least numTFs with laser track candidate and MinTrackPerSidePerTF tracks per side per TF
+  bool hasEnoughData(size_t numTFs = 1) const { return mCalibData.processedTFs >= numTFs && mZmatchPairsA.size() > MinTrackPerSidePerTF * numTFs && mZmatchPairsC.size() > MinTrackPerSidePerTF * numTFs; }
 
   /// number of associated laser tracks on both sides for all processed TFs
   size_t getMatchedPairs() const { return getMatchedPairsA() + getMatchedPairsC(); }
@@ -149,10 +151,10 @@ class CalibLaserTracks
   size_t getMatchedPairsC() const { return mZmatchPairsC.size(); }
 
   /// number of associated laser tracks presently processed TFs on the A-Side
-  size_t getMatchedPairsTFA() const { return mZmatchPairsA.size(); }
+  size_t getMatchedPairsTFA() const { return mZmatchPairsTFA.size(); }
 
   /// number of associated laser tracks presently processed TFs on the C-Side
-  size_t getMatchedPairsTFC() const { return mZmatchPairsC.size(); }
+  size_t getMatchedPairsTFC() const { return mZmatchPairsTFC.size(); }
 
   /// time frame time of presently processed time frame
   /// should be called before calling processTrack(s)

@@ -16,6 +16,7 @@
 
 #include "DPLUtils/Utils.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataRefUtils.h"
 #include <vector>
 
 namespace o2f = o2::framework;
@@ -56,10 +57,10 @@ o2f::DataProcessorSpec defineMerger(std::string devName, o2f::Inputs usrInputs, 
 o2f::DataProcessorSpec defineMerger(std::string devName, o2f::Inputs usrInputs, o2f::OutputSpec usrOutput)
 {
   // This lambda retrieves the payload size through the API and back-inserts it on the output buffer
-  auto funcMerge = [](OutputBuffer& buf, const o2f::DataRef d) {
-    auto msgSize = (o2::header::get<o2::header::DataHeader*>(d.header))->payloadSize;
+  auto funcMerge = [](OutputBuffer& buf, const o2f::DataRef ref) {
+    auto msgSize = o2::framework::DataRefUtils::getPayloadSize(ref);
     buf.resize(buf.size() + msgSize);
-    std::copy(&(d.payload[0]), &(d.payload[msgSize - 1]), std::back_inserter(buf));
+    std::copy(&(ref.payload[0]), &(ref.payload[msgSize - 1]), std::back_inserter(buf));
   };
   // Callling complete implementation
   return defineMerger(devName, usrInputs, usrOutput, funcMerge);

@@ -11,7 +11,6 @@
 
 #ifndef ALICEO2_ITSMFT_ALPIDE_CODER_H
 #define ALICEO2_ITSMFT_ALPIDE_CODER_H
-
 #include <Rtypes.h>
 #include <cstdio>
 #include <cstdint>
@@ -74,6 +73,7 @@ class AlpideCoder
   static constexpr uint32_t ExpectData = 0x1 << 4;
   static constexpr uint32_t ExpectBUSY = 0x1 << 5;
   static constexpr int NRows = 512;
+  static constexpr int RowMask = NRows - 1;
   static constexpr int NCols = 1024;
   static constexpr int NRegions = 32;
   static constexpr int NDColInReg = NCols / NRegions / 2;
@@ -225,7 +225,7 @@ class AlpideCoder
           uint16_t row = pixID >> 1;
           // abs id of left column in double column
           uint16_t colD = (region * NDColInReg + dColID) << 1; // TODO consider <<4 instead of *NDColInReg?
-
+          bool rightC = (row & 0x1) ? !(pixID & 0x1) : (pixID & 0x1); // true for right column / lalse for left
           // if we start new double column, transfer the hits accumulated in the right column buffer of prev. double column
           if (colD != colDPrev) {
             colDPrev++;
@@ -240,6 +240,7 @@ class AlpideCoder
           // this is a special test to exclude repeated data of the same pixel fired
           else if (row == rowPrev) { // same row/column fired repeatedly, hope this check is temporary
             chipData.setError(ChipStat::RepeatingPixel);
+            chipData.addErrorInfo((uint64_t(colD + rightC) << 16) | uint64_t(row));
             if ((dataS & (~MaskDColID)) == DATALONG) { // skip pattern w/o decoding
               uint8_t hitsPattern = 0;
               if (!buffer.next(hitsPattern)) {
@@ -256,7 +257,6 @@ class AlpideCoder
             rowPrev = row;
 #endif
           }
-          bool rightC = (row & 0x1) ? !(pixID & 0x1) : (pixID & 0x1); // true for right column / lalse for left
 
           // we want to have hits sorted in column/row, so the hits in right column of given double column
           // are first collected in the temporary buffer
@@ -283,6 +283,12 @@ class AlpideCoder
             for (int ip = 0; ip < HitMapSize; ip++) {
               if (hitsPattern & (0x1 << ip)) {
                 uint16_t addr = pixID + ip + 1, rowE = addr >> 1;
+                if (addr & ~MaskPixID) {
+#ifdef ALPIDE_DECODING_STAT
+                  chipData.setError(ChipStat::WrongRow);
+#endif
+                  return unexpectedEOF(fmt::format("Non-existing encoder {} decoded, DataLong was {:x}", pixID, dataS));
+                }
                 rightC = ((rowE & 0x1) ? !(addr & 0x1) : (addr & 0x1)); // true for right column / lalse for left
                 // the real columnt is int colE = colD + rightC;
                 if (rightC) { // same as above

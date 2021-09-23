@@ -219,10 +219,10 @@ class TrackAtVertexTask
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getTrackAtVertexSpec(const char* name)
+o2::framework::DataProcessorSpec getTrackAtVertexSpec(const char* specName)
 {
   return DataProcessorSpec{
-    name,
+    specName,
     Inputs{InputSpec{"vertices", "MCH", "VERTICES", 0, Lifetime::Timeframe},
            InputSpec{"rofs", "MCH", "TRACKROFS", 0, Lifetime::Timeframe},
            InputSpec{"tracks", "MCH", "TRACKS", 0, Lifetime::Timeframe},

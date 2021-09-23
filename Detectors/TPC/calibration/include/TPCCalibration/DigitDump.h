@@ -115,6 +115,8 @@ class DigitDump : public CalibRawBase
     for (auto& digits : mDigits) {
       digits.clear();
     }
+
+    mTimeBinOccupancy.clear();
   }
 
   /// set in memory only mode
@@ -125,6 +127,10 @@ class DigitDump : public CalibRawBase
 
   /// return digits for specific sector
   std::vector<Digit>& getDigits(int sector) { return mDigits[sector]; }
+
+  /// return digit array
+  const auto& getDigits() const { return mDigits; }
+  auto& getDigits() { return mDigits; }
 
   /// directly add a digit
   void addDigit(const CRU& cru, const float signal, const int rowInSector, const int padInRow, const int timeBin)

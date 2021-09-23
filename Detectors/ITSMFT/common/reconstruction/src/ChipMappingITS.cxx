@@ -39,32 +39,27 @@ constexpr std::array<uint8_t, ChipMappingITS::NSubB> ChipMappingITS::GBTHeaderFl
 constexpr std::uint8_t ChipMappingITS::ChipOBModSW2HW[14];
 constexpr std::uint8_t ChipMappingITS::ChipOBModHW2SW[15];
 
-//______________________________________________
 ChipMappingITS::ChipMappingITS()
 {
+  // FEE ID field in RDH is 16-bit wide
+  // Each RU has 10-bit DIPSWITCH, use bits 9:2 as an 8bit ID field to be mapped to FEE ID field in RDH
+
+  // | Lr |Stave Count| Bin. pref | Range of Binary Addresses
+  // |    |= RU Count | Stave addr|
+  // |----------------------------------------------------------
+  // | L0 |   12      |b 0000xxxx | 0000_0000 : 0000_1011 (0 – 11)
+  // | L1 |   16      |b 0001xxxx | 0001_0000 : 0001_1111 (0 – 15)
+  // | L2 |   20      |b 001xxxxx | 001_00000 : 001_10011 (0 – 19)
+  // | L3 |   24      |b 010xxxxx | 010_00000 : 010_10111 (0 – 23)
+  // | L4 |   30      |b 011xxxxx | 011_00000 : 011_11101 (0 – 29)
+  // | L5 |   42      |b 10xxxxxx | 10_000000 : 10_101001 (0 – 41)
+  // | L6 |   48      |b 11xxxxxx | 11_000000 : 11_101111 (0 – 47)
+
+  // FEEId format:
+  // 15|14   12|11    10 |9     8|7  6|5           0|
+  //  0| Layer | Reserve | Fiber | 00 | StaveNumber |
+
   // init chips info
-
-  /*
-    FEE ID field in RDH is 16-bit wide
-    Each RU has 10-bit DIPSWITCH, use bits 9:2 as an 8bit ID field to be mapped to FEE ID field in RDH
-
-    | Lr |Stave Count| Bin. pref | Range of Binary Addresses
-    |    |= RU Count | Stave addr| 
-    |----------------------------------------------------------
-    | L0 |   12      |b 0000xxxx | 0000_0000 : 0000_1011 (0 – 11)
-    | L1 |   16      |b 0001xxxx | 0001_0000 : 0001_1111 (0 – 15)
-    | L2 |   20      |b 001xxxxx | 001_00000 : 001_10011 (0 – 19)
-    | L3 |   24      |b 010xxxxx | 010_00000 : 010_10111 (0 – 23)
-    | L4 |   30      |b 011xxxxx | 011_00000 : 011_11101 (0 – 29)
-    | L5 |   42      |b 10xxxxxx | 10_000000 : 10_101001 (0 – 41)
-    | L6 |   48      |b 11xxxxxx | 11_000000 : 11_101111 (0 – 47)
-
-    FEEId format:
-    15|14   12|11    10 |9     8|7  6|5           0|
-     0| Layer | Reserve | Fiber | 00 | StaveNumber |
-
-   */
-
   uint32_t maxRUHW = composeFEEId(NLayers - 1, NStavesOnLr[NLayers - 1], NLinks - 1); // Max possible FEE ID
   assert(maxRUHW < 0xffff);
   mFEEId2RUSW.resize(maxRUHW + 1, 0xff);
@@ -94,7 +89,7 @@ ChipMappingITS::ChipMappingITS()
   }
 
   // [i][j] gives lane id for  lowest(i=0) and highest(i=1) 7 chips of HW module (j+1) (1-4 for ML, 1-7 for OL)
-  const int LANEID[2][7] = {{6, 5, 4, 3, 2, 1, 0}, {0, 1, 2, 3, 4, 5, 6}};
+  const int LANEID[2][7] = {{0, 1, 2, 3, 4, 5, 6}, {6, 5, 4, 3, 2, 1, 0}};
   const int maxModulesPerStave = NModulesPerStaveSB[OB];
   const int chipsOnCable = 7;
   for (int bid = MB; bid <= OB; bid++) { // MB and OB staves have similar layout
@@ -113,12 +108,12 @@ ChipMappingITS::ChipMappingITS()
       cInfo.chipOnModuleSW = i % NChipsPerModuleSB[bid];
       cInfo.chipOnModuleHW = ChipOBModSW2HW[cInfo.chipOnModuleSW];
 
-      bool upper7 = cInfo.chipOnModuleSW >= (NChipsPerModuleSB[bid] / 2);
+      bool lower7 = cInfo.chipOnModuleSW < (NChipsPerModuleSB[bid] / 2);
 
-      uint8_t connector = 2 * hstave + upper7;
-      cInfo.cableHW = (connector << 3) + LANEID[upper7][cInfo.moduleHW - 1];
+      uint8_t connector = 2 * hstave + lower7, connectorInv = 2 * hstave + (!lower7);
+      cInfo.cableHW = (connector << 3) + LANEID[!lower7][cInfo.moduleHW - 1];
       cInfo.cableSW = i / chipsOnCable;
-      cInfo.cableHWPos = LANEID[upper7][cInfo.moduleHW - 1] + connector * maxModulesPerStave / 2;
+      cInfo.cableHWPos = LANEID[lower7][cInfo.moduleHW - 1] + connectorInv * maxModulesPerStave / 2;
       mCablesOnStaveSB[bid] |= 0x1 << cInfo.cableHWPos;                        // account in lanes pattern
       cInfo.chipOnCable = cInfo.chipOnModuleSW % (NChipsPerModuleSB[bid] / 2); // each cable serves half module
       mCableHW2SW[bid][cInfo.cableHW] = cInfo.cableSW;
@@ -167,17 +162,14 @@ ChipMappingITS::ChipMappingITS()
 void ChipMappingITS::print() const
 {
   int ctrChip = 0;
-  printf("\n\nSubBarrel IB\n");
-  for (int i = 0; i < NChipsPerStaveSB[IB]; i++) {
-    mChipsInfo[ctrChip++].print();
-  }
-  printf("\n\nSubBarrel MB\n");
-  for (int i = 0; i < NChipsPerStaveSB[MB]; i++) {
-    mChipsInfo[ctrChip++].print();
-  }
-  printf("\n\nSubBarrel OB\n");
-  for (int i = 0; i < NChipsPerStaveSB[OB]; i++) {
-    mChipsInfo[ctrChip++].print();
+  const std::string bnames[3] = {"IB", "MB", "OB"};
+  const int lrpr[3] = {0, 3, 5};
+  for (int ib = 0; ib < NSubB; ib++) {
+    printf("\n\nSubBarrel %s\nCablesPattern %s\n", bnames[ib].c_str(), std::bitset<32>(mCablesOnStaveSB[ib]).to_string().c_str());
+    const auto ruInfo = getRUInfoSW(getFirstStavesOnLr(lrpr[ib]));
+    for (int i = 0; i < NChipsPerStaveSB[ib]; i++) {
+      printf("%s | %s\n", mChipsInfo[ctrChip++].asString().c_str(), getChipNameHW(i + ruInfo->firstChipIDSW).c_str());
+    }
   }
 }
 

@@ -22,6 +22,7 @@
 #include "Framework/SerializationMethods.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/ConcreteDataMatcher.h"
+#include "Framework/DataRefUtils.h"
 #include "Headers/DataHeader.h"
 #include "TestClasses.h"
 #include "Framework/Logger.h"
@@ -188,12 +189,12 @@ DataProcessorSpec getSinkSpec()
     using DataHeader = o2::header::DataHeader;
     for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
       auto const& input = *iit;
-      LOG(INFO) << (*iit).spec->binding << " " << (iit.isValid() ? "is valid" : "is not valid");
+      LOG(info) << (*iit).spec->binding << " " << (iit.isValid() ? "is valid" : "is not valid");
       if (iit.isValid() == false) {
         continue;
       }
-      auto* dh = o2::header::get<const DataHeader*>(input.header);
-      LOG(INFO) << "{" << dh->dataOrigin.str << ":" << dh->dataDescription.str << ":" << dh->subSpecification << "}"
+      auto* dh = DataRefUtils::getHeader<const DataHeader*>(input);
+      LOG(info) << "{" << dh->dataOrigin.str << ":" << dh->dataDescription.str << ":" << dh->subSpecification << "}"
                 << " payload size " << dh->payloadSize;
 
       using DumpStackFctType = std::function<void(const o2::header::BaseHeader*)>;
@@ -208,10 +209,10 @@ DataProcessorSpec getSinkSpec()
       dumpStack(dh);
 
       if ((*iit).spec->binding == "inputMP") {
-        LOG(INFO) << "inputMP with " << iit.size() << " part(s)";
+        LOG(info) << "inputMP with " << iit.size() << " part(s)";
         int nPart = 0;
         for (auto const& ref : iit) {
-          LOG(INFO) << "accessing part " << nPart++ << " of input slot 'inputMP':"
+          LOG(info) << "accessing part " << nPart++ << " of input slot 'inputMP':"
                     << pc.inputs().get<int>(ref);
           ASSERT_ERROR(pc.inputs().get<int>(ref) == nPart * 10);
         }
@@ -219,10 +220,10 @@ DataProcessorSpec getSinkSpec()
       }
     }
     // plain, unserialized object in input1 channel
-    LOG(INFO) << "extracting o2::test::TriviallyCopyable from input1";
+    LOG(info) << "extracting o2::test::TriviallyCopyable from input1";
     auto object1 = pc.inputs().get<o2::test::TriviallyCopyable>("input1");
     ASSERT_ERROR(object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
-    LOG(INFO) << "extracting span of o2::test::TriviallyCopyable from input1";
+    LOG(info) << "extracting span of o2::test::TriviallyCopyable from input1";
     auto object1span = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input1");
     ASSERT_ERROR(object1span.size() == 1);
     ASSERT_ERROR(sizeof(typename decltype(object1span)::value_type) == sizeof(o2::test::TriviallyCopyable));
@@ -235,68 +236,68 @@ DataProcessorSpec getSinkSpec()
     ASSERT_ERROR(metaHeader2 != nullptr && metaHeader2->secret == 23);
 
     // ROOT-serialized messageable object in input2 channel
-    LOG(INFO) << "extracting o2::test::TriviallyCopyable pointer from input2";
+    LOG(info) << "extracting o2::test::TriviallyCopyable pointer from input2";
     auto object2 = pc.inputs().get<o2::test::TriviallyCopyable*>("input2");
     ASSERT_ERROR(object2 != nullptr);
     ASSERT_ERROR(*object2 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
     // ROOT-serialized, non-messageable object in input3 channel
-    LOG(INFO) << "extracting o2::test::Polymorphic pointer from input3";
+    LOG(info) << "extracting o2::test::Polymorphic pointer from input3";
     auto object3 = pc.inputs().get<o2::test::Polymorphic*>("input3");
     ASSERT_ERROR(object3 != nullptr);
     ASSERT_ERROR(*object3 == o2::test::Polymorphic(0xbeef));
 
     // container of objects
-    LOG(INFO) << "extracting vector of o2::test::Polymorphic from input4";
+    LOG(info) << "extracting vector of o2::test::Polymorphic from input4";
     auto object4 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input4");
     ASSERT_ERROR(object4.size() == 2);
     ASSERT_ERROR(object4[0] == o2::test::Polymorphic(0xaffe));
     ASSERT_ERROR(object4[1] == o2::test::Polymorphic(0xd00f));
 
     // container of objects
-    LOG(INFO) << "extracting vector of o2::test::Polymorphic from input5";
+    LOG(info) << "extracting vector of o2::test::Polymorphic from input5";
     auto object5 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input5");
     ASSERT_ERROR(object5.size() == 2);
     ASSERT_ERROR(object5[0] == o2::test::Polymorphic(0xaffe));
     ASSERT_ERROR(object5[1] == o2::test::Polymorphic(0xd00f));
 
     // container of objects
-    LOG(INFO) << "extracting vector of o2::test::Polymorphic from input6";
+    LOG(info) << "extracting vector of o2::test::Polymorphic from input6";
     auto object6 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input6");
     ASSERT_ERROR(object6.size() == 2);
     ASSERT_ERROR(object6[0] == o2::test::Polymorphic(0xaffe));
     ASSERT_ERROR(object6[1] == o2::test::Polymorphic(0xd00f));
 
     // checking retrieving buffer as raw char*, and checking content by cast
-    LOG(INFO) << "extracting raw char* from input1";
+    LOG(info) << "extracting raw char* from input1";
     auto rawchar = pc.inputs().get<const char*>("input1");
     const auto& data1 = *reinterpret_cast<const o2::test::TriviallyCopyable*>(rawchar);
     ASSERT_ERROR(data1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
-    LOG(INFO) << "extracting o2::test::TriviallyCopyable from input7";
+    LOG(info) << "extracting o2::test::TriviallyCopyable from input7";
     auto object7 = pc.inputs().get<o2::test::TriviallyCopyable>("input7");
     ASSERT_ERROR(object1 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
-    LOG(INFO) << "extracting span of o2::test::TriviallyCopyable from input8";
+    LOG(info) << "extracting span of o2::test::TriviallyCopyable from input8";
     auto objectspan8 = DataRefUtils::as<o2::test::TriviallyCopyable>(pc.inputs().get("input8"));
     ASSERT_ERROR(objectspan8.size() == 3);
     for (auto const& object8 : objectspan8) {
       ASSERT_ERROR(object8 == o2::test::TriviallyCopyable(42, 23, 0xdead));
     }
 
-    LOG(INFO) << "extracting std::string from input9";
+    LOG(info) << "extracting std::string from input9";
     auto object9 = pc.inputs().get<std::string>("input9");
     ASSERT_ERROR(object9 == "adoptchunk");
 
-    LOG(INFO) << "extracting o2::test::TriviallyCopyable from input10";
+    LOG(info) << "extracting o2::test::TriviallyCopyable from input10";
     auto object10 = pc.inputs().get<o2::test::TriviallyCopyable>("input10");
     ASSERT_ERROR(object10 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
-    LOG(INFO) << "extracting o2::test::TriviallyCopyable from input11";
+    LOG(info) << "extracting o2::test::TriviallyCopyable from input11";
     auto object11 = pc.inputs().get<o2::test::TriviallyCopyable>("input11");
     ASSERT_ERROR(object11 == o2::test::TriviallyCopyable(42, 23, 0xdead));
 
-    LOG(INFO) << "extracting the original std::vector<o2::test::TriviallyCopyable> as span from input12";
+    LOG(info) << "extracting the original std::vector<o2::test::TriviallyCopyable> as span from input12";
     auto object12 = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input12");
     ASSERT_ERROR(object12.size() == 2);
     ASSERT_ERROR((object12[0] == o2::test::TriviallyCopyable{42, 23, 0xdead}));
@@ -304,28 +305,28 @@ DataProcessorSpec getSinkSpec()
     // forward the read-only span on a different route
     pc.outputs().snapshot(Output{"TST", "MSGABLVECTORCPY", 0, Lifetime::Timeframe}, object12);
 
-    LOG(INFO) << "extracting TNamed object from input13";
+    LOG(info) << "extracting TNamed object from input13";
     auto object13 = pc.inputs().get<TNamed*>("input13");
     ASSERT_ERROR(strcmp(object13->GetName(), "a_name") == 0);
     ASSERT_ERROR(strcmp(object13->GetTitle(), "a_title") == 0);
 
-    LOG(INFO) << "extracting Root-serialized Non-TObject from input14";
+    LOG(info) << "extracting Root-serialized Non-TObject from input14";
     auto object14 = pc.inputs().get<o2::test::Polymorphic*>("input14");
     ASSERT_ERROR(*object14 == o2::test::Polymorphic{0xbeef});
 
-    LOG(INFO) << "extracting Root-serialized vector from input15";
+    LOG(info) << "extracting Root-serialized vector from input15";
     auto object15 = pc.inputs().get<std::vector<o2::test::Polymorphic>>("input15");
     ASSERT_ERROR(object15[0] == o2::test::Polymorphic{0xacdc});
     ASSERT_ERROR(object15[1] == o2::test::Polymorphic{0xbeef});
 
-    LOG(INFO) << "extracting PMR vector";
+    LOG(info) << "extracting PMR vector";
     auto pmrspan = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("inputPMR");
     ASSERT_ERROR((pmrspan[0] == o2::test::TriviallyCopyable{1, 2, 3}));
     auto dataref = pc.inputs().get<DataRef>("inputPMR");
-    auto header = o2::header::get<const o2::header::DataHeader*>(dataref.header);
+    auto header = DataRefUtils::getHeader<const o2::header::DataHeader*>(dataref);
     ASSERT_ERROR((header->payloadSize == sizeof(o2::test::TriviallyCopyable)));
 
-    LOG(INFO) << "extracting POD vector";
+    LOG(info) << "extracting POD vector";
     // TODO: use the ReturnType helper once implemented
     //InputRecord::ReturnType<std::vector<int>> podvector;
     decltype(std::declval<InputRecord>().get<std::vector<int>>(DataRef{nullptr, nullptr, nullptr})) podvector;
@@ -367,18 +368,18 @@ DataProcessorSpec getSpectatorSinkSpec()
     int nPart = 0;
     for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
       auto const& input = *iit;
-      LOG(INFO) << (*iit).spec->binding << " " << (iit.isValid() ? "is valid" : "is not valid");
+      LOG(info) << (*iit).spec->binding << " " << (iit.isValid() ? "is valid" : "is not valid");
       if (iit.isValid() == false) {
         continue;
       }
-      auto* dh = o2::header::get<const DataHeader*>(input.header);
-      LOG(INFO) << "{" << dh->dataOrigin.str << ":" << dh->dataDescription.str << ":" << dh->subSpecification << "}"
+      auto* dh = DataRefUtils::getHeader<const DataHeader*>(input);
+      LOG(info) << "{" << dh->dataOrigin.str << ":" << dh->dataDescription.str << ":" << dh->subSpecification << "}"
                 << " payload size " << dh->payloadSize;
 
       if ((*iit).spec->binding == "inputMP") {
-        LOG(INFO) << "inputMP with " << iit.size() << " part(s)";
+        LOG(info) << "inputMP with " << iit.size() << " part(s)";
         for (auto const& ref : iit) {
-          LOG(INFO) << "accessing part " << nPart << " of input slot 'inputMP':"
+          LOG(info) << "accessing part " << nPart << " of input slot 'inputMP':"
                     << pc.inputs().get<int>(ref);
           nPart++;
           ASSERT_ERROR(pc.inputs().get<int>(ref) == nPart * 10);
@@ -386,7 +387,7 @@ DataProcessorSpec getSpectatorSinkSpec()
       }
     }
     ASSERT_ERROR(nPart == 3);
-    LOG(INFO) << "extracting the forwarded gsl::span<o2::test::TriviallyCopyable> as span from input12";
+    LOG(info) << "extracting the forwarded gsl::span<o2::test::TriviallyCopyable> as span from input12";
     auto object12 = pc.inputs().get<gsl::span<o2::test::TriviallyCopyable>>("input12");
     ASSERT_ERROR(object12.size() == 2);
     ASSERT_ERROR((object12[0] == o2::test::TriviallyCopyable{42, 23, 0xdead}));

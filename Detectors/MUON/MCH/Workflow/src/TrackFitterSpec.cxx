@@ -128,10 +128,10 @@ class TrackFitterTask
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getTrackFitterSpec()
+o2::framework::DataProcessorSpec getTrackFitterSpec(const char* specName)
 {
   return DataProcessorSpec{
-    "TrackFitter",
+    specName,
     Inputs{InputSpec{"rofsin", "MCH", "TRACKROFSIN", 0, Lifetime::Timeframe},
            InputSpec{"tracksin", "MCH", "TRACKSIN", 0, Lifetime::Timeframe},
            InputSpec{"clustersin", "MCH", "TRACKCLUSTERSIN", 0, Lifetime::Timeframe}},

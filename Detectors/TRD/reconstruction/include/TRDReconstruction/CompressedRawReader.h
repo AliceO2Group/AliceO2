@@ -70,9 +70,9 @@ class CompressedRawReader
 
   inline uint32_t getDecoderByteCounter() const { return reinterpret_cast<const char*>(mDataPointer) - mDataBuffer; };
 
-  void setVerbosity(bool v) { mVerbose = v; };
-  void setDataVerbosity(bool v) { mDataVerbose = v; };
-  void setHeaderVerbosity(bool v) { mHeaderVerbose = v; };
+  void setVerbose(bool v) { mVerbose = v; };
+  void setDataVerbose(bool v) { mDataVerbose = v; };
+  void setHeaderVerbose(bool v) { mHeaderVerbose = v; };
   void configure(std::bitset<16> options)
   {
     mByteSwap = options[TRDByteSwapBit];

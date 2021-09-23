@@ -37,5 +37,5 @@ WorkflowSpec defineDataProcessing(const ConfigContext& config)
 {
   bool mchTracks = !config.options().get<bool>("tracksAtVertexOnly");
   bool tracksAtVtx = !config.options().get<bool>("mchTracksOnly");
-  return WorkflowSpec{o2::mch::getTrackSinkSpec(mchTracks, tracksAtVtx)};
+  return WorkflowSpec{o2::mch::getTrackSinkSpec("mch-track-sink", mchTracks, tracksAtVtx)};
 }

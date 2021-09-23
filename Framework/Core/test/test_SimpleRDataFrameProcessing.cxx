@@ -24,7 +24,6 @@
 #include <memory>
 
 using namespace o2::framework;
-using DataHeader = o2::header::DataHeader;
 
 /// Example of how to use ROOT::RDataFrame using DPL.
 WorkflowSpec defineDataProcessing(ConfigContext const&)
@@ -74,22 +73,22 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             /// auto rdf = ctx.inputs().get<RDataSource>("xz");
             auto table = s->asArrowTable();
             if (table->num_rows() != 100) {
-              LOG(ERROR) << "Wrong number of entries for the arrow table" << table->num_rows();
+              LOG(error) << "Wrong number of entries for the arrow table" << table->num_rows();
             }
 
             if (table->num_columns() != 2) {
-              LOG(ERROR) << "Wrong number of columns for the arrow table" << table->num_columns();
+              LOG(error) << "Wrong number of columns for the arrow table" << table->num_columns();
             }
 
             auto source = std::make_unique<ROOT::RDF::RArrowDS>(s->asArrowTable(), std::vector<std::string>{});
             ROOT::RDataFrame rdf(std::move(source));
 
             if (*rdf.Count() != 100) {
-              LOG(ERROR) << "Wrong number of entries for the DataFrame" << *rdf.Count();
+              LOG(error) << "Wrong number of entries for the DataFrame" << *rdf.Count();
             }
 
             if (*rdf.Mean("z") - 3.f > 0.1f) {
-              LOG(ERROR) << "Wrong average for z";
+              LOG(error) << "Wrong average for z";
             }
 
             control.readyToQuit(QuitRequest::All);

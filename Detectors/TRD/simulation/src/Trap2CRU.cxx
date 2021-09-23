@@ -582,7 +582,7 @@ int Trap2CRU::writeDigitHCHeader(const int eventcount, const uint32_t linkid)
   digitheader1.numtimebins = 30;
   memcpy(mRawDataPtr, (char*)&digitheader, sizeof(DigitHCHeader)); // 8 because we are only using the first 2 32bit words of the header, the rest are optional.
   mRawDataPtr += sizeof(DigitHCHeader);
-  memcpy(mRawDataPtr, (char*)&digitheader, sizeof(DigitHCHeader1)); // 8 because we are only using the first 2 32bit words of the header, the rest are optional.
+  memcpy(mRawDataPtr, (char*)&digitheader1, sizeof(DigitHCHeader1)); // 8 because we are only using the first 2 32bit words of the header, the rest are optional.
   mRawDataPtr += sizeof(DigitHCHeader1);
   wordswritten += 2;
   return wordswritten;

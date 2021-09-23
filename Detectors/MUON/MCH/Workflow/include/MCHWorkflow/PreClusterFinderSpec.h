@@ -24,7 +24,9 @@ namespace o2
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getPreClusterFinderSpec(const char* name = "PreClusterFinder");
+o2::framework::DataProcessorSpec
+  getPreClusterFinderSpec(const char* specName = "PreClusterFinder",
+                          const char* digitRofDataDescription = "DIGITROFS");
 
 } // end namespace mch
 } // end namespace o2

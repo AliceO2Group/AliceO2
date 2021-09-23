@@ -18,6 +18,7 @@
 #include "ITStracking/Cell.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/IndexTableUtils.h"
+#include "ITStracking/Smoother.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/TrackerTraitsCPU.h"
@@ -307,6 +308,9 @@ void Tracker::findTracks()
     tracks.emplace_back(temporaryTrack);
   }
 
+  if (mApplySmoothing) {
+    // Smoothing tracks
+  }
   std::sort(tracks.begin(), tracks.end(),
             [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });
 
@@ -523,9 +527,6 @@ void Tracker::computeRoadsMClabels()
 
 void Tracker::computeTracksMClabels()
 {
-  if (!mTimeFrame->hasMCinformation()) {
-    return;
-  }
 
   for (int iROF{0}; iROF < mTimeFrame->getNrof(); ++iROF) {
     for (auto& track : mTimeFrame->getTracks(iROF)) {

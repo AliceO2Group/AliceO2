@@ -14,6 +14,7 @@
 
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
+#include "Framework/Logger.h"
 #include <cassert>
 #include <bitset>
 
@@ -35,4 +36,13 @@ void ChipPixelData::print() const
   for (int i = 0; i < mPixels.size(); i++) {
     printf("#%4d C:%4d R: %3d %s\n", i, mPixels[i].getCol(), mPixels[i].getRow(), mPixels[i].isMasked() ? "*" : "");
   }
+}
+
+std::string ChipPixelData::getErrorDetails(int pos) const
+{
+  // if possible, extract more detailed info about the error
+  if (pos == int(ChipStat::RepeatingPixel)) {
+    return fmt::format(": row{}/col{}", mErrorInfo & 0xffff, (mErrorInfo >> 16) & 0xffff);
+  }
+  return {};
 }

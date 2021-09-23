@@ -197,7 +197,7 @@ o2::framework::DataProcessorSpec getDigitsToRawSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<DigitsToRawSpec>()},
     Options{{"outdir", VariantType::String, "./", {"base dir for output file"}},
-            {"file-for", VariantType::String, "all", {"single file per: all,flp,link"}},
+            {"file-for", VariantType::String, "all", {"single file per: all,flp,link,cru"}},
             {"outfile", VariantType::String, "hmpid", {"base name for output file"}},
             {"in-file", VariantType::String, "hmpiddigits.root", {"name of the input sim root file"}},
             {"dump-digits", VariantType::Bool, false, {"out the digits file in /tmp/hmpDumpDigits.dat"}},

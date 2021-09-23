@@ -140,7 +140,10 @@ struct ExpirationHandlerHelpers {
 
   static RouteConfigurator::DanglingConfigurator danglingConditionConfigurator()
   {
-    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireAlways(); };
+    return [](DeviceState&, ConfigParamRegistry const& options) {
+      auto serverUrl = options.get<std::string>("condition-backend");
+      return LifetimeHelpers::expectCTP(serverUrl, true);
+    };
   }
 
   static RouteConfigurator::ExpirationConfigurator expiringConditionConfigurator(InputSpec const& spec, std::string const& sourceChannel)

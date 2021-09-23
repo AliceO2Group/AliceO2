@@ -19,6 +19,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
 #include "MCHWorkflow/PreClusterFinderSpec.h"
+#include "MCHWorkflow/TimeClusterFinderSpec.h"
 #include "MCHWorkflow/TrackWriterSpec.h"
 #include "TrackFinderSpec.h"
 #include "TrackFitterSpec.h"
@@ -35,6 +36,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"disable-time-clustering", o2::framework::VariantType::Bool, false, {"disable time clustering step (for debug only)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -51,20 +53,29 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
   auto disableRootInput = configcontext.options().get<bool>("disable-root-input");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto enableTimeClustering = !configcontext.options().get<bool>("disable-time-clustering");
+
+  const char* digitRofDataDescription =
+    enableTimeClustering ? "TIMECLUSTERROFS" : "DIGITROFS";
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   if (!disableRootInput) {
     specs.emplace_back(o2::mch::getDigitReaderSpec(useMC, "mch-sim-digit-reader"));
   }
-  specs.emplace_back(o2::mch::getPreClusterFinderSpec("mch-precluster-finder"));
+  if (enableTimeClustering) {
+    specs.emplace_back(o2::mch::getTimeClusterFinderSpec("mch-time-cluster-finder"));
+  }
+
+  specs.emplace_back(o2::mch::getPreClusterFinderSpec("mch-precluster-finder",
+                                                      digitRofDataDescription));
   specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
   specs.emplace_back(o2::mch::getClusterTransformerSpec());
   specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder"));
 
   if (!disableRootOutput) {
     if (useMC) {
-      specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder"));
+      specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder", digitRofDataDescription));
     }
     specs.emplace_back(o2::mch::getTrackWriterSpec(useMC, "mch-track-writer", "mchtracks.root"));
   }

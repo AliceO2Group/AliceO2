@@ -47,7 +47,7 @@ int main(int argc, char** argv)
   verifyTable<o2::aod::Collisions>(infile.get(), "O2collision");
   verifyTable<o2::aod::StoredTracks>(infile.get(), "O2track");
   verifyTable<o2::aod::StoredTracksCov>(infile.get(), "O2track");
-  verifyTable<o2::aod::TracksExtra>(infile.get(), "O2track");
+  verifyTable<o2::aod::StoredTracksExtra>(infile.get(), "O2track");
   verifyTable<o2::aod::Calos>(infile.get(), "O2calo");
   verifyTable<o2::aod::StoredFwdTracks>(infile.get(), "O2fwdtrack");
   return 0;

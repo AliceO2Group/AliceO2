@@ -54,6 +54,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
              });
              return adaptStateless([](InputRecord& inputs) {
                auto s = inputs.get<TObjString*>("in");
-               LOG(INFO) << "String is " << s->GetString().Data();
+               LOG(info) << "String is " << s->GetString().Data();
              }); })}}};
 }

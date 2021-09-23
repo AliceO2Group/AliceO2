@@ -50,9 +50,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           auto s = ctx.inputs().get<std::string>("make");
 
           if (s != "Hello") {
-            LOG(ERROR) << "Expecting `Hello', found `" << s << "'";
+            LOG(error) << "Expecting `Hello', found `" << s << "'";
           } else {
-            LOG(INFO) << "Everything OK";
+            LOG(info) << "Everything OK";
           }
         } //
       }   //

@@ -97,14 +97,14 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
 
   auto processorFct = [](ProcessingContext& pc) {
     int nActiveInputs = 0;
-    LOG(INFO) << "processing ...";
+    LOG(info) << "processing ...";
     for (auto const& input : pc.inputs()) {
       if (pc.inputs().isValid(input.spec->binding) == false) {
         // this input slot is empty
         continue;
       }
       auto& data = pc.inputs().get<MyDataType>(input.spec->binding.c_str());
-      LOG(INFO) << "processing " << input.spec->binding << " " << data;
+      LOG(info) << "processing " << input.spec->binding << " " << data;
       // check if the channel binding starts with 'trigger'
       if (input.spec->binding.find("trigger") == 0) {
         pc.outputs().make<MyDataType>(Output{"PROC", "CHANNEL", data, Lifetime::Timeframe}) = data;
@@ -126,7 +126,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     return adaptStateless([](InputRecord& inputs) {
       for (auto const& input : inputs) {
         auto& data = inputs.get<MyDataType>(input.spec->binding.c_str());
-        LOG(INFO) << "received channel " << data;
+        LOG(info) << "received channel " << data;
       } });
   });
 

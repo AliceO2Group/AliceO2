@@ -154,6 +154,8 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& reque
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksExtensionMetadata{}));
         } else if (description == header::DataDescription{"TRACKCOV"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovExtensionMetadata{}));
+        } else if (description == header::DataDescription{"TRACKEXTRA"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::TracksExtraExtensionMetadata{}));
         } else if (description == header::DataDescription{"MFTTRACK"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::MFTTracksExtensionMetadata{}));
         } else if (description == header::DataDescription{"FWDTRACK"}) {

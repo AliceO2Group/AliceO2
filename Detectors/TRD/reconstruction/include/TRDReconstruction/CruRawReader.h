@@ -61,7 +61,7 @@ class CruRawReader
 
   void checkSummary();
   void resetCounters();
-  void configure(int tracklethcheader, std::bitset<16> options)
+  void configure(int tracklethcheader, int halfchamberwords, int halfchambermajor, std::bitset<16> options)
   {
     mByteSwap = options[TRDByteSwapBit];
     mVerbose = options[TRDVerboseBit];
@@ -69,6 +69,8 @@ class CruRawReader
     mDataVerbose = options[TRDDataVerboseBit];
     mFixDigitEndCorruption = options[TRDFixDigitCorruptionBit];
     mTrackletHCHeaderState = tracklethcheader;
+    mHalfChamberWords = halfchamberwords;
+    mHalfChamberMajor = halfchambermajor;
     mRootOutput = options[TRDEnableRootOutputBit];
     mEnableTimeInfo = options[TRDEnableTimeInfoBit];
     mEnableStats = options[TRDEnableStatsBit];
@@ -121,23 +123,13 @@ class CruRawReader
   }
   void OutputHalfCruRawData();
   // void setStats(o2::trd::TRDDataCountersPerTimeFrame* trdstats){mTimeFrameStats=trdstats;}
-  void setHistos(TH2F* h1, TH2F* h2, TH2F* h3)
+  //void setHistos(std::array<TH2F*, 10> hist, std::array<TH2F*, constants::MAXPARSEERRORHISTOGRAMS> parsingerrors2d)
+  void setHistos(TList* hist, TList* parsingerrors2d)
   {
-    hist1 = h1;
-    hist2 = h2;
-    hist3 = h3;
-  }; // a hack!
-  void setHistos1(TH2F* h1, TH2F* h2, TH2F* h3)
-  {
-    hist4 = h1;
-    hist5 = h2;
-    hist6 = h3;
-  }; // a hack!
-  void setHistos2(TH2F* h1, TH2F* h2)
-  {
-    hist7 = h1;
-    hist8 = h2;
-  }; // a hack!
+    mLinkErrors = hist;
+    mParsingErrors2d = parsingerrors2d;
+  };
+
   void setTimeHistos(TH1F* timeframetime, TH1F* trackletparsingtime, TH1F* digitparsingtime,
                      TH1F* crutime, TH1F* packagingtime, TH1F* versions, TH1F* versionsmajor,
                      TH1F* parsingerrors)
@@ -150,7 +142,7 @@ class CruRawReader
     mDataVersions = versions;
     mDataVersionsMajor = versionsmajor;
     mParsingErrors = parsingerrors;
-    mTrackletsParser.setErrorHistos(parsingerrors);
+    mTrackletsParser.setErrorHistos(parsingerrors, mParsingErrors2d);
   };
 
  protected:
@@ -179,6 +171,8 @@ class CruRawReader
   bool mByteSwap{false};
   bool mFixDigitEndCorruption{false};
   int mTrackletHCHeaderState{0};
+  int mHalfChamberWords{0};
+  int mHalfChamberMajor{0};
   bool mRootOutput{0};
   bool mEnableTimeInfo{0};
   bool mEnableStats{0};
@@ -275,13 +269,14 @@ class CruRawReader
 
   bool mReturnBlob{0};        // whether to return blobs or vectors;
   o2::trd::TRDDataCountersRunning mStatCountersRunning;
-
-  TH2F *hist1, *hist2, *hist3;                                      // a hack !
-  TH2F *hist4, *hist5, *hist6;                                      // a hack !
+  TList* mLinkErrors;
+  //std::array<TH2F*, constants::MAXLINKERRORHISTOGRAMS> mLinkErrors;
   TH2F *hist7, *hist8;                                              // a hack !
   TH1F *mTimeFrameTime, *mTrackletTiming, *mDigitTiming, *mCruTime; // a hack !
   TH1F *mDataVersions, *mDataVersionsMajor;                         // a hack !
   TH1F* mParsingErrors;                                             // a hack !
+  TList* mParsingErrors2d;
+  //std::array<TH2F*, constants::MAXPARSEERRORHISTOGRAMS> mParsingErrors2d;
 };
 
 } // namespace o2::trd

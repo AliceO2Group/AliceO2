@@ -31,11 +31,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       AlgorithmSpec{
         adaptStateless([](DataAllocator& outputs, InputRecord& inputs, ControlService& control) {
           DataRef condition = inputs.get("somecondition");
-          auto* header = o2::header::get<const DataHeader*>(condition.header);
-          if (header->payloadSize != 2048) {
-            LOGP(ERROR, "Wrong size for condition payload (expected {}, found {}", 2048, header->payloadSize);
+          auto payloadSize = DataRefUtils::getPayloadSize(condition);
+          if (payloadSize != 2048) {
+            LOGP(ERROR, "Wrong size for condition payload (expected {}, found {}", 2048, payloadSize);
           }
-          header->payloadSize;
+          payloadSize;
           control.readyToQuit(QuitRequest::All);
         })},
       Options{

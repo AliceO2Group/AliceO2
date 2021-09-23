@@ -196,10 +196,10 @@ class PreClusterSinkTask
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getPreClusterSinkSpec()
+o2::framework::DataProcessorSpec getPreClusterSinkSpec(const char* specName)
 {
   return DataProcessorSpec{
-    "PreClusterSink",
+    specName,
     Inputs{InputSpec{"rofs", "MCH", "PRECLUSTERROFS", 0, Lifetime::Timeframe},
            InputSpec{"preclusters", "MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
            InputSpec{"digits", "MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},

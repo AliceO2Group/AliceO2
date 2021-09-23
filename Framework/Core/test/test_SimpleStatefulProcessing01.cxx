@@ -40,15 +40,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             static int step = 0; // incremented in registered callbacks
             auto startcb = []() {
               ++step;
-              LOG(INFO) << "start " << step;
+              LOG(info) << "start " << step;
             };
             auto stopcb = []() {
               ++step;
-              LOG(INFO) << "stop " << step;
+              LOG(info) << "stop " << step;
             };
             auto resetcb = []() {
               ++step;
-              LOG(INFO) << "reset " << step;
+              LOG(info) << "reset " << step;
             };
             callbacks.set(CallbackService::Id::Start, startcb);
             callbacks.set(CallbackService::Id::Stop, stopcb);
@@ -56,7 +56,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
             return adaptStateless([](DataAllocator& outputs, ControlService& control) {
               auto& out = outputs.newChunk({"TES", "STATEFUL", 0}, sizeof(int));
               auto outI = reinterpret_cast<int*>(out.data());
-              LOG(INFO) << "foo " << foo;
+              LOG(info) << "foo " << foo;
               outI[0] = foo++;
               control.endOfStream();
               control.readyToQuit(QuitRequest::Me);
@@ -76,9 +76,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
               const int* in = reinterpret_cast<const int*>(inputs.get("test").payload);
 
               if (*in != expected++) {
-                LOG(ERROR) << "Expecting " << expected << " found " << *in;
+                LOG(error) << "Expecting " << expected << " found " << *in;
               } else {
-                LOG(INFO) << "Everything OK for " << (expected - 1);
+                LOG(info) << "Everything OK for " << (expected - 1);
               }
             });
           }) //

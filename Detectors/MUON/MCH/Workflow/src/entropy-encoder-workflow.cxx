@@ -79,14 +79,14 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyEncoderSpec()
+DataProcessorSpec getEntropyEncoderSpec(const char* specName)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("rofs", "MCH", "DIGITROFS", 0, Lifetime::Timeframe);
   inputs.emplace_back("digits", "MCH", "DIGITS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
-    "mch-entropy-encoder",
+    specName,
     inputs,
     Outputs{{"MCH", "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
@@ -116,6 +116,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec wf;
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  wf.emplace_back(o2::mch::getEntropyEncoderSpec());
+  wf.emplace_back(o2::mch::getEntropyEncoderSpec("mch-entropy-encoder"));
   return wf;
 }

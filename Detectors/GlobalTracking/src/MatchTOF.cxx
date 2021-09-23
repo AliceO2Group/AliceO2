@@ -62,11 +62,7 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
 
   mTimerMatchTPC.Reset();
   mTimerMatchITSTPC.Reset();
-  mTimerTot.Start();
-
-  mTimerTot.Stop();
-  LOGF(INFO, "Timing prepareTOFCluster: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
-  mTimerTot.Start();
+  mTimerTot.Reset();
 
   for (int i = 0; i < trkType::SIZE; i++) {
     mMatchedTracks[i].clear();
@@ -88,18 +84,30 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
   mSideTPC.clear();
   mExtraTPCFwdTime.clear();
 
-  if (!prepareTOFClusters()) { // check cluster before of tracks to see also if MC is required
-    return;
-  }
-
-  if (!prepareTPCData() || !prepareFITData()) {
-    return;
-  }
-
-  mTimerTot.Stop();
-  LOGF(INFO, "Timing prepare tracks: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
   mTimerTot.Start();
+  bool isPrepareTOFClusters = prepareTOFClusters();
+  mTimerTot.Stop();
+  LOGF(INFO, "Timing prepareTOFCluster: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
 
+  if (!isPrepareTOFClusters) { // check cluster before of tracks to see also if MC is required
+    return;
+  }
+
+  mTimerTot.Start();
+  if (!prepareTPCData()) {
+    return;
+  }
+  mTimerTot.Stop();
+  LOGF(INFO, "Timing prepare TPC tracks: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
+
+  mTimerTot.Start();
+  if (!prepareFITData()) {
+    return;
+  }
+  mTimerTot.Stop();
+  LOGF(INFO, "Timing prepare FIT data: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
+
+  mTimerTot.Start();
   for (int sec = o2::constants::math::NSectors; sec--;) {
     mMatchedTracksPairs.clear(); // new sector
     LOG(INFO) << "Doing matching for sector " << sec << "...";
@@ -126,7 +134,7 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
   mIsITSTPCTRDused = false;
 
   mTimerTot.Stop();
-  LOGF(INFO, "Timing Do Matching: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
+  LOGF(INFO, "Timing Do Matching:        Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
   LOGF(INFO, "Timing Do Matching ITSTPC: Cpu: %.3e s Real: %.3e s in %d slots", mTimerMatchITSTPC.CpuTime(), mTimerMatchITSTPC.RealTime(), mTimerMatchITSTPC.Counter() - 1);
   LOGF(INFO, "Timing Do Matching TPC   : Cpu: %.3e s Real: %.3e s in %d slots", mTimerMatchTPC.CpuTime(), mTimerMatchTPC.RealTime(), mTimerMatchTPC.Counter() - 1);
 }
@@ -371,6 +379,7 @@ bool MatchTOF::prepareTOFClusters()
   int nClusterInCurrentChunk = mTOFClustersArrayInp.size();
   LOG(DEBUG) << "nClusterInCurrentChunk = " << nClusterInCurrentChunk;
   mNumOfClusters += nClusterInCurrentChunk;
+  mTOFClusWork.reserve(mTOFClusWork.size() + mNumOfClusters);
   for (int it = 0; it < nClusterInCurrentChunk; it++) {
     const Cluster& clOrig = mTOFClustersArrayInp[it];
     // create working copy of track param
@@ -483,7 +492,7 @@ void MatchTOF::doMatching(int sec)
         detIdTemp[idet] = -1;
       }
 
-      Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp);
+      Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp, sec);
 
       reachedPoint += step;
 
@@ -805,7 +814,7 @@ void MatchTOF::doMatchingForTPC(int sec)
           posFloat[2] = pos[2];
         }
 
-        Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp);
+        Geo::getPadDxDyDz(posFloat, detIdTemp, deltaPosTemp, sec);
 
         if (detIdTemp[2] == -1) {
           continue;
@@ -1157,7 +1166,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
 {
   // propagate track to matching reference X
   o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT; // material correction method
-  const float tanHalfSector = tan(o2::constants::math::SectorSpanRad / 2);
+  static const float tanHalfSector = tan(o2::constants::math::SectorSpanRad / 2);
   bool refReached = false;
   float xStart = trc.getX();
   // the first propagation will be from 2m, if the track is not at least at 2m

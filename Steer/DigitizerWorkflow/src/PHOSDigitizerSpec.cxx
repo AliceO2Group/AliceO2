@@ -15,11 +15,9 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
-#include "Headers/DataHeader.h"
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
-
 #include "CommonDataFormat/EvIndex.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "PHOSSimulation/Digitizer.h"

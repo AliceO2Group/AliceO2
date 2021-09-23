@@ -141,30 +141,32 @@ class ReadOut
     uint8_t Cru;
     uint8_t Lnk;
     uint8_t Flp;
+    std::string_view FlpHostName;
   };
   union Lnk {
     LinkAddr Id;
     uint32_t LinkUId;
   };
-  static constexpr Lnk mEq[Geo::MAXEQUIPMENTS] = {{0, 0, 0, 160},
-                                                  {1, 0, 1, 160},
-                                                  {2, 0, 2, 160},
-                                                  {3, 0, 3, 160},
-                                                  {4, 1, 0, 160},
-                                                  {5, 1, 1, 160},
-                                                  {8, 1, 2, 160},
-                                                  {9, 1, 3, 160},
-                                                  {6, 2, 0, 161},
-                                                  {7, 2, 1, 161},
-                                                  {10, 2, 2, 161},
-                                                  {11, 3, 0, 161},
-                                                  {12, 3, 1, 161},
-                                                  {13, 3, 2, 161}};
+  static constexpr Lnk mEq[Geo::MAXEQUIPMENTS] = {{0, 0, 0, 160, "alio-cr1-flp160"},
+                                                  {1, 0, 1, 160, "alio-cr1-flp160"},
+                                                  {2, 0, 2, 160, "alio-cr1-flp160"},
+                                                  {3, 0, 3, 160, "alio-cr1-flp160"},
+                                                  {4, 1, 0, 160, "alio-cr1-flp160"},
+                                                  {5, 1, 1, 160, "alio-cr1-flp160"},
+                                                  {8, 1, 2, 160, "alio-cr1-flp160"},
+                                                  {9, 1, 3, 160, "alio-cr1-flp160"},
+                                                  {6, 2, 0, 161, "alio-cr1-flp161"},
+                                                  {7, 2, 1, 161, "alio-cr1-flp161"},
+                                                  {10, 2, 2, 161, "alio-cr1-flp161"},
+                                                  {11, 3, 0, 161, "alio-cr1-flp161"},
+                                                  {12, 3, 1, 161, "alio-cr1-flp161"},
+                                                  {13, 3, 2, 161, "alio-cr1-flp161"}};
 
   static inline int FeeId(unsigned int idx) { return (idx > Geo::MAXEQUIPMENTS) ? -1 : mEq[idx].Id.Fee; };
   static inline int CruId(unsigned int idx) { return (idx > Geo::MAXEQUIPMENTS) ? -1 : mEq[idx].Id.Cru; };
   static inline int LnkId(unsigned int idx) { return (idx > Geo::MAXEQUIPMENTS) ? -1 : mEq[idx].Id.Lnk; };
   static inline int FlpId(unsigned int idx) { return (idx > Geo::MAXEQUIPMENTS) ? -1 : mEq[idx].Id.Flp; };
+  static inline std::string_view FlpHostName(unsigned int idx) { return (idx > Geo::MAXEQUIPMENTS) ? "" : mEq[idx].Id.FlpHostName; };
   static inline uint32_t UniqueId(unsigned int idx) { return (idx > Geo::MAXEQUIPMENTS) ? -1 : mEq[idx].LinkUId; };
 
   static unsigned int searchIdx(int FeeId)

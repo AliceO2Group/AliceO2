@@ -188,7 +188,7 @@ std::string lvFEEPattern(int deId, bool bending = true)
   }
   auto base = basePattern(id.value()) + "Group%02d";
   auto pattern = fmt::sprintf(base, id->chamberId, group);
-  pattern += "%s.MeasurementSenseVoltage";
+  pattern += "%s.SenseVoltage";
   return pattern;
 }
 
@@ -233,7 +233,7 @@ std::vector<std::string> lvSolarPattern(int chamberId)
   for (int i = 1; i <= nofCrates; i++) {
     for (auto side : {o2::mch::dcs::Side::Left, o2::mch::dcs::Side::Right}) {
       auto sideLetter = (side == o2::mch::dcs::Side::Left ? 'L' : 'R');
-      auto base = basePattern(side) + "%sCh%02d%cCr%02d.MeasurementSenseVoltage";
+      auto base = basePattern(side) + "%sCh%02d%cCr%02d.SenseVoltage";
       patterns.emplace_back(fmt::sprintf(base, chamberId, measurementName(o2::mch::dcs::MeasurementType::LV_V_SOLAR), chamberId, sideLetter, i));
     }
   }

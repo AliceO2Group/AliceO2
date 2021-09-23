@@ -20,18 +20,20 @@
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/Task.h"
-#include "Framework/runDataProcessing.h"
 #include "MCHWorkflow/PreClusterFinderSpec.h"
 
 using namespace o2;
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(const ConfigContext&)
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  WorkflowSpec specs;
+  workflowOptions.push_back(ConfigParamSpec{"input-digitrofs-data-description", VariantType::String, "TIMECLUSTERROFS", {"description string for the input ROF data"}});
+}
 
-  DataProcessorSpec producer = o2::mch::getPreClusterFinderSpec();
-  specs.push_back(producer);
+#include "Framework/runDataProcessing.h"
 
-  return specs;
+WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
+{
+  auto rofDesc = configcontext.options().get<std::string>("input-digitrofs-data-description");
+  return {o2::mch::getPreClusterFinderSpec(rofDesc.c_str())};
 }

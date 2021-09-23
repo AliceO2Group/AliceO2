@@ -39,6 +39,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/InputRecordWalker.h"
+#include "Framework/DataRefUtils.h"
 
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -251,13 +252,9 @@ void DataDecoderTask2::decodeRawFile(framework::ProcessingContext& pc)
 
   for (auto&& input : pc.inputs()) {
     if (input.spec->binding == "file") {
-      const header::DataHeader* header = o2::header::get<header::DataHeader*>(input.header);
-      if (!header) {
-        return;
-      }
 
       auto const* raw = input.payload;
-      size_t payloadSize = header->payloadSize;
+      size_t payloadSize = DataRefUtils::getPayloadSize(input);
 
       LOG(INFO) << "  payloadSize=" << payloadSize;
       if (payloadSize == 0) {
@@ -265,7 +262,7 @@ void DataDecoderTask2::decodeRawFile(framework::ProcessingContext& pc)
       }
 
       uint32_t* theBuffer = (uint32_t*)input.payload;
-      int pagesize = header->payloadSize;
+      int pagesize = payloadSize;
       mDeco->setUpStream(theBuffer, pagesize);
       try {
         if (mFastAlgorithm) {

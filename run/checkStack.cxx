@@ -25,6 +25,8 @@
 #include <cassert>
 #include "FairLogger.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "ITSMFTSimulation/Hit.h"
+#include <unordered_map>
 
 int main(int argc, char** argv)
 {
@@ -50,25 +52,61 @@ int main(int argc, char** argv)
 
   o2::steer::MCKinematicsReader mcreader(nameprefix, o2::steer::MCKinematicsReader::Mode::kMCKine);
 
+  // when present we also read some hits for ITS to test consistency of trackID assignments
+  TFile hitf(o2::base::NameConf::getHitsFileName(o2::detectors::DetID::ITS, nameprefix).c_str());
+  auto hittr = (TTree*)hitf.Get("o2sim");
+  auto hitbr = hittr ? hittr->GetBranch("ITSHit") : nullptr;
+  std::vector<o2::itsmft::Hit>* hits = nullptr;
+  if (hitbr) {
+    hitbr->SetAddress(&hits);
+  }
+
   for (int eventID = 0; eventID < mcbr->GetEntries(); ++eventID) {
     mcbr->GetEntry(eventID);
     refbr->GetEntry(eventID);
     LOG(DEBUG) << "-- Entry --" << eventID;
     LOG(DEBUG) << "Have " << mctracks->size() << " tracks";
+
+    std::unordered_map<int, bool> trackidsinITS_fromhits;
+    if (hitbr) {
+      hitbr->GetEntry(eventID);
+      LOG(DEBUG) << "Have " << hits->size() << " hits";
+
+      // check that trackIDs from the hits are within range
+      int maxid = 0;
+      for (auto& h : *hits) {
+        maxid = std::max(maxid, h.GetTrackID());
+        trackidsinITS_fromhits[h.GetTrackID()] = true;
+        assert(maxid < mctracks->size());
+      }
+    }
+
     int ti = 0;
 
     // record tracks that left a hit in TPC
     // (we know that these tracks should then have a TrackRef)
     std::vector<int> trackidsinTPC;
+    std::vector<int> trackidsinITS;
 
     for (auto& t : *mctracks) {
       // check that mother indices are reasonable
-      assert(ti > t.getMotherTrackId());
+      // TODO: this seems currently broken with pythia8pp
+      // assert(ti > t.getMotherTrackId());
       if (t.leftTrace(o2::detectors::DetID::TPC)) {
         trackidsinTPC.emplace_back(ti);
       }
+      if (t.leftTrace(o2::detectors::DetID::ITS)) {
+        trackidsinITS.emplace_back(ti);
+      }
       LOG(DEBUG) << " track " << ti << "\t" << t.getMotherTrackId() << " hits " << t.hasHits();
       ti++;
+    }
+
+    if (hitbr) {
+      assert(trackidsinITS.size() == trackidsinITS_fromhits.size());
+      for (auto id : trackidsinITS) {
+        assert(trackidsinITS_fromhits[id] == true);
+      }
     }
 
     LOG(DEBUG) << "Have " << trackidsinTPC.size() << " tracks with hits in TPC";

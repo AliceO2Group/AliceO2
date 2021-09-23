@@ -28,12 +28,13 @@ void CTFCoder::appendToTree(TTree& tree, CTF& ec)
 
 ///___________________________________________________________________________________
 // extract and decode data from the tree
-void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<ROFRecord>& rofRecVec, std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec)
+void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<ROFRecord>& rofRecVec,
+                            std::vector<CompClusterExt>& cclusVec, std::vector<unsigned char>& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
 {
   assert(entry >= 0 && entry < tree.GetEntries());
   CTF ec;
   ec.readFromTree(tree, mDet.getName(), entry);
-  decode(ec, rofRecVec, cclusVec, pattVec);
+  decode(ec, rofRecVec, cclusVec, pattVec, noiseMap, clPattLookup);
 }
 
 ///________________________________
@@ -76,9 +77,19 @@ void CTFCoder::compress(CompressedClusters& cc,
     const auto& intRec = rofRec.getBCData();
     if (intRec.orbit == prevOrbit) {
       cc.orbitIncROF[irof] = 0;
+#ifdef _CHECK_INCREMENTES_
+      if (intRec.bc < prevBC) {
+        LOG(WARNING) << "Negative BC increment " << intRec.bc << " -> " << prevBC;
+      }
+#endif
       cc.bcIncROF[irof] = intRec.bc - prevBC; // store increment of BC if in the same orbit
     } else {
       cc.orbitIncROF[irof] = intRec.orbit - prevOrbit;
+#ifdef _CHECK_INCREMENTES_
+      if (intRec.orbit < prevOrbit) {
+        LOG(WARNING) << "Negative Orbit increment " << intRec.orbit << " -> " << prevOrbit;
+      }
+#endif
       cc.bcIncROF[irof] = intRec.bc; // otherwise, store absolute bc
       prevOrbit = intRec.orbit;
     }
@@ -93,7 +104,7 @@ void CTFCoder::compress(CompressedClusters& cc,
     int icl = rofRec.getFirstEntry(), iclMax = icl + ncl;
 
     uint16_t prevChip = cc.firstChipROF[irof], prevCol = 0;
-    if (icl != iclMax) { // there still clusters to store
+    if (icl != iclMax) { // there are still clusters to store
       cc.chipMul.push_back(0);
       cc.chipInc.push_back(0);
     }
@@ -104,11 +115,21 @@ void CTFCoder::compress(CompressedClusters& cc,
       if (cl.getChipID() == prevChip) { // for the same chip store column increment
         // cc.chipInc[icl] = 0;  // this is the version with chipInc stored for every pixel
         cc.chipMul.back()++; // this is the version with chipInc stored once per new chip
+#ifdef _CHECK_INCREMENTES_   // RS FIXME with current clusterization column increment can be slightly negative
+//        if (cl.getCol() < prevCol) {
+//          LOG(WARNING) << "Negative Column increment " << cl.getCol() << " -> " << prevCol << " in chip " << prevChip << " of ROF " << irof;
+//        }
+#endif
         cc.colInc[icl] = cl.getCol() - prevCol;
         prevCol = cl.getCol();
       } else { // for new chips store chipID increment and abs. column
         // cc.chipInc[icl] = cl.getChipID() - prevChip;  // this is the version with chipInc stored for every pixel
         cc.chipInc.push_back(cl.getChipID() - prevChip); // this is the version with chipInc stored once per new chip
+#ifdef _CHECK_INCREMENTES_
+        if (cl.getChipID() < prevChip) {
+          LOG(WARNING) << "Negative Chip increment " << cl.getChipID() << " -> " << prevChip;
+        }
+#endif
         cc.chipMul.push_back(1);                         // this is the version with chipInc stored once per new chip
         prevCol = cc.colInc[icl] = cl.getCol();
         prevChip = cl.getChipID();
@@ -186,4 +207,28 @@ size_t CTFCoder::estimateCompressedSize(const CompressedClusters& cc)
   sz *= 2. / 3; // if needed, will be autoexpanded
   LOG(INFO) << "Estimated output size is " << sz << " bytes";
   return sz;
+}
+
+///________________________________
+CompressedClusters CTFCoder::decodeCompressedClusters(const CTF::base& ec)
+{
+  CompressedClusters cc;
+  cc.header = ec.getHeader();
+  checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(cc.header));
+  ec.print(getPrefix());
+#define DECODEITSMFT(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
+  // clang-format off
+  DECODEITSMFT(cc.firstChipROF, CTF::BLCfirstChipROF);
+  DECODEITSMFT(cc.bcIncROF,     CTF::BLCbcIncROF);
+  DECODEITSMFT(cc.orbitIncROF,  CTF::BLCorbitIncROF);
+  DECODEITSMFT(cc.nclusROF,     CTF::BLCnclusROF);
+  //
+  DECODEITSMFT(cc.chipInc,      CTF::BLCchipInc);
+  DECODEITSMFT(cc.chipMul,      CTF::BLCchipMul);
+  DECODEITSMFT(cc.row,          CTF::BLCrow);
+  DECODEITSMFT(cc.colInc,       CTF::BLCcolInc);
+  DECODEITSMFT(cc.pattID,       CTF::BLCpattID);
+  DECODEITSMFT(cc.pattMap,      CTF::BLCpattMap);
+  // clang-format on
+  return cc;
 }

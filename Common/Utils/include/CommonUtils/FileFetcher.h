@@ -99,6 +99,7 @@ class FileFetcher
   size_t mNRemote{0};
   size_t mMaxInQueue{5};
   bool mRunning = false;
+  bool mNoRemoteCopy = false;
   size_t mMaxLoops = 0;
   size_t mNLoops = 0;
   size_t mNFilesProc = 0;

@@ -105,11 +105,12 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
   std::vector<ROFRecord> rofRecVecD;
   std::vector<CompClusterExt> cclusVecD;
   std::vector<unsigned char> pattVecD;
+  LookUp clPattLookup;
   sw.Start();
   const auto ctfImage = o2::itsmft::CTF::getImage(vec.data());
   {
     CTFCoder coder(o2::detectors::DetID::ITS);
-    coder.decode(ctfImage, rofRecVecD, cclusVecD, pattVecD); // decompress
+    coder.decode(ctfImage, rofRecVecD, cclusVecD, pattVecD, nullptr, clPattLookup); // decompress
   }
   sw.Stop();
   LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";

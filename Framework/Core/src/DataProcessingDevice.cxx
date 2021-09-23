@@ -537,6 +537,18 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   context.deviceContext = &deviceContext;
   /// Callback for the error handling
   context.errorHandling = &mErrorHandling;
+  /// We must make sure there is no optional
+  /// if we want to optimize the forwarding
+  for (auto& input : mSpec.inputs) {
+    if (strncmp(DataSpecUtils::asConcreteOrigin(input.matcher).str, "AOD", 3) == 0) {
+      context.canForwardEarly = false;
+      break;
+    }
+    if (input.matcher.lifetime == Lifetime::Optional) {
+      context.canForwardEarly = false;
+      break;
+    }
+  }
 }
 
 void DataProcessingDevice::PreRun()
@@ -1159,7 +1171,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // FIXME: do it in a smarter way than O(N^2)
   auto forwardInputs = [&reportError,
                         &spec = context.deviceContext->spec,
-                        &device = context.deviceContext->device, &currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
+                        &device = context.deviceContext->device, &currentSetOfInputs](TimesliceSlot slot, InputRecord& record, bool copy) {
     ZoneScopedN("forward inputs");
     assert(record.size() == currentSetOfInputs.size());
     // we collect all messages per forward in a map and send them together
@@ -1215,8 +1227,19 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
             continue;
           }
 
-          forwardedParts[forward.channel].AddPart(std::move(header));
-          forwardedParts[forward.channel].AddPart(std::move(payload));
+          if (copy) {
+            auto&& newHeader = header->GetTransport()->CreateMessage();
+            auto&& newPayload = header->GetTransport()->CreateMessage();
+            newHeader->Copy(*header);
+            newPayload->Copy(*payload);
+
+            forwardedParts[forward.channel].AddPart(std::move(newHeader));
+            forwardedParts[forward.channel].AddPart(std::move(newPayload));
+            break;
+          } else {
+            forwardedParts[forward.channel].AddPart(std::move(header));
+            forwardedParts[forward.channel].AddPart(std::move(payload));
+          }
         }
       }
     }
@@ -1268,6 +1291,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     }
   };
 
+  // This is the main dispatching loop
   for (auto action : getReadyActions()) {
     if (action.op == CompletionPolicy::CompletionOp::Wait) {
       continue;
@@ -1284,9 +1308,16 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     if (action.op == CompletionPolicy::CompletionOp::Discard) {
       context.registry->postDispatchingCallbacks(processContext);
       if (context.deviceContext->spec->forwards.empty() == false) {
-        forwardInputs(action.slot, record);
+        forwardInputs(action.slot, record, false);
         continue;
       }
+    }
+    // If there is no optional inputs we canForwardEarly
+    // the messages to that parallel processing can happen.
+    // In this case we pass true to indicate that we want to
+    // copy the messages to the subsequent data processor.
+    if (context.canForwardEarly && context.deviceContext->spec->forwards.empty() == false && action.op == CompletionPolicy::CompletionOp::Consume) {
+      forwardInputs(action.slot, record, true);
     }
     markInputsAsDone(action.slot);
 
@@ -1336,8 +1367,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
       context.registry->postDispatchingCallbacks(processContext);
-      if (context.deviceContext->spec->forwards.empty() == false) {
-        forwardInputs(action.slot, record);
+      if ((context.canForwardEarly == false) && context.deviceContext->spec->forwards.empty() == false) {
+        forwardInputs(action.slot, record, false);
       }
 #ifdef TRACY_ENABLE
       cleanupRecord(record);

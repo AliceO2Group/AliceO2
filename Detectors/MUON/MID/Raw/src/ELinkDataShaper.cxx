@@ -23,7 +23,7 @@ namespace o2
 namespace mid
 {
 
-ELinkDataShaper::ELinkDataShaper(bool isDebugMode, bool isLoc, uint8_t uniqueId) : mUniqueId(uniqueId)
+ELinkDataShaper::ELinkDataShaper(bool isDebugMode, bool isLoc, uint8_t uniqueId, const ElectronicsDelay& electronicsDelay) : mUniqueId(uniqueId), mElectronicsDelay(electronicsDelay)
 {
   /// Ctr
   if (isDebugMode) {
@@ -38,6 +38,10 @@ ELinkDataShaper::ELinkDataShaper(bool isDebugMode, bool isLoc, uint8_t uniqueId)
     } else {
       mOnDone = &ELinkDataShaper::onDoneReg;
     }
+  }
+  if (!isLoc) {
+    mElectronicsDelay.BCToLocal += electronicsDelay.regToLocal;
+    mElectronicsDelay.calibToFET += electronicsDelay.regToLocal;
   }
 }
 
@@ -63,10 +67,29 @@ bool ELinkDataShaper::checkLoc(const ELinkDecoder& decoder)
   return (decoder.getId() == (mUniqueId & 0xF));
 }
 
-EventType ELinkDataShaper::processSelfTriggered(uint16_t localClock, uint16_t& correctedClock)
+EventType ELinkDataShaper::processSelfTriggered(uint16_t localClock, InteractionRecord& ir)
 {
   /// Processes the self-triggered event
-  correctedClock = localClock - mElectronicsDelay.BCToLocal;
+
+  // This is a self-triggered events.
+  // The physics data arrives with a delay compared to the BC,
+  // which is due to the travel time of muons up to the MID chambers
+  // plus the travel time of the signal to the readout electronics.
+  // In the case of regional cards, a further delay is expected
+  // since this card needs to wait for the tracklet decision of each local card.
+  // For simplicity, this delay is added to the BCToLocal in the constructor.
+  // In both cases, we need to correct for the delay in order to go back to the real BC.
+  if (ir.bc < mElectronicsDelay.BCToLocal) {
+    // If the bc is smaller than the delay, it means that the local clock was reset
+    // This events therefore belongs to the previous orbit.
+    // We therefore add the value of the last BC (+1 to account for the reset)
+    // and we decrease the orbit by 1.
+    ir.bc += mLastClock + 1;
+    --ir.orbit;
+  }
+  // We can now safely subtract the delay, which, thanks to the above protection,
+  // will not result in a negative number
+  ir.bc -= mElectronicsDelay.BCToLocal;
   if (mReceivedCalibration && (localClock == mExpectedFETClock)) {
     // Reset the calibration flag for this e-link
     mReceivedCalibration = false;
@@ -106,22 +129,31 @@ void ELinkDataShaper::processOrbitTrigger(uint16_t localClock, uint8_t triggerWo
   }
 }
 
-bool ELinkDataShaper::processTrigger(const ELinkDecoder& decoder, EventType& eventType, uint16_t& correctedClock)
+bool ELinkDataShaper::processTrigger(const ELinkDecoder& decoder, EventType& eventType, InteractionRecord& ir)
 {
   /// Processes the trigger information
   /// Returns true if the event should be further processed,
   /// returns false otherwise.
   auto localClock = decoder.getCounter();
 
+  // FIXME: So far the bc information is not used
+  // since it seems that it is always equal to 0
+  // (at least in the RDH of the first page, which is what we need).
+  // In this case the local clock and the BC coincide.
+  // If this is not the case, the bc of the orbit trigger should be correctly taken into account
+  ir.bc = localClock;
+  // ir.bc = mIR.bc + localClock;
+  ir.orbit = mIR.orbit;
+
   if (decoder.getTriggerWord() == 0) {
     // This is a self-triggered event
-    eventType = processSelfTriggered(localClock, correctedClock);
+    eventType = processSelfTriggered(localClock, ir);
     return true;
   }
 
   // From here we treat triggered events
   bool goOn = false;
-  correctedClock = localClock;
+  eventType = EventType::Standard;
   if (decoder.getTriggerWord() & raw::sCALIBRATE) {
     // This is an answer to a calibration trigger
     eventType = processCalibrationTrigger(localClock);
@@ -131,19 +163,17 @@ bool ELinkDataShaper::processTrigger(const ELinkDecoder& decoder, EventType& eve
   if (decoder.getTriggerWord() & raw::sORB) {
     // This is the answer to an orbit trigger
     processOrbitTrigger(localClock, decoder.getTriggerWord());
-    eventType = EventType::Standard;
   }
 
   return goOn;
 }
 
-void ELinkDataShaper::addLoc(const ELinkDecoder& decoder, EventType eventType, uint16_t correctedClock, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
+void ELinkDataShaper::addLoc(const ELinkDecoder& decoder, EventType eventType, InteractionRecord ir, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
 {
   /// Adds the local board to the output data vector
   auto firstEntry = data.size();
   data.push_back({decoder.getStatusWord(), decoder.getTriggerWord(), mUniqueId, decoder.getInputs()});
-  InteractionRecord intRec(mIR.bc + correctedClock, mIR.orbit);
-  rofs.emplace_back(intRec, eventType, firstEntry, 1);
+  rofs.emplace_back(ir, eventType, firstEntry, 1);
   for (int ich = 0; ich < 4; ++ich) {
     if ((data.back().firedChambers & (1 << ich))) {
       data.back().patternsBP[ich] = decoder.getPattern(0, ich);
@@ -156,9 +186,9 @@ void ELinkDataShaper::onDoneLoc(const ELinkDecoder& decoder, std::vector<ROBoard
 {
   /// Performs action on decoded local board
   EventType eventType;
-  uint16_t correctedClock;
-  if (processTrigger(decoder, eventType, correctedClock) && checkLoc(decoder)) {
-    addLoc(decoder, eventType, correctedClock, data, rofs);
+  InteractionRecord ir;
+  if (processTrigger(decoder, eventType, ir) && checkLoc(decoder)) {
+    addLoc(decoder, eventType, ir, data, rofs);
   }
 }
 
@@ -166,45 +196,21 @@ void ELinkDataShaper::onDoneLocDebug(const ELinkDecoder& decoder, std::vector<RO
 {
   /// This always adds the local board to the output, without performing tests
   EventType eventType;
-  uint16_t correctedClock;
-  processTrigger(decoder, eventType, correctedClock);
-  addLoc(decoder, eventType, correctedClock, data, rofs);
-  if (decoder.getTriggerWord() & raw::sORB) {
-    // The local clock is increased when receiving an orbit trigger,
-    // but the local counter returned in answering the trigger
-    // belongs to the previous orbit
-    --rofs.back().interactionRecord.orbit;
-  }
+  InteractionRecord ir;
+  processTrigger(decoder, eventType, ir);
+  addLoc(decoder, eventType, ir, data, rofs);
 }
 
 void ELinkDataShaper::onDoneRegDebug(const ELinkDecoder& decoder, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
 {
   /// Performs action on decoded regional board in debug mode.
   EventType eventType;
-  uint16_t correctedClock;
-  processTrigger(decoder, eventType, correctedClock);
+  InteractionRecord ir;
+  processTrigger(decoder, eventType, ir);
   // If we want to distinguish the two regional e-links, we can use the link ID instead
   auto firstEntry = data.size();
   data.push_back({decoder.getStatusWord(), decoder.getTriggerWord(), mUniqueId, decoder.getInputs()});
-
-  auto orbit = (decoder.getTriggerWord() & raw::sORB) ? mIR.orbit - 1 : mIR.orbit;
-
-  InteractionRecord intRec(mIR.bc + correctedClock, orbit);
-  if (decoder.getTriggerWord() == 0) {
-    if (intRec.bc < mElectronicsDelay.regToLocal) {
-      // In the tests, the HB does not really correspond to a change of orbit
-      // So we need to keep track of the last clock at which the HB was received
-      // and come back to that value
-      // FIXME: Remove this part as well as mLastClock when tests are no more needed
-      intRec -= (constants::lhc::LHCMaxBunches - mLastClock - 1);
-    }
-    // This is a self-triggered event.
-    // In this case the regional card needs to wait to receive the tracklet decision of each local
-    // which result in a delay that needs to be subtracted if we want to be able to synchronize
-    // local and regional cards for the checks
-    intRec -= mElectronicsDelay.regToLocal;
-  }
-  rofs.emplace_back(intRec, eventType, firstEntry, 1);
+  rofs.emplace_back(ir, eventType, firstEntry, 1);
 }
 
 } // namespace mid

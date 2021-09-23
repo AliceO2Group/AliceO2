@@ -87,6 +87,9 @@ struct DataProcessorContext {
   AlgorithmSpec::ProcessCallback* statelessProcess = nullptr;
   AlgorithmSpec::ErrorCallback* error = nullptr;
 
+  /// Wether or not the associated DataProcessor can forward things early
+  bool canForwardEarly = true;
+
   std::function<void(o2::framework::RuntimeErrorRef e, InputRecord& record)>* errorHandling = nullptr;
 };
 

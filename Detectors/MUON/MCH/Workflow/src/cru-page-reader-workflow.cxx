@@ -584,10 +584,10 @@ class FileReaderTask
 
 //_________________________________________________________________________________________________
 // clang-format off
-o2::framework::DataProcessorSpec getFileReaderSpec()
+o2::framework::DataProcessorSpec getFileReaderSpec(const char* specName)
 {
   return DataProcessorSpec{
-    "FileReader",
+    specName,
     Inputs{},
     Outputs{OutputSpec{"RDT", "RAWDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<FileReaderTask>()},
@@ -614,7 +614,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext&)
   WorkflowSpec specs;
 
   // The producer to generate some data in the workflow
-  DataProcessorSpec producer = mch::raw::getFileReaderSpec();
+  DataProcessorSpec producer = mch::raw::getFileReaderSpec("mch-cru-page-reader");
   specs.push_back(producer);
 
   return specs;

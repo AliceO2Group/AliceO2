@@ -34,7 +34,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext&)
 {
   WorkflowSpec specs;
 
-  DataProcessorSpec producer = o2::mch::raw::getDecodingSpec("readout:RDT/RAWDATA");
+  DataProcessorSpec producer = o2::mch::raw::getDecodingSpec("mch-data-decoder", "readout:RDT/RAWDATA");
   specs.push_back(producer);
 
   return specs;

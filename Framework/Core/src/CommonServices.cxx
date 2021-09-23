@@ -84,7 +84,9 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
       o2::monitoring::Monitoring* monitoring;
       if (useDPL) {
         monitoring = new Monitoring();
-        monitoring->addBackend(std::make_unique<DPLMonitoringBackend>(registry));
+        auto dplBackend = std::make_unique<DPLMonitoringBackend>(registry);
+        (dynamic_cast<o2::monitoring::Backend*>(dplBackend.get()))->setVerbosity(o2::monitoring::Verbosity::Debug);
+        monitoring->addBackend(std::move(dplBackend));
       } else {
         auto backend = isDefault ? "infologger://" : options.GetPropertyAsString("monitoring-backend");
         monitoring = MonitoringFactory::Get(backend).release();
@@ -117,6 +119,10 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
       auto& context = processingContext.services().get<DataTakingContext>();
       // Only on the first message
       if (context.source == OrbitResetTimeSource::Data) {
+        return;
+      }
+      // Only if we do not have already the proper number from CTP
+      if (context.source == OrbitResetTimeSource::CTP) {
         return;
       }
       context.source = OrbitResetTimeSource::Data;
@@ -477,7 +483,7 @@ auto flushMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
   for (size_t si = 0; si < stats.statesSize.load(); ++si) {
     auto value = std::atomic_load_explicit(&stats.relayerState[si], std::memory_order_relaxed);
     std::atomic_thread_fence(std::memory_order_acquire);
-    monitoring.send({value, fmt::format("data_relayer/{}", si)});
+    monitoring.send({value, fmt::format("data_relayer/{}", si, o2::monitoring::Verbosity::Debug)});
   }
   relayer.sendContextState();
   monitoring.flushBuffer();

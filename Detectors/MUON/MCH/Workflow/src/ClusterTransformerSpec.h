@@ -15,7 +15,7 @@
 
 namespace o2::mch
 {
-o2::framework::DataProcessorSpec getClusterTransformerSpec(const char* name = "mch-cluster-transformer");
+o2::framework::DataProcessorSpec getClusterTransformerSpec(const char* specName = "mch-cluster-transformer");
 };
 
 #endif

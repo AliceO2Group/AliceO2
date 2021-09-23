@@ -39,6 +39,11 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float minRToMeanVertex = 0.5;           ///< min radial distance of V0 from beam line (mean vertex)
   float maxDCAXYToMeanVertex = 0.2;       ///< max DCA of V0 from beam line (mean vertex) for prompt V0 candidates
   float maxDCAXYToMeanVertexV0Casc = 0.5; ///< max DCA of V0 from beam line (mean vertex) for cascade V0 candidates
+  float minPtV0 = 0.01;                   ///< v0 minimum pT
+  float maxTglV0 = 2.;                    ///< maximum tgLambda of V0
+
+  float causalityRTolerance = 1.; ///< V0 radius cannot exceed its contributors minR by more than this value
+  float maxV0ToProngsRDiff = 50.; ///< V0 radius cannot be lower than this ammount wrt minR of contributors
 
   float minCosPAXYMeanVertex = 0.85;      ///< min cos of PA to beam line (mean vertex) in tr. plane for prompt V0 candidates
   float minCosPAXYMeanVertexCascV0 = 0.8; ///< min cos of PA to beam line (mean vertex) in tr. plane for V0 of cascade cand.
@@ -54,6 +59,8 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float maxDCAXYCasc = 0.3; // max DCA of cascade to PV in XY // TODO RS: shall we use real chi2 to vertex?
   float maxDCAZCasc = 0.3;  // max DCA of cascade to PV in Z
   float minCosPACasc = 0.7; ///< min cos of PA to PV for cascade candidates
+  float minPtCasc = 0.01;   // cascade minimum pT
+  float maxTglCasc = 2.;    // maximum tgLambda of cascade
 
   // cuts on different V0 PID params
   float pidCutsPhoton[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.60, 0.0};   // Photon

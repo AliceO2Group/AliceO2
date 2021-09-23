@@ -21,7 +21,6 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Framework/Task.h"
-#include "Headers/DataHeader.h"
 #include "MCHSimulation/Detector.h"
 #include "MCHSimulation/Digitizer.h"
 #include "MCHSimulation/DigitizerParam.h"

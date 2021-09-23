@@ -16,6 +16,7 @@
 
 #include "DPLUtils/Utils.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataRefUtils.h"
 #include <vector>
 
 namespace o2f = o2::framework;
@@ -40,7 +41,7 @@ o2f::DataProcessorSpec defineRouter(std::string devName, o2f::Inputs usrInput, o
             // Defining the ProcessCallback as returned object of InitCallback
             return [outputsPtr, mappingFuncPtr](o2f::ProcessingContext& ctx) {
               auto inputMsg = ctx.inputs().getByPos(0);
-              auto msgSize = (o2::header::get<o2::header::DataHeader*>(inputMsg.header))->payloadSize;
+              auto msgSize = o2::framework::DataRefUtils::getPayloadSize(inputMsg);
               auto& outputCh = (*outputsPtr)[(*mappingFuncPtr)(inputMsg)];
 
               auto& fwdMsg = ctx.outputs().newChunk(outputCh, msgSize);

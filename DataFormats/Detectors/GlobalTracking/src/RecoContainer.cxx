@@ -28,6 +28,11 @@
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
+// FIXME: ideally, the data formats definition should be independent of the framework
+// collectData is using the input of ProcessingContext to extract the first valid
+// header and the TF orbit from it
+#include "Framework/ProcessingContext.h"
+#include "Framework/DataRefUtils.h"
 
 using namespace o2::globaltracking;
 using namespace o2::framework;
@@ -78,11 +83,11 @@ void DataRequest::requestMCHTracks(bool mc)
 {
   addInput({"trackMCH", "MCH", "TRACKS", 0, Lifetime::Timeframe});
   addInput({"trackMCHROF", "MCH", "TRACKROFS", 0, Lifetime::Timeframe});
-  // FIXME-LA : add trackclusters and labels
+  if (mc) {
+    addInput({"trackMCHMCTR", "MCH", "TRACKLABELS", 0, Lifetime::Timeframe});
+  }
+  // FIXME-LA : add trackclusters
   // addInput({"trackMCHTRACKCLUSTERS", "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
-  // if (mc) {
-  //   addInput({"trackMFTMCTR", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe});
-  // }
   requestMap["trackMCH"] = mc;
 }
 
@@ -109,6 +114,15 @@ void DataRequest::requestITSTPCTracks(bool mc)
     addInput({"trackITSTPCABMCTR", "GLO", "TPCITSAB_MC", 0, Lifetime::Timeframe});
   }
   requestMap["trackITSTPC"] = mc;
+}
+
+void DataRequest::requestGlobalFwdTracks(bool mc)
+{
+  addInput({"fwdtracks", "GLO", "GLFWD", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"MCTruth", "GLO", "GLFWD_MC", 0, Lifetime::Timeframe});
+  }
+  requestMap["fwdtracks"] = mc;
 }
 
 void DataRequest::requestTPCTOFTracks(bool mc)
@@ -163,6 +177,17 @@ void DataRequest::requestITSClusters(bool mc)
     addInput({"clusITSMC", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
   }
   requestMap["clusITS"] = mc;
+}
+
+void DataRequest::requestMFTClusters(bool mc)
+{
+  addInput({"clusMFT", "MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe});
+  addInput({"clusMFTPatt", "MFT", "PATTERNS", 0, Lifetime::Timeframe});
+  addInput({"clusMFTROF", "MFT", "CLUSTERSROF", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"clusMFTMC", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
+  }
+  requestMap["clusMFT"] = mc;
 }
 
 void DataRequest::requestTPCClusters(bool mc)
@@ -297,6 +322,9 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (src[GTrackID::ITSTPC] || src[GTrackID::ITSTPCTOF]) {
     requestITSTPCTracks(useMC);
   }
+  if (src[GTrackID::MFTMCH]) {
+    requestGlobalFwdTracks(useMC);
+  }
   if (src[GTrackID::TPCTOF]) {
     requestTPCTOFTracks(useMC);
   }
@@ -321,6 +349,9 @@ void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
   if (GTrackID::includesDet(DetID::ITS, src)) {
     requestITSClusters(useMC);
   }
+  if (GTrackID::includesDet(DetID::MFT, src)) {
+    requestMFTClusters(useMC);
+  }
   if (GTrackID::includesDet(DetID::TPC, src)) {
     requestTPCClusters(useMC);
   }
@@ -337,7 +368,7 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
 {
   auto& reqMap = requests.requestMap;
 
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
+  const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
   startIR = {0, dh->firstTForbit};
 
   auto req = reqMap.find("trackITS");
@@ -365,6 +396,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addITSTPCTracks(pc, req->second);
   }
 
+  req = reqMap.find("fwdtracks");
+  if (req != reqMap.end()) {
+    addGlobalFwdTracks(pc, req->second);
+  }
+
   req = reqMap.find("trackITSTPCTRD");
   if (req != reqMap.end()) {
     addITSTPCTRDTracks(pc, req->second);
@@ -388,6 +424,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   req = reqMap.find("clusITS");
   if (req != reqMap.end()) {
     addITSClusters(pc, req->second);
+  }
+
+  req = reqMap.find("clusMFT");
+  if (req != reqMap.end()) {
+    addMFTClusters(pc, req->second);
   }
 
   req = reqMap.find("clusTPC");
@@ -531,10 +572,10 @@ void RecoContainer::addMCHTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::TrackMCH>>("trackMCH"), TRACKS);
   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("trackMCHROF"), TRACKREFS);
-  // FIXME-LA : add track labels and track clusters:
-  // if (mc) {
-  //   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMCHMC"), MCLABELS);
-  // }
+  if (mc) {
+    commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMCHMCTR"), MCLABELS);
+  }
+  // FIXME-LA : add track clusters
 }
 
 //____________________________________________________________
@@ -556,6 +597,15 @@ void RecoContainer::addITSTPCTracks(ProcessingContext& pc, bool mc)
   if (mc) {
     commonPool[GTrackID::ITSTPC].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSTPCMCTR"), MCLABELS);
     commonPool[GTrackID::ITSAB].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSTPCABMCTR"), MCLABELS);
+  }
+}
+
+//__________________________________________________________
+void RecoContainer::addGlobalFwdTracks(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::MFTMCH].registerContainer(pc.inputs().get<gsl::span<o2d::GlobalFwdTrack>>("fwdtracks"), TRACKS);
+  if (mc) {
+    commonPool[GTrackID::MFTMCH].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("MCTruth"), MCLABELS);
   }
 }
 
@@ -609,6 +659,14 @@ void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
   if (mc) {
     mcITSClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("clusITSMC");
   }
+}
+
+//__________________________________________________________
+void RecoContainer::addMFTClusters(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusMFTROF"), CLUSREFS);
+  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusMFT"), CLUSTERS);
+  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<unsigned char>>("clusMFTPatt"), PATTERNS);
 }
 
 //__________________________________________________________

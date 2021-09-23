@@ -176,7 +176,7 @@ class TrackSamplerTask
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getTrackSamplerSpec(bool forTrackFitter)
+o2::framework::DataProcessorSpec getTrackSamplerSpec(const char* specName, bool forTrackFitter)
 {
   Outputs outputs{};
   if (forTrackFitter) {
@@ -190,7 +190,7 @@ o2::framework::DataProcessorSpec getTrackSamplerSpec(bool forTrackFitter)
   }
 
   return DataProcessorSpec{
-    "TrackSampler",
+    specName,
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<TrackSamplerTask>()},

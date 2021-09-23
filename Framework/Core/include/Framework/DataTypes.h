@@ -33,10 +33,20 @@ enum TrackTypeEnum : uint8_t {
   Run2Track = 254,
   Run2Tracklet = 255
 };
+enum TrackFlags {
+  TrackTimeResIsRange = 0x1 // Gaussian or range
+};
 enum TrackFlagsRun2Enum {
   ITSrefit = 0x1,
   TPCrefit = 0x2,
-  GoldenChi2 = 0x4
+  GoldenChi2 = 0x4,
+  // NOTE Highest 4 (29..32) bits reserved for PID hypothesis
+};
+enum DetectorMapEnum : uint8_t {
+  ITS = 0x1,
+  TPC = 0x2,
+  TRD = 0x4,
+  TOF = 0x8
 };
 } // namespace o2::aod::track
 

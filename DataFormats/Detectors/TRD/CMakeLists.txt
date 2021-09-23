@@ -15,6 +15,7 @@ o2_add_library(DataFormatsTRD
                        src/AngularResidHistos.cxx
                        src/Tracklet64.cxx
                        src/RawData.cxx
+                       src/RawDataStats.cxx
                        src/CompressedDigit.cxx
                        src/CTF.cxx
                        src/Digit.cxx

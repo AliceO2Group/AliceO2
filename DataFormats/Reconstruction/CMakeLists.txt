@@ -42,6 +42,7 @@ o2_target_root_dictionary(
           include/ReconstructionDataFormats/TrackFwd.h
           include/ReconstructionDataFormats/BaseCluster.h
           include/ReconstructionDataFormats/TrackTPCITS.h
+          include/ReconstructionDataFormats/GlobalFwdTrack.h
           include/ReconstructionDataFormats/Vertex.h
           include/ReconstructionDataFormats/PrimaryVertex.h
           include/ReconstructionDataFormats/MatchInfoTOF.h
