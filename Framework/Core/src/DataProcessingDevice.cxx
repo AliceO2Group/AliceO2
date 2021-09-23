@@ -540,6 +540,10 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   /// We must make sure there is no optional
   /// if we want to optimize the forwarding
   for (auto& input : mSpec.inputs) {
+    if (strncmp(DataSpecUtils::asConcreteOrigin(input.matcher).str, "AOD", 3) == 0) {
+      context.canForwardEarly = false;
+      break;
+    }
     if (input.matcher.lifetime == Lifetime::Optional) {
       context.canForwardEarly = false;
       break;
