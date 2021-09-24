@@ -82,12 +82,7 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
 
   // Create an arrow table from this.
   TreeToTable tr2ta;
-  auto stat = tr2ta.addAllColumns(&t1);
-  if (!stat) {
-    LOG(error) << "Table was not created!";
-    return;
-  }
-
+  tr2ta.addAllColumns(&t1);
   tr2ta.fill(&t1);
   auto table = tr2ta.finalize();
   f1.Close();
