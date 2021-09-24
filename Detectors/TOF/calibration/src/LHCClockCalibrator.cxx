@@ -97,7 +97,7 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
   l.addLHCphase(slot.getTFStart(), fitValues[1]);
   auto clName = o2::utils::MemFileHelper::getClassName(l);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  mInfoVector.emplace_back("TOF/LHCphase", clName, flName, md, slot.getTFStart(), 99999999999999);
+  mInfoVector.emplace_back("TOF/Calib/LHCphase", clName, flName, md, slot.getTFStart(), 99999999999999);
   mLHCphaseVector.emplace_back(l);
 
   slot.print();

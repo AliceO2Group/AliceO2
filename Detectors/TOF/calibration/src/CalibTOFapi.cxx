@@ -32,7 +32,7 @@ void CalibTOFapi::readLHCphase()
   // getting the LHCphase calibration
 
   auto& mgr = CcdbManager::instance();
-  mLHCphase = mgr.getForTimeStamp<LhcPhase>("TOF/LHCphase", mTimeStamp);
+  mLHCphase = mgr.getForTimeStamp<LhcPhase>("TOF/Calib/LHCphase", mTimeStamp);
 }
 
 //______________________________________________________________________
@@ -44,7 +44,7 @@ void CalibTOFapi::readTimeSlewingParam()
   // it includes also offset and information on problematic
 
   auto& mgr = CcdbManager::instance();
-  mSlewParam = mgr.getForTimeStamp<SlewParam>("TOF/ChannelCalib", mTimeStamp);
+  mSlewParam = mgr.getForTimeStamp<SlewParam>("TOF/Calib/ChannelCalib", mTimeStamp);
 }
 
 //______________________________________________________________________
@@ -57,7 +57,7 @@ void CalibTOFapi::writeLHCphase(LhcPhase* phase, std::map<std::string, std::stri
   auto& mgr = CcdbManager::instance();
   CcdbApi api;
   api.init(mgr.getURL());
-  api.storeAsTFileAny(phase, "TOF/LHCphase", metadataLHCphase, minTimeStamp, maxTimeStamp);
+  api.storeAsTFileAny(phase, "TOF/Calib/LHCphase", metadataLHCphase, minTimeStamp, maxTimeStamp);
 }
 
 //______________________________________________________________________
@@ -71,9 +71,9 @@ void CalibTOFapi::writeTimeSlewingParam(SlewParam* param, std::map<std::string, 
   CcdbApi api;
   api.init(mgr.getURL());
   if (maxTimeStamp == 0) {
-    api.storeAsTFileAny(param, "TOF/ChannelCalib", metadataChannelCalib, minTimeStamp);
+    api.storeAsTFileAny(param, "TOF/Calib/ChannelCalib", metadataChannelCalib, minTimeStamp);
   } else {
-    api.storeAsTFileAny(param, "TOF/ChannelCalib", metadataChannelCalib, minTimeStamp, maxTimeStamp);
+    api.storeAsTFileAny(param, "TOF/Calib/ChannelCalib", metadataChannelCalib, minTimeStamp, maxTimeStamp);
   }
 }
 
