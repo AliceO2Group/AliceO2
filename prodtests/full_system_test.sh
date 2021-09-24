@@ -118,6 +118,8 @@ taskwrapper cpvraw.log o2-cpv-digi2raw --file-for link -o raw/CPV
 taskwrapper zdcraw.log o2-zdc-digi2raw --file-for link -o raw/ZDC
 taskwrapper hmpraw.log o2-hmpid-digits-to-raw-workflow --file-for link --outdir raw/HMP
 taskwrapper trdraw.log o2-trd-trap2raw -o raw/TRD --fileper halfcru
+taskwrapper ctpraw.log o2-ctp-digi2raw -o raw/CTP --file-per-link
+
 cat raw/*/*.cfg > rawAll.cfg
 
 if [ "0$DISABLE_PROCESSING" == "01" ]; then
