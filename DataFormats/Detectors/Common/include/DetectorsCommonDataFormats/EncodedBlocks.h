@@ -922,7 +922,7 @@ template <typename H, int N, typename W>
 std::vector<char> EncodedBlocks<H, N, W>::createDictionaryBlocks(const std::vector<o2::rans::FrequencyTable>& vfreq, const std::vector<Metadata>& vmd)
 {
   if (vfreq.size() != N) {
-    throw std::runtime_error("mismatch between the size of frequencies vector and number of blocks");
+    throw std::runtime_error(fmt::format("mismatch between the size of frequencies vector {} and number of blocks {}", vfreq.size(), N));
   }
   size_t sz = alignSize(sizeof(EncodedBlocks<H, N, W>));
   for (int ib = 0; ib < N; ib++) {
