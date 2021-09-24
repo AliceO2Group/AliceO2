@@ -333,7 +333,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
 }
 
 template <typename FwdTracksCursorType, typename FwdTracksCovCursorType, typename fwdTrackType>
-void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksCursor,  FwdTracksCovCursorType& fwdTracksCovCursor, 
+void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksCursor, FwdTracksCovCursorType& fwdTracksCovCursor,
                                                  const fwdTrackType& track, int collisionID,
                                                  const math_utils::Point3D<double>& vertex)
 
@@ -362,22 +362,22 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   float trackTime = 0;
   float trackTimeRes = 0;
 
-  float sigX=0;
-  float sigY=0;
-  float sigPhi=0;
-  float sigTgl=0;
-  float sig1Pt=0;
+  float sigX = 0;
+  float sigY = 0;
+  float sigPhi = 0;
+  float sigTgl = 0;
+  float sig1Pt = 0;
 
-  int8_t rhoXY=0;
-  int8_t rhoPhiX=0;
-  int8_t rhoPhiY=0;
-  int8_t rhoTglX=0;
-  int8_t rhoTglY=0;
-  int8_t rhoTglPhi=0;
-  int8_t rho1PtX=0;
-  int8_t rho1PtY=0;
-  int8_t rho1PtPhi=0;
-  int8_t rho1PtTgl=0;
+  int8_t rhoXY = 0;
+  int8_t rhoPhiX = 0;
+  int8_t rhoPhiY = 0;
+  int8_t rhoTglX = 0;
+  int8_t rhoTglY = 0;
+  int8_t rhoTglPhi = 0;
+  int8_t rho1PtX = 0;
+  int8_t rho1PtY = 0;
+  int8_t rho1PtPhi = 0;
+  int8_t rho1PtTgl = 0;
 
   if constexpr (!std::is_base_of_v<o2::track::TrackParCovFwd, std::decay_t<decltype(track)>>) {
     // This is a MCH track
@@ -443,16 +443,16 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     sigPhi = TMath::Sqrt(trackParamAtVertex.getCovariances()(2, 2));
     sigTgl = TMath::Sqrt(trackParamAtVertex.getCovariances()(3, 3));
     sig1Pt = TMath::Sqrt(trackParamAtVertex.getCovariances()(4, 4));
-    rhoXY = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 1)/(sigX * sigY));
-    rhoPhiX = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 2)/(sigPhi * sigX));
-    rhoPhiY = (Char_t)(128. * trackParamAtVertex.getCovariances()(1, 2)/(sigPhi * sigY));
-    rhoTglX = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 3)/(sigTgl * sigX));
-    rhoTglY = (Char_t)(128. * trackParamAtVertex.getCovariances()(1, 3)/(sigTgl * sigY));
-    rhoTglPhi = (Char_t)(128. * trackParamAtVertex.getCovariances()(2, 3)/(sigTgl * sigPhi));
-    rho1PtX = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 4)/(sig1Pt * sigX));
-    rho1PtY = (Char_t)(128. * trackParamAtVertex.getCovariances()(1, 4)/(sig1Pt * sigY));
-    rho1PtPhi = (Char_t)(128. * trackParamAtVertex.getCovariances()(2, 4)/(sig1Pt * sigPhi));
-    rho1PtTgl = (Char_t)(128. * trackParamAtVertex.getCovariances()(3, 4)/(sig1Pt * sigTgl));
+    rhoXY = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 1) / (sigX * sigY));
+    rhoPhiX = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 2) / (sigPhi * sigX));
+    rhoPhiY = (Char_t)(128. * trackParamAtVertex.getCovariances()(1, 2) / (sigPhi * sigY));
+    rhoTglX = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 3) / (sigTgl * sigX));
+    rhoTglY = (Char_t)(128. * trackParamAtVertex.getCovariances()(1, 3) / (sigTgl * sigY));
+    rhoTglPhi = (Char_t)(128. * trackParamAtVertex.getCovariances()(2, 3) / (sigTgl * sigPhi));
+    rho1PtX = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 4) / (sig1Pt * sigX));
+    rho1PtY = (Char_t)(128. * trackParamAtVertex.getCovariances()(1, 4) / (sig1Pt * sigY));
+    rho1PtPhi = (Char_t)(128. * trackParamAtVertex.getCovariances()(2, 4) / (sig1Pt * sigPhi));
+    rho1PtTgl = (Char_t)(128. * trackParamAtVertex.getCovariances()(3, 4) / (sig1Pt * sigTgl));
 
   } else {
     // This is a GlobalMuonTrack or a GlobalForwardTrack
@@ -474,16 +474,16 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     sigPhi = TMath::Sqrt(track.getCovariances()(2, 2));
     sigTgl = TMath::Sqrt(track.getCovariances()(3, 3));
     sig1Pt = TMath::Sqrt(track.getCovariances()(4, 4));
-    rhoXY = (Char_t)(128. * track.getCovariances()(0, 1)/(sigX * sigY));
-    rhoPhiX = (Char_t)(128. * track.getCovariances()(0, 2)/(sigPhi * sigX));
-    rhoPhiY = (Char_t)(128. * track.getCovariances()(1, 2)/(sigPhi * sigY));
-    rhoTglX = (Char_t)(128. * track.getCovariances()(0, 3)/(sigTgl * sigX));
-    rhoTglY = (Char_t)(128. * track.getCovariances()(1, 3)/(sigTgl * sigY));
-    rhoTglPhi = (Char_t)(128. * track.getCovariances()(2, 3)/(sigTgl * sigPhi));
-    rho1PtX = (Char_t)(128. * track.getCovariances()(0, 4)/(sig1Pt * sigX));
-    rho1PtY = (Char_t)(128. * track.getCovariances()(1, 4)/(sig1Pt * sigY));
-    rho1PtPhi = (Char_t)(128. * track.getCovariances()(2, 4)/(sig1Pt * sigPhi));
-    rho1PtTgl = (Char_t)(128. * track.getCovariances()(3, 4)/(sig1Pt * sigTgl));
+    rhoXY = (Char_t)(128. * track.getCovariances()(0, 1) / (sigX * sigY));
+    rhoPhiX = (Char_t)(128. * track.getCovariances()(0, 2) / (sigPhi * sigX));
+    rhoPhiY = (Char_t)(128. * track.getCovariances()(1, 2) / (sigPhi * sigY));
+    rhoTglX = (Char_t)(128. * track.getCovariances()(0, 3) / (sigTgl * sigX));
+    rhoTglY = (Char_t)(128. * track.getCovariances()(1, 3) / (sigTgl * sigY));
+    rhoTglPhi = (Char_t)(128. * track.getCovariances()(2, 3) / (sigTgl * sigPhi));
+    rho1PtX = (Char_t)(128. * track.getCovariances()(0, 4) / (sig1Pt * sigX));
+    rho1PtY = (Char_t)(128. * track.getCovariances()(1, 4) / (sig1Pt * sigY));
+    rho1PtPhi = (Char_t)(128. * track.getCovariances()(2, 4) / (sig1Pt * sigPhi));
+    rho1PtTgl = (Char_t)(128. * track.getCovariances()(3, 4) / (sig1Pt * sigTgl));
 
     trackTypeId = (chi2matchmchmid >= 0) ? o2::aod::fwdtrack::GlobalMuonTrack : o2::aod::fwdtrack::GlobalForwardTrack;
   }
@@ -515,22 +515,21 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
                   trackTimeRes);
 
   fwdTracksCovCursor(0,
-		     sigX,
-		     sigY,
-		     sigPhi,
-		     sigTgl,
-		     sig1Pt,
-		     rhoXY,
-		     rhoPhiX,
-		     rhoPhiY,
-		     rhoTglX,
-		     rhoTglY,
-		     rhoTglPhi,
-		     rho1PtX,
-		     rho1PtY,
-		     rho1PtPhi,
-		     rho1PtTgl
-		     );
+                     sigX,
+                     sigY,
+                     sigPhi,
+                     sigTgl,
+                     sig1Pt,
+                     rhoXY,
+                     rhoPhiX,
+                     rhoPhiY,
+                     rhoTglX,
+                     rhoTglY,
+                     rhoTglPhi,
+                     rho1PtX,
+                     rho1PtY,
+                     rho1PtPhi,
+                     rho1PtTgl);
 }
 
 template <typename MCParticlesCursorType>
