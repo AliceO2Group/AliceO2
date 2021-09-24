@@ -367,16 +367,17 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   float sigPhi=0;
   float sigTgl=0;
   float sig1Pt=0;
-  float rhoXY=0;
-  float rhoPhiX=0;
-  float rhoPhiY=0;
-  float rhoTglX=0;
-  float rhoTglY=0;
-  float rhoTglPhi=0;
-  float rho1PtX=0;
-  float rho1PtY=0;
-  float rho1PtPhi=0;
-  float rho1PtTgl=0;
+
+  int8_t rhoXY=0;
+  int8_t rhoPhiX=0;
+  int8_t rhoPhiY=0;
+  int8_t rhoTglX=0;
+  int8_t rhoTglY=0;
+  int8_t rhoTglPhi=0;
+  int8_t rho1PtX=0;
+  int8_t rho1PtY=0;
+  int8_t rho1PtPhi=0;
+  int8_t rho1PtTgl=0;
 
   if constexpr (!std::is_base_of_v<o2::track::TrackParCovFwd, std::decay_t<decltype(track)>>) {
     // This is a MCH track
@@ -437,21 +438,21 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     pdca = dpdca;
     nClusters = track.getNClusters();
 
-    sigX = trackParamAtVertex.getCovariances()(0, 0);
-    sigY = trackParamAtVertex.getCovariances()(1, 1);
-    sigPhi = trackParamAtVertex.getCovariances()(2, 2);
-    sigTgl = trackParamAtVertex.getCovariances()(3, 3);
-    sig1Pt = trackParamAtVertex.getCovariances()(4, 4);
-    rhoXY = trackParamAtVertex.getCovariances()(0, 1);
-    rhoPhiX = trackParamAtVertex.getCovariances()(0, 2);
-    rhoPhiY = trackParamAtVertex.getCovariances()(1, 2);
-    rhoTglX = trackParamAtVertex.getCovariances()(0, 3);
-    rhoTglY = trackParamAtVertex.getCovariances()(1, 3);
-    rhoTglPhi = trackParamAtVertex.getCovariances()(2, 3);
-    rho1PtX = trackParamAtVertex.getCovariances()(0, 4);
-    rho1PtY = trackParamAtVertex.getCovariances()(1, 4);
-    rho1PtPhi = trackParamAtVertex.getCovariances()(2, 4);
-    rho1PtTgl = trackParamAtVertex.getCovariances()(3, 4);
+    sigX = TMath::Sqrt(trackParamAtVertex.getCovariances()(0, 0));
+    sigY = TMath::Sqrt(trackParamAtVertex.getCovariances()(1, 1));
+    sigPhi = TMath::Sqrt(trackParamAtVertex.getCovariances()(2, 2));
+    sigTgl = TMath::Sqrt(trackParamAtVertex.getCovariances()(3, 3));
+    sig1Pt = TMath::Sqrt(trackParamAtVertex.getCovariances()(4, 4));
+    rhoXY = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 1)/(sigX * sigY));
+    rhoPhiX = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 2)/(sigPhi * sigX));
+    rhoPhiY = (Char_t)(128. * trackParamAtVertex.getCovariances()(1, 2)/(sigPhi * sigY));
+    rhoTglX = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 3)/(sigTgl * sigX));
+    rhoTglY = (Char_t)(128. * trackParamAtVertex.getCovariances()(1, 3)/(sigTgl * sigY));
+    rhoTglPhi = (Char_t)(128. * trackParamAtVertex.getCovariances()(2, 3)/(sigTgl * sigPhi));
+    rho1PtX = (Char_t)(128. * trackParamAtVertex.getCovariances()(0, 4)/(sig1Pt * sigX));
+    rho1PtY = (Char_t)(128. * trackParamAtVertex.getCovariances()(1, 4)/(sig1Pt * sigY));
+    rho1PtPhi = (Char_t)(128. * trackParamAtVertex.getCovariances()(2, 4)/(sig1Pt * sigPhi));
+    rho1PtTgl = (Char_t)(128. * trackParamAtVertex.getCovariances()(3, 4)/(sig1Pt * sigTgl));
 
   } else {
     // This is a GlobalMuonTrack or a GlobalForwardTrack
@@ -468,21 +469,21 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     matchmfttrackid = track.getMFTTrackID();
     matchmchtrackid = track.getMCHTrackID();
 
-    sigX = track.getCovariances()(0, 0);
-    sigY = track.getCovariances()(1, 1);
-    sigPhi = track.getCovariances()(2, 2);
-    sigTgl = track.getCovariances()(3, 3);
-    sig1Pt = track.getCovariances()(4, 4);
-    rhoXY = track.getCovariances()(0, 1);
-    rhoPhiX = track.getCovariances()(0, 2);
-    rhoPhiY = track.getCovariances()(1, 2);
-    rhoTglX = track.getCovariances()(0, 3);
-    rhoTglY = track.getCovariances()(1, 3);
-    rhoTglPhi = track.getCovariances()(2, 3);
-    rho1PtX = track.getCovariances()(0, 4);
-    rho1PtY = track.getCovariances()(1, 4);
-    rho1PtPhi = track.getCovariances()(2, 4);
-    rho1PtTgl = track.getCovariances()(3, 4);
+    sigX = TMath::Sqrt(track.getCovariances()(0, 0));
+    sigY = TMath::Sqrt(track.getCovariances()(1, 1));
+    sigPhi = TMath::Sqrt(track.getCovariances()(2, 2));
+    sigTgl = TMath::Sqrt(track.getCovariances()(3, 3));
+    sig1Pt = TMath::Sqrt(track.getCovariances()(4, 4));
+    rhoXY = (Char_t)(128. * track.getCovariances()(0, 1)/(sigX * sigY));
+    rhoPhiX = (Char_t)(128. * track.getCovariances()(0, 2)/(sigPhi * sigX));
+    rhoPhiY = (Char_t)(128. * track.getCovariances()(1, 2)/(sigPhi * sigY));
+    rhoTglX = (Char_t)(128. * track.getCovariances()(0, 3)/(sigTgl * sigX));
+    rhoTglY = (Char_t)(128. * track.getCovariances()(1, 3)/(sigTgl * sigY));
+    rhoTglPhi = (Char_t)(128. * track.getCovariances()(2, 3)/(sigTgl * sigPhi));
+    rho1PtX = (Char_t)(128. * track.getCovariances()(0, 4)/(sig1Pt * sigX));
+    rho1PtY = (Char_t)(128. * track.getCovariances()(1, 4)/(sig1Pt * sigY));
+    rho1PtPhi = (Char_t)(128. * track.getCovariances()(2, 4)/(sig1Pt * sigPhi));
+    rho1PtTgl = (Char_t)(128. * track.getCovariances()(3, 4)/(sig1Pt * sigTgl));
 
     trackTypeId = (chi2matchmchmid >= 0) ? o2::aod::fwdtrack::GlobalMuonTrack : o2::aod::fwdtrack::GlobalForwardTrack;
   }
