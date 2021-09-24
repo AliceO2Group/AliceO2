@@ -21,6 +21,7 @@ o2_add_library(Framework
                        src/ChannelMatching.cxx
                        src/ChannelConfigurationPolicyHelpers.cxx
                        src/ChannelSpecHelpers.cxx
+                       src/CCDBParamSpec.cxx
                        src/CommandInfo.cxx
                        src/CommonDataProcessors.cxx
                        src/CommonServices.cxx

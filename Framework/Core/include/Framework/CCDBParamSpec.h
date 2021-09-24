@@ -8,20 +8,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef O2_FRAMEWORK_CCDBPARAMSPEC_H_
+#define O2_FRAMEWORK_CCDBPARAMSPEC_H_
 #include "Framework/ConfigParamSpec.h"
-#include <fmt/format.h>
+#include <vector>
+#include <string>
 
 namespace o2::framework
 {
 
-ConfigParamSpec ccdbParamSpec(std::string const& path)
-{
-  return ConfigParamSpec{"ccdb-path", VariantType::String, path, {fmt::format("Path in CCDB ({})", path)}, ConfigParamKind::kGeneric};
-}
-
-ConfigParamSpec startTimeParamSpec(int64_t t)
-{
-  return ConfigParamSpec{"start-value-enumeration", VariantType::Int64, t, {fmt::format("start time for enumeration ({})", t)}, ConfigParamKind::kGeneric};
-}
+ConfigParamSpec ccdbPathSpec(std::string const& path);
+ConfigParamSpec ccdbRunDependent(bool defaultValue = true);
+std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, bool runDependent = false);
+ConfigParamSpec startTimeParamSpec(int64_t t);
 
 } // namespace o2::framework
+#endif

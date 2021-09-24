@@ -79,7 +79,7 @@ DataProcessorSpec getApplyCCDBCalibSpec()
   using device = ApplyCCDBCalibDevice;
 
   std::vector<InputSpec> inputs{
-    InputSpec{"calibLaserTracks", "TPC", "CalibLaserTracks", 0, Lifetime::Condition, {ccdbParamSpec("TPC/Calib/LaserTracks")}},
+    InputSpec{"calibLaserTracks", "TPC", "CalibLaserTracks", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/LaserTracks")},
     InputSpec{"sometimer", "TST", "BAR", 0, Lifetime::Timer, {startTimeParamSpec(1638548475371)}},
   };
 
