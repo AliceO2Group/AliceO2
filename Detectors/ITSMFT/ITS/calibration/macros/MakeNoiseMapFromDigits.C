@@ -29,7 +29,7 @@ void MakeNoiseMapFromDigits(std::string digifile = "itsdigits.root", int hitCut 
 
   TFile* fout = new TFile("ITSnoise.root", "new");
   fout->cd();
-  fout->WriteObject(&noiseMap, "Noise");
+  fout->WriteObject(&noiseMap, "ccdb_object");
   fout->Close();
 
   int nPixelCalib = noiseMap.dumpAboveThreshold(hitCut);
