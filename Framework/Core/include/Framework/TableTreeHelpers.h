@@ -22,97 +22,68 @@ namespace o2::framework
 {
 
 // -----------------------------------------------------------------------------
-// TableToTree allows to save the contents of a given arrow::Table to a TTree
-//  BranchIterator is used by TableToTree
+// TableToTree allows to save the contents of a given arrow::Table into
+// a TTree
+// ColumnToBranch is used by GenericTableToTree
 //
 // To write the contents of a table ta to a tree tr on file f do:
-//  . TableToTree t2t(ta,f,treename);
-//  . t2t.addBranch(coumn1); t2t.addBranch(coumn1); ...
-//    OR
-//    t2t.addAllBranches();
+//  . GenericTableToTree t2t(ta, f,treename);
+//  . t2t.addBranches();
+//    OR t2t.addBranch(column.get(), field.get()), ...;
 //  . t2t.process();
 //
 // .............................................................................
-class BranchIterator
+struct ROOTTypeInfo {
+  EDataType type;
+  char suffix[3];
+  int size;
+};
+
+auto basicROOTTypeFromArrow(arrow::Type::type id);
+
+class ColumnToBranch
 {
+ public:
+  ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field);
+  ColumnToBranch(ColumnToBranch const& other) = delete;
+  ColumnToBranch(ColumnToBranch&& other) = delete;
+  void at(const int64_t* pos);
 
  private:
-  std::string mBranchName;    // branch name
-  arrow::ArrayVector mChunks; // chunks
-  Int_t mNumberChuncs;        // number of chunks
-  Int_t mCounterChunk;        // chunk counter
-  Int_t mNumberRows;          // number of rows
-  Int_t mCounterRow;          // row counter
+  auto getCurrentBuffer();
+  void resetBuffer();
+  void accessChunk(int64_t at);
+  void nextChunk();
 
-  // data buffers for each data type
-  bool mStatus = false;
-  arrow::Field* mField;
-  arrow::Type::type mFieldType;
-  arrow::Type::type mElementType;
-  int32_t mNumberElements;
-  std::string mLeaflistString;
-
-  TBranch* mBranchPtr = nullptr;
-
-  char* mBranchBuffer = nullptr;
-  void* mValueBuffer = nullptr;
-
-  std::shared_ptr<arrow::BooleanArray> mArray_o = nullptr;
-  //bool mBoolValueHolder;
-  bool* mVariable_o = nullptr;
-
-  uint8_t* mVariable_ub = nullptr;
-  uint16_t* mVariable_us = nullptr;
-  uint32_t* mVariable_ui = nullptr;
-  uint64_t* mVariable_ul = nullptr;
-  int8_t* mVariable_b = nullptr;
-  int16_t* mVariable_s = nullptr;
-  int32_t* mVariable_i = nullptr;
-  int64_t* mVariable_l = nullptr;
-  float* mVariable_f = nullptr;
-  double* mVariable_d = nullptr;
-
-  // initialize a branch
-  bool initBranch(TTree* tree);
-
-  // initialize chunk ib
-  bool initDataBuffer(Int_t ib);
-
- public:
-  BranchIterator(TTree* tree, std::shared_ptr<arrow::ChunkedArray> col, std::shared_ptr<arrow::Field> field);
-  ~BranchIterator();
-
-  // has the iterator been properly initialized
-  bool getStatus();
-
-  // fills buffer with next value
-  // returns false if end of buffer reached
-  bool push();
+  std::string mBranchName;
+  std::string mLeafList;
+  TBranch* mBranch = nullptr;
+  arrow::ChunkedArray* mColumn = nullptr;
+  int64_t const* mCurrentPos = nullptr;
+  int64_t mFirstIndex = 0;
+  int mCurrentChunk = 0;
+  int mListSize = 1;
+  ROOTTypeInfo mType;
+  std::vector<uint8_t> cache;
+  uint8_t const* mCurrent = nullptr;
+  uint8_t const* mLast = nullptr;
+  bool allocated = false;
 };
 
 class TableToTree
 {
+ public:
+  TableToTree(std::shared_ptr<arrow::Table> const& table, TFile* file, const char* treename);
+
+  TTree* process();
+  void addBranch(std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field);
+  void addAllBranches();
 
  private:
-  TTree* mTreePtr;
-
-  // a list of BranchIterator
-  std::vector<std::unique_ptr<BranchIterator>> mBranchIterators;
-
-  // table to convert
-  std::shared_ptr<arrow::Table> mTable;
-
- public:
-  TableToTree(std::shared_ptr<arrow::Table> table,
-              TFile* file,
-              const char* treename);
-
-  // add branches
-  bool addBranch(std::shared_ptr<arrow::ChunkedArray> col, std::shared_ptr<arrow::Field> field);
-  bool addAllBranches();
-
-  // write table to tree
-  TTree* process();
+  arrow::Table* mTable;
+  int64_t mRows = 0;
+  TTree* mTree = nullptr;
+  std::vector<std::unique_ptr<ColumnToBranch>> mColumnReaders;
 };
 
 class TreeToTable
