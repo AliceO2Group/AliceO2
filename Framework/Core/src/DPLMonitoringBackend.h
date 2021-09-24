@@ -43,11 +43,6 @@ class DPLMonitoringBackend final : public o2::monitoring::Backend
   void addGlobalTag(std::string_view name, std::string_view value) override;
 
  private:
-  /// Converts timestamp to unsigned long (miliseconds from epoch)
-  /// \param timestamp    timestamp in std::chrono::time_point format
-  /// \return             timestamp as unsigned long (miliseconds from epoch)
-  unsigned long convertTimestamp(const std::chrono::time_point<std::chrono::system_clock>& timestamp);
-
   std::string mTagString;    ///< Global tagset (common for each metric)
   const std::string mPrefix; ///< Metric prefix
   ServiceRegistry& mRegistry;

@@ -25,12 +25,6 @@ struct overloaded : Ts... {
 template <class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
-inline unsigned long DPLMonitoringBackend::convertTimestamp(const std::chrono::time_point<std::chrono::system_clock>& timestamp)
-{
-  return std::chrono::duration_cast<std::chrono::milliseconds>(
-           timestamp.time_since_epoch())
-    .count();
-}
 
 DPLMonitoringBackend::DPLMonitoringBackend(ServiceRegistry& registry)
   : mRegistry{registry}
@@ -50,34 +44,46 @@ void DPLMonitoringBackend::send(std::vector<o2::monitoring::Metric>&& metrics)
   }
 }
 
+inline unsigned long convertTimestamp(const std::chrono::time_point<std::chrono::system_clock>& timestamp)
+{
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+           timestamp.time_since_epoch())
+    .count();
+}
+
 void DPLMonitoringBackend::send(o2::monitoring::Metric const& metric)
 {
-  std::ostringstream mStream;
-  mStream << "[METRIC] " << metric.getName();
+  std::array<char, 4096> buffer;
+  auto mStream = fmt::format_to(buffer.begin(), "[METRIC] {}", metric.getName());
   for (auto& value : metric.getValues()) {
     auto stringValue = std::visit(overloaded{
                                     [](const std::string& value) -> std::string { return value; },
                                     [](auto value) -> std::string { return std::to_string(value); }},
                                   value.second);
     if (metric.getValuesSize() == 1) {
-      mStream << ',' << metric.getFirstValueType() << ' ' << stringValue;
+      mStream = fmt::format_to(mStream, ",{} {}", metric.getFirstValueType(), stringValue);
     } else {
-      mStream << ' ' << value.first << '=' << stringValue;
+      mStream = fmt::format_to(mStream, " {}={}", value.first, stringValue);
     }
   }
   // FIXME: tags are ignored by the DPL backend in any case...
-  mStream << ' ' << convertTimestamp(metric.getTimestamp()) << ' ' << mTagString;
+  mStream = fmt::format_to(mStream, " {} {}", convertTimestamp(metric.getTimestamp()), mTagString);
 
   bool first = mTagString.empty();
   for (const auto& [key, value] : metric.getTags()) {
     if (!first) {
-      mStream << ',';
+      mStream = fmt::format_to(mStream, ",");
     }
     first = true;
-    mStream << o2::monitoring::tags::TAG_KEY[key] << "=" << o2::monitoring::tags::GetValue(value);
+    mStream = fmt::format_to(mStream, "{}={}", o2::monitoring::tags::TAG_KEY[key], o2::monitoring::tags::GetValue(value));
   }
-  mStream << '\n';
-  mRegistry.get<framework::DriverClient>().tell(mStream.str());
+  mStream = fmt::format_to(mStream, "\n");
+  auto size = std::distance(buffer.begin(), mStream);
+  if (size + 1 >= 4096) {
+    throw runtime_error_f("Metric too long");
+  }
+  buffer[size] = '\0';
+  mRegistry.get<framework::DriverClient>().tell(buffer.data(), size);
 }
 
 } // namespace o2::framework
