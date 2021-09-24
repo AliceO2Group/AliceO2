@@ -15,7 +15,7 @@
 
 #endif
 
-void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", bool only1pix = false, float probT = 3e-6, std::string output = "noise.root")
+void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", bool only1pix = false, float probT = 3e-6, std::string output = "noise.root", std::string dict = "ITSdictionary.bin")
 {
   TFile out(output.data(), "new");
   if (!out.IsOpen()) {
@@ -50,6 +50,12 @@ void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", bool only1p
   clusTree->SetBranchAddress("ITSClustersROF", &rofVec);
 
   o2::its::NoiseCalibrator calib(only1pix, probT);
+  try {
+    calib.loadDictionary(dict.data());
+  } catch (std::runtime_error) {
+    LOG(ERROR) << "Cannot load the dictionary file: " << dict << " !";
+    LOG(INFO) << "Assuming that cluster shapes are not encoded...";
+  }
 
   auto nevents = clusTree->GetEntries();
   for (int n = 0; n < nevents; n++) {
