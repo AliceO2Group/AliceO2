@@ -22,7 +22,6 @@
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
-
 using namespace o2::itsmft;
 
 //__________________________________________________
@@ -245,7 +244,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
     if (bbox.isAcceptableSize()) {
       parent->streamCluster(pixArrBuff, &labelsBuff, bbox, parent->mPattIdConverter, compClusPtr, patternsPtr, labelsClusPtr, nlab);
     } else {
-      LOG(WARNING) << "Splitting a huge cluster !  ChipID: " << bbox.chipID;
+      LOGP(warning, "Splitting a huge cluster: chipID {}, rows {}:{} cols {}:{}", bbox.chipID, bbox.rowMin, bbox.rowMax, bbox.colMin, bbox.colMax);
       BBox bboxT(bbox); // truncated box
       std::vector<PixelData> pixbuf;
       do {
@@ -254,7 +253,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
         do { // Select a subset of pixels fitting the reduced bounding box
           bboxT.rowMax = std::min(bbox.rowMax, uint16_t(bboxT.rowMin + o2::itsmft::ClusterPattern::MaxRowSpan - 1));
           for (const auto& pix : pixArrBuff) {
-            if (bbox.isInside(pix.getRowDirect(), pix.getCol())) {
+            if (bboxT.isInside(pix.getRowDirect(), pix.getCol())) {
               pixbuf.push_back(pix);
             }
           }
