@@ -10,7 +10,7 @@
 
 //o2::ft0::HVchannel::HVBoard readHVBoard(std::string_view str);
 
-void uploadLookUpTable()
+void uploadLookUpTable(const std::string url = "http://o2-ccdb.internal/")
 {
   using o2::ccdb::BasicCCDBManager;
   using o2::ccdb::CcdbApi;
@@ -37,28 +37,7 @@ void uploadLookUpTable()
   }
   CcdbApi api;
   std::map<std::string, std::string> metadata; // can be empty
-  api.init("http://ccdb-test.cern.ch:8080/");  // or http://localhost:8080 for a local installation
+  api.init(url);
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&table, "FT0/LookUpTable", metadata);
 }
-/*
-o2::ft0::HVchannel::HVBoard readHVBoard(std::string_view str)
-{
-  using HVBoard = o2::ft0::HVchannel::HVBoard;
-  if (str == "N/A")
-    return HVBoard::NA;
-  else if (str == "A-Out")
-    return HVBoard::A_out;
-  else if (str == "A-In")
-    return HVBoard::A_in;
-  else if (str == "C-Up")
-    return HVBoard::C_up;
-  else if (str == "C-Down")
-    return HVBoard::C_down;
-  else if (str == "C-Mid")
-    return HVBoard::C_mid;
-  else {
-    std::cerr << "Unknown HVBoard " << str << "\n";
-    std::abort();
-  }
-*/

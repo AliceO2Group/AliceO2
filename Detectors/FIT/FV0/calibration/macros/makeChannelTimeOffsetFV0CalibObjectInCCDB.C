@@ -17,7 +17,7 @@
 #include "CCDB/CcdbApi.h"
 #endif
 
-int makeChannelTimeOffsetFV0CalibObjectInCCDB(const std::string url = "http://localhost:8080" /*http://ccdb-test.cern.ch:8080*/)
+int makeChannelTimeOffsetFV0CalibObjectInCCDB(const std::string url = "http://o2-ccdb.internal/")
 {
   o2::ccdb::CcdbApi api;
   api.init(url);
