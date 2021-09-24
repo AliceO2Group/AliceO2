@@ -102,15 +102,10 @@ class DataDecoderTask
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
     mFirstTForbit = dh->firstTForbit;
 
-    if (!mDecoder->getFirstOrbitInRun()) {
-      int firstRunOrbit = std::max<int>(0, mFirstTForbit - dh->tfCounter * o2::raw::HBFUtils::Instance().getNOrbitsPerTF());
-      mDecoder->setFirstOrbitInRun(firstRunOrbit);
-    }
     mDecoder->setFirstOrbitInTF(mFirstTForbit);
 
     if (mDebug) {
-      std::cout << "[DataDecoderSpec::run] first run orbit is " << mDecoder->getFirstOrbitInRun().value() << std::endl;
-      std::cout << "[DataDecoderSpec::run] first TF orbit is " << mFirstTForbit << std::endl;
+      LOG(INFO) << "[DataDecoderSpec::run] first TF orbit is " << mFirstTForbit;
     }
 
     // get the input buffer
@@ -152,9 +147,6 @@ class DataDecoderTask
 
     const RDH* rdh = reinterpret_cast<const RDH*>(raw);
     mFirstTForbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdh);
-    if (!mDecoder->getFirstOrbitInRun()) {
-      mDecoder->setFirstOrbitInRun(mFirstTForbit);
-    }
     mDecoder->setFirstOrbitInTF(mFirstTForbit);
 
     gsl::span<const std::byte> buffer(reinterpret_cast<const std::byte*>(raw), payloadSize);

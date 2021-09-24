@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(TimeDiffSameOrbitNoRollover)
   uint32_t orbit2 = 1;
   uint32_t bc1 = 0;
   uint32_t bc2 = BCINORBIT - 10;
-  auto diff = DataDecoder::digitsTimeDiff(orbit1, bc1, orbit2, bc2);
+  auto diff = DataDecoder::getDigitTime(orbit1, bc1, orbit2, bc2);
   BOOST_CHECK_EQUAL(diff, bc2);
 }
 
@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(TimeDiffSameOrbitWithRollover)
   uint32_t orbit2 = 1;
   uint32_t bc1 = BCROLLOVER - 10;
   uint32_t bc2 = 10;
-  auto diff = DataDecoder::digitsTimeDiff(orbit1, bc1, orbit2, bc2);
+  auto diff = DataDecoder::getDigitTime(orbit1, bc1, orbit2, bc2);
   BOOST_CHECK_EQUAL(diff, 20);
 }
 
@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(TimeDiffSameOrbitWithRollover2)
   uint32_t orbit2 = 1;
   uint32_t bc1 = 10;
   uint32_t bc2 = BCROLLOVER - 10;
-  auto diff = DataDecoder::digitsTimeDiff(orbit1, bc1, orbit2, bc2);
+  auto diff = DataDecoder::getDigitTime(orbit1, bc1, orbit2, bc2);
   BOOST_CHECK_EQUAL(diff, -20);
 }
 
@@ -72,6 +72,33 @@ static std::vector<RawDigit> makeDigitsVector(uint32_t sampaTime, uint32_t bunch
   return digits;
 }
 
+static std::vector<RawDigit> processDigits(const std::vector<RawDigit>& digits, uint32_t tfOrbit, uint32_t tfBunchCrossing)
+{
+  SampaChannelHandler channelHandler;
+  RdhHandler rdhHandler;
+
+  bool ds2manu = false;
+  uint32_t sampaBcOffset = 0;
+  bool mDebug = true;
+  bool mCheckROFs = false;
+  bool mDummyROFs = true;
+  bool useDummyElecMap = false;
+  DataDecoder decoder{channelHandler, rdhHandler, sampaBcOffset, "", "", ds2manu, mDebug, useDummyElecMap};
+
+  decoder.setFirstOrbitInTF(tfOrbit);
+  decoder.setDigits(digits);
+
+  for (auto& digit : digits) {
+    auto& info = digit.info;
+    auto chipId = DataDecoder::getChipId(info.solar, info.ds, info.chip);
+    decoder.updateTimeFrameStartRecord(chipId, tfOrbit, tfBunchCrossing);
+  }
+  decoder.computeDigitsTime();
+
+  auto& digitsOut = decoder.getDigits();
+  return digitsOut;
+}
+
 BOOST_AUTO_TEST_CASE(ComputeDigitsTime)
 {
   uint32_t sampaTime = 10;
@@ -83,14 +110,12 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTime)
   uint32_t tfOrbit = 1;
   uint32_t tfBunchCrossing = 0;
 
-  DataDecoder::SampaTimeFrameStart sampaTimeFrameStart{tfOrbit, tfBunchCrossing};
-
-  DataDecoder::computeDigitsTime(digits, sampaTimeFrameStart, false);
+  auto digitsOut = processDigits(digits, tfOrbit, tfBunchCrossing);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
                       static_cast<int32_t>(tfBunchCrossing);
 
-  BOOST_CHECK_EQUAL(digits[0].getTime(), digitTime);
+  BOOST_CHECK_EQUAL(digitsOut[0].getTime(), digitTime);
 }
 
 BOOST_AUTO_TEST_CASE(ComputeDigitsTimeWithRollover)
@@ -104,14 +129,12 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTimeWithRollover)
   uint32_t tfOrbit = 1;
   uint32_t tfBunchCrossing = BCROLLOVER - 100;
 
-  DataDecoder::SampaTimeFrameStart sampaTimeFrameStart{tfOrbit, tfBunchCrossing};
-
-  DataDecoder::computeDigitsTime(digits, sampaTimeFrameStart, false);
+  auto digitsOut = processDigits(digits, tfOrbit, tfBunchCrossing);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
                       static_cast<int32_t>(tfBunchCrossing) + BCROLLOVER;
 
-  BOOST_CHECK_EQUAL(digits[0].getTime(), digitTime);
+  BOOST_CHECK_EQUAL(digitsOut[0].getTime(), digitTime);
 }
 
 BOOST_AUTO_TEST_CASE(ComputeDigitsTimeWithRollover2)
@@ -125,14 +148,12 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTimeWithRollover2)
   uint32_t tfOrbit = 1;
   uint32_t tfBunchCrossing = 100;
 
-  DataDecoder::SampaTimeFrameStart sampaTimeFrameStart{tfOrbit, tfBunchCrossing};
-
-  DataDecoder::computeDigitsTime(digits, sampaTimeFrameStart, false);
+  auto digitsOut = processDigits(digits, tfOrbit, tfBunchCrossing);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
                       static_cast<int32_t>(tfBunchCrossing) - BCROLLOVER;
 
-  BOOST_CHECK_EQUAL(digits[0].getTime(), digitTime);
+  BOOST_CHECK_EQUAL(digitsOut[0].getTime(), digitTime);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
