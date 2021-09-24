@@ -36,6 +36,7 @@
 #include "PHOSWorkflow/EntropyDecoderSpec.h"
 #include "CPVWorkflow/EntropyDecoderSpec.h"
 #include "ZDCWorkflow/EntropyDecoderSpec.h"
+#include "CTPWorkflow/EntropyDecoderSpec.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -152,6 +153,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   if (ctfInput.detMask[DetID::HMP]) {
     specs.push_back(o2::hmpid::getEntropyDecoderSpec());
+  }
+  if (ctfInput.detMask[DetID::CTP]) {
+    specs.push_back(o2::ctp::getEntropyDecoderSpec());
   }
 
   return std::move(specs);

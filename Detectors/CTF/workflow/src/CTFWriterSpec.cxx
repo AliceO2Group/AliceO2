@@ -39,6 +39,7 @@
 #include "DataFormatsPHOS/CTF.h"
 #include "DataFormatsCPV/CTF.h"
 #include "DataFormatsZDC/CTF.h"
+#include "DataFormatsCTP/CTF.h"
 #include "rANS/rans.h"
 #include <vector>
 #include <array>
@@ -368,6 +369,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   szCTF += processDet<o2::cpv::CTF>(pc, DetID::CPV, header, mCTFTreeOut.get());
   szCTF += processDet<o2::zdc::CTF>(pc, DetID::ZDC, header, mCTFTreeOut.get());
   szCTF += processDet<o2::hmpid::CTF>(pc, DetID::HMP, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::ctp::CTF>(pc, DetID::CTP, header, mCTFTreeOut.get());
 
   mTimer.Stop();
 
@@ -548,6 +550,7 @@ void CTFWriterSpec::storeDictionaries()
   storeDictionary<o2::cpv::CTF>(DetID::CPV, header);
   storeDictionary<o2::zdc::CTF>(DetID::ZDC, header);
   storeDictionary<o2::hmpid::CTF>(DetID::HMP, header);
+  storeDictionary<o2::ctp::CTF>(DetID::CTP, header);
 
   // close remnants
   if (mDictTreeOut) {
