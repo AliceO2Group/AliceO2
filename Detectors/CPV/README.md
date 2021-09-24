@@ -69,7 +69,7 @@ Digits can be converted to raw data format using [RawWriter](https://github.com/
 ```shell
 o2-cpv-digi2raw -o raw/CPV
 ```
-This command will read digits from cpvdigits.root by default and produce raw/CPV/ folder with config and raw files. Digits to raw conversion is done by [RawWriter](https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/CPV/simulation/include/CPVSimulation/RawWriter.h) class. You can specify `--ccdb-url localtest` option in order to use dummy calibration. IMPORTANT is to use same CCDB path as you used at previous step i.e. hits to digits conversion. Input file also can be changed by providing `-i /path/to/file.root` option.
+This command will read digits from cpvdigits.root by default and produce raw/CPV/ folder with config and raw files. Digits to raw conversion is done by [RawWriter](https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/CPV/simulation/include/CPVSimulation/RawWriter.h) class. You can specify `--ccdb-url localtest` option in order to use dummy calibration. IMPORTANT is to use same CCDB path as you used at previous step i.e. hits to digits conversion. Input file also can be changed by providing `-i path/to/file.root` option.
 
 
 Raw file is ready to be read as normal raw data file and be processed normally with full reconstruction chain like that:
@@ -77,12 +77,21 @@ Raw file is ready to be read as normal raw data file and be processed normally w
 o2-raw-file-reader-workflow --input-conf raw/CPV/CPVraw.cfg |  o2-cpv-reco-workflow --input-type raw --output-type digits --disable-mc --disable-root-output |  o2-cpv-reco-workflow --input-type digits --output-type clusters --disable-mc
 ```
 
-
 ## Calibration
+Calibration is based on [TimeSlotCalibration](https://github.com/AliceO2Group/AliceO2/tree/dev/Detectors/Calibration#readme) framework. It supposed to produce calibration objects valid for certain time intervals and put them into CCDB. Calibration processes are expected to be running on EPN using digits and clusters.
 
-## Quality Conrol
+#### Pedestals
+Pedestal calibration is needed to measure pedestal values and their RMSs (sigmas). Pedestal value must be subtracted from amplitude at reconstruction stage. Also pedestals values and sigmas are used to configure FEE thresholds (so-called zero suppression) in physics runs. To measure them pedestal run without zero supression must be taken. Then its raw data converted to digits with `--pedestal` flag in order not to calibrate it. Thus digits have signal equal to raw amplitude. Then digit stream is picked up by `o2-calibration-cpv-calib-workflow`. The actual calibration is done by [PedestalCalibrator](https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/CPV/calib/include/CPVCalibration/PedestalCalibrator.h) class inherited from [TimeSlotCalibration](https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/Calibration/include/DetectorsCalibration/TimeSlotCalibration.h). It produces PedestalSpectrum for each time slot and then finalizing it at the end of TimeSlot or at the end of run. Calibration itself can be run with followng command (it must be within some workflow, of cause):
+```shell
+o2-calibration-cpv-calib-workflow --pedestals --max-delay 0 --tf-per-slot 100
+```
+Option `--tf-per-slot 100` indicates length of time intervals in TimeFrames. In this particular case length of TimeSlot is 100 TFs. Please consult [this page]() for explanation of all available options. One can also use `--updateAtTheEndOfRunOnly` option in order to finalize TimeSlots and produce calibration object at the end-of-run only. Be careful with that as end-of-run can be unclear yet within the O2 project so it can never happen. At least with the `o2-raw-file-reader-workflow` the finalization of TimeSlot never started yet at the end of file reading. Output of `o2-calibration-cpv-calib-workflow --pedestals` is stream of [Pedestals](https://github.com/AliceO2Group/AliceO2/blob/dev/DataFormats/Detectors/CPV/include/DataFormatsCPV/Pedestals.h) objects and corresponding metadata for CCDB entry. Use `o2-ccdb-populator-workflow` in order to put created objects to CCDB. The overall calibration chain should look like that:
+```shell
+o2-raw-file-reader-workflow --input-conf CPVraw.cfg  | o2-cpv-reco-workflow --input-type raw --output-type digits --disable-mc --disable-root-output --pedestal | o2-calibration-cpv-calib-workflow --pedestals --max-delay 0 --tf-per-slot 100 | o2-calibration-ccdb-populator-workflow
+```
+Explanation: it reads file with pedestal data; then raw data is converted to digits without calibration; then digits are picked up by calibrator; and finally produced calibration objects are putted to CCDB. After that it is possible to read them from CCDB with [this script](https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/CPV/calib/macros/readPedestalsFromCCDB.C).
 
-## Local testing
+## Local testing (quick summary)
 #### Simulation
 ```shell
 o2-sim -n10 -g boxgen --configKeyValues 'BoxGun.pdg=11 ; BoxGun.prange[0]=10.; BoxGun.prange[1]=15.; BoxGun.phirange[0]=260; BoxGun.phirange[1]=280; BoxGun.number=50; BoxGun.eta[0]=-0.125 ; BoxGun.eta[1]=0.125; ' -m CPV
