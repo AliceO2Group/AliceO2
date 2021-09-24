@@ -26,15 +26,31 @@ namespace lhc
 enum BeamDirection : int { BeamClockWise,
                            BeamAntiClockWise,
                            NBeamDirections };
-static constexpr int LHCMaxBunches = 3564;                              // max N bunches
-static constexpr double LHCRFFreq = 400.789e6;                          // LHC RF frequency in Hz
-static constexpr double LHCBunchSpacingNS = 10 * 1.e9 / LHCRFFreq;      // bunch spacing in ns (10 RFbuckets)
-static constexpr double LHCOrbitNS = LHCMaxBunches * LHCBunchSpacingNS; // orbit duration in ns
-static constexpr double LHCRevFreq = 1.e9 / LHCOrbitNS;                 // revolution frequency
-static constexpr double LHCBunchSpacingMUS = LHCBunchSpacingNS * 1e-3;  // bunch spacing in \mus (10 RFbuckets)
-static constexpr double LHCOrbitMUS = LHCOrbitNS * 1e-3;                // orbit duration in \mus
+constexpr int LHCMaxBunches = 3564;                              // max N bunches
+constexpr double LHCRFFreq = 400.789e6;                          // LHC RF frequency in Hz
+constexpr double LHCBunchSpacingNS = 10 * 1.e9 / LHCRFFreq;      // bunch spacing in ns (10 RFbuckets)
+constexpr double LHCOrbitNS = LHCMaxBunches * LHCBunchSpacingNS; // orbit duration in ns
+constexpr double LHCRevFreq = 1.e9 / LHCOrbitNS;                 // revolution frequency
+constexpr double LHCBunchSpacingMUS = LHCBunchSpacingNS * 1e-3;  // bunch spacing in \mus (10 RFbuckets)
+constexpr double LHCOrbitMUS = LHCOrbitNS * 1e-3;                // orbit duration in \mus
+constexpr unsigned int MaxNOrbits = 0xffffffff;
 
-static constexpr unsigned int MaxNOrbits = 0xffffffff;
+// Offsets of clockwise and anticlockwise beam bunches at P2
+constexpr int BunchOffsetsP2[2] = {346, 3019};
+
+// convert LHC bunch ID to BC for 2 beam directions
+constexpr int LHCBunch2P2BC(int bunch, BeamDirection dir)
+{
+  return (bunch + BunchOffsetsP2[int(dir)]) % LHCMaxBunches;
+}
+
+// convert BC at P2 to LHC bunch ID for 2 beam directions
+constexpr int P2BC2LHCBunch(int bc, BeamDirection dir)
+{
+  int bunch = bc - BunchOffsetsP2[int(dir)];
+  return bunch < 0 ? bunch + LHCMaxBunches : bunch;
+}
+
 } // namespace lhc
 } // namespace constants
 } // namespace o2
