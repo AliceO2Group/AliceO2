@@ -57,6 +57,7 @@ class DataDecoder
   static constexpr int32_t tfTimeMax{0x7FFFFFFF};
   static constexpr int32_t tfTimeInvalid{-tfTimeMax};
 
+  /// Structure storing the raw SAMPA information
   struct SampaInfo {
     union {
       uint32_t id = 0;
@@ -100,14 +101,25 @@ class DataDecoder
     }
   };
 
-  struct SampaTimeFrameStart {
-    SampaTimeFrameStart() = default;
-    SampaTimeFrameStart(uint32_t orbit, uint32_t bunchCrossing) : mOrbit(orbit), mBunchCrossing(bunchCrossing) {}
+  /// Structure holding the value of the BC counter from the last decoded Heartbeat packet
+  /// from a given SAMPA chip, as well as the value of the first orbit in the corresponding TimeFrame
+  /// The structure also keeps track of the previous orbit/bc pair, in order to perform consistency checks
+  struct TimeFrameStartRecord {
+    TimeFrameStartRecord() = default;
 
-    uint32_t mOrbit{0};
-    uint32_t mBunchCrossing{0};
+    /// store the new orbit/bc pair, and copy the existing one in the "*Prev" data members
+    void update(uint32_t orbit, uint32_t bunchCrossing);
+    bool check();
+
+    int64_t mOrbit{-1};
+    int64_t mBunchCrossing{-1};
+
+    int64_t mOrbitPrev{-1};
+    int64_t mBunchCrossingPrev{-1};
   };
 
+  /// Structure used internally to store the information of the decoded digits.
+  /// In addition to the standard Digit structure, it also keeps the raw SAMPA information
   struct RawDigit {
     o2::mch::Digit digit;
     SampaInfo info;
@@ -132,24 +144,36 @@ class DataDecoder
               bool ds2manu, bool verbose, bool useDummyElecMap);
 
   void reset();
-  void decodeBuffer(gsl::span<const std::byte> buf);
 
-  void setFirstOrbitInRun(uint32_t orbit) { mFirstOrbitInRun = orbit; }
-  std::optional<uint32_t> getFirstOrbitInRun() { return mFirstOrbitInRun; }
+  /// Store the value of the first orbit in the TimeFrame to be processed
+  /// Must be called before processing the TmeFrame buffer
   void setFirstOrbitInTF(uint32_t orbit);
 
+  /// Decode one TimeFrame buffer and fill the vector of digits
+  void decodeBuffer(gsl::span<const std::byte> buf);
+
+  /// Functions to set and get the calibration offset for the SAMPA time computation
   void setSampaBcOffset(uint32_t offset) { mSampaTimeOffset = offset; }
   uint32_t getSampaBcOffset() const { return mSampaTimeOffset; }
+  /// Helper function for subtracting the calibration offset from a given BC counter value
+  /// Returns the BC counter value after the offset correction
+  static uint32_t subtractBcOffset(uint32_t bc, uint32_t offset);
 
-  static int32_t digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbit2, uint32_t bc2);
-  static void computeDigitsTime(RawDigitVector& digits, SampaTimeFrameStart& sampaTimeFrameStart, bool debug);
-  void computeDigitsTime()
-  {
-    computeDigitsTime(mDigits, mSampaTimeFrameStart, mDebug);
-  }
+  /// For a given SAMPA chip, update the information about the BC counter value at the beginning of the TimeFrame
+  void updateTimeFrameStartRecord(uint64_t chipId, uint32_t mFirstOrbitInTF, uint32_t bcTF);
+  /// Convert a Solar/Ds/Chip triplet into an unique chip index
+  static uint64_t getChipId(uint32_t solar, uint32_t ds, uint32_t chip);
+  /// Helper function for computing the digit time relative to the beginning of the TimeFrame
+  static int32_t getDigitTime(uint32_t orbitTF, uint32_t bcTF, uint32_t orbitDigit, uint32_t bcDigit);
+  /// Compute the time of all the digits that have been decoded in the current TimeFrame
+  void computeDigitsTime();
 
+  /// Get the vector of digits that have been decoded in the current TimeFrame
   const RawDigitVector& getDigits() const { return mDigits; }
+  /// Get the list of orbits that have been found in the current TimeFrame for each CRU link
   const std::unordered_set<OrbitInfo, OrbitInfoHash>& getOrbits() const { return mOrbits; }
+  /// Initialize the digits from an external vector. To be only used for unit tests.
+  void setDigits(const RawDigitVector& digits) { mDigits = digits; }
 
  private:
   void initElec2DetMapper(std::string filename);
@@ -159,6 +183,7 @@ class DataDecoder
   void dumpDigits();
   bool getPadMapping(const DsElecId& dsElecId, DualSampaChannelId channel, int& deId, int& dsIddet, int& padId);
   bool addDigit(const DsElecId& dsElecId, DualSampaChannelId channel, const o2::mch::raw::SampaCluster& sc);
+  bool getTimeFrameStartRecord(const RawDigit& digit, uint32_t& orbit, uint32_t& bc);
   int32_t getMergerChannelId(const DsElecId& dsElecId, DualSampaChannelId channel);
   void updateMergerRecord(uint32_t mergerChannelId, uint32_t digitId);
   bool mergeDigits(uint32_t mergerChannelId, o2::mch::raw::SampaCluster& sc);
@@ -170,8 +195,13 @@ class DataDecoder
     int32_t digitId{-1};
     int32_t bcEnd{-1};
   };
+
   static constexpr uint32_t sMaxSolarId = 200 * 8 - 1;
-  static constexpr uint32_t sReadoutChannelsNum = (sMaxSolarId + 1) * 40 * 64;
+  static constexpr uint32_t sReadoutChipsNum = (sMaxSolarId + 1) * 40 * 2;
+  static constexpr uint32_t sReadoutChannelsNum = sReadoutChipsNum * 32;
+  // table storing the last recorded TF time stamp in SAMPA BC counter units
+  std::vector<TimeFrameStartRecord> mTimeFrameStartRecords{sReadoutChipsNum};
+
   // table storing the digits merging information for each readout channel in the MCH system
   std::vector<MergerChannelRecord> mMergerRecords{sReadoutChannelsNum}; ///< merger records for all MCH readout channels
 
@@ -185,15 +215,15 @@ class DataDecoder
   RawDigitVector mDigits;                               ///< vector of decoded digits
   std::unordered_set<OrbitInfo, OrbitInfoHash> mOrbits; ///< list of orbits in the processed buffer
 
-  std::optional<uint32_t> mFirstOrbitInRun; ///< first orbit in the processed run
-  SampaTimeFrameStart mSampaTimeFrameStart; ///< SAMPA bunch-crossing counter at the beiginning of the TF
+  uint32_t mFirstOrbitInTF; ///< first orbit in the processed time-frame
 
-  uint32_t mSampaTimeOffset{339986}; ///< SAMPA BC counter value at the beginning of the first orbit in the run
+  uint32_t mSampaTimeOffset{0}; ///< SAMPA BC counter value to be subtracted from the HBPacket BC at the TF start
 
   SampaChannelHandler mChannelHandler;                  ///< optional user function to be called for each decoded SAMPA hit
   std::function<void(o2::header::RDHAny*)> mRdhHandler; ///< optional user function to be called for each RDH
 
   bool mDebug{false};
+  int mErrorCount{0};
   bool mDs2manu{false};
   uint32_t mOrbit{0};
   bool mUseDummyElecMap{false};
