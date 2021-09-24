@@ -12,14 +12,22 @@
 o2_add_library(CTPWorkflow
                SOURCES src/RecoWorkflow.cxx
                        src/RawToDigitConverterSpec.cxx
+                       src/EntropyEncoderSpec.cxx
+                       src/EntropyDecoderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsCTP
                                      O2::DPLUtils
                                      O2::DetectorsRaw
                                      O2::Algorithm
+                                     O2::CTPReconstruction
                                      O2::CTPWorkflowIO)
 o2_add_executable(reco-workflow
                   COMPONENT_NAME ctp
                   SOURCES src/ctp-reco-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Algorithm
                                         O2::CTPWorkflow)
+
+o2_add_executable(entropy-encoder-workflow
+                  COMPONENT_NAME ctp
+                  SOURCES src/entropy-encoder-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::CTPWorkflow)

@@ -9,8 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(simulation)
-add_subdirectory(reconstruction)
-add_subdirectory(workflow)
-add_subdirectory(workflowIO)
-add_subdirectory(macro)
+o2_add_library(CTPReconstruction
+               SOURCES src/CTFCoder.cxx src/CTFHelper.cxx
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
+                                     O2::DetectorsBase
+                                     O2::CommonDataFormat
+                                     O2::DetectorsCommonDataFormats
+                                     O2::rANS
+                                     Microsoft.GSL::GSL)
+
