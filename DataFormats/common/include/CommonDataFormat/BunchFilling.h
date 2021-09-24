@@ -15,28 +15,74 @@
 #define ALICEO2_BUNCHFILLING_H
 
 #include "CommonConstants/LHCConstants.h"
+#include <Rtypes.h>
 #include <bitset>
 #include <string>
+#include <array>
 
 namespace o2
 {
 class BunchFilling
 {
  public:
-  int getNBunches() const { return mPattern.count(); }
-  bool testBC(int bcID) const { return mPattern[bcID]; }
-  void setBC(int bcID, bool active = true);
-  void setBCTrain(int nBC, int bcSpacing, int firstBC);
-  void setBCTrains(int nTrains, int trainSpacingInBC, int nBC, int bcSpacing, int firstBC);
-  void print(int bcPerLine = 100) const;
-  const auto& getPattern() const { return mPattern; }
-  int getFirstFilledBC() const;
-  int getLastFilledBC() const;
+  using Pattern = std::bitset<o2::constants::lhc::LHCMaxBunches>;
+
+  BunchFilling() = default;
+  BunchFilling(const std::string& beamA, const std::string& beanC);
+  BunchFilling(const std::string& interactingBC);
+
+  // this is a pattern creator similar to Run1/2 AliTriggerBCMask
+  // The string has the following syntax:
+  // "25L 25(2H2LH 3(23HL))"
+  //  - H/h -> 1  L/l -> 0
+  //  - spaces, new lines are white characters
+  static Pattern createPattern(const std::string& p);
+
+  // get interacting bunches pattern (B)
+  const auto& getBCPattern() const { return mPattern; }
+
+  // get pattern or clockwise (0, A) and anticlockwise (1, C) beams at P2
+  const auto& getBeamPattern(int beam) const { return mBeamAC[beam]; }
+
+  // get pattern of interacting BCs (-1) or beams filled BCs at P2 (0,1)
+  const auto& getPattern(int dir = -1) const { return dir < 0 ? getBCPattern() : getBeamPattern(dir); }
+
+  // get number of interacting bunches (-1) and number of filled bunches for clockwise (0, A) and anticlockwise (1, C) beams
+  int getNBunches(int dir = -1) const { return dir < 0 ? mPattern.count() : mBeamAC[dir].count(); }
+
+  // test interacting bunch
+  bool testInteractingBC(int bcID) const { return mPattern[bcID]; }
+
+  // test bean bunch
+  bool testBeamBunch(int bcID, int dir) const { return mBeamAC[dir][bcID]; }
+
+  // test interacting (-1) or clockwise (0, A) and anticlockwise (1, C) beams bunch
+  bool testBC(int bcID, int dir = -1) const { return dir < 0 ? testInteractingBC(bcID) : testBeamBunch(bcID, dir); }
+
+  // BC setters, dir=-1 is for interacting bunches pattern, 0,1 for clockwise (A) and anticlockwise (C) beams
+  void setBC(int bcID, bool active = true, int dir = -1);
+  void setBCTrain(int nBC, int bcSpacing, int firstBC, int dir = -1);
+  void setBCTrains(int nTrains, int trainSpacingInBC, int nBC, int bcSpacing, int firstBC, int dir = -1);
+
+  // new format for setting bunches pattern, see createPattern comments
+  void setBCFilling(const std::string& patt, int dir = -1);
+
+  void setInteractingBCsFromBeams() { mPattern = getBeamPattern(0) & getBeamPattern(1); }
+
+  int getFirstFilledBC(int dir = -1) const;
+  int getLastFilledBC(int dir = -1) const;
+
+  // print pattern of bunches, dir=0,1: for A,C beams, dir=-1: for interacting BCs, otherwise: all
+  void print(int dir = -2, int bcPerLine = 100) const;
+
   // set BC filling a la TPC TDR, 12 50ns trains of 48 BCs
   // but instead of uniform train spacing we add 96empty BCs after each train
   void setDefault()
   {
-    setBCTrains(12, 96, 48, 2, 0);
+    //    setBCTrains(12, 96, 48, 2, 0); // obsolete way of setting the trains
+    setBCFilling("12(48(HL) 96L)", 0);
+    setBCFilling("12(48(HL) 96L)", 1);
+    setInteractingBCsFromBeams();
   }
 
   // merge this bunch filling with other
@@ -45,10 +91,23 @@ class BunchFilling
   static BunchFilling* loadFrom(const std::string& fileName, const std::string& objName = "");
 
  private:
-  std::bitset<o2::constants::lhc::LHCMaxBunches> mPattern;
+  static bool parsePattern(const unsigned char*& input, Pattern& patt, int& ibit, int& level);
 
-  ClassDefNV(BunchFilling, 1);
+  Pattern mPattern{};                                                 // Pattern of interacting BCs at P2
+  std::array<Pattern, o2::constants::lhc::NBeamDirections> mBeamAC{}; // pattern of 2 beam bunches at P2
+
+  ClassDefNV(BunchFilling, 2);
 };
 } // namespace o2
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::BunchFilling> : std::true_type {
+};
+
+} // namespace framework
 
 #endif
