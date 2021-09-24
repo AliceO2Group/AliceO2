@@ -54,7 +54,7 @@ HalfCone::~HalfCone() = default;
 TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
 {
 
-  auto* HalfConeVolume = new TGeoVolumeAssembly("HalfConeVolume");
+  auto* HalfConeVolume = new TGeoVolumeAssembly(Form("HalfConeVolume%d", half));
 
   TGeoMedium* malu5083 = gGeoManager->GetMedium("MFT_Alu5083$");
 
