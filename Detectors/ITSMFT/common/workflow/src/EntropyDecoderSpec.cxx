@@ -84,7 +84,7 @@ void EntropyDecoderSpec::updateTimeDependentParams(ProcessingContext& pc)
     if (mMaskNoise) {
       if (o2::utils::Str::pathExists(mNoiseFilePath)) {
         TFile* f = TFile::Open(mNoiseFilePath.data(), "old");
-        mNoiseMap.reset((NoiseMap*)f->Get("Noise"));
+        mNoiseMap.reset((NoiseMap*)f->Get("ccdb_object"));
         LOG(INFO) << "Loaded noise map from " << mNoiseFilePath;
       }
       if (!mNoiseMap) {

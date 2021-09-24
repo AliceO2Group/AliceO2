@@ -76,7 +76,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     std::string noiseFile = o2::base::NameConf::getNoiseFileName(detID, mNoiseName, "root");
     if (o2::utils::Str::pathExists(noiseFile)) {
       TFile* f = TFile::Open(noiseFile.data(), "old");
-      auto pnoise = (NoiseMap*)f->Get("Noise");
+      auto pnoise = (NoiseMap*)f->Get("ccdb_object");
       AlpideCoder::setNoisyPixels(pnoise);
       LOG(INFO) << mSelfName << " loading noise map file: " << noiseFile;
     } else {

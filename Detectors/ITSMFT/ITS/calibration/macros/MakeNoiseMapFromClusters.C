@@ -65,6 +65,6 @@ void MakeNoiseMapFromClusters(std::string input = "o2clus_its.root", bool only1p
   calib.finalize();
 
   const auto& map = calib.getNoiseMap();
-  out.WriteObject(&map, "Noise");
+  out.WriteObject(&map, "ccdb_object");
   out.Close();
 }
