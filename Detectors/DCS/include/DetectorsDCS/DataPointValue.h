@@ -391,6 +391,8 @@ struct alignas(64) DataPointValue final {
       case DPVAL_INT:
       case RAW_UINT:
       case DPVAL_UINT:
+      case RAW_FLOAT:
+      case DPVAL_FLOAT:
         this->payload_pt1 = data[0] & 0x00000000FFFFFFFF;
         break;
       case RAW_BOOL:

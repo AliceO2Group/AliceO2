@@ -32,7 +32,7 @@ namespace dcs
      * This regular expression matches with strings representing payload types.
      */
 static const std::regex REGEX_PT(
-  "^(Raw|DPVAL)/(Int|Uint|Double|Bool|Char|String|Time|Binary)$");
+  "^(Raw|DPVAL)/(Int|Uint|Float|Double|Bool|Char|String|Time|Binary)$");
 
 /**
      * <p>DeliveryType is a piece of meta-information used for deducing types of
@@ -188,10 +188,10 @@ inline DeliveryType read(const std::string& str)
     return RAW_INT;
   } else if (str == "Raw/Uint") {
     return RAW_UINT;
-  } else if (str == "Raw/Double") {
-    return RAW_DOUBLE;
   } else if (str == "Raw/Float") {
     return RAW_FLOAT;
+  } else if (str == "Raw/Double") {
+    return RAW_DOUBLE;
   } else if (str == "Raw/Bool") {
     return RAW_BOOL;
   } else if (str == "Raw/Char") {
@@ -206,6 +206,8 @@ inline DeliveryType read(const std::string& str)
     return DPVAL_INT;
   } else if (str == "DPVAL/Uint") {
     return DPVAL_UINT;
+  } else if (str == "DPVAL/Float") {
+    return DPVAL_FLOAT;
   } else if (str == "DPVAL/Double") {
     return DPVAL_DOUBLE;
   } else if (str == "DPVAL/Bool") {
@@ -256,6 +258,8 @@ inline std::string show(const DeliveryType type)
       return "DPVAL/Bool";
     case DPVAL_CHAR:
       return "DPVAL/Char";
+    case DPVAL_FLOAT:
+      return "DPVAL/Float";
     case DPVAL_DOUBLE:
       return "DPVAL/Double";
     case DPVAL_TIME:
@@ -286,6 +290,7 @@ inline bool DPVAL_variant(const DeliveryType type)
     case DPVAL_UINT:
     case DPVAL_BOOL:
     case DPVAL_CHAR:
+    case DPVAL_FLOAT:
     case DPVAL_DOUBLE:
     case DPVAL_TIME:
     case DPVAL_STRING:
@@ -295,6 +300,7 @@ inline bool DPVAL_variant(const DeliveryType type)
     case RAW_UINT:
     case RAW_BOOL:
     case RAW_CHAR:
+    case RAW_FLOAT:
     case RAW_DOUBLE:
     case RAW_TIME:
     case RAW_STRING:
@@ -326,6 +332,8 @@ inline std::string dim_description(const DeliveryType type)
       return "I:1";
     case RAW_CHAR:
       return "C:4";
+    case RAW_FLOAT:
+      return "F:1";
     case RAW_DOUBLE:
       return "D:1";
     case RAW_TIME:
@@ -342,6 +350,8 @@ inline std::string dim_description(const DeliveryType type)
       return "S:2;I:1;I:1";
     case DPVAL_CHAR:
       return "S:2;I:1;C:4";
+    case DPVAL_FLOAT:
+      return "S:2;I:1;F:1";
     case DPVAL_DOUBLE:
       return "S:2;I:1;D:1";
     case DPVAL_TIME:
@@ -371,6 +381,7 @@ inline size_t dim_buffer_size(const DeliveryType type)
     case RAW_UINT:
     case RAW_BOOL:
     case RAW_CHAR:
+    case RAW_FLOAT:
       return 4;
     case RAW_DOUBLE:
     case RAW_TIME:
@@ -383,6 +394,7 @@ inline size_t dim_buffer_size(const DeliveryType type)
     case DPVAL_UINT:
     case DPVAL_BOOL:
     case DPVAL_CHAR:
+    case DPVAL_FLOAT:
     case DPVAL_DOUBLE:
     case DPVAL_TIME:
     case DPVAL_STRING:

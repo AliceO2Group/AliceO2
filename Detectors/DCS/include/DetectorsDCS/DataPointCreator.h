@@ -17,7 +17,7 @@
 namespace o2::dcs
 {
 /**
-  * createDataPointCompositeObject is a convenience function to 
+  * createDataPointCompositeObject is a convenience function to
   * simplify the creation of a DataPointCompositeObject.
   *
   * @param alias the DataPoint alias name (max 56 characters)
@@ -28,13 +28,14 @@ namespace o2::dcs
   *
   * @returns a DataPointCompositeObject
   *
-  * The actual DeliveryType of the returned 
-  * DataPointCompositeObject is deduced from the type of val. 
+  * The actual DeliveryType of the returned
+  * DataPointCompositeObject is deduced from the type of val.
   *
   * Note that only a few relevant specialization are actually provided
   *
   * - T=int32_t : DeliveryType = RAW_INT
   * - T=uint32_t : DeliveryType = RAW_UINT
+  * - T=float : DeliveryType = RAW_FLOAT
   * - T=double : DeliveryType = RAW_DOUBLE
   * - T=bool : DeliveryType = RAW_BOOL
   * - T=char : DeliveryType = RAW_CHAR
