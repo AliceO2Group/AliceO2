@@ -99,6 +99,79 @@ std::set<int> nofDualSampasFromMapper(gsl::span<int> deids)
   }
   return ds;
 }
+
+BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
+BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH1R, T, testTypes)
+{
+  auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH1R);
+  auto expected = nofDualSampas(o2::mch::raw::deIdsOfCH1R);
+  BOOST_CHECK_EQUAL(check.size(), expected.size());
+  BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
+BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH1L, T, testTypes)
+{
+  auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH1L);
+  auto expected = nofDualSampas(o2::mch::raw::deIdsOfCH1L);
+  BOOST_CHECK_EQUAL(check.size(), expected.size());
+  BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
+BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH2R, T, testTypes)
+{
+  auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH2R);
+  auto expected = nofDualSampas(o2::mch::raw::deIdsOfCH2R);
+  BOOST_CHECK_EQUAL(check.size(), expected.size());
+  BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
+BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH2L, T, testTypes)
+{
+  auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH2L);
+  auto expected = nofDualSampas(o2::mch::raw::deIdsOfCH2L);
+  BOOST_CHECK_EQUAL(check.size(), expected.size());
+  BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
+BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH3R, T, testTypes)
+{
+  auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH3R);
+  auto expected = nofDualSampas(o2::mch::raw::deIdsOfCH3R);
+  BOOST_CHECK_EQUAL(check.size(), expected.size());
+  BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
+BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH3L, T, testTypes)
+{
+  auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH3L);
+  auto expected = nofDualSampas(o2::mch::raw::deIdsOfCH3L);
+  BOOST_CHECK_EQUAL(check.size(), expected.size());
+  BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
+BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH4R, T, testTypes)
+{
+  auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH4R);
+  auto expected = nofDualSampas(o2::mch::raw::deIdsOfCH4R);
+  BOOST_CHECK_EQUAL(check.size(), expected.size());
+  BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
+}
+
+BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
+BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH4L, T, testTypes)
+{
+  auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH4L);
+  auto expected = nofDualSampas(o2::mch::raw::deIdsOfCH4L);
+  BOOST_CHECK_EQUAL(check.size(), expected.size());
+  BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
+}
+
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH5R, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH5R);
@@ -121,7 +194,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH6R, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH6L, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH6L);
@@ -192,16 +264,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH10L, T, testTypes)
 BOOST_AUTO_TEST_CASE_TEMPLATE(CheckNumberOfSolarsPerDetectionElement, T, realTypes)
 {
   // Chamber 1
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(100).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(102).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(101).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(103).size(), 0);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(100).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(102).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(101).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(103).size(), 12);
 
   // Chamber 2
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(200).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(202).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(201).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(203).size(), 0);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(200).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(202).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(201).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(203).size(), 12);
 
   // Chamber 3
   BOOST_CHECK_EQUAL(getSolarUIDs<T>(300).size(), 0);
@@ -365,19 +437,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(CheckNumberOfSolarsPerDetectionElement, T, realTyp
   BOOST_CHECK_EQUAL(getSolarUIDs<T>(1024).size(), 4);
   BOOST_CHECK_EQUAL(getSolarUIDs<T>(1025).size(), 4);
   // 10L = 10O
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1007).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1008).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1009).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1010).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1011).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1012).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1013).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1014).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1015).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1016).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1017).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1018).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1019).size(), 0);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1007).size(), 2);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1008).size(), 2);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1009).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1010).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1011).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1012).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1013).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1014).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1015).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1016).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1017).size(), 4);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1018).size(), 2);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(1019).size(), 2);
 }
 
 template <typename T>
@@ -391,7 +463,7 @@ int expectedNumberOfSolars<ElectronicMapperDummy>()
 template <>
 int expectedNumberOfSolars<ElectronicMapperGenerated>()
 {
-  return 388;
+  return 528;
 }
 
 template <typename T>
@@ -406,7 +478,7 @@ int expectedNumberOfDs<ElectronicMapperDummy>()
 template <>
 int expectedNumberOfDs<ElectronicMapperGenerated>()
 {
-  return 8726;
+  return 13284;
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(AllSolarsMustGetAFeeLinkAndTheReverse, T, testTypes)

@@ -12,6 +12,7 @@
 #include "MapCRU.h"
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <algorithm>
 #include <limits>
@@ -45,6 +46,30 @@ MapCRU::MapCRU(std::string_view content)
     }
     mFeeLink2Solar.at(ix) = link_id;
   }
+}
+
+std::set<uint16_t> MapCRU::getSolarUIDs() const
+{
+  std::set<uint16_t> solarIds;
+  for (auto s : mFeeLink2Solar) {
+    if (s != std::numeric_limits<uint16_t>::max()) {
+      solarIds.emplace(s);
+    }
+  }
+  return solarIds;
+}
+
+std::optional<FeeLinkId> MapCRU::operator()(uint16_t solarId) const
+{
+  auto it = std::find(begin(mFeeLink2Solar),
+                      end(mFeeLink2Solar), solarId);
+  if (it == mFeeLink2Solar.end()) {
+    return std::nullopt;
+  }
+  auto d = std::distance(mFeeLink2Solar.begin(), it);
+  int feeId = d / sMaxLinkId;
+  int linkId = d % sMaxLinkId;
+  return FeeLinkId(feeId, linkId);
 }
 
 int MapCRU::indexFeeLink(int feeid, int linkid) const

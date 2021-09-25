@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <optional>
 #include "MCHRawElecMap/FeeLinkId.h"
+#include <set>
 
 namespace o2::mch::raw
 {
@@ -26,6 +27,8 @@ class MapCRU
   MapCRU(std::string_view content);
   std::optional<uint16_t> operator()(const FeeLinkId& feeLinkId) const;
   size_t size() const;
+  std::set<uint16_t> getSolarUIDs() const;
+  std::optional<FeeLinkId> operator()(uint16_t solarId) const;
 
  private:
   int indexFeeLink(int feeid, int linkid) const;

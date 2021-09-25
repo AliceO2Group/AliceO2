@@ -33,4 +33,18 @@ FeeLink2SolarMapper createFeeLink2SolarMapper<ElectronicMapperString>()
   return m;
 }
 
+template <>
+Solar2FeeLinkMapper createSolar2FeeLinkMapper<ElectronicMapperString>()
+{
+  MapCRU m(ElectronicMapperString::sCruMap);
+  return m;
+}
+
+template <>
+std::set<uint16_t> getSolarUIDs<ElectronicMapperString>()
+{
+  MapCRU m(ElectronicMapperString::sCruMap);
+  return m.getSolarUIDs();
+}
+
 } // namespace o2::mch::raw

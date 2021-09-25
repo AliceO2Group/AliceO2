@@ -88,6 +88,14 @@ struct ElectronicMapperString {
 template <typename T>
 std::set<DsElecId> getAllDs();
 
+extern std::array<int, 2> deIdsOfCH1R;
+extern std::array<int, 2> deIdsOfCH1L;
+extern std::array<int, 2> deIdsOfCH2R;
+extern std::array<int, 2> deIdsOfCH2L;
+extern std::array<int, 2> deIdsOfCH3R;
+extern std::array<int, 2> deIdsOfCH3L;
+extern std::array<int, 2> deIdsOfCH4R;
+extern std::array<int, 2> deIdsOfCH4L;
 extern std::array<int, 9> deIdsOfCH5R;
 extern std::array<int, 9> deIdsOfCH5L;
 extern std::array<int, 9> deIdsOfCH6R;

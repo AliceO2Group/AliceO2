@@ -51,8 +51,10 @@ def gencode_insert_row_in_map(out, row):
     def insert_in_map(dsid, index):
         out.write("add(e2d,{},{},{},{},{});\n"
                   .format(row.de_id, dsid, row.solar_id, row.group_id, index))
-    insert_in_map(row.ds_id_0, 0)
-    insert_in_map(row.ds_id_1, 1)
+    if row.ds_id_0:
+        insert_in_map(row.ds_id_0, 0)
+    if row.ds_id_1:
+        insert_in_map(row.ds_id_1, 1)
     if row.ds_id_2:
         insert_in_map(row.ds_id_2, 2)
     if row.ds_id_3:
@@ -192,8 +194,7 @@ def _simplify_dataframe(df):
             'solar_id': solar_id,
             'group_id': group_id,
             'de_id': de_id,
-            'ds_id_0': int(row.ds1) if pd.notna(row.ds1) and len(row.ds1) > 0
-            else 0 
+            'ds_id_0': int(row.ds1) if pd.notna(row.ds1) and len(row.ds1) >0 else 0
         })
         d['ds_id_1'] = int(row.ds2) if pd.notna(
             row.ds2) and len(row.ds2) > 0 else 0
@@ -284,17 +285,17 @@ if args.fecmapfile:
             "ds_id_4": lambda x: " %-6s" % x,
         })
     fec_file = open(args.fecmapfile, "w")
-    fec_file.write(fec_string)
+    fec_file.write(fec_string+"\n")
 
 if args.crumapfile:
     cru_string = df_cru.to_string(
-        columns=["solar_id","fee_id","cru_id"],
+        columns=["solar_id","fee_id","link_id"],
         header=False,
         index=False,
         formatters={
             "solar_id": lambda x: "%4s" % x if x else "XXXX",
             "fee_id": lambda x: "%4s" % x if x else "XXXX",
-            "cru_id": lambda x: "%4s" % x if x else "XXXX",
+            "link_id": lambda x: "%4s" % x if x else "XXXX",
         })
     cru_file = open(args.crumapfile, "w")
     [cru_file.write(line+"\n") for line in cru_string.split("\n") if not line.startswith("XXXX")]
