@@ -96,15 +96,28 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   BOOST_REQUIRE_EQUAL(table->Validate().ok(), true);
   BOOST_REQUIRE_EQUAL(table->num_rows(), ndp);
   BOOST_REQUIRE_EQUAL(table->num_columns(), ncols);
-  BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::boolean()->id());
-  BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::float32()->id());
-  BOOST_REQUIRE_EQUAL(table->column(2)->type()->id(), arrow::float32()->id());
-  BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::float32()->id());
-  BOOST_REQUIRE_EQUAL(table->column(4)->type()->id(), arrow::float64()->id());
-  BOOST_REQUIRE_EQUAL(table->column(5)->type()->id(), arrow::int32()->id());
-  BOOST_REQUIRE_EQUAL(table->column(6)->type()->id(), arrow::fixed_size_list(arrow::float64(), nelem)->id());
-  BOOST_REQUIRE_EQUAL(table->column(7)->type()->id(), arrow::fixed_size_list(arrow::float32(), 96)->id());
-  BOOST_REQUIRE_EQUAL(table->column(8)->type()->id(), arrow::fixed_size_list(arrow::boolean(), 5)->id());
+
+  BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::Type::BOOL);
+  BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::Type::FLOAT);
+  BOOST_REQUIRE_EQUAL(table->column(2)->type()->id(), arrow::Type::FLOAT);
+  BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::Type::FLOAT);
+  BOOST_REQUIRE_EQUAL(table->column(4)->type()->id(), arrow::Type::DOUBLE);
+  BOOST_REQUIRE_EQUAL(table->column(5)->type()->id(), arrow::Type::INT32);
+  BOOST_REQUIRE_EQUAL(table->column(6)->type()->id(), arrow::Type::FIXED_SIZE_LIST);
+  BOOST_REQUIRE_EQUAL(table->column(7)->type()->id(), arrow::Type::FIXED_SIZE_LIST);
+  BOOST_REQUIRE_EQUAL(table->column(8)->type()->id(), arrow::Type::FIXED_SIZE_LIST);
+  BOOST_REQUIRE_EQUAL(table->column(9)->type()->id(), arrow::Type::UINT8);
+
+  BOOST_REQUIRE(table->column(0)->type()->Equals(arrow::boolean()));
+  BOOST_REQUIRE(table->column(1)->type()->Equals(arrow::float32()));
+  BOOST_REQUIRE(table->column(2)->type()->Equals(arrow::float32()));
+  BOOST_REQUIRE(table->column(3)->type()->Equals(arrow::float32()));
+  BOOST_REQUIRE(table->column(4)->type()->Equals(arrow::float64()));
+  BOOST_REQUIRE(table->column(5)->type()->Equals(arrow::int32()));
+  BOOST_REQUIRE(table->column(6)->type()->Equals(arrow::fixed_size_list(arrow::float64(), nelem)));
+  BOOST_REQUIRE(table->column(7)->type()->Equals(arrow::fixed_size_list(arrow::boolean(), 5)));
+  BOOST_REQUIRE(table->column(8)->type()->Equals(arrow::fixed_size_list(arrow::float32(), 96)));
+  BOOST_REQUIRE(table->column(9)->type()->Equals(arrow::uint8()));
 
   // count number of rows with ok==true
   int ntrueout = 0;
@@ -134,9 +147,9 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   BOOST_REQUIRE_EQUAL(ntruein[1], ntrueout);
 
   // save table as tree
-  TFile* f2 = new TFile("table2tree.root", "RECREATE");
+  TFile* f2 = TFile::Open("table2tree.root", "RECREATE");
   TableToTree ta2tr(table, f2, "mytree");
-  stat = ta2tr.addAllBranches();
+  ta2tr.addAllBranches();
 
   auto t2 = ta2tr.process();
   auto br = (TBranch*)t2->GetBranch("ok");

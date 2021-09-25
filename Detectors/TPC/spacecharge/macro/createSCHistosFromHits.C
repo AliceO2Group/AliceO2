@@ -229,13 +229,13 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
   std::cout << "Number of Hit Files: " << nHitFiles << std::endl;
 
   std::array<TH3F, SIDES> hisSCRandom{TH3F(getNameSide(Side::A, hisSCRandomName).data(), getNameSide(Side::A, hisSCRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, 0, mZROC),
-                                      TH3F(getNameSide(Side::C, hisSCRandomName).data(), getNameSide(Side::C, hisSCRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, 0, mZROC)};
+                                      TH3F(getNameSide(Side::C, hisSCRandomName).data(), getNameSide(Side::C, hisSCRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, -mZROC, 0)};
 
   std::array<TH3F, SIDES> hisIBF{TH3F(getNameSide(Side::A, hisSCIBFRandomName).data(), getNameSide(Side::A, hisSCIBFRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, 0, mZROC),
-                                 TH3F(getNameSide(Side::C, hisSCIBFRandomName).data(), getNameSide(Side::C, hisSCIBFRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, 0, mZROC)};
+                                 TH3F(getNameSide(Side::C, hisSCIBFRandomName).data(), getNameSide(Side::C, hisSCIBFRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, -mZROC, 0)};
 
   std::array<TH3F, SIDES> hisPI{TH3F(getNameSide(Side::A, hisSCPIRandomName).data(), getNameSide(Side::A, hisSCPIRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, 0, mZROC),
-                                TH3F(getNameSide(Side::C, hisSCPIRandomName).data(), getNameSide(Side::C, hisSCPIRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, 0, mZROC)};
+                                TH3F(getNameSide(Side::C, hisSCPIRandomName).data(), getNameSide(Side::C, hisSCPIRandomName).data(), nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, -mZROC, 0)};
 
   const int nZBinsSide = ionDriftTime;
   // vector with CalDet objects for IDCs (1 / ms)
@@ -418,8 +418,9 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
   std::chrono::duration<double> elapsedTotal = stopTotal - startTotal;
   printf("Total time: %f sec for %d events\n", elapsedTotal.count(), nEvIon);
 
-  TFile fOut(Form("%s.root", outfnameHists), "READ");
-  for (int iside = getSideStart(sides); iside < getSideEnd(sides); ++iside) {
+  TFile fOut(Form("%s.root", outfnameHists), "RECREATE");
+  // always store both sides!
+  for (int iside = 0; iside < 2; ++iside) {
     hisSCRandom[iside].Write();
     hisIBF[iside].Write();
     hisPI[iside].Write();
@@ -575,42 +576,26 @@ void makeAverageIDCs(const std::vector<std::string>& files, const char* outFile 
   fMergedIDC.WriteObject(&idc0DCSide, "IDC_0D_C_Side");
 }
 
+/// \param histSC input histogram containing the space charge density
+/// \param nZ number of z granularity for calculating the distortions
+/// \param nR number of r granularity for calculating the distortions
+/// \param nPhi number of phi granularity for calculating the distortions
 /// \param outFileDistortions path to the file for output distortions (which can be read in from a SpaceCharge object)
 /// \param sides set for which sides the distortions/corrections will be calculated. sides=0: A- and C-Side, sides=1: A-Side only, sides=2: C-Side only
-/// \param inpFile name of the root file containing the space charge density histogram
-/// \param histName name of the space charge density histogram in the root file
 template <typename DataT = double>
-void makeDistortionsCorrections(const char* outFileDistortions = "distortions.root", const int sides = 0, const char* inpFile = "", const char* histName = hisSCRandomName)
+void makeDistortionsCorrections(const TH3& histSC, const int nZ, const int nR, const int nPhi, const char* outFileDistortions = "distortions.root", const int sides = 0)
 {
-  o2::tpc::SpaceCharge<double>::setGrid(NZ, NR, NPHI);
-
-  TFile fSCDensity(inpFile, "READ");
-  std::cout << "input file: " << inpFile << std::endl;
+  o2::tpc::SpaceCharge<double>::setGrid(nZ, nR, nPhi);
   std::cout << "output file: " << outFileDistortions << std::endl;
 
   o2::tpc::SpaceCharge<DataT> spacecharge(mOmegatau, 1, 1);
-  spacecharge.fillChargeDensityFromFile(fSCDensity, histName);
-  const bool calcLocalVectors = true;
-
-  if (sides != 2) {
-    spacecharge.calculateDistortionsCorrections(Side::A, calcLocalVectors);
-  }
-  if (sides != 1) {
-    spacecharge.calculateDistortionsCorrections(Side::C, calcLocalVectors);
-  }
-
-  int sideStart = 0;
-  int sideEnd = 2;
-  if (sides == 1) {
-    sideEnd = 1;
-  } else if (sides == 2) {
-    sideStart = 1;
-  }
+  spacecharge.fillChargeDensityFromHisto(histSC);
 
   // dump distortion object to file if output file is specified
   TFile fOut(outFileDistortions, "RECREATE");
-  for (int iSide = sideStart; iSide < sideEnd; ++iSide) {
+  for (int iSide = getSideStart(sides); iSide < getSideEnd(sides); ++iSide) {
     const Side side = iSide == 0 ? Side::A : Side::C;
+    spacecharge.calculateDistortionsCorrections(side, true);
     spacecharge.dumpGlobalCorrections(fOut, side);
     spacecharge.dumpGlobalDistortions(fOut, side);
     spacecharge.dumpLocalCorrections(fOut, side);
@@ -621,12 +606,13 @@ void makeDistortionsCorrections(const char* outFileDistortions = "distortions.ro
   }
 }
 
-/// make average distortion map from random maps
+/// make average distortion map from random maps for histograms for A or C side
 /// \param files vector with files which contain the random space charge maps
 /// \param histNameNoZDep name of the space charge histogram in the root files which dont have a z dependence
-/// \param histNameZDep name of the space charge histogram in the root files which have a z dependence
+/// \param histNameZDep name of the space charge histogram in the root files which have a z dependence (can also be empty)
 /// \param outFileName name of the output file
-void makeAverageDensityMap(const std::vector<std::string> files, const char* histNameNoZDep = hisSCIBFRandomName, const char* histNameZDep = hisSCPIRandomName, const char* outFileName = "spaceChargeDensityHist_average.root")
+/// \param outFile output file where the histograms will be written to
+void makeAverageDensityMap(const std::vector<std::string> files, TFile& outFile, const char* histNameNoZDep, const char* histNameZDep)
 {
   const std::string tmphistNameZDep = histNameZDep;
 
@@ -670,39 +656,27 @@ void makeAverageDensityMap(const std::vector<std::string> files, const char* his
 
   for (int iPhi = 1; iPhi <= nBinsPhi; ++iPhi) {
     for (int iR = 1; iR <= nBinsR; ++iR) {
-      const int nBinsHalfZ = 0.5 * nBinsZ;
-
-      // C-Side (?)
-      const int startBinCSide = 1;
-      const int endBinCSide = nBinsHalfZ;
-      const float meanDensCSide = averageMapNoZDep.Integral(iPhi, iPhi, iR, iR, startBinCSide, endBinCSide) / nBinsHalfZ; // integral over all z bins for each r and phi bin normalized to number of z slices
-      for (int iZ = startBinCSide; iZ <= endBinCSide; ++iZ) {
-        averageMapNoZDep.SetBinContent(iPhi, iR, iZ, meanDensCSide);
-      }
-
-      // A-Side (?)
-      const int startBinASide = 0.5 * nBinsZ + 1;
-      const int endBinASide = nBinsZ;
-      const float meanDensASide = averageMapNoZDep.Integral(iPhi, iPhi, iR, iR, startBinASide, endBinASide) / nBinsHalfZ; // integral over all z bins for each r and phi bin normalized to number of z slices
-      for (int iZ = startBinASide; iZ <= endBinASide; ++iZ) {
-        averageMapNoZDep.SetBinContent(iPhi, iR, iZ, meanDensASide);
+      // either A or C side dependent on the input
+      const float meanDens = averageMapNoZDep.Integral(iPhi, iPhi, iR, iR, 1, nBinsZ) / nBinsZ; // integral over all z bins for each r and phi bin normalized to number of z slices
+      for (int iZ = 1; iZ <= nBinsZ; ++iZ) {
+        averageMapNoZDep.SetBinContent(iPhi, iR, iZ, meanDens);
       }
     }
   }
 
-  TFile fOut(outFileName, "RECREATE");
+  outFile.cd();
   averageMapNoZDep.Write();
   if (!tmphistNameZDep.empty()) {
     averageMapZDep.Write();
 
     // calculate final sc density
     averageMapNoZDep.Add(&averageMapZDep);
-    averageMapNoZDep.SetTitle(hisSCRandomName);
-    averageMapNoZDep.SetName(hisSCRandomName);
+    const auto side = getSide(averageMapNoZDep.GetZaxis()->GetBinCenter(nBinsZ / 2));
+    const std::string nameOut = getNameSide(side, hisSCRandomName);
+    averageMapNoZDep.SetTitle(nameOut.data());
+    averageMapNoZDep.SetName(nameOut.data());
     averageMapNoZDep.Write();
   }
-
-  fOut.Close();
 }
 
 /// \param scaleFactorConst constant scaling factor
@@ -722,30 +696,29 @@ float getScaleValueZDep(const float scaleFactorConst, const float scaleFactorLin
 /// \param scaleFactorLinear linear scaling factor - z dependent
 /// \param scaleFactorParabolic parabolic scaling factor  - z dependent
 template <typename DataT = double>
-void createScaledMeanMap(const std::string inpFile, const std::string outFile, const int sides, const float scaleFactorConst, const float scaleFactorLinear, const float scaleFactorParabolic)
+void createScaledMeanMap(const std::string inpFile, const std::string outFile, const int sides, const float scaleFactorConst, const float scaleFactorLinear, const float scaleFactorParabolic, const int nZ, const int nR, const int nPhi)
 {
-  o2::tpc::SpaceCharge<double>::setGrid(NZ, NR, NPHI);
+  o2::tpc::SpaceCharge<DataT>::setGrid(nZ, nR, nPhi);
 
   // load the mean histo
   using SC = o2::tpc::SpaceCharge<DataT>;
-  SC scOriginal;
   SC scScaled(mOmegatau, 1, 1);
 
   TFile fInp(inpFile.data(), "READ");
   if (sides != 2) {
-    scOriginal.setDensityFromFile(fInp, Side::A);
+    scScaled.setDensityFromFile(fInp, Side::A);
   }
   if (sides != 1) {
-    scOriginal.setDensityFromFile(fInp, Side::C);
+    scScaled.setDensityFromFile(fInp, Side::C);
   }
 
   for (int iSide = getSideStart(sides); iSide < getSideEnd(sides); ++iSide) {
     const Side side = iSide == 0 ? Side::A : Side::C;
-    for (size_t iZ = 0; iZ < scOriginal.getNZVertices(); ++iZ) {
+    for (size_t iZ = 0; iZ < scScaled.getNZVertices(); ++iZ) {
       const float zPos = std::abs(scScaled.getZVertex(iZ, side));
-      for (size_t iR = 0; iR < scOriginal.getNRVertices(); ++iR) {
-        for (size_t iPhi = 0; iPhi < scOriginal.getNPhiVertices(); ++iPhi) {
-          const DataT density = scOriginal.getDensity(iZ, iR, iPhi, side);
+      for (size_t iR = 0; iR < scScaled.getNRVertices(); ++iR) {
+        for (size_t iPhi = 0; iPhi < scScaled.getNPhiVertices(); ++iPhi) {
+          const DataT density = scScaled.getDensity(iZ, iR, iPhi, side);
           const float driftLength = (mZROC - zPos) / mZROC; // drift relative to full drift
           const float scaleVal = getScaleValueZDep(scaleFactorConst, scaleFactorLinear, scaleFactorParabolic, driftLength);
           scScaled.fillDensity(density * scaleVal, iZ, iR, iPhi, side);
@@ -911,4 +884,51 @@ int getSideEnd(const int sides)
     return 1;
   }
   return 2;
+}
+
+/// merge two high granularity space charge density histograms which are separated into the A and the C side (size would be larger than 1GB-> writing to file not possible)
+/// \param inputFile input file containing the two histograms
+/// \param nameA of the histogram for the A-Side
+/// \param nameC of the histogram for the C-Side
+TH3F mergeHistos(const char* inputFile = ".", const char* nameA = "hisIBF_A", const char* nameC = "hisIBF_C")
+{
+  TFile fInp(inputFile, "READ");
+  TH3F* hSC = (TH3F*)fInp.Get(nameA);
+  if (hSC == nullptr) {
+    std::cout << "histogram " << nameA << " not found " << std::endl;
+  }
+  const int nPhiBinsTmp = hSC->GetXaxis()->GetNbins();
+  const int nRBinsTmp = hSC->GetYaxis()->GetNbins();
+  const int nZBins = hSC->GetZaxis()->GetNbins();
+  const auto phiLow = hSC->GetXaxis()->GetBinLowEdge(1);
+  const auto phiUp = hSC->GetXaxis()->GetBinUpEdge(nPhiBinsTmp);
+  const auto rLow = hSC->GetYaxis()->GetBinLowEdge(1);
+  const auto rUp = hSC->GetYaxis()->GetBinUpEdge(nRBinsTmp);
+  const auto zUp = hSC->GetZaxis()->GetBinUpEdge(nZBins);
+
+  // merged histogram
+  TH3F hisSCMerged("hisMerged", "hisMerged", nPhiBinsTmp, phiLow, phiUp, nRBinsTmp, rLow, rUp, 2 * nZBins, -zUp, zUp);
+
+  std::cout << "merging histograms" << std::endl;
+  for (int iside = 0; iside < 2; ++iside) {
+    if (iside == 1) {
+      delete hSC;
+      hSC = (TH3F*)fInp.Get(nameC);
+      if (hSC == nullptr) {
+        std::cout << "histogram " << nameC << " not found " << std::endl;
+      }
+    }
+    for (int iz = 1; iz <= nZBins; ++iz) {
+      for (int ir = 1; ir <= nRBinsTmp; ++ir) {
+        for (int iphi = 1; iphi <= nPhiBinsTmp; ++iphi) {
+          const int izTmp = iside == 0 ? nZBins + iz : iz;
+          hisSCMerged.SetBinContent(iphi, ir, izTmp, hSC->GetBinContent(iphi, ir, iz));
+        }
+      }
+    }
+  }
+
+  delete hSC;
+  fInp.Close();
+  return hisSCMerged;
 }

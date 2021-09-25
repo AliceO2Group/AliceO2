@@ -28,6 +28,13 @@
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include <memory>
 
+#include "GPUO2InterfaceRefit.h"
+#include "TPCFastTransform.h"
+#include "TRDBase/RecoParam.h"
+#include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
+
 namespace o2
 {
 namespace trd
@@ -43,6 +50,9 @@ class TRDGlobalTracking : public o2::framework::Task
   void fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lblSeed, std::vector<o2::MCCompLabel>& lblContainerTrd, std::vector<o2::MCCompLabel>& lblContainerMatch, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkltLabels) const;
   void fillTrackTriggerRecord(const std::vector<TrackTRD>& tracks, std::vector<TrackTriggerRecord>& trigRec, const gsl::span<const o2::trd::TriggerRecord>& trackletTrigRec) const;
   void run(o2::framework::ProcessingContext& pc) final;
+  bool refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globaltracking::RecoContainer* recoCont);
+  bool refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globaltracking::RecoContainer* recoCont);
+  bool refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards);
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
@@ -54,10 +64,23 @@ class TRDGlobalTracking : public o2::framework::Task
   bool mTrigRecFilter{false};                         ///< if true, TRD trigger records without matching ITS IR are filtered out
   bool mStrict{false};                                ///< preliminary matching in strict mode
   float mTPCTBinMUS{.2f};                             ///< width of a TPC time bin in us
+  float mTPCTBinMUSInv{1.f / mTPCTBinMUS};            ///< inverse width of a TPC time bin in 1/us
   float mTPCVdrift{2.58f};                            ///< TPC drift velocity (for shifting TPC tracks along Z)
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< seeding input (TPC-only, ITS-TPC or both)
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;               ///< seeding track sources (TPC, ITS-TPC)
   TStopwatch mTimer;
+  // temporary members -> should go into processor (GPUTRDTracker or additional refit processor?)
+  std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter;         ///< TPC refitter used for TPC tracks refit during the reconstruction
+  const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
+  std::unique_ptr<o2::gpu::TPCFastTransform> mTPCTransform;           ///< TPC cluster transformation
+  RecoParam mRecoParam;                                               ///< parameters required for TRD reconstruction
+  gsl::span<const Tracklet64> mTrackletsRaw;                          ///< array of raw tracklets needed for TRD refit
+  gsl::span<const CalibratedTracklet> mTrackletsCalib;                ///< array of calibrated tracklets needed for TRD refit
+  gsl::span<const o2::tpc::TrackTPC> mTPCTracksArray;                 ///< input TPC tracks used for refit
+  gsl::span<const o2::its::TrackITS> mITSTracksArray;                 ///< input ITS tracks used for refit
+  gsl::span<const int> mITSTrackClusIdx;                              ///< input ITS track cluster indices span
+  std::vector<o2::BaseCluster<float>> mITSClustersArray;              ///< ITS clusters created in run() method from compact clusters
+  o2::itsmft::TopologyDictionary mITSDict;                            ///< cluster patterns dictionary
 };
 
 /// create a processor spec

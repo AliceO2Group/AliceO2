@@ -23,6 +23,7 @@
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
+#include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "CommonUtils/StringUtils.h"
 #include "DataFormatsITSMFT/CTF.h"
 #include "DataFormatsTPC/CTF.h"
@@ -124,17 +125,20 @@ class CTFWriterSpec : public o2::framework::Task
   size_t mNCTF = 0;        // total number of CTFs written
   size_t mNAccCTF = 0;     // total number of CTFs accumulated in the current file
   size_t mNCTFFiles = 0;   // total number of CTF files written
+  std::vector<uint32_t> mTFOrbits{}; // 1st orbits of TF accumulated in current file
 
-  std::string mEnvironmentID = ""; // partition env. id
-  std::string mDictDir = "";
-  std::string mCTFDir = "";
+  std::string mLHCPeriod{};
+  std::string mEnvironmentID{}; // partition env. id
+  std::string mDictDir{};
+  std::string mCTFDir{};
   std::string mCTFDirFallBack = "/dev/null";
-  std::string mCurrentCTFFileName = "";
+  std::string mCurrentCTFFileName{};
   const std::string LOCKFileDir = "/tmp/ctf-writer-locks";
-  std::string mLockFileName = "";
+  std::string mLockFileName{};
   int mLockFD = -1;
   std::unique_ptr<TFile> mCTFFileOut;
   std::unique_ptr<TTree> mCTFTreeOut;
+  std::unique_ptr<o2::dataformats::FileMetaData> mCTFFileMetaData;
 
   std::unique_ptr<TFile> mDictFileOut; // file to store dictionary
   std::unique_ptr<TTree> mDictTreeOut; // tree to store dictionary
@@ -327,6 +331,19 @@ void CTFWriterSpec::run(ProcessingContext& pc)
     LOGP(WARNING, "RunNumber/Environment changed from {}/{} to {}/{}", oldRun, oldEnv, mRun, mEnvironmentID);
     closeTFTreeAndFile();
   }
+  // check for the LHCPeriod
+  if (mLHCPeriod.empty()) {
+    auto LHCPeriodStr = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("LHCPeriod", NAStr);
+    if (LHCPeriodStr != NAStr) {
+      mLHCPeriod = LHCPeriodStr;
+    } else {
+      const char* months[12] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+      time_t now = time(nullptr);
+      auto ltm = gmtime(&now);
+      mLHCPeriod = months[ltm->tm_mon];
+      LOG(WARNING) << "LHCPeriod is not available, using current month " << mLHCPeriod;
+    }
+  }
 
   mCurrCTFSize = estimateCTFSize(pc);
   if (mWriteCTF) {
@@ -358,6 +375,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
     szCTF += appendToTree(*mCTFTreeOut.get(), "CTFHeader", header);
     mAccCTFSize += szCTF;
     mCTFTreeOut->SetEntries(++mNAccCTF);
+    mTFOrbits.push_back(dh->firstTForbit);
     LOG(INFO) << "TF#" << mNCTF << ": wrote CTF{" << header << "} of size " << szCTF << " to " << mCurrentCTFFileName << " in " << mTimer.CpuTime() - cput << " s";
     if (mNAccCTF > 1) {
       LOG(INFO) << "Current CTF tree has " << mNAccCTF << " entries with total size of " << mAccCTFSize << " bytes";
@@ -437,6 +455,8 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
     mCurrentCTFFileName = o2::utils::Str::concat_string(ctfDir, o2::base::NameConf::getCTFFileName(mRun, dh->firstTForbit, dh->tfCounter));
     mCTFFileOut.reset(TFile::Open(o2::utils::Str::concat_string(mCurrentCTFFileName, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
     mCTFTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
+    mCTFFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
+
     mNCTFFiles++;
   }
 }
@@ -452,6 +472,27 @@ void CTFWriterSpec::closeTFTreeAndFile()
     if (!TMPFileEnding.empty()) {
       std::filesystem::rename(o2::utils::Str::concat_string(mCurrentCTFFileName, TMPFileEnding), mCurrentCTFFileName);
     }
+    // write CTF file meta data
+    mCTFFileMetaData->fillFileData(mCurrentCTFFileName);
+    mCTFFileMetaData->run = mRun;
+    mCTFFileMetaData->LHCPeriod = mLHCPeriod;
+    mCTFFileMetaData->type = "CTF";
+    mCTFFileMetaData->priority = "high";
+    auto metaName = o2::utils::Str::concat_string(mCurrentCTFFileName, ".done");
+    try {
+      std::ofstream metaOut(metaName);
+      metaOut << *mCTFFileMetaData.get();
+      metaOut << "TFOrbits: ";
+      for (size_t i = 0; i < mTFOrbits.size(); i++) {
+        metaOut << fmt::format("{}{}", i ? ", " : "", mTFOrbits[i]);
+      }
+      metaOut << '\n';
+      metaOut.close();
+    } catch (std::exception const& e) {
+      LOG(ERROR) << "Failed to store CTF metadata file " << metaName << ", reason: " << e.what();
+    }
+    mCTFFileMetaData.reset();
+    mTFOrbits.clear();
     mNAccCTF = 0;
     mAccCTFSize = 0;
     removeLockFile();

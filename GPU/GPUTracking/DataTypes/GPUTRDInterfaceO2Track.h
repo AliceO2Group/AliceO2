@@ -36,7 +36,6 @@ struct GPUTPCOuterParam;
 #include "DataFormatsTPC/TrackTPC.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
-#include "GPUTRDO2BaseTrack.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -44,13 +43,13 @@ namespace gpu
 {
 
 template <>
-class trackInterface<GPUTRDO2BaseTrack> : public GPUTRDO2BaseTrack
+class trackInterface<o2::track::TrackParCov> : public o2::track::TrackParCov
 {
  public:
-  GPUdDefault() trackInterface<GPUTRDO2BaseTrack>() = default;
-  trackInterface<GPUTRDO2BaseTrack>(const GPUTRDO2BaseTrack& param) = delete;
-  GPUd() trackInterface<GPUTRDO2BaseTrack>(const o2::dataformats::TrackTPCITS& trkItsTpc) : GPUTRDO2BaseTrack(trkItsTpc.getParamOut()) {}
-  GPUd() trackInterface<GPUTRDO2BaseTrack>(const o2::tpc::TrackTPC& trkTpc) : GPUTRDO2BaseTrack(trkTpc.getParamOut()) {}
+  GPUdDefault() trackInterface<o2::track::TrackParCov>() = default;
+  trackInterface<o2::track::TrackParCov>(const o2::track::TrackParCov& param) = delete;
+  GPUd() trackInterface<o2::track::TrackParCov>(const o2::dataformats::TrackTPCITS& trkItsTpc) : o2::track::TrackParCov(trkItsTpc.getParamOut()) {}
+  GPUd() trackInterface<o2::track::TrackParCov>(const o2::tpc::TrackTPC& trkTpc) : o2::track::TrackParCov(trkTpc.getParamOut()) {}
 
   GPUd() void set(float x, float alpha, const float* param, const float* cov)
   {
@@ -63,20 +62,23 @@ class trackInterface<GPUTRDO2BaseTrack> : public GPUTRDO2BaseTrack
       setCov(cov[i], i);
     }
   }
-  GPUd() trackInterface<GPUTRDO2BaseTrack>(const GPUTPCGMMergedTrack& trk);
-  GPUd() trackInterface<GPUTRDO2BaseTrack>(const gputpcgmmergertypes::GPUTPCOuterParam& param);
+  GPUd() trackInterface<o2::track::TrackParCov>(const GPUTPCGMMergedTrack& trk);
+  GPUd() trackInterface<o2::track::TrackParCov>(const gputpcgmmergertypes::GPUTPCOuterParam& param);
   GPUd() void updateCovZ2(float addZerror) { updateCov(addZerror, o2::track::CovLabels::kSigZ2); }
   GPUd() o2::track::TrackLTIntegral& getLTIntegralOut() { return mLTOut; }
   GPUd() const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mLTOut; }
+  GPUd() o2::track::TrackParCov& getOuterParam() { return mParamOut; }
+  GPUd() const o2::track::TrackParCov& getOuterParam() const { return mParamOut; }
 
   GPUdi() const float* getPar() const { return getParams(); }
 
   GPUdi() bool CheckNumericalQuality() const { return true; }
 
-  typedef GPUTRDO2BaseTrack baseClass;
+  typedef o2::track::TrackParCov baseClass;
 
  private:
   o2::track::TrackLTIntegral mLTOut;
+  o2::track::TrackParCov mParamOut;
 
   ClassDefNV(trackInterface, 1);
 };

@@ -21,6 +21,7 @@
 #include <set>
 #include <ostream>
 #include <boost/geometry/index/rtree.hpp>
+#include <map>
 
 namespace o2
 {
@@ -46,17 +47,17 @@ class CathodeSegmentation
                       std::vector<PadGroupType> padGroupTypes,
                       std::vector<std::pair<float, float>> padSizes);
 
-  /// Return the list of catPadIndexs for the pads of the given dual sampa.
-  std::vector<int> getCatPadIndexs(int dualSampaIds) const;
+  /// Return the list of catPadIndices for the pads of the given dual sampa.
+  std::vector<int> getCatPadIndices(int dualSampaIds) const;
 
-  /// Return the list of catPadIndexs for the pads contained in the box
+  /// Return the list of catPadIndices for the pads contained in the box
   /// {xmin,ymin,xmax,ymax}.
-  std::vector<int> getCatPadIndexs(double xmin, double ymin, double xmax,
-                                   double ymax) const;
+  std::vector<int> getCatPadIndices(double xmin, double ymin, double xmax,
+                                    double ymax) const;
 
-  /// Return the list of catPadIndexs of the pads which are neighbours to
+  /// Return the list of catPadIndices of the pads which are neighbours to
   /// catPadIndex
-  std::vector<int> getNeighbouringCatPadIndexs(int catPadIndex) const;
+  std::vector<int> getNeighbouringCatPadIndices(int catPadIndex) const;
 
   std::set<int> dualSampaIds() const { return mDualSampaIds; }
 
@@ -116,6 +117,7 @@ class CathodeSegmentation
   std::vector<int> mCatPadIndex2PadGroupIndex;
   std::vector<int> mCatPadIndex2PadGroupTypeFastIndex;
   std::vector<int> mPadGroupIndex2CatPadIndexIndex;
+  std::map<int, std::vector<int>> mDualSampaId2CatPadIndices;
 };
 
 CathodeSegmentation* createCathodeSegmentation(int detElemId,

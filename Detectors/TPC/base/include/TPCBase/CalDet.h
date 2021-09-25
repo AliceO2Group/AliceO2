@@ -144,7 +144,8 @@ inline const T CalDet<T>::getValue(const ROC roc, const size_t row, const size_t
       break;
     }
     case PadSubset::Region: {
-      return T{};
+      const auto globalRow = roc.isOROC() ? mappedRow + mapper.getNumberOfRowsROC(ROC(0)) : mappedRow;
+      return mData[Mapper::REGION[globalRow] + roc.getSector() * Mapper::NREGIONS].getValue(Mapper::OFFSETCRUGLOBAL[globalRow] + mappedPad);
       break;
     }
   }

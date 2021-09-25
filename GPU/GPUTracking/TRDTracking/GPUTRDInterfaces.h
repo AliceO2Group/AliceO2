@@ -132,16 +132,15 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 
 #if defined(GPUCA_HAVE_O2HEADERS) // Interface for O2, build only with O2
 
-#include "DetectorsBase/Propagator.h" // when included after GPUTRDInterfaceO2Track.h the build fails
-#include "GPUTRDInterfaceO2Track.h"
+#include "DetectorsBase/Propagator.h"
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 
-GPUdi() trackInterface<GPUTRDO2BaseTrack>::trackInterface(const GPUTPCGMMergedTrack& trk) { set(trk.OuterParam().X, trk.OuterParam().alpha, trk.OuterParam().P, trk.OuterParam().C); }
-GPUdi() trackInterface<GPUTRDO2BaseTrack>::trackInterface(const gputpcgmmergertypes::GPUTPCOuterParam& param) { set(param.X, param.alpha, param.P, param.C); }
+GPUdi() trackInterface<o2::track::TrackParCov>::trackInterface(const GPUTPCGMMergedTrack& trk) { set(trk.OuterParam().X, trk.OuterParam().alpha, trk.OuterParam().P, trk.OuterParam().C); }
+GPUdi() trackInterface<o2::track::TrackParCov>::trackInterface(const gputpcgmmergertypes::GPUTPCOuterParam& param) { set(param.X, param.alpha, param.P, param.C); }
 
 template <>
 class propagatorInterface<o2::base::Propagator>
@@ -155,7 +154,7 @@ class propagatorInterface<o2::base::Propagator>
   GPUdi() bool propagateToX(float x, float maxSnp, float maxStep) { return mProp->PropagateToXBxByBz(*mParam, x, maxSnp, maxStep); }
   GPUdi() int getPropagatedYZ(float x, float& projY, float& projZ) { return static_cast<int>(mParam->getYZAt(x, mProp->getNominalBz(), projY, projZ)); }
 
-  GPUdi() void setTrack(trackInterface<GPUTRDO2BaseTrack>* trk) { mParam = trk; }
+  GPUdi() void setTrack(trackInterface<o2::track::TrackParCov>* trk) { mParam = trk; }
   GPUdi() void setFitInProjections(bool flag) {}
 
   GPUdi() float getAlpha() { return (mParam) ? mParam->getAlpha() : 99999.f; }
@@ -181,7 +180,7 @@ class propagatorInterface<o2::base::Propagator>
   }
   GPUdi() bool rotate(float alpha) { return (mParam) ? mParam->rotate(alpha) : false; }
 
-  trackInterface<GPUTRDO2BaseTrack>* mParam{nullptr};
+  trackInterface<o2::track::TrackParCov>* mParam{nullptr};
   const o2::base::Propagator* mProp;
 };
 

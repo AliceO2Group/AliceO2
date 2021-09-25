@@ -262,7 +262,7 @@ void Clusterer::streamCluster(const std::vector<PixelData>& pixbuf, const std::a
   // add to compact clusters, which must be always filled
   std::array<unsigned char, ClusterPattern::MaxPatternBytes> patt{};
   for (const auto& pix : pixbuf) {
-    uint16_t ir = pix.getRowDirect() - bbox.rowMin, ic = pix.getCol() - bbox.colMin;
+    uint32_t ir = pix.getRowDirect() - bbox.rowMin, ic = pix.getCol() - bbox.colMin;
     int nbits = ir * colSpanW + ic;
     patt[nbits >> 3] |= (0x1 << (7 - (nbits % 8)));
   }

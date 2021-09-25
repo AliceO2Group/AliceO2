@@ -35,12 +35,12 @@ namespace gpu
 {
 static_assert(sizeof(o2::dataformats::GlobalTrackID) == sizeof(unsigned int));
 template <>
-GPUdi() o2::dataformats::GlobalTrackID GPUTRDTrack_t<trackInterface<GPUTRDO2BaseTrack>>::getRefGlobalTrackId() const
+GPUdi() o2::dataformats::GlobalTrackID GPUTRDTrack_t<trackInterface<o2::track::TrackParCov>>::getRefGlobalTrackId() const
 {
   return o2::dataformats::GlobalTrackID{mRefGlobalTrackId};
 }
 template <>
-GPUdi() void GPUTRDTrack_t<trackInterface<GPUTRDO2BaseTrack>>::setRefGlobalTrackId(o2::dataformats::GlobalTrackID id)
+GPUdi() void GPUTRDTrack_t<trackInterface<o2::track::TrackParCov>>::setRefGlobalTrackId(o2::dataformats::GlobalTrackID id)
 {
   setRefGlobalTrackIdRaw(id.getRaw());
 }

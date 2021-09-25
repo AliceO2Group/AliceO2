@@ -308,15 +308,24 @@ ExpirationHandler::Handler
     }
 
     std::string path = "";
+    bool runDependent = false;
     for (auto& meta : spec.metadata) {
       if (meta.name == "ccdb-path") {
         path = meta.defaultValue.get<std::string>();
+      }
+      if (meta.name == "ccdb-run-dependent") {
+        runDependent = meta.defaultValue.get<bool>();
       }
     }
     if (path.empty()) {
       path = fmt::format("{}/{}", matcher->origin, matcher->description);
     }
-    auto url = fmt::format("{}/{}/{}", serverUrl, path, timestamp);
+    std::string url;
+    if (runDependent == false) {
+      url = fmt::format("{}/{}/{}", serverUrl, path, timestamp);
+    } else {
+      url = fmt::format("{}/{}/{}/runNumber={}", serverUrl, path, timestamp, dataTakingContext.runNumber);
+    }
     LOG(INFO) << "fetchFromCCDBCache: Fetching " << url;
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());

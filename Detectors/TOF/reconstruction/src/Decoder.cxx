@@ -129,6 +129,11 @@ void Decoder::InsertDigit(int icrate, int itrm, int itdc, int ichain, int channe
 {
   DigitInfo digitInfo;
 
+  if (icrate % 2 == 1 && itrm == 3 && itdc / 3 > 0) { // Signal not coming from a TOF pad but -probably- from a TOF OR signal
+    // add operation on LTM (Trigger) if needed (not used)
+    return;
+  }
+
   fromRawHit2Digit(icrate, itrm, itdc, ichain, channel, orbit, bunchid, time_ext + tdc, tot, digitInfo);
 
   if (digitInfo.channel < 0) { // check needed for the moment. To be removed once debugged
@@ -182,8 +187,23 @@ void Decoder::readTRM(int icru, int icrate, uint32_t orbit, uint16_t bunchid)
   DigitInfo digitInfo;
 
   for (int i = 0; i < nhits; i++) {
+    if (icrate % 2 == 1 && itrm == 3 && mUnion[icru]->packedHit.tdcID / 3 > 0) { // Signal not coming from a TOF pad but -probably- from a TOF OR signal
+      // add operation on LTM (Trigger) if needed (not used)
+
+      mUnion[icru]++;
+      mIntegratedBytes[icru] += 4;
+      continue;
+    }
+
     fromRawHit2Digit(icrate, itrm, mUnion[icru]->packedHit.tdcID, mUnion[icru]->packedHit.chain, mUnion[icru]->packedHit.channel, orbit, bunchid,
                      time_ext + mUnion[icru]->packedHit.time, mUnion[icru]->packedHit.tot, digitInfo);
+
+    if (digitInfo.channel < 0) { // check needed for the moment. To be removed once debugged
+      mUnion[icru]++;
+      mIntegratedBytes[icru] += 4;
+      continue;
+    }
+
     if (mMaskNoiseRate > 0) {
       mChannelCounts[digitInfo.channel]++;
     }
