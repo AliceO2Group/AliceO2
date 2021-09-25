@@ -23,7 +23,7 @@
 #include <vector>
 #include <Rtypes.h>
 #include "FITRaw/RawReaderBase.h"
-
+#include <CommonDataFormat/InteractionRecord.h>
 #include "Headers/RAWDataHeader.h"
 
 #include <gsl/span>
@@ -45,6 +45,18 @@ class RawReaderBaseFIT : public RawReaderBase<DigitBlockFITtype, DataBlockPMtype
   typedef RawReaderBase<DigitBlockFIT_t, DataBlockPM_t, DataBlockTCM_t> RawReaderBase_t;
   RawReaderBaseFIT() = default;
   ~RawReaderBaseFIT() = default;
+  void reserve(std::size_t nElements, std::size_t nElemMap = 0)
+  {
+    auto& vecDataBlocksPM = RawReaderBase_t::template getVecDataBlocks<DataBlockPM_t>();
+    vecDataBlocksPM.reserve(nElements);
+    auto& vecDataBlocksTCM = RawReaderBase_t::template getVecDataBlocks<DataBlockTCM_t>();
+    vecDataBlocksTCM.reserve(nElements);
+    //one need to reserve memory for map
+    for (std::size_t iElem = 0; iElem < nElemMap; iElem++) {
+      RawReaderBase_t::mMapDigits.emplace(o2::InteractionRecord(0, iElem), o2::InteractionRecord(0, iElem));
+    }
+    RawReaderBase_t::mMapDigits.clear();
+  }
   //deserialize payload to raw data blocks and proccesss them to digits
   template <typename... T>
   void process(gsl::span<const uint8_t> payload, T&&... feeParameters)
