@@ -245,7 +245,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
   ~DigitBlockFIT() = default;
   //Filling data from PM
   template <class DataBlockType>
-  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value>
+  auto processDigits(const DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value>
   {
     for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mNelements; iEventData++) {
       const auto& pmData = dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[iEventData];
@@ -254,7 +254,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
   }
   //Filling data from TCM (normal mode)
   template <class DataBlockType>
-  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCM, DataBlockType>::value>
+  auto processDigits(const DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCM, DataBlockType>::value>
   {
     auto& tcmData = dataBlock.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mData[0];
     DigitBlockFIThelper::ConvertTCMData2Digit(DigitBlockBase_t::mDigit, tcmData);
@@ -377,7 +377,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
   ~DigitBlockFIText() = default;
   //Filling data from PM
   template <class DataBlockType>
-  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value>
+  auto processDigits(const DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value>
   {
     for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mNelements; iEventData++) {
       const auto& pmData = dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[iEventData];
@@ -386,7 +386,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
   }
   //Filling data from TCM (extended mode)
   template <class DataBlockType>
-  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCMext, DataBlockType>::value>
+  auto processDigits(const DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCMext, DataBlockType>::value>
   {
     auto& tcmData = dataBlock.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mData[0];
     DigitBlockFIThelper::ConvertTCMData2Digit(DigitBlockBase_t::mDigit, tcmData);

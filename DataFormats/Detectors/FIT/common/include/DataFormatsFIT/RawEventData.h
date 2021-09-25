@@ -44,6 +44,8 @@ struct EventHeader {
     };
   };
   InteractionRecord getIntRec() const { return InteractionRecord{(uint16_t)bc, (uint32_t)orbit}; }
+  uint16_t getBC() const { return static_cast<uint16_t>(bc); }
+  uint32_t getOrbit() const { return static_cast<uint32_t>(orbit); }
   void setIntRec(const InteractionRecord& intRec)
   {
     bc = intRec.bc;
@@ -55,7 +57,7 @@ struct EventHeader {
 struct EventData {
   static constexpr size_t PayloadSize = 5;
   static constexpr size_t PayloadPerGBTword = 10;
-  static constexpr size_t MinNelements = 1; //additional static field
+  static constexpr size_t MinNelements = 0;
   static constexpr size_t MaxNelements = 12;
   //
   static constexpr int BitFlagPos = 25; // position of first bit flag(numberADC)
@@ -93,7 +95,6 @@ struct EventData {
     return uint8_t(word >> BitFlagPos);
   }
   void print() const;
-  uint64_t word_zeros = 0x0; //to remove
 };
 
 struct TCMdata {
