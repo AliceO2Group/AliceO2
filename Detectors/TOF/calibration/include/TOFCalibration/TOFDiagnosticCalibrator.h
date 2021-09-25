@@ -30,7 +30,7 @@ class TOFDiagnosticCalibrator final : public o2::calibration::TimeSlotCalibratio
   using CcdbObjectInfoVector = std::vector<CcdbObjectInfo>;
 
  public:
-  TOFDiagnosticCalibrator(){};
+  TOFDiagnosticCalibrator() = default;
   ~TOFDiagnosticCalibrator() final = default;
   bool hasEnoughData(const Slot& slot) const final { return true; }
   void initOutput() final;
