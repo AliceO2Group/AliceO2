@@ -338,7 +338,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
       mLHCPeriod = LHCPeriodStr;
     } else {
       const char* months[12] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
-      time_t now = time(0);
+      time_t now = time(nullptr);
       auto ltm = gmtime(&now);
       mLHCPeriod = months[ltm->tm_mon];
       LOG(WARNING) << "LHCPeriod is not available, using current month " << mLHCPeriod;
