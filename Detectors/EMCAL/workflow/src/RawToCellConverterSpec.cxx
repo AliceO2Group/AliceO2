@@ -155,7 +155,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         currentCellContainer = found->second;
       }
 
-      if (feeID > 40) {
+      if (feeID >= 40) {
         continue; //skip STU ddl
       }
 
@@ -240,7 +240,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           iCol = map.getColumn(chan.getHardwareAddress());
           chantype = map.getChannelType(chan.getHardwareAddress());
         } catch (Mapper::AddressNotFoundException& ex) {
-          LOG(ERROR) << ex.what();
+          LOG(ERROR) << "Hardware correction DDL " << feeID << ex.what();
           continue;
         };
 
