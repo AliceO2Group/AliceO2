@@ -57,7 +57,7 @@ int main(int argc, char** argv)
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
     add_option("ccdb-path", bpo::value<std::string>()->default_value(""), "CCDB url which contains LookupTable");
-    add_option("lut-path", bpo::value<std::string>()->default_value(""), "LookupTable path, e.g. FT0/LookupTable");
+    add_option("lut-path", bpo::value<std::string>()->default_value(""), "LookupTable path, e.g. FDD/LookupTable");
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
 
