@@ -215,7 +215,7 @@ class SingleLUT : public LUT
  public:
   static constexpr char sDetectorName[] = "FDD";
   static constexpr char sDefaultCCDBpath[] = "http://ccdb-test.cern.ch:8080/";
-  static constexpr char sDefaultLUTpath[] = "FV0/LookUpTable";
+  static constexpr char sDefaultLUTpath[] = "FDD/LookUpTable";
   inline static std::string sCurrentCCDBpath = sDefaultCCDBpath;
   inline static std::string sCurrentLUTpath = sDefaultLUTpath;
   //Before instance() call, setup url and path
