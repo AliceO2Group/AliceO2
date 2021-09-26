@@ -97,17 +97,18 @@ class RecPoints;
 class ChannelDataFloat;
 } // namespace o2::fv0
 
-namespace o2::fdd
-{
-class RecPoint;
-} // namespace o2::fdd
-
 namespace o2::zdc
 {
 class BCRecData;
 class ZDCEnergy;
 class ZDCTDCData;
 } // namespace o2::zdc
+
+namespace o2::fdd
+{
+class RecPoint;
+class ChannelDataFloat;
+} // namespace o2::fdd
 
 namespace o2::dataformats
 {
@@ -166,7 +167,6 @@ struct DataRequest {
   void requestFV0RecPoints(bool mc);
   void requestFDDRecPoints(bool mc);
   void requestZDCRecEvents(bool mc);
-
   void requestITSClusters(bool mc);
   void requestMFTClusters(bool mc);
   void requestTPCClusters(bool mc);
@@ -501,6 +501,7 @@ struct RecoContainer {
 
   // FDD
   auto getFDDRecPoints() const { return getSpan<o2::fdd::RecPoint>(GTrackID::FDD, TRACKS); }
+  auto getFDDChannelsData() const { return getSpan<o2::fdd::ChannelDataFloat>(GTrackID::FDD, CLUSTERS); }
 
   // ZDC
   auto getZDCBCRecData() const { return getSpan<o2::zdc::BCRecData>(GTrackID::ZDC, MATCHES); }

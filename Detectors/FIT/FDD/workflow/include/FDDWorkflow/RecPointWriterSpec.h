@@ -24,7 +24,6 @@ namespace fdd
 {
 
 /// create a processor spec
-/// write ITS clusters a root file
 framework::DataProcessorSpec getFDDRecPointWriterSpec(bool useMC);
 
 } // namespace fdd

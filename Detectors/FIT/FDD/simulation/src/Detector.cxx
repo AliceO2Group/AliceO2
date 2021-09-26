@@ -148,13 +148,13 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   static Float_t tlength_ad = 0.;
   static Int_t nPhotons_ad = 0;
 
-  Float_t x, y, z;
+  static TVector3 vPos;
 
   eloss_ad += destep_ad;
 
   if (fMC->IsTrackEntering()) {
     nPhotons_ad = nPhotonsInStep_ad;
-    fMC->TrackPosition(x, y, z);
+    fMC->TrackPosition(vPos(0), vPos(1), vPos(2));
 
     eloss_ad = 0.0;
     return kFALSE;
@@ -165,7 +165,6 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     Int_t trackID = fMC->GetStack()->GetCurrentTrackNumber();
 
     Float_t time = fMC->TrackTime() * 1.0e9; //time from seconds to ns
-    TVector3 vPos(x, y, z);
 
     addHit(trackID, ADsector, vPos, time, eloss_ad, nPhotons_ad);
     return kTRUE;

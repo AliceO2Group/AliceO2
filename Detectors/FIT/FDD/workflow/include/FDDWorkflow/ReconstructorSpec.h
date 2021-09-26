@@ -38,6 +38,7 @@ class FDDReconstructorDPL : public Task
   bool mFinished = false;
   bool mUseMC = true;
   std::vector<o2::fdd::RecPoint> mRecPoints;
+  std::vector<o2::fdd::ChannelDataFloat> mRecChData;
   o2::fdd::Reconstructor mReco;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFDD;
 };

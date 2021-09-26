@@ -13,6 +13,7 @@
 
 #include "AODProducerWorkflow/AODProducerWorkflowSpec.h"
 #include "DataFormatsFT0/RecPoints.h"
+#include "DataFormatsFDD/RecPoint.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMCH/ROFRecord.h"
@@ -32,7 +33,7 @@
 #include "Framework/Logger.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/TableTreeHelpers.h"
-#include "FDDBase/Geometry.h"
+#include "FDDBase/Constants.h"
 #include "FT0Base/Geometry.h"
 #include "FV0Base/Geometry.h"
 #include "GlobalTracking/MatchTOF.h"
@@ -80,7 +81,7 @@ void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddR
   }
 
   for (auto& fddRecPoint : fddRecPoints) {
-    uint64_t globalBC = fddRecPoint.mIntRecord.toLong();
+    uint64_t globalBC = fddRecPoint.getInteractionRecord().toLong();
     bcsMap[globalBC] = 1;
   }
 
@@ -814,6 +815,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto secVertices = recoData.getV0s();
   auto cascades = recoData.getCascades();
 
+  auto fddChData = recoData.getFDDChannelsData();
   auto fddRecPoints = recoData.getFDDRecPoints();
   auto ft0ChData = recoData.getFT0ChannelsData();
   auto ft0RecPoints = recoData.getFT0RecPoints();
@@ -823,6 +825,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   LOG(DEBUG) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(DEBUG) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
   LOG(DEBUG) << "FOUND " << fv0RecPoints.size() << " FV0 rec. points";
+  LOG(DEBUG) << "FOUND " << fddRecPoints.size() << " FDD rec. points";
 
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& cascadesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CASCADE"});
@@ -925,26 +928,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
              dummyFV0AmplC,
              dummyTime);
 
-  float dummyFDDAmplA[4] = {0.};
-  float dummyFDDAmplC[4] = {0.};
-  for (auto& fddRecPoint : fddRecPoints) {
-    uint64_t bc = fddRecPoint.mIntRecord.toLong();
-    auto item = bcsMap.find(bc);
-    int bcID = -1;
-    if (item != bcsMap.end()) {
-      bcID = item->second;
-    } else {
-      LOG(FATAL) << "Error: could not find a corresponding BC ID for a FDD rec. point; BC = " << bc;
-    }
-    fddCursor(0,
-              bcID,
-              dummyFDDAmplA,
-              dummyFDDAmplC,
-              truncateFloatFraction(fddRecPoint.mMeanTimeFDA * 1E-3, mFDDTime), // ps to ns
-              truncateFloatFraction(fddRecPoint.mMeanTimeFDC * 1E-3, mFDDTime), // ps to ns
-              dummyTriggerMask);
-  }
-
   float dummyEnergyZEM1 = 0;
   float dummyEnergyZEM2 = 0;
   float dummyEnergyCommonZNA = 0;
@@ -1011,6 +994,43 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       mcColToEvSrc.emplace_back(std::pair<int, int>(eventID, sourceID));
     }
     index++;
+  }
+
+  // vector of FDD amplitudes
+  int nFDDChannels = o2::fdd::Nchannels;
+  std::vector<float> vFDDAmplitudes(nFDDChannels, 0.);
+  // filling FDD table
+  for (const auto& fddRecPoint : fddRecPoints) {
+    const auto channelData = fddRecPoint.getBunchChannelData(fddChData);
+    // TODO: switch to calibrated amplitude
+    for (const auto& channel : channelData) {
+      vFDDAmplitudes[channel.mPMNumber] = channel.mChargeADC; // amplitude, mV
+    }
+    float aFDDAmplitudesA[int(nFDDChannels * 0.5)];
+    float aFDDAmplitudesC[int(nFDDChannels * 0.5)];
+    for (int i = 0; i < nFDDChannels; i++) {
+      if (i < nFDDChannels * 0.5) {
+        aFDDAmplitudesC[i] = truncateFloatFraction(vFDDAmplitudes[i], mFDDAmplitude);
+      } else {
+        aFDDAmplitudesA[i - int(nFDDChannels * 0.5)] = truncateFloatFraction(vFDDAmplitudes[i], mFDDAmplitude);
+      }
+    }
+    uint64_t globalBC = fddRecPoint.getInteractionRecord().toLong();
+    uint64_t bc = globalBC;
+    auto item = bcsMap.find(bc);
+    int bcID = -1;
+    if (item != bcsMap.end()) {
+      bcID = item->second;
+    } else {
+      LOG(FATAL) << "Error: could not find a corresponding BC ID for a FDD rec. point; BC = " << bc;
+    }
+    fddCursor(0,
+              bcID,
+              aFDDAmplitudesA,
+              aFDDAmplitudesC,
+              truncateFloatFraction(fddRecPoint.getCollisionTimeA() * 1E-3, mFDDTime), // ps to ns
+              truncateFloatFraction(fddRecPoint.getCollisionTimeC() * 1E-3, mFDDTime), // ps to ns
+              fddRecPoint.getTrigger().triggersignals);
   }
 
   // vector of FT0 amplitudes

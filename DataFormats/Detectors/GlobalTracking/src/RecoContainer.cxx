@@ -246,6 +246,7 @@ void DataRequest::requestFV0RecPoints(bool mc)
 void DataRequest::requestFDDRecPoints(bool mc)
 {
   addInput({"fddrecpoints", "FDD", "RECPOINTS", 0, Lifetime::Timeframe});
+  addInput({"fddchannels", "FDD", "RECCHDATA", 0, Lifetime::Timeframe});
   if (mc) {
     LOG(ERROR) << "FDD RecPoint does not support MC truth";
   }
@@ -719,6 +720,7 @@ void RecoContainer::addFV0RecPoints(ProcessingContext& pc, bool mc)
 void RecoContainer::addFDDRecPoints(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::FDD].registerContainer(pc.inputs().get<gsl::span<o2::fdd::RecPoint>>("fddrecpoints"), TRACKS);
+  commonPool[GTrackID::FDD].registerContainer(pc.inputs().get<gsl::span<o2::fdd::ChannelDataFloat>>("fddchannels"), CLUSTERS);
 
   if (mc) {
     LOG(ERROR) << "FDD RecPoint does not support MC truth";
