@@ -28,9 +28,9 @@ namespace fdd
 struct ChannelDataFloat {
 
   int mPMNumber = -1;         // channel Id
+  int adcId = -1;             // QTC chain
   double mTime = -20000;      // time in ps, 0 at the LHC clk center
   double mChargeADC = -20000; // charge [channels]
-  int adcId = -1;             // QTC chain
 
   ChannelDataFloat() = default;
   ChannelDataFloat(int Channel, double Time, double Charge, int AdcId)
@@ -70,7 +70,7 @@ class RecPoint
   bool isValidTime(TimeTypeIndex type) const { return getCollisionTime(type) < sDummyCollissionTime; }
   void setCollisionTime(Float_t time, TimeTypeIndex type) { mCollisionTimePs[type] = time; }
 
-  o2::fdd::Triggers getTrigger() const { return mTriggers; }
+  const o2::fdd::Triggers getTrigger() const { return mTriggers; }
   o2::InteractionRecord getInteractionRecord() const { return mIntRecord; };
   gsl::span<const ChannelDataFloat> getBunchChannelData(const gsl::span<const ChannelDataFloat> tfdata) const
   {

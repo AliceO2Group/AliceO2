@@ -943,10 +943,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   int nFDDChannels = o2::fdd::Nchannels;
   std::vector<float> vFDDAmplitudes(nFDDChannels, 0.);
   // filling FDD table
-  for (auto& fddRecPoint : fddRecPoints) {
+  for (const auto& fddRecPoint : fddRecPoints) {
     const auto channelData = fddRecPoint.getBunchChannelData(fddChData);
     // TODO: switch to calibrated amplitude
-    for (auto& channel : channelData) {
+    for (const auto& channel : channelData) {
       vFDDAmplitudes[channel.mPMNumber] = channel.mChargeADC; // amplitude, mV
     }
     float aFDDAmplitudesA[int(nFDDChannels * 0.5)];
