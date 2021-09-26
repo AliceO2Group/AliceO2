@@ -88,7 +88,7 @@ void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getReconstructionSpec(bool useMC, std::string ccdbpath)
+DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
 {
   std::vector<InputSpec> inputSpec;
   std::vector<OutputSpec> outputSpec;
