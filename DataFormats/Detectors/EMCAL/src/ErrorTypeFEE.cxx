@@ -21,6 +21,9 @@ void ErrorTypeFEE::PrintStream(std::ostream& stream) const
     case ErrorSource_t::ALTRO_ERROR:
       typestring = "decode error";
       break;
+    case ErrorSource_t::MINOR_ALTRO_ERROR:
+      typestring = "decode error";
+      break;
     case ErrorSource_t::FIT_ERROR:
       typestring = "fit error";
       break;
