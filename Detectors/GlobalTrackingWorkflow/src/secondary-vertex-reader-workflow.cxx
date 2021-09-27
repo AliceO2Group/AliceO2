@@ -13,6 +13,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/ConfigParamSpec.h"
 #include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 using namespace o2::framework;
 
@@ -24,6 +25,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
   std::swap(workflowOptions, options);
 }
@@ -39,5 +42,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   WorkflowSpec specs;
   specs.emplace_back(o2::vertexing::getSecondaryVertexReaderSpec());
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
+
   return std::move(specs);
 }
