@@ -475,8 +475,9 @@ void painter::fillPoly2D(TH2Poly& h2D, const CalDet<T>& calDet, Side side)
     for (int irow = 0; irow < nrows; ++irow) {
       const int padMax = mapper.getNumberOfPadsInRowROC(roc, irow) - 1;
       for (int ipad = 0; ipad <= padMax; ++ipad) {
-        const auto val = calDet.getValue(roc, irow, (side == Side::A) ? ipad : padMax - ipad); // C-Side is mirrored
-        h2D.SetBinContent(bin++, val);
+        const auto pos = mapper.getPadCentre(PadROCPos(calROC.getPadSubsetNumber(), irow, ipad));
+        const auto val = calDet.getValue(roc, irow, ipad);
+        h2D.Fill(pos.X(), pos.Y(), val);
       }
     }
   }
