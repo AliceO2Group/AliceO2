@@ -174,8 +174,8 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   for (size_t i = 0; i < trackCount; ++i) {
     VisualisationTrack track = event.getTrack(i);
     TEveRecTrackD t;
-    double* p = track.getMomentum();
-    t.fP = {p[0], p[1], p[2]};
+    //double* p = track.getMomentum();
+    //t.fP = {p[0], p[1], p[2]};
     t.fSign = track.getCharge() > 0 ? 1 : -1;
     auto* vistrack = new TEveTrack(&t, &TEveTrackPropagator::fgDefault);
     vistrack->SetLineColor(kMagenta);

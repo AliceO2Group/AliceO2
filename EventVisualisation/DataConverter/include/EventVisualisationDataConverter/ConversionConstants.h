@@ -20,15 +20,6 @@
 
 #include <string>
 
-///
-/// Which visualisation import method was used to obtain track
-///
-enum ETrackSource {
-  CosmicSource,
-  TPCSource,
-  ITSSource
-};
-
 enum ETrackType {
   Standard,
 
