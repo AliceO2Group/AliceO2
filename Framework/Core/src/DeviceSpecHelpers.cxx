@@ -1137,6 +1137,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("shm-segment-id", bpo::value<std::string>());
         realOdesc.add_options()("shm-monitor", bpo::value<std::string>());
         realOdesc.add_options()("channel-prefix", bpo::value<std::string>());
+        realOdesc.add_options()("network-interface", bpo::value<std::string>());
         realOdesc.add_options()("session", bpo::value<std::string>());
         filterArgsFct(expansions.we_wordc, expansions.we_wordv, realOdesc);
         wordfree(&expansions);
@@ -1288,6 +1289,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
      "dump stacktrace on specified signal(s) (any of `all`, `segv`, `bus`, `ill`, `abrt`, `fpe`, `sys`.)")                                    //
     ("post-fork-command", bpo::value<std::string>(), "post fork command to execute (e.g. numactl {pid}")                                      //
     ("session", bpo::value<std::string>(), "unique label for the shared memory session")                                                      //
+    ("network-interface", bpo::value<std::string>(), "network interface to which to bind tpc fmq ports without specified address")            //
     ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                                                       //
     ("driver-client-backend", bpo::value<std::string>(), "driver connection string")                                                          //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                                         //
