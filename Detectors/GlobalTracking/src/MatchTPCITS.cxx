@@ -88,37 +88,38 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp)
   mTimer[SWTot].Start(false);
 
   clear();
+  while (1) {
+    if (!prepareITSData() || !prepareTPCData() || !prepareFITData()) {
+      break;
+    }
 
-  if (!prepareITSData() || !prepareTPCData() || !prepareFITData()) {
-    return;
-  }
+    mTimer[SWDoMatching].Start(false);
+    for (int sec = o2::constants::math::NSectors; sec--;) {
+      doMatching(sec);
+    }
+    mTimer[SWDoMatching].Stop();
+    if (0) { // enabling this creates very verbose output
+      mTimer[SWTot].Stop();
+      printCandidatesTPC();
+      printCandidatesITS();
+      mTimer[SWTot].Start(false);
+    }
 
-  mTimer[SWDoMatching].Start(false);
-  for (int sec = o2::constants::math::NSectors; sec--;) {
-    doMatching(sec);
-  }
-  mTimer[SWDoMatching].Stop();
-  if (0) { // enabling this creates very verbose output
-    mTimer[SWTot].Stop();
-    printCandidatesTPC();
-    printCandidatesITS();
-    mTimer[SWTot].Start(false);
-  }
+    selectBestMatches();
 
-  selectBestMatches();
+    refitWinners();
 
-  refitWinners();
-
-  if (mUseFT0 && Params::Instance().runAfterBurner) {
-    runAfterBurner();
-  }
+    if (mUseFT0 && Params::Instance().runAfterBurner) {
+      runAfterBurner();
+    }
 
 #ifdef _ALLOW_DEBUG_TREES_
-  if (mDBGOut && isDebugFlag(WinnerMatchesTree)) {
-    dumpWinnerMatches();
-  }
+    if (mDBGOut && isDebugFlag(WinnerMatchesTree)) {
+      dumpWinnerMatches();
+    }
 #endif
-
+    break;
+  }
   gSystem->GetProcInfo(&procInfoStop);
   mTimer[SWTot].Stop();
 
