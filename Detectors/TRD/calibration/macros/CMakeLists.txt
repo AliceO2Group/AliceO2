@@ -9,12 +9,15 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(calibration)
-if(BUILD_TESTING)
-  add_subdirectory(calibration/macros)
-endif()
-add_subdirectory(simulation)
-add_subdirectory(reconstruction)
-add_subdirectory(macros)
-add_subdirectory(workflow)
+o2_add_test_root_macro(
+  makeTRDCCDBEntryForDCS.C
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
+
+o2_add_test_root_macro(
+  readTRDDCSentries.C
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
+
+install(
+  FILES makeTRDCCDBEntryForDCS.C
+  readTRDDCSentries.C
+  DESTINATION share/macro/)
