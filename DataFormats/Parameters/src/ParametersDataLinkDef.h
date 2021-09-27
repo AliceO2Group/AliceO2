@@ -24,5 +24,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::parameters::GRPObject + ;
+#pragma link C++ class o2::parameters::LHCIFData + ;
 
 #endif
