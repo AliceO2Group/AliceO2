@@ -28,6 +28,7 @@ o2_add_library(TPCWorkflow
                        src/LaserTrackFilterSpec.cxx
                        src/ApplyCCDBCalibSpec.cxx
                        src/MonitorWorkflowSpec.cxx
+                       src/ProcessingHelpers.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction

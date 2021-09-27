@@ -25,6 +25,8 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 
+#include "TPCWorkflow/ProcessingHelpers.h"
+
 using namespace o2::framework;
 
 namespace o2::tpc
@@ -55,6 +57,7 @@ class CalibLaserTracksDevice : public o2::framework::Task
     const auto dph = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header);
     const auto startTime = dph->startTime;
     const auto endTime = dph->startTime + dph->duration;
+    mRunNumber = processing_helpers::getRunNumber(pc);
 
     auto data = pc.inputs().get<gsl::span<TrackTPC>>("input");
     mCalib.setTFtimes(startTime, endTime);
@@ -79,6 +82,7 @@ class CalibLaserTracksDevice : public o2::framework::Task
 
  private:
   CalibLaserTracks mCalib;       ///< laser track calibration component
+  uint64_t mRunNumber{0};        ///< processed run number
   int mMinNumberTFs{100};        ///< minimum number of TFs required for good calibration
   bool mPublished{false};        ///< if calibration was already published
   bool mOnlyPublishOnEOS{false}; ///< if to only publish the calibration on EOS, not during running
@@ -89,16 +93,24 @@ class CalibLaserTracksDevice : public o2::framework::Task
     mCalib.finalize();
     mCalib.print();
 
+    std::map<std::string, std::string> md;
+
     using clbUtils = o2::calibration::Utils;
-    const auto& object = mCalib.getCalibData();
+    const auto& ltrCalib = mCalib.getCalibData();
 
     o2::ccdb::CcdbObjectInfo w;
-    auto image = o2::ccdb::CcdbApi::createObjectImage(&object, &w);
+    auto image = o2::ccdb::CcdbApi::createObjectImage(&ltrCalib, &w);
 
+    md = w.getMetaData();
+    md["runNumber"] = std::to_string(mRunNumber);
+
+    const auto now = std::chrono::system_clock::now();
+    const long timeStart = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    //const auto timeStart = ltrCalib.firstTime; //TODO: use once it is a correct time not TFid
     const long timeEnd = 99999999999999;
 
     w.setPath("TPC/Calib/LaserTracks");
-    w.setStartValidityTimestamp(object.firstTime);
+    w.setStartValidityTimestamp(timeStart);
     w.setEndValidityTimestamp(timeEnd);
 
     LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", w.getPath(), w.getFileName(), image->size(), w.getStartValidityTimestamp(), w.getEndValidityTimestamp());
