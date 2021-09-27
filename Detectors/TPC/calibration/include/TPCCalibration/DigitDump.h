@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <algorithm>
 #include <memory>
 
 #include "Rtypes.h"
@@ -116,7 +117,7 @@ class DigitDump : public CalibRawBase
       digits.clear();
     }
 
-    mTimeBinOccupancy.clear();
+    std::fill(mTimeBinOccupancy.begin(), mTimeBinOccupancy.end(), 0);
   }
 
   /// set in memory only mode
