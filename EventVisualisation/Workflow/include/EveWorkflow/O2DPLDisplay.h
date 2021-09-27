@@ -17,9 +17,12 @@
 #define ALICE_O2_EVENTVISUALISATION_WORKFLOW_O2DPLDISPLAY_H
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "EveWorkflow/EveConfiguration.h"
 #include "Framework/Task.h"
 #include <memory>
+
+using GID = o2::dataformats::GlobalTrackID;
 
 namespace o2::trd
 {

@@ -116,20 +116,11 @@ VisualisationEvent DataInterpreterTPC::interpretDataForType(TObject* data, EVisu
       auto start = eve_track->GetLineStart();
       auto end = eve_track->GetLineEnd();
       VisualisationTrack* track = ret_event.addTrack({.charge = rec.getSign(),
-                                                      .energy = 0.0,
-                                                      .ID = 0,
                                                       .PID = 0,
-                                                      .mass = 0.0,
-                                                      .signedPT = 0.0,
                                                       .startXYZ = {start.fX, start.fY, start.fZ},
-                                                      .endXYZ = {end.fX, end.fY, end.fZ},
-                                                      .pxpypz = {p[0], p[1], p[2]},
-                                                      .parentID = 0,
                                                       .phi = 0.0,
                                                       .theta = 0.0,
-                                                      .helixCurvature = 0.0,
-                                                      .type = 0,
-                                                      .source = TPCSource});
+                                                      .source = o2::dataformats::GlobalTrackID::ITS});
 
       for (Int_t i = 0; i < eve_track->GetN(); ++i) {
         Float_t x, y, z;
