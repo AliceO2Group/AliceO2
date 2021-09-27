@@ -33,13 +33,49 @@ namespace o2::framework
 //  . t2t.process();
 //
 // .............................................................................
+// -----------------------------------------------------------------------------
+// TreeToTable allows to fill the contents of a given TTree to an arrow::Table
+//  ColumnIterator is used by TreeToTable
+//
+// To copy the contents of a tree tr to a table ta do:
+//  . TreeToTable t2t(tr);
+//  . t2t.addColumn(columnname1); t2t.addColumn(columnname2); ...
+//    OR
+//    t2t.addAllColumns();
+//  . auto ta = t2t.process();
+//
+// .............................................................................
 struct ROOTTypeInfo {
   EDataType type;
   char suffix[3];
   int size;
 };
 
+auto arrowTypeFromROOT(EDataType type, int size);
 auto basicROOTTypeFromArrow(arrow::Type::type id);
+
+class BranchToColumn
+{
+ public:
+  BranchToColumn(TBranch* branch, const char* name, EDataType type, int listSize, arrow::MemoryPool* pool);
+  ~BranchToColumn() = default;
+  TBranch* branch();
+
+  std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> read(TBuffer* buffer);
+
+ private:
+  arrow::Status appendValues(unsigned char const* buffer, int numEntries);
+  arrow::Status finish(std::shared_ptr<arrow::Array>* array);
+  arrow::Status reserve(int numEntries);
+  TBranch* mBranch = nullptr;
+  std::string mColumnName;
+  EDataType mType;
+  std::shared_ptr<arrow::DataType> mArrowType;
+  arrow::ArrayBuilder* mValueBuilder = nullptr;
+  std::unique_ptr<arrow::FixedSizeListBuilder> mListBuilder = nullptr;
+  int mListSize = 1;
+  std::unique_ptr<arrow::ArrayBuilder> mBuilder = nullptr;
+};
 
 class ColumnToBranch
 {
@@ -88,27 +124,20 @@ class TableToTree
 
 class TreeToTable
 {
+ public:
+  TreeToTable(arrow::MemoryPool* pool = arrow::default_memory_pool());
+  void setLabel(const char* label);
+  void addAllColumns(TTree* tree, std::vector<std::string>&& names = {});
+  void fill(TTree*);
+  std::shared_ptr<arrow::Table> finalize();
 
  private:
-  std::shared_ptr<arrow::Table> mTable;
-  std::vector<std::string> mColumnNames;
+  arrow::MemoryPool* mArrowMemoryPool;
+  std::vector<std::unique_ptr<BranchToColumn>> mBranchReaders;
   std::string mTableLabel;
+  std::shared_ptr<arrow::Table> mTable;
 
- public:
-  // set table label to be added into schema metadata
-  void setLabel(const char* label);
-
-  // add a column to be included in the arrow::table
-  void addColumn(const char* colname);
-
-  // add all branches in @a tree as columns
-  bool addAllColumns(TTree* tree);
-
-  // do the looping with the TTreeReader
-  void fill(TTree* tree);
-
-  // create the table
-  std::shared_ptr<arrow::Table> finalize();
+  void addReader(TBranch* branch, const char* name);
 };
 
 // -----------------------------------------------------------------------------

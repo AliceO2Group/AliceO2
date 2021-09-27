@@ -74,11 +74,9 @@ static void BM_TreeToTable(benchmark::State& state)
     // benchmark TreeToTable
     if (tr) {
       tr2ta = new TreeToTable;
-      if (tr2ta->addAllColumns(tr)) {
-        tr2ta->fill(tr);
-        auto ta = tr2ta->finalize();
-      }
-
+      tr2ta->addAllColumns(tr);
+      tr2ta->fill(tr);
+      auto ta = tr2ta->finalize();
     } else {
       LOG(info) << "tree is empty!";
     }

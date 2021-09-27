@@ -9,7 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/TableTreeHelpers.h"
-#include <stdexcept>
 #include "Framework/Logger.h"
 
 #include "arrow/type_traits.h"
@@ -18,71 +17,42 @@
 
 namespace o2::framework
 {
-namespace
+auto arrowTypeFromROOT(EDataType type, int size)
 {
-// -----------------------------------------------------------------------------
-// TreeToTable allows to fill the contents of a given TTree to an arrow::Table
-//  ColumnIterator is used by TreeToTable
-//
-// To copy the contents of a tree tr to a table ta do:
-//  . TreeToTable t2t(tr);
-//  . t2t.addColumn(columnname1); t2t.addColumn(columnname2); ...
-//    OR
-//    t2t.addAllColumns();
-//  . auto ta = t2t.process();
-//
-// .............................................................................
-class ColumnIterator
-{
+  auto typeGenerator = [](std::shared_ptr<arrow::DataType>&& type, int size) -> std::shared_ptr<arrow::DataType> {
+    if (size == 1) {
+      return std::move(type);
+    }
+    return arrow::fixed_size_list(type, size);
+  };
 
- private:
-  // all the possible arrow::TBuilder types
-  arrow::FixedSizeListBuilder* mTableBuilder_list = nullptr;
-
-  arrow::BooleanBuilder* mTableBuilder_o = nullptr;
-  arrow::UInt8Builder* mTableBuilder_ub = nullptr;
-  arrow::UInt16Builder* mTableBuilder_us = nullptr;
-  arrow::UInt32Builder* mTableBuilder_ui = nullptr;
-  arrow::UInt64Builder* mTableBuilder_ul = nullptr;
-  arrow::Int8Builder* mTableBuilder_b = nullptr;
-  arrow::Int16Builder* mTableBuilder_s = nullptr;
-  arrow::Int32Builder* mTableBuilder_i = nullptr;
-  arrow::Int64Builder* mTableBuilder_l = nullptr;
-  arrow::FloatBuilder* mTableBuilder_f = nullptr;
-  arrow::DoubleBuilder* mTableBuilder_d = nullptr;
-
-  bool mStatus = false;
-  EDataType mElementType;
-  int64_t mNumberElements;
-  const char* mColumnName;
-  int mPos = 0;
-  int mNumEntries = 0;
-  TBranch* mBranch = nullptr;
-
-  std::shared_ptr<arrow::Field> mField;
-  std::shared_ptr<arrow::Array> mArray;
-
- public:
-  ColumnIterator(TTree* reader, const char* colname);
-  ~ColumnIterator();
-
-  // has the iterator been properly initialized
-  bool getStatus();
-
-  // copy the contents of the associated branch to the arrow::TBuilder
-  size_t push();
-
-  // reserve enough space to push s elements without reallocating
-  void reserve(size_t s);
-
-  std::shared_ptr<arrow::Array> getArray() { return mArray; }
-  std::shared_ptr<arrow::Field> getSchema() { return mField; }
-
-  // finish the arrow::TBuilder
-  // with this mArray is prepared to be used in arrow::Table::Make
-  void finish();
-};
-} // namespace
+  switch (type) {
+    case EDataType::kBool_t:
+      return typeGenerator(arrow::boolean(), size);
+    case EDataType::kUChar_t:
+      return typeGenerator(arrow::uint8(), size);
+    case EDataType::kUShort_t:
+      return typeGenerator(arrow::uint16(), size);
+    case EDataType::kUInt_t:
+      return typeGenerator(arrow::uint32(), size);
+    case EDataType::kULong64_t:
+      return typeGenerator(arrow::uint64(), size);
+    case EDataType::kChar_t:
+      return typeGenerator(arrow::int8(), size);
+    case EDataType::kShort_t:
+      return typeGenerator(arrow::int16(), size);
+    case EDataType::kInt_t:
+      return typeGenerator(arrow::int32(), size);
+    case EDataType::kLong64_t:
+      return typeGenerator(arrow::int64(), size);
+    case EDataType::kFloat_t:
+      return typeGenerator(arrow::float32(), size);
+    case EDataType::kDouble_t:
+      return typeGenerator(arrow::float64(), size);
+    default:
+      throw runtime_error("Unsupported branch type");
+  }
+}
 
 auto basicROOTTypeFromArrow(arrow::Type::type id)
 {
@@ -112,6 +82,126 @@ auto basicROOTTypeFromArrow(arrow::Type::type id)
     default:
       throw runtime_error("Unsupported arrow column type");
   }
+}
+
+TBranch* BranchToColumn::branch()
+{
+  return mBranch;
+}
+
+BranchToColumn::BranchToColumn(TBranch* branch, const char* name, EDataType type, int listSize, arrow::MemoryPool* pool)
+  : mBranch{branch},
+    mColumnName{name},
+    mType{type},
+    mArrowType{arrowTypeFromROOT(type, listSize)},
+    mListSize{listSize}
+
+{
+  if (mListSize > 1) {
+    auto status = arrow::MakeBuilder(pool, mArrowType->field(0)->type(), &mBuilder);
+    if (!status.ok()) {
+      throw runtime_error("Cannot create value builder");
+    }
+    mListBuilder = std::make_unique<arrow::FixedSizeListBuilder>(pool, std::move(mBuilder), mListSize);
+    mValueBuilder = mListBuilder->value_builder();
+  } else {
+    auto status = arrow::MakeBuilder(pool, mArrowType, &mBuilder);
+    if (!status.ok()) {
+      throw runtime_error("Cannot create builder");
+    }
+    mValueBuilder = mBuilder.get();
+  }
+}
+
+std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> BranchToColumn::read(TBuffer* buffer)
+{
+  auto totalEntries = static_cast<int>(mBranch->GetEntries());
+  auto status = reserve(totalEntries);
+  if (!status.ok()) {
+    throw runtime_error("Failed to reserve memory for array builder");
+  }
+  int readEntries = 0;
+  buffer->Reset();
+  while (readEntries < totalEntries) {
+    auto readLast = mBranch->GetBulkRead().GetBulkEntries(readEntries, *buffer);
+    readEntries += readLast;
+    status &= appendValues(reinterpret_cast<unsigned char const*>(buffer->GetCurrent()), readLast);
+  }
+  if (!status.ok()) {
+    throw runtime_error("Failed to append values to array");
+  }
+  std::shared_ptr<arrow::Array> array;
+  status &= finish(&array);
+  if (!status.ok()) {
+    throw runtime_error("Failed to create boolean array");
+  }
+  auto fullArray = std::make_shared<arrow::ChunkedArray>(array);
+  auto field = std::make_shared<arrow::Field>(mBranch->GetName(), mArrowType);
+  return std::make_pair(fullArray, field);
+}
+
+arrow::Status BranchToColumn::appendValues(unsigned char const* buffer, int numEntries)
+{
+  arrow::Status status;
+  switch (mType) {
+    case EDataType::kBool_t:
+      status = static_cast<arrow::BooleanBuilder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint8_t const*>(buffer), numEntries * mListSize);
+      break;
+    case EDataType::kUChar_t:
+      status = static_cast<arrow::UInt8Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint8_t const*>(buffer), numEntries * mListSize);
+      break;
+    case EDataType::kUShort_t:
+      status = static_cast<arrow::UInt16Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint16_t const*>(buffer), numEntries * mListSize);
+      break;
+    case EDataType::kUInt_t:
+      status = static_cast<arrow::UInt32Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint32_t const*>(buffer), numEntries * mListSize);
+      break;
+    case EDataType::kULong64_t:
+      status = static_cast<arrow::UInt64Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint64_t const*>(buffer), numEntries * mListSize);
+      break;
+    case EDataType::kChar_t:
+      status = static_cast<arrow::Int8Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int8_t const*>(buffer), numEntries * mListSize);
+      break;
+    case EDataType::kShort_t:
+      status = static_cast<arrow::Int16Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int16_t const*>(buffer), numEntries * mListSize);
+      break;
+    case EDataType::kInt_t:
+      status = static_cast<arrow::Int32Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int32_t const*>(buffer), numEntries * mListSize);
+      break;
+    case EDataType::kLong64_t:
+      status = static_cast<arrow::Int64Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int64_t const*>(buffer), numEntries * mListSize);
+      break;
+    case EDataType::kFloat_t:
+      status = static_cast<arrow::FloatBuilder*>(mValueBuilder)->AppendValues(reinterpret_cast<float const*>(buffer), numEntries * mListSize);
+      break;
+    case EDataType::kDouble_t:
+      status = static_cast<arrow::DoubleBuilder*>(mValueBuilder)->AppendValues(reinterpret_cast<double const*>(buffer), numEntries * mListSize);
+      break;
+    default:
+      throw runtime_error("Unsupported branch type");
+  }
+  if (mListSize > 1) {
+    status &= mListBuilder->AppendValues(numEntries);
+  }
+
+  return status;
+}
+
+arrow::Status BranchToColumn::finish(std::shared_ptr<arrow::Array>* array)
+{
+  if (mListSize > 1) {
+    return mListBuilder->Finish(array);
+  }
+  return mValueBuilder->Finish(array);
+}
+
+arrow::Status BranchToColumn::reserve(int numEntries)
+{
+  auto status = mValueBuilder->Reserve(numEntries * mListSize);
+  if (mListSize > 1) {
+    status &= mListBuilder->Reserve(numEntries);
+  }
+  return status;
 }
 
 ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field)
@@ -255,335 +345,47 @@ TTree* TableToTree::process()
   return mTree;
 }
 
-// -----------------------------------------------------------------------------
-#define MAKE_LIST_BUILDER(ElementType, NumElements)                \
-  std::unique_ptr<arrow::ArrayBuilder> ValueBuilder;               \
-  arrow::MemoryPool* MemoryPool = arrow::default_memory_pool();    \
-  auto stat = MakeBuilder(MemoryPool, ElementType, &ValueBuilder); \
-  mTableBuilder_list = new arrow::FixedSizeListBuilder(            \
-    MemoryPool,                                                    \
-    std::move(ValueBuilder),                                       \
-    NumElements);
-
-#define MAKE_FIELD(ElementType, NumElements)                                                         \
-  if (NumElements == 1) {                                                                            \
-    mField =                                                                                         \
-      std::make_shared<arrow::Field>(mColumnName, ElementType);                                      \
-  } else {                                                                                           \
-    mField =                                                                                         \
-      std::make_shared<arrow::Field>(mColumnName, arrow::fixed_size_list(ElementType, NumElements)); \
-  }
-
-#define MAKE_FIELD_AND_BUILDER(ElementCType, NumElements, Builder)                                                                            \
-  MAKE_FIELD(arrow::TypeTraits<arrow::CTypeTraits<ElementCType>::ArrowType>::type_singleton(), NumElements);                                  \
-  if (NumElements == 1) {                                                                                                                     \
-    arrow::MemoryPool* MemoryPool = arrow::default_memory_pool();                                                                             \
-    Builder = new arrow::TypeTraits<arrow::CTypeTraits<ElementCType>::ArrowType>::BuilderType(MemoryPool);                                    \
-  } else {                                                                                                                                    \
-    MAKE_LIST_BUILDER(arrow::TypeTraits<arrow::CTypeTraits<ElementCType>::ArrowType>::type_singleton(), NumElements);                         \
-    Builder = static_cast<arrow::TypeTraits<arrow::CTypeTraits<ElementCType>::ArrowType>::BuilderType*>(mTableBuilder_list->value_builder()); \
-  }
-
-// is used in TreeToTable
-ColumnIterator::ColumnIterator(TTree* tree, const char* colname)
+TreeToTable::TreeToTable(arrow::MemoryPool* pool)
+  : mArrowMemoryPool{pool}
 {
-  mBranch = tree->GetBranch(colname);
-  mNumEntries = mBranch->GetEntries();
+}
 
-  if (!mBranch) {
-    LOGP(WARNING, "Can not locate branch {}", colname);
-    return;
-  }
-  mColumnName = colname;
-
-  // type of the branch elements
-  TClass* cl;
-  mBranch->GetExpectedType(cl, mElementType);
-
-  // currently only single-value or single-array branches are accepted
-  // thus of the form e.g. alpha/D or alpha[5]/D
-  // check if this is a single-value or single-array branch
-  mNumberElements = 1;
-  std::string branchTitle = mBranch->GetTitle();
-  Int_t pos0 = branchTitle.find("[");
-  Int_t pos1 = branchTitle.find("]");
-  if (pos0 > 0 && pos1 > 0) {
-    mNumberElements = atoi(branchTitle.substr(pos0 + 1, pos1 - pos0 - 1).c_str());
+void TreeToTable::addAllColumns(TTree* tree, std::vector<std::string>&& names)
+{
+  auto branches = tree->GetListOfBranches();
+  auto n = branches->GetEntries();
+  if (n == 0) {
+    throw runtime_error("Tree has no branches");
   }
 
-  // initialize the TTreeReaderValue<T> / TTreeReaderArray<T>
-  //            the corresponding arrow::TBuilder
-  //            the column field
-  // the TTreeReaderValue is incremented by reader->Next()
-  // switch according to mElementType
-  mStatus = true;
-
-  if (mNumberElements == 1) {
-    switch (mElementType) {
-      case EDataType::kBool_t:
-        MAKE_FIELD_AND_BUILDER(bool, 1, mTableBuilder_o);
-        break;
-      case EDataType::kUChar_t:
-        MAKE_FIELD_AND_BUILDER(uint8_t, 1, mTableBuilder_ub);
-        break;
-      case EDataType::kUShort_t:
-        MAKE_FIELD_AND_BUILDER(uint16_t, 1, mTableBuilder_us);
-        break;
-      case EDataType::kUInt_t:
-        MAKE_FIELD_AND_BUILDER(uint32_t, 1, mTableBuilder_ui);
-        break;
-      case EDataType::kULong64_t:
-        MAKE_FIELD_AND_BUILDER(uint64_t, 1, mTableBuilder_ul);
-        break;
-      case EDataType::kChar_t:
-        MAKE_FIELD_AND_BUILDER(int8_t, 1, mTableBuilder_b);
-        break;
-      case EDataType::kShort_t:
-        MAKE_FIELD_AND_BUILDER(int16_t, 1, mTableBuilder_s);
-        break;
-      case EDataType::kInt_t:
-        MAKE_FIELD_AND_BUILDER(int32_t, 1, mTableBuilder_i);
-        break;
-      case EDataType::kLong64_t:
-        MAKE_FIELD_AND_BUILDER(int64_t, 1, mTableBuilder_l);
-        break;
-      case EDataType::kFloat_t:
-        MAKE_FIELD_AND_BUILDER(float, 1, mTableBuilder_f);
-        break;
-      case EDataType::kDouble_t:
-        MAKE_FIELD_AND_BUILDER(double, 1, mTableBuilder_d);
-        break;
-      default:
-        LOGP(FATAL, "Type {} not handled!", mElementType);
-        break;
+  if (names.empty()) {
+    for (auto i = 0; i < n; ++i) {
+      auto branch = static_cast<TBranch*>(branches->At(i));
+      addReader(branch, branch->GetName());
     }
   } else {
-    switch (mElementType) {
-      case EDataType::kBool_t:
-        MAKE_FIELD_AND_BUILDER(bool, mNumberElements, mTableBuilder_o);
-        break;
-      case EDataType::kUChar_t:
-        MAKE_FIELD_AND_BUILDER(uint8_t, mNumberElements, mTableBuilder_ub);
-        break;
-      case EDataType::kUShort_t:
-        MAKE_FIELD_AND_BUILDER(uint16_t, mNumberElements, mTableBuilder_us);
-        break;
-      case EDataType::kUInt_t:
-        MAKE_FIELD_AND_BUILDER(uint32_t, mNumberElements, mTableBuilder_ui);
-        break;
-      case EDataType::kULong64_t:
-        MAKE_FIELD_AND_BUILDER(uint64_t, mNumberElements, mTableBuilder_ul);
-        break;
-      case EDataType::kChar_t:
-        MAKE_FIELD_AND_BUILDER(int8_t, mNumberElements, mTableBuilder_b);
-        break;
-      case EDataType::kShort_t:
-        MAKE_FIELD_AND_BUILDER(int16_t, mNumberElements, mTableBuilder_s);
-        break;
-      case EDataType::kInt_t:
-        MAKE_FIELD_AND_BUILDER(int32_t, mNumberElements, mTableBuilder_i);
-        break;
-      case EDataType::kLong64_t:
-        MAKE_FIELD_AND_BUILDER(int64_t, mNumberElements, mTableBuilder_l);
-        break;
-      case EDataType::kFloat_t:
-        MAKE_FIELD_AND_BUILDER(float, mNumberElements, mTableBuilder_f);
-        break;
-      case EDataType::kDouble_t:
-        MAKE_FIELD_AND_BUILDER(double, mNumberElements, mTableBuilder_d);
-        break;
-      default:
-        LOGP(FATAL, "Type {} not handled!", mElementType);
-        break;
+    for (auto i = 0; i < n; ++i) {
+      auto branch = static_cast<TBranch*>(branches->At(i));
+      auto lookup = std::find_if(names.begin(), names.end(), [&](auto name) { return name == branch->GetName(); });
+      if (lookup != names.end()) {
+        addReader(branch, branch->GetName());
+      }
+      if (mBranchReaders.size() != names.size()) {
+        LOGF(warn, "Not all requested columns were found in the tree");
+      }
     }
   }
-}
-
-ColumnIterator::~ColumnIterator()
-{
-  if (mTableBuilder_list) {
-    delete mTableBuilder_list;
-  } else {
-    delete mTableBuilder_o;
-    delete mTableBuilder_ub;
-    delete mTableBuilder_us;
-    delete mTableBuilder_ui;
-    delete mTableBuilder_ul;
-    delete mTableBuilder_b;
-    delete mTableBuilder_s;
-    delete mTableBuilder_i;
-    delete mTableBuilder_l;
-    delete mTableBuilder_f;
-    delete mTableBuilder_d;
+  if (mBranchReaders.empty()) {
+    throw runtime_error("No columns will be read");
   }
-};
-
-bool ColumnIterator::getStatus()
-{
-  return mStatus;
-}
-
-void ColumnIterator::reserve(size_t s)
-{
-  arrow::Status stat;
-  if (mNumberElements != 1) {
-    stat = mTableBuilder_list->Reserve(s);
+  tree->SetCacheSize(50000000);
+  // FIXME: see https://github.com/root-project/root/issues/8962 and enable
+  // again once fixed.
+  //tree->SetClusterPrefetch(true);
+  for (auto& reader : mBranchReaders) {
+    tree->AddBranchToCache(reader->branch());
   }
-
-  switch (mElementType) {
-    case EDataType::kBool_t:
-      stat = mTableBuilder_o->Reserve(s * mNumberElements);
-      break;
-    case EDataType::kUChar_t:
-      stat = mTableBuilder_ub->Reserve(s * mNumberElements);
-      break;
-    case EDataType::kUShort_t:
-      stat = mTableBuilder_us->Reserve(s * mNumberElements);
-      break;
-    case EDataType::kUInt_t:
-      stat = mTableBuilder_ui->Reserve(s * mNumberElements);
-      break;
-    case EDataType::kULong64_t:
-      stat = mTableBuilder_ul->Reserve(s * mNumberElements);
-      break;
-    case EDataType::kChar_t:
-      stat = mTableBuilder_b->Reserve(s * mNumberElements);
-      break;
-    case EDataType::kShort_t:
-      stat = mTableBuilder_s->Reserve(s * mNumberElements);
-      break;
-    case EDataType::kInt_t:
-      stat = mTableBuilder_i->Reserve(s * mNumberElements);
-      break;
-    case EDataType::kLong64_t:
-      stat = mTableBuilder_l->Reserve(s * mNumberElements);
-      break;
-    case EDataType::kFloat_t:
-      stat = mTableBuilder_f->Reserve(s * mNumberElements);
-      break;
-    case EDataType::kDouble_t:
-      stat = mTableBuilder_d->Reserve(s * mNumberElements);
-      break;
-    default:
-      LOGP(FATAL, "Type {} not handled!", mElementType);
-      break;
-  }
-}
-
-template <typename T, typename Builder>
-arrow::Status appendValues(Builder builder, TBuffer& buffer, int64_t size)
-{
-  return builder->AppendValues(reinterpret_cast<T const*>(buffer.GetCurrent()), size, nullptr);
-}
-
-size_t ColumnIterator::push()
-{
-  arrow::Status stat;
-
-  static TBufferFile buffer{TBuffer::EMode::kWrite, 4 * 1024 * 1024};
-  buffer.Reset();
-  auto size = mBranch->GetBulkRead().GetBulkEntries(mPos, buffer);
-  if (size < 0) {
-    return 0;
-  }
-  if ((mPos + size) > mNumEntries) {
-    size = mNumEntries - mPos;
-  }
-  mPos += size;
-
-  // switch according to mElementType
-  switch (mElementType) {
-    case EDataType::kBool_t:
-      stat = appendValues<unsigned char>(mTableBuilder_o, buffer, size * mNumberElements);
-      break;
-    case EDataType::kUChar_t:
-      stat = appendValues<unsigned char>(mTableBuilder_ub, buffer, size * mNumberElements);
-      break;
-    case EDataType::kUShort_t:
-      stat = appendValues<unsigned short>(mTableBuilder_us, buffer, size * mNumberElements);
-      break;
-    case EDataType::kUInt_t:
-      stat = appendValues<unsigned int>(mTableBuilder_ui, buffer, size * mNumberElements);
-      break;
-    case EDataType::kULong64_t:
-      stat = appendValues<uint64_t>(mTableBuilder_ul, buffer, size * mNumberElements);
-      break;
-    case EDataType::kChar_t:
-      stat = appendValues<signed char>(mTableBuilder_b, buffer, size * mNumberElements);
-      break;
-    case EDataType::kShort_t:
-      stat = appendValues<short>(mTableBuilder_s, buffer, size * mNumberElements);
-      break;
-    case EDataType::kInt_t:
-      stat = appendValues<int>(mTableBuilder_i, buffer, size * mNumberElements);
-      break;
-    case EDataType::kLong64_t:
-      stat = appendValues<int64_t>(mTableBuilder_l, buffer, size * mNumberElements);
-      break;
-    case EDataType::kFloat_t:
-      stat = appendValues<float>(mTableBuilder_f, buffer, size * mNumberElements);
-      break;
-    case EDataType::kDouble_t:
-      stat = appendValues<double>(mTableBuilder_d, buffer, size * mNumberElements);
-      break;
-    default:
-      LOGP(FATAL, "Type {} not handled!", mElementType);
-      break;
-  }
-  if (mNumberElements != 1) {
-    stat = mTableBuilder_list->AppendValues(size);
-  }
-  return size;
-}
-
-void ColumnIterator::finish()
-{
-  arrow::Status stat;
-
-  if (mNumberElements != 1) {
-    stat = mTableBuilder_list->Finish(&mArray);
-    return;
-  }
-
-  // switch according to mElementType
-    switch (mElementType) {
-      case EDataType::kBool_t:
-        stat = mTableBuilder_o->Finish(&mArray);
-        break;
-      case EDataType::kUChar_t:
-        stat = mTableBuilder_ub->Finish(&mArray);
-        break;
-      case EDataType::kUShort_t:
-        stat = mTableBuilder_us->Finish(&mArray);
-        break;
-      case EDataType::kUInt_t:
-        stat = mTableBuilder_ui->Finish(&mArray);
-        break;
-      case EDataType::kULong64_t:
-        stat = mTableBuilder_ul->Finish(&mArray);
-        break;
-      case EDataType::kChar_t:
-        stat = mTableBuilder_b->Finish(&mArray);
-        break;
-      case EDataType::kShort_t:
-        stat = mTableBuilder_s->Finish(&mArray);
-        break;
-      case EDataType::kInt_t:
-        stat = mTableBuilder_i->Finish(&mArray);
-        break;
-      case EDataType::kLong64_t:
-        stat = mTableBuilder_l->Finish(&mArray);
-        break;
-      case EDataType::kFloat_t:
-        stat = mTableBuilder_f->Finish(&mArray);
-        break;
-      case EDataType::kDouble_t:
-        stat = mTableBuilder_d->Finish(&mArray);
-        break;
-      default:
-        LOGP(FATAL, "Type {} not handled!", mElementType);
-        break;
-    }
+  tree->StopCacheLearningPhase();
 }
 
 void TreeToTable::setLabel(const char* label)
@@ -591,71 +393,29 @@ void TreeToTable::setLabel(const char* label)
   mTableLabel = label;
 }
 
-void TreeToTable::addColumn(const char* colname)
+void TreeToTable::fill(TTree*)
 {
-  mColumnNames.push_back(colname);
+  std::vector<std::shared_ptr<arrow::ChunkedArray>> columns;
+  std::vector<std::shared_ptr<arrow::Field>> fields;
+  static TBufferFile buffer{TBuffer::EMode::kWrite, 4 * 1024 * 1024};
+  for (auto& reader : mBranchReaders) {
+    buffer.Reset();
+    auto arrayAndField = reader->read(&buffer);
+    columns.push_back(arrayAndField.first);
+    fields.push_back(arrayAndField.second);
+  }
+
+  auto schema = std::make_shared<arrow::Schema>(fields, std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{mTableLabel}));
+  mTable = arrow::Table::Make(schema, columns);
 }
 
-bool TreeToTable::addAllColumns(TTree* tree)
+void TreeToTable::addReader(TBranch* branch, const char* name)
 {
-  auto branchList = tree->GetListOfBranches();
-
-  // loop over branches
-  if (branchList->IsEmpty()) {
-    return false;
-  }
-  for (Int_t ii = 0; ii < branchList->GetEntries(); ii++) {
-    auto br = (TBranch*)branchList->At(ii);
-
-    // IMPROVE: make sure that a column is not added more than one time
-    mColumnNames.push_back(br->GetName());
-  }
-  return true;
-}
-
-void TreeToTable::fill(TTree* tree)
-{
-  std::vector<std::unique_ptr<ColumnIterator>> columnIterators;
-
-  tree->SetCacheSize(50000000);
-  // FIXME: see https://github.com/root-project/root/issues/8962 and enable
-  // again once fixed.
-  //tree->SetClusterPrefetch(true);
-  for (auto&& columnName : mColumnNames) {
-    tree->AddBranchToCache(columnName.c_str(), true);
-    auto colit = std::make_unique<ColumnIterator>(tree, columnName.c_str());
-    auto stat = colit->getStatus();
-    if (!stat) {
-      throw std::runtime_error("Unable to convert column " + columnName);
-    }
-    columnIterators.push_back(std::move(colit));
-  }
-  tree->StopCacheLearningPhase();
-  auto numEntries = tree->GetEntries();
-  if (numEntries > 0) {
-
-    for (size_t ci = 0; ci < columnIterators.size(); ++ci) {
-      auto& column = columnIterators[ci];
-      auto& columnName = mColumnNames[ci];
-      column->reserve(numEntries);
-      while (column->push() != 0) {
-      }
-    }
-  }
-
-  // prepare the elements needed to create the final table
-  std::vector<std::shared_ptr<arrow::Array>> array_vector;
-  std::vector<std::shared_ptr<arrow::Field>> schema_vector;
-  for (auto&& colit : columnIterators) {
-    colit->finish();
-    array_vector.push_back(colit->getArray());
-    schema_vector.push_back(colit->getSchema());
-  }
-  auto fields = std::make_shared<arrow::Schema>(schema_vector, std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{mTableLabel}));
-
-  // create the final table
-  // ta is of type std::shared_ptr<arrow::Table>
-  mTable = (arrow::Table::Make(fields, array_vector));
+  static TClass* cls;
+  EDataType type;
+  branch->GetExpectedType(cls, type);
+  auto listSize = static_cast<TLeaf*>(branch->GetListOfLeaves()->At(0))->GetLenStatic();
+  mBranchReaders.emplace_back(std::make_unique<BranchToColumn>(branch, name, type, listSize, mArrowMemoryPool));
 }
 
 std::shared_ptr<arrow::Table> TreeToTable::finalize()
