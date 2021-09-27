@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef FRAMEWORK_FAIRMQRESIZABLEBUFFER_H
-#define FRAMEWORK_FAIRMQRESIZABLEBUFFER_H
+#ifndef O2_FRAMEWORK_FAIRMQRESIZABLEBUFFER_H_
+#define O2_FRAMEWORK_FAIRMQRESIZABLEBUFFER_H_
 
 #include <memory>
 #include <functional>
@@ -18,9 +18,7 @@
 
 #include <fairmq/FwdDecls.h>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// An arrow::ResizableBuffer implemented on top of a FairMQMessage
@@ -59,7 +57,6 @@ class FairMQResizableBuffer : public ::arrow::ResizableBuffer
   Creator mCreator;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif
+#endif // O2_FRAMEWORK_FAIRMQRESIZABLEBUFFER_H_

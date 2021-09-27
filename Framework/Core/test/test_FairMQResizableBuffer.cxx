@@ -138,11 +138,7 @@ BOOST_AUTO_TEST_CASE(TestStreaming)
   auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
   /// Writing to a stream
   auto stream = std::make_shared<arrow::io::BufferOutputStream>(buffer);
-#if (ARROW_VERSION_MAJOR < 3)
-  auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
-#else
   auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
-#endif
   auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
   if (outStatus.ok() == false) {
     throw std::runtime_error("Unable to Write table");
