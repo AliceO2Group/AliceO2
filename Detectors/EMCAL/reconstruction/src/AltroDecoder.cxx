@@ -9,8 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <cstring>
+#include <iomanip>
+#include <iostream>
 #include <boost/format.hpp>
 #include "InfoLogger/InfoLogger.hxx"
+#include "DetectorsRaw/RDHUtils.h"
 #include "EMCALReconstruction/AltroDecoder.h"
 #include "EMCALReconstruction/RawReaderMemory.h"
 
@@ -25,6 +28,7 @@ AltroDecoder::AltroDecoder(RawReaderMemory& reader) : mRawReader(reader),
 
 void AltroDecoder::decode()
 {
+  mMinorDecodingErrors.clear();
   readRCUTrailer();
   checkRCUTrailer();
   readChannels();
@@ -45,6 +49,11 @@ void AltroDecoder::readRCUTrailer()
 
 void AltroDecoder::checkRCUTrailer()
 {
+  int trailersize = mRCUTrailer.getTrailerSize();
+  int buffersize = mRawReader.getPayload().getPayloadWords().size();
+  if (trailersize > buffersize) {
+    throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_SIZE_ERROR, (boost::format("Trailer size %d exceeding buffer size %d") % trailersize % buffersize).str().data());
+  }
 }
 
 void AltroDecoder::readChannels()
@@ -53,12 +62,14 @@ void AltroDecoder::readChannels()
   mChannels.clear();
   int currentpos = 0;
   auto& buffer = mRawReader.getPayload().getPayloadWords();
-  while (currentpos < buffer.size() - mRCUTrailer.getTrailerSize()) {
+  auto maxpayloadsize = buffer.size() - mRCUTrailer.getTrailerSize();
+  while (currentpos < maxpayloadsize) {
     auto currentword = buffer[currentpos++];
     if (currentword >> 30 != 1) {
       continue;
     }
     // starting a new channel
+    auto channelheader = currentword;
     mChannels.emplace_back(currentword & 0xFFF, (currentword >> 16) & 0x3FF);
     auto& currentchannel = mChannels.back();
     currentchannel.setBadChannel((currentword >> 29) & 0x1);
@@ -67,11 +78,13 @@ void AltroDecoder::readChannels()
     int numberofwords = (currentchannel.getPayloadSize() + 2) / 3;
     std::vector<uint16_t> bunchwords;
     for (int iword = 0; iword < numberofwords; iword++) {
+      if (currentpos >= maxpayloadsize) {
+        mMinorDecodingErrors.emplace_back(MinorAltroDecodingError::ErrorType_t::CHANNEL_PAYLOAD_EXCEED, channelheader, currentword);
+        break; // Must break here in order not to prevent a buffer overrun
+      }
       currentword = buffer[currentpos++];
       if ((currentword >> 30) != 0) {
-        // AliceO2::InfoLogger::InfoLogger logger;
-        // logger << "Unexpected end of payload in altro channel payload! DDL=" << std::setw(3) << std::setfill(0) << mRawReader.getRawHeader().getLink()
-        //       << ", Address=0x" << std::hex << current.getHardwareAddress() << ", word=0x" << currentword << std::dec;
+        mMinorDecodingErrors.emplace_back(MinorAltroDecodingError::ErrorType_t::CHANNEL_END_PAYLOAD_UNEXPECT, channelheader, currentword);
         currentpos--;
         continue;
       }
@@ -83,6 +96,11 @@ void AltroDecoder::readChannels()
     // decode bunches
     int currentsample = 0;
     while (currentsample < currentchannel.getPayloadSize() && bunchwords.size() > currentsample + 2) {
+      // Check if bunch word is 0 - if yes skip all following bunches as they can no longer be reliably decoded
+      if (bunchwords[currentsample] == 0) {
+        mMinorDecodingErrors.emplace_back(MinorAltroDecodingError::ErrorType_t::BUNCH_HEADER_NULL, channelheader, 0);
+        break;
+      }
       int bunchlength = bunchwords[currentsample] - 2, // remove words for bunchlength and starttime
         starttime = bunchwords[currentsample + 1];
       auto& currentbunch = currentchannel.createBunch(bunchlength, starttime);
@@ -177,6 +195,74 @@ AltroErrType AltroDecoderError::intToErrorType(int errornumber)
       break;
     case 7:
       errorType = AltroErrType::CHANNEL_ERROR;
+      break;
+    default:
+      break;
+  }
+
+  return errorType;
+}
+
+std::string MinorAltroDecodingError::what() const noexcept
+{
+  std::stringstream result;
+  switch (mErrorType) {
+    case ErrorType_t::CHANNEL_END_PAYLOAD_UNEXPECT:
+      result << "Unexpected end of payload in altro channel payload!";
+      break;
+    case ErrorType_t::CHANNEL_PAYLOAD_EXCEED:
+      result << "Trying to access out-of-bound payload!";
+      break;
+    case ErrorType_t::BUNCH_HEADER_NULL:
+      result << "Bunch header 0 or not configured!";
+      break;
+  };
+  auto address = mChannelHeader & 0xFFF,
+       payload = (mChannelHeader >> 16) & 0x3FF;
+  bool good = (mChannelHeader >> 29) & 0x1;
+
+  result << " Channel header=0x" << std::hex << mChannelHeader
+         << " (Address=0x" << address << ", payload " << std::dec << payload << ", good " << (good ? "yes" : "no") << ")"
+         << ", word=0x" << std::hex << mPayloadWord << std::dec;
+  return result.str();
+}
+
+using MinorAltroErrType = o2::emcal::MinorAltroDecodingError::ErrorType_t;
+
+int MinorAltroDecodingError::errorTypeToInt(MinorAltroErrType errortype)
+{
+
+  int errorNumber = -1;
+
+  switch (errortype) {
+    case MinorAltroErrType::CHANNEL_END_PAYLOAD_UNEXPECT:
+      errorNumber = 0;
+      break;
+    case MinorAltroErrType::CHANNEL_PAYLOAD_EXCEED:
+      errorNumber = 1;
+      break;
+    case MinorAltroErrType::BUNCH_HEADER_NULL:
+      errorNumber = 2;
+      break;
+  }
+
+  return errorNumber;
+}
+
+MinorAltroErrType MinorAltroDecodingError::intToErrorType(int errornumber)
+{
+
+  MinorAltroErrType errorType;
+
+  switch (errornumber) {
+    case 0:
+      errorType = MinorAltroErrType::CHANNEL_END_PAYLOAD_UNEXPECT;
+      break;
+    case 1:
+      errorType = MinorAltroErrType::CHANNEL_PAYLOAD_EXCEED;
+      break;
+    case 2:
+      errorType = MinorAltroErrType::BUNCH_HEADER_NULL;
       break;
     default:
       break;

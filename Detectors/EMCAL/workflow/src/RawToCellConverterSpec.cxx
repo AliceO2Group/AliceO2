@@ -167,40 +167,39 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       try {
         decoder.decode();
       } catch (AltroDecoderError& e) {
-        std::string errormessage;
-        using AltroErrType = AltroDecoderError::ErrorType_t;
-        /// @TODO still need to add the RawFitter errors
         ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(e.getErrorType()));
-        switch (e.getErrorType()) {
-          case AltroErrType::RCU_TRAILER_ERROR:
-            errormessage = " RCU Trailer Error ";
-            break;
-          case AltroErrType::RCU_VERSION_ERROR:
-            errormessage = " RCU Version Error ";
-            break;
-          case AltroErrType::RCU_TRAILER_SIZE_ERROR:
-            errormessage = " RCU Trailer Size Error ";
-            break;
-          case AltroErrType::ALTRO_BUNCH_HEADER_ERROR:
-            errormessage = " ALTRO Bunch Header Error ";
-            break;
-          case AltroErrType::ALTRO_BUNCH_LENGTH_ERROR:
-            errormessage = " ALTRO Bunch Length Error ";
-            break;
-          case AltroErrType::ALTRO_PAYLOAD_ERROR:
-            errormessage = " ALTRO Payload Error ";
-            break;
-          case AltroErrType::ALTRO_MAPPING_ERROR:
-            errormessage = " ALTRO Mapping Error ";
-            break;
-          case AltroErrType::CHANNEL_ERROR:
-            errormessage = " Channel Error ";
-            break;
-          default:
-            break;
-        }
         if (mNumErrorMessages < mMaxErrorMessages) {
-          LOG(ERROR) << " EMCAL raw task: " << errormessage << " in Supermodule " << feeID << std::endl;
+          std::string errormessage;
+          using AltroErrType = AltroDecoderError::ErrorType_t;
+          switch (e.getErrorType()) {
+            case AltroErrType::RCU_TRAILER_ERROR:
+              errormessage = " RCU Trailer Error ";
+              break;
+            case AltroErrType::RCU_VERSION_ERROR:
+              errormessage = " RCU Version Error ";
+              break;
+            case AltroErrType::RCU_TRAILER_SIZE_ERROR:
+              errormessage = " RCU Trailer Size Error ";
+              break;
+            case AltroErrType::ALTRO_BUNCH_HEADER_ERROR:
+              errormessage = " ALTRO Bunch Header Error ";
+              break;
+            case AltroErrType::ALTRO_BUNCH_LENGTH_ERROR:
+              errormessage = " ALTRO Bunch Length Error ";
+              break;
+            case AltroErrType::ALTRO_PAYLOAD_ERROR:
+              errormessage = " ALTRO Payload Error ";
+              break;
+            case AltroErrType::ALTRO_MAPPING_ERROR:
+              errormessage = " ALTRO Mapping Error ";
+              break;
+            case AltroErrType::CHANNEL_ERROR:
+              errormessage = " Channel Error ";
+              break;
+            default:
+              break;
+          };
+          LOG(ERROR) << " EMCAL raw task: " << errormessage << " in DDL " << feeID << std::endl;
           mNumErrorMessages++;
           if (mNumErrorMessages == mMaxErrorMessages) {
             LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
@@ -211,6 +210,19 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         //fill histograms  with error types
         mOutputDecoderErrors.push_back(errornum);
         continue;
+      }
+      for (auto minorerror : decoder.getMinorDecodingErrors()) {
+        if (mNumErrorMessages < mMaxErrorMessages) {
+          LOG(ERROR) << " EMCAL raw task - Minor error in DDL " << feeID << ": " << minorerror.what() << std::endl;
+          mNumErrorMessages++;
+          if (mNumErrorMessages == mMaxErrorMessages) {
+            LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+          }
+        } else {
+          mErrorMessagesSuppressed++;
+        }
+        ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, MinorAltroDecodingError::errorTypeToInt(minorerror.getErrorType()));
+        mOutputDecoderErrors.push_back(errornum);
       }
 
       if (mPrintTrailer) {

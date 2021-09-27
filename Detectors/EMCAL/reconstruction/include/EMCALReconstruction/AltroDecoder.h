@@ -78,6 +78,74 @@ class AltroDecoderError : public std::exception
   std::string mErrorMessage; ///< Message connected to the error type
 };
 
+/// \class MinorAltroDecodingError
+/// \brief Error handling for the ALTRO decoder for non-crashing errors
+/// \ingroup EMCALreconstruction
+class MinorAltroDecodingError
+{
+ public:
+  /// \enum ErrorType_t
+  /// \brief Error codes connected with the ALTRO decoding
+  enum class ErrorType_t {
+    BUNCH_HEADER_NULL,            ///< Bunch header is 0
+    CHANNEL_END_PAYLOAD_UNEXPECT, ///< Unexpected end of payload (channel or trailer word in bunch words)
+    CHANNEL_PAYLOAD_EXCEED        ///< Exceeding channel payload block
+  };
+
+  /// \brief Dummy constructor
+  MinorAltroDecodingError() = default;
+
+  /// \brief Constructor, initializing the object
+  /// \param errtype Type of the error
+  /// \param channelHeader Header of the channel raising the error
+  /// \param payloadword Payload word raising the error
+  MinorAltroDecodingError(ErrorType_t errtype, uint32_t channelHeader, uint32_t payloadword) : mErrorType(errtype),
+                                                                                               mChannelHeader(channelHeader),
+                                                                                               mPayloadWord(payloadword)
+  {
+  }
+
+  /// \brief Destructor
+  ~MinorAltroDecodingError() noexcept = default;
+
+  /// \brief Get the header of the channel raising the error
+  /// \return Hardware address
+  uint32_t getChannelHeader() const noexcept { return mChannelHeader; };
+
+  /// \brief Get the payload word raising the error
+  /// \return Payload word
+  uint32_t getPayloadWord() const noexcept { return mPayloadWord; }
+
+  /// \brief Get the type of the error
+  /// \return Error type
+  ErrorType_t getErrorType() const noexcept { return mErrorType; }
+
+  /// \brief Create and return error message for different error types
+  /// \return Error message
+  ///
+  /// Object returning a std::string which can be owned by the caller.
+  /// This is in contrast to exceptions inheriting from std::exception
+  /// which must return const char * in order to comply with the interface.
+  std::string what() const noexcept;
+
+  /// \brief convert the error type from symoblic constant into int
+  /// \return the error number
+  static int errorTypeToInt(ErrorType_t errortype);
+
+  /// \brief convert the error from number into a type (symbolic constant)
+  /// \return the error type
+  static ErrorType_t intToErrorType(int errornumber);
+
+  /// \brief Get the number of error types handled by the AltroDecoderError
+  /// \return Number of error types
+  static constexpr int getNumberOfErrorTypes() noexcept { return 2; }
+
+ private:
+  ErrorType_t mErrorType;  ///< Type of the error
+  uint32_t mChannelHeader; ///< Hardware address raising the error
+  uint32_t mPayloadWord;   ///< Payload word raising the error
+};
+
 /// \class AltroDecoder
 /// \brief Decoder of the ALTRO data in the raw page
 /// \ingroup EMCALreconstruction
@@ -130,6 +198,10 @@ class AltroDecoder
   /// \brief Read channels for the current event in the raw buffer
   void readChannels();
 
+  /// \brief Get list of minor decoding errors
+  /// \return List of minor decoding errors
+  const std::vector<MinorAltroDecodingError>& getMinorDecodingErrors() const { return mMinorDecodingErrors; }
+
  private:
   /// \brief run checks on the RCU trailer
   /// \throw Error if the RCU trailer has inconsistencies
@@ -138,10 +210,11 @@ class AltroDecoder
   /// In case of failure an exception is thrown.
   void checkRCUTrailer();
 
-  RawReaderMemory& mRawReader;       ///< underlying raw reader
-  RCUTrailer mRCUTrailer;            ///< RCU trailer
-  std::vector<Channel> mChannels;    ///< vector of channels in the raw stream
-  bool mChannelsInitialized = false; ///< check whether the channels are initialized
+  RawReaderMemory& mRawReader;                               ///< underlying raw reader
+  RCUTrailer mRCUTrailer;                                    ///< RCU trailer
+  std::vector<Channel> mChannels;                            ///< vector of channels in the raw stream
+  std::vector<MinorAltroDecodingError> mMinorDecodingErrors; ///< Container for minor (non-crashing) errors
+  bool mChannelsInitialized = false;                         ///< check whether the channels are initialized
 
   ClassDefNV(AltroDecoder, 1);
 };
