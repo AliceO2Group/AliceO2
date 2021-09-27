@@ -222,12 +222,19 @@ void DigitDump::checkDuplicates(bool removeDuplicates)
 void DigitDump::removeCEdigits(uint32_t removeNtimeBinsBefore, uint32_t removeNtimeBinsAfter, std::array<std::vector<Digit>, Sector::MAXSECTOR>* removedDigits)
 {
   if (!mInitialized || !mTimeBinOccupancy.size()) {
+    LOGP(info, "Cannot calculate CE psition, mInitialized = {}, mTimeBinOccupancy.size() = {}", mInitialized, mTimeBinOccupancy.size());
     return;
   }
   // ===| check if proper CE signal was found |===
   const auto sectorsWithDigits = std::count_if(mDigits.begin(), mDigits.end(), [](const auto& v) { return v.size(); });
   const auto maxElem = std::max_element(mTimeBinOccupancy.begin(), mTimeBinOccupancy.end());
   const auto maxVal = *maxElem;
+
+  if (!sectorsWithDigits || maxVal < 10) {
+    LOGP(info, "No sectors with digits: {} or too few pads with max number of digits: {} < 10, CE detection stopped", sectorsWithDigits, maxVal);
+    return;
+  }
+
   // at least 20% of all pad should have fired in sectors wich have digits
   const size_t threshold = Mapper::getPadsInSector() * sectorsWithDigits / 5;
   if (maxVal < threshold) {
