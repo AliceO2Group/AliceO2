@@ -137,6 +137,7 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
   }
   auto fullArray = std::make_shared<arrow::ChunkedArray>(array);
   auto field = std::make_shared<arrow::Field>(mBranch->GetName(), mArrowType);
+  mBranch->DropBaskets("all");
   return std::make_pair(fullArray, field);
 }
 
@@ -378,14 +379,14 @@ void TreeToTable::addAllColumns(TTree* tree, std::vector<std::string>&& names)
   if (mBranchReaders.empty()) {
     throw runtime_error("No columns will be read");
   }
-  tree->SetCacheSize(50000000);
-  // FIXME: see https://github.com/root-project/root/issues/8962 and enable
-  // again once fixed.
-  //tree->SetClusterPrefetch(true);
-  for (auto& reader : mBranchReaders) {
-    tree->AddBranchToCache(reader->branch());
-  }
-  tree->StopCacheLearningPhase();
+  //tree->SetCacheSize(50000000);
+  //// FIXME: see https://github.com/root-project/root/issues/8962 and enable
+  //// again once fixed.
+  ////tree->SetClusterPrefetch(true);
+  //for (auto& reader : mBranchReaders) {
+  //  tree->AddBranchToCache(reader->branch());
+  //}
+  //tree->StopCacheLearningPhase();
 }
 
 void TreeToTable::setLabel(const char* label)

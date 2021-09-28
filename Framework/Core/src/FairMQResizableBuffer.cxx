@@ -15,8 +15,106 @@
 #include <arrow/util/config.h>
 #include <cassert>
 
+namespace arrow::io::internal
+{
+void CloseFromDestructor(FileInterface* file);
+}
+
 namespace o2::framework
 {
+static constexpr int64_t kBufferMinimumSize = 256;
+
+FairMQOutputStream::FairMQOutputStream()
+  : is_open_(false), capacity_(0), position_(0), mutable_data_(nullptr) {}
+
+FairMQOutputStream::FairMQOutputStream(const std::shared_ptr<ResizableBuffer>& buffer)
+  : buffer_(buffer),
+    is_open_(true),
+    capacity_(buffer->size()),
+    position_(0),
+    mutable_data_(buffer->mutable_data()) {}
+
+Result<std::shared_ptr<FairMQOutputStream>> FairMQOutputStream::Create(
+  int64_t initial_capacity, MemoryPool* pool)
+{
+  // ctor is private, so cannot use make_shared
+  auto ptr = std::shared_ptr<FairMQOutputStream>(new FairMQOutputStream);
+  RETURN_NOT_OK(ptr->Reset(initial_capacity, pool));
+  return ptr;
+}
+
+Status FairMQOutputStream::Reset(int64_t initial_capacity, MemoryPool* pool)
+{
+  ARROW_ASSIGN_OR_RAISE(buffer_, AllocateResizableBuffer(initial_capacity, pool));
+  is_open_ = true;
+  capacity_ = initial_capacity;
+  position_ = 0;
+  mutable_data_ = buffer_->mutable_data();
+  return Status::OK();
+}
+
+FairMQOutputStream::~FairMQOutputStream()
+{
+  // By the time we call the destructor, the contents
+  // of the buffer are already moved to fairmq
+  // for being sent.
+}
+
+Status FairMQOutputStream::Close()
+{
+  if (is_open_) {
+    is_open_ = false;
+    if (position_ < capacity_) {
+      RETURN_NOT_OK(buffer_->Resize(position_, false));
+    }
+  }
+  return Status::OK();
+}
+
+bool FairMQOutputStream::closed() const { return !is_open_; }
+
+Result<std::shared_ptr<Buffer>> FairMQOutputStream::Finish()
+{
+  RETURN_NOT_OK(Close());
+  buffer_->ZeroPadding();
+  is_open_ = false;
+  return std::move(buffer_);
+}
+
+Result<int64_t> FairMQOutputStream::Tell() const { return position_; }
+
+Status FairMQOutputStream::Write(const void* data, int64_t nbytes)
+{
+  if (ARROW_PREDICT_FALSE(!is_open_)) {
+    return Status::IOError("OutputStream is closed");
+  }
+  if (ARROW_PREDICT_TRUE(nbytes > 0)) {
+    if (ARROW_PREDICT_FALSE(position_ + nbytes >= capacity_)) {
+      RETURN_NOT_OK(Reserve(nbytes));
+    }
+    memcpy(mutable_data_ + position_, data, nbytes);
+    position_ += nbytes;
+  }
+  return Status::OK();
+}
+
+Status FairMQOutputStream::Reserve(int64_t nbytes)
+{
+  // Always overallocate by doubling.  It seems that it is a better growth
+  // strategy, at least for memory_benchmark.cc.
+  // This may be because it helps match the allocator's allocation buckets
+  // more exactly.  Or perhaps it hits a sweet spot in jemalloc.
+  int64_t new_capacity = std::max(kBufferMinimumSize, capacity_);
+  while (new_capacity < position_ + nbytes) {
+    new_capacity = new_capacity + 1024 * 1024;
+  }
+  if (new_capacity > capacity_) {
+    RETURN_NOT_OK(buffer_->Resize(new_capacity));
+    capacity_ = new_capacity;
+    mutable_data_ = buffer_->mutable_data();
+  }
+  return Status::OK();
+}
 
 FairMQResizableBuffer::~FairMQResizableBuffer() = default;
 

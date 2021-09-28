@@ -165,13 +165,13 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
       // Arrow grows buffers by multiplying by 2x, regardless of the
       // fact we actually know the size.
       auto expectedPow2 = (1 << (64 - __builtin_clzl(expectedSize)));
-      auto reserve = b->Reserve(expectedPow2);
+      auto reserve = b->Reserve(expectedSize + 2048 * 1024);
       if (reserve.ok() == false) {
         throw std::runtime_error("Unable to reserve memory for table");
       }
     }
 
-    auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
+    auto stream = std::make_shared<FairMQOutputStream>(b);
     auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
     if (outBatch.ok() == false) {
       throw ::std::runtime_error("Unable to create batch writer");
@@ -221,12 +221,12 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
     auto outStatus = mockBatch.ValueOrDie()->WriteTable(*table);
     auto expectedSize = mock->Tell();
 
-    auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
+    auto stream = std::make_shared<FairMQOutputStream>(b);
 
     // Arrow grows buffers by multiplying by 2x, regardless of the
     // fact we actually know the size.
     auto expectedPow2 = (1 << (64 - __builtin_clzl(*expectedSize)));
-    auto reserve = b->Reserve(expectedPow2);
+    auto reserve = b->Reserve(*expectedSize + 1024 * 2048);
     if (reserve.ok() == false) {
       throw std::runtime_error("Unable to reserve memory for table");
     }
@@ -262,11 +262,11 @@ void DataAllocator::adopt(const Output& spec, std::shared_ptr<arrow::Table> ptr)
     auto outStatus = mockBatch.ValueOrDie()->WriteTable(*table);
     auto expectedSize = mock->Tell();
 
-    auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
+    auto stream = std::make_shared<FairMQOutputStream>(b);
     // Arrow grows buffers by multiplying by 2x, regardless of the
     // fact we actually know the size.
     auto expectedPow2 = (1 << (64 - __builtin_clzl(*expectedSize)));
-    auto reserve = b->Reserve(expectedPow2);
+    auto reserve = b->Reserve(*expectedSize + 1024 * 2048);
     if (reserve.ok() == false) {
       throw std::runtime_error("Unable to reserve memory for table");
     }
