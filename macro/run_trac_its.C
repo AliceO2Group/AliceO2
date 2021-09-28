@@ -111,14 +111,13 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
 
   std::vector<o2::itsmft::MC2ROFRecord>* mc2rofs = nullptr;
   if (!itsClusters.GetBranch("ITSClustersMC2ROF")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
+    LOG(WARNING) << "Did not find ITSClustersMC2ROF branch in the input tree";
   }
   itsClusters.SetBranchAddress("ITSClustersMC2ROF", &mc2rofs);
 
   std::vector<o2::itsmft::ROFRecord>* rofs = nullptr;
   itsClusters.SetBranchAddress("ITSClustersROF", &rofs);
 
-  itsClusters.GetEntry(0);
   //<<<---------- attach input data ---------------<<<
 
   o2::itsmft::TopologyDictionary dict;
@@ -168,29 +167,42 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   o2::its::Vertexer vertexer(&vertexerTraits);
   o2::its::ROframe event(0, 7);
 
-  gsl::span<const unsigned char> patt(patterns->data(), patterns->size());
-  auto pattIt = patt.begin();
-  auto clSpan = gsl::span(cclusters->data(), cclusters->size());
-  for (auto& rof : *rofs) {
-    auto it = pattIt;
-    o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, dict, labels);
-    vertexer.clustersToVertices(event);
-    auto verticesL = vertexer.exportVertices();
+  int nTFs = itsClusters.GetEntries();
+  for (int nt = 0; nt < nTFs; nt++) {
+    itsClusters.GetEntry(nt);
 
-    auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
-    vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
-    vtxROF.setNEntries(verticesL.size());
-    for (const auto& vtx : verticesL) {
-      vertices.push_back(vtx);
+    gsl::span<const unsigned char> patt(patterns->data(), patterns->size());
+    auto pattIt = patt.begin();
+    auto clSpan = gsl::span(cclusters->data(), cclusters->size());
+    for (auto& rof : *rofs) {
+      auto it = pattIt;
+      o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, dict, labels);
+      vertexer.clustersToVertices(event, mcTruth);
+      auto verticesL = vertexer.exportVertices();
+
+      auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
+      vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
+      vtxROF.setNEntries(verticesL.size());
+      for (const auto& vtx : verticesL) {
+        vertices.push_back(vtx);
+      }
+      if (verticesL.empty()) {
+        verticesL.emplace_back();
+      }
+      tracker.setVertices(verticesL);
+      tracker.process(clSpan, it, dict, tracksITS, trackClIdx, rof);
     }
-    if (verticesL.empty()) {
-      verticesL.emplace_back();
+    outTree.Fill();
+    if (mcTruth) {
+      trackLabelsPtr->clear();
+      mc2rofs->clear();
     }
-    tracker.setVertices(verticesL);
-    tracker.process(clSpan, it, dict, tracksITS, trackClIdx, rof);
+    tracksITSPtr->clear();
+    trackClIdxPtr->clear();
+    rofs->clear();
+    verticesPtr->clear();
+    vertROFvecPtr->clear();
   }
-  outTree.Fill();
-
   outFile.cd();
   outTree.Write();
   outFile.Close();
