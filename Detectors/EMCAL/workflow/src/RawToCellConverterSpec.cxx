@@ -252,9 +252,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           iCol = map.getColumn(chan.getHardwareAddress());
           chantype = map.getChannelType(chan.getHardwareAddress());
         } catch (Mapper::AddressNotFoundException& ex) {
-          LOG(ERROR) << "Hardware correction DDL " << feeID << ex.what();
+          LOG(ERROR) << "Mapping error DDL " << feeID << ": " << ex.what();
           continue;
-        };
+        }
 
         if (!(chantype == o2::emcal::ChannelType_t::HIGH_GAIN || chantype == o2::emcal::ChannelType_t::LOW_GAIN)) {
           continue;
