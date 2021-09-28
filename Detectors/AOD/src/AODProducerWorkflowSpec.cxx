@@ -20,6 +20,7 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonConstants/PhysicsConstants.h"
@@ -67,6 +68,16 @@ using GID = o2::dataformats::GlobalTrackID;
 namespace o2::aodproducer
 {
 
+namespace
+{
+// takes a local vertex timing in NS and converts to a global BC information
+// using the orbit offset from the simulation
+uint64_t relativeTime_to_GlobalBC(double relativeTimeStampInNS)
+{
+  return std::round((o2::raw::HBFUtils::Instance().getFirstSampledTFIR().bc2ns() + relativeTimeStampInNS) / o2::constants::lhc::LHCBunchSpacingNS);
+}
+} // namespace
+
 void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddRecPoints,
                                         gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
                                         gsl::span<const o2::fv0::RecPoints>& fv0RecPoints,
@@ -98,7 +109,7 @@ void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddR
   for (auto& vertex : primVertices) {
     auto& timeStamp = vertex.getTimeStamp();
     double tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
-    uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
+    uint64_t globalBC = relativeTime_to_GlobalBC(tsTimeStamp);
     bcsMap[globalBC] = 1;
   }
 
@@ -1095,7 +1106,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto& cov = vertex.getCov();
     auto& timeStamp = vertex.getTimeStamp();
     const double interactionTime = timeStamp.getTimeStamp() * 1E3; // mus to ns
-    uint64_t globalBC = std::round(interactionTime / o2::constants::lhc::LHCBunchSpacingNS);
+    uint64_t globalBC = relativeTime_to_GlobalBC(interactionTime);
     LOG(DEBUG) << globalBC << " " << interactionTime;
     // collision timestamp in ns wrt the beginning of collision BC
     const float relInteractionTime = static_cast<float>(globalBC * o2::constants::lhc::LHCBunchSpacingNS - interactionTime);
