@@ -23,26 +23,20 @@ FairMQResizableBuffer::~FairMQResizableBuffer() = default;
 // Creates an empty message
 FairMQResizableBuffer::FairMQResizableBuffer(Creator creator)
   : ResizableBuffer(nullptr, 0),
-    mMessage{std::move(creator(4096))},
+    mMessage{nullptr},
     mCreator{creator}
 {
-  this->data_ = reinterpret_cast<uint8_t*>(mMessage->GetData());
-  assert(this->data_);
-  this->capacity_ = static_cast<int64_t>(mMessage->GetSize());
+  this->data_ = nullptr;
+  this->capacity_ = 0;
   this->size_ = 0;
 }
 
 arrow::Status FairMQResizableBuffer::Resize(const int64_t newSize, bool shrink_to_fit)
 {
-  if (newSize < this->capacity_ && shrink_to_fit == true) {
-    auto newMessage = mCreator(newSize);
-    memcpy(newMessage->GetData(), mMessage->GetData(), newSize);
-    mMessage = std::move(newMessage);
-    this->data_ = reinterpret_cast<uint8_t*>(mMessage->GetData());
-    assert(this->data_);
-    this->capacity_ = static_cast<int64_t>(mMessage->GetSize());
-    assert(newSize == this->capacity_);
-  } else if (newSize > this->capacity_) {
+  // NOTE: we ignore "shrink_to_fit" because in any case we
+  // invoke SetUsedSize when we send the message. This
+  // way we avoid unneeded copies at the arrow level.
+  if (newSize > this->capacity_) {
     auto status = this->Reserve(newSize);
     if (status.ok() == false) {
       return status;
