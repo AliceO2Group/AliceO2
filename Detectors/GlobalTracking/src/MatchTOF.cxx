@@ -49,6 +49,7 @@ using evGIdx = o2::dataformats::EvIndex<int, o2::dataformats::GlobalTrackID>;
 using trkType = o2::dataformats::MatchInfoTOFReco::TrackType;
 using Cluster = o2::tof::Cluster;
 using GTrackID = o2::dataformats::GlobalTrackID;
+using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 
 ClassImp(MatchTOF);
 
@@ -64,10 +65,13 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
   mTimerMatchITSTPC.Reset();
   mTimerTot.Reset();
 
-  for (int i = 0; i < trkType::SIZE; i++) {
+  for (int i = 0; i < trkType::SIZEALL; i++) {
     mMatchedTracks[i].clear();
-    mTracksWork[i].clear();
     mOutTOFLabels[i].clear();
+  }
+
+  for (int i = 0; i < trkType::SIZE; i++) {
+    mTracksWork[i].clear();
     mTrackGid[i].clear();
   }
   for (int it = 0; it < trkType::SIZE; it++) {
@@ -126,7 +130,6 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
   }
 
   // re-arrange outputs from constrained/unconstrained to the 4 cases (TPC, ITS-TPC, TPC-TRD, ITS-TPC-TRD) to be implemented as soon as TPC-TRD and ITS-TPC-TRD tracks available
-  //  splitOutputs();
 
   mIsTPCused = false;
   mIsITSTPCused = false;
@@ -134,9 +137,9 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
   mIsITSTPCTRDused = false;
 
   mTimerTot.Stop();
-  LOGF(INFO, "Timing Do Matching:        Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
-  LOGF(INFO, "Timing Do Matching ITSTPC: Cpu: %.3e s Real: %.3e s in %d slots", mTimerMatchITSTPC.CpuTime(), mTimerMatchITSTPC.RealTime(), mTimerMatchITSTPC.Counter() - 1);
-  LOGF(INFO, "Timing Do Matching TPC   : Cpu: %.3e s Real: %.3e s in %d slots", mTimerMatchTPC.CpuTime(), mTimerMatchTPC.RealTime(), mTimerMatchTPC.Counter() - 1);
+  LOGF(INFO, "Timing Do Matching:             Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
+  LOGF(INFO, "Timing Do Matching Constrained: Cpu: %.3e s Real: %.3e s in %d slots", mTimerMatchITSTPC.CpuTime(), mTimerMatchITSTPC.RealTime(), mTimerMatchITSTPC.Counter() - 1);
+  LOGF(INFO, "Timing Do Matching TPC        : Cpu: %.3e s Real: %.3e s in %d slots", mTimerMatchTPC.CpuTime(), mTimerMatchTPC.RealTime(), mTimerMatchTPC.Counter() - 1);
 }
 //______________________________________________
 void MatchTOF::print() const
@@ -197,6 +200,9 @@ bool MatchTOF::prepareTPCData()
       }
       this->addITSTPCSeed(trk, gid);
     }
+    if constexpr (isTRDTrack<decltype(trk)>()) {
+      this->addTRDSeed(trk, gid, time0, terr);
+    }
     return true;
   };
   mRecoCont->createTracksVariadic(creator);
@@ -248,13 +254,17 @@ void MatchTOF::addITSTPCSeed(const o2::dataformats::TrackTPCITS& _tr, o2::datafo
 {
   mIsITSTPCused = true;
 
-  std::array<float, 3> globalPos;
-
-  // current track index
-  int it = mTracksWork[trkType::CONSTR].size();
-
   auto trc = _tr.getParamOut();
   o2::track::TrackLTIntegral intLT0 = _tr.getLTIntegralOut();
+
+  addConstrainedSeed(trc, srcGID, intLT0, _tr.getTimeMUS());
+}
+//______________________________________________
+void MatchTOF::addConstrainedSeed(o2::track::TrackParCov& trc, o2::dataformats::GlobalTrackID srcGID, o2::track::TrackLTIntegral intLT0, timeEst timeMUS)
+{
+  std::array<float, 3> globalPos;
+  // current track index
+  int it = mTracksWork[trkType::CONSTR].size();
 
   // propagate to matching Xref
   trc.getXYZGlo(globalPos);
@@ -282,7 +292,7 @@ void MatchTOF::addITSTPCSeed(const o2::dataformats::TrackTPCITS& _tr, o2::datafo
   int sector = o2::math_utils::angle2Sector(TMath::ATan2(globalPos[1], globalPos[0]));
 
   // create working copy of track param
-  mTracksWork[trkType::CONSTR].emplace_back(std::make_pair(trc, _tr.getTimeMUS()));
+  mTracksWork[trkType::CONSTR].emplace_back(std::make_pair(trc, timeMUS));
   mTrackGid[trkType::CONSTR].emplace_back(srcGID);
   mLTinfos[trkType::CONSTR].emplace_back(intLT0);
 
@@ -292,6 +302,26 @@ void MatchTOF::addITSTPCSeed(const o2::dataformats::TrackTPCITS& _tr, o2::datafo
 
   mTracksSectIndexCache[trkType::CONSTR][sector].push_back(it);
   //delete trc; // Check: is this needed?
+} //______________________________________________
+void MatchTOF::addTRDSeed(const o2::trd::TrackTRD& _tr, o2::dataformats::GlobalTrackID srcGID, float time0, float terr)
+{
+  if (srcGID.getSource() == o2::dataformats::GlobalTrackID::TPCTRD) {
+    mIsTPCTRDused = true;
+  } else if (srcGID.getSource() == o2::dataformats::GlobalTrackID::ITSTPCTRD) {
+    mIsITSTPCTRDused = true;
+  } else { // shouldn't happen
+    LOG(ERROR) << "MatchTOF::addTRDSee: srcGID.getSource() = " << srcGID.getSource() << " not allowed; expected ones are: " << o2::dataformats::GlobalTrackID::TPCTRD << " and " << o2::dataformats::GlobalTrackID::ITSTPCTRD;
+  }
+
+  auto trc = _tr.getOuterParam();
+
+  o2::track::TrackLTIntegral intLT0 = _tr.getLTIntegralOut();
+  ; // empty for the moment
+
+  // o2::dataformats::TimeStampWithError<float, float>
+  timeEst ts(time0, terr);
+
+  addConstrainedSeed(trc, srcGID, intLT0, ts);
 }
 //______________________________________________
 void MatchTOF::addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalTrackID srcGID)
@@ -1023,6 +1053,7 @@ void MatchTOF::selectBestMatches()
   // then we take discard the pairs if their track or cluster was already matched (since they are ordered in chi2, we will take the best matching)
   for (const o2::dataformats::MatchInfoTOFReco& matchingPair : mMatchedTracksPairs) {
     int trkType = (int)matchingPair.getTrackType();
+
     int itrk = matchingPair.getIdLocal();
 
     if (mMatchedTracksIndex[trkType][itrk] != -1) { // the track was already filled
@@ -1033,7 +1064,15 @@ void MatchTOF::selectBestMatches()
     }
     mMatchedTracksIndex[trkType][itrk] = mMatchedTracks[trkType].size();                                              // index of the MatchInfoTOF correspoding to this track
     mMatchedClustersIndex[matchingPair.getTOFClIndex()] = mMatchedTracksIndex[trkType][itrk];                         // index of the track that was matched to this cluster
-    mMatchedTracks[trkType].push_back(matchingPair);                                                                  // array of MatchInfoTOF
+
+    int trkTypeSplitted = trkType;
+    auto sourceID = matchingPair.getTrackRef().getSource();
+    if (sourceID == o2::dataformats::GlobalTrackID::TPCTRD) {
+      trkTypeSplitted = (int)trkType::TPCTRD;
+    } else if (sourceID == o2::dataformats::GlobalTrackID::ITSTPCTRD) {
+      trkTypeSplitted = (int)trkType::ITSTPCTRD;
+    }
+    mMatchedTracks[trkTypeSplitted].push_back(matchingPair); // array of MatchInfoTOF
 
     // get fit info
     double t0info = 0;
@@ -1064,7 +1103,7 @@ void MatchTOF::selectBestMatches()
           fake = false;
         }
       }
-      mOutTOFLabels[trkType].emplace_back(labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID(), fake);
+      mOutTOFLabels[trkTypeSplitted].emplace_back(labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID(), fake);
     }
     i++;
   }
@@ -1086,6 +1125,7 @@ void MatchTOF::selectBestMatchesHP()
   // then we take discard the pairs if their track or cluster was already matched (since they are ordered in chi2, we will take the best matching)
   for (const o2::dataformats::MatchInfoTOFReco& matchingPair : mMatchedTracksPairs) {
     int trkType = (int)matchingPair.getTrackType();
+
     int itrk = matchingPair.getIdLocal();
 
     bool discard = matchingPair.getChi2() > chi2S;
@@ -1126,7 +1166,15 @@ void MatchTOF::selectBestMatchesHP()
     }
     int trkType = (int)matchingPair.getTrackType();
     int itrk = matchingPair.getIdLocal();
-    mMatchedTracks[trkType].push_back(matchingPair);
+
+    int trkTypeSplitted = trkType;
+    auto sourceID = matchingPair.getTrackRef().getSource();
+    if (sourceID == o2::dataformats::GlobalTrackID::TPCTRD) {
+      trkTypeSplitted = (int)trkType::TPCTRD;
+    } else if (sourceID == o2::dataformats::GlobalTrackID::ITSTPCTRD) {
+      trkTypeSplitted = (int)trkType::ITSTPCTRD;
+    }
+    mMatchedTracks[trkTypeSplitted].push_back(matchingPair); // array of MatchInfoTOF
 
     // get fit info
     double t0info = 0;
@@ -1157,7 +1205,7 @@ void MatchTOF::selectBestMatchesHP()
           fake = false;
         }
       }
-      mOutTOFLabels[trkType].emplace_back(labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID(), fake);
+      mOutTOFLabels[trkTypeSplitted].emplace_back(labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID(), fake);
     }
   }
 }
@@ -1323,22 +1371,6 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
   }
 
   return true;
-}
-//_________________________________________________________
-void MatchTOF::splitOutputs()
-{
-  mMatchedTracksAll[trkType::TPC].clear();
-  mMatchedTracksAll[trkType::ITSTPC].clear();
-  mMatchedTracksAll[trkType::TPCTRD].clear();
-  mMatchedTracksAll[trkType::ITSTPCTRD].clear();
-  mOutTOFLabelsAll[trkType::TPC].clear();
-  mOutTOFLabelsAll[trkType::ITSTPC].clear();
-  mOutTOFLabelsAll[trkType::TPCTRD].clear();
-  mOutTOFLabelsAll[trkType::ITSTPCTRD].clear();
-
-  // copy unconstrained to tpc
-
-  // split constrained to the three cases
 }
 //_________________________________________________________
 void MatchTOF::checkRefitter()

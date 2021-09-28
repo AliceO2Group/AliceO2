@@ -139,6 +139,20 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
     }
   }
 
+  if (isTPCTRDused) {
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_TPCTRD", ss, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPCTRD));
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMTC_TPCTRD", ss, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPCTRD));
+    }
+  }
+
+  if (isITSTPCTRDused) {
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_ITSTPCTRD", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPCTRD));
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMTC_ITSTPCTRD", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPCTRD));
+    }
+  }
+
   // TODO: TRD-matched tracks
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
 

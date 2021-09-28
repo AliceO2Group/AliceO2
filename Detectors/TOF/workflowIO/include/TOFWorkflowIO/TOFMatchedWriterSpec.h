@@ -25,7 +25,7 @@ namespace tof
 
 /// create a processor spec
 /// write TOF matching info in a root file
-o2::framework::DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef = "o2match_tof.root", bool writeTracks = false, bool strictMode = false);
+o2::framework::DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef = "o2match_tof.root", bool writeTracks = false, int mode = 0, bool strict = false);
 
 } // namespace tof
 } // namespace o2
