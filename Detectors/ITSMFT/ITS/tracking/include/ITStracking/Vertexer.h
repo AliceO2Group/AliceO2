@@ -78,7 +78,7 @@ class Vertexer
   // Utils
   void dumpTraits();
   template <typename... T>
-  float evaluateTask(void (Vertexer::*)(T...), const char*, std::function<void(std::string s)> logger, T&&... args);
+  float evaluateTask(void (Vertexer::*)(T...), bool, const char*, std::function<void(std::string s)> logger, T&&... args);
 
   // debug
   void setDebugCombinatorics();
@@ -148,7 +148,7 @@ inline std::vector<Vertex> Vertexer::exportVertices()
 }
 
 template <typename... T>
-float Vertexer::evaluateTask(void (Vertexer::*task)(T...), const char* taskName, std::function<void(std::string s)> logger,
+float Vertexer::evaluateTask(void (Vertexer::*task)(T...), bool verbose, const char* taskName, std::function<void(std::string s)> logger,
                              T&&... args)
 {
   float diff{0.f};
@@ -167,7 +167,9 @@ float Vertexer::evaluateTask(void (Vertexer::*task)(T...), const char* taskName,
     } else {
       sstream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms";
     }
-    logger(sstream.str());
+    if (verbose) {
+      logger(sstream.str());
+    }
   } else {
     (this->*task)(std::forward<T>(args)...);
   }

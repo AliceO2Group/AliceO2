@@ -40,15 +40,15 @@ float Vertexer::clustersToVertices(ROframe& event, const bool useMc, std::functi
 {
   ROframe* eventptr = &event;
   float total{0.f};
-  total += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", logger, eventptr);
-  total += evaluateTask(&Vertexer::findTracklets, "Tracklet finding", logger);
+  total += evaluateTask(&Vertexer::initialiseVertexer, false, "Vertexer initialisation", logger, eventptr);
+  total += evaluateTask(&Vertexer::findTracklets, false, "Tracklet finding", logger);
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   if (useMc) {
     total += evaluateTask(&Vertexer::filterMCTracklets, "MC tracklets filtering", logger);
   }
 #endif
-  total += evaluateTask(&Vertexer::validateTracklets, "Adjacent tracklets validation", logger);
-  total += evaluateTask(&Vertexer::findVertices, "Vertex finding", logger);
+  total += evaluateTask(&Vertexer::validateTracklets, false, "Adjacent tracklets validation", logger);
+  total += evaluateTask(&Vertexer::findVertices, false, "Vertex finding", logger);
 
   return total;
 }
