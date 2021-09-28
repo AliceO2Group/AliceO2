@@ -71,6 +71,7 @@ namespace o2::mch
 {
 class TrackMCH;
 class ROFRecord;
+class ClusterStruct;
 } // namespace o2::mch
 
 namespace o2::itsmft
@@ -397,6 +398,7 @@ struct RecoContainer {
   const o2::mch::TrackMCH& getMCHTrack(GTrackID gid) const { return getTrack<o2::mch::TrackMCH>(gid); }
   auto getMCHTracks() const { return getTracks<o2::mch::TrackMCH>(GTrackID::MCH); }
   auto getMCHTracksROFRecords() const { return getSpan<o2::mch::ROFRecord>(GTrackID::MCH, TRACKREFS); }
+  auto getMCHTrackClusters() const { return getSpan<o2::mch::ClusterStruct>(GTrackID::MCH, CLUSREFS); }
   auto getMCHTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MCH, MCLABELS); }
   // FIXME: add clusters
 

@@ -83,11 +83,10 @@ void DataRequest::requestMCHTracks(bool mc)
 {
   addInput({"trackMCH", "MCH", "TRACKS", 0, Lifetime::Timeframe});
   addInput({"trackMCHROF", "MCH", "TRACKROFS", 0, Lifetime::Timeframe});
+  addInput({"trackMCHTRACKCLUSTERS", "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
   if (mc) {
     addInput({"trackMCHMCTR", "MCH", "TRACKLABELS", 0, Lifetime::Timeframe});
   }
-  // FIXME-LA : add trackclusters
-  // addInput({"trackMCHTRACKCLUSTERS", "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
   requestMap["trackMCH"] = mc;
 }
 
@@ -573,6 +572,7 @@ void RecoContainer::addMCHTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::TrackMCH>>("trackMCH"), TRACKS);
   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("trackMCHROF"), TRACKREFS);
+  commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::ClusterStruct>>("trackMCHTRACKCLUSTERS"), CLUSREFS);
   if (mc) {
     commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMCHMCTR"), MCLABELS);
   }
