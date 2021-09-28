@@ -74,6 +74,12 @@ ULong64_t Diagnostic::getEmptyCrateKey(int crate)
   return key;
 }
 
+ULong64_t Diagnostic::getNoisyChannelKey(int channel)
+{
+  ULong64_t key = (ULong64_t(12) << 32) + channel; // slot=12 means noisy channels
+  return key;
+}
+
 void Diagnostic::fill(const Diagnostic& diag)
 {
   LOG(DEBUG) << "Filling diagnostic word";

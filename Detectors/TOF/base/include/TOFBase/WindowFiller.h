@@ -94,7 +94,7 @@ class WindowFiller
   bool mFutureToBeSorted = false;
 
   // only needed from Decoder
-  int mMaskNoiseRate = -1;
+  int mMaskNoiseRate = -999999999;
   int mChannelCounts[o2::tof::Geo::NCHANNELS]; // count of channel hits in the current TF (if MaskNoiseRate enabled)
 
   // digit info
