@@ -95,8 +95,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   LOG(INFO) << "TOF disable-root-output = " << disableRootOut;
   LOG(INFO) << "TOF matching in strict mode = " << strict;
 
-  GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC");
-  //  GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD");
+  //GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC");
+  GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD");
+
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   if (strict && (src & ~GID::getSourcesMask("TPC,TPC-TRD")).any()) {
     LOGP(WARNING, "In strict matching mode only TPC and TPC-TRD sources allowed, {} asked, redefining", GID::getSourcesNames(src));
@@ -120,10 +121,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!disableRootOut) {
     if (writematching) {
       if (GID::includesSource(GID::TPC, src)) { // matching to TPC was requested
-        specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_tpc.root", 1, strict));
+        specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_tpc.root", true, (int)o2::dataformats::MatchInfoTOFReco::TrackType::TPC, strict));
       }
       if (GID::includesSource(GID::ITSTPC, src)) { // matching to ITS-TPC was requested, there is not strict mode in this case
-        specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_itstpc.root", 0));
+        specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_itstpc.root", false, (int)o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC, false));
+      }
+      if (GID::includesSource(GID::TPCTRD, src)) { // matching to TPC-TRD was requested, there is not strict mode in this case
+        specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_tpctrd.root", false, (int)o2::dataformats::MatchInfoTOFReco::TrackType::TPCTRD, strict));
+      }
+      if (GID::includesSource(GID::ITSTPCTRD, src)) { // matching to ITS-TPC-TRD was requested, there is not strict mode in this case
+        specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_itstpctrd.root", false, (int)o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPCTRD, false));
       }
     }
     if (writecalib) {

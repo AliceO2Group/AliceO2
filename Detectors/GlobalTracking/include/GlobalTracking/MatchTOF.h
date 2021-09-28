@@ -35,6 +35,7 @@
 #include "DataFormatsTOF/Cluster.h"
 #include "GlobalTracking/MatchTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTRD/TrackTRD.h"
 #include "ReconstructionDataFormats/PID.h"
 #include "TPCFastTransform.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -183,6 +184,8 @@ class MatchTOF
   bool prepareTPCData();
   void addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalTrackID srcGID);
   void addITSTPCSeed(const o2::dataformats::TrackTPCITS& _tr, o2::dataformats::GlobalTrackID srcGID);
+  void addTRDSeed(const o2::trd::TrackTRD& _tr, o2::dataformats::GlobalTrackID srcGID, float time0, float terr);
+  void addConstrainedSeed(o2::track::TrackParCov& trc, o2::dataformats::GlobalTrackID srcGID, o2::track::TrackLTIntegral intLT0, timeEst timeMUS);
   //  void addTPCTRDSeed(const o2::track::TrackParCov& _tr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
   //  void addITSTPCTRDSeed(const o2::track::TrackParCov& _tr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
   bool prepareTOFClusters();
@@ -195,8 +198,6 @@ class MatchTOF
   bool propagateToRefXWithoutCov(o2::track::TrackParCov& trc, float xRef /*in cm*/, float stepInCm /*in cm*/, float bz);
 
   void updateTimeDependentParams();
-
-  void splitOutputs();
 
   //================================================================
 
@@ -278,10 +279,8 @@ class MatchTOF
 
   ///<array of matched TOFCluster with matching information (residuals, expected times...) with the corresponding vector of indices
   //std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks;
-  std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks[trkType::SIZE];       // this is the output of the matching -> UNCONS, CONSTR
-  std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracksAll[trkType::SIZEALL]; // this is the output of the matching -> TPC, ITS-TPC, TPC-TRD, ITS-TPC-TRD
-  std::vector<o2::MCCompLabel> mOutTOFLabels[trkType::SIZE];                      ///< TOF label of matched tracks
-  std::vector<o2::MCCompLabel> mOutTOFLabelsAll[trkType::SIZEALL];                ///< TOF label of matched tracks
+  std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks[trkType::SIZEALL]; // this is the output of the matching -> UNCONS, CONSTR
+  std::vector<o2::MCCompLabel> mOutTOFLabels[trkType::SIZEALL];                ///< TOF label of matched tracks
 
   std::vector<int> mMatchedTracksIndex[trkType::SIZE]; // vector of indexes of the tracks to be matched
 
