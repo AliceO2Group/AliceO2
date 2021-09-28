@@ -75,6 +75,7 @@ class VisualisationEvent
   void remove_last_track() { mTracks.pop_back(); } // used to remove track assigned optimistically
 
   // Adds visualisation cluster inside visualisation event
+
   VisualisationCluster& addCluster(float XYZ[])
   {
     mClusters.emplace_back(XYZ);

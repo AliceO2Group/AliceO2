@@ -44,12 +44,14 @@ void VisualisationTrack::addStartCoordinates(const float xyz[3])
   }
 }
 
+
 void VisualisationTrack::addPolyPoint(float x, float y, float z)
 {
   mPolyX.push_back(x);
   mPolyY.push_back(y);
   mPolyZ.push_back(z);
 }
+
 
 VisualisationTrack::VisualisationTrack(rapidjson::Value& tree)
 {
