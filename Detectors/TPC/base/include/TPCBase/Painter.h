@@ -60,7 +60,7 @@ struct PadCoordinates {
     const auto ang = 0.017453292519943295 * angDeg;
     const auto cs = std::cos(ang);
     const auto sn = std::sin(ang);
-    for (int i = 0; i < xVals.size(); ++i) {
+    for (size_t i = 0; i < xVals.size(); ++i) {
       const auto x = xVals[i] * cs - yVals[i] * sn;
       const auto y = xVals[i] * sn + yVals[i] * cs;
       xVals[i] = x;
