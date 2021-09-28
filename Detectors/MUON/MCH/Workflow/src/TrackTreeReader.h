@@ -12,7 +12,7 @@
 #ifndef O2_MCH_WORKFLOW_TRACK_TREE_READER_H
 #define O2_MCH_WORKFLOW_TRACK_TREE_READER_H
 
-#include "MCHBase/ClusterBlock.h"
+#include "DataFormatsMCH/ClusterBlock.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"

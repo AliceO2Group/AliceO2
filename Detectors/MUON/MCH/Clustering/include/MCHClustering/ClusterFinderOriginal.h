@@ -28,7 +28,7 @@
 #include <TH2D.h>
 
 #include "DataFormatsMCH/Digit.h"
-#include "MCHBase/ClusterBlock.h"
+#include "DataFormatsMCH/ClusterBlock.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHPreClustering/PreClusterFinder.h"
 

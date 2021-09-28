@@ -32,7 +32,7 @@
 #include "Framework/ConfigParamSpec.h"
 
 #include "DataFormatsMCH/ROFRecord.h"
-#include "MCHBase/ClusterBlock.h"
+#include "DataFormatsMCH/ClusterBlock.h"
 #include "DataFormatsMCH/Digit.h"
 
 using namespace o2::framework;

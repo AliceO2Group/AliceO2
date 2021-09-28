@@ -20,7 +20,7 @@
 #include <iostream>
 #include <string>
 
-#include "MCHBase/ClusterBlock.h"
+#include "DataFormatsMCH/ClusterBlock.h"
 
 namespace o2
 {
