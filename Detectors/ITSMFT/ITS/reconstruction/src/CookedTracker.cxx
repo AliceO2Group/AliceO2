@@ -257,9 +257,10 @@ void CookedTracker::makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_
   Layer& layer3 = sLayers[kSeedingLayer3];
 
   auto bz = getBz();
-  const Double_t maxC = (TMath::Abs(bz) < Almost0) ? 0.03 : TMath::Abs(bz * B2C / kminPt);
-  const Double_t kpWin = TMath::ASin(0.5 * maxC * layer1.getR()) - TMath::ASin(0.5 * maxC * layer2.getR());
-  const float kpWin100 = kpWin / 100;
+  const Double_t maxC = (TMath::Abs(bz) < Almost0) ? 0.03 : TMath::Abs(bz * B2C / gminPt);
+  const Double_t kpWinC = TMath::ASin(0.5 * maxC * layer1.getR()) - TMath::ASin(0.5 * maxC * layer2.getR());
+  const Double_t kpWinD = 2 * (TMath::ASin(gmaxDCAxy / layer2.getR()) - TMath::ASin(gmaxDCAxy / layer1.getR()));
+  const Double_t kpWin = std::max(kpWinC, kpWinD);
 
   // Int_t nClusters1 = layer1.getNumberOfClusters();
   Int_t nClusters2 = layer2.getNumberOfClusters();
@@ -293,14 +294,15 @@ void CookedTracker::makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_
       auto z2 = xyz2.Z();
       auto r2 = xyz2.rho();
 
-      Float_t hcrv = 0.5 * f1(xyz1.X(), xyz1.Y(), xyz2.X(), xyz2.Y(), getX(), getY());
+      auto dx = xyz2.X() - xyz1.X(), dy = xyz2.Y() - xyz1.Y();
+      auto d = (dx * xyz1.Y() - dy * xyz1.X()) / TMath::Sqrt(dx * dx + dy * dy);
+      auto phir3 = phi1 + TMath::ASin(d / r1) - TMath::ASin(d / layer3.getR());
 
       auto zr3 = z1 + (layer3.getR() - r1) / (r2 - r1) * (z2 - z1);
-      auto phir3 = phi1 + hcrv * (layer3.getR() - r1);
       auto dz3 = 0.5f * dz2;
 
       std::vector<Int_t> selected3;
-      float dy3 = kpWin100 * layer3.getR();
+      float dy3 = 0.1 * kpWin * layer3.getR(); //Fixme
       layer3.selectClusters(selected3, phir3, dy3, zr3, dz3);
       for (auto n3 : selected3) {
         const Cluster* c3 = layer3.getCluster(n3);
@@ -377,6 +379,8 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
     auto y = track.getY();
     Float_t phi = track.getAlpha() + TMath::ATan2(y, x);
     o2::math_utils::bringTo02Pi(phi);
+    float ip[2];
+    track.getImpactParams(getX(), getY(), getZ(), getBz(), ip);
 
     auto z = track.getZ();
     auto crv = track.getCurvature(getBz());
@@ -385,14 +389,17 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
 
     for (Int_t l = kSeedingLayer2 - 1; l >= 0; l--) {
       Float_t r2 = sLayers[l].getR();
-      if (TMath::Abs(crv) < Almost0) {
-        z += tgl * (r2 - r1);
-      } else {
+      selec[l].clear();
+      if (TMath::Abs(ip[0]) > r2)
+        break;
+      if (TMath::Abs(crv) < gRoadY / (0.5 * r1 * 0.5 * r1)) {
+        phi += TMath::ASin(ip[0] / r2) - TMath::ASin(ip[0] / r1);
+        z += tgl * (TMath::Sqrt(r2 * r2 - ip[0] * ip[0]) - TMath::Sqrt(r1 * r1 - ip[0] * ip[0]));
+      } else { // Fixme
         phi += 0.5 * crv * (r2 - r1);
         z += tgl / (0.5 * crv) * (TMath::ASin(0.5 * crv * r2) - TMath::ASin(0.5 * crv * r1));
       }
-      selec[l].clear();
-      sLayers[l].selectClusters(selec[l], phi, kRoadY, z, kRoadZ * (1 + 2 * std::abs(tgl)));
+      sLayers[l].selectClusters(selec[l], phi, gRoadY, z, gRoadZ * (1 + 2 * std::abs(tgl)));
       r1 = r2;
     }
 
@@ -579,6 +586,10 @@ std::tuple<int, int> CookedTracker::processLoadedClusters(TrackInserter& inserte
       if (track.getNumberOfClusters() < kminNumberOfClusters) {
         continue;
       }
+
+      o2::dataformats::VertexBase vtx;
+      track.propagateToDCA(vtx, getBz());
+
       nAllTracks = inserter(track);
       nTracks++;
       if (mTrkLabels) {
