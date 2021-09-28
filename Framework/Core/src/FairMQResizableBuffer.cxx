@@ -15,9 +15,7 @@
 #include <arrow/util/config.h>
 #include <cassert>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 FairMQResizableBuffer::~FairMQResizableBuffer() = default;
@@ -28,12 +26,7 @@ FairMQResizableBuffer::FairMQResizableBuffer(Creator creator)
     mMessage{std::move(creator(4096))},
     mCreator{creator}
 {
-#if ARROW_VERSION_MAJOR > 4
   this->data_ = reinterpret_cast<uint8_t*>(mMessage->GetData());
-#else
-  this->mutable_data_ = reinterpret_cast<uint8_t*>(mMessage->GetData());
-  this->data_ = this->mutable_data_;
-#endif
   assert(this->data_);
   this->capacity_ = static_cast<int64_t>(mMessage->GetSize());
   this->size_ = 0;
@@ -45,12 +38,7 @@ arrow::Status FairMQResizableBuffer::Resize(const int64_t newSize, bool shrink_t
     auto newMessage = mCreator(newSize);
     memcpy(newMessage->GetData(), mMessage->GetData(), newSize);
     mMessage = std::move(newMessage);
-#if ARROW_VERSION_MAJOR > 4
     this->data_ = reinterpret_cast<uint8_t*>(mMessage->GetData());
-#else
-    this->mutable_data_ = reinterpret_cast<uint8_t*>(mMessage->GetData());
-    this->data_ = this->mutable_data_;
-#endif
     assert(this->data_);
     this->capacity_ = static_cast<int64_t>(mMessage->GetSize());
     assert(newSize == this->capacity_);
@@ -81,12 +69,7 @@ arrow::Status FairMQResizableBuffer::Reserve(const int64_t capacity)
   }
   mMessage = std::move(newMessage);
   assert(mMessage);
-#if ARROW_VERSION_MAJOR > 4
   this->data_ = reinterpret_cast<uint8_t*>(mMessage->GetData());
-#else
-  this->mutable_data_ = reinterpret_cast<uint8_t*>(mMessage->GetData());
-  this->data_ = this->mutable_data_;
-#endif
   this->capacity_ = static_cast<int64_t>(mMessage->GetSize());
   assert(this->data_);
   return arrow::Status::OK();
@@ -96,13 +79,9 @@ std::unique_ptr<FairMQMessage> FairMQResizableBuffer::Finalise()
 {
   mMessage->SetUsedSize(this->size_);
   this->data_ = nullptr;
-#if ARROW_VERSION_MAJOR < 5
-  this->mutable_data_ = nullptr;
-#endif
   this->capacity_ = 0;
   this->size_ = 0;
   return std::move(mMessage);
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
