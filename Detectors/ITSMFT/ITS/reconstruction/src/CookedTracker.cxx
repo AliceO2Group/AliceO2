@@ -415,6 +415,9 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
       if (!attachCluster(volID, 3, ci3, t3, track)) {
         continue;
       }
+      if (t3.isBetter(best, kmaxChi2PerTrack)) {
+        best = t3;
+      }
 
       TrackITSExt t2(t3);
       for (auto& ci2 : selec[2]) {
@@ -424,6 +427,9 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
         if (!attachCluster(volID, 2, ci2, t2, t3)) {
           continue;
         }
+        if (t2.isBetter(best, kmaxChi2PerTrack)) {
+          best = t2;
+        }
 
         TrackITSExt t1(t2);
         for (auto& ci1 : selec[1]) {
@@ -432,6 +438,9 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
           }
           if (!attachCluster(volID, 1, ci1, t1, t2)) {
             continue;
+          }
+          if (t1.isBetter(best, kmaxChi2PerTrack)) {
+            best = t1;
           }
 
           TrackITSExt t0(t1);
