@@ -237,7 +237,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static RateLimitingState lastReportedState = RateLimitingState::UNKNOWN;
                        static uint64_t lastReportTime = 0;
                        static int64_t MAX_SHARED_MEMORY = calculateAvailableSharedMemory(registry);
-                       constexpr int64_t MAX_QUANTUM_SHARED_MEMORY = 300;
+                       constexpr int64_t MAX_QUANTUM_SHARED_MEMORY = 100;
                        constexpr int64_t MIN_QUANTUM_SHARED_MEMORY = 50;
 
                        static int64_t availableSharedMemory = MAX_SHARED_MEMORY;
