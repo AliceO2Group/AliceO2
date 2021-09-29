@@ -64,6 +64,7 @@ class TrackerTraits
 
   void UpdateTrackingParameters(const TrackingParameters& trkPar);
   TimeFrame* getTimeFrame() { return mTimeFrame; }
+  void adoptTimeFrame(TimeFrame* tf) { mTimeFrame = tf; }
 
  protected:
   TimeFrame* mTimeFrame;
