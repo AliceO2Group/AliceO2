@@ -67,6 +67,7 @@ class Geometry
   enum EGeoComponent {
     eScintillator,
     ePlastics,
+    ePmts,
     eFibers,
     eScrews,
     eRods,
@@ -130,6 +131,12 @@ class Geometry
     /// Get a pointer to the TGeoPNEntry of a chip identified by 'index'
     /// Returns NULL in case of invalid index, missing TGeoManager or invalid symbolic name
     return o2::base::GeometryManager::getPNEntry(getDetID(), index);
+  }
+
+  /// Get the density of the PMTs.
+  static constexpr float getPmtDensity()
+  {
+    return sDensityPmt;
   }
 
  private:
@@ -196,6 +203,19 @@ class Geometry
   static constexpr float sDxContainerStandBottom = 38.5;     ///< Width of the bottom of the container stand
   static constexpr float sDyContainerStandBottom = 2;        ///< Thickness of the bottom of the container stand
 
+  // PMT constants
+  static constexpr int sNumberOfPMTs = 24;                                        ///< Number of PMTs for one half of the detector.
+  static constexpr int sNumberOfPMTsPerSector = 6;                                ///< Number of PMTs for one sector,
+  static constexpr float sDrPmt = 3.75;                                           ///< PMT radius
+  static constexpr float sDzPmt = 12.199;                                         ///< PMT length
+  static constexpr float sMPmt = 376.77;                                          ///< PMT mass
+  static constexpr float sDensityPmt = sMPmt / (M_PI * sDrPmt * sDrPmt * sDzPmt); ///< PMT density
+
+  // Fiber constants
+  static constexpr int sNumberOfPMTFiberVolumes = 5; ///< Number of different fiber equivalent volumes in front of the PMTs
+  /// The order of cells from which the fibers arrive to the PMTs in one sector.
+  static constexpr int sPMTFiberCellOrder[sNumberOfPMTsPerSector] = {2, 5, 4, 3, 5, 1};
+
   // Local position constants
 
   /// x-position of the right half of the scintillator.
@@ -216,6 +236,12 @@ class Geometry
   static constexpr float sZCone = sZContainerFront + sDzContainerFront / 2 - sDzContainerCone / 2;
   /// x shift of all screw holes.
   static constexpr float sXShiftScrews = sXScintillator;
+  /// x-positions of the PMTs in the right half of the detector.
+  static constexpr float sXPmt[sNumberOfPMTs] = {8.023, 16.612, 24.987, 33.042, 40.671, 47.778, 59.646, 64.73, 68.982, 72.348, 74.783, 76.257, 76.330, 74.931, 72.569, 69.273, 65.088, 60.065, 48.3, 41.238, 33.645, 25.62, 17.265, 8.688};
+  /// y-positions of the PMTs in one half of the detector.
+  static constexpr float sYPmt[sNumberOfPMTs] = {76.33, 74.931, 72.569, 69.273, 65.088, 60.065, 48.3, 41.238, 33.645, 25.62, 17.265, 8.688, -8.023, -16.612, -24.987, -33.042, -40.671, -47.778, -59.646, -64.73, -68.982, -72.348, -74.783, -76.257};
+  /// z-position of the PMTs.
+  static constexpr float sZPmt = sZContainerBack + sDzContainerBack / 2 + sDzPmt / 2;
 
   // Screw and rod dimensions
 
@@ -246,7 +272,7 @@ class Geometry
   static constexpr float sDzMaxRodTypes[sNumberOfRodTypes]{12.5, 12.5, 22.5, 27.7};
   /// Length of the thicker part of the rod types.
   static constexpr float sDzMinRodTypes[sNumberOfRodTypes]{7.45, 7.45, 17.45, 22.65};
-  /// z shift of the rods. 0 means they are aligned with tht scintillators.
+  /// z shift of the rods. 0 means they are aligned with the scintillators.
   static constexpr float sZShiftRod = -0.05;
 
   // Strings for volume names, etc.
@@ -258,6 +284,7 @@ class Geometry
   inline static const std::string sScintillatorCellName = sScintillatorName + sCellName;
   inline static const std::string sPlasticSectorName = sPlasticName + sSectorName;
   inline static const std::string sPlasticCellName = sPlasticName + sCellName;
+  inline static const std::string sPmtName = "PMT";
   inline static const std::string sFiberName = "FIBER";
   inline static const std::string sScrewName = "SCREW";
   inline static const std::string sScrewHolesCSName = "FV0SCREWHOLES";
@@ -339,6 +366,9 @@ class Geometry
   /// Initialize plastic cell volumes for optical fiber support.
   void initializePlasticCells();
 
+  /// Initialize PMTs.
+  void initializePmts();
+
   /// Initialize volumes equivalent to the optical fibers.
   void initializeFibers();
 
@@ -352,36 +382,49 @@ class Geometry
   void initializeMetalContainer();
 
   /// Assemble the sensitive volumes.
-  /// \param  vFV0  The FIT V0 volume.
-  void assembleSensVols(TGeoVolume* vFV0) const;
+  /// \param vFV0Right The right FV0 volume.
+  /// \param vFV0Left  The left FV0 volume.
+  void assembleSensVols(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const;
 
   /// Assemble the nonsensitive volumes.
-  /// \param  vFV0  The FIT V0 volume.
-  void assembleNonSensVols(TGeoVolume* vFV0) const;
+  /// \param vFV0Right The right FV0 volume.
+  /// \param vFV0Left  The left FV0 volume.
+  void assembleNonSensVols(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const;
 
   /// Assemble the scintillator sectors.
-  /// \param  vFV0  The FIT V0 volume.
-  void assembleScintSectors(TGeoVolume* vFV0) const;
+  /// \param vFV0Right The right FV0 volume.
+  /// \param vFV0Left  The left FV0 volume.
+  void assembleScintSectors(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const;
 
   /// Assemble the plastice sectors.
-  /// \param  vFV0  The FIT V0 volume.
-  void assemblePlasticSectors(TGeoVolume* vFV0) const;
+  /// \param vFV0Right The right FV0 volume.
+  /// \param vFV0Left  The left FV0 volume.
+  void assemblePlasticSectors(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const;
+
+  /// Assemble the PMTs.
+  /// \param vFV0Right The right FV0 volume.
+  /// \param vFV0Left  The left FV0 volume.
+  void assemblePmts(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const;
 
   /// Assemble the optical fibers.
-  /// \param  vFV0  The FIT V0 volume.
-  void assembleFibers(TGeoVolume* vFV0) const;
+  /// \param vFV0Right The right FV0 volume.
+  /// \param vFV0Left  The left FV0 volume.
+  void assembleFibers(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const;
 
   /// Assemble the screwss.
-  /// \param  vFV0  The FIT V0 volume.
-  void assembleScrews(TGeoVolume* vFV0) const;
+  /// \param vFV0Right The right FV0 volume.
+  /// \param vFV0Left  The left FV0 volume.
+  void assembleScrews(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const;
 
   /// Assemble the rods.
-  /// \param  vFV0  The FIT V0 volume.
-  void assembleRods(TGeoVolume* vFV0) const;
+  /// \param vFV0Right The right FV0 volume.
+  /// \param vFV0Left  The left FV0 volume.
+  void assembleRods(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const;
 
   /// Assemble the metal container.
-  /// \param  vFV0  The FIT V0 volume.
-  void assembleMetalContainer(TGeoVolume* vFV0) const;
+  /// \param vFV0Right The right FV0 volume.
+  /// \param vFV0Left  The left FV0 volume.
+  void assembleMetalContainer(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const;
 
   /// Build sector assembly of specified type.
   /// \param  cellName  The type of the cells in the sector assembly.
@@ -453,7 +496,8 @@ class Geometry
 
   /// Medium of the fiber volumes
   /// .at(n) -> medium of the n:th fiber starting from the middle.
-  std::vector<TGeoMedium*> mMediumFiber;
+  std::vector<TGeoMedium*> mMediumFiberRings;
+  std::vector<TGeoMedium*> mMediumFiberPMTs;
 
   std::vector<float> mRScrewAndRod; ///< Radii of the screw and rod positions
 

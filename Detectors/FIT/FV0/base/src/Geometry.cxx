@@ -103,10 +103,15 @@ void Geometry::buildGeometry() const
   TGeoVolumeAssembly* vFV0 = new TGeoVolumeAssembly(sDetectorName.c_str());
   LOG(info) << "FV0: Building geometry. FV0 volume name is '" << vFV0->GetName() << "'";
 
-  assembleSensVols(vFV0);
-  assembleNonSensVols(vFV0);
+  TGeoVolumeAssembly* vFV0Right = new TGeoVolumeAssembly((sDetectorName + "RIGHT").c_str());
+  TGeoVolumeAssembly* vFV0Left = new TGeoVolumeAssembly((sDetectorName + "LEFT").c_str());
 
-  // TODO: What should the copy_no be? Currently assigned to '1'
+  vFV0->AddNode(vFV0Right, 0, mRightTransformation);
+  vFV0->AddNode(vFV0Left, 1, mLeftTransformation);
+
+  assembleSensVols(vFV0Right, vFV0Left);
+  assembleNonSensVols(vFV0Right, vFV0Left);
+
   vALIC->AddNode(vFV0, 1, new TGeoTranslation(sXGlobal, sYGlobal + 30., sZGlobal));
 }
 
@@ -148,6 +153,7 @@ void Geometry::initializeMaps()
   const bool hasScint = isRough || mGeometryType == eOnlySensitive;
   mEnabledComponents.insert(std::pair<EGeoComponent, bool>(eScintillator, hasScint));
   mEnabledComponents.insert(std::pair<EGeoComponent, bool>(ePlastics, isRough));
+  mEnabledComponents.insert(std::pair<EGeoComponent, bool>(ePmts, isFull));
   mEnabledComponents.insert(std::pair<EGeoComponent, bool>(eFibers, isFull));
   mEnabledComponents.insert(std::pair<EGeoComponent, bool>(eScrews, isFull));
   mEnabledComponents.insert(std::pair<EGeoComponent, bool>(eRods, isFull));
@@ -199,21 +205,36 @@ void Geometry::initializeSectorTransformations()
 
 void Geometry::initializeFiberVolumeRadii()
 {
-  mRMinFiber.push_back(0);
-  mRMinFiber.push_back(sDrMinContainerCone + sEpsilon);
-  mRMinFiber.push_back(sDrMinContainerFront + sEpsilon);
-
-  mRMaxFiber.push_back(sDrMinContainerCone);
-  mRMaxFiber.push_back(sDrMinContainerFront);
-  mRMaxFiber.push_back(mRMaxScintillator.back());
+  for (int i = 0; i < sNumberOfCellRings; i++) {
+    mRMinFiber.push_back(sCellRingRadii[i] + sEpsilon / 2);
+    mRMaxFiber.push_back(sCellRingRadii[i + 1] - sEpsilon / 2);
+  }
 }
 
 void Geometry::initializeFiberMedium()
 {
-  // There are no further checks if the medium is actually found
-  mMediumFiber.push_back(gGeoManager->GetMedium("FV0_FiberInner$"));
-  mMediumFiber.push_back(gGeoManager->GetMedium("FV0_FiberMiddle$"));
-  mMediumFiber.push_back(gGeoManager->GetMedium("FV0_FiberOuter$"));
+  TGeoMedium* medium;
+  TString mediumName;
+
+  // one fiber volume per ring
+  for (int i = 0; i < mRMinFiber.size(); i++) {
+    mediumName = Form("FV0_FiberRing%i$", i + 1);
+    medium = gGeoManager->GetMedium(mediumName);
+    if (!medium) {
+      LOG(warning) << Form("FV0 geometry: Fiber medium for ring no. %i (%s) not found!", i + 1, mediumName.Data());
+    }
+    mMediumFiberRings.push_back(medium);
+  }
+
+  // five fiber volumes in front of the PMTs, one from each scintillator cell (two volumes from cell 5 but they are identical)
+  for (int i = 0; i < sNumberOfPMTFiberVolumes; i++) {
+    mediumName = Form("FV0_FiberPMT%i$", i + 1);
+    medium = gGeoManager->GetMedium(mediumName);
+    if (!medium) {
+      LOG(warning) << Form("FV0 geometry: PMT fiber medium from cell no. %i (%s) not found!", i + 1, mediumName.Data());
+    }
+    mMediumFiberPMTs.push_back(medium);
+  }
 }
 
 void Geometry::initializeScrewAndRodRadii()
@@ -349,6 +370,7 @@ void Geometry::initializeNonSensVols()
   initializeScrewHoles();
   initializeRodHoles();
   initializePlasticCells();
+  initializePmts();
   initializeFibers();
   initializeScrews();
   initializeRods();
@@ -692,12 +714,18 @@ void Geometry::initializePlasticCells()
   initializeCells(sPlasticName, sDzPlastic, medium, false);
 }
 
+void Geometry::initializePmts()
+{
+  const TGeoMedium* medium = gGeoManager->GetMedium("FV0_PMT$");
+  new TGeoVolume(createVolumeName(sPmtName).c_str(), new TGeoTube(createVolumeName(sPmtName + "Shape").c_str(), 0, sDrPmt, sDzPmt / 2), medium);
+}
+
 void Geometry::initializeFibers()
 {
   // depth of the fiber volumes
   const float dzFibers = sDzContainer - sDzContainerBack - sDzContainerFront - sDzScintillator - sDzPlastic - 2 * sEpsilon;
 
-  const std::string fiberName = "FV0_Fibers"; // No volume with this name
+  const std::string fiberName = sDetectorName + "Fibers";
 
   const std::string fiberSepCutName = fiberName + "SepCut";
   const std::string fiberConeCutName = fiberName + "ConeCut";
@@ -737,8 +765,14 @@ void Geometry::initializeFibers()
 
     const TGeoCompositeShape* fiberCS = new TGeoCompositeShape((fiberShapeName + "CS").c_str(), boolFormula.c_str());
 
-    // If modifying materials, make sure the appropriate initialization is done in initializeXxxMedium() methods
-    new TGeoVolume(createVolumeName(sFiberName, i).c_str(), fiberCS, mMediumFiber[i]);
+    new TGeoVolume(createVolumeName(sFiberName, i + 1).c_str(), fiberCS, mMediumFiberRings[i]);
+  }
+
+  // Volume for fibers in front of PMTs
+  for (int i = 0; i < sNumberOfPMTFiberVolumes; i++) {
+    new TGeoVolume(createVolumeName(sFiberName + sPmtName, i + 1).c_str(),
+                   new TGeoTube(createVolumeName(sFiberName + sPmtName + "Shape", i + 1).c_str(), 0, sDrPmt / 2, sDzPmt / 2),
+                   mMediumFiberPMTs[i]);
   }
 }
 
@@ -1002,71 +1036,124 @@ void Geometry::initializeMetalContainer()
   new TGeoVolume(aluContName.c_str(), aluContCS, medium);
 }
 
-void Geometry::assembleSensVols(TGeoVolume* vFV0) const
+void Geometry::assembleSensVols(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const
 {
   if (mEnabledComponents.at(eScintillator)) {
-    assembleScintSectors(vFV0);
+    assembleScintSectors(vFV0Right, vFV0Left);
   }
 }
 
-void Geometry::assembleNonSensVols(TGeoVolume* vFV0) const
+void Geometry::assembleNonSensVols(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const
 {
   if (mEnabledComponents.at(ePlastics)) {
-    assemblePlasticSectors(vFV0);
+    assemblePlasticSectors(vFV0Right, vFV0Left);
+  }
+  if (mEnabledComponents.at(ePmts)) {
+    assemblePmts(vFV0Right, vFV0Left);
   }
   if (mEnabledComponents.at(eFibers)) {
-    assembleFibers(vFV0);
+    assembleFibers(vFV0Right, vFV0Left);
   }
   if (mEnabledComponents.at(eScrews)) {
-    assembleScrews(vFV0);
+    assembleScrews(vFV0Right, vFV0Left);
   }
   if (mEnabledComponents.at(eRods)) {
-    assembleRods(vFV0);
+    assembleRods(vFV0Right, vFV0Left);
   }
   if (mEnabledComponents.at(eContainer)) {
-    assembleMetalContainer(vFV0);
+    assembleMetalContainer(vFV0Right, vFV0Left);
   }
 }
 
-void Geometry::assembleScintSectors(TGeoVolume* vFV0) const
+void Geometry::assembleScintSectors(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const
 {
   TGeoVolumeAssembly* sectors = buildSectorAssembly(sScintillatorName);
-  vFV0->AddNode(sectors, 0, mRightTransformation);
-  vFV0->AddNode(sectors, 1, mLeftTransformation);
+
+  // Copy numbers used for cell identification in Geometry::getCurrentCellId()
+  vFV0Right->AddNode(sectors, 0);
+  vFV0Left->AddNode(sectors, 1);
 }
 
-void Geometry::assemblePlasticSectors(TGeoVolume* vFV0) const
+void Geometry::assemblePlasticSectors(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const
 {
   TGeoVolumeAssembly* sectors = buildSectorAssembly(sPlasticName);
 
   // Move the plastic cells next to the scintillator cells
-  TGeoHMatrix* leftTrans = new TGeoHMatrix(*mLeftTransformation);
-  leftTrans->SetDz(leftTrans->GetTranslation()[2] + sZPlastic);
+  TGeoTranslation* trans = new TGeoTranslation(0, 0, sZPlastic);
 
-  TGeoMatrix* rightTrans = new TGeoHMatrix(*mRightTransformation);
-  rightTrans->SetDz(rightTrans->GetTranslation()[2] + sZPlastic);
-
-  vFV0->AddNode(sectors, 0, rightTrans);
-  vFV0->AddNode(sectors, 1, leftTrans);
+  vFV0Right->AddNode(sectors, 0, trans);
+  vFV0Left->AddNode(sectors, 1, trans);
 }
 
-void Geometry::assembleFibers(TGeoVolume* vFV0) const
+void Geometry::assemblePmts(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const
 {
-  TGeoVolumeAssembly* fibers = new TGeoVolumeAssembly(createVolumeName("FIBERS").c_str());
-
-  for (int i = 0; i < mRMinFiber.size(); ++i) {
-    TGeoVolume* fiber = gGeoManager->GetVolume(createVolumeName(sFiberName, i).c_str());
-    if (!fiber) {
-      LOG(warning) << "FV0 Geometry::assembleFibers(): Fiber volume no. " << i << " not found.";
+  TGeoVolumeAssembly* pmts = new TGeoVolumeAssembly(createVolumeName("PMTS").c_str());
+  TGeoVolume* pmt = gGeoManager->GetVolume(createVolumeName(sPmtName).c_str());
+  if (!pmt) {
+    LOG(warning) << "FV0 Geometry::assemblePmts(): PMT volume not found.";
+  } else {
+    for (int i = 0; i < sNumberOfPMTs; i++) {
+      pmts->AddNode(pmt, i, new TGeoTranslation(sXPmt[i], sYPmt[i], sZPmt));
     }
-    fibers->AddNode(fiber, i);
   }
 
-  vFV0->AddNode(fibers, 1, mLeftTransformation);
-  vFV0->AddNode(fibers, 2, mRightTransformation);
+  vFV0Right->AddNode(pmts, 0);
+  vFV0Left->AddNode(pmts, 1);
 }
 
-void Geometry::assembleScrews(TGeoVolume* vFV0) const
+void Geometry::assembleFibers(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const
+{
+  TGeoVolumeAssembly* fibersRight = new TGeoVolumeAssembly(createVolumeName("FIBERSRIGHT").c_str());
+  TGeoVolumeAssembly* fibersLeft = new TGeoVolumeAssembly(createVolumeName("FIBERSLEFT").c_str());
+  TGeoVolume* fiber;
+  TString volumeName;
+
+  for (int i = 0; i < mRMinFiber.size(); ++i) {
+    volumeName = createVolumeName(sFiberName, i + 1);
+    fiber = gGeoManager->GetVolume(volumeName);
+    if (!fiber) {
+      LOG(warning) << Form("FV0 geometry: Fiber volume no. %i (%s) not found!", i + 1, volumeName.Data());
+    } else {
+      fibersRight->AddNode(fiber, i);
+      fibersLeft->AddNode(fiber, i);
+    }
+  }
+
+  int iPMTFiberCell = 0;
+  for (int i = 0; i < sNumberOfPMTs; i++) {
+    if (iPMTFiberCell == sNumberOfPMTsPerSector) {
+      iPMTFiberCell = 0;
+    }
+
+    volumeName = createVolumeName(sFiberName + sPmtName, sPMTFiberCellOrder[iPMTFiberCell]);
+    fiber = gGeoManager->GetVolume(volumeName);
+
+    if (!fiber) {
+      LOG(warning) << Form("FV0 geometry: Volume of fibers from cell %i (%s) not found!", iPMTFiberCell, volumeName.Data());
+    } else {
+      fibersRight->AddNode(fiber, i, new TGeoTranslation(sXPmt[i], sYPmt[i], sZPmt + sDzPmt));
+    }
+
+    // The PMT fiber cell order for the left side is not flipped across the x-axis, but rotated clockwise
+    volumeName = createVolumeName(sFiberName + sPmtName, sPMTFiberCellOrder[abs(iPMTFiberCell - sNumberOfPMTsPerSector) - 1]);
+    fiber = gGeoManager->GetVolume(volumeName);
+
+    if (!fiber) {
+      LOG(warning) << Form("FV0 geometry: Volume of fibers from cell %i (%s) not found!", iPMTFiberCell, volumeName.Data());
+    } else {
+      fibersLeft->AddNode(fiber, i, new TGeoTranslation(sXPmt[i], sYPmt[i], sZPmt + sDzPmt));
+    }
+
+    iPMTFiberCell++;
+  }
+
+  LOG(debug) << Form("FV0 geometry: total weight of fibers = %.4f kg", fibersRight->Weight(1e-5) + fibersLeft->Weight(1e-5));
+
+  vFV0Right->AddNode(fibersRight, 0);
+  vFV0Left->AddNode(fibersLeft, 1);
+}
+
+void Geometry::assembleScrews(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const
 {
   TGeoVolumeAssembly* screws = new TGeoVolumeAssembly(createVolumeName("SCREWS").c_str());
 
@@ -1080,11 +1167,11 @@ void Geometry::assembleScrews(TGeoVolume* vFV0) const
     }
   }
 
-  vFV0->AddNode(screws, 1, mLeftTransformation);
-  vFV0->AddNode(screws, 2, mRightTransformation);
+  vFV0Right->AddNode(screws, 0);
+  vFV0Left->AddNode(screws, 1);
 }
 
-void Geometry::assembleRods(TGeoVolume* vFV0) const
+void Geometry::assembleRods(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const
 {
   TGeoVolumeAssembly* rods = new TGeoVolumeAssembly(createVolumeName("RODS").c_str());
 
@@ -1099,18 +1186,18 @@ void Geometry::assembleRods(TGeoVolume* vFV0) const
     }
   }
 
-  vFV0->AddNode(rods, 1, mLeftTransformation);
-  vFV0->AddNode(rods, 2, mRightTransformation);
+  vFV0Right->AddNode(rods, 0);
+  vFV0Left->AddNode(rods, 1);
 }
 
-void Geometry::assembleMetalContainer(TGeoVolume* volV0) const
+void Geometry::assembleMetalContainer(TGeoVolume* vFV0Right, TGeoVolume* vFV0Left) const
 {
   TGeoVolume* container = gGeoManager->GetVolume(createVolumeName(sContainerName).c_str());
   if (!container) {
     LOG(warning) << "FV0: Could not find container volume";
   } else {
-    volV0->AddNode(container, 1, mLeftTransformation);
-    volV0->AddNode(container, 2, mRightTransformation);
+    vFV0Right->AddNode(container, 0);
+    vFV0Left->AddNode(container, 1);
   }
 }
 
@@ -1255,7 +1342,7 @@ void Geometry::initializeReadoutCenters()
 
 Geometry* Geometry::sInstance = nullptr;
 
-//Singleton access
+// Singleton access
 Geometry* Geometry::instance(EGeoType initType)
 {
   if (!sInstance) {
