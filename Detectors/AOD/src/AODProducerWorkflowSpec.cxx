@@ -171,22 +171,24 @@ void AODProducerWorkflowDPL::addToTracksTable(TracksCursorType& tracksCursor, Tr
                truncateFloatFraction(track.getTgl(), mTrackTgl),
                truncateFloatFraction(track.getQ2Pt(), mTrack1Pt));
   // trackscov
+  float sY = TMath::Sqrt(track.getSigmaY2()), sZ = TMath::Sqrt(track.getSigmaZ2()), sSnp = TMath::Sqrt(track.getSigmaSnp2()),
+        sTgl = TMath::Sqrt(track.getSigmaTgl2()), sQ2Pt = TMath::Sqrt(track.getSigma1Pt2());
   tracksCovCursor(0,
-                  truncateFloatFraction(TMath::Sqrt(track.getSigmaY2()), mTrackCovDiag),
-                  truncateFloatFraction(TMath::Sqrt(track.getSigmaZ2()), mTrackCovDiag),
-                  truncateFloatFraction(TMath::Sqrt(track.getSigmaSnp2()), mTrackCovDiag),
-                  truncateFloatFraction(TMath::Sqrt(track.getSigmaTgl2()), mTrackCovDiag),
-                  truncateFloatFraction(TMath::Sqrt(track.getSigma1Pt2()), mTrackCovDiag),
-                  (Char_t)(128. * track.getSigmaZY() / track.getSigmaZ2() / track.getSigmaY2()),
-                  (Char_t)(128. * track.getSigmaSnpY() / track.getSigmaSnp2() / track.getSigmaY2()),
-                  (Char_t)(128. * track.getSigmaSnpZ() / track.getSigmaSnp2() / track.getSigmaZ2()),
-                  (Char_t)(128. * track.getSigmaTglY() / track.getSigmaTgl2() / track.getSigmaY2()),
-                  (Char_t)(128. * track.getSigmaTglZ() / track.getSigmaTgl2() / track.getSigmaZ2()),
-                  (Char_t)(128. * track.getSigmaTglSnp() / track.getSigmaTgl2() / track.getSigmaSnp2()),
-                  (Char_t)(128. * track.getSigma1PtY() / track.getSigma1Pt2() / track.getSigmaY2()),
-                  (Char_t)(128. * track.getSigma1PtZ() / track.getSigma1Pt2() / track.getSigmaZ2()),
-                  (Char_t)(128. * track.getSigma1PtSnp() / track.getSigma1Pt2() / track.getSigmaSnp2()),
-                  (Char_t)(128. * track.getSigma1PtTgl() / track.getSigma1Pt2() / track.getSigmaTgl2()));
+                  truncateFloatFraction(sY, mTrackCovDiag),
+                  truncateFloatFraction(sZ, mTrackCovDiag),
+                  truncateFloatFraction(sSnp, mTrackCovDiag),
+                  truncateFloatFraction(sTgl, mTrackCovDiag),
+                  truncateFloatFraction(sQ2Pt, mTrackCovDiag),
+                  (Char_t)(128. * track.getSigmaZY() / (sZ * sY)),
+                  (Char_t)(128. * track.getSigmaSnpY() / (sSnp * sY)),
+                  (Char_t)(128. * track.getSigmaSnpZ() / (sSnp * sZ)),
+                  (Char_t)(128. * track.getSigmaTglY() / (sTgl * sY)),
+                  (Char_t)(128. * track.getSigmaTglZ() / (sTgl * sZ)),
+                  (Char_t)(128. * track.getSigmaTglSnp() / (sTgl * sSnp)),
+                  (Char_t)(128. * track.getSigma1PtY() / (sQ2Pt * sY)),
+                  (Char_t)(128. * track.getSigma1PtZ() / (sQ2Pt * sZ)),
+                  (Char_t)(128. * track.getSigma1PtSnp() / (sQ2Pt * sSnp)),
+                  (Char_t)(128. * track.getSigma1PtTgl() / (sQ2Pt * sTgl)));
 }
 
 template <typename TracksExtraCursorType>
