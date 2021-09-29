@@ -387,8 +387,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const o2::dataformats::Verte
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += math_utils::detail::asin<value_type>(sn);
   if (!tmpT.rotate(alp) || !propagateToX(tmpT, xv, bZ, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
-    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
-    tmpT.print();
+    LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: " << tmpT.asString();
     return false;
   }
   track = tmpT;
@@ -433,8 +432,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const o2::dataformats:
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += math_utils::detail::asin<value_type>(sn);
   if (!tmpT.rotate(alp) || !PropagateToXBxByBz(tmpT, xv, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
-    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
-    tmpT.print();
+    LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: " << tmpT.asString();
     return false;
   }
   track = tmpT;
@@ -479,9 +477,8 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCA(const math_utils::Point3D<va
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += math_utils::detail::asin<value_type>(sn);
   if (!tmpT.rotateParam(alp) || !propagateToX(tmpT, xv, bZ, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
-    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
-                 << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
-    tmpT.printParam();
+    LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
+               << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: " << tmpT.asString();
     return false;
   }
   track = tmpT;
@@ -524,9 +521,8 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
   auto tmpT(track); // operate on the copy to recover after the failure
   alp += math_utils::detail::asin<value_type>(sn);
   if (!tmpT.rotateParam(alp) || !PropagateToXBxByBz(tmpT, xv, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
-    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
-                 << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
-    tmpT.printParam();
+    LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
+               << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: " << tmpT.asString();
     return false;
   }
   track = tmpT;
