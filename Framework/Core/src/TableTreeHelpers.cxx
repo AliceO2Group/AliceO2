@@ -137,7 +137,12 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
   }
   auto fullArray = std::make_shared<arrow::ChunkedArray>(array);
   auto field = std::make_shared<arrow::Field>(mBranch->GetName(), mArrowType);
+
+  mBranch->SetStatus(0);
   mBranch->DropBaskets("all");
+  mBranch->Reset();
+  mBranch->GetTransientBuffer(0)->Expand(0);
+
   return std::make_pair(fullArray, field);
 }
 
