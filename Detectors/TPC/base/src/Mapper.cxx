@@ -82,7 +82,9 @@ Mapper::Mapper(const std::string& mappingDir)
     mMapPartitionInfo()
 {
   load(mappingDir);
+  loadTraceLengths(mappingDir);
 }
+
 bool Mapper::readMappingFile(std::string file)
 {
   // ===| Mapping file layout |=================================================
@@ -237,6 +239,67 @@ void Mapper::initPadRegionsAndPartitions()
       ++globalRow;
       padOffset += padsInRow;
     }
+  }
+}
+
+//______________________________________________________________________________
+void Mapper::loadTraceLengths(std::string_view mappingDir)
+{
+  std::string inputDir = mappingDir.data();
+  if (!inputDir.size()) {
+    const char* aliceO2env = std::getenv("O2_ROOT");
+    if (aliceO2env) {
+      inputDir = aliceO2env;
+    }
+    inputDir += "/share/Detectors/TPC/files";
+  }
+
+  mTraceLengthsIROC.reserve(Mapper::getPadsInIROC());
+  mTraceLengthsOROC.reserve(Mapper::getPadsInOROC());
+  setTraceLengths(inputDir + "/LENGTH-IROC.txt", mTraceLengthsIROC);
+  setTraceLengths(inputDir + "/LENGTH-OROC1.txt", mTraceLengthsOROC);
+  setTraceLengths(inputDir + "/LENGTH-OROC2.txt", mTraceLengthsOROC);
+  setTraceLengths(inputDir + "/LENGTH-OROC3.txt", mTraceLengthsOROC);
+
+  assert(mTraceLengthsIROC.size() == Mapper::getPadsInIROC());
+  assert(mTraceLengthsOROC.size() == Mapper::getPadsInOROC());
+}
+
+//______________________________________________________________________________
+void Mapper::setTraceLengths(std::string_view inputFile, std::vector<float>& length)
+{
+
+  std::ifstream infile(inputFile.data(), std::ifstream::in);
+  if (!infile.is_open()) {
+    std::cout << "could not open file " << inputFile.data() << "\n";
+    exit(1);
+  }
+
+  // e.g. IROC file
+  // Col 0 -> INDEX (0 - 5279)
+  // Col 1 -> PADROW (0 - 62)
+  // Col 2 -> PAD (0 - (Np-1))
+  // Col 3 -> Connector (1 - 132)
+  // Col 4 -> Pin (1 - 40)
+  // Col 5 -> Trace length (mm)
+  // Col 6 -> Number of vias
+
+  unsigned int index{};
+  unsigned int padrow{};
+  unsigned int pad{};
+  unsigned int connector{};
+  unsigned int pin{};
+  float traceLength{};
+  unsigned int numberOfVias{};
+
+  std::string line;
+  while (std::getline(infile, line)) {
+    std::stringstream streamLine(line);
+    streamLine >> index >> padrow >> pad >> connector >> pin >> traceLength >> numberOfVias;
+
+    traceLength /= 10.f;
+
+    length.emplace_back(traceLength);
   }
 }
 
