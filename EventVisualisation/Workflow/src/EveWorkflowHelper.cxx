@@ -133,7 +133,6 @@ void EveWorkflowHelper::drawPoint(o2::BaseCluster<float> pnt)
   mEvent.addCluster(pnt.getX(), pnt.getY(), pnt.getZ());
 }
 
-
 void EveWorkflowHelper::prepareITSClusters(std::string dictfile)
 {
   o2::itsmft::TopologyDictionary dict;

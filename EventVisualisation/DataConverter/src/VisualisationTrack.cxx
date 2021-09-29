@@ -44,7 +44,6 @@ void VisualisationTrack::addStartCoordinates(const float xyz[3])
   }
 }
 
-
 void VisualisationTrack::addPolyPoint(float x, float y, float z)
 {
   mPolyX.push_back(x);
