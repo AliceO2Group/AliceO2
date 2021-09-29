@@ -13,6 +13,7 @@
 /// \file    VisualisationTrack.cxx
 /// \author  Jeremi Niedziela
 /// \author  Maciej Grochowicz
+/// \author  Julian Myrcha
 ///
 
 #include "EventVisualisationDataConverter/VisualisationTrack.h"
@@ -26,68 +27,28 @@ namespace event_visualisation
 
 VisualisationTrack::VisualisationTrack() = default;
 
-VisualisationTrack::VisualisationTrack(const VisualisationTrackVO vo)
+VisualisationTrack::VisualisationTrack(const VisualisationTrackVO& vo)
 {
   this->mCharge = vo.charge;
-  this->mEnergy = vo.energy;
-  this->mParentID = vo.parentID;
   this->mPID = vo.PID;
-  this->mSignedPT = vo.signedPT;
-  this->mMass = vo.mass;
-  this->mHelixCurvature = vo.helixCurvature;
   this->mTheta = vo.theta;
   this->mPhi = vo.phi;
-  this->addMomentum(vo.pxpypz);
   this->addStartCoordinates(vo.startXYZ);
-  this->addEndCoordinates(vo.endXYZ);
-  this->mID = vo.ID;
-  this->mType = gTrackTypes[vo.type];
   this->mSource = vo.source;
 }
 
-void VisualisationTrack::addChild(int childID)
-{
-  mChildrenIDs.push_back(childID);
-}
-
-void VisualisationTrack::addMomentum(const double pxpypz[3])
-{
-  for (int i = 0; i < 3; i++) {
-    mMomentum[i] = pxpypz[i];
-  }
-}
-
-void VisualisationTrack::addStartCoordinates(const double xyz[3])
+void VisualisationTrack::addStartCoordinates(const float xyz[3])
 {
   for (int i = 0; i < 3; i++) {
     mStartCoordinates[i] = xyz[i];
   }
 }
 
-void VisualisationTrack::addEndCoordinates(const double xyz[3])
-{
-  for (int i = 0; i < 3; i++) {
-    mEndCoordinates[i] = xyz[i];
-  }
-}
-
-void VisualisationTrack::addPolyPoint(double x, double y, double z)
+void VisualisationTrack::addPolyPoint(float x, float y, float z)
 {
   mPolyX.push_back(x);
   mPolyY.push_back(y);
   mPolyZ.push_back(z);
-}
-
-void VisualisationTrack::addPolyPoint(double* xyz)
-{
-  mPolyX.push_back(xyz[0]);
-  mPolyY.push_back(xyz[1]);
-  mPolyZ.push_back(xyz[2]);
-}
-
-void VisualisationTrack::setTrackType(ETrackType type)
-{
-  mType = gTrackTypes[type];
 }
 
 VisualisationTrack::VisualisationTrack(rapidjson::Value& tree)
@@ -96,12 +57,13 @@ VisualisationTrack::VisualisationTrack(rapidjson::Value& tree)
   rapidjson::Value& jsonPolyY = tree["mPolyY"];
   rapidjson::Value& jsonPolyZ = tree["mPolyZ"];
   rapidjson::Value& count = tree["count"];
-  rapidjson::Value& source = tree["source"];
 
-  this->mSource = (ETrackSource)source.GetInt();
-  mPolyX.reserve(count.GetInt());
-  mPolyY.reserve(count.GetInt());
-  mPolyZ.reserve(count.GetInt());
+  this->mSource = (o2::dataformats::GlobalTrackID::Source)tree["source"].GetInt();
+  this->mPID = (o2::dataformats::GlobalTrackID::Source)tree["source"].GetInt();
+  //this->mTime = (o2::dataformats::GlobalTrackID::Source)tree["time"].GetFloat();
+  this->mPolyX.reserve(count.GetInt());
+  this->mPolyY.reserve(count.GetInt());
+  this->mPolyZ.reserve(count.GetInt());
   for (auto& v : jsonPolyX.GetArray()) {
     mPolyX.push_back(v.GetDouble());
   }
@@ -116,16 +78,14 @@ VisualisationTrack::VisualisationTrack(rapidjson::Value& tree)
 rapidjson::Value VisualisationTrack::jsonTree(rapidjson::Document::AllocatorType& allocator)
 {
   rapidjson::Value tree(rapidjson::kObjectType);
-  rapidjson::Value count(rapidjson::kNumberType);
-  rapidjson::Value source(rapidjson::kNumberType);
   rapidjson::Value jsonPolyX(rapidjson::kArrayType);
   rapidjson::Value jsonPolyY(rapidjson::kArrayType);
   rapidjson::Value jsonPolyZ(rapidjson::kArrayType);
 
-  count.SetInt(this->getPointCount());
-  tree.AddMember("count", count, allocator);
-  source.SetInt(this->mSource);
-  tree.AddMember("source", source, allocator);
+  tree.AddMember("count", rapidjson::Value().SetInt(this->getPointCount()), allocator);
+  tree.AddMember("source", rapidjson::Value().SetInt(this->mSource), allocator);
+  //tree.AddMember("time", rapidjson::Value().SetFloat(this->mTime), allocator);
+  tree.AddMember("PID", rapidjson::Value().SetInt(this->mPID), allocator);
 
   for (size_t i = 0; i < this->getPointCount(); i++) {
     jsonPolyX.PushBack((float)mPolyX[i], allocator);

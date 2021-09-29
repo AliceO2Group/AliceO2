@@ -18,6 +18,7 @@
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
+#include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 
 #include <string>
@@ -33,6 +34,7 @@ namespace o2
 {
 namespace event_visualisation
 {
+constexpr int JSON_FILE_VERSION = 1;
 
 /// Ctor -- set the minimalistic event up
 VisualisationEvent::VisualisationEvent(VisualisationEventVO vo)
@@ -50,10 +52,11 @@ std::string VisualisationEvent::toJson()
   Document tree(kObjectType);
   Document::AllocatorType& allocator = tree.GetAllocator();
 
+  // compatibility verification
+  tree.AddMember("fileVersion", rapidjson::Value().SetInt(JSON_FILE_VERSION), allocator);
   // Tracks
-  rapidjson::Value trackCount(rapidjson::kNumberType);
-  trackCount.SetInt(this->getTrackCount());
-  tree.AddMember("trackCount", trackCount, allocator);
+  tree.AddMember("trackCount", rapidjson::Value().SetInt(this->getTrackCount()), allocator);
+
   Value jsonTracks(kArrayType);
   for (size_t i = 0; i < this->getTrackCount(); i++) {
     jsonTracks.PushBack(this->mTracks[i].jsonTree(allocator), allocator);
@@ -71,10 +74,11 @@ std::string VisualisationEvent::toJson()
   tree.AddMember("mClusters", jsonClusters, allocator);
 
   // stringify
-  StringBuffer buffer;
-  Writer<StringBuffer> writer(buffer);
+  rapidjson::StringBuffer buffer;
+  rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
   tree.Accept(writer);
-  return buffer.GetString();
+  std::string json_str = std::string(buffer.GetString(), buffer.GetSize());
+  return json_str;
 }
 
 VisualisationEvent::VisualisationEvent(std::string fileName)
@@ -90,6 +94,7 @@ void VisualisationEvent::fromJson(std::string json)
   rapidjson::Document tree;
   tree.Parse(json.c_str());
 
+  rapidjson::Value& fileVersion = tree["fileVersion"];
   rapidjson::Value& trackCount = tree["trackCount"];
   this->mTracks.reserve(trackCount.GetInt());
   rapidjson::Value& jsonTracks = tree["mTracks"];
