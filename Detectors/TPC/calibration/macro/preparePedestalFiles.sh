@@ -8,13 +8,16 @@ required arguments
 -i, --inputFile=    :  input file name
 
 optional arguments:
--o, --outputDir=      : set output directory for (default: ./)
--m, --minADC=         : minimal ADC value accepted for threshold (default: 2)
--s, --sigmaNoise=     : number of sigmas for the threshold (default: 3)
--p, --pedestalOffset= : pedestal offset value
--f, --onlyFilled      : only write links which have data
--k, --noMaskZero      : don't set pedetal value of missing pads to 512
--h, --help            : show this help message"
+-o, --outputDir=          : set output directory for (default: ./)
+-m, --minADC=             : minimal ADC value accepted for threshold (default: 2)
+-s, --sigmaNoise=         : number of sigmas for the threshold (default: 3)
+-p, --pedestalOffset=     : pedestal offset value
+-f, --onlyFilled          : only write links which have data
+-k, --noMaskZero          : don't set pedetal value of missing pads to 512
+-h, --help                : show this help message
+-n, --noisyThreshold      : threshold for noisy channel treatment (default: $noisyThreshold)
+-y, --sigmaNoiseNoisy     : sigmaNoise for noisy channels (default: $sigmaNoiseNoisy)
+-b, --badChannelThreshold : noise threshold to mask channels (default: $badChannelThreshold)"
 
   echo "$usage"
 }
@@ -36,6 +39,9 @@ sigmaNoise=3
 pedestalOffset=0
 onlyFilled=0
 maskZero=1
+noisyThreshold=1.5
+sigmaNoiseNoisy=4
+badChannelThreshold=6
 
 # ===| parse command line options |=============================================
 OPTIONS=$(getopt -l "inputFile:,outputDir:,minADC:,sigmaNoise:,pedestalOffset:,onlyFilled,noMaskZero,help" -o "i:o:t:m:s:p:fkh" -n "preparePedestalFiles.sh" -- "$@")
@@ -56,6 +62,9 @@ while true; do
     -p|--pedestalOffset) pedestalOffset=$2; shift 2;;
     -f|--onlyFilled) onlyFilled=1; shift;;
     -k|--noMaskZero) maskZero=0; shift;;
+    -n|--noisyThreshold) noisyThreshold=$2; shift 2;;
+    -y|--sigmaNoiseNoisy) sigmaNoiseNoisy=$2; shift 2;;
+    -b|--badChannelThreshold) badChannelThreshold=$2; shift 2;;
     -h|--help) usageAndExit;;
      *) echo "Internal error!" ; exit 1 ;;
    esac
@@ -67,6 +76,6 @@ if [[ -z "$inputFile" ]]; then
 fi
 
 # ===| command building and execution |=========================================
-cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/preparePedestalFiles.C+g'(\"$inputFile\",\"$outputDir\", $sigmaNoise, $minADC, $pedestalOffset, $onlyFilled, $maskZero)'"
+cmd="root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/preparePedestalFiles.C+g'(\"$inputFile\",\"$outputDir\", $sigmaNoise, $minADC, $pedestalOffset, $onlyFilled, $maskZero, $noisyThreshold, $sigmaNoiseNoisy, $badChannelThreshold)'"
 echo "running: $cmd"
 eval $cmd
