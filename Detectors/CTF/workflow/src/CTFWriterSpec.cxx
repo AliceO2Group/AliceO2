@@ -478,7 +478,7 @@ void CTFWriterSpec::closeTFTreeAndFile()
     mCTFFileMetaData->fillFileData(mCurrentCTFFileName);
     mCTFFileMetaData->run = mRun;
     mCTFFileMetaData->LHCPeriod = mLHCPeriod;
-    mCTFFileMetaData->type = "CTF";
+    mCTFFileMetaData->type = "raw";
     mCTFFileMetaData->priority = "high";
     auto metaName = o2::utils::Str::concat_string(mCurrentCTFFileName, ".done");
     try {
