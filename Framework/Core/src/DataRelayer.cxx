@@ -231,7 +231,8 @@ DataRelayer::RelayChoice
   //
   // This returns true if a given slot is available for the current number of lanes
   auto isSlotInLane = [currentLane = dph->startTime, maxLanes = mMaxLanes](TimesliceSlot slot) {
-    return (slot.index % maxLanes) == (currentLane % maxLanes);
+    return true;
+    //return (slot.index % maxLanes) == (currentLane % maxLanes);
   };
   // This returns the identifier for the given input. We use a separate
   // function because while it's trivial now, the actual matchmaking will
