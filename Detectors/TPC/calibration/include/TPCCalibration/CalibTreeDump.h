@@ -101,12 +101,6 @@ class CalibTreeDump
   /// set default aliases
   void setDefaultAliases(TTree* tree);
 
-  /// read trace lengths
-  void readTraceLengths(std::string_view mappingDir = "");
-
-  /// load trace lengths into vector
-  void setTraceLengths(std::string_view inputFile, std::vector<float>& length);
-
   /// forwarding visitor class, required to loop over the variant types
   template <class Result, class Func>
   struct forwarding_visitor : boost::static_visitor<Result> {
