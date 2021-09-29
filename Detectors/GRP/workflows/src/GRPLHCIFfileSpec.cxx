@@ -50,7 +50,7 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
   LOG(INFO) << "got input file " << configFileName << " of size " << configBuff.size();
   mReader.loadLHCIFfile(configBuff);
   std::vector<std::pair<float, std::vector<int32_t>>> beamEnergy;
-  std::vector<std::pair<float, std::vector<std::string>>> injSchema;
+  std::vector<std::pair<float, std::vector<std::string>>> injScheme;
   std::vector<std::pair<float, std::vector<std::string>>> fillNb;
   std::vector<std::pair<float, std::vector<int32_t>>> atomicNbB1;
   std::vector<std::pair<float, std::vector<int32_t>>> atomicNbB2;
@@ -71,14 +71,14 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
   LOG(INFO) << "beam energy size = " << beamEnergy.size();
   lhcifdata.setBeamEnergy(beamEnergy.back().first, beamEnergy.back().second.back());
 
-  mReader.readValue<std::string>("INJECTION_SCHEMA", type, nEleInjSch, nMeasInjSch, injSchema);
+  mReader.readValue<std::string>("INJECTION_SCHEME", type, nEleInjSch, nMeasInjSch, injScheme);
   if (nMeasInjSch == 0) {
-    LOG(FATAL) << "Injection schema not present";
+    LOG(FATAL) << "Injection scheme not present";
   }
   if (nEleInjSch != 1 || nMeasInjSch != 1) {
-    LOG(ERROR) << "More than one value/measurement found for Injection Schema, keeping the last one";
+    LOG(ERROR) << "More than one value/measurement found for Injection Scheme, keeping the last one";
   }
-  lhcifdata.setInjectionSchema(injSchema.back().first, injSchema.back().second.back());
+  lhcifdata.setInjectionScheme(injScheme.back().first, injScheme.back().second.back());
 
   mReader.readValue<std::string>("FILL_NUMBER", type, nEleFillNb, nMeasFillNb, fillNb);
   if (nMeasFillNb == 0) {
@@ -114,8 +114,8 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
         std::cout << el.first << " --> " << elVect << std::endl;
       }
     }
-    LOG(INFO) << " **** Injection Schema ****";
-    for (auto& el : injSchema) {
+    LOG(INFO) << " **** Injection Scheme ****";
+    for (auto& el : injScheme) {
       for (auto elVect : el.second) {
         std::cout << el.first << " --> " << elVect << std::endl;
       }
@@ -181,8 +181,8 @@ DataProcessorSpec getGRPLHCIFfileSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "GRP_LHCIFData"});
   return DataProcessorSpec{
     "grp-lhc-if-file-processor",
-    Inputs{{"inputConfig", "TOF", "DCS_CONFIG_FILE", Lifetime::Timeframe},
-           {"inputConfigFileName", "TOF", "DCS_CONFIG_NAME", Lifetime::Timeframe}},
+    Inputs{{"inputConfig", "GRP", "DCS_CONFIG_FILE", Lifetime::Timeframe},
+           {"inputConfigFileName", "GRP", "DCS_CONFIG_NAME", Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<o2::grp::GRPLHCIFfileProcessor>()},
     Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}}}};

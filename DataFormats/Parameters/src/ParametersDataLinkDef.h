@@ -25,5 +25,6 @@
 
 #pragma link C++ class o2::parameters::GRPObject + ;
 #pragma link C++ class o2::parameters::LHCIFData + ;
+#pragma link C++ class std::pair < float, std::string> + ;
 
 #endif

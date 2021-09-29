@@ -31,6 +31,8 @@
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
 
+std::array<o2::header::DataOrigin, 1> exceptionsDetID{"GRP"};
+
 void sendAnswer(const std::string& what, const std::string& ack_chan, FairMQDevice& device)
 {
   if (!ack_chan.empty()) {
@@ -44,10 +46,10 @@ void sendAnswer(const std::string& what, const std::string& ack_chan, FairMQDevi
   }
 }
 
-auto getDetID(const std::string& filename)
+auto getDetID(const std::string& dIDStr)
 {
   // assume the filename start with detector name
-  return DetID::nameToID(filename.substr(0, 3).c_str(), DetID::First);
+  return DetID::nameToID(dIDStr.c_str(), DetID::First);
 }
 
 InjectorFunction dcs2dpl(const std::string& acknowledge)
@@ -65,15 +67,29 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     std::string filename{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
     size_t filesize = parts.At(1)->GetSize();
     LOG(INFO) << "received file " << filename << " of size " << filesize;
-    int dID = getDetID(filename);
+    auto dIDStr = filename.substr(0, 3);
+    int dID = getDetID(dIDStr);
+    o2::header::DataOrigin dataOrigin;
+    bool found = false;
     if (dID < 0) {
-      LOG(ERROR) << "unknown detector for " << filename;
-      sendAnswer("error1: unrecognized filename", acknowledge, device);
-      return;
+      for (auto& el : exceptionsDetID) {
+        if (el.as<std::string>() == dIDStr) {
+          dataOrigin = el;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        LOG(ERROR) << "unknown detector for " << filename;
+        sendAnswer("error1: unrecognized filename", acknowledge, device);
+        return;
+      }
+    } else {
+      dataOrigin = DetID(dID).getDataOrigin();
     }
 
-    o2::header::DataHeader hdrF("DCS_CONFIG_FILE", DetID(dID).getDataOrigin(), 0);
-    o2::header::DataHeader hdrN("DCS_CONFIG_NAME", DetID(dID).getDataOrigin(), 0);
+    o2::header::DataHeader hdrF("DCS_CONFIG_FILE", dataOrigin, 0);
+    o2::header::DataHeader hdrN("DCS_CONFIG_NAME", dataOrigin, 0);
     OutputSpec outsp{hdrN.dataOrigin, hdrN.dataDescription, hdrN.subSpecification};
     auto channel = channelRetriever(outsp, *timesliceId);
     if (channel.empty()) {
@@ -163,6 +179,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   for (int id = DetID::First; id <= DetID::Last; id++) {
     dcsOutputs.emplace_back(DetID(id).getDataOrigin(), "DCS_CONFIG_FILE", 0, Lifetime::Timeframe);
     dcsOutputs.emplace_back(DetID(id).getDataOrigin(), "DCS_CONFIG_NAME", 0, Lifetime::Timeframe);
+  }
+  for (auto& el : exceptionsDetID) {
+    dcsOutputs.emplace_back(el, "DCS_CONFIG_FILE", 0, Lifetime::Timeframe);
+    dcsOutputs.emplace_back(el, "DCS_CONFIG_NAME", 0, Lifetime::Timeframe);
   }
 
   DataProcessorSpec dcsConfigProxy = specifyExternalFairMQDeviceProxy(
