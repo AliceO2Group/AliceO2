@@ -15,6 +15,8 @@
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "EMCALBase/Geometry.h"
+#include "EMCALReconstruction/CaloRawFitter.h"
 
 namespace o2
 {
@@ -22,6 +24,30 @@ namespace o2
 namespace emcal
 {
 
+struct AltroBunch {
+  int mStarttime;
+  std::vector<int> mADCs;
+};
+
+struct ChannelDigits {
+  o2::emcal::ChannelType_t mChanType;
+  std::vector<const o2::emcal::Digit*> mChannelDigits;
+};
+
+struct SRUDigitContainer {
+  int mSRUid;
+  std::map<int, ChannelDigits> mChannelsDigits;
+};
+
+struct ChannelData {
+  o2::emcal::ChannelType_t mChanType;
+  std::vector<o2::emcal::Bunch> mChannelsBunches;
+};
+
+struct SRUBunchContainer {
+  int mSRUid;
+  std::map<int, ChannelData> mChannelsData;
+};
 namespace reco_workflow
 {
 
@@ -68,8 +94,15 @@ class CellConverterSpec : public framework::Task
   /// Output MC-truth: {"EMC", "CELLSMCTR", 0, Lifetime::Timeframe}
   void run(framework::ProcessingContext& ctx) final;
 
+ protected:
+  std::vector<o2::emcal::SRUBunchContainer> digitsToBunches(gsl::span<const o2::emcal::Digit> digits);
+
+  std::vector<AltroBunch> findBunches(const std::vector<const o2::emcal::Digit*>& channelDigits);
+
  private:
   bool mPropagateMC = false;                             ///< Switch whether to process MC true labels
+  o2::emcal::Geometry* mGeometry = nullptr;              ///!<! Geometry pointer
+  std::unique_ptr<o2::emcal::CaloRawFitter> mRawFitter;  ///!<! Raw fitter
   std::vector<o2::emcal::Cell> mOutputCells;             ///< Container with output cells
   std::vector<o2::emcal::TriggerRecord> mOutputTriggers; ///< Container with output trigger records
 };
