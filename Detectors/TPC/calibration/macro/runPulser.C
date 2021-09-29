@@ -32,7 +32,9 @@ void runPulser(std::vector<std::string_view> fileInfos, TString outputFileName =
   calib.setDebugLevel();
   //calib.setQtotBinning(140, 22, 302);
   calib.setQtotBinning(500, 10, 1010);
-  if (type == 1) {
+  if (type == 0) {
+    calib.setWidthBinning(100, 0.1, 2.1);
+  } else if (type == 1) {
     calib.setQtotBinning(150, 2, 302);
     calib.setMinQtot(8);
     calib.setMinQmax(6);
