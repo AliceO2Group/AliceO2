@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include <sstream>
 #include <string>
+#include <boost/container_hash/hash.hpp>
 
 #include "fmt/format.h"
 #include "RStringView.h"
@@ -64,10 +65,17 @@ class Mapper
     /// \return hash value for channel ID
     size_t operator()(const ChannelID& s) const
     {
+      std::size_t seed = 0;
+      boost::hash_combine(seed, s.mRow);
+      boost::hash_combine(seed, s.mColumn);
+      boost::hash_combine(seed, o2::emcal::channelTypeToInt(s.mChannelType));
+      return seed;
+      /*
       size_t h1 = std::hash<int>()(s.mRow);
       size_t h2 = std::hash<int>()(s.mColumn);
       size_t h3 = std::hash<int>()(o2::emcal::channelTypeToInt(s.mChannelType));
       return ((h1 ^ (h2 << 1)) >> 1) ^ (h3 << 1);
+      */
     }
   };
 
