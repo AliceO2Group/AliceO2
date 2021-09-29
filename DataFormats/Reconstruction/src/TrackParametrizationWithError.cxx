@@ -248,7 +248,12 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dat
   auto tmpT(*this); // operate on the copy to recover after the failure
   alp += gpu::CAMath::ASin(sn);
   if (!tmpT.rotate(alp) || !tmpT.propagateTo(xv, b)) {
+#ifndef GPUCA_ALIGPUCODE
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: " << tmpT.asString();
+#else
+    LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx;
+    ;
+#endif
     return false;
   }
   *this = tmpT;

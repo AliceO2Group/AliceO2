@@ -396,8 +396,12 @@ GPUd() bool TrackParametrization<value_T>::propagateParamToDCA(const math_utils:
   auto tmpT(*this); // operate on the copy to recover after the failure
   alp += math_utils::detail::asin<value_T>(sn);
   if (!tmpT.rotateParam(alp) || !tmpT.propagateParamTo(xv, b)) {
+#ifndef GPUCA_ALIGPUCODE
     LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
                << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: " << tmpT.asString();
+#else
+    LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex " << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z();
+#endif
     return false;
   }
   *this = tmpT;
