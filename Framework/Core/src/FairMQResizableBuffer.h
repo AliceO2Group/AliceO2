@@ -41,7 +41,10 @@ class FairMQOutputStream : public OutputStream
   static Result<std::shared_ptr<FairMQOutputStream>> Create(
     int64_t initial_capacity = 4096, MemoryPool* pool = default_memory_pool());
 
-  ~FairMQOutputStream() override;
+  // By the time we call the destructor, the contents
+  // of the buffer are already moved to fairmq
+  // for being sent.
+  ~FairMQOutputStream() override = default;
 
   // Implement the OutputStream interface
 

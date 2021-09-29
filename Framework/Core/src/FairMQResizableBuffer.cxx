@@ -53,13 +53,6 @@ Status FairMQOutputStream::Reset(int64_t initial_capacity, MemoryPool* pool)
   return Status::OK();
 }
 
-FairMQOutputStream::~FairMQOutputStream()
-{
-  // By the time we call the destructor, the contents
-  // of the buffer are already moved to fairmq
-  // for being sent.
-}
-
 Status FairMQOutputStream::Close()
 {
   if (is_open_) {
