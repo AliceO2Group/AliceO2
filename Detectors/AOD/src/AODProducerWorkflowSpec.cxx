@@ -79,6 +79,12 @@ uint64_t relativeTime_to_GlobalBC(double relativeTimeStampInNS)
 {
   return std::round((o2::raw::HBFUtils::Instance().getFirstSampledTFIR().bc2ns() + relativeTimeStampInNS) / o2::constants::lhc::LHCBunchSpacingNS);
 }
+// takes a local vertex timing in NS and converts to a lobal BC information
+// relative to start of timeframe
+uint64_t relativeTime_to_LocalBC(double relativeTimeStampInNS)
+{
+  return std::round(relativeTimeStampInNS / o2::constants::lhc::LHCBunchSpacingNS);
+}
 } // namespace
 
 void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddRecPoints,
@@ -1181,12 +1187,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   int collisionID = 0;
   for (auto& vertex : primVertices) {
     auto& cov = vertex.getCov();
-    auto& timeStamp = vertex.getTimeStamp();
+    auto& timeStamp = vertex.getTimeStamp();                       // this is a relative time
     const double interactionTime = timeStamp.getTimeStamp() * 1E3; // mus to ns
     uint64_t globalBC = relativeTime_to_GlobalBC(interactionTime);
-    LOG(DEBUG) << globalBC << " " << interactionTime;
+    uint64_t localBC = relativeTime_to_LocalBC(interactionTime);
+    LOG(DEBUG) << "global BC " << globalBC << " local BC " << localBC << " relative interaction time " << interactionTime;
     // collision timestamp in ns wrt the beginning of collision BC
-    const float relInteractionTime = static_cast<float>(globalBC * o2::constants::lhc::LHCBunchSpacingNS - interactionTime);
+    const float relInteractionTime = static_cast<float>(localBC * o2::constants::lhc::LHCBunchSpacingNS - interactionTime);
     auto item = bcsMap.find(globalBC);
     int bcID = -1;
     if (item != bcsMap.end()) {
