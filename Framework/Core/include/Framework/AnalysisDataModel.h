@@ -769,7 +769,7 @@ DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);       //!
 DECLARE_SOA_COLUMN(PosX, posX, float);                       //! X vertex position in cm
 DECLARE_SOA_COLUMN(PosY, posY, float);                       //! Y vertex position in cm
 DECLARE_SOA_COLUMN(PosZ, posZ, float);                       //! Z vertex position in cm
-DECLARE_SOA_COLUMN(T, t, float);                             //! Collision time
+DECLARE_SOA_COLUMN(T, t, float);                             //! Collision time relative to given bc in ns
 DECLARE_SOA_COLUMN(Weight, weight, float);                   //! MC weight
 DECLARE_SOA_COLUMN(ImpactParameter, impactParameter, float); //! Impact parameter for A-A
 } // namespace mccollision
