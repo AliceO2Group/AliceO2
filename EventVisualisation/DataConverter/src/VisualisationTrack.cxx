@@ -51,7 +51,6 @@ void VisualisationTrack::addPolyPoint(float x, float y, float z)
   mPolyZ.push_back(z);
 }
 
-
 VisualisationTrack::VisualisationTrack(rapidjson::Value& tree)
 {
   rapidjson::Value& jsonPolyX = tree["mPolyX"];
