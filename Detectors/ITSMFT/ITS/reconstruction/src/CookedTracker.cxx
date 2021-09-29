@@ -41,29 +41,29 @@ using namespace o2::itsmft;
 using namespace o2::constants::math;
 using o2::field::MagneticField;
 using Label = o2::MCCompLabel;
-using Point3Df = o2::math_utils::Point3D<float>;
 
-//************************************************
-// Constants hardcoded for the moment:
-//************************************************
+/*** Tracking parameters ***/
 // seed "windows" in z and phi: makeSeeds
-const Float_t kzWin = 0.33;
-const Float_t kminPt = 0.05;
+Float_t CookedTracker::gzWin = 0.33;
+Float_t CookedTracker::gminPt = 0.05;
+Float_t CookedTracker::mMostProbablePt = o2::track::kMostProbablePt;
 // Maximal accepted impact parameters for the seeds
-const Float_t kmaxDCAxy = 3.;
-const Float_t kmaxDCAz = 3.;
+Float_t CookedTracker::gmaxDCAxy = 3.;
+Float_t CookedTracker::gmaxDCAz = 3.;
 // Layers for the seeding
-const Int_t kSeedingLayer1 = 6, kSeedingLayer2 = 4, kSeedingLayer3 = 5;
+Int_t CookedTracker::gSeedingLayer1 = 6;
+Int_t CookedTracker::gSeedingLayer2 = 4;
+Int_t CookedTracker::gSeedingLayer3 = 5;
 // Space point resolution
-const Float_t kSigma2 = 0.0005 * 0.0005;
+Float_t CookedTracker::gSigma2 = 0.0005 * 0.0005;
 // Max accepted chi2
-const Float_t kmaxChi2PerCluster = 20.;
-const Float_t kmaxChi2PerTrack = 30.;
+Float_t CookedTracker::gmaxChi2PerCluster = 20.;
+Float_t CookedTracker::gmaxChi2PerTrack = 30.;
 // Tracking "road" from layer to layer
-const Float_t kRoadY = 0.2;
-const Float_t kRoadZ = 0.3;
+Float_t CookedTracker::gRoadY = 0.2;
+Float_t CookedTracker::gRoadZ = 0.3;
 // Minimal number of attached clusters
-const Int_t kminNumberOfClusters = 4;
+Int_t CookedTracker::gminNumberOfClusters = 4;
 
 const float kPI = 3.14159f;
 const float k2PI = 2 * kPI;
@@ -76,7 +76,6 @@ const float k2PI = 2 * kPI;
 // use exact r's for the clusters
 
 CookedTracker::Layer CookedTracker::sLayers[CookedTracker::kNLayers];
-float CookedTracker::mMostProbablePt = o2::track::kMostProbablePt;
 
 CookedTracker::CookedTracker(Int_t n) : mNumOfThreads(n), mBz(0.)
 {
@@ -177,7 +176,7 @@ static Double_t f3(Double_t x1, Double_t y1, Double_t x2, Double_t y2, Double_t 
   return (z1 - z2) / sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
 
-static o2::its::TrackITSExt cookSeed(const Point3Df& r1, Point3Df& r2, const Point3Df& tr3, float rad2, float rad3, float_t alpha, float_t bz)
+o2::its::TrackITSExt CookedTracker::cookSeed(const Point3Df& r1, Point3Df& r2, const Point3Df& tr3, float rad2, float rad3, float_t alpha, float_t bz)
 // const  Float_t r1[4], const Float_t r2[4], const Float_t tr3[4], Double_t alpha, Double_t bz)
 {
   //--------------------------------------------------------------------
@@ -207,8 +206,8 @@ static o2::its::TrackITSExt cookSeed(const Point3Df& r1, Point3Df& r2, const Poi
   std::array<float, 15> cov;
   /*
   for (Int_t i=0; i<15; i++) cov[i]=0.;
-  cov[0] =kSigma2*10;
-  cov[2] =kSigma2*10;
+  cov[0] =gSigma2*10;
+  cov[2] =gSigma2*10;
   cov[5] =0.007*0.007*10;   //FIXME all these lines
   cov[9] =0.007*0.007*10;
   cov[14]=0.1*0.1*10;
@@ -223,7 +222,7 @@ static o2::its::TrackITSExt cookSeed(const Point3Df& r1, Point3Df& r2, const Poi
     cy = (f1(x1, y1, x2, y2 + dlt, x3, y3) - crv) / tmp;
     cy *= 20; // FIXME: MS contribution to the cov[14]
   }
-  Double_t s2 = kSigma2;
+  Double_t s2 = gSigma2;
 
   cov[0] = s2;
   cov[1] = 0.;
@@ -252,9 +251,9 @@ void CookedTracker::makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_
   //--------------------------------------------------------------------
   const float zv = getZ();
 
-  Layer& layer1 = sLayers[kSeedingLayer1];
-  Layer& layer2 = sLayers[kSeedingLayer2];
-  Layer& layer3 = sLayers[kSeedingLayer3];
+  Layer& layer1 = sLayers[gSeedingLayer1];
+  Layer& layer2 = sLayers[gSeedingLayer2];
+  Layer& layer3 = sLayers[gSeedingLayer3];
 
   auto bz = getBz();
   const Double_t maxC = (TMath::Abs(bz) < Almost0) ? 0.03 : TMath::Abs(bz * B2C / gminPt);
@@ -280,7 +279,7 @@ void CookedTracker::makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_
 
     auto zr2 = zv + layer2.getR() / r1 * (z1 - zv);
     auto phir2 = phi1;
-    auto dz2 = kzWin * (1 + 2 * tgl);
+    auto dz2 = gzWin * (1 + 2 * tgl);
 
     std::vector<Int_t> selected2;
     float dy2 = kpWin * layer2.getR();
@@ -324,10 +323,10 @@ void CookedTracker::makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_
 
         float ip[2];
         seed.getImpactParams(getX(), getY(), getZ(), getBz(), ip);
-        if (TMath::Abs(ip[0]) > kmaxDCAxy) {
+        if (TMath::Abs(ip[0]) > gmaxDCAxy) {
           continue;
         }
-        if (TMath::Abs(ip[1]) > kmaxDCAz) {
+        if (TMath::Abs(ip[1]) > gmaxDCAz) {
           continue;
         }
         {
@@ -338,9 +337,9 @@ void CookedTracker::makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_
             continue;
           }
         }
-        seed.setClusterIndex(kSeedingLayer1, n1);
-        seed.setClusterIndex(kSeedingLayer3, n3);
-        seed.setClusterIndex(kSeedingLayer2, n2);
+        seed.setClusterIndex(gSeedingLayer1, n1);
+        seed.setClusterIndex(gSeedingLayer3, n3);
+        seed.setClusterIndex(gSeedingLayer2, n2);
         seeds.push_back(seed);
       }
     }
@@ -366,9 +365,9 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
   //--------------------------------------------------------------------
   // Loop over a subset of track seeds
   //--------------------------------------------------------------------
-  std::vector<bool> used[kSeedingLayer2];
-  std::vector<Int_t> selec[kSeedingLayer2];
-  for (Int_t l = kSeedingLayer2 - 1; l >= 0; l--) {
+  std::vector<bool> used[gSeedingLayer2];
+  std::vector<Int_t> selec[gSeedingLayer2];
+  for (Int_t l = gSeedingLayer2 - 1; l >= 0; l--) {
     Int_t n = sLayers[l].getNumberOfClusters();
     used[l].resize(n, false);
     selec[l].reserve(n / 100);
@@ -385,9 +384,9 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
     auto z = track.getZ();
     auto crv = track.getCurvature(getBz());
     auto tgl = track.getTgl();
-    Float_t r1 = sLayers[kSeedingLayer2].getR();
+    Float_t r1 = sLayers[gSeedingLayer2].getR();
 
-    for (Int_t l = kSeedingLayer2 - 1; l >= 0; l--) {
+    for (Int_t l = gSeedingLayer2 - 1; l >= 0; l--) {
       Float_t r2 = sLayers[l].getR();
       selec[l].clear();
       if (TMath::Abs(ip[0]) > r2)
@@ -415,7 +414,7 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
       if (!attachCluster(volID, 3, ci3, t3, track)) {
         continue;
       }
-      if (t3.isBetter(best, kmaxChi2PerTrack)) {
+      if (t3.isBetter(best, gmaxChi2PerTrack)) {
         best = t3;
       }
 
@@ -427,7 +426,7 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
         if (!attachCluster(volID, 2, ci2, t2, t3)) {
           continue;
         }
-        if (t2.isBetter(best, kmaxChi2PerTrack)) {
+        if (t2.isBetter(best, gmaxChi2PerTrack)) {
           best = t2;
         }
 
@@ -439,7 +438,7 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
           if (!attachCluster(volID, 1, ci1, t1, t2)) {
             continue;
           }
-          if (t1.isBetter(best, kmaxChi2PerTrack)) {
+          if (t1.isBetter(best, gmaxChi2PerTrack)) {
             best = t1;
           }
 
@@ -451,7 +450,7 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
             if (!attachCluster(volID, 0, ci0, t0, t1)) {
               continue;
             }
-            if (t0.isBetter(best, kmaxChi2PerTrack)) {
+            if (t0.isBetter(best, gmaxChi2PerTrack)) {
               best = t0;
             }
             volID = -1;
@@ -460,7 +459,7 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
       }
     }
 
-    if (best.getNumberOfClusters() >= kminNumberOfClusters) {
+    if (best.getNumberOfClusters() >= gminNumberOfClusters) {
       Int_t noc = best.getNumberOfClusters();
       for (Int_t ic = 3; ic < noc; ic++) {
         Int_t index = best.getClusterIndex(ic);
@@ -509,7 +508,7 @@ void CookedTracker::process(gsl::span<const o2::itsmft::CompClusterExt> const& c
     LOG(INFO) << "Not a single primary vertex provided. Skipping...\n";
     return;
   }
-  LOG(INFO) << "\n CookedTracker::process(), number of threads: " << mNumOfThreads << '\n';
+  LOG(INFO) << "\n CookedTracker::process(), number of threads: " << mNumOfThreads;
 
   auto start = std::chrono::system_clock::now();
 
@@ -572,7 +571,7 @@ std::tuple<int, int> CookedTracker::processLoadedClusters(TrackInserter& inserte
   // This is the main tracking function for single frame, it is assumed that only clusters
   // which may contribute to this frame is loaded
   //--------------------------------------------------------------------
-  Int_t numOfClusters = sLayers[kSeedingLayer1].getNumberOfClusters();
+  Int_t numOfClusters = sLayers[gSeedingLayer1].getNumberOfClusters();
   if (!numOfClusters) {
     return {0, 0};
   }
@@ -592,7 +591,7 @@ std::tuple<int, int> CookedTracker::processLoadedClusters(TrackInserter& inserte
     seedArray[t] = futures[t].get();
     nSeeds += seedArray[t].size();
     for (auto& track : seedArray[t]) {
-      if (track.getNumberOfClusters() < kminNumberOfClusters) {
+      if (track.getNumberOfClusters() < gminNumberOfClusters) {
         continue;
       }
 
@@ -614,6 +613,7 @@ std::tuple<int, int> CookedTracker::processLoadedClusters(TrackInserter& inserte
   }
 
   if (nSeeds) {
+    LOG(INFO) << "Found tracks: " << nTracks;
     LOG(INFO) << "CookedTracker::processLoadedClusters(), good_tracks:/seeds: " << ngood << '/' << nSeeds << "-> "
               << Float_t(ngood) / nSeeds << '\n';
   }
@@ -627,7 +627,7 @@ void CookedTracker::makeBackPropParam(std::vector<TrackITSExt>& seeds) const
 {
   // refit in backward direction
   for (auto& track : seeds) {
-    if (track.getNumberOfClusters() < kminNumberOfClusters) {
+    if (track.getNumberOfClusters() < gminNumberOfClusters) {
       continue;
     }
     makeBackPropParam(track);
@@ -843,8 +843,7 @@ Bool_t CookedTracker::attachCluster(Int_t& volID, Int_t nl, Int_t ci, TrackITSEx
   }
 
   Double_t chi2 = t.getPredictedChi2(*c);
-
-  if (chi2 > kmaxChi2PerCluster) {
+  if (chi2 > gmaxChi2PerCluster) {
     return kFALSE;
   }
 
