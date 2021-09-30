@@ -20,6 +20,8 @@
 #include <ostream>
 #include <cstdint>
 
+#include "Rtypes.h"
+
 namespace o2
 {
 namespace mid
@@ -32,6 +34,8 @@ struct Cluster3D {
   float zCoor;   ///< z coordinate
   float sigmaX2; ///< Dispersion along x
   float sigmaY2; ///< Dispersion along y
+
+  ClassDefNV(Cluster3D, 1);
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Cluster3D& data)
