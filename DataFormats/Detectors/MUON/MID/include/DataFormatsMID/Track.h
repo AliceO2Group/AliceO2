@@ -19,6 +19,8 @@
 #include <array>
 #include <ostream>
 
+#include "Rtypes.h"
+
 namespace o2
 {
 namespace mid
@@ -97,6 +99,8 @@ class Track
   std::array<int, 4> mClusterMatched = {};         ///< Matched cluster index
   float mChi2 = 0.;                                ///< Chi2 of track
   int mNDF = 0;                                    ///< Number of chi2 degrees of freedom
+
+  ClassDefNV(Track, 1);
 };
 } // namespace mid
 } // namespace o2

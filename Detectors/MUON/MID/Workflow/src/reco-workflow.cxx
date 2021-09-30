@@ -22,6 +22,9 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsMID/Cluster2D.h"
+#include "DataFormatsMID/Cluster3D.h"
+#include "DataFormatsMID/Track.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDSimulation/MCClusterLabel.h"
 #include "MIDWorkflow/ClusterizerMCSpec.h"
@@ -60,22 +63,25 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     specs.emplace_back(disableMC ? o2::mid::getTrackerSpec() : o2::mid::getTrackerMCSpec());
   }
   if (!disableFile) {
-    std::array<o2::header::DataDescription, 2> clusterDescriptions{"CLUSTERS", "TRACKCLUSTERS"};
-    std::array<o2::header::DataDescription, 2> clusterROFDescriptions{"CLUSTERSROF", "TRCLUSROF"};
-    std::array<o2::header::DataDescription, 2> clusterLabelDescriptions{"CLUSTERSLABELS", "TRCLUSLABELS"};
-    std::array<std::string, 2> clusterBranch{"MIDCluster", "MIDTrackCluster"};
-    std::array<std::string, 2> clusterROFBranch{"MIDClusterROF", "MIDTrackClusterROF"};
-    std::array<std::string, 2> clusterLabelBranch{"MIDClusterLabels", "MIDTrackClusterLabels"};
-    int idx = disableTracking ? 0 : 1;
-    specs.emplace_back(MakeRootTreeWriterSpec("MIDRecoWriter",
-                                              "mid-reco.root",
-                                              "midreco",
-                                              MakeRootTreeWriterSpec::BranchDefinition<const char*>{InputSpec{"mid_tracks", o2::header::gDataOriginMID, "TRACKS"}, "MIDTrack", disableTracking ? 0 : 1},
-                                              MakeRootTreeWriterSpec::BranchDefinition<const char*>{InputSpec{"mid_trackClusters", o2::header::gDataOriginMID, clusterDescriptions[idx]}, clusterBranch[idx]},
-                                              MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_tracks_rof", o2::header::gDataOriginMID, "TRACKSROF"}, "MIDTrackROF", disableTracking ? 0 : 1},
-                                              MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_trclus_rof", o2::header::gDataOriginMID, clusterROFDescriptions[idx]}, clusterROFBranch[idx]},
-                                              MakeRootTreeWriterSpec::BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"mid_track_labels", o2::header::gDataOriginMID, "TRACKSLABELS"}, "MIDTrackLabels", (disableTracking || disableMC) ? 0 : 1},
-                                              MakeRootTreeWriterSpec::BranchDefinition<o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>>{InputSpec{"mid_trclus_labels", o2::header::gDataOriginMID, clusterLabelDescriptions[idx]}, clusterLabelBranch[idx], disableMC ? 0 : 1})());
+    if (disableTracking) {
+      specs.emplace_back(MakeRootTreeWriterSpec("MIDRecoWriter",
+                                                "mid-reco.root",
+                                                "midreco",
+                                                MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::Cluster2D>>{InputSpec{"mid_clusters", o2::header::gDataOriginMID, "CLUSTERS"}, "MIDCluster"},
+                                                MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_clusters_rof", o2::header::gDataOriginMID, "CLUSTERSROF"}, "MIDClusterROF"},
+                                                MakeRootTreeWriterSpec::BranchDefinition<o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>>{InputSpec{"mid_clusters_labels", o2::header::gDataOriginMID, "CLUSTERSLABELS"}, "MIDClusterLabels", disableMC ? 0 : 1})());
+
+    } else {
+      specs.emplace_back(MakeRootTreeWriterSpec("MIDRecoWriter",
+                                                "mid-reco.root",
+                                                "midreco",
+                                                MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::Track>>{InputSpec{"mid_tracks", o2::header::gDataOriginMID, "TRACKS"}, "MIDTrack"},
+                                                MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::Cluster3D>>{InputSpec{"mid_trclus", o2::header::gDataOriginMID, "TRACKCLUSTERS"}, "MIDTrackCluster"},
+                                                MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_tracks_rof", o2::header::gDataOriginMID, "TRACKSROF"}, "MIDTrackROF"},
+                                                MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_trclus_rof", o2::header::gDataOriginMID, "TRCLUSROF"}, "MIDTrackClusterROF"},
+                                                MakeRootTreeWriterSpec::BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"mid_track_labels", o2::header::gDataOriginMID, "TRACKSLABELS"}, "MIDTrackLabels", disableMC ? 0 : 1},
+                                                MakeRootTreeWriterSpec::BranchDefinition<o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>>{InputSpec{"mid_trclus_labels", o2::header::gDataOriginMID, "TRCLUSLABELS"}, "MIDTrackClusterLabels", disableMC ? 0 : 1})());
+    }
   }
 
   return specs;
