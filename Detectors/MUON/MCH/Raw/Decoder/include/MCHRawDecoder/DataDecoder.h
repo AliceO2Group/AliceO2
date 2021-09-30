@@ -22,6 +22,7 @@
 #include <gsl/span>
 #include <unordered_set>
 #include <unordered_map>
+#include <fstream>
 
 #include "Headers/RDHAny.h"
 #include "DataFormatsMCH/Digit.h"
@@ -184,26 +185,29 @@ class DataDecoder
   bool getPadMapping(const DsElecId& dsElecId, DualSampaChannelId channel, int& deId, int& dsIddet, int& padId);
   bool addDigit(const DsElecId& dsElecId, DualSampaChannelId channel, const o2::mch::raw::SampaCluster& sc);
   bool getTimeFrameStartRecord(const RawDigit& digit, uint32_t& orbit, uint32_t& bc);
-  int32_t getMergerChannelId(const DsElecId& dsElecId, DualSampaChannelId channel);
-  void updateMergerRecord(uint32_t mergerChannelId, uint32_t digitId);
-  bool mergeDigits(uint32_t mergerChannelId, o2::mch::raw::SampaCluster& sc);
+  bool getMergerChannelId(const DsElecId& dsElecId, DualSampaChannelId channel, uint32_t& chId, uint32_t& dsId);
+  uint64_t getMergerChannelBitmask(DualSampaChannelId channel);
+  void updateMergerRecord(uint32_t mergerChannelId, uint32_t mergerBoardId, uint64_t mergerChannelBitmask, uint32_t digitId);
+  bool mergeDigits(uint32_t mergerChannelId, uint32_t mergerBoardId, uint64_t mergerChannelBitmask, o2::mch::raw::SampaCluster& sc);
 
   // structure that stores the index of the last decoded digit for a given readout channel,
   // as well as the time stamp of the last ADC sample of the digit
   struct MergerChannelRecord {
     MergerChannelRecord() = default;
-    int32_t digitId{-1};
-    int32_t bcEnd{-1};
+    uint32_t digitId{0xFFFF};
+    uint32_t bcEnd{0xFFFF};
   };
 
   static constexpr uint32_t sMaxSolarId = 200 * 8 - 1;
-  static constexpr uint32_t sReadoutChipsNum = (sMaxSolarId + 1) * 40 * 2;
+  static constexpr uint32_t sReadoutBoardsNum = (sMaxSolarId + 1) * 40;
+  static constexpr uint32_t sReadoutChipsNum = sReadoutBoardsNum * 2;
   static constexpr uint32_t sReadoutChannelsNum = sReadoutChipsNum * 32;
   // table storing the last recorded TF time stamp in SAMPA BC counter units
-  std::vector<TimeFrameStartRecord> mTimeFrameStartRecords{sReadoutChipsNum};
+  std::vector<TimeFrameStartRecord> mTimeFrameStartRecords;
 
   // table storing the digits merging information for each readout channel in the MCH system
-  std::vector<MergerChannelRecord> mMergerRecords{sReadoutChannelsNum}; ///< merger records for all MCH readout channels
+  std::vector<MergerChannelRecord> mMergerRecords; ///< merger records for all MCH readout channels
+  std::vector<uint64_t> mMergerRecordsReady;       ///< merger status flags, one bit for one DS channel
 
   Elec2DetMapper mElec2Det{nullptr};       ///< front-end electronics mapping
   FeeLink2SolarMapper mFee2Solar{nullptr}; ///< CRU electronics mapping
@@ -215,8 +219,7 @@ class DataDecoder
   RawDigitVector mDigits;                               ///< vector of decoded digits
   std::unordered_set<OrbitInfo, OrbitInfoHash> mOrbits; ///< list of orbits in the processed buffer
 
-  uint32_t mFirstOrbitInTF; ///< first orbit in the processed time-frame
-
+  uint32_t mFirstOrbitInTF;     ///< first orbit in the processed time-frame
   uint32_t mSampaTimeOffset{0}; ///< SAMPA BC counter value to be subtracted from the HBPacket BC at the TF start
 
   SampaChannelHandler mChannelHandler;                  ///< optional user function to be called for each decoded SAMPA hit
