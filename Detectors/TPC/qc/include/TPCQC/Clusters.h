@@ -47,7 +47,13 @@ class Clusters
 
   void fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue);
 
-  void analyse();
+  void normalize();
+
+  inline void analyse() { Clusters::normalize(); }
+
+  void denormalize();
+
+  void reset();
 
   void dumpToFile(std::string filename);
 
@@ -72,6 +78,7 @@ class Clusters
   CalPad mSigmaTime{"Sigma_Time"};
   CalPad mSigmaPad{"Sigma_Pad"};
   CalPad mTimeBin{"Time_Bin"};
+  bool mIsNormalized{false};
 
   ClassDefNV(Clusters, 1)
 };

@@ -166,7 +166,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
   //____________________________________________________________________________
   void dumpClusterQC()
   {
-    mClusterQC->analyse();
+    mClusterQC->normalize();
     mClusterQC->dumpToFile("ClusterQC.root");
   }
 };
