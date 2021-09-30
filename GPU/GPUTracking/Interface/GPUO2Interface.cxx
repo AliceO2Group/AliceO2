@@ -175,3 +175,8 @@ std::unique_ptr<TPCdEdxCalibrationSplines> GPUO2Interface::getdEdxCalibrationSpl
 {
   return std::make_unique<TPCdEdxCalibrationSplines>();
 }
+
+int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib)
+{
+  return 1;
+}
