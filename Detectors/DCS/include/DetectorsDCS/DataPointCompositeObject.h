@@ -187,6 +187,7 @@ struct alignas(128) DataPointCompositeObject final {
       case RAW_TIME:
       case RAW_STRING:
       case RAW_BINARY:
+      case RAW_FLOAT:
         return (void*)&data.payload_pt1;
       case DPVAL_INT:
       case DPVAL_UINT:
@@ -196,6 +197,7 @@ struct alignas(128) DataPointCompositeObject final {
       case DPVAL_TIME:
       case DPVAL_STRING:
       case DPVAL_BINARY:
+      case DPVAL_FLOAT:
         return (void*)&data;
       default:
       case VOID:
@@ -219,6 +221,7 @@ struct alignas(128) DataPointCompositeObject final {
     os << dpcom.id << ";" << dpcom.data << ";";
     union Converter {
       uint64_t raw_data;
+      float float_value;
       double double_value;
       uint32_t uint_value;
       int32_t int_value;
@@ -241,6 +244,9 @@ struct alignas(128) DataPointCompositeObject final {
       case RAW_CHAR:
       case DPVAL_CHAR:
         return os << converter.char_value;
+      case RAW_FLOAT:
+      case DPVAL_FLOAT:
+        return os << converter.float_value;
       case RAW_DOUBLE:
       case DPVAL_DOUBLE:
         return os << converter.double_value;

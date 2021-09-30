@@ -35,6 +35,7 @@ T getValueImpl(const DataPointCompositeObject& dpcom)
 // only specialize the getValue function for the types we support :
 //
 // - double
+// - float
 // - uint32_t
 // - int32_t
 // - char
@@ -46,6 +47,12 @@ template <>
 double getValue(const DataPointCompositeObject& dpcom)
 {
   return getValueImpl<double, DeliveryType::RAW_DOUBLE>(dpcom);
+}
+
+template <>
+float getValue(const DataPointCompositeObject& dpcom)
+{
+  return getValueImpl<float, DeliveryType::RAW_FLOAT>(dpcom);
 }
 
 template <>

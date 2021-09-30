@@ -40,9 +40,16 @@ std::pair<uint32_t, uint16_t> getDate(const std::string& refDate)
       std::istringstream sss(refDate);
       sss >> std::get_time(&tt, "%Y-%m-%d %H:%M:%S");
       if (sss.fail()) {
-        LOG(ERROR) << "We cannot parse the date";
+        std::tm ttt{};
+        std::istringstream ssss(refDate);
+        ssss >> std::get_time(&tt, "%Y-%B-%d %H:%M:%S");
+        if (ssss.fail()) {
+          LOG(ERROR) << "We cannot parse the date";
+        }
+        seconds = mktime(&ttt);
+      } else {
+        seconds = mktime(&tt);
       }
-      seconds = mktime(&tt);
     } else {
       seconds = mktime(&t);
     }
@@ -83,6 +90,7 @@ std::vector<o2::dcs::DataPointCompositeObject>
 // only specialize the functions for the types we support :
 //
 // - double
+// - float
 // - uint32_t
 // - int32_t
 // - char
@@ -91,6 +99,8 @@ std::vector<o2::dcs::DataPointCompositeObject>
 // - std::string
 
 template std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints<double>(const std::vector<std::string>& aliases, double minValue, double maxValue, std::string);
+
+template std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints<float>(const std::vector<std::string>& aliases, float minValue, float maxValue, std::string);
 
 template std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints<uint32_t>(const std::vector<std::string>& aliases, uint32_t minValue, uint32_t maxValue, std::string);
 
@@ -116,7 +126,7 @@ std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints<bool>(co
   return dpcoms;
 }
 
-/** 
+/**
   * Generate data points of type string, where each string is random, with
   * a length between the length of the two input strings (minLength,maxLength)
   */
