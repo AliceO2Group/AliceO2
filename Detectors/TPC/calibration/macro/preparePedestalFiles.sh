@@ -9,11 +9,11 @@ required arguments
 
 optional arguments:
 -o, --outputDir=          : set output directory for (default: ./)
--m, --minADC=             : minimal ADC value accepted for threshold (default: 2)
--s, --sigmaNoise=         : number of sigmas for the threshold (default: 3)
+-m, --minADC=             : minimal ADC value accepted for threshold (default: $minADC)
+-s, --sigmaNoise=         : number of sigmas for the threshold (default: $sigmaNoise)
 -p, --pedestalOffset=     : pedestal offset value
 -f, --onlyFilled          : only write links which have data
--k, --noMaskZero          : don't set pedetal value of missing pads to 512
+-k, --noMaskZero          : don't set pedetal value of missing pads to 1023
 -h, --help                : show this help message
 -n, --noisyThreshold      : threshold for noisy channel treatment (default: $noisyThreshold)
 -y, --sigmaNoiseNoisy     : sigmaNoise for noisy channels (default: $sigmaNoiseNoisy)
@@ -44,7 +44,7 @@ sigmaNoiseNoisy=4
 badChannelThreshold=6
 
 # ===| parse command line options |=============================================
-OPTIONS=$(getopt -l "inputFile:,outputDir:,minADC:,sigmaNoise:,pedestalOffset:,onlyFilled,noMaskZero,help" -o "i:o:t:m:s:p:fkh" -n "preparePedestalFiles.sh" -- "$@")
+OPTIONS=$(getopt -l "inputFile:,outputDir:,minADC:,sigmaNoise:,pedestalOffset:,noisyThreshold:,sigmaNoiseNoisy:,badChannelThreshold:,onlyFilled,noMaskZero,help" -o "i:o:t:m:s:p:n:y:b:fkh" -n "preparePedestalFiles.sh" -- "$@")
 
 if [ $? != 0 ] ; then
   usageAndExit
