@@ -124,6 +124,16 @@ class AlpideCoder
     // read record for single non-empty chip, updating on change module and cycle.
     // return number of records filled (>0), EOFFlag or Error
     //
+    auto roErrHandler = [&chipData](uint8_t roErr) {
+      if (roErr == MaskErrBusyViolation) {
+        chipData.setError(ChipStat::BusyViolation);
+      } else if (roErr == MaskErrDataOverrun) {
+        chipData.setError(ChipStat::DataOverrun);
+      } else if (roErr == MaskErrFatal) {
+        chipData.setError(ChipStat::Fatal);
+      }
+    };
+
     uint8_t dataC = 0, timestamp = 0;
     uint16_t dataS = 0, region = 0;
 #ifdef ALPIDE_DECODING_STAT
@@ -180,13 +190,7 @@ class AlpideCoder
 #ifdef ALPIDE_DECODING_STAT
         uint8_t roErr = dataC & MaskROFlags;
         if (roErr) {
-          if (roErr == MaskErrBusyViolation) {
-            chipData.setError(ChipStat::BusyViolation);
-          } else if (roErr == MaskErrDataOverrun) {
-            chipData.setError(ChipStat::DataOverrun);
-          } else if (roErr == MaskErrFatal) {
-            chipData.setError(ChipStat::Fatal);
-          }
+          roErrHandler(roErr);
         }
 #endif
         // in case there are entries in the "right" columns buffer, add them to the container
@@ -196,6 +200,7 @@ class AlpideCoder
             addHit(chipData, rightColHits[ihr], colDPrev);
           }
         }
+
         if (!chipData.getData().size() && !chipData.isErrorSet()) {
           nRightCHits = 0;
           colDPrev = 0xffff;
@@ -326,6 +331,15 @@ class AlpideCoder
         buffer.clear(); // 0 padding reached (end of the cable data), no point in continuing
         break;
       }
+
+      // in case of BUSY VIOLATION the Trailer may come directly after the Header
+      if ((expectInp & ExpectRegion) && (dataCM == CHIPTRAILER) && (dataC & MaskROFlags)) {
+        expectInp = ExpectChipHeader | ExpectChipEmpty;
+        chipData.setROFlags(dataC & MaskROFlags);
+        roErrHandler(dataC & MaskROFlags);
+        break;
+      }
+
 #ifdef ALPIDE_DECODING_STAT
       chipData.setError(ChipStat::UnknownWord);
 #endif
