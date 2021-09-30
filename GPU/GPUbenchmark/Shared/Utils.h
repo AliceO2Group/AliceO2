@@ -139,7 +139,7 @@ class ResultWriter
  public:
   explicit ResultWriter(const std::string resultsTreeFilename = "benchmark_results.root");
   ~ResultWriter() = default;
-  void storeBenchmarkEntry(int chunk, float entry, float chunkSizeGB, int nLaunches);
+  void storeBenchmarkEntry(Test test, int chunk, float entry, float chunkSizeGB, int nLaunches);
   void addBenchmarkEntry(const std::string bName, const std::string type, const int nChunks);
   void snapshotBenchmark();
   void saveToFile();
@@ -170,10 +170,25 @@ inline void ResultWriter::addBenchmarkEntry(const std::string bName, const std::
   mThroughputTrees.back()->Branch("throughput", &mThroughputResults);
 }
 
-inline void ResultWriter::storeBenchmarkEntry(int chunk, float entry, float chunkSizeGB, int nLaunches)
+inline void ResultWriter::storeBenchmarkEntry(Test test, int chunk, float entry, float chunkSizeGB, int nLaunches)
 {
+  // https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html
+  // Eff_bandwidth (GB/s) = (B_r + B_w) / (~1e9 * Time (s))
   mTimeResults[chunk] = entry;
-  mThroughputResults[chunk] = 1e3 * chunkSizeGB * nLaunches / entry;
+  switch (test) {
+    case Test::Read: {
+      mThroughputResults[chunk] = 1e3 * chunkSizeGB * nLaunches / entry;
+      break;
+    }
+    case Test::Write: {
+      mThroughputResults[chunk] = 1e3 * chunkSizeGB * nLaunches / entry;
+      break;
+    }
+    case Test::Copy: {
+      mThroughputResults[chunk] = 2 * 1e3 * chunkSizeGB * nLaunches / entry;
+      break;
+    }
+  }
 }
 
 inline void ResultWriter::snapshotBenchmark()

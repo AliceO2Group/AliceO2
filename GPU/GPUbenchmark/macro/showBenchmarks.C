@@ -75,7 +75,8 @@ void showBenchmarks(const bool times = false, const TString fileName = "0_benchm
                         g->GetYaxis()->SetRangeUser(0, 5000);
                         g->GetXaxis()->SetRangeUser(-2.f, nChunk);
                         g->SetTitle(Form("%s, N_{test}=%d;chunk_id;elapsed (GB/s)", keyPair.first.c_str(), (int)keyPair.second->GetEntriesFast()));
-                        g->SetFillColor(40);
+                        g->SetFillColor(kBlue);
+                        g->SetFillStyle(3335);
                         g->Draw("AB");
                       }
                     } else { // TP plots //

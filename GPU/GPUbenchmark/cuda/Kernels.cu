@@ -75,11 +75,11 @@ __global__ void readChunkSBKernel(
   chunk_t* results,
   size_t chunkSize)
 {
-  chunk_t sink{0};
+  chunk_t sink{0}; // local memory -> excluded from bandwidth accounting
   for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
-    sink += chunkPtr[i];
+    sink += chunkPtr[i]; // 1 read operation, performed "chunkSize" times
   }
-  results[chunkId] = sink;
+  results[chunkId] = sink; // writing done once
 }
 
 template <class chunk_t>
@@ -89,7 +89,7 @@ __global__ void readChunkMBKernel(
   chunk_t* results,
   size_t chunkSize)
 {
-  chunk_t sink{0};
+  chunk_t sink{0}; // local memory -> excluded from bandwidth accounting
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
     sink += chunkPtr[i];
   }
@@ -130,7 +130,7 @@ __global__ void copyChunkSBKernel(
   size_t chunkSize)
 {
   for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
-    chunkPtr[i] = inputs[chunkId];
+    chunkPtr[chunkSize - i - 1] = chunkPtr[i];
   }
 }
 
@@ -142,7 +142,7 @@ __global__ void copyChunkMBKernel(
   size_t chunkSize)
 {
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
-    chunkPtr[i] = inputs[chunkId];
+    chunkPtr[chunkSize - i - 1] = chunkPtr[i];
   }
 }
 
@@ -423,7 +423,7 @@ void GPUbenchmark<chunk_t>::readSequential(SplitLevel sl)
                                       nThreads, // args...
                                       mState.deviceReadResultsPtr,
                                       capacity);
-          mResultWriter.get()->storeBenchmarkEntry(iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
+          mResultWriter.get()->storeBenchmarkEntry(Test::Read, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -447,7 +447,7 @@ void GPUbenchmark<chunk_t>::readSequential(SplitLevel sl)
                                       nThreads, // args...
                                       mState.deviceReadResultsPtr,
                                       capacity);
-          mResultWriter.get()->storeBenchmarkEntry(iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
+          mResultWriter.get()->storeBenchmarkEntry(Test::Read, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -478,7 +478,7 @@ void GPUbenchmark<chunk_t>::readConcurrent(SplitLevel sl, int nRegions)
                                       mState.deviceReadResultsPtr, // kernel arguments (chunkId is passed by wrapper)
                                       capacity);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
+          mResultWriter.get()->storeBenchmarkEntry(Test::Read, iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -502,7 +502,7 @@ void GPUbenchmark<chunk_t>::readConcurrent(SplitLevel sl, int nRegions)
                                       mState.deviceReadResultsPtr, // kernel arguments (chunkId is passed by wrapper)
                                       capacity);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
+          mResultWriter.get()->storeBenchmarkEntry(Test::Read, iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -550,7 +550,7 @@ void GPUbenchmark<chunk_t>::writeSequential(SplitLevel sl)
                                       nThreads,
                                       mState.deviceWriteResultsPtr,
                                       capacity);
-          mResultWriter.get()->storeBenchmarkEntry(iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
+          mResultWriter.get()->storeBenchmarkEntry(Test::Write, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -574,7 +574,7 @@ void GPUbenchmark<chunk_t>::writeSequential(SplitLevel sl)
                                       nThreads,
                                       mState.deviceWriteResultsPtr,
                                       capacity);
-          mResultWriter.get()->storeBenchmarkEntry(iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
+          mResultWriter.get()->storeBenchmarkEntry(Test::Write, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -605,7 +605,7 @@ void GPUbenchmark<chunk_t>::writeConcurrent(SplitLevel sl, int nRegions)
                                       mState.deviceWriteResultsPtr, // kernel arguments (chunkId is passed by wrapper)
                                       capacity);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
+          mResultWriter.get()->storeBenchmarkEntry(Test::Write, iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -629,7 +629,7 @@ void GPUbenchmark<chunk_t>::writeConcurrent(SplitLevel sl, int nRegions)
                                       mState.deviceWriteResultsPtr, // kernel arguments (chunkId is passed by wrapper)
                                       capacity);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
+          mResultWriter.get()->storeBenchmarkEntry(Test::Write, iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -679,7 +679,7 @@ void GPUbenchmark<chunk_t>::copySequential(SplitLevel sl)
                                       nThreads,
                                       mState.deviceCopyInputsPtr,
                                       capacity);
-          mResultWriter.get()->storeBenchmarkEntry(iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
+          mResultWriter.get()->storeBenchmarkEntry(Test::Copy, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -703,7 +703,7 @@ void GPUbenchmark<chunk_t>::copySequential(SplitLevel sl)
                                       nThreads,
                                       mState.deviceCopyInputsPtr,
                                       capacity);
-          mResultWriter.get()->storeBenchmarkEntry(iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
+          mResultWriter.get()->storeBenchmarkEntry(Test::Copy, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -734,7 +734,7 @@ void GPUbenchmark<chunk_t>::copyConcurrent(SplitLevel sl, int nRegions)
                                       mState.deviceCopyInputsPtr, // kernel arguments (chunkId is passed by wrapper)
                                       capacity);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
+          mResultWriter.get()->storeBenchmarkEntry(Test::Copy, iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
@@ -758,7 +758,7 @@ void GPUbenchmark<chunk_t>::copyConcurrent(SplitLevel sl, int nRegions)
                                       mState.deviceCopyInputsPtr, // kernel arguments (chunkId is passed by wrapper)
                                       capacity);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
+          mResultWriter.get()->storeBenchmarkEntry(Test::Copy, iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
         }
         mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
