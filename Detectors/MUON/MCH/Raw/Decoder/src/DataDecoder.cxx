@@ -321,7 +321,6 @@ bool DataDecoder::mergeDigits(uint32_t mergerChannelId, uint32_t mergerBoardId, 
   }
 
   // if there is not previous digit for this channel then no merging is possible
-  //flog << fmt::format("  mask {:X}  ready {:X}", mergerChannelBitmask, mMergerRecordsReady[mergerBoardId]) << std::endl;
   if ((mMergerRecordsReady[mergerBoardId] & mergerChannelBitmask) == 0) {
     return false;
   }
@@ -744,13 +743,6 @@ void DataDecoder::init()
 
   mMergerRecords.resize(sReadoutChannelsNum);
   mMergerRecordsReady.resize(sReadoutBoardsNum);
-
-  if (mMergerRecords.size() != DataDecoder::sReadoutChannelsNum) {
-    std::cout << "WRONG SIZE OF mMergerRecords" << std::endl;
-  }
-  if (mMergerRecordsReady.size() != DataDecoder::sReadoutBoardsNum) {
-    std::cout << fmt::format("WRONG SIZE OF mMergerRecordsReady: {} instead of {}", mMergerRecordsReady.size(), DataDecoder::sReadoutBoardsNum) << std::endl;
-  }
 
   reset();
 };
