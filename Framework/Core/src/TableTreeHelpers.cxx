@@ -214,85 +214,76 @@ ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
   : mBranchName{field->name()},
     mColumn{column.get()}
 {
+  std::string leafList;
   auto arrowType = field->type();
-  switch (arrowType->id()) {
+  mFieldType = arrowType->id();
+  switch (mFieldType) {
     case arrow::Type::FIXED_SIZE_LIST:
       mListSize = std::static_pointer_cast<arrow::FixedSizeListType>(arrowType)->list_size();
       arrowType = arrowType->field(0)->type();
+      mElementType = basicROOTTypeFromArrow(arrowType->id());
+      leafList = mBranchName + "[" + std::to_string(mListSize) + "]" + mElementType.suffix;
       break;
     default:
+      mElementType = basicROOTTypeFromArrow(arrowType->id());
+      leafList = mBranchName + mElementType.suffix;
       break;
-  }
-  mType = basicROOTTypeFromArrow(arrowType->id());
-  if (mListSize > 1) {
-    mLeafList = mBranchName + "[" + std::to_string(mListSize) + "]" + mType.suffix;
-  } else {
-    mLeafList = mBranchName + mType.suffix;
   }
   mBranch = tree->GetBranch(mBranchName.c_str());
   if (mBranch == nullptr) {
-    mBranch = tree->Branch(mBranchName.c_str(), (char*)nullptr, mLeafList.c_str());
+    mBranch = tree->Branch(mBranchName.c_str(), (char*)nullptr, leafList.c_str());
   }
-  if (mType.type == EDataType::kBool_t) {
+  if (mElementType.type == EDataType::kBool_t) {
     cache.reserve(mListSize);
-    mCurrent = reinterpret_cast<uint8_t*>(cache.data());
-    mLast = mCurrent + mListSize * mType.size;
-    allocated = true;
   }
-  accessChunk(0);
+  accessChunk();
 }
 
 void ColumnToBranch::at(const int64_t* pos)
 {
-  mCurrentPos = pos;
-  resetBuffer();
-}
-
-auto ColumnToBranch::getCurrentBuffer()
-{
-  std::shared_ptr<arrow::PrimitiveArray> array;
-  if (mListSize > 1) {
-    array = std::static_pointer_cast<arrow::PrimitiveArray>(std::static_pointer_cast<arrow::FixedSizeListArray>(mColumn->chunk(mCurrentChunk))->values());
-  } else {
-    array = std::static_pointer_cast<arrow::PrimitiveArray>(mColumn->chunk(mCurrentChunk));
+  uint8_t const* buffer;
+  if (O2_BUILTIN_UNLIKELY(*pos - mFirstIndex >= mChunkLength)) {
+    nextChunk();
   }
-  return array;
-}
-
-void ColumnToBranch::resetBuffer()
-{
-  if (mType.type == EDataType::kBool_t) {
-    if (O2_BUILTIN_UNLIKELY((*mCurrentPos - mFirstIndex) * mListSize >= getCurrentBuffer()->length())) {
-      nextChunk();
-    }
-  } else {
-    if (O2_BUILTIN_UNLIKELY(mCurrent >= mLast)) {
-      nextChunk();
-    }
+  switch (mFieldType) {
+    case arrow::Type::FIXED_SIZE_LIST:
+      buffer = mValueArray->values()->data() + (*pos - mFirstIndex) * mListSize * mElementType.size;
+      break;
+    default:
+      buffer = mValueArray->values()->data() + (*pos - mFirstIndex) * mElementType.size;
   }
-  accessChunk(*mCurrentPos);
-  mBranch->SetAddress((void*)(mCurrent));
-}
-
-void ColumnToBranch::accessChunk(int64_t at)
-{
-  auto array = getCurrentBuffer();
-
-  if (mType.type == EDataType::kBool_t) {
-    auto boolArray = std::static_pointer_cast<arrow::BooleanArray>(array);
+  if (mElementType.type == EDataType::kBool_t) {
+    auto boolArray = std::static_pointer_cast<arrow::BooleanArray>(mValueArray);
     for (auto i = 0; i < mListSize; ++i) {
-      cache[i] = (bool)boolArray->Value((at - mFirstIndex) * mListSize + i);
+      cache[i] = boolArray->Value((*pos - mFirstIndex) * mListSize + i);
     }
+    mBranch->SetAddress((void*)(cache.data()));
   } else {
-    mCurrent = array->values()->data() + (at - mFirstIndex) * mListSize * mType.size;
-    mLast = mCurrent + array->length() * mListSize * mType.size;
+    mBranch->SetAddress((void*)buffer);
+  }
+}
+
+void ColumnToBranch::accessChunk()
+{
+  auto array = mColumn->chunk(mCurrentChunk);
+  std::shared_ptr<arrow::FixedSizeListArray> list;
+  switch (mFieldType) {
+    case arrow::Type::FIXED_SIZE_LIST:
+      list = std::static_pointer_cast<arrow::FixedSizeListArray>(array);
+      mChunkLength = list->length();
+      mValueArray = std::static_pointer_cast<arrow::PrimitiveArray>(list->values());
+      break;
+    default:
+      mValueArray = std::static_pointer_cast<arrow::PrimitiveArray>(array);
+      mChunkLength = mValueArray->length();
   }
 }
 
 void ColumnToBranch::nextChunk()
 {
+  mFirstIndex += mChunkLength;
   ++mCurrentChunk;
-  mFirstIndex += getCurrentBuffer()->length();
+  accessChunk();
 }
 
 TableToTree::TableToTree(std::shared_ptr<arrow::Table> const& table, TFile* file, const char* treename)

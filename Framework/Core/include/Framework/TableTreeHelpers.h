@@ -86,24 +86,20 @@ class ColumnToBranch
   void at(const int64_t* pos);
 
  private:
-  auto getCurrentBuffer();
-  void resetBuffer();
-  void accessChunk(int64_t at);
+  void accessChunk();
   void nextChunk();
 
   std::string mBranchName;
-  std::string mLeafList;
   TBranch* mBranch = nullptr;
   arrow::ChunkedArray* mColumn = nullptr;
-  int64_t const* mCurrentPos = nullptr;
   int64_t mFirstIndex = 0;
   int mCurrentChunk = 0;
   int mListSize = 1;
-  ROOTTypeInfo mType;
+  ROOTTypeInfo mElementType;
+  arrow::Type::type mFieldType;
   std::vector<uint8_t> cache;
-  uint8_t const* mCurrent = nullptr;
-  uint8_t const* mLast = nullptr;
-  bool allocated = false;
+  std::shared_ptr<arrow::PrimitiveArray> mValueArray = nullptr;
+  int64_t mChunkLength;
 };
 
 class TableToTree
