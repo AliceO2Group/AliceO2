@@ -24,8 +24,7 @@ namespace ctf
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getCTFWriterSpec(o2::detectors::DetID::mask_t dets, uint64_t run, bool doCTF = true,
-                                              bool doDict = false, bool dictPerDet = false);
+framework::DataProcessorSpec getCTFWriterSpec(o2::detectors::DetID::mask_t dets, uint64_t run, const std::string& outType);
 
 } // namespace ctf
 } // namespace o2

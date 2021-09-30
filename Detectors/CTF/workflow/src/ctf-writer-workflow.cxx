@@ -31,7 +31,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<o2::framework::ConfigParamSpec> options;
   options.push_back(ConfigParamSpec{"onlyDet", VariantType::String, std::string{DetID::NONE}, {"comma separated list of detectors to accept. Overrides skipDet"}});
   options.push_back(ConfigParamSpec{"skipDet", VariantType::String, std::string{DetID::NONE}, {"comma separate list of detectors to skip"}});
-  options.push_back(ConfigParamSpec{"dict-per-det", VariantType::Bool, false, {"create dictionary file per detector"}});
   options.push_back(ConfigParamSpec{"grpfile", VariantType::String, o2::base::NameConf::getGRPFileName(), {"name of the grp file"}});
   options.push_back(ConfigParamSpec{"no-grp", VariantType::Bool, false, {"do not read GRP file"}});
   options.push_back(ConfigParamSpec{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}});
@@ -49,7 +48,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   long run = 0;
   bool doCTF = true, doDict = false, dictPerDet = false;
   size_t szMin = 0, szMax = 0;
-
+  std::string outType{}; // RS FIXME once global/local options clash is solved, --output-type will become device option
   if (!configcontext.helpOnCommandLine()) {
     bool noGRP = configcontext.options().get<bool>("no-grp");
     auto onlyDet = configcontext.options().get<std::string>("onlyDet");
@@ -71,24 +70,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (dets.none()) {
       throw std::invalid_argument("Invalid workflow: no detectors found");
     }
-    auto outmode = configcontext.options().get<std::string>("output-type");
-    dictPerDet = configcontext.options().get<bool>("dict-per-det");
-    if (outmode == "ctf") {
-      doCTF = true;
-      doDict = false;
-    } else if (outmode == "dict") {
-      doCTF = false;
-      doDict = true;
-    } else if (outmode == "both") {
-      doCTF = true;
-      doDict = true;
-    } else if (outmode == "none") {
-      doCTF = false;
-      doDict = false;
-    } else {
-      throw std::invalid_argument("Invalid output-type");
-    }
+    outType = configcontext.options().get<std::string>("output-type");
   }
-  WorkflowSpec specs{o2::ctf::getCTFWriterSpec(dets, run, doCTF, doDict, dictPerDet)};
+  WorkflowSpec specs{o2::ctf::getCTFWriterSpec(dets, run, outType)};
   return std::move(specs);
 }
