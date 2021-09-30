@@ -36,7 +36,7 @@
 
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/Digit.h"
-#include "MCHBase/ClusterBlock.h"
+#include "DataFormatsMCH/ClusterBlock.h"
 #include "MCHMappingInterface/Segmentation.h"
 
 using namespace std;

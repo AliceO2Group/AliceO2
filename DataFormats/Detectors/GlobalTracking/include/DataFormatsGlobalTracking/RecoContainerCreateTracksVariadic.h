@@ -22,6 +22,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsMCH/TrackMCH.h"
+#include "DataFormatsMCH/ClusterBlock.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTOF/Cluster.h"

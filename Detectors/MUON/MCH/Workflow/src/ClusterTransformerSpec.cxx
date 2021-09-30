@@ -22,7 +22,7 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
-#include "MCHBase/ClusterBlock.h"
+#include "DataFormatsMCH/ClusterBlock.h"
 #include "MCHGeometryTransformer/Transformations.h"
 #include "MathUtils/Cartesian.h"
 #include <algorithm>

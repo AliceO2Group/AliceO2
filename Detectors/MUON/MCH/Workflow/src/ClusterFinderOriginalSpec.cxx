@@ -38,7 +38,7 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/Digit.h"
 #include "MCHBase/PreCluster.h"
-#include "MCHBase/ClusterBlock.h"
+#include "DataFormatsMCH/ClusterBlock.h"
 #include "MCHClustering/ClusterFinderOriginal.h"
 
 namespace o2
