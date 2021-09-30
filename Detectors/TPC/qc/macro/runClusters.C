@@ -57,6 +57,6 @@ void runClusters(std::string_view outputFile = "ClusterQC.root", std::string_vie
       }
     }
   }
-  clusters.analyse();
+  clusters.normalize();
   clusters.dumpToFile(outputFile.data());
 }
