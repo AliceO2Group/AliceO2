@@ -88,7 +88,7 @@ class CTFWriterSpec : public o2::framework::Task
 {
  public:
   CTFWriterSpec() = delete;
-  CTFWriterSpec(DetID::mask_t dm, uint64_t r = 0, bool doCTF = true, bool doDict = false, bool dictPerDet = false);
+  CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType);
   ~CTFWriterSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -112,7 +112,7 @@ class CTFWriterSpec : public o2::framework::Task
   void removeLockFile();
 
   DetID::mask_t mDets; // detectors
-  bool mWriteCTF = false;
+  bool mWriteCTF = true;
   bool mCreateDict = false;
   bool mDictPerDetector = false;
   bool mCreateRunEnvDir = true;
@@ -131,6 +131,7 @@ class CTFWriterSpec : public o2::framework::Task
   int mMaxCTFPerFile = 0;  // max CTFs per files to store
   std::vector<uint32_t> mTFOrbits{}; // 1st orbits of TF accumulated in current file
 
+  std::string mOutputType{}; // RS FIXME once global/local options clash is solved, --output-type will become device option
   std::string mLHCPeriod{};
   std::string mEnvironmentID{}; // partition env. id
   std::string mDictDir{};
@@ -163,31 +164,35 @@ class CTFWriterSpec : public o2::framework::Task
 const std::string CTFWriterSpec::TMPFileEnding{".part"};
 
 //___________________________________________________________________
-CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, bool doCTF, bool doDict, bool dictPerDet)
-  : mDets(dm), mRun(r), mWriteCTF(doCTF), mCreateDict(doDict), mDictPerDetector(dictPerDet)
+CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType)
+  : mDets(dm), mRun(r), mOutputType(outType)
 {
   mTimer.Stop();
   mTimer.Reset();
-
-  if (doDict) { // make sure that there is no local dictonary
-    for (int id = 0; id < DetID::nDetectors; id++) {
-      DetID det(id);
-      if (isPresent(det)) {
-        auto dictName = dictionaryFileName(det.getName());
-        if (std::filesystem::exists(dictName)) {
-          throw std::runtime_error(o2::utils::Str::concat_string("CTF dictionary creation is requested but ", dictName, " already exists, remove it!"));
-        }
-        if (!mDictPerDetector) {
-          break; // no point in checking further
-        }
-      }
-    }
-  }
 }
 
 //___________________________________________________________________
 void CTFWriterSpec::init(InitContext& ic)
 {
+  mDictPerDetector = ic.options().get<bool>("dict-per-det");
+  // auto outmode = ic.options().get<std::string>("output-type"); // RS FIXME once global/local options clash is solved, --output-type will become device option
+  auto outmode = mOutputType;
+  if (outmode == "ctf") {
+    mWriteCTF = true;
+    mCreateDict = false;
+  } else if (outmode == "dict") {
+    mWriteCTF = false;
+    mCreateDict = true;
+  } else if (outmode == "both") {
+    mWriteCTF = true;
+    mCreateDict = true;
+  } else if (outmode == "none") {
+    mWriteCTF = false;
+    mCreateDict = false;
+  } else {
+    throw std::invalid_argument("Invalid output-type");
+  }
+
   mSaveDictAfter = ic.options().get<int>("save-dict-after");
   mCTFAutoSave = ic.options().get<int>("save-ctf-after");
   mDictDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("ctf-dict-dir"));
@@ -198,7 +203,7 @@ void CTFWriterSpec::init(InitContext& ic)
   }
   mCTFMetaFileDir = ic.options().get<std::string>("meta-output-dir");
   if (mCTFMetaFileDir != "/dev/null") {
-    mCTFMetaFileDir = o2::utils::Str::rectifyDirectory("/dev/null");
+    mCTFMetaFileDir = o2::utils::Str::rectifyDirectory(mCTFMetaFileDir);
     mStoreMetaFile = true;
   }
   mCreateRunEnvDir = !ic.options().get<bool>("ignore-partition-run-dir");
@@ -219,6 +224,21 @@ void CTFWriterSpec::init(InitContext& ic)
       usleep(10); // protection in case the directory was created by other process at the time of query
       if (std::filesystem::exists(LOCKFileDir)) {
         throw std::runtime_error(fmt::format("Failed to create {} directory", LOCKFileDir));
+      }
+    }
+  }
+
+  if (mCreateDict) { // make sure that there is no local dictonary
+    for (int id = 0; id < DetID::nDetectors; id++) {
+      DetID det(id);
+      if (isPresent(det)) {
+        auto dictName = dictionaryFileName(det.getName());
+        if (std::filesystem::exists(dictName)) {
+          throw std::runtime_error(o2::utils::Str::concat_string("CTF dictionary creation is requested but ", dictName, " already exists, remove it!"));
+        }
+        if (!mDictPerDetector) {
+          break; // no point in checking further
+        }
       }
     }
   }
@@ -482,6 +502,7 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
 void CTFWriterSpec::closeTFTreeAndFile()
 {
   if (mCTFTreeOut) {
+    mCTFFileOut->cd();
     mCTFTreeOut->Write();
     mCTFTreeOut.reset();
     mCTFFileOut->Close();
@@ -496,7 +517,7 @@ void CTFWriterSpec::closeTFTreeAndFile()
       mCTFFileMetaData->LHCPeriod = mLHCPeriod;
       mCTFFileMetaData->type = "raw";
       mCTFFileMetaData->priority = "high";
-      auto metaFileName = o2::utils::Str::concat_string(mCurrentCTFFileName, ".done");
+      auto metaFileName = fmt::format("{}{}.done", mCTFMetaFileDir, mCurrentCTFFileName);
       try {
         std::ofstream metaFileOut(metaFileName);
         metaFileOut << *mCTFFileMetaData.get();
@@ -580,6 +601,7 @@ void CTFWriterSpec::storeDictionaries()
 void CTFWriterSpec::closeDictionaryTreeAndFile(CTFHeader& header)
 {
   if (mDictTreeOut) {
+    mDictFileOut->cd();
     appendToTree(*mDictTreeOut.get(), "CTFHeader", header);
     mDictTreeOut->SetEntries(1);
     mDictTreeOut->Write(mDictTreeOut->GetName(), TObject::kSingleKey);
@@ -670,7 +692,7 @@ size_t CTFWriterSpec::getAvailableDiskSpace(const std::string& path, int level)
 }
 
 //___________________________________________________________________
-DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF, bool doDict, bool dictPerDet)
+DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, const std::string& outType)
 {
   std::vector<InputSpec> inputs;
   LOG(DEBUG) << "Detectors list:";
@@ -684,16 +706,18 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF,
     "ctf-writer",
     inputs,
     Outputs{},
-    AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, doCTF, doDict, dictPerDet)},
-    Options{{"save-dict-after", VariantType::Int, 0, {"if > 0, in dictionary generation mode save it dictionary after certain number of TFs processed"}},
+    AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, outType)}, // RS FIXME once global/local options clash is solved, --output-type will become device option
+    Options{                                                         //{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}},
+            {"save-ctf-after", VariantType::Int, 0, {"if > 0, autosave CTF tree with multiple CTFs after every N CTFs"}},
+            {"save-dict-after", VariantType::Int, 0, {"if > 0, in dictionary generation mode save it dictionary after certain number of TFs processed"}},
             {"ctf-dict-dir", VariantType::String, "none", {"CTF dictionary directory, must exist"}},
+            {"dict-per-det", VariantType::Bool, false, {"create dictionary file per detector"}},
             {"output-dir", VariantType::String, "none", {"CTF output directory, must exist"}},
             {"output-dir-alt", VariantType::String, "/dev/null", {"Alternative CTF output directory, must exist (if not /dev/null)"}},
             {"meta-output-dir", VariantType::String, "/dev/null", {"CTF metadata output directory, must exist (if not /dev/null)"}},
             {"min-file-size", VariantType::Int64, 0l, {"accumulate CTFs until given file size reached"}},
             {"max-file-size", VariantType::Int64, 0l, {"if > 0, try to avoid exceeding given file size, also used for space check"}},
             {"max-ctf-per-file", VariantType::Int, 0, {"if > 0, avoid storing more than requested CTFs per file"}},
-            {"save-ctf-after", VariantType::Int, 0, {"if > 0, autosave CTF tree with multiple CTFs after every N CTFs"}},
             {"ignore-partition-run-dir", VariantType::Bool, false, {"Do not creare partition-run directory in output-dir"}}}};
 }
 
