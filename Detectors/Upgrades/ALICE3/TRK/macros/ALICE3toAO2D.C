@@ -101,8 +101,9 @@ void ALICE3toAO2D()
   itsHits.AddFile(hitsFileName.data());
 
   o2::its::TimeFrame tf;
-  o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU(&tf));
+  o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU);
   tracker.setBz(5.f);
+  tracker.adoptTimeFrame(tf);
 
   std::uint32_t roFrame;
   std::vector<Hit>* hits = nullptr;
