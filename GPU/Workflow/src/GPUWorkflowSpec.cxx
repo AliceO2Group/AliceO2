@@ -237,12 +237,12 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
       // Create and forward data objects for TPC transformation, material LUT, ...
       if (confParam.transformationFile.size()) {
-        processAttributes->fastTransform = nullptr;
-        config.configCalib.fastTransform = TPCFastTransform::loadFromFile(confParam.transformationFile.c_str());
+        processAttributes->fastTransform.reset(TPCFastTransform::loadFromFile(confParam.transformationFile.c_str()));
       } else {
         processAttributes->fastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
-        config.configCalib.fastTransform = processAttributes->fastTransform.get();
       }
+      config.configCalib.fastTransform = processAttributes->fastTransform.get();
+
       if (config.configCalib.fastTransform == nullptr) {
         throw std::invalid_argument("GPU workflow: initialization of the TPC transformation failed");
       }
@@ -532,7 +532,8 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
               if (verbosity) {
                 end = std::chrono::high_resolution_clock::now();
                 std::chrono::duration<double> elapsed_seconds = end - start;
-                LOG(INFO) << "Allocation time for " << name << " (" << size << " bytes)" << ": " << elapsed_seconds.count() << "s";
+                LOG(INFO) << "Allocation time for " << name << " (" << size << " bytes)"
+                          << ": " << elapsed_seconds.count() << "s";
               }
               return (buffer.second = buffer.first->get().data()) + offset;
             };
@@ -606,6 +607,18 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
       if ((int)(ptrs.tpcZS != nullptr) + (int)(ptrs.tpcPackedDigits != nullptr && (ptrs.tpcZS == nullptr || ptrs.tpcPackedDigits->tpcDigitsMC == nullptr)) + (int)(ptrs.clustersNative != nullptr) + (int)(ptrs.tpcCompressedClusters != nullptr) != 1) {
         throw std::runtime_error("Invalid input for gpu tracking");
+      }
+
+      // update calibrations
+      const auto timeStamp = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().getFirstValid(true).header)->startTime;
+      auto& fastTransform = processAttributes->fastTransform;
+      auto& config = *processAttributes->config.get();
+      if (TPCFastTransformHelperO2::instance()->updateCalibration(*fastTransform, timeStamp)) {
+        if (tracker->UpdateCalibration(config.configCalib) != 0) {
+          //throw std::invalid_argument("GPU calibration update failed");
+          LOGP(info, "GPU calibration updated to be implemented");
+        }
+        LOGP(info, "GPU calibration updated");
       }
 
       const auto& holdData = TPCTrackingDigitsPreCheck::runPrecheck(&ptrs, processAttributes->config.get());

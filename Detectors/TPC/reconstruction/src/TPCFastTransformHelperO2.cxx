@@ -231,13 +231,24 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
     return 0;
   }
 
+  const double vDrift = elParam.ZbinWidth * gasParam.DriftV; // cm/timebin
+  const double t0 = elParam.getAverageShapingTime() / elParam.ZbinWidth;
+  const double vdCorrY = 0.;
+  const double ldCorr = 0.;
+  const double tofCorr = 0.;
+  const double primVtxZ = 0.;
+
+  // check if calibration parameters changed by more than 0.1%, otherwise don't update
+  if ((TMath::Abs(fastTransform.getVDrift() / vDrift - 1.) < 0.001) && //
+      (TMath::Abs(fastTransform.getT0() / t0 - 1.) < 0.001)) {
+    return 0;
+  }
+
   // start the initialization
 
   fastTransform.setTimeStamp(TimeStamp);
 
   // find last calibrated time bin
-
-  const double vDrift = elParam.ZbinWidth * gasParam.DriftV; // cm/timebin
 
   //mLastTimeBin = detParam.getTPClength() / vDrift  + 1;
 
@@ -246,13 +257,6 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
   // Z = Z(L) +  tpcAlignmentZ
   // spline corrections for xyz
   // Time-of-flight correction: ldrift += dist-to-vtx*tofCorr
-
-  const double t0 = elParam.getAverageShapingTime() / elParam.ZbinWidth;
-
-  const double vdCorrY = 0.;
-  const double ldCorr = 0.;
-  const double tofCorr = 0.;
-  const double primVtxZ = 0.;
 
   fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
 
@@ -282,7 +286,7 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   // for the future: set back the time-of-flight correction
 
-  return 0;
+  return 1;
 }
 
 int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, double su, double sv, double& dx, double& du, double& dv)
