@@ -91,6 +91,7 @@ class ColumnToBranch
 
   std::string mBranchName;
   TBranch* mBranch = nullptr;
+  TBranch* mSizeBranch = nullptr;
   arrow::ChunkedArray* mColumn = nullptr;
   int64_t mFirstIndex = 0;
   int mCurrentChunk = 0;
@@ -98,8 +99,9 @@ class ColumnToBranch
   ROOTTypeInfo mElementType;
   arrow::Type::type mFieldType;
   std::vector<uint8_t> cache;
-  std::shared_ptr<arrow::PrimitiveArray> mValueArray = nullptr;
+  std::shared_ptr<arrow::Array> mCurrentArray = nullptr;
   int64_t mChunkLength;
+  static constexpr char const* suffix = "_size";
 };
 
 class TableToTree

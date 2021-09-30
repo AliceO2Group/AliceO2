@@ -215,6 +215,7 @@ ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
     mColumn{column.get()}
 {
   std::string leafList;
+  std::string sizeLeafList;
   auto arrowType = field->type();
   mFieldType = arrowType->id();
   switch (mFieldType) {
@@ -224,10 +225,22 @@ ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
       mElementType = basicROOTTypeFromArrow(arrowType->id());
       leafList = mBranchName + "[" + std::to_string(mListSize) + "]" + mElementType.suffix;
       break;
+    case arrow::Type::LIST:
+      arrowType = arrowType->field(0)->type();
+      mElementType = basicROOTTypeFromArrow(arrowType->id());
+      leafList = mBranchName + "[" + mBranchName + suffix + "]" + mElementType.suffix;
+      sizeLeafList = mBranchName + suffix + "/I";
+      break;
     default:
       mElementType = basicROOTTypeFromArrow(arrowType->id());
       leafList = mBranchName + mElementType.suffix;
       break;
+  }
+  if (!sizeLeafList.empty()) {
+    mSizeBranch = tree->GetBranch((mBranchName + suffix).c_str());
+    if (mSizeBranch == nullptr) {
+      mSizeBranch = tree->Branch((mBranchName + suffix).c_str(), (char*)nullptr, sizeLeafList.c_str());
+    }
   }
   mBranch = tree->GetBranch(mBranchName.c_str());
   if (mBranch == nullptr) {
@@ -241,41 +254,54 @@ ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
 
 void ColumnToBranch::at(const int64_t* pos)
 {
-  uint8_t const* buffer;
   if (O2_BUILTIN_UNLIKELY(*pos - mFirstIndex >= mChunkLength)) {
     nextChunk();
   }
-  switch (mFieldType) {
-    case arrow::Type::FIXED_SIZE_LIST:
-      buffer = mValueArray->values()->data() + (*pos - mFirstIndex) * mListSize * mElementType.size;
-      break;
-    default:
-      buffer = mValueArray->values()->data() + (*pos - mFirstIndex) * mElementType.size;
-  }
   if (mElementType.type == EDataType::kBool_t) {
-    auto boolArray = std::static_pointer_cast<arrow::BooleanArray>(mValueArray);
+    auto boolArray = std::static_pointer_cast<arrow::BooleanArray>(mCurrentArray);
     for (auto i = 0; i < mListSize; ++i) {
       cache[i] = boolArray->Value((*pos - mFirstIndex) * mListSize + i);
     }
     mBranch->SetAddress((void*)(cache.data()));
-  } else {
-    mBranch->SetAddress((void*)buffer);
+    return;
+  }
+  uint8_t const* buffer;
+  switch (mFieldType) {
+    case arrow::Type::LIST: {
+      auto list = std::static_pointer_cast<arrow::ListArray>(mCurrentArray);
+      mListSize = list->value_length((*pos - mFirstIndex));
+      buffer = std::static_pointer_cast<arrow::PrimitiveArray>(list->values())->values()->data() + mCurrentArray->offset() + list->value_offset((*pos - mFirstIndex)) * mElementType.size;
+      mBranch->SetAddress((void*)buffer);
+      mSizeBranch->SetAddress(&mListSize);
+    };
+      break;
+    case arrow::Type::FIXED_SIZE_LIST:
+    default: {
+      buffer = std::static_pointer_cast<arrow::PrimitiveArray>(mCurrentArray)->values()->data() + mCurrentArray->offset() + (*pos - mFirstIndex) * mListSize * mElementType.size;
+      mBranch->SetAddress((void*)buffer);
+    };
   }
 }
 
 void ColumnToBranch::accessChunk()
 {
   auto array = mColumn->chunk(mCurrentChunk);
-  std::shared_ptr<arrow::FixedSizeListArray> list;
   switch (mFieldType) {
-    case arrow::Type::FIXED_SIZE_LIST:
-      list = std::static_pointer_cast<arrow::FixedSizeListArray>(array);
+    case arrow::Type::FIXED_SIZE_LIST: {
+      auto list = std::static_pointer_cast<arrow::FixedSizeListArray>(array);
       mChunkLength = list->length();
-      mValueArray = std::static_pointer_cast<arrow::PrimitiveArray>(list->values());
+      mCurrentArray = list->values();
+    };
+      break;
+    case arrow::Type::LIST: {
+      auto list = std::static_pointer_cast<arrow::ListArray>(array);
+      mChunkLength = list->length();
+      mCurrentArray = list;
+    };
       break;
     default:
-      mValueArray = std::static_pointer_cast<arrow::PrimitiveArray>(array);
-      mChunkLength = mValueArray->length();
+      mCurrentArray = array;
+      mChunkLength = mCurrentArray->length();
   }
 }
 
