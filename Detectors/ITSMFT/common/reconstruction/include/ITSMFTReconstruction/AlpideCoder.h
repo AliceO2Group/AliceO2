@@ -342,6 +342,14 @@ class AlpideCoder
 
 #ifdef ALPIDE_DECODING_STAT
       chipData.setError(ChipStat::UnknownWord);
+      // fill the error buffer with a few bytes of wrong data
+      const uint8_t* begPtr = buffer.data();
+      const uint8_t* endPtr = buffer.getEnd();
+      const uint8_t* curPtr = buffer.getPtr();
+      size_t offsBack = std::min(ChipPixelData::MAXDATAERRBYTES - ChipPixelData::MAXDATAERRBYTES_AFTER, size_t(curPtr - begPtr));
+      size_t offsAfter = std::min(ChipPixelData::MAXDATAERRBYTES_AFTER, size_t(endPtr - curPtr));
+      std::memcpy(chipData.getRawErrBuff().data(), curPtr - offsBack, offsBack + offsAfter);
+      chipData.setNBytesInRawBuff(offsBack + offsAfter);
 #endif
       return unexpectedEOF(fmt::format("Unknown word 0x{:x} [expectation = 0x{:x}]", int(dataC), int(expectInp))); // error
     }
