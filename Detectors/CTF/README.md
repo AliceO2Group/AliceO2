@@ -22,6 +22,7 @@ o2-ctf-writer --min-file-size <min> --max-file-size <max> ...
 ```
 will accumulate CTFs in entries of the same tree/file until its size fits exceeds `min` and does not exceed `max` (`max` check is disabled if `max<=min`) or EOS received.
 The `--max-file-size` limit will be ignored if the very first CTF already exceeds it.
+Additional option `--max-ctf-per-file <N>` will forbid writing more than `N` CTFs to single file (provided `N>0`) even if the `min-file-size` is not reached. User may request autosaving of CTFs accumulated in the file after every `N` TFs processed by passing an option `--save-ctf-after <N>`.
 
 The output directory (by default: `cwd`) for CTFs can be set via `--output-dir` option and must exist. Since in on the EPNs we may store the CTFs on the RAM disk of limited capacity, one can indicate the fall-back storage via `--output-dir-alt` option. The writer will switch to it if
 (i) `szCheck = max(min-file-size*1.1, max-file-size)` is positive and (ii) estimated (accounting for eventual other CTFs files written concurrently) available space on the primary storage is below the `szCheck`. The available space is estimated as:
@@ -33,7 +34,13 @@ number still open CTF files from concurrent writers * szCheck
 the current size of these files
 ````
 
-Option `--ctf-dict-dir <dir>` can be provided to indicate the (existing) directory for the dictionary IO.
+If the option `--meta-output-dir <dir>` is not `/dev/null`, the CTF `meta-info` files will be written to this directory (which must exist!).
+
+By default only CTFs will written. If the upstream entropy compression is performed w/o external dictionaries, then the for every CTF its own dictionary will be generated and stored in the CTF. In this mode one can request creation of dictionary file (or dictionary file per detector if option `--dict-per-det` is provided) by passing option `--output-type dict` (in which case only the dictionares will be stored but not the CTFs) or
+`--output-type both` (will store both dictionaries and CTF). This is the only valid mode for dictionaries creation (if one requests dictionary creation but the compression was done with external dictionaries, the newly created dictionaries will be empty).
+In the dictionaries creation mode their data are accumulated over all CTFs procssed. User may request periodic (and incremental) saving of dictionaries after every `N` TFs processed by passing `--save-dict-after <N>` option.
+
+Option `--ctf-dict-dir <dir>` can be provided to indicate the (existing) directory where the dictionary will be stored.
 
 ## CTF reader workflow
 
