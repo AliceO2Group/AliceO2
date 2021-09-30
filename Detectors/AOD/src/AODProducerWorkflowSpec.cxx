@@ -1234,15 +1234,17 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     if (item != mGIDToTableID.end()) {
       posTableIdx = item->second;
     } else {
-      LOG(FATAL) << "Could not find a positive track index";
+      LOG(WARN) << "Could not find a positive track index for prong ID " << trPosID;
     }
     item = mGIDToTableID.find(trNegID);
     if (item != mGIDToTableID.end()) {
       negTableIdx = item->second;
     } else {
-      LOG(FATAL) << "Could not find a negative track index";
+      LOG(WARN) << "Could not find a negative track index for prong ID " << trNegID;
     }
-    v0sCursor(0, posTableIdx, negTableIdx);
+    if (posTableIdx != -1 and negTableIdx != -1) {
+      v0sCursor(0, posTableIdx, negTableIdx);
+    }
   }
 
   // filling cascades table
@@ -1253,7 +1255,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     if (item != mGIDToTableID.end()) {
       bachTableIdx = item->second;
     } else {
-      LOG(FATAL) << "Could not find a bachelor track index";
+      LOG(WARN) << "Could not find a bachelor track index";
     }
     cascadesCursor(0, cascade.getV0ID(), bachTableIdx);
   }
