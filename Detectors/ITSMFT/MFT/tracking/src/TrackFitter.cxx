@@ -84,6 +84,9 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   double sigmainvQPtsq;
   double chi2invqptquad;
   auto invQPt0 = invQPtFromFCF(track, mBZField, sigmainvQPtsq);
+  if (std::abs(mBZField) < 0.5) { // Temporary workaround for MFT tracking with magnet off;
+    invQPt0 = 1e-5;
+  }
   auto nPoints = track.getNumberOfPoints();
   auto k = TMath::Abs(o2::constants::math::B2C * mBZField);
   auto Hz = std::copysign(1, mBZField);
