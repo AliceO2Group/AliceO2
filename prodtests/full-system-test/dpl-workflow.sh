@@ -36,8 +36,7 @@ fi
 ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE $ARGS_ALL_EXTRA"
 if [ $EPNMODE == 1 ]; then
   ARGS_ALL+=" --infologger-severity $INFOLOGGER_SEVERITY"
-  #ARGS_ALL+=" --monitoring-backend influxdb-unix:///tmp/telegraf.sock --resources-monitoring 60"
-  ARGS_ALL+=" --monitoring-backend no-op://"
+  ARGS_ALL+=" --monitoring-backend influxdb-unix:///tmp/telegraf.sock --resources-monitoring 60"
 else
   ARGS_ALL+=" --monitoring-backend no-op://"
 fi
@@ -54,7 +53,7 @@ if [ $NUMAGPUIDS != 0 ]; then
   ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
 fi
 if [ $GPUTYPE != "CPU" ] || [ $OPTIMIZED_PARALLEL_ASYNC != 0 ]; then
-  ARGS_ALL+="  --shm-mlock-segment-on-creation 1"
+  ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
 fi
 ARGS_ALL_CONFIG="NameConf.mDirGRP=$FILEWORKDIR;NameConf.mDirGeom=$FILEWORKDIR;NameConf.mDirCollContext=$FILEWORKDIR;NameConf.mDirMatLUT=$FILEWORKDIR;keyval.input_dir=$FILEWORKDIR;keyval.output_dir=/dev/null;$ALL_EXTRA_CONFIG"
 
@@ -65,17 +64,22 @@ GPU_OUTPUT=tracks,clusters
 GPU_CONFIG=
 GPU_CONFIG_KEY=
 TOF_INPUT=raw
+TOF_OUTPUT=clusters
 ITS_CONFIG=
 ITS_CONFIG_KEY=
 TRD_CONFIG=
 TRD_CONFIG_KEY=
 TRD_TRANSFORMER_CONFIG=
-EVE_CONFIG=
+EVE_CONFIG=" --jsons-folder $EDJSONS_DIR"
 MFTDEC_CONFIG=
 MIDDEC_CONFIG=
 
 if [ $SYNCMODE == 1 ]; then
-  ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
+  if [ $BEAMTYPE == "PbPb" ]; then
+    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
+  elif [ $BEAMTYPE == "pp" ]; then
+    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=1;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
+  fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
   TRD_CONFIG+=" --track-sources ITS-TPC --filter-trigrec"
   TRD_CONFIG_KEY+="GPU_proc.ompThreads=1;"
@@ -126,12 +130,15 @@ if [ $HOSTMEMSIZE != "0" ]; then
   GPU_CONFIG_KEY+="GPU_proc.forceHostMemoryPoolSize=$HOSTMEMSIZE;"
 fi
 
+if workflow_has_parameter CTF_ONLY; then
+  TOF_OUTPUT=digits
+fi
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Process multiplicities
 N_TPCTRK=1
 N_TPCENT=1
 N_TPCITS=1
-N_MFTMCH=1
 N_ITSRAWDEC=1
 N_MFTRAWDEC=1
 N_CTPRAWDEC=1
@@ -178,6 +185,7 @@ elif [ $EPNPIPELINES != 0 ]; then
   N_EMC=$((7 * $EPNPIPELINES * $NGPUS / 4 > 0 ? 7 * $EPNPIPELINES * $NGPUS / 4 : 1))
   N_TRDENT=$((3 * $EPNPIPELINES * $NGPUS / 4 > 0 ? 3 * $EPNPIPELINES * $NGPUS / 4 : 1))
   N_TRDTRK=$((3 * $EPNPIPELINES * $NGPUS / 4 > 0 ? 3 * $EPNPIPELINES * $NGPUS / 4 : 1))
+  N_TPCRAWDEC=$((6 * $EPNPIPELINES * $NGPUS / 4 > 0 ? 6 * $EPNPIPELINES * $NGPUS / 4 : 1))
   if [ $GPUTYPE == "CPU" ]; then
     N_TPCTRK=8
     GPU_CONFIG_KEY+="GPU_proc.ompThreads=4;"
@@ -259,13 +267,15 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Common reconstruction workflows
-has_detector ITS && WORKFLOW+="o2-its-reco-workflow $ARGS_ALL --trackerCA $DISABLE_MC --clusters-from-upstream --disable-root-output $ITS_CONFIG --configKeyValues \"$ARGS_ALL_CONFIG;$ITS_CONFIG_KEY\" --its-dictionary-path $FILEWORKDIR --pipeline its-tracker:$N_ITSTRK | "
 has_detector TPC && WORKFLOW+="o2-gpu-reco-workflow ${ARGS_ALL//-severity $SEVERITY/-severity $SEVERITY_TPC} --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT --pipeline gpu-reconstruction:$N_TPCTRK $GPU_CONFIG --configKeyValues \"$ARGS_ALL_CONFIG;GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$GPU_EXTRA_CONFIG\" | "
-has_detectors ITS TPC && WORKFLOW+="o2-tpcits-match-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output $DISABLE_MC --its-dictionary-path $FILEWORKDIR --pipeline itstpc-track-matcher:$N_TPCITS | "
-has_detector FT0 && WORKFLOW+="o2-ft0-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output $DISABLE_MC --pipeline ft0-reconstructor:$N_F_REST | "
-has_detector TOF && WORKFLOW+="o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --input-type $TOF_INPUT --output-type clusters --disable-root-input --disable-root-output $DISABLE_MC --pipeline tof-compressed-decoder:$N_F_RAW,TOFClusterer:$N_F_REST | "
-has_detector TRD && WORKFLOW+="o2-trd-tracklet-transformer $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output $DISABLE_MC $TRD_TRANSFORMER_CONFIG --pipeline TRDTRACKLETTRANSFORMER:$N_TRDTRK | "
-has_detectors TRD TPC ITS && WORKFLOW+="o2-trd-global-tracking $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG;$TRD_CONFIG_KEY\" --disable-root-input --disable-root-output $DISABLE_MC $TRD_CONFIG | "
+has_detector TOF && WORKFLOW+="o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --input-type $TOF_INPUT --output-type $TOF_OUTPUT --disable-root-input --disable-root-output $DISABLE_MC --pipeline tof-compressed-decoder:$N_F_RAW,TOFClusterer:$N_F_REST | "
+if ! workflow_has_parameter CTF_ONLY; then
+  has_detector ITS && WORKFLOW+="o2-its-reco-workflow $ARGS_ALL --trackerCA $DISABLE_MC --clusters-from-upstream --disable-root-output $ITS_CONFIG --configKeyValues \"$ARGS_ALL_CONFIG;$ITS_CONFIG_KEY\" --its-dictionary-path $FILEWORKDIR --pipeline its-tracker:$N_ITSTRK | "
+  has_detectors ITS TPC && WORKFLOW+="o2-tpcits-match-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output $DISABLE_MC --its-dictionary-path $FILEWORKDIR --pipeline itstpc-track-matcher:$N_TPCITS | "
+  has_detector FT0 && WORKFLOW+="o2-ft0-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output $DISABLE_MC --pipeline ft0-reconstructor:$N_F_REST | "
+  has_detector TRD && WORKFLOW+="o2-trd-tracklet-transformer $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output $DISABLE_MC $TRD_TRANSFORMER_CONFIG --pipeline TRDTRACKLETTRANSFORMER:$N_TRDTRK | "
+  has_detectors TRD TPC ITS && WORKFLOW+="o2-trd-global-tracking $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG;$TRD_CONFIG_KEY\" --disable-root-input --disable-root-output $DISABLE_MC $TRD_CONFIG | "
+fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Workflows disabled in sync mode
@@ -274,7 +284,7 @@ if [ $SYNCMODE == 0 ]; then
   has_detector MID && WORKFLOW+="o2-mid-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-output $DISABLE_MC --pipeline MIDClusterizer:$N_F_REST,MIDTracker:$N_F_REST | "
   has_detector MCH && WORKFLOW+="o2-mch-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output $DISABLE_MC --pipeline mch-track-finder:$N_MCHTRK,mch-cluster-finder:$N_F_REST,mch-cluster-transformer:$N_F_REST | "
   has_detector MFT && WORKFLOW+="o2-mft-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --clusters-from-upstream $DISABLE_MC --disable-root-output --pipeline mft-tracker:$N_MFTTRK --mft-dictionary-path $FILEWORKDIR | "
-  has_detectors MFT MCH && WORKFLOW+="o2-globalfwd-matcher-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output $DISABLE_MC --pipeline globalfwd-track-matcher:$N_MFTMCH | "
+  has_detectors MFT MCH && WORKFLOW+="o2-globalfwd-matcher-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output $DISABLE_MC --pipeline globalfwd-track-matcher:$N_F_REST | "
   has_detectors ITS TPC TRD TOF FT0 MCH MFT && WORKFLOW+="o2-primary-vertexing-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" $DISABLE_MC --disable-root-input --disable-root-output --validate-with-ft0 --pipeline primary-vertexing:$N_F_REST | "
   has_detectors ITS TPC TRD TOF FT0 MCH MFT && WORKFLOW+="o2-secondary-vertexing-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output --pipeline secondary-vertexing:$N_F_REST | "
   has_detector FDD && WORKFLOW+="o2-fdd-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output $DISABLE_MC | "
@@ -285,34 +295,36 @@ fi
 # ---------------------------------------------------------------------------------------------------------------------
 # Workflows disabled in async mode
 if [ $CTFINPUT == 0 ]; then
-  # Reconstruction workflows
-  if [ $SYNCMODE == 1 ]; then # Otherwise already present in async setup
-    has_detectors TOF TRD TPC ITS && WORKFLOW+="o2-tof-matcher-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output $DISABLE_MC --track-sources \"ITS-TPC\" --pipeline tof-matcher:$N_TOFMATCH | "
-  fi
   has_detector PHS && WORKFLOW+="o2-phos-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --input-type raw --output-type cells --disable-root-input --disable-root-output --pipeline PHOSRawToCellConverterSpec:$N_F_REST $DISABLE_MC | "
   has_detector CPV && WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --input-type raw --output-type clusters --disable-root-input --disable-root-output --pipeline CPVRawToDigitConverterSpec:$N_F_REST,CPVClusterizerSpec:$N_F_REST $DISABLE_MC | "
   has_detector EMC && WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --input-type raw --output-type cells --disable-root-output $DISABLE_MC --pipeline EMCALRawToCellConverterSpec:$N_EMC | "
+  if ! workflow_has_parameter CTF_ONLY; then
+    # Reconstruction workflows
+    if [ $SYNCMODE == 1 ]; then # Otherwise already present in async setup
+      has_detectors TOF TRD TPC ITS && WORKFLOW+="o2-tof-matcher-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input --disable-root-output $DISABLE_MC --track-sources \"ITS-TPC\" --pipeline tof-matcher:$N_TOFMATCH | "
+    fi
+  fi
 
   # Entropy encoder workflows
-  has_detector MFT && WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --runmft true --pipeline mft-entropy-encoder:$N_F_CTF| "
-  has_detector FT0 && WORKFLOW+="o2-ft0-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline ft0-entropy-encoder:$N_F_CTF| "
-  has_detector FV0 && WORKFLOW+="o2-fv0-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline fv0-entropy-encoder:$N_F_CTF| "
-  has_detector MID && WORKFLOW+="o2-mid-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline mid-entropy-encoder:$N_F_CTF| "
-  has_detector MCH && WORKFLOW+="o2-mch-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline mch-entropy-encoder:$N_F_CTF| "
-  has_detector PHS && WORKFLOW+="o2-phos-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline phos-entropy-encoder:$N_F_CTF| "
-  has_detector CPV && WORKFLOW+="o2-cpv-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline cpv-entropy-encoder:$N_F_CTF| "
-  has_detector EMC && WORKFLOW+="o2-emcal-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline emcal-entropy-encoder:$N_F_CTF| "
-  has_detector ZDC && WORKFLOW+="o2-zdc-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline zdc-entropy-encoder:$N_F_CTF| "
-  has_detector FDD && WORKFLOW+="o2-fdd-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline fdd-entropy-encoder:$N_F_CTF| "
-  has_detector HMP && WORKFLOW+="o2-hmpid-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline hmpid-entropy-encoder:$N_F_CTF| "
-  has_detector TOF && WORKFLOW+="o2-tof-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline tof-entropy-encoder:$N_F_CTF| "
-  has_detector ITS && WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline its-entropy-encoder:$N_F_CTF| "
+  has_detector MFT && WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --runmft true --pipeline mft-entropy-encoder:$N_F_CTF | "
+  has_detector FT0 && WORKFLOW+="o2-ft0-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline ft0-entropy-encoder:$N_F_CTF | "
+  has_detector FV0 && WORKFLOW+="o2-fv0-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline fv0-entropy-encoder:$N_F_CTF | "
+  has_detector MID && WORKFLOW+="o2-mid-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline mid-entropy-encoder:$N_F_CTF | "
+  has_detector MCH && WORKFLOW+="o2-mch-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline mch-entropy-encoder:$N_F_CTF | "
+  has_detector PHS && WORKFLOW+="o2-phos-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline phos-entropy-encoder:$N_F_CTF | "
+  has_detector CPV && WORKFLOW+="o2-cpv-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline cpv-entropy-encoder:$N_F_CTF | "
+  has_detector EMC && WORKFLOW+="o2-emcal-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline emcal-entropy-encoder:$N_F_CTF | "
+  has_detector ZDC && WORKFLOW+="o2-zdc-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline zdc-entropy-encoder:$N_F_CTF | "
+  has_detector FDD && WORKFLOW+="o2-fdd-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline fdd-entropy-encoder:$N_F_CTF | "
+  has_detector HMP && WORKFLOW+="o2-hmpid-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline hmpid-entropy-encoder:$N_F_CTF | "
+  has_detector TOF && WORKFLOW+="o2-tof-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline tof-entropy-encoder:$N_F_CTF | "
+  has_detector ITS && WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline its-entropy-encoder:$N_F_CTF | "
   has_detector TRD && WORKFLOW+="o2-trd-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline trd-entropy-encoder:$N_TRDENT | "
   has_detector TPC && WORKFLOW+="o2-tpc-reco-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --input-type compressed-clusters-flat --output-type encoded-clusters,disable-writer --pipeline tpc-entropy-encoder:$N_TPCENT | "
   has_detector CTP && WORKFLOW+="o2-ctp-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline its-entropy-encoder:$N_F_CTF| "
 
   # Calibration workflows
-  has_detector_calib TPC && has_detectors TPC ITS TRD TOF && WORKFLOW+="o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-output --disable-root-input --pipeline tpc-track-interpolation:$N_F_REST | "
+  workflow_has_parameter CALIB && has_detector_calib TPC && has_detectors TPC ITS TRD TOF && WORKFLOW+="o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-output --disable-root-input --pipeline tpc-track-interpolation:$N_F_REST | "
 
   # CTF / dictionary writer workflow
   if [ $SAVECTF == 1 ]; then
