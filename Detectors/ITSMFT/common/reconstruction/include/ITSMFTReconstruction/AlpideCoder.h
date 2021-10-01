@@ -125,6 +125,7 @@ class AlpideCoder
     // return number of records filled (>0), EOFFlag or Error
     //
     auto roErrHandler = [&chipData](uint8_t roErr) {
+#ifdef ALPIDE_DECODING_STAT
       if (roErr == MaskErrBusyViolation) {
         chipData.setError(ChipStat::BusyViolation);
       } else if (roErr == MaskErrDataOverrun) {
@@ -132,6 +133,7 @@ class AlpideCoder
       } else if (roErr == MaskErrFatal) {
         chipData.setError(ChipStat::Fatal);
       }
+#endif
     };
 
     uint8_t dataC = 0, timestamp = 0;
@@ -147,7 +149,6 @@ class AlpideCoder
     uint32_t expectInp = ExpectChipHeader | ExpectChipEmpty; // data must always start with chip header or chip empty flag
 
     chipData.clear();
-
     while (buffer.next(dataC)) {
       //
       // ---------- chip info ?
@@ -161,6 +162,7 @@ class AlpideCoder
 #endif
           return unexpectedEOF("CHIP_EMPTY:Timestamp");
         }
+        chipData.resetChipID();
         expectInp = ExpectChipHeader | ExpectChipEmpty;
         continue;
       }
@@ -280,11 +282,12 @@ class AlpideCoder
 #endif
               return unexpectedEOF("CHIP_DATA_LONG:Pattern");
             }
-#ifdef ALPIDE_DECODING_STAT
             if (hitsPattern & (~MaskHitMap)) {
+#ifdef ALPIDE_DECODING_STAT
               chipData.setError(ChipStat::WrongDataLongPattern);
-            }
 #endif
+              return unexpectedEOF("CHIP_DATA_LONG:Pattern");
+            }
             for (int ip = 0; ip < HitMapSize; ip++) {
               if (hitsPattern & (0x1 << ip)) {
                 uint16_t addr = pixID + ip + 1, rowE = addr >> 1;
@@ -340,6 +343,25 @@ class AlpideCoder
         break;
       }
 
+      // check for APE errors, see https://alice.its.cern.ch/jira/browse/O2-1717?focusedCommentId=274714&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-274714
+      bool fatalAPE = false;
+      auto codeAPE = ChipStat::getAPECode(dataC, fatalAPE);
+      if (codeAPE >= 0) {
+#ifdef ALPIDE_DECODING_STAT
+        chipData.setError(ChipStat::DecErrors(codeAPE));
+#endif
+        if (fatalAPE) {
+          buffer.clear(); // no point in contiunuing with this cable data
+        } else {          // skip eventual padding
+          while (buffer.next(dataC)) {
+            if (dataC) { // padding is over, make 1 step back in the buffer
+              auto currPtr = buffer.getPtr();
+              buffer.setPtr(--currPtr);
+            }
+          }
+        }
+        return unexpectedEOF(fmt::format("APE error {:#02x} [expectation = 0x{:#02x}]", int(dataC), int(expectInp)));
+      }
 #ifdef ALPIDE_DECODING_STAT
       chipData.setError(ChipStat::UnknownWord);
       // fill the error buffer with a few bytes of wrong data

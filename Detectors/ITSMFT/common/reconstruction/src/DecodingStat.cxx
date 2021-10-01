@@ -32,13 +32,13 @@ uint32_t ChipStat::getNErrors() const
 
 ///_________________________________________________________________
 /// print link decoding statistics
-void ChipStat::addErrors(uint32_t mask, uint16_t id, int verbosity)
+void ChipStat::addErrors(uint32_t mask, uint16_t chID, int verbosity)
 {
   if (mask) {
     for (int i = NErrorsDefined; i--;) {
       if (mask & (0x1 << i)) {
         if (verbosity > -1 && (!errorCounts[i] || verbosity > 1)) {
-          LOGP(ERROR, "New error registered on the link: chip#{}: {}", id, ErrNames[i]);
+          LOGP(ERROR, "New error registered on the FEEID:{:#04x}: chip#{}: {}", feeID, chID, ErrNames[i]);
         }
         errorCounts[i]++;
       }
@@ -54,7 +54,7 @@ void ChipStat::addErrors(const ChipPixelData& d, int verbosity)
     for (int i = NErrorsDefined; i--;) {
       if (d.getErrorFlags() & (0x1 << i)) {
         if (verbosity > -1 && (!errorCounts[i] || verbosity > 1)) {
-          LOGP(ERROR, "New error registered on the link: chip#{}: {}{}", id, ErrNames[i], d.getErrorDetails(i));
+          LOGP(ERROR, "New error registered on the FEEID:{:#04x} chip#{}: {}{}", feeID, int16_t(d.getChipID()), ErrNames[i], d.getErrorDetails(i));
         }
         errorCounts[i]++;
       }
@@ -71,7 +71,7 @@ void ChipStat::print(bool skipNoErr, const std::string& pref) const
     nErr += errorCounts[i];
   }
   if (!skipNoErr || nErr) {
-    LOGP(INFO, "{}#{:x} NHits: {}  errors: {}", pref.c_str(), id, nHits, nErr);
+    LOGP(INFO, "{}#{:x} NHits: {}  errors: {}", pref.c_str(), feeID, nHits, nErr);
     for (int i = 0; i < NErrorsDefined; i++) {
       if (!skipNoErr || errorCounts[i]) {
         LOGP(INFO, "Err.: {}: {}", ErrNames[i].data(), errorCounts[i]);

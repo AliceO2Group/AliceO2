@@ -135,8 +135,14 @@ class ChipPixelData
   auto& getRawErrBuff() const { return mRawBuff; }
   std::string getErrorDetails(int pos) const;
 
+  void resetChipID()
+  {
+    mChipID = -1;
+  }
+
   void clear()
   {
+    resetChipID();
     mPixels.clear();
     mROFlags = 0;
     mFirstUnmasked = 0;
