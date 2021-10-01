@@ -33,7 +33,7 @@ using RDH = o2::header::RAWDataHeader;
 /// create link with given ids
 GBTLink::GBTLink(uint16_t _cru, uint16_t _fee, uint8_t _ep, uint8_t _idInCru, uint16_t _chan) : idInCRU(_idInCru), cruID(_cru), feeID(_fee), endPointID(_ep), channelID(_chan)
 {
-  chipStat.id = _fee;
+  chipStat.feeID = _fee;
 }
 
 ///_________________________________________________________________

@@ -34,15 +34,24 @@ struct ChipStat {
     Fatal,
     BusyOn,
     BusyOff,
-    TruncatedChipEmpty,   // Data was truncated after ChipEmpty
-    TruncatedChipHeader,  // Data was truncated after ChipHeader
-    TruncatedRegion,      // Data was truncated after Region record
-    TruncatedLondData,    // Data was truncated in the LongData record
-    WrongDataLongPattern, // LongData pattern has highest bit set
-    NoDataFound,          // Region is not followed by Short or Long data
-    UnknownWord,          // Unknown word was seen
-    RepeatingPixel,       // Same pixel fired more than once
-    WrongRow,             // Non-existing row decoded
+    TruncatedChipEmpty,           // Data was truncated after ChipEmpty
+    TruncatedChipHeader,          // Data was truncated after ChipHeader
+    TruncatedRegion,              // Data was truncated after Region record
+    TruncatedLondData,            // Data was truncated in the LongData record
+    WrongDataLongPattern,         // LongData pattern has highest bit set
+    NoDataFound,                  // Region is not followed by Short or Long data
+    UnknownWord,                  // Unknown word was seen
+    RepeatingPixel,               // Same pixel fired more than once
+    WrongRow,                     // Non-existing row decoded
+    APE_STRIP_START,              // lane entering strip data mode | See https://alice.its.cern.ch/jira/browse/O2-1717
+    APE_STRIP_STOP,               // lane exiting strip data mode
+    APE_DET_TIMEOUT,              // detector timeout (FATAL)
+    APE_OOT_START,                // 8b10b OOT (FATAL, start)
+    APE_PROTOCOL_ERROR,           // event protocol error marker (FATAL, start)
+    APE_LANE_FIFO_OVERFLOW_ERROR, // lane FIFO overflow error (FATAL)
+    APE_FSM_ERROR,                // FSM error (FATAL, SEU error, reached an unknown state)
+    APE_OCCUPANCY_RATE_LIMIT,     // pending detector events limit (FATAL)
+    APE_OCCUPANCY_RATE_LIMIT_2,   // pending detector events limit in packager(FATAL)
     NErrorsDefined
   };
 
@@ -60,21 +69,38 @@ struct ChipStat {
     "Region is not followed by Short or Long data", // NoDataFound
     "Unknown word",                                 // UnknownWord
     "Same pixel fired multiple times",              // RepeatingPixel
-    "Non-existing row decoded"                      // WrongRow
-  };
+    "Non-existing row decoded",                     // WrongRow
+    "APE_STRIP_START",
+    "APE_STRIP_STOP",
+    "APE_DET_TIMEOUT",
+    "APE_OOT_START",
+    "APE_PROTOCOL_ERROR",
+    "APE_LANE_FIFO_OVERFLOW_ERROR",
+    "APE_FSM_ERROR",
+    "APE_OCCUPANCY_RATE_LIMIT",
+    "APE_OCCUPANCY_RATE_LIMIT_2"};
 
-  uint16_t id = -1;
+  uint16_t feeID = -1;
   size_t nHits = 0;
   std::array<uint32_t, NErrorsDefined> errorCounts = {};
   ChipStat() = default;
-  ChipStat(uint16_t _id) : id(_id) {}
+  ChipStat(uint16_t _feeID) : feeID(_feeID) {}
 
   void clear()
   {
     memset(errorCounts.data(), 0, sizeof(uint32_t) * errorCounts.size());
     nHits = 0;
   }
-
+  // return APE DecErrors code or -1 if not APE error, set fatal flag if needd
+  static int getAPECode(uint8_t c, bool& ft)
+  {
+    if (c < 0xf2 || c > 0xfa) {
+      ft = false;
+      return -1;
+    }
+    ft = c >= 0xf4;
+    return APE_STRIP_START + c - 0xf2;
+  }
   uint32_t getNErrors() const;
   void addErrors(uint32_t mask, uint16_t chID, int verbosity);
   void addErrors(const ChipPixelData& d, int verbosity);

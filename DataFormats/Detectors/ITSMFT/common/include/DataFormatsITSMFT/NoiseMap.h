@@ -54,7 +54,7 @@ class NoiseMap
   /// Get the noise level for this pixels
   float getNoiseLevel(int chip, int row, int col) const
   {
-    if (chip > mNoisyPixels.size()) {
+    if (chip > (int)mNoisyPixels.size()) {
       return 0;
     }
     const auto keyIt = mNoisyPixels[chip].find(getKey(row, col));
@@ -66,7 +66,7 @@ class NoiseMap
 
   void increaseNoiseCount(int chip, int row, int col)
   {
-    if (chip > mNoisyPixels.size()) {
+    if (chip > (int)mNoisyPixels.size()) {
       return;
     }
     mNoisyPixels[chip][getKey(row, col)]++;
@@ -117,16 +117,16 @@ class NoiseMap
 
   bool isNoisy(int chip, int row, int col) const
   {
-    return chip < mNoisyPixels.size() && (mNoisyPixels[chip].find(getKey(row, col)) != mNoisyPixels[chip].end());
+    return chip < (int)mNoisyPixels.size() && (mNoisyPixels[chip].find(getKey(row, col)) != mNoisyPixels[chip].end());
   }
 
-  bool isNoisy(int chip) const { return chip < mNoisyPixels.size() && !mNoisyPixels[chip].empty(); }
+  bool isNoisy(int chip) const { return chip < (int)mNoisyPixels.size() && !mNoisyPixels[chip].empty(); }
 
   // Methods required by the calibration framework
   void print();
   void fill(const gsl::span<const CompClusterExt> data);
   void merge(const NoiseMap* prev) {}
-  const std::map<int, int>* getChipMap(int chip) const { return chip < mNoisyPixels.size() ? &mNoisyPixels[chip] : nullptr; }
+  const std::map<int, int>* getChipMap(int chip) const { return chip < (int)mNoisyPixels.size() ? &mNoisyPixels[chip] : nullptr; }
 
  private:
   static constexpr int SHIFT = 10, MASK = (0x1 << SHIFT) - 1;

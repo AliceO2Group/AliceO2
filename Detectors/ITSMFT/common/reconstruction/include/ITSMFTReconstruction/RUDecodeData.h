@@ -80,7 +80,9 @@ int RUDecodeData::decodeROF(const Mapping& mp)
     }
     auto cabHW = cableHWID[icab];
     auto chIdGetter = [this, &mp, cabHW](int cid) {
-      return mp.getGlobalChipID(cid, cabHW, *this->ruInfo);
+      //return mp.getGlobalChipID(cid, cabHW, *this->ruInfo);
+      auto chip = mp.getGlobalChipID(cid, cabHW, *this->ruInfo);
+      return chip;
     };
     int ret = 0;
     while ((ret = AlpideCoder::decodeChip(*chipData, cableData[icab], chIdGetter)) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
