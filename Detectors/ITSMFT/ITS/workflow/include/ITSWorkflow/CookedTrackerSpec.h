@@ -31,7 +31,7 @@ namespace its
 class CookedTrackerDPL : public Task
 {
  public:
-  CookedTrackerDPL(bool useMC) : mUseMC(useMC) {}
+  CookedTrackerDPL(bool useMC, const std::string& trMode);
   ~CookedTrackerDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -40,6 +40,7 @@ class CookedTrackerDPL : public Task
  private:
   int mState = 0;
   bool mUseMC = true;
+  bool mRunVertexer = true;
   o2::itsmft::TopologyDictionary mDict;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   o2::its::CookedTracker mTracker;
@@ -48,7 +49,7 @@ class CookedTrackerDPL : public Task
 
 /// create a processor spec
 /// run ITS CookedMatrix tracker
-framework::DataProcessorSpec getCookedTrackerSpec(bool useMC);
+framework::DataProcessorSpec getCookedTrackerSpec(bool useMC, const std::string& trMode);
 
 } // namespace its
 } // namespace o2
