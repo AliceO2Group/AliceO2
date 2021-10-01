@@ -16,6 +16,7 @@
 
 #include "MIDRaw/ELinkManager.h"
 #include "MIDRaw/CrateParameters.h"
+#include "fmt/format.h"
 
 namespace o2
 {
@@ -59,6 +60,21 @@ void ELinkManager::init(uint16_t feeId, bool isDebugMode, bool isBare, const Ele
     mIndex = [](uint8_t crateId, uint8_t locId, bool isLoc) { return 10 * (2 * (crateId % 4) + (locId / 8)) + 8 * (1 - static_cast<size_t>(isLoc)) + (locId % 8); };
   }
 #endif
+}
+
+void ELinkManager::onDone(const ELinkDecoder& decoder, uint8_t crateId, uint8_t locId, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
+{
+  auto ds = mDataShapers.find(makeUniqueId(raw::isLoc(decoder.getStatusWord()), raw::makeUniqueLocID(crateId, locId)));
+  if (ds == mDataShapers.end()) {
+    ROBoard board{decoder.getStatusWord(), decoder.getTriggerWord(), raw::makeUniqueLocID(crateId, locId), decoder.getInputs()};
+    for (int ich = 0; ich < 4; ++ich) {
+      board.patternsBP[ich] = decoder.getPattern(0, ich);
+      board.patternsNBP[ich] = decoder.getPattern(1, ich);
+    }
+    std::cerr << "Board not found: " << board << "\n";
+    return;
+  }
+  return ds->second.onDone(decoder, data, rofs);
 }
 
 void ELinkManager::set(uint32_t orbit)

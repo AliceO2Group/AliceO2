@@ -64,10 +64,7 @@ class ELinkManager
   inline ELinkDecoder& getDecoder(uint8_t boardUniqueId, bool isLoc) { return mDecoders.find(makeUniqueId(isLoc, boardUniqueId))->second; }
 
   /// Main function to be executed when decoding is done
-  inline void onDone(const ELinkDecoder& decoder, uint8_t crateId, uint8_t locId, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
-  {
-    return mDataShapers.find(makeUniqueId(raw::isLoc(decoder.getStatusWord()), raw::makeUniqueLocID(crateId, locId)))->second.onDone(decoder, data, rofs);
-  }
+  void onDone(const ELinkDecoder& decoder, uint8_t crateId, uint8_t locId, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs);
 
  private:
   /// Makes a ID which is unique for local and regional board
