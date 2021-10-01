@@ -104,7 +104,8 @@ class ClusterFinderOriginalTask
       mTimeClusterFinder += tEnd - tStart;
 
       // fill the ouput messages
-      clusterROFs.emplace_back(preClusterROF.getBCData(), clusters.size(), mClusterFinder.getClusters().size());
+      clusterROFs.emplace_back(preClusterROF.getBCData(), clusters.size(), mClusterFinder.getClusters().size(),
+                               preClusterROF.getBCWidth());
       writeClusters(clusters, usedDigits);
     }
 

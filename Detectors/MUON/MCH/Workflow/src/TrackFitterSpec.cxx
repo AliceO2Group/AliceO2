@@ -119,7 +119,7 @@ class TrackFitterTask
       }
 
       // write the current ROF with references to the associated tracks
-      rofsOut.emplace_back(rof.getBCData(), trackOffset, tracksOut.size() - trackOffset);
+      rofsOut.emplace_back(rof.getBCData(), trackOffset, tracksOut.size() - trackOffset, rof.getBCWidth());
     }
   }
 

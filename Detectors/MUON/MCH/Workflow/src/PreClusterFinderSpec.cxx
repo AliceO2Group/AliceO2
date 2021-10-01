@@ -142,7 +142,7 @@ class PreClusterFinderTask
 
       // get the preclusters and associated digits
       tStart = std::chrono::high_resolution_clock::now();
-      preClusterROFs.emplace_back(digitROF.getBCData(), mPreClusters.size(), nPreClusters);
+      preClusterROFs.emplace_back(digitROF.getBCData(), mPreClusters.size(), nPreClusters, digitROF.getBCWidth());
       mPreClusterFinder.getPreClusters(mPreClusters, mUsedDigits);
       tEnd = std::chrono::high_resolution_clock::now();
       mTimeStorePreClusters += tEnd - tStart;
