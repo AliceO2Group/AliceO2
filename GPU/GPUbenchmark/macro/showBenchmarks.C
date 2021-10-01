@@ -16,7 +16,7 @@ int nBins{500};
 float minHist{0.f}, maxHist{1e4};
 void showBenchmarks(const bool times = false, const TString fileName = "0_benchmark_results.root")
 {
-  auto f = TFile::Open(fileName.Data(), "read");
+  auto f = TFile::Open(fileName.Data(), "UPDATE");
   std::unordered_map<std::string, TTree*> um_trees;
   std::vector<std::vector<TH1F*>> histograms;
   std::vector<TGraphErrors*> results;
@@ -74,9 +74,9 @@ void showBenchmarks(const bool times = false, const TString fileName = "0_benchm
                         TGraphErrors* g = new TGraphErrors(nChunk, xCoord.data(), yCoord.data(), exCoord.data(), eyCoord.data());
                         g->GetYaxis()->SetRangeUser(0, 5000);
                         g->GetXaxis()->SetRangeUser(-2.f, nChunk);
-                        g->SetTitle(Form("%s, N_{test}=%d;chunk_id;elapsed (GB/s)", keyPair.first.c_str(), (int)keyPair.second->GetEntriesFast()));
+                        g->SetTitle(Form("%s, N_{test}=%d;chunk_id;elapsed (s)", keyPair.first.c_str(), (int)keyPair.second->GetEntriesFast()));
                         g->SetFillColor(kBlue);
-                        g->SetFillStyle(3335);
+                        g->SetFillStyle(3001);
                         g->Draw("AB");
                       }
                     } else { // TP plots //
@@ -109,11 +109,13 @@ void showBenchmarks(const bool times = false, const TString fileName = "0_benchm
                       TCanvas* c = new TCanvas(Form("c%s", keyPair.first.c_str()), Form("%s", keyPair.first.c_str()));
                       c->cd();
                       TGraphErrors* g = new TGraphErrors(nChunk, xCoord.data(), yCoord.data(), exCoord.data(), eyCoord.data());
-                      g->GetYaxis()->SetRangeUser(0, 500);
+                      g->GetYaxis()->SetRangeUser(0, 150);
                       g->GetXaxis()->SetRangeUser(-2.f, nChunk);
                       g->SetTitle(Form("%s, N_{test}=%d;chunk_id;throughput (GB/s)", keyPair.first.c_str(), (int)keyPair.second->GetEntriesFast()));
-                      g->SetFillColor(40);
+                      g->SetFillColor(kBlue);
+                      g->SetFillStyle(3001);
                       g->Draw("AB");
+                      g->Write();
                     }
                   }
                 }
@@ -124,4 +126,5 @@ void showBenchmarks(const bool times = false, const TString fileName = "0_benchm
       }
     }
   }
+  f->Close();
 }

@@ -28,7 +28,8 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
     "chunkSize,c", bpo::value<float>()->default_value(1.f), "Size of scratch partitions (GB).")(
     "freeMemFraction,f", bpo::value<float>()->default_value(0.95f), "Fraction of free memory to be allocated (min: 0.f, max: 1.f).")(
     "launches,l", bpo::value<int>()->default_value(10), "Number of iterations in reading kernels.")(
-    "nruns,n", bpo::value<int>()->default_value(1), "Number of times each test is run.");
+    "nruns,n", bpo::value<int>()->default_value(1), "Number of times each test is run.")(
+    "outfile,o", bpo::value<std::string>()->default_value("benchmark_result"), "Output file name to store results.");
   try {
     bpo::store(parse_command_line(argc, argv, options), vm);
     if (vm.count("help")) {
@@ -89,6 +90,8 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
     }
   }
 
+  conf.outFileName = vm["outfile"].as<std::string>();
+
   return true;
 }
 
@@ -103,7 +106,7 @@ int main(int argc, const char* argv[])
     return -1;
   }
 
-  std::shared_ptr<ResultWriter> writer = std::make_shared<ResultWriter>(std::to_string(opts.deviceId) + "_benchmark_results.root");
+  std::shared_ptr<ResultWriter> writer = std::make_shared<ResultWriter>(std::to_string(opts.deviceId) + "_" + opts.outFileName + ".root");
 
   o2::benchmark::GPUbenchmark<char> bm_char{opts, writer};
   bm_char.run();

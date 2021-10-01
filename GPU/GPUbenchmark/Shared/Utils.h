@@ -75,6 +75,7 @@ struct benchmarkOpts {
   float freeMemoryFractionToAllocate = 0.95f;
   int kernelLaunches = 1;
   int nTests = 1;
+  std::string outFileName = "benchmark_result";
 };
 
 template <class T>
