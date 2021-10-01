@@ -210,9 +210,8 @@ class DataDecoderTask
       return buf;
     };
 
-    mDecoder->reset();
-
     auto tStart = std::chrono::high_resolution_clock::now();
+    mDecoder->reset();
     for (auto&& input : pc.inputs()) {
       if (input.spec->binding == "readout") {
         decodeReadout(input);

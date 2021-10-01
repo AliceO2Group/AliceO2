@@ -275,20 +275,40 @@ void dumpOrbits(const std::unordered_set<OrbitInfo, OrbitInfoHash>& mOrbits)
 
 //_________________________________________________________________________________________________
 
-int32_t DataDecoder::getMergerChannelId(const DsElecId& dsElecId, DualSampaChannelId channel)
+bool DataDecoder::getMergerChannelId(const DsElecId& dsElecId, DualSampaChannelId channel, uint32_t& chId, uint32_t& boardId)
 {
+  static constexpr uint32_t sChannelsInOneDs = 64;
+  static constexpr uint32_t sDsInOneSolar = 40;
+  static constexpr uint32_t sChannelsInOneSolar = sChannelsInOneDs * sDsInOneSolar;
   auto solarId = dsElecId.solarId();
   uint32_t dsId = static_cast<uint32_t>(dsElecId.elinkGroupId()) * 5 + dsElecId.elinkIndexInGroup();
   if (solarId > DataDecoder::sMaxSolarId || dsId >= 40 || channel >= 64) {
-    return -1;
+    return false;
   }
 
-  return (solarId * 40 * 64) + (dsId * 64) + channel;
+  boardId = solarId * sDsInOneSolar + dsId;
+  chId = boardId * sChannelsInOneDs + channel;
+  return true;
 }
 
 //_________________________________________________________________________________________________
 
-bool DataDecoder::mergeDigits(uint32_t mergerChannelId, o2::mch::raw::SampaCluster& sc)
+uint64_t DataDecoder::getMergerChannelBitmask(DualSampaChannelId channel)
+{
+  uint64_t result{1};
+
+  if (channel >= 64) {
+    return 0;
+  }
+
+  result <<= channel;
+
+  return result;
+}
+
+//_________________________________________________________________________________________________
+
+bool DataDecoder::mergeDigits(uint32_t mergerChannelId, uint32_t mergerBoardId, uint64_t mergerChannelBitmask, o2::mch::raw::SampaCluster& sc)
 {
   static constexpr uint32_t BCROLLOVER = (1 << 20);
   static constexpr uint32_t ONEADCCLOCK = 4;
@@ -300,12 +320,12 @@ bool DataDecoder::mergeDigits(uint32_t mergerChannelId, o2::mch::raw::SampaClust
     return false;
   }
 
-  auto& mergerCh = mMergerRecords[mergerChannelId];
-
   // if there is not previous digit for this channel then no merging is possible
-  if (mergerCh.digitId < 0) {
+  if ((mMergerRecordsReady[mergerBoardId] & mergerChannelBitmask) == 0) {
     return false;
   }
+
+  auto& mergerCh = mMergerRecords[mergerChannelId];
 
   // time stamp of the digits to be merged
   uint32_t bcStart = sc.bunchCrossing;
@@ -322,6 +342,7 @@ bool DataDecoder::mergeDigits(uint32_t mergerChannelId, o2::mch::raw::SampaClust
 
   // add total charge and number of samples to existing digit
   auto& digit = mDigits[mergerCh.digitId].digit;
+
   digit.setADC(digit.getADC() + sc.sum());
   uint32_t newNofSamples = digit.getNofSamples() + sc.nofSamples();
   if (newNofSamples > MAXNOFSAMPLES) {
@@ -337,12 +358,13 @@ bool DataDecoder::mergeDigits(uint32_t mergerChannelId, o2::mch::raw::SampaClust
 
 //_________________________________________________________________________________________________
 
-void DataDecoder::updateMergerRecord(uint32_t mergerChannelId, uint32_t digitId)
+void DataDecoder::updateMergerRecord(uint32_t mergerChannelId, uint32_t mergerBoardId, uint64_t mergerChannelBitmask, uint32_t digitId)
 {
   auto& mergerCh = mMergerRecords[mergerChannelId];
   auto& digit = mDigits[digitId];
   mergerCh.digitId = digitId;
   mergerCh.bcEnd = digit.info.bunchCrossing + (digit.info.sampaTime + digit.digit.getNofSamples() - 1) * 4;
+  mMergerRecordsReady[mergerBoardId] |= mergerChannelBitmask;
 }
 
 //_________________________________________________________________________________________________
@@ -498,13 +520,15 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
       channel = ds2manu(int(channel));
     }
 
-    int32_t mergerChannelId = getMergerChannelId(dsElecId, channel);
-    if (mergerChannelId < 0) {
+    uint32_t mergerChannelId;
+    uint32_t mergerBoardId;
+    if (!getMergerChannelId(dsElecId, channel, mergerChannelId, mergerBoardId)) {
       LOGP(error, "dsElecId={} is out-of-bounds", asString(dsElecId));
       return;
     }
+    uint64_t mergerChannelBitmask = getMergerChannelBitmask(channel);
 
-    if (mergeDigits(mergerChannelId, sc)) {
+    if (mergeDigits(mergerChannelId, mergerBoardId, mergerChannelBitmask, sc)) {
       return;
     }
 
@@ -512,7 +536,7 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
       return;
     }
 
-    updateMergerRecord(mergerChannelId, mDigits.size() - 1);
+    updateMergerRecord(mergerChannelId, mergerBoardId, mergerChannelBitmask, mDigits.size() - 1);
   };
 
   patchPage(page, mDebug);
@@ -605,8 +629,6 @@ bool DataDecoder::getTimeFrameStartRecord(const RawDigit& digit, uint32_t& orbit
     bcTF += (orbitTF - orbitHBP) * bcInOrbit;
     // only keep 20 bits
     bcTF &= twentyBitsAtOne;
-
-    //std::cout << fmt::format(" -> {}/{}", orbitTF, bcTF) << std::endl;
 
     // update the time frame start information for this chip, to speed-up the computations
     // in case another digit from the same chip is found in the same time frame.
@@ -715,6 +737,14 @@ void DataDecoder::init()
 
   initFee2SolarMapper(mMapCRUfile);
   initElec2DetMapper(mMapFECfile);
+
+  mTimeFrameStartRecords.resize(sReadoutChipsNum);
+  std::fill(mTimeFrameStartRecords.begin(), mTimeFrameStartRecords.end(), TimeFrameStartRecord());
+
+  mMergerRecords.resize(sReadoutChannelsNum);
+  mMergerRecordsReady.resize(sReadoutBoardsNum);
+
+  reset();
 };
 
 //_________________________________________________________________________________________________
@@ -723,10 +753,7 @@ void DataDecoder::reset()
 {
   mDigits.clear();
   mOrbits.clear();
-  for (auto& mergerCh : mMergerRecords) {
-    mergerCh.digitId = -1;
-    mergerCh.bcEnd = -1;
-  }
+  memset(mMergerRecordsReady.data(), 0, sizeof(uint64_t) * mMergerRecordsReady.size());
 }
 
 } // namespace raw
