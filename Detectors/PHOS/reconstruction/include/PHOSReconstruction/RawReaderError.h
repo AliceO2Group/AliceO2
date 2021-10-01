@@ -36,7 +36,7 @@ class RawReaderError
   ~RawReaderError() = default;
 
   char getDDL() { return mDDL; }
-  char getFEC() { return mDDL; }
+  char getFEC() { return mFEC; }
   char getError() { return mErr; }
 
  private:

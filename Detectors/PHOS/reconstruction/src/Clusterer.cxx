@@ -658,7 +658,7 @@ char Clusterer::getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel
       iDigitN++;
       if (iDigitN >= NLOCMAX) { // Note that size of output arrays is limited:
         LOG(ERROR) << "Too many local maxima, cluster multiplicity " << mIsLocalMax.size();
-        return iDigitN;
+        return -2;
       }
     }
   }
