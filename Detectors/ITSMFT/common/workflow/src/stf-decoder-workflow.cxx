@@ -30,6 +30,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"dict-file", VariantType::String, "", {"name of the cluster-topology dictionary file"}},
     ConfigParamSpec{"noise-file", VariantType::String, "", {"name of the noise map file"}},
     ConfigParamSpec{"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
+    ConfigParamSpec{"dataspec", VariantType::String, "", {"selection string for the input data, if not provided <DET>Raw:<DET>/RAWDATA with DET=ITS or MFT will be used"}},
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -42,20 +43,32 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec wf;
-  auto doClusters = !cfgc.options().get<bool>("no-clusters");
-  auto doPatterns = doClusters && !cfgc.options().get<bool>("no-cluster-patterns");
-  auto doDigits = cfgc.options().get<bool>("digits");
-  auto doCalib = cfgc.options().get<bool>("enable-calib-data");
-  auto dict = cfgc.options().get<std::string>("dict-file");
-  auto noise = cfgc.options().get<std::string>("noise-file");
-  auto askSTFDist = !cfgc.options().get<bool>("ignore-dist-stf");
+  o2::itsmft::STFDecoderInp inp;
+  inp.doClusters = !cfgc.options().get<bool>("no-clusters");
+  inp.doPatterns = inp.doClusters && !cfgc.options().get<bool>("no-cluster-patterns");
+  inp.doDigits = cfgc.options().get<bool>("digits");
+  inp.doCalib = cfgc.options().get<bool>("enable-calib-data");
+  inp.dict = cfgc.options().get<std::string>("dict-file");
+  inp.noise = cfgc.options().get<std::string>("noise-file");
+  inp.askSTFDist = !cfgc.options().get<bool>("ignore-dist-stf");
+  inp.inputSpec = cfgc.options().get<std::string>("dataspec");
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   if (cfgc.options().get<bool>("runmft")) {
-    wf.emplace_back(o2::itsmft::getSTFDecoderMFTSpec(doClusters, doPatterns, doDigits, doCalib, askSTFDist, dict, noise));
+    if (inp.inputSpec.empty()) {
+      inp.inputSpec = "mftRAW:MFT/RAWDATA";
+    }
+    inp.origin = o2::header::gDataOriginMFT;
+    inp.deviceName = "mft-stf-decoder";
   } else {
-    wf.emplace_back(o2::itsmft::getSTFDecoderITSSpec(doClusters, doPatterns, doDigits, doCalib, askSTFDist, dict, noise));
+    if (inp.inputSpec.empty()) {
+      inp.inputSpec = "itsRAW:ITS/RAWDATA";
+    }
+    inp.origin = o2::header::gDataOriginITS;
+    inp.deviceName = "its-stf-decoder";
   }
+  wf.emplace_back(o2::itsmft::getSTFDecoderSpec(inp));
+
   return wf;
 }
