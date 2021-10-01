@@ -175,16 +175,17 @@ taskwrapper() {
     # - segmentation violation
     # - there was a crash
     # - bus error (often occuring with shared mem)
-    pattern="-e \"\<[Ee]xception\"                  \
-             -e \"segmentation violation\"          \
-             -e \"error while setting up workflow\" \
-             -e \"bus error\"                       \
-             -e \"Assertion.*failed\"               \
-             -e \"Fatal in\"                        \
-             -e \"libc++abi.*terminating\"          \
-             -e \"There was a crash.\"              \
-             -e \"arrow.*Check failed\"             \
-             -e \"terminate called after\"          \
+    pattern="-e \"\<[Ee]xception\"                         \
+             -e \"segmentation violation\"                 \
+             -e \"error while setting up workflow\"        \
+             -e \"bus error\"                              \
+             -e \"Assertion.*failed\"                      \
+             -e \"Fatal in\"                               \
+             -e \"libc++abi.*terminating\"                 \
+             -e \"There was a crash.\"                     \
+             -e \"arrow.*Check failed\"                    \
+             -e \"terminate called after\"                 \
+             -e \"terminate called without an active\"     \
              -e \"\*\*\* Error in\""                  # <--- LIBC fatal error messages
 
     grepcommand="grep -a -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
