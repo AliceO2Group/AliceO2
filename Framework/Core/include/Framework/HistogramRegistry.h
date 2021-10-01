@@ -87,7 +87,7 @@ class HistogramRegistry
   };
 
  public:
-  HistogramRegistry(char const* const name, std::vector<HistogramSpec> histSpecs = {}, OutputObjHandlingPolicy policy = OutputObjHandlingPolicy::AnalysisObject, bool sortHistos = true, bool createRegistryDir = false);
+  HistogramRegistry(char const* const name = "histograms", std::vector<HistogramSpec> histSpecs = {}, OutputObjHandlingPolicy policy = OutputObjHandlingPolicy::AnalysisObject, bool sortHistos = true, bool createRegistryDir = false);
 
   // functions to add histograms to the registry
   HistPtr add(const HistogramSpec& histSpec);
