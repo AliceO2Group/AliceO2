@@ -22,12 +22,16 @@ namespace o2::framework
 auto arrowTypeFromROOT(EDataType type, int size)
 {
   auto typeGenerator = [](std::shared_ptr<arrow::DataType>&& type, int size) -> std::shared_ptr<arrow::DataType> {
+    if (size > 1) {
+      return arrow::fixed_size_list(type, size);
+    }
     if (size == 1) {
       return std::move(type);
-    } else if (size == -1) {
+    }
+    if (size == -1) {
       return arrow::list(type);
     }
-    return arrow::fixed_size_list(type, size);
+    O2_BUILTIN_UNREACHABLE();
   };
 
   switch (type) {
@@ -139,6 +143,9 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
   if (!status.ok()) {
     throw runtime_error("Failed to reserve memory for array builder");
   }
+  if (mSizeBranch != nullptr) {
+    status &= static_cast<arrow::ListBuilder*>(mListBuilder.get())->Append();
+  }
   int readEntries = 0;
   buffer->Reset();
   while (readEntries < totalEntries) {
@@ -146,13 +153,31 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
     readEntries += readLast;
     status &= appendValues(reinterpret_cast<unsigned char const*>(buffer->GetCurrent()), readLast);
   }
+  if (mListSize > 1) {
+    status &= static_cast<arrow::FixedSizeListBuilder*>(mListBuilder.get())->AppendValues(readEntries);
+  } else if (mSizeBranch != nullptr) {
+    std::vector<int> offsets(mSizeBranch->GetEntries() + 1);
+    offsets[0] = 0;
+    int readOffsets = 0;
+    buffer->Reset();
+    while (readOffsets < mSizeBranch->GetEntries()) {
+      auto readLast = mSizeBranch->GetBulkRead().GetBulkEntries(readOffsets, *buffer);
+      auto data = reinterpret_cast<int*>(buffer->GetCurrent());
+      for (auto i = 0; i < readLast; ++i) {
+        offsets[readOffsets + i + 1] = offsets[readOffsets + i] + data[i];
+      }
+      readOffsets += readLast;
+    }
+    offsets.push_back(readOffsets);
+    status &= static_cast<arrow::ListBuilder*>(mListBuilder.get())->AppendValues(offsets.data(), totalEntries);
+  }
   if (!status.ok()) {
     throw runtime_error("Failed to append values to array");
   }
   std::shared_ptr<arrow::Array> array;
   status &= finish(&array);
   if (!status.ok()) {
-    throw runtime_error("Failed to create boolean array");
+    throw runtime_error("Failed to create array");
   }
   auto fullArray = std::make_shared<arrow::ChunkedArray>(array);
   auto field = std::make_shared<arrow::Field>(mBranch->GetName(), mArrowType);
@@ -167,54 +192,37 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
 
 arrow::Status BranchToColumn::appendValues(unsigned char const* buffer, int numEntries)
 {
-  arrow::Status status;
   switch (mType) {
     case EDataType::kBool_t:
-      status = static_cast<arrow::BooleanBuilder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint8_t const*>(buffer), numEntries * mListSize);
-      break;
+      return static_cast<arrow::BooleanBuilder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint8_t const*>(buffer), numEntries * mListSize);
     case EDataType::kUChar_t:
-      status = static_cast<arrow::UInt8Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint8_t const*>(buffer), numEntries * mListSize);
-      break;
+      return static_cast<arrow::UInt8Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint8_t const*>(buffer), numEntries * mListSize);
     case EDataType::kUShort_t:
-      status = static_cast<arrow::UInt16Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint16_t const*>(buffer), numEntries * mListSize);
-      break;
+      return static_cast<arrow::UInt16Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint16_t const*>(buffer), numEntries * mListSize);
     case EDataType::kUInt_t:
-      status = static_cast<arrow::UInt32Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint32_t const*>(buffer), numEntries * mListSize);
-      break;
+      return static_cast<arrow::UInt32Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint32_t const*>(buffer), numEntries * mListSize);
     case EDataType::kULong64_t:
-      status = static_cast<arrow::UInt64Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint64_t const*>(buffer), numEntries * mListSize);
-      break;
+      return static_cast<arrow::UInt64Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint64_t const*>(buffer), numEntries * mListSize);
     case EDataType::kChar_t:
-      status = static_cast<arrow::Int8Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int8_t const*>(buffer), numEntries * mListSize);
-      break;
+      return static_cast<arrow::Int8Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int8_t const*>(buffer), numEntries * mListSize);
     case EDataType::kShort_t:
-      status = static_cast<arrow::Int16Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int16_t const*>(buffer), numEntries * mListSize);
-      break;
+      return static_cast<arrow::Int16Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int16_t const*>(buffer), numEntries * mListSize);
     case EDataType::kInt_t:
-      status = static_cast<arrow::Int32Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int32_t const*>(buffer), numEntries * mListSize);
-      break;
+      return static_cast<arrow::Int32Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int32_t const*>(buffer), numEntries * mListSize);
     case EDataType::kLong64_t:
-      status = static_cast<arrow::Int64Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int64_t const*>(buffer), numEntries * mListSize);
-      break;
+      return static_cast<arrow::Int64Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int64_t const*>(buffer), numEntries * mListSize);
     case EDataType::kFloat_t:
-      status = static_cast<arrow::FloatBuilder*>(mValueBuilder)->AppendValues(reinterpret_cast<float const*>(buffer), numEntries * mListSize);
-      break;
+      return static_cast<arrow::FloatBuilder*>(mValueBuilder)->AppendValues(reinterpret_cast<float const*>(buffer), numEntries * mListSize);
     case EDataType::kDouble_t:
-      status = static_cast<arrow::DoubleBuilder*>(mValueBuilder)->AppendValues(reinterpret_cast<double const*>(buffer), numEntries * mListSize);
-      break;
+      return static_cast<arrow::DoubleBuilder*>(mValueBuilder)->AppendValues(reinterpret_cast<double const*>(buffer), numEntries * mListSize);
     default:
       throw runtime_error("Unsupported branch type");
   }
-  if (mListSize > 1) {
-    status &= static_cast<arrow::FixedSizeListBuilder*>(mListBuilder.get())->AppendValues(numEntries);
-  }
-
-  return status;
 }
 
 arrow::Status BranchToColumn::finish(std::shared_ptr<arrow::Array>* array)
 {
-  if (mListSize > 1) {
+  if (mListSize > 1 || mSizeBranch != nullptr) {
     return mListBuilder->Finish(array);
   }
   return mValueBuilder->Finish(array);
@@ -223,7 +231,7 @@ arrow::Status BranchToColumn::finish(std::shared_ptr<arrow::Array>* array)
 arrow::Status BranchToColumn::reserve(int numEntries)
 {
   auto status = mValueBuilder->Reserve(numEntries * mListSize);
-  if (mListSize > 1) {
+  if (mListSize > 1 || mSizeBranch != nullptr) {
     status &= mListBuilder->Reserve(numEntries);
   }
   return status;

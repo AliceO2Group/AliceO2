@@ -192,8 +192,28 @@ BOOST_AUTO_TEST_CASE(VariableLists)
   auto table = b.finalize();
 
   auto* f = TFile::Open("variable_lists.root", "RECREATE");
-  TableToTree t2t(table, f, "lists");
-  t2t.addAllBranches();
-  auto tree = t2t.process();
+  TableToTree ta2tr(table, f, "lists");
+  ta2tr.addAllBranches();
+  auto tree = ta2tr.process();
   f->Close();
+
+  auto* f2 = TFile::Open("variable_lists.root", "READ");
+  tree = static_cast<TTree*>(f2->Get("lists;1"));
+  TreeToTable tr2ta;
+  tr2ta.addAllColumns(tree);
+  tr2ta.fill(tree);
+  auto ta = tr2ta.finalize();
+  o2::aod::Vectors v{ta};
+  int i = 1;
+  for (auto& row : v) {
+    auto iv = row.ivec();
+    auto fv = row.fvec();
+    auto dv = row.dvec();
+    for (auto j = 0; j < i; ++j) {
+      BOOST_CHECK_EQUAL(iv[j], j + 2);
+      BOOST_CHECK_EQUAL(fv[j], (j + 2) * 0.2134f);
+      BOOST_CHECK_EQUAL(dv[j], (j + 4) * 0.192873819237);
+    }
+    ++i;
+  }
 }
