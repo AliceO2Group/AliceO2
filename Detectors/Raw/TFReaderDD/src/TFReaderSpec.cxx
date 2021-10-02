@@ -189,7 +189,7 @@ void TFReaderSpec::TFBuilder()
       continue;
     }
     LOG(INFO) << "Processing file " << tfFileName;
-    SubTimeFrameFileReader reader(tfFileName);
+    SubTimeFrameFileReader reader(tfFileName, mInput.detMask);
     size_t locID = 0;
     //try
     {
@@ -227,19 +227,41 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
   o2f::DataProcessorSpec spec;
   spec.name = "tf-reader";
   const DetID::mask_t DEFMask = DetID::getMask("ITS,TPC,TRD,TOF,PHS,CPV,EMC,HMP,MFT,MCH,MID,ZDC,FT0,FV0,FDD,CTP");
-  DetID::mask_t detMask = DEFMask; //DetID::getMask(rinp.detList) & DEFMask; // RS TODO
-
+  rinp.detMask = DetID::getMask(rinp.detList) & DEFMask;
+  rinp.detMaskRawOnly = DetID::getMask(rinp.detListRawOnly) & DEFMask;
+  rinp.detMaskNonRawOnly = DetID::getMask(rinp.detListNonRawOnly) & DEFMask;
   if (rinp.rawChannelConfig.empty()) {
     // we don't know a priori what will be the content of the TF data, so we create all possible outputs
     for (DetID::ID id = DetID::First; id <= DetID::Last; id++) {
-      if (detMask[id]) {
-        spec.outputs.emplace_back(o2f::OutputSpec(o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "RAWDATA"}));
+      if (rinp.detMask[id]) {
+        if (!rinp.detMaskNonRawOnly[id]) {
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "RAWDATA"}});
+        }
+        //
+        if (rinp.detMaskRawOnly[id]) { // used asked to not open non-raw channels
+          continue;
+        }
+        // in case detectors were processed on FLP
+        if (id == DetID::TOF) {
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(DetID::TOF), "CRAWDATA"}});
+        } else if (id == DetID::FT0 || id == DetID::FV0 || id == DetID::FDD) {
+          spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "DIGITSBC", 0});
+          spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "DIGITSCH", 0});
+        } else if (id == DetID::PHS) {
+          spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "CELLS", 0});
+          spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "CELLTRIGREC", 0});
+        } else if (id == DetID::CPV) {
+          spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "DIGITS", 0});
+          spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "DIGITTRIGREC", 0});
+          spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "RAWHWERRORS", 0});
+        } else if (id == DetID::EMC) {
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "CELLS"}});
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "CELLSTRGR"}});
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "DECODERERR"}});
+        }
       }
     }
-    // in case compessed TOF is present
-    if (detMask[DetID::TOF]) {
-      spec.outputs.emplace_back(o2f::OutputSpec(o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(DetID::TOF), "CRAWDATA"}));
-    }
+
     spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2::header::gDataOriginFLP, "DISTSUBTIMEFRAME", 0});
   } else {
     auto nameStart = rinp.rawChannelConfig.find("name=");

@@ -25,6 +25,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options;
   options.push_back(ConfigParamSpec{"input-data", VariantType::String, "", {"input data (obligatory)"}});
   options.push_back(ConfigParamSpec{"onlyDet", VariantType::String, "all", {"list of dectors"}});
+  options.push_back(ConfigParamSpec{"raw-only-det", VariantType::String, "none", {"do not open non-raw channel for these detectors"}});
+  options.push_back(ConfigParamSpec{"non-raw-only-det", VariantType::String, "none", {"do not open raw channel for these detectors"}});
   options.push_back(ConfigParamSpec{"max-tf", VariantType::Int, -1, {"max TF ID to process (<= 0 : infinite)"}});
   options.push_back(ConfigParamSpec{"loop", VariantType::Int, 0, {"loop N times (-1 = infinite)"}});
   options.push_back(ConfigParamSpec{"delay", VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
@@ -53,6 +55,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   int n = configcontext.options().get<int>("max-tf");
   rinp.maxTFs = n > 0 ? n : 0x7fffffff;
   rinp.detList = configcontext.options().get<std::string>("onlyDet");
+  rinp.detListRawOnly = configcontext.options().get<std::string>("raw-only-det");
+  rinp.detListNonRawOnly = configcontext.options().get<std::string>("non-raw-only-det");
   rinp.rawChannelConfig = configcontext.options().get<std::string>("raw-channel-config");
   rinp.delay_us = uint64_t(1e6 * configcontext.options().get<float>("delay")); // delay in microseconds
   rinp.verbosity = configcontext.options().get<int>("tf-reader-verbosity");

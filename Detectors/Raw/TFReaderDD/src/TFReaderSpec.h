@@ -15,6 +15,7 @@
 /// @file   TFReaderWorkflow.h
 
 #include "Framework/WorkflowSpec.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 namespace o2
 {
@@ -23,10 +24,15 @@ namespace rawdd
 struct TFReaderInp {
   std::string inpdata{};
   std::string detList{};
+  std::string detListRawOnly{};
+  std::string detListNonRawOnly{};
   std::string rawChannelConfig{};
   std::string copyCmd{};
   std::string tffileRegex{};
   std::string remoteRegex{};
+  o2::detectors::DetID::mask_t detMask{};
+  o2::detectors::DetID::mask_t detMaskRawOnly{};
+  o2::detectors::DetID::mask_t detMaskNonRawOnly{};
   int maxTFCache = 1;
   int maxFileCache = 1;
   int verbosity = 0;
