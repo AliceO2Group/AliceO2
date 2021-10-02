@@ -1,7 +1,7 @@
 #!/bin/sh
 
 CRED="/Users/laurent/MCH Mapping-0a71181801a9.json"
-CHAMBERS="CH1R CH1L CH2R CH2L CH5R CH5L CH6R CH7R CH7L CH8L CH8R CH9L CH9R CH10R"
+CHAMBERS="CH1R CH1L CH2R CH2L CH3R CH3L CH4R CH4L CH5R CH5L CH6R CH7R CH7L CH8L CH8R CH9L CH9R CH10R"
 
 rm cru.map
 rm fec.map
@@ -15,6 +15,7 @@ for chamber in $CHAMBERS; do
   cat ${chamber}.cru.map >> cru.map.tmp
   rm ${chamber}.fec.map
   rm ${chamber}.cru.map
+  sleep 10
 done
 
 sort cru.map.tmp -o cru.map

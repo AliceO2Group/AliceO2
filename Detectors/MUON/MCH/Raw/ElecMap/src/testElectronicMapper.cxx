@@ -276,16 +276,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(CheckNumberOfSolarsPerDetectionElement, T, realTyp
   BOOST_CHECK_EQUAL(getSolarUIDs<T>(203).size(), 12);
 
   // Chamber 3
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(300).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(302).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(301).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(303).size(), 0);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(300).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(302).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(301).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(303).size(), 12);
 
   // Chamber 4
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(400).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(402).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(401).size(), 0);
-  BOOST_CHECK_EQUAL(getSolarUIDs<T>(403).size(), 0);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(400).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(402).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(401).size(), 12);
+  BOOST_CHECK_EQUAL(getSolarUIDs<T>(403).size(), 12);
 
   // Chamber 5
   // 5R = 5I
@@ -463,7 +463,7 @@ int expectedNumberOfSolars<ElectronicMapperDummy>()
 template <>
 int expectedNumberOfSolars<ElectronicMapperGenerated>()
 {
-  return 528;
+  return 624;
 }
 
 template <typename T>
@@ -478,7 +478,7 @@ int expectedNumberOfDs<ElectronicMapperDummy>()
 template <>
 int expectedNumberOfDs<ElectronicMapperGenerated>()
 {
-  return 13284;
+  return 16420; // 16828 for all
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(AllSolarsMustGetAFeeLinkAndTheReverse, T, testTypes)
