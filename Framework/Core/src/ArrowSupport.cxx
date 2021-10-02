@@ -62,6 +62,7 @@ struct MetricIndices {
   size_t arrowMessagesDestroyed = -1;
   size_t arrowBytesExpired = -1;
   size_t shmOfferConsumed = -1;
+  size_t timeframesRead = -1;
 };
 
 std::vector<MetricIndices> createDefaultIndices(std::vector<DeviceMetricsInfo>& allDevicesMetrics)
@@ -76,6 +77,7 @@ std::vector<MetricIndices> createDefaultIndices(std::vector<DeviceMetricsInfo>& 
     indices.arrowMessagesDestroyed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-messages-destroyed");
     indices.arrowBytesExpired = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-bytes-expired");
     indices.shmOfferConsumed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "shm-offer-bytes-consumed");
+    indices.timeframesRead = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "df-sent");
     results.push_back(indices);
   }
   return results;
@@ -119,6 +121,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        int64_t totalBytesExpired = 0;
                        int64_t totalMessagesCreated = 0;
                        int64_t totalMessagesDestroyed = 0;
+                       int64_t totalTimeframesRead = 0;
                        static RateLimitingState currentState = RateLimitingState::UNKNOWN;
                        static auto stateMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "rate-limit-state");
                        static auto totalBytesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-created");
@@ -130,11 +133,13 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static auto totalBytesExpiredMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-expired");
                        static auto totalMessagesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-created");
                        static auto totalMessagesDestroyedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-destroyed");
+                       static auto totalTimeframesReadMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-timeframes-read");
                        static auto totalBytesDeltaMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "arrow-bytes-delta");
                        static auto totalSignalsMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-reader-signals");
                        static auto signalLatencyMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-signal-latency");
                        static auto skippedSignalsMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-skipped-signals");
                        static auto remainingBytes = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-remaining-bytes");
+                       static auto timeframesInFly = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "timeframes-in-fly");
                        auto& manager = registry.get<DevicesManager>();
 
                        bool changed = false;
@@ -218,6 +223,15 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                              totalMessagesDestroyed += (int64_t)data.at((info.pos - 1) % data.size());
                            }
                          }
+                         {
+                           size_t index = indices.timeframesRead;
+                           if (index < deviceMetrics.metrics.size()) {
+                             MetricInfo info = deviceMetrics.metrics.at(index);
+                             changed |= deviceMetrics.changed.at(index);
+                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
+                             totalTimeframesRead += (int64_t)data.at((info.pos - 1) % data.size());
+                           }
+                         }
                        }
                        if (changed) {
                          totalBytesCreatedMetric(driverMetrics, totalBytesCreated, timestamp);
@@ -226,6 +240,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          shmOfferConsumedMetric(driverMetrics, shmOfferConsumed, timestamp);
                          totalMessagesCreatedMetric(driverMetrics, totalMessagesCreated, timestamp);
                          totalMessagesDestroyedMetric(driverMetrics, totalMessagesDestroyed, timestamp);
+                         totalTimeframesReadMetric(driverMetrics, totalTimeframesRead, timestamp);
                          totalBytesDeltaMetric(driverMetrics, totalBytesCreated - totalBytesExpired - totalBytesDestroyed, timestamp);
                        }
                        bool done = false;
