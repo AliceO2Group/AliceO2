@@ -28,7 +28,7 @@ namespace o2
 {
 namespace rawdd
 {
-
+using DetID = o2::detectors::DetID;
 using namespace o2::header;
 namespace o2f = o2::framework;
 
@@ -36,17 +36,20 @@ namespace o2f = o2::framework;
 /// SubTimeFrameFileReader
 ////////////////////////////////////////////////////////////////////////////////
 
-SubTimeFrameFileReader::SubTimeFrameFileReader(const std::string& pFileName)
+SubTimeFrameFileReader::SubTimeFrameFileReader(const std::string& pFileName, o2::detectors::DetID::mask_t detMask)
+  : mFileName(pFileName)
 {
-  mFileName = pFileName;
   mFileMap.open(mFileName);
   if (!mFileMap.is_open()) {
     LOG(ERROR) << "Failed to open TF file for reading (mmap).";
     return;
   }
-
   mFileSize = mFileMap.size();
   mFileMapOffset = 0;
+
+  for (DetID::ID id = DetID::First; id <= DetID::Last; id++) {
+    mDetOrigMap[DetID::getDataOrigin(id)] = detMask[id];
+  }
 
 #if __linux__
   madvise((void*)mFileMap.data(), mFileMap.size(), MADV_HUGEPAGE | MADV_SEQUENTIAL | MADV_DONTDUMP);
@@ -171,8 +174,8 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
   std::unique_ptr<MessagesPerRoute> messagesPerRoute = std::make_unique<MessagesPerRoute>();
   auto& msgMap = *messagesPerRoute.get();
   assert(device);
-
-  auto findOutputChannel = [&outputRoutes, &rawChannel](const o2::header::DataHeader* h) {
+  std::unordered_map<std::string, size_t> noChannelMessageDone;
+  auto findOutputChannel = [&outputRoutes, &rawChannel, &noChannelMessageDone](const o2::header::DataHeader* h) {
     if (!rawChannel.empty()) {
       return std::string{rawChannel};
     } else {
@@ -184,7 +187,10 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
         }
       }
     }
-    LOGP(ERROR, "Failed to find output channel for {}/{}/{} @ timeslice {}", h->dataOrigin.str, h->dataDescription.str, h->subSpecification, h->tfCounter);
+    // do we want to issue warning message? We do this only at 1st occurance of given DH
+    if (++noChannelMessageDone[h->dataOrigin.as<std::string>() + h->dataDescription.as<std::string>()] < 2) { // ugly, find faster way
+      LOGP(WARNING, "Failed to find output channel for {}/{}/{} @ timeslice {}", h->dataOrigin.str, h->dataDescription.str, h->subSpecification, h->tfCounter);
+    }
     return std::string{};
   };
 
@@ -304,16 +310,33 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
       stfHeader.runNumber = lDataHeader->runNumber;
       stfHeader.firstOrbit = lDataHeader->firstTForbit;
     }
+
+    const std::uint64_t lDataSize = lDataHeader->payloadSize;
+    // do we accept these data?
+    auto detOrigStatus = mDetOrigMap.find(lDataHeader->dataOrigin);
+    if (detOrigStatus != mDetOrigMap.end() && !detOrigStatus->second) { // this is a detector data and we don't want to read it
+      if (!ignore_nbytes(lDataSize)) {
+        return nullptr;
+      }
+      lLeftToRead -= (lDataHeaderStackSize + lDataSize); // update the counter
+      continue;
+    }
+
     const auto fmqChannel = findOutputChannel(lDataHeader);
     if (fmqChannel.empty()) { // no output channel
-      mFileMap.close();
-      return nullptr;
+      if (!ignore_nbytes(lDataSize)) {
+        return nullptr;
+      }
+      lLeftToRead -= (lDataHeaderStackSize + lDataSize); // update the counter
+      continue;
+      //mFileMap.close();
+      //return nullptr;
     }
+    // read the data
+
     auto fmqFactory = device->GetChannel(fmqChannel, 0).Transport();
     auto lHdrStackMsg = fmqFactory->CreateMessage(headerStack.size(), fair::mq::Alignment{64});
     memcpy(lHdrStackMsg->GetData(), headerStack.data(), headerStack.size());
-    // read the data
-    const std::uint64_t lDataSize = lDataHeader->payloadSize;
 
     auto lDataMsg = fmqFactory->CreateMessage(lDataSize, fair::mq::Alignment{64});
     if (!read_advance(lDataMsg->GetData(), lDataSize)) {

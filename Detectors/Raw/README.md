@@ -460,11 +460,6 @@ The relevant command line options are:
 input data (obligatory): comma-separated list of input data files and/or files with list of data files and/or directories containing files
 
 ```
---onlyDet arg (=all)
-```
-list of dectors to select from available in the data. AT THE MOMENT NOT FUNCTIONAL
-
-```
 --max-tf arg (=-1)
 ```
 max TF ID to process (<= 0 : infinite)
@@ -513,6 +508,22 @@ verbosity level (1 or 2: check RDH, print DH/DPH for 1st or all slices, >2 print
 --raw-channel-config arg
 ```
 optional raw FMQ channel for non-DPL output, similar to `o2-raw-file-reader-workflow`.
+
+Since a priory it is not known what kind of data is in the raw TF file provided on the input, by default the reader will define outputs for the raw data of all known detectors (as subspecification-wildcarded `<DET>/RAWDATA`). Additionally, since some detectors might have done processing on the FLP (in which case the DD TF will contain derived data, e.g. cells), the reader will open extra outputs for all kinds of messages for which we know they can be produced on the FLP. Following 3 partially redundant options allow to decrease the number of defined outputs:
+```
+--onlyDet arg (=all)
+```
+list of detectors to select from available in the data, outputs for others will not be created, their data will be skipped.
+```
+--raw-only-det arg (=none)
+```
+list of detectors for which non-raw outputs (if any) are discarded.
+```
+--non-raw-only-det arg (=none)
+```
+list of detectors for which raw outputs are discarded.
+
+The raw data will be propagated (if present) only if the detector is selected in `--onlyDet` and `NOT` selected in `--non-raw-only-det`. The non-raw data will be propagated (if defined for the given detector and present in the file) only if the detector is selected in `--onlyDet` and `NOT` selected in `--raw-only-det`.
 
 ## Miscellaneous macros
 
