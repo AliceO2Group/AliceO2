@@ -75,6 +75,20 @@ class CookedTracker
     gRoadZ = par[12];
     gminNumberOfClusters = par[13];
   }
+  void setParametersCosmics()
+  {
+    // seed "windows" in z and phi: makeSeeds
+    gzWin = 84.; // length of the L3
+    gminPt = 10.;
+    // Maximal accepted impact parameters for the seeds
+    gmaxDCAxy = 19.4; // radius of the L3
+    gmaxDCAz = 42.;   // half-lenght of the L3
+    // Space point resolution
+    gSigma2 = 0.2 * 0.2;
+    // Tracking "road" from layer to layer
+    gRoadY = 1.5; // Chip size in Y
+    gRoadZ = 3.0; // Chip size in Z
+  }
 
   void setVertices(const std::vector<Vertex>& vertices)
   {
@@ -129,7 +143,7 @@ class CookedTracker
   void setContinuousMode(bool mode) { mContinuousMode = mode; }
   bool getContinuousMode() { return mContinuousMode; }
 
-  static void setMostProbalePt(float pt) { mMostProbablePt = pt; }
+  static void setMostProbablePt(float pt) { mMostProbablePt = pt; }
   static auto getMostProbablePt() { return mMostProbablePt; }
 
   // internal helper classes

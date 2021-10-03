@@ -520,10 +520,10 @@ void CookedTracker::process(gsl::span<const o2::itsmft::CompClusterExt> const& c
 
     auto pattID = comp.getPatternID();
     o2::math_utils::Point3D<float> locXYZ;
-    float sigmaY2 = 0.0015 * 0.0015, sigmaZ2 = sigmaY2, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
+    float sigmaY2 = gSigma2, sigmaZ2 = gSigma2, sigmaYZ = 0;
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaY2 = dict.getErr2X(pattID);
-      sigmaZ2 = dict.getErr2Z(pattID);
+      sigmaY2 = gSigma2; //dict.getErr2X(pattID);
+      sigmaZ2 = gSigma2; //dict.getErr2Z(pattID);
       if (!dict.isGroup(pattID)) {
         locXYZ = dict.getClusterCoordinates(comp);
       } else {
