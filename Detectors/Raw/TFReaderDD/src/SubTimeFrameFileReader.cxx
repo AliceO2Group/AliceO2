@@ -24,6 +24,13 @@
 #include <sys/mman.h>
 #endif
 
+// uncomment this to check breakdown of TF building timing
+//#define  _RUN_TIMING_MEASUREMENT_
+
+#ifdef _RUN_TIMING_MEASUREMENT_
+#include "TStopwatch.h"
+#endif
+
 namespace o2
 {
 namespace rawdd
@@ -174,24 +181,24 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
   std::unique_ptr<MessagesPerRoute> messagesPerRoute = std::make_unique<MessagesPerRoute>();
   auto& msgMap = *messagesPerRoute.get();
   assert(device);
-  std::unordered_map<std::string, size_t> noChannelMessageDone;
-  auto findOutputChannel = [&outputRoutes, &rawChannel, &noChannelMessageDone](const o2::header::DataHeader* h) {
+  std::unordered_map<o2::header::DataHeader, std::pair<std::string, bool>> channelsMap;
+  auto findOutputChannel = [&outputRoutes, &rawChannel, &channelsMap](const o2::header::DataHeader* h) -> const std::string& {
     if (!rawChannel.empty()) {
-      return std::string{rawChannel};
-    } else {
+      return rawChannel;
+    }
+    auto& chFromMap = channelsMap[*h];
+    if (chFromMap.first.empty() && !chFromMap.second) { // search for channel which is enountered for the 1st time
+      chFromMap.second = true;                          // flag that it was already checked
       for (auto& oroute : outputRoutes) {
         LOG(DEBUG) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
         if (o2f::DataSpecUtils::match(oroute.matcher, h->dataOrigin, h->dataDescription, h->subSpecification) && ((h->tfCounter % oroute.maxTimeslices) == oroute.timeslice)) {
           LOG(DEBUG) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
-          return std::string{oroute.channel};
+          chFromMap.first = oroute.channel;
+          break;
         }
       }
     }
-    // do we want to issue warning message? We do this only at 1st occurance of given DH
-    if (++noChannelMessageDone[h->dataOrigin.as<std::string>() + h->dataDescription.as<std::string>()] < 2) { // ugly, find faster way
-      LOGP(WARNING, "Failed to find output channel for {}/{}/{} @ timeslice {}", h->dataOrigin.str, h->dataDescription.str, h->subSpecification, h->tfCounter);
-    }
-    return std::string{};
+    return chFromMap.first;
   };
 
   auto addPart = [&msgMap](FairMQMessagePtr hd, FairMQMessagePtr pl, const std::string& fairMQChannel) {
@@ -279,7 +286,12 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
   if (!ignore_nbytes(lStfIndexHdr->payloadSize)) {
     return nullptr;
   }
-
+#ifdef _RUN_TIMING_MEASUREMENT_
+  TStopwatch readSW, findChanSW, msgSW, addPartSW;
+  findChanSW.Stop();
+  msgSW.Stop();
+  addPartSW.Stop();
+#endif
   // Remaining data size of the TF:
   // total size in file - meta (hdr+struct) - index (hdr + payload)
   const auto lStfDataSize = lStfSizeInFile - (lMetaHdrStackSize + sizeof(SubTimeFrameFileMeta)) - (lStfIndexHdrStackSize + lStfIndexHdr->payloadSize);
@@ -321,8 +333,13 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
       lLeftToRead -= (lDataHeaderStackSize + lDataSize); // update the counter
       continue;
     }
-
-    const auto fmqChannel = findOutputChannel(lDataHeader);
+#ifdef _RUN_TIMING_MEASUREMENT_
+    findChanSW.Start(false);
+#endif
+    const auto& fmqChannel = findOutputChannel(lDataHeader);
+#ifdef _RUN_TIMING_MEASUREMENT_
+    findChanSW.Stop();
+#endif
     if (fmqChannel.empty()) { // no output channel
       if (!ignore_nbytes(lDataSize)) {
         return nullptr;
@@ -335,10 +352,16 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
     // read the data
 
     auto fmqFactory = device->GetChannel(fmqChannel, 0).Transport();
+#ifdef _RUN_TIMING_MEASUREMENT_
+    msgSW.Start(false);
+#endif
     auto lHdrStackMsg = fmqFactory->CreateMessage(headerStack.size(), fair::mq::Alignment{64});
+    auto lDataMsg = fmqFactory->CreateMessage(lDataSize, fair::mq::Alignment{64});
+#ifdef _RUN_TIMING_MEASUREMENT_
+    msgSW.Stop();
+#endif
     memcpy(lHdrStackMsg->GetData(), headerStack.data(), headerStack.size());
 
-    auto lDataMsg = fmqFactory->CreateMessage(lDataSize, fair::mq::Alignment{64});
     if (!read_advance(lDataMsg->GetData(), lDataSize)) {
       return nullptr;
     }
@@ -350,8 +373,13 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
         }
       }
     }
+#ifdef _RUN_TIMING_MEASUREMENT_
+    addPartSW.Start(false);
+#endif
     addPart(std::move(lHdrStackMsg), std::move(lDataMsg), fmqChannel);
-
+#ifdef _RUN_TIMING_MEASUREMENT_
+    addPartSW.Stop();
+#endif
     // update the counter
     lLeftToRead -= (lDataHeaderStackSize + lDataSize);
   }
@@ -379,9 +407,21 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
     auto plMessageSTF = fmqFactory->CreateMessage(stfDistDataHeader.payloadSize, fair::mq::Alignment{64});
     memcpy(hdMessageSTF->GetData(), headerStackSTF.data(), headerStackSTF.size());
     memcpy(plMessageSTF->GetData(), &stfHeader, sizeof(STFHeader));
+#ifdef _RUN_TIMING_MEASUREMENT_
+    addPartSW.Start(false);
+#endif
     addPart(std::move(hdMessageSTF), std::move(plMessageSTF), fmqChannel);
+#ifdef _RUN_TIMING_MEASUREMENT_
+    addPartSW.Stop();
+#endif
   }
-
+#ifdef _RUN_TIMING_MEASUREMENT_
+  readSW.Stop();
+  LOG(INFO) << "TF creation time: CPU: " << readSW.CpuTime() << " Wall: " << readSW.RealTime() << " s";
+  LOG(INFO) << "AddPart Timer CPU: " << addPartSW.CpuTime() << " Wall: " << addPartSW.RealTime() << " s";
+  LOG(INFO) << "CreMsg  Timer CPU: " << msgSW.CpuTime() << " Wall: " << msgSW.RealTime() << " s";
+  LOG(INFO) << "FndChan Timer CPU: " << findChanSW.CpuTime() << " Wall: " << findChanSW.RealTime() << " s";
+#endif
   return messagesPerRoute;
 }
 

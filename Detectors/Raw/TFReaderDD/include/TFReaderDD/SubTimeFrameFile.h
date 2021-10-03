@@ -299,6 +299,29 @@ struct hash<o2::header::DataOrigin> {
   }
 };
 
+inline void hash_combine(std::size_t& seed) {}
+
+template <typename T, typename... Rest>
+inline void hash_combine(std::size_t& seed, const T& v, Rest... rest)
+{
+  std::hash<T> hasher;
+  seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  hash_combine(seed, rest...);
+}
+
+template <>
+struct hash<o2::header::DataHeader> {
+  typedef o2::header::DataHeader argument_type;
+  typedef std::size_t result_type;
+
+  result_type operator()(argument_type const& a) const noexcept
+  {
+    result_type h = (size_t(a.tfCounter) << 32) + a.subSpecification;
+    hash_combine(h, a.dataOrigin, a.dataDescription);
+    return h;
+  }
+};
+
 template <>
 struct hash<o2::header::DataIdentifier> {
   typedef o2::header::DataIdentifier argument_type;
