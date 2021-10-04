@@ -40,7 +40,6 @@ namespace its
 class TrackerTraitsCPU : public TrackerTraits
 {
  public:
-  ~TrackerTraitsCPU() override {}
 
   void computeLayerCells() final;
   void computeLayerTracklets() final;

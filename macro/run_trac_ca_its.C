@@ -287,7 +287,9 @@ void run_trac_ca_its(bool cosmics = false,
   }
   tf.printVertices();
 
-  o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU(&tf));
+  o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU);
+  tracker.adoptTimeFrame(tf);
+
   if (useLUT) {
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
