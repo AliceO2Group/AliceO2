@@ -20,6 +20,8 @@
 #include <ostream>
 #include <cstdint>
 
+#include "Rtypes.h"
+
 namespace o2
 {
 namespace mid
@@ -31,6 +33,8 @@ struct Cluster2D {
   float yCoor;   ///< Local y coordinate
   float sigmaX2; ///< Square of dispersion along x
   float sigmaY2; ///< Square of dispersion along y
+
+  ClassDefNV(Cluster2D, 1);
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Cluster2D& data)

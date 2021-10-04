@@ -41,17 +41,15 @@ class VisualisationCluster
   rapidjson::Value jsonTree(rapidjson::Document::AllocatorType& allocator);
 
   // Default constructor
-  VisualisationCluster(double XYZ[]);
+  VisualisationCluster(float XYZ[]);
 
-  double X() const { return mCoordinates[0]; }
-  double Y() const { return mCoordinates[1]; }
-  double Z() const { return mCoordinates[2]; }
-
- private:
-  void setCoordinates(double xyz[3]);
-  double mCoordinates[3]; /// Vector of cluster's coordinates
+  float X() const { return mCoordinates[0]; }
+  float Y() const { return mCoordinates[1]; }
+  float Z() const { return mCoordinates[2]; }
 
  private:
+  void setCoordinates(float xyz[3]);
+  float mCoordinates[3]; /// Vector of cluster's coordinates
 };
 } // namespace event_visualisation
 } // namespace o2

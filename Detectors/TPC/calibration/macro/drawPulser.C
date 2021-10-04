@@ -82,15 +82,15 @@ TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir 
 
   // mode 1 handling
   if (mode == 1) {
-    float tMin = 238.f;
-    float tMax = 240.f;
-    float wMin = 0.38f;
-    float wMax = 0.57f;
+    float tMin = 124.f;
+    float tMax = 125.f;
+    float wMin = 0.25f;
+    float wMax = 0.55;
     float qMin = 20.f;
     float qMax = 280.f;
     if (normalizeQtot) {
-      qMin = 100.f;
-      qMax = 350.f;
+      qMin = 150.f;
+      qMax = 450.f;
     }
 
     if (type == 1) {

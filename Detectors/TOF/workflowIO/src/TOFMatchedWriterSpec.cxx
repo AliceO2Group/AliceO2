@@ -40,7 +40,7 @@ using TrackInfo = std::vector<o2::dataformats::TrackTPCTOF>;
 using LabelsType = std::vector<o2::MCCompLabel>;
 using namespace o2::header;
 
-DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool writeTOFTPC, bool strictMode)
+DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool writeTracks, int mode, bool strict)
 {
   // spectators for logging
   auto loggerMatched = [](MatchInfo const& indata) {
@@ -49,13 +49,26 @@ DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool w
   auto loggerTofLabels = [](LabelsType const& labeltof) {
     LOG(INFO) << "TOF LABELS GOT " << labeltof.size() << " LABELS ";
   };
-  o2::header::DataDescription ddMatchInfo{"MTC_ITSTPC"}, ddMatchInfo_tpc{"MTC_TPC"},
-    ddMCMatchTOF{"MCMTC_ITSTPC"}, ddMCMatchTOF_tpc{"MCMTC_TPC"};
-  uint32_t ss = o2::globaltracking::getSubSpec(strictMode && writeTOFTPC ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
-  return MakeRootTreeWriterSpec(writeTOFTPC ? "TOFMatchedWriter_TPC" : "TOFMatchedWriter",
+  //  o2::header::DataDescription ddMatchInfo{"MTC_ITSTPC"}, ddMatchInfo_tpc{"MTC_TPC"},
+  //    ddMCMatchTOF{"MCMTC_ITSTPC"}, ddMCMatchTOF_tpc{"MCMTC_TPC"};
+
+  o2::header::DataDescription ddMatchInfo[4] = {{"MTC_TPC"}, {"MTC_ITSTPC"}, {"MTC_TPCTRD"}, {"MTC_ITSTPCTRD"}};
+  o2::header::DataDescription ddMCMatchTOF[4] = {{"MCMTC_TPC"}, {"MCMTC_ITSTPC"}, {"MCMTC_TPCTRD"}, {"MCMTC_ITSTPCTRD"}};
+
+  uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
+
+  const char* match_name[4] = {"TOFMatchedWriter_TPC", "TOFMatchedWriter_ITSTPC", "TOFMatchedWriter_TPCTRD", "TOFMatchedWriter_ITSTPCTRD"};
+  const char* match_name_strict[4] = {"TOFMatchedWriter_TPC_str", "TOFMatchedWriter_ITSTPC_str", "TOFMatchedWriter_TPCTRD_str", "TOFMatchedWriter_ITSTPCTRD_str"};
+
+  const char* taskName = match_name[mode];
+  if (strict) {
+    taskName = match_name_strict[mode];
+  }
+
+  return MakeRootTreeWriterSpec(taskName,
                                 outdef,
                                 "matchTOF",
-                                BranchDefinition<MatchInfo>{InputSpec{"tofmatching", gDataOriginTOF, writeTOFTPC ? ddMatchInfo_tpc : ddMatchInfo, ss},
+                                BranchDefinition<MatchInfo>{InputSpec{"tofmatching", gDataOriginTOF, ddMatchInfo[mode], ss},
                                                             "TOFMatchInfo",
                                                             "TOFMatchInfo-branch-name",
                                                             1,
@@ -63,8 +76,8 @@ DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool w
                                 BranchDefinition<TrackInfo>{InputSpec{"tpctofTracks", gDataOriginTOF, "TOFTRACKS_TPC", ss},
                                                             "TPCTOFTracks",
                                                             "TPCTOFTracks-branch-name",
-                                                            writeTOFTPC},
-                                BranchDefinition<LabelsType>{InputSpec{"matchtoflabels", gDataOriginTOF, writeTOFTPC ? ddMCMatchTOF_tpc : ddMCMatchTOF, ss},
+                                                            writeTracks},
+                                BranchDefinition<LabelsType>{InputSpec{"matchtoflabels", gDataOriginTOF, ddMCMatchTOF[mode], ss},
                                                              "MatchTOFMCTruth",
                                                              "MatchTOFMCTruth-branch-name",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled

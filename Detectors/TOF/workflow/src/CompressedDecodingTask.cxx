@@ -48,6 +48,8 @@ void CompressedDecodingTask::init(InitContext& ic)
 
   if (mMaskNoise) {
     mDecoder.maskNoiseRate(mNoiseRate);
+  } else {
+    mDecoder.maskNoiseRate(-mNoiseRate); // negative means -> flag but not filter
   }
 
   auto finishFunction = [this]() {
@@ -420,7 +422,7 @@ DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool c
     Options{
       {"row-filter", VariantType::Bool, false, {"Filter empty row"}},
       {"mask-noise", VariantType::Bool, false, {"Flag to mask noisy digits"}},
-      {"noise-counts", VariantType::Int, 1000, {"Counts in a single (TF) payload"}}}};
+      {"noise-counts", VariantType::Int, 11, {"Counts in a single (TF) payload"}}}};
 }
 
 } // namespace tof

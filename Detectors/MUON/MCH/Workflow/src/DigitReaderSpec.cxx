@@ -16,11 +16,10 @@
 
 #include "DigitReaderSpec.h"
 
+#include <memory>
 #include <sstream>
 #include <string>
-#include "fmt/format.h"
-#include "TFile.h"
-#include "TTree.h"
+#include "DPLUtils/RootTreeReader.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataSpecUtils.h"
@@ -33,7 +32,7 @@
 #include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/ROFRecord.h"
 
-namespace of = o2::framework;
+using namespace o2::framework;
 
 namespace o2
 {
@@ -43,74 +42,47 @@ namespace mch
 class DigitsReaderDeviceDPL
 {
  public:
-  DigitsReaderDeviceDPL(bool useMC, const std::vector<header::DataDescription>& descriptions) : mUseMC(useMC), mDescriptions(descriptions) {}
-  void init(o2::framework::InitContext& ic)
+  DigitsReaderDeviceDPL(bool useMC, const std::vector<header::DataDescription>& descriptions)
+    : mUseMC(useMC), mDescriptions(descriptions) {}
+
+  void init(InitContext& ic)
   {
     auto filename = ic.options().get<std::string>("mch-digit-infile");
-    mFile = std::make_unique<TFile>(filename.c_str());
-    if (!mFile->IsOpen()) {
-      LOG(ERROR) << "Cannot open the " << filename << " file !";
-      mState = 1;
-      return;
-    }
-    mTree = static_cast<TTree*>(mFile->Get("o2sim"));
-    if (!mTree) {
-      LOG(ERROR) << "Cannot find tree in " << filename;
-      mState = 1;
-      return;
-    }
-    mTree->SetBranchAddress("MCHDigit", &mDigits);
     if (mUseMC) {
-      mTree->SetBranchAddress("MCHMCLabels", &mMCContainer);
+      mReader = std::make_unique<RootTreeReader>("o2sim", filename.c_str(), -1,
+                                                 RootTreeReader::PublishingMode::Single,
+                                                 RootTreeReader::BranchDefinition<std::vector<Digit>>{
+                                                   Output{header::gDataOriginMCH, mDescriptions[0], 0, Lifetime::Timeframe}, "MCHDigit"},
+                                                 RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{
+                                                   Output{header::gDataOriginMCH, mDescriptions[1], 0, Lifetime::Timeframe}, "MCHROFRecords"},
+                                                 RootTreeReader::BranchDefinition<dataformats::MCTruthContainer<MCCompLabel>>{
+                                                   Output{header::gDataOriginMCH, mDescriptions[2], 0, Lifetime::Timeframe}, "MCHMCLabels"});
+    } else {
+      mReader = std::make_unique<RootTreeReader>("o2sim", filename.c_str(), -1,
+                                                 RootTreeReader::PublishingMode::Single,
+                                                 RootTreeReader::BranchDefinition<std::vector<Digit>>{
+                                                   Output{header::gDataOriginMCH, mDescriptions[0], 0, Lifetime::Timeframe}, "MCHDigit"},
+                                                 RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{
+                                                   Output{header::gDataOriginMCH, mDescriptions[1], 0, Lifetime::Timeframe}, "MCHROFRecords"});
     }
-    mTree->SetBranchAddress("MCHROFRecords", &mROFRecords);
-    mState = 0;
   }
 
-  void run(o2::framework::ProcessingContext& pc)
+  void run(ProcessingContext& pc)
   {
-    if (mState != 0) {
-      return;
+    if ((++(*mReader))(pc) == false) {
+      pc.services().get<ControlService>().endOfStream();
     }
-
-    std::vector<o2::mch::Digit> digits;
-    o2::dataformats::MCTruthContainer<MCCompLabel> mcContainer;
-    std::vector<ROFRecord> rofRecords;
-
-    for (auto ientry = 0; ientry < mTree->GetEntries(); ++ientry) {
-      mTree->GetEntry(ientry);
-      digits.insert(digits.end(), mDigits->begin(), mDigits->end());
-      rofRecords.insert(rofRecords.end(), mROFRecords->begin(), mROFRecords->end());
-      if (mUseMC) {
-        mcContainer.mergeAtBack(*mMCContainer);
-      }
-    }
-
-    LOG(DEBUG) << "MCHDigitsReader pushed " << digits.size() << " merged digits";
-    pc.outputs().snapshot(of::Output{header::gDataOriginMCH, mDescriptions[0], 0, of::Lifetime::Timeframe}, digits);
-    pc.outputs().snapshot(of::Output{header::gDataOriginMCH, mDescriptions[1], 0, of::Lifetime::Timeframe}, rofRecords);
-    LOG(DEBUG) << "MCHDigitsReader pushed " << digits.size() << " indexed digits";
-    if (mUseMC) {
-      pc.outputs().snapshot(of::Output{header::gDataOriginMCH, mDescriptions[2], 0, of::Lifetime::Timeframe}, mcContainer);
-    }
-    mState = 2;
-    pc.services().get<of::ControlService>().endOfStream();
   }
 
  private:
-  std::unique_ptr<TFile> mFile{nullptr};
-  TTree* mTree{nullptr};                                                 // not owner
-  std::vector<o2::mch::Digit>* mDigits{nullptr};                         // not owner
-  o2::dataformats::MCTruthContainer<MCCompLabel>* mMCContainer{nullptr}; // not owner
-  std::vector<o2::mch::ROFRecord>* mROFRecords{nullptr};                 // not owner
+  std::unique_ptr<RootTreeReader> mReader{};
   std::vector<header::DataDescription> mDescriptions{};
-  int mState = 0;
   bool mUseMC = true;
 };
 
 framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* specName)
 {
-  std::vector<of::OutputSpec> outputs;
+  std::vector<OutputSpec> outputs;
   std::vector<header::DataDescription> descriptions;
   std::stringstream ss;
   ss << "A:" << header::gDataOriginMCH.as<std::string>() << "/DIGITS/0";
@@ -118,18 +90,18 @@ framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* specName
   if (useMC) {
     ss << ";C:" << header::gDataOriginMCH.as<std::string>() << "/DIGITLABELS/0";
   }
-  auto matchers = of::select(ss.str().c_str());
+  auto matchers = select(ss.str().c_str());
   for (auto& matcher : matchers) {
-    outputs.emplace_back(of::DataSpecUtils::asOutputSpec(matcher));
-    descriptions.emplace_back(of::DataSpecUtils::asConcreteDataDescription(matcher));
+    outputs.emplace_back(DataSpecUtils::asOutputSpec(matcher));
+    descriptions.emplace_back(DataSpecUtils::asConcreteDataDescription(matcher));
   }
 
-  return of::DataProcessorSpec{
+  return DataProcessorSpec{
     specName,
-    of::Inputs{},
+    Inputs{},
     outputs,
-    of::AlgorithmSpec{of::adaptFromTask<o2::mch::DigitsReaderDeviceDPL>(useMC, descriptions)},
-    of::Options{{"mch-digit-infile", of::VariantType::String, "mchdigits.root", {"Name of the input file"}}}};
+    AlgorithmSpec{adaptFromTask<DigitsReaderDeviceDPL>(useMC, descriptions)},
+    Options{{"mch-digit-infile", VariantType::String, "mchdigits.root", {"Name of the input file"}}}};
 }
 } // namespace mch
 } // namespace o2

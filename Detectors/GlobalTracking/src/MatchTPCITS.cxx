@@ -9,9 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <TSystem.h>
 #include <TTree.h>
-#include <TSystem.h>
 #include <cassert>
 
 #include "FairLogger.h"
@@ -80,54 +78,46 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp)
   mStartIR = inp.startIR;
   updateTimeDependentParams();
 
-  ProcInfo_t procInfoStart, procInfoStop;
-  gSystem->GetProcInfo(&procInfoStart);
-  constexpr uint64_t kMB = 1024 * 1024;
-  LOGF(info, "Memory (GB) at entrance: RSS: %.3f VMem: %.3f\n", float(procInfoStart.fMemResident) / kMB, float(procInfoStart.fMemVirtual) / kMB);
-
   mTimer[SWTot].Start(false);
 
   clear();
+  while (1) {
+    if (!prepareITSData() || !prepareTPCData() || !prepareFITData()) {
+      break;
+    }
 
-  if (!prepareITSData() || !prepareTPCData() || !prepareFITData()) {
-    return;
-  }
+    mTimer[SWDoMatching].Start(false);
+    for (int sec = o2::constants::math::NSectors; sec--;) {
+      doMatching(sec);
+    }
+    mTimer[SWDoMatching].Stop();
+    if (0) { // enabling this creates very verbose output
+      mTimer[SWTot].Stop();
+      printCandidatesTPC();
+      printCandidatesITS();
+      mTimer[SWTot].Start(false);
+    }
 
-  mTimer[SWDoMatching].Start(false);
-  for (int sec = o2::constants::math::NSectors; sec--;) {
-    doMatching(sec);
-  }
-  mTimer[SWDoMatching].Stop();
-  if (0) { // enabling this creates very verbose output
-    mTimer[SWTot].Stop();
-    printCandidatesTPC();
-    printCandidatesITS();
-    mTimer[SWTot].Start(false);
-  }
+    selectBestMatches();
 
-  selectBestMatches();
+    refitWinners();
 
-  refitWinners();
-
-  if (mUseFT0 && Params::Instance().runAfterBurner) {
-    runAfterBurner();
-  }
+    if (mUseFT0 && Params::Instance().runAfterBurner) {
+      runAfterBurner();
+    }
 
 #ifdef _ALLOW_DEBUG_TREES_
-  if (mDBGOut && isDebugFlag(WinnerMatchesTree)) {
-    dumpWinnerMatches();
-  }
+    if (mDBGOut && isDebugFlag(WinnerMatchesTree)) {
+      dumpWinnerMatches();
+    }
 #endif
-
-  gSystem->GetProcInfo(&procInfoStop);
+    break;
+  }
   mTimer[SWTot].Stop();
 
   for (int i = 0; i < NStopWatches; i++) {
     LOGF(INFO, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots of TF#%d", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1, mTFCount);
   }
-  LOGF(INFO, "Memory (GB) at exit: RSS: %.3f VMem: %.3f", float(procInfoStop.fMemResident) / kMB, float(procInfoStop.fMemVirtual) / kMB);
-  LOGF(INFO, "Memory increment: RSS: %.3f VMem: %.3f", float(procInfoStop.fMemResident - procInfoStart.fMemResident) / kMB,
-       float(procInfoStop.fMemVirtual - procInfoStart.fMemVirtual) / kMB);
   mTFCount++;
 }
 

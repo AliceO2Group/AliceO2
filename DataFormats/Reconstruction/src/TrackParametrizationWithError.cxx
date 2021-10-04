@@ -170,7 +170,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
 {
   // rotate to alpha frame
   if (gpu::CAMath::Abs(this->getSnp()) > constants::math::Almost1) {
-    LOGP(WARNING, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", this->getSnp());
+    LOGP(debug, "Precondition is not satisfied: |sin(phi)|>1 ! {:f}", this->getSnp());
     return false;
   }
   //
@@ -189,7 +189,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
 
   value_t updSnp = snp * ca - csp * sa;
   if (gpu::CAMath::Abs(updSnp) > constants::math::Almost1) {
-    LOGP(WARNING, "Rotation failed: new snp {:.2f}", updSnp);
+    LOGP(debug, "Rotation failed: new snp {:.2f}", updSnp);
     return false;
   }
   value_t xold = this->getX(), yold = this->getY();
@@ -199,7 +199,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
   this->setSnp(updSnp);
 
   if (gpu::CAMath::Abs(csp) < constants::math::Almost0) {
-    LOGP(WARNING, "Too small cosine value {:f}", csp);
+    LOGP(debug, "Too small cosine value {:f}", csp);
     csp = constants::math::Almost0;
   }
 
@@ -248,8 +248,12 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dat
   auto tmpT(*this); // operate on the copy to recover after the failure
   alp += gpu::CAMath::ASin(sn);
   if (!tmpT.rotate(alp) || !tmpT.propagateTo(xv, b)) {
-    LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
-    tmpT.print();
+#ifndef GPUCA_ALIGPUCODE
+    LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: " << tmpT.asString();
+#else
+    LOG(debug) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx;
+    ;
+#endif
     return false;
   }
   *this = tmpT;
@@ -299,7 +303,7 @@ GPUd() void TrackParametrizationWithError<value_T>::set(const dim3_t& xyz, const
   math_utils::detail::sincos(alp, sn, cs);
   // protection against cosp<0
   if (cs * pxpypz[0] + sn * pxpypz[1] < 0) {
-    LOG(WARNING) << "alpha from phiPos() will invalidate this track parameters, overriding to alpha from phi()";
+    LOG(debug) << "alpha from phiPos() will invalidate this track parameters, overriding to alpha from phi()";
     alp = gpu::CAMath::ATan2(pxpypz[1], pxpypz[0]);
     if (sectorAlpha) {
       alp = math_utils::detail::angle2Alpha<value_t>(alp);

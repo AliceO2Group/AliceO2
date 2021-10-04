@@ -14,7 +14,6 @@
 /// \author Philippe Pillot, Subatech
 
 #include <algorithm>
-#include <cstring>
 #include <functional>
 #include <iterator>
 #include <memory>
@@ -43,7 +42,7 @@ class TrackSamplerTask
 
     mReader = std::make_unique<RootTreeReader>("midreco", inputFileName.c_str(), -1,
                                                RootTreeReader::PublishingMode::Single,
-                                               RootTreeReader::BranchDefinition<std::vector<char>>{
+                                               RootTreeReader::BranchDefinition<std::vector<Track>>{
                                                  Output{"MID", "TRACKS", 0, Lifetime::Timeframe}, "MIDTrack"},
                                                RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{
                                                  Output{"MID", "TRACKSROF", 0, Lifetime::Timeframe}, "MIDTrackROF"},
@@ -82,15 +81,10 @@ class TrackSamplerTask
 
     } else if (name == "MIDTrack") {
 
-      auto tracks = reinterpret_cast<std::vector<char>*>(data);
+      auto tracks = reinterpret_cast<std::vector<Track>*>(data);
 
-      // accumulate the tracks, in Track format
-      if (tracks->size() % sizeof(Track) != 0) {
-        throw std::length_error("invalid track format");
-      }
-      size_t offset = mTracks.size();
-      mTracks.resize(offset + tracks->size() / sizeof(Track));
-      std::memcpy(&(mTracks[offset]), tracks->data(), tracks->size());
+      // accumulate the tracks
+      mTracks.insert(mTracks.end(), tracks->begin(), tracks->end());
 
     } else {
       throw std::invalid_argument("invalid branch");

@@ -63,7 +63,12 @@ void TrackerDPL::init(InitContext& ic)
     // create the tracker: set the B-field, the configuration and initialize
     mTracker = std::make_unique<o2::mft::Tracker>(mUseMC);
     double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
-    mTracker->setBz(field->getBz(centerMFT));
+    auto Bz = field->getBz(centerMFT);
+    if (Bz == 0) {
+      Bz = 0.1; // Temporary workaround for MFT tracking with magnet off;
+      LOG(INFO) << " Temporary workaround for MFT tracking with magnet off. Bz = " << Bz;
+    }
+    mTracker->setBz(Bz);
     mTracker->initConfig(trackingParam, true);
     mTracker->initialize(trackingParam.FullClusterScan);
   } else {
@@ -138,38 +143,38 @@ void TrackerDPL::run(ProcessingContext& pc)
   };
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
-    for (auto& rof : rofs) {
-      int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, mTracker.get());
-      if (nclUsed) {
-        event.setROFrameId(roFrame);
-        event.initialize(trackingParam.FullClusterScan);
-        LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
-        mTracker->setROFrame(roFrame);
-        mTracker->clustersToTracks(event);
-        tracksLTF.swap(event.getTracksLTF());
-        tracksCA.swap(event.getTracksCA());
-        nTracksLTF += tracksLTF.size();
-        nTracksCA += tracksCA.size();
+  for (auto& rof : rofs) {
+    int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, mTracker.get());
+    if (nclUsed) {
+      event.setROFrameId(roFrame);
+      event.initialize(trackingParam.FullClusterScan);
+      LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+      mTracker->setROFrame(roFrame);
+      mTracker->clustersToTracks(event);
+      tracksLTF.swap(event.getTracksLTF());
+      tracksCA.swap(event.getTracksCA());
+      nTracksLTF += tracksLTF.size();
+      nTracksCA += tracksCA.size();
 
-        if (mUseMC) {
-          mTracker->computeTracksMClabels(tracksLTF);
-          mTracker->computeTracksMClabels(tracksCA);
-          trackLabels.swap(mTracker->getTrackLabels());
-          std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
-          trackLabels.clear();
-        }
-
-        LOG(INFO) << "Found tracks LTF: " << tracksLTF.size();
-        LOG(INFO) << "Found tracks CA: " << tracksCA.size();
-        int first = allTracksMFT.size();
-        int number = tracksLTF.size() + tracksCA.size();
-        rof.setFirstEntry(first);
-        rof.setNEntries(number);
-        copyTracks(tracksLTF, allTracksMFT, allClusIdx);
-        copyTracks(tracksCA, allTracksMFT, allClusIdx);
+      if (mUseMC) {
+        mTracker->computeTracksMClabels(tracksLTF);
+        mTracker->computeTracksMClabels(tracksCA);
+        trackLabels.swap(mTracker->getTrackLabels());
+        std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+        trackLabels.clear();
       }
-      roFrame++;
+
+      LOG(INFO) << "Found tracks LTF: " << tracksLTF.size();
+      LOG(INFO) << "Found tracks CA: " << tracksCA.size();
+      int first = allTracksMFT.size();
+      int number = tracksLTF.size() + tracksCA.size();
+      rof.setFirstEntry(first);
+      rof.setNEntries(number);
+      copyTracks(tracksLTF, allTracksMFT, allClusIdx);
+      copyTracks(tracksCA, allTracksMFT, allClusIdx);
     }
+    roFrame++;
+  }
 
   LOG(INFO) << "MFTTracker found " << nTracksLTF << " tracks LTF";
   LOG(INFO) << "MFTTracker found " << nTracksCA << " tracks CA";

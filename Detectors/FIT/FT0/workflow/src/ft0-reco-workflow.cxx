@@ -12,6 +12,7 @@
 #include "FT0Workflow/RecoWorkflow.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include <string>
 
 using namespace o2::framework;
 
@@ -23,6 +24,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"ccdb-path-ft0", o2::framework::VariantType::String, "http://o2-ccdb.internal/", {"CCDB path"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
@@ -41,15 +43,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   LOG(INFO) << "WorkflowSpec defineDataProcessing";
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  LOG(INFO) << " ccdbpath " << configcontext.options().get<std::string>("ccdb-path-ft0");
+
   // write the configuration used for the digitizer workflow
   o2::conf::ConfigurableParam::writeINI("o2-ft0-recoflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
+  auto ccdbpath = configcontext.options().get<std::string>("ccdb-path-ft0");
+  auto disableRootInp =
+    configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
-  LOG(INFO) << "WorkflowSpec getRecoWorkflow useMC " << useMC;
-  auto wf = o2::fit::getRecoWorkflow(useMC, disableRootInp, disableRootOut);
+  LOG(INFO) << "WorkflowSpec getRecoWorkflow useMC " << useMC << " CCDB  " << ccdbpath;
+  auto wf = o2::fit::getRecoWorkflow(useMC, ccdbpath, disableRootInp, disableRootOut);
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

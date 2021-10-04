@@ -34,11 +34,25 @@ namespace itsmft
 {
 class Clusterer;
 
+struct STFDecoderInp {
+  bool doClusters = true;
+  bool doPatterns = true;
+  bool doDigits = false;
+  bool doCalib = false;
+  bool askSTFDist = true;
+  o2::header::DataOrigin origin{"NIL"};
+  std::string deviceName{};
+  std::string dict{};
+  std::string noise{};
+  std::string inputSpec{};
+};
+
 template <class Mapping>
 class STFDecoder : public Task
 {
  public:
-  STFDecoder(bool clusters = true, bool pattern = true, bool digits = false, bool calib = false, std::string_view dict = "", std::string_view noise = "");
+  STFDecoder(const STFDecoderInp& inp);
+  STFDecoder() = default;
   ~STFDecoder() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -70,8 +84,7 @@ class STFDecoder : public Task
 using STFDecoderITS = STFDecoder<ChipMappingITS>;
 using STFDecoderMFT = STFDecoder<ChipMappingMFT>;
 
-o2::framework::DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, bool doCalib, bool askDISTSTF, const std::string& dict, const std::string& noise);
-o2::framework::DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, bool doCalib, bool askDISTSTF, const std::string& dict, const std::string& noise);
+o2::framework::DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp);
 
 } // namespace itsmft
 } // namespace o2

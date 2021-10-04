@@ -31,6 +31,11 @@ using namespace o2::tpc::qc;
 template <class T>
 bool Clusters::processCluster(const T& cluster, const o2::tpc::Sector sector, const int row)
 {
+  if (mIsNormalized) {
+    denormalize();
+    LOGP(warning, "calling denormalize() before filling");
+  }
+
   const int nROC = row < 63 ? int(sector) : int(sector) + 36;
   const int rocRow = row < 63 ? row : row - 63;
 
@@ -66,6 +71,11 @@ bool Clusters::processCluster(const T& cluster, const o2::tpc::Sector sector, co
 //______________________________________________________________________________
 void Clusters::fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue)
 {
+  if (mIsNormalized) {
+    denormalize();
+    LOGP(warning, "calling denormalize() before filling");
+  }
+
   const CRU cruID(cru);
   float val;
   val = mNClusters.getValue(cruID.sector(), rowInSector, padInRow);
@@ -79,13 +89,46 @@ void Clusters::fillADCValue(int cru, int rowInSector, int padInRow, int timeBin,
 }
 
 //______________________________________________________________________________
-void Clusters::analyse()
+void Clusters::normalize()
 {
+  if (mIsNormalized) {
+    return;
+  }
+
   mQMax /= mNClusters;
   mQTot /= mNClusters;
   mSigmaTime /= mNClusters;
   mSigmaPad /= mNClusters;
   mTimeBin /= mNClusters;
+
+  mIsNormalized = true;
+}
+
+//______________________________________________________________________________
+void Clusters::denormalize()
+{
+  if (!mIsNormalized) {
+    return;
+  }
+
+  mQMax *= mNClusters;
+  mQTot *= mNClusters;
+  mSigmaTime *= mNClusters;
+  mSigmaPad *= mNClusters;
+  mTimeBin *= mNClusters;
+
+  mIsNormalized = false;
+}
+
+//______________________________________________________________________________
+void Clusters::reset()
+{
+  mNClusters *= 0;
+  mQMax *= 0;
+  mQTot *= 0;
+  mSigmaTime *= 0;
+  mSigmaPad *= 0;
+  mTimeBin *= 0;
 }
 
 //______________________________________________________________________________

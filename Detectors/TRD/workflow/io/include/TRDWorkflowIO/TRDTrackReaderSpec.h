@@ -43,7 +43,7 @@ class TRDTrackReader : public Task
     TPCTRD
   };
 
-  TRDTrackReader(bool useMC, Mode mode, bool subSpecStrict = false) : mUseMC(useMC), mMode(mode) {}
+  TRDTrackReader(bool useMC, Mode mode, bool subSpecStrict = false) : mUseMC(useMC), mMode(mode), mSubSpecStrict(subSpecStrict) {}
   ~TRDTrackReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;

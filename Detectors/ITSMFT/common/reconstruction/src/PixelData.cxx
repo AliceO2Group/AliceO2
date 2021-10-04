@@ -44,5 +44,14 @@ std::string ChipPixelData::getErrorDetails(int pos) const
   if (pos == int(ChipStat::RepeatingPixel)) {
     return fmt::format(": row{}/col{}", mErrorInfo & 0xffff, (mErrorInfo >> 16) & 0xffff);
   }
+  if (pos == int(ChipStat::UnknownWord)) {
+    std::string rbuf = ": 0x<";
+    int nc = getNBytesInRawBuff();
+    for (int i = 0; i < nc; i++) {
+      rbuf += fmt::format(i ? " {:02x}" : "{:02x}", (int)getRawErrBuff()[i]);
+    }
+    rbuf += '>';
+    return rbuf;
+  }
   return {};
 }

@@ -371,21 +371,16 @@ class SingleLUT : public LUT
 
  public:
   static constexpr char sDetectorName[] = "FT0";
+  static constexpr char sDefaultCCDBpath[] = "http://ccdb-test.cern.ch:8080/";
+  static constexpr char sDefaultLUTpath[] = "FT0/LookUpTableNew";
+  inline static std::string sCurrentCCDBpath = sDefaultCCDBpath;
+  inline static std::string sCurrentLUTpath = sDefaultLUTpath;
+  //Before instance() call, setup url and path
+  static void setCCDBurl(const std::string& url) { sCurrentCCDBpath = url; }
+  static void setLUTpath(const std::string& path) { sCurrentLUTpath = path; }
   static SingleLUT& Instance()
   {
-    static SingleLUT instanceLUT("http://ccdb-test.cern.ch:8080/", "FT0/LookUpTableNew");
-    return instanceLUT;
-  }
-  // temporary unused
-  static SingleLUT& InstanceCCDB(const std::string& urlCCDB, const std::string& pathToStorageInCCDB)
-  {
-    static SingleLUT instanceLUT(urlCCDB, pathToStorageInCCDB);
-    return instanceLUT;
-  }
-
-  static SingleLUT& InstanceFile(const std::string& pathToFile)
-  {
-    static SingleLUT instanceLUT(pathToFile);
+    static SingleLUT instanceLUT(sCurrentCCDBpath, sCurrentLUTpath);
     return instanceLUT;
   }
 };

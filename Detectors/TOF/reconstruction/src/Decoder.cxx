@@ -114,9 +114,7 @@ bool Decoder::close()
 void Decoder::clear()
 {
   reset();
-  if (mMaskNoiseRate > 0) {
-    clearCounts();
-  }
+  clearCounts();
 
   mPatterns.clear();
   mCratePatterns.clear();
@@ -140,9 +138,7 @@ void Decoder::InsertDigit(int icrate, int itrm, int itdc, int ichain, int channe
     return;
   }
 
-  if (mMaskNoiseRate > 0) {
-    mChannelCounts[digitInfo.channel]++;
-  }
+  mChannelCounts[digitInfo.channel]++;
 
   mHitDecoded++;
 
@@ -204,9 +200,7 @@ void Decoder::readTRM(int icru, int icrate, uint32_t orbit, uint16_t bunchid)
       continue;
     }
 
-    if (mMaskNoiseRate > 0) {
-      mChannelCounts[digitInfo.channel]++;
-    }
+    mChannelCounts[digitInfo.channel]++;
 
     mHitDecoded++;
 

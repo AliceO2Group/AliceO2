@@ -39,6 +39,7 @@
 #include "DataFormatsCPV/CTF.h"
 #include "DataFormatsZDC/CTF.h"
 #include "DataFormatsHMP/CTF.h"
+#include "DataFormatsCTP/CTF.h"
 #include "Algorithm/RangeTokenizer.h"
 #include <TStopwatch.h>
 
@@ -312,6 +313,14 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
     o2::hmpid::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
     setFirstTFOrbit(det.getName());
   }
+
+  det = DetID::CTP;
+  if (detsTF[det]) {
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::ctp::CTF));
+    o2::ctp::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
+    setFirstTFOrbit(det.getName());
+  }
+
   auto entryStr = fmt::format("({} of {} in {})", mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
   if (++mCurrTreeEntry >= mCTFTree->GetEntries()) { // this file is done, check if there are other files
     mCTFTree.reset();

@@ -156,12 +156,23 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
   auto finalizer = [payload = p](std::shared_ptr<FairMQResizableBuffer> b) -> void {
     auto table = payload->finalize();
 
-    auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
-#if ARROW_VERSION_MAJOR < 3
-    auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
-#else
+    auto mock = std::make_shared<arrow::io::MockOutputStream>();
+    int64_t expectedSize = 0;
+    if (O2_BUILTIN_UNLIKELY(table->num_rows() != 0)) {
+      auto mockBatch = arrow::ipc::MakeStreamWriter(mock.get(), table->schema());
+      auto outStatus = mockBatch.ValueOrDie()->WriteTable(*table);
+      expectedSize = mock->Tell().ValueOrDie();
+      // Arrow grows buffers by multiplying by 2x, regardless of the
+      // fact we actually know the size.
+      auto expectedPow2 = (1 << (64 - __builtin_clzl(expectedSize)));
+      auto reserve = b->Reserve(expectedSize + 2048 * 1024);
+      if (reserve.ok() == false) {
+        throw std::runtime_error("Unable to reserve memory for table");
+      }
+    }
+
+    auto stream = std::make_shared<FairMQOutputStream>(b);
     auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
-#endif
     if (outBatch.ok() == false) {
       throw ::std::runtime_error("Unable to create batch writer");
     }
@@ -205,12 +216,21 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
   auto finalizer = [payload = t2t](std::shared_ptr<FairMQResizableBuffer> b) -> void {
     auto table = payload->finalize();
 
-    auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
-#if ARROW_VERSION_MAJOR < 3
-    auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
-#else
+    auto mock = std::make_shared<arrow::io::MockOutputStream>();
+    auto mockBatch = arrow::ipc::MakeStreamWriter(mock.get(), table->schema());
+    auto outStatus = mockBatch.ValueOrDie()->WriteTable(*table);
+    auto expectedSize = mock->Tell();
+
+    auto stream = std::make_shared<FairMQOutputStream>(b);
+
+    // Arrow grows buffers by multiplying by 2x, regardless of the
+    // fact we actually know the size.
+    auto expectedPow2 = (1 << (64 - __builtin_clzl(*expectedSize)));
+    auto reserve = b->Reserve(*expectedSize + 1024 * 2048);
+    if (reserve.ok() == false) {
+      throw std::runtime_error("Unable to reserve memory for table");
+    }
     auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
-#endif
     if (outBatch.ok() == true) {
       auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
       if (outStatus.ok() == false) {
@@ -237,12 +257,20 @@ void DataAllocator::adopt(const Output& spec, std::shared_ptr<arrow::Table> ptr)
   auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
 
   auto writer = [table = ptr](std::shared_ptr<FairMQResizableBuffer> b) -> void {
-    auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
-#if ARROW_VERSION_MAJOR < 3
-    auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
-#else
+    auto mock = std::make_shared<arrow::io::MockOutputStream>();
+    auto mockBatch = arrow::ipc::MakeStreamWriter(mock.get(), table->schema());
+    auto outStatus = mockBatch.ValueOrDie()->WriteTable(*table);
+    auto expectedSize = mock->Tell();
+
+    auto stream = std::make_shared<FairMQOutputStream>(b);
+    // Arrow grows buffers by multiplying by 2x, regardless of the
+    // fact we actually know the size.
+    auto expectedPow2 = (1 << (64 - __builtin_clzl(*expectedSize)));
+    auto reserve = b->Reserve(*expectedSize + 1024 * 2048);
+    if (reserve.ok() == false) {
+      throw std::runtime_error("Unable to reserve memory for table");
+    }
     auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
-#endif
     if (outBatch.ok() == true) {
       auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
       if (outStatus.ok() == false) {

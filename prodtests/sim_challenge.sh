@@ -8,6 +8,8 @@
 # ----------- START WITH ACTUAL SCRIPT ---------------------------
 
 
+if [ -z "$SHMSIZE" ]; then export SHMSIZE=10000000000; fi
+
 # default number of events
 nevPP=10
 nevPbPb=10
@@ -26,7 +28,7 @@ generPbPb="pythia8hi"
 engine="TGeant3"
 
 # options to pass to every workflow
-gloOpt=" -b --run --shm-segment-size 10000000000"
+gloOpt=" -b --run --shm-segment-size $SHMSIZE"
 
 # ITS reco options depends on pp or pbpb
 ITSRecOpt=""
@@ -126,7 +128,7 @@ if [ "$doreco" == "1" ]; then
 
   echo "Running TPC reco flow"
   #needs TPC digitized data
-  taskwrapper tpcreco.log o2-tpc-reco-workflow $gloOpt --input-type digits --output-type clusters,tracks
+  taskwrapper tpcreco.log o2-tpc-reco-workflow $gloOpt --input-type digits --output-type clusters,tracks,send-clusters-per-sector  --configKeyValues "GPU_rec.maxTrackQPt=20"
   echo "Return status of tpcreco: $?"
 
   echo "Running ITS reco flow"

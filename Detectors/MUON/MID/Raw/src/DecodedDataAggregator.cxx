@@ -43,18 +43,22 @@ void DecodedDataAggregator::addData(const ROBoard& loc, size_t firstEntry, size_
   uint8_t uniqueLocId = loc.boardId;
   uint8_t crateId = raw::getCrateId(uniqueLocId);
   bool isRightSide = crateparams::isRightSide(crateId);
-  uint16_t deBoardId = mCrateMapper.roLocalBoardToDE(crateId, raw::getLocId(loc.boardId));
-  auto rpcLineId = mCrateMapper.getRPCLine(deBoardId);
-  auto columnId = mCrateMapper.getColumnId(deBoardId);
-  auto lineId = mCrateMapper.getLineId(deBoardId);
-  for (int ich = 0; ich < 4; ++ich) {
-    if (((loc.firedChambers >> ich) & 0x1) == 0) {
-      continue;
+  try {
+    uint16_t deBoardId = mCrateMapper.roLocalBoardToDE(crateId, raw::getLocId(loc.boardId));
+    auto rpcLineId = mCrateMapper.getRPCLine(deBoardId);
+    auto columnId = mCrateMapper.getColumnId(deBoardId);
+    auto lineId = mCrateMapper.getLineId(deBoardId);
+    for (int ich = 0; ich < 4; ++ich) {
+      if (((loc.firedChambers >> ich) & 0x1) == 0) {
+        continue;
+      }
+      uint8_t deId = detparams::getDEId(isRightSide, ich, rpcLineId);
+      auto& col = FindColumnData(deId, columnId, firstEntry, evtTypeIdx);
+      col.setBendPattern(loc.patternsBP[ich], lineId);
+      col.setNonBendPattern(col.getNonBendPattern() | loc.patternsNBP[ich]);
     }
-    uint8_t deId = detparams::getDEId(isRightSide, ich, rpcLineId);
-    auto& col = FindColumnData(deId, columnId, firstEntry, evtTypeIdx);
-    col.setBendPattern(loc.patternsBP[ich], lineId);
-    col.setNonBendPattern(col.getNonBendPattern() | loc.patternsNBP[ich]);
+  } catch (const std::exception& except) {
+    std::cerr << except.what() << "\n";
   }
 }
 
@@ -86,7 +90,10 @@ void DecodedDataAggregator::process(gsl::span<const ROBoard> localBoards, gsl::s
           addData(localBoards[iloc], firstEntry, ievtType);
         }
       }
-      mROFRecords[ievtType].emplace_back(rof->interactionRecord, rof->eventType, firstEntry, mData[ievtType].size() - firstEntry);
+      auto nEntries = mData[ievtType].size() - firstEntry;
+      if (nEntries > 0) {
+        mROFRecords[ievtType].emplace_back(rof->interactionRecord, rof->eventType, firstEntry, nEntries);
+      }
     }
     // Clear the inner objects when the computation is done
     mEventIndexes[ievtType].clear();

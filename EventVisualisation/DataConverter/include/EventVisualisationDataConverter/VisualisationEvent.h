@@ -74,12 +74,18 @@ class VisualisationEvent
   }
   void remove_last_track() { mTracks.pop_back(); } // used to remove track assigned optimistically
 
-  // Adds visualisation cluser inside visualisation event
-  //void addCluster(const VisualisationCluster& cluster)
-  //{ mClusters.push_back(cluster); }
-  VisualisationCluster& addCluster(double XYZ[])
+  // Adds visualisation cluster inside visualisation event
+
+  VisualisationCluster& addCluster(float XYZ[])
   {
     mClusters.emplace_back(XYZ);
+    return mClusters.back();
+  }
+
+  VisualisationCluster& addCluster(float X, float Y, float Z)
+  {
+    float pos[] = {X, Y, Z};
+    mClusters.emplace_back(pos);
     return mClusters.back();
   }
 

@@ -22,6 +22,7 @@
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
 #include <TEveManager.h>
 #include <TEveTrackPropagator.h>
@@ -83,7 +84,7 @@ VisualisationEvent DataInterpreterITS::interpretDataForType(TObject* data, EVisu
 
     for (const auto& c : mClusters) {
       const auto& gloC = c.getXYZGloRot(*gman);
-      double xyz[3] = {gloC.X(), gloC.Y(), gloC.Z()};
+      float xyz[3] = {gloC.X(), gloC.Y(), gloC.Z()};
       ret_event.addCluster(xyz);
     }
   } else if (type == ESD) {
@@ -138,20 +139,14 @@ VisualisationEvent DataInterpreterITS::interpretDataForType(TObject* data, EVisu
       auto start = eve_track->GetLineStart();
       auto end = eve_track->GetLineEnd();
       VisualisationTrack* track = ret_event.addTrack({.charge = rec.getSign(),
-                                                      .energy = 0.0,
-                                                      .ID = 0,
                                                       .PID = 0,
-                                                      .mass = 0.0,
-                                                      .signedPT = 0.0,
                                                       .startXYZ = {start.fX, start.fY, start.fZ},
-                                                      .endXYZ = {end.fX, end.fY, end.fZ},
-                                                      .pxpypz = {p[0], p[1], p[2]},
-                                                      .parentID = 0,
+                                                      //.endXYZ = {end.fX, end.fY, end.fZ},
+                                                      //.pxpypz = {p[0], p[1], p[2]},
+                                                      //.parentID = 0,
                                                       .phi = 0.0,
                                                       .theta = 0.0,
-                                                      .helixCurvature = 0.0,
-                                                      .type = 0,
-                                                      .source = ITSSource});
+                                                      .source = o2::dataformats::GlobalTrackID::ITS});
 
       for (Int_t i = 0; i < eve_track->GetN(); ++i) {
         Float_t x, y, z;

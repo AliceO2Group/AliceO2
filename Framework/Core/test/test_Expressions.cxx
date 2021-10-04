@@ -190,8 +190,6 @@ BOOST_AUTO_TEST_CASE(TestGandivaTreeCreation)
   BOOST_REQUIRE_EQUAL(bwf[1].right, (DatumSpec{LiteralNode::var_t{static_cast<uint32_t>(o2::aod::track::TPCrefit)}, atype::UINT32}));
   BOOST_REQUIRE_EQUAL(bwf[1].result, (DatumSpec{1u, atype::UINT32}));
 
-#if ARROW_VERSION_MAJOR < 3
-#else
   auto infield4 = o2::aod::track::Flags::asArrowField();
   auto resfield3 = std::make_shared<arrow::Field>("out", arrow::boolean());
   auto schema_b = std::make_shared<arrow::Schema>(std::vector{infield4, resfield3});
@@ -201,7 +199,6 @@ BOOST_AUTO_TEST_CASE(TestGandivaTreeCreation)
   std::shared_ptr<gandiva::Filter> flt;
   auto s = gandiva::Filter::Make(schema_b, condition, &flt);
   BOOST_REQUIRE(s.ok());
-#endif
 }
 
 BOOST_AUTO_TEST_CASE(TestConditionalExpressions)

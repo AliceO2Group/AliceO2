@@ -150,15 +150,15 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
         CaloRawFitter::FitStatus fitResult = rawFitter->evaluate(gsl::span<uint16_t>(&mBunchwords[currentsample + 2], std::min((unsigned long)bunchlength, mBunchwords.size() - currentsample - 2)));
         currentsample += bunchlength + 2;
         //set output cell
-        if (fitResult == CaloRawFitter::FitStatus::kNoTime) { //Time evaluation error occured: should we add this err to list?
-          short fec = header.mHardwareAddress >> 7 & 0xf;     //try to extract FEE number from header
-          short branch = header.mHardwareAddress >> 11 & 0x1;
-          if (fec > 14) {
-            fec = kGeneralSRUErr;
-          }
-          fec += kGeneralTRUErr * branch;
-          mOutputHWErrors.emplace_back(mddl, fec, 8); //8: time calculation failed
-        }
+        // if (fitResult == CaloRawFitter::FitStatus::kNoTime) { //Time evaluation error occured: should we add this err to list?
+        //   short fec = header.mHardwareAddress >> 7 & 0xf;     //try to extract FEE number from header
+        //   short branch = header.mHardwareAddress >> 11 & 0x1;
+        //   if (fec > 14) {
+        //     fec = kGeneralSRUErr;
+        //   }
+        //   fec += kGeneralTRUErr * branch;
+        //   mOutputHWErrors.emplace_back(mddl, fec, 8); //8: time calculation failed
+        // }
         if (!rawFitter->isOverflow()) { //Overflow is will show wrong chi2
           short chiAddr = absId;
           chiAddr |= caloFlag << 14;

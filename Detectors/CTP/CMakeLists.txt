@@ -10,6 +10,7 @@
 # or submit itself to any jurisdiction.
 
 add_subdirectory(simulation)
+add_subdirectory(reconstruction)
 add_subdirectory(workflow)
 add_subdirectory(workflowIO)
 add_subdirectory(macro)

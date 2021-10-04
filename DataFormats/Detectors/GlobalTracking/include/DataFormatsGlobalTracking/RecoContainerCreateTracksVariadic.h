@@ -22,6 +22,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsMCH/TrackMCH.h"
+#include "DataFormatsMCH/ClusterBlock.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTOF/Cluster.h"
@@ -152,7 +153,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
           flagUsed(trc.getRefGlobalTrackId()); // flag seeding TPC track
           continue;
         }
-        if (creator(trc, {i, GTrackID::TPCTRD}, t0, 1e-6)) { // assign 1ns error to BC
+        if (creator(trc, {i, GTrackID::TPCTRD}, t0, 1e-3)) { // assign 1ns error to BC
           flagUsed2(i, GTrackID::TPCTRD);                    // flag itself (is it needed?)
           flagUsed(trc.getRefGlobalTrackId());               // flag seeding TPC track
         }

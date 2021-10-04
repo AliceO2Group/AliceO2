@@ -17,6 +17,14 @@
 #include <iostream>
 #include <fmt/format.h>
 
+extern void fillElec2DetCH1R(std::map<uint32_t, uint32_t>& e2d);
+extern void fillElec2DetCH1L(std::map<uint32_t, uint32_t>& e2d);
+extern void fillElec2DetCH2R(std::map<uint32_t, uint32_t>& e2d);
+extern void fillElec2DetCH2L(std::map<uint32_t, uint32_t>& e2d);
+extern void fillElec2DetCH3R(std::map<uint32_t, uint32_t>& e2d);
+extern void fillElec2DetCH3L(std::map<uint32_t, uint32_t>& e2d);
+extern void fillElec2DetCH4R(std::map<uint32_t, uint32_t>& e2d);
+extern void fillElec2DetCH4L(std::map<uint32_t, uint32_t>& e2d);
 extern void fillElec2DetCH5R(std::map<uint32_t, uint32_t>& e2d);
 extern void fillElec2DetCH5L(std::map<uint32_t, uint32_t>& e2d);
 extern void fillElec2DetCH6R(std::map<uint32_t, uint32_t>& e2d);
@@ -29,7 +37,16 @@ extern void fillElec2DetCH9L(std::map<uint32_t, uint32_t>& e2d);
 extern void fillElec2DetCH9R(std::map<uint32_t, uint32_t>& e2d);
 extern void fillElec2DetCH10L(std::map<uint32_t, uint32_t>& e2d);
 extern void fillElec2DetCH10R(std::map<uint32_t, uint32_t>& e2d);
+extern void fillElec2DetCH10L(std::map<uint32_t, uint32_t>& e2d);
 
+extern void fillSolar2FeeLinkCH1R(std::map<uint16_t, uint32_t>& s2c);
+extern void fillSolar2FeeLinkCH1L(std::map<uint16_t, uint32_t>& s2c);
+extern void fillSolar2FeeLinkCH2R(std::map<uint16_t, uint32_t>& s2c);
+extern void fillSolar2FeeLinkCH2L(std::map<uint16_t, uint32_t>& s2c);
+extern void fillSolar2FeeLinkCH3R(std::map<uint16_t, uint32_t>& s2c);
+extern void fillSolar2FeeLinkCH3L(std::map<uint16_t, uint32_t>& s2c);
+extern void fillSolar2FeeLinkCH4R(std::map<uint16_t, uint32_t>& s2c);
+extern void fillSolar2FeeLinkCH4L(std::map<uint16_t, uint32_t>& s2c);
 extern void fillSolar2FeeLinkCH5R(std::map<uint16_t, uint32_t>& s2c);
 extern void fillSolar2FeeLinkCH5L(std::map<uint16_t, uint32_t>& s2c);
 extern void fillSolar2FeeLinkCH6R(std::map<uint16_t, uint32_t>& s2c);
@@ -42,6 +59,7 @@ extern void fillSolar2FeeLinkCH9L(std::map<uint16_t, uint32_t>& s2c);
 extern void fillSolar2FeeLinkCH9R(std::map<uint16_t, uint32_t>& s2c);
 extern void fillSolar2FeeLinkCH10L(std::map<uint16_t, uint32_t>& s2c);
 extern void fillSolar2FeeLinkCH10R(std::map<uint16_t, uint32_t>& s2c);
+extern void fillSolar2FeeLinkCH10L(std::map<uint16_t, uint32_t>& s2c);
 
 namespace
 {
@@ -56,6 +74,14 @@ void dump(const std::map<uint32_t, uint32_t>& e2d)
 std::map<uint32_t, uint32_t> buildDsElecId2DsDetIdMap()
 {
   std::map<uint32_t, uint32_t> e2d;
+  fillElec2DetCH1R(e2d);
+  fillElec2DetCH1L(e2d);
+  fillElec2DetCH2R(e2d);
+  fillElec2DetCH2L(e2d);
+  fillElec2DetCH3R(e2d);
+  fillElec2DetCH3L(e2d);
+  fillElec2DetCH4R(e2d);
+  fillElec2DetCH4L(e2d);
   fillElec2DetCH5R(e2d);
   fillElec2DetCH5L(e2d);
   fillElec2DetCH6R(e2d);
@@ -74,6 +100,14 @@ std::map<uint32_t, uint32_t> buildDsElecId2DsDetIdMap()
 std::map<uint16_t, uint32_t> buildSolarId2FeeLinkIdMap()
 {
   std::map<uint16_t, uint32_t> s2f;
+  fillSolar2FeeLinkCH1R(s2f);
+  fillSolar2FeeLinkCH1L(s2f);
+  fillSolar2FeeLinkCH2R(s2f);
+  fillSolar2FeeLinkCH2L(s2f);
+  fillSolar2FeeLinkCH3R(s2f);
+  fillSolar2FeeLinkCH3L(s2f);
+  fillSolar2FeeLinkCH4R(s2f);
+  fillSolar2FeeLinkCH4L(s2f);
   fillSolar2FeeLinkCH5R(s2f);
   fillSolar2FeeLinkCH5L(s2f);
   fillSolar2FeeLinkCH6R(s2f);

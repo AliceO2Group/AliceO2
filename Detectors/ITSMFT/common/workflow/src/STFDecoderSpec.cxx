@@ -42,8 +42,8 @@ using namespace o2::framework;
 
 ///_______________________________________
 template <class Mapping>
-STFDecoder<Mapping>::STFDecoder(bool doClusters, bool doPatterns, bool doDigits, bool doCalib, std::string_view dict, std::string_view noise)
-  : mDoClusters(doClusters), mDoPatterns(doPatterns), mDoDigits(doDigits), mDoCalibData(doCalib), mDictName(dict), mNoiseName(noise)
+STFDecoder<Mapping>::STFDecoder(const STFDecoderInp& inp)
+  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib), mDictName(inp.dict), mNoiseName(inp.noise)
 {
   mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "STFDecoder");
   mTimer.Stop();
@@ -224,71 +224,39 @@ void STFDecoder<Mapping>::endOfStream(EndOfStreamContext& ec)
   }
 }
 
-DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, bool doCalib, bool askDISTSTF, const std::string& dict, const std::string& noise)
+DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
 {
   std::vector<OutputSpec> outputs;
-  auto orig = o2::header::gDataOriginITS;
-
-  if (doDigits) {
-    outputs.emplace_back(orig, "DIGITS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "DIGITSROF", 0, Lifetime::Timeframe);
-    if (doCalib) {
-      outputs.emplace_back(orig, "GBTCALIB", 0, Lifetime::Timeframe);
+  if (inp.doDigits) {
+    outputs.emplace_back(inp.origin, "DIGITS", 0, Lifetime::Timeframe);
+    outputs.emplace_back(inp.origin, "DIGITSROF", 0, Lifetime::Timeframe);
+    if (inp.doCalib) {
+      outputs.emplace_back(inp.origin, "GBTCALIB", 0, Lifetime::Timeframe);
     }
   }
-  if (doClusters) {
-    outputs.emplace_back(orig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "CLUSTERSROF", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "PATTERNS", 0, Lifetime::Timeframe);
-  }
-
-  std::vector<InputSpec> inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Optional}};
-  if (askDISTSTF) {
-    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
-  }
-
-  return DataProcessorSpec{
-    "its-stf-decoder",
-    inputs,
-    outputs,
-    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, doCalib, dict, noise)},
-    Options{
-      {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
-      {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
-      {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data) of 1st lane"}},
-      {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}}}};
-}
-
-DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, bool doCalib, bool askDISTSTF, const std::string& dict, const std::string& noise)
-{
-  std::vector<OutputSpec> outputs;
-  auto orig = o2::header::gDataOriginMFT;
-  if (doDigits) {
-    outputs.emplace_back(orig, "DIGITS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "DIGITSROF", 0, Lifetime::Timeframe);
-    if (doCalib) {
-      outputs.emplace_back(orig, "GBTCALIB", 0, Lifetime::Timeframe);
-    }
-  }
-  if (doClusters) {
-    outputs.emplace_back(orig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
-    outputs.emplace_back(orig, "CLUSTERSROF", 0, Lifetime::Timeframe);
+  if (inp.doClusters) {
+    outputs.emplace_back(inp.origin, "COMPCLUSTERS", 0, Lifetime::Timeframe);
+    outputs.emplace_back(inp.origin, "CLUSTERSROF", 0, Lifetime::Timeframe);
     // in principle, we don't need to open this input if we don't need to send real data,
     // but other devices expecting it do not know about options of this device: problem?
     // if (doClusters && doPatterns)
-    outputs.emplace_back(orig, "PATTERNS", 0, Lifetime::Timeframe);
+    outputs.emplace_back(inp.origin, "PATTERNS", 0, Lifetime::Timeframe);
   }
 
-  std::vector<InputSpec> inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Optional}};
-  if (askDISTSTF) {
-    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+  auto inputs = o2::framework::select(inp.inputSpec.c_str());
+  if (inp.askSTFDist) {
+    for (auto& ins : inputs) { // mark input as optional in order not to block the workflow if our raw data happen to be missing in some TFs
+      ins.lifetime = Lifetime::Optional;
+    }
+    // request the input FLP/DISTSUBTIMEFRAME/0 that is _guaranteed_ to be present, even if none of our raw data is present.
+    inputs.emplace_back("stfDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
-    "mft-stf-decoder",
+    inp.deviceName,
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(doClusters, doPatterns, doDigits, doCalib, dict, noise)},
+    inp.origin == o2::header::gDataOriginITS ? AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(inp)} : AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(inp)},
     Options{
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},

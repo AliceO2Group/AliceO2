@@ -38,7 +38,7 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/Digit.h"
 #include "MCHBase/PreCluster.h"
-#include "MCHBase/ClusterBlock.h"
+#include "DataFormatsMCH/ClusterBlock.h"
 #include "MCHClustering/ClusterFinderOriginal.h"
 
 namespace o2
@@ -104,7 +104,8 @@ class ClusterFinderOriginalTask
       mTimeClusterFinder += tEnd - tStart;
 
       // fill the ouput messages
-      clusterROFs.emplace_back(preClusterROF.getBCData(), clusters.size(), mClusterFinder.getClusters().size());
+      clusterROFs.emplace_back(preClusterROF.getBCData(), clusters.size(), mClusterFinder.getClusters().size(),
+                               preClusterROF.getBCWidth());
       writeClusters(clusters, usedDigits);
     }
 

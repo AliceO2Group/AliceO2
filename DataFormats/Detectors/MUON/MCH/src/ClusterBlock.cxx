@@ -14,7 +14,7 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "MCHBase/ClusterBlock.h"
+#include "DataFormatsMCH/ClusterBlock.h"
 
 namespace o2
 {

@@ -15,6 +15,7 @@
 #define ALICEO2_SUBTIMEFRAME_FILE_READER_RAWDD_H_
 
 #include <Headers/DataHeader.h>
+#include "DetectorsCommonDataFormats/DetID.h"
 #include <Headers/Stack.h>
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQDevice.h>
@@ -23,6 +24,7 @@
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <fstream>
 #include <vector>
+#include <unordered_map>
 
 namespace o2f = o2::framework;
 
@@ -48,7 +50,7 @@ class SubTimeFrameFileReader
   };
 
   SubTimeFrameFileReader() = delete;
-  SubTimeFrameFileReader(const std::string& pFileName);
+  SubTimeFrameFileReader(const std::string& pFileName, o2::detectors::DetID::mask_t detMask);
   ~SubTimeFrameFileReader();
 
   /// Read a single TF from the file
@@ -73,6 +75,7 @@ class SubTimeFrameFileReader
 
  private:
   std::string mFileName;
+  std::unordered_map<o2::header::DataOrigin, bool> mDetOrigMap;
   boost::iostreams::mapped_file_source mFileMap;
   std::uint64_t mFileMapOffset = 0;
   std::uint64_t mFileSize = 0;

@@ -11,6 +11,7 @@
 
 #include "ZDCWorkflow/RecoWorkflow.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 using namespace o2::framework;
 
@@ -26,6 +27,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"reco-verbosity", VariantType::Int, 0, {"reco verbosity level"}});
   workflowOptions.push_back(ConfigParamSpec{"enable-debug-output", VariantType::Bool, false, {"enable debug tree output"}});
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
+
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
 }
 
@@ -48,5 +52,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto enableDebugOut = configcontext.options().get<bool>("enable-debug-output");
 
   LOG(INFO) << "WorkflowSpec getRecoWorkflow useMC " << useMC;
-  return std::move(o2::zdc::getRecoWorkflow(useMC, disableRootInp, disableRootOut, verbosity, enableDebugOut));
+  auto wf = o2::zdc::getRecoWorkflow(useMC, disableRootInp, disableRootOut, verbosity, enableDebugOut);
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
+
+  return std::move(wf);
 }

@@ -46,8 +46,9 @@ class Geometry
   TVector3 centerMCP(int imcp) { return mMCP[imcp]; }
   TVector3 tiltMCP(int imcp) { return mAngles[imcp]; }
 
-  static constexpr int Nchannels = o2::ft0::Constants::sNCHANNELS_PM; // number of PM channels
-  static constexpr int Nsensors = 208;                      // number of channels
+  //  static constexpr int Nchannels = o2::ft0::Constants::sNCHANNELS_PM; // number of PM channels
+  static constexpr int Nchannels = 208;                     // number of sensors
+  static constexpr int Nsensors = 208;                      // number of sensors
   static constexpr int NCellsA = 24;                        // number of radiatiors on A side
   static constexpr int NCellsC = 28;                        // number of radiatiors on C side
   static constexpr float ZdetA = 335.5;                     // Z position of center volume  on A side

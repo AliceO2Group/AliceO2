@@ -34,7 +34,7 @@ class ReconstructionDPL : public Task
   static constexpr int NCHANNELS = o2::fv0::Constants::nFv0Channels;
 
  public:
-  ReconstructionDPL(bool useMC) : mUseMC(useMC) {}
+  ReconstructionDPL(bool useMC, const std::string ccdbpath) : mUseMC(useMC), mCCDBpath(ccdbpath) {}
   ~ReconstructionDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -42,6 +42,7 @@ class ReconstructionDPL : public Task
 
  private:
   bool mUseMC = true;
+  std::string mCCDBpath = "http://o2-ccdb.internal/";
   std::vector<o2::fv0::RecPoints> mRecPoints;
   std::vector<o2::fv0::ChannelDataFloat> mRecChData;
   o2::fv0::BaseRecoTask mReco;
@@ -50,7 +51,7 @@ class ReconstructionDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getReconstructionSpec(bool useMC = true);
+framework::DataProcessorSpec getReconstructionSpec(bool useMC = true, const std::string ccdbpath = "http://o2-ccdb.internal/");
 
 } // namespace fv0
 } // namespace o2

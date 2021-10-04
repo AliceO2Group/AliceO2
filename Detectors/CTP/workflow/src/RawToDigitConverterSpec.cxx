@@ -74,7 +74,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     } else {
       LOG(ERROR) << "Unxpected  CTP CRU link:" << linkCRU;
     }
-    LOG(INFO) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit;
+    LOG(DEBUG) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit;
     pldmask = 0;
     for (uint32_t i = 0; i < payloadCTP; i++) {
       pldmask[12 + i] = 1;
@@ -125,11 +125,11 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
             if (digits.count(ir) == 0) {
               digit.setInputMask(pld);
               digits[ir] = digit;
-              LOG(INFO) << bcid << " inputs case 0 bcid orbit " << triggerOrbit << " pld:" << pld;
+              LOG(DEBUG) << bcid << " inputs case 0 bcid orbit " << triggerOrbit << " pld:" << pld;
             } else if (digits.count(ir) == 1) {
               if (digits[ir].CTPInputMask.count() == 0) {
                 digits[ir].setInputMask(pld);
-                LOG(INFO) << bcid << " inputs bcid vase 1 orbit " << triggerOrbit << " pld:" << pld;
+                LOG(DEBUG) << bcid << " inputs bcid vase 1 orbit " << triggerOrbit << " pld:" << pld;
               } else {
                 LOG(ERROR) << "Two CTP IRs with the same timestamp.";
               }
@@ -140,11 +140,11 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
             if (digits.count(ir) == 0) {
               digit.setClassMask(pld);
               digits[ir] = digit;
-              LOG(INFO) << bcid << " class bcid case 0 orbit " << triggerOrbit << " pld:" << pld;
+              LOG(DEBUG) << bcid << " class bcid case 0 orbit " << triggerOrbit << " pld:" << pld;
             } else if (digits.count(ir) == 1) {
               if (digits[ir].CTPClassMask.count() == 0) {
                 digits[ir].setClassMask(pld);
-                LOG(INFO) << bcid << " class bcid case 1 orbit " << triggerOrbit << " pld:" << pld;
+                LOG(DEBUG) << bcid << " class bcid case 1 orbit " << triggerOrbit << " pld:" << pld;
               } else {
                 LOG(ERROR) << "Two CTP Class masks for same timestamp";
               }

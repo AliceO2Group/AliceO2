@@ -16,7 +16,7 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "Framework/Logger.h"
-#include "MCHBase/ClusterBlock.h"
+#include "DataFormatsMCH/ClusterBlock.h"
 #include <vector>
 
 using namespace o2::framework;

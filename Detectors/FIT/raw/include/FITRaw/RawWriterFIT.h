@@ -52,6 +52,8 @@ class RawWriterFIT
   void setFlpName(const std::string& flpName) { mFlpName = flpName; }
   bool getFilePerLink() const { return mOutputPerLink; }
   void setVerbosity(int verbosityLevel) { mVerbosity = verbosityLevel; }
+  void setCCDBurl(const std::string& ccdbPath) { LookupTable_t::setCCDBurl(ccdbPath); }
+  void setLUTpath(const std::string& lutPath) { LookupTable_t::setLUTpath(lutPath); }
   int getVerbosity() const { return mVerbosity; }
   int carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
                       const char* ptr, int maxSize, int splitID,
@@ -114,7 +116,11 @@ class RawWriterFIT
         const auto& topo = dataBlockPair.first;
         const auto& dataBlock = dataBlockPair.second;
         const auto itRdh = mMapTopo2FEEmetadata.find(topo);
-        assert(itRdh != mMapTopo2FEEmetadata.end());
+        if (itRdh == mMapTopo2FEEmetadata.end()) {
+          LOG(WARNING) << "No CRU entry in map! Data block: ";
+          dataBlock.print();
+          continue;
+        }
         if (mVerbosity > 0) {
           dataBlock.print();
         }
@@ -127,7 +133,11 @@ class RawWriterFIT
       const auto& topo = dataBlockPair.first;
       const auto& dataBlock = dataBlockPair.second;
       const auto itRdh = mMapTopo2FEEmetadata.find(topo);
-      assert(itRdh != mMapTopo2FEEmetadata.end());
+      if (itRdh == mMapTopo2FEEmetadata.end()) {
+        LOG(WARNING) << "No CRU entry in map! Data block: ";
+        dataBlock.print();
+        continue;
+      }
       if (mVerbosity > 0) {
         dataBlock.print();
       }

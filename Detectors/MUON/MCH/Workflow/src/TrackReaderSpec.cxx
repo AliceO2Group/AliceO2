@@ -20,7 +20,7 @@
 #include "Framework/Lifetime.h"
 #include "Framework/Logger.h"
 #include "Framework/Task.h"
-#include "MCHBase/ClusterBlock.h"
+#include "DataFormatsMCH/ClusterBlock.h"
 #include <iostream>
 #include <vector>
 

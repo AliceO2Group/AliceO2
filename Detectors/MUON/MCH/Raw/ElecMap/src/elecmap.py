@@ -51,8 +51,10 @@ def gencode_insert_row_in_map(out, row):
     def insert_in_map(dsid, index):
         out.write("add(e2d,{},{},{},{},{});\n"
                   .format(row.de_id, dsid, row.solar_id, row.group_id, index))
-    insert_in_map(row.ds_id_0, 0)
-    insert_in_map(row.ds_id_1, 1)
+    if row.ds_id_0:
+        insert_in_map(row.ds_id_0, 0)
+    if row.ds_id_1:
+        insert_in_map(row.ds_id_1, 1)
     if row.ds_id_2:
         insert_in_map(row.ds_id_2, 2)
     if row.ds_id_3:
@@ -182,7 +184,6 @@ def _simplify_dataframe(df):
     solar_map = {}
 
     for row in df.itertuples():
-        #print(row)
         crate = int(str(row.crate).strip('C '))
         solar_pos = int(row.solar.split('-')[2].strip('S '))-1
         group_id = int(row.solar.split('-')[3].strip('J '))-1
@@ -193,7 +194,7 @@ def _simplify_dataframe(df):
             'solar_id': solar_id,
             'group_id': group_id,
             'de_id': de_id,
-            'ds_id_0': int(row.ds1)
+            'ds_id_0': int(row.ds1) if pd.notna(row.ds1) and len(row.ds1) >0 else 0
         })
         d['ds_id_1'] = int(row.ds2) if pd.notna(
             row.ds2) and len(row.ds2) > 0 else 0
@@ -207,8 +208,7 @@ def _simplify_dataframe(df):
         row_list.append(d)
 
     # create the output DataFrame (sf) from the row_list dict
-    sf = pd.DataFrame(row_list, dtype=np.int16)
-    print("solar_map", solar_map)
+    sf = pd.DataFrame(row_list, dtype=np.dtype('U2'))
 
     return sf, solar_map
 
@@ -243,6 +243,10 @@ parser.add_argument("--fec_map", "-f",
                     dest="fecmapfile",
                     help="fec.map output filename")
 
+parser.add_argument("--cru_map",
+                    dest="crumapfile",
+                    help="cru.map output filename")
+
 args = parser.parse_args()
 
 df = pd.DataFrame()
@@ -254,11 +258,9 @@ if args.excel_filename:
 
 if args.gs_name:
     df = df.append(gs_read_sheet(args.credentials, args.gs_name, args.sheet))
-    print(df)
     df, solar_map = _simplify_dataframe(df)
     df_cru = df_cru.append(gs_read_sheet_cru(args.credentials, args.gs_name,
                                              args.sheet+" CRU map"))
-
 
 if args.verbose:
     print(df.to_string())
@@ -283,4 +285,17 @@ if args.fecmapfile:
             "ds_id_4": lambda x: " %-6s" % x,
         })
     fec_file = open(args.fecmapfile, "w")
-    fec_file.write(fec_string)
+    fec_file.write(fec_string+"\n")
+
+if args.crumapfile:
+    cru_string = df_cru.to_string(
+        columns=["solar_id","fee_id","link_id"],
+        header=False,
+        index=False,
+        formatters={
+            "solar_id": lambda x: "%4s" % x if x else "XXXX",
+            "fee_id": lambda x: "%4s" % x if x else "XXXX",
+            "link_id": lambda x: "%4s" % x if x else "XXXX",
+        })
+    cru_file = open(args.crumapfile, "w")
+    [cru_file.write(line+"\n") for line in cru_string.split("\n") if not line.startswith("XXXX")]

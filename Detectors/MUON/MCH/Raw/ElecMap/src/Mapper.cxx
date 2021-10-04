@@ -13,6 +13,14 @@
 
 namespace o2::mch::raw
 {
+std::array<int, 2> deIdsOfCH1R{100, 103};                                                                       // from top to bottom
+std::array<int, 2> deIdsOfCH1L{101, 102};                                                                       // from top to bottom
+std::array<int, 2> deIdsOfCH2R{200, 203};                                                                       // from top to bottom
+std::array<int, 2> deIdsOfCH2L{201, 202};                                                                       // from top to bottom
+std::array<int, 2> deIdsOfCH3R{300, 303};                                                                       // from top to bottom
+std::array<int, 2> deIdsOfCH3L{301, 302};                                                                       // from top to bottom
+std::array<int, 2> deIdsOfCH4R{400, 403};                                                                       // from top to bottom
+std::array<int, 2> deIdsOfCH4L{401, 402};                                                                       // from top to bottom
 std::array<int, 9> deIdsOfCH5R{504, 503, 502, 501, 500, 517, 516, 515, 514};                                    // from top to bottom
 std::array<int, 9> deIdsOfCH5L{505, 506, 507, 508, 509, 510, 511, 512, 513};                                    // from top to bottom
 std::array<int, 9> deIdsOfCH6R{604, 603, 602, 601, 600, 617, 616, 615, 614};                                    // from top to bottom

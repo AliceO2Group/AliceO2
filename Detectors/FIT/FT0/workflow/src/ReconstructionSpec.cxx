@@ -38,8 +38,8 @@ void ReconstructionDPL::init(InitContext& ic)
 void ReconstructionDPL::run(ProcessingContext& pc)
 {
   auto& mCCDBManager = o2::ccdb::BasicCCDBManager::instance();
-  mCCDBManager.setURL("http://ccdb-test.cern.ch:8080");
-  LOG(INFO) << " set-up CCDB";
+  mCCDBManager.setURL(mCCDBpath);
+  LOG(INFO) << " set-up CCDB " << mCCDBpath;
   mTimer.Start(false);
   mRecPoints.clear();
   auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
@@ -54,8 +54,13 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   }
   auto caliboffsets = mCCDBManager.get<o2::ft0::FT0ChannelTimeCalibrationObject>("FT0/Calibration/ChannelTimeOffset");
   mReco.SetChannelOffset(caliboffsets);
+  LOG(DEBUG) << " RecoSpec  mReco.SetChannelOffset(caliboffsets)";
   auto calibslew = mCCDBManager.get<std::array<TGraph, NCHANNELS>>("FT0/SlewingCorr");
-  mReco.SetSlew(calibslew);
+  LOG(DEBUG) << " calibslew " << calibslew;
+  if (calibslew) {
+    mReco.SetSlew(calibslew);
+    LOG(INFO) << " calibslew set slew " << calibslew;
+  }
   int nDig = digits.size();
   LOG(DEBUG) << " nDig " << nDig;
   mRecPoints.reserve(nDig);
@@ -83,7 +88,7 @@ void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getReconstructionSpec(bool useMC)
+DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
 {
   std::vector<InputSpec> inputSpec;
   std::vector<OutputSpec> outputSpec;
@@ -100,7 +105,7 @@ DataProcessorSpec getReconstructionSpec(bool useMC)
     "ft0-reconstructor",
     inputSpec,
     outputSpec,
-    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC)},
+    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC, ccdbpath)},
     Options{}};
 }
 

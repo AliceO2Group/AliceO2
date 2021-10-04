@@ -145,10 +145,12 @@ void ROFFinder::sortDigits()
   for (size_t i = 0; i < mInputDigits.size(); i++) {
     auto& digit = mInputDigits[i];
     if (!digit.timeValid()) {
+#ifdef ROFDEBUG
       LOG(ERROR) << "Digit with invalid time, DS " << digit.info.solar << "," << digit.info.ds << "," << digit.info.chip
                  << "  pad " << digit.getDetID() << "," << digit.getPadID() << "  "
-                 << digit.getOrbit() << " (" << mFirstTForbit << ") "
-                 << digit.getTime() << digit.getBXTime();
+                 << digit.getOrbit() << " (" << mFirstTForbit << ") time "
+                 << digit.getTime() << " SAMPA time " << digit.getBXTime();
+#endif
       continue;
     }
 

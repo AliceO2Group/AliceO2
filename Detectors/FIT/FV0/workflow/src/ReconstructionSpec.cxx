@@ -38,9 +38,9 @@ void ReconstructionDPL::init(InitContext& ic)
 void ReconstructionDPL::run(ProcessingContext& pc)
 {
   auto& mCCDBManager = o2::ccdb::BasicCCDBManager::instance();
-  //mCCDBManager.setURL("http://localhost:8080");
-  mCCDBManager.setURL("http://ccdb-test.cern.ch:8080");
-  LOG(INFO) << " set-up CCDB";
+  //  mCCDBManager.setURL("http://ccdb-test.cern.ch:8080");
+  mCCDBManager.setURL(mCCDBpath);
+  LOG(INFO) << " set-up CCDB " << mCCDBpath;
   mTimer.Start(false);
   mRecPoints.clear();
   auto digits = pc.inputs().get<gsl::span<o2::fv0::BCData>>("digits");
@@ -81,7 +81,7 @@ void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getReconstructionSpec(bool useMC)
+DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
 {
   std::vector<InputSpec> inputSpec;
   std::vector<OutputSpec> outputSpec;
@@ -98,7 +98,7 @@ DataProcessorSpec getReconstructionSpec(bool useMC)
     "fv0-reconstructor",
     inputSpec,
     outputSpec,
-    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC)},
+    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC, ccdbpath)},
     Options{}};
 }
 

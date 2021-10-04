@@ -29,7 +29,7 @@ TrackTreeReader::TrackTreeReader(TTree* tree) : mCurrentRof{std::numeric_limits<
     throw std::invalid_argument("cannot work with a null tree pointer");
   }
   if (tree->GetBranchStatus("tracklabels")) {
-    mLabels = std::make_unique<TTreeReaderValue<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>>(mTreeReader, "tracklabels");
+    mLabels = std::make_unique<TTreeReaderValue<std::vector<o2::MCCompLabel>>>(mTreeReader, "tracklabels");
   }
   mTreeReader.SetTree(tree);
   mTreeReader.Restart();
@@ -45,7 +45,7 @@ TrackTreeReader::TrackTreeReader(TTree* tree) : mCurrentRof{std::numeric_limits<
 
 bool TrackTreeReader::next(o2::mch::ROFRecord& rof, std::vector<o2::mch::TrackMCH>& tracks,
                            std::vector<o2::mch::ClusterStruct>& clusters,
-                           o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels)
+                           std::vector<o2::MCCompLabel>& labels)
 {
   if (mCurrentRof >= mRofs->size()) {
     if (!mTreeReader.Next()) {
@@ -62,11 +62,15 @@ bool TrackTreeReader::next(o2::mch::ROFRecord& rof, std::vector<o2::mch::TrackMC
   clusters.clear();
   labels.clear();
   auto& tfTracks = *mTracks;
-  auto& tfClusters = *mClusters;
   tracks.insert(tracks.begin(), tfTracks.begin() + rof.getFirstIdx(), tfTracks.begin() + rof.getLastIdx() + 1);
-  clusters.insert(clusters.begin(), tfClusters.begin() + rof.getFirstIdx(), tfClusters.begin() + rof.getLastIdx() + 1);
+  if (!tracks.empty()) {
+    auto& tfClusters = *mClusters;
+    clusters.insert(clusters.begin(), tfClusters.begin() + tracks.front().getFirstClusterIdx(),
+                    tfClusters.begin() + tracks.back().getLastClusterIdx() + 1);
+  }
   if (hasLabels()) {
-    labels.mergeAtBack(**mLabels, rof.getFirstIdx(), rof.getNEntries());
+    auto& tfLabels = **mLabels;
+    labels.insert(labels.begin(), tfLabels.begin() + rof.getFirstIdx(), tfLabels.begin() + rof.getLastIdx() + 1);
   }
   ++mCurrentRof;
   return true;

@@ -10,10 +10,9 @@
 // or submit itself to any jurisdiction.
 
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
-#include "MCHBase/ClusterBlock.h"
+#include "DataFormatsMCH/ClusterBlock.h"
 #include "MCHBase/TrackBlock.h"
 #include "TrackAtVtxStruct.h"
 #include "TrackTreeReader.h"
@@ -132,11 +131,11 @@ int dumpRoot(std::string inputFile)
   ROFRecord rof;
   std::vector<TrackMCH> tracks;
   std::vector<ClusterStruct> clusters;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
+  std::vector<o2::MCCompLabel> labels;
 
   while (tr.next(rof, tracks, clusters, labels)) {
     std::cout << rof << "\n";
-    if (tr.hasLabels() && labels.getIndexedSize() != tracks.size()) {
+    if (tr.hasLabels() && labels.size() != tracks.size()) {
       std::cerr << "the number of labels do not match the number of tracks\n";
       return -1;
     }
@@ -144,9 +143,9 @@ int dumpRoot(std::string inputFile)
     for (const auto& t : tracks) {
       std::cout << "   ";
       dump(std::cout, t);
-      for (const auto& l : labels.getLabels(it++)) {
+      if (tr.hasLabels()) {
         std::cout << "   MC label: ";
-        l.print();
+        labels[it++].print();
       }
     }
   }

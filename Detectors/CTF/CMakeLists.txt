@@ -24,21 +24,21 @@ o2_add_test(tpc
             SOURCES test/test_ctf_io_tpc.cxx
             COMPONENT_NAME ctf
             LABELS ctf)
- 
+
 o2_add_test(ft0
             PUBLIC_LINK_LIBRARIES O2::FT0Reconstruction
                                   O2::DataFormatsFT0
             SOURCES test/test_ctf_io_ft0.cxx
             COMPONENT_NAME ctf
             LABELS ctf)
- 
+
 o2_add_test(fv0
             PUBLIC_LINK_LIBRARIES O2::FV0Reconstruction
                                   O2::DataFormatsFV0
             SOURCES test/test_ctf_io_fv0.cxx
             COMPONENT_NAME ctf
             LABELS ctf)
- 
+
 o2_add_test(fdd
             PUBLIC_LINK_LIBRARIES O2::FDDReconstruction
                                   O2::DataFormatsFDD
@@ -73,7 +73,7 @@ o2_add_test(emcal
             SOURCES test/test_ctf_io_emcal.cxx
             COMPONENT_NAME ctf
             LABELS ctf)
- 
+
 o2_add_test(phos
             PUBLIC_LINK_LIBRARIES O2::DataFormatsPHOS
                                   O2::PHOSReconstruction
@@ -87,14 +87,14 @@ o2_add_test(cpv
             SOURCES test/test_ctf_io_cpv.cxx
             COMPONENT_NAME ctf
             LABELS ctf)
- 
+
 o2_add_test(zdc
             PUBLIC_LINK_LIBRARIES O2::DataFormatsZDC
                                   O2::ZDCReconstruction
             SOURCES test/test_ctf_io_zdc.cxx
             COMPONENT_NAME ctf
             LABELS ctf)
- 
+
 o2_add_test(trd
             PUBLIC_LINK_LIBRARIES O2::CTFWorkflow
                                   O2::DataFormatsTRD
@@ -102,11 +102,19 @@ o2_add_test(trd
             SOURCES test/test_ctf_io_trd.cxx
             COMPONENT_NAME ctf
             LABELS ctf)
- 
+
 o2_add_test(hmpid
             PUBLIC_LINK_LIBRARIES O2::CTFWorkflow
                                   O2::DataFormatsHMP
                                   O2::HMPIDReconstruction
             SOURCES test/test_ctf_io_hmpid.cxx
+            COMPONENT_NAME ctf
+            LABELS ctf)
+
+o2_add_test(ctp
+            PUBLIC_LINK_LIBRARIES O2::CTPWorkflow
+                                  O2::DataFormatsCTP
+                                  O2::CTPReconstruction
+            SOURCES test/test_ctf_io_ctp.cxx
             COMPONENT_NAME ctf
             LABELS ctf)

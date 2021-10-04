@@ -36,6 +36,8 @@ namespace emcal
 ///
 /// - PAGE_ERROR: This type handles all errors related to raw page decoding (not ALTRO payload)
 /// - ALTRO_ERROR: This type handles all errors related to decoding of the ALTRO payload
+/// - MINOR_ALTRO_ERROR: This type handles all errors related to decoding of the ALTRO payload
+///   which are not considered as fatal
 /// - FIT_ERROR: This type handles all error appearing during the raw fitting procedure
 /// - GEOMETRY_ERROR: This type handles all errors related to the calculation of the module position
 ///   using the geometry
@@ -49,11 +51,12 @@ class ErrorTypeFEE
   /// \enum ErrorSource_t
   /// \brief Source of the error
   enum ErrorSource_t {
-    PAGE_ERROR,     ///< Raw page decoding failed
-    ALTRO_ERROR,    ///< Decoding of the ALTRO payload failed
-    FIT_ERROR,      ///< Raw fit failed
-    GEOMETRY_ERROR, ///< Decoded position outside EMCAL
-    UNDEFINED       ///< Error source undefined
+    PAGE_ERROR,        ///< Raw page decoding failed
+    ALTRO_ERROR,       ///< Decoding of the ALTRO payload failed
+    MINOR_ALTRO_ERROR, ///< Non-fatal error in decoding of the ALTRO payload
+    FIT_ERROR,         ///< Raw fit failed
+    GEOMETRY_ERROR,    ///< Decoded position outside EMCAL
+    UNDEFINED          ///< Error source undefined
   };
   /// \brief Constructor
   ErrorTypeFEE() = default;
@@ -74,6 +77,10 @@ class ErrorTypeFEE
   /// \brief Set the error as decoding error and store the error code
   /// \param decodeError Error code of the decoding error
   void setDecodeErrorType(int decodeError) { setError(ErrorSource_t::ALTRO_ERROR, decodeError); }
+
+  /// \brief Set the error as minor (non-fatal) decoding error and store the error code
+  /// \param decodeError Error code of the decoding error
+  void setMinorDecodingErrorType(int decodeError) { setError(ErrorSource_t::MINOR_ALTRO_ERROR, decodeError); }
 
   /// \brief Set the error as raw fitter error and store the error code
   /// \param rawfitterError Error code of the raw fitter error
@@ -115,6 +122,10 @@ class ErrorTypeFEE
   /// \brief Get the error code of the obect in case the object is a decoding error
   /// \return Error code (-1 in case the object is not a decoding error)
   int getDecodeErrorType() const { return getRawErrorForType(ErrorSource_t::ALTRO_ERROR); }
+
+  /// \brief Get the error code of the obect in case the object is a decoding error
+  /// \return Error code (-1 in case the object is not a decoding error)
+  int getMinorDecodeErrorType() const { return getRawErrorForType(ErrorSource_t::MINOR_ALTRO_ERROR); }
 
   /// \brief Get the error code of the obect in case the object is a raw fitter error
   /// \return Error code (-1 in case the object is not a raw fitter error)

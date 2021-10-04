@@ -17,12 +17,17 @@
 
 using namespace o2::ctp;
 
+std::ostream& o2::ctp::operator<<(std::ostream& os, const o2::ctp::CTPDigit& d)
+{
+  os << "CTP Digit: " << d.intRecord << " Input Mask: " << d.CTPInputMask << " Class Mask: " << d.CTPClassMask;
+  return os;
+}
+
 void CTPDigit::printStream(std::ostream& stream) const
 {
-  stream << "CTP Digit:  BC " << intRecord.bc << " orbit " << intRecord.orbit << std::endl;
-  stream << "Input Mask: " << CTPInputMask << std::endl;
-  stream << "Class Mask: " << CTPClassMask << std::endl;
+  stream << *this << std::endl;
 }
+
 void CTPDigit::setInputMask(gbtword80_t mask)
 {
   for (int i = 0; i < CTP_NINPUTS; i++) {

@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(TestInvariants)
 
   status = buffer.Resize(9000, true);
   BOOST_REQUIRE(status.ok());
-  BOOST_REQUIRE_EQUAL(buffer.capacity(), 9000);
+  BOOST_REQUIRE_EQUAL(buffer.capacity(), 11000);
   BOOST_REQUIRE_EQUAL(buffer.size(), 9000);
 
   status = buffer.Resize(19000, true);
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(TestContents)
 
   status = buffer.Resize(40, true);
   BOOST_REQUIRE(status.ok());
-  BOOST_REQUIRE_EQUAL(buffer.capacity(), 40);
+  BOOST_REQUIRE_EQUAL(buffer.capacity(), 9000);
   BOOST_REQUIRE_EQUAL(buffer.size(), 40);
   BOOST_REQUIRE(strncmp((const char*)buffer.data(), "foo", 3) == 0);
 }
@@ -138,11 +138,7 @@ BOOST_AUTO_TEST_CASE(TestStreaming)
   auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
   /// Writing to a stream
   auto stream = std::make_shared<arrow::io::BufferOutputStream>(buffer);
-#if (ARROW_VERSION_MAJOR < 3)
-  auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
-#else
   auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
-#endif
   auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
   if (outStatus.ok() == false) {
     throw std::runtime_error("Unable to Write table");

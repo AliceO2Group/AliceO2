@@ -11,6 +11,14 @@
 
 o2_add_library(MCHRawElecMap
         SOURCES
+        src/CH1R.cxx
+        src/CH1L.cxx
+        src/CH2R.cxx
+        src/CH2L.cxx
+        src/CH3R.cxx
+        src/CH3L.cxx
+        src/CH4R.cxx
+        src/CH4L.cxx
         src/CH5L.cxx
         src/CH5R.cxx
         src/CH6L.cxx

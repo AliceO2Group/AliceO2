@@ -37,7 +37,7 @@ void CheckHits(const int detector = 50, // 354, 14, 242, 50
                std::string paramfile = "o2sim_par.root")
 {
   // o2::trd::Calibrations calib;
-  // calib.setCCDBForSimulation(297595);
+  // calib.getCCDBObjects(297595);
 
   TFile* fin = TFile::Open(hitfile.data());
   TTree* hitTree = (TTree*)fin->Get("o2sim");

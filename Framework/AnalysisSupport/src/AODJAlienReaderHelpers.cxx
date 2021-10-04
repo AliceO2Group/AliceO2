@@ -303,8 +303,8 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
             TBranch* branch = tr->GetBranch(colname.c_str());
             totalSizeCompressed += branch->GetZipBytes("*");
             totalSizeUncompressed += branch->GetTotBytes("*");
-            t2t.addColumn(colname.c_str());
           }
+          t2t.addAllColumns(tr, std::move(colnames));
         }
         t2t.fill(tr);
         delete tr;

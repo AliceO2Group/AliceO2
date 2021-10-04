@@ -426,8 +426,10 @@ class Mapper
     return getPadsInOROC();
   }
 
+  const std::vector<float>& getTraceLengthsIROC() const { return mTraceLengthsIROC; }
+  const std::vector<float>& getTraceLengthsOROC() const { return mTraceLengthsOROC; }
+
   //   bool loadFECInfo();
-  //   bool loadTraceLengh();
   //   bool loadPositions();
 
   // c++11 feature don't work with root dictionary :(
@@ -571,6 +573,11 @@ class Mapper
   void operator=(const Mapper&) {}
 
   void load(const std::string& mappingDir);
+
+  /// load trace lengths
+  void loadTraceLengths(std::string_view mappingDir = "");
+  void setTraceLengths(std::string_view inputFile, std::vector<float>& length);
+
   void initPadRegionsAndPartitions();
   bool readMappingFile(std::string file);
 
@@ -582,6 +589,9 @@ class Mapper
   static constexpr unsigned short mPadsInSector{14560};     ///< number of pads in one sector
   static constexpr unsigned short mNumberOfPadRowsIROC{63}; ///< number of pad rows in IROC
   static constexpr unsigned short mNumberOfPadRowsOROC{89}; ///< number of pad rows in IROC
+
+  std::vector<float> mTraceLengthsIROC; ///< trace lengths IROC
+  std::vector<float> mTraceLengthsOROC; ///< trace lengths OROC
 
   // ===| lookup tables |=======================================================
   //   static constexpr std::array<double, SECTORSPERSIDE> SinsPerSector;   ///< Sinus values of sectors

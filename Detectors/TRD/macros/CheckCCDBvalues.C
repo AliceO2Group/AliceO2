@@ -43,7 +43,7 @@ void CheckCCDBvalues(const long runNumber = 297595)
   TH1F* histPadGainFactor = new TH1F("histPadGainFactor", ";Pad Gain Factor;Counts", 100, 0, 2);
 
   o2::trd::Calibrations calib;
-  calib.setCCDBForSimulation(runNumber);
+  calib.getCCDBObjects(runNumber);
   for (det = 0; det < 540; ++det) {
     exb = calib.getExB(det);
     histExB->Fill(exb);

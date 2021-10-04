@@ -203,13 +203,13 @@ void TrackerDPL::run(ProcessingContext& pc)
     pattIt = patterns.begin();
     std::vector<int> savedROF;
     auto logger = [&](std::string s) { LOG(INFO) << s; };
+    float vertexerElapsedTime{0.f};
+    int nclUsed = 0;
     for (auto& rof : rofspan) {
 
-      int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
+      nclUsed += ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
       // prepare in advance output ROFRecords, even if this ROF to be rejected
       int first = allTracks.size();
-
-      LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
 
       // for vertices output
       auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
@@ -218,7 +218,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
       std::vector<Vertex> vtxVecLoc;
       if (mRunVertexer) {
-        mVertexer->clustersToVertices(event, false, logger);
+        vertexerElapsedTime += mVertexer->clustersToVertices(event, false, logger);
         vtxVecLoc = mVertexer->exportVertices();
       }
       mTimeFrame.addPrimaryVertices(vtxVecLoc);
@@ -230,6 +230,8 @@ void TrackerDPL::run(ProcessingContext& pc)
       savedROF.push_back(roFrame);
       roFrame++;
     }
+    LOG(INFO) << " - Vertex seeding total elapsed time: " << vertexerElapsedTime << " ms for " << nclUsed << " clusters in " << rofspan.size() << " ROFs";
+
     mTracker->clustersToTracks(logger);
 
     for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {

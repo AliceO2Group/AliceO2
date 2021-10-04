@@ -42,11 +42,7 @@ auto sliceByColumn(
   std::vector<uint64_t>* unassignedOffsets = nullptr)
 {
   arrow::Datum value_counts;
-#if ARROW_VERSION_MAJOR > 4
   auto options = arrow::compute::ScalarAggregateOptions::Defaults();
-#else
-  auto options = arrow::compute::CountOptions::Defaults();
-#endif
   ARROW_ASSIGN_OR_RAISE(value_counts,
                         arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
                                                      &options));

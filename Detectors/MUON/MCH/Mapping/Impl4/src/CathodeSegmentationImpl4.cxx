@@ -225,6 +225,9 @@ int CathodeSegmentation::findPadByFEE(int dualSampaId,
                                       int dualSampaChannel) const
 {
   auto it = mDualSampaId2CatPadIndices.find(dualSampaId);
+  if (it == mDualSampaId2CatPadIndices.end()) {
+    return InvalidCatPadIndex;
+  }
   const auto& padIndices = it->second;
   for (const auto& catPadIndex : padIndices) {
     if (padGroupType(catPadIndex)

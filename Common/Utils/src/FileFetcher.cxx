@@ -20,6 +20,8 @@
 #include <memory>
 #include <thread>
 #include <chrono>
+#include <cstdlib>
+#include <locale>
 #include <boost/process.hpp>
 
 using namespace o2::utils;
@@ -231,6 +233,20 @@ void FileFetcher::fetcher()
   if (!getNFiles()) {
     mRunning = false;
     return;
+  }
+
+  // BOOST requires a locale set
+  try {
+    std::locale loc("");
+  } catch (const std::exception& e) {
+    setenv("LC_ALL", "C", 1);
+    try {
+      std::locale loc("");
+      LOG(INFO) << "Setting locale";
+    } catch (const std::exception& e) {
+      LOG(INFO) << "Setting locale failed: " << e.what();
+      return;
+    }
   }
 
   while (mRunning) {
