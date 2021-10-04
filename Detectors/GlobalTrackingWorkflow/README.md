@@ -6,7 +6,7 @@
 
 ## Primary vertexer and vertex-track matcher
 
-Builds primary vertices from all allowed sources (currently by default: ITS, ITS-TPC, ITS-TPC-TOF, can be reduced with `--vertexing-sources <source0,source1...>`) and if builds a vector of indices (`VtxTrackIndex`) of tracks from every source (currently by default: ITS, TPC, ITS-TPC, TPC-TOF, ITS-TPC-TOF, can be reduced with `--vetex-track-matching-sources`) which either contributes to vertex (flagged) or matches to it time-wise (ambiguous matches are flagged). To disable vertex tracks matching used `--vetex-track-matching-sources none`.
+Builds primary vertices from all allowed sources (currently by default: ITS, ITS-TPC, ITS-TPC-TOF, can be reduced with `--vertexing-sources <source0,source1...>`) and if builds a vector of indices (`VtxTrackIndex`) of tracks from every source (currently by default: ITS, TPC, ITS-TPC, TPC-TOF, ITS-TPC-TOF, can be reduced with `--vertex-track-matching-sources`) which either contributes to vertex (flagged) or matches to it time-wise (ambiguous matches are flagged). To disable vertex tracks matching used `--vertex-track-matching-sources none`.
 ```cpp
 o2-primary-vertexing-workflow
 ```

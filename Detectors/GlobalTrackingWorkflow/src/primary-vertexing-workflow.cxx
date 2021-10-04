@@ -42,7 +42,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"vertexing-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use in vertexing"}},
     {"validate-with-ft0", o2::framework::VariantType::Bool, false, {"use FT0 time for vertex validation"}},
-    {"vetex-track-matching-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use in vertex-track associations or \"none\" to disable matching"}},
+    {"vertex-track-matching-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use in vertex-track associations or \"none\" to disable matching"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -71,7 +71,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto validateWithFT0 = configcontext.options().get<bool>("validate-with-ft0");
 
   GID::mask_t srcPV = allowedSourcesPV & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
-  GID::mask_t srcVT = allowedSourcesVT & GID::getSourcesMask(configcontext.options().get<std::string>("vetex-track-matching-sources"));
+  GID::mask_t srcVT = allowedSourcesVT & GID::getSourcesMask(configcontext.options().get<std::string>("vertex-track-matching-sources"));
   if (validateWithFT0) {
     srcPV |= GID::getSourceMask(GID::FT0);
   }
