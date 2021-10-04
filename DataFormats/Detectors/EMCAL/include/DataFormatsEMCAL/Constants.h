@@ -31,8 +31,8 @@ enum {
 /// \enum ChannelType_t
 /// \brief Type of a raw data channel
 enum ChannelType_t {
-  HIGH_GAIN, ///< High gain channel
   LOW_GAIN,  ///< Low gain channel
+  HIGH_GAIN, ///< High gain channel
   TRU,       ///< TRU channel
   LEDMON     ///< LED monitor channel
 };
