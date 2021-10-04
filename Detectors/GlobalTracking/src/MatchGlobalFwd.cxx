@@ -82,6 +82,7 @@ void MatchGlobalFwd::clear()
   mMFTClusters.clear();
   mMatchedTracks.clear();
   mMatchLabels.clear();
+  mMFTTrackROFContMapping.clear();
 }
 
 //_________________________________________________________
@@ -272,8 +273,10 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
       }
       if (matchingCut(thisMCHTrack, thisMFTTrack)) {
         thisMCHTrack.countCandidate();
-        if (mMCTruthON && ((*thisMFTLabel) == (*thisMCHLabel))) {
-          thisMCHTrack.setCloseMatch();
+        if (mMCTruthON) {
+          if ((*thisMFTLabel) == (*thisMCHLabel)) {
+            thisMCHTrack.setCloseMatch();
+          }
         }
         auto chi2 = matchingEval(thisMCHTrack, thisMFTTrack);
         if (chi2 < thisMCHTrack.getMatchingChi2()) {
@@ -303,14 +306,14 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
 
       thisMCHTrack.setMFTTrackID(bestMatchID);
       thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
-      std::cout << "    thisMCHTrack.getMFTTrackID() = " << thisMCHTrack.getMFTTrackID()
-                << "; thisMCHTrack.getMatchingChi2() = " << thisMCHTrack.getMatchingChi2()
-                << "; Label: " << matchLabel << std::endl;
+      LOG(DEBUG) << "    thisMCHTrack.getMFTTrackID() = " << thisMCHTrack.getMFTTrackID()
+                 << "; thisMCHTrack.getMatchingChi2() = " << thisMCHTrack.getMatchingChi2();
 
       mMatchedTracks.emplace_back((thisMCHTrack));
 
       if (mMCTruthON) {
         mMatchLabels.push_back(matchLabel);
+        LOG(DEBUG) << "   Label: " << matchLabel;
       }
     }
 
