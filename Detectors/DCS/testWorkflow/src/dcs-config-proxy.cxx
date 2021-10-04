@@ -46,10 +46,21 @@ void sendAnswer(const std::string& what, const std::string& ack_chan, FairMQDevi
   }
 }
 
-auto getDetID(const std::string& dIDStr)
+auto getDataOriginFromFilename(const std::string& filename)
 {
   // assume the filename start with detector name
-  return DetID::nameToID(dIDStr.c_str(), DetID::First);
+  auto dIDStr = filename.substr(0, 3);
+  auto dID = DetID::nameToID(dIDStr.c_str(), DetID::First);
+  o2::header::DataOrigin dataOrigin;
+  if (dID < 0) {
+    for (auto& el : exceptionsDetID) {
+      if (el.as<std::string>() == dIDStr) {
+        return el;
+      }
+    }
+    return o2::header::gDataOriginInvalid;
+  }
+  return DetID(dID).getDataOrigin();
 }
 
 InjectorFunction dcs2dpl(const std::string& acknowledge)
@@ -67,25 +78,11 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     std::string filename{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
     size_t filesize = parts.At(1)->GetSize();
     LOG(INFO) << "received file " << filename << " of size " << filesize;
-    auto dIDStr = filename.substr(0, 3);
-    int dID = getDetID(dIDStr);
-    o2::header::DataOrigin dataOrigin;
-    bool found = false;
-    if (dID < 0) {
-      for (auto& el : exceptionsDetID) {
-        if (el.as<std::string>() == dIDStr) {
-          dataOrigin = el;
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        LOG(ERROR) << "unknown detector for " << filename;
-        sendAnswer("error1: unrecognized filename", acknowledge, device);
-        return;
-      }
-    } else {
-      dataOrigin = DetID(dID).getDataOrigin();
+    o2::header::DataOrigin dataOrigin = getDataOriginFromFilename(filename);
+    if (dataOrigin == o2::header::gDataOriginInvalid) {
+      LOG(ERROR) << "unknown detector for " << filename;
+      sendAnswer("error1: unrecognized filename", acknowledge, device);
+      return;
     }
 
     o2::header::DataHeader hdrF("DCS_CONFIG_FILE", dataOrigin, 0);

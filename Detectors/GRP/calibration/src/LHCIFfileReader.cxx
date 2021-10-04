@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "GRPCalibration/LHCIFfileReader.h"
-#include "TSystem.h"
 #include <fstream>
 
 namespace o2
@@ -18,18 +17,22 @@ namespace o2
 namespace grp
 {
 
-void LHCIFfileReader::loadLHCIFfile(const char* fileName)
+void LHCIFfileReader::loadLHCIFfile(const std::string& fileName)
 {
   // load the LHC IF file into a string
-  char* expandedFileName = gSystem->ExpandPathName(fileName);
-  std::ifstream ifs(expandedFileName);
-  if (ifs) {
-    ifs.seekg(0, std::ios::end);
-    const auto size = ifs.tellg();
-    mFileBuffStr.resize(size);
-    ifs.seekg(0);
-    ifs.read(&mFileBuffStr[0], size);
-    ifs.close();
+  if (o2::utils::Str::pathExists(fileName)) {
+    std::string expandedFileName = o2::utils::Str::getFullPath(fileName);
+    std::ifstream ifs(expandedFileName.c_str());
+    if (ifs) {
+      ifs.seekg(0, std::ios::end);
+      const auto size = ifs.tellg();
+      mFileBuffStr.resize(size);
+      ifs.seekg(0);
+      ifs.read(&mFileBuffStr[0], size);
+      ifs.close();
+    }
+  } else {
+    LOG(ERROR) << "File " << fileName << " does not exist!";
   }
 }
 

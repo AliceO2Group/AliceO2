@@ -15,8 +15,7 @@
 #include "Rtypes.h"
 #include <gsl/span>
 #include "Framework/Logger.h"
-#include <boost/tokenizer.hpp>
-#include <boost/lexical_cast.hpp>
+#include "CommonUtils/StringUtils.h"
 
 /// @brief Class to read the LHC InterFace file coming from the DCS filepush service
 
@@ -30,10 +29,10 @@ class LHCIFfileReader
   LHCIFfileReader() = default;  // default constructor
   ~LHCIFfileReader() = default; // default destructor
 
-  void loadLHCIFfile(const char* fileName);            // load LHCIF file
+  void loadLHCIFfile(const std::string& fileName);     // load LHCIF file
   void loadLHCIFfile(gsl::span<const char> configBuf); // load LHCIF file from buffer
   template <typename T>
-  void readValue(const char* alias, std::string& type, int& nel, int& nmeas, std::vector<std::pair<float, std::vector<T>>>& meas);
+  void readValue(const std::string& alias, std::string& type, int& nel, int& nmeas, std::vector<std::pair<uint64_t, std::vector<T>>>& meas);
 
  private:
   std::string mFileBuffStr; // buffer containing content of LHC IF file
@@ -42,7 +41,7 @@ class LHCIFfileReader
 };
 
 template <typename T>
-void LHCIFfileReader::readValue(const char* alias, std::string& type, int& nele, int& nmeas, std::vector<std::pair<float, std::vector<T>>>& meas)
+void LHCIFfileReader::readValue(const std::string& alias, std::string& type, int& nele, int& nmeas, std::vector<std::pair<uint64_t, std::vector<T>>>& meas)
 {
   // look for value 'value' in the string from the LHC
 
@@ -58,16 +57,12 @@ void LHCIFfileReader::readValue(const char* alias, std::string& type, int& nele,
   }
   std::string subStr = mFileBuffStr.substr(posStart, posEnd - posStart);
   LOG(DEBUG) << "subStr = " << subStr;
-  boost::char_separator<char> sep("\t");
-  boost::tokenizer<boost::char_separator<char>> tokens(subStr, sep);
-  std::vector<std::string> tokensStr{begin(tokens), end(tokens)};
+  auto tokensStr = o2::utils::Str::tokenize(subStr, '\t');
   LOG(DEBUG) << "size of tokensStr = " << tokensStr.size();
   if (tokensStr.size() < 5) {
     LOG(FATAL) << "Number of tokens too small: " << tokensStr.size() << ", should be at 5 (alias, type, nelements, value(s), timestamp(s)";
   }
-  boost::char_separator<char> sep_type(":");
-  boost::tokenizer<boost::char_separator<char>> tokens_type(tokensStr[1], sep_type);
-  std::vector<std::string> tokensStr_type{begin(tokens_type), end(tokens_type)};
+  auto tokensStr_type = o2::utils::Str::tokenize(tokensStr[1], ':');
   LOG(DEBUG) << "size of tokensStr_type = " << tokensStr_type.size();
 
   type = tokensStr_type[0];
@@ -117,7 +112,7 @@ void LHCIFfileReader::readValue(const char* alias, std::string& type, int& nele,
     }
 
     LOG(DEBUG) << "timestamp = " << std::stof(tokensStr[shift + nele]);
-    meas.emplace_back(std::make_pair(std::stof(tokensStr[shift + nele]), vect));
+    meas.emplace_back(std::stol(tokensStr[shift + nele]) * 1e6, vect); // measurement comes in seconds, we want it in microseconds
   }
 }
 

@@ -49,11 +49,11 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
   auto timer = std::chrono::duration_cast<std::chrono::milliseconds>(HighResClock::now().time_since_epoch()).count();
   LOG(INFO) << "got input file " << configFileName << " of size " << configBuff.size();
   mReader.loadLHCIFfile(configBuff);
-  std::vector<std::pair<float, std::vector<int32_t>>> beamEnergy;
-  std::vector<std::pair<float, std::vector<std::string>>> injScheme;
-  std::vector<std::pair<float, std::vector<std::string>>> fillNb;
-  std::vector<std::pair<float, std::vector<int32_t>>> atomicNbB1;
-  std::vector<std::pair<float, std::vector<int32_t>>> atomicNbB2;
+  std::vector<std::pair<uint64_t, std::vector<int32_t>>> beamEnergy;
+  std::vector<std::pair<uint64_t, std::vector<std::string>>> injScheme;
+  std::vector<std::pair<uint64_t, std::vector<std::string>>> fillNb;
+  std::vector<std::pair<uint64_t, std::vector<int32_t>>> atomicNbB1;
+  std::vector<std::pair<uint64_t, std::vector<int32_t>>> atomicNbB2;
 
   int nEleBeamEn, nEleInjSch, nEleFillNb, nEleAtNbB1, nEleAtNbB2 = 0;
   int nMeasBeamEn, nMeasInjSch, nMeasFillNb, nMeasAtNbB1, nMeasAtNbB2 = 0;
@@ -87,7 +87,7 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
   if (nEleFillNb != 1 || nMeasFillNb != 1) {
     LOG(ERROR) << "More than one value/measurement found for Fill Number, keeping the last one";
   }
-  lhcifdata.setFillNumber(fillNb.back().first, fillNb.back().second.back());
+  lhcifdata.setFillNumber(fillNb.back().first, atoi(fillNb.back().second.back().c_str()));
 
   mReader.readValue<int32_t>("ATOMIC_NUMBER_B1", type, nEleAtNbB1, nMeasAtNbB1, atomicNbB1);
   if (nMeasAtNbB1 == 0) {
