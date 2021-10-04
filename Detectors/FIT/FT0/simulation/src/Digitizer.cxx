@@ -298,11 +298,11 @@ void Digitizer::storeBC(BCCache& bc,
   is_SemiCentral = summ_ampl_A + summ_ampl_C >= params.mtrg_semicentral_trh;
   uint32_t amplA = is_A ? summ_ampl_A * 0.125 : 0;   // sum amplitude A side / 8 (hardware)
   uint32_t amplC = is_C ? summ_ampl_C * 0.125 : 0;   // sum amplitude C side / 8 (hardware)
-  uint16_t timeA = is_A ? mean_time_A / n_hit_A : 0; // average time A side
-  uint16_t timeC = is_C ? mean_time_C / n_hit_C : 0; // average time C side
+  int timeA = is_A ? mean_time_A / n_hit_A : 0;      // average time A side
+  int timeC = is_C ? mean_time_C / n_hit_C : 0;      // average time C side
   vertex_time = (timeC - timeA) * 0.5;
   isVertex = is_A && is_C && (vertex_time > -params.mTime_trg_gate && vertex_time < params.mTime_trg_gate);
-
+  LOG(DEBUG) << " A " << is_A << " timeA " << timeA << " mean_time_A " << mean_time_A << "  n_hit_A " << n_hit_A << " C " << is_C << " timeC " << timeC << " mean_time_C " << mean_time_C << "  n_hit_C " << n_hit_C << " vertex_time " << vertex_time;
   Triggers triggers;
   if (nStored > 0) {
     triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, int8_t(n_hit_A), int8_t(n_hit_C),
