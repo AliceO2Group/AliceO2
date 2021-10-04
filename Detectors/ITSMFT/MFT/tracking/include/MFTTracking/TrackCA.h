@@ -63,15 +63,30 @@ class TrackLTF : public TrackMFTExt
 };
 
 //_________________________________________________________________________________________________
-class TrackLTFL : public TrackLTF // A track for B=0
+class TrackLTFL : public TrackLTF // A track model for B=0
 {
+  using SMatrix44Sym = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepSym<double, 4>>;
+
  public:
   TrackLTFL() = default;
   TrackLTFL(const bool isCA) { setCA(isCA); }
   TrackLTFL(const TrackLTFL& t) = default;
   ~TrackLTFL() = default;
 
+  // Kalman filter/fitting update for linear tracks
+  bool update(const std::array<float, 2>& p, const std::array<float, 2>& cov)
+  {
+    // TODO
+    return true;
+  }
+
  private:
+  /// Covariance matrix of track parameters, ordered as follows:    <pre>
+  ///  <X,X>          <Y,X>           <SlopeX,X>          <SlopeY,X>
+  ///  <X,Y>          <Y,Y>           <SlopeX,Y>          <SlopeY,Y>
+  ///  <X,SlopeX>     <Y,SlopeX>      <SlopeX,SlopeX>     <SlopeY,SlopeX>
+  ///  <X,SlopeY>     <Y,SlopeY>      <SlopeX,SlopeY>     <SlopeY,SlopeY>
+  SMatrix44Sym mCovariances{}; ///< \brief Covariance matrix of track parameters
   ClassDefNV(TrackLTFL, 0);
 };
 
