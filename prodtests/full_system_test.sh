@@ -105,18 +105,18 @@ fi
 mkdir -p raw
 taskwrapper itsraw.log o2-its-digi2raw --file-for cru -o raw/ITS
 taskwrapper mftraw.log o2-mft-digi2raw --file-for link -o raw/MFT
-taskwrapper ft0raw.log o2-ft0-digi2raw --file-for link -o raw/FT0
-taskwrapper fv0raw.log o2-fv0-digi2raw --file-for link -o raw/FV0
-taskwrapper fddraw.log o2-fdd-digit2raw --file-for link -o raw/FDD
+taskwrapper ft0raw.log o2-ft0-digi2raw --file-for cru -o raw/FT0
+taskwrapper fv0raw.log o2-fv0-digi2raw --file-for cru -o raw/FV0
+taskwrapper fddraw.log o2-fdd-digit2raw --file-for cru -o raw/FDD
 taskwrapper tpcraw.log o2-tpc-digits-to-rawzs --file-for cru -i tpcdigits.root -o raw/TPC
-taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --file-for link --output-type raw --tof-raw-outdir raw/TOF
-taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --file-for link
-taskwrapper mchraw.log o2-mch-digits-to-raw --input-file mchdigits.root --output-dir raw/MCH --file-for link
+taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --file-for cru --output-type raw --tof-raw-outdir raw/TOF
+taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --file-for cru
+taskwrapper mchraw.log o2-mch-digits-to-raw --input-file mchdigits.root --output-dir raw/MCH --file-for cru
 taskwrapper emcraw.log o2-emcal-rawcreator --file-for link -o raw/EMC
 taskwrapper phsraw.log o2-phos-digi2raw --file-for link -o raw/PHS
-taskwrapper cpvraw.log o2-cpv-digi2raw --file-for link -o raw/CPV
-taskwrapper zdcraw.log o2-zdc-digi2raw --file-for link -o raw/ZDC
-taskwrapper hmpraw.log o2-hmpid-digits-to-raw-workflow --file-for link --outdir raw/HMP
+taskwrapper cpvraw.log o2-cpv-digi2raw --file-for cru -o raw/CPV
+taskwrapper zdcraw.log o2-zdc-digi2raw --file-for cru -o raw/ZDC
+taskwrapper hmpraw.log o2-hmpid-digits-to-raw-workflow --file-for cru --outdir raw/HMP
 taskwrapper trdraw.log o2-trd-trap2raw -o raw/TRD --fileper halfcru
 taskwrapper ctpraw.log o2-ctp-digi2raw -o raw/CTP --file-per-link
 
