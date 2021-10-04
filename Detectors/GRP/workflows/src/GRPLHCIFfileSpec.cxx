@@ -49,11 +49,11 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
   auto timer = std::chrono::duration_cast<std::chrono::milliseconds>(HighResClock::now().time_since_epoch()).count();
   LOG(INFO) << "got input file " << configFileName << " of size " << configBuff.size();
   mReader.loadLHCIFfile(configBuff);
-  std::vector<std::pair<uint64_t, std::vector<int32_t>>> beamEnergy;
-  std::vector<std::pair<uint64_t, std::vector<std::string>>> injScheme;
-  std::vector<std::pair<uint64_t, std::vector<std::string>>> fillNb;
-  std::vector<std::pair<uint64_t, std::vector<int32_t>>> atomicNbB1;
-  std::vector<std::pair<uint64_t, std::vector<int32_t>>> atomicNbB2;
+  std::vector<std::pair<long, std::vector<int32_t>>> beamEnergy;
+  std::vector<std::pair<long, std::vector<std::string>>> injScheme;
+  std::vector<std::pair<long, std::vector<std::string>>> fillNb;
+  std::vector<std::pair<long, std::vector<int32_t>>> atomicNbB1;
+  std::vector<std::pair<long, std::vector<int32_t>>> atomicNbB2;
 
   int nEleBeamEn, nEleInjSch, nEleFillNb, nEleAtNbB1, nEleAtNbB2 = 0;
   int nMeasBeamEn, nMeasInjSch, nMeasFillNb, nMeasAtNbB1, nMeasAtNbB2 = 0;

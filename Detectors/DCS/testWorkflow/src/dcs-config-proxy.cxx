@@ -97,14 +97,14 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
 
     hdrN.tfCounter = *timesliceId; // this also
     hdrN.payloadSerializationMethod = o2::header::gSerializationMethodNone;
-    hdrN.splitPayloadParts = 1;
-    hdrN.splitPayloadIndex = 1;
+    hdrN.splitPayloadParts = 2;
+    hdrN.splitPayloadIndex = 0;
     hdrN.payloadSize = parts.At(0)->GetSize();
     hdrN.firstTForbit = 0; // this should be irrelevant for DCS
 
     hdrF.tfCounter = *timesliceId; // this also
     hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
-    hdrF.splitPayloadParts = 1;
+    hdrF.splitPayloadParts = 2;
     hdrF.splitPayloadIndex = 1;
     hdrF.payloadSize = filesize;
     hdrF.firstTForbit = 0; // this should be irrelevant for DCS

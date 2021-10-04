@@ -32,7 +32,7 @@ class LHCIFfileReader
   void loadLHCIFfile(const std::string& fileName);     // load LHCIF file
   void loadLHCIFfile(gsl::span<const char> configBuf); // load LHCIF file from buffer
   template <typename T>
-  void readValue(const std::string& alias, std::string& type, int& nel, int& nmeas, std::vector<std::pair<uint64_t, std::vector<T>>>& meas);
+  void readValue(const std::string& alias, std::string& type, int& nel, int& nmeas, std::vector<std::pair<long, std::vector<T>>>& meas);
 
  private:
   std::string mFileBuffStr; // buffer containing content of LHC IF file
@@ -41,7 +41,7 @@ class LHCIFfileReader
 };
 
 template <typename T>
-void LHCIFfileReader::readValue(const std::string& alias, std::string& type, int& nele, int& nmeas, std::vector<std::pair<uint64_t, std::vector<T>>>& meas)
+void LHCIFfileReader::readValue(const std::string& alias, std::string& type, int& nele, int& nmeas, std::vector<std::pair<long, std::vector<T>>>& meas)
 {
   // look for value 'value' in the string from the LHC
 
