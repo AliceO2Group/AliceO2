@@ -391,6 +391,7 @@ void GPUbenchmark<chunk_t>::globalInit()
             << "    ├ Allocated: " << std::setprecision(2) << bytesToGB(mState.scratchSize) << "/" << std::setprecision(2) << bytesToGB(mState.totalMemory)
             << "(GB) [" << std::setprecision(3) << (100.f) * (mState.scratchSize / (float)mState.totalMemory) << "%]\n"
             << "    ├ Number of scratch chunks: " << mState.getMaxChunks() << " of " << mOptions.chunkReservedGB << "GB each\n"
+            << "    ├ Number of streams allocated: " << mState.getStreamsPoolSize() << "\n"
             << "    └ Each chunk can store up to: " << mState.getChunkCapacity() << " elements" << std::endl
             << std::endl;
 }

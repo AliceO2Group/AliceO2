@@ -14,7 +14,7 @@
 
 int nBins{500};
 float minHist{0.f}, maxHist{1e4};
-void showBenchmarks(const bool times = false, const TString fileName = "0_benchmark_results.root")
+void showBenchmarks(const bool times = false, const TString fileName = "0_benchmark_result.root")
 {
   auto f = TFile::Open(fileName.Data(), "UPDATE");
   std::unordered_map<std::string, TTree*> um_trees;
