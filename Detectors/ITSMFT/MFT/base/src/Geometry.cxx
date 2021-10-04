@@ -76,16 +76,16 @@ const Int_t Geometry::sGrooves = 0; // grooves or not grooves, that's the questi
 // at construction time
 //
 // xITS    0  +1   0   xMFT
-// yITS =  0   0  +1 * yMFT
-// zITS   +1   0   0   zMFT
+// yITS =  0   0  -1 * yMFT
+// zITS   -1   0   0   zMFT
 //
 
 TGeoHMatrix Geometry::sTransMFT2ITS = [] {
   TGeoHMatrix tmp;
-  Double_t rot[9] = {0., 1., 0., 0., 0., 1., 1., 0., 0.};
+  Double_t rot[9] = {0., 1., 0., 0., 0., -1., -1., 0., 0.};
   tmp.SetRotation(rot);
   // equivalent to
-  // tmp.RotateY(-90.);
+  // tmp.RotateY(90.);
   // tmp.RotateZ(-90.);
   return tmp;
 }();
