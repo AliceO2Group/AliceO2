@@ -42,6 +42,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
     gsl::span<const Vertex> primaryVertices = tf->getPrimaryVertices(rof0);
     int minRof = (rof0 >= mTrkParams.DeltaROF) ? rof0 - mTrkParams.DeltaROF : 0;
     int maxRof = (rof0 == tf->getNrof() - mTrkParams.DeltaROF) ? rof0 : rof0 + mTrkParams.DeltaROF;
+    // std::cout << "Number of vertices in ROF " << rof0 << ": " << primaryVertices.size() << std::endl;
     for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
       gsl::span<const Cluster> layer0 = tf->getClustersOnLayer(rof0, iLayer);
       if (layer0.empty()) {
@@ -49,6 +50,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
       }
 
       const int currentLayerClustersNum{static_cast<int>(layer0.size())};
+      // std::cout << "\t- Number of clusters on layer " << iLayer << ": " << currentLayerClustersNum << std::endl;
       for (int iCluster{0}; iCluster < currentLayerClustersNum; ++iCluster) {
         const Cluster& currentCluster{layer0[iCluster]};
         const int currentSortedIndex{tf->getSortedIndex(rof0, iLayer, iCluster)};
@@ -62,6 +64,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
 
           const float zAtRmin{tanLambda * (tf->getMinR(iLayer + 1) - currentCluster.radius) + currentCluster.zCoordinate};
           const float zAtRmax{tanLambda * (tf->getMaxR(iLayer + 1) - currentCluster.radius) + currentCluster.zCoordinate};
+          // std::cout << tanLambda << "\t" << zAtRmin << "\t" << zAtRmax << "\t" << primaryVertex.getZ() << "\t" << currentCluster.zCoordinate << "\t" << currentCluster.radius << std::endl;
 
           const int4 selectedBinsRect{getBinsRect(currentCluster, iLayer, zAtRmin, zAtRmax,
                                                   mTrkParams.TrackletMaxDeltaZ[iLayer], mTrkParams.TrackletMaxDeltaPhi)};
