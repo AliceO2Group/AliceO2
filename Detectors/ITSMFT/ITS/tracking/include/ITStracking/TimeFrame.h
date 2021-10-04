@@ -117,8 +117,6 @@ class TimeFrame final
   const unsigned long long& getRoadLabel(int i) const;
   bool isRoadFake(int i) const;
 
-  void clear();
-
   /// Debug and printing
   void checkTrackletLUTs();
   void printROFoffsets();
@@ -273,24 +271,6 @@ void TimeFrame::addTrackingFrameInfoToLayer(int layer, T&&... values)
 inline void TimeFrame::addClusterExternalIndexToLayer(int layer, const int idx)
 {
   mClusterExternalIndices[layer].push_back(idx);
-}
-
-inline void TimeFrame::clear()
-{
-  ///This might not be necessary and thorough enough
-  mNrof = 0;
-  for (unsigned int iL = 0; iL < mClusters.size(); ++iL) {
-    mClusters[iL].clear();
-    mClusterExternalIndices[iL].clear();
-    mTrackingFrameInfo[iL].clear();
-    mUnsortedClusters[iL].clear();
-    mUsedClusters[iL].clear();
-  }
-  mClusterLabels = nullptr;
-  mPrimaryVertices.clear();
-  mROframesClusters.resize(mClusters.size(), {0});
-  mROframesPV.clear();
-  mROframesPV.resize(1, 0);
 }
 
 inline bool TimeFrame::hasMCinformation() const
