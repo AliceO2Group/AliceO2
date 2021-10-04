@@ -82,8 +82,10 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
 
   bool aboveQTotCutoff = (myCluster.qTot > calib.tpc.cfQTotCutoff);
 
-  if (clusterPosInRow && !aboveQTotCutoff) {
-    clusterPosInRow[idx] = maxClusterPerRow;
+  if (!aboveQTotCutoff) {
+    if (clusterPosInRow) {
+      clusterPosInRow[idx] = maxClusterPerRow;
+    }
     return;
   }
 
