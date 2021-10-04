@@ -53,6 +53,9 @@ void TrackerDPL::init(InitContext& ic)
     o2::base::Propagator::initFieldFromGRP(grp);
     auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
 
+    Bool_t continuous = mGRP->isDetContinuousReadOut("MFT");
+    LOG(INFO) << "MFTTracker RO: continuous=" << continuous;
+
     o2::base::GeometryManager::loadGeometry();
     o2::mft::GeometryTGeo* geom = o2::mft::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
@@ -131,9 +134,6 @@ void TrackerDPL::run(ProcessingContext& pc)
   if (mFieldOn) {
     o2::mft::ROframe<TrackLTF> event(0);
 
-    Bool_t continuous = mGRP->isDetContinuousReadOut("MFT");
-    LOG(INFO) << "MFTTracker RO: continuous=" << continuous;
-
     // tracking configuration parameters
     auto& trackingParam = MFTTrackingParam::Instance();
 
@@ -156,7 +156,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       if (nclUsed) {
         event.setROFrameId(roFrame);
         event.initialize(trackingParam.FullClusterScan);
-        LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+        LOG(DEBUG) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mTracker->setROFrame(roFrame);
         mTracker->clustersToTracks(event);
         tracks.swap(event.getTracks());
@@ -169,7 +169,7 @@ void TrackerDPL::run(ProcessingContext& pc)
           trackLabels.clear();
         }
 
-        LOG(INFO) << "Found MFT tracks: " << tracks.size();
+        LOG(DEBUG) << "Found MFT tracks: " << tracks.size();
         int first = allTracksMFT.size();
         int number = tracks.size();
         rof.setFirstEntry(first);
@@ -180,9 +180,6 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
   } else { // Use Linear Tracker for Field off
     o2::mft::ROframe<TrackLTFL> event(0);
-
-    Bool_t continuous = mGRP->isDetContinuousReadOut("MFT");
-    LOG(INFO) << "MFTTracker RO: continuous=" << continuous;
 
     // tracking configuration parameters
     auto& trackingParam = MFTTrackingParam::Instance();
@@ -219,7 +216,7 @@ void TrackerDPL::run(ProcessingContext& pc)
           trackLabels.clear();
         }
 
-        LOG(INFO) << "Found MFT tracks: " << tracks.size();
+        LOG(DEBUG) << "Found MFT tracks: " << tracks.size();
         int first = allTracksMFT.size();
         int number = tracksL.size();
         rof.setFirstEntry(first);
@@ -229,7 +226,6 @@ void TrackerDPL::run(ProcessingContext& pc)
       roFrame++;
     }
   }
-  LOG(INFO) << "MFTTracker found " << ntracks << " tracks";
   LOG(INFO) << "MFTTracker pushed " << allTracksMFT.size() << " tracks";
 
   if (mUseMC) {
