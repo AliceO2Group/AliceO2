@@ -75,6 +75,7 @@ struct benchmarkOpts {
   float freeMemoryFractionToAllocate = 0.95f;
   int kernelLaunches = 1;
   int nTests = 1;
+  int streams = 8;
   std::string outFileName = "benchmark_result";
 };
 
@@ -109,10 +110,12 @@ struct gpuState {
   }
 
   int getNKernelLaunches() { return iterations; }
+  int getStreamsPoolSize() { return streams; }
 
   // Configuration
   size_t nMaxThreadsPerDimension;
   int iterations;
+  int streams;
 
   float chunkReservedGB; // Size of each partition (GB)
 

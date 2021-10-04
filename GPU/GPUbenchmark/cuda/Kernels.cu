@@ -135,7 +135,6 @@ __global__ void copyChunkMBKernel(
     chunkPtr[chunkSize - i - 1] = chunkPtr[i];
   }
 }
-
 } // namespace gpu
 
 void printDeviceProp(int deviceId)
@@ -301,16 +300,21 @@ template <typename... T>
 std::vector<float> GPUbenchmark<chunk_t>::runConcurrent(void (*kernel)(chunk_t*, T...),
                                                         int nChunks,
                                                         int nLaunches,
+                                                        int dimStreams,
                                                         int dimGrid,
                                                         int dimBlock,
                                                         T&... args)
 {
   std::vector<cudaEvent_t> starts(nChunks), stops(nChunks);
+  std::vector<cudaStream_t> streams(dimStreams);
 
-  cudaStream_t stream;
   std::vector<float> results(nChunks);
   GPUCHECK(cudaSetDevice(mOptions.deviceId));
-  GPUCHECK(cudaStreamCreate(&stream));
+
+  for (auto iStream{0}; iStream < dimStreams; ++iStream) {
+    GPUCHECK(cudaStreamCreate(&(streams.at(iStream)))); // round-robin on stream pool
+  }
+
   for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
     GPUCHECK(cudaEventCreate(&(starts[iChunk])));
     GPUCHECK(cudaEventCreate(&(stops[iChunk])));
@@ -319,16 +323,16 @@ std::vector<float> GPUbenchmark<chunk_t>::runConcurrent(void (*kernel)(chunk_t*,
   // Warm up on every chunk
   for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
     chunk_t* chunkPtr = getPartPtr<chunk_t>(mState.scratchPtr, mState.chunkReservedGB, iChunk);
-    (*kernel)<<<dimGrid / mState.getMaxChunks(), dimBlock, 0, stream>>>(chunkPtr, args...);
+    (*kernel)<<<dimGrid / mState.getMaxChunks(), dimBlock, 0, streams[iChunk % dimStreams]>>>(chunkPtr, args...);
   }
 
   for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
     chunk_t* chunkPtr = getPartPtr<chunk_t>(mState.scratchPtr, mState.chunkReservedGB, iChunk);
-    GPUCHECK(cudaEventRecord(starts[iChunk], stream));
+    GPUCHECK(cudaEventRecord(starts[iChunk], streams[iChunk % dimStreams]));
     for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {
-      (*kernel)<<<dimGrid / mState.getMaxChunks(), dimBlock, 0, stream>>>(chunkPtr, args...);
+      (*kernel)<<<dimGrid / mState.getMaxChunks(), dimBlock, 0, streams[iChunk % dimStreams]>>>(chunkPtr, args...);
     }
-    GPUCHECK(cudaEventRecord(stops[iChunk], stream));
+    GPUCHECK(cudaEventRecord(stops[iChunk], streams[iChunk % dimStreams]));
   }
 
   for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
@@ -338,7 +342,10 @@ std::vector<float> GPUbenchmark<chunk_t>::runConcurrent(void (*kernel)(chunk_t*,
     GPUCHECK(cudaEventDestroy(stops[iChunk]));
   }
 
-  GPUCHECK(cudaStreamDestroy(stream));
+  for (auto iStream{0}; iStream < dimStreams; ++iStream) {
+    GPUCHECK(cudaStreamDestroy(streams[iStream]));
+  }
+
   return results;
 }
 
@@ -367,6 +374,7 @@ void GPUbenchmark<chunk_t>::globalInit()
 
   mState.chunkReservedGB = mOptions.chunkReservedGB;
   mState.iterations = mOptions.kernelLaunches;
+  mState.streams = mOptions.streams;
   mState.nMultiprocessors = props.multiProcessorCount;
   mState.nMaxThreadsPerBlock = props.maxThreadsPerMultiProcessor;
   mState.nMaxThreadsPerDimension = props.maxThreadsDim[0];
@@ -465,6 +473,7 @@ void GPUbenchmark<chunk_t>::readConcurrent(SplitLevel sl, int nRegions)
         auto results = runConcurrent(&gpu::readChunkSBKernel<chunk_t>,
                                      mState.getMaxChunks(), // nStreams
                                      mState.getNKernelLaunches(),
+                                     mState.getStreamsPoolSize(),
                                      dimGrid,
                                      dimBlock,
                                      capacity);
@@ -488,6 +497,7 @@ void GPUbenchmark<chunk_t>::readConcurrent(SplitLevel sl, int nRegions)
         auto results = runConcurrent(&gpu::readChunkMBKernel<chunk_t>,
                                      mState.getMaxChunks(), // nStreams
                                      mState.getNKernelLaunches(),
+                                     mState.getStreamsPoolSize(),
                                      dimGrid,
                                      dimBlock,
                                      capacity);
@@ -588,6 +598,7 @@ void GPUbenchmark<chunk_t>::writeConcurrent(SplitLevel sl, int nRegions)
         auto results = runConcurrent(&gpu::writeChunkSBKernel<chunk_t>,
                                      mState.getMaxChunks(), // nStreams
                                      mState.getNKernelLaunches(),
+                                     mState.getStreamsPoolSize(),
                                      dimGrid,
                                      dimBlock,
                                      capacity);
@@ -611,6 +622,7 @@ void GPUbenchmark<chunk_t>::writeConcurrent(SplitLevel sl, int nRegions)
         auto results = runConcurrent(&gpu::writeChunkMBKernel<chunk_t>,
                                      mState.getMaxChunks(), // nStreams
                                      mState.getNKernelLaunches(),
+                                     mState.getStreamsPoolSize(),
                                      dimGrid,
                                      dimBlock,
                                      capacity);
@@ -712,6 +724,7 @@ void GPUbenchmark<chunk_t>::copyConcurrent(SplitLevel sl, int nRegions)
         auto results = runConcurrent(&gpu::copyChunkSBKernel<chunk_t>,
                                      mState.getMaxChunks(), // nStreams
                                      mState.getNKernelLaunches(),
+                                     mState.getStreamsPoolSize(),
                                      dimGrid,
                                      dimBlock,
                                      capacity);
@@ -735,6 +748,7 @@ void GPUbenchmark<chunk_t>::copyConcurrent(SplitLevel sl, int nRegions)
         auto results = runConcurrent(&gpu::copyChunkMBKernel<chunk_t>,
                                      mState.getMaxChunks(), // nStreams
                                      mState.getNKernelLaunches(),
+                                     mState.getStreamsPoolSize(),
                                      dimGrid,
                                      dimBlock,
                                      capacity);

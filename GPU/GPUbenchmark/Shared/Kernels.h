@@ -53,6 +53,7 @@ class GPUbenchmark final
   std::vector<float> runConcurrent(void (*kernel)(chunk_t*, T...),
                                    int nChunks,
                                    int nLaunches,
+                                   int dimStreams,
                                    int dimGrid,
                                    int dimBlock,
                                    T&... args);

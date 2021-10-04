@@ -29,6 +29,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
     "freeMemFraction,f", bpo::value<float>()->default_value(0.95f), "Fraction of free memory to be allocated (min: 0.f, max: 1.f).")(
     "launches,l", bpo::value<int>()->default_value(10), "Number of iterations in reading kernels.")(
     "nruns,n", bpo::value<int>()->default_value(1), "Number of times each test is run.")(
+    "streams,s", bpo::value<int>()->default_value(8), "Size of the pool of streams available for concurrent tests.")(
     "outfile,o", bpo::value<std::string>()->default_value("benchmark_result"), "Output file name to store results.");
   try {
     bpo::store(parse_command_line(argc, argv, options), vm);
@@ -51,6 +52,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
   conf.chunkReservedGB = vm["chunkSize"].as<float>();
   conf.kernelLaunches = vm["launches"].as<int>();
   conf.nTests = vm["nruns"].as<int>();
+  conf.streams = vm["streams"].as<int>();
 
   conf.tests.clear();
   for (auto& test : vm["test"].as<std::vector<std::string>>()) {
@@ -110,10 +112,10 @@ int main(int argc, const char* argv[])
 
   o2::benchmark::GPUbenchmark<char> bm_char{opts, writer};
   bm_char.run();
-  o2::benchmark::GPUbenchmark<int> bm_int{opts, writer};
-  bm_int.run();
-  o2::benchmark::GPUbenchmark<size_t> bm_size_t{opts, writer};
-  bm_size_t.run();
+  // o2::benchmark::GPUbenchmark<int> bm_int{opts, writer};
+  // bm_int.run();
+  // o2::benchmark::GPUbenchmark<size_t> bm_size_t{opts, writer};
+  // bm_size_t.run();
 
   // save results
   writer.get()->saveToFile();
