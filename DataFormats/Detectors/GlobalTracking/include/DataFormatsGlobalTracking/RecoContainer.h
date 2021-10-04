@@ -111,6 +111,11 @@ class RecPoint;
 class ChannelDataFloat;
 } // namespace o2::fdd
 
+namespace o2::ctp
+{
+class CTPDigit;
+} // namespace o2::ctp
+
 namespace o2::dataformats
 {
 class TrackTPCITS;
@@ -173,6 +178,8 @@ struct DataRequest {
   void requestTPCClusters(bool mc);
   void requestTOFClusters(bool mc);
   void requestTRDTracklets(bool mc);
+
+  void requestCTPDigits(bool mc);
 
   void requestCoscmicTracks(bool mc);
 
@@ -282,6 +289,8 @@ struct RecoContainer {
   void addFDDRecPoints(o2::framework::ProcessingContext& pc, bool mc);
 
   void addZDCRecEvents(o2::framework::ProcessingContext& pc, bool mc);
+
+  void addCTPDigits(o2::framework::ProcessingContext& pc, bool mc);
 
   void addCosmicTracks(o2::framework::ProcessingContext& pc, bool mc);
 
@@ -510,6 +519,9 @@ struct RecoContainer {
   auto getZDCEnergy() const { return getSpan<o2::zdc::ZDCEnergy>(GTrackID::ZDC, TRACKS); }
   auto getZDCTDCData() const { return getSpan<o2::zdc::ZDCTDCData>(GTrackID::ZDC, CLUSTERS); }
   auto getZDCInfo() const { return getSpan<uint16_t>(GTrackID::ZDC, PATTERNS); }
+
+  // CTP
+  auto getCTPDigits() const { return getSpan<const o2::ctp::CTPDigit>(GTrackID::CTP, CLUSTERS); }
 
   // Primary vertices
   const o2::dataformats::PrimaryVertex& getPrimaryVertex(int i) const { return pvtxPool.get_as<o2::dataformats::PrimaryVertex>(PVTX, i); }
