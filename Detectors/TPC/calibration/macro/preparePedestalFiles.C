@@ -158,7 +158,7 @@ void preparePedestalFiles(const std::string_view pedestalFile, const TString out
 
       float noise = std::abs(rocNoise.getValue(ipad)); // it seems with the new fitting procedure, the noise can also be negative, since in gaus sigma is quadratic
       float noiseCorr = noise - (0.847601 + 0.031514 * traceLength);
-      if ((pedestal <= 0) || (pedestal > 1023) || (noise <= 0) || (noise > 1023)) {
+      if ((pedestal <= 0) || (pedestal > 150) || (noise <= 0) || (noise > 50)) {
         printf("Bad pedestal or noise value in ROC %2zu, CRU %3d, fec in CRU: %2d, SAMPA: %d, channel: %2d, pedestal: %.4f, noise %.4f", iroc, cruID, fecInPartition, sampa, sampaChannel, pedestal, noise);
         if (maskBad) {
           pedestal = 1023;
