@@ -174,6 +174,22 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     // we send the GRP data once if the corresponding output channel is available
     // and set the flag to false after
     mWriteGRP = true;
+
+    // clean up (possibly) existing digit files
+    if (mInternalWriter) {
+      cleanDigitFile();
+    }
+  }
+
+  void cleanDigitFile()
+  {
+    // since we update digit files during ordinary processing
+    // it is better to remove possibly existing files in the same dir
+    std::stringstream tmp;
+    tmp << "tpc_driftime_digits_lane" << mLaneId << ".root";
+    if (std::filesystem::exists(tmp.str())) {
+      std::filesystem::remove(tmp.str());
+    }
   }
 
   void writeToROOTFile()
