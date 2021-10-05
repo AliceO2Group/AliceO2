@@ -195,6 +195,12 @@ auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::error)) {
       severity = InfoLogger::Severity::Error;
       level = 3;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::alarm)) {
+      severity = InfoLogger::Severity::Warning;
+      level = 4;
+    } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::important)) {
+      severity = InfoLogger::Severity::Info;
+      level = 5;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::warn)) {
       severity = InfoLogger::Severity::Warning;
       level = 6;
