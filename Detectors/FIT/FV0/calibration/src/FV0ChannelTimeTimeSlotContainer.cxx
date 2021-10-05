@@ -41,9 +41,10 @@ void FV0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FV0CalibrationI
     if (chID < Constants::nFv0Channels) {
       mHistogram(chTime, chID);
       ++mEntriesPerChannel[chID];
-    } else {
-      LOG(FATAL) << "Invalid channel data";
     }
+    //else {
+    //  LOG(FATAL) << "Invalid channel data";
+    //}
   }
 }
 
