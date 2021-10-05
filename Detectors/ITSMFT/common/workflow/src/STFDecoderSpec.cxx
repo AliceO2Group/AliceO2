@@ -43,7 +43,7 @@ using namespace o2::framework;
 ///_______________________________________
 template <class Mapping>
 STFDecoder<Mapping>::STFDecoder(const STFDecoderInp& inp)
-  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib), mDictName(inp.dict), mNoiseName(inp.noise)
+  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib)
 {
   mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "STFDecoder");
   mTimer.Stop();
@@ -66,6 +66,16 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   }
 
   auto detID = Mapping::getDetID();
+  if (detID == o2::detectors::DetID::ITS) {
+    mDictName = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
+    mNoiseName = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().noiseFilePath;
+  } else {
+    mDictName = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
+    mNoiseName = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().noiseFilePath;
+  }
+  mNoiseName = o2::base::NameConf::getNoiseFileName(detID, mNoiseName, "root");
+  mDictName = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mDictName, "bin");
+
   try {
     mNThreads = std::max(1, ic.options().get<int>("nthreads"));
     mDecoder->setNThreads(mNThreads);
@@ -73,14 +83,13 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mUnmutExtraLanes = ic.options().get<bool>("unmute-extra-lanes");
     mVerbosity = ic.options().get<int>("decoder-verbosity");
     mDecoder->setFillCalibData(mDoCalibData);
-    std::string noiseFile = o2::base::NameConf::getNoiseFileName(detID, mNoiseName, "root");
-    if (o2::utils::Str::pathExists(noiseFile)) {
-      TFile* f = TFile::Open(noiseFile.data(), "old");
+    if (o2::utils::Str::pathExists(mNoiseName)) {
+      TFile* f = TFile::Open(mNoiseName.data(), "old");
       auto pnoise = (NoiseMap*)f->Get("ccdb_object");
       AlpideCoder::setNoisyPixels(pnoise);
-      LOG(INFO) << mSelfName << " loading noise map file: " << noiseFile;
+      LOG(INFO) << mSelfName << " loading noise map file: " << mNoiseName;
     } else {
-      LOG(INFO) << mSelfName << " Noise file " << noiseFile << " is absent, " << Mapping::getName() << " running without noise suppression";
+      LOG(INFO) << mSelfName << " Noise file " << mNoiseName << " is absent, " << Mapping::getName() << " running without noise suppression";
     }
   } catch (const std::exception& e) {
     LOG(ERROR) << "exception was thrown in decoder configuration: " << e.what();
@@ -109,12 +118,11 @@ void STFDecoder<Mapping>::init(InitContext& ic)
       mClusterer->setMaxBCSeparationToMask(nbc);
       mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
-      std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mDictName, "bin");
-      if (o2::utils::Str::pathExists(dictFile)) {
-        mClusterer->loadDictionary(dictFile);
-        LOG(INFO) << mSelfName << " clusterer running with a provided dictionary: " << dictFile;
+      if (o2::utils::Str::pathExists(mDictName)) {
+        mClusterer->loadDictionary(mDictName);
+        LOG(INFO) << mSelfName << " clusterer running with a provided dictionary: " << mDictName;
       } else {
-        LOG(INFO) << mSelfName << " Dictionary " << dictFile << " is absent, " << Mapping::getName() << " clusterer expects cluster patterns";
+        LOG(INFO) << mSelfName << " Dictionary " << mDictName << " is absent, " << Mapping::getName() << " clusterer expects cluster patterns";
       }
       mClusterer->print();
     } catch (const std::exception& e) {

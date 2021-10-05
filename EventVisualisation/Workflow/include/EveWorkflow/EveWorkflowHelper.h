@@ -21,6 +21,11 @@
 #include "EveWorkflow/EveConfiguration.h"
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
 
+namespace o2::itsmft
+{
+class TopologyDictionary;
+}
+
 namespace o2::event_visualisation
 {
 using GID = o2::dataformats::GlobalTrackID;
@@ -73,7 +78,7 @@ class EveWorkflowHelper
   void drawITSClusters(GID gid, float trackTime);
   void drawTPCClusters(GID gid, float trackTime);
   void drawPoint(o2::BaseCluster<float> pnt);
-  void prepareITSClusters(std::string dictfile = "");
+  void prepareITSClusters(const o2::itsmft::TopologyDictionary& dict);
   o2::globaltracking::RecoContainer mRecoCont;
   o2::globaltracking::RecoContainer& getRecoContainer() { return mRecoCont; }
   TracksSet mTrackSet;

@@ -30,6 +30,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "GlobalTracking/MatchGlobalFwd.h"
 #include "GlobalTrackingWorkflow/GlobalFwdMatchingSpec.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 
 using namespace o2::framework;
 using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
@@ -78,7 +79,7 @@ void GlobalFwdMatchingDPL::init(InitContext& ic)
   const auto& bcfill = digctx->getBunchFilling();
   mMatching.setBunchFilling(bcfill);
 
-  std::string dictPath = ic.options().get<std::string>("mft-dictionary-path");
+  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath, "bin");
   if (o2::utils::Str::pathExists(dictFile)) {
     mMFTDict.readBinaryFile(dictFile);
@@ -143,8 +144,7 @@ DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC)
     Options{
       {"matchFcn", VariantType::String, "matchALL", {"Matching function (matchALL, ...)"}},
       {"cutFcn", VariantType::String, "cutDisabled", {"matching candicate cut"}},
-      {"matchPlaneZ", o2::framework::VariantType::Float, -77.5f, {"Matching plane z position [-77.5]"}},
-      {"mft-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}}}};
+      {"matchPlaneZ", o2::framework::VariantType::Float, -77.5f, {"Matching plane z position [-77.5]"}}}};
 }
 
 } // namespace globaltracking

@@ -69,7 +69,7 @@ void ClustererDPL::init(InitContext& ic)
   mClusterer->setMaxBCSeparationToMask(nbc);
   mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
-  std::string dictPath = ic.options().get<std::string>("mft-dictionary-path");
+  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath, "bin");
   if (o2::utils::Str::pathExists(dictFile)) {
     mClusterer->loadDictionary(dictFile);
@@ -157,7 +157,6 @@ DataProcessorSpec getClustererSpec(bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<ClustererDPL>(useMC)},
     Options{
-      {"mft-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
       {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}},
       {"nthreads", VariantType::Int, 1, {"Number of clustering threads"}}}};

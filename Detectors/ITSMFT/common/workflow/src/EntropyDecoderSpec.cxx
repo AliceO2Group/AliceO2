@@ -17,6 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "ITSMFTWorkflow/EntropyDecoderSpec.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 
 using namespace o2::framework;
 
@@ -37,9 +38,11 @@ void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
   auto detID = mOrigin == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT;
   mCTFDictPath = ic.options().get<std::string>("ctf-dict");
-  mClusDictPath = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, ic.options().get<std::string>("cluster-dict-file"), "bin");
+  mClusDictPath = o2::header::gDataOriginITS ? o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath : o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
+  mClusDictPath = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mClusDictPath, "bin");
   mMaskNoise = ic.options().get<bool>("mask-noise");
-  mNoiseFilePath = o2::base::NameConf::getNoiseFileName(detID, ic.options().get<std::string>("noise-file"), "root");
+  mNoiseFilePath = o2::header::gDataOriginITS ? o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().noiseFilePath : o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().noiseFilePath;
+  mNoiseFilePath = o2::base::NameConf::getNoiseFileName(detID, mNoiseFilePath, "root");
 }
 
 void EntropyDecoderSpec::run(ProcessingContext& pc)
@@ -122,9 +125,7 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, bool getDig
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(orig, getDigits)},
     Options{
       {"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}},
-      {"mask-noise", VariantType::Bool, false, {"apply noise mask to digits or clusters (involves reclusterization)"}},
-      {"noise-file", VariantType::String, "", {"name of the noise map file"}},
-      {"cluster-dict-file", VariantType::String, "", {"name of the cluster-topology dictionary file"}}}};
+      {"mask-noise", VariantType::Bool, false, {"apply noise mask to digits or clusters (involves reclusterization)"}}}};
 }
 
 } // namespace itsmft
