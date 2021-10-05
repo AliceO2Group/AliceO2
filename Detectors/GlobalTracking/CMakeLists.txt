@@ -17,6 +17,8 @@ o2_add_library(GlobalTracking
           src/MatchCosmics.cxx
           src/MatchCosmicsParams.cxx
           src/MatchGlobalFwd.cxx
+	  src/MatchITSTPCQC.cxx
+	  src/ITSTPCMatchingQCParams.cxx
   PUBLIC_LINK_LIBRARIES
     O2::Framework
     O2::DataFormatsTPC
@@ -39,11 +41,14 @@ o2_add_library(GlobalTracking
     O2::DataFormatsGlobalTracking
     O2::ITStracking
     O2::MFTTracking
-    O2::MCHTracking)
+    O2::MCHTracking
+    O2::MathUtils
+    O2::ReconstructionDataFormats)
 o2_target_root_dictionary(
   GlobalTracking
   HEADERS include/GlobalTracking/MatchTPCITSParams.h include/GlobalTracking/MatchGlobalFwd.h
-          include/GlobalTracking/MatchTOF.h include/GlobalTracking/MatchCosmics.h include/GlobalTracking/MatchCosmicsParams.h)
+  include/GlobalTracking/MatchTOF.h include/GlobalTracking/MatchCosmics.h include/GlobalTracking/MatchCosmicsParams.h include/GlobalTracking/MatchITSTPCQC.h include/GlobalTracking/ITSTPCMatchingQCParams.h)
+
 
 if (OpenMP_CXX_FOUND)
   target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
