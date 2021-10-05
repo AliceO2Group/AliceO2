@@ -112,10 +112,10 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   auto hCside1D = new TH1F(fmt::format("h_Cside_1D_{}", name).data(), fmt::format("{} (C-Side)", title).data(),
                            nbins1D, xMin1D, xMax1D); //TODO: modify ranges
 
-  auto hAside2D = new TH2F(fmt::format("h_Aside_2D_{}", name).data(), fmt::format("{} (A-Side);#it{x} (cm);#it{y} (cm)", title).data(),
+  auto hAside2D = new TH2F(fmt::format("h_Aside_2D_{}", name).data(), fmt::format("{} (A-Side);#it{{x}} (cm);#it{{y}} (cm)", title).data(),
                            330, -270, 270, 330, -270, 270);
 
-  auto hCside2D = new TH2F(fmt::format("h_Cside_2D_{}", name).data(), fmt::format("{} (C-Side);#it{x} (cm);#it{y} (cm)", title).data(),
+  auto hCside2D = new TH2F(fmt::format("h_Cside_2D_{}", name).data(), fmt::format("{} (C-Side);#it{{x}} (cm);#it{{y}} (cm)", title).data(),
                            330, -270, 270, 330, -270, 270);
 
   for (ROC roc; !roc.looped(); ++roc) {
