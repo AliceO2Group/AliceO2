@@ -33,6 +33,9 @@ void ErrorTypeFEE::PrintStream(std::ostream& stream) const
     case ErrorSource_t::GEOMETRY_ERROR:
       typestring = "geometry error";
       break;
+    case ErrorTypeFEE::GAIN_ERROR:
+      typestring = "gain type error";
+      break;
     case ErrorSource_t::UNDEFINED:
       typestring = "unknown error";
       break;

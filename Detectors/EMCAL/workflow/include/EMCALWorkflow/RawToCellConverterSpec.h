@@ -81,6 +81,25 @@ class RawToCellConverterSpec : public framework::Task
   header::DataHeader::SubSpecificationType getSubspecification() const { return mSubspecification; }
 
  private:
+  /// \struct RecCellInfo
+  /// \brief Internal bookkeeping for cell double counting
+  ///
+  /// In case the energy is in the overlap region between the
+  /// two digitizers 2 channels exist for the same cell. In this
+  /// case the low gain cells are used above a certain threshold.
+  /// In certain error cases the information from the other digitizer
+  /// might be missing. Such cases must be fitered out, however this
+  /// can be done only after all cells are processed. The overlap information
+  /// needs to be propagated for the filtering but is not part of the
+  /// final cell object
+  struct RecCellInfo {
+    o2::emcal::Cell mCellData; ///< Cell information
+    bool mIsLGnoHG;            ///< Cell has only LG digits
+    bool mHGOutOfRange;        ///< Cell has only HG digits which are out of range
+    int mFecID;                ///< FEC ID of the channel (for monitoring)
+    int mHWAddressLG;          ///< HW address of LG (for monitoring)
+    int mHWAddressHG;          ///< HW address of HG (for monitoring)
+  };
   bool isLostTimeframe(framework::ProcessingContext& ctx) const;
   void sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors) const;
 
@@ -89,7 +108,7 @@ class RawToCellConverterSpec : public framework::Task
   int mNumErrorMessages = 0;                                      ///< Current number of error messages
   int mErrorMessagesSuppressed = 0;                               ///< Counter of suppressed error messages
   int mMaxErrorMessages = 100;                                    ///< Max. number of error messages
-  bool mPrintTrailer = false;
+  bool mPrintTrailer = false;                                     ///< Print RCU trailer
   Geometry* mGeometry = nullptr;                                  ///!<! Geometry pointer
   std::unique_ptr<MappingHandler> mMapper = nullptr;              ///!<! Mapper
   std::unique_ptr<CaloRawFitter> mRawFitter;                      ///!<! Raw fitter
