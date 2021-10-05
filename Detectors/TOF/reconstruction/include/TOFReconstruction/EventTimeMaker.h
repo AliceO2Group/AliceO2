@@ -22,17 +22,18 @@ namespace tof
 {
 
 struct eventTimeContainer {
-  eventTimeContainer(const float& e) : eventTime{e} {};
+  eventTimeContainer(const float& e, const float& err) : eventTime{e}, eventTimeError{err} {};
   float eventTime = 0.f;
+  float eventTimeError = 0.f;
 };
 
-template <typename tTracks>
-eventTimeContainer evTimeMaker(const tTracks& tracks)
+template <typename trackContainer>
+eventTimeContainer evTimeMaker(const trackContainer& tracks)
 {
   for (auto track : tracks) {
     track.tofSignal();
   }
-  return eventTimeContainer{0};
+  return eventTimeContainer{0.f, 0.f};
 }
 
 } // namespace tof
