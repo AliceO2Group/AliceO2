@@ -70,6 +70,7 @@ struct benchmarkOpts {
   std::vector<Test> tests = {Test::Read, Test::Write, Test::Copy};
   std::vector<Mode> modes = {Mode::Sequential, Mode::Concurrent};
   std::vector<SplitLevel> pools = {SplitLevel::Blocks, SplitLevel::Threads};
+  std::vector<std::string> dtypes = {"char", "int", "ulong"};
   float chunkReservedGB = 1.f;
   int nRegions = 2;
   float freeMemoryFractionToAllocate = 0.95f;

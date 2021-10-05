@@ -11,7 +11,7 @@
 ///
 /// \file benchmark.cxx
 /// \author mconcas@cern.ch
-/// \brief configuration widely inspired/copied by SimConfig
+///
 #include "Shared/Kernels.h"
 
 bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
@@ -23,6 +23,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
     "help,h", "Print help message.")(
     "device,d", bpo::value<int>()->default_value(0), "Id of the device to run test on, EPN targeted.")(
     "test,t", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"read", "write", "copy"}, "read, write, copy"), "Tests to be performed.")(
+    "kind,k", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"char", "int", "ulong"}, "char, int, ulong"), "Test data type to be used.")(
     "mode,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"seq", "con"}, "seq, con"), "Mode: sequential or concurrent.")(
     "pool,p", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"sb", "mb"}, "sb, mb"), "Pool strategy: single or multi blocks.")(
     "chunkSize,c", bpo::value<float>()->default_value(1.f), "Size of scratch partitions (GB).")(
@@ -92,6 +93,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
     }
   }
 
+  conf.dtypes = vm["kind"].as<std::vector<std::string>>();
   conf.outFileName = vm["outfile"].as<std::string>();
 
   return true;
@@ -110,12 +112,21 @@ int main(int argc, const char* argv[])
 
   std::shared_ptr<ResultWriter> writer = std::make_shared<ResultWriter>(std::to_string(opts.deviceId) + "_" + opts.outFileName + ".root");
 
-  o2::benchmark::GPUbenchmark<char> bm_char{opts, writer};
-  bm_char.run();
-  // o2::benchmark::GPUbenchmark<int> bm_int{opts, writer};
-  // bm_int.run();
-  // o2::benchmark::GPUbenchmark<size_t> bm_size_t{opts, writer};
-  // bm_size_t.run();
+  for (auto& dtype : opts.dtypes) {
+    if (dtype == "char") {
+      o2::benchmark::GPUbenchmark<char> bm_char{opts, writer};
+      bm_char.run();
+    } else if (dtype == "int") {
+      o2::benchmark::GPUbenchmark<int> bm_int{opts, writer};
+      bm_int.run();
+    } else if (dtype == "ulong") {
+      o2::benchmark::GPUbenchmark<size_t> bm_size_t{opts, writer};
+      bm_size_t.run();
+    } else {
+      std::cerr << "Unkonwn data type: " << dtype << std::endl;
+      exit(1);
+    }
+  }
 
   // save results
   writer.get()->saveToFile();
