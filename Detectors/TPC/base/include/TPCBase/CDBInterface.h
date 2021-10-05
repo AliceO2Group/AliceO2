@@ -24,6 +24,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
 #include "TPCBase/CalDet.h"
+#include "DataFormatsTPC/LtrCalibData.h"
 
 namespace o2
 {
@@ -43,6 +44,7 @@ enum class CDBType {
   CalCE,              ///< Laser CE calibration
   CalPadGainFull,     ///< Full pad gain calibration
   CalPadGainResidual, ///< ResidualpPad gain calibration (e.g. from tracks)
+  CalLaserTracks,     ///< Laser track calibration data
                       ///
   ParDetector,        ///< Parameter for Detector
   ParElectronics,     ///< Parameter for Electronics
@@ -64,6 +66,7 @@ const std::unordered_map<CDBType, std::string> CDBTypeMap{
   {CDBType::CalCE, "TPC/Calib/CE"},
   {CDBType::CalPadGainFull, "TPC/Calib/PadGainFull"},
   {CDBType::CalPadGainResidual, "TPC/Calib/PadGainResidual"},
+  {CDBType::CalLaserTracks, "TPC/Calib/LaserTracks"},
   //
   {CDBType::ParDetector, "TPC/Parameter/Detector"},
   {CDBType::ParElectronics, "TPC/Parameter/Electronics"},
@@ -261,6 +264,7 @@ inline T& CDBInterface::getSpecificObjectFromCDB(std::string_view path, long tim
 template CalPad& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
 template std::vector<CalPad>& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
 template std::unordered_map<std::string, o2::tpc::CalPad>& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
+template LtrCalibData& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
 
 /// \class CDBStorage
 /// Simple interface to store TPC CCDB types. Also provide interface functions to upload data from
