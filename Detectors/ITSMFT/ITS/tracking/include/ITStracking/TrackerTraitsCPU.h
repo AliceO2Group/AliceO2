@@ -40,8 +40,6 @@ namespace its
 class TrackerTraitsCPU : public TrackerTraits
 {
  public:
-  TrackerTraitsCPU(TimeFrame* tf = nullptr) { mTimeFrame = tf; } //TODO: the TimeFrame pointer should be given by the tracker that is the external interface
-  ~TrackerTraitsCPU() override { delete mTimeFrame; }
 
   void computeLayerCells() final;
   void computeLayerTracklets() final;

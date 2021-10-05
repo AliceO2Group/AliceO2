@@ -178,6 +178,7 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     mTracklets.resize(trkParam.TrackletsPerRoad());
     mTrackletLabels.resize(trkParam.TrackletsPerRoad());
     mTrackletsLookupTable.resize(trkParam.CellsPerRoad());
+    mIndexTables.clear();
     mIndexTableUtils.setTrackingParameters(trkParam);
 
     for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
@@ -248,6 +249,7 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
   }
 
   mRoads.clear();
+  mRoadLabels.clear();
 
   for (unsigned int iLayer{0}; iLayer < mTracklets.size(); ++iLayer) {
     mTracklets[iLayer].clear();
