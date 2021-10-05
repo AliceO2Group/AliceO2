@@ -389,8 +389,9 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
     for (Int_t l = gSeedingLayer2 - 1; l >= 0; l--) {
       Float_t r2 = sLayers[l].getR();
       selec[l].clear();
-      if (TMath::Abs(ip[0]) > r2)
+      if (TMath::Abs(ip[0]) > r2) {
         break;
+      }
       if (TMath::Abs(crv) < gRoadY / (0.5 * r1 * 0.5 * r1)) {
         phi += TMath::ASin(ip[0] / r2) - TMath::ASin(ip[0] / r1);
         z += tgl * (TMath::Sqrt(r2 * r2 - ip[0] * ip[0]) - TMath::Sqrt(r1 * r1 - ip[0] * ip[0]));
