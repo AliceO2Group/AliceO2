@@ -131,7 +131,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       try {
         rawreader.next();
       } catch (RawDecodingError::ErrorType_t e) {
-        LOG(ERROR) << "Raw decoding error " << (int)e;
+        // LOG(ERROR) << "Raw decoding error " << (int)e;
         //add error list
         mOutputHWErrors.emplace_back(14, (int)e, 1); //Put general errors to non-existing DDL14
         //if problem in header, abandon this page
@@ -150,7 +150,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 
       if (ddl > o2::phos::Mapping::NDDL || ddl < 0) { //only 14 correct DDLs
         LOG(ERROR) << "DDL=" << ddl;
-        mOutputHWErrors.emplace_back(15, 16, char(ddl)); //Add non-existing DDL as DDL 15
+        mOutputHWErrors.emplace_back(14, 16, char(ddl)); //Add non-existing DDL as DDL 15
         continue;                                        //skip STU ddl
       }
 
