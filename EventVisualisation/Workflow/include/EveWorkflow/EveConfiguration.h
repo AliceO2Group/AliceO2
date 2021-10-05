@@ -44,6 +44,7 @@ template <template <typename T> class S>
 struct CalibObjectsTemplate {
   typename S<o2::trd::GeometryFlat>::type* trdGeometry = nullptr;
   typename S<o2::itsmft::TopologyDictionary>::type* itsPatternDict = nullptr;
+  typename S<o2::itsmft::TopologyDictionary>::type* mftPatternDict = nullptr;
 };
 
 typedef CalibObjectsTemplate<DefaultPtr> CalibObjects; // NOTE: These 2 must have identical layout since they are memcopied

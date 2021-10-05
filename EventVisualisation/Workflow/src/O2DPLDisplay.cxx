@@ -22,6 +22,7 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 #include "TRDBase/GeometryFlat.h"
 #include "TOFBase/Geo.h"
 #include "TPCFastTransform.h"
@@ -77,8 +78,26 @@ void O2DPLDisplaySpec::init(InitContext& ic)
   mTrdGeo.reset(new o2::trd::GeometryFlat(*gm));
   mConfig->configCalib.trdGeometry = mTrdGeo.get();
 
-  mITSDict = std::make_unique<o2::itsmft::TopologyDictionary>();
-  mConfig->configCalib.itsPatternDict = mITSDict.get();
+  std::string dictFileITS = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
+  dictFileITS = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFileITS, "bin");
+  if (o2::utils::Str::pathExists(dictFileITS)) {
+    mITSDict.readBinaryFile(dictFileITS);
+    LOG(INFO) << "Running with provided ITS clusters dictionary: " << dictFileITS;
+  } else {
+    LOG(INFO) << "Dictionary " << dictFileITS << " is absent, ITS expects cluster patterns for all clusters";
+  }
+  mConfig->configCalib.itsPatternDict = &mITSDict;
+
+  std::string dictFileMFT = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
+  dictFileMFT = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictFileMFT, "bin");
+  if (o2::utils::Str::pathExists(dictFileMFT)) {
+    mMFTDict.readBinaryFile(dictFileMFT);
+    LOG(INFO) << "Running with provided MFT clusters dictionary: " << dictFileMFT;
+  } else {
+    LOG(INFO) << "Dictionary " << dictFileMFT << " is absent, MFT expects cluster patterns for all clusters";
+  }
+  mConfig->configCalib.mftPatternDict = &mMFTDict;
+
   mConfig->configProcessing.runMC = mUseMC;
 
   o2::tof::Geo::Init();
@@ -107,6 +126,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   EveWorkflowHelper helper;
   helper.getRecoContainer().collectData(pc, *mDataRequest);
   helper.selectTracks(&(mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
+  helper.prepareITSClusters(mITSDict);
   helper.draw(this->mJsonPath, this->mNumberOfFiles, this->mNumberOfTracks);
 }
 

@@ -30,7 +30,6 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
@@ -44,6 +43,7 @@
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "Framework/Task.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 
 using namespace o2::framework;
 using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
@@ -79,14 +79,14 @@ void CosmicsMatchingSpec::init(InitContext& ic)
   o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP();
   std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
-  const auto& alpParams = o2::itsmft::DPLAlpideParam<DetID::ITS>::Instance();
+  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
   if (!grp->isDetContinuousReadOut(DetID::ITS)) {
     mMatching.setITSROFrameLengthMUS(alpParams.roFrameLengthTrig / 1.e3); // ITS ROFrame duration in \mus
   } else {
     mMatching.setITSROFrameLengthMUS(alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3); // ITS ROFrame duration in \mus
   }
   //
-  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(DetID::ITS, dictPath, "bin");
   auto itsDict = std::make_unique<o2::itsmft::TopologyDictionary>();
   if (o2::utils::Str::pathExists(dictFile)) {
@@ -157,7 +157,6 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<CosmicsMatchingSpec>(dataRequest, useMC)},
     Options{
-      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
       {"debug-tree-flags", VariantType::Int, 0, {"DebugFlagTypes bit-pattern for debug tree"}}}};
 }

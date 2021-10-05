@@ -68,7 +68,7 @@ void PrimaryVertexingSpec::init(InitContext& ic)
   o2::base::Propagator::initFieldFromGRP();
 
   std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
-  const auto& alpParams = o2::itsmft::DPLAlpideParam<DetID::ITS>::Instance();
+  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
   if (!grp->isDetContinuousReadOut(DetID::ITS)) {
     mITSROFrameLengthMUS = alpParams.roFrameLengthTrig / 1.e3; // ITS ROFrame duration in \mus
   } else {

@@ -34,6 +34,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 
 using namespace o2::framework;
 
@@ -75,7 +76,7 @@ void TrackerDPL::init(InitContext& ic)
     throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
-  std::string dictPath = ic.options().get<std::string>("mft-dictionary-path");
+  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath, "bin");
   if (o2::utils::Str::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
@@ -218,8 +219,7 @@ DataProcessorSpec getTrackerSpec(bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC)},
     Options{
-      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the output file"}},
-      {"mft-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}}}};
+      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the output file"}}}};
 }
 
 } // namespace mft

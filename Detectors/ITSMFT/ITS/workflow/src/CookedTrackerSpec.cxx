@@ -40,6 +40,7 @@
 
 #include "ITSReconstruction/FastMultEstConfig.h"
 #include "ITSReconstruction/FastMultEst.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 
 using namespace o2::framework;
 
@@ -79,7 +80,7 @@ void CookedTrackerDPL::init(InitContext& ic)
     throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
-  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
   if (o2::utils::Str::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
@@ -233,7 +234,6 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
     AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(useMC)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
 }
 

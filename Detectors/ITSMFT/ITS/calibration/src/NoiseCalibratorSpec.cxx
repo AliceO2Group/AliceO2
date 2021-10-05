@@ -14,6 +14,8 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
 #include "ITSCalibration/NoiseCalibratorSpec.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 
@@ -31,7 +33,7 @@ namespace its
 
 void NoiseCalibratorSpec::init(InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(
     o2::detectors::DetID::ITS, dictPath, "bin");
   if (o2::utils::Str::pathExists(dictFile)) {
@@ -110,7 +112,6 @@ DataProcessorSpec getNoiseCalibratorSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>()},
     Options{
-      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"1pix-only", VariantType::Bool, false, {"Fast 1-pixel calibration only"}},
       {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}}}};
 }
