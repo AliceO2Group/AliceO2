@@ -74,11 +74,10 @@ __global__ void readChunkSBKernel(
   size_t chunkSize)
 {
   chunk_t sink{0}; // local memory -> excluded from bandwidth accounting
-  size_t last{0};
-  for (last = threadIdx.x; last < chunkSize; last += blockDim.x) {
-    sink += chunkPtr[last]; // 1 read operation, performed "chunkSize" times
+  for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
+    sink = chunkPtr[i]; // 1 read operation, performed "chunkSize" times
   }
-  chunkPtr[last] = sink; // writing done once
+  chunkPtr[threadIdx.x] = sink; // writing done once
 }
 
 template <class chunk_t>
@@ -87,11 +86,10 @@ __global__ void readChunkMBKernel(
   size_t chunkSize)
 {
   chunk_t sink{0}; // local memory -> excluded from bandwidth accounting
-  size_t last{0};
-  for (last = blockIdx.x * blockDim.x + threadIdx.x; last < chunkSize; last += blockDim.x * gridDim.x) {
-    sink += chunkPtr[last]; // 1 read operation, performed "chunkSize" times
+  for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
+    sink = chunkPtr[i]; // 1 read operation, performed "chunkSize" times
   }
-  chunkPtr[last] = sink;
+  chunkPtr[threadIdx.x] = sink;
 }
 
 // Write
@@ -853,7 +851,7 @@ void GPUbenchmark<chunk_t>::run()
 template class GPUbenchmark<char>;
 template class GPUbenchmark<size_t>;
 template class GPUbenchmark<int>;
-// template class GPUbenchmark<uint4>;
+// template class GPUbenchmark<int4>;
 
 } // namespace benchmark
 } // namespace o2
