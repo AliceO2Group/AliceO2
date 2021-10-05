@@ -17,7 +17,7 @@
 #include "Framework/Logger.h"
 
 #include "TPCBase/ParameterGas.h"
-#include "TPCCalibration/CalibLaserTracks.h"
+#include "DataFormatsTPC/LtrCalibData.h"
 #include "TPCWorkflow/ApplyCCDBCalibSpec.h"
 
 using namespace o2::framework;
