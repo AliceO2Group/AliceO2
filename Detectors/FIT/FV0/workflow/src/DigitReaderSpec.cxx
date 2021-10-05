@@ -60,8 +60,9 @@ void DigitReader::run(ProcessingContext& pc)
   if (mUseMC) {
     mTree->SetBranchAddress("FV0DigitLabels", &plabels);
   }
-  mTree->GetEntry(0);
-
+  auto ent = mTree->GetReadEntry() + 1;
+  assert(ent < mTree->GetEntries()); // this should not happen
+  mTree->GetEntry(ent);
   LOG(INFO) << "FV0DigitReader pushed " << channels.size() << " channels in " << digits.size() << " digits";
 
   pc.outputs().snapshot(Output{"FV0", "DIGITSBC", 0, Lifetime::Timeframe}, digits);
@@ -69,8 +70,10 @@ void DigitReader::run(ProcessingContext& pc)
   if (mUseMC) {
     pc.outputs().snapshot(Output{"FV0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
   }
-  pc.services().get<ControlService>().endOfStream();
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  }
 }
 
 DataProcessorSpec getDigitReaderSpec(bool useMC)
