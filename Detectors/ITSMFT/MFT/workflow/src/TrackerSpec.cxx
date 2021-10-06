@@ -53,6 +53,9 @@ void TrackerDPL::init(InitContext& ic)
     o2::base::Propagator::initFieldFromGRP(grp);
     auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
 
+    Bool_t continuous = mGRP->isDetContinuousReadOut("MFT");
+    LOG(INFO) << "MFTTracker RO: continuous=" << continuous;
+
     o2::base::GeometryManager::loadGeometry();
     o2::mft::GeometryTGeo* geom = o2::mft::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
@@ -61,16 +64,24 @@ void TrackerDPL::init(InitContext& ic)
     // tracking configuration parameters
     auto& trackingParam = MFTTrackingParam::Instance();
     // create the tracker: set the B-field, the configuration and initialize
-    mTracker = std::make_unique<o2::mft::Tracker>(mUseMC);
+
     double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
     auto Bz = field->getBz(centerMFT);
-    if (Bz == 0) {
-      Bz = 0.1; // Temporary workaround for MFT tracking with magnet off;
-      LOG(INFO) << " Temporary workaround for MFT tracking with magnet off. Bz = " << Bz;
+    if (Bz != 0) {
+      LOG(INFO) << "Starting MFT tracker: Field is on!";
+      mFieldOn = true;
+      mTracker = std::make_unique<o2::mft::Tracker<TrackLTF>>(mUseMC);
+      mTracker->setBz(Bz);
+      mTracker->initConfig(trackingParam, true);
+      mTracker->initialize(trackingParam.FullClusterScan);
+    } else {
+      LOG(INFO) << "Starting MFT Linear tracker: Field is off!";
+      mFieldOn = false;
+      mTrackerL = std::make_unique<o2::mft::Tracker<TrackLTFL>>(mUseMC);
+      mTrackerL->initConfig(trackingParam, true);
+      mTrackerL->initialize(trackingParam.FullClusterScan);
     }
-    mTracker->setBz(Bz);
-    mTracker->initConfig(trackingParam, true);
-    mTracker->initialize(trackingParam.FullClusterScan);
+
   } else {
     throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
@@ -90,8 +101,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   mTimer.Start(false);
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
-  auto nTracksLTF = 0;
-  auto nTracksCA = 0;
+  auto ntracks = 0;
 
   // code further down does assignment to the rofs and the altered object is used for output
   // we therefore need a copy of the vector rather than an object created directly on the input data,
@@ -112,72 +122,110 @@ void TrackerDPL::run(ProcessingContext& pc)
               << mc2rofs.size() << " MC events";
   }
 
-  //std::vector<o2::mft::TrackMFTExt> tracks;
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"MFT", "TRACKCLSID", 0, Lifetime::Timeframe});
   std::vector<o2::MCCompLabel> trackLabels;
   std::vector<o2::MCCompLabel> allTrackLabels;
-  std::vector<o2::mft::TrackLTF> tracksLTF;
-  std::vector<o2::mft::TrackCA> tracksCA;
+  std::vector<o2::mft::TrackLTF> tracks;
+  std::vector<o2::mft::TrackLTFL> tracksL;
   auto& allTracksMFT = pc.outputs().make<std::vector<o2::mft::TrackMFT>>(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe});
 
   std::uint32_t roFrame = 0;
-  o2::mft::ROframe event(0);
 
-  Bool_t continuous = mGRP->isDetContinuousReadOut("MFT");
-  LOG(INFO) << "MFTTracker RO: continuous=" << continuous;
+  if (mFieldOn) {
+    o2::mft::ROframe<TrackLTF> event(0);
 
-  // tracking configuration parameters
-  auto& trackingParam = MFTTrackingParam::Instance();
+    // tracking configuration parameters
+    auto& trackingParam = MFTTrackingParam::Instance();
 
-  // snippet to convert found tracks to final output tracks with separate cluster indices
-  auto copyTracks = [&event](auto& tracks, auto& allTracks, auto& allClusIdx) {
-    for (auto& trc : tracks) {
-      trc.setExternalClusterIndexOffset(allClusIdx.size());
-      int ncl = trc.getNumberOfPoints();
-      for (int ic = 0; ic < ncl; ic++) {
-        auto externalClusterID = trc.getExternalClusterIndex(ic);
-        allClusIdx.push_back(externalClusterID);
+    // snippet to convert found tracks to final output tracks with separate cluster indices
+    auto copyTracks = [&event](auto& tracks, auto& allTracks, auto& allClusIdx) {
+      for (auto& trc : tracks) {
+        trc.setExternalClusterIndexOffset(allClusIdx.size());
+        int ncl = trc.getNumberOfPoints();
+        for (int ic = 0; ic < ncl; ic++) {
+          auto externalClusterID = trc.getExternalClusterIndex(ic);
+          allClusIdx.push_back(externalClusterID);
+        }
+        allTracks.emplace_back(trc);
       }
-      allTracks.emplace_back(trc);
-    }
-  };
+    };
 
-  gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
-  for (auto& rof : rofs) {
-    int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, mTracker.get());
-    if (nclUsed) {
-      event.setROFrameId(roFrame);
-      event.initialize(trackingParam.FullClusterScan);
-      LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
-      mTracker->setROFrame(roFrame);
-      mTracker->clustersToTracks(event);
-      tracksLTF.swap(event.getTracksLTF());
-      tracksCA.swap(event.getTracksCA());
-      nTracksLTF += tracksLTF.size();
-      nTracksCA += tracksCA.size();
+    gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
+    for (auto& rof : rofs) {
+      int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, mTracker.get());
+      if (nclUsed) {
+        event.setROFrameId(roFrame);
+        event.initialize(trackingParam.FullClusterScan);
+        LOG(DEBUG) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+        mTracker->setROFrame(roFrame);
+        mTracker->clustersToTracks(event);
+        tracks.swap(event.getTracks());
+        ntracks += tracks.size();
 
-      if (mUseMC) {
-        mTracker->computeTracksMClabels(tracksLTF);
-        mTracker->computeTracksMClabels(tracksCA);
-        trackLabels.swap(mTracker->getTrackLabels());
-        std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
-        trackLabels.clear();
+        if (mUseMC) {
+          mTracker->computeTracksMClabels(tracks);
+          trackLabels.swap(mTracker->getTrackLabels());
+          std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+          trackLabels.clear();
+        }
+
+        LOG(DEBUG) << "Found MFT tracks: " << tracks.size();
+        int first = allTracksMFT.size();
+        int number = tracks.size();
+        rof.setFirstEntry(first);
+        rof.setNEntries(number);
+        copyTracks(tracks, allTracksMFT, allClusIdx);
       }
-
-      LOG(INFO) << "Found tracks LTF: " << tracksLTF.size();
-      LOG(INFO) << "Found tracks CA: " << tracksCA.size();
-      int first = allTracksMFT.size();
-      int number = tracksLTF.size() + tracksCA.size();
-      rof.setFirstEntry(first);
-      rof.setNEntries(number);
-      copyTracks(tracksLTF, allTracksMFT, allClusIdx);
-      copyTracks(tracksCA, allTracksMFT, allClusIdx);
+      roFrame++;
     }
-    roFrame++;
+  } else { // Use Linear Tracker for Field off
+    o2::mft::ROframe<TrackLTFL> event(0);
+
+    // tracking configuration parameters
+    auto& trackingParam = MFTTrackingParam::Instance();
+
+    // snippet to convert found tracks to final output tracks with separate cluster indices
+    auto copyTracks = [&event](auto& tracks, auto& allTracks, auto& allClusIdx) {
+      for (auto& trc : tracks) {
+        trc.setExternalClusterIndexOffset(allClusIdx.size());
+        int ncl = trc.getNumberOfPoints();
+        for (int ic = 0; ic < ncl; ic++) {
+          auto externalClusterID = trc.getExternalClusterIndex(ic);
+          allClusIdx.push_back(externalClusterID);
+        }
+        allTracks.emplace_back(trc);
+      }
+    };
+
+    gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
+    for (auto& rof : rofs) {
+      int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, mTrackerL.get());
+      if (nclUsed) {
+        event.setROFrameId(roFrame);
+        event.initialize(trackingParam.FullClusterScan);
+        LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+        mTrackerL->setROFrame(roFrame);
+        mTrackerL->clustersToTracks(event);
+        tracksL.swap(event.getTracks());
+        ntracks += tracksL.size();
+
+        if (mUseMC) {
+          mTrackerL->computeTracksMClabels(tracksL);
+          trackLabels.swap(mTrackerL->getTrackLabels());
+          std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+          trackLabels.clear();
+        }
+
+        LOG(DEBUG) << "Found MFT tracks: " << tracks.size();
+        int first = allTracksMFT.size();
+        int number = tracksL.size();
+        rof.setFirstEntry(first);
+        rof.setNEntries(number);
+        copyTracks(tracksL, allTracksMFT, allClusIdx);
+      }
+      roFrame++;
+    }
   }
-
-  LOG(INFO) << "MFTTracker found " << nTracksLTF << " tracks LTF";
-  LOG(INFO) << "MFTTracker found " << nTracksCA << " tracks CA";
   LOG(INFO) << "MFTTracker pushed " << allTracksMFT.size() << " tracks";
 
   if (mUseMC) {

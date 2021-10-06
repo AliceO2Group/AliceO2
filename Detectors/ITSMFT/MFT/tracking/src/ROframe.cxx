@@ -21,11 +21,8 @@ namespace o2
 namespace mft
 {
 
-ROframe::ROframe(const Int_t ROframeId) : mROframeId{ROframeId}
-{
-}
-
-Int_t ROframe::getTotalClusters() const
+template <typename T>
+Int_t ROframe<T>::getTotalClusters() const
 {
   size_t totalClusters{0};
   for (auto& clusters : mClusters) {
@@ -34,14 +31,16 @@ Int_t ROframe::getTotalClusters() const
   return Int_t(totalClusters);
 }
 
-void ROframe::initialize(bool fullClusterScan)
+template <typename T>
+void ROframe<T>::initialize(bool fullClusterScan)
 {
   if (!fullClusterScan) {
     sortClusters();
   }
 }
 
-void ROframe::sortClusters()
+template <typename T>
+void ROframe<T>::sortClusters()
 {
   Int_t nClsInLayer, binPrevIndex, clsMinIndex, clsMaxIndex, jClsLayer;
   // sort the clusters in R-Phi
@@ -76,6 +75,9 @@ void ROframe::sortClusters()
     mClusterBinIndexRange[iLayer][binPrevIndex] = std::pair<Int_t, Int_t>(clsMinIndex, clsMaxIndex);
   } // layers
 }
+
+template class ROframe<o2::mft::TrackLTF>;
+template class ROframe<o2::mft::TrackLTFL>;
 
 } // namespace mft
 } // namespace o2
