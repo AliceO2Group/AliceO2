@@ -1,7 +1,7 @@
 # ALICEO2dataModel converter
 
 Allows to create an html representation of the ALICE O2 data model.
-The generated html code can be inserted in docs/datamodel/[ao2dTables, helperTaskTables, joinsAndIterators].md of https://github.com/AliceO2Group/analysis-framework/.
+The generated html code can be inserted in docs/datamodel/[ao2dTables, helperTaskTables, pwgTables, joinsAndIterators].md of https://github.com/AliceO2Group/analysis-framework/.
 
 ## Internals
 
@@ -9,7 +9,7 @@ The ALICE O2 Data Analysis Framework is based on a number of flat tables which c
 
 The ALICEO2dataModel converter analyses these header and task code files and extracts the table and column definitions of the tables. The information is converted into a html representation which can be included in the documentation site of the O2 Analysis Framework at https://github.com/AliceO2Group/analysis-framework/.
 
-The converter is implemented in python. The parsing functionality is contained in ALICEO2dataModel.py and the main program is in extractDataModel.py. The process is configured with inputCard.xml.
+The converter is implemented in python and consists of the python modules extractDataModel.py, ALICEO2dataModelTools.py, ALICEO2includeFile.py, ALICEO2codeFile.py. The process is configured with inputCard.xml.
 
 
 ### Data Items
@@ -43,9 +43,11 @@ As a result of this procedure one obtains a 'datamodel' object with a list of na
 #### Code files
 Code files are combed for definitions of:
 
+- template
+- struct
 - Produces
 
-Tables have a producer. In case of the tables filled with data from the AO2D files the producer is defined to be AO2D. For tables which are filled by analysis tasks the producer is deduced from the related Produces function declaration. The code files are scanned for Produces declarations and the name of the code file is added to the respective table in the previously described 'datamodel' object.
+Tables have a producer. In case of the tables filled with data from the AO2D files the producer is defined to be AO2D. For tables which are filled by analysis tasks the producer is deduced from the related Produces function declaration. The code files are scanned for Produces declarations and the name of the code file is added to the respective table in the previously described 'datamodel' object. It is taken into account, that Produces can be within templated blocks.
 
 #### CMakeLists.txt files
 CMakeLists.txt files are combed for definitions of:
@@ -67,7 +69,7 @@ Clone O2 as usual. Go to scripts/datamodel-doc
 
 - Adapt inputCard.xml
 
-Set the path in tag O2general - General which is currently ../.. to the actual O2 installation path, e.g. /home/me/alice/O2 unless you run from the directory scripts/datamodel-doc. The other parameters should fit.
+Set the pathes in tags O2general/mainDir/[O2local, O2Physicslocal] to the actual O2 installation path, e.g. /home/me/alice/[O2, O2Physics] unless you run from the directory scripts/datamodel-doc. The other parameters should fit.
 
 - Run it
 
@@ -85,7 +87,7 @@ mdUpdate.py takes four arguments:
 Usage:
 mdUpdate.py cc fn2u fnold fnnew
 
-cc: 1: AO2D, 2: Helpers, 3: Joins
+cc: 1: AO2D, 2: Helpers, 3: PWG tables, 4: Joins
 
 fn2u: file with new text
 
@@ -93,7 +95,7 @@ fnold: file with old text
 
 fnnew: file with replaced text
 
-mdUpdate.py replaces in file fnold the block of text which is delimited by two lines containing a delimiter string by the block of text in file fn2u which is delimited by two lines containing the same delimiter string and write the output to file fnnew. The delimiter string is obtained from the inputCard.xml, depending on the value of cc. If fnnew = fnold, the content of fnold is overwritten.
+mdUpdate.py replaces in file fnold the block of text which is delimited by two lines containing a delimiter string. The block of text is replaced by the block of text in file fn2u which is delimited by two lines containing the same delimiter string. The resulting text is written to file fnnew. The delimiter string is obtained from the inputCard.xml, depending on the value of cc. If fnnew = fnold, the content of fnold is overwritten.
 
 So to update the md files do:
 
@@ -101,7 +103,8 @@ So to update the md files do:
 - path2mds=./testing
 - ./mdUpdate.py 1 htmloutput.txt $path2mds/ao2dTables.md $path2mds/ao2dTables.md
 - ./mdUpdate.py 2 htmloutput.txt $path2mds/helperTaskTables.md $path2mds/helperTaskTables.md
-- ./mdUpdate.py 3 htmloutput.txt $path2mds/joinsAndIterators.md $path2mds/joinsAndIterators.md
+- ./mdUpdate.py 3 htmloutput.txt $path2mds/helperTaskTables.md $path2mds/pwgTables.md
+- ./mdUpdate.py 4 htmloutput.txt $path2mds/joinsAndIterators.md $path2mds/joinsAndIterators.md
 
 ### For a full automatic update
 
