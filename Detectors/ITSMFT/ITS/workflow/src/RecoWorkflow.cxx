@@ -50,7 +50,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::st
   if (useCAtracker) {
     specs.emplace_back(o2::its::getTrackerSpec(useMC, trmode, dtype));
   } else {
-    specs.emplace_back(o2::its::getCookedTrackerSpec(useMC));
+    specs.emplace_back(o2::its::getCookedTrackerSpec(useMC, trmode));
   }
 
   if (eencode) {

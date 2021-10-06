@@ -70,5 +70,15 @@ struct CTPInputDigit {
   ClassDefNV(CTPInputDigit, 1)
 };
 } // namespace ctp
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::ctp::CTPDigit> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 #endif //_CTP_DIGITS_H

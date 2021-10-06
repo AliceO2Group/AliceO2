@@ -94,8 +94,8 @@ void ClustererDPL::run(ProcessingContext& pc)
   }
   const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
 
-  LOG(INFO) << "MFTClusterer pulled " << digits.size() << " digits, in "
-            << rofs.size() << " RO frames";
+  LOG(DEBUG) << "MFTClusterer pulled " << digits.size() << " digits, in "
+             << rofs.size() << " RO frames";
 
   o2::itsmft::DigitPixelReader reader;
   reader.setDigits(digits);
@@ -130,7 +130,7 @@ void ClustererDPL::run(ProcessingContext& pc)
 
   // TODO: in principle, after masking "overflow" pixels the MC2ROFRecord maxROF supposed to change, nominally to minROF
   // -> consider recalculationg maxROF
-  LOG(INFO) << "MFTClusterer pushed " << clusCompVec.size() << " compressed clusters, in " << clusROFVec.size() << " RO frames";
+  LOG(DEBUG) << "MFTClusterer pushed " << clusCompVec.size() << " compressed clusters, in " << clusROFVec.size() << " RO frames";
 }
 
 DataProcessorSpec getClustererSpec(bool useMC)

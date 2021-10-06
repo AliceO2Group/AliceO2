@@ -33,8 +33,9 @@ namespace o2
 namespace mft
 {
 
-class TrackLTF;
+class T;
 
+template <typename T>
 class Tracker : public TrackerConfig
 {
 
@@ -52,10 +53,9 @@ class Tracker : public TrackerConfig
   auto& getTracksLTF() { return mTracksLTF; }
   auto& getTrackLabels() { return mTrackLabels; }
 
-  void clustersToTracks(ROframe&, std::ostream& = std::cout);
+  void clustersToTracks(ROframe<T>&, std::ostream& = std::cout);
 
-  template <class T>
-  void computeTracksMClabels(const T&);
+  void computeTracksMClabels(const std::vector<T>&);
 
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
@@ -64,33 +64,33 @@ class Tracker : public TrackerConfig
   void initConfig(const MFTTrackingParam& trkParam, bool printConfig = false);
 
  private:
-  void findTracks(ROframe&);
-  void findTracksLTF(ROframe&);
-  void findTracksCA(ROframe&);
-  void findTracksLTFfcs(ROframe&);
-  void findTracksCAfcs(ROframe&);
-  void computeCellsInRoad(ROframe&);
+  void findTracks(ROframe<T>&);
+  void findTracksLTF(ROframe<T>&);
+  void findTracksCA(ROframe<T>&);
+  void findTracksLTFfcs(ROframe<T>&);
+  void findTracksCAfcs(ROframe<T>&);
+  void computeCellsInRoad(ROframe<T>&);
   void runForwardInRoad();
-  void runBackwardInRoad(ROframe&);
+  void runBackwardInRoad(ROframe<T>&);
   void updateCellStatusInRoad();
 
-  bool fitTracks(ROframe&);
+  bool fitTracks(ROframe<T>&);
 
   const Int_t isDiskFace(Int_t layer) const { return (layer % 2); }
   const Float_t getDistanceToSeed(const Cluster&, const Cluster&, const Cluster&) const;
-  void getBinClusterRange(const ROframe&, const Int_t, const Int_t, Int_t&, Int_t&) const;
+  void getBinClusterRange(const ROframe<T>&, const Int_t, const Int_t, Int_t&, Int_t&) const;
   const Float_t getCellDeviation(const Cell&, const Cell&) const;
   const Bool_t getCellsConnect(const Cell&, const Cell&) const;
-  void addCellToCurrentTrackCA(const Int_t, const Int_t, ROframe&);
-  void addCellToCurrentRoad(ROframe&, const Int_t, const Int_t, const Int_t, const Int_t, Int_t&);
+  void addCellToCurrentTrackCA(const Int_t, const Int_t, ROframe<T>&);
+  void addCellToCurrentRoad(ROframe<T>&, const Int_t, const Int_t, const Int_t, const Int_t, Int_t&);
 
   Float_t mBz = 5.f;
   std::uint32_t mROFrame = 0;
   std::vector<TrackMFTExt> mTracks;
-  std::vector<TrackLTF> mTracksLTF;
+  std::vector<T> mTracksLTF;
   std::vector<Cluster> mClusters;
   std::vector<MCCompLabel> mTrackLabels;
-  std::unique_ptr<o2::mft::TrackFitter> mTrackFitter = nullptr;
+  std::unique_ptr<o2::mft::TrackFitter<T>> mTrackFitter = nullptr;
 
   Int_t mMaxCellLevel = 0;
 
@@ -119,7 +119,8 @@ class Tracker : public TrackerConfig
 };
 
 //_________________________________________________________________________________________________
-inline const Float_t Tracker::getDistanceToSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster) const
+template <typename T>
+inline const Float_t Tracker<T>::getDistanceToSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster) const
 {
   // the seed is between "cluster1" and "cluster2" and cuts the plane
   // of the "cluster" at a distance dR from it
@@ -136,7 +137,8 @@ inline const Float_t Tracker::getDistanceToSeed(const Cluster& cluster1, const C
 }
 
 //_________________________________________________________________________________________________
-inline void Tracker::getBinClusterRange(const ROframe& event, const Int_t layer, const Int_t bin, Int_t& clsMinIndex, Int_t& clsMaxIndex) const
+template <typename T>
+inline void Tracker<T>::getBinClusterRange(const ROframe<T>& event, const Int_t layer, const Int_t bin, Int_t& clsMinIndex, Int_t& clsMaxIndex) const
 {
   const auto& pair = event.getClusterBinIndexRange(layer)[bin];
   clsMinIndex = pair.first;
@@ -144,7 +146,8 @@ inline void Tracker::getBinClusterRange(const ROframe& event, const Int_t layer,
 }
 
 //_________________________________________________________________________________________________
-inline const Float_t Tracker::getCellDeviation(const Cell& cell1, const Cell& cell2) const
+template <typename T>
+inline const Float_t Tracker<T>::getCellDeviation(const Cell& cell1, const Cell& cell2) const
 {
   Float_t cell1dx = cell1.getX2() - cell1.getX1();
   Float_t cell1dy = cell1.getY2() - cell1.getY1();
@@ -163,7 +166,8 @@ inline const Float_t Tracker::getCellDeviation(const Cell& cell1, const Cell& ce
 }
 
 //_________________________________________________________________________________________________
-inline const Bool_t Tracker::getCellsConnect(const Cell& cell1, const Cell& cell2) const
+template <typename T>
+inline const Bool_t Tracker<T>::getCellsConnect(const Cell& cell1, const Cell& cell2) const
 {
   Float_t cell1x2 = cell1.getX2();
   Float_t cell1y2 = cell1.getY2();
@@ -180,8 +184,8 @@ inline const Bool_t Tracker::getCellsConnect(const Cell& cell1, const Cell& cell
 }
 
 //_________________________________________________________________________________________________
-template <class T>
-inline void Tracker::computeTracksMClabels(const T& tracks)
+template <typename T>
+inline void Tracker<T>::computeTracksMClabels(const std::vector<T>& tracks)
 {
   /// Moore's Voting Algorithm
   for (auto& track : tracks) {

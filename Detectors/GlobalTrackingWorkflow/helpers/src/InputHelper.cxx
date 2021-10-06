@@ -33,6 +33,7 @@
 #include "ZDCWorkflow/RecEventReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackReaderSpec.h"
+#include "CTPWorkflowIO/DigitReaderSpec.h"
 #include "MCHWorkflow/TrackReaderSpec.h"
 
 using namespace o2::framework;
@@ -117,6 +118,10 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskTracks[GID::MFTMCH]) {
     specs.emplace_back(o2::globaltracking::getGlobalFwdTrackReaderSpec(maskTracksMC[GID::MFTMCH]));
   }
+  if (maskTracks[GID::CTP] && maskClusters[GID::CTP]) {
+    specs.emplace_back(o2::ctp::getDigitsReaderSpec(maskTracksMC[GID::CTP] || maskTracksMC[GID::CTP]));
+  }
+
   return 0;
 }
 

@@ -17,6 +17,7 @@
 #include "MFTTracking/Tracker.h"
 
 #include "Framework/DataProcessorSpec.h"
+#include "MFTTracking/TrackCA.h"
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
@@ -26,9 +27,11 @@ namespace o2
 {
 namespace mft
 {
+using o2::mft::TrackLTF;
 
 class TrackerDPL : public o2::framework::Task
 {
+
  public:
   TrackerDPL(bool useMC) : mUseMC(useMC) {}
   ~TrackerDPL() override = default;
@@ -38,9 +41,11 @@ class TrackerDPL : public o2::framework::Task
 
  private:
   bool mUseMC = false;
+  bool mFieldOn = true;
   o2::itsmft::TopologyDictionary mDict;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
-  std::unique_ptr<o2::mft::Tracker> mTracker = nullptr;
+  std::unique_ptr<o2::mft::Tracker<TrackLTF>> mTracker = nullptr;
+  std::unique_ptr<o2::mft::Tracker<TrackLTFL>> mTrackerL = nullptr;
   TStopwatch mTimer;
 };
 

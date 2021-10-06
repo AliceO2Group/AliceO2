@@ -25,6 +25,7 @@ o2_add_library(
     O2::DataFormatsTOF
     O2::ReconstructionDataFormats
     O2::DataFormatsTRD
+    O2::DataFormatsCTP
     O2::GPUDataTypeHeaders
   PRIVATE_LINK_LIBRARIES
     O2::Framework)

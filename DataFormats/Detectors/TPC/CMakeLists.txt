@@ -52,7 +52,8 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/IDC.h
           include/DataFormatsTPC/ZeroSuppression.h
           include/DataFormatsTPC/ZeroSuppressionLinkBased.h
-          include/DataFormatsTPC/TrackCuts.h)
+          include/DataFormatsTPC/TrackCuts.h
+          include/DataFormatsTPC/LtrCalibData.h)
 
 o2_add_test(
   ClusterNative

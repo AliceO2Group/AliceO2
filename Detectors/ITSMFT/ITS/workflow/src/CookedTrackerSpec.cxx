@@ -50,6 +50,15 @@ namespace its
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
+CookedTrackerDPL::CookedTrackerDPL(bool useMC, const std::string& trMode) : mUseMC(useMC)
+{
+  if (trMode == "cosmics") {
+    LOG(INFO) << "Tracking mode \"cosmics\"";
+    mTracker.setParametersCosmics();
+    mRunVertexer = false;
+  }
+}
+
 void CookedTrackerDPL::init(InitContext& ic)
 {
   mTimer.Stop();
@@ -139,7 +148,6 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     vtxROF.setNEntries(0);
 
     auto it = pattIt;
-    o2::its::ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels.get());
 
     // fast cluster mult. cut if asked (e.g. sync. mode)
     if (rof.getNEntries() && (multEstConf.cutMultClusLow > 0 || multEstConf.cutMultClusHigh > 0)) { // cut was requested
@@ -153,7 +161,10 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
       }
     }
 
-    vertexer.clustersToVertices(event, false, [&](std::string s) { LOG(INFO) << s; });
+    if (mRunVertexer) {
+      o2::its::ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels.get());
+      vertexer.clustersToVertices(event, false, [&](std::string s) { LOG(INFO) << s; });
+    }
     auto vtxVecLoc = vertexer.exportVertices();
 
     if (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0) { // cut was requested
@@ -204,7 +215,7 @@ void CookedTrackerDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getCookedTrackerSpec(bool useMC)
+DataProcessorSpec getCookedTrackerSpec(bool useMC, const std::string& trMode)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -230,7 +241,7 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
     "its-cooked-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(useMC)},
+    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(useMC, trMode)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
       {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},

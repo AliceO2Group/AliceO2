@@ -37,13 +37,11 @@ namespace o2
 namespace mft
 {
 
-class TrackCA;
-class TrackLTF;
-
+template <typename T>
 class ROframe
 {
  public:
-  ROframe(Int_t ROframeId);
+  ROframe(const Int_t ROframeId) : mROframeId{ROframeId} {}
   Int_t getROFrameId() const { return mROframeId; }
   Int_t getTotalClusters() const;
 
@@ -57,31 +55,44 @@ class ROframe
 
   const Int_t getClusterExternalIndex(Int_t layerId, const Int_t clusterId) const { return mClusterExternalIndices[layerId][clusterId]; }
 
-  std::vector<TrackLTF>& getTracksLTF();
-  TrackLTF& getCurrentTrackLTF();
+  std::vector<T>& getTracks() { return mTracks; }
+  T& getCurrentTrack() { return mTracks.back(); }
 
-  std::vector<TrackCA>& getTracksCA();
-  TrackCA& getCurrentTrackCA();
+  Road& getCurrentRoad() { return mRoads.back(); }
 
-  Road& getCurrentRoad();
+  template <typename... C>
+  void addClusterToLayer(Int_t layer, C&&... args)
+  {
+    mClusters[layer].emplace_back(std::forward<C>(args)...);
+  }
+  void addClusterLabelToLayer(Int_t layer, const MCCompLabel label) { mClusterLabels[layer].emplace_back(label); }
+  void addClusterExternalIndexToLayer(Int_t layer, const Int_t idx) { mClusterExternalIndices[layer].push_back(idx); }
 
-  template <typename... T>
-  void addClusterToLayer(Int_t layer, T&&... args);
+  void addTrack(bool isCA = false)
+  {
+    mTracks.emplace_back(isCA);
+  }
 
-  void addClusterLabelToLayer(Int_t layer, const MCCompLabel label);
-  void addClusterExternalIndexToLayer(Int_t layer, const Int_t idx);
-
-  void addTrackLTF() { mTracksLTF.emplace_back(); }
-
-  void addTrackCA(const Int_t);
-
-  void addRoad();
+  void addRoad() { mRoads.emplace_back(); }
 
   void initialize(bool fullClusterScan = false);
 
   void sortClusters();
 
-  void clear();
+  void clear()
+  {
+
+    for (Int_t iLayer = 0; iLayer < constants::mft::LayersNumber; ++iLayer) {
+      mClusters[iLayer].clear();
+      mClusterLabels[iLayer].clear();
+      mClusterExternalIndices[iLayer].clear();
+      for (Int_t iBin = 0; iBin < constants::index_table::MaxRPhiBins; ++iBin) {
+        mClusterBinIndexRange[iLayer][iBin] = std::pair<Int_t, Int_t>(0, -1);
+      }
+    }
+    mTracks.clear();
+    mRoads.clear();
+  }
 
   const Int_t getNClustersInLayer(Int_t layerId) const { return mClusters[layerId].size(); }
 
@@ -91,73 +102,9 @@ class ROframe
   std::array<std::vector<MCCompLabel>, constants::mft::LayersNumber> mClusterLabels;
   std::array<std::vector<Int_t>, constants::mft::LayersNumber> mClusterExternalIndices;
   std::array<std::array<std::pair<Int_t, Int_t>, constants::index_table::MaxRPhiBins>, constants::mft::LayersNumber> mClusterBinIndexRange;
-  std::vector<TrackLTF> mTracksLTF;
-  std::vector<TrackCA> mTracksCA;
+  std::vector<T> mTracks;
   std::vector<Road> mRoads;
 };
-
-template <typename... T>
-void ROframe::addClusterToLayer(Int_t layer, T&&... values)
-{
-  mClusters[layer].emplace_back(std::forward<T>(values)...);
-}
-
-inline void ROframe::addClusterLabelToLayer(Int_t layer, const MCCompLabel label) { mClusterLabels[layer].emplace_back(label); }
-
-inline void ROframe::addClusterExternalIndexToLayer(Int_t layer, const Int_t idx)
-{
-  mClusterExternalIndices[layer].push_back(idx);
-}
-
-inline TrackLTF& ROframe::getCurrentTrackLTF()
-{
-  return mTracksLTF.back();
-}
-
-inline std::vector<TrackLTF>& ROframe::getTracksLTF()
-{
-  return mTracksLTF;
-}
-
-inline void ROframe::addRoad()
-{
-  mRoads.emplace_back();
-}
-
-inline Road& ROframe::getCurrentRoad()
-{
-  return mRoads.back();
-}
-
-inline void ROframe::addTrackCA(const Int_t roadId)
-{
-  mTracksCA.emplace_back();
-}
-
-inline TrackCA& ROframe::getCurrentTrackCA()
-{
-  return mTracksCA.back();
-}
-
-inline std::vector<TrackCA>& ROframe::getTracksCA()
-{
-  return mTracksCA;
-}
-
-inline void ROframe::clear()
-{
-  for (Int_t iLayer = 0; iLayer < constants::mft::LayersNumber; ++iLayer) {
-    mClusters[iLayer].clear();
-    mClusterLabels[iLayer].clear();
-    mClusterExternalIndices[iLayer].clear();
-    for (Int_t iBin = 0; iBin < constants::index_table::MaxRPhiBins; ++iBin) {
-      mClusterBinIndexRange[iLayer][iBin] = std::pair<Int_t, Int_t>(0, -1);
-    }
-  }
-  mTracksLTF.clear();
-  mTracksCA.clear();
-  mRoads.clear();
-}
 
 } // namespace mft
 } // namespace o2

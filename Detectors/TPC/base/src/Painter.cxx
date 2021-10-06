@@ -112,11 +112,11 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   auto hCside1D = new TH1F(fmt::format("h_Cside_1D_{}", name).data(), fmt::format("{} (C-Side)", title).data(),
                            nbins1D, xMin1D, xMax1D); //TODO: modify ranges
 
-  auto hAside2D = new TH2F(fmt::format("h_Aside_2D_{}", name).data(), fmt::format("{} (A-Side);x (cm);y (cm)", title).data(),
-                           300, -300, 300, 300, -300, 300);
+  auto hAside2D = new TH2F(fmt::format("h_Aside_2D_{}", name).data(), fmt::format("{} (A-Side);#it{x} (cm);#it{y} (cm)", title).data(),
+                           330, -270, 270, 330, -270, 270);
 
-  auto hCside2D = new TH2F(fmt::format("h_Cside_2D_{}", name).data(), fmt::format("{} (C-Side);x (cm);y (cm)", title).data(),
-                           300, -300, 300, 300, -300, 300);
+  auto hCside2D = new TH2F(fmt::format("h_Cside_2D_{}", name).data(), fmt::format("{} (C-Side);#it{x} (cm);#it{y} (cm)", title).data(),
+                           330, -270, 270, 330, -270, 270);
 
   for (ROC roc; !roc.looped(); ++roc) {
 
@@ -150,6 +150,9 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   }
 
   // ===| Draw histograms |=====================================================
+  gStyle->SetOptStat("mr");
+  gStyle->SetStatX(1. - gPad->GetRightMargin());
+  gStyle->SetStatY(1. - gPad->GetTopMargin());
   auto c = outputCanvas;
   if (!c) {
     c = new TCanvas(fmt::format("c_{}", name).data(), title.data(), 1000, 1000);
@@ -160,11 +163,15 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   c->cd(1);
   hAside2D->Draw("colz");
   hAside2D->SetStats(0);
+  hAside2D->SetTitleOffset(1.05, "XY");
+  hAside2D->SetTitleSize(0.05, "XY");
   drawSectorsXY(Side::A);
 
   c->cd(2);
   hCside2D->Draw("colz");
   hCside2D->SetStats(0);
+  hCside2D->SetTitleOffset(1.05, "XY");
+  hCside2D->SetTitleSize(0.05, "XY");
   drawSectorsXY(Side::C);
 
   c->cd(3);

@@ -28,6 +28,7 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/LaserTrack.h"
+#include "DataFormatsTPC/LtrCalibData.h"
 
 namespace o2::tpc
 {
@@ -39,38 +40,6 @@ struct TimePair {
   float x1{0.f};
   float x2{0.f};
   uint64_t time{0};
-};
-
-struct LtrCalibData {
-  size_t processedTFs{};               ///< number of processed TFs with laser track candidates
-  uint64_t firstTime{};                ///< first time stamp of processed TFs
-  uint64_t lastTime{};                 ///< last time stamp of processed TFs
-  float dvCorrectionA{};               ///< drift velocity correction factor A-Side
-  float dvCorrectionC{};               ///< drift velocity correction factor C-Side
-  float dvOffsetA{};                   ///< drift velocity trigger offset A-Side
-  float dvOffsetC{};                   ///< drift velocity trigger offset C-Side
-  uint16_t nTracksA{};                 ///< number of tracks used for A-Side fit
-  uint16_t nTracksC{};                 ///< number of tracks used for C-Side fit
-  std::vector<uint16_t> matchedLtrIDs; ///< list of matched laser track IDs
-
-  float getDriftVCorrection() const { return 0.5f * (dvCorrectionA + dvCorrectionC); }
-
-  void reset()
-  {
-    processedTFs = 0;
-    firstTime = 0;
-    lastTime = 0;
-    dvCorrectionA = 0;
-    dvCorrectionC = 0;
-    dvOffsetA = 0;
-    dvOffsetC = 0;
-    nTracksA = 0;
-    nTracksC = 0;
-
-    matchedLtrIDs.clear();
-  }
-
-  ClassDefNV(LtrCalibData, 1);
 };
 
 class CalibLaserTracks
