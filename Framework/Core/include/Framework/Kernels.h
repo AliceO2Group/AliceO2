@@ -45,11 +45,15 @@ auto sliceByColumn(
   arrow::Datum value_counts;
   auto column = input->GetColumnByName(key);
   for (auto i = 0; i < column->num_chunks(); ++i) {
+    T prev = 0;
+    T cur = 0;
     auto array = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(column->chunk(i)->data());
-    for (auto e = 1; e < array.length(); ++e) {
-      T prev = array.Value(e - 1);
-      T cur = array.Value(e);
-      if (prev > cur) {
+    for (auto e = 0; e < array.length(); ++e) {
+      if (cur >= 0) {
+        prev = cur;
+      }
+      cur = array.Value(e);
+      if (cur >= 0 && prev > cur) {
         throw runtime_error_f("Table %s index %s is not sorted: next value %d < previous value %d!", target, key, cur, prev);
       }
     }
