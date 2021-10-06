@@ -98,7 +98,7 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
         sendOutput(pc.outputs());
         // reset calibration objects
         for (auto& [type, object] : mMergedCalDets) {
-          object *= 0;
+          object = 0;
         }
         mCalibDumped = false;
       }
