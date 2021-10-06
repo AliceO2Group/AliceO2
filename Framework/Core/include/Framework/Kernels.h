@@ -43,9 +43,20 @@ auto sliceByColumn(
   std::vector<uint64_t>* unassignedOffsets = nullptr)
 {
   arrow::Datum value_counts;
+  auto column = input->GetColumnByName(key);
+  for (auto i = 0; i < column->num_chunks(); ++i) {
+    auto array = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(column->chunk(i)->data());
+    for (auto e = 1; e < array.length(); ++e) {
+      T prev = array.Value(e - 1);
+      T cur = array.Value(e);
+      if (prev > cur) {
+        throw runtime_error_f("Table %s index %s is not sorted: next value %d < previous value %d!", target, key, cur, prev);
+      }
+    }
+  }
   auto options = arrow::compute::ScalarAggregateOptions::Defaults();
   ARROW_ASSIGN_OR_RAISE(value_counts,
-                        arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
+                        arrow::compute::CallFunction("value_counts", {column},
                                                      &options));
   auto pair = static_cast<arrow::StructArray>(value_counts.array());
   auto values = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(pair.field(0)->data());
@@ -82,9 +93,6 @@ auto sliceByColumn(
   for (auto i = 0; i < size; ++i) {
     count = counts.Value(i);
     if (v >= 0) {
-      if (v < vprev) {
-        throw runtime_error_f("Table %s index %s is not sorted: next value %d < previous value %d!", target, key, v, vprev);
-      }
       vprev = v;
     }
     v = values.Value(i);
