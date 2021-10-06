@@ -108,7 +108,7 @@ __global__ void writeChunkMBKernel(
   chunk_t* chunkPtr,
   size_t chunkSize)
 {
-  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
+  for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
     chunkPtr[i] = 0;
   }
 }
@@ -129,7 +129,7 @@ __global__ void copyChunkMBKernel(
   chunk_t* chunkPtr,
   size_t chunkSize)
 {
-  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
+  for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
     chunkPtr[chunkSize - i - 1] = chunkPtr[i];
   }
 }
