@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <algorithm>
 #define BOOST_TEST_MODULE Test TPC CalDet class
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
@@ -302,6 +303,13 @@ BOOST_AUTO_TEST_CASE(CalDet_Arithmetics)
     }
   }
   BOOST_CHECK_EQUAL(isEqual, true);
+
+  // = operator
+  isEqual = true;
+  padCmp = 10.f;
+  for (const auto& calArr : padCmp.getData()) {
+    isEqual &= std::all_of(calArr.getData().begin(), calArr.getData().end(), [](const auto val) { return isEqualAbs(val, 10.f); });
+  }
 }
 
 } // namespace tpc

@@ -12,6 +12,7 @@
 #ifndef ALICEO2_TPC_CALARRAY_H_
 #define ALICEO2_TPC_CALARRAY_H_
 
+#include <algorithm>
 #include <memory>
 #include <vector>
 #include <string>
@@ -132,6 +133,13 @@ class CalArray
 
   /// Divide value on all channels
   const CalArray& operator/=(const T& val);
+
+  /// assigment to all channls
+  const CalArray& operator=(const T& val)
+  {
+    std::fill(mData.begin(), mData.end(), val);
+    return *this;
+  }
 
  private:
   std::string mName;
