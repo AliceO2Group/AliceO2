@@ -310,6 +310,7 @@ BOOST_AUTO_TEST_CASE(CalDet_Arithmetics)
   for (const auto& calArr : padCmp.getData()) {
     isEqual &= std::all_of(calArr.getData().begin(), calArr.getData().end(), [](const auto val) { return isEqualAbs(val, 10.f); });
   }
+  BOOST_CHECK_EQUAL(isEqual, true);
 }
 
 } // namespace tpc
