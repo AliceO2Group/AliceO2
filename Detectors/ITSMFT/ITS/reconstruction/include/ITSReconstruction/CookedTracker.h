@@ -30,6 +30,8 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ReconstructionDataFormats/Vertex.h"
 
+using Point3Df = o2::math_utils::Point3D<float>;
+
 namespace o2
 {
 class MCCompLabel;
@@ -56,6 +58,37 @@ class CookedTracker
   CookedTracker(const CookedTracker&) = delete;
   CookedTracker& operator=(const CookedTracker& tr) = delete;
   ~CookedTracker() = default;
+
+  void setParameters(const std::vector<float>& par)
+  {
+    gzWin = par[0];
+    gminPt = par[1];
+    gmaxDCAxy = par[3];
+    gmaxDCAz = par[4];
+    gSeedingLayer1 = par[5];
+    gSeedingLayer2 = par[6];
+    gSeedingLayer3 = par[7];
+    gSigma2 = par[8];
+    gmaxChi2PerCluster = par[9];
+    gmaxChi2PerTrack = par[10];
+    gRoadY = par[11];
+    gRoadZ = par[12];
+    gminNumberOfClusters = par[13];
+  }
+  void setParametersCosmics()
+  {
+    // seed "windows" in z and phi: makeSeeds
+    gzWin = 84.; // length of the L3
+    gminPt = 10.;
+    // Maximal accepted impact parameters for the seeds
+    gmaxDCAxy = 19.4; // radius of the L3
+    gmaxDCAz = 42.;   // half-lenght of the L3
+    // Space point resolution
+    gSigma2 = 0.2 * 0.2;
+    // Tracking "road" from layer to layer
+    gRoadY = 1.5; // Chip size in Y
+    gRoadZ = 3.0; // Chip size in Z
+  }
 
   void setVertices(const std::vector<Vertex>& vertices)
   {
@@ -110,7 +143,7 @@ class CookedTracker
   void setContinuousMode(bool mode) { mContinuousMode = mode; }
   bool getContinuousMode() { return mContinuousMode; }
 
-  static void setMostProbalePt(float pt) { mMostProbablePt = pt; }
+  static void setMostProbablePt(float pt) { mMostProbablePt = pt; }
   static auto getMostProbablePt() { return mMostProbablePt; }
 
   // internal helper classes
@@ -124,6 +157,7 @@ class CookedTracker
   std::tuple<int, int> processLoadedClusters(TrackInserter& inserter);
 
   std::vector<TrackITSExt> trackInThread(Int_t first, Int_t last);
+  o2::its::TrackITSExt cookSeed(const Point3Df& r1, Point3Df& r2, const Point3Df& tr3, float rad2, float rad3, float_t alpha, float_t bz);
   void makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_t last);
   void trackSeeds(std::vector<TrackITSExt>& seeds);
 
@@ -133,6 +167,29 @@ class CookedTracker
   bool makeBackPropParam(TrackITSExt& track) const;
 
  private:
+  /*** Tracking parameters ***/
+  // seed "windows" in z and phi: makeSeeds
+  static Float_t gzWin;
+  static Float_t gminPt;
+  static Float_t mMostProbablePt; ///< settable most probable pt
+  // Maximal accepted impact parameters for the seeds
+  static Float_t gmaxDCAxy;
+  static Float_t gmaxDCAz;
+  // Layers for the seeding
+  static Int_t gSeedingLayer1;
+  static Int_t gSeedingLayer2;
+  static Int_t gSeedingLayer3;
+  // Space point resolution
+  static Float_t gSigma2;
+  // Max accepted chi2
+  static Float_t gmaxChi2PerCluster;
+  static Float_t gmaxChi2PerTrack;
+  // Tracking "road" from layer to layer
+  static Float_t gRoadY;
+  static Float_t gRoadZ;
+  // Minimal number of attached clusters
+  static Int_t gminNumberOfClusters;
+
   bool mContinuousMode = true;                                                    ///< triggered or cont. mode
   const o2::its::GeometryTGeo* mGeom = nullptr;                                   /// interface to geometry
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mClsLabels = nullptr; /// Cluster MC labels
@@ -156,8 +213,6 @@ class CookedTracker
   std::vector<TrackITSExt> mSeeds; ///< Track seeds
 
   std::vector<Cluster> mClusterCache;
-
-  static float mMostProbablePt; ///< settable most probable pt
 
   ClassDefNV(CookedTracker, 1);
 };

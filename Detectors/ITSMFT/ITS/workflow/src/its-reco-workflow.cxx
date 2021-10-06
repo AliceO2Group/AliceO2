@@ -61,10 +61,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto eencode = configcontext.options().get<bool>("entropy-encoding");
 
   std::transform(trmode.begin(), trmode.end(), trmode.begin(), [](unsigned char c) { return std::tolower(c); });
-  if (trmode != "sync" && !useCAtracker) {
-    LOG(ERROR) << "requested CookedTracker supports only sync tracking-mode, use --trackerCA";
-    throw std::runtime_error("incompatible options provided");
-  }
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
