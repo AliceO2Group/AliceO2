@@ -33,6 +33,7 @@ namespace o2::framework
 template <typename T>
 auto sliceByColumn(
   char const* key,
+  char const* target,
   std::shared_ptr<arrow::Table> const& input,
   T fullSize,
   std::vector<arrow::Datum>* slices,
@@ -81,6 +82,9 @@ auto sliceByColumn(
   for (auto i = 0; i < size; ++i) {
     count = counts.Value(i);
     if (v >= 0) {
+      if (v < vprev) {
+        throw runtime_error_f("Table %s index %s is not sorted: next value %d < previous value %d!", target, key, v, vprev);
+      }
       vprev = v;
     }
     v = values.Value(i);
