@@ -302,7 +302,7 @@ TH2* painter::getHistogram2D(const CalArray<T>& calArray)
   auto hist = new TH2F(fmt::format("h_{}", name).data(),
                        fmt::format("{};pad row;pad", title).data(),
                        nrows, 0., nrows,
-                       npads, -npads / 2, npads / 2);
+                       npads, -npads / 2., npads / 2.);
 
   fillHistogram2D(*hist, calArray);
 
