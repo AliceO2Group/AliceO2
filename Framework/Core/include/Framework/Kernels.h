@@ -25,6 +25,36 @@
 
 namespace o2::framework
 {
+using ListVector = std::vector<std::vector<int64_t>>;
+template <typename T>
+auto sliceByColumnGeneric(
+  char const* key,
+  std::shared_ptr<arrow::Table> const& input,
+  T fullSize,
+  ListVector* groups,
+  ListVector* unassigned = nullptr)
+{
+  groups->reserve(fullSize);
+  auto column = input->GetColumnByName(key);
+  int64_t offset = 0;
+  for (auto iChunk = 0; iChunk < column->num_chunks(); ++iChunk) {
+    auto chunk = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>>>(column->chunk(iChunk)->data());
+    for (auto iElement = 0; iElement < chunk.length(); ++iElement) {
+      auto v = chunk.Value(iElement);
+      if (v >= 0) {
+        groups[v].push_back(offset);
+      } else if (unassigned != nullptr) {
+        auto av = std::abs(v);
+        if (unassigned->size() < av) {
+          unassigned->resize(av + 1);
+        }
+        unassigned[std::abs(v)].push_back(offset);
+      }
+      ++offset;
+    }
+  }
+}
+
 /// Slice a given table in a vector of tables each containing a slice.
 /// @a slices the arrow tables in which the original @a input
 /// is split into.
