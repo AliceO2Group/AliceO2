@@ -251,10 +251,16 @@ BOOST_AUTO_TEST_CASE(GroupSlicerMismatchedUnassignedGroups)
   }
   auto evtTable = builderE.finalize();
 
+  int skip = 0;
+
   TableBuilder builderT;
   auto trksWriter = builderT.cursor<aod::TrksX>();
   for (auto i = 0; i < 20; ++i) {
     if (i == 3 || i == 10 || i == 12 || i == 16 || i == 19) {
+      for (auto iz = 0; iz < 5; ++iz) {
+        trksWriter(0, -1 - skip, 0.123f * iz + 1.654f);
+      }
+      ++skip;
       continue;
     }
     for (auto j = 0.f; j < 5; j += 0.5f) {
@@ -262,14 +268,14 @@ BOOST_AUTO_TEST_CASE(GroupSlicerMismatchedUnassignedGroups)
     }
   }
   for (auto i = 0; i < 5; ++i) {
-    trksWriter(0, -1, 0.123f * i + 1.654f);
+    trksWriter(0, -6, 0.123f * i + 1.654f);
   }
   auto trkTable = builderT.finalize();
 
   aod::Events e{evtTable};
   aod::TrksX t{trkTable};
   BOOST_CHECK_EQUAL(e.size(), 20);
-  BOOST_CHECK_EQUAL(t.size(), (5 + 10 * (20 - 5)));
+  BOOST_CHECK_EQUAL(t.size(), (30 + 10 * (20 - 5)));
 
   auto tt = std::make_tuple(t);
   o2::framework::AnalysisDataProcessorBuilder::GroupSlicer g(e, tt);
