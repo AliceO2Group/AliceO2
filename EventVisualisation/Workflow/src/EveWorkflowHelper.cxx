@@ -19,14 +19,13 @@
 #include "ITStracking/IOUtils.h"
 #include "MFTTracking/IOUtils.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
-#include "SpacePoints/SpacePointsCalibParam.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsBase/Propagator.h"
-#include "ITSMFTReconstruction/ClustererParam.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCFastTransform.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "MCHTracking/TrackParam.h"
+#include "MCHTracking/TrackExtrap.h"
 
 using namespace o2::event_visualisation;
 
@@ -297,11 +296,42 @@ void EveWorkflowHelper::drawMFT(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawMCH(GID gid, float trackTime)
 {
-  LOG(INFO) << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++MCH ";
+  const auto& track = mRecoCont.getMCHTrack(gid);
+
+  auto noOfClusters = track.getNClusters();                  // number of clusters in MCH Track
+  auto offset = track.getFirstClusterIdx();                  // first external cluster index offset:
+  const auto& mchClusters = mRecoCont.getMCHTrackClusters(); // list of references to clusters, offset:offset+no
+
+  auto vTrack = mEvent.addTrack({.time = static_cast<float>(trackTime),
+                                 .charge = (int)0,
+                                 .PID = o2::track::PID::Muon,
+                                 .startXYZ = {(float)track.getX(), (float)track.getY(), (float)track.getZ()},
+                                 .phi = (float)0,
+                                 .theta = (float)0,
+                                 .source = GID::MCH});
+
+  for (int icl = noOfClusters - 1; icl > -1; --icl) {
+    const auto& cluster = mchClusters[offset + icl];
+    vTrack->addPolyPoint(cluster.x, cluster.y, cluster.z);
+  }
+  drawMCHClusters(gid, trackTime);
+}
+
+void EveWorkflowHelper::drawMCHClusters(GID gid, float trackTime)
+{
+  const auto& mchTrack = mRecoCont.getMCHTrack(gid);
+  auto noOfClusters = mchTrack.getNClusters();               // number of clusters in MFT Track
+  auto offset = mchTrack.getFirstClusterIdx();               // first external cluster index offset:
+  const auto& mchClusters = mRecoCont.getMCHTrackClusters(); // list of references to clusters, offset:offset+no
+  for (int icl = noOfClusters - 1; icl > -1; --icl) {
+    const auto& cluster = mchClusters[offset + icl];
+    drawPoint(cluster.x, cluster.y, cluster.z, trackTime);
+  }
 }
 
 EveWorkflowHelper::EveWorkflowHelper()
 {
+  o2::mch::TrackExtrap::setField();
   this->mMFTGeom = o2::mft::GeometryTGeo::Instance();
   this->mMFTGeom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
   this->mITSGeom = o2::its::GeometryTGeo::Instance();
