@@ -35,6 +35,7 @@ o2_add_library(Framework
                        src/ControlService.cxx
                        src/ControlServiceHelpers.cxx
                        src/DispatchPolicy.cxx
+                       src/ProcessingPoliciesHelpers.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
                        src/DDSConfigHelpers.cxx

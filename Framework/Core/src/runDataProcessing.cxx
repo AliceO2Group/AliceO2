@@ -48,8 +48,9 @@
 #include "Framework/CommandInfo.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/TopologyPolicy.h"
-#include "DriverServerContext.h"
 #include "ControlServiceHelpers.h"
+#include "ProcessingPoliciesHelpers.h"
+#include "DriverServerContext.h"
 #include "HTTPParser.h"
 #include "DPLWebSocket.h"
 
@@ -159,72 +160,6 @@ std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 bpo::options_description gHiddenDeviceOptions("Hidden child options");
 
 // To be used to allow specifying the TerminationPolicy on the command line.
-namespace o2::framework
-{
-std::istream& operator>>(std::istream& in, enum TerminationPolicy& policy)
-{
-  std::string token;
-  in >> token;
-  if (token == "quit") {
-    policy = TerminationPolicy::QUIT;
-  } else if (token == "wait") {
-    policy = TerminationPolicy::WAIT;
-  } else {
-    in.setstate(std::ios_base::failbit);
-  }
-  return in;
-}
-
-std::ostream& operator<<(std::ostream& out, const enum TerminationPolicy& policy)
-{
-  if (policy == TerminationPolicy::QUIT) {
-    out << "quit";
-  } else if (policy == TerminationPolicy::WAIT) {
-    out << "wait";
-  } else {
-    out.setstate(std::ios_base::failbit);
-  }
-  return out;
-}
-
-std::istream& operator>>(std::istream& in, enum LogParsingHelpers::LogLevel& level)
-{
-  std::string token;
-  in >> token;
-  if (token == "debug") {
-    level = LogParsingHelpers::LogLevel::Debug;
-  } else if (token == "info") {
-    level = LogParsingHelpers::LogLevel::Info;
-  } else if (token == "warning") {
-    level = LogParsingHelpers::LogLevel::Warning;
-  } else if (token == "error") {
-    level = LogParsingHelpers::LogLevel::Error;
-  } else if (token == "fatal") {
-    level = LogParsingHelpers::LogLevel::Fatal;
-  } else {
-    in.setstate(std::ios_base::failbit);
-  }
-  return in;
-}
-
-std::ostream& operator<<(std::ostream& out, const enum LogParsingHelpers::LogLevel& level)
-{
-  if (level == LogParsingHelpers::LogLevel::Debug) {
-    out << "debug";
-  } else if (level == LogParsingHelpers::LogLevel::Info) {
-    out << "info";
-  } else if (level == LogParsingHelpers::LogLevel::Warning) {
-    out << "warning";
-  } else if (level == LogParsingHelpers::LogLevel::Error) {
-    out << "error";
-  } else if (level == LogParsingHelpers::LogLevel::Fatal) {
-    out << "fatal";
-  } else {
-    out.setstate(std::ios_base::failbit);
-  }
-  return out;
-}
-} // namespace o2::framework
 
 size_t current_time_with_ms()
 {
@@ -1083,7 +1018,7 @@ void doDefaultWorkflowTerminationHook()
 int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
             RunningWorkflowInfo const& runningWorkflow,
             RunningDeviceRef ref,
-            TerminationPolicy errorPolicy,
+            ProcessingPolicies processingPolicies,
             std::string const& defaultDriverClient,
             uv_loop_t* loop)
 {
@@ -1120,7 +1055,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                      &quotaEvaluator,
                                      &serviceRegistry,
                                      &deviceState,
-                                     &errorPolicy,
+                                     &processingPolicies,
                                      &loop](fair::mq::DeviceRunner& r) {
     simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
@@ -1138,8 +1073,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     // The decltype stuff is to be able to compile with both new and old
     // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
     decltype(r.fDevice) device;
-    device = std::move(make_matching<decltype(device), DataProcessingDevice>(ref, serviceRegistry));
-    dynamic_cast<DataProcessingDevice*>(device.get())->SetErrorPolicy(errorPolicy);
+    device = std::move(make_matching<decltype(device), DataProcessingDevice>(ref, serviceRegistry, processingPolicies));
 
     serviceRegistry.get<RawDeviceService>().setDevice(device.get());
     r.fDevice = std::move(device);
@@ -1633,7 +1567,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             return doChild(driverInfo.argc, driverInfo.argv,
                            serviceRegistry,
                            runningWorkflow, ref,
-                           driverInfo.errorPolicy,
+                           driverInfo.processingPolicies,
                            driverInfo.defaultDriverClient,
                            loop);
           }
@@ -1781,7 +1715,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // Calculate what we should do next and eventually
         // show the GUI
         if (guiQuitRequested ||
-            (driverInfo.terminationPolicy == TerminationPolicy::QUIT && (checkIfCanExit(infos) == true))) {
+            (driverInfo.processingPolicies.termination == TerminationPolicy::QUIT && (checkIfCanExit(infos) == true))) {
           // Something requested to quit. This can be a user
           // interaction with the GUI or (if --completion-policy=quit)
           // it could mean that the workflow does not have anything else to do.
@@ -1875,7 +1809,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         } else if (areAllChildrenGone(infos) == false &&
                    (guiQuitRequested || checkIfCanExit(infos) == true || graceful_exit)) {
           driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
-        } else if (hasError && driverInfo.errorPolicy == TerminationPolicy::QUIT &&
+        } else if (hasError && driverInfo.processingPolicies.error == TerminationPolicy::QUIT &&
                    !(guiQuitRequested || checkIfCanExit(infos) == true || graceful_exit)) {
           graceful_exit = 1;
           driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
@@ -2343,8 +2277,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     currentArgs,
     currentWorkflowOptions};
 
-  enum TerminationPolicy policy;
-  enum TerminationPolicy errorPolicy;
+  ProcessingPolicies processingPolicies;
   enum LogParsingHelpers::LogLevel minFailureLevel;
   bpo::options_description executorOptions("Executor options");
   const char* helpDescription = "print help: short, full, executor, or processor name";
@@ -2360,9 +2293,9 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                                   //                                                                                                                   //
     ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")                                                        //                                                                                                                     //
     ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                                                                //                                                                                                                       //
-    ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT),                                               //                                                                                                                       //
+    ("completion-policy,c", bpo::value<TerminationPolicy>(&processingPolicies.termination)->default_value(TerminationPolicy::QUIT),                       //                                                                                                                       //
      "what to do when processing is finished: quit, wait")                                                                                                //                                                                                                                      //
-    ("error-policy", bpo::value<TerminationPolicy>(&errorPolicy)->default_value(TerminationPolicy::QUIT),                                                 //                                                                                                                          //
+    ("error-policy", bpo::value<TerminationPolicy>(&processingPolicies.error)->default_value(TerminationPolicy::QUIT),                                    //                                                                                                                          //
      "what to do when a device has an error: quit, wait")                                                                                                 //                                                                                                                            //
     ("min-failure-level", bpo::value<LogParsingHelpers::LogLevel>(&minFailureLevel)->default_value(LogParsingHelpers::LogLevel::Fatal),                   //                                                                                                                          //
      "minimum message level which will be considered as fatal and exit with 1")                                                                           //                                                                                                                            //
@@ -2581,11 +2514,12 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.argv = argv;
   driverInfo.batch = varmap["no-batch"].defaulted() ? varmap["batch"].as<bool>() : false;
   driverInfo.noSHMCleanup = varmap["no-cleanup"].as<bool>();
-  driverInfo.terminationPolicy = varmap["completion-policy"].as<TerminationPolicy>();
+  driverInfo.processingPolicies.termination = varmap["completion-policy"].as<TerminationPolicy>();
+  driverInfo.processingPolicies.earlyForward = varmap["early-forward-policy"].as<EarlyForwardPolicy>();
   if (varmap["error-policy"].defaulted() && driverInfo.batch == false) {
-    driverInfo.errorPolicy = TerminationPolicy::WAIT;
+    driverInfo.processingPolicies.error = TerminationPolicy::WAIT;
   } else {
-    driverInfo.errorPolicy = varmap["error-policy"].as<TerminationPolicy>();
+    driverInfo.processingPolicies.error = varmap["error-policy"].as<TerminationPolicy>();
   }
   driverInfo.minFailureLevel = varmap["min-failure-level"].as<LogParsingHelpers::LogLevel>();
   driverInfo.startTime = uv_hrtime();
