@@ -24,6 +24,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/DataProcessorInfo.h"
+#include "Framework/ProcessingPolicies.h"
 #include "ResourceManager.h"
 #include "WorkflowHelpers.h"
 #include <boost/program_options.hpp>

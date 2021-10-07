@@ -8,8 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_FRAMEWORK_TERMINATIONPOLICY_H_
-#define O2_FRAMEWORK_TERMINATIONPOLICY_H_
+#ifndef O2_FRAMEWORK_PROCESSING_POLICIES_H_
+#define O2_FRAMEWORK_PROCESSING_POLICIES_H_
 
 namespace o2::framework
 {
@@ -22,6 +22,18 @@ enum struct TerminationPolicy { QUIT,
                                 WAIT,
                                 RESTART };
 
+/// When to enable the early forwarding optimization:
+enum struct EarlyForwardPolicy { NEVER, //< never
+                                 NORAW, //< disabled for raw, aod, and optional inputs
+                                 ALWAYS //< disabled for aod
+};
+
+struct ProcessingPolicies {
+  enum TerminationPolicy termination;
+  enum TerminationPolicy error;
+  enum EarlyForwardPolicy earlyForward;
+};
+
 } // namespace o2::framework
 
-#endif // O2_FRAMEWORK_TERMINATIONPOLICY_H_
+#endif // O2_FRAMEWORK_PROCESSING_POLICIES_H_

@@ -41,6 +41,7 @@
 #include "DataProcessingStatus.h"
 #include "DataProcessingHelpers.h"
 #include "DataRelayerHelpers.h"
+#include "ProcessingPoliciesHelpers.h"
 
 #include "ScopedExit.h"
 
@@ -90,7 +91,7 @@ void on_communication_requested(uv_async_t* s)
   state->loopReason |= DeviceState::METRICS_MUST_FLUSH;
 }
 
-DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry& registry)
+DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry& registry, ProcessingPolicies& policies)
   : mSpec{registry.get<RunningWorkflowInfo const>().devices[ref.index]},
     mState{registry.get<DeviceState>()},
     mInit{mSpec.algorithm.onInit},
@@ -101,7 +102,8 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
     mServiceRegistry{registry},
     mAllocator{&mTimingInfo, &registry, mSpec.outputs},
     mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>()},
-    mAwakeHandle{nullptr}
+    mAwakeHandle{nullptr},
+    mProcessingPolicies{policies}
 {
   /// FIXME: move erro handling to a service?
   if (mError != nullptr) {
@@ -116,7 +118,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
       errorCallback(errorContext);
     };
   } else {
-    mErrorHandling = [&errorPolicy = mErrorPolicy,
+    mErrorHandling = [&errorPolicy = mProcessingPolicies.error,
                       &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
       auto& err = error_from_ref(e);
@@ -540,13 +542,13 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   context.errorHandling = &mErrorHandling;
   /// We must make sure there is no optional
   /// if we want to optimize the forwarding
-  context.canForwardEarly = mSpec.forwards.empty() == false;
+  context.canForwardEarly = (mSpec.forwards.empty() == false) && mProcessingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
   for (auto& forwarded : mSpec.forwards) {
     if (strncmp(DataSpecUtils::asConcreteOrigin(forwarded.matcher).str, "AOD", 3) == 0) {
       context.canForwardEarly = false;
       break;
     }
-    if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"})) {
+    if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && mProcessingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
       context.canForwardEarly = false;
       break;
     }

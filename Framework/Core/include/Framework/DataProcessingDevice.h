@@ -23,7 +23,7 @@
 #include "Framework/InputRoute.h"
 #include "Framework/ForwardRoute.h"
 #include "Framework/TimingInfo.h"
-#include "Framework/TerminationPolicy.h"
+#include "Framework/ProcessingPolicies.h"
 #include "Framework/Tracing.h"
 #include "Framework/RunningWorkflowInfo.h"
 
@@ -117,7 +117,7 @@ struct DeviceConfigurationHelpers {
 class DataProcessingDevice : public FairMQDevice
 {
  public:
-  DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry&);
+  DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry&, ProcessingPolicies& policies);
   void Init() final;
   void InitTask() final;
   void PreRun() final;
@@ -125,7 +125,6 @@ class DataProcessingDevice : public FairMQDevice
   void Reset() final;
   void ResetTask() final;
   void Run() final;
-  void SetErrorPolicy(enum TerminationPolicy policy) { mErrorPolicy = policy; }
 
   // Processing functions are now renetrant
   static void doRun(DataProcessorContext& context);
@@ -166,7 +165,7 @@ class DataProcessingDevice : public FairMQDevice
   DataProcessingStats mStats;                        /// Stats about the actual data processing.
   std::vector<FairMQRegionInfo> mPendingRegionInfos; /// A list of the region infos not yet notified.
   std::mutex mRegionInfoMutex;
-  enum TerminationPolicy mErrorPolicy = TerminationPolicy::WAIT; /// What to do when an error arises
+  ProcessingPolicies mProcessingPolicies;                        /// User policies related to data processing
   bool mWasActive = false;                                       /// Whether or not the device was active at last iteration.
   std::vector<uv_work_t> mHandles;                               /// Handles to use to schedule work.
   std::vector<TaskStreamInfo> mStreams;                          /// Information about the task running in the associated mHandle.
