@@ -1205,14 +1205,20 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         continue;
       }
 
-      for (auto& part : currentSetOfInputs[ii]) {
-        for (auto const& forward : spec->forwards) {
-          if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) == false || (dph->startTime % forward.maxTimeslices) != forward.timeslice) {
-            continue;
-          }
+      int forwardTo = -1;
+      for (unsigned int i = 0; i < spec->forwards.size(); i++) {
+        auto const& forward = spec->forwards[i];
+        if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) && (dph->startTime % forward.maxTimeslices) == forward.timeslice) {
+          forwardTo = i;
+          break;
+        }
+      }
+
+      if (forwardTo != -1) {
+        auto& channel = forwardedParts[spec->forwards[forwardTo].channel];
+        for (auto& part : currentSetOfInputs[ii]) {
           auto& header = part.header;
           auto& payload = part.payload;
-
           if (header.get() == nullptr) {
             // FIXME: this should not happen, however it's actually harmless and
             //        we can simply discard it for the moment.
@@ -1235,13 +1241,12 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
             auto&& newPayload = header->GetTransport()->CreateMessage();
             newHeader->Copy(*header);
             newPayload->Copy(*payload);
-
-            forwardedParts[forward.channel].AddPart(std::move(newHeader));
-            forwardedParts[forward.channel].AddPart(std::move(newPayload));
+            channel.AddPart(std::move(newHeader));
+            channel.AddPart(std::move(newPayload));
             break;
           } else {
-            forwardedParts[forward.channel].AddPart(std::move(header));
-            forwardedParts[forward.channel].AddPart(std::move(payload));
+            channel.AddPart(std::move(header));
+            channel.AddPart(std::move(payload));
           }
         }
       }
