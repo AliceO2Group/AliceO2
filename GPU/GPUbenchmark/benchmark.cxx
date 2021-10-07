@@ -84,9 +84,9 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
   conf.pools.clear();
   for (auto& pool : vm["pool"].as<std::vector<std::string>>()) {
     if (pool == "sb") {
-      conf.pools.push_back(SplitLevel::Blocks);
+      conf.pools.push_back(KernelConfig::Single);
     } else if (pool == "mb") {
-      conf.pools.push_back(SplitLevel::Threads);
+      conf.pools.push_back(KernelConfig::Multi);
     } else {
       std::cerr << "Unkonwn pool: " << pool << std::endl;
       exit(1);

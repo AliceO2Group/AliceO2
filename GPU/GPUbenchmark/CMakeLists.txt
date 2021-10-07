@@ -9,8 +9,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-set(HDRS_INSTALL ../Shared/Kernels.h)
-
 if(CUDA_ENABLED)
   o2_add_executable(gpu-memory-benchmark-cuda
                   SOURCES benchmark.cxx

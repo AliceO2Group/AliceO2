@@ -15,11 +15,16 @@
 #ifndef GPU_BENCHMARK_UTILS_H
 #define GPU_BENCHMARK_UTILS_H
 
+#if defined(__HIPCC__)
+#include "hip/hip_runtime.h"
+#endif
+
 #include <iostream>
 #include <iomanip>
 #include <typeinfo>
 #include <boost/program_options.hpp>
 #include <vector>
+#include <string>
 #include <TTree.h>
 #include <TFile.h>
 
@@ -27,7 +32,7 @@
 #define KRED "\x1B[31m"
 #define KGRN "\x1B[32m"
 #define KYEL "\x1B[33m"
-#define KBLU "\x1B[34m"
+#define configLU "\x1B[34m"
 #define KMAG "\x1B[35m"
 #define KCYN "\x1B[36m"
 #define KWHT "\x1B[37m"
@@ -48,15 +53,115 @@ enum class Test {
   Copy
 };
 
+inline std::ostream& operator<<(std::ostream& os, Test test)
+{
+  switch (test) {
+    case Test::Read:
+      os << "read";
+      break;
+    case Test::Write:
+      os << "write";
+      break;
+    case Test::Copy:
+      os << "copy";
+      break;
+  }
+  return os;
+}
+
 enum class Mode {
   Sequential,
   Concurrent
 };
 
-enum class SplitLevel {
-  Blocks,
-  Threads
+inline std::ostream& operator<<(std::ostream& os, Mode mode)
+{
+  switch (mode) {
+    case Mode::Sequential:
+      os << "sequential";
+      break;
+    case Mode::Concurrent:
+      os << "concurrent";
+      break;
+  }
+  return os;
+}
+
+enum class KernelConfig {
+  Single,
+  Multi
 };
+
+inline std::ostream& operator<<(std::ostream& os, KernelConfig config)
+{
+  switch (config) {
+    case KernelConfig::Single:
+      os << "single";
+      break;
+    case KernelConfig::Multi:
+      os << "multiple";
+      break;
+  }
+  return os;
+}
+
+template <class T>
+inline std::string getType()
+{
+  if (typeid(T).name() == typeid(char).name()) {
+    return std::string{"char"};
+  }
+  if (typeid(T).name() == typeid(size_t).name()) {
+    return std::string{"unsigned_long"};
+  }
+  if (typeid(T).name() == typeid(int).name()) {
+    return std::string{"int"};
+  }
+  if (typeid(T).name() == typeid(int4).name()) {
+    return std::string{"int4"};
+  }
+  return std::string{"unknown"};
+}
+
+inline std::string getTestName(Mode mode, Test test, KernelConfig blocks)
+{
+  std::string tname;
+  tname += (mode == Mode::Sequential) ? "seq_" : "conc_";
+  tname += (test == Test::Read) ? "read_" : (test == Test::Write) ? "write_"
+                                                                  : "copy_";
+  tname += (blocks == KernelConfig::Single) ? "SB" : "MB";
+  return tname;
+}
+
+template <class chunk_t>
+inline chunk_t* getPartPtr(chunk_t* scratchPtr, float chunkReservedGB, int partNumber)
+{
+  return reinterpret_cast<chunk_t*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * chunkReservedGB) * partNumber);
+}
+
+inline float computeThroughput(Test test, float result, float chunkSizeGB, int ntests)
+{
+  // https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html
+  // Eff_bandwidth (GB/s) = (B_r + B_w) / (~1e9 * Time (s))
+
+  float throughput;
+  switch (test) {
+    case Test::Read: {
+      throughput = 1e3 * chunkSizeGB * ntests / result;
+      break;
+    }
+    case Test::Write: {
+      throughput = 1e3 * chunkSizeGB * ntests / result;
+      break;
+    }
+    case Test::Copy: {
+      throughput = 2 * 1e3 * chunkSizeGB * ntests / result;
+      break;
+    }
+  }
+
+  return throughput;
+}
 
 namespace o2
 {
@@ -69,7 +174,7 @@ struct benchmarkOpts {
   int deviceId = 0;
   std::vector<Test> tests = {Test::Read, Test::Write, Test::Copy};
   std::vector<Mode> modes = {Mode::Sequential, Mode::Concurrent};
-  std::vector<SplitLevel> pools = {SplitLevel::Blocks, SplitLevel::Threads};
+  std::vector<KernelConfig> pools = {KernelConfig::Single, KernelConfig::Multi};
   std::vector<std::string> dtypes = {"char", "int", "ulong"};
   float chunkReservedGB = 1.f;
   int nRegions = 2;
@@ -177,23 +282,8 @@ inline void ResultWriter::addBenchmarkEntry(const std::string bName, const std::
 
 inline void ResultWriter::storeBenchmarkEntry(Test test, int chunk, float entry, float chunkSizeGB, int nLaunches)
 {
-  // https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html
-  // Eff_bandwidth (GB/s) = (B_r + B_w) / (~1e9 * Time (s))
   mTimeResults[chunk] = entry;
-  switch (test) {
-    case Test::Read: {
-      mThroughputResults[chunk] = 1e3 * chunkSizeGB * nLaunches / entry;
-      break;
-    }
-    case Test::Write: {
-      mThroughputResults[chunk] = 1e3 * chunkSizeGB * nLaunches / entry;
-      break;
-    }
-    case Test::Copy: {
-      mThroughputResults[chunk] = 2 * 1e3 * chunkSizeGB * nLaunches / entry;
-      break;
-    }
-  }
+  mThroughputResults[chunk] = computeThroughput(test, entry, chunkSizeGB, nLaunches);
 }
 
 inline void ResultWriter::snapshotBenchmark()

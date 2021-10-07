@@ -13,9 +13,6 @@
 /// \author: mconcas@cern.ch
 
 #include "../Shared/Kernels.h"
-#if defined(__HIPCC__)
-#include "hip/hip_runtime.h"
-#endif
 #include <cstdio>
 
 // Memory partitioning legend
@@ -31,42 +28,21 @@
     failed("API returned error code.");                                                        \
   }
 
-double bytesToKB(size_t s) { return (double)s / (1024.0); }
+double bytesToconfig(size_t s) { return (double)s / (1024.0); }
 double bytesToGB(size_t s) { return (double)s / GB; }
-
-template <class T>
-std::string getType()
-{
-  if (typeid(T).name() == typeid(char).name()) {
-    return std::string{"char"};
-  }
-  if (typeid(T).name() == typeid(size_t).name()) {
-    return std::string{"unsigned_long"};
-  }
-  if (typeid(T).name() == typeid(int).name()) {
-    return std::string{"int"};
-  }
-  if (typeid(T).name() == typeid(int4).name()) {
-    return std::string{"int4"};
-  }
-  return std::string{"unknown"};
-}
 
 namespace o2
 {
 namespace benchmark
 {
 
-template <class chunk_t>
-inline chunk_t* getPartPtr(chunk_t* scratchPtr, float chunkReservedGB, int partNumber)
-{
-  return reinterpret_cast<chunk_t*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * chunkReservedGB) * partNumber);
-}
-
 namespace gpu
 {
-//////////////////
-// Kernels go here
+////////////
+// Kernels
+////////////
+
+///////
 // Read
 template <class chunk_t>
 __global__ void readChunkSBKernel(
@@ -165,14 +141,14 @@ void printDeviceProp(int deviceId)
             << bytesToGB(props.totalGlobalMem) << " GB" << std::endl;
 #if !defined(__CUDACC__)
   std::cout << std::setw(w1) << "maxSharedMemoryPerMultiProcessor: " << std::fixed << std::setprecision(2)
-            << bytesToKB(props.sharedMemPerMultiprocessor) << " KB" << std::endl;
+            << bytesToconfig(props.sharedMemPerMultiprocessor) << " config" << std::endl;
 #endif
 #if defined(__HIPCC__)
   std::cout << std::setw(w1) << "maxSharedMemoryPerMultiProcessor: " << std::fixed << std::setprecision(2)
-            << bytesToKB(props.maxSharedMemoryPerMultiProcessor) << " KB" << std::endl;
+            << bytesToconfig(props.maxSharedMemoryPerMultiProcessor) << " config" << std::endl;
 #endif
   std::cout << std::setw(w1) << "totalConstMem: " << props.totalConstMem << std::endl;
-  std::cout << std::setw(w1) << "sharedMemPerBlock: " << (float)props.sharedMemPerBlock / 1024.0 << " KB"
+  std::cout << std::setw(w1) << "sharedMemPerBlock: " << (float)props.sharedMemPerBlock / 1024.0 << " config"
             << std::endl;
   std::cout << std::setw(w1) << "canMapHostMemory: " << props.canMapHostMemory << std::endl;
   std::cout << std::setw(w1) << "regsPerBlock: " << props.regsPerBlock << std::endl;
@@ -389,406 +365,79 @@ void GPUbenchmark<chunk_t>::globalInit()
             << "    ├ Allocated: " << std::setprecision(2) << bytesToGB(mState.scratchSize) << "/" << std::setprecision(2) << bytesToGB(mState.totalMemory)
             << "(GB) [" << std::setprecision(3) << (100.f) * (mState.scratchSize / (float)mState.totalMemory) << "%]\n"
             << "    ├ Number of streams allocated: " << mState.getStreamsPoolSize() << "\n"
-            << "    ├ Number of scratch chunks: " << mState.getMaxChunks() << " of " << mOptions.chunkReservedGB << "GB each\n"
+            << "    ├ Number of scratch chunks: " << mState.getMaxChunks() << " of " << mOptions.chunkReservedGB << " GB each\n"
             << "    └ Each chunk can store up to: " << mState.getChunkCapacity() << " elements" << std::endl
             << std::endl;
 }
 
-/// Read
 template <class chunk_t>
-void GPUbenchmark<chunk_t>::readInit()
+void GPUbenchmark<chunk_t>::initTest(Test test)
 {
-  std::cout << ">>> Initializing (" << getType<chunk_t>() << ") read benchmarks with \e[1m" << mOptions.nTests << "\e[0m runs and \e[1m" << mOptions.kernelLaunches << "\e[0m kernel launches" << std::endl;
-  mState.hostReadResultsVector.resize(mState.getMaxChunks());
+  std::cout << ">>>\033[1;33m " << getType<chunk_t>() << "\033[0m " << test << " benchmarks with \e[1m" << mOptions.nTests << "\e[0m runs and \e[1m" << mOptions.kernelLaunches << "\e[0m kernel launches" << std::endl;
   GPUCHECK(cudaSetDevice(mOptions.deviceId));
-  GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&(mState.deviceReadResultsPtr)), mState.getMaxChunks() * sizeof(chunk_t)));
 }
 
 template <class chunk_t>
-void GPUbenchmark<chunk_t>::readSequential(SplitLevel sl)
+void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
 {
-  switch (sl) {
-    case SplitLevel::Blocks: {
-      mResultWriter.get()->addBenchmarkEntry("seq_read_SB", getType<chunk_t>(), mState.getMaxChunks());
-      auto dimGrid{mState.nMultiprocessors};
-      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto capacity{mState.getChunkCapacity()};
+  mResultWriter.get()->addBenchmarkEntry(getTestName(mode, test, config), getType<chunk_t>(), mState.getMaxChunks());
+  auto dimGrid{mState.nMultiprocessors};
+  auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
+  auto nBlocks{(config == KernelConfig::Single) ? 1 : dimGrid / mState.getMaxChunks()};
+  auto chunks{mState.getMaxChunks()};
+  auto capacity{mState.getChunkCapacity()};
+  void (*kernel)(chunk_t*, size_t);
 
-      for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
-        std::cout << "    ├ Sequential read single block (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
-                  << "    │   · blocks per kernel: " << 1 << "/" << dimGrid << "\n"
-                  << "    │   · threads per block: " << nThreads << "\n";
-        for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
-          auto result = runSequential(&gpu::readChunkSBKernel<chunk_t>,
-                                      mState.getNKernelLaunches(),
-                                      iChunk,
-                                      1,        // nBlocks
-                                      nThreads, // args...
-                                      capacity);
-          mResultWriter.get()->storeBenchmarkEntry(Test::Read, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
-        }
-        mResultWriter.get()->snapshotBenchmark();
-      }
-      break;
+  switch (test) {
+    case Test::Read: {
+      kernel = (config == KernelConfig::Single) ? &gpu::readChunkSBKernel<chunk_t> : &gpu::readChunkMBKernel<chunk_t>;
     }
-
-    case SplitLevel::Threads: {
-      mResultWriter.get()->addBenchmarkEntry("seq_read_MB", getType<chunk_t>(), mState.getMaxChunks());
-      auto dimGrid{mState.nMultiprocessors};
-      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto capacity{mState.getChunkCapacity()};
-
-      for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
-        std::cout << "    ├ Sequential read multiple block (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
-                  << "    │   · blocks per kernel: " << dimGrid << "/" << dimGrid << "\n"
-                  << "    │   · threads per block: " << nThreads << "\n";
-        for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
-          auto result = runSequential(&gpu::readChunkMBKernel<chunk_t>,
-                                      mState.getNKernelLaunches(),
-                                      iChunk,
-                                      dimGrid,
-                                      nThreads, // args...
-                                      capacity);
-          mResultWriter.get()->storeBenchmarkEntry(Test::Read, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
-        }
-        mResultWriter.get()->snapshotBenchmark();
-      }
-      break;
+    case Test::Write: {
+      kernel = (config == KernelConfig::Single) ? &gpu::writeChunkSBKernel<chunk_t> : &gpu::writeChunkMBKernel<chunk_t>;
     }
+    case Test::Copy: {
+      kernel = (config == KernelConfig::Single) ? &gpu::copyChunkSBKernel<chunk_t> : &gpu::copyChunkMBKernel<chunk_t>;
+    }
+  }
+
+  for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
+    std::cout << "    ├ " << mode << " " << test << " " << config << " block(s) (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
+              << "    │   - blocks per kernel: " << nBlocks << "/" << dimGrid << "\n"
+              << "    │   - threads per block: " << nThreads << "\n";
+    std::cout << "    │   - per chunk throughput:\n";
+    if (mode == Mode::Sequential) {
+      for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
+        auto result = runSequential(kernel,
+                                    mState.getNKernelLaunches(),
+                                    iChunk,
+                                    dimGrid,
+                                    nThreads, // args...
+                                    capacity);
+        auto throughput = computeThroughput(test, result, mState.chunkReservedGB, mState.getNKernelLaunches());
+        std::cout << "    │     ├ " << iChunk + 1 << "/" << mState.getMaxChunks() << ": \e[1m" << throughput << " GB/s \e[0m (" << result * 1e-3 << " s)\n";
+        mResultWriter.get()->storeBenchmarkEntry(test, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
+      }
+    } else {
+      auto results = runConcurrent(kernel,
+                                   mState.getMaxChunks(), // nStreams
+                                   mState.getNKernelLaunches(),
+                                   mState.getStreamsPoolSize(),
+                                   nBlocks,
+                                   nThreads,
+                                   capacity);
+      for (auto iChunk{0}; iChunk < results.size(); ++iChunk) {
+        auto throughput = computeThroughput(test, results[iChunk], mState.chunkReservedGB, mState.getNKernelLaunches());
+        std::cout << "    │     ├ " << iChunk + 1 << "/" << results.size() << ": \e[1m" << throughput << " GB/s \e[0m (" << results[iChunk] * 1e-3 << " s)\n";
+        mResultWriter.get()->storeBenchmarkEntry(test, iChunk, results[iChunk], mState.chunkReservedGB, mState.getNKernelLaunches());
+      }
+    }
+    mResultWriter.get()->snapshotBenchmark();
   }
 }
 
 template <class chunk_t>
-void GPUbenchmark<chunk_t>::readConcurrent(SplitLevel sl, int nRegions)
+void GPUbenchmark<chunk_t>::finalizeTest(Test test)
 {
-  switch (sl) {
-    case SplitLevel::Blocks: {
-      mResultWriter.get()->addBenchmarkEntry("conc_read_SB", getType<chunk_t>(), mState.getMaxChunks());
-      auto dimGrid{mState.nMultiprocessors};
-      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto chunks{mState.getMaxChunks()};
-      auto capacity{mState.getChunkCapacity()};
-
-      for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-        std::cout << "    ├ Concurrent read single block (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
-                  << "    │   · blocks per kernel: " << 1 << "/" << dimGrid << "\n"
-                  << "    │   · threads per block: " << nThreads << "\n";
-        auto results = runConcurrent(&gpu::readChunkSBKernel<chunk_t>,
-                                     mState.getMaxChunks(), // nStreams
-                                     mState.getNKernelLaunches(),
-                                     mState.getStreamsPoolSize(),
-                                     1, // single Block
-                                     nThreads,
-                                     capacity);
-        std::cout << "    │   · Per chunk throughput:\n" for (auto iResult{0}; iResult < results.size(); ++iResult)
-        {
-          auto throughput = 1e3 * capacity * sizeof(chunk_t) / (results[iResult] * GB * nState.getNKernelLaunches());
-          std::cout << "    │     ├ " << iResult << "/" << results.size() << ": \e[1m" << throughput << " GB/s \e[0m (" << results[iResult] << " ms)\n";
-          mResultWriter.get()->storeBenchmarkEntry(Test::Read, iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
-        }
-        mResultWriter.get()->snapshotBenchmark();
-      }
-      break;
-    }
-    case SplitLevel::Threads: {
-      mResultWriter.get()->addBenchmarkEntry("conc_read_MB", getType<chunk_t>(), mState.getMaxChunks());
-      auto dimGrid{mState.nMultiprocessors};
-      auto chunks{mState.getMaxChunks()};
-      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto nBlocks{dimGrid / mState.getMaxChunks()};
-      auto capacity{mState.getChunkCapacity()};
-
-      for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-        std::cout << "    ├ Concurrent read multiple blocks (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
-                  << "    │   · blocks per kernel: " << nBlocks << "/" << dimGrid << "\n"
-                  << "    │   · threads per block: " << nThreads << "\n";
-        auto results = runConcurrent(&gpu::readChunkMBKernel<chunk_t>,
-                                     mState.getMaxChunks(), // nStreams
-                                     mState.getNKernelLaunches(),
-                                     mState.getStreamsPoolSize(),
-                                     nBlocks,
-                                     nThreads,
-                                     capacity);
-        std::cout << "    │   · Per chunk throughput:\n";
-        for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          auto throughput = 1e3 * capacity * sizeof(chunk_t) / (results[iResult] * GB * nState.getNKernelLaunches());
-          std::cout << "    │     ├ " << iResult << "/" << results.size() << ": \e[1m" << throughput << " GB/s \e[0m (" << results[iResult] << " ms)\n";
-          mResultWriter.get()->storeBenchmarkEntry(Test::Read, iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
-        }
-        mResultWriter.get()->snapshotBenchmark();
-      }
-      break;
-    }
-  }
-}
-
-template <class chunk_t>
-void GPUbenchmark<chunk_t>::readFinalize()
-{
-  GPUCHECK(cudaMemcpy(mState.hostReadResultsVector.data(), mState.deviceReadResultsPtr, mState.getMaxChunks() * sizeof(chunk_t), cudaMemcpyDeviceToHost));
-  GPUCHECK(cudaFree(mState.deviceReadResultsPtr));
-  std::cout << "    └\033[1;32m done\033[0m" << std::endl;
-}
-
-/// Write
-template <class chunk_t>
-void GPUbenchmark<chunk_t>::writeInit()
-{
-  std::cout << ">>> Initializing (" << getType<chunk_t>() << ") write benchmarks with \e[1m" << mOptions.nTests << "\e[0m runs and \e[1m" << mOptions.kernelLaunches << "\e[0m kernel launches" << std::endl;
-  mState.hostWriteResultsVector.resize(mState.getMaxChunks());
-  GPUCHECK(cudaSetDevice(mOptions.deviceId));
-  GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&(mState.deviceWriteResultsPtr)), mState.getMaxChunks() * sizeof(chunk_t)));
-}
-
-template <class chunk_t>
-void GPUbenchmark<chunk_t>::writeSequential(SplitLevel sl)
-{
-  switch (sl) {
-    case SplitLevel::Blocks: {
-      mResultWriter.get()->addBenchmarkEntry("seq_write_SB", getType<chunk_t>(), mState.getMaxChunks());
-      auto dimGrid{mState.nMultiprocessors};
-      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto capacity{mState.getChunkCapacity()};
-
-      for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
-        std::cout << "    ├ Sequential write single block (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
-                  << "    │   · blocks per kernel: " << 1 << "/" << dimGrid << "\n"
-                  << "    │   · threads per block: " << nThreads << "\n";
-        for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
-          auto result = runSequential(&gpu::writeChunkSBKernel<chunk_t>,
-                                      mState.getNKernelLaunches(),
-                                      iChunk,
-                                      1, // nBlocks
-                                      nThreads,
-                                      capacity);
-          mResultWriter.get()->storeBenchmarkEntry(Test::Write, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
-        }
-        mResultWriter.get()->snapshotBenchmark();
-      }
-      break;
-    }
-
-    case SplitLevel::Threads: {
-      mResultWriter.get()->addBenchmarkEntry("seq_write_MB", getType<chunk_t>(), mState.getMaxChunks());
-      auto dimGrid{mState.nMultiprocessors};
-      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto capacity{mState.getChunkCapacity()};
-
-      for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
-        std::cout << "    ├ Sequential write multiple block (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
-                  << "    │   · blocks per kernel: " << dimGrid << "/" << dimGrid << "\n"
-                  << "    │   · threads per block: " << nThreads << "\n";
-        for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
-          auto result = runSequential(&gpu::writeChunkMBKernel<chunk_t>,
-                                      mState.getNKernelLaunches(),
-                                      iChunk,
-                                      dimGrid,
-                                      nThreads,
-                                      capacity);
-          mResultWriter.get()->storeBenchmarkEntry(Test::Write, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
-        }
-        mResultWriter.get()->snapshotBenchmark();
-      }
-      break;
-    }
-  }
-}
-
-template <class chunk_t>
-void GPUbenchmark<chunk_t>::writeConcurrent(SplitLevel sl, int nRegions)
-{
-  switch (sl) {
-    case SplitLevel::Blocks: {
-      mResultWriter.get()->addBenchmarkEntry("conc_write_SB", getType<chunk_t>(), mState.getMaxChunks());
-      auto dimGrid{mState.nMultiprocessors};
-      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto chunks{mState.getMaxChunks()};
-      auto capacity{mState.getChunkCapacity()};
-
-      for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-        std::cout << "    ├ Concurrent write single block (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
-                  << "    │   · blocks per kernel: " << 1 << "/" << dimGrid << "\n"
-                  << "    │   · threads per block: " << nThreads << "\n";
-        auto results = runConcurrent(&gpu::writeChunkSBKernel<chunk_t>,
-                                     mState.getMaxChunks(), // nStreams
-                                     mState.getNKernelLaunches(),
-                                     mState.getStreamsPoolSize(),
-                                     1, // nBlocks
-                                     nThreads,
-                                     capacity);
-        for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(Test::Write, iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
-        }
-        mResultWriter.get()->snapshotBenchmark();
-      }
-      break;
-    }
-    case SplitLevel::Threads: {
-      mResultWriter.get()->addBenchmarkEntry("conc_write_MB", getType<chunk_t>(), mState.getMaxChunks());
-      auto dimGrid{mState.nMultiprocessors};
-      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto nBlocks{dimGrid / mState.getMaxChunks()};
-      auto chunks{mState.getMaxChunks()};
-      auto capacity{mState.getChunkCapacity()};
-
-      for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-        std::cout << "    ├ Concurrent write multiple blocks (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
-                  << "    │   · blocks per kernel: " << nBlocks << "/" << dimGrid << "\n"
-                  << "    │   · threads per block: " << nThreads << "\n";
-        auto results = runConcurrent(&gpu::writeChunkMBKernel<chunk_t>,
-                                     mState.getMaxChunks(), // nStreams
-                                     mState.getNKernelLaunches(),
-                                     mState.getStreamsPoolSize(),
-                                     nBlocks,
-                                     nThreads,
-                                     capacity);
-        for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(Test::Write, iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
-        }
-        mResultWriter.get()->snapshotBenchmark();
-      }
-      break;
-    }
-  }
-}
-
-template <class chunk_t>
-void GPUbenchmark<chunk_t>::writeFinalize()
-{
-  GPUCHECK(cudaSetDevice(mOptions.deviceId));
-  GPUCHECK(cudaMemcpy(mState.hostWriteResultsVector.data(), mState.deviceWriteResultsPtr, mState.getMaxChunks() * sizeof(chunk_t), cudaMemcpyDeviceToHost));
-  GPUCHECK(cudaFree(mState.deviceWriteResultsPtr));
-  std::cout << "    └\033[1;32m done\033[0m" << std::endl;
-}
-
-/// Copy
-template <class chunk_t>
-void GPUbenchmark<chunk_t>::copyInit()
-{
-  std::cout << ">>> Initializing (" << getType<chunk_t>() << ") copy benchmarks with \e[1m" << mOptions.nTests << "\e[0m runs and \e[1m" << mOptions.kernelLaunches << "\e[0m kernel launches" << std::endl;
-  mState.hostCopyInputsVector.resize(mState.getMaxChunks());
-  GPUCHECK(cudaSetDevice(mOptions.deviceId));
-  GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&(mState.deviceCopyInputsPtr)), mState.getMaxChunks() * sizeof(chunk_t)));
-}
-
-template <class chunk_t>
-void GPUbenchmark<chunk_t>::copySequential(SplitLevel sl)
-{
-  switch (sl) {
-    case SplitLevel::Blocks: {
-      mResultWriter.get()->addBenchmarkEntry("seq_copy_SB", getType<chunk_t>(), mState.getMaxChunks());
-      auto dimGrid{mState.nMultiprocessors};
-      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto capacity{mState.getChunkCapacity()};
-
-      for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
-        std::cout << "    ├ Sequential copy single block (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
-                  << "    │   · blocks per kernel: " << 1 << "/" << dimGrid << "\n"
-                  << "    │   · threads per block: " << nThreads << "\n";
-        for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
-          auto result = runSequential(&gpu::copyChunkSBKernel<chunk_t>,
-                                      mState.getNKernelLaunches(),
-                                      iChunk,
-                                      1,
-                                      nThreads,
-                                      capacity);
-          mResultWriter.get()->storeBenchmarkEntry(Test::Copy, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
-        }
-        mResultWriter.get()->snapshotBenchmark();
-      }
-      break;
-    }
-
-    case SplitLevel::Threads: {
-      mResultWriter.get()->addBenchmarkEntry("seq_copy_MB", getType<chunk_t>(), mState.getMaxChunks());
-      auto dimGrid{mState.nMultiprocessors};
-      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto capacity{mState.getChunkCapacity()};
-
-      for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
-        std::cout << "    ├ Sequential copy multiple block (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
-                  << "    │   · blocks per kernel: " << dimGrid << "/" << dimGrid << "\n"
-                  << "    │   · threads per block: " << nThreads << "\n";
-        for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
-          auto result = runSequential(&gpu::copyChunkMBKernel<chunk_t>,
-                                      mState.getNKernelLaunches(),
-                                      iChunk,
-                                      dimGrid,
-                                      nThreads,
-                                      capacity);
-          mResultWriter.get()->storeBenchmarkEntry(Test::Copy, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
-        }
-        mResultWriter.get()->snapshotBenchmark();
-      }
-      break;
-    }
-  }
-}
-
-template <class chunk_t>
-void GPUbenchmark<chunk_t>::copyConcurrent(SplitLevel sl, int nRegions)
-{
-  switch (sl) {
-    case SplitLevel::Blocks: {
-      mResultWriter.get()->addBenchmarkEntry("conc_copy_SB", getType<chunk_t>(), mState.getMaxChunks());
-      auto dimGrid{mState.nMultiprocessors};
-      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto chunks{mState.getMaxChunks()};
-      auto capacity{mState.getChunkCapacity()};
-
-      for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-        std::cout << "    ├ Concurrent copy single block (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
-                  << "    │   · blocks per kernel: " << 1 << "/" << dimGrid << "\n"
-                  << "    │   · threads per block: " << nThreads << "\n";
-        auto results = runConcurrent(&gpu::copyChunkSBKernel<chunk_t>,
-                                     mState.getMaxChunks(), // nStreams
-                                     mState.getNKernelLaunches(),
-                                     mState.getStreamsPoolSize(),
-                                     1, // nBlocks
-                                     nThreads,
-                                     capacity);
-        for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(Test::Copy, iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
-        }
-        mResultWriter.get()->snapshotBenchmark();
-      }
-      break;
-    }
-    case SplitLevel::Threads: {
-      mResultWriter.get()->addBenchmarkEntry("conc_copy_MB", getType<chunk_t>(), mState.getMaxChunks());
-      auto dimGrid{mState.nMultiprocessors};
-      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-      auto nBlocks{dimGrid / mState.getMaxChunks()};
-      auto chunks{mState.getMaxChunks()};
-      auto capacity{mState.getChunkCapacity()};
-
-      for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-
-        std::cout << "    ├ Concurrent copy multiple blocks (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
-                  << "    │   · blocks per kernel: " << nBlocks << "/" << dimGrid << "\n"
-                  << "    │   · threads per block: " << nThreads << "\n";
-        auto results = runConcurrent(&gpu::copyChunkMBKernel<chunk_t>,
-                                     mState.getMaxChunks(), // nStreams
-                                     mState.getNKernelLaunches(),
-                                     mState.getStreamsPoolSize(),
-                                     nBlocks,
-                                     nThreads,
-                                     capacity);
-        for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          mResultWriter.get()->storeBenchmarkEntry(Test::Copy, iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
-        }
-        mResultWriter.get()->snapshotBenchmark();
-      }
-      break;
-    }
-  }
-}
-
-template <class chunk_t>
-void GPUbenchmark<chunk_t>::copyFinalize()
-{
-  GPUCHECK(cudaSetDevice(mOptions.deviceId));
-  GPUCHECK(cudaFree(mState.deviceCopyInputsPtr));
   std::cout << "    └\033[1;32m done\033[0m" << std::endl;
 }
 
@@ -804,51 +453,14 @@ void GPUbenchmark<chunk_t>::run()
 {
   globalInit();
 
-  for (auto& sl : mOptions.pools) {
-    for (auto& test : mOptions.tests) {
-      switch (test) {
-        case Test::Read: {
-          readInit();
-
-          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Sequential) != mOptions.modes.end()) {
-            readSequential(sl);
-          }
-          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Concurrent) != mOptions.modes.end()) {
-            readConcurrent(sl);
-          }
-
-          readFinalize();
-
-          break;
-        }
-        case Test::Write: {
-          writeInit();
-          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Sequential) != mOptions.modes.end()) {
-            writeSequential(sl);
-          }
-          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Concurrent) != mOptions.modes.end()) {
-            writeConcurrent(sl);
-          }
-
-          writeFinalize();
-
-          break;
-        }
-        case Test::Copy: {
-          copyInit();
-          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Sequential) != mOptions.modes.end()) {
-            copySequential(sl);
-          }
-          if (std::find(mOptions.modes.begin(), mOptions.modes.end(), Mode::Concurrent) != mOptions.modes.end()) {
-            copyConcurrent(sl);
-          }
-
-          copyFinalize();
-
-          break;
-        }
+  for (auto& test : mOptions.tests) {
+    initTest(test);
+    for (auto& mode : mOptions.modes) {
+      for (auto& config : mOptions.pools) {
+        runTest(test, mode, config);
       }
     }
+    finalizeTest(test);
   }
 
   globalFinalize();
@@ -861,3 +473,4 @@ template class GPUbenchmark<int>;
 
 } // namespace benchmark
 } // namespace o2
+void readConcurrent(KernelConfig config);
