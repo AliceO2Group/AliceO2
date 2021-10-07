@@ -122,12 +122,15 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
 bool MatchITSTPCQC::selectTrack(o2::tpc::TrackTPC const& track)
 {
 
-  if (track.getPt() < mPtCut)
+  if (track.getPt() < mPtCut) {
     return false;
-  if (std::abs(track.getEta()) > mEtaCut)
+  }
+  if (std::abs(track.getEta()) > mEtaCut) {
     return false;
-  if (track.getNClusters() < mNTPCClustersCut)
+  }
+  if (track.getNClusters() < mNTPCClustersCut) {
     return false;
+  }
 
   math_utils::Point3D<float> v{};
   std::array<float, 2> dca;
