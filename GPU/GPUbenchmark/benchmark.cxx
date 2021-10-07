@@ -22,7 +22,8 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
   bpo::options_description options("Benchmark options");
   options.add_options()(
     "help,h", "Print help message.")(
-    "version,v", "print version")(
+    "version,v", "Print version.")(
+    "extra,x", "Print extra info for each available device.")(
     "device,d", bpo::value<int>()->default_value(0), "Id of the device to run test on, EPN targeted.")(
     "test,t", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"read", "write", "copy"}, "read write copy"), "Tests to be performed.")(
     "kind,k", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"char", "int", "ulong"}, "char int ulong"), "Test data type to be used.")(
@@ -43,6 +44,13 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
 
     if (vm.count("version")) {
       std::cout << VERSION << std::endl;
+      return false;
+    }
+
+    if (vm.count("extra")) {
+      o2::benchmark::benchmarkOpts opts;
+      o2::benchmark::GPUbenchmark<char> bm_dummy{opts, nullptr};
+      bm_dummy.printDevices();
       return false;
     }
 
