@@ -1178,7 +1178,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     ZoneScopedN("forward inputs");
     assert(record.size() == currentSetOfInputs.size());
     // we collect all messages per forward in a map and send them together
-    std::unordered_map<std::string, FairMQParts> forwardedParts;
+    std::vector<FairMQParts> forwardedParts;
+    forwardedParts.resize(spec->forwards.size());
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
 
@@ -1238,6 +1239,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
               continue;
             }
             cachedForwardingChoice = fi;
+            break;
           }
         }
         /// We did not find a match. Skip it.
@@ -1253,22 +1255,21 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
           newHeader->Copy(*header);
           newPayload->Copy(*payload);
 
-          forwardedParts[forward.channel].AddPart(std::move(newHeader));
-          forwardedParts[forward.channel].AddPart(std::move(newPayload));
+          forwardedParts[cachedForwardingChoice].AddPart(std::move(newHeader));
+          forwardedParts[cachedForwardingChoice].AddPart(std::move(newPayload));
         } else {
-          forwardedParts[forward.channel].AddPart(std::move(header));
-          forwardedParts[forward.channel].AddPart(std::move(payload));
+          forwardedParts[cachedForwardingChoice].AddPart(std::move(header));
+          forwardedParts[cachedForwardingChoice].AddPart(std::move(payload));
         }
       }
     }
-    for (auto& [channelName, channelParts] : forwardedParts) {
-      if (channelParts.Size() == 0) {
+    for (size_t fi = 0; fi < spec->forwards.size(); fi++) {
+      if (forwardedParts[fi].Size() == 0) {
         continue;
       }
-      assert(channelParts.Size() % 2 == 0);
-      assert(o2::header::get<DataProcessingHeader*>(channelParts.At(0)->GetData()));
+      assert(forwardedParts[fi].Size() % 2 == 0);
       // in DPL we are using subchannel 0 only
-      device->Send(channelParts, channelName, 0);
+      device->Send(forwardedParts[fi], spec->forwards[fi].channel, 0);
     }
   };
 
