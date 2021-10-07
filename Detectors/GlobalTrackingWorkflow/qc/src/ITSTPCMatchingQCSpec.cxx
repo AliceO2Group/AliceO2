@@ -71,7 +71,7 @@ void ITSTPCMatchingQCDevice::sendOutput(DataAllocator& output)
   output.snapshot(Output{"GLO", "ITSTPCMATCHQC_1D", 0, Lifetime::Timeframe}, objarTH1F);
   output.snapshot(Output{"GLO", "ITSTPCMATCHQC_2D", 0, Lifetime::Timeframe}, objarTH2F);
 
-  TFile* f = new TFile(Form("outITSTPCmatchingQC_%d.root"), "RECREATE");
+  TFile* f = new TFile(Form("outITSTPCmatchingQC.root"), "RECREATE");
   objarTH1F.Write("ObjArray_TH1F", TObject::kSingleKey);
   objarTH2F.Write("ObjArray_TH2F", TObject::kSingleKey);
   f->Close();
