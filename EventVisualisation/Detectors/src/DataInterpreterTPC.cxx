@@ -80,7 +80,7 @@ VisualisationEvent DataInterpreterTPC::interpretDataForType(TObject* data, EVisu
         const auto globalXYZ = mapper.LocalToGlobal(localXYZ, sector);
         float xyz[3] = {globalXYZ.X(), globalXYZ.Y(), globalXYZ.Z()};
 
-        ret_event.addCluster(xyz);
+        ret_event.addCluster(xyz, 0);
       }
     }
   } else if (type == ESD) {

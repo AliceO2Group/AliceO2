@@ -30,7 +30,10 @@
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/ConfigParamSpec.h"
-
+#include "DataFormatsMCH/TrackMCH.h"
+#include "DataFormatsMCH/ROFRecord.h"
+#include "DataFormatsMCH/ClusterBlock.h"
+#include "MCHTracking/TrackParam.h"
 #include <unistd.h>
 #include <climits>
 
@@ -114,6 +117,21 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   if (!this->mEveHostNameMatch) {
     return;
   }
+  LOG(INFO) << "++++++++++++++++ 1";
+  /*
+  auto rofs = pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("rofs");
+  auto tracks = pc.inputs().get<gsl::span<o2::mch::TrackMCH>>("tracks");
+  auto clusters = pc.inputs().get<gsl::span<o2::mch::ClusterStruct>>("clusters");
+  for (const auto& rof : rofs) {
+    for (const auto& track : tracks.subspan(rof.getFirstIdx(), rof.getNEntries())) {
+      o2::mch::TrackParam trackParam(track.getZ(), track.getParameters(), track.getCovariances());
+      //auto trackClusters = clusters.subspan(track.getFirstClusterIdx(), track.getNClusters());
+      //auto cluster = trackClusters[0];
+
+    }
+  }
+  */
+  LOG(INFO) << "++++++++++++++++ 2";
 
   // filtering out any run which occur before reaching next time interval
   std::chrono::time_point<std::chrono::high_resolution_clock> currentTime = std::chrono::high_resolution_clock::now();
@@ -124,9 +142,14 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   this->mTimeStamp = currentTime;
 
   EveWorkflowHelper helper;
+
   helper.getRecoContainer().collectData(pc, *mDataRequest);
+
   helper.selectTracks(&(mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
+
   helper.prepareITSClusters(mITSDict);
+  helper.prepareMFTClusters(mMFTDict);
+
   helper.draw(this->mJsonPath, this->mNumberOfFiles, this->mNumberOfTracks);
 }
 

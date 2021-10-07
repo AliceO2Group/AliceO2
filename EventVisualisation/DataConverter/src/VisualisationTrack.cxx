@@ -57,6 +57,7 @@ VisualisationTrack::VisualisationTrack(rapidjson::Value& tree)
   rapidjson::Value& jsonPolyY = tree["mPolyY"];
   rapidjson::Value& jsonPolyZ = tree["mPolyZ"];
   rapidjson::Value& count = tree["count"];
+  this->mCharge = 0;
 
   this->mSource = (o2::dataformats::GlobalTrackID::Source)tree["source"].GetInt();
   this->mPID = (o2::dataformats::GlobalTrackID::Source)tree["source"].GetInt();
