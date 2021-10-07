@@ -21,6 +21,8 @@
 #include <TMath.h>
 #include "Math/SMatrix.h"
 #include "MathUtils/Utils.h"
+#include "ReconstructionDataFormats/TrackUtils.h"
+#include "MathUtils/Primitive2D.h"
 
 namespace o2
 {
@@ -55,8 +57,23 @@ class TrackParFwd
   void setPhi(Double_t phi) { mParameters(2) = phi; }
   Double_t getPhi() const { return mParameters(2); }
 
+  Double_t getSnp() const
+  {
+    return o2::math_utils::sin(mParameters(2));
+  }
+
+  Double_t getCsp2() const
+  {
+    auto snp = o2::math_utils::sin(mParameters(2));
+    Double_t csp;
+    csp = std::sqrt((1. - snp) * (1. + snp));
+    return csp * csp;
+  }
+
   void setTanl(Double_t tanl) { mParameters(3) = tanl; }
   Double_t getTanl() const { return mParameters(3); }
+
+  Double_t getTgl() const { return mParameters(3); } // for the sake of helixhelper
 
   void setInvQPt(Double_t invqpt) { mParameters(4) = invqpt; }
   Double_t getInvQPt() const { return mParameters(4); } // return Inverse charged pt
@@ -69,6 +86,12 @@ class TrackParFwd
   Double_t getInverseMomentum() const { return 1.f / getP(); }
 
   Double_t getEta() const { return -TMath::Log(TMath::Tan((TMath::PiOver2() - TMath::ATan(getTanl())) / 2)); } // return total momentum
+
+  Double_t getCurvature(double b) const
+  {
+    auto invqpt = getInvQPt();
+    return o2::constants::math::B2C * b * invqpt;
+  }
 
   /// return the charge (assumed forward motion)
   Double_t getCharge() const { return TMath::Sign(1., mParameters(4)); }
@@ -96,6 +119,7 @@ class TrackParFwd
   void propagateParamToZlinear(double zEnd);
   void propagateParamToZquadratic(double zEnd, double zField);
   void propagateParamToZhelix(double zEnd, double zField);
+  void getCircleParams(float bz, o2::math_utils::CircleXY<float>& c, float& sna, float& csa) const;
 
  protected:
   Double_t mZ = 0.; ///< Z coordinate (cm)
@@ -128,6 +152,7 @@ class TrackParCovFwd : public TrackParFwd
 
   Double_t getSigma2X() const { return mCovariances(0, 0); }
   Double_t getSigma2Y() const { return mCovariances(1, 1); }
+  Double_t getSigmaXY() const { return mCovariances(0, 1); }
   Double_t getSigma2Phi() const { return mCovariances(2, 2); }
   Double_t getSigma2Tanl() const { return mCovariances(3, 3); }
   Double_t getSigma2InvQPt() const { return mCovariances(4, 4); }

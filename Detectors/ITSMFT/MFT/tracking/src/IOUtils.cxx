@@ -36,7 +36,8 @@ namespace mft
 {
 
 //_________________________________________________________
-int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, const o2::mft::Tracker* tracker)
+template <typename T>
+int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, const o2::mft::Tracker<T>* tracker)
 {
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
@@ -119,6 +120,13 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
     cl3d.setErrors(sigmaX2, sigmaY2, 0);
   }
 }
+template int o2::mft::ioutils::loadROFrameData<o2::mft::TrackLTF>(const o2::itsmft::ROFRecord&, ROframe<o2::mft::TrackLTF>&, gsl::span<const itsmft::CompClusterExt>,
+                                                                  gsl::span<const unsigned char>::iterator&, const itsmft::TopologyDictionary&,
+                                                                  const dataformats::MCTruthContainer<MCCompLabel>*, const o2::mft::Tracker<o2::mft::TrackLTF>*);
+
+template int o2::mft::ioutils::loadROFrameData<o2::mft::TrackLTFL>(const o2::itsmft::ROFRecord&, ROframe<o2::mft::TrackLTFL>&, gsl::span<const itsmft::CompClusterExt>,
+                                                                   gsl::span<const unsigned char>::iterator&, const itsmft::TopologyDictionary&,
+                                                                   const dataformats::MCTruthContainer<MCCompLabel>*, const o2::mft::Tracker<o2::mft::TrackLTFL>*);
 
 } // namespace mft
 } // namespace o2

@@ -96,9 +96,12 @@ auto sliceByColumn(
     makeSlice(offset, count);
     offset += count;
   }
-
-  if (values.Value(size - 1) < fullSize - 1) {
-    for (auto v = values.Value(size - 1) + 1; v < fullSize; ++v) {
+  v = values.Value(size - 1);
+  if (v >= 0) {
+    vprev = v;
+  }
+  if (vprev < fullSize - 1) {
+    for (auto v = vprev + 1; v < fullSize; ++v) {
       makeSlice(offset, 0);
     }
   }

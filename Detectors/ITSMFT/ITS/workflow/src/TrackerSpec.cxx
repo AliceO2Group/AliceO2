@@ -28,6 +28,7 @@
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/TrackingConfigParam.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -80,7 +81,7 @@ void TrackerDPL::init(InitContext& ic)
 
     auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
     mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
-    mTracker = std::make_unique<Tracker>(new TrackerTraitsCPU(&mTimeFrame));
+    mTracker = std::make_unique<Tracker>(new TrackerTraitsCPU);
 
     std::vector<TrackingParameters> trackParams;
     std::vector<MemoryParameters> memParams;
@@ -112,6 +113,7 @@ void TrackerDPL::init(InitContext& ic)
       memParams.resize(1);
       trackParams[0].MinTrackLength = 4;
       trackParams[0].TrackletMaxDeltaPhi = o2::its::constants::math::Pi * 0.5f;
+      trackParams[0].CellMaxDeltaTanLambda = 0.1;
       for (int iLayer = 0; iLayer < o2::its::constants::its2::TrackletsPerRoad; iLayer++) {
         trackParams[0].TrackletMaxDeltaZ[iLayer] = o2::its::constants::its2::LayersZCoordinate()[iLayer + 1];
         memParams[0].TrackletsMemoryCoefficients[iLayer] = 0.5f;
@@ -139,7 +141,7 @@ void TrackerDPL::init(InitContext& ic)
     throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
-  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
   if (o2::utils::Str::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
@@ -196,76 +198,76 @@ void TrackerDPL::run(ProcessingContext& pc)
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
 
+  TimeFrame mTimeFrame;
+  mTracker->adoptTimeFrame(mTimeFrame);
+
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
-  if (continuous) {
-    gsl::span<itsmft::ROFRecord> rofspan(rofs);
-    mTimeFrame.loadROFrameData(rofspan, compClusters, pattIt, mDict, labels);
-    pattIt = patterns.begin();
-    std::vector<int> savedROF;
-    auto logger = [&](std::string s) { LOG(INFO) << s; };
-    float vertexerElapsedTime{0.f};
-    int nclUsed = 0;
-    for (auto& rof : rofspan) {
 
-      nclUsed += ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
-      // prepare in advance output ROFRecords, even if this ROF to be rejected
-      int first = allTracks.size();
+  gsl::span<itsmft::ROFRecord> rofspan(rofs);
+  mTimeFrame.loadROFrameData(rofspan, compClusters, pattIt, mDict, labels);
+  pattIt = patterns.begin();
+  std::vector<int> savedROF;
+  auto logger = [&](std::string s) { LOG(info) << s; };
+  float vertexerElapsedTime{0.f};
+  int nclUsed = 0;
+  for (auto& rof : rofspan) {
+    nclUsed += ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
+    // prepare in advance output ROFRecords, even if this ROF to be rejected
+    int first = allTracks.size();
 
-      // for vertices output
-      auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
-      vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
-      vtxROF.setNEntries(0);
+    // for vertices output
+    auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
+    vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
+    vtxROF.setNEntries(0);
 
-      std::vector<Vertex> vtxVecLoc;
-      if (mRunVertexer) {
-        vertexerElapsedTime += mVertexer->clustersToVertices(event, false, logger);
-        vtxVecLoc = mVertexer->exportVertices();
-      }
-      mTimeFrame.addPrimaryVertices(vtxVecLoc);
-
-      vtxROF.setNEntries(vtxVecLoc.size());
-      for (const auto& vtx : vtxVecLoc) {
-        vertices.push_back(vtx);
-      }
-      savedROF.push_back(roFrame);
-      roFrame++;
+    std::vector<Vertex> vtxVecLoc;
+    if (mRunVertexer) {
+      vertexerElapsedTime += mVertexer->clustersToVertices(event, false, logger);
+      vtxVecLoc = mVertexer->exportVertices();
     }
-    LOG(INFO) << " - Vertex seeding total elapsed time: " << vertexerElapsedTime << " ms for " << nclUsed << " clusters in " << rofspan.size() << " ROFs";
+    mTimeFrame.addPrimaryVertices(vtxVecLoc);
 
-    mTracker->clustersToTracks(logger);
+    vtxROF.setNEntries(vtxVecLoc.size());
+    for (const auto& vtx : vtxVecLoc) {
+      vertices.push_back(vtx);
+    }
+    savedROF.push_back(roFrame);
+    roFrame++;
+  }
+  LOG(INFO) << " - Vertex seeding total elapsed time: " << vertexerElapsedTime << " ms for " << nclUsed << " clusters in " << rofspan.size() << " ROFs";
+  mTracker->clustersToTracks(logger);
 
-    for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
+  for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
 
-      auto& rof{rofs[iROF]};
-      tracks = mTimeFrame.getTracks(iROF);
-      trackLabels = mTimeFrame.getTracksLabel(iROF);
-      auto number{tracks.size()};
-      auto first{allTracks.size()};
-      int offset = -rof.getFirstEntry(); // cluster entry!!!
-      rof.setFirstEntry(first);
-      rof.setNEntries(number);
+    auto& rof{rofs[iROF]};
+    tracks = mTimeFrame.getTracks(iROF);
+    trackLabels = mTimeFrame.getTracksLabel(iROF);
+    auto number{tracks.size()};
+    auto first{allTracks.size()};
+    int offset = -rof.getFirstEntry(); // cluster entry!!!
+    rof.setFirstEntry(first);
+    rof.setNEntries(number);
 
-      if (tracks.size()) {
-        irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
-      }
-      std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
-      // Some conversions that needs to be moved in the tracker internals
-      for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
-        auto& trc{tracks[iTrk]};
-        trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
-        int ncl = trc.getNumberOfClusters(), nclf = 0;
-        for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
-          auto clid = trc.getClusterIndex(ic);
-          if (clid >= 0) {
-            allClusIdx.push_back(clid);
-            nclf++;
-          }
+    if (tracks.size()) {
+      irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
+    }
+    std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+    // Some conversions that needs to be moved in the tracker internals
+    for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
+      auto& trc{tracks[iTrk]};
+      trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
+      int ncl = trc.getNumberOfClusters(), nclf = 0;
+      for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
+        auto clid = trc.getClusterIndex(ic);
+        if (clid >= 0) {
+          allClusIdx.push_back(clid);
+          nclf++;
         }
-        assert(ncl == nclf);
-        allTracks.emplace_back(trc);
       }
+      assert(ncl == nclf);
+      allTracks.emplace_back(trc);
     }
-  } //MP: no triggered mode for the time being
+  }
 
   LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
   if (mIsMC) {
@@ -313,7 +315,6 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& trModeS, o2::gpu
     AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC, trModeS, dType)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 

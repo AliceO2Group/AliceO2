@@ -21,6 +21,7 @@
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsBase/Propagator.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 #include <type_traits>
 
 using namespace o2::event_visualisation;
@@ -41,8 +42,6 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
 
 void EveWorkflowHelper::draw(std::string jsonPath, int numberOfFiles, int numberOfTracks)
 {
-  EveWorkflowHelper::prepareITSClusters();
-
   size_t nTracks = mTrackSet.trackGID.size();
   if (numberOfTracks != -1 && numberOfTracks < nTracks) {
     nTracks = numberOfTracks; // less than available
@@ -133,13 +132,8 @@ void EveWorkflowHelper::drawPoint(o2::BaseCluster<float> pnt)
   mEvent.addCluster(pnt.getX(), pnt.getY(), pnt.getZ());
 }
 
-void EveWorkflowHelper::prepareITSClusters(std::string dictfile)
+void EveWorkflowHelper::prepareITSClusters(const o2::itsmft::TopologyDictionary& dict)
 {
-  o2::itsmft::TopologyDictionary dict;
-  if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", "bin");
-    dict.readBinaryFile(dictfile);
-  }
   const auto& ITSClusterROFRec = mRecoCont.getITSClustersROFRecords();
   const auto& clusITS = mRecoCont.getITSClusters();
   if (clusITS.size() && ITSClusterROFRec.size()) {

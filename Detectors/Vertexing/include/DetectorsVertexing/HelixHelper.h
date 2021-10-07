@@ -16,8 +16,9 @@
 #ifndef _ALICEO2_HELIX_HELPER_
 #define _ALICEO2_HELIX_HELPER_
 
+#include "CommonConstants/MathConstants.h"
+#include "MathUtils/Utils.h"
 #include "MathUtils/Primitive2D.h"
-#include "ReconstructionDataFormats/Track.h"
 
 namespace o2
 {
@@ -27,15 +28,20 @@ namespace track
 ///__________________________________________________________________________
 //< precalculated track radius, center, alpha sin,cos and their combinations
 struct TrackAuxPar : public o2::math_utils::CircleXYf_t {
-  using Track = o2::track::TrackPar;
-
   float c, s, cc, ss, cs; // cos ans sin of track alpha and their products
 
   TrackAuxPar() = default;
-  TrackAuxPar(const Track& trc, float bz) { set(trc, bz); }
+
+  template <typename T>
+  TrackAuxPar(const T& trc, float bz)
+  {
+    set(trc, bz);
+  }
   float cosDif(const TrackAuxPar& t) const { return c * t.c + s * t.s; } // cos(alpha_this - alha_t)
   float sinDif(const TrackAuxPar& t) const { return s * t.c - c * t.s; } // sin(alpha_this - alha_t)
-  void set(const Track& trc, float bz)
+
+  template <typename T>
+  void set(const T& trc, float bz)
   {
     trc.getCircleParams(bz, *this, s, c);
     cc = c * c;
@@ -124,8 +130,9 @@ struct CrossInfo {
     yDCA[0] = trcA.yC + 0.5 * (yDist * t2d);
   }
 
-  int linesCrossInfo(const TrackAuxPar& trax0, const TrackPar& tr0,
-                     const TrackAuxPar& trax1, const TrackPar& tr1, float maxDistXY = MaxDistXYDef)
+  template <typename T>
+  int linesCrossInfo(const TrackAuxPar& trax0, const T& tr0,
+                     const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef)
   {
     /// closest approach of 2 straight lines
     ///  TrackParam propagation can be parameterized in lab in a form
@@ -184,8 +191,9 @@ struct CrossInfo {
     return nDCA;
   }
 
-  int circleLineCrossInfo(const TrackAuxPar& trax0, const TrackPar& tr0,
-                          const TrackAuxPar& trax1, const TrackPar& tr1, float maxDistXY = MaxDistXYDef)
+  template <typename T>
+  int circleLineCrossInfo(const TrackAuxPar& trax0, const T& tr0,
+                          const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef)
   {
     /// closest approach of line and circle
     ///  TrackParam propagation can be parameterized in lab in a form
@@ -242,7 +250,8 @@ struct CrossInfo {
     return nDCA;
   }
 
-  int set(const TrackAuxPar& trax0, const TrackPar& tr0, const TrackAuxPar& trax1, const TrackPar& tr1, float maxDistXY = MaxDistXYDef)
+  template <typename T>
+  int set(const TrackAuxPar& trax0, const T& tr0, const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef)
   {
     // calculate up to 2 crossings between 2 circles
     nDCA = 0;
@@ -259,7 +268,8 @@ struct CrossInfo {
 
   CrossInfo() = default;
 
-  CrossInfo(const TrackAuxPar& trax0, const TrackPar& tr0, const TrackAuxPar& trax1, const TrackPar& tr1, float maxDistXY = MaxDistXYDef)
+  template <typename T>
+  CrossInfo(const TrackAuxPar& trax0, const T& tr0, const TrackAuxPar& trax1, const T& tr1, float maxDistXY = MaxDistXYDef)
   {
     set(trax0, tr0, trax1, tr1, maxDistXY);
   }

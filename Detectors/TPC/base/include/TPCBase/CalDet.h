@@ -88,6 +88,8 @@ class CalDet
   const CalDet& operator*=(const T& val);
   const CalDet& operator/=(const T& val);
 
+  const CalDet& operator=(const T& val);
+
   template <class U>
   friend CalDet<U> operator+(const CalDet<U>&, const CalDet<U>&);
 
@@ -335,6 +337,16 @@ inline const CalDet<T>& CalDet<T>::operator/=(const T& val)
 {
   for (auto& cal : mData) {
     cal /= val;
+  }
+  return *this;
+}
+
+//______________________________________________________________________________
+template <class T>
+inline const CalDet<T>& CalDet<T>::operator=(const T& val)
+{
+  for (auto& cal : mData) {
+    cal = val;
   }
   return *this;
 }

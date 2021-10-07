@@ -55,3 +55,5 @@ if(ENABLE_UPGRADES)
 else()
   message(STATUS "Not building detectors for upgrades")
 endif()
+
+add_subdirectory(GRP)

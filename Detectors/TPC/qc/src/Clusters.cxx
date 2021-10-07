@@ -123,12 +123,12 @@ void Clusters::denormalize()
 //______________________________________________________________________________
 void Clusters::reset()
 {
-  mNClusters *= 0;
-  mQMax *= 0;
-  mQTot *= 0;
-  mSigmaTime *= 0;
-  mSigmaPad *= 0;
-  mTimeBin *= 0;
+  mNClusters = 0;
+  mQMax = 0;
+  mQTot = 0;
+  mSigmaTime = 0;
+  mSigmaPad = 0;
+  mTimeBin = 0;
 }
 
 //______________________________________________________________________________

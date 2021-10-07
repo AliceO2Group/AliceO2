@@ -142,7 +142,7 @@ constexpr long brace_constructible_size()
 #endif
 
 template <typename L, class T>
-auto constexpr homogeneous_apply_refs(L l, T&& object) noexcept
+auto constexpr homogeneous_apply_refs(L l, T&& object)
 {
   using type = std::decay_t<T>;
   constexpr unsigned long numElements = brace_constructible_size<T>();

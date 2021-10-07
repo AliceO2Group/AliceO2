@@ -42,8 +42,6 @@ struct STFDecoderInp {
   bool askSTFDist = true;
   o2::header::DataOrigin origin{"NIL"};
   std::string deviceName{};
-  std::string dict{};
-  std::string noise{};
   std::string inputSpec{};
 };
 

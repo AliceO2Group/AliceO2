@@ -33,6 +33,7 @@
 #include "DataFormatsZDC/RecEvent.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsTRD/TrackTriggerRecord.h"
+#include "DataFormatsCTP/Digits.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackTPCTOF.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"

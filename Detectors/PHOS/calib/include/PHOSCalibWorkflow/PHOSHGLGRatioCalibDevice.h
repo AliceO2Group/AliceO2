@@ -53,21 +53,19 @@ class PHOSHGLGRatioCalibDevice : public o2::framework::Task
   void calculateRatios();
   void checkRatios();
 
-  // void evaluateMeans
-
  private:
   bool mUseCCDB = false;
-  bool mForceUpdate = false;                                  /// Update CCDB even if difference to current is large
-  bool mUpdateCCDB = true;                                    /// set is close to current and can update it
-  static constexpr short kMinorChange = 10;                   /// ignore if number of channels changed smaller than...
-  long mRunStartTime = 0;                                     /// start time of the run (sec)
-  std::string mCCDBPath{"http://ccdb-test.cern.ch:8080"};     ///< CCDB server path
-  std::unique_ptr<CalibParams> mCalibParams;                  //! Final calibration object
-  short mMinLG = 20;                                          /// minimal LG ampl used in ratio
-  short minimalStatistics = 100;                              /// minimal statistics per channel
-  std::map<short, PairAmp> mMapPairs;                         //! HG/LG pair
-  std::unique_ptr<TH2F> mhRatio;                              //! Histogram with ratios
-  std::array<float, o2::phos::Mapping::NCHANNELS> mRatioDiff; //! Ratio variation wrt previous map
+  bool mForceUpdate = false;                                      /// Update CCDB even if difference to current is large
+  bool mUpdateCCDB = true;                                        /// set is close to current and can update it
+  static constexpr short kMinorChange = 10;                       /// ignore if number of channels changed smaller than...
+  long mRunStartTime = 0;                                         /// start time of the run (sec)
+  std::string mCCDBPath{"http://ccdb-test.cern.ch:8080"};         ///< CCDB server path
+  std::unique_ptr<CalibParams> mCalibParams;                      //! Final calibration object
+  short mMinLG = 20;                                              /// minimal LG ampl used in ratio
+  short minimalStatistics = 100;                                  /// minimal statistics per channel
+  std::map<short, PairAmp> mMapPairs;                             //! HG/LG pair
+  std::unique_ptr<TH2F> mhRatio;                                  //! Histogram with ratios
+  std::array<float, o2::phos::Mapping::NCHANNELS + 1> mRatioDiff; //! Ratio variation wrt previous map
 };
 
 DataProcessorSpec getHGLGRatioCalibSpec(bool useCCDB, bool forceUpdate, std::string path);

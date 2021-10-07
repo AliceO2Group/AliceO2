@@ -204,23 +204,20 @@ int CalibLaserTracks::findLaserTrackID(TrackPar outerParam, int side)
 float CalibLaserTracks::getPhiNearbyLaserRod(const TrackPar& param, int side)
 {
   const auto xyzGlo = param.getXYZGlo();
-  auto phi = std::atan2(xyzGlo.Y(), xyzGlo.X()) - LaserTrack::FirstRodPhi[side % 2];
-  o2::math_utils::bringTo02PiGen(phi);
-  phi = std::nearbyint(phi / LaserTrack::RodDistancePhi) * LaserTrack::RodDistancePhi + LaserTrack::FirstRodPhi[side % 2];
-  o2::math_utils::bringTo02PiGen(phi);
-  return phi;
+  const auto phiTrack = o2::math_utils::to02PiGen(std::atan2(xyzGlo.Y(), xyzGlo.X()) - LaserTrack::FirstRodPhi[side % 2]);
+  const auto phiRod = o2::math_utils::to02PiGen(std::nearbyint(phiTrack / LaserTrack::RodDistancePhi) * LaserTrack::RodDistancePhi + LaserTrack::FirstRodPhi[side % 2]);
+
+  return phiRod;
 }
 
 //______________________________________________________________________________
 bool CalibLaserTracks::hasNearbyLaserRod(const TrackPar& param, int side)
 {
   const auto xyzGlo = param.getXYZGlo();
-  const auto phiTrack = std::atan2(xyzGlo.Y(), xyzGlo.X());
-  auto phi = phiTrack - LaserTrack::FirstRodPhi[side % 2];
-  o2::math_utils::bringTo02PiGen(phi);
-  phi = std::nearbyint(phi / LaserTrack::RodDistancePhi) * LaserTrack::RodDistancePhi + LaserTrack::FirstRodPhi[side % 2];
-  o2::math_utils::bringTo02PiGen(phi);
-  return std::abs(phi - phiTrack) < LaserTrack::SectorSpanRad / 4.;
+  const auto phiTrack = o2::math_utils::to02PiGen(std::atan2(xyzGlo.Y(), xyzGlo.X()) - LaserTrack::FirstRodPhi[side % 2]);
+  const auto phiRod = o2::math_utils::to02PiGen(std::nearbyint(phiTrack / LaserTrack::RodDistancePhi) * LaserTrack::RodDistancePhi);
+
+  return std::abs(phiRod - phiTrack) < LaserTrack::SectorSpanRad / 4.;
 }
 
 //______________________________________________________________________________

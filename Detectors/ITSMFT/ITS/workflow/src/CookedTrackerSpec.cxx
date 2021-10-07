@@ -40,6 +40,7 @@
 
 #include "ITSReconstruction/FastMultEstConfig.h"
 #include "ITSReconstruction/FastMultEst.h"
+#include "ITSMFTReconstruction/ClustererParam.h"
 
 using namespace o2::framework;
 
@@ -49,6 +50,15 @@ namespace its
 {
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
+
+CookedTrackerDPL::CookedTrackerDPL(bool useMC, const std::string& trMode) : mUseMC(useMC)
+{
+  if (trMode == "cosmics") {
+    LOG(INFO) << "Tracking mode \"cosmics\"";
+    mTracker.setParametersCosmics();
+    mRunVertexer = false;
+  }
+}
 
 void CookedTrackerDPL::init(InitContext& ic)
 {
@@ -79,7 +89,7 @@ void CookedTrackerDPL::init(InitContext& ic)
     throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
-  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
   if (o2::utils::Str::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
@@ -139,7 +149,6 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     vtxROF.setNEntries(0);
 
     auto it = pattIt;
-    o2::its::ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels.get());
 
     // fast cluster mult. cut if asked (e.g. sync. mode)
     if (rof.getNEntries() && (multEstConf.cutMultClusLow > 0 || multEstConf.cutMultClusHigh > 0)) { // cut was requested
@@ -153,7 +162,10 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
       }
     }
 
-    vertexer.clustersToVertices(event, false, [&](std::string s) { LOG(INFO) << s; });
+    if (mRunVertexer) {
+      o2::its::ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels.get());
+      vertexer.clustersToVertices(event, false, [&](std::string s) { LOG(INFO) << s; });
+    }
     auto vtxVecLoc = vertexer.exportVertices();
 
     if (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0) { // cut was requested
@@ -204,7 +216,7 @@ void CookedTrackerDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getCookedTrackerSpec(bool useMC)
+DataProcessorSpec getCookedTrackerSpec(bool useMC, const std::string& trMode)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -230,10 +242,9 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
     "its-cooked-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(useMC)},
+    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(useMC, trMode)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
 }
 

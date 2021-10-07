@@ -304,6 +304,16 @@ void DataRequest::requestSecondaryVertertices(bool)
   requestMap["SVertex"] = false; // no MC provided for secondary vertices
 }
 
+void DataRequest::requestCTPDigits(bool mc)
+{
+  addInput({"CTPDigits", "CTP", "DIGITS", 0, Lifetime::Timeframe});
+  if (mc) {
+    LOG(WARNING) << "MC truth not implemented for CTP";
+    //addInput({"CTPDigitsMC", "CTP", "DIGITSMCTR", 0, Lifetime::Timeframe});
+  }
+  requestMap["CTPDigits"] = false;
+}
+
 void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
 {
   // request tracks for sources probided by the mask
@@ -360,6 +370,9 @@ void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
   }
   if (GTrackID::includesDet(DetID::TRD, src)) {
     requestTRDTracklets(useMC);
+  }
+  if (GTrackID::includesDet(DetID::CTP, src)) {
+    requestCTPDigits(useMC);
   }
 }
 
@@ -439,6 +452,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   req = reqMap.find("clusTOF");
   if (req != reqMap.end()) {
     addTOFClusters(pc, req->second);
+  }
+
+  req = reqMap.find("CTPDigits");
+  if (req != reqMap.end()) {
+    addCTPDigits(pc, req->second);
   }
 
   req = reqMap.find("FT0");
@@ -691,6 +709,15 @@ void RecoContainer::addTOFClusters(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::TOF].registerContainer(pc.inputs().get<gsl::span<o2::tof::Cluster>>("tofcluster"), CLUSTERS);
   if (mc) {
     mcTOFClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("tofclusterlabel");
+  }
+}
+
+//__________________________________________________________
+void RecoContainer::addCTPDigits(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::CTP].registerContainer(pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>("CTPDigits"), CLUSTERS);
+  if (mc) {
+    //  pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("CTPDigitsMC");
   }
 }
 

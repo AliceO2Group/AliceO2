@@ -171,6 +171,8 @@ void Data::loadClusters(int entry)
   int first = 0, last = mClusterBuffer->size();
   if (!mClustersROF->empty()) {
     auto rof = (*mClustersROF)[entry];
+    auto ir = rof.getBCData();
+    std::cout << "Orbit: " << ir.orbit << "  BC: " << ir.bc << '\n';
     first = rof.getFirstEntry();
     last = first + rof.getNEntries();
   }
@@ -335,8 +337,12 @@ TEveElement* Data::getEveTracks()
   for (const auto& rec : mTracks) {
     std::array<float, 3> p;
     rec.getPxPyPzGlo(p);
+    std::array<float, 3> v;
+    rec.getXYZGlo(v);
     TEveRecTrackD t;
     t.fP = {p[0], p[1], p[2]};
+    t.fV = {v[0], v[1], v[2]};
+    //t.fV = {v[0] - p[0] / p[1] * v[1], 0, v[2] - p[2] / p[1] * v[1]};
     t.fSign = (rec.getSign() < 0) ? -1 : 1;
     TEveTrack* track = new TEveTrack(&t, prop);
     track->SetLineColor(kMagenta);
@@ -419,6 +425,12 @@ void load(int entry, int chip)
   std::cout << "\n*** Event #" << entry << " ***\n";
   evdata.loadData(entry);
   evdata.displayData(entry, chip);
+}
+
+void load(int tf, int trigger, int chip)
+{
+  evdata.loadTF(tf);
+  load(trigger, chip);
 }
 
 void init(int tf, int trigger, int chip,

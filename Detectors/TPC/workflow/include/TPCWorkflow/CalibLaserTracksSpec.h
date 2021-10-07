@@ -103,6 +103,7 @@ class CalibLaserTracksDevice : public o2::framework::Task
 
     md = w.getMetaData();
     md["runNumber"] = std::to_string(mRunNumber);
+    w.setMetaData(md);
 
     const auto now = std::chrono::system_clock::now();
     const long timeStart = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();

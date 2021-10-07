@@ -18,7 +18,6 @@ void MatchGlobalFwd::init(std::string matchFcn, std::string cutFcn)
 {
 
   configMatching(matchFcn, cutFcn);
-  o2::base::GeometryManager::loadGeometry();
 }
 
 //_________________________________________________________
@@ -82,6 +81,7 @@ void MatchGlobalFwd::clear()
   mMFTClusters.clear();
   mMatchedTracks.clear();
   mMatchLabels.clear();
+  mMFTTrackROFContMapping.clear();
 }
 
 //_________________________________________________________
@@ -96,9 +96,10 @@ bool MatchGlobalFwd::prepareMCHData()
     mMCHTrkLabels = inp.getMCHTracksMCLabels();
   }
   int nROFs = mMCHTrackROFRec.size();
-  LOG(INFO) << "Loaded " << mMCHTracks.size() << " MCH Tracks "
-            << " in " << nROFs << " ROFs";
-
+  LOG(INFO) << "Loaded " << mMCHTracks.size() << " MCH Tracks in " << nROFs << " ROFs";
+  if (mMCHTracks.empty()) {
+    return false;
+  }
   mMCHWork.reserve(mMCHTracks.size());
 
   for (int irof = 0; irof < nROFs; irof++) {
@@ -125,7 +126,6 @@ bool MatchGlobalFwd::prepareMCHData()
       thisMCHTrack.setMCHTrackID(it);
     }
   }
-
   return true;
 }
 
@@ -139,7 +139,6 @@ bool MatchGlobalFwd::prepareMFTData()
   mMFTTrackClusIdx = inp.getMFTTracksClusterRefs();
   const auto clusMFT = inp.getMFTClusters();
   if (mMFTClusterROFRec.empty() || clusMFT.empty()) {
-    LOG(INFO) << "No MFT clusters";
     return false;
   }
   const auto patterns = inp.getMFTClustersPatterns();
@@ -156,7 +155,9 @@ bool MatchGlobalFwd::prepareMFTData()
   }
   int nROFs = mMFTTrackROFRec.size();
   LOG(INFO) << "Loaded " << mMFTTracks.size() << " MFT Tracks in " << nROFs << " ROFs";
-
+  if (mMFTTracks.empty()) {
+    return false;
+  }
   mMFTWork.reserve(mMFTTracks.size());
 
   for (int irof = 0; irof < nROFs; irof++) {
@@ -209,13 +210,11 @@ void MatchGlobalFwd::doMatching()
     firstMFTTrackIdInROF += nMFTTracksInROF;
     int mchROF = 0;
     while (mchROF < nMCHROFs && (thisMFTBracket.isOutside(mMCHROFTimes[mchROF]))) {
-      // LOG(INFO) << "mchROF = " << mchROF << " ===> thisMFTBracket.isOutside(mMCHROFTimes[mchROF]) = " << thisMFTBracket.isOutside(mMCHROFTimes[mchROF]);
       mchROF++;
     }
     int mchROFMatchFirst = -1;
     int mchROFMatchLast = -1;
 
-    //LOG(INFO) << "mchROF = " << mchROF << " ===> thisMFTBracket.isOutside(mMCHROFTimes[mchROF]) = " << thisMFTBracket.isOutside(mMCHROFTimes[mchROF]);
     if (thisMFTBracket.isOutside(mMCHROFTimes[mchROF]) == 0) {
       mchROFMatchFirst = mchROF;
 
@@ -226,8 +225,6 @@ void MatchGlobalFwd::doMatching()
     } else {
       LOG(DEBUG) << "No compatible MCH ROF with MFT ROF " << MFTROFId << std::endl;
     }
-    //std::cout << "First compatible MCH ROF = " << mchROFMatchFirst << " ; ";
-    //std::cout << "Last compatible MCH ROF = " << mchROFMatchLast << std::endl;
     if (mchROFMatchFirst >= 0) {
       ROFMatch(MFTROFId, mchROFMatchFirst, mchROFMatchLast);
     }
@@ -272,8 +269,10 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
       }
       if (matchingCut(thisMCHTrack, thisMFTTrack)) {
         thisMCHTrack.countCandidate();
-        if (mMCTruthON && ((*thisMFTLabel) == (*thisMCHLabel))) {
-          thisMCHTrack.setCloseMatch();
+        if (mMCTruthON) {
+          if ((*thisMFTLabel) == (*thisMCHLabel)) {
+            thisMCHTrack.setCloseMatch();
+          }
         }
         auto chi2 = matchingEval(thisMCHTrack, thisMFTTrack);
         if (chi2 < thisMCHTrack.getMatchingChi2()) {
@@ -303,14 +302,14 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
 
       thisMCHTrack.setMFTTrackID(bestMatchID);
       thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
-      std::cout << "    thisMCHTrack.getMFTTrackID() = " << thisMCHTrack.getMFTTrackID()
-                << "; thisMCHTrack.getMatchingChi2() = " << thisMCHTrack.getMatchingChi2()
-                << "; Label: " << matchLabel << std::endl;
+      LOG(DEBUG) << "    thisMCHTrack.getMFTTrackID() = " << thisMCHTrack.getMFTTrackID()
+                 << "; thisMCHTrack.getMatchingChi2() = " << thisMCHTrack.getMatchingChi2();
 
       mMatchedTracks.emplace_back((thisMCHTrack));
 
       if (mMCTruthON) {
         mMatchLabels.push_back(matchLabel);
+        LOG(DEBUG) << "   Label: " << matchLabel;
       }
     }
 

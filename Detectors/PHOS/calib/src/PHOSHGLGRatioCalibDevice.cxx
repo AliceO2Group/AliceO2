@@ -77,6 +77,7 @@ void PHOSHGLGRatioCalibDevice::run(o2::framework::ProcessingContext& ctx)
     fillRatios();
   }
 }
+
 void PHOSHGLGRatioCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
 
@@ -107,7 +108,7 @@ void PHOSHGLGRatioCalibDevice::calculateRatios()
     TF1* fitFunc = new TF1("fitFunc", "gaus", 0., 4000.);
     fitFunc->SetParameters(1., 200., 60.);
     fitFunc->SetParLimits(1, 10., 2000.);
-    for (int i = 1; i <= n; i++) {
+    for (short i = o2::phos::Mapping::NCHANNELS; i > 1792; i--) {
       TH1D* tmp = mhRatio->ProjectionY(Form("channel%d", i), i, i);
       fitFunc->SetParameters(tmp->Integral(), tmp->GetMean(), tmp->GetRMS());
       if (tmp->Integral() < minimalStatistics) {
@@ -121,6 +122,7 @@ void PHOSHGLGRatioCalibDevice::calculateRatios()
     }
   }
 }
+
 void PHOSHGLGRatioCalibDevice::checkRatios()
 {
   //Compare ratios to current ones stored in CCDB
@@ -142,13 +144,16 @@ void PHOSHGLGRatioCalibDevice::checkRatios()
   }
 
   LOG(INFO) << "Got current calibration from CCDB";
-
   //Compare to current
   int nChanged = 0;
   for (short i = o2::phos::Mapping::NCHANNELS; i > 1792; i--) {
     short dp = 2;
     if (currentCalibParams->getHGLGRatio(i) > 0) {
       dp = mCalibParams->getHGLGRatio(i) / currentCalibParams->getHGLGRatio(i);
+    } else {
+      if (mCalibParams->getHGLGRatio(i) == 0 && currentCalibParams->getHGLGRatio(i) == 0) {
+        dp = 1.;
+      }
     }
     mRatioDiff[i] = dp;
     if (abs(dp - 1.) > 0.1) { //not a fluctuation
@@ -159,7 +164,7 @@ void PHOSHGLGRatioCalibDevice::checkRatios()
     mCalibParams->setHGTimeCalib(i, currentCalibParams->getHGTimeCalib(i));
     mCalibParams->setLGTimeCalib(i, currentCalibParams->getLGTimeCalib(i));
   }
-  LOG(INFO) << nChanged << "channels changed more that 1 ADC channel";
+  LOG(INFO) << nChanged << "channels changed more than 10 %";
   if (nChanged > kMinorChange) { //serious change, do not update CCDB automatically, use "force" option to overwrite
     LOG(ERROR) << "too many channels changed: " << nChanged << " (threshold " << kMinorChange << ")";
     if (!mForceUpdate) {

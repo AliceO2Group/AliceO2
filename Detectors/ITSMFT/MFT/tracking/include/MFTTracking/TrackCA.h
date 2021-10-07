@@ -32,8 +32,11 @@ class TrackLTF : public TrackMFTExt
 {
  public:
   TrackLTF() = default;
+  TrackLTF(const bool isCA) { setCA(isCA); }
+
   TrackLTF(const TrackLTF& t) = default;
   ~TrackLTF() = default;
+
   const std::array<Float_t, constants::mft::LayersNumber>& getXCoordinates() const { return mX; }
   const std::array<Float_t, constants::mft::LayersNumber>& getYCoordinates() const { return mY; }
   const std::array<Float_t, constants::mft::LayersNumber>& getZCoordinates() const { return mZ; }
@@ -56,23 +59,35 @@ class TrackLTF : public TrackMFTExt
   std::array<Int_t, constants::mft::LayersNumber> mClusterId;
   std::array<MCCompLabel, constants::mft::LayersNumber> mMCCompLabels;
 
-  ClassDefNV(TrackLTF, 10);
+  ClassDefNV(TrackLTF, 11);
 };
 
 //_________________________________________________________________________________________________
-class TrackCA : public TrackLTF
+class TrackLTFL : public TrackLTF // A track model for B=0
 {
+  using SMatrix44Sym = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepSym<double, 4>>;
+
  public:
-  TrackCA()
+  TrackLTFL() = default;
+  TrackLTFL(const bool isCA) { setCA(isCA); }
+  TrackLTFL(const TrackLTFL& t) = default;
+  ~TrackLTFL() = default;
+
+  // Kalman filter/fitting update for linear tracks
+  bool update(const std::array<float, 2>& p, const std::array<float, 2>& cov)
   {
-    TrackLTF();
-    this->setCA(true);
+    // TODO
+    return true;
   }
-  TrackCA(const TrackCA& t) = default;
-  ~TrackCA() = default;
 
  private:
-  ClassDefNV(TrackCA, 10);
+  /// Covariance matrix of track parameters, ordered as follows:    <pre>
+  ///  <X,X>          <Y,X>           <SlopeX,X>          <SlopeY,X>
+  ///  <X,Y>          <Y,Y>           <SlopeX,Y>          <SlopeY,Y>
+  ///  <X,SlopeX>     <Y,SlopeX>      <SlopeX,SlopeX>     <SlopeY,SlopeX>
+  ///  <X,SlopeY>     <Y,SlopeY>      <SlopeX,SlopeY>     <SlopeY,SlopeY>
+  SMatrix44Sym mCovariances{}; ///< \brief Covariance matrix of track parameters
+  ClassDefNV(TrackLTFL, 0);
 };
 
 //_________________________________________________________________________________________________
@@ -153,16 +168,17 @@ inline void TrackLTF::sort()
 
 namespace framework
 {
-template <typename T>
-struct is_messageable;
-template <>
-struct is_messageable<o2::mft::TrackCA> : std::true_type {
-};
 
 template <typename T>
 struct is_messageable;
 template <>
 struct is_messageable<o2::mft::TrackLTF> : std::true_type {
+};
+
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::mft::TrackLTFL> : std::true_type {
 };
 
 } // namespace framework

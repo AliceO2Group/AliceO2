@@ -36,7 +36,7 @@ AltroDecoderError::ErrorType_t AltroDecoder::decode(RawReaderMemory& rawreader, 
     gsl::span<const uint32_t> tmp(payloadwords.data(), payloadwords.size());
     mRCUTrailer.constructFromRawPayload(tmp);
   } catch (RCUTrailer::Error& e) {
-    LOG(ERROR) << "RCU trailer error" << (int)e.getErrorType();
+    // LOG(ERROR) << "RCU trailer error" << (int)e.getErrorType();
     mOutputHWErrors.emplace_back(mddl, kGeneralSRUErr, static_cast<char>(e.getErrorType())); //assign general SRU header errors to non-existing FEE 15
     return AltroDecoderError::RCU_TRAILER_ERROR;
   }
@@ -45,7 +45,8 @@ AltroDecoderError::ErrorType_t AltroDecoder::decode(RawReaderMemory& rawreader, 
   try {
     readChannels(payloadwords, rawFitter, currentCellContainer, currentTRUContainer);
   } catch (AltroDecoderError::ErrorType_t e) {
-    LOG(ERROR) << "Altro decoding error " << e;
+    // LOG(ERROR) << "Altro decoding error " << e;
+    mOutputHWErrors.emplace_back(mddl, kGeneralTRUErr, static_cast<char>(e)); //assign general SRU header errors to non-existing FEE 16
     return e;
   }
   return AltroDecoderError::kOK;
