@@ -95,9 +95,9 @@ void VisualisationEvent::fromJson(std::string json)
   tree.Parse(json.c_str());
 
   auto version = 1;
-  if(tree.HasMember("fileVersion")) {
-      rapidjson::Value& fileVersion = tree["fileVersion"];
-      version = fileVersion.GetInt();
+  if (tree.HasMember("fileVersion")) {
+    rapidjson::Value& fileVersion = tree["fileVersion"];
+    version = fileVersion.GetInt();
   }
 
   rapidjson::Value& trackCount = tree["trackCount"];

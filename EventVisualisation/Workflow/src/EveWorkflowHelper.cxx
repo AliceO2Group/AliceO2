@@ -30,7 +30,6 @@
 
 using namespace o2::event_visualisation;
 
-
 void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
                                      GID::mask_t maskCl, GID::mask_t maskTrk, GID::mask_t maskMatch)
 {
@@ -55,7 +54,7 @@ void EveWorkflowHelper::draw(std::string jsonPath, int numberOfFiles, int number
     const auto& gid = mTrackSet.trackGID[it];
     auto tim = mTrackSet.trackTime[it];
 
-    switch(gid.getSource()) {
+    switch (gid.getSource()) {
       case GID::TPC:
         drawTPC(gid, tim);
         break;
@@ -77,7 +76,6 @@ void EveWorkflowHelper::draw(std::string jsonPath, int numberOfFiles, int number
       default:
         LOG(INFO) << "Track type " << gid.getSource() << " not handled";
     }
-
   }
   FileProducer producer(jsonPath, numberOfFiles);
   mEvent.toFile(producer.newFileName());
@@ -117,10 +115,10 @@ std::vector<PNT> EveWorkflowHelper::getTrackPoints(const o2::track::TrackPar& tr
       return pnts;
     }
     xyz = tp.getXYZGlo();
-    if(xyz.Z() < minZ) {
+    if (xyz.Z() < minZ) {
       return pnts;
     }
-    if(xyz.Z() > maxZ) {
+    if (xyz.Z() > maxZ) {
       return pnts;
     }
     pnts.emplace_back(PNT{xyz.X(), xyz.Y(), xyz.Z()});
@@ -128,19 +126,18 @@ std::vector<PNT> EveWorkflowHelper::getTrackPoints(const o2::track::TrackPar& tr
   return pnts;
 }
 
-
 template <typename Functor>
 void EveWorkflowHelper::addTrackToEvent(Functor source, GID gid, float trackTime, float dz)
 {
   const auto& tr = source(gid);
 
   auto vTrack = mEvent.addTrack({.time = trackTime,
-                                  .charge = tr.getCharge(),
-                                  .PID = tr.getPID(),
-                                  .startXYZ = {tr.getX(), tr.getY(), tr.getZ()},
-                                  .phi = tr.getPhi(),
-                                  .theta = tr.getTheta(),
-                                  .source = (o2::dataformats::GlobalTrackID::Source)gid.getSource()});
+                                 .charge = tr.getCharge(),
+                                 .PID = tr.getPID(),
+                                 .startXYZ = {tr.getX(), tr.getY(), tr.getZ()},
+                                 .phi = tr.getPhi(),
+                                 .theta = tr.getTheta(),
+                                 .source = (o2::dataformats::GlobalTrackID::Source)gid.getSource()});
   auto pnts = getTrackPoints(tr, minmaxR[gid.getSource()].first, minmaxR[gid.getSource()].second, 4);
 
   for (size_t ip = 0; ip < pnts.size(); ip++) {
@@ -160,7 +157,7 @@ void EveWorkflowHelper::prepareITSClusters(const o2::itsmft::TopologyDictionary&
   }
 }
 
-void EveWorkflowHelper::prepareMFTClusters(const o2::itsmft::TopologyDictionary& dict)  // do we also have something as ITS...dict?
+void EveWorkflowHelper::prepareMFTClusters(const o2::itsmft::TopologyDictionary& dict) // do we also have something as ITS...dict?
 {
   const auto& MFTClusterROFRec = this->mRecoCont.getMFTClustersROFRecords();
   const auto& clusMFT = this->mRecoCont.getMFTClusters();
@@ -171,7 +168,6 @@ void EveWorkflowHelper::prepareMFTClusters(const o2::itsmft::TopologyDictionary&
     o2::mft::ioutils::convertCompactClusters(clusMFT, pattIt, this->mMFTClustersArray, dict);
   }
 }
-
 
 void EveWorkflowHelper::drawITSTPC(GID gid, float trackTime)
 {
@@ -194,7 +190,6 @@ void EveWorkflowHelper::drawITSTPCTOF(GID gid, float trackTime)
   drawTPCClusters(gidTPC, trackTime);
 }
 
-
 void EveWorkflowHelper::drawITSClusters(GID gid, float trackTime)
 {
   const auto& trc = mRecoCont.getITSTrack(gid);
@@ -202,12 +197,11 @@ void EveWorkflowHelper::drawITSClusters(GID gid, float trackTime)
   int ncl = trc.getNumberOfClusters();
   int offset = trc.getFirstClusterEntry();
   for (int icl = 0; icl < ncl; icl++) {
-    const auto& pnt = mITSClustersArray[refs[icl+offset]];
-    const auto glo = mITSGeom->getMatrixT2G(pnt.getSensorID()) *pnt.getXYZ() ;
-    drawPoint(glo.X(),glo.Y(),glo.Z(), trackTime);
+    const auto& pnt = mITSClustersArray[refs[icl + offset]];
+    const auto glo = mITSGeom->getMatrixT2G(pnt.getSensorID()) * pnt.getXYZ();
+    drawPoint(glo.X(), glo.Y(), glo.Z(), trackTime);
   }
 }
-
 
 // TPC cluseters for given TPC track (gid)
 void EveWorkflowHelper::drawTPCClusters(GID gid, float trackTime)
@@ -217,7 +211,7 @@ void EveWorkflowHelper::drawTPCClusters(GID gid, float trackTime)
   auto mTPCClusterIdxStruct = &mRecoCont.getTPCClusters();
   const auto& elParam = o2::tpc::ParameterElectronics::Instance();
 
-  float clusterTimeBinOffset = trc.getTime0();   // in in time beans time assigned to track - primary vertex
+  float clusterTimeBinOffset = trc.getTime0(); // in in time beans time assigned to track - primary vertex
   std::unique_ptr<gpu::TPCFastTransform> fastTransform = (o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 
   // store the TPC cluster positions
@@ -226,8 +220,8 @@ void EveWorkflowHelper::drawTPCClusters(GID gid, float trackTime)
     const auto& clTPC = trc.getCluster(mTPCTracksClusIdx, iCl, *mTPCClusterIdxStruct, sector, row);
 
     std::array<float, 3> xyz;
-    fastTransform->TransformIdeal(sector, row, clTPC.getPad(), clTPC.getTime(), xyz[0], xyz[1], xyz[2], clusterTimeBinOffset);  // in sector coordinate
-    o2::math_utils::rotateZ(xyz, o2::math_utils::sector2Angle(sector%o2::tpc::SECTORSPERSIDE) ); // lab coordinate (global)
+    fastTransform->TransformIdeal(sector, row, clTPC.getPad(), clTPC.getTime(), xyz[0], xyz[1], xyz[2], clusterTimeBinOffset); // in sector coordinate
+    o2::math_utils::rotateZ(xyz, o2::math_utils::sector2Angle(sector % o2::tpc::SECTORSPERSIDE));                              // lab coordinate (global)
     mEvent.addCluster(xyz[0], xyz[1], xyz[2], trackTime);
   }
 }
@@ -239,7 +233,7 @@ void EveWorkflowHelper::drawMFTClusters(GID gid, float trackTime)
   auto offset = mftTrack.getExternalClusterIndexOffset(); // first external cluster index offset:
   auto refs = mRecoCont.getMFTTracksClusterRefs();        // list of references to clusters, offset:offset+no
   for (int icl = noOfClusters - 1; icl > -1; --icl) {
-    const auto& thisCluster = mMFTClustersArray[refs[offset+icl]];
+    const auto& thisCluster = mMFTClustersArray[refs[offset + icl]];
     drawPoint(thisCluster.getX(), thisCluster.getY(), thisCluster.getZ(), trackTime);
   }
 }
@@ -254,7 +248,7 @@ void EveWorkflowHelper::drawTPC(GID gid, float trackTime)
                                  .phi = tr.getPhi(),
                                  .theta = tr.getTheta(),
                                  .source = GID::TPC});
-  auto pnts = getTrackPoints(tr, minmaxR[gid.getSource()].first, minmaxR[gid.getSource()].second, 4,  -250, 250);
+  auto pnts = getTrackPoints(tr, minmaxR[gid.getSource()].first, minmaxR[gid.getSource()].second, 4, -250, 250);
   float dz = 0.0;
   for (size_t ip = 0; ip < pnts.size(); ip++) {
     vTrack->addPolyPoint(pnts[ip][0], pnts[ip][1], pnts[ip][2] + dz);
@@ -266,13 +260,13 @@ void EveWorkflowHelper::drawITS(GID gid, float trackTime)
 {
   const auto& tr = mRecoCont.getITSTrack(gid);
   auto vTrack = mEvent.addTrack({.time = static_cast<float>(trackTime * 8 * o2::constants::lhc::LHCBunchSpacingMUS),
-                                  .charge = tr.getCharge(),
-                                  .PID = tr.getPID(),
-                                  .startXYZ = {tr.getX(), tr.getY(), tr.getZ()},
-                                  .phi = tr.getPhi(),
-                                  .theta = tr.getTheta(),
-                                  .source = GID::ITS});
-  auto pnts = getTrackPoints(tr, minmaxR[gid.getSource()].first, minmaxR[gid.getSource()].second, 0.1,  -250, 250);
+                                 .charge = tr.getCharge(),
+                                 .PID = tr.getPID(),
+                                 .startXYZ = {tr.getX(), tr.getY(), tr.getZ()},
+                                 .phi = tr.getPhi(),
+                                 .theta = tr.getTheta(),
+                                 .source = GID::ITS});
+  auto pnts = getTrackPoints(tr, minmaxR[gid.getSource()].first, minmaxR[gid.getSource()].second, 0.1, -250, 250);
   float dz = 0.0;
   for (size_t ip = 0; ip < pnts.size(); ip++) {
     vTrack->addPolyPoint(pnts[ip][0], pnts[ip][1], pnts[ip][2] + dz);
@@ -280,32 +274,30 @@ void EveWorkflowHelper::drawITS(GID gid, float trackTime)
   drawITSClusters(gid, trackTime);
 }
 
-
-
-void EveWorkflowHelper::drawMFT(GID gid, float trackTime) {
-    auto tr = mRecoCont.getMFTTrack(gid);
+void EveWorkflowHelper::drawMFT(GID gid, float trackTime)
+{
+  auto tr = mRecoCont.getMFTTrack(gid);
 
   std::vector<float> zPositions = {-40.f, -45.f, -65.f, -85.f}; // Selected z positions to draw the track
-  tr.propagateToZlinear(zPositions[0]); // Fix the track starting position.
-
+  tr.propagateToZlinear(zPositions[0]);                         // Fix the track starting position.
 
   auto vTrack = mEvent.addTrack({.time = static_cast<float>(trackTime),
-                                          .charge = (int)tr.getCharge(),
-                                          .PID = o2::track::PID::Muon,
-                                          .startXYZ = {(float)tr.getX(), (float)tr.getY(), (float)tr.getZ()},
-                                          .phi = (float)tr.getPhi(),
-                                          .theta = (float)tr.getTanl(),
-                                          .source = GID::MFT});
+                                 .charge = (int)tr.getCharge(),
+                                 .PID = o2::track::PID::Muon,
+                                 .startXYZ = {(float)tr.getX(), (float)tr.getY(), (float)tr.getZ()},
+                                 .phi = (float)tr.getPhi(),
+                                 .theta = (float)tr.getTanl(),
+                                 .source = GID::MFT});
   for (auto zPos : zPositions) {
     tr.propagateToZlinear(zPos);
     vTrack->addPolyPoint((float)tr.getX(), (float)tr.getY(), (float)tr.getZ());
   }
-    drawMFTClusters(gid, trackTime);
+  drawMFTClusters(gid, trackTime);
 }
 
-
-void EveWorkflowHelper::drawMCH(GID gid, float trackTime) {
-    LOG(INFO) << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++MCH ";
+void EveWorkflowHelper::drawMCH(GID gid, float trackTime)
+{
+  LOG(INFO) << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++MCH ";
 }
 
 EveWorkflowHelper::EveWorkflowHelper()
@@ -313,12 +305,5 @@ EveWorkflowHelper::EveWorkflowHelper()
   this->mMFTGeom = o2::mft::GeometryTGeo::Instance();
   this->mMFTGeom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
   this->mITSGeom = o2::its::GeometryTGeo::Instance();
-  this->mITSGeom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,o2::math_utils::TransformType::L2G));
+  this->mITSGeom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::L2G));
 }
-
-
-
-
-
-
-

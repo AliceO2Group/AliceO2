@@ -67,8 +67,8 @@ class EveWorkflowHelper
   }};
 
  public:
-  EveWorkflowHelper() ;
-  static std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ=25000, float maxZ=25000);
+  EveWorkflowHelper();
+  static std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ = 25000, float maxZ = 25000);
   void selectTracks(const CalibObjectsConst* calib, GID::mask_t maskCl,
                     GID::mask_t maskTrk, GID::mask_t maskMatch);
   template <typename Functor>
@@ -84,11 +84,11 @@ class EveWorkflowHelper
   void drawTPCClusters(GID gid, float trackTime);
 
   void drawMFTClusters(GID gid, float trackTime);
-  void drawPoint(float x, float y, float z, float time) {  mEvent.addCluster(x, y, z, time);}
-  void drawPoint(o2::BaseCluster<float> pnt, float time) {  mEvent.addCluster(pnt.getX(), pnt.getY(), pnt.getZ(), time);}
-  void drawPoint(const float xyz[], float time){  mEvent.addCluster(xyz[0],xyz[1],xyz[2], time);}
-  void prepareITSClusters(const o2::itsmft::TopologyDictionary& dict);      // fills mITSClustersArray
-  void prepareMFTClusters(const o2::itsmft::TopologyDictionary& dict);      // fills mMFTClustersArray
+  void drawPoint(float x, float y, float z, float time) { mEvent.addCluster(x, y, z, time); }
+  void drawPoint(o2::BaseCluster<float> pnt, float time) { mEvent.addCluster(pnt.getX(), pnt.getY(), pnt.getZ(), time); }
+  void drawPoint(const float xyz[], float time) { mEvent.addCluster(xyz[0], xyz[1], xyz[2], time); }
+  void prepareITSClusters(const o2::itsmft::TopologyDictionary& dict); // fills mITSClustersArray
+  void prepareMFTClusters(const o2::itsmft::TopologyDictionary& dict); // fills mMFTClustersArray
 
   o2::globaltracking::RecoContainer mRecoCont;
   o2::globaltracking::RecoContainer& getRecoContainer() { return mRecoCont; }

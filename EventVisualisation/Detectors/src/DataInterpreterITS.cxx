@@ -85,7 +85,7 @@ VisualisationEvent DataInterpreterITS::interpretDataForType(TObject* data, EVisu
     for (const auto& c : mClusters) {
       const auto& gloC = c.getXYZGloRot(*gman);
       float xyz[3] = {gloC.X(), gloC.Y(), gloC.Z()};
-      ret_event.addCluster(xyz,0);
+      ret_event.addCluster(xyz, 0);
     }
   } else if (type == ESD) {
     TFile* trackFile = (TFile*)list->At(0);

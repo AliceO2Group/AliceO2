@@ -105,7 +105,7 @@ void Initializer::setup()
   gEve->AddEvent(&EventManager::getInstance());
   eventManager.getDataSource()->refresh();
 
-  if(Options::Instance()->online()) {
+  if (Options::Instance()->online()) {
     frame->StartTimer();
   } else {
     frame->DoFirstEvent();
