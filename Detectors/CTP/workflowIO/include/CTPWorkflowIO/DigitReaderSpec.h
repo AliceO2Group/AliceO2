@@ -9,10 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_CTP_DIGITREADER
+#define O2_CTP_DIGITREADER
+
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/OutputSpec.h"
-#include <string>
-#include <vector>
 
 namespace o2
 {
@@ -20,9 +20,9 @@ namespace o2
 namespace ctp
 {
 
-using OutputSpec = framework::OutputSpec;
-
 framework::DataProcessorSpec getDigitsReaderSpec(bool propagateMC = true);
 
 } // namespace ctp
 } // end namespace o2
+
+#endif
