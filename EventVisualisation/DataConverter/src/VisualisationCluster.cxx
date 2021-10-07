@@ -24,9 +24,10 @@ namespace o2
 namespace event_visualisation
 {
 
-VisualisationCluster::VisualisationCluster(float XYZ[])
+VisualisationCluster::VisualisationCluster(float XYZ[], float time)
 {
   setCoordinates(XYZ);
+  this->mTime = time;
 }
 
 void VisualisationCluster::setCoordinates(float xyz[3])

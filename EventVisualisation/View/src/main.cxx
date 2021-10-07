@@ -67,7 +67,7 @@ int main(int argc, char** argv)
   //gEve->SpawnNewViewer("3D View", "");  exit(0);
 
   // Initialize o2 Event Visualisation
-  Initializer::setup(Options::Instance()->online() ? EventManager::SourceOnline : EventManager::SourceOffline);
+  Initializer::setup();
 
   // Start the application
   app->Run(kTRUE);

@@ -35,7 +35,7 @@ class Initializer
 {
  public:
   /// Default constructor
-  static void setup(const EventManager::EDataSource defaultDataSource);
+  static void setup();
 
  private:
   /// Loads geometry for all detectors

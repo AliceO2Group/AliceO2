@@ -55,12 +55,12 @@ class VisualisationTrack
   /// Simplifies passing parameters to constructor of VisualisationTrack
   /// by providing their names
   struct VisualisationTrackVO {
-    float time;
-    int charge;
-    int PID;
+    float time = 0;
+    int charge = 0;
+    int PID = 0;
     float startXYZ[3];
-    float phi;
-    float theta;
+    float phi = 0;
+    float theta = 0;
     o2::dataformats::GlobalTrackID::Source source;
   };
   // Constructor with properties initialisation

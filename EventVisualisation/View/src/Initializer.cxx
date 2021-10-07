@@ -50,7 +50,7 @@ namespace o2
 namespace event_visualisation
 {
 
-void Initializer::setup(EventManager::EDataSource defaultDataSource)
+void Initializer::setup()
 {
   TEnv settings;
   ConfigurationManager::getInstance().getConfig(settings);
@@ -62,7 +62,7 @@ void Initializer::setup(EventManager::EDataSource defaultDataSource)
   auto& eventManager = EventManager::getInstance();
   eventManager.setCdbPath(ocdbStorage);
 
-  eventManager.setDataSourceType(defaultDataSource);
+  eventManager.setDataSourceType(o2::event_visualisation::EventManager::SourceOnline);
   eventManager.Open();
   if (Options::Instance()->tpc()) {
     eventManager.getDataSource()->registerDetector(new DataReaderTPC(new DataInterpreterTPC()), EVisualisationGroup::TPC);
@@ -74,9 +74,7 @@ void Initializer::setup(EventManager::EDataSource defaultDataSource)
     eventManager.getDataSource()->registerDetector(new DataReaderJSON(nullptr), EVisualisationGroup::JSON);
   }
 
-
   GeometryManager::getInstance().setR2Geometry(std::string(settings.GetValue("simple.geom.default", "R3")).compare("R2") == 0);
-
   setupGeometry();
 
   gSystem->ProcessEvents();
@@ -103,12 +101,15 @@ void Initializer::setup(EventManager::EDataSource defaultDataSource)
   setupCamera();
 
   // Temporary:
-  // For the time being we draw single random event on startup.
   // Later this will be triggered by button, and finally moved to configuration.
   gEve->AddEvent(&EventManager::getInstance());
   eventManager.getDataSource()->refresh();
-  frame->DoFirstEvent();
-  frame->StartTimer();
+
+  if(Options::Instance()->online()) {
+    frame->StartTimer();
+  } else {
+    frame->DoFirstEvent();
+  }
 }
 
 void Initializer::setupGeometry()

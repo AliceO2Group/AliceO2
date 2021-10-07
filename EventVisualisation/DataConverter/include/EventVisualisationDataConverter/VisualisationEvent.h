@@ -76,16 +76,16 @@ class VisualisationEvent
 
   // Adds visualisation cluster inside visualisation event
 
-  VisualisationCluster& addCluster(float XYZ[])
+  VisualisationCluster& addCluster(float XYZ[], float time)
   {
-    mClusters.emplace_back(XYZ);
+    mClusters.emplace_back(XYZ, time);
     return mClusters.back();
   }
 
-  VisualisationCluster& addCluster(float X, float Y, float Z)
+  VisualisationCluster& addCluster(float X, float Y, float Z, float time)
   {
     float pos[] = {X, Y, Z};
-    mClusters.emplace_back(pos);
+    mClusters.emplace_back(pos, time);
     return mClusters.back();
   }
 
