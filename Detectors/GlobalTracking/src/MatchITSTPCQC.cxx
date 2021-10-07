@@ -14,8 +14,8 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "Framework/InputSpec.h"
 #include "ReconstructionDataFormats/TrackParametrization.h"
-#include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
+#include "DetectorsBase/GeometryManager.h"
 
 using namespace o2::globaltracking;
 
@@ -74,9 +74,9 @@ bool MatchITSTPCQC::init()
   mDataRequest = std::make_shared<o2::globaltracking::DataRequest>();
   mDataRequest->requestTracks(mSrc, mUseMC);
 
-  o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP();
-  o2::base::Propagator::Instance()->getNominalBz();
+  o2::base::GeometryManager::loadGeometry(mGeomFileName);
+  o2::base::Propagator::initFieldFromGRP(mGRPFileName);
+  mBz = o2::base::Propagator::Instance()->getNominalBz();
 
   return true;
 }
@@ -146,8 +146,8 @@ bool MatchITSTPCQC::selectTrack(o2::tpc::TrackTPC const& track)
 void MatchITSTPCQC::finalize()
 {
 
-  mPtTPC->Scale(mNTPCTracksInv);
   mFractionITSTPCmatch->Divide(mPt, mPtTPC, 1, 1, "b");
+  mPtTPC->Scale(mNTPCTracksInv);
   mPt->Scale(mNITSTPCTracksInv);
   mEta->Scale(mNITSTPCTracksInv);
   mChi2Matching->Scale(mNITSTPCTracksInv);
