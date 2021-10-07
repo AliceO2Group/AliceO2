@@ -480,7 +480,10 @@ void GPUbenchmark<chunk_t>::readConcurrent(SplitLevel sl, int nRegions)
                                      1, // single Block
                                      nThreads,
                                      capacity);
-        for (auto iResult{0}; iResult < results.size(); ++iResult) {
+        std::cout << "    │   · Per chunk throughput:\n" for (auto iResult{0}; iResult < results.size(); ++iResult)
+        {
+          auto throughput = 1e3 * capacity * sizeof(chunk_t) / (results[iResult] * GB * nState.getNKernelLaunches());
+          std::cout << "    │     ├ " << iResult << "/" << results.size() << ": \e[1m" << throughput << " GB/s \e[0m (" << results[iResult] << " ms)\n";
           mResultWriter.get()->storeBenchmarkEntry(Test::Read, iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
         }
         mResultWriter.get()->snapshotBenchmark();
@@ -506,7 +509,10 @@ void GPUbenchmark<chunk_t>::readConcurrent(SplitLevel sl, int nRegions)
                                      nBlocks,
                                      nThreads,
                                      capacity);
+        std::cout << "    │   · Per chunk throughput:\n";
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
+          auto throughput = 1e3 * capacity * sizeof(chunk_t) / (results[iResult] * GB * nState.getNKernelLaunches());
+          std::cout << "    │     ├ " << iResult << "/" << results.size() << ": \e[1m" << throughput << " GB/s \e[0m (" << results[iResult] << " ms)\n";
           mResultWriter.get()->storeBenchmarkEntry(Test::Read, iResult, results[iResult], mState.chunkReservedGB, mState.getNKernelLaunches());
         }
         mResultWriter.get()->snapshotBenchmark();
