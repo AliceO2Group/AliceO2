@@ -40,47 +40,23 @@ namespace gpu
 {
 ////////////
 // Kernels
-////////////
 
-///////
 // Read
 template <class chunk_t>
-__global__ void readChunkSBKernel(
+__global__ void read_k(
   chunk_t* chunkPtr,
   size_t chunkSize)
 {
-  chunk_t sink{0}; // local memory -> excluded from bandwidth accounting
-  for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
-    sink = chunkPtr[i]; // 1 read operation, performed "chunkSize" times
-  }
-  chunkPtr[threadIdx.x] = sink; // writing done once
-}
-
-template <class chunk_t>
-__global__ void readChunkMBKernel(
-  chunk_t* chunkPtr,
-  size_t chunkSize)
-{
-  chunk_t sink{0}; // local memory -> excluded from bandwidth accounting
+  chunk_t sink{0};
   for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
-    sink = chunkPtr[i]; // 1 read operation, performed "chunkSize" times
+    sink = chunkPtr[i];
   }
   chunkPtr[threadIdx.x] = sink;
 }
 
 // Write
 template <class chunk_t>
-__global__ void writeChunkSBKernel(
-  chunk_t* chunkPtr,
-  size_t chunkSize)
-{
-  for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
-    chunkPtr[i] = 0;
-  }
-}
-
-template <class chunk_t>
-__global__ void writeChunkMBKernel(
+__global__ void write_k(
   chunk_t* chunkPtr,
   size_t chunkSize)
 {
@@ -91,23 +67,27 @@ __global__ void writeChunkMBKernel(
 
 // Copy
 template <class chunk_t>
-__global__ void copyChunkSBKernel(
-  chunk_t* chunkPtr,
-  size_t chunkSize)
-{
-  for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
-    chunkPtr[chunkSize - i - 1] = chunkPtr[i];
-  }
-}
-
-template <class chunk_t>
-__global__ void copyChunkMBKernel(
+__global__ void copy_k(
   chunk_t* chunkPtr,
   size_t chunkSize)
 {
   for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
     chunkPtr[chunkSize - i - 1] = chunkPtr[i];
   }
+}
+
+// Random read
+template <class chunk_t>
+__global__ void rand_read_k(
+  chunk_t* chunkPtr,
+  size_t chunkSize)
+{
+  chunk_t sink{0};
+  BSDRnd r{};
+  for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
+    sink = chunkPtr[i];
+  }
+  chunkPtr[threadIdx.x] = sink; // writing done once
 }
 } // namespace gpu
 
@@ -353,7 +333,7 @@ void GPUbenchmark<chunk_t>::globalInit()
   mState.nMaxThreadsPerBlock = props.maxThreadsPerMultiProcessor;
   mState.nMaxThreadsPerDimension = props.maxThreadsDim[0];
   mState.scratchSize = static_cast<long int>(mOptions.freeMemoryFractionToAllocate * free);
-  std::cout << ">>> Running on: \033[1;31m" << props.name << "\e[0m" << std::endl;
+  std::cout << " ◈ Running on: \033[1;31m" << props.name << "\e[0m" << std::endl;
 
   // Allocate scratch on GPU
   GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&mState.scratchPtr), mState.scratchSize));
@@ -361,19 +341,19 @@ void GPUbenchmark<chunk_t>::globalInit()
   mState.computeScratchPtrs();
   GPUCHECK(cudaMemset(mState.scratchPtr, 0, mState.scratchSize))
 
-  std::cout << "    ├ Buffer type: \e[1m" << getType<chunk_t>() << "\e[0m" << std::endl
-            << "    ├ Allocated: " << std::setprecision(2) << bytesToGB(mState.scratchSize) << "/" << std::setprecision(2) << bytesToGB(mState.totalMemory)
+  std::cout << "   ├ Buffer type: \e[1m" << getType<chunk_t>() << "\e[0m" << std::endl
+            << "   ├ Allocated: " << std::setprecision(2) << bytesToGB(mState.scratchSize) << "/" << std::setprecision(2) << bytesToGB(mState.totalMemory)
             << "(GB) [" << std::setprecision(3) << (100.f) * (mState.scratchSize / (float)mState.totalMemory) << "%]\n"
-            << "    ├ Number of streams allocated: " << mState.getStreamsPoolSize() << "\n"
-            << "    ├ Number of scratch chunks: " << mState.getMaxChunks() << " of " << mOptions.chunkReservedGB << " GB each\n"
-            << "    └ Each chunk can store up to: " << mState.getChunkCapacity() << " elements" << std::endl
+            << "   ├ Number of streams allocated: " << mState.getStreamsPoolSize() << "\n"
+            << "   ├ Number of scratch chunks: " << mState.getMaxChunks() << " of " << mOptions.chunkReservedGB << " GB each\n"
+            << "   └ Each chunk can store up to: " << mState.getChunkCapacity() << " elements" << std::endl
             << std::endl;
 }
 
 template <class chunk_t>
 void GPUbenchmark<chunk_t>::initTest(Test test)
 {
-  std::cout << ">>>\033[1;33m " << getType<chunk_t>() << "\033[0m " << test << " benchmarks with \e[1m" << mOptions.nTests << "\e[0m runs and \e[1m" << mOptions.kernelLaunches << "\e[0m kernel launches" << std::endl;
+  std::cout << " ◈ \033[1;33m" << getType<chunk_t>() << "\033[0m " << test << " benchmarks with \e[1m" << mOptions.nTests << "\e[0m runs and \e[1m" << mOptions.kernelLaunches << "\e[0m kernel launches" << std::endl;
   GPUCHECK(cudaSetDevice(mOptions.deviceId));
 }
 
@@ -390,34 +370,34 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
 
   switch (test) {
     case Test::Read: {
-      kernel = (config == KernelConfig::Single) ? &gpu::readChunkSBKernel<chunk_t> : &gpu::readChunkMBKernel<chunk_t>;
+      kernel = &gpu::read_k<chunk_t>;
       break;
     }
     case Test::Write: {
-      kernel = (config == KernelConfig::Single) ? &gpu::writeChunkSBKernel<chunk_t> : &gpu::writeChunkMBKernel<chunk_t>;
+      kernel = &gpu::write_k<chunk_t>;
       break;
     }
     case Test::Copy: {
-      kernel = (config == KernelConfig::Single) ? &gpu::copyChunkSBKernel<chunk_t> : &gpu::copyChunkMBKernel<chunk_t>;
+      kernel = &gpu::copy_k<chunk_t>;
       break;
     }
   }
 
   for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-    std::cout << "    ├ " << mode << " " << test << " " << config << " block(s) (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
-              << "    │   - blocks per kernel: " << nBlocks << "/" << dimGrid << "\n"
-              << "    │   - threads per block: " << nThreads << "\n"
-              << "    │   - per chunk throughput:\n";
+    std::cout << "   ├ " << mode << " " << test << " " << config << " block(s) (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
+              << "   │   - blocks per kernel: " << nBlocks << "/" << dimGrid << "\n"
+              << "   │   - threads per block: " << nThreads << "\n"
+              << "   │   - per chunk throughput:\n";
     if (mode == Mode::Sequential) {
       for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
         auto result = runSequential(kernel,
                                     mState.getNKernelLaunches(),
                                     iChunk,
-                                    dimGrid,
+                                    nBlocks,
                                     nThreads, // args...
                                     capacity);
         auto throughput = computeThroughput(test, result, mState.chunkReservedGB, mState.getNKernelLaunches());
-        std::cout << "    │     " << ((mState.getMaxChunks() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << mState.getMaxChunks() << ": \e[1m" << throughput << " GB/s \e[0m (" << result * 1e-3 << " s)\n";
+        std::cout << "   │     " << ((mState.getMaxChunks() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << mState.getMaxChunks() << ": \e[1m" << throughput << " GB/s \e[0m (" << result * 1e-3 << " s)\n";
         mResultWriter.get()->storeBenchmarkEntry(test, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
       }
     } else {
@@ -430,7 +410,7 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
                                    capacity);
       for (auto iChunk{0}; iChunk < results.size(); ++iChunk) {
         auto throughput = computeThroughput(test, results[iChunk], mState.chunkReservedGB, mState.getNKernelLaunches());
-        std::cout << "    │     " << ((results.size() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << results.size() << ": \e[1m" << throughput << " GB/s \e[0m (" << results[iChunk] * 1e-3 << " s)\n";
+        std::cout << "   │     " << ((results.size() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << results.size() << ": \e[1m" << throughput << " GB/s \e[0m (" << results[iChunk] * 1e-3 << " s)\n";
         mResultWriter.get()->storeBenchmarkEntry(test, iChunk, results[iChunk], mState.chunkReservedGB, mState.getNKernelLaunches());
       }
     }
@@ -441,7 +421,7 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
 template <class chunk_t>
 void GPUbenchmark<chunk_t>::finalizeTest(Test test)
 {
-  std::cout << "    └\033[1;32m done\033[0m" << std::endl;
+  std::cout << "   └\033[1;32m done\033[0m" << std::endl;
 }
 
 template <class chunk_t>
