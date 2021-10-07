@@ -1184,7 +1184,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     ZoneScopedN("forward inputs");
     assert(record.size() == currentSetOfInputs.size());
     // we collect all messages per forward in a map and send them together
-    std::unordered_map<std::string, FairMQParts> forwardedParts;
+    std::vector<FairMQParts> forwardedParts;
+    forwardedParts.resize(spec->forwards.size());
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
 
@@ -1211,55 +1212,70 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         continue;
       }
 
-      for (auto& part : currentSetOfInputs[ii]) {
-        for (auto const& forward : spec->forwards) {
-          if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) == false || (dph->startTime % forward.maxTimeslices) != forward.timeslice) {
-            continue;
-          }
-          auto& header = part.header;
-          auto& payload = part.payload;
+      int cachedForwardingChoice = -1;
 
-          if (header.get() == nullptr) {
-            // FIXME: this should not happen, however it's actually harmless and
-            //        we can simply discard it for the moment.
-            // LOG(ERROR) << "Missing header! " << dh->dataDescription;
-            continue;
-          }
-          auto fdph = o2::header::get<DataProcessingHeader*>(header.get()->GetData());
-          if (fdph == nullptr) {
-            LOG(ERROR) << "Forwarded data does not have a DataProcessingHeader";
-            continue;
-          }
-          auto fdh = o2::header::get<DataHeader*>(header.get()->GetData());
-          if (fdh == nullptr) {
-            LOG(ERROR) << "Forwarded data does not have a DataHeader";
-            continue;
-          }
+      for (size_t pi = 0; pi < currentSetOfInputs[ii].size(); ++pi) {
+        auto& part = currentSetOfInputs[ii][pi];
+        auto& header = part.header;
+        auto& payload = part.payload;
+        if (header.get() == nullptr) {
+          // FIXME: this should not happen, however it's actually harmless and
+          //        we can simply discard it for the moment.
+          // LOG(ERROR) << "Missing header! " << dh->dataDescription;
+          continue;
+        }
 
-          if (copy) {
-            auto&& newHeader = header->GetTransport()->CreateMessage();
-            auto&& newPayload = header->GetTransport()->CreateMessage();
-            newHeader->Copy(*header);
-            newPayload->Copy(*payload);
-
-            forwardedParts[forward.channel].AddPart(std::move(newHeader));
-            forwardedParts[forward.channel].AddPart(std::move(newPayload));
+        auto fdph = o2::header::get<DataProcessingHeader*>(header.get()->GetData());
+        if (fdph == nullptr) {
+          LOG(ERROR) << "Data is missing DataProcessingHeader";
+          continue;
+        }
+        auto fdh = o2::header::get<DataHeader*>(header.get()->GetData());
+        if (fdh == nullptr) {
+          LOG(ERROR) << "Data is missing DataHeader";
+          continue;
+        }
+        // We need to find the forward route only for the first
+        // part of a split payload. All the others will use the same.
+        if (fdh->splitPayloadIndex == 0) {
+          cachedForwardingChoice = -1;
+          for (size_t fi = 0; fi < spec->forwards.size(); fi++) {
+            auto& forward = spec->forwards[fi];
+            if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) == false || (dph->startTime % forward.maxTimeslices) != forward.timeslice) {
+              continue;
+            }
+            cachedForwardingChoice = fi;
             break;
-          } else {
-            forwardedParts[forward.channel].AddPart(std::move(header));
-            forwardedParts[forward.channel].AddPart(std::move(payload));
           }
+        }
+        /// We did not find a match. Skip it.
+        if (cachedForwardingChoice == -1) {
+          continue;
+        }
+
+        auto& forward = spec->forwards[cachedForwardingChoice];
+
+        if (copy) {
+          auto&& newHeader = header->GetTransport()->CreateMessage();
+          auto&& newPayload = header->GetTransport()->CreateMessage();
+          newHeader->Copy(*header);
+          newPayload->Copy(*payload);
+
+          forwardedParts[cachedForwardingChoice].AddPart(std::move(newHeader));
+          forwardedParts[cachedForwardingChoice].AddPart(std::move(newPayload));
+        } else {
+          forwardedParts[cachedForwardingChoice].AddPart(std::move(header));
+          forwardedParts[cachedForwardingChoice].AddPart(std::move(payload));
         }
       }
     }
-    for (auto& [channelName, channelParts] : forwardedParts) {
-      if (channelParts.Size() == 0) {
+    for (size_t fi = 0; fi < spec->forwards.size(); fi++) {
+      if (forwardedParts[fi].Size() == 0) {
         continue;
       }
-      assert(channelParts.Size() % 2 == 0);
-      assert(o2::header::get<DataProcessingHeader*>(channelParts.At(0)->GetData()));
+      assert(forwardedParts[fi].Size() % 2 == 0);
       // in DPL we are using subchannel 0 only
-      device->Send(channelParts, channelName, 0);
+      device->Send(forwardedParts[fi], spec->forwards[fi].channel, 0);
     }
   };
 
