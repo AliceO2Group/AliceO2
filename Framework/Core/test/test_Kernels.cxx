@@ -71,11 +71,38 @@ BOOST_AUTO_TEST_CASE(TestSlicingFramework)
 
   std::vector<uint64_t> offsets;
   std::vector<arrow::Datum> slices;
-  auto status = sliceByColumn<int32_t>("x", table, 12, &slices, &offsets);
+  auto status = sliceByColumn<int32_t>("x", "xy", table, 12, &slices, &offsets);
   BOOST_REQUIRE(status.ok());
   BOOST_REQUIRE_EQUAL(slices.size(), 12);
   std::array<int, 12> sizes{0, 4, 1, 0, 1, 2, 0, 0, 0, 0, 0, 0};
   for (auto i = 0u; i < slices.size(); ++i) {
     BOOST_REQUIRE_EQUAL(slices[i].table()->num_rows(), sizes[i]);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(TestSlicingException)
+{
+  TableBuilder builder;
+  auto rowWriter = builder.persist<int32_t, int32_t>({"x", "y"});
+
+  rowWriter(0, 1, 4);
+  rowWriter(0, 1, 5);
+  rowWriter(0, 1, 6);
+  rowWriter(0, 1, 7);
+  rowWriter(0, 2, 7);
+  rowWriter(0, 5, 8);
+  rowWriter(0, 4, 9);
+  rowWriter(0, 6, 10);
+  auto table = builder.finalize();
+
+  std::vector<uint64_t> offsets;
+  std::vector<arrow::Datum> slices;
+  try {
+    auto status = sliceByColumn<int32_t>("x", "xy", table, 12, &slices, &offsets);
+  } catch (RuntimeErrorRef re) {
+    BOOST_REQUIRE_EQUAL(std::string{error_from_ref(re).what}, "Table xy index x is not sorted: next value 4 < previous value 5!");
+    return;
+  } catch (...) {
+    BOOST_FAIL("Slicing should have failed due to unsorted index");
   }
 }

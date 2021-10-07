@@ -252,25 +252,26 @@ struct AnalysisDataProcessorBuilder {
       GroupSlicerIterator& operator=(GroupSlicerIterator const&) = default;
       GroupSlicerIterator& operator=(GroupSlicerIterator&&) = default;
 
-      auto getLabelFromType()
+      template <typename Z>
+      std::string getLabelFromType()
       {
-        if constexpr (soa::is_soa_index_table_t<std::decay_t<G>>::value) {
-          using T = typename std::decay_t<G>::first_t;
+        if constexpr (soa::is_soa_index_table_t<std::decay_t<Z>>::value) {
+          using T = typename std::decay_t<Z>::first_t;
           if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
-            using O = typename framework::pack_element_t<0, typename std::decay_t<G>::originals>;
+            using O = typename framework::pack_element_t<0, typename std::decay_t<Z>::originals>;
             using groupingMetadata = typename aod::MetadataTrait<O>::metadata;
-            return std::string("fIndex") + groupingMetadata::tableLabel();
+            return groupingMetadata::tableLabel();
           } else {
             using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
-            return std::string("fIndex") + groupingMetadata::tableLabel();
+            return groupingMetadata::tableLabel();
           }
-        } else if constexpr (soa::is_type_with_originals_v<std::decay_t<G>>) {
-          using T = typename framework::pack_element_t<0, typename std::decay_t<G>::originals>;
+        } else if constexpr (soa::is_type_with_originals_v<std::decay_t<Z>>) {
+          using T = typename framework::pack_element_t<0, typename std::decay_t<Z>::originals>;
           using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
-          return std::string("fIndex") + groupingMetadata::tableLabel();
+          return groupingMetadata::tableLabel();
         } else {
-          using groupingMetadata = typename aod::MetadataTrait<std::decay_t<G>>::metadata;
-          return std::string("fIndex") + groupingMetadata::tableLabel();
+          using groupingMetadata = typename aod::MetadataTrait<std::decay_t<Z>>::metadata;
+          return groupingMetadata::tableLabel();
         }
       }
 
@@ -282,26 +283,30 @@ struct AnalysisDataProcessorBuilder {
         if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
           groupSelection = &gt.getSelectedRows();
         }
-        auto indexColumnName = getLabelFromType();
+        auto indexColumnName = std::string("fIndex") + getLabelFromType<G>();
         /// prepare slices and offsets for all associated tables that have index
         /// to grouping table
         ///
         auto splitter = [&](auto&& x) {
           using xt = std::decay_t<decltype(x)>;
           constexpr auto index = framework::has_type_at_v<std::decay_t<decltype(x)>>(associated_pack_t{});
-          if (x.size() != 0 && hasIndexTo<std::decay_t<G>>(typename xt::persistent_columns_t{})) {
-            auto result = o2::framework::sliceByColumn(indexColumnName.c_str(),
-                                                       x.asArrowTable(),
-                                                       static_cast<int32_t>(gt.tableSize()),
-                                                       &groups[index],
-                                                       &offsets[index],
-                                                       &sizes[index]);
-            if (result.ok() == false) {
-              throw runtime_error("Cannot split collection");
+          if (hasIndexTo<std::decay_t<G>>(typename xt::persistent_columns_t{})) {
+            if (x.size() != 0) {
+              auto name = getLabelFromType<decltype(x)>();
+              auto result = o2::framework::sliceByColumn(indexColumnName.c_str(),
+                                                         name.c_str(),
+                                                         x.asArrowTable(),
+                                                         static_cast<int32_t>(gt.tableSize()),
+                                                         &groups[index],
+                                                         &offsets[index],
+                                                         &sizes[index]);
+              if (result.ok() == false) {
+                throw runtime_error("Cannot split collection");
+              }
+              if (groups[index].size() > gt.tableSize()) {
+                throw runtime_error_f("Splitting collection %s resulted in a larger group number (%d) than there is rows in the grouping table (%d).", name.c_str(), groups[index].size(), gt.tableSize());
+              };
             }
-            if (groups[index].size() > gt.tableSize()) {
-              throw runtime_error_f("Splitting collection resulted in a larger group number (%d) than there is rows in the grouping table (%d).", groups[index].size(), gt.tableSize());
-            };
           }
         };
 
@@ -328,13 +333,13 @@ struct AnalysisDataProcessorBuilder {
       }
 
       template <typename B, typename... C>
-      constexpr bool hasIndexTo(framework::pack<C...>&&)
+      constexpr static bool hasIndexTo(framework::pack<C...>&&)
       {
         return (isIndexTo<B, C>() || ...);
       }
 
       template <typename B, typename C>
-      constexpr bool isIndexTo()
+      constexpr static bool isIndexTo()
       {
         if constexpr (soa::is_type_with_binding_v<C>) {
           if constexpr (soa::is_soa_index_table_t<std::decay_t<B>>::value) {
@@ -395,7 +400,10 @@ struct AnalysisDataProcessorBuilder {
       auto prepareArgument()
       {
         constexpr auto index = framework::has_type_at_v<A1>(associated_pack_t{});
-        if (std::get<A1>(*mAt).size() != 0 && hasIndexTo<G>(typename std::decay_t<A1>::persistent_columns_t{})) {
+        if (std::get<A1>(*mAt).size() == 0) {
+          return std::get<A1>(*mAt);
+        }
+        if (hasIndexTo<std::decay_t<G>>(typename std::decay_t<A1>::persistent_columns_t{})) {
           uint64_t pos;
           if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
             pos = (*groupSelection)[position];
@@ -424,10 +432,8 @@ struct AnalysisDataProcessorBuilder {
             typedTable.bindInternalIndicesTo(&std::get<A1>(*mAt));
             return typedTable;
           }
-        } else {
-          return std::get<A1>(*mAt);
         }
-        O2_BUILTIN_UNREACHABLE();
+        return std::get<A1>(*mAt);
       }
 
       std::tuple<A...>* mAt;

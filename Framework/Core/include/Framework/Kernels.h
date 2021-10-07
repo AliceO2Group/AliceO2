@@ -33,6 +33,7 @@ namespace o2::framework
 template <typename T>
 auto sliceByColumn(
   char const* key,
+  char const* target,
   std::shared_ptr<arrow::Table> const& input,
   T fullSize,
   std::vector<arrow::Datum>* slices,
@@ -42,9 +43,24 @@ auto sliceByColumn(
   std::vector<uint64_t>* unassignedOffsets = nullptr)
 {
   arrow::Datum value_counts;
+  auto column = input->GetColumnByName(key);
+  for (auto i = 0; i < column->num_chunks(); ++i) {
+    T prev = 0;
+    T cur = 0;
+    auto array = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(column->chunk(i)->data());
+    for (auto e = 0; e < array.length(); ++e) {
+      if (cur >= 0) {
+        prev = cur;
+      }
+      cur = array.Value(e);
+      if (cur >= 0 && prev > cur) {
+        throw runtime_error_f("Table %s index %s is not sorted: next value %d < previous value %d!", target, key, cur, prev);
+      }
+    }
+  }
   auto options = arrow::compute::ScalarAggregateOptions::Defaults();
   ARROW_ASSIGN_OR_RAISE(value_counts,
-                        arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
+                        arrow::compute::CallFunction("value_counts", {column},
                                                      &options));
   auto pair = static_cast<arrow::StructArray>(value_counts.array());
   auto values = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(pair.field(0)->data());
