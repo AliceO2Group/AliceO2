@@ -1257,7 +1257,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
           cachedForwardingChoice = -1;
           for (size_t fi = 0; fi < spec->forwards.size(); fi++) {
             auto& forward = spec->forwards[fi];
-            if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) == false || (dph->startTime % forward.maxTimeslices) != forward.timeslice) {
+            if (DataSpecUtils::match(forward.matcher, fdh->dataOrigin, fdh->dataDescription, fdh->subSpecification) == false || (fdph->startTime % forward.maxTimeslices) != forward.timeslice) {
               continue;
             }
             cachedForwardingChoice = forwardMap[fi];
