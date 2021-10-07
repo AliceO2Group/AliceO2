@@ -90,7 +90,8 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(DEBUG) << "[EMCALRawToCellConverter - run] called";
-  const double CONVADCGEV = 0.016; // Conversion from ADC counts to energy: E = 16 MeV / ADC
+  const double CONVADCGEV = 0.016;   // Conversion from ADC counts to energy: E = 16 MeV / ADC
+  constexpr double timeshift = 600.; // subtract 600 ns in order to center the time peak around the nominal delay
   constexpr auto originEMC = o2::header::gDataOriginEMC;
   constexpr auto descRaw = o2::header::gDataDescriptionRawData;
 
@@ -381,7 +382,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               hwAddressHG = chan.getHardwareAddress();
             }
             int fecID = mMapper->getFEEForChannelInDDL(iSM / 2, chan.getFECIndex(), chan.getBranchIndex());
-            currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime(), chantype),
+            currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, chantype),
                                              lgNoHG,
                                              hgOutOfRange,
                                              fecID, hwAddressLG, hwAddressHG});
