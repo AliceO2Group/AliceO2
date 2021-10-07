@@ -391,12 +391,15 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
   switch (test) {
     case Test::Read: {
       kernel = (config == KernelConfig::Single) ? &gpu::readChunkSBKernel<chunk_t> : &gpu::readChunkMBKernel<chunk_t>;
+      break;
     }
     case Test::Write: {
       kernel = (config == KernelConfig::Single) ? &gpu::writeChunkSBKernel<chunk_t> : &gpu::writeChunkMBKernel<chunk_t>;
+      break;
     }
     case Test::Copy: {
       kernel = (config == KernelConfig::Single) ? &gpu::copyChunkSBKernel<chunk_t> : &gpu::copyChunkMBKernel<chunk_t>;
+      break;
     }
   }
 
@@ -473,4 +476,3 @@ template class GPUbenchmark<int>;
 
 } // namespace benchmark
 } // namespace o2
-void readConcurrent(KernelConfig config);
