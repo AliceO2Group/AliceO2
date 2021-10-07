@@ -406,8 +406,8 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
   for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
     std::cout << "    ├ " << mode << " " << test << " " << config << " block(s) (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
               << "    │   - blocks per kernel: " << nBlocks << "/" << dimGrid << "\n"
-              << "    │   - threads per block: " << nThreads << "\n";
-    std::cout << "    │   - per chunk throughput:\n";
+              << "    │   - threads per block: " << nThreads << "\n"
+              << "    │   - per chunk throughput:\n";
     if (mode == Mode::Sequential) {
       for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
         auto result = runSequential(kernel,
@@ -417,7 +417,7 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
                                     nThreads, // args...
                                     capacity);
         auto throughput = computeThroughput(test, result, mState.chunkReservedGB, mState.getNKernelLaunches());
-        std::cout << "    │     ├ " << iChunk + 1 << "/" << mState.getMaxChunks() << ": \e[1m" << throughput << " GB/s \e[0m (" << result * 1e-3 << " s)\n";
+        std::cout << "    │     " << ((mState.getMaxChunks() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << mState.getMaxChunks() << ": \e[1m" << throughput << " GB/s \e[0m (" << result * 1e-3 << " s)\n";
         mResultWriter.get()->storeBenchmarkEntry(test, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
       }
     } else {
@@ -430,7 +430,7 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
                                    capacity);
       for (auto iChunk{0}; iChunk < results.size(); ++iChunk) {
         auto throughput = computeThroughput(test, results[iChunk], mState.chunkReservedGB, mState.getNKernelLaunches());
-        std::cout << "    │     ├ " << iChunk + 1 << "/" << results.size() << ": \e[1m" << throughput << " GB/s \e[0m (" << results[iChunk] * 1e-3 << " s)\n";
+        std::cout << "    │     " << ((results.size() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << results.size() << ": \e[1m" << throughput << " GB/s \e[0m (" << results[iChunk] * 1e-3 << " s)\n";
         mResultWriter.get()->storeBenchmarkEntry(test, iChunk, results[iChunk], mState.chunkReservedGB, mState.getNKernelLaunches());
       }
     }
