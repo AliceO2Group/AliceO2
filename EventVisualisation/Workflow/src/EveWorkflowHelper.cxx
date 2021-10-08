@@ -211,7 +211,10 @@ void EveWorkflowHelper::drawTPCClusters(GID gid, float trackTime)
   const auto& elParam = o2::tpc::ParameterElectronics::Instance();
 
   float clusterTimeBinOffset = trc.getTime0(); // in in time beans time assigned to track - primary vertex
-  std::unique_ptr<gpu::TPCFastTransform> fastTransform = (o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
+
+  // FIXME: THIS MUST NOT BE CREATED EVERY TIME
+  // IT SHOULD BE CREATED IN THE INITIALIZATION, AND LATER WE NEED TO UPDATE IT REGULARLY
+  static std::unique_ptr<gpu::TPCFastTransform> fastTransform = (o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 
   // store the TPC cluster positions
   for (int iCl = trc.getNClusterReferences(); iCl--;) {
