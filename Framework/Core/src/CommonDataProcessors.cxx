@@ -289,7 +289,7 @@ DataProcessorSpec
     std::map<uint64_t, uint64_t> tfNumbers;
 
     // this functor is called once per time frame
-    return std::move([dod, tfNumbers](ProcessingContext& pc) mutable -> void {
+    return [dod, tfNumbers](ProcessingContext& pc) mutable -> void {
       LOGP(DEBUG, "======== getGlobalAODSink::processing ==========");
       LOGP(DEBUG, " processing data set with {} entries", pc.inputs().size());
 
@@ -312,7 +312,7 @@ DataProcessorSpec
       // loop over the DataRefs which are contained in pc.inputs()
       for (const auto& ref : pc.inputs()) {
         if (!ref.spec) {
-          LOGP(DEBUG, "The input \"{}\" is not valid and will be skipped!", ref.spec->binding);
+          LOGP(DEBUG, "Invalid input will be skipped!");
           continue;
         }
 
@@ -324,9 +324,9 @@ DataProcessorSpec
 
         // does this need to be saved?
         auto dh = DataRefUtils::getHeader<header::DataHeader*>(ref);
-        auto tableName = std::string(dh->dataDescription.str);
+        auto tableName = dh->dataDescription.as<std::string>();
         auto ds = dod->getDataOutputDescriptors(*dh);
-        if (ds.size() <= 0) {
+        if (ds.empty()) {
           continue;
         }
 
@@ -350,7 +350,8 @@ DataProcessorSpec
         if (!table->Validate().ok()) {
           LOGP(WARNING, "The table \"{}\" is not valid and will not be saved!", tableName);
           continue;
-        } else if (table->schema()->fields().empty() == true) {
+        }
+        if (table->schema()->fields().empty() == true) {
           LOGP(DEBUG, "The table \"{}\" is empty but will be saved anyway!", tableName);
         }
 
@@ -364,8 +365,8 @@ DataProcessorSpec
                             fileAndFolder.file,
                             treename.c_str());
 
-          if (d->colnames.size() > 0) {
-            for (auto cn : d->colnames) {
+          if (!d->colnames.empty()) {
+            for (auto& cn : d->colnames) {
               auto idx = table->schema()->GetFieldIndex(cn);
               auto col = table->column(idx);
               auto field = table->schema()->field(idx);
@@ -379,7 +380,7 @@ DataProcessorSpec
           ta2tr.process();
         }
       }
-    });
+    };
   }; // end of writerFunction
 
   // the command line options relevant for the writer are global
