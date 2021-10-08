@@ -49,7 +49,7 @@ __global__ void read_k(
 {
   chunk_t sink{0};
   for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
-    sink = chunkPtr[i] + sink;
+    sink += chunkPtr[i];
   }
   chunkPtr[threadIdx.x] = sink;
 }
