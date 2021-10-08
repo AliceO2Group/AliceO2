@@ -13,10 +13,8 @@
 #include <fmt/format.h>
 #include <ostream>
 #include <cassert>
-#if 0
-#include <filesystem>
-namespace fs = std::filesystem;
-#elif __has_include(<filesystem>)
+#include <cctype>
+#if __has_include(<filesystem>)
 #include <filesystem>
 namespace fs = std::filesystem;
 #endif
@@ -112,6 +110,120 @@ std::ostream& operator<<(std::ostream& s, ChannelMethod const& method)
 {
   s << ChannelSpecHelpers::methodAsString(method);
   return s;
+}
+
+enum struct ChannelConfigParserState {
+  BEGIN,
+  BEGIN_CHANNEL,
+  END_CHANNEL,
+  BEGIN_KEY,
+  BEGIN_VALUE,
+  END_VALUE,
+  END,
+  ERROR
+};
+
+void ChannelSpecHelpers::parseChannelConfig(char const* config, FairMQChannelConfigParser& handler)
+{
+  ChannelConfigParserState state = ChannelConfigParserState::BEGIN;
+  char const* cur = config;
+  char const* next = config;
+  std::string_view key;
+  std::string_view value;
+  char const* nameKey = "name";
+
+  while (true) {
+    switch (state) {
+      case ChannelConfigParserState::BEGIN: {
+        if (*cur == '\0') {
+          state = ChannelConfigParserState::ERROR;
+        } else if (!isalpha(*cur)) {
+          state = ChannelConfigParserState::ERROR;
+        } else {
+          state = ChannelConfigParserState::BEGIN_CHANNEL;
+        }
+        break;
+      }
+      case ChannelConfigParserState::BEGIN_CHANNEL: {
+        next = strpbrk(cur, ":=;,");
+        if (*next == ';' || *next == ',') {
+          state = ChannelConfigParserState::ERROR;
+          break;
+        } else if (*next == ':') {
+          handler.beginChannel();
+          key = std::string_view(nameKey, 4);
+          value = std::string_view(cur, next - cur);
+          handler.property(key, value);
+          state = ChannelConfigParserState::BEGIN_KEY;
+          cur = next + 1;
+          break;
+        }
+        handler.beginChannel();
+        state = ChannelConfigParserState::BEGIN_KEY;
+        break;
+      }
+      case ChannelConfigParserState::BEGIN_KEY: {
+        next = strchr(cur, '=');
+        if (next == nullptr) {
+          state = ChannelConfigParserState::ERROR;
+        } else {
+          key = std::string_view(cur, next - cur);
+          state = ChannelConfigParserState::BEGIN_VALUE;
+          cur = next + 1;
+        }
+        break;
+      }
+      case ChannelConfigParserState::BEGIN_VALUE: {
+        next = strpbrk(cur, ";,");
+        if (next == nullptr) {
+          size_t l = strlen(cur);
+          value = std::string_view(cur, l);
+          state = ChannelConfigParserState::END_VALUE;
+          cur = cur + l;
+        } else if (*next == ';') {
+          value = std::string_view(cur, next - cur);
+          state = ChannelConfigParserState::END_CHANNEL;
+          cur = next;
+        } else if (*next == ',') {
+          value = std::string_view(cur, next - cur);
+          state = ChannelConfigParserState::END_VALUE;
+          cur = next;
+        }
+        handler.property(key, value);
+        break;
+      }
+      case ChannelConfigParserState::END_VALUE: {
+        if (*cur == '\0') {
+          state = ChannelConfigParserState::END_CHANNEL;
+        } else if (*cur == ',') {
+          state = ChannelConfigParserState::BEGIN_KEY;
+          cur++;
+        } else if (*cur == ';') {
+          state = ChannelConfigParserState::END_CHANNEL;
+          cur++;
+        }
+        break;
+      }
+      case ChannelConfigParserState::END_CHANNEL: {
+        handler.endChannel();
+        if (*cur == '\0') {
+          state = ChannelConfigParserState::END;
+        } else if (*cur == ';') {
+          state = ChannelConfigParserState::BEGIN_CHANNEL;
+          cur++;
+        } else {
+          state = ChannelConfigParserState::ERROR;
+        }
+        break;
+      }
+      case ChannelConfigParserState::END: {
+        return;
+      }
+      case ChannelConfigParserState::ERROR: {
+        throw runtime_error("Unable to parse channel config");
+      }
+    }
+  }
 }
 
 } // namespace o2::framework

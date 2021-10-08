@@ -8,16 +8,23 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_CHANNELSPECHELPERS_H
-#define FRAMEWORK_CHANNELSPECHELPERS_H
+#ifndef O2_FRAMEWORK_CHANNELSPECHELPERS_H_
+#define O2_FRAMEWORK_CHANNELSPECHELPERS_H_
 
 #include "Framework/ChannelSpec.h"
 #include <iosfwd>
+#include <string_view>
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
+
+/// Handler to parse the description of the --channel-config
+struct FairMQChannelConfigParser {
+  virtual void beginChannel() {}
+  virtual void endChannel() {}
+  virtual void property(std::string_view key, std::string_view value) {}
+  virtual void error() {}
+};
 
 /// A few helpers to convert enums to their actual representation in
 /// configuration files / GUI / string based APIs. Never too late
@@ -31,6 +38,9 @@ struct ChannelSpecHelpers {
   static std::string channelUrl(InputChannelSpec const&);
   /// @return a url associated to an OutputChannelSpec
   static std::string channelUrl(OutputChannelSpec const&);
+  /// Parse @a channelConfig option, invoking the correct method of
+  /// @a parser
+  static void parseChannelConfig(char const* channelConfig, FairMQChannelConfigParser& parser);
 };
 
 /// Stream operators so that we can use ChannelType with Boost.Test
@@ -38,7 +48,6 @@ std::ostream& operator<<(std::ostream& s, ChannelType const& type);
 /// Stream operators so that we can use ChannelString with Boost.Test
 std::ostream& operator<<(std::ostream& s, ChannelMethod const& method);
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_CHANNELSPECHELPERS_H
+#endif // O2_FRAMEWORK_CHANNELSPECHELPERS_H_

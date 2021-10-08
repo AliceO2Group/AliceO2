@@ -38,3 +38,42 @@ BOOST_AUTO_TEST_CASE(TestChannelType)
 
   BOOST_REQUIRE_EQUAL(oss.str(), "pubsubpushpull");
 }
+
+struct TestHandler : FairMQChannelConfigParser {
+  void beginChannel() override
+  {
+    str << "@";
+  }
+
+  void endChannel() override
+  {
+    str << "*";
+  }
+  void error() override
+  {
+    hasError = true;
+  }
+
+  void property(std::string_view k, std::string_view v) override
+  {
+    str << k << "=" << v;
+  }
+  bool hasError;
+  std::ostringstream str;
+};
+
+BOOST_AUTO_TEST_CASE(TestChannelParser)
+{
+  TestHandler h;
+  ChannelSpecHelpers::parseChannelConfig("name=foo", h);
+  BOOST_REQUIRE_EQUAL(h.str.str(), "@name=foo*");
+  TestHandler h1;
+  ChannelSpecHelpers::parseChannelConfig("name=foo,bar=fur", h1);
+  BOOST_REQUIRE_EQUAL(h1.str.str(), "@name=foobar=fur*");
+  TestHandler h2;
+  ChannelSpecHelpers::parseChannelConfig("name=foo,bar=fur,abc=cdf;name=bar,foo=a", h2);
+  BOOST_REQUIRE_EQUAL(h2.str.str(), "@name=foobar=furabc=cdf*@name=barfoo=a*");
+  TestHandler h3;
+  ChannelSpecHelpers::parseChannelConfig("foo:bar=fur,abc=cdf;name=bar,foo=a", h3);
+  BOOST_REQUIRE_EQUAL(h3.str.str(), "@name=foobar=furabc=cdf*@name=barfoo=a*");
+}
