@@ -11,7 +11,11 @@ source $MYDIR/setenv.sh
 if [ -z $OPTIMIZED_PARALLEL_ASYNC ]; then OPTIMIZED_PARALLEL_ASYNC=0; fi  # Enable tuned process multiplicities for async processing on the EPN
 if [ -z $CTF_DIR ];                  then CTF_DIR=$FILEWORKDIR; fi        # Directory where to store CTFs
 if [ -z $CTF_DICT_DIR ];             then CTF_DICT_DIR=$FILEWORKDIR; fi   # Directory of CTF dictionaries
+if [ -z $CTF_METAFILES_DIR ];        then CTF_METAFILES_DIR="/dev/null"; fi  # Directory where to store CTF files metada, /dev/null : skip their writing
 if [ -z $RECO_NUM_NODES_WORKFLOW ];  then RECO_NUM_NODES_WORKFLOW=250; fi # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
+if [ -z $CTF_MINSIZE ];              then CTF_MINSIZE="500000000"; fi     # accumulate CTFs until file size reached
+if [ -z $CTF_MAX_PER_FILE ];         then CTF_MAX_PER_FILE="200"; fi      # but no more than given number of CTFs per file
+
 if [ $SYNCMODE == 1 ]; then
   if [ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]; then export WORKFLOW_DETECTORS_MATCHING="ITSTPC,ITSTPCTRD,ITSTPCTOF"; fi # Select matchings that are enabled in sync mode
 else
@@ -28,7 +32,6 @@ ITS_NOISE="${FILEWORKDIR}"
 MFT_NOISE="${FILEWORKDIR}/mft_noise_220721_R3C-520.root"
 
 MID_FEEID_MAP="$FILEWORKDIR/mid-feeId_mapper.txt"
-CTF_MINSIZE="2000000"
 NITSDECTHREADS=2
 NMFTDECTHREADS=2
 CTF_DICT=${CTF_DICT_DIR}/ctf_dictionary.root
@@ -214,7 +217,7 @@ elif [ $EPNPIPELINES != 0 ]; then
   N_EMC=$((7 * $EPNPIPELINES * $NGPUS / 4 > 0 ? 7 * $EPNPIPELINES * $NGPUS / 4 : 1))
   N_TRDENT=$((3 * $EPNPIPELINES * $NGPUS / 4 > 0 ? 3 * $EPNPIPELINES * $NGPUS / 4 : 1))
   N_TRDTRK=$((3 * $EPNPIPELINES * $NGPUS / 4 > 0 ? 3 * $EPNPIPELINES * $NGPUS / 4 : 1))
-  N_TPCRAWDEC=$((6 * $EPNPIPELINES * $NGPUS / 4 > 0 ? 6 * $EPNPIPELINES * $NGPUS / 4 : 1))
+  N_TPCRAWDEC=$((8 * $EPNPIPELINES * $NGPUS / 4 > 0 ? 8 * $EPNPIPELINES * $NGPUS / 4 : 1))
   if [ $GPUTYPE == "CPU" ]; then
     N_TPCTRK=8
     GPU_CONFIG_KEY+="GPU_proc.ompThreads=4;"
@@ -372,7 +375,7 @@ if [ $CTFINPUT == 0 ] && [ ! -z "$WORKFLOW_DETECTORS_CTF" ]; then
   if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="both"; fi
   if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 0 ]; then CTF_OUTPUT_TYPE="dict"; fi
   if [ $CREATECTFDICT == 0 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="ctf"; fi
-  CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --output-dir \"$CTF_DIR\" --ctf-dict-dir \"$CTF_DICT_DIR\" --output-type $CTF_OUTPUT_TYPE --min-file-size ${CTF_MINSIZE} --onlyDet $WORKFLOW_DETECTORS"
+  CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --output-dir \"$CTF_DIR\" --ctf-dict-dir \"$CTF_DICT_DIR\" --output-type $CTF_OUTPUT_TYPE --min-file-size ${CTF_MINSIZE} --max-ctf-per-file ${CTF_MAX_PER_FILE} --onlyDet $WORKFLOW_DETECTORS --meta-output-dir $CTF_METAFILES_DIR "
   if [ $CREATECTFDICT == 1 ] && [ $EXTINPUT == 1 ]; then CMD_CTF+=" --save-dict-after $NTIMEFRAMES"; fi
   WORKFLOW+="$CMD_CTF | "
 fi
