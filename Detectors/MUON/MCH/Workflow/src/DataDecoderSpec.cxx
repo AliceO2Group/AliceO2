@@ -155,9 +155,9 @@ class DataDecoderTask
 
   void sendEmptyOutput(framework::DataAllocator& output)
   {
-    decltype(mDecoder->getOrbits()) orbits{};
-    decltype(mDecoder->getDigits()) digits{};
+    std::vector<Digit> digits;
     std::vector<ROFRecord> rofs;
+    std::vector<OrbitInfo> orbits;
     output.snapshot(Output{header::gDataOriginMCH, "DIGITS", 0}, digits);
     output.snapshot(Output{header::gDataOriginMCH, "DIGITROFS", 0}, rofs);
     output.snapshot(Output{header::gDataOriginMCH, "ORBITS", 0}, orbits);
