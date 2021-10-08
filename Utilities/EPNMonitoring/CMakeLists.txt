@@ -9,10 +9,9 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(DataSampling)
-add_subdirectory(DataCompression)
-add_subdirectory(Mergers)
-add_subdirectory(PCG)
-add_subdirectory(rANS)
-add_subdirectory(Tools)
-add_subdirectory(EPNMonitoring)
+if (NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  o2_add_executable(epn-stderr-monitor
+                    COMPONENT_NAME epn
+                    SOURCES src/EPNstderrMonitor.cxx
+                    PUBLIC_LINK_LIBRARIES FairMQ::FairMQ AliceO2::InfoLogger)
+endif()
