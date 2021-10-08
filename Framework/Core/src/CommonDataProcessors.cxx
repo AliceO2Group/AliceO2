@@ -351,7 +351,7 @@ DataProcessorSpec
           LOGP(WARNING, "The table \"{}\" is not valid and will not be saved!", tableName);
           continue;
         }
-        if (table->schema()->fields().empty() == true) {
+        if (table->schema()->fields().empty()) {
           LOGP(DEBUG, "The table \"{}\" is empty but will be saved anyway!", tableName);
         }
 
