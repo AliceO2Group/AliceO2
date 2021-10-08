@@ -85,7 +85,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
     // fill channels info
     cd.nChan[idig] = chanels.size();
     if (!cd.nChan[idig]) {
-      LOG(ERROR) << "Digits with no channels";
+      LOG(debug) << "Digits with no channels";
       continue;
     }
     uint8_t prevChan = 0;
@@ -129,7 +129,7 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
 #define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, getFreq(slot), getProbBits(slot), int(slot))
   // clang-format off
   MAKECODER(cd.trigger,   CTF::BLC_trigger);
-  MAKECODER(cd.bcInc,     CTF::BLC_bcInc); 
+  MAKECODER(cd.bcInc,     CTF::BLC_bcInc);
   MAKECODER(cd.orbitInc,  CTF::BLC_orbitInc);
   MAKECODER(cd.nChan,     CTF::BLC_nChan);
   MAKECODER(cd.eventFlags,  CTF::BLC_flags);
@@ -150,7 +150,7 @@ size_t CTFCoder::estimateCompressedSize(const CompressedDigits& cd)
 #define ESTSIZE(vec, slot) mCoders[int(slot)] ?                         \
   rans::calculateMaxBufferSize(vec.size(), reinterpret_cast<const o2::rans::LiteralEncoder64<VTP(vec)>*>(mCoders[int(slot)].get())->getAlphabetRangeBits(), sizeof(VTP(vec)) ) : vec.size()*sizeof(VTP(vec))
   sz += ESTSIZE(cd.trigger,   CTF::BLC_trigger);
-  sz += ESTSIZE(cd.bcInc,     CTF::BLC_bcInc); 
+  sz += ESTSIZE(cd.bcInc,     CTF::BLC_bcInc);
   sz += ESTSIZE(cd.orbitInc,  CTF::BLC_orbitInc);
   sz += ESTSIZE(cd.nChan,     CTF::BLC_nChan);
   sz += ESTSIZE(cd.eventFlags,     CTF::BLC_flags);
