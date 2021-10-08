@@ -89,7 +89,8 @@ inline std::ostream& operator<<(std::ostream& os, Mode mode)
 
 enum class KernelConfig {
   Single,
-  Multi
+  Multi,
+  All
 };
 
 inline std::ostream& operator<<(std::ostream& os, KernelConfig config)
@@ -100,6 +101,9 @@ inline std::ostream& operator<<(std::ostream& os, KernelConfig config)
       break;
     case KernelConfig::Multi:
       os << "multiple";
+      break;
+    case KernelConfig::All:
+      os << "all";
       break;
   }
   return os;

@@ -363,7 +363,8 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
   mResultWriter.get()->addBenchmarkEntry(getTestName(mode, test, config), getType<chunk_t>(), mState.getMaxChunks());
   auto dimGrid{mState.nMultiprocessors};
   auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-  auto nBlocks{(config == KernelConfig::Single) ? 1 : dimGrid / mState.getMaxChunks()};
+  auto nBlocks{(config == KernelConfig::Single) ? 1 : (config == KernelConfig::Multi) ? dimGrid / mState.getMaxChunks()
+                                                                                      : dimGrid};
   auto chunks{mState.getMaxChunks()};
   auto capacity{mState.getChunkCapacity()};
   void (*kernel)(chunk_t*, size_t);
