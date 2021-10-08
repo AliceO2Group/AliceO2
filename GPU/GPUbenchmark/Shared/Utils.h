@@ -159,7 +159,7 @@ inline float computeThroughput(Test test, float result, float chunkSizeGB, int n
       break;
     }
     case Test::Copy: {
-      throughput = 2 * 1e3 * chunkSizeGB * ntests / result;
+      throughput = 1e3 * chunkSizeGB * ntests / result;
       break;
     }
   }
@@ -206,6 +206,7 @@ struct benchmarkOpts {
   std::vector<KernelConfig> pools = {KernelConfig::Single, KernelConfig::Multi};
   std::vector<std::string> dtypes = {"char", "int", "ulong"};
   float chunkReservedGB = 1.f;
+  float threadPoolFraction = 1.f;
   int nRegions = 2;
   float freeMemoryFractionToAllocate = 0.95f;
   int kernelLaunches = 1;

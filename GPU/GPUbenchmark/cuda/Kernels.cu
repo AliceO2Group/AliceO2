@@ -81,8 +81,9 @@ __global__ void copy_k(
   chunk_t* chunkPtr,
   size_t chunkSize)
 {
-  for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
-    chunkPtr[chunkSize - i - 1] = chunkPtr[i];
+  size_t offset = chunkSize / 2;
+  for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < offset; i += blockDim.x * gridDim.x) {
+    chunkPtr[i] = chunkPtr[offset + i];
   }
 }
 
@@ -363,7 +364,7 @@ void GPUbenchmark<chunk_t>::globalInit()
 template <class chunk_t>
 void GPUbenchmark<chunk_t>::initTest(Test test)
 {
-  std::cout << " ◈ \033[1;33m" << getType<chunk_t>() << "\033[0m " << test << " benchmarks with \e[1m" << mOptions.nTests << "\e[0m runs and \e[1m" << mOptions.kernelLaunches << "\e[0m kernel launches" << std::endl;
+  std::cout << " ◈ \033[1;33m" << getType<chunk_t>() << "\033[0m " << test << " benchmark with \e[1m" << mOptions.nTests << "\e[0m runs and \e[1m" << mOptions.kernelLaunches << "\e[0m kernel launches" << std::endl;
   GPUCHECK(cudaSetDevice(mOptions.deviceId));
 }
 
@@ -372,7 +373,7 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
 {
   mResultWriter.get()->addBenchmarkEntry(getTestName(mode, test, config), getType<chunk_t>(), mState.getMaxChunks());
   auto dimGrid{mState.nMultiprocessors};
-  auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
+  auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock) * mOptions.threadPoolFraction};
   auto nBlocks{(config == KernelConfig::Single) ? 1 : (config == KernelConfig::Multi) ? dimGrid / mState.getMaxChunks()
                                                                                       : dimGrid};
   auto chunks{mState.getMaxChunks()};
