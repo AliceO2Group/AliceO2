@@ -45,10 +45,10 @@ auto sliceByColumnGeneric(
         groups[v].push_back(offset);
       } else if (unassigned != nullptr) {
         auto av = std::abs(v);
-        if (unassigned->size() < av) {
+        if (unassigned->size() < av + 1) {
           unassigned->resize(av + 1);
         }
-        unassigned[std::abs(v)].push_back(offset);
+        unassigned[av].push_back(offset);
       }
       ++offset;
     }
