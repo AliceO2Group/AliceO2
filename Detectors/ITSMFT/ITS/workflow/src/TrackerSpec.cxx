@@ -114,6 +114,8 @@ void TrackerDPL::init(InitContext& ic)
       trackParams[0].TrackletMaxDeltaPhi = o2::its::constants::math::Pi * 0.5f;
       trackParams[0].CellMaxDeltaTanLambda = 0.3;
       trackParams[0].CellMaxDeltaPhi = 0.3;
+      trackParams[0].PhiBins = 4;
+      trackParams[0].ZBins = 16;
       for (int iLayer = 0; iLayer < o2::its::constants::its2::TrackletsPerRoad; iLayer++) {
         trackParams[0].TrackletMaxDeltaZ[iLayer] = o2::its::constants::its2::LayersZCoordinate()[iLayer + 1];
         memParams[0].TrackletsMemoryCoefficients[iLayer] = 0.5f;
