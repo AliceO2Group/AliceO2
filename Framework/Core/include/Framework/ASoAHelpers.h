@@ -63,23 +63,61 @@ bool diffCategory(std::pair<uint64_t, uint64_t> const& a, std::pair<uint64_t, ui
   return a.first >= b.first;
 }
 
-template <typename T2, typename ARRAY>
-std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const std::shared_ptr<arrow::Table>& table, const std::string& categoryColumnName, int minCatSize, const T2& outsider)
+template <typename T2, typename ARRAY, typename T>
+std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const T& table, const std::string& categoryColumnName, int minCatSize, const T2& outsider)
 {
-  auto columnIndex = table->schema()->GetFieldIndex(categoryColumnName);
-  auto chunkedArray = table->column(columnIndex);
+  auto columnIndex = table.asArrowTable()->schema()->GetFieldIndex(categoryColumnName);
+  auto chunkedArray = table.asArrowTable()->column(columnIndex);
 
   uint64_t ind = 0;
+  uint64_t selInd = 0;
+  soa::SelectionVector selectedRows;
   std::vector<std::pair<uint64_t, uint64_t>> groupedIndices;
+
+  // Separate check to account for Filtered size different from arrow table
+  if (table.size() == 0) {
+    return groupedIndices;
+  }
+
+  if constexpr (soa::is_soa_filtered_t<T>::value) {
+    selectedRows = table.getSelectedRows(); // vector<int64_t>
+  }
+
   for (uint64_t ci = 0; ci < chunkedArray->num_chunks(); ++ci) {
     auto chunk = chunkedArray->chunk(ci);
-    // Note: assuming that the table is not empty
+    if constexpr (soa::is_soa_filtered_t<T>::value) {
+      if (selectedRows[ind] >= selInd + chunk->length()) {
+        selInd += chunk->length();
+        continue; // Go to the next chunk, no value selected in this chunk
+      }
+    }
+
     T2 const* data = std::static_pointer_cast<ARRAY>(chunk)->raw_values();
-    for (uint64_t ai = 0; ai < chunk->length(); ++ai) {
+    uint64_t ai = 0;
+    while (ai < chunk->length()) {
+      if constexpr (soa::is_soa_filtered_t<T>::value) {
+        ai += selectedRows[ind] - selInd;
+        selInd = selectedRows[ind];
+      }
+
       if (data[ai] != outsider) {
         groupedIndices.emplace_back(data[ai], ind);
       }
       ind++;
+
+      if constexpr (soa::is_soa_filtered_t<T>::value) {
+        if (ind >= selectedRows.size()) {
+          break;
+        }
+      } else {
+        ai++;
+      }
+    }
+
+    if constexpr (soa::is_soa_filtered_t<T>::value) {
+      if (ind == selectedRows.size()) {
+        break;
+      }
     }
   }
 
@@ -102,26 +140,27 @@ std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const std::shared_ptr<ar
   return groupedIndices;
 }
 
+// TODO: With arrow table we lose the filtered information!
+// Can we group directly on T? Otherwise we need to extract the selection vector from T
 template <typename T, typename T2>
 auto groupTable(const T& table, const std::string& categoryColumnName, int minCatSize, const T2& outsider)
 {
-  auto arrowTable = table.asArrowTable();
-  auto columnIndex = arrowTable->schema()->GetFieldIndex(categoryColumnName);
-  auto dataType = arrowTable->column(columnIndex)->type();
+  auto columnIndex = table.asArrowTable()->schema()->GetFieldIndex(categoryColumnName);
+  auto dataType = table.asArrowTable()->column(columnIndex)->type();
   if (dataType->id() == arrow::Type::UINT64) {
-    return doGroupTable<uint64_t, arrow::UInt64Array>(arrowTable, categoryColumnName, minCatSize, outsider);
+    return doGroupTable<uint64_t, arrow::UInt64Array>(table, categoryColumnName, minCatSize, outsider);
   }
   if (dataType->id() == arrow::Type::INT64) {
-    return doGroupTable<int64_t, arrow::Int64Array>(arrowTable, categoryColumnName, minCatSize, outsider);
+    return doGroupTable<int64_t, arrow::Int64Array>(table, categoryColumnName, minCatSize, outsider);
   }
   if (dataType->id() == arrow::Type::UINT32) {
-    return doGroupTable<uint32_t, arrow::UInt32Array>(arrowTable, categoryColumnName, minCatSize, outsider);
+    return doGroupTable<uint32_t, arrow::UInt32Array>(table, categoryColumnName, minCatSize, outsider);
   }
   if (dataType->id() == arrow::Type::INT32) {
-    return doGroupTable<int32_t, arrow::Int32Array>(arrowTable, categoryColumnName, minCatSize, outsider);
+    return doGroupTable<int32_t, arrow::Int32Array>(table, categoryColumnName, minCatSize, outsider);
   }
   if (dataType->id() == arrow::Type::FLOAT) {
-    return doGroupTable<float, arrow::FloatArray>(arrowTable, categoryColumnName, minCatSize, outsider);
+    return doGroupTable<float, arrow::FloatArray>(table, categoryColumnName, minCatSize, outsider);
   }
   // FIXME: Should we support other types as well?
   throw o2::framework::runtime_error("Combinations: category column must be of integral type");
