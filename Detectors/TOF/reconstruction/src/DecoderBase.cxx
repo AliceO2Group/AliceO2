@@ -70,9 +70,13 @@ bool DecoderBaseT<RDH>::processHBF()
   mDecoderRDH = reinterpret_cast<const RDH*>(mDecoderPointer);
   auto rdh = mDecoderRDH;
 
+  int iterations = 0;
   /** loop until RDH close **/
   while (!RDHUtils::getStop(*rdh)) {
-
+    iterations++;
+    if (iterations > 5) {
+      return true;
+    }
 #ifdef DECODER_VERBOSE
     if (mDecoderVerbose) {
       std::cout << colorBlue
@@ -91,9 +95,20 @@ bool DecoderBaseT<RDH>::processHBF()
     auto offsetToNext = RDHUtils::getOffsetToNext(*rdh);
     auto drmPayload = memorySize - headerSize;
 
+    bool isValidRDH = RDHUtils::checkRDH(*rdh, false);
+
     /** copy DRM payload to save buffer **/
-    std::memcpy(mDecoderSaveBuffer + mDecoderSaveBufferDataSize, reinterpret_cast<const char*>(rdh) + headerSize, drmPayload);
-    mDecoderSaveBufferDataSize += drmPayload;
+    if (isValidRDH && drmPayload > 0) {
+      std::memcpy(mDecoderSaveBuffer + mDecoderSaveBufferDataSize, reinterpret_cast<const char*>(rdh) + headerSize, drmPayload);
+      mDecoderSaveBufferDataSize += drmPayload;
+    }
+#ifdef DECODER_VERBOSE
+    else {
+      if (mDecoderVerbose) {
+        RDHUtils::checkRDH(*rdh); // verbose
+      }
+    }
+#endif
 
     /** move to next RDH **/
     rdh = reinterpret_cast<const RDH*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
