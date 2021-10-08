@@ -89,10 +89,10 @@ class CTFWriterSpec : public o2::framework::Task
  public:
   CTFWriterSpec() = delete;
   CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType);
-  ~CTFWriterSpec() override = default;
+  ~CTFWriterSpec() final { finalize(); }
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
-  void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final { finalize(); };
   bool isPresent(DetID id) const { return mDets[id]; }
 
  private:
@@ -110,8 +110,10 @@ class CTFWriterSpec : public o2::framework::Task
   size_t getAvailableDiskSpace(const std::string& path, int level);
   void createLockFile(const o2::header::DataHeader* dh, int level);
   void removeLockFile();
+  void finalize();
 
   DetID::mask_t mDets; // detectors
+  bool mFinalized = false;
   bool mWriteCTF = true;
   bool mCreateDict = false;
   bool mDictPerDetector = false;
@@ -435,9 +437,11 @@ void CTFWriterSpec::run(ProcessingContext& pc)
 }
 
 //___________________________________________________________________
-void CTFWriterSpec::endOfStream(EndOfStreamContext& ec)
+void CTFWriterSpec::finalize()
 {
-
+  if (mFinalized) {
+    return;
+  }
   if (mCreateDict) {
     storeDictionaries();
   }
@@ -446,6 +450,7 @@ void CTFWriterSpec::endOfStream(EndOfStreamContext& ec)
   }
   LOGF(INFO, "CTF writing total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  mFinalized = true;
 }
 
 //___________________________________________________________________
