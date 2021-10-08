@@ -49,7 +49,7 @@ __global__ void read_k(
 {
   chunk_t sink{0};
   for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
-    sink = chunkPtr[i];
+    sink += chunkPtr[i];
   }
   chunkPtr[threadIdx.x] = sink;
 }
@@ -63,6 +63,16 @@ __global__ void write_k(
   for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
     chunkPtr[i] = 0;
   }
+}
+
+template <>
+__global__ void write_k(
+  int4* chunkPtr,
+  size_t chunkSize)
+{
+  for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
+    chunkPtr[i] = {0, 1, 0, 0};
+  };
 }
 
 // Copy
@@ -453,7 +463,7 @@ void GPUbenchmark<chunk_t>::run()
 template class GPUbenchmark<char>;
 template class GPUbenchmark<size_t>;
 template class GPUbenchmark<int>;
-// template class GPUbenchmark<int4>;
+template class GPUbenchmark<int4>;
 
 } // namespace benchmark
 } // namespace o2

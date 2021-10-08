@@ -26,7 +26,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
     "extra,x", "Print extra info for each available device.")(
     "device,d", bpo::value<int>()->default_value(0), "Id of the device to run test on, EPN targeted.")(
     "test,t", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"read", "write", "copy"}, "read write copy"), "Tests to be performed.")(
-    "kind,k", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"char", "int", "ulong"}, "char int ulong"), "Test data type to be used.")(
+    "kind,k", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"char", "int", "ulong", "int4"}, "char int ulong int4"), "Test data type to be used.")(
     "mode,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"seq", "con"}, "seq con"), "Mode: sequential or concurrent.")(
     "pool,p", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"sb", "mb", "ab"}, "sb mb ab"), "Pool strategy: single, multi or all blocks.")(
     "chunkSize,c", bpo::value<float>()->default_value(1.f), "Size of scratch partitions (GB).")(
@@ -138,6 +138,9 @@ int main(int argc, const char* argv[])
       bm_int.run();
     } else if (dtype == "ulong") {
       o2::benchmark::GPUbenchmark<size_t> bm_size_t{opts, writer};
+      bm_size_t.run();
+    } else if (dtype == "int4") {
+      o2::benchmark::GPUbenchmark<int4> bm_size_t{opts, writer};
       bm_size_t.run();
     } else {
       std::cerr << "Unkonwn data type: " << dtype << std::endl;
