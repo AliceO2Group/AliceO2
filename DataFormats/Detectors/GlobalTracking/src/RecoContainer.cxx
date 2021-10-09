@@ -379,6 +379,22 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (src[GTrackID::TPCTRD]) {
     requestTPCTRDTracks(useMC);
   }
+
+  if (src[GTrackID::FT0]) {
+    requestFT0RecPoints(false); // RS FIXME: at the moment does not support MC
+  }
+  if (src[GTrackID::FV0]) {
+    requestFV0RecPoints(false); // RS FIXME: at the moment does not support MC
+  }
+  if (src[GTrackID::FDD]) {
+    requestFDDRecPoints(false); // RS FIXME: at the moment does not support MC
+  }
+  if (src[GTrackID::ZDC]) {
+    requestZDCRecEvents(false); // RS FIXME: at the moment does not support MC
+  }
+  if (GTrackID::includesDet(DetID::CTP, src)) {
+    requestCTPDigits(false); // RS FIXME: at the moment does not support MC
+  }
 }
 
 void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
@@ -402,7 +418,7 @@ void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
     requestTRDTracklets(useMC);
   }
   if (GTrackID::includesDet(DetID::CTP, src)) {
-    requestCTPDigits(useMC);
+    requestCTPDigits(false); // RS FIXME: at the moment does not support MC
   }
   if (GTrackID::includesDet(DetID::CPV, src)) {
     requestCPVClusters(useMC);
