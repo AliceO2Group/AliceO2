@@ -48,13 +48,17 @@ bool CruRawReader::skipRDH()
   // check rdh for being empty or only padding words.
   if (o2::raw::RDHUtils::getMemorySize(mOpenRDH) == o2::raw::RDHUtils::getHeaderSize(mOpenRDH)) {
     //empty rdh so we want to avoid parsing it for cru data.
-    LOG(info) << " skipping rdh (empty) with packetcounter of: " << std::hex << o2::raw::RDHUtils::getPacketCounter(mOpenRDH);
+    if (mVerbose) {
+      LOG(info) << " skipping rdh (empty) with packetcounter of: " << std::hex << o2::raw::RDHUtils::getPacketCounter(mOpenRDH);
+    }
     return true;
   } else {
 
     if (mHBFPayload[0] == o2::trd::constants::CRUPADDING32 && mHBFPayload[0] == o2::trd::constants::CRUPADDING32) {
       //event only contains paddings words.
-      LOG(info) << " skipping rdh (padding) with packetcounter of: " << std::hex << o2::raw::RDHUtils::getPacketCounter(mOpenRDH);
+      if (mVerbose) {
+        LOG(info) << " skipping rdh (padding) with packetcounter of: " << std::hex << o2::raw::RDHUtils::getPacketCounter(mOpenRDH);
+      }
       // mDataPointer+= o2::raw::RDHUtils::getOffsetToNext()/4;
       auto rdh = reinterpret_cast<const o2::header::RDHAny*>(mDataPointer);
       mDataPointer += o2::raw::RDHUtils::getOffsetToNext(rdh) / 4;
@@ -157,10 +161,13 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
       //if (reinterpret_cast<const o2::header::RDHAny*>(rdh) < (char*)&mHBFPayload[0] + mDataBufferSize) {
       // we can still copy into this buffer.
     } else {
-      LOG(warn) << "next rdh exceeds the bounds of the cru payload buffer";
-      if (mVerbose) {
-        LOG(info) << "rdh position  is out of bounds of the buffer";
-        o2::raw::RDHUtils::printRDH(rdh);
+      if (mMaxWarnPrinted > 0) {
+        LOG(warn) << "next rdh exceeds the bounds of the cru payload buffer";
+        checkNoWarn();
+        if (mVerbose) {
+          LOG(info) << "rdh position  is out of bounds of the buffer";
+          o2::raw::RDHUtils::printRDH(rdh);
+        }
       }
       return false; //-1;
     }
@@ -182,7 +189,8 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
           LOG(info) << "ignored rdh event ";
           break;
         case 0:
-          LOG(fatal) << "figure out what now";
+          LOG(error) << "figure out what now"; // RS: don't use fatal
+                                               //          LOG(fatal) << "figure out what now";
           break;
         case 1:
           LOG(info) << "all good parsing half cru";
@@ -291,12 +299,15 @@ int CruRawReader::parseDigitHCHeader()
 
   int additionalHeaderWords = mDigitHCHeader.numberHCW;
   if (additionalHeaderWords >= 3) {
-    //LOG(error) << "Error parsing DigitHCHeader, too many additional words count=" << additionalHeaderWords;
     if (mRootOutput) {
       ((TH2F*)mParsingErrors2d->At(TRDParsingDigitHeaderCountGT3))->Fill(mFEEID.supermodule * 2 + mFEEID.side, mStack[0] * constants::NLAYER + mLayer[0]);
     }
     //TODO graph this and stats it
-    printDigitHCHeader(mDigitHCHeader, &headers[0]);
+    if (mMaxErrsPrinted > 0) {
+      LOG(error) << "Error parsing DigitHCHeader, too many additional words count=" << additionalHeaderWords;
+      printDigitHCHeader(mDigitHCHeader, &headers[0]);
+      checkNoErr();
+    }
     return -1;
   }
   for (int headerwordcount = 0; headerwordcount < additionalHeaderWords; ++headerwordcount) {
@@ -406,7 +417,10 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
   int dataoffsetstart32 = sizeof(mCurrentHalfCRUHeader) / 4 + cruhbfstartoffset; // in uint32
   //CHECK 1 does rdh endpoint match cru header end point.
   if (mCRUEndpoint != mCurrentHalfCRUHeader.EndPoint) {
-    LOG(warn) << " Endpoint mismatch : CRU Half chamber header endpoint = " << mCurrentHalfCRUHeader.EndPoint << " rdh end point = " << mCRUEndpoint;
+    if (mMaxWarnPrinted > 0) {
+      LOG(warn) << " Endpoint mismatch : CRU Half chamber header endpoint = " << mCurrentHalfCRUHeader.EndPoint << " rdh end point = " << mCRUEndpoint;
+      checkNoWarn();
+    }
     //disaster dump the rest of this hbf
     return 42;
     if (mVerbose) {
@@ -479,7 +493,10 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
     uint64_t linkzsum = 0;
     int dioffset = dataoffsetstart32 + linksizeAccum32;
     if (dioffset % 8 != 0) {
-      LOG(error) << " we are not 256 bit aligned ... this should never happen";
+      if (mMaxErrsPrinted > 0) {
+        LOG(error) << " we are not 256 bit aligned ... this should never happen";
+        checkNoErr();
+      }
     }
     if (mHBFoffset32 != std::distance(mHBFPayload.begin(), linkstart)) {
       mHBFoffset32 = std::distance(mHBFPayload.begin(), linkstart);
@@ -536,22 +553,31 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
         mWhichData = checkDigitHCHeader();
         //move over the DigitHCHeader mHBFoffset32 has already been moved in the reading.
         if (mHBFoffset32 - hfboffsetbeforehcparse != 1 + mDigitHCHeader.numberHCW) {
-          LOG(error) << "Seems data offset is out of sync with number of HC Headers words " << mHBFoffset32 << "-" << hfboffsetbeforehcparse << "!=" << 1 << "+" << mDigitHCHeader.numberHCW;
+          if (mMaxErrsPrinted > 0) {
+            LOG(error) << "Seems data offset is out of sync with number of HC Headers words " << mHBFoffset32 << "-" << hfboffsetbeforehcparse << "!=" << 1 << "+" << mDigitHCHeader.numberHCW;
+            checkNoErr();
+          }
         }
         if (hcparse == -1) {
-          LOG(warn) << "Parsing Digit HCHeader returned a -1";
+          if (mMaxWarnPrinted > 0) {
+            LOG(warn) << "Parsing Digit HCHeader returned a -1";
+            checkNoWarn();
+          }
         } else {
           linkstart += 1 + mDigitHCHeader.numberHCW;
         }
 
       if (mDigitHCHeader.major == 0x47) {
         // config event so ignore for now and bail out of parsing.
-        LOG(warn) << " HCHeader major version is 0x47 bailing out of parsing this as its a config event";
+        if (mMaxWarnPrinted > 0) {
+          LOG(warn) << " HCHeader major version is 0x47 bailing out of parsing this as its a config event";
+          checkNoWarn();
+        }
         //advance data pointers to the end;
-        linkstart = linkend;
         //mHBFoffset32 = std::distance(mHBFPayload.begin(),linkend);//dataoffsetstart32 + currentlinksize; // go to the end of the link
         mHBFoffset32 = std::distance(mHBFPayload.begin(), linkend); //currentlinksize-mTrackletWordsRead-sizeof(digitHCHeader)/4; // advance to the end of the link
         mTotalDigitWordsRejected += std::distance(linkstart + mTrackletWordsRead + sizeof(DigitHCHeader) / 4, linkend);
+        linkstart = linkend;
       } else {
         if (((mDigitHCHeader.major & 0x27) == mDigitHCHeader.major) || ((mDigitHCHeader.major & 0x37) == mDigitHCHeader.major) || ((mDigitHCHeader.major & 0x17) == mDigitHCHeader.major)) {
           //                ZS                                                          DisableTracklets
@@ -590,10 +616,13 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
           mTotalDigitWordsRead += mDigitWordsRead;
           mTotalDigitWordsRejected += mDigitWordsRejected;
         } else {
-          LOG(warn) << "Digit format not configured ! major.minor in : 0x" << std::hex << mDigitHCHeader.major << ".0x" << mDigitHCHeader.minor;
-          linkstart = linkend;
+          if (mMaxWarnPrinted > 0) {
+            LOG(warn) << "Digit format not configured ! major.minor in : 0x" << std::hex << mDigitHCHeader.major << ".0x" << mDigitHCHeader.minor;
+            checkNoWarn();
+          }
           mHBFoffset32 = std::distance(mHBFPayload.begin(), linkend); //currentlinksize-mTrackletWordsRead-sizeof(digitHCHeader)/4; // advance to the end of the link
           mTotalDigitWordsRejected += std::distance(linkstart + mTrackletWordsRead + sizeof(DigitHCHeader) / 4, linkend);
+          linkstart = linkend;
         }
       }
       } else {
@@ -712,6 +741,20 @@ void CruRawReader::buildDPLOutputs(o2::framework::ProcessingContext& pc, bool di
 {
   mEventRecords.sendData(pc, displaytracklets);
   clearall(); // having now written the messages clear for next.
+}
+
+void CruRawReader::checkNoWarn()
+{
+  if (!mVerbose && --mMaxWarnPrinted == 0) {
+    LOG(warn) << "Warnings limit reached, the following ones will be suppressed";
+  }
+}
+
+void CruRawReader::checkNoErr()
+{
+  if (!mVerbose && --mMaxErrsPrinted == 0) {
+    LOG(error) << "Errors limit reached, the following ones will be suppressed";
+  }
 }
 
 } // namespace o2::trd

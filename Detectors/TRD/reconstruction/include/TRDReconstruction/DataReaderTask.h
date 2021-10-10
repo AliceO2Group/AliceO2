@@ -61,7 +61,6 @@ class DataReaderTask : public Task
   bool mHeaderVerbose{false};    // verbose output of headers
   bool mCompressedData{false};   // are we dealing with the compressed data from the flp (send via option)
   bool mByteSwap{true};          // whether we are to byteswap the incoming data, mc is not byteswapped, raw data is (too be changed in cru at some point)
-                                 //  o2::header::DataDescription mDataDesc; // Data description of the incoming data
   bool mEnableTimeInfo{false};   // enable the timing of timeframe,cru,digit,tracklet processing.
   bool mEnableStats{false};      // enable the taking of stats in the rawdatastats class
   bool mRootOutput{false};       // enable the writing of histos.root, a poor mans qc, mostly for debugging.
@@ -76,7 +75,6 @@ class DataReaderTask : public Task
   int mHalfChamberWords{0};      // if the halfchamber header is effectively blanked major.minor = 0.0 and halfchamberwords=0 then this value is used as the number of additional words to try recover the data
   int mHalfChamberMajor{0};      // if the halfchamber header is effectively blanked major.minor = 0.0 and halfchamberwords=0 then this value is used as the major version to try recover the data
   std::string mHistogramsFilename; // filename to use for histograms.
-  std::string mDataDesc;
   o2::header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
   bool mFixDigitEndCorruption{false};                                                     // fix the parsing of corrupt end of digit data. bounce over it.
   o2::trd::TRDDataCountersPerTimeFrame mTimeFrameStats;                                   // TODO for compressed data this is going to come in for each subtimeframe
