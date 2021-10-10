@@ -23,20 +23,21 @@ namespace o2
 class MCEventLabel
 {
  private:
-  static constexpr uint32_t NotSet = 0xffffffff;
-  uint32_t mLabel = NotSet; ///< MC label encoding MCevent origin and fraction of correct contributors
+  static constexpr uint32_t Dummy = 0xffffffff;
+  uint32_t mLabel = Dummy; ///< MC label encoding MCevent origin and fraction of correct contributors
 
  public:
   static constexpr int nbitsEvID = 16; // number of bits reserved for MC event ID
   static constexpr int nbitsSrcID = 7; // number of bits reserved for MC source ID
   static constexpr int nbitsCorrW = sizeof(mLabel) * 8 - nbitsEvID - nbitsSrcID - 1;
+  static constexpr uint32_t NotSet = (0x1 << (nbitsEvID + nbitsSrcID)) - 1;
 
   // Mask to extract MC event ID
   static constexpr uint32_t MaskEvID = (0x1 << nbitsEvID) - 1;
   // Mask to extract MC source ID
   static constexpr uint32_t MaskSrcID = (0x1 << nbitsSrcID) - 1;
   // Mask to extract MC source and event ID only
-  static constexpr uint32_t MaskSrcEvID = MaskSrcID | MaskEvID;
+  static constexpr uint32_t MaskSrcEvID = (MaskSrcID << nbitsEvID) | MaskEvID;
   // Mask to extract MC correct contribution weight
   static constexpr uint32_t MaskCorrW = (0x1 << nbitsCorrW) - 1;
   static constexpr float WeightNorm = 1. / float(MaskCorrW);
@@ -46,9 +47,9 @@ class MCEventLabel
   ~MCEventLabel() = default;
 
   // check if label was assigned
-  bool isSet() const { return mLabel != NotSet; }
+  bool isSet() const { return (mLabel & NotSet) != NotSet; }
   // check if label was not assigned
-  bool isEmpty() const { return mLabel == NotSet; }
+  bool isEmpty() const { return (mLabel & NotSet) == NotSet; }
 
   // conversion operator
   operator uint32_t() const { return mLabel; }
@@ -84,8 +85,18 @@ class MCEventLabel
     mLabel = (mLabel & ((MaskSrcID << nbitsEvID) | MaskEvID)) | (iw << (nbitsEvID + nbitsSrcID));
   }
 
-  int getEventID() const { return mLabel & MaskEvID; }
-  int getSourceID() const { return (mLabel >> nbitsEvID) & MaskSrcID; }
+  int getEventID() const
+  {
+    auto res = mLabel & MaskEvID;
+    return res <= MaxEventID() ? res : -1;
+  }
+
+  int getSourceID() const
+  {
+    auto res = (mLabel >> nbitsEvID) & MaskSrcID;
+    return res <= MaxSourceID() ? res : -1;
+  }
+
   float getCorrWeight() const { return ((mLabel >> (nbitsEvID + nbitsSrcID)) & MaskCorrW) * WeightNorm; }
 
   void get(int& evID, int& srcID, float& corrW)
@@ -98,8 +109,8 @@ class MCEventLabel
 
   void print() const;
 
-  static constexpr uint32_t MaxSourceID() { return MaskSrcID; }
-  static constexpr uint32_t MaxEventID() { return MaskEvID; }
+  static constexpr uint32_t MaxSourceID() { return MaskSrcID - 1; }
+  static constexpr uint32_t MaxEventID() { return MaskEvID - 1; }
   static constexpr float WeightPrecision() { return WeightNorm; }
   ClassDefNV(MCEventLabel, 1);
 };
