@@ -83,6 +83,16 @@ void TRDGlobalTracking::init(InitContext& ic)
     LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
 
+  // this is a hack to provide ITS dictionary from the local file, in general will be provided by the framework from CCDB
+  auto dictFile = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath
+                    dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFile, "bin");
+  if (o2::utils::Str::pathExists(dictFile)) {
+    mITSDict.readBinaryFile(dictFile);
+    LOG(INFO) << "Matching is running with a provided ITS dictionary: " << dictFile;
+  } else {
+    LOG(INFO) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
+  }
+
   //-------- init GPU reconstruction --------//
   GPURecoStepConfiguration cfgRecoStep;
   cfgRecoStep.steps = GPUDataTypes::RecoStep::NoRecoStep;
