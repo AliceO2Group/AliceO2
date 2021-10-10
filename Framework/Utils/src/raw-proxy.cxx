@@ -25,6 +25,10 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(
     ConfigParamSpec{
+      "proxy-name", VariantType::String, "readout-proxy", {"name of the proxy processor"}});
+
+  workflowOptions.push_back(
+    ConfigParamSpec{
       "dataspec", VariantType::String, "A:FLP/RAWDATA;B:FLP/DISTSUBTIMEFRAME/0", {"selection string for the data to be proxied"}});
 
   workflowOptions.push_back(
@@ -36,6 +40,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
+  std::string processorName = config.options().get<std::string>("proxy-name");
   std::string outputconfig = config.options().get<std::string>("dataspec");
   bool throwOnUnmatched = config.options().get<bool>("throwOnUnmatched");
   std::vector<InputSpec> matchers = select(outputconfig.c_str());
@@ -47,7 +52,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // we use the same specs as filters in the dpl adaptor
   auto filterSpecs = readoutProxyOutput;
   DataProcessorSpec readoutProxy = specifyExternalFairMQDeviceProxy(
-    "readout-proxy",
+    processorName.c_str(),
     std::move(readoutProxyOutput),
     "type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1,transport=shmem",
     dplModelAdaptor(filterSpecs, throwOnUnmatched));
