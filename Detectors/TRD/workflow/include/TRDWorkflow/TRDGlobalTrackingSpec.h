@@ -33,6 +33,7 @@
 #include "TRDBase/RecoParam.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 
 namespace o2
@@ -78,7 +79,9 @@ class TRDGlobalTracking : public o2::framework::Task
   gsl::span<const CalibratedTracklet> mTrackletsCalib;                ///< array of calibrated tracklets needed for TRD refit
   gsl::span<const o2::tpc::TrackTPC> mTPCTracksArray;                 ///< input TPC tracks used for refit
   gsl::span<const o2::its::TrackITS> mITSTracksArray;                 ///< input ITS tracks used for refit
+  gsl::span<const o2::itsmft::TrkClusRef> mITSABRefsArray;            ///< input ITS-TPC Afterburner ITS tracklets references
   gsl::span<const int> mITSTrackClusIdx;                              ///< input ITS track cluster indices span
+  gsl::span<const int> mITSABTrackClusIdx;                            ///< input ITSAB track cluster indices span
   std::vector<o2::BaseCluster<float>> mITSClustersArray;              ///< ITS clusters created in run() method from compact clusters
   o2::itsmft::TopologyDictionary mITSDict;                            ///< cluster patterns dictionary
 };
