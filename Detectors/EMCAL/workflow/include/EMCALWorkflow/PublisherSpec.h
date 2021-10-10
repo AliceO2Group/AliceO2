@@ -15,6 +15,7 @@
 #include "Framework/Output.h"
 #include "Framework/OutputSpec.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
+#include "DataFormatsEMCAL/Cell.h"
 #include <string>
 #include <vector>
 
@@ -76,6 +77,20 @@ framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool 
   };
 
   return createPublisherSpec(config, propagateMC, creator);
+}
+
+inline framework::DataProcessorSpec getCellReaderSpec(bool propagateMC)
+{
+  using cellInputType = std::vector<o2::emcal::Cell>;
+  return getPublisherSpec<cellInputType>(PublisherConf{"emcal-cell-reader",
+                                                       "o2sim",
+                                                       {"cellbranch", "EMCALCell", "Cell branch"},
+                                                       {"celltriggerbranch", "EMCALCellTRGR", "Trigger record branch"},
+                                                       {"mcbranch", "EMCALCellMCTruth", "MC label branch"},
+                                                       o2::framework::OutputSpec{"EMC", "CELLS"},
+                                                       o2::framework::OutputSpec{"EMC", "CELLSTRGR"},
+                                                       o2::framework::OutputSpec{"EMC", "CELLSMCTR"}},
+                                         propagateMC);
 }
 
 namespace workflow_reader

@@ -37,6 +37,15 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackTPCTOF.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "DataFormatsPHOS/Cell.h"
+#include "DataFormatsPHOS/TriggerRecord.h"
+#include "DataFormatsPHOS/MCLabel.h"
+#include "DataFormatsCPV/Cluster.h"
+#include "DataFormatsCPV/TriggerRecord.h"
+#include "DataFormatsEMCAL/Cell.h"
+#include "DataFormatsEMCAL/TriggerRecord.h"
+#include "DataFormatsEMCAL/MCLabel.h"
+
 #include "ReconstructionDataFormats/GlobalFwdTrack.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 
