@@ -307,7 +307,7 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
         t->Stop();
       }
     }
-    if (CheckErrorCodes(cpuFallback)) {
+    if (CheckErrorCodes(cpuFallback) && !mProcessingSettings.ignoreNonFatalGPUErrors) {
       throw std::runtime_error("kernel error code");
     }
   }
