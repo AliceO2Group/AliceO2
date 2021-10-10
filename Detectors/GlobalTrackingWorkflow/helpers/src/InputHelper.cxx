@@ -35,6 +35,9 @@
 #include "TRDWorkflowIO/TRDTrackReaderSpec.h"
 #include "CTPWorkflowIO/DigitReaderSpec.h"
 #include "MCHWorkflow/TrackReaderSpec.h"
+#include "PHOSWorkflow/ReaderSpec.h"
+#include "CPVWorkflow/ReaderSpec.h"
+#include "EMCALWorkflow/PublisherSpec.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -119,7 +122,19 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
     specs.emplace_back(o2::globaltracking::getGlobalFwdTrackReaderSpec(maskTracksMC[GID::MFTMCH]));
   }
   if (maskTracks[GID::CTP] && maskClusters[GID::CTP]) {
-    specs.emplace_back(o2::ctp::getDigitsReaderSpec(maskTracksMC[GID::CTP] || maskTracksMC[GID::CTP]));
+    specs.emplace_back(o2::ctp::getDigitsReaderSpec(maskTracksMC[GID::CTP] || maskClustersMC[GID::CTP]));
+  }
+
+  if (maskTracks[GID::PHS] && maskClusters[GID::PHS]) {
+    specs.emplace_back(o2::phos::getCellReaderSpec(maskTracksMC[GID::PHS] || maskClustersMC[GID::PHS]));
+  }
+
+  if (maskTracks[GID::CPV] && maskClusters[GID::CPV]) {
+    specs.emplace_back(o2::cpv::getClustersReaderSpec(maskTracksMC[GID::CPV] || maskClustersMC[GID::CPV]));
+  }
+
+  if (maskTracks[GID::EMC] && maskClusters[GID::EMC]) {
+    specs.emplace_back(o2::emcal::getCellReaderSpec(maskTracksMC[GID::EMC] || maskClustersMC[GID::EMC]));
   }
 
   return 0;
