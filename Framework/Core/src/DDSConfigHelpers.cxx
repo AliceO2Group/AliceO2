@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "DDSConfigHelpers.h"
+#include "ChannelSpecHelpers.h"
 #include <map>
 #include <iostream>
 #include <cstring>
@@ -30,6 +31,66 @@ std::string replaceFirstOccurrence(
   return s.replace(pos, toReplace.length(), replaceWith);
 }
 
+struct ChannelProperties {
+  std::string_view key;
+  std::string_view value;
+};
+
+struct ChannelRewriter : FairMQChannelConfigParser {
+  void beginChannel() override
+  {
+    names.push_back(-1);
+    isZMQ.push_back(false);
+    hasAddress.push_back(false);
+    isWrite.push_back(false);
+    propertiesBegin.push_back(propertyIndex);
+  }
+
+  void endChannel() override
+  {
+    propertiesEnd.push_back(propertyIndex);
+    if (names.back() == -1) {
+      throw std::runtime_error("Channel does not have a name.");
+    }
+    // If we have a zmq channel which does not have an address,
+    // use a DDS property.
+    if (isZMQ.back() && (hasAddress.back() == false)) {
+      requiresProperties.push_back(channelIndex);
+    }
+    channelIndex++;
+  }
+
+  void property(std::string_view key, std::string_view value) override
+  {
+    properties.push_back({key, value});
+    if (key == "address") {
+      hasAddress.back() = true;
+    }
+    if (key == "transport" && value == "zeromq") {
+      isZMQ.back() = true;
+    }
+    // Channels that bind need to write the bound address
+    if (key == "method" && value == "bind") {
+      isWrite.back() = true;
+    }
+    if (key == "name") {
+      names.back() = propertyIndex;
+    }
+    propertyIndex++;
+  }
+
+  int propertyIndex = 0;
+  int channelIndex = 0;
+  std::vector<ChannelProperties> properties;
+  std::vector<int> names;
+  std::vector<int> requiresProperties;
+  std::vector<int> propertiesBegin;
+  std::vector<int> propertiesEnd;
+  std::vector<bool> isWrite;
+  std::vector<bool> isZMQ;
+  std::vector<bool> hasAddress;
+};
+
 void dumpDeviceSpec2DDS(std::ostream& out,
                         const std::vector<DeviceSpec>& specs,
                         const std::vector<DeviceExecution>& executions,
@@ -38,6 +99,33 @@ void dumpDeviceSpec2DDS(std::ostream& out,
   out << R"(<topology name="o2-dataflow">)"
          "\n";
   assert(specs.size() == executions.size());
+  std::vector<ChannelRewriter> rewriters;
+  rewriters.resize(specs.size());
+
+  // Find out if we need properties
+  // and a property for each zmq channel which does not have
+  // and address.
+  for (size_t di = 0; di < specs.size(); ++di) {
+    auto& rewriter = rewriters[di];
+    auto& spec = specs[di];
+    auto& execution = executions[di];
+    for (size_t cci = 0; cci < execution.args.size(); cci++) {
+      const char* arg = execution.args[cci];
+      if (!arg) {
+        break;
+      }
+      if (strcmp(arg, "--channel-config") == 0) {
+        if (cci + 1 == execution.args.size()) {
+          throw std::runtime_error("wrong channel config found");
+        }
+        ChannelSpecHelpers::parseChannelConfig(execution.args[cci + 1], rewriter);
+      }
+    }
+    for (int ci : rewriter.requiresProperties) {
+      out << "   "
+          << fmt::format("<property name=\"fmqchan_{}\" />\n", rewriter.properties[rewriter.names[ci]].value);
+    }
+  }
 
   for (size_t di = 0; di < specs.size(); ++di) {
     auto& spec = specs[di];
@@ -45,6 +133,7 @@ void dumpDeviceSpec2DDS(std::ostream& out,
     if (execution.args.empty()) {
       continue;
     }
+
     out << "   "
         << fmt::format("<decltask name=\"{}\">\n", spec.id);
     out << "       "
@@ -94,6 +183,17 @@ void dumpDeviceSpec2DDS(std::ostream& out,
       out << " --channel-config \"" << accumulatedChannelPrefix << "\"";
     }
     out << "</exe>\n";
+    auto& rewriter = rewriters[di];
+    if (rewriter.requiresProperties.empty() == false) {
+      out << "   <properties>\n";
+      for (auto pi : rewriter.requiresProperties) {
+        out << fmt::format(
+          "      <name access=\"{}\">fmqchan_{}</name>\n",
+          rewriter.isWrite[pi] ? "write" : "read",
+          rewriter.properties[rewriter.names[pi]].value);
+      }
+      out << "   </properties>\n";
+    }
     out << "   </decltask>\n";
   }
   out << "   <declcollection name=\"DPL\">\n       <tasks>\n";
