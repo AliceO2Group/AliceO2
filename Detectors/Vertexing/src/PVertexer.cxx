@@ -683,7 +683,7 @@ void PVertexer::createMCLabels(gsl::span<const o2::MCCompLabel> lblTracks,
     o2::MCEventLabel best;
     int bestCount = 0;
     for (auto [lbl, cnt] : mp) {
-      if (cnt > bestCount) {
+      if (cnt > bestCount && lbl.isSet()) {
         bestCount = cnt;
         best = lbl;
       }
