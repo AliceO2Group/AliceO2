@@ -232,6 +232,7 @@ struct EPNstderrMonitor : fair::mq::Device {
   }
   bool ConditionalRun() override
   {
+    usleep(100000);
     return true;
   }
 };
