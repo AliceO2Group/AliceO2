@@ -58,6 +58,16 @@ class GPUbenchmark final
                                    int dimBlock,
                                    T&... args);
 
+  // Custom run with selected buffers
+  template <typename... T>
+  std::vector<float> runArbitrary(void (*kernel)(chunk_t*, T...),
+                                  std::vector<std::pair<int, int>> chunkRanges,
+                                  int nLaunches,
+                                  int dimStreams,
+                                  int nBlocks,
+                                  int nThreads,
+                                  T&... args);
+
   // Main interface
   void globalInit();     // Allocate scratch buffers and compute runtime parameters
   void run();            // Execute all specified callbacks

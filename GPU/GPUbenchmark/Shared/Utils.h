@@ -20,6 +20,7 @@
 #endif
 
 #include <iostream>
+#include <sstream>
 #include <iomanip>
 #include <typeinfo>
 #include <boost/program_options.hpp>
@@ -143,6 +144,13 @@ inline chunk_t* getPartPtr(chunk_t* scratchPtr, float chunkReservedGB, int partN
   return reinterpret_cast<chunk_t*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * chunkReservedGB) * partNumber);
 }
 
+// Return pointer to custom offset (GB)
+template <class chunk_t>
+inline chunk_t* getCustomPtr(chunk_t* scratchPtr, int partNumber)
+{
+  return reinterpret_cast<chunk_t*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * partNumber));
+}
+
 inline float computeThroughput(Test test, float result, float chunkSizeGB, int ntests)
 {
   // https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html
@@ -205,6 +213,7 @@ struct benchmarkOpts {
   std::vector<Mode> modes = {Mode::Sequential, Mode::Concurrent};
   std::vector<KernelConfig> pools = {KernelConfig::Single, KernelConfig::Multi};
   std::vector<std::string> dtypes = {"char", "int", "ulong"};
+  std::vector<std::pair<int, int>> arbitraryChunks;
   float chunkReservedGB = 1.f;
   float threadPoolFraction = 1.f;
   int nRegions = 2;

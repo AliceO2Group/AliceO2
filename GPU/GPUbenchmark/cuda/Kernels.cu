@@ -15,7 +15,7 @@
 #include "../Shared/Kernels.h"
 #include <cstdio>
 
-// Memory partitioning legend
+// Memory partitioning schema
 //
 // |----------------------region 0-----------------|----------------------region 1-----------------| regions -> deafult: 2, to test lower and upper RAM
 // |--chunk 0--|--chunk 1--|--chunk 2--|                  ***                          |--chunk n--| chunks  -> default size: 1GB (sing block pins)
@@ -305,6 +305,63 @@ std::vector<float> GPUbenchmark<chunk_t>::runConcurrent(void (*kernel)(chunk_t*,
 
   for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
     chunk_t* chunkPtr = getPartPtr<chunk_t>(mState.scratchPtr, mState.chunkReservedGB, iChunk);
+    GPUCHECK(cudaEventRecord(starts[iChunk], streams[iChunk % dimStreams]));
+    for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {
+      (*kernel)<<<nBlocks, nThreads, 0, streams[iChunk % dimStreams]>>>(chunkPtr, args...);
+    }
+    GPUCHECK(cudaEventRecord(stops[iChunk], streams[iChunk % dimStreams]));
+  }
+
+  for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
+    GPUCHECK(cudaEventSynchronize(stops[iChunk]));
+    GPUCHECK(cudaEventElapsedTime(&(results.at(iChunk)), starts[iChunk], stops[iChunk]));
+    GPUCHECK(cudaEventDestroy(starts[iChunk]));
+    GPUCHECK(cudaEventDestroy(stops[iChunk]));
+  }
+
+  for (auto iStream{0}; iStream < dimStreams; ++iStream) {
+    GPUCHECK(cudaStreamDestroy(streams[iStream]));
+  }
+
+  return results;
+}
+
+template <class chunk_t>
+template <typename... T>
+std::vector<float> GPUbenchmark<chunk_t>::runArbitrary(void (*kernel)(chunk_t*, T...),
+                                                       std::vector<std::pair<int, int>> chunkRanges,
+                                                       int nLaunches,
+                                                       int dimStreams,
+                                                       int nBlocks,
+                                                       int nThreads,
+                                                       T&... args)
+{
+  auto nChunks = chunkRanges.size();
+  std::vector<cudaEvent_t> starts(nChunks), stops(nChunks);
+  std::vector<cudaStream_t> streams(dimStreams);
+
+  std::vector<float> results(nChunks);
+  GPUCHECK(cudaSetDevice(mOptions.deviceId));
+
+  for (auto iStream{0}; iStream < dimStreams; ++iStream) {
+    GPUCHECK(cudaStreamCreate(&(streams.at(iStream)))); // round-robin on stream pool
+  }
+
+  for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
+    GPUCHECK(cudaEventCreate(&(starts[iChunk])));
+    GPUCHECK(cudaEventCreate(&(stops[iChunk])));
+  }
+
+  // Warm up on every chunk
+  for (auto iChunk{0}; iChunk < chunkRanges.size(); ++iChunk) {
+    auto& chunk = chunkRanges[iChunk];
+    chunk_t* chunkPtr = getCustomPtr<chunk_t>(mState.scratchPtr, chunk.first);
+    (*kernel)<<<nBlocks, nThreads, 0, streams[iChunk % dimStreams]>>>(chunkPtr, args...);
+  }
+
+  for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
+    auto& chunk = chunkRanges[iChunk];
+    chunk_t* chunkPtr = getCustomPtr<chunk_t>(mState.scratchPtr, chunk.first);
     GPUCHECK(cudaEventRecord(starts[iChunk], streams[iChunk % dimStreams]));
     for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {
       (*kernel)<<<nBlocks, nThreads, 0, streams[iChunk % dimStreams]>>>(chunkPtr, args...);
