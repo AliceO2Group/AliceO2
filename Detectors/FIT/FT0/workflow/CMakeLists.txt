@@ -44,6 +44,11 @@ o2_add_executable(digits-reader-workflow
                   COMPONENT_NAME ft0
                   PUBLIC_LINK_LIBRARIES O2::FT0Workflow)
 
+o2_add_executable(digits-writer-workflow
+                  SOURCES src/digits-writer-workflow.cxx
+                  COMPONENT_NAME ft0
+                  PUBLIC_LINK_LIBRARIES O2::FT0Workflow)
+
 o2_add_executable(flp-dpl-workflow
                   COMPONENT_NAME ft0
                   SOURCES src/ft0-flp-workflow.cxx
