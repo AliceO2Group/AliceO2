@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 if (NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  o2_add_executable(epn-stderr-monitor
+  o2_add_executable(stderr-monitor
                     COMPONENT_NAME epn
                     SOURCES src/EPNstderrMonitor.cxx
                     PUBLIC_LINK_LIBRARIES FairMQ::FairMQ AliceO2::InfoLogger)
