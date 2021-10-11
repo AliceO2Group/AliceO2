@@ -149,8 +149,8 @@ void CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::stri
   }
   long sanitizedEndValidityTimestamp = endValidityTimestamp;
   if (endValidityTimestamp == -1) {
-    cout << "End of Validity not set, start of validity plus 1 year used." << endl;
-    sanitizedEndValidityTimestamp = getFutureTimestamp(60 * 60 * 24 * 365);
+    cout << "End of Validity not set, start of validity plus 1 day used." << endl;
+    sanitizedEndValidityTimestamp = getFutureTimestamp(60 * 60 * 24 * 1);
   }
 
   // Curl preparation
@@ -215,7 +215,7 @@ string CcdbApi::getFullUrlForStorage(CURL* curl, const string& path, const strin
 {
   // Prepare timestamps
   string startValidityString = getTimestampString(startValidityTimestamp < 0 ? getCurrentTimestamp() : startValidityTimestamp);
-  string endValidityString = getTimestampString(endValidityTimestamp < 0 ? getFutureTimestamp(60 * 60 * 24 * 365) : endValidityTimestamp);
+  string endValidityString = getTimestampString(endValidityTimestamp < 0 ? getFutureTimestamp(60 * 60 * 24 * 1) : endValidityTimestamp);
   // Build URL
   string fullUrl = mUrl + "/" + path + "/" + startValidityString + "/" + endValidityString + "/";
   // Add type as part of metadata

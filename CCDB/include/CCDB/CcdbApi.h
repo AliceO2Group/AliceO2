@@ -111,7 +111,7 @@ class CcdbApi //: public DatabaseInterface
      * @param path The path where the object is going to be stored.
      * @param metadata Key-values representing the metadata for this object.
      * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
-     * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 year is used.
+     * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 day is used.
      */
   void storeAsTFile(const TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
                     long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
@@ -123,7 +123,7 @@ class CcdbApi //: public DatabaseInterface
      * @param path The path where the object is going to be stored.
      * @param metadata Key-values representing the metadata for this object.
      * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
-     * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 year is used.
+     * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 day is used.
      */
   template <typename T>
   void storeAsTFileAny(const T* obj, std::string const& path, std::map<std::string, std::string> const& metadata,
@@ -331,7 +331,7 @@ class CcdbApi //: public DatabaseInterface
    * @param path The path where the object is going to be stored.
    * @param metadata Key-values representing the metadata for this object.
    * @param startValidityTimestamp Start of validity. If omitted or negative, the current timestamp is used.
-   * @param endValidityTimestamp End of validity. If omitted or negative, current timestamp + 1 year is used.
+   * @param endValidityTimestamp End of validity. If omitted or negative, current timestamp + 1 day is used.
    * @return The full url to store an object (url / startValidity / endValidity / [metadata &]* )
    */
   std::string getFullUrlForStorage(CURL* curl, const std::string& path, const std::string& objtype,

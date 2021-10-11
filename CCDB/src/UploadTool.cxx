@@ -30,7 +30,7 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
     "key,k", bpo::value<std::string>()->required(), "Key of object to upload")(
     "meta,m", bpo::value<std::string>()->default_value(""), "List of key=value pairs for meta-information (k1=v1;k2=v2;k3=v3)")(
     "starttimestamp,st", bpo::value<long>()->default_value(-1), "timestamp - default -1 = now")(
-    "endtimestamp,et", bpo::value<long>()->default_value(-1), "end of validity - default -1 = 1 year from now")(
+    "endtimestamp,et", bpo::value<long>()->default_value(-1), "end of validity - default -1 = 1 day from now")(
     "help,h", "Produce help message.");
 
   try {
@@ -110,8 +110,8 @@ int main(int argc, char* argv[])
   }
   long endtimestamp = vm["endtimestamp"].as<long>();
   if (endtimestamp == -1) {
-    constexpr long SECONDSPERYEAR = 365 * 24 * 60 * 60;
-    endtimestamp = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
+    constexpr long SECONDSPERDAY = 1 * 24 * 60 * 60;
+    endtimestamp = o2::ccdb::getFutureTimestamp(SECONDSPERDAY);
   }
 
   auto filename = vm["file"].as<std::string>();
