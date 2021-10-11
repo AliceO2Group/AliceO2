@@ -9,10 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file benchmark.cxx
 /// \author mconcas@cern.ch
 ///
-#include "Shared/Kernels.h"
+
+#include "../Shared/Kernels.h"
 #define VERSION "version 0.1-latest-#6773"
 
 bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])

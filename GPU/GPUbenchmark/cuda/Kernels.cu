@@ -31,6 +31,18 @@
 double bytesToconfig(size_t s) { return (double)s / (1024.0); }
 double bytesToGB(size_t s) { return (double)s / GB; }
 
+// CUDA does not support <type4> operations:
+// https://forums.developer.nvidia.com/t/swizzling-float4-arithmetic-support/217
+#ifndef __HIPCC__
+inline __host__ __device__ void operator+=(int4& a, int4 b)
+{
+  a.x += b.x;
+  a.y += b.y;
+  a.z += b.z;
+  a.w += b.w;
+}
+#endif
+
 namespace o2
 {
 namespace benchmark

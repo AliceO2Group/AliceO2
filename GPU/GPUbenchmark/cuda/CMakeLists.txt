@@ -10,11 +10,13 @@
 # or submit itself to any jurisdiction.
 
 if(CUDA_ENABLED)
-  add_subdirectory(cuda)
+message(STATUS "Building GPU CUDA benchmark")
+set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
+  o2_add_executable(gpu-memory-benchmark-cuda
+                  SOURCES benchmark.cu
+                          Kernels.cu
+                  PUBLIC_LINK_LIBRARIES Boost::program_options
+                                        ROOT::Tree
+                  TARGETVARNAME targetName)
+                  set_target_properties(${targeName} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 endif()
-
-if(HIP_ENABLED)
-  add_subdirectory(hip)
-endif()
-
-o2_add_test_root_macro(macro/showBenchmarks.C)

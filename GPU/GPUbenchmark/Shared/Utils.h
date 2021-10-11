@@ -192,19 +192,6 @@ class BSDRnd : public LCGRnd
   __host__ __device__ int rnd() { return LCGRnd::rnd(); }
 };
 
-
-// CUDA does not support <type4> operations:
-// https://forums.developer.nvidia.com/t/swizzling-float4-arithmetic-support/217
-#ifndef __HIPCC__ 
-inline __host__ __device__ void operator+=(int4 &a, int4 b)
-{
-    a.x += b.x;
-    a.y += b.y;
-    a.z += b.z;
-    a.w += b.w;
-}
-#endif
-
 namespace o2
 {
 namespace benchmark
