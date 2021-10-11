@@ -12,8 +12,9 @@
 o2_add_library(
   DataFormatsMID
   SOURCES src/ColumnData.cxx src/CTF.cxx src/ROBoard.cxx src/Track.cxx
+          src/MCClusterLabel.cxx
   PUBLIC_LINK_LIBRARIES
-    Boost::serialization O2::MathUtils O2::CommonDataFormat
+    Boost::serialization O2::MathUtils O2::CommonDataFormat O2::SimulationDataFormat
     O2::DetectorsCommonDataFormats O2::ReconstructionDataFormats)
 
 o2_target_root_dictionary(
@@ -24,4 +25,5 @@ o2_target_root_dictionary(
           include/DataFormatsMID/ROBoard.h
           include/DataFormatsMID/ROFRecord.h
           include/DataFormatsMID/Track.h
-          include/DataFormatsMID/CTF.h)
+          include/DataFormatsMID/CTF.h
+          include/DataFormatsMID/MCClusterLabel.h)

@@ -18,6 +18,7 @@ o2_add_library(
     O2::DataFormatsITS
     O2::DataFormatsMFT
     O2::DataFormatsMCH
+    O2::DataFormatsMID
     O2::DataFormatsFT0
     O2::DataFormatsFV0
     O2::DataFormatsFDD

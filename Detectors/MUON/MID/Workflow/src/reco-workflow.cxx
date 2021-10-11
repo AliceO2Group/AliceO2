@@ -26,7 +26,7 @@
 #include "DataFormatsMID/Cluster3D.h"
 #include "DataFormatsMID/Track.h"
 #include "DataFormatsMID/ROFRecord.h"
-#include "MIDSimulation/MCClusterLabel.h"
+#include "DataFormatsMID/MCClusterLabel.h"
 #include "MIDWorkflow/ClusterizerMCSpec.h"
 #include "MIDWorkflow/ClusterizerSpec.h"
 #include "MIDWorkflow/TrackerMCSpec.h"

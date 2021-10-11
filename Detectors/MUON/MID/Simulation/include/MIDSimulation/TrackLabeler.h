@@ -22,7 +22,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsMID/Track.h"
 #include "DataFormatsMID/Cluster3D.h"
-#include "MIDSimulation/MCClusterLabel.h"
+#include "DataFormatsMID/MCClusterLabel.h"
 
 namespace o2
 {
