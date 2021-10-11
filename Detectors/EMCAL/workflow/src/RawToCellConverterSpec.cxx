@@ -354,10 +354,12 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               }
             } else {
               // new channel would be HG use that if it is belpw ADC cut
+              // as the channel existed before it must have been a LG channel,
+              /// whixh would be used in case the HG is out-of-range
               res->mIsLGnoHG = false;
+              res->mHGOutOfRange = false;
               res->mHWAddressHG = chan.getHardwareAddress();
               if (amp / CONVADCGEV <= o2::emcal::constants::OVERFLOWCUT) {
-                res->mHGOutOfRange = false;
                 res->mCellData.setEnergy(amp);
                 res->mCellData.setHighGain();
               }
@@ -413,29 +415,30 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   }
 
   // Loop over BCs, sort cells with increasing tower ID and write to output containers
-  for (auto [bc, cells] : cellBuffer) {
+  for (const auto& [bc, cells] : cellBuffer) {
     int ncellsEvent = 0;
     int eventstart = mOutputCells.size();
     if (cells->size()) {
       LOG(DEBUG) << "Event has " << cells->size() << " cells";
       // Sort cells according to cell ID
-      std::sort(cells->begin(), cells->end(), [](RecCellInfo& lhs, RecCellInfo& rhs) { return lhs.mCellData.getTower() < rhs.mCellData.getTower(); });
-      for (auto cell : *cells) {
+      std::sort(cells->begin(), cells->end(), [](const RecCellInfo& lhs, const RecCellInfo& rhs) { return lhs.mCellData.getTower() < rhs.mCellData.getTower(); });
+      for (const auto& cell : *cells) {
         if (cell.mIsLGnoHG) {
           auto [smID, modID, iphiMod, ietaMod] = mGeometry->GetCellIndex(cell.mCellData.getTower());
-          LOG(ERROR) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressLG << std::dec << " (SM " << smID << ") has low gain but no high-gain" << std::endl;
-          mOutputDecoderErrors.emplace_back(smID / 2, ErrorTypeFEE::GAIN_ERROR, 0);
+          LOG(ERROR) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressLG << std::dec << " (SM " << smID << ") has low gain but no high-gain";
+          mOutputDecoderErrors.emplace_back(smID * 2, ErrorTypeFEE::GAIN_ERROR, 0);
           continue;
         }
         if (cell.mHGOutOfRange) {
-          LOG(ERROR) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressHG << std::dec << " has only high-gain out-of-range" << std::endl;
           auto [smID, modID, iphiMod, ietaMod] = mGeometry->GetCellIndex(cell.mCellData.getTower());
-          mOutputDecoderErrors.emplace_back(smID / 2, ErrorTypeFEE::GAIN_ERROR, 1);
+          LOG(ERROR) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressHG << std::dec << " (SM " << smID << ") has only high-gain out-of-range";
+          mOutputDecoderErrors.emplace_back(smID * 2, ErrorTypeFEE::GAIN_ERROR, 1);
           continue;
         }
         ncellsEvent++;
         mOutputCells.push_back(cell.mCellData);
       }
+      LOG(DEBUG) << "Accepted " << ncellsEvent << " cells";
     }
     mOutputTriggerRecords.emplace_back(bc, triggerBuffer[bc], eventstart, ncellsEvent);
   }
