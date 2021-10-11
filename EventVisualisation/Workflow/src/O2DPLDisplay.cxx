@@ -174,8 +174,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   int numberOfFiles = cfgc.options().get<int>("number-of_files");
   int numberOfTracks = cfgc.options().get<int>("number-of_tracks");
 
-  GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks"));
-  GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters"));
+  GID::mask_t allowedTracks = GID::getSourcesMask("ITS,TPC,MFT,MCH,ITS-TPC,ITS-TPC-TOF");
+  GID::mask_t allowedClusters = GID::getSourcesMask("ITS,TPC,MFT,MCH");
+
+  GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks")) & allowedTracks;
+  GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters")) & allowedClusters;
   if (!srcTrk.any() && !srcCl.any()) {
     throw std::runtime_error("No input configured");
   }
