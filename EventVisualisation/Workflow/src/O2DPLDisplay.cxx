@@ -119,7 +119,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   }
 
   // filtering out any run which occur before reaching next time interval
-  std::chrono::time_point<std::chrono::high_resolution_clock> currentTime = std::chrono::high_resolution_clock::now();
+  auto currentTime = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = currentTime - this->mTimeStamp;
   if (elapsed < this->mTimeInteval) {
     return; // skip this run - it is too often
@@ -136,6 +136,9 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   helper.prepareMFTClusters(mMFTDict);
 
   helper.draw(this->mJsonPath, this->mNumberOfFiles, this->mNumberOfTracks);
+  const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
+  auto endTime = std::chrono::high_resolution_clock::now();
+  LOGP(INFO, "Visualization of TF:{} at orbit {} took {} s.", dh->tfCounter, dh->firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
 }
 
 void O2DPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
