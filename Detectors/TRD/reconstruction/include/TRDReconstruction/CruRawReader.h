@@ -164,6 +164,14 @@ class CruRawReader
   int checkDigitHCHeader();
   int checkTrackletHCHeader();
   bool skipRDH();
+  void updateLinkErrorGraphs(int currentlinkindex, int supermodule_half, int stack_layer);
+  void increment2dHist(int hist, int sectorside, int stack, int layer)
+  {
+    if (mRootOutput) {
+      mParsingErrors->Fill(hist);
+      ((TH2F*)mParsingErrors2d->At(hist))->Fill(sectorside, stack * constants::NLAYER + layer);
+    }
+  }
 
   inline void rewind()
   {
