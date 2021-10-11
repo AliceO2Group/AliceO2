@@ -27,7 +27,7 @@
 #include "MIDSimulation/Geometry.h"
 #include "MIDTracking/Tracker.h"
 #include "DetectorsBase/GeometryManager.h"
-#include "MIDSimulation/MCClusterLabel.h"
+#include "DataFormatsMID/MCClusterLabel.h"
 #include "MIDSimulation/TrackLabeler.h"
 
 namespace of = o2::framework;

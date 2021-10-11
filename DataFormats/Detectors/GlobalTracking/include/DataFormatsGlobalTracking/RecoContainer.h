@@ -74,6 +74,15 @@ class ROFRecord;
 class ClusterStruct;
 } // namespace o2::mch
 
+namespace o2::mid
+{
+class Cluster2D;
+class Cluster3D;
+class ROFRecord;
+class Track;
+class MCClusterLabel;
+} // namespace o2::mid
+
 namespace o2::itsmft
 {
 class ROFRecord;
@@ -182,6 +191,7 @@ struct DataRequest {
   void requestITSTracks(bool mc);
   void requestMFTTracks(bool mc);
   void requestMCHTracks(bool mc);
+  void requestMIDTracks(bool mc);
   void requestTPCTracks(bool mc);
   void requestITSTPCTracks(bool mc);
   void requestGlobalFwdTracks(bool mc);
@@ -281,6 +291,7 @@ struct RecoContainer {
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcCPVClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>> mcPHSCells;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>> mcEMCCells;
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>> mcMIDTrackClusters;
 
   gsl::span<const unsigned char> clusterShMapTPC; ///< externally set TPC clusters sharing map
 
@@ -296,6 +307,7 @@ struct RecoContainer {
   void addITSTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addMFTTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addMCHTracks(o2::framework::ProcessingContext& pc, bool mc);
+  void addMIDTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addTPCTracks(o2::framework::ProcessingContext& pc, bool mc);
 
   void addITSTPCTRDTracks(o2::framework::ProcessingContext& pc, bool mc);
@@ -440,7 +452,15 @@ struct RecoContainer {
   auto getMCHTracksROFRecords() const { return getSpan<o2::mch::ROFRecord>(GTrackID::MCH, TRACKREFS); }
   auto getMCHTrackClusters() const { return getSpan<o2::mch::ClusterStruct>(GTrackID::MCH, CLUSREFS); }
   auto getMCHTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MCH, MCLABELS); }
-  // FIXME: add clusters
+
+  // MID
+  const o2::mid::Track& getMIDTrack(GTrackID gid) const { return getTrack<o2::mid::Track>(gid); }
+  auto getMIDTracks() const { return getTracks<o2::mid::Track>(GTrackID::MID); }
+  auto getMIDTracksROFRecords() const { return getSpan<o2::mid::ROFRecord>(GTrackID::MID, TRACKREFS); }
+  auto getMIDTrackClusters() const { return getSpan<o2::mid::Cluster3D>(GTrackID::MID, CLUSREFS); }
+  auto getMIDTrackClustersROFRecords() const { return getSpan<o2::mid::ROFRecord>(GTrackID::MID, MATCHES); }
+  auto getMIDTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MID, MCLABELS); }
+  const o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>* getMIDTracksClusterMCLabels() const;
 
   // TPC
   const o2::tpc::TrackTPC& getTPCTrack(GTrackID id) const { return getTrack<o2::tpc::TrackTPC>(id); }

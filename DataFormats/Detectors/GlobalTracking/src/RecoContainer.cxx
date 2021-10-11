@@ -90,6 +90,19 @@ void DataRequest::requestMCHTracks(bool mc)
   requestMap["trackMCH"] = mc;
 }
 
+void DataRequest::requestMIDTracks(bool mc)
+{
+  addInput({"trackMIDROF", "MID", "TRACKROFS", 0, Lifetime::Timeframe});
+  addInput({"trackClMIDROF", "MID", "TRCLUSROF", 0, Lifetime::Timeframe});
+  addInput({"trackMID", "MID", "TRACKS", 0, Lifetime::Timeframe});
+  addInput({"trackMIDTRACKCLUSTERS", "MID", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"trackMIDMCTR", "MID", "TRACKLABELS", 0, Lifetime::Timeframe});
+    addInput({"trackMIDMCTRCL", "MID", "TRCLUSLABELS", 0, Lifetime::Timeframe});
+  }
+  requestMap["trackMID"] = mc;
+}
+
 void DataRequest::requestTPCTracks(bool mc)
 {
   addInput({"trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe});
@@ -356,6 +369,9 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (src[GTrackID::MCH]) {
     requestMCHTracks(useMC);
   }
+  if (src[GTrackID::MID]) {
+    requestMIDTracks(useMC);
+  }
   if (src[GTrackID::TPC]) {
     requestTPCTracks(useMC);
   }
@@ -452,6 +468,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   req = reqMap.find("trackMCH");
   if (req != reqMap.end()) {
     addMCHTracks(pc, req->second);
+  }
+
+  req = reqMap.find("trackMID");
+  if (req != reqMap.end()) {
+    addMIDTracks(pc, req->second);
   }
 
   req = reqMap.find("trackTPC");
@@ -664,7 +685,25 @@ void RecoContainer::addMCHTracks(ProcessingContext& pc, bool mc)
   if (mc) {
     commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMCHMCTR"), MCLABELS);
   }
-  // FIXME-LA : add track clusters
+}
+
+//____________________________________________________________
+void RecoContainer::addMIDTracks(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::MID].registerContainer(pc.inputs().get<gsl::span<o2::mid::Track>>("trackMID"), TRACKS);
+  commonPool[GTrackID::MID].registerContainer(pc.inputs().get<gsl::span<o2::mid::ROFRecord>>("trackMIDROF"), TRACKREFS);
+  commonPool[GTrackID::MID].registerContainer(pc.inputs().get<gsl::span<o2::mid::Cluster3D>>("trackMIDTRACKCLUSTERS"), CLUSREFS);
+  commonPool[GTrackID::MID].registerContainer(pc.inputs().get<gsl::span<o2::mid::ROFRecord>>("trackClMIDROF"), MATCHES);
+  if (mc) {
+    commonPool[GTrackID::MID].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMIDMCTR"), MCLABELS);
+    mcMIDTrackClusters = pc.inputs().get<const dataformats::MCTruthContainer<o2::mid::MCClusterLabel>*>("trackMIDMCTRCL");
+  }
+}
+
+//________________________________________________________
+const o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>* RecoContainer::getMIDTracksClusterMCLabels() const
+{
+  return mcMIDTrackClusters.get();
 }
 
 //____________________________________________________________

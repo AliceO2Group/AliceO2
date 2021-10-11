@@ -11,7 +11,7 @@
 
 /// \file RecoContainerCreateTracksVariadic.h
 /// \brief Wrapper container for different reconstructed object types
-/// \author ruben.shahoyan@cern.ch
+/// \author ruben.shahoyan@cern.chM
 
 #include "Framework/ProcessingContext.h"
 #include "Framework/InputSpec.h"
@@ -21,9 +21,16 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMFT/TrackMFT.h"
+
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/ClusterBlock.h"
 #include "DataFormatsMCH/ROFRecord.h"
+
+#include "DataFormatsMID/ROFRecord.h"
+#include "DataFormatsMID/Cluster3D.h"
+#include "DataFormatsMID/Track.h"
+#include "DataFormatsMID/MCClusterLabel.h"
+
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTOF/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"

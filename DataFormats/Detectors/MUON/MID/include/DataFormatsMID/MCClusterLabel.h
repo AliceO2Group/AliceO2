@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDSimulation/MCClusterLabel.h
+/// \file   DataFormatsMID/MCClusterLabel.h
 /// \brief  Label for MID clusters
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   23 April 2019
@@ -44,7 +44,7 @@ class MCClusterLabel : public o2::MCCompLabel
   bool isFiredNBP() const { return mFiredCathodes[1]; }
 
   ClassDefNV(MCClusterLabel, 1);
-}; // namespace mid
+};
 } // namespace mid
 } // namespace o2
 
