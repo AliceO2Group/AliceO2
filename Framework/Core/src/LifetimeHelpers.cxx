@@ -58,10 +58,12 @@ ExpirationHandler::Creator LifetimeHelpers::dataDrivenCreation()
   };
 }
 
-ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, size_t end, size_t step, size_t inputTimeslice, size_t maxInputTimeslices)
+ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, size_t end, size_t step, size_t inputTimeslice, size_t maxInputTimeslices, size_t maxRepetitions)
 {
   auto last = std::make_shared<size_t>(start + inputTimeslice * step);
-  return [start, end, step, last, inputTimeslice, maxInputTimeslices](TimesliceIndex& index) -> TimesliceSlot {
+  auto repetition = std::make_shared<size_t>(0);
+
+  return [start, end, step, last, inputTimeslice, maxInputTimeslices, maxRepetitions, repetition](TimesliceIndex& index) -> TimesliceSlot {
     for (size_t si = 0; si < index.size(); si++) {
       if (*last > end) {
         return TimesliceSlot{TimesliceSlot::INVALID};
@@ -69,11 +71,15 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
       auto slot = TimesliceSlot{si};
       if (index.isValid(slot) == false) {
         TimesliceId timestamp{*last};
-        *last += step * maxInputTimeslices;
+        *repetition += 1;
+        if (*repetition % maxRepetitions == 0) {
+          *last += step * maxInputTimeslices;
+        }
         index.associate(timestamp, slot);
         return slot;
       }
     }
+
     return TimesliceSlot{TimesliceSlot::INVALID};
   };
 }

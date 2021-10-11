@@ -113,7 +113,7 @@ struct ExpirationHandlerHelpers {
       uv_signal_start(sh, detail::signal_callback, SIGUSR1);
       state.activeSignals.push_back(sh);
 
-      return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices);
+      return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices, 1);
     };
   }
 
@@ -126,7 +126,14 @@ struct ExpirationHandlerHelpers {
       auto start = options.get<int64_t>(startName.c_str());
       auto stop = options.get<int64_t>(endName.c_str());
       auto step = options.get<int64_t>(stepName.c_str());
-      return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices);
+      auto repetitions = 1;
+      for (auto& meta : matcher.metadata) {
+        if (meta.name == "repetitions") {
+          repetitions = meta.defaultValue.get<int64_t>();
+          break;
+        }
+      }
+      return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices, repetitions);
     };
   }
 
