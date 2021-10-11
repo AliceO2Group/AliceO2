@@ -132,6 +132,26 @@ void Clusters::reset()
 }
 
 //______________________________________________________________________________
+void Clusters::merge(const Clusters& clusters)
+{
+  const bool isNormalized = mIsNormalized;
+  if (isNormalized) {
+    denormalize();
+  }
+
+  mNClusters += clusters.mNClusters;
+  mQMax += clusters.mQMax;
+  mQTot += clusters.mQTot;
+  mSigmaTime += clusters.mSigmaTime;
+  mSigmaPad += clusters.mSigmaPad;
+  mTimeBin += clusters.mTimeBin;
+
+  if (isNormalized) {
+    normalize();
+  }
+}
+
+//______________________________________________________________________________
 void Clusters::dumpToFile(std::string filename)
 {
   if (filename.find(".root") != std::string::npos) {
