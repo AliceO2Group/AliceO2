@@ -32,6 +32,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"Disable MC labels"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
+    {"enable-trackbased-calib", o2::framework::VariantType::Bool, false, {"enable calibration devices which are based on tracking output"}},
     {"track-sources", VariantType::String, std::string{GTrackID::ALL}, {"comma-separated list of sources to use for tracking"}},
     {"filter-trigrec", o2::framework::VariantType::Bool, false, {"ignore interaction records without ITS data"}},
     {"strict-matching", o2::framework::VariantType::Bool, false, {"High purity preliminary matching"}},
@@ -65,7 +66,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // processing devices
   specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive, strict));
-  if (GTrackID::includesSource(GTrackID::Source::ITSTPC, srcTRD)) {
+  if (GTrackID::includesSource(GTrackID::Source::ITSTPC, srcTRD) && configcontext.options().get<bool>("enable-trackbased-calib")) {
     specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec());
   }
 
@@ -73,7 +74,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!configcontext.options().get<bool>("disable-root-output")) {
     if (GTrackID::includesSource(GTrackID::Source::ITSTPC, srcTRD)) {
       specs.emplace_back(o2::trd::getTRDGlobalTrackWriterSpec(useMC));
-      specs.emplace_back(o2::trd::getTRDCalibWriterSpec());
+      if (configcontext.options().get<bool>("enable-trackbased-calib")) {
+        specs.emplace_back(o2::trd::getTRDCalibWriterSpec());
+      }
     }
     if (GTrackID::includesSource(GTrackID::Source::TPC, srcTRD)) {
       specs.emplace_back(o2::trd::getTRDTPCTrackWriterSpec(useMC, strict));
