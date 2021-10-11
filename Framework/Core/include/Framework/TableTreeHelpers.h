@@ -125,6 +125,8 @@ class TableToTree
 class TreeToTable
 {
  public:
+  /// @a tablesInDF the number of tables which are to be found in the given
+  /// associated dataframe
   TreeToTable(arrow::MemoryPool* pool = arrow::default_memory_pool());
   void setLabel(const char* label);
   void addAllColumns(TTree* tree, std::vector<std::string>&& names = {});

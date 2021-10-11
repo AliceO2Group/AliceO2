@@ -190,17 +190,23 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       if (DataSpecUtils::partialMatch(route.matcher, header::DataOrigin("TFN"))) {
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
         TFNumberHeader = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
-      } else {
-        requestedTables.emplace_back(route);
+        continue;
       }
+      if ((spec.inputTimesliceId % route.maxTimeslices) != route.timeslice) {
+        continue;
+      }
+      requestedTables.emplace_back(route);
     }
 
     auto fileCounter = std::make_shared<int>(0);
     auto numTF = std::make_shared<int>(-1);
+    auto numRoute = std::make_shared<int>(-1);
+
     return adaptStateless([TFNumberHeader,
                            requestedTables,
                            fileCounter,
                            numTF,
+                           numRoute,
                            watchdog,
                            didir](Monitoring& monitoring, DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
       // Each parallel reader device.inputTimesliceId reads the files fileCounter*device.maxInputTimeslices+device.inputTimesliceId
@@ -208,7 +214,14 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       assert(device.inputTimesliceId < device.maxInputTimeslices);
       uint64_t timeFrameNumber = 0;
       int fcnt = (*fileCounter * device.maxInputTimeslices) + device.inputTimesliceId;
-      int ntf = *numTF + 1;
+      // Process the next table.
+      *numRoute += 1;
+      bool nextTimeframe = *numRoute % requestedTables.size() == 0;
+      int ntf = *numTF;
+      // If this is table 0, we need to move to the next timeframe.
+      if (nextTimeframe) {
+        ntf = *numTF + 1;
+      }
       static int currentFileCounter = -1;
       static int filesProcessed = 0;
       if (currentFileCounter != *fileCounter) {
@@ -217,7 +230,6 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       }
 
       // loop over requested tables
-      bool first = true;
       static size_t totalSizeUncompressed = 0;
       static size_t totalSizeCompressed = 0;
       static TFile* currentFile = nullptr;
@@ -226,7 +238,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       static uint64_t currentFileIOTime = 0;
 
       // check if RuntimeLimit is reached
-      if (!watchdog->update()) {
+      if (nextTimeframe && !watchdog->update()) {
         LOGP(INFO, "Run time exceeds run time limit of {} seconds. Exiting gracefully...", watchdog->runTimeLimit);
         LOGP(INFO, "Stopping reader {} after time frame {}.", device.inputTimesliceId, watchdog->numberTimeFrames - 1);
         dumpFileMetrics(monitoring, currentFile, currentFileStartedAt, currentFileIOTime, tfCurrentFile, ntf);
@@ -239,87 +251,83 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 
       auto ioStart = uv_hrtime();
 
-      for (auto& route : requestedTables) {
-        if ((device.inputTimesliceId % route.maxTimeslices) != route.timeslice) {
-          continue;
-        }
+      auto& route = requestedTables[*numRoute % requestedTables.size()];
 
-        // create header
-        auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
-        auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
+      // create header
+      auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+      auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
 
-        // create a TreeToTable object
-        TTree* tr = didir->getDataTree(dh, fcnt, ntf);
-        if (!tr) {
-          if (first) {
-            // dump metrics of file which is done for reading
-            dumpFileMetrics(monitoring, currentFile, currentFileStartedAt, currentFileIOTime, tfCurrentFile, ntf);
-            currentFile = nullptr;
-            currentFileStartedAt = uv_hrtime();
-            currentFileIOTime = 0;
+      // create a TreeToTable object
+      TTree* tr = didir->getDataTree(dh, fcnt, ntf);
+      if (!tr) {
+        if (nextTimeframe) {
+          // dump metrics of file which is done for reading
+          dumpFileMetrics(monitoring, currentFile, currentFileStartedAt, currentFileIOTime, tfCurrentFile, ntf);
+          currentFile = nullptr;
+          currentFileStartedAt = uv_hrtime();
+          currentFileIOTime = 0;
 
-            // check if there is a next file to read
-            fcnt += device.maxInputTimeslices;
-            if (didir->atEnd(fcnt)) {
-              LOGP(INFO, "No input files left to read for reader {}!", device.inputTimesliceId);
-              didir->closeInputFiles();
-              control.endOfStream();
-              control.readyToQuit(QuitRequest::Me);
-              return;
-            }
-            // get first folder of next file
-            ntf = 0;
-            tr = didir->getDataTree(dh, fcnt, ntf);
-            if (!tr) {
-              LOGP(FATAL, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin, fcnt, ntf);
-              throw std::runtime_error("Processing is stopped!");
-            }
-          } else {
+          // check if there is a next file to read
+          fcnt += device.maxInputTimeslices;
+          if (didir->atEnd(fcnt)) {
+            LOGP(INFO, "No input files left to read for reader {}!", device.inputTimesliceId);
+            didir->closeInputFiles();
+            control.endOfStream();
+            control.readyToQuit(QuitRequest::Me);
+            return;
+          }
+          // get first folder of next file
+          ntf = 0;
+          tr = didir->getDataTree(dh, fcnt, ntf);
+          if (!tr) {
             LOGP(FATAL, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin, fcnt, ntf);
             throw std::runtime_error("Processing is stopped!");
           }
-        }
-
-        if (first) {
-          timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
-          auto o = Output(TFNumberHeader);
-          outputs.make<uint64_t>(o) = timeFrameNumber;
-        }
-
-        // create table output
-        auto o = Output(dh);
-        auto& t2t = outputs.make<TreeToTable>(o);
-
-        // add branches to read
-        // fill the table
-        auto colnames = getColumnNames(dh);
-        t2t.setLabel(tr->GetName());
-        if (colnames.size() == 0) {
-          totalSizeCompressed += tr->GetZipBytes();
-          totalSizeUncompressed += tr->GetTotBytes();
-          t2t.addAllColumns(tr);
         } else {
-          for (auto& colname : colnames) {
-            TBranch* branch = tr->GetBranch(colname.c_str());
-            totalSizeCompressed += branch->GetZipBytes("*");
-            totalSizeUncompressed += branch->GetTotBytes("*");
-          }
-          t2t.addAllColumns(tr, std::move(colnames));
+          LOGP(FATAL, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin, fcnt, ntf);
+          throw std::runtime_error("Processing is stopped!");
         }
-        t2t.fill(tr);
-        delete tr;
-
-        // needed for metrics dumping (upon next file read, or terminate due to watchdog)
-        if (currentFile == nullptr) {
-          currentFile = didir->getFileFolder(dh, fcnt, ntf).file;
-          tfCurrentFile = didir->getTimeFramesInFile(dh, fcnt);
-        }
-
-        first = false;
       }
-      monitoring.send(Metric{(uint64_t)ntf, "df-sent"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-      monitoring.send(Metric{(uint64_t)totalSizeUncompressed / 1000, "aod-bytes-read-uncompressed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-      monitoring.send(Metric{(uint64_t)totalSizeCompressed / 1000, "aod-bytes-read-compressed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+
+      if (nextTimeframe) {
+        timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
+        auto o = Output(TFNumberHeader);
+        outputs.make<uint64_t>(o) = timeFrameNumber;
+      }
+
+      // create table output
+      auto o = Output(dh);
+      auto& t2t = outputs.make<TreeToTable>(o, arrow::default_memory_pool());
+
+      // add branches to read
+      // fill the table
+      auto colnames = getColumnNames(dh);
+      t2t.setLabel(tr->GetName());
+      if (colnames.empty()) {
+        totalSizeCompressed += tr->GetZipBytes();
+        totalSizeUncompressed += tr->GetTotBytes();
+        t2t.addAllColumns(tr);
+      } else {
+        for (auto& colname : colnames) {
+          TBranch* branch = tr->GetBranch(colname.c_str());
+          totalSizeCompressed += branch->GetZipBytes("*");
+          totalSizeUncompressed += branch->GetTotBytes("*");
+        }
+        t2t.addAllColumns(tr, std::move(colnames));
+      }
+      t2t.fill(tr);
+      delete tr;
+
+      // needed for metrics dumping (upon next file read, or terminate due to watchdog)
+      if (currentFile == nullptr) {
+        currentFile = didir->getFileFolder(dh, fcnt, ntf).file;
+        tfCurrentFile = didir->getTimeFramesInFile(dh, fcnt);
+      }
+
+      if (nextTimeframe) {
+        monitoring.send(Metric{(uint64_t)totalSizeUncompressed / 1000, "aod-bytes-read-uncompressed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+        monitoring.send(Metric{(uint64_t)totalSizeCompressed / 1000, "aod-bytes-read-compressed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+      }
 
       // save file number and time frame
       *fileCounter = (fcnt - device.inputTimesliceId) / device.maxInputTimeslices;

@@ -248,18 +248,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   //
   // FIXME: source branch is DataOrigin, for the moment. We should
   //        make it configurable via ConfigParamsOptions
-  auto aodLifetime = Lifetime::Enumeration;
-  if (ctx.options().get<int64_t>("aod-memory-rate-limit")) {
-    aodLifetime = Lifetime::Signal;
-  }
-
   DataProcessorSpec aodReader{
     "internal-dpl-aod-reader",
     {InputSpec{"enumeration",
                "DPL",
                "ENUM",
                static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-aod-reader")),
-               aodLifetime}},
+               Lifetime::Enumeration}},
     {},
     AlgorithmSpec::dummyAlgorithm(),
     {ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
@@ -456,6 +451,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
     AlgorithmPlugin* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "ROOTFileReader");
     aodReader.algorithm = creator->create();
+    /// FIXME: this is wrong, just to check...
+    ConfigParamSpec repetitions{"repetitions", VariantType::Int64, (int64_t)aodReader.outputs.size(), {"how many time a given enumeation is repeated"}};
+    aodReader.inputs[0].metadata.push_back(repetitions);
     aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
