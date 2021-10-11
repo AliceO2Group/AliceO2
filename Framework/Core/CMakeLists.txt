@@ -302,6 +302,7 @@ foreach(w
         SingleDataSource
         Task
         ExternalFairMQDeviceWorkflow
+        VariablePayloadSequenceWorkflow
         )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx
