@@ -76,8 +76,6 @@ class Tracker
 
   std::vector<TrackITSExt>& getTracks();
 
-  void setROFrame(std::uint32_t f) { mROFrame = f; }
-  std::uint32_t getROFrame() const { return mROFrame; }
   void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType& type) { mCorrType = type; }
   void setParameters(const std::vector<MemoryParameters>&, const std::vector<TrackingParameters>&);
   void getGlobalConfiguration();
@@ -113,7 +111,7 @@ class Tracker
   bool mApplySmoothing = false;
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
   float mBz = 5.f;
-  std::uint32_t mROFrame = 0;
+  std::uint32_t mTimeFrameCounter = 0;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 
 #ifdef CA_DEBUG
