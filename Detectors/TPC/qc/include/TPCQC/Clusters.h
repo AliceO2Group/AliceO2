@@ -55,6 +55,8 @@ class Clusters
 
   void reset();
 
+  void merge(const Clusters& clusters);
+
   void dumpToFile(std::string filename);
 
   const CalPad& getNClusters() const { return mNClusters; }
