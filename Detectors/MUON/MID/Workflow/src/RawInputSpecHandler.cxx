@@ -15,9 +15,10 @@
 /// \date   17 June 2021
 
 #include "MIDWorkflow/RawInputSpecHandler.h"
-
+#include "Framework/Logger.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/InputRecordWalker.h"
+#include "CommonUtils/VerbosityConfig.h"
 
 namespace o2
 {
@@ -27,15 +28,21 @@ namespace mid
 bool isDroppedTF(o2::framework::ProcessingContext& pc, o2::header::DataOrigin origin)
 {
   /// Tests it the TF was dropped
+  static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
   std::vector<o2::framework::InputSpec> dummy{o2::framework::InputSpec{"dummy", o2::framework::ConcreteDataMatcher{origin, o2::header::gDataDescriptionRawData, 0xDEADBEEF}}};
   for (const auto& ref : o2::framework::InputRecordWalker(pc.inputs(), dummy)) {
     const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     if (dh->payloadSize == 0) {
-      // LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
-      //      dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+      auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
+      if (++contDeadBeef <= maxWarn) {
+        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+             contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
+      }
       return true;
     }
   }
+  contDeadBeef = 0; // if good data, reset the counter
   return false;
 }
 } // namespace mid

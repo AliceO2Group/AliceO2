@@ -37,6 +37,7 @@
 #include "EMCALWorkflow/RawToCellConverterSpec.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "CommonUtils/VerbosityConfig.h"
 
 using namespace o2::emcal::reco_workflow;
 
@@ -451,12 +452,20 @@ bool RawToCellConverterSpec::isLostTimeframe(framework::ProcessingContext& ctx) 
                                  framework::ConcreteDataMatcher{originEMC,
                                                                 header::gDataDescriptionRawData,
                                                                 0xDEADBEEF}};
+  static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
   for (const auto& ref : o2::framework::InputRecordWalker(ctx.inputs(), {dummy})) {
     const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     if (dh->payloadSize == 0) {
+      auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
+      if (++contDeadBeef <= maxWarn) {
+        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+             contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
+      }
       return true;
     }
   }
+  contDeadBeef = 0; // if good data, reset the counter
   return false;
 }
 
