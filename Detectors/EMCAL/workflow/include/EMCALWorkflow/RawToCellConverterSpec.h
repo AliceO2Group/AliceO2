@@ -97,6 +97,7 @@ class RawToCellConverterSpec : public framework::Task
     bool mIsLGnoHG;            ///< Cell has only LG digits
     bool mHGOutOfRange;        ///< Cell has only HG digits which are out of range
     int mFecID;                ///< FEC ID of the channel (for monitoring)
+    int mDDLID;                ///< DDL of the channel (for monitoring)
     int mHWAddressLG;          ///< HW address of LG (for monitoring)
     int mHWAddressHG;          ///< HW address of HG (for monitoring)
   };
