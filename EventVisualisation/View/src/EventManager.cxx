@@ -12,22 +12,20 @@
 ///
 /// \file    EventManager.cxx
 /// \author  Jeremi Niedziela
+/// \author  Julian Myrcha
 
 #include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationView/Options.h"
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
-#include "EventVisualisationBase/ConfigurationManager.h"
-#include "EventVisualisationBase/DataSource.h"
 #include "EventVisualisationBase/DataInterpreter.h"
 #include <EventVisualisationBase/DataSourceOffline.h>
 #include <EventVisualisationBase/DataSourceOnline.h>
-#include <EventVisualisationDetectors/DataReaderVSD.h>
 
 #include <TEveManager.h>
+#include <TEveTrack.h>
 #include <TEveProjectionManager.h>
 #include <TEveTrackPropagator.h>
-#include <TSystem.h>
 #include <TEnv.h>
 #include <TEveElement.h>
 #include <TGListTree.h>
