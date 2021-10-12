@@ -56,8 +56,9 @@ FileWatcher::FileWatcher(const string& path)
 
 void FileWatcher::changeFolder(const string& path)
 {
-  if (this->mDataFolder == path)
+  if (this->mDataFolder == path) {
     return; // the same folder - no action
+  }
   this->mDataFolder = path;
   this->mCurrentFile = mEndGuard;
   this->mFiles.clear();
