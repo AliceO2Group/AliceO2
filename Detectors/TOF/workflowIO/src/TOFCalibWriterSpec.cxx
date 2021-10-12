@@ -39,7 +39,7 @@ DataProcessorSpec getTOFCalibWriterSpec(const char* outdef, bool toftpc)
 {
   // A spectator for logging
   auto logger = [](CalibInfosType const& indata) {
-    LOG(INFO) << "RECEIVED MATCHED SIZE " << indata.size();
+    LOG(DEBUG) << "RECEIVED MATCHED SIZE " << indata.size();
   };
   o2::header::DataDescription ddCalib{"CALIBDATA"};
   return MakeRootTreeWriterSpec("TOFCalibWriter",

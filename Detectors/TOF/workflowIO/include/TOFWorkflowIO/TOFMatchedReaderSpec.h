@@ -31,7 +31,7 @@ namespace tof
 class TOFMatchedReader : public o2::framework::Task
 {
  public:
-  TOFMatchedReader(bool useMC, bool tpcmatch, bool readTracks, bool subSpecStrict = false) : mUseMC(useMC), mTPCMatch(tpcmatch), mReadTracks(readTracks), mSubSpecStrict(subSpecStrict) {}
+  TOFMatchedReader(bool useMC, int mode, bool readTracks, bool subSpecStrict = false) : mUseMC(useMC), mMode(mode), mReadTracks(readTracks), mSubSpecStrict(subSpecStrict) {}
   ~TOFMatchedReader() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -40,7 +40,7 @@ class TOFMatchedReader : public o2::framework::Task
   void connectTree(const std::string& filename);
 
   bool mUseMC = false;
-  bool mTPCMatch = false;
+  int mMode = 1;
   bool mReadTracks = false;
   bool mSubSpecStrict = false;
 
@@ -55,7 +55,7 @@ class TOFMatchedReader : public o2::framework::Task
 
 /// create a processor spec
 /// read matched TOF clusters from a ROOT file
-framework::DataProcessorSpec getTOFMatchedReaderSpec(bool useMC, bool tpcmatch = false, bool readTracks = false, bool subSpecStrict = false);
+framework::DataProcessorSpec getTOFMatchedReaderSpec(bool useMC, int mode = 1, bool readTracks = false, bool subSpecStrict = false);
 
 } // namespace tof
 } // namespace o2
