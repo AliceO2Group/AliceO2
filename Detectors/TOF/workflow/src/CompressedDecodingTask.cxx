@@ -41,7 +41,7 @@ using RDHUtils = o2::raw::RDHUtils;
 
 void CompressedDecodingTask::init(InitContext& ic)
 {
-  LOG(INFO) << "CompressedDecoding init";
+  LOG(DEBUG) << "CompressedDecoding init";
 
   mMaskNoise = ic.options().get<bool>("mask-noise");
   mNoiseRate = ic.options().get<int>("noise-counts");
@@ -54,7 +54,7 @@ void CompressedDecodingTask::init(InitContext& ic)
   }
 
   auto finishFunction = [this]() {
-    LOG(INFO) << "CompressedDecoding finish";
+    LOG(DEBUG) << "CompressedDecoding finish";
   };
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
   mTimer.Stop();
@@ -154,7 +154,7 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
 
 void CompressedDecodingTask::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "TOF CompressedDecoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(DEBUG, "TOF CompressedDecoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
