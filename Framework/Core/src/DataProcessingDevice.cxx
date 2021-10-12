@@ -860,8 +860,6 @@ void DataProcessingDevice::ResetTask()
 struct WaitBackpressurePolicy {
   void backpressure(InputChannelInfo const& info)
   {
-    // FIXME: fill metrics rather than log.
-    LOGP(WARN, "Backpressure on channel {}. Waiting.", info.channel->GetName());
   }
 };
 
@@ -967,11 +965,21 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
           pi += dh->splitPayloadParts > 0 ? dh->splitPayloadParts - 1 : 0;
           switch (relayed) {
             case DataRelayer::Backpressured:
+              if (info.normalOpsNotified == true && info.backpressureNotified == false) {
+                LOGP(WARN, "Backpressure on channel {}. Waiting.", info.channel->GetName());
+                info.backpressureNotified = true;
+                info.normalOpsNotified = false;
+              }
               policy.backpressure(info);
               break;
             case DataRelayer::Dropped:
             case DataRelayer::Invalid:
             case DataRelayer::WillRelay:
+              if (info.normalOpsNotified == false && info.backpressureNotified == true) {
+                LOGP(info, "Back to normal on channel {}.", info.channel->GetName());
+                info.normalOpsNotified = true;
+                info.backpressureNotified = false;
+              }
               break;
           }
         } break;
