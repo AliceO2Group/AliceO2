@@ -31,6 +31,10 @@
 #include <string>
 #include <cinttypes>
 
+// Make sure we can use aggregated initialisers.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+
 // Simplify debugging
 template class std::vector<o2::framework::DeviceMetricsInfo>;
 
@@ -262,7 +266,7 @@ void displaySparks(
             assert(pos >= 0 && pos < 1024);
             return ImPlotPoint(histoData->time[pos], ((int*)(histoData->points))[pos]);
           };
-          ImPlot::PlotLineG("##plot", getter, &data, data.size);
+          ImPlot::PlotLineG("##plot", getter, &data, data.mod);
         } break;
         case MetricType::Uint64: {
           data.points = (void*)metricsInfo.uint64Metrics[metric.storeIdx].data();
@@ -273,7 +277,7 @@ void displaySparks(
             assert(pos >= 0 && pos < 1024);
             return ImPlotPoint(histoData->time[pos], ((uint64_t*)histoData->points)[pos]);
           };
-          ImPlot::PlotLineG("##plot", getter, &data, data.size, 0);
+          ImPlot::PlotLineG("##plot", getter, &data, data.mod, 0);
         } break;
         case MetricType::Float: {
           data.points = (void*)metricsInfo.floatMetrics[metric.storeIdx].data();
@@ -284,7 +288,7 @@ void displaySparks(
             assert(pos >= 0 && pos < 1024);
             return ImPlotPoint(histoData->time[pos], ((float*)histoData->points)[pos]);
           };
-          ImPlot::PlotLineG("##plot", getter, &data, data.size, 0);
+          ImPlot::PlotLineG("##plot", getter, &data, data.mod, 0);
         } break;
         default:
           return;
@@ -423,7 +427,7 @@ void displayDeviceMetrics(const char* label,
           ImGui::PushID(pi);
           auto data = (const MultiplotData*)metricsToDisplay[pi];
           const char* label = ((MultiplotData*)metricsToDisplay[pi])->legend;
-          ImPlot::PlotBarsG(label, getterXY, metricsToDisplay[pi], data->size, 1, 0);
+          ImPlot::PlotBarsG(label, getterXY, metricsToDisplay[pi], data->mod, 1, 0);
           ImGui::PopID();
         }
         ImPlot::EndPlot();
@@ -440,7 +444,7 @@ void displayDeviceMetrics(const char* label,
           auto data = (const MultiplotData*)metricsToDisplay[pi];
           const char* label = data->legend;
           ImPlot::SetPlotYAxis(data->axis);
-          ImPlot::PlotLineG(data->legend, getterXY, metricsToDisplay[pi], data->size, 0);
+          ImPlot::PlotLineG(data->legend, getterXY, metricsToDisplay[pi], data->mod, 0);
           ImGui::PopID();
         }
         ImPlot::EndPlot();
@@ -453,7 +457,7 @@ void displayDeviceMetrics(const char* label,
           // FIXME: display a message for other metrics
           if (data->type == MetricType::Uint64) {
             ImGui::PushID(pi);
-            ImPlot::PlotScatterG(((MultiplotData*)metricsToDisplay[pi])->legend, getterXY, metricsToDisplay[pi], data->size, 0);
+            ImPlot::PlotScatterG(((MultiplotData*)metricsToDisplay[pi])->legend, getterXY, metricsToDisplay[pi], data->mod, 0);
             ImGui::PopID();
           }
         }
@@ -1111,3 +1115,5 @@ void charIn(char key)
 }
 
 } // namespace o2::framework::gui
+
+#pragma GCC diagnostic pop
