@@ -54,11 +54,11 @@ struct NTupleType<T, 0, REST...> {
 };
 
 // Group table (C++ vector of indices)
-bool sameCategory(std::pair<uint64_t, uint64_t> const& a, std::pair<uint64_t, uint64_t> const& b)
+inline bool sameCategory(std::pair<uint64_t, uint64_t> const& a, std::pair<uint64_t, uint64_t> const& b)
 {
   return a.first < b.first;
 }
-bool diffCategory(std::pair<uint64_t, uint64_t> const& a, std::pair<uint64_t, uint64_t> const& b)
+inline bool diffCategory(std::pair<uint64_t, uint64_t> const& a, std::pair<uint64_t, uint64_t> const& b)
 {
   return a.first >= b.first;
 }
