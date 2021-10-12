@@ -49,6 +49,7 @@
 #include "MCHRawElecMap/Mapper.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHWorkflow/DataDecoderSpec.h"
+#include "CommonUtils/VerbosityConfig.h"
 
 //#define MCH_RAW_DATADECODER_DEBUG_DIGIT_TIME 1
 
@@ -170,6 +171,7 @@ class DataDecoderTask
     /// "delayed message" mechanism created it in absence of real data
     /// from upstream, i.e. the TF was dropped.
     constexpr auto origin = header::gDataOriginMCH;
+    static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
     o2::framework::InputSpec dummy{"dummy",
                                    framework::ConcreteDataMatcher{origin,
                                                                   header::gDataDescriptionRawData,
@@ -177,9 +179,16 @@ class DataDecoderTask
     for (const auto& ref : o2::framework::InputRecordWalker(pc.inputs(), {dummy})) {
       const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       if (dh->payloadSize == 0) {
+        auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
+        if (++contDeadBeef <= maxWarn) {
+          LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+               contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
+        }
         return true;
       }
     }
+    contDeadBeef = 0; // if good data, reset the counter
     return false;
   }
 

@@ -23,6 +23,7 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CPVBase/Geometry.h"
+#include "CommonUtils/VerbosityConfig.h"
 
 using namespace o2::cpv::reco_workflow;
 
@@ -108,11 +109,17 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
 
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+  static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
   std::vector<o2::framework::InputSpec> dummy{o2::framework::InputSpec{"dummy", o2::framework::ConcreteDataMatcher{"CPV", o2::header::gDataDescriptionRawData, 0xDEADBEEF}}};
   for (const auto& ref : framework::InputRecordWalker(ctx.inputs(), dummy)) {
     const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     if (dh->payloadSize == 0) { // send empty output
-      LOG(INFO) << "Sending empty output due to data type input with 0xDEADBEEF";
+      auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
+      if (++contDeadBeef <= maxWarn) {
+        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+             contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
+      }
       mOutputDigits.clear();
       ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
       mOutputTriggerRecords.clear();
@@ -122,6 +129,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       return; //empty TF, nothing to process
     }
   }
+  contDeadBeef = 0; // if good data, reset the counter
 
   std::vector<o2::framework::InputSpec> rawFilter{
     {"RAWDATA", o2::framework::ConcreteDataTypeMatcher{"CPV", "RAWDATA"}, o2::framework::Lifetime::Timeframe},

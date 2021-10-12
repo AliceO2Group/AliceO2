@@ -31,4 +31,7 @@
 #pragma link C++ class o2::conf::KeyValParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::conf::KeyValParam> + ;
 
+#pragma link C++ class o2::conf::VerbosityConfig + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::conf::VerbosityConfig> + ;
+
 #endif
