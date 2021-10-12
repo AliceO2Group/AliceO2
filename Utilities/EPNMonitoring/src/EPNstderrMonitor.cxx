@@ -226,7 +226,7 @@ struct EPNstderrMonitor : fair::mq::Device {
       bool dds = std::find(plugins.begin(), plugins.end(), "ODC") != plugins.end();
     }
 
-    bool runNumber = dds ? fConfig->GetProperty<int>("runNumber") : 0;
+    bool runNumber = dds ? atoi(fConfig->GetProperty<std::string>("runNumber").c_str()) : 0;
     std::string partition = "";
     gEPNMonitor = std::make_unique<EPNMonitor>(path, infoLogger, runNumber, partition);
   }
