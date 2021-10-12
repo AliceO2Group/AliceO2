@@ -117,6 +117,8 @@ class TimeFrame final
   const unsigned long long& getRoadLabel(int i) const;
   bool isRoadFake(int i) const;
 
+  void setMultiplicityCutMask(std::vector<bool> cutMask) { mMultiplicityCutMask.swap(cutMask); }
+
   /// Debug and printing
   void checkTrackletLUTs();
   void printROFoffsets();
@@ -140,6 +142,7 @@ class TimeFrame final
   float mBeamPos[2] = {0.f, 0.f};
   std::vector<float> mMinR;
   std::vector<float> mMaxR;
+  std::vector<bool> mMultiplicityCutMask;
   std::vector<int> mROframesPV = {0};
   std::vector<std::vector<int>> mROframesClusters;
   std::vector<Vertex> mPrimaryVertices;
