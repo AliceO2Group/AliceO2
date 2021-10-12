@@ -16,6 +16,7 @@
 #include <vector>
 #include "Framework/ConfigParamSpec.h"
 #include "MIDWorkflow/TrackReaderSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 
@@ -23,6 +24,7 @@ using namespace o2::framework;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.emplace_back("disable-mc", VariantType::Bool, false, ConfigParamSpec::HelpString{"Disable MC info"});
+  workflowOptions.emplace_back("configKeyValues", VariantType::String, "", ConfigParamSpec::HelpString{"Semicolon separated key=value strings ..."});
 }
 
 #include "Framework/runDataProcessing.h"

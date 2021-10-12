@@ -76,7 +76,7 @@ class TrackerMCDeviceDPL
     pc.outputs().snapshot(of::Output{"MID", "TRCLUSROF", 0, of::Lifetime::Timeframe}, mTracker->getClusterROFRecords());
     LOG(DEBUG) << "Sent " << mTracker->getClusterROFRecords().size() << " ROFs.";
 
-    pc.outputs().snapshot(of::Output{"MID", "TRACKSLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTracksLabels());
+    pc.outputs().snapshot(of::Output{"MID", "TRACKLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTracksLabels());
     LOG(DEBUG) << "Sent " << mTrackLabeler.getTracksLabels().getIndexedSize() << " indexed tracks.";
     pc.outputs().snapshot(of::Output{"MID", "TRCLUSLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTrackClustersLabels());
     LOG(DEBUG) << "Sent " << mTrackLabeler.getTrackClustersLabels().getIndexedSize() << " indexed track clusters.";
@@ -97,7 +97,7 @@ framework::DataProcessorSpec getTrackerMCSpec()
     of::OutputSpec{"MID", "TRACKCLUSTERS"},
     of::OutputSpec{"MID", "TRACKSROF"},
     of::OutputSpec{"MID", "TRCLUSROF"},
-    of::OutputSpec{"MID", "TRACKSLABELS"},
+    of::OutputSpec{"MID", "TRACKLABELS"},
     of::OutputSpec{"MID", "TRCLUSLABELS"}};
 
   return of::DataProcessorSpec{
