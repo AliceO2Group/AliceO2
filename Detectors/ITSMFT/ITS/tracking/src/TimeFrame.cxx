@@ -196,6 +196,9 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
     for (int rof{0}; rof < mNrof; ++rof) {
       mIndexTables[rof].resize(trkParam.TrackletsPerRoad(), std::vector<int>(trkParam.ZBins * trkParam.PhiBins + 1, 0));
+      if (mMultiplicityCutMask.size() == mNrof && !mMultiplicityCutMask[rof]) {
+        continue;
+      }
       for (int iLayer{0}; iLayer < trkParam.NLayers; ++iLayer) {
         std::fill(clsPerBin.begin(), clsPerBin.end(), 0);
         const auto unsortedClusters{getUnsortedClustersOnLayer(rof, iLayer)};
