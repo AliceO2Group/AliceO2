@@ -27,6 +27,7 @@ o2_add_library(
           src/RawWriterSpec.cxx
           src/TrackerMCSpec.cxx
           src/TrackerSpec.cxx
+          src/TrackReaderSpec.cxx
           src/ZeroSuppressionSpec.cxx
   PUBLIC_LINK_LIBRARIES
     O2::Framework
