@@ -280,8 +280,9 @@ int ClusterNativeHelper::TreeWriter::fillFrom(int sector, int padrow, ClusterNat
   if (!mTree) {
     return -1;
   }
-  mStoreClusters.resize(nClusters, BranchData{sector, padrow});
+  mStoreClusters.resize(nClusters);
   if (clusters != nullptr && nClusters > 0) {
+    std::fill(mStoreClusters.begin(), mStoreClusters.end(), BranchData{sector, padrow});
     std::copy(clusters, clusters + nClusters, mStoreClusters.begin());
     mTree->Fill();
   }
