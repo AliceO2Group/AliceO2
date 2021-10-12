@@ -22,7 +22,7 @@ using namespace o2::framework;
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.emplace_back("disable-mc", VariantType::Bool, true, ConfigParamSpec::HelpString{"Disable MC info"});
+  workflowOptions.emplace_back("disable-mc", VariantType::Bool, false, ConfigParamSpec::HelpString{"Disable MC info"});
 }
 
 #include "Framework/runDataProcessing.h"
