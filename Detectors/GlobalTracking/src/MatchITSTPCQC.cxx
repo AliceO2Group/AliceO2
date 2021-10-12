@@ -90,15 +90,13 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
   mTPCTracks = mRecoCont.getTPCTracks();
   mITSTPCTracks = mRecoCont.getTPCITSTracks();
 
-  mNTPCTracksInv = 1. / mTPCTracks.size();
-  mNITSTPCTracksInv = 1. / mITSTPCTracks.size();
-
   LOG(INFO) << "****** Number of found TPC    tracks = " << mTPCTracks.size();
   LOG(INFO) << "****** Number of found ITSTPC tracks = " << mITSTPCTracks.size();
 
   for (auto const& trk : mTPCTracks) {
     if (selectTrack(trk)) {
       mPtTPC->Fill(trk.getPt());
+      ++mNTPCSelectedTracks;
     }
   }
 
@@ -112,7 +110,8 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       mChi2Matching->Fill(trk.getChi2Match());
       mChi2Refit->Fill(trk.getChi2Refit());
       mTimeResVsPt->Fill(trkTpc.getPt(), trk.getTimeMUS().getTimeStampError());
-      //LOG(INFO) << "*** chi2Matching = " << trk.getChi2Match() << ", chi2refit = " << trk.getChi2Refit() << ", timeResolution = " << trk.getTimeMUS().getTimeStampError();
+      LOG(INFO) << "*** chi2Matching = " << trk.getChi2Match() << ", chi2refit = " << trk.getChi2Refit() << ", timeResolution = " << trk.getTimeMUS().getTimeStampError();
+      ++mNITSTPCSelectedTracks;
     }
   }
 }
@@ -146,32 +145,28 @@ bool MatchITSTPCQC::selectTrack(o2::tpc::TrackTPC const& track)
 void MatchITSTPCQC::finalize()
 {
 
+  float scaleFactTPC = 1. / mNTPCSelectedTracks;
+  float scaleFactITSTPC = 1. / mNITSTPCSelectedTracks;
   mFractionITSTPCmatch->Divide(mPt, mPtTPC, 1, 1, "b");
-  mPtTPC->Scale(mNTPCTracksInv);
-  mPt->Scale(mNITSTPCTracksInv);
-  mEta->Scale(mNITSTPCTracksInv);
-  mChi2Matching->Scale(mNITSTPCTracksInv);
-  mChi2Refit->Scale(mNITSTPCTracksInv);
-  mTimeResVsPt->Scale(mNITSTPCTracksInv);
+  mPtTPC->Scale(scaleFactTPC);
+  mPt->Scale(scaleFactITSTPC);
+  mEta->Scale(scaleFactITSTPC);
+  mChi2Matching->Scale(scaleFactITSTPC);
+  mChi2Refit->Scale(scaleFactITSTPC);
+  //mTimeResVsPt->Scale(scaleFactITSTPC); // if to few entries, one sees nothing after normalization --> let's not normalize
 }
 
 //__________________________________________________________
 
-void MatchITSTPCQC::getTH1FHistos(TObjArray& objarTH1F)
+void MatchITSTPCQC::getHistos(TObjArray& objar)
 {
 
-  objarTH1F.Add(mPtTPC);
-  objarTH1F.Add(mFractionITSTPCmatch);
-  objarTH1F.Add(mPt);
-  objarTH1F.Add(mEta);
-  objarTH1F.Add(mChi2Matching);
-  objarTH1F.Add(mChi2Refit);
+  objar.Add(mPtTPC);
+  objar.Add(mFractionITSTPCmatch);
+  objar.Add(mPt);
+  objar.Add(mEta);
+  objar.Add(mChi2Matching);
+  objar.Add(mChi2Refit);
+  objar.Add(mTimeResVsPt);
 }
 
-//__________________________________________________________
-
-void MatchITSTPCQC::getTH2FHistos(TObjArray& objarTH2F)
-{
-
-  objarTH2F.Add(mTimeResVsPt);
-}

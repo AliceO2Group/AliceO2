@@ -47,8 +47,7 @@ class MatchITSTPCQC
   TH1F* getHistoChi2Matching() const { return mChi2Matching; }
   TH1F* getHistoChi2Refit() const { return mChi2Refit; }
   TH2F* getHistoTimeResVsPt() const { return mTimeResVsPt; }
-  void getTH1FHistos(TObjArray& objarTH1F);
-  void getTH2FHistos(TObjArray& objarTH2F);
+  void getHistos(TObjArray& objar);
   void setSources(GID::mask_t src) { mSrc = src; }
   void setUseMC(bool b) { mUseMC = b; }
   void deleteHistograms();
@@ -91,8 +90,8 @@ class MatchITSTPCQC
   TH1F* mChi2Refit = nullptr;
   TH2F* mTimeResVsPt = nullptr;
 
-  float mNTPCTracksInv = 1.f;
-  float mNITSTPCTracksInv = 1.f;
+  int mNTPCSelectedTracks = 0;
+  int mNITSTPCSelectedTracks = 0;
 
   // cut values
   float mPtCut = 0.1f;
