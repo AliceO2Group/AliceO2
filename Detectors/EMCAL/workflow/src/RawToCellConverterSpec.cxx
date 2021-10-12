@@ -349,6 +349,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                 if (ampOld > o2::emcal::constants::OVERFLOWCUT) {
                   // High gain digit has energy above overflow cut, use low gain instead
                   res->mCellData.setEnergy(amp * o2::emcal::constants::EMCAL_HGLGFACTOR);
+                  res->mCellData.setTimeStamp(fitResults.getTime() - timeshift);
                   res->mCellData.setLowGain();
                 }
                 res->mIsLGnoHG = false;
@@ -362,6 +363,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               res->mHWAddressHG = chan.getHardwareAddress();
               if (amp / CONVADCGEV <= o2::emcal::constants::OVERFLOWCUT) {
                 res->mCellData.setEnergy(amp);
+                res->mCellData.setTimeStamp(fitResults.getTime() - timeshift);
                 res->mCellData.setHighGain();
               }
             }
@@ -379,16 +381,16 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             } else {
               // High gain cell: Flag as low gain if above threshold
               if (amp / CONVADCGEV > o2::emcal::constants::OVERFLOWCUT) {
-                flagChanType = chantype;
+                flagChanType = ChannelType_t::LOW_GAIN;
                 hgOutOfRange = true;
               }
               hwAddressHG = chan.getHardwareAddress();
             }
-            int fecID = mMapper->getFEEForChannelInDDL(iSM / 2, chan.getFECIndex(), chan.getBranchIndex());
+            int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
             currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, chantype),
                                              lgNoHG,
                                              hgOutOfRange,
-                                             fecID, hwAddressLG, hwAddressHG});
+                                             fecID, feeID, hwAddressLG, hwAddressHG});
           }
         } catch (CaloRawFitter::RawFitterError_t& fiterror) {
           if (fiterror != CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK) {
@@ -425,15 +427,13 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       std::sort(cells->begin(), cells->end(), [](const RecCellInfo& lhs, const RecCellInfo& rhs) { return lhs.mCellData.getTower() < rhs.mCellData.getTower(); });
       for (const auto& cell : *cells) {
         if (cell.mIsLGnoHG) {
-          auto [smID, modID, iphiMod, ietaMod] = mGeometry->GetCellIndex(cell.mCellData.getTower());
-          LOG(ERROR) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressLG << std::dec << " (SM " << smID << ") has low gain but no high-gain";
-          mOutputDecoderErrors.emplace_back(smID * 2, ErrorTypeFEE::GAIN_ERROR, 0);
+          LOG(ERROR) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressLG << std::dec << " (DDL " << cell.mDDLID << ") has low gain but no high-gain";
+          mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 0);
           continue;
         }
         if (cell.mHGOutOfRange) {
-          auto [smID, modID, iphiMod, ietaMod] = mGeometry->GetCellIndex(cell.mCellData.getTower());
-          LOG(ERROR) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressHG << std::dec << " (SM " << smID << ") has only high-gain out-of-range";
-          mOutputDecoderErrors.emplace_back(smID * 2, ErrorTypeFEE::GAIN_ERROR, 1);
+          LOG(ERROR) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressHG << std::dec << " (DDL " << cell.mDDLID << ") has only high-gain out-of-range";
+          mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 1);
           continue;
         }
         ncellsEvent++;
