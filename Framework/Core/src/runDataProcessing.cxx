@@ -2116,12 +2116,12 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     // Notice that compared to DDS we need to schedule things,
     // because DDS needs to be able to have actual Executions in
     // order to provide a correct configuration.
-    control.callbacks = {[](WorkflowSpec const& workflow,
-                            DeviceSpecs const& specs,
-                            DeviceExecutions const& executions,
-                            DataProcessorInfos&,
-                            CommandInfo const& commandInfo) {
-      dumpDeviceSpec2DDS(std::cout, specs, executions, commandInfo);
+    control.callbacks = {[workflowSuffix = varmap["dds-workflow-suffix"]](WorkflowSpec const& workflow,
+                                                                          DeviceSpecs const& specs,
+                                                                          DeviceExecutions const& executions,
+                                                                          DataProcessorInfos&,
+                                                                          CommandInfo const& commandInfo) {
+      dumpDeviceSpec2DDS(std::cout, workflowSuffix.as<std::string>(), specs, executions, commandInfo);
     }};
     control.forcedTransitions = {
       DriverState::EXIT,                    //
@@ -2302,6 +2302,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")                                                       //                                                                                                                              //
     ("timeout,t", bpo::value<uint64_t>()->default_value(0), "forced exit timeout (in seconds)")                                                           //                                                                                                                                //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                                                        //                                                                                                                                  //
+    ("dds-workflow-suffix,D", bpo::value<std::string>()->default_value(""), "suffix for DDS names")                                                       //                                                                                                                                  //
     ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")                                              //                                                                                                                                    //
     ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                                                    //                                                                                                                                      //
     ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far. It implies --batch. Use --no-batch to see the GUI")     //                                                                                                                                        //
