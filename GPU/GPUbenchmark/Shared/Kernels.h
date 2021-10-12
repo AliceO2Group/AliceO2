@@ -41,32 +41,22 @@ class GPUbenchmark final
 
   // Single stream synchronous (sequential kernels) execution
   template <typename... T>
-  float runSequential(void (*kernel)(chunk_t*, T...),
+  float runSequential(void (*kernel)(chunk_t*, size_t, T...),
+                      std::pair<int, int>& chunkRanges,
                       int nLaunches,
-                      int chunkId,
                       int dimGrid,
                       int dimBlock,
                       T&... args);
 
   // Multi-streams asynchronous executions on whole memory
   template <typename... T>
-  std::vector<float> runConcurrent(void (*kernel)(chunk_t*, T...),
-                                   int nChunks,
+  std::vector<float> runConcurrent(void (*kernel)(chunk_t*, size_t, T...),
+                                   std::vector<std::pair<int, int>>& chunkRanges,
                                    int nLaunches,
                                    int dimStreams,
-                                   int dimGrid,
-                                   int dimBlock,
+                                   int nBlocks,
+                                   int nThreads,
                                    T&... args);
-
-  // Custom run with selected buffers
-  template <typename... T>
-  std::vector<float> runArbitrary(void (*kernel)(chunk_t*, T...),
-                                  std::vector<std::pair<int, int>> chunkRanges,
-                                  int nLaunches,
-                                  int dimStreams,
-                                  int nBlocks,
-                                  int nThreads,
-                                  T&... args);
 
   // Main interface
   void globalInit();     // Allocate scratch buffers and compute runtime parameters

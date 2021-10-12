@@ -236,127 +236,70 @@ void printDeviceProp(int deviceId)
 
 template <class chunk_t>
 template <typename... T>
-float GPUbenchmark<chunk_t>::runSequential(void (*kernel)(chunk_t*, T...),
+float GPUbenchmark<chunk_t>::runSequential(void (*kernel)(chunk_t*, size_t, T...),
+                                           std::pair<int, int>& chunk,
                                            int nLaunches,
-                                           int chunkId,
                                            int nBlocks,
                                            int nThreads,
                                            T&... args) // run for each chunk
 {
+  float milliseconds{0.f};
   cudaEvent_t start, stop;
   cudaStream_t stream;
   GPUCHECK(cudaStreamCreate(&stream));
 
   GPUCHECK(cudaSetDevice(mOptions.deviceId));
-  chunk_t* chunkPtr = getPartPtr<chunk_t>(mState.scratchPtr, mState.chunkReservedGB, chunkId);
+  chunk_t* chunkPtr = getCustomPtr<chunk_t>(mState.scratchPtr, chunk.first);
 
   // Warm up
-  (*kernel)<<<nBlocks, nThreads, 0, stream>>>(chunkPtr, args...);
+  (*kernel)<<<nBlocks, nThreads, 0, stream>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second), args...);
 
   GPUCHECK(cudaEventCreate(&start));
   GPUCHECK(cudaEventCreate(&stop));
 
   GPUCHECK(cudaEventRecord(start));
-  for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {           // Schedule all the requested kernel launches
-    (*kernel)<<<nBlocks, nThreads, 0, stream>>>(chunkPtr, args...); // NOLINT: clang-tidy false-positive
+  for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {                                                     // Schedule all the requested kernel launches
+    (*kernel)<<<nBlocks, nThreads, 0, stream>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second), args...); // NOLINT: clang-tidy false-positive
   }
-  GPUCHECK(cudaEventRecord(stop)); // record checkpoint
-
+  GPUCHECK(cudaEventRecord(stop));      // record checkpoint
   GPUCHECK(cudaEventSynchronize(stop)); // synchronize executions
-  float milliseconds{0.f};
   GPUCHECK(cudaEventElapsedTime(&milliseconds, start, stop));
   GPUCHECK(cudaEventDestroy(start));
   GPUCHECK(cudaEventDestroy(stop));
-
   GPUCHECK(cudaStreamDestroy(stream));
+
   return milliseconds;
 }
 
 template <class chunk_t>
 template <typename... T>
-std::vector<float> GPUbenchmark<chunk_t>::runConcurrent(void (*kernel)(chunk_t*, T...),
-                                                        int nChunks,
+std::vector<float> GPUbenchmark<chunk_t>::runConcurrent(void (*kernel)(chunk_t*, size_t, T...),
+                                                        std::vector<std::pair<int, int>>& chunkRanges,
                                                         int nLaunches,
                                                         int dimStreams,
                                                         int nBlocks,
                                                         int nThreads,
                                                         T&... args)
 {
-  std::vector<cudaEvent_t> starts(nChunks), stops(nChunks);
-  std::vector<cudaStream_t> streams(dimStreams);
-
-  std::vector<float> results(nChunks);
-  GPUCHECK(cudaSetDevice(mOptions.deviceId));
-
-  for (auto iStream{0}; iStream < dimStreams; ++iStream) {
-    GPUCHECK(cudaStreamCreate(&(streams.at(iStream)))); // round-robin on stream pool
-  }
-
-  for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
-    GPUCHECK(cudaEventCreate(&(starts[iChunk])));
-    GPUCHECK(cudaEventCreate(&(stops[iChunk])));
-  }
-
-  // Warm up on every chunk
-  for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
-    chunk_t* chunkPtr = getPartPtr<chunk_t>(mState.scratchPtr, mState.chunkReservedGB, iChunk);
-    (*kernel)<<<nBlocks, nThreads, 0, streams[iChunk % dimStreams]>>>(chunkPtr, args...);
-  }
-
-  for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
-    chunk_t* chunkPtr = getPartPtr<chunk_t>(mState.scratchPtr, mState.chunkReservedGB, iChunk);
-    GPUCHECK(cudaEventRecord(starts[iChunk], streams[iChunk % dimStreams]));
-    for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {
-      (*kernel)<<<nBlocks, nThreads, 0, streams[iChunk % dimStreams]>>>(chunkPtr, args...);
-    }
-    GPUCHECK(cudaEventRecord(stops[iChunk], streams[iChunk % dimStreams]));
-  }
-
-  for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
-    GPUCHECK(cudaEventSynchronize(stops[iChunk]));
-    GPUCHECK(cudaEventElapsedTime(&(results.at(iChunk)), starts[iChunk], stops[iChunk]));
-    GPUCHECK(cudaEventDestroy(starts[iChunk]));
-    GPUCHECK(cudaEventDestroy(stops[iChunk]));
-  }
-
-  for (auto iStream{0}; iStream < dimStreams; ++iStream) {
-    GPUCHECK(cudaStreamDestroy(streams[iStream]));
-  }
-
-  return results;
-}
-
-template <class chunk_t>
-template <typename... T>
-std::vector<float> GPUbenchmark<chunk_t>::runArbitrary(void (*kernel)(chunk_t*, T...),
-                                                       std::vector<std::pair<int, int>> chunkRanges,
-                                                       int nLaunches,
-                                                       int dimStreams,
-                                                       int nBlocks,
-                                                       int nThreads,
-                                                       T&... args)
-{
   auto nChunks = chunkRanges.size();
+  std::vector<float> results(nChunks);
   std::vector<cudaEvent_t> starts(nChunks), stops(nChunks);
   std::vector<cudaStream_t> streams(dimStreams);
 
-  std::vector<float> results(nChunks);
   GPUCHECK(cudaSetDevice(mOptions.deviceId));
-
   for (auto iStream{0}; iStream < dimStreams; ++iStream) {
     GPUCHECK(cudaStreamCreate(&(streams.at(iStream)))); // round-robin on stream pool
   }
-
   for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
     GPUCHECK(cudaEventCreate(&(starts[iChunk])));
     GPUCHECK(cudaEventCreate(&(stops[iChunk])));
   }
 
   // Warm up on every chunk
-  for (auto iChunk{0}; iChunk < chunkRanges.size(); ++iChunk) {
+  for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
     auto& chunk = chunkRanges[iChunk];
     chunk_t* chunkPtr = getCustomPtr<chunk_t>(mState.scratchPtr, chunk.first);
-    (*kernel)<<<nBlocks, nThreads, 0, streams[iChunk % dimStreams]>>>(chunkPtr, args...);
+    (*kernel)<<<nBlocks, nThreads, 0, streams[iChunk % dimStreams]>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second), args...);
   }
 
   for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
@@ -364,7 +307,7 @@ std::vector<float> GPUbenchmark<chunk_t>::runArbitrary(void (*kernel)(chunk_t*, 
     chunk_t* chunkPtr = getCustomPtr<chunk_t>(mState.scratchPtr, chunk.first);
     GPUCHECK(cudaEventRecord(starts[iChunk], streams[iChunk % dimStreams]));
     for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {
-      (*kernel)<<<nBlocks, nThreads, 0, streams[iChunk % dimStreams]>>>(chunkPtr, args...);
+      (*kernel)<<<nBlocks, nThreads, 0, streams[iChunk % dimStreams]>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second), args...);
     }
     GPUCHECK(cudaEventRecord(stops[iChunk], streams[iChunk % dimStreams]));
   }
@@ -409,25 +352,31 @@ void GPUbenchmark<chunk_t>::globalInit()
   mState.chunkReservedGB = mOptions.chunkReservedGB;
   mState.iterations = mOptions.kernelLaunches;
   mState.streams = mOptions.streams;
+  mState.testChunks = mOptions.testChunks;
   mState.nMultiprocessors = props.multiProcessorCount;
   mState.nMaxThreadsPerBlock = props.maxThreadsPerMultiProcessor;
   mState.nMaxThreadsPerDimension = props.maxThreadsDim[0];
   mState.scratchSize = static_cast<long int>(mOptions.freeMemoryFractionToAllocate * free);
-  std::cout << " ◈ Running on: \033[1;31m" << props.name << "\e[0m" << std::endl;
 
+  if (mState.testChunks.empty()) {
+    for (auto j{0}; j < mState.getMaxChunks() * mState.chunkReservedGB; j += mState.chunkReservedGB) {
+      mState.testChunks.emplace_back(j, mState.chunkReservedGB);
+    }
+  }
+
+  std::cout << " ◈ Running on: \033[1;31m" << props.name << "\e[0m" << std::endl;
   // Allocate scratch on GPU
   GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&mState.scratchPtr), mState.scratchSize));
-
-  mState.computeScratchPtrs();
+  // mState.computeScratchPtrs();
   GPUCHECK(cudaMemset(mState.scratchPtr, 0, mState.scratchSize))
 
   std::cout << "   ├ Buffer type: \e[1m" << getType<chunk_t>() << "\e[0m" << std::endl
             << "   ├ Allocated: " << std::setprecision(2) << bytesToGB(mState.scratchSize) << "/" << std::setprecision(2) << bytesToGB(mState.totalMemory)
             << "(GB) [" << std::setprecision(3) << (100.f) * (mState.scratchSize / (float)mState.totalMemory) << "%]\n"
-            << "   ├ Number of streams allocated: " << mState.getStreamsPoolSize() << "\n"
-            << "   ├ Number of scratch chunks: " << mState.getMaxChunks() << " of " << mOptions.chunkReservedGB << " GB each\n"
-            << "   └ Each chunk can store up to: " << mState.getChunkCapacity() << " elements" << std::endl
-            << std::endl;
+            << "   └ Number of streams allocated: " << mState.getStreamsPoolSize() << "\n\n";
+  // << "   ├ Number of scratch chunks: " << mState.getMaxChunks() << " of " << mOptions.chunkReservedGB << " GB each\n"
+  // << "   └ Each chunk can store up to: " << mState.getChunkCapacity() << " elements" << std::endl
+  // << std::endl<< std::endl;
 }
 
 template <class chunk_t>
@@ -470,25 +419,25 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
               << "   │   - threads per block: " << nThreads << "\n"
               << "   │   - per chunk throughput:\n";
     if (mode == Mode::Sequential) {
-      for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
+      for (auto iChunk{0}; iChunk < mState.testChunks.size(); ++iChunk) { // loop over single chunks separately
+        auto& chunk = mState.testChunks[iChunk];
+        // for (auto& chunk : mState.testChunks) { // loop over single chunks separately
         auto result = runSequential(kernel,
+                                    chunk,
                                     mState.getNKernelLaunches(),
-                                    iChunk,
                                     nBlocks,
-                                    nThreads, // args...
-                                    capacity);
+                                    nThreads);
         auto throughput = computeThroughput(test, result, mState.chunkReservedGB, mState.getNKernelLaunches());
         std::cout << "   │     " << ((mState.getMaxChunks() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << mState.getMaxChunks() << ": \e[1m" << throughput << " GB/s \e[0m (" << result * 1e-3 << " s)\n";
         mResultWriter.get()->storeBenchmarkEntry(test, iChunk, result, mState.chunkReservedGB, mState.getNKernelLaunches());
       }
     } else {
       auto results = runConcurrent(kernel,
-                                   mState.getMaxChunks(), // nStreams
+                                   mState.testChunks,
                                    mState.getNKernelLaunches(),
                                    mState.getStreamsPoolSize(),
                                    nBlocks,
-                                   nThreads,
-                                   capacity);
+                                   nThreads);
       for (auto iChunk{0}; iChunk < results.size(); ++iChunk) {
         auto throughput = computeThroughput(test, results[iChunk], mState.chunkReservedGB, mState.getNKernelLaunches());
         std::cout << "   │     " << ((results.size() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << results.size() << ": \e[1m" << throughput << " GB/s \e[0m (" << results[iChunk] * 1e-3 << " s)\n";

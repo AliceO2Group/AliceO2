@@ -175,6 +175,12 @@ inline float computeThroughput(Test test, float result, float chunkSizeGB, int n
   return throughput;
 }
 
+template <class chunk_t>
+inline size_t getBufferCapacity(float chunkReservedGB)
+{
+  return static_cast<size_t>(GB * chunkReservedGB / sizeof(chunk_t));
+}
+
 // LCG: https://rosettacode.org/wiki/Linear_congruential_generator
 class LCGRnd
 {
@@ -204,7 +210,6 @@ namespace o2
 {
 namespace benchmark
 {
-
 struct benchmarkOpts {
   benchmarkOpts() = default;
 
@@ -213,10 +218,9 @@ struct benchmarkOpts {
   std::vector<Mode> modes = {Mode::Sequential, Mode::Concurrent};
   std::vector<KernelConfig> pools = {KernelConfig::Single, KernelConfig::Multi};
   std::vector<std::string> dtypes = {"char", "int", "ulong"};
-  std::vector<std::pair<int, int>> arbitraryChunks;
+  std::vector<std::pair<int, int>> testChunks;
   float chunkReservedGB = 1.f;
   float threadPoolFraction = 1.f;
-  int nRegions = 2;
   float freeMemoryFractionToAllocate = 0.95f;
   int kernelLaunches = 1;
   int nTests = 1;
@@ -224,35 +228,30 @@ struct benchmarkOpts {
   std::string outFileName = "benchmark_result";
 };
 
-template <class T>
+template <class chunk_t>
 struct gpuState {
   int getMaxChunks()
   {
     return (double)scratchSize / (chunkReservedGB * GB);
   }
 
-  void computeScratchPtrs()
-  {
-    partAddrOnHost.resize(getMaxChunks());
-    for (size_t iBuffAddress{0}; iBuffAddress < getMaxChunks(); ++iBuffAddress) {
-      partAddrOnHost[iBuffAddress] = reinterpret_cast<T*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * chunkReservedGB) * iBuffAddress);
-    }
-  }
+  // void computeScratchPtrs()
+  // {
+  //   partAddrOnHost.resize(getMaxChunks());
+  //   for (size_t iBuffAddress{0}; iBuffAddress < getMaxChunks(); ++iBuffAddress) {
+  //     partAddrOnHost[iBuffAddress] = reinterpret_cast<chunk_t*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * chunkReservedGB) * iBuffAddress);
+  //   }
+  // }
 
   size_t getChunkCapacity()
   {
-    return static_cast<size_t>(GB * chunkReservedGB / sizeof(T));
+    return getBufferCapacity<chunk_t>(chunkReservedGB);
   }
 
-  std::vector<T*> getScratchPtrs()
-  {
-    return partAddrOnHost;
-  }
-
-  std::vector<std::vector<T>>& getHostBuffers()
-  {
-    return gpuBuffersHost;
-  }
+  // std::vector<chunk_t*> getScratchPtrs()
+  // {
+  //   return partAddrOnHost;
+  // }
 
   int getNKernelLaunches() { return iterations; }
   int getStreamsPoolSize() { return streams; }
@@ -265,16 +264,10 @@ struct gpuState {
   float chunkReservedGB; // Size of each partition (GB)
 
   // General containers and state
-  T* scratchPtr;                              // Pointer to scratch buffer
-  size_t scratchSize;                         // Size of scratch area (B)
-  std::vector<T*> partAddrOnHost;             // Pointers to scratch partitions on host vector
-  std::vector<std::vector<T>> gpuBuffersHost; // Host-based vector-ized data
-  T* deviceReadResultsPtr;                    // Results of the read test (single variable) on GPU
-  std::vector<T> hostReadResultsVector;       // Results of the read test (single variable) on host
-  T* deviceWriteResultsPtr;                   // Results of the write test (single variable) on GPU
-  std::vector<T> hostWriteResultsVector;      // Results of the write test (single variable) on host
-  T* deviceCopyInputsPtr;                     // Inputs of the copy test (single variable) on GPU
-  std::vector<T> hostCopyInputsVector;        // Inputs of the copy test (single variable) on host
+  chunk_t* scratchPtr;                           // Pointer to scratch buffer
+  size_t scratchSize;                            // Size of scratch area (B)
+  std::vector<chunk_t*> partAddrOnHost;          // Pointers to scratch partitions on host vector
+  std::vector<std::pair<int, int>> testChunks; // Vector of definitions for arbitrary chunks
 
   // Static info
   size_t totalMemory;
