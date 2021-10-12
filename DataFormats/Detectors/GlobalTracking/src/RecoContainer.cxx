@@ -896,7 +896,7 @@ void RecoContainer::addFDDRecPoints(ProcessingContext& pc, bool mc)
 //__________________________________________________________
 void RecoContainer::addZDCRecEvents(ProcessingContext& pc, bool mc)
 {
-  commonPool[GTrackID::ZDC].registerContainer(pc.inputs().get<gsl::span<o2::zdc::BCRecData>>("zdcbcrecdata"), MATCHES);
+  commonPool[GTrackID::ZDC].registerContainer(pc.inputs().get<gsl::span<o2::zdc::BCRecData>>("zdcbcrec"), MATCHES);
   commonPool[GTrackID::ZDC].registerContainer(pc.inputs().get<gsl::span<o2::zdc::ZDCEnergy>>("zdcenergy"), TRACKS);
   commonPool[GTrackID::ZDC].registerContainer(pc.inputs().get<gsl::span<o2::zdc::ZDCTDCData>>("zdctdcdata"), CLUSTERS);
   commonPool[GTrackID::ZDC].registerContainer(pc.inputs().get<gsl::span<uint16_t>>("zdcinfo"), PATTERNS);
