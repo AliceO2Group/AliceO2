@@ -53,7 +53,8 @@ install(FILES CheckDigits_mft.C
               run_trac_its.C
               CreateBCPattern.C
               UploadDummyAlignment.C
-       CreateCTPOrbitResetObject.C
+              CreateCTPOrbitResetObject.C
+              CreateGRPECSObject.C
         DESTINATION share/macro/)
 
 # FIXME: a lot of macros that are here should really be elsewhere. Those which
@@ -344,6 +345,11 @@ o2_add_test_root_macro(run_trac_its.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                         LABELS its)
+
+o2_add_test_root_macro(CreateGRPECSObject.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters
+                                             O2::DetectorsCommonDataFormats
+                                             O2::CCDB)
 
 #
 # NOTE: commented out until unit testing reenabled FIXME : re-enable or delete ?

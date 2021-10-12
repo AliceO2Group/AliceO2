@@ -26,5 +26,6 @@
 #pragma link C++ class o2::parameters::GRPObject + ;
 #pragma link C++ class o2::parameters::LHCIFData + ;
 #pragma link C++ class std::pair < long, std::string> + ;
+#pragma link C++ class o2::parameters::GRPECSObject + ;
 
 #endif
