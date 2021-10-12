@@ -35,6 +35,7 @@
 #include "TRDWorkflowIO/TRDTrackReaderSpec.h"
 #include "CTPWorkflowIO/DigitReaderSpec.h"
 #include "MCHWorkflow/TrackReaderSpec.h"
+#include "MIDWorkflow/TrackReaderSpec.h"
 #include "PHOSWorkflow/ReaderSpec.h"
 #include "CPVWorkflow/ReaderSpec.h"
 #include "EMCALWorkflow/PublisherSpec.h"
@@ -74,6 +75,9 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   }
   if (maskTracks[GID::MCH]) {
     specs.emplace_back(o2::mch::getTrackReaderSpec(maskTracksMC[GID::MCH]));
+  }
+  if (maskTracks[GID::MID]) {
+    specs.emplace_back(o2::mid::getTrackReaderSpec(maskTracksMC[GID::MID]));
   }
   if (maskTracks[GID::TPC]) {
     specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(maskTracksMC[GID::TPC]));

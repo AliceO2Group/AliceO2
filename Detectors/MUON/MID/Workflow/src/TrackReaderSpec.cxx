@@ -85,7 +85,7 @@ struct TrackReader {
         RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MID", "TRACKSROF", 0}, "MIDTrackROF"},
         RootTreeReader::BranchDefinition<std::vector<Cluster3D>>{Output{"MID", "TRACKCLUSTERS", 0}, "MIDTrackCluster"},
         RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MID", "TRCLUSROF", 0}, "MIDTrackClusterROF"},
-        RootTreeReader::BranchDefinition<o2::dataformats::MCTruthContainer<MCCompLabel>>{Output{"MID", "TRACKSLABELS", 0}, "MIDTrackLabels"},
+        RootTreeReader::BranchDefinition<o2::dataformats::MCTruthContainer<MCCompLabel>>{Output{"MID", "TRACKLABELS", 0}, "MIDTrackLabels"},
         RootTreeReader::BranchDefinition<o2::dataformats::MCTruthContainer<MCClusterLabel>>{Output{"MID", "TRCLUSLABELS", 0}, "MIDTrackClusterLabels"},
         &logging);
     } else {
