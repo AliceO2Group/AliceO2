@@ -96,23 +96,70 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   const auto matchesTPCTOF = getTPCTOFMatches(); // and corresponding matches
   const auto tracksTPCTRD = getTPCTRDTracks<o2::trd::TrackTRD>();
   const auto matchesITSTPCTOF = getITSTPCTOFMatches(); // just matches, no refit done
+  const auto matchesTPCTRDTOF = getTPCTRDTOFMatches(); // just matches, no refit done
+  const auto matchesITSTPCTRDTOF = getITSTPCTRDTOFMatches(); // just matches, no refit done
   const auto tofClusters = getTOFClusters();
   const auto tracksITSTPCTRD = getITSTPCTRDTracks<o2::trd::TrackTRD>();
 
   const auto trigTPCTRD = getTPCTRDTriggers();
 
-  usedData[GTrackID::ITS].resize(tracksITS.size());                   // to flag used ITS tracks
-  usedData[GTrackID::MCH].resize(tracksMCH.size());                   // to flag used MCH tracks
-  usedData[GTrackID::MFT].resize(tracksMFT.size());                   // to flag used MFT tracks
-  usedData[GTrackID::TPC].resize(tracksTPC.size());                   // to flag used TPC tracks
-  usedData[GTrackID::ITSTPC].resize(tracksTPCITS.size());             // to flag used ITSTPC tracks
-  usedData[GTrackID::MFTMCH].resize(tracksMFTMCH.size());             // to flag used MFTMCH tracks
-  usedData[GTrackID::ITSTPCTRD].resize(tracksITSTPCTRD.size());       // to flag used ITSTPCTRD tracks
-  usedData[GTrackID::TPCTRD].resize(tracksTPCTRD.size());             // to flag used TPCTRD tracks
-  usedData[GTrackID::ITSTPCTOF].resize(getITSTPCTOFMatches().size()); // to flag used ITSTPC-TOF matches
+  usedData[GTrackID::ITS].resize(tracksITS.size());                         // to flag used ITS tracks
+  usedData[GTrackID::MCH].resize(tracksMCH.size());                         // to flag used MCH tracks
+  usedData[GTrackID::MFT].resize(tracksMFT.size());                         // to flag used MFT tracks
+  usedData[GTrackID::TPC].resize(tracksTPC.size());                         // to flag used TPC tracks
+  usedData[GTrackID::ITSTPC].resize(tracksTPCITS.size());                   // to flag used ITSTPC tracks
+  usedData[GTrackID::MFTMCH].resize(tracksMFTMCH.size());                   // to flag used MFTMCH tracks
+  usedData[GTrackID::ITSTPCTRD].resize(tracksITSTPCTRD.size());             // to flag used ITSTPCTRD tracks
+  usedData[GTrackID::TPCTRD].resize(tracksTPCTRD.size());                   // to flag used TPCTRD tracks
+  usedData[GTrackID::ITSTPCTRD].resize(tracksITSTPCTRD.size());             // to flag used TPCTRD tracks
+  usedData[GTrackID::ITSTPCTOF].resize(getITSTPCTOFMatches().size());       // to flag used ITSTPC-TOF matches
+  usedData[GTrackID::TPCTRDTOF].resize(getTPCTRDTOFMatches().size());       // to flag used ITSTPC-TOF matches
+  usedData[GTrackID::ITSTPCTRDTOF].resize(getITSTPCTRDTOFMatches().size()); // to flag used ITSTPC-TOF matches
 
   // ITS-TPC-TRD-TOF
-  // TODO, will flag used ITS-TPC-TRD
+  {
+
+    if (matchesITSTPCTRDTOF.size() && (!tofClusters.size() || !tracksITSTPCTRD.size())) {
+      throw std::runtime_error(fmt::format("Global-TOF tracks ({}) require ITS-TPC-TRD tracks ({}) and TOF clusters ({})",
+                                           matchesITSTPCTRDTOF.size(), tracksITSTPCTRD.size(), tofClusters.size()));
+    }
+    for (unsigned i = 0; i < matchesITSTPCTRDTOF.size(); i++) {
+      const auto& match = matchesITSTPCTRDTOF[i];
+      auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
+      // no need to check isUsed: by construction this ITS-TPC-TRD was not used elsewhere
+      const auto& tofCl = tofClusters[match.getTOFClIndex()];
+      float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+      const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
+      if (creator(tracksITSTPCTRD[gidx.getIndex()], {i, GTrackID::ITSTPCTRDTOF}, timeTOFMUS, timeErr)) {
+        //flagUsed2(i, GTrackID::TOF); // flag used TOF match // TODO might be not needed
+        flagUsed(gidx); // flag used ITS-TPC-TRD tracks
+      }
+    }
+  }
+
+  // TPC-TRD-TOF
+  {
+
+    if (matchesTPCTRDTOF.size() && (!tofClusters.size() || !tracksTPCTRD.size())) {
+      throw std::runtime_error(fmt::format("Global-TOF tracks ({}) require TPC-TRD tracks ({}) and TOF clusters ({})",
+                                           matchesTPCTRDTOF.size(), tracksTPCTRD.size(), tofClusters.size()));
+    }
+    for (unsigned i = 0; i < matchesTPCTRDTOF.size(); i++) {
+      const auto& match = matchesTPCTRDTOF[i];
+      auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
+      if (isUsed(gidx)) {              // RS FIXME: THIS IS TEMPORARY, until the TOF matching will use ITS-TPC-TRD as an input
+        continue;
+      }
+      // no need to check isUsed: by construction this ITS-TPC-TRD was not used elsewhere
+      const auto& tofCl = tofClusters[match.getTOFClIndex()];
+      float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+      const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
+      if (creator(tracksTPCTRD[gidx.getIndex()], {i, GTrackID::TPCTRDTOF}, timeTOFMUS, timeErr)) {
+        //flagUsed2(i, GTrackID::TOF); // flag used TOF match // TODO might be not needed
+        flagUsed(gidx); // flag used ITS-TPC tracks
+      }
+    }
+  }
 
   // ITS-TPC-TRD
   {
