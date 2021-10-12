@@ -92,10 +92,13 @@ std::size_t SubTimeFrameFileReader::getHeaderStackSize() // throws ios_base::fai
   auto lNumHeaders = 0;
   while (readNextHeader && (++lNumHeaders <= cMaxHeaders)) {
     // read BaseHeader only!
+    const auto lBaseHdrPos = position();
     if (!read_advance(&lBaseHdr, sizeof(BaseHeader))) {
       return 0;
     }
 
+    // go back, and read the whole O2 header (Base+Derived)
+    set_position(lBaseHdrPos);
     if (!ignore_nbytes(lBaseHdr.size())) {
       return 0;
     }
