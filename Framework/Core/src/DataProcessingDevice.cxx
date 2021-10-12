@@ -976,7 +976,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
             case DataRelayer::Invalid:
             case DataRelayer::WillRelay:
               if (info.normalOpsNotified == false && info.backpressureNotified == true) {
-                LOGP(WARN, "Back to normal on channel {}.", info.channel->GetName());
+                LOGP(info, "Back to normal on channel {}.", info.channel->GetName());
                 info.normalOpsNotified = true;
                 info.backpressureNotified = false;
               }
