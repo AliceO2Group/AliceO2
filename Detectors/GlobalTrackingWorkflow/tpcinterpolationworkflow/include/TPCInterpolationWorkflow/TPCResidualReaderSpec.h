@@ -9,14 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file  TrackInterpolationReaderSpec.cxx
+/// @file   TPCResidualReaderSpec
 
-#include "TPCInterpolationWorkflow/TrackInterpolationReaderSpec.h"
+#ifndef O2_TPC_RESIDUALREADER
+#define O2_TPC_RESIDUALREADER
+
+#include "Framework/DataProcessorSpec.h"
+
+using namespace o2::framework;
 
 namespace o2
 {
 namespace tpc
 {
 
+/// create a processor spec
+framework::DataProcessorSpec getTPCResidualReaderSpec();
+
 } // namespace tpc
 } // namespace o2
+
+#endif /* O2_TPC_RESIDUALREADER */

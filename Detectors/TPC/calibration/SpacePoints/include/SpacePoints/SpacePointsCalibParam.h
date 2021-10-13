@@ -82,7 +82,7 @@ static constexpr int NZ2XBins = 5;  ///< number of bins in z/x
 static constexpr float MaxResid = 20.f; ///< max residual in y and z
 static constexpr float MaxY = 50.f;     ///< max value for y position (sector coordinates)
 static constexpr float MaxZ = 300.f;    ///< max value for z position
-static constexpr float MaxTgSlp = 2.f;  ///< max value for phi and lambda angles
+static constexpr float MaxTgSlp = 1.f;  ///< max value for phi and lambda angles
 
 // miscellaneous
 static constexpr float sEps = 1e-6f; ///< small number for float comparisons

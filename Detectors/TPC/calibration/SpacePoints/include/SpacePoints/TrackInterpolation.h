@@ -49,21 +49,21 @@ namespace tpc
 
 /// Structure used to store the TPC cluster residuals
 struct TPCClusterResiduals {
-  short dy{};           ///< residual in Y
-  short dz{};           ///< residual in Z
-  short y{};            ///< Y position of track
-  short z{};            ///< Z position of track
-  short phi{};          ///< phi angle of track
-  short tgl{};          ///< dip angle of track
-  unsigned char sec{};  ///< sector number 0..17
+  float dy{};           ///< residual in Y
+  float dz{};           ///< residual in Z
+  float y{};            ///< Y position of track
+  float z{};            ///< Z position of track
+  float phi{};          ///< phi angle of track
+  float tgl{};          ///< dip angle of track
+  unsigned char sec{};  ///< sector number 0..35
   unsigned char dRow{}; ///< distance to previous row in units of pad rows
   short row{};          ///< TPC pad row (absolute units)
-  void setDY(float val) { dy = fabs(val) < param::MaxResid ? static_cast<short>(val * 0x7fff / param::MaxResid) : static_cast<short>(std::copysign(1., val) * 0x7fff); }
-  void setDZ(float val) { dz = fabs(val) < param::MaxResid ? static_cast<short>(val * 0x7fff / param::MaxResid) : static_cast<short>(std::copysign(1., val) * 0x7fff); }
-  void setY(float val) { y = fabs(val) < param::MaxY ? static_cast<short>(val * 0x7fff / param::MaxY) : static_cast<short>(std::copysign(1., val) * 0x7fff); }
-  void setZ(float val) { z = fabs(val) < param::MaxZ ? static_cast<short>(val * 0x7fff / param::MaxZ) : static_cast<short>(std::copysign(1., val) * 0x7fff); }
-  void setPhi(float val) { phi = fabs(val) < param::MaxTgSlp ? static_cast<short>(val * 0x7fff / param::MaxTgSlp) : static_cast<short>(std::copysign(1., val) * 0x7fff); }
-  void setTgl(float val) { tgl = fabs(val) < param::MaxTgSlp ? static_cast<short>(val * 0x7fff / param::MaxTgSlp) : static_cast<short>(std::copysign(1., val) * 0x7fff); }
+  void setDY(float val) { dy = fabs(val) < param::MaxResid ? val : std::copysign(param::MaxResid, val); }
+  void setDZ(float val) { dz = fabs(val) < param::MaxResid ? val : std::copysign(param::MaxResid, val); }
+  void setY(float val) { y = fabs(val) < param::MaxY ? val : std::copysign(param::MaxY, val); }
+  void setZ(float val) { z = fabs(val) < param::MaxZ ? val : std::copysign(param::MaxZ, val); }
+  void setPhi(float val) { phi = fabs(val) < param::MaxTgSlp ? val : std::copysign(param::MaxTgSlp, val); }
+  void setTgl(float val) { tgl = fabs(val) < param::MaxTgSlp ? val : std::copysign(param::MaxTgSlp, val); }
   ClassDefNV(TPCClusterResiduals, 1);
 };
 
@@ -95,6 +95,10 @@ class TrackInterpolation
   /// Default constructor
   TrackInterpolation() = default;
 
+  // since this class has pointer members, we should explicitly delete copy and assignment operators
+  TrackInterpolation(const TrackInterpolation&) = delete;
+  TrackInterpolation& operator=(const TrackInterpolation&) = delete;
+
   /// Enumeration for indexing the arrays of the CacheStruct
   enum {
     ExtOut = 0, ///< extrapolation outwards of ITS track
@@ -116,6 +120,7 @@ class TrackInterpolation
     float clZ{0.f};
     float clAngle{0.f};
     unsigned short clAvailable{0};
+    unsigned char clSec{0};
   };
 
   // -------------------------------------- processing functions --------------------------------------------------
