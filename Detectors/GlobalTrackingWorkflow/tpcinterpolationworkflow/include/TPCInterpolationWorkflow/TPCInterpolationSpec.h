@@ -36,7 +36,7 @@ namespace tpc
 class TPCInterpolationDPL : public Task
 {
  public:
-  TPCInterpolationDPL(std::shared_ptr<o2::globaltracking::DataRequest> dr, bool useMC, bool processITSTPConly) : mDataRequest(dr), mUseMC(useMC), mProcessITSTPConly(processITSTPConly) {}
+  TPCInterpolationDPL(std::shared_ptr<o2::globaltracking::DataRequest> dr, bool useMC, bool processITSTPConly, bool writeResiduals) : mDataRequest(dr), mUseMC(useMC), mProcessITSTPConly(processITSTPConly), mWriteResiduals(writeResiduals) {}
   ~TPCInterpolationDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -48,11 +48,12 @@ class TPCInterpolationDPL : public Task
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< steers the input
   bool mUseMC{false}; ///< MC flag
   bool mProcessITSTPConly{false}; ///< should also tracks without outer point (ITS-TPC only) be processed?
+  bool mWriteResiduals{false};    ///< whether or not the unbinned unfiltered residuals should be sent out
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTPCInterpolationSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool processITSTPConly);
+framework::DataProcessorSpec getTPCInterpolationSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool processITSTPConly, bool writeResiduals);
 
 } // namespace tpc
 } // namespace o2
