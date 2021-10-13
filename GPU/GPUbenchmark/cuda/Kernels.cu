@@ -14,6 +14,7 @@
 
 #include "../Shared/Kernels.h"
 #include <cstdio>
+#include <numeric>
 
 // Memory partitioning schema
 //
@@ -374,9 +375,6 @@ void GPUbenchmark<chunk_t>::globalInit()
             << "   ├ Allocated: " << std::setprecision(2) << bytesToGB(mState.scratchSize) << "/" << std::setprecision(2) << bytesToGB(mState.totalMemory)
             << "(GB) [" << std::setprecision(3) << (100.f) * (mState.scratchSize / (float)mState.totalMemory) << "%]\n"
             << "   └ Number of streams allocated: " << mState.getStreamsPoolSize() << "\n\n";
-  // << "   ├ Number of scratch chunks: " << mState.getMaxChunks() << " of " << mOptions.chunkReservedGB << " GB each\n"
-  // << "   └ Each chunk can store up to: " << mState.getChunkCapacity() << " elements" << std::endl
-  // << std::endl<< std::endl;
 }
 
 template <class chunk_t>
@@ -427,7 +425,7 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
                                     nThreads);
         auto throughput = computeThroughput(test, result, chunk.second, mState.getNKernelLaunches());
         std::cout << "   │     " << ((mState.testChunks.size() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << mState.testChunks.size()
-                  << ": [" << chunk.first << "-" << chunk.first + chunk.second << "] \e[1m" << throughput << " GB/s \e[0m(" << result * 1e-3 << " s)\n";
+                  << ": [" << chunk.first << "-" << chunk.first + chunk.second << ") \e[1m" << throughput << " GB/s \e[0m(" << result * 1e-3 << " s)\n";
         mResultWriter.get()->storeBenchmarkEntry(test, iChunk, result, chunk.second, mState.getNKernelLaunches());
       }
     } else {
@@ -437,12 +435,17 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
                                    mState.getStreamsPoolSize(),
                                    nBlocks,
                                    nThreads);
+      float sum{0};
       for (auto iChunk{0}; iChunk < results.size(); ++iChunk) {
         auto& chunk = mState.testChunks[iChunk];
         auto throughput = computeThroughput(test, results[iChunk], chunk.second, mState.getNKernelLaunches());
+        sum += throughput;
         std::cout << "   │     " << ((mState.testChunks.size() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << mState.testChunks.size()
-                  << ": [" << chunk.first << "-" << chunk.first + chunk.second << "] \e[1m" << throughput << " GB/s \e[0m(" << results[iChunk] * 1e-3 << " s)\n";
+                  << ": [" << chunk.first << "-" << chunk.first + chunk.second << ") \e[1m" << throughput << " GB/s \e[0m(" << results[iChunk] * 1e-3 << " s)\n";
         mResultWriter.get()->storeBenchmarkEntry(test, iChunk, results[iChunk], chunk.second, mState.getNKernelLaunches());
+      }
+      if (mState.testChunks.size() > 1) {
+        std::cout << "   │   - total throughput: \e[1m" << sum << " GB/s \e[0m" << std::endl;
       }
     }
     mResultWriter.get()->snapshotBenchmark();

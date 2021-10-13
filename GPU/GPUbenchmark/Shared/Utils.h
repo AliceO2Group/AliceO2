@@ -156,27 +156,11 @@ inline float computeThroughput(Test test, float result, float chunkSizeGB, int n
   // https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html
   // Eff_bandwidth (GB/s) = (B_r + B_w) / (~1e9 * Time (s))
 
-  float throughput;
-  switch (test) {
-    case Test::Read: {
-      throughput = 1e3 * chunkSizeGB * ntests / result;
-      break;
-    }
-    case Test::Write: {
-      throughput = 1e3 * chunkSizeGB * ntests / result;
-      break;
-    }
-    case Test::Copy: {
-      throughput = 1e3 * chunkSizeGB * ntests / result;
-      break;
-    }
-  }
-
-  return throughput;
+  return 1e3 * chunkSizeGB * ntests / result;
 }
 
 template <class chunk_t>
-inline size_t getBufferCapacity(float chunkReservedGB)
+inline size_t getBufferCapacity(int chunkReservedGB)
 {
   return static_cast<size_t>(GB * chunkReservedGB / sizeof(chunk_t));
 }
@@ -235,23 +219,10 @@ struct gpuState {
     return (double)scratchSize / (chunkReservedGB * GB);
   }
 
-  // void computeScratchPtrs()
-  // {
-  //   partAddrOnHost.resize(getMaxChunks());
-  //   for (size_t iBuffAddress{0}; iBuffAddress < getMaxChunks(); ++iBuffAddress) {
-  //     partAddrOnHost[iBuffAddress] = reinterpret_cast<chunk_t*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * chunkReservedGB) * iBuffAddress);
-  //   }
-  // }
-
   size_t getChunkCapacity()
   {
     return getBufferCapacity<chunk_t>(chunkReservedGB);
   }
-
-  // std::vector<chunk_t*> getScratchPtrs()
-  // {
-  //   return partAddrOnHost;
-  // }
 
   int getNKernelLaunches() { return iterations; }
   int getStreamsPoolSize() { return streams; }
@@ -264,9 +235,9 @@ struct gpuState {
   float chunkReservedGB; // Size of each partition (GB)
 
   // General containers and state
-  chunk_t* scratchPtr;                           // Pointer to scratch buffer
-  size_t scratchSize;                            // Size of scratch area (B)
-  std::vector<chunk_t*> partAddrOnHost;          // Pointers to scratch partitions on host vector
+  chunk_t* scratchPtr;                         // Pointer to scratch buffer
+  size_t scratchSize;                          // Size of scratch area (B)
+  std::vector<chunk_t*> partAddrOnHost;        // Pointers to scratch partitions on host vector
   std::vector<std::pair<int, int>> testChunks; // Vector of definitions for arbitrary chunks
 
   // Static info
