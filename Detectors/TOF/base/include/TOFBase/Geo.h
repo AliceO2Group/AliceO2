@@ -357,7 +357,8 @@ class Geo
   static void fromGlobalToSector(Float_t* pos, Int_t isector); // change coords to Sector reference
   static Int_t fromPlateToStrip(Float_t* pos, Int_t iplate);   // change coord to Strip reference and return strip number
 
-  static Bool_t mToBeIntit;
+  static Bool_t mToBeInit;
+  static Bool_t mToBeInitIndices;
   static Float_t mRotationMatrixSector[NSECTORS + 1][3][3]; // rotation matrixes
   static Float_t mRotationMatrixPlateStrip[NPLATES][NMAXNSTRIP][3][3];
   static Float_t mPadPosition[NSECTORS][NPLATES][NMAXNSTRIP][NPADZ][NPADX][3];

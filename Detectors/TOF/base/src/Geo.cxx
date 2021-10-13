@@ -28,7 +28,8 @@ constexpr Float_t Geo::DISTANCES[NPLATES][NMAXNSTRIP];
 constexpr Bool_t Geo::FEAWITHMASKS[NSECTORS];
 constexpr Float_t Geo::ROOF2PARAMETERS[3];
 
-Bool_t Geo::mToBeIntit = kTRUE;
+Bool_t Geo::mToBeInit = kTRUE;
+Bool_t Geo::mToBeInitIndices = kTRUE;
 Float_t Geo::mRotationMatrixSector[NSECTORS + 1][3][3];
 Float_t Geo::mRotationMatrixPlateStrip[NPLATES][NMAXNSTRIP][3][3];
 Float_t Geo::mPadPosition[NSECTORS][NPLATES][NMAXNSTRIP][NPADZ][NPADX][3];
@@ -38,7 +39,7 @@ std::array<std::vector<float>, 5> Geo::mDistances;
 
 void Geo::Init()
 {
-  if (!mToBeIntit) {
+  if (!mToBeInit) {
     return;
   }
   LOG(INFO) << "tof::Geo: Initialization of TOF rotation parameters";
@@ -147,7 +148,7 @@ void Geo::Init()
     }
   }
   InitIndices();
-  mToBeIntit = kFALSE;
+  mToBeInit = kFALSE;
 }
 
 void Geo::InitIndices()
@@ -186,6 +187,8 @@ void Geo::InitIndices()
       mDistances[iplate].push_back(DISTANCES[iplate][nstrips - i - 1]);
     }
   }
+  mToBeInitIndices = false;
+
 }
 
 std::string Geo::getVolumePath(const Int_t* ind)
@@ -241,7 +244,7 @@ void Geo::getPos(Int_t* det, Float_t* pos)
   // Returns space point coor (x,y,z) (cm)  for Detector
   // Indices  (iSect,iPlate,iStrip,iPadZ,iPadX)
   //
-  if (mToBeIntit) {
+  if (mToBeInit) {
     Init();
   }
 
@@ -257,7 +260,7 @@ void Geo::getDetID(Float_t* pos, Int_t* det)
   // Returns Detector Indices (iSect,iPlate,iStrip,iPadZ,iPadX)
   // space point coor (x,y,z) (cm)
 
-  if (mToBeIntit) {
+  if (mToBeInit) {
     Init();
   }
 
@@ -293,7 +296,7 @@ void Geo::getVolumeIndices(Int_t index, Int_t* detId)
   // Retrieve volume indices from the calibration channel index
   //
 
-  if (mToBeIntit) {
+  if (mToBeInitIndices) {
     InitIndices();
   }
   detId[0] = index * NPADS_INV_INT * NSTRIPXSECTOR_INV_INT;
@@ -523,7 +526,7 @@ void Geo::getPadDxDyDz(const Float_t* pos, Int_t* det, Float_t* DeltaPos, int se
   //
   // Returns the x coordinate in the Pad reference frame
   //
-  if (mToBeIntit) {
+  if (mToBeInit) {
     Init();
   }
 
@@ -693,7 +696,7 @@ void Geo::translate(Float_t& x, Float_t& y, Float_t& z, Float_t translationVecto
 }
 void Geo::antiRotateToSector(Float_t* xyz, Int_t isector)
 {
-  if (mToBeIntit) {
+  if (mToBeInit) {
     Init();
   }
 
@@ -724,7 +727,7 @@ void Geo::antiRotateToSector(Float_t* xyz, Int_t isector)
 
 void Geo::rotateToSector(Float_t* xyz, Int_t isector)
 {
-  if (mToBeIntit) {
+  if (mToBeInit) {
     Init();
   }
 
