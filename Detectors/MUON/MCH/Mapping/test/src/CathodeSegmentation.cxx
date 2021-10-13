@@ -91,7 +91,12 @@ BOOST_AUTO_TEST_CASE(NofBendingPads)
 BOOST_AUTO_TEST_CASE(NofNonBendingPads)
 {
   BOOST_CHECK_EQUAL(CathodeSegmentation(100, false).nofPads(), 14280);
+#if MCH_MAPPING_RUN3_AND_ABOVE
+  BOOST_CHECK_EQUAL(CathodeSegmentation(300, false).nofPads(), 13926);
+#else
   BOOST_CHECK_EQUAL(CathodeSegmentation(300, false).nofPads(), 13986);
+#endif
+
   BOOST_CHECK_EQUAL(CathodeSegmentation(902, false).nofPads(), 3136);
   BOOST_CHECK_EQUAL(CathodeSegmentation(702, false).nofPads(), 2912);
   BOOST_CHECK_EQUAL(CathodeSegmentation(701, false).nofPads(), 2880);
@@ -122,7 +127,11 @@ BOOST_AUTO_TEST_CASE(TotalNofBendingFECInSegTypes)
     nnb += CathodeSegmentation(detElemId, false).nofDualSampas();
   });
   BOOST_CHECK_EQUAL(nb, 1246);
+#if MCH_MAPPING_RUN3_AND_ABOVE
+  BOOST_CHECK_EQUAL(nnb, 1018);
+#else
   BOOST_CHECK_EQUAL(nnb, 1019);
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(BendingBoundingBox)
@@ -203,7 +212,11 @@ BOOST_AUTO_TEST_CASE(NofBendingFEC)
 BOOST_AUTO_TEST_CASE(NofNonBendingFEC)
 {
   BOOST_CHECK_EQUAL(CathodeSegmentation(100, false).nofDualSampas(), 225);
+#if MCH_MAPPING_RUN3_AND_ABOVE
+  BOOST_CHECK_EQUAL(CathodeSegmentation(300, false).nofDualSampas(), 221);
+#else
   BOOST_CHECK_EQUAL(CathodeSegmentation(300, false).nofDualSampas(), 222);
+#endif
   BOOST_CHECK_EQUAL(CathodeSegmentation(902, false).nofDualSampas(), 50);
   BOOST_CHECK_EQUAL(CathodeSegmentation(701, false).nofDualSampas(), 46);
   BOOST_CHECK_EQUAL(CathodeSegmentation(702, false).nofDualSampas(), 46);
@@ -234,7 +247,11 @@ BOOST_AUTO_TEST_CASE(CountPadsInCathodeSegmentations)
       n += seg.nofPads();
     }
   });
+#if MCH_MAPPING_RUN3_AND_ABOVE
+  BOOST_CHECK_EQUAL(n, 143409);
+#else
   BOOST_CHECK_EQUAL(n, 143469);
+#endif
 }
 
 BOOST_AUTO_TEST_CASE(LoopOnCathodeSegmentations)
@@ -277,7 +294,11 @@ BOOST_AUTO_TEST_CASE(DualSampasWithLessThan64Pads)
   BOOST_CHECK_EQUAL(non64[57], 3);
   BOOST_CHECK_EQUAL(non64[58], 2);
   BOOST_CHECK_EQUAL(non64[59], 1);
+#if MCH_MAPPING_RUN3_AND_ABOVE
+  BOOST_CHECK_EQUAL(non64[60], 5);
+#else
   BOOST_CHECK_EQUAL(non64[60], 6);
+#endif
   BOOST_CHECK_EQUAL(non64[62], 4);
   BOOST_CHECK_EQUAL(non64[63], 7);
 
@@ -286,7 +307,11 @@ BOOST_AUTO_TEST_CASE(DualSampasWithLessThan64Pads)
     n += p.second;
   }
 
+#if MCH_MAPPING_RUN3_AND_ABOVE
+  BOOST_CHECK_EQUAL(n, 165);
+#else
   BOOST_CHECK_EQUAL(n, 166);
+#endif
 }
 
 struct SEG {
