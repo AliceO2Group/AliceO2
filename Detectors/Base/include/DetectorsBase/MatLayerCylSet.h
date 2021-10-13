@@ -69,7 +69,6 @@ class MatLayerCylSet : public o2::gpu::FlatObject
   GPUd() float getRMax2() const { return get()->mRMax2; }
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
-
   void print(bool data = false) const;
   void addLayer(float rmin, float rmax, float zmax, float dz, float drphi);
   void populateFromTGeo(int ntrPerCel = 10);
@@ -78,6 +77,8 @@ class MatLayerCylSet : public o2::gpu::FlatObject
   void dumpToTree(const std::string outName = "matbudTree.root") const;
   void writeToFile(std::string outFName = "matbud.root", std::string name = "MatBud");
   static MatLayerCylSet* loadFromFile(std::string inpFName = "matbud.root", std::string name = "MatBud");
+  static MatLayerCylSet* rectifyPtrFromFile(MatLayerCylSet* ptr);
+
   void flatten();
 
 #endif // !GPUCA_ALIGPUCODE
