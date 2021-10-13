@@ -117,7 +117,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     float clTPCX;
     std::array<float, 2> clTPCYZ;
     mFastTransform->TransformIdeal(sector, row, clTPC.getPad(), clTPC.getTime(), clTPCX, clTPCYZ[0], clTPCYZ[1], clusterTimeBinOffset);
-    sector %= SECTORSPERSIDE;
+    mCache[row].clSec = sector;
     mCache[row].clAvailable = 1;
     mCache[row].clY = clTPCYZ[0];
     mCache[row].clZ = clTPCYZ[1];
@@ -260,7 +260,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     res.setZ(mCache[iRow].z[Int]);
     res.setPhi(mCache[iRow].phi[Int]);
     res.setTgl(mCache[iRow].tgl[Int]);
-    res.sec = o2::math_utils::angle2Sector(mCache[iRow].clAngle);
+    res.sec = mCache[iRow].clSec;
     res.dRow = deltaRow;
     res.row = iRow;
     mClRes.push_back(std::move(res));
@@ -316,7 +316,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     res.setZ(trkWork.getZ());
     res.setPhi(trkWork.getSnp());
     res.setTgl(trkWork.getTgl());
-    res.sec = o2::math_utils::angle2Sector(trkWork.getAlpha());
+    res.sec = sector;
     res.dRow = row - rowPrev;
     res.row = row;
     rowPrev = row;
