@@ -12,6 +12,8 @@
 #ifndef O2_MCH_RAW_ERROR_CODES_H
 #define O2_MCH_RAW_ERROR_CODES_H
 
+#include <string>
+
 namespace o2
 {
 namespace mch
@@ -32,6 +34,8 @@ enum ErrorCodes {
   ErrorBadLinkID = 1 << 9,            // 512
   ErrorUnknownLinkID = 1 << 10        // 1024
 };
+
+std::string errorCodeAsString(uint32_t code);
 
 } // namespace raw
 } // namespace mch
