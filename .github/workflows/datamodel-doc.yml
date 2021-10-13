@@ -62,7 +62,7 @@ jobs:
           if git diff --quiet; then
             exit  # Nothing has changed, so no need to send a PR.
           fi
-          git add ao2dTables.md helperTaskTables.md joinsAndIterators.md
+          git add ao2dTables.md helperTaskTables.md pwgTables.md joinsAndIterators.md
           git commit -m 'Automatic data model update'
           git remote set-url origin "https://alibuild:$GITHUB_TOKEN@github.com/alibuild/analysis-framework"
           git push -f origin auto-datamodel-doc
