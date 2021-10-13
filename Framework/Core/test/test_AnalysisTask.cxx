@@ -47,8 +47,6 @@ DECLARE_SOA_TABLE(Events, "AOD", "EVENTS",
                   test::EventProperty);
 } // namespace o2::aod
 
-// FIXME: for the moment we do not derive from AnalysisTask as
-// we need GCC 7.4+ to fix a bug.
 struct ATask {
   Produces<aod::FooBars> foobars;
 
@@ -58,32 +56,24 @@ struct ATask {
   }
 };
 
-// FIXME: for the moment we do not derive from AnalysisTask as
-// we need GCC 7.4+ to fix a bug.
 struct BTask {
   void process(o2::aod::Collision const&, o2::soa::Join<o2::aod::Tracks, o2::aod::TracksExtra, o2::aod::TracksCov> const&, o2::aod::AmbiguousTracks const&, o2::soa::Join<o2::aod::Calos, o2::aod::CaloTriggers> const&)
   {
   }
 };
 
-// FIXME: for the moment we do not derive from AnalysisTask as
-// we need GCC 7.4+ to fix a bug.
 struct CTask {
   void process(o2::aod::Collision const&, o2::aod::Tracks const&)
   {
   }
 };
 
-// FIXME: for the moment we do not derive from AnalysisTask as
-// we need GCC 7.4+ to fix a bug.
 struct DTask {
   void process(o2::aod::Tracks const&)
   {
   }
 };
 
-// FIXME: for the moment we do not derive from AnalysisTask as
-// we need GCC 7.4+ to fix a bug.
 struct ETask {
   void process(o2::aod::FooBars::iterator const& foobar)
   {
@@ -91,8 +81,6 @@ struct ETask {
   }
 };
 
-// FIXME: for the moment we do not derive from AnalysisTask as
-// we need GCC 7.4+ to fix a bug.
 struct FTask {
   expressions::Filter fooFilter = aod::test::foo > 1.;
   void process(soa::Filtered<o2::aod::FooBars>::iterator const& foobar)
@@ -101,8 +89,6 @@ struct FTask {
   }
 };
 
-// FIXME: for the moment we do not derive from AnalysisTask as
-// we need GCC 7.4+ to fix a bug.
 struct GTask {
   void process(o2::soa::Join<o2::aod::Foos, o2::aod::Bars, o2::aod::XYZ> const& foobars)
   {
@@ -114,8 +100,6 @@ struct GTask {
   }
 };
 
-// FIXME: for the moment we do not derive from AnalysisTask as
-// we need GCC 7.4+ to fix a bug.
 struct HTask {
   void process(o2::soa::Join<o2::aod::Foos, o2::aod::Bars, o2::aod::XYZ>::iterator const& foobar)
   {

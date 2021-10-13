@@ -2279,6 +2279,19 @@ struct IndexTable : Table<soa::Index<>, H, Ts...> {
 
 template <typename T>
 using is_soa_index_table_t = typename framework::is_base_of_template<soa::IndexTable, T>;
+
+template <typename T>
+struct SmallGroups : Filtered<T> {
+  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
+    : Filtered<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
+
+  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::expressions::Selection selection, uint64_t offset = 0)
+    : Filtered<T>(std::move(tables), selection, offset) {}
+
+  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::NodePtr const& tree, uint64_t offset = 0)
+    : Filtered<T>(std::move(tables), tree, offset) {}
+};
+
 } // namespace o2::soa
 
 #endif // O2_FRAMEWORK_ASOA_H_
