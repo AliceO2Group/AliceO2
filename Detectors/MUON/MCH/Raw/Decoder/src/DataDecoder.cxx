@@ -25,6 +25,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "Framework/Logger.h"
+#include "MCHRawDecoder/ErrorCodes.h"
 
 #define MCH_DECODER_MAX_ERROR_COUNT 100
 
@@ -189,6 +190,14 @@ DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandl
   : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mSampaTimeOffset(sampaBcOffset), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose), mUseDummyElecMap(useDummyElecMap)
 {
   init();
+}
+
+void DataDecoder::logErrorMap(int tfcount) const
+{
+  for (auto err : mErrorMap) {
+    LOGP(error, "{} ({} time{}) [{} TFs seeen]", err.first, err.second,
+         err.second > 1 ? "s" : "", tfcount);
+  }
 }
 
 //_________________________________________________________________________________________________
@@ -388,7 +397,8 @@ bool DataDecoder::getPadMapping(const DsElecId& dsElecId, DualSampaChannelId cha
   }
 
   if (deId < 0 || dsIddet < 0 || !isValidDeID(deId)) {
-    LOGP(error, "got invalid DsDetId from dsElecId={}", asString(dsElecId));
+    auto msg = fmt::format("got invalid DsDetId from dsElecId={}", asString(dsElecId));
+    mErrorMap[msg]++;
     return false;
   }
 
@@ -539,6 +549,13 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
     updateMergerRecord(mergerChannelId, mergerBoardId, mergerChannelBitmask, mDigits.size() - 1);
   };
 
+  auto errorHandler = [&](DsElecId dsId,
+                          int8_t chip,
+                          uint32_t error) {
+    std::string msg = fmt::format("{} chip {:2d} error {:4d} ({})", asString(dsId), chip, error, errorCodeAsString(error));
+    mErrorMap[msg]++;
+  };
+
   patchPage(page, mDebug);
 
   auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(page[0])));
@@ -558,6 +575,7 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
     DecodedDataHandlers handlers;
     handlers.sampaChannelHandler = channelHandler;
     handlers.sampaHeartBeatHandler = heartBeatHandler;
+    handlers.sampaErrorHandler = errorHandler;
     mDecoder = mFee2Solar ? o2::mch::raw::createPageDecoder(page, handlers, mFee2Solar)
                           : o2::mch::raw::createPageDecoder(page, handlers);
   }

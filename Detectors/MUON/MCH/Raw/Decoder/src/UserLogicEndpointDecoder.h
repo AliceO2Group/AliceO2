@@ -133,6 +133,7 @@ size_t UserLogicEndpointDecoder<CHARGESUM, VERSION>::append(Payload buffer)
         if (handler) {
           DsElecId dsId{static_cast<uint16_t>(0), static_cast<uint8_t>(0), static_cast<uint8_t>(0)};
           handler(dsId, -1, ErrorBadLinkID);
+          continue;
         } else {
           throw fmt::format("warning : out-of-range gbt {} word={:08X}\n", gbt, word);
         }
@@ -153,6 +154,7 @@ size_t UserLogicEndpointDecoder<CHARGESUM, VERSION>::append(Payload buffer)
         if (handler) {
           DsElecId dsId{static_cast<uint16_t>(0), static_cast<uint8_t>(0), static_cast<uint8_t>(0)};
           handler(dsId, -1, ErrorUnknownLinkID);
+          continue;
         } else {
           throw std::logic_error(fmt::format("{} Could not get solarId from feeLinkId={}\n", __PRETTY_FUNCTION__, asString(feeLinkId)));
         }
@@ -172,6 +174,7 @@ size_t UserLogicEndpointDecoder<CHARGESUM, VERSION>::append(Payload buffer)
       if (handler) {
         DsElecId dsId{static_cast<uint16_t>(0), static_cast<uint8_t>(0), static_cast<uint8_t>(0)};
         handler(dsId, -1, ErrorBadELinkID);
+        continue;
       } else {
         throw fmt::format("warning : out-of-range DS ID {} word={:08X}\n", dsid, word);
       }
