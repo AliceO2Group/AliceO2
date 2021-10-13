@@ -32,9 +32,6 @@ ColumnData& ChannelMasksHandler::getMask(uint8_t deId, uint8_t columnId)
     newMask.columnId = columnId;
     newMask.patterns.fill(0xFFFF);
     return newMask;
-
-    // newMask = mReferenceMasks[uniqueId];
-    // return newMask;
   }
   return maskIt->second;
 }
@@ -90,24 +87,20 @@ std::vector<ColumnData> ChannelMasksHandler::getMasks() const
   return masks;
 }
 
-// std::vector<ColumnData> ChannelMasksHandler::getReferenceMasks() const
-// {
-//   /// Gets the masks
-//   std::vector<ColumnData> masks;
-//   for (auto& maskIt : mReferenceMasks) {
-//     masks.emplace_back(maskIt.second);
-//   }
-//   return masks;
-// }
+std::vector<ColumnData> ChannelMasksHandler::getMasksFull(std::vector<ColumnData> referenceMask) const
+{
+  /// Returns the computed masks merged with the reference masks,
+  /// which are the masks for non-existent channels
+  for (auto& mask : referenceMask) {
+    applyMask(mask);
+  }
+  return referenceMask;
+}
 
 bool ChannelMasksHandler::setFromChannelMask(const ColumnData& mask)
 {
   /// Sets the mask from a channel mask
   auto uniqueColumnId = getColumnDataUniqueId(mask.deId, mask.columnId);
-  // auto ref = mReferenceMasks.find(uniqueColumnId);
-  // if (mask == ref->second) {
-  //   return false;
-  // }
   mMasks[uniqueColumnId] = mask;
   return true;
 }
@@ -121,35 +114,5 @@ bool ChannelMasksHandler::setFromChannelMasks(const std::vector<ColumnData>& mas
   }
   return isDone;
 }
-
-// void ChannelMasksHandler::setReferenceMasks(const std::vector<ColumnData>& masks)
-// {
-//   /// Sets the reference mask
-//   for (auto& mask : masks) {
-//     mReferenceMasks[getColumnDataUniqueId(mask.deId, mask.columnId)] = mask;
-//   }
-// }
-
-// ChannelMasksHandler buildDefaultChannelMasksHandler()
-// {
-//   /// Builds the default channel mask
-//   Mapping mapping;
-//   ChannelMasksHandler ChannelMasksHandler;
-//   for (int ide = 0; ide < detparams::NDetectionElements; ++ide) {
-//     for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
-//       ColumnData mask;
-//       mask.deId = ide;
-//       mask.columnId = icol;
-//       for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {
-//         mask.setBendPattern(0xFFFF, iline);
-//       }
-//       for (int istrip = 0; istrip < mapping.getNStripsNBP(icol, ide); ++istrip) {
-//         mask.addStrip(istrip, 1, 0);
-//       }
-//       ChannelMasksHandler.setFromChannelMasksHandler(mask);
-//     }
-//   }
-//   return ChannelMasksHandler;
-// }
 } // namespace mid
 } // namespace o2
