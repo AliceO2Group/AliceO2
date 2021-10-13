@@ -13,7 +13,7 @@
 ///
 
 #include "../Shared/Kernels.h"
-#define VERSION "version 0.1-latest-#6773"
+#define VERSION "version 0.1-pr#6773"
 
 bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
 {
@@ -22,7 +22,21 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
   bpo::options_description options("Benchmark options");
   options.add_options()(
     "help,h", "Print help message.")(
-    "version,v", "Print version.")("extra,x", "Print extra info for each available device.")("arbitrary,a", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{""}, ""), "Custom selected chunks syntax <p>:<s>. P is starting GB, S is the size in GB.")("device,d", bpo::value<int>()->default_value(0), "Id of the device to run test on, EPN targeted.")("test,t", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"read", "write", "copy"}, "read write copy"), "Tests to be performed.")("kind,k", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"char", "int", "ulong", "int4"}, "char int ulong int4"), "Test data type to be used.")("mode,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"seq", "con"}, "seq con"), "Mode: sequential or concurrent.")("blockPool,b", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"sb", "mb", "ab"}, "sb mb ab"), "Pool strategy: single, multi or all blocks.")("threadPool,e", bpo::value<float>()->default_value(1.f), "Fraction of blockDim.x to use (aka: rounded fraction of thread pool).")("chunkSize,c", bpo::value<float>()->default_value(1.f), "Size of scratch partitions (GB).")("freeMemFraction,f", bpo::value<float>()->default_value(0.95f), "Fraction of free memory to be allocated (min: 0.f, max: 1.f).")("launches,l", bpo::value<int>()->default_value(10), "Number of iterations in reading kernels.")("nruns,n", bpo::value<int>()->default_value(1), "Number of times each test is run.")("streams,s", bpo::value<int>()->default_value(8), "Size of the pool of streams available for concurrent tests.")("outfile,o", bpo::value<std::string>()->default_value("benchmark_result"), "Output file name to store results.");
+    "version,v", "Print version.")(
+    "extra,x", "Print extra info for each available device.")(
+    "arbitrary,a", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{""}, ""), "Custom selected chunks syntax <p>:<s>. P is starting GB, S is the size in GB.")(
+    "device,d", bpo::value<int>()->default_value(0), "Id of the device to run test on, EPN targeted.")(
+    "test,t", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"read", "write", "copy"}, "read write copy"), "Tests to be performed.")(
+    "kind,k", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"char", "int", "ulong", "int4"}, "char int ulong int4"), "Test data type to be used.")(
+    "mode,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"seq", "con"}, "seq con"), "Mode: sequential or concurrent.")(
+    "blockPool,b", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"sb", "mb", "ab"}, "sb mb ab"), "Pool strategy: single, multi or all blocks.")(
+    "threadPool,e", bpo::value<float>()->default_value(1.f), "Fraction of blockDim.x to use (aka: rounded fraction of thread pool).")(
+    "chunkSize,c", bpo::value<float>()->default_value(1.f), "Size of scratch partitions (GB).")(
+    "freeMemFraction,f", bpo::value<float>()->default_value(0.95f), "Fraction of free memory to be allocated (min: 0.f, max: 1.f).")(
+    "launches,l", bpo::value<int>()->default_value(10), "Number of iterations in reading kernels.")(
+    "nruns,n", bpo::value<int>()->default_value(1), "Number of times each test is run.")(
+    "streams,s", bpo::value<int>()->default_value(8), "Size of the pool of streams available for concurrent tests.")(
+    "outfile,o", bpo::value<std::string>()->default_value("benchmark_result"), "Output file name to store results.");
   try {
     bpo::store(parse_command_line(argc, argv, options), vm);
     if (vm.count("help")) {
