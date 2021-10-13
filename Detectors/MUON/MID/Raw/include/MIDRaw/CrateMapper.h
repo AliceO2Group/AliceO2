@@ -39,12 +39,17 @@ class CrateMapper
   static uint8_t getLineId(uint16_t deBoardId) { return (deBoardId >> 7) & 0x3; }
   uint8_t deLocalBoardToRO(uint8_t deId, uint8_t columnId, uint8_t lineId) const;
 
-  uint16_t roLocalBoardToDE(uint8_t crateId, uint8_t boardId) const;
+  uint16_t roLocalBoardToDE(uint8_t uniqueLocId) const;
+
+  bool hasDirectInputY(uint8_t uniqueLocId) const;
 
  private:
   void init();
-  std::unordered_map<uint8_t, uint16_t> mROToDEMap; /// Correspondence between RO and DE board
-  std::unordered_map<uint16_t, uint8_t> mDEToROMap; /// Correspondence between DE and RO board
+  /// Returns the unique Loc ID in the right side
+  uint8_t getUniqueLocIdRight(uint8_t uniqueLocId) const { return uniqueLocId % 0x80; }
+  std::unordered_map<uint8_t, uint16_t> mROToDEMap;   /// Correspondence between RO and DE board
+  std::unordered_map<uint16_t, uint8_t> mDEToROMap;   /// Correspondence between DE and RO board
+  std::unordered_map<uint8_t, bool> mHasDirectInputY; /// Flag to state if the local board has direct input from FEE
 };
 } // namespace mid
 } // namespace o2
