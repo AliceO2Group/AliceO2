@@ -16,6 +16,7 @@
 #include "Framework/CommandInfo.h"
 #include <vector>
 #include <iosfwd>
+#include <string>
 
 namespace o2::framework
 {
@@ -23,12 +24,14 @@ namespace o2::framework
 /// Helper to dump DDS configuration to run in a deployed
 /// manner.
 /// @a out is a stream where the configuration will be printed
+/// @a workflowSuffix a suffix to add to all the ids in the workflow
 /// @a specs is the internal representation of the dataflow topology
 ///          which we want to dump.
 /// @a executions is the transient parameters for the afore mentioned
 ///          specifications
 /// @a the full command being used
 void dumpDeviceSpec2DDS(std::ostream& out,
+                        std::string const& workflowSuffix,
                         std::vector<DeviceSpec> const& specs,
                         std::vector<DeviceExecution> const& executions,
                         CommandInfo const& commandInfo);

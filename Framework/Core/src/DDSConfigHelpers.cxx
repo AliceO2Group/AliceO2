@@ -13,23 +13,12 @@
 #include <map>
 #include <iostream>
 #include <cstring>
+#include <regex>
 #include <fmt/format.h>
 #include <libgen.h>
 
 namespace o2::framework
 {
-
-std::string replaceFirstOccurrence(
-  std::string s,
-  const std::string& toReplace,
-  const std::string& replaceWith)
-{
-  std::size_t pos = s.find(toReplace);
-  if (pos == std::string::npos) {
-    return s;
-  }
-  return s.replace(pos, toReplace.length(), replaceWith);
-}
 
 struct ChannelProperties {
   std::string_view key;
@@ -92,6 +81,7 @@ struct ChannelRewriter : FairMQChannelConfigParser {
 };
 
 void dumpDeviceSpec2DDS(std::ostream& out,
+                        std::string const& workflowSuffix,
                         const std::vector<DeviceSpec>& specs,
                         const std::vector<DeviceExecution>& executions,
                         const CommandInfo& commandInfo)
@@ -135,10 +125,10 @@ void dumpDeviceSpec2DDS(std::ostream& out,
     }
 
     out << "   "
-        << fmt::format("<decltask name=\"{}\">\n", spec.id);
+        << fmt::format("<decltask name=\"{}{}\">\n", spec.id, workflowSuffix);
     out << "       "
         << R"(<exe reachable="true">)";
-    out << replaceFirstOccurrence(commandInfo.command, "--dds", "--dump") << " | ";
+    out << std::regex_replace(commandInfo.command, std::regex{"--dds(?!-)"}, "--dump") << " | ";
     for (size_t ei = 0; ei < execution.environ.size(); ++ei) {
       out << fmt::format(execution.environ[ei],
                          fmt::arg("timeslice0", spec.inputTimesliceId),
@@ -198,7 +188,7 @@ void dumpDeviceSpec2DDS(std::ostream& out,
   }
   out << "   <declcollection name=\"DPL\">\n       <tasks>\n";
   for (size_t di = 0; di < specs.size(); ++di) {
-    out << fmt::format("          <name>{}</name>\n", specs[di].id);
+    out << fmt::format("          <name>{}{}</name>\n", specs[di].id, workflowSuffix);
   }
   out << "       </tasks>\n   </declcollection>\n";
   out << "</topology>\n";

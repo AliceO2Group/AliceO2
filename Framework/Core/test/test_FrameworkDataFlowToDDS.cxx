@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(TestDDS)
                                       devices, executions, controls,
                                       "workflow-id");
   CommandInfo command{"foo"};
-  dumpDeviceSpec2DDS(ss, devices, executions, command);
+  dumpDeviceSpec2DDS(ss, "", devices, executions, command);
   auto expected = R"EXPECTED(<topology name="o2-dataflow">
    <decltask name="A">
        <exe reachable="true">foo | LD_PRELOAD=libSegFault.so SEGFAULT_SIGNALS="all" foo --id A --shm-monitor false --log-color false --color false --early-forward-policy never --jobs 4 --severity info --shm-mlock-segment false --shm-mlock-segment-on-creation false --shm-segment-id 0 --shm-throw-bad-alloc true --shm-zero-segment false --stacktrace-on-signal all --channel-config "name=from_A_to_B,type=push,method=bind,address=ipc://@localhostworkflow-id_22000,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --channel-config "name=from_A_to_C,type=push,method=bind,address=ipc://@localhostworkflow-id_22001,transport=shmem,rateLogging=0,rcvBufSize=1,sndBufSize=1" --session dpl_workflow-id --plugin odc</exe>
