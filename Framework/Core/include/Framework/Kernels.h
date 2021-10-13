@@ -29,28 +29,32 @@ using ListVector = std::vector<std::vector<int64_t>>;
 template <typename T>
 auto sliceByColumnGeneric(
   char const* key,
+  char const* target,
   std::shared_ptr<arrow::Table> const& input,
   T fullSize,
   ListVector* groups,
   ListVector* unassigned = nullptr)
 {
-  groups->reserve(fullSize);
+  groups->resize(fullSize);
   auto column = input->GetColumnByName(key);
-  int64_t offset = 0;
+  int64_t row = 0;
   for (auto iChunk = 0; iChunk < column->num_chunks(); ++iChunk) {
-    auto chunk = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>>>(column->chunk(iChunk)->data());
+    auto chunk = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(column->chunk(iChunk)->data());
     for (auto iElement = 0; iElement < chunk.length(); ++iElement) {
       auto v = chunk.Value(iElement);
       if (v >= 0) {
-        groups[v].push_back(offset);
+        if (v >= groups->size()) {
+          throw runtime_error_f("Table %s has an entry with index (%d) that is larger than the grouping table size (%d)", target, v, fullSize);
+        }
+        (*groups)[v].push_back(row);
       } else if (unassigned != nullptr) {
         auto av = std::abs(v);
         if (unassigned->size() < av + 1) {
           unassigned->resize(av + 1);
         }
-        unassigned[av].push_back(offset);
+        (*unassigned)[av].push_back(row);
       }
-      ++offset;
+      ++row;
     }
   }
 }

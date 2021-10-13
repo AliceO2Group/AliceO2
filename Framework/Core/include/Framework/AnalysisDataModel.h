@@ -54,7 +54,7 @@ using BCsWithTimestamps = soa::Join<aod::BCs, aod::Timestamps>;
 
 namespace collision
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                              //! Most probably BC to where this collision has occured
+DECLARE_SOA_SORTED_INDEX_COLUMN(BC, bc);                       //! Most probably BC to where this collision has occured
 DECLARE_SOA_COLUMN(PosX, posX, float);                         //! X Vertex position in cm
 DECLARE_SOA_COLUMN(PosY, posY, float);                         //! Y Vertex position in cm
 DECLARE_SOA_COLUMN(PosZ, posZ, float);                         //! Z Vertex position in cm
@@ -88,7 +88,7 @@ using Collision = Collisions::iterator;
 namespace track
 {
 // TRACKPAR TABLE definition
-DECLARE_SOA_INDEX_COLUMN(Collision, collision); //! Collision to which this track belongs
+DECLARE_SOA_SORTED_INDEX_COLUMN(Collision, collision); //! Collision to which this track belongs
 // TODO change to TrackTypeEnum when enums are supported
 DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t);   //! Type of track. See enum TrackTypeEnum
 DECLARE_SOA_COLUMN(X, x, float);                     //!
@@ -347,7 +347,7 @@ using FullTrack = FullTracks::iterator;
 namespace fwdtrack
 {
 // FwdTracks and MFTTracks Columns definitions
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);                                              //!
+DECLARE_SOA_SORTED_INDEX_COLUMN(Collision, collision);                                       //!
 DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t);                                           //! Type of track. See enum ForwardTrackTypeEnum
 DECLARE_SOA_COLUMN(X, x, float);                                                             //! TrackParFwd parameter x
 DECLARE_SOA_COLUMN(Y, y, float);                                                             //! TrackParFwd parameter y
@@ -579,7 +579,7 @@ using HMPID = HMPIDs::iterator;
 
 namespace calo
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                    //! BC index
+DECLARE_SOA_SORTED_INDEX_COLUMN(BC, bc);             //! BC index
 DECLARE_SOA_COLUMN(CellNumber, cellNumber, int16_t); //!
 DECLARE_SOA_COLUMN(Amplitude, amplitude, float);     //!
 DECLARE_SOA_COLUMN(Time, time, float);               //!
@@ -594,7 +594,7 @@ using Calo = Calos::iterator;
 
 namespace calotrigger
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //! BC index
+DECLARE_SOA_SORTED_INDEX_COLUMN(BC, bc);               //! BC index
 DECLARE_SOA_COLUMN(FastOrAbsID, fastOrAbsID, int16_t); //! FastOR absolute ID
 DECLARE_SOA_COLUMN(LnAmplitude, lnAmplitude, int16_t); //! L0 amplitude (ADC) := Peak Amplitude
 DECLARE_SOA_COLUMN(TriggerBits, triggerBits, int32_t); //! Online trigger bits
@@ -608,7 +608,7 @@ using CaloTrigger = CaloTriggers::iterator;
 
 namespace zdc
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                               //! BC index
+DECLARE_SOA_SORTED_INDEX_COLUMN(BC, bc);                        //! BC index
 DECLARE_SOA_COLUMN(EnergyZEM1, energyZEM1, float);              //!
 DECLARE_SOA_COLUMN(EnergyZEM2, energyZEM2, float);              //!
 DECLARE_SOA_COLUMN(EnergyCommonZNA, energyCommonZNA, float);    //!
@@ -636,7 +636,7 @@ using Zdc = Zdcs::iterator;
 
 namespace fv0a
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //! BC index
+DECLARE_SOA_SORTED_INDEX_COLUMN(BC, bc);               //! BC index
 DECLARE_SOA_COLUMN(Amplitude, amplitude, float[48]);   //! Amplitudes per cell
 DECLARE_SOA_COLUMN(Time, time, float);                 //! Time in ns
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t); //!
@@ -649,7 +649,7 @@ using FV0A = FV0As::iterator;
 // V0C table for Run2 only
 namespace fv0c
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                    //! BC index
+DECLARE_SOA_SORTED_INDEX_COLUMN(BC, bc);             //! BC index
 DECLARE_SOA_COLUMN(Amplitude, amplitude, float[32]); //! Amplitudes per cell
 DECLARE_SOA_COLUMN(Time, time, float);               //! Time in ns
 } // namespace fv0c
@@ -660,7 +660,7 @@ using FV0C = FV0Cs::iterator;
 
 namespace ft0
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                       //! BC index
+DECLARE_SOA_SORTED_INDEX_COLUMN(BC, bc);                //! BC index
 DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, float[96]);  //!
 DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, float[112]); //!
 DECLARE_SOA_COLUMN(TimeA, timeA, float);                //!
@@ -676,7 +676,7 @@ using FT0 = FT0s::iterator;
 
 namespace fdd
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //! BC index
+DECLARE_SOA_SORTED_INDEX_COLUMN(BC, bc);               //! BC index
 DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, float[4]);  //!
 DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, float[4]);  //!
 DECLARE_SOA_COLUMN(TimeA, timeA, float);               //!
@@ -695,7 +695,7 @@ namespace v0
 {
 DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, Tracks, "_Pos"); //! Positive track
 DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "_Neg"); //! Negative track
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);                         //! Collision index
+DECLARE_SOA_SORTED_INDEX_COLUMN(Collision, collision);                  //! Collision index
 } // namespace v0
 
 DECLARE_SOA_TABLE(StoredV0s, "AOD", "V0", //! On disk V0 table
@@ -716,7 +716,7 @@ using V0 = V0s::iterator;
 
 namespace cascade
 {
-DECLARE_SOA_INDEX_COLUMN(V0, v0);                                   //! V0 index
+DECLARE_SOA_SORTED_INDEX_COLUMN(V0, v0);                            //! V0 index
 DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, ""); //! Bachelor track index
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                     //! Collision index
 } // namespace cascade
@@ -763,7 +763,7 @@ using Run2BCInfo = Run2BCInfos::iterator;
 // ---- MC tables ----
 namespace mccollision
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc); //! BC index
+DECLARE_SOA_SORTED_INDEX_COLUMN(BC, bc); //! BC index
 // TODO enum to be added to O2
 DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);       //!
 DECLARE_SOA_COLUMN(PosX, posX, float);                       //! X vertex position in cm
@@ -784,7 +784,7 @@ using McCollision = McCollisions::iterator;
 
 namespace mcparticle
 {
-DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);                                     //! MC collision of this particle
+DECLARE_SOA_SORTED_INDEX_COLUMN(McCollision, mcCollision);                              //! MC collision of this particle
 DECLARE_SOA_COLUMN(PdgCode, pdgCode, int);                                              //! PDG code
 DECLARE_SOA_COLUMN(StatusCode, statusCode, int);                                        //! Status code directly from the generator
 DECLARE_SOA_COLUMN(Flags, flags, uint8_t);                                              //! ALICE specific flags. Do not use directly. Use the dynamic columns, e.g. producedByGenerator()
@@ -910,13 +910,13 @@ using McCollisionLabel = McCollisionLabels::iterator;
 
 namespace indices
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision); //!
-DECLARE_SOA_INDEX_COLUMN(BC, bc);               //!
-DECLARE_SOA_INDEX_COLUMN(Zdc, zdc);             //!
-DECLARE_SOA_INDEX_COLUMN(FV0A, fv0a);           //!
-DECLARE_SOA_INDEX_COLUMN(FV0C, fv0c);           //!
-DECLARE_SOA_INDEX_COLUMN(FT0, ft0);             //!
-DECLARE_SOA_INDEX_COLUMN(FDD, fdd);             //!
+DECLARE_SOA_SORTED_INDEX_COLUMN(Collision, collision); //!
+DECLARE_SOA_SORTED_INDEX_COLUMN(BC, bc);               //!
+DECLARE_SOA_SORTED_INDEX_COLUMN(Zdc, zdc);             //!
+DECLARE_SOA_SORTED_INDEX_COLUMN(FV0A, fv0a);           //!
+DECLARE_SOA_SORTED_INDEX_COLUMN(FV0C, fv0c);           //!
+DECLARE_SOA_SORTED_INDEX_COLUMN(FT0, ft0);             //!
+DECLARE_SOA_SORTED_INDEX_COLUMN(FDD, fdd);             //!
 } // namespace indices
 
 // First entry: Collision

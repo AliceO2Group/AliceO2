@@ -1574,7 +1574,7 @@ constexpr auto is_binding_compatible_v()
 #define DECLARE_SOA_ARRAY_INDEX_COLUMN(_Name_, _Getter_, _Size_) DECLARE_SOA_ARRAY_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Size_, _Name_##s, "")
 
 ///NORMAL
-#define DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_)                                                \
+#define DECLARE_SOA_INDEX_COLUMN_FULL_BASE(_Name_, _Getter_, _Type_, _Table_, _Suffix_, _Sorted_)                                 \
   struct _Name_##Id : o2::soa::Column<_Type_, _Name_##Id> {                                                                       \
     static_assert(std::is_integral_v<_Type_>, "Index type must be integral");                                                     \
     static_assert((*_Suffix_ == '\0') || (*_Suffix_ == '_'), "Suffix has to begin with _");                                       \
@@ -1583,6 +1583,7 @@ constexpr auto is_binding_compatible_v()
     using type = _Type_;                                                                                                          \
     using column_t = _Name_##Id;                                                                                                  \
     using binding_t = _Table_;                                                                                                    \
+    static constexpr bool sorted = _Sorted_;                                                                                      \
     _Name_##Id(arrow::ChunkedArray const* column)                                                                                 \
       : o2::soa::Column<_Type_, _Name_##Id>(o2::soa::ColumnIterator<type>(column))                                                \
     {                                                                                                                             \
@@ -1641,7 +1642,9 @@ constexpr auto is_binding_compatible_v()
   static const o2::framework::expressions::BindingNode _Getter_##Id { "fIndex" #_Table_ _Suffix_, typeid(_Name_##Id).hash_code(), \
                                                                       o2::framework::expressions::selectArrowType<_Type_>() }
 
-#define DECLARE_SOA_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
+#define DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Suffix_) DECLARE_SOA_INDEX_COLUMN_FULL_BASE(_Name_, _Getter_, _Type_, _Table_, _Suffix_, false)
+#define DECLARE_SOA_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_INDEX_COLUMN_FULL_BASE(_Name_, _Getter_, int32_t, _Name_##s, "", false)
+#define DECLARE_SOA_SORTED_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_INDEX_COLUMN_FULL_BASE(_Name_, _Getter_, int32_t, _Name_##s, "", true)
 
 ///SELF
 #define DECLARE_SOA_SELF_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)                                           \
