@@ -183,12 +183,21 @@ MatLayerCylSet* MatLayerCylSet::loadFromFile(std::string inpFName, std::string n
     LOG(ERROR) << "Failed to open input file " << inpFName;
     return nullptr;
   }
-  MatLayerCylSet* mb = reinterpret_cast<MatLayerCylSet*>(inpf.GetObjectChecked(name.data(), Class()));
+  MatLayerCylSet* mb = rectifyPtrFromFile(reinterpret_cast<MatLayerCylSet*>(inpf.GetObjectChecked(name.data(), Class())));
   if (!mb) {
     LOG(ERROR) << "Failed to load " << name << " from " << inpFName;
   }
-  mb->fixPointers();
   return mb;
+}
+
+//________________________________________________________________________________
+MatLayerCylSet* MatLayerCylSet::rectifyPtrFromFile(MatLayerCylSet* ptr)
+{
+  // rectify object loaded from file
+  if (ptr && !ptr->get()) {
+    ptr->fixPointers();
+  }
+  return ptr;
 }
 
 //________________________________________________________________________________

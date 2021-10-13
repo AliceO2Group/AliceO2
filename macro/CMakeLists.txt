@@ -53,6 +53,7 @@ install(FILES CheckDigits_mft.C
               run_trac_its.C
               CreateBCPattern.C
               UploadDummyAlignment.C
+       UploadMatBudLUT.C
        CreateCTPOrbitResetObject.C
         DESTINATION share/macro/)
 
@@ -345,6 +346,12 @@ o2_add_test_root_macro(run_trac_its.C
                                              O2::SimulationDataFormat
                         LABELS its)
 
+o2_add_test_root_macro(UploadMatBudLUT.C
+                       PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats
+                                             O2::CCDB
+                                             O2::DataFormatsParameters
+                                             O2::DetectorsBase
+          O2::CommonUtils)
 #
 # NOTE: commented out until unit testing reenabled FIXME : re-enable or delete ?
 #
