@@ -21,7 +21,6 @@
 #include "Framework/StringHelpers.h"
 #include "Framework/Output.h"
 #include <string>
-#include "Framework/Logger.h"
 
 namespace o2::framework
 {
@@ -229,27 +228,35 @@ struct IndexExclusive {
 
     using rest_it_t = decltype(pack_from_tuple(iterators));
 
-    int32_t idx = -1;
-    auto setValue = [&](auto& x) -> bool {
+    auto setValue = [&](auto& x, int idx) -> bool {
       using type = std::decay_t<decltype(x)>;
       constexpr auto position = framework::has_type_at_v<type>(rest_it_t{});
 
-      lowerBound<Key>(idx, x);
-      if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
-        return false;
-      } else if (x.template getId<Key>() != idx) {
-        return false;
-      } else {
-        values[position] = x.globalIndex();
-        ++x;
+      if constexpr (std::is_same_v<framework::pack_element_t<position, framework::pack<std::decay_t<T>...>>, Key>) {
+        values[position] = idx;
         return true;
+      } else {
+        lowerBound<Key>(idx, x);
+        if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
+          return false;
+        } else if (x.template getId<Key>() != idx) {
+          return false;
+        } else {
+          values[position] = x.globalIndex();
+          ++x;
+          return true;
+        }
       }
     };
 
     auto first = std::get<first_t>(tables);
     for (auto& row : first) {
-      idx = row.template getId<Key>();
-
+      auto idx = -1;
+      if constexpr (std::is_same_v<first_t, Key>) {
+        idx = row.globalIndex();
+      } else {
+        idx = row.template getId<Key>();
+      }
       if (std::apply(
             [](auto&... x) {
               return ((x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) && ...);
@@ -260,7 +267,7 @@ struct IndexExclusive {
 
       auto result = std::apply(
         [&](auto&... x) {
-          std::array<bool, sizeof...(T)> results{setValue(x)...};
+          std::array<bool, sizeof...(T)> results{setValue(x, idx)...};
           return (results[framework::has_type_at_v<std::decay_t<decltype(x)>>(rest_it_t{})] && ...);
         },
         iterators);
