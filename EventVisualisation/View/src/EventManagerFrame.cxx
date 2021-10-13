@@ -21,9 +21,10 @@
 #include <EventVisualisationView/EventManagerFrame.h>
 #include <EventVisualisationView/MultiView.h>
 #include <EventVisualisationBase/DataSourceOffline.h>
-#include <EventVisualisationDetectors/DataReaderVSD.h>
+#include "EventVisualisationView/Options.h"
 #include <Rtypes.h>
 #include <mutex>
+#include <filesystem>
 
 std::mutex mtx; // mutex for critical section
 
@@ -72,6 +73,12 @@ namespace o2
       b->Connect("Clicked()", cls, this, "DoLastEvent()");
       b = EventManagerFrame::makeButton(f, "Screenshot", 2 * width);
       b->Connect("Clicked()", cls, this, "DoScreenshot()");
+      b = EventManagerFrame::makeButton(f, "Save", 2 * width);
+      b->Connect("Clicked()", cls, this, "DoSave()");
+      b = EventManagerFrame::makeButton(f, "Online", 2 * width);
+      b->Connect("Clicked()", cls, this, "DoOnlineMode()");
+      b = EventManagerFrame::makeButton(f, "Online", 2 * width);
+      b->Connect("Clicked()", cls, this, "DoSavedMode()");
     }
     SetCleanup(kDeepCleanup);
     Layout();
@@ -161,6 +168,25 @@ namespace o2
       this->mTimer->TurnOn();
     }
     this->mTimerRunning = kTRUE;
+  }
+
+  void EventManagerFrame::DoSave()
+  {
+    if (!Options::Instance()->savedDataFolder().empty()) {
+      this->mEventManager->getDataSource()->saveCurrentEvent(Options::Instance()->savedDataFolder());
+    }
+  }
+
+  void EventManagerFrame::DoOnlineMode()
+  {
+    this->mEventManager->getDataSource()->changeDataFolder(Options::Instance()->dataFolder());
+  }
+
+  void EventManagerFrame::DoSavedMode()
+  {
+    if (!Options::Instance()->savedDataFolder().empty()) {
+      this->mEventManager->getDataSource()->changeDataFolder(Options::Instance()->savedDataFolder());
+    }
   }
 
   } // namespace event_visualisation

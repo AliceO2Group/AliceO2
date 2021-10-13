@@ -41,6 +41,7 @@ enum EVisualisationGroup {
   TRD,
   RND,
   VSD,
+  MFT,
   JSON,
   NvisualisationGroups
 };
@@ -61,43 +62,26 @@ const std::string gVisualisationGroupName[NvisualisationGroups] = {
   "TRD",
   "RND",
   "VSD",
+  "MFT",
   "JSON"};
 
-const bool R2Visualisation[NvisualisationGroups] = {
-  true,  //"ACO",
-  true,  //"EMC",
-  true,  //"HMP",
-  true,  //"MCH",
-  true,  //"PHS",
-  true,  //"RPH",
-  true,  //"SDD",
-  true,  //"SPD",
-  true,  //"SSD",
-  true,  //"TOF",
-  false, //ITS
-  true,  //"TPC",
-  true,  //"TRD",
-  true,  //"RND",
-  true,  //"VSD"
-  true   //"JSON"
-};
-
 const bool R3Visualisation[NvisualisationGroups] = {
-  true,  //"ACO",
-  true,  //"EMC",
-  true,  //"HMP",
-  false, //"MCH",
-  true,  //"PHS",
+  false, //"ACO",
+  false, //"EMC",
+  false, //"HMP",
+  true,  //"MCH",
+  false, //"PHS",
   false, //"RPH",
   false, //"SDD",
   false, //"SPD",
   false, //"SSD",
-  false, //"TOF",
+  true,  //"TOF",
   true,  // ITS
   true,  //"TPC",
-  false, //"TRD",
+  true,  //"TRD",
   false, //"RND",
   false, //"VSD"
+  true,  // "MFT"
   true   //"JSON"
 };
 
