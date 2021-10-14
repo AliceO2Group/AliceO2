@@ -15,7 +15,6 @@
 #include "DataFormatsCPV/CPVBlockHeader.h"
 #include "CPVWorkflow/ClusterizerSpec.h"
 #include "Framework/ControlService.h"
-#include <iostream>
 
 using namespace o2::cpv::reco_workflow;
 
