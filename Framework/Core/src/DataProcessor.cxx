@@ -11,6 +11,7 @@
 #include "Framework/DataProcessor.h"
 #include "Framework/MessageContext.h"
 #include "Framework/StringContext.h"
+#include "Framework/DataProcessingHeader.h"
 #include "Framework/ArrowContext.h"
 #include "Framework/RawBufferContext.h"
 #include "Framework/TMessageSerializer.h"
@@ -83,6 +84,8 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
   using o2::monitoring::tags::Key;
   using o2::monitoring::tags::Value;
   auto& monitoring = registry.get<Monitoring>();
+  static size_t lastTimeframeSent = -1;
+  bool flushOnTimeframe = false;
 
   for (auto& messageRef : context) {
     FairMQParts parts;
@@ -93,6 +96,12 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
     std::unique_ptr<FairMQMessage> payload = messageRef.buffer->Finalise();
     // FIXME: for the moment we simply send empty bodies.
     const DataHeader* cdh = o2::header::get<DataHeader*>(messageRef.header->GetData());
+    const DataProcessingHeader *cdph = o2::header::get<DataProcessingHeader*>(messageRef.header->GetData()); 
+    if (cdph->startTime != lastTimeframeSent) {
+      flushOnTimeframe = true;
+    }
+    lastTimeframeSent = cdph->startTime;
+    monitoring.send(Metric{(uint64_t)lastTimeframeSent, "last-timeframe-sent"}.addTag(Key::Subsystem, Value::DPL));
     // sigh... See if we can avoid having it const by not
     // exposing it to the user in the first place.
     DataHeader* dh = const_cast<DataHeader*>(cdh);
@@ -129,11 +138,15 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
     }
     return accountDisposed(disposed, stats);
   };
-  registry.get<DeviceState>().offerConsumers.push_back(disposeResources);
+  // We only flush changes on timeframe boundaries, to avoid
+  // having having resources being split across half sent timeframes.
+  if (flushOnTimeframe) {
+    registry.get<DeviceState>().offerConsumers.push_back(disposeResources);
+    monitoring.send(Metric{(uint64_t)context.bytesSent(), "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{(uint64_t)context.messagesCreated(), "arrow-messages-created"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.flushBuffer();
+  }
   previousBytesSent = context.bytesSent();
-  monitoring.send(Metric{(uint64_t)context.bytesSent(), "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(uint64_t)context.messagesCreated(), "arrow-messages-created"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.flushBuffer();
 }
 
 void DataProcessor::doSend(FairMQDevice& device, RawBufferContext& context, ServiceRegistry& registry)
