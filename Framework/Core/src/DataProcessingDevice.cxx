@@ -1282,6 +1282,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       if (forwardedParts[fi].Size() == 0) {
         continue;
       }
+      assert(forwardedParts[fi].Size() % 2 == 0);
       auto& currentRoute = forwardedRoutes[spec->forwards[fi].channel];
       currentRoute.AddPart(std::move(forwardedParts[fi]));
     }
