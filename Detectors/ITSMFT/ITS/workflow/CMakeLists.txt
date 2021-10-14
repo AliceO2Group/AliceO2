@@ -11,6 +11,8 @@
 
 o2_add_library(ITSWorkflow
                SOURCES src/RecoWorkflow.cxx
+                       src/CalibrationWorkflow.cxx
+                       src/CalibratorSpec.cxx
                        src/ClusterWriterWorkflow.cxx
                        src/ClustererSpec.cxx
                        src/ClusterWriterSpec.cxx
@@ -46,3 +48,9 @@ o2_add_executable(cluster-reader-workflow
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
 
+o2_add_executable(calibration-workflow
+                  SOURCES src/its-calibration-workflow.cxx
+                  COMPONENT_NAME its
+                  PUBLIC_LINK_LIBRARIES O2::ITSWorkflow
+                                        O2::ITSReconstruction
+                                        O2::ITSMFTWorkflow)
