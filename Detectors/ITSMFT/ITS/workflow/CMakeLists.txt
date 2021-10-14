@@ -11,6 +11,8 @@
 
 o2_add_library(ITSWorkflow
                SOURCES src/RecoWorkflow.cxx
+                       src/CalibrationWorkflow.cxx
+                       src/CalibratorSpec.cxx
                        src/ClusterWriterWorkflow.cxx
                        src/ClustererSpec.cxx
                        src/ClusterWriterSpec.cxx
