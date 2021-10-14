@@ -21,6 +21,7 @@
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/SourceInfoHeader.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 
@@ -37,6 +38,7 @@
 #include <numeric> // std::accumulate
 #include <sstream>
 #include <stdexcept>
+#include <regex>
 
 namespace o2::framework
 {
@@ -438,15 +440,28 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
   spec.name = name;
   spec.inputs = inputSpecs;
   spec.outputs = {};
-  spec.algorithm = adaptStateful([inputSpecs](CallbackService& callbacks, RawDeviceService& rds, DeviceSpec const& deviceSpec) {
+  spec.algorithm = adaptStateful([inputSpecs](CallbackService& callbacks, RawDeviceService& rds, DeviceSpec const& deviceSpec, ConfigParamRegistry const& options) {
+    // we can retrieve the channel name from the channel configuration string
+    // FIXME: even if a --channel-config option is specified on the command line, always the default string
+    // is retrieved from the config registry. The channel name thus needs to be configured in the default
+    // string AND must match the name in an optional channel config.
+    std::string channelConfig = options.get<std::string>("channel-config");
+    std::regex r{R"(name=([^,]*))"};
+    std::vector<std::string> values{std::sregex_token_iterator{std::begin(channelConfig), std::end(channelConfig), r, 1},
+                                    std::sregex_token_iterator{}};
+    if (values.size() != 1 || values[0].empty()) {
+      throw std::runtime_error("failed to extract channel name from channel configuration parameter '" + channelConfig + "'");
+    }
+    std::string outputChannelName = values[0];
+
     auto* device = rds.device();
     // check that the input spec bindings have corresponding output channels
     // FairMQDevice calls the custom init before the channels have been configured
     // so we do the check before starting in a dedicated callback
-    auto channelConfigurationChecker = [inputSpecs = std::move(inputSpecs), device]() {
+    auto channelConfigurationChecker = [inputSpecs = std::move(inputSpecs), device, outputChannelName]() {
       LOG(INFO) << "checking channel configuration";
-      if (device->fChannels.count("downstream") == 0) {
-        throw std::runtime_error("no corresponding output channel found for input 'downstream'");
+      if (device->fChannels.count(outputChannelName) == 0) {
+        throw std::runtime_error("no corresponding output channel found for input '" + outputChannelName + "'");
       }
     };
     callbacks.set(CallbackService::Id::Start, channelConfigurationChecker);
@@ -461,20 +476,17 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
     for (auto const& inputSpec : inputSpecs) {
       // this is a prototype, in principle we want to have all spec objects const
       // and so only the const object can be retrieved from service registry
-      ForwardRoute route{0, 1, inputSpec, "downstream"};
+      ForwardRoute route{0, 1, inputSpec, outputChannelName};
       const_cast<DeviceSpec&>(deviceSpec).forwards.emplace_back(route);
     }
 
-    auto forwardEos = [device, lastDataProcessingHeader](EndOfStreamContext&) {
+    auto forwardEos = [device, lastDataProcessingHeader, outputChannelName](EndOfStreamContext&) {
       // DPL implements an internal end of stream signal, which is propagated through
       // all downstream channels if a source is dry, make it available to other external
       // devices via a message of type {DPL/EOS/0}
       for (auto& channelInfo : device->fChannels) {
-        // FIXME: in this function the channel name is hardcoded to 'downstream'
-        // have to check if this simply should be combined with the function below
-        // supporting multiple outputs
         auto& channelName = channelInfo.first;
-        if (channelName != "downstream") {
+        if (channelName != outputChannelName) {
           continue;
         }
         DataHeader dh;
@@ -570,9 +582,6 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
       // all downstream channels if a source is dry, make it available to other external
       // devices via a message of type {DPL/EOS/0}
       for (auto& channelInfo : device->fChannels) {
-        // FIXME: in this function the channel name is hardcoded to 'downstream'
-        // have to check if this simply should be combined with the function below
-        // supporting multiple outputs
         auto& channelName = channelInfo.first;
         auto checkChannel = [channelNames = std::move(*channelNames)](std::string const& name) -> bool {
           for (auto const& n : channelNames) {
