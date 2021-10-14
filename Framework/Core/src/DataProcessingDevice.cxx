@@ -1245,7 +1245,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         }
         // We need to find the forward route only for the first
         // part of a split payload. All the others will use the same.
-        if (fdh->splitPayloadIndex == 0) {
+        if (fdh->splitPayloadIndex == 0 || fdh->splitPayloadParts <= 1) {
           cachedForwardingChoice = -1;
           for (size_t fi = 0; fi < spec->forwards.size(); fi++) {
             auto& forward = spec->forwards[fi];
@@ -1277,13 +1277,18 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         }
       }
     }
+    std::unordered_map<std::string, FairMQParts> forwardedRoutes;
     for (size_t fi = 0; fi < spec->forwards.size(); fi++) {
       if (forwardedParts[fi].Size() == 0) {
         continue;
       }
-      assert(forwardedParts[fi].Size() % 2 == 0);
+      auto& currentRoute = forwardedRoutes[spec->forwards[fi].channel];
+      currentRoute.AddPart(std::move(forwardedParts[fi]));
+    }
+
+    for (auto& p : forwardedRoutes) {
       // in DPL we are using subchannel 0 only
-      device->Send(forwardedParts[fi], spec->forwards[fi].channel, 0);
+      device->Send(p.second, p.first, 0);
     }
   };
 
