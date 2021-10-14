@@ -39,7 +39,10 @@ o2::framework::DataProcessorSpec getFT0ChannelTimeCalibrationSpec()
     inputs,
     outputs,
     o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(DEFAULT_INPUT_LABEL)},
-    o2::framework::Options{}};
+    o2::framework::Options{
+      {"tf-per-slot", o2::framework::VariantType::Int, 5, {""}},
+      {"max-delay", o2::framework::VariantType::Int, 3, {""}},
+      {"updateInterval", o2::framework::VariantType::Int64, 10ll, {""}}}};
 }
 } // namespace o2::ft0
 
