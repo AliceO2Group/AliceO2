@@ -1194,6 +1194,14 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     // we collect all messages per forward in a map and send them together
     std::vector<FairMQParts> forwardedParts;
     forwardedParts.resize(spec->forwards.size());
+
+    std::vector<size_t> forwardMap;
+    forwardMap.resize(spec->forwards.size());
+    std::unordered_map<std::string, size_t> tmpMap;
+    for (size_t fi = 0; fi < spec->forwards.size(); fi++) {
+      forwardMap[fi] = tmpMap.try_emplace(spec->forwards[fi].channel, fi).first->second;
+    }
+
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
       DataRef input = record.getByPos(ii);
 
@@ -1245,14 +1253,14 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         }
         // We need to find the forward route only for the first
         // part of a split payload. All the others will use the same.
-        if (fdh->splitPayloadIndex == 0) {
+        if (fdh->splitPayloadIndex == 0 || fdh->splitPayloadParts <= 1) {
           cachedForwardingChoice = -1;
           for (size_t fi = 0; fi < spec->forwards.size(); fi++) {
             auto& forward = spec->forwards[fi];
             if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification) == false || (dph->startTime % forward.maxTimeslices) != forward.timeslice) {
               continue;
             }
-            cachedForwardingChoice = fi;
+            cachedForwardingChoice = forwardMap[fi];
             break;
           }
         }
