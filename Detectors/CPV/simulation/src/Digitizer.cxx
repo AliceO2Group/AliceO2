@@ -92,37 +92,41 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
   // Add hits with ampl deposition in same pad and same time
   // Add ampl corrections
   // Apply time smearing
-  // //Despite sorting in Detector::EndEvent(), hits still can be unsorted due to splitting of processing different bunches of primary
+  // Despite sorting in Detector::EndEvent(), hits still can be unsorted due to splitting of processing different bunches of primary
   for (int i = NCHANNELS; i--;) {
     mArrayD[i].reset();
   }
 
+  // First, add pedestal noise and BG digits
   if (digitsBg.size() == 0) { // no digits provided: try simulate pedestal noise (do it only once)
     for (int i = NCHANNELS; i--;) {
       float amplitude = simulatePedestalNoise(i);
-      mArrayD[i].setAmplitude(amplitude);
-      mArrayD[i].setAbsId(i);
+      if (amplitude > mDigitThresholds[i]) { //add noise digit if its signal > threshold
+        mArrayD[i].setAmplitude(simulatePedestalNoise(i));
+        mArrayD[i].setAbsId(i);
+        // mArrayD[i].setLabel(-1); // noise marking (not needed to set as all mArrayD[i] elements are just resetted)
+      }
     }
-  } else {                       //if digits exist, no noise should be added
+  } else {                       //if digits exist, noise is already added
     for (auto& dBg : digitsBg) { //digits are sorted and unique
       mArrayD[dBg.getAbsId()] = dBg;
     }
   }
 
-  //add Hits
+  //Second, add Hits
   for (auto& h : *hits) {
     int i = h.GetDetectorID();
     if (mArrayD[i].getAmplitude() > 0) {
-      mArrayD[i].setAmplitude(mArrayD[i].getAmplitude() + h.GetEnergyLoss());
+      mArrayD[i].setAmplitude(mArrayD[i].getAmplitude() + h.GetEnergyLoss()); //if amplitude > 0 then pedestal noise is already added
     } else {
-      mArrayD[i].setAmplitude(h.GetEnergyLoss());
       mArrayD[i].setAbsId(i);
+      mArrayD[i].setAmplitude(h.GetEnergyLoss() + simulatePedestalNoise(i)); //if not then add pedestal noise to signal
     }
     if (mArrayD[i].getAmplitude() > mDigitThresholds[i]) {
       int labelIndex = mArrayD[i].getLabel();
-      if (labelIndex == -1) { //no digit or noisy
+      if (labelIndex == -1) { // noise
         labelIndex = labels.getIndexedSize();
-        o2::MCCompLabel label(h.GetTrackID(), collId, source, true);
+        o2::MCCompLabel label(true); // noise label
         labels.addElement(labelIndex, label);
         mArrayD[i].setLabel(labelIndex);
       } else { //check if lable already exist
@@ -135,7 +139,7 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
           }
         }
         if (!found) {
-          o2::MCCompLabel label(h.GetTrackID(), collId, source, true);
+          o2::MCCompLabel label(h.GetTrackID(), collId, source);
           //Highly inefficient management of Labels: commenting  line below reeduces WHOLE digitization time by factor ~30
           labels.addElementRandomAccess(labelIndex, label);
         }
