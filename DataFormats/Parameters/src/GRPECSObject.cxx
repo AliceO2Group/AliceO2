@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file GRPECSObject.cxx
-/// \brief Implementation of General Run Parameters object
+/// \brief Implementation of General Run Parameters object from ECS
 /// \author ruben.shahoyan@cern.ch
 
 #include <FairLogger.h>

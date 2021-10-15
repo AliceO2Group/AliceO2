@@ -61,6 +61,12 @@ std::string NameConf::getGRPECSFileName(const std::string_view prefix)
   return buildFileName(prefix, "_", STANDARDSIMPREFIX, GRPECS_STRING, ROOT_EXT_STRING, Instance().mDirGRPECS);
 }
 
+// Filename to store general run parameters from ECS (GRPECS)
+std::string NameConf::getGRPMagFieldFileName(const std::string_view prefix)
+{
+  return buildFileName(prefix, "_", STANDARDSIMPREFIX, GRPMAGFIELD_STRING, ROOT_EXT_STRING, Instance().mDirGRPMagField);
+}
+
 // Filename to store simulation cuts/process summary
 std::string NameConf::getCutProcFileName(std::string_view prefix)
 {
