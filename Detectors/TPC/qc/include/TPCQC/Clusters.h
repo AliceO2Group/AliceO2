@@ -57,7 +57,7 @@ class Clusters
 
   void merge(const Clusters& clusters);
 
-  void dumpToFile(std::string filename);
+  void dumpToFile(std::string filename, int type = 0);
 
   const CalPad& getNClusters() const { return mNClusters; }
   const CalPad& getQMax() const { return mQMax; }
@@ -73,6 +73,10 @@ class Clusters
   CalPad& getSigmaPad() { return mSigmaPad; }
   CalPad& getTimeBin() { return mTimeBin; }
 
+  void endTF() { ++mProcessedTFs; }
+
+  size_t getProcessedTFs() { return mProcessedTFs; }
+
  private:
   CalPad mNClusters{"N_Clusters"};
   CalPad mQMax{"Q_Max"};
@@ -80,6 +84,7 @@ class Clusters
   CalPad mSigmaTime{"Sigma_Time"};
   CalPad mSigmaPad{"Sigma_Pad"};
   CalPad mTimeBin{"Time_Bin"};
+  size_t mProcessedTFs{0};
   bool mIsNormalized{false};
 
   ClassDefNV(Clusters, 1)
