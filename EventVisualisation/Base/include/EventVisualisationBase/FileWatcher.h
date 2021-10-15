@@ -27,7 +27,7 @@ namespace event_visualisation
 class FileWatcher
 {
   static const char* mLowGuard;   ///< "artificial" file name meaning "on the first" (guard)
-  static const char* mEndGard;    ///< "artificial" file name meaning "on the last"  (guard)
+  static const char* mEndGuard;   ///< "artificial" file name meaning "on the last"  (guard)
   std::deque<std::string> mFiles; ///< sorted file list with guards at the beginning and end
   std::string nextItem(const std::string& item) const;
   std::string prevItem(const std::string& item) const;
@@ -38,6 +38,8 @@ class FileWatcher
 
  public:
   FileWatcher(const std::string& path);
+  void changeFolder(const std::string& path);                         ///< switch to observe other folder
+  void saveCurrentFileToFolder(const std::string& destinationFolder); ///< copies
   int getSize() const; ///< include guards (so >=2 )
   int getPos() const;  ///< include guards -> 0 points to mLowGuard
   void setFirst();

@@ -21,6 +21,7 @@
 #include <string>
 #include <string_view>
 #include "DataFormatsTPC/Defs.h"
+#include "DataFormatsTPC/LtrCalibData.h"
 
 class TH1;
 class TH2;
@@ -28,9 +29,7 @@ class TH3F;
 class TH2Poly;
 class TCanvas;
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 
 template <class T>
@@ -180,10 +179,11 @@ void drawSectorInformationPoly(short regionLineColor = kRed, short rowTextColor 
 template <typename DataT>
 TH3F convertCalDetToTH3(const std::vector<CalDet<DataT>>& calDet, const bool norm = true, const int nRBins = 150, const float rMin = 83.5, const float rMax = 254.5, const int nPhiBins = 720, const float zMax = 1);
 
+/// make summary canvases for laser calibration data
+std::vector<TCanvas*> makeSummaryCanvases(const LtrCalibData& ltr, std::vector<TCanvas*>* outputCanvases = nullptr);
+
 } // namespace painter
 
-} // namespace tpc
-
-} // namespace o2
+} // namespace o2::tpc
 
 #endif // ALICEO2_TPC_PAINTER_H_

@@ -9,49 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-set(HDRS_INSTALL ../Shared/Kernels.h)
-
 if(CUDA_ENABLED)
-  o2_add_executable(gpu-memory-benchmark-cuda
-                  SOURCES benchmark.cxx
-                          cuda/Kernels.cu
-                  PUBLIC_LINK_LIBRARIES Boost::program_options
-                                        ROOT::Tree
-                  TARGETVARNAME targetName)
+  add_subdirectory(cuda)
 endif()
 
 if(HIP_ENABLED)
-  # Hipify-perl
-  set(HIPIFY_EXECUTABLE "/opt/rocm/bin/hipify-perl")
-
-  set(HIP_KERNEL "Kernels.hip.cxx")
-  set(CU_KERNEL ${CMAKE_CURRENT_SOURCE_DIR}/cuda/Kernels.cu)
-  set(HIP_KERNEL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/hip/${HIP_KERNEL}")
-
-  if(EXISTS ${HIPIFY_EXECUTABLE})
-    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CU_KERNEL})
-    add_custom_command(
-      OUTPUT ${HIP_KERNEL_PATH}
-      COMMAND ${HIPIFY_EXECUTABLE} --quiet-warnings ${CU_KERNEL} | sed '1{/\#include \"hip\\/hip_runtime.h\"/d}' > ${HIP_KERNEL_PATH}
-    )
-    set(CMAKE_CXX_COMPILER ${HIP_HIPCC_EXECUTABLE})
-    set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
-    set(CMAKE_CXX_EXTENSIONS OFF)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
-
-    o2_add_executable(gpu-memory-benchmark-hip
-                      SOURCES benchmark.cxx
-                              hip/Kernels.hip.cxx
-                      PUBLIC_LINK_LIBRARIES hip::host
-                                            Boost::program_options
-                                            ROOT::Tree
-                      TARGETVARNAME targetName)
-
-    if(HIP_AMDGPUTARGET)
-      # Need to add gpu target also to link flags due to gpu-rdc option
-      target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
-    endif()
-  endif()
+  add_subdirectory(hip)
 endif()
 
 o2_add_test_root_macro(macro/showBenchmarks.C)

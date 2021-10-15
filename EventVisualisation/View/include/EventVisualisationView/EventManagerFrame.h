@@ -56,6 +56,9 @@ class EventManagerFrame : public TGMainFrame
   void DoLastEvent();
   void DoSetEvent();
   void DoScreenshot();
+  void DoSave();
+  void DoOnlineMode();
+  void DoSavedMode();
   void DoTimeTick();
   void StopTimer();
   void StartTimer();

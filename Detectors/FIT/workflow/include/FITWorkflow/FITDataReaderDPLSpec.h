@@ -29,6 +29,8 @@
 #include <vector>
 #include <gsl/span>
 #include <chrono>
+#include "CommonUtils/VerbosityConfig.h"
+
 using namespace o2::framework;
 
 namespace o2
@@ -71,16 +73,22 @@ class FITDataReaderDPLSpec : public Task
     // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
     // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
     {
+      static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
       std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{mRawReader.mDataOrigin, o2::header::gDataDescriptionRawData, 0xDEADBEEF}}};
       for (const auto& ref : InputRecordWalker(pc.inputs(), dummy)) {
         const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
         if (dh->payloadSize == 0) {
-          LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
-               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+          auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
+          if (++contDeadBeef <= maxWarn) {
+            LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+                 dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+                 contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
+          }
           mRawReader.makeSnapshot(pc); // send empty output
           return;
         }
       }
+      contDeadBeef = 0; // if good data, reset the counter
     }
     std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{mRawReader.mDataOrigin, o2::header::gDataDescriptionRawData}, Lifetime::Timeframe}};
     DPLRawParser parser(pc.inputs(), filter);

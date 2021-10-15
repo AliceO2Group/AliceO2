@@ -198,16 +198,16 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
   }
   mDecoderSaveBufferDataSize = 0;
 
-  /** updated encoder RDH open **/
-  mEncoderRDH->memorySize = reinterpret_cast<char*>(mEncoderPointer) - reinterpret_cast<char*>(mEncoderRDH);
-  mEncoderRDH->offsetToNext = mEncoderRDH->memorySize;
-
   /** bring encoder pointer back if fatal error and flag it **/
   if (mDecoderFatal) {
     mFatalCounter++;
     mEncoderPointer = mEncoderPointerStart;
     mEncoderRDH->detectorField |= 0x00001000;
   }
+
+  /** updated encoder RDH open **/
+  mEncoderRDH->memorySize = reinterpret_cast<char*>(mEncoderPointer) - reinterpret_cast<char*>(mEncoderRDH);
+  mEncoderRDH->offsetToNext = mEncoderRDH->memorySize;
 
   if (mDecoderError) {
     mErrorCounter++;

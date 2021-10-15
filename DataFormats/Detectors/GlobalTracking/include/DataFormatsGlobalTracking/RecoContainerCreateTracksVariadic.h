@@ -11,7 +11,7 @@
 
 /// \file RecoContainerCreateTracksVariadic.h
 /// \brief Wrapper container for different reconstructed object types
-/// \author ruben.shahoyan@cern.ch
+/// \author ruben.shahoyan@cern.chM
 
 #include "Framework/ProcessingContext.h"
 #include "Framework/InputSpec.h"
@@ -21,9 +21,16 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMFT/TrackMFT.h"
+
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/ClusterBlock.h"
 #include "DataFormatsMCH/ROFRecord.h"
+
+#include "DataFormatsMID/ROFRecord.h"
+#include "DataFormatsMID/Cluster3D.h"
+#include "DataFormatsMID/Track.h"
+#include "DataFormatsMID/MCClusterLabel.h"
+
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTOF/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -37,6 +44,15 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackTPCTOF.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "DataFormatsPHOS/Cell.h"
+#include "DataFormatsPHOS/TriggerRecord.h"
+#include "DataFormatsPHOS/MCLabel.h"
+#include "DataFormatsCPV/Cluster.h"
+#include "DataFormatsCPV/TriggerRecord.h"
+#include "DataFormatsEMCAL/Cell.h"
+#include "DataFormatsEMCAL/TriggerRecord.h"
+#include "DataFormatsEMCAL/MCLabel.h"
+
 #include "ReconstructionDataFormats/GlobalFwdTrack.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 

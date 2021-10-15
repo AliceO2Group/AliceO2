@@ -40,6 +40,10 @@ struct DataProcessingStats {
   std::atomic<uint64_t> lastSlowMetricSentTimestamp = 0; /// The timestamp of the last time we sent slow metrics
   std::atomic<uint64_t> lastMetricFlushedTimestamp = 0;  /// The timestamp of the last time we actually flushed metrics
   std::atomic<uint64_t> beginIterationTimestamp = 0;     /// The timestamp of when the current ConditionalRun was started
+
+  std::atomic<uint64_t> performedComputations = 0;             // The number of computations which have completed so far
+  std::atomic<uint64_t> lastReportedPerformedComputations = 0; // The number of computations which have completed until lastSlowMetricSentTimestamp
+
   InputLatency lastLatency = {0, 0};
 
   std::atomic<int> relayerState[MAX_RELAYER_STATES];

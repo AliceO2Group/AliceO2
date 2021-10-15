@@ -53,6 +53,7 @@ install(FILES CheckDigits_mft.C
               run_trac_its.C
               CreateBCPattern.C
               UploadDummyAlignment.C
+              UploadMatBudLUT.C
               CreateCTPOrbitResetObject.C
               CreateGRPECSObject.C
               CreateGRPMagFieldObject.C

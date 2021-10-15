@@ -76,6 +76,9 @@ constexpr int MAXEVENTCOUNTERSEPERATION = 200; // how far appart can subsequent 
 constexpr int MAXMCMCOUNT = 69120;             // at most mcm count maxchamber x nrobc1 nmcmrob
 constexpr int MAXLINKERRORHISTOGRAMS = 10;     // size of the array holding the link error plots from the raw reader
 constexpr int MAXPARSEERRORHISTOGRAMS = 60;    // size of the array holding the parsing error plots from the raw reader
+constexpr int ETYPEPHYSICSTRIGGER = 0x2;       // CRU Half Chamber header eventtype definition
+constexpr int ETYPECALIBRATIONTRIGGER = 0x3;   // CRU Half Chamber header eventtype definition
+
 } //namespace constants
 } // namespace trd
 } // namespace o2

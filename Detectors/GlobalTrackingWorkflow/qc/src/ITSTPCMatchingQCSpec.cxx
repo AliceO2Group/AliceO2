@@ -67,16 +67,12 @@ void ITSTPCMatchingQCDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 void ITSTPCMatchingQCDevice::sendOutput(DataAllocator& output)
 {
 
-  TObjArray objarTH1F;
-  TObjArray objarTH2F;
-  mMatchITSTPCQC->getTH1FHistos(objarTH1F);
-  mMatchITSTPCQC->getTH2FHistos(objarTH2F);
-  output.snapshot(Output{"GLO", "ITSTPCMATCHQC_1D", 0, Lifetime::Timeframe}, objarTH1F);
-  output.snapshot(Output{"GLO", "ITSTPCMATCHQC_2D", 0, Lifetime::Timeframe}, objarTH2F);
+  TObjArray objar;
+  mMatchITSTPCQC->getHistos(objar);
+  output.snapshot(Output{"GLO", "ITSTPCMATCHQC", 0, Lifetime::Timeframe}, objar);
 
   TFile* f = new TFile(Form("outITSTPCmatchingQC.root"), "RECREATE");
-  objarTH1F.Write("ObjArray_TH1F", TObject::kSingleKey);
-  objarTH2F.Write("ObjArray_TH2F", TObject::kSingleKey);
+  objar.Write("ObjArray", TObject::kSingleKey);
   f->Close();
 }
 } // namespace globaltracking
@@ -88,8 +84,7 @@ using GID = o2::dataformats::GlobalTrackID;
 DataProcessorSpec getITSTPCMatchingQCDevice(bool useMC)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("GLO", "ITSTPCMATCHQC_1D", 0, Lifetime::Timeframe);
-  outputs.emplace_back("GLO", "ITSTPCMATCHQC_2D", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "ITSTPCMATCHQC", 0, Lifetime::Timeframe);
 
   auto dataRequest = std::make_shared<o2::globaltracking::DataRequest>();
   GID::mask_t mSrc = GID::getSourcesMask("TPC,ITS-TPC");

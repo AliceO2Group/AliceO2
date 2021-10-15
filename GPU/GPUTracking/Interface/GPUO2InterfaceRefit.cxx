@@ -41,15 +41,16 @@ void GPUO2InterfaceRefit::fillSharedClustersMap(const ClusterNativeAccess* cl, c
 
 GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const TPCFastTransform* trans, float bz, const TPCClRefElem* trackRef, const unsigned char* sharedmap, const std::vector<TrackTPC>* trks, o2::base::Propagator* p) : mParam(new GPUParam)
 {
-  if (sharedmap == nullptr && trks == nullptr) {
-    throw std::runtime_error("Must provide either shared cluster map or vector of tpc tracks to build the map");
+  if (cl->nClustersTotal) {
+    if (sharedmap == nullptr && trks == nullptr) {
+      throw std::runtime_error("Must provide either shared cluster map or vector of tpc tracks to build the map");
+    }
+    if (sharedmap == nullptr) {
+      mSharedMap.resize(cl->nClustersTotal);
+      sharedmap = mSharedMap.data();
+      fillSharedClustersMap(cl, *trks, trackRef, mSharedMap.data());
+    }
   }
-  if (sharedmap == nullptr) {
-    mSharedMap.resize(cl->nClustersTotal);
-    sharedmap = mSharedMap.data();
-    fillSharedClustersMap(cl, *trks, trackRef, mSharedMap.data());
-  }
-
   mRefit = std::make_unique<GPUTrackingRefit>();
   mParam->SetDefaults(bz);
   mRefit->SetGPUParam(mParam.get());

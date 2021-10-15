@@ -49,6 +49,7 @@
 #include "MCHRawElecMap/Mapper.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHWorkflow/DataDecoderSpec.h"
+#include "CommonUtils/VerbosityConfig.h"
 
 //#define MCH_RAW_DATADECODER_DEBUG_DIGIT_TIME 1
 
@@ -85,6 +86,8 @@ class DataDecoderTask
     auto mapCRUfile = ic.options().get<std::string>("cru-map");
     auto mapFECfile = ic.options().get<std::string>("fec-map");
     auto useDummyElecMap = ic.options().get<bool>("dummy-elecmap");
+    mErrorLogFrequency = ic.options().get<int>("error-log-frequency");
+
     mDecoder = new DataDecoder(channelHandler, rdhHandler, sampaBcOffset, mapCRUfile, mapFECfile, ds2manu, mDebug,
                                useDummyElecMap);
 
@@ -170,6 +173,7 @@ class DataDecoderTask
     /// "delayed message" mechanism created it in absence of real data
     /// from upstream, i.e. the TF was dropped.
     constexpr auto origin = header::gDataOriginMCH;
+    static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
     o2::framework::InputSpec dummy{"dummy",
                                    framework::ConcreteDataMatcher{origin,
                                                                   header::gDataDescriptionRawData,
@@ -177,9 +181,16 @@ class DataDecoderTask
     for (const auto& ref : o2::framework::InputRecordWalker(pc.inputs(), {dummy})) {
       const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       if (dh->payloadSize == 0) {
+        auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
+        if (++contDeadBeef <= maxWarn) {
+          LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+               contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
+        }
         return true;
       }
     }
+    contDeadBeef = 0; // if good data, reset the counter
     return false;
   }
 
@@ -275,6 +286,11 @@ class DataDecoderTask
     pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "ORBITS", 0}, orbitsBuffer, orbitsSize, freefct, nullptr);
 
     mTFcount += 1;
+    if (mErrorLogFrequency) {
+      if (mTFcount == 1 || mTFcount % mErrorLogFrequency == 0) {
+        mDecoder->logErrorMap(mTFcount);
+      }
+    }
   }
 
  private:
@@ -286,6 +302,7 @@ class DataDecoderTask
   DataDecoder* mDecoder = {nullptr}; /// pointer to the data decoder instance
 
   uint32_t mTFcount{0};
+  uint32_t mErrorLogFrequency; /// error map is logged at that frequency (use 0 to disable) (in TF unit)
 
   std::chrono::duration<double, std::milli> mTimeDecoding{};  ///< timer
   std::chrono::duration<double, std::milli> mTimeROFFinder{}; ///< timer
@@ -320,7 +337,8 @@ o2::framework::DataProcessorSpec getDecodingSpec(const char* specName, std::stri
             {"dummy-elecmap", VariantType::Bool, false, {"use dummy electronic mapping (for debug, temporary)"}},
             {"ds2manu", VariantType::Bool, false, {"convert channel numbering from Run3 to Run1-2 order"}},
             {"check-rofs", VariantType::Bool, false, {"perform consistency checks on the output ROFs"}},
-            {"dummy-rofs", VariantType::Bool, false, {"disable the ROFs finding algorithm"}}}};
+            {"dummy-rofs", VariantType::Bool, false, {"disable the ROFs finding algorithm"}},
+            {"error-log-frequency", VariantType::Int, 6000, {"log the error map at this frequency (in TF unit) (first TF is always logged, unless frequency is zero)"}}}};
 }
 
 } // namespace raw

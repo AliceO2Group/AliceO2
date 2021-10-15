@@ -320,6 +320,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
         } break;
         case Lifetime::Condition: {
+          for (auto& option : processor.options) {
+            if (option.name == "condition-backend") {
+              hasConditionOption = true;
+              break;
+            }
+          }
           if (hasConditionOption == false) {
             processor.options.emplace_back(ConfigParamSpec{"condition-backend", VariantType::String, "http://localhost:8080", {"URL for CCDB"}});
             processor.options.emplace_back(ConfigParamSpec{"condition-timestamp", VariantType::Int64, 0ll, {"Force timestamp for CCDB lookup"}});

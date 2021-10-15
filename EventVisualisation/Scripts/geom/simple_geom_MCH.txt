@@ -1,0 +1,13 @@
+SA1G
+SA2G
+Segment 0 gas
+Segment 1 gas
+Segment 2 gas
+S2- gas
+B2N2+ gas
+B1N1 gas
+B2N2- gas
+S2+ gas
+B3-N3 gas
+R3 gas
+B3+N3

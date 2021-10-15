@@ -46,6 +46,7 @@
 #include "GPUTRDInterfaces.h"
 #include "GPUTRDGeometry.h"
 
+#include <regex>
 #include <algorithm>
 
 using namespace o2::framework;
@@ -230,12 +231,9 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     mITSABRefsArray = inputTracks.getITSABRefs();
     mITSABTrackClusIdx = inputTracks.getITSABClusterRefs();
     const auto clusITS = inputTracks.getITSClusters();
-    if (clusITS.empty()) {
-      LOG(FATAL) << "No ITS clusters";
-      return;
-    }
     const auto patterns = inputTracks.getITSClustersPatterns();
     auto pattIt = patterns.begin();
+    mITSClustersArray.clear();
     mITSClustersArray.reserve(clusITS.size());
     o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
   }
@@ -271,7 +269,11 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     }
   }
   if (!foundFilteredTrigger && mTrigRecFilter) {
-    LOG(WARNING) << "Trigger filtering requested, but no TRD trigger is actually masked. Can be that none needed to be masked or that the setting was not active for the tracklet transformer";
+    static bool warningSent = false;
+    if (!warningSent) {
+      LOG(WARNING) << "Trigger filtering requested, but no TRD trigger is actually masked. Can be that none needed to be masked or that the setting was not active for the tracklet transformer";
+      warningSent = true;
+    }
   } else if (foundFilteredTrigger && !mTrigRecFilter) {
     LOG(ERROR) << "Trigger filtering is not requested, but masked TRD triggers are found. Rerun tracklet transformer without trigger filtering";
   }
@@ -662,7 +664,8 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
   }
 
   std::string processorName = o2::utils::Str::concat_string("trd-globaltracking", GTrackID::getSourcesNames(src));
-  std::replace(processorName.begin(), processorName.end(), ',', '_');
+  std::regex reg("[,\\[\\]]+");
+  processorName = regex_replace(processorName, reg, "_");
 
   return DataProcessorSpec{
     processorName,

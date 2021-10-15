@@ -120,6 +120,7 @@ class CTFWriterSpec : public o2::framework::Task
   bool mCreateRunEnvDir = true;
   bool mStoreMetaFile = false;
   int mSaveDictAfter = 0; // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
+  int mFlagMinDet = 1;    // append list of detectors to LHC period if their number is <= mFlagMinDet
   uint64_t mRun = 0;
   size_t mMinSize = 0;     // if > 0, accumulate CTFs in the same tree until the total size exceeds this minimum
   size_t mMaxSize = 0;     // if > MinSize, and accumulated size will exceed this value, stop accumulation (even if mMinSize is not reached)
@@ -209,6 +210,7 @@ void CTFWriterSpec::init(InitContext& ic)
     mCTFMetaFileDir = o2::utils::Str::rectifyDirectory(mCTFMetaFileDir);
     mStoreMetaFile = true;
   }
+  mFlagMinDet = ic.options().get<int>("append-det-to-period");
   mCreateRunEnvDir = !ic.options().get<bool>("ignore-partition-run-dir");
   mMinSize = ic.options().get<int64_t>("min-file-size");
   mMaxSize = ic.options().get<int64_t>("max-file-size");
@@ -377,6 +379,13 @@ void CTFWriterSpec::run(ProcessingContext& pc)
       auto ltm = gmtime(&now);
       mLHCPeriod = months[ltm->tm_mon];
       LOG(WARNING) << "LHCPeriod is not available, using current month " << mLHCPeriod;
+    }
+    if (mDets.count() <= mFlagMinDet) { // flag participating detectors
+      for (auto id = DetID::First; id <= DetID::Last; id++) {
+        if (isPresent(id)) {
+          mLHCPeriod += fmt::format("_{}", DetID::getName(id));
+        }
+      }
     }
   }
 
@@ -726,6 +735,7 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, const std::
             {"output-dir", VariantType::String, "none", {"CTF output directory, must exist"}},
             {"output-dir-alt", VariantType::String, "/dev/null", {"Alternative CTF output directory, must exist (if not /dev/null)"}},
             {"meta-output-dir", VariantType::String, "/dev/null", {"CTF metadata output directory, must exist (if not /dev/null)"}},
+            {"append-det-to-period", VariantType::Int, 1, {"Append detectors name to LHCPeriod in metadata if their number is does not exceed this"}},
             {"min-file-size", VariantType::Int64, 0l, {"accumulate CTFs until given file size reached"}},
             {"max-file-size", VariantType::Int64, 0l, {"if > 0, try to avoid exceeding given file size, also used for space check"}},
             {"max-ctf-per-file", VariantType::Int, 0, {"if > 0, avoid storing more than requested CTFs per file"}},

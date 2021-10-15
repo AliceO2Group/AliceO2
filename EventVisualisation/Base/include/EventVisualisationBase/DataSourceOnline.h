@@ -48,6 +48,8 @@ class DataSourceOnline : public DataSource
   bool refresh() override; // recompute
 
   std::vector<std::pair<VisualisationEvent, std::string>> getVisualisationList(int no) override;
+  void changeDataFolder(std::string newFolder) override { mFileWatcher.changeFolder(newFolder); };
+  void saveCurrentEvent(std::string targetFolder) override { mFileWatcher.saveCurrentFileToFolder(targetFolder); };
 };
 
 } // namespace event_visualisation

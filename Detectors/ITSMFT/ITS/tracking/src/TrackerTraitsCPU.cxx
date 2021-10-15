@@ -306,7 +306,7 @@ void TrackerTraitsCPU::computeLayerCells()
       }
     }
     if (iLayer > 0) {
-      tf->getCellsLookupTable()[iLayer - 1].resize(currentLayerTrackletsNum + 1, currentLayerTrackletsNum);
+      tf->getCellsLookupTable()[iLayer - 1].resize(currentLayerTrackletsNum + 1, tf->getCells()[iLayer].size());
     }
   }
 

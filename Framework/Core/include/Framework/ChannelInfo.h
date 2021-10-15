@@ -38,6 +38,14 @@ struct InputChannelInfo {
   uint32_t hasPendingEvents = 0;
   FairMQChannel* channel = nullptr;
   FairMQParts parts;
+  /// Wether we already notified operations are normal.
+  /// We start with true given we assume in the beginning
+  /// things are ok.
+  bool normalOpsNotified = true;
+  /// Wether we aready notified about backpressure.
+  /// We start with false since we assume there is no
+  /// backpressure to start with.
+  bool backpressureNotified = false;
 };
 
 } // namespace o2::framework

@@ -91,6 +91,7 @@ EPNMonitor::EPNMonitor(std::string path, bool infoLogger, int runNumber, std::st
     mLoggerContext = std::make_unique<InfoLogger::InfoLoggerContext>();
     mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::Partition, partition != "" ? partition : "unspecified");
     mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::Run, runNumber == 0 ? std::to_string(runNumber) : "unspecified");
+    mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::System, std::string("STDERR"));
   }
   mThread = std::thread(&EPNMonitor::thread, this);
 }
@@ -221,12 +222,12 @@ struct EPNstderrMonitor : fair::mq::Device {
     std::string path = ".";
     bool infoLogger = fConfig->GetProperty<int>("infologger");
     bool dds = false;
-    if (fConfig->Count("plugin")) {
+/*    if (fConfig->Count("plugin")) {
       const auto& plugins = fConfig->GetProperty<std::vector<std::string>>("plugin");
-      bool dds = std::find(plugins.begin(), plugins.end(), "ODC") != plugins.end();
+      dds = std::find(plugins.begin(), plugins.end(), "ODC") != plugins.end();
     }
-
-    bool runNumber = dds ? fConfig->GetProperty<int>("runNumber") : 0;
+    int runNumber = dds ? atoi(fConfig->GetProperty<std::string>("runNumber").c_str()) : 0;*/
+    int runNumber = 0;
     std::string partition = "";
     gEPNMonitor = std::make_unique<EPNMonitor>(path, infoLogger, runNumber, partition);
   }

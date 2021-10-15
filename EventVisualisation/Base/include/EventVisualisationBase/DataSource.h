@@ -49,6 +49,9 @@ class DataSource
 
   virtual std::vector<std::pair<VisualisationEvent, std::string>> getVisualisationList(int no) = 0;
   virtual void registerDetector(DataReader* /*reader*/, EVisualisationGroup /*type*/){};
+
+  virtual void changeDataFolder(std::string /*newFolder*/){};
+  virtual void saveCurrentEvent(std::string /*targetFolder*/){};
 };
 
 } // namespace event_visualisation

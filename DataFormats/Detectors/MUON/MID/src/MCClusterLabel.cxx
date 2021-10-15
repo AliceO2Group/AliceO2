@@ -9,14 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MID/Simulation/src/MCClusterLabel.cxx
+/// \file   MCClusterLabel.cxx
 /// \brief  Implementation of MC label for MID clusters
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   23 April 2019
 
-#include "MIDSimulation/MCClusterLabel.h"
-
-ClassImp(o2::mid::MCClusterLabel);
+#include "DataFormatsMID/MCClusterLabel.h"
 
 namespace o2
 {

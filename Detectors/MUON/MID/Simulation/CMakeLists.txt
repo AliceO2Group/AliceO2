@@ -22,7 +22,6 @@ o2_add_library(
           src/Geometry.cxx
           src/Hit.cxx
           src/Materials.cxx
-          src/MCClusterLabel.cxx
           src/MCLabel.cxx
           src/PreClusterLabeler.cxx
           src/Stepper.cxx
@@ -42,7 +41,6 @@ o2_target_root_dictionary(
           include/MIDSimulation/Digitizer.h
           include/MIDSimulation/DigitsMerger.h
           include/MIDSimulation/Hit.h
-          include/MIDSimulation/MCClusterLabel.h
           include/MIDSimulation/MCLabel.h
           include/MIDSimulation/Stepper.h)
 
