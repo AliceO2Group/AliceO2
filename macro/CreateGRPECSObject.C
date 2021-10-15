@@ -32,14 +32,15 @@ using GRPECSObject = o2::parameters::GRPECSObject;
 // e.g.
 /*
  .L CreateGRPECSObject.C+
- std::time_t t = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count()
+ std::time_t tStart = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count()
+ std::time_t tEnd = (tStart + 60 * 60 * 24 * 365) * 1000; // 1 year validity, just an example
  o2::detectors::DetID::mask_t detsRO = o2::detectors::DetID::getMask("ITS, TPC, TRD, TOF, CPV, PHS, EMC, MID, MFT, MCH, FT0, FV0, FDD, CTP");
  o2::detectors::DetID::mask_t detsContRO = o2::detectors::DetID::getMask("TOF, TPC, ITS")
  o2::detectors::DetID::mask_t detsTrig = o2::detectors::DetID::getMask("FV0")
- CreateGRPECSObject(t, 128, detsRO, detsContRO, detsTrig, 123456, "LHC21m")
+ CreateGRPECSObject(tStart, 128, detsRO, detsContRO, detsTrig, 123456, "LHC21m", tEnd)
 */
 
-void CreateGRPECSObject(timePoint start, uint32_t nHBPerTF, DetID::mask_t detsReadout, DetID::mask_t detsContinuousRO, DetID::mask_t detsTrigger, int run, std::string dataPeriod, std::string ccdbPath = "http://ccdb-test.cern.ch:8080")
+void CreateGRPECSObject(timePoint start, uint32_t nHBPerTF, DetID::mask_t detsReadout, DetID::mask_t detsContinuousRO, DetID::mask_t detsTrigger, int run, std::string dataPeriod, timePoint end = -1, std::string ccdbPath = "http://ccdb-test.cern.ch:8080")
 {
 
   GRPECSObject grpecs;
@@ -55,6 +56,10 @@ void CreateGRPECSObject(timePoint start, uint32_t nHBPerTF, DetID::mask_t detsRe
   api.init(ccdbPath);
   std::map<std::string, std::string> metadata;
   metadata["responsible"] = "ECS";
-  long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-  api.storeAsTFileAny(&grpecs, "GRP/GRP/ECS", metadata, ts, ts + 60 * 60 * 24 * 365); // making it 1-year valid to be sure we have something
+  metadata["run_number"] = std::to_string(run);
+  //long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  if (end < 0) {
+    end = (start + 60 * 60 * 10) * 1000; // start + 10h, in ms
+  }
+  api.storeAsTFileAny(&grpecs, "GLO/Config/GRPECS", metadata, start * 1000, end); // making it 1-year valid to be sure we have something
 }

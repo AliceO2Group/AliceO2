@@ -107,7 +107,7 @@ class GRPECSObject
  private:
   timePoint mTimeStart = 0; ///< DAQ_time_start entry from DAQ logbook
 
-  uint32_t mNHBFPerTF = 256; /// Number of HBFrames per TF
+  uint32_t mNHBFPerTF = 128; /// Number of HBFrames per TF
 
   DetID::mask_t mDetsReadout;      ///< mask of detectors which are read out
   DetID::mask_t mDetsContinuousRO; ///< mask of detectors read out in continuos mode
