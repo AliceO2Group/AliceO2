@@ -35,7 +35,8 @@ struct MetricInfo {
   enum MetricType type = MetricType::Unknown;
   size_t storeIdx = -1;     // Index in the actual store
   size_t pos = 0;           // Last position in the circular buffer
-  size_t filledMetrics = 0; // How many metrics were filled
+  size_t providedMetrics = 0;  // How many metrics were filled
+  size_t availableMetrics = 0; // How many metrics are available after thinning
 };
 
 // We keep only fixed lenght strings for metrics, as in the end this is not

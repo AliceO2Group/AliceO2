@@ -90,7 +90,8 @@ struct DeviceMetricsHelper {
       size_t pos = metric.pos++ % store[metric.storeIdx].size();
       metrics.timestamps[metricIndex][pos] = timestamp;
       store[metric.storeIdx][pos] = value;
-      metric.filledMetrics++;
+      metric.providedMetrics++;
+      metric.availableMetrics++;
     };
   }
 

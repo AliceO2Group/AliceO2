@@ -35,8 +35,7 @@ template <typename T>
 boost::property_tree::ptree fillNodeWithValue(const DeviceMetricsInfo& deviceMetrics,
                                               const T& metricsStorage, size_t labelIndex, size_t storageIndex)
 {
-
-  unsigned int loopRange = std::min(deviceMetrics.metrics[labelIndex].filledMetrics, metricsStorage[storageIndex].size());
+  unsigned int loopRange = deviceMetrics.metrics[labelIndex].availableMetrics;
   boost::property_tree::ptree metricNode;
 
   for (unsigned int idx = 0; idx < loopRange; ++idx) {

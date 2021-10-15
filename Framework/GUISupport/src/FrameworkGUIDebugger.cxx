@@ -243,9 +243,9 @@ void displaySparks(
     static ImPlotAxisFlags rty_axis = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoTickMarks;
     ImGui::PushID(index.stateIndex);
     HistoData data;
-    data.mod = std::min(metric.filledMetrics, metricsInfo.timestamps[index.metricIndex].size());
+    data.mod = metric.availableMetrics;
     data.first = metric.pos - data.mod;
-    data.size = metric.filledMetrics;
+    data.size = metric.availableMetrics;
     data.time = metricsInfo.timestamps[index.metricIndex].data();
     data.legend = state.legend.c_str();
 
@@ -337,8 +337,8 @@ void displayDeviceMetrics(const char* label,
         deviceNames.push_back(specs[di].label.c_str());
         metricType = metric.type;
         MultiplotData data;
-        data.size = metric.filledMetrics;
-        data.mod = std::min(metric.filledMetrics, metricsInfos[di].timestamps[mi].size());
+        data.size = metric.availableMetrics;
+        data.mod = metric.availableMetrics;
         data.first = metric.pos - data.mod;
         data.X = metricsInfos[di].timestamps[mi].data();
         data.legend = state[gmi].legend.c_str();
@@ -392,7 +392,7 @@ void displayDeviceMetrics(const char* label,
 
   auto getterXY = [](void* hData, int idx) -> ImPlotPoint {
     auto histoData = reinterpret_cast<const MultiplotData*>(hData);
-    size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
+    size_t pos = static_cast<size_t>(idx);
     double x = static_cast<const size_t*>(histoData->X)[pos];
     double y = 0.;
     if (histoData->type == MetricType::Int) {
@@ -834,7 +834,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
           auto& metricsInfos = *metricsStore.metrics[index.storeIndex];
           auto& metric = metricsInfos[index.deviceIndex];
           auto label = metricsInfos[index.deviceIndex].metricLabels[index.metricIndex].label;
-          ImGui::Text("%s (%" PRIu64 ")", label, (uint64_t)metric.metrics[index.metricIndex].filledMetrics);
+          ImGui::Text("%s (%" PRIu64 ")", label, (uint64_t)metric.metrics[index.metricIndex].availableMetrics);
         }
 
         // Calculate which columns we want to see.

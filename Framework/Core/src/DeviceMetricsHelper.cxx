@@ -24,6 +24,8 @@
 #include <limits>
 #include <unordered_set>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 namespace o2::framework
 {
 
@@ -153,12 +155,11 @@ size_t DeviceMetricsHelper::bookMetricInfo(DeviceMetricsInfo& info, char const* 
   // Insert the sorted location where it belongs to.
   MetricLabelIndex metricLabelIdx{metricIndex};
   info.metricLabelsAlphabeticallySortedIdx.insert(mi, metricLabelIdx);
-  info.metrics.push_back(MetricInfo{});
-
-  // Create a new metric
-  auto& metricInfo = info.metrics.back();
-  metricInfo.pos = 0;
-  metricInfo.filledMetrics = 0;
+  info.metrics.push_back(MetricInfo{
+    .pos = 0,
+    .providedMetrics = 0,
+    .availableMetrics = 0
+  });
 
   // Add the timestamp buffer for it
   info.timestamps.emplace_back(std::array<size_t, 1024>{});
@@ -172,6 +173,49 @@ size_t DeviceMetricsHelper::bookMetricInfo(DeviceMetricsInfo& info, char const* 
   info.metricLabels.push_back(metricLabel);
 
   return metricIndex;
+}
+
+/// Perform data thinning on the metric identified by @a metricIndex
+/// 
+int64_t dataThinning(DeviceMetricsInfo& info, size_t metricIndex) {
+  MetricInfo& metricInfo = info.metrics[metricIndex];
+  bool sizeOfCollection = 0;
+  // We should do some proper data thinning here
+  switch (metricInfo.type) {
+    /// No thinning on strings...
+    case MetricType::Unknown:
+    case MetricType::String:
+      return 0;
+    case MetricType::Float: {
+      sizeOfCollection = info.floatMetrics[metricInfo.storeIdx].size();
+      auto& v = info.floatMetrics[metricInfo.storeIdx];
+      for (size_t mi = 0; mi < sizeOfCollection/2; mi++) {
+        v[mi] = v[mi*2];
+      }
+      return sizeOfCollection  /2;
+    }
+    case MetricType::Uint64: { 
+      sizeOfCollection = info.uint64Metrics[metricInfo.storeIdx].size();
+      auto& v = info.uint64Metrics[metricInfo.storeIdx];
+      for (size_t mi = 0; mi < sizeOfCollection/2; mi++) {
+        v[mi] = v[mi*2];
+      }
+      return sizeOfCollection/2;
+    }
+    case MetricType::Int: {
+      sizeOfCollection = info.intMetrics[metricInfo.storeIdx].size();
+      auto &v = info.intMetrics[metricInfo.storeIdx];
+      for (size_t mi = 0; mi < sizeOfCollection/2; mi++) {
+        v[mi] = v[mi*2];
+      }
+      return sizeOfCollection/2;
+    }
+  }
+  auto &v = info.timestamps[metricIndex];
+  for (size_t mi = 0; mi < sizeOfCollection/2; mi++) {
+    v[mi] = v[mi*2];
+  }
+  return -1;
 }
 
 bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
@@ -213,10 +257,11 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
   auto matchSize = match.endKey - match.beginKey;
   if (mi == info.metricLabelsAlphabeticallySortedIdx.end() || (strncmp(info.metricLabels[mi->index].label, match.beginKey, std::min(matchSize, (long)MetricLabel::MAX_METRIC_LABEL_SIZE - 1)) != 0)) {
     // Create a new metric
-    MetricInfo metricInfo;
-    metricInfo.pos = 0;
-    metricInfo.type = match.type;
-    metricInfo.filledMetrics = 0;
+    MetricInfo metricInfo{
+      .pos = 0,
+      .type = match.type,
+      .providedMetrics = 0,
+      .availableMetrics = 0};
     // Add a new empty buffer for it of the correct kind
     switch (match.type) {
       case MetricType::Int:
@@ -309,11 +354,17 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
   auto onlineAverage = [](float nextValue, float previousAverage, float previousCount) {
     return previousAverage + (nextValue - previousAverage) / (previousCount + 1);
   };
-  info.average[metricIndex] = onlineAverage(match.floatValue, info.average[metricIndex], metricInfo.filledMetrics);
+  info.average[metricIndex] = onlineAverage(match.floatValue, info.average[metricIndex], metricInfo.providedMetrics);
   info.timestamps[metricIndex][metricInfo.pos] = match.timestamp;
   // We point to the next metric
-  metricInfo.pos = (metricInfo.pos + 1) % sizeOfCollection;
-  ++metricInfo.filledMetrics;
+  if (metricInfo.pos + 1 >= sizeOfCollection) {
+    metricInfo.pos=dataThinning(info, metricIndex);
+    metricInfo.availableMetrics = sizeOfCollection/2;
+  } else {
+    metricInfo.pos++;
+    metricInfo.availableMetrics++;
+  }
+  ++metricInfo.providedMetrics;
   // Note that we updated a given metric.
   info.changed[metricIndex] = true;
   return true;
@@ -352,3 +403,4 @@ void DeviceMetricsHelper::updateMetricsNames(DriverInfo& driverInfo, std::vector
 }
 
 } // namespace o2::framework
+#pragma GCC diagnostic pop
