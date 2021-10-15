@@ -269,7 +269,11 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     }
   }
   if (!foundFilteredTrigger && mTrigRecFilter) {
-    LOG(WARNING) << "Trigger filtering requested, but no TRD trigger is actually masked. Can be that none needed to be masked or that the setting was not active for the tracklet transformer";
+    static bool warningSent = false;
+    if (!warningSent) {
+      LOG(WARNING) << "Trigger filtering requested, but no TRD trigger is actually masked. Can be that none needed to be masked or that the setting was not active for the tracklet transformer";
+      warningSent = true;
+    }
   } else if (foundFilteredTrigger && !mTrigRecFilter) {
     LOG(ERROR) << "Trigger filtering is not requested, but masked TRD triggers are found. Rerun tracklet transformer without trigger filtering";
   }
