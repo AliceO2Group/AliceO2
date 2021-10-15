@@ -29,6 +29,7 @@
 using namespace o2::mch::raw;
 
 const char* sampaClusterFormat = "{}-CH{}-{}";
+const bool useDummyElecMap = true;
 
 struct DePadId {
   int deid;
@@ -67,7 +68,7 @@ SampaChannelHandler handlePacketStoreAsVec(std::vector<std::string>& result)
 template <>
 SampaChannelHandler handlePacketStoreAsVec(std::vector<DePadId>& result)
 {
-  auto elec2det = o2::mch::raw::createElec2DetMapper<ElectronicMapperDummy>();
+  auto elec2det = useDummyElecMap ? o2::mch::raw::createElec2DetMapper<ElectronicMapperDummy>() : o2::mch::raw::createElec2DetMapper<ElectronicMapperGenerated>();
   return [&result, elec2det](DsElecId dsId, DualSampaChannelId channel, SampaCluster sc) {
     auto dsDet = elec2det(dsId);
     auto deId = dsDet->deId();
@@ -77,7 +78,7 @@ SampaChannelHandler handlePacketStoreAsVec(std::vector<DePadId>& result)
   };
 }
 
-void writeDigits(bool useDummyElecMap)
+void writeDigits()
 {
   std::cout << fmt::format("BEGIN writeDigits({})\n", useDummyElecMap);
   fair::Logger::SetConsoleSeverity("nolog");
@@ -127,7 +128,7 @@ template <typename T>
 std::vector<T> readDigits()
 {
   std::vector<T> result;
-  DataDecoder dd(handlePacketStoreAsVec<T>(result), nullptr, 0, "", "", false, false, true);
+  DataDecoder dd(handlePacketStoreAsVec<T>(result), nullptr, 0, "", "", false, false, useDummyElecMap);
 
   auto buffer = getBuffer("mch.raw");
   dd.decodeBuffer(buffer);
@@ -138,10 +139,16 @@ BOOST_AUTO_TEST_CASE(WrittenAndReadBackDigitsShouldBeTheSameStringVersion)
 {
   o2::conf::ConfigurableParam::setValue("MCHCoDecParam", "sampaBcOffset", 0);
   std::vector<std::string> expected = {
-    "S728-J0-DS2-CH58-ts-0-bc-3456-cs-1-q-959",
-    "S728-J0-DS2-CH11-ts-0-bc-3456-cs-1-q-974",
-    "S363-J4-DS4-CH35-ts-0-bc-3456-cs-1-q-664"};
-  writeDigits(true);
+    "S481-J5-DS1-CH58-ts-0-bc-3456-cs-1-q-959",
+    "S481-J5-DS1-CH11-ts-0-bc-3456-cs-1-q-974",
+    "S394-J5-DS3-CH35-ts-0-bc-3456-cs-1-q-664"};
+  if (useDummyElecMap) {
+    expected = std::vector<std::string>{
+      "S727-J6-DS4-CH58-ts-0-bc-3456-cs-1-q-959",
+      "S727-J6-DS4-CH11-ts-0-bc-3456-cs-1-q-974",
+      "S363-J4-DS4-CH35-ts-0-bc-3456-cs-1-q-664"};
+  }
+  writeDigits();
   auto result = readDigits<std::string>();
 
   bool sameSize = result.size() == expected.size();
@@ -170,7 +177,7 @@ BOOST_AUTO_TEST_CASE(WrittenAndReadBackDigitsShouldBeTheSame)
     DePadId{923, 3959},
     DePadId{923, 3974},
     DePadId{100, 6664}};
-  writeDigits(true);
+  writeDigits();
   auto result = readDigits<DePadId>();
 
   bool sameSize = result.size() == expected.size();

@@ -51,15 +51,15 @@ def gencode_insert_row_in_map(out, row):
     def insert_in_map(dsid, index):
         out.write("add(e2d,{},{},{},{},{});\n"
                   .format(row.de_id, dsid, row.solar_id, row.group_id, index))
-    if row.ds_id_0:
+    if int(row.ds_id_0):
         insert_in_map(row.ds_id_0, 0)
-    if row.ds_id_1:
+    if int(row.ds_id_1):
         insert_in_map(row.ds_id_1, 1)
-    if row.ds_id_2:
+    if int(row.ds_id_2):
         insert_in_map(row.ds_id_2, 2)
-    if row.ds_id_3:
+    if int(row.ds_id_3):
         insert_in_map(row.ds_id_3, 3)
-    if row.ds_id_4:
+    if int(row.ds_id_4):
         insert_in_map(row.ds_id_4, 4)
 
 
