@@ -91,6 +91,7 @@ EPNMonitor::EPNMonitor(std::string path, bool infoLogger, int runNumber, std::st
     mLoggerContext = std::make_unique<InfoLogger::InfoLoggerContext>();
     mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::Partition, partition != "" ? partition : "unspecified");
     mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::Run, runNumber == 0 ? std::to_string(runNumber) : "unspecified");
+    mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::System, std::string("STDERR"));
   }
   mThread = std::thread(&EPNMonitor::thread, this);
 }
