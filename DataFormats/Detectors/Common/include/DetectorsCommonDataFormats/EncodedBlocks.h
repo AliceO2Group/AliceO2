@@ -178,6 +178,10 @@ struct Block {
   inline W* getCreateData() { return payload ? (payload + nDict) : getCreatePayload(); }
   inline W* getCreateLiterals() { return payload ? payload + (nDict + nData) : getCreatePayload(); }
 
+  inline auto getOffsDict() { return reinterpret_cast<std::uintptr_t>(getCreateDict()) - reinterpret_cast<std::uintptr_t>(registry->head); }
+  inline auto getOffsData() { return reinterpret_cast<std::uintptr_t>(getCreateData()) - reinterpret_cast<std::uintptr_t>(registry->head); }
+  inline auto getOffsLiterals() { return reinterpret_cast<std::uintptr_t>(getCreateLiterals()) - reinterpret_cast<std::uintptr_t>(registry->head); }
+
   inline void setNDict(int _ndict)
   {
     nDict = _ndict;
@@ -437,6 +441,7 @@ class EncodedBlocks
 
   /// print itself
   void print(const std::string& prefix = "") const;
+  void dump(const std::string& prefix = "", int ncol = 20) const;
 
  protected:
   static_assert(N > 0, "number of encoded blocks < 1");
@@ -860,6 +865,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     //store dictionary first
     if (frequencyTable.size()) {
       thisBlock->storeDict(frequencyTable.size(), frequencyTable.data());
+      LOGP(DEBUG, "StoreDict {} bytes, offs: {}:{}", frequencyTable.size() * sizeof(W), thisBlock->getOffsDict(), thisBlock->getOffsDict() + frequencyTable.size() * sizeof(W));
     }
     // vector of incompressible literal symbols
     std::vector<input_t> literals;
@@ -871,6 +877,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     dataSize = encodedMessageEnd - thisBlock->getDataPointer();
     thisBlock->setNData(dataSize);
     thisBlock->realignBlock();
+    LOGP(DEBUG, "StoreData {} bytes, offs: {}:{}", dataSize * sizeof(W), thisBlock->getOffsData(), thisBlock->getOffsData() + dataSize * sizeof(W));
     // update the size claimed by encode message directly inside the block
 
     // store incompressible symbols if any
@@ -885,6 +892,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
         const size_t nLiteralStorageElems = calculateNDestTElements<input_t, storageBuffer_t>(nSymbols);
         expandStorage(nLiteralStorageElems);
         thisBlock->storeLiterals(nLiteralStorageElems, reinterpret_cast<const storageBuffer_t*>(literals.data()));
+        LOGP(DEBUG, "StoreLiterals {} bytes, offs: {}:{}", nLiteralStorageElems * sizeof(W), thisBlock->getOffsLiterals(), thisBlock->getOffsLiterals() + nLiteralStorageElems * sizeof(W));
         return nLiteralStorageElems;
       }
       return size_t(0);
@@ -945,6 +953,57 @@ std::vector<char> EncodedBlocks<H, N, W>::createDictionaryBlocks(const std::vect
     dictBlocks->mRegistry.nFilledBlocks++;
   }
   return std::move(vdict);
+}
+
+template <typename H, int N, typename W>
+void EncodedBlocks<H, N, W>::dump(const std::string& prefix, int ncol) const
+{
+  for (int ibl = 0; ibl < getNBlocks(); ibl++) {
+    const auto& blc = getBlock(ibl);
+    std::string ss;
+    LOGP(INFO, "{} Bloc:{} Dict: {} words", prefix, ibl, blc.getNDict());
+    const auto* ptr = blc.getDict();
+    for (int i = 0; i < blc.getNDict(); i++) {
+      if (i && (i % ncol) == 0) {
+        LOG(INFO) << ss;
+        ss.clear();
+      }
+      ss += fmt::format(" {:#010x}", ptr[i]);
+    }
+    if (!ss.empty()) {
+      LOG(INFO) << ss;
+      ss.clear();
+    }
+    LOG(INFO) << "\n";
+    LOGP(INFO, "{} Bloc:{} Data: {} words", prefix, ibl, blc.getNData());
+    ptr = blc.getData();
+    for (int i = 0; i < blc.getNData(); i++) {
+      if (i && (i % ncol) == 0) {
+        LOG(INFO) << ss;
+        ss.clear();
+      }
+      ss += fmt::format(" {:#010x}", ptr[i]);
+    }
+    if (!ss.empty()) {
+      LOG(INFO) << ss;
+      ss.clear();
+    }
+    LOG(INFO) << "\n";
+    LOGP(INFO, "{} Bloc:{} Literals: {} words", prefix, ibl, blc.getNLiterals());
+    ptr = blc.getData();
+    for (int i = 0; i < blc.getNLiterals(); i++) {
+      if (i && (i % 20) == 0) {
+        LOG(INFO) << ss;
+        ss.clear();
+      }
+      ss += fmt::format(" {:#010x}", ptr[i]);
+    }
+    if (!ss.empty()) {
+      LOG(INFO) << ss;
+      ss.clear();
+    }
+    LOG(INFO) << "\n";
+  }
 }
 
 } // namespace ctf
