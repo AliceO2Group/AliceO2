@@ -81,6 +81,8 @@ void CookedTrackerDPL::init(InitContext& ic)
                                                    o2::math_utils::TransformType::T2G));
     mTracker.setGeometry(geom);
 
+    mTracker.setConfigParams();
+
     double origD[3] = {0., 0., 0.};
     mTracker.setBz(field->getBz(origD));
 
