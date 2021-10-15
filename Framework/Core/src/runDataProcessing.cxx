@@ -255,7 +255,11 @@ namespace
 int calculateExitCode(DriverInfo& driverInfo, DeviceSpecs& deviceSpecs, DeviceInfos& infos)
 {
   std::regex regexp(R"(^\[([\d+:]*)\]\[\w+\] )");
-  int exitCode = 0;
+  if (!driverInfo.lastError.empty()) {
+    LOGP(ERROR, "SEVERE: DPL driver encountered an error while running.\n{}",
+         driverInfo.lastError);
+    return 1;
+  }
   for (size_t di = 0; di < deviceSpecs.size(); ++di) {
     auto& info = infos[di];
     auto& spec = deviceSpecs[di];
@@ -265,10 +269,10 @@ int calculateExitCode(DriverInfo& driverInfo, DeviceSpecs& deviceSpecs, DeviceIn
            info.pid,
            info.minFailureLevel,
            std::regex_replace(info.firstSevereError, regexp, ""));
-      exitCode = 1;
+      return 1;
     }
   }
-  return exitCode;
+  return 0;
 }
 } // namespace
 
@@ -1581,9 +1585,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             ss << " - " << spec.name << "(" << spec.id << ")"
                << "\n";
           }
-          LOG(ERROR) << "Unable to find component with id "
-                     << frameworkId << ". Available options:\n"
-                     << ss.str();
+          driverInfo.lastError = fmt::format(
+            "Unable to find component with id {}."
+            " Available options:\n{}",
+            frameworkId, ss.str());
           driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
         }
         break;
