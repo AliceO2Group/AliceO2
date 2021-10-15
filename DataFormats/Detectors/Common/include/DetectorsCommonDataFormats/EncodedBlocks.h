@@ -456,7 +456,7 @@ class EncodedBlocks
   /// DPL input), in this case we create a wrapper, which points on these const data
   static void relocate(const char* oldHead, char* newHead, char* wrapper, size_t newsize = 0);
 
-  /// Estimate size of the buffer needed to store all compressed data in a contiguos block of memory, accounting for alignment
+  /// Estimate size of the buffer needed to store all compressed data in a contiguous block of memory, accounting for the alignment
   /// This method is to be called after reading object from the tree as a non-flat object!
   size_t estimateSize() const;
 
@@ -823,7 +823,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     auto* const blockHead = get(thisBlock->registry->head);                         // extract pointer from the block, as "this" might be invalid
     const size_t additionalSize = blockHead->estimateBlockSize(additionalElements); // size in bytes!!!
     if (additionalSize >= thisBlock->registry->getFreeSize()) {
-      LOG(INFO) << "Slot " << slot << ": free size: " << thisBlock->registry->getFreeSize() << ", need " << additionalSize << " for " << additionalElements << " words";
+      LOG(DEBUG) << "Slot " << slot << ": free size: " << thisBlock->registry->getFreeSize() << ", need " << additionalSize << " for " << additionalElements << " words";
       if (buffer) {
         blockHead->expand(*buffer, blockHead->size() + (additionalSize - blockHead->getFreeSize()));
         thisMetadata = &(get(buffer->data())->mMetadata[slot]);
@@ -838,7 +838,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
   if (opt == Metadata::OptStore::EENCODE) {
     // build symbol statistics
     constexpr size_t SizeEstMarginAbs = 10 * 1024;
-    constexpr float SizeEstMarginRel = 1.05;
+    constexpr float SizeEstMarginRel = 1.5;
 
     const auto [inplaceEncoder, frequencyTable] = [&]() {
       if (encoderExt) {
@@ -866,7 +866,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     storageBuffer_t* const blockBufferBegin = thisBlock->getCreateData();
     const size_t maxBufferSize = thisBlock->registry->getFreeSize(); // note: "this" might be not valid after expandStorage call!!!
     const auto encodedMessageEnd = encoder->process(srcBegin, srcEnd, blockBufferBegin, literals);
-    rans::utils::checkBounds(encodedMessageEnd, blockBufferBegin + maxBufferSize);
+    rans::utils::checkBounds(encodedMessageEnd, blockBufferBegin + maxBufferSize / sizeof(W));
     dataSize = encodedMessageEnd - thisBlock->getDataPointer();
     thisBlock->setNData(dataSize);
     thisBlock->realignBlock();
