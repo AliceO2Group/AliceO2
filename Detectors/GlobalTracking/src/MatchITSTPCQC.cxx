@@ -147,19 +147,20 @@ bool MatchITSTPCQC::selectTrack(o2::tpc::TrackTPC const& track)
 void MatchITSTPCQC::finalize()
 {
 
+  // first we use mPt and mPtTPC to set the TEfficiency; later they are scaled
+  if (!mFractionITSTPCmatch->SetTotalHistogram(*mPtTPC, "") ||
+      !mFractionITSTPCmatch->SetPassedHistogram(*mPt, "")) {
+    LOG(FATAL) << "Something wrong when defining the efficiency histograms!";
+  }
+
   float scaleFactTPC = 1. / mNTPCSelectedTracks;
   float scaleFactITSTPC = 1. / mNITSTPCSelectedTracks;
-  mFractionITSTPCmatch->Divide(mPt, mPtTPC, 1, 1, "b");
   mPtTPC->Scale(scaleFactTPC);
   mPt->Scale(scaleFactITSTPC);
   mEta->Scale(scaleFactITSTPC);
   mChi2Matching->Scale(scaleFactITSTPC);
   mChi2Refit->Scale(scaleFactITSTPC);
   //mTimeResVsPt->Scale(scaleFactITSTPC); // if to few entries, one sees nothing after normalization --> let's not normalize
-
-  if (!mFractionITSTPCmatch->SetPassedHistogram(*mPt, "") || !mFractionITSTPCmatch->SetTotalHistogram(*mPtTPC, "")) {
-    LOG(FATAL) << "Something wrong when defining the efficiency histograms!";
-  }
 }
 
 //__________________________________________________________
