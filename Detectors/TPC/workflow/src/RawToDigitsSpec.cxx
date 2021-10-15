@@ -113,6 +113,9 @@ class TPCDigitDumpDevice : public o2::framework::Task
     mActiveSectors = calib_processing_helper::processRawData(pc.inputs(), reader, mUseOldSubspec);
 
     mDigitDump.incrementNEvents();
+    if (mClusterQC) {
+      mClusterQC->endTF();
+    }
     LOGP(info, "Number of processed events: {} ({})", mDigitDump.getNumberOfProcessedEvents(), mMaxEvents);
 
     snapshotDigits(pc.outputs());
@@ -186,7 +189,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
   void dumpClusterQC()
   {
     mClusterQC->normalize();
-    mClusterQC->dumpToFile("ClusterQC.root");
+    mClusterQC->dumpToFile("ClusterQC.root", 2);
   }
 };
 
