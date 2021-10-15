@@ -160,6 +160,9 @@ struct DriverInfo {
   /// if the device is started standalone, the default becomes the old stdout:// so
   /// that it works as it used to in AliECS.
   std::string defaultDriverClient = "invalid";
+
+  /// The last error reported by the driver itself
+  std::string lastError;
 };
 
 struct DriverInfoHelper {
