@@ -433,9 +433,12 @@ namespace
 /// 5 seconds, in order to avoid overloading the system.
 auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
 {
-  if (stats.beginIterationTimestamp - stats.lastSlowMetricSentTimestamp < 5000) {
+  auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastSlowMetricSentTimestamp;
+  if (timeSinceLastUpdate < 5000) {
     return;
   }
+  auto performedComputationsSinceLastUpdate = stats.performedComputations - stats.lastReportedPerformedComputations;
+
   ZoneScopedN("send metrics");
   auto& relayerStats = registry.get<DataRelayer>().getStats();
   auto& monitoring = registry.get<Monitoring>();
@@ -467,17 +470,21 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
                     .addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(stats.lastProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{((float)performedComputationsSinceLastUpdate / (float)timeSinceLastUpdate) * 1000, "processing_rate_hz"}.addTag(Key::Subsystem, Value::DPL));
 
   stats.lastSlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
+  stats.lastReportedPerformedComputations.store(stats.performedComputations.load());
   O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
 };
 
 /// This will flush metrics only once every second.
 auto flushMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
 {
-  if (stats.beginIterationTimestamp - stats.lastMetricFlushedTimestamp < 1000) {
+  auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastMetricFlushedTimestamp;
+  if (timeSinceLastUpdate < 1000) {
     return;
   }
+
   ZoneScopedN("flush metrics");
   auto& monitoring = registry.get<Monitoring>();
   auto& relayer = registry.get<DataRelayer>();
@@ -507,6 +514,9 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStats>(), stats};
     },
     .configure = noConfiguration(),
+    .postProcessing = [](ProcessingContext& context, void* service) {
+      DataProcessingStats* stats = (DataProcessingStats*)service;
+      stats->performedComputations++; },
     .preDangling = [](DanglingContext& context, void* service) {
       DataProcessingStats* stats = (DataProcessingStats*)service;
       sendRelayerMetrics(context.services(), *stats);
