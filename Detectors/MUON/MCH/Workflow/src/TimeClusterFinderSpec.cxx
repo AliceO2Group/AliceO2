@@ -54,7 +54,7 @@ class TimeClusterFinderTask
     mTimeClusterWidth = ic.options().get<int>("max-cluster-width");
     mNbinsInOneWindow = ic.options().get<int>("peak-search-nbins");
     mMinDigitPerROF = ic.options().get<int>("min-digits-per-rof");
-    mDebug = ic.options().get<bool>("debug");
+    mDebug = ic.options().get<bool>("mch-debug");
 
     if (mDebug) {
       fair::Logger::SetConsoleColor(true);
@@ -126,7 +126,7 @@ o2::framework::DataProcessorSpec getTimeClusterFinderSpec(const char* specName)
     Inputs{InputSpec{"rofs", header::gDataOriginMCH, "DIGITROFS", 0, Lifetime::Timeframe}},
     Outputs{OutputSpec{{"rofs"}, header::gDataOriginMCH, "TIMECLUSTERROFS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<TimeClusterFinderTask>()},
-    Options{{"debug", VariantType::Bool, false, {"enable verbose output"}},
+    Options{{"mch-debug", VariantType::Bool, false, {"enable verbose output"}},
             {"max-cluster-width", VariantType::Int, 1000 / 25, {"maximum time width of time clusters, in BC units"}},
             {"peak-search-nbins", VariantType::Int, 5, {"number of time bins for the peak search algorithm (must be an odd number >= 3)"}},
             {"min-digits-per-rof", VariantType::Int, 0, {"minimum number of digits per ROF (below that threshold ROF is discarded)"}}}};
