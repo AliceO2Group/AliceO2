@@ -415,14 +415,14 @@ class EncodedBlocks
 
   /// encode vector src to bloc at provided slot
   template <typename VE, typename buffer_T>
-  inline void encode(const VE& src, int slot, uint8_t symbolTablePrecision, Metadata::OptStore opt, buffer_T* buffer = nullptr, const void* encoderExt = nullptr)
+  inline void encode(const VE& src, int slot, uint8_t symbolTablePrecision, Metadata::OptStore opt, buffer_T* buffer = nullptr, const void* encoderExt = nullptr, float memfc = 1.f)
   {
-    encode(std::begin(src), std::end(src), slot, symbolTablePrecision, opt, buffer, encoderExt);
+    encode(std::begin(src), std::end(src), slot, symbolTablePrecision, opt, buffer, encoderExt, memfc);
   }
 
   /// encode vector src to bloc at provided slot
   template <typename input_IT, typename buffer_T>
-  void encode(const input_IT srcBegin, const input_IT srcEnd, int slot, uint8_t symbolTablePrecision, Metadata::OptStore opt, buffer_T* buffer = nullptr, const void* encoderExt = nullptr);
+  void encode(const input_IT srcBegin, const input_IT srcEnd, int slot, uint8_t symbolTablePrecision, Metadata::OptStore opt, buffer_T* buffer = nullptr, const void* encoderExt = nullptr, float memfc = 1.f);
 
   /// decode block at provided slot to destination vector (will be resized as needed)
   template <class container_T, class container_IT = typename container_T::iterator>
@@ -786,7 +786,8 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
                                     uint8_t symbolTablePrecision, // encoding into
                                     Metadata::OptStore opt,       // option for data compression
                                     buffer_T* buffer,             // optional buffer (vector) providing memory for encoded blocks
-                                    const void* encoderExt)       // optional external encoder
+                                    const void* encoderExt,       // optional external encoder
+                                    float memfc)                  // memory allocation margin factor
 {
 
   using storageBuffer_t = W;
@@ -838,7 +839,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
   if (opt == Metadata::OptStore::EENCODE) {
     // build symbol statistics
     constexpr size_t SizeEstMarginAbs = 10 * 1024;
-    constexpr float SizeEstMarginRel = 1.5;
+    const float SizeEstMarginRel = 1.5 * memfc;
 
     const auto [inplaceEncoder, frequencyTable] = [&]() {
       if (encoderExt) {

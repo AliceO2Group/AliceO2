@@ -116,7 +116,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, co
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
-#define ENCODEITSMFT(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
+#define ENCODEITSMFT(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
   ENCODEITSMFT(compCl.firstChipROF, CTF::BLCfirstChipROF, 0);
   ENCODEITSMFT(compCl.bcIncROF, CTF::BLCbcIncROF, 0);
