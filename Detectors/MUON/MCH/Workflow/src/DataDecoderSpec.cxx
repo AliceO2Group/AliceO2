@@ -80,7 +80,7 @@ class DataDecoderTask
 
     auto ds2manu = ic.options().get<bool>("ds2manu");
     auto sampaBcOffset = CoDecParam::Instance().sampaBcOffset;
-    mDebug = ic.options().get<bool>("debug");
+    mDebug = ic.options().get<bool>("mch-debug");
     mCheckROFs = ic.options().get<bool>("check-rofs");
     mDummyROFs = ic.options().get<bool>("dummy-rofs");
     auto mapCRUfile = ic.options().get<std::string>("cru-map");
@@ -331,7 +331,7 @@ o2::framework::DataProcessorSpec getDecodingSpec(const char* specName, std::stri
             OutputSpec{header::gDataOriginMCH, "DIGITROFS", 0, Lifetime::Timeframe},
             OutputSpec{header::gDataOriginMCH, "ORBITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<DataDecoderTask>(std::move(task))},
-    Options{{"debug", VariantType::Bool, false, {"enable verbose output"}},
+    Options{{"mch-debug", VariantType::Bool, false, {"enable verbose output"}},
             {"cru-map", VariantType::String, "", {"custom CRU mapping"}},
             {"fec-map", VariantType::String, "", {"custom FEC mapping"}},
             {"dummy-elecmap", VariantType::Bool, false, {"use dummy electronic mapping (for debug, temporary)"}},

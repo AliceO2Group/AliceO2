@@ -80,13 +80,13 @@ class TrackFinderTask
       dipoleCurrent = ic.options().get<float>("dipoleCurrent");
     }
 
-    auto config = ic.options().get<std::string>("config");
+    auto config = ic.options().get<std::string>("mch-config");
     if (!config.empty()) {
       o2::conf::ConfigurableParam::updateFromFile(config, "MCHTracking", true);
     }
     mTrackFinder.init(l3Current, dipoleCurrent);
 
-    auto debugLevel = ic.options().get<int>("debug");
+    auto debugLevel = ic.options().get<int>("mch-debug");
     mTrackFinder.debug(debugLevel);
 
     auto stop = [this]() {
@@ -186,8 +186,8 @@ o2::framework::DataProcessorSpec getTrackFinderSpec(const char* specName)
     Options{{"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
             {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}},
             {"grp-file", VariantType::String, o2::base::NameConf::getGRPFileName(), {"Name of the grp file"}},
-            {"config", VariantType::String, "", {"JSON or INI file with tracking parameters"}},
-            {"debug", VariantType::Int, 0, {"debug level"}}}};
+            {"mch-config", VariantType::String, "", {"JSON or INI file with tracking parameters"}},
+            {"mch-debug", VariantType::Int, 0, {"debug level"}}}};
 }
 
 } // namespace mch

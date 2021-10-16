@@ -50,7 +50,7 @@ class TrackMatcherTask
   {
     LOG(INFO) << "initializing track matching";
 
-    auto config = ic.options().get<std::string>("config");
+    auto config = ic.options().get<std::string>("mch-config");
     if (!config.empty()) {
       conf::ConfigurableParam::updateFromFile(config, "MUONMatching", true);
     }
@@ -95,7 +95,7 @@ DataProcessorSpec getTrackMatcherSpec(const char* name)
            InputSpec{"midtracks", "MID", "TRACKS", 0, Lifetime::Timeframe}},
     Outputs{OutputSpec{{"muontracks"}, "GLO", "MCHMID", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<TrackMatcherTask>()},
-    Options{{"config", VariantType::String, "", {"JSON or INI file with matching parameters"}}}};
+    Options{{"mch-config", VariantType::String, "", {"JSON or INI file with matching parameters"}}}};
 }
 
 } // namespace muon
