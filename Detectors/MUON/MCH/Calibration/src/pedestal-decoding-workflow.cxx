@@ -144,7 +144,7 @@ class PedestalsTask
   //_________________________________________________________________________________________________
   void init(framework::InitContext& ic)
   {
-    mDebug = ic.options().get<bool>("debug");
+    mDebug = ic.options().get<bool>("mch-debug");
     mLoggingInterval = ic.options().get<int>("logging-interval") * 1000;
 
     auto mapCRUfile = ic.options().get<std::string>("cru-map");
@@ -419,7 +419,7 @@ o2::framework::DataProcessorSpec getMCHPedestalDecodingSpec(const char* specName
     Outputs{OutputSpec{header::gDataOriginMCH, "PDIGITS", 0, Lifetime::Timeframe},
             OutputSpec{header::gDataOriginMCH, "ERRORS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<o2::mch::raw::PedestalsTask>(inputSpec)},
-    Options{{"debug", VariantType::Bool, false, {"enable verbose output"}},
+    Options{{"mch-debug", VariantType::Bool, false, {"enable verbose output"}},
             {"logging-interval", VariantType::Int, 0, {"time interval in seconds between logging messages (set to zero to disable)"}},
             {"noise-threshold", VariantType::Float, (float)2.0, {"maximum acceptable noise value"}},
             {"pedestal-threshold", VariantType::Float, (float)150, {"maximum acceptable pedestal value"}},
