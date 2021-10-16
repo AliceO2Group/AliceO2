@@ -30,6 +30,7 @@ namespace tpc
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
   mCTFCoder.setCombineColumns(!ic.options().get<bool>("no-ctf-columns-combining"));
+  mCTFCoder.setMemMarginFactor(ic.options().get<float>("mem-factor"));
   std::string dictPath = ic.options().get<std::string>("ctf-dict");
   if (!dictPath.empty() && dictPath != "none") {
     mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
@@ -84,7 +85,8 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile)
     Outputs{{"TPC", "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(inputFromFile)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF encoding dictionary"}},
-            {"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}}}};
+            {"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}},
+            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }
 
 } // namespace tpc
