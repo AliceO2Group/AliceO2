@@ -33,8 +33,6 @@
 #include "CommonDataFormat/IRFrame.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
-#include "ITStracking/Vertexer.h"
-#include "ITStracking/VertexerTraits.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "CommonUtils/StringUtils.h"
 
@@ -58,6 +56,8 @@ CookedTrackerDPL::CookedTrackerDPL(bool useMC, const std::string& trMode) : mUse
     mTracker.setParametersCosmics();
     mRunVertexer = false;
   }
+  mVertexerTraitsPtr = std::make_unique<VertexerTraits>();
+  mVertexerPtr = std::make_unique<Vertexer>(mVertexerTraitsPtr.get());
 }
 
 void CookedTrackerDPL::init(InitContext& ic)
@@ -69,6 +69,8 @@ void CookedTrackerDPL::init(InitContext& ic)
   auto filename = ic.options().get<std::string>("grp-file");
   const auto grp = o2::parameters::GRPObject::loadFrom(filename);
   if (grp) {
+    mVertexerPtr->getGlobalConfiguration();
+
     mGRP.reset(grp);
     o2::base::Propagator::initFieldFromGRP(grp);
     auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
@@ -129,8 +131,6 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     mTracker.setMCTruthContainers(labels.get(), &trackLabels);
   }
 
-  o2::its::VertexerTraits vertexerTraits;
-  o2::its::Vertexer vertexer(&vertexerTraits);
   o2::its::ROframe event(0, 7);
 
   auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
@@ -164,9 +164,9 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
 
     if (mRunVertexer) {
       o2::its::ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels.get());
-      vertexer.clustersToVertices(event, false, [&](std::string s) { LOG(INFO) << s; });
+      mVertexerPtr->clustersToVertices(event, false, [&](std::string s) { LOG(INFO) << s; });
     }
-    auto vtxVecLoc = vertexer.exportVertices();
+    auto vtxVecLoc = mVertexerPtr->exportVertices();
 
     if (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0) { // cut was requested
       std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecSel;
