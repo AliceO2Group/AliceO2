@@ -212,6 +212,9 @@ void MatchGlobalFwd::doMatching()
     while (mchROF < nMCHROFs && (thisMFTBracket.isOutside(mMCHROFTimes[mchROF]))) {
       mchROF++;
     }
+    if (mchROF >= nMCHROFs) {
+      continue;
+    }
     int mchROFMatchFirst = -1;
     int mchROFMatchLast = -1;
 
@@ -220,6 +223,9 @@ void MatchGlobalFwd::doMatching()
 
       while (mchROF < nMCHROFs && !(thisMFTBracket < mMCHROFTimes[mchROF])) {
         mchROF++;
+      }
+      if (mchROF >= nMCHROFs) {
+        continue;
       }
       mchROFMatchLast = mchROF - 1;
     } else {
