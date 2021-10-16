@@ -215,6 +215,21 @@ if [ "$doreco" == "1" ]; then
   taskwrapper zdcreco.log o2-zdc-digits-reco $gloOpt
   echo "Return status of ZDC reconstruction: $?"
 
+  echo "Running EMC reconstruction"
+  #need EMC digits
+  taskwrapper emcreco.log o2-emcal-reco-workflow --infile emcaldigits.root $gloOpt
+  echo "Return status of EMC reconstruction: $?"
+
+  echo "Running PHS reconstruction"
+  #need PHS digits
+  taskwrapper phsreco.log o2-phos-reco-workflow $gloOpt
+  echo "Return status of PHS reconstruction: $?"
+
+  echo "Running CPV reconstruction"
+  #need CPV digits
+  taskwrapper cpvreco.log o2-cpv-reco-workflow $gloOpt
+  echo "Return status of CPV reconstruction: $?"
+
   echo "Producing AOD"
   taskwrapper aod.log o2-aod-producer-workflow --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1
   echo "Return status of AOD production: $?"
