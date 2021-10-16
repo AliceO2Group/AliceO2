@@ -4,8 +4,7 @@
 
 # Framework
 
-There is no module description yet.
-
+Home of the O2 DPL.
 <!-- doxy
 This module contains the following submodules:
 
