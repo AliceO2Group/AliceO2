@@ -61,14 +61,13 @@ void ITSCalibrator<Mapping>::init(InitContext& ic)
     mGeom = o2::its::GeometryTGeo::Instance();
 
     // Initialize text file to save some processing output
-    std::ofstream thrfile;
-    thrfile.open("thrfile.txt");
+    //std::ofstream thrfile;
+    //thrfile.open("thrfile.txt");
 
     mDecoder = std::make_unique<RawPixelDecoder<ChipMappingITS>>();
     mDecoder->init();
     mDecoder->setFormat(GBTLink::NewFormat);    //Using RDHv6 (NewFormat)
     mDecoder->setVerbosity(0);
-
     //mChipsBuffer.resize(2);
     mChipsBuffer.resize(mGeom->getNumberOfChips());
 
@@ -251,9 +250,6 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
     std::ofstream thrfile;
     thrfile.open("thrfile.txt", std::ios_base::app);
 
-    // Initialize ROOT output file
-    TFile* tf = new TFile("threshold_scan.root", "RECREATE");
-
     int chipID = 0;
     int TriggerId = 0;
     std::map< int, int > currentRow;
@@ -376,8 +372,15 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
                             thresholds[chipID]->SetBinError(cur_row, col+1, noise);
                             // TODO: store the chi2 info somewhere useful
                         }
+                        // Initialize ROOT output file
+                        TFile* tf = new TFile("threshold_scan.root", "UPDATE");
+
                         // Update the ROOT file with most recent histo
                         tf->Write(thresholds[chipID]->GetName(), TObject::kOverwrite);
+
+                        // Close file and clean up memory
+                        tf->Close();
+                        delete tf;
 
                         // update current row of chip
                         currentRow[chipID] = pixels[0].getRow();
@@ -408,6 +411,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
     TriggerId = 0;
     mTFCounter++;
     delete[] x;
+    thrfile.close();
 }
 
 template <class Mapping>
