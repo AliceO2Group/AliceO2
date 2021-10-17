@@ -171,7 +171,7 @@ int EnumLegalValues::getIntValue(const std::string& value) const
 void ConfigurableParam::writeINI(std::string const& filename, std::string const& keyOnly)
 {
   if (sOutputDir == "/dev/null") {
-    LOG(INFO) << "ignoring writing of ini file " << filename;
+    LOG(DEBUG) << "ignoring writing of ini file " << filename;
     return;
   }
   auto outfilename = o2::utils::Str::concat_string(sOutputDir, filename);
