@@ -26,16 +26,8 @@ namespace event_visualisation
 
 class DataReaderJSON : public DataReader
 {
- private:
-  Int_t mMaxEv;
-  std::string mFileName;
-
  public:
-  DataReaderJSON(DataInterpreter* interpreter) : DataReader(interpreter) {}
-
-  void open() override;
-  int GetEventCount() const override { return mMaxEv; }
-  VisualisationEvent getEvent(int no, EVisualisationDataType dataType) override;
+  VisualisationEvent getEvent(std::string fileName) override;
 };
 
 } // namespace event_visualisation

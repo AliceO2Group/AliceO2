@@ -15,7 +15,8 @@ o2_add_library(EventVisualisationView
                        src/EventManager.cxx
                        src/Options.cxx
                        src/EventManagerFrame.cxx
-               PUBLIC_LINK_LIBRARIES O2::EventVisualisationBase
+               PUBLIC_LINK_LIBRARIES ROOT::ASImage
+                                     O2::EventVisualisationBase
                                      O2::EventVisualisationDetectors
                                      RapidJSON::RapidJSON)
 

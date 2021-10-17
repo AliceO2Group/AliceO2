@@ -45,7 +45,7 @@ TEveGeoShape* GeometryManager::getGeometryForDetector(string detectorName)
   ConfigurationManager::getInstance().getConfig(settings);
 
   // read geometry path from config file
-  string geomPath = settings.GetValue(this->mR2Geometry ? "simple.geom.R2.path" : "simple.geom.R3.path", "");
+  string geomPath = settings.GetValue("simple.geom.R3.path", "");
 
   // load ROOT file with geometry
   TFile* f = TFile::Open(Form("%s/simple_geom_%s.root", geomPath.c_str(), detectorName.c_str()));

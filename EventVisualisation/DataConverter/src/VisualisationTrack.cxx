@@ -60,6 +60,7 @@ VisualisationTrack::VisualisationTrack(rapidjson::Value& tree)
   this->mCharge = 0;
 
   this->mSource = (o2::dataformats::GlobalTrackID::Source)tree["source"].GetInt();
+  this->mSource = o2::dataformats::GlobalTrackID::TPC; // temporary
   this->mPID = (o2::dataformats::GlobalTrackID::Source)tree["source"].GetInt();
   //this->mTime = (o2::dataformats::GlobalTrackID::Source)tree["time"].GetFloat();
   this->mPolyX.reserve(count.GetInt());

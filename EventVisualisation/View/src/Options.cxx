@@ -79,7 +79,7 @@ bool Options::processCommandLine(int argc, char* argv[])
   // put ':' in the starting of the
   // string so that program can
   //distinguish between '?' and ':'
-  while ((opt = getopt(argc, argv, ":d:f:hijop:rsvt")) != -1) {
+  while ((opt = getopt(argc, argv, ":d:f:hijop:rs:vt")) != -1) {
     switch (opt) {
       case 'd':
         this->mDataFolder = optarg;
