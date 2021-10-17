@@ -74,8 +74,7 @@ void EventManager::displayCurrentEvent()
     auto displayList = getDataSource()->getVisualisationList(no);
     for (auto it = displayList.begin(); it != displayList.end(); ++it) {
 
-      if (it->second == o2::dataformats::GlobalTrackID::TPC) {
-        LOG(INFO) << "displayCurrentEvent(): " << it->second;
+      if (it->second == EVisualisationGroup::TPC) { // temporary
         displayVisualisationEvent(it->first, gVisualisationGroupName[it->second]);
       }
     }
