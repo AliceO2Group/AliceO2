@@ -20,6 +20,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "Algorithm/RangeTokenizer.h"
 
 // Specific detectors specs
 #include "ITSMFTWorkflow/EntropyDecoderSpec.h"
