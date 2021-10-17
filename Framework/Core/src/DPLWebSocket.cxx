@@ -16,6 +16,7 @@
 #include "Framework/DevicesManager.h"
 #include "DriverServerContext.h"
 #include "DriverClientContext.h"
+#include "GuiCallbackContext.h"
 #include "HTTPParser.h"
 #include <algorithm>
 #include <atomic>
@@ -89,6 +90,91 @@ void ws_handshake_done_callback(uv_write_t* h, int status)
   uv_read_start((uv_stream_t*)h->handle, (uv_alloc_cb)my_alloc_cb, websocket_server_callback);
 }
 
+enum struct GUIOpcodes : uint8_t {
+  Mousepos = 1,
+  Mouseclick = 2,
+  Mousewheel = 3,
+  Window = 4,
+  Latency = 5,
+  Keydown = 6,
+  Keyup = 7,
+  Charin = 8
+};
+
+/// An handler for a websocket message stream.
+struct GUIWebSocketHandler : public WebSocketHandler {
+  GUIWebSocketHandler(DriverServerContext& context, GuiRenderer* renderer)
+    : mContext{context}, mRenderer{renderer}
+  {
+  }
+  ~GUIWebSocketHandler() override
+  {
+    mContext.gui->renderers.erase(mRenderer);
+    uv_timer_stop(&(mRenderer->drawTimer));
+    delete mRenderer;
+    LOGP(INFO, "RemoteGUI disconnected, {} left", mContext.gui->renderers.size());
+  }
+
+  void headers(std::map<std::string, std::string> const& headers) override {}
+  void beginFragmentation() override {}
+  void frame(char const* frame, size_t s) override
+  {
+    GUIOpcodes opcode = (GUIOpcodes) * (frame++);
+    switch (opcode) {
+      case GUIOpcodes::Mousepos: {
+        float* positions = (float*)frame;
+        mContext.gui->plugin->updateMousePos(positions[0], positions[1]);
+        break;
+      }
+      case GUIOpcodes::Mouseclick: {
+        char isClicked = *frame;
+        mContext.gui->plugin->updateMouseButton(isClicked == 1);
+        break;
+      }
+      case GUIOpcodes::Mousewheel: {
+        int movement = *frame;
+        mContext.gui->plugin->updateMouseWheel(movement);
+        break;
+      }
+      case GUIOpcodes::Window: {
+        int* size = (int*)frame;
+        mContext.gui->plugin->updateWindowSize(size[0], size[1]);
+        break;
+      }
+      case GUIOpcodes::Latency: {
+        int lat = *((int*)frame);
+        lat = lat < 20 ? 20 : lat;
+        uv_timer_set_repeat(&(mRenderer->drawTimer), lat);
+        break;
+      }
+      case GUIOpcodes::Keydown: {
+        char key = *frame;
+        mContext.gui->plugin->keyDown(key);
+        break;
+      }
+      case GUIOpcodes::Keyup: {
+        char key = *frame;
+        mContext.gui->plugin->keyUp(key);
+        break;
+      }
+      case GUIOpcodes::Charin: {
+        char key = *frame;
+        mContext.gui->plugin->charIn(key);
+        break;
+      }
+    }
+  }
+  void endFragmentation() override{};
+  void control(char const* frame, size_t s) override{};
+  void beginChunk() override{};
+  void endChunk() override{};
+
+  /// The driver context were we want to accumulate changes
+  /// which we got from the websocket.
+  DriverServerContext& mContext;
+  GuiRenderer* mRenderer;
+};
+
 WSDPLHandler::WSDPLHandler(uv_stream_t* s, DriverServerContext* context, std::unique_ptr<WebSocketHandler> h)
   : mStream{s},
     mServerContext{context},
@@ -121,6 +207,39 @@ void populateHeader(std::map<std::string, std::string>& headers, std::string_vie
                    [](unsigned char c) { return std::tolower(c); });
   }
   headers.insert(std::make_pair(kk, vv));
+}
+
+void remoteGuiCallback(uv_timer_s* ctx)
+{
+  GuiRenderer* renderer = reinterpret_cast<GuiRenderer*>(ctx->data);
+
+  void* frame = nullptr;
+  void* draw_data = nullptr;
+  int size;
+  uint64_t frameStart = uv_hrtime();
+  uint64_t frameLatency = frameStart - renderer->gui->frameLast;
+
+  // if less than 15ms have passed reuse old frame
+  if (frameLatency / 1000000 > 15) {
+    renderer->gui->plugin->pollGUIPreRender(renderer->gui->window, (float)frameLatency / 1000000000.0f);
+    draw_data = renderer->gui->plugin->pollGUIRender(renderer->gui->callback);
+  } else {
+    draw_data = renderer->gui->lastFrame;
+  }
+
+  renderer->gui->plugin->getFrameRaw(draw_data, &frame, &size);
+  std::vector<uv_buf_t> outputs;
+  encode_websocket_frames(outputs, (const char*)frame, size, WebSocketOpCode::Binary, 0);
+  renderer->handler->write(outputs);
+  free(frame);
+
+  if (frameLatency / 1000000 > 15) {
+    uint64_t frameEnd = uv_hrtime();
+    *(renderer->gui->frameCost) = (frameEnd - frameStart) / 1000000;
+    *(renderer->gui->frameLatency) = frameLatency / 1000000;
+    renderer->gui->frameLast = frameStart;
+    renderer->gui->lastFrame = draw_data;
+  }
 }
 
 void WSDPLHandler::header(std::string_view const& k, std::string_view const& v)
