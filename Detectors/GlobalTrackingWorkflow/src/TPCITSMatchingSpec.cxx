@@ -97,6 +97,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   mMatching.setUseFT0(mUseFT0);
   mMatching.setVDriftCalib(mCalibMode);
   mMatching.setNThreads(std::max(1, ic.options().get<int>("nthreads")));
+  mMatching.setUseBCFilling(!ic.options().get<bool>("ignore-bc-check"));
   //
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
@@ -123,10 +124,11 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   mMatching.setDebugFlag(dbgFlags);
 
   // set bunch filling. Eventually, this should come from CCDB
-  const auto* digctx = o2::steer::DigitizationContext::loadFromFile();
-  const auto& bcfill = digctx->getBunchFilling();
-  mMatching.setBunchFilling(bcfill);
-
+  if (mMatching.getUseBCFilling()) {
+    const auto* digctx = o2::steer::DigitizationContext::loadFromFile();
+    const auto& bcfill = digctx->getBunchFilling();
+    mMatching.setBunchFilling(bcfill);
+  }
   mMatching.init();
   //
 }
@@ -199,6 +201,7 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
     Options{
       {"nthreads", VariantType::Int, 1, {"Number of afterburner threads"}},
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
+      {"ignore-bc-check", VariantType::Bool, false, {"Do not check match candidate against BC filling"}},
       {"debug-tree-flags", VariantType::Int, 0, {"DebugFlagTypes bit-pattern for debug tree"}}}};
 }
 
