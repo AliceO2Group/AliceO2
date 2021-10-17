@@ -29,6 +29,7 @@ struct CTFReaderInp {
   std::string copyCmd{};
   std::string tffileRegex{};
   std::string remoteRegex{};
+  std::vector<int> ctfIDs{};
   int maxFileCache = 1;
   int64_t delay_us = 0;
   int maxLoops = 0;
