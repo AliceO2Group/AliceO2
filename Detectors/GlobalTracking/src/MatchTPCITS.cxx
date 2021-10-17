@@ -775,11 +775,12 @@ void MatchTPCITS::doMatching(int sec)
       int matchedIC = MinusOne;
       if (!isCosmics()) {
         // validate by bunch filling scheme
-        auto irBracket = tBracket2IRBracket(trange);
-        if (irBracket.isInvalid()) {
-          continue;
+        if (mUseBCFilling) {
+          auto irBracket = tBracket2IRBracket(trange);
+          if (irBracket.isInvalid()) {
+            continue;
+          }
         }
-
         if (checkInteractionCandidates) {
           // check if corrected TPC track time is compatible with any of interaction times
           auto interactionRefs = mITSROFIntCandEntries[trefITS.roFrame]; // reference on interaction candidates compatible with this track

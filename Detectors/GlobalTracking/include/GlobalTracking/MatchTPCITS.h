@@ -325,6 +325,9 @@ class MatchTPCITS
   void setUseFT0(bool v) { mUseFT0 = v; }
   bool getUseFT0() const { return mUseFT0; }
 
+  void setUseBCFilling(bool v) { mUseBCFilling = v; }
+  bool getUseBCFilling() const { return mUseBCFilling; }
+
   ///< set ITS ROFrame duration in microseconds
   void setITSROFrameLengthMUS(float fums);
   ///< set ITS ROFrame duration in BC (continuous mode only)
@@ -517,7 +520,7 @@ class MatchTPCITS
   const o2::ft0::InteractionTag* mFT0Params = nullptr;
 
   MatCorrType mUseMatCorrFlag = MatCorrType::USEMatCorrTGeo;
-
+  bool mUseBCFilling = true;  ///< use BC filling for candidates validation
   bool mSkipTPCOnly = false;  ///< for test only: don't use TPC only tracks, use only external ones
   bool mITSTriggered = false; ///< ITS readout is triggered
   bool mUseFT0 = false;       ///< FT0 information is available
