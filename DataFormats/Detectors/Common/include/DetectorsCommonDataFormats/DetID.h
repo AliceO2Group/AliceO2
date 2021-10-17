@@ -98,10 +98,18 @@ class DetID
   static constexpr std::string_view ALL{"all"};   ///< keywork for all detectors
 #endif                                            // GPUCA_GPUCODE_DEVICE
 
-  GPUdi() DetID(ID id) : mID(id)
+  constexpr GPUdi() DetID(ID id) : mID(id)
   {
   }
-  DetID(const char* name);
+
+#ifndef GPUCA_GPUCODE_DEVICE
+  constexpr DetID(const char* name) : mID(nameToID(name, First))
+  {
+    // construct from the name
+    assert(mID < nDetectors);
+  }
+#endif // GPUCA_GPUCODE_DEVICE
+
   GPUdDefault() DetID(const DetID& src) = default;
   GPUdDefault() DetID& operator=(const DetID& src) = default;
   // we need default c-tor only for root persistency, code must use c-tor with argument
