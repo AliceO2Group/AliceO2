@@ -26,6 +26,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/TrackExtrap.h"
+#include "DataFormatsITSMFT/TrkClusRef.h"
 
 using namespace o2::event_visualisation;
 
@@ -191,14 +192,26 @@ void EveWorkflowHelper::drawITSTPCTOF(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawITSClusters(GID gid, float trackTime)
 {
-  const auto& trc = mRecoCont.getITSTrack(gid);
-  auto refs = mRecoCont.getITSTracksClusterRefs();
-  int ncl = trc.getNumberOfClusters();
-  int offset = trc.getFirstClusterEntry();
-  for (int icl = 0; icl < ncl; icl++) {
-    const auto& pnt = mITSClustersArray[refs[icl + offset]];
-    const auto glo = mITSGeom->getMatrixT2G(pnt.getSensorID()) * pnt.getXYZ();
-    drawPoint(glo.X(), glo.Y(), glo.Z(), trackTime);
+  if (gid.getSource() == GID::ITS) { // this is for for full standalone tracks
+    const auto& trc = mRecoCont.getITSTrack(gid);
+    auto refs = mRecoCont.getITSTracksClusterRefs();
+    int ncl = trc.getNumberOfClusters();
+    int offset = trc.getFirstClusterEntry();
+    for (int icl = 0; icl < ncl; icl++) {
+      const auto& pnt = mITSClustersArray[refs[icl + offset]];
+      const auto glo = mITSGeom->getMatrixT2G(pnt.getSensorID()) * pnt.getXYZ();
+      drawPoint(glo.X(), glo.Y(), glo.Z(), trackTime);
+    }
+  } else if (gid.getSource() == GID::ITSAB) { // this is for ITS tracklets from ITS-TPC afterburner
+    const auto& trc = mRecoCont.getITSABRef(gid);
+    const auto& refs = mRecoCont.getITSABClusterRefs();
+    int ncl = trc.getNClusters();
+    int offset = trc.getFirstEntry();
+    for (int icl = 0; icl < ncl; icl++) {
+      const auto& pnt = mITSClustersArray[refs[icl + offset]];
+      const auto glo = mITSGeom->getMatrixT2G(pnt.getSensorID()) * pnt.getXYZ();
+      drawPoint(glo.X(), glo.Y(), glo.Z(), trackTime);
+    }
   }
 }
 
