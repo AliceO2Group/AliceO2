@@ -149,11 +149,11 @@ namespace o2
 
   void EventManagerFrame::DoScreenshot()
   {
-    if(not setInTick()) {
-      return ;
+    if (not setInTick()) {
+      return;
     }
-    UInt_t width = 2*1920;
-    UInt_t height = 2*1080;
+    UInt_t width = 2 * 1920;
+    UInt_t height = 2 * 1080;
 
     std::string runString = "Run:";
     std::string timestampString = "Timestamp:";
@@ -163,16 +163,16 @@ namespace o2
     TASImage image(width, height);
 
     TImage* view3dImage = MultiView::getInstance()->getView(MultiView::EViews::View3d)->GetGLViewer()->GetPictureUsingBB();
-    view3dImage->Scale(width*0.66, height);
+    view3dImage->Scale(width * 0.66, height);
     view3dImage->CopyArea(&image, 0, 0, view3dImage->GetWidth(), view3dImage->GetHeight(), 0, 0);
 
     TImage* viewRphiImage = MultiView::getInstance()->getView(MultiView::EViews::ViewRphi)->GetGLViewer()->GetPictureUsingBB();
-    viewRphiImage->Scale(width*0.33, height*0.5);
-    viewRphiImage->CopyArea(&image, 0, 0, viewRphiImage->GetWidth(), viewRphiImage->GetHeight(), width*0.66, 0);
+    viewRphiImage->Scale(width * 0.33, height * 0.5);
+    viewRphiImage->CopyArea(&image, 0, 0, viewRphiImage->GetWidth(), viewRphiImage->GetHeight(), width * 0.66, 0);
 
     TImage* viewZrhoImage = MultiView::getInstance()->getView(MultiView::EViews::ViewZrho)->GetGLViewer()->GetPictureUsingBB();
-    viewZrhoImage->Scale(width*0.33, height*0.5);
-    viewZrhoImage->CopyArea(&image, 0, 0, viewZrhoImage->GetWidth(), viewZrhoImage->GetHeight(), width*0.66, height*0.5);
+    viewZrhoImage->Scale(width * 0.33, height * 0.5);
+    viewZrhoImage->CopyArea(&image, 0, 0, viewZrhoImage->GetWidth(), viewZrhoImage->GetHeight(), width * 0.66, height * 0.5);
 
     image.DrawText(10, 1000, runString.c_str(), 24, "#FFFFFF");
     image.DrawText(10, 1020, timestampString.c_str(), 24, "#FFFFFF");
@@ -185,8 +185,8 @@ namespace o2
 
   void EventManagerFrame::DoTimeTick()
   {
-    if(not setInTick()) {
-      return ;
+    if (not setInTick()) {
+      return;
     }
     if (mEventManager->getDataSource()->refresh()) {
       mEventManager->displayCurrentEvent();
@@ -215,7 +215,7 @@ namespace o2
   void EventManagerFrame::DoSave()
   {
     if (!Options::Instance()->savedDataFolder().empty()) {
-      if(not setInTick()) {
+      if (not setInTick()) {
         return;
       }
       this->mEventManager->getDataSource()->saveCurrentEvent(Options::Instance()->savedDataFolder());
@@ -225,7 +225,7 @@ namespace o2
 
   void EventManagerFrame::DoOnlineMode()
   {
-    if(not setInTick()) {
+    if (not setInTick()) {
       return;
     }
     this->mEventManager->getDataSource()->changeDataFolder(Options::Instance()->dataFolder());
@@ -236,7 +236,7 @@ namespace o2
   void EventManagerFrame::DoSavedMode()
   {
     if (!Options::Instance()->savedDataFolder().empty()) {
-      if(not setInTick()) {
+      if (not setInTick()) {
         return;
       }
       this->mEventManager->getDataSource()->changeDataFolder(Options::Instance()->savedDataFolder());
@@ -253,7 +253,7 @@ namespace o2
     inTick = this->inTick;
     this->inTick = true;
     lck.unlock();
-    return not inTick;      // it is me who set inTick
+    return not inTick; // it is me who set inTick
   }
 
   void EventManagerFrame::clearInTick()

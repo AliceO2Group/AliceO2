@@ -137,17 +137,14 @@ VisualisationEvent::VisualisationEvent(const VisualisationEvent& source, EVisual
 {
   for (auto it = source.mTracks.begin(); it != source.mTracks.end(); ++it) {
     if (VisualisationEvent::mVis.contains[it->getSource()][filter]) {
-      this->addTrack({
-                       .time = it->getTime(),
-                       .charge = it->getCharge(),
-                       .PID = it->getPID(),
-                       .startXYZ = {
-                         it->getStartCoordinates()[0], it->getStartCoordinates()[1], it->getStartCoordinates()[2]
-                       },
-                       .phi = it->getPhi(),
-                       .theta = it->getTheta(),
-                       .source = it->getSource()
-                     });
+      this->addTrack({.time = it->getTime(),
+                      .charge = it->getCharge(),
+                      .PID = it->getPID(),
+                      .startXYZ = {
+                        it->getStartCoordinates()[0], it->getStartCoordinates()[1], it->getStartCoordinates()[2]},
+                      .phi = it->getPhi(),
+                      .theta = it->getTheta(),
+                      .source = it->getSource()});
     }
   }
   for (auto it = source.mClusters.begin(); it != source.mClusters.end(); ++it) {

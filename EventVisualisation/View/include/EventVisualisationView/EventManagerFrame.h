@@ -37,8 +37,8 @@ class EventManagerFrame : public TGMainFrame
   TTimer* mTimer; // Timer for automatic event loading
   bool mTimerRunning;
   bool inTick = false;
-  bool setInTick() ;    // try set inTick, return true if set, false if already set
-  void clearInTick() ;  // safely clears inTick
+  bool setInTick();   // try set inTick, return true if set, false if already set
+  void clearInTick(); // safely clears inTick
   static TGTextButton* makeButton(TGCompositeFrame* p, const char* txt, Int_t width = 0,
                                   Int_t lo = 0, Int_t ro = 0, Int_t to = 0, Int_t bo = 0);
 
