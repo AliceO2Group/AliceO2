@@ -61,7 +61,7 @@ void DataRequest::requestITSTracks(bool mc)
 {
   addInput({"trackITS", "ITS", "TRACKS", 0, Lifetime::Timeframe});
   addInput({"trackITSROF", "ITS", "ITSTrackROF", 0, Lifetime::Timeframe});
-  addInput({"trackClIdx", "ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
+  addInput({"trackITSClIdx", "ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
   if (mc) {
     addInput({"trackITSMCTR", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe});
   }
@@ -72,7 +72,7 @@ void DataRequest::requestMFTTracks(bool mc)
 {
   addInput({"trackMFT", "MFT", "TRACKS", 0, Lifetime::Timeframe});
   addInput({"trackMFTROF", "MFT", "MFTTrackROF", 0, Lifetime::Timeframe});
-  addInput({"trackClIdx", "MFT", "TRACKCLSID", 0, Lifetime::Timeframe});
+  addInput({"trackMFTClIdx", "MFT", "TRACKCLSID", 0, Lifetime::Timeframe});
   if (mc) {
     addInput({"trackMFTMCTR", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe});
   }
@@ -652,7 +652,7 @@ void RecoContainer::addCosmicTracks(ProcessingContext& pc, bool mc)
 void RecoContainer::addITSTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS"), TRACKS);
-  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<int>>("trackClIdx"), INDICES);
+  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<int>>("trackITSClIdx"), INDICES);
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackITSROF"), TRACKREFS);
   if (mc) {
     commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTR"), MCLABELS);
@@ -669,7 +669,7 @@ void RecoContainer::addIRFramesITS(ProcessingContext& pc)
 void RecoContainer::addMFTTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::mft::TrackMFT>>("trackMFT"), TRACKS);
-  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<int>>("trackClIdx"), INDICES);
+  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<int>>("trackMFTClIdx"), INDICES);
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackMFTROF"), TRACKREFS);
   if (mc) {
     commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMFTMCTR"), MCLABELS);
