@@ -17,7 +17,7 @@ int Channel::getBranchIndex() const
   if (mHardwareAddress == -1) {
     throw HardwareAddressError();
   }
-  return getBranchIndexFromHwAddress(mHardwareAddress);
+  return ((mHardwareAddress >> 11) & 0x1);
 }
 
 int Channel::getFECIndex() const
@@ -25,7 +25,7 @@ int Channel::getFECIndex() const
   if (mHardwareAddress == -1) {
     throw HardwareAddressError();
   }
-  return getFecIndexFromHwAddress(mHardwareAddress);
+  return ((mHardwareAddress >> 7) & 0xF);
 }
 
 Int_t Channel::getAltroIndex() const
@@ -33,7 +33,7 @@ Int_t Channel::getAltroIndex() const
   if (mHardwareAddress == -1) {
     throw HardwareAddressError();
   }
-  return getAltroIndexFromHwAddress(mHardwareAddress);
+  return ((mHardwareAddress >> 4) & 0x7);
 }
 
 Int_t Channel::getChannelIndex() const
@@ -41,7 +41,7 @@ Int_t Channel::getChannelIndex() const
   if (mHardwareAddress == -1) {
     throw HardwareAddressError();
   }
-  return getChannelIndexFromHwAddress(mHardwareAddress);
+  return (mHardwareAddress & 0xF);
 }
 
 Bunch& Channel::createBunch(uint8_t bunchlength, uint8_t starttime)
