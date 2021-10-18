@@ -22,7 +22,6 @@
 #include "Framework/Logger.h"
 #include "Framework/WorkflowSpec.h"
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
-#include "DataFormatsEMCAL/Constants.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "DataFormatsEMCAL/ErrorTypeFEE.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -88,6 +87,22 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 
   mRawFitter->setAmpCut(mNoiseThreshold);
   mRawFitter->setL1Phase(0.);
+
+  mErrorHandler.setNumberOfErrorClasses(mErrorCodeHandler.getNumberOfErrorCodes());
+
+  mErrorHandler.define(mErrorCodeHandler.getGlobalCodeForAltroError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR), "RCU trailer corrupted");
+  mErrorHandler.define(mErrorCodeHandler.getGlobalCodeForAltroError(AltroDecoderError::ErrorType_t::RCU_VERSION_ERROR), "RCU trailer version mismatch");
+  mErrorHandler.define(mErrorCodeHandler.getGlobalCodeForAltroError(AltroDecoderError::ErrorType_t::RCU_TRAILER_SIZE_ERROR), "RCU trailer size mismatch");
+  mErrorHandler.define(mErrorCodeHandler.getGlobalCodeForAltroError(AltroDecoderError::ErrorType_t::ALTRO_BUNCH_HEADER_ERROR), "ALTRO Bunch Header Error");
+  mErrorHandler.define(mErrorCodeHandler.getGlobalCodeForAltroError(AltroDecoderError::ErrorType_t::ALTRO_BUNCH_LENGTH_ERROR), "ALTRO Bunch Length Error");
+  mErrorHandler.define(mErrorCodeHandler.getGlobalCodeForAltroError(AltroDecoderError::ErrorType_t::ALTRO_PAYLOAD_ERROR), "ALTRO Payload Error");
+  mErrorHandler.define(mErrorCodeHandler.getGlobalCodeForAltroError(AltroDecoderError::ErrorType_t::ALTRO_MAPPING_ERROR), "ALTRO Mapping Error");
+  mErrorHandler.define(mErrorCodeHandler.getGlobalCodeForAltroError(AltroDecoderError::ErrorType_t::CHANNEL_ERROR), "Channel Error");
+  mErrorHandler.define(mErrorCodeHandler.getGlobalCodeForMinorAltroError(MinorAltroDecodingError::ErrorType_t::BUNCH_HEADER_NULL), "Bunch header null");
+  mErrorHandler.define(mErrorCodeHandler.getGlobalCodeForMinorAltroError(MinorAltroDecodingError::ErrorType_t::CHANNEL_END_PAYLOAD_UNEXPECT), "Unexpected end of channel payload");
+  mErrorHandler.define(mErrorCodeHandler.getGlobalCodeForMinorAltroError(MinorAltroDecodingError::ErrorType_t::CHANNEL_PAYLOAD_EXCEED), "Unexpected end of channel payload");
+  mErrorHandler.define(mErrorCodeHandler.getGlobalCodeForGainError(0), "Cell has low gain but no high gain");
+  mErrorHandler.define(mErrorCodeHandler.getGlobalCodeForGainError(1), "Cell has only high-gain out-of-range");
 }
 
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
@@ -132,7 +147,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         rawreader.next();
       } catch (RawDecodingError& e) {
         mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()));
-        mDDLMessages.log({e.getFECID(), fmt::format("EMCAL raw task: %s", e.what())}, DDLMessageHandler::Severity::ERROR);
+        mErrorHandler.book(mErrorCodeHandler.getGlobalCodeForAltroError(AltroDecoderError::ErrorType_t::ALTRO_PAYLOAD_ERROR), e.getFECID(), 0);
         continue;
       }
 
@@ -168,37 +183,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       } catch (AltroDecoderError& e) {
         ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(e.getErrorType()));
         std::string errormessage;
-        using AltroErrType = AltroDecoderError::ErrorType_t;
-        switch (e.getErrorType()) {
-          case AltroErrType::RCU_TRAILER_ERROR:
-            errormessage = " RCU Trailer Error ";
-            break;
-          case AltroErrType::RCU_VERSION_ERROR:
-            errormessage = " RCU Version Error ";
-            break;
-          case AltroErrType::RCU_TRAILER_SIZE_ERROR:
-            errormessage = " RCU Trailer Size Error ";
-            break;
-          case AltroErrType::ALTRO_BUNCH_HEADER_ERROR:
-            errormessage = " ALTRO Bunch Header Error ";
-            break;
-          case AltroErrType::ALTRO_BUNCH_LENGTH_ERROR:
-            errormessage = " ALTRO Bunch Length Error ";
-            break;
-          case AltroErrType::ALTRO_PAYLOAD_ERROR:
-            errormessage = " ALTRO Payload Error ";
-            break;
-          case AltroErrType::ALTRO_MAPPING_ERROR:
-            errormessage = " ALTRO Mapping Error ";
-            break;
-          case AltroErrType::CHANNEL_ERROR:
-            errormessage = " Channel Error ";
-            break;
-          default:
-            break;
-        };
-        mDDLMessages.log({feeID, "EMCAL raw task: " + errormessage}, DDLMessageHandler::Severity::ERROR);
-        LOG(ERROR) << " " << errormessage << " in DDL " << feeID << std::endl;
+        mErrorHandler.book(mErrorCodeHandler.getGlobalCodeForAltroError(e.getErrorType()), feeID, 0);
         //fill histograms  with error types
         mOutputDecoderErrors.push_back(errornum);
         continue;
@@ -206,10 +191,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       for (auto minorerror : decoder.getMinorDecodingErrors()) {
         auto header = minorerror.getChannelHeader();
         auto hwaddress = Channel::getHardwareAddressFromChannelHeader(header);
-        auto fecIndexBranch = Channel::getFecIndexFromHwAddress(hwaddress);
-        auto branchIndex = Channel::getBranchIndexFromHwAddress(hwaddress);
-        auto fecID = mMapper->getFEEForChannelInDDL(feeID, fecIndexBranch, branchIndex);
-        mChannelMessages.log({feeID, fecID, hwaddress, minorerror.what().data()}, ChannelMessageHandler::Severity::ERROR);
+        mErrorHandler.book(mErrorCodeHandler.getGlobalCodeForMinorAltroError(minorerror.getErrorType()), feeID, hwaddress);
         ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, MinorAltroDecodingError::errorTypeToInt(minorerror.getErrorType()));
         mOutputDecoderErrors.push_back(errornum);
       }
@@ -241,7 +223,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           iCol = map.getColumn(chan.getHardwareAddress());
           chantype = map.getChannelType(chan.getHardwareAddress());
         } catch (Mapper::AddressNotFoundException& ex) {
-          mDDLMessages.log({feeID, fmt::format("Mapping error \"%s\"", ex.what())}, DDLMessageHandler::Severity::ERROR);
+          mErrorHandler.book(mErrorCodeHandler.getGlobalCodeForAltroError(AltroDecoderError::ErrorType_t::ALTRO_MAPPING_ERROR), feeID, chan.getHardwareAddress());
           continue;
         }
 
@@ -252,22 +234,8 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         auto [phishift, etashift] = mGeometry->ShiftOnlineToOfflineCellIndexes(iSM, iRow, iCol);
         int CellID = mGeometry->GetAbsCellIdFromCellIndexes(iSM, phishift, etashift);
         if (CellID < 0 || CellID > 17664) {
-          std::string celltypename;
-          switch (chantype) {
-            case o2::emcal::ChannelType_t::HIGH_GAIN:
-              celltypename = "high gain";
-              break;
-            case o2::emcal::ChannelType_t::LOW_GAIN:
-              celltypename = "low-gain";
-              break;
-            case o2::emcal::ChannelType_t::TRU:
-              celltypename = "TRU";
-              break;
-            case o2::emcal::ChannelType_t::LEDMON:
-              celltypename = "LEDMON";
-              break;
-          };
-          mCellMessages.log({iSM, CellID, fmt::format("Negative cell (row %d - shift %d, col %d - shift %d) of type %s", iRow, phishift, iCol, etashift, celltypename.data())}, CellMessageHandler::Severity::ERROR);
+          std::string celltypename = o2::emcal::channelTypeToString(chantype);
+          mCellErrorHandler.book(feeID, CellID, chantype);
           mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, -1); // Geometry error codes will start from 100
           continue;
         }
@@ -346,7 +314,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             // No merge of HG/LG cells (usually MC where either
             // of the two is simulated)
             int hwAddressLG = chantype == ChannelType_t::LOW_GAIN ? chan.getHardwareAddress() : -1,
-                hwAddressHG = chantype == ChannelType_t::LOW_GAIN ? chan.getHardwareAddress() : -1;
+                hwAddressHG = chantype == ChannelType_t::HIGH_GAIN ? chan.getHardwareAddress() : -1;
             int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
             currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, chantype),
                                              false,
@@ -388,12 +356,12 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       std::sort(cells->begin(), cells->end(), [](const RecCellInfo& lhs, const RecCellInfo& rhs) { return lhs.mCellData.getTower() < rhs.mCellData.getTower(); });
       for (const auto& cell : *cells) {
         if (cell.mIsLGnoHG) {
-          mChannelMessages.log({cell.mDDLID, cell.mFecID, cell.mHWAddressLG, "Cell has low gain but no high gain"}, ChannelMessageHandler::Severity::ERROR);
+          mErrorHandler.book(mErrorCodeHandler.getGlobalCodeForGainError(0), cell.mDDLID, cell.mHWAddressLG);
           mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 0);
           continue;
         }
         if (cell.mHGOutOfRange) {
-          mChannelMessages.log({cell.mDDLID, cell.mFecID, cell.mHWAddressHG, "Cell has only high-gain out-of-range"}, ChannelMessageHandler::Severity::ERROR);
+          mErrorHandler.book(mErrorCodeHandler.getGlobalCodeForGainError(1), cell.mDDLID, cell.mHWAddressHG);
           mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 1);
           continue;
         }
@@ -441,52 +409,12 @@ void RawToCellConverterSpec::sendData(framework::ProcessingContext& ctx, const s
   ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", mSubspecification, framework::Lifetime::Timeframe}, decodingErrors);
 }
 
-template <typename MessageType, typename Hasher>
-void RawToCellConverterSpec::MessageHandler<MessageType, Hasher>::log(MessageType msg, RawToCellConverterSpec::MessageHandler<MessageType, Hasher>::Severity level)
+void RawToCellConverterSpec::CellIDErrorHandler::book(int ddl, int cellID, ChannelType_t chantype)
 {
-  auto found = mErrorsPerEntry.find(msg);
-  if (found == mErrorsPerEntry.end()) {
-    switch (level) {
-      case Severity::WARNING:
-        LOG(WARNING) << msg.print();
-        break;
-      case Severity::ERROR:
-        LOG(ERROR) << msg.print();
-        break;
-      case Severity::FATAL:
-        LOG(FATAL) << msg.print();
-        break;
-
-      default:
-        break;
-    };
-    mErrorsPerEntry.insert(std::pair<MessageType, int>(msg, 1));
-  } else {
-    auto& nerror = found->second;
-    nerror++;
+  if (mCellIDs.find(cellID) != mCellIDs.end()) {
+    LOG(INFO) << "DDL  " << ddl << ": Invalid cell ID " << cellID << " (" << channelTypeToString(chantype) << ")";
+    mCellIDs.emplace(cellID);
   }
-}
-
-std::string RawToCellConverterSpec::MessageChannel::print()
-{
-  std::stringstream msg;
-  msg << "DDL " << mDDL << ", FEC " << mFEC
-      << ", addr 0x" << std::hex << mHWAddress << std::dec << ": " << mMessage;
-  return msg.str();
-}
-
-std::string RawToCellConverterSpec::MessageDDL::print()
-{
-  std::stringstream msg;
-  msg << "DDL " << mDDL << ":  " << mMessage;
-  return msg.str();
-}
-
-std::string RawToCellConverterSpec::MessageCell::print()
-{
-  std::stringstream msg;
-  msg << "SM " << mSMID << ", Cell " << mCellID << ": " << mMessage;
-  return msg.str();
 }
 
 o2 ::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpec(bool askDISTSTF, int subspecification)
