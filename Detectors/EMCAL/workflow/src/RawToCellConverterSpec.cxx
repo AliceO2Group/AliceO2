@@ -84,7 +84,7 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   mMaxErrorMessages = ctx.options().get<int>("maxmessage");
   LOG(INFO) << "Suppressing error messages after " << mMaxErrorMessages << " messages";
 
-  mMergeLGHG = ctx.options().get<bool>("mergeHGLG");
+  mMergeLGHG = !ctx.options().get<bool>("no-mergeHGLG");
 
   mRawFitter->setAmpCut(mNoiseThreshold);
   mRawFitter->setL1Phase(0.);
@@ -511,5 +511,5 @@ o2 ::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverte
                                             {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}},
                                             {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}},
                                             {"printtrailer", o2::framework::VariantType::Bool, false, {"Print RCU trailer (for debugging)"}},
-                                            {"mergeHGLG", o2::framework::VariantType::Bool, true, {"Merge HG and LG channels for same tower"}}}};
+                                            {"no-mergeHGLG", o2::framework::VariantType::Bool, false, {"Do not merge HG and LG channels for same tower"}}}};
 }
