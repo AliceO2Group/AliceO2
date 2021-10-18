@@ -1103,16 +1103,6 @@ struct WorkflowInfo {
   std::vector<ConfigParamSpec> options;
 };
 
-struct GuiCallbackContext {
-  uint64_t frameLast;
-  float* frameLatency;
-  float* frameCost;
-  DebugGUI* plugin;
-  void* window;
-  bool* guiQuitRequested;
-  std::function<void(void)> callback;
-};
-
 void gui_callback(uv_timer_s* ctx)
 {
   GuiCallbackContext* gui = reinterpret_cast<GuiCallbackContext*>(ctx->data);
