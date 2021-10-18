@@ -533,6 +533,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     auto action = mCompletionPolicy.callback(span);
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
+      case CompletionPolicy::CompletionOp::ConsumeExisting:
       case CompletionPolicy::CompletionOp::Process:
       case CompletionPolicy::CompletionOp::Discard:
         updateCompletionResults(slot, action);
