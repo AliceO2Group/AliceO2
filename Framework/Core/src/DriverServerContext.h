@@ -18,6 +18,7 @@
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/ServiceSpec.h"
+#include "GuiCallbackContext.h"
 
 #include <uv.h>
 #include <vector>
@@ -26,6 +27,7 @@ namespace o2::framework
 {
 struct DriverInfo;
 struct ServiceRegistry;
+struct GuiCallbackContext;
 
 struct DriverServerContext {
   uv_loop_t* loop;
@@ -34,8 +36,9 @@ struct DriverServerContext {
   std::vector<DeviceInfo>* infos = nullptr;
   std::vector<DeviceSpec>* specs = nullptr;
   std::vector<DeviceMetricsInfo>* metrics = nullptr;
-  std::vector<ServiceMetricHandling>* metricProcessingCallbacks;
-  DriverInfo* driver;
+  std::vector<ServiceMetricHandling>* metricProcessingCallbacks = nullptr;
+  DriverInfo* driver = nullptr;
+  GuiCallbackContext* gui = nullptr;
 };
 } // namespace o2::framework
 
