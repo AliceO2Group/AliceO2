@@ -533,6 +533,13 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   deviceContext.state = &mState;
   deviceContext.quotaEvaluator = &mQuotaEvaluator;
   deviceContext.stats = &mStats;
+  context.isSink = false;
+  for (auto& spec : mSpec.outputs) {
+    if (spec.matcher.binding.value == "dpl-summary") {
+      context.isSink = true;
+      break;
+    }
+  }
 
   context.relayer = mRelayer;
   context.registry = &mServiceRegistry;
@@ -1137,13 +1144,19 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
   //
   auto getInputSpan = [&relayer = context.relayer,
-                       &currentSetOfInputs](TimesliceSlot slot) {
-    currentSetOfInputs = std::move(relayer->getInputsForTimeslice(slot));
+                       &currentSetOfInputs](TimesliceSlot slot, bool consume = true) {
+    if (consume) {
+      currentSetOfInputs = std::move(relayer->consumeAllInputsForTimeslice(slot));
+    } else {
+      currentSetOfInputs = relayer->consumeExistingInputsForTimeslice(slot);
+    }
     auto getter = [&currentSetOfInputs](size_t i, size_t partindex) -> DataRef {
       if (currentSetOfInputs[i].size() > partindex) {
+        auto header = currentSetOfInputs[i].at(partindex).header.get();
+        auto payload = currentSetOfInputs[i].at(partindex).payload.get();
         return DataRef{nullptr,
-                       static_cast<char const*>(currentSetOfInputs[i].at(partindex).header->GetData()),
-                       static_cast<char const*>(currentSetOfInputs[i].at(partindex).payload->GetData())};
+                       static_cast<char const*>(header->GetData()),
+                       static_cast<char const*>(payload ? payload->GetData() : nullptr)};
       }
       return DataRef{nullptr, nullptr, nullptr};
     };
@@ -1265,9 +1278,17 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         auto& header = part.header;
         auto& payload = part.payload;
         if (header.get() == nullptr) {
-          // FIXME: this should not happen, however it's actually harmless and
-          //        we can simply discard it for the moment.
-          // LOG(ERROR) << "Missing header! " << dh->dataDescription;
+          // Missing an header is not an error anymore.
+          // it simply means that we did not receive the
+          // given input, but we were asked to
+          // consume existing, so we skip it.
+          continue;
+        }
+        if (payload.get() == nullptr && consume == true) {
+          // If the payload is not there, it means we already
+          // processed it with ConsumeExisiting. Therefore we
+          // need to do something only if this is the last consume.
+          header.reset(nullptr);
           continue;
         }
 
@@ -1369,7 +1390,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     }
 
     prepareAllocatorForCurrentTimeSlice(TimesliceSlot{action.slot});
-    InputSpan span = getInputSpan(action.slot);
+    InputSpan span = getInputSpan(action.slot, action.op == CompletionPolicy::CompletionOp::Consume);
     InputRecord record{context.deviceContext->spec->inputs, span};
     ProcessingContext processContext{record, *context.registry, *context.allocator};
     {
@@ -1387,8 +1408,11 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     // the messages to that parallel processing can happen.
     // In this case we pass true to indicate that we want to
     // copy the messages to the subsequent data processor.
-    if (context.canForwardEarly && context.deviceContext->spec->forwards.empty() == false && action.op == CompletionPolicy::CompletionOp::Consume) {
-      forwardInputs(action.slot, record, true);
+    bool hasForwards = context.deviceContext->spec->forwards.empty() == false;
+    bool consumeSomething = action.op == CompletionPolicy::CompletionOp::Consume || action.op == CompletionPolicy::CompletionOp::ConsumeExisting;
+
+    if (context.canForwardEarly && hasForwards && consumeSomething) {
+      forwardInputs(action.slot, record, true, action.op == CompletionPolicy::CompletionOp::Consume);
     }
     markInputsAsDone(action.slot);
 
@@ -1413,6 +1437,11 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         if (*context.statelessProcess) {
           ZoneScopedN("stateless process");
           (*context.statelessProcess)(processContext);
+        }
+
+        // Notify the sink we just consumed some timeframe data
+        if (context.isSink && action.op == CompletionPolicy::CompletionOp::Consume) {
+          context.allocator->make<int>(OutputRef{"dpl-summary", compile_time_hash(context.deviceContext->spec->name.c_str())}, 1);
         }
 
         {
@@ -1445,9 +1474,12 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
       context.registry->postDispatchingCallbacks(processContext);
-      if ((context.canForwardEarly == false) && context.deviceContext->spec->forwards.empty() == false) {
-        forwardInputs(action.slot, record, false);
-      }
+      context.registry->get<CallbackService>()(CallbackService::Id::DataConsumed, *(context.registry));
+    }
+    if ((context.canForwardEarly == false) && hasForwards && consumeSomething) {
+      forwardInputs(action.slot, record, false, action.op == CompletionPolicy::CompletionOp::Consume);
+    }
+    if (action.op == CompletionPolicy::CompletionOp::Consume) {
 #ifdef TRACY_ENABLE
       cleanupRecord(record);
 #endif

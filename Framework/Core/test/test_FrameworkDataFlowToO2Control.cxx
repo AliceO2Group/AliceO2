@@ -192,6 +192,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
 )EXPECTED",
   R"EXPECTED(name: B
 defaults:
@@ -261,6 +263,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
 )EXPECTED",
   R"EXPECTED(name: C
 defaults:
@@ -330,6 +334,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
 )EXPECTED",
   R"EXPECTED(name: D
 defaults:
@@ -400,6 +406,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
     - "--a-param"
     - "'1'"
     - "--b-param"
@@ -453,10 +461,12 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
     auto& execution = executions[di];
     auto& expected = expectedTasks[di];
 
-    ss.str({});
-    ss.clear();
-    dumpTask(ss, devices[di], executions[di], devices[di].name, "");
-    BOOST_REQUIRE_EQUAL(strdiffchr(ss.str().data(), expected), strdiffchr(expected, ss.str().data()));
-    BOOST_CHECK_EQUAL(ss.str(), expected);
+    BOOST_TEST_CONTEXT("Device " << spec.name) {
+      ss.str({});
+      ss.clear();
+      dumpTask(ss, devices[di], executions[di], devices[di].name, "");
+      BOOST_REQUIRE_EQUAL(strdiffchr(ss.str().data(), expected), strdiffchr(expected, ss.str().data()));
+      BOOST_CHECK_EQUAL(ss.str(), expected);
+    }
   }
 }
