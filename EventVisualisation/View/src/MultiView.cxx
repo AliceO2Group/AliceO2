@@ -18,7 +18,7 @@
 #include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationBase/GeometryManager.h"
-#include "EventVisualisationBase/VisualisationConstants.h"
+#include "EventVisualisationDataConverter/VisualisationConstants.h"
 
 #include <TBrowser.h>
 #include <TEnv.h>
@@ -211,7 +211,9 @@ void MultiView::registerElement(TEveElement* event)
 
 void MultiView::destroyAllEvents()
 {
-  gEve->GetCurrentEvent()->RemoveElements();
+  if (gEve->GetCurrentEvent()) {
+    gEve->GetCurrentEvent()->RemoveElements();
+  }
   getScene(SceneRphiEvent)->DestroyElements();
   getScene(SceneZrhoEvent)->DestroyElements();
 }

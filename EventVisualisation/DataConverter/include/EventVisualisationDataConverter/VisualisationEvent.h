@@ -20,6 +20,7 @@
 
 #include "EventVisualisationDataConverter/VisualisationTrack.h"
 #include "EventVisualisationDataConverter/VisualisationCluster.h"
+#include "EventVisualisationDataConverter/VisualisationConstants.h"
 #include <forward_list>
 #include <ctime>
 
@@ -38,15 +39,18 @@ namespace event_visualisation
 class VisualisationEvent
 {
  public:
+  struct GIDVisualisation {
+    bool contains[o2::dataformats::GlobalTrackID::NSources][o2::event_visualisation::EVisualisationGroup::NvisualisationGroups];
+  };
+  static GIDVisualisation mVis;
   std::string toJson();
   void fromJson(std::string json);
   bool fromFile(std::string fileName);
   VisualisationEvent() = default;
   VisualisationEvent(std::string fileName);
+  VisualisationEvent(const VisualisationEvent& source, EVisualisationGroup filter);
   void toFile(std::string fileName);
   static std::string fileNameIndexed(const std::string fileName, const int index);
-
-  //VisualisationEvent() {}
 
   /// constructor parametrisation (Value Object) for VisualisationEvent class
   ///
@@ -63,10 +67,6 @@ class VisualisationEvent
   // Default constructor
   VisualisationEvent(const VisualisationEventVO vo);
 
-  // Adds visualisation track inside visualisation event
-  //void addTrack(const VisualisationTrack& track)
-  //{ mTracks.push_back(track); }
-
   VisualisationTrack* addTrack(VisualisationTrack::VisualisationTrackVO vo)
   {
     mTracks.emplace_back(vo);
@@ -75,7 +75,6 @@ class VisualisationEvent
   void remove_last_track() { mTracks.pop_back(); } // used to remove track assigned optimistically
 
   // Adds visualisation cluster inside visualisation event
-
   VisualisationCluster& addCluster(float XYZ[], float time)
   {
     mClusters.emplace_back(XYZ, time);

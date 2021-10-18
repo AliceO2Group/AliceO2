@@ -32,26 +32,26 @@ const char* FileWatcher::mEndGuard = "~0"; /// stop guard
 
 deque<string> FileWatcher::load(string path)
 {
-  LOG(INFO) << "FileWatcher::load(" << path << ")";
+  //LOG(INFO) << "FileWatcher::load(" << path << ")";
   deque<string> result;
   for (const auto& entry : std::filesystem::directory_iterator(path)) {
     if (entry.path().extension() == ".json") {
       result.push_back(entry.path().filename());
     }
   }
-  LOG(INFO) << result.size();
+  //LOG(INFO) << result.size();
   return result;
 }
 
 FileWatcher::FileWatcher(const string& path)
 {
-  LOG(INFO) << "FileWatcher::FileWatcher(" << path << ")";
+  //LOG(INFO) << "FileWatcher::FileWatcher(" << path << ")";
   this->mDataFolder = path;
   this->mCurrentFile = mEndGuard;
   this->mFiles.clear();
   this->mFiles.push_front(mLowGuard);
   this->mFiles.push_back(mEndGuard);
-  LOG(INFO) << "FileWatcher" << this->getSize();
+  //LOG(INFO) << "FileWatcher" << this->getSize();
 }
 
 void FileWatcher::changeFolder(const string& path)
@@ -64,7 +64,8 @@ void FileWatcher::changeFolder(const string& path)
   this->mFiles.clear();
   this->mFiles.push_front(mLowGuard);
   this->mFiles.push_back(mEndGuard);
-  LOG(INFO) << "FileWatcher" << this->getSize();
+  this->refresh();
+  //LOG(INFO) << "FileWatcher" << this->getSize();
 }
 
 string FileWatcher::nextItem(const string& item) const
@@ -147,9 +148,9 @@ bool FileWatcher::refresh()
       }
     }
   }
-  for (auto it = this->mFiles.begin(); it != this->mFiles.end(); ++it) {
-    LOG(INFO) << *it;
-  }
+  //for (auto it = this->mFiles.begin(); it != this->mFiles.end(); ++it) {
+  //  LOG(INFO) << *it;
+  //}
   this->mFiles.push_front(mLowGuard);
   this->mFiles.push_back(mEndGuard);
 
