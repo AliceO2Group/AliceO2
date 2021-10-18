@@ -2357,7 +2357,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     // configuration they get passed by their parents.
     for (auto& dp : importedWorkflow) {
       auto found = std::find_if(physicalWorkflow.begin(), physicalWorkflow.end(),
-                                [& name = dp.name](DataProcessorSpec const& spec) { return spec.name == name; });
+                                [&name = dp.name](DataProcessorSpec const& spec) { return spec.name == name; });
       if (found == physicalWorkflow.end()) {
         physicalWorkflow.push_back(dp);
         rankIndex.insert(std::make_pair(dp.name, workflowHashB));
@@ -2435,7 +2435,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
       throw std::runtime_error("Unable to do topological sort of the resulting workflow. Do you have loops?\n" + debugTopoInfo(physicalWorkflow, topoInfos, edges));
     }
     // Sort by layer and then by name, to ensure stability.
-    std::stable_sort(topoInfos.begin(), topoInfos.end(), [& workflow = physicalWorkflow, &rankIndex, &topoInfos](TopoIndexInfo const& a, TopoIndexInfo const& b) {
+    std::stable_sort(topoInfos.begin(), topoInfos.end(), [&workflow = physicalWorkflow, &rankIndex, &topoInfos](TopoIndexInfo const& a, TopoIndexInfo const& b) {
       auto aRank = std::make_tuple(a.layer, -workflow.at(a.index).outputs.size(), workflow.at(a.index).name);
       auto bRank = std::make_tuple(b.layer, -workflow.at(b.index).outputs.size(), workflow.at(b.index).name);
       return aRank < bRank;
