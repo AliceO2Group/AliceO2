@@ -108,7 +108,7 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
     LOG(ERROR) << "More than one value/measurement found for Atomic Number Beam 2 (anticlockwise), keeping the last one";
   }
   lhcifdata.setAtomicNumberB2WithTime(atomicNbB2.back().first, atomicNbB2.back().second.back());
-  
+
   mReader.readValue<float>("IP2_XING_V_MURAD", type, nEleCrossAngle, nMeasCrossAngle, crossAngle);
   if (nMeasCrossAngle == 0) {
     LOG(FATAL) << "Crossing Angle not present";

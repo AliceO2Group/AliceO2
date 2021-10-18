@@ -23,9 +23,8 @@ using namespace o2::constants::lhc;
 
 const std::unordered_map<unsigned int, unsigned int> GRPLHCIFData::mZtoA =
   {
-   {1, 1},
-   {82, 208}
-  };
+    {1, 1},
+    {82, 208}};
 
 //_______________________________________________
 void GRPLHCIFData::setBeamAZ(beamDirection beam)
@@ -35,29 +34,26 @@ void GRPLHCIFData::setBeamAZ(beamDirection beam)
     auto atomicNum = mZtoA.find(getAtomicNumberB1());
     if (atomicNum == mZtoA.end()) {
       LOG(FATAL) << "We don't know the Mass Number for Z = " << getAtomicNumberB1();
-    }
-    else {
+    } else {
       mBeamAZ[static_cast<int>(beam)] = (atomicNum->second << 16) + getAtomicNumberB1();
     }
-  }
-  else {
+  } else {
     auto atomicNum = mZtoA.find(getAtomicNumberB2());
     if (atomicNum == mZtoA.end()) {
       LOG(FATAL) << "We don't know the Mass Number for Z = " << getAtomicNumberB2();
-    }
-    else {
+    } else {
       mBeamAZ[static_cast<int>(beam)] = (atomicNum->second << 16) + getAtomicNumberB2();
     }
   }
 }
 
 //_______________________________________________
-void GRPLHCIFData::setBeamAZ() {
+void GRPLHCIFData::setBeamAZ()
+{
 
   // setting A and Z for both beams
   setBeamAZ(BeamClockWise);
   setBeamAZ(BeamAntiClockWise);
-  
 }
 
 //_______________________________________________
@@ -75,4 +71,4 @@ float GRPLHCIFData::getSqrtS() const
   beta1 = beta1 > 0 ? sqrt(beta1) : 0.;
   double ss = 2. * (MassProton * MassProton + e0 * e1 * (1. + beta0 * beta1 * cos(getCrossingAngle())));
   return ss > 0. ? sqrt(ss) : 0.;
-}  
+}

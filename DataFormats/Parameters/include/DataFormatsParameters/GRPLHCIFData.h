@@ -31,7 +31,7 @@ class GRPLHCIFData
 {
 
   using beamDirection = o2::constants::lhc::BeamDirection;
-  
+
  public:
   GRPLHCIFData() = default;
   ~GRPLHCIFData() = default;
@@ -78,7 +78,7 @@ class GRPLHCIFData
 
   /// getters/setters for given beam A and Z info, encoded as A<<16+Z
   int getBeamZ(beamDirection beam) const { return mBeamAZ[static_cast<int>(beam)] & 0xffff; }
-  int getBeamA(beamDirection beam) const { return mBeamAZ[static_cast<int>(beam)] >> 16; }  
+  int getBeamA(beamDirection beam) const { return mBeamAZ[static_cast<int>(beam)] >> 16; }
   float getBeamZoverA(beamDirection beam) const;
   void setBeamAZ(int a, int z, beamDirection beam) { mBeamAZ[static_cast<int>(beam)] = (a << 16) + z; }
   void setBeamAZ(beamDirection beam);
@@ -89,14 +89,13 @@ class GRPLHCIFData
   float getSqrtS() const;
 
  private:
-  std::pair<long, int32_t> mBeamEnergyPerZ;        // beam energy per charge
+  std::pair<long, int32_t> mBeamEnergyPerZ; // beam energy per charge
   std::pair<long, int32_t> mFillNumber;
   std::pair<long, std::string> mInjectionScheme;
-  std::pair<long, int32_t> mAtomicNumberB1;  // clockwise
-  std::pair<long, int32_t> mAtomicNumberB2;  // anticlockwise
+  std::pair<long, int32_t> mAtomicNumberB1; // clockwise
+  std::pair<long, int32_t> mAtomicNumberB2; // anticlockwise
   std::pair<long, o2::units::AngleRad_t> mCrossingAngle;
   int mBeamAZ[beamDirection::NBeamDirections] = {0, 0}; ///< A<<16+Z for each beam
-
 
   ClassDefNV(GRPLHCIFData, 1);
 };
@@ -108,7 +107,7 @@ inline float GRPLHCIFData::getBeamZoverA(beamDirection b) const
   int a = getBeamA(b);
   return a ? getBeamZ(b) / static_cast<float>(a) : 0.f;
 }
-  
+
 } // namespace parameters
 } // namespace o2
 #endif
