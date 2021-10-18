@@ -42,6 +42,8 @@
 #include "DataProcessingHelpers.h"
 #include "DataRelayerHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
+#include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 
 #include "ScopedExit.h"
 
@@ -1188,7 +1190,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // FIXME: do it in a smarter way than O(N^2)
   auto forwardInputs = [&reportError,
                         &spec = context.deviceContext->spec,
-                        &device = context.deviceContext->device, &currentSetOfInputs](TimesliceSlot slot, InputRecord& record, bool copy) {
+                        &device = context.deviceContext->device, &currentSetOfInputs](TimesliceSlot slot, InputRecord& record, bool copy, bool consume = true) {
     ZoneScopedN("forward inputs");
     assert(record.size() == currentSetOfInputs.size());
     // we collect all messages per forward in a map and send them together
@@ -1367,7 +1369,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
     static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
 
-    auto runNoCatch = [&context, &processContext]() {
+    auto runNoCatch = [&context, &processContext](DataRelayer::RecordAction& action) {
       if (context.deviceContext->state->quitRequested == false) {
         if (*context.statefulProcess) {
           ZoneScopedN("statefull process");
@@ -1386,10 +1388,10 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     };
 
     if (noCatch) {
-      runNoCatch();
+      runNoCatch(action);
     } else {
       try {
-        runNoCatch();
+        runNoCatch(action);
       } catch (std::exception& ex) {
         ZoneScopedN("error handling");
         /// Convert a standard exception to a RuntimeErrorRef
