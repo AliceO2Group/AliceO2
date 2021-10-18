@@ -46,6 +46,8 @@ VisualisationCluster::VisualisationCluster(rapidjson::Value& tree)
   this->mCoordinates[0] = jsonX.GetDouble();
   this->mCoordinates[1] = jsonY.GetDouble();
   this->mCoordinates[2] = jsonZ.GetDouble();
+
+  this->mSource = o2::dataformats::GlobalTrackID::TPC; // temporary
 }
 
 rapidjson::Value VisualisationCluster::jsonTree(rapidjson::MemoryPoolAllocator<>& allocator)

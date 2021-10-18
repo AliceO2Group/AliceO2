@@ -17,7 +17,7 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCE_H
 #define ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCE_H
 
-#include <EventVisualisationBase/VisualisationConstants.h>
+#include <EventVisualisationDataConverter/VisualisationConstants.h>
 #include <EventVisualisationBase/DataReader.h>
 #include <EventVisualisationDataConverter/VisualisationEvent.h>
 #include <utility>
@@ -31,7 +31,11 @@ namespace event_visualisation
 
 class DataSource
 {
+ protected:
+  DataReader* mDataReader = nullptr;
+
  public:
+  void registerReader(DataReader* reader) { this->mDataReader = reader; }
   virtual Int_t getCurrentEvent() { return 0; };
   virtual void setCurrentEvent(Int_t /*currentEvent*/){};
   virtual int getEventCount() { return 0; };
@@ -47,8 +51,7 @@ class DataSource
   /// Deleted assignemt operator
   void operator=(DataSource const&) = delete;
 
-  virtual std::vector<std::pair<VisualisationEvent, std::string>> getVisualisationList(int no) = 0;
-  virtual void registerDetector(DataReader* /*reader*/, EVisualisationGroup /*type*/){};
+  virtual std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> getVisualisationList(int no) = 0;
 
   virtual void changeDataFolder(std::string /*newFolder*/){};
   virtual void saveCurrentEvent(std::string /*targetFolder*/){};

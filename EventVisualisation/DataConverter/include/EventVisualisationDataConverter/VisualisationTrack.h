@@ -76,6 +76,14 @@ class VisualisationTrack
   int getCharge() const { return mCharge; }
   // PID (particle identification code) getter
   int getPID() const { return mPID; }
+  // GID  getter
+  o2::dataformats::GlobalTrackID::Source getSource() const { return mSource; }
+  // Phi  getter
+  float getPhi() const { return mPhi; }
+  // Theta  getter
+  float getTheta() const { return mTheta; }
+  //
+  const float* getStartCoordinates() const { return mStartCoordinates; }
 
   size_t getPointCount() const { return mPolyX.size(); }
   std::array<float, 3> getPoint(size_t i) const { return std::array<float, 3>{mPolyX[i], mPolyY[i], mPolyZ[i]}; }
@@ -89,10 +97,10 @@ class VisualisationTrack
 
   int mPID;                    /// PDG code of the particle
 
-  double mStartCoordinates[3]; /// Vector of track's start coordinates
+  float mStartCoordinates[3]; /// Vector of track's start coordinates
 
-  double mTheta;               /// An angle from Z-axis to the radius vector pointing to the particle
-  double mPhi;                 /// An angle from X-axis to the radius vector pointing to the particle
+  float mTheta; /// An angle from Z-axis to the radius vector pointing to the particle
+  float mPhi;   /// An angle from X-axis to the radius vector pointing to the particle
 
   //  std::vector<int> mChildrenIDs; /// Uniqe IDs of children particles
   o2::dataformats::GlobalTrackID::Source mSource; /// data source of the track (debug)
