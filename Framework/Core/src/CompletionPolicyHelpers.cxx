@@ -114,14 +114,20 @@ CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* nam
 {
   auto callback = [](InputSpan const& inputs) -> CompletionPolicy::CompletionOp {
     size_t present = 0;
+    size_t current = 0;
+    size_t withPayload = 0;
     for (auto& input : inputs) {
       if (input.header != nullptr) {
         present++;
       }
+      if (input.payload != nullptr) {
+        withPayload++;
+      }
+      current++;
     }
     if (present == inputs.size()) {
       return CompletionPolicy::CompletionOp::Consume;
-    } else if (present == 0) {
+    } else if (withPayload == 0) {
       return CompletionPolicy::CompletionOp::Wait;
     }
     return CompletionPolicy::CompletionOp::ConsumeExisting;

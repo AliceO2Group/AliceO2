@@ -296,6 +296,26 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       processor.options.push_back(ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}});
       processor.options.push_back(ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}});
     }
+    bool hasTimeframeInputs = false;
+    for (auto& input : processor.inputs) {
+      if (input.lifetime == Lifetime::Timeframe) {
+        hasTimeframeInputs = true;
+        break;
+      }
+    }
+    bool hasTimeframeOutputs = false;
+    for (auto& output : processor.outputs) {
+      if (output.lifetime == Lifetime::Timeframe) {
+        hasTimeframeOutputs = true;
+        break;
+      }
+    }
+    // A timeframeSink consumes timeframes without creating new
+    // timeframe data.
+    bool timeframeSink = hasTimeframeInputs && !hasTimeframeOutputs;
+    if (timeframeSink && processor.name != "internal-dpl-injected-dummy-sink") {
+      processor.outputs.push_back(OutputSpec{{"dpl-summary"}, ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(compile_time_hash(processor.name.c_str()))}});
+    }
     bool hasConditionOption = false;
     for (size_t ii = 0; ii < processor.inputs.size(); ++ii) {
       auto& input = processor.inputs[ii];

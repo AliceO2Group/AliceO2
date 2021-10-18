@@ -509,7 +509,8 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
       };
       callbacks.set(CallbackService::Id::DataConsumed, dataConsumed);
 
-      return adaptStateless([]() {});
+      return adaptStateless([]() {
+      });
     })}};
 }
 
