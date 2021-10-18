@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <chrono>
 #include <vector>
 
 #include "Framework/DataProcessorSpec.h"
@@ -104,18 +105,20 @@ class RawToCellConverterSpec : public framework::Task
   bool isLostTimeframe(framework::ProcessingContext& ctx) const;
   void sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors) const;
 
-  header::DataHeader::SubSpecificationType mSubspecification = 0; ///< Subspecification for output channels
-  int mNoiseThreshold = 0;                                        ///< Noise threshold in raw fit
-  int mNumErrorMessages = 0;                                      ///< Current number of error messages
-  int mErrorMessagesSuppressed = 0;                               ///< Counter of suppressed error messages
-  int mMaxErrorMessages = 100;                                    ///< Max. number of error messages
-  bool mPrintTrailer = false;                                     ///< Print RCU trailer
-  Geometry* mGeometry = nullptr;                                  ///!<! Geometry pointer
-  std::unique_ptr<MappingHandler> mMapper = nullptr;              ///!<! Mapper
-  std::unique_ptr<CaloRawFitter> mRawFitter;                      ///!<! Raw fitter
-  std::vector<Cell> mOutputCells;                                 ///< Container with output cells
-  std::vector<TriggerRecord> mOutputTriggerRecords;               ///< Container with output cells
-  std::vector<ErrorTypeFEE> mOutputDecoderErrors;                 ///< Container with decoder errors
+  header::DataHeader::SubSpecificationType mSubspecification = 0;    ///< Subspecification for output channels
+  int mNoiseThreshold = 0;                                           ///< Noise threshold in raw fit
+  int mNumErrorMessages = 0;                                         ///< Current number of error messages
+  int mErrorMessagesSuppressed = 0;                                  ///< Counter of suppressed error messages
+  int mMaxErrorMessages = 100;                                       ///< Max. number of error messages
+  bool mMergeLGHG = true;                                            ///< Merge low and high gain cells
+  bool mPrintTrailer = false;                                        ///< Print RCU trailer
+  std::chrono::time_point<std::chrono::system_clock> mReferenceTime; ///< Reference time for muting messages
+  Geometry* mGeometry = nullptr;                                     ///!<! Geometry pointer
+  std::unique_ptr<MappingHandler> mMapper = nullptr;                 ///!<! Mapper
+  std::unique_ptr<CaloRawFitter> mRawFitter;                         ///!<! Raw fitter
+  std::vector<Cell> mOutputCells;                                    ///< Container with output cells
+  std::vector<TriggerRecord> mOutputTriggerRecords;                  ///< Container with output cells
+  std::vector<ErrorTypeFEE> mOutputDecoderErrors;                    ///< Container with decoder errors
 };
 
 /// \brief Creating DataProcessorSpec for the EMCAL Cell Converter Spec
