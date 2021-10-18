@@ -8,8 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_COMPLETIONPOLICYHELPERS_H
-#define FRAMEWORK_COMPLETIONPOLICYHELPERS_H
+#ifndef O2_FRAMEWORK_COMPLETIONPOLICYHELPERS_H_
+#define O2_FRAMEWORK_COMPLETIONPOLICYHELPERS_H_
 
 #include "Framework/ChannelSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
@@ -20,9 +20,7 @@
 #include <string>
 #include <type_traits>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// Helper class which holds commonly used policies.
@@ -41,6 +39,11 @@ struct CompletionPolicyHelpers {
   {
     return consumeWhenAny("consume-any", matcher);
   }
+  /// When any of the parts of the record have been received, process the existing and free the associated payloads.
+  /// This allows freeing things as early as possible, while still being able to wait
+  /// all the parts before disposing the timeslice completely
+  static CompletionPolicy consumeExistingWhenAny(const char* name, CompletionPolicy::Matcher matcher);
+
   /// When any of the parts of the record have been received, process them,
   /// without actually consuming them.
   static CompletionPolicy processWhenAny(const char* name, CompletionPolicy::Matcher matcher);
@@ -64,7 +67,6 @@ struct CompletionPolicyHelpers {
   }
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_COMPLETIONPOLICYHELPERS_H
+#endif // O2_FRAMEWORK_COMPLETIONPOLICYHELPERS_H_
