@@ -17,7 +17,7 @@
 #include "GRPCalibration/LHCIFfileReader.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "DataFormatsParameters/LHCIFData.h"
+#include "DataFormatsParameters/GRPLHCIFData.h"
 
 using namespace o2::framework;
 
@@ -33,7 +33,7 @@ class GRPLHCIFfileProcessor : public Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  void sendOutput(DataAllocator& output, long tf, const o2::parameters::LHCIFData& lhcifdata);
+  void sendOutput(DataAllocator& output, long tf, const o2::parameters::GRPLHCIFData& lhcifdata);
 
   LHCIFfileReader mReader;
   bool mVerbose = false; // to enable verbose mode

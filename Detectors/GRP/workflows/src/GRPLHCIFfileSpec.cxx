@@ -19,6 +19,7 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "DetectorsCalibration/Utils.h"
+#include "CommonTypes/Units.h"
 
 #include <chrono>
 #include <cstdint>
@@ -27,7 +28,7 @@ using namespace o2::framework;
 using TFType = uint64_t;
 using HighResClock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
-using LHCIFData = o2::parameters::LHCIFData;
+using GRPLHCIFData = o2::parameters::GRPLHCIFData;
 
 namespace o2
 {
@@ -54,12 +55,13 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
   std::vector<std::pair<long, std::vector<std::string>>> fillNb;
   std::vector<std::pair<long, std::vector<int32_t>>> atomicNbB1;
   std::vector<std::pair<long, std::vector<int32_t>>> atomicNbB2;
+  std::vector<std::pair<long, std::vector<o2::units::AngleRad_t>>> crossAngle;
 
-  int nEleBeamEn, nEleInjSch, nEleFillNb, nEleAtNbB1, nEleAtNbB2 = 0;
-  int nMeasBeamEn, nMeasInjSch, nMeasFillNb, nMeasAtNbB1, nMeasAtNbB2 = 0;
+  int nEleBeamEn, nEleInjSch, nEleFillNb, nEleAtNbB1, nEleAtNbB2, nEleCrossAngle = 0;
+  int nMeasBeamEn, nMeasInjSch, nMeasFillNb, nMeasAtNbB1, nMeasAtNbB2, nMeasCrossAngle = 0;
   std::string type{""};
 
-  LHCIFData lhcifdata;
+  GRPLHCIFData lhcifdata;
 
   mReader.readValue<int32_t>("BEAM_ENERGY", type, nEleBeamEn, nMeasBeamEn, beamEnergy);
   if (nMeasBeamEn == 0) {
@@ -69,7 +71,7 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
     LOG(ERROR) << "More than one value/measurement found for Beam Energy, keeping the last one";
   }
   LOG(INFO) << "beam energy size = " << beamEnergy.size();
-  lhcifdata.setBeamEnergy(beamEnergy.back().first, beamEnergy.back().second.back());
+  lhcifdata.setBeamEnergyPerZWithTime(beamEnergy.back().first, beamEnergy.back().second.back());
 
   mReader.readValue<std::string>("INJECTION_SCHEME", type, nEleInjSch, nMeasInjSch, injScheme);
   if (nMeasInjSch == 0) {
@@ -78,7 +80,7 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
   if (nEleInjSch != 1 || nMeasInjSch != 1) {
     LOG(ERROR) << "More than one value/measurement found for Injection Scheme, keeping the last one";
   }
-  lhcifdata.setInjectionScheme(injScheme.back().first, injScheme.back().second.back());
+  lhcifdata.setInjectionSchemeWithTime(injScheme.back().first, injScheme.back().second.back());
 
   mReader.readValue<std::string>("FILL_NUMBER", type, nEleFillNb, nMeasFillNb, fillNb);
   if (nMeasFillNb == 0) {
@@ -87,25 +89,34 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
   if (nEleFillNb != 1 || nMeasFillNb != 1) {
     LOG(ERROR) << "More than one value/measurement found for Fill Number, keeping the last one";
   }
-  lhcifdata.setFillNumber(fillNb.back().first, atoi(fillNb.back().second.back().c_str()));
+  lhcifdata.setFillNumberWithTime(fillNb.back().first, atoi(fillNb.back().second.back().c_str()));
 
   mReader.readValue<int32_t>("ATOMIC_NUMBER_B1", type, nEleAtNbB1, nMeasAtNbB1, atomicNbB1);
   if (nMeasAtNbB1 == 0) {
-    LOG(FATAL) << "Atomic Number Beam 1 not present";
+    LOG(FATAL) << "Atomic Number Beam 1 (clockwise) not present";
   }
   if (nEleAtNbB1 != 1 || nMeasAtNbB1 != 1) {
-    LOG(ERROR) << "More than one value/measurement found for Atomic Number Beam 1, keeping the last one";
+    LOG(ERROR) << "More than one value/measurement found for Atomic Number Beam 1 (clockwise), keeping the last one";
   }
-  lhcifdata.setAtomicNumberB1(atomicNbB1.back().first, atomicNbB1.back().second.back());
+  lhcifdata.setAtomicNumberB1WithTime(atomicNbB1.back().first, atomicNbB1.back().second.back());
 
   mReader.readValue<int32_t>("ATOMIC_NUMBER_B2", type, nEleAtNbB2, nMeasAtNbB2, atomicNbB2);
   if (nMeasAtNbB2 == 0) {
-    LOG(FATAL) << "Atomic Number Beam 2 not present";
+    LOG(FATAL) << "Atomic Number Beam 2 (anticlockwise) not present";
   }
   if (nEleAtNbB2 != 1 || nMeasAtNbB2 != 1) {
-    LOG(ERROR) << "More than one value/measurement found for Atomic Number Beam 2, keeping the last one";
+    LOG(ERROR) << "More than one value/measurement found for Atomic Number Beam 2 (anticlockwise), keeping the last one";
   }
-  lhcifdata.setAtomicNumberB2(atomicNbB2.back().first, atomicNbB2.back().second.back());
+  lhcifdata.setAtomicNumberB2WithTime(atomicNbB2.back().first, atomicNbB2.back().second.back());
+  
+  mReader.readValue<float>("IP2_XING_V_MURAD", type, nEleCrossAngle, nMeasCrossAngle, crossAngle);
+  if (nMeasCrossAngle == 0) {
+    LOG(FATAL) << "Crossing Angle not present";
+  }
+  if (nEleCrossAngle != 1 || nMeasCrossAngle != 1) {
+    LOG(ERROR) << "More than one value/measurement found for Crossing Angle, keeping the last one";
+  }
+  lhcifdata.setCrossingAngleWithTime(crossAngle.back().first, crossAngle.back().second.back());
 
   if (mVerbose) {
     LOG(INFO) << " **** Beam Energy ****";
@@ -126,14 +137,20 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
         std::cout << el.first << " --> " << elVect << std::endl;
       }
     }
-    LOG(INFO) << " **** Atomic Number Beam 1 ****";
+    LOG(INFO) << " **** Atomic Number Beam 1 (clockwise) ****";
     for (auto& el : atomicNbB1) {
       for (auto elVect : el.second) {
         std::cout << el.first << " --> " << elVect << std::endl;
       }
     }
-    LOG(INFO) << " **** Atomic Number B2 ****";
+    LOG(INFO) << " **** Atomic Number B2 (anticlockwise) ****";
     for (auto& el : atomicNbB2) {
+      for (auto elVect : el.second) {
+        std::cout << el.first << " --> " << elVect << std::endl;
+      }
+    }
+    LOG(INFO) << " **** Crossing Angle ****";
+    for (auto& el : crossAngle) {
       for (auto elVect : el.second) {
         std::cout << el.first << " --> " << elVect << std::endl;
       }
@@ -151,7 +168,7 @@ void GRPLHCIFfileProcessor::endOfStream(o2::framework::EndOfStreamContext& ec)
 
 //__________________________________________________________________
 
-void GRPLHCIFfileProcessor::sendOutput(DataAllocator& output, long tf, const LHCIFData& lhcifdata)
+void GRPLHCIFfileProcessor::sendOutput(DataAllocator& output, long tf, const GRPLHCIFData& lhcifdata)
 {
   // sending output to CCDB
 
@@ -162,7 +179,7 @@ void GRPLHCIFfileProcessor::sendOutput(DataAllocator& output, long tf, const LHC
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   std::map<std::string, std::string> md;
   md.emplace("created by", "dpl");
-  o2::ccdb::CcdbObjectInfo info("GRP/Data/LHCIFData", clName, flName, md, tf, INFINITE_TF);
+  o2::ccdb::CcdbObjectInfo info("GLO/Config/GRPLHCIFData", clName, flName, md, tf, INFINITE_TF);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&lhcifdata, &info);
   LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();

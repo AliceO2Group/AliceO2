@@ -11,7 +11,7 @@
 
 o2_add_library(DataFormatsParameters
                SOURCES src/GRPObject.cxx
-                       src/LHCIFData.cxx
+                       src/GRPLHCIFData.cxx
                        src/GRPECSObject.cxx
                        src/GRPMagField.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::CommonConstants
@@ -20,7 +20,7 @@ o2_add_library(DataFormatsParameters
 
 o2_target_root_dictionary(DataFormatsParameters
                           HEADERS include/DataFormatsParameters/GRPObject.h
-                                  include/DataFormatsParameters/LHCIFData.h
+                                  include/DataFormatsParameters/GRPLHCIFData.h
                                   include/DataFormatsParameters/GRPECSObject.h
                                   include/DataFormatsParameters/GRPMagField.h
                           LINKDEF src/ParametersDataLinkDef.h)
