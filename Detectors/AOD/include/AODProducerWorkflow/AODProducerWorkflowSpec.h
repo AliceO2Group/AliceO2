@@ -24,6 +24,7 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTRD/TrackTRD.h"
+#include "DataFormatsZDC/BCRecData.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
@@ -211,6 +212,10 @@ class AODProducerWorkflowDPL : public Task
   std::unordered_map<GIndex, int> mGIDToTableID;
   int mTableTrID{0};
 
+  // zdc helper maps to avoid a number of "if" statements
+  map<string, float> mZDCEnergyMap;
+  map<int, float> mZDCTDCMap;
+
   TripletsMap_t mToStore;
 
   std::shared_ptr<DataRequest> mDataRequest;
@@ -287,6 +292,7 @@ class AODProducerWorkflowDPL : public Task
   void collectBCs(gsl::span<const o2::fdd::RecPoint>& fddRecPoints,
                   gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
                   gsl::span<const o2::fv0::RecPoints>& fv0RecPoints,
+                  gsl::span<const o2::zdc::BCRecData>& zdcBCRecData,
                   gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
                   const std::vector<o2::InteractionTimeRecord>& mcRecords,
                   std::map<uint64_t, int>& bcsMap);

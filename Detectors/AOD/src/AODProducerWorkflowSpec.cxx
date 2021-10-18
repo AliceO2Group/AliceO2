@@ -20,6 +20,8 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsZDC/ZDCEnergy.h"
+#include "DataFormatsZDC/ZDCTDCData.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -52,12 +54,14 @@
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "ZDCBase/Constants.h"
 #include "TMath.h"
 #include "MathUtils/Utils.h"
 #include "Math/SMatrix.h"
-#include <TMatrixD.h>
+#include "TMatrixD.h"
 #include <map>
 #include <unordered_map>
+#include <string>
 #include <vector>
 
 using namespace o2::framework;
@@ -90,6 +94,7 @@ uint64_t relativeTime_to_LocalBC(double relativeTimeStampInNS)
 void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddRecPoints,
                                         gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
                                         gsl::span<const o2::fv0::RecPoints>& fv0RecPoints,
+                                        gsl::span<const o2::zdc::BCRecData>& zdcBCRecData,
                                         gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
                                         const std::vector<o2::InteractionTimeRecord>& mcRecords,
                                         std::map<uint64_t, int>& bcsMap)
@@ -112,6 +117,11 @@ void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddR
 
   for (auto& fv0RecPoint : fv0RecPoints) {
     uint64_t globalBC = fv0RecPoint.getInteractionRecord().toLong();
+    bcsMap[globalBC] = 1;
+  }
+
+  for (auto zdcRecData : zdcBCRecData) {
+    uint64_t globalBC = zdcRecData.ir.toLong();
     bcsMap[globalBC] = 1;
   }
 
@@ -889,6 +899,14 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   // Needed by MCH track extrapolation
   o2::base::GeometryManager::loadGeometry();
 
+  // initialize zdc helper maps
+  for (auto& ChannelName : o2::zdc::ChannelNames) {
+    mZDCEnergyMap[(string)ChannelName] = 0;
+  }
+  for (int i = 0; i < o2::zdc::NTDCChannels; i++) {
+    mZDCTDCMap[o2::zdc::TDCSignal[i]] = 999;
+  }
+
   mTimer.Reset();
 }
 
@@ -913,6 +931,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto ft0RecPoints = recoData.getFT0RecPoints();
   auto fv0ChData = recoData.getFV0ChannelsData();
   auto fv0RecPoints = recoData.getFV0RecPoints();
+
+  auto zdcEnergies = recoData.getZDCEnergy();
+  auto zdcBCRecData = recoData.getZDCBCRecData();
+  auto zdcTDCData = recoData.getZDCTDCData();
 
   LOG(DEBUG) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(DEBUG) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
@@ -972,7 +994,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   LOG(DEBUG) << "FOUND " << mcParts.size() << " parts";
 
   std::map<uint64_t, int> bcsMap;
-  collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, primVertices, mcRecords, bcsMap);
+  collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, zdcBCRecData, primVertices, mcRecords, bcsMap);
 
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
   o2::InteractionRecord startIR = {0, dh->firstTForbit};
@@ -1022,34 +1044,73 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
              dummyFV0AmplC,
              dummyTime);
 
-  float dummyEnergyZEM1 = 0;
-  float dummyEnergyZEM2 = 0;
-  float dummyEnergyCommonZNA = 0;
-  float dummyEnergyCommonZNC = 0;
-  float dummyEnergyCommonZPA = 0;
-  float dummyEnergyCommonZPC = 0;
-  float dummyEnergySectorZNA[4] = {0.};
-  float dummyEnergySectorZNC[4] = {0.};
-  float dummyEnergySectorZPA[4] = {0.};
-  float dummyEnergySectorZPC[4] = {0.};
-  zdcCursor(0,
-            dummyBC,
-            dummyEnergyZEM1,
-            dummyEnergyZEM2,
-            dummyEnergyCommonZNA,
-            dummyEnergyCommonZNC,
-            dummyEnergyCommonZPA,
-            dummyEnergyCommonZPC,
-            dummyEnergySectorZNA,
-            dummyEnergySectorZNC,
-            dummyEnergySectorZPA,
-            dummyEnergySectorZPC,
-            dummyTime,
-            dummyTime,
-            dummyTime,
-            dummyTime,
-            dummyTime,
-            dummyTime);
+  for (auto zdcRecData : zdcBCRecData) {
+    uint64_t bc = zdcRecData.ir.toLong();
+    auto item = bcsMap.find(bc);
+    int bcID = -1;
+    if (item != bcsMap.end()) {
+      bcID = item->second;
+    } else {
+      LOG(FATAL) << "Error: could not find a corresponding BC ID for a ZDC rec. point; BC = " << bc;
+    }
+    float energyZEM1 = 0;
+    float energyZEM2 = 0;
+    float energyCommonZNA = 0;
+    float energyCommonZNC = 0;
+    float energyCommonZPA = 0;
+    float energyCommonZPC = 0;
+    float energySectorZNA[4] = {0.};
+    float energySectorZNC[4] = {0.};
+    float energySectorZPA[4] = {0.};
+    float energySectorZPC[4] = {0.};
+    int fe, ne, ft, nt, fi, ni;
+    zdcRecData.getRef(fe, ne, ft, nt, fi, ni);
+    for (int ie = 0; ie < ne; ie++) {
+      auto& zdcEnergyData = zdcEnergies[fe + ie];
+      float energy = zdcEnergyData.energy();
+      string chName = o2::zdc::channelName(zdcEnergyData.ch());
+      mZDCEnergyMap.at(chName) = energy;
+    }
+    for (int it = 0; it < nt; it++) {
+      auto& tdc = zdcTDCData[ft + it];
+      float tdcValue = tdc.value();
+      mZDCTDCMap.at(tdc.ch()) = tdcValue;
+    }
+    energySectorZNA[0] = mZDCEnergyMap.at("ZNA1");
+    energySectorZNA[1] = mZDCEnergyMap.at("ZNA2");
+    energySectorZNA[2] = mZDCEnergyMap.at("ZNA3");
+    energySectorZNA[3] = mZDCEnergyMap.at("ZNA4");
+    energySectorZNC[0] = mZDCEnergyMap.at("ZNC1");
+    energySectorZNC[1] = mZDCEnergyMap.at("ZNC2");
+    energySectorZNC[2] = mZDCEnergyMap.at("ZNC3");
+    energySectorZNC[3] = mZDCEnergyMap.at("ZNC4");
+    energySectorZPA[0] = mZDCEnergyMap.at("ZPA1");
+    energySectorZPA[1] = mZDCEnergyMap.at("ZPA2");
+    energySectorZPA[2] = mZDCEnergyMap.at("ZPA3");
+    energySectorZPA[3] = mZDCEnergyMap.at("ZPA4");
+    energySectorZPC[0] = mZDCEnergyMap.at("ZPC1");
+    energySectorZPC[1] = mZDCEnergyMap.at("ZPC2");
+    energySectorZPC[2] = mZDCEnergyMap.at("ZPC3");
+    energySectorZPC[3] = mZDCEnergyMap.at("ZPC4");
+    zdcCursor(0,
+              bcID,
+              mZDCEnergyMap.at("ZEM1"),
+              mZDCEnergyMap.at("ZEM2"),
+              mZDCEnergyMap.at("ZNAC"),
+              mZDCEnergyMap.at("ZNCC"),
+              mZDCEnergyMap.at("ZPAC"),
+              mZDCEnergyMap.at("ZPCC"),
+              energySectorZNA,
+              energySectorZNC,
+              energySectorZPA,
+              energySectorZPC,
+              mZDCTDCMap.at(o2::zdc::IdZEM1),
+              mZDCTDCMap.at(o2::zdc::IdZEM2),
+              mZDCTDCMap.at(o2::zdc::IdZNAC),
+              mZDCTDCMap.at(o2::zdc::IdZNCC),
+              mZDCTDCMap.at(o2::zdc::IdZPAC),
+              mZDCTDCMap.at(o2::zdc::IdZPCC));
+  }
 
   // TODO: figure out collision weight
   // keep track event/source id for each mc-collision
@@ -1174,9 +1235,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     mcColLabelsCursor(0, mcCollisionID, mcMask);
   }
 
-  // hash map for track indices of secondary vertices
-  std::unordered_map<int, int> v0sIndices;
-
   // filling unassigned tracks first
   // so that all unassigned tracks are stored in the beginning of the table together
   auto& trackRef = primVer2TRefs.back(); // references to unassigned tracks are at the end
@@ -1262,6 +1320,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   mTableTrID = 0;
   mGIDToTableID.clear();
+  mZDCEnergyMap.clear();
+  mZDCTDCMap.clear();
 
   // filling BC table
   // TODO: get real triggerMask

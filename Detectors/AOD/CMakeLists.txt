@@ -29,6 +29,7 @@ o2_add_library(
           O2::SimulationDataFormat
           O2::Steer
           O2::TPCWorkflow
+        O2::ZDCBase
 )
 o2_add_executable(
   workflow
@@ -47,15 +48,16 @@ o2_add_executable(
           O2::DataFormatsFT0
           O2::DataFormatsFDD
           O2::DataFormatsFV0
-          O2::DataFormatsTOF
-          O2::ITSReconstruction
-          O2::FT0Reconstruction
-          O2::TPCFastTransformation
-          O2::TPCBase
-          O2::TPCReconstruction
-          O2::TOFBase
-          O2::TOFCalibration
-          O2::SimConfig
-          O2::DataFormatsFT0
-          O2::Steer
+        O2::DataFormatsTOF
+        O2::ITSReconstruction
+        O2::FT0Reconstruction
+        O2::TPCFastTransformation
+        O2::TPCBase
+        O2::TPCReconstruction
+        O2::TOFBase
+        O2::TOFCalibration
+        O2::SimConfig
+        O2::DataFormatsFT0
+        O2::Steer
+        O2::ZDCBase
 )
