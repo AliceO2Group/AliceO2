@@ -112,7 +112,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       mChi2Matching->Fill(trk.getChi2Match());
       mChi2Refit->Fill(trk.getChi2Refit());
       mTimeResVsPt->Fill(trkTpc.getPt(), trk.getTimeMUS().getTimeStampError());
-      LOG(INFO) << "*** chi2Matching = " << trk.getChi2Match() << ", chi2refit = " << trk.getChi2Refit() << ", timeResolution = " << trk.getTimeMUS().getTimeStampError();
+      LOG(DEBUG) << "*** chi2Matching = " << trk.getChi2Match() << ", chi2refit = " << trk.getChi2Refit() << ", timeResolution = " << trk.getTimeMUS().getTimeStampError();
       ++mNITSTPCSelectedTracks;
     }
   }
