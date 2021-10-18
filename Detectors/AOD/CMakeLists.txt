@@ -42,12 +42,12 @@ o2_add_executable(
         COMPONENT_NAME reco
         SOURCES src/StandaloneAODProducer.cxx
         PUBLIC_LINK_LIBRARIES
-          O2::DataFormatsTPC
-          O2::DataFormatsITSMFT
-          O2::DataFormatsITS
-          O2::DataFormatsFT0
-          O2::DataFormatsFDD
-          O2::DataFormatsFV0
+        O2::DataFormatsTPC
+        O2::DataFormatsITSMFT
+        O2::DataFormatsITS
+        O2::DataFormatsFT0
+        O2::DataFormatsFDD
+        O2::DataFormatsFV0
         O2::DataFormatsTOF
         O2::ITSReconstruction
         O2::FT0Reconstruction
