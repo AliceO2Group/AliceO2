@@ -108,7 +108,7 @@ o2::framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config
     {createOutputSpecs()},
     o2::framework::AlgorithmSpec(initFunction),
     o2::framework::Options{
-      {"infile", o2::framework::VariantType::String, "", {"Name of the input file"}},
+      {"infile", o2::framework::VariantType::String, config.defaultFileName, {"Name of the input file"}},
       {"input-dir", o2::framework::VariantType::String, "none", {"Input directory"}},
       {"treename", o2::framework::VariantType::String, config.defaultTreeName.c_str(), {"Name of input tree"}},
       {dtb.option.c_str(), o2::framework::VariantType::String, dtb.defval.c_str(), {dtb.help.c_str()}},
