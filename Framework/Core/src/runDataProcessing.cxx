@@ -1014,6 +1014,18 @@ void doUnknownException(std::string const& s, char const* processName)
   }
 }
 
+[[maybe_unused]] AlgorithmSpec dryRun(DeviceSpec const& spec)
+{
+  return AlgorithmSpec{adaptStateless(
+    [&routes = spec.outputs](DataAllocator& outputs) {
+      LOG(INFO) << "Dry run enforced. Creating dummy messages to simulate computation happended";
+      for (auto& route : routes) {
+        auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+        outputs.make<int>(Output{concrete.origin, concrete.description, concrete.subSpec}, 2);
+      }
+    })};
+}
+
 void doDefaultWorkflowTerminationHook()
 {
   //LOG(INFO) << "Process " << getpid() << " is exiting.";
