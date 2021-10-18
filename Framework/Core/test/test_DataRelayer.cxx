@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
   BOOST_CHECK_EQUAL(header.get(), nullptr);
   BOOST_CHECK_EQUAL(payload.get(), nullptr);
-  auto result = relayer.getInputsForTimeslice(ready[0].slot);
+  auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
   // one MessageSet with one PartRef with header and payload
   BOOST_REQUIRE_EQUAL(result.size(), 1);
   BOOST_REQUIRE_EQUAL(result.at(0).size(), 1);
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(TestNoWaitMatcher)
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
   BOOST_CHECK_EQUAL(header.get(), nullptr);
   BOOST_CHECK_EQUAL(payload.get(), nullptr);
-  auto result = relayer.getInputsForTimeslice(ready[0].slot);
+  auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
   // one MessageSet with one PartRef with header and payload
   BOOST_REQUIRE_EQUAL(result.size(), 1);
   BOOST_REQUIRE_EQUAL(result.at(0).size(), 1);
@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE(TestRelay)
   BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
 
-  auto result = relayer.getInputsForTimeslice(ready[0].slot);
+  auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
   // two MessageSets, each with one PartRef
   BOOST_REQUIRE_EQUAL(result.size(), 2);
   BOOST_REQUIRE_EQUAL(result.at(0).size(), 1);
@@ -288,14 +288,14 @@ BOOST_AUTO_TEST_CASE(TestRelayBug)
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
   BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
-  auto result = relayer.getInputsForTimeslice(ready[0].slot);
+  auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
   createMessage(dh2, 1);
   ready.clear();
   relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
   BOOST_CHECK_EQUAL(ready[0].slot.index, 1);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
-  result = relayer.getInputsForTimeslice(ready[0].slot);
+  result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
 }
 
 // This tests a simple cache pruning, where a single input is shifted out of
@@ -351,7 +351,7 @@ BOOST_AUTO_TEST_CASE(TestCache)
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
   BOOST_CHECK_EQUAL(ready[1].op, CompletionPolicy::CompletionOp::Consume);
   for (size_t i = 0; i < ready.size(); ++i) {
-    auto result = relayer.getInputsForTimeslice(ready[i].slot);
+    auto result = relayer.consumeAllInputsForTimeslice(ready[i].slot);
   }
 
   // This fills the cache and makes 2 obsolete.
@@ -362,8 +362,8 @@ BOOST_AUTO_TEST_CASE(TestCache)
   relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 2);
 
-  auto result1 = relayer.getInputsForTimeslice(ready[0].slot);
-  auto result2 = relayer.getInputsForTimeslice(ready[1].slot);
+  auto result1 = relayer.consumeAllInputsForTimeslice(ready[0].slot);
+  auto result2 = relayer.consumeAllInputsForTimeslice(ready[1].slot);
   // One for the header, one for the payload
   BOOST_REQUIRE_EQUAL(result1.size(), 1);
   BOOST_REQUIRE_EQUAL(result2.size(), 1);

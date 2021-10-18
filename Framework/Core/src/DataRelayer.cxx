@@ -507,12 +507,14 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     auto partial = getPartialRecord(li);
     // TODO: get the data ref from message model
     auto getter = [&partial](size_t idx, size_t part) {
-      if (partial[idx].size() > 0 && partial[idx].header(part) && partial[idx].payload(part)) {
+      if (partial[idx].size() > 0 && partial[idx].header(part).get()) {
+        auto header = partial[idx].header(part).get();
+        auto payload = partial[idx].payload(part).get();
         return DataRef{nullptr,
-                       reinterpret_cast<const char*>(partial[idx].header(part)->GetData()),
-                       reinterpret_cast<const char*>(partial[idx].payload(part)->GetData())};
+                       reinterpret_cast<const char*>(header->GetData()),
+                       reinterpret_cast<const char*>(payload ? payload->GetData() : nullptr)};
       }
-      return DataRef{};
+      return DataRef{nullptr, nullptr, nullptr};
     };
     auto nPartsGetter = [&partial](size_t idx) {
       return partial[idx].size();
@@ -554,7 +556,7 @@ void DataRelayer::updateCacheStatus(TimesliceSlot slot, CacheEntryStatus oldStat
   }
 }
 
-std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(TimesliceSlot slot)
+std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice(TimesliceSlot slot)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
@@ -605,6 +607,50 @@ std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(Timesl
     moveHeaderPayloadToOutput(slot, ai);
   }
   invalidateCacheFor(slot);
+
+  return std::move(messages);
+}
+
+std::vector<o2::framework::MessageSet> DataRelayer::consumeExistingInputsForTimeslice(TimesliceSlot slot)
+{
+  std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+
+  const auto numInputTypes = mDistinctRoutesIndex.size();
+  // State of the computation
+  std::vector<MessageSet> messages(numInputTypes);
+  auto& cache = mCache;
+  auto& index = mTimesliceIndex;
+  auto& metrics = mMetrics;
+
+  // Nothing to see here, this is just to make the outer loop more understandable.
+  auto jumpToCacheEntryAssociatedWith = [](TimesliceSlot) {
+    return;
+  };
+
+  // We move ownership so that the cache can be reused once the computation is
+  // finished. We mark the given cache slot invalid, so that it can be reused
+  // This means we can still handle old messages if there is still space in the
+  // cache where to put them.
+  auto copyHeaderPayloadToOutput = [&messages,
+                                    &cachedStateMetrics = mCachedStateMetrics,
+                                    &cache, &index, &numInputTypes, &metrics](TimesliceSlot s, size_t arg) {
+    auto cacheId = s.index * numInputTypes + arg;
+    cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
+    // TODO: in the original implementation of the cache, there have been only two messages per entry,
+    // check if the 2 above corresponds to the number of messages.
+    for (size_t pi = 0; pi < cache[cacheId].size(); pi++) {
+      auto& header = cache[cacheId].header(pi);
+      auto&& newHeader = header->GetTransport()->CreateMessage();
+      newHeader->Copy(*header);
+      messages[arg].add(PartRef{std::move(newHeader), std::move(cache[cacheId].payload(pi))});
+    }
+  };
+
+  // Outer loop here.
+  jumpToCacheEntryAssociatedWith(slot);
+  for (size_t ai = 0, ae = numInputTypes; ai != ae; ++ai) {
+    copyHeaderPayloadToOutput(slot, ai);
+  }
 
   return std::move(messages);
 }
