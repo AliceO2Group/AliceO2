@@ -253,7 +253,8 @@ void WSDPLHandler::endHeaders()
   if (mHeaders["upgrade"] != "websocket") {
     throw WSError{400, "Bad Request: not a websocket upgrade"};
   }
-  if (mHeaders["connection"] != "upgrade") {
+
+  if (mHeaders["connection"].find("upgrade") == std::string::npos) {
     throw WSError{400, "Bad Request: connection not for upgrade"};
   }
   if (mHeaders["sec-websocket-protocol"] != "dpl") {
@@ -447,7 +448,8 @@ void WSDPLClient::endHeaders()
   if (mHeaders["upgrade"] != "websocket") {
     throw runtime_error_f("No websocket upgrade");
   }
-  if (mHeaders["connection"] != "upgrade") {
+  // find is used to account for multiple options
+  if (mHeaders["connection"].find("upgrade") == std::string::npos) {
     throw runtime_error_f("No connection upgrade");
   }
   if (mHeaders.count("sec-websocket-accept") == 0) {
