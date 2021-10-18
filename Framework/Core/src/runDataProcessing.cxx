@@ -2547,7 +2547,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   // If the id is set, this means this is a device,
   // otherwise this is the driver.
   if (varmap.count("id")) {
-    frameworkId = varmap["id"].as<std::string>();
+    // The framework id does not want to know anything about DDS template expansion
+    // so we simply drop it. Notice that the "id" Property is still the same as the
+    // original --id option.
+    frameworkId = std::regex_replace(varmap["id"].as<std::string>(), std::regex{"_dds.*"}, "");
     driverInfo.uniqueWorkflowId = fmt::format("{}", getppid());
     driverInfo.defaultDriverClient = "stdout://";
   } else {
