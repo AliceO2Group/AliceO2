@@ -27,6 +27,7 @@
 #include "InputRouteHelpers.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/RunningWorkflowInfo.h"
 #include "Framework/Tracing.h"
 #include "Framework/Monitoring.h"
 #include "TextDriverClient.h"
@@ -43,6 +44,7 @@
 #include <InfoLogger/InfoLogger.hxx>
 
 #include <FairMQDevice.h>
+#include <fairmq/shmem/Monitor.h>
 #include <options/FairMQProgOptions.h>
 
 #include <cstdlib>
@@ -438,6 +440,20 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   if (timeSinceLastUpdate < 5000) {
     return;
   }
+  // Derive the amount of shared memory used
+  auto& runningWorkflow = registry.get<RunningWorkflowInfo const>();
+  using namespace fair::mq::shmem;
+  auto& spec = registry.get<DeviceSpec const>();
+
+  // FIXME: Ugly, but we do it only every 5 seconds...
+  if (spec.name == "readout-proxy") {
+    auto device = registry.get<RawDeviceService>().device();
+    try {
+      stats.availableManagedShm.store(Monitor::GetFreeMemory(SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId));
+    } catch (...) {
+    }
+  }
+
   auto performedComputationsSinceLastUpdate = stats.performedComputations - stats.lastReportedPerformedComputations;
 
   ZoneScopedN("send metrics");
@@ -472,6 +488,10 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   monitoring.send(Metric{(stats.lastProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{((float)performedComputationsSinceLastUpdate / (float)timeSinceLastUpdate) * 1000, "processing_rate_hz"}.addTag(Key::Subsystem, Value::DPL));
+
+  if (stats.availableManagedShm) {
+    monitoring.send(Metric{(uint64_t)stats.availableManagedShm, fmt::format("available_managed_shm_{}", runningWorkflow.shmSegmentId)}.addTag(Key::Subsystem, Value::DPL));
+  }
 
   if (stats.consumedTimeframes) {
     monitoring.send(Metric{stats.consumedTimeframes, "consumed-timeframes"}.addTag(Key::Subsystem, Value::DPL));

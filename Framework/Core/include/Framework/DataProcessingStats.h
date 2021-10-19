@@ -37,6 +37,7 @@ struct DataProcessingStats {
   std::atomic<int> totalProcessedSize = 0;
   std::atomic<int> totalSigusr1 = 0;
   std::atomic<int> consumedTimeframes = 0;
+  std::atomic<uint64_t> availableManagedShm = 0; /// Available shared memory in bytes.
 
   std::atomic<uint64_t> lastSlowMetricSentTimestamp = 0; /// The timestamp of the last time we sent slow metrics
   std::atomic<uint64_t> lastMetricFlushedTimestamp = 0;  /// The timestamp of the last time we actually flushed metrics
