@@ -72,9 +72,7 @@
 
 #include "FairMQDevice.h"
 #include <fairmq/DeviceRunner.h>
-#if __has_include(<fairmq/shmem/Monitor.h>)
 #include <fairmq/shmem/Monitor.h>
-#endif
 #include "options/FairMQProgOptions.h"
 
 #include <boost/program_options.hpp>
@@ -115,6 +113,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <execinfo.h>
+// This is to allow C++20 aggregate initialisation
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 #if defined(__linux__) && __has_include(<sched.h>)
 #include <sched.h>
 #elif __has_include(<linux/getcpu.h>)
@@ -319,19 +320,8 @@ static void handle_sigint(int)
 /// Helper to invoke shared memory cleanup
 void cleanupSHM(std::string const& uniqueWorkflowId)
 {
-#if __has_include(<fairmq/shmem/Monitor.h>)
   using namespace fair::mq::shmem;
   Monitor::Cleanup(SessionId{"dpl_" + uniqueWorkflowId}, false);
-#else
-  // Old code, invoking external fairmq-shmmonitor
-  auto shmCleanup = fmt::format("fairmq-shmmonitor --cleanup -s dpl_{} 2>&1 >/dev/null", uniqueWorkflowId);
-  LOG(debug)
-    << "Cleaning up shm memory session with " << shmCleanup;
-  auto result = system(shmCleanup.c_str());
-  if (result != 0) {
-    LOG(error) << "Unable to cleanup shared memory, run " << shmCleanup << "by hand to fix";
-  }
-#endif
 }
 
 static void handle_sigchld(int) { sigchld_requested = true; }
@@ -1162,7 +1152,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                     boost::program_options::variables_map& varmap,
                     std::string frameworkId)
 {
-  RunningWorkflowInfo runningWorkflow;
+  RunningWorkflowInfo runningWorkflow{
+    .uniqueWorkflowId = driverInfo.uniqueWorkflowId,
+    .shmSegmentId = (int16_t)atoi(varmap["shm-segment-id"].as<std::string>().c_str())};
   DeviceInfos infos;
   DeviceControls controls;
   DevicesManager* devicesManager = new DevicesManager{controls, infos, runningWorkflow.devices};
@@ -2573,3 +2565,4 @@ void doBoostException(boost::exception& e, char const* processName)
   LOGP(ERROR, "error while setting up workflow in {}: {}",
        processName, boost::current_exception_diagnostic_information(true));
 }
+#pragma GCC diagnostic push
