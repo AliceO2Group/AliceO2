@@ -618,7 +618,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
         }
         int mother1 = mcParticles[particle].getSecondMotherTrackId();
         if (mother1 != -1) {
-          mToStore[Triplet_t(source, particle, mother1)] = 1;
+          mToStore[Triplet_t(source, event, mother1)] = 1;
         }
         int daughter0 = mcParticles[particle].getFirstDaughterTrackId();
         if (daughter0 != -1) {
