@@ -16,6 +16,7 @@
 #include <gsl/span>
 #include "Framework/Logger.h"
 #include "CommonUtils/StringUtils.h"
+#include "CommonConstants/LHCConstants.h"
 
 /// @brief Class to read the LHC InterFace file coming from the DCS filepush service
 
@@ -33,7 +34,7 @@ class LHCIFfileReader
   void loadLHCIFfile(gsl::span<const char> configBuf); // load LHCIF file from buffer
   template <typename T>
   void readValue(const std::string& alias, std::string& type, int& nel, int& nmeas, std::vector<std::pair<long, std::vector<T>>>& meas);
-
+  
  private:
   std::string mFileBuffStr; // buffer containing content of LHC IF file
 
@@ -83,7 +84,7 @@ void LHCIFfileReader::readValue(const std::string& alias, std::string& type, int
     if constexpr (std::is_same<T, int32_t>::value) {
       if (type == "i" || type == "b") {
         for (int iele = 0; iele < nele; ++iele) {
-          LOG(INFO) << alias << ": value int/bool = " << tokensStr[shift + iele];
+          LOG(DEBUG) << alias << ": value int/bool = " << tokensStr[shift + iele];
           vect.emplace_back(std::stoi(tokensStr[shift + iele]));
         }
       } else {
@@ -92,7 +93,7 @@ void LHCIFfileReader::readValue(const std::string& alias, std::string& type, int
     } else if constexpr (std::is_same<T, float>::value) {
       if (type == "f") {
         for (int iele = 0; iele < nele; ++iele) {
-          LOG(INFO) << alias << ": value float = " << tokensStr[shift + iele];
+          LOG(DEBUG) << alias << ": value float = " << tokensStr[shift + iele];
           vect.emplace_back(std::stof(tokensStr[shift + iele]));
         }
       } else {
@@ -103,7 +104,7 @@ void LHCIFfileReader::readValue(const std::string& alias, std::string& type, int
     else if constexpr (std::is_same<T, std::string>::value) {
       if (type == "s") {
         for (int iele = 0; iele < nele; ++iele) {
-          LOG(INFO) << alias << ": value string = " << tokensStr[shift + iele];
+          LOG(DEBUG) << alias << ": value string = " << tokensStr[shift + iele];
           vect.emplace_back(tokensStr[shift + iele]);
         }
       } else {

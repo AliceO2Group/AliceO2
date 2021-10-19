@@ -56,68 +56,116 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
   std::vector<std::pair<long, std::vector<int32_t>>> atomicNbB1;
   std::vector<std::pair<long, std::vector<int32_t>>> atomicNbB2;
   std::vector<std::pair<long, std::vector<o2::units::AngleRad_t>>> crossAngle;
+  std::vector<std::pair<long, std::vector<int32_t>>> bunchConfigB1;
+  std::vector<std::pair<long, std::vector<int32_t>>> bunchConfigB2;
 
-  int nEleBeamEn, nEleInjSch, nEleFillNb, nEleAtNbB1, nEleAtNbB2, nEleCrossAngle = 0;
-  int nMeasBeamEn, nMeasInjSch, nMeasFillNb, nMeasAtNbB1, nMeasAtNbB2, nMeasCrossAngle = 0;
+  int nEle = 0;
+  int nMeas = 0;
   std::string type{""};
 
   GRPLHCIFData lhcifdata;
 
-  mReader.readValue<int32_t>("BEAM_ENERGY", type, nEleBeamEn, nMeasBeamEn, beamEnergy);
-  if (nMeasBeamEn == 0) {
+  // Beam Energy
+  mReader.readValue<int32_t>("BEAM_ENERGY", type, nEle, nMeas, beamEnergy);
+  if (nMeas == 0) {
     LOG(FATAL) << "Beam energy not present";
   }
-  if (nEleBeamEn != 1 || nMeasBeamEn != 1) {
+  if (nEle != 1 || nMeas != 1) {
     LOG(ERROR) << "More than one value/measurement found for Beam Energy, keeping the last one";
   }
   LOG(INFO) << "beam energy size = " << beamEnergy.size();
   lhcifdata.setBeamEnergyPerZWithTime(beamEnergy.back().first, beamEnergy.back().second.back());
 
-  mReader.readValue<std::string>("INJECTION_SCHEME", type, nEleInjSch, nMeasInjSch, injScheme);
-  if (nMeasInjSch == 0) {
+  // Injection scheme
+  mReader.readValue<std::string>("INJECTION_SCHEME", type, nEle, nMeas, injScheme);
+  if (nMeas == 0) {
     LOG(FATAL) << "Injection scheme not present";
   }
-  if (nEleInjSch != 1 || nMeasInjSch != 1) {
+  if (nEle != 1 || nMeas != 1) {
     LOG(ERROR) << "More than one value/measurement found for Injection Scheme, keeping the last one";
   }
   lhcifdata.setInjectionSchemeWithTime(injScheme.back().first, injScheme.back().second.back());
 
-  mReader.readValue<std::string>("FILL_NUMBER", type, nEleFillNb, nMeasFillNb, fillNb);
-  if (nMeasFillNb == 0) {
+  // fill number
+  mReader.readValue<std::string>("FILL_NUMBER", type, nEle, nMeas, fillNb);
+  if (nMeas == 0) {
     LOG(FATAL) << "Fill Number not present";
   }
-  if (nEleFillNb != 1 || nMeasFillNb != 1) {
+  if (nEle != 1 || nMeas != 1) {
     LOG(ERROR) << "More than one value/measurement found for Fill Number, keeping the last one";
   }
   lhcifdata.setFillNumberWithTime(fillNb.back().first, atoi(fillNb.back().second.back().c_str()));
 
-  mReader.readValue<int32_t>("ATOMIC_NUMBER_B1", type, nEleAtNbB1, nMeasAtNbB1, atomicNbB1);
-  if (nMeasAtNbB1 == 0) {
+  // Atomic Number (Z) for B1
+  mReader.readValue<int32_t>("ATOMIC_NUMBER_B1", type, nEle, nMeas, atomicNbB1);
+  if (nMeas == 0) {
     LOG(FATAL) << "Atomic Number Beam 1 (clockwise) not present";
   }
-  if (nEleAtNbB1 != 1 || nMeasAtNbB1 != 1) {
+  if (nEle != 1 || nMeas != 1) {
     LOG(ERROR) << "More than one value/measurement found for Atomic Number Beam 1 (clockwise), keeping the last one";
   }
   lhcifdata.setAtomicNumberB1WithTime(atomicNbB1.back().first, atomicNbB1.back().second.back());
 
-  mReader.readValue<int32_t>("ATOMIC_NUMBER_B2", type, nEleAtNbB2, nMeasAtNbB2, atomicNbB2);
-  if (nMeasAtNbB2 == 0) {
+  // Atomic Number (Z) for B2
+  mReader.readValue<int32_t>("ATOMIC_NUMBER_B2", type, nEle, nMeas, atomicNbB2);
+  if (nMeas == 0) {
     LOG(FATAL) << "Atomic Number Beam 2 (anticlockwise) not present";
   }
-  if (nEleAtNbB2 != 1 || nMeasAtNbB2 != 1) {
+  if (nEle != 1 || nMeas != 1) {
     LOG(ERROR) << "More than one value/measurement found for Atomic Number Beam 2 (anticlockwise), keeping the last one";
   }
   lhcifdata.setAtomicNumberB2WithTime(atomicNbB2.back().first, atomicNbB2.back().second.back());
 
-  mReader.readValue<float>("IP2_XING_V_MURAD", type, nEleCrossAngle, nMeasCrossAngle, crossAngle);
-  if (nMeasCrossAngle == 0) {
+  // Crossing Angle
+  mReader.readValue<float>("IP2_XING_V_MURAD", type, nEle, nMeas, crossAngle);
+  if (nMeas == 0) {
     LOG(FATAL) << "Crossing Angle not present";
   }
-  if (nEleCrossAngle != 1 || nMeasCrossAngle != 1) {
+  if (nEle != 1 || nMeas != 1) {
     LOG(ERROR) << "More than one value/measurement found for Crossing Angle, keeping the last one";
   }
   lhcifdata.setCrossingAngleWithTime(crossAngle.back().first, crossAngle.back().second.back());
 
+  // Bunch Config for B1
+  mReader.readValue<int>("CIRCULATING_BUNCH_CONFIG_BEAM1", type, nEle, nMeas, bunchConfigB1);
+  if (nMeas == 0) {
+    LOG(FATAL) << "Bunch Config Beam 1 not present";
+  }
+  if (nEle != 1 || nMeas != 1) {
+    LOG(ERROR) << "More than one value/measurement found for Bunch Config Beam 1, keeping the last one";
+  }
+
+  // Bunch Config for B2
+  mReader.readValue<int>("CIRCULATING_BUNCH_CONFIG_BEAM2", type, nEle, nMeas, bunchConfigB2);
+  if (nMeas == 0) {
+    LOG(FATAL) << "Bunch Config Beam 2 not present";
+  }
+  if (nEle != 1 || nMeas != 1) {
+    LOG(ERROR) << "More than one value/measurement found for Bunch Config Beam 2, keeping the last one";
+  }
+  if (nMeas != o2::constants::lhc::LHCMaxBunches) {
+    LOG(ERROR) << "We don't have the right number of bunches information for Beam 2";
+  }
+
+  // Building Bunch Filling
+  std::vector<int32_t> bcNumbersB1, bcNumbersB2;
+  lhcifdata.translateBucketsToBCNumbers(bcNumbersB1, bunchConfigB1.back().second, 1);
+  lhcifdata.translateBucketsToBCNumbers(bcNumbersB2, bunchConfigB2.back().second, 2);
+  o2::BunchFilling bunchFilling;
+  for (int i = 0 ; i < bcNumbersB1.size(); ++i) {
+    int bc = bcNumbersB1[i];
+    int val = (bc == 0 ? 0 : 1); 
+    bunchFilling.setBC(bc, val, 0);
+  }
+  for (int i = 0 ; i < bcNumbersB2.size(); ++i) {
+    int bc = bcNumbersB2[i];
+    int val = (bc == 0 ? 0 : 1); 
+    bunchFilling.setBC(bc, val, 1);
+  }
+  bunchFilling.setInteractingBCsFromBeams();
+  
+  lhcifdata.setBunchFillingWithTime((bunchConfigB1.back().first + bunchConfigB2.back().first) / 2, bunchFilling);
+  
   if (mVerbose) {
     LOG(INFO) << " **** Beam Energy ****";
     for (auto& el : beamEnergy) {

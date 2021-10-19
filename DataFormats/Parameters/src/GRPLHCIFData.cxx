@@ -72,3 +72,12 @@ float GRPLHCIFData::getSqrtS() const
   double ss = 2. * (MassProton * MassProton + e0 * e1 * (1. + beta0 * beta1 * cos(getCrossingAngle())));
   return ss > 0. ? sqrt(ss) : 0.;
 }
+
+//_________________________________________________________________
+
+void GRPLHCIFData::translateBucketsToBCNumbers(std::vector<int32_t>& bcNb, std::vector<int32_t>& buckets, int beam) {
+  // to translate the vector of bucket numbers to BC numbers
+  for (auto i : buckets) {
+    bcNb.push_back(i = 0 ? 0 : (i / 10 + o2::constants::lhc::BunchOffsetsP2[beam]) % o2::constants::lhc::LHCMaxBunches);
+  }
+}

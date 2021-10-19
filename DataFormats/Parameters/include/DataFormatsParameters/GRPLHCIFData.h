@@ -21,6 +21,7 @@
 #include <cstdint>
 #include "CommonTypes/Units.h"
 #include "CommonConstants/LHCConstants.h"
+#include "CommonDataFormat/BunchFilling.h"
 
 namespace o2
 {
@@ -68,14 +69,18 @@ class GRPLHCIFData
   void setAtomicNumberB2WithTime(std::pair<long, int32_t> p) { mAtomicNumberB2 = p; }
   void setAtomicNumberB2WithTime(long t, int32_t v) { mAtomicNumberB2 = std::make_pair(t, v); }
 
-  /// further getters and setters, from info from LHC_IF processing
-  /// getters/setters for beams crossing angle (deviation from 0)
   std::pair<long, o2::units::AngleRad_t> getCrossingAngleWithTime() const { return mCrossingAngle; }
   o2::units::AngleRad_t getCrossingAngle() const { return mCrossingAngle.second; }
   long getCrossingAngleTime() const { return mCrossingAngle.first; }
   void setCrossingAngleWithTime(std::pair<long, o2::units::AngleRad_t> p) { mCrossingAngle = p; }
   void setCrossingAngleWithTime(long t, o2::units::AngleRad_t v) { mCrossingAngle = std::make_pair(t, v); }
 
+  std::pair<long, o2::BunchFilling> getBunchFillingWithTime() const { return mBunchFilling; }
+  o2::BunchFilling getBunchFilling() const { return mBunchFilling.second; }
+  long getBunchFillingTime() const { return mBunchFilling.first; }
+  void setBunchFillingWithTime(std::pair<long, o2::BunchFilling> p) { mBunchFilling = p; }
+  void setBunchFillingWithTime(long t, o2::BunchFilling v) { mBunchFilling = std::make_pair(t, v); }
+  
   /// getters/setters for given beam A and Z info, encoded as A<<16+Z
   int getBeamZ(beamDirection beam) const { return mBeamAZ[static_cast<int>(beam)] & 0xffff; }
   int getBeamA(beamDirection beam) const { return mBeamAZ[static_cast<int>(beam)] >> 16; }
@@ -87,6 +92,8 @@ class GRPLHCIFData
   float getBeamEnergyPerNucleon(beamDirection beam) const { return mBeamEnergyPerZ.second * getBeamZoverA(beam); }
   /// calculate center of mass energy per nucleon collision
   float getSqrtS() const;
+  /// helper function for BunchFilling
+  void translateBucketsToBCNumbers(std::vector<int32_t>& bcNb, std::vector<int32_t>&buckets, int beam);
 
  private:
   std::pair<long, int32_t> mBeamEnergyPerZ; // beam energy per charge
@@ -96,6 +103,7 @@ class GRPLHCIFData
   std::pair<long, int32_t> mAtomicNumberB2; // anticlockwise
   std::pair<long, o2::units::AngleRad_t> mCrossingAngle;
   int mBeamAZ[beamDirection::NBeamDirections] = {0, 0}; ///< A<<16+Z for each beam
+  std::pair<long, o2::BunchFilling> mBunchFilling; ///To hold bunch filling information 
 
   ClassDefNV(GRPLHCIFData, 1);
 };
