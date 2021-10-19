@@ -14,6 +14,9 @@
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
 #include "DataFormatsITSMFT/GBTCalibData.h"
 
+// ROOT includes
+#include "TH2D.h"
+
 #include <ITSBase/GeometryTGeo.h>
 
 #include <iostream>
@@ -31,63 +34,72 @@ template <class Mapping>
 class ITSCalibrator : public Task
 {
     public:
-    //using Mapping=ChipMappingITS;
-    ITSCalibrator();
-    ~ITSCalibrator() override = default;
 
-    using ChipPixelData = o2::itsmft::ChipPixelData;
+        //using Mapping=ChipMappingITS;
+        ITSCalibrator();
+        ~ITSCalibrator(); // override = default;
 
-    void init(InitContext& ic) final;
-    void run(ProcessingContext& pc) final;
-    void endOfStream(EndOfStreamContext& ec) final;
+        using ChipPixelData = o2::itsmft::ChipPixelData;
 
+        void init(InitContext& ic) final;
+        void run(ProcessingContext& pc) final;
+        void endOfStream(EndOfStreamContext& ec) final;
+
+    //////////////////////////////////////////////////////////////////
     private:
 
-    TStopwatch mTimer;
-    size_t mTFCounter = 0;
+        TStopwatch mTimer;
+        size_t mTFCounter = 0;
 
-  //detector information
-  static constexpr int NCols = 1024; //column number in Alpide chip
-  static constexpr int NRows = 512;  //row number in Alpide chip
-  static constexpr int NLayer = 7;   //layer number in ITS detector
-  static constexpr int NLayerIB = 3;
+        // Output log file for debugging / parsing
+        std::ofstream thrfile;
 
-  const int NSubStave[NLayer] = { 1, 1, 1, 2, 2, 2, 2 };
-  const int NStaves[NLayer] = { 12, 16, 20, 24, 30, 42, 48 };
-  const int nHicPerStave[NLayer] = { 1, 1, 1, 8, 8, 14, 14 };
-  const int nChipsPerHic[NLayer] = { 9, 9, 9, 14, 14, 14, 14 };
-  //const int ChipBoundary[NLayer + 1] = { 0, 108, 252, 432, 3120, 6480, 14712, 24120 };
-  const int StaveBoundary[NLayer + 1] = { 0, 12, 28, 48, 72, 102, 144, 192 };
-  const int ReduceFraction = 1; //TODO: move to Config file to define this number
+        //detector information
+        static constexpr int NCols = 1024; //column number in Alpide chip
+        static constexpr int NRows = 512;  //row number in Alpide chip
+        static constexpr int NLayer = 7;   //layer number in ITS detector
+        static constexpr int NLayerIB = 3;
 
-  std::array<bool, NLayer> mEnableLayers = { false };
+        const int NSubStave[NLayer] = { 1, 1, 1, 2, 2, 2, 2 };
+        const int NStaves[NLayer] = { 12, 16, 20, 24, 30, 42, 48 };
+        const int nHicPerStave[NLayer] = { 1, 1, 1, 8, 8, 14, 14 };
+        const int nChipsPerHic[NLayer] = { 9, 9, 9, 14, 14, 14, 14 };
+        //const int ChipBoundary[NLayer + 1] = { 0, 108, 252, 432, 3120, 6480, 14712, 24120 };
+        const int StaveBoundary[NLayer + 1] = { 0, 12, 28, 48, 72, 102, 144, 192 };
+        const int ReduceFraction = 1; //TODO: move to Config file to define this number
 
-  std::unordered_map<unsigned int, int> mHitPixelID_Hash[7][48][2][14][14]; //layer, stave, substave, hic, chip
+        std::array<bool, NLayer> mEnableLayers = { false };
 
-    std::string mSelfName;
-    std::string mDictName;
-    std::string mNoiseName;
+        // Hash tables to store the hit and threshold information per pixel
+        std::map< int, int > currentRow;
+        std::map< int, std::vector< std::vector<int>> > pixelHits;
+        std::map< int, TH2D* > thresholds;
 
-    std::string mRunID;
+        std::unordered_map<unsigned int, int> mHitPixelID_Hash[7][48][2][14][14]; //layer, stave, substave, hic, chip
 
-    int16_t partID = 0;
+        std::string mSelfName;
+        std::string mDictName;
+        std::string mNoiseName;
 
+        std::string mRunID;
 
-    int mTimeFrameId = 0;
-    std::unique_ptr<RawPixelDecoder<Mapping>> mDecoder;
-    ChipPixelData* mChipDataBuffer = nullptr;
-    int mHitNumberOfChip[7][48][2][14][14] = { { { { { 0 } } } } }; //layer, stave, substave, hic, chip
-    std::vector<ChipPixelData> mChipsBuffer;  // currently processed ROF's chips data
-    
-    //RawPixelDecoder<ChipMappingITS>* mRawPixelDecoder;
-    //std::unique_ptr<ChipPixelData<Mapping>> mChipPixelData;
-    //int mHitNumberOfChip[7][48][2][14][14] = { { { { { 0 } } } } }; //layer, stave, substave, hic, chip
+        int16_t partID = 0;
 
-    o2::its::GeometryTGeo* mGeom;
-    std::string mGeomPath;
+        int mTimeFrameId = 0;
+        std::unique_ptr<RawPixelDecoder<Mapping>> mDecoder;
+        ChipPixelData* mChipDataBuffer = nullptr;
+        int mHitNumberOfChip[7][48][2][14][14] = { { { { { 0 } } } } }; //layer, stave, substave, hic, chip
+        std::vector<ChipPixelData> mChipsBuffer;  // currently processed ROF's chips data
 
-    //output file (temp solution)
-    std::ofstream outfile;
+        //RawPixelDecoder<ChipMappingITS>* mRawPixelDecoder;
+        //std::unique_ptr<ChipPixelData<Mapping>> mChipPixelData;
+        //int mHitNumberOfChip[7][48][2][14][14] = { { { { { 0 } } } } }; //layer, stave, substave, hic, chip
+
+        o2::its::GeometryTGeo* mGeom;
+        std::string mGeomPath;
+
+        //output file (temp solution)
+        std::ofstream outfile;
 };
 
 //using ITSCalibrator = ITSCalibrator<ChipMappingITS>;
