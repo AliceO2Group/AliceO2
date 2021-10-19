@@ -448,7 +448,10 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   // FIXME: Ugly, but we do it only every 5 seconds...
   if (spec.name == "readout-proxy") {
     auto device = registry.get<RawDeviceService>().device();
-    stats.availableManagedShm.store(Monitor::GetFreeMemory(SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId));
+    try {
+      stats.availableManagedShm.store(Monitor::GetFreeMemory(SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId));
+    } catch (...) {
+    }
   }
 
   auto performedComputationsSinceLastUpdate = stats.performedComputations - stats.lastReportedPerformedComputations;
