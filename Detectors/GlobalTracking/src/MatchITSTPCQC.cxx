@@ -44,7 +44,6 @@ void MatchITSTPCQC::deleteHistograms()
 void MatchITSTPCQC::reset()
 {
   mPtTPC->Reset();
-  mFractionITSTPCmatch->Reset();
   mPt->Reset();
   mEta->Reset();
   mChi2Matching->Reset();
@@ -58,12 +57,15 @@ bool MatchITSTPCQC::init()
 {
 
   mPtTPC = new TH1F("mPtTPC", "Pt distribution of TPC tracks; Pt; dNdPt", 100, 0.f, 20.f);
-  mFractionITSTPCmatch = new TH1F("mFractionITSTPCmatch", "Fraction of ITSTPC matched tracks vs Pt; Pt; Eff", 100, 0.f, 20.f);
+  mFractionITSTPCmatch = new TEfficiency("mFractionITSTPCmatch", "Fraction of ITSTPC matched tracks vs Pt; Pt; Eff", 100, 0.f, 20.f);
   mPt = new TH1F("mPt", "Pt distribution of matched tracks; Pt; dNdPt", 100, 0.f, 20.f);
   mEta = new TH1F("mEta", "Eta distribution of matched tracks; Eta; dNdEta", 100, -1.2f, 1.2f);
   mChi2Matching = new TH1F("mChi2Matching", "Chi2 of matching; chi2", 200, 0, 20);
   mChi2Refit = new TH1F("mChi2Refit", "Chi2 of refit; chi2", 200, 0, 20);
   mTimeResVsPt = new TH2F("mTimeResVsPt", "Time resolution vs Pt; Pt; time res", 100, 0.f, 20.f, 100, 0.f, 2.f);
+
+  mPtTPC->Sumw2();
+  mPt->Sumw2();
 
   mSrc &= mAllowedSources;
 
@@ -110,7 +112,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       mChi2Matching->Fill(trk.getChi2Match());
       mChi2Refit->Fill(trk.getChi2Refit());
       mTimeResVsPt->Fill(trkTpc.getPt(), trk.getTimeMUS().getTimeStampError());
-      LOG(INFO) << "*** chi2Matching = " << trk.getChi2Match() << ", chi2refit = " << trk.getChi2Refit() << ", timeResolution = " << trk.getTimeMUS().getTimeStampError();
+      LOG(DEBUG) << "*** chi2Matching = " << trk.getChi2Match() << ", chi2refit = " << trk.getChi2Refit() << ", timeResolution = " << trk.getTimeMUS().getTimeStampError();
       ++mNITSTPCSelectedTracks;
     }
   }
@@ -145,9 +147,14 @@ bool MatchITSTPCQC::selectTrack(o2::tpc::TrackTPC const& track)
 void MatchITSTPCQC::finalize()
 {
 
+  // first we use mPt and mPtTPC to set the TEfficiency; later they are scaled
+  if (!mFractionITSTPCmatch->SetTotalHistogram(*mPtTPC, "") ||
+      !mFractionITSTPCmatch->SetPassedHistogram(*mPt, "")) {
+    LOG(FATAL) << "Something wrong when defining the efficiency histograms!";
+  }
+
   float scaleFactTPC = 1. / mNTPCSelectedTracks;
   float scaleFactITSTPC = 1. / mNITSTPCSelectedTracks;
-  mFractionITSTPCmatch->Divide(mPt, mPtTPC, 1, 1, "b");
   mPtTPC->Scale(scaleFactTPC);
   mPt->Scale(scaleFactITSTPC);
   mEta->Scale(scaleFactITSTPC);
