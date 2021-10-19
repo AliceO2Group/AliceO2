@@ -34,7 +34,7 @@ class LHCIFfileReader
   void loadLHCIFfile(gsl::span<const char> configBuf); // load LHCIF file from buffer
   template <typename T>
   void readValue(const std::string& alias, std::string& type, int& nel, int& nmeas, std::vector<std::pair<long, std::vector<T>>>& meas);
-  
+
  private:
   std::string mFileBuffStr; // buffer containing content of LHC IF file
 

@@ -75,7 +75,8 @@ float GRPLHCIFData::getSqrtS() const
 
 //_________________________________________________________________
 
-void GRPLHCIFData::translateBucketsToBCNumbers(std::vector<int32_t>& bcNb, std::vector<int32_t>& buckets, int beam) {
+void GRPLHCIFData::translateBucketsToBCNumbers(std::vector<int32_t>& bcNb, std::vector<int32_t>& buckets, int beam)
+{
   // to translate the vector of bucket numbers to BC numbers
   for (auto i : buckets) {
     bcNb.push_back(i = 0 ? 0 : (i / 10 + o2::constants::lhc::BunchOffsetsP2[beam]) % o2::constants::lhc::LHCMaxBunches);

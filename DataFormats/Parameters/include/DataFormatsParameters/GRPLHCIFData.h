@@ -80,7 +80,7 @@ class GRPLHCIFData
   long getBunchFillingTime() const { return mBunchFilling.first; }
   void setBunchFillingWithTime(std::pair<long, o2::BunchFilling> p) { mBunchFilling = p; }
   void setBunchFillingWithTime(long t, o2::BunchFilling v) { mBunchFilling = std::make_pair(t, v); }
-  
+
   /// getters/setters for given beam A and Z info, encoded as A<<16+Z
   int getBeamZ(beamDirection beam) const { return mBeamAZ[static_cast<int>(beam)] & 0xffff; }
   int getBeamA(beamDirection beam) const { return mBeamAZ[static_cast<int>(beam)] >> 16; }
@@ -93,7 +93,7 @@ class GRPLHCIFData
   /// calculate center of mass energy per nucleon collision
   float getSqrtS() const;
   /// helper function for BunchFilling
-  void translateBucketsToBCNumbers(std::vector<int32_t>& bcNb, std::vector<int32_t>&buckets, int beam);
+  void translateBucketsToBCNumbers(std::vector<int32_t>& bcNb, std::vector<int32_t>& buckets, int beam);
 
  private:
   std::pair<long, int32_t> mBeamEnergyPerZ; // beam energy per charge
@@ -103,7 +103,7 @@ class GRPLHCIFData
   std::pair<long, int32_t> mAtomicNumberB2; // anticlockwise
   std::pair<long, o2::units::AngleRad_t> mCrossingAngle;
   int mBeamAZ[beamDirection::NBeamDirections] = {0, 0}; ///< A<<16+Z for each beam
-  std::pair<long, o2::BunchFilling> mBunchFilling; ///To hold bunch filling information 
+  std::pair<long, o2::BunchFilling> mBunchFilling;      ///To hold bunch filling information
 
   ClassDefNV(GRPLHCIFData, 1);
 };

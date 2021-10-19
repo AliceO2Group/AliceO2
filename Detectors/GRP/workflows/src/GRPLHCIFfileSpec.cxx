@@ -152,20 +152,20 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
   lhcifdata.translateBucketsToBCNumbers(bcNumbersB1, bunchConfigB1.back().second, 1);
   lhcifdata.translateBucketsToBCNumbers(bcNumbersB2, bunchConfigB2.back().second, 2);
   o2::BunchFilling bunchFilling;
-  for (int i = 0 ; i < bcNumbersB1.size(); ++i) {
+  for (int i = 0; i < bcNumbersB1.size(); ++i) {
     int bc = bcNumbersB1[i];
-    int val = (bc == 0 ? 0 : 1); 
+    int val = (bc == 0 ? 0 : 1);
     bunchFilling.setBC(bc, val, 0);
   }
-  for (int i = 0 ; i < bcNumbersB2.size(); ++i) {
+  for (int i = 0; i < bcNumbersB2.size(); ++i) {
     int bc = bcNumbersB2[i];
-    int val = (bc == 0 ? 0 : 1); 
+    int val = (bc == 0 ? 0 : 1);
     bunchFilling.setBC(bc, val, 1);
   }
   bunchFilling.setInteractingBCsFromBeams();
-  
+
   lhcifdata.setBunchFillingWithTime((bunchConfigB1.back().first + bunchConfigB2.back().first) / 2, bunchFilling);
-  
+
   if (mVerbose) {
     LOG(INFO) << " **** Beam Energy ****";
     for (auto& el : beamEnergy) {
