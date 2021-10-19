@@ -145,6 +145,11 @@ void dumpDeviceSpec2DDS(std::ostream& out,
       if (!arg) {
         break;
       }
+      if (strcmp(arg, "--id") == 0 && ai + 1 < execution.args.size()) {
+        out << fmt::format(R"(--id {}_dds%TaskIndex%_%CollectionIndex% )", execution.args[ai + 1]);
+        ai++;
+        continue;
+      }
       // Do not print out the driver client explicitly
       if (strcmp(arg, "--driver-client-backend") == 0) {
         ai++;
