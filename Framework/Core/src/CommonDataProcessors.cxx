@@ -505,6 +505,7 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
     .inputs = danglingOutputInputs,
     .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
       auto dataConsumed = [](ServiceRegistry& services) {
+        LOG(ERROR) << services.get<DataProcessingStats>().consumedTimeframes;
         services.get<DataProcessingStats>().consumedTimeframes++;
       };
       callbacks.set(CallbackService::Id::DataConsumed, dataConsumed);
