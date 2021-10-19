@@ -2,6 +2,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "TH2F.h"
 #include "TH1F.h"
+#include "TCanvas.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CPVBase/Geometry.h"
 #endif
