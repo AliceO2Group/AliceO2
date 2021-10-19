@@ -38,18 +38,14 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
   float mA = 1.0;               ///<  Parameter to model CPV response
   float mB = 0.7;               ///<  Parameter to model CPV response
 
-  //Parameters used in electronic noise calculation and thresholds (Digitizer)
+  //Parameters used in electronic noise calculation and thresholds (Digitizer, Calibration)
   float mReadoutTime = 5.;        ///< Read-out time in ns for default simulaionts
   float mDeadTime = 20.;          ///< PHOS dead time (includes Read-out time i.e. mDeadTime>=mReadoutTime)
   float mReadoutTimePU = 2000.;   ///< Read-out time in ns if pileup simulation on in DigitizerSpec
   float mDeadTimePU = 30000.;     ///< PHOS dead time if pileup simulation on in DigitizerSpec
   bool mApplyDigitization = true; ///< if energy digitization should be applied
-  //float mZSthreshold = 0.01;        ///< Zero Suppression threshold
-  float mZSnSigmas = 3.; ///< Zero Suppression threshold
-  //float mADCWidth = 0.005;          ///< Widht of ADC channel used for energy digitization
-  //float mNoise = 0.01;              ///<  charge noise in one pad
-  //float mCoeffToNanoSecond = 1.e+9; ///< Conversion for time units
-  float mSortingDelta = 0.1; ///< used in sorting clusters inverse sorting band in cm
+  float mZSnSigmas = 3.;          ///< Zero Suppression threshold
+  float mSortingDelta = 0.1;      ///< used in sorting clusters inverse sorting band in cm
 
   //Parameters used in clusterization
   //float mDigitMinEnergy = 0.01;       ///< Minimal amplitude of a digit to be used in cluster

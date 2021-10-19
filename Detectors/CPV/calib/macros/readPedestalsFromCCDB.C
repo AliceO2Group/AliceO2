@@ -11,7 +11,7 @@
 #include <fstream>
 #endif
 
-o2::cpv::Pedestals* readPedestalsFromCCDB(long timeStamp = 0, const char* ccdbURI = "http://ccdb-test.cern.ch:8080")
+o2::cpv::Pedestals* readPedestalsFromCCDB(const char* ccdbURI = "http://ccdb-test.cern.ch:8080", long timeStamp = 0)
 {
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
   ccdbMgr.setURL(ccdbURI);
@@ -77,7 +77,7 @@ o2::cpv::Pedestals* readPedestalsFromCCDB(long timeStamp = 0, const char* ccdbUR
     }
     short ccId, dil, gas, pad;
     geo.absIdToHWaddress(iCh, ccId, dil, gas, pad);
-    unsigned short addr = ccId * 4 * 5 * 48 + dil * 5 * 48 + gas * 48 + pad;
+    unsigned short addr = ccId * 4 * 5 * 64 + dil * 5 * 64 + gas * 64 + pad;
     pededstalsTxt << addr << " " << threshold << std::endl;
   }
   pededstalsTxt.close();
