@@ -46,10 +46,22 @@ namespace its
 
 using namespace o2::framework;
 
+
+// Default constructor
 template <class Mapping>
 ITSCalibrator<Mapping>::ITSCalibrator()
 {
     mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "ITSCalibrator");
+}
+
+// Default deconstructor
+template <class Mapping>
+ITSCalibrator<Mapping>::~ITSCalibrator()
+{
+    // Clear dynamic memory
+
+    // Delete all the dynamically created TH2D for each chip
+    for (auto const& th : this->thresholds) { delete th.second; }
 }
 
 template <class Mapping>
@@ -61,8 +73,7 @@ void ITSCalibrator<Mapping>::init(InitContext& ic)
     mGeom = o2::its::GeometryTGeo::Instance();
 
     // Initialize text file to save some processing output
-    //std::ofstream thrfile;
-    //thrfile.open("thrfile.txt");
+    this->thrfile.open("thrfile.txt");
 
     mDecoder = std::make_unique<RawPixelDecoder<ChipMappingITS>>();
     mDecoder->init();
@@ -247,14 +258,10 @@ bool GetThresholdAlt(const int* data, const int* x, const int & NPoints,
 template <class Mapping>
 void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
 {
-    std::ofstream thrfile;
-    thrfile.open("thrfile.txt", std::ios_base::app);
+    this->thrfile.open("thrfile.txt", std::ios_base::app);
 
     int chipID = 0;
     int TriggerId = 0;
-    std::map< int, int > currentRow;
-    std::map< int, std::vector< std::vector<int>> > pixelHits;
-    std::map< int, TH2D* > thresholds;
 
     // Charge injected ranges from 1 - 50 in steps of 1
     const int len_x = get_nInj();
@@ -319,13 +326,14 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
                     continue;
                 }
 
-                if (currentRow.find(chipID) == currentRow.end()) {  // if chip hasn't appeared before
+                // Check if chip hasn't appeared before
+                if (this->currentRow.find(chipID) == this->currentRow.end()) {
                     // Update the current row
-                    currentRow[chipID] = pixels[0].getRow();
+                    this->currentRow[chipID] = pixels[0].getRow();
 
                     // Create a 2D vector to store hits
                     std::vector< std::vector<int> > hitmap(get_nCol(chipID), std::vector<int> (len_x, 0));  // Outer dim = column, inner dim = charge
-                    pixelHits[chipID] = hitmap;     // new entry in pixelHits for new chip at current charge
+                    this->pixelHits[chipID] = hitmap;     // new entry in pixelHits for new chip at current charge
 
                     // Create a TH2 to save the threshold info
                     const char* th_name = ("thresh_chipID" + std::to_string(chipID)).c_str();
@@ -333,20 +341,20 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
                     double* row_arr; double* col_arr;
                     get_row_col_arr(chipID, nRow, row_arr, nCol, col_arr);
                     TH2D* th = new TH2D(th_name, th_name, nRow, row_arr, nCol, col_arr);  // x = rows, y = columns
-                    thresholds[chipID] = th;
+                    this->thresholds[chipID] = th;
                     delete[] row_arr, col_arr;
 
                 } else {
-                    if (currentRow[chipID] != pixels[0].getRow()) { // if chip is moving on to next row
+                    if (this->currentRow[chipID] != pixels[0].getRow()) { // if chip is moving on to next row
                         // add something to check that the row switch is for real
                         // run S-curve code on completed row
                         LOG(INFO) << "time to run S-curve stuff!";
                         for (int col = 0; col < get_nCol(chipID); col++) {
-                            int cur_row = currentRow[chipID];
+                            int cur_row = this->currentRow[chipID];
 
                             double threshold, noise, chi2;
                             // Convert counts to C array for the fitting function
-                            const int* data = &pixelHits[chipID][col][0];
+                            const int* data = &(this->pixelHits[chipID][col][0]);
 
                             // Do the threshold fit
                             try { GetThreshold(data, x, len_x, &threshold, &noise, &chi2); }
@@ -368,32 +376,32 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
                                     << threshold << ", noise: " << noise << ", chi2: " << chi2 << '\n';
 
                             // Update ROOT histograms
-                            thresholds[chipID]->SetBinContent(cur_row, col+1, threshold);
-                            thresholds[chipID]->SetBinError(cur_row, col+1, noise);
+                            this->thresholds[chipID]->SetBinContent(cur_row, col+1, threshold);
+                            this->thresholds[chipID]->SetBinError(cur_row, col+1, noise);
                             // TODO: store the chi2 info somewhere useful
                         }
                         // Initialize ROOT output file
                         TFile* tf = new TFile("threshold_scan.root", "UPDATE");
 
                         // Update the ROOT file with most recent histo
-                        tf->Write(thresholds[chipID]->GetName(), TObject::kOverwrite);
+                        tf->Write(this->thresholds[chipID]->GetName(), TObject::kOverwrite);
 
                         // Close file and clean up memory
                         tf->Close();
                         delete tf;
 
                         // update current row of chip
-                        currentRow[chipID] = pixels[0].getRow();
+                        this->currentRow[chipID] = pixels[0].getRow();
 
                         // reset pixel hit counts for the chip, new empty hitvec for current charge
                         std::vector< std::vector<int> > hitmap(get_nCol(chipID), std::vector<int> (len_x, 0));  // Outer dim = column, inner dim = charge
-                        pixelHits[chipID] = hitmap;
+                        this->pixelHits[chipID] = hitmap;
                     }
                 }
 
                 for (auto& pixel : pixels) {
-                    if (pixel.getRow() == currentRow[chipID]) {     // no weird row switches
-                        pixelHits[chipID][pixel.getCol()-1][CHARGE-1]++;
+                    if (pixel.getRow() == this->currentRow[chipID]) {     // no weird row switches
+                        this->pixelHits[chipID][pixel.getCol()-1][CHARGE-1]++;
                         /*if (chipID == 5451) {
                             LOG(INFO) << "pixel col: " << pixel.getCol() << ", pixel row: " << pixel.getRow() << ", currentRow: " << currentRow[chipID] << ", CHARGE: " << CHARGE << ", no row switch>
                         }*/
