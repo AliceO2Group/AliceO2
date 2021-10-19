@@ -23,6 +23,8 @@ struct RunningDeviceRef {
 
 /// Information about the running workflow
 struct RunningWorkflowInfo {
+  std::string uniqueWorkflowId = "";
+  int16_t shmSegmentId;
   std::vector<DeviceSpec> devices;
 };
 
