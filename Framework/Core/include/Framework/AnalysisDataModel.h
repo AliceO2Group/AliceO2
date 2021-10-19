@@ -15,6 +15,7 @@
 #include "MathUtils/Utils.h"
 #include <cmath>
 #include "Framework/DataTypes.h"
+#include "CommonConstants/PhysicsConstants.h"
 
 namespace o2
 {
@@ -666,12 +667,16 @@ DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, float[112]); //!
 DECLARE_SOA_COLUMN(TimeA, timeA, float);                //!
 DECLARE_SOA_COLUMN(TimeC, timeC, float);                //!
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t);  //!
+DECLARE_SOA_DYNAMIC_COLUMN(PosZ, posZ,                  //! Z position calculated from timeA and timeC in cm
+                           [](float t0A, float t0C) -> float {
+                             return o2::constants::physics::LightSpeedCm2NS * (t0C - t0A) / 2;
+                           });
 } // namespace ft0
 
 DECLARE_SOA_TABLE(FT0s, "AOD", "FT0", //!
                   o2::soa::Index<>, ft0::BCId,
                   ft0::AmplitudeA, ft0::AmplitudeC, ft0::TimeA, ft0::TimeC,
-                  ft0::TriggerMask);
+                  ft0::TriggerMask, ft0::PosZ<ft0::TimeA, ft0::TimeC>);
 using FT0 = FT0s::iterator;
 
 namespace fdd
