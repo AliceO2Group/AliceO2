@@ -65,7 +65,7 @@ ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id $NUMAID --shm-
 if [ $EPNMODE == 1 ]; then
   ARGS_ALL+=" --infologger-severity $INFOLOGGER_SEVERITY"
   ARGS_ALL+=" --monitoring-backend influxdb-unix:///tmp/telegraf.sock --resources-monitoring 60"
-else
+elif [ "0$ENABLE_METRICS" != "01" ]; then
   ARGS_ALL+=" --monitoring-backend no-op://"
 fi
 if [ $EXTINPUT == 1 ] || [ $NUMAGPUIDS == 1 ]; then
