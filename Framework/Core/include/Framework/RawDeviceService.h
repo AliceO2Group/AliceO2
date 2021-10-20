@@ -31,7 +31,7 @@ class RawDeviceService
 
   virtual FairMQDevice* device() = 0;
   virtual void setDevice(FairMQDevice* device) = 0;
-  virtual DeviceSpec const& spec() = 0;
+  virtual DeviceSpec const& spec() const = 0;
   /// Expose FairMQDevice::WaitFor method to avoid having to include
   /// FairMQDevice.h.
   ///
