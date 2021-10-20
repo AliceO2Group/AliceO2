@@ -13,7 +13,7 @@ o2_add_library(EMCALSimulation
                SOURCES src/Detector.cxx src/Digitizer.cxx src/SDigitizer.cxx
                        src/DigitsWriteoutBuffer.cxx src/SpaceFrame.cxx src/SimParam.cxx
                        src/LabeledDigit.cxx src/RawWriter.cxx
-               PUBLIC_LINK_LIBRARIES O2::EMCALBase O2::DetectorsBase O2::SimConfig O2::SimulationDataFormat O2::Headers O2::DetectorsRaw)
+               PUBLIC_LINK_LIBRARIES O2::EMCALBase O2::DetectorsBase O2::SimConfig O2::SimulationDataFormat O2::Headers O2::DetectorsRaw O2::EMCALReconstruction)
 
 o2_target_root_dictionary(EMCALSimulation
                           HEADERS include/EMCALSimulation/Detector.h

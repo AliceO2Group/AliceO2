@@ -111,14 +111,14 @@ std::vector<o2::emcal::SRUBunchContainer> CellConverterSpec::digitsToBunches(gsl
 {
 
   std::vector<o2::emcal::SRUBunchContainer> sruBunchContainer;
-  std::vector<o2::emcal::SRUDigitContainer> sruDigitContainer;
+  std::vector<o2::emcal::DigitContainerPerSRU> sruDigitContainer;
 
   for (auto iddl = 0; iddl < 40; iddl++) {
     o2::emcal::SRUBunchContainer srucontBunch;
     srucontBunch.mSRUid = iddl;
     sruBunchContainer.push_back(srucontBunch);
 
-    o2::emcal::SRUDigitContainer srucontDigits;
+    o2::emcal::DigitContainerPerSRU srucontDigits;
     srucontDigits.mSRUid = iddl;
     sruDigitContainer.push_back(srucontDigits);
   }
