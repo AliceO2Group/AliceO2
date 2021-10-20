@@ -27,6 +27,12 @@
 
 #include "GPUCommonMath.h"
 
+namespace {
+  float Sq(float q) {
+    return q * q;
+  }
+}
+
 namespace o2
 {
 namespace its
@@ -34,8 +40,11 @@ namespace its
 
 constexpr int debugLevel{0};
 
+
 void TrackerTraitsCPU::computeLayerTracklets()
 {
+  static int iteration{0};
+  std::ofstream off(fmt::format("output{}.txt",iteration++));
   TimeFrame* tf = mTimeFrame;
 
   for (int rof0{0}; rof0 < tf->getNrof(); ++rof0) {
@@ -56,9 +65,12 @@ void TrackerTraitsCPU::computeLayerTracklets()
         if (tf->isClusterUsed(iLayer, currentCluster.clusterId)) {
           continue;
         }
+        const float inverseR0{1. / currentCluster.radius};
 
         for (auto& primaryVertex : primaryVertices) {
-          const float tanLambda{(currentCluster.zCoordinate - primaryVertex.getZ()) / currentCluster.radius};
+          const float resolution = 5.e-3 / std::sqrt(primaryVertex.getNContributors());
+
+          const float tanLambda{(currentCluster.zCoordinate - primaryVertex.getZ()) * inverseR0};
 
           const float zAtRmin{tanLambda * (tf->getMinR(iLayer + 1) - currentCluster.radius) + currentCluster.zCoordinate};
           const float zAtRmax{tanLambda * (tf->getMaxR(iLayer + 1) - currentCluster.radius) + currentCluster.zCoordinate};
@@ -109,13 +121,25 @@ void TrackerTraitsCPU::computeLayerTracklets()
                   continue;
                 }
 
+                const float deltaPhi{gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi)};
+                const float inverseR1{1. / nextCluster.radius};
+                const float inverseDeltaZ0{1. / (currentCluster.zCoordinate - primaryVertex.getZ())};
+                const float inverseDeltaZ1{1. / (nextCluster.radius - primaryVertex.getZ())};
+                const float tanLambda1{(nextCluster.zCoordinate - primaryVertex.getZ()) * inverseR1};
+                const float tanLambdaTrk{(nextCluster.zCoordinate - currentCluster.zCoordinate) / (nextCluster.radius - currentCluster.radius)};
+                const float distance{gpu::GPUCommonMath::Hypot(currentCluster.xCoordinate - nextCluster.xCoordinate, currentCluster.yCoordinate - nextCluster.yCoordinate)};
+                const float sigma = std::sqrt(Sq(resolution) * (Sq(tanLambda) * (Sq(inverseR0) + Sq(inverseDeltaZ0)) + Sq(tanLambda1) * (Sq(inverseR1) + Sq(inverseDeltaZ1))) + Sq(distance * (0.003 + tanLambda1)));
+                const float nsigma{(tanLambda1 - tanLambda) / sigma};
+
                 const float deltaZ{gpu::GPUCommonMath::Abs(tanLambda * (nextCluster.radius - currentCluster.radius) +
                                                            currentCluster.zCoordinate - nextCluster.zCoordinate)};
-                const float deltaPhi{gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi)};
+                const float sigmaZ{std::sqrt(Sq(resolution) * Sq(tanLambda) * ((Sq(inverseR0) + Sq(inverseDeltaZ0)) * (nextCluster.radius - currentCluster.radius) + 1.) + Sq(nextCluster.radius - currentCluster.radius) * 0.005f) / 50.};
 
                 if (deltaZ < mTrkParams.TrackletMaxDeltaZ[iLayer] &&
                     (deltaPhi < mTrkParams.TrackletMaxDeltaPhi ||
                      gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < mTrkParams.TrackletMaxDeltaPhi)) {
+                  off << fmt::format("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}", iLayer, (tanLambda * (nextCluster.radius - currentCluster.radius) +
+                                                           currentCluster.zCoordinate - nextCluster.zCoordinate) / sigmaZ, tanLambda, tanLambda1, std::abs(tanLambda1 - tanLambda), inverseR1, inverseR0, resolution) << std::endl;
                   if (iLayer > 0) {
                     tf->getTrackletsLookupTable()[iLayer - 1][currentSortedIndex]++;
                   }
