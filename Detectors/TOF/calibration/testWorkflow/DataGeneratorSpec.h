@@ -243,7 +243,7 @@ DataProcessorSpec getTFProcessorDiagnosticSpec(int latency, int latencyRMS)
   return DataProcessorSpec{
     "calib-tf-data-processor",
     Inputs{{"input", "TOF", "DATASIZE"}},
-    Outputs{{{"output"}, "TOF", "DIAGNOSTIC"}},
+    Outputs{{{"output"}, "TOF", "DIAFREQ"}},
     AlgorithmSpec{adaptFromTask<o2::calibration::TFProcessorDiagnostic>(latency, latencyRMS)},
     Options{
       {"n-diag-words", VariantType::Int, 20, {"number of diagnostic words to simulate"}}}};
