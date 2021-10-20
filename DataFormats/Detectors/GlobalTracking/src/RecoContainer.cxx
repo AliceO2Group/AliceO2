@@ -93,7 +93,7 @@ void DataRequest::requestMCHTracks(bool mc)
 void DataRequest::requestMIDTracks(bool mc)
 {
   addInput({"trackMIDROF", "MID", "TRACKROFS", 0, Lifetime::Timeframe});
-  addInput({"trackClMIDROF", "MID", "TRCLUSROF", 0, Lifetime::Timeframe});
+  addInput({"trackClMIDROF", "MID", "TRCLUSROFS", 0, Lifetime::Timeframe});
   addInput({"trackMID", "MID", "TRACKS", 0, Lifetime::Timeframe});
   addInput({"trackMIDTRACKCLUSTERS", "MID", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
   if (mc) {
