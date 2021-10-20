@@ -41,7 +41,7 @@ void printBranch(char* data, const char* what)
 RootTreeReader::SpecialPublishHook logging{
   [](std::string_view name, ProcessingContext&, Output const&, char* data) -> bool {
     if (name == "MIDTrackROF") {
-      printBranch<ROFRecord>(data, "TRACKSROF");
+      printBranch<ROFRecord>(data, "TRACKROFS");
     }
     if (name == "MIDTrackClusterROF") {
       printBranch<ROFRecord>(data, "TRCLUSROFS");
@@ -82,9 +82,9 @@ struct TrackReader {
         nofEntries,
         RootTreeReader::PublishingMode::Single,
         RootTreeReader::BranchDefinition<std::vector<Track>>{Output{"MID", "TRACKS", 0}, "MIDTrack"},
-        RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MID", "TRACKSROF", 0}, "MIDTrackROF"},
+        RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MID", "TRACKROFS", 0}, "MIDTrackROF"},
         RootTreeReader::BranchDefinition<std::vector<Cluster3D>>{Output{"MID", "TRACKCLUSTERS", 0}, "MIDTrackCluster"},
-        RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MID", "TRCLUSROF", 0}, "MIDTrackClusterROF"},
+        RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MID", "TRCLUSROFS", 0}, "MIDTrackClusterROF"},
         RootTreeReader::BranchDefinition<o2::dataformats::MCTruthContainer<MCCompLabel>>{Output{"MID", "TRACKLABELS", 0}, "MIDTrackLabels"},
         RootTreeReader::BranchDefinition<o2::dataformats::MCTruthContainer<MCClusterLabel>>{Output{"MID", "TRCLUSLABELS", 0}, "MIDTrackClusterLabels"},
         &logging);
@@ -95,9 +95,9 @@ struct TrackReader {
         nofEntries,
         RootTreeReader::PublishingMode::Single,
         RootTreeReader::BranchDefinition<std::vector<Track>>{Output{"MID", "TRACKS", 0}, "MIDTrack"},
-        RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MID", "TRACKSROF", 0}, "MIDTrackROF"},
+        RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MID", "TRACKROFS", 0}, "MIDTrackROF"},
         RootTreeReader::BranchDefinition<std::vector<Cluster3D>>{Output{"MID", "TRACKCLUSTERS", 0}, "MIDTrackCluster"},
-        RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MID", "TRCLUSROF", 0}, "MIDTrackClusterROF"},
+        RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MID", "TRCLUSROFS", 0}, "MIDTrackClusterROF"},
         &logging);
     }
   }
@@ -116,9 +116,9 @@ DataProcessorSpec getTrackReaderSpec(bool useMC, const char* specName)
 {
   std::vector<OutputSpec> outputSpecs;
   outputSpecs.emplace_back(OutputSpec{{"tracks"}, "MID", "TRACKS", 0, Lifetime::Timeframe});
-  outputSpecs.emplace_back(OutputSpec{{"tracksrof"}, "MID", "TRACKSROF", 0, Lifetime::Timeframe});
+  outputSpecs.emplace_back(OutputSpec{{"tracksrof"}, "MID", "TRACKROFS", 0, Lifetime::Timeframe});
   outputSpecs.emplace_back(OutputSpec{{"trackclusters"}, "MID", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
-  outputSpecs.emplace_back(OutputSpec{{"trclusrof"}, "MID", "TRCLUSROF", 0, Lifetime::Timeframe});
+  outputSpecs.emplace_back(OutputSpec{{"trclusrof"}, "MID", "TRCLUSROFS", 0, Lifetime::Timeframe});
   if (useMC) {
     outputSpecs.emplace_back(OutputSpec{{"tracklabels"}, "MID", "TRACKLABELS", 0, Lifetime::Timeframe});
     outputSpecs.emplace_back(OutputSpec{{"trcluslabels"}, "MID", "TRCLUSLABELS", 0, Lifetime::Timeframe});
