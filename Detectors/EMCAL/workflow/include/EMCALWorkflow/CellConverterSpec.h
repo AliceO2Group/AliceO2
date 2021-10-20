@@ -17,6 +17,7 @@
 #include "Framework/Task.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALReconstruction/CaloRawFitter.h"
+#include "EMCALReconstruction/AltroHelper.h"
 
 namespace o2
 {
@@ -24,30 +25,6 @@ namespace o2
 namespace emcal
 {
 
-struct AltroBunch {
-  int mStarttime;
-  std::vector<int> mADCs;
-};
-
-struct ChannelDigits {
-  o2::emcal::ChannelType_t mChanType;
-  std::vector<const o2::emcal::Digit*> mChannelDigits;
-};
-
-struct SRUDigitContainer {
-  int mSRUid;
-  std::map<int, ChannelDigits> mChannelsDigits;
-};
-
-struct ChannelData {
-  o2::emcal::ChannelType_t mChanType;
-  std::vector<o2::emcal::Bunch> mChannelsBunches;
-};
-
-struct SRUBunchContainer {
-  int mSRUid;
-  std::map<int, ChannelData> mChannelsData;
-};
 namespace reco_workflow
 {
 
