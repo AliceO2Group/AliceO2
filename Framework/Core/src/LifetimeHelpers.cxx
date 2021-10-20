@@ -482,4 +482,24 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
   return f;
 }
 
+// Life is too short. LISP rules.
+#define STREAM_ENUM(x) \
+  case x:              \
+    oss << #x;         \
+    break;
+std::ostream& operator<<(std::ostream& oss, Lifetime const& val)
+{
+  switch (val) {
+    STREAM_ENUM(Lifetime::Timeframe)
+    STREAM_ENUM(Lifetime::Condition)
+    STREAM_ENUM(Lifetime::QA)
+    STREAM_ENUM(Lifetime::Transient)
+    STREAM_ENUM(Lifetime::Timer)
+    STREAM_ENUM(Lifetime::Enumeration)
+    STREAM_ENUM(Lifetime::Signal)
+    STREAM_ENUM(Lifetime::Optional)
+  };
+  return oss;
+}
+
 } // namespace o2::framework

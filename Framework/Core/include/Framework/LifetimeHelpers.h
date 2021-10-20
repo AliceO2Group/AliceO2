@@ -90,6 +90,8 @@ struct LifetimeHelpers {
   static ExpirationHandler::Handler dummy(ConcreteDataMatcher const& spec, std::string const& sourceChannel);
 };
 
+std::ostream& operator<<(std::ostream& oss, Lifetime const& val);
+
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_LIFETIMEHELPERS_H_
