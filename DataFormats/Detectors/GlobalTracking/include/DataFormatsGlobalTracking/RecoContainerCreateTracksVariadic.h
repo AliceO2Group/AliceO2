@@ -89,6 +89,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   const auto trkITABRefs = getITSABRefs();
   const auto tracksMFT = getMFTTracks();
   const auto tracksMCH = getMCHTracks();
+  const auto tracksMID = getMIDTracks();
   const auto tracksTPC = getTPCTracks();
   const auto tracksTPCITS = getTPCITSTracks();
   const auto tracksMFTMCH = getGlobalFwdTracks();
@@ -106,6 +107,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   usedData[GTrackID::ITS].resize(tracksITS.size());                         // to flag used ITS tracks
   usedData[GTrackID::MCH].resize(tracksMCH.size());                         // to flag used MCH tracks
   usedData[GTrackID::MFT].resize(tracksMFT.size());                         // to flag used MFT tracks
+  usedData[GTrackID::MID].resize(tracksMID.size());                         // to flag used MFT tracks
   usedData[GTrackID::TPC].resize(tracksTPC.size());                         // to flag used TPC tracks
   usedData[GTrackID::ITSTPC].resize(tracksTPCITS.size());                   // to flag used ITSTPC tracks
   usedData[GTrackID::MFTMCH].resize(tracksMFTMCH.size());                   // to flag used MFTMCH tracks
@@ -297,7 +299,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
           continue;
         }
         GTrackID gidITS(it, GTrackID::ITS);
-        const auto& trc = getTrack<o2::its::TrackITS>(gidITS);
+        const auto& trc = tracksITS[it];
         if (creator(trc, gidITS, t0, 0.5)) {
           flagUsed2(it, GTrackID::ITS);
         }
@@ -313,9 +315,12 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       float t0 = rofRec.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
       int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
       for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
-
+        if (isUsed2(it, GTrackID::MFT)) {
+          flagUsed2(it, GTrackID::MFT);
+          continue;
+        }
         GTrackID gidMFT(it, GTrackID::MFT);
-        const auto& trc = getTrack<o2::mft::TrackMFT>(gidMFT);
+        const auto& trc = tracksMFT[it];
         if (creator(trc, gidMFT, t0, 0.5)) {
           flagUsed2(it, GTrackID::MFT);
         }
@@ -326,20 +331,42 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // MCH standalone tracks
   {
     const auto& rofs = getMCHTracksROFRecords();
-    constexpr float bc2ns = o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
     for (const auto& rof : rofs) {
       auto bcWidth = 56;
       // FIXME (LA): should really be rof.getBCWidth() once
       // getBCWidth is actually set to a meaningfull value.
       // For now we hard-code a 1.4 microseconds window for all tracks
       auto rofMeanBC = rof.getBCData().differenceInBC(startIR) + bcWidth / 2;
-      float t0 = rofMeanBC * bc2ns;
-      float t0err = bc2ns * bcWidth / 2;
+      float t0 = rofMeanBC * o2::constants::lhc::LHCBunchSpacingMUS;
+      float t0err = o2::constants::lhc::LHCBunchSpacingMUS * bcWidth / 2;
       for (int idx = rof.getFirstIdx(); idx <= rof.getLastIdx(); ++idx) {
+        if (isUsed2(idx, GTrackID::MCH)) {
+          flagUsed2(idx, GTrackID::MCH);
+          continue;
+        }
         GTrackID gidMCH(idx, GTrackID::MCH);
-        const auto& trc = getTrack<o2::mch::TrackMCH>(gidMCH);
+        const auto& trc = tracksMCH[idx];
         if (creator(trc, gidMCH, t0, t0err)) {
           flagUsed2(idx, GTrackID::MCH);
+        }
+      }
+    }
+  }
+
+  // MID standalone tracks
+  {
+    const auto& rofs = getMIDTracksROFRecords();
+    for (const auto& rof : rofs) {
+      float t0err = 0.0005;
+      float t0 = rof.interactionRecord.differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingMUS;
+      for (int idx = rof.firstEntry; idx <= rof.getEndIndex(); ++idx) {
+        if (isUsed2(idx, GTrackID::MID)) {
+          continue;
+        }
+        GTrackID gidMID(idx, GTrackID::MID);
+        const auto& trc = tracksMID[idx];
+        if (creator(trc, gidMID, t0, t0err)) {
+          flagUsed2(idx, GTrackID::MID);
         }
       }
     }
@@ -371,6 +398,12 @@ template <class T>
 inline constexpr auto isMCHTrack()
 {
   return std::is_same_v<std::decay_t<T>, o2::mch::TrackMCH>;
+}
+
+template <class T>
+inline constexpr auto isMIDTrack()
+{
+  return std::is_same_v<std::decay_t<T>, o2::mid::Track>;
 }
 
 template <class T>
