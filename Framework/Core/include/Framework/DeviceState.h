@@ -55,7 +55,8 @@ struct DeviceState {
     WS_CLOSING = 256,       // Events related to WS shutting down
     WS_READING = 512,       // Events related to WS shutting down
     WS_WRITING = 1024,      // Events related to WS shutting down
-    ASYNC_NOTIFICATION = 2048
+    ASYNC_NOTIFICATION = 2048,
+    OOB_ACTIVITY = 4096 // Out of band activity
   };
 
   std::vector<InputChannelInfo> inputChannelInfos;
@@ -79,6 +80,8 @@ struct DeviceState {
   std::vector<uv_poll_t*> activeOutputPollers;
   /// The list of active signal handlers
   std::vector<uv_signal_t*> activeSignals;
+  /// The list for active out-of-bound pollers
+  std::vector<uv_poll_t*> activeOutOfBandPollers;
 
   uv_async_t* awakeMainThread = nullptr;
 

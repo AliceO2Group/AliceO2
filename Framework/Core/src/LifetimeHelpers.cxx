@@ -374,6 +374,24 @@ ExpirationHandler::Handler
   };
 }
 
+ExpirationHandler::Handler
+  LifetimeHelpers::fetchFromFairMQ(InputSpec const& spec,
+                                   std::string const& channelName)
+{
+  return [spec, channelName](ServiceRegistry& services, PartRef& ref, data_matcher::VariableContext& variables) -> void {
+    auto& rawDeviceService = services.get<RawDeviceService>();
+    auto device = rawDeviceService.device();
+
+    // Receive parts and put them in the PartRef
+    // we know this is not blocking because we were polled
+    // on the channel.
+    FairMQParts parts;
+    device->Receive(parts, channelName, 0);
+    ref.header = std::move(parts.At(0));
+    ref.payload = std::move(parts.At(1));
+  };
+}
+
 /// Create an entry in the registry for histograms on the first
 /// FIXME: actually implement this
 /// FIXME: provide a way to customise the histogram from the configuration.
@@ -498,6 +516,7 @@ std::ostream& operator<<(std::ostream& oss, Lifetime const& val)
     STREAM_ENUM(Lifetime::Enumeration)
     STREAM_ENUM(Lifetime::Signal)
     STREAM_ENUM(Lifetime::Optional)
+    STREAM_ENUM(Lifetime::OutOfBand)
   };
   return oss;
 }

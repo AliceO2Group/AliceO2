@@ -289,22 +289,6 @@ void DataProcessingDevice::Init()
 
   mExpirationHandlers.clear();
 
-  auto distinct = DataRelayerHelpers::createDistinctRouteIndex(mSpec.inputs);
-  int i = 0;
-  for (auto& di : distinct) {
-    auto& route = mSpec.inputs[di];
-    if (route.configurator.has_value() == false) {
-      i++;
-      continue;
-    }
-    ExpirationHandler handler{
-      RouteIndex{i++},
-      route.matcher.lifetime,
-      route.configurator->creatorConfigurator(mState, *mConfigRegistry),
-      route.configurator->danglingConfigurator(mState, *mConfigRegistry),
-      route.configurator->expirationConfigurator(mState, *mConfigRegistry)};
-    mExpirationHandlers.emplace_back(std::move(handler));
-  }
 
   if (mInit) {
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
@@ -380,6 +364,23 @@ void on_awake_main_thread(uv_async_t* handle)
 } // namespace
 void DataProcessingDevice::InitTask()
 {
+  auto distinct = DataRelayerHelpers::createDistinctRouteIndex(mSpec.inputs);
+  int i = 0;
+  for (auto& di : distinct) {
+    auto& route = mSpec.inputs[di];
+    if (route.configurator.has_value() == false) {
+      i++;
+      continue;
+    }
+    ExpirationHandler handler{
+      RouteIndex{i++},
+      route.matcher.lifetime,
+      route.configurator->creatorConfigurator(mState, mServiceRegistry, *mConfigRegistry),
+      route.configurator->danglingConfigurator(mState, *mConfigRegistry),
+      route.configurator->expirationConfigurator(mState, *mConfigRegistry)};
+    mExpirationHandlers.emplace_back(std::move(handler));
+  }
+
   if (mState.awakeMainThread == nullptr) {
     mState.awakeMainThread = (uv_async_t*)malloc(sizeof(uv_async_t));
     mState.awakeMainThread->data = &mState;
