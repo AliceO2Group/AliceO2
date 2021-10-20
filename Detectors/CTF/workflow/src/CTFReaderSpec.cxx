@@ -78,7 +78,7 @@ class CTFReaderSpec : public o2::framework::Task
   void openCTFFile(const std::string& flname);
   void processTF(ProcessingContext& pc);
   void checkTreeEntries();
-  void stop();
+  void stopReader();
   CTFReaderInp mInput{};
   std::unique_ptr<o2::utils::FileFetcher> mFileFetcher;
   std::unique_ptr<TFile> mCTFFile;
@@ -101,11 +101,11 @@ CTFReaderSpec::CTFReaderSpec(const CTFReaderInp& inp) : mInput(inp)
 ///_______________________________________
 CTFReaderSpec::~CTFReaderSpec()
 {
-  stop();
+  stopReader();
 }
 
 ///_______________________________________
-void CTFReaderSpec::stop()
+void CTFReaderSpec::stopReader()
 {
   if (!mFileFetcher) {
     return;
@@ -189,7 +189,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   if (!mRunning) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    stop();
+    stopReader();
   }
 }
 
