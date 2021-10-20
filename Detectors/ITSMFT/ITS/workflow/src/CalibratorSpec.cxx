@@ -401,7 +401,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
 
                 for (auto& pixel : pixels) {
                     if (pixel.getRow() == this->currentRow[chipID]) {     // no weird row switches
-                        this->pixelHits[chipID][pixel.getCol()-1][CHARGE-1]++;
+                        this->pixelHits[chipID][pixel.getCol()][CHARGE]++;
                         /*if (chipID == 5451) {
                             LOG(INFO) << "pixel col: " << pixel.getCol() << ", pixel row: " << pixel.getRow() << ", currentRow: " << currentRow[chipID] << ", CHARGE: " << CHARGE << ", no row switch>
                         }*/
