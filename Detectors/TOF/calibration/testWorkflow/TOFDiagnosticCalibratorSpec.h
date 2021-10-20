@@ -102,7 +102,7 @@ DataProcessorSpec getTOFDiagnosticCalibDeviceSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_Diagnostic"});
   return DataProcessorSpec{
     "tof-diagnostic-calibration",
-    Inputs{{"input", "TOF", "DIAGNOSTIC"}},
+    Inputs{{"input", "TOF", "DIAFREQ"}},
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{
