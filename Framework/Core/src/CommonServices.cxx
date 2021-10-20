@@ -98,14 +98,17 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
       assert(registry.get<DeviceSpec const>().name.empty() == false);
       monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().id);
       monitoring->addGlobalTag("dataprocessor_name", registry.get<DeviceSpec const>().name);
-      try {
-        auto run = registry.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
-        monitoring->setRunNumber(stoul(run));
-      } catch (...) {
-      }
       return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
     },
     .configure = noConfiguration(),
+    .start = [](ServiceRegistry& services, void* service) {
+      o2::monitoring::Monitoring* monitoring = (o2::monitoring::Monitoring *) service;
+      auto& context = services.get<DataTakingContext>();
+
+      try {
+        monitoring->setRunNumber(std::stoul(context.runNumber.c_str()));
+      } catch (...) {
+      } },
     .exit = [](ServiceRegistry& registry, void* service) {
                        Monitoring* monitoring = reinterpret_cast<Monitoring*>(service);
                        delete monitoring; },
@@ -562,8 +565,8 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
   std::vector<ServiceSpec> specs{
     timesliceIndex(),
     driverClientSpec(),
-    monitoringSpec(),
     datatakingContextSpec(),
+    monitoringSpec(),
     infologgerContextSpec(),
     infologgerSpec(),
     configurationSpec(),
