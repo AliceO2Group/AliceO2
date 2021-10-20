@@ -336,6 +336,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           }
           requestedCCDBs.emplace_back(input);
         } break;
+        case Lifetime::OutOfBand: {
+          auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
+          auto hasOption = std::any_of(processor.options.begin(), processor.options.end(), [&input](auto const& option) { return (option.name == "out-of-band-channel-name-" + input.binding); });
+          if (hasOption == false) {
+            processor.options.push_back(ConfigParamSpec{"out-of-band-channel-name-" + input.binding, VariantType::String, "out-of-band", {"channel to listen for out of band data"}});
+          }
+        } break;
         case Lifetime::QA:
         case Lifetime::Transient:
         case Lifetime::Timeframe:

@@ -36,7 +36,10 @@ enum struct Lifetime {
   /// This comes handy e.g. to handle Raw Data, since DataDistribution will provide
   /// everything in one go so whatever is expected but not there, for whatever reason
   /// will be substituted with a dummy entry.
-  Optional
+  Optional,
+  /// An input which is materialised with the contents of some out of band
+  /// FairMQ channel.
+  OutOfBand
 };
 
 } // namespace o2::framework
