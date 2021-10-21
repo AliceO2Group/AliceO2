@@ -46,7 +46,7 @@ class VisualisationEvent
   std::string toJson();
   void fromJson(std::string json);
   bool fromFile(std::string fileName);
-  VisualisationEvent() = default;
+  VisualisationEvent();
   VisualisationEvent(std::string fileName);
   VisualisationEvent(const VisualisationEvent& source, EVisualisationGroup filter);
   void toFile(std::string fileName);
@@ -106,19 +106,14 @@ class VisualisationEvent
     return mTracks.size();
   }
 
-  // Returns cluster with index i
-  const VisualisationCluster& getCluster(int i) const
-  {
-    return mClusters[i];
-  };
-
-  // Returns number of clusters
-  size_t getClusterCount() const
-  {
-    return mClusters.size();
-  }
+  const VisualisationCluster& getCluster(int i) const { return mClusters[i]; };
+  size_t getClusterCount() const { return mClusters.size(); } // Returns number of clusters
+  void setWorkflowVersion(float workflowVersion) { this->mWorkflowVersion = workflowVersion; }
+  void setWorkflowParameters(std::string workflowParameters) { this->mWorkflowParameters = workflowParameters; }
 
  private:
+  float mWorkflowVersion;                      /// workflow version used to generate this Event
+  std::string mWorkflowParameters;             /// workflow parameters used to generate this Event
   int mEventNumber;                            /// event number in file
   int mRunNumber;                              /// run number
   double mEnergy;                              /// energy of the collision
