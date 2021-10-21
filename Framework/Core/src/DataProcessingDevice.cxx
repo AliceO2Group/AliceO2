@@ -534,10 +534,14 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   deviceContext.quotaEvaluator = &mQuotaEvaluator;
   deviceContext.stats = &mStats;
   context.isSink = false;
-  for (auto& spec : mSpec.outputs) {
-    if (spec.matcher.binding.value == "dpl-summary") {
-      context.isSink = true;
-      break;
+  // If nothing is a sink, the rate limiting simply does not trigger.
+  int enableRateLimiting = std::stoi(fConfig->GetValue<std::string>("timeframes-rate-limit"));
+  if (enableRateLimiting) {
+    for (auto& spec : mSpec.outputs) {
+      if (spec.matcher.binding.value == "dpl-summary") {
+        context.isSink = true;
+        break;
+      }
     }
   }
 

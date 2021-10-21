@@ -1195,6 +1195,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("child-driver", bpo::value<std::string>());
         realOdesc.add_options()("rate", bpo::value<std::string>());
         realOdesc.add_options()("expected-region-callbacks", bpo::value<std::string>());
+        realOdesc.add_options()("timeframes-rate-limit", bpo::value<std::string>());
         realOdesc.add_options()("environment", bpo::value<std::string>());
         realOdesc.add_options()("stacktrace-on-signal", bpo::value<std::string>());
         realOdesc.add_options()("post-fork-command", bpo::value<std::string>());
@@ -1351,6 +1352,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("control-port", bpo::value<std::string>(), "Utility port to be used by O2 Control")                                                                             //
     ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                                                                        //
     ("expected-region-callbacks", bpo::value<std::string>(), "region callbacks to expect before starting")                                                           //
+    ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframes can be in fly")                                                    //
     ("shm-monitor", bpo::value<std::string>(), "whether to use the shared memory monitor")                                                                           //
     ("channel-prefix", bpo::value<std::string>()->default_value(""), "prefix to use for multiplexing multiple workflows in the same session")                        //
     ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")                                                                    //
