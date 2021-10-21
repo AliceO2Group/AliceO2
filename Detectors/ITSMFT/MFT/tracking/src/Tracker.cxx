@@ -90,6 +90,8 @@ void Tracker<T>::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
     LOG(INFO) << "PhiBins             = " << mPhiBins;
     LOG(INFO) << "LTFseed2BinWin      = " << mLTFseed2BinWin;
     LOG(INFO) << "LTFinterBinWin      = " << mLTFinterBinWin;
+    LOG(INFO) << "FullClusterScan     = " << (trkParam.FullClusterScan ? "true" : "false");
+    LOG(INFO) << "forceZeroField      = " << (trkParam.forceZeroField ? "true" : "false");
   }
 }
 
