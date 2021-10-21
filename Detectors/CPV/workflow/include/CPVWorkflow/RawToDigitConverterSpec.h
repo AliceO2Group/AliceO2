@@ -64,6 +64,8 @@ class RawToDigitConverterSpec : public framework::Task
   char CheckHWAddress(short ddl, short hwAddress, short& fee);
 
  private:
+  bool mIsUsingGainCalibration;                     ///< Use gain calibration from CCDB
+  bool mIsUsingBadMap;                              ///< Use BadChannelMap to mask bad channels
   bool mIsPedestalData;                             ///< Do not subtract pedestals if true
   bool mIsUsingCcdbMgr;                             ///< Are we using CCDB manager?
   long mCurrentTimeStamp;                           ///< Current timestamp for CCDB querying

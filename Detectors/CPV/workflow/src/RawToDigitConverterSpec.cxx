@@ -42,6 +42,20 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
     return;              //skip CCDB initialization for pedestal runs
   }
 
+  // is no-gain-calibration flag setted?
+  mIsUsingGainCalibration = true;
+  if (ctx.options().isSet("no-gain-calibration")) {
+    mIsUsingGainCalibration = !ctx.options().get<bool>("no-gain-calibration");
+    LOG(INFO) << "no-gain-calibration is swithed ON";
+  }
+
+  // is no-bad-channel-map flag setted?
+  mIsUsingBadMap = true;
+  if (ctx.options().isSet("no-bad-channel-map")) {
+    mIsUsingBadMap = !ctx.options().get<bool>("no-bad-channel-map");
+    LOG(INFO) << "no-bad-channel-map is swithed ON";
+  }
+
   //CCDB Url
   std::string ccdbUrl = "localtest";
   if (ctx.options().isSet("ccdb-url")) {
@@ -81,16 +95,28 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
     mCurrentTimeStamp = o2::ccdb::getCurrentTimestamp();
     ccdbMgr.setTimestamp(mCurrentTimeStamp);
 
-    mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");
-    if (!mCalibParams) {
-      LOG(ERROR) << "Cannot get o2::cpv::CalibParams from CCDB. Using dummy calibration!";
+    if (mIsUsingGainCalibration) {
+      mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");
+      if (!mCalibParams) {
+        LOG(ERROR) << "Cannot get o2::cpv::CalibParams from CCDB. Using dummy calibration!";
+        mCalibParams = new o2::cpv::CalibParams(1);
+      }
+    } else {
+      LOG(INFO) << "Using dummy gain calibration (all coeffs = 1.)";
       mCalibParams = new o2::cpv::CalibParams(1);
     }
-    mBadMap = ccdbMgr.get<o2::cpv::BadChannelMap>("CPV/Calib/BadChannelMap");
-    if (!mBadMap) {
-      LOG(ERROR) << "Cannot get o2::cpv::BadChannelMap from CCDB. Using dummy calibration!";
+
+    if (mIsUsingBadMap) {
+      mBadMap = ccdbMgr.get<o2::cpv::BadChannelMap>("CPV/Calib/BadChannelMap");
+      if (!mBadMap) {
+        LOG(ERROR) << "Cannot get o2::cpv::BadChannelMap from CCDB. Using dummy calibration!";
+        mBadMap = new o2::cpv::BadChannelMap(1);
+      }
+    } else {
       mBadMap = new o2::cpv::BadChannelMap(1);
+      LOG(INFO) << "Using dummy bad map (all channels are good)";
     }
+
     mPedestals = ccdbMgr.get<o2::cpv::Pedestals>("CPV/Calib/Pedestals");
     if (!mPedestals) {
       LOG(ERROR) << "Cannot get o2::cpv::Pedestals from CCDB. Using dummy calibration!";
@@ -232,7 +258,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   }
   digitBuffer.clear();
 
-  LOG(DEBUG) << "[CPVRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits ...";
+  LOG(INFO) << "[CPVRawToDigitConverter - run] Sending " << mOutputDigits.size() << " digits in " << mOutputTriggerRecords.size() << "trigger records.";
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
@@ -259,5 +285,7 @@ o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getRawToDigitConverterS
                                           o2::framework::Options{
                                             {"pedestal", o2::framework::VariantType::Bool, false, {"do not subtract pedestals from digits"}},
                                             {"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}},
+                                            {"no-gain-calibration", o2::framework::VariantType::Bool, false, {"do not apply gain calibration"}},
+                                            {"no-bad-channel-map", o2::framework::VariantType::Bool, false, {"do not mask bad channels"}},
                                           }};
 }
