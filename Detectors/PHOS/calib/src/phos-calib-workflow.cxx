@@ -36,6 +36,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"ccdbpath", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB address to get current objects"}});
   workflowOptions.push_back(ConfigParamSpec{"digitspath", o2::framework::VariantType::String, "./CalibDigits.root", {"path and name of file to store calib. digits"}});
 
+  workflowOptions.push_back(ConfigParamSpec{"ptminmgg", o2::framework::VariantType::Float, 1.5f, {"minimal pt to fill mgg calib histos"}});
+  workflowOptions.push_back(ConfigParamSpec{"eminhgtime", o2::framework::VariantType::Float, 1.5f, {"minimal E (GeV) to fill HG time calib histos"}});
+  workflowOptions.push_back(ConfigParamSpec{"eminlgtime", o2::framework::VariantType::Float, 5.f, {"minimal E (GeV) to fill LG time calib histos"}});
+
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
@@ -57,6 +61,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto forceUpdate = configcontext.options().get<bool>("forceupdate");
   auto path = configcontext.options().get<std::string>("ccdbpath");
   auto dpath = configcontext.options().get<std::string>("digitspath");
+
+  float ptMin = configcontext.options().get<float>("ptminmgg");
+  float eMinHGTime = configcontext.options().get<float>("eminhgtime");
+  float eMinLGTime = configcontext.options().get<float>("eminlgtime");
+
   if (doPedestals && doHgLgRatio) {
     LOG(FATAL) << "Can not run pedestal and HG/LG calibration simulteneously";
   }
@@ -74,7 +83,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   if (doEnergy) {
     LOG(INFO) << "Filling tree for energy and time calibration ";
-    specs.emplace_back(o2::phos::getPHOSEnergyCalibDeviceSpec(useCCDB, path, dpath));
+    specs.emplace_back(o2::phos::getPHOSEnergyCalibDeviceSpec(useCCDB, path, dpath, ptMin, eMinHGTime, eMinLGTime));
   }
   if (doTurnOn) {
     LOG(INFO) << "TurnOn curves calculation";

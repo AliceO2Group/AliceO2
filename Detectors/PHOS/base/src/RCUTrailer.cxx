@@ -44,6 +44,9 @@ void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payload
 {
   reset();
   int index = payloadwords.size();
+  if (index < 1) { //
+    throw Error(Error::ErrorType_t::DECODING_INVALID, "zero payload");
+  }
   auto word = payloadwords[--index];
   if ((word >> 30) != 3) {
     throw Error(Error::ErrorType_t::DECODING_INVALID, "Last RCU trailer word not found!");
@@ -53,7 +56,7 @@ void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payload
   mRCUId = (int)((word >> 7) & 0x1FF);
   int trailerSize = (word & 0x7F);
 
-  if (trailerSize < 2) {
+  if (trailerSize < 2 || trailerSize > index + 1) { //one word already read -> index is smaller
     throw Error(Error::ErrorType_t::SIZE_INVALID, fmt::format("Invalid trailer size found (%d bytes) !", trailerSize * 4).data());
   }
   mTrailerSize = trailerSize;
