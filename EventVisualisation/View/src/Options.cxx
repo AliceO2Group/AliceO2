@@ -59,6 +59,8 @@ std::string Options::usage()
   ss << "\t\t"
      << "-j             use json files as a source" << std::endl;
   ss << "\t\t"
+     << "-m limit       maximum size of the memory which do not cause exiting" << std::endl;
+  ss << "\t\t"
      << "-o             use online json files as a source" << std::endl;
   ss << "\t\t"
      << "-p name        name of the options file" << std::endl;
@@ -79,7 +81,7 @@ bool Options::processCommandLine(int argc, char* argv[])
   // put ':' in the starting of the
   // string so that program can
   //distinguish between '?' and ':'
-  while ((opt = getopt(argc, argv, ":d:f:hijop:rs:vt")) != -1) {
+  while ((opt = getopt(argc, argv, ":d:f:hijm:op:rs:vt")) != -1) {
     switch (opt) {
       case 'd':
         this->mDataFolder = optarg;
@@ -92,6 +94,9 @@ bool Options::processCommandLine(int argc, char* argv[])
         return false;
       case 'j':
         this->mJSON = true;
+        break;
+      case 'm':
+        this->mMemoryLimit = std::stol(std::string(optarg));
         break;
       case 'o':
         this->mOnline = true;

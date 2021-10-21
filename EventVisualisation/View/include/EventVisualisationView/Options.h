@@ -33,6 +33,7 @@ class Options
   std::string mFileName;   // -f 'data.root'
   std::string mDataFolder; // -d './'
   std::string mSavedDataFolder; // -s './'
+  long mMemoryLimit;            // -m 1500 (MB) = 1.5GB
 
   // helper methods
   static Options instance;
@@ -43,6 +44,7 @@ class Options
     mFileName = "data.root";
     mDataFolder = "./";    // current working directory
     mSavedDataFolder = ""; // not use
+    mMemoryLimit = -1;     // not use
   }
 
  public:
@@ -58,6 +60,7 @@ class Options
   std::string savedDataFolder() { return this->mSavedDataFolder; }
   std::string fileName() { return this->mFileName; }
   bool randomTracks() { return this->mRandomTracks; }
+  long memoryLimit() { return this->mMemoryLimit; }
 };
 
 } // namespace event_visualisation
