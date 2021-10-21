@@ -384,7 +384,8 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
                         TFile* tf = new TFile("threshold_scan.root", "UPDATE");
 
                         // Update the ROOT file with most recent histo
-                        tf->Write(this->thresholds[chipID]->GetName(), TObject::kOverwrite);
+                        tf->cd();
+                        this->thresholds[chipID]->Write(0, TObject::kOverwrite);
 
                         // Close file and clean up memory
                         tf->Close();
@@ -401,7 +402,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
 
                 for (auto& pixel : pixels) {
                     if (pixel.getRow() == this->currentRow[chipID]) {     // no weird row switches
-                        this->pixelHits[chipID][pixel.getCol()][CHARGE]++;
+                        this->pixelHits[chipID][pixel.getCol()][CHARGE-1]++;
                         /*if (chipID == 5451) {
                             LOG(INFO) << "pixel col: " << pixel.getCol() << ", pixel row: " << pixel.getRow() << ", currentRow: " << currentRow[chipID] << ", CHARGE: " << CHARGE << ", no row switch>
                         }*/
