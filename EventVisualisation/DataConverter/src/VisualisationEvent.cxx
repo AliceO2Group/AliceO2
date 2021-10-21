@@ -101,6 +101,9 @@ std::string VisualisationEvent::toJson()
 
   // compatibility verification
   tree.AddMember("fileVersion", rapidjson::Value().SetInt(JSON_FILE_VERSION), allocator);
+  tree.AddMember("timeStamp", rapidjson::Value().SetFloat(this->mTimeStamp), allocator);
+  tree.AddMember("workflowVersion", rapidjson::Value().SetFloat(this->mWorkflowVersion), allocator);
+  tree.AddMember("workflowParameters", rapidjson::Value().SetString(this->mWorkflowParameters.c_str(), this->mWorkflowParameters.size()), allocator);
   // Tracks
   tree.AddMember("trackCount", rapidjson::Value().SetInt(this->getTrackCount()), allocator);
 
@@ -164,6 +167,12 @@ void VisualisationEvent::fromJson(std::string json)
     rapidjson::Value& fileVersion = tree["fileVersion"];
     version = fileVersion.GetInt();
   }
+  auto timeStamp = time(nullptr);
+  if (tree.HasMember("timeStamp")) {
+    rapidjson::Value& fileTimeStamp = tree["timeStamp"];
+    timeStamp = fileTimeStamp.GetFloat();
+  }
+  this->mTimeStamp = timeStamp;
 
   rapidjson::Value& trackCount = tree["trackCount"];
   this->mTracks.reserve(trackCount.GetInt());
@@ -211,6 +220,11 @@ bool VisualisationEvent::fromFile(std::string fileName)
   std::string str = strStream.str(); //str holds the content of the file
   fromJson(str);
   return true;
+}
+
+VisualisationEvent::VisualisationEvent()
+{
+  this->mTimeStamp = time(nullptr); // current time
 }
 
 } // namespace event_visualisation
