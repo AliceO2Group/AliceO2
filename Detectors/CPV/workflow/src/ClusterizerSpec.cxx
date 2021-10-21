@@ -33,12 +33,20 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
   LOG(DEBUG) << "CPVClusterizer - run on digits called";
 
   auto digits = ctx.inputs().get<std::vector<Digit>>("digits");
-  if (!digits.size()) {
+
+  if (!digits.size()) { // nothing to process
     LOG(INFO) << "ClusterizerSpec::run() : no digits; moving on";
-    ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
+    //ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
+    mOutputClusters.clear();
+    ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusters);
+    mOutputClusterTrigRecs.clear();
+    ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRIGRECS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusterTrigRecs);
+    if (mPropagateMC) {
+      mOutputTruthCont.clear();
+      ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
+    }
     return;
   }
-
   auto digitsTR = ctx.inputs().get<std::vector<o2::cpv::TriggerRecord>>("digitTriggerRecords");
 
   //const o2::dataformats::MCTruthContainer<MCCompLabel>* truthcont = nullptr;
