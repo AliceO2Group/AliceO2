@@ -56,17 +56,6 @@ class RawBuffer
   /// \return Number of data words in the superpage
   int getNDataWords() const { return mNDataWords; }
 
-  /// \brief Get the next data word in the superpage
-  /// \return next data word in the superpage
-  /// \throw std::runtime_error if there exists no next data word
-  uint32_t getNextDataWord();
-
-  /// \brief Get the data word at a given index
-  /// \param index index of the word in the buffer
-  /// \return word at requested index
-  /// \throw std::runtime_error if the index is out-of-range
-  uint32_t getWord(int index) const;
-
   /// \brief Get all data words from the raw buffer
   /// \return Span with data words in the buffer (removing trailing null entries)
   const gsl::span<const uint32_t> getDataWords() const { return gsl::span<const uint32_t>(mDataWords.data(), mNDataWords); }
