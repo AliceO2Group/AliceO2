@@ -64,7 +64,7 @@ fi
 ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE $ARGS_ALL_EXTRA --early-forward-policy noraw"
 if [ $EPNMODE == 1 ]; then
   ARGS_ALL+=" --infologger-severity $INFOLOGGER_SEVERITY"
-  ARGS_ALL+=" --monitoring-backend influxdb-unix:///tmp/telegraf.sock --resources-monitoring 60"
+  ARGS_ALL+=" --monitoring-backend influxdb-unix:///tmp/telegraf.sock --resources-monitoring 15"
 elif [ "0$ENABLE_METRICS" != "01" ]; then
   ARGS_ALL+=" --monitoring-backend no-op://"
 fi
