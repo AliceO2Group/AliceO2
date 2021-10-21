@@ -85,6 +85,8 @@ class CTFReaderSpec : public o2::framework::Task
   std::unique_ptr<TTree> mCTFTree;
   bool mRunning = false;
   int mCTFCounter = 0;
+  int mNFailedFiles = 0;
+  int mFilesRead = 0;
   long mLastSendTime = 0L;
   long mCurrTreeEntry = 0;
   size_t mSelIDEntry = 0; // next CTFID to select from the mInput.ctfIDs (if non-empty)
@@ -110,7 +112,7 @@ void CTFReaderSpec::stopReader()
   if (!mFileFetcher) {
     return;
   }
-  LOG(INFO) << "CTFReader stops processing";
+  LOGP(INFO, "CTFReader stops processing, {} files read, {} files failed", mFilesRead - mNFailedFiles, mNFailedFiles);
   LOGP(INFO, "CTF reading total timing: Cpu: {:.3f} Real: {:.3f} s for {} TFs in {} loops",
        mTimer.CpuTime(), mTimer.RealTime(), mCTFCounter, mFileFetcher->getNLoops());
   mRunning = false;
@@ -137,14 +139,24 @@ void CTFReaderSpec::init(InitContext& ic)
 ///_______________________________________
 void CTFReaderSpec::openCTFFile(const std::string& flname)
 {
-  mCTFFile.reset(TFile::Open(flname.c_str()));
-  if (!mCTFFile->IsOpen() || mCTFFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open file " << flname;
-    throw std::runtime_error("failed to open CTF file");
-  }
-  mCTFTree.reset((TTree*)mCTFFile->Get(std::string(o2::base::NameConf::CTFTREENAME).c_str()));
-  if (!mCTFTree) {
-    throw std::runtime_error("failed to load CTF tree");
+  try {
+    mFilesRead++;
+    mCTFFile.reset(TFile::Open(flname.c_str()));
+    if (!mCTFFile || !mCTFFile->IsOpen() || mCTFFile->IsZombie()) {
+      throw std::runtime_error("failed to open CTF file");
+    }
+    mCTFTree.reset((TTree*)mCTFFile->Get(std::string(o2::base::NameConf::CTFTREENAME).c_str()));
+    if (!mCTFTree) {
+      throw std::runtime_error("failed to load CTF tree from");
+    }
+  } catch (const std::exception& e) {
+    LOG(ERROR) << "Cannot process " << flname << ", reason: " << e.what();
+    mCTFTree.reset();
+    mCTFFile.reset();
+    mNFailedFiles++;
+    if (mFileFetcher) {
+      mFileFetcher->popFromQueue(mInput.maxLoops < 1);
+    }
   }
   mCurrTreeEntry = 0;
 }
