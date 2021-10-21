@@ -361,7 +361,7 @@ void CTFReaderSpec::checkTreeEntries()
     mCTFFile->Close();
     mCTFFile.reset();
     if (mFileFetcher) {
-      mFileFetcher->popFromQueue(mFileFetcher->getNLoops() >= mInput.maxLoops);
+      mFileFetcher->popFromQueue(mInput.maxLoops < 1);
     }
   }
 }
