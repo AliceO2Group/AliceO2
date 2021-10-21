@@ -265,8 +265,7 @@ void FileFetcher::fetcher()
   while (mRunning) {
     mNLoops = mNFilesProc / getNFiles();
     if (mNLoops > mMaxLoops) {
-      mNLoops--;
-      LOGP(INFO, "Finished file fetching: {} of {} files fetched successfully in {} loops", mNFilesProcOK, mNFilesProc, mMaxLoops);
+      LOGP(INFO, "Finished file fetching: {} of {} files fetched successfully in {} iterations", mNFilesProcOK, mNFilesProc, mMaxLoops);
       mRunning = false;
       break;
     }
@@ -276,7 +275,7 @@ void FileFetcher::fetcher()
     }
     fileEntry = (fileEntry + 1) % getNFiles();
     if (fileEntry == 0 && mNLoops > 0) {
-      LOG(INFO) << "Fetcher starts new loop " << mNLoops;
+      LOG(INFO) << "Fetcher starts new iteration " << mNLoops;
     }
     mNFilesProc++;
     auto& fileRef = mInputFiles[fileEntry];
