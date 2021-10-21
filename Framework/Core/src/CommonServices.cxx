@@ -440,6 +440,7 @@ namespace
 auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
 {
   auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastSlowMetricSentTimestamp;
+  auto timeSinceLastLongUpdate = stats.beginIterationTimestamp - stats.lastVerySlowMetricSentTimestamp;
   if (timeSinceLastUpdate < 5000) {
     return;
   }
@@ -503,6 +504,30 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   stats.lastSlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
   stats.lastReportedPerformedComputations.store(stats.performedComputations.load());
   O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
+
+  // Things which we report every 30s
+  if (timeSinceLastLongUpdate < 30000) {
+    return;
+  }
+
+  auto device = registry.get<RawDeviceService>().device();
+
+  stats.channelBytesIn.resize(device->fChannels.size());
+  stats.channelBytesOut.resize(device->fChannels.size());
+  size_t ci = 0;
+  for (auto& channel : device->fChannels) {
+    auto newBytesOut = channel.second[0].GetBytesTx();
+    auto newBytesIn = channel.second[0].GetBytesRx();
+    monitoring.send(Metric{(float)(newBytesOut - stats.channelBytesOut[ci]) / 1000000.f / (timeSinceLastLongUpdate / 1000.f), fmt::format("channel_{}_rate_in_mb_s", channel.first)}
+                      .addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{(float)(newBytesIn - stats.channelBytesIn[ci]) / 1000000.f / (timeSinceLastLongUpdate / 1000.f), fmt::format("channel_{}_rate_out_mb_s", channel.first)}
+                      .addTag(Key::Subsystem, Value::DPL));
+    stats.channelBytesOut[ci] = newBytesOut;
+    stats.channelBytesIn[ci] = newBytesIn;
+    ci++;
+  }
+
+  stats.lastVerySlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
 };
 
 /// This will flush metrics only once every second.
