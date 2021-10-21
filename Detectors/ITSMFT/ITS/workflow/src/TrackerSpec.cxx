@@ -103,6 +103,25 @@ void TrackerDPL::init(InitContext& ic)
     } else if (mMode == "sync") {
 
       trackParams.resize(1);
+      trackParams[0].TrackletMaxDeltaPhi *= 4;
+      for (float& dZ : trackParams[0].TrackletMaxDeltaZ) {
+        dZ = std::hypot(dZ, 0.3);
+      }
+      trackParams[0].CellMaxDeltaPhi = 0.5;
+      for (float& dca : trackParams[0].CellMaxDCA) {
+        dca = std::hypot(dca, 1.);
+      }
+      for (float& dca : trackParams[0].CellMaxDeltaZ) {
+        dca = std::hypot(dca, 1.);
+      }
+      trackParams[0].CellMaxDeltaTanLambda = 0.2;
+      for (int iLayer = 0; iLayer < 4; ++iLayer) {
+        trackParams[0].NeighbourMaxDeltaCurvature[iLayer] *= 16;
+        trackParams[0].NeighbourMaxDeltaN[iLayer] *= 16;
+      }
+      trackParams[0].FitIterationMaxChi2[0] = 1.e28;
+      trackParams[0].FitIterationMaxChi2[1] = 1.e28;
+      trackParams[0].MinTrackLength = 4;
       memParams.resize(1);
       LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
 
@@ -282,6 +301,14 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   mTimeFrame.setMultiplicityCutMask(processingMask);
   mTracker->clustersToTracks(logger);
+
+  for (int iL{0}; iL < mTimeFrame.getTracklets().size(); ++iL) {
+    LOG(info) << fmt::format("\t\t - Tracklets between layers {}-{}: {}",iL, iL+1, mTimeFrame.getTracklets()[iL].size());
+  }
+
+  for (int iL{0}; iL < mTimeFrame.getCells().size(); ++iL) {
+    LOG(info) << fmt::format("\t\t - Cells between layers {}-{}-{}: {}",iL, iL+1, iL + 2, mTimeFrame.getCells()[iL].size());
+  }
 
   for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
 
