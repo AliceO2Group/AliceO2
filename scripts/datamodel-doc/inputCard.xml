@@ -135,7 +135,7 @@
     </DataModel>
     
   
-    <DataModel type="PWG" name="PWGCF">
+    <DataModel type="PWG" name="CF">
       <!-- where to get the extra header files from -->
       <headerFiles>
         <!-- relative to O2general/mainDir/O2Physicslocal -->
@@ -177,7 +177,7 @@
     </DataModel>
 
 
-    <DataModel type="PWG" name="PWGDQ">
+    <DataModel type="PWG" name="DQ">
       <!-- where to get the extra header files from -->
       <headerFiles>
         <!-- relative to O2general/mainDir/O2Physicslocal -->
@@ -219,7 +219,7 @@
     </DataModel>
 
 
-    <DataModel type="PWG" name="PWGHF">
+    <DataModel type="PWG" name="HF">
       <!-- where to get the extra header files from -->
       <headerFiles>
         <!-- relative to O2general/mainDir/O2Physicslocal -->
@@ -261,7 +261,7 @@
     </DataModel>
 
 
-    <DataModel type="PWG" name="PWGJE">
+    <DataModel type="PWG" name="JE">
       <!-- where to get the extra header files from -->
       <headerFiles>
         <!-- relative to O2general/mainDir/O2Physicslocal -->
