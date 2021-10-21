@@ -13,12 +13,14 @@
 /// \brief GUI (bottom buttons) for visualisation
 /// \author julian.myrcha@cern.ch
 /// \author p.nowakowski@cern.ch
+/// \author m.chwasiuk@cern.ch
 
 #ifndef ALICE_O2_EVENTVISUALISATION_EVENTMANAGERFRAME_H
 #define ALICE_O2_EVENTVISUALISATION_EVENTMANAGERFRAME_H
 
 #include "EventVisualisationView/EventManager.h"
 #include <TGMdiMainFrame.h>
+#include <TASImage.h>
 
 class TGTextButton;
 class TGCompositeFrame;
@@ -41,6 +43,7 @@ class EventManagerFrame : public TGMainFrame
   void clearInTick(); // safely clears inTick
   static TGTextButton* makeButton(TGCompositeFrame* p, const char* txt, Int_t width = 0,
                                   Int_t lo = 0, Int_t ro = 0, Int_t to = 0, Int_t bo = 0);
+  bool CopyImage(TASImage* dst, TASImage* src, Int_t x_dst, Int_t y_dst, Int_t x_src, Int_t y_src, UInt_t w_src, UInt_t h_src);
 
  protected:
   o2::event_visualisation::EventManager* mEventManager; // Model object.

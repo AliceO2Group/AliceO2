@@ -27,6 +27,7 @@
 #include <mutex>
 #include <chrono>
 #include <thread>
+#include <filesystem>
 
 std::mutex mtx; // mutex for critical section
 
@@ -152,34 +153,52 @@ namespace o2
     if (not setInTick()) {
       return;
     }
-    UInt_t width = 2 * 1920;
-    UInt_t height = 2 * 1080;
+    UInt_t width = 3840;
+    UInt_t height = 2160;
+    UInt_t font_size = 30;
+    UInt_t text_leading = 40;
+    const char* fontColor = "#FFFFFF";
+    const char* backgroundColor = "#19324b";
+    const char* outDirectory = "Screenshots";
 
     std::string runString = "Run:";
     std::string timestampString = "Timestamp:";
     std::string collidingsystemString = "Colliding system:";
     std::string energyString = "Energy:";
 
+    std::time_t time = std::time(nullptr);
+    char time_str[100];
+    std::strftime(time_str, sizeof(time_str), "%Y_%m_%d_%H_%M_%S", std::localtime(&time));
+
+    std::ostringstream filepath;
+    filepath << outDirectory << "/Screenshot_" << time_str << ".png";
+
     TASImage image(width, height);
 
+    image.FillRectangle(backgroundColor, 0, 0, width, height);
+
     TImage* view3dImage = MultiView::getInstance()->getView(MultiView::EViews::View3d)->GetGLViewer()->GetPictureUsingBB();
-    view3dImage->Scale(width * 0.66, height);
-    view3dImage->CopyArea(&image, 0, 0, view3dImage->GetWidth(), view3dImage->GetHeight(), 0, 0);
+    view3dImage->Scale(width * 0.65, height * 0.95);
+    CopyImage(&image, (TASImage*)view3dImage, width * 0.015, height * 0.025, 0, 0, view3dImage->GetWidth(), view3dImage->GetHeight());
 
     TImage* viewRphiImage = MultiView::getInstance()->getView(MultiView::EViews::ViewRphi)->GetGLViewer()->GetPictureUsingBB();
-    viewRphiImage->Scale(width * 0.33, height * 0.5);
-    viewRphiImage->CopyArea(&image, 0, 0, viewRphiImage->GetWidth(), viewRphiImage->GetHeight(), width * 0.66, 0);
+    viewRphiImage->Scale(width * 0.3, height * 0.45);
+    CopyImage(&image, (TASImage*)viewRphiImage, width * 0.68, height * 0.025, 0, 0, viewRphiImage->GetWidth(), viewRphiImage->GetHeight());
 
     TImage* viewZrhoImage = MultiView::getInstance()->getView(MultiView::EViews::ViewZrho)->GetGLViewer()->GetPictureUsingBB();
-    viewZrhoImage->Scale(width * 0.33, height * 0.5);
-    viewZrhoImage->CopyArea(&image, 0, 0, viewZrhoImage->GetWidth(), viewZrhoImage->GetHeight(), width * 0.66, height * 0.5);
+    viewZrhoImage->Scale(width * 0.3, height * 0.45);
+    CopyImage(&image, (TASImage*)viewZrhoImage, width * 0.68, height * 0.525, 0, 0, viewZrhoImage->GetWidth(), viewZrhoImage->GetHeight());
 
-    image.DrawText(10, 1000, runString.c_str(), 24, "#FFFFFF");
-    image.DrawText(10, 1020, timestampString.c_str(), 24, "#FFFFFF");
-    image.DrawText(10, 1040, collidingsystemString.c_str(), 24, "#FFFFFF");
-    image.DrawText(10, 1060, energyString.c_str(), 24, "#FFFFFF");
+    image.DrawText(10, height - 4 * text_leading, runString.c_str(), font_size, fontColor);
+    image.DrawText(10, height - 3 * text_leading, timestampString.c_str(), font_size, fontColor);
+    image.DrawText(10, height - 2 * text_leading, collidingsystemString.c_str(), font_size, fontColor);
+    image.DrawText(10, height - 1 * text_leading, energyString.c_str(), font_size, fontColor);
 
-    image.WriteImage("Screenshot.png", TImage::kPng);
+    if (!std::filesystem::is_directory(outDirectory)) {
+      std::filesystem::create_directory(outDirectory);
+    }
+    image.WriteImage(filepath.str().c_str(), TImage::kPng);
+
     clearInTick();
   }
 
@@ -273,6 +292,61 @@ namespace o2
       continue;
     }
     exit(0);
+  }
+
+  bool EventManagerFrame::CopyImage(TASImage* dst, TASImage* src, Int_t x_dst, Int_t y_dst, Int_t x_src, Int_t y_src,
+                                    UInt_t w_src, UInt_t h_src)
+  {
+
+    if (!dst) {
+      return false;
+    }
+    if (!src) {
+      return false;
+    }
+
+    int x = 0;
+    int y = 0;
+    int idx_src = 0;
+    int idx_dst = 0;
+    x_src = x_src < 0 ? 0 : x_src;
+    y_src = y_src < 0 ? 0 : y_src;
+
+    if ((x_src >= (int)src->GetWidth()) || (y_src >= (int)src->GetHeight())) {
+      return false;
+    }
+
+    w_src = x_src + w_src > src->GetWidth() ? src->GetWidth() - x_src : w_src;
+    h_src = y_src + h_src > src->GetHeight() ? src->GetHeight() - y_src : h_src;
+    UInt_t yy = (y_src + y) * src->GetWidth();
+
+    src->BeginPaint(false);
+    dst->BeginPaint(false);
+
+    UInt_t* dst_image_array = dst->GetArgbArray();
+    UInt_t* src_image_array = src->GetArgbArray();
+
+    if (!dst_image_array || !src_image_array) {
+      return false;
+    }
+
+    for (y = 0; y < (int)h_src; y++) {
+      for (x = 0; x < (int)w_src; x++) {
+
+        idx_src = yy + x + x_src;
+        idx_dst = (y_dst + y) * dst->GetWidth() + x + x_dst;
+
+        if ((x + x_dst < 0) || (y_dst + y < 0) ||
+            (x + x_dst >= (int)dst->GetWidth()) || (y + y_dst >= (int)dst->GetHeight())) {
+          continue;
+        }
+
+        dst_image_array[idx_dst] = src_image_array[idx_src];
+      }
+      yy += src->GetWidth();
+    }
+
+    return true;
   }
 
   } // namespace event_visualisation
