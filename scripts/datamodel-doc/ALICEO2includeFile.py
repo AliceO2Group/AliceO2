@@ -675,7 +675,7 @@ class datamodel:
     dmnames = np.unique(dmnames)
     for dmname in dmnames:
       print("")
-      print("##", dmname)
+      print("##", 'PWG-'+dmname)
 
       inds = [i for i, x in enumerate(CERsPWG) if x[4] == dmname]
       CER2u = [CERsPWG[i] for i in inds]
