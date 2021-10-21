@@ -56,11 +56,6 @@ void TrackInterpolation::init()
 void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, const std::vector<GTrackID>& gids, const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>& gidTables, std::vector<o2::track::TrackParCov>& seeds, const std::vector<float>& trkTimes)
 {
   // main processing function
-#ifdef TPC_RUN2
-  // processing will not work if the run 2 geometry is defined in the parameter class SpacePointsCalibParam.h
-  LOG(fatal) << "Run 2 parameters compiled for the TPC geometry. Creating residual trees from Run 3 data will not work. Aborting...";
-  return;
-#endif
 
   if (!mInitDone) {
     LOG(error) << "Initialization not yet done. Aborting...";
