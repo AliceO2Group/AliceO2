@@ -202,11 +202,35 @@ namespace o2
     clearInTick();
   }
 
+  void EventManagerFrame::checkMemory()
+  {
+    const long memoryLimit = Options::Instance()->memoryLimit();
+    if (memoryLimit != -1) {
+      const char* statmPath = "/proc/self/statm";
+      long size = -1;
+      FILE* f = fopen(statmPath, "r");
+      if (f != nullptr) { // could not read file => no check
+        int success = fscanf(f, "%ld", &size);
+        fclose(f);
+        if (success == 1) {       // properly readed
+          size = 4 * size / 1024; // in MB
+          LOG(INFO) << "Memory used: " << size << " memory allowed: " << memoryLimit;
+          if (size > memoryLimit) {
+            LOG(ERROR) << "Memory used: " << size << " exceeds memory allowed: "
+                       << memoryLimit;
+            exit(-1);
+          }
+        }
+      }
+    }
+  }
+
   void EventManagerFrame::DoTimeTick()
   {
     if (not setInTick()) {
       return;
     }
+    checkMemory(); // exits if memory usage too high = prevents freezing long-running machine
     if (mEventManager->getDataSource()->refresh()) {
       mEventManager->displayCurrentEvent();
     }
