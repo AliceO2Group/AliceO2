@@ -109,7 +109,7 @@ class VisualisationEvent
   const VisualisationCluster& getCluster(int i) const { return mClusters[i]; };
   size_t getClusterCount() const { return mClusters.size(); } // Returns number of clusters
   void setWorkflowVersion(float workflowVersion) { this->mWorkflowVersion = workflowVersion; }
-  void setWorkflowParameters(std::string workflowParameters) { this->mWorkflowParameters = workflowParameters; }
+  void setWorkflowParameters(const std::string& workflowParameters) { this->mWorkflowParameters = workflowParameters; }
 
  private:
   float mWorkflowVersion;                      /// workflow version used to generate this Event

@@ -43,7 +43,7 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
   this->mRecoCont.createTracksVariadic(creator);
 }
 
-void EveWorkflowHelper::draw(std::string jsonPath, int numberOfFiles, int numberOfTracks,
+void EveWorkflowHelper::draw(const std::string& jsonPath, int numberOfFiles, int numberOfTracks,
                              o2::dataformats::GlobalTrackID::mask_t trkMask,
                              o2::dataformats::GlobalTrackID::mask_t clMask, float workflowVersion)
 {
@@ -196,108 +196,60 @@ void EveWorkflowHelper::drawITSTPC(GID gid, float trackTime)
   // LOG(INFO) << "EveWorkflowHelper::drawITSTPC " << gid;
   const auto& track = mRecoCont.getTPCITSTrack(gid);
   addTrackToEvent(track, gid, trackTime, 0.);
-  const auto detRefs = mRecoCont.getSingleDetectorRefs(gid);
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::ITS].isIndexSet()) {
-    drawITSClusters(detRefs[o2::dataformats::GlobalTrackID::Source::ITS], trackTime);
-  }
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::ITSAB].isIndexSet()) {
-    drawITSClusters(detRefs[o2::dataformats::GlobalTrackID::Source::ITSAB], trackTime);
-  }
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::TPC].isIndexSet()) {
-    drawTPCClusters(detRefs[o2::dataformats::GlobalTrackID::Source::TPC], trackTime);
-  }
+  drawITSClusters(track.getRefITS(), trackTime);
+  drawTPCClusters(track.getRefTPC(), trackTime);
 }
 
 void EveWorkflowHelper::drawITSTPCTOF(GID gid, float trackTime)
 {
   const auto& track = mRecoCont.getITSTPCTOFTrack(gid);
   addTrackToEvent(track, gid, trackTime, 0.);
-  const auto detRefs = mRecoCont.getSingleDetectorRefs(gid);
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::ITS].isIndexSet()) {
-    drawITSClusters(detRefs[o2::dataformats::GlobalTrackID::Source::ITS], trackTime);
-  }
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::ITSAB].isIndexSet()) {
-    drawITSClusters(detRefs[o2::dataformats::GlobalTrackID::Source::ITSAB], trackTime);
-  }
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::TPC].isIndexSet()) {
-    drawTPCClusters(detRefs[o2::dataformats::GlobalTrackID::Source::TPC], trackTime);
-  }
+  drawITSClusters(track.getRefITS(), trackTime);
+  drawTPCClusters(track.getRefTPC(), trackTime);
   drawTOFClusters(gid, trackTime);
 }
 
 void EveWorkflowHelper::drawTPCTRD(GID gid, float trackTime)
 {
   //LOG(INFO) << "EveWorkflowHelper::drawTPCTRD " << gid;
-
-  const auto detRefs = mRecoCont.getSingleDetectorRefs(gid);
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::TPC].isIndexSet()) {
-    const auto& tpcTrack = mRecoCont.getTPCTrack(detRefs[o2::dataformats::GlobalTrackID::Source::TPC]);
-    addTrackToEvent(tpcTrack, gid, trackTime, 0);
-    drawTPCClusters(detRefs[o2::dataformats::GlobalTrackID::Source::TPC], trackTime);
-  }
   const auto& tpcTrdTrack = mRecoCont.getTPCTRDTrack<o2::trd::TrackTRD>(gid);
+  drawTPCClusters(tpcTrdTrack.getRefGlobalTrackId(), trackTime);
   drawTRDClusters(tpcTrdTrack, trackTime);
 }
 
 void EveWorkflowHelper::drawITSTPCTRD(GID gid, float trackTime)
 {
   // LOG(INFO) << "EveWorkflowHelper::drawITSTPCTRD " << gid;
-  const auto& itsTpcTrdTrack = mRecoCont.getTPCTRDTrack<o2::trd::TrackTRD>(gid);
-  addTrackToEvent(itsTpcTrdTrack, gid, trackTime, 0);
-  const auto detRefs = mRecoCont.getSingleDetectorRefs(gid);
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::ITS].isIndexSet()) {
-    drawITSClusters(detRefs[o2::dataformats::GlobalTrackID::Source::ITS], trackTime);
-  }
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::ITSAB].isIndexSet()) {
-    drawITSClusters(detRefs[o2::dataformats::GlobalTrackID::Source::ITSAB], trackTime);
-  }
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::TPC].isIndexSet()) {
-    drawTPCClusters(detRefs[o2::dataformats::GlobalTrackID::Source::TPC], trackTime);
-  }
+  const auto& itsTpcTrdTrack = mRecoCont.getITSTPCTRDTrack<o2::trd::TrackTRD>(gid);
+  drawITSTPC(itsTpcTrdTrack.getRefGlobalTrackId(), trackTime);
   drawTRDClusters(itsTpcTrdTrack, trackTime);
 }
 
 void EveWorkflowHelper::drawITSTPCTRDTOF(GID gid, float trackTime)
 {
   // LOG(INFO) << "EveWorkflowHelper::drawITSTPCTRDTOF " << gid;
-  const auto& itsTpcTrdTofTrack = mRecoCont.getTPCTRDTrack<o2::trd::TrackTRD>(gid);
-  addTrackToEvent(itsTpcTrdTofTrack, gid, trackTime, 0);
-  const auto detRefs = mRecoCont.getSingleDetectorRefs(gid);
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::ITS].isIndexSet()) {
-    drawITSClusters(detRefs[o2::dataformats::GlobalTrackID::Source::ITS], trackTime);
-  }
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::ITSAB].isIndexSet()) {
-    drawITSClusters(detRefs[o2::dataformats::GlobalTrackID::Source::ITSAB], trackTime);
-  }
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::TPC].isIndexSet()) {
-    drawTPCClusters(detRefs[o2::dataformats::GlobalTrackID::Source::TPC], trackTime);
-  }
-  drawTRDClusters(itsTpcTrdTofTrack, trackTime);
+  const auto& match = mRecoCont.getITSTPCTRDTOFMatches()[gid.getIndex()];
+  auto gidITSTPCTRD = match.getTrackRef();
+  drawITSTPCTRD(gidITSTPCTRD, trackTime);
   drawTOFClusters(gid, trackTime);
 }
 
 void EveWorkflowHelper::drawTPCTRDTOF(GID gid, float trackTime)
 {
   // LOG(INFO) << "EveWorkflowHelper::drawTPCTRDTOF " << gid;
-  const auto& tpcTrdTofTrack = mRecoCont.getTPCTRDTrack<o2::trd::TrackTRD>(gid);
-  addTrackToEvent(tpcTrdTofTrack, gid, trackTime, 0);
-  const auto detRefs = mRecoCont.getSingleDetectorRefs(gid);
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::TPC].isIndexSet()) {
-    drawTPCClusters(detRefs[o2::dataformats::GlobalTrackID::Source::TPC], trackTime);
-  }
-  drawTRDClusters(tpcTrdTofTrack, trackTime);
+  const auto& match = mRecoCont.getTPCTRDTOFMatches()[gid.getIndex()];
+  auto gidTPCTRD = match.getTrackRef();
+  drawTPCTRD(gidTPCTRD, trackTime);
   drawTOFClusters(gid, trackTime);
 }
 
 void EveWorkflowHelper::drawTPCTOF(GID gid, float trackTime)
 {
   //  LOG(INFO) << "EveWorkflowHelper::drawTPCTRDTOF " << gid;
-  const auto detRefs = mRecoCont.getSingleDetectorRefs(gid);
-  if (detRefs[o2::dataformats::GlobalTrackID::Source::TPC].isIndexSet()) {
-    const auto& tpcTrack = mRecoCont.getTPCTrack(detRefs[o2::dataformats::GlobalTrackID::Source::TPC]);
-    addTrackToEvent(tpcTrack, gid, trackTime, 0);
-    drawTPCClusters(detRefs[o2::dataformats::GlobalTrackID::Source::TPC], trackTime);
-  }
+  const auto& trTPCTOF = mRecoCont.getTPCTOFTrack(gid);
+  const auto& match = mRecoCont.getTPCTOFMatch(gid.getIndex());
+  addTrackToEvent(trTPCTOF, gid, trackTime, 0);
+  drawTPCClusters(match.getTrackRef(), trackTime);
   drawTOFClusters(gid, trackTime);
 }
 
