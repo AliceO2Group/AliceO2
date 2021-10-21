@@ -121,7 +121,8 @@ void Digitizer::process(const std::vector<LabeledDigit>& labeledSDigits)
         label.setAmplitudeFraction(0);
       }
       LabeledDigit d(digit, label);
-      mDigits[id].push_back(d);
+      //mDigits[id].push_back(d);
+      mDigits.addDigit(id, d, mEventTime);
     }
   }
 
@@ -179,8 +180,14 @@ void Digitizer::setEventTime(double t)
     mTriggerTime = t;
   }
 
+  double oldEventTime = mEventTime;
+
   mEventTime = t - mTriggerTime;
 
+  if (TMath::Abs(mEventTime - oldEventTime) > 100) {
+    mDigits.forwardMarker(mEventTime);
+  }
+  
   mPhase = ((int)((std::fmod(mEventTime, 100) + 12.5) / 25));
   mEventTimeOffset = ((int)((mEventTime - std::fmod(mEventTime, 100) + 0.1) / 100));
   if (mPhase == 4) {
@@ -209,26 +216,30 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits, o2::dataformats:
 {
   std::list<LabeledDigit> l;
 
-  for (auto [tower, digitsList] : mDigits) {
-    digitsList.sort();
+  //for (auto [tower, digitsList] : mDigits) {
+  for (auto digsMap : mDigits.getLastNSamples()) {
+    for (auto [tower, digitsList] : digsMap) {
 
-    for (auto ld : digitsList) {
+      digitsList.sort();
 
-      if (mSimulateNoiseDigits) {
-        addNoiseDigits(ld);
-      }
+      for (auto ld : digitsList) {
 
-      if (mRemoveDigitsBelowThreshold && (ld.getAmplitude() < mSimParam->getDigitThreshold() * (constants::EMCAL_ADCENERGY))) {
-        continue;
-      }
-      if (ld.getAmplitude() < 0) {
-        continue;
-      }
-      if (ld.getTimeStamp() >= mSimParam->getLiveTime()) {
-        continue;
-      }
+        if (mSimulateNoiseDigits) {
+          addNoiseDigits(ld);
+        }
 
-      l.push_back(ld);
+        if (mRemoveDigitsBelowThreshold && (ld.getAmplitude() < mSimParam->getDigitThreshold() * (constants::EMCAL_ADCENERGY))) {
+          continue;
+        }
+        if (ld.getAmplitude() < 0) {
+          continue;
+        }
+        if (ld.getTimeStamp() >= mSimParam->getLiveTime()) {
+          continue;
+        }
+
+        l.push_back(ld);
+      }
     }
   }
   l.sort();
