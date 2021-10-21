@@ -874,9 +874,10 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const LtrCalibData& ltr, std:
   auto calibValMsg = new TPaveText(0.1, 0.1, 0.9, 0.9, "NDC");
   calibValMsg->SetFillColor(0);
   calibValMsg->SetBorderSize(0);
-  calibValMsg->AddText(fmt::format("processed TFs: {}", ltr.processedTFs).data());
+  calibValMsg->AddText(fmt::format("processedTFs: {}", ltr.processedTFs).data());
   calibValMsg->AddText(fmt::format("dvCorrectionA: {}", ltr.dvCorrectionA).data());
   calibValMsg->AddText(fmt::format("dvCorrectionC: {}", ltr.dvCorrectionC).data());
+  calibValMsg->AddText(fmt::format("dvCorrection: {}", ltr.getDriftVCorrection()).data());
   calibValMsg->AddText(fmt::format("dvOffsetA: {}", ltr.dvOffsetA).data());
   calibValMsg->AddText(fmt::format("dvOffsetC: {}", ltr.dvOffsetC).data());
   calibValMsg->AddText(fmt::format("nTracksA: {}", ltr.nTracksA).data());
