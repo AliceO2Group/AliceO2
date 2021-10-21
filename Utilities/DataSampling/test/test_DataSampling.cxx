@@ -66,13 +66,13 @@ BOOST_AUTO_TEST_CASE(DataSamplingSimpleFlow)
 
   auto output = std::find_if(disp->outputs.begin(), disp->outputs.end(),
                              [](const OutputSpec& out) {
-                               return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters0", 0}) && out.lifetime == Lifetime::Timeframe;
+                               return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters0", 0}) && out.lifetime == Lifetime::QA;
                              });
   BOOST_CHECK(output != disp->outputs.end());
 
   output = std::find_if(disp->outputs.begin(), disp->outputs.end(),
                         [](const OutputSpec& out) {
-                          return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters1", 0}) && out.lifetime == Lifetime::Timeframe;
+                          return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters1", 0}) && out.lifetime == Lifetime::QA;
                         });
   BOOST_CHECK(output != disp->outputs.end());
 
@@ -125,13 +125,13 @@ BOOST_AUTO_TEST_CASE(DataSamplingParallelFlow)
 
     auto output = std::find_if(disp->outputs.begin(), disp->outputs.end(),
                                [](const OutputSpec& out) {
-                                 return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters0", 0}) && out.lifetime == Lifetime::Timeframe;
+                                 return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters0", 0}) && out.lifetime == Lifetime::QA;
                                });
     BOOST_CHECK(output != disp->outputs.end());
 
     output = std::find_if(disp->outputs.begin(), disp->outputs.end(),
                           [](const OutputSpec& out) {
-                            return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters1", 0}) && out.lifetime == Lifetime::Timeframe;
+                            return DataSpecUtils::match(out, ConcreteDataMatcher{"DS", "tpcclusters1", 0}) && out.lifetime == Lifetime::QA;
                           });
     BOOST_CHECK(output != disp->outputs.end());
 
