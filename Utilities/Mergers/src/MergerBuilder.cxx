@@ -23,7 +23,6 @@
 
 #include "Mergers/MergerBuilder.h"
 #include "Mergers/IntegratingMerger.h"
-#include "Mergers/FullHistoryMerger.h"
 
 using namespace o2::framework;
 
