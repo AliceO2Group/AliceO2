@@ -31,7 +31,7 @@ namespace its
 class Cell final
 {
  public:
-  GPUd() Cell(const int, const int, const int, const int, const int, const float3&, const float);
+  GPUd() Cell(const int, const int, const int, const int, const int, const float3&, const float, const float);
 
   GPUhdni() int getFirstClusterIndex() const { return mFirstClusterIndex; };
   GPUhdni() int getSecondClusterIndex() const { return mSecondClusterIndex; };
@@ -51,12 +51,13 @@ class Cell final
   const int mSecondTrackletIndex;
   const float3 mNormalVectorCoordinates;
   const float mCurvature;
+  const float tanLambda;
   int mLevel;
 };
 
 GPUdi() Cell::Cell(const int firstClusterIndex, const int secondClusterIndex, const int thirdClusterIndex,
                    const int firstTrackletIndex, const int secondTrackletIndex,
-                   const float3& normalVectorCoordinates, const float curvature)
+                   const float3& normalVectorCoordinates, const float curvature, const float tanL)
   : mFirstClusterIndex{firstClusterIndex},
     mSecondClusterIndex{secondClusterIndex},
     mThirdClusterIndex{thirdClusterIndex},
@@ -64,6 +65,7 @@ GPUdi() Cell::Cell(const int firstClusterIndex, const int secondClusterIndex, co
     mSecondTrackletIndex(secondTrackletIndex),
     mNormalVectorCoordinates(normalVectorCoordinates),
     mCurvature{curvature},
+    tanLambda{tanL},
     mLevel{1}
 {
   // Nothing to do

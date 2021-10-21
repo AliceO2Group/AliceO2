@@ -51,6 +51,7 @@ struct TrackingParameters {
   void CopyCuts(TrackingParameters& other, float scale = 1.)
   {
     TrackletMaxDeltaPhi = other.TrackletMaxDeltaPhi * scale;
+    TrackletMaxDeltaSigmaZ = other.TrackletMaxDeltaSigmaZ * scale;
     for (unsigned int ii{0}; ii < TrackletMaxDeltaZ.size(); ++ii) {
       TrackletMaxDeltaZ[ii] = other.TrackletMaxDeltaZ[ii] * scale;
     }
@@ -81,6 +82,7 @@ struct TrackingParameters {
   /// Trackleting cuts
   float TrackletMaxDeltaPhi = 0.3f;
   std::vector<float> TrackletMaxDeltaZ = {0.1f, 0.1f, 0.3f, 0.3f, 0.3f, 0.3f};
+  float TrackletMaxDeltaSigmaZ = 5.;
   /// Cell finding cuts
   float CellMaxDeltaTanLambda = 0.025f;
   std::vector<float> CellMaxDCA = {0.05f, 0.04f, 0.05f, 0.2f, 0.4f};

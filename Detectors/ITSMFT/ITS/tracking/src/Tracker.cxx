@@ -132,17 +132,17 @@ void Tracker::findCellsNeighbours(int& iteration)
                                               (normalVectorsDeltaVector.z * normalVectorsDeltaVector.z)};
         const float deltaCurvature{std::abs(currentCell.getCurvature() - nextCell.getCurvature())};
 
-        if (deltaNormalVectorsModulus < mTrkParams[iteration].NeighbourMaxDeltaN[iLayer] &&
-            deltaCurvature < mTrkParams[iteration].NeighbourMaxDeltaCurvature[iLayer]) {
+        // if (deltaNormalVectorsModulus < mTrkParams[iteration].NeighbourMaxDeltaN[iLayer] &&
+        //     deltaCurvature < mTrkParams[iteration].NeighbourMaxDeltaCurvature[iLayer]) {
 
-          mTimeFrame->getCellsNeighbours()[iLayer][iNextLayerCell].push_back(iCell);
+        mTimeFrame->getCellsNeighbours()[iLayer][iNextLayerCell].push_back(iCell);
 
-          const int currentCellLevel{currentCell.getLevel()};
+        const int currentCellLevel{currentCell.getLevel()};
 
-          if (currentCellLevel >= nextCell.getLevel()) {
-            nextCell.setLevel(currentCellLevel + 1);
-          }
+        if (currentCellLevel >= nextCell.getLevel()) {
+          nextCell.setLevel(currentCellLevel + 1);
         }
+        // }
       }
     }
   }
