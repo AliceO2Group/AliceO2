@@ -1002,7 +1002,11 @@ class CERelations:
       idef = [ind for ind, x in enumerate(
           content[0]) if x.txt == self.CEdeclarationString]
       for ind in idef:
-        ename = self.exePreamble + content[0][ind+2].txt
+        # PWG needs extra treatment
+        if ptype == "PWG":
+          ename = self.exePreamble + dmname.lower() + "-" + content[0][ind+2].txt
+        else:
+          ename = self.exePreamble + content[0][ind+2].txt
         cname = content[0][ind+4].txt
         if len(cname.split(".")) < 2:
           cname += ".cxx"
