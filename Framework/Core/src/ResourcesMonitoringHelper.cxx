@@ -118,9 +118,13 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
   boost::property_tree::ptree driverRoot;
   for (size_t mi = 0; mi < driverMetrics.metricLabels.size(); mi++) {
     const char* metricLabel = driverMetrics.metricLabels[mi].label;
+    auto same = [metricLabel](std::string const& matcher) -> bool {
+      std::regex r{matcher};
+      return std::regex_match(metricLabel, r);
+    };
 
     //check if we are interested
-    if (std::find(std::begin(performanceMetrics), std::end(performanceMetrics), metricLabel) == std::end(performanceMetrics)) {
+    if (std::find_if(std::begin(performanceMetrics), std::end(performanceMetrics), same) == performanceMetrics.end()) {
       continue;
     }
 
