@@ -76,7 +76,7 @@ class EveWorkflowHelper
   void selectTracks(const CalibObjectsConst* calib, GID::mask_t maskCl,
                     GID::mask_t maskTrk, GID::mask_t maskMatch);
   void addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz);
-  void draw(std::string jsonPath, int numberOfFiles, int numberOfTracks, o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask, float mWorkflowVersion);
+  void draw(const std::string& jsonPath, int numberOfFiles, int numberOfTracks, o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask, float mWorkflowVersion);
   void drawTPC(GID gid, float trackTime);
   void drawITS(GID gid, float trackTime);
   void drawMFT(GID gid, float trackTime);
