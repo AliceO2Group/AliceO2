@@ -60,6 +60,9 @@ TopologyPolicy::DependencyChecker TopologyPolicyHelpers::alwaysDependent()
     if (dependent.name == ancestor.name) {
       return false;
     }
+    if (ancestor.name == "internal-dpl-injected-dummy-sink") {
+      return false;
+    }
     return true;
   };
 }
