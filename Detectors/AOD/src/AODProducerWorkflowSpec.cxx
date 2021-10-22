@@ -482,7 +482,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     tanl = track.getTanl();
     invqpt = track.getInvQPt();
     chi2 = track.getTrackChi2();
-    //nClusters = track.getNumberOfPoints();
+    // nClusters = track.getNumberOfPoints();
     chi2matchmchmid = track.getMIDMatchingChi2();
     chi2matchmchmft = track.getMatchingChi2();
     matchmfttrackid = track.getMFTTrackID();
@@ -557,7 +557,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                                                   gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
                                                   gsl::span<const GIndex>& GIndices,
                                                   o2::globaltracking::RecoContainer& data,
-                                                  std::vector<std::pair<int, int>> const& mcColToEvSrc)
+                                                  std::map<std::pair<int, int>, int> const& mcColToEvSrc)
 {
   // mark reconstructed MC particles to store them into the table
   for (auto& trackRef : primVer2TRefs) {
@@ -598,9 +598,10 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
     }
   }
   int tableIndex = 1;
-  for (int mccolid = 0; mccolid < mcColToEvSrc.size(); ++mccolid) {
-    auto event = mcColToEvSrc[mccolid].first;
-    auto source = mcColToEvSrc[mccolid].second;
+  for (auto& colInfo : mcColToEvSrc) { // loop over "<eventID, sourceID> <-> combined MC col. ID" key pairs
+    int event = colInfo.first.first;
+    int source = colInfo.first.second;
+    int mcColId = colInfo.second;
     std::vector<MCTrack> const& mcParticles = mcReader.getTracks(source, event);
     // mark tracks to be stored per event
     // loop over stack of MC particles from end to beginning: daughters are stored after mothers
@@ -652,6 +653,9 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       }
       int statusCode = 0;
       uint8_t flags = 0;
+      if (source == 0) {
+        flags |= 1 << 1; // mark as particle from background event
+      }
       float weight = 0.f;
       int mcMother0 = mcParticles[particle].getMotherTrackId();
       auto item = mToStore.find(Triplet_t(source, event, mcMother0));
@@ -677,13 +681,12 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       if (item != mToStore.end()) {
         daughterL = item->second;
       }
-      float pX = (float)mcParticles[particle].Px();
-      float pY = (float)mcParticles[particle].Py();
-      float pZ = (float)mcParticles[particle].Pz();
-      float energy = (float)mcParticles[particle].GetEnergy();
-
+      auto pX = (float)mcParticles[particle].Px();
+      auto pY = (float)mcParticles[particle].Py();
+      auto pZ = (float)mcParticles[particle].Pz();
+      auto energy = (float)mcParticles[particle].GetEnergy();
       mcParticlesCursor(0,
-                        mccolid,
+                        mcColId,
                         mcParticles[particle].GetPdgCode(),
                         statusCode,
                         flags,
@@ -1051,43 +1054,46 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
             dummyTime,
             dummyTime);
 
-  // TODO: figure out collision weight
   // keep track event/source id for each mc-collision
-  std::vector<std::pair<int, int>> mcColToEvSrc;
+  // using map and not unordered_map to ensure
+  // correct ordering when iterating over container elements
+  std::map<std::pair<int, int>, int> mcColToEvSrc;
 
+  // TODO: figure out collision weight
   float mcColWeight = 1.;
   // filling mcCollision table
-  int index = 0;
-  for (auto& rec : mcRecords) {
-    auto time = rec.getTimeNS();
-    uint64_t globalBC = rec.toLong();
+  int nMCCollisions = mcContext->getNCollisions();
+  for (int iCol = 0; iCol < nMCCollisions; iCol++) {
+    auto time = mcRecords[iCol].getTimeNS();
+    auto globalBC = mcRecords[iCol].toLong();
     auto item = bcsMap.find(globalBC);
     int bcID = -1;
     if (item != bcsMap.end()) {
       bcID = item->second;
     } else {
-      LOG(FATAL) << "Error: could not find a corresponding BC ID for MC collision; BC = " << globalBC << ", index = " << index;
+      LOG(FATAL) << "Error: could not find a corresponding BC ID for MC collision; BC = " << globalBC << ", mc collision = " << iCol;
     }
-    auto& colParts = mcParts[index];
+    auto& colParts = mcParts[iCol];
     for (auto colPart : colParts) {
       auto eventID = colPart.entryID;
       auto sourceID = colPart.sourceID;
-      // FIXME:
-      // use generators' names for generatorIDs (?)
-      short generatorID = sourceID;
-      auto& header = mcReader.getMCEventHeader(sourceID, eventID);
-      mcCollisionsCursor(0,
-                         bcID,
-                         generatorID,
-                         truncateFloatFraction(header.GetX(), mCollisionPosition),
-                         truncateFloatFraction(header.GetY(), mCollisionPosition),
-                         truncateFloatFraction(header.GetZ(), mCollisionPosition),
-                         truncateFloatFraction(time, mCollisionPosition),
-                         truncateFloatFraction(mcColWeight, mCollisionPosition),
-                         header.GetB());
-      mcColToEvSrc.emplace_back(std::pair<int, int>(eventID, sourceID));
+      if (sourceID == 0) { // embedding: using background event info
+        // FIXME:
+        // use generators' names for generatorIDs (?)
+        short generatorID = sourceID;
+        auto& header = mcReader.getMCEventHeader(sourceID, eventID);
+        mcCollisionsCursor(0,
+                           bcID,
+                           generatorID,
+                           truncateFloatFraction(header.GetX(), mCollisionPosition),
+                           truncateFloatFraction(header.GetY(), mCollisionPosition),
+                           truncateFloatFraction(header.GetZ(), mCollisionPosition),
+                           truncateFloatFraction(time, mCollisionPosition),
+                           truncateFloatFraction(mcColWeight, mCollisionPosition),
+                           header.GetB());
+      }
+      mcColToEvSrc.emplace(std::pair<int, int>(eventID, sourceID), iCol); // point background and injected signal events to one collision
     }
-    index++;
   }
 
   // vector of FDD amplitudes
@@ -1167,9 +1173,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   // filling MC collision labels
   for (auto& label : primVerLabels) {
-    auto it = std::find_if(mcColToEvSrc.begin(), mcColToEvSrc.end(),
-                           [&label](const std::pair<int, int>& item) { return (item.first == label.getEventID() && item.second == label.getSourceID()); });
-    int32_t mcCollisionID = (it != mcColToEvSrc.end()) ? it - mcColToEvSrc.begin() : -1;
+    auto it = mcColToEvSrc.find(std::pair<int, int>(label.getEventID(), label.getSourceID()));
+    int32_t mcCollisionID = it != mcColToEvSrc.end() ? it->second : -1;
     uint16_t mcMask = 0; // todo: set mask using normalized weights?
     mcColLabelsCursor(0, mcCollisionID, mcMask);
   }
@@ -1201,7 +1206,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     } else {
       LOG(FATAL) << "Error: could not find a corresponding BC ID for a collision; BC = " << globalBC << ", collisionID = " << collisionID;
     }
-
     collisionsCursor(0,
                      bcID,
                      truncateFloatFraction(vertex.getX(), mCollisionPosition),
@@ -1283,6 +1287,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                        primVerGIs,
                        recoData,
                        mcColToEvSrc);
+
+  mcColToEvSrc.clear();
 
   // ------------------------------------------------------
   // filling track labels
