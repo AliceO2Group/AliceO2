@@ -70,14 +70,38 @@ void Diagnostic::print() const
 
 ULong64_t Diagnostic::getEmptyCrateKey(int crate)
 {
-  ULong64_t key = (ULong64_t(11) << 32) + (ULong64_t(crate) << 36); // slot=11 means empty crate
+  ULong64_t key = (ULong64_t(13) << 32) + (ULong64_t(crate) << 36); // slot=13 means empty crate
   return key;
 }
 
 ULong64_t Diagnostic::getNoisyChannelKey(int channel)
 {
-  ULong64_t key = (ULong64_t(12) << 32) + channel; // slot=12 means noisy channels
+  ULong64_t key = (ULong64_t(14) << 32) + channel; // slot=14 means noisy channels
   return key;
+}
+
+ULong64_t Diagnostic::getTRMKey(int crate, int trm)
+{
+  ULong64_t key = (ULong64_t(trm) << 32) + (ULong64_t(crate) << 36);
+  return key;
+}
+
+int Diagnostic::getSlot(ULong64_t pattern) const
+{
+  return (pattern & 68719476735) / 4294967296;
+}
+
+int Diagnostic::getCrate(ULong64_t pattern) const
+{
+  return (pattern & 8796093022207) / 68719476736;
+}
+
+int Diagnostic::getChannel(ULong64_t pattern) const
+{
+  if (getSlot(pattern) == 14 && getCrate(pattern) == 0 && pattern != 0) {
+    return (pattern & 262143);
+  }
+  return -1;
 }
 
 void Diagnostic::fill(const Diagnostic& diag)

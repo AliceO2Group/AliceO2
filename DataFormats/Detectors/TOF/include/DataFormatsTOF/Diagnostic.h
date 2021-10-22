@@ -41,11 +41,24 @@ class Diagnostic
   int fillEmptyCrate(int crate, int frequency = 1) { return fill(getEmptyCrateKey(crate), frequency); }
   static ULong64_t getEmptyCrateKey(int crate);
   static ULong64_t getNoisyChannelKey(int channel);
+  static ULong64_t getTRMKey(int crate, int trm);
   void print() const;
   void clear() { mVector.clear(); }
   void fill(const Diagnostic& diag);                       // for calibration
   void fill(const gsl::span<const o2::tof::Diagnostic>){}; // for calibration
   void merge(const Diagnostic* prev);
+  unsigned long size() const { return mVector.size(); }
+  ULong64_t getPattern(int i) const
+  {
+    auto iter = mVector.begin();
+    for (; i-- > 0;) {
+      iter++;
+    }
+    return iter->first;
+  }
+  int getSlot(ULong64_t pattern) const;
+  int getCrate(ULong64_t pattern) const;
+  int getChannel(ULong64_t pattern) const;
 
  private:
   std::map<ULong64_t, uint32_t> mVector; // diagnostic frequency vector (key/pattern , frequency)
