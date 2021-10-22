@@ -25,7 +25,7 @@ namespace dataformats
 {
 
 /*
-  AbstractRefAccessor allows to register multiple containers of objects convertible to type T and 
+  AbstractRefAccessor allows to register multiple containers of objects convertible to type T and
   to access them by providing a global index indicating the registered source ID and the
   index within the original container
 */
@@ -45,7 +45,7 @@ class AbstractRefAccessor
 
   bool isLoaded(int src) const
   {
-    return mContainerPtr[src] != nullptr;
+    return mSizeOfs[src] != 0;
   }
 
   /// get object as user provided type from explicitly provided source, index
