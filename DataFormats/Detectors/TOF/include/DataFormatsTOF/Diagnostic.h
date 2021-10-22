@@ -59,6 +59,7 @@ class Diagnostic
   int getSlot(ULong64_t pattern) const;
   int getCrate(ULong64_t pattern) const;
   int getChannel(ULong64_t pattern) const;
+  int getNoisyLevel(ULong64_t pattern) const;
 
  private:
   std::map<ULong64_t, uint32_t> mVector; // diagnostic frequency vector (key/pattern , frequency)

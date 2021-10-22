@@ -486,8 +486,17 @@ void WindowFiller::fillDiagnosticFrequency()
 
   for (int i = 0; i < Geo::NCHANNELS; i++) {
     if (mChannelCounts[i] >= masknoise) {
+      int additionalMask = 0;
+
+      if (mChannelCounts[i] >= masknoise * 10) {
+        additionalMask += (1 << 19); // > 10 kHZ (if masknoise = 1 kHz)
+        if (mChannelCounts[i] >= masknoise * 100) {
+          additionalMask += (1 << 20); // > 100 kHZ (if masknoise = 1 kHz)
+        }
+      }
+
       //Fill noisy in diagnostic
-      mDiagnosticFrequency.fillNoisy(i);
+      mDiagnosticFrequency.fillNoisy(i + additionalMask);
     }
   }
 }

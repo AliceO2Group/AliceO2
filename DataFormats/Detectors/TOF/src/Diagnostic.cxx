@@ -98,10 +98,24 @@ int Diagnostic::getCrate(ULong64_t pattern) const
 
 int Diagnostic::getChannel(ULong64_t pattern) const
 {
-  if (getSlot(pattern) == 14 && getCrate(pattern) == 0 && pattern != 0) {
+  if (getSlot(pattern) == 14) {
     return (pattern & 262143);
   }
   return -1;
+}
+
+int Diagnostic::getNoisyLevel(ULong64_t pattern) const
+{
+  if (getChannel(pattern)) {
+    if (pattern & (1 << 20)) {
+      return 3;
+    } else if (pattern & (1 << 19)) {
+      return 2;
+    } else {
+      return 1;
+    }
+  }
+  return 0;
 }
 
 void Diagnostic::fill(const Diagnostic& diag)
