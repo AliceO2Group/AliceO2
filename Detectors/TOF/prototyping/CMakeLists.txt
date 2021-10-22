@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_test_root_macro(checkRotation.C
-                       PUBLIC_LINK_LIBRARIES O2::TOFBase
+                       PUBLIC_LINK_LIBRARIES O2::TOFBase O2::DetectorsBase
                        LABELS tof)
 
 o2_add_test_root_macro(convertTreeTo02object.C
