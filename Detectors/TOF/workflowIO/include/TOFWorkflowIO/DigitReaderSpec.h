@@ -21,6 +21,7 @@
 #include "TOFBase/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsTOF/Diagnostic.h"
 
 using namespace o2::framework;
 
@@ -46,6 +47,7 @@ class DigitReader : public Task
   std::vector<o2::tof::ReadoutWindowData> mRow, *mProw = &mRow;
   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabels, *mPlabels = &mLabels;
   std::vector<uint8_t> mPatterns, *mPpatterns = &mPatterns;
+  Diagnostic mDiagnostic;
 };
 
 /// create a processor spec
