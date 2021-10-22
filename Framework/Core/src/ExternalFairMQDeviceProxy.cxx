@@ -411,10 +411,27 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       }
     };
 
-    auto runHandler = [dataHandler, device, channel](ProcessingContext&) {
+    auto runHandler = [dataHandler, device, channel](ProcessingContext& ctx) {
+      static int64_t consumedTimeframes = 0;
+      static int64_t sentTimeframes = 0;
+      auto device = ctx.services().get<RawDeviceService>().device();
+      if (device->fChannels.count("metric-feedback")) {
+        // FIXME: only two channels difference
+        while ((sentTimeframes - consumedTimeframes) > 2) {
+          FairMQMessagePtr msg;
+          auto count = device->Receive(msg, "metric-feedback", 0, -1);
+          if (count <= 0) {
+            return;
+          }
+          assert(msg->GetSize() == 8); 
+          consumedTimeframes = *(int64_t*)msg->GetData();
+        }
+      }
+
       FairMQParts parts;
       device->Receive(parts, channel, 0);
       dataHandler(parts, 0);
+      sentTimeframes++;
     };
 
     return runHandler;
