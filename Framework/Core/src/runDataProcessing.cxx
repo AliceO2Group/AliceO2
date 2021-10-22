@@ -2428,7 +2428,19 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
         if (checkDependencies(j, i)) {
           edges.emplace_back(i, j);
           if (both) {
-            throw std::runtime_error(physicalWorkflow[i].name + " has circular dependency with " + physicalWorkflow[j].name);
+            std::ostringstream str;
+            for (auto x : {i, j}) {
+              str << physicalWorkflow[x].name << ":\n";
+              str << "inputs:\n";
+              for (auto& input : physicalWorkflow[x].inputs) {
+                str << fmt::format("- {}\n", input);
+              }
+              str << "outputs:\n";
+              for (auto& output : physicalWorkflow[x].outputs) {
+                str << fmt::format("- {}\n", output);
+              }
+            }
+            throw std::runtime_error(physicalWorkflow[i].name + " has circular dependency with " + physicalWorkflow[j].name + ":\n" + str.str());
           }
         }
       }
