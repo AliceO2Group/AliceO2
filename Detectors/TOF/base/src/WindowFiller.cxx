@@ -464,7 +464,7 @@ void WindowFiller::fillDiagnosticFrequency()
         for (int dd = fd; dd < lastdia; dd++) {
           if (mPatterns[dd] >= 28) {
             slot = mPatterns[dd] - 28;
-            key = (ULong64_t(slot) << 32) + (ULong64_t(ic) << 36);
+            key = mDiagnosticFrequency.getTRMKey(ic, slot);
             continue;
           }
 
