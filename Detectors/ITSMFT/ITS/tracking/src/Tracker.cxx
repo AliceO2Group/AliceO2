@@ -97,6 +97,10 @@ void Tracker::computeCells()
 
 void Tracker::findCellsNeighbours(int& iteration)
 {
+  #define OPTIMISATION_OUTPUT
+#ifdef OPTIMISATION_OUTPUT
+  std::ofstream off(fmt::format("cellneighs{}.txt", iteration));
+#endif
   for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad() - 1; ++iLayer) {
 
     if (mTimeFrame->getCells()[iLayer + 1].empty() ||
@@ -114,28 +118,19 @@ void Tracker::findCellsNeighbours(int& iteration)
       const int nextLayerTrackletIndex{currentCell.getSecondTrackletIndex()};
       const int nextLayerFirstCellIndex{mTimeFrame->getCellsLookupTable()[iLayer][nextLayerTrackletIndex]};
       const int nextLayerLastCellIndex{mTimeFrame->getCellsLookupTable()[iLayer][nextLayerTrackletIndex + 1]};
-      for (int iNextLayerCell{nextLayerFirstCellIndex}; iNextLayerCell < nextLayerLastCellIndex; ++iNextLayerCell) {
+      for (int iNextCell{nextLayerFirstCellIndex}; iNextCell < nextLayerLastCellIndex; ++iNextCell) {
 
-        Cell& nextCell{mTimeFrame->getCells()[iLayer + 1][iNextLayerCell]};
+        Cell& nextCell{mTimeFrame->getCells()[iLayer + 1][iNextCell]};
         if (nextCell.getFirstTrackletIndex() != nextLayerTrackletIndex) {
           break;
         }
 
-        const float3 currentCellNormalVector{currentCell.getNormalVectorCoordinates()};
-        const float3 nextCellNormalVector{nextCell.getNormalVectorCoordinates()};
-        const float3 normalVectorsDeltaVector{currentCellNormalVector.x - nextCellNormalVector.x,
-                                              currentCellNormalVector.y - nextCellNormalVector.y,
-                                              currentCellNormalVector.z - nextCellNormalVector.z};
-
-        const float deltaNormalVectorsModulus{(normalVectorsDeltaVector.x * normalVectorsDeltaVector.x) +
-                                              (normalVectorsDeltaVector.y * normalVectorsDeltaVector.y) +
-                                              (normalVectorsDeltaVector.z * normalVectorsDeltaVector.z)};
-        const float deltaCurvature{std::abs(currentCell.getCurvature() - nextCell.getCurvature())};
-
-        // if (deltaNormalVectorsModulus < mTrkParams[iteration].NeighbourMaxDeltaN[iLayer] &&
-        //     deltaCurvature < mTrkParams[iteration].NeighbourMaxDeltaCurvature[iLayer]) {
-
-        mTimeFrame->getCellsNeighbours()[iLayer][iNextLayerCell].push_back(iCell);
+#ifdef OPTIMISATION_OUTPUT
+        bool good{mTimeFrame->getCellsLabel(iLayer)[iCell] == mTimeFrame->getCellsLabel(iLayer + 1)[iNextCell]};
+        float signedDelta{currentCell.getTanLambda() - nextCell.getTanLambda()};
+        off << fmt::format("{}\t{:d}\t{}\t{}", iLayer, good, signedDelta, signedDelta / mTrkParams[iteration].CellDeltaTanLambdaSigma) << std::endl;
+#endif
+        mTimeFrame->getCellsNeighbours()[iLayer][iNextCell].push_back(iCell);
 
         const int currentCellLevel{currentCell.getLevel()};
 

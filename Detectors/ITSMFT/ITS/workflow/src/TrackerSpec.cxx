@@ -137,25 +137,13 @@ void TrackerDPL::init(InitContext& ic)
       memParams.resize(1);
       trackParams[0].MinTrackLength = 4;
       trackParams[0].TrackletMaxDeltaPhi = o2::its::constants::math::Pi * 0.5f;
-      trackParams[0].CellMaxDeltaTanLambda *= 400;
-      trackParams[0].CellMaxDeltaPhi = 1.;
+      trackParams[0].CellDeltaTanLambdaSigma *= 400;
       trackParams[0].PhiBins = 4;
       trackParams[0].ZBins = 16;
       trackParams[0].FitIterationMaxChi2[0] = 1.e28;
       trackParams[0].FitIterationMaxChi2[1] = 1.e28;
 
-      for (int iLayer = 0; iLayer < 4; ++iLayer) {
-        trackParams[0].NeighbourMaxDeltaCurvature[iLayer] *= 400;
-        trackParams[0].NeighbourMaxDeltaN[iLayer] *= 400;
-      }
-      for (int iLayer = 0; iLayer < o2::its::constants::its2::TrackletsPerRoad; iLayer++) {
-        trackParams[0].TrackletMaxDeltaZ[iLayer] = o2::its::constants::its2::LayersZCoordinate()[iLayer + 1];
-        memParams[0].TrackletsMemoryCoefficients[iLayer] = 0.5f;
-        // trackParams[0].TrackletMaxDeltaZ[iLayer] = 10.f;
-      }
       for (int iLayer = 0; iLayer < o2::its::constants::its2::CellsPerRoad; iLayer++) {
-        trackParams[0].CellMaxDCA[iLayer] = 10000.f;    //cm
-        trackParams[0].CellMaxDeltaZ[iLayer] = 10000.f; //cm
         memParams[0].CellsMemoryCoefficients[iLayer] = 0.001f;
       }
       LOG(info) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
