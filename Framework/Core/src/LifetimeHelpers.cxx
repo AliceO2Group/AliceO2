@@ -332,7 +332,7 @@ ExpirationHandler::Handler
     } else {
       url = fmt::format("{}/{}/{}/runNumber={}", serverUrl, path, timestamp, dataTakingContext.runNumber);
     }
-    LOG(INFO) << "fetchFromCCDBCache: Fetching " << url;
+    LOG(debug) << "fetchFromCCDBCache: Fetching " << url;
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &payloadBuffer);
