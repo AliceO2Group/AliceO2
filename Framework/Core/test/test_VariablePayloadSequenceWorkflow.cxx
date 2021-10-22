@@ -224,7 +224,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     }
   };
 
-  auto createCounters = [](RawDeviceService const& rds) -> std::shared_ptr<ConsumerCounters> {
+  auto createCounters = [](RawDeviceService& rds) -> std::shared_ptr<ConsumerCounters> {
     auto counters = std::make_shared<ConsumerCounters>();
     ConsumerCounters& c = *counters;
     for (auto const& channelSpec : rds.spec().inputChannels) {
@@ -249,7 +249,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // the consumer process connects to the producer
   //
-  auto consumerInit = [createCounters, checkCounters, inputChecker](RawDeviceService const& rds, CallbackService& callbacks) {
+  auto consumerInit = [createCounters, checkCounters, inputChecker](RawDeviceService& rds, CallbackService& callbacks) {
     auto counters = createCounters(rds);
     callbacks.set(CallbackService::Id::Stop, [counters, checkCounters]() {
       ASSERT_ERROR(checkCounters(counters));
