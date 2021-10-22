@@ -28,8 +28,8 @@ class FV0CalibrationInfoObject
   void setChannelIndex(uint8_t channel) { mChannelIndex = channel; }
   [[nodiscard]] uint8_t getChannelIndex() const { return mChannelIndex; }
 
-  void setTime(int8_t time) { mTime = time; }
-  [[nodiscard]] int8_t getTime() const { return mTime; }
+  void setTime(int16_t time) { mTime = time; }
+  [[nodiscard]] int16_t getTime() const { return mTime; }
   void setCharge(int16_t charge) { mCharge = charge; }
   [[nodiscard]] int16_t getCharge() const { return mCharge; }
 
