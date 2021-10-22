@@ -239,7 +239,7 @@ void ComputingQuotaEvaluator::handleExpired(std::function<void(ComputingQuotaOff
     // FIXME: offers should go through the driver client, not the monitoring
     // api.
     LOGP(INFO, "Offer {} expired. Giving back {}MB and {} cores", ref.index, offer.sharedMemory / 1000000, offer.cpu);
-    assert(offer.sharedMemory > 0);
+    assert(offer.sharedMemory >= 0);
     mStats.totalExpiredBytes += offer.sharedMemory;
     mStats.totalExpiredOffers++;
     expirator(offer, mStats);
