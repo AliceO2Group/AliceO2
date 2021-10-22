@@ -51,7 +51,7 @@ RP BaseRecoTask::process(o2::fv0::BCData const& bcd,
   int nch = inChData.size();
   for (int ich = 0; ich < nch; ich++) {
     LOG(debug) << "  channel " << ich << " / " << nch;
-    int offsetChannel = getChannelOffset(ich);
+    int offsetChannel = getChannelOffset(inChData[ich].pmtNumber);
 
     outChData[ich] = o2::fv0::ChannelDataFloat{inChData[ich].pmtNumber,
                                                (inChData[ich].time - offsetChannel) * DigitizationConstant::TIME_PER_TDCCHANNEL,
