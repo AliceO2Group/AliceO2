@@ -17,6 +17,9 @@
 #include "Framework/Logger.h"
 #include <Monitoring/Monitoring.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+
 #include <vector>
 #include <uv.h>
 #include <cassert>
@@ -31,13 +34,12 @@ ComputingQuotaEvaluator::ComputingQuotaEvaluator(uint64_t now)
   // any CPU. Notice this will have troubles if a given DPL process
   // runs for more than a year.
   mOffers[0] = {
-    0,
-    0,
-    0,
-    -1,
-    -1,
-    OfferScore::Unneeded,
-    true};
+    .cpu = 0,
+    .memory = 0,
+    .runtime = 0,
+    .user = -1,
+    .score = OfferScore::Unneeded,
+    .valid = true};
   mInfos[0] = {
     now,
     0,
@@ -139,6 +141,7 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
     tmp.cpu += offer.cpu;
     tmp.memory += offer.memory;
     tmp.sharedMemory += offer.sharedMemory;
+
     offer.score = selector(offer, tmp);
     switch (offer.score) {
       case OfferScore::Unneeded:
@@ -230,7 +233,7 @@ void ComputingQuotaEvaluator::handleExpired(std::function<void(ComputingQuotaOff
   /// to the driver.
   for (auto& ref : mExpiredOffers) {
     auto& offer = mOffers[ref.index];
-    if (offer.sharedMemory < 0) {
+    if (offer.sharedMemory <= 0) {
       LOGP(INFO, "Offer {} does not have any more memory. Marking it as invalid.", ref.index);
       offer.valid = false;
       offer.score = OfferScore::Unneeded;
@@ -253,3 +256,4 @@ void ComputingQuotaEvaluator::handleExpired(std::function<void(ComputingQuotaOff
 }
 
 } // namespace o2::framework
+#pragma GCC diagnostic pop
