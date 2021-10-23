@@ -715,6 +715,7 @@ void MatchTPCITS::doMatching(int sec)
     for (auto iits = iits0; iits < nTracksITS; iits++) {
       auto& trefITS = mITSWork[cacheITS[iits]];
       // compare if the ITS and TPC tracks may overlap in time
+      LOG(DEBUG) << "TPC bracket: " << trefTPC.tBracket.asString() << " ITS bracket: " << trefITS.tBracket.asString() << " TPCtgl: " << trefTPC.getTgl() << " ITStgl: " << trefITS.getTgl();
       if (trefTPC.tBracket < trefITS.tBracket) { // since TPC tracks are sorted in timeMax and ITS tracks are sorted in timeMin all following ITS tracks also will not match
         break;
       }
@@ -725,11 +726,12 @@ void MatchTPCITS::doMatching(int sec)
       // is corrected TPC track time compatible with ITS ROF expressed
       auto deltaT = (trefITS.getZ() - trefTPC.getZ()) * mTPCVDrift0Inv;                  // drift time difference corresponding to Z differences
       auto timeCorr = trefTPC.getCorrectedTime(deltaT);                                  // TPC time required to match to Z of ITS track
-      auto timeCorrErr = std::sqrt(trefITS.getSigmaZ2() + trefTPC.getSigmaZ2()) * t2nbs; // nsigma*error
+      auto timeCorrErr = std::sqrt(trefITS.getSigmaZ2() + trefTPC.getSigmaZ2()) * t2nbs + mParams->safeMarginTimeCorrErr; // nsigma*error
       if (mVDriftCalibOn) {
         timeCorrErr += vdErrT * (250. - abs(trefITS.getZ())); // account for the extra error from TPC VDrift uncertainty
       }
       o2::math_utils::Bracketf_t trange(timeCorr - timeCorrErr, timeCorr + timeCorrErr);
+      LOG(DEBUG) << "TPC range: " << trange.asString() << " ITS bracket: " << trefITS.tBracket.asString() << " DZ: " << (trefITS.getZ() - trefTPC.getZ()) << " DT: " << timeCorr;
       if (trefITS.tBracket.isOutside(trange)) {
         continue;
       }

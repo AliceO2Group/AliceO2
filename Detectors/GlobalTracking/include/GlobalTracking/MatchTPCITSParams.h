@@ -44,6 +44,8 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
 
   int maxMatchCandidates = 5; ///< max allowed matching candidates per TPC track
 
+  float safeMarginTimeCorrErr = 0; ///< safety marging (in \mus) for TPC track time corrected by ITS constraint
+
   float safeMarginTPCITSTimeBin = 1.f; ///< safety margin (in TPC time bins) for ITS-TPC tracks time (in TPC time bins!) comparison
 
   float safeMarginTPCTimeEdge = 20.f; ///< safety margin in cm when estimating TPC track tMin and tMax from assigned time0 and its track Z position
