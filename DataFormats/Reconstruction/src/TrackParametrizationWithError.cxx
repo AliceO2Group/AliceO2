@@ -937,6 +937,17 @@ GPUd() bool TrackParametrizationWithError<value_T>::update(const value_t* p, con
 
 //______________________________________________
 template <typename value_T>
+GPUd() value_T TrackParametrizationWithError<value_T>::update(const o2::dataformats::VertexBase& vtx, value_T maxChi2)
+{
+  // Update track with vertex if the track-vertex chi2 does not exceed maxChi2. Track must be already propagated to the DCA to vertex
+  // return update chi2 or -chi2 if chi2 if chi2 exceeds maxChi2
+  auto vtLoc = this->getVertexInTrackFrame(vtx);
+  value_T chi2 = getPredictedChi2(vtLoc.yz, vtLoc.yzerr);
+  return chi2 < maxChi2 && update(vtLoc.yz, vtLoc.yzerr) ? chi2 : -chi2;
+}
+
+//______________________________________________
+template <typename value_T>
 GPUd() bool TrackParametrizationWithError<value_T>::correctForMaterial(value_t x2x0, value_t xrho, bool anglecorr, value_t dedx)
 {
   //------------------------------------------------------------------
