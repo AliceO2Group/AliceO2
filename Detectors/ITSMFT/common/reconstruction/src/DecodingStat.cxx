@@ -71,7 +71,7 @@ void ChipStat::print(bool skipNoErr, const std::string& pref) const
     nErr += errorCounts[i];
   }
   if (!skipNoErr || nErr) {
-    LOGP(INFO, "{}#{:x} NHits: {}  errors: {}", pref.c_str(), feeID, nHits, nErr);
+    LOGP(INFO, "{}#{:#04x} NHits: {}  errors: {}", pref.c_str(), feeID, nHits, nErr);
     for (int i = 0; i < NErrorsDefined; i++) {
       if (!skipNoErr || errorCounts[i]) {
         LOGP(INFO, "Err.: {}: {}", ErrNames[i].data(), errorCounts[i]);
@@ -89,7 +89,7 @@ void GBTLinkDecodingStat::print(bool skipNoErr) const
     nErr += errorCounts[i];
   }
   if (!skipNoErr || nErr) {
-    LOGP(INFO, "FEEID#{%s} Packet States Statistics (total packets: {}, triggers: {})", ruLinkID, nPackets, nTriggers);
+    LOGP(INFO, "FEEID#{:#04x} Packet States Statistics (total packets: {}, triggers: {})", ruLinkID, nPackets, nTriggers);
     for (int i = 0; i < GBTDataTrailer::MaxStateCombinations; i++) {
       if (packetStates[i]) {
         std::bitset<GBTDataTrailer::NStatesDefined> patt(i);
