@@ -27,11 +27,12 @@
 #include "DetectorsCommonDataFormats/NameConf.h"
 
 #include "ITSWorkflow/CalibratorSpec.h"
+#include <sstream>
+#include <stdlib.h>
 
 #include <vector>
-
 #include <fmt/format.h>
-
+#include <boost/lexical_cast.hpp>
 #include <DPLUtils/RawParser.h>
 #include <DPLUtils/DPLRawParser.h>
 
@@ -106,15 +107,17 @@ const int get_nRow(int chipID) {
 }
 
 // Initialize arrays of chip columns/rows for ROOT histograms
-void get_row_col_arr(const int & chipID, int & nRow, double* row_arr, int & nCol, double* col_arr) {
+void get_row_col_arr(const int & chipID, int & nRow, double** row_arr_old, int & nCol, double** col_arr_old) {
     // Set bin edges at the midpoints giving 1-indexing (0.5, 1.5, 2.5, ...)
     nCol = get_nCol(chipID);
-    col_arr = new double[nCol];
-    for (int i = 0; i < nCol; i++) { col_arr[i] = i + 0.5; }
+    double*col_arr_new = new double[nCol];
+    for (int i = 0; i < nCol; i++) { col_arr_new[i] = i; }
+    *col_arr_old = col_arr_new;
 
     nRow = get_nRow(chipID);
-    row_arr = new double[nRow];
-    for (int i = 0; i < nRow; i++) { row_arr[i] = i + 0.5; }
+    double*row_arr_new = new double[nRow];
+    for (int i = 0; i < nRow; i++) { row_arr_new[i] = i; }
+    *row_arr_old = row_arr_new;
 
     return;
 }
@@ -297,7 +300,6 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
                 // Ignore everything that isn't an IB stave for now
                 if (chipID > 431) { continue; }
                 LOG(INFO) << "getChipID: " << chipID << ", getROFrame: " << mChipDataBuffer->getROFrame() << ", getTrigger: " << mChipDataBuffer->getTrigger();
-
                 mChipids.push_back(chipID);
                 const auto& pixels = mChipDataBuffer->getData();
                 int CHARGE;
@@ -336,11 +338,15 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
                     this->pixelHits[chipID] = hitmap;     // new entry in pixelHits for new chip at current charge
 
                     // Create a TH2 to save the threshold info
-                    const char* th_name = ("thresh_chipID" + std::to_string(chipID)).c_str();
+                    std::string th_name = ("thresh_chipID" + std::to_string(chipID));
+                    const char*th_ChipID = th_name.c_str();
+                  
+                    
                     int nRow, nCol;
                     double* row_arr; double* col_arr;
-                    get_row_col_arr(chipID, nRow, row_arr, nCol, col_arr);
-                    TH2D* th = new TH2D(th_name, th_name, nRow, row_arr, nCol, col_arr);  // x = rows, y = columns
+                    get_row_col_arr(chipID, nRow, &row_arr, nCol, &col_arr);
+                   //LOG(INFO)<<row_arr[400];
+                    TH2D* th = new TH2D(th_ChipID,th_ChipID,nCol,0,nCol,nRow,0,nRow);  // x = rows, y = columns
                     this->thresholds[chipID] = th;
                     delete[] row_arr, col_arr;
 
@@ -376,8 +382,8 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
                                     << threshold << ", noise: " << noise << ", chi2: " << chi2 << '\n';
 
                             // Update ROOT histograms
-                            this->thresholds[chipID]->SetBinContent(cur_row, col+1, threshold);
-                            this->thresholds[chipID]->SetBinError(cur_row, col+1, noise);
+                            this->thresholds[chipID]->SetBinContent(col+1,cur_row, threshold);
+                            this->thresholds[chipID]->SetBinError(col+1,cur_row,noise);
                             // TODO: store the chi2 info somewhere useful
                         }
                         // Initialize ROOT output file
