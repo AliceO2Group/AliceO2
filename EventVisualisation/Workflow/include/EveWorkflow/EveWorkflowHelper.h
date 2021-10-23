@@ -72,7 +72,7 @@ class EveWorkflowHelper
 
  public:
   EveWorkflowHelper();
-  static std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ = 25000, float maxZ = 25000);
+  static std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ = -25000, float maxZ = 25000);
   void selectTracks(const CalibObjectsConst* calib, GID::mask_t maskCl,
                     GID::mask_t maskTrk, GID::mask_t maskMatch);
   void addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz);
@@ -108,6 +108,7 @@ class EveWorkflowHelper
   std::vector<o2::BaseCluster<float>> mMFTClustersArray;
   o2::mft::GeometryTGeo* mMFTGeom;
   o2::its::GeometryTGeo* mITSGeom;
+  float mMUS2TPCTimeBins = 5.0098627;
 };
 } // namespace o2::event_visualisation
 
