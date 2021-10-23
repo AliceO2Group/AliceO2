@@ -179,6 +179,7 @@ void MatchTPCITS::init()
     mTimer[i].Reset();
   }
   mParams = &Params::Instance();
+  mParams->printKeyValues();
   mFT0Params = &o2::ft0::InteractionTag::Instance();
   setUseMatCorrFlag(mParams->matCorr);
   auto* prop = o2::base::Propagator::Instance();
