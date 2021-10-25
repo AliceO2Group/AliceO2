@@ -22,6 +22,9 @@
 #include <TObjArray.h>
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "Framework/ProcessingContext.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include <unordered_map>
+#include <vector>
 
 namespace o2
 {
@@ -44,6 +47,10 @@ class MatchITSTPCQC
   TH1F* getHistoPtTPC() const { return mPtTPC; }
   TEfficiency* getFractionITSTPCmatch() const { return mFractionITSTPCmatch; }
   TEfficiency* getHistoFractionITSTPCmatch() const { return mFractionITSTPCmatch; }
+  TH1F* getHistoPhi() const { return mPhi; }
+  TH1F* getHistoPhiTPC() const { return mPhiTPC; }
+  TEfficiency* getFractionITSTPCmatchPhi() const { return mFractionITSTPCmatchPhi; }
+  TEfficiency* getHistoFractionITSTPCmatchPhi() const { return mFractionITSTPCmatchPhi; }
   TH1F* getHistoPt() const { return mPt; }
   TH1F* getHistoEta() const { return mEta; }
   TH1F* getHistoChi2Matching() const { return mChi2Matching; }
@@ -83,10 +90,16 @@ class MatchITSTPCQC
   std::string mGRPFileName = "o2sim_grp.root";
   std::string mGeomFileName = "o2sim_geometry.root";
   float mBz = 0; ///< nominal Bz
+  std::unordered_map<o2::MCCompLabel, int> mMapLabels;    // map with labels that have been found for the matched ITSTPC tracks; key is the label, value is the id of the track with the highest pT found with that label so far
+  std::unordered_map<o2::MCCompLabel, int> mMapTPCLabels; // map with labels that have been found for the unmatched TPC tracks; key is the label, value is the id of the track with the highest number of TPC clusters found with that label so far
+  std::vector<int> mSelectedTPCtracks;                    // vector with indices of selected TPC tracks
 
   TH1F* mPtTPC = nullptr;
   TEfficiency* mFractionITSTPCmatch = nullptr;
   TH1F* mPt = nullptr;
+  TH1F* mPhiTPC = nullptr;
+  TEfficiency* mFractionITSTPCmatchPhi = nullptr;
+  TH1F* mPhi = nullptr;
   TH1F* mEta = nullptr;
   TH1F* mChi2Matching = nullptr;
   TH1F* mChi2Refit = nullptr;
