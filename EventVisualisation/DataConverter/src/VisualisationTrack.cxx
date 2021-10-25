@@ -17,6 +17,7 @@
 ///
 
 #include "EventVisualisationDataConverter/VisualisationTrack.h"
+#include "FairLogger.h"
 
 using namespace std;
 
@@ -36,6 +37,21 @@ VisualisationTrack::VisualisationTrack(const VisualisationTrackVO& vo)
   this->addStartCoordinates(vo.startXYZ);
   this->mSource = vo.source;
   this->mEta = vo.eta;
+  this->mGID = vo.gid;
+}
+
+VisualisationTrack::VisualisationTrack(const VisualisationTrack& src)
+{
+  this->mCharge = src.mCharge;
+  this->mPID = src.mPID;
+  this->mTheta = src.mTheta;
+  this->mPhi = src.mPhi;
+  this->addStartCoordinates(src.getStartCoordinates());
+  this->mSource = src.mSource;
+  this->mPolyX = src.mPolyX;
+  this->mPolyY = src.mPolyY;
+  this->mPolyZ = src.mPolyZ;
+  this->mClusters = src.mClusters;
 }
 
 void VisualisationTrack::addStartCoordinates(const float xyz[3])
@@ -100,6 +116,10 @@ rapidjson::Value VisualisationTrack::jsonTree(rapidjson::Document::AllocatorType
 
   tree.AddMember("count", rapidjson::Value().SetInt(this->getPointCount()), allocator);
   tree.AddMember("source", rapidjson::Value().SetInt(this->mSource), allocator);
+  LOG(INFO) << "in save:" << this->mGID;
+  rapidjson::Value gid;
+  gid.SetString(this->mGID.c_str(), this->mGID.size(), allocator);
+  tree.AddMember("gid", gid, allocator);
   tree.AddMember("time", rapidjson::Value().SetFloat(this->mTime), allocator);
   tree.AddMember("charge", rapidjson::Value().SetInt(this->mCharge), allocator);
   tree.AddMember("theta", rapidjson::Value().SetFloat(this->mTheta), allocator);
