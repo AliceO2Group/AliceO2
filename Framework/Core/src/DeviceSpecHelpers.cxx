@@ -1197,6 +1197,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("shm-zero-segment", bpo::value<std::string>());
         realOdesc.add_options()("shm-throw-bad-alloc", bpo::value<std::string>());
         realOdesc.add_options()("shm-segment-id", bpo::value<std::string>());
+        realOdesc.add_options()("shm-allocation", bpo::value<std::string>());
         realOdesc.add_options()("shm-monitor", bpo::value<std::string>());
         realOdesc.add_options()("channel-prefix", bpo::value<std::string>());
         realOdesc.add_options()("network-interface", bpo::value<std::string>());
@@ -1351,6 +1352,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("shm-zero-segment", bpo::value<std::string>()->default_value("false"), "zero shared memory segment")                                                            //
     ("shm-throw-bad-alloc", bpo::value<std::string>()->default_value("true"), "throw if insufficient shm memory")                                                    //
     ("shm-segment-id", bpo::value<std::string>()->default_value("0"), "shm segment id")                                                                              //
+    ("shm-allocation", bpo::value<std::string>()->default_value("rbtree_best_fit"), "shm allocation method")                                                         //
     ("environment", bpo::value<std::string>(), "comma separated list of environment variables to set for the device")                                                //
     ("stacktrace-on-signal", bpo::value<std::string>()->default_value("all"),                                                                                        //
      "dump stacktrace on specified signal(s) (any of `all`, `segv`, `bus`, `ill`, `abrt`, `fpe`, `sys`.)")                                                           //
