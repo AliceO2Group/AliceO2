@@ -160,9 +160,8 @@ class TPCMonitorDevice : public o2::framework::Task
   }
 };
 
-DataProcessorSpec getMonitorWorkflowSpec(bool useDigitsAsInput)
+DataProcessorSpec getMonitorWorkflowSpec(bool useDigitsAsInput, std::string inputSpec)
 {
-  std::string inputSpec = "tpcraw:TPC/RAWDATA";
   if (useDigitsAsInput) {
     inputSpec = "tpcdigits:TPC/DIGITS";
   }
