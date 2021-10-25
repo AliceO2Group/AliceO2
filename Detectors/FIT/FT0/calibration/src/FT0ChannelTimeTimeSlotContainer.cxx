@@ -17,13 +17,17 @@
 
 using namespace o2::ft0;
 
+int FT0ChannelTimeTimeSlotContainer::sGausFitBins = 999; // NOT USED
+
 FT0ChannelTimeTimeSlotContainer::FT0ChannelTimeTimeSlotContainer(std::size_t minEntries)
   : mMinEntries(minEntries)
 {
 
+
   mHistogram = boost::histogram::make_histogram(boost::histogram::axis::integer<>(-HISTOGRAM_RANGE, HISTOGRAM_RANGE, "channel_times"),
                                                 boost::histogram::axis::integer<>(0, o2::ft0::Nchannels_FT0, "channel_ID"));
 }
+
 
 bool FT0ChannelTimeTimeSlotContainer::hasEnoughEntries() const
 {
@@ -65,21 +69,41 @@ int16_t FT0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t cha
     return 0;
   }
   LOG(DEBUG) << " for channel " << int(channelID) << " entries " << mEntriesPerChannel[channelID];
+
   std::vector<double> channelHistogramData(NUMBER_OF_HISTOGRAM_BINS);
+
   std::vector<double> outputGaussianFitValues;
+  double binWidth = (HISTOGRAM_RANGE - (-HISTOGRAM_RANGE))/NUMBER_OF_HISTOGRAM_BINS;
+  double minGausFitRange = 0;
+  double maxGausFitRange = 0;
+  double MaxValOfHistogram = 0.0;
+
+
   for (int iBin = 0; iBin < NUMBER_OF_HISTOGRAM_BINS; ++iBin) {
     channelHistogramData[iBin] = mHistogram.at(iBin, channelID);
   }
 
-  double returnCode = math_utils::fitGaus<double>(NUMBER_OF_HISTOGRAM_BINS, channelHistogramData.data(),
-                                                  -HISTOGRAM_RANGE, HISTOGRAM_RANGE, outputGaussianFitValues);
-  if (returnCode < 0) {
-    LOG(ERROR) << "Gaussian fit error!";
-    return 0;
-  }
+  int maxElementIndex = std::max_element(channelHistogramData.begin(),channelHistogramData.end()) - channelHistogramData.begin();
+  int maxElement = *std::max_element(channelHistogramData.begin(), channelHistogramData.end());
+    
+  // calculating the min & max range values to fit gaussian
+  minGausFitRange = (-HISTOGRAM_RANGE + (maxElementIndex-sGausFitBins) * binWidth + binWidth/2.0 );
+  maxGausFitRange = (-HISTOGRAM_RANGE + (maxElementIndex+sGausFitBins) * binWidth + binWidth/2.0 );
 
-  return static_cast<int16_t>(std::round(outputGaussianFitValues[MEAN_VALUE_INDEX_IN_OUTPUT_VECTOR]));
+  double returnCode = math_utils::fitGaus<double>(NUMBER_OF_HISTOGRAM_BINS, channelHistogramData.data(),
+                                                  minGausFitRange, maxGausFitRange, outputGaussianFitValues);
+
+  MaxValOfHistogram = (-HISTOGRAM_RANGE + maxElementIndex * binWidth + binWidth/2.0 );
+  if (returnCode < 0) 
+    {
+      LOG(ERROR) << "Gaussian fit error!";
+      return static_cast<int16_t>(std::round(MaxValOfHistogram));
+    }  
+
+    return static_cast<int16_t>(std::round(outputGaussianFitValues[MEAN_VALUE_INDEX_IN_OUTPUT_VECTOR]));
 }
+
+
 void FT0ChannelTimeTimeSlotContainer::print() const
 {
   //QC will do that part
