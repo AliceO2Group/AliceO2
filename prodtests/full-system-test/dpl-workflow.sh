@@ -135,7 +135,7 @@ else
   fi
 fi
 
-has_processing_step ENTROPY_ENCODER && GPU_OUTPUT+=",compressed-clusters-ctf"
+has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-ctf"
 
 has_detector_flp_processing CPV && CPV_INPUT=digits
 ! has_detector_flp_processing TOF && TOF_CONFIG+=" --ignore-dist-stf"
