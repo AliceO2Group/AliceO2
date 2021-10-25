@@ -95,7 +95,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& digitVec, const 
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
-#define ENCODEFV0(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
+#define ENCODEFV0(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
   ENCODEFV0(cd.bcInc,     CTF::BLC_bcInc,    0);
   ENCODEFV0(cd.orbitInc,  CTF::BLC_orbitInc, 0);

@@ -122,6 +122,9 @@ void PHOSRunbyrunSlot::merge(const PHOSRunbyrunSlot* prev)
 }
 bool PHOSRunbyrunSlot::checkCluster(const Cluster& clu)
 {
+  if (clu.getEnergy() > 1.e-4) {
+    return false;
+  }
   //First check BadMap
   float posX, posZ;
   clu.getLocalPosition(posX, posZ);

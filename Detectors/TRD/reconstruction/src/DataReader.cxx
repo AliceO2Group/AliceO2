@@ -116,10 +116,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
   workflow.emplace_back(DataProcessorSpec{
     std::string("trd-datareader"), // left as a string cast incase we append stuff to the string
-    inputs,                        //select(std::string("x:TRD/" + inputspec).c_str()),
+    inputs,
     outputs,
     algoSpec,
-    Options{}});
+    Options{{"log-max-errors", VariantType::Int, 20, {"maximum number of errors to log"}},
+            {"log-max-warnings", VariantType::Int, 20, {"maximum number of warnings to log"}}}});
 
   if (cfgc.options().get<bool>("enable-root-output")) {
     workflow.emplace_back(o2::trd::getTRDDigitWriterSpec(false, false));

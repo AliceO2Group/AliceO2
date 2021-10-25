@@ -17,6 +17,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "CTPWorkflow/RawToDigitConverterSpec.h"
+#include "CommonUtils/VerbosityConfig.h"
 
 using namespace o2::ctp::reco_workflow;
 
@@ -41,16 +42,22 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
   {
+    static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
     std::vector<InputSpec> dummy{InputSpec{"dummy", o2::framework::ConcreteDataMatcher{"CTP", "RAWDATA", 0xDEADBEEF}}};
     for (const auto& ref : o2::framework::InputRecordWalker(inputs, dummy)) {
       const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       if (dh->payloadSize == 0) {
-        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
-             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+        auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
+        if (++contDeadBeef <= maxWarn) {
+          LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+               contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
+        }
         ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
         return;
       }
     }
+    contDeadBeef = 0; // if good data, reset the counter
   }
   //
   uint32_t payloadCTP;

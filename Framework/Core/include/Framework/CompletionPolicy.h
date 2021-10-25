@@ -46,7 +46,12 @@ struct CompletionPolicy {
     Wait,
     /// Do not run the ProcessCallback. Contents of the record will
     /// be forwarded to the next consumer, if any.
-    Discard
+    Discard,
+    /// ConsumeExisting: run the ProcessCallback on the InputRecord. After
+    /// we are done, the processed payloads will be deallocated (but
+    /// not the headers) while we wait for the record to be actually fully
+    /// Consumed.
+    ConsumeExisting
   };
 
   using Matcher = std::function<bool(DeviceSpec const& device)>;

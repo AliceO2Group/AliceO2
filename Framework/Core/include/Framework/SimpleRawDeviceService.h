@@ -37,7 +37,7 @@ class SimpleRawDeviceService : public RawDeviceService
     mDevice = device;
   }
 
-  DeviceSpec const& spec() final
+  DeviceSpec const& spec() const final
   {
     return mSpec;
   }

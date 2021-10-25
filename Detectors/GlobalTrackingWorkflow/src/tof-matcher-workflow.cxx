@@ -85,15 +85,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     useFIT = false;
   }
 
-  LOG(INFO) << "TOF MATCHER WORKFLOW configuration";
-  LOG(INFO) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");
-  LOG(INFO) << "TOF output = " << outputType;
-  LOG(INFO) << "TOF disable-mc = " << configcontext.options().get<std::string>("disable-mc");
-  LOG(INFO) << "TOF use-ccdb = " << useCCDB;
-  LOG(INFO) << "TOF use-fit = " << useFIT;
-  LOG(INFO) << "TOF disable-root-input = " << disableRootIn;
-  LOG(INFO) << "TOF disable-root-output = " << disableRootOut;
-  LOG(INFO) << "TOF matching in strict mode = " << strict;
+  LOG(DEBUG) << "TOF MATCHER WORKFLOW configuration";
+  LOG(DEBUG) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");
+  LOG(DEBUG) << "TOF output = " << outputType;
+  LOG(DEBUG) << "TOF disable-mc = " << configcontext.options().get<std::string>("disable-mc");
+  LOG(DEBUG) << "TOF use-ccdb = " << useCCDB;
+  LOG(DEBUG) << "TOF use-fit = " << useFIT;
+  LOG(DEBUG) << "TOF disable-root-input = " << disableRootIn;
+  LOG(DEBUG) << "TOF disable-root-output = " << disableRootOut;
+  LOG(DEBUG) << "TOF matching in strict mode = " << strict;
 
   //GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC");
   GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD");

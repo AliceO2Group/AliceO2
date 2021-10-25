@@ -27,14 +27,13 @@ class Options
 {
  private:
   // stored options
-  bool mIts;               // -i
   bool mJSON;              // -j
   bool mOnline;            // -o (must specify -d!)
   bool mRandomTracks;      // -r
-  bool mTpc;               // -t
-  bool mVsd;               // -v
   std::string mFileName;   // -f 'data.root'
   std::string mDataFolder; // -d './'
+  std::string mSavedDataFolder; // -s './'
+  long mMemoryLimit;            // -m 1500 (MB) = 1.5GB
 
   // helper methods
   static Options instance;
@@ -43,7 +42,9 @@ class Options
   Options()
   {
     mFileName = "data.root";
-    mDataFolder = "./";
+    mDataFolder = "./";    // current working directory
+    mSavedDataFolder = ""; // not use
+    mMemoryLimit = -1;     // not use
   }
 
  public:
@@ -53,14 +54,13 @@ class Options
   bool processCommandLine(int argc, char* argv[]);
 
   // get access methods
-  bool its() { return this->mIts; }
   bool json() { return this->mJSON; }
   bool online() { return this->mOnline; }
   std::string dataFolder() { return this->mDataFolder; }
+  std::string savedDataFolder() { return this->mSavedDataFolder; }
   std::string fileName() { return this->mFileName; }
   bool randomTracks() { return this->mRandomTracks; }
-  bool vsd() { return this->mVsd; }
-  bool tpc() { return this->mTpc; }
+  long memoryLimit() { return this->mMemoryLimit; }
 };
 
 } // namespace event_visualisation

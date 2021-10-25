@@ -106,6 +106,9 @@ void PHOSTurnonSlot::scanClusters(const gsl::span<const Cell>& cells, const Trig
   int lastCluInEvent = firstCluInEvent + clutr.getNumberOfObjects();
   for (int i = firstCluInEvent; i < lastCluInEvent; i++) {
     const Cluster& clu = clusters[i];
+    if (clu.getEnergy() < 1.e-4) {
+      continue;
+    }
     mod = clu.module();
     clu.getLocalPosition(x, z);
     short truId = Geometry::relPosToTruId(mod, x, z, ddl);

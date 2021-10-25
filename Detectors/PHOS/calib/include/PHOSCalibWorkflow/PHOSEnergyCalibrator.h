@@ -124,6 +124,7 @@ class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o
 
   void endOfStream();
 
+  ETCalibHistos* getCollectedHistos() { return mHistos.get(); }
   void setOutDigitsFile(std::string& name) { mdigitsfilename = name; };
   void setCalibration(CalibParams& c) { mCalibParams.reset(new CalibParams(c)); }
   void setBadMap(BadChannelsMap& map) { mBadMap.reset(new BadChannelsMap(map)); }
@@ -146,7 +147,7 @@ class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o
   float mEminLGTime = 5.;
   std::unique_ptr<CalibParams> mCalibParams; /// Current calibration object
   std::unique_ptr<BadChannelsMap> mBadMap;   /// Current BadMap
-  ETCalibHistos mHistos;                     /// final histograms
+  std::unique_ptr<ETCalibHistos> mHistos;    /// final histograms
   std::vector<uint32_t> mDigits;             /// list of calibration digits to fill
   std::unique_ptr<TFile> mFout;              /// file to write calib digits
 

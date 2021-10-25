@@ -24,9 +24,10 @@ namespace o2
 namespace event_visualisation
 {
 
-VisualisationCluster::VisualisationCluster(float XYZ[])
+VisualisationCluster::VisualisationCluster(float XYZ[], float time)
 {
   setCoordinates(XYZ);
+  this->mTime = time;
 }
 
 void VisualisationCluster::setCoordinates(float xyz[3])
@@ -45,6 +46,8 @@ VisualisationCluster::VisualisationCluster(rapidjson::Value& tree)
   this->mCoordinates[0] = jsonX.GetDouble();
   this->mCoordinates[1] = jsonY.GetDouble();
   this->mCoordinates[2] = jsonZ.GetDouble();
+
+  this->mSource = o2::dataformats::GlobalTrackID::TPC; // temporary
 }
 
 rapidjson::Value VisualisationCluster::jsonTree(rapidjson::MemoryPoolAllocator<>& allocator)

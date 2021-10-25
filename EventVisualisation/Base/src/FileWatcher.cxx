@@ -28,36 +28,50 @@ namespace event_visualisation
 {
 
 const char* FileWatcher::mLowGuard = " 0"; /// start guard
-const char* FileWatcher::mEndGard = "~0";  /// stop guard
+const char* FileWatcher::mEndGuard = "~0"; /// stop guard
 
 deque<string> FileWatcher::load(string path)
 {
-  LOG(INFO) << "FileWatcher::load(" << path << ")";
+  //LOG(INFO) << "FileWatcher::load(" << path << ")";
   deque<string> result;
   for (const auto& entry : std::filesystem::directory_iterator(path)) {
     if (entry.path().extension() == ".json") {
       result.push_back(entry.path().filename());
     }
   }
-  LOG(INFO) << result.size();
+  //LOG(INFO) << result.size();
   return result;
 }
 
 FileWatcher::FileWatcher(const string& path)
 {
-  LOG(INFO) << "FileWatcher::FileWatcher(" << path << ")";
+  //LOG(INFO) << "FileWatcher::FileWatcher(" << path << ")";
   this->mDataFolder = path;
-  this->mCurrentFile = mLowGuard;
+  this->mCurrentFile = mEndGuard;
   this->mFiles.clear();
   this->mFiles.push_front(mLowGuard);
-  this->mFiles.push_back(mEndGard);
-  LOG(INFO) << "FileWatcher" << this->getSize();
+  this->mFiles.push_back(mEndGuard);
+  //LOG(INFO) << "FileWatcher" << this->getSize();
+}
+
+void FileWatcher::changeFolder(const string& path)
+{
+  if (this->mDataFolder == path) {
+    return; // the same folder - no action
+  }
+  this->mDataFolder = path;
+  this->mCurrentFile = mEndGuard;
+  this->mFiles.clear();
+  this->mFiles.push_front(mLowGuard);
+  this->mFiles.push_back(mEndGuard);
+  this->refresh();
+  //LOG(INFO) << "FileWatcher" << this->getSize();
 }
 
 string FileWatcher::nextItem(const string& item) const
 {
-  if (item == mEndGard) {
-    return mEndGard;
+  if (item == mEndGuard) {
+    return mEndGuard;
   }
   return *(std::find(this->mFiles.begin(), this->mFiles.end(), item) + 1);
 }
@@ -78,7 +92,7 @@ string FileWatcher::currentItem() const
   if (this->mCurrentFile == mLowGuard) {
     return *(this->mFiles.begin() + 1);
   }
-  if (this->mCurrentFile == mEndGard) {
+  if (this->mCurrentFile == mEndGuard) {
     return *(this->mFiles.end() - 2);
   }
   return this->mCurrentFile;
@@ -91,7 +105,7 @@ void FileWatcher::setFirst()
 
 void FileWatcher::setLast()
 {
-  this->mCurrentFile = mEndGard;
+  this->mCurrentFile = mEndGuard;
 }
 
 void FileWatcher::setNext()
@@ -122,23 +136,23 @@ bool FileWatcher::refresh()
 
   this->mFiles = load(this->mDataFolder);
   std::sort(this->mFiles.begin(), this->mFiles.end());
-  if (this->mCurrentFile != mEndGard) {
+  if (this->mCurrentFile != mEndGuard) {
     if (this->mFiles.empty()) {
-      this->mCurrentFile = mEndGard; // list empty - stick to last element
+      this->mCurrentFile = mEndGuard; // list empty - stick to last element
     } else if (this->mCurrentFile < *(this->mFiles.begin())) {
       this->mCurrentFile = mLowGuard; // lower then first => go to first
     } else {
       auto it = std::find(mFiles.begin(), mFiles.end(), this->mCurrentFile);
       if (it == this->mFiles.end()) {
-        this->mCurrentFile = mEndGard; // not on the list -> go to last element
+        this->mCurrentFile = mEndGuard; // not on the list -> go to last element
       }
     }
   }
-  for (auto it = this->mFiles.begin(); it != this->mFiles.end(); ++it) {
-    LOG(INFO) << *it;
-  }
+  //for (auto it = this->mFiles.begin(); it != this->mFiles.end(); ++it) {
+  //  LOG(INFO) << *it;
+  //}
   this->mFiles.push_front(mLowGuard);
-  this->mFiles.push_back(mEndGard);
+  this->mFiles.push_back(mEndGuard);
 
   LOG(INFO) << "this->mFiles.size() = " << this->mFiles.size();
   LOG(INFO) << "this->mCurrentFile = " << this->mCurrentFile;
@@ -163,5 +177,22 @@ bool FileWatcher::currentFileExist()
   struct stat buffer;
   return (stat(this->currentFilePath().c_str(), &buffer) == 0);
 }
+
+void FileWatcher::saveCurrentFileToFolder(const string& destinationFolder)
+{
+  if (!std::filesystem::exists(destinationFolder)) {
+    return; // do not specified, where to save
+  }
+  if (this->mDataFolder == destinationFolder) {
+    return; // could not save to yourself
+  }
+  if (this->currentFileExist()) {
+    std::filesystem::path source = this->currentFilePath();
+    std::filesystem::path destination = destinationFolder;
+    destination /= source.filename();
+    std::filesystem::copy_file(source, destination);
+  }
+}
+
 } // namespace event_visualisation
 } // namespace o2

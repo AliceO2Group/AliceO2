@@ -157,6 +157,11 @@ struct unwrap<std::vector<T>> {
   using type = T;
 };
 
+template <>
+struct unwrap<bool> {
+  using type = char;
+};
+
 template <typename T>
 using unwrap_t = typename unwrap<T>::type;
 
@@ -176,12 +181,15 @@ class ColumnIterator : ChunkingPolicy
   /// as part of a RowView.
   ColumnIterator(arrow::ChunkedArray const* column)
     : mColumn{column},
+      mCurrent{nullptr},
       mCurrentPos{nullptr},
+      mLast{nullptr},
       mFirstIndex{0},
-      mCurrentChunk{0}
+      mCurrentChunk{0},
+      mOffset{0}
   {
     auto array = getCurrentArray();
-    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + array->offset();
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + (mOffset >> SCALE_FACTOR);
     mLast = mCurrent + array->length();
   }
 
@@ -200,7 +208,7 @@ class ColumnIterator : ChunkingPolicy
 
     mCurrentChunk++;
     auto array = getCurrentArray();
-    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + (mOffset >> SCALE_FACTOR) - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
@@ -211,7 +219,7 @@ class ColumnIterator : ChunkingPolicy
 
     mCurrentChunk--;
     auto array = getCurrentArray();
-    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + (mOffset >> SCALE_FACTOR) - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
@@ -234,7 +242,7 @@ class ColumnIterator : ChunkingPolicy
     mCurrentChunk = mColumn->num_chunks() - 1;
     auto array = getCurrentArray();
     mFirstIndex = mColumn->length() - array->length();
-    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + array->offset() - (mFirstIndex >> SCALE_FACTOR);
+    mCurrent = reinterpret_cast<unwrap_t<T> const*>(array->values()->data()) + (mOffset >> SCALE_FACTOR) - (mFirstIndex >> SCALE_FACTOR);
     mLast = mCurrent + array->length() + (mFirstIndex >> SCALE_FACTOR);
   }
 
@@ -246,15 +254,13 @@ class ColumnIterator : ChunkingPolicy
       }
     }
     if constexpr (std::is_same_v<bool, std::decay_t<T>>) {
-      // FIXME: notice that due to the type punning we cannot simply convert the
-      //        masked char to a bool, because it's undefined behavior.
       // FIXME: check if shifting the masked bit to the first position is better than != 0
-      return (*((char*)mCurrent + (*mCurrentPos >> SCALE_FACTOR)) & (1 << (*mCurrentPos & 0x7))) != 0;
-    } else if constexpr (o2::framework::is_base_of_template<std::vector, T>::value) {
+      return (*(mCurrent + (*mCurrentPos >> SCALE_FACTOR)) & (1 << ((*mCurrentPos + mOffset) & 0x7))) != 0;
+    } else if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::ListArray>) {
       auto list = std::static_pointer_cast<arrow::ListArray>(mColumn->chunk(mCurrentChunk));
       auto offset = list->value_offset(*mCurrentPos - mFirstIndex);
       auto length = list->value_length(*mCurrentPos - mFirstIndex);
-      return gsl::span{mCurrent + offset, mCurrent + offset + length};
+      return gsl::span{mCurrent + offset, mCurrent + (offset + length)};
     } else {
       return *(mCurrent + (*mCurrentPos >> SCALE_FACTOR));
     }
@@ -290,17 +296,20 @@ class ColumnIterator : ChunkingPolicy
   arrow::ChunkedArray const* mColumn;
   mutable int mFirstIndex;
   mutable int mCurrentChunk;
+  mutable int mOffset;
 
  private:
   /// get pointer to mCurrentChunk chunk
   auto getCurrentArray() const
   {
     std::shared_ptr<arrow::Array> chunkToUse = mColumn->chunk(mCurrentChunk);
+    mOffset = chunkToUse->offset();
     if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::FixedSizeListArray>) {
       chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
       return std::static_pointer_cast<arrow_array_for_t<value_for_t<T>>>(chunkToUse);
     } else if constexpr (std::is_same_v<arrow_array_for_t<T>, arrow::ListArray>) {
       chunkToUse = std::dynamic_pointer_cast<arrow::ListArray>(chunkToUse)->values();
+      mOffset = chunkToUse->offset();
       return std::static_pointer_cast<arrow_array_for_t<value_for_t<T>>>(chunkToUse);
     } else {
       return std::static_pointer_cast<arrow_array_for_t<T>>(chunkToUse);
@@ -2270,6 +2279,19 @@ struct IndexTable : Table<soa::Index<>, H, Ts...> {
 
 template <typename T>
 using is_soa_index_table_t = typename framework::is_base_of_template<soa::IndexTable, T>;
+
+template <typename T>
+struct SmallGroups : Filtered<T> {
+  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
+    : Filtered<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
+
+  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::expressions::Selection selection, uint64_t offset = 0)
+    : Filtered<T>(std::move(tables), selection, offset) {}
+
+  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::NodePtr const& tree, uint64_t offset = 0)
+    : Filtered<T>(std::move(tables), tree, offset) {}
+};
+
 } // namespace o2::soa
 
 #endif // O2_FRAMEWORK_ASOA_H_

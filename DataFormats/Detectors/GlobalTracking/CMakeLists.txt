@@ -18,6 +18,7 @@ o2_add_library(
     O2::DataFormatsITS
     O2::DataFormatsMFT
     O2::DataFormatsMCH
+    O2::DataFormatsMID
     O2::DataFormatsFT0
     O2::DataFormatsFV0
     O2::DataFormatsFDD
@@ -26,6 +27,9 @@ o2_add_library(
     O2::ReconstructionDataFormats
     O2::DataFormatsTRD
     O2::DataFormatsCTP
+    O2::DataFormatsCPV
+    O2::DataFormatsPHOS
+    O2::DataFormatsEMCAL
     O2::GPUDataTypeHeaders
   PRIVATE_LINK_LIBRARIES
     O2::Framework)

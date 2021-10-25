@@ -23,7 +23,7 @@ namespace o2
 namespace itsmft
 {
 /// allowed values: 1,2,3,4,6,9,11,12,18
-constexpr int DEFROFLengthBC = o2::constants::lhc::LHCMaxBunches / 9;       // default ROF length in BC for continuos mode
+constexpr int DEFROFLengthBC = o2::constants::lhc::LHCMaxBunches / 4;       // default ROF length in BC for continuos mode
 constexpr float DEFStrobeDelay = o2::constants::lhc::LHCBunchSpacingNS * 4; // ~100 ns delay
 
 template <int N>

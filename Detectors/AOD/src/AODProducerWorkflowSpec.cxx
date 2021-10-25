@@ -618,7 +618,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
         }
         int mother1 = mcParticles[particle].getSecondMotherTrackId();
         if (mother1 != -1) {
-          mToStore[Triplet_t(source, particle, mother1)] = 1;
+          mToStore[Triplet_t(source, event, mother1)] = 1;
         }
         int daughter0 = mcParticles[particle].getFirstDaughterTrackId();
         if (daughter0 != -1) {
@@ -938,7 +938,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& tracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"});
   auto& tracksCovBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKCOV"});
   auto& tracksExtraBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKEXTRA"});
-  auto& v0sBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "V0S"});
+  auto& v0sBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "V0"});
   auto& zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"});
 
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
@@ -1169,7 +1169,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   for (auto& label : primVerLabels) {
     auto it = std::find_if(mcColToEvSrc.begin(), mcColToEvSrc.end(),
                            [&label](const std::pair<int, int>& item) { return (item.first == label.getEventID() && item.second == label.getSourceID()); });
-    int32_t mcCollisionID = it - mcColToEvSrc.begin();
+    int32_t mcCollisionID = (it != mcColToEvSrc.end()) ? it - mcColToEvSrc.begin() : -1;
     uint16_t mcMask = 0; // todo: set mask using normalized weights?
     mcColLabelsCursor(0, mcCollisionID, mcMask);
   }
@@ -1315,10 +1315,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
   dataRequest->requestSecondaryVertertices(useMC);
-  dataRequest->requestFT0RecPoints(false);
-  dataRequest->requestFV0RecPoints(false);
-  dataRequest->requestFDDRecPoints(false);
-  dataRequest->requestClusters(GIndex::getSourcesMask("TPC,TOF"), false);
+  if (src[GID::TPC]) {
+    dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // TOF clusters are requested with TOF tracks
+  }
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2cascade"}, "AOD", "CASCADE", 0, Lifetime::Timeframe);
@@ -1339,7 +1338,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
   outputs.emplace_back(OutputLabel{"O2track"}, "AOD", "TRACK", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2trackcov"}, "AOD", "TRACKCOV", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2trackextra"}, "AOD", "TRACKEXTRA", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2v0"}, "AOD", "V0S", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2v0"}, "AOD", "V0", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2zdc"}, "AOD", "ZDC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
 

@@ -218,10 +218,10 @@ void CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
 
-  auto encodeTPC = [&buff, &optField, &coders = mCoders](auto begin, auto end, CTF::Slots slot, size_t probabilityBits) {
+  auto encodeTPC = [&buff, &optField, &coders = mCoders, mfc = this->getMemMarginFactor()](auto begin, auto end, CTF::Slots slot, size_t probabilityBits) {
     // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
     const auto slotVal = static_cast<int>(slot);
-    CTF::get(buff.data())->encode(begin, end, slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal].get());
+    CTF::get(buff.data())->encode(begin, end, slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal].get(), mfc);
   };
 
   if (mCombineColumns) {

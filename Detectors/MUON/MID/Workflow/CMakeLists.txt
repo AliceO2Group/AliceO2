@@ -27,6 +27,7 @@ o2_add_library(
           src/RawWriterSpec.cxx
           src/TrackerMCSpec.cxx
           src/TrackerSpec.cxx
+          src/TrackReaderSpec.cxx
           src/ZeroSuppressionSpec.cxx
   PUBLIC_LINK_LIBRARIES
     O2::Framework
@@ -49,69 +50,53 @@ o2_add_library(
 o2_add_executable(
   digits-to-raw-workflow
   COMPONENT_NAME mid
-  SOURCES src/digits-to-raw-workflow.cxx TARGETVARNAME exenameraw
+  SOURCES src/digits-to-raw-workflow.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
-
-target_include_directories(
-  ${exenameraw} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
 
 o2_add_executable(
   entropy-encoder-workflow
   COMPONENT_NAME mid
-  SOURCES src/entropy-encoder-workflow.cxx TARGETVARNAME exenameentropy
+  SOURCES src/entropy-encoder-workflow.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
-
-target_include_directories(
-  ${exenameentropy}
-  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
 
 o2_add_executable(
   raw-to-digits-workflow
   COMPONENT_NAME mid
-  SOURCES src/raw-to-digits-workflow.cxx TARGETVARNAME exenamedigitstoraw
+  SOURCES src/raw-to-digits-workflow.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
-
-target_include_directories(
-  ${exenamedigitstoraw}
-  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
 
 o2_add_executable(
   reco-workflow
   COMPONENT_NAME mid
-  SOURCES src/reco-workflow.cxx TARGETVARNAME exenamereco
+  SOURCES src/reco-workflow.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
-
-target_include_directories(
-  ${exenamereco} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
 
 o2_add_executable(
   digits-reader-workflow
   COMPONENT_NAME mid
-  SOURCES src/digits-reader-workflow.cxx TARGETVARNAME exenamedigitsreader
+  SOURCES src/digits-reader-workflow.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
-
-target_include_directories(
-  ${exenamedigitsreader}
-  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
 
 o2_add_executable(
   raw-checker-workflow
   COMPONENT_NAME mid
-  SOURCES src/raw-checker-workflow.cxx TARGETVARNAME exenamerawchecker
+  SOURCES src/raw-checker-workflow.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
-
-target_include_directories(
-  ${exenamerawchecker}
-  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
 
 o2_add_executable(
   tracks-reader-workflow
-  SOURCES src/tracks-reader-workflow.cxx
   COMPONENT_NAME mid
-  PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::DataFormatsMID)
+  SOURCES src/tracks-reader-workflow.cxx
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
 
 o2_add_executable(
   mask-maker-workflow
   COMPONENT_NAME mid
   SOURCES src/mask-maker-workflow.cxx
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
+
+o2_add_executable(
+  decoded-digits-writer-workflow
+  COMPONENT_NAME mid
+  SOURCES src/decoded-digits-writer-workflow.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)

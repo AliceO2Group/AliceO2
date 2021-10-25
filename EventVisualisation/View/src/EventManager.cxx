@@ -12,22 +12,18 @@
 ///
 /// \file    EventManager.cxx
 /// \author  Jeremi Niedziela
+/// \author  Julian Myrcha
 
 #include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationView/Options.h"
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
-#include "EventVisualisationBase/ConfigurationManager.h"
-#include "EventVisualisationBase/DataSource.h"
-#include "EventVisualisationBase/DataInterpreter.h"
-#include <EventVisualisationBase/DataSourceOffline.h>
 #include <EventVisualisationBase/DataSourceOnline.h>
-#include <EventVisualisationDetectors/DataReaderVSD.h>
 
 #include <TEveManager.h>
+#include <TEveTrack.h>
 #include <TEveProjectionManager.h>
 #include <TEveTrackPropagator.h>
-#include <TSystem.h>
 #include <TEnv.h>
 #include <TEveElement.h>
 #include <TGListTree.h>
@@ -62,18 +58,7 @@ EventManager::EventManager() : TEveEventManager("Event", "")
 
 void EventManager::Open()
 {
-  switch (mCurrentDataSourceType) {
-    case SourceOnline: {
-      DataSourceOnline* source = new DataSourceOnline(Options::Instance()->dataFolder());
-      setDataSource(source);
-    } break;
-    case SourceOffline: {
-      DataSourceOffline* source = new DataSourceOffline();
-      setDataSource(source);
-    } break;
-    case SourceHLT:
-      break;
-  }
+  setDataSource(new DataSourceOnline(Options::Instance()->dataFolder()));
 }
 
 void EventManager::displayCurrentEvent()
@@ -88,7 +73,10 @@ void EventManager::displayCurrentEvent()
 
     auto displayList = getDataSource()->getVisualisationList(no);
     for (auto it = displayList.begin(); it != displayList.end(); ++it) {
-      displayVisualisationEvent(it->first, it->second);
+
+      if (it->second == EVisualisationGroup::TPC) { // temporary
+        displayVisualisationEvent(it->first, gVisualisationGroupName[it->second]);
+      }
     }
 
     for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
@@ -167,7 +155,7 @@ void EventManager::DropEvent()
 void EventManager::displayVisualisationEvent(VisualisationEvent& event, const std::string& detectorName)
 {
   size_t trackCount = event.getTrackCount();
-
+  LOG(INFO) << "displayVisualisationEvent: " << trackCount << " detector: " << detectorName;
   auto* list = new TEveTrackList(detectorName.c_str());
   list->IncDenyDestroy();
 
@@ -190,7 +178,7 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   }
 
   if (trackCount != 0) {
-    dataTypeLists[EVisualisationDataType::ESD]->AddElement(list);
+    dataTypeLists[EVisualisationDataType::Tracks]->AddElement(list);
   }
 
   size_t clusterCount = event.getClusterCount();

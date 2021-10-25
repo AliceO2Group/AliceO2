@@ -27,6 +27,10 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
   workflowOptions.push_back(
     ConfigParamSpec{
+      "proxy-channel-name", VariantType::String, "downstream", {"output channel name of the proxy"}});
+
+  workflowOptions.push_back(
+    ConfigParamSpec{
       "dataspec", VariantType::String, "dpl-output-proxy:TST/CLUSTERS;dpl-output-proxy:TST/TRACKS", {"selection string for the data to be proxied"}});
 
   workflowOptions.push_back(
@@ -72,7 +76,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   // vectored options
   // use the OutputChannelSpec as a tool to create the default configuration for the out-of-band channel
   OutputChannelSpec externalChannelSpec;
-  externalChannelSpec.name = "downstream";
+  externalChannelSpec.name = config.options().get<std::string>("proxy-channel-name");
   externalChannelSpec.type = ChannelType::Push;
   if (config.options().get<std::string>("output-proxy-method") == "bind") {
     externalChannelSpec.method = ChannelMethod::Bind;

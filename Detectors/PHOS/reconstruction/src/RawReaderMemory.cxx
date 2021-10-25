@@ -14,6 +14,7 @@
 #include "PHOSReconstruction/RawReaderMemory.h"
 #include "PHOSReconstruction/RawDecodingError.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include <FairLogger.h>
 
 using namespace o2::phos;
 
@@ -40,6 +41,7 @@ o2::header::RDHAny RawReaderMemory::decodeRawHeader(const void* payloadwords)
   } else if (headerversion == 6) {
     return o2::header::RDHAny(*reinterpret_cast<const o2::header::RAWDataHeaderV6*>(payloadwords));
   }
+  LOG(ERROR) << "Wrong header version " << int(headerversion);
   throw RawDecodingError::ErrorType_t::HEADER_DECODING;
 }
 
@@ -62,44 +64,48 @@ void RawReaderMemory::next()
   mCurrentTrailer.reset();
   bool isDataTerminated = false;
   do {
-    try {
-      nextPage(false);
-    } catch (RawDecodingError::ErrorType_t e) {
-      throw e;
-    }
+    nextPage(false);
     if (hasNext()) {
-      auto nextheader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
-      // check continuing payload based on the bc/orbit ID
-      auto currentbc = RDHDecoder::getTriggerBC(mRawHeader),
-           nextbc = RDHDecoder::getTriggerBC(nextheader);
-      auto currentorbit = RDHDecoder::getTriggerOrbit(mRawHeader),
-           nextorbit = RDHDecoder::getTriggerOrbit(nextheader);
-      if (currentbc != nextbc || currentorbit != nextorbit) {
-        isDataTerminated = true;
-      } else {
-        auto nextpagecounter = RDHDecoder::getPageCounter(nextheader);
-        if (nextpagecounter == 0) {
+      try {
+        auto nextheader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
+
+        // check continuing payload based on the bc/orbit ID
+        auto currentbc = RDHDecoder::getTriggerBC(mRawHeader),
+             nextbc = RDHDecoder::getTriggerBC(nextheader);
+        auto currentorbit = RDHDecoder::getTriggerOrbit(mRawHeader),
+             nextorbit = RDHDecoder::getTriggerOrbit(nextheader);
+        if (currentbc != nextbc || currentorbit != nextorbit) {
           isDataTerminated = true;
         } else {
-          isDataTerminated = false;
+          auto nextpagecounter = RDHDecoder::getPageCounter(nextheader);
+          if (nextpagecounter == 0) {
+            isDataTerminated = true;
+          } else {
+            isDataTerminated = false;
+          }
         }
+      } catch (...) {
+        throw RawDecodingError::ErrorType_t::HEADER_DECODING;
       }
     } else {
       isDataTerminated = true;
     }
     // Check if the data continues
   } while (!isDataTerminated);
-  try {
-    mCurrentTrailer.constructFromPayloadWords(mRawBuffer.getDataWords());
-  } catch (...) {
-    throw RawDecodingError::ErrorType_t::HEADER_DECODING;
+  if (mRawBuffer.getNDataWords() > 0) {
+    try {
+      mCurrentTrailer.constructFromPayloadWords(mRawBuffer.getDataWords());
+    } catch (RCUTrailer::Error e) {
+      LOG(ERROR) << "Trailer decoding error: " << e.what();
+      throw RawDecodingError::ErrorType_t::HEADER_DECODING;
+    }
   }
 }
-
+//=============================================
 void RawReaderMemory::nextPage(bool doResetPayload)
 {
   if (!hasNext()) {
-    throw RawDecodingError::ErrorType_t::PAGE_NOTFOUND;
+    return;
   }
   if (doResetPayload) {
     mRawPayload.reset();
@@ -111,7 +117,7 @@ void RawReaderMemory::nextPage(bool doResetPayload)
   try {
     mRawHeader = decodeRawHeader(mRawMemoryBuffer.data() + mCurrentPosition);
     while (RDHDecoder::getOffsetToNext(mRawHeader) == RDHDecoder::getHeaderSize(mRawHeader) &&
-           mCurrentPosition < mRawMemoryBuffer.size()) {
+           mCurrentPosition + RDHDecoder::getHeaderSize(mRawHeader) < mRawMemoryBuffer.size()) {
       // No Payload - jump to next rawheader
       // This will eventually move, depending on whether for events without payload in the SRU we send the RCU trailer
       mCurrentPosition += RDHDecoder::getHeaderSize(mRawHeader);
@@ -138,15 +144,8 @@ void RawReaderMemory::nextPage(bool doResetPayload)
 const o2::header::RDHAny& RawReaderMemory::getRawHeader() const
 {
   if (!mRawHeaderInitialized) {
+    LOG(ERROR) << "Raw header not initialized";
     throw RawDecodingError::ErrorType_t::HEADER_INVALID;
   }
   return mRawHeader;
-}
-
-const RawBuffer& RawReaderMemory::getRawBuffer() const
-{
-  if (!mPayloadInitialized) {
-    throw RawDecodingError::ErrorType_t::PAYLOAD_INVALID;
-  }
-  return mRawBuffer;
 }

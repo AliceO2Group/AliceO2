@@ -27,7 +27,7 @@
 #include "MIDSimulation/Geometry.h"
 #include "MIDTracking/Tracker.h"
 #include "DetectorsBase/GeometryManager.h"
-#include "MIDSimulation/MCClusterLabel.h"
+#include "DataFormatsMID/MCClusterLabel.h"
 #include "MIDSimulation/TrackLabeler.h"
 
 namespace of = o2::framework;
@@ -71,12 +71,12 @@ class TrackerMCDeviceDPL
     pc.outputs().snapshot(of::Output{"MID", "TRACKCLUSTERS", 0, of::Lifetime::Timeframe}, mTracker->getClusters());
     LOG(DEBUG) << "Sent " << mTracker->getClusters().size() << " track clusters.";
 
-    pc.outputs().snapshot(of::Output{"MID", "TRACKSROF", 0, of::Lifetime::Timeframe}, mTracker->getTrackROFRecords());
+    pc.outputs().snapshot(of::Output{"MID", "TRACKROFS", 0, of::Lifetime::Timeframe}, mTracker->getTrackROFRecords());
     LOG(DEBUG) << "Sent " << mTracker->getTrackROFRecords().size() << " ROFs.";
-    pc.outputs().snapshot(of::Output{"MID", "TRCLUSROF", 0, of::Lifetime::Timeframe}, mTracker->getClusterROFRecords());
+    pc.outputs().snapshot(of::Output{"MID", "TRCLUSROFS", 0, of::Lifetime::Timeframe}, mTracker->getClusterROFRecords());
     LOG(DEBUG) << "Sent " << mTracker->getClusterROFRecords().size() << " ROFs.";
 
-    pc.outputs().snapshot(of::Output{"MID", "TRACKSLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTracksLabels());
+    pc.outputs().snapshot(of::Output{"MID", "TRACKLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTracksLabels());
     LOG(DEBUG) << "Sent " << mTrackLabeler.getTracksLabels().getIndexedSize() << " indexed tracks.";
     pc.outputs().snapshot(of::Output{"MID", "TRCLUSLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTrackClustersLabels());
     LOG(DEBUG) << "Sent " << mTrackLabeler.getTrackClustersLabels().getIndexedSize() << " indexed track clusters.";
@@ -95,9 +95,9 @@ framework::DataProcessorSpec getTrackerMCSpec()
   std::vector<of::OutputSpec> outputSpecs{
     of::OutputSpec{"MID", "TRACKS"},
     of::OutputSpec{"MID", "TRACKCLUSTERS"},
-    of::OutputSpec{"MID", "TRACKSROF"},
-    of::OutputSpec{"MID", "TRCLUSROF"},
-    of::OutputSpec{"MID", "TRACKSLABELS"},
+    of::OutputSpec{"MID", "TRACKROFS"},
+    of::OutputSpec{"MID", "TRCLUSROFS"},
+    of::OutputSpec{"MID", "TRACKLABELS"},
     of::OutputSpec{"MID", "TRCLUSLABELS"}};
 
   return of::DataProcessorSpec{

@@ -77,15 +77,19 @@ class CTFReaderSpec : public o2::framework::Task
  private:
   void openCTFFile(const std::string& flname);
   void processTF(ProcessingContext& pc);
-  void stop();
+  void checkTreeEntries();
+  void stopReader();
   CTFReaderInp mInput{};
   std::unique_ptr<o2::utils::FileFetcher> mFileFetcher;
   std::unique_ptr<TFile> mCTFFile;
   std::unique_ptr<TTree> mCTFTree;
   bool mRunning = false;
   int mCTFCounter = 0;
+  int mNFailedFiles = 0;
+  int mFilesRead = 0;
   long mLastSendTime = 0L;
   long mCurrTreeEntry = 0;
+  size_t mSelIDEntry = 0; // next CTFID to select from the mInput.ctfIDs (if non-empty)
   TStopwatch mTimer;
 };
 
@@ -99,16 +103,16 @@ CTFReaderSpec::CTFReaderSpec(const CTFReaderInp& inp) : mInput(inp)
 ///_______________________________________
 CTFReaderSpec::~CTFReaderSpec()
 {
-  stop();
+  stopReader();
 }
 
 ///_______________________________________
-void CTFReaderSpec::stop()
+void CTFReaderSpec::stopReader()
 {
   if (!mFileFetcher) {
     return;
   }
-  LOG(INFO) << "CTFReader stops processing";
+  LOGP(INFO, "CTFReader stops processing, {} files read, {} files failed", mFilesRead - mNFailedFiles, mNFailedFiles);
   LOGP(INFO, "CTF reading total timing: Cpu: {:.3f} Real: {:.3f} s for {} TFs in {} loops",
        mTimer.CpuTime(), mTimer.RealTime(), mCTFCounter, mFileFetcher->getNLoops());
   mRunning = false;
@@ -124,6 +128,7 @@ void CTFReaderSpec::stop()
 ///_______________________________________
 void CTFReaderSpec::init(InitContext& ic)
 {
+  mInput.ctfIDs = o2::RangeTokenizer::tokenize<int>(ic.options().get<std::string>("select-ctf-ids"));
   mRunning = true;
   mFileFetcher = std::make_unique<o2::utils::FileFetcher>(mInput.inpdata, mInput.tffileRegex, mInput.remoteRegex, mInput.copyCmd);
   mFileFetcher->setMaxFilesInQueue(mInput.maxFileCache);
@@ -134,14 +139,24 @@ void CTFReaderSpec::init(InitContext& ic)
 ///_______________________________________
 void CTFReaderSpec::openCTFFile(const std::string& flname)
 {
-  mCTFFile.reset(TFile::Open(flname.c_str()));
-  if (!mCTFFile->IsOpen() || mCTFFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open file " << flname;
-    throw std::runtime_error("failed to open CTF file");
-  }
-  mCTFTree.reset((TTree*)mCTFFile->Get(std::string(o2::base::NameConf::CTFTREENAME).c_str()));
-  if (!mCTFTree) {
-    throw std::runtime_error("failed to load CTF tree");
+  try {
+    mFilesRead++;
+    mCTFFile.reset(TFile::Open(flname.c_str()));
+    if (!mCTFFile || !mCTFFile->IsOpen() || mCTFFile->IsZombie()) {
+      throw std::runtime_error("failed to open CTF file");
+    }
+    mCTFTree.reset((TTree*)mCTFFile->Get(std::string(o2::base::NameConf::CTFTREENAME).c_str()));
+    if (!mCTFTree) {
+      throw std::runtime_error("failed to load CTF tree from");
+    }
+  } catch (const std::exception& e) {
+    LOG(ERROR) << "Cannot process " << flname << ", reason: " << e.what();
+    mCTFTree.reset();
+    mCTFFile.reset();
+    mNFailedFiles++;
+    if (mFileFetcher) {
+      mFileFetcher->popFromQueue(mInput.maxLoops < 1);
+    }
   }
   mCurrTreeEntry = 0;
 }
@@ -150,15 +165,24 @@ void CTFReaderSpec::openCTFFile(const std::string& flname)
 void CTFReaderSpec::run(ProcessingContext& pc)
 {
   std::string tfFileName;
-  if (mCTFCounter >= mInput.maxTFs) { // done
+  if (mCTFCounter >= mInput.maxTFs || (!mInput.ctfIDs.empty() && mSelIDEntry >= mInput.ctfIDs.size())) { // done
+    LOG(INFO) << "All CTFs from selected range were injected, stopping";
     mRunning = false;
   }
 
   while (mRunning) {
     if (mCTFTree) { // there is a tree open with multiple CTF
-      LOG(INFO) << "TF " << mCTFCounter << " of " << mInput.maxTFs << " loop " << mFileFetcher->getNLoops();
-      processTF(pc);
-      break;
+      if (mInput.ctfIDs.empty() || mInput.ctfIDs[mSelIDEntry] == mCTFCounter) { // no selection requested or matching CTF ID is found
+        LOG(DEBUG) << "TF " << mCTFCounter << " of " << mInput.maxTFs << " loop " << mFileFetcher->getNLoops();
+        mSelIDEntry++;
+        processTF(pc);
+        break;
+      } else { // explict CTF ID selection list was provided and current entry is not selected
+        LOGP(INFO, "Skipping CTF${} ({} of {} in {})", mCTFCounter, mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
+        checkTreeEntries();
+        mCTFCounter++;
+        continue;
+      }
     }
     //
     tfFileName = mFileFetcher->getNextFileInQueue();
@@ -177,7 +201,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   if (!mRunning) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    stop();
+    stopReader();
   }
 }
 
@@ -322,14 +346,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   }
 
   auto entryStr = fmt::format("({} of {} in {})", mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
-  if (++mCurrTreeEntry >= mCTFTree->GetEntries()) { // this file is done, check if there are other files
-    mCTFTree.reset();
-    mCTFFile->Close();
-    mCTFFile.reset();
-    if (mFileFetcher) {
-      mFileFetcher->popFromQueue(mFileFetcher->getNLoops() >= mInput.maxLoops);
-    }
-  }
+  checkTreeEntries();
   mTimer.Stop();
   // do we need to way to respect the delay ?
   long tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
@@ -345,6 +362,20 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   LOGP(INFO, "Read CTF#{} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, 1e-6 * (tNow - mLastSendTime));
   mLastSendTime = tNow;
   mCTFCounter++;
+}
+
+///_______________________________________
+void CTFReaderSpec::checkTreeEntries()
+{
+  // check if the tree has entries left, if needed, close current tree/file
+  if (++mCurrTreeEntry >= mCTFTree->GetEntries()) { // this file is done, check if there are other files
+    mCTFTree.reset();
+    mCTFFile->Close();
+    mCTFFile.reset();
+    if (mFileFetcher) {
+      mFileFetcher->popFromQueue(mInput.maxLoops < 1);
+    }
+  }
 }
 
 ///_______________________________________
@@ -364,7 +395,7 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<CTFReaderSpec>(inp)},
-    Options{}};
+    Options{{"select-ctf-ids", VariantType::String, "", {"comma-separated list CTF IDs to inject (from cumulative counter of CTFs seen)"}}}};
 }
 
 } // namespace ctf

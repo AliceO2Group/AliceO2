@@ -43,7 +43,7 @@ OutputSpec const HistogramRegistry::spec()
   s << std::hex << mTaskHash;
   s << std::hex << reinterpret_cast<uint64_t>(this);
   std::memcpy(desc.str, s.str().data(), 12);
-  return OutputSpec{OutputLabel{mName}, "ATSK", desc, 0};
+  return OutputSpec{OutputLabel{mName}, "ATSK", desc, 0, Lifetime::QA};
 }
 
 OutputRef HistogramRegistry::ref()

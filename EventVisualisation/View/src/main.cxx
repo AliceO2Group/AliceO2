@@ -17,8 +17,6 @@
 
 #include "EventVisualisationView/Initializer.h"
 #include "EventVisualisationBase/ConfigurationManager.h"
-
-#include "EventVisualisationBase/DataInterpreter.h"
 #include "EventVisualisationView/Options.h"
 
 #include "FairLogger.h"
@@ -56,7 +54,8 @@ int main(int argc, char** argv)
 
   // create ROOT application environment
   TApplication* app = new TApplication("o2eve", &argc, argv);
-  app->Connect("TEveBrowser", "CloseWindow()", "TApplication", app, "Terminate()");
+  gApplication = app;
+  //app->Connect("TEveBrowser", "CloseWindow()", "TApplication", app, "Terminate()");
 
   LOG(INFO) << "Initializing TEveManager";
   if (!TEveManager::Create(kTRUE, "FI")) {
@@ -67,12 +66,11 @@ int main(int argc, char** argv)
   //gEve->SpawnNewViewer("3D View", "");  exit(0);
 
   // Initialize o2 Event Visualisation
-  Initializer::setup(Options::Instance()->online() ? EventManager::SourceOnline : EventManager::SourceOffline);
+  Initializer::setup();
 
   // Start the application
   app->Run(kTRUE);
 
-  //DataInterpreter::removeInstances();
   // Terminate application
   TEveManager::Terminate();
   app->Terminate(0);

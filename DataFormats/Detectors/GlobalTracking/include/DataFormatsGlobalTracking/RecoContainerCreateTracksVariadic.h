@@ -11,7 +11,7 @@
 
 /// \file RecoContainerCreateTracksVariadic.h
 /// \brief Wrapper container for different reconstructed object types
-/// \author ruben.shahoyan@cern.ch
+/// \author ruben.shahoyan@cern.chM
 
 #include "Framework/ProcessingContext.h"
 #include "Framework/InputSpec.h"
@@ -21,9 +21,16 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMFT/TrackMFT.h"
+
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/ClusterBlock.h"
 #include "DataFormatsMCH/ROFRecord.h"
+
+#include "DataFormatsMID/ROFRecord.h"
+#include "DataFormatsMID/Cluster3D.h"
+#include "DataFormatsMID/Track.h"
+#include "DataFormatsMID/MCClusterLabel.h"
+
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTOF/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -37,6 +44,15 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackTPCTOF.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "DataFormatsPHOS/Cell.h"
+#include "DataFormatsPHOS/TriggerRecord.h"
+#include "DataFormatsPHOS/MCLabel.h"
+#include "DataFormatsCPV/Cluster.h"
+#include "DataFormatsCPV/TriggerRecord.h"
+#include "DataFormatsEMCAL/Cell.h"
+#include "DataFormatsEMCAL/TriggerRecord.h"
+#include "DataFormatsEMCAL/MCLabel.h"
+
 #include "ReconstructionDataFormats/GlobalFwdTrack.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 
@@ -73,6 +89,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   const auto trkITABRefs = getITSABRefs();
   const auto tracksMFT = getMFTTracks();
   const auto tracksMCH = getMCHTracks();
+  const auto tracksMID = getMIDTracks();
   const auto tracksTPC = getTPCTracks();
   const auto tracksTPCITS = getTPCITSTracks();
   const auto tracksMFTMCH = getGlobalFwdTracks();
@@ -80,23 +97,71 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   const auto matchesTPCTOF = getTPCTOFMatches(); // and corresponding matches
   const auto tracksTPCTRD = getTPCTRDTracks<o2::trd::TrackTRD>();
   const auto matchesITSTPCTOF = getITSTPCTOFMatches(); // just matches, no refit done
+  const auto matchesTPCTRDTOF = getTPCTRDTOFMatches(); // just matches, no refit done
+  const auto matchesITSTPCTRDTOF = getITSTPCTRDTOFMatches(); // just matches, no refit done
   const auto tofClusters = getTOFClusters();
   const auto tracksITSTPCTRD = getITSTPCTRDTracks<o2::trd::TrackTRD>();
 
   const auto trigTPCTRD = getTPCTRDTriggers();
 
-  usedData[GTrackID::ITS].resize(tracksITS.size());                   // to flag used ITS tracks
-  usedData[GTrackID::MCH].resize(tracksMCH.size());                   // to flag used MCH tracks
-  usedData[GTrackID::MFT].resize(tracksMFT.size());                   // to flag used MFT tracks
-  usedData[GTrackID::TPC].resize(tracksTPC.size());                   // to flag used TPC tracks
-  usedData[GTrackID::ITSTPC].resize(tracksTPCITS.size());             // to flag used ITSTPC tracks
-  usedData[GTrackID::MFTMCH].resize(tracksMFTMCH.size());             // to flag used MFTMCH tracks
-  usedData[GTrackID::ITSTPCTRD].resize(tracksITSTPCTRD.size());       // to flag used ITSTPCTRD tracks
-  usedData[GTrackID::TPCTRD].resize(tracksTPCTRD.size());             // to flag used TPCTRD tracks
-  usedData[GTrackID::ITSTPCTOF].resize(getITSTPCTOFMatches().size()); // to flag used ITSTPC-TOF matches
+  usedData[GTrackID::ITS].resize(tracksITS.size());                         // to flag used ITS tracks
+  usedData[GTrackID::MCH].resize(tracksMCH.size());                         // to flag used MCH tracks
+  usedData[GTrackID::MFT].resize(tracksMFT.size());                         // to flag used MFT tracks
+  usedData[GTrackID::MID].resize(tracksMID.size());                         // to flag used MFT tracks
+  usedData[GTrackID::TPC].resize(tracksTPC.size());                         // to flag used TPC tracks
+  usedData[GTrackID::ITSTPC].resize(tracksTPCITS.size());                   // to flag used ITSTPC tracks
+  usedData[GTrackID::MFTMCH].resize(tracksMFTMCH.size());                   // to flag used MFTMCH tracks
+  usedData[GTrackID::ITSTPCTRD].resize(tracksITSTPCTRD.size());             // to flag used ITSTPCTRD tracks
+  usedData[GTrackID::TPCTRD].resize(tracksTPCTRD.size());                   // to flag used TPCTRD tracks
+  usedData[GTrackID::ITSTPCTRD].resize(tracksITSTPCTRD.size());             // to flag used TPCTRD tracks
+  usedData[GTrackID::ITSTPCTOF].resize(getITSTPCTOFMatches().size());       // to flag used ITSTPC-TOF matches
+  usedData[GTrackID::TPCTRDTOF].resize(getTPCTRDTOFMatches().size());       // to flag used ITSTPC-TOF matches
+  usedData[GTrackID::ITSTPCTRDTOF].resize(getITSTPCTRDTOFMatches().size()); // to flag used ITSTPC-TOF matches
 
   // ITS-TPC-TRD-TOF
-  // TODO, will flag used ITS-TPC-TRD
+  {
+
+    if (matchesITSTPCTRDTOF.size() && (!tofClusters.size() || !tracksITSTPCTRD.size())) {
+      throw std::runtime_error(fmt::format("Global-TOF tracks ({}) require ITS-TPC-TRD tracks ({}) and TOF clusters ({})",
+                                           matchesITSTPCTRDTOF.size(), tracksITSTPCTRD.size(), tofClusters.size()));
+    }
+    for (unsigned i = 0; i < matchesITSTPCTRDTOF.size(); i++) {
+      const auto& match = matchesITSTPCTRDTOF[i];
+      auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
+      // no need to check isUsed: by construction this ITS-TPC-TRD was not used elsewhere
+      const auto& tofCl = tofClusters[match.getTOFClIndex()];
+      float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+      const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
+      if (creator(tracksITSTPCTRD[gidx.getIndex()], {i, GTrackID::ITSTPCTRDTOF}, timeTOFMUS, timeErr)) {
+        //flagUsed2(i, GTrackID::TOF); // flag used TOF match // TODO might be not needed
+        flagUsed(gidx); // flag used ITS-TPC-TRD tracks
+      }
+    }
+  }
+
+  // TPC-TRD-TOF
+  {
+
+    if (matchesTPCTRDTOF.size() && (!tofClusters.size() || !tracksTPCTRD.size())) {
+      throw std::runtime_error(fmt::format("Global-TOF tracks ({}) require TPC-TRD tracks ({}) and TOF clusters ({})",
+                                           matchesTPCTRDTOF.size(), tracksTPCTRD.size(), tofClusters.size()));
+    }
+    for (unsigned i = 0; i < matchesTPCTRDTOF.size(); i++) {
+      const auto& match = matchesTPCTRDTOF[i];
+      auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
+      if (isUsed(gidx)) {              // RS FIXME: THIS IS TEMPORARY, until the TOF matching will use ITS-TPC-TRD as an input
+        continue;
+      }
+      // no need to check isUsed: by construction this ITS-TPC-TRD was not used elsewhere
+      const auto& tofCl = tofClusters[match.getTOFClIndex()];
+      float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+      const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
+      if (creator(tracksTPCTRD[gidx.getIndex()], {i, GTrackID::TPCTRDTOF}, timeTOFMUS, timeErr)) {
+        //flagUsed2(i, GTrackID::TOF); // flag used TOF match // TODO might be not needed
+        flagUsed(gidx); // flag used ITS-TPC tracks
+      }
+    }
+  }
 
   // ITS-TPC-TRD
   {
@@ -234,7 +299,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
           continue;
         }
         GTrackID gidITS(it, GTrackID::ITS);
-        const auto& trc = getTrack<o2::its::TrackITS>(gidITS);
+        const auto& trc = tracksITS[it];
         if (creator(trc, gidITS, t0, 0.5)) {
           flagUsed2(it, GTrackID::ITS);
         }
@@ -250,9 +315,12 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       float t0 = rofRec.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
       int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
       for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
-
+        if (isUsed2(it, GTrackID::MFT)) {
+          flagUsed2(it, GTrackID::MFT);
+          continue;
+        }
         GTrackID gidMFT(it, GTrackID::MFT);
-        const auto& trc = getTrack<o2::mft::TrackMFT>(gidMFT);
+        const auto& trc = tracksMFT[it];
         if (creator(trc, gidMFT, t0, 0.5)) {
           flagUsed2(it, GTrackID::MFT);
         }
@@ -263,20 +331,42 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // MCH standalone tracks
   {
     const auto& rofs = getMCHTracksROFRecords();
-    constexpr float bc2ns = o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
     for (const auto& rof : rofs) {
       auto bcWidth = 56;
       // FIXME (LA): should really be rof.getBCWidth() once
       // getBCWidth is actually set to a meaningfull value.
       // For now we hard-code a 1.4 microseconds window for all tracks
       auto rofMeanBC = rof.getBCData().differenceInBC(startIR) + bcWidth / 2;
-      float t0 = rofMeanBC * bc2ns;
-      float t0err = bc2ns * bcWidth / 2;
+      float t0 = rofMeanBC * o2::constants::lhc::LHCBunchSpacingMUS;
+      float t0err = o2::constants::lhc::LHCBunchSpacingMUS * bcWidth / 2;
       for (int idx = rof.getFirstIdx(); idx <= rof.getLastIdx(); ++idx) {
+        if (isUsed2(idx, GTrackID::MCH)) {
+          flagUsed2(idx, GTrackID::MCH);
+          continue;
+        }
         GTrackID gidMCH(idx, GTrackID::MCH);
-        const auto& trc = getTrack<o2::mch::TrackMCH>(gidMCH);
+        const auto& trc = tracksMCH[idx];
         if (creator(trc, gidMCH, t0, t0err)) {
           flagUsed2(idx, GTrackID::MCH);
+        }
+      }
+    }
+  }
+
+  // MID standalone tracks
+  {
+    const auto& rofs = getMIDTracksROFRecords();
+    for (const auto& rof : rofs) {
+      float t0err = 0.0005;
+      float t0 = rof.interactionRecord.differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingMUS;
+      for (int idx = rof.firstEntry; idx <= rof.getEndIndex(); ++idx) {
+        if (isUsed2(idx, GTrackID::MID)) {
+          continue;
+        }
+        GTrackID gidMID(idx, GTrackID::MID);
+        const auto& trc = tracksMID[idx];
+        if (creator(trc, gidMID, t0, t0err)) {
+          flagUsed2(idx, GTrackID::MID);
         }
       }
     }
@@ -308,6 +398,12 @@ template <class T>
 inline constexpr auto isMCHTrack()
 {
   return std::is_same_v<std::decay_t<T>, o2::mch::TrackMCH>;
+}
+
+template <class T>
+inline constexpr auto isMIDTrack()
+{
+  return std::is_same_v<std::decay_t<T>, o2::mid::Track>;
 }
 
 template <class T>

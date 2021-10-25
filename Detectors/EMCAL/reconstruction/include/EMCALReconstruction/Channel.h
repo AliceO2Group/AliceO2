@@ -146,6 +146,30 @@ class Channel
   /// \param starttime Start time of the bunch
   Bunch& createBunch(uint8_t bunchlength, uint8_t starttime);
 
+  /// \brief Extrcting hardware address from the channel header word
+  /// \param channelheader Channel header word
+  static int getHardwareAddressFromChannelHeader(int channelheader) { return channelheader & 0xFFF; };
+
+  /// \brief Extrcting payload size from the channel header word
+  /// \param channelheader Channel header word
+  static int getPayloadSizeFromChannelHeader(int channelheader) { return (channelheader >> 16) & 0x3FF; }
+
+  /// \brief Extracting branch index from the hardware address
+  /// \param hwaddress Hardware address of the channel
+  static int getBranchIndexFromHwAddress(int hwaddress) { return ((hwaddress >> 11) & 0x1); }
+
+  /// \brief Extracting FEC index in branch from the hardware address
+  /// \param hwaddress Hardware address of the channel
+  static int getFecIndexFromHwAddress(int hwaddress) { return ((hwaddress >> 7) & 0xF); }
+
+  /// \brief Extracting ALTRO index from the hardware address
+  /// \param hwaddress Hardware address of the channel
+  static int getAltroIndexFromHwAddress(int hwaddress) { return ((hwaddress >> 4) & 0x7); }
+
+  /// \brief Extracting Channel index in FEC from the hardware address
+  /// \param hwaddress Hardware address of the channel
+  static int getChannelIndexFromHwAddress(int hwaddress) { return (hwaddress & 0xF); }
+
  private:
   int32_t mHardwareAddress = -1; ///< Hardware address
   uint8_t mPayloadSize = 0;      ///< Payload size

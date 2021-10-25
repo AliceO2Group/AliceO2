@@ -33,11 +33,10 @@ class ChannelMasksHandler
   void switchOffChannels(const ColumnData& dead);
   bool setFromChannelMask(const ColumnData& mask);
   bool setFromChannelMasks(const std::vector<ColumnData>& masks);
-  // void setReferenceMasks(const std::vector<ColumnData>& masks);
   bool applyMask(ColumnData& data) const;
 
   std::vector<ColumnData> getMasks() const;
-  std::vector<ColumnData> getReferenceMasks() const;
+  std::vector<ColumnData> getMasksFull(std::vector<ColumnData> referenceMask) const;
 
   /// Comparison operator
   bool operator==(const ChannelMasksHandler& right) const { return mMasks == right.mMasks; }
@@ -45,7 +44,6 @@ class ChannelMasksHandler
  private:
   ColumnData& getMask(uint8_t deId, uint8_t columnId);
   std::unordered_map<uint16_t, ColumnData> mMasks{}; // Channel masks
-  // std::unordered_map<uint16_t, ColumnData> mReferenceMasks{}; // Channel masks reference
 };
 
 } // namespace mid

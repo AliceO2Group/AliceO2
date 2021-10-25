@@ -17,9 +17,14 @@
 #define ALICE_O2_EVENTVISUALISATION_WORKFLOW_EVEWORKFLOWHELPER_H
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "EveWorkflow/EveConfiguration.h"
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
+#include "MFTBase/GeometryTGeo.h"
+#include "ITSBase/GeometryTGeo.h"
+#include "TPCFastTransform.h"
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
 namespace o2::itsmft
 {
@@ -41,7 +46,7 @@ class EveWorkflowHelper
   static constexpr std::array<std::pair<float, float>, GID::NSources> minmaxR{{
     {1., 40.},   // ITS
     {85., 240.}, // TPC
-    {-1, -1},    // TRD
+    {-1, -1},    // TRD (never alone)
     {-1, -1},    // TOF
     {-1, -1},    // PHS
     {-1, -1},    // CPV
@@ -58,32 +63,52 @@ class EveWorkflowHelper
     {85., 430.}, // TPCTOF
     {85., 380.}, // TPCTRD
     {1., 380.},  // ITSTPCTRD
-    {-1, -1},    // ITSTPCTOF,
-    {-1, -1},    // TPCTRDTOF,
-    {-1, -1},    // ITSTPCTRDTOF, // full barrel track
+    {1., 430.},  // ITSTPCTOF,
+    {85., 430.}, // TPCTRDTOF,
+    {1., 430.},  // ITSTPCTRDTOF, // full barrel track
     {-1, -1},    // ITSAB,
   }};
+  std::unique_ptr<gpu::TPCFastTransform> mTPCFastTransform;
 
  public:
-  static std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep);
+  EveWorkflowHelper();
+  static std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ = -25000, float maxZ = 25000);
   void selectTracks(const CalibObjectsConst* calib, GID::mask_t maskCl,
                     GID::mask_t maskTrk, GID::mask_t maskMatch);
-  template <typename Functor>
-  void addTrackToEvent(Functor source, GID gid, float trackTime, float z = 0.); // store track in mEvent
-  void draw(std::string jsonPath, int numberOfFiles, int numberOfTracks = -1);
+  void addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz);
+  void draw(const std::string& jsonPath, int numberOfFiles, int numberOfTracks, o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask, float mWorkflowVersion);
   void drawTPC(GID gid, float trackTime);
   void drawITS(GID gid, float trackTime);
+  void drawMFT(GID gid, float trackTime);
+  void drawMCH(GID gid, float trackTime);
+  void drawMID(GID gid, float trackTime);
   void drawITSTPC(GID gid, float trackTime);
   void drawITSTPCTOF(GID gid, float trackTime);
+  void drawITSTPCTRD(GID gid, float trackTime);
+  void drawITSTPCTRDTOF(GID gid, float trackTime);
+  void drawTPCTRDTOF(GID gid, float trackTime);
+  void drawTPCTRD(GID gid, float trackTime);
+  void drawTPCTOF(GID gid, float trackTime);
   void drawITSClusters(GID gid, float trackTime);
   void drawTPCClusters(GID gid, float trackTime);
-  void drawPoint(o2::BaseCluster<float> pnt);
-  void prepareITSClusters(const o2::itsmft::TopologyDictionary& dict);
+  void drawMFTClusters(GID gid, float trackTime);
+  void drawMCHClusters(GID gid, float trackTime);
+  void drawMIDClusters(GID gid, float trackTime);
+  void drawTRDClusters(const o2::trd::TrackTRD& trc, float trackTime);
+  void drawTOFClusters(GID gid, float trackTime);
+  void drawPoint(float x, float y, float z, float time) { mEvent.addCluster(x, y, z, time); }
+  void prepareITSClusters(const o2::itsmft::TopologyDictionary& dict); // fills mITSClustersArray
+  void prepareMFTClusters(const o2::itsmft::TopologyDictionary& dict); // fills mMFTClustersArray
+
   o2::globaltracking::RecoContainer mRecoCont;
   o2::globaltracking::RecoContainer& getRecoContainer() { return mRecoCont; }
   TracksSet mTrackSet;
   o2::event_visualisation::VisualisationEvent mEvent;
   std::vector<o2::BaseCluster<float>> mITSClustersArray;
+  std::vector<o2::BaseCluster<float>> mMFTClustersArray;
+  o2::mft::GeometryTGeo* mMFTGeom;
+  o2::its::GeometryTGeo* mITSGeom;
+  float mMUS2TPCTimeBins = 5.0098627;
 };
 } // namespace o2::event_visualisation
 

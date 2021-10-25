@@ -12,6 +12,7 @@
 o2_add_library(MCHRawDecoder
         SOURCES src/BareELinkDecoder.cxx
                 src/DataDecoder.cxx
+                src/ErrorCodes.cxx
                 src/OrbitInfo.cxx
                 src/PageDecoder.cxx
                 src/ROFFinder.cxx

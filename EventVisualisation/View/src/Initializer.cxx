@@ -22,26 +22,20 @@
 #include "EventVisualisationBase/GeometryManager.h"
 #include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationView/MultiView.h"
-#include "EventVisualisationBase/VisualisationConstants.h"
-#include "EventVisualisationBase/DataSourceOffline.h"
+#include "EventVisualisationDataConverter/VisualisationConstants.h"
 #include "EventVisualisationView/EventManagerFrame.h"
 #include "EventVisualisationView/Options.h"
-
-#include "EventVisualisationDetectors/DataInterpreterITS.h"
-#include "EventVisualisationDetectors/DataReaderITS.h"
-#include "EventVisualisationDetectors/DataInterpreterTPC.h"
-#include "EventVisualisationDetectors/DataReaderTPC.h"
-
 #include "EventVisualisationDetectors/DataReaderJSON.h"
+#include <EventVisualisationBase/DataSourceOnline.h>
 
 #include "FairLogger.h"
-
 #include <TGTab.h>
 #include <TEnv.h>
 #include <TEveBrowser.h>
 #include <TEveManager.h>
 #include <TRegexp.h>
 #include <TSystem.h>
+#include <TApplication.h>
 #include <TEveWindowManager.h>
 using namespace std;
 
@@ -50,7 +44,7 @@ namespace o2
 namespace event_visualisation
 {
 
-void Initializer::setup(EventManager::EDataSource defaultDataSource)
+void Initializer::setup()
 {
   TEnv settings;
   ConfigurationManager::getInstance().getConfig(settings);
@@ -62,23 +56,15 @@ void Initializer::setup(EventManager::EDataSource defaultDataSource)
   auto& eventManager = EventManager::getInstance();
   eventManager.setCdbPath(ocdbStorage);
 
-  eventManager.setDataSourceType(defaultDataSource);
   eventManager.Open();
-  if (Options::Instance()->tpc()) {
-    eventManager.getDataSource()->registerDetector(new DataReaderTPC(new DataInterpreterTPC()), EVisualisationGroup::TPC);
-  }
-  if (Options::Instance()->its()) {
-    eventManager.getDataSource()->registerDetector(new DataReaderITS(new DataInterpreterITS()), EVisualisationGroup::ITS);
-  }
-  if (Options::Instance()->json()) {
-    eventManager.getDataSource()->registerDetector(new DataReaderJSON(nullptr), EVisualisationGroup::JSON);
-  }
 
+  //if (Options::Instance()->json()) {
+  //  eventManager.getDataSource()->registerDetectorX(new DataReaderJSON(nullptr), EVisualisationGroup::JSON);
+  //}
 
-  GeometryManager::getInstance().setR2Geometry(std::string(settings.GetValue("simple.geom.default", "R3")).compare("R2") == 0);
+  eventManager.getDataSource()->registerReader(new DataReaderJSON());
 
   setupGeometry();
-
   gSystem->ProcessEvents();
   gEve->Redraw3D(true);
 
@@ -91,7 +77,7 @@ void Initializer::setup(EventManager::EDataSource defaultDataSource)
 
   browser->StartEmbedding(TRootBrowser::kBottom);
   EventManagerFrame* frame = new EventManagerFrame(eventManager);
-  browser->StopEmbedding("EventCtrl Balbinka");
+  browser->StopEmbedding("EventCtrl");
 
   if (fullscreen) {
     ((TGWindow*)gEve->GetBrowser()->GetTabLeft()->GetParent())->Resize(1, 0);
@@ -103,12 +89,16 @@ void Initializer::setup(EventManager::EDataSource defaultDataSource)
   setupCamera();
 
   // Temporary:
-  // For the time being we draw single random event on startup.
   // Later this will be triggered by button, and finally moved to configuration.
   gEve->AddEvent(&EventManager::getInstance());
   eventManager.getDataSource()->refresh();
-  frame->DoFirstEvent();
-  frame->StartTimer();
+
+  if (Options::Instance()->online()) {
+    frame->StartTimer();
+  } else {
+    frame->DoFirstEvent();
+  }
+  gApplication->Connect("TEveBrowser", "CloseWindow()", "o2::event_visualisation::EventManagerFrame", frame, "DoTerminate()");
 }
 
 void Initializer::setupGeometry()
@@ -122,19 +112,9 @@ void Initializer::setupGeometry()
 
   //auto geometry_enabled = GeometryManager::getInstance().getR2Geometry()? R2Visualisation:R3Visualisation;
   for (int iDet = 0; iDet < NvisualisationGroups; ++iDet) {
-
-    if (GeometryManager::getInstance().getR2Geometry()) {
-      if (!R2Visualisation[iDet]) {
-        continue;
-      }
+    if (!R3Visualisation[iDet]) {
+      continue;
     }
-
-    if (!GeometryManager::getInstance().getR2Geometry()) {
-      if (!R3Visualisation[iDet]) {
-        continue;
-      }
-    }
-
     EVisualisationGroup det = static_cast<EVisualisationGroup>(iDet);
     string detName = gVisualisationGroupName[det];
     LOG(INFO) << detName;

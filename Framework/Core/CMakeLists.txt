@@ -35,6 +35,7 @@ o2_add_library(Framework
                        src/ControlService.cxx
                        src/ControlServiceHelpers.cxx
                        src/DispatchPolicy.cxx
+                       src/ProcessingPoliciesHelpers.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
                        src/DDSConfigHelpers.cxx
@@ -301,6 +302,7 @@ foreach(w
         SingleDataSource
         Task
         ExternalFairMQDeviceWorkflow
+        VariablePayloadSequenceWorkflow
         )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx

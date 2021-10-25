@@ -46,3 +46,8 @@ o2_add_executable(emc-dcs-sim-workflow
                   COMPONENT_NAME calibration
                   SOURCES src/emc-dcs-sim-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow)
+
+o2_add_executable(cell-writer-workflow
+                  COMPONENT_NAME emcal
+                  SOURCES src/cell-writer-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)

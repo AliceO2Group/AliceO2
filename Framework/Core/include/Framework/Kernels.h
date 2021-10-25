@@ -25,6 +25,40 @@
 
 namespace o2::framework
 {
+using ListVector = std::vector<std::vector<int64_t>>;
+template <typename T>
+auto sliceByColumnGeneric(
+  char const* key,
+  char const* target,
+  std::shared_ptr<arrow::Table> const& input,
+  T fullSize,
+  ListVector* groups,
+  ListVector* unassigned = nullptr)
+{
+  groups->resize(fullSize);
+  auto column = input->GetColumnByName(key);
+  int64_t row = 0;
+  for (auto iChunk = 0; iChunk < column->num_chunks(); ++iChunk) {
+    auto chunk = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(column->chunk(iChunk)->data());
+    for (auto iElement = 0; iElement < chunk.length(); ++iElement) {
+      auto v = chunk.Value(iElement);
+      if (v >= 0) {
+        if (v >= groups->size()) {
+          throw runtime_error_f("Table %s has an entry with index (%d) that is larger than the grouping table size (%d)", target, v, fullSize);
+        }
+        (*groups)[v].push_back(row);
+      } else if (unassigned != nullptr) {
+        auto av = std::abs(v);
+        if (unassigned->size() < av + 1) {
+          unassigned->resize(av + 1);
+        }
+        (*unassigned)[av].push_back(row);
+      }
+      ++row;
+    }
+  }
+}
+
 /// Slice a given table in a vector of tables each containing a slice.
 /// @a slices the arrow tables in which the original @a input
 /// is split into.
@@ -33,6 +67,7 @@ namespace o2::framework
 template <typename T>
 auto sliceByColumn(
   char const* key,
+  char const* target,
   std::shared_ptr<arrow::Table> const& input,
   T fullSize,
   std::vector<arrow::Datum>* slices,
@@ -42,9 +77,24 @@ auto sliceByColumn(
   std::vector<uint64_t>* unassignedOffsets = nullptr)
 {
   arrow::Datum value_counts;
+  auto column = input->GetColumnByName(key);
+  for (auto i = 0; i < column->num_chunks(); ++i) {
+    T prev = 0;
+    T cur = 0;
+    auto array = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(column->chunk(i)->data());
+    for (auto e = 0; e < array.length(); ++e) {
+      if (cur >= 0) {
+        prev = cur;
+      }
+      cur = array.Value(e);
+      if (cur >= 0 && prev > cur) {
+        throw runtime_error_f("Table %s index %s is not sorted: next value %d < previous value %d!", target, key, cur, prev);
+      }
+    }
+  }
   auto options = arrow::compute::ScalarAggregateOptions::Defaults();
   ARROW_ASSIGN_OR_RAISE(value_counts,
-                        arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
+                        arrow::compute::CallFunction("value_counts", {column},
                                                      &options));
   auto pair = static_cast<arrow::StructArray>(value_counts.array());
   auto values = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(pair.field(0)->data());

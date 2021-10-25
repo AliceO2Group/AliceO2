@@ -62,7 +62,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger)
   for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
     mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
 
-    total += evaluateTask(&Tracker::initialiseTimeFrame, "Context initialisation",
+    total += evaluateTask(&Tracker::initialiseTimeFrame, "Timeframe initialisation",
                           logger, iteration, mMemParams[iteration], mTrkParams[iteration]);
     total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger);
     total += evaluateTask(&Tracker::computeCells, "Cell finding", logger);
@@ -75,7 +75,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger)
   std::stringstream sstream;
   if (constants::DoTimeBenchmarks) {
     sstream << std::setw(2) << " - "
-            << "Vertex processing completed in: " << total << "ms" << std::endl;
+            << "Timeframe " << mTimeFrameCounter++ << " processing completed in: " << total << "ms" << std::endl;
   }
   logger(sstream.str());
 

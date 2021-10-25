@@ -58,7 +58,7 @@ class ClusterFinderOriginalTask
     /// Prepare the clusterizer
     LOG(INFO) << "initializing cluster finder";
 
-    auto config = ic.options().get<std::string>("config");
+    auto config = ic.options().get<std::string>("mch-config");
     if (!config.empty()) {
       o2::conf::ConfigurableParam::updateFromFile(config, "MCHClustering", true);
     }
@@ -148,7 +148,7 @@ o2::framework::DataProcessorSpec getClusterFinderOriginalSpec(const char* specNa
             OutputSpec{{"clusters"}, "MCH", "CLUSTERS", 0, Lifetime::Timeframe},
             OutputSpec{{"clusterdigits"}, "MCH", "CLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<ClusterFinderOriginalTask>()},
-    Options{{"config", VariantType::String, "", {"JSON or INI file with clustering parameters"}},
+    Options{{"mch-config", VariantType::String, "", {"JSON or INI file with clustering parameters"}},
             {"run2-config", VariantType::Bool, false, {"setup for run2 data"}}}};
 }
 

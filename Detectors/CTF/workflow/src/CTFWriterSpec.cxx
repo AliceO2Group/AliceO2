@@ -89,10 +89,11 @@ class CTFWriterSpec : public o2::framework::Task
  public:
   CTFWriterSpec() = delete;
   CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType);
-  ~CTFWriterSpec() override = default;
+  ~CTFWriterSpec() final { finalize(); }
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
-  void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final { finalize(); };
+  void stop() final { finalize(); };
   bool isPresent(DetID id) const { return mDets[id]; }
 
  private:
@@ -110,14 +111,17 @@ class CTFWriterSpec : public o2::framework::Task
   size_t getAvailableDiskSpace(const std::string& path, int level);
   void createLockFile(const o2::header::DataHeader* dh, int level);
   void removeLockFile();
+  void finalize();
 
   DetID::mask_t mDets; // detectors
+  bool mFinalized = false;
   bool mWriteCTF = true;
   bool mCreateDict = false;
   bool mDictPerDetector = false;
   bool mCreateRunEnvDir = true;
   bool mStoreMetaFile = false;
   int mSaveDictAfter = 0; // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
+  int mFlagMinDet = 1;    // append list of detectors to LHC period if their number is <= mFlagMinDet
   uint64_t mRun = 0;
   size_t mMinSize = 0;     // if > 0, accumulate CTFs in the same tree until the total size exceeds this minimum
   size_t mMaxSize = 0;     // if > MinSize, and accumulated size will exceed this value, stop accumulation (even if mMinSize is not reached)
@@ -139,6 +143,7 @@ class CTFWriterSpec : public o2::framework::Task
   std::string mCTFDirFallBack = "/dev/null";
   std::string mCTFMetaFileDir = "/dev/null";
   std::string mCurrentCTFFileName{};
+  std::string mCurrentCTFFileNameFull{};
   const std::string LOCKFileDir = "/tmp/ctf-writer-locks";
   std::string mLockFileName{};
   int mLockFD = -1;
@@ -206,6 +211,7 @@ void CTFWriterSpec::init(InitContext& ic)
     mCTFMetaFileDir = o2::utils::Str::rectifyDirectory(mCTFMetaFileDir);
     mStoreMetaFile = true;
   }
+  mFlagMinDet = ic.options().get<int>("append-det-to-period");
   mCreateRunEnvDir = !ic.options().get<bool>("ignore-partition-run-dir");
   mMinSize = ic.options().get<int64_t>("min-file-size");
   mMaxSize = ic.options().get<int64_t>("max-file-size");
@@ -375,6 +381,13 @@ void CTFWriterSpec::run(ProcessingContext& pc)
       mLHCPeriod = months[ltm->tm_mon];
       LOG(WARNING) << "LHCPeriod is not available, using current month " << mLHCPeriod;
     }
+    if (mDets.count() <= mFlagMinDet) { // flag participating detectors
+      for (auto id = DetID::First; id <= DetID::Last; id++) {
+        if (isPresent(id)) {
+          mLHCPeriod += fmt::format("_{}", DetID::getName(id));
+        }
+      }
+    }
   }
 
   mCurrCTFSize = estimateCTFSize(pc);
@@ -409,13 +422,16 @@ void CTFWriterSpec::run(ProcessingContext& pc)
     mAccCTFSize += szCTF;
     mCTFTreeOut->SetEntries(++mNAccCTF);
     mTFOrbits.push_back(dh->firstTForbit);
-    LOG(INFO) << "TF#" << mNCTF << ": wrote CTF{" << header << "} of size " << szCTF << " to " << mCurrentCTFFileName << " in " << mTimer.CpuTime() - cput << " s";
+    LOG(INFO) << "TF#" << mNCTF << ": wrote CTF{" << header << "} of size " << szCTF << " to " << mCurrentCTFFileNameFull << " in " << mTimer.CpuTime() - cput << " s";
     if (mNAccCTF > 1) {
       LOG(INFO) << "Current CTF tree has " << mNAccCTF << " entries with total size of " << mAccCTFSize << " bytes";
     }
-    if (mLockFD) {
+    if (mLockFD != -1) {
       lseek(mLockFD, 0, SEEK_SET);
-      write(mLockFD, &mAccCTFSize, sizeof(size_t));
+      auto nwr = write(mLockFD, &mAccCTFSize, sizeof(size_t));
+      if (nwr != sizeof(size_t)) {
+        LOG(ERROR) << "Failed to write current CTF size " << mAccCTFSize << " to lock file, bytes written: " << nwr;
+      }
     }
 
     if (mAccCTFSize >= mMinSize || (mMaxCTFPerFile > 0 && mNAccCTF >= mMaxCTFPerFile)) {
@@ -434,9 +450,11 @@ void CTFWriterSpec::run(ProcessingContext& pc)
 }
 
 //___________________________________________________________________
-void CTFWriterSpec::endOfStream(EndOfStreamContext& ec)
+void CTFWriterSpec::finalize()
 {
-
+  if (mFinalized) {
+    return;
+  }
   if (mCreateDict) {
     storeDictionaries();
   }
@@ -445,6 +463,7 @@ void CTFWriterSpec::endOfStream(EndOfStreamContext& ec)
   }
   LOGF(INFO, "CTF writing total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  mFinalized = true;
 }
 
 //___________________________________________________________________
@@ -467,7 +486,7 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
   if (needToOpen) {
     closeTFTreeAndFile();
     auto fname = o2::base::NameConf::getCTFFileName(mRun, dh->firstTForbit, dh->tfCounter);
-    auto ctfDir = mCTFDir;
+    auto ctfDir = mCTFDir.empty() ? o2::utils::Str::rectifyDirectory("./") : mCTFDir;
     if (mChkSize > 0 && (mCTFDirFallBack != "/dev/null")) {
       createLockFile(dh, 0);
       auto sz = getAvailableDiskSpace(ctfDir, 0); // check main storage
@@ -487,8 +506,9 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
         }
       }
     }
-    mCurrentCTFFileName = o2::utils::Str::concat_string(ctfDir, o2::base::NameConf::getCTFFileName(mRun, dh->firstTForbit, dh->tfCounter));
-    mCTFFileOut.reset(TFile::Open(o2::utils::Str::concat_string(mCurrentCTFFileName, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
+    mCurrentCTFFileName = o2::base::NameConf::getCTFFileName(mRun, dh->firstTForbit, dh->tfCounter);
+    mCurrentCTFFileNameFull = fmt::format("{}{}", ctfDir, mCurrentCTFFileName);
+    mCTFFileOut.reset(TFile::Open(fmt::format("{}{}", mCurrentCTFFileNameFull, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
     mCTFTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
     if (mStoreMetaFile) {
       mCTFFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
@@ -502,35 +522,39 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
 void CTFWriterSpec::closeTFTreeAndFile()
 {
   if (mCTFTreeOut) {
-    mCTFFileOut->cd();
-    mCTFTreeOut->Write();
-    mCTFTreeOut.reset();
-    mCTFFileOut->Close();
-    mCTFFileOut.reset();
-    if (!TMPFileEnding.empty()) {
-      std::filesystem::rename(o2::utils::Str::concat_string(mCurrentCTFFileName, TMPFileEnding), mCurrentCTFFileName);
-    }
-    // write CTF file metaFile data
-    if (mStoreMetaFile) {
-      mCTFFileMetaData->fillFileData(mCurrentCTFFileName);
-      mCTFFileMetaData->run = mRun;
-      mCTFFileMetaData->LHCPeriod = mLHCPeriod;
-      mCTFFileMetaData->type = "raw";
-      mCTFFileMetaData->priority = "high";
-      auto metaFileName = fmt::format("{}{}.done", mCTFMetaFileDir, mCurrentCTFFileName);
-      try {
-        std::ofstream metaFileOut(metaFileName);
-        metaFileOut << *mCTFFileMetaData.get();
-        metaFileOut << "TFOrbits: ";
-        for (size_t i = 0; i < mTFOrbits.size(); i++) {
-          metaFileOut << fmt::format("{}{}", i ? ", " : "", mTFOrbits[i]);
-        }
-        metaFileOut << '\n';
-        metaFileOut.close();
-      } catch (std::exception const& e) {
-        LOG(ERROR) << "Failed to store CTF meta data file " << metaFileName << ", reason: " << e.what();
+    try {
+      mCTFFileOut->cd();
+      mCTFTreeOut->Write();
+      mCTFTreeOut.reset();
+      mCTFFileOut->Close();
+      mCTFFileOut.reset();
+      if (!TMPFileEnding.empty()) {
+        std::filesystem::rename(o2::utils::Str::concat_string(mCurrentCTFFileNameFull, TMPFileEnding), mCurrentCTFFileNameFull);
       }
-      mCTFFileMetaData.reset();
+      // write CTF file metaFile data
+      if (mStoreMetaFile) {
+        mCTFFileMetaData->fillFileData(mCurrentCTFFileNameFull);
+        mCTFFileMetaData->run = mRun;
+        mCTFFileMetaData->LHCPeriod = mLHCPeriod;
+        mCTFFileMetaData->type = "raw";
+        mCTFFileMetaData->priority = "high";
+        auto metaFileName = fmt::format("{}{}.done", mCTFMetaFileDir, mCurrentCTFFileName);
+        try {
+          std::ofstream metaFileOut(metaFileName);
+          metaFileOut << *mCTFFileMetaData.get();
+          metaFileOut << "TFOrbits: ";
+          for (size_t i = 0; i < mTFOrbits.size(); i++) {
+            metaFileOut << fmt::format("{}{}", i ? ", " : "", mTFOrbits[i]);
+          }
+          metaFileOut << '\n';
+          metaFileOut.close();
+        } catch (std::exception const& e) {
+          LOG(ERROR) << "Failed to store CTF meta data file " << metaFileName << ", reason: " << e.what();
+        }
+        mCTFFileMetaData.reset();
+      }
+    } catch (std::exception const& e) {
+      LOG(ERROR) << "Failed to finalize CTF file " << mCurrentCTFFileNameFull << ", reason: " << e.what();
     }
     mTFOrbits.clear();
     mNAccCTF = 0;
@@ -715,6 +739,7 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, const std::
             {"output-dir", VariantType::String, "none", {"CTF output directory, must exist"}},
             {"output-dir-alt", VariantType::String, "/dev/null", {"Alternative CTF output directory, must exist (if not /dev/null)"}},
             {"meta-output-dir", VariantType::String, "/dev/null", {"CTF metadata output directory, must exist (if not /dev/null)"}},
+            {"append-det-to-period", VariantType::Int, 1, {"Append detectors name to LHCPeriod in metadata if their number is does not exceed this"}},
             {"min-file-size", VariantType::Int64, 0l, {"accumulate CTFs until given file size reached"}},
             {"max-file-size", VariantType::Int64, 0l, {"if > 0, try to avoid exceeding given file size, also used for space check"}},
             {"max-ctf-per-file", VariantType::Int, 0, {"if > 0, avoid storing more than requested CTFs per file"}},

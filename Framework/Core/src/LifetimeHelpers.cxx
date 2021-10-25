@@ -58,10 +58,12 @@ ExpirationHandler::Creator LifetimeHelpers::dataDrivenCreation()
   };
 }
 
-ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, size_t end, size_t step, size_t inputTimeslice, size_t maxInputTimeslices)
+ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, size_t end, size_t step, size_t inputTimeslice, size_t maxInputTimeslices, size_t maxRepetitions)
 {
   auto last = std::make_shared<size_t>(start + inputTimeslice * step);
-  return [start, end, step, last, inputTimeslice, maxInputTimeslices](TimesliceIndex& index) -> TimesliceSlot {
+  auto repetition = std::make_shared<size_t>(0);
+
+  return [start, end, step, last, inputTimeslice, maxInputTimeslices, maxRepetitions, repetition](TimesliceIndex& index) -> TimesliceSlot {
     for (size_t si = 0; si < index.size(); si++) {
       if (*last > end) {
         return TimesliceSlot{TimesliceSlot::INVALID};
@@ -69,11 +71,15 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
       auto slot = TimesliceSlot{si};
       if (index.isValid(slot) == false) {
         TimesliceId timestamp{*last};
-        *last += step * maxInputTimeslices;
+        *repetition += 1;
+        if (*repetition % maxRepetitions == 0) {
+          *last += step * maxInputTimeslices;
+        }
         index.associate(timestamp, slot);
         return slot;
       }
     }
+
     return TimesliceSlot{TimesliceSlot::INVALID};
   };
 }
@@ -326,7 +332,7 @@ ExpirationHandler::Handler
     } else {
       url = fmt::format("{}/{}/{}/runNumber={}", serverUrl, path, timestamp, dataTakingContext.runNumber);
     }
-    LOG(INFO) << "fetchFromCCDBCache: Fetching " << url;
+    LOG(debug) << "fetchFromCCDBCache: Fetching " << url;
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &payloadBuffer);
@@ -365,6 +371,24 @@ ExpirationHandler::Handler
     ref.payload = std::move(payload);
 
     return;
+  };
+}
+
+ExpirationHandler::Handler
+  LifetimeHelpers::fetchFromFairMQ(InputSpec const& spec,
+                                   std::string const& channelName)
+{
+  return [spec, channelName](ServiceRegistry& services, PartRef& ref, data_matcher::VariableContext& variables) -> void {
+    auto& rawDeviceService = services.get<RawDeviceService>();
+    auto device = rawDeviceService.device();
+
+    // Receive parts and put them in the PartRef
+    // we know this is not blocking because we were polled
+    // on the channel.
+    FairMQParts parts;
+    device->Receive(parts, channelName, 0);
+    ref.header = std::move(parts.At(0));
+    ref.payload = std::move(parts.At(1));
   };
 }
 
@@ -474,6 +498,27 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
     ref.payload = std::move(payload);
   };
   return f;
+}
+
+// Life is too short. LISP rules.
+#define STREAM_ENUM(x) \
+  case x:              \
+    oss << #x;         \
+    break;
+std::ostream& operator<<(std::ostream& oss, Lifetime const& val)
+{
+  switch (val) {
+    STREAM_ENUM(Lifetime::Timeframe)
+    STREAM_ENUM(Lifetime::Condition)
+    STREAM_ENUM(Lifetime::QA)
+    STREAM_ENUM(Lifetime::Transient)
+    STREAM_ENUM(Lifetime::Timer)
+    STREAM_ENUM(Lifetime::Enumeration)
+    STREAM_ENUM(Lifetime::Signal)
+    STREAM_ENUM(Lifetime::Optional)
+    STREAM_ENUM(Lifetime::OutOfBand)
+  };
+  return oss;
 }
 
 } // namespace o2::framework

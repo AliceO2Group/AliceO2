@@ -33,19 +33,18 @@ inline static std::string retriveValue(const std::reference_wrapper<const String
 
 template <typename T>
 boost::property_tree::ptree fillNodeWithValue(const DeviceMetricsInfo& deviceMetrics,
-                                              const T& metricsStorage, size_t labelIndex, size_t storageIndex)
+                                              const T& metricsStorage, size_t labelIndex, size_t storeIndex)
 {
-
-  unsigned int loopRange = std::min(deviceMetrics.metrics[labelIndex].filledMetrics, metricsStorage[storageIndex].size());
+  unsigned int loopRange = std::min(deviceMetrics.metrics[labelIndex].filledMetrics, metricsStorage[storeIndex].size());
   boost::property_tree::ptree metricNode;
 
   for (unsigned int idx = 0; idx < loopRange; ++idx) {
     boost::property_tree::ptree values;
     values.add("timestamp", deviceMetrics.timestamps[labelIndex][idx]);
     if constexpr (std::is_arithmetic_v<T>) {
-      values.add("value", std::to_string(retriveValue(std::cref(metricsStorage[storageIndex][idx]))));
+      values.add("value", std::to_string(retriveValue(std::cref(metricsStorage[storeIndex][idx]))));
     } else {
-      values.add("value", retriveValue(std::cref(metricsStorage[storageIndex][idx])));
+      values.add("value", retriveValue(std::cref(metricsStorage[storeIndex][idx])));
     }
     metricNode.push_back(std::make_pair("", values));
   }
@@ -81,26 +80,30 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
       if (std::find_if(std::begin(performanceMetrics), std::end(performanceMetrics), same) == performanceMetrics.end()) {
         continue;
       }
+      auto storeIdx = deviceMetrics.metrics[mi].storeIdx;
 
+      if (deviceMetrics.metrics[mi].filledMetrics == 0) {
+        continue;
+      }
       //if so
 
       boost::property_tree::ptree metricNode;
 
       switch (deviceMetrics.metrics[mi].type) {
         case MetricType::Int:
-          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.intMetrics, mi, deviceMetrics.metrics[mi].storeIdx);
+          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.intMetrics, mi, storeIdx);
           break;
 
         case MetricType::Float:
-          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.floatMetrics, mi, deviceMetrics.metrics[mi].storeIdx);
+          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.floatMetrics, mi, storeIdx);
           break;
 
         case MetricType::String:
-          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.stringMetrics, mi, deviceMetrics.metrics[mi].storeIdx);
+          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.stringMetrics, mi, storeIdx);
           break;
 
         case MetricType::Uint64:
-          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.uint64Metrics, mi, deviceMetrics.metrics[mi].storeIdx);
+          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.uint64Metrics, mi, storeIdx);
           break;
 
         default:
@@ -115,35 +118,40 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
   boost::property_tree::ptree driverRoot;
   for (size_t mi = 0; mi < driverMetrics.metricLabels.size(); mi++) {
     const char* metricLabel = driverMetrics.metricLabels[mi].label;
+    auto same = [metricLabel](std::string const& matcher) -> bool {
+      std::regex r{matcher};
+      return std::regex_match(metricLabel, r);
+    };
 
     //check if we are interested
-    if (std::find(std::begin(performanceMetrics), std::end(performanceMetrics), metricLabel) == std::end(performanceMetrics)) {
+    if (std::find_if(std::begin(performanceMetrics), std::end(performanceMetrics), same) == performanceMetrics.end()) {
+      continue;
+    }
+
+    auto storeIdx = driverMetrics.metrics[mi].storeIdx;
+    // and if data is there
+    if (driverMetrics.metrics[mi].filledMetrics == 0) {
       continue;
     }
 
     //if so
-
     boost::property_tree::ptree metricNode;
 
     switch (driverMetrics.metrics[mi].type) {
       case MetricType::Int:
-        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.intMetrics,
-                                       mi, driverMetrics.metrics[mi].storeIdx);
+        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.intMetrics, mi, storeIdx);
         break;
 
       case MetricType::Float:
-        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.floatMetrics,
-                                       mi, driverMetrics.metrics[mi].storeIdx);
+        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.floatMetrics, mi, storeIdx);
         break;
 
       case MetricType::String:
-        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.stringMetrics,
-                                       mi, driverMetrics.metrics[mi].storeIdx);
+        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.stringMetrics, mi, storeIdx);
         break;
 
       case MetricType::Uint64:
-        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.uint64Metrics,
-                                       mi, driverMetrics.metrics[mi].storeIdx);
+        metricNode = fillNodeWithValue(driverMetrics, driverMetrics.uint64Metrics, mi, storeIdx);
         break;
 
       default:

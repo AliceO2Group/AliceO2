@@ -74,6 +74,15 @@ class ROFRecord;
 class ClusterStruct;
 } // namespace o2::mch
 
+namespace o2::mid
+{
+class Cluster2D;
+class Cluster3D;
+class ROFRecord;
+class Track;
+class MCClusterLabel;
+} // namespace o2::mid
+
 namespace o2::itsmft
 {
 class ROFRecord;
@@ -115,6 +124,26 @@ namespace o2::ctp
 {
 class CTPDigit;
 } // namespace o2::ctp
+
+namespace o2::phos
+{
+class Cell;
+class TriggerRecord;
+class MCLabel;
+} // namespace o2::phos
+
+namespace o2::cpv
+{
+class Cluster;
+class TriggerRecord;
+} // namespace o2::cpv
+
+namespace o2::emcal
+{
+class Cell;
+class TriggerRecord;
+class MCLabel;
+} // namespace o2::emcal
 
 namespace o2::dataformats
 {
@@ -162,13 +191,14 @@ struct DataRequest {
   void requestITSTracks(bool mc);
   void requestMFTTracks(bool mc);
   void requestMCHTracks(bool mc);
+  void requestMIDTracks(bool mc);
   void requestTPCTracks(bool mc);
   void requestITSTPCTracks(bool mc);
   void requestGlobalFwdTracks(bool mc);
   void requestTPCTOFTracks(bool mc);
   void requestITSTPCTRDTracks(bool mc);
   void requestTPCTRDTracks(bool mc);
-  void requestTOFMatches(bool mc);
+  void requestTOFMatches(o2::dataformats::GlobalTrackID::mask_t src, bool mc);
   void requestFT0RecPoints(bool mc);
   void requestFV0RecPoints(bool mc);
   void requestFDDRecPoints(bool mc);
@@ -180,6 +210,10 @@ struct DataRequest {
   void requestTRDTracklets(bool mc);
 
   void requestCTPDigits(bool mc);
+
+  void requestPHOSCells(bool mc);
+  void requestEMCALCells(bool mc);
+  void requestCPVClusters(bool mc);
 
   void requestCoscmicTracks(bool mc);
 
@@ -254,6 +288,10 @@ struct RecoContainer {
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcITSClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcTOFClusters;
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcCPVClusters;
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>> mcPHSCells;
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>> mcEMCCells;
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>> mcMIDTrackClusters;
 
   gsl::span<const unsigned char> clusterShMapTPC; ///< externally set TPC clusters sharing map
 
@@ -269,6 +307,7 @@ struct RecoContainer {
   void addITSTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addMFTTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addMCHTracks(o2::framework::ProcessingContext& pc, bool mc);
+  void addMIDTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addTPCTracks(o2::framework::ProcessingContext& pc, bool mc);
 
   void addITSTPCTRDTracks(o2::framework::ProcessingContext& pc, bool mc);
@@ -276,7 +315,9 @@ struct RecoContainer {
   void addITSTPCTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addGlobalFwdTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addTPCTOFTracks(o2::framework::ProcessingContext& pc, bool mc);
-  void addTOFMatches(o2::framework::ProcessingContext& pc, bool mc);
+  void addTOFMatchesITSTPC(o2::framework::ProcessingContext& pc, bool mc);
+  void addTOFMatchesTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
+  void addTOFMatchesITSTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
 
   void addITSClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addMFTClusters(o2::framework::ProcessingContext& pc, bool mc);
@@ -291,6 +332,10 @@ struct RecoContainer {
   void addZDCRecEvents(o2::framework::ProcessingContext& pc, bool mc);
 
   void addCTPDigits(o2::framework::ProcessingContext& pc, bool mc);
+
+  void addCPVClusters(o2::framework::ProcessingContext& pc, bool mc);
+  void addPHOSCells(o2::framework::ProcessingContext& pc, bool mc);
+  void addEMCALCells(o2::framework::ProcessingContext& pc, bool mc);
 
   void addCosmicTracks(o2::framework::ProcessingContext& pc, bool mc);
 
@@ -409,7 +454,15 @@ struct RecoContainer {
   auto getMCHTracksROFRecords() const { return getSpan<o2::mch::ROFRecord>(GTrackID::MCH, TRACKREFS); }
   auto getMCHTrackClusters() const { return getSpan<o2::mch::ClusterStruct>(GTrackID::MCH, CLUSREFS); }
   auto getMCHTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MCH, MCLABELS); }
-  // FIXME: add clusters
+
+  // MID
+  const o2::mid::Track& getMIDTrack(GTrackID gid) const { return getTrack<o2::mid::Track>(gid); }
+  auto getMIDTracks() const { return getTracks<o2::mid::Track>(GTrackID::MID); }
+  auto getMIDTracksROFRecords() const { return getSpan<o2::mid::ROFRecord>(GTrackID::MID, TRACKREFS); }
+  auto getMIDTrackClusters() const { return getSpan<o2::mid::Cluster3D>(GTrackID::MID, CLUSREFS); }
+  auto getMIDTrackClustersROFRecords() const { return getSpan<o2::mid::ROFRecord>(GTrackID::MID, MATCHES); }
+  auto getMIDTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MID, MCLABELS); }
+  const o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>* getMIDTracksClusterMCLabels() const;
 
   // TPC
   const o2::tpc::TrackTPC& getTPCTrack(GTrackID id) const { return getTrack<o2::tpc::TrackTPC>(id); }
@@ -522,6 +575,21 @@ struct RecoContainer {
 
   // CTP
   auto getCTPDigits() const { return getSpan<const o2::ctp::CTPDigit>(GTrackID::CTP, CLUSTERS); }
+
+  // CPV
+  auto getCPVClusters() const { return getSpan<const o2::cpv::Cluster>(GTrackID::CPV, CLUSTERS); }
+  auto getCPVTriggers() const { return getSpan<const o2::cpv::TriggerRecord>(GTrackID::CPV, CLUSREFS); }
+  auto getCPVClustersMCLabels() const { return mcCPVClusters.get(); }
+
+  // PHOS
+  auto getPHOSCells() const { return getSpan<const o2::phos::Cell>(GTrackID::PHS, CLUSTERS); }
+  auto getPHOSTriggers() const { return getSpan<const o2::phos::TriggerRecord>(GTrackID::PHS, CLUSREFS); }
+  const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>* getPHOSCellsMCLabels() const;
+
+  // EMCAL
+  auto getEMCALCells() const { return getSpan<const o2::emcal::Cell>(GTrackID::EMC, CLUSTERS); }
+  auto getEMCALTriggers() const { return getSpan<const o2::emcal::TriggerRecord>(GTrackID::EMC, CLUSREFS); }
+  const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>* getEMCALCellsMCLabels() const;
 
   // Primary vertices
   const o2::dataformats::PrimaryVertex& getPrimaryVertex(int i) const { return pvtxPool.get_as<o2::dataformats::PrimaryVertex>(PVTX, i); }

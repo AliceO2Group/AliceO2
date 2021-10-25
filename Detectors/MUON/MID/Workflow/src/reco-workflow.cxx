@@ -26,7 +26,7 @@
 #include "DataFormatsMID/Cluster3D.h"
 #include "DataFormatsMID/Track.h"
 #include "DataFormatsMID/ROFRecord.h"
-#include "MIDSimulation/MCClusterLabel.h"
+#include "DataFormatsMID/MCClusterLabel.h"
 #include "MIDWorkflow/ClusterizerMCSpec.h"
 #include "MIDWorkflow/ClusterizerSpec.h"
 #include "MIDWorkflow/TrackerMCSpec.h"
@@ -77,9 +77,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                 "midreco",
                                                 MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::Track>>{InputSpec{"mid_tracks", o2::header::gDataOriginMID, "TRACKS"}, "MIDTrack"},
                                                 MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::Cluster3D>>{InputSpec{"mid_trclus", o2::header::gDataOriginMID, "TRACKCLUSTERS"}, "MIDTrackCluster"},
-                                                MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_tracks_rof", o2::header::gDataOriginMID, "TRACKSROF"}, "MIDTrackROF"},
-                                                MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_trclus_rof", o2::header::gDataOriginMID, "TRCLUSROF"}, "MIDTrackClusterROF"},
-                                                MakeRootTreeWriterSpec::BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"mid_track_labels", o2::header::gDataOriginMID, "TRACKSLABELS"}, "MIDTrackLabels", disableMC ? 0 : 1},
+                                                MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_tracks_rof", o2::header::gDataOriginMID, "TRACKROFS"}, "MIDTrackROF"},
+                                                MakeRootTreeWriterSpec::BranchDefinition<std::vector<o2::mid::ROFRecord>>{InputSpec{"mid_trclus_rof", o2::header::gDataOriginMID, "TRCLUSROFS"}, "MIDTrackClusterROF"},
+                                                MakeRootTreeWriterSpec::BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"mid_track_labels", o2::header::gDataOriginMID, "TRACKLABELS"}, "MIDTrackLabels", disableMC ? 0 : 1},
                                                 MakeRootTreeWriterSpec::BranchDefinition<o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>>{InputSpec{"mid_trclus_labels", o2::header::gDataOriginMID, "TRCLUSLABELS"}, "MIDTrackClusterLabels", disableMC ? 0 : 1})());
     }
   }

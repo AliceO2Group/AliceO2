@@ -97,7 +97,6 @@ DataProcessorSpec getGlobalFwdTrackReaderSpec(bool useMC)
   if (useMC) {
     outputs.emplace_back("GLO", "GLFWD_MC", 0, Lifetime::Timeframe);
   }
-  std::cout << "Requested globalfwd at getGlobalFwdTrackReaderSpec" << std::endl;
   return DataProcessorSpec{
     "globalfwd-track-reader",
     Inputs{},

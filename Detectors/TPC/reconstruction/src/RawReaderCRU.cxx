@@ -23,6 +23,7 @@
 #include "TPCBase/Mapper.h"
 #include "Framework/Logger.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "CommonUtils/VerbosityConfig.h"
 
 #define CHECK_BIT(var, pos) ((var) & (1 << (pos)))
 

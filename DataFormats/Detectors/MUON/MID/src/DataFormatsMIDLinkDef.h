@@ -29,4 +29,9 @@
 #pragma link C++ struct o2::mid::CTFHeader + ;
 #pragma link C++ struct o2::mid::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::mid::CTFHeader, 7, uint32_t> + ;
+
+#include "SimulationDataFormat/MCTruthContainer.h"
+#pragma link C++ class o2::mid::MCClusterLabel + ;
+#pragma link C++ class o2::dataformats::MCTruthContainer < o2::mid::MCClusterLabel> + ;
+
 #endif

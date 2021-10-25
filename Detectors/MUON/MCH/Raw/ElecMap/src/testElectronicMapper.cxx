@@ -100,7 +100,7 @@ std::set<int> nofDualSampasFromMapper(gsl::span<int> deids)
   return ds;
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
+//BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH1R, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH1R);
@@ -109,7 +109,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH1R, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH1L, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH1L);
@@ -118,7 +117,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH1L, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH2R, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH2R);
@@ -127,7 +125,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH2R, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH2L, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH2L);
@@ -136,7 +133,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH2L, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH3R, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH3R);
@@ -145,7 +141,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH3R, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH3L, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH3L);
@@ -154,7 +149,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH3L, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH4R, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH4R);
@@ -163,7 +157,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH4R, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH4L, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH4L);
@@ -250,7 +243,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH10R, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
-BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH10L, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH10L);
@@ -472,13 +464,13 @@ int expectedNumberOfDs();
 template <>
 int expectedNumberOfDs<ElectronicMapperDummy>()
 {
-  return 16828;
+  return 16820;
 }
 
 template <>
 int expectedNumberOfDs<ElectronicMapperGenerated>()
 {
-  return 16420; // 16828 for all
+  return 16820;
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(AllSolarsMustGetAFeeLinkAndTheReverse, T, testTypes)

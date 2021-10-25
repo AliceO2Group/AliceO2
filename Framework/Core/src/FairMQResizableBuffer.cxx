@@ -98,9 +98,7 @@ Status FairMQOutputStream::Reserve(int64_t nbytes)
   // This may be because it helps match the allocator's allocation buckets
   // more exactly.  Or perhaps it hits a sweet spot in jemalloc.
   int64_t new_capacity = std::max(kBufferMinimumSize, capacity_);
-  while (new_capacity < position_ + nbytes) {
-    new_capacity = new_capacity + 1024 * 1024;
-  }
+  new_capacity = position_ + nbytes;
   if (new_capacity > capacity_) {
     RETURN_NOT_OK(buffer_->Resize(new_capacity));
     capacity_ = new_capacity;
@@ -162,7 +160,10 @@ arrow::Status FairMQResizableBuffer::Reserve(const int64_t capacity)
 
 std::unique_ptr<FairMQMessage> FairMQResizableBuffer::Finalise()
 {
-  mMessage->SetUsedSize(this->size_);
+  auto oldSize = mMessage->GetSize();
+  bool resized = mMessage->SetUsedSize(this->size_);
+  auto newSize = mMessage->GetSize();
+
   this->data_ = nullptr;
   this->capacity_ = 0;
   this->size_ = 0;

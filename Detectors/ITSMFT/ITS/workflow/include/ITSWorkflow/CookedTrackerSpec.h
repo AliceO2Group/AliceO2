@@ -16,6 +16,8 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "ITSReconstruction/CookedTracker.h"
+#include "ITStracking/Vertexer.h"
+#include "ITStracking/VertexerTraits.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "Framework/Task.h"
@@ -44,6 +46,8 @@ class CookedTrackerDPL : public Task
   o2::itsmft::TopologyDictionary mDict;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   o2::its::CookedTracker mTracker;
+  std::unique_ptr<VertexerTraits> mVertexerTraitsPtr = nullptr;
+  std::unique_ptr<Vertexer> mVertexerPtr = nullptr;
   TStopwatch mTimer;
 };
 

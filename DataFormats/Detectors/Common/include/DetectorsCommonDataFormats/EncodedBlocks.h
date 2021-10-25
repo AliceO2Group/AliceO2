@@ -178,6 +178,10 @@ struct Block {
   inline W* getCreateData() { return payload ? (payload + nDict) : getCreatePayload(); }
   inline W* getCreateLiterals() { return payload ? payload + (nDict + nData) : getCreatePayload(); }
 
+  inline auto getOffsDict() { return reinterpret_cast<std::uintptr_t>(getCreateDict()) - reinterpret_cast<std::uintptr_t>(registry->head); }
+  inline auto getOffsData() { return reinterpret_cast<std::uintptr_t>(getCreateData()) - reinterpret_cast<std::uintptr_t>(registry->head); }
+  inline auto getOffsLiterals() { return reinterpret_cast<std::uintptr_t>(getCreateLiterals()) - reinterpret_cast<std::uintptr_t>(registry->head); }
+
   inline void setNDict(int _ndict)
   {
     nDict = _ndict;
@@ -415,14 +419,14 @@ class EncodedBlocks
 
   /// encode vector src to bloc at provided slot
   template <typename VE, typename buffer_T>
-  inline void encode(const VE& src, int slot, uint8_t symbolTablePrecision, Metadata::OptStore opt, buffer_T* buffer = nullptr, const void* encoderExt = nullptr)
+  inline void encode(const VE& src, int slot, uint8_t symbolTablePrecision, Metadata::OptStore opt, buffer_T* buffer = nullptr, const void* encoderExt = nullptr, float memfc = 1.f)
   {
-    encode(std::begin(src), std::end(src), slot, symbolTablePrecision, opt, buffer, encoderExt);
+    encode(std::begin(src), std::end(src), slot, symbolTablePrecision, opt, buffer, encoderExt, memfc);
   }
 
   /// encode vector src to bloc at provided slot
   template <typename input_IT, typename buffer_T>
-  void encode(const input_IT srcBegin, const input_IT srcEnd, int slot, uint8_t symbolTablePrecision, Metadata::OptStore opt, buffer_T* buffer = nullptr, const void* encoderExt = nullptr);
+  void encode(const input_IT srcBegin, const input_IT srcEnd, int slot, uint8_t symbolTablePrecision, Metadata::OptStore opt, buffer_T* buffer = nullptr, const void* encoderExt = nullptr, float memfc = 1.f);
 
   /// decode block at provided slot to destination vector (will be resized as needed)
   template <class container_T, class container_IT = typename container_T::iterator>
@@ -437,6 +441,7 @@ class EncodedBlocks
 
   /// print itself
   void print(const std::string& prefix = "") const;
+  void dump(const std::string& prefix = "", int ncol = 20) const;
 
  protected:
   static_assert(N > 0, "number of encoded blocks < 1");
@@ -456,7 +461,7 @@ class EncodedBlocks
   /// DPL input), in this case we create a wrapper, which points on these const data
   static void relocate(const char* oldHead, char* newHead, char* wrapper, size_t newsize = 0);
 
-  /// Estimate size of the buffer needed to store all compressed data in a contiguos block of memory, accounting for alignment
+  /// Estimate size of the buffer needed to store all compressed data in a contiguous block of memory, accounting for the alignment
   /// This method is to be called after reading object from the tree as a non-flat object!
   size_t estimateSize() const;
 
@@ -786,7 +791,8 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
                                     uint8_t symbolTablePrecision, // encoding into
                                     Metadata::OptStore opt,       // option for data compression
                                     buffer_T* buffer,             // optional buffer (vector) providing memory for encoded blocks
-                                    const void* encoderExt)       // optional external encoder
+                                    const void* encoderExt,       // optional external encoder
+                                    float memfc)                  // memory allocation margin factor
 {
 
   using storageBuffer_t = W;
@@ -823,7 +829,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     auto* const blockHead = get(thisBlock->registry->head);                         // extract pointer from the block, as "this" might be invalid
     const size_t additionalSize = blockHead->estimateBlockSize(additionalElements); // size in bytes!!!
     if (additionalSize >= thisBlock->registry->getFreeSize()) {
-      LOG(INFO) << "Slot " << slot << ": free size: " << thisBlock->registry->getFreeSize() << ", need " << additionalSize << " for " << additionalElements << " words";
+      LOG(DEBUG) << "Slot " << slot << ": free size: " << thisBlock->registry->getFreeSize() << ", need " << additionalSize << " for " << additionalElements << " words";
       if (buffer) {
         blockHead->expand(*buffer, blockHead->size() + (additionalSize - blockHead->getFreeSize()));
         thisMetadata = &(get(buffer->data())->mMetadata[slot]);
@@ -838,7 +844,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
   if (opt == Metadata::OptStore::EENCODE) {
     // build symbol statistics
     constexpr size_t SizeEstMarginAbs = 10 * 1024;
-    constexpr float SizeEstMarginRel = 1.05;
+    const float SizeEstMarginRel = 1.5 * memfc;
 
     const auto [inplaceEncoder, frequencyTable] = [&]() {
       if (encoderExt) {
@@ -859,6 +865,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     //store dictionary first
     if (frequencyTable.size()) {
       thisBlock->storeDict(frequencyTable.size(), frequencyTable.data());
+      LOGP(DEBUG, "StoreDict {} bytes, offs: {}:{}", frequencyTable.size() * sizeof(W), thisBlock->getOffsDict(), thisBlock->getOffsDict() + frequencyTable.size() * sizeof(W));
     }
     // vector of incompressible literal symbols
     std::vector<input_t> literals;
@@ -866,10 +873,11 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     storageBuffer_t* const blockBufferBegin = thisBlock->getCreateData();
     const size_t maxBufferSize = thisBlock->registry->getFreeSize(); // note: "this" might be not valid after expandStorage call!!!
     const auto encodedMessageEnd = encoder->process(srcBegin, srcEnd, blockBufferBegin, literals);
-    rans::utils::checkBounds(encodedMessageEnd, blockBufferBegin + maxBufferSize);
+    rans::utils::checkBounds(encodedMessageEnd, blockBufferBegin + maxBufferSize / sizeof(W));
     dataSize = encodedMessageEnd - thisBlock->getDataPointer();
     thisBlock->setNData(dataSize);
     thisBlock->realignBlock();
+    LOGP(DEBUG, "StoreData {} bytes, offs: {}:{}", dataSize * sizeof(W), thisBlock->getOffsData(), thisBlock->getOffsData() + dataSize * sizeof(W));
     // update the size claimed by encode message directly inside the block
 
     // store incompressible symbols if any
@@ -884,6 +892,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
         const size_t nLiteralStorageElems = calculateNDestTElements<input_t, storageBuffer_t>(nSymbols);
         expandStorage(nLiteralStorageElems);
         thisBlock->storeLiterals(nLiteralStorageElems, reinterpret_cast<const storageBuffer_t*>(literals.data()));
+        LOGP(DEBUG, "StoreLiterals {} bytes, offs: {}:{}", nLiteralStorageElems * sizeof(W), thisBlock->getOffsLiterals(), thisBlock->getOffsLiterals() + nLiteralStorageElems * sizeof(W));
         return nLiteralStorageElems;
       }
       return size_t(0);
@@ -944,6 +953,57 @@ std::vector<char> EncodedBlocks<H, N, W>::createDictionaryBlocks(const std::vect
     dictBlocks->mRegistry.nFilledBlocks++;
   }
   return std::move(vdict);
+}
+
+template <typename H, int N, typename W>
+void EncodedBlocks<H, N, W>::dump(const std::string& prefix, int ncol) const
+{
+  for (int ibl = 0; ibl < getNBlocks(); ibl++) {
+    const auto& blc = getBlock(ibl);
+    std::string ss;
+    LOGP(INFO, "{} Bloc:{} Dict: {} words", prefix, ibl, blc.getNDict());
+    const auto* ptr = blc.getDict();
+    for (int i = 0; i < blc.getNDict(); i++) {
+      if (i && (i % ncol) == 0) {
+        LOG(INFO) << ss;
+        ss.clear();
+      }
+      ss += fmt::format(" {:#010x}", ptr[i]);
+    }
+    if (!ss.empty()) {
+      LOG(INFO) << ss;
+      ss.clear();
+    }
+    LOG(INFO) << "\n";
+    LOGP(INFO, "{} Bloc:{} Data: {} words", prefix, ibl, blc.getNData());
+    ptr = blc.getData();
+    for (int i = 0; i < blc.getNData(); i++) {
+      if (i && (i % ncol) == 0) {
+        LOG(INFO) << ss;
+        ss.clear();
+      }
+      ss += fmt::format(" {:#010x}", ptr[i]);
+    }
+    if (!ss.empty()) {
+      LOG(INFO) << ss;
+      ss.clear();
+    }
+    LOG(INFO) << "\n";
+    LOGP(INFO, "{} Bloc:{} Literals: {} words", prefix, ibl, blc.getNLiterals());
+    ptr = blc.getData();
+    for (int i = 0; i < blc.getNLiterals(); i++) {
+      if (i && (i % 20) == 0) {
+        LOG(INFO) << ss;
+        ss.clear();
+      }
+      ss += fmt::format(" {:#010x}", ptr[i]);
+    }
+    if (!ss.empty()) {
+      LOG(INFO) << ss;
+      ss.clear();
+    }
+    LOG(INFO) << "\n";
+  }
 }
 
 } // namespace ctf

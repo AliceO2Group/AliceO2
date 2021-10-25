@@ -13,114 +13,24 @@
 /// \brief  DPL workflow to send MID tracks read from a root file
 /// \author Philippe Pillot, Subatech
 
-#include <algorithm>
-#include <functional>
-#include <iterator>
-#include <memory>
-#include <stdexcept>
-
-#include "Framework/runDataProcessing.h"
-#include "Framework/ControlService.h"
-#include "Framework/Task.h"
-
-#include "DPLUtils/RootTreeReader.h"
-
-#include "DataFormatsMID/ROFRecord.h"
-#include "DataFormatsMID/Track.h"
+#include <vector>
+#include "Framework/ConfigParamSpec.h"
+#include "MIDWorkflow/TrackReaderSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
-using namespace o2::mid;
 
-class TrackSamplerTask
+// we need to add workflow options before including Framework/runDataProcessing
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
- public:
-  /// prepare the reader
-  void init(InitContext& ic)
-  {
-    auto inputFileName = ic.options().get<std::string>("infile");
-    mMinNumberOfROFsPerTF = ic.options().get<int>("repack-rofs");
+  workflowOptions.emplace_back("disable-mc", VariantType::Bool, false, ConfigParamSpec::HelpString{"Disable MC info"});
+  workflowOptions.emplace_back("configKeyValues", VariantType::String, "", ConfigParamSpec::HelpString{"Semicolon separated key=value strings ..."});
+}
 
-    mReader = std::make_unique<RootTreeReader>("midreco", inputFileName.c_str(), -1,
-                                               RootTreeReader::PublishingMode::Single,
-                                               RootTreeReader::BranchDefinition<std::vector<Track>>{
-                                                 Output{"MID", "TRACKS", 0, Lifetime::Timeframe}, "MIDTrack"},
-                                               RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{
-                                                 Output{"MID", "TRACKSROF", 0, Lifetime::Timeframe}, "MIDTrackROF"},
-                                               &mAccumulator);
-  }
+#include "Framework/runDataProcessing.h"
 
-  /// process the next entry
-  void run(ProcessingContext& pc)
-  {
-    if (mReader->next()) {
-      (*mReader)(pc);
-      if (mROFs.size() >= mMinNumberOfROFsPerTF) {
-        publish(pc.outputs());
-      }
-    } else {
-      if (mROFs.size() > 0) {
-        publish(pc.outputs());
-      }
-      pc.services().get<ControlService>().endOfStream();
-    }
-  }
-
- private:
-  /// accumulate the data
-  bool accumulate(std::string_view name, char* data)
-  {
-    if (name == "MIDTrackROF") {
-
-      auto rofs = reinterpret_cast<std::vector<ROFRecord>*>(data);
-
-      // accumulate the ROFs, shifting the track indexing accordingly
-      size_t offset = (mROFs.size() > 0) ? mROFs.back().firstEntry + mROFs.back().nEntries : 0;
-      std::transform(rofs->begin(), rofs->end(), std::back_inserter(mROFs), [offset](const ROFRecord& rof) {
-        return ROFRecord{rof, rof.firstEntry + offset, rof.nEntries};
-      });
-
-    } else if (name == "MIDTrack") {
-
-      auto tracks = reinterpret_cast<std::vector<Track>*>(data);
-
-      // accumulate the tracks
-      mTracks.insert(mTracks.end(), tracks->begin(), tracks->end());
-
-    } else {
-      throw std::invalid_argument("invalid branch");
-    }
-
-    return true;
-  }
-
-  /// publish the data and clear the internal vector
-  void publish(DataAllocator& out)
-  {
-    out.snapshot(OutputRef{"rofs"}, mROFs);
-    out.snapshot(OutputRef{"tracks"}, mTracks);
-    mROFs.clear();
-    mTracks.clear();
-  }
-
-  size_t mMinNumberOfROFsPerTF = 1;          ///< minimum number of ROF to send per TF
-  std::vector<ROFRecord> mROFs{};            ///< internal vector of ROFs
-  std::vector<Track> mTracks{};              ///< internal vector of tracks
-  std::unique_ptr<RootTreeReader> mReader{}; ///< root file reader
-  /// structure holding the function to accumulate the data
-  RootTreeReader::SpecialPublishHook mAccumulator{
-    [this](std::string_view name, ProcessingContext&, Output const&, char* data) -> bool {
-      return this->accumulate(name, data);
-    }};
-};
-
-WorkflowSpec defineDataProcessing(const ConfigContext&)
+WorkflowSpec defineDataProcessing(const ConfigContext& config)
 {
-  return WorkflowSpec{DataProcessorSpec{
-    "TrackSampler",
-    Inputs{},
-    Outputs{OutputSpec{{"rofs"}, "MID", "TRACKSROF", 0, Lifetime::Timeframe},
-            OutputSpec{{"tracks"}, "MID", "TRACKS", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<TrackSamplerTask>()},
-    Options{{"infile", VariantType::String, "mid-reco.root", {"input filename"}},
-            {"repack-rofs", VariantType::Int, 1, {"min number of rofs per timeframe"}}}}};
+  bool useMC = !config.options().get<bool>("disable-mc");
+  return WorkflowSpec{o2::mid::getTrackReaderSpec(useMC)};
 }

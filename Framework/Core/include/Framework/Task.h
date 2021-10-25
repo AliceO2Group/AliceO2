@@ -38,6 +38,24 @@ class has_endOfStream
   enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
 };
 
+/// Check if the class task has Stop
+template <typename T>
+class has_stop
+{
+  typedef char one;
+  struct two {
+    char x[2];
+  };
+
+  template <typename C>
+  static one test(decltype(&C::stop));
+  template <typename C>
+  static two test(...);
+
+ public:
+  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+};
+
 /// A more familiar task API for the DPL.
 /// This allows you to define your own tasks as subclasses
 /// of o2::framework::Task and to pass them in the specification
@@ -60,6 +78,9 @@ class Task
 
   /// This is invoked whenever we have an EndOfStream event
   virtual void endOfStream(EndOfStreamContext& context) {}
+
+  /// This is invoked on stop
+  virtual void stop() {}
 };
 
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
@@ -73,6 +94,12 @@ AlgorithmSpec adaptFromTask(Args&&... args)
       auto& callbacks = ic.services().get<CallbackService>();
       callbacks.set(CallbackService::Id::EndOfStream, [task](EndOfStreamContext& eosContext) {
         task->endOfStream(eosContext);
+      });
+    }
+    if constexpr (has_stop<T>::value) {
+      auto& callbacks = ic.services().get<CallbackService>();
+      callbacks.set(CallbackService::Id::Stop, [task]() {
+        task->stop();
       });
     }
     task->init(ic);

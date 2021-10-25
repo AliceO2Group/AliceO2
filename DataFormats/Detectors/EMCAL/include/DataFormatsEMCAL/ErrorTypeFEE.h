@@ -56,6 +56,7 @@ class ErrorTypeFEE
     MINOR_ALTRO_ERROR, ///< Non-fatal error in decoding of the ALTRO payload
     FIT_ERROR,         ///< Raw fit failed
     GEOMETRY_ERROR,    ///< Decoded position outside EMCAL
+    GAIN_ERROR,        ///< Error due to gain type
     UNDEFINED          ///< Error source undefined
   };
   /// \brief Constructor
@@ -89,6 +90,10 @@ class ErrorTypeFEE
   /// \brief Set the error as page parser error and store the error code
   /// \param pageError Error code of the page parser error
   void setPageErrorType(int pageError) { setError(ErrorSource_t::PAGE_ERROR, pageError); }
+
+  /// \brief Set the error as gain type error and store the error code
+  /// \param gainError Error code of the gain type error
+  void setGainErrorType(int gainError) { setError(ErrorSource_t::GAIN_ERROR, gainError); }
 
   /// \brief Set the error type of the object
   /// \param errorsource Error type of the object
@@ -134,6 +139,10 @@ class ErrorTypeFEE
   /// \brief Get the error code of the obect in case the object is a page parsing error
   /// \return Error code (-1 in case the object is not a page parsing error)
   int getRawPageErrorType() const { return getRawErrorForType(ErrorSource_t::PAGE_ERROR); }
+
+  /// \brief Get the error code of the obect in case the object is a gain type error
+  /// \return Error code (-1 in case the object is not a gain type error)
+  int getGainTypeErrorType() const { return getRawErrorForType(ErrorSource_t::GAIN_ERROR); }
 
   /// \brief Printing information of the error type
   /// \param stream Output stream where to print the error

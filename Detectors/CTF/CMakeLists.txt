@@ -10,6 +10,7 @@
 # or submit itself to any jurisdiction.
 
 add_subdirectory(workflow)
+add_subdirectory(utils)
 
 o2_add_test(itsmft
             PUBLIC_LINK_LIBRARIES O2::ITSMFTReconstruction

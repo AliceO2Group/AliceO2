@@ -7,6 +7,7 @@
 1. [MID reconstruction workflow](#MID-reconstruction-workflow)
 2. [MID raw data checker](#MID-raw-data-checker)
 3. [MID mask maker](#MID-mask-maker)
+4. [MID digits writer](#MID-digits-writer)
 
 ## MID reconstruction workflow
 
@@ -157,3 +158,14 @@ o2-raw-file-reader-workflow --input-conf MIDraw.cfg | o2-mid-raw-to-digits-workf
 The fraction of time a strip must be noisy or dead in order to be masked can be adjusted with: `--mid-mask-threshold XX` (with 0<`XX`<= 1).
 The scalers are reset from time to time in order to better check the evolution of the noisy/dead channels.
 The number of calibration triggers analysed before the scalers are reset can be adjusted with `--mask-mask-reset XX`, where `XX` is a positive integer.
+
+## MID digits writer
+
+This workflow writes to file the decoded digits.
+It is useful for debugging.
+
+Usage:
+
+```bash
+o2-ctf-reader-workflow --ctf-input o2_ctf_0000000000.root --onlyDet MID | o2-mid-decoded-digits-writer-workflow
+```

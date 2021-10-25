@@ -826,7 +826,10 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
     // or if one reaches station 1 and it is not requested, whether a cluster has been found on it or not
     if ((!isFirstOnStation && canSkip && excludedClusters.empty()) ||
         (chamber / 2 == 0 && !TrackerParam::Instance().requestStation[0] && (isFirstOnStation || !canSkip))) {
-      itFirstNewTrack = mTracks.emplace(itTrack, *itTrack);
+      auto itNewTrack = mTracks.emplace(itTrack, *itTrack);
+      if (itFirstNewTrack == mTracks.end()) {
+        itFirstNewTrack = itNewTrack;
+      }
       print("followTrackInChamber: duplicating candidate at position #", getTrackIndex(itFirstNewTrack));
     }
   }

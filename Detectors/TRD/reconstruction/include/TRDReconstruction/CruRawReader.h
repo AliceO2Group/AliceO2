@@ -76,6 +76,15 @@ class CruRawReader
     mEnableStats = options[TRDEnableStatsBit];
     mOptions = options;
   }
+
+  void setMaxErrWarnPrinted(int nerr, int nwar)
+  {
+    mMaxErrsPrinted = nerr < 0 ? std::numeric_limits<int>::max() : nerr;
+    mMaxWarnPrinted = nwar < 0 ? std::numeric_limits<int>::max() : nwar;
+  }
+  void checkNoWarn();
+  void checkNoErr();
+
   void setBlob(bool returnblob) { mReturnBlob = returnblob; }; //set class to produce blobs and not vectors. (compress vs pass through)`
   void setDataBuffer(const char* val)
   {
@@ -155,6 +164,14 @@ class CruRawReader
   int checkDigitHCHeader();
   int checkTrackletHCHeader();
   bool skipRDH();
+  void updateLinkErrorGraphs(int currentlinkindex, int supermodule_half, int stack_layer);
+  void increment2dHist(int hist, int sectorside, int stack, int layer)
+  {
+    if (mRootOutput) {
+      mParsingErrors->Fill(hist);
+      ((TH2F*)mParsingErrors2d->At(hist))->Fill(sectorside, stack * constants::NLAYER + layer);
+    }
+  }
 
   inline void rewind()
   {
@@ -194,6 +211,9 @@ class CruRawReader
 
   uint32_t mTotalTrackletsFound{0};
   uint32_t mTotalDigitsFound{0};
+
+  int mMaxErrsPrinted = 20;
+  int mMaxWarnPrinted = 20;
 
   long mDataBufferSize;
   uint64_t mDataReadIn = 0;

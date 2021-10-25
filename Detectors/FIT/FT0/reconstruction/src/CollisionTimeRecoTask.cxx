@@ -45,11 +45,10 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   int nch = inChData.size();
   const auto parInv = DigitizationParameters::Instance().mMV_2_NchannelsInverse;
   for (int ich = 0; ich < nch; ich++) {
-    int offsetChannel = getOffset(ich, inChData[ich].QTCAmpl);
-
+    int offsetChannel = getOffset(int(inChData[ich].ChId), inChData[ich].QTCAmpl);
     outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
                                                (inChData[ich].CFDTime - offsetChannel) * Geometry::ChannelWidth,
-                                               (float)inChData[ich].QTCAmpl * parInv,
+                                               (float)inChData[ich].QTCAmpl,
                                                inChData[ich].ChainQTC};
 
     //  only signals with amplitude participate in collision time
@@ -59,6 +58,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
         ndigitsA++;
       } else {
         sideCtime += outChData[ich].CFDTime;
+        LOG(DEBUG) << "cfd " << outChData[ich].ChId << " dig " << 13.2 * inChData[ich].CFDTime << " rec " << outChData[ich].CFDTime << " amp " << (float)inChData[ich].QTCAmpl << " offset " << offsetChannel;
         ndigitsC++;
       }
     }

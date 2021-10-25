@@ -427,7 +427,7 @@ int getDigitHCHeaderWordType(uint32_t word)
 }
 void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3])
 {
-  LOGF(INFO, "Digit HalfChamber Header\n Raw:0x%08x reserve:0x%01x side:0x%01x stack:0x%02x layer:0x%02x supermod:0x%02x numberHCW:0x%02x minor:0x%03x major:0x%03x version(>2007):0x%01x \n",
+  LOGF(INFO, "Digit HalfChamber Header: Raw:0x%08x reserve:0x%01x side:0x%01x stack:0x%02x layer:0x%02x supermod:0x%02x numberHCW:0x%02x minor:0x%03x major:0x%03x version(>2007):0x%01x",
        header.word, header.res, header.side, header.stack, header.layer, header.supermodule,
        header.numberHCW, header.minor, header.major, header.version);
   int countheaderwords = header.numberHCW;
@@ -438,9 +438,9 @@ void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3])
         DigitHCHeader1 header1;
         header1.word = headers[countheaderwords];
         if (header1.res != 0x1) {
-          LOGF(INFO, "*Corrupt* Digit HalfChamber Header1 Raw:0x%08x reserve:0x%02x pretriggercount=0x%02x pretriggerphase=0x%02x bunchxing:0x%05x number of timebins : 0x%03x\n", header1.word, header1.res, header1.ptrigcount, header1.ptrigphase, header1.bunchcrossing, header1.numtimebins);
+          LOGF(INFO, "*Corrupt* Digit HalfChamber Header1 Raw:0x%08x reserve:0x%02x pretriggercount=0x%02x pretriggerphase=0x%02x bunchxing:0x%05x number of timebins : 0x%03x", header1.word, header1.res, header1.ptrigcount, header1.ptrigphase, header1.bunchcrossing, header1.numtimebins);
         } else {
-          LOGF(INFO, "Digit HalfChamber Header1 Raw:0x%08x reserve:0x%02x pretriggercount=0x%02x pretriggerphase=0x%02x bunchxing:0x%05x number of timebins : 0x%03x\n", header1.word, header1.res, header1.ptrigcount, header1.ptrigphase, header1.bunchcrossing, header1.numtimebins);
+          LOGF(INFO, "Digit HalfChamber Header1 Raw:0x%08x reserve:0x%02x pretriggercount=0x%02x pretriggerphase=0x%02x bunchxing:0x%05x number of timebins : 0x%03x", header1.word, header1.res, header1.ptrigcount, header1.ptrigphase, header1.bunchcrossing, header1.numtimebins);
         }
         break;
       case 2:
@@ -456,9 +456,9 @@ void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3])
         DigitHCHeader3 header3;
         header3.word = headers[countheaderwords];
         if (header3.res != 0b110101) {
-          LOGF(INFO, "*Corrupt*Digit HalfChamber Header3\n Raw:0x%08x reserve:0x%08x readout program revision:0x%08x assembler program version:0x%01x \n", header3.word, header3.res, header3.svnrver, header3.svnver);
+          LOGF(INFO, "*Corrupt*Digit HalfChamber Header3: Raw:0x%08x reserve:0x%08x readout program revision:0x%08x assembler program version:0x%01x", header3.word, header3.res, header3.svnrver, header3.svnver);
         } else {
-          LOGF(INFO, "Digit HalfChamber Header3\n Raw:0x%08x reserve:0x%08x readout program revision:0x%08x assembler program version:0x%01x \n", header3.word, header3.res, header3.svnrver, header3.svnver);
+          LOGF(INFO, "Digit HalfChamber Header3: Raw:0x%08x reserve:0x%08x readout program revision:0x%08x assembler program version:0x%01x", header3.word, header3.res, header3.svnrver, header3.svnver);
         }
         break;
     }

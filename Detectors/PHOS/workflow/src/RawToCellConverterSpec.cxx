@@ -25,6 +25,7 @@
 #include "PHOSReconstruction/CaloRawFitterGS.h"
 #include "PHOSReconstruction/RawDecodingError.h"
 #include "PHOSWorkflow/RawToCellConverterSpec.h"
+#include "CommonUtils/VerbosityConfig.h"
 
 using namespace o2::phos::reco_workflow;
 
@@ -103,10 +104,17 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+  static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
   std::vector<o2::framework::InputSpec> dummy{o2::framework::InputSpec{"dummy", o2::framework::ConcreteDataMatcher{"PHS", o2::header::gDataDescriptionRawData, 0xDEADBEEF}}};
   for (const auto& ref : framework::InputRecordWalker(ctx.inputs(), dummy)) {
     const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     if (dh->payloadSize == 0) { // send empty output
+      auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
+      if (++contDeadBeef <= maxWarn) {
+        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+             contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
+      }
       mOutputCells.clear();
       ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
       mOutputTriggerRecords.clear();
@@ -120,11 +128,17 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       return; //empty TF, nothing to process
     }
   }
+  contDeadBeef = 0; // if good data, reset the counter
 
   std::vector<o2::framework::InputSpec> inputFilter{o2::framework::InputSpec{"filter", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Timeframe}};
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs(), inputFilter)) {
 
-    o2::phos::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
+    const gsl::span<const char>& rawmemory = o2::framework::DataRefUtils::as<const char>(rawData);
+    if (rawmemory.size() == 0) {
+      continue;
+    }
+
+    o2::phos::RawReaderMemory rawreader(rawmemory);
 
     // loop over all the DMA pages
     while (rawreader.hasNext()) {

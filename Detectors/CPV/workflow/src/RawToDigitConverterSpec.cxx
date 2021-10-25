@@ -23,6 +23,7 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CPVBase/Geometry.h"
+#include "CommonUtils/VerbosityConfig.h"
 
 using namespace o2::cpv::reco_workflow;
 
@@ -39,6 +40,20 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
   LOG(INFO) << "Pedestal data: " << mIsPedestalData;
   if (mIsPedestalData) { //no calibration for pedestal runs needed
     return;              //skip CCDB initialization for pedestal runs
+  }
+
+  // is no-gain-calibration flag setted?
+  mIsUsingGainCalibration = true;
+  if (ctx.options().isSet("no-gain-calibration")) {
+    mIsUsingGainCalibration = !ctx.options().get<bool>("no-gain-calibration");
+    LOG(INFO) << "no-gain-calibration is swithed ON";
+  }
+
+  // is no-bad-channel-map flag setted?
+  mIsUsingBadMap = true;
+  if (ctx.options().isSet("no-bad-channel-map")) {
+    mIsUsingBadMap = !ctx.options().get<bool>("no-bad-channel-map");
+    LOG(INFO) << "no-bad-channel-map is swithed ON";
   }
 
   //CCDB Url
@@ -80,16 +95,28 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
     mCurrentTimeStamp = o2::ccdb::getCurrentTimestamp();
     ccdbMgr.setTimestamp(mCurrentTimeStamp);
 
-    mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");
-    if (!mCalibParams) {
-      LOG(ERROR) << "Cannot get o2::cpv::CalibParams from CCDB. Using dummy calibration!";
+    if (mIsUsingGainCalibration) {
+      mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");
+      if (!mCalibParams) {
+        LOG(ERROR) << "Cannot get o2::cpv::CalibParams from CCDB. Using dummy calibration!";
+        mCalibParams = new o2::cpv::CalibParams(1);
+      }
+    } else {
+      LOG(INFO) << "Using dummy gain calibration (all coeffs = 1.)";
       mCalibParams = new o2::cpv::CalibParams(1);
     }
-    mBadMap = ccdbMgr.get<o2::cpv::BadChannelMap>("CPV/Calib/BadChannelMap");
-    if (!mBadMap) {
-      LOG(ERROR) << "Cannot get o2::cpv::BadChannelMap from CCDB. Using dummy calibration!";
+
+    if (mIsUsingBadMap) {
+      mBadMap = ccdbMgr.get<o2::cpv::BadChannelMap>("CPV/Calib/BadChannelMap");
+      if (!mBadMap) {
+        LOG(ERROR) << "Cannot get o2::cpv::BadChannelMap from CCDB. Using dummy calibration!";
+        mBadMap = new o2::cpv::BadChannelMap(1);
+      }
+    } else {
       mBadMap = new o2::cpv::BadChannelMap(1);
+      LOG(INFO) << "Using dummy bad map (all channels are good)";
     }
+
     mPedestals = ccdbMgr.get<o2::cpv::Pedestals>("CPV/Calib/Pedestals");
     if (!mPedestals) {
       LOG(ERROR) << "Cannot get o2::cpv::Pedestals from CCDB. Using dummy calibration!";
@@ -108,11 +135,17 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
 
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+  static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
   std::vector<o2::framework::InputSpec> dummy{o2::framework::InputSpec{"dummy", o2::framework::ConcreteDataMatcher{"CPV", o2::header::gDataDescriptionRawData, 0xDEADBEEF}}};
   for (const auto& ref : framework::InputRecordWalker(ctx.inputs(), dummy)) {
     const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     if (dh->payloadSize == 0) { // send empty output
-      LOG(INFO) << "Sending empty output due to data type input with 0xDEADBEEF";
+      auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
+      if (++contDeadBeef <= maxWarn) {
+        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+             contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
+      }
       mOutputDigits.clear();
       ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
       mOutputTriggerRecords.clear();
@@ -122,6 +155,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       return; //empty TF, nothing to process
     }
   }
+  contDeadBeef = 0; // if good data, reset the counter
 
   std::vector<o2::framework::InputSpec> rawFilter{
     {"RAWDATA", o2::framework::ConcreteDataTypeMatcher{"CPV", "RAWDATA"}, o2::framework::Lifetime::Timeframe},
@@ -224,7 +258,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   }
   digitBuffer.clear();
 
-  LOG(DEBUG) << "[CPVRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits ...";
+  LOG(INFO) << "[CPVRawToDigitConverter - run] Sending " << mOutputDigits.size() << " digits in " << mOutputTriggerRecords.size() << "trigger records.";
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
@@ -251,5 +285,7 @@ o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getRawToDigitConverterS
                                           o2::framework::Options{
                                             {"pedestal", o2::framework::VariantType::Bool, false, {"do not subtract pedestals from digits"}},
                                             {"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}},
+                                            {"no-gain-calibration", o2::framework::VariantType::Bool, false, {"do not apply gain calibration"}},
+                                            {"no-bad-channel-map", o2::framework::VariantType::Bool, false, {"do not mask bad channels"}},
                                           }};
 }

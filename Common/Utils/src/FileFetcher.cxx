@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <locale>
 #include <boost/process.hpp>
+#include <TGrid.h>
 
 using namespace o2::utils;
 using namespace std::chrono_literals;
@@ -42,6 +43,11 @@ FileFetcher::FileFetcher(const std::string& input, const std::string& selRegex, 
   }
   mNoRemoteCopy = mCopyCmd == "no-copy";
 
+  if (mCopyCmd.find("alien") != std::string::npos) {
+    if (!gGrid && !TGrid::Connect("alien://")) {
+      LOG(ERROR) << "Copy command refers to alien but connection to Grid failed";
+    }
+  }
   // parse input list
   mCopyDirName = o2::utils::Str::create_unique_path(mCopyDirName, 8);
   processInput(input);
@@ -127,8 +133,15 @@ void FileFetcher::processDirectory(const std::string& name)
 //____________________________________________________________
 bool FileFetcher::addInputFile(const std::string& fname)
 {
+  static bool alienErrorPrinted = false;
   if (mRemRegex && std::regex_match(fname, *mRemRegex.get())) {
     mInputFiles.emplace_back(FileRef{fname, mNoRemoteCopy ? fname : createCopyName(fname), true, false});
+    if (fname.find("alien:") == 0) {
+      if (!gGrid && !TGrid::Connect("alien://") && !alienErrorPrinted) {
+        LOG(ERROR) << "File name starts with alien but connection to Grid failed";
+        alienErrorPrinted = true;
+      }
+    }
     mNRemote++;
   } else if (fs::exists(fname)) { // local file
     mInputFiles.emplace_back(FileRef{fname, "", false, false});
@@ -252,8 +265,7 @@ void FileFetcher::fetcher()
   while (mRunning) {
     mNLoops = mNFilesProc / getNFiles();
     if (mNLoops > mMaxLoops) {
-      mNLoops--;
-      LOGP(INFO, "Finished file fetching: {} of {} files fetched successfully in {} loops", mNFilesProcOK, mNFilesProc, mMaxLoops);
+      LOGP(INFO, "Finished file fetching: {} of {} files fetched successfully in {} iterations", mNFilesProcOK, mNFilesProc, mMaxLoops);
       mRunning = false;
       break;
     }
@@ -263,7 +275,7 @@ void FileFetcher::fetcher()
     }
     fileEntry = (fileEntry + 1) % getNFiles();
     if (fileEntry == 0 && mNLoops > 0) {
-      LOG(INFO) << "Fetcher starts new loop " << mNLoops;
+      LOG(INFO) << "Fetcher starts new iteration " << mNLoops;
     }
     mNFilesProc++;
     auto& fileRef = mInputFiles[fileEntry];

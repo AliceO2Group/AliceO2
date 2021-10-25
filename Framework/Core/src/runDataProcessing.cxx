@@ -48,8 +48,9 @@
 #include "Framework/CommandInfo.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/TopologyPolicy.h"
-#include "DriverServerContext.h"
 #include "ControlServiceHelpers.h"
+#include "ProcessingPoliciesHelpers.h"
+#include "DriverServerContext.h"
 #include "HTTPParser.h"
 #include "DPLWebSocket.h"
 
@@ -71,9 +72,7 @@
 
 #include "FairMQDevice.h"
 #include <fairmq/DeviceRunner.h>
-#if __has_include(<fairmq/shmem/Monitor.h>)
 #include <fairmq/shmem/Monitor.h>
-#endif
 #include "options/FairMQProgOptions.h"
 
 #include <boost/program_options.hpp>
@@ -114,6 +113,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <execinfo.h>
+// This is to allow C++20 aggregate initialisation
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 #if defined(__linux__) && __has_include(<sched.h>)
 #include <sched.h>
 #elif __has_include(<linux/getcpu.h>)
@@ -159,72 +161,6 @@ std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 bpo::options_description gHiddenDeviceOptions("Hidden child options");
 
 // To be used to allow specifying the TerminationPolicy on the command line.
-namespace o2::framework
-{
-std::istream& operator>>(std::istream& in, enum TerminationPolicy& policy)
-{
-  std::string token;
-  in >> token;
-  if (token == "quit") {
-    policy = TerminationPolicy::QUIT;
-  } else if (token == "wait") {
-    policy = TerminationPolicy::WAIT;
-  } else {
-    in.setstate(std::ios_base::failbit);
-  }
-  return in;
-}
-
-std::ostream& operator<<(std::ostream& out, const enum TerminationPolicy& policy)
-{
-  if (policy == TerminationPolicy::QUIT) {
-    out << "quit";
-  } else if (policy == TerminationPolicy::WAIT) {
-    out << "wait";
-  } else {
-    out.setstate(std::ios_base::failbit);
-  }
-  return out;
-}
-
-std::istream& operator>>(std::istream& in, enum LogParsingHelpers::LogLevel& level)
-{
-  std::string token;
-  in >> token;
-  if (token == "debug") {
-    level = LogParsingHelpers::LogLevel::Debug;
-  } else if (token == "info") {
-    level = LogParsingHelpers::LogLevel::Info;
-  } else if (token == "warning") {
-    level = LogParsingHelpers::LogLevel::Warning;
-  } else if (token == "error") {
-    level = LogParsingHelpers::LogLevel::Error;
-  } else if (token == "fatal") {
-    level = LogParsingHelpers::LogLevel::Fatal;
-  } else {
-    in.setstate(std::ios_base::failbit);
-  }
-  return in;
-}
-
-std::ostream& operator<<(std::ostream& out, const enum LogParsingHelpers::LogLevel& level)
-{
-  if (level == LogParsingHelpers::LogLevel::Debug) {
-    out << "debug";
-  } else if (level == LogParsingHelpers::LogLevel::Info) {
-    out << "info";
-  } else if (level == LogParsingHelpers::LogLevel::Warning) {
-    out << "warning";
-  } else if (level == LogParsingHelpers::LogLevel::Error) {
-    out << "error";
-  } else if (level == LogParsingHelpers::LogLevel::Fatal) {
-    out << "fatal";
-  } else {
-    out.setstate(std::ios_base::failbit);
-  }
-  return out;
-}
-} // namespace o2::framework
 
 size_t current_time_with_ms()
 {
@@ -320,7 +256,11 @@ namespace
 int calculateExitCode(DriverInfo& driverInfo, DeviceSpecs& deviceSpecs, DeviceInfos& infos)
 {
   std::regex regexp(R"(^\[([\d+:]*)\]\[\w+\] )");
-  int exitCode = 0;
+  if (!driverInfo.lastError.empty()) {
+    LOGP(ERROR, "SEVERE: DPL driver encountered an error while running.\n{}",
+         driverInfo.lastError);
+    return 1;
+  }
   for (size_t di = 0; di < deviceSpecs.size(); ++di) {
     auto& info = infos[di];
     auto& spec = deviceSpecs[di];
@@ -330,10 +270,10 @@ int calculateExitCode(DriverInfo& driverInfo, DeviceSpecs& deviceSpecs, DeviceIn
            info.pid,
            info.minFailureLevel,
            std::regex_replace(info.firstSevereError, regexp, ""));
-      exitCode = 1;
+      return 1;
     }
   }
-  return exitCode;
+  return 0;
 }
 } // namespace
 
@@ -380,19 +320,8 @@ static void handle_sigint(int)
 /// Helper to invoke shared memory cleanup
 void cleanupSHM(std::string const& uniqueWorkflowId)
 {
-#if __has_include(<fairmq/shmem/Monitor.h>)
   using namespace fair::mq::shmem;
   Monitor::Cleanup(SessionId{"dpl_" + uniqueWorkflowId}, false);
-#else
-  // Old code, invoking external fairmq-shmmonitor
-  auto shmCleanup = fmt::format("fairmq-shmmonitor --cleanup -s dpl_{} 2>&1 >/dev/null", uniqueWorkflowId);
-  LOG(debug)
-    << "Cleaning up shm memory session with " << shmCleanup;
-  auto result = system(shmCleanup.c_str());
-  if (result != 0) {
-    LOG(error) << "Unable to cleanup shared memory, run " << shmCleanup << "by hand to fix";
-  }
-#endif
 }
 
 static void handle_sigchld(int) { sigchld_requested = true; }
@@ -1075,6 +1004,18 @@ void doUnknownException(std::string const& s, char const* processName)
   }
 }
 
+[[maybe_unused]] AlgorithmSpec dryRun(DeviceSpec const& spec)
+{
+  return AlgorithmSpec{adaptStateless(
+    [&routes = spec.outputs](DataAllocator& outputs) {
+      LOG(INFO) << "Dry run enforced. Creating dummy messages to simulate computation happended";
+      for (auto& route : routes) {
+        auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+        outputs.make<int>(Output{concrete.origin, concrete.description, concrete.subSpec}, 2);
+      }
+    })};
+}
+
 void doDefaultWorkflowTerminationHook()
 {
   //LOG(INFO) << "Process " << getpid() << " is exiting.";
@@ -1083,7 +1024,7 @@ void doDefaultWorkflowTerminationHook()
 int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
             RunningWorkflowInfo const& runningWorkflow,
             RunningDeviceRef ref,
-            TerminationPolicy errorPolicy,
+            ProcessingPolicies processingPolicies,
             std::string const& defaultDriverClient,
             uv_loop_t* loop)
 {
@@ -1120,7 +1061,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                      &quotaEvaluator,
                                      &serviceRegistry,
                                      &deviceState,
-                                     &errorPolicy,
+                                     &processingPolicies,
                                      &loop](fair::mq::DeviceRunner& r) {
     simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
@@ -1138,8 +1079,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     // The decltype stuff is to be able to compile with both new and old
     // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
     decltype(r.fDevice) device;
-    device = std::move(make_matching<decltype(device), DataProcessingDevice>(ref, serviceRegistry));
-    dynamic_cast<DataProcessingDevice*>(device.get())->SetErrorPolicy(errorPolicy);
+    device = std::move(make_matching<decltype(device), DataProcessingDevice>(ref, serviceRegistry, processingPolicies));
 
     serviceRegistry.get<RawDeviceService>().setDevice(device.get());
     r.fDevice = std::move(device);
@@ -1163,16 +1103,6 @@ struct WorkflowInfo {
   std::string executable;
   std::vector<std::string> args;
   std::vector<ConfigParamSpec> options;
-};
-
-struct GuiCallbackContext {
-  uint64_t frameLast;
-  float* frameLatency;
-  float* frameCost;
-  DebugGUI* plugin;
-  void* window;
-  bool* guiQuitRequested;
-  std::function<void(void)> callback;
 };
 
 void gui_callback(uv_timer_s* ctx)
@@ -1222,7 +1152,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                     boost::program_options::variables_map& varmap,
                     std::string frameworkId)
 {
-  RunningWorkflowInfo runningWorkflow;
+  RunningWorkflowInfo runningWorkflow{
+    .uniqueWorkflowId = driverInfo.uniqueWorkflowId,
+    .shmSegmentId = (int16_t)atoi(varmap["shm-segment-id"].as<std::string>().c_str())};
   DeviceInfos infos;
   DeviceControls controls;
   DevicesManager* devicesManager = new DevicesManager{controls, infos, runningWorkflow.devices};
@@ -1633,7 +1565,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             return doChild(driverInfo.argc, driverInfo.argv,
                            serviceRegistry,
                            runningWorkflow, ref,
-                           driverInfo.errorPolicy,
+                           driverInfo.processingPolicies,
                            driverInfo.defaultDriverClient,
                            loop);
           }
@@ -1647,9 +1579,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             ss << " - " << spec.name << "(" << spec.id << ")"
                << "\n";
           }
-          LOG(ERROR) << "Unable to find component with id "
-                     << frameworkId << ". Available options:\n"
-                     << ss.str();
+          driverInfo.lastError = fmt::format(
+            "Unable to find component with id {}."
+            " Available options:\n{}",
+            frameworkId, ss.str());
           driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
         }
         break;
@@ -1781,7 +1714,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // Calculate what we should do next and eventually
         // show the GUI
         if (guiQuitRequested ||
-            (driverInfo.terminationPolicy == TerminationPolicy::QUIT && (checkIfCanExit(infos) == true))) {
+            (driverInfo.processingPolicies.termination == TerminationPolicy::QUIT && (checkIfCanExit(infos) == true))) {
           // Something requested to quit. This can be a user
           // interaction with the GUI or (if --completion-policy=quit)
           // it could mean that the workflow does not have anything else to do.
@@ -1875,7 +1808,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         } else if (areAllChildrenGone(infos) == false &&
                    (guiQuitRequested || checkIfCanExit(infos) == true || graceful_exit)) {
           driverInfo.states.push_back(DriverState::HANDLE_CHILDREN);
-        } else if (hasError && driverInfo.errorPolicy == TerminationPolicy::QUIT &&
+        } else if (hasError && driverInfo.processingPolicies.error == TerminationPolicy::QUIT &&
                    !(guiQuitRequested || checkIfCanExit(infos) == true || graceful_exit)) {
           graceful_exit = 1;
           driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
@@ -2182,12 +2115,12 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     // Notice that compared to DDS we need to schedule things,
     // because DDS needs to be able to have actual Executions in
     // order to provide a correct configuration.
-    control.callbacks = {[](WorkflowSpec const& workflow,
-                            DeviceSpecs const& specs,
-                            DeviceExecutions const& executions,
-                            DataProcessorInfos&,
-                            CommandInfo const& commandInfo) {
-      dumpDeviceSpec2DDS(std::cout, specs, executions, commandInfo);
+    control.callbacks = {[workflowSuffix = varmap["dds-workflow-suffix"]](WorkflowSpec const& workflow,
+                                                                          DeviceSpecs const& specs,
+                                                                          DeviceExecutions const& executions,
+                                                                          DataProcessorInfos&,
+                                                                          CommandInfo const& commandInfo) {
+      dumpDeviceSpec2DDS(std::cout, workflowSuffix.as<std::string>(), specs, executions, commandInfo);
     }};
     control.forcedTransitions = {
       DriverState::EXIT,                    //
@@ -2343,8 +2276,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     currentArgs,
     currentWorkflowOptions};
 
-  enum TerminationPolicy policy;
-  enum TerminationPolicy errorPolicy;
+  ProcessingPolicies processingPolicies;
   enum LogParsingHelpers::LogLevel minFailureLevel;
   bpo::options_description executorOptions("Executor options");
   const char* helpDescription = "print help: short, full, executor, or processor name";
@@ -2360,15 +2292,16 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                                   //                                                                                                                   //
     ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")                                                        //                                                                                                                     //
     ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                                                                //                                                                                                                       //
-    ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT),                                               //                                                                                                                       //
+    ("completion-policy,c", bpo::value<TerminationPolicy>(&processingPolicies.termination)->default_value(TerminationPolicy::QUIT),                       //                                                                                                                       //
      "what to do when processing is finished: quit, wait")                                                                                                //                                                                                                                      //
-    ("error-policy", bpo::value<TerminationPolicy>(&errorPolicy)->default_value(TerminationPolicy::QUIT),                                                 //                                                                                                                          //
+    ("error-policy", bpo::value<TerminationPolicy>(&processingPolicies.error)->default_value(TerminationPolicy::QUIT),                                    //                                                                                                                          //
      "what to do when a device has an error: quit, wait")                                                                                                 //                                                                                                                            //
     ("min-failure-level", bpo::value<LogParsingHelpers::LogLevel>(&minFailureLevel)->default_value(LogParsingHelpers::LogLevel::Fatal),                   //                                                                                                                          //
      "minimum message level which will be considered as fatal and exit with 1")                                                                           //                                                                                                                            //
     ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")                                                       //                                                                                                                              //
     ("timeout,t", bpo::value<uint64_t>()->default_value(0), "forced exit timeout (in seconds)")                                                           //                                                                                                                                //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                                                        //                                                                                                                                  //
+    ("dds-workflow-suffix,D", bpo::value<std::string>()->default_value(""), "suffix for DDS names")                                                       //                                                                                                                                  //
     ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")                                              //                                                                                                                                    //
     ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                                                    //                                                                                                                                      //
     ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far. It implies --batch. Use --no-batch to see the GUI")     //                                                                                                                                        //
@@ -2428,7 +2361,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     // configuration they get passed by their parents.
     for (auto& dp : importedWorkflow) {
       auto found = std::find_if(physicalWorkflow.begin(), physicalWorkflow.end(),
-                                [& name = dp.name](DataProcessorSpec const& spec) { return spec.name == name; });
+                                [&name = dp.name](DataProcessorSpec const& spec) { return spec.name == name; });
       if (found == physicalWorkflow.end()) {
         physicalWorkflow.push_back(dp);
         rankIndex.insert(std::make_pair(dp.name, workflowHashB));
@@ -2495,7 +2428,19 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
         if (checkDependencies(j, i)) {
           edges.emplace_back(i, j);
           if (both) {
-            throw std::runtime_error(physicalWorkflow[i].name + " has circular dependency with " + physicalWorkflow[j].name);
+            std::ostringstream str;
+            for (auto x : {i, j}) {
+              str << physicalWorkflow[x].name << ":\n";
+              str << "inputs:\n";
+              for (auto& input : physicalWorkflow[x].inputs) {
+                str << fmt::format("- {}\n", input);
+              }
+              str << "outputs:\n";
+              for (auto& output : physicalWorkflow[x].outputs) {
+                str << fmt::format("- {}\n", output);
+              }
+            }
+            throw std::runtime_error(physicalWorkflow[i].name + " has circular dependency with " + physicalWorkflow[j].name + ":\n" + str.str());
           }
         }
       }
@@ -2506,7 +2451,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
       throw std::runtime_error("Unable to do topological sort of the resulting workflow. Do you have loops?\n" + debugTopoInfo(physicalWorkflow, topoInfos, edges));
     }
     // Sort by layer and then by name, to ensure stability.
-    std::stable_sort(topoInfos.begin(), topoInfos.end(), [& workflow = physicalWorkflow, &rankIndex, &topoInfos](TopoIndexInfo const& a, TopoIndexInfo const& b) {
+    std::stable_sort(topoInfos.begin(), topoInfos.end(), [&workflow = physicalWorkflow, &rankIndex, &topoInfos](TopoIndexInfo const& a, TopoIndexInfo const& b) {
       auto aRank = std::make_tuple(a.layer, -workflow.at(a.index).outputs.size(), workflow.at(a.index).name);
       auto bRank = std::make_tuple(b.layer, -workflow.at(b.index).outputs.size(), workflow.at(b.index).name);
       return aRank < bRank;
@@ -2581,11 +2526,12 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.argv = argv;
   driverInfo.batch = varmap["no-batch"].defaulted() ? varmap["batch"].as<bool>() : false;
   driverInfo.noSHMCleanup = varmap["no-cleanup"].as<bool>();
-  driverInfo.terminationPolicy = varmap["completion-policy"].as<TerminationPolicy>();
+  driverInfo.processingPolicies.termination = varmap["completion-policy"].as<TerminationPolicy>();
+  driverInfo.processingPolicies.earlyForward = varmap["early-forward-policy"].as<EarlyForwardPolicy>();
   if (varmap["error-policy"].defaulted() && driverInfo.batch == false) {
-    driverInfo.errorPolicy = TerminationPolicy::WAIT;
+    driverInfo.processingPolicies.error = TerminationPolicy::WAIT;
   } else {
-    driverInfo.errorPolicy = varmap["error-policy"].as<TerminationPolicy>();
+    driverInfo.processingPolicies.error = varmap["error-policy"].as<TerminationPolicy>();
   }
   driverInfo.minFailureLevel = varmap["min-failure-level"].as<LogParsingHelpers::LogLevel>();
   driverInfo.startTime = uv_hrtime();
@@ -2605,7 +2551,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   // If the id is set, this means this is a device,
   // otherwise this is the driver.
   if (varmap.count("id")) {
-    frameworkId = varmap["id"].as<std::string>();
+    // The framework id does not want to know anything about DDS template expansion
+    // so we simply drop it. Notice that the "id" Property is still the same as the
+    // original --id option.
+    frameworkId = std::regex_replace(varmap["id"].as<std::string>(), std::regex{"_dds.*"}, "");
     driverInfo.uniqueWorkflowId = fmt::format("{}", getppid());
     driverInfo.defaultDriverClient = "stdout://";
   } else {
@@ -2628,3 +2577,4 @@ void doBoostException(boost::exception& e, char const* processName)
   LOGP(ERROR, "error while setting up workflow in {}: {}",
        processName, boost::current_exception_diagnostic_information(true));
 }
+#pragma GCC diagnostic push

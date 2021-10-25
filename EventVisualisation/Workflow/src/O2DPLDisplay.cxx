@@ -30,7 +30,10 @@
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/ConfigParamSpec.h"
-
+#include "DataFormatsMCH/TrackMCH.h"
+#include "DataFormatsMCH/ROFRecord.h"
+#include "DataFormatsMCH/ClusterBlock.h"
+#include "MCHTracking/TrackParam.h"
 #include <unistd.h>
 #include <climits>
 
@@ -64,6 +67,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h" // main method must be included here (otherwise customize not used)
 void O2DPLDisplaySpec::init(InitContext& ic)
 {
+  LOG(INFO) << "------------------------    O2DPLDisplay::init version " << this->mWorkflowVersion << "    ------------------------------------";
   const auto grp = o2::parameters::GRPObject::loadFrom();
   o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP();
@@ -114,9 +118,9 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   if (!this->mEveHostNameMatch) {
     return;
   }
-
+  LOG(INFO) << "------------------------    O2DPLDisplay::run version " << this->mWorkflowVersion << "    ------------------------------------";
   // filtering out any run which occur before reaching next time interval
-  std::chrono::time_point<std::chrono::high_resolution_clock> currentTime = std::chrono::high_resolution_clock::now();
+  auto currentTime = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = currentTime - this->mTimeStamp;
   if (elapsed < this->mTimeInteval) {
     return; // skip this run - it is too often
@@ -126,8 +130,14 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   EveWorkflowHelper helper;
   helper.getRecoContainer().collectData(pc, *mDataRequest);
   helper.selectTracks(&(mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
+
   helper.prepareITSClusters(mITSDict);
-  helper.draw(this->mJsonPath, this->mNumberOfFiles, this->mNumberOfTracks);
+  helper.prepareMFTClusters(mMFTDict);
+
+  helper.draw(this->mJsonPath, this->mNumberOfFiles, this->mNumberOfTracks, this->mTrkMask, this->mClMask, this->mWorkflowVersion);
+  const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
+  auto endTime = std::chrono::high_resolution_clock::now();
+  LOGP(INFO, "Visualization of TF:{} at orbit {} took {} s.", dh->tfCounter, dh->firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
 }
 
 void O2DPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
@@ -136,6 +146,8 @@ void O2DPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
+  LOG(INFO) << "------------------------    defineDataProcessing " << O2DPLDisplaySpec::mWorkflowVersion << "    ------------------------------------";
+
   WorkflowSpec specs;
 
   std::string jsonFolder = cfgc.options().get<std::string>("jsons-folder");
@@ -163,8 +175,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   int numberOfFiles = cfgc.options().get<int>("number-of_files");
   int numberOfTracks = cfgc.options().get<int>("number-of_tracks");
 
-  GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks"));
-  GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters"));
+  GID::mask_t allowedTracks = GID::getSourcesMask("ITS,TPC,MFT,MCH,ITS-TPC,ITS-TPC-TOF,TPC-TRD,ITS-TPC-TRD,MID");
+  GID::mask_t allowedClusters = GID::getSourcesMask("ITS,TPC,MFT,MCH,TRD,TOF,MID,TRD");
+
+  GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks")) & allowedTracks;
+  GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters")) & allowedClusters;
   if (!srcTrk.any() && !srcCl.any()) {
     throw std::runtime_error("No input configured");
   }

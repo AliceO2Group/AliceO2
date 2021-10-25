@@ -21,7 +21,6 @@
 #include <unistd.h>
 #include <iostream>
 #include <string>
-#include <sstream>
 
 namespace o2
 {
@@ -35,12 +34,11 @@ std::string Options::printOptions()
   static const char* str[2] = {"false", "true"};
   std::stringstream ss;
   ss << "fileName    : " << this->fileName() << std::endl;
+  ss << "data folder : " << this->dataFolder() << std::endl;
+  ss << "saved data folder : " << this->savedDataFolder() << std::endl;
   ss << "randomTracks: " << str[this->randomTracks()] << std::endl;
-  ss << "itc         : " << str[this->its()] << std::endl;
   ss << "json        : " << str[this->json()] << std::endl;
   ss << "online      : " << str[this->online()] << std::endl;
-  ss << "vsd         : " << str[this->vsd()] << std::endl;
-  ss << "tpc         : " << str[this->tpc()] << std::endl;
   return ss.str();
 }
 
@@ -59,9 +57,9 @@ std::string Options::usage()
   ss << "\t\t"
      << "-f name        name of the data file" << std::endl;
   ss << "\t\t"
-     << "-i             use itc reading from files as a source" << std::endl;
-  ss << "\t\t"
      << "-j             use json files as a source" << std::endl;
+  ss << "\t\t"
+     << "-m limit       maximum size of the memory which do not cause exiting" << std::endl;
   ss << "\t\t"
      << "-o             use online json files as a source" << std::endl;
   ss << "\t\t"
@@ -69,11 +67,7 @@ std::string Options::usage()
   ss << "\t\t"
      << "-r             use random tracks" << std::endl;
   ss << "\t\t"
-     << "-s             save options to o2eve.json in current folder" << std::endl;
-  ss << "\t\t"
-     << "-t             use tpc reading from files as a source" << std::endl;
-  ss << "\t\t"
-     << "-v             use vsd files as a source" << std::endl;
+     << "-s name        name of the saved data folder" << std::endl;
   ss << "\tdefault values are always taken from o2eve.json in current folder if present" << std::endl;
   return ss.str();
 }
@@ -87,7 +81,7 @@ bool Options::processCommandLine(int argc, char* argv[])
   // put ':' in the starting of the
   // string so that program can
   //distinguish between '?' and ':'
-  while ((opt = getopt(argc, argv, ":d:f:hijop:rsvt")) != -1) {
+  while ((opt = getopt(argc, argv, ":d:f:hijm:op:rs:vt")) != -1) {
     switch (opt) {
       case 'd':
         this->mDataFolder = optarg;
@@ -95,14 +89,14 @@ bool Options::processCommandLine(int argc, char* argv[])
       case 'f':
         this->mFileName = optarg;
         break;
-      case 'i':
-        this->mIts = true;
-        break;
       case 'h':
         std::cout << usage() << std::endl;
         return false;
       case 'j':
         this->mJSON = true;
+        break;
+      case 'm':
+        this->mMemoryLimit = std::stol(std::string(optarg));
         break;
       case 'o':
         this->mOnline = true;
@@ -114,13 +108,7 @@ bool Options::processCommandLine(int argc, char* argv[])
         this->mRandomTracks = true;
         break;
       case 's':
-        save = true;
-        break;
-      case 't':
-        this->mTpc = true;
-        break;
-      case 'v':
-        this->mVsd = true;
+        this->mSavedDataFolder = optarg;
         break;
       case ':':
         LOG(ERROR) << "option needs a value: " << char(optopt);
@@ -152,33 +140,27 @@ bool Options::processCommandLine(int argc, char* argv[])
 bool Options::saveToJSON(std::string filename)
 {
   rapidjson::Value dataFolder;
+  rapidjson::Value savedDataFolder;
   rapidjson::Value fileName;
-  rapidjson::Value its(rapidjson::kNumberType);
   rapidjson::Value json(rapidjson::kNumberType);
   rapidjson::Value online(rapidjson::kNumberType);
   rapidjson::Value randomTracks(rapidjson::kNumberType);
-  rapidjson::Value tpc(rapidjson::kNumberType);
-  rapidjson::Value vsd(rapidjson::kNumberType);
 
   dataFolder.SetString(rapidjson::StringRef(this->dataFolder().c_str()));
+  savedDataFolder.SetString(rapidjson::StringRef(this->savedDataFolder().c_str()));
   fileName.SetString(rapidjson::StringRef(this->fileName().c_str()));
-  its.SetBool(this->its());
   json.SetBool(this->json());
   online.SetBool(this->online());
   randomTracks.SetBool(this->randomTracks());
-  tpc.SetBool(this->tpc());
-  vsd.SetBool(this->vsd());
 
   rapidjson::Document tree(rapidjson::kObjectType);
   rapidjson::Document::AllocatorType& allocator = tree.GetAllocator();
   tree.AddMember("dataFolder", dataFolder, allocator);
+  tree.AddMember("savedDataFolder", savedDataFolder, allocator);
   tree.AddMember("fileName", fileName, allocator);
-  tree.AddMember("its", its, allocator);
   tree.AddMember("json", json, allocator);
   tree.AddMember("online", online, allocator);
   tree.AddMember("randomTracks", randomTracks, allocator);
-  tree.AddMember("tpc", tpc, allocator);
-  tree.AddMember("vsd", vsd, allocator);
 
   rapidjson::StringBuffer buffer;
   rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);

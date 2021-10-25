@@ -28,6 +28,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "Framework/InputRecordWalker.h"
 #include "Framework/DataRefUtils.h"
+#include "CommonUtils/VerbosityConfig.h"
 
 using namespace o2::framework;
 
@@ -40,7 +41,7 @@ using RDHUtils = o2::raw::RDHUtils;
 
 void CompressedDecodingTask::init(InitContext& ic)
 {
-  LOG(INFO) << "CompressedDecoding init";
+  LOG(DEBUG) << "CompressedDecoding init";
 
   mMaskNoise = ic.options().get<bool>("mask-noise");
   mNoiseRate = ic.options().get<int>("noise-counts");
@@ -53,7 +54,7 @@ void CompressedDecodingTask::init(InitContext& ic)
   }
 
   auto finishFunction = [this]() {
-    LOG(INFO) << "CompressedDecoding finish";
+    LOG(DEBUG) << "CompressedDecoding finish";
   };
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
   mTimer.Stop();
@@ -153,7 +154,7 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
 
 void CompressedDecodingTask::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "TOF CompressedDecoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(DEBUG, "TOF CompressedDecoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
@@ -164,15 +165,21 @@ void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
   {
+    static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
     std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"TOF", mDataDesc, 0xDEADBEEF}}};
     for (const auto& ref : InputRecordWalker(inputs, dummy)) {
       const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       if (dh->payloadSize == 0) {
-        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
-             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+        auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
+        if (++contDeadBeef <= maxWarn) {
+          LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+               contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
+        }
         return;
       }
     }
+    contDeadBeef = 0; // if good data, reset the counter
   }
 
   /** loop over inputs routes **/

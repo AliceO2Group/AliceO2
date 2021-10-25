@@ -27,11 +27,14 @@
 #include "Framework/DeviceState.h"
 #include "Framework/Lifetime.h"
 #include "Framework/LifetimeHelpers.h"
+#include "Framework/ProcessingPolicies.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ComputingResource.h"
 #include "Framework/Logger.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/RawDeviceService.h"
+#include "ProcessingPoliciesHelpers.h"
 
 #include "WorkflowHelpers.h"
 
@@ -72,12 +75,12 @@ void signal_callback(uv_signal_t* handle, int)
 struct ExpirationHandlerHelpers {
   static RouteConfigurator::CreationConfigurator dataDrivenConfigurator()
   {
-    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::dataDrivenCreation(); };
+    return [](DeviceState&, ServiceRegistry&, ConfigParamRegistry const&) { return LifetimeHelpers::dataDrivenCreation(); };
   }
 
   static RouteConfigurator::CreationConfigurator timeDrivenConfigurator(InputSpec const& matcher)
   {
-    return [matcher](DeviceState& state, ConfigParamRegistry const& options) {
+    return [matcher](DeviceState& state, ServiceRegistry&, ConfigParamRegistry const& options) {
       std::string rateName = std::string{"period-"} + matcher.binding;
       auto period = options.get<int>(rateName.c_str());
       // We create a timer to wake us up. Notice the actual
@@ -95,7 +98,7 @@ struct ExpirationHandlerHelpers {
 
   static RouteConfigurator::CreationConfigurator signalDrivenConfigurator(InputSpec const& matcher, size_t inputTimeslice, size_t maxInputTimeslices)
   {
-    return [matcher, inputTimeslice, maxInputTimeslices](DeviceState& state, ConfigParamRegistry const& options) {
+    return [matcher, inputTimeslice, maxInputTimeslices](DeviceState& state, ServiceRegistry&, ConfigParamRegistry const& options) {
       std::string startName = std::string{"start-value-"} + matcher.binding;
       std::string endName = std::string{"end-value-"} + matcher.binding;
       std::string stepName = std::string{"step-value-"} + matcher.binding;
@@ -111,20 +114,27 @@ struct ExpirationHandlerHelpers {
       uv_signal_start(sh, detail::signal_callback, SIGUSR1);
       state.activeSignals.push_back(sh);
 
-      return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices);
+      return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices, 1);
     };
   }
 
   static RouteConfigurator::CreationConfigurator enumDrivenConfigurator(InputSpec const& matcher, size_t inputTimeslice, size_t maxInputTimeslices)
   {
-    return [matcher, inputTimeslice, maxInputTimeslices](DeviceState&, ConfigParamRegistry const& options) {
+    return [matcher, inputTimeslice, maxInputTimeslices](DeviceState&, ServiceRegistry&, ConfigParamRegistry const& options) {
       std::string startName = std::string{"start-value-"} + matcher.binding;
       std::string endName = std::string{"end-value-"} + matcher.binding;
       std::string stepName = std::string{"step-value-"} + matcher.binding;
       auto start = options.get<int64_t>(startName.c_str());
       auto stop = options.get<int64_t>(endName.c_str());
       auto step = options.get<int64_t>(stepName.c_str());
-      return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices);
+      auto repetitions = 1;
+      for (auto& meta : matcher.metadata) {
+        if (meta.name == "repetitions") {
+          repetitions = meta.defaultValue.get<int64_t>();
+          break;
+        }
+      }
+      return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices, repetitions);
     };
   }
 
@@ -152,6 +162,52 @@ struct ExpirationHandlerHelpers {
       auto serverUrl = options.get<std::string>("condition-backend");
       auto forceTimestamp = options.get<std::string>("condition-timestamp");
       return LifetimeHelpers::fetchFromCCDBCache(spec, serverUrl, forceTimestamp, sourceChannel);
+    };
+  }
+
+  static RouteConfigurator::CreationConfigurator fairmqDrivenConfiguration(InputSpec const& spec, int inputTimeslice, int maxInputTimeslices)
+  {
+    return [spec, inputTimeslice, maxInputTimeslices](DeviceState& state, ServiceRegistry& services, ConfigParamRegistry const& options) {
+      std::string channelNameOption = std::string{"out-of-band-channel-name-"} + spec.binding;
+      auto channelName = options.get<std::string>(channelNameOption.c_str());
+      auto device = services.get<RawDeviceService>().device();
+      auto& channel = device->fChannels[channelName];
+
+      // We assume there is always a ZeroMQ socket behind.
+      int zmq_fd = 0;
+      size_t zmq_fd_len = sizeof(zmq_fd);
+      uv_poll_t* poller = (uv_poll_t*)malloc(sizeof(uv_poll_t));
+      channel[0].GetSocket().GetOption("fd", &zmq_fd, &zmq_fd_len);
+      if (zmq_fd == 0) {
+        throw runtime_error_f("Cannot get file descriptor for channel %s", channelName.c_str());
+      }
+      LOG(debug) << "Polling socket for " << channel[0].GetName();
+
+      state.activeOutOfBandPollers.push_back(poller);
+
+      // We always create entries whenever we get invoked.
+      // Notice this works only if we are the only input.
+      // Otherwise we should check the channel for new data,
+      // before we create an entry.
+      return LifetimeHelpers::enumDrivenCreation(0, -1, 1, inputTimeslice, maxInputTimeslices, 1);
+    };
+  }
+
+  static RouteConfigurator::DanglingConfigurator danglingOutOfBandConfigurator()
+  {
+    return [](DeviceState&, ConfigParamRegistry const& options) {
+      // If the entry is there it means that something awoke
+      // the loop, so we can materialise it immediately.
+      return LifetimeHelpers::expireAlways();
+    };
+  }
+
+  static RouteConfigurator::ExpirationConfigurator expiringOutOfBandConfigurator(InputSpec const& spec)
+  {
+    return [spec](DeviceState&, ConfigParamRegistry const& options) {
+      std::string channelNameOption = std::string{"out-of-band-channel-name-"} + spec.binding;
+      auto channelName = options.get<std::string>(channelNameOption.c_str());
+      return LifetimeHelpers::fetchFromFairMQ(spec, channelName);
     };
   }
 
@@ -225,7 +281,7 @@ struct ExpirationHandlerHelpers {
   /// This behaves as data. I.e. we never create it unless data arrives.
   static RouteConfigurator::CreationConfigurator createOptionalConfigurator()
   {
-    return [](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::dataDrivenCreation(); };
+    return [](DeviceState&, ServiceRegistry&, ConfigParamRegistry const&) { return LifetimeHelpers::dataDrivenCreation(); };
   }
 
   /// This will always exipire an optional record when no data is received.
@@ -654,6 +710,12 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       std::nullopt};
 
     switch (consumer.inputs[edge.consumerInputIndex].lifetime) {
+      case Lifetime::OutOfBand:
+        route.configurator = {
+          ExpirationHandlerHelpers::fairmqDrivenConfiguration(inputSpec, consumerDevice.inputTimesliceId, consumerDevice.maxInputTimeslices),
+          ExpirationHandlerHelpers::danglingOutOfBandConfigurator(),
+          ExpirationHandlerHelpers::expiringOutOfBandConfigurator(inputSpec)};
+        break;
       case Lifetime::Condition:
         route.configurator = {
           ExpirationHandlerHelpers::dataDrivenConfigurator(),
@@ -1138,6 +1200,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("shm-monitor", bpo::value<std::string>());
         realOdesc.add_options()("channel-prefix", bpo::value<std::string>());
         realOdesc.add_options()("network-interface", bpo::value<std::string>());
+        realOdesc.add_options()("early-forward-policy", bpo::value<std::string>());
         realOdesc.add_options()("session", bpo::value<std::string>());
         filterArgsFct(expansions.we_wordc, expansions.we_wordv, realOdesc);
         wordfree(&expansions);
@@ -1183,18 +1246,22 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
             assert(semantic->min_tokens() <= 1);
             //assert(semantic->max_tokens() && semantic->min_tokens());
             if (semantic->min_tokens() > 0) {
+              std::string stringRep;
+              if (auto v = boost::any_cast<std::string>(&varit.second.value())) {
+                stringRep = *v;
+              } else if (auto v = boost::any_cast<EarlyForwardPolicy>(&varit.second.value())) {
+                stringRep = fmt::format("{}", *v);
+              }
               if (varit.first == "channel-config") {
-                processRawChannelConfig(varit.second.as<std::string>());
+                processRawChannelConfig(stringRep);
               } else {
-                tmpArgs.emplace_back("--");
-                tmpArgs.back() += varit.first;
+                tmpArgs.emplace_back(fmt::format("--{}", varit.first));
                 // add the token
-                tmpArgs.emplace_back(varit.second.as<std::string>());
+                tmpArgs.emplace_back(stringRep);
               }
               optarg = tmpArgs.back().c_str();
             } else if (semantic->min_tokens() == 0 && varit.second.as<bool>()) {
-              tmpArgs.emplace_back("--");
-              tmpArgs.back() += varit.first;
+              tmpArgs.emplace_back(fmt::format("--{}", varit.first));
             }
           }
           control.options.insert(std::make_pair(varit.first, optarg));
@@ -1269,33 +1336,34 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
   // - rate is an option of FairMQ device for ConditionalRun
   // - child-driver is not a FairMQ device option but used per device to start to process
   bpo::options_description forwardedDeviceOptions;
-  forwardedDeviceOptions.add_options()                                                                                                        //
-    ("severity", bpo::value<std::string>()->default_value("info"), "severity level of the log")                                               //
-    ("plugin,P", bpo::value<std::string>(), "FairMQ plugin list")                                                                             //
-    ("plugin-search-path,S", bpo::value<std::string>(), "FairMQ plugins search path")                                                         //
-    ("control-port", bpo::value<std::string>(), "Utility port to be used by O2 Control")                                                      //
-    ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                                                 //
-    ("expected-region-callbacks", bpo::value<std::string>(), "region callbacks to expect before starting")                                    //
-    ("shm-monitor", bpo::value<std::string>(), "whether to use the shared memory monitor")                                                    //
-    ("channel-prefix", bpo::value<std::string>()->default_value(""), "prefix to use for multiplexing multiple workflows in the same session") //
-    ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")                                             //
-    ("shm-mlock-segment", bpo::value<std::string>()->default_value("false"), "mlock shared memory segment")                                   //
-    ("shm-mlock-segment-on-creation", bpo::value<std::string>()->default_value("false"), "mlock shared memory segment once on creation")      //
-    ("shm-zero-segment", bpo::value<std::string>()->default_value("false"), "zero shared memory segment")                                     //
-    ("shm-throw-bad-alloc", bpo::value<std::string>()->default_value("true"), "throw if insufficient shm memory")                             //
-    ("shm-segment-id", bpo::value<std::string>()->default_value("0"), "shm segment id")                                                       //
-    ("environment", bpo::value<std::string>(), "comma separated list of environment variables to set for the device")                         //
-    ("stacktrace-on-signal", bpo::value<std::string>()->default_value("all"),                                                                 //
-     "dump stacktrace on specified signal(s) (any of `all`, `segv`, `bus`, `ill`, `abrt`, `fpe`, `sys`.)")                                    //
-    ("post-fork-command", bpo::value<std::string>(), "post fork command to execute (e.g. numactl {pid}")                                      //
-    ("session", bpo::value<std::string>(), "unique label for the shared memory session")                                                      //
-    ("network-interface", bpo::value<std::string>(), "network interface to which to bind tpc fmq ports without specified address")            //
-    ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                                                       //
-    ("driver-client-backend", bpo::value<std::string>(), "driver connection string")                                                          //
-    ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                                         //
-    ("infologger-mode", bpo::value<std::string>(), "O2_INFOLOGGER_MODE override")                                                             //
-    ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                               //
-    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");                                      //
+  forwardedDeviceOptions.add_options()                                                                                                                               //
+    ("severity", bpo::value<std::string>()->default_value("info"), "severity level of the log")                                                                      //
+    ("plugin,P", bpo::value<std::string>(), "FairMQ plugin list")                                                                                                    //
+    ("plugin-search-path,S", bpo::value<std::string>(), "FairMQ plugins search path")                                                                                //
+    ("control-port", bpo::value<std::string>(), "Utility port to be used by O2 Control")                                                                             //
+    ("rate", bpo::value<std::string>(), "rate for a data source device (Hz)")                                                                                        //
+    ("expected-region-callbacks", bpo::value<std::string>(), "region callbacks to expect before starting")                                                           //
+    ("shm-monitor", bpo::value<std::string>(), "whether to use the shared memory monitor")                                                                           //
+    ("channel-prefix", bpo::value<std::string>()->default_value(""), "prefix to use for multiplexing multiple workflows in the same session")                        //
+    ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")                                                                    //
+    ("shm-mlock-segment", bpo::value<std::string>()->default_value("false"), "mlock shared memory segment")                                                          //
+    ("shm-mlock-segment-on-creation", bpo::value<std::string>()->default_value("false"), "mlock shared memory segment once on creation")                             //
+    ("shm-zero-segment", bpo::value<std::string>()->default_value("false"), "zero shared memory segment")                                                            //
+    ("shm-throw-bad-alloc", bpo::value<std::string>()->default_value("true"), "throw if insufficient shm memory")                                                    //
+    ("shm-segment-id", bpo::value<std::string>()->default_value("0"), "shm segment id")                                                                              //
+    ("environment", bpo::value<std::string>(), "comma separated list of environment variables to set for the device")                                                //
+    ("stacktrace-on-signal", bpo::value<std::string>()->default_value("all"),                                                                                        //
+     "dump stacktrace on specified signal(s) (any of `all`, `segv`, `bus`, `ill`, `abrt`, `fpe`, `sys`.)")                                                           //
+    ("post-fork-command", bpo::value<std::string>(), "post fork command to execute (e.g. numactl {pid}")                                                             //
+    ("session", bpo::value<std::string>(), "unique label for the shared memory session")                                                                             //
+    ("network-interface", bpo::value<std::string>(), "network interface to which to bind tpc fmq ports without specified address")                                   //
+    ("early-forward-policy", bpo::value<EarlyForwardPolicy>()->default_value(EarlyForwardPolicy::NEVER), "when to forward early the messages: never, noraw, always") //                                                                                                                      //
+    ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                                                                              //
+    ("driver-client-backend", bpo::value<std::string>(), "driver connection string")                                                                                 //
+    ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                                                                //
+    ("infologger-mode", bpo::value<std::string>(), "O2_INFOLOGGER_MODE override")                                                                                    //
+    ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                                                      //
+    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");                                                             //
 
   return forwardedDeviceOptions;
 }

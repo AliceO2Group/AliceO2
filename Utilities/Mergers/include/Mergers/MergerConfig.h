@@ -64,6 +64,7 @@ struct MergerConfig {
   ConfigEntry<PublicationDecision> publicationDecision = {PublicationDecision::EachNSeconds, 10};
   ConfigEntry<TopologySize, int> topologySize = {TopologySize::NumberOfLayers, 1};
   std::string monitoringUrl = "infologger:///debug?qc";
+  std::string detectorName;
 };
 
 } // namespace o2::mergers

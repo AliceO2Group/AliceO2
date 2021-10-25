@@ -18,14 +18,12 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "Framework/RawDeviceService.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/InputRecordWalker.h"
+#include "CommonUtils/VerbosityConfig.h"
 
 #include "DataFormatsTRD/Constants.h"
-
-#include <fairmq/FairMQDevice.h>
 #include <TH3F.h>
 #include "TH2F.h"
 #include "TFile.h"
@@ -162,9 +160,9 @@ void DataReaderTask::init(InitContext& ic)
   auto finishFunction = [this]() {
     mReader.checkSummary();
   };
+  mReader.setMaxErrWarnPrinted(ic.options().get<int>("log-max-errors"), ic.options().get<int>("log-max-warnings"));
   buildHistograms(); // if requested create all the histograms
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
-  mDataDesc = "RAWDATA";
 }
 
 void DataReaderTask::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -231,14 +229,20 @@ bool DataReaderTask::isTimeFrameEmpty(ProcessingContext& pc)
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload.
   // frame detected we have no data and send this instead
   // send empty output so as to not block workflow
+  static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
   for (const auto& ref : o2::framework::InputRecordWalker(pc.inputs(), {dummy})) {
     const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     if (dh->payloadSize == 0) {
-      LOGP(INFO, "Found blank input input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : ",
-           dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+      auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
+      if (++contDeadBeef <= maxWarn) {
+        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize,
+             contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
+      }
       return true;
     }
   }
+  contDeadBeef = 0; // if good data, reset the counter
   return false;
 }
 
@@ -253,79 +257,53 @@ void DataReaderTask::run(ProcessingContext& pc)
     return;
   }
   uint64_t total1 = 0, total2 = 0;
-  /* set encoder output buffer */
-  char bufferOut[o2::trd::constants::HBFBUFFERMAX];
-  int loopcounter = 0;
-  uint64_t tfcounter = 0;
-  uint64_t inputcounter = 0;
-  auto device = pc.services().get<o2::framework::RawDeviceService>().device();
-  auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
-  auto fairMQChannel = outputRoutes.at(0).channel;
-  /* loop over inputs routes */
-  for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
-    if (!iit.isValid()) {
-      continue;
-    }
-    /* loop over input parts */
-    int inputpartscount = 0;
-    int emptyframe = 0;
-    tfcounter++;
-    for (auto const& ref : iit) {
-      auto inputprocessingstart = std::chrono::high_resolution_clock::now(); // measure total processing time
-      if (mVerbose) {
-        const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-        LOGP(info, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : ",
-             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
-      }
-      const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      auto payloadIn = ref.payload;
-      auto payloadInSize = headerIn->payloadSize;
-      //    const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      if (std::string(headerIn->dataDescription.str) != std::string("DISTSUBTIMEFRAMEFLP")) {
-        if (!mCompressedData) { //we have raw data coming in from flp
-          if (mVerbose) {
-            LOG(info) << " parsing non compressed data in the data reader task with a payload of " << payloadInSize << " payload size";
-          }
-          //          LOG(info) << "start of data is at ref.payload=0x"<< std::hex << " headerIn->payloadSize:0x" << headerIn->payloadSize <<" headerIn->headerSize:0x" <<headerIn->headerSize;
-          total1 += headerIn->payloadSize;
-          total2 += headerIn->headerSize;
-          //          LOG(info) << "start of data is at ref.payload=0x"<< std::hex << " total1:0x" << total1 <<" total2:0x" <<total2;
-          mReader.setDataBuffer(payloadIn);
-          mReader.setDataBufferSize(payloadInSize);
-          mReader.configure(mTrackletHCHeaderState, mHalfChamberWords, mHalfChamberMajor, mOptions);
-          //mReader.setStats(&mTimeFrameStats);
-          mReader.run();
-          mWordsRead += mReader.getWordsRead();
-          mWordsRejected += mReader.getWordsRejected();
-          if (mVerbose) {
-            LOG(info) << "relevant vectors to read : " << mReader.sumTrackletsFound() << " tracklets and " << mReader.sumDigitsFound() << " compressed digits";
-          }
-        } else { // we have compressed data coming in from flp.
-          mCompressedReader.setDataBuffer(payloadIn);
-          mCompressedReader.setDataBufferSize(payloadInSize);
-          mCompressedReader.configure(mOptions);
-          mCompressedReader.run();
-        }
-      } // ignore the input of DISTSUBTIMEFRAMEFLP
-    }
 
-    std::chrono::duration<double, std::milli> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
-    LOG(info) << "Processing time for Data reading  " << std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count() << "ms";
-    if (mRootOutput) {
-      mTimeFrameTime->Fill((int)std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count());
+  std::vector<InputSpec> sel{InputSpec{"filter", ConcreteDataTypeMatcher{"TRD", "RAWDATA"}}};
+  uint64_t tfCount = 0;
+  for (const auto& ref : InputRecordWalker(pc.inputs(), sel)) {
+    auto inputprocessingstart = std::chrono::high_resolution_clock::now(); // measure total processing time
+    const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    tfCount = dh->tfCounter;
+    if (mVerbose) {
+      LOGP(info, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : ",
+           dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
     }
-    LOG(info) << "[" << tfcounter << "] D:" << mReader.getDigitsFound() << " T:" << mReader.getTrackletsFound();
-    /* output */
-    sendData(pc, false);
+    auto payloadIn = ref.payload;
+    auto payloadInSize = dh->payloadSize;
+    if (!mCompressedData) { //we have raw data coming in from flp
+      if (mVerbose) {
+        LOG(info) << " parsing non compressed data in the data reader task with a payload of " << payloadInSize << " payload size";
+      }
+      //          LOG(info) << "start of data is at ref.payload=0x"<< std::hex << " dh->payloadSize:0x" << dh->payloadSize <<" dh->headerSize:0x" <<dh->headerSize;
+      total1 += dh->payloadSize;
+      total2 += dh->headerSize;
+      //          LOG(info) << "start of data is at ref.payload=0x"<< std::hex << " total1:0x" << total1 <<" total2:0x" <<total2;
+      mReader.setDataBuffer(payloadIn);
+      mReader.setDataBufferSize(payloadInSize);
+      mReader.configure(mTrackletHCHeaderState, mHalfChamberWords, mHalfChamberMajor, mOptions);
+      //mReader.setStats(&mTimeFrameStats);
+      mReader.run();
+      mWordsRead += mReader.getWordsRead();
+      mWordsRejected += mReader.getWordsRejected();
+      if (mVerbose) {
+        LOG(info) << "relevant vectors to read : " << mReader.sumTrackletsFound() << " tracklets and " << mReader.sumDigitsFound() << " compressed digits";
+      }
+    } else { // we have compressed data coming in from flp.
+      mCompressedReader.setDataBuffer(payloadIn);
+      mCompressedReader.setDataBufferSize(payloadInSize);
+      mCompressedReader.configure(mOptions);
+      mCompressedReader.run();
+    }
   }
-    if (!mCompressedData) {
-      LOG(info) << "Digits found : " << mReader.getDigitsFound();
-      LOG(info) << "Tracklets found : " << mReader.getTrackletsFound();
-      LOG(info) << "DataRead in :" << mWordsRead * 4 << " bytes";
-      LOG(info) << "DataRejected in :" << mWordsRejected * 4 << " bytes";
-      LOG(info) << "DataRetention :bad/good" << (double)mWordsRejected / (double)mWordsRead << "";
-      LOG(info) << "Total % good data bad/(good+bad)" << (double)mWordsRejected / ((double)mWordsRead + (double)mWordsRejected) * 100.0 << " %";
-    }
+
+  sendData(pc, false);
+  std::chrono::duration<double, std::milli> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
+  if (mRootOutput) {
+    mTimeFrameTime->Fill((int)std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count());
+  }
+  LOGP(info, "Digits: {}, Tracklets: {}, DataRead in: {}, Rejected: {} bytes for TF {} in {} ms",
+       mReader.getDigitsFound(), mReader.getTrackletsFound(), mWordsRead * 4, mWordsRejected * 4, tfCount,
+       std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count());
 }
 
 } // namespace o2::trd

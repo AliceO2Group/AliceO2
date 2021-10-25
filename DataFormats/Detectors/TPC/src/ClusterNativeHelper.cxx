@@ -240,9 +240,6 @@ ClusterNativeHelper::TreeWriter::~TreeWriter()
 
 void ClusterNativeHelper::TreeWriter::init(const char* filename, const char* treename)
 {
-  // after changing this ClusterNative transport format, this functionality needs
-  // to be adapted
-  throw std::runtime_error("code path currently not supported");
   mFile.reset(TFile::Open(filename, "RECREATE"));
   if (!mFile) {
     return;
@@ -274,6 +271,7 @@ int ClusterNativeHelper::TreeWriter::fillFrom(ClusterNativeAccess const& cluster
       }
     }
   }
+  ++mEvent;
   return result;
 }
 
@@ -285,9 +283,8 @@ int ClusterNativeHelper::TreeWriter::fillFrom(int sector, int padrow, ClusterNat
   mStoreClusters.resize(nClusters, BranchData{sector, padrow});
   if (clusters != nullptr && nClusters > 0) {
     std::copy(clusters, clusters + nClusters, mStoreClusters.begin());
+    mTree->Fill();
   }
-  mTree->Fill();
-  ++mEvent;
   return nClusters;
 }
 
