@@ -35,6 +35,7 @@ VisualisationTrack::VisualisationTrack(const VisualisationTrackVO& vo)
   this->mPhi = vo.phi;
   this->addStartCoordinates(vo.startXYZ);
   this->mSource = vo.source;
+  this->mEta = vo.eta;
 }
 
 void VisualisationTrack::addStartCoordinates(const float xyz[3])
@@ -95,11 +96,21 @@ rapidjson::Value VisualisationTrack::jsonTree(rapidjson::Document::AllocatorType
   rapidjson::Value jsonPolyX(rapidjson::kArrayType);
   rapidjson::Value jsonPolyY(rapidjson::kArrayType);
   rapidjson::Value jsonPolyZ(rapidjson::kArrayType);
+  rapidjson::Value jsonStartCoordinates(rapidjson::kArrayType);
 
   tree.AddMember("count", rapidjson::Value().SetInt(this->getPointCount()), allocator);
   tree.AddMember("source", rapidjson::Value().SetInt(this->mSource), allocator);
-  //tree.AddMember("time", rapidjson::Value().SetFloat(this->mTime), allocator);
+  tree.AddMember("time", rapidjson::Value().SetFloat(this->mTime), allocator);
+  tree.AddMember("charge", rapidjson::Value().SetInt(this->mCharge), allocator);
+  tree.AddMember("theta", rapidjson::Value().SetFloat(this->mTheta), allocator);
+  tree.AddMember("phi", rapidjson::Value().SetFloat(this->mPhi), allocator);
+  tree.AddMember("eta", rapidjson::Value().SetFloat(this->mEta), allocator);
   tree.AddMember("PID", rapidjson::Value().SetInt(this->mPID), allocator);
+
+  jsonStartCoordinates.PushBack((float)mStartCoordinates[0], allocator);
+  jsonStartCoordinates.PushBack((float)mStartCoordinates[1], allocator);
+  jsonStartCoordinates.PushBack((float)mStartCoordinates[2], allocator);
+  tree.AddMember("jsonStartingXYZ", jsonStartCoordinates, allocator);
 
   for (size_t i = 0; i < this->getPointCount(); i++) {
     jsonPolyX.PushBack((float)mPolyX[i], allocator);

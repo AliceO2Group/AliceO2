@@ -106,6 +106,7 @@ class VisualisationTrack
 
   float mTheta; /// An angle from Z-axis to the radius vector pointing to the particle
   float mPhi;   /// An angle from X-axis to the radius vector pointing to the particle
+  float mEta;
 
   //  std::vector<int> mChildrenIDs; /// Uniqe IDs of children particles
   o2::dataformats::GlobalTrackID::Source mSource; /// data source of the track (debug)
