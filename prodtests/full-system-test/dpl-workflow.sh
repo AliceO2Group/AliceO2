@@ -14,7 +14,7 @@ if [ -z $CTF_DICT_DIR ];             then CTF_DICT_DIR=$FILEWORKDIR; fi      # D
 if [ -z $CTF_METAFILES_DIR ];        then CTF_METAFILES_DIR="/dev/null"; fi  # Directory where to store CTF files metada, /dev/null : skip their writing
 if [ -z $RECO_NUM_NODES_WORKFLOW ];  then RECO_NUM_NODES_WORKFLOW=250; fi    # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
 if [ -z $CTF_MINSIZE ];              then CTF_MINSIZE="500000000"; fi        # accumulate CTFs until file size reached
-if [ -z $CTF_MAX_PER_FILE ];         then CTF_MAX_PER_FILE="200"; fi         # but no more than given number of CTFs per file
+if [ -z $CTF_MAX_PER_FILE ];         then CTF_MAX_PER_FILE="10000"; fi       # but no more than given number of CTFs per file
 if [ -z $IS_SIMULATED_DATA ];        then IS_SIMULATED_DATA=1; fi            # processing simulated data
 
 if [ $SYNCMODE == 1 ]; then
@@ -29,7 +29,9 @@ workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
 [ -z $ITSCLUSDICT ] && ITSCLUSDICT="${FILEWORKDIR}/ITSdictionary.bin"
 [ -z $MFTCLUSDICT ] && MFTCLUSDICT="${FILEWORKDIR}/MFTdictionary.bin"
 [ -z $ITS_NOISE ] && ITS_NOISE="${FILEWORKDIR}"
-[ -z $MFT_NOISE ] && MFT_NOISE="${FILEWORKDIR}/mft_noise_220721_R3C-520.root"
+[ -z $MFT_NOISE ] && MFT_NOISE="${FILEWORKDIR}"
+[ -z $ITS_STROBE ] && ITS_STROBE="891"
+[ -z $MFT_STROBE ] && MFT_STROBE="198"
 
 MID_FEEID_MAP="$FILEWORKDIR/mid-feeId_mapper.txt"
 NITSDECTHREADS=2
@@ -48,7 +50,7 @@ has_processing_step()
   [[ $WORKFLOW_EXTRA_PROCESSING_STEPS =~ (^|,)"$1"(,|$) ]]
 }
 
-for i in ITSTPC TPCTRD ITSTPCTRD TPCTOF ITSTPCTOF MFTMCH PRIMVTX SECVTX; do
+for i in `echo $LIST_OF_GLORECO | sed "s/,/ /g"`; do
   has_processing_step MATCH_$i && add_comma_separated WORKFLOW_DETECTORS_MATCHING $i # Enable extra matchings requested via WORKFLOW_EXTRA_PROCESSING_STEPS
 done
 if [ $SYNCMODE == 1 ]; then # Add default steps for synchronous mode
@@ -140,7 +142,7 @@ has_detector_flp_processing CPV && CPV_INPUT=digits
 
 if [ $EPNMODE == 1 ]; then
   EVE_CONFIG+=" --eve-dds-collection-index 0"
-  ITSMFT_FILES+=";ITSClustererParam.noiseFilePath=$ITS_NOISE;MFTClustererParam.noiseFilePath=$MFT_NOISE"
+  ITSMFT_FILES+=";ITSClustererParam.noiseFilePath=$ITS_NOISE;MFTClustererParam.noiseFilePath=$MFT_NOISE;ITSAlpideParam.roFrameLengthInBC=$ITS_STROBE;MFTAlpideParam.roFrameLengthInBC=$MFT_STROBE;"
   MIDDEC_CONFIG+=" --feeId-config-file \"$MID_FEEID_MAP\""
   GPU_CONFIG_KEY+="GPU_proc.tpcIncreasedMinClustersPerRow=500000;GPU_proc.ignoreNonFatalGPUErrors=1;"
   # Options for decoding current TRD real raw data (not needed for data converted from MC)
@@ -219,6 +221,7 @@ get_N() # USAGE: get_N [processor-name] [DETECTOR_NAME] [RAW|CTF|REST] [optional
   local NAME_DEFAULT="N_$4"
   echo $1:${!NAME_PROC:-$((${!NAME_FACTOR} * ${!NAME_DET:-1} * ${!NAME_DEFAULT:-1}))}
 }
+
 math_max()
 {
   echo $(($1 > $2 ? $1 : $2))
@@ -279,8 +282,17 @@ N_TRDRAWDEC=$(math_max $((3 * 60 / $RECO_NUM_NODES_WORKFLOW_CMP)) ${N_TRDRAWDEC:
 if [ $CTFINPUT == 1 ]; then
   GPU_INPUT=compressed-clusters-ctf
   TOF_INPUT=digits
-  CTFName=`ls -t $FILEWORKDIR/o2_ctf_*.root | head -n1`
-  WORKFLOW="o2-ctf-reader-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --delay $TFDELAY --loop $NTIMEFRAMES --ctf-input ${CTFName} --ctf-dict ${CTF_DICT} --onlyDet $WORKFLOW_DETECTORS --pipeline tpc-entropy-decoder:$N_TPCENTDEC | "
+  CTFName=`ls -t $FILEWORKDIR/o2_ctf_*.root 2> /dev/null | head -n1`
+  if [ -z $CTFName ] && [ $WORKFLOWMODE == "print" ]; then
+    CTFName='$CTFName'
+  fi
+  WORKFLOW="o2-ctf-reader-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --delay $TFDELAY --loop $TFLOOP --max-tf $NTIMEFRAMES --ctf-input ${CTFName} --ctf-dict ${CTF_DICT} --onlyDet $WORKFLOW_DETECTORS --pipeline tpc-entropy-decoder:$N_TPCENTDEC | "
+elif [ $RAWTFINPUT == 1 ]; then
+  TFName=`ls -t $FILEWORKDIR/o2_*.tf 2> /dev/null | head -n1`
+  if [ -z $TFName ] && [ $WORKFLOWMODE == "print" ]; then
+    TFName='$TFName'
+  fi
+  WORKFLOW="o2-raw-tf-reader-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --delay $TFDELAY --loop $TFLOOP --max-tf $NTIMEFRAMES --input-data ${TFName} --onlyDet $WORKFLOW_DETECTORS | "
 elif [ $EXTINPUT == 1 ]; then
   PROXY_CHANNEL="name=readout-proxy,type=pull,method=connect,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=0"
   PROXY_INSPEC="dd:FLP/DISTSUBTIMEFRAME/0;eos:***/INFORMATION"
@@ -371,22 +383,22 @@ fi
 # Entropy encoding / ctf creation workflows - disabled in async mode
 if has_processing_step ENTROPY_ENCODER && [ ! -z "$WORKFLOW_DETECTORS_CTF" ]; then
   # Entropy encoder workflows
-  has_detector_ctf MFT && WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --runmft true --pipeline $(get_N mft-entropy-encoder MFT CTF) | "
-  has_detector_ctf FT0 && WORKFLOW+="o2-ft0-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline $(get_N ft0-entropy-encoder FT0 CTF) | "
-  has_detector_ctf FV0 && WORKFLOW+="o2-fv0-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline $(get_N fv0-entropy-encoder FV0 CTF) | "
-  has_detector_ctf MID && WORKFLOW+="o2-mid-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline $(get_N mid-entropy-encoder MID CTF) | "
-  has_detector_ctf MCH && WORKFLOW+="o2-mch-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline $(get_N mch-entropy-encoder MCH CTF) | "
-  has_detector_ctf PHS && WORKFLOW+="o2-phos-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline $(get_N phos-entropy-encoder PHS CTF) | "
-  has_detector_ctf CPV && WORKFLOW+="o2-cpv-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline $(get_N cpv-entropy-encoder CPV CTF) | "
-  has_detector_ctf EMC && WORKFLOW+="o2-emcal-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline $(get_N emcal-entropy-encoder EMC CTF) | "
-  has_detector_ctf ZDC && WORKFLOW+="o2-zdc-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline $(get_N zdc-entropy-encoder ZDC CTF) | "
-  has_detector_ctf FDD && WORKFLOW+="o2-fdd-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline $(get_N fdd-entropy-encoder FDD CTF) | "
-  has_detector_ctf HMP && WORKFLOW+="o2-hmpid-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline $(get_N hmpid-entropy-encoder HMP CTF) | "
-  has_detector_ctf TOF && WORKFLOW+="o2-tof-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline $(get_N tof-entropy-encoder TOF CTF) | "
-  has_detector_ctf ITS && WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline $(get_N its-entropy-encoder ITS CTF) | "
-  has_detector_ctf TRD && WORKFLOW+="o2-trd-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline $(get_N trd-entropy-encoder TRD CTF TRDENT) | "
-  has_detector_ctf TPC && WORKFLOW+="o2-tpc-reco-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --input-type compressed-clusters-flat --output-type encoded-clusters,disable-writer --pipeline $(get_N tpc-entropy-encoder TPC CTF TPCENT) | "
-  has_detector_ctf CTP && WORKFLOW+="o2-ctp-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --pipeline $(get_N its-entropy-encoder CTP CTF)| "
+  has_detector_ctf MFT && WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${MFT_ENC_MEMFACT:-1.5} --runmft true --pipeline $(get_N mft-entropy-encoder MFT CTF) | "
+  has_detector_ctf FT0 && WORKFLOW+="o2-ft0-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${FT0_ENC_MEMFACT:-1.5} --pipeline $(get_N ft0-entropy-encoder FT0 CTF) | "
+  has_detector_ctf FV0 && WORKFLOW+="o2-fv0-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${FV0_ENC_MEMFACT:-1.5} --pipeline $(get_N fv0-entropy-encoder FV0 CTF) | "
+  has_detector_ctf MID && WORKFLOW+="o2-mid-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${MID_ENC_MEMFACT:-1.5} --pipeline $(get_N mid-entropy-encoder MID CTF) | "
+  has_detector_ctf MCH && WORKFLOW+="o2-mch-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${MCH_ENC_MEMFACT:-1.5} --pipeline $(get_N mch-entropy-encoder MCH CTF) | "
+  has_detector_ctf PHS && WORKFLOW+="o2-phos-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${PHS_ENC_MEMFACT:-1.5} --pipeline $(get_N phos-entropy-encoder PHS CTF) | "
+  has_detector_ctf CPV && WORKFLOW+="o2-cpv-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${CPV_ENC_MEMFACT:-1.5} --pipeline $(get_N cpv-entropy-encoder CPV CTF) | "
+  has_detector_ctf EMC && WORKFLOW+="o2-emcal-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${EMC_ENC_MEMFACT:-1.5} --pipeline $(get_N emcal-entropy-encoder EMC CTF) | "
+  has_detector_ctf ZDC && WORKFLOW+="o2-zdc-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${ZDC_ENC_MEMFACT:-1.5} --pipeline $(get_N zdc-entropy-encoder ZDC CTF) | "
+  has_detector_ctf FDD && WORKFLOW+="o2-fdd-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${FDD_ENC_MEMFACT:-1.5} --pipeline $(get_N fdd-entropy-encoder FDD CTF) | "
+  has_detector_ctf HMP && WORKFLOW+="o2-hmpid-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${HMP_ENC_MEMFACT:-1.5} --pipeline $(get_N hmpid-entropy-encoder HMP CTF) | "
+  has_detector_ctf TOF && WORKFLOW+="o2-tof-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${TOF_ENC_MEMFACT:-1.5} --pipeline $(get_N tof-entropy-encoder TOF CTF) | "
+  has_detector_ctf ITS && WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${ITS_ENC_MEMFACT:-1.5} --pipeline $(get_N its-entropy-encoder ITS CTF) | "
+  has_detector_ctf TRD && WORKFLOW+="o2-trd-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${TRD_ENC_MEMFACT:-1.5} --pipeline $(get_N trd-entropy-encoder TRD CTF TRDENT) | "
+  has_detector_ctf TPC && WORKFLOW+="o2-tpc-reco-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --input-type compressed-clusters-flat --output-type encoded-clusters,disable-writer --mem-factor ${TPC_ENC_MEMFACT:-1.5} --pipeline $(get_N tpc-entropy-encoder TPC CTF TPCENT) | "
+  has_detector_ctf CTP && WORKFLOW+="o2-ctp-entropy-encoder-workflow $ARGS_ALL --ctf-dict \"${CTF_DICT}\" --configKeyValues \"$ARGS_ALL_CONFIG\" --mem-factor ${CTP_ENC_MEMFACT:-1.5} --pipeline $(get_N its-entropy-encoder CTP CTF)| "
 
   # CTF / dictionary writer workflow
   if [ $SAVECTF == 1 ]; then
@@ -400,8 +412,8 @@ if has_processing_step ENTROPY_ENCODER && [ ! -z "$WORKFLOW_DETECTORS_CTF" ]; th
   if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="both"; fi
   if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 0 ]; then CTF_OUTPUT_TYPE="dict"; fi
   if [ $CREATECTFDICT == 0 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="ctf"; fi
-  CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --output-dir \"$CTF_DIR\" --ctf-dict-dir \"$CTF_DICT_DIR\" --output-type $CTF_OUTPUT_TYPE --min-file-size ${CTF_MINSIZE} --max-ctf-per-file ${CTF_MAX_PER_FILE} --onlyDet $WORKFLOW_DETECTORS --meta-output-dir $CTF_METAFILES_DIR "
-  if [ $CREATECTFDICT == 1 ] && [ $EXTINPUT == 1 ]; then CMD_CTF+=" --save-dict-after $NTIMEFRAMES"; fi
+  CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --output-dir \"$CTF_DIR\" --ctf-dict-dir \"$CTF_DICT_DIR\" --output-type $CTF_OUTPUT_TYPE --min-file-size ${CTF_MINSIZE} --max-ctf-per-file ${CTF_MAX_PER_FILE} --onlyDet $WORKFLOW_DETECTORS --append-det-to-period $CTF_MAXDETEXT --meta-output-dir $CTF_METAFILES_DIR "
+  if [ $CREATECTFDICT == 1 ] && [ $EXTINPUT == 1 ]; then CMD_CTF+=" --save-dict-after $SAVE_CTFDICT_NTIMEFRAMES"; fi
   WORKFLOW+="$CMD_CTF | "
 fi
 
