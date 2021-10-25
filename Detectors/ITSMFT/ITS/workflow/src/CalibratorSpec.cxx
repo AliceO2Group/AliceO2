@@ -111,12 +111,12 @@ void get_row_col_arr(const int & chipID, int & nRow, double** row_arr_old, int &
     // Set bin edges at the midpoints giving 1-indexing (0.5, 1.5, 2.5, ...)
     nCol = get_nCol(chipID);
     double*col_arr_new = new double[nCol];
-    for (int i = 0; i < nCol; i++) { col_arr_new[i] = i; }
+    for (int i = 0; i < nCol; i++) { col_arr_new[i] = i+0.5; }
     *col_arr_old = col_arr_new;
 
     nRow = get_nRow(chipID);
     double*row_arr_new = new double[nRow];
-    for (int i = 0; i < nRow; i++) { row_arr_new[i] = i; }
+    for (int i = 0; i < nRow; i++) { row_arr_new[i] = i+0.5; }
     *row_arr_old = row_arr_new;
 
     return;
@@ -346,7 +346,7 @@ void ITSCalibrator<Mapping>::run(ProcessingContext& pc)
                     double* row_arr; double* col_arr;
                     get_row_col_arr(chipID, nRow, &row_arr, nCol, &col_arr);
                    //LOG(INFO)<<row_arr[400];
-                    TH2D* th = new TH2D(th_ChipID,th_ChipID,nCol,0,nCol,nRow,0,nRow);  // x = rows, y = columns
+                    TH2D* th = new TH2D(th_ChipID,th_ChipID,nCol-1,col_arr,nRow-1,row_arr);  // x = rows, y = columns
                     this->thresholds[chipID] = th;
                     delete[] row_arr, col_arr;
 
