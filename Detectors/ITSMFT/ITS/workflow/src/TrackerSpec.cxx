@@ -100,9 +100,11 @@ void TrackerDPL::init(InitContext& ic)
       memParams.resize(3);
       LOG(info) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
 
-    } else if (mMode == "sync") {
+    } else if (mMode == "sync_misaligned") {
 
       trackParams.resize(1);
+      trackParams[0].PhiBins = 32;
+      trackParams[0].ZBins = 64;
       trackParams[0].TrackletMaxDeltaPhi *= 4;
       for (float& dZ : trackParams[0].TrackletMaxDeltaZ) {
         dZ = std::hypot(dZ, 0.3);
@@ -123,8 +125,12 @@ void TrackerDPL::init(InitContext& ic)
       trackParams[0].FitIterationMaxChi2[1] = 1.e28;
       trackParams[0].MinTrackLength = 4;
       memParams.resize(1);
-      LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
+      LOG(info) << "Initializing tracker in misaligned sync. phase reconstruction with " << trackParams.size() << " passes";
 
+    } else if (mMode == "sync") {
+      memParams.resize(1);
+      trackParams.resize(1);
+      LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
     } else if (mMode == "cosmics") {
       mRunVertexer = false;
       trackParams.resize(1);
@@ -301,14 +307,6 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   mTimeFrame.setMultiplicityCutMask(processingMask);
   mTracker->clustersToTracks(logger);
-
-  for (int iL{0}; iL < mTimeFrame.getTracklets().size(); ++iL) {
-    LOG(info) << fmt::format("\t\t - Tracklets between layers {}-{}: {}",iL, iL+1, mTimeFrame.getTracklets()[iL].size());
-  }
-
-  for (int iL{0}; iL < mTimeFrame.getCells().size(); ++iL) {
-    LOG(info) << fmt::format("\t\t - Cells between layers {}-{}-{}: {}",iL, iL+1, iL + 2, mTimeFrame.getCells()[iL].size());
-  }
 
   for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
 
