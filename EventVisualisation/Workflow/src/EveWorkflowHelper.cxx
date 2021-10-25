@@ -367,6 +367,7 @@ void EveWorkflowHelper::drawITS(GID gid, float trackTime)
                                  .startXYZ = {tr.getX(), tr.getY(), tr.getZ()},
                                  .phi = tr.getPhi(),
                                  .theta = tr.getTheta(),
+                                 .eta = tr.getEta(),
                                  .source = GID::ITS});
   auto pnts = getTrackPoints(tr, minmaxR[gid.getSource()].first, minmaxR[gid.getSource()].second, 0.1, -250, 250);
   float dz = 0.0;

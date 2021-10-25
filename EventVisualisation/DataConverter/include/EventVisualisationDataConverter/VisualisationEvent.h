@@ -81,11 +81,10 @@ class VisualisationEvent
     return mClusters.back();
   }
 
-  VisualisationCluster& addCluster(float X, float Y, float Z, float time)
+  VisualisationCluster& addCluster(float X, float Y, float Z, float trackTime)
   {
     float pos[] = {X, Y, Z};
-    mClusters.emplace_back(pos, time);
-    return mClusters.back();
+    return mTracks.back().addCluster(pos);
   }
 
   // Multiplicity getter
