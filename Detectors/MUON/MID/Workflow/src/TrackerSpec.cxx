@@ -27,6 +27,7 @@
 #include "DataFormatsMID/Track.h"
 #include "MIDTracking/Tracker.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 namespace of = o2::framework;
 
@@ -40,9 +41,8 @@ class TrackerDeviceDPL
   void init(o2::framework::InitContext& ic)
   {
 
-    auto geoFilename = ic.options().get<std::string>("geometry-filename");
     if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry(geoFilename);
+      o2::base::GeometryManager::loadGeometry();
     }
 
     mTracker = std::make_unique<Tracker>(createTransformationFromManager(gGeoManager));
@@ -109,8 +109,7 @@ framework::DataProcessorSpec getTrackerSpec()
     {inputSpecs},
     {outputSpecs},
     of::adaptFromTask<o2::mid::TrackerDeviceDPL>(),
-    of::Options{
-      {"geometry-filename", of::VariantType::String, "", {"Name of the geometry file"}}}};
+    of::Options{}};
 }
 } // namespace mid
 } // namespace o2
