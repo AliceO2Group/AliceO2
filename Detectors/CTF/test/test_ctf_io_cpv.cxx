@@ -16,6 +16,7 @@
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "CPVReconstruction/CTFCoder.h"
 #include "DataFormatsCPV/CTF.h"
+#include "DataFormatsCPV/Cluster.h"
 #include "Framework/Logger.h"
 #include <TFile.h>
 #include <TRandom.h>
@@ -40,11 +41,11 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     int n = 1 + gRandom->Poisson(100);
     for (int i = n; i--;) {
       char mult = gRandom->Integer(30);
-      char mod = 1 + gRandom->Integer(3);
+      char mod = 2 + gRandom->Integer(3); // there are M2, M3 and M4
       char exMax = gRandom->Integer(3);
       float x = 72.3 * 2. * (gRandom->Rndm() - 0.5);
       float z = 63.3 * 2. * (gRandom->Rndm() - 0.5);
-      float e = 254. * gRandom->Rndm();
+      float e = 10000. * gRandom->Rndm(); // we need high energy range
       clusters.emplace_back(mult, mod, exMax, x, z, e);
     }
     triggers.emplace_back(ir, start, clusters.size() - start);
@@ -118,7 +119,12 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     const auto& cdc = clustersD[i];
     BOOST_CHECK(cor.getMultiplicity() == cdc.getMultiplicity());
     BOOST_CHECK(cor.getModule() == cdc.getModule());
-    BOOST_CHECK(TMath::Abs(cor.getEnergy() - cdc.getEnergy()) < 1.);
+    if (cor.getEnergy() < 100.) {
+      BOOST_CHECK(TMath::Abs(cor.getEnergy() - cdc.getEnergy()) < 1.);
+    } else {
+      float eTr = cor.getEnergy();
+      BOOST_CHECK(TMath::Abs(eTr - cdc.getEnergy()) <= eTr * (exp(kStepE * eTr) - 1.)); // increasing discretisation step size
+    }
     float xCor, zCor, xCdc, zCdc;
     cor.getLocalPosition(xCor, zCor);
     cdc.getLocalPosition(xCdc, zCdc);
