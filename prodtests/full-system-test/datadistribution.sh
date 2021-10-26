@@ -10,20 +10,31 @@ fi
 
 # For benchmark only, do NOT copy&paste!
 export DATADIST_SHM_DELAY=30
-export DATADIST_FILE_READ_COUNT=$NTIMEFRAMES
 
-export TF_DIR=./raw/timeframe
+if [ ! -z $DD_STARTUP_DELAY ]; then
+  sleep $DD_STARTUP_DELAY
+fi
+
+if [ -z $INPUT_FILE_LIST ]; then
+  DD_INPUT_CMD="--data-source-dir ./raw/timeframe"
+else
+  DD_INPUT_CMD="--data-source-copy-cmd=\"XrdSecPROTOCOL=sss,unix xrdcp -N root://eosaliceo2.cern.ch/?src ?dst\" --data-source-file-list $INPUT_FILE_LIST"
+fi
+
+if [ $NTIMEFRAMES != -1 ]; then
+  export DATADIST_FILE_READ_COUNT=$NTIMEFRAMES
+  DD_INPUT_CMD+=" --data-source-repeat"
+fi
 export TFRATE=$(awk "BEGIN {printf \"%.6f\",1/$TFDELAY}")
 
 ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id 2 --shm-segment-size 1000000 --no-cleanup"
 
 StfBuilder --id stfb --transport shmem \
   --dpl-channel-name dpl-chan --channel-config "name=dpl-chan,type=push,method=bind,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=1" \
-  --data-source-dir ${TF_DIR} \
+  $DD_INPUT_CMD \
   --data-source-rate=${TFRATE} \
-  --data-source-repeat \
   --data-source-regionsize=${DDSHMSIZE} \
-  --data-source-headersize=1024 \
+  --data-source-headersize=2048 \
   --data-source-enable \
   --data-source-preread 5 \
   --shm-no-cleanup on \
