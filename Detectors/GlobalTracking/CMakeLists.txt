@@ -42,7 +42,8 @@ o2_add_library(GlobalTracking
                         O2::MFTTracking
                         O2::MCHTracking
                         O2::MathUtils
-                        O2::ReconstructionDataFormats)
+                        O2::ReconstructionDataFormats
+                        O2::Steer)
 
 o2_target_root_dictionary(GlobalTracking
                           HEADERS include/GlobalTracking/MatchTPCITSParams.h
