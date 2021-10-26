@@ -63,8 +63,8 @@ void EventManager::Open()
 
 void EventManager::displayCurrentEvent()
 {
-  MultiView::getInstance()->destroyAllEvents();
   if (getDataSource()->getEventCount() > 0) {
+    MultiView::getInstance()->destroyAllEvents();
     int no = getDataSource()->getCurrentEvent();
 
     for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
@@ -74,9 +74,9 @@ void EventManager::displayCurrentEvent()
     auto displayList = getDataSource()->getVisualisationList(no);
     for (auto it = displayList.begin(); it != displayList.end(); ++it) {
 
-      if (it->second == EVisualisationGroup::TPC) { // temporary
-        displayVisualisationEvent(it->first, gVisualisationGroupName[it->second]);
-      }
+      //if (it->second == EVisualisationGroup::TPC) { // temporary
+      displayVisualisationEvent(it->first, gVisualisationGroupName[it->second]);
+      //}
     }
 
     for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
@@ -156,8 +156,14 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
 {
   size_t trackCount = event.getTrackCount();
   LOG(INFO) << "displayVisualisationEvent: " << trackCount << " detector: " << detectorName;
+  // tracks
   auto* list = new TEveTrackList(detectorName.c_str());
   list->IncDenyDestroy();
+  // clusters
+  size_t clusterCount = 0;
+  auto* point_list = new TEvePointSet(detectorName.c_str());
+  point_list->IncDenyDestroy();
+  point_list->SetMarkerColor(kBlue);
 
   for (size_t i = 0; i < trackCount; ++i) {
     VisualisationTrack track = event.getTrack(i);
@@ -175,25 +181,31 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
       vistrack->SetNextPoint(point[0], point[1], point[2]);
     }
     list->AddElement(vistrack);
+
+    // clusters connected with track
+    for (size_t i = 0; i < track.getClusterCount(); ++i) {
+      VisualisationCluster cluster = track.getCluster(i);
+      point_list->SetNextPoint(cluster.X(), cluster.Y(), cluster.Z());
+      clusterCount++;
+    }
   }
 
   if (trackCount != 0) {
     dataTypeLists[EVisualisationDataType::Tracks]->AddElement(list);
   }
 
-  size_t clusterCount = event.getClusterCount();
-  auto* point_list = new TEvePointSet(detectorName.c_str());
-  point_list->IncDenyDestroy();
-  point_list->SetMarkerColor(kBlue);
-
-  for (size_t i = 0; i < clusterCount; ++i) {
+  // global clusters (with no connection information)
+  for (size_t i = 0; i < event.getClusterCount(); ++i) {
     VisualisationCluster cluster = event.getCluster(i);
     point_list->SetNextPoint(cluster.X(), cluster.Y(), cluster.Z());
+    clusterCount++;
   }
 
   if (clusterCount != 0) {
     dataTypeLists[EVisualisationDataType::Clusters]->AddElement(point_list);
   }
+  LOG(INFO) << "tracks: " << trackCount << " detector: " << detectorName << ":" << dataTypeLists[EVisualisationDataType::Tracks]->NumChildren();
+  LOG(INFO) << "clusters: " << clusterCount << " detector: " << detectorName << ":" << dataTypeLists[EVisualisationDataType::Clusters]->NumChildren();
 }
 
 } // namespace event_visualisation

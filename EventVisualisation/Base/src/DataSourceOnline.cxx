@@ -42,7 +42,8 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline
         filter = static_cast<EVisualisationGroup>(static_cast<int>(filter) + 1)) {
       auto filtered = VisualisationEvent(vEvent, filter);
       res.push_back(std::make_pair(filtered, filter));  // we can switch on/off data
-    }*/
+    }
+    */
     res.push_back(std::make_pair(vEvent, EVisualisationGroup::TPC)); // temporary
   }
   return res;

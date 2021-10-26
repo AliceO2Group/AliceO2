@@ -17,7 +17,7 @@
 #ifndef ALICE_O2_DATACONVERTER_VISUALISATIONCLUSTER_H
 #define ALICE_O2_DATACONVERTER_VISUALISATIONCLUSTER_H
 
-#include "EventVisualisationDataConverter/VisualisationTrack.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "rapidjson/document.h"
 
 #include <vector>
