@@ -89,6 +89,13 @@ if [[ "0$4" != "00" ]]; then
   kill $PID_LOG
 fi
 
+for i in `seq 1 $NUM_PROCS`; do
+  [[ $RETVAL == 0 ]] && break
+  PID_VAR="PID$i"
+  wait ${!PID_VAR}
+  RETVAL=$?
+done
+
 fairmq-shmmonitor --session $OVERRIDE_SESSION --cleanup
 
 if [[ $RETVAL == 0 ]]; then
