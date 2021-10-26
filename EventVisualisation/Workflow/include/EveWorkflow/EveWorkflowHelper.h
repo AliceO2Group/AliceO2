@@ -96,7 +96,7 @@ class EveWorkflowHelper
   void drawMIDClusters(GID gid, float trackTime);
   void drawTRDClusters(const o2::trd::TrackTRD& trc, float trackTime);
   void drawTOFClusters(GID gid, float trackTime);
-  void drawPoint(float x, float y, float z, float time) { mEvent.addCluster(x, y, z, time); }
+  void drawPoint(float x, float y, float z, float trackTime) { mEvent.addCluster(x, y, z, trackTime); }
   void prepareITSClusters(const o2::itsmft::TopologyDictionary& dict); // fills mITSClustersArray
   void prepareMFTClusters(const o2::itsmft::TopologyDictionary& dict); // fills mMFTClustersArray
 
