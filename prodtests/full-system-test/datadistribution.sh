@@ -32,7 +32,7 @@ if [[ $NTIMEFRAMES != -1 ]]; then
 fi
 export TFRATE=$(awk "BEGIN {printf \"%.6f\",1/$TFDELAY}")
 
-ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id 2 --shm-segment-size 1000000 --no-cleanup"
+ARGS_ALL="--session ${OVERRIDE_SESSION:-default} --severity $SEVERITY --shm-segment-id 2 --shm-segment-size 1000000 --no-cleanup"
 
 eval StfBuilder --id stfb --transport shmem \
   --dpl-channel-name dpl-chan --channel-config "name=dpl-chan,type=push,method=bind,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=1" \
