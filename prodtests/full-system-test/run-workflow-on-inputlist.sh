@@ -21,9 +21,9 @@ NUM_PROCS=0
 RETVAL=0
 START_TIME=`date +%s`
 LOG_PREFIX="log_$(date +%Y%m%d-%H%M%S)_"
-if [ $2 != "LOCAL" ]; then
-  export INPUT_FILE_LIST=$2
-fi
+[[ $2 != "LOCAL" ]] && export INPUT_FILE_LIST=$2
+[[ -z $OVERRIDE_SESSION ]] && export OVERRIDE_SESSION=default_$$_$RANDOM
+[[ -z $INRAWCHANNAME ]] && export INRAWCHANNAME=tf-builder-$$-$RANDOM
 
 rm -f ${LOG_PREFIX}*.log /dev/shm/*fmq*
 if [[ `ls /dev/shm/*fmq* 2> /dev/null | wc -l` != "0" ]]; then
@@ -68,6 +68,7 @@ fi
 start_process $MYDIR/dpl-workflow.sh
 
 if [[ "0$4" != "00" ]]; then
+  sleep 1
   tail -f ${LOG_PREFIX}*.log &
   PID_LOG=$!
 fi
