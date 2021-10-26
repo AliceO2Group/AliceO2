@@ -19,6 +19,7 @@
 #include <algorithm>
 
 using namespace o2::globaltracking;
+using MCTrack = o2::MCTrackT<float>;
 
 MatchITSTPCQC::~MatchITSTPCQC()
 {
@@ -37,6 +38,12 @@ void MatchITSTPCQC::deleteHistograms()
   delete mPhiTPC;
   delete mFractionITSTPCmatchPhi;
   delete mPhi;
+  delete mPtTPCPhysPrim;
+  delete mFractionITSTPCmatchPhysPrim;
+  delete mPtPhysPrim;
+  delete mPhiTPCPhysPrim;
+  delete mFractionITSTPCmatchPhiPhysPrim;
+  delete mPhiPhysPrim;
   delete mEta;
   delete mChi2Matching;
   delete mChi2Refit;
@@ -49,6 +56,12 @@ void MatchITSTPCQC::reset()
 {
   mPtTPC->Reset();
   mPt->Reset();
+  mPhiTPC->Reset();
+  mPhi->Reset();
+  mPtTPCPhysPrim->Reset();
+  mPtPhysPrim->Reset();
+  mPhiTPCPhysPrim->Reset();
+  mPhiPhysPrim->Reset();
   mEta->Reset();
   mChi2Matching->Reset();
   mChi2Refit->Reset();
@@ -66,6 +79,14 @@ bool MatchITSTPCQC::init()
   mPhiTPC = new TH1F("mPhiTPC", "Phi distribution of TPC tracks; Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
   mFractionITSTPCmatchPhi = new TEfficiency("mFractionITSTPCmatchPhi", "Fraction of ITSTPC matched tracks vs Phi; Phi [rad]; Eff", 100, 0.f, 2 * TMath::Pi());
   mPhi = new TH1F("mPhi", "Phi distribution of matched tracks; Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
+  // These will be empty in case of no MC info...
+  mPtTPCPhysPrim = new TH1F("mPtTPPhysPrimC", "Pt distribution of TPC tracks (physical primary); Pt [GeV/c]; dNdPt", 100, 0.f, 20.f);
+  mFractionITSTPCmatchPhysPrim = new TEfficiency("mFractionITSTPCmatchPhysPrim", "Fraction of ITSTPC matched tracks vs Pt (physical primary); Pt [GeV/c]; Eff", 100, 0.f, 20.f);
+  mPtPhysPrim = new TH1F("mPtPhysPrim", "Pt distribution of matched tracks (physical primary); Pt [GeV/c]; dNdPt", 100, 0.f, 20.f);
+  mPhiTPCPhysPrim = new TH1F("mPhiTPCPhysPrim", "Phi distribution of TPC tracks (physical primary); Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
+  mFractionITSTPCmatchPhiPhysPrim = new TEfficiency("mFractionITSTPCmatchPhiPhysPrim", "Fraction of ITSTPC matched tracks vs Phi (physical primary); Phi [rad]; Eff", 100, 0.f, 2 * TMath::Pi());
+  mPhiPhysPrim = new TH1F("mPhiPhysPrim", "Phi distribution of matched tracks (physical primary); Phi [rad]; dNdPhi", 100, 0.f, 2 * TMath::Pi());
+  // ...till here
   mEta = new TH1F("mEta", "Eta distribution of matched tracks; Eta; dNdEta", 100, -2.f, 2.f);
   mChi2Matching = new TH1F("mChi2Matching", "Chi2 of matching; chi2", 200, 0, 20);
   mChi2Refit = new TH1F("mChi2Refit", "Chi2 of refit; chi2", 200, 0, 20);
@@ -75,6 +96,10 @@ bool MatchITSTPCQC::init()
   mPt->Sumw2();
   mPhiTPC->Sumw2();
   mPhi->Sumw2();
+  mPtTPCPhysPrim->Sumw2();
+  mPtPhysPrim->Sumw2();
+  mPhiTPCPhysPrim->Sumw2();
+  mPhiPhysPrim->Sumw2();
 
   mSrc &= mAllowedSources;
 
@@ -88,6 +113,10 @@ bool MatchITSTPCQC::init()
   o2::base::GeometryManager::loadGeometry(mGeomFileName);
   o2::base::Propagator::initFieldFromGRP(mGRPFileName);
   mBz = o2::base::Propagator::Instance()->getNominalBz();
+
+  if (mUseMC) {
+    mcReader.initFromDigitContext("collisioncontext.root");
+  }
 
   return true;
 }
@@ -119,13 +148,18 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       auto const& trk = mITSTPCTracks[itrk];
       auto idxTrkTpc = trk.getRefTPC().getIndex();
       if (std::any_of(mSelectedTPCtracks.begin(), mSelectedTPCtracks.end(), [idxTrkTpc](int el) { return el == idxTrkTpc; })) {
-        auto lbl = mRecoCont.getTrackMCLabel({uint64_t(itrk), GID::Source::ITSTPC});
+        auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::ITSTPC});
         if (mMapLabels.find(lbl) == mMapLabels.end()) {
-          mMapLabels.insert({lbl, itrk});
+          auto const* mcParticle = mcReader.getTrack(lbl);
+          if (isPhysicalPrimary(mcParticle)) {
+            mMapLabels.insert({lbl, {itrk, true}});
+          } else {
+            mMapLabels.insert({lbl, {itrk, false}});
+          }
         } else {
           // winner (if more tracks have the same label) has the highest pt
-          if (mITSTPCTracks[mMapLabels.at(lbl)].getPt() < trk.getPt()) {
-            mMapLabels.at(lbl) = itrk;
+          if (mITSTPCTracks[mMapLabels.at(lbl).mIdx].getPt() < trk.getPt()) {
+            mMapLabels.at(lbl).mIdx = itrk;
           }
         }
       }
@@ -134,13 +168,20 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     // now we use only the tracks in the map to fill the histograms (--> tracks have passed the
     // track selection and there are no duplicated tracks wrt the same MC label)
     for (auto const& el : mMapLabels) {
-      auto const& trk = mITSTPCTracks[el.second];
+      auto const& trk = mITSTPCTracks[el.second.mIdx];
       auto const& trkTpc = mTPCTracks[trk.getRefTPC()];
       mPt->Fill(trkTpc.getPt());
       mPhi->Fill(trkTpc.getPhi());
       // we fill also the denominator
       mPtTPC->Fill(trkTpc.getPt());
       mPhiTPC->Fill(trkTpc.getPhi());
+      if (el.second.mIsPhysicalPrimary) {
+        mPtPhysPrim->Fill(trkTpc.getPt());
+        mPhiPhysPrim->Fill(trkTpc.getPhi());
+        // we fill also the denominator
+        mPtTPCPhysPrim->Fill(trkTpc.getPt());
+        mPhiTPCPhysPrim->Fill(trkTpc.getPhi());
+      }
       ++mNITSTPCSelectedTracks;
     }
   }
@@ -169,17 +210,22 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     for (auto itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
       auto const& trk = mTPCTracks[itrk];
       if (std::any_of(mSelectedTPCtracks.begin(), mSelectedTPCtracks.end(), [itrk](int el) { return el == itrk; })) {
-        auto lbl = mRecoCont.getTrackMCLabel({uint64_t(itrk), GID::Source::TPC});
+        auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::TPC});
         if (mMapLabels.find(lbl) != mMapLabels.end()) {
           // the track was already added to the denominator
           continue;
         }
         if (mMapTPCLabels.find(lbl) == mMapTPCLabels.end()) {
-          mMapTPCLabels.insert({lbl, itrk});
+          o2::MCTrack const* mcParticle = mcReader.getTrack(lbl);
+          if (isPhysicalPrimary(mcParticle)) {
+            mMapTPCLabels.insert({lbl, {itrk, true}});
+          } else {
+            mMapTPCLabels.insert({lbl, {itrk, false}});
+          }
         } else {
           // winner (if more tracks have the same label) has the highest number of TPC clusters
-          if (mTPCTracks[mMapTPCLabels.at(lbl)].getNClusters() < trk.getNClusters()) {
-            mMapTPCLabels.at(lbl) = itrk;
+          if (mTPCTracks[mMapTPCLabels.at(lbl).mIdx].getNClusters() < trk.getNClusters()) {
+            mMapTPCLabels.at(lbl).mIdx = itrk;
           }
         }
       }
@@ -188,9 +234,13 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     // now we use only the tracks in the map to fill the histograms (--> tracks have passed the
     // track selection and there are no duplicated tracks wrt the same MC label)
     for (auto const& el : mMapTPCLabels) {
-      auto const& trk = mTPCTracks[el.second];
+      auto const& trk = mTPCTracks[el.second.mIdx];
       mPtTPC->Fill(trk.getPt());
       mPhiTPC->Fill(trk.getPhi());
+      if (el.second.mIsPhysicalPrimary) {
+        mPtTPCPhysPrim->Fill(trk.getPt());
+        mPhiTPCPhysPrim->Fill(trk.getPhi());
+      }
       ++mNTPCSelectedTracks;
     }
   } else {
@@ -250,11 +300,22 @@ void MatchITSTPCQC::finalize()
 
   if (!mFractionITSTPCmatch->SetTotalHistogram(*mPtTPC, "") ||
       !mFractionITSTPCmatch->SetPassedHistogram(*mPt, "")) {
-    LOG(FATAL) << "Something wrong when defining the efficiency histograms vs Pt!";
+    LOG(FATAL) << "Something went wrong when defining the efficiency histograms vs Pt!";
   }
   if (!mFractionITSTPCmatchPhi->SetTotalHistogram(*mPhiTPC, "") ||
       !mFractionITSTPCmatchPhi->SetPassedHistogram(*mPhi, "")) {
-    LOG(FATAL) << "Something wrong when defining the efficiency histograms vs Phi!";
+    LOG(FATAL) << "Something went wrong when defining the efficiency histograms vs Phi!";
+  }
+
+  if (mUseMC) {
+    if (!mFractionITSTPCmatchPhysPrim->SetTotalHistogram(*mPtTPCPhysPrim, "") ||
+        !mFractionITSTPCmatchPhysPrim->SetPassedHistogram(*mPtPhysPrim, "")) {
+      LOG(FATAL) << "Something went wrong when defining the efficiency histograms vs Pt (PhysPrim)!";
+    }
+    if (!mFractionITSTPCmatchPhiPhysPrim->SetTotalHistogram(*mPhiTPCPhysPrim, "") ||
+        !mFractionITSTPCmatchPhiPhysPrim->SetPassedHistogram(*mPhiPhysPrim, "")) {
+      LOG(FATAL) << "Something went wrong when defining the efficiency histograms vs Phi (PhysPrim)!";
+    }
   }
 
   float scaleFactTPC = 1. / mNTPCSelectedTracks;
@@ -263,6 +324,12 @@ void MatchITSTPCQC::finalize()
   mPt->Scale(scaleFactITSTPC);
   mPhiTPC->Scale(scaleFactTPC);
   mPhi->Scale(scaleFactITSTPC);
+  if (mUseMC) {
+    mPtTPCPhysPrim->Scale(scaleFactTPC);
+    mPtPhysPrim->Scale(scaleFactITSTPC);
+    mPhiTPCPhysPrim->Scale(scaleFactTPC);
+    mPhiPhysPrim->Scale(scaleFactITSTPC);
+  }
   mEta->Scale(scaleFactITSTPC);
   mChi2Matching->Scale(scaleFactITSTPC);
   mChi2Refit->Scale(scaleFactITSTPC);
@@ -280,9 +347,23 @@ void MatchITSTPCQC::getHistos(TObjArray& objar)
   objar.Add(mPhiTPC);
   objar.Add(mFractionITSTPCmatchPhi);
   objar.Add(mPhi);
+  objar.Add(mPtTPCPhysPrim);
+  objar.Add(mFractionITSTPCmatchPhysPrim);
+  objar.Add(mPtPhysPrim);
+  objar.Add(mPhiTPCPhysPrim);
+  objar.Add(mFractionITSTPCmatchPhiPhysPrim);
+  objar.Add(mPhiPhysPrim);
   objar.Add(mEta);
   objar.Add(mChi2Matching);
   objar.Add(mChi2Refit);
   objar.Add(mTimeResVsPt);
 }
 
+//__________________________________________________________
+
+bool MatchITSTPCQC::isPhysicalPrimary(o2::MCTrack const* mcTrk)
+{
+  // decide if the MC particle is a physical primary or not
+
+  return true;
+}
