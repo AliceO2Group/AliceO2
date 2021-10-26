@@ -1,6 +1,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "TFile.h"
 #include "TOFBase/Geo.h"
+#include "DetectorsBase/GeometryManager.h"
 #endif
 
 void checkRotation(const char* nameinput = "../../../macro/geometry.root")
@@ -16,8 +17,7 @@ void checkRotation(const char* nameinput = "../../../macro/geometry.root")
 
   Int_t n = 1;
 
-  TFile* fin = new TFile(nameinput);
-  fin->Get("FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(nameinput, false);
 
   Int_t isector;
 

@@ -52,7 +52,7 @@ TGeoManager* readFromFile(std::string filename)
     throw std::runtime_error("can not open " + filename);
   }
 
-  auto possibleGeoNames = {"ALICE", "FAIRGeom", "MCH-ONLY", "MCH-BASICS"};
+  auto possibleGeoNames = {"ccdb_object", "ALICE", "FAIRGeom", "MCH-ONLY", "MCH-BASICS"};
 
   TGeoManager* geo{nullptr};
 
@@ -64,7 +64,7 @@ TGeoManager* readFromFile(std::string filename)
   }
   if (!geo) {
     f->ls();
-    throw std::runtime_error("could not find ALICE geometry (using ALICE or FAIRGeom names)");
+    throw std::runtime_error("could not find ALICE geometry (using ccdb_object, ALICE or FAIRGeom names)");
   }
   return geo;
 }

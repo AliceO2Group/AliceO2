@@ -700,16 +700,21 @@ void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl)
   auto result = object;
   // We need to handle some specific cases as ROOT ties them deeply
   // to the file they are contained in
-  if (cl->InheritsFrom("TObject")) {
+  if (cl->InheritsFrom("TObject")) { // RS not sure why cloning is needed, certainly for the histos it it enough to SetDirectory(nullptr)
     // make a clone
-    auto obj = ((TObject*)object)->Clone();
     // detach from the file
-    if (auto tree = dynamic_cast<TTree*>(obj)) {
+    auto tree = dynamic_cast<TTree*>((TObject*)object);
+    if (tree) { // RS At the moment leaving the cloning for TTree
+      tree = (TTree*)tree->Clone();
       tree->SetDirectory(nullptr);
-    } else if (auto h = dynamic_cast<TH1*>(obj)) {
-      h->SetDirectory(nullptr);
+      result = tree;
+    } else {
+      auto h = dynamic_cast<TH1*>((TObject*)object);
+      if (h) {
+        h->SetDirectory(nullptr);
+        result = h;
+      }
     }
-    result = obj;
   }
   return result;
 }

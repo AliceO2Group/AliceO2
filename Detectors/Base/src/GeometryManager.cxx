@@ -484,20 +484,32 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
 }
 
 //_________________________________
-void GeometryManager::loadGeometry(std::string_view geomFileName, bool applyMisalignment)
+void GeometryManager::applyMisalignent(bool applyMisalignment)
 {
   ///< load geometry from file
-  std::string fname = o2::base::NameConf::getGeomFileName(geomFileName);
-  LOG(INFO) << "Loading geometry " << o2::base::NameConf::GEOMOBJECTNAME << " from " << fname;
-  TFile flGeom(fname.data());
-  if (flGeom.IsZombie()) {
-    LOG(FATAL) << "Failed to open file " << fname;
-  }
-  if (!flGeom.Get(std::string(o2::base::NameConf::GEOMOBJECTNAME).c_str())) {
-    LOG(FATAL) << "Did not find geometry named " << o2::base::NameConf::GEOMOBJECTNAME;
+  if (!isGeometryLoaded()) {
+    LOG(FATAL) << "geometry is not loaded";
   }
   if (applyMisalignment) {
     auto& aligner = Aligner::Instance();
     aligner.applyAlignment();
   }
+}
+
+//_________________________________
+void GeometryManager::loadGeometry(std::string_view geomFileName, bool applyMisalignment)
+{
+  ///< load geometry from file
+  std::string fname = o2::base::NameConf::getGeomFileName(geomFileName);
+  LOG(INFO) << "Loading geometry from " << fname;
+  TFile flGeom(fname.data());
+  if (flGeom.IsZombie()) {
+    LOG(FATAL) << "Failed to open file " << fname;
+  }
+  // try under the standard CCDB name
+  if (!flGeom.Get(std::string(o2::base::NameConf::CCDBOBJECT).c_str()) &&
+      !flGeom.Get(std::string(o2::base::NameConf::GEOMOBJECTNAME_FAIR).c_str())) {
+    LOG(FATAL) << "Did not find geometry named " << o2::base::NameConf::CCDBOBJECT << " or " << o2::base::NameConf::GEOMOBJECTNAME_FAIR;
+  }
+  applyMisalignent(applyMisalignment);
 }
