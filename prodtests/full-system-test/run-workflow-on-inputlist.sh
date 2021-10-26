@@ -25,9 +25,8 @@ LOG_PREFIX="log_$(date +%Y%m%d-%H%M%S)_"
 [[ -z $OVERRIDE_SESSION ]] && export OVERRIDE_SESSION=default_$$_$RANDOM
 [[ -z $INRAWCHANNAME ]] && export INRAWCHANNAME=tf-builder-$$-$RANDOM
 
-rm -f ${LOG_PREFIX}*.log /dev/shm/*fmq*
-if [[ `ls /dev/shm/*fmq* 2> /dev/null | wc -l` != "0" ]]; then
-  echo "ERROR: Existing SHM files"
+if [[ "0$IGNORE_EXISTING_SHMFILES" != "01" && `ls /dev/shm/*fmq* 2> /dev/null | wc -l` != "0" ]]; then
+  echo "ERROR: Existing SHM files (you can set IGNORE_EXISTING_SHMFILES=1 to ignore and allow multiple parallel reconstruction sessions)"
   exit 1
 fi
 
@@ -55,7 +54,7 @@ echo "Processing $2 in $1 mode"
 
 if [[ $1 == "DD" ]]; then
   export EXTINPUT=1
-  export DD_STARTUP_DELAY=10
+  export DD_STARTUP_DELAY=5
   start_process $MYDIR/datadistribution.sh
 elif [[ $1 == "CTF" ]]; then
   export CTFINPUT=1
@@ -89,6 +88,8 @@ done
 if [[ "0$4" != "00" ]]; then
   kill $PID_LOG
 fi
+
+fairmq-shmmonitor --session $OVERRIDE_SESSION --cleanup
 
 if [[ $RETVAL == 0 ]]; then
   echo "Done processing $2 in $1 mode"
