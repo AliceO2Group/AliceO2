@@ -36,7 +36,7 @@ BeginNamespace(gpu)
 // Settings concerning the reconstruction
 // There must be no bool in here, use char, as sizeof(bool) is compiler dependent and fails on GPUs!!!!!!
 BeginSubConfig(GPUSettingsRecTPC, tpc, configStandalone.rec, "RECTPC", 0, "Reconstruction settings", rec_tpc)
-AddOptionRTC(rejectQPt, float, 1.f / 0.05f, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt!!!)")
+AddOptionRTC(rejectQPt, float, 1.f / GPUCA_MIN_TRACK_PTB5_REJECT, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt!!!)")
 AddOptionRTC(hitPickUpFactor, float, 2., "", 0, "multiplier for the chi2 window for hit pick up procedure")
 AddOptionRTC(neighboursSearchArea, float, 3., "", 0, "area in cm for the search of neighbours")
 AddOptionRTC(clusterError2CorrectionY, float, 1., "", 0, "correction for the squared cluster error during tracking")
@@ -91,7 +91,7 @@ AddHelp("help", 'h')
 EndConfig()
 
 BeginSubConfig(GPUSettingsRec, rec, configStandalone, "REC", 0, "Reconstruction settings", rec)
-AddOptionRTC(maxTrackQPt, float, 1.f / GPUCA_MIN_TRACK_PT_DEFAULT, "", 0, "required max Q/Pt (==min Pt) of tracks")
+AddOptionRTC(maxTrackQPt, float, 1.f / GPUCA_MIN_TRACK_PTB5_DEFAULT, "", 0, "required max Q/Pt (==min Pt) of tracks")
 AddOptionRTC(nonConsecutiveIDs, char, false, "", 0, "Non-consecutive cluster IDs as in HLT, disables features that need access to slice data in TPC merger")
 AddOptionRTC(fwdTPCDigitsAsClusters, unsigned char, 0, "", 0, "Forward TPC digits as clusters (if they pass the ZS threshold)")
 AddOptionRTC(bz0Pt, unsigned char, 60, "", 0, "Nominal Pt to set when bz = 0 (in 10 MeV)")
@@ -167,6 +167,7 @@ AddOption(clearO2OutputFromGPU, bool, false, "", 0, "Free the GPU memory used fo
 AddOption(ignoreNonFatalGPUErrors, bool, false, "", 0, "Continue running after having received non fatal GPU errors, e.g. abort due to overflow")
 AddOption(tpcIncreasedMinClustersPerRow, unsigned int, 0, "", 0, "Impose a minimum buffer size for the clustersPerRow during TPC clusterization")
 AddOption(noGPUMemoryRegistration, bool, false, "", 0, "Do not register input / output memory for GPU dma transfer")
+AddOption(automaticQPtThresholds, bool, true, "", 0, "Update the QPt thresholde at initialization accoding to the B field (i.e. lower to 40% for B=0.2T)")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayBackend*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddHelp("help", 'h')
@@ -424,6 +425,7 @@ AddVariableRTC(dodEdx, char, 0)              // Do dEdx computation
 AddVariableRTC(earlyTpcTransform, char, 0)   // do Early TPC transformation
 AddVariableRTC(debugLevel, char, 0)          // Debug level
 AddVariableRTC(continuousMaxTimeBin, int, 0) // Max time bin for continuous tracking
+AddVariableRTC(qptB5Scaler, float, 1.f)      // Scaling factor for QPt to B=0.5T
 EndConfig()
 
 EndNamespace() // gpu
