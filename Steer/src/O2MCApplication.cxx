@@ -151,6 +151,8 @@ bool O2MCApplicationBase::MisalignGeometry()
 
   auto& confref = o2::conf::SimConfig::Instance();
   auto geomfile = o2::base::NameConf::getGeomFileName(confref.getOutPrefix());
+  // since in general the geometry is a CCDB object, it must be exported under the standard name
+  gGeoManager->SetName(std::string(o2::base::NameConf::CCDBOBJECT).c_str());
   gGeoManager->Export(geomfile.c_str());
 
   // apply alignment for included detectors AFTER exporting ideal geometry
