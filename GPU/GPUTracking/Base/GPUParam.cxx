@@ -134,11 +134,16 @@ void GPUParam::UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProce
       GPUTPCGMPolynomialFieldManager::GetPolynomialField(par.bzkG, polynomialField);
     }
   }
+  par.earlyTpcTransform = rec.tpc.forceEarlyTransform == -1 ? (!par.continuousTracking) : rec.tpc.forceEarlyTransform;
+  par.qptB5Scaler = CAMath::Abs(par.bzkG) > 0.1 ? CAMath::Abs(par.bzkG) / 5.006680f : 1.f;
   if (p) {
     par.debugLevel = p->debugLevel;
     par.resetTimers = p->resetTimers;
+    if (p->automaticQPtThresholds) {
+      rec.maxTrackQPt = 1.f / GPUCA_MIN_TRACK_PTB5_DEFAULT / par.qptB5Scaler;
+      rec.tpc.rejectQPt = 1.f / GPUCA_MIN_TRACK_PTB5_REJECT / par.qptB5Scaler;
+    }
   }
-  par.earlyTpcTransform = rec.tpc.forceEarlyTransform == -1 ? (!par.continuousTracking) : rec.tpc.forceEarlyTransform;
 }
 
 void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, const GPUSettingsProcessing* p, const GPURecoStepConfiguration* w)
