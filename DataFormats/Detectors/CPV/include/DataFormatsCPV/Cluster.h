@@ -13,7 +13,7 @@
 #define ALICEO2_CPV_CLUSTER_H_
 
 #include "DataFormatsCPV/Digit.h"
-#include <math.h>
+#include <cmath>
 
 namespace o2
 {
