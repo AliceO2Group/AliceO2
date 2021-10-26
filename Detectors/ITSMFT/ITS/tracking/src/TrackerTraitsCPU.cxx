@@ -40,7 +40,6 @@ namespace o2
 namespace its
 {
 
-#define OPTIMISATION_OUTPUT
 constexpr int debugLevel{0};
 
 void TrackerTraitsCPU::computeLayerTracklets()
@@ -74,7 +73,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
         const float inverseR0{1.f / currentCluster.radius};
 
         for (auto& primaryVertex : primaryVertices) {
-          const float resolution = std::sqrt(1.e-4 / primaryVertex.getNContributors() + Sq(tf->getPositionResolution(iLayer)));
+          const float resolution = std::sqrt(Sq(mTrkParams.PVres) / primaryVertex.getNContributors() + Sq(tf->getPositionResolution(iLayer)));
 
           const float tanLambda{(currentCluster.zCoordinate - primaryVertex.getZ()) * inverseR0};
 
@@ -162,7 +161,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
                                                                 currentCluster.xCoordinate - nextCluster.xCoordinate)};
                   const float tanL{(currentCluster.zCoordinate - nextCluster.zCoordinate) /
                                    (currentCluster.radius - nextCluster.radius)};
-                   tf->getTracklets()[iLayer].emplace_back(currentSortedIndex, tf->getSortedIndex(rof1, iLayer + 1, iNextCluster), tanL, phi, rof0, rof1);
+                  tf->getTracklets()[iLayer].emplace_back(currentSortedIndex, tf->getSortedIndex(rof1, iLayer + 1, iNextCluster), tanL, phi, rof0, rof1);
                 }
               }
             }
@@ -255,6 +254,9 @@ void TrackerTraitsCPU::computeLayerCells()
       continue;
     }
 
+    float resolution{std::sqrt(Sq(mTrkParams.LayerMisalignment[iLayer]) + Sq(mTrkParams.LayerMisalignment[iLayer + 1]) + Sq(mTrkParams.LayerMisalignment[iLayer + 2])) / mTrkParams.LayerResolution[iLayer]};
+    resolution = resolution > 1.e-12 ? resolution : 1.f;
+
     const int currentLayerTrackletsNum{static_cast<int>(tf->getTracklets()[iLayer].size())};
 
     for (int iTracklet{0}; iTracklet < currentLayerTrackletsNum; ++iTracklet) {
@@ -281,7 +283,7 @@ void TrackerTraitsCPU::computeLayerCells()
 #ifdef OPTIMISATION_OUTPUT
         bool good{tf->getTrackletsLabel(iLayer)[iTracklet] == tf->getTrackletsLabel(iLayer + 1)[iNextTracklet]};
         float signedDelta{currentTracklet.tanLambda - nextTracklet.tanLambda};
-        off << fmt::format("{}\t{:d}\t{}\t{}\t{}", iLayer, good, signedDelta, signedDelta / mTrkParams.CellDeltaTanLambdaSigma, tanLambda) << std::endl;
+        off << fmt::format("{}\t{:d}\t{}\t{}\t{}\t{}", iLayer, good, signedDelta, signedDelta / (mTrkParams.CellDeltaTanLambdaSigma), tanLambda, resolution) << std::endl;
 #endif
 
         if (deltaTanLambda / mTrkParams.CellDeltaTanLambdaSigma < mTrkParams.NSigmaCut) {

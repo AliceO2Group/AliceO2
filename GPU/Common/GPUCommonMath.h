@@ -299,15 +299,18 @@ GPUdi() unsigned int GPUCommonMath::Popcount(unsigned int x)
 #endif
 }
 
-GPUhdi() float GPUCommonMath::Hypot(float x, float y) {
+GPUhdi() float GPUCommonMath::Hypot(float x, float y)
+{
   return Sqrt(x * x + y * y);
 }
 
-GPUhdi() float GPUCommonMath::Hypot(float x, float y, float z) {
+GPUhdi() float GPUCommonMath::Hypot(float x, float y, float z)
+{
   return Sqrt(x * x + y * y + z * z);
 }
 
-GPUhdi() float GPUCommonMath::Hypot(float x, float y, float z, float w) {
+GPUhdi() float GPUCommonMath::Hypot(float x, float y, float z, float w)
+{
   return Sqrt(x * x + y * y + z * z + w * w);
 }
 

@@ -71,7 +71,6 @@ GPUdi() Tracklet::Tracklet(const int idx0, const int idx1, float tanL, float phi
   // Nothing to do
 }
 
-
 #ifdef _ALLOW_DEBUG_TREES_ITS_
 inline unsigned char Tracklet::isEmpty() const
 {

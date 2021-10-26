@@ -72,6 +72,7 @@ struct TrackingParameters {
   int ClusterSharing = 0;
   int MinTrackLength = 7;
   float NSigmaCut = 5;
+  float PVres = 1.e-2f; /// FIXME: this has to be taken directly from the reconstructed vertices
   /// Trackleting cuts
   float TrackletMaxDeltaPhi = 0.3f;
   /// Cell finding cuts

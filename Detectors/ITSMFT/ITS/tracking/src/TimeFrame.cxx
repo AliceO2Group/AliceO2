@@ -20,6 +20,7 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
+#include "ITStracking/TrackingConfigParam.h"
 
 #include <iostream>
 
@@ -32,7 +33,8 @@ struct ClusterHelper {
   int ind;
 };
 
-float MSangle(float mass, float p, float xX0) {
+float MSangle(float mass, float p, float xX0)
+{
   float beta = p / std::hypot(mass, p);
   return 0.0136f * std::sqrt(xX0) * (1.f + 0.038f * std::log(xX0)) / (beta * p);
 }
