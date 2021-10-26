@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef MC_KINEMATICS_READER_H
+#define MC_KINEMATICS_READER_H
+
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -207,3 +210,5 @@ inline size_t MCKinematicsReader::getNEvents(int source) const
 
 } // namespace steer
 } // namespace o2
+
+#endif
