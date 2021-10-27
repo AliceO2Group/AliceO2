@@ -78,6 +78,8 @@ class TimeFrame final
 
   float getMinR(int layer) const { return mMinR[layer]; }
   float getMaxR(int layer) const { return mMaxR[layer]; }
+  float getMSangle(int layer) const { return mMSangles[layer]; }
+  float getPositionResolution(int layer) const { return mPositionResolution[layer]; }
 
   gsl::span<Cluster> getClustersOnLayer(int rofId, int layerId);
   gsl::span<const Cluster> getClustersOnLayer(int rofId, int layerId) const;
@@ -142,6 +144,8 @@ class TimeFrame final
   float mBeamPos[2] = {0.f, 0.f};
   std::vector<float> mMinR;
   std::vector<float> mMaxR;
+  std::vector<float> mMSangles;
+  std::vector<float> mPositionResolution;
   std::vector<bool> mMultiplicityCutMask;
   std::vector<int> mROframesPV = {0};
   std::vector<std::vector<int>> mROframesClusters;

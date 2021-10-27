@@ -31,16 +31,15 @@ namespace its
 class Cell final
 {
  public:
-  GPUd() Cell(const int, const int, const int, const int, const int, const float3&, const float);
+  GPUd() Cell(const int, const int, const int, const int, const int, const float);
 
   GPUhdni() int getFirstClusterIndex() const { return mFirstClusterIndex; };
   GPUhdni() int getSecondClusterIndex() const { return mSecondClusterIndex; };
   GPUhdni() int getThirdClusterIndex() const { return mThirdClusterIndex; };
-  GPUhd() int getFirstTrackletIndex() const { return mFirstTrackletIndex; };
-  int getSecondTrackletIndex() const { return mSecondTrackletIndex; };
+  GPUhdni() int getFirstTrackletIndex() const { return mFirstTrackletIndex; };
+  GPUhdni() int getSecondTrackletIndex() const { return mSecondTrackletIndex; };
+  GPUhdni() float getTanLambda() const { return mTanLambda; };
   int getLevel() const { return mLevel; };
-  float getCurvature() const { return mCurvature; };
-  const float3& getNormalVectorCoordinates() const { return mNormalVectorCoordinates; };
   void setLevel(const int level) { mLevel = level; };
 
  private:
@@ -49,21 +48,18 @@ class Cell final
   const int mThirdClusterIndex;
   const int mFirstTrackletIndex;
   const int mSecondTrackletIndex;
-  const float3 mNormalVectorCoordinates;
-  const float mCurvature;
+  const float mTanLambda;
   int mLevel;
 };
 
 GPUdi() Cell::Cell(const int firstClusterIndex, const int secondClusterIndex, const int thirdClusterIndex,
-                   const int firstTrackletIndex, const int secondTrackletIndex,
-                   const float3& normalVectorCoordinates, const float curvature)
+                   const int firstTrackletIndex, const int secondTrackletIndex, const float tanL)
   : mFirstClusterIndex{firstClusterIndex},
     mSecondClusterIndex{secondClusterIndex},
     mThirdClusterIndex{thirdClusterIndex},
     mFirstTrackletIndex(firstTrackletIndex),
     mSecondTrackletIndex(secondTrackletIndex),
-    mNormalVectorCoordinates(normalVectorCoordinates),
-    mCurvature{curvature},
+    mTanLambda{tanL},
     mLevel{1}
 {
   // Nothing to do

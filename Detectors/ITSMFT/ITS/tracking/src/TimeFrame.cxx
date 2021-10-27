@@ -20,6 +20,7 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
+#include "ITStracking/TrackingConfigParam.h"
 
 #include <iostream>
 
@@ -31,6 +32,13 @@ struct ClusterHelper {
   int bin;
   int ind;
 };
+
+float MSangle(float mass, float p, float xX0)
+{
+  float beta = p / std::hypot(mass, p);
+  return 0.0136f * std::sqrt(xX0) * (1.f + 0.038f * std::log(xX0)) / (beta * p);
+}
+
 } // namespace
 
 namespace o2
@@ -180,6 +188,8 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     mTrackletsLookupTable.resize(trkParam.CellsPerRoad());
     mIndexTables.clear();
     mIndexTableUtils.setTrackingParameters(trkParam);
+    mMSangles.resize(trkParam.NLayers);
+    mPositionResolution.resize(trkParam.NLayers);
 
     for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
       if (mClusters[iLayer].size()) {
@@ -189,6 +199,8 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
       mClusters[iLayer].resize(mUnsortedClusters[iLayer].size());
       mUsedClusters[iLayer].clear();
       mUsedClusters[iLayer].resize(mUnsortedClusters[iLayer].size(), false);
+      mMSangles[iLayer] = MSangle(0.14f, 0.3f, trkParam.LayerxX0[iLayer]);
+      mPositionResolution[iLayer] = std::hypot(trkParam.LayerMisalignment[iLayer], trkParam.LayerResolution[iLayer]);
     }
 
     mIndexTables.resize(mNrof);

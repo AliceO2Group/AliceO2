@@ -105,22 +105,15 @@ void TrackerDPL::init(InitContext& ic)
       trackParams.resize(1);
       trackParams[0].PhiBins = 32;
       trackParams[0].ZBins = 64;
-      trackParams[0].TrackletMaxDeltaPhi *= 4;
-      for (float& dZ : trackParams[0].TrackletMaxDeltaZ) {
-        dZ = std::hypot(dZ, 0.3);
-      }
-      trackParams[0].CellMaxDeltaPhi = 0.5;
-      for (float& dca : trackParams[0].CellMaxDCA) {
-        dca = std::hypot(dca, 1.);
-      }
-      for (float& dca : trackParams[0].CellMaxDeltaZ) {
-        dca = std::hypot(dca, 1.);
-      }
-      trackParams[0].CellMaxDeltaTanLambda = 0.2;
-      for (int iLayer = 0; iLayer < 4; ++iLayer) {
-        trackParams[0].NeighbourMaxDeltaCurvature[iLayer] *= 16;
-        trackParams[0].NeighbourMaxDeltaN[iLayer] *= 16;
-      }
+      trackParams[0].TrackletMaxDeltaPhi *= 2;
+      trackParams[0].CellDeltaTanLambdaSigma *= 10;
+      trackParams[0].LayerMisalignment[0] = 3.e-2;
+      trackParams[0].LayerMisalignment[1] = 3.e-2;
+      trackParams[0].LayerMisalignment[2] = 3.e-2;
+      trackParams[0].LayerMisalignment[3] = 1.e-1;
+      trackParams[0].LayerMisalignment[4] = 1.e-1;
+      trackParams[0].LayerMisalignment[5] = 1.e-1;
+      trackParams[0].LayerMisalignment[6] = 1.e-1;
       trackParams[0].FitIterationMaxChi2[0] = 1.e28;
       trackParams[0].FitIterationMaxChi2[1] = 1.e28;
       trackParams[0].MinTrackLength = 4;
@@ -137,27 +130,12 @@ void TrackerDPL::init(InitContext& ic)
       memParams.resize(1);
       trackParams[0].MinTrackLength = 4;
       trackParams[0].TrackletMaxDeltaPhi = o2::its::constants::math::Pi * 0.5f;
-      trackParams[0].CellMaxDeltaTanLambda *= 400;
-      trackParams[0].CellMaxDeltaPhi = 1.;
+      trackParams[0].CellDeltaTanLambdaSigma *= 400;
       trackParams[0].PhiBins = 4;
       trackParams[0].ZBins = 16;
+      trackParams[0].PVres = 1.e5f;
       trackParams[0].FitIterationMaxChi2[0] = 1.e28;
       trackParams[0].FitIterationMaxChi2[1] = 1.e28;
-
-      for (int iLayer = 0; iLayer < 4; ++iLayer) {
-        trackParams[0].NeighbourMaxDeltaCurvature[iLayer] *= 400;
-        trackParams[0].NeighbourMaxDeltaN[iLayer] *= 400;
-      }
-      for (int iLayer = 0; iLayer < o2::its::constants::its2::TrackletsPerRoad; iLayer++) {
-        trackParams[0].TrackletMaxDeltaZ[iLayer] = o2::its::constants::its2::LayersZCoordinate()[iLayer + 1];
-        memParams[0].TrackletsMemoryCoefficients[iLayer] = 0.5f;
-        // trackParams[0].TrackletMaxDeltaZ[iLayer] = 10.f;
-      }
-      for (int iLayer = 0; iLayer < o2::its::constants::its2::CellsPerRoad; iLayer++) {
-        trackParams[0].CellMaxDCA[iLayer] = 10000.f;    //cm
-        trackParams[0].CellMaxDeltaZ[iLayer] = 10000.f; //cm
-        memParams[0].CellsMemoryCoefficients[iLayer] = 0.001f;
-      }
       LOG(info) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
 
     } else {
@@ -304,6 +282,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   LOG(info) << fmt::format("\t - Cluster multiplicity selection rejected {}/{} ROFs", cutClusterMult, rofspan.size());
   LOG(info) << fmt::format("\t - Vertex multiplicity selection rejected {}/{} ROFs", cutVertexMult, rofspan.size());
   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} clusters in {} ROFs", vertexerElapsedTime, nclUsed, rofspan.size());
+  LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", mTimeFrame.getBeamX(), mTimeFrame.getBeamY());
 
   mTimeFrame.setMultiplicityCutMask(processingMask);
   mTracker->clustersToTracks(logger);

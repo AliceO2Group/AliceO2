@@ -192,18 +192,14 @@ void run_trac_ca_its(bool cosmics = false,
   std::vector<TrackingParameters> trackParams(1);
   std::vector<MemoryParameters> memParams(1);
   if (cosmics) {
-    trackParams[0].MinTrackLength = 3;
+    trackParams[0].MinTrackLength = 4;
     trackParams[0].TrackletMaxDeltaPhi = o2::its::constants::math::Pi * 0.5f;
-    for (int iLayer = 0; iLayer < o2::its::constants::its2::TrackletsPerRoad; iLayer++) {
-      trackParams[0].TrackletMaxDeltaZ[iLayer] = o2::its::constants::its2::LayersZCoordinate()[iLayer + 1];
-      memParams[0].TrackletsMemoryCoefficients[iLayer] = 0.5f;
-      // trackParams[0].TrackletMaxDeltaZ[iLayer] = 10.f;
-    }
-    for (int iLayer = 0; iLayer < o2::its::constants::its2::CellsPerRoad; iLayer++) {
-      trackParams[0].CellMaxDCA[iLayer] = 10000.f;    //cm
-      trackParams[0].CellMaxDeltaZ[iLayer] = 10000.f; //cm
-      memParams[0].CellsMemoryCoefficients[iLayer] = 0.001f;
-    }
+    trackParams[0].CellDeltaTanLambdaSigma *= 400;
+    trackParams[0].PhiBins = 4;
+    trackParams[0].ZBins = 16;
+    trackParams[0].PVres = 1.e5f;
+    trackParams[0].FitIterationMaxChi2[0] = 1.e28;
+    trackParams[0].FitIterationMaxChi2[1] = 1.e28;
   } else {
     // PbPb tracking params
     // ----
@@ -218,24 +214,15 @@ void run_trac_ca_its(bool cosmics = false,
     // memParams.resize(3);
     // ---
     // Uncomment for pp
-    trackParams.resize(2);
-    std::array<const float, 5> kmaxDCAxy1 = {1.f * 2.0, 0.4f * 2.0, 0.4f * 2.0, 2.0f * 2.0, 3.f * 2.0};
-    std::array<const float, 5> kmaxDCAz1 = {1.f * 2.0, 0.4f * 2.0, 0.4f * 2.0, 2.0f * 2.0, 3.f * 2.0};
-    std::array<const float, 4> kmaxDN1 = {0.005f * 2.0, 0.0035f * 2.0, 0.009f * 2.0, 0.03f * 2.0};
-    std::array<const float, 4> kmaxDP1 = {0.02f * 2.0, 0.005f * 2.0, 0.006f * 2.0, 0.007f * 2.0};
-    std::array<const float, 6> kmaxDZ1 = {1.f * 2.0, 1.f * 2.0, 2.0f * 2.0, 2.0f * 2.0, 2.0f * 2.0, 2.0f * 2.0};
-    const float kDoublTanL1 = 0.05f * 5.;
-    const float kDoublPhi1 = 0.2f * 5.;
-    trackParams[1].MinTrackLength = 4;
-    trackParams[1].TrackletMaxDeltaPhi = 0.3;
-    trackParams[1].CellMaxDeltaPhi = 0.2 * 2;
-    trackParams[1].CellMaxDeltaTanLambda = 0.05 * 2;
-    std::copy(kmaxDZ1.begin(), kmaxDZ1.end(), trackParams[1].TrackletMaxDeltaZ.begin());
-    std::copy(kmaxDCAxy1.begin(), kmaxDCAxy1.end(), trackParams[1].CellMaxDCA.begin());
-    std::copy(kmaxDCAz1.begin(), kmaxDCAz1.end(), trackParams[1].CellMaxDeltaZ.begin());
-    std::copy(kmaxDP1.begin(), kmaxDP1.end(), trackParams[1].NeighbourMaxDeltaCurvature.begin());
-    std::copy(kmaxDN1.begin(), kmaxDN1.end(), trackParams[1].NeighbourMaxDeltaN.begin());
-    memParams.resize(2);
+    trackParams.resize(3);
+    trackParams[0].TrackletMaxDeltaPhi = 0.05f;
+    trackParams[0].DeltaROF = 0;
+    trackParams[1].CopyCuts(trackParams[0], 2.);
+    trackParams[1].DeltaROF = 0;
+    trackParams[2].CopyCuts(trackParams[1], 2.);
+    trackParams[2].DeltaROF = 1;
+    trackParams[2].MinTrackLength = 4;
+    memParams.resize(3);
     // ---
   }
 
