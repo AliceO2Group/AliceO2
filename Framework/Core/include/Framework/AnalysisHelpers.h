@@ -188,13 +188,13 @@ struct Spawns : TableTransform<typename aod::MetadataTrait<framework::pack_head_
     return expression_pack_t{};
   }
 
-  T* operator->()
+  typename T::table_t* operator->()
   {
     return table.get();
   }
-  T& operator*()
+  typename T::table_t const& operator*() const
   {
-    return *table.get();
+    return *table;
   }
 
   auto asArrowTable()
@@ -359,9 +359,9 @@ struct Builds : TableTransform<typename aod::MetadataTrait<T>::metadata> {
   {
     return table.get();
   }
-  T& operator*()
+  T const& operator*() const
   {
-    return *table.get();
+    return *table;
   }
 
   auto asArrowTable()
