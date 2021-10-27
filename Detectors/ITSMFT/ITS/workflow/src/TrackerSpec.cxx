@@ -117,8 +117,7 @@ void TrackerDPL::init(InitContext& ic)
       trackParams[0].FitIterationMaxChi2[0] = 1.e28;
       trackParams[0].FitIterationMaxChi2[1] = 1.e28;
       trackParams[0].MinTrackLength = 4;
-      // trackParams[1].CopyCuts(trackParams[0], 2.);
-      memParams.resize(2);
+      memParams.resize(1);
       LOG(info) << "Initializing tracker in misaligned sync. phase reconstruction with " << trackParams.size() << " passes";
 
     } else if (mMode == "sync") {
