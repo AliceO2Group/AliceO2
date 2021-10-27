@@ -12,6 +12,7 @@
 #include "TOFSimulation/Digitizer.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "TOFSimulation/TOFSimParams.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 #include "TCanvas.h"
 #include "TFile.h"
@@ -66,6 +67,9 @@ digit time = NBC*1024 + Ntdc
 
 void Digitizer::init()
 {
+
+  // set first readout window in MC production getting
+  mReadoutWindowCurrent = o2::raw::HBFUtils::Instance().orbitFirstSampled * Geo::NWINDOW_IN_ORBIT;
 
   // method to initialize the parameters neede to digitize and the array of strip objects containing
   // the digits belonging to a strip
