@@ -63,7 +63,7 @@ class VisualisationTrack
     float phi = 0;
     float theta = 0;
     float eta = 0;
-    std::string gid = "";
+    std::string gid = "***";
     o2::dataformats::GlobalTrackID::Source source;
   };
   // Constructor with properties initialisation

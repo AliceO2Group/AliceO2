@@ -389,13 +389,13 @@ void EveWorkflowHelper::drawMFT(GID gid, float trackTime)
 
   std::vector<float> zPositions = {-40.f, -45.f, -65.f, -85.f}; // Selected z positions to draw the track
   tr.propagateToZlinear(zPositions[0]);                         // Fix the track starting position.
-
   auto vTrack = mEvent.addTrack({.time = static_cast<float>(trackTime),
                                  .charge = (int)tr.getCharge(),
                                  .PID = o2::track::PID::Muon,
                                  .startXYZ = {(float)tr.getX(), (float)tr.getY(), (float)tr.getZ()},
                                  .phi = (float)tr.getPhi(),
                                  .theta = (float)tr.getTanl(),
+                                 .eta = (float)0,
                                  .gid = gid.asString(),
                                  .source = GID::MFT});
   for (auto zPos : zPositions) {
@@ -413,10 +413,13 @@ void EveWorkflowHelper::drawMCH(GID gid, float trackTime)
   auto noOfClusters = track.getNClusters();                  // number of clusters in MCH Track
   auto offset = track.getFirstClusterIdx();                  // first external cluster index offset:
   const auto& mchClusters = mRecoCont.getMCHTrackClusters(); // list of references to clusters, offset:offset+no
-
   auto vTrack = mEvent.addTrack({.time = static_cast<float>(trackTime),
+                                 .charge = 0,
                                  .PID = o2::track::PID::Muon,
                                  .startXYZ = {(float)track.getX(), (float)track.getY(), (float)track.getZ()},
+                                 .phi = (float)0,
+                                 .theta = (float)0,
+                                 .eta = (float)0,
                                  .gid = gid.asString(),
                                  .source = GID::MCH});
 
@@ -444,11 +447,13 @@ void EveWorkflowHelper::drawMID(GID gid, float trackTime)
   // LOG(INFO) << "EveWorkflowHelper::drawMID --------------------------------" << gid;
   const auto& midTrack = mRecoCont.getMIDTrack(gid);         // MID track
   const auto& midClusters = mRecoCont.getMIDTrackClusters(); // MID clusters
-
   auto vTrack = mEvent.addTrack({.time = static_cast<float>(trackTime),
                                  .charge = (int)0,
                                  .PID = o2::track::PID::Muon,
                                  .startXYZ = {(float)midTrack.getPositionX(), (float)midTrack.getPositionY(), (float)midTrack.getPositionZ()},
+                                 .phi = (float)0,
+                                 .theta = (float)0,
+                                 .eta = (float)0,
                                  .gid = gid.asString(),
                                  .source = GID::MID});
 
