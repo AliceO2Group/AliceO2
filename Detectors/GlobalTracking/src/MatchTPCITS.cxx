@@ -515,6 +515,8 @@ bool MatchTPCITS::prepareTPCData()
 //_____________________________________________________
 bool MatchTPCITS::prepareITSData()
 {
+  static size_t errCount = 0;
+  constexpr size_t MaxErrors2Report = 10;
   // Do preparatory work for matching
   mTimer[SWPrepITS].Start(false);
   const auto& inp = *mRecoCont;
@@ -555,6 +557,12 @@ bool MatchTPCITS::prepareITSData()
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mITSTrackROFRec[irof];
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
+    if (nBC < 0) {
+      if (++errCount < MaxErrors2Report) {
+        LOG(ERROR) << "ITS ROF start " << rofRec.getBCData() << " precedes TF 1st orbit " << mStartIR;
+      }
+      continue;
+    }
     float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
     float tMax = (nBC + mITSROFrameLengthInBC) * o2::constants::lhc::LHCBunchSpacingMUS;
     if (!mITSTriggered) {
