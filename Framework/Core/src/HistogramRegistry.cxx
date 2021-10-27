@@ -59,7 +59,7 @@ void HistogramRegistry::setHash(uint32_t hash)
 // create histogram from specification and insert it into the registry
 HistPtr HistogramRegistry::insert(const HistogramSpec& histSpec)
 {
-  validateHistName(histSpec.name.data(), histSpec.hash);
+  validateHistName(histSpec.name, histSpec.hash);
   const uint32_t idx = imask(histSpec.hash);
   for (auto i = 0u; i < MAX_REGISTRY_SIZE; ++i) {
     TObject* rawPtr = nullptr;
@@ -77,7 +77,7 @@ HistPtr HistogramRegistry::insert(const HistogramSpec& histSpec)
 }
 
 // helper function that checks if histogram name can be used in registry
-void HistogramRegistry::validateHistName(const char* name, const uint32_t hash)
+void HistogramRegistry::validateHistName(const std::string& name, const uint32_t hash)
 {
   // validate that hash is unique
   auto it = std::find(mRegistryKey.begin(), mRegistryKey.end(), hash);
@@ -87,13 +87,11 @@ void HistogramRegistry::validateHistName(const char* name, const uint32_t hash)
     std::visit([&](const auto& hist) { collidingName = hist->GetName(); }, mRegistryValue[idx]);
     LOGF(FATAL, R"(Hash collision in HistogramRegistry "%s"! Please rename histogram "%s" or "%s".)", mName, name, collidingName);
   }
+
   // validate that name contains only allowed characters
-  /*
-   TODO: exactly determine constraints for valid histogram names
-  if (!std::regex_match(name, std::regex("[A-Za-z0-9\-_/]+"))) {
+  if (!std::regex_match(name, std::regex("([a-zA-Z0-9])(([\\/_])?[a-zA-Z0-9])*"))) {
     LOGF(FATAL, R"(Histogram name "%s" contains invalid characters.)", name);
   }
-   */
 }
 
 HistPtr HistogramRegistry::add(const HistogramSpec& histSpec)
@@ -239,7 +237,6 @@ void HistogramRegistry::print(bool showAxisDetails)
   LOGF(INFO, "");
   LOGF(INFO, "%s", titleString);
   LOGF(INFO, "%s\"%s\"", std::string((int)(0.5 * titleString.size() - (1 + 0.5 * mName.size())), ' '), mName);
-  std::sort(mRegisteredNames.begin(), mRegisteredNames.end());
   for (auto& curHistName : mRegisteredNames) {
     std::visit(printHistInfo, mRegistryValue[getHistIndex(HistName{curHistName.data()})]);
   }
@@ -269,9 +266,17 @@ TList* HistogramRegistry::operator*()
   TList* list = new TList();
   list->SetName(mName.data());
 
-  for (auto i = 0u; i < MAX_REGISTRY_SIZE; ++i) {
+  if (mSortHistos) {
+    auto caseInsensitiveCompare = [](const std::string& s1, const std::string& s2) {
+      return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(),
+                                          [](char c1, char c2) { return std::tolower(static_cast<unsigned char>(c1)) < std::tolower(static_cast<unsigned char>(c2)); });
+    };
+    std::sort(mRegisteredNames.begin(), mRegisteredNames.end(), caseInsensitiveCompare);
+  }
+
+  for (auto& curHistName : mRegisteredNames) {
     TNamed* rawPtr = nullptr;
-    std::visit([&](const auto& sharedPtr) { rawPtr = (TNamed*)sharedPtr.get(); }, mRegistryValue[i]);
+    std::visit([&](const auto& sharedPtr) { rawPtr = (TNamed*)sharedPtr.get(); }, mRegistryValue[getHistIndex(HistName{curHistName.data()})]);
     if (rawPtr) {
       std::deque<std::string> path = splitPath(rawPtr->GetName());
       std::string name = path.back();
@@ -286,29 +291,25 @@ TList* HistogramRegistry::operator*()
     }
   }
 
-  // sort histograms in output file alphabetically
-  if (mSortHistos) {
-    std::function<void(TList*)> sortList;
-    sortList = [&](TList* list) {
-      list->Sort();
-      TIter next(list);
-      TNamed* subList = nullptr;
-      std::vector<TObject*> subLists;
-      while ((subList = (TNamed*)next())) {
-        if (subList->InheritsFrom(TList::Class())) {
-          subLists.push_back(subList);
-          sortList((TList*)subList);
-        }
+  // place lists always at the top
+  std::function<void(TList*)> moveListsToTop;
+  moveListsToTop = [&](TList* list) {
+    TIter next(list);
+    TNamed* subList = nullptr;
+    std::vector<TObject*> subLists;
+    while ((subList = (TNamed*)next())) {
+      if (subList->InheritsFrom(TList::Class())) {
+        subLists.push_back(subList);
+        moveListsToTop((TList*)subList);
       }
-      // place lists always at the top
-      std::reverse(subLists.begin(), subLists.end());
-      for (auto curList : subLists) {
-        list->Remove(curList);
-        list->AddFirst(curList);
-      }
-    };
-    sortList(list);
-  }
+    }
+    std::reverse(subLists.begin(), subLists.end());
+    for (auto curList : subLists) {
+      list->Remove(curList);
+      list->AddFirst(curList);
+    }
+  };
+  moveListsToTop(list);
 
   // create dedicated directory containing all of the registrys histograms
   if (mCreateRegistryDir) {
