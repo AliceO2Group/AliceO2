@@ -662,7 +662,7 @@ void WorkflowHelpers::adjustServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
 
   if (writer != workflow.end()) {
-    writer->inputs = {};
+    workflow.erase(writer);
     // replace writer as some outputs may have become dangling and some are now consumed
     auto [outputsInputs, outputTypes] = analyzeOutputs(workflow);
 
@@ -676,17 +676,17 @@ void WorkflowHelpers::adjustServiceDevices(WorkflowSpec& workflow, ConfigContext
     for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
       if ((outputTypes[ii] & ANALYSIS) == ANALYSIS) {
         auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
-        if (ds.size() > 0 || (outputTypes[ii] & DANGLING) == DANGLING) {
+        if (!ds.empty() || (outputTypes[ii] & DANGLING) == DANGLING) {
           outputsInputsAOD.emplace_back(outputsInputs[ii]);
         }
       }
     }
 
     // file sink for any AOD output
-    if (outputsInputsAOD.size() > 0) {
+    if (!outputsInputsAOD.empty()) {
       // add TFNumber as input to the writer
       outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
-      *writer = CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD);
+      workflow.push_back(CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD));
     }
   }
 }
