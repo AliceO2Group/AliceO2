@@ -57,7 +57,7 @@ class Track
   };
 
   /// Gets the covariance parameters
-  const std::array<float, 6> getCovarianceParameters() const { return mCovarianceParameters; }
+  const std::array<float, 6>& getCovarianceParameters() const { return mCovarianceParameters; }
   /// returns the covariance parameter covParam
   float getCovarianceParameter(CovarianceParamIndex covParam) const
   {
@@ -74,7 +74,11 @@ class Track
 
   bool propagateToZ(float zPosition);
 
+  /// Gets the matched clusters without bound checking
+  int getClusterMatchedUnchecked(int chamber) const { return mClusterMatched[chamber]; }
   int getClusterMatched(int chamber) const;
+  /// Sets the matched clusters without bound checking
+  void setClusterMatchedUnchecked(int chamber, int id) { mClusterMatched[chamber] = id; }
   void setClusterMatched(int chamber, int id);
 
   /// Returns the chi2 of the track
