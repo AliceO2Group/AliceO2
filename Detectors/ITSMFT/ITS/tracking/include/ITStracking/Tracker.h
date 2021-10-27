@@ -83,7 +83,7 @@ class Tracker
 
  private:
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
-                                    const TrackingFrameInfo& tf3);
+                                    const TrackingFrameInfo& tf3, float resolution);
   template <typename... T>
   void initialiseTimeFrame(T&&... args);
   void computeTracklets();

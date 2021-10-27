@@ -29,6 +29,7 @@ namespace its
 struct Tracklet final {
   Tracklet();
   GPUdi() Tracklet(const int, const int, const Cluster&, const Cluster&, int rof0, int rof1);
+  GPUdi() Tracklet(const int, const int, float tanL, float phi, int rof0, int rof1);
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   unsigned char isEmpty() const;
   void dump();
@@ -55,6 +56,16 @@ GPUdi() Tracklet::Tracklet(const int firstClusterOrderingIndex, const int second
               (firstCluster.radius - secondCluster.radius)},
     phi{o2::gpu::GPUCommonMath::ATan2(firstCluster.yCoordinate - secondCluster.yCoordinate,
                                       firstCluster.xCoordinate - secondCluster.xCoordinate)},
+    rof{static_cast<unsigned short>(rof0), static_cast<unsigned short>(rof1)}
+{
+  // Nothing to do
+}
+
+GPUdi() Tracklet::Tracklet(const int idx0, const int idx1, float tanL, float phi, int rof0, int rof1)
+  : firstClusterIndex{idx0},
+    secondClusterIndex{idx1},
+    tanLambda{tanL},
+    phi{phi},
     rof{static_cast<unsigned short>(rof0), static_cast<unsigned short>(rof1)}
 {
   // Nothing to do

@@ -40,6 +40,13 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
 
   // Use TGeo for mat. budget
   bool useMatCorrTGeo = false;
+  float misalignment[7] = {-1.f, -1.f, -1.f, -1.f, -1.f, -1.f, -1.f};
+  float nSigmaCut = -1.f;
+  float deltaTanLres = -1.f;
+  float phiCut = -1.f;
+  float pvRes = -1.f;
+  int LUTbinsPhi = -1;
+  int LUTbinsZ = -1;
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };
