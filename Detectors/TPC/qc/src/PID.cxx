@@ -46,10 +46,10 @@ void PID::initializeHistograms()
   mHist2D.emplace_back("hdEdxVsTgl", "dEdx (a.u.) vs tan#lambda; tan#lambda; dEdx (a.u.)", 60, -2, 2, 300, 0, 300);         //| mHist2D[1]
   mHist2D.emplace_back("hdEdxVsncls", "dEdx (a.u.) vs ncls; ncls; dEdx (a.u.)", 80, 0, 160, 300, 0, 300);                   //| mHist2D[2]
 
-  const auto logPtBinning = helpers::makeLogBinning(30, 0.1, 10);
+  const auto logPtBinning = helpers::makeLogBinning(300, 0.05, 10);
   if (logPtBinning.size() > 0) {
-    mHist2D.emplace_back("hdEdxVsp", "dEdx (a.u.) vs p (GeV/#it{c}); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 300, 0, 300);                         //| mHist2D[3]
-    mHist2D.emplace_back("hdEdxVspBeforeCuts", "dEdx (a.u.) vs p (GeV/#it{c}) (before cuts); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 300, 0, 300); //| mHist2D[4]
+    mHist2D.emplace_back("hdEdxVsp", "dEdx (a.u.) vs p (GeV/#it{c}); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 500, 0, 500);                         //| mHist2D[3]
+    mHist2D.emplace_back("hdEdxVspBeforeCuts", "dEdx (a.u.) vs p (GeV/#it{c}) (before cuts); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 500, 0, 500); //| mHist2D[4]
   }
 
   mHist2D.emplace_back("hdEdxVsPhiMipsAside", "dEdx (a.u.) vs #phi (rad) of MIPs (A side); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 25, 35, 60);       //| mHist2D[5]
