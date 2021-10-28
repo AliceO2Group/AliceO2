@@ -34,6 +34,9 @@ struct ServiceRegistry;
 struct DeviceState;
 struct ProcessingContext;
 struct EndOfStreamContext;
+struct ConfigContext;
+struct WorkflowSpecNode;
+
 class DanglingContext;
 
 /// A callback to create a given Service.
@@ -93,6 +96,12 @@ using ServiceDriverInit = std::function<void(ServiceRegistry&, boost::program_op
 /// Callback invoked when the driver enters the init phase.
 using ServiceDriverStartup = std::function<void(ServiceRegistry&, boost::program_options::variables_map const&)>;
 
+/// Callback invoked when we inject internal devices in the topology
+using ServiceTopologyInject = std::function<void(WorkflowSpecNode&, ConfigContext&)>;
+
+/// Callback invoked when we amend the topology
+using ServiceTopologyAdjust = std::function<void(WorkflowSpecNode&, ConfigContext const&)>;
+
 /// A specification for a Service.
 /// A Service is a utility class which does not perform
 /// data processing itself, but it can be used by the data processor
@@ -147,6 +156,12 @@ struct ServiceSpec {
   ServiceDriverInit driverInit = nullptr;
   /// Callback invoked when starting the driver
   ServiceDriverStartup driverStartup = nullptr;
+
+  /// Callback invoked when doing topology creation
+  ServiceTopologyInject injectTopology = nullptr;
+
+  /// Callback invoked when finalising topology creation
+  ServiceTopologyAdjust adjustTopology = nullptr;
 
   /// Kind of service being specified.
   ServiceKind kind = ServiceKind::Serial;

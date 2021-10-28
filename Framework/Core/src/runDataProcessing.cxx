@@ -48,6 +48,7 @@
 #include "Framework/CommandInfo.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/TopologyPolicy.h"
+#include "Framework/WorkflowSpecNode.h"
 #include "ControlServiceHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
 #include "DriverServerContext.h"
@@ -1150,6 +1151,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                     DriverInfo& driverInfo,
                     std::vector<DeviceMetricsInfo>& metricsInfos,
                     boost::program_options::variables_map& varmap,
+                    std::vector<ServiceSpec>& driverServices,
                     std::string frameworkId)
 {
   RunningWorkflowInfo runningWorkflow{
@@ -1235,7 +1237,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   std::vector<ServicePreSchedule> preScheduleCallbacks;
   std::vector<ServicePostSchedule> postScheduleCallbacks;
   std::vector<ServiceDriverInit> driverInitCallbacks;
-  std::vector<ServiceSpec> driverServices = CommonDriverServices::defaultServices();
   for (auto& service : driverServices) {
     service.driverStartup(serviceRegistry, varmap);
   }
@@ -1491,7 +1492,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             altered = true;
           }
           if (altered) {
-            WorkflowHelpers::adjustServiceDevices(altered_workflow, *driverInfo.configContext);
+            WorkflowSpecNode node{altered_workflow};
+            for (auto& service : driverServices) {
+              if (service.adjustTopology == nullptr) {
+                continue;
+              }
+              service.adjustTopology(node, *driverInfo.configContext);
+            }
           }
 
           DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(altered_workflow,
@@ -2369,8 +2376,17 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     }
   }
 
+  /// This is the earlies the services are actually needed
+  std::vector<ServiceSpec> driverServices = CommonDriverServices::defaultServices();
   // We insert the hash for the internal devices.
   WorkflowHelpers::injectServiceDevices(physicalWorkflow, configContext);
+  for (auto& service : driverServices) {
+    if (service.injectTopology == nullptr) {
+      continue;
+    }
+    WorkflowSpecNode node{physicalWorkflow};
+    service.injectTopology(node, configContext);
+  }
   for (auto& dp : physicalWorkflow) {
     if (dp.name.rfind("internal-") == 0) {
       rankIndex.insert(std::make_pair(dp.name, hash_fn("internal")));
@@ -2569,6 +2585,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
                          driverInfo,
                          gDeviceMetricsInfos,
                          varmap,
+                         driverServices,
                          frameworkId);
 }
 
