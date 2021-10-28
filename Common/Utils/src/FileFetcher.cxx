@@ -43,11 +43,6 @@ FileFetcher::FileFetcher(const std::string& input, const std::string& selRegex, 
   }
   mNoRemoteCopy = mCopyCmd == "no-copy";
 
-  if (mCopyCmd.find("alien") != std::string::npos) {
-    if (!gGrid && !TGrid::Connect("alien://")) {
-      LOG(ERROR) << "Copy command refers to alien but connection to Grid failed";
-    }
-  }
   // parse input list
   mCopyDirName = o2::utils::Str::create_unique_path(mCopyDirName, 8);
   processInput(input);
@@ -308,6 +303,11 @@ void FileFetcher::discardFile(const std::string& fname)
 bool FileFetcher::copyFile(size_t id)
 {
   // copy remote file to local setCopyDirName. Adaptation for Gvozden's code from SubTimeFrameFileSource::DataFetcherThread()
+  if (mCopyCmd.find("alien") != std::string::npos) {
+    if (!gGrid && !TGrid::Connect("alien://")) {
+      LOG(ERROR) << "Copy command refers to alien but connection to Grid failed";
+    }
+  }
   auto realCmd = std::regex_replace(std::regex_replace(mCopyCmd, std::regex("\\?src"), mInputFiles[id].getOrigName()), std::regex("\\?dst"), mInputFiles[id].getLocalName());
   std::vector<std::string> copyParams{"-c", realCmd};
   bp::child copyChild(bp::search_path("sh"), copyParams, bp::std_err > mCopyCmdLogFile, bp::std_out > mCopyCmdLogFile);
