@@ -625,9 +625,12 @@ track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluste
 
   const float fy = 1. / (cluster2.radius - cluster3.radius);
   const float& tz = fy;
-  const float cy = (math_utils::computeCurvature(x1, y1, x2, y2 + resolution, x3, y3) - crv) /
-                   (resolution * getBz() * o2::constants::math::B2C) *
-                   20.f; // FIXME: MS contribution to the cov[14] (*20 added)
+  float cy = 1.e15f;
+  if (std::abs(getBz()) > o2::constants::math::Almost0) {
+    cy = (math_utils::computeCurvature(x1, y1, x2, y2 + resolution, x3, y3) - crv) /
+         (resolution * getBz() * o2::constants::math::B2C) *
+         20.f; // FIXME: MS contribution to the cov[14] (*20 added)
+  }
   const float s2 = resolution;
 
   return track::TrackParCov(tf3.xTrackingFrame, tf3.alphaTrackingFrame,
