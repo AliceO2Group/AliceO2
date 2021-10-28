@@ -19,12 +19,13 @@ using namespace o2::framework;
 
 // This is a stateful task, where we send the state downstream.
 struct ATask {
-  explicit ATask(int state)
-    : mSomeState{state} {}
+  Service<TimingInfo> info;
+
+  // explicit ATask(int state)
+  //   : mSomeState{state} {}
 
   void init(InitContext& ic)
   {
-    mSomeState += 1;
   }
 
   void run(ProcessingContext& pc)
@@ -47,12 +48,10 @@ struct ATask {
     hEta->SetName("Eta");
     hEta->Write();
   }
-
-  int mSomeState;
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"mySimpleTrackAnalysis"}, 0)};
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"mySimpleTrackAnalysis"})};
 }

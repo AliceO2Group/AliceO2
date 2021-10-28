@@ -115,6 +115,18 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
     .kind = ServiceKind::Serial};
 }
 
+// Make it a service so that it can be used easily from the analysis
+// FIXME: Moreover, it makes sense that this will be duplicated on a per thread
+// basis when we get to it.
+o2::framework::ServiceSpec CommonServices::timingInfoSpec()
+{
+  return ServiceSpec{
+    .name = "timing-info",
+    .init = simpleServiceInit<TimingInfo, TimingInfo>(),
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
+}
+
 o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
 {
   return ServiceSpec{
@@ -588,6 +600,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
 std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {
   std::vector<ServiceSpec> specs{
+    timingInfoSpec(),
     timesliceIndex(),
     driverClientSpec(),
     datatakingContextSpec(),
