@@ -48,11 +48,13 @@ class TPCMonitorDevice : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     mBlocking = ic.options().get<bool>("blocking");
+    const int maxTimeBins = ic.options().get<int>("max-time-bins");
 
     // set up ADC value filling
     mRawReader.createReader("");
     mDigitDump.init();
     mDigitDump.setInMemoryOnly();
+    mDigitDump.setTimeBinRange(0, maxTimeBins);
     const auto pedestalFile = ic.options().get<std::string>("pedestal-file");
     if (pedestalFile.length()) {
       LOGP(info, "Setting pedestal file: {}", pedestalFile);
@@ -79,7 +81,6 @@ class TPCMonitorDevice : public o2::framework::Task
       mEventDisplayGUI.getEventDisplay().setDigits(&mDigitDump.getDigits());
     }
 
-    const int maxTimeBins = ic.options().get<int>("max-time-bins");
     mGUIThread = std::make_unique<std::thread>(&SimpleEventDisplayGUI::startGUI, &mEventDisplayGUI, maxTimeBins);
 
     auto finishFunction = [this]() {
