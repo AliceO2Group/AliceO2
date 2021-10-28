@@ -61,7 +61,6 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
     auto const* phosheader = o2::framework::DataRefUtils::getHeader<o2::phos::PHOSBlockHeader*>(dataref);
     if (!phosheader->mHasPayload) {
       LOG(DEBUG) << "[PHOSClusterizer - run] No more digits" << std::endl;
-      ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
       return;
     }
 
@@ -107,7 +106,6 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
   if (mPropagateMC) {
     ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
   }
-  ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
 }
 
 o2::framework::DataProcessorSpec o2::phos::reco_workflow::getClusterizerSpec(bool propagateMC, bool fullClu)
