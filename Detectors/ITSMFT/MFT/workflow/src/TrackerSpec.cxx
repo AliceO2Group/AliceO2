@@ -203,7 +203,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       if (nclUsed) {
         event.setROFrameId(roFrame);
         event.initialize(trackingParam.FullClusterScan);
-        LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+        LOG(DEBUG) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mTrackerL->setROFrame(roFrame);
         mTrackerL->clustersToTracks(event);
         tracksL.swap(event.getTracks());
