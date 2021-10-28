@@ -27,9 +27,7 @@ class TCanvas;
 class TH1;
 class TChain;
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 
 /// \namespace utils
@@ -47,7 +45,7 @@ const std::vector<std::string> tokenize(const std::string_view input, const std:
 TH1* getBinInfoXY(int& binx, int& biny, float& bincx, float& bincy);
 void addFECInfo();
 void saveCanvases(TObjArray& arr, std::string_view outDir, std::string_view types = "png,pdf", std::string_view rootFileName = "");
-void saveCanvases(std::vector<TCanvas*> canvases, std::string_view outDir, std::string_view types = "png,pdf", std::string_view rootFileName = "");
+void saveCanvases(std::vector<TCanvas*>& canvases, std::string_view outDir, std::string_view types = "png,pdf", std::string_view rootFileName = "");
 void saveCanvas(TCanvas& c, std::string_view outDir, std::string_view types);
 std::vector<CalPad*> readCalPads(const std::string_view fileName, const std::vector<std::string>& calPadNames);
 std::vector<CalPad*> readCalPads(const std::string_view fileName, const std::string_view calPadNames);
@@ -72,7 +70,6 @@ void mergeCalPads(std::string_view outputFileName, std::string_view inputFileNam
 TChain* buildChain(std::string_view command, std::string_view treeName, std::string_view treeTitle);
 
 } // namespace utils
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc
 
 #endif
