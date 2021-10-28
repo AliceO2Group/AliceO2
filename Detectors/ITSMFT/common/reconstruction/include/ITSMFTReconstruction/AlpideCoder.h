@@ -357,6 +357,7 @@ class AlpideCoder
             if (dataC) { // padding is over, make 1 step back in the buffer
               auto currPtr = buffer.getPtr();
               buffer.setPtr(--currPtr);
+              break;
             }
           }
         }
