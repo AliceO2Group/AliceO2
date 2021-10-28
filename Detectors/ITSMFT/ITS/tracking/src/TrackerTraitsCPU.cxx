@@ -51,8 +51,10 @@ void TrackerTraitsCPU::computeLayerTracklets()
 
   TimeFrame* tf = mTimeFrame;
 
+  const Vertex diamondVert({mTrkParams.Diamond[0], mTrkParams.Diamond[1], mTrkParams.Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
+  gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
   for (int rof0{0}; rof0 < tf->getNrof(); ++rof0) {
-    gsl::span<const Vertex> primaryVertices = tf->getPrimaryVertices(rof0);
+    gsl::span<const Vertex> primaryVertices = mTrkParams.UseDiamond ? diamondSpan : tf->getPrimaryVertices(rof0);
     int minRof = (rof0 >= mTrkParams.DeltaROF) ? rof0 - mTrkParams.DeltaROF : 0;
     int maxRof = (rof0 == tf->getNrof() - mTrkParams.DeltaROF) ? rof0 : rof0 + mTrkParams.DeltaROF;
     for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {

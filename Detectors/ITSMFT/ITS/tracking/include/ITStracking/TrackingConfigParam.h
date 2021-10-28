@@ -47,6 +47,8 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   float pvRes = -1.f;
   int LUTbinsPhi = -1;
   int LUTbinsZ = -1;
+  float diamondPos[3] = {0.f, 0.f, 0.f};
+  bool useDiamond = false;
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };
