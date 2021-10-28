@@ -22,6 +22,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsTOF/Diagnostic.h"
+#include "TOFBase/WindowFiller.h"
 
 using namespace o2::framework;
 
@@ -42,6 +43,7 @@ class DigitReader : public Task
   int mState = 0;
   int mCurrentEntry = 0;
   bool mUseMC = true;
+  WindowFiller mFiller;
   std::unique_ptr<TFile> mFile = nullptr;
   std::vector<o2::tof::Digit> mDigits, *mPdigits = &mDigits;
   std::vector<o2::tof::ReadoutWindowData> mRow, *mProw = &mRow;

@@ -19,6 +19,7 @@
 #include "Framework/Task.h"
 #include "TOFReconstruction/CTFCoder.h"
 #include <TStopwatch.h>
+#include "TOFBase/WindowFiller.h"
 
 namespace o2
 {
@@ -36,6 +37,7 @@ class EntropyDecoderSpec : public o2::framework::Task
 
  private:
   o2::tof::CTFCoder mCTFCoder;
+  WindowFiller mFiller;
   TStopwatch mTimer;
 };
 
