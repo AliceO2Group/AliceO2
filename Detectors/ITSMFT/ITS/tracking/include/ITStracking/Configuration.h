@@ -67,6 +67,8 @@ struct TrackingParameters {
   std::vector<float> LayerMisalignment = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
   int ZBins{256};
   int PhiBins{128};
+  bool UseDiamond = false;
+  float Diamond[3] = {0.f, 0.f, 0.f};
 
   /// General parameters
   int ClusterSharing = 0;

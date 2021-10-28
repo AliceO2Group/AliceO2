@@ -656,6 +656,10 @@ void Tracker::getGlobalConfiguration()
     params.NSigmaCut *= tc.nSigmaCut > 0 ? tc.nSigmaCut : 1.f;
     params.CellDeltaTanLambdaSigma *= tc.deltaTanLres > 0 ? tc.deltaTanLres : 1.f;
     params.TrackletMaxDeltaPhi *= tc.phiCut > 0 ? tc.phiCut : 1.f;
+    for (int iD{0}; iD < 3; ++iD) {
+      params.Diamond[iD] = tc.diamondPos[iD];
+    }
+    params.UseDiamond = tc.useDiamond;
   }
 }
 
