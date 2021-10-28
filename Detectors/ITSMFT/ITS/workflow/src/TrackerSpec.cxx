@@ -134,6 +134,13 @@ void TrackerDPL::init(InitContext& ic)
       trackParams[0].PhiBins = 4;
       trackParams[0].ZBins = 16;
       trackParams[0].PVres = 1.e5f;
+      trackParams[0].LayerMisalignment[0] = 3.e-2;
+      trackParams[0].LayerMisalignment[1] = 3.e-2;
+      trackParams[0].LayerMisalignment[2] = 3.e-2;
+      trackParams[0].LayerMisalignment[3] = 1.e-1;
+      trackParams[0].LayerMisalignment[4] = 1.e-1;
+      trackParams[0].LayerMisalignment[5] = 1.e-1;
+      trackParams[0].LayerMisalignment[6] = 1.e-1;
       trackParams[0].FitIterationMaxChi2[0] = 1.e28;
       trackParams[0].FitIterationMaxChi2[1] = 1.e28;
       LOG(info) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
