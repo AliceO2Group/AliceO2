@@ -121,18 +121,20 @@ void utils::addFECInfo()
 
 void utils::saveCanvases(TObjArray& arr, std::string_view outDir, std::string_view types, std::string_view rootFileName)
 {
-  for (auto c : arr) {
-    utils::saveCanvas(*static_cast<TCanvas*>(c), outDir, types);
+  if (types.size()) {
+    for (auto c : arr) {
+      utils::saveCanvas(*static_cast<TCanvas*>(c), outDir, types);
+    }
   }
 
   if (rootFileName.size()) {
-    std::unique_ptr<TFile> outFile(TFile::Open(fmt::format("{}/NoiseAndPedestalCanvases.root", outDir).data(), "recreate"));
+    std::unique_ptr<TFile> outFile(TFile::Open(fmt::format("{}/{}", outDir, rootFileName).data(), "recreate"));
     arr.Write(arr.GetName(), TObject::kSingleKey);
     outFile->Close();
   }
 }
 
-void utils::saveCanvases(std::vector<TCanvas*> canvases, std::string_view outDir, std::string_view types, std::string_view rootFileName)
+void utils::saveCanvases(std::vector<TCanvas*>& canvases, std::string_view outDir, std::string_view types, std::string_view rootFileName)
 {
   TObjArray arr;
   for (auto c : canvases) {
@@ -144,6 +146,9 @@ void utils::saveCanvases(std::vector<TCanvas*> canvases, std::string_view outDir
 
 void utils::saveCanvas(TCanvas& c, std::string_view outDir, std::string_view types)
 {
+  if (!types.size()) {
+    return;
+  }
   const auto typesVec = tokenize(types, ",");
   for (const auto& type : typesVec) {
     c.SaveAs(fmt::format("{}/{}.{}", outDir, c.GetName(), type).data());
