@@ -447,6 +447,7 @@ void WindowFiller::checkIfReuseFutureDigitsRO() // the same but using readout in
 
 void WindowFiller::fillDiagnosticFrequency()
 {
+  bool isTOFempty = true;
   // fill diagnostic frequency
   for (int j = 0; j < mReadoutWindowData.size(); j++) {
     mDiagnosticFrequency.fillROW();
@@ -455,6 +456,8 @@ void WindowFiller::fillDiagnosticFrequency()
       int slot = 0;
       if (mReadoutWindowData[j].isEmptyCrate(ic)) {
         mDiagnosticFrequency.fillEmptyCrate(ic);
+      } else {
+        isTOFempty = false;
       }
       if (dia) {
         int fd = mReadoutWindowData[j].firstDia();
@@ -478,6 +481,10 @@ void WindowFiller::fillDiagnosticFrequency()
     }
   }
 
+  if (isTOFempty) {
+    mDiagnosticFrequency.fillEmptyTOF();
+  }
+
   // fill also noise diagnostic if the counts within the TF is larger than a threashold (default >=11, -> 1 kHZ)
   int masknoise = mMaskNoiseRate;
   if (masknoise < 0) {
@@ -496,7 +503,7 @@ void WindowFiller::fillDiagnosticFrequency()
       }
 
       //Fill noisy in diagnostic
-      mDiagnosticFrequency.fillNoisy(i + additionalMask);
+      mDiagnosticFrequency.fillNoisy(i + additionalMask, mReadoutWindowData.size());
     }
   }
 }

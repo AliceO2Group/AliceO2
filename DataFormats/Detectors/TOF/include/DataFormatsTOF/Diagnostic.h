@@ -36,9 +36,11 @@ class Diagnostic
   int getFrequency(ULong64_t pattern);                                                    // Get frequency
   int getFrequencyROW() { return getFrequency(0); }                                       // Readout window frequency
   int getFrequencyEmptyCrate(int crate) { return getFrequency(getEmptyCrateKey(crate)); } // empty crate frequency
+  int getFrequencyEmptyTOF() { return getFrequency(1); }                                  // empty crate frequency
   int fillNoisy(int channel, int frequency = 1) { return fill(getNoisyChannelKey(channel), frequency); }
   int fillROW() { return fill(0); }
   int fillEmptyCrate(int crate, int frequency = 1) { return fill(getEmptyCrateKey(crate), frequency); }
+  int fillEmptyTOF(int frequency = 1) { return fill(1, frequency); }
   static ULong64_t getEmptyCrateKey(int crate);
   static ULong64_t getNoisyChannelKey(int channel);
   static ULong64_t getTRMKey(int crate, int trm);
@@ -47,6 +49,7 @@ class Diagnostic
   void fill(const Diagnostic& diag);                       // for calibration
   void fill(const gsl::span<const o2::tof::Diagnostic>){}; // for calibration
   void merge(const Diagnostic* prev);
+  void getNoisyMap(Bool_t* output); // set true in output channel array
   unsigned long size() const { return mVector.size(); }
   ULong64_t getPattern(int i) const
   {

@@ -134,3 +134,18 @@ void Diagnostic::merge(const Diagnostic* prev)
     fill(el.first, el.second + getFrequency(el.first));
   }
 }
+
+void Diagnostic::getNoisyMap(Bool_t* output)
+{
+  // set true in output channel array
+  for (auto pair : mVector) {
+    auto key = pair.first;
+    int slot = getSlot(key);
+
+    if (slot != 14) {
+      continue;
+    }
+
+    output[getChannel(key)] = true;
+  }
+}
