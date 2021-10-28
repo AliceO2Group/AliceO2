@@ -190,6 +190,7 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     mIndexTableUtils.setTrackingParameters(trkParam);
     mMSangles.resize(trkParam.NLayers);
     mPositionResolution.resize(trkParam.NLayers);
+    mBogusClusters.resize(trkParam.NLayers, 0);
 
     for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
       if (mClusters[iLayer].size()) {
@@ -224,8 +225,16 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
           ClusterHelper& h = cHelper[iCluster];
           float x = c.xCoordinate - mBeamPos[0];
           float y = c.yCoordinate - mBeamPos[1];
+          const float& z = c.zCoordinate;
           float phi = math_utils::computePhi(x, y);
-          const int zBin{mIndexTableUtils.getZBinIndex(iLayer, c.zCoordinate)};
+          int zBin{mIndexTableUtils.getZBinIndex(iLayer, z)};
+          if (zBin < 0) {
+            zBin = 0;
+            mBogusClusters[iLayer]++;
+          } else if (zBin >= trkParam.ZBins) {
+            zBin = trkParam.ZBins - 1;
+            mBogusClusters[iLayer]++;
+          }
           int bin = mIndexTableUtils.getBinIndex(zBin, mIndexTableUtils.getPhiBinIndex(phi));
           h.phi = phi;
           h.r = math_utils::hypot(x, y);
