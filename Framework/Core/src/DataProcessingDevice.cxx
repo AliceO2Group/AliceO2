@@ -102,7 +102,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
     mError{mSpec.algorithm.onError},
     mConfigRegistry{nullptr},
     mServiceRegistry{registry},
-    mAllocator{&mTimingInfo, &registry, mSpec.outputs},
+    mAllocator{&registry, mSpec.outputs},
     mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>()},
     mAwakeHandle{nullptr},
     mProcessingPolicies{policies}
@@ -535,7 +535,7 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   context.registry = &mServiceRegistry;
   context.completed = &mCompleted;
   context.expirationHandlers = &mExpirationHandlers;
-  context.timingInfo = &mTimingInfo;
+  context.timingInfo = &mServiceRegistry.get<TimingInfo>();
   context.allocator = &mAllocator;
   context.statefulProcess = &mStatefulProcess;
   context.statelessProcess = &mStatelessProcess;
