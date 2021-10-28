@@ -286,6 +286,9 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   mTimeFrame.setMultiplicityCutMask(processingMask);
   mTracker->clustersToTracks(logger);
+  if (mTimeFrame.hasBogusClusters()) {
+    LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame.hasBogusClusters());
+  }
 
   for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
 
