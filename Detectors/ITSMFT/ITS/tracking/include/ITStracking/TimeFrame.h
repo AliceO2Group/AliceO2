@@ -166,7 +166,7 @@ class TimeFrame final
   std::vector<Road> mRoads;
   std::vector<std::vector<MCCompLabel>> mTracksLabel;
   std::vector<std::vector<TrackITSExt>> mTracks;
-  std::vector<int> mBogusClusters;  /// keep track of clusters with wild coordinates
+  std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
   std::vector<index_table_t> mIndexTables;
   std::vector<std::vector<Tracklet>> mTracklets;
