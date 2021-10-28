@@ -47,12 +47,6 @@ std::ostream& operator<<(std::ostream& out, TopoIndexInfo const& info)
   return out;
 }
 
-enum OutputType : char {
-  UNKNOWN = 0,
-  DANGLING = 1,
-  ANALYSIS = 2,
-};
-
 std::vector<TopoIndexInfo>
   WorkflowHelpers::topologicalSort(size_t nodeCount,
                                    int const* edgeIn,
@@ -133,9 +127,9 @@ std::vector<TopoIndexInfo>
   return S;
 }
 
-void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
-                               std::vector<InputSpec> requestedInputs,
-                               DataProcessorSpec& publisher)
+void WorkflowHelpers::addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
+                                                std::vector<InputSpec> requestedInputs,
+                                                DataProcessorSpec& publisher)
 {
   auto matchingOutputFor = [](InputSpec const& requested) {
     return [&requested](OutputSpec const& provided) {
@@ -163,9 +157,9 @@ void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
   }
 }
 
-void addMissingOutputsToSpawner(std::vector<InputSpec>&& requestedDYNs,
-                                std::vector<InputSpec>& requestedAODs,
-                                DataProcessorSpec& publisher)
+void WorkflowHelpers::addMissingOutputsToSpawner(std::vector<InputSpec>&& requestedDYNs,
+                                                 std::vector<InputSpec>& requestedAODs,
+                                                 DataProcessorSpec& publisher)
 {
   for (auto& input : requestedDYNs) {
     publisher.inputs.emplace_back(InputSpec{input.binding, header::DataOrigin{"AOD"}, DataSpecUtils::asConcreteDataMatcher(input).description});
@@ -175,9 +169,9 @@ void addMissingOutputsToSpawner(std::vector<InputSpec>&& requestedDYNs,
   }
 }
 
-void addMissingOutputsToBuilder(std::vector<InputSpec>&& requestedIDXs,
-                                std::vector<InputSpec>& requestedAODs,
-                                DataProcessorSpec& publisher)
+void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec>&& requestedIDXs,
+                                                 std::vector<InputSpec>& requestedAODs,
+                                                 DataProcessorSpec& publisher)
 {
   auto inputSpecFromString = [](std::string s) {
     std::regex word_regex("(\\w+)");
@@ -562,128 +556,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
 void WorkflowHelpers::adjustServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
 {
-  auto spawner = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-spawner"; });
-  auto builder = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-index-builder"; });
-  auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });
-  auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-writer"; });
-
-  if (spawner != workflow.end()) {
-    std::vector<InputSpec> requestedDYNs;
-    // collect currently requested DYNs
-    for (auto& d : workflow) {
-      if (d.name == spawner->name) {
-        continue;
-      }
-      for (auto& i : d.inputs) {
-        if (DataSpecUtils::partialMatch(i, header::DataOrigin{"DYN"})) {
-          requestedDYNs.emplace_back(i);
-        }
-      }
-      std::sort(requestedDYNs.begin(), requestedDYNs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
-      auto end = std::unique(requestedDYNs.begin(), requestedDYNs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
-      requestedDYNs.erase(end, requestedDYNs.end());
-    }
-
-    // remove unmatched outputs
-    auto o_end = std::remove_if(spawner->outputs.begin(), spawner->outputs.end(), [&](OutputSpec const& o) {
-      return std::none_of(requestedDYNs.begin(), requestedDYNs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
-    });
-    spawner->outputs.erase(o_end, spawner->outputs.end());
-
-    // remove unmatched inputs
-    auto i_end = std::remove_if(spawner->inputs.begin(), spawner->inputs.end(), [&](InputSpec const& i) {
-      auto&& [origin, description] = DataSpecUtils::asConcreteDataTypeMatcher(i);
-      return std::none_of(spawner->outputs.begin(), spawner->outputs.end(), [description = description](OutputSpec const& o) {
-        return DataSpecUtils::partialMatch(o, description);
-      });
-    });
-    spawner->inputs.erase(i_end, spawner->inputs.end());
-
-    // replace AlgorithmSpec
-    // FIXME: it should be made more generic, so it does not need replacement...
-    spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(requestedDYNs);
-  }
-
-  if (builder != workflow.end()) {
-    // collect currently requested IDXs
-    std::vector<InputSpec> requestedIDXs;
-    std::vector<InputSpec> dummy_i;
-    std::vector<OutputSpec> dummy_o;
-    for (auto& d : workflow) {
-      if (d.name == builder->name) {
-        continue;
-      }
-      for (auto& i : d.inputs) {
-        if (DataSpecUtils::partialMatch(i, header::DataOrigin{"IDX"})) {
-          requestedIDXs.emplace_back(i);
-        }
-      }
-      std::sort(requestedIDXs.begin(), requestedIDXs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
-      auto end = std::unique(requestedIDXs.begin(), requestedIDXs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
-      requestedIDXs.erase(end, requestedIDXs.end());
-    }
-
-    // recreate inputs and outputs
-    builder->inputs = dummy_i;
-    builder->outputs = dummy_o;
-    auto copy = requestedIDXs;
-    addMissingOutputsToBuilder(std::move(copy), dummy_i, *builder);
-
-    //replace AlgorithmSpec
-    // FIXME: it should be made more generic, so it does not need replacement...
-    builder->algorithm = readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs);
-  }
-
-  if (reader != workflow.end() && (spawner != workflow.end() || builder != workflow.end())) {
-    // If reader and/or builder were adjusted, remove unneeded outputs
-    std::vector<InputSpec> requestedAODs;
-    // collect currently requested AODs
-    for (auto& d : workflow) {
-      for (auto& i : d.inputs) {
-        if (DataSpecUtils::partialMatch(i, header::DataOrigin{"AOD"})) {
-          requestedAODs.emplace_back(i);
-        }
-      }
-      std::sort(requestedAODs.begin(), requestedAODs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
-      auto end = std::unique(requestedAODs.begin(), requestedAODs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
-      requestedAODs.erase(end, requestedAODs.end());
-    }
-
-    // remove unmatched outputs
-    auto o_end = std::remove_if(reader->outputs.begin(), reader->outputs.end(), [&](OutputSpec const& o) {
-      return !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFNumber"}) && std::none_of(requestedAODs.begin(), requestedAODs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
-    });
-    reader->outputs.erase(o_end, reader->outputs.end());
-  }
-
-  if (writer != workflow.end()) {
-    workflow.erase(writer);
-    // replace writer as some outputs may have become dangling and some are now consumed
-    auto [outputsInputs, outputTypes] = analyzeOutputs(workflow);
-
-    // create DataOutputDescriptor
-    std::shared_ptr<DataOutputDirector> dod = getDataOutputDirector(ctx.options(), outputsInputs, outputTypes);
-
-    // select outputs of type AOD which need to be saved
-    // ATTENTION: if there are dangling outputs the getGlobalAODSink
-    // has to be created in any case!
-    std::vector<InputSpec> outputsInputsAOD;
-    for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
-      if ((outputTypes[ii] & ANALYSIS) == ANALYSIS) {
-        auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
-        if (!ds.empty() || (outputTypes[ii] & DANGLING) == DANGLING) {
-          outputsInputsAOD.emplace_back(outputsInputs[ii]);
-        }
-      }
-    }
-
-    // file sink for any AOD output
-    if (!outputsInputsAOD.empty()) {
-      // add TFNumber as input to the writer
-      outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
-      workflow.push_back(CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD));
-    }
-  }
 }
 
 void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
