@@ -101,7 +101,7 @@ std::string VisualisationEvent::toJson()
 
   // compatibility verification
   tree.AddMember("fileVersion", rapidjson::Value().SetInt(JSON_FILE_VERSION), allocator);
-  tree.AddMember("timeStamp", rapidjson::Value().SetFloat(this->mTimeStamp), allocator);
+  //tree.AddMember("timeStamp", rapidjson::Value().SetFloat(this->mTimeStamp), allocator);
   tree.AddMember("workflowVersion", rapidjson::Value().SetFloat(this->mWorkflowVersion), allocator);
   tree.AddMember("workflowParameters", rapidjson::Value().SetString(this->mWorkflowParameters.c_str(), this->mWorkflowParameters.size()), allocator);
   // Tracks
