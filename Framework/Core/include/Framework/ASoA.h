@@ -1107,7 +1107,7 @@ class Table
 
   unfiltered_iterator rawIteratorAt(uint64_t i) const
   {
-    auto it = mBegin + (i - mOffset);
+    auto it = mBegin + i;
     it.bindInternalIndices((void*)this);
     return it;
   }
