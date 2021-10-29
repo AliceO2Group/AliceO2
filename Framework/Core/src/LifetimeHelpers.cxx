@@ -210,7 +210,7 @@ ExpirationHandler::Checker
       throw runtime_error("fetchFromCCDBCache: Unable to initialise CURL");
     }
     CURLcode res;
-    std::string path = "CTP/OrbitReset";
+    std::string path = "CTP/Calib/OrbitReset";
     auto url = fmt::format("{}/{}/{}", serverUrl, path, timestamp / 1000);
     LOG(INFO) << "Fetching CTP from " << url;
 
