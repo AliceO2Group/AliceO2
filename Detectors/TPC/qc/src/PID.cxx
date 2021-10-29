@@ -46,16 +46,21 @@ void PID::initializeHistograms()
   mHist2D.emplace_back("hdEdxVsTgl", "dEdx (a.u.) vs tan#lambda; tan#lambda; dEdx (a.u.)", 60, -2, 2, 300, 0, 300);         //| mHist2D[1]
   mHist2D.emplace_back("hdEdxVsncls", "dEdx (a.u.) vs ncls; ncls; dEdx (a.u.)", 80, 0, 160, 300, 0, 300);                   //| mHist2D[2]
 
-  const auto logPtBinning = helpers::makeLogBinning(300, 0.05, 10);
+  const auto logPtBinning = helpers::makeLogBinning(200, 0.05, 20);
   if (logPtBinning.size() > 0) {
-    mHist2D.emplace_back("hdEdxVsp", "dEdx (a.u.) vs p (GeV/#it{c}); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 500, 0, 500);                         //| mHist2D[3]
-    mHist2D.emplace_back("hdEdxVspBeforeCuts", "dEdx (a.u.) vs p (GeV/#it{c}) (before cuts); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 500, 0, 500); //| mHist2D[4]
+    mHist2D.emplace_back("hdEdxVsp", "dEdx (a.u.) vs p (GeV/#it{c}); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 500, 0, 1000);                         //| mHist2D[3]
+    mHist2D.emplace_back("hdEdxVspBeforeCuts", "dEdx (a.u.) vs p (GeV/#it{c}) (before cuts); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 500, 0, 1000); //| mHist2D[4]
   }
 
   mHist2D.emplace_back("hdEdxVsPhiMipsAside", "dEdx (a.u.) vs #phi (rad) of MIPs (A side); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 25, 35, 60);       //| mHist2D[5]
   mHist2D.emplace_back("hdEdxVsPhiMipsCside", "dEdx (a.u.) vs #phi (rad) of MIPs (C side); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 25, 35, 60);       //| mHist2D[6]
   mHist2D.emplace_back("hdEdxVsPhiElesAside", "dEdx (a.u.) vs #phi (rad) of electrons (A side); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 30, 70, 100); //| mHist2D[7]
   mHist2D.emplace_back("hdEdxVsPhiElesCside", "dEdx (a.u.) vs #phi (rad) of electrons (C side); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 30, 70, 100); //| mHist2D[8]
+
+  if (logPtBinning.size() > 0) {
+    mHist2D.emplace_back("hdEdxMaxVsp", "dEdx_Max (a.u.) vs p (GeV/#it{c}); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 500, 0, 1000);                         //| mHist2D[9]
+    mHist2D.emplace_back("hdEdxMaxVspBeforeCuts", "dEdx_Max (a.u.) vs p (GeV/#it{c}) (before cuts); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 500, 0, 1000); //| mHist2D[10]
+  }
 }
 
 //______________________________________________________________________________
@@ -87,6 +92,7 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track)
   // ===| histogram filling before cuts |===
   mHist1D[8].Fill(nclusters);
   mHist2D[4].Fill(p, dEdxTot);
+  mHist2D[10].Fill(p, dEdxMax);
 
   // ===| histogram filling including cuts |===
   if (absEta < 1. && nclusters > 60 && dEdxTot > 20) {
@@ -101,6 +107,7 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track)
     mHist2D[1].Fill(tgl, dEdxTot);
     mHist2D[2].Fill(nclusters, dEdxTot);
     mHist2D[3].Fill(p, dEdxTot);
+    mHist2D[9].Fill(p, dEdxMax);
   }
 
   // ===| cuts and  histogram filling for MIPs |===
