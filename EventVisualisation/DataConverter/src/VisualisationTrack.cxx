@@ -100,11 +100,11 @@ rapidjson::Value VisualisationTrack::jsonTree(rapidjson::Document::AllocatorType
 
   tree.AddMember("count", rapidjson::Value().SetInt(this->getPointCount()), allocator);
   tree.AddMember("source", rapidjson::Value().SetInt(this->mSource), allocator);
-  tree.AddMember("time", rapidjson::Value().SetFloat(this->mTime), allocator);
-  tree.AddMember("charge", rapidjson::Value().SetInt(this->mCharge), allocator);
-  tree.AddMember("theta", rapidjson::Value().SetFloat(this->mTheta), allocator);
-  tree.AddMember("phi", rapidjson::Value().SetFloat(this->mPhi), allocator);
-  tree.AddMember("eta", rapidjson::Value().SetFloat(this->mEta), allocator);
+  //tree.AddMember("time", rapidjson::Value().SetFloat(this->mTime), allocator);
+  //tree.AddMember("charge", rapidjson::Value().SetInt(this->mCharge), allocator);
+  //tree.AddMember("theta", rapidjson::Value().SetFloat(this->mTheta), allocator);
+  //tree.AddMember("phi", rapidjson::Value().SetFloat(this->mPhi), allocator);
+  //tree.AddMember("eta", rapidjson::Value().SetFloat(this->mEta), allocator);
   tree.AddMember("PID", rapidjson::Value().SetInt(this->mPID), allocator);
 
   jsonStartCoordinates.PushBack((float)mStartCoordinates[0], allocator);
