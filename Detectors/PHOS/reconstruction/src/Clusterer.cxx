@@ -77,7 +77,7 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
       mCluEl.emplace_back(absId, digitSeed.isHighGain(), energy, calibrateT(digitSeed.getTime(), absId, digitSeed.isHighGain()),
                           x, z, digitSeed.getLabel(), 1.);
     }
-    mLastElementInEvent = mCluEl.size();
+    mLastElementInEvent = cluelements.size();
 
     // Collect digits to clusters
     makeClusters(clusters, cluelements);
@@ -374,7 +374,7 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
   }
 
   // Iterations finished, put first new cluster into place of mother one, others to the end of list
-  for (int iclu = nMax; iclu--;) {
+  for (int iclu = 0; iclu < nMax; iclu++) {
     //copy cluElements to the final list
     int start = cluelements.size();
     int nce = 0;
