@@ -36,8 +36,6 @@ std::string getTreeName(header::DataHeader dh)
   // add prefix according to origin
   if (origin == "AOD") {
     treeName = "O2" + treeName;
-  } else if (origin == "RN2") {
-    treeName = "Run2" + treeName;
   }
 
   // exceptions from this
