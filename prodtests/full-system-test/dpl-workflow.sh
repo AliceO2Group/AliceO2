@@ -110,7 +110,7 @@ if [ $SYNCMODE == 1 ]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
     [ -z ${ITS_CONFIG+x} ] && ITS_CONFIG=" --tracking-mode sync"
   elif [ $BEAMTYPE == "pp" ]; then
-    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=1;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2"
+    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=-1;fastMultConfig.cutMultClusHigh=-1;fastMultConfig.cutMultVtxHigh=-1;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2"
     [ -z ${ITS_CONFIG+x} ] && ITS_CONFIG=" --tracking-mode sync"
   elif [ $BEAMTYPE == "cosmic" ]; then
     [ -z ${ITS_CONFIG+x} ] && ITS_CONFIG=" --tracking-mode cosmics"
@@ -265,6 +265,8 @@ elif [ $EPNPIPELINES != 0 ]; then
   else
     N_TPCTRK=$NGPUS
   fi
+else
+  N_TPCTRK=$NGPUS
 fi
 # Scale some multiplicities with the number of nodes
 RECO_NUM_NODES_WORKFLOW_CMP=$((($RECO_NUM_NODES_WORKFLOW > 15 ? $RECO_NUM_NODES_WORKFLOW : 15) * ($NUMAGPUIDS == 1 ? 2 : 1))) # Limit the lowert scaling factor, multiply by 2 if we have 2 NUMA domains
@@ -310,7 +312,7 @@ elif [ $RAWTFINPUT == 1 ]; then
   if [ $NTIMEFRAMES == -1 ]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
   add_W o2-raw-tf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --input-data ${TFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS"
 elif [ $EXTINPUT == 1 ]; then
-  PROXY_CHANNEL="name=readout-proxy,type=pull,method=connect,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=0"
+  PROXY_CHANNEL="name=readout-proxy,type=pull,method=connect,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=$EPNMODE"
   PROXY_INSPEC="dd:FLP/DISTSUBTIMEFRAME/0;eos:***/INFORMATION"
   PROXY_IN_N=0
   for i in `echo "$WORKFLOW_DETECTORS" | sed "s/,/ /g"`; do
@@ -418,10 +420,10 @@ if has_processing_step ENTROPY_ENCODER && [ ! -z "$WORKFLOW_DETECTORS_CTF" ] && 
   has_detector_ctf CTP && add_W o2-ctp-entropy-encoder-workflow "--ctf-dict \"${CTF_DICT}\" --mem-factor ${CTP_ENC_MEMFACT:-1.5} --pipeline $(get_N its-entropy-encoder CTP CTF)"
 
   # CTF / dictionary writer workflow
-  if [ $SAVECTF == 1 ]; then
+  if [[ $SAVECTF == 1 && $WORKFLOWMODE == "run" ]]; then
     mkdir -p $CTF_DIR
   fi
-  if [ $CREATECTFDICT == 1 ] ; then
+  if [[ $CREATECTFDICT == 1 && $WORKFLOWMODE == "run" ]] ; then
     mkdir -p $CTF_DICT_DIR;
     rm -f $CTF_DICT
   fi
@@ -447,7 +449,7 @@ workflow_has_parameter EVENT_DISPLAY && [ $NUMAID == 0 ] && add_W o2-eve-display
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Quality Control
-workflow_has_parameter QC && source $MYDIR/qc-workflow.sh
+workflow_has_parameter QC && { source $MYDIR/qc-workflow.sh; [[ $? != 0 ]] && exit 1; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # DPL run binary
