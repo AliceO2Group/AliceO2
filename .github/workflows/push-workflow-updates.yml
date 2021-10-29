@@ -1,0 +1,26 @@
+# The GitHub access token for the clang-format check doesn't have the "workflow"
+# permission, so it can't push to alibuild/AliceO2 if workflow files have
+# changed. This action keeps workflow files up to date between the repos.
+
+name: Push workflow updates
+
+on:
+  push:
+    paths:
+      - '.github/workflows/**'
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Push to alibuild's repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.ALIBUILD_WORKFLOW_PUSH_TOKEN }}
+        run: |
+          git push -f "https://alibuild:${GITHUB_TOKEN}@github.com/alibuild/AliceO2.git" \
+                      '${{ !github.event.deleted && github.event.ref || "" }}:${{ github.event.ref }}'
