@@ -635,7 +635,7 @@ track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluste
 
   return track::TrackParCov(tf3.xTrackingFrame, tf3.alphaTrackingFrame,
                             {y3, z3, crv * (x3 - x0), 0.5f * (tgl12 + tgl23),
-                             std::abs(getBz()) < o2::constants::math::Almost0 ? o2::constants::math::Almost0
+                             std::abs(getBz()) < o2::constants::math::Almost0 ? 1.f / o2::track::kMostProbablePt
                                                                               : crv / (getBz() * o2::constants::math::B2C)},
                             {s2, 0.f, s2, s2 * fy, 0.f, s2 * fy * fy, 0.f, s2 * tz, 0.f, s2 * tz * tz, s2 * cy, 0.f,
                              s2 * fy * cy, 0.f, s2 * cy * cy});
