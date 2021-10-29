@@ -560,11 +560,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   extraSpecs.clear();
 }
 
-void WorkflowHelpers::adjustServiceDevices(WorkflowSpec& workflow)
+void WorkflowHelpers::adjustServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
 {
   auto spawner = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-spawner"; });
   auto builder = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-index-builder"; });
   auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });
+  auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-writer"; });
 
   if (spawner != workflow.end()) {
     std::vector<InputSpec> requestedDYNs;
@@ -653,6 +654,35 @@ void WorkflowHelpers::adjustServiceDevices(WorkflowSpec& workflow)
       return !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFNumber"}) && std::none_of(requestedAODs.begin(), requestedAODs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
     });
     reader->outputs.erase(o_end, reader->outputs.end());
+  }
+
+  if (writer != workflow.end()) {
+    workflow.erase(writer);
+    // replace writer as some outputs may have become dangling and some are now consumed
+    auto [outputsInputs, outputTypes] = analyzeOutputs(workflow);
+
+    // create DataOutputDescriptor
+    std::shared_ptr<DataOutputDirector> dod = getDataOutputDirector(ctx.options(), outputsInputs, outputTypes);
+
+    // select outputs of type AOD which need to be saved
+    // ATTENTION: if there are dangling outputs the getGlobalAODSink
+    // has to be created in any case!
+    std::vector<InputSpec> outputsInputsAOD;
+    for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
+      if ((outputTypes[ii] & ANALYSIS) == ANALYSIS) {
+        auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
+        if (!ds.empty() || (outputTypes[ii] & DANGLING) == DANGLING) {
+          outputsInputsAOD.emplace_back(outputsInputs[ii]);
+        }
+      }
+    }
+
+    // file sink for any AOD output
+    if (!outputsInputsAOD.empty()) {
+      // add TFNumber as input to the writer
+      outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
+      workflow.push_back(CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD));
+    }
   }
 }
 
