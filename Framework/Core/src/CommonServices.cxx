@@ -527,22 +527,21 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   stats.channelBytesIn.resize(device->fChannels.size());
   stats.channelBytesOut.resize(device->fChannels.size());
   size_t ci = 0;
+  auto inMetric = Metric{"channel_in_rate", o2::monitoring::Verbosity::Debug}.addTag(Key::Subsystem, Value::DPL);
+  auto outMetric = Metric{"channel_out_rate", o2::monitoring::Verbosity::Debug}.addTag(Key::Subsystem, Value::DPL);
   for (auto& channel : device->fChannels) {
     auto newBytesOut = channel.second[0].GetBytesTx();
     auto newBytesIn = channel.second[0].GetBytesRx();
-    monitoring.send(Metric{(float)(newBytesOut - stats.channelBytesOut[ci]) / 1000000.f / (timeSinceLastLongUpdate / 1000.f),
-                           fmt::format("channel_{}_rate_in_mb_s", channel.first),
-                           o2::monitoring::Verbosity::Debug}
-                      .addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{(float)(newBytesIn - stats.channelBytesIn[ci]) / 1000000.f / (timeSinceLastLongUpdate / 1000.f),
-                           fmt::format("channel_{}_rate_out_mb_s", channel.first),
-                           o2::monitoring::Verbosity::Debug}
-                      .addTag(Key::Subsystem, Value::DPL));
+
+    inMetric.addValue((float)(newBytesOut - stats.channelBytesOut[ci]) / 1000000.f / (timeSinceLastLongUpdate / 1000.f), channel.first);
+    outMetric.addValue((float)(newBytesIn - stats.channelBytesIn[ci]) / 1000000.f / (timeSinceLastLongUpdate / 1000.f), channel.first);
+
     stats.channelBytesOut[ci] = newBytesOut;
     stats.channelBytesIn[ci] = newBytesIn;
     ci++;
   }
-
+  monitoring.send(std::move(inMetric));
+  monitoring.send(std::move(outMetric));
   stats.lastVerySlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
 };
 
