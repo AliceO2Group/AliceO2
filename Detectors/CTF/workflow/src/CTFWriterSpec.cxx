@@ -538,9 +538,10 @@ void CTFWriterSpec::closeTFTreeAndFile()
         mCTFFileMetaData->LHCPeriod = mLHCPeriod;
         mCTFFileMetaData->type = "raw";
         mCTFFileMetaData->priority = "high";
+        auto metaFileNameTmp = fmt::format("{}{}.tmp", mCTFMetaFileDir, mCurrentCTFFileName);
         auto metaFileName = fmt::format("{}{}.done", mCTFMetaFileDir, mCurrentCTFFileName);
         try {
-          std::ofstream metaFileOut(metaFileName);
+          std::ofstream metaFileOut(metaFileNameTmp);
           metaFileOut << *mCTFFileMetaData.get();
           metaFileOut << "TFOrbits: ";
           for (size_t i = 0; i < mTFOrbits.size(); i++) {
@@ -548,6 +549,7 @@ void CTFWriterSpec::closeTFTreeAndFile()
           }
           metaFileOut << '\n';
           metaFileOut.close();
+          std::filesystem::rename(metaFileNameTmp, metaFileName);
         } catch (std::exception const& e) {
           LOG(ERROR) << "Failed to store CTF meta data file " << metaFileName << ", reason: " << e.what();
         }
