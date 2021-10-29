@@ -256,7 +256,7 @@ auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
       atoi(metadata.line.c_str())};
 
     if (logger) {
-      logger->log(opt, *ctx, "DPL: %s", content.c_str());
+      logger->log(opt, *ctx, "%s", content.c_str());
     }
   };
 };
