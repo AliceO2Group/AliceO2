@@ -180,7 +180,7 @@ struct WorkflowHelpers {
 
   // Re-adjust service devices if the inputs of other devices were modified
   // @a workflow to analyze
-  static void adjustServiceDevices(WorkflowSpec& workflow);
+  static void adjustServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx);
 
   static void constructGraph(const WorkflowSpec& workflow,
                              std::vector<DeviceConnectionEdge>& logicalEdges,

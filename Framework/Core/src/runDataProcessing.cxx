@@ -1491,7 +1491,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             altered = true;
           }
           if (altered) {
-            WorkflowHelpers::adjustServiceDevices(altered_workflow);
+            WorkflowHelpers::adjustServiceDevices(altered_workflow, *driverInfo.configContext);
           }
 
           DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(altered_workflow,
