@@ -534,7 +534,7 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
     auto newBytesIn = channel.second[0].GetBytesRx();
 
     outMetric.addValue((float)(newBytesOut - stats.channelBytesOut[ci]) / 1000000.f / (timeSinceLastLongUpdate / 1000.f), channel.first);
-    iMetric.addValue((float)(newBytesIn - stats.channelBytesIn[ci]) / 1000000.f / (timeSinceLastLongUpdate / 1000.f), channel.first);
+    inMetric.addValue((float)(newBytesIn - stats.channelBytesIn[ci]) / 1000000.f / (timeSinceLastLongUpdate / 1000.f), channel.first);
 
     stats.channelBytesOut[ci] = newBytesOut;
     stats.channelBytesIn[ci] = newBytesIn;
