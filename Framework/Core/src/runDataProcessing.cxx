@@ -1115,8 +1115,8 @@ void gui_callback(uv_timer_s* ctx)
   uint64_t frameLatency = frameStart - gui->frameLast;
   *(gui->guiQuitRequested) = (gui->plugin->pollGUI(gui->window, gui->callback) == false);
   uint64_t frameEnd = uv_hrtime();
-  *(gui->frameCost) = (frameEnd - frameStart) / 1000000;
-  *(gui->frameLatency) = frameLatency / 1000000;
+  *(gui->frameCost) = (frameEnd - frameStart) / 1000000.f;
+  *(gui->frameLatency) = frameLatency / 1000000.f;
   gui->frameLast = frameStart;
 }
 
@@ -1755,8 +1755,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             }
           }
           auto inputProcessingEnd = uv_hrtime();
-          driverInfo.inputProcessingCost = (inputProcessingEnd - inputProcessingStart) / 1000000;
-          driverInfo.inputProcessingLatency = (inputProcessingLatency) / 1000000;
+          driverInfo.inputProcessingCost = (inputProcessingEnd - inputProcessingStart) / 1000000.f;
+          driverInfo.inputProcessingLatency = (inputProcessingLatency) / 1000000.f;
           inputProcessingLast = inputProcessingStart;
         }
         break;
