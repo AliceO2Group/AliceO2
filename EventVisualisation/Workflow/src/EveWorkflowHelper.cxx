@@ -217,6 +217,7 @@ void EveWorkflowHelper::drawTPCTRD(GID gid, float trackTime)
 {
   //LOG(INFO) << "EveWorkflowHelper::drawTPCTRD " << gid;
   const auto& tpcTrdTrack = mRecoCont.getTPCTRDTrack<o2::trd::TrackTRD>(gid);
+  addTrackToEvent(tpcTrdTrack, gid, trackTime, 0.);
   drawTPCClusters(tpcTrdTrack.getRefGlobalTrackId(), trackTime * mMUS2TPCTimeBins);
   drawTRDClusters(tpcTrdTrack, trackTime);
 }
