@@ -53,7 +53,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   eeb->compactify();                  // eliminate unnecessary padding
   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
   mTimer.Stop();
-  LOG(INFO) << "Created encoded data of size " << eeb->size() << " for FV0 in " << mTimer.CpuTime() - cput << " s";
+  LOG(debug) << "Created encoded data of size " << eeb->size() << " for FV0 in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)

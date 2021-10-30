@@ -53,7 +53,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mCTFCoder.decode(ctfImage, digits, channels);
 
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << channels.size() << " FV0 channels in " << digits.size() << " digits in " << mTimer.CpuTime() - cput << " s";
+  LOG(debug) << "Decoded " << channels.size() << " FV0 channels in " << digits.size() << " digits in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
