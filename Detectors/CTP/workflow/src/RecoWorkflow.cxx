@@ -45,10 +45,7 @@ const std::unordered_map<std::string, InputType> InputMap{
 const std::unordered_map<std::string, OutputType> OutputMap{
   {"digits", OutputType::Digits}};
 
-o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
-                                        bool disableRootOut,
-                                        bool propagateMC,
-                                        bool noLostTF,
+o2::framework::WorkflowSpec getWorkflow(
                                         std::string const& cfgInput,
                                         std::string const& cfgOutput)
 {
@@ -71,24 +68,6 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
 
   o2::framework::WorkflowSpec specs;
 
-  // //Raw to ....
-  if (inputType == InputType::Raw) {
-    //no explicit raw reader
-
-    if (isEnabled(OutputType::Digits)) {
-      specs.emplace_back(o2::ctp::reco_workflow::getRawToDigitConverterSpec(noLostTF));
-      if (!disableRootOut) {
-        specs.emplace_back(o2::ctp::getDigitWriterSpec(true));
-      }
-    }
-  }
-
-  // Digits to ....
-  if (inputType == InputType::Digits) {
-    if (!disableRootInp) {
-      specs.emplace_back(o2::ctp::getDigitsReaderSpec(propagateMC));
-    }
-  }
   return std::move(specs);
 }
 
