@@ -35,9 +35,8 @@ enum struct OutputType { Digits,
 
 /// create the workflow for CTP reconstruction
 framework::WorkflowSpec getWorkflow(
-                                    std::string const& cfgInput = "raw",   
-                                    std::string const& cfgOutput = "digits" 
-);
+  std::string const& cfgInput = "raw",
+  std::string const& cfgOutput = "digits");
 } // namespace reco_workflow
 
 } // namespace ctp

@@ -46,8 +46,8 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   {"digits", OutputType::Digits}};
 
 o2::framework::WorkflowSpec getWorkflow(
-                                        std::string const& cfgInput,
-                                        std::string const& cfgOutput)
+  std::string const& cfgInput,
+  std::string const& cfgOutput)
 {
   InputType inputType;
 
