@@ -658,6 +658,7 @@ GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestr
   const GPUParam& GPUrestrict() param = Merger->Param();
   bool right;
   float dAlpha = toAlpha - prop.GetAlpha();
+  int sliceSide = slice >= (GPUCA_NSLICES / 2) ? (GPUCA_NSLICES / 2) : 0;
   if (CAMath::Abs(dAlpha) > 0.001f) {
     right = CAMath::Abs(dAlpha) < CAMath::Pi() ? (dAlpha > 0) : (dAlpha < 0);
   } else {
@@ -694,13 +695,11 @@ GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestr
     }
     if (slice != toSlice) {
       if (right) {
-        slice++;
-        if (slice >= 18) {
+        if (++slice >= sliceSide + 18) {
           slice -= 18;
         }
       } else {
-        slice--;
-        if (slice < 0) {
+        if (--slice < sliceSide) {
           slice += 18;
         }
       }
