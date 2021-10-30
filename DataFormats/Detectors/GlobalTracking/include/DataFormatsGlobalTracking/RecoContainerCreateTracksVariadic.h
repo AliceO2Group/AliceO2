@@ -118,6 +118,17 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   usedData[GTrackID::TPCTRDTOF].resize(getTPCTRDTOFMatches().size());       // to flag used ITSTPC-TOF matches
   usedData[GTrackID::ITSTPCTRDTOF].resize(getITSTPCTRDTOFMatches().size()); // to flag used ITSTPC-TOF matches
 
+  auto getBCDiff = [startIR = this->startIR](const o2::InteractionRecord& ir) {
+    static int BCDiffErrCount = 0;
+    constexpr int MAXBCDiffErrCount = 5;
+    auto bcd = ir.differenceInBC(startIR);
+    if (uint64_t(bcd) > o2::constants::lhc::LHCMaxBunches * 256 && BCDiffErrCount < MAXBCDiffErrCount) {
+      LOGP(ERROR, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}", bcd, ir, startIR);
+      BCDiffErrCount++;
+    }
+    return bcd;
+  };
+
   // ITS-TPC-TRD-TOF
   {
 
@@ -168,7 +179,8 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     const auto trigITSTPCTRD = getITSTPCTRDTriggers();
     for (unsigned itr = 0; itr < trigITSTPCTRD.size(); itr++) {
       const auto& trig = trigITSTPCTRD[itr];
-      float t0 = trig.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+      auto bcdiff = getBCDiff(trig.getBCData());
+      float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
       for (unsigned i = trig.getTrackRefs().getFirstEntry(); i < trig.getTrackRefs().getEntriesBound(); i++) {
         const auto& trc = tracksITSTPCTRD[i];
         if (isUsed2(i, GTrackID::ITSTPCTRD)) {
@@ -212,7 +224,8 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     const auto trigTPCTRD = getTPCTRDTriggers();
     for (unsigned itr = 0; itr < trigTPCTRD.size(); itr++) {
       const auto& trig = trigTPCTRD[itr];
-      float t0 = trig.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+      auto bcdiff = getBCDiff(trig.getBCData());
+      float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
       for (unsigned i = trig.getTrackRefs().getFirstEntry(); i < trig.getTrackRefs().getEntriesBound(); i++) {
         const auto& trc = tracksTPCTRD[i];
         if (isUsed2(i, GTrackID::TPCTRD)) {
@@ -292,7 +305,8 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     const auto& rofrs = getITSTracksROFRecords();
     for (unsigned irof = 0; irof < rofrs.size(); irof++) {
       const auto& rofRec = rofrs[irof];
-      float t0 = rofRec.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+      auto bcdiff = getBCDiff(rofRec.getBCData());
+      float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
       int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
       for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
         if (isUsed2(it, GTrackID::ITS)) { // skip used tracks
@@ -312,7 +326,8 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     const auto& rofrs = getMFTTracksROFRecords();
     for (unsigned irof = 0; irof < rofrs.size(); irof++) {
       const auto& rofRec = rofrs[irof];
-      float t0 = rofRec.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+      auto bcdiff = getBCDiff(rofRec.getBCData());
+      float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
       int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
       for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
         if (isUsed2(it, GTrackID::MFT)) {
@@ -336,7 +351,8 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       // FIXME (LA): should really be rof.getBCWidth() once
       // getBCWidth is actually set to a meaningfull value.
       // For now we hard-code a 1.4 microseconds window for all tracks
-      auto rofMeanBC = rof.getBCData().differenceInBC(startIR) + bcWidth / 2;
+      auto bcdiff = getBCDiff(rof.getBCData());
+      auto rofMeanBC = bcdiff + bcWidth / 2;
       float t0 = rofMeanBC * o2::constants::lhc::LHCBunchSpacingMUS;
       float t0err = o2::constants::lhc::LHCBunchSpacingMUS * bcWidth / 2;
       for (int idx = rof.getFirstIdx(); idx <= rof.getLastIdx(); ++idx) {
@@ -358,7 +374,8 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     const auto& rofs = getMIDTracksROFRecords();
     for (const auto& rof : rofs) {
       float t0err = 0.0005;
-      float t0 = rof.interactionRecord.differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingMUS;
+      auto bcdiff = getBCDiff(rof.interactionRecord);
+      float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingMUS;
       for (int idx = rof.firstEntry; idx <= rof.getEndIndex(); ++idx) {
         if (isUsed2(idx, GTrackID::MID)) {
           continue;
