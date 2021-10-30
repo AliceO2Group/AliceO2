@@ -40,7 +40,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   auto& mCCDBManager = o2::ccdb::BasicCCDBManager::instance();
   //  mCCDBManager.setURL("http://ccdb-test.cern.ch:8080");
   mCCDBManager.setURL(mCCDBpath);
-  LOG(INFO) << " set-up CCDB " << mCCDBpath;
+  LOG(debug) << " set-up CCDB " << mCCDBpath;
   mTimer.Start(false);
   mRecPoints.clear();
   auto digits = pc.inputs().get<gsl::span<o2::fv0::BCData>>("digits");
@@ -51,17 +51,17 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     //   labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>*>("labels");
     // lblPtr = labels.get();
-    LOG(INFO) << "Ignoring MC info";
+    LOG(debug) << "Ignoring MC info";
   }
   auto caliboffsets = mCCDBManager.get<o2::fv0::FV0ChannelTimeCalibrationObject>("FV0/Calibration/ChannelTimeOffset");
   mReco.setChannelOffset(caliboffsets);
   int nDig = digits.size();
-  LOG(INFO) << " nDig " << nDig << " | ndigch " << digch.size();
+  LOG(debug) << " nDig " << nDig << " | ndigch " << digch.size();
   mRecPoints.reserve(nDig);
   mRecChData.resize(digch.size());
   for (int id = 0; id < nDig; id++) {
     const auto& digit = digits[id];
-    LOG(INFO) << " ndig " << id << " bc " << digit.getIntRecord().bc << " orbit " << digit.getIntRecord().orbit;
+    LOG(debug) << " ndig " << id << " bc " << digit.getIntRecord().bc << " orbit " << digit.getIntRecord().orbit;
     auto channels = digit.getBunchChannelData(digch);
     gsl::span<o2::fv0::ChannelDataFloat> out_ch(mRecChData);
     out_ch = out_ch.subspan(digit.ref.getFirstEntry(), digit.ref.getEntries());
