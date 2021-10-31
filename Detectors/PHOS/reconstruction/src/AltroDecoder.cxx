@@ -178,11 +178,11 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
           if (!mPedestalRun) {
             if (caloFlag == Mapping::kHighGain && !rawFitter->isOverflow()) {
               currentCellContainer.emplace_back(absId, rawFitter->getAmp(),
-                                                (rawFitter->getTime() + starttime) * o2::phos::PHOSSimParams::Instance().mTimeTick, (ChannelType_t)caloFlag);
+                                                (rawFitter->getTime() + starttime) * o2::phos::PHOSSimParams::Instance().mTimeTick * 1.e-9, (ChannelType_t)caloFlag);
             }
             if (caloFlag == Mapping::kLowGain) {
               currentCellContainer.emplace_back(absId, rawFitter->getAmp(),
-                                                (rawFitter->getTime() + starttime) * o2::phos::PHOSSimParams::Instance().mTimeTick, (ChannelType_t)caloFlag);
+                                                (rawFitter->getTime() + starttime) * o2::phos::PHOSSimParams::Instance().mTimeTick * 1.e-9, (ChannelType_t)caloFlag);
             }
           } else { //pedestal, to store RMS, scale in by 1.e-7 to fit range
             currentCellContainer.emplace_back(absId, rawFitter->getAmp(), 1.e-7 * rawFitter->getTime(), (ChannelType_t)caloFlag);
