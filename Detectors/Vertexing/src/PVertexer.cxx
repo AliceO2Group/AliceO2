@@ -271,6 +271,11 @@ void PVertexer::accountTrack(TrackVF& trc, VertexSeed& vtxSeed) const
   }
   float syyI(trc.sig2YI), szzI(trc.sig2ZI), syzI(trc.sigYZI);
 
+  auto timeErrorFromTB = [&trc]() {
+    // decide if the time error is from the time bracket rather than gaussian error
+    return trc.gid.getSource() == GTrackID::ITS;
+  };
+
   //
   vtxSeed.wghSum += wghT;
   vtxSeed.wghChi2 += wghT * chi2T;
@@ -304,8 +309,15 @@ void PVertexer::accountTrack(TrackVF& trc, VertexSeed& vtxSeed) const
   //
   if (useTime) {
     float trErr2I = wghT / (trc.timeEst.getTimeStampError() * trc.timeEst.getTimeStampError());
-    vtxSeed.tMeanAcc += trc.timeEst.getTimeStamp() * trErr2I;
-    vtxSeed.tMeanAccErr += trErr2I;
+    if (timeErrorFromTB()) {
+      vtxSeed.tMeanAccTB += trc.timeEst.getTimeStamp() * trErr2I;
+      vtxSeed.tMeanAccErrTB += trErr2I;
+      vtxSeed.nContributorsTB++;
+      vtxSeed.wghSumTB += wghT;
+    } else {
+      vtxSeed.tMeanAcc += trc.timeEst.getTimeStamp() * trErr2I;
+      vtxSeed.tMeanAccErr += trErr2I;
+    }
   }
   vtxSeed.addContributor();
 }
@@ -328,9 +340,16 @@ bool PVertexer::solveVertex(VertexSeed& vtxSeed) const
   auto sol = mat * rhs;
   vtxSeed.setXYZ(sol(0), sol(1), sol(2));
   vtxSeed.setCov(mat(0, 0), mat(1, 0), mat(1, 1), mat(2, 0), mat(2, 1), mat(2, 2));
-  if (vtxSeed.tMeanAccErr > 0.) {
-    auto err2 = 1. / vtxSeed.tMeanAccErr;
-    vtxSeed.setTimeStamp({float(vtxSeed.tMeanAcc * err2), float(std::sqrt(err2))});
+  if (vtxSeed.tMeanAccErr + vtxSeed.tMeanAccErrTB > 0.) {
+    // since the time error from the ITS measurements does not improve with statistics, we downscale it with number of such tracks
+    auto t = vtxSeed.tMeanAcc;
+    auto e2i = vtxSeed.tMeanAccErr;
+    if (vtxSeed.wghSumTB > 0.) {
+      t += vtxSeed.tMeanAccTB / vtxSeed.wghSumTB;
+      e2i += vtxSeed.tMeanAccErrTB / vtxSeed.wghSumTB;
+    }
+    auto err2 = 1. / e2i;
+    vtxSeed.setTimeStamp({float(t * err2), float(std::sqrt(err2))});
   }
 
   vtxSeed.setChi2((vtxSeed.getNContributors() - vtxSeed.wghSum) / vtxSeed.scaleSig2ITuk2I); // calculate chi^2

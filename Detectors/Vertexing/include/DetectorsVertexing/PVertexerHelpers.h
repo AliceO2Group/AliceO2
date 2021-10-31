@@ -46,13 +46,17 @@ struct VertexingInput {
 struct VertexSeed : public PVertex {
   double wghSum = 0.;                                                                              // sum of tracks weights
   double wghChi2 = 0.;                                                                             // sum of tracks weighted chi2's
-  double tMeanAcc = 0.;                                                                            // sum of track times * inv.err^2
-  double tMeanAccErr = 0.;                                                                         // some of tracks times inv.err^2
+  double tMeanAcc = 0.;                                                                            // sum of track times * inv.err^2 wotj real time error
+  double tMeanAccErr = 0.;                                                                         // some of tracks times inv.err^2 with real time error
+  double tMeanAccTB = 0.;                                                                          // sum of track times * inv.err^2 with time error from time bracket, i.e. ITS
+  double tMeanAccErrTB = 0.;                                                                       // sum of tracks times inv.err^2 with time error from time bracket, i.e. ITS
+  double wghSumTB = 0.;                                                                            // sum of weights for tracks with time error from time bracket, i.e. ITS
   double cxx = 0., cyy = 0., czz = 0., cxy = 0., cxz = 0., cyz = 0., cx0 = 0., cy0 = 0., cz0 = 0.; // elements of lin.equation matrix
   float scaleSigma2 = 1.;                                                                          // scaling parameter on top of Tukey param
   float scaleSigma2Prev = 1.;
   float maxScaleSigma2Tested = 0.;
   float scaleSig2ITuk2I = 0; // inverse squared Tukey parameter scaled by scaleSigma2
+  int nContributorsTB = 0;   // number of contributors with time error coming from Time Bracker
   int nScaleSlowConvergence = 0;
   int nScaleIncrease = 0;
   int nIterations = 0;
@@ -67,11 +71,15 @@ struct VertexSeed : public PVertex {
   void resetForNewIteration()
   {
     setNContributors(0);
+    nContributorsTB = 0;
     //setTimeStamp({0., 0.});
-    wghSum = 0;
-    wghChi2 = 0;
-    tMeanAcc = 0;
-    tMeanAccErr = 0;
+    wghSum = 0.;
+    wghChi2 = 0.;
+    wghSumTB = 0.;
+    tMeanAcc = 0.;
+    tMeanAccErr = 0.;
+    tMeanAccTB = 0.;
+    tMeanAccErrTB = 0.;
     cxx = cyy = czz = cxy = cxz = cyz = cx0 = cy0 = cz0 = 0.;
   }
 
