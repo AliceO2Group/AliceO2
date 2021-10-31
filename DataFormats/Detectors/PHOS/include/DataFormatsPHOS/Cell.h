@@ -51,10 +51,12 @@ class Cell
   //return pure TRUid (absId with subtracted readout channels offset)
   short getTRUId() const;
 
+  //time in seconds
   void setTime(float time);
   float getTime() const;
 
   //make sure that type of Cell (HG/LG) set before filling energy: scale will be different!
+  //Energy stored in ADC counts!
   void setEnergy(float energy);
   float getEnergy() const;
 

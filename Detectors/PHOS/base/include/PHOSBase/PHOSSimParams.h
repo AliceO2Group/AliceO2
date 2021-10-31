@@ -48,12 +48,12 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   float mCellNonLineaityB = 0.109;   ///< Energy scale of cel non-linearity
   float mCellNonLineaityC = 1.;      ///< Overall calibration
 
-  short mZSthreshold = 1;        ///< Zero Suppression threshold
-  float mTimeResolutionA = 2.;   ///< Time resolution parameter A (in ns)
-  float mTimeResolutionB = 2.;   ///< Time resolution parameter B (in ns/GeV)
-  float mTimeResThreshold = 0.5; ///< threshold for time resolution calculation (in GeV)
-  float mMinNoiseTime = -200.;   ///< minimum time in noise channels (in ns)
-  float mMaxNoiseTime = 2000.;   ///< minimum time in noise channels (in ns)
+  short mZSthreshold = 1;         ///< Zero Suppression threshold
+  float mTimeResolutionA = 2.e-9; ///< Time resolution parameter A (in sec)
+  float mTimeResolutionB = 2.e-9; ///< Time resolution parameter B (in sec/GeV)
+  float mTimeResThreshold = 0.5;  ///< threshold for time resolution calculation (in GeV)
+  float mMinNoiseTime = -200.e-9; ///< minimum time in noise channels (in sec)
+  float mMaxNoiseTime = 2000.e-9; ///< minimum time in noise channels (in sec)
 
   float mTrig2x2MinThreshold = 800.; ///< threshold to simulate 2x2 trigger turn-on curve (in ADC counts~0.005 GeV/count!)
   float mTrig4x4MinThreshold = 900.; ///< threshold to simulate 4x4 trigger turn-on curve (in ADC counts!)
