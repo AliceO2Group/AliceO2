@@ -58,6 +58,7 @@ class EPNMonitor
  public:
   EPNMonitor(std::string path, bool infoLogger, int runNumber, std::string partition);
   ~EPNMonitor();
+  void setRunNr(int nr) { mRunNUmber = nr; }
 
  private:
   void thread();
@@ -90,7 +91,6 @@ EPNMonitor::EPNMonitor(std::string path, bool infoLogger, int runNumber, std::st
     mLogger = std::make_unique<InfoLogger::InfoLogger>();
     mLoggerContext = std::make_unique<InfoLogger::InfoLoggerContext>();
     mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::Partition, partition != "" ? partition : "unspecified");
-    mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::Run, runNumber == 0 ? std::to_string(runNumber) : "unspecified");
     mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::System, std::string("STDERR"));
   }
   mThread = std::thread(&EPNMonitor::thread, this);
@@ -114,7 +114,8 @@ void EPNMonitor::check_add_file(const std::string& filename)
 void EPNMonitor::sendLog(const std::string& file, const std::string& message)
 {
   if (mInfoLoggerActive) {
-    mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::Facility, "stderr/" + file);
+    mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::Facility, ("stderr/" + file).substr(0, 31));
+    mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::Run, mRunNUmber == 0 ? std::to_string(mRunNUmber) : "unspecified");
     static const InfoLogger::InfoLogger::InfoLoggerMessageOption opt = {InfoLogger::InfoLogger::Severity::Error, 3, InfoLogger::InfoLogger::undefinedMessageOption.errorCode, InfoLogger::InfoLogger::undefinedMessageOption.sourceFile, InfoLogger::InfoLogger::undefinedMessageOption.sourceLine};
     mLogger->log(opt, *mLoggerContext, "stderr: %s", message.c_str());
   } else {
@@ -222,14 +223,23 @@ struct EPNstderrMonitor : fair::mq::Device {
     std::string path = ".";
     bool infoLogger = fConfig->GetProperty<int>("infologger");
     bool dds = false;
-/*    if (fConfig->Count("plugin")) {
-      const auto& plugins = fConfig->GetProperty<std::vector<std::string>>("plugin");
-      dds = std::find(plugins.begin(), plugins.end(), "ODC") != plugins.end();
-    }
-    int runNumber = dds ? atoi(fConfig->GetProperty<std::string>("runNumber").c_str()) : 0;*/
-    int runNumber = 0;
+
     std::string partition = "";
-    gEPNMonitor = std::make_unique<EPNMonitor>(path, infoLogger, runNumber, partition);
+    try {
+      fConfig->GetProperty<std::string>("environment_id", "");
+    } catch (...) {
+    }
+
+    gEPNMonitor = std::make_unique<EPNMonitor>(path, infoLogger, 0, partition);
+  }
+  void PreRun() override
+  {
+    int runNumber = 0;
+    try {
+      runNumber = atoi(fConfig->GetProperty<std::string>("runNumber", "").c_str());
+    } catch (...) {
+    }
+    gEPNMonitor->setRunNr(runNumber);
   }
   bool ConditionalRun() override
   {
