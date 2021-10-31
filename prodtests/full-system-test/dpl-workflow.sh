@@ -97,9 +97,8 @@ TOF_CONFIG=
 TOF_INPUT=raw
 TOF_OUTPUT=clusters
 ITS_CONFIG_KEY=
-TRD_CONFIG=
+TRD_FILTER=
 TRD_CONFIG_KEY=
-TRD_TRANSFORMER_CONFIG=
 CPV_INPUT=raw
 EVE_CONFIG=" --jsons-folder $EDJSONS_DIR"
 MIDDEC_CONFIG=
@@ -118,9 +117,8 @@ if [ $SYNCMODE == 1 ]; then
     [ -z ${ITS_CONFIG+x} ] && ITS_CONFIG=" --tracking-mode sync"
   fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
-  TRD_CONFIG+=" --filter-trigrec"
+  TRD_FILTER+=" --filter-trigrec"
   TRD_CONFIG_KEY+="GPU_proc.ompThreads=1;"
-  TRD_TRANSFORMER_CONFIG+=" --filter-trigrec"
 else
   if [ $BEAMTYPE == "PbPb" ]; then
     [ -z ${ITS_CONFIG+x} ] && ITS_CONFIG=" --tracking-mode async"
@@ -134,7 +132,13 @@ else
   fi
 fi
 
+
 has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-ctf"
+
+if [ -z $DISABLE_ROOT_OUTPUT ]; then
+  # enable only if ROOT output is written, since this slows down the processing
+  GPU_OUTPUT+=",send-clusters-per-sector"
+fi
 
 has_detector_flp_processing CPV && CPV_INPUT=digits
 ! has_detector_flp_processing TOF && TOF_CONFIG+=" --ignore-dist-stf"
@@ -204,6 +208,14 @@ for det in `echo $LIST_OF_DETECTORS | sed "s/,/ /g"`; do
 done
 PVERTEX_CONFIG="--vertexing-sources $TRACK_SOURCES --vertex-track-matching-sources $TRACK_SOURCES"
 has_detector_reco FT0 && PVERTEX_CONFIG+=" --validate-with-ft0"
+
+# In case matching of TPC-TRD tracks is requested, force off the TRD filtering
+TRD_SOURCES_ARRAY=$(echo $TRD_SOURCES | tr "," "\n")
+for src in $TRD_SOURCES_ARRAY; do
+  if [[ $src == "TPC-TRD" ]]; then
+    TRD_FILTER=""
+  fi
+done
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Process multiplicities
@@ -379,9 +391,12 @@ fi
 has_detector_reco ITS && add_W o2-its-reco-workflow "--trackerCA $ITS_CONFIG $DISABLE_MC --clusters-from-upstream $DISABLE_ROOT_OUTPUT --pipeline $(get_N its-tracker ITS REST ITSTRK)" "$ITS_CONFIG_KEY;$ITSMFT_FILES"
 has_detectors_reco ITS TPC && has_detector_matching ITSTPC && add_W o2-tpcits-match-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N itstpc-track-matcher MATCH REST TPCITS)" "$ITSTPC_EXTRA_CONFIG;$ITSMFT_FILES"
 has_detector_reco FT0 && add_W o2-ft0-reco-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N ft0-reconstructor FT0 REST)"
-has_detector_reco TRD && add_W o2-trd-tracklet-transformer "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_TRANSFORMER_CONFIG --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST TRDTRK)"
-has_detectors_reco TRD TPC ITS && [ ! -z "$TRD_SOURCES" ] && add_W o2-trd-global-tracking "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG --track-sources $TRD_SOURCES" "$TRD_CONFIG_KEY;$ITSMFT_FILES"
+has_detector_reco TRD && add_W o2-trd-tracklet-transformer "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_FILTER --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST TRDTRK)"
+has_detectors_reco TRD TPC ITS && [ ! -z "$TRD_SOURCES" ] && add_W o2-trd-global-tracking "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_FILTER --track-sources $TRD_SOURCES" "$TRD_CONFIG_KEY;$ITSMFT_FILES"
 has_detectors_reco TOF TRD TPC ITS && [ ! -z "$TOF_SOURCES" ] && add_W o2-tof-matcher-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST TOFMATCH)" "$ITSMFT_FILES"
+if [ -z $DISABLE_ROOT_OUTPUT ]; then
+  has_detector TPC && add_W o2-tpc-reco-workflow "--input-type pass-through --output-type clusters,tracks,send-clusters-per-sector $DISABLE_MC"
+fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Reconstruction workflows normally active only in async mode in async mode ($LIST_OF_ASYNC_RECO_STEPS), but can be forced via $WORKFLOW_EXTRA_PROCESSING_STEPS
