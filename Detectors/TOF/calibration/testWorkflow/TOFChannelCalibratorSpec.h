@@ -27,6 +27,7 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include <limits>
+#include "TFile.h"
 
 using namespace o2::framework;
 
@@ -79,6 +80,13 @@ class TOFChannelCalibDevice : public o2::framework::Task
     // calibration objects set to zero
     mPhase.addLHCphase(0, 0);
     mPhase.addLHCphase(2000000000, 0);
+
+    TFile* fsleewing = TFile::Open("localTimeSlewing.root");
+    if (fsleewing) {
+      TimeSlewing* ob = (TimeSlewing*)fsleewing->Get("TimeSlewing");
+      mTimeSlewing = *ob;
+      return;
+    }
 
     for (int ich = 0; ich < TimeSlewing::NCHANNELS; ich++) {
       mTimeSlewing.addTimeSlewingInfo(ich, 0, 0);
