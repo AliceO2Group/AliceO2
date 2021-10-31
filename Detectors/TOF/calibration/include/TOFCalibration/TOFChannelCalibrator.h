@@ -275,7 +275,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
 
   bool mCalibWithCosmics = false; // flag to indicate whether we are calibrating with cosmics
 
-  int mNThreads = 0; // number of threads from OpenMP
+  int mNThreads = 1; // number of threads from OpenMP
 
   std::string mStripOffsetFunction; // TLinear functon for fitting channel offset within the strip in cosmic data
 

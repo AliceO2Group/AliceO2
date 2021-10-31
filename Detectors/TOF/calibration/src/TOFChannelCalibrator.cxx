@@ -23,6 +23,8 @@
 #include <omp.h>
 #endif
 
+//#define DEBUGGING
+
 namespace o2
 {
 namespace tof
@@ -395,11 +397,15 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
     int offsetPairInSector = sector * Geo::NSTRIPXSECTOR * NCOMBINSTRIP;
     int offsetsector = sector * Geo::NSTRIPXSECTOR * Geo::NPADS;
     for (int istrip = 0; istrip < Geo::NSTRIPXSECTOR; istrip++) {
+#ifdef DEBUGGING
+      system(Form("echo \"\" >strip_%d_%d", sector, istrip));
+#endif
       LOG(INFO) << "Processing strip " << istrip;
       double fracUnderPeak[Geo::NPADS] = {0.};
       bool isChON[96] = {false};
       int offsetstrip = istrip * Geo::NPADS + offsetsector;
       int goodpoints = 0;
+      int allpoints = 0;
 
       TLinearFitter localFitter(1, mStripOffsetFunction.c_str());
 
@@ -411,11 +417,17 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
         int chinsector = ipair + offsetPairInStrip;
         int ich = chinsector + offsetPairInSector;
         auto entriesInPair = entriesPerChannel.at(ich);
+        xp[allpoints] = ipair + 0.5; // pair index
+
         if (entriesInPair == 0) {
+          localFitter.AddPoint(&(xp[allpoints]), 0.0, 1.0);
+          allpoints++;
           continue; // skip always since a channel with 0 entries is normal, it will be flagged as problematic
         }
         if (entriesInPair < mMinEntries) {
           LOG(DEBUG) << "pair " << ich << " will not be calibrated since it has only " << entriesInPair << " entries (min = " << mMinEntries << ")";
+          localFitter.AddPoint(&(xp[allpoints]), 0.0, 1.0);
+          allpoints++;
           continue;
         }
         fitValues.fill(-99999999);
@@ -434,6 +446,8 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
           LOG(DEBUG) << "Pair " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
         } else {
           LOG(DEBUG) << "Pair " << ich << " :: Fit failed with result = " << fitres;
+          localFitter.AddPoint(&(xp[allpoints]), 0.0, 1.0);
+          allpoints++;
           continue;
         }
 
@@ -457,18 +471,23 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
           intmax = mRange;
         }
 
-        xp[goodpoints] = ipair + 0.5;                                  // pair index
-        exp[goodpoints] = 0.0;                                         // error on pair index (dummy since it is on the pair index)
-        deltat[goodpoints] = fitValues[1];                             // delta between offsets from channels in pair (from the fit) - in ps
-        edeltat[goodpoints] = 20 + fitValues[2] / sqrt(entriesInPair); // TODO: for now put by default to 20 ps since it was seen to be reasonable; but it should come from the fit: who gives us the error from the fit ??????
-        localFitter.AddPoint(&(xp[goodpoints]), deltat[goodpoints], edeltat[goodpoints]);
+        xp[allpoints] = ipair + 0.5;      // pair index
+        exp[allpoints] = 0.0;             // error on pair index (dummy since it is on the pair index)
+        deltat[allpoints] = fitValues[1]; // delta between offsets from channels in pair (from the fit) - in ps
+        float integral = c->integral(ich, intmin, intmax);
+        edeltat[allpoints] = 20 + fitValues[2] / sqrt(integral); // TODO: for now put by default to 20 ps since it was seen to be reasonable; but it should come from the fit: who gives us the error from the fit ??????
+        localFitter.AddPoint(&(xp[allpoints]), deltat[allpoints], edeltat[allpoints]);
+#ifdef DEBUGGING
+        system(Form("echo \"%d %f %f\" >>strip_%d_%d", ipair, deltat[allpoints], edeltat[allpoints], sector, istrip));
+#endif
         goodpoints++;
+        allpoints++;
         int ch1 = ipair % 96;
         int ch2 = ipair / 96 ? ch1 + 48 : ch1 + 1;
         isChON[ch1] = true;
         isChON[ch2] = true;
 
-        float fractionUnderPeak = entriesInPair > 0 ? c->integral(ich, intmin, intmax) / entriesInPair : 0;
+        float fractionUnderPeak = entriesInPair > 0 ? integral / entriesInPair : 0;
         // we keep as fractionUnderPeak of the channel the largest one that is found in the 3 possible pairs with that channel (for both channels ch1 and ch2 in the pair)
         if (fracUnderPeak[ch1] < fractionUnderPeak) {
           fracUnderPeak[ch1] = fractionUnderPeak;
