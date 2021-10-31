@@ -70,5 +70,14 @@
 #pragma link C++ class o2::tpc::CalibratordEdx + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::tpc::CalibdEdx> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tpc::TrackTPC, o2::tpc::CalibdEdx> + ;
+#pragma link C++ class o2::tpc::TrackDump + ;
+#pragma link C++ class o2::tpc::TrackDump::ClusterNativeAdd + ;
+#pragma link C++ class o2::tpc::TrackDump::ClusterGlobal + ;
+#pragma link C++ class std::vector < o2::tpc::TrackDump::ClusterNativeAdd> + ;
+#pragma link C++ class std::vector < std::vector < o2::tpc::TrackDump::ClusterNativeAdd>> + ;
+#pragma link C++ class std::vector < o2::tpc::TrackDump::ClusterGlobal> + ;
+#pragma link C++ class std::vector < std::vector < o2::tpc::TrackDump::ClusterGlobal>> + ;
+#pragma link C++ class o2::tpc::TrackDump::TrackInfo + ;
+#pragma link C++ class std::vector < o2::tpc::TrackDump::TrackInfo> + ;
 
 #endif
