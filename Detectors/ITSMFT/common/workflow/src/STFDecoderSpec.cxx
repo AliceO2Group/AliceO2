@@ -43,7 +43,7 @@ using namespace o2::framework;
 ///_______________________________________
 template <class Mapping>
 STFDecoder<Mapping>::STFDecoder(const STFDecoderInp& inp)
-  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib)
+  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib), mAllowReporting(inp.allowReporting)
 {
   mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "STFDecoder");
   mTimer.Stop();
@@ -145,6 +145,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     mDecoder->setInstanceID(pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId);
     mDecoder->setNInstances(pc.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices);
     mDecoder->setVerbosity(mDecoder->getInstanceID() == 0 ? mVerbosity : (mUnmutExtraLanes ? mVerbosity : -1));
+    mAllowReporting &= (mDecoder->getInstanceID() == 0) || mUnmutExtraLanes;
   }
   int nSlots = pc.inputs().getNofParts(0);
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
@@ -216,15 +217,18 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   LOG(INFO) << mSelfName << " Total time for TF " << tfID << '(' << mTFCounter << ") : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
   mTFCounter++;
 }
-
 ///_______________________________________
 template <class Mapping>
-void STFDecoder<Mapping>::endOfStream(EndOfStreamContext& ec)
+void STFDecoder<Mapping>::finalize()
 {
+  if (mFinalizeDone) {
+    return;
+  }
+  mFinalizeDone = true;
   LOGF(INFO, "%s statistics:", mSelfName);
   LOGF(INFO, "%s Total STF decoding%s timing (w/o disk IO): Cpu: %.3e Real: %.3e s in %d slots", mSelfName,
        mDoClusters ? "/clustering" : "", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
-  if (mDecoder) {
+  if (mDecoder && mAllowReporting) {
     mDecoder->printReport();
   }
   if (mClusterer) {

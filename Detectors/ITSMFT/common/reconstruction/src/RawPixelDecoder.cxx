@@ -44,25 +44,25 @@ RawPixelDecoder<Mapping>::RawPixelDecoder()
 template <class Mapping>
 void RawPixelDecoder<Mapping>::printReport(bool decstat, bool skipNoErr) const
 {
-  LOGF(INFO, "%s Decoded %zu hits in %zu non-empty chips in %u ROFs with %d threads", mSelfName, mNPixelsFired, mNChipsFired, mROFCounter, mNThreads);
   double cpu = 0, real = 0;
   auto& tmrS = const_cast<TStopwatch&>(mTimerTFStart);
-  LOGF(INFO, "%s Timing Start TF:  CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrS.CpuTime(), tmrS.RealTime(), tmrS.Counter() - 1);
+  LOGF(info, "%s Timing Start TF:  CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrS.CpuTime(), tmrS.RealTime(), tmrS.Counter() - 1);
   cpu += tmrS.CpuTime();
   real += tmrS.RealTime();
   auto& tmrD = const_cast<TStopwatch&>(mTimerDecode);
-  LOGF(INFO, "%s Timing Decode:    CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrD.CpuTime(), tmrD.RealTime(), tmrD.Counter() - 1);
+  LOGF(info, "%s Timing Decode:    CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrD.CpuTime(), tmrD.RealTime(), tmrD.Counter() - 1);
   cpu += tmrD.CpuTime();
   real += tmrD.RealTime();
   auto& tmrF = const_cast<TStopwatch&>(mTimerFetchData);
-  LOGF(INFO, "%s Timing FetchData: CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrF.CpuTime(), tmrF.RealTime(), tmrF.Counter() - 1);
+  LOGF(info, "%s Timing FetchData: CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrF.CpuTime(), tmrF.RealTime(), tmrF.Counter() - 1);
   cpu += tmrF.CpuTime();
   real += tmrF.RealTime();
-  LOGF(INFO, "%s Timing Total:     CPU = %.3e Real = %.3e in %d slots in %s mode", mSelfName, cpu, real, tmrS.Counter() - 1,
+  LOGF(info, "%s Timing Total:     CPU = %.3e Real = %.3e in %d slots in %s mode", mSelfName, cpu, real, tmrS.Counter() - 1,
        mDecodeNextAuto ? "AutoDecode" : "ExternalCall");
 
+  LOGF(important, "%s Decoded %zu hits in %zu non-empty chips in %u ROFs with %d threads", mSelfName, mNPixelsFired, mNChipsFired, mROFCounter, mNThreads);
   if (decstat) {
-    LOG(INFO) << "GBT Links decoding statistics" << (skipNoErr ? " (only links with errors are reported)" : "");
+    LOG(important) << "GBT Links decoding statistics" << (skipNoErr ? " (only links with errors are reported)" : "");
     for (auto& lnk : mGBTLinks) {
       lnk.statistics.print(skipNoErr);
       lnk.chipStat.print(skipNoErr);
