@@ -135,7 +135,8 @@ Bool_t
                         particle.Energy() * mEnergyUnit,
                         particle.T() * mTimeUnit,
                         particle.GetWeight(),
-                        (TMCProcess)particle.GetUniqueID());
+                        (TMCProcess)particle.GetUniqueID(),
+                        particle.GetStatusCode()); // generator status information passed as status code field
   }
 
   /** success **/

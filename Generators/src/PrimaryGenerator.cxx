@@ -126,7 +126,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
                                 Int_t daughter1, Int_t daughter2,
                                 Bool_t wanttracking,
                                 Double_t e, Double_t tof,
-                                Double_t weight, TMCProcess proc)
+                                Double_t weight, TMCProcess proc, Int_t generatorStatus)
 {
   /** add track **/
 
@@ -152,7 +152,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   Double_t poly = 0.;
   Double_t polz = 0.;
   Int_t ntr = 0;    // Track number; to be filled by the stack
-  Int_t status = 0; // Generation status
+  Int_t status = generatorStatus; // Generation status
 
   // correct for tracks which are in list before generator is called
   if (mother1 != -1) {

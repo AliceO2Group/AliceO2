@@ -63,7 +63,7 @@ class PrimaryGenerator : public FairPrimaryGenerator
                 Int_t daughter1 = -1, Int_t daughter2 = -1,
                 Bool_t wanttracking = true,
                 Double_t e = -9e9, Double_t tof = 0.,
-                Double_t weight = 0., TMCProcess proc = kPPrimary);
+                Double_t weight = 0., TMCProcess proc = kPPrimary, Int_t generatorStatus = 0);
 
   /** initialize the generator **/
   Bool_t Init() override;
