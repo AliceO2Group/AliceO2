@@ -658,8 +658,11 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       }
       int statusCode = 0;
       uint8_t flags = 0;
-      if (!mcParticles[particle].isTransported()) {
+      if (!mcParticles[particle].isPrimary()) {
         flags |= 1 << 0; // mark as transported
+        statusCode = mcParticles[particle].getProcess();
+      } else {
+        statusCode = mcParticles[particle].getStatusCode();
       }
       if (source == 0) {
         flags |= 1 << 1; // mark as particle from background event
