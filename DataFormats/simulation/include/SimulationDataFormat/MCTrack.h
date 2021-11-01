@@ -187,6 +187,9 @@ class MCTrackT
   /// get the production process (id) of this track
   int getProcess() const { return ((PropEncoding)mProp).process; }
 
+  /// get generator status code
+  int getStatusCode() const { return mStatusCode; }
+
   void setToBeDone(bool f)
   {
     auto prop = ((PropEncoding)mProp);
@@ -244,6 +247,11 @@ class MCTrackT
       int toBeDone : 1; // whether this (still) needs tracking --> we might more complete information to cover full ParticleStatus space
     };
   };
+
+  // Additional status codes for MC generator information.
+  // NOTE: This additional memory cost might be reduced by using bits elsewhere
+  // such as part of mProp (process) or mPDG
+  Int_t mStatusCode = 0;
 
   ClassDefNV(MCTrackT, 4);
 };
@@ -326,7 +334,8 @@ inline MCTrackT<T>::MCTrackT(const TParticle& part)
     mStartVertexCoordinatesY(part.Vy()),
     mStartVertexCoordinatesZ(part.Vz()),
     mStartVertexCoordinatesT(part.T() * 1e09),
-    mProp(0)
+    mProp(0),
+    mStatusCode(0)
 {
   // our convention is to communicate the process as (part) of the unique ID
   setProcess(part.GetUniqueID());
@@ -339,6 +348,8 @@ inline MCTrackT<T>::MCTrackT(const TParticle& part)
     setToBeDone(true); // if inhibited, it had to be done: restore flag
     setInhibited(true);
   }
+  // set MC generator status code only for primaries
+  mStatusCode = part.TestBit(ParticleStatus::kPrimary) ? part.GetStatusCode() : -1;
 }
 
 template <typename T>
