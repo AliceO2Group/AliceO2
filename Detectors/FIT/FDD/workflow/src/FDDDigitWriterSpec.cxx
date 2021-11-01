@@ -26,7 +26,7 @@ o2::framework::DataProcessorSpec getFDDDigitWriterSpec(bool mctruth, bool trigIn
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
   // Spectators for logging
   auto logger = [](std::vector<o2::fdd::Digit> const& vecDigits) {
-    LOG(INFO) << "FDDDigitWriter pulled " << vecDigits.size() << " digits";
+    LOG(debug) << "FDDDigitWriter pulled " << vecDigits.size() << " digits";
   };
   // the callback to be set as hook for custom action when the writer is closed
   auto finishWriting = [](TFile* outputfile, TTree* outputtree) {

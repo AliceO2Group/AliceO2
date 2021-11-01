@@ -32,7 +32,7 @@ DataProcessorSpec getRecPointWriterSpec(bool useMC)
   using ChanDataType = std::vector<o2::ft0::ChannelDataFloat>;
   // Spectators for logging
   auto logger = [](RecPointsType const& recPoints) {
-    LOG(INFO) << "FT0RecPointWriter pulled " << recPoints.size() << " RecPoints";
+    LOG(debug) << "FT0RecPointWriter pulled " << recPoints.size() << " RecPoints";
   };
   return MakeRootTreeWriterSpec("ft0-recpoint-writer",
                                 "o2reco_ft0.root",
