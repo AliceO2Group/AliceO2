@@ -38,36 +38,10 @@ namespace ctp
 namespace reco_workflow
 {
 
-const std::unordered_map<std::string, InputType> InputMap{
-  {"raw", InputType::Raw},
-  {"digits", InputType::Digits}};
-
-const std::unordered_map<std::string, OutputType> OutputMap{
-  {"digits", OutputType::Digits}};
-
-o2::framework::WorkflowSpec getWorkflow(
-  std::string const& cfgInput,
-  std::string const& cfgOutput)
+o2::framework::WorkflowSpec getWorkflow(bool noLostTF)
 {
-  InputType inputType;
-
-  try {
-    inputType = InputMap.at(cfgInput);
-  } catch (std::out_of_range&) {
-    throw std::invalid_argument(std::string("invalid input type: ") + cfgInput);
-  }
-  std::vector<OutputType> outputTypes;
-  try {
-    outputTypes = RangeTokenizer::tokenize<OutputType>(cfgOutput, [](std::string const& token) { return OutputMap.at(token); });
-  } catch (std::out_of_range&) {
-    throw std::invalid_argument(std::string("invalid output type: ") + cfgOutput);
-  }
-  auto isEnabled = [&outputTypes](OutputType type) {
-    return std::find(outputTypes.begin(), outputTypes.end(), type) != outputTypes.end();
-  };
-
   o2::framework::WorkflowSpec specs;
-
+  specs.emplace_back(o2::ctp::reco_workflow::getRawToDigitConverterSpec(noLostTF));
   return std::move(specs);
 }
 
