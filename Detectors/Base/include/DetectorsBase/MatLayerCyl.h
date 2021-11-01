@@ -93,7 +93,11 @@ class MatLayerCyl : public o2::gpu::FlatObject
   // ---------------------- Z slice manipulation
   // convert Z to Zslice
   GPUd() RangeStatus isZOutside(float z) const { return z < getZMin() ? Below : (z > getZMax() ? Above : Within); }
-  GPUd() int getZBinID(float z) const { return int((z - getZMin()) * getDZInv()); }
+  GPUd() int getZBinID(float z) const
+  {
+    int idz = int((z - getZMin()) * getDZInv()); // cannot be negative since before isZOutside is applied
+    return idz < getNZBins() ? idz : getNZBins();
+  }
 
   // lower boundary of Z slice
   GPUd() float getZBinMin(int id) const { return getZMin() + id * getDZ(); }
@@ -165,7 +169,11 @@ class MatLayerCyl : public o2::gpu::FlatObject
   GPUd() int getCellIDPhiBin(int iphi, int iz) const { return getCellID(phiBin2Slice(iphi), iz); }
 
   // convert Phi (in 0:2pi convention) to PhiBinID
-  GPUd() int getPhiBinID(float phi) const { return int(phi * getDPhiInv()); }
+  GPUd() int getPhiBinID(float phi) const
+  {
+    auto idphi = int(phi * getDPhiInv());
+    return idphi < getNPhiBins() ? idphi : getNPhiBins() - 1;
+  }
 
   GPUd() int getEdgePhiBinOfSlice(int phiBin, int dir) const
   {
