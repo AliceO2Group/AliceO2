@@ -70,7 +70,6 @@ class TrackletTransformer
   float mXtb0;
 
   o2::trd::CalVdriftExB* mCalibration;
-  std::vector<float>* mT0;
 };
 
 } // namespace trd
