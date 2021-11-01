@@ -20,8 +20,6 @@
 #include "CTPWorkflow/RawToDigitConverterSpec.h"
 #include "Framework/DataSpecUtils.h"
 
-using namespace o2::dataformats;
-
 namespace o2
 {
 
