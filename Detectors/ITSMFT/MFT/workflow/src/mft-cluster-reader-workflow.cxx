@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ConfigParamSpec.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 using namespace o2::framework;
 
@@ -27,6 +28,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
       o2::framework::VariantType::Bool,
       false,
       {"do not propagate pixel patterns"}});
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -39,6 +42,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cc)
   auto withPatterns = !cc.options().get<bool>("without-patterns");
 
   specs.emplace_back(o2::itsmft::getMFTClusterReaderSpec(withMC, withPatterns));
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(cc, specs);
 
   return specs;
 }
