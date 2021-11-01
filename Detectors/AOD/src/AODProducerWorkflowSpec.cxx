@@ -299,6 +299,11 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
         } else {
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
           const auto& trackPar = data.getTrackParam(trackIndex);
+          if (contributorsGID[GIndex::Source::ITS].isIndexSet() || contributorsGID[GIndex::Source::ITSAB].isIndexSet()) {
+            int nClusters = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getNClusters();
+            float chi2 = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getChi2();
+            extraInfoHolder.itsChi2NCl = nClusters != 0 ? chi2 / (float)nClusters : 0;
+          }
           if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
             extraInfoHolder.itsClusterMap = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getPattern();
           } else if (contributorsGID[GIndex::Source::ITSAB].isIndexSet()) { // this is an ITS-TPC afterburner contributor
@@ -653,6 +658,9 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       }
       int statusCode = 0;
       uint8_t flags = 0;
+      if (!mcParticles[particle].isTransported()) {
+        flags |= 1 << 0; // mark as transported
+      }
       if (source == 0) {
         flags |= 1 << 1; // mark as particle from background event
       }
