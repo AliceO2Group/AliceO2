@@ -30,8 +30,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<o2::framework::ConfigParamSpec> options{
     {"input-type", o2::framework::VariantType::String, "raw", {"digits, raw"}},
     {"output-type", o2::framework::VariantType::String, "digits", {"digits, raw"}},
-    {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}
-    };
+    {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
