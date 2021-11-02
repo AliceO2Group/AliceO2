@@ -14,9 +14,13 @@
 #include "CallbackRegistry.h"
 #include "Framework/ServiceHandle.h"
 #include "ServiceRegistry.h"
-#include <tuple>
 
 #include <fairmq/FwdDecls.h>
+
+namespace o2::header
+{
+struct DataHeader;
+}
 
 namespace o2::framework
 {
@@ -58,7 +62,11 @@ class CallbackService
     ///    // with the callback
     ///  };
     /// }};
-    RegionInfoCallback
+    RegionInfoCallback,
+    /// Invoked whenever a new timeslice has been created from an enumeration.
+    /// Users can override this to make sure the fill the DataHeader associated
+    /// to a timeslice with the wanted quantities.
+    NewTimeslice
   };
 
   using StartCallback = std::function<void()>;
@@ -69,17 +77,19 @@ class CallbackService
   using DataConsumedCallback = std::function<void(ServiceRegistry&)>;
   using EndOfStreamCallback = std::function<void(EndOfStreamContext&)>;
   using RegionInfoCallback = std::function<void(FairMQRegionInfo const&)>;
+  using NewTimesliceCallback = std::function<void(o2::header::DataHeader&)>;
 
-  using Callbacks = CallbackRegistry<Id,                                                          //
-                                     RegistryPair<Id, Id::Start, StartCallback>,                  //
-                                     RegistryPair<Id, Id::Stop, StopCallback>,                    //
-                                     RegistryPair<Id, Id::Reset, ResetCallback>,                  //
-                                     RegistryPair<Id, Id::Idle, IdleCallback>,                    //
-                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,          //
-                                     RegistryPair<Id, Id::DataConsumed, DataConsumedCallback>,    //
-                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,      //
-                                     RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback> //
-                                     >;                                                           //
+  using Callbacks = CallbackRegistry<Id,                                                           //
+                                     RegistryPair<Id, Id::Start, StartCallback>,                   //
+                                     RegistryPair<Id, Id::Stop, StopCallback>,                     //
+                                     RegistryPair<Id, Id::Reset, ResetCallback>,                   //
+                                     RegistryPair<Id, Id::Idle, IdleCallback>,                     //
+                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,           //
+                                     RegistryPair<Id, Id::DataConsumed, DataConsumedCallback>,     //
+                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,       //
+                                     RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback>, //
+                                     RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>      //
+                                     >;                                                            //
 
   // set callback for specified processing step
   template <typename U>
