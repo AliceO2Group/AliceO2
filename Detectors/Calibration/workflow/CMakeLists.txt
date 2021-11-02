@@ -11,7 +11,7 @@
 
 o2_add_library(DetectorsCalibrationWorkflow
                SOURCES src/MeanVertexCalibratorSpec.cxx
-                       src/TPCVDriftTglCalibSpec.cxx     
+                       src/TPCVDriftTglCalibSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                      O2::Headers
                      O2::CCDB

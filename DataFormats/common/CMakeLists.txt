@@ -28,6 +28,7 @@ o2_target_root_dictionary(CommonDataFormat
                                   include/CommonDataFormat/AbstractRef.h
                                   include/CommonDataFormat/FlatHisto1D.h
                                   include/CommonDataFormat/FlatHisto2D.h
+                                  include/CommonDataFormat/TFIDInfo.h
                                   include/CommonDataFormat/Pair.h)
 
 o2_add_test(TimeStamp
