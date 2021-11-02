@@ -63,10 +63,13 @@ class VisualisationTrack
     float phi = 0;
     float theta = 0;
     float eta = 0;
+    std::string gid = "***";
     o2::dataformats::GlobalTrackID::Source source;
   };
   // Constructor with properties initialisation
   VisualisationTrack(const VisualisationTrackVO& vo);
+
+  VisualisationTrack(const VisualisationTrack& src);
 
   // Add child particle (coming from decay of this particle)
   void addChild(int childID);
@@ -101,6 +104,7 @@ class VisualisationTrack
   int mCharge;                 /// Charge of the particle
 
   int mPID;                    /// PDG code of the particle
+  std::string mGID;            /// String representation of gid
 
   float mStartCoordinates[3]; /// Vector of track's start coordinates
 

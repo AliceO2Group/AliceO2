@@ -36,15 +36,16 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline
 
     mFileWatcher.setCurrentItem(no);
     VisualisationEvent vEvent = this->mDataReader->getEvent(mFileWatcher.currentFilePath());
-    /*
+
     for(auto filter = EVisualisationGroup::ITS;
         filter != EVisualisationGroup::NvisualisationGroups;
         filter = static_cast<EVisualisationGroup>(static_cast<int>(filter) + 1)) {
       auto filtered = VisualisationEvent(vEvent, filter);
       res.push_back(std::make_pair(filtered, filter));  // we can switch on/off data
     }
-    */
-    res.push_back(std::make_pair(vEvent, EVisualisationGroup::TPC)); // temporary
+
+    //res.push_back(std::make_pair(vEvent, EVisualisationGroup::ITS)); // temporary
+    //res.push_back(std::make_pair(vEvent, EVisualisationGroup::TPC)); // temporary
   }
   return res;
 }
