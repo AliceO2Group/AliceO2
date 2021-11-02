@@ -13,7 +13,7 @@
 ///
 
 #include "../Shared/Kernels.h"
-#define VERSION "version 0.1-pr#6773"
+#define VERSION "version 0.2"
 
 bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
 {
@@ -117,7 +117,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
   for (auto& aChunk : vm["arbitrary"].as<std::vector<std::string>>()) {
     const size_t sep = aChunk.find(':');
     if (sep != std::string::npos) {
-      conf.testChunks.emplace_back(std::stoi(aChunk.substr(0, sep)), std::stoi(aChunk.substr(sep + 1)));
+      conf.testChunks.emplace_back(std::stof(aChunk.substr(0, sep)), std::stof(aChunk.substr(sep + 1)));
     }
   }
 

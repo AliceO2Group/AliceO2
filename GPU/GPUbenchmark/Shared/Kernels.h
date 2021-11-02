@@ -42,7 +42,7 @@ class GPUbenchmark final
   // Single stream synchronous (sequential kernels) execution
   template <typename... T>
   float runSequential(void (*kernel)(chunk_t*, size_t, T...),
-                      std::pair<int, int>& chunkRanges,
+                      std::pair<float, float>& chunkRanges,
                       int nLaunches,
                       int dimGrid,
                       int dimBlock,
@@ -51,7 +51,7 @@ class GPUbenchmark final
   // Multi-streams asynchronous executions on whole memory
   template <typename... T>
   std::vector<float> runConcurrent(void (*kernel)(chunk_t*, size_t, T...),
-                                   std::vector<std::pair<int, int>>& chunkRanges,
+                                   std::vector<std::pair<float, float>>& chunkRanges,
                                    int nLaunches,
                                    int dimStreams,
                                    int nBlocks,

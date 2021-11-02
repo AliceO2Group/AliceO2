@@ -32,6 +32,31 @@
 double bytesToconfig(size_t s) { return (double)s / (1024.0); }
 double bytesToGB(size_t s) { return (double)s / GB; }
 
+bool checkTestChunks(std::vector<std::pair<float, float>>& chunks, size_t availMemSizeGB)
+{
+  if (!chunks.size()) {
+    return true;
+  }
+
+  bool check{false};
+
+  sort(chunks.begin(), chunks.end());
+  for (auto iChunk{0}; iChunk < chunks.size(); ++iChunk) { // Check boundaries
+    if (chunks[iChunk].first + chunks[iChunk].second > availMemSizeGB) {
+      check = false;
+      break;
+    }
+    if (iChunk > 0) { // Check intersections
+      if (chunks[iChunk].first < chunks[iChunk - 1].first + chunks[iChunk - 1].second) {
+        check = false;
+        break;
+      }
+    }
+    check = true;
+  }
+  return check;
+}
+
 // CUDA does not support <type4> operations:
 // https://forums.developer.nvidia.com/t/swizzling-float4-arithmetic-support/217
 #ifndef __HIPCC__
@@ -238,7 +263,7 @@ void printDeviceProp(int deviceId)
 template <class chunk_t>
 template <typename... T>
 float GPUbenchmark<chunk_t>::runSequential(void (*kernel)(chunk_t*, size_t, T...),
-                                           std::pair<int, int>& chunk,
+                                           std::pair<float, float>& chunk,
                                            int nLaunches,
                                            int nBlocks,
                                            int nThreads,
@@ -275,7 +300,7 @@ float GPUbenchmark<chunk_t>::runSequential(void (*kernel)(chunk_t*, size_t, T...
 template <class chunk_t>
 template <typename... T>
 std::vector<float> GPUbenchmark<chunk_t>::runConcurrent(void (*kernel)(chunk_t*, size_t, T...),
-                                                        std::vector<std::pair<int, int>>& chunkRanges,
+                                                        std::vector<std::pair<float, float>>& chunkRanges,
                                                         int nLaunches,
                                                         int dimStreams,
                                                         int nBlocks,
@@ -354,6 +379,10 @@ void GPUbenchmark<chunk_t>::globalInit()
   mState.iterations = mOptions.kernelLaunches;
   mState.streams = mOptions.streams;
   mState.testChunks = mOptions.testChunks;
+  if (!checkTestChunks(mOptions.testChunks, free / GB)) {
+    std::cerr << "Failed to configure memory chunks: check arbitrary chunks boundaries." << std::endl;
+    exit(1);
+  }
   mState.nMultiprocessors = props.multiProcessorCount;
   mState.nMaxThreadsPerBlock = props.maxThreadsPerMultiProcessor;
   mState.nMaxThreadsPerDimension = props.maxThreadsDim[0];
@@ -368,7 +397,6 @@ void GPUbenchmark<chunk_t>::globalInit()
   std::cout << " ◈ Running on: \033[1;31m" << props.name << "\e[0m" << std::endl;
   // Allocate scratch on GPU
   GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&mState.scratchPtr), mState.scratchSize));
-  // mState.computeScratchPtrs();
   GPUCHECK(cudaMemset(mState.scratchPtr, 0, mState.scratchSize))
 
   std::cout << "   ├ Buffer type: \e[1m" << getType<chunk_t>() << "\e[0m" << std::endl
