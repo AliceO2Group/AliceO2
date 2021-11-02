@@ -161,25 +161,6 @@ std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 // overloaded in the config spec
 bpo::options_description gHiddenDeviceOptions("Hidden child options");
 
-// To be used to allow specifying the TerminationPolicy on the command line.
-
-size_t current_time_with_ms()
-{
-  long ms;  // Milliseconds
-  time_t s; // Seconds
-  struct timespec spec;
-
-  clock_gettime(CLOCK_REALTIME, &spec);
-
-  s = spec.tv_sec;
-  ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
-  if (ms > 999) {
-    s++;
-    ms = 0;
-  }
-  return s * 1000 + ms;
-}
-
 // Read from a given fd and print it.
 // return true if we can still read from it,
 // return false if we need to close the input pipe.
@@ -527,7 +508,7 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     if (!didProcessMetric) {
       return;
     }
-    size_t timestamp = current_time_with_ms();
+    size_t timestamp = uv_now(mContext.loop);
     for (auto& callback : *mContext.metricProcessingCallbacks) {
       callback(*mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
     }
@@ -1753,7 +1734,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           auto inputProcessingLatency = inputProcessingStart - inputProcessingLast;
           auto outputProcessing = processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls, metricsInfos);
           if (outputProcessing.didProcessMetric) {
-            size_t timestamp = current_time_with_ms();
+            size_t timestamp = uv_now(loop);
             for (auto& callback : metricProcessingCallbacks) {
               callback(serviceRegistry, metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics, timestamp);
             }
@@ -1801,7 +1782,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         driverInfo.sigchldRequested = false;
         auto outputProcessing = processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls, metricsInfos);
         if (outputProcessing.didProcessMetric) {
-          size_t timestamp = current_time_with_ms();
+          size_t timestamp = uv_now(loop);
           for (auto& callback : metricProcessingCallbacks) {
             callback(serviceRegistry, metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics, timestamp);
           }
