@@ -64,7 +64,7 @@ using GID = o2::dataformats::GlobalTrackID;
 
 struct MyTrack : o2::tof::eventTimeTrackTest {
   double tofSignalDouble() const { return mSignalDouble; }
-  float tofExpTimeDe() const { return mExpDe; }
+  float tofExpSignalDe() const { return mExpDe; }
   double mSignalDouble = 0.0;
   float mEta = 0.0;
   float mPhi = 0.0;
@@ -216,10 +216,10 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
     mChi2 = track.mChi2;
     mL = track.mLength;
     mTof = track.tofSignal();
-    mExpDe = track.tofExpTimeDe();
-    mExpPi = track.tofExpTimePi();
-    mExpKa = track.tofExpTimeKa();
-    mExpPr = track.tofExpTimePr();
+    mExpDe = track.tofExpSignalDe();
+    mExpPi = track.tofExpSignalPi();
+    mExpKa = track.tofExpSignalKa();
+    mExpPr = track.tofExpSignalPr();
     mIsProb = track.mIsProb;
     mTrktime = track.mTrktime;
     mTrktimeRes = track.mTrktimeRes;

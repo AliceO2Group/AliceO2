@@ -9,8 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file EventTimeMaker.h
-/// \brief Definition of the TOF event time maker
+/// \file   EventTimeMaker.h
+/// \author Francesca Ercolessi francesca.ercolessi@cern.ch
+/// \author Francesco Noferini francesco.noferini@cern.ch
+/// \author Nicolò Jacazio nicolo.jacazio@cern.ch
+/// \brief  Definition of the TOF event time maker
 
 #ifndef ALICEO2_TOF_EVENTTIMEMAKER_H
 #define ALICEO2_TOF_EVENTTIMEMAKER_H
@@ -18,6 +21,8 @@
 #include "TRandom.h"
 #include "TMath.h"
 #include "TOFBase/Utils.h"
+#include "ReconstructionDataFormats/PID.h"
+#include "Framework/Logger.h"
 
 namespace o2
 {
@@ -27,12 +32,17 @@ namespace tof
 
 struct eventTimeContainer {
   eventTimeContainer(const float& e, const float& err) : eventTime{e}, eventTimeError{err} {};
-  float eventTime = 0.f;
-  float eventTimeError = 0.f;
+  float eventTime = 0.f;                      /// Value of the event time
+  float eventTimeError = 0.f;                 /// Uncertainty on the computed event time
+  unsigned short eventTimeMultiplicity = 0.f; /// Track multiplicity used to compute the event time
 
-  float sumweights = 0.f;       // sum of weights of all track contributors
-  std::vector<float> weights;   // weights (1/sigma^2) associated to a track in event time computation, 0 if track not used
-  std::vector<float> tracktime; // eventtime provided by a single track
+  float sumweights = 0.f;       /// sum of weights of all track contributors
+  std::vector<float> weights;   /// weights (1/sigma^2) associated to a track in event time computation, 0 if track not used
+  std::vector<float> tracktime; /// eventtime provided by a single track
+  void print()
+  {
+    LOG(info) << "eventTimeContainer " << eventTime << " +- " << eventTimeError << " sum of weights " << sumweights << " tracks used " << eventTimeMultiplicity;
+  }
 };
 
 struct eventTimeTrack {
@@ -45,9 +55,9 @@ struct eventTimeTrack {
     }
   }
   float tofSignal() const { return mSignal; }
-  float tofExpTimePi() const { return expTimes[0]; }
-  float tofExpTimeKa() const { return expTimes[1]; }
-  float tofExpTimePr() const { return expTimes[2]; }
+  float tofExpSignalPi() const { return expTimes[0]; }
+  float tofExpSignalKa() const { return expTimes[1]; }
+  float tofExpSignalPr() const { return expTimes[2]; }
   float tofExpSigmaPi() const { return expSigma[0]; }
   float tofExpSigmaKa() const { return expSigma[1]; }
   float tofExpSigmaPr() const { return expSigma[2]; }
@@ -74,14 +84,17 @@ void generateEvTimeTracks(std::vector<eventTimeTrackTest>& tracks, int ntracks, 
 template <typename trackType>
 bool filterDummy(const trackType& tr)
 {
-  return (tr.tofChi2() >= 0 && tr.mP < 2.0);
+  return (tr.tofChi2() >= 0 && tr.p() < 2.0);
 } // accept all
 
 void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<int>& trkIndex, eventTimeContainer& evtime);
 int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb);
 
-template <typename trackTypeContainer, typename trackType, bool (*trackFilter)(const trackType&)>
-eventTimeContainer evTimeMaker(const trackTypeContainer& tracks, float diamond = Utils::mEventTimeSpread * 0.029979246 /* spread of primary verdex in cm */)
+template <typename trackTypeContainer,
+          typename trackType,
+          bool (*trackFilter)(const trackType&)>
+eventTimeContainer evTimeMaker(const trackTypeContainer& tracks,
+                               float diamond = Utils::mEventTimeSpread * 0.029979246 /* spread of primary verdex in cm */)
 {
   static std::vector<eventTimeTrack> trkWork;
   trkWork.clear();
@@ -100,11 +113,14 @@ eventTimeContainer evTimeMaker(const trackTypeContainer& tracks, float diamond =
   result.eventTimeError = sigmaFill;
   result.sumweights = 0.;
 
-  // Qui facciamo un pool di tracce buone per calcolare il T0
-  for (auto track : tracks) {
-    if (trackFilter(track)) {
-      expt[0] = track.tofExpTimePi(), expt[1] = track.tofExpTimeKa(), expt[2] = track.tofExpTimePr();
-      expsigma[0] = track.tofExpSigmaPi(), expsigma[1] = track.tofExpSigmaKa(), expsigma[2] = track.tofExpSigmaPr();
+  for (auto track : tracks) { // Loop on tracks
+    if (trackFilter(track)) { // Select tracks good for T0 computation
+      expt[0] = track.tofExpSignalPi();
+      expt[1] = track.tofExpSignalKa();
+      expt[2] = track.tofExpSignalPr();
+      expsigma[0] = track.tofExpSigmaPi();
+      expsigma[1] = track.tofExpSigmaKa();
+      expsigma[2] = track.tofExpSigmaPr();
       trkWork.emplace_back(track.tofSignal(), expt, expsigma);
       trkIndex.push_back(result.weights.size());
     }
@@ -115,6 +131,53 @@ eventTimeContainer evTimeMaker(const trackTypeContainer& tracks, float diamond =
   return result;
 }
 
+template <typename trackTypeContainer,
+          typename trackType,
+          bool (*trackFilter)(const trackType&),
+          template <typename T, o2::track::PID::ID> typename response,
+          typename responseParametersType>
+eventTimeContainer evTimeMakerFromParam(const trackTypeContainer& tracks,
+                                        const responseParametersType& responseParameters,
+                                        float diamond = Utils::mEventTimeSpread * 0.029979246 /* spread of primary verdex in cm */)
+{
+  static std::vector<eventTimeTrack> trkWork;
+  trkWork.clear();
+  static std::vector<int> trkIndex; // indexes of working tracks in the track original array
+  trkIndex.clear();
+
+  constexpr auto responsePi = response<trackType, o2::track::PID::Pion>();
+  constexpr auto responseKa = response<trackType, o2::track::PID::Kaon>();
+  constexpr auto responsePr = response<trackType, o2::track::PID::Proton>();
+
+  static float expt[3], expsigma[3];
+
+  static eventTimeContainer result = {0, 0};
+
+  // reset info
+  float sigmaFill = diamond * 33.356409; // move from diamond (cm) to spread on event time (ps)
+  result.weights.clear();
+  result.tracktime.clear();
+  result.eventTime = 0.;
+  result.eventTimeError = sigmaFill;
+  result.sumweights = 0.;
+
+  for (auto track : tracks) { // Loop on tracks
+    if (trackFilter(track)) { // Select tracks good for T0 computation
+      expt[0] = responsePi.GetExpectedSignal(track);
+      expt[1] = responseKa.GetExpectedSignal(track);
+      expt[2] = responsePr.GetExpectedSignal(track);
+      expsigma[0] = responsePi.GetExpectedSigmaTracking(responseParameters, track);
+      expsigma[1] = responseKa.GetExpectedSigmaTracking(responseParameters, track);
+      expsigma[2] = responsePr.GetExpectedSigmaTracking(responseParameters, track);
+      trkWork.emplace_back(track.tofSignal(), expt, expsigma);
+      trkIndex.push_back(result.weights.size());
+    }
+    result.weights.push_back(0.);
+    result.tracktime.push_back(0.);
+  }
+  computeEvTime(trkWork, trkIndex, result);
+  return result;
+}
 } // namespace tof
 } // namespace o2
 

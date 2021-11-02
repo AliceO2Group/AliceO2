@@ -15,6 +15,29 @@
 namespace o2::framework
 {
 
+void AxisSpec::makeLogaritmic()
+{
+  if (binEdges.size() > 2) {
+    LOG(FATAL) << "Cannot make a variabled bin width axis logaritmic";
+  }
+
+  const double min = binEdges[0];
+  const double max = binEdges[1];
+  binEdges.clear();
+  const double logmin = std::log10(min);
+  const double logmax = std::log10(max);
+  const int nbins = nBins.value();
+  const double logdelta = (logmax - logmin) / (static_cast<double>(nbins));
+  const double log10 = std::log10(10.);
+  LOG(debug) << "Making a logaritmic binning from " << min << " to " << max << " with " << nbins << " bins";
+  for (int i = 0; i < nbins + 1; i++) {
+    const auto nextEdge = std::pow(10, logmin + i * logdelta);
+    LOG(debug) << i << "/" << nbins - 1 << ": " << nextEdge;
+    binEdges.push_back(nextEdge);
+  }
+  nBins = std::nullopt;
+}
+
 // main function for creating arbirtary histograms
 template <typename T>
 std::unique_ptr<T> HistFactory::createHist(const HistogramSpec& histSpec)
