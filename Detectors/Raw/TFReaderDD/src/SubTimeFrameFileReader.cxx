@@ -393,7 +393,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
   }
 
   // add TF acknowledge part
-  o2::header::DataHeader stfDistDataHeader(gDataDescSubTimeFrame, o2::header::gDataOriginFLP, 0, sizeof(STFHeader), 0, 1);
+  o2::header::DataHeader stfDistDataHeader(o2::header::gDataDescriptionDISTSTF, o2::header::gDataOriginFLP, 0, sizeof(STFHeader), 0, 1);
   stfDistDataHeader.payloadSerializationMethod = o2::header::gSerializationMethodNone;
   stfDistDataHeader.firstTForbit = stfHeader.firstOrbit;
   stfDistDataHeader.runNumber = stfHeader.runNumber;
