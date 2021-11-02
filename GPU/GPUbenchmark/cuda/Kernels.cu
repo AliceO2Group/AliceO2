@@ -386,7 +386,7 @@ void GPUbenchmark<chunk_t>::globalInit()
   mState.iterations = mOptions.kernelLaunches;
   mState.streams = mOptions.streams;
   mState.testChunks = mOptions.testChunks;
-  if (!checkTestChunks(mOptions.testChunks, free / GB)) {
+  if (!checkTestChunks(mOptions.testChunks, mOptions.freeMemoryFractionToAllocate * free / GB)) {
     std::cerr << "Failed to configure memory chunks: check arbitrary chunks boundaries." << std::endl;
     exit(1);
   }
