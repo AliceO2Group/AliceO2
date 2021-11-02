@@ -659,13 +659,13 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       int statusCode = 0;
       uint8_t flags = 0;
       if (!mcParticles[particle].isPrimary()) {
-        flags |= 1 << 0; // mark as transported
+        flags |= o2::aod::mcparticle::enums::ProducedByTransport; // mark as produced by transport
         statusCode = mcParticles[particle].getProcess();
       } else {
         statusCode = mcParticles[particle].getStatusCode();
       }
       if (source == 0) {
-        flags |= 1 << 1; // mark as particle from background event
+        flags |= o2::aod::mcparticle::enums::FromBackgroundEvent; // mark as particle from background event
       }
       float weight = 0.f;
       int mcMother0 = mcParticles[particle].getMotherTrackId();
