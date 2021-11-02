@@ -13,7 +13,7 @@ if [ -z $CTF_DIR ];                  then CTF_DIR=$FILEWORKDIR; fi           # D
 if [ -z $CTF_DICT_DIR ];             then CTF_DICT_DIR=$FILEWORKDIR; fi      # Directory of CTF dictionaries
 if [ -z $CTF_METAFILES_DIR ];        then CTF_METAFILES_DIR="/dev/null"; fi  # Directory where to store CTF files metada, /dev/null : skip their writing
 if [ -z $RECO_NUM_NODES_WORKFLOW ];  then RECO_NUM_NODES_WORKFLOW=250; fi    # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
-if [ -z $CTF_MINSIZE ];              then CTF_MINSIZE="500000000"; fi        # accumulate CTFs until file size reached
+if [ -z $CTF_MINSIZE ];              then CTF_MINSIZE="2000000000"; fi        # accumulate CTFs until file size reached
 if [ -z $CTF_MAX_PER_FILE ];         then CTF_MAX_PER_FILE="10000"; fi       # but no more than given number of CTFs per file
 if [ -z $IS_SIMULATED_DATA ];        then IS_SIMULATED_DATA=1; fi            # processing simulated data
 
@@ -446,6 +446,11 @@ workflow_has_parameter CALIB && has_detector_calib TPC && has_detectors TPC ITS 
 [ -z "$ED_TRACKS" ] && ED_TRACKS=$TRACK_SOURCES
 [ -z "$ED_CLUSTERS" ] && ED_CLUSTERS=$TRACK_SOURCES
 workflow_has_parameter EVENT_DISPLAY && [ $NUMAID == 0 ] && add_W o2-eve-display "--display-tracks $ED_TRACKS --display-clusters $ED_CLUSTERS $EVE_CONFIG $DISABLE_MC" "$ITSMFT_FILES"
+
+# ---------------------------------------------------------------------------------------------------------------------
+# AOD
+[ -z "$AOD_INPUT" ] && AOD_INPUT=$TRACK_SOURCES
+workflow_has_parameter AOD && add_W o2-aod-producer-workflow "--info-sources $AOD_INPUT --disable-root-input --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE $DISABLE_MC"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Quality Control
