@@ -88,20 +88,18 @@ class DataRelayer
 
   /// This is to relay a whole set of FairMQMessages, all which are part
   /// of the same set of split parts.
-  /// @a firstHeader is the first message of such set
-  /// @a restOfParts is a pointer to the rest of the messages
-  /// @a restSize is how many messages are there in restOfParts
-  /// is the header which is common across all subsequent elements.
+  /// @a rawHeader raw header pointer
+  /// @a messages pointer to array of messages
+  /// @a nMessages size of the array
+  /// @a nPayloads number of payploads in the message sequence, default is 1
+  ///              which is the standard header-payload message pair, in this
+  ///              case nMessages / 2 pairs will be inserted and considered
+  ///              separate parts
   /// Notice that we expect that the header is an O2 Header Stack
-  RelayChoice relay(std::unique_ptr<FairMQMessage>& firstHeader,
-                    std::unique_ptr<FairMQMessage>* restOfParts,
-                    size_t restSize);
-
-  /// This is used to ask for relaying a given (header,payload) pair.
-  /// Notice that we expect that the header is an O2 Header Stack
-  /// with a DataProcessingHeader inside so that we can assess time.
-  RelayChoice relay(std::unique_ptr<FairMQMessage>& header,
-                    std::unique_ptr<FairMQMessage>& payload);
+  RelayChoice relay(void const* rawHeader,
+                    std::unique_ptr<FairMQMessage>* messages,
+                    size_t nMessages,
+                    size_t nPayloads = 1);
 
   /// @returns the actions ready to be performed.
   void getReadyToProcess(std::vector<RecordAction>& completed);
