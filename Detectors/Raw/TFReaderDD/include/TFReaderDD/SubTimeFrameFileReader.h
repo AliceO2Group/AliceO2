@@ -15,6 +15,7 @@
 #define ALICEO2_SUBTIMEFRAME_FILE_READER_RAWDD_H_
 
 #include <Headers/DataHeader.h>
+#include <Headers/STFHeader.h>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include <Headers/Stack.h>
 #include <fairmq/FairMQParts.h>
@@ -42,12 +43,6 @@ using MessagesPerRoute = std::unordered_map<std::string, std::unique_ptr<FairMQP
 class SubTimeFrameFileReader
 {
  public:
-  static constexpr o2::header::DataDescription gDataDescSubTimeFrame{"DISTSUBTIMEFRAME"};
-  struct STFHeader { // fake header to mimic DD SubTimeFrame::Header sent with DISTSUBTIMEFRAME message
-    uint64_t id = uint64_t(-1);
-    uint32_t firstOrbit = uint32_t(-1);
-    std::uint32_t runNumber = 0;
-  };
 
   SubTimeFrameFileReader() = delete;
   SubTimeFrameFileReader(const std::string& pFileName, o2::detectors::DetID::mask_t detMask);

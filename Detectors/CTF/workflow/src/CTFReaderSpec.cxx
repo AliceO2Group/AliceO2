@@ -25,6 +25,7 @@
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
+#include "Headers/STFHeader.h"
 #include "DataFormatsITSMFT/CTF.h"
 #include "DataFormatsTPC/CTF.h"
 #include "DataFormatsTRD/CTF.h"
@@ -346,6 +347,15 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
     setFirstTFOrbit(det.getName());
   }
 
+  // send sTF acknowledge message
+  {
+    auto& stfDist = pc.outputs().make<o2::header::STFHeader>({"STFDist"});
+    stfDist.id = uint64_t(mCurrTreeEntry);
+    stfDist.firstOrbit = ctfHeader.firstTForbit;
+    stfDist.runNumber = uint32_t(ctfHeader.run);
+    setFirstTFOrbit("STFDist");
+  }
+
   auto entryStr = fmt::format("({} of {} in {})", mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
   checkTreeEntries();
   mTimer.Stop();
@@ -391,6 +401,8 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
       outputs.emplace_back(OutputLabel{det.getName()}, det.getDataOrigin(), "CTFDATA", 0, Lifetime::Timeframe);
     }
   }
+  outputs.emplace_back(OutputSpec{{"STFDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0});
+
   return DataProcessorSpec{
     "ctf-reader",
     Inputs{},
