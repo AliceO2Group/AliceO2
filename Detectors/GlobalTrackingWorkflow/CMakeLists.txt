@@ -89,6 +89,11 @@ o2_add_executable(matcher-workflow
                   SOURCES src/globalfwd-matcher-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow)
 
+o2_add_executable(writer-workflow
+                  COMPONENT_NAME tfidinfo
+                  SOURCES src/tfidinfo-writer-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow)
+
 add_subdirectory(tofworkflow)
 add_subdirectory(tpcinterpolationworkflow)
 add_subdirectory(helpers)

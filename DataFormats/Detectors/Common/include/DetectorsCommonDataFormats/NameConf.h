@@ -67,6 +67,9 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
     return o2::utils::Str::concat_string(prefix, "_", CONFIG_STRING, ".ini");
   }
 
+  // Filename for TFIDInfo vector
+  static std::string getTFIDInfoFileName(const std::string_view prefix = "o2");
+
   static constexpr std::string_view CCDBOBJECT = "ccdb_object"; // hardcoded
   static constexpr std::string_view CCDBMETA = "ccdb_meta";     // hardcoded
   static constexpr std::string_view CCDBQUERY = "ccdb_query";   // hardcoded
@@ -135,12 +138,14 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   static constexpr std::string_view MATBUDLUT = "matbud";
   static constexpr std::string_view COLLISIONCONTEXT = "collisioncontext";
   static constexpr std::string_view ALIGNPATH = "Align";
+  static constexpr std::string_view TFIDINFO = "tfidinfo";
 
   // these are configurable paths for some commonly used files
   std::string mDirGRP = "none";    // directory for GRP file ("none" == "")
   std::string mDirGeom = "none";   // directory for geometry file
   std::string mDirMatLUT = "none"; // directory for material LUT
   std::string mDirCollContext = "none"; // directory for collision context
+  std::string mDirTFIDINFO = "none";    // directory for TFIDInfo vector
 
   O2ParamDef(NameConf, "NameConf");
 };
