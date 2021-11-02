@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 #include <stdexcept>
 #include "Framework/BoostOptionsRetriever.h"
+#include "Framework/CallbacksPolicy.h"
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ChannelMatching.h"
 #include "Framework/ConfigParamsHelper.h"
@@ -1491,6 +1492,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             driverInfo.completionPolicies,
                                                             driverInfo.dispatchPolicies,
                                                             driverInfo.resourcePolicies,
+                                                            driverInfo.callbacksPolicies,
                                                             runningWorkflow.devices,
                                                             *resourceManager,
                                                             driverInfo.uniqueWorkflowId,
@@ -2252,6 +2254,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<CompletionPolicy> const& completionPolicies,
            std::vector<DispatchPolicy> const& dispatchPolicies,
            std::vector<ResourcePolicy> const& resourcePolicies,
+           std::vector<CallbacksPolicy> const& callbacksPolicies,
            std::vector<ConfigParamSpec> const& currentWorkflowOptions,
            o2::framework::ConfigContext& configContext)
 {
@@ -2527,6 +2530,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.completionPolicies = completionPolicies;
   driverInfo.dispatchPolicies = dispatchPolicies;
   driverInfo.resourcePolicies = resourcePolicies;
+  driverInfo.callbacksPolicies = callbacksPolicies;
   driverInfo.argc = argc;
   driverInfo.argv = argv;
   driverInfo.batch = varmap["no-batch"].defaulted() ? varmap["batch"].as<bool>() : false;

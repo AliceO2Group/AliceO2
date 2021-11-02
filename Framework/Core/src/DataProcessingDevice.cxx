@@ -245,7 +245,6 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
   // We do nothing, all the logic for now stays in DataProcessingDevice::doRun()
 }
 
-
 /// This  takes care  of initialising  the device  from its  specification. In
 /// particular it needs to:
 ///
@@ -289,7 +288,6 @@ void DataProcessingDevice::Init()
 
   mExpirationHandlers.clear();
 
-
   if (mInit) {
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
     mStatefulProcess = mInit(initContext);
@@ -305,6 +303,11 @@ void DataProcessingDevice::Init()
     } else if (name.find(mSpec.channelPrefix + "from_internal-dpl-ccdb-backend") == 0) {
       mState.inputChannelInfos[ci].state = InputChannelState::Pull;
     }
+  }
+
+  // Invoke the callback policy for this device.
+  if (mSpec.callbacksPolicy.policy != nullptr) {
+    mSpec.callbacksPolicy.policy(mServiceRegistry.get<CallbackService>());
   }
 }
 
