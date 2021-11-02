@@ -28,7 +28,7 @@ namespace globaltracking
 class ITSTPCMatchingQCDevice : public Task
 {
  public:
-  ITSTPCMatchingQCDevice(bool useMC) : mUseMC(useMC){};
+  ITSTPCMatchingQCDevice(std::shared_ptr<DataRequest> dr, bool useMC) : mDataRequest(dr), mUseMC(useMC){};
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
@@ -36,7 +36,7 @@ class ITSTPCMatchingQCDevice : public Task
  private:
   void sendOutput(DataAllocator& output);
   std::unique_ptr<o2::globaltracking::MatchITSTPCQC> mMatchITSTPCQC;
-
+  std::shared_ptr<DataRequest> mDataRequest;
   bool mUseMC = true;
 };
 
