@@ -72,7 +72,8 @@ inline std::ostream& operator<<(std::ostream& os, Test test)
 
 enum class Mode {
   Sequential,
-  Concurrent
+  Concurrent,
+  Distributed
 };
 
 inline std::ostream& operator<<(std::ostream& os, Mode mode)
@@ -83,6 +84,9 @@ inline std::ostream& operator<<(std::ostream& os, Mode mode)
       break;
     case Mode::Concurrent:
       os << "concurrent";
+      break;
+    case Mode::Distributed:
+      os << "distributed";
       break;
   }
   return os;
