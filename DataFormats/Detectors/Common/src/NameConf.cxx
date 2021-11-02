@@ -88,3 +88,9 @@ std::string NameConf::getCTFDictFileName()
 {
   return o2::utils::Str::concat_string(CTFDICT, ".root");
 }
+
+// Filename to store general run parameters (GRP)
+std::string NameConf::getTFIDInfoFileName(const std::string_view prefix)
+{
+  return buildFileName(prefix, "_", "o2", TFIDINFO, ROOT_EXT_STRING, Instance().mDirTFIDINFO);
+}
