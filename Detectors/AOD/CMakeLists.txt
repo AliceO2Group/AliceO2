@@ -9,33 +9,40 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(
+add_library(AODProducerWorkflow INTERFACE)
+
+target_link_libraries(
         AODProducerWorkflow
-        SOURCES src/AODProducerWorkflowSpec.cxx
-        PUBLIC_LINK_LIBRARIES
-          O2::DetectorsVertexing
-          O2::FT0Workflow
-          O2::FDDWorkflow
-          O2::FV0Workflow
-          O2::Framework
-          O2::GlobalTracking
-          O2::GlobalTrackingWorkflow
-          O2::ITSMFTWorkflow
-          O2::ITSWorkflow
-          O2::ITStracking
-          O2::MCHTracking
-          O2::MFTWorkflow
-          O2::MathUtils
-          O2::SimulationDataFormat
-          O2::Steer
-          O2::TPCWorkflow
+        INTERFACE
+        O2::DetectorsVertexing
+        O2::FT0Workflow
+        O2::FDDWorkflow
+        O2::FV0Workflow
+        O2::Framework
+        O2::GlobalTracking
+        O2::GlobalTrackingWorkflow
+        O2::ITSMFTWorkflow
+        O2::ITSWorkflow
+        O2::ITStracking
+        O2::MCHTracking
+        O2::MFTWorkflow
+        O2::MathUtils
+        O2::SimulationDataFormat
+        O2::Steer
+        O2::TPCWorkflow
 )
+
+target_include_directories(AODProducerWorkflow INTERFACE include)
+
+add_library(internal::AODProducerWorkflow ALIAS AODProducerWorkflow)
+
 o2_add_executable(
-  workflow
-  COMPONENT_NAME aod-producer
-  SOURCES src/aod-producer-workflow.cxx
-  PUBLIC_LINK_LIBRARIES O2::AODProducerWorkflow
+        workflow
+        COMPONENT_NAME aod-producer
+        SOURCES src/aod-producer-workflow.cxx src/AODProducerWorkflowSpec.cxx
+        PUBLIC_LINK_LIBRARIES internal::AODProducerWorkflow O2::Version
 )
+
 o2_add_executable(
         standalone-aod-producer
         COMPONENT_NAME reco

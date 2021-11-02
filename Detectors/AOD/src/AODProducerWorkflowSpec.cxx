@@ -52,10 +52,13 @@
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "O2Version.h"
 #include "TMath.h"
 #include "MathUtils/Utils.h"
 #include "Math/SMatrix.h"
-#include <TMatrixD.h>
+#include "TMatrixD.h"
+#include "TString.h"
+#include "TObjString.h"
 #include <map>
 #include <unordered_map>
 #include <vector>
@@ -299,11 +302,6 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
         } else {
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
           const auto& trackPar = data.getTrackParam(trackIndex);
-          if (contributorsGID[GIndex::Source::ITS].isIndexSet() || contributorsGID[GIndex::Source::ITSAB].isIndexSet()) {
-            int nClusters = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getNClusters();
-            float chi2 = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getChi2();
-            extraInfoHolder.itsChi2NCl = nClusters != 0 ? chi2 / (float)nClusters : 0;
-          }
           if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
             extraInfoHolder.itsClusterMap = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getPattern();
           } else if (contributorsGID[GIndex::Source::ITSAB].isIndexSet()) { // this is an ITS-TPC afterburner contributor
@@ -658,14 +656,8 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       }
       int statusCode = 0;
       uint8_t flags = 0;
-      if (!mcParticles[particle].isPrimary()) {
-        flags |= o2::aod::mcparticle::enums::ProducedByTransport; // mark as produced by transport
-        statusCode = mcParticles[particle].getProcess();
-      } else {
-        statusCode = mcParticles[particle].getStatusCode();
-      }
       if (source == 0) {
-        flags |= o2::aod::mcparticle::enums::FromBackgroundEvent; // mark as particle from background event
+        flags |= 1 << 1; // mark as particle from background event
       }
       float weight = 0.f;
       int mcMother0 = mcParticles[particle].getMotherTrackId();
@@ -857,6 +849,7 @@ uint8_t AODProducerWorkflowDPL::getTRDPattern(const o2::trd::TrackTRD& track)
 void AODProducerWorkflowDPL::init(InitContext& ic)
 {
   mTimer.Stop();
+  mProdTag = ic.options().get<string>("prod-tags");
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
   mRecoOnly = ic.options().get<int>("reco-mctracks-only");
   mTruncate = ic.options().get<int>("enable-truncation");
@@ -902,6 +895,30 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   }
   // Needed by MCH track extrapolation
   o2::base::GeometryManager::loadGeometry();
+
+  // writing metadata if it's not yet in AOD file
+  // note: `--aod-writer-resmode "UPDATE"` have to be used,
+  //       so that metadata is not overwritten
+  mResFile += ".root";
+  auto* fResFile = TFile::Open(mResFile, "UPDATE");
+  if (fResFile) {
+    if (!fResFile->FindObjectAny("metaData")) {
+      LOGF(info, "Metadata: writing into %s", mResFile);
+      // populating metadata map
+      mMetaData.Add(new TObjString("DataType"), new TObjString("MC"));
+      mMetaData.Add(new TObjString("Run"), new TObjString("3"));
+      TString converterVersion = "o2 ";
+      converterVersion += o2::fullVersion();
+      converterVersion += " ; root ";
+      converterVersion += ROOT_RELEASE;
+      mMetaData.Add(new TObjString("Run3ConverterVersion"), new TObjString(converterVersion));
+      mMetaData.Add(new TObjString("LPMProductionTag"), new TObjString(mProdTag));
+      fResFile->WriteObject(&mMetaData, "metaData");
+    } else {
+      LOGF(info, "Metadata: target file not found or metadata is already written");
+    }
+    fResFile->Close();
+  }
 
   mTimer.Reset();
 }
@@ -1324,7 +1341,7 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, std::string resFile)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -1363,10 +1380,11 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
     "aod-producer-workflow",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest)},
+    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, resFile)},
     Options{
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on, != 1 -- off"}},
+      ConfigParamSpec{"prod-tags", VariantType::String, "LHC21Axx", {"Production tags"}},
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}}}};
 }
 
