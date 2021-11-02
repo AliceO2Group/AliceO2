@@ -146,7 +146,7 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
   std::map<std::string, std::string> md;
   auto clName = o2::utils::MemFileHelper::getClassName(mSMAMVobj);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  mInfoVector.emplace_back("GRP/MeanVertex", clName, flName, md, startValidity, 99999999999999);
+  mInfoVector.emplace_back("GLO/Calib/MeanVertex", clName, flName, md, startValidity, 99999999999999);
   mMeanVertexVector.emplace_back(mSMAMVobj);
 
   slot.print();
