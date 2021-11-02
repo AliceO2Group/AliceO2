@@ -14,6 +14,7 @@
 #include "Framework/PartRef.h"
 #include <memory>
 #include <vector>
+#include <cassert>
 
 namespace o2
 {
@@ -24,14 +25,96 @@ namespace framework
 struct MessageSet {
   std::vector<PartRef> parts;
 
+  MessageSet()
+    : parts()
+  {
+  }
+
+  template <typename F>
+  MessageSet(F&& getter, size_t size)
+    : parts()
+  {
+    add(std::forward<F>(getter), size);
+  }
+
+  MessageSet(MessageSet&& other)
+    : parts(std::move(other.parts))
+  {
+    other.clear();
+  }
+
+  MessageSet& operator=(MessageSet&& other)
+  {
+    if (&other == this) {
+      return *this;
+    }
+    parts = std::move(other.parts);
+    other.clear();
+    return *this;
+  }
+
   size_t size() const
   {
     return parts.size();
   }
 
+  size_t getNumberOfPayloads(size_t part) const
+  {
+    // this is for upcoming change of message store
+    return 1;
+  }
+
   void clear()
   {
     parts.clear();
+  }
+
+  // this is more or less legacy
+  void reset(PartRef&& ref)
+  {
+    clear();
+    add(std::move(ref));
+  }
+
+  void add(PartRef&& ref)
+  {
+    parts.emplace_back(std::move(ref));
+  }
+
+  template <typename F>
+  void add(F getter, size_t size)
+  {
+    for (size_t i = 0; i < size; ++i) {
+      PartRef ref{std::move(getter(i)), std::move(getter(i + 1))};
+      parts.emplace_back(std::move(ref));
+      ++i;
+    }
+  }
+
+  FairMQMessagePtr& header(size_t partIndex)
+  {
+    assert(partIndex < parts.size());
+    return parts[partIndex].header;
+  }
+
+  FairMQMessagePtr& payload(size_t partIndex, size_t payloadIndex = 0)
+  {
+    assert(partIndex < parts.size());
+    // payload index will be supported in linear message store
+    assert(payloadIndex == 0);
+    return parts[partIndex].payload;
+  }
+
+  FairMQMessagePtr const& header(size_t partIndex) const
+  {
+    assert(partIndex < parts.size());
+    return parts[partIndex].header;
+  }
+
+  FairMQMessagePtr const& payload(size_t partIndex) const
+  {
+    assert(partIndex < parts.size());
+    return parts[partIndex].payload;
   }
 
   PartRef& operator[](size_t index)
