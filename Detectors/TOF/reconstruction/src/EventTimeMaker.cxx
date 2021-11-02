@@ -9,9 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file EventTimeMaker.cxx
-/// \brief Implementation of the TOF event time maker
+///
+/// \file   EventTimeMaker.cxx
+/// \author Francesca Ercolessi francesca.ercolessi@cern.ch
+/// \author Francesco Noferini francesco.noferini@cern.ch
+/// \author Nicolò Jacazio nicolo.jacazio@cern.ch
+/// \brief  Implementation of the TOF event time maker
+///
 
+#include "TRandom.h"
+#include "TMath.h"
 #include "TOFReconstruction/EventTimeMaker.h"
 
 namespace o2
@@ -27,11 +34,14 @@ constexpr unsigned long combinatorial[MAXNTRACKINSET + 1] = {1, 3, 9, 27, 81, 24
 
 void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<int>& trkIndex, eventTimeContainer& evtime)
 {
-  const int maxNumberOfSets = 200;
+  static constexpr int maxNumberOfSets = 200;
+  static constexpr float weightLimit = 1E-6; // Limit in the weights
 
-  int ntracks = tracks.size();
+  const int ntracks = tracks.size();
+  LOG(debug) << "For the collision time using " << ntracks;
 
   if (ntracks < 2) { // at least 2 tracks required
+    LOG(debug) << "Skipping event because at least 2 tracks are required";
     return;
   }
 
@@ -40,7 +50,7 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
   int nmaxtracksinset = ntracks > 22 ? 6 : MAXNTRACKINSET; // max number of tracks in a set for event time computation
   int ntracksinset = std::min(ntracks, nmaxtracksinset);
 
-  Int_t nset = ((ntracks - 1) / ntracksinset) + 1;
+  int nset = ((ntracks - 1) / ntracksinset) + 1;
   int ntrackUsed = ntracks;
 
   if (nset > maxNumberOfSets) {
@@ -73,6 +83,9 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
 
         int index = trkIndex[trackInSet[iset][itrk]];
         const eventTimeTrack& ctrack = tracks[trackInSet[iset][itrk]];
+        LOG(debug) << "Using hypothesis: " << hypo[itrk] << " tofSignal: " << ctrack.mSignal << " exp. time: " << ctrack.expTimes[hypo[itrk]] << " exp. sigma: " << ctrack.expSigma[hypo[itrk]];
+        LOG(debug) << "0= " << ctrack.expTimes[0] << " +- " << ctrack.expSigma[0] << " 1= " << ctrack.expTimes[1] << " +- " << ctrack.expSigma[1] << " 2= " << ctrack.expTimes[2] << " +- " << ctrack.expSigma[2];
+
         evtime.weights[index] = 1. / (ctrack.expSigma[hypo[itrk]] * ctrack.expSigma[hypo[itrk]]);
         evtime.tracktime[index] = ctrack.mSignal - ctrack.expTimes[hypo[itrk]];
       }
@@ -82,19 +95,21 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
   // do average among all tracks
   float finalTime = 0, allweights = 0;
   for (int i = 0; i < evtime.weights.size(); i++) {
-    if (evtime.weights[i] < 1E-6) {
+    if (evtime.weights[i] < weightLimit) {
       continue;
     }
     allweights += evtime.weights[i];
     finalTime += evtime.tracktime[i] * evtime.weights[i];
   }
 
-  if (allweights < 1E-6) {
+  if (allweights < weightLimit) {
+    LOG(debug) << "Skipping because allweights " << allweights << " are lower than " << weightLimit;
     return;
   }
 
   evtime.eventTime = finalTime / allweights;
   evtime.eventTimeError = sqrt(1. / allweights);
+  evtime.eventTimeMultiplicity = ntracks;
 }
 
 int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb)
