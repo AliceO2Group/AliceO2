@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TOFMatchChecker.cxx
+/// @file   TOFEventTimeChecker.cxx
 
 #include <vector>
 #include <string>
@@ -36,8 +36,9 @@
 // from TOF
 #include "TOFBase/Geo.h"
 #include "DataFormatsTOF/Cluster.h"
+#include "TOFReconstruction/EventTimeMaker.h"
 //#include "GlobalTracking/MatchTOF.h"
-#include "GlobalTrackingWorkflow/TOFMatchChecker.h"
+#include "GlobalTrackingWorkflow/TOFEventTimeChecker.h"
 
 using namespace o2::framework;
 // using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
@@ -47,21 +48,28 @@ using DetID = o2::detectors::DetID;
 using evIdx = o2::dataformats::EvIndex<int, int>;
 using MatchOutputType = std::vector<o2::dataformats::MatchInfoTOF>;
 using GID = o2::dataformats::GlobalTrackID;
+using MyTrack = o2::tof::eventTimeTrackTest;
+
+bool MyFilter(const MyTrack& tr)
+{
+  return (tr.mP < 2.0);
+} // accept all
 
 namespace o2
 {
 namespace globaltracking
 {
 
-class TOFMatchChecker : public Task
+class TOFEventTimeChecker : public Task
 {
  public:
-  TOFMatchChecker(std::shared_ptr<DataRequest> dr, bool useMC) : mDataRequest(dr), mUseMC(useMC) {}
-  ~TOFMatchChecker() override = default;
+  TOFEventTimeChecker(std::shared_ptr<DataRequest> dr, bool useMC) : mDataRequest(dr), mUseMC(useMC) {}
+  ~TOFEventTimeChecker() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
-  void checkMatching(GID gid);
+  void fillMatching(GID gid);
+  void processEvent(std::vector<MyTrack>& tracks);
 
  private:
   bool mIsTPC;
@@ -69,6 +77,7 @@ class TOFMatchChecker : public Task
   bool mIsITSTPCTRD;
   bool mIsITSTPC;
   gsl::span<const o2::tof::Cluster> mTOFClustersArrayInp; ///< input TOF clusters
+  std::vector<MyTrack> mMyTracks;
 
   RecoContainer mRecoData;
   std::shared_ptr<DataRequest> mDataRequest;
@@ -76,101 +85,75 @@ class TOFMatchChecker : public Task
   TStopwatch mTimer;
 };
 
-void TOFMatchChecker::checkMatching(GID gid)
+void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
+{
+  auto evtime = o2::tof::evTimeMaker<std::vector<MyTrack>, MyTrack, MyFilter>(tracks);
+  float et = evtime.eventTime;
+  float erret = evtime.eventTimeError;
+
+  printf("Event time = %f +/- %f\n", et, erret);
+}
+
+void TOFEventTimeChecker::fillMatching(GID gid)
 {
   if (!gid.includesDet(DetID::TOF)) {
     return;
   }
   const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
+  const o2::track::TrackLTIntegral& info = match.getLTIntegralOut();
 
+  MyTrack trk;
   int trksource = 5;
   if (gid.getSource() == GID::TPCTOF) {
+    const auto& array = mRecoData.getTPCTracks();
+    GID gTrackId = match.getTrackRef();
+    const auto& srctrk = array[gTrackId.getIndex()];
+    trk.mPt = srctrk.getPt();
+    trk.mP = srctrk.getP();
     trksource = 0;
   } else if (gid.getSource() == GID::ITSTPCTOF) {
+    const auto& array = mRecoData.getTPCITSTracks();
+    GID gTrackId = match.getTrackRef();
+    const auto& srctrk = array[gTrackId.getIndex()];
+    trk.mPt = srctrk.getPt();
+    trk.mP = srctrk.getPt();
     trksource = 1;
   } else if (gid.getSource() == GID::TPCTRDTOF) {
+    const auto& array = mRecoData.getTPCTRDTracks<o2::trd::TrackTRD>();
+    GID gTrackId = match.getTrackRef();
+    const auto& srctrk = array[gTrackId.getIndex()];
+    trk.mPt = srctrk.getPt();
+    trk.mP = srctrk.getPt();
     trksource = 2;
   } else if (gid.getSource() == GID::ITSTPCTRDTOF) {
+    const auto& array = mRecoData.getITSTPCTRDTracks<o2::trd::TrackTRD>();
+    GID gTrackId = match.getTrackRef();
+    const auto& srctrk = array[gTrackId.getIndex()];
+    trk.mPt = srctrk.getPt();
+    trk.mP = srctrk.getPt();
     trksource = 3;
   }
 
   const char* sources[5] = {"TPC", "ITS-TPC", "TPC-TRD", "ITS-TPC-TRD", "NONE"};
 
-  int tofcl = match.getIdxTOFCl();
-  int trIndex = match.getTrackIndex();
-  float chi2 = match.getChi2();
-  float ttof = mTOFClustersArrayInp[tofcl].getTime();
-  float x = mTOFClustersArrayInp[tofcl].getX();
-  float y = mTOFClustersArrayInp[tofcl].getY();
-  float z = mTOFClustersArrayInp[tofcl].getZ();
-  int sector = mTOFClustersArrayInp[tofcl].getSector();
-  LOG(INFO) << "trkSource=" << sources[trksource] << " -- cl=" << tofcl << " - trk=" << trIndex << " - chi2 =" << chi2 << " - time=" << ttof << " - coordinates (to be rotated, sector=" << sector << ") = (" << x << "," << y << "," << z << ")";
+  trk.expTimes[0] = info.getTOF(2); // pi
+  trk.expTimes[1] = info.getTOF(3); // ka
+  trk.expTimes[2] = info.getTOF(4); // pr
+  trk.expSigma[0] = 120;            // dummy resolution (to be updated)
+  trk.expSigma[1] = 120;            // dummy resolution (to be updated)
+  trk.expSigma[2] = 120;            // dummy resolution (to be updated)
 
-  // digit coordinates
-  int mainCh = mTOFClustersArrayInp[tofcl].getMainContributingChannel();
-  int addCh;
-  int det[5];
-  float pos[3];
-  o2::tof::Geo::getVolumeIndices(mainCh, det);
-  o2::tof::Geo::getPos(det, pos);
-  LOG(DEBUG) << "Cluster mult = " << mTOFClustersArrayInp[tofcl].getNumOfContributingChannels() << " - main channel (" << mainCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
+  //  int tofcl = match.getIdxTOFCl();
+  //  trk.mSignal = mTOFClustersArrayInp[tofcl].getTime();
+  trk.mSignal = match.getSignal();
+  trk.mTOFChi2 = match.getChi2();
+  trk.mLength = info.getL();
+  //  trk.mHypo = 0;
 
-  // top->+48, bottom->-48, left->-1, right->+1
-  if (mTOFClustersArrayInp[tofcl].getNumOfContributingChannels() > 1) {
-    if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kUpRight)) {
-      addCh = mainCh + 48 + 1;
-      o2::tof::Geo::getVolumeIndices(addCh, det);
-      o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "top right (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
-    }
-    if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kUp)) {
-      addCh = mainCh + 48;
-      o2::tof::Geo::getVolumeIndices(addCh, det);
-      o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "top (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
-    }
-    if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kUpLeft)) {
-      addCh = mainCh + 48 - 1;
-      o2::tof::Geo::getVolumeIndices(addCh, det);
-      o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "top left (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
-    }
-    if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kRight)) {
-      addCh = mainCh + 1;
-      o2::tof::Geo::getVolumeIndices(addCh, det);
-      o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "right (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
-    }
-    if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kLeft)) {
-      addCh = mainCh - 1;
-      o2::tof::Geo::getVolumeIndices(addCh, det);
-      o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "left (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
-    }
-    if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kDownRight)) {
-      addCh = mainCh - 48 + 1;
-      o2::tof::Geo::getVolumeIndices(addCh, det);
-      o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "down right (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
-    }
-    if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kDown)) {
-      addCh = mainCh - 48;
-      o2::tof::Geo::getVolumeIndices(addCh, det);
-      o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "down (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
-    }
-    if (mTOFClustersArrayInp[tofcl].isAdditionalChannelSet(o2::tof::Cluster::kDownLeft)) {
-      addCh = mainCh - 48 - 1;
-      o2::tof::Geo::getVolumeIndices(addCh, det);
-      o2::tof::Geo::getPos(det, pos);
-      LOG(DEBUG) << "down left (" << addCh << ") -> pos(" << pos[0] << "," << pos[1] << "," << pos[2] << ")";
-    }
-  }
-
-  LOG(DEBUG) << "";
+  mMyTracks.push_back(trk);
 }
 
-void TOFMatchChecker::init(InitContext& ic)
+void TOFEventTimeChecker::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -180,10 +163,11 @@ void TOFMatchChecker::init(InitContext& ic)
   std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
 }
 
-void TOFMatchChecker::run(ProcessingContext& pc)
+void TOFEventTimeChecker::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
 
+  mMyTracks.clear();
   mRecoData.collectData(pc, *mDataRequest.get());
 
   mIsTPC = (mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF) && mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF));
@@ -204,21 +188,49 @@ void TOFMatchChecker::run(ProcessingContext& pc)
   }
 
   auto creator = [this](auto& trk, GID gid, float time0, float terr) {
-    this->checkMatching(gid);
+    this->fillMatching(gid);
     return true;
   };
   mRecoData.createTracksVariadic(creator);
 
+  // sorting matching in time
+  std::sort(mMyTracks.begin(), mMyTracks.end(),
+            [](MyTrack a, MyTrack b) { return a.tofSignal() < b.tofSignal(); });
+
+  for (auto& element : mMyTracks) { // loop print
+    LOG(INFO) << "Time cluster = " << element.tofSignal() << " ps - pt = " << element.pt();
+  }
+
+  std::vector<MyTrack> tracks;
+  for (int i = 0; i < mMyTracks.size(); i++) { // loop looking for interaction candidates
+    tracks.clear();
+    int ntrk = 1;
+    double time = mMyTracks[i].tofSignal();
+    tracks.emplace_back(mMyTracks[i]);
+    for (; i < mMyTracks.size(); i++) {
+      double timeCurrent = mMyTracks[i].tofSignal();
+      if (timeCurrent - time > 25E3) {
+        i--;
+        break;
+      }
+      tracks.emplace_back(mMyTracks[i]);
+      ntrk++;
+    }
+    if (ntrk > 2) { // good candidate with time
+      processEvent(tracks);
+    }
+  }
+
   mTimer.Stop();
 }
 
-void TOFMatchChecker::endOfStream(EndOfStreamContext& ec)
+void TOFEventTimeChecker::endOfStream(EndOfStreamContext& ec)
 {
   LOGF(DEBUG, "TOF matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTOFMatchCheckerSpec(GID::mask_t src, bool useMC)
+DataProcessorSpec getTOFEventTimeCheckerSpec(GID::mask_t src, bool useMC)
 {
   auto dataRequest = std::make_shared<DataRequest>();
 
@@ -228,10 +240,10 @@ DataProcessorSpec getTOFMatchCheckerSpec(GID::mask_t src, bool useMC)
   dataRequest->requestTOFMatches(src, useMC);
 
   return DataProcessorSpec{
-    "tof-matcher",
+    "tof-eventime",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<TOFMatchChecker>(dataRequest, useMC)},
+    AlgorithmSpec{adaptFromTask<TOFEventTimeChecker>(dataRequest, useMC)},
     Options{}};
 }
 

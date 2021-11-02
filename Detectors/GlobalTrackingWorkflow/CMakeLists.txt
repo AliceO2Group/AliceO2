@@ -24,6 +24,7 @@ o2_add_library(GlobalTrackingWorkflow
                        src/TrackCosmicsWriterSpec.cxx
                        src/TOFMatcherSpec.cxx
                        src/TOFMatchChecker.cxx
+                       src/TOFEventTimeChecker.cxx
                        src/GlobalFwdTrackWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
@@ -77,6 +78,10 @@ o2_add_executable(matcher-workflow
 o2_add_executable(match-checker-workflow
                   COMPONENT_NAME tof
                   SOURCES src/tof-match-checker-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow O2::TOFWorkflowIO)
+o2_add_executable(match-eventtime-workflow
+                  COMPONENT_NAME tof
+                  SOURCES src/tof-eventtime-checker-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow O2::TOFWorkflowIO)
 
 o2_add_executable(matcher-workflow
