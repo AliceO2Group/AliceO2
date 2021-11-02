@@ -13,6 +13,7 @@
 /// \author: mconcas@cern.ch
 
 #include "../Shared/Kernels.h"
+#include <chrono>
 #include <cstdio>
 #include <numeric>
 
@@ -308,7 +309,7 @@ std::vector<float> GPUbenchmark<chunk_t>::runConcurrent(void (*kernel)(chunk_t*,
                                                         T&... args)
 {
   auto nChunks = chunkRanges.size();
-  std::vector<float> results(nChunks);
+  std::vector<float> results(nChunks + 1); // last spot is for the host time
   std::vector<cudaEvent_t> starts(nChunks), stops(nChunks);
   std::vector<cudaStream_t> streams(dimStreams);
 
@@ -327,6 +328,7 @@ std::vector<float> GPUbenchmark<chunk_t>::runConcurrent(void (*kernel)(chunk_t*,
     chunk_t* chunkPtr = getCustomPtr<chunk_t>(mState.scratchPtr, chunk.first);
     (*kernel)<<<nBlocks, nThreads, 0, streams[iChunk % dimStreams]>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second), args...);
   }
+  auto start = std::chrono::high_resolution_clock::now();
 
   for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
     auto& chunk = chunkRanges[iChunk];
@@ -344,11 +346,16 @@ std::vector<float> GPUbenchmark<chunk_t>::runConcurrent(void (*kernel)(chunk_t*,
     GPUCHECK(cudaEventDestroy(starts[iChunk]));
     GPUCHECK(cudaEventDestroy(stops[iChunk]));
   }
+  GPUCHECK(cudaDeviceSynchronize());
+
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> diff_t{end - start};
 
   for (auto iStream{0}; iStream < dimStreams; ++iStream) {
     GPUCHECK(cudaStreamDestroy(streams[iStream]));
   }
 
+  results[nChunks] = diff_t.count(); // register host time on latest spot
   return results;
 }
 
@@ -464,7 +471,7 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
                                    nBlocks,
                                    nThreads);
       float sum{0};
-      for (auto iChunk{0}; iChunk < results.size(); ++iChunk) {
+      for (auto iChunk{0}; iChunk < mState.testChunks.size(); ++iChunk) {
         auto& chunk = mState.testChunks[iChunk];
         auto throughput = computeThroughput(test, results[iChunk], chunk.second, mState.getNKernelLaunches());
         sum += throughput;
@@ -475,6 +482,15 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
       if (mState.testChunks.size() > 1) {
         std::cout << "   │   - total throughput: \e[1m" << sum << " GB/s \e[0m" << std::endl;
       }
+
+      // Add throughput computed via system time measurement
+      float tot{0};
+      for (auto& chunk : mState.testChunks) {
+        tot += chunk.second;
+      }
+
+      std::cout << "   │   - total throughput with host time: \e[1m" << computeThroughput(test, results[mState.testChunks.size()], tot, mState.getNKernelLaunches())
+                << " GB/s \e[0m (" << std::setw(2) << results[mState.testChunks.size()] / 1000 << " s)" << std::endl;
     }
     mResultWriter.get()->snapshotBenchmark();
   }
