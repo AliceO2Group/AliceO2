@@ -159,8 +159,8 @@ class GRPObject
   bool mUniformField = false;                 ///< uniformity of magnetic field
   float mBeamEnergyPerZ = 0.f;                ///< beam energy per charge (i.e. sqrt(s)/2 for pp)
 
-  int8_t mNominalL3Field = 0;        ///< Nominal L3 field deduced from mL3Current
-  bool mNominalL3FieldValid = false; ///< Has the field been computed (for caching)
+  int8_t mNominalL3Field = 0;        //! Nominal L3 field deduced from mL3Current
+  bool mNominalL3FieldValid = false; //! Has the field been computed (for caching)
 
   int mBeamAZ[beamDirection::NBeamDirections] = {0, 0}; ///< A<<16+Z for each beam
 
