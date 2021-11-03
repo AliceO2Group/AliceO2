@@ -74,8 +74,10 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       LOG(FATAL) << "Missing configuration object";
       return;
     }
-    LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
-    moduleConfig->print();
+    LOG(INFO) << "Loaded ZDC module configuration for timestamp " << timeStamp;
+    if (mVerbosity > DbgZero) {
+      moduleConfig->print();
+    }
 
     // Configuration parameters for ZDC reconstruction
     auto* recoConfigZDC = mgr.get<o2::zdc::RecoConfigZDC>(o2::zdc::CCDBPathRecoConfigZDC);
@@ -84,7 +86,9 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       return;
     }
     LOG(INFO) << "Loaded RecoConfigZDC for timestamp " << timeStamp;
-    recoConfigZDC->print();
+    if (mVerbosity > DbgZero) {
+      recoConfigZDC->print();
+    }
 
     // TDC centering
     auto* tdcParam = mgr.get<o2::zdc::ZDCTDCParam>(o2::zdc::CCDBPathTDCCalib);
@@ -93,7 +97,9 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       return;
     }
     LOG(INFO) << "Loaded TDC centering ZDCTDCParam for timestamp " << timeStamp;
-    tdcParam->print();
+    if (mVerbosity > DbgZero) {
+      tdcParam->print();
+    }
 
     // Energy calibration
     auto* energyParam = mgr.get<o2::zdc::ZDCEnergyParam>(o2::zdc::CCDBPathEnergyCalib);
@@ -101,7 +107,9 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       LOG(WARNING) << "Missing ZDCEnergyParam calibration object - using default";
     } else {
       LOG(INFO) << "Loaded Energy calibration ZDCEnergyParam for timestamp " << timeStamp;
-      energyParam->print();
+      if (mVerbosity > DbgZero) {
+        energyParam->print();
+      }
     }
 
     // Tower calibration
@@ -110,7 +118,9 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       LOG(WARNING) << "Missing ZDCTowerParam calibration object - using default";
     } else {
       LOG(INFO) << "Loaded Tower calibration ZDCTowerParam for timestamp " << timeStamp;
-      towerParam->print();
+      if (mVerbosity > DbgZero) {
+        towerParam->print();
+      }
     }
 
     mDR.setModuleConfig(moduleConfig);
@@ -137,7 +147,6 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   const std::vector<o2::zdc::RecEventAux>& recAux = mDR.getReco();
 
   RecEvent recEvent;
-  LOG(INFO) << "BC processed during reconstruction " << recAux.size();
   int32_t nte = 0, ntt = 0;
   for (auto reca : recAux) {
     int32_t ne = reca.ezdc.size();
@@ -172,7 +181,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     recEvent.addInfo(reca.adcPedQC, MsgADCPedQC);
     recEvent.addInfo(reca.adcPedMissing, MsgADCPedMissing);
   }
-  LOG(INFO) << "Reconstructed " << ntt << " signal TDCs and " << nte << " energies";
+  LOG(INFO) << "Reconstructed " << ntt << " signal TDCs and " << nte << " ZDC energies in " << recEvent.mRecBC.size() << "/" << recAux.size() << " b.c.";
   // TODO: rate information for all channels
   // TODO: summary of reconstruction to be collected by DQM?
   pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, recEvent.mRecBC);
@@ -180,7 +189,6 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0, Lifetime::Timeframe}, recEvent.mTDCData);
   pc.outputs().snapshot(Output{"ZDC", "INFO", 0, Lifetime::Timeframe}, recEvent.mInfo);
   mTimer.Stop();
-  LOG(INFO) << "Reconstructed ZDC data for " << recEvent.mRecBC.size() << " b.c. in " << mTimer.CpuTime() - cput << " s";
 }
 
 void DigitRecoSpec::endOfStream(EndOfStreamContext& ec)

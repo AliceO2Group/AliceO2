@@ -80,8 +80,10 @@ void DigiReco::init()
       }
     }
   next_itdc:;
-    LOG(INFO) << "TDC " << itdc << "(" << ChannelNames[TDCSignal[itdc]] << ")"
-              << " mod " << ropt.tmod[itdc] << " ch " << ropt.tch[itdc];
+    if (mVerbosity > DbgZero) {
+      LOG(INFO) << "TDC " << itdc << "(" << ChannelNames[TDCSignal[itdc]] << ")"
+                << " mod " << ropt.tmod[itdc] << " ch " << ropt.tch[itdc];
+    }
   }
 
   // TDC calibration
@@ -104,7 +106,9 @@ void DigiReco::init()
       LOG(FATAL) << "Shift for TDC " << itdc << " " << val << " is out of range";
     }
     tdc_shift[itdc] = val;
-    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val * FTDCVal << " ns";
+    if (mVerbosity > DbgZero) {
+      LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val * FTDCVal << " ns";
+    }
   }
 
   // TDC search zone
@@ -117,7 +121,9 @@ void DigiReco::init()
         ropt.tdc_search[itdc] = mRecoConfigZDC->tdc_search[itdc];
       }
     }
-    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc] * FTDCVal << " ns";
+    if (mVerbosity > DbgZero) {
+      LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc] * FTDCVal << " ns";
+    }
   }
 
   // Energy calibration
@@ -126,7 +132,9 @@ void DigiReco::init()
       LOG(INFO) << "Energy Calibration from command line " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
     } else if (mEnergyParam && mEnergyParam->energy_calib[ChEnergyCalib[il]] > 0) {
       ropt.energy_calib[ChEnergyCalib[il]] = mEnergyParam->energy_calib[ChEnergyCalib[il]];
-      LOG(INFO) << "Energy Calibration from CCDB " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+      if (mVerbosity > DbgZero) {
+        LOG(INFO) << "Energy Calibration from CCDB " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+      }
     } else {
       if (ChEnergyCalib[il] == CaloCommonPM[ChEnergyCalib[il]]) {
         // Is a common PM or a ZEM
@@ -136,7 +144,9 @@ void DigiReco::init()
         // Is one of the analog sums -> same calibration as common PM
         // N.B. the calibration for common has already been set in the loop
         ropt.energy_calib[ChEnergyCalib[il]] = ropt.energy_calib[CaloCommonPM[il]];
-        LOG(INFO) << "SUM Energy Calibration  " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+        if (mVerbosity > DbgZero) {
+          LOG(INFO) << "SUM Energy Calibration  " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+        }
       }
     }
   }
@@ -147,7 +157,9 @@ void DigiReco::init()
       LOG(INFO) << "Tower Calibration from command line " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
     } else if (mTowerParam && mTowerParam->tower_calib[ChTowerCalib[il]] > 0) {
       ropt.tower_calib[ChTowerCalib[il]] = mTowerParam->tower_calib[ChTowerCalib[il]];
-      LOG(INFO) << "Tower Calibration from CCDB " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
+      if (mVerbosity > DbgZero) {
+        LOG(INFO) << "Tower Calibration from CCDB " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
+      }
     } else {
       ropt.tower_calib[ChTowerCalib[il]] = 1;
       LOG(WARNING) << "Default Tower Calibration  " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
@@ -160,7 +172,9 @@ void DigiReco::init()
       LOG(INFO) << "Tower Energy Calibration from command line " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.energy_calib[ChTowerCalib[il]];
     } else {
       ropt.energy_calib[ChTowerCalib[il]] = ropt.tower_calib[ChTowerCalib[il]] * ropt.energy_calib[CaloCommonPM[ChTowerCalib[il]]];
-      LOG(INFO) << "Tower Energy Calibration " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.energy_calib[ChTowerCalib[il]];
+      if (mVerbosity > DbgZero) {
+        LOG(INFO) << "Tower Energy Calibration " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.energy_calib[ChTowerCalib[il]];
+      }
     }
   }
 
@@ -179,7 +193,9 @@ void DigiReco::init()
       }
     }
   next_ich:;
-    LOG(INFO) << "ADC " << ich << "(" << ChannelNames[ich] << ") mod " << ropt.amod[ich] << " ch " << ropt.ach[ich];
+    if (mVerbosity > DbgZero) {
+      LOG(INFO) << "ADC " << ich << "(" << ChannelNames[ich] << ") mod " << ropt.amod[ich] << " ch " << ropt.ach[ich];
+    }
   }
 
   // Integration ranges
@@ -201,7 +217,9 @@ void DigiReco::init()
         ropt.end_ped_int[ich] = mRecoConfigZDC->end_ped_int[ich];
       }
     }
-    LOG(INFO) << ChannelNames[ich] << " integration: signal=[" << ropt.beg_int[ich] << ":" << ropt.end_int[ich] << "] pedestal=[" << ropt.beg_ped_int[ich] << ":" << ropt.end_ped_int[ich] << "]";
+    if (mVerbosity > DbgZero) {
+      LOG(INFO) << ChannelNames[ich] << " integration: signal=[" << ropt.beg_int[ich] << ":" << ropt.end_int[ich] << "] pedestal=[" << ropt.beg_ped_int[ich] << ":" << ropt.end_ped_int[ich] << "]";
+    }
   }
 } // init
 
@@ -273,7 +291,7 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   // account for signals that do not span the entire reange)
   int seq_beg = 0;
   int seq_end = 0;
-  LOG(INFO) << "ZDC reconstruction for " << mNBC << " bunch crossings";
+  LOG(INFO) << "Processing ZDC reconstruction for " << mNBC << " bunch crossings";
   for (int ibc = 0; ibc < mNBC; ibc++) {
     auto& ir = mBCData[seq_end].ir;
     auto bcd = mBCData[ibc].ir.differenceInBC(ir);
