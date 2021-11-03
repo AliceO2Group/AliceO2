@@ -75,6 +75,8 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
   float err2ABExtraY = 0.1 * 0.1;  ///< extra "systematic" error on Y
   float err2ABExtraZ = 0.1 * 0.1;  ///< extra "systematic" error on Z
 
+  int verbosity = 0; ///< verbosit level
+
   o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT; /// Material correction type
 
   O2ParamDef(MatchTPCITSParams, "tpcitsMatch");
