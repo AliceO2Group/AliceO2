@@ -95,7 +95,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
       conf.modes.push_back(Mode::Concurrent);
     } else if (mode == "dis") {
       conf.modes.push_back(Mode::Distributed);
-    }else {
+    } else {
       std::cerr << "Unkonwn mode: " << mode << std::endl;
       exit(1);
     }

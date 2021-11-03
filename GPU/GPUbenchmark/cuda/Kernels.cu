@@ -142,8 +142,9 @@ __global__ void rand_read_k(
 
 // Distributed read
 template <class chunk_t>
-__global__ void read_dist_k(chunk_t** block_ptr,
-                            size_t* block_size)
+__global__ void read_dist_k(
+  chunk_t** block_ptr,
+  size_t* block_size)
 {
   chunk_t sink{0};
   chunk_t* ptr = block_ptr[blockIdx.x];
@@ -151,37 +152,53 @@ __global__ void read_dist_k(chunk_t** block_ptr,
   for (size_t i = threadIdx.x; i < n; i += blockDim.x) {
     sink += ptr[i];
   }
-  block_ptr[blockIdx.x][threadIdx.x] = sink;
+  ptr[threadIdx.x] = sink;
 }
 
 // Distributed write
 template <class chunk_t>
 __global__ void write_dist_k(
-  chunk_t** chunkPtr,
-  size_t* chunkSize)
+  chunk_t** block_ptr,
+  size_t* block_size)
 {
+  chunk_t* ptr = block_ptr[blockIdx.x];
+  size_t n = block_size[blockIdx.x];
+  for (size_t i = threadIdx.x; i < n; i += blockDim.x) {
+    ptr[i] = 0;
+  }
 }
 
 template <>
 __global__ void write_dist_k(
-  int4** chunkPtr,
-  size_t* chunkSize)
+  int4** block_ptr,
+  size_t* block_size)
 {
+  int4* ptr = block_ptr[blockIdx.x];
+  size_t n = block_size[blockIdx.x];
+  for (size_t i = threadIdx.x; i < n; i += blockDim.x) {
+    ptr[i] = {0, 1, 0, 0};
+  }
 }
 
 // Distributed copy
 template <class chunk_t>
 __global__ void copy_dist_k(
-  chunk_t** chunkPtr,
-  size_t* chunkSize)
+  chunk_t** block_ptr,
+  size_t* block_size)
 {
+  chunk_t* ptr = block_ptr[blockIdx.x];
+  size_t n = block_size[blockIdx.x];
+  size_t offset = n / 2;
+  for (size_t i = threadIdx.x; i < offset; i += blockDim.x) {
+    ptr[i] = ptr[offset + i];
+  }
 }
 
 // Distributed Random read
 template <class chunk_t>
 __global__ void rand_read_dist_k(
-  chunk_t** chunkPtr,
-  size_t* chunkSize)
+  chunk_t** block_ptr,
+  size_t* block_size)
 {
 }
 
@@ -438,9 +455,8 @@ float GPUbenchmark<chunk_t>::runDistributed(void (*kernel)(chunk_t**, size_t*, T
   }
 
   if (totComputedBlocks != nBlocks) {
-    std::cout << "   │   - \033[1;33mWarning: total number of estimated blocks (" << totComputedBlocks
-              << ") is different from requested one (" << nBlocks
-              << "). This may cause imbalance in the test!\e[0m"
+    std::cout << "   │   - \033[1;33mWarning: Sum of used blocks (" << totComputedBlocks
+              << ") is different from requested one (" << nBlocks << ")!\e[0m"
               << std::endl;
   }
 
