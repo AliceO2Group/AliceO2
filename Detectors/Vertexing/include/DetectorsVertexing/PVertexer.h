@@ -134,7 +134,7 @@ class PVertexer
   o2::BunchFilling mBunchFilling;
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchBelow; // closest filled bunch from below
-  o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
+  o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.5 * 0.5, 0., 0.5 * 0.5, 0., 0., 6. * 6.}};
   std::array<float, 3> mXYConstraintInvErr = {1.0f, 0.f, 1.0f}; ///< nominal vertex constraint inverted errors^2
   //
   std::vector<TrackVF> mTracksPool;         ///< tracks in internal representation used for vertexing, sorted in time
