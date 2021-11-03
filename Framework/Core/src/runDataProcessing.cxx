@@ -54,6 +54,7 @@
 #include "DriverServerContext.h"
 #include "HTTPParser.h"
 #include "DPLWebSocket.h"
+#include "ArrowSupport.h"
 
 #include "ComputingResourceHelpers.h"
 #include "DataProcessingStatus.h"
@@ -1219,6 +1220,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   std::vector<ServicePostSchedule> postScheduleCallbacks;
   std::vector<ServiceDriverInit> driverInitCallbacks;
   for (auto& service : driverServices) {
+    if (service.driverStartup == nullptr) {
+      continue;
+    }
     service.driverStartup(serviceRegistry, varmap);
   }
 
@@ -2361,6 +2365,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   std::vector<ServiceSpec> driverServices = CommonDriverServices::defaultServices();
   // We insert the hash for the internal devices.
   WorkflowHelpers::injectServiceDevices(physicalWorkflow, configContext);
+  auto reader = std::find_if(physicalWorkflow.begin(), physicalWorkflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });
+  if (reader != physicalWorkflow.end()) {
+    driverServices.push_back(ArrowSupport::arrowBackendSpec());
+  }
   for (auto& service : driverServices) {
     if (service.injectTopology == nullptr) {
       continue;
