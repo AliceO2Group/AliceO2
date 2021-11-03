@@ -849,7 +849,7 @@ uint8_t AODProducerWorkflowDPL::getTRDPattern(const o2::trd::TrackTRD& track)
 void AODProducerWorkflowDPL::init(InitContext& ic)
 {
   mTimer.Stop();
-  mProdTag = ic.options().get<string>("prod-tags");
+  mProdTags = ic.options().get<string>("prod-tags");
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
   mRecoOnly = ic.options().get<int>("reco-mctracks-only");
   mTruncate = ic.options().get<int>("enable-truncation");
@@ -903,7 +903,19 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   auto* fResFile = TFile::Open(mResFile, "UPDATE");
   if (fResFile) {
     if (!fResFile->FindObjectAny("metaData")) {
-      LOGF(info, "Metadata: writing into %s", mResFile);
+      std::vector<TString> vTags;
+      std::stringstream ss(mProdTags);
+      for (std::string tag; ss >> tag;) {
+        vTags.emplace_back(tag);
+        if (ss.peek() == ',') {
+          ss.ignore();
+        }
+      }
+      // assuming all tags passed as in `prod-tags` description
+      TString LPMProdTag = vTags[0];
+      TString anchorPass = vTags[1];
+      TString anchorProd = vTags[2];
+      TString recoPass = vTags[3];
       // populating metadata map
       mMetaData.Add(new TObjString("DataType"), new TObjString("MC"));
       mMetaData.Add(new TObjString("Run"), new TObjString("3"));
@@ -912,7 +924,11 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
       converterVersion += " ; root ";
       converterVersion += ROOT_RELEASE;
       mMetaData.Add(new TObjString("Run3ConverterVersion"), new TObjString(converterVersion));
-      mMetaData.Add(new TObjString("LPMProductionTag"), new TObjString(mProdTag));
+      mMetaData.Add(new TObjString("RecoPassName"), new TObjString(recoPass));
+      mMetaData.Add(new TObjString("AnchorProduction"), new TObjString(anchorProd));
+      mMetaData.Add(new TObjString("AnchorPassName"), new TObjString(anchorPass));
+      mMetaData.Add(new TObjString("LPMProductionTag"), new TObjString(LPMProdTag));
+      LOGF(info, "Metadata: writing into %s", mResFile);
       fResFile->WriteObject(&mMetaData, "metaData");
     } else {
       LOGF(info, "Metadata: target file not found or metadata is already written");
@@ -1384,7 +1400,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, std::s
     Options{
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on, != 1 -- off"}},
-      ConfigParamSpec{"prod-tags", VariantType::String, "LHC21Axx", {"Production tags"}},
+      ConfigParamSpec{"prod-tags", VariantType::String, "LHC21Axx,pass1,LHC15o,pass1", {"Comma separated list of production tags: `LPMProductionTag,AnchorPassName,AnchorProduction,RecoPassName`"}},
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}}}};
 }
 

@@ -206,7 +206,7 @@ class AODProducerWorkflowDPL : public Task
   int mTruncate{1};
   int mRecoOnly{0};
   TString mResFile{"AO2D"};
-  TString mProdTag{"LHC21Axx"};
+  std::string mProdTags{"LHC21Axx,pass1,LHC15o,pass1"};
   TStopwatch mTimer;
 
   // unordered map connects global indices and table indices of barrel tracks
