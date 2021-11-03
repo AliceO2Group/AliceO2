@@ -180,9 +180,10 @@ inline void PVertexer::applyConstraint(VertexSeed& vtxSeed) const
   // impose meanVertex constraint, i.e. account terms
   // (V_i-Constrain_i)^2/sig2constr_i for i=X,Y in the fit chi2 definition
   vtxSeed.cxx += mXYConstraintInvErr[0];
-  vtxSeed.cyy += mXYConstraintInvErr[1];
-  vtxSeed.cx0 += mXYConstraintInvErr[0] * mMeanVertex.getX();
-  vtxSeed.cy0 += mXYConstraintInvErr[1] * mMeanVertex.getY();
+  vtxSeed.cxy += mXYConstraintInvErr[1];
+  vtxSeed.cyy += mXYConstraintInvErr[2];
+  vtxSeed.cx0 += mXYConstraintInvErr[0] * mMeanVertex.getX() + mXYConstraintInvErr[1] * mMeanVertex.getY();
+  vtxSeed.cy0 += mXYConstraintInvErr[1] * mMeanVertex.getX() + mXYConstraintInvErr[2] * mMeanVertex.getY();
 }
 
 //___________________________________________________________________

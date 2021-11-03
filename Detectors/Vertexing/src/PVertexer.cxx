@@ -588,14 +588,14 @@ void PVertexer::reduceDebris(std::vector<PVertex>& vertices, std::vector<int>& t
 void PVertexer::initMeanVertexConstraint()
 {
   // set mean vertex constraint and its errors
-  double det = mMeanVertex.getSigmaY2() * mMeanVertex.getSigmaZ2() - mMeanVertex.getSigmaYZ() * mMeanVertex.getSigmaYZ();
-  if (det <= kAlmost0D || mMeanVertex.getSigmaY2() < kAlmost0D || mMeanVertex.getSigmaZ2() < kAlmost0D) {
-    throw std::runtime_error(fmt::format("Singular matrix for vertex constraint: syy={:+.4e} syz={:+.4e} szz={:+.4e}",
-                                         mMeanVertex.getSigmaY2(), mMeanVertex.getSigmaYZ(), mMeanVertex.getSigmaZ2()));
+  double det = mMeanVertex.getSigmaX2() * mMeanVertex.getSigmaY2() - mMeanVertex.getSigmaXY() * mMeanVertex.getSigmaXY();
+  if (det <= kAlmost0D || mMeanVertex.getSigmaY2() < kAlmost0D || mMeanVertex.getSigmaY2() < kAlmost0D) {
+    throw std::runtime_error(fmt::format("Singular matrix for vertex constraint: sxx={:+.4e} syy={:+.4e} sxy={:+.4e}",
+                                         mMeanVertex.getSigmaX2(), mMeanVertex.getSigmaY2(), mMeanVertex.getSigmaXY()));
   }
-  mXYConstraintInvErr[0] = mMeanVertex.getSigmaZ2() / det;
-  mXYConstraintInvErr[2] = mMeanVertex.getSigmaY2() / det;
-  mXYConstraintInvErr[1] = -mMeanVertex.getSigmaYZ() / det;
+  mXYConstraintInvErr[0] = mMeanVertex.getSigmaY2() / det;
+  mXYConstraintInvErr[1] = -mMeanVertex.getSigmaXY() / det;
+  mXYConstraintInvErr[2] = mMeanVertex.getSigmaX2() / det;
 }
 
 //______________________________________________
