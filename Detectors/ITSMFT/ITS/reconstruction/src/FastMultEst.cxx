@@ -15,6 +15,7 @@
 
 #include "ITSReconstruction/FastMultEst.h"
 #include <cstring>
+#include "Framework/Logger.h"
 
 using namespace o2::its;
 
@@ -77,7 +78,7 @@ float FastMultEst::processNoiseFree(const std::array<int, NLayers> ncl)
     }
   }
   chi2 = nLayersUsed > 2 ? chi2 / (nLayersUsed - 2) : 0.;
-  return mult;
+  return mult > 0 ? mult : 0;
 }
 
 ///______________________________________________________
@@ -126,5 +127,5 @@ float FastMultEst::processNoiseImposed(const std::array<int, NLayers> ncl)
     }
   }
   chi2 = nLayersUsed > 2 ? chi2 / (nLayersUsed - 2) : 0.;
-  return mult;
+  return mult > 0 ? mult : 0;
 }
