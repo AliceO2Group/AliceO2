@@ -16,7 +16,7 @@
 namespace o2::framework
 {
 struct WorkflowSpecNode {
-  std::vector<DataProcessorSpec> specs;
+  std::vector<DataProcessorSpec>& specs;
 };
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_WORKFLOWSPEC_H_
