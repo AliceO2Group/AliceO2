@@ -860,7 +860,10 @@ uint8_t AODProducerWorkflowDPL::getTRDPattern(const o2::trd::TrackTRD& track)
 void AODProducerWorkflowDPL::init(InitContext& ic)
 {
   mTimer.Stop();
-  mProdTags = ic.options().get<string>("prod-tags");
+  mLPMProdTag = ic.options().get<string>("lpmp-prod-tag");
+  mAnchorPass = ic.options().get<string>("anchor-pass");
+  mAnchorProd = ic.options().get<string>("anchor-prod");
+  mRecoPass = ic.options().get<string>("reco-pass");
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
   mRecoOnly = ic.options().get<int>("reco-mctracks-only");
   mTruncate = ic.options().get<int>("enable-truncation");
@@ -914,18 +917,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   auto* fResFile = TFile::Open(mResFile, "UPDATE");
   if (fResFile) {
     if (!fResFile->FindObjectAny("metaData")) {
-      std::vector<TString> vTags;
-      std::stringstream ss(mProdTags);
-      while (ss.good()) {
-        std::string substr;
-        std::getline(ss, substr, ',');
-        vTags.emplace_back(substr);
-      }
-      // assuming all tags passed as in `prod-tags` description
-      TString LPMProdTag = vTags[0];
-      TString anchorPass = vTags[1];
-      TString anchorProd = vTags[2];
-      TString recoPass = vTags[3];
       // populating metadata map
       mMetaData.Add(new TObjString("DataType"), new TObjString("MC"));
       mMetaData.Add(new TObjString("Run"), new TObjString("3"));
@@ -934,10 +925,10 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
       converterVersion += " ; root ";
       converterVersion += ROOT_RELEASE;
       mMetaData.Add(new TObjString("Run3ConverterVersion"), new TObjString(converterVersion));
-      mMetaData.Add(new TObjString("RecoPassName"), new TObjString(recoPass));
-      mMetaData.Add(new TObjString("AnchorProduction"), new TObjString(anchorProd));
-      mMetaData.Add(new TObjString("AnchorPassName"), new TObjString(anchorPass));
-      mMetaData.Add(new TObjString("LPMProductionTag"), new TObjString(LPMProdTag));
+      mMetaData.Add(new TObjString("RecoPassName"), new TObjString(mRecoPass));
+      mMetaData.Add(new TObjString("AnchorProduction"), new TObjString(mAnchorProd));
+      mMetaData.Add(new TObjString("AnchorPassName"), new TObjString(mAnchorPass));
+      mMetaData.Add(new TObjString("LPMProductionTag"), new TObjString(mLPMProdTag));
       LOGF(info, "Metadata: writing into %s", mResFile);
       fResFile->WriteObject(&mMetaData, "metaData");
     } else {
@@ -1410,7 +1401,10 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, std::s
     Options{
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on, != 1 -- off"}},
-      ConfigParamSpec{"prod-tags", VariantType::String, "LHC21Axx,pass1,LHC15o,pass1", {"Comma separated list of production tags: `LPMProductionTag,AnchorPassName,AnchorProduction,RecoPassName`"}},
+      ConfigParamSpec{"lpmp-prod-tag", VariantType::String, "LHC21Axx", {"LPMProductionTag"}},
+      ConfigParamSpec{"anchor-pass", VariantType::String, "pass1", {"AnchorPassName"}},
+      ConfigParamSpec{"anchor-prod", VariantType::String, "LHC15o", {"AnchorProduction"}},
+      ConfigParamSpec{"reco-pass", VariantType::String, "LHC15o", {"RecoPassName"}},
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}}}};
 }
 
