@@ -26,12 +26,13 @@ namespace o2
 namespace itsmft
 {
 
-EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig, bool getDigits)
+EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits)
   : mOrigin(orig), mCTFCoder(orig == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT), mGetDigits(getDigits)
 {
   assert(orig == o2::header::gDataOriginITS || orig == o2::header::gDataOriginMFT);
   mTimer.Stop();
   mTimer.Reset();
+  mCTFCoder.setVerbosity(verbosity);
 }
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
@@ -106,7 +107,7 @@ void EntropyDecoderSpec::updateTimeDependentParams(ProcessingContext& pc)
   }
 }
 
-DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, bool getDigits)
+DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits)
 {
   std::vector<OutputSpec> outputs;
   if (getDigits) {
@@ -122,7 +123,7 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, bool getDig
     EntropyDecoderSpec::getName(orig),
     Inputs{InputSpec{"ctf", orig, "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(orig, getDigits)},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(orig, verbosity, getDigits)},
     Options{
       {"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}},
       {"mask-noise", VariantType::Bool, false, {"apply noise mask to digits or clusters (involves reclusterization)"}}}};

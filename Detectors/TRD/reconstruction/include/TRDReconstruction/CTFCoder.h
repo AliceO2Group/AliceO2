@@ -113,7 +113,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   ENCODETRD(helper.begin_ADCDig(),       helper.end_ADCDig(),        CTF::BLC_ADCDig,       0);
 
   // clang-format on
-  CTF::get(buff.data())->print(getPrefix());
+  CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
 
 /// decode entropy-encoded data to tracklets and digits
@@ -122,7 +122,7 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& trkVec, VDIG& di
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
   std::vector<uint16_t> bcInc, HCIDTrk, posTrk, CIDDig, ADCDig;
   std::vector<uint32_t> orbitInc, entriesTrk, entriesDig, pidTrk;
   std::vector<uint8_t> padrowTrk, colTrk, slopeTrk, ROBDig, MCMDig, chanDig;

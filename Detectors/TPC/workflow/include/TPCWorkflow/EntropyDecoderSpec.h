@@ -28,10 +28,11 @@ namespace tpc
 class EntropyDecoderSpec : public o2::framework::Task
 {
  public:
-  EntropyDecoderSpec()
+  EntropyDecoderSpec(int verbosity)
   {
     mTimer.Stop();
     mTimer.Reset();
+    mCTFCoder.setVerbosity(verbosity);
   }
   ~EntropyDecoderSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
@@ -44,7 +45,7 @@ class EntropyDecoderSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyDecoderSpec();
+framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity);
 
 } // namespace tpc
 } // namespace o2

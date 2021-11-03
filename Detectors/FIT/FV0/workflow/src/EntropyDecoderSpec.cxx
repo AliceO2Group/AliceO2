@@ -24,10 +24,11 @@ namespace o2
 namespace fv0
 {
 
-EntropyDecoderSpec::EntropyDecoderSpec()
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
+  mCTFCoder.setVerbosity(verbosity);
 }
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
@@ -53,7 +54,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mCTFCoder.decode(ctfImage, digits, channels);
 
   mTimer.Stop();
-  LOG(debug) << "Decoded " << channels.size() << " FV0 channels in " << digits.size() << " digits in " << mTimer.CpuTime() - cput << " s";
+  LOG(INFO) << "Decoded " << channels.size() << " FV0 channels in " << digits.size() << " digits in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -62,7 +63,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec()
+DataProcessorSpec getEntropyDecoderSpec(int verbosity)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"digits"}, "FV0", "DIGITSBC", 0, Lifetime::Timeframe},
@@ -72,7 +73,7 @@ DataProcessorSpec getEntropyDecoderSpec()
     "fv0-entropy-decoder",
     Inputs{InputSpec{"ctf", "FV0", "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
 }
 
