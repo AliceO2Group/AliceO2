@@ -974,17 +974,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto v0sCursor = v0sBuilder.cursor<o2::aod::StoredV0s>();
   auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
 
-  o2::steer::MCKinematicsReader mcReader("collisioncontext.root");
-  const auto mcContext = mcReader.getDigitizationContext();
-  const auto& mcRecords = mcContext->getEventRecords();
-  const auto& mcParts = mcContext->getEventParts();
-
-  LOG(DEBUG) << "FOUND " << mcRecords.size() << " records";
-  LOG(DEBUG) << "FOUND " << mcParts.size() << " parts";
+  std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
+  if (mUseMC) {
+    mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+    LOG(DEBUG) << "FOUND " << mcReader->getDigitizationContext()->getEventRecords().size()
+               << " records" << mcReader->getDigitizationContext()->getEventParts().size() << " parts";
+  }
 
   std::map<uint64_t, int> bcsMap;
-  collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, primVertices, mcRecords, bcsMap);
-
+  collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, primVertices, mUseMC ? mcReader->getDigitizationContext()->getEventRecords() : std::vector<o2::InteractionTimeRecord>{}, bcsMap);
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
   o2::InteractionRecord startIR = {0, dh->firstTForbit};
 
@@ -1071,7 +1069,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     // TODO: figure out collision weight
     float mcColWeight = 1.;
     // filling mcCollision table
-    int nMCCollisions = mcContext->getNCollisions();
+    int nMCCollisions = mcReader->getDigitizationContext()->getNCollisions();
+    const auto& mcRecords = mcReader->getDigitizationContext()->getEventRecords();
+    const auto& mcParts = mcReader->getDigitizationContext()->getEventParts();
     for (int iCol = 0; iCol < nMCCollisions; iCol++) {
       auto time = mcRecords[iCol].getTimeNS();
       auto globalBC = mcRecords[iCol].toLong();
@@ -1090,7 +1090,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
           // FIXME:
           // use generators' names for generatorIDs (?)
           short generatorID = sourceID;
-          auto& header = mcReader.getMCEventHeader(sourceID, eventID);
+          auto& header = mcReader->getMCEventHeader(sourceID, eventID);
           mcCollisionsCursor(0,
                              bcID,
                              generatorID,
@@ -1294,7 +1294,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   if (mUseMC) {
     // filling mc particles table
-    fillMCParticlesTable(mcReader,
+    fillMCParticlesTable(*mcReader,
                          mcParticlesCursor,
                          primVer2TRefs,
                          primVerGIs,
