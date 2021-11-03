@@ -366,7 +366,7 @@ if [ $CTFINPUT == 0 ]; then
   has_detector TRD && add_W o2-trd-datareader "$TRD_DECODER_OPTIONS --pipeline $(get_N trd-datareader TRD RAW TRDRAWDEC)" "" 0
   has_detector ZDC && add_W o2-zdc-raw2digits "$DISABLE_ROOT_OUTPUT --pipeline $(get_N zdc-datareader-dpl ZDC RAW)"
   has_detector HMP && add_W o2-hmpid-raw-to-digits-stream-workflow "--pipeline $(get_N HMP-RawStreamDecoder HMP RAW)"
-  has_detector CTP && add_W o2-ctp-reco-workflow "$DISABLE_ROOT_OUTPUT --pipeline $(get_N CTP-RawStreamDecoder CTP RAW)"
+  has_detector CTP && add_W o2-ctp-reco-workflow "--pipeline $(get_N CTP-RawStreamDecoder CTP RAW)"
   has_detector PHS && ! has_detector_flp_processing PHS && add_W o2-phos-reco-workflow "--input-type raw --output-type cells --disable-root-input $DISABLE_ROOT_OUTPUT --pipeline $(get_N PHOSRawToCellConverterSpec PHS REST) $DISABLE_MC"
   has_detector CPV && add_W o2-cpv-reco-workflow "--input-type $CPV_INPUT --output-type clusters --disable-root-input $DISABLE_ROOT_OUTPUT --pipeline $(get_N CPVRawToDigitConverterSpec CPV REST),$(get_N CPVClusterizerSpec CPV REST) $DISABLE_MC"
   has_detector EMC && ! has_detector_flp_processing EMC && add_W o2-emcal-reco-workflow "--input-type raw --output-type cells $EMCRAW2C_CONFIG $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N EMCALRawToCellConverterSpec EMC REST EMCREC)"
