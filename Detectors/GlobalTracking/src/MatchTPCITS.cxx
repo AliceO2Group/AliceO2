@@ -115,8 +115,10 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp)
   }
   mTimer[SWTot].Stop();
 
-  for (int i = 0; i < NStopWatches; i++) {
-    LOGF(INFO, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots of TF#%d", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1, mTFCount);
+  if (mParams->verbosity > 0) {
+    for (int i = 0; i < NStopWatches; i++) {
+      LOGF(INFO, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots of TF#%d", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1, mTFCount);
+    }
   }
   mTFCount++;
 }
@@ -254,8 +256,7 @@ void MatchTPCITS::selectBestMatches()
 {
   ///< loop over match records and select the ones with best chi2
   mTimer[SWSelectBest].Start(false);
-  LOG(INFO) << "Selecting best matches";
-  int nValidated = 0, iter = 0;
+  int nValidated = 0, iter = 0, nValidatedTotal = 0;
 
   do {
     nValidated = 0;
@@ -271,10 +272,15 @@ void MatchTPCITS::selectBestMatches()
         continue;
       }
     }
-    LOGF(INFO, "iter %d Validated %d of %d remaining matches", iter, nValidated, nremaining);
+    if (mParams->verbosity > 0) {
+      LOGP(INFO, "iter {}: Validated {} of {} remaining matches", iter, nValidated, nremaining);
+    }
     iter++;
+    nValidatedTotal += nValidated;
   } while (nValidated);
+
   mTimer[SWSelectBest].Stop();
+  LOGP(INFO, "Validated {} matches for {} TPC tracks in {} iterations", nValidatedTotal, mTPCWork.size(), iter);
 }
 
 //______________________________________________
@@ -450,7 +456,9 @@ bool MatchTPCITS::prepareTPCData()
   // sort tracks in each sector according to their timeMax
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mTPCSectIndexCache[sec];
-    LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " TPC tracks";
+    if (mParams->verbosity > 0) {
+      LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " TPC tracks";
+    }
     if (!indexCache.size()) {
       continue;
     }
@@ -645,7 +653,9 @@ bool MatchTPCITS::prepareITSData()
   // RSTODO: sorting in tgl will be dangerous once the tracks with different time uncertaincies will be added
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mITSSectIndexCache[sec];
-    LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " ITS tracks";
+    if (mParams->verbosity > 0) {
+      LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " ITS tracks";
+    }
     if (!indexCache.size()) {
       continue;
     }
@@ -687,7 +697,9 @@ void MatchTPCITS::doMatching(int sec)
   auto& timeStartITS = mITSTimeStart[sec];
   int nTracksTPC = cacheTPC.size(), nTracksITS = cacheITS.size();
   if (!nTracksTPC || !nTracksITS) {
-    LOG(INFO) << "Matchng sector " << sec << " : N tracks TPC:" << nTracksTPC << " ITS:" << nTracksITS << " in sector " << sec;
+    if (mParams->verbosity > 0) {
+      LOG(INFO) << "Matchng sector " << sec << " : N tracks TPC:" << nTracksTPC << " ITS:" << nTracksITS << " in sector " << sec;
+    }
     return;
   }
 
@@ -818,10 +830,11 @@ void MatchTPCITS::doMatching(int sec)
       nMatchesControl++;
     }
   }
-
-  LOG(INFO) << "Match sector " << sec << " N tracks TPC:" << nTracksTPC << " ITS:" << nTracksITS
-            << " N TPC tracks checked: " << nCheckTPCControl << " (starting from " << idxMinTPC
-            << "), checks: " << nCheckITSControl << ", matches:" << nMatchesControl;
+  if (mParams->verbosity > 0) {
+    LOG(INFO) << "Match sector " << sec << " N tracks TPC:" << nTracksTPC << " ITS:" << nTracksITS
+              << " N TPC tracks checked: " << nCheckTPCControl << " (starting from " << idxMinTPC
+              << "), checks: " << nCheckITSControl << ", matches:" << nMatchesControl;
+  }
 }
 
 //______________________________________________
@@ -1202,7 +1215,7 @@ void MatchTPCITS::refitWinners()
   ///< refit winning tracks
 
   mTimer[SWRefit].Start(false);
-  LOG(INFO) << "Refitting winner matches";
+  LOG(DEBUG) << "Refitting winner matches";
   mWinnerChi2Refit.resize(mITSWork.size(), -1.f);
   int iITS;
   for (int iTPC = 0; iTPC < (int)mTPCWork.size(); iTPC++) {
@@ -2016,7 +2029,7 @@ float MatchTPCITS::correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTP
   float timeIC = cand.tBracket.mean();
   float driftErr = cand.tBracket.delta() * mTPCBin2Z;
 
-  // we use this for refit, at the moment do not...
+  // we use this for refit, at the moment it is not done ...
   /*
   {
     float r = std::sqrt(trc.getX()*trc.getX() + trc.getY()*trc.getY());
@@ -2036,15 +2049,16 @@ float MatchTPCITS::correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTP
   // if interaction time precedes the initial assumption on t0 (i.e. timeIC < timeTrc),
   // the track actually was drifting longer, i.e. tracks should be shifted closer to the CE
   float dDrift = (timeIC - tTPC.time0) * mTPCBin2Z;
-  float zz = tTPC.getZ() + (tpcTrOrig.hasASideClustersOnly() ? dDrift : -dDrift);                                 // tmp
-  LOG(INFO) << "CorrTrack Z=" << trc.getZ() << " (zold= " << zz << ") at TIC= " << timeIC << " Ttr= " << tTPC.time0; // tmp
+
+  // float zz = tTPC.getZ() + (tpcTrOrig.hasASideClustersOnly() ? dDrift : -dDrift);                                 // tmp
+  // LOG(INFO) << "CorrTrack Z=" << trc.getZ() << " (zold= " << zz << ") at TIC= " << timeIC << " Ttr= " << tTPC.time0; // tmp
 
   // we use this w/o refit
-  //  /*
+  //
   {
     trc.setZ(tTPC.getZ() + (tTPC.constraint == TrackLocTPC::ASide ? dDrift : -dDrift));
   }
-  //  */
+  //
   trc.setCov(trc.getSigmaZ2() + driftErr * driftErr, o2::track::kSigZ2);
 
   return driftErr;
