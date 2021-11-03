@@ -89,8 +89,7 @@ using Collision = Collisions::iterator;
 namespace track
 {
 // TRACKPAR TABLE definition
-DECLARE_SOA_INDEX_COLUMN(Collision, collision); //! Collision to which this track belongs
-// TODO change to TrackTypeEnum when enums are supported
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);      //! Collision to which this track belongs
 DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t);   //! Type of track. See enum TrackTypeEnum
 DECLARE_SOA_COLUMN(X, x, float);                     //!
 DECLARE_SOA_COLUMN(Alpha, alpha, float);             //!
@@ -342,7 +341,7 @@ extern template struct soa::Join<aod::TracksExtension, aod::StoredTracks>;
 } // namespace soa
 namespace aod
 {
-using FullTracks = soa::Join<Tracks, TracksCov, TracksExtra>;
+using FullTracks = soa::Join<Tracks, TracksExtra>;
 using FullTrack = FullTracks::iterator;
 
 namespace fwdtrack
