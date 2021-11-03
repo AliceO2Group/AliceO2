@@ -154,27 +154,27 @@ for STAGE in $STAGES; do
 
   ARGS_ALL="--session default"
   DICTCREATION=""
+  export WORKFLOW_PARAMETERS=
   if [[ "$STAGE" = "WITHGPU" ]]; then
     export CREATECTFDICT=0
     export GPUTYPE=CUDA
     export HOSTMEMSIZE=1000000000
     export SYNCMODE=1
     export CTFINPUT=0
-    export SAVECTF=0
   elif [[ "$STAGE" = "ASYNC" ]]; then
     export CREATECTFDICT=0
     export GPUTYPE=CPU
     export SYNCMODE=0
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
     export CTFINPUT=1
-    export SAVECTF=0
+    export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS},AOD"
   else
     export CREATECTFDICT=$SYNCMODEDOCTFDICT
     export GPUTYPE=CPU
     export SYNCMODE=1
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
     export CTFINPUT=0
-    export SAVECTF=1
+    export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS},CTF"
     unset JOBUTILS_JOB_SKIPCREATEDONE
   fi
   export SHMSIZE
