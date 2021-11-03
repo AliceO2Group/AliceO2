@@ -143,9 +143,16 @@ __global__ void rand_read_k(
 // Distributed read
 template <class chunk_t>
 __global__ void read_dist_k(
-  chunk_t** chunkPtr,
-  size_t* chunkSize)
+  chunk_t** blockPtrs,
+  size_t* blockSizes)
 {
+  chunk_t sink{0};
+  auto* ptr = blockPtrs[blockIdx.x];
+  auto n = blockSizes[blockIdx.x];
+  for (size_t i = threadIdx.x; i < n; i += blockDim.x) {
+    sink += ptr[i];
+  }
+  blockPtrs[blockIdx.x][threadIdx.x] = sink;
 }
 
 // Distributed write
@@ -408,27 +415,34 @@ float GPUbenchmark<chunk_t>::runDistributed(void (*kernel)(chunk_t**, size_t*, T
                                             int nThreads,
                                             T&... args)
 {
-  std::vector<chunk_t*> chunkPtrs(chunkRanges.size());
-  std::vector<chunk_t*> ptrPerBlocks(nBlocks);
+  std::vector<chunk_t*> chunkPtrs(chunkRanges.size()); // Pointers to the beginning of each chunk
+  std::vector<chunk_t*> ptrPerBlocks(nBlocks);         // Pointers for each block
+  std::vector<size_t> perBlockCapacity(nBlocks);       // Capacity of sub-buffer for block
 
   float totChunkGB{0.f};
+  int totComputedBlocks{0};
+
   for (size_t iChunk{0}; iChunk < chunkRanges.size(); ++iChunk) {
     chunkPtrs[iChunk] = getCustomPtr<chunk_t>(mState.scratchPtr, chunkRanges[iChunk].first);
     totChunkGB += chunkRanges[iChunk].second;
   }
-  float memPerBlock = (float)totChunkGB / (float)nBlocks;
-  std::cout << "Mem per block: " << memPerBlock << std::endl;
   int index{0};
   for (size_t iChunk{0}; iChunk < chunkRanges.size(); ++iChunk) {
-    int blocks = chunkRanges[iChunk].second / memPerBlock;
-    for (size_t iBlock{0}; iBlock < blocks; ++iBlock) {
+    float percFromMem = chunkRanges[iChunk].second / totChunkGB;
+    int blocksPerChunk = percFromMem * nBlocks;
+    totComputedBlocks += blocksPerChunk;
+    for (int iBlock{0}; iBlock < blocksPerChunk; ++iBlock, ++index) {
+      float memPerBlock = chunkRanges[iChunk].second / blocksPerChunk;
       ptrPerBlocks[index] = getCustomPtr<chunk_t>(chunkPtrs[iChunk], iBlock * memPerBlock);
-      index++;
+      perBlockCapacity[index] = getBufferCapacity<chunk_t>(memPerBlock);
     }
   }
-  std::cout << "starting ptr: " << mState.scratchPtr << std::endl;
-  for (auto& ptr : ptrPerBlocks) {
-    std::cout << ptr << std::endl;
+
+  if (totComputedBlocks != nBlocks) {
+    std::cout << "   │   - \033[1;33mWarning: total number of estimated blocks (" << totComputedBlocks
+              << ") is different from requested one (" << nBlocks
+              << "). This may cause imbalance in the test!\e[0m"
+              << std::endl;
   }
 
   float milliseconds{0.f};
@@ -439,12 +453,13 @@ float GPUbenchmark<chunk_t>::runDistributed(void (*kernel)(chunk_t**, size_t*, T
   GPUCHECK(cudaSetDevice(mOptions.deviceId));
   GPUCHECK(cudaEventCreate(&start));
   GPUCHECK(cudaEventCreate(&stop));
+
   // Warm up
-  (*kernel)<<<nBlocks, nThreads, 0, stream>>>(ptrPerBlocks.data(), nullptr, args...);
+  (*kernel)<<<totComputedBlocks, nThreads, 0, stream>>>(ptrPerBlocks.data(), perBlockCapacity.data(), args...);
 
   GPUCHECK(cudaEventRecord(start));
-  for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {                               // Schedule all the requested kernel launches
-    (*kernel)<<<nBlocks, nThreads, 0, stream>>>(ptrPerBlocks.data(), nullptr, args...); // NOLINT: clang-tidy false-positive
+  for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {                                                         // Schedule all the requested kernel launches
+    (*kernel)<<<totComputedBlocks, nThreads, 0, stream>>>(ptrPerBlocks.data(), perBlockCapacity.data(), args...); // NOLINT: clang-tidy false-positive
   }
   GPUCHECK(cudaEventRecord(stop));      // record checkpoint
   GPUCHECK(cudaEventSynchronize(stop)); // synchronize executions
@@ -562,9 +577,9 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
   for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
     std::cout << "   ├ " << mode << " " << test << " " << config << " block(s) (" << measurement + 1 << "/" << mOptions.nTests << "): \n"
               << "   │   - blocks per kernel: " << nBlocks << "/" << dimGrid << "\n"
-              << "   │   - threads per block: " << (int)nThreads << "\n"
-              << "   │   - per chunk throughput:\n";
+              << "   │   - threads per block: " << (int)nThreads << "\n";
     if (mode == Mode::Sequential) {
+      std::cout << "   │   - per chunk throughput:\n";
       for (auto iChunk{0}; iChunk < mState.testChunks.size(); ++iChunk) { // loop over single chunks separately
         auto& chunk = mState.testChunks[iChunk];
         auto result = runSequential(kernel,
@@ -578,6 +593,7 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
         mResultWriter.get()->storeBenchmarkEntry(test, iChunk, result, chunk.second, mState.getNKernelLaunches());
       }
     } else if (mode == Mode::Concurrent) {
+      std::cout << "   │   - per chunk throughput:\n";
       auto results = runConcurrent(kernel,
                                    mState.testChunks,
                                    mState.getNKernelLaunches(),
