@@ -130,7 +130,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, co
   ENCODEITSMFT(compCl.pattID, CTF::BLCpattID, 0);
   ENCODEITSMFT(compCl.pattMap, CTF::BLCpattMap, 0);
   // clang-format on
-  CTF::get(buff.data())->print(getPrefix());
+  //CTF::get(buff.data())->print(getPrefix());
 }
 
 /// decode entropy-encoded clusters to standard compact clusters

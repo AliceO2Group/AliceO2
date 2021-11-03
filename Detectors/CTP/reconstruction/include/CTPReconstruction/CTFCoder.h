@@ -90,7 +90,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const CTPDigit>& data)
   ENCODECTP(helper.begin_bytesClass(),  helper.end_bytesClass(),     CTF::BLC_bytesClass,   0);
 
   // clang-format on
-  CTF::get(buff.data())->print(getPrefix());
+  CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
 
 /// decode entropy-encoded digits
@@ -99,7 +99,7 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& data)
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
   std::vector<uint16_t> bcInc;
   std::vector<uint32_t> orbitInc;
   std::vector<uint8_t> bytesInput, bytesClass;

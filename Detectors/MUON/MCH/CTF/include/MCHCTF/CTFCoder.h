@@ -100,7 +100,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofData, cons
   ENCODEMCH(helper.begin_padID(),       helper.end_padID(),        CTF::BLC_padID,        0);
   ENCODEMCH(helper.begin_ADC()  ,       helper.end_ADC(),          CTF::BLC_ADC,          0);
   // clang-format on
-  //  CTF::get(buff.data())->print(getPrefix());
+  CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
@@ -109,7 +109,7 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofVec, VCOL& digVec)
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
 
   std::vector<uint16_t> bcInc, nSamples;
   std::vector<uint32_t> orbitInc, ADC, nDigits;

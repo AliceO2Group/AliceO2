@@ -215,7 +215,7 @@ CompressedClusters CTFCoder::decodeCompressedClusters(const CTF::base& ec)
   CompressedClusters cc;
   cc.header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(cc.header));
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
 #define DECODEITSMFT(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
   DECODEITSMFT(cc.firstChipROF, CTF::BLCfirstChipROF);

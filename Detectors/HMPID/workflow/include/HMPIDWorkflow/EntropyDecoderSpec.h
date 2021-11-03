@@ -24,7 +24,7 @@ namespace hmpid
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyDecoderSpec();
+framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity);
 
 } // namespace hmpid
 } // namespace o2

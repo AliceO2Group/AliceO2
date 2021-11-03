@@ -98,7 +98,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Trigger>& trigData, const
   ENCODEHMP(helper.begin_Y(),            helper.end_Y(),             CTF::BLC_Y,            0);
 
   // clang-format on
-  CTF::get(buff.data())->print(getPrefix());
+  CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
 
 /// decode entropy-encoded data to digits
@@ -107,7 +107,7 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VDIG& digVec)
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
   std::vector<uint16_t> bcInc, q;
   std::vector<uint32_t> orbitInc, entriesDig;
   std::vector<uint8_t> chID, ph, x, y;
