@@ -142,17 +142,16 @@ __global__ void rand_read_k(
 
 // Distributed read
 template <class chunk_t>
-__global__ void read_dist_k(
-  chunk_t** blockPtrs,
-  size_t* blockSizes)
+__global__ void read_dist_k(chunk_t** block_ptr,
+                            size_t* block_size)
 {
   chunk_t sink{0};
-  auto* ptr = blockPtrs[blockIdx.x];
-  auto n = blockSizes[blockIdx.x];
+  chunk_t* ptr = block_ptr[blockIdx.x];
+  size_t n = block_size[blockIdx.x];
   for (size_t i = threadIdx.x; i < n; i += blockDim.x) {
     sink += ptr[i];
   }
-  blockPtrs[blockIdx.x][threadIdx.x] = sink;
+  block_ptr[blockIdx.x][threadIdx.x] = sink;
 }
 
 // Distributed write
@@ -445,6 +444,15 @@ float GPUbenchmark<chunk_t>::runDistributed(void (*kernel)(chunk_t**, size_t*, T
               << std::endl;
   }
 
+  // Setup
+
+  chunk_t** block_ptr;
+  size_t* block_size;
+  GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&block_ptr), 60 * sizeof(chunk_t*)));
+  GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&block_size), 60 * sizeof(size_t)));
+  GPUCHECK(cudaMemcpy(block_ptr, ptrPerBlocks.data(), nBlocks * sizeof(chunk_t*), cudaMemcpyHostToDevice));
+  GPUCHECK(cudaMemcpy(block_size, perBlockCapacity.data(), nBlocks * sizeof(size_t), cudaMemcpyHostToDevice));
+
   float milliseconds{0.f};
   cudaEvent_t start, stop;
   cudaStream_t stream;
@@ -455,11 +463,11 @@ float GPUbenchmark<chunk_t>::runDistributed(void (*kernel)(chunk_t**, size_t*, T
   GPUCHECK(cudaEventCreate(&stop));
 
   // Warm up
-  (*kernel)<<<totComputedBlocks, nThreads, 0, stream>>>(ptrPerBlocks.data(), perBlockCapacity.data(), args...);
+  (*kernel)<<<totComputedBlocks, nThreads, 0, stream>>>(block_ptr, block_size, args...);
 
   GPUCHECK(cudaEventRecord(start));
-  for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {                                                         // Schedule all the requested kernel launches
-    (*kernel)<<<totComputedBlocks, nThreads, 0, stream>>>(ptrPerBlocks.data(), perBlockCapacity.data(), args...); // NOLINT: clang-tidy false-positive
+  for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {                                  // Schedule all the requested kernel launches
+    (*kernel)<<<totComputedBlocks, nThreads, 0, stream>>>(block_ptr, block_size, args...); // NOLINT: clang-tidy false-positive
   }
   GPUCHECK(cudaEventRecord(stop));      // record checkpoint
   GPUCHECK(cudaEventSynchronize(stop)); // synchronize executions
