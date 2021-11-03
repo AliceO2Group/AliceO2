@@ -52,10 +52,13 @@
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "O2Version.h"
 #include "TMath.h"
 #include "MathUtils/Utils.h"
 #include "Math/SMatrix.h"
-#include <TMatrixD.h>
+#include "TMatrixD.h"
+#include "TString.h"
+#include "TObjString.h"
 #include <map>
 #include <unordered_map>
 #include <vector>
@@ -857,6 +860,7 @@ uint8_t AODProducerWorkflowDPL::getTRDPattern(const o2::trd::TrackTRD& track)
 void AODProducerWorkflowDPL::init(InitContext& ic)
 {
   mTimer.Stop();
+  mProdTags = ic.options().get<string>("prod-tags");
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
   mRecoOnly = ic.options().get<int>("reco-mctracks-only");
   mTruncate = ic.options().get<int>("enable-truncation");
@@ -902,6 +906,45 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   }
   // Needed by MCH track extrapolation
   o2::base::GeometryManager::loadGeometry();
+
+  // writing metadata if it's not yet in AOD file
+  // note: `--aod-writer-resmode "UPDATE"` have to be used,
+  //       so that metadata is not overwritten
+  mResFile += ".root";
+  auto* fResFile = TFile::Open(mResFile, "UPDATE");
+  if (fResFile) {
+    if (!fResFile->FindObjectAny("metaData")) {
+      std::vector<TString> vTags;
+      std::stringstream ss(mProdTags);
+      while (ss.good()) {
+        std::string substr;
+        std::getline(ss, substr, ',');
+        vTags.emplace_back(substr);
+      }
+      // assuming all tags passed as in `prod-tags` description
+      TString LPMProdTag = vTags[0];
+      TString anchorPass = vTags[1];
+      TString anchorProd = vTags[2];
+      TString recoPass = vTags[3];
+      // populating metadata map
+      mMetaData.Add(new TObjString("DataType"), new TObjString("MC"));
+      mMetaData.Add(new TObjString("Run"), new TObjString("3"));
+      TString converterVersion = "o2 ";
+      converterVersion += o2::fullVersion();
+      converterVersion += " ; root ";
+      converterVersion += ROOT_RELEASE;
+      mMetaData.Add(new TObjString("Run3ConverterVersion"), new TObjString(converterVersion));
+      mMetaData.Add(new TObjString("RecoPassName"), new TObjString(recoPass));
+      mMetaData.Add(new TObjString("AnchorProduction"), new TObjString(anchorProd));
+      mMetaData.Add(new TObjString("AnchorPassName"), new TObjString(anchorPass));
+      mMetaData.Add(new TObjString("LPMProductionTag"), new TObjString(LPMProdTag));
+      LOGF(info, "Metadata: writing into %s", mResFile);
+      fResFile->WriteObject(&mMetaData, "metaData");
+    } else {
+      LOGF(info, "Metadata: target file not found or metadata is already written");
+    }
+    fResFile->Close();
+  }
 
   mTimer.Reset();
 }
@@ -1324,7 +1367,7 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, std::string resFile)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -1363,10 +1406,11 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
     "aod-producer-workflow",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest)},
+    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, resFile)},
     Options{
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on, != 1 -- off"}},
+      ConfigParamSpec{"prod-tags", VariantType::String, "LHC21Axx,pass1,LHC15o,pass1", {"Comma separated list of production tags: `LPMProductionTag,AnchorPassName,AnchorProduction,RecoPassName`"}},
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}}}};
 }
 
