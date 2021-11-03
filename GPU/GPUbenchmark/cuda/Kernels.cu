@@ -445,7 +445,6 @@ float GPUbenchmark<chunk_t>::runDistributed(void (*kernel)(chunk_t**, size_t*, T
   }
 
   // Setup
-
   chunk_t** block_ptr;
   size_t* block_size;
   GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&block_ptr), 60 * sizeof(chunk_t*)));
@@ -630,16 +629,18 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
       std::cout << "   │   - total throughput with host time: \e[1m" << computeThroughput(test, results[mState.testChunks.size()], tot, mState.getNKernelLaunches())
                 << " GB/s \e[0m (" << std::setw(2) << results[mState.testChunks.size()] / 1000 << " s)" << std::endl;
     } else if (mode == Mode::Distributed) {
-
       auto result = runDistributed(kernel_distributed,
                                    mState.testChunks,
                                    mState.getNKernelLaunches(),
                                    nBlocks,
                                    nThreads);
-      //   auto throughput = computeThroughput(test, result, chunk.second, mState.getNKernelLaunches());
-      //   std::cout << "   │     " << ((mState.testChunks.size() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << mState.testChunks.size()
-      //             << ": [" << chunk.first << "-" << chunk.first + chunk.second << ") \e[1m" << throughput << " GB/s \e[0m(" << result * 1e-3 << " s)\n";
-      //   mResultWriter.get()->storeBenchmarkEntry(test, iChunk, result, chunk.second, mState.getNKernelLaunches());
+      float tot{0};
+      for (auto& chunk : mState.testChunks) {
+        tot += chunk.second;
+      }
+      auto throughput = computeThroughput(test, result, tot, mState.getNKernelLaunches());
+      std::cout << "   │     └ throughput: \e[1m" << throughput << " GB/s \e[0m(" << result * 1e-3 << " s)\n";
+      mResultWriter.get()->storeBenchmarkEntry(test, 0, result, tot, mState.getNKernelLaunches());
     }
     mResultWriter.get()->snapshotBenchmark();
   }
