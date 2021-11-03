@@ -905,11 +905,10 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     if (!fResFile->FindObjectAny("metaData")) {
       std::vector<TString> vTags;
       std::stringstream ss(mProdTags);
-      for (std::string tag; ss >> tag;) {
-        vTags.emplace_back(tag);
-        if (ss.peek() == ',') {
-          ss.ignore();
-        }
+      while (ss.good()) {
+        std::string substr;
+        std::getline(ss, substr, ',');
+        vTags.emplace_back(substr);
       }
       // assuming all tags passed as in `prod-tags` description
       TString LPMProdTag = vTags[0];
