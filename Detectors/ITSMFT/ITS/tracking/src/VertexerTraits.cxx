@@ -38,28 +38,34 @@ namespace its
 using boost::histogram::indexed;
 using constants::math::TwoPi;
 
+enum class TrackletMode {
+  Layer0Layer1,
+  Layer1Layer2
+};
+
+template <TrackletMode Mode>
 void trackleterKernelSerial(
-  const std::vector<Cluster>& clustersNextLayer,    // 0 2
-  const std::vector<Cluster>& clustersCurrentLayer, // 1 1
-  const int* indexTableNext,
+  const gsl::span<const Cluster>& clustersNextLayer,    // 0 2
+  const gsl::span<const Cluster>& clustersCurrentLayer, // 1 1
+  int* indexTableNext,
   const unsigned char pairOfLayers,
   const float phiCut,
   std::vector<Tracklet>& Tracklets,
   std::vector<int>& foundTracklets,
   const IndexTableUtils& utils,
-  // const ROframe* evt = nullptr,
   const int maxTrackletsPerCluster = static_cast<int>(2e3))
 {
   const int PhiBins{utils.getNphiBins()};
   const int ZBins{utils.getNzBins()};
 
-  foundTracklets.resize(clustersCurrentLayer.size(), 0);
   // loop on layer1 clusters
   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
     int storedTracklets{0};
-    const Cluster currentCluster{clustersCurrentLayer[iCurrentLayerClusterIndex]};
+    const Cluster& currentCluster{clustersCurrentLayer[iCurrentLayerClusterIndex]};
     const int layerIndex{pairOfLayers == LAYER0_TO_LAYER1 ? 0 : 2};
+
     const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, layerIndex, 0.f, 50.f, phiCut / 2, utils)};
+
     if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
       int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
       if (phiBinsNum < 0) {
@@ -75,7 +81,7 @@ void trackleterKernelSerial(
           const Cluster& nextCluster{clustersNextLayer[iNextLayerClusterIndex]};
           if (o2::gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi) < phiCut) {
             if (storedTracklets < maxTrackletsPerCluster) {
-              if (pairOfLayers == LAYER0_TO_LAYER1) {
+              if constexpr (Mode == TrackletMode::Layer0Layer1) {
                 Tracklets.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster);
               } else {
                 Tracklets.emplace_back(iCurrentLayerClusterIndex, iNextLayerClusterIndex, currentCluster, nextCluster);
@@ -91,10 +97,10 @@ void trackleterKernelSerial(
 }
 
 void trackletSelectionKernelSerial(
-  const std::vector<Cluster>& clustersNextLayer,    //0
-  const std::vector<Cluster>& clustersCurrentLayer, //1
-  const std::vector<Tracklet>& tracklets01,
-  const std::vector<Tracklet>& tracklets12,
+  const gsl::span<const Cluster> clustersNextLayer,    //0
+  const gsl::span<const Cluster> clustersCurrentLayer, //1
+  const gsl::span<const Tracklet>& tracklets01,
+  const gsl::span<const Tracklet>& tracklets12,
   const std::vector<int>& foundTracklets01,
   const std::vector<int>& foundTracklets12,
   std::vector<Line>& destTracklets,
@@ -116,7 +122,9 @@ void trackletSelectionKernelSerial(
         const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].tanLambda - tracklets12[iTracklet12].tanLambda)};
         const float deltaPhi{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].phi - tracklets12[iTracklet12].phi)};
         if (deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
-          assert(tracklets01[iTracklet01].secondClusterIndex == tracklets12[iTracklet12].firstClusterIndex);
+          if (tracklets01[iTracklet01].secondClusterIndex != tracklets12[iTracklet12].firstClusterIndex) {
+            LOG(fatal) << "Second clIdx in tracklet 01: " << tracklets01[iTracklet01].secondClusterIndex << "first clIdx in tracklet 12: " << tracklets12[iTracklet12].firstClusterIndex;
+          }
 #ifdef _ALLOW_DEBUG_TREES_ITS_
           allowedTrackletPairs.push_back(std::array<int, 2>{iTracklet01, iTracklet12});
           destTracklets.emplace_back(tracklets01[iTracklet01], clustersNextLayer.data(), clustersCurrentLayer.data(), debugger->getEventId(clustersNextLayer[tracklets01[iTracklet01].firstClusterIndex].clusterId, clustersCurrentLayer[tracklets01[iTracklet01].secondClusterIndex].clusterId, event));
@@ -133,20 +141,18 @@ void trackletSelectionKernelSerial(
 }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
-                                   mMaxDirectorCosine3{0.f}
+VertexerTraits::VertexerTraits()
 {
   mVrtParams.phiSpan = static_cast<int>(std::ceil(constants::its2::PhiBins * mVrtParams.phiCut /
                                                   constants::math::TwoPi));
   mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * constants::its2::InverseZBinSize()[0]));
   setIsGPU(false);
 
-  std::cout << "[DEBUG] Creating file: dbg_ITSVertexerCPU.root" << std::endl;
+  LOG(info) << "[DEBUG] Creating file: dbg_ITSVertexerCPU.root" << std::endl;
   mDebugger = new StandaloneDebugger("dbg_ITSVertexerCPU.root");
 }
 #else
-VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
-                                   mMaxDirectorCosine3{0.f}
+VertexerTraits::VertexerTraits()
 {
 }
 #endif
@@ -160,72 +166,9 @@ VertexerTraits::~VertexerTraits()
 }
 #endif
 
-void VertexerTraits::reset()
-{
-  for (int iLayer{0}; iLayer < constants::its::LayersNumberVertexer; ++iLayer) {
-    mClusters[iLayer].clear();
-    std::fill(mIndexTables[iLayer].begin(), mIndexTables[iLayer].end(), 0);
-  }
-
-  mTracklets.clear();
-  mTrackletClusters.clear();
-  mVertices.clear();
-  mComb01.clear();
-  mComb12.clear();
-  mFoundTracklets01.clear();
-  mFoundTracklets12.clear();
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  mAllowedTrackletPairs.clear();
-#endif
-  mAverageClustersRadii = {0.f, 0.f, 0.f};
-  mMaxDirectorCosine3 = 0.f;
-}
-
 std::vector<int> VertexerTraits::getMClabelsLayer(const int layer) const
 {
   return mEvent->getTracksId(layer, mClusters[layer]);
-}
-
-void VertexerTraits::arrangeClusters(ROframe* event)
-{
-  const auto& LayersZCoordinate = mVrtParams.LayerZ;
-  mEvent = event;
-  for (int iLayer{0}; iLayer < constants::its::LayersNumberVertexer; ++iLayer) {
-    const auto& currentLayer{event->getClustersOnLayer(iLayer)};
-    const size_t clustersNum{currentLayer.size()};
-    if (clustersNum > 0) {
-      if (clustersNum > mClusters[iLayer].capacity()) {
-        mClusters[iLayer].reserve(clustersNum);
-      }
-      for (unsigned int iCluster{0}; iCluster < clustersNum; ++iCluster) {
-        mClusters[iLayer].emplace_back(iLayer, mIndexTableUtils, currentLayer.at(iCluster));
-        mAverageClustersRadii[iLayer] += mClusters[iLayer].back().radius;
-      }
-      mAverageClustersRadii[iLayer] *= 1.f / clustersNum;
-
-      std::sort(mClusters[iLayer].begin(), mClusters[iLayer].end(), [](Cluster& cluster1, Cluster& cluster2) {
-        return cluster1.indexTableBinIndex < cluster2.indexTableBinIndex;
-      });
-      int previousBinIndex{0};
-      mIndexTables[iLayer][0] = 0;
-      for (unsigned int iCluster{0}; iCluster < clustersNum; ++iCluster) {
-        const int currentBinIndex{mClusters[iLayer][iCluster].indexTableBinIndex};
-        if (currentBinIndex > previousBinIndex) {
-          for (int iBin{previousBinIndex + 1}; iBin <= currentBinIndex; ++iBin) {
-            mIndexTables[iLayer][iBin] = iCluster;
-          }
-          previousBinIndex = currentBinIndex;
-        }
-      }
-      for (int iBin{previousBinIndex + 1}; iBin <= mIndexTableUtils.getNzBins() * mIndexTableUtils.getNphiBins(); iBin++) {
-        mIndexTables[iLayer][iBin] = static_cast<int>(clustersNum);
-      }
-    }
-  }
-  mDeltaRadii10 = mAverageClustersRadii[1] - mAverageClustersRadii[0];
-  mDeltaRadii21 = mAverageClustersRadii[2] - mAverageClustersRadii[1];
-  mMaxDirectorCosine3 =
-    LayersZCoordinate[2] / std::hypot(LayersZCoordinate[2], mDeltaRadii10 + mDeltaRadii21);
 }
 
 const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const int* indexTable,
@@ -305,61 +248,75 @@ void VertexerTraits::computeTrackletsPureMontecarlo()
 
 void VertexerTraits::computeTracklets()
 {
-  trackleterKernelSerial(
-    mClusters[0],
-    mClusters[1],
-    mIndexTables[0].data(),
-    LAYER0_TO_LAYER1,
-    mVrtParams.phiCut,
-    mComb01,
-    mFoundTracklets01,
-    mIndexTableUtils);
+  for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
+    LOG(info) << "\n- rofId: " << rofId;
+    LOG(info) << "clusters on l0: " << mTimeFrame->getClustersOnLayer(rofId, 0).size();
+    LOG(info) << "clusters on l1: " << mTimeFrame->getClustersOnLayer(rofId, 1).size();
+    LOG(info) << "clusters on l2: " << mTimeFrame->getClustersOnLayer(rofId, 2).size();
+    mTimeFrame->getNFoundTracklets(rofId)[0].resize(mTimeFrame->getClustersOnLayer(rofId, 1).size());
+    mTimeFrame->getNFoundTracklets(rofId)[1].resize(mTimeFrame->getClustersOnLayer(rofId, 1).size());
 
-  trackleterKernelSerial(
-    mClusters[2],
-    mClusters[1],
-    mIndexTables[2].data(),
-    LAYER1_TO_LAYER2,
-    mVrtParams.phiCut,
-    mComb12,
-    mFoundTracklets12,
-    mIndexTableUtils);
+    trackleterKernelSerial<TrackletMode::Layer0Layer1>(
+      mTimeFrame->getClustersOnLayer(rofId, 0),  // mClusters[0]
+      mTimeFrame->getClustersOnLayer(rofId, 1),  // mClusters[1]
+      mTimeFrame->getIndexTableL0(rofId).data(), // atm dedicated table for L0
+      LAYER0_TO_LAYER1,
+      mVrtParams.phiCut,
+      mTimeFrame->getTracklets()[0],
+      mTimeFrame->getNFoundTracklets(rofId)[0],
+      mIndexTableUtils);
 
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  if (isDebugFlag(VertexerDebug::CombinatoricsTreeAll)) {
-    mDebugger->fillCombinatoricsTree(mClusters, mComb01, mComb12, mEvent);
+    trackleterKernelSerial<TrackletMode::Layer1Layer2>(
+      mTimeFrame->getClustersOnLayer(rofId, 2),    // mClusters[2]
+      mTimeFrame->getClustersOnLayer(rofId, 1),    // mClusters[1]
+      mTimeFrame->getIndexTables(rofId)[1].data(), // index tables start from layer 1
+      LAYER1_TO_LAYER2,
+      mVrtParams.phiCut,
+      mTimeFrame->getTracklets()[1],
+      mTimeFrame->getNFoundTracklets(rofId)[1],
+      mIndexTableUtils);
+
+    LOG(info) << "Total tracklets 0-1 " << mTimeFrame->getTracklets()[0].size();
+    LOG(info) << "Total tracklets 2-1 " << mTimeFrame->getTracklets()[1].size();
+    int sum01 = std::accumulate(mTimeFrame->getNFoundTracklets(rofId)[0].begin(), mTimeFrame->getNFoundTracklets(rofId)[0].end(), 0);
+    int sum12 = std::accumulate(mTimeFrame->getNFoundTracklets(rofId)[1].begin(), mTimeFrame->getNFoundTracklets(rofId)[1].end(), 0);
+    LOG(info) << "Found 0-1 in roframe " << rofId << ": " << sum01;
+    LOG(info) << "Found 2-1 in roframe " << rofId << ": " << sum12;
   }
-#endif
 }
 
 void VertexerTraits::computeTrackletMatching()
 {
-  trackletSelectionKernelSerial(
-    mClusters[0],
-    mClusters[1],
-    mComb01,
-    mComb12,
-    mFoundTracklets01,
-    mFoundTracklets12,
-    mTracklets,
+  TimeFrame* tf = mTimeFrame;
+  for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
+    trackletSelectionKernelSerial(
+      mTimeFrame->getClustersOnLayer(rofId, 0), // mClusters[0],
+      mTimeFrame->getClustersOnLayer(rofId, 1), // mClusters[1],
+      mTimeFrame->getFoundTracklets(rofId, 0),
+      mTimeFrame->getFoundTracklets(rofId, 1),
+      mTimeFrame->getNFoundTracklets(rofId)[0], // mFoundTracklets01,
+      mTimeFrame->getNFoundTracklets(rofId)[1], // mFoundTracklets12,
+      mTimeFrame->getLines(rofId),
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-    mAllowedTrackletPairs,
-    mDebugger,
-    mEvent,
+      mAllowedTrackletPairs,
+      mDebugger,
+      mEvent,
 #endif
-    mVrtParams.tanLambdaCut,
-    mVrtParams.phiCut);
+      mVrtParams.tanLambdaCut,
+      mVrtParams.phiCut);
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-  if (isDebugFlag(VertexerDebug::TrackletTreeAll)) {
-    mDebugger->fillTrackletSelectionTree(mClusters, mComb01, mComb12, mAllowedTrackletPairs, mEvent);
-  }
-  if (isDebugFlag(VertexerDebug::LineTreeAll)) {
-    mDebugger->fillPairsInfoTree(mTracklets, mEvent);
-  }
-  if (isDebugFlag(VertexerDebug::LineSummaryAll)) {
-    mDebugger->fillLinesSummaryTree(mTracklets, mEvent);
-  }
+    if (isDebugFlag(VertexerDebug::TrackletTreeAll)) {
+      mDebugger->fillTrackletSelectionTree(mClusters, mComb01, mComb12, mAllowedTrackletPairs, mEvent);
+    }
+    if (isDebugFlag(VertexerDebug::LineTreeAll)) {
+      mDebugger->fillPairsInfoTree(mTracklets, mEvent);
+    }
+    if (isDebugFlag(VertexerDebug::LineSummaryAll)) {
+      mDebugger->fillLinesSummaryTree(mTracklets, mEvent);
+    }
 #endif
+    LOG(info) << "Validated: " << mTimeFrame->getLines(rofId).size();
+  }
 }
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
@@ -391,100 +348,110 @@ void VertexerTraits::computeMCFiltering()
 
 void VertexerTraits::computeVertices()
 {
-  const int numTracklets{static_cast<int>(mTracklets.size())};
-  std::vector<bool> usedTracklets{};
-  usedTracklets.resize(mTracklets.size(), false);
-  for (int tracklet1{0}; tracklet1 < numTracklets; ++tracklet1) {
-    if (usedTracklets[tracklet1]) {
-      continue;
-    }
-    for (int tracklet2{tracklet1 + 1}; tracklet2 < numTracklets; ++tracklet2) {
-      if (usedTracklets[tracklet2]) {
+  TimeFrame* tf = mTimeFrame;
+  for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
+    const int numTracklets{static_cast<int>(mTimeFrame->getLines(rofId).size())};
+    std::vector<bool> usedTracklets{};
+    usedTracklets.resize(mTimeFrame->getLines(rofId).size(), false);
+    for (int tracklet1{0}; tracklet1 < numTracklets; ++tracklet1) {
+      if (usedTracklets[tracklet1]) {
         continue;
       }
-      if (Line::getDCA(mTracklets[tracklet1], mTracklets[tracklet2]) <= mVrtParams.pairCut) {
-        mTrackletClusters.emplace_back(tracklet1, mTracklets[tracklet1], tracklet2, mTracklets[tracklet2]);
-        std::array<float, 3> tmpVertex{mTrackletClusters.back().getVertex()};
-        if (tmpVertex[0] * tmpVertex[0] + tmpVertex[1] * tmpVertex[1] > 4.f) {
-          mTrackletClusters.pop_back();
+      for (int tracklet2{tracklet1 + 1}; tracklet2 < numTracklets; ++tracklet2) {
+        if (usedTracklets[tracklet2]) {
+          continue;
+        }
+        if (Line::getDCA(mTimeFrame->getLines(rofId)[tracklet1], mTimeFrame->getLines(rofId)[tracklet2]) <= mVrtParams.pairCut) {
+          mTimeFrame->getTrackletClusters(rofId).emplace_back(tracklet1, mTimeFrame->getLines(rofId)[tracklet1], tracklet2, mTimeFrame->getLines(rofId)[tracklet2]);
+          std::array<float, 3> tmpVertex{mTimeFrame->getTrackletClusters(rofId).back().getVertex()};
+          if (tmpVertex[0] * tmpVertex[0] + tmpVertex[1] * tmpVertex[1] > 4.f) {
+            mTimeFrame->getTrackletClusters(rofId).pop_back();
+            break;
+          }
+          usedTracklets[tracklet1] = true;
+          usedTracklets[tracklet2] = true;
+          for (int tracklet3{0}; tracklet3 < numTracklets; ++tracklet3) {
+            if (usedTracklets[tracklet3]) {
+              continue;
+            }
+            if (Line::getDistanceFromPoint(mTimeFrame->getLines(rofId)[tracklet3], tmpVertex) < mVrtParams.pairCut) {
+              mTimeFrame->getTrackletClusters(rofId).back().add(tracklet3, mTimeFrame->getLines(rofId)[tracklet3]);
+              usedTracklets[tracklet3] = true;
+              tmpVertex = mTimeFrame->getTrackletClusters(rofId).back().getVertex();
+            }
+          }
           break;
         }
-        usedTracklets[tracklet1] = true;
-        usedTracklets[tracklet2] = true;
-        for (int tracklet3{0}; tracklet3 < numTracklets; ++tracklet3) {
-          if (usedTracklets[tracklet3]) {
-            continue;
-          }
-          if (Line::getDistanceFromPoint(mTracklets[tracklet3], tmpVertex) < mVrtParams.pairCut) {
-            mTrackletClusters.back().add(tracklet3, mTracklets[tracklet3]);
-            usedTracklets[tracklet3] = true;
-            tmpVertex = mTrackletClusters.back().getVertex();
-          }
-        }
-        break;
       }
     }
-  }
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-  if (isDebugFlag(VertexerDebug::LineSummaryAll)) {
-    mDebugger->fillLineClustersTree(mTrackletClusters, mEvent);
-  }
+    if (isDebugFlag(VertexerDebug::LineSummaryAll)) {
+      mDebugger->fillLineClustersTree(mTimeFrame->getTrackletClusters(rofId), mEvent);
+    }
 #endif
-  std::sort(mTrackletClusters.begin(), mTrackletClusters.end(),
-            [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); });
-  int noClusters{static_cast<int>(mTrackletClusters.size())};
-  for (int iCluster1{0}; iCluster1 < noClusters; ++iCluster1) {
-    std::array<float, 3> vertex1{mTrackletClusters[iCluster1].getVertex()};
-    std::array<float, 3> vertex2{};
-    for (int iCluster2{iCluster1 + 1}; iCluster2 < noClusters; ++iCluster2) {
-      vertex2 = mTrackletClusters[iCluster2].getVertex();
-      if (std::abs(vertex1[2] - vertex2[2]) < mVrtParams.clusterCut) {
-        float distance{(vertex1[0] - vertex2[0]) * (vertex1[0] - vertex2[0]) +
-                       (vertex1[1] - vertex2[1]) * (vertex1[1] - vertex2[1]) +
-                       (vertex1[2] - vertex2[2]) * (vertex1[2] - vertex2[2])};
-        if (distance <= mVrtParams.pairCut * mVrtParams.pairCut) {
-          for (auto label : mTrackletClusters[iCluster2].getLabels()) {
-            mTrackletClusters[iCluster1].add(label, mTracklets[label]);
-            vertex1 = mTrackletClusters[iCluster1].getVertex();
+    std::sort(mTimeFrame->getTrackletClusters(rofId).begin(), mTimeFrame->getTrackletClusters(rofId).end(),
+              [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); });
+    int noClusters{static_cast<int>(mTimeFrame->getTrackletClusters(rofId).size())};
+    for (int iCluster1{0}; iCluster1 < noClusters; ++iCluster1) {
+      std::array<float, 3> vertex1{mTimeFrame->getTrackletClusters(rofId)[iCluster1].getVertex()};
+      std::array<float, 3> vertex2{};
+      for (int iCluster2{iCluster1 + 1}; iCluster2 < noClusters; ++iCluster2) {
+        vertex2 = mTimeFrame->getTrackletClusters(rofId)[iCluster2].getVertex();
+        if (std::abs(vertex1[2] - vertex2[2]) < mVrtParams.clusterCut) {
+          float distance{(vertex1[0] - vertex2[0]) * (vertex1[0] - vertex2[0]) +
+                         (vertex1[1] - vertex2[1]) * (vertex1[1] - vertex2[1]) +
+                         (vertex1[2] - vertex2[2]) * (vertex1[2] - vertex2[2])};
+          if (distance <= mVrtParams.pairCut * mVrtParams.pairCut) {
+            for (auto label : mTimeFrame->getTrackletClusters(rofId)[iCluster2].getLabels()) {
+              mTimeFrame->getTrackletClusters(rofId)[iCluster1].add(label, mTimeFrame->getLines(rofId)[label]);
+              vertex1 = mTimeFrame->getTrackletClusters(rofId)[iCluster1].getVertex();
+            }
           }
+          mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster2);
+          --iCluster2;
+          --noClusters;
         }
-        mTrackletClusters.erase(mTrackletClusters.begin() + iCluster2);
-        --iCluster2;
-        --noClusters;
       }
     }
-  }
-  for (int iCluster{0}; iCluster < noClusters; ++iCluster) {
-    if (mTrackletClusters[iCluster].getSize() < mVrtParams.clusterContributorsCut && noClusters > 1) {
-      mTrackletClusters.erase(mTrackletClusters.begin() + iCluster);
-      noClusters--;
-      continue;
-    }
-    if (mTrackletClusters[iCluster].getVertex()[0] * mTrackletClusters[iCluster].getVertex()[0] +
-          mTrackletClusters[iCluster].getVertex()[1] * mTrackletClusters[iCluster].getVertex()[1] <
-        1.98 * 1.98) {
-      mVertices.emplace_back(mTrackletClusters[iCluster].getVertex()[0],
-                             mTrackletClusters[iCluster].getVertex()[1],
-                             mTrackletClusters[iCluster].getVertex()[2],
-                             mTrackletClusters[iCluster].getRMS2(),         // Symm matrix. Diagonal: RMS2 components,
-                                                                            // off-diagonal: square mean of projections on planes.
-                             mTrackletClusters[iCluster].getSize(),         // Contributors
-                             mTrackletClusters[iCluster].getAvgDistance2(), // In place of chi2
-                             mEvent->getROFrameId()
+    for (int iCluster{0}; iCluster < noClusters; ++iCluster) {
+      if (mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize() < mVrtParams.clusterContributorsCut && noClusters > 1) {
+        mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster);
+        noClusters--;
+        continue;
+      }
+      if (mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0] * mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0] +
+            mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1] * mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1] <
+          1.98 * 1.98) {
+        mVertices.emplace_back(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0],
+                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1],
+                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2],
+                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getRMS2(),         // Symm matrix. Diagonal: RMS2 components,
+                                                                                                   // off-diagonal: square mean of projections on planes.
+                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize(),         // Contributors
+                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getAvgDistance2(), // In place of chi2
+                               rofId
 #ifdef _ALLOW_DEBUG_TREES_ITS_
                                ,
-                             mTrackletClusters[iCluster].getEventId(),
-                             mTrackletClusters[iCluster].getPurity()
+                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getEventId(),
+                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getPurity()
 #endif
-      );
-      mEvent->addPrimaryVertex(mVertices.back().mX, mVertices.back().mY, mVertices.back().mZ);
+        );
+        // mEvent->addPrimaryVertex(mVertices.back().mX, mVertices.back().mY, mVertices.back().mZ);
+      }
     }
-  }
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-  for (auto& vertex : mVertices) {
-    mDebugger->fillVerticesInfoTree(vertex.mX, vertex.mY, vertex.mZ, vertex.mContributors, mEvent->getROFrameId(), vertex.mEventId, vertex.mPurity);
-  }
+    for (auto& vertex : mVertices) {
+      mDebugger->fillVerticesInfoTree(vertex.mX, vertex.mY, vertex.mZ, vertex.mContributors, mEvent->getROFrameId(), vertex.mEventId, vertex.mPurity);
+    }
 #endif
+  }
+  std::vector<Vertex> vertices;
+  for (auto& vertex : mVertices) {
+    vertices.emplace_back(o2::math_utils::Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
+    vertices.back().setTimeStamp(vertex.mTimeStamp);
+  }
+
+  mTimeFrame->addPrimaryVertices(vertices);
 }
 
 void VertexerTraits::computeHistVertices()
@@ -727,12 +694,15 @@ void VertexerTraits::filterTrackletsWithMC(std::vector<Tracklet>& tracklets01,
 
 void VertexerTraits::dumpVertexerTraits()
 {
-  std::cout << "\tDump traits:" << std::endl;
-  std::cout << "\tTracklets found: " << mTracklets.size() << std::endl;
-  std::cout << "\tClusters of tracklets: " << mTrackletClusters.size() << std::endl;
-  std::cout << "\tmVrtParams.pairCut: " << mVrtParams.pairCut << std::endl;
-  std::cout << "\tmVrtParams.phiCut: " << mVrtParams.phiCut << std::endl;
-  std::cout << "\tVertices found: " << mVertices.size() << std::endl;
+  TimeFrame* tf = mTimeFrame;
+  for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
+    std::cout << "\tDump traits:" << std::endl;
+    // std::cout << "\tTracklets found: " << mTracklets.size() << std::endl;
+    // std::cout << "\tClusters of tracklets: " << mTrackletClusters.size() << std::endl;
+    // std::cout << "\tmVrtParams.pairCut: " << mVrtParams.pairCut << std::endl;
+    // std::cout << "\tmVrtParams.phiCut: " << mVrtParams.phiCut << std::endl;
+    std::cout << "\tVertices found: " << mVertices.size() << std::endl;
+  }
 }
 
 VertexerTraits* createVertexerTraits()

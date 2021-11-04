@@ -25,6 +25,7 @@
 #include "ITStracking/ROframe.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/Configuration.h"
+#include "ITStracking/TimeFrame.h"
 #include "ITStracking/VertexerTraits.h"
 #include "ReconstructionDataFormats/Vertex.h"
 
@@ -40,7 +41,7 @@ namespace o2
 {
 namespace its
 {
-
+using TimeFrame = o2::its::TimeFrame;
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 class Vertexer
@@ -51,6 +52,7 @@ class Vertexer
   Vertexer(const Vertexer&) = delete;
   Vertexer& operator=(const Vertexer&) = delete;
 
+  void adoptTimeFrame(TimeFrame& tf);
   void setROframe(const uint32_t ROframe) { mROframe = ROframe; }
   void setParameters(const VertexingParameters& verPar);
   void getGlobalConfiguration();
@@ -61,7 +63,7 @@ class Vertexer
   VertexerTraits* getTraits() const { return mTraits; };
 
   float clustersToVertices(
-    ROframe&, const bool useMc = false, std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
+    const bool useMc = false, std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
   void filterMCTracklets();
   void validateTracklets();
 
@@ -74,6 +76,8 @@ class Vertexer
 
   template <typename... T>
   void initialiseVertexer(T&&... args);
+  template <typename... T>
+  void initialiseTimeFrame(T&&... args);
 
   // Utils
   void dumpTraits();
@@ -90,7 +94,9 @@ class Vertexer
 
  private:
   std::uint32_t mROframe = 0;
-  VertexerTraits* mTraits = nullptr;
+
+  VertexerTraits* mTraits = nullptr; /// Observer pointer, not owned by this class
+  TimeFrame* mTimeFrame = nullptr;   /// Observer pointer, not owned by this class
 };
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_

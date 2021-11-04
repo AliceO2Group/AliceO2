@@ -49,7 +49,7 @@ class VertexerTraitsGPU : public VertexerTraits
 #else
   VertexerTraitsGPU();
 #endif
-  void initialise(ROframe*) override;
+  void initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams) override;
   void computeTracklets() override;
   void computeTrackletMatching() override;
   void computeVertices() override;

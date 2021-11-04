@@ -21,14 +21,15 @@
 #include <vector>
 
 #include "ITStracking/Cluster.h"
-#include "ITStracking/Configuration.h"
 #include "ITStracking/ClusterLines.h"
+#include "ITStracking/Configuration.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/IndexTableUtils.h"
+#include "ITStracking/TimeFrame.h"
 #include "ITStracking/Tracklet.h"
 
-#include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 
 namespace o2
 {
@@ -110,8 +111,8 @@ class VertexerTraits
   GPUhd() static const int2 getPhiBins(float phi, float deltaPhi, const IndexTableUtils&);
 
   // virtual vertexer interface
-  virtual void reset();
-  virtual void initialise(ROframe*);
+  // virtual void reset();
+  virtual void initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams);
   virtual void computeTracklets();
   virtual void computeTrackletMatching();
 #ifdef _ALLOW_DEBUG_TREES_ITS_
@@ -134,6 +135,7 @@ class VertexerTraits
   std::vector<lightVertex> getVertices() const { return mVertices; }
 
   // utils
+  void adoptTimeFrame(TimeFrame* tf) { mTimeFrame = tf; }
   void setIsGPU(const unsigned char);
   unsigned char getIsGPU() const;
   void dumpVertexerTraits();
@@ -170,20 +172,20 @@ class VertexerTraits
   std::array<std::vector<unsigned char>, 2> mUsedClusters;
   o2::its::ROframe* mEvent;
   uint32_t mROframe;
+  TimeFrame* mTimeFrame = nullptr;
 
-  std::array<float, 3> mAverageClustersRadii;
-  float mDeltaRadii10, mDeltaRadii21;
-  float mMaxDirectorCosine3;
+  // std::array<float, 3> mAverageClustersRadii;
+  // float mDeltaRadii10, mDeltaRadii21;
+  // float mMaxDirectorCosine3;
   std::vector<ClusterLines> mTrackletClusters;
 };
 
-inline void VertexerTraits::initialise(ROframe* event)
+inline void VertexerTraits::initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams)
 {
-  reset();
   if (!mIndexTableUtils.getNzBins()) {
     updateVertexingParameters(mVrtParams);
   }
-  arrangeClusters(event);
+  mTimeFrame->initialise(0, memParams, trackingParams, 3);
   setIsGPU(false);
 }
 
@@ -228,7 +230,6 @@ GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, c
 
   if (zRangeMax < -utils.getLayerZ(layerIndex + 1) ||
       zRangeMin > utils.getLayerZ(layerIndex + 1) || zRangeMin > zRangeMax) {
-
     return getEmptyBinsRect();
   }
 

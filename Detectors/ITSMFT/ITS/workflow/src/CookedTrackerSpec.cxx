@@ -160,7 +160,8 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
 
     if (mRunVertexer) {
       o2::its::ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels.get());
-      mVertexerPtr->clustersToVertices(event, false, [&](std::string s) { LOG(info) << s; });
+      // FIXME
+      mVertexerPtr->clustersToVertices(false, [&](std::string s) { LOG(INFO) << s; });
     }
     auto vtxVecLoc = mVertexerPtr->exportVertices();
 
