@@ -134,9 +134,12 @@ BOOST_AUTO_TEST_CASE(test_prepareArguments)
 
   auto configContext = makeEmptyConfigContext();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
+  auto callbacksPolicies = CallbacksPolicy::createDefaultPolicies();
+
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
                                                     channelPolicies,
                                                     CompletionPolicy::createDefaultPolicies(),
+                                                    callbacksPolicies,
                                                     deviceSpecs,
                                                     *rm, "workflow-id");
 
