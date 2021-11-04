@@ -1399,6 +1399,13 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
     auto runNoCatch = [&context, &processContext](DataRelayer::RecordAction& action) {
       if (context.deviceContext->state->quitRequested == false) {
+        {
+          ZoneScopedN("service post processing");
+          // Callbacks from services
+          context.registry->preProcessingCallbacks(processContext);
+          // Callbacks from users
+          context.registry->get<CallbackService>()(CallbackService::Id::PreProcessing, *(context.registry), (int)action.op);
+        }
         if (*context.statefulProcess) {
           ZoneScopedN("statefull process");
           (*context.statefulProcess)(processContext);

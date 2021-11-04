@@ -186,7 +186,7 @@ int mainNoCatch(int argc, char** argv)
   std::vector<CallbacksPolicy> callbacksPolicies;
   UserCustomizationsHelper::userDefinedCustomization(callbacksPolicies, 0);
   auto defaultCallbacksPolicies = CallbacksPolicy::createDefaultPolicies();
-  defaultCallbacksPolicies.insert(std::end(callbacksPolicies), std::begin(defaultCallbacksPolicies), std::end(defaultCallbacksPolicies));
+  callbacksPolicies.insert(std::end(callbacksPolicies), std::begin(defaultCallbacksPolicies), std::end(defaultCallbacksPolicies));
 
   std::vector<std::unique_ptr<ParamRetriever>> retrievers;
   std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(true, argc, argv)};
