@@ -27,11 +27,11 @@ framework::WorkflowSpec getRecoWorkflow(bool useMC, bool disableRootInp, bool di
   framework::WorkflowSpec specs;
 
   if (!disableRootInp) {
-    specs.emplace_back(o2::fdd::getFDDRecPointWriterSpec(useMC));
+    specs.emplace_back(o2::fdd::getFDDDigitReaderSpec(useMC));
   }
   specs.emplace_back(o2::fdd::getFDDReconstructorSpec(useMC));
   if (!disableRootOut) {
-    specs.emplace_back(o2::fdd::getFDDDigitReaderSpec(useMC));
+    specs.emplace_back(o2::fdd::getFDDRecPointWriterSpec(useMC));
   }
 
   return specs;
