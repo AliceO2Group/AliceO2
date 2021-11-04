@@ -27,11 +27,9 @@
 
 o2::base::MatLayerCylSet mbLUT;
 
-bool testMBLUT(std::string lutName = "MatBud", std::string lutFile = "matbud.root");
+bool testMBLUT(const std::string& lutFile = "matbud.root");
 
-bool buildMatBudLUT(int nTst = 30, int maxLr = -1,
-                    std::string outName = "MatBud", std::string outFile = "matbud.root",
-                    std::string geomName = "");
+bool buildMatBudLUT(int nTst = 30, int maxLr = -1, const std::string& outFile = "matbud.root", const std::string& geomName = "");
 
 struct LrData {
   float rMin = 0.f;
@@ -46,7 +44,7 @@ struct LrData {
 std::vector<LrData> lrData;
 void configLayers();
 
-bool buildMatBudLUT(int nTst, int maxLr, std::string outName, std::string outFile, std::string geomNameInput)
+bool buildMatBudLUT(int nTst, int maxLr, const std::string& outFile, const std::string& geomNameInput)
 {
   auto geomName = o2::base::NameConf::getGeomFileName(geomNameInput);
   if (gSystem->AccessPathName(geomName.c_str())) { // if needed, create geometry
@@ -72,7 +70,7 @@ bool buildMatBudLUT(int nTst, int maxLr, std::string outName, std::string outFil
   mbLUT.optimizePhiSlices(); // move to populateFromTGeo
   mbLUT.flatten();           // move to populateFromTGeo
 
-  mbLUT.writeToFile(outFile, outName);
+  mbLUT.writeToFile(outFile);
   sw.Stop();
   sw.Print();
   sw.Start(false);
@@ -83,13 +81,13 @@ bool buildMatBudLUT(int nTst, int maxLr, std::string outName, std::string outFil
 }
 
 //_______________________________________________________________________
-bool testMBLUT(std::string lutName, std::string lutFile)
+bool testMBLUT(const std::string& lutFile)
 {
   // test reading and creation of copies
 
-  o2::base::MatLayerCylSet* mbr = o2::base::MatLayerCylSet::loadFromFile(lutFile, lutName);
+  o2::base::MatLayerCylSet* mbr = o2::base::MatLayerCylSet::loadFromFile(lutFile);
   if (!mbr) {
-    LOG(ERROR) << "Failed to read LUT " << lutName << " from " << lutFile;
+    LOG(ERROR) << "Failed to read LUT from " << lutFile;
     return false;
   }
 
