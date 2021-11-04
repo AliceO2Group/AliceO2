@@ -208,7 +208,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
                                         GPUDataTypes::RecoStep::TPCSliceTracking,
                                         GPUDataTypes::RecoStep::TPCMerging);
         config.configWorkflow.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks);
-        config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, !confParam.synchronousProcessing);
+        config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, confParam.rundEdx == -1 ? !confParam.synchronousProcessing : confParam.rundEdx);
       }
       if (specconfig.outputCompClusters || specconfig.outputCompClustersFlat) {
         config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, true);
