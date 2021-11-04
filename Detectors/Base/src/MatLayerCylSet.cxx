@@ -116,7 +116,7 @@ void MatLayerCylSet::populateFromTGeo(int ntrPerCell)
 }
 
 //________________________________________________________________________________
-void MatLayerCylSet::dumpToTree(const std::string outName) const
+void MatLayerCylSet::dumpToTree(const std::string& outName) const
 {
   /// dump per cell info to the tree
 
@@ -157,7 +157,7 @@ void MatLayerCylSet::dumpToTree(const std::string outName) const
 }
 
 //________________________________________________________________________________
-void MatLayerCylSet::writeToFile(std::string outFName, std::string name)
+void MatLayerCylSet::writeToFile(const std::string& outFName)
 {
   /// store to file
 
@@ -165,29 +165,24 @@ void MatLayerCylSet::writeToFile(std::string outFName, std::string name)
   if (outf.IsZombie()) {
     return;
   }
-  if (name.empty()) {
-    name = "matBud";
-  }
-  outf.WriteObjectAny(this, Class(), name.data());
+  outf.WriteObjectAny(this, Class(), "ccdb_object");
   outf.Close();
 }
 
 //________________________________________________________________________________
-MatLayerCylSet* MatLayerCylSet::loadFromFile(std::string inpFName, std::string name)
+MatLayerCylSet* MatLayerCylSet::loadFromFile(const std::string& inpFName)
 {
-  if (name.empty()) {
-    name = "MatBud";
-  }
   TFile inpf(inpFName.data());
   if (inpf.IsZombie()) {
     LOG(ERROR) << "Failed to open input file " << inpFName;
     return nullptr;
   }
-  MatLayerCylSet* mb = rectifyPtrFromFile(reinterpret_cast<MatLayerCylSet*>(inpf.GetObjectChecked(name.data(), Class())));
-  if (!mb) {
-    LOG(ERROR) << "Failed to load " << name << " from " << inpFName;
+  MatLayerCylSet* mb = reinterpret_cast<MatLayerCylSet*>(inpf.GetObjectChecked("ccdb_object", Class()));
+  if (!mb && !(mb = reinterpret_cast<MatLayerCylSet*>(inpf.GetObjectChecked("MatBud", Class())))) { // for old objects
+    LOG(ERROR) << "Failed to load mat.LUT from " << inpFName;
+    return nullptr;
   }
-  return mb;
+  return rectifyPtrFromFile(mb);
 }
 
 //________________________________________________________________________________

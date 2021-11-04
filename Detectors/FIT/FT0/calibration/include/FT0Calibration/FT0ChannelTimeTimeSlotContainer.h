@@ -29,7 +29,7 @@ class FT0ChannelTimeTimeSlotContainer final
 {
 
   //ranges to be discussed
-  static constexpr int HISTOGRAM_RANGE = 200;
+  static constexpr int HISTOGRAM_RANGE = 2000;
   static constexpr unsigned int NUMBER_OF_HISTOGRAM_BINS = 2 * HISTOGRAM_RANGE;
 
   using BoostHistogramType = boost::histogram::histogram<std::tuple<boost::histogram::axis::integer<>,
@@ -43,6 +43,7 @@ class FT0ChannelTimeTimeSlotContainer final
   [[nodiscard]] int16_t getMeanGaussianFitValue(std::size_t channelID) const;
   void merge(FT0ChannelTimeTimeSlotContainer* prev);
   void print() const;
+  static int sGausFitBins;
 
  private:
   std::size_t mMinEntries;

@@ -11,6 +11,7 @@
 #ifndef O2_FRAMEWORK_DEVICESPEC_H_
 #define O2_FRAMEWORK_DEVICESPEC_H_
 
+#include "CallbacksPolicy.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ComputingResource.h"
 #include "Framework/DataProcessorSpec.h"
@@ -64,6 +65,7 @@ struct DeviceSpec {
   /// The completion policy to use for this device.
   CompletionPolicy completionPolicy;
   DispatchPolicy dispatchPolicy;
+  CallbacksPolicy callbacksPolicy;
   /// Policy on when the available resources are enough to run
   /// a computation.
   ResourcePolicy resourcePolicy;

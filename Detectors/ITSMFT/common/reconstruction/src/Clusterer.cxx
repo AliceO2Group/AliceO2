@@ -244,7 +244,17 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
     if (bbox.isAcceptableSize()) {
       parent->streamCluster(pixArrBuff, &labelsBuff, bbox, parent->mPattIdConverter, compClusPtr, patternsPtr, labelsClusPtr, nlab);
     } else {
-      LOGP(warning, "Splitting a huge cluster: chipID {}, rows {}:{} cols {}:{}", bbox.chipID, bbox.rowMin, bbox.rowMax, bbox.colMin, bbox.colMax);
+      auto warnLeft = MaxHugeClusWarn - parent->mNHugeClus;
+      if (warnLeft > 0) {
+        LOGP(warning, "Splitting a huge cluster: chipID {}, rows {}:{} cols {}:{}{}", bbox.chipID, bbox.rowMin, bbox.rowMax, bbox.colMin, bbox.colMax,
+             warnLeft == 1 ? " (Further warnings will be muted)" : "");
+#ifdef WITH_OPENMP
+#pragma omp critical
+#endif
+        {
+          parent->mNHugeClus++;
+        }
+      }
       BBox bboxT(bbox); // truncated box
       std::vector<PixelData> pixbuf;
       do {

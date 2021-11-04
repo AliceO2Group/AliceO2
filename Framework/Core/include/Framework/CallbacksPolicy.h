@@ -9,35 +9,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <algorithm>
-#include <unordered_map>
+#ifndef O2_FRAMEWORK_CALLBACKSPOLICY_H_
+#define O2_FRAMEWORK_CALLBACKSPOLICY_H_
+
+#include "Framework/DataProcessorMatchers.h"
+#include <functional>
 #include <vector>
 
-#include "FairLogger.h"
-
-#include "DataFormatsCTP/Digits.h"
-#include "CTPWorkflow/RecoWorkflow.h"
-#include "CTPWorkflow/RawToDigitConverterSpec.h"
-#include "Framework/DataSpecUtils.h"
-
-namespace o2
+namespace o2::framework
 {
 
-namespace ctp
-{
+struct CallbackService;
 
-namespace reco_workflow
-{
-
-o2::framework::WorkflowSpec getWorkflow(bool noLostTF)
-{
-  o2::framework::WorkflowSpec specs;
-  specs.emplace_back(o2::ctp::reco_workflow::getRawToDigitConverterSpec(noLostTF));
-  return std::move(specs);
-}
-
-} // namespace reco_workflow
-
-} // namespace ctp
-
-} // namespace o2
+struct CallbacksPolicy {
+  using CallbacksCustomization = std::function<void(CallbackService&)>;
+  DeviceMatcher matcher = nullptr;
+  CallbacksCustomization policy = nullptr;
+  static std::vector<CallbacksPolicy> createDefaultPolicies();
+};
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_CALLBACKSPOLICY_H_

@@ -8,15 +8,24 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_FRAMEWORK_WORKFLOWSPEC_H_
-#define O2_FRAMEWORK_WORKFLOWSPEC_H_
+
+#include "Framework/DataProcessorMatchers.h"
 #include "Framework/DataProcessorSpec.h"
-#include <vector>
+#include "Framework/DeviceSpec.h"
 
 namespace o2::framework
 {
-struct WorkflowSpecNode {
-  std::vector<DataProcessorSpec>& specs;
-};
+DataProcessorMatcher DataProcessorMatchers::matchByName(char const* name_)
+{
+  return [name = std::string(name_)](DataProcessorSpec const& spec) {
+    return spec.name == name;
+  };
+}
+
+DeviceMatcher DeviceMatchers::matchByName(char const* name_)
+{
+  return [name = std::string(name_)](DeviceSpec const& spec) {
+    return spec.name == name;
+  };
+}
 } // namespace o2::framework
-#endif // O2_FRAMEWORK_WORKFLOWSPEC_H_

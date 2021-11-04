@@ -9,35 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <algorithm>
-#include <unordered_map>
-#include <vector>
+/// @file   TOFEventTimeCheckerSpec.h
 
-#include "FairLogger.h"
+#ifndef O2_TOF_EVENTTIMECHECKER_SPEC
+#define O2_TOF_EVENTTIMECHECKER_SPEC
 
-#include "DataFormatsCTP/Digits.h"
-#include "CTPWorkflow/RecoWorkflow.h"
-#include "CTPWorkflow/RawToDigitConverterSpec.h"
-#include "Framework/DataSpecUtils.h"
+#include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/MatchInfoTOF.h"
+
+using namespace o2::framework;
 
 namespace o2
 {
-
-namespace ctp
+namespace globaltracking
 {
 
-namespace reco_workflow
-{
+/// create a processor spec
+framework::DataProcessorSpec getTOFEventTimeCheckerSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC);
 
-o2::framework::WorkflowSpec getWorkflow(bool noLostTF)
-{
-  o2::framework::WorkflowSpec specs;
-  specs.emplace_back(o2::ctp::reco_workflow::getRawToDigitConverterSpec(noLostTF));
-  return std::move(specs);
-}
-
-} // namespace reco_workflow
-
-} // namespace ctp
-
+} // namespace globaltracking
 } // namespace o2
+
+#endif /* O2_TOF_EVENTTIMECHECKER_SPEC */

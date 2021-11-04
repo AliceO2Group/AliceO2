@@ -13,7 +13,7 @@ if [ -z $CTF_DIR ];                  then CTF_DIR=$FILEWORKDIR; fi           # D
 if [ -z $CTF_DICT_DIR ];             then CTF_DICT_DIR=$FILEWORKDIR; fi      # Directory of CTF dictionaries
 if [ -z $CTF_METAFILES_DIR ];        then CTF_METAFILES_DIR="/dev/null"; fi  # Directory where to store CTF files metada, /dev/null : skip their writing
 if [ -z $RECO_NUM_NODES_WORKFLOW ];  then RECO_NUM_NODES_WORKFLOW=250; fi    # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
-if [ -z $CTF_MINSIZE ];              then CTF_MINSIZE="500000000"; fi        # accumulate CTFs until file size reached
+if [ -z $CTF_MINSIZE ];              then CTF_MINSIZE="2000000000"; fi        # accumulate CTFs until file size reached
 if [ -z $CTF_MAX_PER_FILE ];         then CTF_MAX_PER_FILE="10000"; fi       # but no more than given number of CTFs per file
 if [ -z $IS_SIMULATED_DATA ];        then IS_SIMULATED_DATA=1; fi            # processing simulated data
 
@@ -64,7 +64,7 @@ fi
 # ---------------------------------------------------------------------------------------------------------------------
 # Set general arguments
 ARGS_ALL="--session ${OVERRIDE_SESSION:-default} --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE $ARGS_ALL_EXTRA --early-forward-policy noraw"
-if [ $EPNMODE == 1 ]; then
+if [ $EPNSYNCMODE == 1 ]; then
   ARGS_ALL+=" --infologger-severity $INFOLOGGER_SEVERITY"
   ARGS_ALL+=" --monitoring-backend influxdb-unix:///tmp/telegraf.sock --resources-monitoring 15"
 elif [ "0$ENABLE_METRICS" != "01" ]; then
@@ -139,7 +139,7 @@ has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",com
 has_detector_flp_processing CPV && CPV_INPUT=digits
 ! has_detector_flp_processing TOF && TOF_CONFIG+=" --ignore-dist-stf"
 
-if [ $EPNMODE == 1 ]; then
+if [ $EPNSYNCMODE == 1 ]; then
   EVE_CONFIG+=" --eve-dds-collection-index 0"
   ITSMFT_FILES+=";ITSClustererParam.noiseFilePath=$ITS_NOISE;MFTClustererParam.noiseFilePath=$MFT_NOISE;ITSAlpideParam.roFrameLengthInBC=$ITS_STROBE;MFTAlpideParam.roFrameLengthInBC=$MFT_STROBE;"
   MIDDEC_CONFIG+=" --feeId-config-file \"$MID_FEEID_MAP\""
@@ -312,8 +312,8 @@ elif [ $RAWTFINPUT == 1 ]; then
   if [ $NTIMEFRAMES == -1 ]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
   add_W o2-raw-tf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --input-data ${TFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS"
 elif [ $EXTINPUT == 1 ]; then
-  PROXY_CHANNEL="name=readout-proxy,type=pull,method=connect,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=$EPNMODE"
-  PROXY_INSPEC="dd:FLP/DISTSUBTIMEFRAME/0;eos:***/INFORMATION"
+  PROXY_CHANNEL="name=readout-proxy,type=pull,method=connect,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=$EPNSYNCMODE"
+  PROXY_INSPEC="dd:FLP/DISTSUBTIMEFRAME/0"
   PROXY_IN_N=0
   for i in `echo "$WORKFLOW_DETECTORS" | sed "s/,/ /g"`; do
     if has_detector_flp_processing $i; then
@@ -350,7 +350,7 @@ fi
 # ---------------------------------------------------------------------------------------------------------------------
 # Raw decoder workflows - disabled in async mode
 if [ $CTFINPUT == 0 ]; then
-  if has_detector TPC && [ $EPNMODE == 1 ]; then
+  if has_detector TPC && [ $EPNSYNCMODE == 1 ]; then
     GPU_INPUT=zsonthefly
     add_W o2-tpc-raw-to-digits-workflow "--input-spec \"A:TPC/RAWDATA;dd:FLP/DISTSUBTIMEFRAME/0\" --remove-duplicates --pipeline $(get_N tpc-raw-to-digits-0 TPC RAW TPCRAWDEC)"
     add_W o2-tpc-reco-workflow "--input-type digitizer --output-type zsraw,disable-writer --pipeline $(get_N tpc-zsEncoder TPC RAW TPCRAWDEC)"
@@ -366,7 +366,7 @@ if [ $CTFINPUT == 0 ]; then
   has_detector TRD && add_W o2-trd-datareader "$TRD_DECODER_OPTIONS --pipeline $(get_N trd-datareader TRD RAW TRDRAWDEC)" "" 0
   has_detector ZDC && add_W o2-zdc-raw2digits "$DISABLE_ROOT_OUTPUT --pipeline $(get_N zdc-datareader-dpl ZDC RAW)"
   has_detector HMP && add_W o2-hmpid-raw-to-digits-stream-workflow "--pipeline $(get_N HMP-RawStreamDecoder HMP RAW)"
-  has_detector CTP && add_W o2-ctp-reco-workflow "$DISABLE_ROOT_OUTPUT --pipeline $(get_N CTP-RawStreamDecoder CTP RAW)"
+  has_detector CTP && add_W o2-ctp-reco-workflow "--pipeline $(get_N CTP-RawStreamDecoder CTP RAW)"
   has_detector PHS && ! has_detector_flp_processing PHS && add_W o2-phos-reco-workflow "--input-type raw --output-type cells --disable-root-input $DISABLE_ROOT_OUTPUT --pipeline $(get_N PHOSRawToCellConverterSpec PHS REST) $DISABLE_MC"
   has_detector CPV && add_W o2-cpv-reco-workflow "--input-type $CPV_INPUT --output-type clusters --disable-root-input $DISABLE_ROOT_OUTPUT --pipeline $(get_N CPVRawToDigitConverterSpec CPV REST),$(get_N CPVClusterizerSpec CPV REST) $DISABLE_MC"
   has_detector EMC && ! has_detector_flp_processing EMC && add_W o2-emcal-reco-workflow "--input-type raw --output-type cells $EMCRAW2C_CONFIG $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N EMCALRawToCellConverterSpec EMC REST EMCREC)"
@@ -446,6 +446,11 @@ workflow_has_parameter CALIB && has_detector_calib TPC && has_detectors TPC ITS 
 [ -z "$ED_TRACKS" ] && ED_TRACKS=$TRACK_SOURCES
 [ -z "$ED_CLUSTERS" ] && ED_CLUSTERS=$TRACK_SOURCES
 workflow_has_parameter EVENT_DISPLAY && [ $NUMAID == 0 ] && add_W o2-eve-display "--display-tracks $ED_TRACKS --display-clusters $ED_CLUSTERS $EVE_CONFIG $DISABLE_MC" "$ITSMFT_FILES"
+
+# ---------------------------------------------------------------------------------------------------------------------
+# AOD
+[ -z "$AOD_INPUT" ] && AOD_INPUT=$TRACK_SOURCES
+workflow_has_parameter AOD && add_W o2-aod-producer-workflow "--info-sources $AOD_INPUT --disable-root-input --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE $DISABLE_MC"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Quality Control

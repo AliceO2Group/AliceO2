@@ -25,22 +25,9 @@ namespace ctp
 namespace reco_workflow
 {
 
-/// define input and output types of the workflow
-enum struct InputType { Digits, // read digits from file
-                        Raw     // read data in raw page format from file
-};
-enum struct OutputType { Digits,
-                         Raw
-};
-
 /// create the workflow for CTP reconstruction
-framework::WorkflowSpec getWorkflow(bool disableRootInp,
-                                    bool disableRootOut,
-                                    bool propagateMC = true,
-                                    bool noLostTF = false,
-                                    std::string const& cfgInput = "raw",    //
-                                    std::string const& cfgOutput = "digits" //
-);
+framework::WorkflowSpec getWorkflow(bool noLostTF);
+
 } // namespace reco_workflow
 
 } // namespace ctp
