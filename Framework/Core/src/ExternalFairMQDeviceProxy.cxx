@@ -22,6 +22,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/RunningWorkflowInfo.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 
@@ -30,6 +31,7 @@
 
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQDevice.h>
+#include <fairmq/shmem/Monitor.h>
 #include <cstring>
 #include <cassert>
 #include <memory>
@@ -347,7 +349,8 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
                                                    std::function<void(FairMQDevice&,
                                                                       FairMQParts&,
                                                                       ChannelRetriever)>
-                                                     converter)
+                                                     converter,
+                                                   uint64_t minSHM)
 {
   DataProcessorSpec spec;
   spec.name = strdup(name);
@@ -356,7 +359,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
   // The Init method will register a new "Out of band" channel and
   // attach an OnData to it which is responsible for converting incoming
   // messages into DPL messages.
-  spec.algorithm = AlgorithmSpec{[converter, channel = spec.name](InitContext& ctx) {
+  spec.algorithm = AlgorithmSpec{[converter, channel = spec.name, minSHM](InitContext& ctx) {
     auto device = ctx.services().get<RawDeviceService>().device();
     // make a copy of the output routes and pass to the lambda by move
     auto outputRoutes = ctx.services().get<RawDeviceService>().spec().outputs;
@@ -411,7 +414,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       }
     };
 
-    auto runHandler = [dataHandler, device, channel](ProcessingContext& ctx) {
+    auto runHandler = [dataHandler, device, channel, minSHM](ProcessingContext& ctx) {
       static int64_t consumedTimeframes = 0;
       static int64_t sentTimeframes = 0;
       auto device = ctx.services().get<RawDeviceService>().device();
@@ -437,6 +440,23 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         }
         if (waitMessage) {
           LOG(important) << (sentTimeframes - consumedTimeframes) << " / " << maxTFInFlight << " TF in flight, continuing to publish";
+        }
+      }
+      if (minSHM) {
+        int waitMessage = 0;
+        auto& runningWorkflow = ctx.services().get<RunningWorkflowInfo const>();
+        while (true) {
+          uint64_t freeSHM = fair::mq::shmem::Monitor::GetFreeMemory(fair::mq::shmem::SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId);
+          if (freeSHM > minSHM) {
+            if (waitMessage) {
+              LOG(important) << "Sufficient SHM memory free (" << freeSHM << " >= " << minSHM << "), continuing to publish";
+            }
+            break;
+          }
+          if (waitMessage == 0) {
+            LOG(alarm) << "Free SHM memory too low: " << freeSHM << " < " << minSHM << ", waiting";
+            waitMessage = 1;
+          }
         }
       }
 
