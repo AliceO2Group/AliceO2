@@ -501,7 +501,7 @@ DataProcessorSpec CommonDataProcessors::getGlobalFairMQSink(std::vector<InputSpe
   return specifyFairMQDeviceOutputProxy("internal-dpl-injected-output-proxy", danglingOutputInputs, defaultChannelConfig.c_str());
 }
 
-DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs)
+DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs, int rateLimitingIPCID)
 {
   return DataProcessorSpec{
     .name = "internal-dpl-injected-dummy-sink",
@@ -523,7 +523,13 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
 
       return adaptStateless([]() {
       });
-    })}};
+    })},
+    .options = rateLimitingIPCID != -1 ? std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
+                                                                       "name=metric-feedback,type=push,method=bind,address=ipc://@metric-feedback-" + std::to_string(rateLimitingIPCID) + ",transport=shmem,rateLogging=10",
+                                                                       {"Out-of-band channel config"}}}
+                                       : std::vector<ConfigParamSpec>()
+
+  };
 }
 
 #pragma GCC diagnostic pop
