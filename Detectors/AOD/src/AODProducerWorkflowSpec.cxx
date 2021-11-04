@@ -988,10 +988,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   o2::InteractionRecord startIR = {0, dh->firstTForbit};
 
   uint64_t tfNumber;
-  // default dummy run number
-  int runNumber = 244918; // TODO: get real run number
+  int runNumber = int(dh->runNumber);
   if (mTFNumber == -1L) {
-    tfNumber = getTFNumber(startIR, runNumber);
+    tfNumber = dh->tfCounter; //getTFNumber(startIR, runNumber);
   } else {
     tfNumber = mTFNumber;
   }
