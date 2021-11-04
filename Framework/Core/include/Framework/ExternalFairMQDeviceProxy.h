@@ -83,7 +83,8 @@ std::string defaultOutputProxyChannelSelector(InputSpec const& input, const std:
 DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* label,
                                                    std::vector<OutputSpec> const& outputs,
                                                    const char* defaultChannelConfig,
-                                                   InjectorFunction converter);
+                                                   InjectorFunction converter,
+                                                   uint64_t minSHM = 0);
 
 DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* label,
                                                  Inputs const& inputSpecs,
