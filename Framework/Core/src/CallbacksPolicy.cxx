@@ -9,13 +9,39 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/CallbacksPolicy.h"
+#include "Framework/CallbackService.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/TimingInfo.h"
+#include "Framework/Logger.h"
+#include <cstdlib>
+
+// This is to allow C++20 aggregate initialisation
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 
 namespace o2::framework
 {
 
+CallbacksPolicy epnProcessReporting()
+{
+  return {
+    .matcher = [](DeviceSpec const&) -> bool {
+      /// FIXME:
+      return getenv("DDS_SESSION_ID") != nullptr; },
+    .policy = [](CallbackService& callbacks) -> void {
+      callbacks.set(CallbackService::Id::PreProcessing, [](ServiceRegistry& registry, int op) {
+        auto& info = registry.get<TimingInfo>();
+        LOGP(info, "Processing timeslice:{}, tfCounter:{}, firstTFOrbit:{}, action:{}",
+             info.timeslice, info.tfCounter, info.firstTFOrbit, op);
+      });
+    }};
+}
+
 std::vector<CallbacksPolicy> CallbacksPolicy::createDefaultPolicies()
 {
-  return {};
+  return {
+    epnProcessReporting()};
 }
 
 } // namespace o2::framework
+#pragma GCC diagnostic pop
