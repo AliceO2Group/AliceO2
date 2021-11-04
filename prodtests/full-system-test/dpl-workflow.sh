@@ -53,7 +53,7 @@ has_processing_step()
 for i in `echo $LIST_OF_GLORECO | sed "s/,/ /g"`; do
   has_processing_step MATCH_$i && add_comma_separated WORKFLOW_DETECTORS_MATCHING $i # Enable extra matchings requested via WORKFLOW_EXTRA_PROCESSING_STEPS
 done
-if [ $SYNCMODE == 1 ]; then # Add default steps for synchronous mode
+if [[ $SYNCMODE == 1 ]]; then # Add default steps for synchronous mode
   add_comma_separated WORKFLOW_EXTRA_PROCESSING_STEPS ENTROPY_ENCODER
 else # Add default steps for async mode
   for i in $LIST_OF_ASYNC_RECO_STEPS; do
@@ -64,27 +64,19 @@ fi
 # ---------------------------------------------------------------------------------------------------------------------
 # Set general arguments
 ARGS_ALL="--session ${OVERRIDE_SESSION:-default} --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE $ARGS_ALL_EXTRA --early-forward-policy noraw"
-if [ $EPNSYNCMODE == 1 ]; then
+if [[ $EPNSYNCMODE == 1 ]]; then
   ARGS_ALL+=" --infologger-severity $INFOLOGGER_SEVERITY"
   ARGS_ALL+=" --monitoring-backend influxdb-unix:///tmp/telegraf.sock --resources-monitoring 15"
-elif [ "0$ENABLE_METRICS" != "01" ]; then
+elif [[ "0$ENABLE_METRICS" != "01" ]]; then
   ARGS_ALL+=" --monitoring-backend no-op://"
 fi
-if [ $EXTINPUT == 1 ] || [ $NUMAGPUIDS == 1 ]; then
-  ARGS_ALL+=" --no-cleanup"
-fi
-if [ $SHMTHROW == 0 ]; then
-  ARGS_ALL+=" --shm-throw-bad-alloc 0"
-fi
-if [ $NORATELOG == 1 ]; then
-  ARGS_ALL+=" --fairmq-rate-logging 0"
-fi
-if [ $NUMAGPUIDS != 0 ]; then
-  ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
-fi
-if [ $GPUTYPE != "CPU" ] || [ $OPTIMIZED_PARALLEL_ASYNC != 0 ]; then
-  ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
-fi
+( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS == 1 ]] ) && ARGS_ALL+=" --no-cleanup"
+( [[ $GPUTYPE != "CPU" ]] || [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]] ) && ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
+[[ $SHMTHROW == 0 ]] && ARGS_ALL+=" --shm-throw-bad-alloc 0"
+[[ $NORATELOG == 1 ]] && ARGS_ALL+=" --fairmq-rate-logging 0"
+[[ $NUMAGPUIDS != 0 ]] && ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
+[[ ! -z $TIMEFRAME_RATE_LIMIT ]] && ARGS_ALL+=" --timeframes-rate-limit $TIMEFRAME_RATE_LIMIT --timeframes-rate-limit-ipcid $NUMAID"
+
 ARGS_ALL_CONFIG="NameConf.mDirGRP=$FILEWORKDIR;NameConf.mDirGeom=$FILEWORKDIR;NameConf.mDirCollContext=$FILEWORKDIR;NameConf.mDirMatLUT=$FILEWORKDIR;keyval.input_dir=$FILEWORKDIR;keyval.output_dir=/dev/null;$ALL_EXTRA_CONFIG"
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -341,7 +333,7 @@ elif [ $EXTINPUT == 1 ]; then
       PROXY_INSPEC+=";$PROXY_INNAME:$i/$j"
     done
   done
-  add_W o2-dpl-raw-proxy "--dataspec \"$PROXY_INSPEC\" --channel-config \"$PROXY_CHANNEL\"" "" 0
+  add_W o2-dpl-raw-proxy "--dataspec \"$PROXY_INSPEC\" --readout-proxy \"--channel-config \\\"$PROXY_CHANNEL;name=metric-feedback,type=pull,method=connect,address=ipc://@metric-feedback-$NUMAID,transport=shmem,rateLogging=10\\\"\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
 else
   if [ $NTIMEFRAMES == -1 ]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--loop $NTIMEFRAMES"; fi
   add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --max-tf 0 --input-conf $FILEWORKDIR/rawAll.cfg" "HBFUtils.nHBFPerTF=$NHBPERTF"
