@@ -248,7 +248,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
 
       if (confParam.matLUTFile.size()) {
-        config.configCalib.matLUT = o2::base::MatLayerCylSet::loadFromFile(confParam.matLUTFile.c_str(), "MatBud");
+        config.configCalib.matLUT = o2::base::MatLayerCylSet::loadFromFile(confParam.matLUTFile.c_str());
       }
 
       if (confParam.dEdxFile.size()) {
