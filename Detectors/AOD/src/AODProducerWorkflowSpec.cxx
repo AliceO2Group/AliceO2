@@ -916,7 +916,8 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   if (fResFile) {
     if (!fResFile->FindObjectAny("metaData")) {
       // populating metadata map
-      mMetaData.Add(new TObjString("DataType"), new TObjString("MC"));
+      TString dataType = mUseMC ? "MC" : "RAW";
+      mMetaData.Add(new TObjString("DataType"), new TObjString(dataType));
       mMetaData.Add(new TObjString("Run"), new TObjString("3"));
       TString converterVersion = "o2 ";
       converterVersion += o2::fullVersion();
