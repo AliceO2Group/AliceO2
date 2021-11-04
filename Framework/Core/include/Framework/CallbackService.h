@@ -66,7 +66,9 @@ class CallbackService
     /// Invoked whenever a new timeslice has been created from an enumeration.
     /// Users can override this to make sure the fill the DataHeader associated
     /// to a timeslice with the wanted quantities.
-    NewTimeslice
+    NewTimeslice,
+    /// Invoked before the processing callback
+    PreProcessing
   };
 
   using StartCallback = std::function<void()>;
@@ -78,6 +80,7 @@ class CallbackService
   using EndOfStreamCallback = std::function<void(EndOfStreamContext&)>;
   using RegionInfoCallback = std::function<void(FairMQRegionInfo const&)>;
   using NewTimesliceCallback = std::function<void(o2::header::DataHeader&)>;
+  using PreProcessingCallback = std::function<void(ServiceRegistry&, int)>;
 
   using Callbacks = CallbackRegistry<Id,                                                           //
                                      RegistryPair<Id, Id::Start, StartCallback>,                   //
@@ -88,7 +91,8 @@ class CallbackService
                                      RegistryPair<Id, Id::DataConsumed, DataConsumedCallback>,     //
                                      RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,       //
                                      RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback>, //
-                                     RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>      //
+                                     RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>,     //
+                                     RegistryPair<Id, Id::PreProcessing, PreProcessingCallback>    //
                                      >;                                                            //
 
   // set callback for specified processing step
