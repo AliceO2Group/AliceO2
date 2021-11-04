@@ -461,7 +461,8 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
     auto& execution = executions[di];
     auto& expected = expectedTasks[di];
 
-    BOOST_TEST_CONTEXT("Device " << spec.name) {
+    BOOST_TEST_CONTEXT("Device " << spec.name)
+    {
       ss.str({});
       ss.clear();
       dumpTask(ss, devices[di], executions[di], devices[di].name, "");
