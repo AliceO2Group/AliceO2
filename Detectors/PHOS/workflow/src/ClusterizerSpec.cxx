@@ -60,16 +60,16 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
     auto dataref = ctx.inputs().get("digits");
     auto const* phosheader = o2::framework::DataRefUtils::getHeader<o2::phos::PHOSBlockHeader*>(dataref);
     if (!phosheader->mHasPayload) {
-      mOutputClusters.clear() ;
+      mOutputClusters.clear();
       ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusters);
       if (mFullCluOutput) {
-        mOutputCluElements.clear() ;
+        mOutputCluElements.clear();
         ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUELEMENTS", 0, o2::framework::Lifetime::Timeframe}, mOutputCluElements);
       }
-      mOutputClusterTrigRecs.clear() ;
+      mOutputClusterTrigRecs.clear();
       ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputClusterTrigRecs);
       if (mPropagateMC) {
-        mOutputTruthCont.clear() ;
+        mOutputTruthCont.clear();
         ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
       }
       return;
