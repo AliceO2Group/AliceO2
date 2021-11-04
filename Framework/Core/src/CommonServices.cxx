@@ -519,16 +519,16 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
 
   auto device = registry.get<RawDeviceService>().device();
 
-  auto lastTotalBytesIn = 0;
-  auto lastTotalBytesOut = 0;
+  uint64_t lastTotalBytesIn = 0;
+  uint64_t lastTotalBytesOut = 0;
   stats.totalBytesIn.exchange(lastTotalBytesIn);
   stats.totalBytesOut.exchange(lastTotalBytesOut);
-  auto totalBytesIn = 0;
-  auto totalBytesOut = 0;
+  uint64_t totalBytesIn = 0;
+  uint64_t totalBytesOut = 0;
 
   for (auto& channel : device->fChannels) {
-    totalBytesIn += channel.second[0].GetBytesTx();
-    totalBytesOut += channel.second[0].GetBytesRx();
+    totalBytesIn += channel.second[0].GetBytesRx();
+    totalBytesOut += channel.second[0].GetBytesTx();
   }
 
   monitoring.send(Metric{(float)(totalBytesOut - lastTotalBytesOut) / 1000000.f / (timeSinceLastUpdate / 1000.f), "total_rate_out_mb_s"}
