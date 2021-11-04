@@ -336,6 +336,7 @@ using TrackExtra = TracksExtra::iterator;
 } // namespace aod
 namespace soa
 {
+extern template struct soa::Join<aod::Tracks, aod::TracksExtra>;
 extern template struct soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>;
 extern template struct soa::Join<aod::TracksExtension, aod::StoredTracks>;
 } // namespace soa
