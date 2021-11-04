@@ -143,6 +143,14 @@ class TimeFrame final
   gsl::span<int> getNTrackletsCluster(int rofId, int combId);
   // \Vertexer
 
+  // Vertexer
+  std::vector<int>& getIndexTableL0(int tf);
+  std::array<std::vector<int>, 2>& getNFoundTracklets(int tf);
+  std::vector<Line>& getLines(int tf);
+  std::vector<ClusterLines>& getTrackletClusters(int tf);
+  gsl::span<const Tracklet> getFoundTracklets(int rofId, int combId) const;
+  // \Vertexer
+
   void initialiseRoadLabels();
   void setRoadLabel(int i, const unsigned long long& lab, bool fake);
   const unsigned long long& getRoadLabel(int i) const;
@@ -202,6 +210,7 @@ class TimeFrame final
   std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
   std::vector<index_table_t> mIndexTables;
+  std::vector<std::vector<int>> mIndexTablesL0;
   std::vector<std::vector<Tracklet>> mTracklets;
   std::vector<std::vector<int>> mTrackletsLookupTable;
 
