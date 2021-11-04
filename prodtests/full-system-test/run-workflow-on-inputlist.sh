@@ -69,11 +69,19 @@ else
   echo "ERROR: Unsupported mode $1 requested"
   exit 1
 fi
-start_process $MYDIR/dpl-workflow.sh
+
+if [ -f dpl-workflow.sh ]; then
+    echo "Use dpl-workflow.sh macro passed as input"
+else
+    echo "Use dpl-workflow.sh macro from ${MYDIR}"
+    cp $O2_ROOT/prodtests/full-system-test/dpl-workflow.sh .
+fi
+start_process ./dpl-workflow.sh
 
 if [[ "0$4" != "00" ]]; then
   sleep 1
   tail -n 1000000 -f ${LOG_PREFIX}*.log &
+  ln -sf ${LOG_PREFIX}${NUM_PROCS}.log latest.log
   PID_LOG=$!
 fi
 
