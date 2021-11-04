@@ -756,7 +756,7 @@ void MatchTPCITS::doMatching(int sec)
 
 #ifdef _ALLOW_DEBUG_TREES_
       if (mDBGOut && ((rejFlag == Accept && isDebugFlag(MatchTreeAccOnly)) || isDebugFlag(MatchTreeAll))) {
-        fillTPCITSmatchTree(cacheITS[iits], cacheTPC[itpc], rejFlag, chi2);
+        fillTPCITSmatchTree(cacheITS[iits], cacheTPC[itpc], rejFlag, chi2, timeCorr);
       }
 #endif
       /*
@@ -1318,7 +1318,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
       mMatchedTracks.pop_back(); // destroy failed track
       return false;
     }
-    int retVal = mTPCRefitter->RefitTrackAsTrackParCov(tracOut, mTPCTracksArray[tTPC.sourceID].getClusterRef(), timeC * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
+    int retVal = mTPCRefitter->RefitTrackAsTrackParCov(tracOut, mTPCTracksArray[tTPC.sourceID].getClusterRef(), tImposed, &chi2Out, true, false); // outward refit
     if (retVal < 0) {
       LOG(DEBUG) << "Refit failed";
       mMatchedTracks.pop_back(); // destroy failed track
@@ -2283,7 +2283,7 @@ void MatchTPCITS::setDebugFlag(UInt_t flag, bool on)
 }
 
 //_________________________________________________________
-void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float chi2)
+void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float chi2, float tCorr)
 {
   ///< fill debug tree for ITS TPC tracks matching check
 
@@ -2296,7 +2296,7 @@ void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float c
   }
   o2::MCCompLabel lblITS, lblTPC;
   (*mDBGOut) << "match"
-             << "tf=" << mTFCount << "chi2Match=" << chi2 << "its=" << trackITS << "tpc=" << trackTPC;
+             << "tf=" << mTFCount << "chi2Match=" << chi2 << "its=" << trackITS << "tpc=" << trackTPC << "tcorr=" << tCorr;
   if (mMCTruthON) {
     lblITS = mITSLblWork[itsID];
     lblTPC = mTPCLblWork[tpcID];
