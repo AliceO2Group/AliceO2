@@ -124,11 +124,14 @@ struct AxisSpec {
     }
 
     const double min = binEdges[0];
-    const double width = (binEdges[1] - binEdges[0]) / nBins.value();
-    binEdges.clear();
-    binEdges.resize(0);
-    for (int i = 0; i < nBins.value() + 1; i++) {
-      binEdges.push_back(std::pow(10., min + i * width));
+    const double max = binEdges[1];
+    const double logmin = std::log10(min);
+    const double logmax = std::log10(max);
+    const int nbins = nBins.value();
+    const double logdelta = (logmax - logmin) / (static_cast<double>(nbins));
+    const double log10 = std::log10(10.);
+    for (int i = 0; i < nbins + 1; i++) {
+      binEdges.push_back(std::exp(log10 * (logmin + i * logdelta)));
     }
     nBins = std::nullopt;
   }

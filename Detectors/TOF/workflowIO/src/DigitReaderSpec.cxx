@@ -63,6 +63,15 @@ void DigitReader::run(ProcessingContext& pc)
 
     treeDig->GetEntry(mCurrentEntry);
 
+    // fill diagnostic frequencies
+    mFiller.clearCounts();
+    for (auto digit : mDigits) {
+      mFiller.addCount(digit.getChannel());
+    }
+    mFiller.setReadoutWindowData(mRow, mPatterns);
+    mFiller.fillDiagnosticFrequency();
+    mDiagnostic = mFiller.getDiagnosticFrequency();
+
     // add digits loaded in the output snapshot
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, mRow);

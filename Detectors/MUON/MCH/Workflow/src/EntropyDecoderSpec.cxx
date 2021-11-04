@@ -70,7 +70,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mCTFCoder.decode(ctfImage, rofs, digits);
 
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << digits.size() << " MCH digits in " << rofs.size() << " ROFRecords in " << mTimer.CpuTime() - cput << " s";
+  LOG(INFO) << "Decoded " << digits.size() << " MCH digits in " << rofs.size() << " ROFRecords in " << mTimer.CpuTime() - cput << " s.";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)

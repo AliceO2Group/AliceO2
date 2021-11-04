@@ -50,6 +50,7 @@ EntropyEncoderSpec::EntropyEncoderSpec()
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
   std::string dictPath = ic.options().get<std::string>("ctf-dict");
+  mCTFCoder.setMemMarginFactor(ic.options().get<float>("mem-factor"));
   if (!dictPath.empty() && dictPath != "none") {
     mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
   }
@@ -90,7 +91,8 @@ DataProcessorSpec getEntropyEncoderSpec(const char* specName)
     inputs,
     Outputs{{"MCH", "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
-    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"Path to pre-computed CTF encoding dictionary to be used for encoding"}}}};
+    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"Path to pre-computed CTF encoding dictionary to be used for encoding"}},
+            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }
 
 } // namespace mch

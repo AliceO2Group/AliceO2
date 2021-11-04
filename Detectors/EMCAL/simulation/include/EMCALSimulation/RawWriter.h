@@ -28,6 +28,7 @@
 #include "EMCALBase/Mapper.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
+#include "EMCALReconstruction/AltroHelper.h"
 
 namespace o2
 {
@@ -36,28 +37,6 @@ namespace emcal
 {
 
 class Geometry;
-
-/// \struct AltroBunch
-/// \brief ALTRO bunch information obtained from digits
-struct AltroBunch {
-  int mStarttime;         ///< Start time of the bunch
-  std::vector<int> mADCs; ///< ADCs belonging to the bunch
-};
-
-/// \struct ChannelData
-/// \brief Structure for mapping digits to Channels within a SRU
-struct ChannelData {
-  int mRow;                               ///< Row of the channel
-  int mCol;                               ///< Column of the channel
-  std::vector<o2::emcal::Digit*> mDigits; ///< Digits for the channel  within the current event
-};
-
-/// \struct SRUDigitContainer
-/// \brief Structure for organizing digits within the SRU
-struct SRUDigitContainer {
-  int mSRUid;                           ///< DDL of the SRU
-  std::map<int, ChannelData> mChannels; ///< Containers for channels within the SRU
-};
 
 /// \union ChannelHeader
 /// \brief Bitfield encoding channel headers

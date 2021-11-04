@@ -13,6 +13,7 @@
 #define ALICEO2_CPV_CLUSTER_H_
 
 #include "DataFormatsCPV/Digit.h"
+#include <cmath>
 
 namespace o2
 {
@@ -26,7 +27,7 @@ constexpr float kMinX = -72.32;  // Minimal coordinate in X direction
 constexpr float kStepX = 0.0025; // digitization step in X direction
 constexpr float kMinZ = -63.3;   // Minimal coordinate in Z direction
 constexpr float kStepZ = 0.002;  // digitization step in Z direction
-constexpr float kStepE = 1.;     // Amplitude digitization step
+constexpr float kStepE = 0.036;  // Amplitude digitization parameter
 
 class Cluster
 {
@@ -80,14 +81,14 @@ class Cluster
   uint16_t getPackedPosZ() const { return uint16_t((mLocalPosZ - kMinZ) / kStepZ); }
   void setPackedPosZ(uint16_t v) { mLocalPosZ = kMinZ + kStepZ * v; }
 
-  uint8_t getPackedEnergy() const { return uint8_t(std::min(255, int(mEnergy / kStepE))); }
-  void setPackedEnergy(uint16_t v) { mEnergy = v * kStepE; }
+  uint8_t getPackedEnergy() const { return uint8_t(std::min(255, int((mEnergy > 100.) ? (log(mEnergy - 63.) / kStepE) : mEnergy))); }
+  void setPackedEnergy(uint8_t v) { mEnergy = ((v > 100) ? (exp(kStepE * v) + 63.) : (v * 1.)); }
 
   uint8_t getPackedClusterStatus() const
   {
     CluStatus s = {0};
     s.multiplicity = std::min(mMulDigit, static_cast<unsigned char>(31)); //5 bits available
-    s.module = mModule;
+    s.module = mModule - 2;
     s.unfolded = mNExMax > 1;
     return s.mBits;
   }
@@ -95,7 +96,7 @@ class Cluster
   {
     CluStatus s = {v};
     mMulDigit = s.multiplicity;
-    mModule = s.module;
+    mModule = s.module + 2;
     mNExMax = s.unfolded ? 1 : 2;
   }
 

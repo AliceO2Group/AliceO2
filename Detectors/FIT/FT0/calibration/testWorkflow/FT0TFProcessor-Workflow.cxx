@@ -78,5 +78,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   WorkflowSpec workflow;
   workflow.emplace_back(dataProcessorSpec);
+
   return workflow;
 }

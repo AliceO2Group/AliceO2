@@ -180,6 +180,8 @@ command:
     - "'1'"
     - "--severity"
     - "'info'"
+    - "--shm-allocation"
+    - "'rbtree_best_fit'"
     - "--shm-mlock-segment"
     - "'false'"
     - "--shm-mlock-segment-on-creation"
@@ -247,6 +249,8 @@ command:
     - "'1'"
     - "--severity"
     - "'info'"
+    - "--shm-allocation"
+    - "'rbtree_best_fit'"
     - "--shm-mlock-segment"
     - "'false'"
     - "--shm-mlock-segment-on-creation"
@@ -314,6 +318,8 @@ command:
     - "'1'"
     - "--severity"
     - "'info'"
+    - "--shm-allocation"
+    - "'rbtree_best_fit'"
     - "--shm-mlock-segment"
     - "'false'"
     - "--shm-mlock-segment-on-creation"
@@ -382,6 +388,8 @@ command:
     - "'1'"
     - "--severity"
     - "'info'"
+    - "--shm-allocation"
+    - "'rbtree_best_fit'"
     - "--shm-mlock-segment"
     - "'false'"
     - "--shm-mlock-segment-on-creation"
@@ -410,7 +418,8 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm, "workflow-id", true);
+  auto callbacksPolicies = CallbacksPolicy::createDefaultPolicies();
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", true);
   std::vector<DeviceControl> controls;
   std::vector<DeviceExecution> executions;
   controls.resize(devices.size());

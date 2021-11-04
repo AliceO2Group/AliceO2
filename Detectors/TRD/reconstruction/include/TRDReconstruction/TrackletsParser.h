@@ -28,10 +28,10 @@
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Constants.h"
+#include "TRDReconstruction/EventRecord.h"
 
 namespace o2::trd
 {
-class EventRecord;
 
 class TrackletsParser
 {
@@ -41,7 +41,7 @@ class TrackletsParser
   void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
   int Parse(); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, TRDFeeID feeid, int robside,
-            int detector, int stack, int layer, EventRecord* eventrecords, std::bitset<16> option, bool cleardigits = false,
+            int detector, int stack, int layer, EventRecord* eventrecord, EventStorage* eventrecords, std::bitset<16> option, bool cleardigits = false,
             int usetracklethcheader = 0);
   void setVerbose(bool verbose, bool header = false, bool data = false)
   {
@@ -74,9 +74,16 @@ class TrackletsParser
     mParsingErrors = parsingerrors;
     mParsingErrors2d = parsingerrors2d;
   }
-  void increment2dHist(int hist)
+
+  void incParsingError(int error)
   {
-    ((TH2F*)mParsingErrors2d->At(hist))->Fill(mFEEID.supermodule * 2 + mFEEID.side, mStack * constants::NLAYER + mLayer);
+    if (mOptions[TRDGenerateStats]) {
+      mEventRecords->incParsingError(error, mFEEID.supermodule, mFEEID.side, mStack * constants::NLAYER + mLayer);
+    }
+    if (mOptions[TRDEnableRootOutputBit]) {
+      mParsingErrors->Fill(error);
+      ((TH2F*)mParsingErrors2d->At(error))->Fill(mFEEID.supermodule * 2 + mFEEID.side, mStack * constants::NLAYER + mLayer);
+    }
   }
 
  private:
@@ -106,6 +113,7 @@ class TrackletsParser
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
   //uint32_t mCurrentLinkDataPosition256;                // count of data read for current link in units of 256 bits
   EventRecord* mEventRecord;
+  EventStorage* mEventRecords;
 
   uint16_t mCurrentLink; // current link within the halfcru we are parsing 0-14
   uint16_t mCRUEndpoint; // the upper or lower half of the currently parsed cru 0-14 or 15-29

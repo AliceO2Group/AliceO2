@@ -16,6 +16,7 @@
 
 #include "DataSampling/DataSamplingCondition.h"
 #include "DataSampling/DataSamplingConditionFactory.h"
+#include "Headers/DataHeader.h"
 #include "Framework/DataProcessingHeader.h"
 
 #include "PCG/pcg_random.hpp"
@@ -55,15 +56,37 @@ class DataSamplingConditionRandom : public DataSamplingCondition
 
     mCurrentTimesliceID = 0;
     mLastDecision = false;
+
+    auto timeslideID = config.get_optional<std::string>("timesliceId").value_or("startTime");
+    if (timeslideID == "startTime") {
+      mGetTimesliceID = [](const o2::framework::DataRef& dataRef) {
+        const auto* dph = get<DataProcessingHeader*>(dataRef.header);
+        assert(dph);
+        return dph->startTime;
+      };
+    } else if (timeslideID == "tfCounter") {
+      mGetTimesliceID = [](const o2::framework::DataRef& dataRef) {
+        const auto* dh = get<DataHeader*>(dataRef.header);
+        assert(dh);
+        return dh->tfCounter;
+      };
+    } else if (timeslideID == "firstTForbit") {
+      mGetTimesliceID = [](const o2::framework::DataRef& dataRef) {
+        const auto* dh = get<DataHeader*>(dataRef.header);
+        assert(dh);
+        return dh->firstTForbit;
+      };
+    } else {
+      throw std::runtime_error("Data Sampling Condition Random does not support timesliceId '" + timeslideID + "'");
+    }
   };
   /// \brief Makes pseudo-random, deterministic decision based on TimesliceID.
   /// The reason behind using TimesliceID is to ensure, that data of the same events is sampled even on different FLPs.
   bool decide(const o2::framework::DataRef& dataRef) override
   {
-    const auto* dpHeader = get<DataProcessingHeader*>(dataRef.header);
-    assert(dpHeader);
+    auto tid = mGetTimesliceID(dataRef);
 
-    int64_t diff = dpHeader->startTime - mCurrentTimesliceID;
+    int64_t diff = tid - mCurrentTimesliceID;
     if (diff == -1) {
       return mLastDecision;
     } else if (diff < -1) {
@@ -73,7 +96,7 @@ class DataSamplingConditionRandom : public DataSamplingCondition
     }
 
     mLastDecision = mGenerator() < mThreshold;
-    mCurrentTimesliceID = dpHeader->startTime + 1;
+    mCurrentTimesliceID = tid + 1;
     return mLastDecision;
   }
 
@@ -81,7 +104,8 @@ class DataSamplingConditionRandom : public DataSamplingCondition
   uint32_t mThreshold;
   pcg32_fast mGenerator;
   bool mLastDecision;
-  DataProcessingHeader::StartTime mCurrentTimesliceID;
+  uint64_t mCurrentTimesliceID;
+  std::function<uint64_t(const o2::framework::DataRef&)> mGetTimesliceID;
 };
 
 std::unique_ptr<DataSamplingCondition> DataSamplingConditionFactory::createDataSamplingConditionRandom()

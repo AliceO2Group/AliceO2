@@ -23,7 +23,7 @@ o2_add_library(CTPWorkflow
                                      O2::CTPWorkflowIO)
 o2_add_executable(reco-workflow
                   COMPONENT_NAME ctp
-                  SOURCES src/ctp-reco-workflow.cxx
+                  SOURCES src/ctp-raw-decoder.cxx
                   PUBLIC_LINK_LIBRARIES O2::Algorithm
                                         O2::CTPWorkflow)
 

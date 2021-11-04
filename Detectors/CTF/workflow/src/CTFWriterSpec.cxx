@@ -92,8 +92,8 @@ class CTFWriterSpec : public o2::framework::Task
   ~CTFWriterSpec() final { finalize(); }
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
-  void endOfStream(o2::framework::EndOfStreamContext& ec) final { finalize(); };
-  void stop() final { finalize(); };
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final { finalize(); }
+  void stop() final { finalize(); }
   bool isPresent(DetID id) const { return mDets[id]; }
 
  private:
@@ -538,9 +538,10 @@ void CTFWriterSpec::closeTFTreeAndFile()
         mCTFFileMetaData->LHCPeriod = mLHCPeriod;
         mCTFFileMetaData->type = "raw";
         mCTFFileMetaData->priority = "high";
+        auto metaFileNameTmp = fmt::format("{}{}.tmp", mCTFMetaFileDir, mCurrentCTFFileName);
         auto metaFileName = fmt::format("{}{}.done", mCTFMetaFileDir, mCurrentCTFFileName);
         try {
-          std::ofstream metaFileOut(metaFileName);
+          std::ofstream metaFileOut(metaFileNameTmp);
           metaFileOut << *mCTFFileMetaData.get();
           metaFileOut << "TFOrbits: ";
           for (size_t i = 0; i < mTFOrbits.size(); i++) {
@@ -548,6 +549,7 @@ void CTFWriterSpec::closeTFTreeAndFile()
           }
           metaFileOut << '\n';
           metaFileOut.close();
+          std::filesystem::rename(metaFileNameTmp, metaFileName);
         } catch (std::exception const& e) {
           LOG(ERROR) << "Failed to store CTF meta data file " << metaFileName << ", reason: " << e.what();
         }

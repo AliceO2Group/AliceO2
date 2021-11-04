@@ -114,7 +114,7 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
   mTimerTot.Start();
   for (int sec = o2::constants::math::NSectors; sec--;) {
     mMatchedTracksPairs.clear(); // new sector
-    LOG(INFO) << "Doing matching for sector " << sec << "...";
+    LOG(DEBUG) << "Doing matching for sector " << sec << "...";
     if (mIsITSTPCused || mIsTPCTRDused || mIsITSTPCTRDused) {
       mTimerMatchITSTPC.Start(sec == o2::constants::math::NSectors - 1);
       doMatching(sec);
@@ -125,7 +125,7 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
       doMatchingForTPC(sec);
       mTimerMatchTPC.Stop();
     }
-    LOG(INFO) << "...done. Now check the best matches";
+    LOG(DEBUG) << "...done. Now check the best matches";
     selectBestMatches();
   }
 
@@ -213,12 +213,12 @@ bool MatchTOF::prepareTPCData()
   }
 
   if (mIsTPCused) {
-    LOG(INFO) << "Number of UNCONSTRAINED tracks that failed to be propagated to TOF = " << mNotPropagatedToTOF[trkType::UNCONS];
+    LOG(DEBUG) << "Number of UNCONSTRAINED tracks that failed to be propagated to TOF = " << mNotPropagatedToTOF[trkType::UNCONS];
 
     // sort tracks in each sector according to their time (increasing in time)
     for (int sec = o2::constants::math::NSectors; sec--;) {
       auto& indexCache = mTracksSectIndexCache[trkType::UNCONS][sec];
-      LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " tracks";
+      LOG(DEBUG) << "Sorting sector" << sec << " | " << indexCache.size() << " tracks";
       if (!indexCache.size()) {
         continue;
       }
@@ -230,12 +230,12 @@ bool MatchTOF::prepareTPCData()
     } // loop over tracks of single sector
   }
   if (mIsITSTPCused || mIsTPCTRDused || mIsITSTPCTRDused) {
-    LOG(INFO) << "Number of CONSTRAINED tracks that failed to be propagated to TOF = " << mNotPropagatedToTOF[trkType::CONSTR];
+    LOG(DEBUG) << "Number of CONSTRAINED tracks that failed to be propagated to TOF = " << mNotPropagatedToTOF[trkType::CONSTR];
 
     // sort tracks in each sector according to their time (increasing in time)
     for (int sec = o2::constants::math::NSectors; sec--;) {
       auto& indexCache = mTracksSectIndexCache[trkType::CONSTR][sec];
-      LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " tracks";
+      LOG(DEBUG) << "Sorting sector" << sec << " | " << indexCache.size() << " tracks";
       if (!indexCache.size()) {
         continue;
       }
@@ -422,7 +422,7 @@ bool MatchTOF::prepareTOFClusters()
   // sort clusters in each sector according to their time (increasing in time)
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mTOFClusSectIndexCache[sec];
-    LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " TOF clusters";
+    LOG(DEBUG) << "Sorting sector" << sec << " | " << indexCache.size() << " TOF clusters";
     if (!indexCache.size()) {
       continue;
     }
@@ -450,7 +450,7 @@ void MatchTOF::doMatching(int sec)
   auto& cacheTOF = mTOFClusSectIndexCache[sec];      // array of cached TOF cluster indices for this sector; reminder: they are ordered in time!
   auto& cacheTrk = mTracksSectIndexCache[type][sec]; // array of cached tracks indices for this sector; reminder: they are ordered in time!
   int nTracks = cacheTrk.size(), nTOFCls = cacheTOF.size();
-  LOG(INFO) << "Matching sector " << sec << ": number of tracks: " << nTracks << ", number of TOF clusters: " << nTOFCls;
+  LOG(DEBUG) << "Matching sector " << sec << ": number of tracks: " << nTracks << ", number of TOF clusters: " << nTOFCls;
   if (!nTracks || !nTOFCls) {
     return;
   }
@@ -674,7 +674,7 @@ void MatchTOF::doMatching(int sec)
           foundCluster = true;
           // set event indexes (to be checked)
           int eventIndexTOFCluster = mTOFClusSectIndexCache[indices[0]][itof];
-          mMatchedTracksPairs.emplace_back(cacheTrk[itrk], eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[iPropagation], mTrackGid[type][cacheTrk[itrk]], type); // TODO: check if this is correct!
+          mMatchedTracksPairs.emplace_back(cacheTrk[itrk], eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[iPropagation], mTrackGid[type][cacheTrk[itrk]], type, trefTOF.getTime() - (minTrkTime + maxTrkTime) * 0.5); // TODO: check if this is correct!
         }
       }
     }
@@ -697,7 +697,7 @@ void MatchTOF::doMatchingForTPC(int sec)
   auto& cacheTOF = mTOFClusSectIndexCache[sec];                 // array of cached TOF cluster indices for this sector; reminder: they are ordered in time!
   auto& cacheTrk = mTracksSectIndexCache[trkType::UNCONS][sec]; // array of cached tracks indices for this sector; reminder: they are ordered in time!
   int nTracks = cacheTrk.size(), nTOFCls = cacheTOF.size();
-  LOG(INFO) << "Matching sector " << sec << ": number of tracks: " << nTracks << ", number of TOF clusters: " << nTOFCls;
+  LOG(DEBUG) << "Matching sector " << sec << ": number of tracks: " << nTracks << ", number of TOF clusters: " << nTOFCls;
   if (!nTracks || !nTOFCls) {
     return;
   }

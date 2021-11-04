@@ -680,6 +680,9 @@ class O2HitMerger : public FairMQDevice
         int eta1Point2Counter = 0;
         int eta1Point0Counter = 0;
         int eta0Point8Counter = 0;
+        int eta1Point2CounterPi = 0;
+        int eta1Point0CounterPi = 0;
+        int eta0Point8CounterPi = 0;
         int prims = 0;
         for (auto& tr : tracks) {
           if (tr.isPrimary()) {
@@ -687,12 +690,21 @@ class O2HitMerger : public FairMQDevice
             const auto eta = tr.GetEta();
             if (eta < 1.2) {
               eta1Point2Counter++;
+              if (std::abs(tr.GetPdgCode()) == 211) {
+                eta1Point2CounterPi++;
+              }
             }
             if (eta < 1.0) {
               eta1Point0Counter++;
+              if (std::abs(tr.GetPdgCode()) == 211) {
+                eta1Point0CounterPi++;
+              }
             }
             if (eta < 0.8) {
               eta0Point8Counter++;
+              if (std::abs(tr.GetPdgCode()) == 211) {
+                eta0Point8CounterPi++;
+              }
             }
           } else {
             break; // track layout is such that all prims are first anyway
@@ -703,6 +715,9 @@ class O2HitMerger : public FairMQDevice
         eventheader->putInfo("prims_eta_1.2", eta1Point2Counter);
         eventheader->putInfo("prims_eta_1.0", eta1Point0Counter);
         eventheader->putInfo("prims_eta_0.8", eta0Point8Counter);
+        eventheader->putInfo("prims_eta_1.2_pi", eta1Point2CounterPi);
+        eventheader->putInfo("prims_eta_1.0_pi", eta1Point0CounterPi);
+        eventheader->putInfo("prims_eta_0.8_pi", eta0Point8CounterPi);
         eventheader->putInfo("prims_total", prims);
       };
 

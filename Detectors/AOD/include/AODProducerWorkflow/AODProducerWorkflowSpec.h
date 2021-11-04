@@ -191,13 +191,15 @@ typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> Triple
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest) : mInputSources(src), mDataRequest(dataRequest) {}
+  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, bool useMC = true) : mInputSources(src), mDataRequest(dataRequest), mUseMC(useMC) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
+  bool mUseMC = true;
+
   const float cSpeed = 0.029979246f; // speed of light in TOF units
 
   GID::mask_t mInputSources;
@@ -330,7 +332,7 @@ class AODProducerWorkflowDPL : public Task
                             gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
                             gsl::span<const GIndex>& GIndices,
                             o2::globaltracking::RecoContainer& data,
-                            std::vector<std::pair<int, int>> const& mcColToEvSrc);
+                            std::map<std::pair<int, int>, int> const& mcColToEvSrc);
 
   template <typename MCTrackLabelCursorType, typename MCMFTTrackLabelCursorType, typename MCFwdTrackLabelCursorType>
   void fillMCTrackLabelsTable(const MCTrackLabelCursorType& mcTrackLabelCursor,

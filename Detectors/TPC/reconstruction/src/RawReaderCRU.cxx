@@ -60,7 +60,7 @@ RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const uint3
     if (hbMatch) {
       mLastEvent = &ev;
       return ev;
-    } else if ((hbDiff >= 0) && (hbDiff < 256)) {
+    } else if ((hbDiff >= 0) && (hbDiff < 128)) {
       ev.HeartbeatOrbits.emplace_back(heartbeatOrbit);
       std::sort(ev.HeartbeatOrbits.begin(), ev.HeartbeatOrbits.end());
       mLastEvent = &ev;
@@ -254,6 +254,12 @@ int RawReaderCRU::scanFile()
     if (isTFfile && (!dhPayloadSize || (dhPayloadSizeSeen == dhPayloadSize))) {
       file >> dh;
       dhPayloadSize = dh.payloadSize;
+      if (dh.dataOrigin != o2::header::gDataOriginTPC) {
+        file.seekg(dhPayloadSize, file.cur);
+        currentPos = file.tellg();
+        dhPayloadSize = 0;
+        continue;
+      }
       dhPayloadSizeSeen = 0;
       currentPos = file.tellg();
     }

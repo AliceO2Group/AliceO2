@@ -26,7 +26,7 @@
 #include "FDDRaw/RawWriterFDD.h"
 #include "DataFormatsParameters/GRPObject.h"
 
-/// MC->raw conversion for FT0
+/// MC->raw conversion for FDD
 
 namespace bpo = boost::program_options;
 

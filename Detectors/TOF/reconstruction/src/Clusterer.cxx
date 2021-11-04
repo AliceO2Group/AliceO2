@@ -234,7 +234,7 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
       c.setDigitInfo(c.getNumOfContributingChannels(), mContributingDigit[idig]->getChannel(), mContributingDigit[idig]->getCalibratedTime(), mContributingDigit[idig]->getTOT() * Geo::TOTBIN_NS);
       c.addBitInContributingChannels(mask);
 
-      if (mCalibFromCluster && c.getNumOfContributingChannels() == 2) { // fill info for calibration
+      if (mCalibFromCluster && c.getNumOfContributingChannels() == 2 && !mIsNoisy[mContributingDigit[idig]->getChannel()] && !mIsNoisy[ch1]) { // fill info for calibration excluding noisy channels
         int8_t dch = int8_t(mContributingDigit[idig]->getChannel() - ch1);
         short tot2 = mContributingDigit[idig]->getTOT() < 20000 ? mContributingDigit[idig]->getTOT() : 20000;
         dtime -= mContributingDigit[idig]->getTDC() * Geo::TDCBIN + mContributingDigit[idig]->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3;

@@ -18,12 +18,16 @@ namespace
 {
 std::string defaultIPCFolder()
 {
+#ifdef __linux__
+  return "@";
+#else
   /// Find out a place where we can write the sockets
   char const* channelPrefix = getenv("TMPDIR");
   if (channelPrefix) {
     return std::string(channelPrefix);
   }
   return access("/tmp", W_OK) == 0 ? "/tmp" : ".";
+#endif
 }
 } // namespace
 

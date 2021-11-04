@@ -16,6 +16,7 @@
 #include "Framework/Logger.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/ServiceRegistry.h"
+#include "Framework/CallbackService.h"
 #include "Framework/TimesliceIndex.h"
 #include "Framework/VariableContextHelpers.h"
 #include "Framework/DataTakingContext.h"
@@ -210,7 +211,7 @@ ExpirationHandler::Checker
       throw runtime_error("fetchFromCCDBCache: Unable to initialise CURL");
     }
     CURLcode res;
-    std::string path = "CTP/OrbitReset";
+    std::string path = "CTP/Calib/OrbitReset";
     auto url = fmt::format("{}/{}/{}", serverUrl, path, timestamp / 1000);
     LOG(INFO) << "Fetching CTP from " << url;
 
@@ -435,10 +436,11 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     dh.payloadSerializationMethod = gSerializationMethodNone;
     dh.tfCounter = timestamp;
     dh.firstTForbit = timestamp * orbitMultiplier + orbitOffset;
+    DataProcessingHeader dph{timestamp, 1};
+    services.get<CallbackService>()(CallbackService::Id::NewTimeslice, dh);
+
     variables.put({data_matcher::FIRSTTFORBIT_POS, dh.firstTForbit});
     variables.put({data_matcher::TFCOUNTER_POS, dh.tfCounter});
-
-    DataProcessingHeader dph{timestamp, 1};
 
     auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);

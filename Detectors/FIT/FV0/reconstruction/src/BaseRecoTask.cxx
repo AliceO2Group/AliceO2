@@ -46,7 +46,7 @@ RP BaseRecoTask::process(o2::fv0::BCData const& bcd,
 
   auto timeStamp = o2::InteractionRecord::bc2ns(bcd.getIntRecord().bc, bcd.getIntRecord().orbit);
 
-  LOG(INFO) << " event time " << timeStamp << " orbit " << bcd.getIntRecord().orbit << " bc " << bcd.getIntRecord().bc;
+  LOG(debug) << " event time " << timeStamp << " orbit " << bcd.getIntRecord().orbit << " bc " << bcd.getIntRecord().bc;
 
   int nch = inChData.size();
   for (int ich = 0; ich < nch; ich++) {

@@ -75,6 +75,10 @@ class GPUCommonMath
   GPUd() static unsigned int Clz(unsigned int val);
   GPUd() static unsigned int Popcount(unsigned int val);
 
+  GPUhdni() static float Hypot(float x, float y);
+  GPUhdni() static float Hypot(float x, float y, float z);
+  GPUhdni() static float Hypot(float x, float y, float z, float w);
+
   GPUd() static float Log(float x);
   template <class T>
   GPUdi() static T AtomicExch(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T val)
@@ -293,6 +297,21 @@ GPUdi() unsigned int GPUCommonMath::Popcount(unsigned int x)
   x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
   return (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
 #endif
+}
+
+GPUhdi() float GPUCommonMath::Hypot(float x, float y)
+{
+  return Sqrt(x * x + y * y);
+}
+
+GPUhdi() float GPUCommonMath::Hypot(float x, float y, float z)
+{
+  return Sqrt(x * x + y * y + z * z);
+}
+
+GPUhdi() float GPUCommonMath::Hypot(float x, float y, float z, float w)
+{
+  return Sqrt(x * x + y * y + z * z + w * w);
 }
 
 template <class T>

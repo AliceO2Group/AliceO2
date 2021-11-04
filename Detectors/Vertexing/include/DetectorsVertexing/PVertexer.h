@@ -134,7 +134,7 @@ class PVertexer
   o2::BunchFilling mBunchFilling;
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchBelow; // closest filled bunch from below
-  o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
+  o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.5 * 0.5, 0., 0.5 * 0.5, 0., 0., 6. * 6.}};
   std::array<float, 3> mXYConstraintInvErr = {1.0f, 0.f, 1.0f}; ///< nominal vertex constraint inverted errors^2
   //
   std::vector<TrackVF> mTracksPool;         ///< tracks in internal representation used for vertexing, sorted in time
@@ -180,9 +180,10 @@ inline void PVertexer::applyConstraint(VertexSeed& vtxSeed) const
   // impose meanVertex constraint, i.e. account terms
   // (V_i-Constrain_i)^2/sig2constr_i for i=X,Y in the fit chi2 definition
   vtxSeed.cxx += mXYConstraintInvErr[0];
-  vtxSeed.cyy += mXYConstraintInvErr[1];
-  vtxSeed.cx0 += mXYConstraintInvErr[0] * mMeanVertex.getX();
-  vtxSeed.cy0 += mXYConstraintInvErr[1] * mMeanVertex.getY();
+  vtxSeed.cxy += mXYConstraintInvErr[1];
+  vtxSeed.cyy += mXYConstraintInvErr[2];
+  vtxSeed.cx0 += mXYConstraintInvErr[0] * mMeanVertex.getX() + mXYConstraintInvErr[1] * mMeanVertex.getY();
+  vtxSeed.cy0 += mXYConstraintInvErr[1] * mMeanVertex.getX() + mXYConstraintInvErr[2] * mMeanVertex.getY();
 }
 
 //___________________________________________________________________

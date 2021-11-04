@@ -32,6 +32,8 @@
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Road.h"
 
+// #define OPTIMISATION_OUTPUT
+
 namespace o2
 {
 namespace gpu
