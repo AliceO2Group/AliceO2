@@ -60,7 +60,8 @@ struct CommonDataProcessors {
 
   /// @return a dummy DataProcessorSpec which requires all the passed @a InputSpec
   /// and simply discards them.
-  static DataProcessorSpec getDummySink(std::vector<InputSpec> const& danglingInputs);
+  static DataProcessorSpec getDummySink(std::vector<InputSpec> const& danglingInputs,
+                                        int rateLimitingIPCID);
 };
 
 } // namespace o2::framework

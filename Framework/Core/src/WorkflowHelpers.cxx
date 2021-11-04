@@ -567,7 +567,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   if (unmatched.size() > 0 || redirectedOutputsInputs.size() > 0) {
     std::vector<InputSpec> ignored = unmatched;
     ignored.insert(ignored.end(), redirectedOutputsInputs.begin(), redirectedOutputsInputs.end());
-    extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored));
+    int rateLimitingIPCID = std::stoi(ctx.options().get<std::string>("timeframes-rate-limit-ipcid"));
+    extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored, rateLimitingIPCID));
   }
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
