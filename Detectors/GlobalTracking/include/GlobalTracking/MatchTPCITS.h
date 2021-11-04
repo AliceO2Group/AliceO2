@@ -395,7 +395,7 @@ class MatchTPCITS
   const std::string& getDebugTreeFileName() const { return mDebugTreeFileName; }
 
   ///< fill matching debug tree
-  void fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float chi2 = -1.);
+  void fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float chi2 = -1., float tCorr = 0.);
   void dumpWinnerMatches();
 #endif
 
