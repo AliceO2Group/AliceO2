@@ -130,7 +130,7 @@ void TrackerDPL::init(InitContext& ic)
       memParams.resize(1);
       trackParams[0].MinTrackLength = 4;
       trackParams[0].TrackletMaxDeltaPhi = o2::its::constants::math::Pi * 0.5f;
-      trackParams[0].CellDeltaTanLambdaSigma *= 400;
+      trackParams[0].CellDeltaTanLambdaSigma *= 10;
       trackParams[0].PhiBins = 4;
       trackParams[0].ZBins = 16;
       trackParams[0].PVres = 1.e5f;
