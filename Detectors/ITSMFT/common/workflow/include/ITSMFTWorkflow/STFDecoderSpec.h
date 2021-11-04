@@ -77,6 +77,7 @@ class STFDecoder : public Task
   size_t mEstNClusPatt = 0;
   size_t mEstNCalib = 0;
   size_t mEstNROF = 0;
+  std::string mInputSpec;
   std::string mSelfName;
   std::string mDictName;
   std::string mNoiseName;
