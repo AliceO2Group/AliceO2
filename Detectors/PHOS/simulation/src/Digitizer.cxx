@@ -69,6 +69,7 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
   for (int i = NCHANNELS; i--;) {
     mArrayD[i].reset();
   }
+  int nBgTrigFirst = digitsOut.size(); //Bg trigger digits will be directly copied to output
 
   if (digitsBg.size() == 0) { // no digits provided: try simulate noise
     for (int i = NCHANNELS; i--;) {
@@ -83,7 +84,11 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     }
   } else {                       //if digits exist, no noise should be added
     for (auto& dBg : digitsBg) { //digits are sorted and unique
-      mArrayD[dBg.getAbsId() - OFFSET] = dBg;
+      if (dBg.isTRU()) {
+        digitsOut.emplace_back(dBg); //tileId, sum2x2[ix][iz], tt, true, -1);
+      } else {
+        mArrayD[dBg.getAbsId() - OFFSET] = dBg;
+      }
     }
   }
 
@@ -159,6 +164,7 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     }
   }
   //Calculate trigger tiles 2*2 and 4*4
+  int nBgTrig = digitsOut.size(); //Number of trigger digits copied to output from background
   bool mL0Fired = false;
   const int nDDL = 14;
   const int nxTRU = 8;
@@ -204,7 +210,24 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
           if (sum2x2[ix][iz] > PHOSSimParams::Instance().mTrig2x2MinThreshold) { //do not test (slow) probability function with soft tiles
             mL0Fired |= mTrigUtils->isFiredMC2x2(sum2x2[ix][iz], iTRU, short(ix), short(iz));
             //add TRU digit. Note that only tiles with E>mTrigMinThreshold added!
-            digitsOut.emplace_back(tileId, sum2x2[ix][iz], tt, true, -1);
+            //Check that this tile does not exist yet in Bg
+            //Number of trigger tiles is small, plain loop is OK
+            bool added = false;
+            for (int ibgTr = nBgTrigFirst; ibgTr < nBgTrig; ibgTr++) {
+              Digit& bgTr = digitsOut[ibgTr];
+              if (bgTr.getTRUId() == tileId && bgTr.is2x2Tile()) {
+                //assign time to the larger tile
+                if (sum2x2[ix][iz] > bgTr.getAmplitude()) {
+                  bgTr.setTime(tt);
+                }
+                bgTr.setAmplitude(bgTr.getAmplitude() + sum2x2[ix][iz]);
+                added = true;
+                break;
+              }
+            }
+            if (!added) {
+              digitsOut.emplace_back(tileId, sum2x2[ix][iz], tt, true, -1);
+            }
           }
         }
       }
@@ -235,7 +258,24 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
             if (sum2x2[ix + 1][iz + 1] > ampMax) {
               tt = sum2x2[ix][iz + 1];
             }
-            digitsOut.emplace_back(tileId, sum4x4, tt, false, -1);
+            //Check that this tile does not exist yet in Bg
+            //Number of trigger tiles is small, plain loop is OK
+            bool added = false;
+            for (int ibgTr = nBgTrigFirst; ibgTr < nBgTrig; ibgTr++) {
+              Digit& bgTr = digitsOut[ibgTr];
+              if (bgTr.getTRUId() == tileId && !bgTr.is2x2Tile()) {
+                //assign time to the larger tile
+                if (sum2x2[ix][iz] > bgTr.getAmplitude()) {
+                  bgTr.setTime(tt);
+                }
+                bgTr.setAmplitude(bgTr.getAmplitude() + sum4x4);
+                added = true;
+                break;
+              }
+            }
+            if (!added) {
+              digitsOut.emplace_back(tileId, sum4x4, tt, false, -1);
+            }
           }
         }
       }
