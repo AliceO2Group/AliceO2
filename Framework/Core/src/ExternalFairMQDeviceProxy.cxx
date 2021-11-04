@@ -415,16 +415,28 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       static int64_t consumedTimeframes = 0;
       static int64_t sentTimeframes = 0;
       auto device = ctx.services().get<RawDeviceService>().device();
-      if (device->fChannels.count("metric-feedback")) {
+      int maxTFInFlight = std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit"));
+      if (maxTFInFlight && device->fChannels.count("metric-feedback")) {
         // FIXME: only two channels difference
-        while ((sentTimeframes - consumedTimeframes) > 2) {
-          FairMQMessagePtr msg;
-          auto count = device->Receive(msg, "metric-feedback", 0, -1);
-          if (count <= 0) {
-            return;
+        int waitMessage = 0;
+        int recvTimeot = 0;
+        while ((sentTimeframes - consumedTimeframes) >= maxTFInFlight) {
+          if (recvTimeot == -1 && waitMessage == 0) {
+            LOG(alarm) << "Maximum number of TF in flight reached (" << maxTFInFlight << ": published " << sentTimeframes << " - finished " << consumedTimeframes << "), waiting";
+            waitMessage = 1;
           }
-          assert(msg->GetSize() == 8); 
+          auto msg = device->NewMessageFor("metric-feedback", 0, 0);
+
+          auto count = device->Receive(msg, "metric-feedback", 0, recvTimeot);
+          if (count <= 0) {
+            recvTimeot = -1;
+            continue;
+          }
+          assert(msg->GetSize() == 8);
           consumedTimeframes = *(int64_t*)msg->GetData();
+        }
+        if (waitMessage) {
+          LOG(important) << (sentTimeframes - consumedTimeframes) << " / " << maxTFInFlight << " TF in flight, continuing to publish";
         }
       }
 
