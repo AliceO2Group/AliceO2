@@ -23,10 +23,18 @@ namespace o2
 {
 namespace mcutils
 {
-/// Function to determine if a MC track/particle p is a primary according to physics criteria.
-/// Needs the particle as input, as well as the whole navigable container of particles
-/// (of which p needs to be a part itself). The container can be fetched via MCKinematicsReader.
-bool isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
+/// A couple of functions to query on MC tracks ( that needs navigation within the global container
+/// of available tracks. It is a class so as to make it available for interactive ROOT more easily
+class MCTrackNavigator
+{
+ public:
+  /// Function to determine if a MC track/particle p is a primary according to physics criteria.
+  /// Needs the particle as input, as well as the whole navigable container of particles
+  /// (of which p needs to be a part itself). The container can be fetched via MCKinematicsReader.
+  static bool isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer);
+
+  ClassDefNV(MCTrackNavigator, 1);
+};
 
 /// Determine if a particle (identified by pdg) is stable
 inline bool isStable(int pdg)
