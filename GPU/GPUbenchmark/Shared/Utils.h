@@ -146,7 +146,7 @@ inline std::string getTestName(Mode mode, Test test, KernelConfig blocks)
 template <class chunk_t>
 inline chunk_t* getCustomPtr(chunk_t* scratchPtr, float startGB)
 {
-  return reinterpret_cast<chunk_t*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * startGB));
+  return reinterpret_cast<chunk_t*>(reinterpret_cast<char*>(scratchPtr) + (static_cast<size_t>(GB * startGB) & 0xFFFFFFFFFFFFF000));
 }
 
 inline float computeThroughput(Test test, float result, float chunkSizeGB, int ntests)
@@ -160,7 +160,7 @@ inline float computeThroughput(Test test, float result, float chunkSizeGB, int n
 template <class chunk_t>
 inline size_t getBufferCapacity(float chunkReservedGB)
 {
-  return static_cast<size_t>((GB * chunkReservedGB) / sizeof(chunk_t));
+  return (static_cast<size_t>(GB * chunkReservedGB) & 0xFFFFFFFFFFFFF000) / sizeof(chunk_t);
 }
 
 // LCG: https://rosettacode.org/wiki/Linear_congruential_generator
