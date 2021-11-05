@@ -650,7 +650,7 @@ void Tracker::getGlobalConfiguration()
   for (auto& params : mTrkParams) {
     if (params.NLayers == 7) {
       for (int i{0}; i < 7; ++i) {
-        params.LayerMisalignment[i] = tc.misalignment[i] > 0 ? tc.misalignment[i] : params.LayerMisalignment[i];
+        params.LayerMisalignment[i] = tc.sysErrZ2[i] > 0 ? std::sqrt(tc.sysErrZ2[i]) : params.LayerMisalignment[i];
       }
     }
     params.PhiBins = tc.LUTbinsPhi > 0 ? tc.LUTbinsPhi : params.PhiBins;

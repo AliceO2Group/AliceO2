@@ -52,6 +52,7 @@
 #include "CommonDataFormat/FlatHisto2D.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
+#include "ITSMFTReconstruction/ChipMappingITS.h"
 
 class TTree;
 
@@ -560,6 +561,8 @@ class MatchTPCITS
   o2::BunchFilling mBunchFilling;
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchBelow; // closest filled bunch from below
+
+  const o2::itsmft::ChipMappingITS ITSChMap{};
 
   const o2::globaltracking::RecoContainer* mRecoCont = nullptr;
   ///>>>------ these are input arrays which should not be modified by the matching code
