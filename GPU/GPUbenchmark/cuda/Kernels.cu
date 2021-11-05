@@ -460,6 +460,12 @@ float GPUbenchmark<chunk_t>::runDistributed(void (*kernel)(chunk_t**, size_t*, T
               << std::endl;
   }
 
+  if (mOptions.dumpChunks) {
+    for (size_t iChunk{0}; iChunk < totComputedBlocks; ++iChunk) {
+      std::cout << "   │   - block " << iChunk << " address: " << ptrPerBlocks[iChunk] << ", size: " << perBlockCapacity[iChunk] << std::endl;
+    }
+  }
+
   // Setup
   chunk_t** block_ptr;
   size_t* block_size;
@@ -559,7 +565,8 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
   mResultWriter.get()->addBenchmarkEntry(getTestName(mode, test, config), getType<chunk_t>(), mState.getMaxChunks());
   auto dimGrid{mState.nMultiprocessors};
   auto nBlocks{(config == KernelConfig::Single) ? 1 : (config == KernelConfig::Multi) ? dimGrid / mState.testChunks.size()
-                                                                                      : (config == KernelConfig::All) ? dimGrid : mOptions.numBlocks};
+                                                    : (config == KernelConfig::All)   ? dimGrid
+                                                                                      : mOptions.numBlocks};
   size_t nThreads;
   if (mOptions.numThreads < 0) {
     nThreads = std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock);

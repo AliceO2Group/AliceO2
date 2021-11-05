@@ -214,6 +214,7 @@ struct benchmarkOpts {
   int nTests = 1;
   int streams = 8;
   std::string outFileName = "benchmark_result";
+  bool dumpChunks = false;
 };
 
 template <class chunk_t>
