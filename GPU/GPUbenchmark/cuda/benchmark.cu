@@ -21,22 +21,25 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
   bpo::variables_map vm;
   bpo::options_description options("Benchmark options");
   options.add_options()(
-    "help,h", "Print help message.")(
-    "version,v", "Print version.")(
-    "extra,x", "Print extra info for each available device.")(
     "arbitrary,a", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{""}, ""), "Custom selected chunks syntax <p>:<s>. P is starting GB, S is the size in GB.")(
-    "device,d", bpo::value<int>()->default_value(0), "Id of the device to run test on, EPN targeted.")(
-    "test,t", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"read", "write", "copy"}, "read write copy"), "Tests to be performed.")(
-    "kind,k", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"char", "int", "ulong", "int4"}, "char int ulong int4"), "Test data type to be used.")(
-    "mode,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"seq", "con", "dis"}, "seq con dis"), "Mode: sequential, concurrent or distributed.")(
-    "blockPool,b", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"sb", "mb", "ab"}, "sb mb ab"), "Pool strategy: single, multi or all blocks.")(
-    "threadPool,e", bpo::value<float>()->default_value(1.f), "Fraction of blockDim.x to use (aka: rounded fraction of thread pool).")(
+    "blockPool,b", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"sb", "mb", "ab"}, "sb mb ab cb"), "Block pool strategy: single, multi, all or manual blocks.")(
     "chunkSize,c", bpo::value<float>()->default_value(1.f), "Size of scratch partitions (GB).")(
+    "device,d", bpo::value<int>()->default_value(0), "Id of the device to run test on, EPN targeted.")(
+    "threadPool,e", bpo::value<float>()->default_value(1.f), "Fraction of blockDim.x to use (aka: rounded fraction of thread pool).")(
     "freeMemFraction,f", bpo::value<float>()->default_value(0.95f), "Fraction of free memory to be allocated (min: 0.f, max: 1.f).")(
+    "blocks,g", bpo::value<int>()->default_value(-1), "Number of blocks, manual mode. (g=-1: gridDim.x).")(
+    "help,h", "Print help message.")(
+    "inspect,i", "Inspect and dump chunk addresses")(
+    "threads,j", bpo::value<int>()->default_value(-1), "Number of threads per block, manual mode. (j=-1: blockDim.x).")(
+    "kind,k", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"char", "int", "ulong", "int4"}, "char int ulong int4"), "Test data type to be used.")(
     "launches,l", bpo::value<int>()->default_value(10), "Number of iterations in reading kernels.")(
+    "mode,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"seq", "con", "dis"}, "seq con dis"), "Mode: sequential, concurrent or distributed.")(
     "nruns,n", bpo::value<int>()->default_value(1), "Number of times each test is run.")(
+    "outfile,o", bpo::value<std::string>()->default_value("benchmark_result"), "Output file name to store results.")(
     "streams,s", bpo::value<int>()->default_value(8), "Size of the pool of streams available for concurrent tests.")(
-    "outfile,o", bpo::value<std::string>()->default_value("benchmark_result"), "Output file name to store results.");
+    "test,t", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"read", "write", "copy"}, "read write copy"), "Tests to be performed.")(
+    "version,v", "Print version.")(
+    "extra,x", "Print extra info for each available device.");
   try {
     bpo::store(parse_command_line(argc, argv, options), vm);
     if (vm.count("help")) {
@@ -68,6 +71,8 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
   conf.deviceId = vm["device"].as<int>();
   conf.freeMemoryFractionToAllocate = vm["freeMemFraction"].as<float>();
   conf.threadPoolFraction = vm["threadPool"].as<float>();
+  conf.numThreads = vm["threads"].as<int>();
+  conf.numBlocks = vm["blocks"].as<int>();
   conf.chunkReservedGB = vm["chunkSize"].as<float>();
   conf.kernelLaunches = vm["launches"].as<int>();
   conf.nTests = vm["nruns"].as<int>();
@@ -109,6 +114,12 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
       conf.pools.push_back(KernelConfig::Multi);
     } else if (pool == "ab") {
       conf.pools.push_back(KernelConfig::All);
+    } else if (pool == "cb") {
+      if (vm["blocks"].as<int>() < 0) {
+        std::cerr << "Manual pool setting requires --blocks or -g to be passed." << std::endl;
+        exit(1);
+      }
+      conf.pools.push_back(KernelConfig::Manual);
     } else {
       std::cerr << "Unkonwn pool: " << pool << std::endl;
       exit(1);

@@ -95,7 +95,8 @@ inline std::ostream& operator<<(std::ostream& os, Mode mode)
 enum class KernelConfig {
   Single,
   Multi,
-  All
+  All,
+  Manual
 };
 
 inline std::ostream& operator<<(std::ostream& os, KernelConfig config)
@@ -109,6 +110,9 @@ inline std::ostream& operator<<(std::ostream& os, KernelConfig config)
       break;
     case KernelConfig::All:
       os << "all";
+      break;
+    case KernelConfig::Manual:
+      os << "manual";
       break;
   }
   return os;
@@ -204,6 +208,8 @@ struct benchmarkOpts {
   float chunkReservedGB = 1.f;
   float threadPoolFraction = 1.f;
   float freeMemoryFractionToAllocate = 0.95f;
+  int numThreads = -1;
+  int numBlocks = -1;
   int kernelLaunches = 1;
   int nTests = 1;
   int streams = 8;
