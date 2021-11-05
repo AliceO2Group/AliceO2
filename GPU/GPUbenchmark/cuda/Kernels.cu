@@ -543,7 +543,7 @@ void GPUbenchmark<chunk_t>::globalInit()
   std::cout << "   ├ Buffer type: \e[1m" << getType<chunk_t>() << "\e[0m" << std::endl
             << "   ├ Allocated: " << std::setprecision(2) << bytesToGB(mState.scratchSize) << "/" << std::setprecision(2) << bytesToGB(mState.totalMemory)
             << "(GB) [" << std::setprecision(3) << (100.f) * (mState.scratchSize / (float)mState.totalMemory) << "%]\n"
-            << "   └ Number of streams allocated: " << mState.getStreamsPoolSize() << "\n\n";
+            << "   └ Available streams: " << mState.getStreamsPoolSize() << "\n\n";
 }
 
 template <class chunk_t>
@@ -558,10 +558,18 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
 {
   mResultWriter.get()->addBenchmarkEntry(getTestName(mode, test, config), getType<chunk_t>(), mState.getMaxChunks());
   auto dimGrid{mState.nMultiprocessors};
-  auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock) * mOptions.threadPoolFraction};
   auto nBlocks{(config == KernelConfig::Single) ? 1 : (config == KernelConfig::Multi) ? dimGrid / mState.testChunks.size()
-                                                                                      : dimGrid};
+                                                                                      : (config == KernelConfig::All) ? dimGrid : mOptions.numBlocks};
+  size_t nThreads;
+  if (mOptions.numThreads < 0) {
+    nThreads = std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock);
+  } else {
+    nThreads = mOptions.numThreads;
+  }
+  nThreads *= mOptions.threadPoolFraction;
+
   auto capacity{mState.getChunkCapacity()};
+
   void (*kernel)(chunk_t*, size_t);
   void (*kernel_distributed)(chunk_t**, size_t*);
 
