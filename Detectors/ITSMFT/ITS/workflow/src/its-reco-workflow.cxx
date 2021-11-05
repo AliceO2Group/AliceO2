@@ -30,11 +30,11 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
   policies.push_back(CallbacksPolicy{
-    [](DeviceSpec const& spec, ConfigContext& context) -> bool {
+    [](DeviceSpec const& spec, ConfigContext const& context) -> bool {
       auto filename = context.options().get<std::string>("filename");
       return false;
     },
-    [](CallbackService& service, ConfigContext& context) {
+    [](CallbackService& service, InitContext& context) {
       //      std::vector<uint64_t> enums = readEnumerations(context.options().get<std::string>("filename"));
       service.set(CallbackService::Id::NewTimeslice, [/*enums*/](o2::header::DataHeader& dh) {
       });
