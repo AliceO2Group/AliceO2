@@ -264,7 +264,7 @@ elif [ $EPNPIPELINES != 0 ]; then
     GPU_CONFIG_KEY+="GPU_proc.ompThreads=4;"
   fi
   # Scale some multiplicities with the number of nodes
-  RECO_NUM_NODES_WORKFLOW_CMP=$((($RECO_NUM_NODES_WORKFLOW > 15 ? $RECO_NUM_NODES_WORKFLOW : 15) * ($NUMAGPUIDS == 1 ? 2 : 1))) # Limit the lowert scaling factor, multiply by 2 if we have 2 NUMA domains
+  RECO_NUM_NODES_WORKFLOW_CMP=$((($RECO_NUM_NODES_WORKFLOW > 15 ? $RECO_NUM_NODES_WORKFLOW : 15) * ($NUMAGPUIDS == 1 ? 2 : 1))) # Limit the lower scaling factor, multiply by 2 if we have 2 NUMA domains
   N_ITSRAWDEC=$(math_max $((3 * 60 / $RECO_NUM_NODES_WORKFLOW_CMP)) ${N_ITSRAWDEC:-1}) # This means, if we have 60 EPN nodes, we need at least 3 ITS RAW decoders
   N_MFTRAWDEC=$(math_max $((3 * 60 / $RECO_NUM_NODES_WORKFLOW_CMP)) ${N_MFTRAWDEC:-1})
   N_ITSTRK=$(math_max $((1 * 200 / $RECO_NUM_NODES_WORKFLOW_CMP)) ${N_ITSTRK:-1})
@@ -276,7 +276,7 @@ fi
 # ---------------------------------------------------------------------------------------------------------------------
 # Helper to add binaries to workflow adding automatic and custom arguments
 WORKFLOW= # Make sure we start with an empty workflow
-[[ ! -z $GEN_TOPO_ONTHEFLY && $GEN_TOPO_ONTHEFLY == 1 ]] && WORKFLOW="echo '{}' | "
+[[ "0$GEN_TOPO_ONTHEFLY" == "01" ]] && WORKFLOW="echo '{}' | "
 
 add_W() # Add binarry to workflow command USAGE: add_W [BINARY] [COMMAND_LINE_OPTIONS] [CONFIG_KEY_VALUES] [Add ARGS_ALL_CONFIG, optional, default = 1]
 {
@@ -458,13 +458,8 @@ WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Run / create / print workflow
-if [ $WORKFLOWMODE == "print" ]; then
-  echo "#Workflow command:"
-  echo $WORKFLOW | sed "s/| */|\n/g"
-else
-  # Execute the command we have assembled
-  WORKFLOW+=" --$WORKFLOWMODE"
-  eval $WORKFLOW
-fi
+[[ $WORKFLOWMODE != "print" ]] && WORKFLOW+=" --${WORKFLOWMODE}"
+[[ $WORKFLOWMODE == "print" || "0$PRINT_WORKFLOW" == "01" ]] && echo "#Workflow command:\n\n${WORKFLOW}\n" | sed -e "s/\\\\n/\n/g" -e"s/| */| \\\\\n/g" | eval cat $( [[ $WORKFLOWMODE == "dds" ]] && echo '1>&2')
+[[ $WORKFLOWMODE != "print" ]] && eval $WORKFLOW
 
 # ---------------------------------------------------------------------------------------------------------------------
