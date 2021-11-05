@@ -31,7 +31,7 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
   policies.push_back(CallbacksPolicy{
     [](DeviceSpec const& spec, ConfigContext const& context) -> bool {
-      auto filename = context.options().get<std::string>("filename");
+      // auto filename = context.options().get<std::string>("filename");
       return false;
     },
     [](CallbackService& service, InitContext& context) {
