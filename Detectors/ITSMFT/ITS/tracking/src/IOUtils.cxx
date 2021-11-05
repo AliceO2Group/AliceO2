@@ -56,6 +56,16 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
                                      const itsmft::TopologyDictionary& dict)
 {
   GeometryTGeo* geom = GeometryTGeo::Instance();
+  bool applyMisalignment = false;
+  const auto& conf = TrackerParamConfig::Instance();
+  const auto& chmap = getChipMappingITS();
+  for (int il = 0; il < chmap.NLayers; il++) {
+    if (conf.sysErrY2[il] > 0.f || conf.sysErrZ2[il] > 0.f) {
+      applyMisalignment = true;
+      break;
+    }
+  }
+
   for (auto& c : clusters) {
     auto pattID = c.getPatternID();
     o2::math_utils::Point3D<float> locXYZ;
@@ -74,6 +84,11 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
       locXYZ = dict.getClusterCoordinates(c, patt, false);
     }
     auto& cl3d = output.emplace_back(c.getSensorID(), geom->getMatrixT2L(c.getSensorID()) ^ locXYZ); // local --> tracking
+    if (applyMisalignment) {
+      auto lrID = chmap.getLayer(c.getSensorID());
+      sigmaY2 += conf.sysErrY2[lrID];
+      sigmaZ2 += conf.sysErrZ2[lrID];
+    }
     cl3d.setErrors(sigmaY2, sigmaZ2, sigmaYZ);
   }
 }
