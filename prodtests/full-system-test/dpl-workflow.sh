@@ -281,6 +281,7 @@ N_TRDRAWDEC=$(math_max $((3 * 60 / $RECO_NUM_NODES_WORKFLOW_CMP)) ${N_TRDRAWDEC:
 # ---------------------------------------------------------------------------------------------------------------------
 # Helper to add binaries to workflow adding automatic and custom arguments
 WORKFLOW= # Make sure we start with an empty workflow
+[[ ! -z $GEN_TOPO_ONTHEFLY && $GEN_TOPO_ONTHEFLY == 1 ]] && WORKFLOW="echo '{}' | "
 
 add_W() # Add binarry to workflow command USAGE: add_W [BINARY] [COMMAND_LINE_OPTIONS] [CONFIG_KEY_VALUES] [Add ARGS_ALL_CONFIG, optional, default = 1]
 {
