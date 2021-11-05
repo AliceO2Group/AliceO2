@@ -40,6 +40,7 @@ namespace o2::framework
 {
 struct InputChannelSpec;
 struct OutputChannelSpec;
+struct ConfigContext;
 
 struct DeviceSpecHelpers {
   /// Helper to convert from an abstract dataflow specification, @a workflow,
@@ -54,6 +55,7 @@ struct DeviceSpecHelpers {
     std::vector<DeviceSpec>& devices,
     ResourceManager& resourceManager,
     std::string const& uniqueWorkflowId,
+    ConfigContext const& configContext,
     bool optimizeTopology = false,
     unsigned short resourcesMonitoringInterval = 0,
     std::string const& channelPrefix = "");
@@ -66,6 +68,7 @@ struct DeviceSpecHelpers {
     std::vector<DeviceSpec>& devices,
     ResourceManager& resourceManager,
     std::string const& uniqueWorkflowId,
+    ConfigContext const& configContext,
     bool optimizeTopology = false,
     unsigned short resourcesMonitoringInterval = 0,
     std::string const& channelPrefix = "")
@@ -74,7 +77,7 @@ struct DeviceSpecHelpers {
     std::vector<ResourcePolicy> resourcePolicies = ResourcePolicy::createDefaultPolicies();
     dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies,
                                    dispatchPolicies, resourcePolicies, callbacksPolicies, devices,
-                                   resourceManager, uniqueWorkflowId, optimizeTopology,
+                                   resourceManager, uniqueWorkflowId, configContext, optimizeTopology,
                                    resourcesMonitoringInterval, channelPrefix);
   }
 

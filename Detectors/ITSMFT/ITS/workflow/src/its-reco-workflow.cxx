@@ -14,14 +14,32 @@
 #include "ITStracking/TrackingConfigParam.h"
 #include "ITStracking/Configuration.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
+#include "Framework/CallbackService.h"
+#include "Framework/ConfigContext.h"
 
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
 #include "GPUChainITS.h"
+#include <vector>
 
 using namespace o2::framework;
 
 // ------------------------------------------------------------------
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  policies.push_back(CallbacksPolicy{
+    [](DeviceSpec const& spec, ConfigContext& context) -> bool {
+      auto filename = context.options().get<std::string>("filename");
+      return false;
+    },
+    [](CallbackService& service, ConfigContext& context) {
+      //      std::vector<uint64_t> enums = readEnumerations(context.options().get<std::string>("filename"));
+      service.set(CallbackService::Id::NewTimeslice, [enums](o2::header::DataHeader& dh) {
+      });
+    }});
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
