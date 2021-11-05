@@ -36,7 +36,7 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
     },
     [](CallbackService& service, ConfigContext& context) {
       //      std::vector<uint64_t> enums = readEnumerations(context.options().get<std::string>("filename"));
-      service.set(CallbackService::Id::NewTimeslice, [enums](o2::header::DataHeader& dh) {
+      service.set(CallbackService::Id::NewTimeslice, [/*enums*/](o2::header::DataHeader& dh) {
       });
     }});
 }
