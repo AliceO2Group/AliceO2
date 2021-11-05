@@ -15,10 +15,11 @@
 
 #include <SimulationDataFormat/MCUtils.h>
 
-using namespace o2::mcutils;
+namespace o2::mcutils
+{
 
 // taken from AliRoot and adapted to use of o2::MCTrack class
-bool isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer)
+bool MCTrackNavigator::isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pcontainer)
 {
   // Test if a particle is a physical primary according to the following definition:
   // Particles produced in the collision including products of strong and
@@ -119,3 +120,5 @@ bool isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::MCTrack> const& pco
     }
   } // end else branch produced by generator
 }
+
+} // namespace o2::mcutils
