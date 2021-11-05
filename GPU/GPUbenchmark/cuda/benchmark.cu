@@ -29,7 +29,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
     "freeMemFraction,f", bpo::value<float>()->default_value(0.95f), "Fraction of free memory to be allocated (min: 0.f, max: 1.f).")(
     "blocks,g", bpo::value<int>()->default_value(-1), "Number of blocks, manual mode. (g=-1: gridDim.x).")(
     "help,h", "Print help message.")(
-    "inspect,i", "Inspect and dump chunk addresses")(
+    "inspect,i", "Inspect and dump chunk addresses.")(
     "threads,j", bpo::value<int>()->default_value(-1), "Number of threads per block, manual mode. (j=-1: blockDim.x).")(
     "kind,k", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>{"char", "int", "ulong", "int4"}, "char int ulong int4"), "Test data type to be used.")(
     "launches,l", bpo::value<int>()->default_value(10), "Number of iterations in reading kernels.")(
@@ -57,6 +57,10 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
       o2::benchmark::GPUbenchmark<char> bm_dummy{opts, nullptr};
       bm_dummy.printDevices();
       return false;
+    }
+
+    if (vm.count("inspect")) {
+      conf.dumpChunks = true;
     }
 
     bpo::notify(vm);
