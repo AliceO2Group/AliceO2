@@ -44,6 +44,7 @@ void exampleMCTrackAnalysis(const char* itsdigitfilename) {
   int purenoisedigits = 0;
   int secondarydigits = 0;
   int primarydigits = 0;
+
   for (int pos = 0; pos < digits->size(); ++pos) {
     auto& digit = (*digits)[pos];
     bool noisecontrib = false;
