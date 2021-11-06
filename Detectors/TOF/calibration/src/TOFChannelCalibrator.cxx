@@ -18,6 +18,7 @@
 #include "Fit/Fitter.h"
 #include "Fit/BinData.h"
 #include "Math/WrappedMultiTF1.h"
+#include "TOFBase/Utils.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -53,6 +54,14 @@ void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> d
     LOG(DEBUG) << "inserting in channel " << ch << ": dt = " << dt << ", tot = " << tot << ", corr = " << corr << ", corrected dt = " << dt - corr;
 
     dt -= corr;
+
+    if (!Utils::hasFillScheme()) {
+      Utils::addBC(dt);
+
+      continue;
+    }
+
+    dt = Utils::subtractInteractionBC(dt);
 
     mHisto[sector](dt, chInSect); // we pass the calibrated time
     mEntries[ch] += 1;
