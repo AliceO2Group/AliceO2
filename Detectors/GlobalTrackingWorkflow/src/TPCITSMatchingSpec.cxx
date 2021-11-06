@@ -42,7 +42,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "Headers/DataHeader.h"
 #include "CommonDataFormat/BunchFilling.h"
-#include "CommonDataFormat/FlatHisto2D.h"
+#include "CommonDataFormat/Pair.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 
@@ -152,9 +152,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   }
 
   if (mCalibMode) {
-    auto* hdtgl = mMatching.getHistoDTgl();
-    pc.outputs().snapshot(Output{"GLO", "TPCITS_VDHDTGL", 0, Lifetime::Timeframe}, (*hdtgl).getBase());
-    hdtgl->clear();
+    pc.outputs().snapshot(Output{"GLO", "TPCITS_VDTGL", 0, Lifetime::Timeframe}, mMatching.getTglITSTPC());
   }
   mTimer.Stop();
 }
@@ -185,7 +183,7 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
   outputs.emplace_back("GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe); // cluster indices of ITS tracklets attached by the AfterBurner
 
   if (calib) {
-    outputs.emplace_back("GLO", "TPCITS_VDHDTGL", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "TPCITS_VDTGL", 0, Lifetime::Timeframe);
   }
 
   if (useMC) {

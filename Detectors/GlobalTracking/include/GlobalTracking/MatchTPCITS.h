@@ -37,6 +37,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/BunchFilling.h"
+#include "CommonDataFormat/Pair.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -49,7 +50,6 @@
 #include "TPCFastTransform.h"
 #include "GPUO2InterfaceRefit.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
-#include "CommonDataFormat/FlatHisto2D.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
@@ -349,9 +349,6 @@ class MatchTPCITS
     mVDriftCalibOn = v;
   }
 
-  ///< get histo for tgl differences for VDrift calibration
-  auto getHistoDTgl() const { return mHistoDTgl.get(); }
-
   ///< print settings
   void print() const;
   void printCandidatesTPC() const;
@@ -362,6 +359,7 @@ class MatchTPCITS
   const MCLabContTr& getABTrackletLabels() const { return mABTrackletLabels; }
   const std::vector<int>& getABTrackletClusterIDs() const { return mABTrackletClusterIDs; }
   const std::vector<o2::itsmft::TrkClusRef>& getABTrackletRefs() const { return mABTrackletRefs; }
+  const std::vector<o2::dataformats::Pair<float, float>>& getTglITSTPC() const { return mTglITSTPC; }
 
   //>>> ====================== options =============================>>>
   void setUseMatCorrFlag(MatCorrType f) { mUseMatCorrFlag = f; }
@@ -553,7 +551,6 @@ class MatchTPCITS
   float mMinITSTrackPtInv = 999.; ///< cutoff on ITS track inverse pT
 
   bool mVDriftCalibOn = false;                                ///< flag to produce VDrift calibration data
-  std::unique_ptr<o2::dataformats::FlatHisto2D_f> mHistoDTgl; ///< histo for VDrift calibration data
 
   std::unique_ptr<TPCTransform> mTPCTransform;         ///< TPC cluster transformation
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
@@ -630,6 +627,9 @@ class MatchTPCITS
   ///< outputs tracks container
   std::vector<o2::dataformats::TrackTPCITS> mMatchedTracks;
   MCLabContTr mOutLabels; ///< Labels: = TPC labels with flag isFake set in case of fake matching
+
+  ///< container for <tglITS, tglTPC> pairs for vdrift calibration
+  std::vector<o2::dataformats::Pair<float, float>> mTglITSTPC;
 
   o2::its::RecoGeomHelper mRGHelper; ///< helper for cluster and geometry access
 
