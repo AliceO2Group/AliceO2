@@ -83,7 +83,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
 
     TFile* fsleewing = TFile::Open("localTimeSlewing.root");
     if (fsleewing) {
-      TimeSlewing* ob = (TimeSlewing*)fsleewing->Get("TimeSlewing");
+      TimeSlewing* ob = (TimeSlewing*)fsleewing->Get("ccdb_object");
       mTimeSlewing = *ob;
       return;
     }

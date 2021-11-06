@@ -121,14 +121,13 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
     float erret = evtime.eventTimeError;
     float res = sqrt(track.tofExpSigmaPi() * track.tofExpSigmaPi() + erret * erret);
 
-    if (1) { //remove bias
-      float sumw = 1. / erret / erret;
-      et *= sumw;
-      et -= evtime.weights[nt] * evtime.tracktime[nt];
-      sumw -= evtime.weights[nt];
-      et /= sumw;
-      erret = sqrt(1. / sumw);
-    }
+    float sumw = 1. / erret / erret;
+    et *= sumw;
+    et -= evtime.weights[nt] * evtime.tracktime[nt];
+    sumw -= evtime.weights[nt];
+    et /= sumw;
+    erret = sqrt(1. / sumw);
+
     nt++;
 
     //Beta
