@@ -20,9 +20,10 @@ namespace o2::framework
 {
 
 struct CallbackService;
+struct InitContext;
 
 struct CallbacksPolicy {
-  using CallbacksCustomization = std::function<void(CallbackService&)>;
+  using CallbacksCustomization = std::function<void(CallbackService&, InitContext&)>;
   DeviceMatcher matcher = nullptr;
   CallbacksCustomization policy = nullptr;
   static std::vector<CallbacksPolicy> createDefaultPolicies();
