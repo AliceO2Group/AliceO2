@@ -27,7 +27,8 @@ o2_target_root_dictionary(CommonDataFormat
                                   include/CommonDataFormat/BunchFilling.h
                                   include/CommonDataFormat/AbstractRef.h
                                   include/CommonDataFormat/FlatHisto1D.h
-                                  include/CommonDataFormat/FlatHisto2D.h)
+                                  include/CommonDataFormat/FlatHisto2D.h
+                                  include/CommonDataFormat/Pair.h)
 
 o2_add_test(TimeStamp
             SOURCES test/testTimeStamp.cxx
