@@ -153,6 +153,7 @@ void MatchTPCITS::clear()
   mABTrackletRefs.clear();
   mABTrackletClusterIDs.clear();
   mABTrackletLabels.clear();
+  mTglITSTPC.clear();
 
   for (int sec = o2::constants::math::NSectors; sec--;) {
     mITSSectIndexCache[sec].clear();
@@ -196,12 +197,6 @@ void MatchTPCITS::init()
   mSectEdgeMargin2 = mParams->crudeAbsDiffCut[o2::track::kY] * mParams->crudeAbsDiffCut[o2::track::kY]; ///< precalculated ^2
   std::unique_ptr<TPCTransform> fastTransform = (o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   mTPCTransform = std::move(fastTransform);
-
-  if (mVDriftCalibOn) {
-    float maxDTgl = std::min(0.02f, mParams->maxVDriftUncertainty) * mParams->maxTglForVDriftCalib;
-    mHistoDTgl = std::make_unique<o2::dataformats::FlatHisto2D_f>(mParams->nBinsTglVDriftCalib, -mParams->maxTglForVDriftCalib, mParams->maxTglForVDriftCalib,
-                                                                  mParams->nBinsDTglVDriftCalib, -maxDTgl, maxDTgl);
-  }
 
 #ifdef _ALLOW_DEBUG_TREES_
   // debug streamer
@@ -1370,12 +1365,8 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   }
 
   // if requested, fill the difference of ITS and TPC tracks tgl for vdrift calibation
-  if (mHistoDTgl) {
-    auto tglITS = tITS.getTgl();
-    if (std::abs(tglITS) < mHistoDTgl->getXMax()) {
-      auto dTgl = tglITS - tTPC.getTgl();
-      mHistoDTgl->fill(tglITS, dTgl);
-    }
+  if (mVDriftCalibOn) {
+    mTglITSTPC.emplace_back(tITS.getTgl(), tTPC.getTgl());
   }
   //  trfit.print(); // DBG
 
