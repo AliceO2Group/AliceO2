@@ -37,6 +37,7 @@ class Utils
   static double subtractInteractionBC(double time);
   static float subtractInteractionBC(float time);
   static void init();
+  static void printFillScheme();
 
  private:
   static std::vector<int> mFillScheme;

@@ -35,6 +35,14 @@ void Utils::init()
   memset(mBCmult, 0, (o2::constants::lhc::LHCMaxBunches + 1) * sizeof(mBCmult[0]));
 }
 
+void Utils::printFillScheme()
+{
+  printf("FILL SCHEME\n");
+  for (int i = 0; i < getNinteractionBC(); i++) {
+    printf("BC(%d) %d\n", i, mFillScheme[i]);
+  }
+}
+
 int Utils::getNinteractionBC()
 {
   return mFillScheme.size();
