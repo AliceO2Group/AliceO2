@@ -307,7 +307,8 @@ void DataProcessingDevice::Init()
 
   // Invoke the callback policy for this device.
   if (mSpec.callbacksPolicy.policy != nullptr) {
-    mSpec.callbacksPolicy.policy(mServiceRegistry.get<CallbackService>());
+    InitContext initContext{*mConfigRegistry, mServiceRegistry};
+    mSpec.callbacksPolicy.policy(mServiceRegistry.get<CallbackService>(), initContext);
   }
 }
 

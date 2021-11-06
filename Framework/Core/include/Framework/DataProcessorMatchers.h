@@ -17,9 +17,10 @@ namespace o2::framework
 
 struct DataProcessorSpec;
 struct DeviceSpec;
+struct ConfigContext;
 
 using DataProcessorMatcher = std::function<bool(DataProcessorSpec const& spec)>;
-using DeviceMatcher = std::function<bool(DeviceSpec const& spec)>;
+using DeviceMatcher = std::function<bool(DeviceSpec const& spec, ConfigContext const& context)>;
 
 /// A set of helper to build policies that need to
 /// be applied based on some DataProcessorSpec property

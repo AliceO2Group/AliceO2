@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec1)
   BOOST_CHECK_EQUAL(offers[0].startPort, 22000);
   BOOST_CHECK_EQUAL(offers[0].rangeSize, 1000);
 
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id");
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
   BOOST_REQUIRE_EQUAL(devices.size(), 2);
   BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 1);
   BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec1PushPull)
   std::vector<DeviceSpec> devices;
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id");
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
   BOOST_CHECK_EQUAL(devices.size(), 2);
   BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 1);
   BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec2)
 
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id");
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
   BOOST_CHECK_EQUAL(devices.size(), 2);
   BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 1);
   BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
@@ -186,7 +186,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec3)
 
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id");
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
   BOOST_CHECK_EQUAL(devices.size(), 3);
   BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 2);
   BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
@@ -236,7 +236,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec4)
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
 
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id");
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
   BOOST_CHECK_EQUAL(devices.size(), 4);
   BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 2);
   BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
@@ -307,7 +307,7 @@ BOOST_AUTO_TEST_CASE(TestTopologyForwarding)
 
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id");
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
   BOOST_CHECK_EQUAL(devices.size(), 3);
   BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 1);
   BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
@@ -587,7 +587,7 @@ BOOST_AUTO_TEST_CASE(TestTopologyLayeredTimePipeline)
   auto callbacksPolicies = CallbacksPolicy::createDefaultPolicies();
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id");
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
   BOOST_CHECK_EQUAL(devices.size(), 6);
   BOOST_CHECK_EQUAL(devices[0].id, "A");
   BOOST_CHECK_EQUAL(devices[1].id, "B_t0");

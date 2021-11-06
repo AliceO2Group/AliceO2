@@ -24,7 +24,7 @@ DataProcessorMatcher DataProcessorMatchers::matchByName(char const* name_)
 
 DeviceMatcher DeviceMatchers::matchByName(char const* name_)
 {
-  return [name = std::string(name_)](DeviceSpec const& spec) {
+  return [name = std::string(name_)](DeviceSpec const& spec, ConfigContext const&) {
     return spec.name == name;
   };
 }
