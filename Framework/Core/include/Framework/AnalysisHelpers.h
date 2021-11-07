@@ -348,8 +348,9 @@ struct IndexSparse {
 };
 
 /// This helper struct allows you to declare index tables to be created in a task
-template <typename T, typename IP = std::conditional_t<aod::MetadataTrait<T>::metadata::exclusive, IndexExclusive, IndexSparse>>
+template <typename T>
 struct Builds : TableTransform<typename aod::MetadataTrait<T>::metadata> {
+  using IP = std::conditional_t<aod::MetadataTrait<T>::metadata::exclusive, IndexExclusive, IndexSparse>;
   using Key = typename T::indexing_t;
   using H = typename T::first_t;
   using Ts = typename T::rest_t;
