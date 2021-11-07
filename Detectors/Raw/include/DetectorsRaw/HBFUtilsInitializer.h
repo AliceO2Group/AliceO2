@@ -16,14 +16,21 @@
 #define _O2_HBFUTILS_INITIALIZER_
 
 #include <vector>
+#include <string>
+#include "CommonDataFormat/TFIDInfo.h"
 
 namespace o2
 {
 
+namespace header
+{
+class DataHeader;
+}
 namespace framework
 {
 class ConfigContext;
 class DataProcessorSpec;
+class DeviceSpec;
 class ConfigParamSpec;
 using WorkflowSpec = std::vector<DataProcessorSpec>;
 } // namespace framework
@@ -32,11 +39,15 @@ namespace raw
 {
 
 struct HBFUtilsInitializer {
+  enum HBFOpt {NONE, INI, JSON, ROOT};
   static constexpr char HBFConfOpt[] = "hbfutils-config";
 
   HBFUtilsInitializer(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& wf);
-
+  static HBFOpt getOptType(const std::string& optString);
   static void addConfigOption(std::vector<o2::framework::ConfigParamSpec>& opts);
+  static bool needToAttachDataHeaderCallBack(const o2::framework::DeviceSpec& spec, const o2::framework::ConfigContext& context);
+  static std::vector<o2::dataformats::TFIDInfo> readTFIDInfoVector(const std::string& fname);
+  static void assignDataHeader(const std::vector<o2::dataformats::TFIDInfo>& tfinfoVec, o2::header::DataHeader& dh);
 };
 
 } // namespace raw
