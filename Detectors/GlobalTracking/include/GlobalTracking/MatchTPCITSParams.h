@@ -58,16 +58,6 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
 
   float maxVDriftUncertainty = 0.; ///< max assumed VDrift uncertainty, used only in VDrift calibration mode
 
-  float maxTglForVDriftCalib = 1.; ///< maximum ITS tgl to collect data for VDrift calibration
-  int nBinsTglVDriftCalib = 50;    ///< number of bins in reference ITS tgl for VDrift calibration
-  int nBinsDTglVDriftCalib = 100;  ///< number of bins in delta tgl for VDrift calibration
-
-  float itsIBErrY2 = 0.; ///< systematic error^2 in Y for ITS for IB
-  float itsIBErrZ2 = 0.; ///< systematic error^2 in Z for ITS for IB
-
-  float itsOBErrY2 = 0.; ///< systematic error^2 in Y for ITS for OB
-  float itsOBErrZ2 = 0.; ///< systematic error^2 in Z for ITS for OB
-
   //___________________ AfterBurner params
   int requireToReachLayerAB = 5;   ///< AB tracks should reach at least this layer from above
   int lowestLayerAB = 0;           ///< lowest layer to reach in AfterBurner
