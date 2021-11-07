@@ -19,11 +19,17 @@
 #include "EMCALWorkflow/RecoWorkflow.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 #include "CommonUtils/ConfigurableParam.h"
 
 #include <string>
 #include <stdexcept>
 #include <unordered_map>
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // add workflow options, note that customization needs to be declared before
 // including Framework/runDataProcessing
@@ -40,8 +46,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-decoding-errors", o2::framework::VariantType::Bool, false, {"disable propagating decoding errors"}},
     {"ignore-dist-stf", o2::framework::VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"subspecification", o2::framework::VariantType::Int, 0, {"Subspecification in case the workflow runs in parallel on multiple nodes (i.e. different FLPs)"}}};
-
-  o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
   std::swap(workflowOptions, options);
 }

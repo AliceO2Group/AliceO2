@@ -25,9 +25,15 @@
 #include "MIDWorkflow/DigitReaderSpec.h"
 #include "MIDWorkflow/ZeroSuppressionSpec.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 #include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -36,8 +42,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", VariantType::Bool, false, {"Do not propagate MC info"}},
     {"disable-zero-suppression", VariantType::Bool, false, {"Do not apply zero suppression"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
-
-  o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
   std::swap(workflowOptions, options);
 }
