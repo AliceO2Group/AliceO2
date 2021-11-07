@@ -14,6 +14,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/DataProcessorSpec.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 #include "GlobalTrackingWorkflow/GlobalFwdMatchingSpec.h"
 #include "GlobalTrackingWorkflow/GlobalFwdTrackWriterSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
@@ -21,6 +22,10 @@
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
 // ------------------------------------------------------------------
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -31,8 +36,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-
-  o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
   std::swap(workflowOptions, options);
 }

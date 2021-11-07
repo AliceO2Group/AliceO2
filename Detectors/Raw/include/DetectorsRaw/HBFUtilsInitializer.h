@@ -32,6 +32,7 @@ class ConfigContext;
 class DataProcessorSpec;
 class DeviceSpec;
 class ConfigParamSpec;
+class CallbacksPolicy;
 using WorkflowSpec = std::vector<DataProcessorSpec>;
 } // namespace framework
 
@@ -39,15 +40,17 @@ namespace raw
 {
 
 struct HBFUtilsInitializer {
-  enum HBFOpt {NONE, INI, JSON, ROOT};
+  enum HBFOpt { NONE,
+                INI,
+                JSON,
+                ROOT };
   static constexpr char HBFConfOpt[] = "hbfutils-config";
 
   HBFUtilsInitializer(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& wf);
   static HBFOpt getOptType(const std::string& optString);
-  static void addConfigOption(std::vector<o2::framework::ConfigParamSpec>& opts);
-  static bool needToAttachDataHeaderCallBack(const o2::framework::DeviceSpec& spec, const o2::framework::ConfigContext& context);
   static std::vector<o2::dataformats::TFIDInfo> readTFIDInfoVector(const std::string& fname);
   static void assignDataHeader(const std::vector<o2::dataformats::TFIDInfo>& tfinfoVec, o2::header::DataHeader& dh);
+  static void addNewTimeSliceCallback(std::vector<o2::framework::CallbacksPolicy>& policies);
 };
 
 } // namespace raw
