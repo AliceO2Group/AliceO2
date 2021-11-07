@@ -22,7 +22,7 @@ struct TFIDInfo { // helper info to patch DataHeader
   uint32_t tfCounter = -1;
   uint32_t runNumber = -1;
 
-  bool isDummy() { return tfCounter == -1; }  
+  bool isDummy() { return tfCounter == -1; }
   ClassDefNV(TFIDInfo, 1);
 };
 } // namespace o2::dataformats
