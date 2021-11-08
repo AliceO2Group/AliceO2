@@ -25,14 +25,14 @@ using namespace o2::tof;
 ClassImp(o2::tof::Utils);
 
 std::vector<int> Utils::mFillScheme;
-int Utils::mBCmult[o2::constants::lhc::LHCMaxBunches + 1];
+int Utils::mBCmult[o2::constants::lhc::LHCMaxBunches];
 int Utils::mNautodet = 0;
 int Utils::mMaxBC = 0;
 bool Utils::mIsInit = false;
 
 void Utils::init()
 {
-  memset(mBCmult, 0, (o2::constants::lhc::LHCMaxBunches + 1) * sizeof(mBCmult[0]));
+  memset(mBCmult, 0, o2::constants::lhc::LHCMaxBunches * sizeof(mBCmult[0]));
 }
 
 void Utils::printFillScheme()
@@ -58,6 +58,14 @@ double Utils::subtractInteractionBC(double time)
     if (abs(bcOrbit - getInteractionBC(k)) < dbc) {
       bcc = bc - bcOrbit + getInteractionBC(k);
       dbc = abs(bcOrbit - getInteractionBC(k));
+    }
+    if (abs(bcOrbit - getInteractionBC(k) + o2::constants::lhc::LHCMaxBunches) < dbc) { // in case k is close to the right border (last BC of the orbit)
+      bcc = bc - bcOrbit + getInteractionBC(k) - o2::constants::lhc::LHCMaxBunches;
+      dbc = abs(bcOrbit - getInteractionBC(k) + o2::constants::lhc::LHCMaxBunches);
+    }
+    if (abs(bcOrbit - getInteractionBC(k) - o2::constants::lhc::LHCMaxBunches) < dbc) { // in case k is close to the left border (BC=0)
+      bcc = bc - bcOrbit + getInteractionBC(k) + o2::constants::lhc::LHCMaxBunches;
+      dbc = abs(bcOrbit - getInteractionBC(k) - o2::constants::lhc::LHCMaxBunches);
     }
   }
   time -= o2::tof::Geo::BC_TIME_INPS * bcc;
@@ -92,7 +100,7 @@ void Utils::addBC(float toftime)
   if (mNautodet > MAX_NUM_EVENT_AUTODETECT) {
     if (!hasFillScheme()) { // detect fill scheme
       int thres = mMaxBC / 2;
-      for (int i = 0; i <= o2::constants::lhc::LHCMaxBunches; i++) {
+      for (int i = 0; i < o2::constants::lhc::LHCMaxBunches; i++) {
         if (mBCmult[i] > thres) { // good bunch
           addInteractionBC(i);
         }
@@ -105,9 +113,6 @@ void Utils::addBC(float toftime)
   int bc = int(toftime * o2::tof::Geo::BC_TIME_INPS_INV + 0.2) % o2::constants::lhc::LHCMaxBunches;
 
   mBCmult[bc]++;
-  if (bc == 0) {
-    mBCmult[o2::constants::lhc::LHCMaxBunches]++;
-  }
 
   if (mBCmult[bc] > mMaxBC) {
     mMaxBC = mBCmult[bc];
