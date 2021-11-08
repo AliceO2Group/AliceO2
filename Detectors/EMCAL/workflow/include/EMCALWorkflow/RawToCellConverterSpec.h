@@ -112,6 +112,7 @@ class RawToCellConverterSpec : public framework::Task
   int mMaxErrorMessages = 100;                                       ///< Max. number of error messages
   bool mMergeLGHG = true;                                            ///< Merge low and high gain cells
   bool mPrintTrailer = false;                                        ///< Print RCU trailer
+  bool mDisablePedestalEvaluation = false;                           ///< Disable pedestal evaluation independent of settings in the RCU trailer
   std::chrono::time_point<std::chrono::system_clock> mReferenceTime; ///< Reference time for muting messages
   Geometry* mGeometry = nullptr;                                     ///!<! Geometry pointer
   std::unique_ptr<MappingHandler> mMapper = nullptr;                 ///!<! Mapper

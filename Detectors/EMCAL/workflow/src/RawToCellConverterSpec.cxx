@@ -85,6 +85,7 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   LOG(INFO) << "Suppressing error messages after " << mMaxErrorMessages << " messages";
 
   mMergeLGHG = !ctx.options().get<bool>("no-mergeHGLG");
+  mDisablePedestalEvaluation = ctx.options().get<bool>("no-evalpedestal");
 
   LOG(INFO) << "Running gain merging mode: " << (mMergeLGHG ? "yes" : "no") << std::endl;
 
@@ -132,8 +133,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       continue;
     }
 
-    //o2::emcal::RawReaderMemory<o2::header::RAWDataHeaderV4> rawreader(gsl::span(rawData.payload, o2::framework::DataRefUtils::getPayloadSize(rawData)));
-
     o2::emcal::RawReaderMemory rawreader(framework::DataRefUtils::as<const char>(rawData));
 
     // loop over all the DMA pages
@@ -173,14 +172,14 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       }
 
       if (feeID >= 40) {
-        continue; //skip STU ddl
+        continue; // skip STU ddl
       }
 
-      //std::cout<<rawreader.getRawHeader()<<std::endl;
+      // std::cout<<rawreader.getRawHeader()<<std::endl;
 
       // use the altro decoder to decode the raw data, and extract the RCU trailer
       AltroDecoder decoder(rawreader);
-      //check the words of the payload exception in altrodecoder
+      // check the words of the payload exception in altrodecoder
       try {
         decoder.decode();
       } catch (AltroDecoderError& e) {
@@ -224,7 +223,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         } else {
           mErrorMessagesSuppressed++;
         }
-        //fill histograms  with error types
+        // fill histograms  with error types
         mOutputDecoderErrors.push_back(errornum);
         continue;
       }
@@ -253,7 +252,14 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       } else {
         LOG(DEBUG3) << "Zero suppression disabled";
       }
-      mRawFitter->setIsZeroSuppressed(decoder.getRCUTrailer().hasZeroSuppression());
+      if (mDisablePedestalEvaluation) {
+        // auto-disable pedestal evaluation in the raw fitter
+        // treat all channels as zero-suppressed independent of
+        // what is provided from the RCU trailer
+        mRawFitter->setIsZeroSuppressed(true);
+      } else {
+        mRawFitter->setIsZeroSuppressed(decoder.getRCUTrailer().hasZeroSuppression());
+      }
 
       const auto& map = mMapper->getMappingForDDL(feeID);
       int iSM = feeID / 2;
@@ -555,5 +561,6 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
                                             {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}},
                                             {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}},
                                             {"printtrailer", o2::framework::VariantType::Bool, false, {"Print RCU trailer (for debugging)"}},
-                                            {"no-mergeHGLG", o2::framework::VariantType::Bool, false, {"Do not merge HG and LG channels for same tower"}}}};
+                                            {"no-mergeHGLG", o2::framework::VariantType::Bool, false, {"Do not merge HG and LG channels for same tower"}},
+                                            {"no-evalpedestal", o2::framework::VariantType::Bool, false, {"Disable pedestal evaluation"}}}};
 }
