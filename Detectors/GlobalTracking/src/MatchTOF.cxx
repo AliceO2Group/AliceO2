@@ -1077,6 +1077,8 @@ void MatchTOF::selectBestMatches()
     // get fit info
     double t0info = 0;
 
+    const o2::track::TrackLTIntegral& intLT = matchingPair.getLTIntegralOut();
+
     if (mFITRecPoints.size() > 0) {
       int index = findFITIndex(mTOFClusWork[matchingPair.getTOFClIndex()].getBC());
 
@@ -1084,9 +1086,11 @@ void MatchTOF::selectBestMatches()
         o2::InteractionRecord ir = mFITRecPoints[index].getInteractionRecord();
         t0info = ir.bc2ns() * 1E3;
       }
+    } else { // move time to time in orbit to avoid loss of precision when truncating from double to float
+      int bcStarOrbit = int((mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - intLT.getTOF(o2::track::PID::Pion)) * o2::tof::Geo::BC_TIME_INPS_INV);
+      bcStarOrbit = (bcStarOrbit / o2::constants::lhc::LHCMaxBunches) * o2::constants::lhc::LHCMaxBunches; // truncation
+      t0info = bcStarOrbit * o2::tof::Geo::BC_TIME_INPS;
     }
-
-    const o2::track::TrackLTIntegral& intLT = matchingPair.getLTIntegralOut();
 
     // add also calibration infos
     mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
