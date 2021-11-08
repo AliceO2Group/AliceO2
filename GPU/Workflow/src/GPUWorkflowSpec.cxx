@@ -36,8 +36,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCFastTransform.h"
-#include "TPCdEdxCalibrationSplines.h"
-#include "DataFormatsTPC/CalibdEdxCorrection.h"
+#include "DataFormatsTPC/CalibdEdxContainer.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "DPLUtils/DPLRawPageSequencer.h"
 #include "DetectorsBase/MatLayerCylSet.h"
@@ -107,9 +106,8 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
     std::unique_ptr<GPUO2Interface> tracker;
     std::unique_ptr<GPUDisplayBackend> displayBackend;
     std::unique_ptr<TPCFastTransform> fastTransform;
-    std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
     std::unique_ptr<TPCPadGainCalib> tpcPadGainCalib;
-    std::unique_ptr<o2::tpc::CalibdEdxCorrection> dEdxCorrection;
+    std::unique_ptr<o2::tpc::CalibdEdxContainer> dEdxCalibContainer;
     std::unique_ptr<o2::trd::GeometryFlat> trdGeometry;
     std::unique_ptr<GPUO2InterfaceConfiguration> config;
     int qaTaskMask = 0;
@@ -254,20 +252,23 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
 
       // load from file
-      if (confParam.dEdxFile.size()) {
-        processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines(confParam.dEdxFile.c_str()));
+      if (!confParam.dEdxTopologyCorrFile.empty() || !confParam.dEdxCorrFile.empty() || !confParam.dEdxFile.empty()) {
+        processAttributes->dEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
+        if (!confParam.dEdxTopologyCorrFile.empty()) {
+          LOGP(info, "Loading dE/dx polynomial track topology correction from file: {}", confParam.dEdxTopologyCorrFile);
+          processAttributes->dEdxCalibContainer->loadPolTopologyCorrectionFromFile(confParam.dEdxTopologyCorrFile);
+        } else if (!confParam.dEdxFile.empty()) {
+          LOGP(info, "Loading dE/dx spline track topology correction from file: {}", confParam.dEdxFile);
+          processAttributes->dEdxCalibContainer->loadSplineTopologyCorrectionFromFile(confParam.dEdxFile);
+        }
+        if (!confParam.dEdxCorrFile.empty()) {
+          LOGP(info, "Loading dEdx correction from file: {}", confParam.dEdxCorrFile);
+          processAttributes->dEdxCalibContainer->loadResidualCorrectionFromFile(confParam.dEdxCorrFile);
+        }
       } else {
-        processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines);
+        processAttributes->dEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
       }
-      config.configCalib.dEdxSplines = processAttributes->dEdxSplines.get();
-
-      if (!confParam.dEdxCorrFile.empty()) {
-        LOGP(info, "Loading dEdx correction file: {}", confParam.dEdxCorrFile);
-        processAttributes->dEdxCorrection.reset(new o2::tpc::CalibdEdxCorrection(confParam.dEdxCorrFile));
-      } else {
-        processAttributes->dEdxCorrection.reset(new o2::tpc::CalibdEdxCorrection());
-      }
-      config.configCalib.dEdxCorrection = processAttributes->dEdxCorrection.get();
+      config.configCalib.dEdxCalibContainer = processAttributes->dEdxCalibContainer.get();
 
       if (std::filesystem::exists(confParam.gainCalibFile)) {
         LOG(info) << "Loading tpc gain correction from file " << confParam.gainCalibFile;

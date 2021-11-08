@@ -95,7 +95,7 @@ class Cluster;
 } // namespace tof
 namespace tpc
 {
-class CalibdEdxCorrection;
+class CalibdEdxContainer;
 } // namespace tpc
 } // namespace o2
 
@@ -104,7 +104,6 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 class TPCFastTransform;
-class TPCdEdxCalibrationSplines;
 struct TPCPadGainCalib;
 
 } // namespace gpu
@@ -215,9 +214,8 @@ struct GPUCalibObjectsTemplate {
   typename S<TPCFastTransform>::type* fastTransform = nullptr;
   typename S<o2::base::MatLayerCylSet>::type* matLUT = nullptr;
   typename S<o2::trd::GeometryFlat>::type* trdGeometry = nullptr;
-  typename S<TPCdEdxCalibrationSplines>::type* dEdxSplines = nullptr;
   typename S<TPCPadGainCalib>::type* tpcPadGain = nullptr;
-  typename S<o2::tpc::CalibdEdxCorrection>::type* dEdxCorrection = nullptr;
+  typename S<o2::tpc::CalibdEdxContainer>::type* dEdxCalibContainer = nullptr;
   typename S<o2::base::PropagatorImpl<float>>::type* o2Propagator = nullptr;
   typename S<o2::itsmft::TopologyDictionary>::type* itsPatternDict = nullptr;
 };

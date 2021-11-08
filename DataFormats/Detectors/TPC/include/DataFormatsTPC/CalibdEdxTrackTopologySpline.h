@@ -14,20 +14,19 @@
 ///
 /// \author  Matthias Kleiner <matthias.kleiner@cern.ch>
 
-#ifndef TPCdEdxCalibrationSplines_H
-#define TPCdEdxCalibrationSplines_H
+#ifndef CalibdEdxTrackTopologySpline_H
+#define CalibdEdxTrackTopologySpline_H
 
 #include "FlatObject.h"
-#include "Spline2D.h"
+#include "Spline.h"
+#include "DataFormatsTPC/Defs.h"
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
 #include "Rtypes.h"                                       // for ClassDefNV
 #include <fmt/format.h>
 #endif
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace o2::tpc
 {
 
 ///
@@ -66,38 +65,38 @@ namespace gpu
 /// -0.5<relTimePos<0.5
 ///
 
-class TPCdEdxCalibrationSplines : public FlatObject
+class CalibdEdxTrackTopologySpline : public o2::gpu::FlatObject
 {
  public:
-  typedef Spline2D<float, 1> SplineType;
+  typedef o2::gpu::Spline<float, 3, 1> SplineType;
 
   /// _____________  Constructors / destructors __________________________
 
 #if !defined(GPUCA_GPUCODE)
   /// Default constructor
-  TPCdEdxCalibrationSplines();
+  CalibdEdxTrackTopologySpline();
 
   /// constructor with initialization of the splines from file
   /// \param dEdxSplinesFile path to root file containing the splines
-  TPCdEdxCalibrationSplines(const char* dEdxSplinesFile);
+  CalibdEdxTrackTopologySpline(const char* dEdxSplinesFile);
 
   /// Copy constructor
-  TPCdEdxCalibrationSplines(const TPCdEdxCalibrationSplines&);
+  CalibdEdxTrackTopologySpline(const CalibdEdxTrackTopologySpline&);
 
   /// Assignment operator
-  TPCdEdxCalibrationSplines& operator=(const TPCdEdxCalibrationSplines&);
+  CalibdEdxTrackTopologySpline& operator=(const CalibdEdxTrackTopologySpline&);
 
-  void recreate(int nKnotsU1[], int nKnotsU2[]);
+  void recreate(const int nKnots[]);
 #else
   /// Disable constructors for the GPU implementation
 
-  TPCdEdxCalibrationSplines() CON_DELETE;
-  TPCdEdxCalibrationSplines(const TPCdEdxCalibrationSplines&) CON_DELETE;
-  TPCdEdxCalibrationSplines& operator=(const TPCdEdxCalibrationSplines&) CON_DELETE;
+  CalibdEdxTrackTopologySpline() CON_DELETE;
+  CalibdEdxTrackTopologySpline(const CalibdEdxTrackTopologySpline&) CON_DELETE;
+  CalibdEdxTrackTopologySpline& operator=(const CalibdEdxTrackTopologySpline&) CON_DELETE;
 #endif
 
   /// Destructor
-  ~TPCdEdxCalibrationSplines() CON_DEFAULT;
+  ~CalibdEdxTrackTopologySpline() CON_DEFAULT;
 
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
@@ -105,7 +104,7 @@ class TPCdEdxCalibrationSplines : public FlatObject
   using FlatObject::getClassAlignmentBytes;
 
 #if !defined(GPUCA_GPUCODE)
-  void cloneFromObject(const TPCdEdxCalibrationSplines& obj, char* newFlatBufferPtr);
+  void cloneFromObject(const CalibdEdxTrackTopologySpline& obj, char* newFlatBufferPtr);
   void moveBufferTo(char* newBufferPtr);
 #endif
 
@@ -116,55 +115,60 @@ class TPCdEdxCalibrationSplines : public FlatObject
   void setFutureBufferAddress(char* futureFlatBufferPtr);
 
   /// ______________
-
-  /// Gives pointer to a spline
-  GPUd() const SplineType& getSpline(int chargeType, int region) const;
-
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   /// sets the splines from an input file
   void setSplinesFromFile(TFile& inpf);
+
+  /// sets maximum TanTheta and maximum snp from file
+  void setRangesFromFile(TFile& inpf);
 
   /// set default splines: the return value of the splines will be 1 (no correction will be applied)
   void setDefaultSplines();
 #endif
 
   /// returns the number of splines stored in the calibration object
-  GPUd() unsigned int getFSplines() const
-  {
-    return FSplines;
-  };
+  GPUd() unsigned int getFSplines() const { return FSplines; };
 
-  /// \param splineInd index of the spline (region)
-  /// \param angleZ local dip angle: z angle - dz/dx
+  /// returns the maximum TanTheta for which the splines are valid
+  GPUd() float getMaxTanTheta() const { return mMaxTanTheta; };
+
+  /// returns the maximum SinPhi for which the splines are valid
+  GPUd() float getMaxSinPhi() const { return mMaxSinPhi; };
+
+  /// \param region index of the spline (region)
+  /// \param tanTheta local dip angle: z angle - dz/dx
+  /// \param sinPhi track parameter sinphi
   /// \param z drift length
   /// \return returns the spline (correction) value for qMax
-  GPUd() float interpolateqMax(const int splineInd, const float angleZ, const float z) const
+  GPUd() float interpolateqMax(const int region, const float tanTheta, const float sinPhi, const float z) const
   {
-    return mCalibSplinesqMax[splineInd].interpolate(angleZ, z);
+    const float x[FDimX] = {z, tanTheta, sinPhi};
+    return mCalibSplinesqMax[region].interpolate(x);
   };
 
-  /// \param splineInd index of the spline (region)
-  /// \param angleZ local dip angle: z angle - dz/dx
+  /// \param region index of the spline (region)
+  /// \param tanTheta local dip angle: z angle - dz/dx
+  /// \param sinPhi track parameter sinphi
   /// \param z drift length
   /// \return returns the spline (correction) value for qMax
-  GPUd() float interpolateqTot(const int splineInd, const float angleZ, const float z) const
+  GPUd() float interpolateqTot(const int region, const float tanTheta, const float sinPhi, const float z) const
   {
-    return mCalibSplinesqTot[splineInd].interpolate(angleZ, z);
+    const float x[FDimX] = {z, tanTheta, sinPhi};
+    return mCalibSplinesqTot[region].interpolate(x);
   };
 
-  /// \param splineInd index of the spline (region)
+  GPUd() float getCorrection(const int region, const ChargeType charge, const float tanTheta, const float sinPhi, const float z) const
+  {
+    return charge == ChargeType::Max ? interpolateqMax(region, tanTheta, sinPhi, z) : interpolateqTot(region, tanTheta, sinPhi, z);
+  }
+
+  /// \param region index of the spline (region)
   /// \return returns the spline for qMax
-  GPUd() SplineType& getSplineqMax(const int splineInd)
-  {
-    return mCalibSplinesqMax[splineInd];
-  };
+  GPUd() SplineType& getSplineqMax(const int region) { return mCalibSplinesqMax[region]; };
 
-  /// \param splineInd index of the spline (region)
+  /// \param region index of the spline (region)
   /// \return returns the spline for qTot
-  GPUd() SplineType& getSplineqTot(const int splineInd)
-  {
-    return mCalibSplinesqTot[splineInd];
-  };
+  GPUd() SplineType& getSplineqTot(const int region) { return mCalibSplinesqTot[region]; };
 
     /// _______________  IO   ________________________
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
@@ -172,20 +176,23 @@ class TPCdEdxCalibrationSplines : public FlatObject
   int writeToFile(TFile& outf, const char* name);
 
   /// read a class object from the file
-  static TPCdEdxCalibrationSplines* readFromFile(TFile& inpf, const char* name);
+  static CalibdEdxTrackTopologySpline* readFromFile(TFile& inpf, const char* name);
 #endif
 
  private:
   constexpr static unsigned int FSplines = 10; ///< number of splines stored for each type
+  constexpr static int FDimX = 3;              ///< dimensionality of the splines
   SplineType mCalibSplinesqMax[FSplines];      ///< spline objects storage for the splines for qMax
   SplineType mCalibSplinesqTot[FSplines];      ///< spline objects storage for the splines for qTot
+  float mMaxTanTheta{2.f};                     ///< max tanTheta for which the correction is stored
+  float mMaxSinPhi{0.99f};                     ///< max snp for which the correction is stored
 
-  ClassDefNV(TPCdEdxCalibrationSplines, 1);
+  ClassDefNV(CalibdEdxTrackTopologySpline, 1);
 };
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
-inline void TPCdEdxCalibrationSplines::setSplinesFromFile(TFile& inpf)
+inline void CalibdEdxTrackTopologySpline::setSplinesFromFile(TFile& inpf)
 {
   FlatObject::startConstruction();
 
@@ -195,20 +202,22 @@ inline void TPCdEdxCalibrationSplines::setSplinesFromFile(TFile& inpf)
 
   for (unsigned int ireg = 0; ireg < FSplines; ++ireg) {
     std::string splinename = fmt::format("spline_qMax_region{}", ireg);
-    o2::gpu::Spline2D<float, 1>* splineTmpqMax = o2::gpu::Spline2D<float, 1>::readFromFile(inpf, splinename.data());
+    SplineType* splineTmpqMax = SplineType::readFromFile(inpf, splinename.data());
     mCalibSplinesqMax[ireg] = *splineTmpqMax;
     buffSize = alignSize(buffSize, mCalibSplinesqMax[ireg].getBufferAlignmentBytes());
     offsets1[ireg] = buffSize;
     buffSize += mCalibSplinesqMax[ireg].getFlatBufferSize();
+    delete splineTmpqMax;
   }
 
   for (unsigned int ireg = 0; ireg < FSplines; ++ireg) {
     std::string splinename = fmt::format("spline_qTot_region{}", ireg);
-    o2::gpu::Spline2D<float, 1>* splineTmpqTot = o2::gpu::Spline2D<float, 1>::readFromFile(inpf, splinename.data());
+    SplineType* splineTmpqTot = SplineType::readFromFile(inpf, splinename.data());
     mCalibSplinesqTot[ireg] = *splineTmpqTot;
     buffSize = alignSize(buffSize, mCalibSplinesqTot[ireg].getBufferAlignmentBytes());
     offsets2[ireg] = buffSize;
     buffSize += mCalibSplinesqTot[ireg].getFlatBufferSize();
+    delete splineTmpqTot;
   }
 
   FlatObject::finishConstruction(buffSize);
@@ -223,7 +232,6 @@ inline void TPCdEdxCalibrationSplines::setSplinesFromFile(TFile& inpf)
 
 #endif
 
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace o2::tpc
 
 #endif

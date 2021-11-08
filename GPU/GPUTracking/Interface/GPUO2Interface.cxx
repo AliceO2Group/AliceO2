@@ -22,7 +22,6 @@
 #include "GPUQA.h"
 #include "GPUOutputControl.h"
 #include "TPCPadGainCalib.h"
-#include "TPCdEdxCalibrationSplines.h"
 #include <iostream>
 #include <fstream>
 
@@ -169,11 +168,6 @@ std::unique_ptr<TPCPadGainCalib> GPUO2Interface::getPadGainCalibDefault()
 std::unique_ptr<TPCPadGainCalib> GPUO2Interface::getPadGainCalib(const o2::tpc::CalDet<float>& in)
 {
   return std::make_unique<TPCPadGainCalib>(in);
-}
-
-std::unique_ptr<TPCdEdxCalibrationSplines> GPUO2Interface::getdEdxCalibrationSplinesDefault()
-{
-  return std::make_unique<TPCdEdxCalibrationSplines>();
 }
 
 int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib)
