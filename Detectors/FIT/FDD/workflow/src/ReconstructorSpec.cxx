@@ -62,9 +62,6 @@ void FDDReconstructorDPL::run(ProcessingContext& pc)
   LOG(INFO) << "FDD reconstruction pushes " << mRecPoints.size() << " RecPoints";
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, mRecPoints);
   pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0, Lifetime::Timeframe}, mRecChData);
-
-  mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getFDDReconstructorSpec(bool useMC)
