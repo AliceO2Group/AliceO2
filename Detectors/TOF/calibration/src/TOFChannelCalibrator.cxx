@@ -18,6 +18,7 @@
 #include "Fit/Fitter.h"
 #include "Fit/BinData.h"
 #include "Math/WrappedMultiTF1.h"
+#include "TOFBase/Utils.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -50,12 +51,36 @@ void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> d
     auto tot = data[i].getTot();
     // TO BE DISCUSSED: could it be that the LHCphase is too old? If we ar ein sync mode, it could be that it is not yet created for the current run, so the one from the previous run (which could be very old) is used. But maybe it does not matter much, since soon enough a calibrated LHC phase should be produced
     auto corr = mCalibTOFapi->getTimeCalibration(ch, tot); // we take into account LHCphase, offsets and time slewing
-    LOG(DEBUG) << "inserting in channel " << ch << ": dt = " << dt << ", tot = " << tot << ", corr = " << corr << ", corrected dt = " << dt - corr;
 
-    dt -= corr;
+    auto dtcorr = dt - corr;
 
-    mHisto[sector](dt, chInSect); // we pass the calibrated time
-    mEntries[ch] += 1;
+    if (!Utils::hasFillScheme()) {
+      Utils::addBC(dtcorr);
+
+      continue;
+    }
+
+    dtcorr = Utils::subtractInteractionBC(dtcorr);
+
+    LOG(DEBUG) << "inserting in channel " << ch << ": dt = " << Utils::subtractInteractionBC(dt) << ", tot = " << tot << ", corr = " << corr << ", corrected dt = " << dtcorr;
+
+    if (!mPerStrip) {
+      mHisto[sector](dtcorr, chInSect); // we pass the calibrated time
+      mEntries[ch] += 1;
+    } else {
+      int istrip = ch / 96;
+      int istripInSector = chInSect / 96;
+      //      int fea =  (chInSect % 96) / 24;
+      int choffset = (istrip - istripInSector) * 96;
+      int minch = istripInSector * 96;
+      int maxch = minch + 96;
+      //      int minch = istripInSector * 96 + fea*24;
+      //      int maxch = minch + 24;
+      for (int ich = minch; ich < maxch; ich++) {
+        mHisto[sector](dtcorr, ich); // we pass the calibrated time
+        mEntries[ich + choffset] += 1;
+      }
+    }
   }
 }
 
@@ -602,7 +627,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
         continue;
       }
 
-      LOG(INFO) << "channel " << ich << " will be calibrated since it has " << entriesInChannel << " entries (min = " << mMinEntries << ")";
+      LOG(DEBUG) << "channel " << ich << " will be calibrated since it has " << entriesInChannel << " entries (min = " << mMinEntries << ")";
       fitValues.fill(-99999999);
       histoValues.clear();
       // more efficient way
@@ -617,9 +642,9 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
       double fitres = fitGaus(nbins, histoValues.data(), -range, range, fitValues, nullptr, 2., true);
       LOG(INFO) << "channel = " << ich << " fitted by thread = " << ithread;
       if (fitres >= 0) {
-        LOG(DEBUG) << "Channel " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
+        LOG(INFO) << "Channel " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
       } else {
-        //        LOG(INFO) << "Channel " << ich << " :: Fit failed with result = " << fitres;
+        LOG(INFO) << "Channel " << ich << " :: Fit failed with result = " << fitres;
         continue;
       }
 
@@ -649,12 +674,15 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
       ts.setFractionUnderPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, fractionUnderPeak);
       ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, abs(fitValues[2]));
       ts.updateOffsetInfo(ich, fitValues[1]);
+      LOG(DEBUG) << "udpdate channel " << ich << " with " << fitValues[1] << " offset in ps";
     } // end loop channels in sector
   }   // end loop over sectors
   auto clName = o2::utils::MemFileHelper::getClassName(ts);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   mInfoVector.emplace_back("TOF/Calib/ChannelCalib", clName, flName, md, slot.getTFStart(), 99999999999999);
   mTimeSlewingVector.emplace_back(ts);
+
+  Utils::printFillScheme();
 }
 
 //_____________________________________________
