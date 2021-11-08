@@ -299,28 +299,28 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
   return std::make_tuple(extractTypedOriginal<Os>(pc)...);
 }
 
-template <typename T, typename P>
-struct OutputManager<Builds<T, P>> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, Builds<T, P>& what, uint32_t)
+template <typename T>
+struct OutputManager<Builds<T>> {
+  static bool appendOutput(std::vector<OutputSpec>& outputs, Builds<T>& what, uint32_t)
   {
     outputs.emplace_back(what.spec());
     return true;
   }
 
-  static bool prepare(ProcessingContext& pc, Builds<T, P>& what)
+  static bool prepare(ProcessingContext& pc, Builds<T>& what)
   {
     return what.build(what.pack(),
-                      extractTypedOriginal<typename Builds<T, P>::Key>(pc),
+                      extractTypedOriginal<typename Builds<T>::Key>(pc),
                       extractOriginalsTuple(what.originals_pack(), pc));
   }
 
-  static bool finalize(ProcessingContext& pc, Builds<T, P>& what)
+  static bool finalize(ProcessingContext& pc, Builds<T>& what)
   {
     pc.outputs().adopt(what.output(), what.asArrowTable());
     return true;
   }
 
-  static bool postRun(EndOfStreamContext&, Builds<T, P>&)
+  static bool postRun(EndOfStreamContext&, Builds<T>&)
   {
     return true;
   }
@@ -492,9 +492,9 @@ struct IndexManager {
   static bool requestInputs(std::vector<InputSpec>&, T const&) { return false; };
 };
 
-template <typename IDX, typename P>
-struct IndexManager<Builds<IDX, P>> {
-  static bool requestInputs(std::vector<InputSpec>& inputs, Builds<IDX, P>& builds)
+template <typename IDX>
+struct IndexManager<Builds<IDX>> {
+  static bool requestInputs(std::vector<InputSpec>& inputs, Builds<IDX>& builds)
   {
     auto base_specs = builds.base_specs();
     for (auto& base_spec : base_specs) {
