@@ -399,23 +399,6 @@ static void my_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* bu
   buf->len = suggested_size;
 }
 
-void updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> const& metricsInfos)
-{
-  // Calculate the unique set of metrics, as available in the metrics service
-  static std::unordered_set<std::string> allMetricsNames;
-  for (const auto& metricsInfo : metricsInfos) {
-    for (const auto& labelsPairs : metricsInfo.metricLabels) {
-      allMetricsNames.insert(std::string(labelsPairs.label));
-    }
-  }
-  for (const auto& labelsPairs : driverInfo.metrics.metricLabels) {
-    allMetricsNames.insert(std::string(labelsPairs.label));
-  }
-  std::vector<std::string> result(allMetricsNames.begin(), allMetricsNames.end());
-  std::sort(result.begin(), result.end());
-  driverInfo.availableMetrics.swap(result);
-}
-
 /// An handler for a websocket message stream.
 struct ControlWebSocketHandler : public WebSocketHandler {
   ControlWebSocketHandler(DriverServerContext& context)
@@ -518,7 +501,7 @@ struct ControlWebSocketHandler : public WebSocketHandler {
       std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
     }
     if (didHaveNewMetric) {
-      updateMetricsNames(*mContext.driver, *mContext.metrics);
+      DeviceMetricsHelper::updateMetricsNames(*mContext.driver, *mContext.metrics);
     }
   }
 
@@ -927,7 +910,7 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
   result.hasNewMetric = hasNewMetric;
   if (hasNewMetric) {
     hasNewMetric = false;
-    updateMetricsNames(driverInfo, metricsInfos);
+    DeviceMetricsHelper::updateMetricsNames(driverInfo, metricsInfos);
   }
   return result;
 }
