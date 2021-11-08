@@ -70,14 +70,15 @@ void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> d
     } else {
       int istrip = ch / 96;
       int istripInSector = chInSect / 96;
-      //      int fea =  (chInSect % 96) / 24;
+      int fea = (chInSect % 48) / 12;
       int choffset = (istrip - istripInSector) * 96;
-      int minch = istripInSector * 96;
-      int maxch = minch + 96;
-      //      int minch = istripInSector * 96 + fea*24;
-      //      int maxch = minch + 24;
+      //int minch = istripInSector * 96;
+      //int maxch = minch + 96;
+      int minch = istripInSector * 96 + fea * 12;
+      int maxch = minch + 12;
       for (int ich = minch; ich < maxch; ich++) {
-        mHisto[sector](dtcorr, ich); // we pass the calibrated time
+        mHisto[sector](dtcorr, ich);      // we pass the calibrated time
+        mHisto[sector](dtcorr, ich + 48); // we pass the calibrated time
         mEntries[ich + choffset] += 1;
       }
     }
