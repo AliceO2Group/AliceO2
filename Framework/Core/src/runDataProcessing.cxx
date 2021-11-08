@@ -1213,6 +1213,16 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DevicesManager>(devicesManager));
 
+  // This is the context used by the callback which does the GUI rendering.
+  // FIXME: move to a service maybe.
+  GuiCallbackContext guiContext;
+  guiContext.plugin = debugGUI;
+  guiContext.frameLast = uv_hrtime();
+  guiContext.frameLatency = &driverInfo.frameLatency;
+  guiContext.frameCost = &driverInfo.frameCost;
+  guiContext.guiQuitRequested = &guiQuitRequested;
+  auto inputProcessingLast = guiContext.frameLast;
+
   // This is to make sure we can process metrics, commands, configuration
   // changes coming from websocket (or even via any standard uv_stream_t, I guess).
   DriverServerContext serverContext;
@@ -1224,6 +1234,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   serverContext.metrics = &metricsInfos;
   serverContext.driver = &driverInfo;
   serverContext.metricProcessingCallbacks = &metricProcessingCallbacks;
+  serverContext.gui = &guiContext;
 
   uv_tcp_t serverHandle;
   serverHandle.data = &serverContext;
@@ -1261,14 +1272,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       }
     } while (result != 0);
   }
-
-  GuiCallbackContext guiContext;
-  guiContext.plugin = debugGUI;
-  guiContext.frameLast = uv_hrtime();
-  guiContext.frameLatency = &driverInfo.frameLatency;
-  guiContext.frameCost = &driverInfo.frameCost;
-  guiContext.guiQuitRequested = &guiQuitRequested;
-  auto inputProcessingLast = guiContext.frameLast;
 
   uv_timer_t force_step_timer;
   uv_timer_init(loop, &force_step_timer);
