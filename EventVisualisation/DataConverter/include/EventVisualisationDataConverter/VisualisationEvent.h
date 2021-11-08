@@ -13,6 +13,7 @@
 /// \file    VisualisationEvent.h
 /// \author  Jeremi Niedziela
 /// \author  Maciej Grochowicz
+/// \author  Julian Myrcha
 ///
 
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_VISUALISATIONEVENT_H
