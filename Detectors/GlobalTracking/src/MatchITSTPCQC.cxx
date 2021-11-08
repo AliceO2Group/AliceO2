@@ -101,15 +101,6 @@ bool MatchITSTPCQC::init()
   mPhiTPCPhysPrim->Sumw2();
   mPhiPhysPrim->Sumw2();
 
-  mSrc &= mAllowedSources;
-
-  if ((mSrc[GID::Source::ITSTPC] == 0 || mSrc[GID::Source::TPC] == 0)) {
-    LOG(fatal) << "We cannot do ITSTPC QC, some sources are missing, check sources in " << mSrc;
-  }
-
-  mDataRequest = std::make_shared<o2::globaltracking::DataRequest>();
-  mDataRequest->requestTracks(mSrc, mUseMC);
-
   o2::base::GeometryManager::loadGeometry(mGeomFileName);
   o2::base::Propagator::initFieldFromGRP(mGRPFileName);
   mBz = o2::base::Propagator::Instance()->getNominalBz();
@@ -123,15 +114,33 @@ bool MatchITSTPCQC::init()
 
 //__________________________________________________________
 
-void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
+void MatchITSTPCQC::initDataRequest()
 {
 
+  // initialize data request, if it was not already done
+
+  mSrc &= mAllowedSources;
+
+  if ((mSrc[GID::Source::ITSTPC] == 0 || mSrc[GID::Source::TPC] == 0)) {
+    LOG(fatal) << "We cannot do ITSTPC QC, some sources are missing, check sources in " << mSrc;
+  }
+
+  mDataRequest = std::make_shared<o2::globaltracking::DataRequest>();
+  mDataRequest->requestTracks(mSrc, mUseMC);
+}
+
+//__________________________________________________________
+
+void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
+{
+  static int evCount = 0;
+  mSelectedTPCtracks.clear();
   mRecoCont.collectData(ctx, *mDataRequest.get());
   mTPCTracks = mRecoCont.getTPCTracks();
   mITSTPCTracks = mRecoCont.getTPCITSTracks();
 
-  LOG(INFO) << "****** Number of found ITSTPC tracks = " << mITSTPCTracks.size();
-  LOG(INFO) << "****** Number of found TPC    tracks = " << mTPCTracks.size();
+  LOG(DEBUG) << "****** Number of found ITSTPC tracks = " << mITSTPCTracks.size();
+  LOG(DEBUG) << "****** Number of found TPC    tracks = " << mTPCTracks.size();
 
   // cache selection for TPC tracks
   for (auto itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
@@ -185,7 +194,12 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       ++mNITSTPCSelectedTracks;
     }
   }
+
   for (auto const& trk : mITSTPCTracks) {
+    if (trk.getRefTPC().getIndex() >= mTPCTracks.size()) {
+      LOG(FATAL) << "******************** ATTENTION! idx = " << trk.getRefTPC().getIndex() << ", size of container = " << mTPCTracks.size() << " in TF " << evCount;
+      continue;
+    }
     auto const& trkTpc = mTPCTracks[trk.getRefTPC()];
     auto idxTrkTpc = trk.getRefTPC().getIndex();
     if (std::any_of(mSelectedTPCtracks.begin(), mSelectedTPCtracks.end(), [idxTrkTpc](int el) { return el == idxTrkTpc; })) {
@@ -254,6 +268,7 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       }
     }
   }
+  evCount++;
 }
 
 //__________________________________________________________
@@ -320,6 +335,7 @@ void MatchITSTPCQC::finalize()
 
   float scaleFactTPC = 1. / mNTPCSelectedTracks;
   float scaleFactITSTPC = 1. / mNITSTPCSelectedTracks;
+  /*
   mPtTPC->Scale(scaleFactTPC);
   mPt->Scale(scaleFactITSTPC);
   mPhiTPC->Scale(scaleFactTPC);
@@ -334,6 +350,7 @@ void MatchITSTPCQC::finalize()
   mChi2Matching->Scale(scaleFactITSTPC);
   mChi2Refit->Scale(scaleFactITSTPC);
   //mTimeResVsPt->Scale(scaleFactITSTPC); // if to few entries, one sees nothing after normalization --> let's not normalize
+  */
 }
 
 //__________________________________________________________

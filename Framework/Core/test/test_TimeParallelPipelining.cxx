@@ -57,9 +57,10 @@ BOOST_AUTO_TEST_CASE(TimePipeliningSimple)
   auto configContext = makeEmptyConfigContext();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
+  auto callbacksPolicies = CallbacksPolicy::createDefaultPolicies();
   std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm, "workflow-id");
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
   BOOST_REQUIRE_EQUAL(devices.size(), 4);
   auto& producer = devices[0];
   auto& layer0Consumer0 = devices[1];
@@ -110,9 +111,10 @@ BOOST_AUTO_TEST_CASE(TimePipeliningFull)
   auto configContext = makeEmptyConfigContext();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
+  auto callbacksPolicies = CallbacksPolicy::createDefaultPolicies();
   std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm, "workflow-id");
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
   BOOST_REQUIRE_EQUAL(devices.size(), 7);
   auto& producer = devices[0];
   auto& layer0Consumer0 = devices[1];

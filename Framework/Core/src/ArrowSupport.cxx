@@ -390,7 +390,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          once = true;
                        } },
                      .adjustTopology = [](WorkflowSpecNode& node, ConfigContext const& ctx) {
-      auto workflow = node.specs;
+      auto& workflow = node.specs;
       auto spawner = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-spawner"; });
       auto builder = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-index-builder"; });
       auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });

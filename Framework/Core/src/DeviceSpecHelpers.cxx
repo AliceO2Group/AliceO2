@@ -822,9 +822,11 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        std::vector<CompletionPolicy> const& completionPolicies,
                                                        std::vector<DispatchPolicy> const& dispatchPolicies,
                                                        std::vector<ResourcePolicy> const& resourcePolicies,
+                                                       std::vector<CallbacksPolicy> const& callbacksPolicies,
                                                        std::vector<DeviceSpec>& devices,
                                                        ResourceManager& resourceManager,
                                                        std::string const& uniqueWorkflowId,
+                                                       ConfigContext const& configContext,
                                                        bool optimizeTopology,
                                                        unsigned short resourcesMonitoringInterval,
                                                        std::string const& channelPrefix)
@@ -897,6 +899,12 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
     for (auto& policy : dispatchPolicies) {
       if (policy.deviceMatcher(device) == true) {
         device.dispatchPolicy = policy;
+        break;
+      }
+    }
+    for (auto& policy : callbacksPolicies) {
+      if (policy.matcher(device, configContext) == true) {
+        device.callbacksPolicy = policy;
         break;
       }
     }

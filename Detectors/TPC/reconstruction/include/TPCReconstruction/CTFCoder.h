@@ -286,7 +286,7 @@ void CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
 
   encodeTPC(ccl.nTrackClusters, ccl.nTrackClusters + ccl.nTracks, CTF::BLCnTrackClusters, 0);
   encodeTPC(ccl.nSliceRowClusters, ccl.nSliceRowClusters + ccl.nSliceRows, CTF::BLCnSliceRowClusters, 0);
-  CTF::get(buff.data())->print(getPrefix());
+  CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
 
 /// decode entropy-encoded bloks to TPC CompressedClusters into the externally provided vector (e.g. PMR vector from DPL)
@@ -310,7 +310,7 @@ void CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
 
   setCompClusAddresses(cc, buff);
   ccFlat->set(sz, cc); // set offsets
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
 
   // decode encoded data directly to destination buff
   auto decodeTPC = [&ec, &coders = mCoders](auto begin, CTF::Slots slot) {

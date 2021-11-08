@@ -33,6 +33,7 @@ void ITSTPCMatchingQCDevice::init(InitContext& ic)
 
   mMatchITSTPCQC = std::make_unique<o2::globaltracking::MatchITSTPCQC>();
   mMatchITSTPCQC->init();
+  mMatchITSTPCQC->setDataRequest(mDataRequest);
   mMatchITSTPCQC->setPtCut(params->minPtCut);
   mMatchITSTPCQC->setEtaCut(params->etaCut);
   mMatchITSTPCQC->setMinNTPCClustersCut(params->minNTPCClustersCut);
@@ -93,7 +94,7 @@ DataProcessorSpec getITSTPCMatchingQCDevice(bool useMC)
     "itstpc-matching-qc",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::globaltracking::ITSTPCMatchingQCDevice>(useMC)},
+    AlgorithmSpec{adaptFromTask<o2::globaltracking::ITSTPCMatchingQCDevice>(dataRequest, useMC)},
     Options{{}}};
 }
 

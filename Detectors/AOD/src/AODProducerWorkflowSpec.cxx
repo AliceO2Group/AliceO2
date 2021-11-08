@@ -300,6 +300,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
           const auto& trackPar = data.getTrackParam(trackIndex);
           if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
+            int nClusters = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getNClusters();
+            float chi2 = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getChi2();
+            extraInfoHolder.itsChi2NCl = nClusters != 0 ? chi2 / (float)nClusters : 0;
             extraInfoHolder.itsClusterMap = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getPattern();
           } else if (contributorsGID[GIndex::Source::ITSAB].isIndexSet()) { // this is an ITS-TPC afterburner contributor
             extraInfoHolder.itsClusterMap = itsABRefs[contributorsGID[GIndex::Source::ITSAB].getIndex()].pattern;
@@ -653,8 +656,14 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       }
       int statusCode = 0;
       uint8_t flags = 0;
+      if (!mcParticles[particle].isPrimary()) {
+        flags |= o2::aod::mcparticle::enums::ProducedByTransport; // mark as produced by transport
+        statusCode = mcParticles[particle].getProcess();
+      } else {
+        statusCode = mcParticles[particle].getStatusCode();
+      }
       if (source == 0) {
-        flags |= 1 << 1; // mark as particle from background event
+        flags |= o2::aod::mcparticle::enums::FromBackgroundEvent; // mark as particle from background event
       }
       float weight = 0.f;
       int mcMother0 = mcParticles[particle].getMotherTrackId();
@@ -966,25 +975,23 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto v0sCursor = v0sBuilder.cursor<o2::aod::StoredV0s>();
   auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
 
-  o2::steer::MCKinematicsReader mcReader("collisioncontext.root");
-  const auto mcContext = mcReader.getDigitizationContext();
-  const auto& mcRecords = mcContext->getEventRecords();
-  const auto& mcParts = mcContext->getEventParts();
-
-  LOG(DEBUG) << "FOUND " << mcRecords.size() << " records";
-  LOG(DEBUG) << "FOUND " << mcParts.size() << " parts";
+  std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
+  if (mUseMC) {
+    mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+    LOG(DEBUG) << "FOUND " << mcReader->getDigitizationContext()->getEventRecords().size()
+               << " records" << mcReader->getDigitizationContext()->getEventParts().size() << " parts";
+  }
 
   std::map<uint64_t, int> bcsMap;
-  collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, primVertices, mcRecords, bcsMap);
-
+  collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, primVertices, mUseMC ? mcReader->getDigitizationContext()->getEventRecords() : std::vector<o2::InteractionTimeRecord>{}, bcsMap);
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
   o2::InteractionRecord startIR = {0, dh->firstTForbit};
 
   uint64_t tfNumber;
-  // default dummy run number
-  int runNumber = 244918; // TODO: get real run number
+  int runNumber = int(dh->runNumber);
   if (mTFNumber == -1L) {
-    tfNumber = getTFNumber(startIR, runNumber);
+    // TODO has to be made globally unique (by using absolute time of TF). For now is unique within the run
+    tfNumber = dh->tfCounter; //getTFNumber(startIR, runNumber);
   } else {
     tfNumber = mTFNumber;
   }
@@ -1059,40 +1066,44 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // correct ordering when iterating over container elements
   std::map<std::pair<int, int>, int> mcColToEvSrc;
 
-  // TODO: figure out collision weight
-  float mcColWeight = 1.;
-  // filling mcCollision table
-  int nMCCollisions = mcContext->getNCollisions();
-  for (int iCol = 0; iCol < nMCCollisions; iCol++) {
-    auto time = mcRecords[iCol].getTimeNS();
-    auto globalBC = mcRecords[iCol].toLong();
-    auto item = bcsMap.find(globalBC);
-    int bcID = -1;
-    if (item != bcsMap.end()) {
-      bcID = item->second;
-    } else {
-      LOG(FATAL) << "Error: could not find a corresponding BC ID for MC collision; BC = " << globalBC << ", mc collision = " << iCol;
-    }
-    auto& colParts = mcParts[iCol];
-    for (auto colPart : colParts) {
-      auto eventID = colPart.entryID;
-      auto sourceID = colPart.sourceID;
-      if (sourceID == 0) { // embedding: using background event info
-        // FIXME:
-        // use generators' names for generatorIDs (?)
-        short generatorID = sourceID;
-        auto& header = mcReader.getMCEventHeader(sourceID, eventID);
-        mcCollisionsCursor(0,
-                           bcID,
-                           generatorID,
-                           truncateFloatFraction(header.GetX(), mCollisionPosition),
-                           truncateFloatFraction(header.GetY(), mCollisionPosition),
-                           truncateFloatFraction(header.GetZ(), mCollisionPosition),
-                           truncateFloatFraction(time, mCollisionPosition),
-                           truncateFloatFraction(mcColWeight, mCollisionPosition),
-                           header.GetB());
+  if (mUseMC) {
+    // TODO: figure out collision weight
+    float mcColWeight = 1.;
+    // filling mcCollision table
+    int nMCCollisions = mcReader->getDigitizationContext()->getNCollisions();
+    const auto& mcRecords = mcReader->getDigitizationContext()->getEventRecords();
+    const auto& mcParts = mcReader->getDigitizationContext()->getEventParts();
+    for (int iCol = 0; iCol < nMCCollisions; iCol++) {
+      auto time = mcRecords[iCol].getTimeNS();
+      auto globalBC = mcRecords[iCol].toLong();
+      auto item = bcsMap.find(globalBC);
+      int bcID = -1;
+      if (item != bcsMap.end()) {
+        bcID = item->second;
+      } else {
+        LOG(FATAL) << "Error: could not find a corresponding BC ID for MC collision; BC = " << globalBC << ", mc collision = " << iCol;
       }
-      mcColToEvSrc.emplace(std::pair<int, int>(eventID, sourceID), iCol); // point background and injected signal events to one collision
+      auto& colParts = mcParts[iCol];
+      for (auto colPart : colParts) {
+        auto eventID = colPart.entryID;
+        auto sourceID = colPart.sourceID;
+        if (sourceID == 0) { // embedding: using background event info
+          // FIXME:
+          // use generators' names for generatorIDs (?)
+          short generatorID = sourceID;
+          auto& header = mcReader->getMCEventHeader(sourceID, eventID);
+          mcCollisionsCursor(0,
+                             bcID,
+                             generatorID,
+                             truncateFloatFraction(header.GetX(), mCollisionPosition),
+                             truncateFloatFraction(header.GetY(), mCollisionPosition),
+                             truncateFloatFraction(header.GetZ(), mCollisionPosition),
+                             truncateFloatFraction(time, mCollisionPosition),
+                             truncateFloatFraction(mcColWeight, mCollisionPosition),
+                             header.GetB());
+        }
+        mcColToEvSrc.emplace(std::pair<int, int>(eventID, sourceID), iCol); // point background and injected signal events to one collision
+      }
     }
   }
 
@@ -1170,12 +1181,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               ft0RecPoint.getTrigger().triggersignals);
   }
 
-  // filling MC collision labels
-  for (auto& label : primVerLabels) {
-    auto it = mcColToEvSrc.find(std::pair<int, int>(label.getEventID(), label.getSourceID()));
-    int32_t mcCollisionID = it != mcColToEvSrc.end() ? it->second : -1;
-    uint16_t mcMask = 0; // todo: set mask using normalized weights?
-    mcColLabelsCursor(0, mcCollisionID, mcMask);
+  if (mUseMC) {
+    // filling MC collision labels
+    for (auto& label : primVerLabels) {
+      auto it = mcColToEvSrc.find(std::pair<int, int>(label.getEventID(), label.getSourceID()));
+      int32_t mcCollisionID = it != mcColToEvSrc.end() ? it->second : -1;
+      uint16_t mcMask = 0; // todo: set mask using normalized weights?
+      mcColLabelsCursor(0, mcCollisionID, mcMask);
+    }
   }
 
   // hash map for track indices of secondary vertices
@@ -1279,26 +1292,27 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   bcsMap.clear();
 
-  // filling mc particles table
-  fillMCParticlesTable(mcReader,
-                       mcParticlesCursor,
-                       primVer2TRefs,
-                       primVerGIs,
-                       recoData,
-                       mcColToEvSrc);
+  if (mUseMC) {
+    // filling mc particles table
+    fillMCParticlesTable(*mcReader,
+                         mcParticlesCursor,
+                         primVer2TRefs,
+                         primVerGIs,
+                         recoData,
+                         mcColToEvSrc);
 
-  mcColToEvSrc.clear();
+    mcColToEvSrc.clear();
 
-  // ------------------------------------------------------
-  // filling track labels
+    // ------------------------------------------------------
+    // filling track labels
 
-  // need to go through labels in the same order as for tracks
-  fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, primVer2TRefs.back(), primVerGIs, recoData);
-  for (int iref = 0; iref < primVer2TRefs.size() - 1; iref++) {
-    auto& trackRef = primVer2TRefs[iref];
-    fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, trackRef, primVerGIs, recoData);
+    // need to go through labels in the same order as for tracks
+    fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, primVer2TRefs.back(), primVerGIs, recoData);
+    for (int iref = 0; iref < primVer2TRefs.size() - 1; iref++) {
+      auto& trackRef = primVer2TRefs[iref];
+      fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, trackRef, primVerGIs, recoData);
+    }
   }
-
   mToStore.clear();
 
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
@@ -1351,7 +1365,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
     "aod-producer-workflow",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest)},
+    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, useMC)},
     Options{
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on, != 1 -- off"}},

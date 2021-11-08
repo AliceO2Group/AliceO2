@@ -49,7 +49,9 @@ class MatchITSTPCQC
   ~MatchITSTPCQC();
 
   bool init();
+  void initDataRequest();
   void run(o2::framework::ProcessingContext& ctx);
+  void setDataRequest(std::shared_ptr<o2::globaltracking::DataRequest> dr) { mDataRequest = dr; }
   void finalize();
   void reset();
   TH1F* getHistoPt() const { return mPt; }

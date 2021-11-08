@@ -399,6 +399,7 @@ AddOption(forceDeviceType, bool, true, "", 0, "force device type, otherwise allo
 AddOption(synchronousProcessing, bool, false, "", 0, "Apply performance shortcuts for synchronous processing, disable unneeded steps")
 AddOption(dump, int, 0, "", 0, "Dump events for standalone benchmark: 1 = dump events, 2 = dump events and skip processing in workflow")
 AddOption(display, bool, false, "", 0, "Enable standalone gpu tracking visualizaion")
+AddOption(rundEdx, int, -1, "", 0, "Enable/disable dEdx processing (-1 for autoselect)")
 AddOption(dEdxFile, std::string, "", "", 0, "File name of dEdx Splines file")
 AddOption(transformationFile, std::string, "", "", 0, "File name of TPC fast transformation map")
 AddOption(matLUTFile, std::string, "", "", 0, "File name of material LUT file")

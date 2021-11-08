@@ -11,6 +11,7 @@
 #ifndef O2_FRAMEWORK_DATAPROCESSINGSTATS_H_
 #define O2_FRAMEWORK_DATAPROCESSINGSTATS_H_
 
+#include "Framework/ServiceSpec.h"
 #include <atomic>
 #include <cstdint>
 
@@ -47,8 +48,8 @@ struct DataProcessingStats {
   std::atomic<uint64_t> performedComputations = 0;             // The number of computations which have completed so far
   std::atomic<uint64_t> lastReportedPerformedComputations = 0; // The number of computations which have completed until lastSlowMetricSentTimestamp
 
-  std::vector<uint64_t> channelBytesIn;  // How many incoming bytes have gone through the channels
-  std::vector<uint64_t> channelBytesOut; // How many outgoing bytes have gone through the channels
+  std::atomic<uint64_t> totalBytesOut; // How many outgoing bytes from the device
+  std::atomic<uint64_t> totalBytesIn;  // How many incoming bytes from the device
 
   InputLatency lastLatency = {0, 0};
 

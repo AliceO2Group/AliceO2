@@ -175,7 +175,7 @@ void TOFMatchChecker::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry();
+  o2::base::GeometryManager::loadGeometry("", false);
   o2::base::Propagator::initFieldFromGRP();
   std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
 }

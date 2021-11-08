@@ -16,6 +16,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/Configurable.h"
 #include "Framework/RunningWorkflowInfo.h"
+#include "Framework/CallbackService.h"
 #include <FairMQDevice.h>
 #include <InfoLogger/InfoLogger.hxx>
 
@@ -33,6 +34,15 @@ struct WorkflowOptions {
   Configurable<std::string> aString{"aString", "foobar", {"a string option"}};
   Configurable<bool> aBool{"aBool", true, {"a boolean option"}};
 };
+
+void customize(std::vector<CallbacksPolicy>& policies)
+{
+  policies.push_back(CallbacksPolicy{
+    .matcher = DeviceMatchers::matchByName("A"),
+    .policy = [](CallbackService& service, InitContext&) {
+      service.set(CallbackService::Id::Start, []() { LOG(INFO) << "invoked at start"; });
+    }});
+}
 
 #include "Framework/runDataProcessing.h"
 

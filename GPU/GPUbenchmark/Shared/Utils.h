@@ -72,7 +72,8 @@ inline std::ostream& operator<<(std::ostream& os, Test test)
 
 enum class Mode {
   Sequential,
-  Concurrent
+  Concurrent,
+  Distributed
 };
 
 inline std::ostream& operator<<(std::ostream& os, Mode mode)
@@ -83,6 +84,9 @@ inline std::ostream& operator<<(std::ostream& os, Mode mode)
       break;
     case Mode::Concurrent:
       os << "concurrent";
+      break;
+    case Mode::Distributed:
+      os << "distributed";
       break;
   }
   return os;
@@ -138,17 +142,11 @@ inline std::string getTestName(Mode mode, Test test, KernelConfig blocks)
   return tname;
 }
 
-template <class chunk_t>
-inline chunk_t* getPartPtr(chunk_t* scratchPtr, float chunkReservedGB, int partNumber)
-{
-  return reinterpret_cast<chunk_t*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * chunkReservedGB) * partNumber);
-}
-
 // Return pointer to custom offset (GB)
 template <class chunk_t>
-inline chunk_t* getCustomPtr(chunk_t* scratchPtr, int partNumber)
+inline chunk_t* getCustomPtr(chunk_t* scratchPtr, float startGB)
 {
-  return reinterpret_cast<chunk_t*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * partNumber));
+  return reinterpret_cast<chunk_t*>(reinterpret_cast<char*>(scratchPtr) + (static_cast<size_t>(GB * startGB) & 0xFFFFFFFFFFFFF000));
 }
 
 inline float computeThroughput(Test test, float result, float chunkSizeGB, int ntests)
@@ -160,9 +158,9 @@ inline float computeThroughput(Test test, float result, float chunkSizeGB, int n
 }
 
 template <class chunk_t>
-inline size_t getBufferCapacity(int chunkReservedGB)
+inline size_t getBufferCapacity(float chunkReservedGB)
 {
-  return static_cast<size_t>(GB * chunkReservedGB / sizeof(chunk_t));
+  return (static_cast<size_t>(GB * chunkReservedGB) & 0xFFFFFFFFFFFFF000) / sizeof(chunk_t);
 }
 
 // LCG: https://rosettacode.org/wiki/Linear_congruential_generator
@@ -202,7 +200,7 @@ struct benchmarkOpts {
   std::vector<Mode> modes = {Mode::Sequential, Mode::Concurrent};
   std::vector<KernelConfig> pools = {KernelConfig::Single, KernelConfig::Multi};
   std::vector<std::string> dtypes = {"char", "int", "ulong"};
-  std::vector<std::pair<int, int>> testChunks;
+  std::vector<std::pair<float, float>> testChunks;
   float chunkReservedGB = 1.f;
   float threadPoolFraction = 1.f;
   float freeMemoryFractionToAllocate = 0.95f;
@@ -235,10 +233,10 @@ struct gpuState {
   float chunkReservedGB; // Size of each partition (GB)
 
   // General containers and state
-  chunk_t* scratchPtr;                         // Pointer to scratch buffer
-  size_t scratchSize;                          // Size of scratch area (B)
-  std::vector<chunk_t*> partAddrOnHost;        // Pointers to scratch partitions on host vector
-  std::vector<std::pair<int, int>> testChunks; // Vector of definitions for arbitrary chunks
+  chunk_t* scratchPtr;                             // Pointer to scratch buffer
+  size_t scratchSize;                              // Size of scratch area (B)
+  std::vector<chunk_t*> partAddrOnHost;            // Pointers to scratch partitions on host vector
+  std::vector<std::pair<float, float>> testChunks; // Vector of definitions for arbitrary chunks
 
   // Static info
   size_t totalMemory;

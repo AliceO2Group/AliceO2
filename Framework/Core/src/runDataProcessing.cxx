@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 #include <stdexcept>
 #include "Framework/BoostOptionsRetriever.h"
+#include "Framework/CallbacksPolicy.h"
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ChannelMatching.h"
 #include "Framework/ConfigParamsHelper.h"
@@ -54,6 +55,7 @@
 #include "DriverServerContext.h"
 #include "HTTPParser.h"
 #include "DPLWebSocket.h"
+#include "ArrowSupport.h"
 
 #include "ComputingResourceHelpers.h"
 #include "DataProcessingStatus.h"
@@ -160,25 +162,6 @@ std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 // these are the device options added by the framework, but they can be
 // overloaded in the config spec
 bpo::options_description gHiddenDeviceOptions("Hidden child options");
-
-// To be used to allow specifying the TerminationPolicy on the command line.
-
-size_t current_time_with_ms()
-{
-  long ms;  // Milliseconds
-  time_t s; // Seconds
-  struct timespec spec;
-
-  clock_gettime(CLOCK_REALTIME, &spec);
-
-  s = spec.tv_sec;
-  ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
-  if (ms > 999) {
-    s++;
-    ms = 0;
-  }
-  return s * 1000 + ms;
-}
 
 // Read from a given fd and print it.
 // return true if we can still read from it,
@@ -527,7 +510,7 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     if (!didProcessMetric) {
       return;
     }
-    size_t timestamp = current_time_with_ms();
+    size_t timestamp = uv_now(mContext.loop);
     for (auto& callback : *mContext.metricProcessingCallbacks) {
       callback(*mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
     }
@@ -1238,6 +1221,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   std::vector<ServicePostSchedule> postScheduleCallbacks;
   std::vector<ServiceDriverInit> driverInitCallbacks;
   for (auto& service : driverServices) {
+    if (service.driverStartup == nullptr) {
+      continue;
+    }
     service.driverStartup(serviceRegistry, varmap);
   }
 
@@ -1506,9 +1492,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             driverInfo.completionPolicies,
                                                             driverInfo.dispatchPolicies,
                                                             driverInfo.resourcePolicies,
+                                                            driverInfo.callbacksPolicies,
                                                             runningWorkflow.devices,
                                                             *resourceManager,
                                                             driverInfo.uniqueWorkflowId,
+                                                            *driverInfo.configContext,
                                                             !varmap["no-IPC"].as<bool>(),
                                                             driverInfo.resourcesMonitoringInterval,
                                                             varmap["channel-prefix"].as<std::string>());
@@ -1753,7 +1741,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           auto inputProcessingLatency = inputProcessingStart - inputProcessingLast;
           auto outputProcessing = processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls, metricsInfos);
           if (outputProcessing.didProcessMetric) {
-            size_t timestamp = current_time_with_ms();
+            size_t timestamp = uv_now(loop);
             for (auto& callback : metricProcessingCallbacks) {
               callback(serviceRegistry, metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics, timestamp);
             }
@@ -1801,7 +1789,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         driverInfo.sigchldRequested = false;
         auto outputProcessing = processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls, metricsInfos);
         if (outputProcessing.didProcessMetric) {
-          size_t timestamp = current_time_with_ms();
+          size_t timestamp = uv_now(loop);
           for (auto& callback : metricProcessingCallbacks) {
             callback(serviceRegistry, metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics, timestamp);
           }
@@ -2267,6 +2255,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<CompletionPolicy> const& completionPolicies,
            std::vector<DispatchPolicy> const& dispatchPolicies,
            std::vector<ResourcePolicy> const& resourcePolicies,
+           std::vector<CallbacksPolicy> const& callbacksPolicies,
            std::vector<ConfigParamSpec> const& currentWorkflowOptions,
            o2::framework::ConfigContext& configContext)
 {
@@ -2380,6 +2369,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   std::vector<ServiceSpec> driverServices = CommonDriverServices::defaultServices();
   // We insert the hash for the internal devices.
   WorkflowHelpers::injectServiceDevices(physicalWorkflow, configContext);
+  auto reader = std::find_if(physicalWorkflow.begin(), physicalWorkflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });
+  if (reader != physicalWorkflow.end()) {
+    driverServices.push_back(ArrowSupport::arrowBackendSpec());
+  }
   for (auto& service : driverServices) {
     if (service.injectTopology == nullptr) {
       continue;
@@ -2538,6 +2531,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.completionPolicies = completionPolicies;
   driverInfo.dispatchPolicies = dispatchPolicies;
   driverInfo.resourcePolicies = resourcePolicies;
+  driverInfo.callbacksPolicies = callbacksPolicies;
   driverInfo.argc = argc;
   driverInfo.argv = argv;
   driverInfo.batch = varmap["no-batch"].defaulted() ? varmap["batch"].as<bool>() : false;

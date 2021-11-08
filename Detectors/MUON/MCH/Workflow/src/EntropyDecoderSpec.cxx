@@ -30,7 +30,7 @@ namespace mch
 class EntropyDecoderSpec : public o2::framework::Task
 {
  public:
-  EntropyDecoderSpec();
+  EntropyDecoderSpec(int verbosity);
   ~EntropyDecoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -41,16 +41,16 @@ class EntropyDecoderSpec : public o2::framework::Task
   TStopwatch mTimer;
 };
 
-EntropyDecoderSpec::EntropyDecoderSpec()
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
+  mCTFCoder.setVerbosity(verbosity);
 }
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
   std::string dictPath = ic.options().get<std::string>("ctf-dict");
-  mCTFCoder.setMemMarginFactor(ic.options().get<float>("mem-factor"));
   if (!dictPath.empty() && dictPath != "none") {
     mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
   }
@@ -80,7 +80,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec(const char* specName)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, const char* specName)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"rofs"}, "MCH", "DIGITROFS", 0, Lifetime::Timeframe},
@@ -90,9 +90,8 @@ DataProcessorSpec getEntropyDecoderSpec(const char* specName)
     specName,
     Inputs{InputSpec{"ctf", "MCH", "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
-    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}},
-            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
+    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
 }
 
 } // namespace mch

@@ -23,10 +23,14 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/ConfigContext.h"
+#include "Framework/ConfigParamStore.h"
+#include "Framework/ConfigParamRegistry.h"
 
 #include <chrono>
 #include <sstream>
 #include <thread>
+#include <memory>
 
 using namespace o2::framework;
 
@@ -91,7 +95,8 @@ BOOST_AUTO_TEST_CASE(TestDDS)
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm, "workflow-id", true);
+  auto callbacksPolicies = CallbacksPolicy::createDefaultPolicies();
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext, true);
   std::vector<DeviceControl> controls;
   std::vector<DeviceExecution> executions;
   controls.resize(devices.size());

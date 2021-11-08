@@ -133,6 +133,10 @@ bool CalibTimeSlewingParamTOF::updateOffsetInfo(int channel, float residualOffse
   channel = channel % NCHANNELXSECTOR;
   //  printf("sector = %d, channel = %d\n", sector, channel);
 
+  mGlobalOffset[sector][channel] += residualOffset;
+  return true;
+
+  /*
   // printf("DBG: addTimeSlewinginfo sec=%i\n",sector);
 
   int n = mChannelStart[sector][channel]; // first time slewing entry for the current channel. this corresponds to tot = 0
@@ -149,6 +153,7 @@ bool CalibTimeSlewingParamTOF::updateOffsetInfo(int channel, float residualOffse
   }
   (mTimeSlewing[sector])[n].second += (short)residualOffset;
   return true;
+*/
 }
 //______________________________________________
 CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator+=(const CalibTimeSlewingParamTOF& other)
