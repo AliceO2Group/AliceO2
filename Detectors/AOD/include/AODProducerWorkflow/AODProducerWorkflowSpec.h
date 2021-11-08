@@ -204,6 +204,7 @@ class AODProducerWorkflowDPL : public Task
 
   GID::mask_t mInputSources;
   int64_t mTFNumber{-1};
+  int mRunNumber{-1};
   int mTruncate{1};
   int mRecoOnly{0};
   TStopwatch mTimer;

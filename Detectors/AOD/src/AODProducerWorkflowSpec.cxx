@@ -858,9 +858,13 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
   mRecoOnly = ic.options().get<int>("reco-mctracks-only");
   mTruncate = ic.options().get<int>("enable-truncation");
+  mRunNumber = ic.options().get<int>("run-number");
 
   if (mTFNumber == -1L) {
     LOG(INFO) << "TFNumber will be obtained from CCDB";
+  }
+  if (mRunNumber == -1L) {
+    LOG(INFO) << "The Run number will be obtained from DPL headers";
   }
 
   if (mTruncate != 1) {
@@ -988,7 +992,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   o2::InteractionRecord startIR = {0, dh->firstTForbit};
 
   uint64_t tfNumber;
-  int runNumber = int(dh->runNumber);
+  const int runNumber = (mRunNumber == -1) ? int(dh->runNumber) : mRunNumber;
   if (mTFNumber == -1L) {
     // TODO has to be made globally unique (by using absolute time of TF). For now is unique within the run
     tfNumber = dh->tfCounter; //getTFNumber(startIR, runNumber);
@@ -1368,6 +1372,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, useMC)},
     Options{
+      ConfigParamSpec{"run-number", VariantType::Int64, -1L, {"The run-number. If left default we try to get it from DPL header."}},
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on, != 1 -- off"}},
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}}}};
