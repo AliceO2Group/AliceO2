@@ -129,7 +129,7 @@ class SplineContainer : public FlatObject
   GPUd() size_t getGridOffset(int dimX) const { return mGrid[dimX].getFlatBufferPtr() - mFlatBufferPtr; }
 
   /// Set X range
-  void setXrange(const DataT xMin[/* mXdim */], const DataT xMax[/* mXdim */]);
+  GPUd() void setXrange(const DataT xMin[/* mXdim */], const DataT xMax[/* mXdim */]);
 
   /// Print method
   void print() const;

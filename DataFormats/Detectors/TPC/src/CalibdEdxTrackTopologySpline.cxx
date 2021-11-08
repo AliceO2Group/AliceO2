@@ -14,66 +14,67 @@
 ///
 /// \author  Matthias Kleiner <matthias.kleiner@cern.ch>
 
-#include "TPCdEdxCalibrationSplines.h"
+#include "DataFormatsTPC/CalibdEdxTrackTopologySpline.h"
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
 #include "TFile.h"
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace o2::tpc;
 
 #if !defined(GPUCA_GPUCODE) && defined(GPUCA_STANDALONE)
-TPCdEdxCalibrationSplines::TPCdEdxCalibrationSplines()
+CalibdEdxTrackTopologySpline::CalibdEdxTrackTopologySpline()
   : FlatObject()
 {
   /// Empty constructor
 }
 #elif !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-TPCdEdxCalibrationSplines::TPCdEdxCalibrationSplines()
+CalibdEdxTrackTopologySpline::CalibdEdxTrackTopologySpline()
   : FlatObject()
 {
   /// Default constructor
   setDefaultSplines();
 }
 
-TPCdEdxCalibrationSplines::TPCdEdxCalibrationSplines(const char* dEdxSplinesFile)
+CalibdEdxTrackTopologySpline::CalibdEdxTrackTopologySpline(const char* dEdxSplinesFile)
   : FlatObject()
 {
   TFile dEdxFile(dEdxSplinesFile);
   setSplinesFromFile(dEdxFile);
+  setRangesFromFile(dEdxFile);
 }
 
-TPCdEdxCalibrationSplines::TPCdEdxCalibrationSplines(const TPCdEdxCalibrationSplines& obj)
+CalibdEdxTrackTopologySpline::CalibdEdxTrackTopologySpline(const CalibdEdxTrackTopologySpline& obj)
   : FlatObject()
 {
   /// Copy constructor
   this->cloneFromObject(obj, nullptr);
 }
 
-TPCdEdxCalibrationSplines& TPCdEdxCalibrationSplines::operator=(const TPCdEdxCalibrationSplines& obj)
+CalibdEdxTrackTopologySpline& CalibdEdxTrackTopologySpline::operator=(const CalibdEdxTrackTopologySpline& obj)
 {
   /// Assignment operator
   this->cloneFromObject(obj, nullptr);
   return *this;
 }
 
-void TPCdEdxCalibrationSplines::recreate(int nKnotsU1[], int nKnotsU2[])
+void CalibdEdxTrackTopologySpline::recreate(const int nKnots[])
 {
   /// Default constructor
-
   FlatObject::startConstruction();
 
   int buffSize = 0;
   int offsets1[FSplines];
   int offsets2[FSplines];
   for (unsigned int i = 0; i < FSplines; i++) {
-    mCalibSplinesqMax[i].recreate(nKnotsU1[i], nKnotsU2[i]);
+    mCalibSplinesqMax[i].recreate(nKnots);
     buffSize = alignSize(buffSize, mCalibSplinesqMax[i].getBufferAlignmentBytes());
     offsets1[i] = buffSize;
     buffSize += mCalibSplinesqMax[i].getFlatBufferSize();
   }
   for (unsigned int i = 0; i < FSplines; i++) {
-    mCalibSplinesqTot[i].recreate(nKnotsU1[i], nKnotsU2[i]);
+    mCalibSplinesqTot[i].recreate(nKnots);
     buffSize = alignSize(buffSize, mCalibSplinesqTot[i].getBufferAlignmentBytes());
     offsets2[i] = buffSize;
     buffSize += mCalibSplinesqTot[i].getFlatBufferSize();
@@ -89,7 +90,7 @@ void TPCdEdxCalibrationSplines::recreate(int nKnotsU1[], int nKnotsU2[])
   }
 }
 
-void TPCdEdxCalibrationSplines::cloneFromObject(const TPCdEdxCalibrationSplines& obj, char* newFlatBufferPtr)
+void CalibdEdxTrackTopologySpline::cloneFromObject(const CalibdEdxTrackTopologySpline& obj, char* newFlatBufferPtr)
 {
   /// See FlatObject for description
 
@@ -105,9 +106,11 @@ void TPCdEdxCalibrationSplines::cloneFromObject(const TPCdEdxCalibrationSplines&
     char* buffer = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mCalibSplinesqTot[i].getFlatBufferPtr());
     mCalibSplinesqTot[i].cloneFromObject(obj.mCalibSplinesqTot[i], buffer);
   }
+  mMaxTanTheta = obj.mMaxTanTheta;
+  mMaxSinPhi = obj.mMaxSinPhi;
 }
 
-void TPCdEdxCalibrationSplines::moveBufferTo(char* newFlatBufferPtr)
+void CalibdEdxTrackTopologySpline::moveBufferTo(char* newFlatBufferPtr)
 {
   /// See FlatObject for description
   char* oldFlatBufferPtr = mFlatBufferPtr;
@@ -118,7 +121,7 @@ void TPCdEdxCalibrationSplines::moveBufferTo(char* newFlatBufferPtr)
 }
 #endif
 
-void TPCdEdxCalibrationSplines::destroy()
+void CalibdEdxTrackTopologySpline::destroy()
 {
   /// See FlatObject for description
   for (unsigned int i = 0; i < FSplines; i++) {
@@ -128,7 +131,7 @@ void TPCdEdxCalibrationSplines::destroy()
   FlatObject::destroy();
 }
 
-void TPCdEdxCalibrationSplines::setActualBufferAddress(char* actualFlatBufferPtr)
+void CalibdEdxTrackTopologySpline::setActualBufferAddress(char* actualFlatBufferPtr)
 {
   /// See FlatObject for description
 
@@ -146,7 +149,7 @@ void TPCdEdxCalibrationSplines::setActualBufferAddress(char* actualFlatBufferPtr
   }
 }
 
-void TPCdEdxCalibrationSplines::setFutureBufferAddress(char* futureFlatBufferPtr)
+void CalibdEdxTrackTopologySpline::setFutureBufferAddress(char* futureFlatBufferPtr)
 {
   /// See FlatObject for description
 
@@ -163,20 +166,20 @@ void TPCdEdxCalibrationSplines::setFutureBufferAddress(char* futureFlatBufferPtr
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
-TPCdEdxCalibrationSplines* TPCdEdxCalibrationSplines::readFromFile(
+CalibdEdxTrackTopologySpline* CalibdEdxTrackTopologySpline::readFromFile(
   TFile& inpf, const char* name)
 {
   /// read a class object from the file
-  return FlatObject::readFromFile<TPCdEdxCalibrationSplines>(inpf, name);
+  return FlatObject::readFromFile<CalibdEdxTrackTopologySpline>(inpf, name);
 }
 
-int TPCdEdxCalibrationSplines::writeToFile(TFile& outf, const char* name)
+int CalibdEdxTrackTopologySpline::writeToFile(TFile& outf, const char* name)
 {
   /// write a class object to the file
   return FlatObject::writeToFile(*this, outf, name);
 }
 
-void TPCdEdxCalibrationSplines::setDefaultSplines()
+void CalibdEdxTrackTopologySpline::setDefaultSplines()
 {
   FlatObject::startConstruction();
 
@@ -184,13 +187,20 @@ void TPCdEdxCalibrationSplines::setDefaultSplines()
   int offsets1[FSplines];
   int offsets2[FSplines];
 
-  auto defaultFnd2D = [&](double x1, double x2, double f[]) {
+  auto defaultF = [&](const double x[], double f[]) {
     f[0] = 1.f;
   };
+  double xMin[FDimX]{};
+  double xMax[FDimX]{};
+
+  for (int iDimX = 0; iDimX < FDimX; ++iDimX) {
+    xMin[iDimX] = 0;
+    xMax[iDimX] = 1;
+  }
 
   for (unsigned int ireg = 0; ireg < FSplines; ++ireg) {
-    o2::gpu::Spline2D<float, 1> splineTmpqMax;
-    splineTmpqMax.approximateFunction(0., 1., 0., 1., defaultFnd2D);
+    SplineType splineTmpqMax;
+    splineTmpqMax.approximateFunction(xMin, xMax, defaultF);
     mCalibSplinesqMax[ireg] = splineTmpqMax;
     buffSize = alignSize(buffSize, mCalibSplinesqMax[ireg].getBufferAlignmentBytes());
     offsets1[ireg] = buffSize;
@@ -198,8 +208,8 @@ void TPCdEdxCalibrationSplines::setDefaultSplines()
   }
 
   for (unsigned int ireg = 0; ireg < FSplines; ++ireg) {
-    o2::gpu::Spline2D<float, 1> splineTmpqTot;
-    splineTmpqTot.approximateFunction(0., 1., 0., 1., defaultFnd2D);
+    SplineType splineTmpqTot;
+    splineTmpqTot.approximateFunction(xMin, xMax, defaultF);
     mCalibSplinesqTot[ireg] = splineTmpqTot;
     buffSize = alignSize(buffSize, mCalibSplinesqTot[ireg].getBufferAlignmentBytes());
     offsets2[ireg] = buffSize;
@@ -215,4 +225,21 @@ void TPCdEdxCalibrationSplines::setDefaultSplines()
     mCalibSplinesqTot[i].moveBufferTo(mFlatBufferPtr + offsets2[i]);
   }
 }
+
+inline void CalibdEdxTrackTopologySpline::setRangesFromFile(TFile& inpf)
+{
+  std::vector<float>* tanThetaMax = nullptr;
+  std::vector<float>* sinPhiMax = nullptr;
+  inpf.GetObject("tanThetaMax", tanThetaMax);
+  inpf.GetObject("sinPhiMax", sinPhiMax);
+  if (tanThetaMax) {
+    mMaxTanTheta = (*tanThetaMax).front();
+    delete tanThetaMax;
+  }
+  if (sinPhiMax) {
+    mMaxSinPhi = (*sinPhiMax).front();
+    delete sinPhiMax;
+  }
+}
+
 #endif
