@@ -224,6 +224,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
     }
     hd->firstTForbit = ctfHeader.firstTForbit;
     hd->tfCounter = this->mCTFCounter;
+    hd->runNumber = uint32_t(ctfHeader.run);
   };
 
   // send CTF Header
