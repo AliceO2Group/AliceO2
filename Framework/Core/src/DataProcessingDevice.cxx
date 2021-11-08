@@ -1168,9 +1168,10 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         auto payload = currentSetOfInputs[i].payload(partindex).get();
         return DataRef{nullptr,
                        static_cast<char const*>(header->GetData()),
-                       static_cast<char const*>(payload ? payload->GetData() : nullptr)};
+                       static_cast<char const*>(payload ? payload->GetData() : nullptr),
+                       payload ? payload->GetSize() : 0};
       }
-      return DataRef{nullptr, nullptr, nullptr};
+      return DataRef{};
     };
     auto nofPartsGetter = [&currentSetOfInputs](size_t i) -> size_t {
       return currentSetOfInputs[i].size();

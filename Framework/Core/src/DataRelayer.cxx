@@ -512,9 +512,10 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
         auto payload = partial[idx].payload(part).get();
         return DataRef{nullptr,
                        reinterpret_cast<const char*>(header->GetData()),
-                       reinterpret_cast<const char*>(payload ? payload->GetData() : nullptr)};
+                       reinterpret_cast<char const*>(payload ? payload->GetData() : nullptr),
+                       payload ? payload->GetSize() : 0};
       }
-      return DataRef{nullptr, nullptr, nullptr};
+      return DataRef{};
     };
     auto nPartsGetter = [&partial](size_t idx) {
       return partial[idx].size();
