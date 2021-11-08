@@ -101,7 +101,7 @@ std::string VisualisationEvent::toJson()
 
   // compatibility verification
   tree.AddMember("fileVersion", rapidjson::Value().SetInt(JSON_FILE_VERSION), allocator);
-  //tree.AddMember("timeStamp", rapidjson::Value().SetFloat(this->mTimeStamp), allocator);
+  tree.AddMember("timeStamp", rapidjson::Value().SetFloat(this->mTimeStamp), allocator);
   tree.AddMember("workflowVersion", rapidjson::Value().SetFloat(this->mWorkflowVersion), allocator);
   tree.AddMember("workflowParameters", rapidjson::Value().SetString(this->mWorkflowParameters.c_str(), this->mWorkflowParameters.size()), allocator);
   // Tracks
@@ -140,17 +140,13 @@ VisualisationEvent::VisualisationEvent(const VisualisationEvent& source, EVisual
 {
   for (auto it = source.mTracks.begin(); it != source.mTracks.end(); ++it) {
     if (VisualisationEvent::mVis.contains[it->getSource()][filter]) {
-      this->addTrack({.time = it->getTime(),
-                      .charge = it->getCharge(),
-                      .PID = it->getPID(),
-                      .startXYZ = {
-                        it->getStartCoordinates()[0], it->getStartCoordinates()[1], it->getStartCoordinates()[2]},
-                      .phi = it->getPhi(),
-                      .theta = it->getTheta(),
-                      .source = it->getSource()});
+      this->mTracks.push_back(*it);
     }
   }
   for (auto it = source.mClusters.begin(); it != source.mClusters.end(); ++it) {
+    if (VisualisationEvent::mVis.contains[it->getSource()][filter]) {
+      this->mClusters.push_back(*it);
+    }
   }
 }
 

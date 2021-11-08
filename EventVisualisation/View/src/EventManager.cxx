@@ -73,10 +73,7 @@ void EventManager::displayCurrentEvent()
 
     auto displayList = getDataSource()->getVisualisationList(no);
     for (auto it = displayList.begin(); it != displayList.end(); ++it) {
-
-      //if (it->second == EVisualisationGroup::TPC) { // temporary
       displayVisualisationEvent(it->first, gVisualisationGroupName[it->second]);
-      //}
     }
 
     for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
@@ -162,7 +159,7 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   // clusters
   size_t clusterCount = 0;
   auto* point_list = new TEvePointSet(detectorName.c_str());
-  point_list->IncDenyDestroy();
+  point_list->IncDenyDestroy(); // don't delete if zero parent
   point_list->SetMarkerColor(kBlue);
 
   for (size_t i = 0; i < trackCount; ++i) {
@@ -173,6 +170,8 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
     t.fSign = track.getCharge() > 0 ? 1 : -1;
     auto* vistrack = new TEveTrack(&t, &TEveTrackPropagator::fgDefault);
     vistrack->SetLineColor(kMagenta);
+    //vistrack->SetName(detectorName + " track: " + i);
+    vistrack->SetName(track.getGIDAsString().c_str());
     size_t pointCount = track.getPointCount();
     vistrack->Reset(pointCount);
 
