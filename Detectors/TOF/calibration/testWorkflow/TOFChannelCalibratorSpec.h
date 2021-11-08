@@ -44,7 +44,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
   using LHCphase = o2::dataformats::CalibLHCphaseTOF;
 
  public:
-  explicit TOFChannelCalibDevice(bool useCCDB, bool attachChannelOffsetToLHCphase, bool isCosmics) : mUseCCDB(useCCDB), mAttachToLHCphase(attachChannelOffsetToLHCphase), mCosmics(isCosmics) {}
+  explicit TOFChannelCalibDevice(bool useCCDB, bool attachChannelOffsetToLHCphase, bool isCosmics, bool perstrip = false) : mUseCCDB(useCCDB), mAttachToLHCphase(attachChannelOffsetToLHCphase), mCosmics(isCosmics), mDoPerStrip(perstrip) {}
   void init(o2::framework::InitContext& ic) final
   {
 
@@ -58,6 +58,8 @@ class TOFChannelCalibDevice : public o2::framework::Task
     int updateInterval = ic.options().get<int64_t>("update-interval");
     int deltaUpdateInterval = ic.options().get<int64_t>("delta-update-interval");
     mCalibrator = std::make_unique<o2::tof::TOFChannelCalibrator<T>>(minEnt, nb, range);
+
+    mCalibrator->doPerStrip(mDoPerStrip);
 
     // default behaviour is to have only 1 slot at a time, accepting everything for it till the
     // minimum statistics is reached;
@@ -83,7 +85,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
 
     TFile* fsleewing = TFile::Open("localTimeSlewing.root");
     if (fsleewing) {
-      TimeSlewing* ob = (TimeSlewing*)fsleewing->Get("TimeSlewing");
+      TimeSlewing* ob = (TimeSlewing*)fsleewing->Get("ccdb_object");
       mTimeSlewing = *ob;
       return;
     }
@@ -188,6 +190,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
   bool mUseCCDB = false;
   bool mAttachToLHCphase = false; // whether to use or not previously defined LHCphase
   bool mCosmics = false;
+  bool mDoPerStrip = false;
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -220,7 +223,7 @@ namespace framework
 {
 
 template <class T>
-DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelOffsetToLHCphase = false, bool isCosmics = false)
+DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelOffsetToLHCphase = false, bool isCosmics = false, bool perstrip = false)
 {
   constexpr int64_t INFINITE_TF_int64 = std::numeric_limits<long>::max();
   using device = o2::calibration::TOFChannelCalibDevice<T>;
@@ -248,7 +251,7 @@ DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelO
     "calib-tofchannel-calibration",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(useCCDB, attachChannelOffsetToLHCphase, isCosmics)},
+    AlgorithmSpec{adaptFromTask<device>(useCCDB, attachChannelOffsetToLHCphase, isCosmics, perstrip)},
     Options{
       {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit channel histos"}},
       {"nbins", VariantType::Int, 1000, {"number of bins for t-texp"}},
