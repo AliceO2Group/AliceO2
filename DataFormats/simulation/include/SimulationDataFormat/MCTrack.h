@@ -253,7 +253,7 @@ class MCTrackT
   // such as part of mProp (process) or mPDG
   Int_t mStatusCode = 0;
 
-  ClassDefNV(MCTrackT, 4);
+  ClassDefNV(MCTrackT, 5);
 };
 
 template <typename T>
