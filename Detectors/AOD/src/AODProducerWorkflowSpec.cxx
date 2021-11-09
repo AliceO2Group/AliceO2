@@ -987,7 +987,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   // Needed by MCH track extrapolation
   o2::base::GeometryManager::loadGeometry();
 
-
   // writing metadata if it's not yet in AOD file
   // note: `--aod-writer-resmode "UPDATE"` has to be used,
   //       so that metadata is not overwritten
@@ -1015,7 +1014,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     LOGF(fatal, "Metadata: target file %s already has metadata", mResFile);
   }
   fResFile->Close();
-
 
   mTimer.Reset();
 }
