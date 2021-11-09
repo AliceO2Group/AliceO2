@@ -40,14 +40,47 @@ void Digitizer::init()
   for (int i = numOfChips; i--;) {
     mChips[i].setChipIndex(i);
   }
-  if (!mParams.getAlpSimResponse()) {
-    mAlpSimResp = std::make_unique<o2::itsmft::AlpideSimResponse>();
-    mAlpSimResp->initData();
-    mParams.setAlpSimResponse(mAlpSimResp.get());
-  }
+  
+  //o2::itsmft::AlpideSimResponse mAlpSimResp_array [2];
+  //std::vector<o2::itsmft::AlpideSimResponse> mAlpSimResp_vector {};
+  
+  //if (!mParams.getAlpSimResponse()) {
+	for (int i=0; i<2; i++)
+	{
+		mAlpSimResp[i].initData(i);
+		//mParams.setAlpSimResponse(& mAlpSimResp[i]);
+	}
+		//mParams.setAlpSimResponse(& mAlpSimResp[0]);
+  //}
   mParams.print();
   mIRFirstSampledTF = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
 }
+
+
+auto Digitizer::getChipResponse(int chipID)
+{
+	const Int_t numOfChips = mGeometry->getNumberOfChips();
+  if (numOfChips < 20000) 
+  {
+     // MFT
+     return &mAlpSimResp[0]; // Biased response;
+  } 
+  else 
+  {
+    //ITS
+  	if (chipID < 438) 
+    {
+    	//Inner Barrel...
+    	return &mAlpSimResp[1]; //Bias
+    }
+    else 
+    {
+    	// Outter Barrel
+    	return &mAlpSimResp[0]; //No bias
+    }
+  }
+}
+
 
 //_______________________________________________________________________
 void Digitizer::process(const std::vector<Hit>* hits, int evID, int srcID)
@@ -280,7 +313,10 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   int rowPrev = -1, colPrev = -1, row, col;
   float cRowPix = 0.f, cColPix = 0.f; // local coordinated of the current pixel center
 
-  const o2::itsmft::AlpideSimResponse* resp = mParams.getAlpSimResponse();
+	auto & chip = mChips[hit.GetDetectorID()]; 
+	int chipID = chip.getChipIndex();
+	const o2::itsmft::AlpideSimResponse* resp = getChipResponse(chipID);
+  //const o2::itsmft::AlpideSimResponse* resp = mParams.getAlpSimResponse();
 
   // take into account that the AlpideSimResponse depth defintion has different min/max boundaries
   // although the max should coincide with the surface of the epitaxial layer, which in the chip
@@ -325,7 +361,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
 
   // fire the pixels assuming Poisson(n_response_electrons)
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
-  auto& chip = mChips[hit.GetDetectorID()];
+  //auto& chip = mChips[hit.GetDetectorID()];
   auto roFrameAbs = mNewROFrame + roFrameRel;
   for (int irow = rowSpan; irow--;) {
     uint16_t rowIS = irow + rowS;

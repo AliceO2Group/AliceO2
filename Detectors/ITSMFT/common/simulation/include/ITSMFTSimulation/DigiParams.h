@@ -70,12 +70,14 @@ class DigiParams
   void setChargeThreshold(int v, float frac2Account = 0.1);
   void setNSimSteps(int v);
   void setEnergyToNElectrons(float v) { mEnergyToNElectrons = v; }
+  void setBackBias(float v) {mBackBias = v;}
 
   int getChargeThreshold() const { return mChargeThreshold; }
   int getMinChargeToAccount() const { return mMinChargeToAccount; }
   int getNSimSteps() const { return mNSimSteps; }
   float getNSimStepsInv() const { return mNSimStepsInv; }
   float getEnergyToNElectrons() const { return mEnergyToNElectrons; }
+  float getBackBias() const {return mBackBias;}
 
   bool isTimeOffsetSet() const { return mTimeOffset > -infTime; }
 
@@ -101,6 +103,7 @@ class DigiParams
   int mMinChargeToAccount = 15;            ///< minimum charge contribution to account
   int mNSimSteps = 7;                      ///< number of steps in response simulation
   float mEnergyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
+  float mBackBias = 3.0;                  ///< back bias absolute value (in Volt)
 
   o2::itsmft::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
 

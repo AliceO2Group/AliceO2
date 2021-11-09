@@ -61,6 +61,8 @@ class Digitizer : public TObject
 
   void init();
 
+	auto getChipResponse(int chipID);
+
   /// Steer conversion of hits to digits
   void process(const std::vector<Hit>* hits, int evID, int srcID);
   void setEventTime(const o2::InteractionTimeRecord& irt);
@@ -118,7 +120,11 @@ class Digitizer : public TObject
   uint32_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
   uint32_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
 
-  std::unique_ptr<o2::itsmft::AlpideSimResponse> mAlpSimResp; // simulated response
+ // std::unique_ptr<o2::itsmft::AlpideSimResponse> mAlpSimResp; 
+
+	//std::vector< o2::itsmft::AlpideSimResponse > mAlpSimResp;
+	o2::itsmft::AlpideSimResponse mAlpSimResp [2];  // simulated response
+
 
   const o2::itsmft::GeometryTGeo* mGeometry = nullptr; ///< ITS OR MFT upgrade geometry
 

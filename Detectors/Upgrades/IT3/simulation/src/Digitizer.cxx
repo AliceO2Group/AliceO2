@@ -48,7 +48,7 @@ void Digitizer::init()
   }
   if (!mParams.getAlpSimResponse()) {
     mAlpSimResp = std::make_unique<o2::itsmft::AlpideSimResponse>();
-    mAlpSimResp->initData();
+    mAlpSimResp->initData(1);
     mParams.setAlpSimResponse(mAlpSimResp.get());
   }
   mParams.print();
