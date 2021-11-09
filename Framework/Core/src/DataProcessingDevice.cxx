@@ -1163,18 +1163,26 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       currentSetOfInputs = relayer->consumeExistingInputsForTimeslice(slot);
     }
     auto getter = [&currentSetOfInputs](size_t i, size_t partindex) -> DataRef {
-      if (currentSetOfInputs[i].size() > partindex) {
-        auto header = currentSetOfInputs[i].header(partindex).get();
-        auto payload = currentSetOfInputs[i].payload(partindex).get();
-        return DataRef{nullptr,
-                       static_cast<char const*>(header->GetData()),
-                       static_cast<char const*>(payload ? payload->GetData() : nullptr),
-                       payload ? payload->GetSize() : 0};
+      if (currentSetOfInputs[i].getNumberOfPairs() > partindex) {
+        const char* headerptr = nullptr;
+        const char* payloadptr = nullptr;
+        size_t payloadSize = 0;
+        // - each input can have multiple parts
+        // - "part" denotes a sequence of messages belonging together, the first message of the
+        //   sequence is the header message
+        // - each part has one or more payload messages
+        // - InputRecord provides all payloads as header-payload pairs
+        auto const& headerMsg = currentSetOfInputs[i].associatedHeader(partindex);
+        auto const& payloadMsg = currentSetOfInputs[i].associatedPayload(partindex);
+        headerptr = static_cast<char const*>(headerMsg->GetData());
+        payloadptr = payloadMsg ? static_cast<char const*>(payloadMsg->GetData()) : nullptr;
+        payloadSize = payloadMsg ? payloadMsg->GetSize() : 0;
+        return DataRef{nullptr, headerptr, payloadptr, payloadSize};
       }
       return DataRef{};
     };
     auto nofPartsGetter = [&currentSetOfInputs](size_t i) -> size_t {
-      return currentSetOfInputs[i].size();
+      return currentSetOfInputs[i].getNumberOfPairs();
     };
     return InputSpan{getter, nofPartsGetter, currentSetOfInputs.size()};
   };
