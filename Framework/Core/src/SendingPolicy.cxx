@@ -11,6 +11,7 @@
 
 #include "Framework/SendingPolicy.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/ConfigContext.h"
 #include "DeviceSpecHelpers.h"
 #include <fairmq/Device.h>
 
@@ -19,15 +20,22 @@
 namespace o2::framework
 {
 
-std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
+std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies(ConfigContext const& configContext)
 {
+  auto& options = configContext.options();
+  int timeout = options.get<int>("fairmq-send-timeout");
   return {SendingPolicy{
             .name = "dispatcher",
-            .matcher = [](DeviceSpec const& spec, ConfigContext const& ctx) { return spec.name == "Dispatcher" || DeviceSpecHelpers::hasLabel(spec, "Dispatcher"); },
-            .send = [](FairMQDevice& device, FairMQParts& parts, std::string const& channel) { device.Send(parts, channel, 0, -1); }},
+            .matcher = [](DeviceSpec const& spec, ConfigContext const& ctx) { 
+              if (ctx.options().isDefault("fairmq-send-timeout")) {
+                return spec.name == "Dispatcher" || DeviceSpecHelpers::hasLabel(spec, "Dispatcher"); 
+              } else {
+                return false;
+              } },
+            .send = [](FairMQDevice& device, FairMQParts& parts, std::string const& channel) { device.Send(parts, channel, 0, 0); }},
           SendingPolicy{
             .name = "default",
             .matcher = [](DeviceSpec const& spec, ConfigContext const& ctx) { return true; },
-            .send = [](FairMQDevice& device, FairMQParts& parts, std::string const& channel) { device.Send(parts, channel, 0); }}};
+            .send = [timeout](FairMQDevice& device, FairMQParts& parts, std::string const& channel) { device.Send(parts, channel, 0, timeout); }}};
 }
 } // namespace o2::framework

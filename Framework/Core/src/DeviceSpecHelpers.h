@@ -76,7 +76,7 @@ struct DeviceSpecHelpers {
   {
     std::vector<DispatchPolicy> dispatchPolicies = DispatchPolicy::createDefaultPolicies();
     std::vector<ResourcePolicy> resourcePolicies = ResourcePolicy::createDefaultPolicies();
-    std::vector<SendingPolicy> sendingPolicies = SendingPolicy::createDefaultPolicies();
+    std::vector<SendingPolicy> sendingPolicies = SendingPolicy::createDefaultPolicies(configContext);
     dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies,
                                    dispatchPolicies, resourcePolicies, callbacksPolicies,
                                    sendingPolicies, devices,

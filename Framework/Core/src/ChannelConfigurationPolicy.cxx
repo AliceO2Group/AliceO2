@@ -12,8 +12,41 @@
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ConfigContext.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+
 namespace o2::framework
 {
+
+ChannelConfigurationPolicy defaultDispatcherPolicy(ConfigContext const& configContext)
+{
+  auto& options = configContext.options();
+  FairMQChannelConfigSpec spec{
+    .rateLogging = options.get<int>("fairmq-rate-logging"),
+    .recvBufferSize = options.get<int>("fairmq-recv-buffer-size"),
+    .sendBufferSize = options.get<int>("fairmq-send-buffer-size"),
+    .ipcPrefix = options.get<std::string>("fairmq-ipc-prefix"),
+  };
+
+  ChannelConfigurationPolicy policy{
+    .match = [](std::string const&, std::string const& consumerId) -> bool { return consumerId == "Dispatcher"; },
+    .modifyInput = [spec](InputChannelSpec& channel) -> void {
+      channel.method = ChannelMethod::Bind;
+      channel.type = ChannelType::Pull;
+      channel.rateLogging = spec.rateLogging;
+      channel.recvBufferSize = spec.recvBufferSize;
+      channel.sendBufferSize = spec.sendBufferSize;
+      channel.ipcPrefix = spec.ipcPrefix; },
+    .modifyOutput = [spec](OutputChannelSpec& channel) -> void {
+      channel.method = ChannelMethod::Connect;
+      channel.type = ChannelType::Push;
+      channel.rateLogging = spec.rateLogging;
+      channel.recvBufferSize = spec.recvBufferSize;
+      channel.sendBufferSize = spec.sendBufferSize;
+      channel.ipcPrefix = spec.ipcPrefix; }};
+
+  return policy;
+}
 
 std::vector<ChannelConfigurationPolicy> ChannelConfigurationPolicy::createDefaultPolicies(ConfigContext const& configContext)
 {
@@ -28,7 +61,7 @@ std::vector<ChannelConfigurationPolicy> ChannelConfigurationPolicy::createDefaul
   defaultPolicy.modifyInput = ChannelConfigurationPolicyHelpers::pullInput(spec);
   defaultPolicy.modifyOutput = ChannelConfigurationPolicyHelpers::pushOutput(spec);
 
-  return {defaultPolicy};
+  return {defaultDispatcherPolicy(configContext), defaultPolicy};
 }
 
 } // namespace o2::framework

@@ -20,12 +20,14 @@
 namespace o2::framework
 {
 
+struct ConfigContext;
+
 struct SendingPolicy {
   using SendingCallback = std::function<void(FairMQDevice&, FairMQParts&, std::string const& channel)>;
   std::string name = "invalid";
   DeviceMatcher matcher = nullptr;
   SendingCallback send = nullptr;
-  static std::vector<SendingPolicy> createDefaultPolicies();
+  static std::vector<SendingPolicy> createDefaultPolicies(ConfigContext const&);
 };
 
 } // namespace o2::framework

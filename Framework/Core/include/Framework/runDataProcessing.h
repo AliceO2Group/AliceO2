@@ -191,11 +191,6 @@ int mainNoCatch(int argc, char** argv)
   auto defaultCallbacksPolicies = CallbacksPolicy::createDefaultPolicies();
   callbacksPolicies.insert(std::end(callbacksPolicies), std::begin(defaultCallbacksPolicies), std::end(defaultCallbacksPolicies));
 
-  std::vector<SendingPolicy> sendingPolicies;
-  UserCustomizationsHelper::userDefinedCustomization(sendingPolicies, 0);
-  auto defaultSendingPolicies = SendingPolicy::createDefaultPolicies();
-  sendingPolicies.insert(std::end(sendingPolicies), std::begin(defaultSendingPolicies), std::end(defaultSendingPolicies));
-
   std::vector<std::unique_ptr<ParamRetriever>> retrievers;
   std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(true, argc, argv)};
   retrievers.emplace_back(std::move(retriever));
@@ -211,6 +206,11 @@ int mainNoCatch(int argc, char** argv)
   for (auto& spec : specs) {
     UserCustomizationsHelper::userDefinedCustomization(spec.requiredServices, 0);
   }
+  std::vector<SendingPolicy> sendingPolicies;
+  UserCustomizationsHelper::userDefinedCustomization(sendingPolicies, 0);
+  auto defaultSendingPolicies = SendingPolicy::createDefaultPolicies(configContext);
+  sendingPolicies.insert(std::end(sendingPolicies), std::begin(defaultSendingPolicies), std::end(defaultSendingPolicies));
+
   std::vector<ChannelConfigurationPolicy> channelPolicies;
   UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
   auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(configContext);

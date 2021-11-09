@@ -61,6 +61,7 @@ std::vector<ConfigParamSpec> WorkflowCustomizationHelpers::requiredWorkflowOptio
                                        ConfigParamSpec{"fairmq-send-buffer-size", VariantType::Int, 4, {"sendBufferSize option for FairMQ channels"}},
                                        /// Find out a place where we can write the sockets
                                        ConfigParamSpec{"fairmq-ipc-prefix", VariantType::String, defaultIPCFolder(), {"Prefix for FairMQ channels location"}},
+                                       ConfigParamSpec{"fairmq-send-timeout", VariantType::Int, -1, {"timeout after which messages are usually dropped. -1 to wait indefinitely."}},
 
                                        ConfigParamSpec{"forwarding-policy", VariantType::String, "dangling", {"Which messages to forward."
                                                                                                               " *dangling*: dangling outputs,"
