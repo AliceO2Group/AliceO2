@@ -69,7 +69,7 @@ class EveWorkflowHelper
     {-1, -1},    // ITSAB,
   }};
   static constexpr std::array<std::pair<float, float>, GID::NSources> minmaxZ{{
-    {-45.5, 45.5}, // ITS
+    {-74., 74.}, // ITS
     {-260., 260.}, // TPC
     {-1, -1},      // TRD (never alone)
     {-1, -1},      // TOF
