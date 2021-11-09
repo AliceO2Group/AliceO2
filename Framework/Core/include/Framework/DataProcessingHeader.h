@@ -90,6 +90,14 @@ struct DataProcessingHeader : public header::BaseHeader {
   {
   }
 
+  DataProcessingHeader(StartTime s, Duration d, CreationTime t)
+    : BaseHeader(sizeof(DataProcessingHeader), sHeaderType, header::gSerializationMethodNone, sVersion),
+      startTime(s),
+      duration(d),
+      creation(t)
+  {
+  }
+
   DataProcessingHeader(const DataProcessingHeader&) = default;
   static const DataProcessingHeader* Get(const BaseHeader* baseHeader)
   {
