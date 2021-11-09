@@ -8,30 +8,30 @@ source $MYDIR/setenv.sh
 
 # ---------------------------------------------------------------------------------------------------------------------
 #Some additional settings used in this workflow
-if [ -z $OPTIMIZED_PARALLEL_ASYNC ]; then OPTIMIZED_PARALLEL_ASYNC=0; fi     # Enable tuned process multiplicities for async processing on the EPN
-if [ -z $CTF_DIR ];                  then CTF_DIR=$FILEWORKDIR; fi           # Directory where to store CTFs
-if [ -z $CTF_DICT_DIR ];             then CTF_DICT_DIR=$FILEWORKDIR; fi      # Directory of CTF dictionaries
-if [ -z $CTF_METAFILES_DIR ];        then CTF_METAFILES_DIR="/dev/null"; fi  # Directory where to store CTF files metada, /dev/null : skip their writing
-if [ -z $RECO_NUM_NODES_WORKFLOW ];  then RECO_NUM_NODES_WORKFLOW=250; fi    # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
-if [ -z $CTF_MINSIZE ];              then CTF_MINSIZE="2000000000"; fi        # accumulate CTFs until file size reached
-if [ -z $CTF_MAX_PER_FILE ];         then CTF_MAX_PER_FILE="10000"; fi       # but no more than given number of CTFs per file
-if [ -z $IS_SIMULATED_DATA ];        then IS_SIMULATED_DATA=1; fi            # processing simulated data
+if [[ -z $OPTIMIZED_PARALLEL_ASYNC ]]; then OPTIMIZED_PARALLEL_ASYNC=0; fi     # Enable tuned process multiplicities for async processing on the EPN
+if [[ -z $CTF_DIR ]];                  then CTF_DIR=$FILEWORKDIR; fi           # Directory where to store CTFs
+if [[ -z $CTF_DICT_DIR ]];             then CTF_DICT_DIR=$FILEWORKDIR; fi      # Directory of CTF dictionaries
+if [[ -z $CTF_METAFILES_DIR ]];        then CTF_METAFILES_DIR="/dev/null"; fi  # Directory where to store CTF files metada, /dev/null : skip their writing
+if [[ -z $RECO_NUM_NODES_WORKFLOW ]];  then RECO_NUM_NODES_WORKFLOW=250; fi    # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
+if [[ -z $CTF_MINSIZE ]];              then CTF_MINSIZE="2000000000"; fi        # accumulate CTFs until file size reached
+if [[ -z $CTF_MAX_PER_FILE ]];         then CTF_MAX_PER_FILE="10000"; fi       # but no more than given number of CTFs per file
+if [[ -z $IS_SIMULATED_DATA ]];        then IS_SIMULATED_DATA=1; fi            # processing simulated data
 
-if [ $SYNCMODE == 1 ]; then
-  if [ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]; then export WORKFLOW_DETECTORS_MATCHING="ITSTPC,ITSTPCTRD,ITSTPCTOF"; fi # Select matchings that are enabled in sync mode
+if [[ $SYNCMODE == 1 ]]; then
+  if [[ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]]; then export WORKFLOW_DETECTORS_MATCHING="ITSTPC,ITSTPCTRD,ITSTPCTOF"; fi # Select matchings that are enabled in sync mode
 else
-  if [ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]; then export WORKFLOW_DETECTORS_MATCHING="ALL"; fi # All matching / vertexing enabled in async mode
+  if [[ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]]; then export WORKFLOW_DETECTORS_MATCHING="ALL"; fi # All matching / vertexing enabled in async mode
 fi
 
 workflow_has_parameter CTF && export SAVECTF=1
 workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
 
-[ -z $ITSCLUSDICT ] && ITSCLUSDICT="${FILEWORKDIR}/ITSdictionary.bin"
-[ -z $MFTCLUSDICT ] && MFTCLUSDICT="${FILEWORKDIR}/MFTdictionary.bin"
-[ -z $ITS_NOISE ] && ITS_NOISE="${FILEWORKDIR}"
-[ -z $MFT_NOISE ] && MFT_NOISE="${FILEWORKDIR}"
-[ -z $ITS_STROBE ] && ITS_STROBE="891"
-[ -z $MFT_STROBE ] && MFT_STROBE="198"
+[[ -z $ITSCLUSDICT ]] && ITSCLUSDICT="${FILEWORKDIR}/ITSdictionary.bin"
+[[ -z $MFTCLUSDICT ]] && MFTCLUSDICT="${FILEWORKDIR}/MFTdictionary.bin"
+[[ -z $ITS_NOISE ]] && ITS_NOISE="${FILEWORKDIR}"
+[[ -z $MFT_NOISE ]] && MFT_NOISE="${FILEWORKDIR}"
+[[ -z $ITS_STROBE ]] && ITS_STROBE="891"
+[[ -z $MFT_STROBE ]] && MFT_STROBE="198"
 
 MID_FEEID_MAP="$FILEWORKDIR/mid-feeId_mapper.txt"
 NITSDECTHREADS=2
@@ -97,32 +97,32 @@ EVE_CONFIG=" --jsons-folder $EDJSONS_DIR"
 MIDDEC_CONFIG=
 EMCRAW2C_CONFIG=
 
-if [ $SYNCMODE == 1 ]; then
-  if [ $BEAMTYPE == "PbPb" ]; then
+if [[ $SYNCMODE == 1 ]]; then
+  if [[ $BEAMTYPE == "PbPb" ]]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
-    [ -z ${ITS_CONFIG+x} ] && ITS_CONFIG=" --tracking-mode sync"
-  elif [ $BEAMTYPE == "pp" ]; then
+    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
+  elif [[ $BEAMTYPE == "pp" ]]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=-1;fastMultConfig.cutMultClusHigh=-1;fastMultConfig.cutMultVtxHigh=-1;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2"
-    [ -z ${ITS_CONFIG+x} ] && ITS_CONFIG=" --tracking-mode sync"
-  elif [ $BEAMTYPE == "cosmic" ]; then
-    [ -z ${ITS_CONFIG+x} ] && ITS_CONFIG=" --tracking-mode cosmics"
+    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
+  elif [[ $BEAMTYPE == "cosmic" ]]; then
+    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode cosmics"
   else
-    [ -z ${ITS_CONFIG+x} ] && ITS_CONFIG=" --tracking-mode sync"
+    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
   fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
   TRD_CONFIG+=" --filter-trigrec"
   TRD_CONFIG_KEY+="GPU_proc.ompThreads=1;"
   TRD_TRANSFORMER_CONFIG+=" --filter-trigrec"
 else
-  if [ $BEAMTYPE == "PbPb" ]; then
-    [ -z ${ITS_CONFIG+x} ] && ITS_CONFIG=" --tracking-mode async"
-  elif [ $BEAMTYPE == "pp" ]; then
+  if [[ $BEAMTYPE == "PbPb" ]]; then
+    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
+  elif [[ $BEAMTYPE == "pp" ]]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=1;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2"
-    [ -z ${ITS_CONFIG+x} ] && ITS_CONFIG=" --tracking-mode async"
-  elif [ $BEAMTYPE == "cosmic" ]; then
-    [ -z ${ITS_CONFIG+x} ] && ITS_CONFIG=" --tracking-mode cosmics"
+    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
+  elif [[ $BEAMTYPE == "cosmic" ]]; then
+    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode cosmics"
   else
-    [ -z ${ITS_CONFIG+x} ] && ITS_CONFIG=" --tracking-mode async"
+    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
   fi
 fi
 
@@ -131,18 +131,18 @@ has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",com
 has_detector_flp_processing CPV && CPV_INPUT=digits
 ! has_detector_flp_processing TOF && TOF_CONFIG+=" --ignore-dist-stf"
 
-if [ $EPNSYNCMODE == 1 ]; then
+if [[ $EPNSYNCMODE == 1 ]]; then
   EVE_CONFIG+=" --eve-dds-collection-index 0"
   ITSMFT_FILES+=";ITSClustererParam.noiseFilePath=$ITS_NOISE;MFTClustererParam.noiseFilePath=$MFT_NOISE;ITSAlpideParam.roFrameLengthInBC=$ITS_STROBE;MFTAlpideParam.roFrameLengthInBC=$MFT_STROBE;"
   MIDDEC_CONFIG+=" --feeId-config-file \"$MID_FEEID_MAP\""
   GPU_CONFIG_KEY+="GPU_proc.tpcIncreasedMinClustersPerRow=500000;GPU_proc.ignoreNonFatalGPUErrors=1;"
   # Options for decoding current TRD real raw data (not needed for data converted from MC)
-  if [ -z $TRD_DECODER_OPTIONS ]; then TRD_DECODER_OPTIONS=" --tracklethcheader 2 "; fi
-  if [ $EXTINPUT == 1 ] && [ $GPUTYPE != "CPU" ] && [ -z "$GPU_NUM_MEM_REG_CALLBACKS" ]; then GPU_NUM_MEM_REG_CALLBACKS=4; fi
+  if [[ -z $TRD_DECODER_OPTIONS ]]; then TRD_DECODER_OPTIONS=" --tracklethcheader 2 "; fi
+  if [[ $EXTINPUT == 1 ]] && [[ $GPUTYPE != "CPU" ]] && [[ -z "$GPU_NUM_MEM_REG_CALLBACKS" ]]; then GPU_NUM_MEM_REG_CALLBACKS=4; fi
 fi
 
-if [ $GPUTYPE == "HIP" ]; then
-  if [ $NUMAID == 0 ] || [ $NUMAGPUIDS == 0 ]; then
+if [[ $GPUTYPE == "HIP" ]]; then
+  if [[ $NUMAID == 0 ]] || [[ $NUMAGPUIDS == 0 ]]; then
     export TIMESLICEOFFSET=0
   else
     export TIMESLICEOFFSET=$NGPUS
@@ -155,18 +155,18 @@ else
   GPU_CONFIG_KEY+="GPU_proc.deviceNum=-2;"
 fi
 
-if [ ! -z $GPU_NUM_MEM_REG_CALLBACKS ]; then
+if [[ ! -z $GPU_NUM_MEM_REG_CALLBACKS ]]; then
   GPU_CONFIG+=" --expected-region-callbacks $GPU_NUM_MEM_REG_CALLBACKS"
 fi
 
-if [ $GPUTYPE != "CPU" ]; then
+if [[ $GPUTYPE != "CPU" ]]; then
   GPU_CONFIG_KEY+="GPU_proc.forceMemoryPoolSize=$GPUMEMSIZE;"
-  if [ $HOSTMEMSIZE == "0" ]; then
+  if [[ $HOSTMEMSIZE == "0" ]]; then
     HOSTMEMSIZE=$(( 1 << 30 ))
   fi
 fi
 
-if [ $HOSTMEMSIZE != "0" ]; then
+if [[ $HOSTMEMSIZE != "0" ]]; then
   GPU_CONFIG_KEY+="GPU_proc.forceHostMemoryPoolSize=$HOSTMEMSIZE;"
 fi
 
@@ -174,7 +174,7 @@ if ! has_detector_reco TOF; then
   TOF_OUTPUT=digits
 fi
 
-[ $IS_SIMULATED_DATA == "1" ] && EMCRAW2C_CONFIG+=" --no-mergeHGLG"
+[[ $IS_SIMULATED_DATA == "1" ]] && EMCRAW2C_CONFIG+=" --no-mergeHGLG"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Assemble matching sources
@@ -195,6 +195,7 @@ for det in `echo $LIST_OF_DETECTORS | sed "s/,/ /g"`; do
   fi
 done
 PVERTEX_CONFIG="--vertexing-sources $TRACK_SOURCES --vertex-track-matching-sources $TRACK_SOURCES"
+
 has_detector_reco FT0 && PVERTEX_CONFIG+=" --validate-with-ft0"
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -219,13 +220,13 @@ math_max()
 }
 
 N_TPCTRK=$NGPUS
-if [ $OPTIMIZED_PARALLEL_ASYNC != 0 ]; then
+if [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]]; then
   # Tuned multiplicities for async Pb-Pb processing
-  if [ $SYNCMODE == "1" ]; then echo "Must not use OPTIMIZED_PARALLEL_ASYNC with GPU or SYNCMODE" 1>&2; exit 1; fi
-  if [ $NUMAGPUIDS == 1 ]; then N_NUMAFACTOR=1; else N_NUMAFACTOR=2; fi
+  if [[ $SYNCMODE == "1" ]]; then echo "Must not use OPTIMIZED_PARALLEL_ASYNC with GPU or SYNCMODE" 1>&2; exit 1; fi
+  if [[ $NUMAGPUIDS == 1 ]]; then N_NUMAFACTOR=1; else N_NUMAFACTOR=2; fi
   GPU_CONFIG_KEY+="GPU_proc.ompThreads=6;"
   TRD_CONFIG_KEY+="GPU_proc.ompThreads=2;"
-  if [ $GPUTYPE == "CPU" ]; then
+  if [[ $GPUTYPE == "CPU" ]]; then
     N_TPCENTDEC=$((2 * $N_NUMAFACTOR))
     N_MFTTRK=$((3 * $N_NUMAFACTOR))
     N_ITSTRK=$((3 * $N_NUMAFACTOR))
@@ -241,7 +242,7 @@ if [ $OPTIMIZED_PARALLEL_ASYNC != 0 ]; then
     N_MCHTRK=$(math_max $((2 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4)) 1)
     N_TOFMATCH=$(math_max $((20 * $NGPUS * $OPTIMIZED_PARALLEL_ASYNC * $N_NUMAFACTOR / 4)) 1)
   fi
-elif [ $EPNPIPELINES != 0 ]; then
+elif [[ $EPNPIPELINES != 0 ]]; then
   # Tuned multiplicities for sync Pb-Pb processing
   N_TPCENT=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
   N_TPCITS=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
@@ -251,7 +252,7 @@ elif [ $EPNPIPELINES != 0 ]; then
   N_TRDENT=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
   N_TRDTRK=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
   N_TPCRAWDEC=$(math_max $((12 * $EPNPIPELINES * $NGPUS / 4)) 1)
-  if [ $GPUTYPE == "CPU" ]; then
+  if [[ $GPUTYPE == "CPU" ]]; then
     N_TPCTRK=8
     GPU_CONFIG_KEY+="GPU_proc.ompThreads=4;"
   fi
@@ -285,21 +286,21 @@ add_W() # Add binarry to workflow command USAGE: add_W [BINARY] [COMMAND_LINE_OP
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Input workflow
-if [ $CTFINPUT == 1 ]; then
+if [[ $CTFINPUT == 1 ]]; then
   GPU_INPUT=compressed-clusters-ctf
   TOF_INPUT=digits
   CTFName=`ls -t $FILEWORKDIR/o2_ctf_*.root 2> /dev/null | head -n1`
   [[ -z $CTFName && $WORKFLOWMODE == "print" ]] && CTFName='$CTFName'
   [[ ! -z $INPUT_FILE_LIST ]] && CTFName=$INPUT_FILE_LIST
-  if [ $NTIMEFRAMES == -1 ]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
+  if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
   add_W o2-ctf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --ctf-input ${CTFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --ctf-dict ${CTF_DICT} --onlyDet $WORKFLOW_DETECTORS --pipeline $(get_N tpc-entropy-decoder TPC REST TPCENTDEC)"
-elif [ $RAWTFINPUT == 1 ]; then
+elif [[ $RAWTFINPUT == 1 ]]; then
   TFName=`ls -t $FILEWORKDIR/o2_*.tf 2> /dev/null | head -n1`
   [[ -z $TFName && $WORKFLOWMODE == "print" ]] && TFName='$TFName'
   [[ ! -z $INPUT_FILE_LIST ]] && TFName=$INPUT_FILE_LIST
-  if [ $NTIMEFRAMES == -1 ]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
+  if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
   add_W o2-raw-tf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --input-data ${TFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --onlyDet $WORKFLOW_DETECTORS"
-elif [ $EXTINPUT == 1 ]; then
+elif [[ $EXTINPUT == 1 ]]; then
   PROXY_CHANNEL="name=readout-proxy,type=pull,method=connect,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=$EPNSYNCMODE"
   PROXY_INSPEC="dd:FLP/DISTSUBTIMEFRAME/0"
   PROXY_IN_N=0
@@ -331,14 +332,17 @@ elif [ $EXTINPUT == 1 ]; then
   done
   add_W o2-dpl-raw-proxy "--dataspec \"$PROXY_INSPEC\" --readout-proxy \"--channel-config \\\"$PROXY_CHANNEL;name=metric-feedback,type=pull,method=connect,address=ipc://@metric-feedback-$NUMAID,transport=shmem,rateLogging=10\\\"\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
 else
-  if [ $NTIMEFRAMES == -1 ]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--loop $NTIMEFRAMES"; fi
+  if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--loop $NTIMEFRAMES"; fi
   add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --max-tf 0 --input-conf $FILEWORKDIR/rawAll.cfg" "HBFUtils.nHBFPerTF=$NHBPERTF"
 fi
 
+# if root output is requested, record info of processed TFs DataHeader for replay of root files
+[[ -z "$DISABLE_ROOT_OUTPUT" ]] && add_W o2-tfidinfo-writer-workflow
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Raw decoder workflows - disabled in async mode
-if [ $CTFINPUT == 0 ]; then
-  if has_detector TPC && [ $EPNSYNCMODE == 1 ]; then
+if [[ $CTFINPUT == 0 ]]; then
+  if has_detector TPC && [[ $EPNSYNCMODE == 1 ]]; then
     GPU_INPUT=zsonthefly
     add_W o2-tpc-raw-to-digits-workflow "--input-spec \"A:TPC/RAWDATA;dd:FLP/DISTSUBTIMEFRAME/0\" --remove-duplicates --pipeline $(get_N tpc-raw-to-digits-0 TPC RAW TPCRAWDEC)"
     add_W o2-tpc-reco-workflow "--input-type digitizer --output-type zsraw,disable-writer --pipeline $(get_N tpc-zsEncoder TPC RAW TPCRAWDEC)"
@@ -368,8 +372,8 @@ has_detector_reco ITS && add_W o2-its-reco-workflow "--trackerCA $ITS_CONFIG $DI
 has_detectors_reco ITS TPC && has_detector_matching ITSTPC && add_W o2-tpcits-match-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N itstpc-track-matcher MATCH REST TPCITS)" "$ITSTPC_EXTRA_CONFIG;$ITSMFT_FILES"
 has_detector_reco FT0 && add_W o2-ft0-reco-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N ft0-reconstructor FT0 REST)"
 has_detector_reco TRD && add_W o2-trd-tracklet-transformer "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_TRANSFORMER_CONFIG --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST TRDTRK)"
-has_detectors_reco TRD TPC ITS && [ ! -z "$TRD_SOURCES" ] && add_W o2-trd-global-tracking "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG --track-sources $TRD_SOURCES" "$TRD_CONFIG_KEY;$ITSMFT_FILES"
-has_detectors_reco TOF TRD TPC ITS && [ ! -z "$TOF_SOURCES" ] && add_W o2-tof-matcher-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST TOFMATCH)" "$ITSMFT_FILES"
+has_detectors_reco TRD TPC ITS && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG --track-sources $TRD_SOURCES" "$TRD_CONFIG_KEY;$ITSMFT_FILES"
+has_detectors_reco TOF TRD TPC ITS && [[ ! -z "$TOF_SOURCES" ]] && add_W o2-tof-matcher-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST TOFMATCH)" "$ITSMFT_FILES"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Reconstruction workflows normally active only in async mode in async mode ($LIST_OF_ASYNC_RECO_STEPS), but can be forced via $WORKFLOW_EXTRA_PROCESSING_STEPS
@@ -381,14 +385,14 @@ has_detector FV0 && has_processing_step FV0_RECO && add_W o2-fv0-reco-workflow "
 has_detector ZDC && has_processing_step ZDC_RECO && add_W o2-zdc-digits-reco "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC"
 has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd-matcher-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N globalfwd-track-matcher MATCH REST)"
 
-if [ $BEAMTYPE != "cosmic" ]; then
+if [[[ $BEAMTYPE != "cosmic" ]]; then
   has_detectors_reco ITS && has_detector_matching PRIMVTX && add_W o2-primary-vertexing-workflow "$DISABLE_MC --disable-root-input $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST)" "$PVERTEX_EXTRA_CONFIG"
   has_detectors_reco ITS && has_detector_matching SECVTX && add_W o2-secondary-vertexing-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT --vertexing-sources $TRACK_SOURCES --pipeline $(get_N secondary-vertexing MATCH REST)" "$SVERTEX_EXTRA_CONFIG"
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Entropy encoding / ctf creation workflows - disabled in async mode
-if has_processing_step ENTROPY_ENCODER && [ ! -z "$WORKFLOW_DETECTORS_CTF" ] && [ $WORKFLOW_DETECTORS_CTF != "NONE" ]; then
+if has_processing_step ENTROPY_ENCODER && [[ ! -z "$WORKFLOW_DETECTORS_CTF" ]] && [[ $WORKFLOW_DETECTORS_CTF != "NONE" ]]; then
   # Entropy encoder workflows
   has_detector_ctf MFT && add_W o2-itsmft-entropy-encoder-workflow "--ctf-dict \"${CTF_DICT}\" --mem-factor ${MFT_ENC_MEMFACT:-1.5} --runmft true --pipeline $(get_N mft-entropy-encoder MFT CTF)"
   has_detector_ctf FT0 && add_W o2-ft0-entropy-encoder-workflow "--ctf-dict \"${CTF_DICT}\" --mem-factor ${FT0_ENC_MEMFACT:-1.5} --pipeline $(get_N ft0-entropy-encoder FT0 CTF)"
@@ -416,11 +420,11 @@ if has_processing_step ENTROPY_ENCODER && [ ! -z "$WORKFLOW_DETECTORS_CTF" ] && 
     rm -f $CTF_DICT
   fi
   CTF_OUTPUT_TYPE="none"
-  if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="both"; fi
-  if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 0 ]; then CTF_OUTPUT_TYPE="dict"; fi
-  if [ $CREATECTFDICT == 0 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="ctf"; fi
+  if [[ $CREATECTFDICT == 1 ]] && [[ $SAVECTF == 1 ]]; then CTF_OUTPUT_TYPE="both"; fi
+  if [[ $CREATECTFDICT == 1 ]] && [[ $SAVECTF == 0 ]]; then CTF_OUTPUT_TYPE="dict"; fi
+  if [[ $CREATECTFDICT == 0 ]] && [[ $SAVECTF == 1 ]]; then CTF_OUTPUT_TYPE="ctf"; fi
   CONFIG_CTF="--output-dir \"$CTF_DIR\" --ctf-dict-dir \"$CTF_DICT_DIR\" --output-type $CTF_OUTPUT_TYPE --min-file-size ${CTF_MINSIZE} --max-ctf-per-file ${CTF_MAX_PER_FILE} --onlyDet $WORKFLOW_DETECTORS_CTF --append-det-to-period $CTF_MAXDETEXT --meta-output-dir $CTF_METAFILES_DIR"
-  if [ $CREATECTFDICT == 1 ] && [ $EXTINPUT == 1 ]; then CONFIG_CTF+=" --save-dict-after $SAVE_CTFDICT_NTIMEFRAMES"; fi
+  if [[ $CREATECTFDICT == 1 ]] && [[ $EXTINPUT == 1 ]]; then CONFIG_CTF+=" --save-dict-after $SAVE_CTFDICT_NTIMEFRAMES"; fi
   add_W o2-ctf-writer-workflow "$CONFIG_CTF"
 fi
 
@@ -431,13 +435,13 @@ workflow_has_parameter CALIB && has_detector_calib TPC && has_detectors TPC ITS 
 # ---------------------------------------------------------------------------------------------------------------------
 # Event display
 # RS this is a temporary setting
-[ -z "$ED_TRACKS" ] && ED_TRACKS=$TRACK_SOURCES
-[ -z "$ED_CLUSTERS" ] && ED_CLUSTERS=$TRACK_SOURCES
-workflow_has_parameter EVENT_DISPLAY && [ $NUMAID == 0 ] && add_W o2-eve-display "--display-tracks $ED_TRACKS --display-clusters $ED_CLUSTERS $EVE_CONFIG $DISABLE_MC" "$ITSMFT_FILES"
+[[ -z "$ED_TRACKS" ]] && ED_TRACKS=$TRACK_SOURCES
+[[ -z "$ED_CLUSTERS" ]] && ED_CLUSTERS=$TRACK_SOURCES
+workflow_has_parameter EVENT_DISPLAY && [[ $NUMAID == 0 ]] && add_W o2-eve-display "--display-tracks $ED_TRACKS --display-clusters $ED_CLUSTERS $EVE_CONFIG $DISABLE_MC" "$ITSMFT_FILES"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # AOD
-[ -z "$AOD_INPUT" ] && AOD_INPUT=$TRACK_SOURCES
+[[ -z "$AOD_INPUT" ]] && AOD_INPUT=$TRACK_SOURCES
 workflow_has_parameter AOD && add_W o2-aod-producer-workflow "--info-sources $AOD_INPUT --disable-root-input --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE $DISABLE_MC"
 
 # ---------------------------------------------------------------------------------------------------------------------
