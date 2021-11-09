@@ -52,10 +52,13 @@
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "O2Version.h"
 #include "TMath.h"
 #include "MathUtils/Utils.h"
 #include "Math/SMatrix.h"
-#include <TMatrixD.h>
+#include "TMatrixD.h"
+#include "TString.h"
+#include "TObjString.h"
 #include <map>
 #include <unordered_map>
 #include <vector>
@@ -855,6 +858,10 @@ uint8_t AODProducerWorkflowDPL::getTRDPattern(const o2::trd::TrackTRD& track)
 void AODProducerWorkflowDPL::init(InitContext& ic)
 {
   mTimer.Stop();
+  mLPMProdTag = ic.options().get<string>("lpmp-prod-tag");
+  mAnchorPass = ic.options().get<string>("anchor-pass");
+  mAnchorProd = ic.options().get<string>("anchor-prod");
+  mRecoPass = ic.options().get<string>("reco-pass");
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
   mRecoOnly = ic.options().get<int>("reco-mctracks-only");
   mTruncate = ic.options().get<int>("enable-truncation");
@@ -904,6 +911,34 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   }
   // Needed by MCH track extrapolation
   o2::base::GeometryManager::loadGeometry();
+
+  // writing metadata if it's not yet in AOD file
+  // note: `--aod-writer-resmode "UPDATE"` has to be used,
+  //       so that metadata is not overwritten
+  mResFile += ".root";
+  auto* fResFile = TFile::Open(mResFile, "UPDATE");
+  if (!fResFile) {
+    LOGF(fatal, "Could not open file %s", mResFile);
+  }
+  if (!fResFile->FindObjectAny("metaData")) {
+    // populating metadata map
+    TString dataType = mUseMC ? "MC" : "RAW";
+    mMetaData.Add(new TObjString("DataType"), new TObjString(dataType));
+    mMetaData.Add(new TObjString("Run"), new TObjString("3"));
+    TString O2Version = o2::fullVersion();
+    TString ROOTVersion = ROOT_RELEASE;
+    mMetaData.Add(new TObjString("O2Version"), new TObjString(O2Version));
+    mMetaData.Add(new TObjString("ROOTVersion"), new TObjString(ROOTVersion));
+    mMetaData.Add(new TObjString("RecoPassName"), new TObjString(mRecoPass));
+    mMetaData.Add(new TObjString("AnchorProduction"), new TObjString(mAnchorProd));
+    mMetaData.Add(new TObjString("AnchorPassName"), new TObjString(mAnchorPass));
+    mMetaData.Add(new TObjString("LPMProductionTag"), new TObjString(mLPMProdTag));
+    LOGF(info, "Metadata: writing into %s", mResFile);
+    fResFile->WriteObject(&mMetaData, "metaData");
+  } else {
+    LOGF(fatal, "Metadata: target file %s already has metadata", mResFile);
+  }
+  fResFile->Close();
 
   mTimer.Reset();
 }
@@ -995,7 +1030,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   const int runNumber = (mRunNumber == -1) ? int(dh->runNumber) : mRunNumber;
   if (mTFNumber == -1L) {
     // TODO has to be made globally unique (by using absolute time of TF). For now is unique within the run
-    tfNumber = dh->tfCounter; //getTFNumber(startIR, runNumber);
+    tfNumber = dh->tfCounter; // getTFNumber(startIR, runNumber);
   } else {
     tfNumber = mTFNumber;
   }
@@ -1331,7 +1366,7 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, std::string resFile)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -1370,11 +1405,15 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
     "aod-producer-workflow",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, useMC)},
+    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, resFile, useMC)},
     Options{
       ConfigParamSpec{"run-number", VariantType::Int64, -1L, {"The run-number. If left default we try to get it from DPL header."}},
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on, != 1 -- off"}},
+      ConfigParamSpec{"lpmp-prod-tag", VariantType::String, "", {"LPMProductionTag"}},
+      ConfigParamSpec{"anchor-pass", VariantType::String, "", {"AnchorPassName"}},
+      ConfigParamSpec{"anchor-prod", VariantType::String, "", {"AnchorProduction"}},
+      ConfigParamSpec{"reco-pass", VariantType::String, "", {"RecoPassName"}},
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}}}};
 }
 
