@@ -196,7 +196,8 @@ for det in `echo $LIST_OF_DETECTORS | sed "s/,/ /g"`; do
 done
 PVERTEX_CONFIG="--vertexing-sources $TRACK_SOURCES --vertex-track-matching-sources $TRACK_SOURCES"
 
-has_detector_reco FT0 && PVERTEX_CONFIG+=" --validate-with-ft0"
+# this option requires well calibrated timing beween different detectors, at the moment suppress it
+#has_detector_reco FT0 && PVERTEX_CONFIG+=" --validate-with-ft0"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Process multiplicities
