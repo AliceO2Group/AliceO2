@@ -15,6 +15,20 @@
 namespace o2::framework
 {
 
+ChannelConfigurationPolicy defaultDispatcherPolicy(ConfigContext const& configContext)
+{
+  ChannelConfigurationPolicy policy;
+  FairMQChannelConfigSpec spec;
+  spec.rateLogging = configContext.options().get<int>("fairmq-rate-logging");
+  spec.recvBufferSize = configContext.options().get<int>("fairmq-recv-buffer-size");
+  spec.sendBufferSize = configContext.options().get<int>("fairmq-send-buffer-size");
+  spec.ipcPrefix = configContext.options().get<std::string>("fairmq-ipc-prefix");
+  policy.match = ChannelConfigurationPolicyHelpers::matchByProducerName("Dispatcher");
+  policy.modifyInput = ChannelConfigurationPolicyHelpers::subscribeInput(spec);
+  policy.modifyOutput = ChannelConfigurationPolicyHelpers::publishOutput(spec);
+  return policy;
+}
+
 std::vector<ChannelConfigurationPolicy> ChannelConfigurationPolicy::createDefaultPolicies(ConfigContext const& configContext)
 {
   ChannelConfigurationPolicy defaultPolicy;
@@ -28,7 +42,7 @@ std::vector<ChannelConfigurationPolicy> ChannelConfigurationPolicy::createDefaul
   defaultPolicy.modifyInput = ChannelConfigurationPolicyHelpers::pullInput(spec);
   defaultPolicy.modifyOutput = ChannelConfigurationPolicyHelpers::pushOutput(spec);
 
-  return {defaultPolicy};
+  return {defaultDispatcherPolicy(configContext), defaultPolicy};
 }
 
 } // namespace o2::framework
