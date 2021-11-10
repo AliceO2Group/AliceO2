@@ -370,6 +370,14 @@ bool Tracker::fitTrack(TrackITSExt& track, int start, int end, int step, const f
       return false;
     }
 
+    if (mCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+      float radl = 9.36f; // Radiation length of Si [cm]
+      float rho = 2.33f;  // Density of Si [g/cm^3]
+      if (!track.correctForMaterial(mTrkParams[0].LayerxX0[iLayer], mTrkParams[0].LayerxX0[iLayer] * radl * rho, true)) {
+        continue;
+      }
+    }
+
     GPUArray<float, 3> cov{trackingHit.covarianceTrackingFrame};
     cov[0] = std::hypot(cov[0], mTrkParams[0].LayerMisalignment[iLayer]);
     cov[2] = std::hypot(cov[2], mTrkParams[0].LayerMisalignment[iLayer]);
