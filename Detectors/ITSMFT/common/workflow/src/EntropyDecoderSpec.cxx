@@ -54,17 +54,22 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::itsmft::CTF::getImage(buff.data());
+  //  const auto ctfImage = o2::itsmft::CTF::getImage(buff.data());
 
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(OutputRef{"ROframes"});
   if (mGetDigits) {
-    auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(OutputRef{"ROframes"});
     auto& digits = pc.outputs().make<std::vector<o2::itsmft::Digit>>(OutputRef{"Digits"});
-    mCTFCoder.decode(ctfImage, rofs, digits, mNoiseMap.get(), mPattIdConverter);
+    if (buff.size()) {
+      mCTFCoder.decode(o2::itsmft::CTF::getImage(buff.data()), rofs, digits, mNoiseMap.get(), mPattIdConverter);
+    }
+    mTimer.Stop();
+    LOG(INFO) << "Decoded " << digits.size() << " digits in " << rofs.size() << " RO frames in " << mTimer.CpuTime() - cput << " s";
   } else {
-    auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(OutputRef{"ROframes"});
     auto& compcl = pc.outputs().make<std::vector<o2::itsmft::CompClusterExt>>(OutputRef{"compClusters"});
     auto& patterns = pc.outputs().make<std::vector<unsigned char>>(OutputRef{"patterns"});
-    mCTFCoder.decode(ctfImage, rofs, compcl, patterns, mNoiseMap.get(), mPattIdConverter);
+    if (buff.size()) {
+      mCTFCoder.decode(o2::itsmft::CTF::getImage(buff.data()), rofs, compcl, patterns, mNoiseMap.get(), mPattIdConverter);
+    }
     mTimer.Stop();
     LOG(INFO) << "Decoded " << compcl.size() << " clusters in " << rofs.size() << " RO frames in " << mTimer.CpuTime() - cput << " s";
   }
