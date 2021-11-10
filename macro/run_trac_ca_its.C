@@ -193,7 +193,6 @@ void run_trac_ca_its(bool cosmics = false,
   std::vector<MemoryParameters> memParams(1);
   if (cosmics) {
     trackParams[0].MinTrackLength = 4;
-    trackParams[0].TrackletMaxDeltaPhi = o2::its::constants::math::Pi * 0.5f;
     trackParams[0].CellDeltaTanLambdaSigma *= 400;
     trackParams[0].PhiBins = 4;
     trackParams[0].ZBins = 16;
@@ -215,11 +214,8 @@ void run_trac_ca_its(bool cosmics = false,
     // ---
     // Uncomment for pp
     trackParams.resize(3);
-    trackParams[0].TrackletMaxDeltaPhi = 0.05f;
-    trackParams[0].DeltaROF = 0;
-    trackParams[1].CopyCuts(trackParams[0], 2.);
-    trackParams[1].DeltaROF = 0;
-    trackParams[2].CopyCuts(trackParams[1], 2.);
+    trackParams[1].TrackletMinPt = 0.2f;
+    trackParams[2].TrackletMinPt = 0.1f;
     trackParams[2].DeltaROF = 1;
     trackParams[2].MinTrackLength = 4;
     memParams.resize(3);
