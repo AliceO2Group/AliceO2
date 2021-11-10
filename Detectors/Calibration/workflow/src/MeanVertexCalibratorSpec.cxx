@@ -109,8 +109,8 @@ DataProcessorSpec getMeanVertexCalibDeviceSpec()
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MEANVERTEX"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MEANVERTEX"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MEANVERTEX"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MEANVERTEX"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "mean-vertex-calibration",

@@ -210,8 +210,8 @@ DataProcessorSpec getMFTDCSDataProcessorSpec()
 
   std::vector<OutputSpec> outputs;
 
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MFT_DCSDPs"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MFT_DCSDPs"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MFT_DCSDPs"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MFT_DCSDPs"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "mft-dcs-data-processor",
