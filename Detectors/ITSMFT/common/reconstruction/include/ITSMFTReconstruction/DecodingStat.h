@@ -133,6 +133,7 @@ struct GBTLinkDecodingStat {
     ErrPacketDoneMissing,        // packet done is missing in the trailer while CRU page is not over
     ErrMissingDiagnosticWord,    // missing diagnostic word after RDH with stop
     ErrGBTWordNotRecognized,     // GBT word not recognized
+    ErrWrongeCableID,            // Invalid cable ID
     NErrorsDefined
   };
   static constexpr std::array<std::string_view, NErrorsDefined> ErrNames = {
@@ -154,7 +155,8 @@ struct GBTLinkDecodingStat {
     "Jump in RDH_packetCounter",                                         // ErrPacketCounterJump
     "Packet done is missing in the trailer while CRU page is not over",  // ErrPacketDoneMissing
     "Missing diagnostic GBT word after RDH with stop",                   // ErrMissingDiagnosticWord
-    "GBT word not recognized"                                            // ErrGBTWordNotRecognized
+    "GBT word not recognized",                                           // ErrGBTWordNotRecognized
+    "Wrong cable ID"                                                     // ErrWrongeCableID
   };
 
   uint32_t ruLinkID = 0; // Link ID within RU
