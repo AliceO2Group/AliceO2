@@ -941,7 +941,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     LOG(INFO) << "The Run number will be obtained from DPL headers";
   }
 
-
   // create EventHandler used for calo cells
   mCaloEventHandler = new o2::emcal::EventHandler<o2::emcal::Cell>();
 
@@ -1414,7 +1413,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
   for (int src = GIndex::NSources; src--;) {
     if (GIndex::includesSource(src, mInputSources)) {
-      if (src == GIndex::Source::EMC){
+      if (src == GIndex::Source::EMC) {
         // fill EMC cells to tables
         // TODO handle MC info
         fillCaloTable(caloEMCCells, caloEMCCellsTRGR, caloCellsCursor, caloCellsTRGTableCursor, bcsMap);
