@@ -90,8 +90,8 @@ DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, fl
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPCVDTGL"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPCVDTGL"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPCVDTGL"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPCVDTGL"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "tpc-vd-tgl-calib",
