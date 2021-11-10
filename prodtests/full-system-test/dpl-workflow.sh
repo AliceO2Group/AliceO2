@@ -386,7 +386,7 @@ has_detector FV0 && has_processing_step FV0_RECO && add_W o2-fv0-reco-workflow "
 has_detector ZDC && has_processing_step ZDC_RECO && add_W o2-zdc-digits-reco "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC"
 has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd-matcher-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N globalfwd-track-matcher MATCH REST)"
 
-if [[[ $BEAMTYPE != "cosmic" ]]; then
+if [[ $BEAMTYPE != "cosmic" ]]; then
   has_detectors_reco ITS && has_detector_matching PRIMVTX && add_W o2-primary-vertexing-workflow "$DISABLE_MC --disable-root-input $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST)" "$PVERTEX_EXTRA_CONFIG"
   has_detectors_reco ITS && has_detector_matching SECVTX && add_W o2-secondary-vertexing-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT --vertexing-sources $TRACK_SOURCES --pipeline $(get_N secondary-vertexing MATCH REST)" "$SVERTEX_EXTRA_CONFIG"
 fi
