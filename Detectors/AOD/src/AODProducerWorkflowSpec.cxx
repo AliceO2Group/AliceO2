@@ -930,7 +930,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mAnchorProd = ic.options().get<string>("anchor-prod");
   mRecoPass = ic.options().get<string>("reco-pass");
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
-  mFillCaloCells = ic.options().get<int>("fill-calo-cells");
   mRecoOnly = ic.options().get<int>("reco-mctracks-only");
   mTruncate = ic.options().get<int>("enable-truncation");
   mRunNumber = ic.options().get<int>("run-number");
@@ -942,7 +941,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     LOG(INFO) << "The Run number will be obtained from DPL headers";
   }
 
-  LOG(INFO) << "calo filling flag is set to: " << mFillCaloCells;
 
   // create EventHandler used for calo cells
   mCaloEventHandler = new o2::emcal::EventHandler<o2::emcal::Cell>();
@@ -1414,11 +1412,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
              bc,
              triggerMask);
   }
-
-  if (mFillCaloCells) {
-    // fill EMC cells to tables
-    // TODO handle MC info
-    fillCaloTable(caloEMCCells, caloEMCCellsTRGR, caloCellsCursor, caloCellsTRGTableCursor, bcsMap);
+  for (int src = GIndex::NSources; src--;) {
+    if (GIndex::includesSource(src, mInputSources)) {
+      if (src == GIndex::Source::EMC){
+        // fill EMC cells to tables
+        // TODO handle MC info
+        fillCaloTable(caloEMCCells, caloEMCCellsTRGR, caloCellsCursor, caloCellsTRGTableCursor, bcsMap);
+      }
+    }
   }
 
   bcsMap.clear();
@@ -1468,7 +1469,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, std::s
   if (src[GID::TPC]) {
     dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // TOF clusters are requested with TOF tracks
   }
-  dataRequest->requestEMCALCells(useMC);
+  if (src[GID::EMC]) {
+    dataRequest->requestEMCALCells(useMC);
+  }
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2cascade"}, "AOD", "CASCADE", 0, Lifetime::Timeframe);
