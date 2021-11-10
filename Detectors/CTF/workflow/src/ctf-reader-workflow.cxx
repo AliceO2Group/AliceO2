@@ -57,6 +57,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"ctf-file-regex", VariantType::String, ".*o2_ctf_run.+\\.root$", {"regex string to identify CTF files"}});
   options.push_back(ConfigParamSpec{"remote-regex", VariantType::String, "^/eos/aliceo2/.+", {"regex string to identify remote files"}});
   options.push_back(ConfigParamSpec{"max-cached-files", VariantType::Int, 3, {"max CTF files queued (copied for remote source)"}});
+  options.push_back(ConfigParamSpec{"allow-missing-detectors", VariantType::Bool, false, {"send empty message if detector is missing in the CTF (otherwise throw)"}});
   options.push_back(ConfigParamSpec{"ctf-reader-verbosity", VariantType::Int, 0, {"verbosity level (0: summary per detector, 1: summary per block"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
   //
@@ -107,6 +108,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ctfInput.copyCmd = configcontext.options().get<std::string>("copy-cmd");
   ctfInput.tffileRegex = configcontext.options().get<std::string>("ctf-file-regex");
   ctfInput.remoteRegex = configcontext.options().get<std::string>("remote-regex");
+  ctfInput.allowMissingDetectors = configcontext.options().get<bool>("allow-missing-detectors");
 
   specs.push_back(o2::ctf::getCTFReaderSpec(ctfInput));
   int verbosity = configcontext.options().get<int>("ctf-reader-verbosity");
