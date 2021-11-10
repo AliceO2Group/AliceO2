@@ -305,6 +305,8 @@ void CTFReaderSpec::processDetector(DetID det, const CTFHeader& ctfHeader, Proce
     auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({lbl}, sizeof(C));
     if (ctfHeader.detectors[det]) {
       C::readFromTree(bufVec, *(mCTFTree.get()), lbl, mCurrTreeEntry);
+    } else if (!mInput.allowMissingDetectors) {
+      throw std::runtime_error(fmt::format("Requested detector {} is missing in the CTF", lbl));
     }
     setFirstTFOrbit(ctfHeader, lbl, pc);
   }
