@@ -104,8 +104,8 @@ DataProcessorSpec getTOFDCSConfigProcessorSpec()
 {
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_FEELIGHT"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_FEELIGHT"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_FEELIGHT"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_FEELIGHT"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "tof-dcs-config-processor",

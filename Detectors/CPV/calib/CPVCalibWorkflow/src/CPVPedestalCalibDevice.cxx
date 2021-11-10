@@ -171,10 +171,10 @@ o2::framework::DataProcessorSpec o2::cpv::getPedestalCalibSpec(bool useCCDB, boo
 {
 
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_PEDESTALS"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_PEDESTALS"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_PEDESTALS"}, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_PEDESTALS"}, o2::framework::Lifetime::Sporadic);
 
-  outputs.emplace_back("CPV", "PEDDIFF", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("CPV", "PEDDIFF", 0, o2::framework::Lifetime::Sporadic);
 
   return o2::framework::DataProcessorSpec{"PedestalCalibSpec",
                                           o2::framework::select("A:CPV/RAWDATA"),
