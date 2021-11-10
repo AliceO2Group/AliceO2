@@ -313,8 +313,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     // A timeframeSink consumes timeframes without creating new
     // timeframe data.
     bool timeframeSink = hasTimeframeInputs && !hasTimeframeOutputs;
-    if (timeframeSink && processor.name != "internal-dpl-injected-dummy-sink") {
-      processor.outputs.push_back(OutputSpec{{"dpl-summary"}, ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(compile_time_hash(processor.name.c_str()))}});
+    if (std::stoi(ctx.options().get<std::string>("timeframes-rate-limit-ipcid")) != -1) {
+      if (timeframeSink && processor.name != "internal-dpl-injected-dummy-sink") {
+        processor.outputs.push_back(OutputSpec{{"dpl-summary"}, ConcreteDataMatcher{"DPL", "SUMMARY", static_cast<DataAllocator::SubSpecificationType>(compile_time_hash(processor.name.c_str()))}});
+      }
     }
     bool hasConditionOption = false;
     for (size_t ii = 0; ii < processor.inputs.size(); ++ii) {
