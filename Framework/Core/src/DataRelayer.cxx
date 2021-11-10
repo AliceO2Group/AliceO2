@@ -746,6 +746,12 @@ uint32_t DataRelayer::getRunNumberForSlot(TimesliceSlot slot)
   return VariableContextHelpers::getRunNumber(mTimesliceIndex.getVariablesForSlot(slot));
 }
 
+uint64_t DataRelayer::getCreationTimeForSlot(TimesliceSlot slot)
+{
+  std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+  return VariableContextHelpers::getCreationTime(mTimesliceIndex.getVariablesForSlot(slot));
+}
+
 void DataRelayer::sendContextState()
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
