@@ -53,8 +53,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   //  auto& diagnostic = pc.outputs().make<o2::tof::Diagnostic>(OutputRef{"diafreq"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::tof::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, row, digits, patterns);
+  if (buff.size()) {
+    const auto ctfImage = o2::tof::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, row, digits, patterns);
+  }
 
   // fill diagnostic frequencies
   mFiller.clearCounts();
