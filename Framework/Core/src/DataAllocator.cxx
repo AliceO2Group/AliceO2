@@ -104,7 +104,7 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
   dh.firstTForbit = timingInfo.firstTFOrbit;
   dh.runNumber = timingInfo.runNumber;
 
-  DataProcessingHeader dph{timingInfo.timeslice, 1};
+  DataProcessingHeader dph{timingInfo.timeslice, 1, timingInfo.creation};
   auto& context = mRegistry->get<MessageContext>();
 
   auto channelAlloc = o2::pmr::getTransportAllocator(context.proxy().getTransport(channel, 0));

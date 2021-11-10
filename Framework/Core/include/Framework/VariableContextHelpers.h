@@ -58,6 +58,16 @@ struct VariableContextHelpers {
     }
     return *pval;
   }
+
+  static inline uint64_t getCreationTime(data_matcher::VariableContext const& variables)
+  {
+    // creation time is always at register 14
+    auto pval = std::get_if<uint64_t>(&variables.get(data_matcher::CREATIONTIME_POS));
+    if (pval == nullptr) {
+      return -1UL;
+    }
+    return *pval;
+  }
 };
 } // namespace o2::framework
 
