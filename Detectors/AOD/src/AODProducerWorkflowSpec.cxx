@@ -1366,14 +1366,16 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, std::string resFile)
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, std::string resFile)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
-  dataRequest->requestSecondaryVertertices(useMC);
+  if (enableSV) {
+    dataRequest->requestSecondaryVertertices(useMC);
+  }
   if (src[GID::TPC]) {
     dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // TOF clusters are requested with TOF tracks
   }
@@ -1405,7 +1407,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, std::s
     "aod-producer-workflow",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, resFile, useMC)},
+    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, enableSV, resFile, useMC)},
     Options{
       ConfigParamSpec{"run-number", VariantType::Int64, -1L, {"The run-number. If left default we try to get it from DPL header."}},
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},

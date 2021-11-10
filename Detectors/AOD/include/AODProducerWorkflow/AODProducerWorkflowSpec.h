@@ -192,7 +192,7 @@ typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> Triple
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, std::string resFile, bool useMC = true) : mInputSources(src), mDataRequest(dataRequest), mResFile{resFile}, mUseMC(useMC) {}
+  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, bool enableSV, std::string resFile, bool useMC = true) : mInputSources(src), mDataRequest(dataRequest), mEnableSV(enableSV), mResFile{resFile}, mUseMC(useMC) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -201,6 +201,8 @@ class AODProducerWorkflowDPL : public Task
  private:
   bool mUseMC = true;
 
+  bool mUseMC = true;
+  bool mEnableSV = true;             // enable secondary vertices
   const float cSpeed = 0.029979246f; // speed of light in TOF units
 
   GID::mask_t mInputSources;
@@ -364,7 +366,7 @@ class AODProducerWorkflowDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, std::string resFile);
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, std::string resFile);
 
 } // namespace o2::aodproducer
 
