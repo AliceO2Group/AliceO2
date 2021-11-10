@@ -130,11 +130,6 @@ inline float Tracker::getBz() const
   return mBz;
 }
 
-inline void Tracker::setBz(float bz)
-{
-  mBz = bz;
-}
-
 template <typename... T>
 void Tracker::initialiseTimeFrame(T&&... args)
 {

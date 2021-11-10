@@ -57,6 +57,11 @@ void TrackerDPL::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
+
+  auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
+  mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
+  mTracker = std::make_unique<Tracker>(new TrackerTraitsCPU);
+
   auto filename = ic.options().get<std::string>("grp-file");
   const auto grp = parameters::GRPObject::loadFrom(filename);
   if (grp) {
@@ -79,10 +84,6 @@ void TrackerDPL::init(InitContext& ic)
       LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
     }
 
-    auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
-    mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
-    mTracker = std::make_unique<Tracker>(new TrackerTraitsCPU);
-
     std::vector<TrackingParameters> trackParams;
     std::vector<MemoryParameters> memParams;
 
@@ -90,13 +91,12 @@ void TrackerDPL::init(InitContext& ic)
     if (mMode == "async") {
 
       trackParams.resize(3);
-      trackParams[0].TrackletMaxDeltaPhi = 0.05f;
-      trackParams[0].DeltaROF = 0;
-      trackParams[1].CopyCuts(trackParams[0], 2.);
-      trackParams[1].DeltaROF = 0;
-      trackParams[2].CopyCuts(trackParams[1], 2.);
-      trackParams[2].DeltaROF = 1;
+      trackParams[1].TrackletMinPt = 0.2f;
+      trackParams[1].CellDeltaTanLambdaSigma *= 2.;
+      trackParams[2].TrackletMinPt = 0.1f;
+      trackParams[2].CellDeltaTanLambdaSigma *= 2.;
       trackParams[2].MinTrackLength = 4;
+      trackParams[2].DeltaROF = 1;
       memParams.resize(3);
       LOG(info) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
 
@@ -105,7 +105,6 @@ void TrackerDPL::init(InitContext& ic)
       trackParams.resize(1);
       trackParams[0].PhiBins = 32;
       trackParams[0].ZBins = 64;
-      trackParams[0].TrackletMaxDeltaPhi *= 2;
       trackParams[0].CellDeltaTanLambdaSigma *= 10;
       trackParams[0].LayerMisalignment[0] = 3.e-2;
       trackParams[0].LayerMisalignment[1] = 3.e-2;
@@ -114,8 +113,8 @@ void TrackerDPL::init(InitContext& ic)
       trackParams[0].LayerMisalignment[4] = 1.e-1;
       trackParams[0].LayerMisalignment[5] = 1.e-1;
       trackParams[0].LayerMisalignment[6] = 1.e-1;
-      trackParams[0].FitIterationMaxChi2[0] = 1.e28;
-      trackParams[0].FitIterationMaxChi2[1] = 1.e28;
+      trackParams[0].FitIterationMaxChi2[0] = 100.;
+      trackParams[0].FitIterationMaxChi2[1] = 50.;
       trackParams[0].MinTrackLength = 4;
       memParams.resize(1);
       LOG(info) << "Initializing tracker in misaligned sync. phase reconstruction with " << trackParams.size() << " passes";
@@ -129,7 +128,6 @@ void TrackerDPL::init(InitContext& ic)
       trackParams.resize(1);
       memParams.resize(1);
       trackParams[0].MinTrackLength = 4;
-      trackParams[0].TrackletMaxDeltaPhi = o2::its::constants::math::Pi * 0.5f;
       trackParams[0].CellDeltaTanLambdaSigma *= 10;
       trackParams[0].PhiBins = 4;
       trackParams[0].ZBins = 16;
@@ -141,8 +139,8 @@ void TrackerDPL::init(InitContext& ic)
       trackParams[0].LayerMisalignment[4] = 1.e-1;
       trackParams[0].LayerMisalignment[5] = 1.e-1;
       trackParams[0].LayerMisalignment[6] = 1.e-1;
-      trackParams[0].FitIterationMaxChi2[0] = 1.e28;
-      trackParams[0].FitIterationMaxChi2[1] = 1.e28;
+      trackParams[0].FitIterationMaxChi2[0] = 100.;
+      trackParams[0].FitIterationMaxChi2[1] = 50.;
       LOG(info) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
 
     } else {
@@ -155,7 +153,7 @@ void TrackerDPL::init(InitContext& ic)
     LOG(info) << Form("Using %s for material budget approximation", (mTracker->isMatLUT() ? "lookup table" : "TGeometry"));
 
     double origD[3] = {0., 0., 0.};
-    mTracker->setBz(field->getBz(origD));
+    mBz = field->getBz(origD);
   } else {
     throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
@@ -219,6 +217,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   TimeFrame mTimeFrame;
   mTracker->adoptTimeFrame(mTimeFrame);
+  mTracker->setBz(mBz);
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
 
