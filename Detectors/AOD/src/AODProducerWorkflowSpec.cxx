@@ -20,7 +20,6 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
-#include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonConstants/PhysicsConstants.h"
@@ -73,22 +72,6 @@ using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<dou
 
 namespace o2::aodproducer
 {
-
-namespace
-{
-// takes a local vertex timing in NS and converts to a global BC information
-// using the orbit offset from the simulation
-uint64_t relativeTime_to_GlobalBC(double relativeTimeStampInNS)
-{
-  return std::round((o2::raw::HBFUtils::Instance().getFirstSampledTFIR().bc2ns() + relativeTimeStampInNS) / o2::constants::lhc::LHCBunchSpacingNS);
-}
-// takes a local vertex timing in NS and converts to a lobal BC information
-// relative to start of timeframe
-uint64_t relativeTime_to_LocalBC(double relativeTimeStampInNS)
-{
-  return std::round(relativeTimeStampInNS / o2::constants::lhc::LHCBunchSpacingNS);
-}
-} // namespace
 
 void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddRecPoints,
                                         gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
@@ -949,6 +932,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest);
+  mStartIR = recoData.startIR;
 
   auto primVertices = recoData.getPrimaryVertices();
   auto primVer2TRefs = recoData.getPrimaryVertexMatchedTrackRefs();
@@ -1024,13 +1008,12 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   std::map<uint64_t, int> bcsMap;
   collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, primVertices, mUseMC ? mcReader->getDigitizationContext()->getEventRecords() : std::vector<o2::InteractionTimeRecord>{}, bcsMap);
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
-  o2::InteractionRecord startIR = {0, dh->firstTForbit};
 
   uint64_t tfNumber;
   const int runNumber = (mRunNumber == -1) ? int(dh->runNumber) : mRunNumber;
   if (mTFNumber == -1L) {
     // TODO has to be made globally unique (by using absolute time of TF). For now is unique within the run
-    tfNumber = dh->tfCounter; // getTFNumber(startIR, runNumber);
+    tfNumber = dh->tfCounter; // getTFNumber(mStartIR, runNumber);
   } else {
     tfNumber = mTFNumber;
   }

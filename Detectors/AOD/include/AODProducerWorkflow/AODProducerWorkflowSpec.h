@@ -199,7 +199,16 @@ class AODProducerWorkflowDPL : public Task
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
-  bool mUseMC = true;
+  // takes a local vertex timing in NS and converts to a global BC information using the orbit offset from the simulation
+  uint64_t relativeTime_to_GlobalBC(double relativeTimeStampInNS)
+  {
+    return std::round((mStartIR.bc2ns() + relativeTimeStampInNS) / o2::constants::lhc::LHCBunchSpacingNS);
+  }
+  // takes a local vertex timing in NS and converts to a lobal BC information relative to start of timeframe
+  uint64_t relativeTime_to_LocalBC(double relativeTimeStampInNS)
+  {
+    return std::round(relativeTimeStampInNS / o2::constants::lhc::LHCBunchSpacingNS);
+  }
 
   bool mUseMC = true;
   bool mEnableSV = true;             // enable secondary vertices
@@ -210,6 +219,7 @@ class AODProducerWorkflowDPL : public Task
   int mRunNumber{-1};
   int mTruncate{1};
   int mRecoOnly{0};
+  o2::InteractionRecord mStartIR{}; // TF 1st IR
   TString mResFile{"AO2D"};
   TString mLPMProdTag{""};
   TString mAnchorPass{""};
