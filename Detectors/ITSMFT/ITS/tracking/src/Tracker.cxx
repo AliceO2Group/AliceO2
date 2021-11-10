@@ -658,7 +658,7 @@ void Tracker::getGlobalConfiguration()
     params.PVres = tc.pvRes > 0 ? tc.pvRes : params.PVres;
     params.NSigmaCut *= tc.nSigmaCut > 0 ? tc.nSigmaCut : 1.f;
     params.CellDeltaTanLambdaSigma *= tc.deltaTanLres > 0 ? tc.deltaTanLres : 1.f;
-    params.TrackletMaxDeltaPhi *= tc.phiCut > 0 ? tc.phiCut : 1.f;
+    params.TrackletMinPt *= tc.minPt > 0 ? tc.minPt : 1.f;
     for (int iD{0}; iD < 3; ++iD) {
       params.Diamond[iD] = tc.diamondPos[iD];
     }
@@ -670,6 +670,12 @@ void Tracker::adoptTimeFrame(TimeFrame& tf)
 {
   mTimeFrame = &tf;
   mTraits->adoptTimeFrame(&tf);
+}
+
+void Tracker::setBz(float bz)
+{
+  mBz = bz;
+  mTimeFrame->setBz(bz);
 }
 
 } // namespace its
