@@ -177,8 +177,8 @@ namespace framework
 DataProcessorSpec getGRPLHCIFfileSpec()
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "GRP_LHCIFData"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "GRP_LHCIFData"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "GRP_LHCIFData"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "GRP_LHCIFData"}, Lifetime::Sporadic);
   return DataProcessorSpec{
     "grp-lhc-if-file-processor",
     Inputs{{"inputConfig", "GRP", "DCS_CONFIG_FILE", Lifetime::Timeframe},

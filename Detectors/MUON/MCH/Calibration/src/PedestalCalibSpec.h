@@ -165,9 +165,9 @@ DataProcessorSpec getMCHPedestalCalibSpec(const char* specName, const std::strin
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MCH_BADCHAN"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MCH_BADCHAN"});
-  outputs.emplace_back(OutputSpec{"MCH", "PEDESTALS", 0, Lifetime::Timeframe});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MCH_BADCHAN"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MCH_BADCHAN"}, Lifetime::Sporadic);
+  outputs.emplace_back(OutputSpec{"MCH", "PEDESTALS", 0, Lifetime::Sporadic});
 
   return DataProcessorSpec{
     specName,

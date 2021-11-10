@@ -44,9 +44,6 @@ using DPVAL = o2::dcs::DataPointValue;
 using DPMAP = std::unordered_map<DPID, std::vector<DPVAL>>;
 
 using namespace o2::calibration;
-std::vector<o2::framework::OutputSpec> calibrationOutputs{
-  o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCDBPayload, CCDBOBJ},
-  o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCDBWrapper, CCDBOBJ}};
 
 /*
 * Create a default CCDB Object Info that will be used as a template.
@@ -375,7 +372,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   };
 #endif
-  dcsProcessor.outputs = calibrationOutputs;
+  dcsProcessor.outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCDBPayload, CCDBOBJ}, o2::framework::Lifetime::Sporadic);
+  dcsProcessor.outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCDBWrapper, CCDBOBJ}, o2::framework::Lifetime::Sporadic);
   dcsProcessor.algorithm = algo;
   dcsProcessor.options = {
 #if defined(MUON_SUBSYSTEM_MCH)
