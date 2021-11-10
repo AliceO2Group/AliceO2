@@ -79,9 +79,10 @@ void TrackerDPL::init(InitContext& ic)
     if (o2::utils::Str::pathExists(matLUTFile)) {
       auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
       o2::base::Propagator::Instance()->setMatLUT(lut);
+      mTracker->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
       LOG(info) << "Loaded material LUT from " << matLUTFile;
     } else {
-      LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+      LOG(info) << "Material LUT " << matLUTFile << " file is absent, only heuristic material correction can be used";
     }
 
     std::vector<TrackingParameters> trackParams;
