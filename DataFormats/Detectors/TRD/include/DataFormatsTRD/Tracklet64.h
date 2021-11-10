@@ -189,6 +189,8 @@ GPUdi() float Tracklet64::getUncalibratedY() const
 {
   int padLocal = getPositionBinSigned();
   int mcmCol = (getMCM() % constants::NMCMROBINCOL) + constants::NMCMROBINCOL * (getROB() % 2);
+  // one pad column has 144 pads, the offset of -63 is the center of the first MCM in that column
+  // which is connected to the pads -63 - 9 = -72 to -63 + 9 = -54
   float offset = -63.f + ((float)constants::NCOLMCM) * mcmCol;
   float padWidth = 0.635f + 0.03f * (getDetector() % constants::NLAYER);
   return (offset + padLocal * constants::GRANULARITYTRKLPOS) * padWidth;

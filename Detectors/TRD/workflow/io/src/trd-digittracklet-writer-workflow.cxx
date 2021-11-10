@@ -12,7 +12,6 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/ConfigParamSpec.h"
-#include "TRDWorkflowIO/TRDDigitReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackletWriterSpec.h"
 #include "TRDWorkflowIO/TRDDigitWriterSpec.h"
 
