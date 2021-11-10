@@ -50,9 +50,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto& channels = pc.outputs().make<std::vector<o2::ft0::ChannelData>>(OutputRef{"channels"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::ft0::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, digits, channels);
-
+  if (buff.size()) {
+    const auto ctfImage = o2::ft0::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, digits, channels);
+  }
   mTimer.Stop();
   LOG(INFO) << "Decoded " << channels.size() << " FT0 channels in " << digits.size() << " digits in " << mTimer.CpuTime() - cput << " s";
 }
