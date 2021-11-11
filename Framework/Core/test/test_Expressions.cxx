@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(TestGandivaTreeCreation)
 BOOST_AUTO_TEST_CASE(TestConditionalExpressions)
 {
   // simple conditional
-  Filter cf = nabs(o2::aod::track::eta) < 1.0f && ifnode((o2::aod::track::pt < 1.0f), (o2::aod::track::phiraw > (float)(M_PI / 2.)), (o2::aod::track::phiraw < (float)(M_PI / 2.)));
+  Filter cf = nabs(o2::aod::track::eta) < 1.0f && ifnode((o2::aod::track::pt < 1.0f), (o2::aod::track::phi > (float)(M_PI / 2.)), (o2::aod::track::phi < (float)(M_PI / 2.)));
   auto cfspecs = createOperations(cf);
   BOOST_REQUIRE_EQUAL(cfspecs[0].left, (DatumSpec{1u, atype::BOOL}));
   BOOST_REQUIRE_EQUAL(cfspecs[0].right, (DatumSpec{2u, atype::BOOL}));
