@@ -1407,7 +1407,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     }
 
     prepareAllocatorForCurrentTimeSlice(TimesliceSlot{action.slot});
-    InputSpan span = getInputSpan(action.slot, action.op == CompletionPolicy::CompletionOp::Consume);
+    bool shouldConsume = action.op == CompletionPolicy::CompletionOp::Consume ||
+                         action.op == CompletionPolicy::CompletionOp::Discard;
+    InputSpan span = getInputSpan(action.slot, shouldConsume);
     InputRecord record{context.deviceContext->spec->inputs, span};
     ProcessingContext processContext{record, *context.registry, *context.allocator};
     {
