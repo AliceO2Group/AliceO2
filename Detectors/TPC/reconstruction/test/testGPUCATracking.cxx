@@ -26,6 +26,7 @@
 
 #include "TPCFastTransform.h"
 #include "TPCdEdxCalibrationSplines.h"
+#include "DataFormatsTPC/CalibdEdxCorrection.h"
 #include "GPUO2Interface.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "TPCPadGainCalib.h"
@@ -78,6 +79,8 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   config.configCalib.fastTransform = fastTransform.get();
   std::unique_ptr<o2::gpu::TPCdEdxCalibrationSplines> dEdxSplines = GPUO2Interface::getdEdxCalibrationSplinesDefault();
   config.configCalib.dEdxSplines = dEdxSplines.get();
+  auto dEdxCorrection = std::make_unique<o2::tpc::CalibdEdxCorrection>();
+  config.configCalib.dEdxCorrection = dEdxCorrection.get();
   std::unique_ptr<TPCPadGainCalib> gainCalib = GPUO2Interface::getPadGainCalibDefault();
   config.configCalib.tpcPadGain = gainCalib.get();
 

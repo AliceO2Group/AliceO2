@@ -24,6 +24,8 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "TPCCalibration/CalibdEdx.h"
+#include "CCDB/CcdbApi.h"
+#include "CCDB/CcdbObjectInfo.h"
 
 using namespace o2::framework;
 
@@ -45,22 +47,22 @@ class CalibdEdxDevice : public Task
     const float mindEdx = ic.options().get<float>("min-dedx");
     const float maxdEdx = ic.options().get<float>("max-dedx");
 
-    const bool dumpData = ic.options().get<bool>("file-dump");
+    mDumpToFile = ic.options().get<bool>("file-dump");
     float field = ic.options().get<float>("field");
 
-    const auto inputGRP = o2::base::NameConf::getGRPFileName();
-    const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
-    if (grp != nullptr) {
-      field = 5.00668f * grp->getL3Current() / 30000.;
-      LOGP(info, "Using GRP file to set the magnetic field to {} kG", field);
+    if (field <= -10.f) {
+      const auto inputGRP = o2::base::NameConf::getGRPFileName();
+      const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+      if (grp != nullptr) {
+        field = 5.00668f * grp->getL3Current() / 30000.;
+        LOGP(info, "Using GRP file to set the magnetic field to {} kG", field);
+      }
     }
 
     mCalib = std::make_unique<CalibdEdx>(mindEdx, maxdEdx, dEdxBins, zBins, angularBins);
     mCalib->setApplyCuts(false);
     mCalib->setFitCuts({minEntriesSector, minEntries1D, minEntries2D});
     mCalib->setField(field);
-
-    mDumpToFile = dumpData;
   }
 
   void run(ProcessingContext& pc) final
@@ -79,18 +81,34 @@ class CalibdEdxDevice : public Task
     LOGP(info, "Finalizing calibration");
     mCalib->finalize();
     mCalib->print();
-    // sendOutput(eos.outputs());
+    sendOutput(eos.outputs());
 
     if (mDumpToFile) {
-      mCalib->getCalib().saveFile("calibdEdx.root");
+      mCalib->getCalib().writeToFile("calibdEdx.root");
     }
   }
 
  private:
   void sendOutput(DataAllocator& output)
   {
-    // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
-    // TODO in principle, this routine is generic, can be moved to Utils.h
+    using clbUtils = o2::calibration::Utils;
+    const auto& corr = mCalib->getCalib();
+
+    o2::ccdb::CcdbObjectInfo info;
+
+    const auto now = std::chrono::system_clock::now();
+    const long timeStart = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    const long timeEnd = 99999999999999;
+
+    info.setPath("TPC/Calib/dEdx");
+    info.setStartValidityTimestamp(timeStart);
+    info.setEndValidityTimestamp(timeEnd);
+
+    auto image = o2::ccdb::CcdbApi::createObjectImage(&corr, &info);
+
+    LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", info.getPath(), info.getFileName(), image->size(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx", 0}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx", 0}, info);
   }
 
   bool mDumpToFile{};
@@ -100,8 +118,8 @@ class CalibdEdxDevice : public Task
 DataProcessorSpec getCalibdEdxSpec()
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_MIPS"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_MIPS"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "tpc-calib-dEdx",
@@ -121,7 +139,7 @@ DataProcessorSpec getCalibdEdxSpec()
       {"min-dedx", VariantType::Float, 5.0f, {"minimum value for the dEdx histograms"}},
       {"max-dedx", VariantType::Float, 100.0f, {"maximum value for the dEdx histograms"}},
 
-      {"field", VariantType::Float, 5.f, {"magnetic field"}},
+      {"field", VariantType::Float, -100.f, {"magnetic field"}},
       {"file-dump", VariantType::Bool, false, {"directly dump calibration to file"}}}};
 }
 
