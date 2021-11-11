@@ -90,6 +90,11 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   TStopwatch timer;
   timer.Start();
 
+  if (mDigitizer.runStartTime() == 0) { //not set yet
+    long runStartTime = timesview[0].getTimeNS();
+    mDigitizer.setRunStartTime(runStartTime); //set timestamp to access CCDB if necessary
+  }
+
   LOG(INFO) << " CALLING PHOS DIGITIZATION ";
   std::vector<TriggerRecord> triggers;
 

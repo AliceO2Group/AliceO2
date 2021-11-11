@@ -26,10 +26,9 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   std::string mCCDBPath = "localtest"; ///< use "localtest" to avoid connecting ccdb server, otherwise use ccdb-test.cern.ch
 
   //Parameters used in conversion of deposited energy to APD response
-  float mLightYieldMean = 47000;                                  // Average number of photoelectrons per GeV
-  float mIntrinsicAPDEfficiency = 0.02655;                        // APD efficiency including geometric coverage
-  float mLightFactor = mLightYieldMean * mIntrinsicAPDEfficiency; // Average number of photons collected by APD per GeV deposited energy
-  float mAPDFactor = (13.418 / mLightYieldMean / 100.) * 300.;    // factor relating light yield and APD response
+  float mLightYieldPerGeV = 526.;                 ///< Average number of photoelectrons per GeV: 1.983 gamma/MeV * 0.2655 PDE eff of APD
+  std::string mDigitizationCalibPath = "default"; ///< use "default" to use default calibration or use ccdb.cern.ch
+  std::string mDigitizationTrigPath = "default";  ///< use "default" to use default map and turn-on or use ccdb.cern.ch
 
   //Parameters used in electronic noise calculation and thresholds (Digitizer)
   float mReadoutTime = 5.;           ///< Read-out time in ns for default simulaionts

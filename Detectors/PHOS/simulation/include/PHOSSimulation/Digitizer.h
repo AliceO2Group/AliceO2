@@ -41,6 +41,9 @@ class Digitizer : public TObject
                    int source, int entry, double dt);
   void processMC(bool mc) { mProcessMC = mc; }
 
+  void setRunStartTime(long t) { mRunStartTime = t; }
+  long runStartTime() const { return mRunStartTime; }
+
  protected:
   float nonLinearity(float e);
   float uncalibrate(float e, int absId);
@@ -55,6 +58,7 @@ class Digitizer : public TObject
   bool mProcessMC = true;
   bool mTrig2x2 = true;                      ///< simulate 2x2 PHOS trigger
   bool mTrig4x4 = false;                     ///< simulate 4x4 PHOS trigger
+  long mRunStartTime = 0;                    ///< to access ccdb if necessary
   std::unique_ptr<CalibParams> mCalibParams; /// Calibration coefficients
   std::unique_ptr<TriggerMap> mTrigUtils;    /// trigger bad map and turn-on curves
   std::array<Digit, NCHANNELS> mArrayD;

@@ -26,6 +26,7 @@
 #include "PHOSBase/Hit.h"
 #include "PHOSSimulation/Detector.h"
 #include "PHOSSimulation/GeometryParams.h"
+#include "PHOSBase/PHOSSimParams.h"
 
 #include "DetectorsBase/GeometryManager.h"
 #include "SimulationDataFormat/Stack.h"
@@ -78,7 +79,6 @@ void Detector::FinishEvent()
 {
   // Sort Hits
   // Add duplicates if any and remove them
-  // TODO: Apply Poisson smearing of light production
   if (!mHits || mHits->size() == 0) {
     return;
   }
@@ -104,14 +104,14 @@ void Detector::FinishEvent()
 
   mHits->erase(itr, mHits->end());
 
-  /*
-        std::ostream stream(nullptr);
-        stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
-  //      stream.rdbuf(LOG(DEBUG2));
-      for (int i = 0; i < mHits->size(); i++) {
-         mHits->at(i).PrintStream(stream);
-        }
-  */
+  //Apply Poisson smearing of light production
+  first = mHits->begin();
+  last = mHits->end();
+  while (first != last) {
+    float light = gRandom->Poisson(first->GetEnergyLoss() * o2::phos::PHOSSimParams::Instance().mLightYieldPerGeV);
+    first->SetEnergyLoss(light / o2::phos::PHOSSimParams::Instance().mLightYieldPerGeV);
+    first++;
+  }
 }
 void Detector::Reset()
 {
