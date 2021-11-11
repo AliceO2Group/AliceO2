@@ -19,9 +19,10 @@
 #include <cassert>
 #include <regex>
 
-namespace o2
-{
-namespace framework
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+
+namespace o2::framework
 {
 
 CompletionPolicy CompletionPolicyHelpers::defineByNameOrigin(std::string const& name, std::string const& origin, CompletionPolicy::CompletionOp op)
@@ -112,27 +113,50 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAll(const char* name, Compl
 
 CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* name, CompletionPolicy::Matcher matcher)
 {
-  auto callback = [](InputSpan const& inputs) -> CompletionPolicy::CompletionOp {
-    size_t present = 0;
-    size_t current = 0;
-    size_t withPayload = 0;
-    for (auto& input : inputs) {
-      if (input.header != nullptr) {
-        present++;
+  return CompletionPolicy{
+    name,
+    matcher,
+    [](InputSpan const& inputs, std::vector<InputSpec> const& specs) -> CompletionPolicy::CompletionOp {
+      size_t present = 0;
+      size_t current = 0;
+      size_t withPayload = 0;
+      size_t sporadic = 0;
+      size_t maxSporadic = 0;
+      size_t i = 0;
+      for (auto& input : inputs) {
+        auto& spec = specs[i++];
+        if (spec.lifetime == Lifetime::Sporadic) {
+          maxSporadic++;
+        }
+        if (input.header != nullptr) {
+          present++;
+          if (spec.lifetime == Lifetime::Sporadic) {
+            sporadic++;
+          }
+        }
+        if (input.payload != nullptr) {
+          withPayload++;
+        }
+        current++;
       }
-      if (input.payload != nullptr) {
-        withPayload++;
+      // * In case we have all inputs but the sporadic ones: Consume, since we do not know if the sporadic ones
+      // will ever come.
+      // * In case we have only sporadic inputs: Consume, since we do not know if we already Consumed
+      // the non sporadic ones above.
+      // * In case we do not have payloads: Wait
+      // * In all other cases we consume what is there, but we wait for the non sporadic ones to be complete
+      //   (i.e. we wait for present + maxSporadic).
+      if (present - sporadic + maxSporadic == inputs.size()) {
+        return CompletionPolicy::CompletionOp::Consume;
+      } else if (present - sporadic == 0) {
+        return CompletionPolicy::CompletionOp::Consume;
+      } else if (withPayload == 0) {
+        return CompletionPolicy::CompletionOp::Wait;
       }
-      current++;
+      return CompletionPolicy::CompletionOp::ConsumeExisting;
     }
-    if (present == inputs.size()) {
-      return CompletionPolicy::CompletionOp::Consume;
-    } else if (withPayload == 0) {
-      return CompletionPolicy::CompletionOp::Wait;
-    }
-    return CompletionPolicy::CompletionOp::ConsumeExisting;
+
   };
-  return CompletionPolicy{name, matcher, callback};
 }
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, CompletionPolicy::Matcher matcher)
@@ -167,5 +191,5 @@ CompletionPolicy CompletionPolicyHelpers::processWhenAny(const char* name, Compl
   return CompletionPolicy{name, matcher, callback};
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
+#pragma GCC diagnostic pop
