@@ -234,10 +234,16 @@ class CcdbApi //: public DatabaseInterface
   std::vector<std::string> getAllFolders(std::string const& top) const;
 
   /**
-  *  Simple function to retrieve the blob corresponding to some path and timestamp.
-  *  Saves the blob locally to a binary file. The final path (including filename) is given by targetdir.
-  */
-  void retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp) const;
+   *  Simple function to retrieve the blob corresponding to some path and timestamp.
+   *  Saves the blob locally to a binary file with the following properties:
+   *  a) The base destination directory is given by "targetdir" (will be created if not present)
+   *  b) If preservePathStructure == true; Additional sub-folders corresponding to "path" will be created inside "targetdir".
+   *  c) The filename on disc will be determined by localFileName, or in case localFilename="" from the filename returned by CCDB meta data.
+   *
+   *  @return: True in case operation successful or false if there was a failure/problem.
+   */
+  bool retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp,
+                    bool preservePathStructure = true, std::string const& localFileName = "snapshot.root") const;
 
   /**
    * Retrieve the headers of a CCDB entry, if it exists.
