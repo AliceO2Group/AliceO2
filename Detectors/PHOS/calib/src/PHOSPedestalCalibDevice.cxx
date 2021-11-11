@@ -132,7 +132,7 @@ void PHOSPedestalCalibDevice::checkPedestals()
     return;
   }
   LOG(INFO) << "Retrieving current Pedestals from CCDB";
-  //Read current padestals for comarison
+  //Read current pedestals for comparison
   o2::ccdb::CcdbApi ccdb;
   ccdb.init(mCCDBPath); // or http://localhost:8080 for a local installation
   std::map<std::string, std::string> metadata;
