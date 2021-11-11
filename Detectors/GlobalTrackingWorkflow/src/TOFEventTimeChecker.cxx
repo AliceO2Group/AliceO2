@@ -102,6 +102,11 @@ class TOFEventTimeChecker : public Task
   TProfile* mPBetavsPExpPi;
   TProfile* mPBetavsPExpKa;
   TProfile* mPBetavsPExpPr;
+  TH2F* mHMassvsP;
+  TProfile* mPMassvsPExpPi;
+  TProfile* mPMassvsPExpKa;
+  TProfile* mPMassvsPExpPr;
+  TH2F* mHTimevsResEvtimePi;
   RecoContainer mRecoData;
   std::shared_ptr<DataRequest> mDataRequest;
   bool mUseMC = true;
@@ -157,6 +162,11 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
     mHTimePivsP->Fill(track.mP, track.tofSignal() - et - track.tofExpTimePi());
     mHTimeKvsP->Fill(track.mP, track.tofSignal() - et - track.tofExpTimeKa());
     mHTimePrvsP->Fill(track.mP, track.tofSignal() - et - track.tofExpTimePr());
+    mHMassvsP->Fill(track.mP, mass);
+    mPMassvsPExpPi->Fill(track.mP, massexpPi);
+    mPMassvsPExpKa->Fill(track.mP, massexpKa);
+    mPMassvsPExpPr->Fill(track.mP, massexpPr);
+    mHTimevsResEvtimePi->Fill(erret, track.tofSignal() - et - track.tofExpTimePi());
   }
 }
 
@@ -251,16 +261,21 @@ void TOFEventTimeChecker::init(InitContext& ic)
   mHTimeKa = new TH1F("HTimeKa", ";t_{TOF} - t_{exp}^{K} (ps)", 500, -5000, 5000);
   mHTimePr = new TH1F("HTimePr", ";t_{TOF} - t_{exp}^{p} (ps)", 500, -5000, 5000);
   mHMass = new TH1F("HMass", ";M (GeV/#it{c}^{2})", 1000, 0, 2.);
-  mHMassExpPi = new TH1F("mHMassExpPi", ";M(#beta_{exp}^{#pi}) (GeV/#it{c}^{2})", 1000, 0, 2.);
-  mHMassExpKa = new TH1F("mHMassExpKa", ";M(#beta_{exp}^{K}) (GeV/#it{c}^{2})", 1000, 0, 2.);
-  mHMassExpPr = new TH1F("mHMassExpPr", ";M(#beta_{exp}^{p}) (GeV/#it{c}^{2})", 1000, 0, 2.);
+  mHMassExpPi = new TH1F("HMassExpPi", ";M(#beta_{exp}^{#pi}) (GeV/#it{c}^{2})", 1000, 0, 2.);
+  mHMassExpKa = new TH1F("HMassExpKa", ";M(#beta_{exp}^{K}) (GeV/#it{c}^{2})", 1000, 0, 2.);
+  mHMassExpPr = new TH1F("HMassExpPr", ";M(#beta_{exp}^{p}) (GeV/#it{c}^{2})", 1000, 0, 2.);
   mHBetavsP = new TH2F("HBetavsP", ";#it{p} (GeV/#it{c});TOF #beta", 1000, 0., 5, 1000, 0., 1.5);
-  mPBetavsPExpPi = new TProfile("mPBetavsPExpPi", ";#it{p} (GeV/#it{c}); #beta_{exp}^{#pi}", 1000, 0., 5, 0., 1.5);
-  mPBetavsPExpKa = new TProfile("mPBetavsPExpKa", ";#it{p} (GeV/#it{c}); #beta_{exp}^{K}", 1000, 0., 5, 0., 1.5);
-  mPBetavsPExpPr = new TProfile("mPBetavsPExpPr", ";#it{p} (GeV/#it{c}); #beta_{exp}^{p}", 1000, 0., 5, 0., 1.5);
-  mHTimePivsP = new TH2F("mHTimePivsP", ";#it{p} (GeV/#it{c});t_{TOF} - t_{exp}^{#pi} (ps)", 500, 0., 5, 500, -5000, 5000);
-  mHTimeKvsP = new TH2F("mHTimeKavsP", ";#it{p} (GeV/#it{c});t_{TOF} - t_{exp}^{K} (ps)", 500, 0., 5, 500, -5000, 5000);
-  mHTimePrvsP = new TH2F("mHTimePrvsP", ";#it{p} (GeV/#it{c});t_{TOF} - t_{exp}^{p} (ps)", 500, 0., 5, 500, -5000, 5000);
+  mPBetavsPExpPi = new TProfile("PBetavsPExpPi", ";#it{p} (GeV/#it{c}); #beta_{exp}^{#pi}", 1000, 0., 5, 0., 1.5);
+  mPBetavsPExpKa = new TProfile("PBetavsPExpKa", ";#it{p} (GeV/#it{c}); #beta_{exp}^{K}", 1000, 0., 5, 0., 1.5);
+  mPBetavsPExpPr = new TProfile("PBetavsPExpPr", ";#it{p} (GeV/#it{c}); #beta_{exp}^{p}", 1000, 0., 5, 0., 1.5);
+  mHTimePivsP = new TH2F("HTimePivsP", ";#it{p} (GeV/#it{c});t_{TOF} - t_{exp}^{#pi} (ps)", 500, 0., 5, 500, -5000, 5000);
+  mHTimeKvsP = new TH2F("HTimeKavsP", ";#it{p} (GeV/#it{c});t_{TOF} - t_{exp}^{K} (ps)", 500, 0., 5, 500, -5000, 5000);
+  mHTimePrvsP = new TH2F("HTimePrvsP", ";#it{p} (GeV/#it{c});t_{TOF} - t_{exp}^{p} (ps)", 500, 0., 5, 500, -5000, 5000);
+  mHMassvsP = new TH2F("HMassvsP", ";#it{p} (GeV/#it{c}); M (GeV/#it{c}^{2})", 1000, 0., 5, 1000, 0., 2.);
+  mPMassvsPExpPi = new TProfile("PMassvsPExpPi", ";#it{p} (GeV/#it{c}); M(#beta_{exp}^{#pi}) [GeV/#it{c}^{2}]", 1000, 0., 5, 0., 2.);
+  mPMassvsPExpKa = new TProfile("PMassvsPExpKa", ";#it{p} (GeV/#it{c}); M(#beta_{exp}^{K}) [GeV/#it{c}^{2}]", 1000, 0., 5, 0., 2.);
+  mPMassvsPExpPr = new TProfile("PMassvsPExpPr", ";#it{p} (GeV/#it{c}); M(#beta_{exp}^{p}) [GeV/#it{c}^{2}]", 1000, 0., 5, 0., 2.);
+  mHTimevsResEvtimePi = new TH2F("HTimevsResEvtimePi", ";TOF event time resolution (ps);t_{TOF} - t_{exp}^{#pi} (ps)", 200, 0., 200, 500, -5000, 5000);
 }
 
 void TOFEventTimeChecker::run(ProcessingContext& pc)
@@ -344,6 +359,11 @@ void TOFEventTimeChecker::endOfStream(EndOfStreamContext& ec)
   mHTimePivsP->Write();
   mHTimeKvsP->Write();
   mHTimePrvsP->Write();
+  mHMassvsP->Write();
+  mPMassvsPExpPi->Write();
+  mPMassvsPExpKa->Write();
+  mPMassvsPExpPr->Write();
+  mHTimevsResEvtimePi->Write();
 }
 
 DataProcessorSpec getTOFEventTimeCheckerSpec(GID::mask_t src, bool useMC)
