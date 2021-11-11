@@ -157,6 +157,7 @@ class DataRelayer
 
   CompletionPolicy mCompletionPolicy;
   std::vector<size_t> mDistinctRoutesIndex;
+  std::vector<InputSpec> mInputs;
   std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
   std::vector<data_matcher::VariableContext> mVariableContextes;
   std::vector<CacheEntryStatus> mCachedStateMetrics;
