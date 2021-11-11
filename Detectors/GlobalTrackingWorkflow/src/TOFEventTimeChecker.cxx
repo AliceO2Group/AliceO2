@@ -56,7 +56,12 @@ using DetID = o2::detectors::DetID;
 using evIdx = o2::dataformats::EvIndex<int, int>;
 using MatchOutputType = std::vector<o2::dataformats::MatchInfoTOF>;
 using GID = o2::dataformats::GlobalTrackID;
-using MyTrack = o2::tof::eventTimeTrackTest;
+
+struct MyTrack : o2::tof::eventTimeTrackTest {
+  double tofSignalDouble() const { return mSignalDouble; }
+  double mSignalDouble = 0.0;
+};
+
 using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;
 
 bool MyFilter(const MyTrack& tr)
@@ -107,6 +112,7 @@ class TOFEventTimeChecker : public Task
   TProfile* mPMassvsPExpKa;
   TProfile* mPMassvsPExpPr;
   TH2F* mHTimevsResEvtimePi;
+  TH2F* mHEventTimevsResEvtime;
   RecoContainer mRecoData;
   std::shared_ptr<DataRequest> mDataRequest;
   bool mUseMC = true;
@@ -115,13 +121,17 @@ class TOFEventTimeChecker : public Task
 
 void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
 {
+  int nBC = int(tracks[0].tofSignalDouble() * o2::tof::Geo::BC_TIME_INPS_INV);
+  for (auto& track : tracks) {
+    track.mSignal = float(track.mSignalDouble - double(o2::tof::Geo::BC_TIME_INPS) * nBC);
+  }
+
   auto evtime = o2::tof::evTimeMaker<std::vector<MyTrack>, MyTrack, MyFilter>(tracks);
   //
   const float cinv = 33.35641;
 
   int nt = 0;
   for (auto& track : tracks) {
-
     float et = evtime.eventTime;
     float erret = evtime.eventTimeError;
     float res = sqrt(track.tofExpSigmaPi() * track.tofExpSigmaPi() + erret * erret);
@@ -137,6 +147,7 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
 
     //Beta
     float beta = track.mLength / (track.tofSignal() - et) * cinv;
+
     float betaexpPi = track.mLength / (track.tofExpTimePi()) * cinv;
     float betaexpKa = track.mLength / (track.tofExpTimeKa()) * cinv;
     float betaexpPr = track.mLength / (track.tofExpTimePr()) * cinv;
@@ -166,7 +177,10 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
     mPMassvsPExpPi->Fill(track.mP, massexpPi);
     mPMassvsPExpKa->Fill(track.mP, massexpKa);
     mPMassvsPExpPr->Fill(track.mP, massexpPr);
-    mHTimevsResEvtimePi->Fill(erret, track.tofSignal() - et - track.tofExpTimePi());
+    if (track.mP > 0.7 && track.mP < 1.1) {
+      mHTimevsResEvtimePi->Fill(erret, track.tofSignal() - et - track.tofExpTimePi());
+    }
+    mHEventTimevsResEvtime->Fill(erret, et);
   }
 }
 
@@ -177,6 +191,10 @@ void TOFEventTimeChecker::fillMatching(GID gid)
   }
   const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
   const o2::track::TrackLTIntegral& info = match.getLTIntegralOut();
+
+  if (info.getL() < 370) {
+    return;
+  }
 
   MyTrack trk;
   int trksource = 5;
@@ -222,12 +240,9 @@ void TOFEventTimeChecker::fillMatching(GID gid)
   int tofcl = match.getIdxTOFCl();
   //  trk.mSignal = mTOFClustersArrayInp[tofcl].getTime();
   double tofsignal = match.getSignal();
-  static int nBC = 0;
-  if (mMyTracks.size() == 0) { // first track of the event (first in time) -> update nBC
-    nBC = int(tofsignal * o2::tof::Geo::BC_TIME_INPS_INV);
-  }
 
-  trk.mSignal = float(tofsignal - double(o2::tof::Geo::BC_TIME_INPS) * nBC);
+  trk.mSignalDouble = tofsignal;
+
   //trk.mSignal = match.getSignal();
   trk.mTOFChi2 = match.getChi2();
   trk.mLength = info.getL();
@@ -235,9 +250,14 @@ void TOFEventTimeChecker::fillMatching(GID gid)
 
   if (mSlewing) { // let's calibrate
     int ch = mTOFClustersArrayInp[tofcl].getMainContributingChannel();
+
+    if (mSlewing->isProblematic(ch)) {
+      LOG(DEBUG) << "skip channel " << ch << " since problematic";
+      return;
+    }
     float tot = mTOFClustersArrayInp[tofcl].getTot();
-    trk.mSignal -= mSlewing->evalTimeSlewing(ch, tot);
-    LOG(INFO) << "calibration -> " << mSlewing->evalTimeSlewing(ch, tot);
+    trk.mSignalDouble -= mSlewing->evalTimeSlewing(ch, tot);
+    LOG(DEBUG) << "calibration -> " << mSlewing->evalTimeSlewing(ch, tot);
   }
 
   mMyTracks.push_back(trk);
@@ -257,7 +277,7 @@ void TOFEventTimeChecker::init(InitContext& ic)
     mSlewing = (TimeSlewing*)fsleewing->Get("ccdb_object");
   }
 
-  mHTimePi = new TH1F("HTimePi", ";t_{TOF} - t_{exp}^{#pi} (ps)", 500, -5000, 5000);
+  mHTimePi = new TH1F("HTimePi", ";t_{TOF} - t_{exp}^{#pi} (ps)", 2500, -25000, 25000);
   mHTimeKa = new TH1F("HTimeKa", ";t_{TOF} - t_{exp}^{K} (ps)", 500, -5000, 5000);
   mHTimePr = new TH1F("HTimePr", ";t_{TOF} - t_{exp}^{p} (ps)", 500, -5000, 5000);
   mHMass = new TH1F("HMass", ";M (GeV/#it{c}^{2})", 1000, 0, 2.);
@@ -275,7 +295,8 @@ void TOFEventTimeChecker::init(InitContext& ic)
   mPMassvsPExpPi = new TProfile("PMassvsPExpPi", ";#it{p} (GeV/#it{c}); M(#beta_{exp}^{#pi}) [GeV/#it{c}^{2}]", 1000, 0., 5, 0., 2.);
   mPMassvsPExpKa = new TProfile("PMassvsPExpKa", ";#it{p} (GeV/#it{c}); M(#beta_{exp}^{K}) [GeV/#it{c}^{2}]", 1000, 0., 5, 0., 2.);
   mPMassvsPExpPr = new TProfile("PMassvsPExpPr", ";#it{p} (GeV/#it{c}); M(#beta_{exp}^{p}) [GeV/#it{c}^{2}]", 1000, 0., 5, 0., 2.);
-  mHTimevsResEvtimePi = new TH2F("HTimevsResEvtimePi", ";TOF event time resolution (ps);t_{TOF} - t_{exp}^{#pi} (ps)", 200, 0., 200, 500, -5000, 5000);
+  mHTimevsResEvtimePi = new TH2F("HTimevsResEvtimePi", "0.7 < p < 1.1 GeV/#it{c};TOF event time resolution (ps);t_{TOF} - t_{exp}^{#pi} (ps)", 200, 0., 200, 500, -5000, 5000);
+  mHEventTimevsResEvtime = new TH2F("HEventTimevsResEvtime", ";TOF event time resolution (ps); TOF event time (ps)", 100, 0, 200, 1000, -2000, 2000);
 }
 
 void TOFEventTimeChecker::run(ProcessingContext& pc)
@@ -310,20 +331,20 @@ void TOFEventTimeChecker::run(ProcessingContext& pc)
 
   // sorting matching in time
   std::sort(mMyTracks.begin(), mMyTracks.end(),
-            [](MyTrack a, MyTrack b) { return a.tofSignal() < b.tofSignal(); });
+            [](MyTrack a, MyTrack b) { return a.tofSignalDouble() < b.tofSignalDouble(); });
 
   for (auto& element : mMyTracks) { // loop print
-    LOG(INFO) << "Time cluster = " << element.tofSignal() << " ps - pt = " << element.pt();
+    LOG(DEBUG) << "Time cluster = " << element.tofSignal() << " ps - pt = " << element.pt();
   }
 
   std::vector<MyTrack> tracks;
   for (int i = 0; i < mMyTracks.size(); i++) { // loop looking for interaction candidates
     tracks.clear();
     int ntrk = 1;
-    double time = mMyTracks[i].tofSignal();
+    double time = mMyTracks[i].tofSignalDouble();
     tracks.emplace_back(mMyTracks[i]);
     for (; i < mMyTracks.size(); i++) {
-      double timeCurrent = mMyTracks[i].tofSignal();
+      double timeCurrent = mMyTracks[i].tofSignalDouble();
       if (timeCurrent - time > 25E3) {
         i--;
         break;
@@ -364,6 +385,7 @@ void TOFEventTimeChecker::endOfStream(EndOfStreamContext& ec)
   mPMassvsPExpKa->Write();
   mPMassvsPExpPr->Write();
   mHTimevsResEvtimePi->Write();
+  mHEventTimevsResEvtime->Write();
 }
 
 DataProcessorSpec getTOFEventTimeCheckerSpec(GID::mask_t src, bool useMC)
