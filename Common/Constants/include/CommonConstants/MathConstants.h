@@ -29,6 +29,7 @@ constexpr float VeryBig = 1.f / Almost0;
 constexpr float PI = 3.14159274101257324e+00f;
 constexpr float TwoPI = 2.f * PI;
 constexpr float PIHalf = 0.5f * PI;
+constexpr float PIThird = PI / 3.0f;
 constexpr float PIQuarter = 0.25f * PI;
 constexpr float Rad2Deg = 180.f / PI;
 constexpr float Deg2Rad = PI / 180.f;
