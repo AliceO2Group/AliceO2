@@ -567,7 +567,8 @@ InputSpec DataSpecUtils::matchingInput(OutputSpec const& spec)
                         auto&& matcher = DataSpecUtils::dataDescriptorMatcherFrom(dataType);
                         return InputSpec{
                           spec.binding.value,
-                          std::move(matcher)};
+                          std::move(matcher),
+                          spec.lifetime};
                       }},
                     spec.matcher);
 }
