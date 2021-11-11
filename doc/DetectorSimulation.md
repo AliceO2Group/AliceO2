@@ -172,9 +172,9 @@ Background events are sampled one-by-one until all events have been used. At tha
 #### 5. **How can I obtain detailed stepping information?** <a name="MCStepLoggerSection"></a>
 Run the simulation (currently only supported in combination with `o2-sim-serial`) with a preloaded library:
 ```
-MCSTEPLOG_TTREE=1 LD_PRELOAD=$O2_ROOT/lib/libMCStepLogger.so o2-sim-serial -j 1 -n 10
+MCSTEPLOG_TTREE=1 LD_PRELOAD=$MCSTEPLOGGER_ROOT/lib/libMCStepLoggerInterceptSteps.so o2-sim-serial -j 1 -n 10
 ```
-This will produce a file `MCStepLoggerOutput.root` containing detailed information about steps and processes (where, what, ...). The file can be analysed using a special analysis framework. See https://github.com/AliceO2Group/AliceO2/blob/dev/Utilities/MCStepLogger/README.md for more documentation.
+This will produce a file `MCStepLoggerOutput.root` containing detailed information about steps and processes (where, what, ...). The file can be analysed using a special analysis framework. See https://github.com/AliceO2Group/VMCStepLogger/blob/master/README.md for more documentation.
 
 #### 6. **How can I add a trigger to the event generator?**
 All event generator interfaces that comply with the `o2::eventgen::Generator` protocol can be triggered.
