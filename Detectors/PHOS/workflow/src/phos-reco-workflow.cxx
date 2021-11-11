@@ -67,7 +67,6 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   //
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-
   auto wf = o2::phos::reco_workflow::getWorkflow(cfgc.options().get<bool>("disable-root-input"),
                                                  cfgc.options().get<bool>("disable-root-output"),
                                                  !cfgc.options().get<bool>("disable-mc"),
