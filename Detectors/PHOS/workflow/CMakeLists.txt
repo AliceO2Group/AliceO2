@@ -36,3 +36,8 @@ o2_add_executable(entropy-encoder-workflow
                   COMPONENT_NAME phos
                   SOURCES src/entropy-encoder-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::PHOSWorkflow)
+
+o2_add_executable(cell-writer-workflow
+                  COMPONENT_NAME phos
+                  SOURCES src/cell-writer-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::PHOSWorkflow)
