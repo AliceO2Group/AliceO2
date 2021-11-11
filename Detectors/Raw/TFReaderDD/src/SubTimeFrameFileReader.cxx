@@ -319,7 +319,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
       return nullptr;
     }
 
-    o2::header::Stack headerStack{*lDataHeader, o2f::DataProcessingHeader{tfID, 1}};
+    o2::header::Stack headerStack{*lDataHeader, o2f::DataProcessingHeader{tfID, 1, lStfFileMeta.mWriteTimeMs}};
     if (stfHeader.runNumber == -1) {
       stfHeader.id = lDataHeader->tfCounter;
       stfHeader.runNumber = lDataHeader->runNumber;
