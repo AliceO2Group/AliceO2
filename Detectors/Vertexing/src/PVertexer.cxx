@@ -765,7 +765,7 @@ bool PVertexer::setCompatibleIR(PVertex& vtx)
   // assign compatible IRs accounting for the bunch filling scheme
   const auto& vtxT = vtx.getTimeStamp();
   o2::InteractionRecord irMin(mStartIR), irMax(mStartIR);
-  auto rangeT = mPVParams->nSigmaTimeCut * std::max(mPVParams->minTError, std::min(mPVParams->maxTError, vtxT.getTimeStampError()));
+  auto rangeT = std::max(mPVParams->minTError, mPVParams->nSigmaTimeCut * std::min(mPVParams->maxTError, vtxT.getTimeStampError())) + mPVParams->timeMarginVertexTime;
   float t = vtxT.getTimeStamp() + mPVParams->timeBiasMS;
   if (t > rangeT) {
     irMin += o2::InteractionRecord(1.e3 * (t - rangeT));
@@ -777,11 +777,13 @@ bool PVertexer::setCompatibleIR(PVertex& vtx)
   irMax++; // to account for rounding
   // restrict using bunch filling
   int bc = mClosestBunchAbove[irMin.bc];
+  LOG(DEBUG) << "irMin.bc = " << irMin.bc << " bcAbove = " << bc;
   if (bc < irMin.bc) {
     irMin.orbit++;
   }
   irMin.bc = bc;
   bc = mClosestBunchBelow[irMax.bc];
+  LOG(DEBUG) << "irMax.bc = " << irMax.bc << " bcBelow = " << bc;
   if (bc > irMax.bc) {
     if (irMax.orbit == 0) {
       return false;
@@ -791,6 +793,9 @@ bool PVertexer::setCompatibleIR(PVertex& vtx)
   irMax.bc = bc;
   vtx.setIRMin(irMin);
   vtx.setIRMax(irMax);
+  if (irMin > irMax) {
+    LOG(DEBUG) << "Reject VTX " << vtx.asString() << " trange = " << rangeT;
+  }
   return irMax >= irMin;
 }
 
