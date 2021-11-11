@@ -157,7 +157,8 @@ void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
     }
     fitter.Eval();
 
-    CalibdEdxCorrection::Params params{0};
+    constexpr auto paramSize = CalibdEdxCorrection::paramSize;
+    float params[paramSize] = {0};
     for (int param = 0; param < fitter.GetNumberFreeParameters(); ++param) {
       params[param] = fitter.GetParameter(param);
     }
@@ -169,9 +170,10 @@ void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
         const float mean = stackMean->getCorrection(id, charge);
 
         // rescale the params to get the true correction
-        auto scaledParams = params;
-        std::transform(scaledParams.begin(), scaledParams.end(), scaledParams.begin(),
-                       [mean](const auto x) { return x * mean; });
+        float scaledParams[paramSize];
+        for (int i = 0; i < paramSize; ++i) {
+          scaledParams[i] = params[i] * mean;
+        }
         corr.setParams(id, charge, scaledParams);
         corr.setChi2(id, charge, fitter.GetChisquare());
       }
@@ -247,7 +249,7 @@ TH2F CalibdEdx::getRootHist(const std::vector<int>& projected_axis) const
   const int nBins = mHist.axis(Axis::dEdx).size();
   const int nHists = projectedHist.size() / nBins;
 
-  TH2F rootHist("", "", nHists, 0, nHists, nBins, lower, upper);
+  TH2F rootHist("hdEdxMIP", "MIP dEdx per GEM stack", nHists, 0, nHists, nBins, lower, upper);
 
   int stack = 0;
   float last_center = -1;

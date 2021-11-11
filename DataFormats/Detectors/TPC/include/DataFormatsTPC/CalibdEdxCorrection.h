@@ -16,9 +16,7 @@
 #define ALICEO2_TPC_CALIBDEDXCORRECTION_H_
 
 #include "GPUCommonDef.h"
-#ifndef GPUCA_ALIGPUCODE
-#include <cstddef>
-#include <array>
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <string_view>
 #endif
 
@@ -31,13 +29,14 @@ namespace o2::tpc
 class CalibdEdxCorrection
 {
  public:
-  using Params = std::array<float, 6>;
+  constexpr static int paramSize = 6;
+  constexpr static int fitSize = 288;
 #if !defined(GPUCA_GPUCODE)
   CalibdEdxCorrection()
   {
     clear();
   }
-  CalibdEdxCorrection(std::string_view fileName) { loadFile(fileName); }
+  CalibdEdxCorrection(std::string_view fileName) { loadFromFile(fileName); }
 #else
   CalibdEdxCorrection() CON_DEFAULT;
 #endif
@@ -70,25 +69,27 @@ class CalibdEdxCorrection
   }
   int getDims() const { return mDims; }
 
-  void setParams(const StackID& stack, ChargeType charge, const Params& params) { mParams[stackIndex(stack, charge)] = params; }
+  void setParams(const StackID& stack, ChargeType charge, const float* params) { std::copy(params, params + paramSize, mParams[stackIndex(stack, charge)]); }
   void setChi2(const StackID& stack, ChargeType charge, float chi2) { mChi2[stackIndex(stack, charge)] = chi2; }
   void setDims(int dims) { mDims = dims; }
 
   void clear();
 
-  void saveFile(std::string_view fileName) const;
-  void loadFile(std::string_view fileName);
+  void writeToFile(std::string_view fileName) const;
+  void loadFromFile(std::string_view fileName);
 #endif
 
  private:
-  GPUd() static size_t stackIndex(const StackID& stack, ChargeType charge)
+  GPUd() static int stackIndex(const StackID& stack, ChargeType charge)
   {
-    return static_cast<size_t>(stack.index() + charge * SECTORSPERSIDE * SIDES * GEMSTACKSPERSECTOR);
+    return stack.index() + charge * SECTORSPERSIDE * SIDES * GEMSTACKSPERSECTOR;
   }
 
-  std::array<Params, 288> mParams{};
-  std::array<float, 288> mChi2{};
+  float mParams[fitSize][paramSize];
+  float mChi2[fitSize];
   int mDims{-1}; ///< Fit dimension
+
+  ClassDefNV(CalibdEdxCorrection, 1);
 };
 
 } // namespace o2::tpc

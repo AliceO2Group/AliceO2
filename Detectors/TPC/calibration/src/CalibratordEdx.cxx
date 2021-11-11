@@ -17,9 +17,7 @@
 #include <string_view>
 
 // o2 includes
-#include "CommonUtils/MemFileHelper.h"
 #include "CommonUtils/TreeStreamRedirector.h"
-#include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/Logger.h"
 #include "TPCCalibration/CalibdEdx.h"
@@ -29,39 +27,31 @@ using namespace o2::tpc;
 void CalibratordEdx::initOutput()
 {
   // Here we initialize the vector of our output objects
-  mInfoVector.clear();
-  mCalibVector.clear();
+  mIntervals.clear();
+  mCalibs.clear();
 }
 
 void CalibratordEdx::finalizeSlot(Slot& slot)
 {
   LOGP(info, "Finalizing slot {} <= TF <= {}", slot.getTFStart(), slot.getTFEnd());
+  slot.print();
 
   // compute calibration values from histograms
   CalibdEdx* container = slot.getContainer();
   container->finalize();
-  const auto& calib = container->getCalib();
+  mCalibs.push_back(container->getCalib());
 
-  slot.print();
-
-  const auto className = o2::utils::MemFileHelper::getClassName(calib);
-  const auto fileName = o2::ccdb::CcdbApi::generateFileName(className);
-  const std::map<std::string, std::string> metaData;
-
-  // TODO: the timestamp is now given with the TF index, but it will have
-  // to become an absolute time.
   TFType startTF = slot.getTFStart();
   TFType endTF = slot.getTFEnd();
-  mInfoVector.emplace_back("TPC/Calib/dEdx", className, fileName, metaData, startTF, 99999999999999);
-  mCalibVector.push_back(calib);
+  mIntervals.emplace_back(startTF, endTF);
 
   if (mDebugOutputStreamer) {
     LOGP(info, "Dumping time slot data to file");
-    auto nonConstCalib = calib;
+    auto calibCopy = container->getCalib();
     *mDebugOutputStreamer << "CalibdEdx"
-                          << "startTF=" << startTF          // Initial time frame of time slot
-                          << "endTF=" << endTF              // Final time frame of time slot
-                          << "correction=" << nonConstCalib // dE/dx corretion
+                          << "startTF=" << startTF      // Initial time frame of time slot
+                          << "endTF=" << endTF          // Final time frame of time slot
+                          << "correction=" << calibCopy // dE/dx corretion
                           << "\n";
   }
 }

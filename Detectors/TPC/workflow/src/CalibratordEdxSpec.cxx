@@ -57,11 +57,13 @@ class CalibratordEdxDevice : public Task
     const bool dumpData = ic.options().get<bool>("file-dump");
     float field = ic.options().get<float>("field");
 
-    const auto inputGRP = o2::base::NameConf::getGRPFileName();
-    const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
-    if (grp != nullptr) {
-      field = 5.00668f * grp->getL3Current() / 30000.;
-      LOGP(info, "Using GRP file to set the magnetic field to {} kG", field);
+    if (field <= -10.f) {
+      const auto inputGRP = o2::base::NameConf::getGRPFileName();
+      const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+      if (grp != nullptr) {
+        field = 5.00668f * grp->getL3Current() / 30000.;
+        LOGP(info, "Using GRP file to set the magnetic field to {} kG", field);
+      }
     }
 
     mCalibrator = std::make_unique<tpc::CalibratordEdx>();
@@ -89,7 +91,7 @@ class CalibratordEdxDevice : public Task
     mCalibrator->process(tfcounter, tracks);
     sendOutput(pc.outputs());
 
-    const auto& infoVec = mCalibrator->getInfoVector();
+    const auto& infoVec = mCalibrator->getTFinterval();
     LOGP(info, "Created {} objects for TF {}", infoVec.size(), tfcounter);
   }
 
@@ -108,27 +110,26 @@ class CalibratordEdxDevice : public Task
  private:
   void sendOutput(DataAllocator& output)
   {
-    // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
     using clbUtils = o2::calibration::Utils;
-    const auto& payloadVec = mCalibrator->getMIPVector();
-    auto& infoVec = mCalibrator->getInfoVector(); // use non-const version as we update it
-    assert(payloadVec.size() == infoVec.size());
+    const auto& calibrations = mCalibrator->getCalibs();
+    auto& intervals = mCalibrator->getTFinterval();
+    const long timeEnd = 99999999999999;
 
-    // FIXME: not sure about this
-    for (unsigned int i = 0; i < payloadVec.size(); i++) {
-      auto& entry = infoVec[i];
-      auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &entry);
+    for (unsigned int i = 0; i < calibrations.size(); i++) {
+      const auto& object = calibrations[i];
+      o2::ccdb::CcdbObjectInfo info;
+      auto image = o2::ccdb::CcdbApi::createObjectImage(&object, &info);
 
-      LOGP(info, "Sending object {}/{} of size {} bytes, valid for {} : {}",
-           entry.getPath(), entry.getFileName(), image->size(),
-           entry.getStartValidityTimestamp(), entry.getEndValidityTimestamp());
+      info.setPath("TPC/Calib/dEdx");
+      info.setStartValidityTimestamp(intervals[i].first);
+      info.setEndValidityTimestamp(timeEnd);
 
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_DEDX", i}, *image.get()); // vector<char>
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_DEDX", i}, entry);        // root-serialized
+      LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", info.getPath(), info.getFileName(), image->size(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
+
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx", i}, *image.get()); // vector<char>
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx", i}, info);         // root-serialized
     }
-    if (!payloadVec.empty()) {
-      mCalibrator->initOutput(); // reset the outputs once they are already sent
-    }
+    mCalibrator->initOutput(); // empty the outputs after they are send
   }
 
   std::unique_ptr<CalibratordEdx> mCalibrator;
@@ -137,8 +138,8 @@ class CalibratordEdxDevice : public Task
 DataProcessorSpec getCalibratordEdxSpec()
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_DEDX"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_DEDX"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "tpc-calibrator-dEdx",
@@ -162,7 +163,7 @@ DataProcessorSpec getCalibratordEdxSpec()
       {"min-dedx", VariantType::Float, 5.0f, {"minimum value for the dEdx histograms"}},
       {"max-dedx", VariantType::Float, 100.0f, {"maximum value for the dEdx histograms"}},
 
-      {"field", VariantType::Float, 5.f, {"magnetic field"}},
+      {"field", VariantType::Float, -100.f, {"magnetic field"}},
       {"file-dump", VariantType::Bool, false, {"directly dump calibration to file"}}}};
 }
 
