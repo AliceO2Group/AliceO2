@@ -70,7 +70,7 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   int minNContributorsForIRcut = 4;     ///< do not apply IR cut to vertices below IR tagging efficiency threshold
   float maxTError = 0.2;                ///< use min of vertex time error or this for nsigma evaluation
   float minTError = 0.003;              ///< don't use error smaller than that (~BC/2/minNContributorsForFT0cut)
-  float nSigmaTimeCut = 4.;             ///< eliminate vertex if there is no FT0 signal within this cut
+  float nSigmaTimeCut = 4.;             ///< eliminate vertex if there is no FT0 or BC signal within this cut
   float timeBiasMS = 0;                 ///< relative bias in ms to add to TPCITS-based time stamp
   //
   // stopping condition params
@@ -80,6 +80,11 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   int maxNScaleIncreased = 2;       ///< max number of scaling-non-decreasing iterations
   int maxNScaleSlowConvergence = 3; ///< max number of weak scaling decrease iterations
   bool useTimeInChi2 = true;        ///< use track-vertex time difference in chi2 calculation
+
+  // track vertex time-wise association
+  float nSigmaTimeTrack = 4.;       ///< define track time bracker as +- this number of sigmas of its time resolution
+  float timeMarginTrackTime = 0.5;  ///< additive marginal error in \mus to track time bracket
+  float timeMarginVertexTime = 0.0; ///< additive marginal error to \mus vertex time bracket
 
   O2ParamDef(PVertexerParams, "pvertexer");
 };
