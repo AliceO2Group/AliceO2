@@ -26,6 +26,7 @@
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/LogParsingHelpers.h"
+#include "Framework/SendingPolicy.h"
 #include "DataProcessorInfo.h"
 #include "ResourcePolicy.h"
 
@@ -103,6 +104,10 @@ struct DriverInfo {
   /// These are the policies which can be applied to decide when there
   /// is enough resources to process data.
   std::vector<ResourcePolicy> resourcePolicies;
+
+  /// These are the policies which can be applied to decide how
+  /// we send data.
+  std::vector<SendingPolicy> sendingPolicies;
   /// The argc with which the driver was started.
   int argc;
   /// The argv with which the driver was started.

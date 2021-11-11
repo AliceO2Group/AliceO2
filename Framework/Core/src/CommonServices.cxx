@@ -16,6 +16,7 @@
 #include "Framework/ServiceSpec.h"
 #include "Framework/TimesliceIndex.h"
 #include "Framework/DataTakingContext.h"
+#include "Framework/DataSender.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/LocalRootFileService.h"
@@ -399,6 +400,19 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
     .kind = ServiceKind::Serial};
 }
 
+o2::framework::ServiceSpec CommonServices::dataSender()
+{
+  return ServiceSpec{
+    .name = "datasender",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      auto& spec = services.get<DeviceSpec const>();
+      return ServiceHandle{TypeIdHelpers::uniqueId<DataSender>(),
+                           new DataSender(services, spec.sendingPolicy)};
+    },
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
+}
+
 struct TracingInfrastructure {
   int processingCount;
 };
@@ -615,6 +629,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     parallelSpec(),
     callbacksSpec(),
     dataRelayer(),
+    dataSender(),
     dataProcessingStats(),
     CommonMessageBackends::fairMQBackendSpec(),
     ArrowSupport::arrowBackendSpec(),
