@@ -20,6 +20,8 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsZDC/ZDCEnergy.h"
+#include "DataFormatsZDC/ZDCTDCData.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "CCDB/BasicCCDBManager.h"

@@ -30,7 +30,7 @@ target_link_libraries(
           O2::SimulationDataFormat
           O2::Steer
           O2::TPCWorkflow
-        O2::ZDCBase
+          O2::ZDCBase
 )
 
 target_include_directories(AODProducerWorkflow INTERFACE include)
