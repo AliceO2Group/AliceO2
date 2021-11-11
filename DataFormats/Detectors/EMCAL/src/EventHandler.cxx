@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsEMCAL/EventHandler.h"
+#include <optional>
 
 using namespace o2::emcal;
 
@@ -52,31 +53,31 @@ int EventHandler<CellInputType>::getNumberOfEvents() const
 }
 
 template <class CellInputType>
-const o2::InteractionRecord& EventHandler<CellInputType>::getInteractionRecordForEvent(int eventID) const
+o2::InteractionRecord EventHandler<CellInputType>::getInteractionRecordForEvent(int eventID) const
 {
-  const InteractionRecord *irClusters(nullptr), *irCells(nullptr);
+  std::optional<o2::InteractionRecord> irClusters, irCells;
   if (mTriggerRecordsClusters.size()) {
     if (eventID >= mTriggerRecordsClusters.size()) {
       throw RangeException(eventID, mTriggerRecordsClusters.size());
     }
-    irClusters = &(mTriggerRecordsClusters[eventID].getBCData());
+    irClusters = mTriggerRecordsClusters[eventID].getBCData();
   }
   if (mTriggerRecordsCells.size()) {
     if (eventID >= mTriggerRecordsCells.size()) {
       throw RangeException(eventID, mTriggerRecordsCells.size());
     }
-    irCells = &(mTriggerRecordsCellIndices[eventID].getBCData());
+    irCells = mTriggerRecordsCells[eventID].getBCData();
   }
   if (irClusters && irCells) {
-    if (compareInteractionRecords(*irClusters, *irCells)) {
-      return *irClusters;
+    if (compareInteractionRecords(irClusters.value(), irCells.value())) {
+      return irClusters.value();
     } else {
-      throw InteractionRecordInvalidException(*irClusters, *irCells);
+      throw InteractionRecordInvalidException(irClusters.value(), irCells.value());
     }
   } else if (irClusters) {
-    return *irClusters;
+    return irClusters.value();
   } else if (irCells) {
-    return *irCells;
+    return irCells.value();
   }
   throw NotInitializedException();
 }
