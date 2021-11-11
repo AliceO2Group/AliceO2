@@ -123,7 +123,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
       if (mFillChi2) {
         mOutputFitChi.clear();
-        ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0, o2::framework::Lifetime::Timeframe}, mOutputFitChi);
+        ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0, o2::framework::Lifetime::QA}, mOutputFitChi);
       }
       return; //empty TF, nothing to process
     }
@@ -270,7 +270,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
   if (mFillChi2) {
-    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0, o2::framework::Lifetime::Timeframe}, mOutputFitChi);
+    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0, o2::framework::Lifetime::QA}, mOutputFitChi);
   }
 }
 
@@ -285,7 +285,7 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterS
   outputs.emplace_back("PHS", "CELLS", flpId, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("PHS", "CELLTRIGREC", flpId, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("PHS", "RAWHWERRORS", flpId, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("PHS", "CELLFITQA", flpId, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("PHS", "CELLFITQA", flpId, o2::framework::Lifetime::QA);
 
   return o2::framework::DataProcessorSpec{"PHOSRawToCellConverterSpec",
                                           inputs, // o2::framework::select("A:PHS/RAWDATA"),
