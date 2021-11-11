@@ -22,7 +22,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "Framework/RunningWorkflowInfo.h"
+#include "Framework/RateLimiter.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 
@@ -31,7 +31,6 @@
 
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQDevice.h>
-#include <fairmq/shmem/Monitor.h>
 #include <cstring>
 #include <cassert>
 #include <memory>
@@ -414,56 +413,14 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       }
     };
 
-    auto runHandler = [dataHandler, device, channel, minSHM](ProcessingContext& ctx) {
-      static int64_t consumedTimeframes = 0;
-      static int64_t sentTimeframes = 0;
+    auto runHandler = [dataHandler, channel, minSHM](ProcessingContext& ctx) {
+      static RateLimiter limiter;
       auto device = ctx.services().get<RawDeviceService>().device();
-      int maxTFInFlight = std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit"));
-      if (maxTFInFlight && device->fChannels.count("metric-feedback")) {
-        // FIXME: only two channels difference
-        int waitMessage = 0;
-        int recvTimeot = 0;
-        while ((sentTimeframes - consumedTimeframes) >= maxTFInFlight) {
-          if (recvTimeot == -1 && waitMessage == 0) {
-            LOG(alarm) << "Maximum number of TF in flight reached (" << maxTFInFlight << ": published " << sentTimeframes << " - finished " << consumedTimeframes << "), waiting";
-            waitMessage = 1;
-          }
-          auto msg = device->NewMessageFor("metric-feedback", 0, 0);
-
-          auto count = device->Receive(msg, "metric-feedback", 0, recvTimeot);
-          if (count <= 0) {
-            recvTimeot = -1;
-            continue;
-          }
-          assert(msg->GetSize() == 8);
-          consumedTimeframes = *(int64_t*)msg->GetData();
-        }
-        if (waitMessage) {
-          LOG(important) << (sentTimeframes - consumedTimeframes) << " / " << maxTFInFlight << " TF in flight, continuing to publish";
-        }
-      }
-      if (minSHM) {
-        int waitMessage = 0;
-        auto& runningWorkflow = ctx.services().get<RunningWorkflowInfo const>();
-        while (true) {
-          uint64_t freeSHM = fair::mq::shmem::Monitor::GetFreeMemory(fair::mq::shmem::SessionId{device->fConfig->GetProperty<std::string>("session")}, runningWorkflow.shmSegmentId);
-          if (freeSHM > minSHM) {
-            if (waitMessage) {
-              LOG(important) << "Sufficient SHM memory free (" << freeSHM << " >= " << minSHM << "), continuing to publish";
-            }
-            break;
-          }
-          if (waitMessage == 0) {
-            LOG(alarm) << "Free SHM memory too low: " << freeSHM << " < " << minSHM << ", waiting";
-            waitMessage = 1;
-          }
-        }
-      }
+      limiter.check(ctx, std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit")), minSHM);
 
       FairMQParts parts;
       device->Receive(parts, channel, 0);
       dataHandler(parts, 0);
-      sentTimeframes++;
     };
 
     return runHandler;
