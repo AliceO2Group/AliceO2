@@ -469,8 +469,8 @@ float GPUbenchmark<chunk_t>::runDistributed(void (*kernel)(chunk_t**, size_t*, T
   // Setup
   chunk_t** block_ptr;
   size_t* block_size;
-  GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&block_ptr), 60 * sizeof(chunk_t*)));
-  GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&block_size), 60 * sizeof(size_t)));
+  GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&block_ptr), nBlocks * sizeof(chunk_t*)));
+  GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&block_size), nBlocks * sizeof(size_t)));
   GPUCHECK(cudaMemcpy(block_ptr, ptrPerBlocks.data(), nBlocks * sizeof(chunk_t*), cudaMemcpyHostToDevice));
   GPUCHECK(cudaMemcpy(block_size, perBlockCapacity.data(), nBlocks * sizeof(size_t), cudaMemcpyHostToDevice));
 
