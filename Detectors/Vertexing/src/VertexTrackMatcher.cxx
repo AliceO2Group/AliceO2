@@ -86,8 +86,8 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
     }
     const auto& vtx = vertices[iv];
     const auto& vto = vtxOrdBrack.emplace_back(VtxTBracket{
-      {float((vtx.getIRMin().differenceInBC(recoData.startIR) - 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS),
-       float((vtx.getIRMax().differenceInBC(recoData.startIR) + 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS)},
+      {float((vtx.getIRMin().differenceInBC(recoData.startIR) - 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS - mPVParams->timeMarginVertexTime),
+       float((vtx.getIRMax().differenceInBC(recoData.startIR) + 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS + mPVParams->timeMarginVertexTime)},
       iv});
     if (vto.tBracket.delta() > maxVtxSpan) {
       maxVtxSpan = vto.tBracket.delta();
@@ -196,9 +196,12 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
       terr *= this->mMFTROFrameLengthMUS;
     } else if constexpr (isGlobalFwdTrack<decltype(_tr)>()) {
       t0 = _tr.getTimeMUS().getTimeStamp();
-      terr = _tr.getTimeMUS().getTimeStampError();
+      terr = _tr.getTimeMUS().getTimeStampError() * mPVParams->nSigmaTimeTrack; // gaussian errors must be scaled by requested n-sigma
+    } else {
+      terr *= mPVParams->nSigmaTimeTrack; // gaussian errors must be scaled by requested n-sigma
     }
     // for all other tracks the time is in \mus with gaussian error
+    terr += mPVParams->timeMarginTrackTime;
     mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});
     return true;
   };
