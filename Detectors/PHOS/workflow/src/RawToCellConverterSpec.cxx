@@ -133,7 +133,12 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   std::vector<o2::framework::InputSpec> inputFilter{o2::framework::InputSpec{"filter", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Timeframe}};
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs(), inputFilter)) {
 
-    o2::phos::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
+    const gsl::span<const char>& rawmemory = o2::framework::DataRefUtils::as<const char>(rawData);
+    if (rawmemory.size() == 0) {
+      continue;
+    }
+
+    o2::phos::RawReaderMemory rawreader(rawmemory);
 
     // loop over all the DMA pages
     while (rawreader.hasNext()) {

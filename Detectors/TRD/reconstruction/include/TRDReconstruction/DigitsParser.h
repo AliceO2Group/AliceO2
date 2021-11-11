@@ -19,9 +19,10 @@
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "DataFormatsTRD/RawData.h"
+#include "DataFormatsTRD/RawDataStats.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Constants.h"
-
+#include "TRDReconstruction/EventRecord.h"
 #include <fstream>
 #include <bitset>
 #include "TH1F.h"
@@ -33,7 +34,6 @@
 namespace o2::trd
 {
 class Digit;
-class EventRecord;
 // class to Parse a single link of digits data.
 // calling class splits data by link and this gets called per link.
 
@@ -47,7 +47,7 @@ class DigitsParser
   int Parse(bool verbose = false); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
             std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, int stack, int layer, int side, DigitHCHeader& hcheader,
-            TRDFeeID& feeid, unsigned int linkindex, EventRecord* eventrecord, std::bitset<16> options, bool cleardigits = false);
+            TRDFeeID& feeid, unsigned int linkindex, EventRecord* eventrecord, EventStorage* eventrecords, std::bitset<16> options, bool cleardigits = false);
 
   enum DigitParserState { StateDigitHCHeader, // always the start of a half chamber.
                           StateDigitMCMHeader,
@@ -79,9 +79,17 @@ class DigitsParser
     mParsingErrors = parsingerrors;
     mParsingErrors2d = parsingerrors2d;
   }
-  void increment2dHist(int hist)
+
+  void incParsingError(int error)
   {
-    ((TH2F*)mParsingErrors2d->At(hist))->Fill(mFEEID.supermodule * 2 + mFEEID.side, mStack * constants::NLAYER + mLayer);
+
+    if (mOptions[TRDGenerateStats]) {
+      mEventRecords->incParsingError(error, mFEEID.supermodule, mFEEID.side, mStackLayer);
+    }
+    if (mOptions[TRDEnableRootOutputBit]) {
+      mParsingErrors->Fill(error);
+      ((TH2F*)mParsingErrors2d->At(error))->Fill(mFEEID.supermodule * 2 + mFEEID.side, mStack * constants::NLAYER + mLayer);
+    }
   }
 
  private:
@@ -110,6 +118,7 @@ class DigitsParser
   uint32_t mADCMask;
   DigitMCMData* mDigitMCMData;
   EventRecord* mEventRecord;
+  EventStorage* mEventRecords;
   bool mVerbose{false};
   bool mHeaderVerbose{false};
   bool mDataVerbose{false};
@@ -126,12 +135,13 @@ class DigitsParser
   uint16_t mLayer;
   uint16_t mSector;
   uint16_t mSide;
+  uint16_t mHalfSM;     //store these values to prevent numerous recalculation;
+  uint16_t mStackLayer; //store these values to prevent numerous recalculation;
 
   uint16_t mEventCounter;
   TRDFeeID mFEEID;
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
   std::array<uint16_t, constants::TIMEBINS> mADCValues{};
-  std::array<uint16_t, constants::MAXMCMCOUNT> mMCMstats; // bit pattern for errors current event for a given mcm;
   TH1F* mParsingErrors;
   TList* mParsingErrors2d;
 };

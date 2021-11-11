@@ -40,6 +40,16 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
 
   // Use TGeo for mat. budget
   bool useMatCorrTGeo = false;
+  float sysErrY2[7] = {0}; // systematic error^2 in Y per layer
+  float sysErrZ2[7] = {0}; // systematic error^2 in Z per layer
+  float nSigmaCut = -1.f;
+  float deltaTanLres = -1.f;
+  float phiCut = -1.f;
+  float pvRes = -1.f;
+  int LUTbinsPhi = -1;
+  int LUTbinsZ = -1;
+  float diamondPos[3] = {0.f, 0.f, 0.f};
+  bool useDiamond = false;
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };

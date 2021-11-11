@@ -81,6 +81,9 @@ CompletionPolicy CompletionPolicyHelpers::defineByName(std::string const& name, 
     case CompletionPolicy::CompletionOp::Consume:
       return CompletionPolicy{"always-consume", matcher, callback};
       break;
+    case CompletionPolicy::CompletionOp::ConsumeExisting:
+      return CompletionPolicy{"consume-existing", matcher, callback};
+      break;
     case CompletionPolicy::CompletionOp::Process:
       return CompletionPolicy{"always-process", matcher, callback};
       break;
@@ -103,6 +106,31 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAll(const char* name, Compl
       }
     }
     return CompletionPolicy::CompletionOp::Consume;
+  };
+  return CompletionPolicy{name, matcher, callback};
+}
+
+CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* name, CompletionPolicy::Matcher matcher)
+{
+  auto callback = [](InputSpan const& inputs) -> CompletionPolicy::CompletionOp {
+    size_t present = 0;
+    size_t current = 0;
+    size_t withPayload = 0;
+    for (auto& input : inputs) {
+      if (input.header != nullptr) {
+        present++;
+      }
+      if (input.payload != nullptr) {
+        withPayload++;
+      }
+      current++;
+    }
+    if (present == inputs.size()) {
+      return CompletionPolicy::CompletionOp::Consume;
+    } else if (withPayload == 0) {
+      return CompletionPolicy::CompletionOp::Wait;
+    }
+    return CompletionPolicy::CompletionOp::ConsumeExisting;
   };
   return CompletionPolicy{name, matcher, callback};
 }

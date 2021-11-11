@@ -65,6 +65,7 @@
 #include <csignal>
 #include <mutex>
 #include <filesystem>
+#include <functional>
 
 #include "SimPublishChannelHelper.h"
 
@@ -412,7 +413,7 @@ class O2HitMerger : public FairMQDevice
     std::copy(from.begin(), from.end(), std::back_inserter(to));
   }
 
-  void reorderAndMergeMCTracks(int eventID, TTree& target, const std::vector<int>& nprimaries, const std::vector<int>& nsubevents)
+  void reorderAndMergeMCTracks(int eventID, TTree& target, const std::vector<int>& nprimaries, const std::vector<int>& nsubevents, std::function<void(std::vector<MCTrack> const&)> tracks_analysis_hook)
   {
     // avoid doing this for trivial cases
     std::vector<MCTrack>* mcTracksPerSubEvent = nullptr;
@@ -480,6 +481,11 @@ class O2HitMerger : public FairMQDevice
     //
     // write to output
     auto filladdr = (entries > 1) ? targetdata.get() : vectorOfSubEventMCTracks[0];
+
+    // we give the possibility to produce some MC track statistics
+    // to be saved as part of the MCHeader structure
+    tracks_analysis_hook(*filladdr);
+
     auto targetbr = o2::base::getOrMakeBranch(target, "MCTrack", &filladdr);
     targetbr->SetAddress(&filladdr);
     targetbr->Fill();
@@ -650,9 +656,6 @@ class O2HitMerger : public FairMQDevice
 
       // put the event headers into the new TTree
       auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &eventheader);
-      headerbr->SetAddress(&eventheader);
-      headerbr->Fill();
-      headerbr->ResetAddress();
 
       // attention: We need to make sure that we write everything in the same event order
       // but iteration over keys of a standard map in C++ is ordered
@@ -667,8 +670,64 @@ class O2HitMerger : public FairMQDevice
         printf("HitMerger entry: %d nprimry: %5d trackoffset: %5d \n", entry, nprimaries[entry], trackoffsets[entry]);
       }
 
-      reorderAndMergeMCTracks(flusheventID, *mOutTree, nprimaries, subevOrdered);
+      // This is a hook that collects some useful statistics/properties on the event
+      // for use by other components;
+      // Properties are attached making use of the extensible "Info" feature which is already
+      // part of MCEventHeader. In such a way, one can also do this pass outside and attach arbitrary
+      // metadata to MCEventHeader without needing to change the data layout or API of the class itself.
+      // NOTE: This function might also be called directly in the primary server!?
+      auto mcheaderhook = [eventheader](std::vector<MCTrack> const& tracks) {
+        int eta1Point2Counter = 0;
+        int eta1Point0Counter = 0;
+        int eta0Point8Counter = 0;
+        int eta1Point2CounterPi = 0;
+        int eta1Point0CounterPi = 0;
+        int eta0Point8CounterPi = 0;
+        int prims = 0;
+        for (auto& tr : tracks) {
+          if (tr.isPrimary()) {
+            prims++;
+            const auto eta = tr.GetEta();
+            if (eta < 1.2) {
+              eta1Point2Counter++;
+              if (std::abs(tr.GetPdgCode()) == 211) {
+                eta1Point2CounterPi++;
+              }
+            }
+            if (eta < 1.0) {
+              eta1Point0Counter++;
+              if (std::abs(tr.GetPdgCode()) == 211) {
+                eta1Point0CounterPi++;
+              }
+            }
+            if (eta < 0.8) {
+              eta0Point8Counter++;
+              if (std::abs(tr.GetPdgCode()) == 211) {
+                eta0Point8CounterPi++;
+              }
+            }
+          } else {
+            break; // track layout is such that all prims are first anyway
+          }
+        }
+        // attach these properties to eventheader
+        // we only need to make the names standard
+        eventheader->putInfo("prims_eta_1.2", eta1Point2Counter);
+        eventheader->putInfo("prims_eta_1.0", eta1Point0Counter);
+        eventheader->putInfo("prims_eta_0.8", eta0Point8Counter);
+        eventheader->putInfo("prims_eta_1.2_pi", eta1Point2CounterPi);
+        eventheader->putInfo("prims_eta_1.0_pi", eta1Point0CounterPi);
+        eventheader->putInfo("prims_eta_0.8_pi", eta0Point8CounterPi);
+        eventheader->putInfo("prims_total", prims);
+      };
+
+      reorderAndMergeMCTracks(flusheventID, *mOutTree, nprimaries, subevOrdered, mcheaderhook);
       remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", flusheventID, *mOutTree, trackoffsets, nprimaries, subevOrdered, mTrackRefBuffer);
+
+      // header can be written
+      headerbr->SetAddress(&eventheader);
+      headerbr->Fill();
+      headerbr->ResetAddress();
 
       // c) do the merge procedure for all hits ... delegate this to detector specific functions
       // since they know about types; number of branches; etc.

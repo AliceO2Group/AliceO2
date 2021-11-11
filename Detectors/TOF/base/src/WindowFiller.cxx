@@ -447,6 +447,7 @@ void WindowFiller::checkIfReuseFutureDigitsRO() // the same but using readout in
 
 void WindowFiller::fillDiagnosticFrequency()
 {
+  bool isTOFempty = true;
   // fill diagnostic frequency
   for (int j = 0; j < mReadoutWindowData.size(); j++) {
     mDiagnosticFrequency.fillROW();
@@ -455,6 +456,8 @@ void WindowFiller::fillDiagnosticFrequency()
       int slot = 0;
       if (mReadoutWindowData[j].isEmptyCrate(ic)) {
         mDiagnosticFrequency.fillEmptyCrate(ic);
+      } else {
+        isTOFempty = false;
       }
       if (dia) {
         int fd = mReadoutWindowData[j].firstDia();
@@ -464,7 +467,7 @@ void WindowFiller::fillDiagnosticFrequency()
         for (int dd = fd; dd < lastdia; dd++) {
           if (mPatterns[dd] >= 28) {
             slot = mPatterns[dd] - 28;
-            key = (ULong64_t(slot) << 32) + (ULong64_t(ic) << 36);
+            key = mDiagnosticFrequency.getTRMKey(ic, slot);
             continue;
           }
 
@@ -478,6 +481,10 @@ void WindowFiller::fillDiagnosticFrequency()
     }
   }
 
+  if (isTOFempty) {
+    mDiagnosticFrequency.fillEmptyTOF();
+  }
+
   // fill also noise diagnostic if the counts within the TF is larger than a threashold (default >=11, -> 1 kHZ)
   int masknoise = mMaskNoiseRate;
   if (masknoise < 0) {
@@ -486,8 +493,17 @@ void WindowFiller::fillDiagnosticFrequency()
 
   for (int i = 0; i < Geo::NCHANNELS; i++) {
     if (mChannelCounts[i] >= masknoise) {
+      int additionalMask = 0;
+
+      if (mChannelCounts[i] >= masknoise * 10) {
+        additionalMask += (1 << 19); // > 10 kHZ (if masknoise = 1 kHz)
+        if (mChannelCounts[i] >= masknoise * 100) {
+          additionalMask += (1 << 20); // > 100 kHZ (if masknoise = 1 kHz)
+        }
+      }
+
       //Fill noisy in diagnostic
-      mDiagnosticFrequency.fillNoisy(i);
+      mDiagnosticFrequency.fillNoisy(i + additionalMask, mReadoutWindowData.size());
     }
   }
 }

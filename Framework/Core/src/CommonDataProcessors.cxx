@@ -19,6 +19,7 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataOutputDirector.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataProcessingStats.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/EndOfStreamContext.h"
@@ -26,6 +27,7 @@
 #include "Framework/InputSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/OutputSpec.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/Variant.h"
 #include "../../../Algorithm/include/Algorithm/HeaderStack.h"
 #include "Framework/OutputObjHeader.h"
@@ -34,6 +36,7 @@
 #include "Framework/ChannelSpec.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/RuntimeError.h"
+#include <Monitoring/Monitoring.h>
 
 #include "TFile.h"
 #include "TTree.h"
@@ -42,6 +45,8 @@
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RArrowDS.hxx>
 #include <ROOT/RVec.hxx>
+
+#include <FairMQDevice.h>
 #include <chrono>
 #include <fstream>
 #include <functional>
@@ -53,9 +58,10 @@ template class std::vector<o2::framework::OutputObjectInfo>;
 template class std::vector<o2::framework::OutputTaskInfo>;
 using namespace o2::framework::data_matcher;
 
-namespace o2
-{
-namespace framework
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+
+namespace o2::framework
 {
 
 struct InputObjectRoute {
@@ -230,12 +236,12 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
     };
   };
 
+  char const* name = "internal-dpl-aod-global-analysis-file-sink";
   DataProcessorSpec spec{
-    "internal-dpl-aod-global-analysis-file-sink",
-    {InputSpec("x", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"ATSK"}))},
-    Outputs{},
-    AlgorithmSpec(writerFunction),
-    {}};
+    .name = name,
+    .inputs = {InputSpec("x", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"ATSK"}))},
+    .algorithm = {writerFunction},
+  };
 
   return spec;
 }
@@ -495,14 +501,36 @@ DataProcessorSpec CommonDataProcessors::getGlobalFairMQSink(std::vector<InputSpe
   return specifyFairMQDeviceOutputProxy("internal-dpl-injected-output-proxy", danglingOutputInputs, defaultChannelConfig.c_str());
 }
 
-DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs)
+DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs, int rateLimitingIPCID)
 {
   return DataProcessorSpec{
-    "internal-dpl-injected-dummy-sink",
-    danglingOutputInputs,
-    Outputs{},
-    AlgorithmSpec([](ProcessingContext& ctx) {})};
+    .name = "internal-dpl-injected-dummy-sink",
+    .inputs = danglingOutputInputs,
+    .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
+      auto dataConsumed = [](ServiceRegistry& services) {
+        services.get<DataProcessingStats>().consumedTimeframes++;
+        auto device = services.get<RawDeviceService>().device();
+        auto channel = device->fChannels.find("metric-feedback");
+        if (channel != device->fChannels.end()) {
+          FairMQMessagePtr payload(device->NewMessage());
+          int64_t* consumed = (int64_t*)malloc(sizeof(int64_t));
+          *consumed = services.get<DataProcessingStats>().consumedTimeframes;
+          payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);
+          channel->second[0].Send(payload);
+        }
+      };
+      callbacks.set(CallbackService::Id::DataConsumed, dataConsumed);
+
+      return adaptStateless([]() {
+      });
+    })},
+    .options = rateLimitingIPCID != -1 ? std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
+                                                                       "name=metric-feedback,type=push,method=bind,address=ipc://@metric-feedback-" + std::to_string(rateLimitingIPCID) + ",transport=shmem,rateLogging=10",
+                                                                       {"Out-of-band channel config"}}}
+                                       : std::vector<ConfigParamSpec>()
+
+  };
 }
 
-} // namespace framework
-} // namespace o2
+#pragma GCC diagnostic pop
+} // namespace o2::framework

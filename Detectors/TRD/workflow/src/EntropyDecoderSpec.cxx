@@ -29,7 +29,7 @@ namespace trd
 class EntropyDecoderSpec : public o2::framework::Task
 {
  public:
-  EntropyDecoderSpec();
+  EntropyDecoderSpec(int verbosity);
   ~EntropyDecoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -40,10 +40,11 @@ class EntropyDecoderSpec : public o2::framework::Task
   TStopwatch mTimer;
 };
 
-EntropyDecoderSpec::EntropyDecoderSpec()
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
+  mCTFCoder.setVerbosity(verbosity);
 }
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
@@ -66,8 +67,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto& digits = pc.outputs().make<std::vector<Digit>>(OutputRef{"digits"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::trd::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, triggers, tracklets, digits);
+  if (buff.size()) {
+    const auto ctfImage = o2::trd::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, triggers, tracklets, digits);
+  }
 
   mTimer.Stop();
   LOG(INFO) << "Decoded " << tracklets.size() << " TRD tracklets and " << digits.size() << " digits in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
@@ -79,7 +82,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec()
+DataProcessorSpec getEntropyDecoderSpec(int verbosity)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"triggers"}, "TRD", "TRKTRGRD", 0, Lifetime::Timeframe},
@@ -90,7 +93,7 @@ DataProcessorSpec getEntropyDecoderSpec()
     "trd-entropy-decoder",
     Inputs{InputSpec{"ctf", "TRD", "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
 }
 

@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//  RAW data format - DataFormat/Detectors/FIT/FT0/RawEventData
+//  RAW data format - DataFormat/Detectors/FIT/FV0/RawEventData
 
 #include "FV0Base/Constants.h"
 #include "FV0Simulation/Digits2Raw.h"

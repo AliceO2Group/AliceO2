@@ -34,11 +34,6 @@ using DataHeader = o2::header::DataHeader;
 namespace o2::framework
 {
 
-void DataProcessor::doSend(FairMQDevice& device, FairMQParts&& parts, const char* channel, unsigned int index)
-{
-  device.Send(parts, channel, index);
-}
-
 void DataProcessor::doSend(FairMQDevice& device, MessageContext& context, ServiceRegistry&)
 {
   std::unordered_map<std::string const*, FairMQParts> outputs;

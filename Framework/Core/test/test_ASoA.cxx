@@ -826,3 +826,34 @@ BOOST_AUTO_TEST_CASE(TestListColumns)
     ++s;
   }
 }
+
+BOOST_AUTO_TEST_CASE(TestSliceBy)
+{
+  TableBuilder b;
+  auto writer = b.cursor<Origins>();
+  for (auto i = 0; i < 20; ++i) {
+    writer(0, i, i % 3 == 0);
+  }
+  auto origins = b.finalize();
+  Origins o{origins};
+
+  TableBuilder w;
+  auto writer_w = w.cursor<References>();
+  auto step = -1;
+  for (auto i = 0; i < 5 * 20; ++i) {
+    if (i % 5 == 0) {
+      ++step;
+    }
+    writer_w(0, step);
+  }
+  auto refs = w.finalize();
+  References r{refs};
+
+  for (auto& oi : o) {
+    auto slice = r.sliceBy(test::originId, oi.globalIndex());
+    BOOST_CHECK_EQUAL(slice.size(), 5);
+    for (auto& ri : slice) {
+      BOOST_CHECK_EQUAL(ri.originId(), oi.globalIndex());
+    }
+  }
+}

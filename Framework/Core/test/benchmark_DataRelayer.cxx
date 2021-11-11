@@ -19,6 +19,8 @@
 #include <Monitoring/Monitoring.h>
 #include <fairmq/FairMQTransportFactory.h>
 #include <cstring>
+#include <array>
+#include <vector>
 
 using Monitoring = o2::monitoring::Monitoring;
 using namespace o2::framework;
@@ -98,18 +100,21 @@ static void BM_RelaySingleSlot(benchmark::State& state)
   for (auto _ : state) {
     // FIXME: Understand why pausing the timer makes it slower..
     //state.PauseTiming();
-    FairMQMessagePtr header = transport->CreateMessage(stack.size());
-    FairMQMessagePtr payload = transport->CreateMessage(1000);
+    std::array<FairMQMessagePtr, 2> messages;
+    messages[0] = transport->CreateMessage(stack.size());
+    messages[1] = transport->CreateMessage(1000);
+    FairMQMessagePtr& header = messages[0];
+    FairMQMessagePtr& payload = messages[1];
     memcpy(header->GetData(), stack.data(), stack.size());
     //state.ResumeTiming();
 
-    relayer.relay(header, payload);
+    relayer.relay(header->GetData(), messages.data(), messages.size());
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
     assert(ready[0].slot.index == 0);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
-    auto result = relayer.getInputsForTimeslice(ready[0].slot);
+    auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     assert(result.size() == 1);
     assert(result.at(0).size() == 1);
   }
@@ -150,18 +155,21 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
 
     DataProcessingHeader dph{timeslice++, 1};
     Stack stack{dh, dph};
-    FairMQMessagePtr header = transport->CreateMessage(stack.size());
-    FairMQMessagePtr payload = transport->CreateMessage(1000);
+    std::array<FairMQMessagePtr, 2> messages;
+    messages[0] = transport->CreateMessage(stack.size());
+    messages[1] = transport->CreateMessage(1000);
+    FairMQMessagePtr& header = messages[0];
+    FairMQMessagePtr& payload = messages[1];
 
     memcpy(header->GetData(), stack.data(), stack.size());
     //state.ResumeTiming();
 
-    relayer.relay(header, payload);
+    relayer.relay(header->GetData(), messages.data(), messages.size());
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
-    auto result = relayer.getInputsForTimeslice(ready[0].slot);
+    auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     assert(result.size() == 1);
     assert(result.at(0).size() == 1);
   }
@@ -210,32 +218,37 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
     DataProcessingHeader dph1{timeslice, 1};
     Stack stack1{dh1, dph1};
 
-    FairMQMessagePtr header1 = transport->CreateMessage(stack1.size());
-    FairMQMessagePtr payload1 = transport->CreateMessage(1000);
+    std::array<FairMQMessagePtr, 4> messages;
+    messages[0] = transport->CreateMessage(stack1.size());
+    messages[1] = transport->CreateMessage(1000);
+    FairMQMessagePtr& header1 = messages[0];
+    FairMQMessagePtr& payload1 = messages[1];
 
     memcpy(header1->GetData(), stack1.data(), stack1.size());
 
     DataProcessingHeader dph2{timeslice, 1};
     Stack stack2{dh2, dph2};
 
-    FairMQMessagePtr header2 = transport->CreateMessage(stack2.size());
-    FairMQMessagePtr payload2 = transport->CreateMessage(1000);
+    messages[2] = transport->CreateMessage(stack2.size());
+    messages[3] = transport->CreateMessage(1000);
+    FairMQMessagePtr& header2 = messages[2];
+    FairMQMessagePtr& payload2 = messages[3];
 
     memcpy(header2->GetData(), stack2.data(), stack2.size());
     //state.ResumeTiming();
 
-    relayer.relay(header1, payload1);
+    relayer.relay(header1->GetData(), &messages[0], 2);
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
 
-    relayer.relay(header2, payload2);
+    relayer.relay(header2->GetData(), &messages[2], 2);
     ready.clear();
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
-    auto result = relayer.getInputsForTimeslice(ready[0].slot);
+    auto result = relayer.consumeAllInputsForTimeslice(ready[0].slot);
     assert(result.size() == 2);
     assert(result.at(0).size() == 1);
     assert(result.at(1).size() == 1);
@@ -275,12 +288,14 @@ static void BM_RelaySplitParts(benchmark::State& state)
   for (auto _ : state) {
     // FIXME: Understand why pausing the timer makes it slower..
     state.PauseTiming();
+    const int nSplitParts = 10;
     std::vector<std::unique_ptr<FairMQMessage>> splitParts;
+    splitParts.reserve(nSplitParts);
 
-    for (size_t i = 0; i < 100; ++i) {
+    for (size_t i = 0; i < nSplitParts; ++i) {
       DataProcessingHeader dph1{timeslice, 1};
       dh1.splitPayloadIndex = i;
-      dh1.splitPayloadParts = 10;
+      dh1.splitPayloadParts = nSplitParts;
       Stack stack1{dh1, dph1};
 
       FairMQMessagePtr header1 = transport->CreateMessage(stack1.size());
@@ -292,7 +307,7 @@ static void BM_RelaySplitParts(benchmark::State& state)
     }
     state.ResumeTiming();
 
-    relayer.relay(splitParts[0], &splitParts[1], splitParts.size() - 1);
+    relayer.relay(splitParts[0]->GetData(), splitParts.data(), splitParts.size());
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);

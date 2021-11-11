@@ -20,12 +20,17 @@
 #include "Framework/CompletionPolicy.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
+#include "Framework/ConfigContext.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
-// ------------------------------------------------------------------
 
-// we need to add workflow options before including Framework/runDataProcessing
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
@@ -37,8 +42,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"track-sources", VariantType::String, "TPC", {"comma-separated list of sources to use: TPC,TPC-TOF,TPC-TRD,TPC-TRD-TOF"}},
     {"produce-calibration-data", o2::framework::VariantType::Bool, false, {"produce output for TPC vdrift calibration"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-
-  o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
   std::swap(workflowOptions, options);
 }

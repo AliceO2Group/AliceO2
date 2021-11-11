@@ -40,6 +40,7 @@ struct STFDecoderInp {
   bool doDigits = false;
   bool doCalib = false;
   bool askSTFDist = true;
+  bool allowReporting = true;
   o2::header::DataOrigin origin{"NIL"};
   std::string deviceName{};
   std::string inputSpec{};
@@ -54,9 +55,11 @@ class STFDecoder : public Task
   ~STFDecoder() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
-  void endOfStream(EndOfStreamContext& ec) final;
+  void endOfStream(EndOfStreamContext& ec) final { finalize(); }
+  void stop() final { finalize(); }
 
  private:
+  void finalize();
   std::unique_ptr<o2::itsmft::Clusterer> setupClusterer(const std::string& dictName);
   TStopwatch mTimer;
   bool mDoClusters = false;
@@ -64,6 +67,8 @@ class STFDecoder : public Task
   bool mDoDigits = false;
   bool mDoCalibData = false;
   bool mUnmutExtraLanes = false;
+  bool mFinalizeDone = false;
+  bool mAllowReporting = true;
   int mNThreads = 1;
   int mVerbosity = 0;
   size_t mTFCounter = 0;
@@ -72,6 +77,7 @@ class STFDecoder : public Task
   size_t mEstNClusPatt = 0;
   size_t mEstNCalib = 0;
   size_t mEstNROF = 0;
+  std::string mInputSpec;
   std::string mSelfName;
   std::string mDictName;
   std::string mNoiseName;

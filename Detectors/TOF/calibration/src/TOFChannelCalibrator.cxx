@@ -18,10 +18,13 @@
 #include "Fit/Fitter.h"
 #include "Fit/BinData.h"
 #include "Math/WrappedMultiTF1.h"
+#include "TOFBase/Utils.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
+
+//#define DEBUGGING
 
 namespace o2
 {
@@ -48,12 +51,37 @@ void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> d
     auto tot = data[i].getTot();
     // TO BE DISCUSSED: could it be that the LHCphase is too old? If we ar ein sync mode, it could be that it is not yet created for the current run, so the one from the previous run (which could be very old) is used. But maybe it does not matter much, since soon enough a calibrated LHC phase should be produced
     auto corr = mCalibTOFapi->getTimeCalibration(ch, tot); // we take into account LHCphase, offsets and time slewing
-    LOG(DEBUG) << "inserting in channel " << ch << ": dt = " << dt << ", tot = " << tot << ", corr = " << corr << ", corrected dt = " << dt - corr;
 
-    dt -= corr;
+    auto dtcorr = dt - corr;
 
-    mHisto[sector](dt, chInSect); // we pass the calibrated time
-    mEntries[ch] += 1;
+    if (!Utils::hasFillScheme()) {
+      Utils::addBC(dtcorr);
+
+      continue;
+    }
+
+    dtcorr = Utils::subtractInteractionBC(dtcorr);
+
+    LOG(DEBUG) << "inserting in channel " << ch << ": dt = " << Utils::subtractInteractionBC(dt) << ", tot = " << tot << ", corr = " << corr << ", corrected dt = " << dtcorr;
+
+    if (!mPerStrip) {
+      mHisto[sector](dtcorr, chInSect); // we pass the calibrated time
+      mEntries[ch] += 1;
+    } else {
+      int istrip = ch / 96;
+      int istripInSector = chInSect / 96;
+      int fea = (chInSect % 48) / 12;
+      int choffset = (istrip - istripInSector) * 96;
+      //int minch = istripInSector * 96;
+      //int maxch = minch + 96;
+      int minch = istripInSector * 96 + fea * 12;
+      int maxch = minch + 12;
+      for (int ich = minch; ich < maxch; ich++) {
+        mHisto[sector](dtcorr, ich);      // we pass the calibrated time
+        mHisto[sector](dtcorr, ich + 48); // we pass the calibrated time
+        mEntries[ich + choffset] += 1;
+      }
+    }
   }
 }
 
@@ -395,11 +423,15 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
     int offsetPairInSector = sector * Geo::NSTRIPXSECTOR * NCOMBINSTRIP;
     int offsetsector = sector * Geo::NSTRIPXSECTOR * Geo::NPADS;
     for (int istrip = 0; istrip < Geo::NSTRIPXSECTOR; istrip++) {
+#ifdef DEBUGGING
+      system(Form("echo \"\" >strip_%d_%d", sector, istrip));
+#endif
       LOG(INFO) << "Processing strip " << istrip;
       double fracUnderPeak[Geo::NPADS] = {0.};
       bool isChON[96] = {false};
       int offsetstrip = istrip * Geo::NPADS + offsetsector;
       int goodpoints = 0;
+      int allpoints = 0;
 
       TLinearFitter localFitter(1, mStripOffsetFunction.c_str());
 
@@ -411,11 +443,17 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
         int chinsector = ipair + offsetPairInStrip;
         int ich = chinsector + offsetPairInSector;
         auto entriesInPair = entriesPerChannel.at(ich);
+        xp[allpoints] = ipair + 0.5; // pair index
+
         if (entriesInPair == 0) {
+          localFitter.AddPoint(&(xp[allpoints]), 0.0, 1.0);
+          allpoints++;
           continue; // skip always since a channel with 0 entries is normal, it will be flagged as problematic
         }
         if (entriesInPair < mMinEntries) {
           LOG(DEBUG) << "pair " << ich << " will not be calibrated since it has only " << entriesInPair << " entries (min = " << mMinEntries << ")";
+          localFitter.AddPoint(&(xp[allpoints]), 0.0, 1.0);
+          allpoints++;
           continue;
         }
         fitValues.fill(-99999999);
@@ -434,6 +472,8 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
           LOG(DEBUG) << "Pair " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
         } else {
           LOG(DEBUG) << "Pair " << ich << " :: Fit failed with result = " << fitres;
+          localFitter.AddPoint(&(xp[allpoints]), 0.0, 1.0);
+          allpoints++;
           continue;
         }
 
@@ -457,18 +497,23 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
           intmax = mRange;
         }
 
-        xp[goodpoints] = ipair + 0.5;                                  // pair index
-        exp[goodpoints] = 0.0;                                         // error on pair index (dummy since it is on the pair index)
-        deltat[goodpoints] = fitValues[1];                             // delta between offsets from channels in pair (from the fit) - in ps
-        edeltat[goodpoints] = 20 + fitValues[2] / sqrt(entriesInPair); // TODO: for now put by default to 20 ps since it was seen to be reasonable; but it should come from the fit: who gives us the error from the fit ??????
-        localFitter.AddPoint(&(xp[goodpoints]), deltat[goodpoints], edeltat[goodpoints]);
+        xp[allpoints] = ipair + 0.5;      // pair index
+        exp[allpoints] = 0.0;             // error on pair index (dummy since it is on the pair index)
+        deltat[allpoints] = fitValues[1]; // delta between offsets from channels in pair (from the fit) - in ps
+        float integral = c->integral(ich, intmin, intmax);
+        edeltat[allpoints] = 20 + fitValues[2] / sqrt(integral); // TODO: for now put by default to 20 ps since it was seen to be reasonable; but it should come from the fit: who gives us the error from the fit ??????
+        localFitter.AddPoint(&(xp[allpoints]), deltat[allpoints], edeltat[allpoints]);
+#ifdef DEBUGGING
+        system(Form("echo \"%d %f %f\" >>strip_%d_%d", ipair, deltat[allpoints], edeltat[allpoints], sector, istrip));
+#endif
         goodpoints++;
+        allpoints++;
         int ch1 = ipair % 96;
         int ch2 = ipair / 96 ? ch1 + 48 : ch1 + 1;
         isChON[ch1] = true;
         isChON[ch2] = true;
 
-        float fractionUnderPeak = entriesInPair > 0 ? c->integral(ich, intmin, intmax) / entriesInPair : 0;
+        float fractionUnderPeak = entriesInPair > 0 ? integral / entriesInPair : 0;
         // we keep as fractionUnderPeak of the channel the largest one that is found in the 3 possible pairs with that channel (for both channels ch1 and ch2 in the pair)
         if (fracUnderPeak[ch1] < fractionUnderPeak) {
           fracUnderPeak[ch1] = fractionUnderPeak;
@@ -583,7 +628,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
         continue;
       }
 
-      LOG(INFO) << "channel " << ich << " will be calibrated since it has " << entriesInChannel << " entries (min = " << mMinEntries << ")";
+      LOG(DEBUG) << "channel " << ich << " will be calibrated since it has " << entriesInChannel << " entries (min = " << mMinEntries << ")";
       fitValues.fill(-99999999);
       histoValues.clear();
       // more efficient way
@@ -598,9 +643,9 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
       double fitres = fitGaus(nbins, histoValues.data(), -range, range, fitValues, nullptr, 2., true);
       LOG(INFO) << "channel = " << ich << " fitted by thread = " << ithread;
       if (fitres >= 0) {
-        LOG(DEBUG) << "Channel " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
+        LOG(INFO) << "Channel " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
       } else {
-        //        LOG(INFO) << "Channel " << ich << " :: Fit failed with result = " << fitres;
+        LOG(INFO) << "Channel " << ich << " :: Fit failed with result = " << fitres;
         continue;
       }
 
@@ -630,12 +675,15 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
       ts.setFractionUnderPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, fractionUnderPeak);
       ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, abs(fitValues[2]));
       ts.updateOffsetInfo(ich, fitValues[1]);
+      LOG(DEBUG) << "udpdate channel " << ich << " with " << fitValues[1] << " offset in ps";
     } // end loop channels in sector
   }   // end loop over sectors
   auto clName = o2::utils::MemFileHelper::getClassName(ts);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   mInfoVector.emplace_back("TOF/Calib/ChannelCalib", clName, flName, md, slot.getTFStart(), 99999999999999);
   mTimeSlewingVector.emplace_back(ts);
+
+  Utils::printFillScheme();
 }
 
 //_____________________________________________

@@ -69,6 +69,15 @@ void EventRecord::sortByHCID()
   // sort the tracklets by HCID
   std::stable_sort(std::begin(mTracklets), std::end(mTracklets), [this](const Tracklet64& trackleta, const Tracklet64& trackletb) { return trackleta.getHCID() < trackletb.getHCID(); });
 }
+
+void EventRecord::incStats(int tracklets, int digits, int wordsread, int wordsrejected)
+{
+  mEventStats.mDigitsFound += digits;
+  mEventStats.mDigitsFound += digits;
+  mEventStats.mTrackletsFound += tracklets;
+  mEventStats.mWordsRead += wordsread;
+  mEventStats.mWordsRejected += wordsread;
+}
 // now for event storage
 void EventStorage::addDigits(InteractionRecord& ir, Digit& digit)
 {
@@ -166,7 +175,7 @@ void EventStorage::unpackData(std::vector<TriggerRecord>& triggers, std::vector<
   }
 }
 
-void EventStorage::sendData(o2::framework::ProcessingContext& pc, bool displaytracklets)
+void EventStorage::sendData(o2::framework::ProcessingContext& pc, bool generatestats)
 {
   //at this point we know the total number of tracklets and digits and triggers.
   auto dataReadStart = std::chrono::high_resolution_clock::now();
@@ -190,26 +199,48 @@ void EventStorage::sendData(o2::framework::ProcessingContext& pc, bool displaytr
     digitcount += event.getDigits().size();
     trackletcount += event.getTracklets().size();
   }
-  if (displaytracklets) { // this is purely for trivial debugging purposes
-    for (auto& event : mEventRecords) {
-      LOG(info) << "***** Event : " << event.getBCData() << " digit count : " << event.getDigits().size() << " tracklet count : " << event.getTracklets().size();
-      auto& trackletv = event.getTracklets();
-      for (auto& tracklt : trackletv) {
-        LOG(info) << "        " << std::distance(trackletv.begin(), trackletv.end()) << " " << tracklt;
-      }
-      LOG(info) << "*****";
-    }
-  }
-  LOG(info) << "Sending data onwards with " << digits.size() << " Digits and " << tracklets.size() << " Tracklets and " << triggers.size() << " Triggers";
   //TODO change to adopt instead of having this additional copy.
   //
   pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "DIGITS", 0, o2::framework::Lifetime::Timeframe}, digits);
   pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, o2::framework::Lifetime::Timeframe}, tracklets);
   pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, o2::framework::Lifetime::Timeframe}, triggers);
+  if (generatestats) {
+    accumulateStats();
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "RAWSTATS", 0, o2::framework::Lifetime::Timeframe}, mTFStats);
+  }
+  mEventRecords.clear();
   std::chrono::duration<double, std::micro> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
   LOG(debug) << "Preparing for sending and sending data took  " << std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count() << "ms";
   if (mPackagingTime != nullptr) {
     mPackagingTime->Fill((int)std::chrono::duration_cast<std::chrono::microseconds>(dataReadTime).count());
+  }
+}
+
+void EventStorage::accumulateStats()
+{
+  int eventcount = mEventRecords.size();
+  int sumtracklets = 0;
+  int sumdigits = 0;
+  //std::chrono::duration sumdigittime=std::chrono::steady_clock::duration::zero();
+  //std::chrono::duration sumtracklettime=std::chrono::steady_clock::duration::zero();
+  int sumdigittime = 0;
+  int sumtracklettime = 0;
+  int sumtime = 0;
+  uint64_t sumwordsrejected = 0;
+  uint64_t sumwordsread = 0;
+  for (auto event : mEventRecords) {
+    sumtracklets += event.mEventStats.mTrackletsFound;
+    sumdigits += event.mEventStats.mDigitsFound;
+    sumtracklettime += event.mEventStats.mTimeTakenForTracklets;
+    sumdigittime += event.mEventStats.mTimeTakenForDigits;
+    sumwordsrejected += event.mEventStats.mWordsRejected;
+    sumwordsread += event.mEventStats.mWordsRead;
+  }
+  if (eventcount != 0) {
+    mTFStats.mTrackletsPerEvent = sumtracklets / eventcount;
+    mTFStats.mDigitsPerEvent = sumdigits / eventcount;
+    mTFStats.mTimeTakenForTracklets = sumtracklettime;
+    mTFStats.mTimeTakenForDigits = sumdigittime;
   }
 }
 
@@ -300,5 +331,8 @@ void EventRecord::popTracklets(int popcount)
     }
   }
 }
-
+void EventStorage::resetCounters()
+{
+  mTFStats.clear();
+}
 } // namespace o2::trd

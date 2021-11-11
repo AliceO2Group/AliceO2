@@ -12,6 +12,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/InputRecord.h"
+#include "Framework/DeviceSpec.h"
 #include <functional>
 #include <iostream>
 
@@ -25,6 +26,8 @@ std::vector<CompletionPolicy>
 {
   return {
     CompletionPolicyHelpers::defineByNameOrigin("internal-dpl-aod-writer", "TFN", CompletionOp::Consume),
+    // FIXME: reenable back when the policy handles correctly sporadic outputs.
+    //CompletionPolicyHelpers::consumeExistingWhenAny("internal-dpl-injected-dummy-sink", [](DeviceSpec const& s) { return s.name == "internal-dpl-injected-dummy-sink"; }),
     CompletionPolicyHelpers::defineByName("internal-dpl-injected-dummy-sink", CompletionOp::Discard),
     CompletionPolicyHelpers::consumeWhenAll()};
 }
@@ -44,6 +47,8 @@ std::ostream& operator<<(std::ostream& oss, CompletionPolicy::CompletionOp const
     case CompletionPolicy::CompletionOp::Discard:
       oss << "discard";
       break;
+    case CompletionPolicy::CompletionOp::ConsumeExisting:
+      oss << "consumeExisting";
   };
   return oss;
 }

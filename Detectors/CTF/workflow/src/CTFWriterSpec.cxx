@@ -88,11 +88,12 @@ class CTFWriterSpec : public o2::framework::Task
 {
  public:
   CTFWriterSpec() = delete;
-  CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType);
+  CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType, int verbosity);
   ~CTFWriterSpec() final { finalize(); }
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
-  void endOfStream(o2::framework::EndOfStreamContext& ec) final { finalize(); };
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final { finalize(); }
+  void stop() final { finalize(); }
   bool isPresent(DetID id) const { return mDets[id]; }
 
  private:
@@ -119,6 +120,7 @@ class CTFWriterSpec : public o2::framework::Task
   bool mDictPerDetector = false;
   bool mCreateRunEnvDir = true;
   bool mStoreMetaFile = false;
+  int mVerbosity = 0;
   int mSaveDictAfter = 0; // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
   int mFlagMinDet = 1;    // append list of detectors to LHC period if their number is <= mFlagMinDet
   uint64_t mRun = 0;
@@ -168,8 +170,8 @@ class CTFWriterSpec : public o2::framework::Task
 const std::string CTFWriterSpec::TMPFileEnding{".part"};
 
 //___________________________________________________________________
-CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType)
-  : mDets(dm), mRun(r), mOutputType(outType)
+CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType, int verbosity)
+  : mDets(dm), mRun(r), mOutputType(outType), mVerbosity(verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -260,7 +262,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
   }
   auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName());
   const auto ctfImage = C::getImage(ctfBuffer.data());
-  ctfImage.print(o2::utils::Str::concat_string(det.getName(), ": "));
+  ctfImage.print(o2::utils::Str::concat_string(det.getName(), ": "), mVerbosity);
   if (mWriteCTF) {
     sz += ctfImage.appendToTree(*tree, det.getName());
     header.detectors.set(det);
@@ -282,7 +284,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
         auto& mdSave = mFreqsMetaData[det][ib];
         const auto& md = ctfImage.getMetadata(ib);
         freq.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min, md.max);
-        mdSave = o2::ctf::Metadata{0, 0, md.coderType, md.streamSize, md.probabilityBits, md.opt, freq.getMinSymbol(), freq.getMaxSymbol(), (int)freq.size(), 0, 0};
+        mdSave = o2::ctf::Metadata{0, 0, md.messageWordSize, md.coderType, md.streamSize, md.probabilityBits, md.opt, freq.getMinSymbol(), freq.getMaxSymbol(), (int)freq.size(), 0, 0};
       }
     }
   }
@@ -537,9 +539,10 @@ void CTFWriterSpec::closeTFTreeAndFile()
         mCTFFileMetaData->LHCPeriod = mLHCPeriod;
         mCTFFileMetaData->type = "raw";
         mCTFFileMetaData->priority = "high";
+        auto metaFileNameTmp = fmt::format("{}{}.tmp", mCTFMetaFileDir, mCurrentCTFFileName);
         auto metaFileName = fmt::format("{}{}.done", mCTFMetaFileDir, mCurrentCTFFileName);
         try {
-          std::ofstream metaFileOut(metaFileName);
+          std::ofstream metaFileOut(metaFileNameTmp);
           metaFileOut << *mCTFFileMetaData.get();
           metaFileOut << "TFOrbits: ";
           for (size_t i = 0; i < mTFOrbits.size(); i++) {
@@ -547,6 +550,7 @@ void CTFWriterSpec::closeTFTreeAndFile()
           }
           metaFileOut << '\n';
           metaFileOut.close();
+          std::filesystem::rename(metaFileNameTmp, metaFileName);
         } catch (std::exception const& e) {
           LOG(ERROR) << "Failed to store CTF meta data file " << metaFileName << ", reason: " << e.what();
         }
@@ -715,7 +719,7 @@ size_t CTFWriterSpec::getAvailableDiskSpace(const std::string& path, int level)
 }
 
 //___________________________________________________________________
-DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, const std::string& outType)
+DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, const std::string& outType, int verbosity)
 {
   std::vector<InputSpec> inputs;
   LOG(DEBUG) << "Detectors list:";
@@ -729,8 +733,8 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, const std::
     "ctf-writer",
     inputs,
     Outputs{},
-    AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, outType)}, // RS FIXME once global/local options clash is solved, --output-type will become device option
-    Options{                                                         //{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}},
+    AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, outType, verbosity)}, // RS FIXME once global/local options clash is solved, --output-type will become device option
+    Options{                                                                    //{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}},
             {"save-ctf-after", VariantType::Int, 0, {"if > 0, autosave CTF tree with multiple CTFs after every N CTFs"}},
             {"save-dict-after", VariantType::Int, 0, {"if > 0, in dictionary generation mode save it dictionary after certain number of TFs processed"}},
             {"ctf-dict-dir", VariantType::String, "none", {"CTF dictionary directory, must exist"}},

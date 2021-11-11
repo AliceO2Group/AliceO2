@@ -66,10 +66,10 @@ class RawReaderMemory
   /// \throw RawDecodingError with HEADER_INVALID if the header was not decoded
   const o2::header::RDHAny& getRawHeader() const;
 
-  /// \brief access to the raw buffer (single DMA page)
-  /// \return Raw buffer of the current page
-  /// \throw Error with PAYLOAD_INCALID if payload was not decoded
-  const RawBuffer& getRawBuffer() const;
+  // /// \brief access to the raw buffer (single DMA page)
+  // /// \return Raw buffer of the current page
+  // /// \throw Error with PAYLOAD_INCALID if payload was not decoded
+  // const RawBuffer& getRawBuffer() const;
 
   /// \brief access to the full raw payload (single or multiple DMA pages)
   /// \return Raw Payload of the data until the stop bit is received.

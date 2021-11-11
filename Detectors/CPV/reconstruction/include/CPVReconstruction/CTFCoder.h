@@ -95,7 +95,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   ENCODECPV(helper.begin_energy(),      helper.end_energy(),         CTF::BLC_energy,       0);
   ENCODECPV(helper.begin_status(),      helper.end_status(),         CTF::BLC_status,       0);
   // clang-format on
-  CTF::get(buff.data())->print(getPrefix());
+  CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
@@ -104,7 +104,7 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCLUSTER& cluVec)
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
   std::vector<uint16_t> bcInc, entries, posX, posZ;
   std::vector<uint32_t> orbitInc;
   std::vector<uint8_t> energy, status;

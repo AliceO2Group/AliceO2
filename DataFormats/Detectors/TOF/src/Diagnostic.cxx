@@ -70,14 +70,52 @@ void Diagnostic::print() const
 
 ULong64_t Diagnostic::getEmptyCrateKey(int crate)
 {
-  ULong64_t key = (ULong64_t(11) << 32) + (ULong64_t(crate) << 36); // slot=11 means empty crate
+  ULong64_t key = (ULong64_t(13) << 32) + (ULong64_t(crate) << 36); // slot=13 means empty crate
   return key;
 }
 
 ULong64_t Diagnostic::getNoisyChannelKey(int channel)
 {
-  ULong64_t key = (ULong64_t(12) << 32) + channel; // slot=12 means noisy channels
+  ULong64_t key = (ULong64_t(14) << 32) + channel; // slot=14 means noisy channels
   return key;
+}
+
+ULong64_t Diagnostic::getTRMKey(int crate, int trm)
+{
+  ULong64_t key = (ULong64_t(trm) << 32) + (ULong64_t(crate) << 36);
+  return key;
+}
+
+int Diagnostic::getSlot(ULong64_t pattern) const
+{
+  return (pattern & 68719476735) / 4294967296;
+}
+
+int Diagnostic::getCrate(ULong64_t pattern) const
+{
+  return (pattern & 8796093022207) / 68719476736;
+}
+
+int Diagnostic::getChannel(ULong64_t pattern) const
+{
+  if (getSlot(pattern) == 14) {
+    return (pattern & 262143);
+  }
+  return -1;
+}
+
+int Diagnostic::getNoisyLevel(ULong64_t pattern) const
+{
+  if (getChannel(pattern)) {
+    if (pattern & (1 << 20)) {
+      return 3;
+    } else if (pattern & (1 << 19)) {
+      return 2;
+    } else {
+      return 1;
+    }
+  }
+  return 0;
 }
 
 void Diagnostic::fill(const Diagnostic& diag)
@@ -94,5 +132,20 @@ void Diagnostic::merge(const Diagnostic* prev)
   LOG(DEBUG) << "Merging diagnostic words";
   for (auto const& el : prev->mVector) {
     fill(el.first, el.second + getFrequency(el.first));
+  }
+}
+
+void Diagnostic::getNoisyMap(Bool_t* output)
+{
+  // set true in output channel array
+  for (auto pair : mVector) {
+    auto key = pair.first;
+    int slot = getSlot(key);
+
+    if (slot != 14) {
+      continue;
+    }
+
+    output[getChannel(key)] = true;
   }
 }

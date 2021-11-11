@@ -15,32 +15,17 @@
 /// \author julian.myrcha@cern.ch
 
 #include "EventVisualisationDetectors/DataReaderJSON.h"
-
-#include <TTree.h>
+#include "FairLogger.h"
 
 namespace o2
 {
 namespace event_visualisation
 {
 
-void DataReaderJSON::open()
-{
-  this->mFileName = "/home/jmy/CERN/event";
-  this->mMaxEv = 0;
-  while (true) {
-    FILE* file = fopen(VisualisationEvent::fileNameIndexed(this->mFileName, this->mMaxEv).c_str(), "r");
-    if (file == nullptr) {
-      break;
-    }
-    fclose(file);
-    this->mMaxEv++;
-  }
-}
-
-VisualisationEvent DataReaderJSON::getEvent(int no, EVisualisationDataType /*dataType*/)
+VisualisationEvent DataReaderJSON::getEvent(std::string fileName)
 {
   VisualisationEvent vEvent;
-  vEvent.fromFile(VisualisationEvent::fileNameIndexed(this->mFileName, no));
+  vEvent.fromFile(fileName);
   return vEvent;
 }
 

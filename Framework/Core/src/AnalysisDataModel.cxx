@@ -13,6 +13,7 @@
 namespace o2::soa
 {
 template struct Join<aod::BCs, aod::Timestamps>;
+template struct Join<aod::Tracks, aod::TracksExtra>;
 template struct Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>;
 template struct Join<aod::FwdTracks, aod::FwdTracksCov>;
 template struct Join<aod::TransientV0s, aod::StoredV0s>;

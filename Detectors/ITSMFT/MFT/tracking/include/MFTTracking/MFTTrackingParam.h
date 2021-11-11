@@ -36,6 +36,7 @@ struct MFTTrackingParam : public o2::conf::ConfigurableParamHelper<MFTTrackingPa
   Int_t trackmodel = MFTTrackModel::Optimized;
   double MFTRadLength = 0.042; // MFT average material budget within acceptance
   bool verbose = false;
+  bool forceZeroField = true; // Force MFT tracking with B=0 (default = true until alignment is applied)
 
   /// tracking algorithm (LTF and CA) parameters
   /// minimum number of points for a LTF track
@@ -47,7 +48,7 @@ struct MFTTrackingParam : public o2::conf::ConfigurableParamHelper<MFTTrackingPa
   /// minimum number of detector stations for a CA track
   Int_t MinTrackStationsCA = 4;
   /// maximum distance for a cluster to be attached to a seed line (LTF)
-  Float_t LTFclsRCut = 0.0100;
+  Float_t LTFclsRCut = 0.100; // Temporary for misaligned detector. Default 0.0100
   /// maximum distance for a cluster to be attached to a seed line (CA road)
   Float_t ROADclsRCut = 0.0400;
   /// number of bins in r-direction

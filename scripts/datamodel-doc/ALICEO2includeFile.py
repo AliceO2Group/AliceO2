@@ -672,10 +672,10 @@ class datamodel:
 
     # PWG data model names
     dmnames = [CERsPWG[i][4] for i in list(range(0, len(CERsPWG)))]
-    dmnames = list(set(dmnames))
+    dmnames = np.unique(dmnames)
     for dmname in dmnames:
       print("")
-      print("##", dmname)
+      print("##", 'PWG-'+dmname)
 
       inds = [i for i, x in enumerate(CERsPWG) if x[4] == dmname]
       CER2u = [CERsPWG[i] for i in inds]
@@ -1002,7 +1002,11 @@ class CERelations:
       idef = [ind for ind, x in enumerate(
           content[0]) if x.txt == self.CEdeclarationString]
       for ind in idef:
-        ename = self.exePreamble + content[0][ind+2].txt
+        # PWG needs extra treatment
+        if ptype == "PWG":
+          ename = self.exePreamble + dmname.lower() + "-" + content[0][ind+2].txt
+        else:
+          ename = self.exePreamble + content[0][ind+2].txt
         cname = content[0][ind+4].txt
         if len(cname.split(".")) < 2:
           cname += ".cxx"

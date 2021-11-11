@@ -68,21 +68,20 @@ void TrackerDPL::init(InitContext& ic)
 
     double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
     auto Bz = field->getBz(centerMFT);
-    if (Bz != 0) {
+    if (Bz == 0 || trackingParam.forceZeroField) {
+      LOG(INFO) << "Starting MFT Linear tracker: Field is off!";
+      mFieldOn = false;
+      mTrackerL = std::make_unique<o2::mft::Tracker<TrackLTFL>>(mUseMC);
+      mTrackerL->initConfig(trackingParam, true);
+      mTrackerL->initialize(trackingParam.FullClusterScan);
+    } else {
       LOG(INFO) << "Starting MFT tracker: Field is on!";
       mFieldOn = true;
       mTracker = std::make_unique<o2::mft::Tracker<TrackLTF>>(mUseMC);
       mTracker->setBz(Bz);
       mTracker->initConfig(trackingParam, true);
       mTracker->initialize(trackingParam.FullClusterScan);
-    } else {
-      LOG(INFO) << "Starting MFT Linear tracker: Field is off!";
-      mFieldOn = false;
-      mTrackerL = std::make_unique<o2::mft::Tracker<TrackLTFL>>(mUseMC);
-      mTrackerL->initConfig(trackingParam, true);
-      mTrackerL->initialize(trackingParam.FullClusterScan);
     }
-
   } else {
     throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
@@ -204,7 +203,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       if (nclUsed) {
         event.setROFrameId(roFrame);
         event.initialize(trackingParam.FullClusterScan);
-        LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+        LOG(DEBUG) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mTrackerL->setROFrame(roFrame);
         mTrackerL->clustersToTracks(event);
         tracksL.swap(event.getTracks());

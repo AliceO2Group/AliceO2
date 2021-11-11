@@ -24,10 +24,11 @@ namespace o2
 namespace zdc
 {
 
-EntropyDecoderSpec::EntropyDecoderSpec()
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
+  mCTFCoder.setVerbosity(verbosity);
 }
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
@@ -50,9 +51,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto& peds = pc.outputs().make<std::vector<o2::zdc::OrbitData>>(OutputRef{"peds"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::zdc::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, bcdata, chans, peds);
-
+  if (buff.size()) {
+    const auto ctfImage = o2::zdc::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, bcdata, chans, peds);
+  }
   mTimer.Stop();
   LOG(INFO) << "Decoded " << chans.size() << " ZDC channels in " << bcdata.size() << " triggers and " << peds.size() << " pedestals in " << mTimer.CpuTime() - cput << " s";
 }
@@ -63,7 +65,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec()
+DataProcessorSpec getEntropyDecoderSpec(int verbosity)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"trig"}, "ZDC", "DIGITSBC", 0, Lifetime::Timeframe},
@@ -74,7 +76,7 @@ DataProcessorSpec getEntropyDecoderSpec()
     "zdc-entropy-decoder",
     Inputs{InputSpec{"ctf", "ZDC", "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
 }
 

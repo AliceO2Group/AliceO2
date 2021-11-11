@@ -26,84 +26,44 @@ namespace event_visualisation
 {
 
 enum EVisualisationGroup {
-  ACO,
-  EMC,
-  HMP,
-  MCH,
-  PHS,
-  RPH,
-  SDD,
-  SPD,
-  SSD,
-  TOF,
   ITS,
   TPC,
   TRD,
-  RND,
-  VSD,
+  TOF,
   MFT,
-  JSON,
+  MCH,
+  MID,
   NvisualisationGroups
 };
 
 const std::string gVisualisationGroupName[NvisualisationGroups] = {
-  "ACO",
-  "EMC",
-  "HMP",
-  "MCH",
-  "PHS",
-  "RPH",
-  "SDD",
-  "SPD",
-  "SSD",
-  "TOF",
   "ITS",
   "TPC",
   "TRD",
-  "RND",
-  "VSD",
+  "TOF",
   "MFT",
-  "JSON"};
+  "MCH",
+  "MID"};
 
 const bool R3Visualisation[NvisualisationGroups] = {
-  false, //"ACO",
-  false, //"EMC",
-  false, //"HMP",
-  true,  //"MCH",
-  false, //"PHS",
-  false, //"RPH",
-  false, //"SDD",
-  false, //"SPD",
-  false, //"SSD",
-  true,  //"TOF",
-  true,  // ITS
-  true,  //"TPC",
-  true,  //"TRD",
-  false, //"RND",
-  false, //"VSD"
-  true,  // "MFT"
-  true   //"JSON"
+  true, //"ITS",
+  true, //"TPC",
+  true, //"TRD",
+  true, //"TOF",
+  true, // "MFT"
+  true, //"MCH",
+  true  //"MID",
 };
 
 enum EVisualisationDataType {
-  Raw,       ///< Raw data
-  Hits,      ///< Hits
-  Digits,    ///< Digits
   Clusters,  ///< Reconstructed clusters (RecPoints)
-  ESD,       ///< Event Summary Data
-  AOD,       ///< Analysis Object Data
-  NoData,    ///< no data was loaded
+  Tracks,    ///< Event Summary Data
   NdataTypes ///< number of supported data types
 };
 
 const std::string gDataTypeNames[NdataTypes] = {
-  "Raw",
-  "Hits",
-  "Digits",
   "Clusters",
-  "ESD",
-  "AOD",
-  "NoData"};
+  "Tracks"};
 
 } // namespace event_visualisation
 } // namespace o2

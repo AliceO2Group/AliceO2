@@ -29,6 +29,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DataFormatsMID/MCClusterLabel.h"
 #include "MIDSimulation/TrackLabeler.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 namespace of = o2::framework;
 
@@ -41,9 +42,8 @@ class TrackerMCDeviceDPL
  public:
   void init(o2::framework::InitContext& ic)
   {
-    auto geoFilename = ic.options().get<std::string>("geometry-filename");
     if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry(geoFilename);
+      o2::base::GeometryManager::loadGeometry();
     }
 
     mTracker = std::make_unique<Tracker>(createTransformationFromManager(gGeoManager));
@@ -71,9 +71,9 @@ class TrackerMCDeviceDPL
     pc.outputs().snapshot(of::Output{"MID", "TRACKCLUSTERS", 0, of::Lifetime::Timeframe}, mTracker->getClusters());
     LOG(DEBUG) << "Sent " << mTracker->getClusters().size() << " track clusters.";
 
-    pc.outputs().snapshot(of::Output{"MID", "TRACKSROF", 0, of::Lifetime::Timeframe}, mTracker->getTrackROFRecords());
+    pc.outputs().snapshot(of::Output{"MID", "TRACKROFS", 0, of::Lifetime::Timeframe}, mTracker->getTrackROFRecords());
     LOG(DEBUG) << "Sent " << mTracker->getTrackROFRecords().size() << " ROFs.";
-    pc.outputs().snapshot(of::Output{"MID", "TRCLUSROF", 0, of::Lifetime::Timeframe}, mTracker->getClusterROFRecords());
+    pc.outputs().snapshot(of::Output{"MID", "TRCLUSROFS", 0, of::Lifetime::Timeframe}, mTracker->getClusterROFRecords());
     LOG(DEBUG) << "Sent " << mTracker->getClusterROFRecords().size() << " ROFs.";
 
     pc.outputs().snapshot(of::Output{"MID", "TRACKLABELS", 0, of::Lifetime::Timeframe}, mTrackLabeler.getTracksLabels());
@@ -95,8 +95,8 @@ framework::DataProcessorSpec getTrackerMCSpec()
   std::vector<of::OutputSpec> outputSpecs{
     of::OutputSpec{"MID", "TRACKS"},
     of::OutputSpec{"MID", "TRACKCLUSTERS"},
-    of::OutputSpec{"MID", "TRACKSROF"},
-    of::OutputSpec{"MID", "TRCLUSROF"},
+    of::OutputSpec{"MID", "TRACKROFS"},
+    of::OutputSpec{"MID", "TRCLUSROFS"},
     of::OutputSpec{"MID", "TRACKLABELS"},
     of::OutputSpec{"MID", "TRCLUSLABELS"}};
 
@@ -105,8 +105,7 @@ framework::DataProcessorSpec getTrackerMCSpec()
     {inputSpecs},
     {outputSpecs},
     of::adaptFromTask<o2::mid::TrackerMCDeviceDPL>(),
-    of::Options{
-      {"geometry-filename", of::VariantType::String, "", {"Name of the geometry file"}}}};
+    of::Options{}};
 }
 } // namespace mid
 } // namespace o2

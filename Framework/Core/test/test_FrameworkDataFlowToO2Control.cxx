@@ -180,6 +180,8 @@ command:
     - "'1'"
     - "--severity"
     - "'info'"
+    - "--shm-allocation"
+    - "'rbtree_best_fit'"
     - "--shm-mlock-segment"
     - "'false'"
     - "--shm-mlock-segment-on-creation"
@@ -190,6 +192,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
 )EXPECTED",
   R"EXPECTED(name: B
 defaults:
@@ -247,6 +251,8 @@ command:
     - "'1'"
     - "--severity"
     - "'info'"
+    - "--shm-allocation"
+    - "'rbtree_best_fit'"
     - "--shm-mlock-segment"
     - "'false'"
     - "--shm-mlock-segment-on-creation"
@@ -257,6 +263,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
 )EXPECTED",
   R"EXPECTED(name: C
 defaults:
@@ -314,6 +322,8 @@ command:
     - "'1'"
     - "--severity"
     - "'info'"
+    - "--shm-allocation"
+    - "'rbtree_best_fit'"
     - "--shm-mlock-segment"
     - "'false'"
     - "--shm-mlock-segment-on-creation"
@@ -324,6 +334,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
 )EXPECTED",
   R"EXPECTED(name: D
 defaults:
@@ -382,6 +394,8 @@ command:
     - "'1'"
     - "--severity"
     - "'info'"
+    - "--shm-allocation"
+    - "'rbtree_best_fit'"
     - "--shm-mlock-segment"
     - "'false'"
     - "--shm-mlock-segment-on-creation"
@@ -392,6 +406,8 @@ command:
     - "'false'"
     - "--stacktrace-on-signal"
     - "'all'"
+    - "--timeframes-rate-limit"
+    - "'0'"
     - "--a-param"
     - "'1'"
     - "--b-param"
@@ -410,7 +426,8 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm, "workflow-id", true);
+  auto callbacksPolicies = CallbacksPolicy::createDefaultPolicies();
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext, true);
   std::vector<DeviceControl> controls;
   std::vector<DeviceExecution> executions;
   controls.resize(devices.size());
@@ -444,10 +461,13 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
     auto& execution = executions[di];
     auto& expected = expectedTasks[di];
 
-    ss.str({});
-    ss.clear();
-    dumpTask(ss, devices[di], executions[di], devices[di].name, "");
-    BOOST_REQUIRE_EQUAL(strdiffchr(ss.str().data(), expected), strdiffchr(expected, ss.str().data()));
-    BOOST_CHECK_EQUAL(ss.str(), expected);
+    BOOST_TEST_CONTEXT("Device " << spec.name)
+    {
+      ss.str({});
+      ss.clear();
+      dumpTask(ss, devices[di], executions[di], devices[di].name, "");
+      BOOST_REQUIRE_EQUAL(strdiffchr(ss.str().data(), expected), strdiffchr(expected, ss.str().data()));
+      BOOST_CHECK_EQUAL(ss.str(), expected);
+    }
   }
 }

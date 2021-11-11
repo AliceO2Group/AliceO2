@@ -32,7 +32,7 @@ namespace tof
 
 void DigitReader::init(InitContext& ic)
 {
-  LOG(INFO) << "Init Digit reader!";
+  LOG(DEBUG) << "Init Digit reader!";
   auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                                 ic.options().get<std::string>("tof-digit-infile"));
   mFile = std::make_unique<TFile>(filename.c_str(), "OLD");
@@ -63,10 +63,20 @@ void DigitReader::run(ProcessingContext& pc)
 
     treeDig->GetEntry(mCurrentEntry);
 
+    // fill diagnostic frequencies
+    mFiller.clearCounts();
+    for (auto digit : mDigits) {
+      mFiller.addCount(digit.getChannel());
+    }
+    mFiller.setReadoutWindowData(mRow, mPatterns);
+    mFiller.fillDiagnosticFrequency();
+    mDiagnostic = mFiller.getDiagnosticFrequency();
+
     // add digits loaded in the output snapshot
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, mRow);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe}, mPatterns);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe}, mDiagnostic);
     if (mUseMC) {
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
     }
@@ -94,6 +104,7 @@ DataProcessorSpec getDigitReaderSpec(bool useMC)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe);
   if (useMC) {
     outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }

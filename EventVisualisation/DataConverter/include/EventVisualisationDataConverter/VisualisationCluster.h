@@ -17,7 +17,7 @@
 #ifndef ALICE_O2_DATACONVERTER_VISUALISATIONCLUSTER_H
 #define ALICE_O2_DATACONVERTER_VISUALISATIONCLUSTER_H
 
-#include "EventVisualisationDataConverter/VisualisationTrack.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "rapidjson/document.h"
 
 #include <vector>
@@ -48,10 +48,14 @@ class VisualisationCluster
   float Z() const { return mCoordinates[2]; }
   float Time() const { return mTime; }
 
+  // GID  getter
+  int getSource() const { return mSource; }
+
  private:
   void setCoordinates(float xyz[3]);
   float mCoordinates[3]; /// Vector of cluster's coordinates
   float mTime;           /// time asociated with cluster
+  o2::dataformats::GlobalTrackID::Source mSource; /// data source of the cluster (debug)
 };
 } // namespace event_visualisation
 } // namespace o2

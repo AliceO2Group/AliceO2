@@ -61,14 +61,14 @@ DetID::mask_t DetID::getMask(const std::string_view detList)
   }
   return mask;
 }
-
+/*
 //_______________________________
-DetID::DetID(const char* name) : mID(nameToID(name, First))
+constexpr DetID::DetID(const char* name) : mID(nameToID(name, First))
 {
   // construct from the name
   assert(mID < nDetectors);
 }
-
+*/
 //_______________________________
 std::string DetID::getNames(DetID::mask_t mask, char delimiter)
 {

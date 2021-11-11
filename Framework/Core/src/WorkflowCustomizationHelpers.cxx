@@ -18,12 +18,16 @@ namespace
 {
 std::string defaultIPCFolder()
 {
+#ifdef __linux__
+  return "@";
+#else
   /// Find out a place where we can write the sockets
   char const* channelPrefix = getenv("TMPDIR");
   if (channelPrefix) {
     return std::string(channelPrefix);
   }
   return access("/tmp", W_OK) == 0 ? "/tmp" : ".";
+#endif
 }
 } // namespace
 
@@ -38,6 +42,9 @@ std::vector<ConfigParamSpec> WorkflowCustomizationHelpers::requiredWorkflowOptio
                                        ConfigParamSpec{"clone", VariantType::String, "", {"clone processors from a template"}},
                                        ConfigParamSpec{"labels", VariantType::String, "", {"add labels to dataprocessors"}},
                                        ConfigParamSpec{"workflow-suffix", VariantType::String, "", {"suffix to add to all dataprocessors"}},
+
+                                       // options for TF rate limiting
+                                       ConfigParamSpec{"timeframes-rate-limit-ipcid", VariantType::String, "-1", {"Suffix for IPC channel for metrix-feedback, -1 = disable"}},
 
                                        // options for AOD rate limiting
                                        ConfigParamSpec{"aod-memory-rate-limit", VariantType::Int64, 0LL, {"Rate limit AOD processing based on memory"}},

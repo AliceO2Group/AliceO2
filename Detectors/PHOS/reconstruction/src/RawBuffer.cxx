@@ -59,19 +59,3 @@ void RawBuffer::readFromMemoryBuffer(const gsl::span<const char> rawmemory)
     mDataWords[mNDataWords++] = address[iword];
   }
 }
-
-uint32_t RawBuffer::getWord(int index) const
-{
-  if (index >= mNDataWords) {
-    throw std::runtime_error("Index out of range");
-  }
-  return mDataWords[index];
-}
-
-uint32_t RawBuffer::getNextDataWord()
-{
-  if (!hasNext()) {
-    throw std::runtime_error("No more data words in buffer");
-  }
-  return mDataWords[mCurrentDataWord++];
-}

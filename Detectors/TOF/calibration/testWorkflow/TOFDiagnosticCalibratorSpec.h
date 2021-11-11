@@ -98,11 +98,11 @@ DataProcessorSpec getTOFDiagnosticCalibDeviceSpec()
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_Diagnostic"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_Diagnostic"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_Diagnostic"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_Diagnostic"}, Lifetime::Sporadic);
   return DataProcessorSpec{
     "tof-diagnostic-calibration",
-    Inputs{{"input", "TOF", "DIAGNOSTIC"}},
+    Inputs{{"input", "TOF", "DIAFREQ"}},
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{

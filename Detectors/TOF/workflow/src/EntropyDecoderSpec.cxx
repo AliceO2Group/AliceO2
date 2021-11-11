@@ -24,10 +24,11 @@ namespace o2
 namespace tof
 {
 
-EntropyDecoderSpec::EntropyDecoderSpec()
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
+  mCTFCoder.setVerbosity(verbosity);
 }
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
@@ -49,10 +50,23 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto& digits = pc.outputs().make<std::vector<Digit>>(OutputRef{"digits"});
   auto& row = pc.outputs().make<std::vector<ReadoutWindowData>>(OutputRef{"row"});
   auto& patterns = pc.outputs().make<std::vector<uint8_t>>(OutputRef{"patterns"});
+  //  auto& diagnostic = pc.outputs().make<o2::tof::Diagnostic>(OutputRef{"diafreq"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::tof::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, row, digits, patterns);
+  if (buff.size()) {
+    const auto ctfImage = o2::tof::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, row, digits, patterns);
+  }
+
+  // fill diagnostic frequencies
+  mFiller.clearCounts();
+  for (auto digit : digits) {
+    mFiller.addCount(digit.getChannel());
+  }
+  mFiller.setReadoutWindowData(row, patterns);
+  mFiller.fillDiagnosticFrequency();
+  auto diagnostic = mFiller.getDiagnosticFrequency();
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe}, diagnostic);
 
   mTimer.Stop();
   LOG(INFO) << "Decoded " << digits.size() << " digits in " << row.size() << " ROF in " << mTimer.CpuTime() - cput << " s";
@@ -64,19 +78,20 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec()
+DataProcessorSpec getEntropyDecoderSpec(int verbosity)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"digitheader"}, o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe},
     OutputSpec{{"digits"}, o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe},
     OutputSpec{{"row"}, o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe},
-    OutputSpec{{"patterns"}, o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe}};
+    OutputSpec{{"patterns"}, o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe},
+    OutputSpec{{"diafreq"}, o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe}};
 
   return DataProcessorSpec{
     "tof-entropy-decoder",
     Inputs{InputSpec{"ctf", o2::header::gDataOriginTOF, "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
 }
 

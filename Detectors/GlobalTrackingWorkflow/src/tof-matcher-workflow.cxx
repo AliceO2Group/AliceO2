@@ -24,12 +24,17 @@
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
 using GID = o2::dataformats::GlobalTrackID;
 // ------------------------------------------------------------------
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -45,8 +50,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"strict-matching", o2::framework::VariantType::Bool, false, {"High purity preliminary matching"}},
     {"output-type", o2::framework::VariantType::String, "matching-info,calib-info", {"matching-info, calib-info"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-
-  o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
   std::swap(workflowOptions, options);
 }
@@ -85,15 +88,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     useFIT = false;
   }
 
-  LOG(INFO) << "TOF MATCHER WORKFLOW configuration";
-  LOG(INFO) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");
-  LOG(INFO) << "TOF output = " << outputType;
-  LOG(INFO) << "TOF disable-mc = " << configcontext.options().get<std::string>("disable-mc");
-  LOG(INFO) << "TOF use-ccdb = " << useCCDB;
-  LOG(INFO) << "TOF use-fit = " << useFIT;
-  LOG(INFO) << "TOF disable-root-input = " << disableRootIn;
-  LOG(INFO) << "TOF disable-root-output = " << disableRootOut;
-  LOG(INFO) << "TOF matching in strict mode = " << strict;
+  LOG(DEBUG) << "TOF MATCHER WORKFLOW configuration";
+  LOG(DEBUG) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");
+  LOG(DEBUG) << "TOF output = " << outputType;
+  LOG(DEBUG) << "TOF disable-mc = " << configcontext.options().get<std::string>("disable-mc");
+  LOG(DEBUG) << "TOF use-ccdb = " << useCCDB;
+  LOG(DEBUG) << "TOF use-fit = " << useFIT;
+  LOG(DEBUG) << "TOF disable-root-input = " << disableRootIn;
+  LOG(DEBUG) << "TOF disable-root-output = " << disableRootOut;
+  LOG(DEBUG) << "TOF matching in strict mode = " << strict;
 
   //GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC");
   GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD");

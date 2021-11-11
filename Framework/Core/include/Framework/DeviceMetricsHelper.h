@@ -24,6 +24,7 @@
 
 namespace o2::framework
 {
+struct DriverInfo;
 
 struct DeviceMetricsHelper {
   /// Type of the callback which can be provided to be invoked every time a new
@@ -125,6 +126,8 @@ struct DeviceMetricsHelper {
     size_t metricIndex = bookNumericMetric<T>(metrics, name, newMetricsCallback);
     return getNumericMetricCursor<T>(metricIndex);
   }
+
+  static void updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> const& metricsInfos);
 };
 
 } // namespace o2::framework

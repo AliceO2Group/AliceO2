@@ -11,9 +11,6 @@
 
 o2_add_library(EventVisualisationBase
                SOURCES src/ConfigurationManager.cxx
-                       src/DataInterpreter.cxx
-                       src/DataReader.cxx
-                       src/DataSourceOffline.cxx
                        src/DataSourceOnline.cxx
                        src/GeometryManager.cxx
                        src/FileWatcher.cxx

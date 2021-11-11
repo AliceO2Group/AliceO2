@@ -8,7 +8,7 @@ fi
 MYDIR="$(dirname $(readlink -f $0))"
 source $MYDIR/setenv.sh
 
-ARGS_ALL="--session default --shm-throw-bad-alloc 0 --no-cleanup"
+ARGS_ALL="--session ${OVERRIDE_SESSION:-default} --shm-throw-bad-alloc 0 --no-cleanup"
 if [ $NUMAGPUIDS == 1 ]; then
   TMPSIZE=$(expr $DDSHMSIZE \* 1024 \* 1024)
   ARGS_ALL+=" --shm-segment-id 2 --shm-segment-size $TMPSIZE --shm-mlock-segment 1 --shm-zero-segment 1"

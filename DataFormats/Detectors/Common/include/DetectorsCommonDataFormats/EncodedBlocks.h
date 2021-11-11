@@ -109,6 +109,7 @@ struct Metadata {
   };
   size_t messageLength = 0;
   size_t nLiterals = 0;
+  uint8_t messageWordSize = 0;
   uint8_t coderType = 0;
   uint8_t streamSize = 0;
   uint8_t probabilityBits = 0;
@@ -123,6 +124,7 @@ struct Metadata {
   {
     min = max = 0;
     messageLength = 0;
+    messageWordSize = 0;
     nLiterals = 0;
     coderType = 0;
     streamSize = 0;
@@ -131,7 +133,7 @@ struct Metadata {
     nDataWords = 0;
     nLiteralWords = 0;
   }
-  ClassDefNV(Metadata, 1);
+  ClassDefNV(Metadata, 2);
 };
 
 /// registry struct for the buffer start and offsets of writable space
@@ -177,6 +179,10 @@ struct Block {
   inline W* getCreateDict() { return payload ? payload : getCreatePayload(); }
   inline W* getCreateData() { return payload ? (payload + nDict) : getCreatePayload(); }
   inline W* getCreateLiterals() { return payload ? payload + (nDict + nData) : getCreatePayload(); }
+
+  inline auto getOffsDict() { return reinterpret_cast<std::uintptr_t>(getCreateDict()) - reinterpret_cast<std::uintptr_t>(registry->head); }
+  inline auto getOffsData() { return reinterpret_cast<std::uintptr_t>(getCreateData()) - reinterpret_cast<std::uintptr_t>(registry->head); }
+  inline auto getOffsLiterals() { return reinterpret_cast<std::uintptr_t>(getCreateLiterals()) - reinterpret_cast<std::uintptr_t>(registry->head); }
 
   inline void setNDict(int _ndict)
   {
@@ -436,7 +442,8 @@ class EncodedBlocks
   static std::vector<char> createDictionaryBlocks(const std::vector<o2::rans::FrequencyTable>& vfreq, const std::vector<Metadata>& prbits);
 
   /// print itself
-  void print(const std::string& prefix = "") const;
+  void print(const std::string& prefix = "", int verbosity = 1) const;
+  void dump(const std::string& prefix = "", int ncol = 20) const;
 
  protected:
   static_assert(N > 0, "number of encoded blocks < 1");
@@ -703,13 +710,25 @@ inline auto EncodedBlocks<H, N, W>::create(VD& v)
 ///_____________________________________________________________________________
 /// print itself
 template <typename H, int N, typename W>
-void EncodedBlocks<H, N, W>::print(const std::string& prefix) const
+void EncodedBlocks<H, N, W>::print(const std::string& prefix, int verbosity) const
 {
-  LOG(INFO) << prefix << "Container of " << N << " blocks, size: " << size() << " bytes, unused: " << getFreeSize();
-  for (int i = 0; i < N; i++) {
-    LOG(INFO) << "Block " << i << " for " << mMetadata[i].messageLength << " message words |"
-              << " NDictWords: " << mBlocks[i].getNDict() << " NDataWords: " << mBlocks[i].getNData()
-              << " NLiteralWords: " << mBlocks[i].getNLiterals();
+  if (verbosity > 0) {
+    LOG(INFO) << prefix << "Container of " << N << " blocks, size: " << size() << " bytes, unused: " << getFreeSize();
+    for (int i = 0; i < N; i++) {
+      LOG(INFO) << "Block " << i << " for " << mMetadata[i].messageLength << " message words of " << mMetadata[i].messageWordSize << " bytes |"
+                << " NDictWords: " << mBlocks[i].getNDict() << " NDataWords: " << mBlocks[i].getNData()
+                << " NLiteralWords: " << mBlocks[i].getNLiterals();
+    }
+  } else if (verbosity == 0) {
+    size_t inpSize = 0, ndict = 0, ndata = 0, nlit = 0;
+    for (int i = 0; i < N; i++) {
+      inpSize += mMetadata[i].messageLength * mMetadata[i].messageWordSize;
+      ndict += mBlocks[i].getNDict();
+      ndata += mBlocks[i].getNData();
+      nlit += mBlocks[i].getNLiterals();
+    }
+    LOG(INFO) << prefix << N << " blocks, input size: " << inpSize << ", output size: " << size()
+              << " NDictWords: " << ndict << " NDataWords: " << ndata << " NLiteralWords: " << nlit;
   }
 }
 
@@ -812,7 +831,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
 
   // case 1: empty source message
   if (messageLength == 0) {
-    mMetadata[slot] = Metadata{0, 0, sizeof(ransState_t), sizeof(ransStream_t), symbolTablePrecision, Metadata::OptStore::NODATA, 0, 0, 0, 0, 0};
+    mMetadata[slot] = Metadata{0, 0, sizeof(input_t), sizeof(ransState_t), sizeof(ransStream_t), symbolTablePrecision, Metadata::OptStore::NODATA, 0, 0, 0, 0, 0};
     return;
   }
 
@@ -860,6 +879,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     //store dictionary first
     if (frequencyTable.size()) {
       thisBlock->storeDict(frequencyTable.size(), frequencyTable.data());
+      LOGP(DEBUG, "StoreDict {} bytes, offs: {}:{}", frequencyTable.size() * sizeof(W), thisBlock->getOffsDict(), thisBlock->getOffsDict() + frequencyTable.size() * sizeof(W));
     }
     // vector of incompressible literal symbols
     std::vector<input_t> literals;
@@ -871,6 +891,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     dataSize = encodedMessageEnd - thisBlock->getDataPointer();
     thisBlock->setNData(dataSize);
     thisBlock->realignBlock();
+    LOGP(DEBUG, "StoreData {} bytes, offs: {}:{}", dataSize * sizeof(W), thisBlock->getOffsData(), thisBlock->getOffsData() + dataSize * sizeof(W));
     // update the size claimed by encode message directly inside the block
 
     // store incompressible symbols if any
@@ -885,6 +906,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
         const size_t nLiteralStorageElems = calculateNDestTElements<input_t, storageBuffer_t>(nSymbols);
         expandStorage(nLiteralStorageElems);
         thisBlock->storeLiterals(nLiteralStorageElems, reinterpret_cast<const storageBuffer_t*>(literals.data()));
+        LOGP(DEBUG, "StoreLiterals {} bytes, offs: {}:{}", nLiteralStorageElems * sizeof(W), thisBlock->getOffsLiterals(), thisBlock->getOffsLiterals() + nLiteralStorageElems * sizeof(W));
         return nLiteralStorageElems;
       }
       return size_t(0);
@@ -892,6 +914,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
 
     *thisMetadata = Metadata{messageLength,
                              nLiteralSymbols,
+                             sizeof(input_t),
                              sizeof(ransState_t),
                              sizeof(ransStream_t),
                              static_cast<uint8_t>(encoder->getSymbolTablePrecision()),
@@ -914,7 +937,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     expandStorage(nBufferElems);
     thisBlock->storeData(thisMetadata->nDataWords, reinterpret_cast<const storageBuffer_t*>(tmp.data()));
 
-    *thisMetadata = Metadata{messageLength, 0, sizeof(ransState_t), sizeof(storageBuffer_t), symbolTablePrecision, opt, 0, 0, 0, static_cast<int>(nBufferElems), 0};
+    *thisMetadata = Metadata{messageLength, 0, sizeof(input_t), sizeof(ransState_t), sizeof(storageBuffer_t), symbolTablePrecision, opt, 0, 0, 0, static_cast<int>(nBufferElems), 0};
   }
 }
 
@@ -945,6 +968,57 @@ std::vector<char> EncodedBlocks<H, N, W>::createDictionaryBlocks(const std::vect
     dictBlocks->mRegistry.nFilledBlocks++;
   }
   return std::move(vdict);
+}
+
+template <typename H, int N, typename W>
+void EncodedBlocks<H, N, W>::dump(const std::string& prefix, int ncol) const
+{
+  for (int ibl = 0; ibl < getNBlocks(); ibl++) {
+    const auto& blc = getBlock(ibl);
+    std::string ss;
+    LOGP(INFO, "{} Bloc:{} Dict: {} words", prefix, ibl, blc.getNDict());
+    const auto* ptr = blc.getDict();
+    for (int i = 0; i < blc.getNDict(); i++) {
+      if (i && (i % ncol) == 0) {
+        LOG(INFO) << ss;
+        ss.clear();
+      }
+      ss += fmt::format(" {:#010x}", ptr[i]);
+    }
+    if (!ss.empty()) {
+      LOG(INFO) << ss;
+      ss.clear();
+    }
+    LOG(INFO) << "\n";
+    LOGP(INFO, "{} Bloc:{} Data: {} words", prefix, ibl, blc.getNData());
+    ptr = blc.getData();
+    for (int i = 0; i < blc.getNData(); i++) {
+      if (i && (i % ncol) == 0) {
+        LOG(INFO) << ss;
+        ss.clear();
+      }
+      ss += fmt::format(" {:#010x}", ptr[i]);
+    }
+    if (!ss.empty()) {
+      LOG(INFO) << ss;
+      ss.clear();
+    }
+    LOG(INFO) << "\n";
+    LOGP(INFO, "{} Bloc:{} Literals: {} words", prefix, ibl, blc.getNLiterals());
+    ptr = blc.getData();
+    for (int i = 0; i < blc.getNLiterals(); i++) {
+      if (i && (i % 20) == 0) {
+        LOG(INFO) << ss;
+        ss.clear();
+      }
+      ss += fmt::format(" {:#010x}", ptr[i]);
+    }
+    if (!ss.empty()) {
+      LOG(INFO) << ss;
+      ss.clear();
+    }
+    LOG(INFO) << "\n";
+  }
 }
 
 } // namespace ctf

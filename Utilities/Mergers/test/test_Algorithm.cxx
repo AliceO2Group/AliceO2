@@ -63,7 +63,8 @@ BOOST_AUTO_TEST_CASE(MergerNotSupportedTObject)
 {
   TObjString* target = new TObjString("foo");
   TObjString* other = new TObjString("bar");
-  BOOST_CHECK_THROW(algorithm::merge(target, other), std::runtime_error);
+  algorithm::merge(target, other);
+  BOOST_CHECK(target->GetString() == "foo");
   delete target;
   delete other;
 }

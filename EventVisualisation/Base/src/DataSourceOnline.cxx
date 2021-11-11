@@ -21,8 +21,6 @@
 #include <TEveManager.h>
 #include <TFile.h>
 #include <TPRegexp.h>
-#include <TEveTrackPropagator.h>
-#include <TEveVSD.h>
 #include <TObject.h>
 
 namespace o2
@@ -30,15 +28,24 @@ namespace o2
 namespace event_visualisation
 {
 
-std::vector<std::pair<VisualisationEvent, std::string>> DataSourceOnline::getVisualisationList(int no)
+std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline::getVisualisationList(int no)
 {
-  std::vector<std::pair<VisualisationEvent, std::string>> res;
+  std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> res;
   if (no < getEventCount()) {
     assert(no >= 0);
-    VisualisationEvent vEvent;
+
     mFileWatcher.setCurrentItem(no);
-    vEvent.fromFile(mFileWatcher.currentFilePath());
-    res.push_back(std::make_pair(vEvent, gVisualisationGroupName[EVisualisationGroup::TPC]));
+    VisualisationEvent vEvent = this->mDataReader->getEvent(mFileWatcher.currentFilePath());
+
+    for(auto filter = EVisualisationGroup::ITS;
+        filter != EVisualisationGroup::NvisualisationGroups;
+        filter = static_cast<EVisualisationGroup>(static_cast<int>(filter) + 1)) {
+      auto filtered = VisualisationEvent(vEvent, filter);
+      res.push_back(std::make_pair(filtered, filter));  // we can switch on/off data
+    }
+
+    //res.push_back(std::make_pair(vEvent, EVisualisationGroup::ITS)); // temporary
+    //res.push_back(std::make_pair(vEvent, EVisualisationGroup::TPC)); // temporary
   }
   return res;
 }

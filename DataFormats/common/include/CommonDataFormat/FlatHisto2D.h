@@ -31,13 +31,13 @@ namespace o2
 namespace dataformats
 {
 
-/* 
+/*
   Fast 2D histo class which can be messages as
   FlatHisto2D<float> histo(nbinsX, xmin, xmax, nbinsY, ymin, ymax);
   histo.fill(...);
   pc.outputs().snapshot(Output{"Origin", "Desc", 0, Lifetime::Timeframe}, histo.getBase());
-  
-  and received (read only!) as 
+
+  and received (read only!) as
   const auto hdata = pc.inputs().get<gsl::span<float>>("histodata");
   FlatHisto2D<float> histoView;
   histoView.adoptExternal(hdata);
@@ -62,8 +62,10 @@ class FlatHisto2D
          NServiceSlots };
 
   FlatHisto2D() = default;
-  FlatHisto2D(int nbx, T xmin, T xmax, int nby, T ymin, T ymax);
+  FlatHisto2D(uint32_t nbx, T xmin, T xmax, uint32_t nby, T ymin, T ymax);
   FlatHisto2D(const gsl::span<const T> ext) { adoptExternal(ext); }
+  FlatHisto2D(const FlatHisto2D& src);
+
   void adoptExternal(const gsl::span<const T> ext);
   void init()
   {
@@ -72,9 +74,9 @@ class FlatHisto2D
     init(gsl::span<const T>(mContainer.data(), mContainer.size()));
   }
 
-  int getNBinsX() const { return mNBinsX; }
-  int getNBinsY() const { return mNBinsY; }
-  int getNBins() const { return getNBinsX() * getNBinsY(); }
+  uint32_t getNBinsX() const { return mNBinsX; }
+  uint32_t getNBinsY() const { return mNBinsY; }
+  uint32_t getNBins() const { return getNBinsX() * getNBinsY(); }
 
   T getXMin() const { return mXMin; }
   T getXMax() const { return mXMax; }
@@ -98,44 +100,44 @@ class FlatHisto2D
   bool isValidBin(uint32_t bin) const { return bin < getNBins(); }
   bool isBinEmpty(uint32_t bin) const { return getBinContent(bin) == 0; }
 
-  T getBinXStart(int i) const
+  T getBinXStart(uint32_t i) const
   {
     assert(i < getNBinsX());
     return getXMin() + i * getBinSizeX();
   }
 
-  T getBinXCenter(int i) const
+  T getBinXCenter(uint32_t i) const
   {
     assert(i < getNBinsX());
     return getXMin() + (i + 0.5) * getBinSizeX();
   }
 
-  T getBinXEnd(int i) const
+  T getBinXEnd(uint32_t i) const
   {
     assert(i < getNBinsX());
     return getXMin() + (i + 1) * getBinSizeX();
   }
 
-  T getBinYStart(int i) const
+  T getBinYStart(uint32_t i) const
   {
     assert(i < getNBinsY());
     return getYMin() + i * getBinSizeY();
   }
 
-  T getBinYCenter(int i) const
+  T getBinYCenter(uint32_t i) const
   {
     assert(i < getNBinsY());
     return getYMin() + (i + 0.5) * getBinSizeY();
   }
 
-  T getBinYEnd(int i) const
+  T getBinYEnd(uint32_t i) const
   {
     assert(i < getNBinsY());
     return getYMin() + (i + 1) * getBinSizeY();
   }
 
-  int getXBin(uint32_t i) const { return i / getNBinsY(); }
-  int getYBin(uint32_t i) const { return i % getNBinsY(); }
+  uint32_t getXBin(uint32_t i) const { return i / getNBinsY(); }
+  uint32_t getYBin(uint32_t i) const { return i % getNBinsY(); }
 
   void add(const FlatHisto2D& other);
 
@@ -166,7 +168,7 @@ class FlatHisto2D
     uint32_t bin = getBin(x, y);
     if (isValidBin(bin)) {
       mDataPtr[bin]++;
-      return bin;
+      return (int)bin;
     }
     return -1;
   }
@@ -176,7 +178,7 @@ class FlatHisto2D
     uint32_t bin = getBin(x, y);
     if (isValidBin(bin)) {
       mDataPtr[bin] += w;
-      return bin;
+      return (int)bin;
     }
     return -1;
   }
@@ -222,19 +224,19 @@ class FlatHisto2D
 
   gsl::span<const T> getSliceY(uint32_t binX) const
   {
-    int offs = binX * getNBinsY();
+    uint32_t offs = binX * getNBinsY();
     return binX < getNBinsX() ? gsl::span<const T>(&mDataPtr[offs], getNBinsY()) : gsl::span<const T>();
   }
 
   std::unique_ptr<TH2F> createTH2F(const std::string& name = "histo2d");
 
-  std::unique_ptr<TH1F> createSliceXTH1F(uint32_t binX, const std::string& name = "histo2dsliceX") const;
+  std::unique_ptr<TH1F> createSliceXTH1F(uint32_t binY, const std::string& name = "histo2dsliceX") const;
   std::unique_ptr<TH1F> createSliceYTH1F(uint32_t binX, const std::string& name = "histo2dsliceY") const;
 
   const std::vector<T>& getBase() const { return mContainer; }
   gsl::span<const T> getView() const { return mContainerView; }
 
-  int getGlobalBin(uint32_t binX, uint32_t binY) const { return binX * getNBinsY() + binY; }
+  uint32_t getGlobalBin(uint32_t binX, uint32_t binY) const { return binX * getNBinsY() + binY; }
 
  protected:
   void init(const gsl::span<const T> ext);
@@ -250,11 +252,11 @@ class FlatHisto2D
   T mBinSizeY{};                     //!
   T mBinSizeXInv{};                  //!
   T mBinSizeYInv{};                  //!
-  int mNBinsX{};                     //!
-  int mNBinsY{};                     //!
-  int mNBins{};                      //!
+  uint32_t mNBinsX{};                //!
+  uint32_t mNBinsY{};                //!
+  uint32_t mNBins{};                 //!
 
-  ClassDefNV(FlatHisto2D, 1);
+  ClassDefNV(FlatHisto2D, 2);
 };
 
 using FlatHisto2D_f = FlatHisto2D<float>;

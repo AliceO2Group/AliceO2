@@ -91,7 +91,7 @@ DataProcessorSpec getTrackMatcherSpec(const char* name)
     name,
     Inputs{InputSpec{"mchrofs", "MCH", "TRACKROFS", 0, Lifetime::Timeframe},
            InputSpec{"mchtracks", "MCH", "TRACKS", 0, Lifetime::Timeframe},
-           InputSpec{"midrofs", "MID", "TRACKSROF", 0, Lifetime::Timeframe},
+           InputSpec{"midrofs", "MID", "TRACKROFS", 0, Lifetime::Timeframe},
            InputSpec{"midtracks", "MID", "TRACKS", 0, Lifetime::Timeframe}},
     Outputs{OutputSpec{{"muontracks"}, "GLO", "MCHMID", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<TrackMatcherTask>()},

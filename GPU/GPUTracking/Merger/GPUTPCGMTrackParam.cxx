@@ -313,7 +313,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
         ihitStart = ihit;
         float dy = mP[0] - prop.Model().Y();
         float dz = mP[1] - prop.Model().Z();
-        if (CAMath::Abs(mP[4]) > 10 && --resetT0 <= 0 && CAMath::Abs(mP[2]) < 0.15f && dy * dy + dz * dz > 1) {
+        if (CAMath::Abs(mP[4]) * merger->Param().par.qptB5Scaler > 10 && --resetT0 <= 0 && CAMath::Abs(mP[2]) < 0.15f && dy * dy + dz * dz > 1) {
           CADEBUG(printf("Reinit linearization\n"));
           prop.SetTrack(this, prop.GetAlpha());
         }
@@ -347,7 +347,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
   }
   ConstrainSinPhi();
 
-  if (!(N + NTolerated >= GPUCA_TRACKLET_SELECTOR_MIN_HITS(mP[4]) && 2 * NTolerated <= CAMath::Max(10, N) && CheckNumericalQuality(covYYUpd))) {
+  if (!(N + NTolerated >= GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(mP[4] * merger->Param().par.qptB5Scaler) && 2 * NTolerated <= CAMath::Max(10, N) && CheckNumericalQuality(covYYUpd))) {
     return (false); // TODO: NTolerated should never become that large, check what is going wrong!
   }
   // TODO: we have looping tracks here with 0 accepted clusters in the primary leg. In that case we should refit the track using only the primary leg.
@@ -658,6 +658,7 @@ GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestr
   const GPUParam& GPUrestrict() param = Merger->Param();
   bool right;
   float dAlpha = toAlpha - prop.GetAlpha();
+  int sliceSide = slice >= (GPUCA_NSLICES / 2) ? (GPUCA_NSLICES / 2) : 0;
   if (CAMath::Abs(dAlpha) > 0.001f) {
     right = CAMath::Abs(dAlpha) < CAMath::Pi() ? (dAlpha > 0) : (dAlpha < 0);
   } else {
@@ -694,13 +695,11 @@ GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestr
     }
     if (slice != toSlice) {
       if (right) {
-        slice++;
-        if (slice >= 18) {
+        if (++slice >= sliceSide + 18) {
           slice -= 18;
         }
       } else {
-        slice--;
-        if (slice < 0) {
+        if (--slice < sliceSide) {
           slice += 18;
         }
       }

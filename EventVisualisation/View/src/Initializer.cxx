@@ -22,11 +22,11 @@
 #include "EventVisualisationBase/GeometryManager.h"
 #include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationView/MultiView.h"
-#include "EventVisualisationBase/VisualisationConstants.h"
-#include "EventVisualisationBase/DataSourceOffline.h"
+#include "EventVisualisationDataConverter/VisualisationConstants.h"
 #include "EventVisualisationView/EventManagerFrame.h"
 #include "EventVisualisationView/Options.h"
 #include "EventVisualisationDetectors/DataReaderJSON.h"
+#include <EventVisualisationBase/DataSourceOnline.h>
 
 #include "FairLogger.h"
 #include <TGTab.h>
@@ -35,6 +35,7 @@
 #include <TEveManager.h>
 #include <TRegexp.h>
 #include <TSystem.h>
+#include <TApplication.h>
 #include <TEveWindowManager.h>
 using namespace std;
 
@@ -55,16 +56,15 @@ void Initializer::setup()
   auto& eventManager = EventManager::getInstance();
   eventManager.setCdbPath(ocdbStorage);
 
-  eventManager.setDataSourceType(o2::event_visualisation::EventManager::SourceOnline);
   eventManager.Open();
 
-  if (Options::Instance()->json()) {
-    eventManager.getDataSource()->registerDetector(new DataReaderJSON(nullptr), EVisualisationGroup::JSON);
-  }
+  //if (Options::Instance()->json()) {
+  //  eventManager.getDataSource()->registerDetectorX(new DataReaderJSON(nullptr), EVisualisationGroup::JSON);
+  //}
 
-  GeometryManager::getInstance().setR2Geometry(std::string(settings.GetValue("simple.geom.default", "R3")).compare("R2") == 0);
+  eventManager.getDataSource()->registerReader(new DataReaderJSON());
+
   setupGeometry();
-
   gSystem->ProcessEvents();
   gEve->Redraw3D(true);
 
@@ -91,13 +91,14 @@ void Initializer::setup()
   // Temporary:
   // Later this will be triggered by button, and finally moved to configuration.
   gEve->AddEvent(&EventManager::getInstance());
-  eventManager.getDataSource()->refresh();
+  //eventManager.getDataSource()->refresh();
 
   if (Options::Instance()->online()) {
     frame->StartTimer();
   } else {
     frame->DoFirstEvent();
   }
+  gApplication->Connect("TEveBrowser", "CloseWindow()", "o2::event_visualisation::EventManagerFrame", frame, "DoTerminate()");
 }
 
 void Initializer::setupGeometry()
@@ -111,13 +112,9 @@ void Initializer::setupGeometry()
 
   //auto geometry_enabled = GeometryManager::getInstance().getR2Geometry()? R2Visualisation:R3Visualisation;
   for (int iDet = 0; iDet < NvisualisationGroups; ++iDet) {
-
-    if (!GeometryManager::getInstance().getR2Geometry()) {
-      if (!R3Visualisation[iDet]) {
-        continue;
-      }
+    if (!R3Visualisation[iDet]) {
+      continue;
     }
-
     EVisualisationGroup det = static_cast<EVisualisationGroup>(iDet);
     string detName = gVisualisationGroupName[det];
     LOG(INFO) << detName;

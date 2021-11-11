@@ -27,7 +27,7 @@ struct DeviceState;
 class ConfigParamRegistry;
 
 struct RouteConfigurator {
-  using CreationConfigurator = std::function<ExpirationHandler::Creator(DeviceState&, ConfigParamRegistry const&)>;
+  using CreationConfigurator = std::function<ExpirationHandler::Creator(DeviceState&, ServiceRegistry&, ConfigParamRegistry const&)>;
   using DanglingConfigurator = std::function<ExpirationHandler::Checker(DeviceState&, ConfigParamRegistry const&)>;
   using ExpirationConfigurator = std::function<ExpirationHandler::Handler(DeviceState&, ConfigParamRegistry const&)>;
 

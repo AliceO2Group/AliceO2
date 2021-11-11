@@ -21,7 +21,6 @@
 #include "Framework/StringHelpers.h"
 #include "Framework/Output.h"
 #include <string>
-#include "Framework/Logger.h"
 
 namespace o2::framework
 {
@@ -189,13 +188,13 @@ struct Spawns : TableTransform<typename aod::MetadataTrait<framework::pack_head_
     return expression_pack_t{};
   }
 
-  T* operator->()
+  typename T::table_t* operator->()
   {
     return table.get();
   }
-  T& operator*()
+  typename T::table_t const& operator*() const
   {
-    return *table.get();
+    return *table;
   }
 
   auto asArrowTable()
@@ -229,27 +228,35 @@ struct IndexExclusive {
 
     using rest_it_t = decltype(pack_from_tuple(iterators));
 
-    int32_t idx = -1;
-    auto setValue = [&](auto& x) -> bool {
+    auto setValue = [&](auto& x, int idx) -> bool {
       using type = std::decay_t<decltype(x)>;
       constexpr auto position = framework::has_type_at_v<type>(rest_it_t{});
 
-      lowerBound<Key>(idx, x);
-      if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
-        return false;
-      } else if (x.template getId<Key>() != idx) {
-        return false;
-      } else {
-        values[position] = x.globalIndex();
-        ++x;
+      if constexpr (std::is_same_v<framework::pack_element_t<position, framework::pack<std::decay_t<T>...>>, Key>) {
+        values[position] = idx;
         return true;
+      } else {
+        lowerBound<Key>(idx, x);
+        if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
+          return false;
+        } else if (x.template getId<Key>() != idx) {
+          return false;
+        } else {
+          values[position] = x.globalIndex();
+          ++x;
+          return true;
+        }
       }
     };
 
     auto first = std::get<first_t>(tables);
     for (auto& row : first) {
-      idx = row.template getId<Key>();
-
+      auto idx = -1;
+      if constexpr (std::is_same_v<first_t, Key>) {
+        idx = row.globalIndex();
+      } else {
+        idx = row.template getId<Key>();
+      }
       if (std::apply(
             [](auto&... x) {
               return ((x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) && ...);
@@ -260,7 +267,7 @@ struct IndexExclusive {
 
       auto result = std::apply(
         [&](auto&... x) {
-          std::array<bool, sizeof...(T)> results{setValue(x)...};
+          std::array<bool, sizeof...(T)> results{setValue(x, idx)...};
           return (results[framework::has_type_at_v<std::decay_t<decltype(x)>>(rest_it_t{})] && ...);
         },
         iterators);
@@ -341,8 +348,9 @@ struct IndexSparse {
 };
 
 /// This helper struct allows you to declare index tables to be created in a task
-template <typename T, typename IP = IndexSparse>
+template <typename T>
 struct Builds : TableTransform<typename aod::MetadataTrait<T>::metadata> {
+  using IP = std::conditional_t<aod::MetadataTrait<T>::metadata::exclusive, IndexExclusive, IndexSparse>;
   using Key = typename T::indexing_t;
   using H = typename T::first_t;
   using Ts = typename T::rest_t;
@@ -352,9 +360,9 @@ struct Builds : TableTransform<typename aod::MetadataTrait<T>::metadata> {
   {
     return table.get();
   }
-  T& operator*()
+  T const& operator*() const
   {
-    return *table.get();
+    return *table;
   }
 
   auto asArrowTable()
@@ -375,9 +383,6 @@ struct Builds : TableTransform<typename aod::MetadataTrait<T>::metadata> {
     return (this->table != nullptr);
   }
 };
-
-template <typename T>
-using BuildsExclusive = Builds<T, IndexExclusive>;
 
 /// This helper class allows you to declare things which will be created by a
 /// given analysis task. Currently wrapped objects are limited to be TNamed
@@ -448,7 +453,7 @@ struct OutputObj {
     s << std::hex << mTaskHash;
     s << std::hex << reinterpret_cast<uint64_t>(this);
     std::memcpy(desc.str, s.str().c_str(), 12);
-    return OutputSpec{OutputLabel{label}, "ATSK", desc, 0};
+    return OutputSpec{OutputLabel{label}, "ATSK", desc, 0, Lifetime::QA};
   }
 
   T* operator->()

@@ -29,6 +29,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"enable-calib-data", VariantType::Bool, false, {"produce GBT calibration stream (def: skip)"}},
     ConfigParamSpec{"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     ConfigParamSpec{"dataspec", VariantType::String, "", {"selection string for the input data, if not provided <DET>Raw:<DET>/RAWDATA with DET=ITS or MFT will be used"}},
+    ConfigParamSpec{"report-dds-collection-index", VariantType::Int, -1, {"number of dpl collection allowed to produce decoding report (-1 means no limit)"}},
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -64,6 +65,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     inp.origin = o2::header::gDataOriginITS;
     inp.deviceName = "its-stf-decoder";
   }
+
+  inp.allowReporting = true;
+  int repDDSColIdx = cfgc.options().get<int>("report-dds-collection-index");
+  if (repDDSColIdx != -1) {
+    char* colIdx = getenv("DDS_COLLECTION_INDEX");
+    int myIdx = colIdx ? atoi(colIdx) : -1;
+    inp.allowReporting = myIdx == repDDSColIdx;
+  }
+
   wf.emplace_back(o2::itsmft::getSTFDecoderSpec(inp));
 
   return wf;

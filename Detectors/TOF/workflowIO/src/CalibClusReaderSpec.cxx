@@ -28,7 +28,7 @@ namespace tof
 
 void CalibClusReader::init(InitContext& ic)
 {
-  LOG(INFO) << "Init Cluster reader!";
+  LOG(DEBUG) << "Init Cluster reader!";
   auto filename = ic.options().get<std::string>("tof-calclus-infile");
   connectTree(filename);
 }
@@ -67,7 +67,7 @@ void CalibClusReader::connectTree(const std::string& filename)
     mTree->SetBranchAddress("TOFTracks", &mPcosmicTrack);
     mTree->SetBranchAddress("TOFTracksSize", &mPcosmicTrackSize);
   }
-  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(DEBUG) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getCalibClusReaderSpec(bool isCosmics)

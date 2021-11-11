@@ -87,7 +87,7 @@ class HistogramRegistry
   };
 
  public:
-  HistogramRegistry(char const* const name = "histograms", std::vector<HistogramSpec> histSpecs = {}, OutputObjHandlingPolicy policy = OutputObjHandlingPolicy::AnalysisObject, bool sortHistos = true, bool createRegistryDir = false);
+  HistogramRegistry(char const* const name = "histograms", std::vector<HistogramSpec> histSpecs = {}, OutputObjHandlingPolicy policy = OutputObjHandlingPolicy::AnalysisObject, bool sortHistos = false, bool createRegistryDir = false);
 
   // functions to add histograms to the registry
   HistPtr add(const HistogramSpec& histSpec);
@@ -149,7 +149,7 @@ class HistogramRegistry
   HistPtr insertClone(const HistName& histName, const std::shared_ptr<T> originalHist);
 
   // helper function that checks if histogram name can be used in registry
-  void validateHistName(const char* name, const uint32_t hash);
+  void validateHistName(const std::string& name, const uint32_t hash);
 
   // helper function to find the histogram position in the registry
   template <typename T>

@@ -214,10 +214,10 @@ o2::framework::DataProcessorSpec o2::cpv::getGainCalibSpec(bool useCCDB, bool fo
 {
 
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_CalibParams"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_CalibParams"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_CalibParams"}, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_CalibParams"}, o2::framework::Lifetime::Sporadic);
 
-  outputs.emplace_back("CPV", "GAINDIFF", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("CPV", "GAINDIFF", 0, o2::framework::Lifetime::Sporadic);
 
   return o2::framework::DataProcessorSpec{"GainCalibSpec",
                                           o2::framework::select("A:CPV/RAWDATA"),

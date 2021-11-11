@@ -13,7 +13,7 @@ This module contains DPL worflow, which can be used to produce data (in JSON for
 before one starts steps described below, please verify that:
 * for `o2-eve-display` step you should:
   * start within the folder where simulated data was produced
-  * you need to store in the folder file ```ITSdictionary.bin``` (available from O2-2288 jira)
+  * you need to store in the folder file ```ITSdictionary.bin``` and ```MFSdictionary.bin``` (available from O2-2288 jira)
 * for `o2-eve` step you should:
   * have in the working folder:
     * `.o2eve_config` file (available from EventVisualisation/Scripts)

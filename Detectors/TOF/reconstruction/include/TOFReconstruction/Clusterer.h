@@ -23,6 +23,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "TOFCalibration/CalibTOFapi.h"
+#include "DataFormatsTOF/Diagnostic.h"
 
 namespace o2
 {
@@ -64,6 +65,16 @@ class Clusterer
   void setDeltaTforClustering(float val) { mDeltaTforClustering = val; }
   float getDeltaTforClustering() const { return mDeltaTforClustering; }
   std::vector<o2::tof::CalibInfoCluster>* getInfoFromCluster() { return &mCalibInfosFromCluster; }
+  void addDiagnostic(const Diagnostic& dia)
+  {
+    mDiagnosticFrequency.merge(&dia);
+    mDiagnosticFrequency.getNoisyMap(mIsNoisy);
+  };
+  void clearDiagnostic()
+  {
+    memset(mIsNoisy, 0, Geo::NCHANNELS * sizeof(mIsNoisy[0]));
+    mDiagnosticFrequency.clear();
+  }
 
  private:
   void calibrateStrip();
@@ -84,6 +95,8 @@ class Clusterer
 
   float mDeltaTforClustering = 5000; //! delta time (in ps) accepted for clustering
   bool mCalibFromCluster = false;    //! if producing calib from clusters
+  Diagnostic mDiagnosticFrequency;   //! diagnostic frquency in current TF
+  bool mIsNoisy[Geo::NCHANNELS];     //! noisy channel map
 
   std::vector<o2::tof::CalibInfoCluster> mCalibInfosFromCluster;
 };

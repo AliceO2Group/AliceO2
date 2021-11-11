@@ -59,7 +59,7 @@ class TOFChannelData
     LOG(INFO) << "Default c-tor, not to be used";
   }
 
-  TOFChannelData(int nb, float r, CalibTOFapi* cta, int nElsPerSector = o2::tof::Geo::NPADSXSECTOR) : mNBins(nb), mRange(r), mCalibTOFapi(cta), mNElsPerSector(nElsPerSector)
+  TOFChannelData(int nb, float r, CalibTOFapi* cta, int nElsPerSector = o2::tof::Geo::NPADSXSECTOR, bool perstrip = false) : mNBins(nb), mRange(r), mCalibTOFapi(cta), mNElsPerSector(nElsPerSector), mPerStrip(perstrip)
   {
     if (r <= 0. || nb < 1) {
       throw std::runtime_error("Wrong initialization of the histogram");
@@ -101,6 +101,8 @@ class TOFChannelData
 
   std::vector<int> getEntriesPerChannel() const { return mEntries; }
 
+  void doPerStrip(bool val = true) { mPerStrip = val; }
+
  private:
   float mRange = o2::tof::Geo::BC_TIME_INPS * 0.5;
   int mNBins = 1000;
@@ -110,6 +112,8 @@ class TOFChannelData
 
   CalibTOFapi* mCalibTOFapi = nullptr; // calibTOFapi to correct the t-text
   int mNElsPerSector = o2::tof::Geo::NPADSXSECTOR;
+
+  bool mPerStrip = false;
 
   ClassDefNV(TOFChannelData, 1);
 };
@@ -129,6 +133,8 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
   std::deque<o2::calibration::TimeSlot<o2::tof::TOFChannelData>>& getSlots() { return o2::calibration::TimeSlotCalibration<T, o2::tof::TOFChannelData>::getSlots(); }
 
  public:
+  void doPerStrip(bool val = true) { mPerStrip = val; }
+
   static double FuncDeltaOffset(double* x, double* params)
   {
     int i1 = int(x[0]) % 96;
@@ -149,7 +155,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
                                                              // since at max we parallelize the processing of the sectors,
                                                              // the number if sectors is what we use
 
-  TOFChannelCalibrator(int minEnt = 500, int nb = 1000, float r = 24400) : mMinEntries(minEnt), mNBins(nb), mRange(r)
+  TOFChannelCalibrator(int minEnt = 500, int nb = 1000, float r = 24400, bool perstrip = false) : mMinEntries(minEnt), mNBins(nb), mRange(r), mPerStrip(perstrip)
   {
     setStripFunction();
     for (int i = 0; i < NMAXTHREADS; ++i) {
@@ -193,7 +199,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
     auto& cont = getSlots();
     auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
     int nElements = mCalibWithCosmics ? NCOMBINSTRIP * Geo::NSTRIPXSECTOR : Geo::NPADSXSECTOR; // if we calibrate with cosmics, we pass the number of possible combinations per sector; otherwise, the number of pads per sector
-    slot.setContainer(std::make_unique<TOFChannelData>(mNBins, mRange, mCalibTOFapi, nElements));
+    slot.setContainer(std::make_unique<TOFChannelData>(mNBins, mRange, mCalibTOFapi, nElements, mPerStrip));
     return slot;
   }
 
@@ -261,6 +267,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
   int mNBins = 0;      // bins of the histogram with the t-text per channel
   float mRange = 0.;   // range of the histogram with the t-text per channel
   bool mTest = false;  // flag to be used when running in test mode: it simplify the processing (e.g. does not go through all channels)
+  bool mPerStrip = false;
 
   CalibTOFapi* mCalibTOFapi = nullptr; // CalibTOFapi needed to get the previous calibrations read from CCDB (do we need that it is a pointer?)
 
@@ -275,7 +282,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
 
   bool mCalibWithCosmics = false; // flag to indicate whether we are calibrating with cosmics
 
-  int mNThreads = 0; // number of threads from OpenMP
+  int mNThreads = 1; // number of threads from OpenMP
 
   std::string mStripOffsetFunction; // TLinear functon for fitting channel offset within the strip in cosmic data
 

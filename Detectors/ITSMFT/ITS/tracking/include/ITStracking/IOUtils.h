@@ -26,8 +26,10 @@
 #include "ITStracking/ROframe.h"
 #include "ITStracking/Label.h"
 #include "ITStracking/Road.h"
+#include "ITStracking/TrackingConfigParam.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ReconstructionDataFormats/BaseCluster.h"
+#include "ITSMFTReconstruction/ChipMappingITS.h"
 
 namespace o2
 {
@@ -67,6 +69,12 @@ void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
                             gsl::span<const unsigned char>::iterator& pattIt,
                             std::vector<o2::BaseCluster<float>>& output,
                             const itsmft::TopologyDictionary& dict);
+
+inline static const o2::itsmft::ChipMappingITS& getChipMappingITS()
+{
+  static const o2::itsmft::ChipMappingITS MP;
+  return MP;
+}
 
 std::vector<std::unordered_map<int, Label>> loadLabels(const int, const std::string&);
 void writeRoadsReport(std::ofstream&, std::ofstream&, std::ofstream&, const std::vector<std::vector<Road>>&,

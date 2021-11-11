@@ -29,6 +29,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ReconstructionDataFormats/Vertex.h"
+#include "ITSReconstruction/CookedConfigParam.h"
 
 using Point3Df = o2::math_utils::Point3D<float>;
 
@@ -59,6 +60,20 @@ class CookedTracker
   CookedTracker& operator=(const CookedTracker& tr) = delete;
   ~CookedTracker() = default;
 
+  void setConfigParams()
+  {
+    const auto& par = CookedConfigParam::Instance();
+    LOG(INFO) << " Setting configurable parameters...";
+
+    gzWin = par.zWin;
+    gminPt = par.minPt;
+    gmaxDCAxy = par.maxDCAxy;
+    gmaxDCAz = par.maxDCAz;
+    gSigma2 = par.sigma * par.sigma;
+    gRoadY = par.roadY;
+    gRoadZ = par.roadZ;
+    gminNumberOfClusters = par.minNumberOfClusters;
+  }
   void setParameters(const std::vector<float>& par)
   {
     gzWin = par[0];
@@ -68,7 +83,7 @@ class CookedTracker
     gSeedingLayer1 = par[5];
     gSeedingLayer2 = par[6];
     gSeedingLayer3 = par[7];
-    gSigma2 = par[8];
+    gSigma2 = par[8] * par[8];
     gmaxChi2PerCluster = par[9];
     gmaxChi2PerTrack = par[10];
     gRoadY = par[11];

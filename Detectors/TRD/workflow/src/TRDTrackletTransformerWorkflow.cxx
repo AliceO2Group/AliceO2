@@ -25,6 +25,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"Disable MC labels"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
+    {"timestamp", o2::framework::VariantType::Int, 555555, {"timestamp for CCDB calibration objects"}},
     {"filter-trigrec", o2::framework::VariantType::Bool, false, {"ignore interaction records without ITS data"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
@@ -41,6 +42,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // MC labels are passed through for the global tracking downstream
   // in case ROOT output is requested the tracklet labels are duplicated
   bool useMC = !configcontext.options().get<bool>("disable-mc");
+  int timestamp = configcontext.options().get<int>("timestamp");
 
   WorkflowSpec spec;
 
@@ -53,7 +55,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     o2::globaltracking::InputHelper::addInputSpecsIRFramesITS(configcontext, spec);
   }
 
-  spec.emplace_back(o2::trd::getTRDTrackletTransformerSpec(trigRecFilterActive));
+  spec.emplace_back(o2::trd::getTRDTrackletTransformerSpec(trigRecFilterActive, timestamp));
 
   if (!configcontext.options().get<bool>("disable-root-output")) {
     spec.emplace_back(o2::trd::getTRDCalibratedTrackletWriterSpec(useMC));

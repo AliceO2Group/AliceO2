@@ -20,6 +20,7 @@ export EPNPIPELINES=1
 export SYNCMODE=1
 export SHMTHROW=0
 export SEVERITY=error
+export IS_SIMULATED_DATA=1
 
 if [ $1 == "dd" ]; then
   export CMD=datadistribution.sh
@@ -49,7 +50,7 @@ fi
 
 rm -f /dev/shm/*fmq*
 
-tmux \
+tmux -L FST \
     new-session  "sleep  0; NUMAID=0 $MYDIR/dpl-workflow.sh $LOGCMD0; $ENDCMD" \; \
     split-window "sleep 45; NUMAID=1 $MYDIR/dpl-workflow.sh $LOGCMD1; $ENDCMD" \; \
     split-window "sleep 90; SEVERITY=debug numactl --interleave=all $MYDIR/$CMD; $KILLCMD $ENDCMD" \; \

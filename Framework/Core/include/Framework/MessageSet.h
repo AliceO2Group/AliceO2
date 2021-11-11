@@ -14,6 +14,7 @@
 #include "Framework/PartRef.h"
 #include <memory>
 #include <vector>
+#include <cassert>
 
 namespace o2
 {
@@ -22,56 +23,104 @@ namespace framework
 
 /// A set of associated inflight messages.
 struct MessageSet {
-  std::vector<PartRef> parts;
+  struct Index {
+    Index(size_t p, size_t s) : position(p), size(s) {}
+    size_t position = 0;
+    size_t size = 0;
+  };
+  std::vector<FairMQMessagePtr> messages;
+  std::vector<Index> index;
+
+  MessageSet()
+    : messages(), index()
+  {
+  }
+
+  template <typename F>
+  MessageSet(F getter, size_t size)
+    : messages(), index()
+  {
+    add(std::forward<F>(getter), size);
+  }
+
+  MessageSet(MessageSet&& other)
+    : messages(std::move(other.messages)), index(std::move(other.index))
+  {
+    other.clear();
+  }
+
+  MessageSet& operator=(MessageSet&& other)
+  {
+    if (&other == this) {
+      return *this;
+    }
+    messages = std::move(other.messages);
+    index = std::move(other.index);
+    other.clear();
+    return *this;
+  }
 
   size_t size() const
   {
-    return parts.size();
+    return index.size();
+  }
+
+  size_t getNumberOfPayloads(size_t part) const
+  {
+    return index[part].size;
   }
 
   void clear()
   {
-    parts.clear();
+    messages.clear();
+    index.clear();
   }
 
-  PartRef& operator[](size_t index)
+  // this is more or less legacy
+  void reset(PartRef&& ref)
   {
-    return parts[index];
+    clear();
+    add(std::move(ref));
   }
 
-  PartRef const& operator[](size_t index) const
+  void add(PartRef&& ref)
   {
-    return parts[index];
+    index.emplace_back(messages.size(), 1);
+    messages.emplace_back(std::move(ref.header));
+    messages.emplace_back(std::move(ref.payload));
   }
 
-  PartRef& at(size_t index)
+  template <typename F>
+  void add(F getter, size_t size)
   {
-    return parts.at(index);
+    index.emplace_back(messages.size(), size - 1);
+    for (size_t i = 0; i < size; ++i) {
+      messages.emplace_back(std::move(getter(i)));
+    }
   }
 
-  PartRef const& at(size_t index) const
+  FairMQMessagePtr& header(size_t partIndex)
   {
-    return parts.at(index);
+    return messages[index[partIndex].position];
   }
 
-  decltype(auto) begin()
+  FairMQMessagePtr& payload(size_t partIndex, size_t payloadIndex = 0)
   {
-    return parts.begin();
+    assert(partIndex < index.size());
+    assert(index[partIndex].position + payloadIndex + 1 < messages.size());
+    return messages[index[partIndex].position + payloadIndex + 1];
   }
 
-  decltype(auto) begin() const
+  FairMQMessagePtr const& header(size_t partIndex) const
   {
-    return parts.begin();
+    return messages[index[partIndex].position];
   }
 
-  decltype(auto) end()
+  FairMQMessagePtr const& payload(size_t partIndex, size_t payloadIndex = 0) const
   {
-    return parts.end();
-  }
-
-  decltype(auto) end() const
-  {
-    return parts.end();
+    assert(partIndex < index.size());
+    assert(index[partIndex].position + payloadIndex + 1 < messages.size());
+    return messages[index[partIndex].position + payloadIndex + 1];
   }
 };
 

@@ -80,6 +80,10 @@ void TFReaderSpec::init(o2f::InitContext& ic)
 //___________________________________________________________
 void TFReaderSpec::run(o2f::ProcessingContext& ctx)
 {
+  if (!mTFCounter) { // RS FIXME: this is a temporary hack to avoid late-starting devices to lose the input
+    LOG(WARNING) << "This is a hack, sleeping 10 s at startup";
+    usleep(10000000);
+  }
   if (!mDevice) {
     mDevice = ctx.services().get<o2f::RawDeviceService>().device();
     mOutputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs; // copy!!!
@@ -262,7 +266,7 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
       }
     }
 
-    spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2::header::gDataOriginFLP, "DISTSUBTIMEFRAME", 0});
+    spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0});
   } else {
     auto nameStart = rinp.rawChannelConfig.find("name=");
     if (nameStart == std::string::npos) {

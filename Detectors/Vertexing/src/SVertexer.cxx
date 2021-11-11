@@ -47,7 +47,11 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
 #endif
   for (int itp = 0; itp < ntrP; itp++) {
     auto& seedP = mTracksPool[POS][itp];
-    for (int itn = mVtxFirstTrack[NEG][seedP.vBracket.getMin()]; itn < ntrN; itn++) { // start from the 1st negative track of lowest-ID vertex of positive
+    int firstN = mVtxFirstTrack[NEG][seedP.vBracket.getMin()];
+    if (firstN < 0) {
+      continue;
+    }
+    for (int itn = firstN; itn < ntrN; itn++) { // start from the 1st negative track of lowest-ID vertex of positive
       auto& seedN = mTracksPool[NEG][itn];
       if (seedN.vBracket > seedP.vBracket) { // all vertices compatible with seedN are in future wrt that of seedP
         break;
@@ -69,7 +73,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     mCascadesTmp[i].clear();
   }
 #endif
-  LOG(INFO) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size();
+  LOG(DEBUG) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size();
 }
 
 //__________________________________________________________________
@@ -339,7 +343,11 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
   const auto& pv = mPVertices[v0.getVertexID()];
   int nCascIni = mCascadesTmp[ithread].size();
   // start from the 1st track compatible with V0's primary vertex
-  for (unsigned it = mVtxFirstTrack[posneg][v0.getVertexID()]; it < tracks.size(); it++) {
+  int firstTr = mVtxFirstTrack[posneg][v0.getVertexID()], nTr = tracks.size();
+  if (firstTr < 0) {
+    firstTr = nTr;
+  }
+  for (int it = firstTr; it < nTr; it++) {
     if (it == avoidTrackID) {
       continue; // skip the track used by V0
     }

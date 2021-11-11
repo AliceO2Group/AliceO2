@@ -18,24 +18,24 @@
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 
 #include <string>
 #include <stdexcept>
 #include <unordered_map>
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // add workflow options, note that customization needs to be declared before
 // including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"input-type", o2::framework::VariantType::String, "raw", {"digits, raw"}},
-    {"output-type", o2::framework::VariantType::String, "digits", {"digits, raw"}},
-    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information"}},
-    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
-    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
-    {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}},
-    {"ignore-dist-stf", o2::framework::VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}}};
-  o2::raw::HBFUtilsInitializer::addConfigOption(options);
+    {"ignore-dist-stf", o2::framework::VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
+    {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
 
@@ -58,13 +58,7 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
-  auto wf = o2::ctp::reco_workflow::getWorkflow(cfgc.options().get<bool>("disable-root-input"),
-                                                cfgc.options().get<bool>("disable-root-output"),
-                                                !cfgc.options().get<bool>("disable-mc"),
-                                                !cfgc.options().get<bool>("ignore-dist-stf"),  //
-                                                cfgc.options().get<std::string>("input-type"), //
-                                                cfgc.options().get<std::string>("output-type") //
-  );
+  auto wf = o2::ctp::reco_workflow::getWorkflow(!cfgc.options().get<bool>("ignore-dist-stf"));
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);
   return std::move(wf);

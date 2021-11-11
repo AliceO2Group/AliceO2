@@ -126,10 +126,10 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       // We check that no data is already there for the given cell
       // it is enough to check the first element
       auto& part = mCache[ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value];
-      if (part.size() > 0 && part[0].header != nullptr) {
+      if (part.size() > 0 && part.header(0) != nullptr) {
         continue;
       }
-      if (part.size() > 0 && part[0].payload != nullptr) {
+      if (part.size() > 0 && part.payload(0) != nullptr) {
         continue;
       }
       // We check that the cell can actually be expired.
@@ -145,16 +145,14 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
 
       assert(ti * mDistinctRoutesIndex.size() + expirator.routeIndex.value < mCache.size());
       assert(expirator.handler);
-      // expired, so we create one entry
-      if (part.size() == 0) {
-        part.parts.resize(1);
-      }
-      expirator.handler(services, part[0], variables);
+      PartRef newRef;
+      expirator.handler(services, newRef, variables);
+      part.reset(std::move(newRef));
       activity.expiredSlots++;
 
       mTimesliceIndex.markAsDirty(slot, true);
-      assert(part[0].header != nullptr);
-      assert(part[0].payload != nullptr);
+      assert(part.header(0) != nullptr);
+      assert(part.payload(0) != nullptr);
     }
   }
   return activity;
@@ -163,7 +161,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
 /// This does the mapping between a route and a InputSpec. The
 /// reason why these might diffent is that when you have timepipelining
 /// you have one route per timeslice, even if the type is the same.
-size_t matchToContext(void* data,
+size_t matchToContext(void const* data,
                       std::vector<DataDescriptorMatcher> const& matchers,
                       std::vector<size_t> const& index,
                       VariableContext& context)
@@ -203,19 +201,13 @@ void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
 }
 
 DataRelayer::RelayChoice
-  DataRelayer::relay(std::unique_ptr<FairMQMessage>& header,
-                     std::unique_ptr<FairMQMessage>& payload)
-{
-  return relay(header, &payload, 1);
-}
-
-DataRelayer::RelayChoice
-  DataRelayer::relay(std::unique_ptr<FairMQMessage>& firstPart,
-                     std::unique_ptr<FairMQMessage>* restOfParts,
-                     size_t restOfPartsSize)
+  DataRelayer::relay(void const* rawHeader,
+                     std::unique_ptr<FairMQMessage>* messages,
+                     size_t nMessages,
+                     size_t nPayloads)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
-  DataProcessingHeader const* dph = o2::header::get<DataProcessingHeader*>(firstPart->GetData());
+  DataProcessingHeader const* dph = o2::header::get<DataProcessingHeader*>(rawHeader);
   // STATE HOLDING VARIABLES
   // This is the class level state of the relaying. If we start supporting
   // multithreading this will have to be made thread safe before we can invoke
@@ -238,12 +230,12 @@ DataRelayer::RelayChoice
   // become more complicated when we will start supporting ranges.
   auto getInputTimeslice = [&matchers = mInputMatchers,
                             &distinctRoutes = mDistinctRoutesIndex,
-                            &firstPart,
+                            &rawHeader,
                             &index](VariableContext& context)
     -> std::tuple<int, TimesliceId> {
     /// FIXME: for the moment we only use the first context and reset
     /// between one invokation and the other.
-    auto input = matchToContext(firstPart->GetData(), matchers, distinctRoutes, context);
+    auto input = matchToContext(rawHeader, matchers, distinctRoutes, context);
 
     if (input == INVALID_INPUT) {
       return {
@@ -285,24 +277,24 @@ DataRelayer::RelayChoice
   };
 
   // Actually save the header / payload in the slot
-  auto saveInSlot = [&firstPart,
-                     &cachedStateMetrics = mCachedStateMetrics,
-                     &restOfParts,
-                     &restOfPartsSize,
+  auto saveInSlot = [&cachedStateMetrics = mCachedStateMetrics,
+                     &messages,
+                     &nMessages,
+                     &nPayloads,
                      &cache,
                      &numInputTypes,
                      &metrics](TimesliceId timeslice, int input, TimesliceSlot slot) {
     auto cacheIdx = numInputTypes * slot.index + input;
-    std::vector<PartRef>& parts = cache[cacheIdx].parts;
+    MessageSet& target = cache[cacheIdx];
     cachedStateMetrics[cacheIdx] = CacheEntryStatus::PENDING;
     // TODO: make sure that multiple parts can only be added within the same call of
     // DataRelayer::relay
-    PartRef entry{std::move(firstPart), std::move(restOfParts[0])};
-    parts.emplace_back(std::move(entry));
-    auto rest = restOfParts + 1;
-    for (size_t pi = 0; pi < (restOfPartsSize - 1) / 2; ++pi) {
-      PartRef entry{std::move(rest[pi * 2]), std::move(rest[pi * 2 + 1])};
-      parts.emplace_back(std::move(entry));
+    assert(nPayloads == 1);
+    assert(nMessages % 2 == 0);
+    for (size_t mi = 0; mi < nMessages; ++mi) {
+      assert(mi + nPayloads < nMessages);
+      target.add([&messages, &mi](size_t i) -> FairMQMessagePtr& { return messages[mi + i]; }, nPayloads + 1);
+      mi += nPayloads;
     }
   };
 
@@ -390,9 +382,10 @@ DataRelayer::RelayChoice
   VariableContext pristineContext;
   std::tie(input, timeslice) = getInputTimeslice(pristineContext);
 
-  auto DataHeaderInfo = [&firstPart]() {
+  auto DataHeaderInfo = [&rawHeader]() {
     std::string error;
-    const auto* dh = o2::header::get<o2::header::DataHeader*>(firstPart->GetData());
+    // extract header from message model
+    const auto* dh = o2::header::get<o2::header::DataHeader*>(rawHeader);
     if (dh) {
       error += fmt::format("{}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification);
     } else {
@@ -405,10 +398,8 @@ DataRelayer::RelayChoice
     LOG(ERROR) << "Could not match incoming data to any input route: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
-    firstPart.reset(nullptr);
-    for (size_t pi = 0; pi < restOfPartsSize; ++pi) {
-      auto& payload = restOfParts[pi];
-      payload.reset(nullptr);
+    for (size_t pi = 0; pi < nMessages; ++pi) {
+      messages[pi].reset(nullptr);
     }
     return Invalid;
   }
@@ -417,10 +408,8 @@ DataRelayer::RelayChoice
     LOG(ERROR) << "Could not determine the timeslice for input: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
-    firstPart.reset(nullptr);
-    for (size_t pi = 0; pi < restOfPartsSize; ++pi) {
-      auto& payload = restOfParts[pi];
-      payload.reset(nullptr);
+    for (size_t pi = 0; pi < nMessages; ++pi) {
+      messages[pi].reset(nullptr);
     }
     return Invalid;
   }
@@ -447,10 +436,8 @@ DataRelayer::RelayChoice
       LOG(WARNING) << "Incoming data is invalid, not relaying.";
       mStats.malformedInputs++;
       mStats.droppedIncomingMessages++;
-      firstPart.reset(nullptr);
-      for (size_t pi = 0; pi < restOfPartsSize; ++pi) {
-        auto& payload = restOfParts[pi];
-        payload.reset(nullptr);
+      for (size_t pi = 0; pi < nMessages; ++pi) {
+        messages[pi].reset(nullptr);
       }
       return Invalid;
     case TimesliceIndex::ActionTaken::ReplaceUnused:
@@ -518,13 +505,16 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       continue;
     }
     auto partial = getPartialRecord(li);
+    // TODO: get the data ref from message model
     auto getter = [&partial](size_t idx, size_t part) {
-      if (partial[idx].size() > 0 && partial[idx].at(part).header && partial[idx].at(part).payload) {
+      if (partial[idx].size() > 0 && partial[idx].header(part).get()) {
+        auto header = partial[idx].header(part).get();
+        auto payload = partial[idx].payload(part).get();
         return DataRef{nullptr,
-                       reinterpret_cast<const char*>(partial[idx].at(part).header->GetData()),
-                       reinterpret_cast<const char*>(partial[idx].at(part).payload->GetData())};
+                       reinterpret_cast<const char*>(header->GetData()),
+                       reinterpret_cast<const char*>(payload ? payload->GetData() : nullptr)};
       }
-      return DataRef{};
+      return DataRef{nullptr, nullptr, nullptr};
     };
     auto nPartsGetter = [&partial](size_t idx) {
       return partial[idx].size();
@@ -533,6 +523,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     auto action = mCompletionPolicy.callback(span);
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
+      case CompletionPolicy::CompletionOp::ConsumeExisting:
       case CompletionPolicy::CompletionOp::Process:
       case CompletionPolicy::CompletionOp::Discard:
         updateCompletionResults(slot, action);
@@ -565,7 +556,7 @@ void DataRelayer::updateCacheStatus(TimesliceSlot slot, CacheEntryStatus oldStat
   }
 }
 
-std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(TimesliceSlot slot)
+std::vector<o2::framework::MessageSet> DataRelayer::consumeAllInputsForTimeslice(TimesliceSlot slot)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
@@ -604,7 +595,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(Timesl
   // FIXME: what happens when we have enough timeslices to hit the invalid one?
   auto invalidateCacheFor = [&numInputTypes, &cachedStateMetrics = mCachedStateMetrics, &index, &cache](TimesliceSlot s) {
     for (size_t ai = s.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
-      assert(std::accumulate(cache[ai].begin(), cache[ai].end(), true, [](bool result, auto const& element) { return result && element.header.get() == nullptr && element.payload.get() == nullptr; }));
+      assert(std::accumulate(cache[ai].messages.begin(), cache[ai].messages.end(), true, [](bool result, auto const& element) { return result && element.get() == nullptr; }));
       cache[ai].clear();
     }
     index.markAsInvalid(s);
@@ -616,6 +607,50 @@ std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(Timesl
     moveHeaderPayloadToOutput(slot, ai);
   }
   invalidateCacheFor(slot);
+
+  return std::move(messages);
+}
+
+std::vector<o2::framework::MessageSet> DataRelayer::consumeExistingInputsForTimeslice(TimesliceSlot slot)
+{
+  std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+
+  const auto numInputTypes = mDistinctRoutesIndex.size();
+  // State of the computation
+  std::vector<MessageSet> messages(numInputTypes);
+  auto& cache = mCache;
+  auto& index = mTimesliceIndex;
+  auto& metrics = mMetrics;
+
+  // Nothing to see here, this is just to make the outer loop more understandable.
+  auto jumpToCacheEntryAssociatedWith = [](TimesliceSlot) {
+    return;
+  };
+
+  // We move ownership so that the cache can be reused once the computation is
+  // finished. We mark the given cache slot invalid, so that it can be reused
+  // This means we can still handle old messages if there is still space in the
+  // cache where to put them.
+  auto copyHeaderPayloadToOutput = [&messages,
+                                    &cachedStateMetrics = mCachedStateMetrics,
+                                    &cache, &index, &numInputTypes, &metrics](TimesliceSlot s, size_t arg) {
+    auto cacheId = s.index * numInputTypes + arg;
+    cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
+    // TODO: in the original implementation of the cache, there have been only two messages per entry,
+    // check if the 2 above corresponds to the number of messages.
+    for (size_t pi = 0; pi < cache[cacheId].size(); pi++) {
+      auto& header = cache[cacheId].header(pi);
+      auto&& newHeader = header->GetTransport()->CreateMessage();
+      newHeader->Copy(*header);
+      messages[arg].add(PartRef{std::move(newHeader), std::move(cache[cacheId].payload(pi))});
+    }
+  };
+
+  // Outer loop here.
+  jumpToCacheEntryAssociatedWith(slot);
+  for (size_t ai = 0, ae = numInputTypes; ai != ae; ++ai) {
+    copyHeaderPayloadToOutput(slot, ai);
+  }
 
   return std::move(messages);
 }
@@ -656,6 +691,9 @@ void DataRelayer::publishMetrics()
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
   auto numInputTypes = mDistinctRoutesIndex.size();
+  // FIXME: many of the DataRelayer function rely on allocated cache, so its
+  // maybe misleading to have the allocation in a function primarily for
+  // metrics publishing, do better in setPipelineLength?
   mCache.resize(numInputTypes * mTimesliceIndex.size());
   mMetrics.send({(int)numInputTypes, "data_relayer/h", Verbosity::Debug});
   mMetrics.send({(int)mTimesliceIndex.size(), "data_relayer/w", Verbosity::Debug});

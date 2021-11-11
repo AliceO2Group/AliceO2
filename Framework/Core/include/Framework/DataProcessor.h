@@ -30,7 +30,6 @@ struct DataProcessor {
   static void doSend(FairMQDevice&, StringContext&, ServiceRegistry&);
   static void doSend(FairMQDevice&, ArrowContext&, ServiceRegistry&);
   static void doSend(FairMQDevice&, RawBufferContext&, ServiceRegistry&);
-  static void doSend(FairMQDevice&, FairMQParts&&, const char*, unsigned int);
 };
 
 } // namespace o2::framework

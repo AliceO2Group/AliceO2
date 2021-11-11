@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/DeviceMetricsHelper.h"
+#include "Framework/DriverInfo.h"
 #include "Framework/RuntimeError.h"
 #include <cassert>
 #include <cinttypes>
@@ -21,6 +22,7 @@
 #include <tuple>
 #include <iostream>
 #include <limits>
+#include <unordered_set>
 
 namespace o2::framework
 {
@@ -330,6 +332,23 @@ size_t DeviceMetricsHelper::metricIdxByName(const std::string& name, const Devic
     ++i;
   }
   return i;
+}
+
+void DeviceMetricsHelper::updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> const& metricsInfos)
+{
+  // Calculate the unique set of metrics, as available in the metrics service
+  static std::unordered_set<std::string> allMetricsNames;
+  for (const auto& metricsInfo : metricsInfos) {
+    for (const auto& labelsPairs : metricsInfo.metricLabels) {
+      allMetricsNames.insert(std::string(labelsPairs.label));
+    }
+  }
+  for (const auto& labelsPairs : driverInfo.metrics.metricLabels) {
+    allMetricsNames.insert(std::string(labelsPairs.label));
+  }
+  std::vector<std::string> result(allMetricsNames.begin(), allMetricsNames.end());
+  std::sort(result.begin(), result.end());
+  driverInfo.availableMetrics.swap(result);
 }
 
 } // namespace o2::framework

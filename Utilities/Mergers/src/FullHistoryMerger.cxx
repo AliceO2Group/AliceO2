@@ -17,12 +17,12 @@
 #include "Mergers/FullHistoryMerger.h"
 #include "Mergers/MergerAlgorithm.h"
 #include "Mergers/MergerBuilder.h"
-#include "Mergers/MergeInterface.h"
 
 #include "Headers/DataHeader.h"
 #include "Framework/InputRecordWalker.h"
 #include "Framework/Logger.h"
 #include <Monitoring/MonitoringFactory.h>
+#include <InfoLogger/InfoLogger.hxx>
 
 using namespace o2::header;
 using namespace o2::framework;
@@ -49,6 +49,15 @@ void FullHistoryMerger::init(framework::InitContext& ictx)
   mCyclesSinceReset = 0;
   mCollector = monitoring::MonitoringFactory::Get(mConfig.monitoringUrl);
   mCollector->addGlobalTag(monitoring::tags::Key::Subsystem, monitoring::tags::Value::Mergers);
+
+  // set detector field in infologger
+  AliceO2::InfoLogger::InfoLoggerContext* ilContext = nullptr;
+  try {
+    ilContext = &ictx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
+  } catch (const RuntimeErrorRef& err) {
+    LOG(WARN) << "Could not find the DPL InfoLogger Context.";
+  }
+  ilContext->setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, mConfig.detectorName);
 }
 
 void FullHistoryMerger::run(framework::ProcessingContext& ctx)

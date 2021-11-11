@@ -19,6 +19,8 @@
 #include "Mergers/MergerAlgorithm.h"
 #include "Mergers/MergerBuilder.h"
 
+#include <InfoLogger/InfoLogger.hxx>
+
 #include <Monitoring/MonitoringFactory.h>
 
 #include "Framework/InputRecordWalker.h"
@@ -40,6 +42,15 @@ void IntegratingMerger::init(framework::InitContext& ictx)
   mCyclesSinceReset = 0;
   mCollector = monitoring::MonitoringFactory::Get(mConfig.monitoringUrl);
   mCollector->addGlobalTag(monitoring::tags::Key::Subsystem, monitoring::tags::Value::Mergers);
+
+  // set detector field in infologger
+  AliceO2::InfoLogger::InfoLoggerContext* ilContext = nullptr;
+  try {
+    ilContext = &ictx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
+  } catch (const RuntimeErrorRef& err) {
+    LOG(WARN) << "Could not find the DPL InfoLogger Context.";
+  }
+  ilContext->setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, mConfig.detectorName);
 }
 
 void IntegratingMerger::run(framework::ProcessingContext& ctx)

@@ -17,6 +17,7 @@ o2_add_library(Framework
                        src/AnalysisHelpers.cxx
                        src/AnalysisDataModelHelpers.cxx
                        src/BoostOptionsRetriever.cxx
+                       src/CallbacksPolicy.cxx
                        src/ChannelConfigurationPolicy.cxx
                        src/ChannelMatching.cxx
                        src/ChannelConfigurationPolicyHelpers.cxx
@@ -45,6 +46,7 @@ o2_add_library(Framework
                        src/DataProcessingDevice.cxx
                        src/DataProcessingHeader.cxx
                        src/DataProcessingHelpers.cxx
+                       src/DataProcessorMatchers.cxx
                        src/DataRefUtils.cxx
                        src/SourceInfoHeader.cxx
                        src/DataProcessor.cxx
@@ -302,6 +304,7 @@ foreach(w
         SingleDataSource
         Task
         ExternalFairMQDeviceWorkflow
+        VariablePayloadSequenceWorkflow
         )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx

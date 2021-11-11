@@ -104,6 +104,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
 
   GPUd() bool update(const dim2_t& p, const dim3_t& cov);
   GPUd() bool update(const value_t* p, const value_t* cov);
+  GPUd() value_T update(const o2::dataformats::VertexBase& vtx, value_T maxChi2 = 1e15);
 
   template <typename T>
   GPUd() bool update(const BaseCluster<T>& p);

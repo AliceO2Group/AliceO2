@@ -61,6 +61,15 @@ enum ForwardTrackTypeEnum : uint8_t {
 };
 } // namespace o2::aod::fwdtrack
 
+namespace o2::aod::mcparticle::enums
+{
+enum MCParticleFlags : uint8_t {
+  ProducedByTransport = 0x1,
+  FromBackgroundEvent = 0x2, // Particle from background event (may have been used several times)
+  PhysicalPrimary = 0x4      // Particle is a physical primary according to ALICE definition
+};
+} // namespace o2::aod::mcparticle::enums
+
 namespace o2::aod::run2
 {
 enum Run2EventSelectionCut {

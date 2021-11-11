@@ -41,8 +41,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
   auto& compclusters = pc.outputs().make<std::vector<char>>(OutputRef{"output"});
-  const auto ctfImage = o2::tpc::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, compclusters);
+  if (buff.size()) {
+    const auto ctfImage = o2::tpc::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, compclusters);
+  }
 
   mTimer.Stop();
   LOG(INFO) << "Decoded " << buff.size() * sizeof(o2::ctf::BufferType) << " encoded bytes to "
@@ -55,13 +57,13 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec()
+DataProcessorSpec getEntropyDecoderSpec(int verbosity)
 {
   return DataProcessorSpec{
     "tpc-entropy-decoder",
     Inputs{InputSpec{"ctf", "TPC", "CTFDATA", 0, Lifetime::Timeframe}},
     Outputs{OutputSpec{{"output"}, "TPC", "COMPCLUSTERSFLAT", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
 }
 

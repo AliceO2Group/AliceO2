@@ -229,6 +229,20 @@ class ChipMappingITS
     return sid + ruOnLr;
   }
 
+  static constexpr int getLayer(int chipSW)
+  {
+    int i = 0;
+    do {
+      if (chipSW < FirstChipsOnLr[i]) {
+        break;
+      }
+    } while (++i < NLayers);
+    return i;
+  }
+
+  static constexpr int getNChipsOnLayer(int lr) { return NChipsOnLr[lr]; }
+  static constexpr int getFirstChipsOnLayer(int lr) { return FirstChipsOnLr[lr]; }
+
   // sub-barrel types, their number, N layers, Max N GBT Links per RU
   static constexpr int IB = 0, MB = 1, OB = 2, NSubB = 3, NLayers = 7, NLinks = 3;
 
@@ -255,6 +269,12 @@ class ChipMappingITS
 
   ///< number of staves per layer
   static constexpr std::array<int, NLayers> FirstStaveOnLr = {0, 12, 28, 48, 72, 102, 144};
+
+  ///< number of chips per layer
+  static constexpr std::array<int, NLayers> NChipsOnLr = {108, 144, 180, 2688, 3360, 8232, 144};
+
+  ///< 1st chipID on layer
+  static constexpr std::array<int, NLayers> FirstChipsOnLr = {0, 108, 252, 432, 3120, 6480, 9408};
 
   ///< RU types for each layer
   static constexpr std::array<uint8_t, NLayers> RUTypeLr = {IB, IB, IB, MB, MB, OB, OB};

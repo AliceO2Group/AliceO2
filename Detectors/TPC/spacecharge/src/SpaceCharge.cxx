@@ -22,6 +22,7 @@
 #include "Framework/Logger.h"
 #include "TGeoGlobalMagField.h"
 #include "TPCBase/ParameterGas.h"
+#include "TPCBase/ParameterElectronics.h"
 #include "Field/MagneticField.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCBase/CalDet.h"
@@ -1092,7 +1093,7 @@ void SpaceCharge<DataT>::calcLocalDistortionsCorrectionsRK4(const SpaceCharge<Da
 
 template <typename DataT>
 template <typename Fields>
-void SpaceCharge<DataT>::calcGlobalDistortions(const Fields& formulaStruct)
+void SpaceCharge<DataT>::calcGlobalDistortions(const Fields& formulaStruct, const int maxIterations)
 {
   const Side side = formulaStruct.getSide();
   const DataT stepSize = formulaStruct.getID() == 2 ? getGridSpacingZ(side) : getGridSpacingZ(side) / sSteps; // if one used local distortions then no smaller stepsize is needed. if electric fields are used then smaller stepsize can be used
@@ -1110,10 +1111,20 @@ void SpaceCharge<DataT>::calcGlobalDistortions(const Fields& formulaStruct)
         int iter = 0;
 
         for (;;) {
-          const DataT z0Tmp = z0 + dzDist + iter * stepSize;     // starting z position
-          const DataT z1Tmp = regulateZ(z0Tmp + stepSize, side); // electron drifts from z0Tmp to z1Tmp
-          const DataT radius = regulateR(r0 + drDist, side);     // current radial position of the electron
-          const DataT phi = regulatePhi(phi0 + dPhiDist, side);  // current phi position of the electron
+          if (iter > maxIterations) {
+            LOGP(ERROR, "Aborting calculation of distortions for iZ: {}, iR: {}, iPhi: {} due to iteration '{}' > maxIterations '{}'!", iZ, iR, iPhi, iter, maxIterations);
+            break;
+          }
+          const DataT z0Tmp = z0 + dzDist + iter * stepSize; // starting z position
+
+          if (getSide(z0Tmp) != side) {
+            LOGP(ERROR, "Aborting calculation of distortions for iZ: {}, iR: {}, iPhi: {} due to change in the sides!", iZ, iR, iPhi);
+            break;
+          }
+
+          const DataT z1Tmp = z0Tmp + stepSize;                 // electron drifts from z0Tmp to z1Tmp
+          const DataT radius = regulateR(r0 + drDist, side);    // current radial position of the electron
+          const DataT phi = regulatePhi(phi0 + dPhiDist, side); // current phi position of the electron
 
           DataT ddR = 0;   // distortion dR for drift from z0Tmp to z1Tmp
           DataT ddPhi = 0; // distortion dPhi for drift from z0Tmp to z1Tmp
@@ -1434,9 +1445,10 @@ template <typename DataT>
 void SpaceCharge<DataT>::calculateElectronDriftPath(const std::vector<GlobalPosition3D>& elePos, const int nSamplingPoints, const char* outFile) const
 {
   const unsigned int nElectrons = elePos.size();
-  std::vector<std::vector<GlobalPosition3D>> electronTracks(nElectrons);
+  std::vector<std::pair<std::vector<o2::math_utils::Point3D<float>>, std::array<DataT, 3>>> electronTracks(nElectrons);
+
   for (unsigned int i = 0; i < nElectrons; ++i) {
-    electronTracks[i].reserve(nSamplingPoints + 1);
+    electronTracks[i].first.reserve(nSamplingPoints + 1);
   }
 
   for (unsigned int i = 0; i < nElectrons; ++i) {
@@ -1466,7 +1478,7 @@ void SpaceCharge<DataT>::calculateElectronDriftPath(const std::vector<GlobalPosi
       }
 
       const DataT phi = regulatePhi(phi0 + dPhiDist, side); // current phi position of the electron
-      electronTracks[i].emplace_back(GlobalPosition3D(radius * std::cos(phi), radius * std::sin(phi), z0Tmp));
+      electronTracks[i].first.emplace_back(GlobalPosition3D(radius * std::cos(phi), radius * std::sin(phi), z0Tmp));
 
       DataT ddR = 0;   // distortion dR for drift from z0Tmp to z1Tmp
       DataT ddPhi = 0; // distortion dPhi for drift from z0Tmp to z1Tmp
@@ -1497,35 +1509,59 @@ void SpaceCharge<DataT>::calculateElectronDriftPath(const std::vector<GlobalPosi
         const DataT z1TmpEnd = regulateZ(z0Tmp + stepSize, side); // electron drifts from z0Tmp to z1Tmp
         const DataT radiusEnd = regulateR(r0 + drDist, side);     // current radial position of the electron
         const DataT phiEnd = regulatePhi(phi0 + dPhiDist, side);  // current phi position of the electron
-        electronTracks[i].emplace_back(GlobalPosition3D(radiusEnd * std::cos(phiEnd), radiusEnd * std::sin(phiEnd), z1TmpEnd));
+        electronTracks[i].first.emplace_back(GlobalPosition3D(radiusEnd * std::cos(phiEnd), radiusEnd * std::sin(phiEnd), z1TmpEnd));
         break;
       }
       ++iter;
     }
+    electronTracks[i].second = std::array<DataT, 3>{drDist, dPhiDist * r0, dzDist};
   }
   dumpElectronTracksToTree(electronTracks, nSamplingPoints, outFile);
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::dumpElectronTracksToTree(const std::vector<std::vector<GlobalPosition3D>>& electronTracks, const int nSamplingPoints, const char* outFile) const
+void SpaceCharge<DataT>::dumpElectronTracksToTree(const std::vector<std::pair<std::vector<o2::math_utils::Point3D<float>>, std::array<DataT, 3>>>& electronTracks, const int nSamplingPoints, const char* outFile) const
 {
   o2::utils::TreeStreamRedirector pcstream(outFile, "RECREATE");
   pcstream.GetFile()->cd();
 
+  auto& gasParam = ParameterGas::Instance();
+  auto& eleParam = ParameterElectronics::Instance();
+
   for (int i = 0; i < electronTracks.size(); ++i) {
-    auto electronPath = electronTracks[i];
-    const auto nPoints = electronTracks[i].size();
+    auto electronPath = electronTracks[i].first;
+    const auto nPoints = electronPath.size();
+    if (electronPath.empty()) {
+      LOGP(warning, "Track is empty. Continue to next track.");
+      continue;
+    }
     std::vector<float> relDriftVel;
     relDriftVel.reserve(nPoints);
 
-    for (int iPoint = 0; iPoint < nPoints; ++iPoint) {
-      const DataT relDriftVelTmp = iPoint == (nPoints - 1) ? 1 : (electronPath[iPoint + 1].Z() - electronPath[iPoint].Z()) / getZMax(getSide(electronPath[iPoint].Z())) * nSamplingPoints; // comparison of drift distance without distortions and with distortions (rel. drift velocity)
+    for (int iPoint = 0; iPoint < (nPoints - 2); ++iPoint) {
+      const DataT relDriftVelTmp = (electronPath[iPoint + 1].Z() - electronPath[iPoint].Z()) / getZMax(getSide(electronPath[iPoint].Z())) * nSamplingPoints; // comparison of drift distance without distortions and with distortions (rel. drift velocity)
       relDriftVel.emplace_back(std::abs(relDriftVelTmp));
     }
+
+    // just copy the last value to avoid wrong values
+    relDriftVel.emplace_back(relDriftVel.back());
+    relDriftVel.emplace_back(relDriftVel.back());
+
+    DataT distR = electronTracks[i].second[0];
+    DataT distRPhi = electronTracks[i].second[1];
+    DataT distZ = electronTracks[i].second[2];
+
+    DataT driftTime = std::abs(getZMax(getSide(electronPath.front().Z())) - (distZ + electronPath.front().Z())) / gasParam.DriftV;
+    DataT timeBin = driftTime / eleParam.ZbinWidth;
 
     pcstream << "drift"
              << "electronPath=" << electronPath
              << "relDriftVel.=" << relDriftVel // relative drift velocity in z direction
+             << "distR=" << distR
+             << "distRPhi=" << distRPhi
+             << "distZ=" << distZ
+             << "driftTime=" << driftTime
+             << "timeBin=" << timeBin
              << "\n";
   }
   pcstream.Close();
@@ -1738,9 +1774,9 @@ template void O2TPCSpaceCharge3DCalcD::calcLocalDistortionCorrectionVector(const
 template void O2TPCSpaceCharge3DCalcD::calcGlobalCorrections(const NumFieldsD&);
 template void O2TPCSpaceCharge3DCalcD::calcGlobalCorrections(const AnaFieldsD&);
 template void O2TPCSpaceCharge3DCalcD::calcGlobalCorrections(const DistCorrInterpD&);
-template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const NumFieldsD&);
-template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const AnaFieldsD&);
-template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const DistCorrInterpD&);
+template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const NumFieldsD&, const int maxIterations);
+template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const AnaFieldsD&, const int maxIterations);
+template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const DistCorrInterpD&, const int maxIterations);
 
 using DataTF = float;
 template class o2::tpc::SpaceCharge<DataTF>;
@@ -1759,6 +1795,6 @@ template void O2TPCSpaceCharge3DCalcF::calcLocalDistortionCorrectionVector(const
 template void O2TPCSpaceCharge3DCalcF::calcGlobalCorrections(const NumFieldsF&);
 template void O2TPCSpaceCharge3DCalcF::calcGlobalCorrections(const AnaFieldsF&);
 template void O2TPCSpaceCharge3DCalcF::calcGlobalCorrections(const DistCorrInterpF&);
-template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const NumFieldsF&);
-template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const AnaFieldsF&);
-template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const DistCorrInterpF&);
+template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const NumFieldsF&, const int maxIterations);
+template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const AnaFieldsF&, const int maxIterations);
+template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const DistCorrInterpF&, const int maxIterations);

@@ -21,6 +21,7 @@
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ProcessingPolicies.h"
+#include "Framework/CallbacksPolicy.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DeviceMetricsInfo.h"
@@ -110,6 +111,8 @@ struct DriverInfo {
   bool batch;
   /// User specified policies for handling errors, completion and early forwarding
   ProcessingPolicies processingPolicies;
+  /// User specified policies for handling callbacks.
+  std::vector<CallbacksPolicy> callbacksPolicies;
   /// The offset at which the process was started.
   uint64_t startTime;
   /// The optional timeout after which the driver will request

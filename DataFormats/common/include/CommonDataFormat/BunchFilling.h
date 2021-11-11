@@ -41,13 +41,13 @@ class BunchFilling
   // get interacting bunches pattern (B)
   const auto& getBCPattern() const { return mPattern; }
 
-  // get pattern or clockwise (0, A) and anticlockwise (1, C) beams at P2
+  // get pattern or clockwise (1, A) and anticlockwise (0, C) beams at P2
   const auto& getBeamPattern(int beam) const { return mBeamAC[beam]; }
 
   // get pattern of interacting BCs (-1) or beams filled BCs at P2 (0,1)
   const auto& getPattern(int dir = -1) const { return dir < 0 ? getBCPattern() : getBeamPattern(dir); }
 
-  // get number of interacting bunches (-1) and number of filled bunches for clockwise (0, A) and anticlockwise (1, C) beams
+  // get number of interacting bunches (-1) and number of filled bunches for clockwise (1, A) and anticlockwise (0, C) beams
   int getNBunches(int dir = -1) const { return dir < 0 ? mPattern.count() : mBeamAC[dir].count(); }
 
   // test interacting bunch
@@ -56,10 +56,10 @@ class BunchFilling
   // test bean bunch
   bool testBeamBunch(int bcID, int dir) const { return mBeamAC[dir][bcID]; }
 
-  // test interacting (-1) or clockwise (0, A) and anticlockwise (1, C) beams bunch
+  // test interacting (-1) or clockwise (1, A) and anticlockwise (0, C) beams bunch
   bool testBC(int bcID, int dir = -1) const { return dir < 0 ? testInteractingBC(bcID) : testBeamBunch(bcID, dir); }
 
-  // BC setters, dir=-1 is for interacting bunches pattern, 0,1 for clockwise (A) and anticlockwise (C) beams
+  // BC setters, dir=-1 is for interacting bunches pattern, 0, 1 for clockwise (C) and anticlockwise (A) beams
   void setBC(int bcID, bool active = true, int dir = -1);
   void setBCTrain(int nBC, int bcSpacing, int firstBC, int dir = -1);
   void setBCTrains(int nTrains, int trainSpacingInBC, int nBC, int bcSpacing, int firstBC, int dir = -1);
@@ -72,7 +72,7 @@ class BunchFilling
   int getFirstFilledBC(int dir = -1) const;
   int getLastFilledBC(int dir = -1) const;
 
-  // print pattern of bunches, dir=0,1: for A,C beams, dir=-1: for interacting BCs, otherwise: all
+  // print pattern of bunches, dir=0,1: for C,A beams, dir=-1: for interacting BCs, otherwise: all
   void print(int dir = -2, int bcPerLine = 100) const;
 
   // set BC filling a la TPC TDR, 12 50ns trains of 48 BCs
@@ -94,7 +94,7 @@ class BunchFilling
   static bool parsePattern(const unsigned char*& input, Pattern& patt, int& ibit, int& level);
 
   Pattern mPattern{};                                                 // Pattern of interacting BCs at P2
-  std::array<Pattern, o2::constants::lhc::NBeamDirections> mBeamAC{}; // pattern of 2 beam bunches at P2
+  std::array<Pattern, o2::constants::lhc::NBeamDirections> mBeamAC{}; // pattern of 2 beam bunches at P2, 0 for C, 1 for A beam
 
   ClassDefNV(BunchFilling, 2);
 };

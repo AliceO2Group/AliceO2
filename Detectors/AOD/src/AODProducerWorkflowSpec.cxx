@@ -20,8 +20,6 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
-#include "DataFormatsZDC/ZDCEnergy.h"
-#include "DataFormatsZDC/ZDCTDCData.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -55,10 +53,13 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "ZDCBase/Constants.h"
+#include "O2Version.h"
 #include "TMath.h"
 #include "MathUtils/Utils.h"
 #include "Math/SMatrix.h"
 #include "TMatrixD.h"
+#include "TString.h"
+#include "TObjString.h"
 #include <map>
 #include <unordered_map>
 #include <string>
@@ -310,6 +311,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
           const auto& trackPar = data.getTrackParam(trackIndex);
           if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
+            int nClusters = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getNClusters();
+            float chi2 = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getChi2();
+            extraInfoHolder.itsChi2NCl = nClusters != 0 ? chi2 / (float)nClusters : 0;
             extraInfoHolder.itsClusterMap = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getPattern();
           } else if (contributorsGID[GIndex::Source::ITSAB].isIndexSet()) { // this is an ITS-TPC afterburner contributor
             extraInfoHolder.itsClusterMap = itsABRefs[contributorsGID[GIndex::Source::ITSAB].getIndex()].pattern;
@@ -492,7 +496,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     tanl = track.getTanl();
     invqpt = track.getInvQPt();
     chi2 = track.getTrackChi2();
-    //nClusters = track.getNumberOfPoints();
+    // nClusters = track.getNumberOfPoints();
     chi2matchmchmid = track.getMIDMatchingChi2();
     chi2matchmchmft = track.getMatchingChi2();
     matchmfttrackid = track.getMFTTrackID();
@@ -567,7 +571,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                                                   gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
                                                   gsl::span<const GIndex>& GIndices,
                                                   o2::globaltracking::RecoContainer& data,
-                                                  std::vector<std::pair<int, int>> const& mcColToEvSrc)
+                                                  std::map<std::pair<int, int>, int> const& mcColToEvSrc)
 {
   // mark reconstructed MC particles to store them into the table
   for (auto& trackRef : primVer2TRefs) {
@@ -608,9 +612,10 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
     }
   }
   int tableIndex = 1;
-  for (int mccolid = 0; mccolid < mcColToEvSrc.size(); ++mccolid) {
-    auto event = mcColToEvSrc[mccolid].first;
-    auto source = mcColToEvSrc[mccolid].second;
+  for (auto& colInfo : mcColToEvSrc) { // loop over "<eventID, sourceID> <-> combined MC col. ID" key pairs
+    int event = colInfo.first.first;
+    int source = colInfo.first.second;
+    int mcColId = colInfo.second;
     std::vector<MCTrack> const& mcParticles = mcReader.getTracks(source, event);
     // mark tracks to be stored per event
     // loop over stack of MC particles from end to beginning: daughters are stored after mothers
@@ -628,7 +633,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
         }
         int mother1 = mcParticles[particle].getSecondMotherTrackId();
         if (mother1 != -1) {
-          mToStore[Triplet_t(source, particle, mother1)] = 1;
+          mToStore[Triplet_t(source, event, mother1)] = 1;
         }
         int daughter0 = mcParticles[particle].getFirstDaughterTrackId();
         if (daughter0 != -1) {
@@ -662,6 +667,15 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       }
       int statusCode = 0;
       uint8_t flags = 0;
+      if (!mcParticles[particle].isPrimary()) {
+        flags |= o2::aod::mcparticle::enums::ProducedByTransport; // mark as produced by transport
+        statusCode = mcParticles[particle].getProcess();
+      } else {
+        statusCode = mcParticles[particle].getStatusCode();
+      }
+      if (source == 0) {
+        flags |= o2::aod::mcparticle::enums::FromBackgroundEvent; // mark as particle from background event
+      }
       float weight = 0.f;
       int mcMother0 = mcParticles[particle].getMotherTrackId();
       auto item = mToStore.find(Triplet_t(source, event, mcMother0));
@@ -687,13 +701,12 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       if (item != mToStore.end()) {
         daughterL = item->second;
       }
-      float pX = (float)mcParticles[particle].Px();
-      float pY = (float)mcParticles[particle].Py();
-      float pZ = (float)mcParticles[particle].Pz();
-      float energy = (float)mcParticles[particle].GetEnergy();
-
+      auto pX = (float)mcParticles[particle].Px();
+      auto pY = (float)mcParticles[particle].Py();
+      auto pZ = (float)mcParticles[particle].Pz();
+      auto energy = (float)mcParticles[particle].GetEnergy();
       mcParticlesCursor(0,
-                        mccolid,
+                        mcColId,
                         mcParticles[particle].GetPdgCode(),
                         statusCode,
                         flags,
@@ -853,12 +866,20 @@ uint8_t AODProducerWorkflowDPL::getTRDPattern(const o2::trd::TrackTRD& track)
 void AODProducerWorkflowDPL::init(InitContext& ic)
 {
   mTimer.Stop();
+  mLPMProdTag = ic.options().get<string>("lpmp-prod-tag");
+  mAnchorPass = ic.options().get<string>("anchor-pass");
+  mAnchorProd = ic.options().get<string>("anchor-prod");
+  mRecoPass = ic.options().get<string>("reco-pass");
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
   mRecoOnly = ic.options().get<int>("reco-mctracks-only");
   mTruncate = ic.options().get<int>("enable-truncation");
+  mRunNumber = ic.options().get<int>("run-number");
 
   if (mTFNumber == -1L) {
     LOG(INFO) << "TFNumber will be obtained from CCDB";
+  }
+  if (mRunNumber == -1L) {
+    LOG(INFO) << "The Run number will be obtained from DPL headers";
   }
 
   if (mTruncate != 1) {
@@ -906,6 +927,34 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   for (int i = 0; i < o2::zdc::NTDCChannels; i++) {
     mZDCTDCMap[o2::zdc::TDCSignal[i]] = 999;
   }
+
+  // writing metadata if it's not yet in AOD file
+  // note: `--aod-writer-resmode "UPDATE"` has to be used,
+  //       so that metadata is not overwritten
+  mResFile += ".root";
+  auto* fResFile = TFile::Open(mResFile, "UPDATE");
+  if (!fResFile) {
+    LOGF(fatal, "Could not open file %s", mResFile);
+  }
+  if (!fResFile->FindObjectAny("metaData")) {
+    // populating metadata map
+    TString dataType = mUseMC ? "MC" : "RAW";
+    mMetaData.Add(new TObjString("DataType"), new TObjString(dataType));
+    mMetaData.Add(new TObjString("Run"), new TObjString("3"));
+    TString O2Version = o2::fullVersion();
+    TString ROOTVersion = ROOT_RELEASE;
+    mMetaData.Add(new TObjString("O2Version"), new TObjString(O2Version));
+    mMetaData.Add(new TObjString("ROOTVersion"), new TObjString(ROOTVersion));
+    mMetaData.Add(new TObjString("RecoPassName"), new TObjString(mRecoPass));
+    mMetaData.Add(new TObjString("AnchorProduction"), new TObjString(mAnchorProd));
+    mMetaData.Add(new TObjString("AnchorPassName"), new TObjString(mAnchorPass));
+    mMetaData.Add(new TObjString("LPMProductionTag"), new TObjString(mLPMProdTag));
+    LOGF(info, "Metadata: writing into %s", mResFile);
+    fResFile->WriteObject(&mMetaData, "metaData");
+  } else {
+    LOGF(fatal, "Metadata: target file %s already has metadata", mResFile);
+  }
+  fResFile->Close();
 
   mTimer.Reset();
 }
@@ -985,25 +1034,23 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto v0sCursor = v0sBuilder.cursor<o2::aod::StoredV0s>();
   auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
 
-  o2::steer::MCKinematicsReader mcReader("collisioncontext.root");
-  const auto mcContext = mcReader.getDigitizationContext();
-  const auto& mcRecords = mcContext->getEventRecords();
-  const auto& mcParts = mcContext->getEventParts();
-
-  LOG(DEBUG) << "FOUND " << mcRecords.size() << " records";
-  LOG(DEBUG) << "FOUND " << mcParts.size() << " parts";
+  std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
+  if (mUseMC) {
+    mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+    LOG(DEBUG) << "FOUND " << mcReader->getDigitizationContext()->getEventRecords().size()
+               << " records" << mcReader->getDigitizationContext()->getEventParts().size() << " parts";
+  }
 
   std::map<uint64_t, int> bcsMap;
-  collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, zdcBCRecData, primVertices, mcRecords, bcsMap);
-
+  collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, zdcBCRecData, primVertices, mUseMC ? mcReader->getDigitizationContext()->getEventRecords() : std::vector<o2::InteractionTimeRecord>{}, bcsMap);
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
   o2::InteractionRecord startIR = {0, dh->firstTForbit};
 
   uint64_t tfNumber;
-  // default dummy run number
-  int runNumber = 244918; // TODO: get real run number
+  const int runNumber = (mRunNumber == -1) ? int(dh->runNumber) : mRunNumber;
   if (mTFNumber == -1L) {
-    tfNumber = getTFNumber(startIR, runNumber);
+    // TODO has to be made globally unique (by using absolute time of TF). For now is unique within the run
+    tfNumber = dh->tfCounter; // getTFNumber(startIR, runNumber);
   } else {
     tfNumber = mTFNumber;
   }
@@ -1112,43 +1159,50 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               mZDCTDCMap.at(o2::zdc::IdZPCC));
   }
 
-  // TODO: figure out collision weight
   // keep track event/source id for each mc-collision
-  std::vector<std::pair<int, int>> mcColToEvSrc;
+  // using map and not unordered_map to ensure
+  // correct ordering when iterating over container elements
+  std::map<std::pair<int, int>, int> mcColToEvSrc;
 
-  float mcColWeight = 1.;
-  // filling mcCollision table
-  int index = 0;
-  for (auto& rec : mcRecords) {
-    auto time = rec.getTimeNS();
-    uint64_t globalBC = rec.toLong();
-    auto item = bcsMap.find(globalBC);
-    int bcID = -1;
-    if (item != bcsMap.end()) {
-      bcID = item->second;
-    } else {
-      LOG(FATAL) << "Error: could not find a corresponding BC ID for MC collision; BC = " << globalBC << ", index = " << index;
+  if (mUseMC) {
+    // TODO: figure out collision weight
+    float mcColWeight = 1.;
+    // filling mcCollision table
+    int nMCCollisions = mcReader->getDigitizationContext()->getNCollisions();
+    const auto& mcRecords = mcReader->getDigitizationContext()->getEventRecords();
+    const auto& mcParts = mcReader->getDigitizationContext()->getEventParts();
+    for (int iCol = 0; iCol < nMCCollisions; iCol++) {
+      auto time = mcRecords[iCol].getTimeNS();
+      auto globalBC = mcRecords[iCol].toLong();
+      auto item = bcsMap.find(globalBC);
+      int bcID = -1;
+      if (item != bcsMap.end()) {
+        bcID = item->second;
+      } else {
+        LOG(FATAL) << "Error: could not find a corresponding BC ID for MC collision; BC = " << globalBC << ", mc collision = " << iCol;
+      }
+      auto& colParts = mcParts[iCol];
+      for (auto colPart : colParts) {
+        auto eventID = colPart.entryID;
+        auto sourceID = colPart.sourceID;
+        if (sourceID == 0) { // embedding: using background event info
+          // FIXME:
+          // use generators' names for generatorIDs (?)
+          short generatorID = sourceID;
+          auto& header = mcReader->getMCEventHeader(sourceID, eventID);
+          mcCollisionsCursor(0,
+                             bcID,
+                             generatorID,
+                             truncateFloatFraction(header.GetX(), mCollisionPosition),
+                             truncateFloatFraction(header.GetY(), mCollisionPosition),
+                             truncateFloatFraction(header.GetZ(), mCollisionPosition),
+                             truncateFloatFraction(time, mCollisionPosition),
+                             truncateFloatFraction(mcColWeight, mCollisionPosition),
+                             header.GetB());
+        }
+        mcColToEvSrc.emplace(std::pair<int, int>(eventID, sourceID), iCol); // point background and injected signal events to one collision
+      }
     }
-    auto& colParts = mcParts[index];
-    for (auto colPart : colParts) {
-      auto eventID = colPart.entryID;
-      auto sourceID = colPart.sourceID;
-      // FIXME:
-      // use generators' names for generatorIDs (?)
-      short generatorID = sourceID;
-      auto& header = mcReader.getMCEventHeader(sourceID, eventID);
-      mcCollisionsCursor(0,
-                         bcID,
-                         generatorID,
-                         truncateFloatFraction(header.GetX(), mCollisionPosition),
-                         truncateFloatFraction(header.GetY(), mCollisionPosition),
-                         truncateFloatFraction(header.GetZ(), mCollisionPosition),
-                         truncateFloatFraction(time, mCollisionPosition),
-                         truncateFloatFraction(mcColWeight, mCollisionPosition),
-                         header.GetB());
-      mcColToEvSrc.emplace_back(std::pair<int, int>(eventID, sourceID));
-    }
-    index++;
   }
 
   // vector of FDD amplitudes
@@ -1226,13 +1280,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               ft0RecPoint.getTrigger().triggersignals);
   }
 
-  // filling MC collision labels
-  for (auto& label : primVerLabels) {
-    auto it = std::find_if(mcColToEvSrc.begin(), mcColToEvSrc.end(),
-                           [&label](const std::pair<int, int>& item) { return (item.first == label.getEventID() && item.second == label.getSourceID()); });
-    int32_t mcCollisionID = it - mcColToEvSrc.begin();
-    uint16_t mcMask = 0; // todo: set mask using normalized weights?
-    mcColLabelsCursor(0, mcCollisionID, mcMask);
+  if (mUseMC) {
+    // filling MC collision labels
+    for (auto& label : primVerLabels) {
+      auto it = mcColToEvSrc.find(std::pair<int, int>(label.getEventID(), label.getSourceID()));
+      int32_t mcCollisionID = it != mcColToEvSrc.end() ? it->second : -1;
+      uint16_t mcMask = 0; // todo: set mask using normalized weights?
+      mcColLabelsCursor(0, mcCollisionID, mcMask);
+    }
   }
 
   // filling unassigned tracks first
@@ -1259,7 +1314,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     } else {
       LOG(FATAL) << "Error: could not find a corresponding BC ID for a collision; BC = " << globalBC << ", collisionID = " << collisionID;
     }
-
     collisionsCursor(0,
                      bcID,
                      truncateFloatFraction(vertex.getX(), mCollisionPosition),
@@ -1320,8 +1374,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   mTableTrID = 0;
   mGIDToTableID.clear();
-  mZDCEnergyMap.clear();
-  mZDCTDCMap.clear();
 
   // filling BC table
   // TODO: get real triggerMask
@@ -1336,24 +1388,27 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   bcsMap.clear();
 
-  // filling mc particles table
-  fillMCParticlesTable(mcReader,
-                       mcParticlesCursor,
-                       primVer2TRefs,
-                       primVerGIs,
-                       recoData,
-                       mcColToEvSrc);
+  if (mUseMC) {
+    // filling mc particles table
+    fillMCParticlesTable(*mcReader,
+                         mcParticlesCursor,
+                         primVer2TRefs,
+                         primVerGIs,
+                         recoData,
+                         mcColToEvSrc);
 
-  // ------------------------------------------------------
-  // filling track labels
+    mcColToEvSrc.clear();
 
-  // need to go through labels in the same order as for tracks
-  fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, primVer2TRefs.back(), primVerGIs, recoData);
-  for (int iref = 0; iref < primVer2TRefs.size() - 1; iref++) {
-    auto& trackRef = primVer2TRefs[iref];
-    fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, trackRef, primVerGIs, recoData);
+    // ------------------------------------------------------
+    // filling track labels
+
+    // need to go through labels in the same order as for tracks
+    fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, primVer2TRefs.back(), primVerGIs, recoData);
+    for (int iref = 0; iref < primVer2TRefs.size() - 1; iref++) {
+      auto& trackRef = primVer2TRefs[iref];
+      fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, trackRef, primVerGIs, recoData);
+    }
   }
-
   mToStore.clear();
 
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
@@ -1367,7 +1422,7 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, std::string resFile)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -1406,10 +1461,15 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
     "aod-producer-workflow",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest)},
+    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, resFile, useMC)},
     Options{
+      ConfigParamSpec{"run-number", VariantType::Int64, -1L, {"The run-number. If left default we try to get it from DPL header."}},
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on, != 1 -- off"}},
+      ConfigParamSpec{"lpmp-prod-tag", VariantType::String, "", {"LPMProductionTag"}},
+      ConfigParamSpec{"anchor-pass", VariantType::String, "", {"AnchorPassName"}},
+      ConfigParamSpec{"anchor-prod", VariantType::String, "", {"AnchorProduction"}},
+      ConfigParamSpec{"reco-pass", VariantType::String, "", {"RecoPassName"}},
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}}}};
 }
 

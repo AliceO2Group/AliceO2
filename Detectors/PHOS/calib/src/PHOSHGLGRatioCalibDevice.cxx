@@ -102,13 +102,13 @@ void PHOSHGLGRatioCalibDevice::fillRatios()
 void PHOSHGLGRatioCalibDevice::calculateRatios()
 {
   // Calculate mean of the ratio
-  int n = o2::phos::Mapping::NCHANNELS;
+  short n = o2::phos::Mapping::NCHANNELS - 1792;
   if (mhRatio->Integral() > 2 * minimalStatistics * n) { //average per channel
 
     TF1* fitFunc = new TF1("fitFunc", "gaus", 0., 4000.);
     fitFunc->SetParameters(1., 200., 60.);
     fitFunc->SetParLimits(1, 10., 2000.);
-    for (short i = o2::phos::Mapping::NCHANNELS; i > 1792; i--) {
+    for (short i = n; i > 0; i--) {
       TH1D* tmp = mhRatio->ProjectionY(Form("channel%d", i), i, i);
       fitFunc->SetParameters(tmp->Integral(), tmp->GetMean(), tmp->GetRMS());
       if (tmp->Integral() < minimalStatistics) {
@@ -117,7 +117,7 @@ void PHOSHGLGRatioCalibDevice::calculateRatios()
       }
       tmp->Fit(fitFunc, "QL0", "", 0., 20.);
       float a = fitFunc->GetParameter(1);
-      mCalibParams->setHGLGRatio(i, a); //absId starts from 0
+      mCalibParams->setHGLGRatio(i + 1792, a); //absId starts from 0
       tmp->Delete();
     }
   }
@@ -128,6 +128,12 @@ void PHOSHGLGRatioCalibDevice::checkRatios()
   //Compare ratios to current ones stored in CCDB
   if (!mUseCCDB) {
     mUpdateCCDB = true;
+    //Set default values for gain and time
+    for (short i = o2::phos::Mapping::NCHANNELS; i > 1792; i--) {
+      mCalibParams->setGain(i, 0.005);
+      mCalibParams->setHGTimeCalib(i, 0.);
+      mCalibParams->setLGTimeCalib(i, 0.);
+    }
     return;
   }
   LOG(INFO) << "Retrieving current HG/LG ratio from CCDB";
@@ -211,9 +217,9 @@ DataProcessorSpec o2::phos::getHGLGRatioCalibSpec(bool useCCDB, bool forceUpdate
 
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(o2::header::gDataOriginPHS, "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_HGLGratio"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_HGLGratio"});
+  outputs.emplace_back(o2::header::gDataOriginPHS, "CALIBDIFF", 0, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_HGLGratio"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_HGLGratio"}, Lifetime::Sporadic);
   return o2::framework::DataProcessorSpec{"HGLGRatioCalibSpec",
                                           inputs,
                                           outputs,

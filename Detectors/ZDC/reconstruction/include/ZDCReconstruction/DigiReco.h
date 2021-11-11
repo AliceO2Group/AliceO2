@@ -57,14 +57,13 @@ class DigiReco
   void eor()
   {
     if (mTreeDbg) {
-      LOG(INFO) << "ZDC DigiReco: closing debug output";
+      LOG(INFO) << "o2::zdc::DigiReco: closing debug output";
       mTDbg->Write();
       mTDbg.reset();
       mDbg->Close();
       mDbg.reset();
     }
-    LOG(INFO) << "Detected " << mNLonely << " lonely bunches";
-    LOG(INFO) << "Detected " << mNLastLonely << " lonely bunches at end of orbit";
+    LOG(INFO) << "Detected " << mNLonely << " lonely bunches and " << mNLastLonely << " at end of orbit";
   }
 
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
@@ -98,7 +97,7 @@ class DigiReco
   const ZDCTowerParam* mTowerParam = nullptr;                                 /// Tower calibration object
   uint32_t mTDCMask[NTDCChannels] = {0};                                      /// Identify TDC channels in trigger mask
   const RecoConfigZDC* mRecoConfigZDC = nullptr;                              /// CCDB configuration parameters
-  int32_t mVerbosity = DbgMinimal;
+  int32_t mVerbosity = DbgZero;
   Double_t mTS[NTS];                                /// Tapered sinc function
   bool mTreeDbg = false;                            /// Write reconstructed data in debug output file
   std::unique_ptr<TFile> mDbg = nullptr;            /// Debug output file

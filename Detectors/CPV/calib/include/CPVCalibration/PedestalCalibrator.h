@@ -33,21 +33,21 @@ class PedestalSpectrum
   ~PedestalSpectrum() = default;
   PedestalSpectrum& operator+=(const PedestalSpectrum& rhs);
   void fill(uint16_t amplitude);
-  uint8_t getNPeaks();
-  float getPeakMean(uint8_t iPeak = -1); // return mean value of i-th peak. if iPeak = -1 then return total mean
-  float getPeakRMS(uint8_t iPeak = -1);  // return RMS value of i-th peak. if iPeak = -1 then return total RMS
-  float getPedestalValue();              // return final decision for pedestal value
-  float getPedestalRMS();                // return final decision for pedestal RMS
+  uint16_t getNPeaks();
+  float getPeakMean(uint16_t iPeak); // return mean value of i-th peak
+  float getPeakRMS(uint16_t iPeak);  // return RMS value of i-th peak
+  float getPedestalValue();          // return final decision for pedestal value
+  float getPedestalRMS();            // return final decision for pedestal RMS
   uint32_t getNEntries() { return mNEntries; }
 
  private:
   void analyze();
   uint32_t mNEntries = 0;
-  uint8_t mNPeaks = 0;
+  uint16_t mNPeaks = 0;
   bool mIsAnalyzed = false;
   uint16_t mToleratedGapWidth = 5;
   float mZSnSigmas = 3.;
-  float mSuspiciousPedestalRMS = 10.;
+  float mSuspiciousPedestalRMS = 20.;
   float mPedestalValue;
   float mPedestalRMS;
   std::vector<float> mMeanOfPeaks, mRMSOfPeaks;
@@ -76,8 +76,17 @@ class PedestalCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
  public:
   PedestalCalibrator();
   ~PedestalCalibrator() final = default;
-  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoVector() { return mCcdbInfoVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoPedestalsVector() { return mCcdbInfoPedestalsVec; }
   std::vector<o2::cpv::Pedestals> getPedestalsVector() { return mPedestalsVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoThresholdsFEEVector() { return mCcdbInfoThresholdsFEEVec; }
+  std::vector<std::vector<int>> getThresholdsFEEVector() { return mThresholdsFEEVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoDeadChannelsVector() { return mCcdbInfoDeadChannelsVec; }
+  std::vector<std::vector<int>> getDeadChannelsVector() { return mDeadChannelsVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoHighPedChannelsVector() { return mCcdbInfoHighPedChannelsVec; }
+  std::vector<std::vector<int>> getHighPedChannelsVector() { return mHighPedChannelsVec; }
+  std::vector<o2::ccdb::CcdbObjectInfo> getCcdbInfoEfficienciesVector() { return mCcdbInfoPedEfficienciesVec; }
+  std::vector<std::vector<float>> getEfficienciesVector() { return mPedEfficienciesVec; }
+
   bool hasEnoughData(const TimeSlot& slot) const final
   {
     LOG(INFO) << "hasEnoughData() is being called";
@@ -89,8 +98,17 @@ class PedestalCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
 
  private:
   int mMinEvents = 100;
-  std::vector<o2::ccdb::CcdbObjectInfo> mCcdbInfoVec;
+  float mZSnSigmas = 3.;
+  std::vector<o2::ccdb::CcdbObjectInfo> mCcdbInfoPedestalsVec;
   std::vector<o2::cpv::Pedestals> mPedestalsVec;
+  std::vector<o2::ccdb::CcdbObjectInfo> mCcdbInfoThresholdsFEEVec;
+  std::vector<std::vector<int>> mThresholdsFEEVec;
+  std::vector<o2::ccdb::CcdbObjectInfo> mCcdbInfoDeadChannelsVec;
+  std::vector<std::vector<int>> mDeadChannelsVec;
+  std::vector<o2::ccdb::CcdbObjectInfo> mCcdbInfoHighPedChannelsVec;
+  std::vector<std::vector<int>> mHighPedChannelsVec;
+  std::vector<o2::ccdb::CcdbObjectInfo> mCcdbInfoPedEfficienciesVec;
+  std::vector<std::vector<float>> mPedEfficienciesVec;
 };
 } //end namespace cpv
 } //end namespace o2

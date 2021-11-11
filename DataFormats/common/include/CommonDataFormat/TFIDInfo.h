@@ -9,21 +9,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
-/// \file    DataInterpreter.cxx
-/// \author  Jeremi Niedziela
+#ifndef ALICEO2_TFIDINFO_H
+#define ALICEO2_TFIDINFO_H
 
-#include "EventVisualisationBase/DataInterpreter.h"
-#include "FairLogger.h"
+#include <Rtypes.h>
 
-using namespace std;
-
-namespace o2
+namespace o2::dataformats
 {
-namespace event_visualisation
-{
+struct TFIDInfo { // helper info to patch DataHeader
 
-DataInterpreter* DataInterpreter::instance[EVisualisationGroup::NvisualisationGroups];
+  uint32_t firstTForbit = -1;
+  uint32_t tfCounter = -1;
+  uint32_t runNumber = -1;
 
-} // namespace event_visualisation
-} // namespace o2
+  bool isDummy() { return tfCounter == -1; }
+  ClassDefNV(TFIDInfo, 1);
+};
+} // namespace o2::dataformats
+
+#endif

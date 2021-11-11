@@ -51,6 +51,7 @@ class GeometryManager : public TObject
   ///< load geometry from file
   static void loadGeometry(std::string_view geomFilePath = "", bool applyMisalignment = true);
   static bool isGeometryLoaded() { return gGeoManager != nullptr; }
+  static void applyMisalignent(bool applyMisalignment = true);
 
   ///< Get the global transformation matrix (ideal geometry) for a given alignable volume
   ///< The alignable volume is identified by 'symname' which has to be either a valid symbolic

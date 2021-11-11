@@ -61,7 +61,7 @@ void CompressedAnalysisTask::init(InitContext& ic)
   mAnalysis->initialize();
 
   auto finishFunction = [this]() {
-    LOG(INFO) << "CompressedBaseTask finish";
+    LOG(DEBUG) << "CompressedBaseTask finish";
     mAnalysis->finalize();
   };
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);

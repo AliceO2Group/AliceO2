@@ -34,6 +34,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
   std::vector<ConfigParamSpec> options{
     {"use-digit-input", VariantType::Bool, false, {"use TPC digits as input, instead of raw data"}},
+    {"input-spec", VariantType::String, "tpcraw:TPC/RAWDATA", {"selection string input specs"}},
   };
 
   std::swap(workflowOptions, options);
@@ -44,10 +45,11 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& cfg)
 {
   const bool useDigitsAsInput = cfg.options().get<bool>("use-digit-input");
+  const auto inputSpec = cfg.options().get<std::string>("input-spec");
 
   WorkflowSpec specs;
 
-  specs.emplace_back(o2::tpc::getMonitorWorkflowSpec(useDigitsAsInput));
+  specs.emplace_back(o2::tpc::getMonitorWorkflowSpec(useDigitsAsInput, inputSpec));
 
   return specs;
 }

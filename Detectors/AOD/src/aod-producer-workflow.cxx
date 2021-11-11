@@ -16,10 +16,16 @@
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
 using DetID = o2::detectors::DetID;
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
@@ -31,8 +37,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"info-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
-  o2::raw::HBFUtilsInitializer::addConfigOption(options);
-
   std::swap(workflowOptions, options);
 }
 
@@ -42,12 +46,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto resFile = configcontext.options().get<std::string>("aod-writer-resfile");
 
   GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF,MFT-MCH,FT0,FV0,FDD,TPC-TRD,ITS-TPC-TRD,FT0,FV0,FDD,ZDC,CTP");
   GID::mask_t src = allowedSrc & GID::getSourcesMask(configcontext.options().get<std::string>("info-sources"));
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, useMC));
+  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, useMC, resFile));
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC, src);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);

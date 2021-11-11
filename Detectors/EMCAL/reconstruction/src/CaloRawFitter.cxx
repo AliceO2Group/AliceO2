@@ -63,7 +63,7 @@ int CaloRawFitter::getErrorNumber(CaloRawFitter::RawFitterError_t fiterror)
   return -1;
 }
 
-//Default constructor
+// Default constructor
 CaloRawFitter::CaloRawFitter(const char* name, const char* nameshort) : mMinTimeIndex(-1),
                                                                         mMaxTimeIndex(-1),
                                                                         mAmpCut(4),
@@ -160,6 +160,9 @@ double CaloRawFitter::evaluatePedestal(const gsl::span<const uint16_t> data, std
 {
   if (!mNsamplePed) {
     throw RawFitterError_t::SAMPLE_UNINITIALIZED;
+  }
+  if (data.size() < mNsamplePed) {
+    return 0.;
   }
   return static_cast<double>(std::accumulate(data.begin(), data.begin() + mNsamplePed, 0)) / mNsamplePed;
 }
@@ -284,9 +287,6 @@ std::tuple<int, int, float, short, short, float, int, int> CaloRawFitter::preFit
   if (bunchindex >= 0) {
     if (adcMAX >= adcThreshold) {
       // use more convenient numbering and possibly subtract pedestal
-
-      //std::tie(ped, mReversed) = reverseAndSubtractPed((bunchvector.at(index)), altrocfg1, altrocfg2);
-      //maxf = (float)*std::max_element(mReversed.begin(), mReversed.end());
 
       int bunchlength = bunchvector[bunchindex].getBunchLength();
       const std::vector<uint16_t>& sig = bunchvector[bunchindex].getADC();

@@ -105,7 +105,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& digitVec, const 
   ENCODEFV0(cd.time,      CTF::BLC_time,     0);
   ENCODEFV0(cd.charge,    CTF::BLC_charge,   0);
   // clang-format on
-  CTF::get(buff.data())->print(getPrefix());
+  CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
@@ -115,7 +115,7 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
   CompressedDigits cd;
   cd.header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(cd.header));
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
 #define DECODEFV0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
   DECODEFV0(cd.bcInc,     CTF::BLC_bcInc);

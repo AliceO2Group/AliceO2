@@ -35,6 +35,7 @@
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Steer/MCKinematicsReader.h"
+#include "TMap.h"
 #include "TStopwatch.h"
 
 #include <boost/functional/hash.hpp>
@@ -192,19 +193,27 @@ typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> Triple
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest) : mInputSources(src), mDataRequest(dataRequest) {}
+  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, std::string resFile, bool useMC = true) : mInputSources(src), mDataRequest(dataRequest), mResFile{resFile}, mUseMC(useMC) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
+  bool mUseMC = true;
+
   const float cSpeed = 0.029979246f; // speed of light in TOF units
 
   GID::mask_t mInputSources;
   int64_t mTFNumber{-1};
+  int mRunNumber{-1};
   int mTruncate{1};
   int mRecoOnly{0};
+  TString mResFile{"AO2D"};
+  TString mLPMProdTag{""};
+  TString mAnchorPass{""};
+  TString mAnchorProd{""};
+  TString mRecoPass{""};
   TStopwatch mTimer;
 
   // unordered map connects global indices and table indices of barrel tracks
@@ -218,6 +227,9 @@ class AODProducerWorkflowDPL : public Task
   map<int, float> mZDCTDCMap;       // mapping TDC channel to a corresponding TDC value
 
   TripletsMap_t mToStore;
+
+  // MC production metadata holder
+  TMap mMetaData;
 
   std::shared_ptr<DataRequest> mDataRequest;
 
@@ -337,7 +349,7 @@ class AODProducerWorkflowDPL : public Task
                             gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
                             gsl::span<const GIndex>& GIndices,
                             o2::globaltracking::RecoContainer& data,
-                            std::vector<std::pair<int, int>> const& mcColToEvSrc);
+                            std::map<std::pair<int, int>, int> const& mcColToEvSrc);
 
   template <typename MCTrackLabelCursorType, typename MCMFTTrackLabelCursorType, typename MCFwdTrackLabelCursorType>
   void fillMCTrackLabelsTable(const MCTrackLabelCursorType& mcTrackLabelCursor,
@@ -359,7 +371,7 @@ class AODProducerWorkflowDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC);
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, std::string resFile);
 
 } // namespace o2::aodproducer
 

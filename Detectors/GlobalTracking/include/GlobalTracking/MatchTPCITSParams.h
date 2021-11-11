@@ -44,6 +44,8 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
 
   int maxMatchCandidates = 5; ///< max allowed matching candidates per TPC track
 
+  float safeMarginTimeCorrErr = 0; ///< safety marging (in \mus) for TPC track time corrected by ITS constraint
+
   float safeMarginTPCITSTimeBin = 1.f; ///< safety margin (in TPC time bins) for ITS-TPC tracks time (in TPC time bins!) comparison
 
   float safeMarginTPCTimeEdge = 20.f; ///< safety margin in cm when estimating TPC track tMin and tMax from assigned time0 and its track Z position
@@ -55,10 +57,6 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
   float tfEdgeTimeToleranceMUS = 1.; ///< corrected TPC time allowed to go out from the TF time edges by this amount
 
   float maxVDriftUncertainty = 0.; ///< max assumed VDrift uncertainty, used only in VDrift calibration mode
-
-  float maxTglForVDriftCalib = 1.; ///< maximum ITS tgl to collect data for VDrift calibration
-  int nBinsTglVDriftCalib = 50;    ///< number of bins in reference ITS tgl for VDrift calibration
-  int nBinsDTglVDriftCalib = 100;  ///< number of bins in delta tgl for VDrift calibration
 
   //___________________ AfterBurner params
   int requireToReachLayerAB = 5;   ///< AB tracks should reach at least this layer from above
@@ -72,6 +70,8 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
   float nABSigmaZ = 4.;            ///< nSigma cut on afterburner track-cluster Z distance
   float err2ABExtraY = 0.1 * 0.1;  ///< extra "systematic" error on Y
   float err2ABExtraZ = 0.1 * 0.1;  ///< extra "systematic" error on Z
+
+  int verbosity = 0; ///< verbosit level
 
   o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT; /// Material correction type
 

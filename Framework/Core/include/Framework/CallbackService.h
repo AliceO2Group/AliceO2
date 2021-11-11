@@ -8,18 +8,21 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_CALLBACKSERVICE_H
-#define FRAMEWORK_CALLBACKSERVICE_H
+#ifndef O2_FRAMEWORK_CALLBACKSERVICE_H_
+#define O2_FRAMEWORK_CALLBACKSERVICE_H_
 
 #include "CallbackRegistry.h"
 #include "Framework/ServiceHandle.h"
-#include <tuple>
+#include "ServiceRegistry.h"
 
 #include <fairmq/FwdDecls.h>
 
-namespace o2
+namespace o2::header
 {
-namespace framework
+struct DataHeader;
+}
+
+namespace o2::framework
 {
 
 class EndOfStreamContext;
@@ -34,11 +37,12 @@ class CallbackService
   constexpr static ServiceKind service_kind = ServiceKind::Global;
   /// the defined processing steps at which a callback can be invoked
   enum class Id {
-    Start,     /**< Invoked before the inner loop is started */
-    Stop,      /**< Invoked when the device is about to be stoped */
-    Reset,     /**< Invoked on device rest */
-    Idle,      /**< Invoked when there was no computation scheduled */
-    ClockTick, /**< Invoked every iteration of the inner loop */
+    Start,        /**< Invoked before the inner loop is started */
+    Stop,         /**< Invoked when the device is about to be stoped */
+    Reset,        /**< Invoked on device rest */
+    Idle,         /**< Invoked when there was no computation scheduled */
+    ClockTick,    /**< Invoked every iteration of the inner loop */
+    DataConsumed, /**< Invoked whenever data has been consumed */
     /// Invoked when we are notified that no further data will arrive.
     /// Notice that one could have more "EndOfData" notifications. Because
     /// we could be signaled by control that the data flow restarted.
@@ -58,7 +62,13 @@ class CallbackService
     ///    // with the callback
     ///  };
     /// }};
-    RegionInfoCallback
+    RegionInfoCallback,
+    /// Invoked whenever a new timeslice has been created from an enumeration.
+    /// Users can override this to make sure the fill the DataHeader associated
+    /// to a timeslice with the wanted quantities.
+    NewTimeslice,
+    /// Invoked before the processing callback
+    PreProcessing
   };
 
   using StartCallback = std::function<void()>;
@@ -66,18 +76,24 @@ class CallbackService
   using ResetCallback = std::function<void()>;
   using IdleCallback = std::function<void()>;
   using ClockTickCallback = std::function<void()>;
+  using DataConsumedCallback = std::function<void(ServiceRegistry&)>;
   using EndOfStreamCallback = std::function<void(EndOfStreamContext&)>;
   using RegionInfoCallback = std::function<void(FairMQRegionInfo const&)>;
+  using NewTimesliceCallback = std::function<void(o2::header::DataHeader&)>;
+  using PreProcessingCallback = std::function<void(ServiceRegistry&, int)>;
 
-  using Callbacks = CallbackRegistry<Id,                                                          //
-                                     RegistryPair<Id, Id::Start, StartCallback>,                  //
-                                     RegistryPair<Id, Id::Stop, StopCallback>,                    //
-                                     RegistryPair<Id, Id::Reset, ResetCallback>,                  //
-                                     RegistryPair<Id, Id::Idle, IdleCallback>,                    //
-                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,          //
-                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,      //
-                                     RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback> //
-                                     >;                                                           //
+  using Callbacks = CallbackRegistry<Id,                                                           //
+                                     RegistryPair<Id, Id::Start, StartCallback>,                   //
+                                     RegistryPair<Id, Id::Stop, StopCallback>,                     //
+                                     RegistryPair<Id, Id::Reset, ResetCallback>,                   //
+                                     RegistryPair<Id, Id::Idle, IdleCallback>,                     //
+                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,           //
+                                     RegistryPair<Id, Id::DataConsumed, DataConsumedCallback>,     //
+                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,       //
+                                     RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback>, //
+                                     RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>,     //
+                                     RegistryPair<Id, Id::PreProcessing, PreProcessingCallback>    //
+                                     >;                                                            //
 
   // set callback for specified processing step
   template <typename U>
@@ -97,6 +113,5 @@ class CallbackService
   Callbacks mCallbacks;
 };
 
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_CALLBACKSERVICE_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_CALLBACKSERVICE_H_

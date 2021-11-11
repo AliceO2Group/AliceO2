@@ -9,30 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
-/// \file    DataInterpreter.cxx
-/// \author julian.myrcha@cern.ch
+/// @file   TOFEventTimeCheckerSpec.h
 
-#include "EventVisualisationBase/DataReader.h"
-#include "FairLogger.h"
+#ifndef O2_TOF_EVENTTIMECHECKER_SPEC
+#define O2_TOF_EVENTTIMECHECKER_SPEC
 
-using namespace std;
+#include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/MatchInfoTOF.h"
+
+using namespace o2::framework;
 
 namespace o2
 {
-namespace event_visualisation
+namespace globaltracking
 {
 
-DataReader::DataReader(DataInterpreter* interpreter) : mInterpreter(interpreter)
-{
-}
+/// create a processor spec
+framework::DataProcessorSpec getTOFEventTimeCheckerSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC);
 
-VisualisationEvent DataReader::getEvent(int no, EVisualisationDataType dataType)
-{
-  TObject* data = this->getEventData(no);
-  VisualisationEvent event = mInterpreter->interpretDataForType(data, dataType);
-  return event;
-}
-
-} // namespace event_visualisation
+} // namespace globaltracking
 } // namespace o2
+
+#endif /* O2_TOF_EVENTTIMECHECKER_SPEC */

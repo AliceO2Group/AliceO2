@@ -36,6 +36,7 @@ struct PublisherConf {
 
   std::string processName;
   std::string defaultTreeName;
+  std::string defaultFileName;
   BranchOptionConfig databranch;
   BranchOptionConfig triggerrecordbranch;
   BranchOptionConfig mcbranch;
@@ -84,6 +85,7 @@ inline framework::DataProcessorSpec getCellReaderSpec(bool propagateMC)
   using cellInputType = std::vector<o2::emcal::Cell>;
   return getPublisherSpec<cellInputType>(PublisherConf{"emcal-cell-reader",
                                                        "o2sim",
+                                                       "emccells.root",
                                                        {"cellbranch", "EMCALCell", "Cell branch"},
                                                        {"celltriggerbranch", "EMCALCellTRGR", "Trigger record branch"},
                                                        {"mcbranch", "EMCALCellMCTruth", "MC label branch"},

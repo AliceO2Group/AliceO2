@@ -13,6 +13,7 @@
 /// \file    VisualisationEvent.h
 /// \author  Jeremi Niedziela
 /// \author  Maciej Grochowicz
+/// \author  Julian Myrcha
 ///
 
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_VISUALISATIONEVENT_H
@@ -20,6 +21,7 @@
 
 #include "EventVisualisationDataConverter/VisualisationTrack.h"
 #include "EventVisualisationDataConverter/VisualisationCluster.h"
+#include "EventVisualisationDataConverter/VisualisationConstants.h"
 #include <forward_list>
 #include <ctime>
 
@@ -38,15 +40,18 @@ namespace event_visualisation
 class VisualisationEvent
 {
  public:
+  struct GIDVisualisation {
+    bool contains[o2::dataformats::GlobalTrackID::NSources][o2::event_visualisation::EVisualisationGroup::NvisualisationGroups];
+  };
+  static GIDVisualisation mVis;
   std::string toJson();
   void fromJson(std::string json);
   bool fromFile(std::string fileName);
-  VisualisationEvent() = default;
+  VisualisationEvent();
   VisualisationEvent(std::string fileName);
+  VisualisationEvent(const VisualisationEvent& source, EVisualisationGroup filter);
   void toFile(std::string fileName);
   static std::string fileNameIndexed(const std::string fileName, const int index);
-
-  //VisualisationEvent() {}
 
   /// constructor parametrisation (Value Object) for VisualisationEvent class
   ///
@@ -63,10 +68,6 @@ class VisualisationEvent
   // Default constructor
   VisualisationEvent(const VisualisationEventVO vo);
 
-  // Adds visualisation track inside visualisation event
-  //void addTrack(const VisualisationTrack& track)
-  //{ mTracks.push_back(track); }
-
   VisualisationTrack* addTrack(VisualisationTrack::VisualisationTrackVO vo)
   {
     mTracks.emplace_back(vo);
@@ -75,18 +76,15 @@ class VisualisationEvent
   void remove_last_track() { mTracks.pop_back(); } // used to remove track assigned optimistically
 
   // Adds visualisation cluster inside visualisation event
-
-  VisualisationCluster& addCluster(float XYZ[], float time)
+  VisualisationCluster& addCluster(float XYZ[], float trackTime)
   {
-    mClusters.emplace_back(XYZ, time);
-    return mClusters.back();
+    return mTracks.back().addCluster(XYZ);
   }
 
-  VisualisationCluster& addCluster(float X, float Y, float Z, float time)
+  VisualisationCluster& addCluster(float X, float Y, float Z, float trackTime)
   {
     float pos[] = {X, Y, Z};
-    mClusters.emplace_back(pos, time);
-    return mClusters.back();
+    return mTracks.back().addCluster(pos);
   }
 
   // Multiplicity getter
@@ -107,19 +105,14 @@ class VisualisationEvent
     return mTracks.size();
   }
 
-  // Returns cluster with index i
-  const VisualisationCluster& getCluster(int i) const
-  {
-    return mClusters[i];
-  };
-
-  // Returns number of clusters
-  size_t getClusterCount() const
-  {
-    return mClusters.size();
-  }
+  const VisualisationCluster& getCluster(int i) const { return mClusters[i]; };
+  size_t getClusterCount() const { return mClusters.size(); } // Returns number of clusters
+  void setWorkflowVersion(float workflowVersion) { this->mWorkflowVersion = workflowVersion; }
+  void setWorkflowParameters(const std::string& workflowParameters) { this->mWorkflowParameters = workflowParameters; }
 
  private:
+  float mWorkflowVersion;                      /// workflow version used to generate this Event
+  std::string mWorkflowParameters;             /// workflow parameters used to generate this Event
   int mEventNumber;                            /// event number in file
   int mRunNumber;                              /// run number
   double mEnergy;                              /// energy of the collision

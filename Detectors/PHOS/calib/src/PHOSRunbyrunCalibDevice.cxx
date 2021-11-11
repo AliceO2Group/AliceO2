@@ -90,8 +90,8 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSRunbyrunCalibDeviceSpec(bool u
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("PHS", "RUNBYRUNHISTOS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Runbyrun"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_Runbyrun"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Runbyrun"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_Runbyrun"}, Lifetime::Sporadic);
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("clusters", "PHS", "CLUSTERS");
