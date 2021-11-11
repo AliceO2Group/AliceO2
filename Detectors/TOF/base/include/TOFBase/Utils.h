@@ -41,7 +41,7 @@ class Utils
 
  private:
   static std::vector<int> mFillScheme;
-  static int mBCmult[o2::constants::lhc::LHCMaxBunches + 1];
+  static int mBCmult[o2::constants::lhc::LHCMaxBunches];
   static int mNautodet;
   static int mMaxBC;
   static bool mIsInit;

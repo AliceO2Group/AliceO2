@@ -1194,6 +1194,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     timingInfo->tfCounter = relayer->getFirstTFCounterForSlot(i);
     timingInfo->firstTFOrbit = relayer->getFirstTFOrbitForSlot(i);
     timingInfo->runNumber = relayer->getRunNumberForSlot(i);
+    timingInfo->creation = relayer->getCreationTimeForSlot(i);
   };
 
   // When processing them, timers will have to be cleaned up
@@ -1406,7 +1407,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     }
 
     prepareAllocatorForCurrentTimeSlice(TimesliceSlot{action.slot});
-    InputSpan span = getInputSpan(action.slot, action.op == CompletionPolicy::CompletionOp::Consume);
+    bool shouldConsume = action.op == CompletionPolicy::CompletionOp::Consume ||
+                         action.op == CompletionPolicy::CompletionOp::Discard;
+    InputSpan span = getInputSpan(action.slot, shouldConsume);
     InputRecord record{context.deviceContext->spec->inputs, span};
     ProcessingContext processContext{record, *context.registry, *context.allocator};
     {

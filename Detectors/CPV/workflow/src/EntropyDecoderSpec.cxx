@@ -50,9 +50,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto& clusters = pc.outputs().make<std::vector<Cluster>>(OutputRef{"clusters"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::cpv::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, triggers, clusters);
-
+  if (buff.size()) {
+    const auto ctfImage = o2::cpv::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, triggers, clusters);
+  }
   mTimer.Stop();
   LOG(INFO) << "Decoded " << clusters.size() << " CPV clusters in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
 }

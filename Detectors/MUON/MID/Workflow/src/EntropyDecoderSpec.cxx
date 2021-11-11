@@ -51,8 +51,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   std::array<std::vector<o2::mid::ColumnData>, NEvTypes> cols{};
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::mid::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, rofs, cols);
+  if (buff.size()) {
+    const auto ctfImage = o2::mid::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, rofs, cols);
+  }
 
   for (uint32_t it = 0; it < NEvTypes; it++) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginMID, "DATA", it, Lifetime::Timeframe}, cols[it]);

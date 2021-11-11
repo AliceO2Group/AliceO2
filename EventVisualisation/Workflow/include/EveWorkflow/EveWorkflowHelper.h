@@ -60,13 +60,38 @@ class EveWorkflowHelper
     {-1, -1},    // VF0
     {-1, -1},    // FDD
     {1., 240},   // ITSTPC
-    {85., 430.}, // TPCTOF
-    {85., 380.}, // TPCTRD
-    {1., 380.},  // ITSTPCTRD
-    {1., 430.},  // ITSTPCTOF,
-    {85., 430.}, // TPCTRDTOF,
-    {1., 430.},  // ITSTPCTRDTOF, // full barrel track
+    {85., 405.}, // TPCTOF
+    {85., 372.}, // TPCTRD
+    {1., 372.},  // ITSTPCTRD
+    {1., 405.},  // ITSTPCTOF,
+    {85., 405.}, // TPCTRDTOF,
+    {1., 405.},  // ITSTPCTRDTOF, // full barrel track
     {-1, -1},    // ITSAB,
+  }};
+  static constexpr std::array<std::pair<float, float>, GID::NSources> minmaxZ{{
+    {-74., 74.},   // ITS
+    {-260., 260.}, // TPC
+    {-1, -1},      // TRD (never alone)
+    {-1, -1},      // TOF
+    {-1, -1},      // PHS
+    {-1, -1},      // CPV
+    {-1, -1},      // EMC
+    {-1, -1},      // HMP
+    {-1, -1},      // MFT
+    {-1, -1},      // MCH
+    {-1, -1},      // MID
+    {-1, -1},      // ZDC
+    {-1, -1},      // FT0
+    {-1, -1},      // VF0
+    {-1, -1},      // FDD
+    {-260., 260.}, // ITSTPC
+    {-375., 375.}, // TPCTOF
+    {-375., 375.}, // TPCTRD
+    {-375., 375.}, // ITSTPCTRD
+    {-375., 375.}, // ITSTPCTOF,
+    {-375., 375.}, // TPCTRDTOF,
+    {-375., 375.}, // ITSTPCTRDTOF, // full barrel track
+    {-1, -1},      // ITSAB,
   }};
   std::unique_ptr<gpu::TPCFastTransform> mTPCFastTransform;
 
@@ -75,14 +100,14 @@ class EveWorkflowHelper
   static std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ = -25000, float maxZ = 25000);
   void selectTracks(const CalibObjectsConst* calib, GID::mask_t maskCl,
                     GID::mask_t maskTrk, GID::mask_t maskMatch);
-  void addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz);
+  void addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz, GID::Source source = GID::NSources);
   void draw(const std::string& jsonPath, int numberOfFiles, int numberOfTracks, o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask, float mWorkflowVersion);
   void drawTPC(GID gid, float trackTime);
   void drawITS(GID gid, float trackTime);
   void drawMFT(GID gid, float trackTime);
   void drawMCH(GID gid, float trackTime);
   void drawMID(GID gid, float trackTime);
-  void drawITSTPC(GID gid, float trackTime);
+  void drawITSTPC(GID gid, float trackTime, GID::Source source = GID::ITSTPC);
   void drawITSTPCTOF(GID gid, float trackTime);
   void drawITSTPCTRD(GID gid, float trackTime);
   void drawITSTPCTRDTOF(GID gid, float trackTime);

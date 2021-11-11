@@ -80,6 +80,9 @@ class CTFReaderSpec : public o2::framework::Task
   void processTF(ProcessingContext& pc);
   void checkTreeEntries();
   void stopReader();
+  template <typename C>
+  void processDetector(DetID det, const CTFHeader& ctfHeader, ProcessingContext& pc) const;
+  void setFirstTFOrbit(const CTFHeader& ctfHeader, const std::string& lbl, ProcessingContext& pc) const;
   CTFReaderInp mInput{};
   std::unique_ptr<o2::utils::FileFetcher> mFileFetcher;
   std::unique_ptr<TFile> mCTFFile;
@@ -218,134 +221,26 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   }
   LOG(INFO) << ctfHeader;
 
-  auto setFirstTFOrbit = [&pc, &ctfHeader, this](const std::string& label) {
-    auto* hd = pc.outputs().findMessageHeader({label});
-    if (!hd) {
-      throw std::runtime_error(o2::utils::Str::concat_string("failed to find output message header for ", label));
-    }
-    hd->firstTForbit = ctfHeader.firstTForbit;
-    hd->tfCounter = this->mCTFCounter;
-    hd->runNumber = uint32_t(ctfHeader.run);
-  };
-
   // send CTF Header
   pc.outputs().snapshot({"header"}, ctfHeader);
-  setFirstTFOrbit("header");
+  setFirstTFOrbit(ctfHeader, "header", pc);
 
-  DetID::mask_t detsTF = mInput.detMask & ctfHeader.detectors;
-  DetID det;
-
-  det = DetID::ITS;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::itsmft::CTF));
-    o2::itsmft::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::MFT;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::itsmft::CTF));
-    o2::itsmft::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::TPC;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::tpc::CTF));
-    o2::tpc::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::TRD;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::trd::CTF));
-    o2::trd::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::FT0;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::ft0::CTF));
-    o2::ft0::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::FV0;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::fv0::CTF));
-    o2::fv0::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::FDD;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::fdd::CTF));
-    o2::fdd::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::TOF;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::tof::CTF));
-    o2::tof::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::MID;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::mid::CTF));
-    o2::mid::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::MCH;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::mch::CTF));
-    o2::mch::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::EMC;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::emcal::CTF));
-    o2::emcal::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::PHS;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::phos::CTF));
-    o2::phos::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::CPV;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::cpv::CTF));
-    o2::cpv::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::ZDC;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::zdc::CTF));
-    o2::zdc::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::HMP;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::hmpid::CTF));
-    o2::hmpid::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
-
-  det = DetID::CTP;
-  if (detsTF[det]) {
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::ctp::CTF));
-    o2::ctp::CTF::readFromTree(bufVec, *(mCTFTree.get()), det.getName(), mCurrTreeEntry);
-    setFirstTFOrbit(det.getName());
-  }
+  processDetector<o2::itsmft::CTF>(DetID::ITS, ctfHeader, pc);
+  processDetector<o2::itsmft::CTF>(DetID::MFT, ctfHeader, pc);
+  processDetector<o2::emcal::CTF>(DetID::EMC, ctfHeader, pc);
+  processDetector<o2::hmpid::CTF>(DetID::HMP, ctfHeader, pc);
+  processDetector<o2::phos::CTF>(DetID::PHS, ctfHeader, pc);
+  processDetector<o2::tpc::CTF>(DetID::TPC, ctfHeader, pc);
+  processDetector<o2::trd::CTF>(DetID::TRD, ctfHeader, pc);
+  processDetector<o2::ft0::CTF>(DetID::FT0, ctfHeader, pc);
+  processDetector<o2::fv0::CTF>(DetID::FV0, ctfHeader, pc);
+  processDetector<o2::fdd::CTF>(DetID::FDD, ctfHeader, pc);
+  processDetector<o2::tof::CTF>(DetID::TOF, ctfHeader, pc);
+  processDetector<o2::mid::CTF>(DetID::MID, ctfHeader, pc);
+  processDetector<o2::mch::CTF>(DetID::MCH, ctfHeader, pc);
+  processDetector<o2::cpv::CTF>(DetID::CPV, ctfHeader, pc);
+  processDetector<o2::zdc::CTF>(DetID::ZDC, ctfHeader, pc);
+  processDetector<o2::ctp::CTF>(DetID::CTP, ctfHeader, pc);
 
   // send sTF acknowledge message
   {
@@ -353,7 +248,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
     stfDist.id = uint64_t(mCurrTreeEntry);
     stfDist.firstOrbit = ctfHeader.firstTForbit;
     stfDist.runNumber = uint32_t(ctfHeader.run);
-    setFirstTFOrbit("STFDist");
+    setFirstTFOrbit(ctfHeader, "STFDist", pc);
   }
 
   auto entryStr = fmt::format("({} of {} in {})", mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
@@ -386,6 +281,34 @@ void CTFReaderSpec::checkTreeEntries()
     if (mFileFetcher) {
       mFileFetcher->popFromQueue(mInput.maxLoops < 1);
     }
+  }
+}
+
+///_______________________________________
+void CTFReaderSpec::setFirstTFOrbit(const CTFHeader& ctfHeader, const std::string& lbl, ProcessingContext& pc) const
+{
+  auto* hd = pc.outputs().findMessageHeader({lbl});
+  if (!hd) {
+    throw std::runtime_error(fmt::format("failed to find output message header for {}", lbl));
+  }
+  hd->firstTForbit = ctfHeader.firstTForbit;
+  hd->tfCounter = mCTFCounter;
+  hd->runNumber = uint32_t(ctfHeader.run);
+}
+
+///_______________________________________
+template <typename C>
+void CTFReaderSpec::processDetector(DetID det, const CTFHeader& ctfHeader, ProcessingContext& pc) const
+{
+  if (mInput.detMask[det]) {
+    const auto lbl = det.getName();
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({lbl}, sizeof(C));
+    if (ctfHeader.detectors[det]) {
+      C::readFromTree(bufVec, *(mCTFTree.get()), lbl, mCurrTreeEntry);
+    } else if (!mInput.allowMissingDetectors) {
+      throw std::runtime_error(fmt::format("Requested detector {} is missing in the CTF", lbl));
+    }
+    setFirstTFOrbit(ctfHeader, lbl, pc);
   }
 }
 

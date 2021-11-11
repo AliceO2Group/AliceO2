@@ -26,8 +26,8 @@ o2::framework::DataProcessorSpec getGlobalOffsetsCalibrationSpec()
                                                               o2::ft0::GlobalOffsetsContainer, o2::ft0::GlobalOffsetsCalibrationObject>;
 
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "FIT_CALIB"});
-  outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "FIT_CALIB"});
+  outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "FIT_CALIB"}, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "FIT_CALIB"}, o2::framework::Lifetime::Sporadic);
 
   constexpr const char* DEFAULT_INPUT_LABEL = "calib";
 
