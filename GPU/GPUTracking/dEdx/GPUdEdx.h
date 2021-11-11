@@ -143,16 +143,14 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
   qtot /= qTotCorr;
 
   auto residualCalib = calib.dEdxCorrection;
-  if (residualCalib != nullptr) {
-    tpc::StackID stack{
-      slice,
-      static_cast<tpc::GEMstack>(roc)};
+  tpc::StackID stack{
+    slice,
+    static_cast<tpc::GEMstack>(roc)};
 
-    const float qMaxResidualCorr = residualCalib->getCorrection(stack, tpc::ChargeType::Max, z, trackTgl);
-    const float qTotResidualCorr = residualCalib->getCorrection(stack, tpc::ChargeType::Tot, z, trackTgl);
-    qmax /= qMaxResidualCorr;
-    qtot /= qTotResidualCorr;
-  }
+  const float qMaxResidualCorr = residualCalib->getCorrection(stack, tpc::ChargeType::Max, z, trackTgl);
+  const float qTotResidualCorr = residualCalib->getCorrection(stack, tpc::ChargeType::Tot, z, trackTgl);
+  qmax /= qMaxResidualCorr;
+  qtot /= qTotResidualCorr;
 
   mChargeTot[mCount] = (GPUCA_DEDX_STORAGE_TYPE)(qtot * scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::factor + scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::round);
   mChargeMax[mCount++] = (GPUCA_DEDX_STORAGE_TYPE)(qmax * scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::factor + scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::round);

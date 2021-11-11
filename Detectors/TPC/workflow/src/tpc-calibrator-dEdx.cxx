@@ -10,12 +10,30 @@
 // or submit itself to any jurisdiction.
 
 #include "TPCWorkflow/CalibratordEdxSpec.h"
+#include "Framework/ConfigParamSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
+
+// we need to add workflow options before including Framework/runDataProcessing
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
+{
+  std::vector<ConfigParamSpec> options{
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCCalibPedestal.FirstTimeBin=10;...')"}},
+    {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
+  };
+
+  std::swap(workflowOptions, options);
+}
 #include "Framework/runDataProcessing.h"
 
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
+  // set up configuration
+  o2::conf::ConfigurableParam::updateFromFile(config.options().get<std::string>("configFile"));
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
+  o2::conf::ConfigurableParam::writeINI("o2tpccalibration_configuration.ini");
+
   using namespace o2::tpc;
   return WorkflowSpec{getCalibratordEdxSpec()};
 }

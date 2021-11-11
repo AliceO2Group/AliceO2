@@ -11,9 +11,6 @@
 
 #include "DataFormatsTPC/CalibdEdxCorrection.h"
 
-#include <algorithm>
-#include <array>
-#include <cstddef>
 #include <string_view>
 
 // o2 includes
@@ -26,20 +23,24 @@ using namespace o2::tpc;
 
 void CalibdEdxCorrection::clear()
 {
-  for (auto& x : mParams) {
-    std::fill(x.begin(), x.end(), 0.0);
+  for (auto& row : mParams) {
+    for (auto& x : row) {
+      x = 0.f;
+    }
   }
-  std::fill(mChi2.begin(), mChi2.end(), 0.0);
+  for (auto& x : mChi2) {
+    x = 0.f;
+  }
   mDims = -1;
 }
 
-void CalibdEdxCorrection::saveFile(std::string_view fileName) const
+void CalibdEdxCorrection::writeToFile(std::string_view fileName) const
 {
   std::unique_ptr<TFile> file(TFile::Open(fileName.data(), "recreate"));
   file->WriteObject(this, "CalibdEdxCorrection");
 }
 
-void CalibdEdxCorrection::loadFile(std::string_view fileName)
+void CalibdEdxCorrection::loadFromFile(std::string_view fileName)
 {
   std::unique_ptr<TFile> file(TFile::Open(fileName.data()));
   auto tmp = file->Get<CalibdEdxCorrection>("CalibdEdxCorrection");
