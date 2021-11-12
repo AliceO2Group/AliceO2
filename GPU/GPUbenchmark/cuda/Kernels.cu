@@ -130,14 +130,50 @@ __global__ void copy_k(
 template <class chunk_t>
 __global__ void rand_read_k(
   chunk_t* chunkPtr,
-  size_t chunkSize)
+  size_t chunkSize,
+  int prime)
 {
   chunk_t sink{0};
-  BSDRnd r{};
-  for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
-    sink = chunkPtr[i];
+  for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
+    sink += chunkPtr[(i * prime) % chunkSize];
   }
-  chunkPtr[threadIdx.x] = sink; // writing done once
+  chunkPtr[threadIdx.x] = sink;
+}
+
+// Random write
+template <class chunk_t>
+__global__ void rand_write_k(
+  chunk_t* chunkPtr,
+  size_t chunkSize,
+  int prime)
+{
+  for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
+    chunkPtr[(i * prime) % chunkSize] = 0;
+  }
+}
+
+template <>
+__global__ void rand_write_k(
+  int4* chunkPtr,
+  size_t chunkSize,
+  int prime)
+{
+  for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
+    chunkPtr[(i * prime) % chunkSize] = {0, 1, 0, 0};
+  };
+}
+
+// Random copy
+template <class chunk_t>
+__global__ void rand_copy_k(
+  chunk_t* chunkPtr,
+  size_t chunkSize,
+  int prime)
+{
+  size_t offset = chunkSize / 2;
+  for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < offset; i += blockDim.x * gridDim.x) {
+    chunkPtr[(i * prime) % offset] = chunkPtr[offset + (i * prime) % offset]; // might be % = 0...
+  }
 }
 
 // Distributed read
@@ -198,10 +234,59 @@ __global__ void copy_dist_k(
 template <class chunk_t>
 __global__ void rand_read_dist_k(
   chunk_t** block_ptr,
-  size_t* block_size)
+  size_t* block_size,
+  int prime)
 {
+  chunk_t sink{0};
+  chunk_t* ptr = block_ptr[blockIdx.x];
+  size_t n = block_size[blockIdx.x];
+  for (size_t i = threadIdx.x; i < n; i += blockDim.x) {
+    sink += ptr[(i * prime) % n];
+  }
+  ptr[threadIdx.x] = sink;
 }
 
+// Distributed Random write
+template <class chunk_t>
+__global__ void rand_write_dist_k(
+  chunk_t** block_ptr,
+  size_t* block_size,
+  int prime)
+{
+  chunk_t* ptr = block_ptr[blockIdx.x];
+  size_t n = block_size[blockIdx.x];
+  for (size_t i = threadIdx.x; i < n; i += blockDim.x) {
+    ptr[(i * prime) % n] = 0;
+  }
+}
+
+template <>
+__global__ void rand_write_dist_k(
+  int4** block_ptr,
+  size_t* block_size,
+  int prime)
+{
+  int4* ptr = block_ptr[blockIdx.x];
+  size_t n = block_size[blockIdx.x];
+  for (size_t i = threadIdx.x; i < n; i += blockDim.x) {
+    ptr[(i * prime) % n] = {0, 1, 0, 0};
+  }
+}
+
+// Distributed Random copy
+template <class chunk_t>
+__global__ void rand_copy_dist_k(
+  chunk_t** block_ptr,
+  size_t* block_size,
+  int prime)
+{
+  chunk_t* ptr = block_ptr[blockIdx.x];
+  size_t n = block_size[blockIdx.x];
+  size_t offset = n / 2;
+  for (size_t i = threadIdx.x; i < offset; i += blockDim.x) {
+    ptr[(i * prime) % offset] = ptr[offset + (i * prime) % offset];
+  }
+}
 } // namespace gpu
 
 void printDeviceProp(int deviceId)
@@ -342,14 +427,14 @@ float GPUbenchmark<chunk_t>::runSequential(void (*kernel)(chunk_t*, size_t, T...
   chunk_t* chunkPtr = getCustomPtr<chunk_t>(mState.scratchPtr, chunk.first);
 
   // Warm up
-  (*kernel)<<<nBlocks, nThreads, 0, stream>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second), args...);
+  (*kernel)<<<nBlocks, nThreads, 0, stream>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second, mOptions.prime), args...);
 
   GPUCHECK(cudaEventCreate(&start));
   GPUCHECK(cudaEventCreate(&stop));
 
   GPUCHECK(cudaEventRecord(start));
-  for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {                                                     // Schedule all the requested kernel launches
-    (*kernel)<<<nBlocks, nThreads, 0, stream>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second), args...); // NOLINT: clang-tidy false-positive
+  for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {                                                                     // Schedule all the requested kernel launches
+    (*kernel)<<<nBlocks, nThreads, 0, stream>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second, mOptions.prime), args...); // NOLINT: clang-tidy false-positive
   }
   GPUCHECK(cudaEventRecord(stop));      // record checkpoint
   GPUCHECK(cudaEventSynchronize(stop)); // synchronize executions
@@ -389,7 +474,7 @@ std::vector<float> GPUbenchmark<chunk_t>::runConcurrent(void (*kernel)(chunk_t*,
   for (auto iChunk{0}; iChunk < nChunks; ++iChunk) {
     auto& chunk = chunkRanges[iChunk];
     chunk_t* chunkPtr = getCustomPtr<chunk_t>(mState.scratchPtr, chunk.first);
-    (*kernel)<<<nBlocks, nThreads, 0, streams[iChunk % dimStreams]>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second), args...);
+    (*kernel)<<<nBlocks, nThreads, 0, streams[iChunk % dimStreams]>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second, mOptions.prime), args...);
   }
   auto start = std::chrono::high_resolution_clock::now();
 
@@ -398,7 +483,7 @@ std::vector<float> GPUbenchmark<chunk_t>::runConcurrent(void (*kernel)(chunk_t*,
     chunk_t* chunkPtr = getCustomPtr<chunk_t>(mState.scratchPtr, chunk.first);
     GPUCHECK(cudaEventRecord(starts[iChunk], streams[iChunk % dimStreams]));
     for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {
-      (*kernel)<<<nBlocks, nThreads, 0, streams[iChunk % dimStreams]>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second), args...);
+      (*kernel)<<<nBlocks, nThreads, 0, streams[iChunk % dimStreams]>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second, mOptions.prime), args...);
     }
     GPUCHECK(cudaEventRecord(stops[iChunk], streams[iChunk % dimStreams]));
   }
@@ -450,7 +535,7 @@ float GPUbenchmark<chunk_t>::runDistributed(void (*kernel)(chunk_t**, size_t*, T
     for (int iBlock{0}; iBlock < blocksPerChunk; ++iBlock, ++index) {
       float memPerBlock = chunkRanges[iChunk].second / blocksPerChunk;
       ptrPerBlocks[index] = getCustomPtr<chunk_t>(chunkPtrs[iChunk], iBlock * memPerBlock);
-      perBlockCapacity[index] = getBufferCapacity<chunk_t>(memPerBlock);
+      perBlockCapacity[index] = getBufferCapacity<chunk_t>(memPerBlock, mOptions.prime);
     }
   }
 
@@ -575,10 +660,11 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
   }
   nThreads *= mOptions.threadPoolFraction;
 
-  auto capacity{mState.getChunkCapacity()};
-
   void (*kernel)(chunk_t*, size_t);
   void (*kernel_distributed)(chunk_t**, size_t*);
+  void (*kernel_rand)(chunk_t*, size_t, int);
+  void (*kernel_rand_distributed)(chunk_t**, size_t*, int);
+  bool is_random{false};
 
   if (mode != Mode::Distributed) {
     switch (test) {
@@ -592,6 +678,21 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
       }
       case Test::Copy: {
         kernel = &gpu::copy_k<chunk_t>;
+        break;
+      }
+      case Test::RandomRead: {
+        kernel_rand = &gpu::rand_read_k<chunk_t>;
+        is_random = true;
+        break;
+      }
+      case Test::RandomWrite: {
+        kernel_rand = &gpu::rand_write_k<chunk_t>;
+        is_random = true;
+        break;
+      }
+      case Test::RandomCopy: {
+        kernel_rand = &gpu::rand_copy_k<chunk_t>;
+        is_random = true;
         break;
       }
     }
@@ -609,6 +710,21 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
         kernel_distributed = &gpu::copy_dist_k<chunk_t>;
         break;
       }
+      case Test::RandomRead: {
+        kernel_rand_distributed = &gpu::rand_read_dist_k<chunk_t>;
+        is_random = true;
+        break;
+      }
+      case Test::RandomWrite: {
+        kernel_rand_distributed = &gpu::rand_write_dist_k<chunk_t>;
+        is_random = true;
+        break;
+      }
+      case Test::RandomCopy: {
+        kernel_rand_distributed = &gpu::rand_copy_dist_k<chunk_t>;
+        is_random = true;
+        break;
+      }
     }
   }
 
@@ -620,28 +736,51 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
       std::cout << "   │   - per chunk throughput:\n";
       for (auto iChunk{0}; iChunk < mState.testChunks.size(); ++iChunk) { // loop over single chunks separately
         auto& chunk = mState.testChunks[iChunk];
-        auto result = runSequential(kernel,
-                                    chunk,
-                                    mState.getNKernelLaunches(),
-                                    nBlocks,
-                                    nThreads);
-        auto throughput = computeThroughput(test, result, chunk.second, mState.getNKernelLaunches());
+        float result{0.f};
+        if (!is_random) {
+          result = runSequential(kernel,
+                                 chunk,
+                                 mState.getNKernelLaunches(),
+                                 nBlocks,
+                                 nThreads);
+        } else {
+          result = runSequential(kernel_rand,
+                                 chunk,
+                                 mState.getNKernelLaunches(),
+                                 nBlocks,
+                                 nThreads,
+                                 mOptions.prime);
+        }
+        float chunkSize = getBufferCapacity<chunk_t>(chunk.second, mOptions.prime) * sizeof(chunk_t) / GB;
+        auto throughput = computeThroughput(test, result, chunkSize, mState.getNKernelLaunches());
         std::cout << "   │     " << ((mState.testChunks.size() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << mState.testChunks.size()
                   << ": [" << chunk.first << "-" << chunk.first + chunk.second << ") \e[1m" << throughput << " GB/s \e[0m(" << result * 1e-3 << " s)\n";
         mResultWriter.get()->storeBenchmarkEntry(test, iChunk, result, chunk.second, mState.getNKernelLaunches());
       }
     } else if (mode == Mode::Concurrent) {
       std::cout << "   │   - per chunk throughput:\n";
-      auto results = runConcurrent(kernel,
-                                   mState.testChunks,
-                                   mState.getNKernelLaunches(),
-                                   mState.getStreamsPoolSize(),
-                                   nBlocks,
-                                   nThreads);
+      std::vector<float> results;
+      if (!is_random) {
+        results = runConcurrent(kernel,
+                                mState.testChunks,
+                                mState.getNKernelLaunches(),
+                                mState.getStreamsPoolSize(),
+                                nBlocks,
+                                nThreads);
+      } else {
+        results = runConcurrent(kernel_rand,
+                                mState.testChunks,
+                                mState.getNKernelLaunches(),
+                                mState.getStreamsPoolSize(),
+                                nBlocks,
+                                nThreads,
+                                mOptions.prime);
+      }
       float sum{0};
       for (auto iChunk{0}; iChunk < mState.testChunks.size(); ++iChunk) {
         auto& chunk = mState.testChunks[iChunk];
-        auto throughput = computeThroughput(test, results[iChunk], chunk.second, mState.getNKernelLaunches());
+        float chunkSize = getBufferCapacity<chunk_t>(chunk.second, mOptions.prime) * sizeof(chunk_t) / GB;
+        auto throughput = computeThroughput(test, results[iChunk], chunkSize, mState.getNKernelLaunches());
         sum += throughput;
         std::cout << "   │     " << ((mState.testChunks.size() - iChunk != 1) ? "├ " : "└ ") << iChunk + 1 << "/" << mState.testChunks.size()
                   << ": [" << chunk.first << "-" << chunk.first + chunk.second << ") \e[1m" << throughput << " GB/s \e[0m(" << results[iChunk] * 1e-3 << " s)\n";
@@ -660,14 +799,25 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
       std::cout << "   │   - total throughput with host time: \e[1m" << computeThroughput(test, results[mState.testChunks.size()], tot, mState.getNKernelLaunches())
                 << " GB/s \e[0m (" << std::setw(2) << results[mState.testChunks.size()] / 1000 << " s)" << std::endl;
     } else if (mode == Mode::Distributed) {
-      auto result = runDistributed(kernel_distributed,
-                                   mState.testChunks,
-                                   mState.getNKernelLaunches(),
-                                   nBlocks,
-                                   nThreads);
+      float result{0.f};
+      if (!is_random) {
+        result = runDistributed(kernel_distributed,
+                                mState.testChunks,
+                                mState.getNKernelLaunches(),
+                                nBlocks,
+                                nThreads);
+      } else {
+        result = runDistributed(kernel_rand_distributed,
+                                mState.testChunks,
+                                mState.getNKernelLaunches(),
+                                nBlocks,
+                                nThreads,
+                                mOptions.prime);
+      }
       float tot{0};
       for (auto& chunk : mState.testChunks) {
-        tot += chunk.second;
+        float chunkSize = getBufferCapacity<chunk_t>(chunk.second, mOptions.prime) * sizeof(chunk_t) / GB;
+        tot += chunkSize;
       }
       auto throughput = computeThroughput(test, result, tot, mState.getNKernelLaunches());
       std::cout << "   │     └ throughput: \e[1m" << throughput << " GB/s \e[0m(" << result * 1e-3 << " s)\n";
