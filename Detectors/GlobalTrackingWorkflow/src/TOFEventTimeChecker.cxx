@@ -67,6 +67,7 @@ struct MyTrack : o2::tof::eventTimeTrackTest {
   double mSignalDouble = 0.0;
   float mEta = 0.0;
   float mExpDe = 0;
+  int mIsProb = 0;
   int mCh = -1;
 };
 
@@ -74,7 +75,7 @@ using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;
 
 bool MyFilter(const MyTrack& tr)
 {
-  return (tr.mP < 2.0 && fabs(tr.mEta) < 0.6);
+  return (tr.mP < 2.0 && fabs(tr.mEta) < 0.8);
 } // accept all
 
 namespace o2
@@ -138,6 +139,7 @@ class TOFEventTimeChecker : public Task
   float mExpPi = 0;
   float mExpKa = 0;
   float mExpPr = 0;
+  int mIsProb = 0;
   RecoContainer mRecoData;
   std::shared_ptr<DataRequest> mDataRequest;
   bool mUseMC = true;
@@ -183,6 +185,7 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
     mExpPi = track.tofExpTimePi();
     mExpKa = track.tofExpTimeKa();
     mExpPr = track.tofExpTimePr();
+    mIsProb = track.mIsProb;
 
 #ifdef TDEBUG
     mTree->Fill();
@@ -307,9 +310,10 @@ void TOFEventTimeChecker::fillMatching(GID gid)
   trk.mCh = mTOFClustersArrayInp[tofcl].getMainContributingChannel();
 
   if (mSlewing) { // let's calibrate
+    trk.mIsProb = mSlewing->isProblematic(trk.mCh);
     if (mSlewing->isProblematic(trk.mCh)) {
-      LOG(DEBUG) << "skip channel " << trk.mCh << " since problematic";
-      return;
+      //      LOG(DEBUG) << "skip channel " << trk.mCh << " since problematic";
+      //      return;
     }
     float tot = mTOFClustersArrayInp[tofcl].getTot();
     trk.mSignalDouble -= mSlewing->evalTimeSlewing(trk.mCh, tot);
@@ -372,6 +376,7 @@ void TOFEventTimeChecker::init(InitContext& ic)
   mTree = new TTree("tree", "tree");
   mTree->Branch("orbit", &mOrbit, "orbit/I");
   mTree->Branch("ch", &mCh, "ch/I");
+  mTree->Branch("isProb", &mIsProb, "isProb/I");
   mTree->Branch("p", &mP, "p/F");
   mTree->Branch("pt", &mPt, "pt/F");
   mTree->Branch("eta", &mEta, "eta/F");
