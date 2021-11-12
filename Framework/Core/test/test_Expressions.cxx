@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(TestGandivaTreeCreation)
 BOOST_AUTO_TEST_CASE(TestConditionalExpressions)
 {
   // simple conditional
-  Filter cf = nabs(o2::aod::track::eta) < 1.0f && ifnode((o2::aod::track::pt < 1.0f), (o2::aod::track::phiraw > (float)(M_PI / 2.)), (o2::aod::track::phiraw < (float)(M_PI / 2.)));
+  Filter cf = nabs(o2::aod::track::eta) < 1.0f && ifnode((o2::aod::track::pt < 1.0f), (o2::aod::track::phi > (float)(M_PI / 2.)), (o2::aod::track::phi < (float)(M_PI / 2.)));
   auto cfspecs = createOperations(cf);
   BOOST_REQUIRE_EQUAL(cfspecs[0].left, (DatumSpec{1u, atype::BOOL}));
   BOOST_REQUIRE_EQUAL(cfspecs[0].right, (DatumSpec{2u, atype::BOOL}));
@@ -219,11 +219,11 @@ BOOST_AUTO_TEST_CASE(TestConditionalExpressions)
   BOOST_REQUIRE_EQUAL(cfspecs[2].right, (DatumSpec{LiteralNode::var_t{1.0f}, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(cfspecs[2].result, (DatumSpec{5u, atype::BOOL}));
 
-  BOOST_REQUIRE_EQUAL(cfspecs[3].left, (DatumSpec{std::string{"fRawPhi"}, typeid(o2::aod::track::RawPhi).hash_code(), atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(cfspecs[3].left, (DatumSpec{std::string{"fPhi"}, typeid(o2::aod::track::Phi).hash_code(), atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(cfspecs[3].right, (DatumSpec{LiteralNode::var_t{(float)(M_PI / 2.)}, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(cfspecs[3].result, (DatumSpec{4u, atype::BOOL}));
 
-  BOOST_REQUIRE_EQUAL(cfspecs[4].left, (DatumSpec{std::string{"fRawPhi"}, typeid(o2::aod::track::RawPhi).hash_code(), atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(cfspecs[4].left, (DatumSpec{std::string{"fPhi"}, typeid(o2::aod::track::Phi).hash_code(), atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(cfspecs[4].right, (DatumSpec{LiteralNode::var_t{(float)(M_PI / 2.)}, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(cfspecs[4].result, (DatumSpec{3u, atype::BOOL}));
 
@@ -237,13 +237,13 @@ BOOST_AUTO_TEST_CASE(TestConditionalExpressions)
 
   auto infield1 = o2::aod::track::Pt::asArrowField();
   auto infield2 = o2::aod::track::Eta::asArrowField();
-  auto infield3 = o2::aod::track::RawPhi::asArrowField();
+  auto infield3 = o2::aod::track::Phi::asArrowField();
   auto schema = std::make_shared<arrow::Schema>(std::vector{infield1, infield2, infield3});
   auto gandiva_tree = createExpressionTree(cfspecs, schema);
   auto gandiva_condition = makeCondition(gandiva_tree);
   auto gandiva_filter = createFilter(schema, gandiva_condition);
 
-  BOOST_CHECK_EQUAL(gandiva_tree->ToString(), "bool less_than(float absf((float) fEta), (const float) 1 raw(3f800000)) && if (bool less_than((float) fPt, (const float) 1 raw(3f800000))) { bool greater_than((float) fRawPhi, (const float) 1.5708 raw(3fc90fdb)) } else { bool less_than((float) fRawPhi, (const float) 1.5708 raw(3fc90fdb)) }");
+  BOOST_CHECK_EQUAL(gandiva_tree->ToString(), "bool less_than(float absf((float) fEta), (const float) 1 raw(3f800000)) && if (bool less_than((float) fPt, (const float) 1 raw(3f800000))) { bool greater_than((float) fPhi, (const float) 1.5708 raw(3fc90fdb)) } else { bool less_than((float) fPhi, (const float) 1.5708 raw(3fc90fdb)) }");
 
   // nested conditional
   Filter cfn = o2::aod::track::signed1Pt > 0.f && ifnode(std::move(*cf.node), nabs(o2::aod::track::x) > 1.0f, nabs(o2::aod::track::y) > 1.0f);
@@ -256,5 +256,5 @@ BOOST_AUTO_TEST_CASE(TestConditionalExpressions)
   auto gandiva_condition2 = makeCondition(gandiva_tree2);
   auto gandiva_filter2 = createFilter(schema2, gandiva_condition2);
   BOOST_REQUIRE_EQUAL(gandiva_tree2->ToString(),
-                      "bool greater_than((float) fSigned1Pt, (const float) 0 raw(0)) && if (bool less_than(float absf((float) fEta), (const float) 1 raw(3f800000)) && if (bool less_than((float) fPt, (const float) 1 raw(3f800000))) { bool greater_than((float) fRawPhi, (const float) 1.5708 raw(3fc90fdb)) } else { bool less_than((float) fRawPhi, (const float) 1.5708 raw(3fc90fdb)) }) { bool greater_than(float absf((float) fX), (const float) 1 raw(3f800000)) } else { bool greater_than(float absf((float) fY), (const float) 1 raw(3f800000)) }");
+                      "bool greater_than((float) fSigned1Pt, (const float) 0 raw(0)) && if (bool less_than(float absf((float) fEta), (const float) 1 raw(3f800000)) && if (bool less_than((float) fPt, (const float) 1 raw(3f800000))) { bool greater_than((float) fPhi, (const float) 1.5708 raw(3fc90fdb)) } else { bool less_than((float) fPhi, (const float) 1.5708 raw(3fc90fdb)) }) { bool greater_than(float absf((float) fX), (const float) 1 raw(3f800000)) } else { bool greater_than(float absf((float) fY), (const float) 1 raw(3f800000)) }");
 }

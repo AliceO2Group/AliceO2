@@ -138,7 +138,7 @@ void fillCollisionAndTrackTable()
       auto collCursor = collBuilder.cursor<o2::aod::Collisions>();
 
       TableBuilder trackBuilder;
-      auto trackCursor = trackBuilder.cursor<o2::aod::Tracks>();
+      auto trackCursor = trackBuilder.cursor<o2::aod::StoredTracks>();
 
       int index = 0;
       for (auto& v : *vertices) {
@@ -190,7 +190,7 @@ void fillCollisionAndTrackTable()
           std::array<float, 3> pxpypz;
           track->getPxPyPzGlo(pxpypz);
           trackCursor(0, index, 0 /* CORRECT THIS */, track->getX(), track->getAlpha(), track->getY(), track->getZ(), track->getSnp(), track->getTgl(),
-                      track->getPt() /*CHECK!!*/, track->getPhi(), pxpypz[0], pxpypz[1], pxpypz[2]);
+                      track->getPt() /*CHECK!!*/);
         }
         index++;
       }
