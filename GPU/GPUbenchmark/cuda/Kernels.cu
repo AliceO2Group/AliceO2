@@ -284,7 +284,7 @@ __global__ void rand_copy_dist_k(
   size_t n = block_size[blockIdx.x];
   size_t offset = n / 2;
   for (size_t i = threadIdx.x; i < offset; i += blockDim.x) {
-    ptr[(i * prime) % offset] = chunkPtr[offset + (i * prime) % offset];
+    ptr[(i * prime) % offset] = ptr[offset + (i * prime) % offset];
   }
 }
 } // namespace gpu
