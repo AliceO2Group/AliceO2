@@ -42,7 +42,7 @@ class ReconstructionDPL : public Task
 
  private:
   bool mUseMC = false;
-  const std::string mCCDBpath = "http://o2-ccdb.internal/";
+  const std::string mCCDBpath = "http://alice-ccdb.cern.ch";
   std::vector<o2::ft0::RecPoints> mRecPoints;
   std::vector<o2::ft0::ChannelDataFloat> mRecChData;
   o2::ft0::CollisionTimeRecoTask mReco;
@@ -51,7 +51,7 @@ class ReconstructionDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getReconstructionSpec(bool useMC = false, const std::string ccdbpath = "http://o2-ccdb.internal/");
+framework::DataProcessorSpec getReconstructionSpec(bool useMC = false, const std::string ccdbpath = "http://alice-ccdb.cern.ch");
 
 } // namespace ft0
 } // namespace o2
