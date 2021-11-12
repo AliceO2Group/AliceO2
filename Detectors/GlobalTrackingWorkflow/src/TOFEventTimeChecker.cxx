@@ -63,8 +63,10 @@ using GID = o2::dataformats::GlobalTrackID;
 
 struct MyTrack : o2::tof::eventTimeTrackTest {
   double tofSignalDouble() const { return mSignalDouble; }
+  float tofExpTimeDe() const { return mExpDe; }
   double mSignalDouble = 0.0;
   float mEta = 0.0;
+  float mExpDe = 0;
   int mCh = -1;
 };
 
@@ -132,6 +134,7 @@ class TOFEventTimeChecker : public Task
   float mTof = 0;
   float mT0 = 0;
   float mT0Res = 0;
+  float mExpDe = 0;
   float mExpPi = 0;
   float mExpKa = 0;
   float mExpPr = 0;
@@ -176,6 +179,7 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
     mEta = track.mEta;
     mL = track.mLength;
     mTof = track.tofSignal();
+    mExpDe = track.tofExpTimeDe();
     mExpPi = track.tofExpTimePi();
     mExpKa = track.tofExpTimeKa();
     mExpPr = track.tofExpTimePr();
@@ -259,7 +263,7 @@ void TOFEventTimeChecker::fillMatching(GID gid)
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
     trk.mPt = srctrk.getPt();
-    trk.mP = srctrk.getPt();
+    trk.mP = srctrk.getP();
     trk.mEta = srctrk.getEta();
     trksource = 1;
   } else if (gid.getSource() == GID::TPCTRDTOF) {
@@ -267,7 +271,7 @@ void TOFEventTimeChecker::fillMatching(GID gid)
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
     trk.mPt = srctrk.getPt();
-    trk.mP = srctrk.getPt();
+    trk.mP = srctrk.getP();
     trk.mEta = srctrk.getEta();
     trksource = 2;
   } else if (gid.getSource() == GID::ITSTPCTRDTOF) {
@@ -275,13 +279,14 @@ void TOFEventTimeChecker::fillMatching(GID gid)
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
     trk.mPt = srctrk.getPt();
-    trk.mP = srctrk.getPt();
+    trk.mP = srctrk.getP();
     trk.mEta = srctrk.getEta();
     trksource = 3;
   }
 
   const char* sources[5] = {"TPC", "ITS-TPC", "TPC-TRD", "ITS-TPC-TRD", "NONE"};
 
+  trk.mExpDe = info.getTOF(5);      // el
   trk.expTimes[0] = info.getTOF(2); // pi
   trk.expTimes[1] = info.getTOF(3); // ka
   trk.expTimes[2] = info.getTOF(4); // pr
@@ -374,6 +379,7 @@ void TOFEventTimeChecker::init(InitContext& ic)
   mTree->Branch("tof", &mTof, "tof/F");
   mTree->Branch("t0", &mT0, "t0/F");
   mTree->Branch("t0res", &mT0Res, "t0res/F");
+  mTree->Branch("expDe", &mExpDe, "expDe/F");
   mTree->Branch("expPi", &mExpPi, "expPi/F");
   mTree->Branch("expKa", &mExpKa, "expKa/F");
   mTree->Branch("expPr", &mExpPr, "expPr/F");
