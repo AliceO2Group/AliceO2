@@ -17,6 +17,7 @@
 #include "FairLogger.h"
 #include "FairModule.h"
 #include "Generators/DecayerPythia8.h"
+#include "../commonConfig.C"
 
 // these are used in commonConfig.C
 using o2::eventgen::DecayerPythia8;
@@ -25,12 +26,24 @@ namespace o2
 {
 namespace mcreplayconfig
 {
-#include "../mcreplayConfig.C"
+
+void Config()
+{
+  // TString* gModel = run->GetGeoModel();
+  FairRunSim* run = FairRunSim::Instance();
+  auto* replay = new mcreplay::MCReplayEngine();
+  stackSetup(replay, run);
+  auto& params = o2::MCReplayParam::Instance();
+  replay->setStepFilename(params.stepFilename);
+  replay->setStepTreename(params.stepTreename);
+  replay->SetCut("CUTALLE", params.energyCut);
+}
 
 void MCReplayConfig()
 {
   LOG(INFO) << "Setting up MCReplay sim from library code";
   Config();
 }
+
 } // namespace mcreplayconfig
 } // namespace o2
