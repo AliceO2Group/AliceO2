@@ -72,6 +72,7 @@ AddOptionRTC(forceEarlyTransform, char, -1, "", 0, "Force early TPC transformati
 AddOptionRTC(dropLoopers, unsigned char, 0, "", 0, "Drop looping tracks starting from second loop")
 AddOptionRTC(mergerCovSource, unsigned char, 2, "", 0, "Method to obtain covariance in track merger: 0 = simple filterErrors method, 1 = use cov from track following, 2 = refit")
 AddOptionRTC(mergerInterpolateErrors, unsigned char, 1, "", 0, "Use interpolation instead of extrapolation for chi2 based cluster rejection")
+AddOptionRTC(mergeCE, unsigned char, 1, "", 0, "Merge tracks accross the central electrode")
 AddOptionRTC(retryRefit, char, 1, "", 0, "Retry refit when fit fails")
 AddOptionRTC(loopInterpolationInExtraPass, char, -1, "", 0, "Perform loop interpolation in an extra pass")
 AddOptionRTC(mergerReadFromTrackerDirectly, char, 1, "", 0, "Forward data directly from tracker to merger on GPU")
