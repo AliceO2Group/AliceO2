@@ -45,5 +45,40 @@ o2::header::DataHeader* MessageContext::findMessageHeader(const Output& spec)
   return nullptr;
 }
 
+o2::framework::DataProcessingHeader* MessageContext::findMessageDataProcessingHeader(const Output& spec)
+{
+  for (auto it = mMessages.rbegin(); it != mMessages.rend(); ++it) {
+    const auto* hd = (*it)->header();
+    if (hd->dataOrigin == spec.origin && hd->dataDescription == spec.description && hd->subSpecification == spec.subSpec) {
+      return const_cast<o2::framework::DataProcessingHeader*>((*it)->dataProcessingHeader());
+    }
+  }
+  for (auto it = mScheduledMessages.rbegin(); it != mScheduledMessages.rend(); ++it) {
+    const auto* hd = (*it)->header();
+    if (hd->dataOrigin == spec.origin && hd->dataDescription == spec.description && hd->subSpecification == spec.subSpec) {
+      return const_cast<o2::framework::DataProcessingHeader*>((*it)->dataProcessingHeader()); // o2::header::get returns const pointer, but the caller may need non-const
+    }
+  }
+  return nullptr;
+}
+
+o2::header::Stack* MessageContext::findMessageHeaderStack(const Output& spec)
+{
+  std::pair<o2::header::DataHeader*, o2::framework::DataProcessingHeader*> h{};
+  for (auto it = mMessages.rbegin(); it != mMessages.rend(); ++it) {
+    const auto* hd = (*it)->header();
+    if (hd->dataOrigin == spec.origin && hd->dataDescription == spec.description && hd->subSpecification == spec.subSpec) {
+      return const_cast<o2::header::Stack*>((*it)->headerStack());
+    }
+  }
+  for (auto it = mScheduledMessages.rbegin(); it != mScheduledMessages.rend(); ++it) {
+    const auto* hd = (*it)->header();
+    if (hd->dataOrigin == spec.origin && hd->dataDescription == spec.description && hd->subSpecification == spec.subSpec) {
+      return const_cast<o2::header::Stack*>((*it)->headerStack());
+    }
+  }
+  return nullptr;
+}
+
 } // namespace framework
 } // namespace o2
