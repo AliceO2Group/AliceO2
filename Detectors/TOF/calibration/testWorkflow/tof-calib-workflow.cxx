@@ -26,6 +26,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"attach-channel-offset-to-lhcphase", o2::framework::VariantType::Bool, false, {"do TOF channel offset calibration using the LHCphase previously calculated in the same workflow"}});
   workflowOptions.push_back(ConfigParamSpec{"cosmics", o2::framework::VariantType::Bool, false, {"for cosmics data"}});
   workflowOptions.push_back(ConfigParamSpec{"perstrip", o2::framework::VariantType::Bool, false, {"offsets per strip"}});
+  workflowOptions.push_back(ConfigParamSpec{"safe-mode", o2::framework::VariantType::Bool, false, {"require safe mode (discard strange TF)"}});
 }
 
 // ------------------------------------------------------------------
@@ -41,6 +42,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto attachChannelOffsetToLHCphase = configcontext.options().get<bool>("attach-channel-offset-to-lhcphase");
   auto isCosmics = configcontext.options().get<bool>("cosmics");
   auto perstrip = configcontext.options().get<bool>("perstrip");
+  auto safe = configcontext.options().get<bool>("safe-mode");
 
   if (isCosmics) {
     LOG(INFO) << "Cosmics set!!!! No LHC phase, Yes channel offset";
@@ -63,7 +65,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   if (doChannelOffsetCalib) {
     if (!isCosmics) {
-      specs.emplace_back(getTOFChannelCalibDeviceSpec<o2::dataformats::CalibInfoTOF>(useCCDB, attachChannelOffsetToLHCphase, isCosmics, perstrip));
+      specs.emplace_back(getTOFChannelCalibDeviceSpec<o2::dataformats::CalibInfoTOF>(useCCDB, attachChannelOffsetToLHCphase, isCosmics, perstrip, safe));
     } else {
       specs.emplace_back(getTOFChannelCalibDeviceSpec<o2::tof::CalibInfoCluster>(useCCDB, attachChannelOffsetToLHCphase, isCosmics));
     }

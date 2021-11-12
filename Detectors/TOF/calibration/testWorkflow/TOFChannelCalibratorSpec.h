@@ -44,7 +44,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
   using LHCphase = o2::dataformats::CalibLHCphaseTOF;
 
  public:
-  explicit TOFChannelCalibDevice(bool useCCDB, bool attachChannelOffsetToLHCphase, bool isCosmics, bool perstrip = false) : mUseCCDB(useCCDB), mAttachToLHCphase(attachChannelOffsetToLHCphase), mCosmics(isCosmics), mDoPerStrip(perstrip) {}
+  explicit TOFChannelCalibDevice(bool useCCDB, bool attachChannelOffsetToLHCphase, bool isCosmics, bool perstrip = false, bool safe = false) : mUseCCDB(useCCDB), mAttachToLHCphase(attachChannelOffsetToLHCphase), mCosmics(isCosmics), mDoPerStrip(perstrip), mSafeMode(safe) {}
   void init(o2::framework::InitContext& ic) final
   {
 
@@ -60,6 +60,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
     mCalibrator = std::make_unique<o2::tof::TOFChannelCalibrator<T>>(minEnt, nb, range);
 
     mCalibrator->doPerStrip(mDoPerStrip);
+    mCalibrator->doSafeMode(mSafeMode);
 
     // default behaviour is to have only 1 slot at a time, accepting everything for it till the
     // minimum statistics is reached;
@@ -191,6 +192,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
   bool mAttachToLHCphase = false; // whether to use or not previously defined LHCphase
   bool mCosmics = false;
   bool mDoPerStrip = false;
+  bool mSafeMode = false;
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -223,7 +225,7 @@ namespace framework
 {
 
 template <class T>
-DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelOffsetToLHCphase = false, bool isCosmics = false, bool perstrip = false)
+DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelOffsetToLHCphase = false, bool isCosmics = false, bool perstrip = false, bool safe = false)
 {
   constexpr int64_t INFINITE_TF_int64 = std::numeric_limits<long>::max();
   using device = o2::calibration::TOFChannelCalibDevice<T>;
@@ -251,7 +253,7 @@ DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelO
     "calib-tofchannel-calibration",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(useCCDB, attachChannelOffsetToLHCphase, isCosmics, perstrip)},
+    AlgorithmSpec{adaptFromTask<device>(useCCDB, attachChannelOffsetToLHCphase, isCosmics, perstrip, safe)},
     Options{
       {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit channel histos"}},
       {"nbins", VariantType::Int, 1000, {"number of bins for t-texp"}},
