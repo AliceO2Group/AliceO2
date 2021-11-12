@@ -41,6 +41,35 @@ using namespace o2::tof;
 //_____________________________________________
 void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> data)
 {
+  // check on multiplicity to avoid noisy events (SAFE MODE)
+  static int ntf = 0;
+  static float sumDt = 0;
+
+  if (mSafeMode) {
+    float sumdt = 0;
+    int ngood = 0;
+    if (o2::tof::Utils::hasFillScheme()) {
+      for (int j = 0; j < data.size(); j++) {
+        float dtraw = data[j].getDeltaTimePi();
+        float dt = mCalibTOFapi->getTimeCalibration(data[j].getTOFChIndex(), data[j].getTot());
+        dt = o2::tof::Utils::subtractInteractionBC(dt);
+        if (dt > -50000 && dt < 50000) {
+          sumdt += dt;
+          ngood++;
+        }
+      }
+      if (ngood) {
+        sumdt /= ngood;
+        sumDt += sumdt;
+        ntf++;
+      }
+    }
+
+    if (ntf && (sumdt > 5000 + sumDt / ntf || sumdt < -5000 + sumDt / ntf)) { // skip TF since it is very far from average behaviour (probably noise if detector already partial calibrated)
+      return;
+    }
+  }
+
   // fill container
   for (int i = data.size(); i--;) {
     auto ch = data[i].getTOFChIndex();
