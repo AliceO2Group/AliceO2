@@ -18,6 +18,7 @@
 #define O2_MID_TRACKER_H
 
 #include <vector>
+#include <unordered_set>
 #include <gsl/gsl>
 #include "DataFormatsMID/Cluster2D.h"
 #include "DataFormatsMID/Cluster3D.h"
@@ -40,7 +41,11 @@ class Tracker
   /// Gets the impact parameter cut
   inline float getImpactParamCut() const { return mImpactParamCut; }
   /// Sets number of sigmas for cuts
-  void setSigmaCut(float sigmaCut) { mImpactParamCut = mSigmaCut; }
+  void setSigmaCut(float sigmaCut)
+  {
+    mSigmaCut = sigmaCut;
+    mMaxChi2 = 2. * sigmaCut * sigmaCut;
+  }
   /// Gets number of sigmas for cuts
   inline float getSigmaCut() const { return mSigmaCut; }
 
@@ -64,28 +69,32 @@ class Tracker
   bool processSide(bool isRight, bool isInward);
   bool tryAddTrack(const Track& track);
   bool followTrackKeepAll(const Track& track, bool isRight, bool isInward);
+  bool findAllClusters(const Track& track, bool isRight, int chamber, int firstRPC, int lastRPC, int nextChamber,
+                       std::unordered_set<int>& excludedClusters, bool excludeClusters);
   bool followTrackKeepBest(const Track& track, bool isRight, bool isInward);
-  bool findAllClusters(Track& track, int clIdx, bool isRight, bool isInward, int chamber, int irpc);
   bool findNextCluster(const Track& track, bool isRight, bool isInward, int chamber, int firstRPC, int lastRPC, Track& bestTrack) const;
   int getFirstNeighbourRPC(int rpc) const;
   int getLastNeighbourRPC(int rpc) const;
   bool loadClusters(gsl::span<const Cluster2D>& clusters);
   bool makeTrackSeed(Track& track, const Cluster3D& cl1, const Cluster3D& cl2) const;
-  double runKalmanFilter(Track& track, const Cluster3D& cluster) const;
-  double tryOneCluster(const Track& track, const Cluster3D& cluster, Track& newTrack) const;
-  void finalizeTrack(Track& track);
+  void runKalmanFilter(Track& track, const Cluster3D& cluster) const;
+  bool tryOneCluster(const Track& track, int chamber, int clIdx, Track& newTrack) const;
+  void excludeUsedClusters(const Track& track, int ch1, int ch2, std::unordered_set<int>& excludedClusters);
+
+  static constexpr float SMT11Z = -1603.5; ///< Position of the first MID chamber (cm)
 
   float mImpactParamCut = 210.; ///< Cut on impact parameter
   float mSigmaCut = 5.;         ///< Number of sigmas cut
-  float mMaxChi2 = 1.e6;        ///< Maximum cut on chi2
+  float mMaxChi2 = 50.;         ///< Maximum cut on chi2 to attach a cluster (= 2 * mSigmaCut^2)
 
-  std::vector<std::pair<int, bool>> mClusterIndexes[72]; ///< Ordered arrays of clusters indexes
-  std::vector<Cluster3D> mClusters{};                    ///< 3D clusters
+  std::vector<int> mClusterIndexes[72]; ///< Ordered arrays of clusters indexes
+  std::vector<Cluster3D> mClusters{};   ///< 3D clusters
 
   std::vector<Track> mTracks{};                ///< Vector of tracks
   std::vector<ROFRecord> mTrackROFRecords{};   ///< List of track RO frame records
   std::vector<ROFRecord> mClusterROFRecords{}; ///< List of cluster RO frame records
   size_t mTrackOffset{0};                      ///! Offset for the track in the current event
+  int mNTracksStep1{0};                        ///! Number of tracks found in the first tracking step
 
   GeometryTransformer mTransformer{}; ///< Geometry transformer
 
