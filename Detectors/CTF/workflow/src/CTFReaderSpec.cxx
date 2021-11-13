@@ -82,7 +82,7 @@ class CTFReaderSpec : public o2::framework::Task
   void stopReader();
   template <typename C>
   void processDetector(DetID det, const CTFHeader& ctfHeader, ProcessingContext& pc) const;
-  void setFirstTFOrbit(const CTFHeader& ctfHeader, const std::string& lbl, ProcessingContext& pc) const;
+  void setMessageHeader(const CTFHeader& ctfHeader, const std::string& lbl, ProcessingContext& pc) const;
   CTFReaderInp mInput{};
   std::unique_ptr<o2::utils::FileFetcher> mFileFetcher;
   std::unique_ptr<TFile> mCTFFile;
@@ -223,7 +223,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
 
   // send CTF Header
   pc.outputs().snapshot({"header"}, ctfHeader);
-  setFirstTFOrbit(ctfHeader, "header", pc);
+  setMessageHeader(ctfHeader, "header", pc);
 
   processDetector<o2::itsmft::CTF>(DetID::ITS, ctfHeader, pc);
   processDetector<o2::itsmft::CTF>(DetID::MFT, ctfHeader, pc);
@@ -248,7 +248,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
     stfDist.id = uint64_t(mCurrTreeEntry);
     stfDist.firstOrbit = ctfHeader.firstTForbit;
     stfDist.runNumber = uint32_t(ctfHeader.run);
-    setFirstTFOrbit(ctfHeader, "STFDist", pc);
+    setMessageHeader(ctfHeader, "STFDist", pc);
   }
 
   auto entryStr = fmt::format("({} of {} in {})", mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
@@ -285,15 +285,18 @@ void CTFReaderSpec::checkTreeEntries()
 }
 
 ///_______________________________________
-void CTFReaderSpec::setFirstTFOrbit(const CTFHeader& ctfHeader, const std::string& lbl, ProcessingContext& pc) const
+void CTFReaderSpec::setMessageHeader(const CTFHeader& ctfHeader, const std::string& lbl, ProcessingContext& pc) const
 {
-  auto* hd = pc.outputs().findMessageHeader({lbl});
-  if (!hd) {
-    throw std::runtime_error(fmt::format("failed to find output message header for {}", lbl));
+  auto* stack = pc.outputs().findMessageHeaderStack({lbl});
+  if (!stack) {
+    throw std::runtime_error(fmt::format("failed to find output message header stack for {}", lbl));
   }
-  hd->firstTForbit = ctfHeader.firstTForbit;
-  hd->tfCounter = mCTFCounter;
-  hd->runNumber = uint32_t(ctfHeader.run);
+  auto dh = const_cast<o2::header::DataHeader*>(o2::header::get<o2::header::DataHeader*>(stack));
+  dh->firstTForbit = ctfHeader.firstTForbit;
+  dh->tfCounter = mCTFCounter;
+  dh->runNumber = uint32_t(ctfHeader.run);
+  auto dph = const_cast<o2::framework::DataProcessingHeader*>(o2::header::get<o2::framework::DataProcessingHeader*>(stack));
+  dph->creation = ctfHeader.creationTime;
 }
 
 ///_______________________________________
@@ -308,7 +311,7 @@ void CTFReaderSpec::processDetector(DetID det, const CTFHeader& ctfHeader, Proce
     } else if (!mInput.allowMissingDetectors) {
       throw std::runtime_error(fmt::format("Requested detector {} is missing in the CTF", lbl));
     }
-    setFirstTFOrbit(ctfHeader, lbl, pc);
+    setMessageHeader(ctfHeader, lbl, pc);
   }
 }
 
