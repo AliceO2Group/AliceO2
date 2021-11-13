@@ -13,11 +13,20 @@
 /// \author David Rohr
 
 #include "GPUDataTypes.h"
-#include "GPUReconstruction.h"
+#include <cstring>
 
 using namespace GPUCA_NAMESPACE::gpu;
 
+constexpr const char* const GPUDataTypes::DEVICE_TYPE_NAMES[];
 constexpr const char* const GPUDataTypes::RECO_STEP_NAMES[];
 constexpr const char* const GPUDataTypes::GENERAL_STEP_NAMES[];
 
-GPUDataTypes::DeviceType GPUDataTypes::GetDeviceType(const char* type) { return GPUReconstruction::GetDeviceType(type); }
+GPUDataTypes::DeviceType GPUDataTypes::GetDeviceType(const char* type)
+{
+  for (unsigned int i = 1; i < sizeof(DEVICE_TYPE_NAMES) / sizeof(DEVICE_TYPE_NAMES[0]); i++) {
+    if (strcmp(DEVICE_TYPE_NAMES[i], type) == 0) {
+      return (DeviceType)i;
+    }
+  }
+  return DeviceType::INVALID_DEVICE;
+}
