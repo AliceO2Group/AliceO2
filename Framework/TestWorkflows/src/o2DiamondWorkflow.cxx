@@ -44,6 +44,16 @@ void customize(std::vector<CallbacksPolicy>& policies)
     }});
 }
 
+void customize(std::vector<SendingPolicy>& policies)
+{
+  policies.push_back(SendingPolicy{
+    .matcher = DeviceMatchers::matchByName("A"),
+    .send = [](FairMQDevice& device, FairMQParts& parts, std::string const& channel) {
+      LOG(INFO) << "A custom policy for sending invoked!";
+      device.Send(parts, channel, 0);
+    }});
+}
+
 #include "Framework/runDataProcessing.h"
 
 AlgorithmSpec simplePipe(std::string const& what, int minDelay)

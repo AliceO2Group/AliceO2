@@ -13,6 +13,10 @@
 
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataProcessor.h"
+#include "Framework/DataSender.h"
+#include "Framework/ProcessingContext.h"
+#include "Framework/EndOfStreamContext.h"
+#include "Framework/FairMQDeviceProxy.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/Tracing.h"
 
@@ -36,8 +40,7 @@ struct CommonMessageBackendsHelpers {
     return [](ProcessingContext& ctx, void* service) {
       ZoneScopedN("send message callback");
       T* context = reinterpret_cast<T*>(service);
-      auto& device = ctx.services().get<RawDeviceService>();
-      DataProcessor::doSend(*device.device(), *context, ctx.services());
+      DataProcessor::doSend(ctx.services().get<DataSender>(), *context, ctx.services());
     };
   }
 
@@ -61,8 +64,7 @@ struct CommonMessageBackendsHelpers {
   {
     return [](EndOfStreamContext& ctx, void* service) {
       T* context = reinterpret_cast<T*>(service);
-      auto& device = ctx.services().get<RawDeviceService>();
-      DataProcessor::doSend(*device.device(), *context, ctx.services());
+      DataProcessor::doSend(ctx.services().get<DataSender>(), *context, ctx.services());
     };
   }
 };
