@@ -79,7 +79,8 @@ GeometryParams::GeometryParams(const std::string_view name)
     mNz(0),
     mDistanceBetwRails(0.),
     mRailsDistanceFromIP(0.),
-    mCradleWallThickness(0.)
+    mCradleWallThickness(0.),
+    mModuleCraddleGap(0.)
 {
   // Initializes the EMC parameters
   // Coordinate system chosen: x across beam, z along beam, y out of beam.
@@ -402,6 +403,7 @@ GeometryParams::GeometryParams(const std::string_view name)
   mDistanceBetwRails = 420.0;
   mRailsDistanceFromIP = 590.;
   mCradleWallThickness = 2.0;
+  mModuleCraddleGap = 4.;
 
   mRailPart1[0] = 28.0;
   mRailPart1[1] = 3.0;
