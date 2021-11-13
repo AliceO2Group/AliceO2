@@ -668,6 +668,9 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       if (source == 0) {
         flags |= o2::aod::mcparticle::enums::FromBackgroundEvent; // mark as particle from background event
       }
+      if (mcParticles[particle].isPrimary()) {
+        flags |= o2::aod::mcparticle::enums::PhysicalPrimary; // mark as physical primary
+      }
       float weight = 0.f;
       int mcMother0 = mcParticles[particle].getMotherTrackId();
       auto item = mToStore.find(Triplet_t(source, event, mcMother0));
