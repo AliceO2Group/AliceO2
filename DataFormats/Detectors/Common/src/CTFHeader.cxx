@@ -18,7 +18,7 @@ using DetID = o2::detectors::DetID;
 /// describe itsel as a string
 std::string CTFHeader::describe() const
 {
-  return fmt::format("Run:{:07d} TF@orbit:{:08d} Detectors: {:s}", run, firstTForbit, DetID::getNames(detectors));
+  return fmt::format("Run:{:07d} TF@orbit:{:08d} CteationTime:{} Detectors: {}", run, firstTForbit, creationTime, DetID::getNames(detectors));
 }
 
 std::ostream& o2::ctf::operator<<(std::ostream& stream, const CTFHeader& h)
