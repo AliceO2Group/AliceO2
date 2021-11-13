@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/DataProcessor.h"
+#include "Framework/DataSender.h"
 #include "Framework/MessageContext.h"
 #include "Framework/StringContext.h"
 #include "Framework/ArrowContext.h"
@@ -34,7 +35,7 @@ using DataHeader = o2::header::DataHeader;
 namespace o2::framework
 {
 
-void DataProcessor::doSend(FairMQDevice& device, MessageContext& context, ServiceRegistry&)
+void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceRegistry&)
 {
   std::unordered_map<std::string const*, FairMQParts> outputs;
   auto contextMessages = context.getMessagesForSending();
@@ -48,15 +49,15 @@ void DataProcessor::doSend(FairMQDevice& device, MessageContext& context, Servic
     }
   }
   for (auto& [channel, parts] : outputs) {
-    device.Send(parts, *channel, 0);
+    sender.send(parts, *channel);
   }
 }
 
-void DataProcessor::doSend(FairMQDevice& device, StringContext& context, ServiceRegistry&)
+void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRegistry&)
 {
   for (auto& messageRef : context) {
     FairMQParts parts;
-    FairMQMessagePtr payload(device.NewMessage());
+    FairMQMessagePtr payload(sender.create());
     auto a = messageRef.payload.get();
     // Rebuild the message using the string as input. For now it involves a copy.
     payload->Rebuild(reinterpret_cast<void*>(const_cast<char*>(strdup(a->data()))), a->size(), nullptr, nullptr);
@@ -67,11 +68,11 @@ void DataProcessor::doSend(FairMQDevice& device, StringContext& context, Service
     dh->payloadSize = payload->GetSize();
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
-    device.Send(parts, messageRef.channel, 0);
+    sender.send(parts, messageRef.channel);
   }
 }
 
-void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceRegistry& registry)
+void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceRegistry& registry)
 {
   using o2::monitoring::Metric;
   using o2::monitoring::Monitoring;
@@ -99,7 +100,7 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
     context.updateMessagesSent(1);
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
-    device.Send(parts, messageRef.channel, 0);
+    sender.send(parts, messageRef.channel);
   }
   static int64_t previousBytesSent = 0;
   auto disposeResources = [bs = context.bytesSent() - previousBytesSent](int taskId,
@@ -131,11 +132,11 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
   monitoring.flushBuffer();
 }
 
-void DataProcessor::doSend(FairMQDevice& device, RawBufferContext& context, ServiceRegistry& registry)
+void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, ServiceRegistry& registry)
 {
   for (auto& messageRef : context) {
     FairMQParts parts;
-    FairMQMessagePtr payload(device.NewMessage());
+    FairMQMessagePtr payload(sender.create());
     auto buffer = messageRef.serializeMsg().str();
     // Rebuild the message using the serialized ostringstream as input. For now it involves a copy.
     size_t size = buffer.length();
@@ -148,7 +149,7 @@ void DataProcessor::doSend(FairMQDevice& device, RawBufferContext& context, Serv
     dh->payloadSize = size;
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
-    device.Send(parts, messageRef.channel, 0);
+    sender.send(parts, messageRef.channel);
   }
 }
 

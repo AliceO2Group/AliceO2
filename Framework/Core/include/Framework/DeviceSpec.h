@@ -27,6 +27,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/ResourcePolicy.h"
+#include "Framework/SendingPolicy.h"
 #include "Framework/ServiceSpec.h"
 
 #include <vector>
@@ -66,6 +67,7 @@ struct DeviceSpec {
   CompletionPolicy completionPolicy;
   DispatchPolicy dispatchPolicy;
   CallbacksPolicy callbacksPolicy;
+  SendingPolicy sendingPolicy;
   /// Policy on when the available resources are enough to run
   /// a computation.
   ResourcePolicy resourcePolicy;
