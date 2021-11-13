@@ -1394,14 +1394,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
              bc,
              triggerMask);
   }
-  for (int src = GIndex::NSources; src--;) {
-    if (GIndex::includesSource(src, mInputSources)) {
-      if (src == GIndex::Source::EMC) {
-        // fill EMC cells to tables
-        // TODO handle MC info
-        fillCaloTable(caloEMCCells, caloEMCCellsTRGR, caloCellsCursor, caloCellsTRGTableCursor, bcsMap);
-      }
-    }
+
+  if (mInputSources[GIndex::EMC]) {
+    // fill EMC cells to tables
+    // TODO handle MC info
+    fillCaloTable(caloEMCCells, caloEMCCellsTRGR, caloCellsCursor, caloCellsTRGTableCursor, bcsMap);
   }
 
   bcsMap.clear();
