@@ -1823,7 +1823,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           finalConfig.put_child(spec.name, info.currentConfig);
         }
         LOG(INFO) << "Dumping used configuration in dpl-config.json";
-        boost::property_tree::write_json("dpl-config.json", finalConfig);
+
+        std::ofstream outDPLConfigFile("dpl-config.json", std::ios::out);
+        if (outDPLConfigFile.is_open()) {
+          boost::property_tree::write_json(outDPLConfigFile, finalConfig);
+        } else {
+          LOGP(warning, "Could not write out final configuration file. Read only run folder?");
+        }
         if (driverInfo.noSHMCleanup) {
           LOGP(warning, "Not cleaning up shared memory.");
         } else {
