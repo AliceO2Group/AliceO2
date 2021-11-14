@@ -41,8 +41,7 @@ class TrackletsParser
   void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
   int Parse(); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, TRDFeeID feeid, int robside,
-            int detector, int stack, int layer, EventRecord* eventrecord, EventStorage* eventrecords, std::bitset<16> option, bool cleardigits = false,
-            int usetracklethcheader = 0);
+            int detector, int stack, int layer, EventRecord* eventrecord, EventStorage* eventrecords, std::bitset<16> option, bool cleardigits = false, int usetracklethcheader = 0);
   void setVerbose(bool verbose, bool header = false, bool data = false)
   {
     mVerbose = verbose;
@@ -78,11 +77,11 @@ class TrackletsParser
   void incParsingError(int error)
   {
     if (mOptions[TRDGenerateStats]) {
-      mEventRecords->incParsingError(error, mFEEID.supermodule, mFEEID.side, mStack * constants::NLAYER + mLayer);
+      mEventRecords->incParsingError(error, mFEEID.supermodule, mHalfChamberSide, mStack * constants::NLAYER + mLayer);
     }
     if (mOptions[TRDEnableRootOutputBit]) {
       mParsingErrors->Fill(error);
-      ((TH2F*)mParsingErrors2d->At(error))->Fill(mFEEID.supermodule * 2 + mFEEID.side, mStack * constants::NLAYER + mLayer);
+      ((TH2F*)mParsingErrors2d->At(error))->Fill(mFEEID.supermodule * 2 + mHalfChamberSide, mStack * constants::NLAYER + mLayer);
     }
   }
 
@@ -120,7 +119,7 @@ class TrackletsParser
   uint16_t mCRUID;
   uint16_t mHCID;
   uint16_t mDetector;
-  uint16_t mRobSide;
+  uint16_t mHalfChamberSide;
   uint16_t mStack;
   uint16_t mLayer;
   TRDFeeID mFEEID; // current Fee ID working on

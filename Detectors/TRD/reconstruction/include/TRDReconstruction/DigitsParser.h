@@ -84,11 +84,11 @@ class DigitsParser
   {
 
     if (mOptions[TRDGenerateStats]) {
-      mEventRecords->incParsingError(error, mFEEID.supermodule, mFEEID.side, mStackLayer);
+      mEventRecords->incParsingError(error, mFEEID.supermodule, mHalfChamberSide, mStackLayer);
     }
     if (mOptions[TRDEnableRootOutputBit]) {
       mParsingErrors->Fill(error);
-      ((TH2F*)mParsingErrors2d->At(error))->Fill(mFEEID.supermodule * 2 + mFEEID.side, mStack * constants::NLAYER + mLayer);
+      ((TH2F*)mParsingErrors2d->At(error))->Fill(mFEEID.supermodule * 2 + mHalfChamberSide, mStack * constants::NLAYER + mLayer);
     }
   }
 
@@ -134,8 +134,7 @@ class DigitsParser
   uint16_t mStack;
   uint16_t mLayer;
   uint16_t mSector;
-  uint16_t mSide;
-  uint16_t mHalfSM;     //store these values to prevent numerous recalculation;
+  uint16_t mHalfChamberSide;
   uint16_t mStackLayer; //store these values to prevent numerous recalculation;
 
   uint16_t mEventCounter;
