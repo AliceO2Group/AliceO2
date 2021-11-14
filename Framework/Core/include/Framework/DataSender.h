@@ -12,13 +12,19 @@
 #define O2_FRAMEWORK_DATASENDER_H_
 
 #include "Framework/SendingPolicy.h"
+#include "Framework/Tracing.h"
+#include "Framework/OutputSpec.h"
 #include <fairmq/FairMQParts.h>
 #include <string>
+
+#include <cstddef>
+#include <mutex>
 
 namespace o2::framework
 {
 
 struct ServiceRegistry;
+struct DeviceSpec;
 
 /// Allow injecting policies on send
 class DataSender
@@ -32,7 +38,16 @@ class DataSender
  private:
   void* mContext;
   ServiceRegistry& mRegistry;
+  DeviceSpec const& mSpec;
+  std::vector<OutputSpec> mOutputs;
   SendingPolicy mPolicy;
+  std::vector<size_t> mDistinctRoutesIndex;
+
+  std::vector<std::string> mMetricsNames;
+  std::vector<std::string> mVariablesMetricsNames;
+  std::vector<std::string> mQueriesMetricsNames;
+
+  TracyLockableN(std::recursive_mutex, mMutex, "data relayer mutex");
 };
 
 } // namespace o2::framework
