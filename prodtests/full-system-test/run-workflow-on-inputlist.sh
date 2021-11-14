@@ -64,7 +64,7 @@ else
   echo "ERROR: Unsupported mode $1 requested"
   exit 1
 fi
-start_process $MYDIR/dpl-workflow.sh
+start_process ${DPL_WORKFLOW_FROM_OUTSIDE:-$MYDIR/dpl-workflow.sh}
 
 if [[ "0$4" != "00" ]]; then
   sleep 1
