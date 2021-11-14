@@ -127,8 +127,8 @@ void Decoder::InsertDigit(int icrate, int itrm, int itdc, int ichain, int channe
 {
   DigitInfo digitInfo;
 
-  if (icrate % 2 == 1 && itrm == 3 && itdc / 3 > 0) { // Signal not coming from a TOF pad but -probably- from a TOF OR signal
-    // add operation on LTM (Trigger) if needed (not used)
+  if (itrm == 3 && ((icrate % 2 == 0) || (itdc / 3 > 0))) { // Signal not coming from a TOF pad but -probably- from a TOF OR signal
+    // add operation on LTM (Trigger) if needed (not used) if (crate % 2 == 1)
     return;
   }
 

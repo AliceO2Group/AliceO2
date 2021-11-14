@@ -17,6 +17,7 @@
 
 #include "TRandom.h"
 #include "TMath.h"
+#include "TOFBase/Utils.h"
 
 namespace o2
 {
@@ -68,7 +69,7 @@ struct eventTimeTrackTest : eventTimeTrack {
   int mHypo = 0;
 };
 
-void generateEvTimeTracks(std::vector<eventTimeTrackTest>& tracks, int ntracks, float evTime = 0.f);
+void generateEvTimeTracks(std::vector<eventTimeTrackTest>& tracks, int ntracks, float evTime = Utils::mLHCPhase);
 
 template <typename trackType>
 bool filterDummy(const trackType& tr)
@@ -80,7 +81,7 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
 int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb);
 
 template <typename trackTypeContainer, typename trackType, bool (*trackFilter)(const trackType&)>
-eventTimeContainer evTimeMaker(const trackTypeContainer& tracks, float diamond = 6. /* spread of primary verdex in cm */)
+eventTimeContainer evTimeMaker(const trackTypeContainer& tracks, float diamond = Utils::mEventTimeSpread * 0.029979246 /* spread of primary verdex in cm */)
 {
   static std::vector<eventTimeTrack> trkWork;
   trkWork.clear();
