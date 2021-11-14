@@ -29,6 +29,10 @@ int Utils::mBCmult[o2::constants::lhc::LHCMaxBunches];
 int Utils::mNautodet = 0;
 int Utils::mMaxBC = 0;
 bool Utils::mIsInit = false;
+float Utils::mEventTimeSpread = 200;
+float Utils::mEtaMin = -0.8;
+float Utils::mEtaMax = 0.8;
+float Utils::mLHCPhase = 0;
 
 void Utils::init()
 {

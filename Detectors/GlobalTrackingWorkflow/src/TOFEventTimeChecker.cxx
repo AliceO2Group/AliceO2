@@ -35,6 +35,7 @@
 
 // from TOF
 #include "TOFBase/Geo.h"
+#include "TOFBase/Utils.h"
 #include "DataFormatsTOF/Cluster.h"
 #include "TOFReconstruction/EventTimeMaker.h"
 //#include "GlobalTracking/MatchTOF.h"
@@ -75,7 +76,7 @@ using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;
 
 bool MyFilter(const MyTrack& tr)
 {
-  return (tr.mP < 2.0 && fabs(tr.mEta) < 0.8);
+  return (tr.mP < 2.0 && tr.mEta > o2::tof::Utils::mEtaMin && tr.mEta < o2::tof::Utils::mEtaMax);
 } // accept all
 
 namespace o2
@@ -150,12 +151,22 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
 {
   int nBC = int(tracks[0].tofSignalDouble() * o2::tof::Geo::BC_TIME_INPS_INV);
   for (auto& track : tracks) {
-    track.mSignal = float(track.mSignalDouble - double(o2::tof::Geo::BC_TIME_INPS) * nBC);
+    if (!o2::tof::Utils::hasFillScheme()) {
+      track.mSignal = float(track.mSignalDouble - double(o2::tof::Geo::BC_TIME_INPS) * nBC);
+    } else {
+      double localTime = track.mSignalDouble;
+
+      // get into orbit
+      int bcStarOrbit = int(localTime * o2::tof::Geo::BC_TIME_INPS_INV);
+      bcStarOrbit = (bcStarOrbit / o2::constants::lhc::LHCMaxBunches) * o2::constants::lhc::LHCMaxBunches; // truncation
+      localTime -= bcStarOrbit * o2::tof::Geo::BC_TIME_INPS;
+      track.mSignal = o2::tof::Utils::subtractInteractionBC(localTime);
+    }
   }
 
   auto evtime = o2::tof::evTimeMaker<std::vector<MyTrack>, MyTrack, MyFilter>(tracks);
 
-  if (evtime.eventTime < -2000 || evtime.eventTime > 2000) {
+  if (evtime.eventTime - o2::tof::Utils::mLHCPhase < -2000 || evtime.eventTime - o2::tof::Utils::mLHCPhase > 2000) {
     return;
   }
   //
@@ -437,14 +448,14 @@ void TOFEventTimeChecker::run(ProcessingContext& pc)
     tracks.emplace_back(mMyTracks[i]);
     for (; i < mMyTracks.size(); i++) {
       double timeCurrent = mMyTracks[i].tofSignalDouble();
-      if (timeCurrent - time > 25E3) {
+      if (timeCurrent - time > 100E3) {
         i--;
         break;
       }
       tracks.emplace_back(mMyTracks[i]);
       ntrk++;
     }
-    if (ntrk > 2) { // good candidate with time
+    if (ntrk > 0) { // good candidate with time
       processEvent(tracks);
     }
   }
