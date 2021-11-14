@@ -1468,6 +1468,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             }
             altered = true;
           }
+          WorkflowHelpers::adjustTopology(altered_workflow, *driverInfo.configContext);
           if (altered) {
             WorkflowSpecNode node{altered_workflow};
             for (auto& service : driverServices) {
