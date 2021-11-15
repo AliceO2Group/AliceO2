@@ -1216,7 +1216,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
     curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
     /* get us the resource without a body! */
     curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_map_callback<>);
     curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
 
