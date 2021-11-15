@@ -93,7 +93,7 @@ TOF_OUTPUT=clusters
 ITS_CONFIG_KEY=
 TRD_CONFIG=
 TRD_CONFIG_KEY=
-TRD_TRANSFORMER_CONFIG=
+TRD_FILTER_CONFIG=
 CPV_INPUT=raw
 EVE_CONFIG=" --jsons-folder $EDJSONS_DIR"
 MIDDEC_CONFIG=
@@ -112,9 +112,8 @@ if [[ $SYNCMODE == 1 ]]; then
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
   fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
-  TRD_CONFIG+=" --filter-trigrec"
   TRD_CONFIG_KEY+="GPU_proc.ompThreads=1;"
-  TRD_TRANSFORMER_CONFIG+=" --filter-trigrec"
+  has_detector ITS && TRD_FILTER_CONFIG+=" --filter-trigrec"
 else
   if [[ $BEAMTYPE == "PbPb" ]]; then
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
@@ -381,8 +380,8 @@ fi
 has_detector_reco ITS && add_W o2-its-reco-workflow "--trackerCA $ITS_CONFIG $DISABLE_MC --clusters-from-upstream $DISABLE_ROOT_OUTPUT --pipeline $(get_N its-tracker ITS REST ITSTRK)" "$ITS_CONFIG_KEY;$ITSMFT_FILES"
 has_detectors_reco ITS TPC && has_detector_matching ITSTPC && add_W o2-tpcits-match-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N itstpc-track-matcher MATCH REST TPCITS)" "$ITSTPC_EXTRA_CONFIG;$ITSMFT_FILES"
 has_detector_reco FT0 && add_W o2-ft0-reco-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N ft0-reconstructor FT0 REST)"
-has_detector_reco TRD && add_W o2-trd-tracklet-transformer "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_TRANSFORMER_CONFIG --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST TRDTRK)"
-has_detectors_reco TRD TPC ITS && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG --track-sources $TRD_SOURCES" "$TRD_CONFIG_KEY;$ITSMFT_FILES"
+has_detector_reco TRD && add_W o2-trd-tracklet-transformer "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_FILTER_CONFIG --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST TRDTRK)"
+has_detectors_reco TRD TPC ITS && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG $TRD_FILTER_CONFIG --track-sources $TRD_SOURCES" "$TRD_CONFIG_KEY;$ITSMFT_FILES"
 has_detectors_reco TOF TRD TPC ITS && [[ ! -z "$TOF_SOURCES" ]] && add_W o2-tof-matcher-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST TOFMATCH)" "$ITSMFT_FILES"
 has_detectors TPC && [ -z "$DISABLE_ROOT_OUTPUT" ] && add_W o2-tpc-reco-workflow "--input-type pass-through --output-type clusters,tracks,send-clusters-per-sector $DISABLE_MC"
 
