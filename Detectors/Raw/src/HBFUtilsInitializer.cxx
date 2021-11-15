@@ -27,6 +27,7 @@
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/CallbackService.h"
 #include "Framework/Logger.h"
+#include "Framework/DataProcessingHeader.h"
 #include <TFile.h>
 
 using namespace o2::raw;
@@ -108,12 +109,13 @@ void HBFUtilsInitializer::addNewTimeSliceCallback(std::vector<o2::framework::Cal
       }
       if (optType == HBFOpt::ROOT) { // TF-dependent custom values should be set
         service.set(o2::framework::CallbackService::Id::NewTimeslice,
-                    [tfidinfo = readTFIDInfoVector(fname)](o2::header::DataHeader& dh) { assignDataHeader(tfidinfo, dh); });
+                    [tfidinfo = readTFIDInfoVector(fname)](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader&) { assignDataHeader(tfidinfo, dh); });
       } else {                                                                // simple linear enumeration
         o2::conf::ConfigurableParam::updateFromFile(fname, "HBFUtils", true); // update only those values which were not touched yet (provenance == kCODE)
         const auto& hbfu = o2::raw::HBFUtils::Instance();
         service.set(o2::framework::CallbackService::Id::NewTimeslice,
-                    [offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit), increment = int64_t(hbfu.nHBFPerTF)](o2::header::DataHeader& dh) {
+                    [offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit),
+                     increment = int64_t(hbfu.nHBFPerTF)](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader&) {
                       dh.firstTForbit = offset + increment * dh.tfCounter;
                     });
       }
