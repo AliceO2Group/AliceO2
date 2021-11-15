@@ -17,9 +17,9 @@ if [[ $2 != "LOCAL" && ! -f $2 ]]; then
   exit 1
 fi
 
-if [[ $1 == "CTF" ]]; then
-  export EXTINPUT=0
-fi
+for i in EXTINPUT CTFINPUT RAWTFINPUT; do
+  [[ ! -z ${!i} ]] && { echo "$i must not be set!"; exit 1; }
+done
 
 NUM_PROCS=0
 RETVAL=0
@@ -70,13 +70,7 @@ else
   exit 1
 fi
 
-if [ -f dpl-workflow.sh ]; then
-    echo "Use dpl-workflow.sh macro passed as input"
-else
-    echo "Use dpl-workflow.sh macro from ${MYDIR}"
-    cp $O2_ROOT/prodtests/full-system-test/dpl-workflow.sh .
-fi
-start_process ./dpl-workflow.sh
+start_process ${DPL_WORKFLOW_FROM_OUTSIDE:-$MYDIR/dpl-workflow.sh}
 
 if [[ "0$4" != "00" ]]; then
   sleep 1

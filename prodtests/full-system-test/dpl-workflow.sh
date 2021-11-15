@@ -202,7 +202,7 @@ for det in `echo $LIST_OF_DETECTORS | sed "s/,/ /g"`; do
   fi
 done
 [[ -z $VERTEXING_SOURCES ]] && VERTEXING_SOURCES="$TRACK_SOURCES"
-PVERTEX_CONFIG="--vertexing-sources $TRACK_SOURCES --vertex-track-matching-sources $TRACK_SOURCES"
+PVERTEX_CONFIG="--vertexing-sources $VERTEXING_SOURCES --vertex-track-matching-sources $VERTEXING_SOURCES"
 
 # this option requires well calibrated timing beween different detectors, at the moment suppress it
 #has_detector_reco FT0 && PVERTEX_CONFIG+=" --validate-with-ft0"
@@ -398,7 +398,7 @@ has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd
 
 if [[ $BEAMTYPE != "cosmic" ]]; then
   has_detectors_reco ITS && has_detector_matching PRIMVTX && add_W o2-primary-vertexing-workflow "$DISABLE_MC --disable-root-input $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST)" "$PVERTEX_EXTRA_CONFIG"
-  has_detectors_reco ITS && has_detector_matching SECVTX && add_W o2-secondary-vertexing-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT --vertexing-sources $TRACK_SOURCES --pipeline $(get_N secondary-vertexing MATCH REST)" "$SVERTEX_EXTRA_CONFIG"
+  has_detectors_reco ITS && has_detector_matching SECVTX && add_W o2-secondary-vertexing-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT --vertexing-sources $VERTEXING_SOURCES --pipeline $(get_N secondary-vertexing MATCH REST)" "$SVERTEX_EXTRA_CONFIG"
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -457,15 +457,7 @@ workflow_has_parameter AOD && add_W o2-aod-producer-workflow "--info-sources $AO
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Quality Control
-if [[ ! -z $QC_JSON_FROM_OUTSIDE ]]; then
-    if [[ -z $QC_CONFIG_PARAM ]]; then
-        QC_CONFIG_PARAM="--local --host $QC_HOST"
-    fi
-    echo "qc json from outside $QC_JSON_FROM_OUTSIDE"
-    workflow_has_parameter QC && add_W o2-qc "--config json://$QC_JSON_FROM_OUTSIDE $QC_CONFIG_PARAM" "" 0
-else
-    workflow_has_parameter QC && { source $O2DATAPROCESSING_ROOT/production/qc-workflow.sh; [[ $? != 0 ]] && exit 1; }
-fi
+workflow_has_parameter QC && { source $O2DATAPROCESSING_ROOT/production/qc-workflow.sh; [[ $? != 0 ]] && exit 1; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # DPL run binary
