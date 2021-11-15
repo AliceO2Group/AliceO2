@@ -6,6 +6,8 @@ command -v zsh > /dev/null 2>&1 && MYDIR=$(dirname $(zsh -c 'echo ${0:A}' "$0"))
 test -z ${MYDIR+x} && MYDIR="$(dirname $(readlink -f $0))"
 source $MYDIR/setenv.sh
 
+if [ -z $FILEWORKDIRRUN ]; then FILEWORKDIRRUN=$FILEWORKDIR; fi              # directory where to find the run-related files (grp, collision context)
+
 # ---------------------------------------------------------------------------------------------------------------------
 #Some additional settings used in this workflow
 if [[ -z $OPTIMIZED_PARALLEL_ASYNC ]]; then OPTIMIZED_PARALLEL_ASYNC=0; fi     # Enable tuned process multiplicities for async processing on the EPN
@@ -77,7 +79,7 @@ fi
 [[ $NUMAGPUIDS != 0 ]] && ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
 [[ ! -z $TIMEFRAME_RATE_LIMIT ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && ARGS_ALL+=" --timeframes-rate-limit $TIMEFRAME_RATE_LIMIT --timeframes-rate-limit-ipcid $NUMAID"
 
-ARGS_ALL_CONFIG="NameConf.mDirGRP=$FILEWORKDIR;NameConf.mDirGeom=$FILEWORKDIR;NameConf.mDirCollContext=$FILEWORKDIR;NameConf.mDirMatLUT=$FILEWORKDIR;keyval.input_dir=$FILEWORKDIR;keyval.output_dir=/dev/null;$ALL_EXTRA_CONFIG"
+ARGS_ALL_CONFIG="NameConf.mDirGeom=$FILEWORKDIR;NameConf.mDirMatLUT=$FILEWORKDIR;NameConf.mDirCollContext=$FILEWORKDIRRUN;NameConf.mDirGRP=$FILEWORKDIRRUN;keyval.input_dir=$FILEWORKDIR;keyval.output_dir=/dev/null;$ALL_EXTRA_CONFIG"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Set some individual workflow arguments depending on configuration
@@ -127,6 +129,11 @@ else
 fi
 
 has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-ctf"
+
+if [[ -z $DISABLE_ROOT_OUTPUT ]]; then
+  # enable only if root output is written, because it slows down the processing
+  GPU_OUTPUT+=",send-clusters-per-sector"
+fi
 
 has_detector_flp_processing CPV && CPV_INPUT=digits
 ! has_detector_flp_processing TOF && TOF_CONFIG+=" --ignore-dist-stf"
@@ -194,7 +201,8 @@ for det in `echo $LIST_OF_DETECTORS | sed "s/,/ /g"`; do
     has_detector_reco $det && add_comma_separated TRACK_SOURCES "$det"
   fi
 done
-PVERTEX_CONFIG="--vertexing-sources $TRACK_SOURCES --vertex-track-matching-sources $TRACK_SOURCES"
+[[ -z $VERTEXING_SOURCES ]] && VERTEXING_SOURCES="$TRACK_SOURCES"
+PVERTEX_CONFIG="--vertexing-sources $VERTEXING_SOURCES --vertex-track-matching-sources $VERTEXING_SOURCES"
 
 # this option requires well calibrated timing beween different detectors, at the moment suppress it
 #has_detector_reco FT0 && PVERTEX_CONFIG+=" --validate-with-ft0"
@@ -376,6 +384,7 @@ has_detector_reco FT0 && add_W o2-ft0-reco-workflow "--disable-root-input $DISAB
 has_detector_reco TRD && add_W o2-trd-tracklet-transformer "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_TRANSFORMER_CONFIG --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST TRDTRK)"
 has_detectors_reco TRD TPC ITS && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG --track-sources $TRD_SOURCES" "$TRD_CONFIG_KEY;$ITSMFT_FILES"
 has_detectors_reco TOF TRD TPC ITS && [[ ! -z "$TOF_SOURCES" ]] && add_W o2-tof-matcher-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST TOFMATCH)" "$ITSMFT_FILES"
+has_detectors TPC && [ -z "$DISABLE_ROOT_OUTPUT" ] && add_W o2-tpc-reco-workflow "--input-type pass-through --output-type clusters,tracks,send-clusters-per-sector $DISABLE_MC"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Reconstruction workflows normally active only in async mode in async mode ($LIST_OF_ASYNC_RECO_STEPS), but can be forced via $WORKFLOW_EXTRA_PROCESSING_STEPS
@@ -389,7 +398,7 @@ has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd
 
 if [[ $BEAMTYPE != "cosmic" ]]; then
   has_detectors_reco ITS && has_detector_matching PRIMVTX && add_W o2-primary-vertexing-workflow "$DISABLE_MC --disable-root-input $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST)" "$PVERTEX_EXTRA_CONFIG"
-  has_detectors_reco ITS && has_detector_matching SECVTX && add_W o2-secondary-vertexing-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT --vertexing-sources $TRACK_SOURCES --pipeline $(get_N secondary-vertexing MATCH REST)" "$SVERTEX_EXTRA_CONFIG"
+  has_detectors_reco ITS && has_detector_matching SECVTX && add_W o2-secondary-vertexing-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT --vertexing-sources $VERTEXING_SOURCES --pipeline $(get_N secondary-vertexing MATCH REST)" "$SVERTEX_EXTRA_CONFIG"
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -448,7 +457,7 @@ workflow_has_parameter AOD && add_W o2-aod-producer-workflow "--info-sources $AO
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Quality Control
-workflow_has_parameter QC && { source $MYDIR/qc-workflow.sh; [[ $? != 0 ]] && exit 1; }
+workflow_has_parameter QC && { source $O2DATAPROCESSING_ROOT/production/qc-workflow.sh; [[ $? != 0 ]] && exit 1; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # DPL run binary
