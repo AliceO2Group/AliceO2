@@ -24,6 +24,7 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTRD/TrackTRD.h"
+#include "DataFormatsEMCAL/EventHandler.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
@@ -312,6 +313,7 @@ class AODProducerWorkflowDPL : public Task
                   gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
                   gsl::span<const o2::fv0::RecPoints>& fv0RecPoints,
                   gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
+                  gsl::span<const o2::emcal::TriggerRecord>& caloEMCCellsTRGR,
                   const std::vector<o2::InteractionTimeRecord>& mcRecords,
                   std::map<uint64_t, int>& bcsMap);
 
@@ -349,6 +351,7 @@ class AODProducerWorkflowDPL : public Task
                                    const dataformats::PrimaryVertex& vertex);
 
   template <typename MCParticlesCursorType>
+
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
                             const MCParticlesCursorType& mcParticlesCursor,
                             gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
@@ -373,6 +376,12 @@ class AODProducerWorkflowDPL : public Task
 
   // helper for trd pattern
   uint8_t getTRDPattern(const o2::trd::TrackTRD& track);
+
+  o2::emcal::EventHandler<o2::emcal::Cell>* mCaloEventHandler = nullptr; ///< Pointer to the event builder for emcal cells
+
+  template <typename TCaloCells, typename TCaloTriggerRecord, typename TCaloCursor, typename TCaloTRGTableCursor>
+  void fillCaloTable(const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR, const TCaloCursor& caloCellCursor,
+                     const TCaloTRGTableCursor& caloCellTRGTableCursor, std::map<uint64_t, int>& bcsMap);
 };
 
 /// create a processor spec
