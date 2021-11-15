@@ -31,6 +31,7 @@ o2_add_library(TPCWorkflow
                        src/MonitorWorkflowSpec.cxx
                        src/ProcessingHelpers.cxx
                        src/TrackAndClusterFilterSpec.cxx
+                       src/FileWriterSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
