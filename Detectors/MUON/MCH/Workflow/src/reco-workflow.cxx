@@ -76,11 +76,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
   specs.emplace_back(o2::mch::getClusterTransformerSpec());
   specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder"));
+  if (useMC) {
+    specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder", digitRofDataDescription));
+  }
 
   if (!disableRootOutput) {
-    if (useMC) {
-      specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder", digitRofDataDescription));
-    }
     specs.emplace_back(o2::mch::getTrackWriterSpec(useMC, "mch-track-writer", "mchtracks.root"));
   }
 
