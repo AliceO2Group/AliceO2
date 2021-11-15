@@ -87,10 +87,10 @@ void CosmicsMatchingSpec::init(InitContext& ic)
   }
   //
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(DetID::ITS, dictPath, "bin");
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(DetID::ITS, dictPath);
   auto itsDict = std::make_unique<o2::itsmft::TopologyDictionary>();
   if (o2::utils::Str::pathExists(dictFile)) {
-    itsDict->readBinaryFile(dictFile);
+    itsDict->readFromFile(dictFile);
     LOG(INFO) << "Matching is running with a provided ITS dictionary: " << dictFile;
   } else {
     LOG(INFO) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";

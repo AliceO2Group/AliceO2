@@ -440,7 +440,7 @@ void init(int tf, int trigger, int chip,
           std::string tracfile = "o2trac_its.root",
           std::string inputGeom = "")
 {
-  dict.readBinaryFile(o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", "bin"));
+  dict.readFromFile(o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS));
 
   TEveManager::Create(kTRUE, "V");
   TEveBrowser* browser = gEve->GetBrowser();

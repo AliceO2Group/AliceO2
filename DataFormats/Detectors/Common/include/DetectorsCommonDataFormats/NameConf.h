@@ -84,7 +84,7 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   static std::string getGeomFileName(const std::string_view prefix = "");
 
   // Filename to for decoding dictionaries
-  static std::string getAlpideClusterDictionaryFileName(DId det, const std::string_view prefix = "", const std::string_view ext = "");
+  static std::string getAlpideClusterDictionaryFileName(DId det, const std::string_view prefix = "", const std::string_view ext = "bin");
 
   // Filename to for noise maps
   static std::string getNoiseFileName(DId det, const std::string_view prefix = "", const std::string_view ext = "");

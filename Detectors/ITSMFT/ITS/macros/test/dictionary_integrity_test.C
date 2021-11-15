@@ -20,9 +20,9 @@ void dictionary_integrity_test(std::string dictfile = "", std::string output_nam
 
   TopologyDictionary dict;
   if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", "bin");
+    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
   }
-  dict.readBinaryFile(dictfile);
+  dict.readFromFile(dictfile);
   LookUp finder(dictfile);
 
   int mistake_counter = 0;
