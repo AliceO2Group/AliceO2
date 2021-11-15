@@ -83,9 +83,9 @@ void O2DPLDisplaySpec::init(InitContext& ic)
   mConfig->configCalib.trdGeometry = mTrdGeo.get();
 
   std::string dictFileITS = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  dictFileITS = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFileITS, "bin");
+  dictFileITS = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFileITS);
   if (o2::utils::Str::pathExists(dictFileITS)) {
-    mITSDict.readBinaryFile(dictFileITS);
+    mITSDict.readFromFile(dictFileITS);
     LOG(INFO) << "Running with provided ITS clusters dictionary: " << dictFileITS;
   } else {
     LOG(INFO) << "Dictionary " << dictFileITS << " is absent, ITS expects cluster patterns for all clusters";
@@ -93,9 +93,9 @@ void O2DPLDisplaySpec::init(InitContext& ic)
   mConfig->configCalib.itsPatternDict = &mITSDict;
 
   std::string dictFileMFT = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  dictFileMFT = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictFileMFT, "bin");
+  dictFileMFT = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictFileMFT);
   if (o2::utils::Str::pathExists(dictFileMFT)) {
-    mMFTDict.readBinaryFile(dictFileMFT);
+    mMFTDict.readFromFile(dictFileMFT);
     LOG(INFO) << "Running with provided MFT clusters dictionary: " << dictFileMFT;
   } else {
     LOG(INFO) << "Dictionary " << dictFileMFT << " is absent, MFT expects cluster patterns for all clusters";

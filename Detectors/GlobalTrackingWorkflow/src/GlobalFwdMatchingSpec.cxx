@@ -80,9 +80,9 @@ void GlobalFwdMatchingDPL::init(InitContext& ic)
   mMatching.setBunchFilling(bcfill);
 
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath, "bin");
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
-    mMFTDict.readBinaryFile(dictFile);
+    mMFTDict.readFromFile(dictFile);
     LOG(INFO) << "Forward track-matching is running with a provided MFT dictionary: " << dictFile;
   } else {
     LOG(INFO) << "Dictionary " << dictFile << " is absent, Matching expects MFT cluster patterns";

@@ -80,7 +80,7 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
     LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
-    dict2.readBinaryFile(dictfile);
+    dict2.readFromFile(dictfile);
   } else {
     LOG(INFO) << "Running without dictionary !";
   }

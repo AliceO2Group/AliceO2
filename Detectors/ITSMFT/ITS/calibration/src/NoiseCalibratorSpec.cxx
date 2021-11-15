@@ -34,8 +34,7 @@ namespace its
 void NoiseCalibratorSpec::init(InitContext& ic)
 {
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(
-    o2::detectors::DetID::ITS, dictPath, "bin");
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
     mCalibrator->loadDictionary(dictFile);
     LOG(INFO) << "ITS NoiseCalibrator is running with a provided dictionary: " << dictFile;

@@ -64,7 +64,7 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
 
   void loadDictionary(std::string fname)
   {
-    mDict.readBinaryFile(fname);
+    mDict.readFromFile(fname);
   }
   const o2::itsmft::NoiseMap& getNoiseMap(long& start, long& end)
   {
