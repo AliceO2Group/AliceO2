@@ -328,6 +328,7 @@ void spawnRemoteDevice(std::string const& forwardedStdin,
   info.dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}};
   info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
   info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
+  info.outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}};
   // FIXME: use uv_now.
   info.lastSignal = uv_hrtime() - 10000000;
 
@@ -436,7 +437,8 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     bool hasNewMetric = false;
     auto updateMetricsViews = Metric2DViewIndex::getUpdater({&(*mContext.infos)[mIndex].dataRelayerViewIndex,
                                                              &(*mContext.infos)[mIndex].variablesViewIndex,
-                                                             &(*mContext.infos)[mIndex].queriesViewIndex});
+                                                             &(*mContext.infos)[mIndex].queriesViewIndex,
+                                                             &(*mContext.infos)[mIndex].outputsViewIndex});
 
     auto newMetricCallback = [&updateMetricsViews, &metrics = mContext.metrics, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
       updateMetricsViews(name, metric, value, metricIndex);
@@ -792,6 +794,7 @@ void spawnDevice(DeviceRef ref,
   info.dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}};
   info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
   info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
+  info.outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}};
   info.tracyPort = driverInfo.tracyPort;
   info.lastSignal = uv_hrtime() - 10000000;
 
@@ -850,7 +853,8 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
     auto updateMetricsViews =
       Metric2DViewIndex::getUpdater({&info.dataRelayerViewIndex,
                                      &info.variablesViewIndex,
-                                     &info.queriesViewIndex});
+                                     &info.queriesViewIndex,
+                                     &info.outputsViewIndex});
 
     auto newMetricCallback = [&updateMetricsViews, &driverInfo, &metricsInfos, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
       updateMetricsViews(name, metric, value, metricIndex);
