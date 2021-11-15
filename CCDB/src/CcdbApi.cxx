@@ -596,12 +596,33 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
 
   if (!std::filesystem::exists(fulltargetdir)) {
     if (!std::filesystem::create_directories(fulltargetdir)) {
-      std::cerr << "Could not create target directory " << fulltargetdir << "\n";
+      LOG(ERROR) << "Could not create target directory " << fulltargetdir;
     }
   }
 
   // retrieveHeaders
   auto headers = retrieveHeaders(path, metadata, timestamp);
+
+  // extract unique ETag identifier
+  auto ETag_original = headers["ETag"];
+  // if there is no ETag ... something is wrong
+  if (ETag_original.size() == 0) {
+    LOG(ERROR) << "No ETag found in header for path " << path << ". Aborting.";
+    return false;
+  }
+
+  // remove surrounding quotation marks
+  auto ETag = ETag_original.substr(1, ETag_original.size() - 2);
+
+  // extract location property of object
+  auto location = headers["Location"];
+  // See if this resource is on ALIEN or not.
+  // If this is the case, we can't follow the standard curl procedure further below. We'll
+  // have 2 choices:
+  // a) if we have a token --> try to download file using existing tools (alien.py)
+  // b) if we don't have token or a) fails --> try to download from fallback https: resource if it exists
+  bool onAlien = location.find("alien:") != std::string::npos;
+
   // determine local filename --> use user given one / default -- or if empty string determine from content
   auto getFileName = [&headers, &path]() {
     auto& s = headers["Content-Disposition"];
@@ -618,61 +639,86 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   };
   auto filename = localFileName.size() > 0 ? localFileName : getFileName();
   std::string targetpath = fulltargetdir + "/" + filename;
-  FILE* fp = fopen(targetpath.c_str(), "w");
-  if (!fp) {
-    std::cerr << " Could not open/create target file " << targetpath << "\n";
-    return false;
+
+  bool success = false;
+  // if resource on Alien and token ok
+  if (onAlien && mHaveAlienToken) {
+    std::stringstream command;
+    command << "alien.py cp " << location << " " << targetpath << " &> /dev/null ";
+    // no other way than to do in a subprocess
+    int exitcode = 1;
+    int status = system(command.str().c_str());
+    if (status < 0) {
+      std::cout << "Error: " << strerror(errno) << '\n';
+    } else {
+      if (WIFEXITED(status)) {
+        exitcode = WEXITSTATUS(status);
+        success = (exitcode == 0);
+      }
+    }
+    if (!success) {
+      LOG(ERROR) << "Object was marked an ALIEN resource but copy failed.\n";
+    }
   }
 
-  // Prepare CURL
-  CURL* curl_handle;
-  CURLcode res;
+  if (!success) {
+    FILE* fp = fopen(targetpath.c_str(), "w");
+    if (!fp) {
+      LOG(ERROR) << " Could not open/create target file " << targetpath << "\n";
+      return false;
+    }
 
-  /* init the curl session */
-  curl_handle = curl_easy_init();
+    // Prepare CURL
+    CURL* curl_handle;
+    CURLcode res;
 
-  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
+    /* init the curl session */
+    curl_handle = curl_easy_init();
 
-  /* specify URL to get */
-  curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
+    // we can construct download URL direclty from the headers obtained above
+    string fullUrl = mUrl + "/download/" + ETag; // getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
 
-  /* send all data to this function  */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteToFileCallback);
+    /* specify URL to get */
+    curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
 
-  /* we pass our file handle to the callback function */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)fp);
+    /* send all data to this function  */
+    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteToFileCallback);
 
-  /* some servers don't like requests that are made without a user-agent
+    /* we pass our file handle to the callback function */
+    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)fp);
+
+    /* some servers don't like requests that are made without a user-agent
          field, so we provide one */
-  curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 
-  /* if redirected , we tell libcurl to follow redirection */
-  curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+    /* if redirected , we tell libcurl to follow redirection */
+    curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
 
-  curlSetSSLOptions(curl_handle);
+    curlSetSSLOptions(curl_handle);
 
-  /* get it! */
-  res = curl_easy_perform(curl_handle);
+    /* get it! */
+    res = curl_easy_perform(curl_handle);
 
-  void* result = nullptr;
-  bool success = true;
-  if (res == CURLE_OK) {
-    long response_code;
-    res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
-    if ((res == CURLE_OK) && (response_code != 404)) {
+    void* result = nullptr;
+    success = true;
+    if (res == CURLE_OK) {
+      long response_code;
+      res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
+      if ((res == CURLE_OK) && (response_code != 404)) {
+      } else {
+        LOG(ERROR) << "Invalid URL : " << fullUrl;
+        success = false;
+      }
     } else {
-      LOG(ERROR) << "Invalid URL : " << fullUrl;
+      fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
       success = false;
     }
-  } else {
-    fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
-    success = false;
-  }
 
-  if (fp) {
-    fclose(fp);
+    if (fp) {
+      fclose(fp);
+    }
+    curl_easy_cleanup(curl_handle);
   }
-  curl_easy_cleanup(curl_handle);
 
   if (success) {
     // trying to append metadata to the file so that it can be inspected WHERE/HOW/WHAT IT corresponds to
@@ -1216,7 +1262,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
     curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
     /* get us the resource without a body! */
     curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_map_callback<>);
     curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
 
