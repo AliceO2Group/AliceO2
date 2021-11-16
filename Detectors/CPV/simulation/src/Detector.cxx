@@ -388,11 +388,11 @@ void Detector::ConstructGeometry()
   par[0] = geomParams->GetGassiplexChipSize(0) / 2.;
   par[1] = geomParams->GetGassiplexChipSize(1) / 2.;
   par[2] = geomParams->GetGassiplexChipSize(2) / 2.;
-  fMC->Gsvolu("CPVG", "BOX ", ID_TEXTOLIT, par, 3);
+  fMC->Gsvolu("CPVG", "BOX ", getMediumID(ID_TEXTOLIT), par, 3);
 
   // Cu+Ni foil covers Gassiplex board
   par[1] = geomParams->GetCPVCuNiFoilThickness() / 2;
-  fMC->Gsvolu("CPVC", "BOX ", ID_CU, par, 3);
+  fMC->Gsvolu("CPVC", "BOX ", getMediumID(ID_CU), par, 3);
   y = -(geomParams->GetGassiplexChipSize(1) / 2 - par[1]);
   fMC->Gspos("CPVC", 1, "CPVG", 0, y, 0, 0, "ONLY");
 
@@ -415,11 +415,11 @@ void Detector::ConstructGeometry()
   par[0] = geomParams->GetCPVActiveSize(0) / 2;
   par[1] = geomParams->GetCPVTextoliteThickness() / 2;
   par[2] = geomParams->GetCPVActiveSize(1) / 2;
-  fMC->Gsvolu("CPVF", "BOX ", ID_TEXTOLIT, par, 3);
+  fMC->Gsvolu("CPVF", "BOX ", getMediumID(ID_TEXTOLIT), par, 3);
 
   // Argon gas volume
   par[1] = (geomParams->GetFTPosition(2) - geomParams->GetFTPosition(1) - geomParams->GetCPVTextoliteThickness()) / 2;
-  fMC->Gsvolu("CPVAr", "BOX ", ID_AR, par, 3);
+  fMC->Gsvolu("CPVAr", "BOX ", getMediumID(ID_AR), par, 3);
 
   for (int i = 0; i < 4; i++) {
     y = geomParams->GetCPVFrameSize(1) / 2 - geomParams->GetFTPosition(i) + geomParams->GetCPVTextoliteThickness() / 2;
@@ -432,12 +432,12 @@ void Detector::ConstructGeometry()
 
   // Dummy sensitive plane in the middle of argone gas volume
   par[1] = 0.001;
-  fMC->Gsvolu("CPVQ", "BOX ", ID_AR, par, 3);
+  fMC->Gsvolu("CPVQ", "BOX ", getMediumID(ID_AR), par, 3);
   fMC->Gspos("CPVQ", 1, "CPVAr", 0, 0, 0, 0, "ONLY");
 
   // Cu+Ni foil covers textolite
   par[1] = geomParams->GetCPVCuNiFoilThickness() / 2;
-  fMC->Gsvolu("CPVP1", "BOX ", ID_CU, par, 3);
+  fMC->Gsvolu("CPVP1", "BOX ", getMediumID(ID_CU), par, 3);
   y = geomParams->GetCPVTextoliteThickness() / 2 - par[1];
   fMC->Gspos("CPVP1", 1, "CPVF", 0, y, 0, 0, "ONLY");
 
@@ -445,12 +445,12 @@ void Detector::ConstructGeometry()
   par[0] = geomParams->GetCPVFrameSize(0) / 2;
   par[1] = geomParams->GetCPVFrameSize(1) / 2;
   par[2] = geomParams->GetCPVBoxSize(2) / 2;
-  fMC->Gsvolu("CPVF1", "BOX ", ID_AL, par, 3);
+  fMC->Gsvolu("CPVF1", "BOX ", getMediumID(ID_AL), par, 3);
 
   par[0] = geomParams->GetCPVBoxSize(0) / 2 - geomParams->GetCPVFrameSize(0);
   par[1] = geomParams->GetCPVFrameSize(1) / 2;
   par[2] = geomParams->GetCPVFrameSize(2) / 2;
-  fMC->Gsvolu("CPVF2", "BOX ", ID_AL, par, 3);
+  fMC->Gsvolu("CPVF2", "BOX ", getMediumID(ID_AL), par, 3);
 
   for (int j = 0; j <= 1; j++) {
     x = TMath::Sign(1, 2 * j - 1) * (geomParams->GetCPVBoxSize(0) - geomParams->GetCPVFrameSize(0)) / 2;
