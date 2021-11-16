@@ -35,3 +35,8 @@ o2_add_executable(entropy-encoder-workflow
                   COMPONENT_NAME cpv
                   SOURCES src/entropy-encoder-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::CPVWorkflow)
+
+o2_add_executable(cluster-writer-workflow
+                  COMPONENT_NAME cpv
+                  SOURCES src/cluster-writer-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::CPVWorkflow)
