@@ -174,7 +174,7 @@ class Tracklet64
 
 GPUdi() float Tracklet64::getUncalibratedY() const
 {
-  int padLocalBin = getPosition();
+  int padLocalBin = getPosition()^0x80;
   int padLocal = 0;
   if (padLocalBin & (1 << (constants::NBITSTRKLPOS - 1))) {
     padLocal = -((~(padLocalBin - 1)) & ((1 << constants::NBITSTRKLPOS) - 1));
@@ -190,7 +190,7 @@ GPUdi() float Tracklet64::getUncalibratedY() const
 GPUdi() float Tracklet64::getUncalibratedDy(float nTbDrift) const
 {
   float dy;
-  int dyLocalBin = getSlope();
+  int dyLocalBin = getSlope()^0x80;
   if (dyLocalBin & (1 << (constants::NBITSTRKLSLOPE - 1))) {
     dy = (~(dyLocalBin - 1)) & ((1 << constants::NBITSTRKLSLOPE) - 1);
     dy *= -1.f;
