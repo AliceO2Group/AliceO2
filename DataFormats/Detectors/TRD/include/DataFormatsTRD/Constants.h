@@ -27,6 +27,7 @@ constexpr int NSTACK = 5;          // the number of stacks per sector
 constexpr int NLAYER = 6;          // the number of layers
 constexpr int NCHAMBERPERSEC = 30; // the number of chambers per sector
 constexpr int MAXCHAMBER = 540;    // the maximum number of installed chambers
+constexpr int MAXHALFCHAMBER = 1080; // the maximum number of installed half-chambers
 constexpr int NCHAMBER = 521;      // the number of chambers actually installed
 constexpr int NHALFCRU = 72;       // the number of half cru (link bundles)
 constexpr int NLINKSPERHALFCRU = 15; // the number of links per half cru or cru end point.
