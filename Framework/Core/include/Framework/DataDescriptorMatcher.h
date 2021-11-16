@@ -15,7 +15,6 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/RuntimeError.h"
 #include "Headers/DataHeader.h"
-#include "Headers/Stack.h"
 
 #include <array>
 #include <cstdint>
@@ -25,6 +24,12 @@
 #include <variant>
 #endif
 #include <vector>
+#include <ostream>
+
+namespace o2::header
+{
+struct Stack;
+}
 
 namespace o2::framework::data_matcher
 {
