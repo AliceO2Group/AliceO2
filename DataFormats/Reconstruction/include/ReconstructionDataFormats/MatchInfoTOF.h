@@ -28,7 +28,7 @@ class MatchInfoTOF
   using GTrackID = o2::dataformats::GlobalTrackID;
 
  public:
-  MatchInfoTOF(int idLocal, int idxTOFCl, double time, float chi2, o2::track::TrackLTIntegral trkIntLT, GTrackID idxTrack, float dt = 0, float z = 0) : mIdLocal(idLocal), mIdxTOFCl(idxTOFCl), mSignal(time), mChi2(chi2), mIntLT(trkIntLT), mIdxTrack(idxTrack), mDeltaT(dt), mZatTOF(z){};
+  MatchInfoTOF(int idLocal, int idxTOFCl, double time, float chi2, o2::track::TrackLTIntegral trkIntLT, GTrackID idxTrack, float dt = 0, float z = 0, float dx = 0, float dz = 0) : mIdLocal(idLocal), mIdxTOFCl(idxTOFCl), mSignal(time), mChi2(chi2), mIntLT(trkIntLT), mIdxTrack(idxTrack), mDeltaT(dt), mZatTOF(z), mDXatTOF(dx), mDZatTOF(dz){};
   MatchInfoTOF() = default;
   void setIdxTOFCl(int index) { mIdxTOFCl = index; }
   void setIdxTrack(GTrackID index) { mIdxTrack = index; }
@@ -49,6 +49,10 @@ class MatchInfoTOF
   float getDeltaT() const { return mDeltaT; }
   void setZatTOF(float val) { mZatTOF = val; }
   float getZatTOF() const { return mZatTOF; }
+  void setDZatTOF(float val) { mDZatTOF = val; }
+  float getDZatTOF() const { return mDZatTOF; }
+  void setDXatTOF(float val) { mDXatTOF = val; }
+  float getDXatTOF() const { return mDXatTOF; }
   void setSignal(double time) { mSignal = time; }
   double getSignal() const { return mSignal; }
 
@@ -61,10 +65,12 @@ class MatchInfoTOF
   int mIdxTOFCl;                     ///< Idx for TOF cluster
   GTrackID mIdxTrack;                ///< Idx for track
   float mZatTOF = 0.0;               ///< Z position at  TOF
+  float mDXatTOF = 0.0;              ///< DX position at  TOF
+  float mDZatTOF = 0.0;              ///< DZ position at  TOF
   float mDeltaT = 0.0;               ///< tTOF - TPC (microsec)
   double mSignal = 0.0;              ///< TOF time in ps
 
-  ClassDefNV(MatchInfoTOF, 4);
+  ClassDefNV(MatchInfoTOF, 5);
 };
 } // namespace dataformats
 } // namespace o2
