@@ -10,8 +10,8 @@
 
 o2_add_library(
   MIDFiltering
-  SOURCES src/ChannelMasksHandler.cxx src/ChannelScalers.cxx
-          src/ColumnDataMaskToROMask.cxx src/FetToDead.cxx src/MaskMaker.cxx
+  SOURCES src/ChannelMasksHandler.cxx src/ChannelScalers.cxx src/FetToDead.cxx
+          src/MaskMaker.cxx
   PUBLIC_LINK_LIBRARIES O2::DataFormatsMID O2::MIDBase O2::MIDRaw
                         Microsoft.GSL::GSL)
 

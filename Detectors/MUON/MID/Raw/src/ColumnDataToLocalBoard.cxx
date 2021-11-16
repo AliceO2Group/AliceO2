@@ -24,21 +24,10 @@ namespace o2
 namespace mid
 {
 
-bool ColumnDataToLocalBoard::keepBoard(const ROBoard& loc) const
-{
-  for (int ich = 0; ich < 4; ++ich) {
-    if (loc.patternsBP[ich] && loc.patternsNBP[ich]) {
-      return true;
-    }
-  }
-  return false;
-}
-
 void ColumnDataToLocalBoard::process(gsl::span<const ColumnData> data)
 {
   /// Converts incoming data to FEE format
   mLocalBoardsMap.clear();
-  mGBTMap.clear();
 
   // First fill the map with the active local boards.
   // Each local board gets a unique id.
@@ -52,19 +41,21 @@ void ColumnDataToLocalBoard::process(gsl::span<const ColumnData> data)
         int ich = detparams::getChamber(col.deId);
         roData.firedChambers |= (1 << ich);
         roData.patternsBP[ich] = col.getBendPattern(iline);
-        roData.patternsNBP[ich] = col.getNonBendPattern();
+        if (mCrateMapper.hasDirectInputY(uniqueLocId)) {
+          roData.patternsNBP[ich] = col.getNonBendPattern();
+        }
       }
     }
   }
+}
 
-  // Then group the boards belonging to the same GBT link
+std::vector<ROBoard> ColumnDataToLocalBoard::getData() const
+{
+  std::vector<ROBoard> roBoards;
   for (auto& item : mLocalBoardsMap) {
-    if (mDebugMode || keepBoard(item.second)) {
-      auto crateId = raw::getCrateId(item.first);
-      auto feeId = crateparams::makeGBTUniqueId(crateId, crateparams::getGBTIdFromBoardInCrate(raw::getLocId(item.second.boardId)));
-      mGBTMap[feeId].emplace_back(item.second);
-    }
+    roBoards.emplace_back(item.second);
   }
+  return roBoards;
 }
 
 } // namespace mid

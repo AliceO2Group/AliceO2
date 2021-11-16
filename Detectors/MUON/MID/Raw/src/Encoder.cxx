@@ -18,7 +18,7 @@
 
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RDHUtils.h"
-#include "MIDRaw/CrateMasks.h"
+#include "MIDRaw/GBTMapper.h"
 #include "MIDRaw/Utils.h"
 #include <fmt/format.h>
 
@@ -27,19 +27,22 @@ namespace o2
 namespace mid
 {
 
-void Encoder::init(std::string_view outDir, std::string_view fileFor, int verbosity, bool debugMode)
+void Encoder::init(std::string_view outDir, std::string_view fileFor, int verbosity, std::vector<ROBoardConfig> configurations)
 {
   /// Initializes links
 
-  CrateMasks masks;
   auto linkUniqueIds = mFEEIdConfig.getConfiguredLinkUniqueIDs();
 
   // Initialises the GBT link encoders
   for (auto& linkUniqueId : linkUniqueIds) {
     auto gbtUniqueId = mFEEIdConfig.getGBTUniqueId(linkUniqueId);
-    mGBTEncoders[gbtUniqueId].setGBTUniqueId(gbtUniqueId);
-    mGBTEncoders[gbtUniqueId].setMask(masks.getMask(gbtUniqueId));
-    mGBTIds[gbtUniqueId] = linkUniqueId;
+    std::vector<ROBoardConfig> gbtConfigs;
+    for (auto& cfg : configurations) {
+      if (gbtmapper::isBoardInGBT(cfg.boardId, gbtUniqueId)) {
+        gbtConfigs.emplace_back(cfg);
+      }
+    }
+    mGBTEncoders[gbtUniqueId].setConfig(gbtUniqueId, gbtConfigs);
   }
 
   // Initializes the output link
@@ -76,8 +79,6 @@ void Encoder::init(std::string_view outDir, std::string_view fileFor, int verbos
   }
 
   mRawWriter.setEmptyPageCallBack(this);
-
-  mConverter.setDebugMode(debugMode);
 }
 
 void Encoder::emptyHBFMethod(const o2::header::RDHAny* rdh, std::vector<char>& toAdd) const
@@ -154,13 +155,24 @@ void Encoder::finalize(bool closeFile)
 void Encoder::process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType)
 {
   /// Encodes data
+
   if (ir.orbit != mLastIR.orbit) {
     onOrbitChange(mLastIR.orbit);
   }
 
+  // Converts ColumnData to ROBoards
   mConverter.process(data);
 
-  for (auto& item : mConverter.getData()) {
+  mGBTMap.clear();
+
+  // Group local boards according to the GBT link they belong
+  for (auto& item : mConverter.getDataMap()) {
+    auto feeId = gbtmapper::getGBTIdFromUniqueLocId(item.first);
+    mGBTMap[feeId].emplace_back(item.second);
+  }
+
+  // Process the GBT links
+  for (auto& item : mGBTMap) {
     mGBTEncoders[item.first].process(item.second, ir);
   }
   mLastIR = ir;
