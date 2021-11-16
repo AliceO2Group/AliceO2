@@ -26,6 +26,7 @@
 #include <boost/program_options.hpp>
 #include <vector>
 #include <string>
+#include <cmath>
 #include <TTree.h>
 #include <TFile.h>
 
@@ -51,7 +52,10 @@
 enum class Test {
   Read,
   Write,
-  Copy
+  Copy,
+  RandomRead,
+  RandomWrite,
+  RandomCopy
 };
 
 inline std::ostream& operator<<(std::ostream& os, Test test)
@@ -65,6 +69,15 @@ inline std::ostream& operator<<(std::ostream& os, Test test)
       break;
     case Test::Copy:
       os << "copy";
+      break;
+    case Test::RandomRead:
+      os << "random read";
+      break;
+    case Test::RandomWrite:
+      os << "random write";
+      break;
+    case Test::RandomCopy:
+      os << "random copy";
       break;
   }
   return os;
@@ -95,7 +108,8 @@ inline std::ostream& operator<<(std::ostream& os, Mode mode)
 enum class KernelConfig {
   Single,
   Multi,
-  All
+  All,
+  Manual
 };
 
 inline std::ostream& operator<<(std::ostream& os, KernelConfig config)
@@ -109,6 +123,9 @@ inline std::ostream& operator<<(std::ostream& os, KernelConfig config)
       break;
     case KernelConfig::All:
       os << "all";
+      break;
+    case KernelConfig::Manual:
+      os << "manual";
       break;
   }
   return os;
@@ -146,7 +163,7 @@ inline std::string getTestName(Mode mode, Test test, KernelConfig blocks)
 template <class chunk_t>
 inline chunk_t* getCustomPtr(chunk_t* scratchPtr, float startGB)
 {
-  return reinterpret_cast<chunk_t*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * startGB));
+  return reinterpret_cast<chunk_t*>(reinterpret_cast<char*>(scratchPtr) + (static_cast<size_t>(GB * startGB) & 0xFFFFFFFFFFFFF000));
 }
 
 inline float computeThroughput(Test test, float result, float chunkSizeGB, int ntests)
@@ -158,35 +175,32 @@ inline float computeThroughput(Test test, float result, float chunkSizeGB, int n
 }
 
 template <class chunk_t>
-inline size_t getBufferCapacity(float chunkReservedGB)
+inline size_t getBufferCapacity(float chunkSizeGB, int prime)
 {
-  return static_cast<size_t>((GB * chunkReservedGB) / sizeof(chunk_t));
+  auto chunkCapacity = (static_cast<size_t>(GB * chunkSizeGB) & 0xFFFFFFFFFFFFF000) / sizeof(chunk_t);
+  if (!prime) {
+    return chunkCapacity;
+  } else {
+    return (chunkCapacity % prime == 0) ? (chunkCapacity - 0x1000) : chunkCapacity;
+  }
 }
 
-// LCG: https://rosettacode.org/wiki/Linear_congruential_generator
-class LCGRnd
+inline bool is_prime(const int n)
 {
- public:
-  __host__ __device__ void seed(unsigned int s) { mSeed = s; }
-
- protected:
-  __host__ __device__ LCGRnd() : mSeed{0}, mA{0}, mC{0}, mM(2147483648) {}
-  __host__ __device__ int rnd() { return (mSeed = (mA * mSeed + mC) % mM); }
-
-  int mA, mC;
-  unsigned int mM, mSeed;
-};
-
-class BSDRnd : public LCGRnd
-{
- public:
-  __host__ __device__ BSDRnd()
-  {
-    mA = 1103515245;
-    mC = 12345;
+  bool isPrime = true;
+  if (n == 0 || n == 1) {
+    isPrime = false;
+  } else {
+    for (int i = 2; i <= sqrt(n); ++i) {
+      if (n % i == 0) {
+        isPrime = false;
+        break;
+      }
+    }
   }
-  __host__ __device__ int rnd() { return LCGRnd::rnd(); }
-};
+
+  return isPrime;
+}
 
 namespace o2
 {
@@ -204,10 +218,14 @@ struct benchmarkOpts {
   float chunkReservedGB = 1.f;
   float threadPoolFraction = 1.f;
   float freeMemoryFractionToAllocate = 0.95f;
+  int numThreads = -1;
+  int numBlocks = -1;
   int kernelLaunches = 1;
   int nTests = 1;
   int streams = 8;
+  int prime = 0;
   std::string outFileName = "benchmark_result";
+  bool dumpChunks = false;
 };
 
 template <class chunk_t>
@@ -215,11 +233,6 @@ struct gpuState {
   int getMaxChunks()
   {
     return (double)scratchSize / (chunkReservedGB * GB);
-  }
-
-  size_t getChunkCapacity()
-  {
-    return getBufferCapacity<chunk_t>(chunkReservedGB);
   }
 
   int getNKernelLaunches() { return iterations; }

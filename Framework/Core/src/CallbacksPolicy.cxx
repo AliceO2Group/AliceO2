@@ -25,10 +25,10 @@ namespace o2::framework
 CallbacksPolicy epnProcessReporting()
 {
   return {
-    .matcher = [](DeviceSpec const&) -> bool {
+    .matcher = [](DeviceSpec const&, ConfigContext const& context) -> bool {
       /// FIXME:
       return getenv("DDS_SESSION_ID") != nullptr; },
-    .policy = [](CallbackService& callbacks) -> void {
+    .policy = [](CallbackService& callbacks, InitContext& context) -> void {
       callbacks.set(CallbackService::Id::PreProcessing, [](ServiceRegistry& registry, int op) {
         auto& info = registry.get<TimingInfo>();
         LOGP(info, "Processing timeslice:{}, tfCounter:{}, firstTFOrbit:{}, action:{}",

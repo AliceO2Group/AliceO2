@@ -24,10 +24,11 @@ namespace o2
 namespace ft0
 {
 
-EntropyDecoderSpec::EntropyDecoderSpec()
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
+  mCTFCoder.setVerbosity(verbosity);
 }
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
@@ -49,9 +50,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto& channels = pc.outputs().make<std::vector<o2::ft0::ChannelData>>(OutputRef{"channels"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::ft0::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, digits, channels);
-
+  if (buff.size()) {
+    const auto ctfImage = o2::ft0::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, digits, channels);
+  }
   mTimer.Stop();
   LOG(INFO) << "Decoded " << channels.size() << " FT0 channels in " << digits.size() << " digits in " << mTimer.CpuTime() - cput << " s";
 }
@@ -62,7 +64,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec()
+DataProcessorSpec getEntropyDecoderSpec(int verbosity)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"digits"}, "FT0", "DIGITSBC", 0, Lifetime::Timeframe},
@@ -72,7 +74,7 @@ DataProcessorSpec getEntropyDecoderSpec()
     "ft0-entropy-decoder",
     Inputs{InputSpec{"ctf", "FT0", "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
 }
 

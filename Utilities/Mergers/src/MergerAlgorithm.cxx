@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Merger.cxx
+/// \file MergerAlgorithm.cxx
 /// \brief Implementation of O2 Mergers, v0.1
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
@@ -17,6 +17,7 @@
 #include "Mergers/MergerAlgorithm.h"
 
 #include "Mergers/MergeInterface.h"
+#include "Framework/Logger.h"
 
 #include <TH1.h>
 #include <TH2.h>
@@ -89,7 +90,7 @@ void merge(TObject* const target, TObject* const other)
     } else if (target->InheritsFrom(TEfficiency::Class())) {
       errorCode = reinterpret_cast<TEfficiency*>(target)->Merge(&otherCollection);
     } else {
-      throw std::runtime_error("Object with type '" + std::string(target->ClassName()) + "' is not one of the mergeable types.");
+      LOG(WARN) << "Object with type '" + std::string(target->ClassName()) + "' is not one of the mergeable types, skipping";
     }
     if (errorCode == -1) {
       throw std::runtime_error("Merging object of type '" + std::string(target->ClassName()) + "' failed.");

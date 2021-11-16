@@ -73,10 +73,7 @@ void EventManager::displayCurrentEvent()
 
     auto displayList = getDataSource()->getVisualisationList(no);
     for (auto it = displayList.begin(); it != displayList.end(); ++it) {
-
-      //if (it->second == EVisualisationGroup::TPC) { // temporary
       displayVisualisationEvent(it->first, gVisualisationGroupName[it->second]);
-      //}
     }
 
     for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
@@ -154,6 +151,7 @@ void EventManager::DropEvent()
 
 void EventManager::displayVisualisationEvent(VisualisationEvent& event, const std::string& detectorName)
 {
+  double eta = 0.1;
   size_t trackCount = event.getTrackCount();
   LOG(INFO) << "displayVisualisationEvent: " << trackCount << " detector: " << detectorName;
   // tracks
@@ -162,7 +160,7 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   // clusters
   size_t clusterCount = 0;
   auto* point_list = new TEvePointSet(detectorName.c_str());
-  point_list->IncDenyDestroy();
+  point_list->IncDenyDestroy(); // don't delete if zero parent
   point_list->SetMarkerColor(kBlue);
 
   for (size_t i = 0; i < trackCount; ++i) {
@@ -173,20 +171,30 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
     t.fSign = track.getCharge() > 0 ? 1 : -1;
     auto* vistrack = new TEveTrack(&t, &TEveTrackPropagator::fgDefault);
     vistrack->SetLineColor(kMagenta);
+    //vistrack->SetName(detectorName + " track: " + i);
+    vistrack->SetName(track.getGIDAsString().c_str());
     size_t pointCount = track.getPointCount();
     vistrack->Reset(pointCount);
 
+    int points = 0;
     for (size_t j = 0; j < pointCount; ++j) {
       auto point = track.getPoint(j);
-      vistrack->SetNextPoint(point[0], point[1], point[2]);
+      if (point[2] > eta || point[2] < -1 * eta) {
+        vistrack->SetNextPoint(point[0], point[1], point[2]);
+        points++;
+      }
     }
-    list->AddElement(vistrack);
+    if (points > 0) {
+      list->AddElement(vistrack);
+    }
 
     // clusters connected with track
     for (size_t i = 0; i < track.getClusterCount(); ++i) {
       VisualisationCluster cluster = track.getCluster(i);
-      point_list->SetNextPoint(cluster.X(), cluster.Y(), cluster.Z());
-      clusterCount++;
+      if (cluster.Z() > eta || cluster.Z() < -1 * eta) { // temporary remove eta=0 artefacts
+        point_list->SetNextPoint(cluster.X(), cluster.Y(), cluster.Z());
+        clusterCount++;
+      }
     }
   }
 
@@ -197,8 +205,10 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   // global clusters (with no connection information)
   for (size_t i = 0; i < event.getClusterCount(); ++i) {
     VisualisationCluster cluster = event.getCluster(i);
-    point_list->SetNextPoint(cluster.X(), cluster.Y(), cluster.Z());
-    clusterCount++;
+    if (cluster.Z() > eta || cluster.Z() < -1 * eta) { // temporary remove eta=0 artefacts
+      point_list->SetNextPoint(cluster.X(), cluster.Y(), cluster.Z());
+      clusterCount++;
+    }
   }
 
   if (clusterCount != 0) {

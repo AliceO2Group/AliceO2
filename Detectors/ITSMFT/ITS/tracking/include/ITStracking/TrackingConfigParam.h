@@ -40,10 +40,11 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
 
   // Use TGeo for mat. budget
   bool useMatCorrTGeo = false;
-  float misalignment[7] = {-1.f, -1.f, -1.f, -1.f, -1.f, -1.f, -1.f};
+  float sysErrY2[7] = {0}; // systematic error^2 in Y per layer
+  float sysErrZ2[7] = {0}; // systematic error^2 in Z per layer
   float nSigmaCut = -1.f;
   float deltaTanLres = -1.f;
-  float phiCut = -1.f;
+  float minPt = -1.f;
   float pvRes = -1.f;
   int LUTbinsPhi = -1;
   int LUTbinsZ = -1;

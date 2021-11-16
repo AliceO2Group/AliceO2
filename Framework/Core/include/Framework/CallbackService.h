@@ -13,6 +13,7 @@
 
 #include "CallbackRegistry.h"
 #include "Framework/ServiceHandle.h"
+#include "Framework/DataProcessingHeader.h"
 #include "ServiceRegistry.h"
 
 #include <fairmq/FwdDecls.h>
@@ -79,7 +80,7 @@ class CallbackService
   using DataConsumedCallback = std::function<void(ServiceRegistry&)>;
   using EndOfStreamCallback = std::function<void(EndOfStreamContext&)>;
   using RegionInfoCallback = std::function<void(FairMQRegionInfo const&)>;
-  using NewTimesliceCallback = std::function<void(o2::header::DataHeader&)>;
+  using NewTimesliceCallback = std::function<void(o2::header::DataHeader&, DataProcessingHeader&)>;
   using PreProcessingCallback = std::function<void(ServiceRegistry&, int)>;
 
   using Callbacks = CallbackRegistry<Id,                                                           //

@@ -419,4 +419,20 @@ GBTLink::ErrorType GBTLink::checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD)
   return NoError;
 }
 
+///_________________________________________________________________
+/// Check cable ID validity
+GBTLink::ErrorType GBTLink::checkErrorsCableID(const GBTData* gbtD, uint8_t cableSW)
+{
+  if (cableSW == 0xff) {
+    statistics.errorCounts[GBTLinkDecodingStat::ErrWrongeCableID]++;
+    if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrWrongeCableID])) {
+      gbtD->printX();
+      LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrWrongeCableID] << ' ' << gbtD->getCableID();
+    }
+    errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrWrongeCableID);
+    return Skip;
+  }
+  return NoError;
+}
+
 #endif

@@ -17,7 +17,7 @@ The optimized LUT will be stored in the matbud.root file.
 
 Load it as:
 ```
-auto mbr = o2::base::MatLayerCylSet::loadFromFile("matbud.root", "MatBud");
+auto mbr = o2::base::MatLayerCylSet::loadFromFile("matbud.root");
 ```
 
 To query mat. budget between 2 points use:

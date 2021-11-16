@@ -80,10 +80,11 @@ InputSpec::InputSpec(std::string binding_,
 
 InputSpec::InputSpec(std::string binding_,
                      data_matcher::DataDescriptorMatcher&& matcher_,
+                     enum Lifetime lifetime_,
                      std::vector<ConfigParamSpec> const& metadata_)
   : binding{binding_},
     matcher{matcher_},
-    lifetime{Lifetime::Timeframe},
+    lifetime{lifetime_},
     metadata{metadata_}
 {
 }

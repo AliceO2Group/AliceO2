@@ -42,7 +42,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "Headers/DataHeader.h"
 #include "CommonDataFormat/BunchFilling.h"
-#include "CommonDataFormat/FlatHisto2D.h"
+#include "CommonDataFormat/Pair.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 
@@ -100,9 +100,9 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   mMatching.setUseBCFilling(!ic.options().get<bool>("ignore-bc-check"));
   //
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
-    mITSDict.readBinaryFile(dictFile);
+    mITSDict.readFromFile(dictFile);
     LOG(INFO) << "Matching is running with a provided ITS dictionary: " << dictFile;
   } else {
     LOG(INFO) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
@@ -152,9 +152,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   }
 
   if (mCalibMode) {
-    auto* hdtgl = mMatching.getHistoDTgl();
-    pc.outputs().snapshot(Output{"GLO", "TPCITS_VDHDTGL", 0, Lifetime::Timeframe}, (*hdtgl).getBase());
-    hdtgl->clear();
+    pc.outputs().snapshot(Output{"GLO", "TPCITS_VDTGL", 0, Lifetime::Timeframe}, mMatching.getTglITSTPC());
   }
   mTimer.Stop();
 }
@@ -185,7 +183,7 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
   outputs.emplace_back("GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe); // cluster indices of ITS tracklets attached by the AfterBurner
 
   if (calib) {
-    outputs.emplace_back("GLO", "TPCITS_VDHDTGL", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "TPCITS_VDTGL", 0, Lifetime::Timeframe);
   }
 
   if (useMC) {

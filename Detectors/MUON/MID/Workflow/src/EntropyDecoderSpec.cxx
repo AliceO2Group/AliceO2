@@ -26,10 +26,11 @@ namespace o2
 namespace mid
 {
 
-EntropyDecoderSpec::EntropyDecoderSpec()
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
+  mCTFCoder.setVerbosity(verbosity);
 }
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
@@ -50,8 +51,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   std::array<std::vector<o2::mid::ColumnData>, NEvTypes> cols{};
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::mid::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, rofs, cols);
+  if (buff.size()) {
+    const auto ctfImage = o2::mid::CTF::getImage(buff.data());
+    mCTFCoder.decode(ctfImage, rofs, cols);
+  }
 
   for (uint32_t it = 0; it < NEvTypes; it++) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginMID, "DATA", it, Lifetime::Timeframe}, cols[it]);
@@ -70,7 +73,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec()
+DataProcessorSpec getEntropyDecoderSpec(int verbosity)
 {
   std::vector<OutputSpec> outputs;
   for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < NEvTypes; ++subSpec) {
@@ -82,7 +85,7 @@ DataProcessorSpec getEntropyDecoderSpec()
     "mid-entropy-decoder",
     Inputs{InputSpec{"ctf", "MID", "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
+    AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
 }
 

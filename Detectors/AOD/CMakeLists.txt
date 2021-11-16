@@ -9,10 +9,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(
+add_library(AODProducerWorkflow INTERFACE)
+
+target_link_libraries(
         AODProducerWorkflow
-        SOURCES src/AODProducerWorkflowSpec.cxx
-        PUBLIC_LINK_LIBRARIES
+        INTERFACE
           O2::DetectorsVertexing
           O2::FT0Workflow
           O2::FDDWorkflow
@@ -30,12 +31,18 @@ o2_add_library(
           O2::Steer
           O2::TPCWorkflow
 )
+
+target_include_directories(AODProducerWorkflow INTERFACE include)
+
+add_library(internal::AODProducerWorkflow ALIAS AODProducerWorkflow)
+
 o2_add_executable(
   workflow
   COMPONENT_NAME aod-producer
-  SOURCES src/aod-producer-workflow.cxx
-  PUBLIC_LINK_LIBRARIES O2::AODProducerWorkflow
+  SOURCES src/aod-producer-workflow.cxx src/AODProducerWorkflowSpec.cxx
+  PUBLIC_LINK_LIBRARIES internal::AODProducerWorkflow O2::Version
 )
+
 o2_add_executable(
         standalone-aod-producer
         COMPONENT_NAME reco

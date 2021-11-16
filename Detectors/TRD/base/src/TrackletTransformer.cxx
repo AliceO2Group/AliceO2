@@ -48,14 +48,8 @@ void TrackletTransformer::loadCalibrationParameters(int timestamp)
 
   mCalibration = ccdbmgr.get<o2::trd::CalVdriftExB>("TRD/Calib/CalVdriftExB");
 
-  // placeholder for when t0 is available
-  mT0 = ccdbmgr.get<std::vector<float>>("TRD/Calib/ChamberT0");
-
   if (mCalibration == nullptr) {
     LOG(error) << " failed to get vDrift and ExB parameters from ccdb";
-  }
-  if (mT0 == nullptr) {
-    LOG(warn) << " failed to get mT0 parameters from ccdb";
   }
 }
 

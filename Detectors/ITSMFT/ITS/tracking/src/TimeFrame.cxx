@@ -39,6 +39,11 @@ float MSangle(float mass, float p, float xX0)
   return 0.0136f * std::sqrt(xX0) * (1.f + 0.038f * std::log(xX0)) / (beta * p);
 }
 
+float Sq(float v)
+{
+  return v * v;
+}
+
 } // namespace
 
 namespace o2
@@ -188,7 +193,6 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     mTrackletsLookupTable.resize(trkParam.CellsPerRoad());
     mIndexTables.clear();
     mIndexTableUtils.setTrackingParameters(trkParam);
-    mMSangles.resize(trkParam.NLayers);
     mPositionResolution.resize(trkParam.NLayers);
     mBogusClusters.resize(trkParam.NLayers, 0);
 
@@ -200,7 +204,6 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
       mClusters[iLayer].resize(mUnsortedClusters[iLayer].size());
       mUsedClusters[iLayer].clear();
       mUsedClusters[iLayer].resize(mUnsortedClusters[iLayer].size(), false);
-      mMSangles[iLayer] = MSangle(0.14f, 0.3f, trkParam.LayerxX0[iLayer]);
       mPositionResolution[iLayer] = std::hypot(trkParam.LayerMisalignment[iLayer], trkParam.LayerResolution[iLayer]);
     }
 
@@ -274,6 +277,27 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
 
   mRoads.clear();
   mRoadLabels.clear();
+
+  mMSangles.resize(trkParam.NLayers);
+  mPhiCuts.resize(mClusters.size() - 1, 0.f);
+
+  float oneOverR{0.001f * 0.3f * std::abs(mBz) / trkParam.TrackletMinPt};
+  for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
+    mMSangles[iLayer] = MSangle(0.14f, trkParam.TrackletMinPt, trkParam.LayerxX0[iLayer]);
+    mPositionResolution[iLayer] = std::hypot(trkParam.LayerMisalignment[iLayer], trkParam.LayerResolution[iLayer]);
+
+    if (iLayer < mClusters.size() - 1) {
+      const float& r1 = trkParam.LayerRadii[iLayer];
+      const float& r2 = trkParam.LayerRadii[iLayer + 1];
+      const float res1 = std::hypot(trkParam.PVres, mPositionResolution[iLayer]);
+      const float res2 = std::hypot(trkParam.PVres, mPositionResolution[iLayer + 1]);
+      const float cosTheta1half = std::sqrt(1.f - Sq(0.5f * r1 * oneOverR));
+      const float cosTheta2half = std::sqrt(1.f - Sq(0.5f * r2 * oneOverR));
+      float x = r2 * cosTheta1half - r1 * cosTheta2half;
+      float delta = std::sqrt(1. / (1.f - 0.25f * Sq(x * oneOverR)) * (Sq(0.25f * r1 * r2 * Sq(oneOverR) / cosTheta2half + cosTheta1half) * Sq(res1) + Sq(0.25f * r1 * r2 * Sq(oneOverR) / cosTheta1half + cosTheta2half) * Sq(res2)));
+      mPhiCuts[iLayer] = std::min(std::asin(0.5f * x * oneOverR) + 2.f * mMSangles[iLayer] + delta, constants::math::Pi * 0.5f);
+    }
+  }
 
   for (unsigned int iLayer{0}; iLayer < mTracklets.size(); ++iLayer) {
     mTracklets[iLayer].clear();

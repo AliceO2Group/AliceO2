@@ -25,6 +25,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Headers/DataHeader.h"
+#include "Headers/STFHeader.h"
 #include "Headers/Stack.h"
 
 #include "RawFileReaderWorkflow.h" // not installed
@@ -47,12 +48,6 @@ namespace o2h = o2::header;
 class RawReaderSpecs : public o2f::Task
 {
  public:
-  static constexpr o2h::DataDescription gDataDescSubTimeFrame{"DISTSUBTIMEFRAME"};
-  struct STFHeader { // fake header to mimic DD SubTimeFrame::Header sent with DISTSUBTIMEFRAME message
-    uint64_t mId = uint64_t(-1);
-    uint32_t mFirstOrbit = uint32_t(-1);
-    std::uint32_t mRunNumber = 0;
-  };
   explicit RawReaderSpecs(const ReaderInp& rinp);
   void init(o2f::InitContext& ic) final;
   void run(o2f::ProcessingContext& ctx) final;
@@ -73,6 +68,7 @@ class RawReaderSpecs : public o2f::Task
   uint32_t mDelayUSec = 0;        // Delay in microseconds between TFs
   uint32_t mMinTFID = 0;          // 1st TF to extract
   uint32_t mMaxTFID = 0xffffffff; // last TF to extrct
+  uint64_t mStartTimeMS = 0;      // start time to inject to DPH
   size_t mLoopsDone = 0;
   size_t mSentSize = 0;
   size_t mSentMessages = 0;
@@ -212,6 +208,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
       return;
     }
   }
+  uint64_t creationTime = mStartTimeMS ? 0UL : std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
   if (tfID < mMinTFID) {
     tfID = mMinTFID;
@@ -268,8 +265,11 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
         auto ir = o2::raw::RDHUtils::getHeartBeatIR(plMessage->GetData());
         auto tfid = hbfU.getTF(ir);
         firstOrbit = hdrTmpl.firstTForbit = hbfU.getIRTF(tfid).orbit; // will be picked for the following parts
+        if (!creationTime) {
+          creationTime = mStartTimeMS + std::ceil(firstOrbit * o2::constants::lhc::LHCOrbitMUS * 1e-3);
+        }
       }
-      o2::header::Stack headerStack{hdrTmpl, o2::framework::DataProcessingHeader{mTFCounter}};
+      o2::header::Stack headerStack{hdrTmpl, o2::framework::DataProcessingHeader{mTFCounter, 1, creationTime}};
       memcpy(hdMessage->GetData(), headerStack.data(), headerStack.size());
       hdrTmpl.splitPayloadIndex++; // prepare for next
 
@@ -281,19 +281,19 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
 
   // send sTF acknowledge message
   {
-    STFHeader stfHeader{mTFCounter, firstOrbit, 0};
-    o2::header::DataHeader stfDistDataHeader(gDataDescSubTimeFrame, o2::header::gDataOriginFLP, 0, sizeof(STFHeader), 0, 1);
+    o2::header::STFHeader stfHeader{mTFCounter, firstOrbit, 0};
+    o2::header::DataHeader stfDistDataHeader(o2::header::gDataDescriptionDISTSTF, o2::header::gDataOriginFLP, 0, sizeof(o2::header::STFHeader), 0, 1);
     stfDistDataHeader.payloadSerializationMethod = o2h::gSerializationMethodNone;
-    stfDistDataHeader.firstTForbit = stfHeader.mFirstOrbit;
+    stfDistDataHeader.firstTForbit = stfHeader.firstOrbit;
     stfDistDataHeader.tfCounter = mTFCounter;
     const auto fmqChannel = findOutputChannel(stfDistDataHeader);
     if (!fmqChannel.empty()) { // no output channel
       auto fmqFactory = device->GetChannel(fmqChannel, 0).Transport();
-      o2::header::Stack headerStackSTF{stfDistDataHeader, o2::framework::DataProcessingHeader{mTFCounter}};
+      o2::header::Stack headerStackSTF{stfDistDataHeader, o2::framework::DataProcessingHeader{mTFCounter, 1, creationTime}};
       auto hdMessageSTF = fmqFactory->CreateMessage(hstackSize, fair::mq::Alignment{64});
       auto plMessageSTF = fmqFactory->CreateMessage(stfDistDataHeader.payloadSize, fair::mq::Alignment{64});
       memcpy(hdMessageSTF->GetData(), headerStackSTF.data(), headerStackSTF.size());
-      memcpy(plMessageSTF->GetData(), &stfHeader, sizeof(STFHeader));
+      memcpy(plMessageSTF->GetData(), &stfHeader, sizeof(o2::header::STFHeader));
       addPart(std::move(hdMessageSTF), std::move(plMessageSTF), fmqChannel);
     }
   }
@@ -335,7 +335,7 @@ o2f::DataProcessorSpec getReaderSpec(ReaderInp rinp)
       }
     }
     // add output for DISTSUBTIMEFRAME
-    spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2::header::gDataOriginFLP, RawReaderSpecs::gDataDescSubTimeFrame, 0});
+    spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0});
   } else {
     auto nameStart = rinp.rawChannelConfig.find("name=");
     if (nameStart == std::string::npos) {

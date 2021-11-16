@@ -328,6 +328,7 @@ void spawnRemoteDevice(std::string const& forwardedStdin,
   info.dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}};
   info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
   info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
+  info.outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}};
   // FIXME: use uv_now.
   info.lastSignal = uv_hrtime() - 10000000;
 
@@ -399,23 +400,6 @@ static void my_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* bu
   buf->len = suggested_size;
 }
 
-void updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> const& metricsInfos)
-{
-  // Calculate the unique set of metrics, as available in the metrics service
-  static std::unordered_set<std::string> allMetricsNames;
-  for (const auto& metricsInfo : metricsInfos) {
-    for (const auto& labelsPairs : metricsInfo.metricLabels) {
-      allMetricsNames.insert(std::string(labelsPairs.label));
-    }
-  }
-  for (const auto& labelsPairs : driverInfo.metrics.metricLabels) {
-    allMetricsNames.insert(std::string(labelsPairs.label));
-  }
-  std::vector<std::string> result(allMetricsNames.begin(), allMetricsNames.end());
-  std::sort(result.begin(), result.end());
-  driverInfo.availableMetrics.swap(result);
-}
-
 /// An handler for a websocket message stream.
 struct ControlWebSocketHandler : public WebSocketHandler {
   ControlWebSocketHandler(DriverServerContext& context)
@@ -453,7 +437,8 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     bool hasNewMetric = false;
     auto updateMetricsViews = Metric2DViewIndex::getUpdater({&(*mContext.infos)[mIndex].dataRelayerViewIndex,
                                                              &(*mContext.infos)[mIndex].variablesViewIndex,
-                                                             &(*mContext.infos)[mIndex].queriesViewIndex});
+                                                             &(*mContext.infos)[mIndex].queriesViewIndex,
+                                                             &(*mContext.infos)[mIndex].outputsViewIndex});
 
     auto newMetricCallback = [&updateMetricsViews, &metrics = mContext.metrics, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
       updateMetricsViews(name, metric, value, metricIndex);
@@ -518,7 +503,7 @@ struct ControlWebSocketHandler : public WebSocketHandler {
       std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
     }
     if (didHaveNewMetric) {
-      updateMetricsNames(*mContext.driver, *mContext.metrics);
+      DeviceMetricsHelper::updateMetricsNames(*mContext.driver, *mContext.metrics);
     }
   }
 
@@ -809,6 +794,7 @@ void spawnDevice(DeviceRef ref,
   info.dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}};
   info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
   info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
+  info.outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}};
   info.tracyPort = driverInfo.tracyPort;
   info.lastSignal = uv_hrtime() - 10000000;
 
@@ -867,7 +853,8 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
     auto updateMetricsViews =
       Metric2DViewIndex::getUpdater({&info.dataRelayerViewIndex,
                                      &info.variablesViewIndex,
-                                     &info.queriesViewIndex});
+                                     &info.queriesViewIndex,
+                                     &info.outputsViewIndex});
 
     auto newMetricCallback = [&updateMetricsViews, &driverInfo, &metricsInfos, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
       updateMetricsViews(name, metric, value, metricIndex);
@@ -927,7 +914,7 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
   result.hasNewMetric = hasNewMetric;
   if (hasNewMetric) {
     hasNewMetric = false;
-    updateMetricsNames(driverInfo, metricsInfos);
+    DeviceMetricsHelper::updateMetricsNames(driverInfo, metricsInfos);
   }
   return result;
 }
@@ -1027,6 +1014,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       ("driver-client-backend", bpo::value<std::string>()->default_value(defaultDriverClient), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
       ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                           //
       ("expected-region-callbacks", bpo::value<std::string>()->default_value("0"), "how many region callbacks we are expecting")                                                           //
+      ("timeframes-rate-limit", bpo::value<std::string>()->default_value("0"), "how many timeframe can be in fly at the same moment (0 disables)")                                         //
       ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
       ("infologger-mode", bpo::value<std::string>()->default_value(""), "O2_INFOLOGGER_MODE override");
     r.fConfig.AddToCmdLineOptions(optsDesc, true);
@@ -1229,6 +1217,16 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DevicesManager>(devicesManager));
 
+  // This is the context used by the callback which does the GUI rendering.
+  // FIXME: move to a service maybe.
+  GuiCallbackContext guiContext;
+  guiContext.plugin = debugGUI;
+  guiContext.frameLast = uv_hrtime();
+  guiContext.frameLatency = &driverInfo.frameLatency;
+  guiContext.frameCost = &driverInfo.frameCost;
+  guiContext.guiQuitRequested = &guiQuitRequested;
+  auto inputProcessingLast = guiContext.frameLast;
+
   // This is to make sure we can process metrics, commands, configuration
   // changes coming from websocket (or even via any standard uv_stream_t, I guess).
   DriverServerContext serverContext;
@@ -1240,6 +1238,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   serverContext.metrics = &metricsInfos;
   serverContext.driver = &driverInfo;
   serverContext.metricProcessingCallbacks = &metricProcessingCallbacks;
+  serverContext.gui = &guiContext;
 
   uv_tcp_t serverHandle;
   serverHandle.data = &serverContext;
@@ -1277,14 +1276,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       }
     } while (result != 0);
   }
-
-  GuiCallbackContext guiContext;
-  guiContext.plugin = debugGUI;
-  guiContext.frameLast = uv_hrtime();
-  guiContext.frameLatency = &driverInfo.frameLatency;
-  guiContext.frameCost = &driverInfo.frameCost;
-  guiContext.guiQuitRequested = &guiQuitRequested;
-  auto inputProcessingLast = guiContext.frameLast;
 
   uv_timer_t force_step_timer;
   uv_timer_init(loop, &force_step_timer);
@@ -1493,9 +1484,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             driverInfo.dispatchPolicies,
                                                             driverInfo.resourcePolicies,
                                                             driverInfo.callbacksPolicies,
+                                                            driverInfo.sendingPolicies,
                                                             runningWorkflow.devices,
                                                             *resourceManager,
                                                             driverInfo.uniqueWorkflowId,
+                                                            *driverInfo.configContext,
                                                             !varmap["no-IPC"].as<bool>(),
                                                             driverInfo.resourcesMonitoringInterval,
                                                             varmap["channel-prefix"].as<std::string>());
@@ -1834,7 +1827,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           finalConfig.put_child(spec.name, info.currentConfig);
         }
         LOG(INFO) << "Dumping used configuration in dpl-config.json";
-        boost::property_tree::write_json("dpl-config.json", finalConfig);
+
+        std::ofstream outDPLConfigFile("dpl-config.json", std::ios::out);
+        if (outDPLConfigFile.is_open()) {
+          boost::property_tree::write_json(outDPLConfigFile, finalConfig);
+        } else {
+          LOGP(warning, "Could not write out final configuration file. Read only run folder?");
+        }
         if (driverInfo.noSHMCleanup) {
           LOGP(warning, "Not cleaning up shared memory.");
         } else {
@@ -2255,6 +2254,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<DispatchPolicy> const& dispatchPolicies,
            std::vector<ResourcePolicy> const& resourcePolicies,
            std::vector<CallbacksPolicy> const& callbacksPolicies,
+           std::vector<SendingPolicy> const& sendingPolicies,
            std::vector<ConfigParamSpec> const& currentWorkflowOptions,
            o2::framework::ConfigContext& configContext)
 {
@@ -2522,7 +2522,9 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   DriverControl driverControl;
   initialiseDriverControl(varmap, driverControl);
 
-  DriverInfo driverInfo;
+  DriverInfo driverInfo{
+    .sendingPolicies = sendingPolicies,
+    .callbacksPolicies = callbacksPolicies};
   driverInfo.states.reserve(10);
   driverInfo.sigintRequested = false;
   driverInfo.sigchldRequested = false;
@@ -2530,7 +2532,6 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.completionPolicies = completionPolicies;
   driverInfo.dispatchPolicies = dispatchPolicies;
   driverInfo.resourcePolicies = resourcePolicies;
-  driverInfo.callbacksPolicies = callbacksPolicies;
   driverInfo.argc = argc;
   driverInfo.argv = argv;
   driverInfo.batch = varmap["no-batch"].defaulted() ? varmap["batch"].as<bool>() : false;

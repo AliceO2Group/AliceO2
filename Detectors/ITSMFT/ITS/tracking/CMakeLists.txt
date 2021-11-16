@@ -33,6 +33,7 @@ o2_add_library(ITStracking
                                      O2::DataFormatsITSMFT
                                      O2::SimulationDataFormat
                                      O2::ITSBase
+                                     O2::ITSMFTReconstruction
                                      O2::DataFormatsITS)
 
 o2_target_root_dictionary(ITStracking

@@ -39,8 +39,18 @@ void customize(std::vector<CallbacksPolicy>& policies)
 {
   policies.push_back(CallbacksPolicy{
     .matcher = DeviceMatchers::matchByName("A"),
-    .policy = [](CallbackService& service) {
+    .policy = [](CallbackService& service, InitContext&) {
       service.set(CallbackService::Id::Start, []() { LOG(INFO) << "invoked at start"; });
+    }});
+}
+
+void customize(std::vector<SendingPolicy>& policies)
+{
+  policies.push_back(SendingPolicy{
+    .matcher = DeviceMatchers::matchByName("A"),
+    .send = [](FairMQDevice& device, FairMQParts& parts, std::string const& channel) {
+      LOG(INFO) << "A custom policy for sending invoked!";
+      device.Send(parts, channel, 0);
     }});
 }
 

@@ -366,7 +366,7 @@ void DataRequest::requestPHOSCells(bool mc)
 void DataRequest::requestEMCALCells(bool mc)
 {
   addInput({"EMCCells", "EMC", "CELLS", 0, Lifetime::Timeframe});
-  addInput({"EMCTriggers", "EMC", "CELLTRIGREC", 0, Lifetime::Timeframe});
+  addInput({"EMCTriggers", "EMC", "CELLSTRGR", 0, Lifetime::Timeframe});
   if (mc) {
     addInput({"EMCCellsMC", "EMC", "CELLSMCTR", 0, Lifetime::Timeframe});
   }

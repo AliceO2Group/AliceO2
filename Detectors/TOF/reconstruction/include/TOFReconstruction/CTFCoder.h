@@ -111,7 +111,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRe
   ENCODETOF(cc.tot,          CTF::BLCtot,          0);
   ENCODETOF(cc.pattMap,      CTF::BLCpattMap,      0);
   // clang-format on
-  CTF::get(buff.data())->print(getPrefix());
+  CTF::get(buff.data())->print(getPrefix(), mVerbosity);
 }
 
 ///___________________________________________________________________________________
@@ -120,7 +120,7 @@ template <typename VROF, typename VDIG, typename VPAT>
 void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VDIG& cdigVec, VPAT& pattVec)
 {
   CompressedInfos cc;
-  ec.print(getPrefix());
+  ec.print(getPrefix(), mVerbosity);
   cc.header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(cc.header));
 #define DECODETOF(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())

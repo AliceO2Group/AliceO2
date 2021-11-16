@@ -464,6 +464,16 @@ class DataAllocator
     return mRegistry->get<MessageContext>().findMessageHeader(getOutputByBind(std::move(ref)));
   }
 
+  o2::header::Stack* findMessageHeaderStack(const Output& spec)
+  {
+    return mRegistry->get<MessageContext>().findMessageHeaderStack(spec);
+  }
+
+  o2::header::Stack* findMessageHeaderStack(OutputRef&& ref)
+  {
+    return mRegistry->get<MessageContext>().findMessageHeaderStack(getOutputByBind(std::move(ref)));
+  }
+
  private:
   AllowedOutputRoutes mAllowedOutputRoutes;
   ServiceRegistry* mRegistry;

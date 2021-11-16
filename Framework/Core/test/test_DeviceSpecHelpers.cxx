@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(test_prepareArguments)
                                                     CompletionPolicy::createDefaultPolicies(),
                                                     callbacksPolicies,
                                                     deviceSpecs,
-                                                    *rm, "workflow-id");
+                                                    *rm, "workflow-id", *configContext);
 
   // Now doing the test cases
   CheckMatrix matrix;

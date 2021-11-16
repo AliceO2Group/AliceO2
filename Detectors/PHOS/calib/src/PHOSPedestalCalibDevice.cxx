@@ -132,7 +132,7 @@ void PHOSPedestalCalibDevice::checkPedestals()
     return;
   }
   LOG(INFO) << "Retrieving current Pedestals from CCDB";
-  //Read current padestals for comarison
+  //Read current pedestals for comparison
   o2::ccdb::CcdbApi ccdb;
   ccdb.init(mCCDBPath); // or http://localhost:8080 for a local installation
   std::map<std::string, std::string> metadata;
@@ -180,9 +180,9 @@ o2::framework::DataProcessorSpec o2::phos::getPedestalCalibSpec(bool useCCDB, bo
 
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(o2::header::gDataOriginPHS, "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_Pedestal"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_Pedestal"});
+  outputs.emplace_back(o2::header::gDataOriginPHS, "CALIBDIFF", 0, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_Pedestal"}, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_Pedestal"}, o2::framework::Lifetime::Sporadic);
   return o2::framework::DataProcessorSpec{"PedestalCalibSpec",
                                           inputs,
                                           outputs,

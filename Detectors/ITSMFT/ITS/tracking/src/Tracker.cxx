@@ -370,6 +370,14 @@ bool Tracker::fitTrack(TrackITSExt& track, int start, int end, int step, const f
       return false;
     }
 
+    if (mCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+      float radl = 9.36f; // Radiation length of Si [cm]
+      float rho = 2.33f;  // Density of Si [g/cm^3]
+      if (!track.correctForMaterial(mTrkParams[0].LayerxX0[iLayer], mTrkParams[0].LayerxX0[iLayer] * radl * rho, true)) {
+        continue;
+      }
+    }
+
     GPUArray<float, 3> cov{trackingHit.covarianceTrackingFrame};
     cov[0] = std::hypot(cov[0], mTrkParams[0].LayerMisalignment[iLayer]);
     cov[2] = std::hypot(cov[2], mTrkParams[0].LayerMisalignment[iLayer]);
@@ -650,7 +658,7 @@ void Tracker::getGlobalConfiguration()
   for (auto& params : mTrkParams) {
     if (params.NLayers == 7) {
       for (int i{0}; i < 7; ++i) {
-        params.LayerMisalignment[i] = tc.misalignment[i] > 0 ? tc.misalignment[i] : params.LayerMisalignment[i];
+        params.LayerMisalignment[i] = tc.sysErrZ2[i] > 0 ? std::sqrt(tc.sysErrZ2[i]) : params.LayerMisalignment[i];
       }
     }
     params.PhiBins = tc.LUTbinsPhi > 0 ? tc.LUTbinsPhi : params.PhiBins;
@@ -658,7 +666,7 @@ void Tracker::getGlobalConfiguration()
     params.PVres = tc.pvRes > 0 ? tc.pvRes : params.PVres;
     params.NSigmaCut *= tc.nSigmaCut > 0 ? tc.nSigmaCut : 1.f;
     params.CellDeltaTanLambdaSigma *= tc.deltaTanLres > 0 ? tc.deltaTanLres : 1.f;
-    params.TrackletMaxDeltaPhi *= tc.phiCut > 0 ? tc.phiCut : 1.f;
+    params.TrackletMinPt *= tc.minPt > 0 ? tc.minPt : 1.f;
     for (int iD{0}; iD < 3; ++iD) {
       params.Diamond[iD] = tc.diamondPos[iD];
     }
@@ -670,6 +678,12 @@ void Tracker::adoptTimeFrame(TimeFrame& tf)
 {
   mTimeFrame = &tf;
   mTraits->adoptTimeFrame(&tf);
+}
+
+void Tracker::setBz(float bz)
+{
+  mBz = bz;
+  mTimeFrame->setBz(bz);
 }
 
 } // namespace its

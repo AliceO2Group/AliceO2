@@ -27,6 +27,7 @@
 #include "Framework/InputSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/OutputSpec.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/Variant.h"
 #include "../../../Algorithm/include/Algorithm/HeaderStack.h"
 #include "Framework/OutputObjHeader.h"
@@ -44,6 +45,8 @@
 #include <ROOT/RDataFrame.hxx>
 #include <ROOT/RArrowDS.hxx>
 #include <ROOT/RVec.hxx>
+
+#include <FairMQDevice.h>
 #include <chrono>
 #include <fstream>
 #include <functional>
@@ -498,7 +501,7 @@ DataProcessorSpec CommonDataProcessors::getGlobalFairMQSink(std::vector<InputSpe
   return specifyFairMQDeviceOutputProxy("internal-dpl-injected-output-proxy", danglingOutputInputs, defaultChannelConfig.c_str());
 }
 
-DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs)
+DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs, int rateLimitingIPCID)
 {
   return DataProcessorSpec{
     .name = "internal-dpl-injected-dummy-sink",
@@ -506,11 +509,27 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
     .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
       auto dataConsumed = [](ServiceRegistry& services) {
         services.get<DataProcessingStats>().consumedTimeframes++;
+        auto device = services.get<RawDeviceService>().device();
+        auto channel = device->fChannels.find("metric-feedback");
+        if (channel != device->fChannels.end()) {
+          FairMQMessagePtr payload(device->NewMessage());
+          int64_t* consumed = (int64_t*)malloc(sizeof(int64_t));
+          *consumed = services.get<DataProcessingStats>().consumedTimeframes;
+          payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);
+          channel->second[0].Send(payload);
+        }
       };
       callbacks.set(CallbackService::Id::DataConsumed, dataConsumed);
 
-      return adaptStateless([]() {});
-    })}};
+      return adaptStateless([]() {
+      });
+    })},
+    .options = rateLimitingIPCID != -1 ? std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
+                                                                       "name=metric-feedback,type=push,method=bind,address=ipc://@metric-feedback-" + std::to_string(rateLimitingIPCID) + ",transport=shmem,rateLogging=0",
+                                                                       {"Out-of-band channel config"}}}
+                                       : std::vector<ConfigParamSpec>()
+
+  };
 }
 
 #pragma GCC diagnostic pop

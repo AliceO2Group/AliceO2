@@ -22,6 +22,7 @@ struct TimingInfo {
   uint32_t firstTFOrbit = -1; /// the orbit the TF begins
   uint32_t tfCounter = -1;    // the counter associated to a TF
   uint32_t runNumber = -1;
+  uint64_t creation = -1UL;
 };
 
 #endif // O2_FRAMEWORK_TIMINGINFO_H_

@@ -48,11 +48,6 @@ class Configuration : public Param
 
 struct TrackingParameters {
   TrackingParameters& operator=(const TrackingParameters& t) = default;
-  void CopyCuts(TrackingParameters& other, float scale = 1.)
-  {
-    TrackletMaxDeltaPhi = other.TrackletMaxDeltaPhi * scale;
-    NSigmaCut = other.NSigmaCut * scale;
-  }
 
   int CellMinimumLevel();
   int CellsPerRoad() const { return NLayers - 2; }
@@ -74,14 +69,14 @@ struct TrackingParameters {
   int ClusterSharing = 0;
   int MinTrackLength = 7;
   float NSigmaCut = 5;
-  float PVres = 1.e-2f; /// FIXME: this has to be taken directly from the reconstructed vertices
+  float PVres = 1.e-2f;
   /// Trackleting cuts
-  float TrackletMaxDeltaPhi = 0.3f;
+  float TrackletMinPt = 0.3f;
   /// Cell finding cuts
   float CellDeltaTanLambdaSigma = 0.007f;
   /// Fitter parameters
   bool UseMatBudLUT = false;
-  std::array<float, 2> FitIterationMaxChi2 = {100, 50};
+  std::array<float, 2> FitIterationMaxChi2 = {50, 20};
 };
 
 struct MemoryParameters {

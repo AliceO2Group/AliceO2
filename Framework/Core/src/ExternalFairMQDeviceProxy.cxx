@@ -22,6 +22,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/RateLimiter.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 
@@ -347,7 +348,8 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
                                                    std::function<void(FairMQDevice&,
                                                                       FairMQParts&,
                                                                       ChannelRetriever)>
-                                                     converter)
+                                                     converter,
+                                                   uint64_t minSHM)
 {
   DataProcessorSpec spec;
   spec.name = strdup(name);
@@ -356,7 +358,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
   // The Init method will register a new "Out of band" channel and
   // attach an OnData to it which is responsible for converting incoming
   // messages into DPL messages.
-  spec.algorithm = AlgorithmSpec{[converter, channel = spec.name](InitContext& ctx) {
+  spec.algorithm = AlgorithmSpec{[converter, channel = spec.name, minSHM](InitContext& ctx) {
     auto device = ctx.services().get<RawDeviceService>().device();
     // make a copy of the output routes and pass to the lambda by move
     auto outputRoutes = ctx.services().get<RawDeviceService>().spec().outputs;
@@ -411,7 +413,11 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       }
     };
 
-    auto runHandler = [dataHandler, device, channel](ProcessingContext&) {
+    auto runHandler = [dataHandler, channel, minSHM](ProcessingContext& ctx) {
+      static RateLimiter limiter;
+      auto device = ctx.services().get<RawDeviceService>().device();
+      limiter.check(ctx, std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit")), minSHM);
+
       FairMQParts parts;
       device->Receive(parts, channel, 0);
       dataHandler(parts, 0);

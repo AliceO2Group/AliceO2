@@ -28,6 +28,7 @@
 #include <Headers/DataHeader.h>
 
 #include <options/FairMQProgOptions.h>
+#include <fairmq/Device.h>
 
 #include <uv.h>
 #include <boost/program_options/variables_map.hpp>
@@ -53,7 +54,7 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
       auto& spec = services.get<DeviceSpec const>();
 
       auto dispatcher = [&device](FairMQParts&& parts, std::string const& channel, unsigned int index) {
-        DataProcessor::doSend(*device.device(), std::move(parts), channel.c_str(), index);
+        device.device()->Send(parts, channel, index);
       };
 
       auto matcher = [policy = spec.dispatchPolicy](o2::header::DataHeader const& header) {

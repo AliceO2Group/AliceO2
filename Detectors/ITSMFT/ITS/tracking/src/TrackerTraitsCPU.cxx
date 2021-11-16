@@ -44,12 +44,12 @@ constexpr int debugLevel{0};
 
 void TrackerTraitsCPU::computeLayerTracklets()
 {
+  TimeFrame* tf = mTimeFrame;
+
 #ifdef OPTIMISATION_OUTPUT
   static int iteration{0};
   std::ofstream off(fmt::format("tracklets{}.txt", iteration++));
 #endif
-
-  TimeFrame* tf = mTimeFrame;
 
   const Vertex diamondVert({mTrkParams.Diamond[0], mTrkParams.Diamond[1], mTrkParams.Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
   gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
@@ -86,7 +86,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
           const float sigmaZ{std::sqrt(Sq(resolution) * Sq(tanLambda) * ((Sq(inverseR0) + sqInverseDeltaZ0) * Sq(meanDeltaR) + 1.f) + Sq(meanDeltaR * tf->getMSangle(iLayer)))};
 
           const int4 selectedBinsRect{getBinsRect(currentCluster, iLayer, zAtRmin, zAtRmax,
-                                                  sigmaZ * mTrkParams.NSigmaCut, mTrkParams.TrackletMaxDeltaPhi)};
+                                                  sigmaZ * mTrkParams.NSigmaCut, tf->getPhiCut(iLayer))};
 
           if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
             continue;
@@ -111,7 +111,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
               if constexpr (debugLevel) {
                 if (firstBinIndex < 0 || firstBinIndex > tf->getIndexTables(rof1)[iLayer].size() ||
                     maxBinIndex < 0 || maxBinIndex > tf->getIndexTables(rof1)[iLayer].size()) {
-                  std::cout << iLayer << "\t" << iCluster << "\t" << zAtRmin << "\t" << zAtRmax << "\t" << sigmaZ * mTrkParams.NSigmaCut << "\t" << mTrkParams.TrackletMaxDeltaPhi << std::endl;
+                  std::cout << iLayer << "\t" << iCluster << "\t" << zAtRmin << "\t" << zAtRmax << "\t" << sigmaZ * mTrkParams.NSigmaCut << "\t" << tf->getPhiCut(iLayer) << std::endl;
                   std::cout << currentCluster.zCoordinate << "\t" << primaryVertex.getZ() << "\t" << currentCluster.radius << std::endl;
                   std::cout << tf->getMinR(iLayer + 1) << "\t" << currentCluster.radius << "\t" << currentCluster.zCoordinate << std::endl;
                   std::cout << "Illegal access to IndexTable " << firstBinIndex << "\t" << maxBinIndex << "\t" << selectedBinsRect.z << "\t" << selectedBinsRect.x << std::endl;
@@ -154,8 +154,8 @@ void TrackerTraitsCPU::computeLayerTracklets()
 #endif
 
                 if (deltaZ / sigmaZ < mTrkParams.NSigmaCut &&
-                    (deltaPhi < mTrkParams.TrackletMaxDeltaPhi ||
-                     gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < mTrkParams.TrackletMaxDeltaPhi)) {
+                    (deltaPhi < tf->getPhiCut(iLayer) ||
+                     gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < tf->getPhiCut(iLayer))) {
                   if (iLayer > 0) {
                     tf->getTrackletsLookupTable()[iLayer - 1][currentSortedIndex]++;
                   }

@@ -12,6 +12,7 @@
 #include "ClusterTransformerSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 #include "DigitReaderSpec.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/Logger.h"
@@ -30,6 +31,11 @@ using o2::framework::ConfigParamSpec;
 using o2::framework::VariantType;
 using o2::framework::WorkflowSpec;
 
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
@@ -38,8 +44,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"disable-time-clustering", o2::framework::VariantType::Bool, false, {"disable time clustering step (for debug only)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
-
-  o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
   std::swap(workflowOptions, options);
 }
@@ -72,11 +76,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
   specs.emplace_back(o2::mch::getClusterTransformerSpec());
   specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder"));
+  if (useMC) {
+    specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder", digitRofDataDescription));
+  }
 
   if (!disableRootOutput) {
-    if (useMC) {
-      specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder", digitRofDataDescription));
-    }
     specs.emplace_back(o2::mch::getTrackWriterSpec(useMC, "mch-track-writer", "mchtracks.root"));
   }
 

@@ -36,11 +36,16 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   auto dataref = ctx.inputs().get("digits");
   auto const* phosheader = o2::framework::DataRefUtils::getHeader<o2::phos::PHOSBlockHeader*>(dataref);
   if (!phosheader->mHasPayload) {
-    LOG(INFO) << "[PHOSCellConverter - run] No more digits" << std::endl;
-    ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
+    mOutputCells.clear();
+    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
+    mOutputCellTrigRecs.clear();
+    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputCellTrigRecs);
+    if (mPropagateMC) {
+      mOutputTruthCont.clear();
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
+    }
     return;
   }
-
   mOutputCells.clear();
   mOutputCellTrigRecs.clear();
 

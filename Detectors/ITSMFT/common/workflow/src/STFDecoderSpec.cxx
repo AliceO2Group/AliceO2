@@ -43,7 +43,7 @@ using namespace o2::framework;
 ///_______________________________________
 template <class Mapping>
 STFDecoder<Mapping>::STFDecoder(const STFDecoderInp& inp)
-  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib), mAllowReporting(inp.allowReporting)
+  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib), mAllowReporting(inp.allowReporting), mInputSpec(inp.inputSpec)
 {
   mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "STFDecoder");
   mTimer.Stop();
@@ -56,6 +56,14 @@ void STFDecoder<Mapping>::init(InitContext& ic)
 {
   try {
     mDecoder = std::make_unique<RawPixelDecoder<Mapping>>();
+    auto v0 = o2::utils::Str::tokenize(mInputSpec, ':');
+    auto v1 = o2::utils::Str::tokenize(v0[1], '/');
+    header::DataOrigin dataOrig;
+    header::DataDescription dataDesc;
+    dataOrig.runtimeInit(v1[0].c_str());
+    dataDesc.runtimeInit(v1[1].c_str());
+    mDecoder->setUserDataOrigin(dataOrig);
+    mDecoder->setUserDataDescription(dataDesc);
     mDecoder->init();
   } catch (const std::exception& e) {
     LOG(ERROR) << "exception was thrown in decoder creation: " << e.what();
@@ -74,7 +82,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mNoiseName = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().noiseFilePath;
   }
   mNoiseName = o2::base::NameConf::getNoiseFileName(detID, mNoiseName, "root");
-  mDictName = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mDictName, "bin");
+  mDictName = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mDictName);
 
   try {
     mNThreads = std::max(1, ic.options().get<int>("nthreads"));

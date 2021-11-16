@@ -53,7 +53,7 @@ class NoiseCalibrator
 
   void loadDictionary(std::string fname)
   {
-    mDict.readBinaryFile(fname);
+    mDict.readFromFile(fname);
   }
   const o2::itsmft::NoiseMap& getNoiseMap() const { return mNoiseMap; }
 

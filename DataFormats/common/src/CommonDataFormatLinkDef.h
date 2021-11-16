@@ -63,4 +63,11 @@
 #pragma link C++ class o2::dataformats::FlatHisto2D_f + ;
 #pragma link C++ class o2::dataformats::FlatHisto2D_d + ;
 
+#pragma link C++ class o2::dataformats::Pair < float, float> + ;
+#pragma link C++ class std::vector < o2::dataformats::Pair < float, float>> + ;
+
+#include "CommonDataFormat/TFIDInfo.h"
+#pragma link C++ class o2::dataformats::TFIDInfo + ;
+#pragma link C++ class std::vector < o2::dataformats::TFIDInfo> + ;
+
 #endif

@@ -21,6 +21,7 @@
 #include "GPUWorkflow/GPUWorkflowSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 #include "TPCBase/Sector.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
@@ -34,6 +35,11 @@ using CompletionPolicyData = std::vector<InputSpec>;
 CompletionPolicyData gPolicyData;
 static constexpr unsigned long gTpcSectorMask = 0xFFFFFFFFF;
 
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
 
@@ -45,8 +51,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
-
-  o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
   std::swap(workflowOptions, options);
 }

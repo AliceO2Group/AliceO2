@@ -25,7 +25,7 @@ namespace itsmft
 {
 TopologyFastSimulation::TopologyFastSimulation(std::string fileName, unsigned seed)
 {
-  mDictionary.readBinaryFile(fileName);
+  mDictionary.readFromFile(fileName);
   double tot_freq = 0.;
   int dictSize = mDictionary.getSize();
   mFreqArray.reserve(dictSize);

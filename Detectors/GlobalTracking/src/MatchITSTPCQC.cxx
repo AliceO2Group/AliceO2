@@ -54,14 +54,14 @@ void MatchITSTPCQC::deleteHistograms()
 
 void MatchITSTPCQC::reset()
 {
-  mPtTPC->Reset();
   mPt->Reset();
-  mPhiTPC->Reset();
+  mPtTPC->Reset();
   mPhi->Reset();
-  mPtTPCPhysPrim->Reset();
+  mPhiTPC->Reset();
   mPtPhysPrim->Reset();
-  mPhiTPCPhysPrim->Reset();
+  mPtTPCPhysPrim->Reset();
   mPhiPhysPrim->Reset();
+  mPhiTPCPhysPrim->Reset();
   mEta->Reset();
   mChi2Matching->Reset();
   mChi2Refit->Reset();
@@ -313,21 +313,22 @@ void MatchITSTPCQC::finalize()
     }
   }
 
-  if (!mFractionITSTPCmatch->SetTotalHistogram(*mPtTPC, "") ||
+  // we need to force to replace the total histogram, otherwise it will compare it to the previous passed one, and it might get an error of inconsistency in the bin contents
+  if (!mFractionITSTPCmatch->SetTotalHistogram(*mPtTPC, "f") ||
       !mFractionITSTPCmatch->SetPassedHistogram(*mPt, "")) {
     LOG(FATAL) << "Something went wrong when defining the efficiency histograms vs Pt!";
   }
-  if (!mFractionITSTPCmatchPhi->SetTotalHistogram(*mPhiTPC, "") ||
+  if (!mFractionITSTPCmatchPhi->SetTotalHistogram(*mPhiTPC, "f") ||
       !mFractionITSTPCmatchPhi->SetPassedHistogram(*mPhi, "")) {
     LOG(FATAL) << "Something went wrong when defining the efficiency histograms vs Phi!";
   }
 
   if (mUseMC) {
-    if (!mFractionITSTPCmatchPhysPrim->SetTotalHistogram(*mPtTPCPhysPrim, "") ||
+    if (!mFractionITSTPCmatchPhysPrim->SetTotalHistogram(*mPtTPCPhysPrim, "f") ||
         !mFractionITSTPCmatchPhysPrim->SetPassedHistogram(*mPtPhysPrim, "")) {
       LOG(FATAL) << "Something went wrong when defining the efficiency histograms vs Pt (PhysPrim)!";
     }
-    if (!mFractionITSTPCmatchPhiPhysPrim->SetTotalHistogram(*mPhiTPCPhysPrim, "") ||
+    if (!mFractionITSTPCmatchPhiPhysPrim->SetTotalHistogram(*mPhiTPCPhysPrim, "f") ||
         !mFractionITSTPCmatchPhiPhysPrim->SetPassedHistogram(*mPhiPhysPrim, "")) {
       LOG(FATAL) << "Something went wrong when defining the efficiency histograms vs Phi (PhysPrim)!";
     }

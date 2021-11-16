@@ -14,6 +14,7 @@
 #include "Framework/VariantHelpers.h"
 #include "Framework/Logger.h"
 #include "Framework/RuntimeError.h"
+#include "Headers/DataHeaderHelpers.h"
 
 #include <cstring>
 #include <cinttypes>
@@ -99,6 +100,22 @@ void DataSpecUtils::describe(char* buffer, size_t size, InputSpec const& spec)
     strncpy(buffer, ss.str().c_str(), size - 1);
   } else {
     throw runtime_error("Unsupported InputSpec");
+  }
+}
+
+void DataSpecUtils::describe(char* buffer, size_t size, OutputSpec const& spec)
+{
+  if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
+    char origin[5];
+    origin[4] = 0;
+    char description[17];
+    description[16] = 0;
+    snprintf(buffer, size, "%s/%s/%" PRIu32, (strncpy(origin, concrete->origin.str, 4), origin),
+             (strncpy(description, concrete->description.str, 16), description), concrete->subSpec);
+  } else if (auto concrete = std::get_if<ConcreteDataTypeMatcher>(&spec.matcher)) {
+    fmt::format_to(buffer, "<matcher query: {}/{}>", concrete->origin, concrete->description);
+  } else {
+    throw runtime_error("Unsupported OutputSpec");
   }
 }
 
@@ -550,7 +567,8 @@ InputSpec DataSpecUtils::matchingInput(OutputSpec const& spec)
                         auto&& matcher = DataSpecUtils::dataDescriptorMatcherFrom(dataType);
                         return InputSpec{
                           spec.binding.value,
-                          std::move(matcher)};
+                          std::move(matcher),
+                          spec.lifetime};
                       }},
                     spec.matcher);
 }

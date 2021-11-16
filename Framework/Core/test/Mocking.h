@@ -23,6 +23,11 @@ std::unique_ptr<o2::framework::ConfigContext> makeEmptyConfigContext()
   //        either owns or shares ownership of the registry.
   std::vector<std::unique_ptr<ParamRetriever>> retrievers;
   static std::vector<ConfigParamSpec> specs = WorkflowCustomizationHelpers::requiredWorkflowOptions();
+  for (auto& spec : specs) {
+    if (spec.name == "timeframes-rate-limit-ipcid") {
+      spec.defaultValue = "1";
+    }
+  }
   auto store = std::make_unique<ConfigParamStore>(specs, std::move(retrievers));
   store->preload();
   store->activate();

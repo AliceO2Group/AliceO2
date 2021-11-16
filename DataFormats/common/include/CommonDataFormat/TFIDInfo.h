@@ -9,7 +9,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file LHCIFData.cxx
-/// \brief Implementation of the LHC InterFace data
+#ifndef ALICEO2_TFIDINFO_H
+#define ALICEO2_TFIDINFO_H
 
-#include "DataFormatsParameters/LHCIFData.h"
+#include <Rtypes.h>
+
+namespace o2::dataformats
+{
+struct TFIDInfo { // helper info to patch DataHeader
+
+  uint32_t firstTForbit = -1;
+  uint32_t tfCounter = -1;
+  uint32_t runNumber = -1;
+
+  bool isDummy() { return tfCounter == -1; }
+  ClassDefNV(TFIDInfo, 1);
+};
+} // namespace o2::dataformats
+
+#endif

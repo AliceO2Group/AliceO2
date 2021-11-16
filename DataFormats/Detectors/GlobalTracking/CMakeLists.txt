@@ -24,6 +24,7 @@ o2_add_library(
     O2::DataFormatsFDD
     O2::DataFormatsZDC
     O2::DataFormatsTOF
+    O2::DataFormatsEMCAL
     O2::ReconstructionDataFormats
     O2::DataFormatsTRD
     O2::DataFormatsCTP
