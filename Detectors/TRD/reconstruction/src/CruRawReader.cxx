@@ -570,20 +570,15 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
 
         if (mDigitHCHeader.major == 0x47) {
           // config event so ignore for now and bail out of parsing.
-          LOG(warn) << " HCHeader major version is 0x47 bailing out of parsing this as its a config event";
           //advance data pointers to the end;
           linkstart = linkend;
-          //mHBFoffset32 = std::distance(mHBFPayload.begin(),linkend);//dataoffsetstart32 + currentlinksize; // go to the end of the link
           mHBFoffset32 = std::distance(mHBFPayload.begin(), linkend); //currentlinksize-mTrackletWordsRead-sizeof(digitHCHeader)/4; // advance to the end of the link
           mTotalDigitWordsRejected += std::distance(linkstart + mTrackletWordsRead + sizeof(DigitHCHeader) / 4, linkend);
         } else {
-          //if (((mDigitHCHeader.major & 0x27) == mDigitHCHeader.major) || ((mDigitHCHeader.major & 0x37) == mDigitHCHeader.major) || ((mDigitHCHeader.major & 0x17) == mDigitHCHeader.major))
-          {
-            //                ZS                                                          DisableTracklets
             mDigitWordsRead = 0;
             auto digitsparsingstart = std::chrono::high_resolution_clock::now();
             //linkstart and linkend already have the multiple cruheaderoffsets built in
-            mDigitWordsRead = mDigitsParser.Parse(&mHBFPayload, linkstart, linkend, mDetector[mWhichData], mStack[mWhichData], mLayer[mWhichData], mSide[mWhichData], mDigitHCHeader, mFEEID, currentlinkindex, mCurrentEvent, &mEventRecords, mOptions, cleardigits);
+            mDigitWordsRead = mDigitsParser.Parse(&mHBFPayload, linkstart, linkend, mDetector[mWhichData], mStack[mWhichData], mLayer[mWhichData], mHalfChamberSide[mWhichData], mDigitHCHeader, mFEEID, currentlinkindex, mCurrentEvent, &mEventRecords, mOptions, cleardigits);
             std::chrono::duration<double, std::micro> digitsparsingtime = std::chrono::high_resolution_clock::now() - digitsparsingstart;
             if (mRootOutput) {
               mDigitTiming->Fill((int)std::chrono::duration_cast<std::chrono::microseconds>(digitsparsingtime).count());
@@ -626,7 +621,6 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
             mHBFoffset32 += mDigitWordsRead + mDigitWordsRejected; // all 3 in 32bit units
             mTotalDigitWordsRead += mDigitWordsRead;
             mTotalDigitWordsRejected += mDigitWordsRejected;
-          }
           sumlinklengths += mCurrentHalfCRULinkLengths[currentlinkindex];
           sumtrackletwords += mTrackletWordsRead;
           sumdigitwords += mDigitWordsRead;
