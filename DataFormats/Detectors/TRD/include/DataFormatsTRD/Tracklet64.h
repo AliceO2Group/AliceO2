@@ -85,8 +85,8 @@ class Tracklet64
   GPUd() uint64_t getHCID() const { return ((mtrackletWord & hcidmask) >> hcidbs); };       // no units 0..1077
   GPUd() uint64_t getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); }; // pad row number [0..15]
   GPUd() uint64_t getColumn() const { return ((mtrackletWord & colmask) >> colbs); };       // column refers to MCM position in column direction on readout board [0..3]
-  GPUd() uint64_t getPosition() const { return ((mtrackletWord & posmask) >> posbs) ^ 0x80; };     // in units of 1/80 pads, 11 bit granularity [-12.8..12.8] relative to MCM center
-  GPUd() uint64_t getSlope() const { return ((mtrackletWord & slopemask) >> slopebs) ^ 0x80; };    // in units of 1/1000 pads/timebin, 8 bit granularity [-0.128 to 0.128]
+  GPUd() uint64_t getPosition() const { return ((mtrackletWord & posmask) >> posbs) ^ 0x80; };  // in units of 1/80 pads, 11 bit granularity [-12.8..12.8] relative to MCM center
+  GPUd() uint64_t getSlope() const { return ((mtrackletWord & slopemask) >> slopebs) ^ 0x80; }; // in units of 1/1000 pads/timebin, 8 bit granularity [-0.128 to 0.128]
   GPUd() uint64_t getPID() const { return ((mtrackletWord & PIDmask)); };                   // no unit, all 3 charge windows combined
   GPUd() uint64_t getQ0() const { return ((mtrackletWord & Q0mask) >> Q0bs); };             // no unit
   GPUd() uint64_t getQ1() const { return ((mtrackletWord & Q1mask) >> Q1bs); };             // no unit
