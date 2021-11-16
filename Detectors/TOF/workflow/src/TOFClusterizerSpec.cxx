@@ -119,6 +119,10 @@ class TOFDPLClustererTask
 
     o2::tof::CalibTOFapi calibapi(long(0), &lhcPhaseObj, channelCalibObj.get());
 
+    calibapi.setURL("http://ccdb-test.cern.ch:8080");
+    calibapi.setTimeStamp(0);
+    calibapi.readTimeSlewingParam();
+
     mClusterer.setCalibApi(&calibapi);
 
     mClusterer.clearDiagnostic();
