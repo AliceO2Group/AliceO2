@@ -97,6 +97,7 @@ class Tracklet64
   // ----- Getters for tracklet information -----
   GPUd() int getMCM() const { return 4 * (getPadRow() % 4) + getColumn(); }                                 // returns MCM position on ROB [0..15]
   GPUd() int getROB() const { return (getHCID() % 2) ? (getPadRow() / 4) * 2 + 1 : (getPadRow() / 4) * 2; } // returns ROB number [0..5] for C0 chamber and [0..7] for C1 chamber
+  GPUd() int getPositionBinSigned() const;
   GPUd() float getUncalibratedY() const;                                                                    // translate local position into global y (in cm) not taking into account calibrations (ExB, vDrift, t0)
   GPUd() float getUncalibratedDy(float nTbDrift = 19.4f) const;                                             // translate local slope into dy/dx with dx=3m (drift length) and default drift time in time bins (19.4 timebins / 3cm)
 
@@ -172,7 +173,7 @@ class Tracklet64
   ClassDefNV(Tracklet64, 1);
 };
 
-GPUdi() float Tracklet64::getUncalibratedY() const
+GPUdi() int Tracklet64::getPositionBinSigned() const
 {
   int padLocalBin = getPosition();
   int padLocal = 0;
@@ -181,6 +182,12 @@ GPUdi() float Tracklet64::getUncalibratedY() const
   } else {
     padLocal = padLocalBin & ((1 << constants::NBITSTRKLPOS) - 1);
   }
+  return padLocal;
+}
+
+GPUdi() float Tracklet64::getUncalibratedY() const
+{
+  int padLocal = getPositionBinSigned();
   int mcmCol = (getMCM() % constants::NMCMROBINCOL) + constants::NMCMROBINCOL * (getROB() % 2);
   float offset = -63.f + ((float)constants::NCOLMCM) * mcmCol;
   float padWidth = 0.635f + 0.03f * (getDetector() % constants::NLAYER);
