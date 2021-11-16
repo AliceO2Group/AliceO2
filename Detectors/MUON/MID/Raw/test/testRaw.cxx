@@ -26,6 +26,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsRaw/RawFileReader.h"
 #include "DataFormatsMID/ColumnData.h"
+#include "DataFormatsMID/ROBoard.h"
 #include "Headers/RAWDataHeader.h"
 #include "MIDBase/DetectorParameters.h"
 #include "MIDBase/Mapping.h"
@@ -36,6 +37,7 @@
 #include "MIDRaw/Encoder.h"
 #include "MIDRaw/GBTUserLogicEncoder.h"
 #include "MIDRaw/LinkDecoder.h"
+#include "MIDRaw/ROBoardResponse.h"
 
 BOOST_AUTO_TEST_SUITE(o2_mid_raw)
 
@@ -147,14 +149,11 @@ BOOST_AUTO_TEST_CASE(ColumnDataConverter)
   std::vector<o2::mid::ROBoard> outData;
   auto inEventType = o2::mid::EventType::Standard;
   o2::mid::ColumnDataToLocalBoard converter;
-  converter.setDebugMode(true);
   for (auto& item : inData) {
     converter.process(item.second);
     auto firstEntry = outData.size();
-    for (auto& gbtItem : converter.getData()) {
-      for (auto& loc : gbtItem.second) {
-        outData.emplace_back(loc);
-      }
+    for (auto& board : converter.getData()) {
+      outData.emplace_back(board);
       rofs.push_back({item.first, inEventType, firstEntry, outData.size() - firstEntry});
     }
   }
@@ -163,6 +162,23 @@ BOOST_AUTO_TEST_CASE(ColumnDataConverter)
   aggregator.process(outData, rofs);
 
   doTest(inData, aggregator.getROFRecords(), aggregator.getData());
+}
+
+BOOST_AUTO_TEST_CASE(ROResponse)
+{
+  o2::mid::ROBoardResponse response;
+
+  o2::mid::ROBoard board{o2::mid::raw::sSTARTBIT | o2::mid::raw::sCARDTYPE, 0, o2::mid::raw::makeUniqueLocID(5, 8), 1};
+  board.patternsBP[0] = 2;
+  board.patternsNBP[0] = 1;
+
+  BOOST_TEST(response.isZeroSuppressed(board) == false);
+
+  std::vector<o2::mid::ROBoard> locBoards{board};
+  auto regBoard = response.getRegionalResponse(locBoards);
+  BOOST_REQUIRE(regBoard.size() == 1);
+  BOOST_TEST(board.boardId == 0x58);
+  BOOST_TEST(board.firedChambers = 0x1);
 }
 
 BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
@@ -175,7 +191,7 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
   // Crate 5 link 0
   loc.statusWord = o2::mid::raw::sSTARTBIT | o2::mid::raw::sCARDTYPE;
   loc.triggerWord = 0;
-  loc.boardId = 2;
+  loc.boardId = 0x52;
   loc.firedChambers = 0x1;
   loc.patternsBP[0] = 0xF;
   loc.patternsNBP[0] = 0xF;
@@ -184,7 +200,7 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
   bc = 200;
   loc.patternsBP.fill(0);
   loc.patternsNBP.fill(0);
-  loc.boardId = 5;
+  loc.boardId = 0x55;
   loc.firedChambers = 0x4;
   loc.patternsBP[2] = 0xF0;
   loc.patternsNBP[2] = 0x5;
@@ -195,7 +211,7 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
   uint8_t linkInCrate = 0;
   uint16_t gbtUniqueId = o2::mid::crateparams::makeGBTUniqueId(crateId, linkInCrate);
   o2::mid::GBTUserLogicEncoder encoder;
-  encoder.setGBTUniqueId(gbtUniqueId);
+  encoder.setConfig(gbtUniqueId, o2::mid::makeNoZSROBoardConfig(gbtUniqueId));
   for (auto& item : inData) {
     encoder.process(item.second, o2::InteractionRecord(item.first, 0));
   }
