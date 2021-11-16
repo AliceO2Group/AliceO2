@@ -18,18 +18,18 @@
 #include <vector>
 #include "boost/program_options.hpp"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DataFormatsMID/ROBoard.h"
 #include "DataFormatsMID/ROFRecord.h"
+#include "MIDRaw/ColumnDataToLocalBoard.h"
 #include "MIDRaw/CrateMasks.h"
 #include "MIDRaw/DecodedDataAggregator.h"
 #include "MIDRaw/Decoder.h"
 #include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/FEEIdConfig.h"
-#include "DataFormatsMID/ROBoard.h"
 #include "MIDRaw/RawFileReader.h"
-#include "MIDRaw/ColumnDataToLocalBoard.h"
+#include "MIDRaw/ROBoardConfigHandler.h"
 #include "MIDFiltering/ChannelMasksHandler.h"
 #include "MIDFiltering/ChannelScalers.h"
-#include "MIDFiltering/ColumnDataMaskToROMask.h"
 #include "MIDFiltering/FetToDead.h"
 #include "MIDFiltering/MaskMaker.h"
 
@@ -48,17 +48,22 @@ bool processScalers(const o2::mid::ChannelScalers& scalers, unsigned long nEvent
     std::cout << mask << std::endl;
   }
 
-  o2::mid::ColumnDataMaskToROMask colMasksToRO;
-  o2::mid::ChannelMasksHandler masksHandler;
-  masksHandler.setFromChannelMasks(masks);
+  o2::mid::ColumnDataToLocalBoard colToBoard;
+  o2::mid::ROBoardConfigHandler roBoardCfgHandler;
 
   std::cout << "\nCorresponding boards masks:" << std::endl;
-  auto roMasks = colMasksToRO.convert(masks);
+  colToBoard.process(masks);
+  auto roMasks = colToBoard.getData();
   for (auto& board : roMasks) {
     std::cout << board << std::endl;
   }
   std::cout << "\nMask file produced: " << outFilename << std::endl;
-  colMasksToRO.write(masksHandler.getMasksFull(o2::mid::makeDefaultMasks()), outFilename);
+  o2::mid::ChannelMasksHandler masksHandler;
+  masksHandler.setFromChannelMasks(masks);
+  auto fullMasks = masksHandler.getMasksFull(o2::mid::makeDefaultMasks());
+  colToBoard.process(fullMasks);
+  roBoardCfgHandler.updateMasks(colToBoard.getData());
+  roBoardCfgHandler.write(outFilename);
   return false;
 }
 
@@ -172,7 +177,7 @@ int main(int argc, char* argv[])
     }
   }
   std::cout << "\nCHECKING DEAD CHANNELS:" << std::endl;
-  isOk &= processScalers(scalers[1], nEvents, threshold, refMasks, "FEE_mask.txt");
+  isOk &= processScalers(scalers[1], nEvents, threshold, refMasks, "FET_mask.txt");
 
   return isOk ? 0 : 1;
 }
