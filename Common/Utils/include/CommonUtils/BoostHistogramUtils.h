@@ -215,21 +215,27 @@ std::string createErrorMessage(FitGausError_t errorcode)
 /// \param first begin iterator of the histogram
 /// \param last end iterator of the histogram
 /// \param axisFirst axis iterator over the bin centers
+/// \param ignoreUnderOerflowBin switch to disable taking under and overflow bin into fit
 /// \return result
 ///      result is of the type fitResult, which contains 4 parameters (0-Constant, 1-Mean, 2-Sigma,  3-Sum)
 ///
 /// ** Temp Note: For now we forgo the templated struct in favor of a std::vector in order to
 /// have this compile while we are working out the details
 template <typename T, typename Iterator, typename BinCenterView>
-std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfirst)
+std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfirst, const bool ignoreUnderOerflowBin = true)
 {
+
+  if (ignoreUnderOerflowBin) {
+    first++;
+    last--;
+  }
+
   TLinearFitter fitter(3, "pol2");
   TMatrixD mat(3, 3);
   Double_t kTol = mat.GetTol();
   fitter.StoreData(kFALSE);
   fitter.ClearPoints();
   TVectorD par(3);
-  TVectorD sigma(3);
   TMatrixD A(3, 3);
   TMatrixD b(3, 1);
   T rms = TMath::RMS(first, last);
@@ -262,15 +268,10 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
   if (entries < 12) {
     throw FitGausError_t::FIT_ERROR;
   }
-
   if (rms < kTol) {
     throw FitGausError_t::FIT_ERROR;
   }
 
-  /*
-  fitResult<T, 4> result;
-  result.setParameter<3>(entries);
-  */
   // create the result, first fill it with all 0's
   std::vector<double> result;
   for (int r = 0; r < 5; r++) {
@@ -281,12 +282,21 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
 
   int ibin = 0;
   Int_t npoints = 0;
-  for (auto iter = first, axisiter = axisfirst; iter != last; iter++, axisiter++) {
+  // in this loop: increase iter and axisiter (iterator for bin center and bincontent)
+  auto axisiter = axisfirst;
+  for (auto iter = first; iter != last; iter++, axisiter++) {
     if (nbins > 1) {
-      // Markus: For this we implemented the BinCenterView
-      double x = *axisfirst;
-      double y = *iter;
-      double ey = std::sqrt(y);
+      // dont take bins with 0 entries or bins with nan into account
+      // if y-value (*iter) is 1, log(*iter) will be 0. Exclude these cases
+      if (isnan(*axisiter) || isinf(*axisiter) || *iter <= 0 || *iter == 1)
+        continue;
+
+      double x = *axisiter;
+      // take logarith of gaussian in order to obtain a pol2
+      double y = std::log(*iter);
+      // first order taylor series of log(x) to approimate the errors df(x)/dx * err(f(x))
+      double ey = std::sqrt(fabs(*iter)) / fabs(*iter);
+
       fitter.AddPoint(&x, y, ey);
       if (npoints < 3) {
         A(npoints, 0) = 1;
@@ -300,7 +310,6 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
       npoints++;
     }
   }
-
   Double_t chi2 = 0;
   if (npoints >= 3) {
     if (npoints == 3) {
@@ -317,9 +326,9 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
       fitter.Eval();
       fitter.GetParameters(par);
       fitter.GetCovarianceMatrix(mat);
-      //result.setChi2(fitter.GetChisquare() / Double_t(npoints));
       result.at(4) = (fitter.GetChisquare() / Double_t(npoints));
     }
+
     if (TMath::Abs(par[1]) < kTol) {
       throw FitGausError_t::FIT_ERROR;
       ;
@@ -329,18 +338,15 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
       ;
     }
 
+    // calculate parameters for gaus from pol2 fit
     T param1 = T(par[1] / (-2. * par[2]));
-    //result.setParameter<1>(param1);
-    //result.setParameter<2>(T(1. / TMath::Sqrt(TMath::Abs(-2. * par[2]))));
     result.at(1) = param1;
     result.at(2) = T(1. / TMath::Sqrt(TMath::Abs(-2. * par[2])));
-    auto lnparam0 = par[0] + par[1] * param1 + par[2] * param1 * param1;
+    auto lnparam0 = par[0] - par[1] * par[1] / (4 * par[2]);
     if (lnparam0 > 307) {
       throw FitGausError_t::FIT_ERROR;
-      ;
     }
-    //result.setParameter<0>(TMath::Exp(lnparam0));
-    result.at(0) = TMath::Exp(lnparam0);
+    result.at(0) = T(TMath::Exp(lnparam0));
     return result;
   }
 
@@ -382,43 +388,69 @@ std::vector<double> fitBoostHistoWithGaus(boost::histogram::histogram<axes...>& 
 }
 
 /// \brief Convert a 1D root histogram to a Boost histogram
-auto boosthistoFromRoot_1D(TH1D* inHist1D)
+auto boosthistoFromRoot_1D(TH1* inHist1D)
 {
   // first setup the proper boost histogram
-  int nBins = inHist1D->GetNbinsX();
-  int xMin = inHist1D->GetXaxis()->GetXmin();
-  int xMax = inHist1D->GetXaxis()->GetXmax();
+  const int nBins = inHist1D->GetNbinsX();
+  const double xMin = inHist1D->GetXaxis()->GetXmin();
+  const double xMax = inHist1D->GetXaxis()->GetXmax();
   const char* title = inHist1D->GetXaxis()->GetTitle();
   auto mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nBins, xMin, xMax, title));
 
   // trasfer the acutal values
   for (Int_t x = 1; x < nBins + 1; x++) {
-    mHisto.at(x) = inHist1D->GetBinContent(x);
+    mHisto.at(x - 1) = inHist1D->GetBinContent(x);
   }
   return mHisto;
 }
 
 // \brief Convert a 2D root histogram to a Boost histogram
-auto boostHistoFromRoot_2D(TH2D* inHist2D)
+auto boostHistoFromRoot_2D(TH2* inHist2D)
 {
   // first setup the proper boost histogram
-  int nBinsX = inHist2D->GetNbinsX();
-  int xMin = inHist2D->GetXaxis()->GetXmin();
-  int xMax = inHist2D->GetXaxis()->GetXmax();
+  const int nBinsX = inHist2D->GetNbinsX();
+  const double xMin = inHist2D->GetXaxis()->GetXmin();
+  const double xMax = inHist2D->GetXaxis()->GetXmax();
   const char* xTitle = inHist2D->GetXaxis()->GetTitle();
-  int nBinsY = inHist2D->GetNbinsY();
-  int yMin = inHist2D->GetYaxis()->GetXmin();
-  int yMax = inHist2D->GetYaxis()->GetXmax();
+  const int nBinsY = inHist2D->GetNbinsY();
+  const double yMin = inHist2D->GetYaxis()->GetXmin();
+  const double yMax = inHist2D->GetYaxis()->GetXmax();
   const char* yTitle = inHist2D->GetYaxis()->GetTitle();
   auto mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nBinsX, xMin, xMax, xTitle), boost::histogram::axis::regular<>(nBinsY, yMin,
                                                                                                                                                   yMax, yTitle));
   // trasfer the acutal values
   for (Int_t x = 1; x < nBinsX + 1; x++) {
     for (Int_t y = 1; y < nBinsY + 1; y++) {
-      mHisto.at(x, y) = inHist2D->GetBinContent(x, y);
+      mHisto.at(x - 1, y - 1) = inHist2D->GetBinContent(x, y);
     }
   }
   return mHisto;
+}
+
+/// \brief Function to project 2d boost histogram onto x-axis
+/// \param hist2d 2d boost histogram
+/// \param binLow lower bin in y for projection
+/// \param binHigh lower bin in y for projection
+/// \return result
+///      1d boost histogram from projection of the input 2d boost histogram
+template <typename... axes>
+auto ProjectBoostHistoX(boost::histogram::histogram<axes...>& hist2d, const int binLow, const int binHigh)
+{
+  using namespace boost::histogram::literals; // enables _c suffix needed for projection
+
+  unsigned int nbins = hist2d.axis(0).size();
+  // make reduced histo in range that we want to project
+  auto reducedHisto2d = boost::histogram::algorithm::reduce(hist2d, boost::histogram::algorithm::shrink(hist2d.axis(0).bin(0).lower(), hist2d.axis(0).bin(nbins - 1).upper()), boost::histogram::algorithm::shrink(binLow, binHigh));
+
+  // set under and overflow bin to 0 such that they will not be used in the projection
+  for (int i = 0; i < reducedHisto2d.axis(0).size(); ++i) {
+    reducedHisto2d.at(i, -1) = 0;
+    reducedHisto2d.at(i, reducedHisto2d.axis(1).size()) = 0;
+  }
+  // make the projection onto the x-axis (0_c) of the reduced histogram
+  auto histoProj = boost::histogram::algorithm::project(reducedHisto2d, 0_c);
+
+  return histoProj;
 }
 
 } // end namespace utils
