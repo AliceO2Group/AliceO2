@@ -697,6 +697,21 @@ template <class T>
 inline constexpr bool has_process_v = has_process<T>::value;
 
 template <typename T>
+class has_config
+{
+  template <typename C>
+  static std::true_type test(decltype(&C::config));
+  template <typename C>
+  static std::false_type test(...);
+
+ public:
+  static constexpr bool value = decltype(test<T>(nullptr))::value;
+};
+
+template <class T>
+inline constexpr bool has_config_v = has_config<T>::value;
+
+template <typename T>
 class has_run
 {
   template <typename C>
@@ -836,7 +851,11 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   std::vector<ExpressionInfo> expressionInfos;
 
   /// make sure options and configurables are set before expression infos are created
-  homogeneous_apply_refs([&options, &hash](auto& x) { return OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x); }, *task.get());
+  if constexpr (has_config_v<T>) {
+    homogeneous_apply_refs([&options, &hash](auto& x) { return OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x); }, (*task.get()).config);
+  } else {
+    homogeneous_apply_refs([&options, &hash](auto& x) { return OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x); }, *task.get());
+  }
 
   /// parse process functions defined by corresponding configurables
   if constexpr (has_process_v<T>) {

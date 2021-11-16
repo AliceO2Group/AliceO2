@@ -122,10 +122,12 @@ struct ITask {
 };
 
 struct JTask {
-  Configurable<o2::test::SimplePODClass> cfg{"someConfigurable", {}, "Some Configurable Object"};
+  struct Config {
+    Configurable<o2::test::SimplePODClass> cfg{"someConfigurable", {}, "Some Configurable Object"};
+  } config;
   void process(o2::aod::Collision const&)
   {
-    BOOST_CHECK_EQUAL(cfg->x, 1);
+    BOOST_CHECK_EQUAL(config.cfg->x, 1);
   }
 };
 
