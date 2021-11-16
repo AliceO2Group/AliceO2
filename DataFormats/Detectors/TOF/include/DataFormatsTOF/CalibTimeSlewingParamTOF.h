@@ -87,11 +87,11 @@ class CalibTimeSlewingParamTOF
 
  private:
   // TOF channel calibrations
-  std::array<std::array<int, NCHANNELXSECTOR>, NSECTORS> mChannelStart;             ///< array with the index of the first element of a channel in the time slewing vector (per sector)
-  std::array<std::array<float, NCHANNELXSECTOR>, NSECTORS> mGlobalOffset;           ///< array with the sigma of the peak
-  std::array<std::vector<std::pair<unsigned short, short>>, NSECTORS> mTimeSlewing; ///< array of sector vectors; first element of the pair is TOT (in ps), second is t-texp_pi (in ps)
-  std::array<std::array<float, NCHANNELXSECTOR>, NSECTORS> mFractionUnderPeak;      ///< array with the fraction of entries below the peak
-  std::array<std::array<float, NCHANNELXSECTOR>, NSECTORS> mSigmaPeak;              ///< array with the sigma of the peak
+  std::array<int, NCHANNELXSECTOR> mChannelStart[NSECTORS];             ///< array with the index of the first element of a channel in the time slewing vector (per sector)
+  std::array<float, NCHANNELXSECTOR> mGlobalOffset[NSECTORS];           ///< array with the sigma of the peak
+  std::vector<std::pair<unsigned short, short>> mTimeSlewing[NSECTORS]; ///< array of sector vectors; first element of the pair is TOT (in ps), second is t-texp_pi (in ps)
+  std::array<float, NCHANNELXSECTOR> mFractionUnderPeak[NSECTORS];      ///< array with the fraction of entries below the peak
+  std::array<float, NCHANNELXSECTOR> mSigmaPeak[NSECTORS];              ///< array with the sigma of the peak
 
   ClassDefNV(CalibTimeSlewingParamTOF, 2); // class for TOF time slewing params
 };
