@@ -16,6 +16,7 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/InputSpec.h"
+#include "Headers/Stack.h"
 
 #include <boost/test/unit_test.hpp>
 #include <variant>
