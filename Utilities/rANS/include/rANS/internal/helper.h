@@ -61,6 +61,13 @@ inline constexpr size_t numBitsForNSymbols(size_t nSymbols) noexcept
   }
 }
 
+template <typename Freq_IT>
+inline Freq_IT advanceIter(Freq_IT iter, std::ptrdiff_t distance)
+{
+  std::advance(iter, distance);
+  return iter;
+}
+
 class RANSTimer
 {
  public:
