@@ -65,10 +65,12 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   LOG(INFO) << "FOUND " << triggersIn.size() << " EMC tiggers in CTF";
 
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
+  auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
   auto& caloCellsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALO"});
   auto& caloCellsTRGTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALOTRIGGER"});
 
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
+  auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
   auto caloCellsCursor = caloCellsBuilder.cursor<o2::aod::Calos>();
   auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
 
@@ -106,6 +108,24 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
                             0., // lnAmplitude (dummy value)
                             0,  // triggerBits (dummy value)
                             1); // caloType (dummy value)
+
+    // fill collision cursor
+    collisionsCursor(0,
+                  bcID,
+                  0., // X-Pos dummy value
+                  0., // Y Pos
+                  0., // Z Pos
+                  0, // cov 0
+                  0, // cov 1
+                  0, // cov 2
+                  0, // cov 3
+                  0, // cov 4
+                  0, // cov 5
+                  0, // vertex bit field for flags
+                  0, // chi2
+                  0, // ncontributors
+                  0, // rel interaction time
+                  0);// vertex time stamp
   }                             // end of event loop
   // std::cout << "Finished cell loop" << std::endl;
 
@@ -132,6 +152,7 @@ DataProcessorSpec getStandaloneAODProducerSpec()
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2caloCell"}, "AOD", "CALO", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2caloCellTRGR"}, "AOD", "CALOTRIGGER", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
