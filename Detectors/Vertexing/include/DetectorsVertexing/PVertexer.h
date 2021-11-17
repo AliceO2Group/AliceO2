@@ -97,6 +97,12 @@ class PVertexer
     mITSROFrameLengthMUS = v;
   }
 
+  // special methods used to refit already found vertex skipping certain number of tracks.
+  template <typename TR>
+  bool prepareVertexRefit(const TR& tracks, const o2d::VertexBase& vtxSeed);
+
+  PVertex refitVertex(const std::vector<bool> useTrack, const o2d::VertexBase& vtxSeed);
+
  private:
   static constexpr int DBS_UNDEF = -2, DBS_NOISE = -1, DBS_INCHECK = -10;
 
@@ -117,6 +123,7 @@ class PVertexer
   void applyConstraint(VertexSeed& vtxSeed) const;
   bool upscaleSigma(VertexSeed& vtxSeed) const;
   bool relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxErr2) const;
+  bool relateTrackToVertex(o2::track::TrackParCov& trc, const o2d::VertexBase& vtxSeed) const;
 
   template <typename TR>
   void createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTrackID> gids);
@@ -144,6 +151,11 @@ class PVertexer
   bool mValidateWithIR = false;            ///< require vertex validation with InteractionRecords (if available)
 
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
+
+  // structure for the vertex refit
+  o2d::VertexBase mVtxRefitOrig{};   ///< original vertex whose tracks are refitted
+  std::vector<int> mRefitTrackIDs{}; ///< dummy IDs for refitted tracks
+  //
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
   const PVertexerParams* mPVParams = nullptr;
@@ -241,6 +253,32 @@ int PVertexer::process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gid
 {
   createTracksPool(tracks, gids);
   return runVertexing(gids, bcData, vertices, vertexTrackIDs, v2tRefs, lblTracks, lblVtx);
+}
+
+//___________________________________________________________________
+template <typename TR>
+bool PVertexer::prepareVertexRefit(const TR& tracks, const o2d::VertexBase& vtxSeed)
+{
+  // Create pull of all tracks for the refitting starting from the tracks of already found vertex.
+  // This method should be called once before calling refitVertex method for given vtxSeed (which can be
+  // called multiple time with different useTrack request)
+  mTracksPool.clear();
+  mTracksPool.reserve(tracks.size());
+  for (uint32_t i = 0; i < tracks.size(); i++) {
+    o2::track::TrackParCov trc = tracks[i];
+    if (!relateTrackToVertex(trc, vtxSeed)) {
+      continue;
+    }
+    auto& tvf = mTracksPool.emplace_back(trc, TimeEst{0.f, 1.f}, i, GTrackID{}, 1., mPVParams->addZSigma2);
+    tvf.entry = i;
+  }
+  if (int(mTracksPool.size()) < mPVParams->minTracksPerVtx) {
+    return false;
+  }
+  mRefitTrackIDs.resize(tracks.size());
+  std::iota(mRefitTrackIDs.begin(), mRefitTrackIDs.end(), 0);
+  mVtxRefitOrig = vtxSeed;
+  return true;
 }
 
 } // namespace vertexing
