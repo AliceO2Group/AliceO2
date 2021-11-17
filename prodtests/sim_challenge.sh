@@ -141,7 +141,8 @@ if [ "$doreco" == "1" ]; then
 
   echo "Running MFT reco flow"
   #needs MFT digitized data
-  taskwrapper mftreco.log  o2-mft-reco-workflow  $gloOpt
+  MFTRecOpt=" --configKeyValues \"MFTTracking.forceZeroField=false;MFTTracking.LTFclsRCut=0.0100;\""
+  taskwrapper mftreco.log  o2-mft-reco-workflow  $gloOpt $MFTRecOpt
   echo "Return status of mftreco: $?"
 
   echo "Running MCH reco flow"
