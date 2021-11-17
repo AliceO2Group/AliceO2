@@ -9,12 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "EMCALCalibration/EMCALCalibExtractor.h"
+#ifdef __CLING__
 
-namespace o2
-{
-namespace emcal
-{
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-} // end namespace emcal
-} //end namespace o2
+#pragma link C++ class o2::emcal::EMCALSlotCalib + ;
+
+#endif

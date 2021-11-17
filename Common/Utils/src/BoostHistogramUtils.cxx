@@ -9,12 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 /// \file   BoostHistogramUtils.cxx
 /// \author Hannah Bossi, hannah.bossi@yale.edu
 
 #include "CommonUtils/BoostHistogramUtils.h"
-
 
 // \brief Convert a 2D root histogram to a Boost histogram
 decltype(auto) boostHistoFromRoot_2D(TH2D* inHist2D)
@@ -39,7 +37,6 @@ decltype(auto) boostHistoFromRoot_2D(TH2D* inHist2D)
   return mHisto;
 }
 
-
 /// \brief Convert a 1D root histogram to a Boost histogram
 decltype(auto) boosthistoFromRoot_1D(TH1D* inHist1D)
 {
@@ -59,6 +56,7 @@ decltype(auto) boosthistoFromRoot_1D(TH1D* inHist1D)
 
 /// \brief Printing an error message when then fit returns an invalid result
 /// \param errorcode Error of the type FitGausError_t, thrown when fit result is invalid.
-std::string createErrorMessage(o2::utils::FitGausError_t errorcode){
+std::string createErrorMessage(o2::utils::FitGausError_t errorcode)
+{
   return "[Error]: Fit return an invalid result.";
 }

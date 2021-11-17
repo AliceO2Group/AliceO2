@@ -1,0 +1,31 @@
+{
+    "internal-dpl-clock": "",
+    "internal-dpl-aod-reader": {
+        "time-limit": "0",
+        "orbit-offset-enumeration": "0",
+        "orbit-multiplier-enumeration": "0",
+        "start-value-enumeration": "0",
+        "end-value-enumeration": "-1",
+        "step-value-enumeration": "1",
+        "aod-file": "AO2D.root"
+    },
+    "internal-dpl-aod-spawner": "",
+    "jet-finder-data": {
+        "vertexZCut": "10",
+        "trackPtCut": "0.100000001",
+        "trackEtaCut": "0.899999976",
+        "DoRhoAreaSub": "false",
+        "DoConstSub": "false",
+        "jetPtMin": "10",
+        "jetR": {
+            "values": [
+                "0.40000000000000002"
+            ]
+        },
+        "jetType": "0",
+        "processParticleLevel": "false",
+        "processData": "true"
+    },
+    "internal-dpl-aod-global-analysis-file-sink": "",
+    "internal-dpl-aod-writer": ""
+}

@@ -38,7 +38,6 @@
 
 // #include <array>
 
-
 namespace o2
 {
 namespace emcal
@@ -55,7 +54,7 @@ class EMCALChannelData
   //using Slot = o2::calibration::TimeSlot<o2::emcal::EMCALChannelData>;
   using Cells = o2::emcal::Cell;
   using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::integer<>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
-  using BadChannelMap = o2::emcal::BadChannelMap; 
+  using BadChannelMap = o2::emcal::BadChannelMap;
 
  public:
   // NCELLS includes DCal, treat as one calibration
@@ -69,10 +68,9 @@ class EMCALChannelData
     // NCELLS includes DCal, treat as one calibration
     o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
     int NCELLS = mGeometry->GetNCells();
-     // just set 100 as a dummy number, will need to go back and change to the proper max value
-    mEsumHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0,100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
-    mEsumHistoScaled = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0,100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
-
+    // just set 100 as a dummy number, will need to go back and change to the proper max value
+    mEsumHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
+    mEsumHistoScaled = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
   }
 
   ~EMCALChannelData() = default;
@@ -100,7 +98,7 @@ class EMCALChannelData
   void buildHitAndEnergyMean(double emin, double emax);
   /// \brief Scaled hits per cell
   /// \param emin -- min. energy for cell amplitudes
-  /// \param emax -- max. energy for cell amplitudes  
+  /// \param emax -- max. energy for cell amplitudes
   void buildHitAndEnergyMeanScaled(double emin, double emax);
   /// \brief Peform the calibration and flag the bad channel map
   /// Average energy per hit histogram is fitted with a gaussian
@@ -122,13 +120,12 @@ class EMCALChannelData
   int mNBins = 1000;
   boostHisto mHisto;
   int mEvents = 1;
-  boostHisto mEsumHisto;       ///< contains the average energy per hit for each cell
-  boostHisto mEsumHistoScaled; ///< contains the average energy (scaled) per hit for each cell  
-  boostHisto mCellAmplitude;   ///< is the input for the calibration, hist of cell E vs. ID
-  bool mTest = false;          ///< flag to be used when running in test mode: it simplify the processing
-  BadChannelMap mOutputBCM;    ///< output bad channel map for the calibration
+  boostHisto mEsumHisto;                                ///< contains the average energy per hit for each cell
+  boostHisto mEsumHistoScaled;                          ///< contains the average energy (scaled) per hit for each cell
+  boostHisto mCellAmplitude;                            ///< is the input for the calibration, hist of cell E vs. ID
+  bool mTest = false;                                   ///< flag to be used when running in test mode: it simplify the processing
+  BadChannelMap mOutputBCM;                             ///< output bad channel map for the calibration
   std::shared_ptr<EMCALCalibExtractor> mCalibExtractor; ///< calib extractor
-
 
   ClassDefNV(EMCALChannelData, 1);
 };

@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \class EMCALChannelCalibratorSpec
+/// \class EMCALSlotCalibSpec
 /// \brief DPL Processor for EMCAL bad channel calibration data
 /// \author Hannah Bossi, Yale University
 /// \ingroup EMCALCalib
@@ -18,7 +18,7 @@
 #ifndef O2_CALIBRATION_EMCALCHANNEL_CALIBRATOR_H
 #define O2_CALIBRATION_EMCALCHANNEL_CALIBRATOR_H
 
-#include "EMCALCalibration/EMCALChannelCalibrator.h"
+#include "EMCALCalibration/EMCALSlotCalib.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "Framework/Task.h"
@@ -35,23 +35,19 @@ namespace o2
 namespace calibration
 {
 
-class EMCALChannelCalibDevice : public o2::framework::Task
+class EMCALSlotCalibDevice : public o2::framework::Task
 {
 
   //using TimeSlewing = o2::dataformats::CalibTimeSlewingParamEMCAL;
   //using LHCphase = o2::dataformats::CalibLHCphaseEMCAL;
 
  public:
-  EMCALChannelCalibDevice() = default;
+  EMCALSlotCalibDevice() = default;
   void init(o2::framework::InitContext& ic) final
   {
-    int isTest = ic.options().get<bool>("do-EMCAL-channel-calib-in-test-mode");
-    mCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::ChannelCalibInitParams>>();
-    mCalibrator->setUpdateAtTheEndOfRunOnly();
+    int isTest = ic.options().get<bool>("do-EMCAL-slot-calib-in-test-mode");
+    mCalibrator = std::make_unique<o2::emcal::EMCALSlotCalib>(2);
     mCalibrator->setIsTest(isTest);
-    if (ic.options().get<bool>("useScaledHistoForBadChannelMap")) {
-      mCalibrator->getCalibExtractor()->setUseScaledHistoForBadChannels(true);
-    }
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -61,23 +57,23 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
 
-    LOG(debug) << "  startTimeChCalib = " << startTimeChCalib;
+    LOG(DEBUG) << "  startTimeChCalib = " << startTimeChCalib;
 
     auto data = pc.inputs().get<gsl::span<o2::emcal::Cell>>("input");
-    LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " cells";
-    mCalibrator->process(tfcounter, data);
+    LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " cells";
+    mCalibrator->buildHitAndEnergyMean(0.1, 2.0);
+    mCalibrator->analyzeSlot();
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-    mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+    //mCalibrator->checkSlotsToFinalize(INFINITE_TF);
     sendOutput(ec.outputs());
   }
 
  private:
-  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::ChannelCalibInitParams>> mCalibrator;
-  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibInitParams>> mTimeCalibrator;
+  std::unique_ptr<o2::emcal::EMCALSlotCalib> mCalibrator;
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -92,14 +88,14 @@ class EMCALChannelCalibDevice : public o2::framework::Task
     for (uint32_t i = 0; i < payloadVec.size(); i++) {
       auto& w = infoVec[i];
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-      LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+      LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_CHANNEL", i}, *image.get()); // vector<char>
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_CHANNEL", i}, w);               // root-serialized
     }
     */
     //if (payloadVec.size()) {
-    mCalibrator->initOutput(); // reset the outputs once they are already sent
+    //mCalibrator->initOutput(); // reset the outputs once they are already sent
     //}
   }
 };
@@ -109,27 +105,26 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getEMCALChannelCalibDeviceSpec()
+DataProcessorSpec getEMCALSlotCalibDeviceSpec()
 {
-  using device = o2::calibration::EMCALChannelCalibDevice;
+  using device = o2::calibration::EMCALSlotCalibDevice;
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_CHANNEL"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_CHANNEL"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "BADCHANNELMAP"});
+ outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "BADCHANNELMAP"});
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("input", o2::header::gDataOriginEMC, "CELLS");
+  inputs.emplace_back("input", o2::header::gDataOriginEMC, "BOOSTHISTO");
 
   return DataProcessorSpec{
-    "calib-emcalchannel-calibration",
+    "calib-emcal-slot-calibration",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{
-      {"do-EMCAL-channel-calib-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}},
-      {"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}},
-      {"useScaledHistoForBadChannelMap", VariantType::Bool, false, {"Use scaled histogram for bad channel extraction"}}}};
+      {"do-EMCAL-slot-calib-in-test-mode", VariantType::Bool, true, {"to run in test mode for simplification"}},
+      {"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}}}};
 }
 
 } // namespace framework

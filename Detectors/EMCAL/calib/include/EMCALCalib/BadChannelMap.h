@@ -11,7 +11,6 @@
 #ifndef ALICEO2_EMCAL_BADCHANNELMAP
 #define ALICEO2_EMCAL_BADCHANNELMAP
 
-
 #include <iosfwd>
 #include <bitset>
 #include <Rtypes.h>
@@ -180,6 +179,5 @@ std::ostream& operator<<(std::ostream& in, const BadChannelMap::MaskType_t& mask
 } // namespace emcal
 
 } // namespace o2
-
 
 #endif

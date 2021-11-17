@@ -70,7 +70,7 @@ class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::e
   bool isTest() const { return mTest; }
 
   // Configure the calibrator
-  EMCALCalibExtractor *getCalibExtractor() const { return mCalibrator.get(); }
+  EMCALCalibExtractor* getCalibExtractor() const { return mCalibrator.get(); }
 
  private:
   int mNBins = 0;     ///< bins of the histogram for passing
@@ -110,13 +110,11 @@ void EMCALChannelCalibrator<DataInput, HistContainer>::finalizeSlot(o2::calibrat
   DataInput* c = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
 
- 
   if constexpr (std::is_same<DataInput, o2::emcal::EMCALChannelData>::value) {
     auto bcm = mCalibrator->calibrateBadChannels(c->getHisto());
   } else if constexpr (std::is_same<DataInput, o2::emcal::EMCALTimeCalibData>::value) {
     auto tcd = mCalibrator->calibrateTime(c->getHisto());
   }
- 
 
   // for the CCDB entry
   std::map<std::string, std::string> md;
