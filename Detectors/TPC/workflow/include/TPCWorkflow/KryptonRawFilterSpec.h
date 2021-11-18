@@ -9,13 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   KryptonClustererSpec.h
+/// @file   KryptonRawFilterSpec.h
 /// @author Jens Wiechula
-/// @since  2021-02-26
-/// @brief  Processor spec for running TPC Krypton cluster finder
+/// @since  2021-11-19
+/// @brief  Processor spec for filtering krypton raw data
 
-#ifndef TPC_KryptonClustererSpec_H_
-#define TPC_KryptonClustererSpec_H_
+#ifndef TPC_KrRawFilterSpec_H_
+#define TPC_KrRawFilterSpec_H_
 
 #include "Framework/DataProcessorSpec.h"
 
@@ -24,9 +24,7 @@ namespace o2
 namespace tpc
 {
 
-/// create a processor spec
-/// read simulated TPC clusters from file and publish
-o2::framework::DataProcessorSpec getKryptonClustererSpec();
+o2::framework::DataProcessorSpec getKryptonRawFilterSpec();
 
 } // end namespace tpc
 } // end namespace o2

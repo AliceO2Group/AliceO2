@@ -77,6 +77,12 @@ class DigitDump : public CalibRawBase
   Int_t updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
                   const Int_t timeBin, const Float_t signal) final;
 
+  /// Set a custom pedestal object
+  void setPedestals(const CalPad* pedestal) { mPedestal.reset(pedestal); }
+
+  /// Set a custom noise object
+  void setNoise(const CalPad* noise) { mNoise.reset(noise); }
+
   /// Get the pedestal calibration object
   ///
   /// \return pedestal calibration object
@@ -152,8 +158,8 @@ class DigitDump : public CalibRawBase
   void removeCEdigits(uint32_t removeNtimeBinsBefore = 10, uint32_t removeNtimeBinsAfter = 100, std::array<std::vector<Digit>, Sector::MAXSECTOR>* removedDigits = nullptr);
 
  private:
-  std::unique_ptr<CalPad> mPedestal{}; ///< CalDet object with pedestal information
-  std::unique_ptr<CalPad> mNoise{};    ///< CalDet object with noise
+  std::unique_ptr<const CalPad> mPedestal{}; ///< CalDet object with pedestal information
+  std::unique_ptr<const CalPad> mNoise{};    ///< CalDet object with noise
 
   TTree* mTree{nullptr};          ///< output tree
   std::unique_ptr<TFile> mFile{}; ///< output file
