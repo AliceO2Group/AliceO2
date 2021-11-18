@@ -28,6 +28,7 @@
 #include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
 #include "InputRouteHelpers.h"
+#include "Framework/LifetimeHelpers.h"
 
 #include "Headers/DataHeaderHelpers.h"
 
@@ -35,6 +36,7 @@
 #include <Monitoring/Monitoring.h>
 
 #include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <gsl/span>
 #include <numeric>
 #include <string>
@@ -80,7 +82,7 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
     mInputs.push_back(routes[mDistinctRoutesIndex[i]].matcher);
     auto& matcher = routes[mDistinctRoutesIndex[i]].matcher;
     DataSpecUtils::describe(buffer, 127, matcher);
-    mMetrics.send({std::string{buffer}, sQueriesMetricsNames[i], Verbosity::Debug});
+    mMetrics.send({fmt::format("{} ({})", buffer, mInputs.back().lifetime), sQueriesMetricsNames[i], Verbosity::Debug});
   }
 }
 
