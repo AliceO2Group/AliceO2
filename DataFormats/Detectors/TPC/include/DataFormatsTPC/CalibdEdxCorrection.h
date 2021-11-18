@@ -31,7 +31,7 @@ class CalibdEdxCorrection
  public:
   constexpr static int paramSize = 6;
   constexpr static int fitSize = 288;
-#if !defined(GPUCA_GPUCODE)
+#if !defined(GPUCA_ALIGPUCODE)
   CalibdEdxCorrection()
   {
     clear();
