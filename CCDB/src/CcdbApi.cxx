@@ -1345,7 +1345,7 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
   CURLcode res;
   stringstream fullUrl;
   fullUrl << mUrl << "/" << path << "/" << timestamp;
-  if(!id.empty()) {
+  if (!id.empty()) {
     fullUrl << "/" << id;
   }
   fullUrl << "?";
