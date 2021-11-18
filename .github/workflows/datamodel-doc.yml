@@ -50,7 +50,7 @@ jobs:
           python3 -m nltk.downloader -d ~/nltk_data punkt
 
       - name: Generate documentation
-        run: exec bash -eo pipefail O2/scripts/datamodel-doc/update-datamodel.sh
+        run: exec bash -exo pipefail O2/scripts/datamodel-doc/update-datamodel.sh
 
       - name: Send pull request with updated docs
         env:
