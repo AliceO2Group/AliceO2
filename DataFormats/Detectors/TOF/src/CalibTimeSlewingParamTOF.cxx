@@ -119,7 +119,7 @@ void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float 
     currentch--;
   }
   // printf("DBG: emplace back (%f,%f)\n",tot,time);
-  (*(mTimeSlewing[sector])).emplace_back((unsigned short)(tot * 1000), (short)(time - (*(mGlobalOffset[sector]))[currentch]));
+  (*(mTimeSlewing[sector])).emplace_back((unsigned short)(tot * 1000), (short)(time - (*(mGlobalOffset[sector]))[channel]));
 }
 //______________________________________________
 
