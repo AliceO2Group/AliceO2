@@ -13,7 +13,6 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/ControlService.h"
-#include <FairMQDevice.h>
 #include <InfoLogger/InfoLogger.hxx>
 
 #include <chrono>
@@ -47,7 +46,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      AlgorithmSpec{adaptStateful([]() { return adaptStateless(
                                           [](InputRecord& inputs, RawDeviceService& device, ControlService& control) {
                                             static int expected = 0;
-                                            device.device()->WaitFor(std::chrono::milliseconds(3));
+                                            device.waitFor(3);
                                             auto& count = inputs.get<int>("x");
                                             if (expected != count) {
                                               LOGP(ERROR, "Missing message. Expected: {}, Found {}.", expected, count);

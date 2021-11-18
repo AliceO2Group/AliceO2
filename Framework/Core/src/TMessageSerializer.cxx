@@ -9,10 +9,26 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <Framework/TMessageSerializer.h>
+#include <fairmq/FairMQMessage.h>
+#include <TList.h>
+#include <TStreamerInfo.h>
 #include <algorithm>
 #include <memory>
 
 using namespace o2::framework;
+
+// gsl::narrow is used to do a runtime narrowing check, this might be a bit paranoid,
+// we would probably be fine with e.g. gsl::narrow_cast (or just a static_cast)
+gsl::span<std::byte> o2::framework::as_span(const fair::mq::Message& msg)
+{
+  return gsl::span<std::byte>{static_cast<std::byte*>(msg.GetData()), gsl::narrow<gsl::span<std::byte>::size_type>(msg.GetSize())};
+}
+
+gsl::span<std::byte> o2::framework::as_span(const FairTMessage& msg)
+{
+  return gsl::span<std::byte>{reinterpret_cast<std::byte*>(msg.Buffer()),
+                              gsl::narrow<gsl::span<std::byte>::size_type>(msg.BufferSize())};
+}
 
 TMessageSerializer::StreamerList TMessageSerializer::sStreamers{};
 std::mutex TMessageSerializer::sStreamersLock{};
@@ -101,4 +117,20 @@ void TMessageSerializer::updateStreamers(const TObject* object)
 {
   FairTMessage msg(kMESS_OBJECT);
   serialize(msg, object, CacheStreamers::yes, CompressionLevel{0});
+}
+
+void TMessageSerializer::Serialize(FairMQMessage& msg, const TObject* input,
+                                   TMessageSerializer::CacheStreamers streamers,
+                                   TMessageSerializer::CompressionLevel compressionLevel)
+{
+  std::unique_ptr<FairTMessage> tm = std::make_unique<FairTMessage>(kMESS_OBJECT);
+
+  serialize(*tm, input, input->Class(), streamers, compressionLevel);
+
+  msg.Rebuild(tm->Buffer(), tm->BufferSize(), FairTMessage::free, tm.release());
+}
+
+void TMessageSerializer::rebuild(FairMQMessage& msg, char const* data, size_t s, FairTMessage* tm)
+{
+  msg.Rebuild(tm->Buffer(), tm->BufferSize(), FairTMessage::free, tm);
 }

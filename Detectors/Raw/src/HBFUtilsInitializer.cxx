@@ -28,6 +28,7 @@
 #include "Framework/CallbackService.h"
 #include "Framework/Logger.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/ConfigParamRegistry.h"
 #include <TFile.h>
 
 using namespace o2::raw;

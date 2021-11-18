@@ -8,17 +8,15 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_MESSAGESET_H
-#define FRAMEWORK_MESSAGESET_H
+#ifndef O2_FRAMEWORK_MESSAGESET_H_
+#define O2_FRAMEWORK_MESSAGESET_H_
 
 #include "Framework/PartRef.h"
 #include <memory>
 #include <vector>
 #include <cassert>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// A set of associated inflight messages.
@@ -28,7 +26,7 @@ struct MessageSet {
     size_t position = 0;
     size_t size = 0;
   };
-  std::vector<FairMQMessagePtr> messages;
+  std::vector<std::unique_ptr<FairMQMessage>> messages;
   std::vector<Index> index;
 
   MessageSet()
@@ -99,24 +97,24 @@ struct MessageSet {
     }
   }
 
-  FairMQMessagePtr& header(size_t partIndex)
+  std::unique_ptr<FairMQMessage>& header(size_t partIndex)
   {
     return messages[index[partIndex].position];
   }
 
-  FairMQMessagePtr& payload(size_t partIndex, size_t payloadIndex = 0)
+  std::unique_ptr<FairMQMessage>& payload(size_t partIndex, size_t payloadIndex = 0)
   {
     assert(partIndex < index.size());
     assert(index[partIndex].position + payloadIndex + 1 < messages.size());
     return messages[index[partIndex].position + payloadIndex + 1];
   }
 
-  FairMQMessagePtr const& header(size_t partIndex) const
+  std::unique_ptr<FairMQMessage> const& header(size_t partIndex) const
   {
     return messages[index[partIndex].position];
   }
 
-  FairMQMessagePtr const& payload(size_t partIndex, size_t payloadIndex = 0) const
+  std::unique_ptr<FairMQMessage> const& payload(size_t partIndex, size_t payloadIndex = 0) const
   {
     assert(partIndex < index.size());
     assert(index[partIndex].position + payloadIndex + 1 < messages.size());
@@ -124,6 +122,5 @@ struct MessageSet {
   }
 };
 
-} // namespace framework
 } // namespace o2
-#endif // FRAMEWORK_MESSAGESET_H
+#endif // O2_FRAMEWORK_MESSAGESET_H_

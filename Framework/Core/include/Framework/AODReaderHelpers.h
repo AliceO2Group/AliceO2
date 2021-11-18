@@ -12,14 +12,10 @@
 #ifndef O2_FRAMEWORK_AODREADERHELPERS_H_
 #define O2_FRAMEWORK_AODREADERHELPERS_H_
 
-#include "Framework/TableBuilder.h"
 #include "Framework/AlgorithmSpec.h"
-#include "Framework/Logger.h"
-#include <uv.h>
 
 namespace o2::framework::readers
 {
-
 
 struct AODReaderHelpers {
   static AlgorithmSpec rootFileReaderCallback();

@@ -8,26 +8,23 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_TMESSAGESERIALIZER_H
-#define FRAMEWORK_TMESSAGESERIALIZER_H
+#ifndef O2_FRAMEWORK_TMESSAGESERIALIZER_H_
+#define O2_FRAMEWORK_TMESSAGESERIALIZER_H_
 
-#include <fairmq/FairMQMessage.h>
+#include <fairmq/FwdDecls.h>
 
 #include "Framework/RuntimeError.h"
 
-#include <TList.h>
 #include <TMessage.h>
-#include <TObjArray.h>
-#include <TStreamerInfo.h>
 #include <gsl/gsl_util>
 #include <gsl/span>
 #include <memory>
 #include <mutex>
 #include <cstddef>
 
-namespace o2
-{
-namespace framework
+class TVirtualStreamerInfo;
+
+namespace o2::framework
 {
 class FairTMessage;
 
@@ -64,6 +61,8 @@ struct TMessageSerializer {
 
   template <typename T = TObject>
   static void Deserialize(const FairMQMessage& msg, std::unique_ptr<T>& output);
+
+  static void rebuild(FairMQMessage& msg, char const* data, size_t s, FairTMessage* tm);
 
   static void serialize(FairTMessage& msg, const TObject* input,
                         CacheStreamers streamers = CacheStreamers::no,
@@ -170,18 +169,6 @@ inline void FairTMessage::free(void* /*data*/, void* hint)
   deleter(static_cast<FairTMessage*>(hint));
 }
 
-inline void TMessageSerializer::Serialize(FairMQMessage& msg, const TObject* input,
-                                          TMessageSerializer::CacheStreamers streamers,
-                                          TMessageSerializer::CompressionLevel compressionLevel)
-{
-  std::unique_ptr<FairTMessage> tm = std::make_unique<FairTMessage>(kMESS_OBJECT);
-
-  serialize(*tm, input, input->Class(), streamers, compressionLevel);
-
-  msg.Rebuild(tm->Buffer(), tm->BufferSize(), FairTMessage::free, tm.get());
-  tm.release();
-}
-
 template <typename T>
 inline void TMessageSerializer::Serialize(FairMQMessage& msg, const T* input,           //
                                           const TClass* cl,                             //
@@ -192,8 +179,7 @@ inline void TMessageSerializer::Serialize(FairMQMessage& msg, const T* input,   
 
   serialize(*tm, input, cl, streamers, compressionLevel);
 
-  msg.Rebuild(tm->Buffer(), tm->BufferSize(), FairTMessage::free, tm.get());
-  tm.release();
+  rebuild(msg, tm->Buffer(), tm->BufferSize(), tm.release());
 }
 
 template <typename T>
@@ -210,19 +196,5 @@ inline TMessageSerializer::StreamerList TMessageSerializer::getStreamers()
   return sStreamers;
 }
 
-// gsl::narrow is used to do a runtime narrowing check, this might be a bit paranoid,
-// we would probably be fine with e.g. gsl::narrow_cast (or just a static_cast)
-inline gsl::span<std::byte> as_span(const FairMQMessage& msg)
-{
-  return gsl::span<std::byte>{static_cast<std::byte*>(msg.GetData()), gsl::narrow<gsl::span<std::byte>::size_type>(msg.GetSize())};
-}
-
-inline gsl::span<std::byte> as_span(const FairTMessage& msg)
-{
-  return gsl::span<std::byte>{reinterpret_cast<std::byte*>(msg.Buffer()),
-                             gsl::narrow<gsl::span<std::byte>::size_type>(msg.BufferSize())};
-}
-
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_TMESSAGESERIALIZER_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_TMESSAGESERIALIZER_H_

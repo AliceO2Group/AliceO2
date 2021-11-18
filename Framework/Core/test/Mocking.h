@@ -15,6 +15,9 @@
 #include "Framework/SimpleOptionsRetriever.h"
 #include "Framework/WorkflowCustomizationHelpers.h"
 #include "Framework/ChannelConfigurationPolicy.h"
+#include "Framework/ConfigContext.h"
+#include "Framework/ConfigParamStore.h"
+#include "Framework/ConfigParamRegistry.h"
 
 std::unique_ptr<o2::framework::ConfigContext> makeEmptyConfigContext()
 {

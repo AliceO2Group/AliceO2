@@ -14,7 +14,6 @@
 #include "Framework/OutputSpec.h"
 #include "Framework/InputSpec.h"
 #include "Headers/DataHeader.h"
-#include "Framework/Output.h"
 
 #include <optional>
 

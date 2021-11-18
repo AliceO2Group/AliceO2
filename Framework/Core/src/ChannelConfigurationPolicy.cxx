@@ -11,6 +11,7 @@
 
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ConfigContext.h"
+#include "Framework/ConfigParamRegistry.h"
 
 namespace o2::framework
 {

@@ -16,7 +16,6 @@
 #include <chrono>
 #include <thread>
 #include <vector>
-#include <FairMQDevice.h>
 #include "Framework/runDataProcessing.h"
 
 using namespace o2::framework;
@@ -26,7 +25,7 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
   return AlgorithmSpec{adaptStateful([what, minDelay]() {
     srand(getpid());
     return adaptStateless([what, minDelay](DataAllocator& outputs, RawDeviceService& device) {
-      device.device()->WaitFor(std::chrono::seconds(minDelay));
+      device.waitFor(minDelay * 1000);
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
     });
   })};

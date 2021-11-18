@@ -17,8 +17,9 @@
 #include "Framework/Configurable.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/CallbackService.h"
-#include <FairMQDevice.h>
+#include "Framework/Logger.h"
 #include <InfoLogger/InfoLogger.hxx>
+#include <FairMQDevice.h>
 
 #include <chrono>
 #include <thread>
@@ -62,7 +63,7 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
     srand(getpid());
     LOG(INFO) << "There are " << runningWorkflow.devices.size() << "  devices in the workflow";
     return adaptStateless([what, minDelay](DataAllocator& outputs, RawDeviceService& device) {
-      device.device()->WaitFor(std::chrono::milliseconds(minDelay));
+      device.waitFor(minDelay);
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
     });
   })};
@@ -78,7 +79,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
       OutputSpec{{"a2"}, "TST", "A2"}},
      AlgorithmSpec{adaptStateless(
        [](DataAllocator& outputs, InfoLogger& logger, RawDeviceService& device, DataTakingContext& context) {
-         device.device()->WaitFor(std::chrono::seconds(rand() % 2));
+         device.waitFor((rand() % 2) * 1000);
          auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
          auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
          logger.log("This goes to infologger");

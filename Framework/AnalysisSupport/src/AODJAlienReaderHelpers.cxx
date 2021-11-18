@@ -38,6 +38,7 @@
 #include <arrow/io/interfaces.h>
 #include <arrow/table.h>
 #include <arrow/util/key_value_metadata.h>
+#include <uv.h>
 
 #include <thread>
 

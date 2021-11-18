@@ -38,6 +38,8 @@
 
 #include "WorkflowHelpers.h"
 
+#include "FairMQDevice.h"
+
 #include <uv.h>
 #include <iostream>
 #include <fmt/format.h>

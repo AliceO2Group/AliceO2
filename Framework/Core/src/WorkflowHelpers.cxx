@@ -15,6 +15,7 @@
 #include "Framework/ConfigParamsHelper.h"
 #include "Framework/CommonDataProcessors.h"
 #include "Framework/ConfigContext.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataAllocator.h"
@@ -25,6 +26,7 @@
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
 #include "ArrowSupport.h"
+#include "Framework/Logger.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>

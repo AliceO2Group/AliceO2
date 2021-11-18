@@ -21,6 +21,8 @@
 #include "Framework/SendingPolicy.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigContext.h"
+#include "Framework/ConfigParamStore.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/BoostOptionsRetriever.h"
 #include "Framework/CustomWorkflowTerminationHook.h"
 #include "Framework/CommonServices.h"

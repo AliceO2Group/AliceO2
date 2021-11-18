@@ -8,16 +8,15 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_CONFIG_CONTEXT_H
-#define FRAMEWORK_CONFIG_CONTEXT_H
+#ifndef O2_FRAMEWORK_CONFIG_CONTEXT_H_
+#define O2_FRAMEWORK_CONFIG_CONTEXT_H_
 
 #include "Framework/ConfigParamRegistry.h"
-#include "Framework/ServiceRegistry.h"
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
+
+struct ConfigParamRegistry;
 
 /// This is the context class for information which are available at
 /// (re)configuration of the topology. It's automatically filled by the data
@@ -41,7 +40,6 @@ class ConfigContext
   char** mArgv = nullptr;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif
+#endif // O2_FRAMEWORK_CONFIG_CONTEXT_H_

@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ConfigContext.h"
+#include "Framework/ConfigParamStore.h"
 
 namespace o2::framework
 {

@@ -25,6 +25,7 @@
 #include <fairmq/FairMQMessage.h>
 #include <fairmq/FairMQParts.h>
 
+#include <TList.h>
 #include <cassert>
 #include <functional>
 #include <string>

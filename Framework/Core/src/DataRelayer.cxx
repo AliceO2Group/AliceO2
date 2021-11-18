@@ -35,6 +35,9 @@
 #include <Monitoring/Metric.h>
 #include <Monitoring/Monitoring.h>
 
+#include <fairmq/FairMQMessage.h>
+#include <fairmq/FairMQTransportFactory.h>
+
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <gsl/span>
@@ -296,7 +299,7 @@ DataRelayer::RelayChoice
     assert(nMessages % 2 == 0);
     for (size_t mi = 0; mi < nMessages; ++mi) {
       assert(mi + nPayloads < nMessages);
-      target.add([&messages, &mi](size_t i) -> FairMQMessagePtr& { return messages[mi + i]; }, nPayloads + 1);
+      target.add([&messages, &mi](size_t i) -> std::unique_ptr<FairMQMessage>& { return messages[mi + i]; }, nPayloads + 1);
       mi += nPayloads;
     }
   };

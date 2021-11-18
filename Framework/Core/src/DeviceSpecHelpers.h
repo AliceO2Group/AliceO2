@@ -28,7 +28,6 @@
 #include "ResourceManager.h"
 #include "WorkflowHelpers.h"
 
-#include <FairMQDevice.h>
 #include <boost/program_options.hpp>
 
 #include <vector>
