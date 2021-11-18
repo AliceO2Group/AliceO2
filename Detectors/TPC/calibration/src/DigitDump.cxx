@@ -156,8 +156,8 @@ void DigitDump::loadNoiseAndPedestal()
   f->GetObject("Pedestals", pedestal);
   f->GetObject("Noise", noise);
 
-  mPedestal = std::move(std::unique_ptr<CalPad>(pedestal));
-  mNoise = std::move(std::unique_ptr<CalPad>(noise));
+  mPedestal = std::move(std::unique_ptr<const CalPad>(pedestal));
+  mNoise = std::move(std::unique_ptr<const CalPad>(noise));
 }
 
 //______________________________________________________________________________

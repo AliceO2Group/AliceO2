@@ -26,7 +26,7 @@ namespace tpc
 
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
-o2::framework::DataProcessorSpec getFileWriterSpec(const std::string inputSpec);
+o2::framework::DataProcessorSpec getFileWriterSpec(const std::string inputSpec, const std::string branchType = "krypton");
 
 } // end namespace tpc
 } // end namespace o2

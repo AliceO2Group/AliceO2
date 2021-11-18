@@ -47,13 +47,40 @@ using o2::dataformats::FileMetaData;
 using SubSpecificationType = DataAllocator::SubSpecificationType;
 using DetID = o2::detectors::DetID;
 
+enum class BranchType {
+  Krypton,
+  Digits,
+};
+
+const std::unordered_map<std::string, BranchType> BranchTypeMap{
+  {"krypton", BranchType::Krypton},
+  {"digits", BranchType::Digits},
+};
+
+const std::unordered_map<BranchType, std::string> BranchName{
+  {BranchType::Krypton, "TPCBoxCluster"},
+  {BranchType::Digits, "TPCDigit"},
+};
+
+const std::unordered_map<BranchType, std::string> TreeName{
+  {BranchType::Krypton, "Clusters"},
+  {BranchType::Digits, "o2sim"},
+};
+
 namespace o2::tpc
 {
 
 class FileWriterDevice : public Task
 {
  public:
-  FileWriterDevice() = default;
+  FileWriterDevice(const std::string branchType)
+  {
+    try {
+      mBranchType = BranchTypeMap.at(branchType);
+    } catch (std::out_of_range&) {
+      throw std::invalid_argument(std::string("invalid writer-type type: ") + branchType);
+    }
+  }
 
   void init(InitContext& ic) final
   {
@@ -68,6 +95,22 @@ class FileWriterDevice : public Task
     }
   }
 
+  template <typename T>
+  void fillBranch(int sector, InputRecord& inputs, const DataRef& inputRef)
+  {
+    auto inData = inputs.get<std::vector<T>>(inputRef);
+    auto dataPtr = &inData;
+
+    if (!mDataBranches[sector]) {
+      mDataBranches[sector] = mTreeOut->Branch(fmt::format("{}_{}", BranchName.at(mBranchType), sector).data(), &inData);
+    } else {
+      mDataBranches[sector]->SetAddress(&dataPtr);
+    }
+
+    mDataBranches[sector]->Fill();
+    mDataBranches[sector]->ResetAddress();
+  }
+
   void run(ProcessingContext& pc) final
   {
     const std::string NAStr = "NA";
@@ -78,8 +121,6 @@ class FileWriterDevice : public Task
     mRun = processing_helpers::getRunNumber(pc);
     mPresentTF = dh->tfCounter;
     mFirstTForbit = dh->firstTForbit;
-
-    LOGP(info, "run: {}, TF: {}, Orbit: {} ({}), info branches: {}", mRun, mPresentTF, mFirstTForbit, oldOrbit, mInfoBranches.size());
 
     auto oldEnv = mEnvironmentID;
     {
@@ -92,6 +133,7 @@ class FileWriterDevice : public Task
       LOGP(WARNING, "RunNumber/Environment changed from {}/{} to {}/{}", oldRun, oldEnv, mRun, mEnvironmentID);
       closeTreeAndFile();
     }
+
     // check for the LHCPeriod
     if (mLHCPeriod.empty()) {
       auto LHCPeriodStr = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("LHCPeriod", NAStr);
@@ -112,13 +154,11 @@ class FileWriterDevice : public Task
 
       for (auto br : mInfoBranches) {
         br->Fill();
-        LOGP(info, "Filling branch {}", br->GetName());
       }
       mTFOrbits.push_back(mFirstTForbit);
       ++mNTFs;
     }
 
-    bool hasData = false;
     for (auto const& inputRef : InputRecordWalker(pc.inputs())) {
       auto const* sectorHeader = DataRefUtils::getHeader<TPCSectorHeader*>(inputRef);
       if (sectorHeader == nullptr) {
@@ -127,30 +167,12 @@ class FileWriterDevice : public Task
       }
 
       const int sector = sectorHeader->sector();
-      auto inData = pc.inputs().get<std::vector<o2::tpc::KrCluster>>(inputRef);
-      auto dataPtr = &inData;
-
-      if (!mDataBranches[sector]) {
-        mDataBranches[sector] = mTreeOut->Branch(fmt::format("TPCBoxCluster_{}", sector).data(), &inData);
-      } else {
-        mDataBranches[sector]->SetAddress(&dataPtr);
+      if (mBranchType == BranchType::Krypton) {
+        fillBranch<KrCluster>(sector, pc.inputs(), inputRef);
+      } else if (mBranchType == BranchType::Digits) {
+        fillBranch<Digit>(sector, pc.inputs(), inputRef);
       }
-      mDataBranches[sector]->Fill();
-      mDataBranches[sector]->ResetAddress();
-
-      LOGP(info, "getting data for sector {}", sector);
-      hasData = true;
     }
-
-    //if (hasData && mTreeOut) {
-    //LOGP(info, "fill tree");
-    //mTreeOut->Fill();
-    //}
-    //for (auto br : mDataBranches) {
-    //if (br) {
-    //br->ResetAddress();
-    //}
-    //}
   }
 
   void endOfStream(EndOfStreamContext& ec) final
@@ -185,6 +207,7 @@ class FileWriterDevice : public Task
   bool mStoreMetaFile = false;                             ///< store the meata data file?
   bool mWrite = true;                                      ///< write data
   bool mCreateRunEnvDir = true;                            ///< create the output directory structure?
+  BranchType mBranchType;                                  ///< output branch type
 
   static constexpr std::string_view TMPFileEnding{".part"};
 
@@ -232,17 +255,11 @@ void FileWriterDevice::prepareTreeAndFile(const o2::header::DataHeader* dh)
     mCurrentFileName = o2::base::NameConf::getCTFFileName(mRun, dh->firstTForbit, dh->tfCounter, "tpc_krypton");
     mCurrentFileNameFull = fmt::format("{}{}", ctfDir, mCurrentFileName);
     mFileOut.reset(TFile::Open(fmt::format("{}{}", mCurrentFileNameFull, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
-    mTreeOut = std::make_unique<TTree>("Clusters", "O2 tree");
+    mTreeOut = std::make_unique<TTree>(TreeName.at(mBranchType).data(), "O2 tree");
     mInfoBranches.emplace_back(mTreeOut->Branch("run", &mRun));
     mInfoBranches.emplace_back(mTreeOut->Branch("tfCounter", &mPresentTF));
     mInfoBranches.emplace_back(mTreeOut->Branch("firstOrbit", &mFirstTForbit));
     LOGP(info, "created {} info branches", mInfoBranches.size());
-    //for (int iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
-    //std::vector<KrCluster> clusters;
-    //LOGP(info, "creating branch for sector {} on tree {} with name {}", iSec, (void*)mTreeOut.get(), fmt::format("TPCBoxCluster_{}", iSec).data());
-    //mDataBranches[iSec] = mTreeOut->Branch(fmt::format("TPCBoxCluster_{}", iSec).data(), &clusters);
-    //mDataBranches[iSec]->ResetAddress();
-    //}
     if (mStoreMetaFile) {
       mFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
     }
@@ -302,13 +319,13 @@ void FileWriterDevice::closeTreeAndFile()
   //removeLockFile();
 }
 
-DataProcessorSpec getFileWriterSpec(const std::string inputSpec)
+DataProcessorSpec getFileWriterSpec(const std::string inputSpec, const std::string branchType)
 {
   return DataProcessorSpec{
     "file-writer",
     select(inputSpec.data()),
     Outputs{},
-    AlgorithmSpec{adaptFromTask<FileWriterDevice>()},
+    AlgorithmSpec{adaptFromTask<FileWriterDevice>(branchType)},
     Options{
       {"output-dir", VariantType::String, "none", {" output directory, must exist"}},
       {"meta-output-dir", VariantType::String, "/dev/null", {" metadata output directory, must exist (if not /dev/null)"}},
