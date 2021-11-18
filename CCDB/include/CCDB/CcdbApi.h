@@ -180,6 +180,8 @@ class CcdbApi //: public DatabaseInterface
    */
   void deleteObject(std::string const& path, long timestamp = -1) const;
 
+  void updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id = "");
+
   /**
    * Return the listing of objects, and in some cases subfolders, matching this path.
    * The path can contain sql patterns (correctly encoded) or regexps.
