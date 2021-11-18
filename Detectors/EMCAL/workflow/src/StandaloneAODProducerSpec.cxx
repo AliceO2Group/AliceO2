@@ -78,7 +78,7 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   mCaloEventHandler->reset();
   mCaloEventHandler->setCellData(cellsIn, triggersIn);
 
-  std::vector<int64_t> bcMap;
+  uint64_t triggerMask = 1;
   // loop over events
   for (int iev = 0; iev < mCaloEventHandler->getNumberOfEvents(); iev++) {
     o2::emcal::EventData inputEvent = mCaloEventHandler->buildEvent(iev);
@@ -88,12 +88,17 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
     LOG(INFO) << "Found " << cellsInEvent.size() << " cells in event";
 
     auto bcID = interactionRecord.toLong();
-    bcMap.emplace_back(bcID);
+    bcCursor(0,
+             runNumber,
+             bcID,
+             triggerMask);
+    auto indexBC = iev;
+
     for (auto& cell : cellsInEvent) {
 
       // fill table
       caloCellsCursor(0,
-                      bcID,
+                      indexBC,
                       cell.getTower(),
                       o2::math_utils::detail::truncateFloatFraction(cell.getAmplitude(), mCaloAmp),
                       o2::math_utils::detail::truncateFloatFraction(cell.getTimeStamp(), mCaloTime),
@@ -103,7 +108,7 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
 
     // filled only with BCID, rest dummy for no2
     caloCellsTRGTableCursor(0,
-                            bcID,
+                            indexBC,
                             0,  // fastOrAbsId (dummy value)
                             0., // lnAmplitude (dummy value)
                             0,  // triggerBits (dummy value)
@@ -111,32 +116,25 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
 
     // fill collision cursor
     collisionsCursor(0,
-                  bcID,
-                  0., // X-Pos dummy value
-                  0., // Y Pos
-                  0., // Z Pos
-                  0, // cov 0
-                  0, // cov 1
-                  0, // cov 2
-                  0, // cov 3
-                  0, // cov 4
-                  0, // cov 5
-                  0, // vertex bit field for flags
-                  0, // chi2
-                  0, // ncontributors
-                  0, // rel interaction time
-                  0);// vertex time stamp
-  }                             // end of event loop
+                     indexBC,
+                     0., // X-Pos dummy value
+                     0., // Y Pos
+                     0., // Z Pos
+                     0,  // cov 0
+                     0,  // cov 1
+                     0,  // cov 2
+                     0,  // cov 3
+                     0,  // cov 4
+                     0,  // cov 5
+                     0,  // vertex bit field for flags
+                     0,  // chi2
+                     0,  // ncontributors
+                     0,  // rel interaction time
+                     0); // vertex time stamp
+
+  } // end of event loop
   // std::cout << "Finished cell loop" << std::endl;
 
-  std::sort(bcMap.begin(), bcMap.end(), std::less<int64_t>());
-  uint64_t triggerMask = 1;
-  for (auto& bcID : bcMap) {
-    bcCursor(0,
-             runNumber,
-             bcID,
-             triggerMask);
-  }
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
 
   mTimer.Stop();
