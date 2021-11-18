@@ -151,7 +151,6 @@ class codeFile:
       # update restLine
       eob = nchFullLine - len(line)
       restLine += fullLine[sob:eob]
-      [oi, ci] = O2DMT.findInBrackets("{","}",line)
       sob = eob+ci+1
     
     # update restLine
