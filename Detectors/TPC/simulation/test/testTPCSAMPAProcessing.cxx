@@ -61,6 +61,9 @@ BOOST_AUTO_TEST_CASE(SAMPA_saturation_test)
   }
 }
 
+// On non-x86_64 architectures, the vectorization code doesn't work and triggers
+// an assertion error in Vc at runtime.
+#ifndef __x86_64__
 /// \brief Test of the Gamma4 function
 BOOST_AUTO_TEST_CASE(SAMPA_Gamma4_test)
 {
@@ -92,6 +95,7 @@ BOOST_AUTO_TEST_CASE(SAMPA_Gamma4_test)
     BOOST_CHECK_CLOSE(currentSignal, currentADC, 1E-3);
   }
 }
+#endif
 
 /// \brief Test of the conversion functions
 BOOST_AUTO_TEST_CASE(SAMPA_Conversion_test)
