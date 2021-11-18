@@ -533,10 +533,8 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
 
   auto device = registry.get<RawDeviceService>().device();
 
-  uint64_t lastTotalBytesIn = 0;
-  uint64_t lastTotalBytesOut = 0;
-  stats.totalBytesIn.exchange(lastTotalBytesIn);
-  stats.totalBytesOut.exchange(lastTotalBytesOut);
+  uint64_t lastTotalBytesIn = stats.totalBytesIn.exchange(0);
+  uint64_t lastTotalBytesOut = stats.totalBytesOut.exchange(0);
   uint64_t totalBytesIn = 0;
   uint64_t totalBytesOut = 0;
 
@@ -549,8 +547,8 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
                     .addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(float)(totalBytesIn - lastTotalBytesIn) / 1000000.f / (timeSinceLastUpdate / 1000.f), "total_rate_in_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));
-  stats.totalBytesIn.exchange(totalBytesIn);
-  stats.totalBytesOut.exchange(totalBytesOut);
+  stats.totalBytesIn.store(totalBytesIn);
+  stats.totalBytesOut.store(totalBytesOut);
   // Things which we report every 30s
   if (timeSinceLastLongUpdate < 30000) {
     return;
