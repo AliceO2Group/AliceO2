@@ -1388,7 +1388,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         try {
           auto workflowState = WorkflowHelpers::verifyWorkflow(workflow);
           if (driverInfo.batch == true && workflowState == WorkflowParsingState::Empty) {
-            throw runtime_error("Empty workflow provided while running in batch mode.");
+            LOGP(ERROR, "Empty workflow provided while running in batch mode.");
+            return 1;
           }
 
           /// extract and apply process switches
