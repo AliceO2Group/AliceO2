@@ -487,6 +487,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
 
       if (writer != workflow.end()) {
         workflow.erase(writer);
+      }
         // replace writer as some outputs may have become dangling and some are now consumed
         auto [outputsInputs, outputTypes] = WorkflowHelpers::analyzeOutputs(workflow);
 
@@ -511,8 +512,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
           // add TFNumber as input to the writer
           outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
           workflow.push_back(CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD));
-        }
-      } },
+        } },
                      .kind = ServiceKind::Global};
 }
 
