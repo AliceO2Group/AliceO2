@@ -16,8 +16,11 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/Monitoring.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/LifetimeHelpers.h"
 
 #include <fairmq/Device.h>
+
+#include <fmt/ostream.h>
 
 using namespace o2::monitoring;
 
@@ -62,7 +65,7 @@ DataSender::DataSender(ServiceRegistry& registry,
     assert(mDistinctRoutesIndex[i] < routes.size());
     mOutputs.push_back(routes[mDistinctRoutesIndex[i]].matcher);
     DataSpecUtils::describe(buffer, 127, mOutputs.back());
-    monitoring.send({std::string{buffer}, mQueriesMetricsNames[i], Verbosity::Debug});
+    monitoring.send({fmt::format("{} ({})", buffer, mOutputs.back().lifetime), mQueriesMetricsNames[i], Verbosity::Debug});
   }
 }
 

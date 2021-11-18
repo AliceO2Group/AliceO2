@@ -504,21 +504,21 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
 
 // Life is too short. LISP rules.
 #define STREAM_ENUM(x) \
-  case x:              \
+  case Lifetime::x:    \
     oss << #x;         \
     break;
 std::ostream& operator<<(std::ostream& oss, Lifetime const& val)
 {
   switch (val) {
-    STREAM_ENUM(Lifetime::Timeframe)
-    STREAM_ENUM(Lifetime::Condition)
-    STREAM_ENUM(Lifetime::QA)
-    STREAM_ENUM(Lifetime::Transient)
-    STREAM_ENUM(Lifetime::Timer)
-    STREAM_ENUM(Lifetime::Enumeration)
-    STREAM_ENUM(Lifetime::Signal)
-    STREAM_ENUM(Lifetime::Optional)
-    STREAM_ENUM(Lifetime::OutOfBand)
+    STREAM_ENUM(Timeframe)
+    STREAM_ENUM(Condition)
+    STREAM_ENUM(QA)
+    STREAM_ENUM(Transient)
+    STREAM_ENUM(Timer)
+    STREAM_ENUM(Enumeration)
+    STREAM_ENUM(Signal)
+    STREAM_ENUM(Optional)
+    STREAM_ENUM(OutOfBand)
   };
   return oss;
 }
