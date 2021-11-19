@@ -122,7 +122,7 @@ class TOFDPLClustererTask
     o2::tof::CalibTOFapi calibapi(long(0), &lhcPhaseObj, channelCalibObj.get());
 
     if (mUseCCDB) {
-      calibapi.setURL("http://alice-ccdb.cern.ch:8080");
+      calibapi.setURL("http://alice-ccdb.cern.ch");
       calibapi.setTimeStamp(0);
       calibapi.readTimeSlewingParam();
     }
@@ -207,10 +207,10 @@ o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB,
   inputs.emplace_back("tofdigits", o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("readoutwin", o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe);
   inputs.emplace_back("diafreq", o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe);
-  if (useCCDB) {
-    inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
-    inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
-  }
+  //  if (useCCDB) {
+  //    inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
+  //    inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
+  //  }
   if (useMC) {
     inputs.emplace_back("tofdigitlabels", o2::header::gDataOriginTOF, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
