@@ -561,8 +561,13 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
 auto flushMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
 {
   auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastMetricFlushedTimestamp;
+  static int counter = 0;
   if (timeSinceLastUpdate < 1000) {
-    return;
+    if (counter++ > 10) {
+      return;
+    }
+  } else {
+    counter = 0;
   }
 
   ZoneScopedN("flush metrics");
