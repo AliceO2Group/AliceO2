@@ -23,7 +23,7 @@
 #include "RegularSpline1D.h"
 #include "FlatObject.h"
 
-#if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
+#if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(__ROOTCLING__) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
 #include <Vc/Vc>
 #include <Vc/SimdArray>
 #endif
@@ -396,7 +396,7 @@ inline void SemiregularSpline2D3D::getSplineVec(const float* correctedData, floa
   // Same as getSpline, but using vectorized calculation.
   // \param correctedData should be at least 128-bit aligned
 
-#if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
+#if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(__ROOTCLING__) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
   //&& !defined(__CLING__)
   /*
 	Idea: There are 16 knots important for (u, v).
