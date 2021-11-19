@@ -169,6 +169,12 @@ void CTFReaderSpec::openCTFFile(const std::string& flname)
 ///_______________________________________
 void CTFReaderSpec::run(ProcessingContext& pc)
 {
+
+  if (!mCTFCounter) { // RS FIXME: this is a temporary hack to avoid late-starting devices to lose the input
+    LOG(WARNING) << "This is a hack, sleeping 5 s at startup";
+    usleep(5000000);
+  }
+
   std::string tfFileName;
   if (mCTFCounter >= mInput.maxTFs || (!mInput.ctfIDs.empty() && mSelIDEntry >= mInput.ctfIDs.size())) { // done
     LOG(INFO) << "All CTFs from selected range were injected, stopping";
@@ -310,7 +316,7 @@ void CTFReaderSpec::processDetector(DetID det, const CTFHeader& ctfHeader, Proce
 {
   if (mInput.detMask[det]) {
     const auto lbl = det.getName();
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({lbl}, sizeof(C));
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({lbl}, ctfHeader.detectors[det] ? sizeof(C) : 0);
     if (ctfHeader.detectors[det]) {
       C::readFromTree(bufVec, *(mCTFTree.get()), lbl, mCurrTreeEntry);
     } else if (!mInput.allowMissingDetectors) {
