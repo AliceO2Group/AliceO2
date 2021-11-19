@@ -59,6 +59,7 @@ struct InputSpec {
             std::vector<ConfigParamSpec> const& metadata_ = {});
   InputSpec(std::string binding,
             data_matcher::DataDescriptorMatcher&& matcher,
+            enum Lifetime lifetime_ = Lifetime::Timeframe,
             std::vector<ConfigParamSpec> const& metadata_ = {});
 
   /// A mnemonic name for the input spec.

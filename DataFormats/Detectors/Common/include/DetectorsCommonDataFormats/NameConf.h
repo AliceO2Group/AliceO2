@@ -49,6 +49,12 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   // Filename of general run parameters (GRP)
   static std::string getGRPFileName(const std::string_view prefix = STANDARDSIMPREFIX);
 
+  // Filename of general run parameters from ECS (GRPECS)
+  static std::string getGRPECSFileName(const std::string_view prefix = STANDARDSIMPREFIX);
+
+  // Filename of general run parameters fof B field (GRPMagField)
+  static std::string getGRPMagFieldFileName(const std::string_view prefix = STANDARDSIMPREFIX);
+
   // Filename to store kinematics + TrackRefs
   static std::string getMCKinematicsFileName(const std::string_view prefix = STANDARDSIMPREFIX)
   {
@@ -78,7 +84,7 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   static std::string getGeomFileName(const std::string_view prefix = "");
 
   // Filename to for decoding dictionaries
-  static std::string getAlpideClusterDictionaryFileName(DId det, const std::string_view prefix = "", const std::string_view ext = "");
+  static std::string getAlpideClusterDictionaryFileName(DId det, const std::string_view prefix = "", const std::string_view ext = "bin");
 
   // Filename to for noise maps
   static std::string getNoiseFileName(DId det, const std::string_view prefix = "", const std::string_view ext = "");
@@ -126,6 +132,8 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   static constexpr std::string_view HITS_STRING = "Hits";     // hardcoded
   static constexpr std::string_view DIGITS_STRING = "Digits"; // hardcoded
   static constexpr std::string_view GRP_STRING = "grp";       // hardcoded
+  static constexpr std::string_view GRPECS_STRING = "grpecs"; // hardcoded
+  static constexpr std::string_view GRPMAGFIELD_STRING = "grpMagField"; // hardcoded
   static constexpr std::string_view KINE_STRING = "Kine";     // hardcoded
   static constexpr std::string_view MCHEADER_STRING = "MCHeader"; // hardcoded
   static constexpr std::string_view GEOM_FILE_STRING = "geometry";
@@ -142,6 +150,8 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
 
   // these are configurable paths for some commonly used files
   std::string mDirGRP = "none";    // directory for GRP file ("none" == "")
+  std::string mDirGRPECS = "none"; // directory for GRPECS file ("none" == "")
+  std::string mDirGRPMagField = "none"; // directory for GRPMagField file ("none" == "")
   std::string mDirGeom = "none";   // directory for geometry file
   std::string mDirMatLUT = "none"; // directory for material LUT
   std::string mDirCollContext = "none"; // directory for collision context

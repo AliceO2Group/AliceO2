@@ -63,12 +63,14 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float maxTglCasc = 2.;    // maximum tgLambda of cascade
 
   // cuts on different V0 PID params
+  bool checkV0Hypothesis = true;
   float pidCutsPhoton[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.60, 0.0};   // Photon
   float pidCutsK0[SVertexHypothesis::NPIDParams] = {0.003, 20, 0.07, 0.5};       // K0
   float pidCutsLambda[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.07, 0.5};   // Lambda
   float pidCutsHTriton[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 0.5}; // HyperTriton
   //
   // cuts on different Cascade PID params
+  bool checkCascadeHypothesis = true;
   float pidCutsXiMinus[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.07, 0.5};    // XiMinus
   float pidCutsOmegaMinus[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.07, 0.5}; // OmegaMinus
 

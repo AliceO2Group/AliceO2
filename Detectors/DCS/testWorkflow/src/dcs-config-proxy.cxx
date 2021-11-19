@@ -81,7 +81,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     o2::header::DataOrigin dataOrigin = getDataOriginFromFilename(filename);
     if (dataOrigin == o2::header::gDataOriginInvalid) {
       LOG(ERROR) << "unknown detector for " << filename;
-      sendAnswer("error1: unrecognized filename", acknowledge, device);
+      sendAnswer(fmt::format("{}:error1: unrecognized filename", filename), acknowledge, device);
       return;
     }
 
@@ -91,7 +91,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     auto channel = channelRetriever(outsp, *timesliceId);
     if (channel.empty()) {
       LOG(ERROR) << "No output channel found for OutputSpec " << outsp;
-      sendAnswer("error2: no channel to send", acknowledge, device);
+      sendAnswer(fmt::format("{}:error2: no channel to send", filename), acknowledge, device);
       return;
     }
 

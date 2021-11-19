@@ -288,8 +288,8 @@ void GPUDisplay::HandleKey(unsigned char key)
     mCfgL.drawGrid ^= 1;
     SetInfo("Fast Cluster Search Grid %s", mCfgL.drawGrid ? "shown" : "hidden");
   } else if (key == 'x') {
-    mCfgL.excludeClusters ^= 1;
-    SetInfo(mCfgL.excludeClusters ? "Clusters of selected category are excluded from display" : "Clusters are shown", 1);
+    mCfgL.excludeClusters = (mCfgL.excludeClusters + 1) % 3;
+    SetInfo(mCfgL.excludeClusters ? "Clusters of selected category are excluded from display (%d)" : "Clusters are shown", mCfgL.excludeClusters);
   } else if (key == '.') {
     mCfgH.hideRejectedTracks ^= 1;
     SetInfo("Rejected tracks are %s", mCfgH.hideRejectedTracks ? "hidden" : "shown");

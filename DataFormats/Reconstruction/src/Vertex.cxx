@@ -38,6 +38,19 @@ void VertexBase::print() const
   std::cout << *this << std::endl;
 }
 
+bool VertexBase::operator==(const VertexBase& other) const
+{
+  if (mPos.X() != other.mPos.X() || mPos.Y() != other.mPos.Y() || mPos.Z() != other.mPos.Z()) {
+    return false;
+  }
+  for (int i = 0; i < kNCov; i++) {
+    if (mCov[i] != other.mCov[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 #endif
 
 } // namespace dataformats

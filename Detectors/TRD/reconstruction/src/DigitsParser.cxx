@@ -51,8 +51,7 @@ int DigitsParser::Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* 
   mDetector = detector;
   mStack = stack;
   mLayer = layer;
-  mSide = side;
-  mHalfSM = detector * 2 + mSide;
+  mHalfChamberSide = side;
   mStackLayer = mStack * constants::NLAYER + mLayer;
   mDigitHCHeader = hcheader;
   mFEEID = feeid;

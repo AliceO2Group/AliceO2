@@ -340,8 +340,9 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   const std::string NAStr = "NA";
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-
-  const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
+  const auto ref = pc.inputs().getFirstValid(true);
+  const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+  const auto dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
   auto oldRun = mRun;
   if (dh->runNumber != 0) {
     mRun = dh->runNumber;
@@ -397,7 +398,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   }
 
   // create header
-  CTFHeader header{mRun, dh->firstTForbit};
+  CTFHeader header{mRun, dph->creation, dh->firstTForbit};
   size_t szCTF = 0;
   szCTF += processDet<o2::itsmft::CTF>(pc, DetID::ITS, header, mCTFTreeOut.get());
   szCTF += processDet<o2::itsmft::CTF>(pc, DetID::MFT, header, mCTFTreeOut.get());

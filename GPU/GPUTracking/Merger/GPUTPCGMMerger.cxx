@@ -946,18 +946,18 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int nBlocks, int nThreads, int 
 
 GPUdii() void GPUTPCGMMerger::MergeBorderTracksSetup(int& n1, int& n2, GPUTPCGMBorderTrack*& b1, GPUTPCGMBorderTrack*& b2, int& jSlice, int iSlice, char withinSlice, char mergeMode)
 {
-  if (withinSlice == 1) {
+  if (withinSlice == 1) { // Merge tracks within the same slice
     jSlice = iSlice;
     n1 = n2 = mMemory->tmpCounter[iSlice];
     b1 = b2 = mBorder[iSlice];
-  } else if (withinSlice == -1) {
+  } else if (withinSlice == -1) { // Merge tracks accross the central electrode
     jSlice = (iSlice + NSLICES / 2);
     const int offset = mergeMode == 2 ? NSLICES : 0;
     n1 = mMemory->tmpCounter[iSlice + offset];
     n2 = mMemory->tmpCounter[jSlice + offset];
     b1 = mBorder[iSlice + offset];
     b2 = mBorder[jSlice + offset];
-  } else {
+  } else { // Merge tracks of adjacent slices
     jSlice = mNextSliceInd[iSlice];
     n1 = mMemory->tmpCounter[iSlice];
     n2 = mMemory->tmpCounter[NSLICES + jSlice];
@@ -1510,7 +1510,6 @@ struct GPUTPCGMMerger_CompareClusterIds {
 
 GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int iBlock, int iThread)
 {
-
   GPUTPCGMSliceTrack* trackParts[kMaxParts];
 
   for (int itr = iBlock * nThreads + iThread; itr < SliceTrackInfoLocalTotal(); itr += nThreads * nBlocks) {
@@ -1799,7 +1798,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
     mergedTrack.SetAlpha(p2.Alpha());
     const double kCLight = 0.000299792458;
     if (CAMath::Abs(Param().polynomialField.GetNominalBz()) < (0.01 * kCLight)) {
-      p1.QPt() = 0.01f * Param().rec.bz0Pt;
+      p1.QPt() = 100.f / Param().rec.bz0Pt10MeV;
     }
 
     // if (nParts > 1) printf("Merged %d: QPt %f %d parts %d hits\n", mMemory->nOutputTracks, p1.QPt(), nParts, nHits);
@@ -1810,7 +1809,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
       mergedTrack.SetNClusters(0);
     }
     if (mergedTrack.NClusters() && mergedTrack.OK()) */
-    {
+    if (Param().rec.tpc.mergeCE) {
       bool CEside;
       if (Param().par.earlyTpcTransform) {
         CEside = (mergedTrack.CSide() != 0) ^ (clXYZ[0].z > clXYZ[nHits - 1].z);

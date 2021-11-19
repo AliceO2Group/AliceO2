@@ -134,6 +134,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     }
 
     o2::emcal::RawReaderMemory rawreader(framework::DataRefUtils::as<const char>(rawData));
+    rawreader.setRangeSRUDDLs(0, 39);
 
     // loop over all the DMA pages
     while (rawreader.hasNext()) {

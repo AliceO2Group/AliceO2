@@ -46,6 +46,7 @@
 #include "TPCdEdxCalibrationSplines.h"
 #include "GPUTPCCFChainContext.h"
 #include "GPUTrackingRefit.h"
+#include "DataFormatsTPC/CalibdEdxCorrection.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif
@@ -235,8 +236,8 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("No TRD Tracker Output available");
     return false;
   }
-  if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCdEdx) && processors()->calibObjects.dEdxSplines == nullptr) {
-    GPUError("Cannot run dE/dx without calibration splines");
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCdEdx) && (processors()->calibObjects.dEdxSplines == nullptr || processors()->calibObjects.dEdxCorrection == nullptr)) {
+    GPUError("Cannot run dE/dx without calibration splines or time correction object");
     return false;
   }
   if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding) && processors()->calibObjects.tpcPadGain == nullptr) {
@@ -363,6 +364,9 @@ int GPUChainTracking::Init()
       mFlatObjectsShadow.mCalibObjects.dEdxSplines->setActualBufferAddress(mFlatObjectsShadow.mdEdxSplinesBuffer);
       mFlatObjectsShadow.mCalibObjects.dEdxSplines->setFutureBufferAddress(mFlatObjectsDevice.mdEdxSplinesBuffer);
     }
+    if (processors()->calibObjects.dEdxCorrection) {
+      memcpy((void*)mFlatObjectsShadow.mCalibObjects.dEdxCorrection, (const void*)processors()->calibObjects.dEdxCorrection, sizeof(*processors()->calibObjects.dEdxCorrection));
+    }
     if (processors()->calibObjects.matLUT) {
       memcpy((void*)mFlatObjectsShadow.mCalibObjects.matLUT, (const void*)processors()->calibObjects.matLUT, sizeof(*processors()->calibObjects.matLUT));
       memcpy((void*)mFlatObjectsShadow.mMatLUTBuffer, (const void*)processors()->calibObjects.matLUT->getFlatBufferPtr(), processors()->calibObjects.matLUT->getFlatBufferSize());
@@ -451,6 +455,9 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
     computePointerWithAlignment(mem, mCalibObjects.dEdxSplines, 1);
     computePointerWithAlignment(mem, mdEdxSplinesBuffer, mChainTracking->GetdEdxSplines()->getFlatBufferSize());
   }
+  if (mChainTracking->GetdEdxCorrection()) {
+    computePointerWithAlignment(mem, mCalibObjects.dEdxCorrection, 1);
+  }
   if (mChainTracking->GetMatLUT()) {
     computePointerWithAlignment(mem, mCalibObjects.matLUT, 1);
     computePointerWithAlignment(mem, mMatLUTBuffer, mChainTracking->GetMatLUT()->getFlatBufferSize());
@@ -510,6 +517,12 @@ void GPUChainTracking::SetdEdxSplines(std::unique_ptr<TPCdEdxCalibrationSplines>
 {
   mdEdxSplinesU = std::move(dEdxSplines);
   processors()->calibObjects.dEdxSplines = mdEdxSplinesU.get();
+}
+
+void GPUChainTracking::SetdEdxCorrection(std::unique_ptr<o2::tpc::CalibdEdxCorrection>&& dEdxCorrection)
+{
+  mdEdxCorrectionU = std::move(dEdxCorrection);
+  processors()->calibObjects.dEdxCorrection = mdEdxCorrectionU.get();
 }
 
 void GPUChainTracking::SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut)

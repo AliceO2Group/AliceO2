@@ -32,10 +32,8 @@ void FDDReconstructorDPL::init(InitContext& ic)
 
 void FDDReconstructorDPL::run(ProcessingContext& pc)
 {
-  if (mFinished) {
-    return;
-  }
   mRecPoints.clear();
+  mRecChData.clear();
   auto digitsBC = pc.inputs().get<gsl::span<o2::fdd::Digit>>("digitsBC");
   auto digitsCh = pc.inputs().get<gsl::span<o2::fdd::ChannelData>>("digitsCh");
   // RS: if we need to process MC truth, uncomment lines below
@@ -62,9 +60,6 @@ void FDDReconstructorDPL::run(ProcessingContext& pc)
   LOG(INFO) << "FDD reconstruction pushes " << mRecPoints.size() << " RecPoints";
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, mRecPoints);
   pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0, Lifetime::Timeframe}, mRecChData);
-
-  mFinished = true;
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getFDDReconstructorSpec(bool useMC)

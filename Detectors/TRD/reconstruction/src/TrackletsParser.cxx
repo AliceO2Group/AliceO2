@@ -44,14 +44,14 @@ inline void TrackletsParser::swapByteOrder(unsigned int& ui)
 int TrackletsParser::Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data,
                            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
                            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end,
-                           TRDFeeID feeid, int robside, int detector, int stack, int layer,
+                           TRDFeeID feeid, int halfchamberside, int detector, int stack, int layer,
                            EventRecord* eventrecord, EventStorage* eventrecords, std::bitset<16> options, bool cleardigits, int usetracklethcheader)
 {
   mStartParse = start;
   mEndParse = end;
   mDetector = detector;
   mFEEID = feeid;
-  mRobSide = robside;
+  mHalfChamberSide = halfchamberside;
   mStack = stack;
   mLayer = layer;
   mOptions = options;
@@ -278,12 +278,12 @@ int TrackletsParser::Parse()
             int col = mTrackletMCMHeader->col;
             int pos = mTrackletMCMData->pos;
             int slope = mTrackletMCMData->slope;
-            int hcid = mDetector * 2 + mRobSide;
-            if (mDataVerbose) {
+            int hcid = mDetector * 2 + mHalfChamberSide;
+            if (mHeaderVerbose) {
               if (mTrackletHCHeaderState) {
-                LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mRobSide << " " << mTrackletMCMHeader->padrow << ":" << mTrackletMCMHeader->col << " ---- " << mTrackletHCHeader->supermodule << ":" << mTrackletHCHeader->stack << ":" << mTrackletHCHeader->layer << ":" << mTrackletHCHeader->side << " rawhcheader : 0x" << std::hex << std::hex << mTrackletHCHeader->word;
+                LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mHalfChamberSide << " " << mTrackletMCMHeader->padrow << ":" << mTrackletMCMHeader->col << " ---- " << mTrackletHCHeader->supermodule << ":" << mTrackletHCHeader->stack << ":" << mTrackletHCHeader->layer << ":" << mTrackletHCHeader->side << " rawhcheader : 0x" << std::hex << std::hex << mTrackletHCHeader->word;
               } else {
-                LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mRobSide << " " << mTrackletMCMHeader->padrow << ":" << mTrackletMCMHeader->col;
+                LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mHalfChamberSide << " " << mTrackletMCMHeader->padrow << ":" << mTrackletMCMHeader->col;
               }
             }
             //TODO cross reference hcid to somewhere for a check. mDetector is assigned at the time of parser init.

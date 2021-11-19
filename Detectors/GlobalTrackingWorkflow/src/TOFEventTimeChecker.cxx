@@ -35,18 +35,23 @@
 
 // from TOF
 #include "TOFBase/Geo.h"
+#include "TOFBase/Utils.h"
 #include "DataFormatsTOF/Cluster.h"
 #include "TOFReconstruction/EventTimeMaker.h"
 //#include "GlobalTracking/MatchTOF.h"
 #include "GlobalTrackingWorkflow/TOFEventTimeChecker.h"
 
+#include "TSystem.h"
 #include "TFile.h"
 #include "TCanvas.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TTree.h"
 #include "TString.h"
 #include "TProfile.h"
 #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
+
+#define TDEBUG
 
 using namespace o2::framework;
 // using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
@@ -56,12 +61,30 @@ using DetID = o2::detectors::DetID;
 using evIdx = o2::dataformats::EvIndex<int, int>;
 using MatchOutputType = std::vector<o2::dataformats::MatchInfoTOF>;
 using GID = o2::dataformats::GlobalTrackID;
-using MyTrack = o2::tof::eventTimeTrackTest;
+
+struct MyTrack : o2::tof::eventTimeTrackTest {
+  double tofSignalDouble() const { return mSignalDouble; }
+  float tofExpTimeDe() const { return mExpDe; }
+  double mSignalDouble = 0.0;
+  float mEta = 0.0;
+  float mPhi = 0.0;
+  float mExpDe = 0;
+  int mIsProb = 0;
+  int mCh = -1;
+  float mChi2 = 0;
+  bool mHasTOF = false;
+  int mSource = -1;
+  double mTrktime = 0;
+  double mTrktimeRes = 0;
+  float mDx = 0;
+  float mDz = 0;
+};
+
 using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;
 
 bool MyFilter(const MyTrack& tr)
 {
-  return (tr.mP < 2.0);
+  return (tr.mP < 2.0 && tr.mEta > o2::tof::Utils::mEtaMin && tr.mEta < o2::tof::Utils::mEtaMax && tr.mHasTOF);
 } // accept all
 
 namespace o2
@@ -77,7 +100,7 @@ class TOFEventTimeChecker : public Task
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
-  void fillMatching(GID gid);
+  void fillMatching(GID gid, float time0, float time0res);
   void processEvent(std::vector<MyTrack>& tracks);
 
  private:
@@ -102,6 +125,37 @@ class TOFEventTimeChecker : public Task
   TProfile* mPBetavsPExpPi;
   TProfile* mPBetavsPExpKa;
   TProfile* mPBetavsPExpPr;
+  TH2F* mHMassvsP;
+  TProfile* mPMassvsPExpPi;
+  TProfile* mPMassvsPExpKa;
+  TProfile* mPMassvsPExpPr;
+  TH2F* mHTimevsResEvtimePi;
+  TH2F* mHEventTimevsResEvtime;
+  TFile* mFout;
+#ifdef TDEBUG
+  TTree* mTree;
+#endif
+  int mOrbit = 0;
+  int mCh;
+  float mP = 0;
+  float mPt = 0;
+  float mEta = 0;
+  float mPhi = 0;
+  float mChi2 = 0;
+  float mL = 0;
+  float mTof = 0;
+  float mT0 = 0;
+  float mT0Res = 0;
+  float mExpDe = 0;
+  float mExpPi = 0;
+  float mExpKa = 0;
+  float mExpPr = 0;
+  float mDx = 0;
+  float mDz = 0;
+  int mIsProb = 0;
+  int mSource = -1;
+  float mTrktime = 0;
+  float mTrktimeRes = 0;
   RecoContainer mRecoData;
   std::shared_ptr<DataRequest> mDataRequest;
   bool mUseMC = true;
@@ -110,124 +164,268 @@ class TOFEventTimeChecker : public Task
 
 void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
 {
+  int nBC = int(tracks[0].tofSignalDouble() * o2::tof::Geo::BC_TIME_INPS_INV);
+  for (auto& track : tracks) {
+    if (!o2::tof::Utils::hasFillScheme()) {
+      track.mSignal = float(track.mSignalDouble - double(o2::tof::Geo::BC_TIME_INPS) * nBC);
+      track.mTrktime = (track.mTrktime - double(o2::tof::Geo::BC_TIME_INPS) * nBC);
+    } else {
+      double localTime = track.mSignalDouble;
+
+      // get into orbit
+      int bcStarOrbit = int(localTime * o2::tof::Geo::BC_TIME_INPS_INV);
+      bcStarOrbit = (bcStarOrbit / o2::constants::lhc::LHCMaxBunches) * o2::constants::lhc::LHCMaxBunches; // truncation
+      localTime -= bcStarOrbit * o2::tof::Geo::BC_TIME_INPS;
+      track.mSignal = o2::tof::Utils::subtractInteractionBC(localTime);
+      localTime = track.mTrktime;
+      bcStarOrbit = int(localTime * o2::tof::Geo::BC_TIME_INPS_INV);
+      bcStarOrbit = (bcStarOrbit / o2::constants::lhc::LHCMaxBunches) * o2::constants::lhc::LHCMaxBunches; // truncation
+      localTime -= bcStarOrbit * o2::tof::Geo::BC_TIME_INPS;
+      track.mTrktime = o2::tof::Utils::subtractInteractionBC(localTime);
+    }
+  }
+
   auto evtime = o2::tof::evTimeMaker<std::vector<MyTrack>, MyTrack, MyFilter>(tracks);
+
+  if (evtime.eventTime - o2::tof::Utils::mLHCPhase < -2000 || evtime.eventTime - o2::tof::Utils::mLHCPhase > 2000) {
+    return;
+  }
   //
   const float cinv = 33.35641;
 
   int nt = 0;
   for (auto& track : tracks) {
+    mT0 = evtime.eventTime;
+    mT0Res = evtime.eventTimeError;
 
-    float et = evtime.eventTime;
-    float erret = evtime.eventTimeError;
-    float res = sqrt(track.tofExpSigmaPi() * track.tofExpSigmaPi() + erret * erret);
-
-    float sumw = 1. / erret / erret;
-    et *= sumw;
-    et -= evtime.weights[nt] * evtime.tracktime[nt];
+    float sumw = 1. / (mT0Res * mT0Res);
+    mT0 *= sumw;
+    mT0 -= evtime.weights[nt] * evtime.tracktime[nt];
     sumw -= evtime.weights[nt];
-    et /= sumw;
-    erret = sqrt(1. / sumw);
+    mT0 /= sumw;
+    mT0Res = sqrt(1. / sumw);
 
     nt++;
 
+    mCh = track.mCh;
+    mP = track.mP;
+    mPt = track.mPt;
+    mEta = track.mEta;
+    mSource = track.mSource;
+    mPhi = track.mPhi;
+    mChi2 = track.mChi2;
+    mL = track.mLength;
+    mTof = track.tofSignal();
+    mExpDe = track.tofExpTimeDe();
+    mExpPi = track.tofExpTimePi();
+    mExpKa = track.tofExpTimeKa();
+    mExpPr = track.tofExpTimePr();
+    mIsProb = track.mIsProb;
+    mTrktime = track.mTrktime;
+    mTrktimeRes = track.mTrktimeRes;
+    mDx = track.mDx;
+    mDz = track.mDz;
+
+#ifdef TDEBUG
+    mTree->Fill();
+#endif
+
+    // remove unphysical tracks
+    if (mTof - mT0 - mExpPi < -5000) {
+      continue;
+    }
+
     //Beta
-    float beta = track.mLength / (track.tofSignal() - et) * cinv;
-    float betaexpPi = track.mLength / (track.tofExpTimePi()) * cinv;
-    float betaexpKa = track.mLength / (track.tofExpTimeKa()) * cinv;
-    float betaexpPr = track.mLength / (track.tofExpTimePr()) * cinv;
+    float beta = mL / (mTof - mT0) * cinv;
+
+    float betaexpPi = mL / mExpPi * cinv;
+    float betaexpKa = mL / mExpKa * cinv;
+    float betaexpPr = mL / mExpPr * cinv;
 
     //Mass
-    float mass = track.mP / beta * TMath::Sqrt(TMath::Abs(1 - beta * beta));
-    float massexpPi = track.mP / betaexpPi * TMath::Sqrt(TMath::Abs(1 - betaexpPi * betaexpPi));
-    float massexpKa = track.mP / betaexpKa * TMath::Sqrt(TMath::Abs(1 - betaexpKa * betaexpKa));
-    float massexpPr = track.mP / betaexpPr * TMath::Sqrt(TMath::Abs(1 - betaexpPr * betaexpPr));
+    float mass = mP / beta * TMath::Sqrt(TMath::Abs(1 - beta * beta));
+    float massexpPi = mP / betaexpPi * TMath::Sqrt(TMath::Abs(1 - betaexpPi * betaexpPi));
+    float massexpKa = mP / betaexpKa * TMath::Sqrt(TMath::Abs(1 - betaexpKa * betaexpKa));
+    float massexpPr = mP / betaexpPr * TMath::Sqrt(TMath::Abs(1 - betaexpPr * betaexpPr));
+
+    if (massexpPi < 0.13) { // remove wrong track lengths
+      continue;
+    }
 
     //Fill histos
-    mHTimePi->Fill(track.tofSignal() - et - track.tofExpTimePi());
-    mHTimeKa->Fill(track.tofSignal() - et - track.tofExpTimeKa());
-    mHTimePr->Fill(track.tofSignal() - et - track.tofExpTimePr());
+    mHTimePi->Fill(mTof - mT0 - mExpPi);
+    mHTimeKa->Fill(mTof - mT0 - mExpKa);
+    mHTimePr->Fill(mTof - mT0 - mExpPr);
     mHMass->Fill(mass);
     mHMassExpPi->Fill(massexpPi);
     mHMassExpKa->Fill(massexpKa);
     mHMassExpPr->Fill(massexpPr);
-    mHBetavsP->Fill(track.mP, beta);
-    mPBetavsPExpPi->Fill(track.mP, betaexpPi);
-    mPBetavsPExpKa->Fill(track.mP, betaexpKa);
-    mPBetavsPExpPr->Fill(track.mP, betaexpPr);
-    mHTimePivsP->Fill(track.mP, track.tofSignal() - et - track.tofExpTimePi());
-    mHTimeKvsP->Fill(track.mP, track.tofSignal() - et - track.tofExpTimeKa());
-    mHTimePrvsP->Fill(track.mP, track.tofSignal() - et - track.tofExpTimePr());
+    mHBetavsP->Fill(mP, beta);
+    mPBetavsPExpPi->Fill(mP, betaexpPi);
+    mPBetavsPExpKa->Fill(mP, betaexpKa);
+    mPBetavsPExpPr->Fill(mP, betaexpPr);
+    mHTimePivsP->Fill(mP, mTof - mT0 - mExpPi);
+    mHTimeKvsP->Fill(mP, mTof - mT0 - mExpKa);
+    mHTimePrvsP->Fill(mP, mTof - mT0 - mExpPr);
+    mHMassvsP->Fill(mP, mass);
+    mPMassvsPExpPi->Fill(mP, massexpPi);
+    mPMassvsPExpKa->Fill(mP, massexpKa);
+    mPMassvsPExpPr->Fill(mP, massexpPr);
+    if (mP > 0.7 && mP < 1.1) {
+      mHTimevsResEvtimePi->Fill(mT0Res, mTof - mT0 - mExpPi);
+    }
+    mHEventTimevsResEvtime->Fill(mT0Res, mT0);
   }
 }
 
-void TOFEventTimeChecker::fillMatching(GID gid)
+void TOFEventTimeChecker::fillMatching(GID gid, float time0, float time0res)
 {
-  if (!gid.includesDet(DetID::TOF)) {
-    return;
-  }
-  const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
-  const o2::track::TrackLTIntegral& info = match.getLTIntegralOut();
-
   MyTrack trk;
+  trk.mHasTOF = true;
+
+  if (!gid.includesDet(DetID::TOF)) {
+    trk.mHasTOF = false;
+  }
+
+  trk.mTrktime = time0 * 1E6;
+  trk.mTrktimeRes = time0res * 1E6;
+
+  trk.mDx = 0;
+  trk.mDz = 0;
+
   int trksource = 5;
   if (gid.getSource() == GID::TPCTOF) {
+    const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
     const auto& array = mRecoData.getTPCTracks();
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
     trk.mPt = srctrk.getPt();
     trk.mP = srctrk.getP();
+    trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
+    trk.mDx = match.getDXatTOF();
+    trk.mDz = match.getDZatTOF();
+    trksource = 0;
+  } else if (gid.getSource() == GID::TPC) {
+    const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
+    const auto& array = mRecoData.getTPCTracks();
+    GID gTrackId = gid;
+    const auto& srctrk = array[gTrackId.getIndex()];
+    trk.mPt = srctrk.getPt();
+    trk.mP = srctrk.getP();
+    trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
     trksource = 0;
   } else if (gid.getSource() == GID::ITSTPCTOF) {
+    const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
     const auto& array = mRecoData.getTPCITSTracks();
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
     trk.mPt = srctrk.getPt();
-    trk.mP = srctrk.getPt();
+    trk.mP = srctrk.getP();
+    trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
     trksource = 1;
+    trk.mTrktime = srctrk.getTimeMUS().getTimeStamp() * 1E6;
+    trk.mTrktimeRes = srctrk.getTimeMUS().getTimeStampError() * 1E6;
+    trk.mDx = match.getDXatTOF();
+    trk.mDz = match.getDZatTOF();
+  } else if (gid.getSource() == GID::ITSTPC) {
+    const auto& array = mRecoData.getTPCITSTracks();
+    GID gTrackId = gid; //match.getTrackRef();
+    const auto& srctrk = array[gTrackId.getIndex()];
+    trk.mPt = srctrk.getPt();
+    trk.mP = srctrk.getP();
+    trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
+    trksource = 1;
+    trk.mTrktime = srctrk.getTimeMUS().getTimeStamp() * 1E6;
+    trk.mTrktimeRes = srctrk.getTimeMUS().getTimeStampError() * 1E6;
   } else if (gid.getSource() == GID::TPCTRDTOF) {
+    const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
     const auto& array = mRecoData.getTPCTRDTracks<o2::trd::TrackTRD>();
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
     trk.mPt = srctrk.getPt();
-    trk.mP = srctrk.getPt();
+    trk.mP = srctrk.getP();
+    trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
     trksource = 2;
+    trk.mDx = match.getDXatTOF();
+    trk.mDz = match.getDZatTOF();
   } else if (gid.getSource() == GID::ITSTPCTRDTOF) {
+    const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
     const auto& array = mRecoData.getITSTPCTRDTracks<o2::trd::TrackTRD>();
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
     trk.mPt = srctrk.getPt();
-    trk.mP = srctrk.getPt();
+    trk.mP = srctrk.getP();
+    trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
     trksource = 3;
+    trk.mDx = match.getDXatTOF();
+    trk.mDz = match.getDZatTOF();
   }
+
+  trk.mSource = trksource;
 
   const char* sources[5] = {"TPC", "ITS-TPC", "TPC-TRD", "ITS-TPC-TRD", "NONE"};
 
-  trk.expTimes[0] = info.getTOF(2); // pi
-  trk.expTimes[1] = info.getTOF(3); // ka
-  trk.expTimes[2] = info.getTOF(4); // pr
-  trk.expSigma[0] = 120;            // dummy resolution (to be updated)
-  trk.expSigma[1] = 120;            // dummy resolution (to be updated)
-  trk.expSigma[2] = 120;            // dummy resolution (to be updated)
+  if (trk.mHasTOF) {
+    const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
+    const o2::track::TrackLTIntegral& info = match.getLTIntegralOut();
 
-  int tofcl = match.getIdxTOFCl();
-  //  trk.mSignal = mTOFClustersArrayInp[tofcl].getTime();
-  double tofsignal = match.getSignal();
-  static int nBC = 0;
-  if (mMyTracks.size() == 0) { // first track of the event (first in time) -> update nBC
-    nBC = int(tofsignal * o2::tof::Geo::BC_TIME_INPS_INV);
+    if (info.getL() < 370) {
+      //      trk.mHasTOF = false;
+    }
+
+    trk.mExpDe = info.getTOF(5);      // el
+    trk.expTimes[0] = info.getTOF(2); // pi
+    trk.expTimes[1] = info.getTOF(3); // ka
+    trk.expTimes[2] = info.getTOF(4); // pr
+    trk.expSigma[0] = 120;            // dummy resolution (to be updated)
+    trk.expSigma[1] = 120;            // dummy resolution (to be updated)
+    trk.expSigma[2] = 120;            // dummy resolution (to be updated)
+
+    trk.mChi2 = match.getChi2();
+
+    int tofcl = match.getIdxTOFCl();
+    //  trk.mSignal = mTOFClustersArrayInp[tofcl].getTime();
+    double tofsignal = match.getSignal();
+
+    trk.mSignalDouble = tofsignal;
+
+    //trk.mSignal = match.getSignal();
+    trk.mTOFChi2 = match.getChi2();
+    trk.mLength = info.getL();
+    //  trk.mHypo = 0;
+    trk.mCh = mTOFClustersArrayInp[tofcl].getMainContributingChannel();
+
+    if (mSlewing) { // let's calibrate
+      trk.mIsProb = mSlewing->isProblematic(trk.mCh);
+      if (mSlewing->isProblematic(trk.mCh)) {
+        //      LOG(DEBUG) << "skip channel " << trk.mCh << " since problematic";
+        //      return;
+      }
+      float tot = mTOFClustersArrayInp[tofcl].getTot();
+      trk.mSignalDouble -= mSlewing->evalTimeSlewing(trk.mCh, tot);
+      LOG(DEBUG) << "calibration -> " << mSlewing->evalTimeSlewing(trk.mCh, tot);
+    }
   }
-
-  trk.mSignal = float(tofsignal - double(o2::tof::Geo::BC_TIME_INPS) * nBC);
-  //trk.mSignal = match.getSignal();
-  trk.mTOFChi2 = match.getChi2();
-  trk.mLength = info.getL();
-  //  trk.mHypo = 0;
-
-  if (mSlewing) { // let's calibrate
-    int ch = mTOFClustersArrayInp[tofcl].getMainContributingChannel();
-    float tot = mTOFClustersArrayInp[tofcl].getTot();
-    trk.mSignal -= mSlewing->evalTimeSlewing(ch, tot);
-    LOG(INFO) << "calibration -> " << mSlewing->evalTimeSlewing(ch, tot);
+  if (!trk.mHasTOF) {
+    trk.mExpDe = 0;
+    trk.expTimes[0] = 0;
+    trk.expTimes[1] = 0;
+    trk.expTimes[2] = 0;
+    trk.expSigma[0] = 0; // dummy resolution (to be updated)
+    trk.expSigma[1] = 0; // dummy resolution (to be updated)
+    trk.expSigma[2] = 0; // dummy resolution (to be updated)
+    trk.mSignalDouble = time0 * 1E6;
+    trk.mTOFChi2 = 9999;
+    trk.mLength = 0;
+    trk.mCh = -1;
+    trk.mChi2 = 0;
+    trk.mIsProb = 0;
   }
 
   mMyTracks.push_back(trk);
@@ -237,6 +435,18 @@ void TOFEventTimeChecker::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
+
+  // extrct orbit from dir
+  std::string dir = gSystem->GetWorkingDirectory();
+  if (dir.find("orbit") < dir.size()) {
+    dir.erase(0, dir.find("orbit") + 5);
+    dir.erase(dir.find("_"), dir.size());
+    while (dir.size() && dir[0] == '0') {
+      dir.erase(0, 1);
+    }
+    sscanf(dir.c_str(), "%d", &mOrbit);
+  }
+
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry("", false);
   o2::base::Propagator::initFieldFromGRP();
@@ -247,20 +457,53 @@ void TOFEventTimeChecker::init(InitContext& ic)
     mSlewing = (TimeSlewing*)fsleewing->Get("ccdb_object");
   }
 
+  mFout = new TFile("TOFperformance.root", "recreate");
+
   mHTimePi = new TH1F("HTimePi", ";t_{TOF} - t_{exp}^{#pi} (ps)", 500, -5000, 5000);
   mHTimeKa = new TH1F("HTimeKa", ";t_{TOF} - t_{exp}^{K} (ps)", 500, -5000, 5000);
   mHTimePr = new TH1F("HTimePr", ";t_{TOF} - t_{exp}^{p} (ps)", 500, -5000, 5000);
   mHMass = new TH1F("HMass", ";M (GeV/#it{c}^{2})", 1000, 0, 2.);
-  mHMassExpPi = new TH1F("mHMassExpPi", ";M(#beta_{exp}^{#pi}) (GeV/#it{c}^{2})", 1000, 0, 2.);
-  mHMassExpKa = new TH1F("mHMassExpKa", ";M(#beta_{exp}^{K}) (GeV/#it{c}^{2})", 1000, 0, 2.);
-  mHMassExpPr = new TH1F("mHMassExpPr", ";M(#beta_{exp}^{p}) (GeV/#it{c}^{2})", 1000, 0, 2.);
+  mHMassExpPi = new TH1F("HMassExpPi", ";M(#beta_{exp}^{#pi}) (GeV/#it{c}^{2})", 1000, 0, 2.);
+  mHMassExpKa = new TH1F("HMassExpKa", ";M(#beta_{exp}^{K}) (GeV/#it{c}^{2})", 1000, 0, 2.);
+  mHMassExpPr = new TH1F("HMassExpPr", ";M(#beta_{exp}^{p}) (GeV/#it{c}^{2})", 1000, 0, 2.);
   mHBetavsP = new TH2F("HBetavsP", ";#it{p} (GeV/#it{c});TOF #beta", 1000, 0., 5, 1000, 0., 1.5);
-  mPBetavsPExpPi = new TProfile("mPBetavsPExpPi", ";#it{p} (GeV/#it{c}); #beta_{exp}^{#pi}", 1000, 0., 5, 0., 1.5);
-  mPBetavsPExpKa = new TProfile("mPBetavsPExpKa", ";#it{p} (GeV/#it{c}); #beta_{exp}^{K}", 1000, 0., 5, 0., 1.5);
-  mPBetavsPExpPr = new TProfile("mPBetavsPExpPr", ";#it{p} (GeV/#it{c}); #beta_{exp}^{p}", 1000, 0., 5, 0., 1.5);
-  mHTimePivsP = new TH2F("mHTimePivsP", ";#it{p} (GeV/#it{c});t_{TOF} - t_{exp}^{#pi} (ps)", 500, 0., 5, 500, -5000, 5000);
-  mHTimeKvsP = new TH2F("mHTimeKavsP", ";#it{p} (GeV/#it{c});t_{TOF} - t_{exp}^{K} (ps)", 500, 0., 5, 500, -5000, 5000);
-  mHTimePrvsP = new TH2F("mHTimePrvsP", ";#it{p} (GeV/#it{c});t_{TOF} - t_{exp}^{p} (ps)", 500, 0., 5, 500, -5000, 5000);
+  mPBetavsPExpPi = new TProfile("PBetavsPExpPi", ";#it{p} (GeV/#it{c}); #beta_{exp}^{#pi}", 1000, 0., 5, 0., 1.5);
+  mPBetavsPExpKa = new TProfile("PBetavsPExpKa", ";#it{p} (GeV/#it{c}); #beta_{exp}^{K}", 1000, 0., 5, 0., 1.5);
+  mPBetavsPExpPr = new TProfile("PBetavsPExpPr", ";#it{p} (GeV/#it{c}); #beta_{exp}^{p}", 1000, 0., 5, 0., 1.5);
+  mHTimePivsP = new TH2F("HTimePivsP", ";#it{p} (GeV/#it{c});t_{TOF} - t_{exp}^{#pi} (ps)", 500, 0., 5, 500, -5000, 5000);
+  mHTimeKvsP = new TH2F("HTimeKavsP", ";#it{p} (GeV/#it{c});t_{TOF} - t_{exp}^{K} (ps)", 500, 0., 5, 500, -5000, 5000);
+  mHTimePrvsP = new TH2F("HTimePrvsP", ";#it{p} (GeV/#it{c});t_{TOF} - t_{exp}^{p} (ps)", 500, 0., 5, 500, -5000, 5000);
+  mHMassvsP = new TH2F("HMassvsP", ";#it{p} (GeV/#it{c}); M (GeV/#it{c}^{2})", 1000, 0., 5, 1000, 0., 2.);
+  mPMassvsPExpPi = new TProfile("PMassvsPExpPi", ";#it{p} (GeV/#it{c}); M(#beta_{exp}^{#pi}) [GeV/#it{c}^{2}]", 1000, 0., 5, 0., 2.);
+  mPMassvsPExpKa = new TProfile("PMassvsPExpKa", ";#it{p} (GeV/#it{c}); M(#beta_{exp}^{K}) [GeV/#it{c}^{2}]", 1000, 0., 5, 0., 2.);
+  mPMassvsPExpPr = new TProfile("PMassvsPExpPr", ";#it{p} (GeV/#it{c}); M(#beta_{exp}^{p}) [GeV/#it{c}^{2}]", 1000, 0., 5, 0., 2.);
+  mHTimevsResEvtimePi = new TH2F("HTimevsResEvtimePi", "0.7 < p < 1.1 GeV/#it{c};TOF event time resolution (ps);t_{TOF} - t_{exp}^{#pi} (ps)", 200, 0., 200, 500, -5000, 5000);
+  mHEventTimevsResEvtime = new TH2F("HEventTimevsResEvtime", ";TOF event time resolution (ps); TOF event time (ps)", 100, 0, 200, 5000, -20000, 20000);
+
+#ifdef TDEBUG
+  mTree = new TTree("tree", "tree");
+  mTree->Branch("orbit", &mOrbit, "orbit/I");
+  mTree->Branch("ch", &mCh, "ch/I");
+  mTree->Branch("isProb", &mIsProb, "isProb/I");
+  mTree->Branch("p", &mP, "p/F");
+  mTree->Branch("pt", &mPt, "pt/F");
+  mTree->Branch("source", &mSource, "source/I");
+  mTree->Branch("eta", &mEta, "eta/F");
+  mTree->Branch("phi", &mPhi, "phi/F");
+  mTree->Branch("chi2", &mChi2, "chi2/F");
+  mTree->Branch("l", &mL, "l/F");
+  mTree->Branch("tof", &mTof, "tof/F");
+  mTree->Branch("t0", &mT0, "t0/F");
+  mTree->Branch("t0res", &mT0Res, "t0res/F");
+  mTree->Branch("trkTime", &mTrktime, "trkTime/F");
+  mTree->Branch("trkTimeRes", &mTrktimeRes, "trkTimeRes/F");
+  mTree->Branch("dx", &mDx, "dx/F");
+  mTree->Branch("dz", &mDz, "dz/F");
+  mTree->Branch("expDe", &mExpDe, "expDe/F");
+  mTree->Branch("expPi", &mExpPi, "expPi/F");
+  mTree->Branch("expKa", &mExpKa, "expKa/F");
+  mTree->Branch("expPr", &mExpPr, "expPr/F");
+#endif
 }
 
 void TOFEventTimeChecker::run(ProcessingContext& pc)
@@ -288,35 +531,35 @@ void TOFEventTimeChecker::run(ProcessingContext& pc)
   }
 
   auto creator = [this](auto& trk, GID gid, float time0, float terr) {
-    this->fillMatching(gid);
+    this->fillMatching(gid, time0, terr);
     return true;
   };
   mRecoData.createTracksVariadic(creator);
 
   // sorting matching in time
   std::sort(mMyTracks.begin(), mMyTracks.end(),
-            [](MyTrack a, MyTrack b) { return a.tofSignal() < b.tofSignal(); });
+            [](MyTrack a, MyTrack b) { return a.tofSignalDouble() < b.tofSignalDouble(); });
 
   for (auto& element : mMyTracks) { // loop print
-    LOG(INFO) << "Time cluster = " << element.tofSignal() << " ps - pt = " << element.pt();
+    LOG(DEBUG) << "Time cluster = " << element.tofSignal() << " ps - pt = " << element.pt();
   }
 
   std::vector<MyTrack> tracks;
   for (int i = 0; i < mMyTracks.size(); i++) { // loop looking for interaction candidates
     tracks.clear();
     int ntrk = 1;
-    double time = mMyTracks[i].tofSignal();
+    double time = mMyTracks[i].tofSignalDouble();
     tracks.emplace_back(mMyTracks[i]);
     for (; i < mMyTracks.size(); i++) {
-      double timeCurrent = mMyTracks[i].tofSignal();
-      if (timeCurrent - time > 25E3) {
+      double timeCurrent = mMyTracks[i].tofSignalDouble();
+      if (timeCurrent - time > 100E3) {
         i--;
         break;
       }
       tracks.emplace_back(mMyTracks[i]);
       ntrk++;
     }
-    if (ntrk > 2) { // good candidate with time
+    if (ntrk > 0) { // good candidate with time
       processEvent(tracks);
     }
   }
@@ -329,7 +572,10 @@ void TOFEventTimeChecker::endOfStream(EndOfStreamContext& ec)
   LOGF(DEBUG, "TOF matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 
-  TFile* write = new TFile("TOFperformance.root", "recreate");
+  mFout->cd();
+#ifdef TDEBUG
+  mTree->Write();
+#endif
   mHTimePi->Write();
   mHTimeKa->Write();
   mHTimePr->Write();
@@ -344,6 +590,13 @@ void TOFEventTimeChecker::endOfStream(EndOfStreamContext& ec)
   mHTimePivsP->Write();
   mHTimeKvsP->Write();
   mHTimePrvsP->Write();
+  mHMassvsP->Write();
+  mPMassvsPExpPi->Write();
+  mPMassvsPExpKa->Write();
+  mPMassvsPExpPr->Write();
+  mHTimevsResEvtimePi->Write();
+  mHEventTimevsResEvtime->Write();
+  mFout->Close();
 }
 
 DataProcessorSpec getTOFEventTimeCheckerSpec(GID::mask_t src, bool useMC)

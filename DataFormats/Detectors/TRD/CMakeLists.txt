@@ -20,6 +20,7 @@ o2_add_library(DataFormatsTRD
                        src/CTF.cxx
                        src/Digit.cxx
                        src/KrCluster.cxx
+                       src/NoiseCalibration.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::SimulationDataFormat)
 
 o2_target_root_dictionary(DataFormatsTRD
@@ -36,6 +37,7 @@ o2_target_root_dictionary(DataFormatsTRD
                        include/DataFormatsTRD/Digit.h
                        include/DataFormatsTRD/KrCluster.h
                        include/DataFormatsTRD/KrClusterTriggerRecord.h
+                       include/DataFormatsTRD/NoiseCalibration.h
                        include/DataFormatsTRD/CTF.h
                        include/DataFormatsTRD/CalVdriftExB.h
                        include/DataFormatsTRD/SignalArray.h

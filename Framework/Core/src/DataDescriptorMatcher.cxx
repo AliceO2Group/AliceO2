@@ -15,6 +15,7 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/VariantHelpers.h"
 #include "Framework/RuntimeError.h"
+#include "Headers/Stack.h"
 #include <iostream>
 
 namespace o2::framework::data_matcher

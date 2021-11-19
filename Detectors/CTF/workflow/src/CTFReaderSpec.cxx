@@ -82,7 +82,8 @@ class CTFReaderSpec : public o2::framework::Task
   void stopReader();
   template <typename C>
   void processDetector(DetID det, const CTFHeader& ctfHeader, ProcessingContext& pc) const;
-  void setFirstTFOrbit(const CTFHeader& ctfHeader, const std::string& lbl, ProcessingContext& pc) const;
+  void setMessageHeader(const CTFHeader& ctfHeader, const std::string& lbl, ProcessingContext& pc) const;
+  void tryToFixCTFHeader(CTFHeader& ctfHeader) const;
   CTFReaderInp mInput{};
   std::unique_ptr<o2::utils::FileFetcher> mFileFetcher;
   std::unique_ptr<TFile> mCTFFile;
@@ -219,11 +220,15 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   if (!readFromTree(*(mCTFTree.get()), "CTFHeader", ctfHeader, mCurrTreeEntry)) {
     throw std::runtime_error("did not find CTFHeader");
   }
+  if (ctfHeader.creationTime == 0) { // try to repair header with ad hoc data
+    tryToFixCTFHeader(ctfHeader);
+  }
+
   LOG(INFO) << ctfHeader;
 
   // send CTF Header
   pc.outputs().snapshot({"header"}, ctfHeader);
-  setFirstTFOrbit(ctfHeader, "header", pc);
+  setMessageHeader(ctfHeader, "header", pc);
 
   processDetector<o2::itsmft::CTF>(DetID::ITS, ctfHeader, pc);
   processDetector<o2::itsmft::CTF>(DetID::MFT, ctfHeader, pc);
@@ -248,7 +253,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
     stfDist.id = uint64_t(mCurrTreeEntry);
     stfDist.firstOrbit = ctfHeader.firstTForbit;
     stfDist.runNumber = uint32_t(ctfHeader.run);
-    setFirstTFOrbit(ctfHeader, "STFDist", pc);
+    setMessageHeader(ctfHeader, "STFDist", pc);
   }
 
   auto entryStr = fmt::format("({} of {} in {})", mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
@@ -285,15 +290,18 @@ void CTFReaderSpec::checkTreeEntries()
 }
 
 ///_______________________________________
-void CTFReaderSpec::setFirstTFOrbit(const CTFHeader& ctfHeader, const std::string& lbl, ProcessingContext& pc) const
+void CTFReaderSpec::setMessageHeader(const CTFHeader& ctfHeader, const std::string& lbl, ProcessingContext& pc) const
 {
-  auto* hd = pc.outputs().findMessageHeader({lbl});
-  if (!hd) {
-    throw std::runtime_error(fmt::format("failed to find output message header for {}", lbl));
+  auto* stack = pc.outputs().findMessageHeaderStack({lbl});
+  if (!stack) {
+    throw std::runtime_error(fmt::format("failed to find output message header stack for {}", lbl));
   }
-  hd->firstTForbit = ctfHeader.firstTForbit;
-  hd->tfCounter = mCTFCounter;
-  hd->runNumber = uint32_t(ctfHeader.run);
+  auto dh = const_cast<o2::header::DataHeader*>(o2::header::get<o2::header::DataHeader*>(stack));
+  dh->firstTForbit = ctfHeader.firstTForbit;
+  dh->tfCounter = mCTFCounter;
+  dh->runNumber = uint32_t(ctfHeader.run);
+  auto dph = const_cast<o2::framework::DataProcessingHeader*>(o2::header::get<o2::framework::DataProcessingHeader*>(stack));
+  dph->creation = ctfHeader.creationTime;
 }
 
 ///_______________________________________
@@ -308,7 +316,54 @@ void CTFReaderSpec::processDetector(DetID det, const CTFHeader& ctfHeader, Proce
     } else if (!mInput.allowMissingDetectors) {
       throw std::runtime_error(fmt::format("Requested detector {} is missing in the CTF", lbl));
     }
-    setFirstTFOrbit(ctfHeader, lbl, pc);
+    setMessageHeader(ctfHeader, lbl, pc);
+  }
+}
+
+///_______________________________________
+void CTFReaderSpec::tryToFixCTFHeader(CTFHeader& ctfHeader) const
+{
+  // HACK: fix CTFHeader for the pilot beam runs, where the TF creation time was not recorded
+  struct RunStartData {
+    uint32_t run = 0;
+    uint32_t firstTForbit = 0;
+    uint64_t tstampMS0 = 0;
+  };
+  const std::vector<RunStartData> tf0Data{
+    {505207, 133875, 1635322620830},
+    {505217, 14225007, 1635328375618},
+    {505278, 1349340, 1635376882079},
+    {505285, 1488862, 1635378517248},
+    {505303, 2615411, 1635392586314},
+    {505397, 5093945, 1635454778123},
+    {505404, 19196217, 1635456032855},
+    {505405, 28537913, 1635456862913},
+    {505406, 41107641, 1635457980628},
+    {505413, 452530, 1635460562613},
+    {505440, 13320708, 1635472436927},
+    {505443, 26546564, 1635473613239},
+    {505446, 177711, 1635477270241},
+    {505548, 88037114, 1635544414050},
+    {505582, 295044346, 1635562822389},
+    {505600, 417241082, 1635573688564},
+    {505623, 10445984, 1635621310460},
+    {505629, 126979, 1635623289756},
+    {505637, 338969, 1635630909893},
+    {505645, 188222, 1635634560881},
+    {505658, 81044, 1635645404694},
+    {505669, 328291, 1635657807147},
+    {505673, 30988, 1635659148972},
+    {505713, 620506, 1635725054798},
+    {505720, 5359903, 1635730673978}};
+  if (ctfHeader.run >= tf0Data.front().run && ctfHeader.run <= tf0Data.back().run) {
+    for (const auto& tf0 : tf0Data) {
+      if (ctfHeader.run == tf0.run) {
+        ctfHeader.creationTime = tf0.tstampMS0;
+        int64_t offset = std::ceil((ctfHeader.firstTForbit - tf0.firstTForbit) * o2::constants::lhc::LHCOrbitMUS * 1e-3);
+        ctfHeader.creationTime += offset > 0 ? offset : 0;
+        break;
+      }
+    }
   }
 }
 

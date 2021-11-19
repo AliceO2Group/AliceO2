@@ -49,11 +49,13 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     auto& seedP = mTracksPool[POS][itp];
     int firstN = mVtxFirstTrack[NEG][seedP.vBracket.getMin()];
     if (firstN < 0) {
+      LOG(DEBUG) << "No partner is found for pos.track " << itp << " out of " << ntrP;
       continue;
     }
     for (int itn = firstN; itn < ntrN; itn++) { // start from the 1st negative track of lowest-ID vertex of positive
       auto& seedN = mTracksPool[NEG][itn];
       if (seedN.vBracket > seedP.vBracket) { // all vertices compatible with seedN are in future wrt that of seedP
+        LOG(DEBUG) << "Brackets do not match";
         break;
       }
 #ifdef WITH_OPENMP
@@ -231,6 +233,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   float rv0 = std::sqrt(r2v0), drv0P = rv0 - seedP.minR, drv0N = rv0 - seedN.minR;
   if (drv0P > mSVParams->causalityRTolerance || drv0P < -mSVParams->maxV0ToProngsRDiff ||
       drv0N > mSVParams->causalityRTolerance || drv0N < -mSVParams->maxV0ToProngsRDiff) {
+    LOG(DEBUG) << "RejCausality " << drv0P << " " << drv0N;
     return false;
   }
 
@@ -250,9 +253,11 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   std::array<float, 3> pV0 = {pP[0] + pN[0], pP[1] + pN[1], pP[2] + pN[2]};
   float pt2V0 = pV0[0] * pV0[0] + pV0[1] * pV0[1], prodXYv0 = dxv0 * pV0[0] + dyv0 * pV0[1], tDCAXY = prodXYv0 / pt2V0;
   if (pt2V0 < mMinPt2V0) { // pt cut
+    LOG(DEBUG) << "RejPt2 " << pt2V0;
     return false;
   }
   if (pV0[2] * pV0[2] / pt2V0 > mMaxTgl2V0) { // tgLambda cut
+    LOG(DEBUG) << "RejTgL " << pV0[2] * pV0[2] / pt2V0;
     return false;
   }
   float p2V0 = pt2V0 + pV0[2] * pV0[2], ptV0 = std::sqrt(pt2V0);
@@ -266,17 +271,19 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
       goodHyp = hypCheckStatus[ipid] = true;
     }
   }
-  if (!goodHyp) {
+  if (!goodHyp && mSVParams->checkV0Hypothesis) {
+    LOG(DEBUG) << "RejHypo";
     return false;
   }
 
-  bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]);
+  bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]));
   bool rejectIfNotCascade = false;
   float dcaX = dxv0 - pV0[0] * tDCAXY, dcaY = dyv0 - pV0[1] * tDCAXY, dca2 = dcaX * dcaX + dcaY * dcaY;
   float cosPAXY = prodXYv0 / std::sqrt(r2v0 * pt2V0);
 
   if (checkForCascade) { // use loser cuts for cascade v0 candidates
     if (dca2 > mMaxDCAXY2ToMeanVertexV0Casc || cosPAXY < mSVParams->minCosPAXYMeanVertexCascV0) {
+      LOG(DEBUG) << "Rej for cascade DCAXY2: " << dca2 << " << cosPAXY: " << cosPAXY;
       return false;
     }
   }
@@ -298,6 +305,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     float dx = v0XYZ[0] - pv.getX(), dy = v0XYZ[1] - pv.getY(), dz = v0XYZ[2] - pv.getZ(), prodXYZv0 = dx * pV0[0] + dy * pV0[1] + dz * pV0[2];
     float cosPA = prodXYZv0 / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
     if (cosPA < bestCosPA) {
+      LOG(DEBUG) << "Rej. cosPA: " << cosPA;
       continue;
     }
     if (!added) {
@@ -318,10 +326,10 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // check cascades
   if (checkForCascade) {
     int nCascAdded = 0;
-    if (hypCheckStatus[HypV0::Lambda]) {
+    if (hypCheckStatus[HypV0::Lambda] || !mSVParams->checkCascadeHypothesis) {
       nCascAdded += checkCascades(rv0, pV0, p2V0, iN, NEG, ithread);
     }
-    if (hypCheckStatus[HypV0::AntiLambda]) {
+    if (hypCheckStatus[HypV0::AntiLambda] || !mSVParams->checkCascadeHypothesis) {
       nCascAdded += checkCascades(rv0, pV0, p2V0, iP, POS, ithread);
     }
     if (!nCascAdded && rejectIfNotCascade) { // v0 would be accepted only if it creates a cascade

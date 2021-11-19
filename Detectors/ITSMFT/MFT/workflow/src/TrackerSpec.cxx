@@ -87,9 +87,9 @@ void TrackerDPL::init(InitContext& ic)
   }
 
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath, "bin");
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
-    mDict.readBinaryFile(dictFile);
+    mDict.readFromFile(dictFile);
     LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
   } else {
     LOG(INFO) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";

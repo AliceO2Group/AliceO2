@@ -37,6 +37,7 @@
 #include <iostream>
 #include <mutex>
 #include <boost/interprocess/sync/named_semaphore.hpp>
+#include <regex>
 
 namespace o2
 {
@@ -586,11 +587,12 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
   return result;
 }
 
-void CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp) const
+bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata,
+                           long timestamp, bool preservePath, std::string const& localFileName) const
 {
 
   // we setup the target path for this blob
-  std::string fulltargetdir = targetdir + '/' + path;
+  std::string fulltargetdir = targetdir + '/' + (preservePath ? path : "");
 
   if (!std::filesystem::exists(fulltargetdir)) {
     if (!std::filesystem::create_directories(fulltargetdir)) {
@@ -598,11 +600,28 @@ void CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
     }
   }
 
-  std::string targetpath = fulltargetdir + "/snapshot.root";
+  // retrieveHeaders
+  auto headers = retrieveHeaders(path, metadata, timestamp);
+  // determine local filename --> use user given one / default -- or if empty string determine from content
+  auto getFileName = [&headers, &path]() {
+    auto& s = headers["Content-Disposition"];
+    if (s != "") {
+      std::regex re("(.*;)filename=\"(.*)\"");
+      std::cmatch m;
+      if (std::regex_match(s.c_str(), m, re)) {
+        return m[2].str();
+      }
+    }
+    std::string backupname("ccdb-blob.bin");
+    LOG(ERROR) << "Cannot determine original filename from Content-Disposition ... falling back to " << backupname;
+    return backupname;
+  };
+  auto filename = localFileName.size() > 0 ? localFileName : getFileName();
+  std::string targetpath = fulltargetdir + "/" + filename;
   FILE* fp = fopen(targetpath.c_str(), "w");
   if (!fp) {
     std::cerr << " Could not open/create target file " << targetpath << "\n";
-    return;
+    return false;
   }
 
   // Prepare CURL
@@ -659,14 +678,20 @@ void CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
     // trying to append metadata to the file so that it can be inspected WHERE/HOW/WHAT IT corresponds to
     // Just a demonstrator for the moment
     CCDBQuery querysummary(path, metadata, timestamp);
-    // retrieveHeaders
-    auto headers = retrieveHeaders(path, metadata, timestamp);
-    std::lock_guard<std::mutex> guard(gIOMutex);
-    TFile snapshotfile(targetpath.c_str(), "UPDATE");
-    snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
-    snapshotfile.WriteObjectAny(&headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
-    snapshotfile.Close();
+
+    // If the blob is a ROOT file, we'll attach meta information inside, otherwise we leave the blob
+    // as it is. Let's find out via some heuristics
+    // a) The filename/if available ends with ROOT
+    // b) we find the ObjectType field in the headers
+    if (headers["Content-Disposition"].find(".root") != std::string::npos && headers["ObjectType"].size() > 0) {
+      std::lock_guard<std::mutex> guard(gIOMutex);
+      TFile snapshotfile(targetpath.c_str(), "UPDATE");
+      snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
+      snapshotfile.WriteObjectAny(&headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
+      snapshotfile.Close();
+    }
   }
+  return success;
 }
 
 void CcdbApi::snapshot(std::string const& ccdbrootpath, std::string const& localDir, long timestamp) const

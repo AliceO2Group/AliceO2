@@ -99,7 +99,23 @@ class codeFile:
     inds = [i for i, x in enumerate(words) if x.txt == 'template']
     for ind in inds:
       line = O2DMT.block(words[ind:])
-      tempBlock = O2DMT.lineInBrackets("{","}",line,True)
+      
+      # templates can come without {} block!
+      # find out what comes first '{' or ';'
+      if ';' in line:
+        ci = line.index(';')
+        o1 = ci+1
+        if '{' in line:
+          o1 = line.index('{')
+        if ci < o1:
+          tempBlock = line[:ci]
+        else:
+          [oi, ci] = O2DMT.findInBrackets("{","}",line)
+          tempBlock = line[:ci]
+      else:
+        [oi, ci] = O2DMT.findInBrackets("{","}",line)
+        tempBlock = line[:ci]
+      
       if len(tempBlock) == 0:
         continue
         
@@ -108,7 +124,9 @@ class codeFile:
       argWords = tempLine.split(',')
       tempArgs = list()
       for arg in argWords:
-        tempArgs.append(arg.split()[-1])
+        kvpair = arg.split()
+        if len(kvpair) == 2:
+          tempArgs.append(kvpair[-1])
       
       # find struct within tempBlock
       tempWords = O2DMT.split(tempBlock)
@@ -133,7 +151,6 @@ class codeFile:
       # update restLine
       eob = nchFullLine - len(line)
       restLine += fullLine[sob:eob]
-      [oi, ci] = O2DMT.findInBrackets("{","}",line)
       sob = eob+ci+1
     
     # update restLine

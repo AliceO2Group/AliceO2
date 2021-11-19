@@ -26,6 +26,7 @@
 #include "PHOSBase/Hit.h"
 #include "PHOSSimulation/Detector.h"
 #include "PHOSSimulation/GeometryParams.h"
+#include "PHOSBase/PHOSSimParams.h"
 
 #include "DetectorsBase/GeometryManager.h"
 #include "SimulationDataFormat/Stack.h"
@@ -78,7 +79,6 @@ void Detector::FinishEvent()
 {
   // Sort Hits
   // Add duplicates if any and remove them
-  // TODO: Apply Poisson smearing of light production
   if (!mHits || mHits->size() == 0) {
     return;
   }
@@ -104,14 +104,14 @@ void Detector::FinishEvent()
 
   mHits->erase(itr, mHits->end());
 
-  /*
-        std::ostream stream(nullptr);
-        stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
-  //      stream.rdbuf(LOG(DEBUG2));
-      for (int i = 0; i < mHits->size(); i++) {
-         mHits->at(i).PrintStream(stream);
-        }
-  */
+  //Apply Poisson smearing of light production
+  first = mHits->begin();
+  last = mHits->end();
+  while (first != last) {
+    float light = gRandom->Poisson(first->GetEnergyLoss() * o2::phos::PHOSSimParams::Instance().mLightYieldPerGeV);
+    first->SetEnergyLoss(light / o2::phos::PHOSSimParams::Instance().mLightYieldPerGeV);
+    first++;
+  }
 }
 void Detector::Reset()
 {
@@ -889,7 +889,7 @@ void Detector::ConstructSupportGeometry()
   fMC->Gspos("PCRE", 1, "PCRA", 0.0, 0.0, 0.0, 0, "ONLY");
 
   for (i = 0; i < 2; i++) {
-    z0 = (2 * i - 1) * (geom->getOuterBoxSize(2) + geom->getCradleWall(2)) / 2.0;
+    z0 = (2 * i - 1) * (geom->getOuterBoxSize(2) + geom->getCradleWall(2) + 2. * geom->getModuleCraddleGap()) / 2.0;
     fMC->Gspos("PCRA", i, "barrel", 0.0, 30.0, z0, 0, "ONLY");
   }
 
@@ -902,7 +902,7 @@ void Detector::ConstructSupportGeometry()
 
   y0 = -(geom->getRailsDistanceFromIP() - geom->getRailRoadSize(1) - geom->getCradleWheel(1) / 2);
   for (i = 0; i < 2; i++) {
-    z0 = (2 * i - 1) * ((geom->getOuterBoxSize(2) + geom->getCradleWheel(2)) / 2.0 + geom->getCradleWall(2));
+    z0 = (2 * i - 1) * ((geom->getOuterBoxSize(2) + geom->getCradleWheel(2) + 2. * geom->getModuleCraddleGap()) / 2.0 + geom->getCradleWall(2));
     for (j = 0; j < 2; j++) {
       copy = 2 * i + j;
       x0 = (2 * j - 1) * geom->getDistanceBetwRails() / 2.0;

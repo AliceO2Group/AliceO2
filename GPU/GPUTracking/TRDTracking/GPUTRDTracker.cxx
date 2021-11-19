@@ -102,7 +102,7 @@ void* GPUTRDTracker_t<TRDTRK, PROP>::SetPointersTracks(void* base)
 }
 
 template <class TRDTRK, class PROP>
-GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t() : mR(nullptr), mIsInitialized(false), mGenerateSpacePoints(false), mProcessPerTimeFrame(false), mNAngleHistogramBins(25), mAngleHistogramRange(50), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxCollisions(0), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mTrackAttribs(nullptr), mNCandidates(1), mNTracks(0), mNEvents(0), mMaxThreads(100), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mGeo(nullptr), mRPhiA2(0), mRPhiB(0), mRPhiC2(0), mDyA2(0), mDyB(0), mDyC2(0), mAngleToDyA(0), mAngleToDyB(0), mAngleToDyC(0), mDebugOutput(false), mMaxEta(0.84f), mExtraRoadY(2.f), mRoadZ(18.f), mZCorrCoefNRC(1.4f), mTPCVdrift(2.58f), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
+GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t() : mR(nullptr), mIsInitialized(false), mGenerateSpacePoints(false), mProcessPerTimeFrame(false), mNAngleHistogramBins(25), mAngleHistogramRange(50), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxCollisions(0), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mTrackAttribs(nullptr), mNCandidates(1), mNTracks(0), mNEvents(0), mMaxThreads(100), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mGeo(nullptr), mRPhiA2(0), mRPhiB(0), mRPhiC2(0), mDyA2(0), mDyB(0), mDyC2(0), mAngleToDyA(0), mAngleToDyB(0), mAngleToDyC(0), mDebugOutput(false), mMaxEta(0.84f), mRoadZ(18.f), mZCorrCoefNRC(1.4f), mTPCVdrift(2.58f), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
 {
   //--------------------------------------------------------------------
   // Default constructor
@@ -650,9 +650,9 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       }
 
       // define search window
-      roadY = 7.f * CAMath::Sqrt(trkWork->getSigmaY2() + 0.1f * 0.1f) + mExtraRoadY; // add constant to the road to account for uncertainty due to radial deviations (few mm)
+      roadY = 7.f * CAMath::Sqrt(trkWork->getSigmaY2() + 0.1f * 0.1f) + Param().rec.trd.extraRoadY; // add constant to the road to account for uncertainty due to radial deviations (few mm)
       // roadZ = 7.f * CAMath::Sqrt(trkWork->getSigmaZ2() + 9.f * 9.f / 12.f); // take longest pad length
-      roadZ = mRoadZ; // simply twice the longest pad length -> efficiency 99.996%
+      roadZ = mRoadZ + Param().rec.trd.extraRoadZ; // simply twice the longest pad length -> efficiency 99.996%
       //
       if (CAMath::Abs(trkWork->getZ() + zShiftTrk) - roadZ >= zMaxTRD) {
         if (ENABLE_INFO) {
@@ -721,10 +721,11 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
             RecalcTrkltCov(tilt, trkWork->getSnp(), pad->GetRowSize(tracklets[trkltIdx].GetZbin()), trkltCovTmp);
             float chi2 = prop->getPredictedChi2(trkltPosTmpYZ, trkltCovTmp);
             // TODO cut on angular pull should be made stricter when proper v-drift calibration for the TRD tracklets is implemented
-            if (chi2 < Param().rec.trd.maxChi2 && CAMath::Abs(GetAngularPull(spacePoints[trkltIdx].getDy(), trkWork->getSnp())) < 4) {
-              Hypothesis hypo(trkWork->getNlayersFindable(), iCandidate, trkltIdx, trkWork->getChi2() + chi2);
-              InsertHypothesis(hypo, nCurrHypothesis, hypothesisIdxOffset);
-            } // end tracklet chi2 < Param().rec.trd.maxChi2
+            if ((chi2 > Param().rec.trd.maxChi2) || (Param().rec.trd.applyDeflectionCut && CAMath::Abs(GetAngularPull(spacePoints[trkltIdx].getDy(), trkWork->getSnp())) > 4)) {
+              continue;
+            }
+            Hypothesis hypo(trkWork->getNlayersFindable(), iCandidate, trkltIdx, trkWork->getChi2() + chi2);
+            InsertHypothesis(hypo, nCurrHypothesis, hypothesisIdxOffset);
           }   // end tracklet in window
         }     // tracklet loop
       }       // chamber loop

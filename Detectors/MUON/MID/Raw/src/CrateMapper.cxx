@@ -16,11 +16,14 @@
 
 #include "MIDRaw/CrateMapper.h"
 
-#include <sstream>
+#include <algorithm>
+#include <array>
 #include <exception>
+#include "fmt/format.h"
 #include "DataFormatsMID/ROBoard.h"
 #include "MIDBase/DetectorParameters.h"
 #include "MIDRaw/CrateParameters.h"
+#include "MIDRaw/GBTMapper.h"
 
 namespace o2
 {
@@ -146,7 +149,9 @@ void CrateMapper::init()
         hasDirectInputY = true;
       }
     }
-    mHasDirectInputY.emplace(item.first, hasDirectInputY);
+    if (hasDirectInputY) {
+      mLocIdsWithDirectInputY.emplace(item.first);
+    }
   }
 }
 
@@ -155,9 +160,7 @@ uint8_t CrateMapper::deLocalBoardToRO(uint8_t deId, uint8_t columnId, uint8_t li
   /// Converts the local board ID in  in MT11 right to the local board ID in FEE
   auto item = mDEToROMap.find(deBoardId(detparams::getRPCLine(deId), columnId, lineId));
   if (item == mDEToROMap.end()) {
-    std::stringstream ss;
-    ss << "Non-existent deId: " << static_cast<int>(deId) << "  columnId: " << static_cast<int>(columnId) << "  lineId: " << static_cast<int>(lineId);
-    throw std::runtime_error(ss.str());
+    throw std::runtime_error(fmt::format("Non-existent deId: {:d}  columnId: {:d}  lineId: {:d}", deId, columnId, lineId));
   }
   return detparams::isRightSide(deId) ? item->second : item->second + (crateparams::sNCratesPerSide << 4);
 }
@@ -165,25 +168,32 @@ uint8_t CrateMapper::deLocalBoardToRO(uint8_t deId, uint8_t columnId, uint8_t li
 uint16_t CrateMapper::roLocalBoardToDE(uint8_t uniqueLocId) const
 {
   /// Converts the local board ID in FEE to the local board ID in MT11 right
-  auto item = mROToDEMap.find(getUniqueLocIdRight(uniqueLocId));
+  auto item = mROToDEMap.find(getROBoardIdRight(uniqueLocId));
   if (item == mROToDEMap.end()) {
-    std::stringstream ss;
-    ss << "Non-existent crateId: " << raw::getCrateId(uniqueLocId) << "  boardId: " << raw::getLocId(uniqueLocId);
-    throw std::runtime_error(ss.str());
+    throw std::runtime_error(fmt::format("Non-existent crateId: {:d}  boardId: {:d}", raw::getCrateId(uniqueLocId), raw::getLocId(uniqueLocId)));
   }
   return item->second;
 }
 
-bool CrateMapper::hasDirectInputY(uint8_t uniqueLocId) const
+std::vector<uint8_t> CrateMapper::getROBoardIds(uint16_t gbtUniqueId) const
 {
-  /// Returns true if the local board ID has a direct Y input from the FEE
-  auto item = mHasDirectInputY.find(getUniqueLocIdRight(uniqueLocId));
-  if (item == mHasDirectInputY.end()) {
-    std::stringstream ss;
-    ss << "Non-existent crateId: " << raw::getCrateId(uniqueLocId) << "  boardId: " << raw::getLocId(uniqueLocId);
-    throw std::runtime_error(ss.str());
+  std::vector<uint8_t> roBoardIds;
+  std::array<uint8_t, 2> offsets{0, 0x80};
+  for (auto& item : mROToDEMap) {
+    // For simplicity, the map only contains one side
+    // So we loop on the two sides
+    for (auto& off : offsets) {
+      auto locId = item.first + off;
+      if (gbtUniqueId != 0xFFFF) {
+        if (!gbtmapper::isBoardInGBT(locId, gbtUniqueId)) {
+          continue;
+        }
+      }
+      roBoardIds.emplace_back(locId);
+    }
   }
-  return item->second;
+  std::sort(roBoardIds.begin(), roBoardIds.end());
+  return roBoardIds;
 }
 
 } // namespace mid

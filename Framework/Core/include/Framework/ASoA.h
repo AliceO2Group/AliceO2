@@ -2000,7 +2000,7 @@ class FilteredPolicy : public T
 
   iterator iteratorAt(uint64_t i)
   {
-    return mFilteredBegin + (i - this->mOffset);
+    return mFilteredBegin + i;
   }
 
   int64_t size() const

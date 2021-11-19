@@ -33,12 +33,14 @@ o2_add_library(TPCCalibration
                        src/IDCFourierTransform.cxx
                        src/RobustAverage.cxx
                        src/IDCCCDBHelper.cxx
-                       src/dEdxHistos.cxx
                        src/CalibdEdx.cxx
+                       src/CalibratordEdx.cxx
+                       src/TrackDump.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBase
                                      O2::TPCReconstruction ROOT::Minuit
                                      Microsoft.GSL::GSL
                                      O2::DetectorsCalibration
+                                     O2::GPUO2Interface
                                      O2::CCDB)
 
 o2_target_root_dictionary(TPCCalibration
@@ -65,8 +67,9 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/IDCFourierTransformBase.h
                                   include/TPCCalibration/IDCFourierTransform.h
                                   include/TPCCalibration/IDCCCDBHelper.h
-                                  include/TPCCalibration/dEdxHistos.h
-                                  include/TPCCalibration/CalibdEdx.h)
+                                  include/TPCCalibration/CalibdEdx.h
+                                  include/TPCCalibration/CalibratordEdx.h
+                                  include/TPCCalibration/TrackDump.h)
 
 o2_add_executable(dcs-sim-workflow
                   COMPONENT_NAME tpc

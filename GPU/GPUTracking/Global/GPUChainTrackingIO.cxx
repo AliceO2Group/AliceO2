@@ -42,6 +42,7 @@
 #include "GPUHostDataTypes.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCdEdxCalibrationSplines.h"
+#include "DataFormatsTPC/CalibdEdxCorrection.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif
@@ -291,6 +292,11 @@ void GPUChainTracking::DumpSettings(const char* dir)
     f += "dedxsplines.dump";
     DumpFlatObjectToFile(processors()->calibObjects.dEdxSplines, f.c_str());
   }
+  if (processors()->calibObjects.dEdxCorrection != nullptr) {
+    f = dir;
+    f += "dedxcorrection.dump";
+    DumpStructToFile(processors()->calibObjects.dEdxCorrection, f.c_str());
+  }
   if (processors()->calibObjects.matLUT != nullptr) {
     f = dir;
     f += "matlut.dump";
@@ -321,6 +327,10 @@ void GPUChainTracking::ReadSettings(const char* dir)
   f += "dedxsplines.dump";
   mdEdxSplinesU = ReadFlatObjectFromFile<TPCdEdxCalibrationSplines>(f.c_str());
   processors()->calibObjects.dEdxSplines = mdEdxSplinesU.get();
+  f = dir;
+  f += "dedxcorrection.dump";
+  mdEdxCorrectionU = ReadStructFromFile<o2::tpc::CalibdEdxCorrection>(f.c_str());
+  processors()->calibObjects.dEdxCorrection = mdEdxCorrectionU.get();
   f = dir;
   f += "matlut.dump";
   mMatLUTU = ReadFlatObjectFromFile<o2::base::MatLayerCylSet>(f.c_str());

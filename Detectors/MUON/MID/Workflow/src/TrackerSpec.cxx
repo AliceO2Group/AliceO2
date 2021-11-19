@@ -47,7 +47,7 @@ class TrackerDeviceDPL
 
     mTracker = std::make_unique<Tracker>(createTransformationFromManager(gGeoManager));
 
-    if (!mTracker->init()) {
+    if (!mTracker->init(true)) {
       LOG(ERROR) << "Initialization of MID tracker device failed";
     }
 

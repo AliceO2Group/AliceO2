@@ -120,12 +120,12 @@ void RunGPUTracking(bool useLUT = true,
 
   o2::itsmft::TopologyDictionary dict;
   if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", "bin");
+    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
   }
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
     LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
-    dict.readBinaryFile(dictfile);
+    dict.readFromFile(dictfile);
   } else {
     LOG(INFO) << "Running without dictionary !";
   }

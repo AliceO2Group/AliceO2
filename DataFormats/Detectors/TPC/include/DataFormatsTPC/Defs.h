@@ -65,6 +65,25 @@ enum class PadSubset : char {
   Region     ///< Regions (up to 36*10)
 };
 
+// TPC dE/dx charge types
+enum ChargeType {
+  Max = 0,
+  Tot = 1
+};
+constexpr unsigned short CHARGETYPES = 2;
+
+/// GEM stack identification
+struct StackID {
+  int sector{};
+  GEMstack type{};
+
+  /// Single number identification for the stacks
+  GPUdi() int index() const
+  {
+    return sector + type * SECTORSPERSIDE * SIDES;
+  }
+};
+
 /// Statistics type
 enum class StatisticsType {
   GausFit,     ///< Use slow gaus fit (better fit stability)

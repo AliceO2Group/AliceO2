@@ -28,31 +28,7 @@ using namespace o2::phos;
 //_______________________________________________________________________
 void Digitizer::init()
 {
-  if (!mCalibParams) {
-    if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mCalibParams.reset(new CalibParams(1)); // test default calibration
-      LOG(INFO) << "[PHOSDigitizer] No reading calibration from ccdb requested, set default";
-    } else {
-      LOG(ERROR) << "[PHOSDigitizer] can not get calibration object from ccdb yet";
-      // o2::ccdb::CcdbApi ccdb;
-      // std::map<std::string, std::string> metadata; // do we want to store any meta data?
-      // ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
-      // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, mEventTime);
-      // if (!mCalibParams) {
-      //   LOG(FATAL) << "[PHOSDigitizer] can not get calibration object from ccdb";
-      // }
-    }
-  }
-  if (!mTrigUtils) {
-    if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mTrigUtils.reset(new TriggerMap(0)); // test default calibration
-      LOG(INFO) << "[PHOSDigitizer] No reading trigger map from ccdb requested, set default";
-    } else {
-      LOG(ERROR) << "[PHOSDigitizer] can not get trigger map object from ccdb yet";
-    }
-  }
 }
-
 //_______________________________________________________________________
 void Digitizer::finish() {}
 
@@ -65,7 +41,47 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
   // Add hits with energy deposition in same cell and same time
   // Add energy corrections
   // Apply time smearing
-  // //Despite sorting in Detector::EndEvent(), hits still can be unsorted due to splitting of processing different bunches of primary
+
+  if (!mCalibParams) {
+    //By default MC simulations are performed with realistic but not real calibration parameters
+    //This allows to account digitization detorioration and revert energy assuming ideal calibration
+    //or one can use modified calibration in clusterer to emulate inaccuracy of calibration.
+    //However, one can request digitization with special calibration parameters, e.g. real ones
+    //by pointing to proper CCDB
+    if (o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath.compare("default") == 0) {
+      //Use default calibration
+      mCalibParams.reset(new CalibParams(1)); // test default calibration
+      LOG(INFO) << "Use default calibration";
+    } else {
+      o2::ccdb::CcdbApi ccdb;
+      std::map<std::string, std::string> metadata;
+      ccdb.init(o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath);
+      mCalibParams.reset(ccdb.retrieveFromTFileAny<CalibParams>("PHS/Calib/CalibParams", metadata, mRunStartTime));
+      if (mCalibParams) {
+        LOG(INFO) << "Use calibration from CCDB " << o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath;
+      } else {
+        LOG(FATAL) << "Can not get calibration object from ccdb " << o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath;
+      }
+    }
+  }
+  if (!mTrigUtils) {
+    if (o2::phos::PHOSSimParams::Instance().mDigitizationTrigPath.compare("default") == 0) {
+      mTrigUtils.reset(new TriggerMap(0)); // test default calibration
+      LOG(INFO) << "Use default trigger map and turn-on curves";
+    } else {
+      o2::ccdb::CcdbApi ccdb;
+      std::map<std::string, std::string> metadata;
+      ccdb.init(o2::phos::PHOSSimParams::Instance().mDigitizationTrigPath);
+      mTrigUtils.reset(ccdb.retrieveFromTFileAny<TriggerMap>("PHS/Calib/Trigger", metadata, mRunStartTime));
+      if (mTrigUtils) {
+        LOG(INFO) << "Use trigger map and turn-on curves from " << o2::phos::PHOSSimParams::Instance().mDigitizationTrigPath;
+      } else {
+        LOG(FATAL) << "Can not get trigger object from ccdb " << o2::phos::PHOSSimParams::Instance().mDigitizationTrigPath;
+      }
+    }
+  }
+
+  //Despite sorting in Detector::EndEvent(), hits still can be unsorted due to splitting of processing different bunches of primary
   for (int i = NCHANNELS; i--;) {
     mArrayD[i].reset();
   }

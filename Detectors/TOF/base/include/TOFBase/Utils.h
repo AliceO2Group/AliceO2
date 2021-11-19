@@ -39,6 +39,12 @@ class Utils
   static void init();
   static void printFillScheme();
 
+  // info can be tuned
+  static float mEventTimeSpread;
+  static float mEtaMin;
+  static float mEtaMax;
+  static float mLHCPhase;
+
  private:
   static std::vector<int> mFillScheme;
   static int mBCmult[o2::constants::lhc::LHCMaxBunches];

@@ -86,9 +86,9 @@ void TRDGlobalTracking::init(InitContext& ic)
 
   // this is a hack to provide ITS dictionary from the local file, in general will be provided by the framework from CCDB
   auto dictFile = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFile, "bin");
+  dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFile);
   if (o2::utils::Str::pathExists(dictFile)) {
-    mITSDict.readBinaryFile(dictFile);
+    mITSDict.readFromFile(dictFile);
     LOG(INFO) << "Matching is running with a provided ITS dictionary: " << dictFile;
   } else {
     LOG(INFO) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
@@ -192,6 +192,8 @@ void TRDGlobalTracking::fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lbl
 
 void TRDGlobalTracking::fillTrackTriggerRecord(const std::vector<TrackTRD>& tracks, std::vector<TrackTriggerRecord>& trigRec, const gsl::span<const o2::trd::TriggerRecord>& trackletTrigRec) const
 {
+  // after the tracking is done we assemble here a TrackTriggerRecord similar to the TriggerRecord
+  // which for each TRD trigger stored the found tracks
   int currTrigRec = 0;
   int nTracksCurr = 0;
   int iTrackFirst = 0;
@@ -267,6 +269,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     if (mChainTracking->mIOPtrs.trdTrigRecMask[iTrig] == 0) {
       foundFilteredTrigger = true;
     }
+    LOGF(DEBUG, "TRD trigger %i added with time %f", iTrig, mChainTracking->mIOPtrs.trdTriggerTimes[iTrig]);
   }
   if (!foundFilteredTrigger && mTrigRecFilter) {
     static bool warningSent = false;
@@ -295,7 +298,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       continue;
     }
     ++nTracksLoadedITSTPC;
-    LOGF(DEBUG, "Loaded ITS-TPC track %i with time %f", nTracksLoadedITSTPC, trkAttribs.mTime);
+    LOGF(DEBUG, "Loaded ITS-TPC track %i with time %f. Window from %f to %f", nTracksLoadedITSTPC, trkAttribs.mTime, trkAttribs.mTime - trkAttribs.mTimeSubMax, trkAttribs.mTime + trkAttribs.mTimeAddMax);
   }
   // load TPC-only tracks
   for (int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nOutputTracksTPCO2; ++iTrk) {
@@ -319,7 +322,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       continue;
     }
     ++nTracksLoadedTPC;
-    LOGF(DEBUG, "Loaded TPC track %i with time %f", nTracksLoadedTPC, trkAttribs.mTime);
+    LOGF(DEBUG, "Loaded TPC track %i with time %f. Window from %f to %f", nTracksLoadedTPC, trkAttribs.mTime, trkAttribs.mTime - trkAttribs.mTimeSubMax, trkAttribs.mTime + trkAttribs.mTimeAddMax);
   }
   LOGF(INFO, "%i tracks are loaded into the TRD tracker. Out of those %i ITS-TPC tracks and %i TPC tracks", nTracksLoadedITSTPC + nTracksLoadedTPC, nTracksLoadedITSTPC, nTracksLoadedTPC);
 
@@ -659,7 +662,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
       outputs.emplace_back(o2::header::gDataOriginTRD, "MCLB_TPC_TRD", ss, Lifetime::Timeframe);
     }
     if (trigRecFilterActive) {
-      LOG(ERROR) << "Matching to TPC-only tracks requested, but IR without ITS contribution are filtered out. This does not lead to a crash, but it deteriorates the matching efficiency.";
+      LOG(INFO) << "Matching to TPC-only tracks requested, but IRs without ITS contribution are filtered out (used strict matching mode to constrain TPC tracks before matching to ITS)";
     }
   }
 

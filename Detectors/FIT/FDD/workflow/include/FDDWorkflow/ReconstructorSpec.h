@@ -35,7 +35,6 @@ class FDDReconstructorDPL : public Task
   void run(ProcessingContext& pc) final;
 
  private:
-  bool mFinished = false;
   bool mUseMC = true;
   std::vector<o2::fdd::RecPoint> mRecPoints;
   std::vector<o2::fdd::ChannelDataFloat> mRecChData;

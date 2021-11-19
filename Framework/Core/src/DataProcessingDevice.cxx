@@ -1168,9 +1168,10 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         auto payload = currentSetOfInputs[i].payload(partindex).get();
         return DataRef{nullptr,
                        static_cast<char const*>(header->GetData()),
-                       static_cast<char const*>(payload ? payload->GetData() : nullptr)};
+                       static_cast<char const*>(payload ? payload->GetData() : nullptr),
+                       payload ? payload->GetSize() : 0};
       }
-      return DataRef{nullptr, nullptr, nullptr};
+      return DataRef{};
     };
     auto nofPartsGetter = [&currentSetOfInputs](size_t i) -> size_t {
       return currentSetOfInputs[i].size();
@@ -1407,7 +1408,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     }
 
     prepareAllocatorForCurrentTimeSlice(TimesliceSlot{action.slot});
-    InputSpan span = getInputSpan(action.slot, action.op == CompletionPolicy::CompletionOp::Consume);
+    bool shouldConsume = action.op == CompletionPolicy::CompletionOp::Consume ||
+                         action.op == CompletionPolicy::CompletionOp::Discard;
+    InputSpan span = getInputSpan(action.slot, shouldConsume);
     InputRecord record{context.deviceContext->spec->inputs, span};
     ProcessingContext processContext{record, *context.registry, *context.allocator};
     {

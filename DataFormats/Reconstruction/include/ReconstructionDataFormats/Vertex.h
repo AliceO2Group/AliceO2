@@ -94,6 +94,9 @@ class VertexBase
   }
   GPUd() void setCov(const gpu::gpustd::array<float, kNCov>& cov) { mCov = cov; }
 
+  bool operator==(const VertexBase& other) const;
+  bool operator!=(const VertexBase& other) const { return !(*this == other); }
+
  protected:
   math_utils::Point3D<float> mPos{0., 0., 0.}; ///< cartesian position
   gpu::gpustd::array<float, kNCov> mCov{};     ///< errors, see CovElems enum

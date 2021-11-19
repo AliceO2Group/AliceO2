@@ -36,7 +36,7 @@ class TrackReader : public Task
 {
  public:
   TrackReader(bool useMC = true);
-  ~TrackReader() override = default;
+  ~TrackReader() override { delete mCluRefVecInp; }
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
@@ -51,7 +51,8 @@ class TrackReader : public Task
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
 
-  bool mUseMC = true; // use MC truth
+  bool mUseMC = true;         ///< use MC truth
+  bool mSkipClusRefs = false; ///< skip reading cluster references
 
   std::string mInputFileName = "tpctracks.root";
   std::string mTrackTreeName = "tpcrec";

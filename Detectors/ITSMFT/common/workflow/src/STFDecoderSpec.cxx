@@ -82,7 +82,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mNoiseName = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().noiseFilePath;
   }
   mNoiseName = o2::base::NameConf::getNoiseFileName(detID, mNoiseName, "root");
-  mDictName = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mDictName, "bin");
+  mDictName = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mDictName);
 
   try {
     mNThreads = std::max(1, ic.options().get<int>("nthreads"));

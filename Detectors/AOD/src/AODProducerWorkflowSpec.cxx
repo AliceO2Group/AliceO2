@@ -82,6 +82,7 @@ void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddR
                                         gsl::span<const o2::fv0::RecPoints>& fv0RecPoints,
                                         gsl::span<const o2::zdc::BCRecData>& zdcBCRecData,
                                         gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
+                                        gsl::span<const o2::emcal::TriggerRecord>& caloEMCCellsTRGR,
                                         const std::vector<o2::InteractionTimeRecord>& mcRecords,
                                         std::map<uint64_t, int>& bcsMap)
 {
@@ -115,6 +116,11 @@ void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddR
     auto& timeStamp = vertex.getTimeStamp();
     double tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
     uint64_t globalBC = relativeTime_to_GlobalBC(tsTimeStamp);
+    bcsMap[globalBC] = 1;
+  }
+
+  for (auto& emcaltrg : caloEMCCellsTRGR) {
+    uint64_t globalBC = emcaltrg.getBCData().toLong();
     bcsMap[globalBC] = 1;
   }
 
@@ -661,6 +667,9 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       if (source == 0) {
         flags |= o2::aod::mcparticle::enums::FromBackgroundEvent; // mark as particle from background event
       }
+      if (mcParticles[particle].isPrimary()) {
+        flags |= o2::aod::mcparticle::enums::PhysicalPrimary; // mark as physical primary
+      }
       float weight = 0.f;
       int mcMother0 = mcParticles[particle].getMotherTrackId();
       auto item = mToStore.find(Triplet_t(source, event, mcMother0));
@@ -848,6 +857,67 @@ uint8_t AODProducerWorkflowDPL::getTRDPattern(const o2::trd::TrackTRD& track)
   return pattern;
 }
 
+// fill calo related tables (cells and calotrigger table)
+// currently hardcoded for EMCal, can be expanded for PHOS
+template <typename TCaloCells, typename TCaloTriggerRecord, typename TCaloCursor, typename TCaloTRGTableCursor>
+void AODProducerWorkflowDPL::fillCaloTable(const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR, const TCaloCursor& caloCellCursor,
+                                           const TCaloTRGTableCursor& caloCellTRGTableCursor, std::map<uint64_t, int>& bcsMap)
+{
+  uint64_t globalBC = 0;    // global BC ID
+  uint64_t globalBCRel = 0; // BC id reltive to minGlBC (from FIT)
+
+  // get cell belonging to an eveffillnt instead of timeframe
+  mCaloEventHandler->reset();
+  mCaloEventHandler->setCellData(calocells, caloCellTRGR);
+
+  // loop over events
+  for (int iev = 0; iev < mCaloEventHandler->getNumberOfEvents(); iev++) {
+    o2::emcal::EventData inputEvent = mCaloEventHandler->buildEvent(iev);
+    auto cellsInEvent = inputEvent.mCells;                  // get cells belonging to current event
+    auto interactionRecord = inputEvent.mInteractionRecord; // get interaction records belonging to current event
+
+    // Convert bc to global bc relative to min global BC found for all primary verteces in timeframe
+    // minGlBC and maxGlBC are set in findMinMaxBc(...)
+    globalBC = interactionRecord.toLong();
+
+    // check with Markus if globalBC ID is needed or globalBC - minGlBC
+    // in case of collision vertex what is used is
+    // uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
+    auto item = bcsMap.find(globalBC);
+    int bcID = -1;
+    if (item != bcsMap.end()) {
+      bcID = item->second;
+    } else {
+      LOG(FATAL) << "Error: could not find a corresponding BC ID for a EMCal point; globalBC = " << globalBC;
+    }
+
+    // loop over all cells in collision
+    for (auto& cell : cellsInEvent) {
+
+      // fill table
+      caloCellCursor(0,
+                     bcID,
+                     cell.getTower(),
+                     truncateFloatFraction(cell.getAmplitude(), mCaloAmp),
+                     truncateFloatFraction(cell.getTimeStamp(), mCaloTime),
+                     cell.getType(),
+                     1); // hard coded for emcal (-1 would be undefined, 0 phos)
+
+      // once decided on final form, fill calotrigger table here:
+
+      // ...
+    }
+
+    // todo: fill with actual values once decided
+    caloCellTRGTableCursor(0,
+                           bcID,
+                           0,  // fastOrAbsId (dummy value)
+                           0., // lnAmplitude (dummy value)
+                           0,  // triggerBits (dummy value)
+                           1); // caloType (dummy value)
+  }
+}
+
 void AODProducerWorkflowDPL::init(InitContext& ic)
 {
   mTimer.Stop();
@@ -867,6 +937,10 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     LOG(INFO) << "The Run number will be obtained from DPL headers";
   }
 
+  // create EventHandler used for calo cells
+  mCaloEventHandler = new o2::emcal::EventHandler<o2::emcal::Cell>();
+
+  // set no truncation if selected by user
   if (mTruncate != 1) {
     LOG(INFO) << "Truncation is not used!";
     mCollisionPosition = 0xFFFFFFFF;
@@ -884,8 +958,8 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mMcParticleW = 0xFFFFFFFF;
     mMcParticlePos = 0xFFFFFFFF;
     mMcParticleMom = 0xFFFFFFFF;
-    mCaloAmp = 0xFFFFFFFF;
-    mCaloTime = 0xFFFFFFFF;
+    mCaloAmp = 0xFFFFFFFF;  // todo check which truncation should actually be used
+    mCaloTime = 0xFFFFFFFF; // todo check which truncation should actually be used
     mMuonTr1P = 0xFFFFFFFF;
     mMuonTrThetaX = 0xFFFFFFFF;
     mMuonTrThetaY = 0xFFFFFFFF;
@@ -902,6 +976,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mFDDAmplitude = 0xFFFFFFFF;
     mT0Amplitude = 0xFFFFFFFF;
   }
+
   // Needed by MCH track extrapolation
   o2::base::GeometryManager::loadGeometry();
 
@@ -971,10 +1046,16 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto zdcBCRecData = recoData.getZDCBCRecData();
   auto zdcTDCData = recoData.getZDCTDCData();
 
+  // get calo information
+  auto caloEMCCells = recoData.getEMCALCells();
+  auto caloEMCCellsTRGR = recoData.getEMCALTriggers();
+
   LOG(DEBUG) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(DEBUG) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
   LOG(DEBUG) << "FOUND " << fv0RecPoints.size() << " FV0 rec. points";
   LOG(DEBUG) << "FOUND " << fddRecPoints.size() << " FDD rec. points";
+  LOG(DEBUG) << "FOUND " << caloEMCCells.size() << " EMC cells";
+  LOG(DEBUG) << "FOUND " << caloEMCCellsTRGR.size() << " EMC Trigger Records";
 
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& cascadesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CASCADE"});
@@ -997,6 +1078,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& tracksExtraBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKEXTRA"});
   auto& v0sBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "V0"});
   auto& zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"});
+  auto& caloCellsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALO"});
+  auto& caloCellsTRGTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALOTRIGGER"});
 
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
   auto cascadesCursor = cascadesBuilder.cursor<o2::aod::StoredCascades>();
@@ -1019,6 +1102,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto tracksExtraCursor = tracksExtraBuilder.cursor<o2::aodproducer::TracksExtraTable>();
   auto v0sCursor = v0sBuilder.cursor<o2::aod::StoredV0s>();
   auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
+  auto caloCellsCursor = caloCellsBuilder.cursor<o2::aod::Calos>();
+  auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
 
   std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
   if (mUseMC) {
@@ -1028,14 +1113,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   std::map<uint64_t, int> bcsMap;
-  collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, zdcBCRecData, primVertices, mUseMC ? mcReader->getDigitizationContext()->getEventRecords() : std::vector<o2::InteractionTimeRecord>{}, bcsMap);
+  collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, zdcBCRecData, primVertices, caloEMCCellsTRGR, mUseMC ? mcReader->getDigitizationContext()->getEventRecords() : std::vector<o2::InteractionTimeRecord>{}, bcsMap);
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
 
   uint64_t tfNumber;
   const int runNumber = (mRunNumber == -1) ? int(dh->runNumber) : mRunNumber;
   if (mTFNumber == -1L) {
-    // TODO has to be made globally unique (by using absolute time of TF). For now is unique within the run
-    tfNumber = dh->tfCounter; // getTFNumber(mStartIR, runNumber);
+    // TODO has to use absolute time of TF
+    tfNumber = uint64_t(dh->firstTForbit) + (uint64_t(dh->runNumber) << 32); // getTFNumber(mStartIR, runNumber);
   } else {
     tfNumber = mTFNumber;
   }
@@ -1371,6 +1456,12 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
              triggerMask);
   }
 
+  if (mInputSources[GIndex::EMC]) {
+    // fill EMC cells to tables
+    // TODO handle MC info
+    fillCaloTable(caloEMCCells, caloEMCCellsTRGR, caloCellsCursor, caloCellsTRGTableCursor, bcsMap);
+  }
+
   bcsMap.clear();
 
   if (mUseMC) {
@@ -1420,6 +1511,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   if (src[GID::TPC]) {
     dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // TOF clusters are requested with TOF tracks
   }
+  if (src[GID::EMC]) {
+    dataRequest->requestEMCALCells(useMC);
+  }
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2cascade"}, "AOD", "CASCADE", 0, Lifetime::Timeframe);
@@ -1442,6 +1536,8 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2trackextra"}, "AOD", "TRACKEXTRA", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2v0"}, "AOD", "V0", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2zdc"}, "AOD", "ZDC", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2caloCell"}, "AOD", "CALO", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2caloCellTRGR"}, "AOD", "CALOTRIGGER", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
 
   return DataProcessorSpec{
@@ -1452,6 +1548,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     Options{
       ConfigParamSpec{"run-number", VariantType::Int64, -1L, {"The run-number. If left default we try to get it from DPL header."}},
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
+      ConfigParamSpec{"fill-calo-cells", VariantType::Int, 1, {"Fill calo cells into cell table"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on, != 1 -- off"}},
       ConfigParamSpec{"lpmp-prod-tag", VariantType::String, "", {"LPMProductionTag"}},
       ConfigParamSpec{"anchor-pass", VariantType::String, "", {"AnchorPassName"}},

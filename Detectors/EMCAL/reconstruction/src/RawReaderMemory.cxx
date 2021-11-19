@@ -78,8 +78,10 @@ void RawReaderMemory::next()
     }
     // Check if the data continues
   } while (!isDataTerminated);
-  // add combined trailer to payload
-  mRawPayload.appendPayloadWords(mCurrentTrailer.encode());
+  // add combined trailer to payload (in case the FEE is a SRU DDL)
+  if (mCurrentTrailer.isInitialized()) {
+    mRawPayload.appendPayloadWords(mCurrentTrailer.encode());
+  }
 }
 
 void RawReaderMemory::nextPage(bool doResetPayload)
@@ -126,28 +128,36 @@ void RawReaderMemory::nextPage(bool doResetPayload)
   } else {
     mRawBuffer.readFromMemoryBuffer(gsl::span<const char>(mRawMemoryBuffer.data() + mCurrentPosition + RDHDecoder::getHeaderSize(mRawHeader), RDHDecoder::getMemorySize(mRawHeader) - RDHDecoder::getHeaderSize(mRawHeader)));
 
-    // Read off and chop trailer (if required)
-    //
-    // In case every page gets a trailer (intermediate format). The trailers from the single
-    // pages need to be removed. There will be a combined trailer which keeps the sum of the
-    // payloads for all trailers. This will be appended to the chopped payload.
-    //
-    // Trailer only at the last page (new format): Only last page gets trailer. The trailer is
-    // also chopped from the payload as it will be added later again.
-    auto lastword = *(mRawBuffer.getDataWords().rbegin());
     gsl::span<const uint32_t> payloadWithoutTrailer;
-    if (lastword >> 30 == 3) {
-      // lastword is a trailer word
-      // decode trailer and chop
-      auto trailer = RCUTrailer::constructFromPayloadWords(mRawBuffer.getDataWords());
-      if (!mCurrentTrailer.isInitialized()) {
-        mCurrentTrailer = trailer;
+    auto feeID = RDHDecoder::getFEEID(mRawHeader);
+    if (feeID >= mMinSRUDDL && feeID <= mMaxSRUDDL) {
+      // Read off and chop trailer (if required)
+      //
+      // In case every page gets a trailer (intermediate format). The trailers from the single
+      // pages need to be removed. There will be a combined trailer which keeps the sum of the
+      // payloads for all trailers. This will be appended to the chopped payload.
+      //
+      // Trailer only at the last page (new format): Only last page gets trailer. The trailer is
+      // also chopped from the payload as it will be added later again.
+      //
+      // The trailer is only decoded if the DDL is in the range of SRU DDLs. STU pages are propagated
+      // 1-1 without trailer parsing
+      auto lastword = *(mRawBuffer.getDataWords().rbegin());
+      if (lastword >> 30 == 3) {
+        // lastword is a trailer word
+        // decode trailer and chop
+        auto trailer = RCUTrailer::constructFromPayloadWords(mRawBuffer.getDataWords());
+        if (!mCurrentTrailer.isInitialized()) {
+          mCurrentTrailer = trailer;
+        } else {
+          mCurrentTrailer.setPayloadSize(mCurrentTrailer.getPayloadSize() + trailer.getPayloadSize());
+        }
+        payloadWithoutTrailer = gsl::span<const uint32_t>(mRawBuffer.getDataWords().data(), mRawBuffer.getDataWords().size() - trailer.getTrailerSize());
       } else {
-        mCurrentTrailer.setPayloadSize(mCurrentTrailer.getPayloadSize() + trailer.getPayloadSize());
+        // Not a trailer word = copy page as it is
+        payloadWithoutTrailer = mRawBuffer.getDataWords(); // No trailer to be chopped
       }
-      payloadWithoutTrailer = gsl::span<const uint32_t>(mRawBuffer.getDataWords().data(), mRawBuffer.getDataWords().size() - trailer.getTrailerSize());
     } else {
-      // Not a trailer word = copy page as it is
       payloadWithoutTrailer = mRawBuffer.getDataWords(); // No trailer to be chopped
     }
 

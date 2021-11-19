@@ -765,7 +765,7 @@ bool PVertexer::setCompatibleIR(PVertex& vtx)
   // assign compatible IRs accounting for the bunch filling scheme
   const auto& vtxT = vtx.getTimeStamp();
   o2::InteractionRecord irMin(mStartIR), irMax(mStartIR);
-  auto rangeT = mPVParams->nSigmaTimeCut * std::max(mPVParams->minTError, std::min(mPVParams->maxTError, vtxT.getTimeStampError()));
+  auto rangeT = std::max(mPVParams->minTError, mPVParams->nSigmaTimeCut * std::min(mPVParams->maxTError, vtxT.getTimeStampError())) + mPVParams->timeMarginVertexTime;
   float t = vtxT.getTimeStamp() + mPVParams->timeBiasMS;
   if (t > rangeT) {
     irMin += o2::InteractionRecord(1.e3 * (t - rangeT));
@@ -777,11 +777,13 @@ bool PVertexer::setCompatibleIR(PVertex& vtx)
   irMax++; // to account for rounding
   // restrict using bunch filling
   int bc = mClosestBunchAbove[irMin.bc];
+  LOG(DEBUG) << "irMin.bc = " << irMin.bc << " bcAbove = " << bc;
   if (bc < irMin.bc) {
     irMin.orbit++;
   }
   irMin.bc = bc;
   bc = mClosestBunchBelow[irMax.bc];
+  LOG(DEBUG) << "irMax.bc = " << irMax.bc << " bcBelow = " << bc;
   if (bc > irMax.bc) {
     if (irMax.orbit == 0) {
       return false;
@@ -791,6 +793,9 @@ bool PVertexer::setCompatibleIR(PVertex& vtx)
   irMax.bc = bc;
   vtx.setIRMin(irMin);
   vtx.setIRMax(irMax);
+  if (irMin > irMax) {
+    LOG(DEBUG) << "Reject VTX " << vtx.asString() << " trange = " << rangeT;
+  }
   return irMax >= irMin;
 }
 
@@ -986,6 +991,12 @@ bool PVertexer::relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxEr
 }
 
 //______________________________________________
+bool PVertexer::relateTrackToVertex(o2::track::TrackParCov& trc, const o2d::VertexBase& vtxSeed) const
+{
+  return o2::base::Propagator::Instance()->propagateToDCA(vtxSeed, trc, mBz, 2.0f, o2::base::Propagator::MatCorrType::USEMatCorrLUT);
+}
+
+//______________________________________________
 void PVertexer::doDBScanDump(const VertexingInput& input, gsl::span<const o2::MCCompLabel> lblTracks)
 {
   // dump tracks for T-Z clusters identified by the DBScan
@@ -1034,4 +1045,37 @@ void PVertexer::doVtxDump(std::vector<PVertex>& vertices, std::vector<uint32_t> 
     mDebugDumpVtxTrcMC.clear();
   }
 #endif
+}
+
+//______________________________________________
+PVertex PVertexer::refitVertex(const std::vector<bool> useTrack, const o2d::VertexBase& vtxSeed)
+{
+  // Refit the tracks prepared by the successful prepareVertexRefit, possible skipping those tracks wich have useTrack value false
+  // (useTrack is ignored if empty).
+  // The vtxSeed is the originally found vertex, must be the same as used for the prepareVertexRefit.
+  // Refitted PrimaryVertex is returned, negative chi2 means failure of the refit.
+  // ATTENTION: only the position is refitted, the vertex time and IRMin/IRMax info is dummy.
+
+  if (vtxSeed != mVtxRefitOrig) {
+    throw std::runtime_error("refitVertex must be preceded by successful prepareVertexRefit");
+  }
+  VertexingInput inp;
+  inp.scaleSigma2 = mPVParams->minScale2;
+  inp.idRange = gsl::span<int>(mRefitTrackIDs);
+  if (useTrack.size()) {
+    for (uint32_t i = 0; i < mTracksPool.size(); i++) {
+      mTracksPool[i].vtxID = useTrack[mTracksPool[i].entry] ? TrackVF::kNoVtx : TrackVF::kDiscarded;
+    }
+  }
+  VertexSeed vtxs;
+  vtxs.VertexBase::operator=(vtxSeed);
+  PVertex vtxRes;
+  vtxs.setScale(inp.scaleSigma2, mTukey2I);
+  vtxs.setTimeStamp({0.f, -1.}); // time is not refitter
+  if (fitIteration(inp, vtxs) == FitStatus::OK) {
+    vtxRes = vtxs;
+  } else {
+    vtxRes.setChi2(-1.);
+  }
+  return vtxRes;
 }

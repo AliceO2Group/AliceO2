@@ -94,6 +94,7 @@ class TOFDPLClustererTask
     o2::dataformats::CalibLHCphaseTOF lhcPhaseObj;
     auto channelCalibObj = std::make_unique<o2::dataformats::CalibTimeSlewingParamTOF>();
 
+    /*
     if (mUseCCDB) { // read calibration objects from ccdb
       // check LHC phase
       auto lhcPhase = pc.inputs().get<o2::dataformats::CalibLHCphaseTOF*>("tofccdbLHCphase");
@@ -106,18 +107,25 @@ class TOFDPLClustererTask
       lhcPhaseObj = lhcPhaseObjTmp;
       *channelCalibObj = channelCalibObjTmp;
     } else { // calibration objects set to zero
-      lhcPhaseObj.addLHCphase(0, 0);
-      lhcPhaseObj.addLHCphase(2000000000, 0);
+*/
+    lhcPhaseObj.addLHCphase(0, 0);
+    lhcPhaseObj.addLHCphase(2000000000, 0);
 
-      for (int ich = 0; ich < o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELS; ich++) {
-        channelCalibObj->addTimeSlewingInfo(ich, 0, 0);
-        int sector = ich / o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
-        int channelInSector = ich % o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
-        channelCalibObj->setFractionUnderPeak(sector, channelInSector, 1);
-      }
+    for (int ich = 0; ich < o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELS; ich++) {
+      channelCalibObj->addTimeSlewingInfo(ich, 0, 0);
+      int sector = ich / o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
+      int channelInSector = ich % o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
+      channelCalibObj->setFractionUnderPeak(sector, channelInSector, 1);
     }
+    //    }
 
     o2::tof::CalibTOFapi calibapi(long(0), &lhcPhaseObj, channelCalibObj.get());
+
+    if (mUseCCDB) {
+      calibapi.setURL("http://alice-ccdb.cern.ch:8080");
+      calibapi.setTimeStamp(0);
+      calibapi.readTimeSlewingParam();
+    }
 
     mClusterer.setCalibApi(&calibapi);
 

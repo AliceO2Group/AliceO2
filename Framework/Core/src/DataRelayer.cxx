@@ -28,6 +28,7 @@
 #include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
 #include "InputRouteHelpers.h"
+#include "Framework/LifetimeHelpers.h"
 
 #include "Headers/DataHeaderHelpers.h"
 
@@ -35,6 +36,7 @@
 #include <Monitoring/Monitoring.h>
 
 #include <fmt/format.h>
+#include <fmt/ostream.h>
 #include <gsl/span>
 #include <numeric>
 #include <string>
@@ -77,9 +79,10 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
     sQueriesMetricsNames[i] = std::string("data_queries/") + std::to_string(i);
     char buffer[128];
     assert(mDistinctRoutesIndex[i] < routes.size());
+    mInputs.push_back(routes[mDistinctRoutesIndex[i]].matcher);
     auto& matcher = routes[mDistinctRoutesIndex[i]].matcher;
     DataSpecUtils::describe(buffer, 127, matcher);
-    mMetrics.send({std::string{buffer}, sQueriesMetricsNames[i], Verbosity::Debug});
+    mMetrics.send({fmt::format("{} ({})", buffer, mInputs.back().lifetime), sQueriesMetricsNames[i], Verbosity::Debug});
   }
 }
 
@@ -512,15 +515,23 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
         auto payload = partial[idx].payload(part).get();
         return DataRef{nullptr,
                        reinterpret_cast<const char*>(header->GetData()),
-                       reinterpret_cast<const char*>(payload ? payload->GetData() : nullptr)};
+                       reinterpret_cast<char const*>(payload ? payload->GetData() : nullptr),
+                       payload ? payload->GetSize() : 0};
       }
-      return DataRef{nullptr, nullptr, nullptr};
+      return DataRef{};
     };
     auto nPartsGetter = [&partial](size_t idx) {
       return partial[idx].size();
     };
     InputSpan span{getter, nPartsGetter, static_cast<size_t>(partial.size())};
-    auto action = mCompletionPolicy.callback(span);
+    CompletionPolicy::CompletionOp action;
+    if (mCompletionPolicy.callback) {
+      action = mCompletionPolicy.callback(span);
+    } else if (mCompletionPolicy.callbackFull) {
+      action = mCompletionPolicy.callbackFull(span, mInputs);
+    } else {
+      throw std::runtime_error("No completion policy found");
+    }
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
       case CompletionPolicy::CompletionOp::ConsumeExisting:

@@ -53,9 +53,8 @@ BOOST_AUTO_TEST_CASE(TestCompletionPolicy_callback)
     return CompletionPolicy::CompletionOp::Consume;
   };
 
-  std::vector<CompletionPolicy> policies;
-  policies.emplace_back("test", matcher, callback);
-
+  std::vector<CompletionPolicy> policies{
+    {"test", matcher, callback}};
   CompletionPolicy::InputSetElement ref{nullptr, reinterpret_cast<const char*>(stack.data()), nullptr};
   InputSpan const& inputs{[&ref](size_t) { return ref; }, 1};
   for (auto& policy : policies) {

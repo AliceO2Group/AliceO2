@@ -35,7 +35,7 @@ class MatchInfoTOFReco : public MatchInfoTOF
                             ITSTPCTRD,
                             SIZEALL };
 
-  MatchInfoTOFReco(int idLocal, int idxTOFCl, double time, float chi2, o2::track::TrackLTIntegral trkIntLT, GTrackID idxTrack, TrackType trkType, float dt = 0, float z = 0) : MatchInfoTOF(idLocal, idxTOFCl, time, chi2, trkIntLT, idxTrack, dt, z), mTrackType(trkType){};
+  MatchInfoTOFReco(int idLocal, int idxTOFCl, double time, float chi2, o2::track::TrackLTIntegral trkIntLT, GTrackID idxTrack, TrackType trkType, float dt = 0, float z = 0, float dx = 0, float dz = 0) : MatchInfoTOF(idLocal, idxTOFCl, time, chi2, trkIntLT, idxTrack, dt, z, dx, dz), mTrackType(trkType){};
 
   MatchInfoTOFReco() = default;
 

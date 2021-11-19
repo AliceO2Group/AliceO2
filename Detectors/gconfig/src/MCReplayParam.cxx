@@ -9,7 +9,5 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file LHCIFData.cxx
-/// \brief Implementation of the LHC InterFace data
-
-#include "DataFormatsParameters/LHCIFData.h"
+#include "SimSetup/MCReplayParam.h"
+O2ParamImpl(o2::MCReplayParam);

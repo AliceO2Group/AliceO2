@@ -6,6 +6,8 @@ command -v zsh > /dev/null 2>&1 && MYDIR=$(dirname $(zsh -c 'echo ${0:A}' "$0"))
 test -z ${MYDIR+x} && MYDIR="$(dirname $(readlink -f $0))"
 source $MYDIR/setenv.sh
 
+if [ -z $FILEWORKDIRRUN ]; then FILEWORKDIRRUN=$FILEWORKDIR; fi              # directory where to find the run-related files (grp, collision context)
+
 # ---------------------------------------------------------------------------------------------------------------------
 #Some additional settings used in this workflow
 if [[ -z $OPTIMIZED_PARALLEL_ASYNC ]]; then OPTIMIZED_PARALLEL_ASYNC=0; fi     # Enable tuned process multiplicities for async processing on the EPN
@@ -42,6 +44,9 @@ ITSMFT_FILES="ITSClustererParam.dictFilePath=$ITSCLUSDICT;MFTClustererParam.dict
 
 LIST_OF_ASYNC_RECO_STEPS="MID MCH MFT FDD FV0 ZDC"
 
+DISABLE_DIGIT_ROOT_INPUT="--disable-root-input"
+DISABLE_DIGIT_CLUSTER_INPUT="--clusters-from-upstream"
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Set active reconstruction steps (defaults added according to SYNCMODE)
 
@@ -75,9 +80,9 @@ fi
 [[ $SHMTHROW == 0 ]] && ARGS_ALL+=" --shm-throw-bad-alloc 0"
 [[ $NORATELOG == 1 ]] && ARGS_ALL+=" --fairmq-rate-logging 0"
 [[ $NUMAGPUIDS != 0 ]] && ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
-[[ ! -z $TIMEFRAME_RATE_LIMIT ]] && ARGS_ALL+=" --timeframes-rate-limit $TIMEFRAME_RATE_LIMIT --timeframes-rate-limit-ipcid $NUMAID"
+[[ ! -z $TIMEFRAME_RATE_LIMIT ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && ARGS_ALL+=" --timeframes-rate-limit $TIMEFRAME_RATE_LIMIT --timeframes-rate-limit-ipcid $NUMAID"
 
-ARGS_ALL_CONFIG="NameConf.mDirGRP=$FILEWORKDIR;NameConf.mDirGeom=$FILEWORKDIR;NameConf.mDirCollContext=$FILEWORKDIR;NameConf.mDirMatLUT=$FILEWORKDIR;keyval.input_dir=$FILEWORKDIR;keyval.output_dir=/dev/null;$ALL_EXTRA_CONFIG"
+ARGS_ALL_CONFIG="NameConf.mDirGeom=$FILEWORKDIR;NameConf.mDirMatLUT=$FILEWORKDIR;NameConf.mDirCollContext=$FILEWORKDIRRUN;NameConf.mDirGRP=$FILEWORKDIRRUN;keyval.input_dir=$FILEWORKDIR;keyval.output_dir=/dev/null;$ALL_EXTRA_CONFIG"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Set some individual workflow arguments depending on configuration
@@ -91,7 +96,7 @@ TOF_OUTPUT=clusters
 ITS_CONFIG_KEY=
 TRD_CONFIG=
 TRD_CONFIG_KEY=
-TRD_TRANSFORMER_CONFIG=
+TRD_FILTER_CONFIG=
 CPV_INPUT=raw
 EVE_CONFIG=" --jsons-folder $EDJSONS_DIR"
 MIDDEC_CONFIG=
@@ -110,14 +115,13 @@ if [[ $SYNCMODE == 1 ]]; then
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
   fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
-  TRD_CONFIG+=" --filter-trigrec"
   TRD_CONFIG_KEY+="GPU_proc.ompThreads=1;"
-  TRD_TRANSFORMER_CONFIG+=" --filter-trigrec"
+  has_detector ITS && TRD_FILTER_CONFIG+=" --filter-trigrec"
 else
   if [[ $BEAMTYPE == "PbPb" ]]; then
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
   elif [[ $BEAMTYPE == "pp" ]]; then
-    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=1;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2"
+    ITS_CONFIG_KEY+="ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2"
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
   elif [[ $BEAMTYPE == "cosmic" ]]; then
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode cosmics"
@@ -127,6 +131,11 @@ else
 fi
 
 has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-ctf"
+
+if [[ -z $DISABLE_ROOT_OUTPUT ]]; then
+  # enable only if root output is written, because it slows down the processing
+  GPU_OUTPUT+=",send-clusters-per-sector"
+fi
 
 has_detector_flp_processing CPV && CPV_INPUT=digits
 ! has_detector_flp_processing TOF && TOF_CONFIG+=" --ignore-dist-stf"
@@ -194,7 +203,8 @@ for det in `echo $LIST_OF_DETECTORS | sed "s/,/ /g"`; do
     has_detector_reco $det && add_comma_separated TRACK_SOURCES "$det"
   fi
 done
-PVERTEX_CONFIG="--vertexing-sources $TRACK_SOURCES --vertex-track-matching-sources $TRACK_SOURCES"
+[[ -z $VERTEXING_SOURCES ]] && VERTEXING_SOURCES="$TRACK_SOURCES"
+PVERTEX_CONFIG="--vertexing-sources $VERTEXING_SOURCES --vertex-track-matching-sources $VERTEXING_SOURCES"
 
 # this option requires well calibrated timing beween different detectors, at the moment suppress it
 #has_detector_reco FT0 && PVERTEX_CONFIG+=" --validate-with-ft0"
@@ -331,7 +341,16 @@ elif [[ $EXTINPUT == 1 ]]; then
       PROXY_INSPEC+=";$PROXY_INNAME:$i/$j"
     done
   done
-  add_W o2-dpl-raw-proxy "--dataspec \"$PROXY_INSPEC\" --readout-proxy \"--channel-config \\\"$PROXY_CHANNEL;name=metric-feedback,type=pull,method=connect,address=ipc://@metric-feedback-$NUMAID,transport=shmem,rateLogging=10\\\"\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
+  [[ ! -z $TIMEFRAME_RATE_LIMIT ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && PROXY_CHANNEL+=";name=metric-feedback,type=pull,method=connect,address=ipc://@metric-feedback-$NUMAID,transport=shmem,rateLogging=0"
+  add_W o2-dpl-raw-proxy "--dataspec \"$PROXY_INSPEC\" --readout-proxy \"--channel-config \\\"$PROXY_CHANNEL\\\"\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
+elif [[ $DIGITINPUT == 1 ]]; then
+  [[ $NTIMEFRAMES != 1 ]] && { echo "Digit input works only with NTIMEFRAMES=1"; exit 1; }
+  DISABLE_DIGIT_ROOT_INPUT=
+  DISABLE_DIGIT_CLUSTER_INPUT=
+  TOF_INPUT=digits
+  GPU_INPUT=zsonthefly
+  has_detector TPC && add_W o2-tpc-reco-workflow "--input-type digits --output-type zsraw,disable-writer $DISABLE_MC --pipeline $(get_N tpc-zsEncoder TPC RAW TPCRAWDEC)"
+  has_detector MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC" ""
 else
   if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--loop $NTIMEFRAMES"; fi
   add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --max-tf 0 --input-conf $FILEWORKDIR/rawAll.cfg" "HBFUtils.nHBFPerTF=$NHBPERTF"
@@ -342,7 +361,7 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Raw decoder workflows - disabled in async mode
-if [[ $CTFINPUT == 0 ]]; then
+if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
   if has_detector TPC && [[ $EPNSYNCMODE == 1 ]]; then
     GPU_INPUT=zsonthefly
     add_W o2-tpc-raw-to-digits-workflow "--input-spec \"A:TPC/RAWDATA;dd:FLP/DISTSUBTIMEFRAME/0\" --remove-duplicates --pipeline $(get_N tpc-raw-to-digits-0 TPC RAW TPCRAWDEC)"
@@ -368,27 +387,28 @@ fi
 # ---------------------------------------------------------------------------------------------------------------------
 # Common reconstruction workflows
 (has_detector_reco TPC || has_detector_ctf TPC) && WORKFLOW+="o2-gpu-reco-workflow ${ARGS_ALL//-severity $SEVERITY/-severity $SEVERITY_TPC} --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT --pipeline gpu-reconstruction:${N_TPCTRK:-1} $GPU_CONFIG $ARGS_EXTRA_PROCESS_o2_gpu_reco_workflow --configKeyValues \"$ARGS_ALL_CONFIG;GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$GPU_EXTRA_CONFIG;$CONFIG_EXTRA_PROCESS_o2_gpu_reco_workflow\" | "
-(has_detector_reco TOF || has_detector_ctf TOF) && add_W o2-tof-reco-workflow "$TOF_CONFIG --input-type $TOF_INPUT --output-type $TOF_OUTPUT --disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N tof-compressed-decoder TOF RAW),$(get_N TOFClusterer TOF REST)"
-has_detector_reco ITS && add_W o2-its-reco-workflow "--trackerCA $ITS_CONFIG $DISABLE_MC --clusters-from-upstream $DISABLE_ROOT_OUTPUT --pipeline $(get_N its-tracker ITS REST ITSTRK)" "$ITS_CONFIG_KEY;$ITSMFT_FILES"
+(has_detector_reco TOF || has_detector_ctf TOF) && add_W o2-tof-reco-workflow "$TOF_CONFIG --input-type $TOF_INPUT --output-type $TOF_OUTPUT $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N tof-compressed-decoder TOF RAW),$(get_N TOFClusterer TOF REST)"
+has_detector_reco ITS && add_W o2-its-reco-workflow "--trackerCA $ITS_CONFIG $DISABLE_MC $DISABLE_DIGIT_CLUSTER_INPUT $DISABLE_ROOT_OUTPUT --pipeline $(get_N its-tracker ITS REST ITSTRK)" "$ITS_CONFIG_KEY;$ITSMFT_FILES"
 has_detectors_reco ITS TPC && has_detector_matching ITSTPC && add_W o2-tpcits-match-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N itstpc-track-matcher MATCH REST TPCITS)" "$ITSTPC_EXTRA_CONFIG;$ITSMFT_FILES"
-has_detector_reco FT0 && add_W o2-ft0-reco-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N ft0-reconstructor FT0 REST)"
-has_detector_reco TRD && add_W o2-trd-tracklet-transformer "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_TRANSFORMER_CONFIG --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST TRDTRK)"
-has_detectors_reco TRD TPC ITS && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG --track-sources $TRD_SOURCES" "$TRD_CONFIG_KEY;$ITSMFT_FILES"
+has_detector_reco FT0 && add_W o2-ft0-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N ft0-reconstructor FT0 REST)"
+has_detector_reco TRD && add_W o2-trd-tracklet-transformer "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_FILTER_CONFIG --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST TRDTRK)"
+has_detectors_reco TRD TPC ITS && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG $TRD_FILTER_CONFIG --track-sources $TRD_SOURCES" "$TRD_CONFIG_KEY;$ITSMFT_FILES"
 has_detectors_reco TOF TRD TPC ITS && [[ ! -z "$TOF_SOURCES" ]] && add_W o2-tof-matcher-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST TOFMATCH)" "$ITSMFT_FILES"
+has_detectors TPC && [ -z "$DISABLE_ROOT_OUTPUT" ] && add_W o2-tpc-reco-workflow "--input-type pass-through --output-type clusters,tracks,send-clusters-per-sector $DISABLE_MC"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Reconstruction workflows normally active only in async mode in async mode ($LIST_OF_ASYNC_RECO_STEPS), but can be forced via $WORKFLOW_EXTRA_PROCESSING_STEPS
 has_detector MID && has_processing_step MID_RECO && add_W o2-mid-reco-workflow "$DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N MIDClusterizer MID REST),$(get_N MIDTracker MID REST)"
-has_detector MCH && has_processing_step MCH_RECO && add_W o2-mch-reco-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N mch-track-finder MCH REST MCHTRK),$(get_N mch-cluster-finder MCH REST),$(get_N mch-cluster-transformer MCH REST)"
-has_detector MFT && has_processing_step MFT_RECO && add_W o2-mft-reco-workflow "--clusters-from-upstream $DISABLE_MC $DISABLE_ROOT_OUTPUT --pipeline $(get_N mft-tracker MFT REST MFTTRK)" "$ITSMFT_FILES"
-has_detector FDD && has_processing_step FDD_RECO && add_W o2-fdd-reco-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC"
-has_detector FV0 && has_processing_step FV0_RECO && add_W o2-fv0-reco-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC"
-has_detector ZDC && has_processing_step ZDC_RECO && add_W o2-zdc-digits-reco "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC"
+has_detector MCH && has_processing_step MCH_RECO && add_W o2-mch-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N mch-track-finder MCH REST MCHTRK),$(get_N mch-cluster-finder MCH REST),$(get_N mch-cluster-transformer MCH REST)"
+has_detector MFT && has_processing_step MFT_RECO && add_W o2-mft-reco-workflow "$DISABLE_DIGIT_CLUSTER_INPUT $DISABLE_MC $DISABLE_ROOT_OUTPUT --pipeline $(get_N mft-tracker MFT REST MFTTRK)" "$ITSMFT_FILES"
+has_detector FDD && has_processing_step FDD_RECO && add_W o2-fdd-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
+has_detector FV0 && has_processing_step FV0_RECO && add_W o2-fv0-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
+has_detector ZDC && has_processing_step ZDC_RECO && add_W o2-zdc-digits-reco "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
 has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd-matcher-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N globalfwd-track-matcher MATCH REST)"
 
 if [[ $BEAMTYPE != "cosmic" ]]; then
   has_detectors_reco ITS && has_detector_matching PRIMVTX && add_W o2-primary-vertexing-workflow "$DISABLE_MC --disable-root-input $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST)" "$PVERTEX_EXTRA_CONFIG"
-  has_detectors_reco ITS && has_detector_matching SECVTX && add_W o2-secondary-vertexing-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT --vertexing-sources $TRACK_SOURCES --pipeline $(get_N secondary-vertexing MATCH REST)" "$SVERTEX_EXTRA_CONFIG"
+  has_detectors_reco ITS && has_detector_matching SECVTX && add_W o2-secondary-vertexing-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT --vertexing-sources $VERTEXING_SOURCES --pipeline $(get_N secondary-vertexing MATCH REST)" "$SVERTEX_EXTRA_CONFIG"
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -447,7 +467,7 @@ workflow_has_parameter AOD && add_W o2-aod-producer-workflow "--info-sources $AO
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Quality Control
-workflow_has_parameter QC && { source $MYDIR/qc-workflow.sh; [[ $? != 0 ]] && exit 1; }
+workflow_has_parameter QC && { source $O2DATAPROCESSING_ROOT/production/qc-workflow.sh; [[ $? != 0 ]] && exit 1; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # DPL run binary

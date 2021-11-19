@@ -20,19 +20,5 @@
 
 #pragma link C++ class o2::gpu::TPCdEdxCalibrationSplines + ;
 #pragma link C++ class o2::gpu::GPUTPCGMMergedTrack + ;
-#pragma link C++ class o2::gpu::trackInterface < o2::track::TrackParCov> + ;
-#pragma link C++ class o2::gpu::GPUTRDTrack_t < o2::gpu::trackInterface < o2::track::TrackParCov>> + ;
-#pragma link C++ class std::vector < o2::gpu::GPUTRDTrack_t < o2::gpu::trackInterface < o2::track::TrackParCov>>> + ;
-#pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsO2 + ;
-#pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsRec + ;
-#pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsRecTPC + ;
-#pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsRecTRD + ;
-#pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsProcessing + ;
-#pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsProcessingRTC + ;
-#pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsDisplay + ;
-#pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsDisplayLight + ;
-#pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsDisplayHeavy + ;
-#pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsDisplayRenderer + ;
-#pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsQA + ;
 
 #endif

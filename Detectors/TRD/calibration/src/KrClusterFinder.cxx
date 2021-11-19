@@ -171,7 +171,7 @@ void KrClusterFinder::findClusters()
             // if a maximum has been found for this digit then all ADCs above threshold are already flagged as used
             continue;
           }
-          uint64_t digitIdx = trig.getFirstDigit() + idxFirstDigitInDet[iDet] + iDigit; // global index for array of all digits (mDigits)
+          uint64_t digitIdx = digitIdxArray[trig.getFirstDigit() + idxFirstDigitInDet[iDet] + iDigit]; // global index for array of all digits (mDigits)
           int tbMaxADC = -1;
           auto maxAdcInDigit = mDigits[digitIdx].getADCmax(tbMaxADC);
           if (maxAdcInDigit > adcMax) {
@@ -198,7 +198,7 @@ void KrClusterFinder::findClusters()
         int nUsedADCsInCl = 0;
         std::vector<uint64_t> constituentAdcIndices;
         for (unsigned int iDigit = 0; iDigit < nDigitsInDet; ++iDigit) {
-          uint64_t digitIdx = trig.getFirstDigit() + idxFirstDigitInDet[iDet] + iDigit; // global index for array of all digits (mDigits)
+          uint64_t digitIdx = digitIdxArray[trig.getFirstDigit() + idxFirstDigitInDet[iDet] + iDigit]; // global index for array of all digits (mDigits)
           int row = mDigits[digitIdx].getPadRow();
           if (std::abs(row - rowMax) > 1) {
             continue;

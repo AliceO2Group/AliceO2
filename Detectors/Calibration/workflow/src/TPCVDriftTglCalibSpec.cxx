@@ -74,8 +74,8 @@ void TPCVDriftTglCalibSpec::sendOutput(DataAllocator& output)
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
     LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
               << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPCVDTGL", i}, *image.get()); // vector<char>
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPCVDTGL", i}, w);            // root-serialized
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPCVDTGL", i, Lifetime::Sporadic}, *image.get()); // vector<char>
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPCVDTGL", i, Lifetime::Sporadic}, w);            // root-serialized
   }
   if (payloadVec.size()) {
     mCalibrator->initOutput(); // reset the outputs once they are already sent
@@ -90,8 +90,8 @@ DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, fl
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPCVDTGL"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPCVDTGL"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPCVDTGL"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPCVDTGL"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "tpc-vd-tgl-calib",

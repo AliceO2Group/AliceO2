@@ -100,9 +100,9 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   mMatching.setUseBCFilling(!ic.options().get<bool>("ignore-bc-check"));
   //
   std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
-    mITSDict.readBinaryFile(dictFile);
+    mITSDict.readFromFile(dictFile);
     LOG(INFO) << "Matching is running with a provided ITS dictionary: " << dictFile;
   } else {
     LOG(INFO) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
