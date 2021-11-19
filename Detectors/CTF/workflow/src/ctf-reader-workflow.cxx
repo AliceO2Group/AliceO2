@@ -76,7 +76,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::ctf::CTFReaderInp ctfInput;
 
   WorkflowSpec specs;
-
+  std::string allowedDetectors = "ITS,TPC,TRD,TOF,PHS,CPV,EMC,HMP,MFT,MCH,MID,ZDC,FT0,FV0,FDD,CTP"; // FIXME: explicit list to avoid problem with upgrade detectors
   auto mskOnly = DetID::getMask(configcontext.options().get<std::string>("onlyDet"));
   auto mskSkip = DetID::getMask(configcontext.options().get<std::string>("skipDet"));
   if (mskOnly.any()) {
@@ -84,6 +84,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   } else {
     ctfInput.detMask ^= mskSkip;
   }
+  ctfInput.detMask &= DetID::getMask(allowedDetectors);
   ctfInput.inpdata = configcontext.options().get<std::string>("ctf-input");
   if (ctfInput.inpdata.empty() || ctfInput.inpdata == "none") {
     if (!configcontext.helpOnCommandLine()) {
