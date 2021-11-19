@@ -157,7 +157,6 @@ template <typename TracksCursorType, typename TracksCovCursorType>
 void AODProducerWorkflowDPL::addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
                                               const o2::track::TrackParCov& track, int collisionID)
 {
-  // tracks
   tracksCursor(0,
                collisionID,
                o2::aod::track::Track,
@@ -289,6 +288,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           const auto& track = data.getGlobalFwdTrack(trackIndex);
           addToFwdTracksTable(fwdTracksCursor, fwdTracksCovCursor, track, collisionID, {0, 0, 0});
         } else {
+          // normal tracks table
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
           const auto& trackPar = data.getTrackParam(trackIndex);
           if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
@@ -335,6 +335,12 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             extraInfoHolder.trdChi2 = trdOrig.getChi2();
             extraInfoHolder.trdPattern = getTRDPattern(trdOrig);
           }
+
+          // set bit encoding for PVContributor property as part of the flag field
+          if (trackIndex.isPVContributor()) {
+            extraInfoHolder.flags |= o2::aod::track::PVContributor;
+          }
+
           addToTracksTable(tracksCursor, tracksCovCursor, trackPar, collisionID);
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
           // collecting table indices of barrel tracks for V0s table
