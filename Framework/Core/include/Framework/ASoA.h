@@ -2053,6 +2053,24 @@ class FilteredPolicy : public T
     doCopyIndexBindings(external_index_columns_t{}, dest);
   }
 
+  auto sliceBy(framework::expressions::BindingNode const& node, int value) const
+  {
+    auto t = o2::soa::sliceBy(*this, node, value);
+    auto start = t.offset();
+    auto end = start + t.size();
+    auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
+    auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
+    SelectionVector slicedSelection{start_iterator, stop_iterator};
+    std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
+                   [&](int64_t idx) {
+                     return idx - static_cast<int64_t>(start);
+                   });
+    self_t result{{t.asArrowTable()}, std::move(slicedSelection), start};
+    copyIndexBindings(result);
+    return result;
+  }
+
+ protected:
   auto slice(uint64_t start, uint64_t end)
   {
     auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
@@ -2065,7 +2083,6 @@ class FilteredPolicy : public T
     return self_t{{this->asArrowTable()->Slice(start, end - start + 1)}, std::move(slicedSelection), start};
   }
 
- protected:
   void sumWithSelection(SelectionVector const& selection)
   {
     SelectionVector rowsUnion;
