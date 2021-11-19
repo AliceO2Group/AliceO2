@@ -52,6 +52,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}},
     {"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}},
     {"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}},
+    {"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}},
     {"input-desc", o2::framework::VariantType::String, "CRAWDATA", {"Input specs description string"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
@@ -137,6 +138,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto isCalibFromCluster = cfgc.options().get<bool>("calib-cluster");
   auto isCosmics = cfgc.options().get<bool>("cosmics");
   auto ignoreDistStf = cfgc.options().get<bool>("ignore-dist-stf");
+  auto ccdb_url = cfgc.options().get<std::string>("ccdb-url");
 
   LOG(INFO) << "TOF RECO WORKFLOW configuration";
   LOG(INFO) << "TOF input = " << cfgc.options().get<std::string>("input-type");
@@ -145,6 +147,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   LOG(INFO) << "TOF disable-mc = " << cfgc.options().get<std::string>("disable-mc");
   LOG(INFO) << "TOF lanes = " << cfgc.options().get<std::string>("tof-lanes");
   LOG(INFO) << "TOF use-ccdb = " << cfgc.options().get<std::string>("use-ccdb");
+  if (useCCDB) {
+    LOG(INFO) << "CCDB url = " << cfgc.options().get<std::string>("ccdb-url");
+  }
   LOG(INFO) << "TOF disable-root-input = " << disableRootInput;
   LOG(INFO) << "TOF disable-root-output = " << disableRootOutput;
   LOG(INFO) << "TOF conet-mode = " << conetmode;
@@ -180,7 +185,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   if (!clusterinput && writecluster) {
     LOG(INFO) << "Insert TOF Clusterizer";
-    specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC, useCCDB, isCalibFromCluster, isCosmics));
+    specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC, useCCDB, isCalibFromCluster, isCosmics, ccdb_url.c_str()));
     if (writecluster && !disableRootOutput) {
       LOG(INFO) << "Insert TOF Cluster Writer";
       specs.emplace_back(o2::tof::getTOFClusterWriterSpec(useMC));
