@@ -38,7 +38,7 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/Digit.h"
 #include "MCHBase/PreCluster.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHClustering/ClusterFinderOriginal.h"
 
 namespace o2
@@ -82,17 +82,17 @@ class ClusterFinderOriginalTask
     auto preClusters = pc.inputs().get<gsl::span<PreCluster>>("preclusters");
     auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
 
-    //LOG(INFO) << "received time frame with " << preClusterROFs.size() << " interactions";
+    // LOG(INFO) << "received time frame with " << preClusterROFs.size() << " interactions";
 
     // create the output messages for clusters and attached digits
     auto& clusterROFs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"clusterrofs"});
-    auto& clusters = pc.outputs().make<std::vector<ClusterStruct>>(OutputRef{"clusters"});
+    auto& clusters = pc.outputs().make<std::vector<Cluster>>(OutputRef{"clusters"});
     auto& usedDigits = pc.outputs().make<std::vector<Digit>>(OutputRef{"clusterdigits"});
 
     clusterROFs.reserve(preClusterROFs.size());
     for (const auto& preClusterROF : preClusterROFs) {
 
-      //LOG(INFO) << "processing interaction: " << preClusterROF.getBCData() << "...";
+      // LOG(INFO) << "processing interaction: " << preClusterROF.getBCData() << "...";
 
       // clusterize every preclusters
       auto tStart = std::chrono::high_resolution_clock::now();
@@ -115,7 +115,7 @@ class ClusterFinderOriginalTask
 
  private:
   //_________________________________________________________________________________________________
-  void writeClusters(std::vector<ClusterStruct, o2::pmr::polymorphic_allocator<ClusterStruct>>& clusters,
+  void writeClusters(std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& clusters,
                      std::vector<Digit, o2::pmr::polymorphic_allocator<Digit>>& usedDigits) const
   {
     /// fill the output messages with clusters and attached digits of the current event

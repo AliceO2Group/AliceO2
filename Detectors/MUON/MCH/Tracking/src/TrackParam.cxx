@@ -23,7 +23,7 @@
 
 #include "Framework/Logger.h"
 
-#include "MCHTracking/Cluster.h"
+#include "DataFormatsMCH/Cluster.h"
 
 namespace o2
 {

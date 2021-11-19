@@ -38,7 +38,7 @@
 
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 
 namespace o2
 {
@@ -72,7 +72,7 @@ class TrackMCLabelFinderTask
     auto digitlabels = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("digitlabels");
     auto trackROFs = pc.inputs().get<gsl::span<ROFRecord>>("trackrofs");
     auto tracks = pc.inputs().get<gsl::span<TrackMCH>>("tracks");
-    auto clusters = pc.inputs().get<gsl::span<ClusterStruct>>("clusters");
+    auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
 
     // digit and track ROFs must be synchronized
     int nROFs = digitROFs.size();
@@ -97,7 +97,7 @@ class TrackMCLabelFinderTask
       }
 
       // get the MC labels of every particles contributing to that IR and produce the associated MC clusters
-      std::unordered_map<MCCompLabel, std::vector<ClusterStruct>> mcClusterMap{};
+      std::unordered_map<MCCompLabel, std::vector<Cluster>> mcClusterMap{};
       for (int iDigit = digitROF.getFirstIdx(); iDigit <= digitROF.getLastIdx(); ++iDigit) {
         for (const auto& label : digitlabels->getLabels(iDigit)) {
           if (label.isCorrect() && mcClusterMap.count(label) == 0) {
@@ -128,7 +128,7 @@ class TrackMCLabelFinderTask
  private:
   //_________________________________________________________________________________________________
   /// produce the MC clusters by taking the average position of the trackRefs at the entry and exit of each DE
-  void makeMCClusters(gsl::span<const TrackReference> mcTrackRefs, std::vector<ClusterStruct>& mcClusters) const
+  void makeMCClusters(gsl::span<const TrackReference> mcTrackRefs, std::vector<Cluster>& mcClusters) const
   {
     int deId(-1);
     int clusterIdx(0);
@@ -146,7 +146,7 @@ class TrackMCLabelFinderTask
       } else {
         deId = trackRef.getUserId();
         mcClusters.push_back({trackRef.X(), trackRef.Y(), trackRef.Z(), 0.f, 0.f,
-                              ClusterStruct::buildUniqueId(deId / 100 - 1, deId, clusterIdx++), 0u, 0u});
+                              Cluster::buildUniqueId(deId / 100 - 1, deId, clusterIdx++), 0u, 0u});
       }
     }
   }
@@ -155,7 +155,7 @@ class TrackMCLabelFinderTask
   /// try to match a reconstructed track with a MC track. Matching conditions:
   /// - more than 50% of reconstructed clusters matched with MC clusters
   /// - at least 1 matched cluster before and 1 after the dipole
-  bool match(gsl::span<const ClusterStruct> clusters, const std::vector<ClusterStruct>& mcClusters) const
+  bool match(gsl::span<const Cluster> clusters, const std::vector<Cluster>& mcClusters) const
   {
     int nMatched(0);
     bool hasMatched[5] = {false, false, false, false, false};

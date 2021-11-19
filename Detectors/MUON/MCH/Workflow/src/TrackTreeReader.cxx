@@ -44,7 +44,7 @@ TrackTreeReader::TrackTreeReader(TTree* tree) : mCurrentRof{std::numeric_limits<
 }
 
 bool TrackTreeReader::next(o2::mch::ROFRecord& rof, std::vector<o2::mch::TrackMCH>& tracks,
-                           std::vector<o2::mch::ClusterStruct>& clusters,
+                           std::vector<o2::mch::Cluster>& clusters,
                            std::vector<o2::MCCompLabel>& labels)
 {
   if (mCurrentRof >= mRofs->size()) {
