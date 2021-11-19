@@ -2053,9 +2053,14 @@ class FilteredPolicy : public T
     doCopyIndexBindings(external_index_columns_t{}, dest);
   }
 
+  auto rawSliceBy(framework::expressions::BindingNode const& node, int value) const
+  {
+    return (table_t)this->sliceBy(node, value);
+  }
+
   auto sliceBy(framework::expressions::BindingNode const& node, int value) const
   {
-    auto t = o2::soa::sliceBy(*this, node, value);
+    auto t = o2::soa::sliceBy((table_t)(*this), node, value);
     auto start = t.offset();
     auto end = start + t.size();
     auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
