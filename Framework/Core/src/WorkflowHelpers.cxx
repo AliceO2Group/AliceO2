@@ -577,8 +577,45 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   extraSpecs.clear();
 }
 
-void WorkflowHelpers::adjustServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
+void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const& ctx)
 {
+  for (auto& spec : workflow) {
+    auto& inputs = spec.inputs;
+    bool allSporadic = true;
+    bool hasTimer = false;
+    bool hasSporadic = false;
+    for (size_t ii = 0; ii < inputs.size(); ++ii) {
+      auto& input = inputs[ii];
+      // Timers are sporadic only when they are not
+      // alone.
+      if (input.lifetime == Lifetime::Timer) {
+        hasTimer = true;
+        continue;
+      }
+      if (input.lifetime == Lifetime::Sporadic) {
+        hasSporadic = true;
+      } else {
+        allSporadic = false;
+      }
+    }
+    // If they are not all sporadic (excluding timers)
+    // we leave things as they are.
+    if (allSporadic == false) {
+      continue;
+    }
+    // A timer alone is not sporadic.
+    if (hasSporadic == false) {
+      continue;
+    }
+    /// If we get here all the inputs are sporadic and
+    /// there is at least one sporadic input apart from
+    /// the timers.
+    for (auto& output : spec.outputs) {
+      if (output.lifetime == Lifetime::Timeframe) {
+        output.lifetime = Lifetime::Sporadic;
+      }
+    }
+  }
 }
 
 void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
