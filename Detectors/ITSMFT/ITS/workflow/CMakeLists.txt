@@ -55,3 +55,8 @@ o2_add_executable(threshold-calib-workflow
                   SOURCES src/its-threshold-calib-workflow.cxx
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
+
+o2_add_executable(tree-maker-workflow
+                  SOURCES src/its-tree-maker-workflow.cxx
+                  COMPONENT_NAME its
+                  PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
