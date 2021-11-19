@@ -172,7 +172,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
 
   if (!mCTFCounter) { // RS FIXME: this is a temporary hack to avoid late-starting devices to lose the input
     LOG(WARNING) << "This is a hack, sleeping 5 s at startup";
-    usleep(5000000);
+    usleep(1000000);
   }
 
   std::string tfFileName;
