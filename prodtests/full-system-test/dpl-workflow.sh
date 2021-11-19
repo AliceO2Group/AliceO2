@@ -407,8 +407,8 @@ has_detector ZDC && has_processing_step ZDC_RECO && add_W o2-zdc-digits-reco "$D
 has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd-matcher-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N globalfwd-track-matcher MATCH REST)"
 
 if [[ $BEAMTYPE != "cosmic" ]]; then
-  has_detectors_reco ITS && has_detector_matching PRIMVTX && add_W o2-primary-vertexing-workflow "$DISABLE_MC --disable-root-input $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST)" "$PVERTEX_EXTRA_CONFIG"
-  has_detectors_reco ITS && has_detector_matching SECVTX && add_W o2-secondary-vertexing-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT --vertexing-sources $VERTEXING_SOURCES --pipeline $(get_N secondary-vertexing MATCH REST)" "$SVERTEX_EXTRA_CONFIG"
+  has_detectors_reco ITS && has_detector_matching PRIMVTX && [[ ! -z "$VERTEXING_SOURCES" ]] && add_W o2-primary-vertexing-workflow "$DISABLE_MC --disable-root-input $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST)" "$PVERTEX_EXTRA_CONFIG"
+  has_detectors_reco ITS && has_detector_matching SECVTX && [[ ! -z "$VERTEXING_SOURCES" ]] && add_W o2-secondary-vertexing-workflow "--disable-root-input $DISABLE_ROOT_OUTPUT --vertexing-sources $VERTEXING_SOURCES --pipeline $(get_N secondary-vertexing MATCH REST)" "$SVERTEX_EXTRA_CONFIG"
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -458,12 +458,12 @@ workflow_has_parameter CALIB && has_detector_calib TPC && has_detectors TPC ITS 
 # RS this is a temporary setting
 [[ -z "$ED_TRACKS" ]] && ED_TRACKS=$TRACK_SOURCES
 [[ -z "$ED_CLUSTERS" ]] && ED_CLUSTERS=$TRACK_SOURCES
-workflow_has_parameter EVENT_DISPLAY && [[ $NUMAID == 0 ]] && add_W o2-eve-display "--display-tracks $ED_TRACKS --display-clusters $ED_CLUSTERS $EVE_CONFIG $DISABLE_MC" "$ITSMFT_FILES"
+workflow_has_parameter EVENT_DISPLAY && [[ $NUMAID == 0 ]] && [[ ! -z "$ED_TRACKS" ]] && [[ ! -z "$ED_CLUSTERS" ]] && add_W o2-eve-display "--display-tracks $ED_TRACKS --display-clusters $ED_CLUSTERS $EVE_CONFIG $DISABLE_MC" "$ITSMFT_FILES"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # AOD
 [[ -z "$AOD_INPUT" ]] && AOD_INPUT=$TRACK_SOURCES
-workflow_has_parameter AOD && add_W o2-aod-producer-workflow "--info-sources $AOD_INPUT --disable-root-input --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE $DISABLE_MC"
+workflow_has_parameter AOD && [[ ! -z "$AOD_INPUT" ]] && add_W o2-aod-producer-workflow "--info-sources $AOD_INPUT --disable-root-input --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE $DISABLE_MC"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Quality Control
