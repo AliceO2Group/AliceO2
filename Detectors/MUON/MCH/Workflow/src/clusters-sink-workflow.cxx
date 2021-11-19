@@ -36,7 +36,7 @@
 
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/Digit.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHMappingInterface/Segmentation.h"
 
 using namespace std;
@@ -79,13 +79,13 @@ class ClusterSinkTask
 
     // get the input clusters and associated digits
     auto rofs = pc.inputs().get<gsl::span<ROFRecord>>("rofs");
-    auto clusters = pc.inputs().get<gsl::span<ClusterStruct>>("clusters");
+    auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
     gsl::span<const Digit> digits;
     if (mDoDigits) {
       digits = pc.inputs().get<gsl::span<Digit>>("digits");
     }
 
-    std::vector<ClusterStruct> eventClusters{};
+    std::vector<Cluster> eventClusters{};
     for (const auto& rof : rofs) {
 
       if (mText) {
@@ -110,8 +110,7 @@ class ClusterSinkTask
         mOutputFile.write(reinterpret_cast<char*>(&nDigits), sizeof(int));
 
         // write the clusters
-        mOutputFile.write(reinterpret_cast<const char*>(eventClusters.data()),
-                          eventClusters.size() * sizeof(ClusterStruct));
+        mOutputFile.write(reinterpret_cast<const char*>(eventClusters.data()), eventClusters.size() * sizeof(Cluster));
 
         // write the digits (after converting the pad ID into a digit UID if requested)
         if (nDigits > 0) {
@@ -129,9 +128,9 @@ class ClusterSinkTask
 
  private:
   //_________________________________________________________________________________________________
-  gsl::span<const Digit> getEventClustersAndDigits(const ROFRecord& rof, gsl::span<const ClusterStruct> clusters,
+  gsl::span<const Digit> getEventClustersAndDigits(const ROFRecord& rof, gsl::span<const Cluster> clusters,
                                                    gsl::span<const Digit> digits,
-                                                   std::vector<ClusterStruct>& eventClusters) const
+                                                   std::vector<Cluster>& eventClusters) const
   {
     /// copy the clusters of the current event (needed to edit the clusters)
     /// modify the references to the associated digits to start the indexing from 0

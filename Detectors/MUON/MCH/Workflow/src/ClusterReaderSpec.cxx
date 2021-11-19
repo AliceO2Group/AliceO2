@@ -22,7 +22,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsMCH/ROFRecord.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "DataFormatsMCH/Digit.h"
 
 using namespace o2::framework;
@@ -52,7 +52,7 @@ struct ClusterReader {
           fileName.c_str(),
           nofEntries,
           RootTreeReader::PublishingMode::Single,
-          RootTreeReader::BranchDefinition<std::vector<ClusterStruct>>{Output{"MCH", clusterDescription, 0}, "clusters"},
+          RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MCH", clusterDescription, 0}, "clusters"},
           RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "CLUSTERROFS", 0}, "clusterrofs"},
           RootTreeReader::BranchDefinition<std::vector<Digit>>{Output{"MCH", "CLUSTERDIGITS", 0}, "clusterdigits"},
           RootTreeReader::BranchDefinition<dataformats::MCTruthContainer<MCCompLabel>>{Output{"MCH", "CLUSTERLABELS", 0}, "clusterlabels"});
@@ -62,7 +62,7 @@ struct ClusterReader {
           fileName.c_str(),
           nofEntries,
           RootTreeReader::PublishingMode::Single,
-          RootTreeReader::BranchDefinition<std::vector<ClusterStruct>>{Output{"MCH", clusterDescription, 0}, "clusters"},
+          RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MCH", clusterDescription, 0}, "clusters"},
           RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "CLUSTERROFS", 0}, "clusterrofs"},
           RootTreeReader::BranchDefinition<dataformats::MCTruthContainer<MCCompLabel>>{Output{"MCH", "CLUSTERLABELS", 0}, "clusterlabels"});
       }
@@ -73,7 +73,7 @@ struct ClusterReader {
           fileName.c_str(),
           nofEntries,
           RootTreeReader::PublishingMode::Single,
-          RootTreeReader::BranchDefinition<std::vector<ClusterStruct>>{Output{"MCH", clusterDescription, 0}, "clusters"},
+          RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MCH", clusterDescription, 0}, "clusters"},
           RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "CLUSTERROFS", 0}, "clusterrofs"},
           RootTreeReader::BranchDefinition<std::vector<Digit>>{Output{"MCH", "CLUSTERDIGITS", 0}, "clusterdigits"});
       } else {
@@ -82,7 +82,7 @@ struct ClusterReader {
           fileName.c_str(),
           nofEntries,
           RootTreeReader::PublishingMode::Single,
-          RootTreeReader::BranchDefinition<std::vector<ClusterStruct>>{Output{"MCH", clusterDescription, 0}, "clusters"},
+          RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MCH", clusterDescription, 0}, "clusters"},
           RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "CLUSTERROFS", 0}, "clusterrofs"});
       }
     }

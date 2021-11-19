@@ -32,7 +32,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/ROFRecord.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHTracking/TrackParam.h"
 #include <unistd.h>
 #include <climits>

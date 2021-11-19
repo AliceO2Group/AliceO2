@@ -126,7 +126,7 @@ Option `--check-no-leftover-digits xxx` allows to drop an error message (`xxx = 
 o2-mch-preclusters-to-clusters-original-workflow
 ```
 
-Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively. Send the list of all clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h)) in the time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction in three separate messages with the data description "CLUSTERS", "CLUSTERDIGITS" and "CLUSTERROFS", respectively.
+Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively. Send the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) in the time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction in three separate messages with the data description "CLUSTERS", "CLUSTERDIGITS" and "CLUSTERROFS", respectively.
 
 Option `--run2-config` allows to configure the clustering to process run2 data.
 
@@ -167,7 +167,7 @@ The decoding is done automatically by the `o2-ctf-reader-workflow`.
 
 ## Local to global cluster transformation
 
-The `o2-mch-clusters-transformer-workflow` takes as input the list of all clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h)), in local reference frame, in the current time frame, with the data description "CLUSTERS".
+The `o2-mch-clusters-transformer-workflow` takes as input the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)), in local reference frame, in the current time frame, with the data description "CLUSTERS".
 
 It sends the list of the same clusters, but converted in global reference frame, with the data description "GLOBALCLUSTERS".
 
@@ -190,7 +190,7 @@ o2-mch-clusters-sink-workflow
 o2-mch-clusters-to-tracks-original-workflow
 ```
 
-Take as input the list of all clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h)) in the current time frame, with the data description "CLUSTERS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS". Send the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) in the time frame, the list of all associated clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the tracks associated to each interaction in three separate messages with the data description "TRACKS", "TRACKCLUSTERS" and "TRACKROFS", respectively.
+Take as input the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) in the current time frame, with the data description "CLUSTERS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS". Send the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) in the time frame, the list of all associated clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the tracks associated to each interaction in three separate messages with the data description "TRACKS", "TRACKCLUSTERS" and "TRACKROFS", respectively.
 
 Options `--l3Current xxx` and `--dipoleCurrent yyy` allow to specify the current in L3 and in the dipole to be used to set the magnetic field.
 
@@ -256,7 +256,7 @@ Options `--l3Current xxx` and `--dipoleCurrent yyy` allow to specify the current
 o2-mch-tracks-to-tracks-workflow
 ```
 
-Take as input the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) in the current time frame, the list of all associated clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the tracks associated to each interaction, with the data description "TRACKSIN", "TRACKCLUSTERSIN" and "TRACKROFSIN", respectively. Send the list of all refitted MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) in the time frame, the list of all associated clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the tracks associated to each interaction in three separate messages with the data description "TRACKS", "TRACKCLUSTERS" and "TRACKROFS", respectively.
+Take as input the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) in the current time frame, the list of all associated clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the tracks associated to each interaction, with the data description "TRACKSIN", "TRACKCLUSTERSIN" and "TRACKROFSIN", respectively. Send the list of all refitted MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) in the time frame, the list of all associated clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the tracks associated to each interaction in three separate messages with the data description "TRACKS", "TRACKCLUSTERS" and "TRACKROFS", respectively.
 
 Options `--l3Current xxx` and `--dipoleCurrent yyy` allow to specify the current in L3 and in the dipole to be used to set the magnetic field.
 
@@ -295,10 +295,10 @@ where `clusters.in` is a binary file containing for each event:
 
 * number of clusters (int)
 * number of associated digits (int)
-* list of clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h))
+* list of clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h))
 * list of associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h))
 
-Send the list of all clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h)) in the current time frame, with the data description "CLUSTERS" (or "GLOBALCLUSTERS" if `--global` option is used), and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS".
+Send the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) in the current time frame, with the data description "CLUSTERS" (or "GLOBALCLUSTERS" if `--global` option is used), and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS".
 
 Option `--nEventsPerTF xxx` allows to set the number of events (i.e. ROF records) to send per time frame (default = 1).
 
@@ -307,7 +307,7 @@ Option `--nEventsPerTF xxx` allows to set the number of events (i.e. ROF records
 ```
 o2-mch-clusters-reader-workflow --infile mchclusters.root [--enable-mc] [--local] [--digits]
 ```
-Send the list of all clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h)) in the current time frame, with the data description "GLOBALCLUSTERS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS".
+Send the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) in the current time frame, with the data description "GLOBALCLUSTERS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS".
 
 Option `--local` assumes that clusters are in the local coordinate system and send them with the description "CLUSTERS".
 
@@ -323,7 +323,7 @@ o2-mch-tracks-sampler-workflow --infile "tracks.in"
 
 where `tracks.in` is a binary file with the same format as the one written by the workflow [o2-mch-tracks-sink-workflow](#track-sink)
 
-Send the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) in the current time frame, the list of all associated clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the tracks associated to each interaction in three separate messages with the data description "TRACKS", "TRACKCLUSTERS" and "TRACKROFS", respectively.
+Send the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) in the current time frame, the list of all associated clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the tracks associated to each interaction in three separate messages with the data description "TRACKS", "TRACKCLUSTERS" and "TRACKROFS", respectively.
 
 Option `--forTrackFitter` allows to send the messages with the data description "TRACKSIN", "TRACKCLUSTERSIN" and TRACKROFSIN, respectively, as expected by the workflow [o2-mch-tracks-to-tracks-workflow](#track-fitter).
 
@@ -380,11 +380,11 @@ Option `--useRun2DigitUID` allows to convert the run3 pad ID stored in the digit
 o2-mch-clusters-sink-workflow --outfile "clusters.out" [--txt] [--no-digits] [--global]
 ```
 
-Take as input the list of all clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h)) in the current time frame, and, optionnally, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERS" (or "GLOBALCLUSTERS" if `--global` option is used), "CLUSTERDIGITS" (unless `--no-digits` option is used) and "CLUSTERROFS", respectively, and write them event-by-event in the binary file `clusters.out` with the following format for each event:
+Take as input the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) in the current time frame, and, optionnally, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERS" (or "GLOBALCLUSTERS" if `--global` option is used), "CLUSTERDIGITS" (unless `--no-digits` option is used) and "CLUSTERROFS", respectively, and write them event-by-event in the binary file `clusters.out` with the following format for each event:
 
 * number of clusters (int)
 * number of associated digits (int) (= 0 if `--no-digits` is used)
-* list of clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h))
+* list of clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h))
 * list of associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h))(unless option `--no-digits` is used)
 
 Option `--txt` allows to write the clusters in the output file in text format.
@@ -396,7 +396,7 @@ Option `--useRun2DigitUID` allows to convert the run3 pad ID stored in the digit
 ```
 o2-mch-clusters-writer-workflow [--enable-mc] [--local] [--no-digits]
 ```
-Take as input the list of all clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h)) in the current time frame, with the data description "GLOBALCLUSTERS", the list of associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)), with the data description "CLUSTERDIGITS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS", and write them in the root file "mchclusters.root".
+Take as input the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) in the current time frame, with the data description "GLOBALCLUSTERS", the list of associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)), with the data description "CLUSTERDIGITS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS", and write them in the root file "mchclusters.root".
 
 Option `--local` allows to write the list of clusters in the local coordinate system, with the data description "CLUSTERS".
 
@@ -410,14 +410,14 @@ Option `--enable-mc` allows to also write the cluster MC labels, with the data d
 o2-mch-tracks-sink-workflow --outfile "tracks.out"
 ```
 
-Take as input the list of all tracks at vertex ([TrackAtVtxStruct](#track-extrapolation-to-vertex)) in the current time frame, the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)), the list of all associated clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the MCH tracks associated to each interaction, with the data description "TRACKSATVERTEX", "TRACKS", "TRACKCLUSTERS" and "TRACKROFS", respectively, and write them event-by-event in the binary file `tracks.out` with the following format for each event:
+Take as input the list of all tracks at vertex ([TrackAtVtxStruct](#track-extrapolation-to-vertex)) in the current time frame, the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)), the list of all associated clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the MCH tracks associated to each interaction, with the data description "TRACKSATVERTEX", "TRACKS", "TRACKCLUSTERS" and "TRACKROFS", respectively, and write them event-by-event in the binary file `tracks.out` with the following format for each event:
 
 * number of tracks at vertex (int)
 * number of MCH tracks (int)
 * number of associated clusters (int)
 * list of tracks at vertex ([TrackAtVtxStruct](#track-extrapolation-to-vertex))
 * list of MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h))
-* list of associated clusters ([ClusterStruct](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ClusterBlock.h))
+* list of associated clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h))
 
 Option `--tracksAtVertexOnly` allows to take as input and write only the tracks at vertex (number of MCH tracks and number of associated clusters = 0).
 

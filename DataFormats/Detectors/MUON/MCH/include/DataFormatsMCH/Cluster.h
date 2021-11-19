@@ -9,16 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file ClusterBlock.h
+/// \file Cluster.h
 /// \brief Definition of the MCH cluster minimal structure
 ///
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_CLUSTERBLOCK_H_
-#define ALICEO2_MCH_CLUSTERBLOCK_H_
+#ifndef ALICEO2_MCH_CLUSTER_H_
+#define ALICEO2_MCH_CLUSTER_H_
 
 #include <iostream>
 #include <stdexcept>
+#include <string>
 #include <Rtypes.h>
 
 namespace o2
@@ -27,7 +28,7 @@ namespace mch
 {
 
 /// cluster minimal structure
-struct ClusterStruct {
+struct Cluster {
   float x;             ///< cluster position along x
   float y;             ///< cluster position along y
   float z;             ///< cluster position along z
@@ -36,6 +37,24 @@ struct ClusterStruct {
   uint32_t uid;        ///< cluster unique ID
   uint32_t firstDigit; ///< index of first associated digit in the ordered vector of digits
   uint32_t nDigits;    ///< number of digits attached to this cluster
+
+  /// Return the cluster position along x as double
+  double getX() const { return x; }
+  /// Return the cluster position along y as double
+  double getY() const { return y; }
+  /// Return the cluster position along z as double
+  double getZ() const { return z; }
+  /// Return the cluster resolution along x as double
+  double getEx() const { return ex; }
+  /// Return the cluster resolution along y as double
+  double getEy() const { return ey; }
+  /// Return the cluster resolution square along x
+  double getEx2() const { return getEx() * getEx(); }
+  /// Return the cluster resolution square along y
+  double getEy2() const { return getEy() * getEy(); }
+
+  /// Return the unique ID of this cluster in human readable form
+  std::string getIdAsString() const { return "DE" + std::to_string(getDEId()) + "#" + std::to_string(getClusterIndex()); }
 
   /// Return the chamber ID (0..), part of the unique ID
   int getChamberId() const { return getChamberId(uid); }
@@ -60,10 +79,10 @@ struct ClusterStruct {
     return (((chamberId & 0xF) << 28) | ((deId & 0x7FF) << 17) | clusterIndex);
   }
 
-  ClassDefNV(ClusterStruct, 1)
+  ClassDefNV(Cluster, 1)
 };
 
-std::ostream& operator<<(std::ostream& stream, const ClusterStruct& cluster);
+std::ostream& operator<<(std::ostream& stream, const Cluster& cluster);
 } // namespace mch
 } // namespace o2
 
@@ -72,8 +91,8 @@ namespace framework
 template <typename T>
 struct is_messageable;
 template <>
-struct is_messageable<o2::mch::ClusterStruct> : std::true_type {
+struct is_messageable<o2::mch::Cluster> : std::true_type {
 };
 } // namespace framework
 
-#endif // ALICEO2_MCH_CLUSTERBLOCK_H_
+#endif // ALICEO2_MCH_CLUSTER_H_
