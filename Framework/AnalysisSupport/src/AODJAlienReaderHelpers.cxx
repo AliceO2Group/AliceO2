@@ -224,6 +224,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       static int tfCurrentFile = -1;
       static auto currentFileStartedAt = uv_hrtime();
       static uint64_t currentFileIOTime = 0;
+      static uint64_t totalDFSent = 0;
 
       // check if RuntimeLimit is reached
       if (!watchdog->update()) {
@@ -317,7 +318,8 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 
         first = false;
       }
-      monitoring.send(Metric{(uint64_t)ntf, "df-sent"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+      totalDFSent++;
+      monitoring.send(Metric{(uint64_t)totalDFSent, "df-sent"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
       monitoring.send(Metric{(uint64_t)totalSizeUncompressed / 1000, "aod-bytes-read-uncompressed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
       monitoring.send(Metric{(uint64_t)totalSizeCompressed / 1000, "aod-bytes-read-compressed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
 
