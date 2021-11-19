@@ -23,6 +23,8 @@ o2_add_library(ITSWorkflow
                        src/VertexReaderSpec.cxx
                        src/CalibrationWorkflow.cxx
                        src/CalibratorSpec.cxx
+                       src/TreeMakerWorkflow.cxx
+                       src/TreeMaker.cxx
          PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::SimConfig
                                      O2::DataFormatsITS
@@ -50,5 +52,10 @@ o2_add_executable(cluster-reader-workflow
 
 o2_add_executable(calibration-workflow
                   SOURCES src/its-calibration-workflow.cxx
+                  COMPONENT_NAME its
+                  PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
+
+o2_add_executable(tree-maker-workflow
+                  SOURCES src/its-tree-maker-workflow.cxx
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
