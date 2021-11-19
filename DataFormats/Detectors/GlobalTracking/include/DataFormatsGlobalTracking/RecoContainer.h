@@ -47,7 +47,7 @@ class Tracklet64;
 class CalibratedTracklet;
 class TriggerRecord;
 class TrackTriggerRecord;
-//class TrackTRD;
+// class TrackTRD;
 struct RecoInputContainer;
 } // namespace o2::trd
 
@@ -71,7 +71,7 @@ namespace o2::mch
 {
 class TrackMCH;
 class ROFRecord;
-class ClusterStruct;
+class Cluster;
 } // namespace o2::mch
 
 namespace o2::mid
@@ -407,9 +407,9 @@ struct RecoContainer {
 
   o2::MCCompLabel getTrackMCLabel(GTrackID id) const
   {
-    //RS FIXME: THIS IS TEMPORARY: some labels are still not implemented: in this case return dummy label
+    // RS FIXME: THIS IS TEMPORARY: some labels are still not implemented: in this case return dummy label
     return commonPool[id.getSource()].getSize(MCLABELS) ? getObject<o2::MCCompLabel>(id, MCLABELS) : o2::MCCompLabel{};
-    //return getObject<o2::MCCompLabel>(id, MCLABELS);
+    // return getObject<o2::MCCompLabel>(id, MCLABELS);
   }
 
   //--------------------------------------------
@@ -452,7 +452,7 @@ struct RecoContainer {
   const o2::mch::TrackMCH& getMCHTrack(GTrackID gid) const { return getTrack<o2::mch::TrackMCH>(gid); }
   auto getMCHTracks() const { return getTracks<o2::mch::TrackMCH>(GTrackID::MCH); }
   auto getMCHTracksROFRecords() const { return getSpan<o2::mch::ROFRecord>(GTrackID::MCH, TRACKREFS); }
-  auto getMCHTrackClusters() const { return getSpan<o2::mch::ClusterStruct>(GTrackID::MCH, CLUSREFS); }
+  auto getMCHTrackClusters() const { return getSpan<o2::mch::Cluster>(GTrackID::MCH, CLUSREFS); }
   auto getMCHTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MCH, MCLABELS); }
 
   // MID

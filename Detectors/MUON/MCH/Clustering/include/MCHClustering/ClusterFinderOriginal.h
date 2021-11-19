@@ -28,7 +28,7 @@
 #include <TH2D.h>
 
 #include "DataFormatsMCH/Digit.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHPreClustering/PreClusterFinder.h"
 
@@ -59,7 +59,7 @@ class ClusterFinderOriginal
   void findClusters(gsl::span<const Digit> digits);
 
   /// return the list of reconstructed clusters
-  const std::vector<ClusterStruct>& getClusters() const { return mClusters; }
+  const std::vector<Cluster>& getClusters() const { return mClusters; }
   /// return the list of digits used in reconstructed clusters
   const std::vector<Digit>& getUsedDigits() const { return mUsedDigits; }
 
@@ -108,7 +108,7 @@ class ClusterFinderOriginal
              std::vector<std::vector<double>>& couplingClCl, std::vector<std::vector<double>>& couplingClPad) const;
   void updatePads(const double fitParam[SNFitParamMax + 1], int nParamUsed);
 
-  void setClusterResolution(ClusterStruct& cluster) const;
+  void setClusterResolution(Cluster& cluster) const;
 
   /// function to reinterpret digit ADC as charge
   std::function<double(uint32_t)> mADCToCharge = [](uint32_t adc) { return static_cast<double>(adc); };
@@ -125,8 +125,8 @@ class ClusterFinderOriginal
 
   const mapping::Segmentation* mSegmentation = nullptr; ///< pointer to the DE segmentation for the current precluster
 
-  std::vector<ClusterStruct> mClusters{}; ///< list of reconstructed clusters
-  std::vector<Digit> mUsedDigits{};       ///< list of digits used in reconstructed clusters
+  std::vector<Cluster> mClusters{}; ///< list of reconstructed clusters
+  std::vector<Digit> mUsedDigits{}; ///< list of digits used in reconstructed clusters
 
   PreClusterFinder mPreClusterFinder{}; ///< preclusterizer
 };

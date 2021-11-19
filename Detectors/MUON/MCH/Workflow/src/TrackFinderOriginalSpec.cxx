@@ -36,9 +36,8 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHTracking/TrackParam.h"
-#include "MCHTracking/Cluster.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFinderOriginal.h"
 #include "MCHTracking/TrackExtrap.h"
@@ -87,29 +86,29 @@ class TrackFinderTask
 
     // get the input messages with clusters
     auto clusterROFs = pc.inputs().get<gsl::span<ROFRecord>>("clusterrofs");
-    auto clustersIn = pc.inputs().get<gsl::span<ClusterStruct>>("clusters");
+    auto clustersIn = pc.inputs().get<gsl::span<Cluster>>("clusters");
 
-    //LOG(INFO) << "received time frame with " << clusterROFs.size() << " interactions";
+    // LOG(INFO) << "received time frame with " << clusterROFs.size() << " interactions";
 
     // create the output messages for tracks and attached clusters
     auto& trackROFs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"trackrofs"});
     auto& mchTracks = pc.outputs().make<std::vector<TrackMCH>>(OutputRef{"tracks"});
-    auto& usedClusters = pc.outputs().make<std::vector<ClusterStruct>>(OutputRef{"trackclusters"});
+    auto& usedClusters = pc.outputs().make<std::vector<Cluster>>(OutputRef{"trackclusters"});
 
     trackROFs.reserve(clusterROFs.size());
     for (const auto& clusterROF : clusterROFs) {
 
-      //LOG(INFO) << "processing interaction: " << clusterROF.getBCData() << "...";
+      // LOG(INFO) << "processing interaction: " << clusterROF.getBCData() << "...";
 
-      // get the input clusters of the current event
-      std::array<std::list<Cluster>, 10> clusters{};
+      // sort the input clusters of the current event per chamber
+      std::array<std::list<const Cluster*>, 10> clusters{};
       for (const auto& cluster : clustersIn.subspan(clusterROF.getFirstIdx(), clusterROF.getNEntries())) {
-        clusters[cluster.getChamberId()].emplace_back(cluster);
+        clusters[cluster.getChamberId()].emplace_back(&cluster);
       }
 
       // run the track finder
       auto tStart = std::chrono::high_resolution_clock::now();
-      const auto& tracks = mTrackFinder.findTracks(&clusters);
+      const auto& tracks = mTrackFinder.findTracks(clusters);
       auto tEnd = std::chrono::high_resolution_clock::now();
       mElapsedTime += tEnd - tStart;
 
@@ -125,7 +124,7 @@ class TrackFinderTask
   //_________________________________________________________________________________________________
   void writeTracks(const std::list<Track>& tracks,
                    std::vector<TrackMCH, o2::pmr::polymorphic_allocator<TrackMCH>>& mchTracks,
-                   std::vector<ClusterStruct, o2::pmr::polymorphic_allocator<ClusterStruct>>& usedClusters) const
+                   std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& usedClusters) const
   {
     /// fill the output messages with tracks and attached clusters
 
@@ -143,7 +142,7 @@ class TrackFinderTask
                              paramAtMID.getZ(), paramAtMID.getParameters(), paramAtMID.getCovariances());
 
       for (const auto& param : track) {
-        usedClusters.emplace_back(param.getClusterPtr()->getClusterStruct());
+        usedClusters.emplace_back(*param.getClusterPtr());
       }
     }
   }

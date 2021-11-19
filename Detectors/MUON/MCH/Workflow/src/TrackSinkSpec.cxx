@@ -33,7 +33,7 @@
 
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHBase/TrackBlock.h"
 #include "TrackAtVtxStruct.h"
 
@@ -76,11 +76,11 @@ class TrackSinkTask
     // get the input messages
     gsl::span<const ROFRecord> rofs{};
     gsl::span<const TrackMCH> tracks{};
-    gsl::span<const ClusterStruct> clusters{};
+    gsl::span<const Cluster> clusters{};
     if (pc.inputs().getPos("rofs") >= 0) {
       rofs = pc.inputs().get<gsl::span<ROFRecord>>("rofs");
       tracks = pc.inputs().get<gsl::span<TrackMCH>>("tracks");
-      clusters = pc.inputs().get<gsl::span<ClusterStruct>>("clusters");
+      clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
     }
     gsl::span<const char> tracksAtVtx{};
     if (pc.inputs().getPos("tracksAtVtx") >= 0) {
@@ -142,9 +142,9 @@ class TrackSinkTask
   }
 
   //_________________________________________________________________________________________________
-  gsl::span<const ClusterStruct> getEventTracksAndClusters(const ROFRecord& rof, gsl::span<const TrackMCH> tracks,
-                                                           gsl::span<const ClusterStruct> clusters,
-                                                           std::vector<TrackMCH>& eventTracks) const
+  gsl::span<const Cluster> getEventTracksAndClusters(const ROFRecord& rof, gsl::span<const TrackMCH> tracks,
+                                                     gsl::span<const Cluster> clusters,
+                                                     std::vector<TrackMCH>& eventTracks) const
   {
     /// copy the MCH tracks of the current event (needed to edit the tracks)
     /// modify the references to the attached clusters to start the indexing from 0
