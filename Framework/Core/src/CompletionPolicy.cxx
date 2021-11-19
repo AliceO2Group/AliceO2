@@ -12,6 +12,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/InputRecord.h"
+#include "Framework/DeviceSpec.h"
 #include <functional>
 #include <iostream>
 
@@ -44,6 +45,8 @@ std::ostream& operator<<(std::ostream& oss, CompletionPolicy::CompletionOp const
     case CompletionPolicy::CompletionOp::Discard:
       oss << "discard";
       break;
+    case CompletionPolicy::CompletionOp::ConsumeExisting:
+      oss << "consumeExisting";
   };
   return oss;
 }

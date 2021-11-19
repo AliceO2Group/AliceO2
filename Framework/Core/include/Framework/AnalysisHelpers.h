@@ -448,7 +448,7 @@ struct OutputObj {
     s << std::hex << mTaskHash;
     s << std::hex << reinterpret_cast<uint64_t>(this);
     std::memcpy(desc.str, s.str().c_str(), 12);
-    return OutputSpec{OutputLabel{label}, "ATSK", desc, 0};
+    return OutputSpec{OutputLabel{label}, "ATSK", desc, 0, Lifetime::QA};
   }
 
   T* operator->()

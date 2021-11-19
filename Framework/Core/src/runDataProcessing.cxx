@@ -1014,6 +1014,18 @@ void doUnknownException(std::string const& s, char const* processName)
   }
 }
 
+[[maybe_unused]] AlgorithmSpec dryRun(DeviceSpec const& spec)
+{
+  return AlgorithmSpec{adaptStateless(
+    [&routes = spec.outputs](DataAllocator& outputs) {
+      LOG(INFO) << "Dry run enforced. Creating dummy messages to simulate computation happended";
+      for (auto& route : routes) {
+        auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
+        outputs.make<int>(Output{concrete.origin, concrete.description, concrete.subSpec}, 2);
+      }
+    })};
+}
+
 void doDefaultWorkflowTerminationHook()
 {
   //LOG(INFO) << "Process " << getpid() << " is exiting.";
@@ -2357,7 +2369,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     // configuration they get passed by their parents.
     for (auto& dp : importedWorkflow) {
       auto found = std::find_if(physicalWorkflow.begin(), physicalWorkflow.end(),
-                                [& name = dp.name](DataProcessorSpec const& spec) { return spec.name == name; });
+                                [&name = dp.name](DataProcessorSpec const& spec) { return spec.name == name; });
       if (found == physicalWorkflow.end()) {
         physicalWorkflow.push_back(dp);
         rankIndex.insert(std::make_pair(dp.name, workflowHashB));
@@ -2435,7 +2447,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
       throw std::runtime_error("Unable to do topological sort of the resulting workflow. Do you have loops?\n" + debugTopoInfo(physicalWorkflow, topoInfos, edges));
     }
     // Sort by layer and then by name, to ensure stability.
-    std::stable_sort(topoInfos.begin(), topoInfos.end(), [& workflow = physicalWorkflow, &rankIndex, &topoInfos](TopoIndexInfo const& a, TopoIndexInfo const& b) {
+    std::stable_sort(topoInfos.begin(), topoInfos.end(), [&workflow = physicalWorkflow, &rankIndex, &topoInfos](TopoIndexInfo const& a, TopoIndexInfo const& b) {
       auto aRank = std::make_tuple(a.layer, -workflow.at(a.index).outputs.size(), workflow.at(a.index).name);
       auto bRank = std::make_tuple(b.layer, -workflow.at(b.index).outputs.size(), workflow.at(b.index).name);
       return aRank < bRank;
@@ -2535,7 +2547,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   // If the id is set, this means this is a device,
   // otherwise this is the driver.
   if (varmap.count("id")) {
-    frameworkId = varmap["id"].as<std::string>();
+    // The framework id does not want to know anything about DDS template expansion
+    // so we simply drop it. Notice that the "id" Property is still the same as the
+    // original --id option.
+    frameworkId = std::regex_replace(varmap["id"].as<std::string>(), std::regex{"_dds.*"}, "");
     driverInfo.uniqueWorkflowId = fmt::format("{}", getppid());
     driverInfo.defaultDriverClient = "stdout://";
   } else {

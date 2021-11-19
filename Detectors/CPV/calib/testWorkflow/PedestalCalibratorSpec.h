@@ -70,7 +70,7 @@ class CPVPedestalCalibDevice : public o2::framework::Task
       }
     }
 
-    auto infoVecSize = mCalibrator->getCcdbInfoVector().size();
+    auto infoVecSize = mCalibrator->getCcdbInfoPedestalsVector().size();
     auto pedsVecSize = mCalibrator->getPedestalsVector().size();
     if (infoVecSize > 0) {
       LOG(INFO) << "Created " << infoVecSize << " ccdb infos and " << pedsVecSize << " pedestal objects for TF " << tfcounter;
@@ -85,9 +85,13 @@ class CPVPedestalCalibDevice : public o2::framework::Task
   void sendOutput(DataAllocator& output)
   {
     // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
-    // TODO in principle, this routine is generic, can be moved to Utils.h
-    const auto& payloadVec = mCalibrator->getPedestalsVector();
-    auto&& infoVec = mCalibrator->getCcdbInfoVector(); // use non-const version as we update it
+    // TO NOT(!) DO in principle, this routine is non-generic(!), can be moved to Utils.h
+    // if there are more than 1 calibration objects to output
+
+    // send o2::cpv::Pedestals
+    /*const auto& payloadVec = mCalibrator->getPedestalsVector();
+    auto&& infoVec = mCalibrator->getCcdbInfoPedestalsVector(); // use non-const version as we update it
+
     assert(payloadVec.size() == infoVec.size());
 
     for (uint32_t i = 0; i < payloadVec.size(); i++) {
@@ -97,12 +101,38 @@ class CPVPedestalCalibDevice : public o2::framework::Task
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_Pedestals", i}, *image.get()); // vector<char>
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_Pedestals", i}, w);            // root-serialized
-    }
-    if (payloadVec.size()) {
+    }*/
+    bool isSomethingSent = false;
+    isSomethingSent = sendOutputWhat<o2::cpv::Pedestals>(mCalibrator->getPedestalsVector(), mCalibrator->getCcdbInfoPedestalsVector(), "CPV_Pedestals", output);
+    isSomethingSent += sendOutputWhat<std::vector<int>>(mCalibrator->getThresholdsFEEVector(), mCalibrator->getCcdbInfoThresholdsFEEVector(), "CPV_FEEThrs", output);
+    isSomethingSent += sendOutputWhat<std::vector<int>>(mCalibrator->getDeadChannelsVector(), mCalibrator->getCcdbInfoDeadChannelsVector(), "CPV_DeadChnls", output);
+    isSomethingSent += sendOutputWhat<std::vector<int>>(mCalibrator->getHighPedChannelsVector(), mCalibrator->getCcdbInfoHighPedChannelsVector(), "CPV_HighThrs", output);
+    isSomethingSent += sendOutputWhat<std::vector<float>>(mCalibrator->getEfficienciesVector(), mCalibrator->getCcdbInfoEfficienciesVector(), "CPV_PedEffs", output);
+
+    if (isSomethingSent) {
       mCalibrator->initOutput(); // reset the outputs once they are already sent
     }
   }
 
+  template <class Payload>
+  bool sendOutputWhat(const std::vector<Payload>& payloadVec, std::vector<o2::ccdb::CcdbObjectInfo>&& infoVec, header::DataDescription what, DataAllocator& output)
+  {
+    assert(payloadVec.size() == infoVec.size());
+    if (!payloadVec.size()) {
+      return false;
+    }
+
+    for (uint32_t i = 0; i < payloadVec.size(); i++) {
+      auto& w = infoVec[i];
+      auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
+      LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+                << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, what, i}, *image.get()); // vector<char>
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, what, i}, w);            // root-serialized
+    }
+
+    return true;
+  }
 }; // class CPVPedestalCalibDevice
 } // namespace calibration
 namespace framework
@@ -112,8 +142,18 @@ DataProcessorSpec getCPVPedestalCalibDeviceSpec()
   using device = o2::calibration::CPVPedestalCalibDevice;
 
   std::vector<OutputSpec> outputs;
+  // Length of data description ("CPV_Pedestals") must be < 16 characters.
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_Pedestals"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_Pedestals"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_FEEThrs"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_FEEThrs"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_PedEffs"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_PedEffs"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_DeadChnls"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_DeadChnls"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_HighThrs"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_HighThrs"});
+
   return DataProcessorSpec{
     "cpv-pedestal-calibration",
     Inputs{

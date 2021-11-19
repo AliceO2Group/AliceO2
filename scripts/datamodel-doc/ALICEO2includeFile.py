@@ -672,7 +672,7 @@ class datamodel:
 
     # PWG data model names
     dmnames = [CERsPWG[i][4] for i in list(range(0, len(CERsPWG)))]
-    dmnames = list(set(dmnames))
+    dmnames = np.unique(dmnames)
     for dmname in dmnames:
       print("")
       print("##", dmname)

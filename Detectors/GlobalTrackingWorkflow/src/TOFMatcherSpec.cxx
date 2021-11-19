@@ -86,9 +86,9 @@ void TOFMatcherSpec::init(InitContext& ic)
   if (o2::utils::Str::pathExists(matLUTFile)) {
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
-    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+    LOG(DEBUG) << "Loaded material LUT from " << matLUTFile;
   } else {
-    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+    LOG(DEBUG) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
   if (mStrict) {
     mMatcher.setHighPurity();
@@ -102,10 +102,10 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
 
-  LOG(INFO) << "isTrackSourceLoaded: TPC -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPC);
-  LOG(INFO) << "isTrackSourceLoaded: ITSTPC -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPC);
-  LOG(INFO) << "isTrackSourceLoaded: TPCTRD -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRD);
-  LOG(INFO) << "isTrackSourceLoaded: ITSTPCTRD -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRD);
+  LOG(DEBUG) << "isTrackSourceLoaded: TPC -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPC);
+  LOG(DEBUG) << "isTrackSourceLoaded: ITSTPC -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPC);
+  LOG(DEBUG) << "isTrackSourceLoaded: TPCTRD -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRD);
+  LOG(DEBUG) << "isTrackSourceLoaded: ITSTPCTRD -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRD);
 
   bool isTPCused = recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPC);
   bool isITSTPCused = recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPC);
@@ -124,9 +124,9 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
 
     auto nmatch = mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC).size();
     if (mDoTPCRefit) {
-      LOG(INFO) << "Refitting " << nmatch << " matched TPC tracks with TOF time info";
+      LOG(DEBUG) << "Refitting " << nmatch << " matched TPC tracks with TOF time info";
     } else {
-      LOG(INFO) << "Shifting Z for " << nmatch << " matched TPC tracks according to TOF time info";
+      LOG(DEBUG) << "Shifting Z for " << nmatch << " matched TPC tracks according to TOF time info";
     }
     auto& tracksTPCTOF = pc.outputs().make<std::vector<o2::dataformats::TrackTPCTOF>>(OutputRef{"tpctofTracks", ss}, nmatch);
     mMatcher.makeConstrainedTPCTracks(tracksTPCTOF);
@@ -161,7 +161,7 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
 
 void TOFMatcherSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "TOF matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(DEBUG, "TOF matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

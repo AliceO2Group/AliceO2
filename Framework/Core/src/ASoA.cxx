@@ -111,15 +111,14 @@ arrow::Status getSliceFor(int value, char const* key, std::shared_ptr<arrow::Tab
   auto values = static_cast<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
   auto counts = static_cast<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
 
-  int slice;
-  for (slice = 0; slice < values.length(); ++slice) {
+  for (auto slice = 0; slice < values.length(); ++slice) {
     if (values.Value(slice) == value) {
-      offset = slice;
-      output = input->Slice(slice, counts.Value(slice));
+      output = input->Slice(offset, counts.Value(slice));
       return arrow::Status::OK();
     }
+    offset += counts.Value(slice);
   }
-  output = input->Slice(0, 0);
+  output = input->Slice(offset, 0);
   return arrow::Status::OK();
 }
 

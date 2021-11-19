@@ -19,6 +19,7 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataOutputDirector.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataProcessingStats.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/EndOfStreamContext.h"
@@ -34,6 +35,7 @@
 #include "Framework/ChannelSpec.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/RuntimeError.h"
+#include <Monitoring/Monitoring.h>
 
 #include "TFile.h"
 #include "TTree.h"
@@ -53,9 +55,10 @@ template class std::vector<o2::framework::OutputObjectInfo>;
 template class std::vector<o2::framework::OutputTaskInfo>;
 using namespace o2::framework::data_matcher;
 
-namespace o2
-{
-namespace framework
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+
+namespace o2::framework
 {
 
 struct InputObjectRoute {
@@ -230,12 +233,12 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
     };
   };
 
+  char const* name = "internal-dpl-aod-global-analysis-file-sink";
   DataProcessorSpec spec{
-    "internal-dpl-aod-global-analysis-file-sink",
-    {InputSpec("x", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"ATSK"}))},
-    Outputs{},
-    AlgorithmSpec(writerFunction),
-    {}};
+    .name = name,
+    .inputs = {InputSpec("x", DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin{"ATSK"}))},
+    .algorithm = {writerFunction},
+  };
 
   return spec;
 }
@@ -498,11 +501,17 @@ DataProcessorSpec CommonDataProcessors::getGlobalFairMQSink(std::vector<InputSpe
 DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs)
 {
   return DataProcessorSpec{
-    "internal-dpl-injected-dummy-sink",
-    danglingOutputInputs,
-    Outputs{},
-    AlgorithmSpec([](ProcessingContext& ctx) {})};
+    .name = "internal-dpl-injected-dummy-sink",
+    .inputs = danglingOutputInputs,
+    .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
+      auto dataConsumed = [](ServiceRegistry& services) {
+        services.get<DataProcessingStats>().consumedTimeframes++;
+      };
+      callbacks.set(CallbackService::Id::DataConsumed, dataConsumed);
+
+      return adaptStateless([]() {});
+    })}};
 }
 
-} // namespace framework
-} // namespace o2
+#pragma GCC diagnostic pop
+} // namespace o2::framework

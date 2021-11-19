@@ -8,13 +8,14 @@ source $MYDIR/setenv.sh
 
 # ---------------------------------------------------------------------------------------------------------------------
 #Some additional settings used in this workflow
-if [ -z $OPTIMIZED_PARALLEL_ASYNC ]; then OPTIMIZED_PARALLEL_ASYNC=0; fi  # Enable tuned process multiplicities for async processing on the EPN
-if [ -z $CTF_DIR ];                  then CTF_DIR=$FILEWORKDIR; fi        # Directory where to store CTFs
-if [ -z $CTF_DICT_DIR ];             then CTF_DICT_DIR=$FILEWORKDIR; fi   # Directory of CTF dictionaries
+if [ -z $OPTIMIZED_PARALLEL_ASYNC ]; then OPTIMIZED_PARALLEL_ASYNC=0; fi     # Enable tuned process multiplicities for async processing on the EPN
+if [ -z $CTF_DIR ];                  then CTF_DIR=$FILEWORKDIR; fi           # Directory where to store CTFs
+if [ -z $CTF_DICT_DIR ];             then CTF_DICT_DIR=$FILEWORKDIR; fi      # Directory of CTF dictionaries
 if [ -z $CTF_METAFILES_DIR ];        then CTF_METAFILES_DIR="/dev/null"; fi  # Directory where to store CTF files metada, /dev/null : skip their writing
-if [ -z $RECO_NUM_NODES_WORKFLOW ];  then RECO_NUM_NODES_WORKFLOW=250; fi # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
-if [ -z $CTF_MINSIZE ];              then CTF_MINSIZE="500000000"; fi     # accumulate CTFs until file size reached
-if [ -z $CTF_MAX_PER_FILE ];         then CTF_MAX_PER_FILE="200"; fi      # but no more than given number of CTFs per file
+if [ -z $RECO_NUM_NODES_WORKFLOW ];  then RECO_NUM_NODES_WORKFLOW=250; fi    # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
+if [ -z $CTF_MINSIZE ];              then CTF_MINSIZE="500000000"; fi        # accumulate CTFs until file size reached
+if [ -z $CTF_MAX_PER_FILE ];         then CTF_MAX_PER_FILE="200"; fi         # but no more than given number of CTFs per file
+if [ -z $IS_SIMULATED_DATA ];        then IS_SIMULATED_DATA=1; fi            # processing simulated data
 
 if [ $SYNCMODE == 1 ]; then
   if [ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]; then export WORKFLOW_DETECTORS_MATCHING="ITSTPC,ITSTPCTRD,ITSTPCTOF"; fi # Select matchings that are enabled in sync mode
@@ -37,6 +38,8 @@ CTF_DICT=${CTF_DICT_DIR}/ctf_dictionary.root
 
 ITSMFT_FILES="ITSClustererParam.dictFilePath=$ITSCLUSDICT;MFTClustererParam.dictFilePath=$MFTCLUSDICT";
 
+LIST_OF_ASYNC_RECO_STEPS="MID MCH MFT FDD FV0 ZDC"
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Set active reconstruction steps (defaults added according to SYNCMODE)
 
@@ -51,7 +54,7 @@ done
 if [ $SYNCMODE == 1 ]; then # Add default steps for synchronous mode
   add_comma_separated WORKFLOW_EXTRA_PROCESSING_STEPS ENTROPY_ENCODER
 else # Add default steps for async mode
-  for i in MID MCH MFT FDD FV0 ZDC; do
+  for i in $LIST_OF_ASYNC_RECO_STEPS; do
     has_detector_reco $i && add_comma_separated WORKFLOW_EXTRA_PROCESSING_STEPS ${i}_RECO
   done
 fi
@@ -98,13 +101,14 @@ TRD_TRANSFORMER_CONFIG=
 CPV_INPUT=raw
 EVE_CONFIG=" --jsons-folder $EDJSONS_DIR"
 MIDDEC_CONFIG=
+EMCRAW2C_CONFIG=
 
 if [ $SYNCMODE == 1 ]; then
   if [ $BEAMTYPE == "PbPb" ]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
     ITS_CONFIG+=" --tracking-mode sync"
   elif [ $BEAMTYPE == "pp" ]; then
-    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=1;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
+    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=1;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2"
     ITS_CONFIG+=" --tracking-mode sync"
   elif [ $BEAMTYPE == "cosmic" ]; then
     ITS_CONFIG+=" --tracking-mode cosmics"
@@ -116,8 +120,18 @@ if [ $SYNCMODE == 1 ]; then
   TRD_CONFIG_KEY+="GPU_proc.ompThreads=1;"
   TRD_TRANSFORMER_CONFIG+=" --filter-trigrec"
 else
-  ITS_CONFIG+=" --tracking-mode async"
+  if [ $BEAMTYPE == "PbPb" ]; then
+    ITS_CONFIG+=" --tracking-mode async"
+  elif [ $BEAMTYPE == "pp" ]; then
+    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=1;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2"
+    ITS_CONFIG+=" --tracking-mode async"
+  elif [ $BEAMTYPE == "cosmic" ]; then
+    ITS_CONFIG+=" --tracking-mode cosmics"
+  else
+    ITS_CONFIG+=" --tracking-mode async"
+  fi
 fi
+
 has_processing_step ENTROPY_ENCODER && GPU_OUTPUT+=",compressed-clusters-ctf"
 
 has_detector_flp_processing CPV && CPV_INPUT=digits
@@ -128,7 +142,7 @@ if [ $EPNMODE == 1 ]; then
   MIDDEC_CONFIG+=" --feeId-config-file \"$MID_FEEID_MAP\""
   GPU_CONFIG_KEY+="GPU_proc.tpcIncreasedMinClustersPerRow=500000;GPU_proc.ignoreNonFatalGPUErrors=1;"
   # Options for decoding current TRD real raw data (not needed for data converted from MC)
-  if [ -z $TRD_DECODER_OPTIONS ]; then TRD_DECODER_OPTIONS=" --tracklethcheader 2  --ignore-digithcheader --halfchamberwords 2 --halfchambermajor 33 "; fi
+  if [ -z $TRD_DECODER_OPTIONS ]; then TRD_DECODER_OPTIONS=" --tracklethcheader 2 "; fi
   if [ $EXTINPUT == 1 ] && [ $GPUTYPE != "CPU" ] && [ -z "$GPU_NUM_MEM_REG_CALLBACKS" ]; then GPU_NUM_MEM_REG_CALLBACKS=4; fi
 fi
 
@@ -165,6 +179,8 @@ if ! has_detector_reco TOF; then
   TOF_OUTPUT=digits
 fi
 
+[ $IS_SIMULATED_DATA == "1" ] && EMCRAW2C_CONFIG+=" --no-mergeHGLG"
+
 # ---------------------------------------------------------------------------------------------------------------------
 # Assemble matching sources
 TRD_SOURCES=
@@ -177,7 +193,11 @@ has_detector_matching TPCTOF && { add_comma_separated TOF_SOURCES TPC; add_comma
 has_detector_matching ITSTPCTOF && { add_comma_separated TOF_SOURCES ITS-TPC; add_comma_separated TRACK_SOURCES "ITS-TPC-TOF"; }
 has_detector_matching MFTMCH && add_comma_separated TRACK_SOURCES "MFT-MCH"
 for det in `echo $LIST_OF_DETECTORS | sed "s/,/ /g"`; do
-  has_detector_reco $det && add_comma_separated TRACK_SOURCES "$det"
+  if [[ $LIST_OF_ASYNC_RECO_STEPS =~ (^| )${det}( |$) ]]; then
+    has_processing_step ${det}_RECO && add_comma_separated TRACK_SOURCES "$det"
+  else
+    has_detector_reco $det && add_comma_separated TRACK_SOURCES "$det"
+  fi
 done
 PVERTEX_CONFIG="--vertexing-sources $TRACK_SOURCES --vertex-track-matching-sources $TRACK_SOURCES"
 has_detector_reco FT0 && PVERTEX_CONFIG+=" --validate-with-ft0"
@@ -316,7 +336,7 @@ if [ $CTFINPUT == 0 ]; then
   has_detector CTP && WORKFLOW+="o2-ctp-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" $DISABLE_ROOT_OUTPUT --pipeline $(get_N CTP-RawStreamDecoder CTP RAW) | "
   has_detector PHS && ! has_detector_flp_processing PHS && WORKFLOW+="o2-phos-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --input-type raw --output-type cells --disable-root-input $DISABLE_ROOT_OUTPUT --pipeline $(get_N PHOSRawToCellConverterSpec PHS REST) $DISABLE_MC | "
   has_detector CPV && WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --input-type $CPV_INPUT --output-type clusters --disable-root-input $DISABLE_ROOT_OUTPUT --pipeline $(get_N CPVRawToDigitConverterSpec CPV REST),$(get_N CPVClusterizerSpec CPV REST) $DISABLE_MC | "
-  has_detector EMC && ! has_detector_flp_processing EMC && WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --input-type raw --output-type cells $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N EMCALRawToCellConverterSpec EMC REST EMCREC) | "
+  has_detector EMC && ! has_detector_flp_processing EMC && WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --input-type raw --output-type cells $EMCRAW2C_CONFIG $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N EMCALRawToCellConverterSpec EMC REST EMCREC) | "
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -331,7 +351,7 @@ has_detectors_reco TRD TPC ITS && [ ! -z "$TRD_SOURCES" ] && WORKFLOW+="o2-trd-g
 has_detectors_reco TOF TRD TPC ITS && [ ! -z "$TOF_SOURCES" ] && WORKFLOW+="o2-tof-matcher-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG;$ITSMFT_FILES\" --disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST TOFMATCH) | "
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Reconstruction workflows normally active only in async mode in async mode, but can be forced via $WORKFLOW_EXTRA_PROCESSING_STEPS
+# Reconstruction workflows normally active only in async mode in async mode ($LIST_OF_ASYNC_RECO_STEPS), but can be forced via $WORKFLOW_EXTRA_PROCESSING_STEPS
 has_processing_step MID_RECO && WORKFLOW+="o2-mid-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N MIDClusterizer MID REST),$(get_N MIDTracker MID REST) | "
 has_processing_step MCH_RECO && WORKFLOW+="o2-mch-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N mch-track-finder MCH REST MCHTRK),$(get_N mch-cluster-finder MCH REST),$(get_N mch-cluster-transformer MCH REST) | "
 has_processing_step MFT_RECO && WORKFLOW+="o2-mft-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG;$ITSMFT_FILES\" --clusters-from-upstream $DISABLE_MC $DISABLE_ROOT_OUTPUT --pipeline $(get_N mft-tracker MFT REST MFTTRK) | "
@@ -339,8 +359,11 @@ has_processing_step FDD_RECO && WORKFLOW+="o2-fdd-reco-workflow $ARGS_ALL --conf
 has_processing_step FV0_RECO && WORKFLOW+="o2-fv0-reco-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC | "
 has_processing_step ZDC_RECO && WORKFLOW+="o2-zdc-digits-reco $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC | "
 has_detectors_reco MFT MCH && has_detector_matching MFTMCH && WORKFLOW+="o2-globalfwd-matcher-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N globalfwd-track-matcher MATCH REST) | "
-has_detectors_reco ITS && has_detector_matching PRIMVTX && WORKFLOW+="o2-primary-vertexing-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" $DISABLE_MC --disable-root-input $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST) | "
-has_detectors_reco ITS && has_detector_matching SECVTX && WORKFLOW+="o2-secondary-vertexing-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input $DISABLE_ROOT_OUTPUT --vertexing-sources $TRACK_SOURCES --pipeline $(get_N secondary-vertexing MATCH REST) | "
+
+if [ $BEAMTYPE != "cosmic" ]; then
+  has_detectors_reco ITS && has_detector_matching PRIMVTX && WORKFLOW+="o2-primary-vertexing-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" $DISABLE_MC --disable-root-input $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST) | "
+  has_detectors_reco ITS && has_detector_matching SECVTX && WORKFLOW+="o2-secondary-vertexing-workflow $ARGS_ALL --configKeyValues \"$ARGS_ALL_CONFIG\" --disable-root-input $DISABLE_ROOT_OUTPUT --vertexing-sources $TRACK_SOURCES --pipeline $(get_N secondary-vertexing MATCH REST) | "
+fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Entropy encoding / ctf creation workflows - disabled in async mode

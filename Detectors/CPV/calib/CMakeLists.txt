@@ -35,6 +35,14 @@ if(BUILD_TESTING)
                          PUBLIC_LINK_LIBRARIES O2::CCDB O2::DataFormatsCPV
                          LABELS CPV COMPILE_ONLY)
 
+  o2_add_test_root_macro(macros/readPedEfficienciesFromCCDB.C
+                         PUBLIC_LINK_LIBRARIES O2::CCDB O2::CPVBase
+                         LABELS CPV COMPILE_ONLY)
+
+  o2_add_test_root_macro(macros/readThresholdsFEEFromCCDB.C
+                         PUBLIC_LINK_LIBRARIES O2::CCDB O2::CPVBase
+                         LABELS CPV COMPILE_ONLY)
+
   o2_add_test_root_macro(macros/PostBadMapCCDB.C
                          PUBLIC_LINK_LIBRARIES O2::CCDB O2::DataFormatsCPV
                          LABELS CPV COMPILE_ONLY)

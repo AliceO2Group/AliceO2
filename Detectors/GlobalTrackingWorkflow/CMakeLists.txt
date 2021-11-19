@@ -23,6 +23,7 @@ o2_add_library(GlobalTrackingWorkflow
                        src/CosmicsMatchingSpec.cxx
                        src/TrackCosmicsWriterSpec.cxx
                        src/TOFMatcherSpec.cxx
+                       src/TOFMatchChecker.cxx
                        src/GlobalFwdTrackWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
@@ -72,6 +73,10 @@ o2_add_executable(vertexing-workflow
 o2_add_executable(matcher-workflow
                   COMPONENT_NAME tof
                   SOURCES src/tof-matcher-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow O2::TOFWorkflowIO)
+o2_add_executable(match-checker-workflow
+                  COMPONENT_NAME tof
+                  SOURCES src/tof-match-checker-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow O2::TOFWorkflowIO)
 
 o2_add_executable(matcher-workflow

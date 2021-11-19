@@ -16,7 +16,7 @@
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "TOFWorkflowIO/ClusterReaderSpec.h"
 #include "TOFWorkflowIO/TOFMatchedReaderSpec.h"
-#include "GlobalTrackingWorkflow/TOFMatcherSpec.h"
+#include "GlobalTrackingWorkflow/TOFMatchChecker.h"
 #include "TOFWorkflowIO/TOFMatchedWriterSpec.h"
 #include "TOFWorkflowIO/TOFCalibWriterSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -39,11 +39,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
-    {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use: allowed TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD (all)"}},
-    {"use-fit", o2::framework::VariantType::Bool, false, {"enable access to fit info for calibration"}},
-    {"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}},
-    {"strict-matching", o2::framework::VariantType::Bool, false, {"High purity preliminary matching"}},
-    {"output-type", o2::framework::VariantType::String, "matching-info,calib-info", {"matching-info, calib-info"}},
+    {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use: allowed TPC-TOF,ITS-TPC-TOF,TPC-TRD-TOF,ITS-TPC-TRD-TOF (all)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -62,83 +58,33 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the workflow
-  o2::conf::ConfigurableParam::writeINI("o2match-tof-workflow_configuration.ini");
+  o2::conf::ConfigurableParam::writeINI("o2match-check-tof-workflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableRootIn = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
-  auto useFIT = configcontext.options().get<bool>("use-fit");
-  auto useCCDB = configcontext.options().get<bool>("use-ccdb");
-  auto strict = configcontext.options().get<bool>("strict-matching");
-
-  bool writematching = 0;
-  bool writecalib = 0;
-  auto outputType = configcontext.options().get<std::string>("output-type");
-  if (outputType.rfind("matching-info") < outputType.size()) {
-    writematching = 1;
-  }
-  if (outputType.rfind("calib-info") < outputType.size()) {
-    writecalib = 1;
-  }
-
-  if (!writecalib) {
-    useFIT = false;
-  }
 
   LOG(DEBUG) << "TOF MATCHER WORKFLOW configuration";
   LOG(DEBUG) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");
-  LOG(DEBUG) << "TOF output = " << outputType;
   LOG(DEBUG) << "TOF disable-mc = " << configcontext.options().get<std::string>("disable-mc");
-  LOG(DEBUG) << "TOF use-ccdb = " << useCCDB;
-  LOG(DEBUG) << "TOF use-fit = " << useFIT;
   LOG(DEBUG) << "TOF disable-root-input = " << disableRootIn;
   LOG(DEBUG) << "TOF disable-root-output = " << disableRootOut;
-  LOG(DEBUG) << "TOF matching in strict mode = " << strict;
 
-  //GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC");
-  GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD");
+  GID::mask_t alowedSources = GID::getSourcesMask("ITS-TPC-TOF,TPC-TOF,ITS-TPC-TRD-TOF,TPC-TRD-TOF");
 
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
-  if (strict && (src & ~GID::getSourcesMask("TPC,TPC-TRD")).any()) {
-    LOGP(WARNING, "In strict matching mode only TPC and TPC-TRD sources allowed, {} asked, redefining", GID::getSourcesNames(src));
-    src &= GID::getSourcesMask("TPC,TPC-TRD");
-  }
   GID::mask_t mcmaskcl;
   GID::mask_t nonemask = GID::getSourcesMask(GID::NONE);
   GID::mask_t clustermask = GID::getSourcesMask("TOF");
-  if (useFIT) {
-    clustermask |= GID::getSourceMask(GID::FT0);
-  }
 
   if (useMC) {
     mcmaskcl |= GID::getSourceMask(GID::TOF);
   }
   // pass strict flag to fetch eventual TPC-TRD input with correct subspec
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, clustermask, nonemask, src, useMC, mcmaskcl, GID::getSourcesMask(GID::ALL), strict);
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, clustermask, src, src, useMC, mcmaskcl, GID::getSourcesMask(GID::ALL), false);
 
-  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict)); // doTPCrefit not yet supported (need to load TPC clusters?)
+  specs.emplace_back(o2::globaltracking::getTOFMatchCheckerSpec(src, useMC)); // doTPCrefit not yet supported (need to load TPC clusters?)
 
-  if (!disableRootOut) {
-    if (writematching) {
-      if (GID::includesSource(GID::TPC, src)) { // matching to TPC was requested
-        specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_tpc.root", true, (int)o2::dataformats::MatchInfoTOFReco::TrackType::TPC, strict));
-      }
-      if (GID::includesSource(GID::ITSTPC, src)) { // matching to ITS-TPC was requested, there is not strict mode in this case
-        specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_itstpc.root", false, (int)o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC, false));
-      }
-      if (GID::includesSource(GID::TPCTRD, src)) { // matching to TPC-TRD was requested, there is not strict mode in this case
-        specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_tpctrd.root", false, (int)o2::dataformats::MatchInfoTOFReco::TrackType::TPCTRD, strict));
-      }
-      if (GID::includesSource(GID::ITSTPCTRD, src)) { // matching to ITS-TPC-TRD was requested, there is not strict mode in this case
-        specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_itstpctrd.root", false, (int)o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPCTRD, false));
-      }
-    }
-    if (writecalib) {
-      specs.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_tof.root", 0));
-    }
-  }
-
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
   return std::move(specs);

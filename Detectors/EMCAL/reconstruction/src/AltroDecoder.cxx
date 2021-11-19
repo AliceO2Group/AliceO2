@@ -70,7 +70,7 @@ void AltroDecoder::readChannels()
     }
     // starting a new channel
     auto channelheader = currentword;
-    mChannels.emplace_back(Channel::getHardwareAddressFromChannelHeader(currentword), Channel::getPayloadSizeFromChannelHeader(currentword));
+    mChannels.emplace_back(currentword & 0xFFF, (currentword >> 16) & 0x3FF);
     auto& currentchannel = mChannels.back();
     currentchannel.setBadChannel((currentword >> 29) & 0x1);
 

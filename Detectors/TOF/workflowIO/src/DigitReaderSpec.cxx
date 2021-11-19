@@ -32,7 +32,7 @@ namespace tof
 
 void DigitReader::init(InitContext& ic)
 {
-  LOG(INFO) << "Init Digit reader!";
+  LOG(DEBUG) << "Init Digit reader!";
   auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                                 ic.options().get<std::string>("tof-digit-infile"));
   mFile = std::make_unique<TFile>(filename.c_str(), "OLD");

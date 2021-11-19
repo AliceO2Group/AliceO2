@@ -1169,7 +1169,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   for (auto& label : primVerLabels) {
     auto it = std::find_if(mcColToEvSrc.begin(), mcColToEvSrc.end(),
                            [&label](const std::pair<int, int>& item) { return (item.first == label.getEventID() && item.second == label.getSourceID()); });
-    int32_t mcCollisionID = it - mcColToEvSrc.begin();
+    int32_t mcCollisionID = (it != mcColToEvSrc.end()) ? it - mcColToEvSrc.begin() : -1;
     uint16_t mcMask = 0; // todo: set mask using normalized weights?
     mcColLabelsCursor(0, mcCollisionID, mcMask);
   }

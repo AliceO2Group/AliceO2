@@ -35,6 +35,9 @@
 #include <climits>
 #include <thread>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+
 namespace o2::framework
 {
 
@@ -1134,4 +1137,5 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   return results;
 }
 
+#pragma GCC diagnostic pop
 } // namespace o2::framework

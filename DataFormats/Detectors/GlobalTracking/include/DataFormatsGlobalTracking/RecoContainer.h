@@ -198,7 +198,7 @@ struct DataRequest {
   void requestTPCTOFTracks(bool mc);
   void requestITSTPCTRDTracks(bool mc);
   void requestTPCTRDTracks(bool mc);
-  void requestTOFMatches(bool mc);
+  void requestTOFMatches(o2::dataformats::GlobalTrackID::mask_t src, bool mc);
   void requestFT0RecPoints(bool mc);
   void requestFV0RecPoints(bool mc);
   void requestFDDRecPoints(bool mc);
@@ -315,7 +315,9 @@ struct RecoContainer {
   void addITSTPCTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addGlobalFwdTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addTPCTOFTracks(o2::framework::ProcessingContext& pc, bool mc);
-  void addTOFMatches(o2::framework::ProcessingContext& pc, bool mc);
+  void addTOFMatchesITSTPC(o2::framework::ProcessingContext& pc, bool mc);
+  void addTOFMatchesTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
+  void addTOFMatchesITSTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
 
   void addITSClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addMFTClusters(o2::framework::ProcessingContext& pc, bool mc);

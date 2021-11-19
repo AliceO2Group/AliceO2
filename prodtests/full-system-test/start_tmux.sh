@@ -20,6 +20,7 @@ export EPNPIPELINES=1
 export SYNCMODE=1
 export SHMTHROW=0
 export SEVERITY=error
+export IS_SIMULATED_DATA=1
 
 if [ $1 == "dd" ]; then
   export CMD=datadistribution.sh

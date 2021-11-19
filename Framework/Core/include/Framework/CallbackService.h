@@ -8,18 +8,17 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_CALLBACKSERVICE_H
-#define FRAMEWORK_CALLBACKSERVICE_H
+#ifndef O2_FRAMEWORK_CALLBACKSERVICE_H_
+#define O2_FRAMEWORK_CALLBACKSERVICE_H_
 
 #include "CallbackRegistry.h"
 #include "Framework/ServiceHandle.h"
+#include "ServiceRegistry.h"
 #include <tuple>
 
 #include <fairmq/FwdDecls.h>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 class EndOfStreamContext;
@@ -34,11 +33,12 @@ class CallbackService
   constexpr static ServiceKind service_kind = ServiceKind::Global;
   /// the defined processing steps at which a callback can be invoked
   enum class Id {
-    Start,     /**< Invoked before the inner loop is started */
-    Stop,      /**< Invoked when the device is about to be stoped */
-    Reset,     /**< Invoked on device rest */
-    Idle,      /**< Invoked when there was no computation scheduled */
-    ClockTick, /**< Invoked every iteration of the inner loop */
+    Start,        /**< Invoked before the inner loop is started */
+    Stop,         /**< Invoked when the device is about to be stoped */
+    Reset,        /**< Invoked on device rest */
+    Idle,         /**< Invoked when there was no computation scheduled */
+    ClockTick,    /**< Invoked every iteration of the inner loop */
+    DataConsumed, /**< Invoked whenever data has been consumed */
     /// Invoked when we are notified that no further data will arrive.
     /// Notice that one could have more "EndOfData" notifications. Because
     /// we could be signaled by control that the data flow restarted.
@@ -66,6 +66,7 @@ class CallbackService
   using ResetCallback = std::function<void()>;
   using IdleCallback = std::function<void()>;
   using ClockTickCallback = std::function<void()>;
+  using DataConsumedCallback = std::function<void(ServiceRegistry&)>;
   using EndOfStreamCallback = std::function<void(EndOfStreamContext&)>;
   using RegionInfoCallback = std::function<void(FairMQRegionInfo const&)>;
 
@@ -75,6 +76,7 @@ class CallbackService
                                      RegistryPair<Id, Id::Reset, ResetCallback>,                  //
                                      RegistryPair<Id, Id::Idle, IdleCallback>,                    //
                                      RegistryPair<Id, Id::ClockTick, ClockTickCallback>,          //
+                                     RegistryPair<Id, Id::DataConsumed, DataConsumedCallback>,    //
                                      RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,      //
                                      RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback> //
                                      >;                                                           //
@@ -97,6 +99,5 @@ class CallbackService
   Callbacks mCallbacks;
 };
 
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_CALLBACKSERVICE_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_CALLBACKSERVICE_H_

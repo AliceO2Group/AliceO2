@@ -64,9 +64,9 @@ class TOFDPLClustererTask
     mTimer.Reset();
 
     mTimeWin = ic.options().get<int>("cluster-time-window");
-    LOG(INFO) << "Is calibration from cluster on? " << mIsCalib;
-    LOG(INFO) << "DeltaTime for clusterization = " << mTimeWin << " ps";
-    LOG(INFO) << "Is cosmics? " << mIsCosmic;
+    LOG(DEBUG) << "Is calibration from cluster on? " << mIsCalib;
+    LOG(DEBUG) << "DeltaTime for clusterization = " << mTimeWin << " ps";
+    LOG(DEBUG) << "Is cosmics? " << mIsCosmic;
 
     mClusterer.setCalibFromCluster(mIsCalib);
     mClusterer.setDeltaTforClustering(mTimeWin);
@@ -174,7 +174,7 @@ class TOFDPLClustererTask
 
   void endOfStream(EndOfStreamContext& ec)
   {
-    LOGF(INFO, "TOF Clusterer total timing: Cpu: %.3e Real: %.3e s in %d slots",
+    LOGF(DEBUG, "TOF Clusterer total timing: Cpu: %.3e Real: %.3e s in %d slots",
          mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   }
 
