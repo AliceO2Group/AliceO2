@@ -1158,7 +1158,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   auto getInputSpan = [&relayer = context.relayer,
                        &currentSetOfInputs](TimesliceSlot slot, bool consume = true) {
     if (consume) {
-      currentSetOfInputs = std::move(relayer->consumeAllInputsForTimeslice(slot));
+      currentSetOfInputs = relayer->consumeAllInputsForTimeslice(slot);
     } else {
       currentSetOfInputs = relayer->consumeExistingInputsForTimeslice(slot);
     }
