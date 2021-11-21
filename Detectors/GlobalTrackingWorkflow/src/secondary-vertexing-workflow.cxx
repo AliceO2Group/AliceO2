@@ -45,7 +45,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"vertexing-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use in vertexing"}},
     {"disable-cascade-finder", o2::framework::VariantType::Bool, false, {"do not run cascade finder"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 

@@ -44,7 +44,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"disable-time-clustering", o2::framework::VariantType::Bool, false, {"disable time clustering step (for debug only)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 

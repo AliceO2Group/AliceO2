@@ -50,7 +50,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"strict-matching", o2::framework::VariantType::Bool, false, {"High purity preliminary matching"}},
     {"output-type", o2::framework::VariantType::String, "matching-info,calib-info", {"matching-info, calib-info"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 

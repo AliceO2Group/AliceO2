@@ -42,7 +42,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", VariantType::Bool, false, {"Do not propagate MC info"}},
     {"disable-zero-suppression", VariantType::Bool, false, {"Do not apply zero suppression"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
