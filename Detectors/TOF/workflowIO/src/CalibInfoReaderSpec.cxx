@@ -60,12 +60,14 @@ void CalibInfoReader::run(ProcessingContext& pc)
       mTree = (TTree*)fin->Get("calibTOF");
       mCurrentEntry = 0;
       mTree->SetBranchAddress("TOFCalibInfo", &mPvect);
+      LOG(DEBUG) << "Open " << filename;
     }
     if ((mGlobalEntry % mNinstances) == mInstance) {
       mTree->GetEvent(mCurrentEntry);
+      LOG(DEBUG) << "Current entry " << mCurrentEntry;
       LOG(DEBUG) << "Send " << mVect.size() << " calib infos";
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTOFTPC ? ddCalib_tpc : ddCalib, 0, Lifetime::Timeframe}, mVect);
-      usleep(10000);
+      usleep(100);
     }
     mGlobalEntry++;
     mCurrentEntry++;

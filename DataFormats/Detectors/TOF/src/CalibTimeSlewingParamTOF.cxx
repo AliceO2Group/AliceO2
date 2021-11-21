@@ -35,6 +35,27 @@ float CalibTimeSlewingParamTOF::getChannelOffset(int channel) const
 {
   return evalTimeSlewing(channel, 0);
 }
+void CalibTimeSlewingParamTOF::bind()
+{
+  mGlobalOffset[0] = &mGlobalOffsetSec0;
+  mGlobalOffset[1] = &mGlobalOffsetSec1;
+  mGlobalOffset[2] = &mGlobalOffsetSec2;
+  mGlobalOffset[3] = &mGlobalOffsetSec3;
+  mGlobalOffset[4] = &mGlobalOffsetSec4;
+  mGlobalOffset[5] = &mGlobalOffsetSec5;
+  mGlobalOffset[6] = &mGlobalOffsetSec6;
+  mGlobalOffset[7] = &mGlobalOffsetSec7;
+  mGlobalOffset[8] = &mGlobalOffsetSec8;
+  mGlobalOffset[9] = &mGlobalOffsetSec9;
+  mGlobalOffset[10] = &mGlobalOffsetSec10;
+  mGlobalOffset[11] = &mGlobalOffsetSec11;
+  mGlobalOffset[12] = &mGlobalOffsetSec12;
+  mGlobalOffset[13] = &mGlobalOffsetSec13;
+  mGlobalOffset[14] = &mGlobalOffsetSec14;
+  mGlobalOffset[15] = &mGlobalOffsetSec15;
+  mGlobalOffset[16] = &mGlobalOffsetSec16;
+  mGlobalOffset[17] = &mGlobalOffsetSec17;
+}
 
 //______________________________________________
 float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const

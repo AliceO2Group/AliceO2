@@ -65,6 +65,8 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
   mTimerMatchITSTPC.Reset();
   mTimerTot.Reset();
 
+  mCalibInfoTOF.clear();
+
   for (int i = 0; i < trkType::SIZEALL; i++) {
     mMatchedTracks[i].clear();
     mOutTOFLabels[i].clear();
@@ -1093,10 +1095,13 @@ void MatchTOF::selectBestMatches()
     }
 
     // add also calibration infos
-    mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
-                               int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E12), // add time stamp
-                               mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - intLT.getTOF(o2::track::PID::Pion) - t0info,
-                               mTOFClusWork[matchingPair.getTOFClIndex()].getTot());
+    if (sourceID == o2::dataformats::GlobalTrackID::ITSTPC) {
+      mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
+                                 int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
+                                 mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion),
+                                 mTOFClusWork[matchingPair.getTOFClIndex()].getTot());
+    }
+
     if (mMCTruthON) {
       const auto& labelsTOF = mTOFClusLabels->getLabels(matchingPair.getTOFClIndex());
       auto& labelTrack = mTracksLblWork[trkType][itrk];
