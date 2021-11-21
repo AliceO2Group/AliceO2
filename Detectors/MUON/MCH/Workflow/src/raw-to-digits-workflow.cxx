@@ -42,11 +42,11 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
-
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    {"dataspec", VariantType::String, "TF:MCH/RAWDATA", {"selection string for the input data"}},
+    {"ignore-dist-stf", o2::framework::VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}}};
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
-  workflowOptions.push_back(ConfigParamSpec{"dataspec", VariantType::String, "TF:MCH/RAWDATA", {"selection string for the input data"}});
-  workflowOptions.push_back(o2::framework::ConfigParamSpec{"ignore-dist-stf", o2::framework::VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}});
 }
 
 #include "Framework/runDataProcessing.h"

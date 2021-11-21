@@ -33,7 +33,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 

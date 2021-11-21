@@ -46,7 +46,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-decoding-errors", o2::framework::VariantType::Bool, false, {"disable propagating decoding errors"}},
     {"ignore-dist-stf", o2::framework::VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"subspecification", o2::framework::VariantType::Int, 0, {"Subspecification in case the workflow runs in parallel on multiple nodes (i.e. different FLPs)"}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 

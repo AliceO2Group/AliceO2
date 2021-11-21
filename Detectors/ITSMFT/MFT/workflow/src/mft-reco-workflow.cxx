@@ -31,7 +31,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 

@@ -66,7 +66,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 

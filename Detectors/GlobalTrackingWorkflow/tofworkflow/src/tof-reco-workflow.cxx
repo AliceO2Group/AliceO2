@@ -63,7 +63,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"calib-cluster", VariantType::Bool, false, {"to enable calib info production from clusters"}},
     {"cosmics", VariantType::Bool, false, {"to enable cosmics utils"}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 

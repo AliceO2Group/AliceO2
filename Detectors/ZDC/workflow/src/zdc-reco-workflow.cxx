@@ -32,8 +32,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"reco-verbosity", VariantType::Int, 0, {"reco verbosity level"}});
   workflowOptions.push_back(ConfigParamSpec{"enable-debug-output", VariantType::Bool, false, {"enable debug tree output"}});
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
-
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
+  o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
 // ------------------------------------------------------------------

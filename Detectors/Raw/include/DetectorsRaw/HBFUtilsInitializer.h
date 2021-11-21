@@ -45,12 +45,14 @@ struct HBFUtilsInitializer {
                 JSON,
                 ROOT };
   static constexpr char HBFConfOpt[] = "hbfutils-config";
+  static constexpr char HBFTFInfoOpt[] = "tf-info-file";
 
   HBFUtilsInitializer(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& wf);
   static HBFOpt getOptType(const std::string& optString);
   static std::vector<o2::dataformats::TFIDInfo> readTFIDInfoVector(const std::string& fname);
   static void assignDataHeader(const std::vector<o2::dataformats::TFIDInfo>& tfinfoVec, o2::header::DataHeader& dh);
   static void addNewTimeSliceCallback(std::vector<o2::framework::CallbacksPolicy>& policies);
+  static void addConfigOption(std::vector<o2::framework::ConfigParamSpec>& opts);
 };
 
 } // namespace raw
