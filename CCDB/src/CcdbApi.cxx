@@ -1339,5 +1339,44 @@ TClass* CcdbApi::tinfo2TClass(std::type_info const& tinfo)
   return cl;
 }
 
+void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id)
+{
+  CURL* curl;
+  CURLcode res;
+  stringstream fullUrl;
+  fullUrl << mUrl << "/" << path << "/" << timestamp;
+  if (!id.empty()) {
+    fullUrl << "/" << id;
+  }
+  fullUrl << "?";
+
+  curl = curl_easy_init();
+
+  for (auto& kv : metadata) {
+    string mfirst = kv.first;
+    string msecond = kv.second;
+    // same trick for the metadata as for the object type
+    char* mfirstEncoded = curl_easy_escape(curl, mfirst.c_str(), mfirst.size());
+    char* msecondEncoded = curl_easy_escape(curl, msecond.c_str(), msecond.size());
+    fullUrl << string(mfirstEncoded) + "=" + string(msecondEncoded) + "&";
+    curl_free(mfirstEncoded);
+    curl_free(msecondEncoded);
+  }
+
+  if (curl != nullptr) {
+    curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); // make sure we use PUT
+
+    curlSetSSLOptions(curl);
+
+    // Perform the request, res will get the return code
+    res = curl_easy_perform(curl);
+    if (res != CURLE_OK) {
+      fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+    }
+    curl_easy_cleanup(curl);
+  }
+}
+
 } // namespace ccdb
 } // namespace o2
