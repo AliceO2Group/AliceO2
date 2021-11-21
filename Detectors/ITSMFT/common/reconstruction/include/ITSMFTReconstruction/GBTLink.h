@@ -184,6 +184,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
   status = None;
   auto* currRawPiece = rawData.currentPiece();
   GBTLink::ErrorType errRes = GBTLink::NoError;
+  bool expectPacketDone = false;
   while (currRawPiece) { // we may loop over multiple CRU page
     if (dataOffset >= currRawPiece->size) {
       dataOffset = 0;                              // start of the RDH
@@ -266,11 +267,12 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
           printCalibrationWord(gbtC);
         }
         dataOffset += GBTPaddedWordLength;
+        LOGP(DEBUG, "SetCalibData for RU:{} at bc:{}/orb:{} : [{}/{}]", ruPtr->ruSWID, gbtTrg->bc, gbtTrg->orbit, gbtC->calibCounter, gbtC->calibUserField);
         ruPtr->calibData = {gbtC->calibCounter, gbtC->calibUserField};
       }
     }
     auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);
-
+    expectPacketDone = true;
     while (!gbtD->isDataTrailer()) { // start reading real payload
       nw++;
       if (verbosity >= VerboseData) {
@@ -321,6 +323,10 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     return (status = DataSeen);
   }
 
+  if (expectPacketDone) { // no trailer with packet done was encountered, register error
+    GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsPacketDoneMissing(nullptr, false));
+    return (status = DataSeen);
+  }
   return (status = StoppedOnEndOfData);
 }
 

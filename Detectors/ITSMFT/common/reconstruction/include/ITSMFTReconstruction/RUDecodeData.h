@@ -71,7 +71,6 @@ template <class Mapping>
 int RUDecodeData::decodeROF(const Mapping& mp)
 {
   nChipsFired = 0;
-  calibData.clear();
   lastChipChecked = 0;
   int ntot = 0;
   auto* chipData = &chipsData[0];
