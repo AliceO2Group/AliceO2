@@ -84,6 +84,7 @@ class CalibTimeSlewingParamTOF
   }
 
   CalibTimeSlewingParamTOF& operator+=(const CalibTimeSlewingParamTOF& other);
+  void bind();
 
  private:
   std::array<int, NCHANNELXSECTOR> mChannelStartSec0;

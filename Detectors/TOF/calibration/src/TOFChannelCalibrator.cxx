@@ -24,8 +24,6 @@
 #include <omp.h>
 #endif
 
-//#define DEBUGGING
-
 namespace o2
 {
 namespace tof
@@ -52,7 +50,7 @@ void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> d
       for (int j = 0; j < data.size(); j++) {
         float dtraw = data[j].getDeltaTimePi();
         float dt = mCalibTOFapi->getTimeCalibration(data[j].getTOFChIndex(), data[j].getTot());
-        dt = o2::tof::Utils::subtractInteractionBC(dt);
+        dt = o2::tof::Utils::subtractInteractionBC(dt, true);
         if (dt > -50000 && dt < 50000) {
           sumdt += dt;
           ngood++;
@@ -84,14 +82,18 @@ void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> d
     auto dtcorr = dt - corr;
 
     if (!Utils::hasFillScheme()) {
-      Utils::addBC(dtcorr);
+      Utils::addBC(dtcorr, true);
 
       continue;
     }
 
-    dtcorr = Utils::subtractInteractionBC(dtcorr);
+    dtcorr = Utils::subtractInteractionBC(dtcorr, true);
 
-    LOG(DEBUG) << "inserting in channel " << ch << ": dt = " << Utils::subtractInteractionBC(dt) << ", tot = " << tot << ", corr = " << corr << ", corrected dt = " << dtcorr;
+    LOG(INFO) << "inserting in channel " << ch << ": dt = " << Utils::subtractInteractionBC(dt, true) << ", tot = " << tot << ", corr = " << corr << ", corrected dt = " << dtcorr;
+
+#ifdef DEBUGGING
+    mChannelDist->Fill(ch, dtcorr);
+#endif
 
     if (!mPerStrip) {
       mHisto[sector](dtcorr, chInSect); // we pass the calibrated time
@@ -161,6 +163,10 @@ void TOFChannelData::fill(const gsl::span<const o2::tof::CalibInfoCluster> data)
 
     mHisto[sector](dt, combInSect); // we pass the difference of the *calibrated* times
     mEntries[comb + NCOMBINSTRIP * absoluteStrip] += 1;
+
+#ifdef DEBUGGING
+    mChannelDist->Fill(comb + NCOMBINSTRIP * absoluteStrip, dt);
+#endif
   }
 }
 
@@ -419,6 +425,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
   // for the CCDB entry
   std::map<std::string, std::string> md;
   TimeSlewing& ts = mCalibTOFapi->getSlewParamObj(); // we take the current CCDB object, since we want to simply update the offset
+  ts.bind();
 
   int nbins = c->getNbins();
   float range = c->getRange();
@@ -451,9 +458,6 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
     int offsetPairInSector = sector * Geo::NSTRIPXSECTOR * NCOMBINSTRIP;
     int offsetsector = sector * Geo::NSTRIPXSECTOR * Geo::NPADS;
     for (int istrip = 0; istrip < Geo::NSTRIPXSECTOR; istrip++) {
-#ifdef DEBUGGING
-      system(Form("echo \"\" >strip_%d_%d", sector, istrip));
-#endif
       LOG(INFO) << "Processing strip " << istrip;
       double fracUnderPeak[Geo::NPADS] = {0.};
       bool isChON[96] = {false};
@@ -531,9 +535,6 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
         float integral = c->integral(ich, intmin, intmax);
         edeltat[allpoints] = 20 + fitValues[2] / sqrt(integral); // TODO: for now put by default to 20 ps since it was seen to be reasonable; but it should come from the fit: who gives us the error from the fit ??????
         localFitter.AddPoint(&(xp[allpoints]), deltat[allpoints], edeltat[allpoints]);
-#ifdef DEBUGGING
-        system(Form("echo \"%d %f %f\" >>strip_%d_%d", ipair, deltat[allpoints], edeltat[allpoints], sector, istrip));
-#endif
         goodpoints++;
         allpoints++;
         int ch1 = ipair % 96;
@@ -549,6 +550,11 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
         if (fracUnderPeak[ch2] < fractionUnderPeak) {
           fracUnderPeak[ch2] = fractionUnderPeak;
         }
+
+#ifdef DEBUGGING
+//        mFitCal->Fill(ipair + offsetPairInStrip + offsetPairInSector, fitValues[1]);
+#endif
+
       } // end loop pairs
 
       // fit strip offset
@@ -590,10 +596,17 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
       LOG(INFO) << "Sector = " << sector << ", strip = " << istrip << " fitted by thread = " << ithread << " with Chi/NDF " << localFitter.GetChisquare() << "/" << goodpoints - localFitter.GetNumberFreeParameters();
       LOG(DEBUG) << "Strip = " << istrip << " fitted by thread = " << ithread << " with Chi/NDF " << localFitter.GetChisquare() << "/" << goodpoints - localFitter.GetNumberFreeParameters();
 
+      //      if(localFitter.GetChisquare() > (goodpoints - localFitter.GetNumberFreeParameters())*10){
+      //        continue;
+      //      }
+
       //update calibrations
       for (int ichLocal = 0; ichLocal < Geo::NPADS; ichLocal++) {
         int ich = ichLocal + offsetstrip;
         ts.updateOffsetInfo(ich, localFitter.GetParameter(ichLocal));
+#ifdef DEBUGGING
+        mFitCal->Fill(ich, localFitter.GetParameter(ichLocal));
+#endif
         ts.setFractionUnderPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, fracUnderPeak[ichLocal]);
         ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, abs(std::sqrt(localFitter.GetCovarianceMatrixElement(ichLocal, ichLocal))));
       }
@@ -605,6 +618,13 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   mInfoVector.emplace_back("TOF/Calib/ChannelCalib", clName, flName, md, slot.getTFStart(), 99999999999999);
   mTimeSlewingVector.emplace_back(ts);
+
+#ifdef DEBUGGING
+  TFile fout("debug_tof_cal.root", "RECREATE");
+  mFitCal->Write();
+  mChannelDist->Write();
+  fout.Close();
+#endif
 }
 
 //_____________________________________________
@@ -622,6 +642,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
   // for the CCDB entry
   std::map<std::string, std::string> md;
   TimeSlewing& ts = mCalibTOFapi->getSlewParamObj(); // we take the current CCDB object, since we want to simply update the offset
+  ts.bind();
 
 #ifdef WITH_OPENMP
   if (mNThreads < 1) {
@@ -705,6 +726,9 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
       ts.setFractionUnderPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, fractionUnderPeak);
       ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, abs(fitValues[2]));
       ts.updateOffsetInfo(ich, fitValues[1]);
+#ifdef DEBUGGING
+      mFitCal->Fill(ich, fitValues[1]);
+#endif
       LOG(DEBUG) << "udpdate channel " << ich << " with " << fitValues[1] << " offset in ps";
     } // end loop channels in sector
   }   // end loop over sectors
@@ -712,6 +736,13 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   mInfoVector.emplace_back("TOF/Calib/ChannelCalib", clName, flName, md, slot.getTFStart(), 99999999999999);
   mTimeSlewingVector.emplace_back(ts);
+
+#ifdef DEBUGGING
+  TFile fout("debug_tof_cal.root", "RECREATE");
+  mFitCal->Write();
+  mChannelDist->Write();
+  fout.Close();
+#endif
 
   Utils::printFillScheme();
 }

@@ -84,7 +84,7 @@ using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;
 
 bool MyFilter(const MyTrack& tr)
 {
-  return (tr.mP < 2.0 && tr.mEta > o2::tof::Utils::mEtaMin && tr.mEta < o2::tof::Utils::mEtaMax && tr.mHasTOF);
+  return (tr.mP < 2.0 && tr.mEta > o2::tof::Utils::mEtaMin && tr.mEta < o2::tof::Utils::mEtaMax && tr.mHasTOF && tr.mSource == 1);
 } // accept all
 
 namespace o2
