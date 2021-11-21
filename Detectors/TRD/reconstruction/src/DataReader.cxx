@@ -56,7 +56,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"histogramsfile", VariantType::String, "histos.root", {"Name of the histogram file, so one can run multiple per node"}},
     //{"generate-stats", VariantType::Bool, true, {"Generate the state message sent to qc"}},
     {"trd-datareader-enablebyteswapdata", VariantType::Bool, false, {"byteswap the incoming data, raw data needs it and simulation does not."}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 

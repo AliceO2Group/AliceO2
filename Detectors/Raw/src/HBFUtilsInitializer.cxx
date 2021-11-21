@@ -41,10 +41,32 @@ namespace o2f = o2::framework;
 //_________________________________________________________
 HBFUtilsInitializer::HBFUtilsInitializer(const o2f::ConfigContext& configcontext, o2f::WorkflowSpec& wf)
 {
+  auto updateHBFUtils = [&configcontext]() -> std::string {
+    static bool done = false;
+    static std::string confTFInfo{};
+    if (!done) {
+      bool helpasked = configcontext.helpOnCommandLine(); // if help is asked, don't take for granted that the ini file is there, don't produce an error if it is not!
+      auto conf = configcontext.options().isSet(HBFConfOpt) ? configcontext.options().get<std::string>(HBFConfOpt) : "";
+      if (!conf.empty()) {
+        auto opt = getOptType(conf);
+        if ((opt == HBFOpt::INI || opt == HBFOpt::JSON) && (!(helpasked && !o2::utils::Str::pathExists(conf)))) {
+          o2::conf::ConfigurableParam::updateFromFile(conf, "HBFUtils", true); // update only those values which were not touched yet (provenance == kCODE)
+          const auto& hbfu = o2::raw::HBFUtils::Instance();
+          hbfu.checkConsistency();
+        } else if (opt == HBFOpt::ROOT) {
+          confTFInfo = conf;
+        }
+      }
+      done = true;
+    }
+    return confTFInfo;
+  };
+
   const auto& hbfu = o2::raw::HBFUtils::Instance();
   for (auto& spec : wf) {
     if (spec.inputs.empty()) {
-      o2f::ConfigParamsHelper::addOptionIfMissing(spec.options, o2f::ConfigParamSpec{HBFConfOpt, o2f::VariantType::String, std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), {"configKeyValues ini file for HBFUtils, root file with per-TF info or none"}});
+      auto conf = updateHBFUtils();
+      o2f::ConfigParamsHelper::addOptionIfMissing(spec.options, o2f::ConfigParamSpec{HBFTFInfoOpt, o2f::VariantType::String, conf, {"root file with per-TF info"}});
     }
   }
 }
@@ -96,22 +118,17 @@ void HBFUtilsInitializer::addNewTimeSliceCallback(std::vector<o2::framework::Cal
 {
   policies.push_back(o2::framework::CallbacksPolicy{
     [](o2::framework::DeviceSpec const& spec, o2::framework::ConfigContext const& context) -> bool {
-      return (!context.helpOnCommandLine() && o2f::ConfigParamsHelper::hasOption(spec.options, HBFConfOpt));
+      return (!context.helpOnCommandLine() && o2f::ConfigParamsHelper::hasOption(spec.options, HBFTFInfoOpt));
     },
     [](o2::framework::CallbackService& service, o2::framework::InitContext& context) {
-      auto fname = context.options().get<std::string>(HBFConfOpt);
-      auto optType = getOptType(fname);
-      if (optType == HBFOpt::NONE) {
-        return; // no callback
-      }
-      if (!o2::utils::Str::pathExists(fname)) {
-        throw std::runtime_error(fmt::format("file {} does not exist", fname));
-      }
-      if (optType == HBFOpt::ROOT) { // TF-dependent custom values should be set
+      auto fname = context.options().get<std::string>(HBFTFInfoOpt);
+      if (!fname.empty()) {
+        if (!o2::utils::Str::pathExists(fname)) {
+          throw std::runtime_error(fmt::format("file {} does not exist", fname));
+        }
         service.set(o2::framework::CallbackService::Id::NewTimeslice,
                     [tfidinfo = readTFIDInfoVector(fname)](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader&) { assignDataHeader(tfidinfo, dh); });
-      } else {                                                                // simple linear enumeration
-        o2::conf::ConfigurableParam::updateFromFile(fname, "HBFUtils", true); // update only those values which were not touched yet (provenance == kCODE)
+      } else { // simple linear enumeration from already updated HBFUtils
         const auto& hbfu = o2::raw::HBFUtils::Instance();
         service.set(o2::framework::CallbackService::Id::NewTimeslice,
                     [offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit),
@@ -120,4 +137,9 @@ void HBFUtilsInitializer::addNewTimeSliceCallback(std::vector<o2::framework::Cal
                     });
       }
     }});
+}
+
+void HBFUtilsInitializer::addConfigOption(std::vector<o2f::ConfigParamSpec>& opts)
+{
+  o2f::ConfigParamsHelper::addOptionIfMissing(opts, o2f::ConfigParamSpec{HBFConfOpt, o2f::VariantType::String, std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), {"configKeyValues ini file for HBFUtils, root file with per-TF info or none"}});
 }

@@ -52,7 +52,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"eta-max", o2::framework::VariantType::Float, 0.8f, {"max tof eta"}},
     {"fill-mask", o2::framework::VariantType::String, "", {"fill scheme, collision bunches"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
