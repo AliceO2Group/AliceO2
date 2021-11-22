@@ -61,6 +61,12 @@ std::string NameConf::getGRPECSFileName(const std::string_view prefix)
   return buildFileName(prefix, "_", STANDARDSIMPREFIX, GRPECS_STRING, ROOT_EXT_STRING, Instance().mDirGRPECS);
 }
 
+// Filename to store general run parameters from LHCIF (GRPLHCIF)
+std::string NameConf::getGRPLHCIFFileName(const std::string_view prefix)
+{
+  return buildFileName(prefix, "_", STANDARDSIMPREFIX, GRPLHCIF_STRING, ROOT_EXT_STRING, Instance().mDirGRPLHCIF);
+}
+
 // Filename to store general run parameters from ECS (GRPECS)
 std::string NameConf::getGRPMagFieldFileName(const std::string_view prefix)
 {

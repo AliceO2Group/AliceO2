@@ -17,6 +17,7 @@
 #include "Framework/Task.h"
 #include "Framework/Lifetime.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include <TFile.h>
 #include <FairLogger.h>
 #include <memory> // for make_shared, make_unique, unique_ptr
@@ -54,7 +55,7 @@ class GRPDPLUpdatedTask
 
   void run(framework::ProcessingContext& pc)
   {
-    const std::string grpName = "GRP";
+    const std::string grpName{o2::base::NameConf::CCDBOBJECT};
 
     // a standardized semaphore convention --> taking the current execution path should be enough
     // (the user enables this via O2_USEGRP_SEMA environment)

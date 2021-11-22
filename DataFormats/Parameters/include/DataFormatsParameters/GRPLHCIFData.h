@@ -95,6 +95,8 @@ class GRPLHCIFData
   /// helper function for BunchFilling
   void translateBucketsToBCNumbers(std::vector<int32_t>& bcNb, std::vector<int32_t>& buckets, int beam);
 
+  static GRPLHCIFData* loadFrom(const std::string& grpLHCIFFileName = "");
+
  private:
   std::pair<long, int32_t> mBeamEnergyPerZ; // beam energy per charge
   std::pair<long, int32_t> mFillNumber;
