@@ -163,6 +163,8 @@ struct DeviceSpecHelpers {
   /// return a description of all options to be forwarded to the device
   /// by default
   static boost::program_options::options_description getForwardedDeviceOptions();
+  /// @return whether a give DeviceSpec @a spec has a label @a label
+  static bool hasLabel(DeviceSpec const& spec, char const* label);
 };
 
 } // namespace o2::framework
