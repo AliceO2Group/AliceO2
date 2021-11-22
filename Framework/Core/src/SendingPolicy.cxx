@@ -10,6 +10,8 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/SendingPolicy.h"
+#include "Framework/DeviceSpec.h"
+#include "DeviceSpecHelpers.h"
 #include <fairmq/Device.h>
 
 #pragma GCC diagnostic push
@@ -20,8 +22,12 @@ namespace o2::framework
 std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
 {
   return {SendingPolicy{
-    .name = "default",
-    .matcher = [](DeviceSpec const& spec, ConfigContext const& ctx) { return true; },
-    .send = [](FairMQDevice& device, FairMQParts& parts, std::string const& channel) { device.Send(parts, channel, 0); }}};
+            .name = "dispatcher",
+            .matcher = [](DeviceSpec const& spec, ConfigContext const& ctx) { return spec.name == "Dispatcher" || DeviceSpecHelpers::hasLabel(spec, "Dispatcher"); },
+            .send = [](FairMQDevice& device, FairMQParts& parts, std::string const& channel) { device.Send(parts, channel, 0, 0); }},
+          SendingPolicy{
+            .name = "default",
+            .matcher = [](DeviceSpec const& spec, ConfigContext const& ctx) { return true; },
+            .send = [](FairMQDevice& device, FairMQParts& parts, std::string const& channel) { device.Send(parts, channel, 0); }}};
 }
 } // namespace o2::framework
