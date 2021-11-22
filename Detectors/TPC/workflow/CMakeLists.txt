@@ -157,15 +157,6 @@ o2_add_executable(idc-test-ft
                 SOURCES test/test_ft_EPN_Aggregator.cxx
                 PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
-o2_add_test(idc-test-ft-epn-aggregator
-        COMPONENT_NAME tpc
-        LABELS tpc idc-test-ft
-        SOURCES test/test_ft_EPN_Aggregator.cxx
-        PUBLIC_LINK_LIBRARIES O2::TPCWorkflow
-        TIMEOUT 30
-        NO_BOOST_TEST
-        COMMAND_LINE_ARGS --run --shm-segment-size 20000000)
-
 o2_add_executable(miptrack-filter
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-miptrack-filter.cxx
