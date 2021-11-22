@@ -18,10 +18,10 @@ namespace emcal
 using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::integer<>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
 
 //_____________________________________________
-boostHisto EMCALCalibExtractor::buildHitAndEnergyMean(double emin, double emax, boostHisto mCellAmplitude)
+boostHisto EMCALCalibExtractor::buildHitAndEnergyMean(double emin, double emax, boostHisto cellAmplitude)
 {
   // create the output histo
-  auto mEsumHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
+  auto eSumHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
   // The outline for this function goes as follows
   // (1) loop over the total number of cells
   // (2) slice the existing histogram for one cell ranging from emin to emax
@@ -29,16 +29,16 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMean(double emin, double emax, 
   // (4) fill the next histogram with this value
   for (int cellID = 0; cellID < NCELLS; cellID++) {
     // create a slice for each cell with energies ranging from emin to emax
-    auto tempSlice = boost::histogram::algorithm::reduce(mCellAmplitude, boost::histogram::algorithm::shrink(cellID, cellID), boost::histogram::algorithm::shrink(emin, emax));
+    auto tempSlice = boost::histogram::algorithm::reduce(cellAmplitude, boost::histogram::algorithm::shrink(cellID, cellID), boost::histogram::algorithm::shrink(emin, emax));
     // calculate the mean of the slice
     std::vector<double> result = o2::utils::fitBoostHistoWithGaus<double>(tempSlice);
     double meanVal = result.at(1);
     double sumVal = result.at(3);
     //..Set the values only for cells that are not yet marked as bad
     if (sumVal > 0.)
-      mEsumHisto(cellID, meanVal / (sumVal)); //..average energy per hit
+      eSumHisto(cellID, meanVal / (sumVal)); //..average energy per hit
   }
-  return mEsumHisto;
+  return eSumHisto;
 }
 //____________________________________________
 
@@ -52,10 +52,10 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMean(double emin, double emax, 
 /// \param emin -- min. energy for cell amplitudes
 /// \param emax -- max. energy for cell amplitudes
 // ------------------------------------------------------------------------------------------
-boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double emax, boostHisto mCellAmplitude)
+boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double emax, boostHisto cellAmplitude)
 {
   // create the output histogram
-  auto mEsumHistoScaled = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
+  auto eSumHistoScaled = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
 
   // create a slice for each cell with energies ranging from emin to emax
   auto hEnergyCol = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100., "t-texp"));
@@ -72,7 +72,7 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double 
     std::vector<double> vecRow[250];
 
     for (int cellID = 0; cellID < NCELLS; cellID++) {
-      auto tempSlice = boost::histogram::algorithm::reduce(mCellAmplitude, boost::histogram::algorithm::shrink(cellID, cellID), boost::histogram::algorithm::shrink(emin, emax));
+      auto tempSlice = boost::histogram::algorithm::reduce(cellAmplitude, boost::histogram::algorithm::shrink(cellID, cellID), boost::histogram::algorithm::shrink(emin, emax));
       auto geo = Geometry::GetInstance();
       // (0 - row, 1 - column)
       auto position = geo->GlobalRowColFromIndex(cellID);
@@ -176,10 +176,10 @@ boostHisto EMCALCalibExtractor::buildHitAndEnergyMeanScaled(double emin, double 
       Nsum += N;
     }
     if (Nsum > 0.)
-      mEsumHistoScaled(cell, Esum / (Nsum)); //..average energy per hit
+      eSumHistoScaled(cell, Esum / (Nsum)); //..average energy per hit
   }
 
-  return mEsumHistoScaled;
+  return eSumHistoScaled;
 }
 //____________________________________________
 
