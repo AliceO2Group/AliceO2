@@ -22,7 +22,7 @@
 #include "TOFReconstruction/DataReader.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 #include "DataFormatsTOF/Diagnostic.h"
 
 namespace o2

@@ -19,7 +19,7 @@
 
 #include "TRandom.h"
 #include "TMath.h"
-#include "TOFReconstruction/EventTimeMaker.h"
+#include "TOFBase/EventTimeMaker.h"
 
 namespace o2
 {

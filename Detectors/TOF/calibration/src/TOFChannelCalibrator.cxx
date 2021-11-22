@@ -89,7 +89,7 @@ void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> d
 
     dtcorr = Utils::subtractInteractionBC(dtcorr, true);
 
-    LOG(INFO) << "inserting in channel " << ch << ": dt = " << Utils::subtractInteractionBC(dt, true) << ", tot = " << tot << ", corr = " << corr << ", corrected dt = " << dtcorr;
+    LOG(DEBUG) << "inserting in channel " << ch << ": dt = " << Utils::subtractInteractionBC(dt, true) << ", tot = " << tot << ", corr = " << corr << ", corrected dt = " << dtcorr;
 
 #ifdef DEBUGGING
     mChannelDist->Fill(ch, dtcorr);
@@ -425,7 +425,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
   // for the CCDB entry
   std::map<std::string, std::string> md;
   TimeSlewing& ts = mCalibTOFapi->getSlewParamObj(); // we take the current CCDB object, since we want to simply update the offset
-  ts.bind();
+                                                     //  ts.bind();
 
   int nbins = c->getNbins();
   float range = c->getRange();
@@ -642,7 +642,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
   // for the CCDB entry
   std::map<std::string, std::string> md;
   TimeSlewing& ts = mCalibTOFapi->getSlewParamObj(); // we take the current CCDB object, since we want to simply update the offset
-  ts.bind();
+  //  ts.bind();
 
 #ifdef WITH_OPENMP
   if (mNThreads < 1) {
