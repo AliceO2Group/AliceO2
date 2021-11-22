@@ -23,6 +23,7 @@
 #include "EMCALCalib/BadChannelMap.h"
 #include "EMCALCalib/TimeCalibrationParams.h"
 #include "CommonUtils/BoostHistogramUtils.h"
+#include "EMCALBase/Geometry.h"
 #include <boost/histogram.hpp>
 
 namespace o2

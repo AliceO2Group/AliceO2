@@ -28,20 +28,20 @@ namespace reco_workflow
 /// \enum InputType
 /// \brief Input types of the workflow
 /// \ingroup EMCALworkflow
-enum struct InputType { Digits,   ///< read digits from file
-                        Cells,    ///< read compressed cells from file
-                        Raw,      ///< read data in raw page format from file
-                        Clusters, ///< read native clusters from file
+enum struct InputType { Digits,  ///< read digits from file
+                        Cells,   ///< read compressed cells from file
+                        Raw,     ///< read data in raw page format from file
+                        Clusters ///< read native clusters from file
 };
 
 /// \enum OutputType
 /// \brief Output types of the workflow
 /// \ingroup EMCALworkflow
-enum struct OutputType { Digits,           ///< EMCAL digits
-                         Cells,            ///< EMCAL cells
-                         Raw,              ///< EMCAL raw data
-                         Clusters,         ///< EMCAL clusters
-                         AnalysisClusters, ///< EMCAL analysis clusters
+enum struct OutputType { Digits,          ///< EMCAL digits
+                         Cells,           ///< EMCAL cells
+                         Raw,             ///< EMCAL raw data
+                         Clusters,        ///< EMCAL clusters
+                         AnalysisClusters ///< EMCAL analysis clusters
 };
 
 /// \brief create the workflow for EMCAL reconstruction
