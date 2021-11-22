@@ -15,7 +15,7 @@
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
 #include "TOFBase/Geo.h"
 #include "CCDB/CcdbObjectInfo.h"

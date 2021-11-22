@@ -19,7 +19,7 @@
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
 #include "TOFBase/Geo.h"
 #include "CCDB/CcdbObjectInfo.h"
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 
 #include <array>
 #include <boost/histogram.hpp>

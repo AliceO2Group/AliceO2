@@ -30,10 +30,9 @@
 #include "TOFReconstruction/ClustererTask.h"
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
 #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 #include "TOFReconstruction/Clusterer.h"
 #include "TOFReconstruction/DataReader.h"
-#include "TOFCalibration/CalibTOFapi.h"
 #endif
 
 void run_clus_tof(std::string outputfile = "tofclusters.root", std::string inputfile = "tofdigits.root", bool isMC = true)

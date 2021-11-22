@@ -1,5 +1,5 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include "TOFReconstruction/EventTimeMaker.h"
+#include "TOFBase/EventTimeMaker.h"
 #endif
 
 using namespace o2::tof;

@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 #include "FairLogger.h" // for LOG
 
 using namespace o2::tof;
