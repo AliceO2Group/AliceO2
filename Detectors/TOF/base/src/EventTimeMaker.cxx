@@ -38,7 +38,7 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
   static constexpr float weightLimit = 1E-6; // Limit in the weights
 
   const int ntracks = tracks.size();
-  LOG(debug) << "For the collision time using " << ntracks;
+  LOG(debug) << "For the collision time using " << ntracks << " tracks";
 
   if (ntracks < 2) { // at least 2 tracks required
     LOG(debug) << "Skipping event because at least 2 tracks are required";
@@ -48,14 +48,20 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
   int hypo[MAXNTRACKINSET];
 
   int nmaxtracksinset = ntracks > 22 ? 6 : MAXNTRACKINSET; // max number of tracks in a set for event time computation
+  LOG(debug) << "nmaxtracksinset " << nmaxtracksinset;
   int ntracksinset = std::min(ntracks, nmaxtracksinset);
+  LOG(debug) << "ntracksinset " << ntracksinset;
 
   int nset = ((ntracks - 1) / ntracksinset) + 1;
+  LOG(debug) << "nset " << nset;
   int ntrackUsed = ntracks;
+  LOG(debug) << "ntrackUsed " << ntrackUsed;
 
   if (nset > maxNumberOfSets) {
     nset = maxNumberOfSets;
+    LOG(debug) << "resetting nset " << nset;
     ntrackUsed = nmaxtracksinset * nset;
+    LOG(debug) << "resetting ntrackUsed " << ntrackUsed;
   }
 
   // list of tracks in set
@@ -70,6 +76,7 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
   int status;
   // compute event time for each set
   for (int iset = 0; iset < nset; iset++) {
+    LOG(debug) << "iset " << iset << " has size " << trackInSet[iset].size();
     unsigned long bestComb = 0;
     while (!(status = getStartTimeInSet(tracks, trackInSet[iset], bestComb))) {
       ;
@@ -90,6 +97,7 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
         evtime.tracktime[index] = ctrack.mSignal - ctrack.expTimes[hypo[itrk]];
       }
     }
+    LOG(debug) << "iset " << iset << " did not have good status";
   } // end loop in set
 
   // do average among all tracks
@@ -120,8 +128,10 @@ int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int
 
   chi2best = 10000;
   int ntracks = trackInSet.size();
+  LOG(debug) << "Computing the start time in set with " << ntracks << " tracks";
 
   if (ntracks < 3) {
+    LOG(debug) << "Not enough tracks!";
     return 2; // no event time in the set
   }
 
