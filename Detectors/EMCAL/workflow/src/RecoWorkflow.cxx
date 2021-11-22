@@ -61,6 +61,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     {"cells", InputType::Cells},
     {"raw", InputType::Raw},
     {"clusters", InputType::Clusters},
+    {"clusters", InputType::BoostHisto},
   };
 
   const std::unordered_map<std::string, OutputType> OutputMap{
@@ -68,12 +69,15 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     {"cells", OutputType::Cells},
     {"raw", OutputType::Raw},
     {"clusters", OutputType::Clusters},
-    {"analysisclusters", OutputType::AnalysisClusters}};
+    {"analysisclusters", OutputType::AnalysisClusters}, 
+    {"badchannelmap", OutputType::BadChannelMap}};
 
   std::unordered_map<InputType, std::vector<OutputType>> allowedIO;
   allowedIO[InputType::Digits] = std::vector<OutputType>{OutputType::Cells, OutputType::Clusters, OutputType::AnalysisClusters};
   allowedIO[InputType::Cells] = std::vector<OutputType>{OutputType::Cells, OutputType::Clusters, OutputType::AnalysisClusters};
   allowedIO[InputType::Raw] = std::vector<OutputType>{OutputType::Cells};
+  allowedIO[InputType::BoostHisto] = std::vector<OutputType>{OutputType::BadChannelMap};
+
 
   InputType inputType;
 

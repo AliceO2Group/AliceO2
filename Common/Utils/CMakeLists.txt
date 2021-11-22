@@ -20,6 +20,7 @@ o2_add_library(CommonUtils
                        src/FIFO.cxx
                        src/FileFetcher.cxx
                        src/VerbosityConfig.cxx
+                       src/BoostHistogramUtils.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Hist ROOT::Tree Boost::iostreams O2::CommonDataFormat O2::Headers
                                      FairLogger::FairLogger)
 
@@ -38,8 +39,14 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/ConfigurationMacroHelper.h
                                   include/CommonUtils/RootSerializableKeyValueStore.h
                                   include/CommonUtils/KeyValParam.h
+<<<<<<< HEAD
                                   include/CommonUtils/VerbosityConfig.h
                                   include/CommonUtils/FileFetcher.h)
+=======
+                                  include/CommonUtils/FileFetcher.h
+                                  include/CommonUtils/BoostHistogramUtils.h
+        )
+>>>>>>> 4521bcb5b4 ([EMCAL-565][WiP]: Add calibrator structure.)
 
 o2_add_test(TreeStream
             COMPONENT_NAME CommonUtils

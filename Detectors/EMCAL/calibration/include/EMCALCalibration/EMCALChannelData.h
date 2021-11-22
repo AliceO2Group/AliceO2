@@ -20,25 +20,31 @@
 
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
+// #include "CommonUtils/BoostHistogramUtils.h"
+// #include "EMCALCalib/BadChannelMap.h"
+// #include "EMCALCalib/TimeCalibrationParams.h"
+#include "EMCALCalibration/EMCALCalibExtractor.h"
 #include "DataFormatsEMCAL/Cell.h"
 #include "EMCALBase/Geometry.h"
-#include "CCDB/CcdbObjectInfo.h"
+// #include "CCDB/CcdbObjectInfo.h"
 
-#include "Framework/Logger.h"
-#include "CommonUtils/MemFileHelper.h"
-#include "CCDB/CcdbApi.h"
-#include "DetectorsCalibration/Utils.h"
+// #include "Framework/Logger.h"
+// #include "CommonUtils/MemFileHelper.h"
+// #include "CCDB/CcdbApi.h"
+// #include "DetectorsCalibration/Utils.h"
 #include <boost/histogram.hpp>
 #include <boost/histogram/ostream.hpp>
-#include <boost/format.hpp>
+// #include <boost/format.hpp>
 
-#include <array>
-#include <boost/histogram.hpp>
+// #include <array>
+
 
 namespace o2
 {
 namespace emcal
 {
+class EMCALCalibExtractor;
+
 struct ChannelCalibInitParams {
   unsigned int nbins = 1000;
   std::array<float, 2> range = {0, 0.35};
@@ -49,6 +55,7 @@ class EMCALChannelData
   //using Slot = o2::calibration::TimeSlot<o2::emcal::EMCALChannelData>;
   using Cells = o2::emcal::Cell;
   using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::integer<>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
+  using BadChannelMap = o2::emcal::BadChannelMap; 
 
  public:
   // NCELLS includes DCal, treat as one calibration
@@ -59,6 +66,13 @@ class EMCALChannelData
   {
     // boost histogram with amplitude vs. cell ID, specify the range and binning of the amplitude axis
     mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBins, 0, mRange, "t-texp"), boost::histogram::axis::integer<>(0, NCELLS, "CELL ID"));
+    // NCELLS includes DCal, treat as one calibration
+    o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
+    int NCELLS = mGeometry->GetNCells();
+     // just set 100 as a dummy number, will need to go back and change to the proper max value
+    mEsumHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0,100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
+    mEsumHistoScaled = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0,100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
+
   }
 
   ~EMCALChannelData() = default;
@@ -80,6 +94,20 @@ class EMCALChannelData
   boostHisto& getHisto() { return mHisto; }
   const boostHisto& getHisto() const { return mHisto; }
 
+  /// \brief Average energy per hit is caluclated for each cell.
+  /// \param emin -- min. energy for cell amplitudes
+  /// \param emax -- max. energy for cell amplitudes
+  void buildHitAndEnergyMean(double emin, double emax);
+  /// \brief Scaled hits per cell
+  /// \param emin -- min. energy for cell amplitudes
+  /// \param emax -- max. energy for cell amplitudes  
+  void buildHitAndEnergyMeanScaled(double emin, double emax);
+  /// \brief Peform the calibration and flag the bad channel map
+  /// Average energy per hit histogram is fitted with a gaussian
+  /// good area is +-mSigma
+  /// cells beyond that value are flagged as bad.
+  void analyzeSlot();
+
   float getRange() const { return mRange; }
   void setRange(float r) { mRange = r; }
 
@@ -94,6 +122,13 @@ class EMCALChannelData
   int mNBins = 1000;
   boostHisto mHisto;
   int mEvents = 1;
+  boostHisto mEsumHisto;       ///< contains the average energy per hit for each cell
+  boostHisto mEsumHistoScaled; ///< contains the average energy (scaled) per hit for each cell  
+  boostHisto mCellAmplitude;   ///< is the input for the calibration, hist of cell E vs. ID
+  bool mTest = false;          ///< flag to be used when running in test mode: it simplify the processing
+  BadChannelMap mOutputBCM;    ///< output bad channel map for the calibration
+  std::shared_ptr<EMCALCalibExtractor> mCalibExtractor; ///< calib extractor
+
 
   ClassDefNV(EMCALChannelData, 1);
 };

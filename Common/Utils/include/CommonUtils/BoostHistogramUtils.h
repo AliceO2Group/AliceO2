@@ -12,6 +12,9 @@
 /// \file   BoostHistogramUtils.h
 /// \author Hannah Bossi, hannah.bossi@yale.edu
 
+#ifndef ALICEO2_UTILS_BOOSTHISTOGRAMUTILS
+#define ALICEO2_UTILS_BOOSTHISTOGRAMUTILS
+
 #include <cmath>
 #include <numeric>
 #include <algorithm>
@@ -206,10 +209,7 @@ enum class FitGausError_t {
 
 /// \brief Printing an error message when then fit returns an invalid result
 /// \param errorcode Error of the type FitGausError_t, thrown when fit result is invalid.
-std::string createErrorMessage(FitGausError_t errorcode)
-{
-  return "[Error]: Fit return an invalid result.";
-}
+std::string createErrorMessage(o2::utils::FitGausError_t errorcode);
 
 /// \brief Function to fit histogram to a gaussian using iterators.
 /// \param first begin iterator of the histogram
@@ -388,44 +388,10 @@ std::vector<double> fitBoostHistoWithGaus(boost::histogram::histogram<axes...>& 
 }
 
 /// \brief Convert a 1D root histogram to a Boost histogram
-auto boosthistoFromRoot_1D(TH1* inHist1D)
-{
-  // first setup the proper boost histogram
-  const int nBins = inHist1D->GetNbinsX();
-  const double xMin = inHist1D->GetXaxis()->GetXmin();
-  const double xMax = inHist1D->GetXaxis()->GetXmax();
-  const char* title = inHist1D->GetXaxis()->GetTitle();
-  auto mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nBins, xMin, xMax, title));
-
-  // trasfer the acutal values
-  for (Int_t x = 1; x < nBins + 1; x++) {
-    mHisto.at(x - 1) = inHist1D->GetBinContent(x);
-  }
-  return mHisto;
-}
+decltype(auto) boosthistoFromRoot_1D(TH1D* inHist1D);
 
 // \brief Convert a 2D root histogram to a Boost histogram
-auto boostHistoFromRoot_2D(TH2* inHist2D)
-{
-  // first setup the proper boost histogram
-  const int nBinsX = inHist2D->GetNbinsX();
-  const double xMin = inHist2D->GetXaxis()->GetXmin();
-  const double xMax = inHist2D->GetXaxis()->GetXmax();
-  const char* xTitle = inHist2D->GetXaxis()->GetTitle();
-  const int nBinsY = inHist2D->GetNbinsY();
-  const double yMin = inHist2D->GetYaxis()->GetXmin();
-  const double yMax = inHist2D->GetYaxis()->GetXmax();
-  const char* yTitle = inHist2D->GetYaxis()->GetTitle();
-  auto mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nBinsX, xMin, xMax, xTitle), boost::histogram::axis::regular<>(nBinsY, yMin,
-                                                                                                                                                  yMax, yTitle));
-  // trasfer the acutal values
-  for (Int_t x = 1; x < nBinsX + 1; x++) {
-    for (Int_t y = 1; y < nBinsY + 1; y++) {
-      mHisto.at(x - 1, y - 1) = inHist2D->GetBinContent(x, y);
-    }
-  }
-  return mHisto;
-}
+decltype(auto) boostHistoFromRoot_2D(TH2D* inHist2D);
 
 /// \brief Function to project 2d boost histogram onto x-axis
 /// \param hist2d 2d boost histogram
@@ -455,3 +421,5 @@ auto ProjectBoostHistoX(boost::histogram::histogram<axes...>& hist2d, const int 
 
 } // end namespace utils
 } // end namespace o2
+
+#endif
