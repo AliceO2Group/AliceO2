@@ -68,9 +68,6 @@ class EMCALChannelData
     // NCELLS includes DCal, treat as one calibration
     o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
     int NCELLS = mGeometry->GetNCells();
-    // just set 100 as a dummy number, will need to go back and change to the proper max value
-    mEsumHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
-    mEsumHistoScaled = boost::histogram::make_histogram(boost::histogram::axis::regular<>(100, 0, 100, "t-texp"), boost::histogram::axis::integer<>(0, 17665, "CELL ID"));
   }
 
   ~EMCALChannelData() = default;
@@ -92,14 +89,6 @@ class EMCALChannelData
   boostHisto& getHisto() { return mHisto; }
   const boostHisto& getHisto() const { return mHisto; }
 
-  /// \brief Average energy per hit is caluclated for each cell.
-  /// \param emin -- min. energy for cell amplitudes
-  /// \param emax -- max. energy for cell amplitudes
-  void buildHitAndEnergyMean(double emin, double emax);
-  /// \brief Scaled hits per cell
-  /// \param emin -- min. energy for cell amplitudes
-  /// \param emax -- max. energy for cell amplitudes
-  void buildHitAndEnergyMeanScaled(double emin, double emax);
   /// \brief Peform the calibration and flag the bad channel map
   /// Average energy per hit histogram is fitted with a gaussian
   /// good area is +-mSigma

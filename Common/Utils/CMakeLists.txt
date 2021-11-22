@@ -28,6 +28,7 @@ o2_target_root_dictionary(CommonUtils
                           HEADERS include/CommonUtils/TreeStream.h
                                   include/CommonUtils/TreeStreamRedirector.h
                                   include/CommonUtils/RootChain.h
+                                  include/CommonUtils/BoostHistogramUtils.h
                                   include/CommonUtils/BoostSerializer.h
                                   include/CommonUtils/ShmManager.h
                                   include/CommonUtils/RngHelper.h
@@ -39,14 +40,8 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/ConfigurationMacroHelper.h
                                   include/CommonUtils/RootSerializableKeyValueStore.h
                                   include/CommonUtils/KeyValParam.h
-<<<<<<< HEAD
                                   include/CommonUtils/VerbosityConfig.h
                                   include/CommonUtils/FileFetcher.h)
-=======
-                                  include/CommonUtils/FileFetcher.h
-                                  include/CommonUtils/BoostHistogramUtils.h
-        )
->>>>>>> 4521bcb5b4 ([EMCAL-565][WiP]: Add calibrator structure.)
 
 o2_add_test(TreeStream
             COMPONENT_NAME CommonUtils

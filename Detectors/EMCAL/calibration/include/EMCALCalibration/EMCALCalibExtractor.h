@@ -32,15 +32,28 @@ namespace emcal
 
 class EMCALCalibExtractor
 {
+  using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::integer<>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
 
  public:
   EMCALCalibExtractor() = default;
   ~EMCALCalibExtractor() = default;
 
+  o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
+  int NCELLS = mGeometry->GetNCells();
+
   int getNsigma() const { return mSigma; }
   void setNsigma(int ns) { mSigma = ns; }
 
   void setUseScaledHistoForBadChannels(bool useScaledHistoForBadChannels) { mUseScaledHistoForBadChannels = useScaledHistoForBadChannels; }
+
+  /// \brief Average energy per hit is caluclated for each cell.
+  /// \param emin -- min. energy for cell amplitudes
+  /// \param emax -- max. energy for cell amplitudes
+  boostHisto buildHitAndEnergyMean(double emin, double emax, boostHisto mCellAmplitude);
+  /// \brief Scaled hits per cell
+  /// \param emin -- min. energy for cell amplitudes
+  /// \param emax -- max. energy for cell amplitudes
+  boostHisto buildHitAndEnergyMeanScaled(double emin, double emax, boostHisto mCellAmplitude);
 
   /// \brief Function to perform the calibration of bad channels
   template <typename... axes>
