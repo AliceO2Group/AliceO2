@@ -63,13 +63,13 @@ PropagatorImpl<value_T>::PropagatorImpl(bool uninitialized)
 
 //____________________________________________________________
 template <typename value_T>
-int PropagatorImpl<value_T>::initFieldFromGRP(const std::string grpFileName, std::string grpName, bool verbose)
+int PropagatorImpl<value_T>::initFieldFromGRP(const std::string grpFileName, bool verbose)
 {
   /// load grp and init magnetic field
   if (verbose) {
     LOG(INFO) << "Loading field from GRP of " << grpFileName;
   }
-  const auto grp = o2::parameters::GRPObject::loadFrom(grpFileName, grpName);
+  const auto grp = o2::parameters::GRPObject::loadFrom(grpFileName);
   if (!grp) {
     return -1;
   }

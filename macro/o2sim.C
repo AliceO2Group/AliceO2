@@ -178,7 +178,7 @@ FairRunSim* o2sim_init(bool asservice)
     // save
     std::string grpfilename = o2::base::NameConf::getGRPFileName(confref.getOutPrefix());
     TFile grpF(grpfilename.c_str(), "recreate");
-    grpF.WriteObjectAny(&grp, grp.Class(), "GRP");
+    grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
   }
 
   // todo: save beam information in the grp

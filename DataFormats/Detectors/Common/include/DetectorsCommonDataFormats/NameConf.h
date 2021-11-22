@@ -52,6 +52,9 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   // Filename of general run parameters from ECS (GRPECS)
   static std::string getGRPECSFileName(const std::string_view prefix = STANDARDSIMPREFIX);
 
+  // Filename of general run parameters from LHCIF (GRPLHCIF)
+  static std::string getGRPLHCIFFileName(const std::string_view prefix = STANDARDSIMPREFIX);
+
   // Filename of general run parameters fof B field (GRPMagField)
   static std::string getGRPMagFieldFileName(const std::string_view prefix = STANDARDSIMPREFIX);
 
@@ -133,6 +136,7 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   static constexpr std::string_view DIGITS_STRING = "Digits"; // hardcoded
   static constexpr std::string_view GRP_STRING = "grp";       // hardcoded
   static constexpr std::string_view GRPECS_STRING = "grpecs"; // hardcoded
+  static constexpr std::string_view GRPLHCIF_STRING = "grplhcif";       // hardcoded
   static constexpr std::string_view GRPMAGFIELD_STRING = "grpMagField"; // hardcoded
   static constexpr std::string_view KINE_STRING = "Kine";     // hardcoded
   static constexpr std::string_view MCHEADER_STRING = "MCHeader"; // hardcoded
@@ -151,6 +155,7 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   // these are configurable paths for some commonly used files
   std::string mDirGRP = "none";    // directory for GRP file ("none" == "")
   std::string mDirGRPECS = "none"; // directory for GRPECS file ("none" == "")
+  std::string mDirGRPLHCIF = "none";    // directory for GRPLHCIF file ("none" == "")
   std::string mDirGRPMagField = "none"; // directory for GRPMagField file ("none" == "")
   std::string mDirGeom = "none";   // directory for geometry file
   std::string mDirMatLUT = "none"; // directory for material LUT
