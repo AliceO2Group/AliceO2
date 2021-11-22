@@ -315,23 +315,22 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             const auto& tofMatch = data.getTOFMatch(contributorsGID[GIndex::Source::ITSTPCTOF]);
             extraInfoHolder.tofChi2 = tofMatch.getChi2();
             const auto& tofInt = tofMatch.getLTIntegralOut();
-            float intLen = tofInt.getL();
+            const float intLen = tofInt.getL();
             extraInfoHolder.length = intLen;
             if (interactionTime > 0) {
-              extraInfoHolder.tofSignal = static_cast<float>(tofMatch.getSignal() - interactionTime);
+              extraInfoHolder.tofSignal = static_cast<float>(tofMatch.getSignal() - interactionTime * 1E3);
             }
             const float mass = o2::constants::physics::MassPionCharged; // default pid = pion
             if (tofInt.getTOF(o2::track::PID::Pion) > 0.f) {
               const float expBeta = (intLen / (tofInt.getTOF(o2::track::PID::Pion) * cSpeed));
               extraInfoHolder.tofExpMom = mass * expBeta / std::sqrt(1.f - expBeta * expBeta);
             }
-            const auto& tofCl = tofClus[contributorsGID[GIndex::Source::TOF]];
             // correct the time of the track
-            const float massZ = o2::track::PID::getMass2Z(trackPar.getPID());
-            const float energy = sqrt((massZ * massZ) + (extraInfoHolder.tofExpMom * extraInfoHolder.tofExpMom));
-            const float exp = extraInfoHolder.length * energy / (cSpeed * extraInfoHolder.tofExpMom);
-            extraInfoHolder.trackTime = (tofCl.getTime() - exp) * 1e-3; // tof time in \mus, FIXME: account for time of flight to R TOF
-            extraInfoHolder.trackTimeRes = 200e-3;                      // FIXME: calculate actual resolution (if possible?)
+            const double massZ = o2::track::PID::getMass2Z(trackPar.getPID());
+            const double energy = sqrt((massZ * massZ) + (extraInfoHolder.tofExpMom * extraInfoHolder.tofExpMom));
+            const double exp = extraInfoHolder.length * energy / (cSpeed * extraInfoHolder.tofExpMom);
+            extraInfoHolder.trackTime = static_cast<float>((tofMatch.getSignal() - exp) * 1e-3 - interactionTime); // tof time in \mus, FIXME: account for time of flight to R TOF
+            extraInfoHolder.trackTimeRes = 200e-3;                                                                 // FIXME: calculate actual resolution (if possible?)
           }
           if (src == GIndex::Source::TPCTRD || src == GIndex::Source::ITSTPCTRD) {
             const auto& trdOrig = data.getTrack<o2::trd::TrackTRD>(src, contributorsGID[src].getIndex());
@@ -1353,7 +1352,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                      truncateFloatFraction(timeStamp.getTimeStampError() * 1E3, mCollisionPositionCov));
     auto& trackRef = primVer2TRefs[collisionID];
     // passing interaction time in [ps]
-    fillTrackTablesPerCollision(collisionID, interactionTime * 1E3, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor, fwdTracksCursor, fwdTracksCovCursor, vertex);
+    fillTrackTablesPerCollision(collisionID, interactionTime, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor, fwdTracksCursor, fwdTracksCovCursor, vertex);
     collisionID++;
   }
 
