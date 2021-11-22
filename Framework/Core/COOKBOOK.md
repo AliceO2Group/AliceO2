@@ -457,6 +457,8 @@ process monitoring metrics described at:
 
 will be pushed every `<poll-interval>` seconds to the same backend and dumped in the `performanceMetrics.json` file on exit.
 
+One can also specify `--resources-monitoring-dump-interval <interval in seconds>`, do regularly dump the file at a give interval.
+
 ### Disabling monitoring
 
 Sometimes (e.g. when running a child inside valgrind) it might be useful to disable metrics which might pollute STDOUT. In order to disable monitoring you can use the `no-op://` backend:
