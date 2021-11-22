@@ -562,7 +562,7 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   // which happens below which will properly setup the first index
   // by remapping the filtered index 0 to whatever unfiltered index
   // it belongs to.
-  FilteredIndexPolicy(SelectionVector selection, uint64_t offset = 0)
+  FilteredIndexPolicy(gsl::span<int64_t const> selection, uint64_t offset = 0)
     : IndexPolicyBase{-1, offset},
       mSelectedRows(selection),
       mMaxSelection(selection.size())
@@ -656,7 +656,7 @@ struct FilteredIndexPolicy : IndexPolicyBase {
     //  (mSelectionRow < mMaxSelection ? mSelectedRows[mSelectionRow] : -1)
     //  : mSelectionRow;
   }
-  SelectionVector mSelectedRows;
+  gsl::span<int64_t const> mSelectedRows;
   int64_t mSelectionRow = 0;
   int64_t mMaxSelection = 0;
 };
@@ -1091,7 +1091,7 @@ class Table
     return RowViewSentinel{mEnd};
   }
 
-  filtered_iterator filtered_begin(SelectionVector selection)
+  filtered_iterator filtered_begin(gsl::span<int64_t const> selection)
   {
     // Note that the FilteredIndexPolicy will never outlive the selection which
     // is held by the table, so we are safe passing the bare pointer. If it does it
@@ -1955,25 +1955,23 @@ class FilteredPolicy : public T
   using iterator = decltype(make_it<FilteredPolicy<T>>(originals{}));
   using const_iterator = iterator;
 
-  FilteredPolicy(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
+  FilteredPolicy(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
-      mSelectedRows{std::forward<SelectionVector>(selection)}
+      mSelectedRows{getSpan(selection)}
   {
     resetRanges();
   }
 
-  FilteredPolicy(std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::expressions::Selection selection, uint64_t offset = 0)
+  FilteredPolicy(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector const& selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
-      mSelectedRows{copySelection(selection)}
+      mSelectedRowsCache{selection}
   {
     resetRanges();
   }
 
-  FilteredPolicy(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::NodePtr const& tree, uint64_t offset = 0)
+  FilteredPolicy(std::vector<std::shared_ptr<arrow::Table>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
-      mSelectedRows{copySelection(framework::expressions::createSelection(this->asArrowTable(),
-                                                                          framework::expressions::createFilter(this->asArrowTable()->schema(),
-                                                                                                               framework::expressions::makeCondition(tree))))}
+      mSelectedRows{selection}
   {
     resetRanges();
   }
@@ -2013,18 +2011,20 @@ class FilteredPolicy : public T
     return table_t::asArrowTable()->num_rows();
   }
 
-  SelectionVector const& getSelectedRows() const
+  auto const& getSelectedRows() const
   {
     return mSelectedRows;
   }
 
-  static inline SelectionVector copySelection(framework::expressions::Selection const& sel)
+  static inline auto getSpan(gandiva::Selection const& sel)
   {
-    SelectionVector rows;
-    for (auto i = 0; i < sel->GetNumSlots(); ++i) {
-      rows.push_back(sel->GetIndex(i));
+    if (sel == nullptr) {
+      return gsl::span<int64_t const>{};
     }
-    return rows;
+    auto array = std::static_pointer_cast<arrow::Int64Array>(sel->ToArray());
+    auto start = array->raw_values();
+    auto stop = start + array->length();
+    return gsl::span{start, stop};
   }
 
   /// Bind the columns which refer to other tables
@@ -2092,7 +2092,8 @@ class FilteredPolicy : public T
   {
     SelectionVector rowsUnion;
     std::set_union(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(rowsUnion));
-    mSelectedRows = rowsUnion;
+    mSelectedRowsCache.clear();
+    mSelectedRowsCache = rowsUnion;
     resetRanges();
   }
 
@@ -2100,13 +2101,33 @@ class FilteredPolicy : public T
   {
     SelectionVector intersection;
     std::set_intersection(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(intersection));
-    mSelectedRows = intersection;
+    mSelectedRowsCache.clear();
+    mSelectedRowsCache = intersection;
+    resetRanges();
+  }
+
+  void sumWithSelection(gsl::span<int64_t const> const& selection)
+  {
+    SelectionVector rowsUnion;
+    std::set_union(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(rowsUnion));
+    mSelectedRowsCache = rowsUnion;
+    resetRanges();
+  }
+
+  void intersectWithSelection(gsl::span<int64_t const> const& selection)
+  {
+    SelectionVector intersection;
+    std::set_intersection(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(intersection));
+    mSelectedRowsCache = intersection;
     resetRanges();
   }
 
  private:
   void resetRanges()
   {
+    if (!mSelectedRowsCache.empty()) {
+      mSelectedRows = gsl::span{mSelectedRowsCache};
+    }
     mFilteredEnd.reset(new RowViewSentinel{mSelectedRows.size()});
     if (tableSize() == 0) {
       mFilteredBegin = *mFilteredEnd;
@@ -2115,7 +2136,8 @@ class FilteredPolicy : public T
     }
   }
 
-  SelectionVector mSelectedRows;
+  gsl::span<int64_t const> mSelectedRows;
+  SelectionVector mSelectedRowsCache;
   iterator mFilteredBegin;
   std::shared_ptr<RowViewSentinel> mFilteredEnd;
 };
@@ -2124,16 +2146,23 @@ template <typename T>
 class Filtered : public FilteredPolicy<T>
 {
  public:
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
-    : FilteredPolicy<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
-
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::expressions::Selection selection, uint64_t offset = 0)
+  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
     : FilteredPolicy<T>(std::move(tables), selection, offset) {}
 
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::NodePtr const& tree, uint64_t offset = 0)
-    : FilteredPolicy<T>(std::move(tables), tree, offset) {}
+  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector const& selection, uint64_t offset = 0)
+    : FilteredPolicy<T>(std::move(tables), selection, offset) {}
+
+  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
+    : FilteredPolicy<T>(std::move(tables), selection, offset) {}
 
   Filtered<T> operator+(SelectionVector const& selection)
+  {
+    Filtered<T> copy(*this);
+    copy.sumWithSelection(selection);
+    return copy;
+  }
+
+  Filtered<T> operator+(gsl::span<int64_t const> const& selection)
   {
     Filtered<T> copy(*this);
     copy.sumWithSelection(selection);
@@ -2151,12 +2180,25 @@ class Filtered : public FilteredPolicy<T>
     return *this;
   }
 
+  Filtered<T> operator+=(gsl::span<int64_t const> const& selection)
+  {
+    this->sumWithSelection(selection);
+    return *this;
+  }
+
   Filtered<T> operator+=(Filtered<T> const& other)
   {
     return operator+=(other.getSelectedRows());
   }
 
   Filtered<T> operator*(SelectionVector const& selection)
+  {
+    Filtered<T> copy(*this);
+    copy.intersectWithSelection(selection);
+    return copy;
+  }
+
+  Filtered<T> operator*(gsl::span<int64_t const> const& selection)
   {
     Filtered<T> copy(*this);
     copy.intersectWithSelection(selection);
@@ -2174,6 +2216,12 @@ class Filtered : public FilteredPolicy<T>
     return *this;
   }
 
+  Filtered<T> operator*=(gsl::span<int64_t const> const& selection)
+  {
+    this->intersectWithSelection(selection);
+    return *this;
+  }
+
   Filtered<T> operator*=(Filtered<T> const& other)
   {
     return operator*=(other.getSelectedRows());
@@ -2186,15 +2234,7 @@ class Filtered<Filtered<T>> : public FilteredPolicy<typename T::table_t>
  public:
   using table_t = typename FilteredPolicy<typename T::table_t>::table_t;
 
-  Filtered(std::vector<Filtered<T>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
-    : FilteredPolicy<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), std::forward<SelectionVector>(selection), offset)
-  {
-    for (auto& table : tables) {
-      *this *= table;
-    }
-  }
-
-  Filtered(std::vector<Filtered<T>>&& tables, framework::expressions::Selection selection, uint64_t offset = 0)
+  Filtered(std::vector<Filtered<T>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
     : FilteredPolicy<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), selection, offset)
   {
     for (auto& table : tables) {
@@ -2202,8 +2242,16 @@ class Filtered<Filtered<T>> : public FilteredPolicy<typename T::table_t>
     }
   }
 
-  Filtered(std::vector<Filtered<T>>&& tables, gandiva::NodePtr const& tree, uint64_t offset = 0)
-    : FilteredPolicy<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), tree, offset)
+  Filtered(std::vector<Filtered<T>>&& tables, SelectionVector const& selection, uint64_t offset = 0)
+    : FilteredPolicy<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), selection, offset)
+  {
+    for (auto& table : tables) {
+      *this *= table;
+    }
+  }
+
+  Filtered(std::vector<Filtered<T>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
+    : FilteredPolicy<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), selection, offset)
   {
     for (auto& table : tables) {
       *this *= table;
@@ -2211,6 +2259,13 @@ class Filtered<Filtered<T>> : public FilteredPolicy<typename T::table_t>
   }
 
   Filtered<Filtered<T>> operator+(SelectionVector const& selection)
+  {
+    Filtered<Filtered<T>> copy(*this);
+    copy.sumWithSelection(selection);
+    return copy;
+  }
+
+  Filtered<Filtered<T>> operator+(gsl::span<int64_t const> const& selection)
   {
     Filtered<Filtered<T>> copy(*this);
     copy.sumWithSelection(selection);
@@ -2228,6 +2283,12 @@ class Filtered<Filtered<T>> : public FilteredPolicy<typename T::table_t>
     return *this;
   }
 
+  Filtered<Filtered<T>> operator+=(gsl::span<int64_t const> const& selection)
+  {
+    this->sumWithSelection(selection);
+    return *this;
+  }
+
   Filtered<Filtered<T>> operator+=(Filtered<T> const& other)
   {
     return operator+=(other.getSelectedRows());
@@ -2240,12 +2301,25 @@ class Filtered<Filtered<T>> : public FilteredPolicy<typename T::table_t>
     return copy;
   }
 
+  Filtered<Filtered<T>> operator*(gsl::span<int64_t const> const& selection)
+  {
+    Filtered<Filtered<T>> copy(*this);
+    copy.intersectionWithSelection(selection);
+    return copy;
+  }
+
   Filtered<Filtered<T>> operator*(Filtered<T> const& other)
   {
     return operator*(other.getSelectedRows());
   }
 
   Filtered<Filtered<T>> operator*=(SelectionVector const& selection)
+  {
+    this->intersectWithSelection(selection);
+    return *this;
+  }
+
+  Filtered<Filtered<T>> operator*=(gsl::span<int64_t const> const& selection)
   {
     this->intersectWithSelection(selection);
     return *this;
@@ -2307,7 +2381,7 @@ struct SmallGroups : Filtered<T> {
   SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
 
-  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, framework::expressions::Selection selection, uint64_t offset = 0)
+  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), selection, offset) {}
 
   SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::NodePtr const& tree, uint64_t offset = 0)

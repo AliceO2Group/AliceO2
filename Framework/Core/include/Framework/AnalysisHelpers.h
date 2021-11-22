@@ -21,7 +21,6 @@
 #include "Framework/StringHelpers.h"
 #include "Framework/Output.h"
 #include <string>
-
 namespace o2::framework
 {
 class TableConsumer;
@@ -493,21 +492,12 @@ struct Service {
 };
 
 template <typename T>
-o2::soa::Filtered<T>* getTableFromFilter(const T& table, const expressions::Filter& filter)
+o2::soa::Filtered<T>* getTableFromFilter(const T& table, gandiva::Selection& selection)
 {
-  auto schema = table.asArrowTable()->schema();
-  expressions::Operations ops = createOperations(filter);
-  gandiva::NodePtr tree = nullptr;
-  if (isSchemaCompatible(schema, ops)) {
-    tree = createExpressionTree(ops, schema);
-  } else {
-    throw std::runtime_error("Partition filter does not match declared table type");
-  }
-
   if constexpr (soa::is_soa_filtered_t<std::decay_t<T>>::value) {
-    return new o2::soa::Filtered<T>{{table}, tree};
+    return new o2::soa::Filtered<T>{{table}, selection};
   } else {
-    return new o2::soa::Filtered<T>{{table.asArrowTable()}, tree};
+    return new o2::soa::Filtered<T>{{table.asArrowTable()}, selection};
   }
 }
 
@@ -524,9 +514,28 @@ struct Partition {
     getBoundToExternalIndices(table);
   }
 
+  void intializeCaches(std::shared_ptr<arrow::Schema> const& schema)
+  {
+    if (tree == nullptr) {
+      expressions::Operations ops = createOperations(filter);
+      if (isSchemaCompatible(schema, ops)) {
+        tree = createExpressionTree(ops, schema);
+      } else {
+        throw std::runtime_error("Partition filter does not match declared table type");
+      }
+    }
+    if (gfilter == nullptr) {
+      gfilter = framework::expressions::createFilter(schema, framework::expressions::makeCondition(tree));
+    }
+  }
+
   void setTable(const T& table)
   {
-    mFiltered.reset(getTableFromFilter(table, filter));
+    if (selection == nullptr) {
+      intializeCaches(table.asArrowTable()->schema());
+      selection = framework::expressions::createSelection(table.asArrowTable(), gfilter);
+    }
+    mFiltered.reset(getTableFromFilter(table, selection));
   }
 
   template <typename... Ts>
@@ -567,6 +576,9 @@ struct Partition {
 
   expressions::Filter filter;
   std::unique_ptr<o2::soa::Filtered<T>> mFiltered = nullptr;
+  gandiva::NodePtr tree = nullptr;
+  gandiva::FilterPtr gfilter = nullptr;
+  gandiva::Selection selection = nullptr;
 
   using iterator = typename o2::soa::Filtered<T>::iterator;
   using const_iterator = typename o2::soa::Filtered<T>::const_iterator;

@@ -221,13 +221,13 @@ struct AnalysisDataProcessorBuilder {
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
-  static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> const& infos)
+  static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo>& infos)
   {
     return extractSomethingFromRecord<Grouping, 0>(record, infos, typeHash<R (C::*)(Grouping, Args...)>());
   }
 
   template <typename R, typename C>
-  static auto bindGroupingTable(InputRecord&, R (C::*)(), std::vector<ExpressionInfo> const&)
+  static auto bindGroupingTable(InputRecord&, R (C::*)(), std::vector<ExpressionInfo>&)
   {
     static_assert(always_static_assert_v<C>, "Your task process method needs at least one argument");
     return o2::soa::Table<>{nullptr};
@@ -259,23 +259,24 @@ struct AnalysisDataProcessorBuilder {
   }
 
   template <typename T, typename... Os>
-  static auto extractFilteredFromRecord(InputRecord& record, ExpressionInfo const& info, pack<Os...> const&)
+  static auto extractFilteredFromRecord(InputRecord& record, ExpressionInfo& info, pack<Os...> const&)
   {
+    auto table = o2::soa::ArrowHelpers::joinTables(std::vector<std::shared_ptr<arrow::Table>>{extractTableFromRecord<Os>(record)...});
+    if (info.tree != nullptr && info.filter == nullptr) {
+      info.filter = framework::expressions::createFilter(table->schema(), framework::expressions::makeCondition(info.tree));
+    }
+    if (info.tree != nullptr && info.filter != nullptr && info.selection == nullptr) {
+      info.selection = framework::expressions::createSelection(table, info.filter);
+    }
     if constexpr (soa::is_soa_iterator_t<T>::value) {
-      if (info.tree != nullptr) {
-        return typename T::parent_t(std::vector<std::shared_ptr<arrow::Table>>{extractTableFromRecord<Os>(record)...}, info.tree);
-      }
-      return typename T::parent_t(std::vector<std::shared_ptr<arrow::Table>>{extractTableFromRecord<Os>(record)...}, soa::SelectionVector{});
+      return typename T::parent_t({table}, info.selection);
     } else {
-      if (info.tree != nullptr) {
-        return T(std::vector<std::shared_ptr<arrow::Table>>{extractTableFromRecord<Os>(record)...}, info.tree);
-      }
-      return T(std::vector<std::shared_ptr<arrow::Table>>{extractTableFromRecord<Os>(record)...}, soa::SelectionVector{});
+      return T({table}, info.selection);
     }
   }
 
   template <typename T, int AI>
-  static auto extractSomethingFromRecord(InputRecord& record, std::vector<ExpressionInfo> const infos, size_t phash)
+  static auto extractSomethingFromRecord(InputRecord& record, std::vector<ExpressionInfo> infos, size_t phash)
   {
     using decayed = std::decay_t<T>;
 
@@ -294,13 +295,13 @@ struct AnalysisDataProcessorBuilder {
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
-  static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> const infos)
+  static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> infos)
   {
     return std::make_tuple(extractSomethingFromRecord<Args, has_type_at_v<Args>(pack<Args...>{}) + 1>(record, infos, typeHash<R (C::*)(Grouping, Args...)>())...);
   }
 
   template <typename R, typename C>
-  static auto bindAssociatedTables(InputRecord&, R (C::*)(), std::vector<ExpressionInfo> const)
+  static auto bindAssociatedTables(InputRecord&, R (C::*)(), std::vector<ExpressionInfo>)
   {
     static_assert(always_static_assert_v<C>, "Your task process method needs at least one argument");
     return std::tuple<>{};
@@ -532,13 +533,13 @@ struct AnalysisDataProcessorBuilder {
       std::tuple<A...>* mAt;
       typename grouping_t::iterator mGroupingElement;
       uint64_t position = 0;
-      soa::SelectionVector const* groupSelection = nullptr;
+      gsl::span<int64_t const> const* groupSelection = nullptr;
       std::array<std::vector<arrow::Datum>, sizeof...(A)> groups;
       std::array<ListVector, sizeof...(A)> filterGroups;
       std::array<std::vector<uint64_t>, sizeof...(A)> offsets;
       std::array<std::vector<int>, sizeof...(A)> sizes;
-      std::array<soa::SelectionVector const*, sizeof...(A)> selections;
-      std::array<soa::SelectionVector::const_iterator, sizeof...(A)> starts;
+      std::array<gsl::span<int64_t const> const*, sizeof...(A)> selections;
+      std::array<gsl::span<int64_t const>::iterator, sizeof...(A)> starts;
     };
 
     GroupSlicerIterator& begin()
@@ -555,13 +556,13 @@ struct AnalysisDataProcessorBuilder {
   };
 
   template <typename Task, typename... T>
-  static void invokeProcessTuple(Task& task, InputRecord& inputs, std::tuple<T...> const& processTuple, std::vector<ExpressionInfo> const& infos)
+  static void invokeProcessTuple(Task& task, InputRecord& inputs, std::tuple<T...> const& processTuple, std::vector<ExpressionInfo>& infos)
   {
     (invokeProcess<o2::framework::has_type_at_v<T>(pack<T...>{})>(task, inputs, std::get<T>(processTuple), infos), ...);
   }
 
   template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
-  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo> const& infos)
+  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos)
   {
     using G = std::decay_t<Grouping>;
     auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, processingFunction, infos);
@@ -911,7 +912,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       task->init(ic);
     }
 
-    return [task, expressionInfos](ProcessingContext& pc) {
+    return [task, expressionInfos](ProcessingContext& pc) mutable {
       homogeneous_apply_refs([&pc](auto&& x) { return OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x); }, *task.get());
       if constexpr (has_run_v<T>) {
         task->run(pc);
@@ -931,6 +932,11 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
         },
         *task.get());
 
+      // reset selections for the next dataframe
+      for (auto& info : expressionInfos) {
+        info.selection = nullptr;
+      }
+      homogeneous_apply_refs([](auto&& x) { PartitionManager<std::decay_t<decltype(x)>>::resetSelection(x); return true; }, *task.get());
       homogeneous_apply_refs([&pc](auto&& x) { return OutputManager<std::decay_t<decltype(x)>>::finalize(pc, x); }, *task.get());
     };
   }};

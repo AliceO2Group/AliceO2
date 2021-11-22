@@ -333,7 +333,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   using FilteredTest = Filtered<TestA>;
   using namespace o2::framework;
   expressions::Filter testf = (test::x == 1) || (test::x == 3);
-  expressions::Selection selection;
+  gandiva::Selection selection;
   auto status = gandiva::SelectionVector::MakeInt32(tests.size(), arrow::default_memory_pool(), &selection);
   BOOST_REQUIRE(status.ok());
 
@@ -363,7 +363,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   auto st = filter->Evaluate(*batch, selection);
   BOOST_REQUIRE_EQUAL(st.ToString(), "OK");
 
-  expressions::Selection selection_f = expressions::createSelection(tableA, testf);
+  gandiva::Selection selection_f = expressions::createSelection(tableA, testf);
 
   TestA testA{tableA};
   FilteredTest filtered{{testA.asArrowTable()}, selection_f};
@@ -381,7 +381,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
   // Hardcode a selection for the first 5 odd numbers
   using FilteredConcatTest = Filtered<ConcatTest::table_t>;
   using namespace o2::framework;
-  expressions::Selection selectionConcat;
+  gandiva::Selection selectionConcat;
   status = gandiva::SelectionVector::MakeInt32(tests.size(), arrow::default_memory_pool(), &selectionConcat);
   BOOST_CHECK_EQUAL(status.ok(), true);
   selectionConcat->SetIndex(0, 0);
@@ -411,7 +411,7 @@ BOOST_AUTO_TEST_CASE(TestConcatTables)
 
   // Test with a Joined table
   using FilteredJoinTest = Filtered<JoinedTest::table_t>;
-  expressions::Selection selectionJoin;
+  gandiva::Selection selectionJoin;
   status = gandiva::SelectionVector::MakeInt32(tests.size(), arrow::default_memory_pool(), &selectionJoin);
   BOOST_CHECK_EQUAL(status.ok(), true);
   selectionJoin->SetIndex(0, 0);

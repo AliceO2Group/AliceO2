@@ -43,6 +43,11 @@ class Filter;
 #include <memory>
 #include <typeinfo>
 #include <set>
+namespace gandiva
+{
+using Selection = std::shared_ptr<gandiva::SelectionVector>;
+using FilterPtr = std::shared_ptr<gandiva::Filter>;
+} // namespace gandiva
 
 using atype = arrow::Type;
 struct ExpressionInfo {
@@ -51,6 +56,8 @@ struct ExpressionInfo {
   std::set<size_t> hashes;
   gandiva::SchemaPtr schema;
   gandiva::NodePtr tree;
+  gandiva::FilterPtr filter;
+  gandiva::Selection selection;
 };
 
 namespace o2::framework::expressions
@@ -406,11 +413,10 @@ struct Filter {
 
 using Projector = Filter;
 
-using Selection = std::shared_ptr<gandiva::SelectionVector>;
 /// Function for creating gandiva selection from our internal filter tree
-Selection createSelection(std::shared_ptr<arrow::Table> const& table, Filter const& expression);
+gandiva::Selection createSelection(std::shared_ptr<arrow::Table> const& table, Filter const& expression);
 /// Function for creating gandiva selection from prepared gandiva expressions tree
-Selection createSelection(std::shared_ptr<arrow::Table> const& table, std::shared_ptr<gandiva::Filter> gfilter);
+gandiva::Selection createSelection(std::shared_ptr<arrow::Table> const& table, std::shared_ptr<gandiva::Filter> gfilter);
 
 struct ColumnOperationSpec;
 using Operations = std::vector<ColumnOperationSpec>;
