@@ -323,7 +323,7 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
   dumpOut << indLevel << indScheme << "_module_cmdline: >-\n";
   dumpOut << indLevel << indScheme << indScheme << "source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&\n";
   dumpOut << indLevel << indScheme << indScheme << "{{ dpl_command }} | " << execution.args[0] << "\n";
-  dumpOut << indLevel << indScheme << "_plain_cmdline: \"source /etc/profile.d/o2.sh && {{ dpl_command }} | " << execution.args[0] << "\"\n";
+  dumpOut << indLevel << indScheme << "_plain_cmdline: \"source /etc/profile.d/o2.sh && {{ len(extra_env_vars)>0 ? 'export ' + extra_env_vars + ' &&' : '' }} {{ dpl_command }} | " << execution.args[0] << "\"\n";
 
   dumpOut << indLevel << "control:\n";
   dumpOut << indLevel << indScheme << "mode: \"fairmq\"\n";
