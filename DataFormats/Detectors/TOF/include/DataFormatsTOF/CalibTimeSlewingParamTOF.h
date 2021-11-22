@@ -32,7 +32,7 @@ class CalibTimeSlewingParamTOF
 
   CalibTimeSlewingParamTOF();
 
-  CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTOF& source) = default;
+  CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTOF& source);
 
   CalibTimeSlewingParamTOF& operator=(const CalibTimeSlewingParamTOF& source) = default;
 

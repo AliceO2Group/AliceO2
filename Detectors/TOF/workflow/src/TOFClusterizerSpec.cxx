@@ -26,7 +26,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
 #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataRefUtils.h"

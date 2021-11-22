@@ -26,7 +26,7 @@
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
 #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 #include "SimConfig/DigiParams.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 

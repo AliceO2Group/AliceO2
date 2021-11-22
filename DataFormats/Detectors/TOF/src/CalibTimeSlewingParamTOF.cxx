@@ -185,7 +185,20 @@ CalibTimeSlewingParamTOF& CalibTimeSlewingParamTOF::operator+=(const CalibTimeSl
       (*(mChannelStart[i])) = (*(other.mChannelStart[i]));
       *(mFractionUnderPeak[i]) = *(other.mFractionUnderPeak[i]);
       *(mSigmaPeak[i]) = *(other.mSigmaPeak[i]);
+      *(mGlobalOffset[i]) = *(other.mGlobalOffset[i]);
     }
   }
   return *this;
+}
+//______________________________________________
+CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTOF& source)
+{
+  bind();
+  for (int i = 0; i < NSECTORS; i++) {
+    *(mTimeSlewing[i]) = *(source.mTimeSlewing[i]);
+    (*(mChannelStart[i])) = (*(source.mChannelStart[i]));
+    *(mFractionUnderPeak[i]) = *(source.mFractionUnderPeak[i]);
+    *(mSigmaPeak[i]) = *(source.mSigmaPeak[i]);
+    *(mGlobalOffset[i]) = *(source.mGlobalOffset[i]);
+  }
 }
