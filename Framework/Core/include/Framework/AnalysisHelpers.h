@@ -509,7 +509,11 @@ struct Partition {
 
   void bindTable(T& table)
   {
-    mFiltered.reset(getTableFromFilter(table, filter));
+    if (selection == nullptr) {
+      intializeCaches(table.asArrowTable()->schema());
+      selection = framework::expressions::createSelection(table.asArrowTable(), gfilter);
+    }
+    mFiltered.reset(getTableFromFilter(table, selection));
     bindExternalIndices(&table);
     getBoundToExternalIndices(table);
   }

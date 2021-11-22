@@ -651,10 +651,6 @@ struct FilteredIndexPolicy : IndexPolicyBase {
   inline void updateRow()
   {
     this->mRowIndex = O2_BUILTIN_LIKELY(mSelectionRow < mMaxSelection) ? mSelectedRows[mSelectionRow] : -1;
-
-    // this->mRowIndex = O2_BUILTIN_LIKELY(mMaxSelection != 0) ?
-    //  (mSelectionRow < mMaxSelection ? mSelectedRows[mSelectionRow] : -1)
-    //  : mSelectionRow;
   }
   gsl::span<int64_t const> mSelectedRows;
   int64_t mSelectionRow = 0;
@@ -922,9 +918,10 @@ class Filtered;
 template <typename T>
 auto select(T const& t, framework::expressions::Filter&& f)
 {
-  return Filtered<T>({t.asArrowTable()}, framework::expressions::createExpressionTree(
-                                           framework::expressions::createOperations(f),
-                                           t.asArrowTable()->schema()));
+  auto selection = framework::expressions::createSelection(t.asArrowTable(), framework::expressions::createExpressionTree(
+                                                                               framework::expressions::createOperations(f),
+                                                                               t.asArrowTable()->schema()));
+  return Filtered<T>({t.asArrowTable()}, Filtered<T>::copySelection(selection));
 }
 
 arrow::Status getSliceFor(int value, char const* key, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset);
@@ -2027,6 +2024,15 @@ class FilteredPolicy : public T
     return gsl::span{start, stop};
   }
 
+  static inline SelectionVector copySelection(gandiva::Selection const& sel)
+  {
+    SelectionVector rows;
+    for (auto i = 0; i < sel->GetNumSlots(); ++i) {
+      rows.push_back(sel->GetIndex(i));
+    }
+    return rows;
+  }
+
   /// Bind the columns which refer to other tables
   /// to the associated tables.
   template <typename... TA>
@@ -2090,6 +2096,7 @@ class FilteredPolicy : public T
 
   void sumWithSelection(SelectionVector const& selection)
   {
+    mCached = true;
     SelectionVector rowsUnion;
     std::set_union(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(rowsUnion));
     mSelectedRowsCache.clear();
@@ -2099,6 +2106,7 @@ class FilteredPolicy : public T
 
   void intersectWithSelection(SelectionVector const& selection)
   {
+    mCached = true;
     SelectionVector intersection;
     std::set_intersection(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(intersection));
     mSelectedRowsCache.clear();
@@ -2108,6 +2116,7 @@ class FilteredPolicy : public T
 
   void sumWithSelection(gsl::span<int64_t const> const& selection)
   {
+    mCached = true;
     SelectionVector rowsUnion;
     std::set_union(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(rowsUnion));
     mSelectedRowsCache = rowsUnion;
@@ -2116,6 +2125,7 @@ class FilteredPolicy : public T
 
   void intersectWithSelection(gsl::span<int64_t const> const& selection)
   {
+    mCached = true;
     SelectionVector intersection;
     std::set_intersection(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(intersection));
     mSelectedRowsCache = intersection;
@@ -2125,7 +2135,7 @@ class FilteredPolicy : public T
  private:
   void resetRanges()
   {
-    if (!mSelectedRowsCache.empty()) {
+    if (mCached) {
       mSelectedRows = gsl::span{mSelectedRowsCache};
     }
     mFilteredEnd.reset(new RowViewSentinel{mSelectedRows.size()});
@@ -2138,6 +2148,7 @@ class FilteredPolicy : public T
 
   gsl::span<int64_t const> mSelectedRows;
   SelectionVector mSelectedRowsCache;
+  bool mCached = false;
   iterator mFilteredBegin;
   std::shared_ptr<RowViewSentinel> mFilteredEnd;
 };

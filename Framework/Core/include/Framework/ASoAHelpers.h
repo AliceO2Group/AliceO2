@@ -71,7 +71,7 @@ std::vector<std::pair<uint64_t, uint64_t>> doGroupTable(const T& table, const st
 
   uint64_t ind = 0;
   uint64_t selInd = 0;
-  soa::SelectionVector selectedRows;
+  gsl::span<int64_t const> selectedRows;
   std::vector<std::pair<uint64_t, uint64_t>> groupedIndices;
 
   // Separate check to account for Filtered size different from arrow table
