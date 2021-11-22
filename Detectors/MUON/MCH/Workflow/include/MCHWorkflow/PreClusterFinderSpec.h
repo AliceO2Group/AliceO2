@@ -26,7 +26,8 @@ namespace mch
 
 o2::framework::DataProcessorSpec
   getPreClusterFinderSpec(const char* specName = "PreClusterFinder",
-                          const char* digitRofDataDescription = "DIGITROFS");
+                          std::string_view inputDigitDataDescription = "F-DIGITS",
+                          std::string_view inputDigitRofDataDescription = "TC-F-DIGITROFS");
 
 } // end namespace mch
 } // end namespace o2
