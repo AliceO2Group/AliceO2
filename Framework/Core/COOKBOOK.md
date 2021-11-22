@@ -457,7 +457,7 @@ process monitoring metrics described at:
 
 will be pushed every `<poll-interval>` seconds to the same backend and dumped in the `performanceMetrics.json` file on exit.
 
-One can also specify `--resources-monitoring-dump-interval <interval in seconds>`, do regularly dump the file at a give interval.
+One can also specify `--resources-monitoring-dump-interval <interval in seconds>` to regularly dump the file at a give interval.
 
 ### Disabling monitoring
 
