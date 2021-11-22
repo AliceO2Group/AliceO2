@@ -10,14 +10,14 @@
 
 int initSimGeom(std::string geom = "");
 
-int initSimGeomAndField(std::string geom = "", std::string grpFileName = "o2sim_grp.root", std::string grpName = "GRP")
+int initSimGeomAndField(std::string geom = "", std::string grpFileName = "o2sim_grp.root")
 {
   int res = 0;
   res = initSimGeom(geom);
   if (res) {
     return res;
   }
-  res = o2::base::Propagator::initFieldFromGRP(grpFileName, grpName);
+  res = o2::base::Propagator::initFieldFromGRP(grpFileName);
   return res;
 }
 
