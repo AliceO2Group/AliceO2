@@ -23,6 +23,7 @@
 #include <uv.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include "ControlWebSocketHandler.h"
 
 namespace o2::framework
 {
@@ -175,10 +176,9 @@ struct GUIWebSocketHandler : public WebSocketHandler {
   GuiRenderer* mRenderer;
 };
 
-WSDPLHandler::WSDPLHandler(uv_stream_t* s, DriverServerContext* context, std::unique_ptr<WebSocketHandler> h)
+WSDPLHandler::WSDPLHandler(uv_stream_t* s, DriverServerContext* context)
   : mStream{s},
-    mServerContext{context},
-    mHandler{std::move(h)}
+    mServerContext{context}
 {
 }
 
@@ -266,7 +266,6 @@ void WSDPLHandler::endHeaders()
   if (mHeaders["sec-websocket-version"] != "13") {
     throw WSError{400, "Bad Request: wrong protocol version"};
   }
-  mHandler->headers(mHeaders);
   /// Create an appropriate reply
   LOG(debug) << "Got upgrade request with nonce " << mHeaders["sec-websocket-key"].c_str();
   std::string reply = encode_websocket_handshake_reply(mHeaders["sec-websocket-key"].c_str());
@@ -278,6 +277,9 @@ void WSDPLHandler::endHeaders()
   auto header = mHeaders.find("x-dpl-pid");
   if (header != mHeaders.end()) {
     LOG(debug) << "Driver connected to PID : " << header->second;
+    mHandler = std::make_unique<ControlWebSocketHandler>(*mServerContext);
+    mHandler->headers(mHeaders);
+
     for (size_t i = 0; i < mServerContext->infos->size(); ++i) {
       if (std::to_string((*mServerContext->infos)[i].pid) == header->second) {
         (*mServerContext->controls)[i].controller = new DeviceController{this};

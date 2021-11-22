@@ -535,8 +535,7 @@ void ws_connect_callback(uv_stream_t* server, int status)
   uv_tcp_t* client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
   uv_tcp_init(serverContext->loop, client);
   if (uv_accept(server, (uv_stream_t*)client) == 0) {
-    auto handler = std::make_unique<ControlWebSocketHandler>(*serverContext);
-    client->data = new WSDPLHandler((uv_stream_t*)client, serverContext, std::move(handler));
+    client->data = new WSDPLHandler((uv_stream_t*)client, serverContext);
     uv_read_start((uv_stream_t*)client, (uv_alloc_cb)my_alloc_cb, websocket_callback);
   } else {
     uv_close((uv_handle_t*)client, nullptr);
