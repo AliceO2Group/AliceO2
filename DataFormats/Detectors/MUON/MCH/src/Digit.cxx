@@ -77,8 +77,9 @@ bool Digit::operator<(const Digit& other) const
         if (mADC == other.mADC) {
           if (mNofSamples == other.mNofSamples) {
             return mIsSaturated != other.mIsSaturated;
-          } else
+          } else {
             return mNofSamples < other.mNofSamples;
+          }
         } else {
           return mADC < other.mADC;
         }
