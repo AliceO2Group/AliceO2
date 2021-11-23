@@ -25,18 +25,18 @@ void readITSDigits(std::string path = "./",
 
   std::unique_ptr<TFile> digiFile(TFile::Open((path + digiFName).c_str()));
   if (!digiFile || digiFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open input digits file " << (path + digiFName);
+    LOG(error) << "Failed to open input digits file " << (path + digiFName);
     return;
   }
   std::unique_ptr<TFile> rcFile(TFile::Open((path + runContextFName).c_str()));
   if (!rcFile || rcFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open runContext file " << (path + runContextFName);
+    LOG(error) << "Failed to open runContext file " << (path + runContextFName);
     return;
   }
 
   TTree* digiTree = (TTree*)digiFile->Get("o2sim");
   if (!digiTree) {
-    LOG(ERROR) << "Failed to get digits tree";
+    LOG(error) << "Failed to get digits tree";
     return;
   }
 
@@ -74,7 +74,7 @@ void readITSDigits(std::string path = "./",
   // MC collisions record
   auto runContext = reinterpret_cast<o2::steer::DigitizationContext*>(rcFile->GetObjectChecked("DigitizationContext", "o2::steer::DigitizationContext"));
   if (!runContext) {
-    LOG(WARNING) << "Did not find DigitizationContext";
+    LOG(warning) << "Did not find DigitizationContext";
     return;
   }
 
@@ -94,7 +94,7 @@ void readITSDigits(std::string path = "./",
     printf("\n");
 
     if (int(mc2rofVec->size()) <= iev || (*mc2rofVec)[iev].eventRecordID < 0) {
-      LOG(WARNING) << "Event was not digitized";
+      LOG(warning) << "Event was not digitized";
       continue;
     }
     const auto& m2r = (*mc2rofVec)[iev];
