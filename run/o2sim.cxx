@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
   o2::utils::ShmManager::Instance().release();
 
   // print total time
-  LOG(INFO) << "Simulation process took " << timer.RealTime() << " s";
+  LOG(info) << "Simulation process took " << timer.RealTime() << " s";
 
   // We do this instead of return 0
   // for the reason that we see lots of problems

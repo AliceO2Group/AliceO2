@@ -46,7 +46,7 @@ bool publishMessage(FairMQChannel& channel, std::string const& message)
       return true;
     }
   } else {
-    LOG(ERROR) << "CHANNEL NOT VALID";
+    LOG(error) << "CHANNEL NOT VALID";
   }
   return false;
 }
@@ -63,10 +63,10 @@ FairMQChannel createPUBChannel(std::string const& address,
   externalpublishchannel.Init();
   if ((type.compare("pub") == 0) || (type.compare("pull") == 0)) {
     externalpublishchannel.Bind(address);
-    LOG(INFO) << "BINDING TO ADDRESS " << address << " type " << type;
+    LOG(info) << "BINDING TO ADDRESS " << address << " type " << type;
   } else {
     externalpublishchannel.Connect(address);
-    LOG(INFO) << "CONNECTING TO ADDRESS " << address << " type " << type;
+    LOG(info) << "CONNECTING TO ADDRESS " << address << " type " << type;
   }
   externalpublishchannel.Validate();
   return externalpublishchannel;

@@ -92,21 +92,21 @@ void cleanup()
     std::stringstream catcommand1;
     catcommand1 << "cat " << getServerLogName() << ";";
     if (system(catcommand1.str().c_str()) != 0) {
-      LOG(WARN) << "error executing system call";
+      LOG(warn) << "error executing system call";
     }
 
     std::cerr << "------------- START OF SIM WORKER(S) LOG --------" << std::endl;
     std::stringstream catcommand2;
     catcommand2 << "cat " << getWorkerLogName() << "*;";
     if (system(catcommand2.str().c_str()) != 0) {
-      LOG(WARN) << "error executing system call";
+      LOG(warn) << "error executing system call";
     }
 
     std::cerr << "------------- START OF MERGER LOG ---------------" << std::endl;
     std::stringstream catcommand3;
     catcommand3 << "cat " << getMergerLogName() << ";";
     if (system(catcommand3.str().c_str()) != 0) {
-      LOG(WARN) << "error executing system call";
+      LOG(warn) << "error executing system call";
     }
   }
 }
@@ -122,7 +122,7 @@ int checkresult()
   std::string filename = o2::base::NameConf::getMCKinematicsFileName(conf.getOutPrefix().c_str());
   TFile f(filename.c_str(), "OPEN");
   if (f.IsZombie()) {
-    LOG(WARN) << "Kinematics file corrupted or does not exist";
+    LOG(warn) << "Kinematics file corrupted or does not exist";
     return 1;
   }
   auto tr = static_cast<TTree*>(f.Get("o2sim"));
@@ -131,7 +131,7 @@ int checkresult()
   } else {
     if (!conf.isFilterOutNoHitEvents()) {
       if (tr->GetEntries() != conf.getNEvents()) {
-        LOG(WARN) << "There are fewer events in the output than asked";
+        LOG(warn) << "There are fewer events in the output than asked";
       }
     }
   }
@@ -171,7 +171,7 @@ std::string getInternalControlAddress()
 void sighandler(int signal)
 {
   if (signal == SIGINT || signal == SIGTERM) {
-    LOG(INFO) << "o2-sim driver: Signal caught ... clean up and exit";
+    LOG(info) << "o2-sim driver: Signal caught ... clean up and exit";
     // forward signal to all children
     for (auto& pid : gChildProcesses) {
       killpg(pid, signal);
@@ -196,7 +196,7 @@ void launchControlThread()
   static std::vector<std::thread> threads;
   auto controladdress = getControlAddress();
   auto internalcontroladdress = getInternalControlAddress();
-  LOG(INFO) << "Control address is: " << controladdress;
+  LOG(info) << "Control address is: " << controladdress;
   setenv("ALICE_O2SIMCONTROL", internalcontroladdress.c_str(), 1);
 
   auto lambda = [controladdress, internalcontroladdress]() {
@@ -219,7 +219,7 @@ void launchControlThread()
       outsidechannel.Validate();
       if (outsidechannel.Receive(request) > 0) {
         std::string command(reinterpret_cast<char const*>(request->GetData()), request->GetSize());
-        LOG(INFO) << "Control message: " << command;
+        LOG(info) << "Control message: " << command;
         int code = -1;
         if (isBusy()) {
           code = 1; // code = 1 --> busy
@@ -231,7 +231,7 @@ void launchControlThread()
           o2::conf::SimReconfigData reconfig;
           auto success = o2::conf::parseSimReconfigFromString(command, reconfig);
           if (!success) {
-            LOG(WARN) << "CONTROL REQUEST COULD NOT BE PARSED";
+            LOG(warn) << "CONTROL REQUEST COULD NOT BE PARSED";
             code = 2; // code = 2 --> error with request data
           }
           std::unique_ptr<FairMQMessage> reply(outsidechannel.NewSimpleMessage(code));
@@ -272,7 +272,7 @@ void launchWorkerListenerThread()
     while (true) {
       if (listenchannel.Receive(message) > 0) {
         std::string msg(reinterpret_cast<char const*>(message->GetData()), message->GetSize());
-        LOG(INFO) << "Worker message: " << msg;
+        LOG(info) << "Worker message: " << msg;
       }
     }
   };
@@ -292,7 +292,7 @@ void launchThreadMonitoringEvents(
     while (1) {
       ssize_t count = read(pipefd, &eventcounter, sizeof(eventcounter));
       if (count == -1) {
-        LOG(INFO) << "ERROR READING";
+        LOG(info) << "ERROR READING";
         if (errno == EINTR) {
           continue;
         } else {
@@ -301,7 +301,7 @@ void launchThreadMonitoringEvents(
       } else if (count == 0) {
         break;
       } else {
-        LOG(INFO) << text.c_str() << eventcounter;
+        LOG(info) << text.c_str() << eventcounter;
         eventcontainer.push_back(eventcounter);
         callback(eventcontainer);
       }
@@ -315,8 +315,8 @@ void launchThreadMonitoringEvents(
 // for parallel simulation
 int main(int argc, char* argv[])
 {
-  LOG(INFO) << "This is o2-sim version " << o2::fullVersion() << " (" << o2::gitRevision() << ")";
-  LOG(INFO) << o2::getBuildInfo();
+  LOG(info) << "This is o2-sim version " << o2::fullVersion() << " (" << o2::gitRevision() << ")";
+  LOG(info) << o2::getBuildInfo();
 
   signal(SIGINT, sighandler);
   signal(SIGTERM, sighandler);
@@ -327,7 +327,7 @@ int main(int argc, char* argv[])
   timer.Start();
   auto o2env = getenv("O2_ROOT");
   if (!o2env) {
-    LOG(FATAL) << "O2_ROOT environment not defined";
+    LOG(fatal) << "O2_ROOT environment not defined";
   }
   std::string rootpath(o2env);
   std::string installpath = rootpath + "/bin";
@@ -366,7 +366,7 @@ int main(int argc, char* argv[])
   // in case of zero events asked (only setup geometry etc) we just call the non-distributed version
   // (otherwise we would need to add more synchronization between the actors)
   if (conf.getNEvents() <= 0 && !conf.asService()) {
-    LOG(INFO) << "No events to be simulated; Switching to non-distributed mode";
+    LOG(info) << "No events to be simulated; Switching to non-distributed mode";
     const int Nargs = argc + 1;
     std::string name("o2-sim-serial");
     const char* arguments[Nargs];
@@ -393,7 +393,7 @@ int main(int argc, char* argv[])
   // n simulation workers
   int nworkers = conf.getNSimWorkers();
   setenv("ALICE_NSIMWORKERS", std::to_string(nworkers).c_str(), 1);
-  LOG(INFO) << "Running with " << nworkers << " sim workers ";
+  LOG(info) << "Running with " << nworkers << " sim workers ";
 
   o2::utils::ShmManager::Instance().createGlobalSegment(nworkers);
 
@@ -446,7 +446,7 @@ int main(int argc, char* argv[])
     }
     std::cerr << "$$$$\n";
     auto r = execv(path.c_str(), (char* const*)arguments);
-    LOG(INFO) << "Starting the server"
+    LOG(info) << "Starting the server"
               << "\n";
     if (r != 0) {
       perror(nullptr);
@@ -538,12 +538,12 @@ int main(int argc, char* argv[])
       if (gAskedEvents == v.size()) {
         o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "STATE", "DONE"));
         if (!conf.asService()) {
-          LOG(INFO) << "SIMULATION IS DONE. INITIATING SHUTDOWN.";
+          LOG(info) << "SIMULATION IS DONE. INITIATING SHUTDOWN.";
           for (auto p : gChildProcesses) {
             killpg(p, SIGTERM);
           }
         } else {
-          LOG(INFO) << "SIMULATION DONE. STAYING AS DAEMON.";
+          LOG(info) << "SIMULATION DONE. STAYING AS DAEMON.";
         }
       }
     };
@@ -559,35 +559,35 @@ int main(int argc, char* argv[])
   bool errored = false;
   while ((cpid = wait(&status)) != mergerpid) {
     if (WEXITSTATUS(status) || WIFSIGNALED(status)) {
-      LOG(INFO) << "Process " << cpid << " EXITED WITH CODE " << WEXITSTATUS(status) << " SIGNALED "
+      LOG(info) << "Process " << cpid << " EXITED WITH CODE " << WEXITSTATUS(status) << " SIGNALED "
                 << WIFSIGNALED(status) << " SIGNAL " << WTERMSIG(status);
 
       // we bring down all processes if one of them had problems or got a termination signal
       // if (WTERMSIG(status) == SIGABRT || WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS || WTERMSIG(status) == SIGTERM) {
-      LOG(INFO) << "Problem detected (or child received termination signal) ... shutting down whole system ";
+      LOG(info) << "Problem detected (or child received termination signal) ... shutting down whole system ";
       for (auto p : gChildProcesses) {
-        LOG(INFO) << "TERMINATING " << p;
+        LOG(info) << "TERMINATING " << p;
         killpg(p, SIGTERM); // <--- makes sure to shutdown "unknown" child pids via the group property
       }
-      LOG(ERROR) << "SHUTTING DOWN DUE TO SIGNALED EXIT IN COMPONENT " << cpid;
+      LOG(error) << "SHUTTING DOWN DUE TO SIGNALED EXIT IN COMPONENT " << cpid;
       errored = true;
     }
   }
   // This marks the actual end of the computation (since results are available)
-  LOG(INFO) << "Merger process " << mergerpid << " returned";
-  LOG(INFO) << "Simulation process took " << timer.RealTime() << " s";
+  LOG(info) << "Merger process " << mergerpid << " returned";
+  LOG(info) << "Simulation process took " << timer.RealTime() << " s";
 
   if (!errored) {
     // ordinary shutdown of the rest
     for (auto p : gChildProcesses) {
       if (p != mergerpid) {
-        LOG(INFO) << "SHUTTING DOWN CHILD PROCESS " << p;
+        LOG(info) << "SHUTTING DOWN CHILD PROCESS " << p;
         killpg(p, SIGTERM);
       }
     }
   }
 
-  LOG(DEBUG) << "ShmManager operation " << o2::utils::ShmManager::Instance().isOperational() << "\n";
+  LOG(debug) << "ShmManager operation " << o2::utils::ShmManager::Instance().isOperational() << "\n";
 
   // do a quick check to see if simulation produced something reasonable
   // (mainly useful for continuous integration / automated testing suite)
@@ -605,7 +605,7 @@ int main(int argc, char* argv[])
     std::string headerfilename = o2::base::NameConf::getMCHeadersFileName(conf.getOutPrefix().c_str());
     o2::dataformats::MCEventHeader::extractFileFromKinematics(kinefilename, headerfilename);
 
-    LOG(INFO) << "SIMULATION RETURNED SUCCESFULLY";
+    LOG(info) << "SIMULATION RETURNED SUCCESFULLY";
   }
 
   cleanup();
