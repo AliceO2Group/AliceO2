@@ -37,7 +37,7 @@ namespace emcal
 void DigitizerSpec::initDigitizerTask(framework::InitContext& ctx)
 {
   if (!gGeoManager) {
-    LOG(ERROR) << "Geometry needs to be loaded before";
+    LOG(error) << "Geometry needs to be loaded before";
   }
   // run 3 geometry == run 2 geometry for EMCAL
   // to be adapted with run numbers at a later stage
@@ -61,7 +61,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   auto context = ctx.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
   context->initSimChains(o2::detectors::DetID::EMC, mSimChains);
   auto& timesview = context->getEventRecords();
-  LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
+  LOG(debug) << "GOT " << timesview.size() << " COLLISSION TIMES";
 
   // if there is nothing to do ... return
   if (timesview.size() == 0) {
@@ -71,7 +71,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   TStopwatch timer;
   timer.Start();
 
-  LOG(INFO) << " CALLING EMCAL DIGITIZATION ";
+  LOG(info) << " CALLING EMCAL DIGITIZATION ";
   o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> labelAccum;
   std::vector<TriggerRecord> triggers;
 
@@ -93,7 +93,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
       mDigitizer.fillOutputContainer(mDigits, mLabels);
       std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(mAccumulatedDigits));
       labelAccum.mergeAtBack(mLabels);
-      LOG(INFO) << "Have " << mAccumulatedDigits.size() << " digits ";
+      LOG(info) << "Have " << mAccumulatedDigits.size() << " digits ";
       triggers.emplace_back(timesview[trigID], indexStart, mDigits.size());
       indexStart = mAccumulatedDigits.size();
       mDigits.clear();
@@ -120,7 +120,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
       mHits.clear();
       context->retrieveHits(mSimChains, "EMCHit", part.sourceID, part.entryID, &mHits);
 
-      LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
+      LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
 
       std::vector<o2::emcal::LabeledDigit> summedDigits = mSumDigitizer.process(mHits);
 
@@ -136,14 +136,14 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     mDigitizer.fillOutputContainer(mDigits, mLabels);
     std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(mAccumulatedDigits));
     labelAccum.mergeAtBack(mLabels);
-    LOG(INFO) << "Have " << mAccumulatedDigits.size() << " digits ";
+    LOG(info) << "Have " << mAccumulatedDigits.size() << " digits ";
     triggers.emplace_back(timesview[trigID], o2::trigger::PhT, indexStart, mDigits.size());
     indexStart = mAccumulatedDigits.size();
     mDigits.clear();
     mLabels.clear();
   }
 
-  LOG(INFO) << "Have " << labelAccum.getNElements() << " EMCAL labels ";
+  LOG(info) << "Have " << labelAccum.getNElements() << " EMCAL labels ";
   // here we have all digits and we can send them to consumer (aka snapshot it onto output)
   ctx.outputs().snapshot(Output{"EMC", "DIGITS", 0, Lifetime::Timeframe}, mAccumulatedDigits);
   ctx.outputs().snapshot(Output{"EMC", "TRGRDIG", 0, Lifetime::Timeframe}, triggers);
@@ -152,11 +152,11 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   }
   // EMCAL is always a triggering detector
   const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::TRIGGERING;
-  LOG(INFO) << "EMCAL: Sending ROMode= " << roMode << " to GRPUpdater";
+  LOG(info) << "EMCAL: Sending ROMode= " << roMode << " to GRPUpdater";
   ctx.outputs().snapshot(Output{"EMC", "ROMode", 0, Lifetime::Timeframe}, roMode);
 
   timer.Stop();
-  LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
+  LOG(info) << "Digitization took " << timer.CpuTime() << "s";
   // we should be only called once; tell DPL that this process is ready to exit
   ctx.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   mFinished = true;

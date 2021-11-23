@@ -44,7 +44,7 @@ using namespace o2::emcal::reco_workflow;
 RawToCellConverterSpec::~RawToCellConverterSpec()
 {
   if (mErrorMessagesSuppressed) {
-    LOG(WARNING) << "Suppressed further " << mErrorMessagesSuppressed << " error messages";
+    LOG(warning) << "Suppressed further " << mErrorMessagesSuppressed << " error messages";
   }
 }
 
@@ -53,41 +53,41 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   auto& ilctx = ctx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
   ilctx.setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, "EMC");
 
-  LOG(DEBUG) << "[EMCALRawToCellConverter - init] Initialize converter ";
+  LOG(debug) << "[EMCALRawToCellConverter - init] Initialize converter ";
   if (!mGeometry) {
     mGeometry = Geometry::GetInstanceFromRunNumber(223409);
   }
   if (!mGeometry) {
-    LOG(ERROR) << "Failure accessing geometry";
+    LOG(error) << "Failure accessing geometry";
   }
 
   if (!mMapper) {
     mMapper = std::unique_ptr<MappingHandler>(new o2::emcal::MappingHandler);
   }
   if (!mMapper) {
-    LOG(ERROR) << "Failed to initialize mapper";
+    LOG(error) << "Failed to initialize mapper";
   }
 
   auto fitmethod = ctx.options().get<std::string>("fitmethod");
   if (fitmethod == "standard") {
-    LOG(INFO) << "Using standard raw fitter";
+    LOG(info) << "Using standard raw fitter";
     mRawFitter = std::unique_ptr<CaloRawFitter>(new o2::emcal::CaloRawFitterStandard);
   } else if (fitmethod == "gamma2") {
-    LOG(INFO) << "Using gamma2 raw fitter";
+    LOG(info) << "Using gamma2 raw fitter";
     mRawFitter = std::unique_ptr<CaloRawFitter>(new o2::emcal::CaloRawFitterGamma2);
   } else {
-    LOG(FATAL) << "Unknown fit method" << fitmethod;
+    LOG(fatal) << "Unknown fit method" << fitmethod;
   }
 
   mPrintTrailer = ctx.options().get<bool>("printtrailer");
 
   mMaxErrorMessages = ctx.options().get<int>("maxmessage");
-  LOG(INFO) << "Suppressing error messages after " << mMaxErrorMessages << " messages";
+  LOG(info) << "Suppressing error messages after " << mMaxErrorMessages << " messages";
 
   mMergeLGHG = !ctx.options().get<bool>("no-mergeHGLG");
   mDisablePedestalEvaluation = ctx.options().get<bool>("no-evalpedestal");
 
-  LOG(INFO) << "Running gain merging mode: " << (mMergeLGHG ? "yes" : "no") << std::endl;
+  LOG(info) << "Running gain merging mode: " << (mMergeLGHG ? "yes" : "no") << std::endl;
 
   mRawFitter->setAmpCut(mNoiseThreshold);
   mRawFitter->setL1Phase(0.);
@@ -95,7 +95,7 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 {
-  LOG(DEBUG) << "[EMCALRawToCellConverter - run] called";
+  LOG(debug) << "[EMCALRawToCellConverter - run] called";
   const double CONVADCGEV = 0.016;   // Conversion from ADC counts to energy: E = 16 MeV / ADC
   constexpr double timeshift = 600.; // subtract 600 ns in order to center the time peak around the nominal delay
   constexpr auto originEMC = o2::header::gDataOriginEMC;
@@ -144,10 +144,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       } catch (RawDecodingError& e) {
         mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()));
         if (mNumErrorMessages < mMaxErrorMessages) {
-          LOG(ERROR) << " EMCAL raw task: " << e.what() << " in FEC " << e.getFECID() << std::endl;
+          LOG(error) << " EMCAL raw task: " << e.what() << " in FEC " << e.getFECID() << std::endl;
           mNumErrorMessages++;
           if (mNumErrorMessages == mMaxErrorMessages) {
-            LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+            LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
           }
         } else {
           mErrorMessagesSuppressed++;
@@ -216,10 +216,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             default:
               break;
           };
-          LOG(ERROR) << " EMCAL raw task: " << errormessage << " in DDL " << feeID << std::endl;
+          LOG(error) << " EMCAL raw task: " << errormessage << " in DDL " << feeID << std::endl;
           mNumErrorMessages++;
           if (mNumErrorMessages == mMaxErrorMessages) {
-            LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+            LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
           }
         } else {
           mErrorMessagesSuppressed++;
@@ -230,10 +230,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       }
       for (auto minorerror : decoder.getMinorDecodingErrors()) {
         if (mNumErrorMessages < mMaxErrorMessages) {
-          LOG(ERROR) << " EMCAL raw task - Minor error in DDL " << feeID << ": " << minorerror.what() << std::endl;
+          LOG(error) << " EMCAL raw task - Minor error in DDL " << feeID << ": " << minorerror.what() << std::endl;
           mNumErrorMessages++;
           if (mNumErrorMessages == mMaxErrorMessages) {
-            LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+            LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
           }
         } else {
           mErrorMessagesSuppressed++;
@@ -245,13 +245,13 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       if (mPrintTrailer) {
         // Can become very verbose, therefore must be switched on explicitly in addition
         // to high debug level
-        LOG(DEBUG4) << decoder.getRCUTrailer();
+        LOG(debug4) << decoder.getRCUTrailer();
       }
       // Apply zero suppression only in case it was enabled
       if (decoder.getRCUTrailer().hasZeroSuppression()) {
-        LOG(DEBUG3) << "Zero suppression enabled";
+        LOG(debug3) << "Zero suppression enabled";
       } else {
-        LOG(DEBUG3) << "Zero suppression disabled";
+        LOG(debug3) << "Zero suppression disabled";
       }
       if (mDisablePedestalEvaluation) {
         // auto-disable pedestal evaluation in the raw fitter
@@ -277,10 +277,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           chantype = map.getChannelType(chan.getHardwareAddress());
         } catch (Mapper::AddressNotFoundException& ex) {
           if (mNumErrorMessages < mMaxErrorMessages) {
-            LOG(ERROR) << "Mapping error DDL " << feeID << ": " << ex.what();
+            LOG(error) << "Mapping error DDL " << feeID << ": " << ex.what();
             mNumErrorMessages++;
             if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+              LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
             }
           } else {
             mErrorMessagesSuppressed++;
@@ -311,10 +311,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                 celltypename = "LEDMON";
                 break;
             };
-            LOG(ERROR) << "Sending invalid cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
+            LOG(error) << "Sending invalid cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
             mNumErrorMessages++;
             if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+              LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
             }
           } else {
             mErrorMessagesSuppressed++;
@@ -339,10 +339,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                 celltypename = "LEDMON";
                 break;
             };
-            LOG(ERROR) << "Sending negative cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
+            LOG(error) << "Sending negative cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
             mNumErrorMessages++;
             if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+              LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
             }
           } else {
             mErrorMessagesSuppressed++;
@@ -440,23 +440,23 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           if (fiterror != CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK) {
             // Display
             if (mNumErrorMessages < mMaxErrorMessages) {
-              LOG(ERROR) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+              LOG(error) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
               mNumErrorMessages++;
               if (mNumErrorMessages == mMaxErrorMessages) {
-                LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+                LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
               }
             } else {
               mErrorMessagesSuppressed++;
             }
           } else {
-            LOG(DEBUG2) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+            LOG(debug2) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
             nBunchesNotOK++;
           }
           mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror));
         }
       }
       if (nBunchesNotOK) {
-        LOG(DEBUG) << "Number of failed bunches: " << nBunchesNotOK;
+        LOG(debug) << "Number of failed bunches: " << nBunchesNotOK;
       }
     }
   }
@@ -466,16 +466,16 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     int ncellsEvent = 0;
     int eventstart = mOutputCells.size();
     if (cells->size()) {
-      LOG(DEBUG) << "Event has " << cells->size() << " cells";
+      LOG(debug) << "Event has " << cells->size() << " cells";
       // Sort cells according to cell ID
       std::sort(cells->begin(), cells->end(), [](const RecCellInfo& lhs, const RecCellInfo& rhs) { return lhs.mCellData.getTower() < rhs.mCellData.getTower(); });
       for (const auto& cell : *cells) {
         if (cell.mIsLGnoHG) {
           if (mNumErrorMessages < mMaxErrorMessages) {
-            LOG(ERROR) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressLG << std::dec << " (DDL " << cell.mDDLID << ") has low gain but no high-gain";
+            LOG(error) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressLG << std::dec << " (DDL " << cell.mDDLID << ") has low gain but no high-gain";
             mNumErrorMessages++;
             if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+              LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
             }
           } else {
             mErrorMessagesSuppressed++;
@@ -485,10 +485,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         }
         if (cell.mHGOutOfRange) {
           if (mNumErrorMessages < mMaxErrorMessages) {
-            LOG(ERROR) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressHG << std::dec << " (DDL " << cell.mDDLID << ") has only high-gain out-of-range";
+            LOG(error) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressHG << std::dec << " (DDL " << cell.mDDLID << ") has only high-gain out-of-range";
             mNumErrorMessages++;
             if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+              LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
             }
           } else {
             mErrorMessagesSuppressed++;
@@ -499,12 +499,12 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         ncellsEvent++;
         mOutputCells.push_back(cell.mCellData);
       }
-      LOG(DEBUG) << "Accepted " << ncellsEvent << " cells";
+      LOG(debug) << "Accepted " << ncellsEvent << " cells";
     }
     mOutputTriggerRecords.emplace_back(bc, triggerBuffer[bc], eventstart, ncellsEvent);
   }
 
-  LOG(DEBUG) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
+  LOG(debug) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
   sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
 }
 
