@@ -98,7 +98,7 @@ void run_clus_tof(std::string outputfile = "tofclusters.root", std::string input
       clusterer.process(reader, clustersArray, nullptr);
   }
 
-  LOG(INFO) << "TOF CLUSTERER : TRANSFORMED " << mDigits.size()
+  LOG(info) << "TOF CLUSTERER : TRANSFORMED " << mDigits.size()
             << " DIGITS TO " << clustersArray.size() << " CLUSTERS";
 
   TFile* fout = new TFile(outputfile.c_str(), "RECREATE");

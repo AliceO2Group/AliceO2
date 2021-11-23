@@ -15,7 +15,7 @@ bool UploadMatBudLUT(const std::string& matLUTFile, long tmin = 0, long tmax = -
   if (o2::utils::Str::pathExists(matLUTFile)) {
     lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
   } else {
-    LOG(ERROR) << "Material LUT " << matLUTFile << " file is absent";
+    LOG(error) << "Material LUT " << matLUTFile << " file is absent";
     return false;
   }
 
@@ -33,7 +33,7 @@ auto fetchMatBudLUT(const std::string& url = "GLO/Param/MatLUT", const std::stri
   mgr.setURL(ccdbHost);
   auto lut = o2::base::MatLayerCylSet::rectifyPtrFromFile(mgr.get<o2::base::MatLayerCylSet>(url));
   if (!lut) {
-    LOG(ERROR) << "Failed to fetch material LUT from " << ccdbHost << "/" << url;
+    LOG(error) << "Failed to fetch material LUT from " << ccdbHost << "/" << url;
   }
   return lut;
 }
