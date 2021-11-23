@@ -55,11 +55,11 @@ RawErrorType_t RawDecoder::readChannels()
   while (b != e) { //payload must start with cpvheader folowed by cpvwords and finished with cpvtrailer
     CpvHeader header(b, e);
     if (header.isOK()) {
-      LOG(DEBUG) << "RawDecoder::readChannels() : "
+      LOG(debug) << "RawDecoder::readChannels() : "
                  << "I read cpv header for orbit = " << header.orbit()
                  << " and BC = " << header.bc();
       if (!isHeaderExpected) { //actually, header was not expected
-        LOG(ERROR) << "RawDecoder::readChannels() : "
+        LOG(error) << "RawDecoder::readChannels() : "
                    << "header was not expected";
         removeLastNDigits(nDigitsAddedFromLastHeader); //remove previously added digits as they are bad
         mErrors.emplace_back(5, 0, 0, 0, kNO_CPVTRAILER);
@@ -69,7 +69,7 @@ RawErrorType_t RawDecoder::readChannels()
       wordCountFromLastHeader = 0;
       nDigitsAddedFromLastHeader = 0;
       if (currentOrbit != header.orbit()) { //bad cpvheader
-        LOG(ERROR) << "RawDecoder::readChannels() : "
+        LOG(error) << "RawDecoder::readChannels() : "
                    << "currentOrbit(=" << currentOrbit
                    << ") != header.orbit()(=" << header.orbit() << ")";
         mErrors.emplace_back(5, 0, 0, 0, kCPVHEADER_INVALID); //5 is non-existing link with general errors
@@ -89,7 +89,7 @@ RawErrorType_t RawDecoder::readChannels()
             if (addDigit(pw.mDataWord, word.ccId(), currentBC)) {
               nDigitsAddedFromLastHeader++;
             } else {
-              LOG(DEBUG) << "RawDecoder::readChannels() : "
+              LOG(debug) << "RawDecoder::readChannels() : "
                          << "read pad word with non-valid pad address";
               unsigned int dil = pw.dil, gas = pw.gas, address = pw.address;
               mErrors.emplace_back(word.ccId(), dil, gas, address, kPadAddress);
@@ -103,7 +103,7 @@ RawErrorType_t RawDecoder::readChannels()
           if (diffInCount > 1 ||
               diffInCount < -1) {
             //some words lost?
-            LOG(ERROR) << "RawDecoder::readChannels() : "
+            LOG(error) << "RawDecoder::readChannels() : "
                        << "Read " << wordCountFromLastHeader << " words, expected " << trailer.wordCounter();
             mErrors.emplace_back(5, 0, 0, 0, kCPVTRAILER_INVALID);
             //throw all previous data and go to next header
@@ -112,7 +112,7 @@ RawErrorType_t RawDecoder::readChannels()
           }
           if (trailer.bc() != currentBC) {
             //trailer does not fit header
-            LOG(ERROR) << "RawDecoder::readChannels() : "
+            LOG(error) << "RawDecoder::readChannels() : "
                        << "CPVHeader BC is " << currentBC << " but CPVTrailer BC is " << trailer.bc();
             mErrors.emplace_back(5, 0, 0, 0, kCPVTRAILER_INVALID);
             removeLastNDigits(nDigitsAddedFromLastHeader);
@@ -122,7 +122,7 @@ RawErrorType_t RawDecoder::readChannels()
         } else {
           wordCountFromLastHeader++;
           //error
-          LOG(ERROR) << "RawDecoder::readChannels() : "
+          LOG(error) << "RawDecoder::readChannels() : "
                      << "Read unknown word";
           mErrors.emplace_back(5, 0, 0, 0, kUNKNOWN_WORD); //add error for non-existing row
           //what to do?

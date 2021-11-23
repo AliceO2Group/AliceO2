@@ -30,11 +30,11 @@ void DigitsPrinterSpec::init(framework::InitContext& ctx)
 void DigitsPrinterSpec::run(framework::ProcessingContext& pc)
 {
   // Get the CPV block header and check whether it contains digits
-  LOG(DEBUG) << "[CPVDigitsPrinter - process] called";
+  LOG(debug) << "[CPVDigitsPrinter - process] called";
   auto dataref = pc.inputs().get("digits");
   auto const* cpvheader = o2::framework::DataRefUtils::getHeader<o2::cpv::CPVBlockHeader*>(dataref);
   if (!cpvheader->mHasPayload) {
-    LOG(DEBUG) << "[CPVDigitsPrinter - process] No more digits" << std::endl;
+    LOG(debug) << "[CPVDigitsPrinter - process] No more digits" << std::endl;
     pc.services().get<o2::framework::ControlService>().endOfStream();
     pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
     return;

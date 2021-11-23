@@ -55,7 +55,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
     mCTFCoder.decode(ctfImage, triggers, clusters);
   }
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << clusters.size() << " CPV clusters in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << clusters.size() << " CPV clusters in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
