@@ -32,26 +32,26 @@ const char* FileWatcher::mEndGuard = "~0"; /// stop guard
 
 deque<string> FileWatcher::load(string path)
 {
-  //LOG(INFO) << "FileWatcher::load(" << path << ")";
+  //LOG(info) << "FileWatcher::load(" << path << ")";
   deque<string> result;
   for (const auto& entry : std::filesystem::directory_iterator(path)) {
     if (entry.path().extension() == ".json") {
       result.push_back(entry.path().filename());
     }
   }
-  //LOG(INFO) << result.size();
+  //LOG(info) << result.size();
   return result;
 }
 
 FileWatcher::FileWatcher(const string& path)
 {
-  //LOG(INFO) << "FileWatcher::FileWatcher(" << path << ")";
+  //LOG(info) << "FileWatcher::FileWatcher(" << path << ")";
   this->mDataFolder = path;
   this->mCurrentFile = mEndGuard;
   this->mFiles.clear();
   this->mFiles.push_front(mLowGuard);
   this->mFiles.push_back(mEndGuard);
-  //LOG(INFO) << "FileWatcher" << this->getSize();
+  //LOG(info) << "FileWatcher" << this->getSize();
 }
 
 void FileWatcher::changeFolder(const string& path)
@@ -65,7 +65,7 @@ void FileWatcher::changeFolder(const string& path)
   this->mFiles.push_front(mLowGuard);
   this->mFiles.push_back(mEndGuard);
   this->refresh();
-  //LOG(INFO) << "FileWatcher" << this->getSize();
+  //LOG(info) << "FileWatcher" << this->getSize();
 }
 
 string FileWatcher::nextItem(const string& item) const
@@ -131,8 +131,8 @@ int FileWatcher::getPos() const
 bool FileWatcher::refresh()
 {
   string previous = this->currentItem();
-  LOG(INFO) << "previous:" << previous;
-  LOG(INFO) << "currentFile:" << this->mCurrentFile;
+  LOG(info) << "previous:" << previous;
+  LOG(info) << "currentFile:" << this->mCurrentFile;
 
   this->mFiles = load(this->mDataFolder);
   std::sort(this->mFiles.begin(), this->mFiles.end());
@@ -149,22 +149,22 @@ bool FileWatcher::refresh()
     }
   }
   //for (auto it = this->mFiles.begin(); it != this->mFiles.end(); ++it) {
-  //  LOG(INFO) << *it;
+  //  LOG(info) << *it;
   //}
   this->mFiles.push_front(mLowGuard);
   this->mFiles.push_back(mEndGuard);
 
-  LOG(INFO) << "this->mFiles.size() = " << this->mFiles.size();
-  LOG(INFO) << "this->mCurrentFile = " << this->mCurrentFile;
-  LOG(INFO) << "current:" << this->currentItem();
+  LOG(info) << "this->mFiles.size() = " << this->mFiles.size();
+  LOG(info) << "this->mCurrentFile = " << this->mCurrentFile;
+  LOG(info) << "current:" << this->currentItem();
   return previous != this->currentItem();
 }
 
 void FileWatcher::setCurrentItem(int no)
 {
   this->mCurrentFile = this->mFiles[no];
-  LOG(INFO) << "this->setCurrentItem(" << no << ")";
-  LOG(INFO) << "this->mCurrentFile = " << this->mCurrentFile;
+  LOG(info) << "this->setCurrentItem(" << no << ")";
+  LOG(info) << "this->mCurrentFile = " << this->mCurrentFile;
 }
 
 std::string FileWatcher::currentFilePath() const

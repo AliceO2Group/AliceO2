@@ -111,12 +111,12 @@ bool Options::processCommandLine(int argc, char* argv[])
         this->mSavedDataFolder = optarg;
         break;
       case ':':
-        LOG(ERROR) << "option needs a value: " << char(optopt);
-        LOG(INFO) << usage();
+        LOG(error) << "option needs a value: " << char(optopt);
+        LOG(info) << usage();
         return false;
       case '?':
-        LOG(ERROR) << "unknown option: " << char(optopt);
-        LOG(INFO) << usage();
+        LOG(error) << "unknown option: " << char(optopt);
+        LOG(info) << usage();
         return false;
     }
   }
@@ -124,8 +124,8 @@ bool Options::processCommandLine(int argc, char* argv[])
   // optind is for the extra arguments
   // which are not parsed
   for (; optind < argc; optind++) {
-    LOG(ERROR) << "extra arguments: " << argv[optind];
-    LOG(INFO) << usage();
+    LOG(error) << "extra arguments: " << argv[optind];
+    LOG(info) << usage();
     return false;
   }
 

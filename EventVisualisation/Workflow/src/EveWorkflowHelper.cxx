@@ -57,7 +57,7 @@ void EveWorkflowHelper::draw(const std::string& jsonPath, int numberOfFiles, int
   for (size_t it = 0; it < nTracks; it++) {
     const auto& gid = mTrackSet.trackGID[it];
     auto tim = mTrackSet.trackTime[it];
-    //LOG(INFO) << "EveWorkflowHelper::draw " << gid.asString();
+    //LOG(info) << "EveWorkflowHelper::draw " << gid.asString();
     switch (gid.getSource()) {
       case GID::TPC:
         drawTPC(gid, tim);
@@ -96,7 +96,7 @@ void EveWorkflowHelper::draw(const std::string& jsonPath, int numberOfFiles, int
         drawITSTPCTRDTOF(gid, tim);
         break;
       default:
-        LOG(INFO) << "Track type " << gid.getSource() << " not handled";
+        LOG(info) << "Track type " << gid.getSource() << " not handled";
     }
   }
   mEvent.setWorkflowVersion(workflowVersion);
@@ -205,7 +205,7 @@ void EveWorkflowHelper::prepareMFTClusters(const o2::itsmft::TopologyDictionary&
 
 void EveWorkflowHelper::drawITSTPC(GID gid, float trackTime, GID::Source source)
 {
-  // LOG(INFO) << "EveWorkflowHelper::drawITSTPC " << gid;
+  // LOG(info) << "EveWorkflowHelper::drawITSTPC " << gid;
   const auto& track = mRecoCont.getTPCITSTrack(gid);
   addTrackToEvent(track, gid, trackTime, 0., source);
   drawITSClusters(track.getRefITS(), trackTime);
@@ -223,7 +223,7 @@ void EveWorkflowHelper::drawITSTPCTOF(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawTPCTRD(GID gid, float trackTime)
 {
-  //LOG(INFO) << "EveWorkflowHelper::drawTPCTRD " << gid;
+  //LOG(info) << "EveWorkflowHelper::drawTPCTRD " << gid;
   const auto& tpcTrdTrack = mRecoCont.getTPCTRDTrack<o2::trd::TrackTRD>(gid);
   addTrackToEvent(tpcTrdTrack, gid, trackTime, 0.);
   drawTPCClusters(tpcTrdTrack.getRefGlobalTrackId(), trackTime * mMUS2TPCTimeBins);
@@ -232,7 +232,7 @@ void EveWorkflowHelper::drawTPCTRD(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawITSTPCTRD(GID gid, float trackTime)
 {
-  //LOG(INFO) << "EveWorkflowHelper::drawITSTPCTRD " << gid;
+  //LOG(info) << "EveWorkflowHelper::drawITSTPCTRD " << gid;
   const auto& itsTpcTrdTrack = mRecoCont.getITSTPCTRDTrack<o2::trd::TrackTRD>(gid);
   drawITSTPC(itsTpcTrdTrack.getRefGlobalTrackId(), trackTime, GID::ITSTPCTRD);
   drawTRDClusters(itsTpcTrdTrack, trackTime);
@@ -240,7 +240,7 @@ void EveWorkflowHelper::drawITSTPCTRD(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawITSTPCTRDTOF(GID gid, float trackTime)
 {
-  // LOG(INFO) << "EveWorkflowHelper::drawITSTPCTRDTOF " << gid;
+  // LOG(info) << "EveWorkflowHelper::drawITSTPCTRDTOF " << gid;
   const auto& match = mRecoCont.getITSTPCTRDTOFMatches()[gid.getIndex()];
   auto gidITSTPCTRD = match.getTrackRef();
   drawITSTPCTRD(gidITSTPCTRD, trackTime);
@@ -249,7 +249,7 @@ void EveWorkflowHelper::drawITSTPCTRDTOF(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawTPCTRDTOF(GID gid, float trackTime)
 {
-  // LOG(INFO) << "EveWorkflowHelper::drawTPCTRDTOF " << gid;
+  // LOG(info) << "EveWorkflowHelper::drawTPCTRDTOF " << gid;
   const auto& match = mRecoCont.getTPCTRDTOFMatches()[gid.getIndex()];
   auto gidTPCTRD = match.getTrackRef();
   drawTPCTRD(gidTPCTRD, trackTime);
@@ -258,7 +258,7 @@ void EveWorkflowHelper::drawTPCTRDTOF(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawTPCTOF(GID gid, float trackTime)
 {
-  //  LOG(INFO) << "EveWorkflowHelper::drawTPCTRDTOF " << gid;
+  //  LOG(info) << "EveWorkflowHelper::drawTPCTRDTOF " << gid;
   const auto& trTPCTOF = mRecoCont.getTPCTOFTrack(gid);
   const auto& match = mRecoCont.getTPCTOFMatch(gid.getIndex());
   addTrackToEvent(trTPCTOF, gid, trackTime, 0);
@@ -289,9 +289,9 @@ void EveWorkflowHelper::drawTOFClusters(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawITSClusters(GID gid, float trackTime)
 {
-  // LOG(INFO) << "EveWorkflowHelper::drawITSClusters" << gid;
+  // LOG(info) << "EveWorkflowHelper::drawITSClusters" << gid;
   if (gid.getSource() == GID::ITS) { // this is for for full standalone tracks
-    //LOG(INFO) << "EveWorkflowHelper::drawITSClusters ITS " << gid;
+    //LOG(info) << "EveWorkflowHelper::drawITSClusters ITS " << gid;
     const auto& trc = mRecoCont.getITSTrack(gid);
     auto refs = mRecoCont.getITSTracksClusterRefs();
     int ncl = trc.getNumberOfClusters();
@@ -302,7 +302,7 @@ void EveWorkflowHelper::drawITSClusters(GID gid, float trackTime)
       drawPoint(glo.X(), glo.Y(), glo.Z(), trackTime);
     }
   } else if (gid.getSource() == GID::ITSAB) { // this is for ITS tracklets from ITS-TPC afterburner
-    //LOG(INFO) << "EveWorkflowHelper::drawITSClusters ITSAB " << gid;
+    //LOG(info) << "EveWorkflowHelper::drawITSClusters ITSAB " << gid;
     const auto& trc = mRecoCont.getITSABRef(gid);
     const auto& refs = mRecoCont.getITSABClusterRefs();
     int ncl = trc.getNClusters();
@@ -394,7 +394,7 @@ void EveWorkflowHelper::drawITS(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawMFT(GID gid, float trackTime)
 {
-  //LOG(INFO) << "EveWorkflowHelper::drawMFT " << gid;
+  //LOG(info) << "EveWorkflowHelper::drawMFT " << gid;
   auto tr = mRecoCont.getMFTTrack(gid);
 
   std::vector<float> zPositions = {-40.f, -45.f, -65.f, -85.f}; // Selected z positions to draw the track
@@ -418,7 +418,7 @@ void EveWorkflowHelper::drawMFT(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawMCH(GID gid, float trackTime)
 {
-  //  LOG(INFO) << "EveWorkflowHelper::drawMCH " << gid;
+  //  LOG(info) << "EveWorkflowHelper::drawMCH " << gid;
   const auto& track = mRecoCont.getMCHTrack(gid);
 
   auto noOfClusters = track.getNClusters();                  // number of clusters in MCH Track
@@ -456,7 +456,7 @@ void EveWorkflowHelper::drawMCHClusters(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawMID(GID gid, float trackTime)
 {
-  // LOG(INFO) << "EveWorkflowHelper::drawMID --------------------------------" << gid;
+  // LOG(info) << "EveWorkflowHelper::drawMID --------------------------------" << gid;
   const auto& midTrack = mRecoCont.getMIDTrack(gid);         // MID track
   const auto& midClusters = mRecoCont.getMIDTrackClusters(); // MID clusters
 
