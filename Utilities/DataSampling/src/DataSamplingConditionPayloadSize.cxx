@@ -43,7 +43,7 @@ class DataSamplingConditionPayloadSize : public DataSamplingCondition
     mLowerLimit = config.get<size_t>("lowerLimit");
     mUpperLimit = config.get<size_t>("upperLimit");
     if (mLowerLimit > mUpperLimit) {
-      LOG(WARN) << "Lower limit is higher than upper limit.";
+      LOG(warn) << "Lower limit is higher than upper limit.";
     }
   };
   /// \brief Makes a positive decision if the payload size is within given limits

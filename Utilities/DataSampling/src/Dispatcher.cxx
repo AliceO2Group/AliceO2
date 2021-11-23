@@ -43,7 +43,7 @@ Dispatcher::~Dispatcher() = default;
 
 void Dispatcher::init(InitContext& ctx)
 {
-  LOG(DEBUG) << "Reading Data Sampling Policies...";
+  LOG(debug) << "Reading Data Sampling Policies...";
   boost::property_tree::ptree policiesTree;
 
   if (mReconfigurationSource.empty() == false) {
@@ -62,10 +62,10 @@ void Dispatcher::init(InitContext& ctx)
     try {
       mPolicies.emplace_back(std::make_shared<DataSamplingPolicy>(DataSamplingPolicy::fromConfiguration(policyConfig.second)));
     } catch (std::exception& ex) {
-      LOG(WARN) << "Could not load the Data Sampling Policy '"
+      LOG(warn) << "Could not load the Data Sampling Policy '"
                 << policyConfig.second.get_optional<std::string>("id").value_or("") << "', because: " << ex.what();
     } catch (...) {
-      LOG(WARN) << "Could not load the Data Sampling Policy '"
+      LOG(warn) << "Could not load the Data Sampling Policy '"
                 << policyConfig.second.get_optional<std::string>("id").value_or("") << "'";
     }
   }
