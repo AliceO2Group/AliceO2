@@ -34,7 +34,7 @@ framework::DataProcessorSpec getClusterReaderSpec(bool useMC, const std::vector<
       auto storedlabels = reinterpret_cast<o2::dataformats::IOMCTruthContainerView const*>(data);
       o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> flatlabels;
       storedlabels->copyandflatten(flatlabels);
-      //LOG(INFO) << "PUBLISHING CONST LABELS " << flatlabels.getNElements();
+      //LOG(info) << "PUBLISHING CONST LABELS " << flatlabels.getNElements();
       context.outputs().snapshot(output, flatlabels);
       return true;
     }
