@@ -611,13 +611,16 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
     // loop over stack of MC particles from end to beginning: daughters are stored after mothers
     if (mRecoOnly) {
       for (int particle = mcParticles.size() - 1; particle >= 0; particle--) {
-        int mother0 = mcParticles[particle].getMotherTrackId();
-        if (mother0 == -1) {
+        // we store all primary particles == particles put by generator
+        if (mcParticles[particle].isPrimary()) {
           mToStore[Triplet_t(source, event, particle)] = 1;
+          continue;
         }
         if (mToStore.find(Triplet_t(source, event, particle)) == mToStore.end()) {
           continue;
         }
+        int mother0 = mcParticles[particle].getMotherTrackId();
+        // we store mothers and daughters of particles that are reconstructed
         if (mother0 != -1) {
           mToStore[Triplet_t(source, event, mother0)] = 1;
         }
