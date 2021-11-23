@@ -41,7 +41,7 @@ class DCSConfigConsumer : public o2::framework::Task
   {
     auto fileBuff = pc.inputs().get<gsl::span<char>>("confFile");
     auto fileName = pc.inputs().get<std::string>("confFileName");
-    LOG(INFO) << "got input file " << fileName << " of size " << fileBuff.size();
+    LOG(info) << "got input file " << fileName << " of size " << fileBuff.size();
   }
 };
 } // namespace dcs

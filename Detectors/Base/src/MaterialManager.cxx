@@ -296,7 +296,7 @@ void MaterialManager::insertTGeoMedium(std::string modname, int localindex)
   auto list = gGeoManager->GetListOfMedia();
   mTGeoMediumMap[p] = (TGeoMedium*)list->At(list->GetEntries() - 1);
 
-  LOG(DEBUG) << "mapping " << modname << " " << localindex << " to " << mTGeoMediumMap[p]->GetName();
+  LOG(debug) << "mapping " << modname << " " << localindex << " to " << mTGeoMediumMap[p]->GetName();
 }
 
 void MaterialManager::insertMediumName(const char* uniquename, int index)
@@ -311,7 +311,7 @@ TGeoMedium* MaterialManager::getTGeoMedium(std::string const& modname, int local
   auto p = std::make_pair(modname, localindex);
   auto iter = mTGeoMediumMap.find(p);
   if (iter == mTGeoMediumMap.end()) {
-    LOG(WARNING) << "No medium registered for " << modname << " index " << localindex << "\n";
+    LOG(warning) << "No medium registered for " << modname << " index " << localindex << "\n";
     return nullptr;
   }
   return iter->second;
@@ -366,7 +366,7 @@ void MaterialManager::loadCutsAndProcessesFromFile(const char* modname, const ch
   std::ifstream cutfile(filename);
 
   if (!cutfile.is_open()) {
-    LOG(WARN) << "File " << filename << " does not exist; Cannot apply cuts";
+    LOG(warn) << "File " << filename << " does not exist; Cannot apply cuts";
     return;
   }
 
@@ -436,7 +436,7 @@ void MaterialManager::SpecialCut(const char* modname, int localindex, ECut parID
   if (globalindex != -1) {
     Cut(ESpecial::kTRUE, globalindex, parID, val);
   } else {
-    LOG(WARN) << "SpecialCut: NO GLOBALINDEX FOUND FOR " << modname << " " << localindex;
+    LOG(warn) << "SpecialCut: NO GLOBALINDEX FOUND FOR " << modname << " " << localindex;
   }
 }
 
@@ -632,7 +632,7 @@ void MaterialManager::printContainingMedia(std::string const& volumename)
 {
   auto vol = gGeoManager->FindVolumeFast(volumename.c_str());
   if (vol == nullptr) {
-    LOG(WARN) << "No volume found; Cannot query medias";
+    LOG(warn) << "No volume found; Cannot query medias";
   }
   std::set<TGeoMedium const*> media;
 

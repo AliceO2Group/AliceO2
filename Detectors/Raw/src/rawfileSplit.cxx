@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
   }
 
   RawFileReader::RDH rdh;
-  LOG(INFO) << "RawDataHeader v" << int(rdh.version) << " is assumed";
+  LOG(info) << "RawDataHeader v" << int(rdh.version) << " is assumed";
 
   RawFileReader::ReadoutCardType rocard = vm.count("rorc") ? RawFileReader::ReadoutCardType::RORC : RawFileReader::ReadoutCardType::CRU;
 
@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
     if (vm.count(RawFileReader::nochk_opt(ei).c_str())) { // toggle
       errmap ^= 0x1 << i;
     }
-    LOG(INFO) << ((errmap & (0x1 << i)) ? "apply " : "ignore") << " check for " << RawFileReader::ErrNames[i].data();
+    LOG(info) << ((errmap & (0x1 << i)) ? "apply " : "ignore") << " check for " << RawFileReader::ErrNames[i].data();
   }
 
   if (!config.empty()) {
@@ -160,7 +160,7 @@ int main(int argc, char* argv[])
         buffer.resize(partsSP[ip].size);
         auto bread = link.readNextSuperPage(buffer.data(), &partsSP[ip]);
         if (bread != partsSP[ip].size) {
-          LOG(ERROR) << "Link " << il << " read " << bread << " bytes instead of " << partsSP[ip].size << " expected in TF=" << itf << " part=" << ip;
+          LOG(error) << "Link " << il << " read " << bread << " bytes instead of " << partsSP[ip].size << " expected in TF=" << itf << " part=" << ip;
         }
 
         if (reinitWriter) {
@@ -171,9 +171,9 @@ int main(int argc, char* argv[])
           // if needed, create output directory
           if (!std::filesystem::exists(outDir)) {
             if (!std::filesystem::create_directories(outDir)) {
-              LOG(FATAL) << "could not create output directory " << outDir;
+              LOG(fatal) << "could not create output directory " << outDir;
             } else {
-              LOG(INFO) << "created output directory " << outDir;
+              LOG(info) << "created output directory " << outDir;
             }
           }
           writer = std::make_unique<RawFileWriter>(link.origin, link.cruDetector);

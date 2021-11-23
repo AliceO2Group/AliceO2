@@ -48,33 +48,33 @@ void LHCIFfileReader::readValue(const std::string& alias, std::string& type, int
 
   auto posStart = mFileBuffStr.find(alias);
   if (posStart == std::string::npos) {
-    LOG(INFO) << alias << " not found in LHC IF file";
+    LOG(info) << alias << " not found in LHC IF file";
     return;
   }
   auto posEnd = mFileBuffStr.find("\n", posStart);
-  LOG(DEBUG) << "posStart = " << posStart << ", posEnd = " << posEnd;
+  LOG(debug) << "posStart = " << posStart << ", posEnd = " << posEnd;
   if (posEnd == std::string::npos) {
     posEnd = mFileBuffStr.size();
   }
   std::string subStr = mFileBuffStr.substr(posStart, posEnd - posStart);
-  LOG(DEBUG) << "subStr = " << subStr;
+  LOG(debug) << "subStr = " << subStr;
   auto tokensStr = o2::utils::Str::tokenize(subStr, '\t');
-  LOG(DEBUG) << "size of tokensStr = " << tokensStr.size();
+  LOG(debug) << "size of tokensStr = " << tokensStr.size();
   if (tokensStr.size() < 5) {
-    LOG(FATAL) << "Number of tokens too small: " << tokensStr.size() << ", should be at 5 (alias, type, nelements, value(s), timestamp(s)";
+    LOG(fatal) << "Number of tokens too small: " << tokensStr.size() << ", should be at 5 (alias, type, nelements, value(s), timestamp(s)";
   }
   auto tokensStr_type = o2::utils::Str::tokenize(tokensStr[1], ':');
-  LOG(DEBUG) << "size of tokensStr_type = " << tokensStr_type.size();
+  LOG(debug) << "size of tokensStr_type = " << tokensStr_type.size();
 
   type = tokensStr_type[0];
-  LOG(DEBUG) << "type = " << type;
+  LOG(debug) << "type = " << type;
 
   nele = std::stoi(tokensStr_type[1]); // number of elements per measurement
   nmeas = std::stoi(tokensStr[2]);     // number of measurements
-  LOG(DEBUG) << "nele = " << nele << ", nmeas = " << nmeas;
+  LOG(debug) << "nele = " << nele << ", nmeas = " << nmeas;
   int shift = 3;                                          // number of tokens that are not measurments (alias, type, number of measurements)
   if ((tokensStr.size() - shift) != (nele + 1) * nmeas) { // +1 to account for the timestamp
-    LOG(FATAL) << "Wrong number of pairs (value(s), timestamp): " << tokensStr.size() - 3 << ", should be " << (nele + 1) * nmeas;
+    LOG(fatal) << "Wrong number of pairs (value(s), timestamp): " << tokensStr.size() - 3 << ", should be " << (nele + 1) * nmeas;
   }
   meas.reserve(nmeas);
 
@@ -84,35 +84,35 @@ void LHCIFfileReader::readValue(const std::string& alias, std::string& type, int
     if constexpr (std::is_same<T, int32_t>::value) {
       if (type == "i" || type == "b") {
         for (int iele = 0; iele < nele; ++iele) {
-          LOG(DEBUG) << alias << ": value int/bool = " << tokensStr[shift + iele];
+          LOG(debug) << alias << ": value int/bool = " << tokensStr[shift + iele];
           vect.emplace_back(std::stoi(tokensStr[shift + iele]));
         }
       } else {
-        LOG(FATAL) << "templated function called with wrong type, should be int32_t or bool, but it is " << type;
+        LOG(fatal) << "templated function called with wrong type, should be int32_t or bool, but it is " << type;
       }
     } else if constexpr (std::is_same<T, float>::value) {
       if (type == "f") {
         for (int iele = 0; iele < nele; ++iele) {
-          LOG(DEBUG) << alias << ": value float = " << tokensStr[shift + iele];
+          LOG(debug) << alias << ": value float = " << tokensStr[shift + iele];
           vect.emplace_back(std::stof(tokensStr[shift + iele]));
         }
       } else {
-        LOG(FATAL) << "templated function called with wrong type, should be float";
+        LOG(fatal) << "templated function called with wrong type, should be float";
       }
     }
 
     else if constexpr (std::is_same<T, std::string>::value) {
       if (type == "s") {
         for (int iele = 0; iele < nele; ++iele) {
-          LOG(DEBUG) << alias << ": value string = " << tokensStr[shift + iele];
+          LOG(debug) << alias << ": value string = " << tokensStr[shift + iele];
           vect.emplace_back(tokensStr[shift + iele]);
         }
       } else {
-        LOG(FATAL) << "templated function called with wrong type, should be string";
+        LOG(fatal) << "templated function called with wrong type, should be string";
       }
     }
 
-    LOG(DEBUG) << "timestamp = " << std::stof(tokensStr[shift + nele]);
+    LOG(debug) << "timestamp = " << std::stof(tokensStr[shift + nele]);
     meas.emplace_back(std::stol(tokensStr[shift + nele]) * 1e6, vect); // measurement comes in seconds, we want it in microseconds
   }
 }

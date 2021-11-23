@@ -791,7 +791,7 @@ bool DCAFitterN<N, Args...>::minimizeChi2()
 
     // do Newton-Rapson iteration with corrections = - dchi2/d{x0..xN} * [ d^2chi2/d{x0..xN}^2 ]^-1
     if (!mD2Chi2Dx2.Invert()) {
-      LOG(ERROR) << "InversionFailed";
+      LOG(error) << "InversionFailed";
       return false;
     }
     VecND dx = mD2Chi2Dx2 * mDChi2Dx;
@@ -844,7 +844,7 @@ bool DCAFitterN<N, Args...>::minimizeChi2NoErr()
 
     // do Newton-Rapson iteration with corrections = - dchi2/d{x0..xN} * [ d^2chi2/d{x0..xN}^2 ]^-1
     if (!mD2Chi2Dx2.Invert()) {
-      LOG(ERROR) << "InversionFailed";
+      LOG(error) << "InversionFailed";
       return false;
     }
     VecND dx = mD2Chi2Dx2 * mDChi2Dx;
@@ -900,10 +900,10 @@ bool DCAFitterN<N, Args...>::closerToAlternative() const
 template <int N, typename... Args>
 void DCAFitterN<N, Args...>::print() const
 {
-  LOG(INFO) << N << "-prong vertex fitter in " << (mUseAbsDCA ? "abs." : "weighted") << " distance minimization mode";
-  LOG(INFO) << "Bz: " << mBz << " MaxIter: " << mMaxIter << " MaxChi2: " << mMaxChi2;
-  LOG(INFO) << "Stopping condition: Max.param change < " << mMinParamChange << " Rel.Chi2 change > " << mMinRelChi2Change;
-  LOG(INFO) << "Discard candidates for : Rvtx > " << getMaxR() << " DZ between tracks > " << mMaxDZIni;
+  LOG(info) << N << "-prong vertex fitter in " << (mUseAbsDCA ? "abs." : "weighted") << " distance minimization mode";
+  LOG(info) << "Bz: " << mBz << " MaxIter: " << mMaxIter << " MaxChi2: " << mMaxChi2;
+  LOG(info) << "Stopping condition: Max.param change < " << mMinParamChange << " Rel.Chi2 change > " << mMinRelChi2Change;
+  LOG(info) << "Discard candidates for : Rvtx > " << getMaxR() << " DZ between tracks > " << mMaxDZIni;
 }
 
 //___________________________________________________________________

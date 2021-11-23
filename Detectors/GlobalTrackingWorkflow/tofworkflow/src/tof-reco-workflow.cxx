@@ -140,64 +140,64 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto ignoreDistStf = cfgc.options().get<bool>("ignore-dist-stf");
   auto ccdb_url = cfgc.options().get<std::string>("ccdb-url-tof");
 
-  LOG(DEBUG) << "TOF RECO WORKFLOW configuration";
-  LOG(DEBUG) << "TOF input = " << cfgc.options().get<std::string>("input-type");
-  LOG(DEBUG) << "TOF output = " << cfgc.options().get<std::string>("output-type");
-  LOG(DEBUG) << "TOF sectors = " << cfgc.options().get<std::string>("tof-sectors");
-  LOG(DEBUG) << "TOF disable-mc = " << cfgc.options().get<std::string>("disable-mc");
-  LOG(DEBUG) << "TOF lanes = " << cfgc.options().get<std::string>("tof-lanes");
-  LOG(DEBUG) << "TOF use-ccdb = " << cfgc.options().get<std::string>("use-ccdb");
+  LOG(debug) << "TOF RECO WORKFLOW configuration";
+  LOG(debug) << "TOF input = " << cfgc.options().get<std::string>("input-type");
+  LOG(debug) << "TOF output = " << cfgc.options().get<std::string>("output-type");
+  LOG(debug) << "TOF sectors = " << cfgc.options().get<std::string>("tof-sectors");
+  LOG(debug) << "TOF disable-mc = " << cfgc.options().get<std::string>("disable-mc");
+  LOG(debug) << "TOF lanes = " << cfgc.options().get<std::string>("tof-lanes");
+  LOG(debug) << "TOF use-ccdb = " << cfgc.options().get<std::string>("use-ccdb");
   if (useCCDB) {
-    LOG(DEBUG) << "CCDB url = " << cfgc.options().get<std::string>("ccdb-url-tof");
+    LOG(debug) << "CCDB url = " << cfgc.options().get<std::string>("ccdb-url-tof");
   }
-  LOG(DEBUG) << "TOF disable-root-input = " << disableRootInput;
-  LOG(DEBUG) << "TOF disable-root-output = " << disableRootOutput;
-  LOG(DEBUG) << "TOF conet-mode = " << conetmode;
-  LOG(DEBUG) << "TOF ignore Dist Stf = " << ignoreDistStf;
-  LOG(DEBUG) << "TOF disable-row-writing = " << disableROWwriting;
-  LOG(DEBUG) << "TOF write-decoding-errors = " << writeerr;
+  LOG(debug) << "TOF disable-root-input = " << disableRootInput;
+  LOG(debug) << "TOF disable-root-output = " << disableRootOutput;
+  LOG(debug) << "TOF conet-mode = " << conetmode;
+  LOG(debug) << "TOF ignore Dist Stf = " << ignoreDistStf;
+  LOG(debug) << "TOF disable-row-writing = " << disableROWwriting;
+  LOG(debug) << "TOF write-decoding-errors = " << writeerr;
 
   if (clusterinput && !disableRootInput) {
-    LOG(DEBUG) << "Insert TOF Cluster Reader";
+    LOG(debug) << "Insert TOF Cluster Reader";
     specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
   } else if (dgtinput) {
     // TOF clusterizer
     if (!disableRootInput) {
-      LOG(DEBUG) << "Insert TOF Digit reader from file";
+      LOG(debug) << "Insert TOF Digit reader from file";
       specs.emplace_back(o2::tof::getDigitReaderSpec(useMC));
     }
     if (writeraw) {
-      LOG(DEBUG) << "Insert TOF Raw writer";
+      LOG(debug) << "Insert TOF Raw writer";
       specs.emplace_back(o2::tof::getTOFRawWriterSpec());
     }
   } else if (rawinput) {
-    LOG(DEBUG) << "Insert TOF Compressed Raw Decoder";
+    LOG(debug) << "Insert TOF Compressed Raw Decoder";
     auto inputDesc = cfgc.options().get<std::string>("input-desc");
     specs.emplace_back(o2::tof::getCompressedDecodingSpec(inputDesc, conetmode, !ignoreDistStf));
     useMC = 0;
 
     if (writedigit && !disableRootOutput) {
       // add TOF digit writer without mc labels
-      LOG(DEBUG) << "Insert TOF Digit Writer";
+      LOG(debug) << "Insert TOF Digit Writer";
       specs.emplace_back(o2::tof::getTOFDigitWriterSpec(0, writeerr));
     }
   }
 
   if (!clusterinput && writecluster) {
-    LOG(DEBUG) << "Insert TOF Clusterizer";
+    LOG(debug) << "Insert TOF Clusterizer";
     specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC, useCCDB, isCalibFromCluster, isCosmics, ccdb_url.c_str()));
     if (writecluster && !disableRootOutput) {
-      LOG(DEBUG) << "Insert TOF Cluster Writer";
+      LOG(debug) << "Insert TOF Cluster Writer";
       specs.emplace_back(o2::tof::getTOFClusterWriterSpec(useMC));
     }
   }
 
   if (writectf) {
-    LOG(DEBUG) << "Insert TOF CTF encoder";
+    LOG(debug) << "Insert TOF CTF encoder";
     specs.emplace_back(o2::tof::getEntropyEncoderSpec());
   }
 
-  LOG(DEBUG) << "Number of active devices = " << specs.size();
+  LOG(debug) << "Number of active devices = " << specs.size();
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

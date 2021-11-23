@@ -52,7 +52,7 @@ void MatLayerCylSet::addLayer(float rmin, float rmax, float zmax, float dz, floa
   for (int il = 0; il < nlr; il++) {
     const auto& lr = getLayer(il);
     if (lr.getRMax() > rmin && rmax > lr.getRMin()) {
-      LOG(FATAL) << "new layer overlaps with layer " << il;
+      LOG(fatal) << "new layer overlaps with layer " << il;
     }
   }
   auto* oldLayers = o2::gpu::resizeArray(get()->mLayers, nlr, nlr + 1);
@@ -78,11 +78,11 @@ void MatLayerCylSet::populateFromTGeo(int ntrPerCell)
 
   int nlr = getNLayers();
   if (!nlr) {
-    LOG(ERROR) << "The LUT is not yet initialized";
+    LOG(error) << "The LUT is not yet initialized";
     return;
   }
   if (get()->mR2Intervals) {
-    LOG(ERROR) << "The LUT is already populated";
+    LOG(error) << "The LUT is already populated";
     return;
   }
   for (int i = 0; i < nlr; i++) {
@@ -174,12 +174,12 @@ MatLayerCylSet* MatLayerCylSet::loadFromFile(const std::string& inpFName)
 {
   TFile inpf(inpFName.data());
   if (inpf.IsZombie()) {
-    LOG(ERROR) << "Failed to open input file " << inpFName;
+    LOG(error) << "Failed to open input file " << inpFName;
     return nullptr;
   }
   MatLayerCylSet* mb = reinterpret_cast<MatLayerCylSet*>(inpf.GetObjectChecked("ccdb_object", Class()));
   if (!mb && !(mb = reinterpret_cast<MatLayerCylSet*>(inpf.GetObjectChecked("MatBud", Class())))) { // for old objects
-    LOG(ERROR) << "Failed to load mat.LUT from " << inpFName;
+    LOG(error) << "Failed to load mat.LUT from " << inpFName;
     return nullptr;
   }
   return rectifyPtrFromFile(mb);
@@ -215,7 +215,7 @@ void MatLayerCylSet::print(bool data) const
     return;
   }
   if (mConstructionMask != Constructed) {
-    LOG(WARNING) << "Object is not yet flattened";
+    LOG(warning) << "Object is not yet flattened";
   }
   for (int i = 0; i < getNLayers(); i++) {
     printf("#%3d | ", i);

@@ -70,7 +70,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   useMC = false; // force disabling MC as long as it is not implemented
   auto processITSTPConly = configcontext.options().get<bool>("enable-itsonly");
   GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("tracking-sources"));
-  LOG(INFO) << "Data sources: " << GID::getSourcesNames(src);
+  LOG(info) << "Data sources: " << GID::getSourcesNames(src);
 
   specs.emplace_back(o2::tpc::getTPCInterpolationSpec(src, useMC, processITSTPConly));
   if (!configcontext.options().get<bool>("disable-root-output")) {

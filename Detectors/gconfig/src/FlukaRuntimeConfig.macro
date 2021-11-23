@@ -9,7 +9,7 @@ TVirtualMC* FlukaRuntimeConfig() {
   auto& params = o2::FlukaParam::Instance();
   auto isAct = params.activationSimulation;
   if (isAct) {
-    LOG(INFO) << "Set special FLUKA parameters for activation simulation";
+    LOG(info) << "Set special FLUKA parameters for activation simulation";
     auto hadronCut = params.activationHadronCut;
     auto inpFile = params.scoringFile;
     fluka->SetActivationSimulation(true, hadronCut);

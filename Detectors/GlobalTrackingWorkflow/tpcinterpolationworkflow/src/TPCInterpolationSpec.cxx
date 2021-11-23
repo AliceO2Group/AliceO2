@@ -50,7 +50,7 @@ void TPCInterpolationDPL::init(InitContext& ic)
 
 void TPCInterpolationDPL::run(ProcessingContext& pc)
 {
-  LOG(INFO) << "TPC Interpolation Workflow initialized. Start processing...";
+  LOG(info) << "TPC Interpolation Workflow initialized. Start processing...";
   mTimer.Start(false);
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
@@ -107,7 +107,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
   };
   recoData.createTracksVariadic(creator); // create track sample considered for interpolation
 
-  LOG(INFO) << "Created " << seeds.size() << " seeds.";
+  LOG(info) << "Created " << seeds.size() << " seeds.";
 
   if (mUseMC) {
     // possibly MC labels will be used to check filtering procedure performance before interpolation
@@ -138,7 +138,7 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool
   std::vector<OutputSpec> outputs;
 
   if (useMC) {
-    LOG(FATAL) << "MC usage must be disabled for this workflow, since it is not yet implemented";
+    LOG(fatal) << "MC usage must be disabled for this workflow, since it is not yet implemented";
   }
 
   dataRequest->requestTracks(src, useMC);
