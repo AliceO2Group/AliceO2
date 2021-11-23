@@ -46,8 +46,7 @@ jobs:
         perl -p -i -e "${{ env.REFACTORING }}" $COMMIT_FILES
         RESULT_OUTPUT="$(git diff)"
 
-        if [ "$RESULT_OUTPUT" == ''] 
-        then
+        if git diff --exit-code; then
           echo "Refactoring not needed."
           git push --set-upstream https://alibuild:$ALIBUILD_GITHUB_TOKEN@github.com/alibuild/AliceO2.git :alibot-refactoring-${{ github.event.pull_request.number }} -f || true
           echo ::set-output name=clean::true
