@@ -48,7 +48,7 @@ SubTimeFrameFileReader::SubTimeFrameFileReader(const std::string& pFileName, o2:
 {
   mFileMap.open(mFileName);
   if (!mFileMap.is_open()) {
-    LOG(ERROR) << "Failed to open TF file for reading (mmap).";
+    LOG(error) << "Failed to open TF file for reading (mmap).";
     return;
   }
   mFileSize = mFileMap.size();
@@ -193,9 +193,9 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
     if (chFromMap.first.empty() && !chFromMap.second) { // search for channel which is enountered for the 1st time
       chFromMap.second = true;                          // flag that it was already checked
       for (auto& oroute : outputRoutes) {
-        LOG(DEBUG) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
+        LOG(debug) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
         if (o2f::DataSpecUtils::match(oroute.matcher, h->dataOrigin, h->dataDescription, h->subSpecification) && ((h->tfCounter % oroute.maxTimeslices) == oroute.timeslice)) {
-          LOG(DEBUG) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
+          LOG(debug) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
           chFromMap.first = oroute.channel;
           break;
         }
@@ -238,7 +238,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
   // Read DataHeader + SubTimeFrameFileMeta
   auto lMetaHdrStack = getHeaderStack(lMetaHdrStackSize);
   if (lMetaHdrStackSize == 0) {
-    LOG(ERROR) << "Failed to read the TF file header. The file might be corrupted.";
+    LOG(error) << "Failed to read the TF file header. The file might be corrupted.";
     mFileMap.close();
     return nullptr;
   }
@@ -282,7 +282,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
   }
   lStfIndexHdr = o2::header::DataHeader::Get(lStfIndexHdrStack.first());
   if (!lStfIndexHdr) {
-    LOG(ERROR) << "Failed to read the TF index structure. The file might be corrupted.";
+    LOG(error) << "Failed to read the TF index structure. The file might be corrupted.";
     return nullptr;
   }
 
@@ -314,7 +314,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
     }
     const DataHeader* lDataHeader = o2::header::DataHeader::Get(lDataHeaderStack.first());
     if (!lDataHeader) {
-      LOG(ERROR) << "Failed to read the TF HBF DataHeader structure. The file might be corrupted.";
+      LOG(error) << "Failed to read the TF HBF DataHeader structure. The file might be corrupted.";
       mFileMap.close();
       return nullptr;
     }
@@ -388,7 +388,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
   }
 
   if (lLeftToRead < 0) {
-    LOG(ERROR) << "FileRead: Read more data than it is indicated in the META header!";
+    LOG(error) << "FileRead: Read more data than it is indicated in the META header!";
     return nullptr;
   }
 
@@ -420,10 +420,10 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
   }
 #ifdef _RUN_TIMING_MEASUREMENT_
   readSW.Stop();
-  LOG(INFO) << "TF creation time: CPU: " << readSW.CpuTime() << " Wall: " << readSW.RealTime() << " s";
-  LOG(INFO) << "AddPart Timer CPU: " << addPartSW.CpuTime() << " Wall: " << addPartSW.RealTime() << " s";
-  LOG(INFO) << "CreMsg  Timer CPU: " << msgSW.CpuTime() << " Wall: " << msgSW.RealTime() << " s";
-  LOG(INFO) << "FndChan Timer CPU: " << findChanSW.CpuTime() << " Wall: " << findChanSW.RealTime() << " s";
+  LOG(info) << "TF creation time: CPU: " << readSW.CpuTime() << " Wall: " << readSW.RealTime() << " s";
+  LOG(info) << "AddPart Timer CPU: " << addPartSW.CpuTime() << " Wall: " << addPartSW.RealTime() << " s";
+  LOG(info) << "CreMsg  Timer CPU: " << msgSW.CpuTime() << " Wall: " << msgSW.RealTime() << " s";
+  LOG(info) << "FndChan Timer CPU: " << findChanSW.CpuTime() << " Wall: " << findChanSW.RealTime() << " s";
 #endif
   return messagesPerRoute;
 }

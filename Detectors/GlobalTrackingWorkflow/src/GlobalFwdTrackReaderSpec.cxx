@@ -33,7 +33,7 @@ DataProcessorSpec getGlobalFwdTrackWriterSpec(bool useMC)
 {
   // A spectator for logging
   auto logger = [](TracksType const& tracks) {
-    LOG(INFO) << "Writing " << tracks.size() << " GlobalForward Tracks";
+    LOG(info) << "Writing " << tracks.size() << " GlobalForward Tracks";
   };
   return MakeRootTreeWriterSpec("globalfwd-track-writer",
                                 "globalfwdtracks.root",

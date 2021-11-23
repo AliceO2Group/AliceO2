@@ -39,7 +39,7 @@ void TrackCosmicsReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << "Pushing " << mTracks.size() << " Cosmic Tracks at entry " << ent;
+  LOG(info) << "Pushing " << mTracks.size() << " Cosmic Tracks at entry " << ent;
 
   pc.outputs().snapshot(Output{"GLO", "COSMICTRC", 0, Lifetime::Timeframe}, mTracks);
   if (mUseMC) {
@@ -63,7 +63,7 @@ void TrackCosmicsReader::connectTree(const std::string& filename)
   if (mUseMC) {
     mTree->SetBranchAddress("MCTruth", &mLabelsPtr);
   }
-  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getTrackCosmicsReaderSpec(bool useMC)

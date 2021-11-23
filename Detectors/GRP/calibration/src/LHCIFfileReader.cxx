@@ -32,7 +32,7 @@ void LHCIFfileReader::loadLHCIFfile(const std::string& fileName)
       ifs.close();
     }
   } else {
-    LOG(ERROR) << "File " << fileName << " does not exist!";
+    LOG(error) << "File " << fileName << " does not exist!";
   }
 }
 

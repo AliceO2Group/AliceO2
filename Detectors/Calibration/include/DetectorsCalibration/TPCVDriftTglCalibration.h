@@ -55,7 +55,7 @@ struct TPCVDTglContainer {
 
   void print() const
   {
-    LOG(INFO) << "Nentries = " << entries;
+    LOG(info) << "Nentries = " << entries;
   }
   ClassDefNV(TPCVDTglContainer, 1);
 };

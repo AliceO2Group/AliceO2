@@ -74,9 +74,9 @@ void SecondaryVertexingSpec::init(InitContext& ic)
   if (o2::utils::Str::pathExists(matLUTFile)) {
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
-    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+    LOG(info) << "Loaded material LUT from " << matLUTFile;
   } else {
-    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+    LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
   mVertexer.setEnableCascades(mEnableCascades);
   mVertexer.setNThreads(ic.options().get<int>("threads"));
@@ -102,7 +102,7 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
   mVertexer.extractSecondaryVertices(v0s, v0Refs, cascs, cascRefs);
 
   mTimer.Stop();
-  LOG(INFO) << "Found " << v0s.size() << " V0s and " << cascs.size() << " cascades, timing: CPU: "
+  LOG(info) << "Found " << v0s.size() << " V0s and " << cascs.size() << " cascades, timing: CPU: "
             << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0 << " s";
 }
 

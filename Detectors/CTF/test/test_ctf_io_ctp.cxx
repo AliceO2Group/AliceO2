@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(CTFTest, *boost::unit_test::enabled())
     coder.encode(vec, digits); // compress
   }
   sw.Stop();
-  LOG(INFO) << "Compressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Compressed in " << sw.CpuTime() << " s";
 
   // writing
   {
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(CTFTest, *boost::unit_test::enabled())
     ctfImage->appendToTree(ctfTree, "CTP");
     ctfTree.Write();
     sw.Stop();
-    LOG(INFO) << "Wrote to tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Wrote to tree in " << sw.CpuTime() << " s";
   }
 
   // reading
@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(CTFTest, *boost::unit_test::enabled())
     BOOST_CHECK(tree);
     o2::ctp::CTF::readFromTree(vec, *(tree.get()), "CTP");
     sw.Stop();
-    LOG(INFO) << "Read back from tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Read back from tree in " << sw.CpuTime() << " s";
   }
 
   std::vector<CTPDigit> digitsD;
@@ -88,9 +88,9 @@ BOOST_AUTO_TEST_CASE(CTFTest, *boost::unit_test::enabled())
     coder.decode(ctfImage, digitsD); // decompress
   }
   sw.Stop();
-  LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
 
-  LOG(INFO) << " BOOST_CHECK(digitsD.size() " << digitsD.size() << " digigits.size()) " << digits.size();
+  LOG(info) << " BOOST_CHECK(digitsD.size() " << digitsD.size() << " digigits.size()) " << digits.size();
 
   BOOST_TEST(digits == digitsD, boost::test_tools::per_element());
 }

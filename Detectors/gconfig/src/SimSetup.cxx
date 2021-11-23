@@ -27,7 +27,7 @@ typedef void (*setup_fnc)();
 
 void setupFromPlugin(const char* libname, const char* setupfuncname)
 {
-  LOG(INFO) << "Loading simulation plugin " << libname;
+  LOG(info) << "Loading simulation plugin " << libname;
   auto libHandle = dlopen(libname, RTLD_NOW);
   // try to make the library loading a bit more portable:
   if (!libHandle) {
@@ -59,7 +59,7 @@ void SimSetup::setup(const char* engine)
   } else if (strcmp(engine, "MCReplay") == 0) {
     setupFromPlugin("libO2MCReplaySetup", "_ZN2o214mcreplayconfig14MCReplayConfigEv");
   } else {
-    LOG(FATAL) << "Unsupported engine " << engine;
+    LOG(fatal) << "Unsupported engine " << engine;
   }
   o2::SetCuts();
 }

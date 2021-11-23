@@ -94,8 +94,8 @@ RawReaderSpecs::RawReaderSpecs(const ReaderInp& rinp)
   mReader->setCacheData(rinp.cache);
   mReader->setTFAutodetect(rinp.autodetectTF0 ? RawFileReader::FirstTFDetection::Pending : RawFileReader::FirstTFDetection::Disabled);
   mReader->setPreferCalculatedTFStart(rinp.preferCalcTF);
-  LOG(INFO) << "Will preprocess files with buffer size of " << rinp.bufferSize << " bytes";
-  LOG(INFO) << "Number of loops over whole data requested: " << mLoop;
+  LOG(info) << "Will preprocess files with buffer size of " << rinp.bufferSize << " bytes";
+  LOG(info) << "Number of loops over whole data requested: " << mLoop;
   for (int i = NTimers; i--;) {
     mTimer[i].Stop();
     mTimer[i].Reset();
@@ -130,7 +130,7 @@ void RawReaderSpecs::processDropTF(const std::string& dropTF)
       throw std::runtime_error(fmt::format("Wrong dropTF argument {}, 1st number must be > than 2nd", sdet));
     }
     mDropTFMap[detName] = {modV, rej};
-    LOG(INFO) << " Will drop TF for detector " << detName << " if (TF_ID%" << modV << ")==" << rej;
+    LOG(info) << " Will drop TF for detector " << detName << " if (TF_ID%" << modV << ")==" << rej;
   }
 }
 
@@ -161,9 +161,9 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
     } else {
       auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
       for (auto& oroute : outputRoutes) {
-        LOG(DEBUG) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
+        LOG(debug) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
         if (o2f::DataSpecUtils::match(oroute.matcher, h.dataOrigin, h.dataDescription, h.subSpecification) && ((h.tfCounter % oroute.maxTimeslices) == oroute.timeslice)) {
-          LOG(DEBUG) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
+          LOG(debug) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
           return std::string{oroute.channel};
         }
       }
@@ -196,7 +196,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
     if (!mReader->isEmpty() && --mLoop) {
       mLoopsDone++;
       tfID = 0;
-      LOG(INFO) << "Starting new loop " << mLoopsDone << " from the beginning of data";
+      LOG(info) << "Starting new loop " << mLoopsDone << " from the beginning of data";
     } else {
       mTimer[TimerTotal].Stop();
       LOGF(INFO, "Finished: payload of %zu bytes in %zu messages sent for %d TFs", mSentSize, mSentMessages, mTFCounter);
@@ -218,7 +218,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   const auto& hbfU = HBFUtils::Instance();
 
   // read next time frame
-  LOG(INFO) << "Reading TF#" << mTFCounter << " (" << tfID << " at iteration " << mLoopsDone << ')';
+  LOG(info) << "Reading TF#" << mTFCounter << " (" << tfID << " at iteration " << mLoopsDone << ')';
   o2::header::Stack dummyStack{o2h::DataHeader{}, o2::framework::DataProcessingHeader{0}}; // dummy stack to just to get stack size
   auto hstackSize = dummyStack.size();
 
@@ -229,7 +229,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
     if (!mDropTFMap.empty()) { // some TFs should be dropped
       auto res = mDropTFMap.find(link.origin.str);
       if (res != mDropTFMap.end() && (mTFCounter % res->second.first) == res->second.second) {
-        LOG(INFO) << "Droppint " << mTFCounter << " for " << link.origin.str << "/" << link.description.str << "/" << link.subspec;
+        LOG(info) << "Droppint " << mTFCounter << " for " << link.origin.str << "/" << link.description.str << "/" << link.subspec;
         continue; // drop the data
       }
     }
@@ -256,7 +256,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
       mTimer[TimerIO].Start(false);
       auto bread = mPartPerSP ? link.readNextSuperPage(reinterpret_cast<char*>(plMessage->GetData()), &partsSP[hdrTmpl.splitPayloadIndex]) : link.readNextHBF(reinterpret_cast<char*>(plMessage->GetData()));
       if (bread != hdrTmpl.payloadSize) {
-        LOG(ERROR) << "Link " << il << " read " << bread << " bytes instead of " << hdrTmpl.payloadSize
+        LOG(error) << "Link " << il << " read " << bread << " bytes instead of " << hdrTmpl.payloadSize
                    << " expected in TF=" << mTFCounter << " part=" << hdrTmpl.splitPayloadIndex;
       }
       mTimer[TimerIO].Stop();
@@ -302,7 +302,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
     usleep(mDelayUSec);
   }
   for (auto& msgIt : messagesPerRoute) {
-    LOG(INFO) << "Sending " << msgIt.second->Size() / 2 << " parts to channel " << msgIt.first;
+    LOG(info) << "Sending " << msgIt.second->Size() / 2 << " parts to channel " << msgIt.first;
     device->Send(*msgIt.second.get(), msgIt.first);
   }
   mTimer[TimerTotal].Stop();
@@ -348,7 +348,7 @@ o2f::DataProcessorSpec getReaderSpec(ReaderInp rinp)
     }
     spec.options = {o2f::ConfigParamSpec{"channel-config", o2f::VariantType::String, rinp.rawChannelConfig, {"Out-of-band channel config"}}};
     rinp.rawChannelConfig = rinp.rawChannelConfig.substr(nameStart, nameEnd - nameStart);
-    LOG(INFO) << "Will send output to non-DPL channel " << rinp.rawChannelConfig;
+    LOG(info) << "Will send output to non-DPL channel " << rinp.rawChannelConfig;
   }
 
   spec.algorithm = o2f::adaptFromTask<RawReaderSpecs>(rinp);
