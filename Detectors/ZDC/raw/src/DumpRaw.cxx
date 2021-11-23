@@ -100,7 +100,7 @@ void DumpRaw::write()
 {
   TFile* f = new TFile("ZDCDumpRaw.root", "recreate");
   if (f->IsZombie()) {
-    LOG(FATAL) << "Cannot write to file " << f->GetName();
+    LOG(fatal) << "Cannot write to file " << f->GetName();
     return;
   }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
@@ -136,7 +136,7 @@ inline int DumpRaw::getHPos(uint32_t board, uint32_t ch)
   if (ih < NDigiChannels) {
     return ih;
   } else {
-    LOG(ERROR) << "Wrong ih " << ih << " board " << board << " ch " << ch;
+    LOG(error) << "Wrong ih " << ih << " board " << board << " ch " << ch;
     return -1;
   }
 }
@@ -157,7 +157,7 @@ int DumpRaw::processWord(const uint32_t* word)
         mCh.w[1][iw] = word[iw];
       }
     } else {
-      LOG(ERROR) << "Wrong word sequence";
+      LOG(error) << "Wrong word sequence";
       mCh.f.fixed_0 = Id_wn;
       mCh.f.fixed_1 = Id_wn;
       mCh.f.fixed_2 = Id_wn;
@@ -169,14 +169,14 @@ int DumpRaw::processWord(const uint32_t* word)
       }
       process(mCh);
     } else {
-      LOG(ERROR) << "Wrong word sequence";
+      LOG(error) << "Wrong word sequence";
     }
     mCh.f.fixed_0 = Id_wn;
     mCh.f.fixed_1 = Id_wn;
     mCh.f.fixed_2 = Id_wn;
   } else {
     // Word not present in payload
-    LOG(FATAL) << "Event format error";
+    LOG(fatal) << "Event format error";
     return 1;
   }
   return 0;
@@ -256,7 +256,7 @@ int DumpRaw::process(const EventData& ev)
       } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
         // Empty channel
       } else {
-        LOG(ERROR) << "Data format error";
+        LOG(error) << "Data format error";
       }
     }
   }

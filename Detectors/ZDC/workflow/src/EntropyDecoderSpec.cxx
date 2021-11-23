@@ -56,7 +56,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
     mCTFCoder.decode(ctfImage, bcdata, chans, peds);
   }
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << chans.size() << " ZDC channels in " << bcdata.size() << " triggers and " << peds.size() << " pedestals in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << chans.size() << " ZDC channels in " << bcdata.size() << " triggers and " << peds.size() << " pedestals in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
