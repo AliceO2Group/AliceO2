@@ -38,12 +38,19 @@ struct MessageSet {
   };
   // linear storage of messages
   std::vector<FairMQMessagePtr> messages;
-  // message map descibes O2 messages consisting of a header message and
-  // payload message(s), index descibes position in the linear storage
+  // message map describes O2 messages consisting of a header message and
+  // payload message(s), index describes position in the linear storage
   std::vector<Index> messageMap;
-  // pair map describes all messages in header-payload pairs and where
-  // in the message index the an associated header and payload can be found
-  std::vector<std::pair<size_t, size_t>> pairMap;
+  // pair map describes all messages in one sequence of header-payload pairs and
+  // where in the message index the associated header and payload can be found
+  struct PairMapping {
+    PairMapping(size_t partId, size_t payloadId) : partIndex(partId), payloadIndex(payloadId) {}
+    // O2 message where the pair is located in
+    size_t partIndex = 0;
+    // payload index within the O2 message
+    size_t payloadIndex = 0;
+  };
+  std::vector<PairMapping> pairMap;
 
   MessageSet()
     : messages(), messageMap(), pairMap()
@@ -161,13 +168,13 @@ struct MessageSet {
 
   FairMQMessagePtr const& associatedHeader(size_t pos) const
   {
-    return messages[messageMap[pairMap[pos].first].position];
+    return messages[messageMap[pairMap[pos].partIndex].position];
   }
 
   FairMQMessagePtr const& associatedPayload(size_t pos) const
   {
-    auto partIndex = pairMap[pos].first;
-    auto payloadIndex = pairMap[pos].second;
+    auto partIndex = pairMap[pos].partIndex;
+    auto payloadIndex = pairMap[pos].payloadIndex;
     return messages[messageMap[partIndex].position + payloadIndex + 1];
   }
 };
