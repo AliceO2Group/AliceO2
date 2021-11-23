@@ -51,7 +51,7 @@ void ClusterReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << mDetName << "ClusterReader pushes " << mClusROFRec.size() << " ROFRecords,"
+  LOG(info) << mDetName << "ClusterReader pushes " << mClusROFRec.size() << " ROFRecords,"
             << mClusterCompArray.size() << " compact clusters at entry " << ent;
 
   // This is a very ugly way of providing DataDescription, which anyway does not need to contain detector name.
@@ -91,11 +91,11 @@ void ClusterReader::connectTree(const std::string& filename)
       mTree->SetBranchAddress((mDetName + mClustMCTruthBranchName).c_str(), &mClusterMCTruthPtr);
       mTree->SetBranchAddress((mDetName + mClustMC2ROFBranchName).c_str(), &mClusMC2ROFsPtr);
     } else {
-      LOG(INFO) << "MC-truth is missing";
+      LOG(info) << "MC-truth is missing";
       mUseMC = false;
     }
   }
-  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool usePatterns)

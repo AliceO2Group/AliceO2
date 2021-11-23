@@ -52,7 +52,7 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 CookedTrackerDPL::CookedTrackerDPL(bool useMC, const std::string& trMode) : mUseMC(useMC)
 {
   if (trMode == "cosmics") {
-    LOG(INFO) << "Tracking mode \"cosmics\"";
+    LOG(info) << "Tracking mode \"cosmics\"";
     mTracker.setParametersCosmics();
     mRunVertexer = false;
   }
@@ -87,7 +87,7 @@ void CookedTrackerDPL::init(InitContext& ic)
     mTracker.setBz(field->getBz(origD));
 
     bool continuous = mGRP->isDetContinuousReadOut("ITS");
-    LOG(INFO) << "ITSCookedTracker RO: continuous=" << continuous;
+    LOG(info) << "ITSCookedTracker RO: continuous=" << continuous;
     mTracker.setContinuousMode(continuous);
   } else {
     throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
@@ -97,9 +97,9 @@ void CookedTrackerDPL::init(InitContext& ic)
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
     mDict.readFromFile(dictFile);
-    LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
+    LOG(info) << "Tracker running with a provided dictionary: " << dictFile;
   } else {
-    LOG(INFO) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
+    LOG(info) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
   }
 }
 
@@ -126,7 +126,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
 
-  LOG(INFO) << "ITSCookedTracker pulled " << compClusters.size() << " clusters, in " << rofs.size() << " RO frames";
+  LOG(info) << "ITSCookedTracker pulled " << compClusters.size() << " clusters, in " << rofs.size() << " RO frames";
 
   std::vector<o2::MCCompLabel> trackLabels;
   if (mUseMC) {
@@ -156,7 +156,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     if (rof.getNEntries() && (multEstConf.cutMultClusLow > 0 || multEstConf.cutMultClusHigh > 0)) { // cut was requested
       auto mult = multEst.process(rof.getROFData(compClusters));
       if (mult < multEstConf.cutMultClusLow || (multEstConf.cutMultClusHigh > 0 && mult > multEstConf.cutMultClusHigh)) {
-        LOG(INFO) << "Estimated cluster mult. " << mult << " is outside of requested range "
+        LOG(info) << "Estimated cluster mult. " << mult << " is outside of requested range "
                   << multEstConf.cutMultClusLow << " : " << multEstConf.cutMultClusHigh << " | ROF " << rof.getBCData();
         rof.setFirstEntry(tracks.size());
         rof.setNEntries(0);
@@ -166,7 +166,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
 
     if (mRunVertexer) {
       o2::its::ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels.get());
-      mVertexerPtr->clustersToVertices(event, false, [&](std::string s) { LOG(INFO) << s; });
+      mVertexerPtr->clustersToVertices(event, false, [&](std::string s) { LOG(info) << s; });
     }
     auto vtxVecLoc = mVertexerPtr->exportVertices();
 
@@ -175,7 +175,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
       vtxVecSel.swap(vtxVecLoc);
       for (const auto& vtx : vtxVecSel) {
         if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
-          LOG(INFO) << "Found vertex mult. " << vtx.getNContributors() << " is outside of requested range "
+          LOG(info) << "Found vertex mult. " << vtx.getNContributors() << " is outside of requested range "
                     << multEstConf.cutMultVtxLow << " : " << multEstConf.cutMultVtxHigh << " | ROF " << rof.getBCData();
           continue; // skip vertex of unwanted multiplicity
         }
@@ -203,7 +203,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     }
   }
 
-  LOG(INFO) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
+  LOG(info) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, trackLabels);

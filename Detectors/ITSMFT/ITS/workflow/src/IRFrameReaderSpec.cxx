@@ -62,7 +62,7 @@ void IRFrameReaderSpec::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << "Pushing " << mIRF.size() << " IR-frames in at entry " << ent;
+  LOG(info) << "Pushing " << mIRF.size() << " IR-frames in at entry " << ent;
   pc.outputs().snapshot(Output{"ITS", "IRFRAMES", 0, Lifetime::Timeframe}, mIRF);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
@@ -81,7 +81,7 @@ void IRFrameReaderSpec::connectTree(const std::string& filename)
   assert(mTree->GetBranch(mBranchName.c_str()));
 
   mTree->SetBranchAddress(mBranchName.c_str(), &mIRFInp);
-  LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getIRFrameReaderSpec()
