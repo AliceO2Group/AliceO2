@@ -46,7 +46,7 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib, o2::hea
   detStrL += detStr;
   std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
   auto logger = [](std::vector<o2::itsmft::Digit> const& inDigits) {
-    LOG(INFO) << "RECEIVED DIGITS SIZE " << inDigits.size();
+    LOG(info) << "RECEIVED DIGITS SIZE " << inDigits.size();
   };
 
   // the callback to be set as hook for custom action when the writer is closed
@@ -56,7 +56,7 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib, o2::hea
     for (const auto* brc : *brArr) {
       int64_t n = ((const TBranch*)brc)->GetEntries();
       if (nent && (nent != n)) {
-        LOG(ERROR) << "Branches have different number of entries";
+        LOG(error) << "Branches have different number of entries";
       }
       nent = n;
     }
@@ -70,7 +70,7 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib, o2::hea
   // We therefore convert it to a special split class.
   auto fillLabels = [](TBranch& branch, std::vector<char> const& labelbuffer, DataRef const& /*ref*/) {
     o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
-    LOG(INFO) << "WRITING " << labels.getNElements() << " LABELS ";
+    LOG(info) << "WRITING " << labels.getNElements() << " LABELS ";
 
     o2::dataformats::IOMCTruthContainerView outputcontainer;
     auto ptr = &outputcontainer;

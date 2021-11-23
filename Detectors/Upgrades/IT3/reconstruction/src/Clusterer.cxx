@@ -254,7 +254,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
       streamCluster(pixArrBuff, rowMin, rowSpan, colMin, colSpan, chipID,
                     compClusPtr, patternsPtr, labelsClusPtr, nlab);
     } else {
-      LOG(WARNING) << "Splitting a huge cluster !  ChipID: " << chipID;
+      LOG(warning) << "Splitting a huge cluster !  ChipID: " << chipID;
 
       colSpan %= o2::itsmft::ClusterPattern::MaxColSpan;
       if (colSpan == 0) {
@@ -499,14 +499,14 @@ void Clusterer::clear()
 void Clusterer::print() const
 {
   // print settings
-  LOG(INFO) << "Clusterizer masks overflow pixels separated by < " << mMaxBCSeparationToMask << " BC and <= "
+  LOG(info) << "Clusterizer masks overflow pixels separated by < " << mMaxBCSeparationToMask << " BC and <= "
             << mMaxRowColDiffToMask << " in row/col";
 #ifdef _PERFORM_TIMING_
   auto& tmr = const_cast<TStopwatch&>(mTimer); // ugly but this is what root does internally
   auto& tmrm = const_cast<TStopwatch&>(mTimerMerge);
-  LOG(INFO) << "Inclusive clusterization timing (w/o disk IO): Cpu: " << tmr.CpuTime()
+  LOG(info) << "Inclusive clusterization timing (w/o disk IO): Cpu: " << tmr.CpuTime()
             << " Real: " << tmr.RealTime() << " s in " << tmr.Counter() << " slots";
-  LOG(INFO) << "Threads output merging timing                : Cpu: " << tmrm.CpuTime()
+  LOG(info) << "Threads output merging timing                : Cpu: " << tmrm.CpuTime()
             << " Real: " << tmrm.RealTime() << " s in " << tmrm.Counter() << " slots";
 
 #endif
