@@ -38,7 +38,7 @@ Geometry::Geometry(const Geometry& geom)
 void Geometry::buildGeometry()
 {
 
-  LOG(INFO) << "Geometry::buildGeometry()::Volume name = FDD";
+  LOG(info) << "Geometry::buildGeometry()::Volume name = FDD";
 
   //Rotations used
   //TGeoRotation* Rx90m = new TGeoRotation("Rx90m", 0., -90., 0.);
@@ -150,7 +150,7 @@ void Geometry::buildGeometry()
   // A side
   TGeoVolume* vCaveRB24 = gGeoManager->GetVolume("caveRB24");
   if (!vCaveRB24) {
-    LOG(FATAL) << "Could not find the top volume for A-side";
+    LOG(fatal) << "Could not find the top volume for A-side";
   }
   const Float_t kPosFDA = 1696.67 - 1313.347; // z-center of assembly (cm)
   vCaveRB24->AddNode(vFDAarray, 1, new TGeoTranslation(0., 0., kPosFDA - kFDACelldz / 2. - 0.1));
@@ -159,7 +159,7 @@ void Geometry::buildGeometry()
   // C side
   TGeoVolume* vCave = gGeoManager->GetVolume("cave");
   if (!vCave) {
-    LOG(FATAL) << "Could not find the top volume for C-side";
+    LOG(fatal) << "Could not find the top volume for C-side";
   }
   const Float_t kPosFDC = -kZbegFrontBar - 2. - 3.0 - 0.3; // 3.0 = (5.6 + 0.2 + 0.2)/2.;
   vCave->AddNode(vFDCarray, 1, new TGeoTranslation(0., 0., kPosFDC - kFDCCelldz / 2. - 0.23));

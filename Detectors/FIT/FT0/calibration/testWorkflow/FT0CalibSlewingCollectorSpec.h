@@ -73,7 +73,7 @@ class FT0CalibCollectorDevice : public o2::framework::Task
   {
     // in output we send the calibration tree
     auto& collectedInfo = mCollector->getCollectedCalibInfo();
-    LOG(DEBUG) << "In CollectorSpec sendOutput: size = " << collectedInfo.size();
+    LOG(debug) << "In CollectorSpec sendOutput: size = " << collectedInfo.size();
     if (collectedInfo.size()) {
       auto entries = collectedInfo.size();
       // this means that we are ready to send the output

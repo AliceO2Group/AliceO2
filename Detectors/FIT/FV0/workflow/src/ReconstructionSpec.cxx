@@ -32,7 +32,7 @@ void ReconstructionDPL::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
-  LOG(INFO) << "ReconstructionDPL::init";
+  LOG(info) << "ReconstructionDPL::init";
 }
 
 void ReconstructionDPL::run(ProcessingContext& pc)
@@ -68,7 +68,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
     mRecPoints.emplace_back(mReco.process(digit, channels, out_ch));
   }
 
-  LOG(DEBUG) << "FV0 reconstruction pushes " << mRecPoints.size() << " RecPoints";
+  LOG(debug) << "FV0 reconstruction pushes " << mRecPoints.size() << " RecPoints";
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, mRecPoints);
   pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0, Lifetime::Timeframe}, mRecChData);
 
@@ -88,7 +88,7 @@ DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
   inputSpec.emplace_back("digits", o2::header::gDataOriginFV0, "DIGITSBC", 0, Lifetime::Timeframe);
   inputSpec.emplace_back("digch", o2::header::gDataOriginFV0, "DIGITSCH", 0, Lifetime::Timeframe);
   if (useMC) {
-    LOG(INFO) << "Currently Reconstruction does not consume and provide MC truth";
+    LOG(info) << "Currently Reconstruction does not consume and provide MC truth";
     inputSpec.emplace_back("labels", o2::header::gDataOriginFV0, "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
   outputSpec.emplace_back(o2::header::gDataOriginFV0, "RECPOINTS", 0, Lifetime::Timeframe);

@@ -53,13 +53,13 @@ void DigitReader::run(ProcessingContext& pc)
   { // load data from files
     TFile digFile(mInputFileName.c_str(), "read");
     if (digFile.IsZombie()) {
-      LOG(FATAL) << "Failed to open FDD digits file " << mInputFileName;
+      LOG(fatal) << "Failed to open FDD digits file " << mInputFileName;
     }
     TTree* digTree = (TTree*)digFile.Get(mDigitTreeName.c_str());
     if (!digTree) {
-      LOG(FATAL) << "Failed to load FDD digits tree " << mDigitTreeName << " from " << mInputFileName;
+      LOG(fatal) << "Failed to load FDD digits tree " << mDigitTreeName << " from " << mInputFileName;
     }
-    LOG(INFO) << "Loaded FDD digits tree " << mDigitTreeName << " from " << mInputFileName;
+    LOG(info) << "Loaded FDD digits tree " << mDigitTreeName << " from " << mInputFileName;
 
     digTree->SetBranchAddress(mDigitBCBranchName.c_str(), &digitsBC);
 
@@ -70,9 +70,9 @@ void DigitReader::run(ProcessingContext& pc)
       }
       if (digTree->GetBranch(mDigitMCTruthBranchName.c_str())) {
         digTree->SetBranchAddress(mDigitMCTruthBranchName.c_str(), &mcTruthRootBuffer);
-        LOG(INFO) << "Will use MC-truth from " << mDigitMCTruthBranchName;
+        LOG(info) << "Will use MC-truth from " << mDigitMCTruthBranchName;
       } else {
-        LOG(INFO) << "MC-truth is missing";
+        LOG(info) << "MC-truth is missing";
         mUseMC = false;
       }
     }
@@ -81,7 +81,7 @@ void DigitReader::run(ProcessingContext& pc)
     digFile.Close();
   }
 
-  LOG(INFO) << "FDD DigitReader pushes " << digitsBC->size() << " digits";
+  LOG(info) << "FDD DigitReader pushes " << digitsBC->size() << " digits";
   pc.outputs().snapshot(Output{mOrigin, "DIGITSBC", 0, Lifetime::Timeframe}, *digitsBC);
   pc.outputs().snapshot(Output{mOrigin, "DIGITSCH", 0, Lifetime::Timeframe}, *digitsCh);
 

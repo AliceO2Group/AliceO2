@@ -43,11 +43,11 @@ class RecoCalibInfoWorkflow final : public o2::framework::Task
 
     o2::globaltracking::RecoContainer recoData;
     recoData.collectData(pc, *mDataRequest);
-    LOG(INFO) << " @@@read RecoContainer";
+    LOG(info) << " @@@read RecoContainer";
     auto primVertices = recoData.getPrimaryVertices();
-    LOG(INFO) << "@@@ primVertices  ";
+    LOG(info) << "@@@ primVertices  ";
     auto ft0RecPoints = recoData.getFT0RecPoints();
-    LOG(INFO) << "@@@@ read T0 recpoints ";
+    LOG(info) << "@@@@ read T0 recpoints ";
     std::map<uint64_t, o2::dataformats::PrimaryVertex const*> bcsMap;
     for (auto& vertex : primVertices) {
       auto& timeStamp = vertex.getTimeStamp();
@@ -64,7 +64,7 @@ class RecoCalibInfoWorkflow final : public o2::framework::Task
       /* uint64_t bc = globalBC; */
       auto item = bcsMap.find(bc);
       if (item == bcsMap.end() || item->second == nullptr) {
-        LOG(FATAL) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
+        LOG(fatal) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
         continue;
       }
       auto& vertex = *item->second;
@@ -73,11 +73,11 @@ class RecoCalibInfoWorkflow final : public o2::framework::Task
       /*   bcID = item->second; */
       auto currentVertex = vertex.getZ();
       ushort ncont = vertex.getNContributors();
-      LOG(INFO) << "@@@ currentVertex " << currentVertex << " ncont " << int(ncont);
+      LOG(info) << "@@@ currentVertex " << currentVertex << " ncont " << int(ncont);
       if (ncont == 0)
         continue;
       auto shift = currentVertex / TMath::C();
-      LOG(INFO) << " BC  t0 " << bc;
+      LOG(info) << " BC  t0 " << bc;
       short t0A = ft0RecPoint.getCollisionTimeA() + shift;
       short t0C = ft0RecPoint.getCollisionTimeC() - shift;
       short t0AC = ft0RecPoint.getCollisionTimeMean();

@@ -44,7 +44,7 @@ void FT0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FT0CalibrationI
       mHistogram(chTime, chID);
       ++mEntriesPerChannel[chID];
     } else {
-      LOG(FATAL) << "Invalid channel data";
+      LOG(fatal) << "Invalid channel data";
     }
   }
 }
@@ -66,7 +66,7 @@ int16_t FT0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t cha
   if (0 == mEntriesPerChannel[channelID]) {
     return 0;
   }
-  LOG(DEBUG) << " for channel " << int(channelID) << " entries " << mEntriesPerChannel[channelID];
+  LOG(debug) << " for channel " << int(channelID) << " entries " << mEntriesPerChannel[channelID];
 
   std::vector<double> channelHistogramData(NUMBER_OF_HISTOGRAM_BINS);
 
@@ -92,7 +92,7 @@ int16_t FT0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t cha
 
   MaxValOfHistogram = (-HISTOGRAM_RANGE + maxElementIndex * binWidth + binWidth / 2.0);
   if (returnCode < 0) {
-    LOG(ERROR) << "Gaussian fit error!";
+    LOG(error) << "Gaussian fit error!";
     return static_cast<int16_t>(std::round(MaxValOfHistogram));
   }
 

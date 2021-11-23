@@ -70,17 +70,17 @@ Detector::Detector(Bool_t isActive)
 
 void Detector::InitializeO2Detector()
 {
-  LOG(INFO) << "FV0: Initializing O2 detector. Adding sensitive volumes.";
+  LOG(info) << "FV0: Initializing O2 detector. Adding sensitive volumes.";
 
   std::string volSensitiveName;
   for (int i = 0; i < mGeometry->getSensitiveVolumeNames().size(); i++) {
     volSensitiveName = mGeometry->getSensitiveVolumeNames().at(i);
     TGeoVolume* volSensitive = gGeoManager->GetVolume(volSensitiveName.c_str());
     if (!volSensitive) {
-      LOG(FATAL) << "FV0: Can't find sensitive volume " << volSensitiveName;
+      LOG(fatal) << "FV0: Can't find sensitive volume " << volSensitiveName;
     } else {
       AddSensitiveVolume(volSensitive);
-      LOG(INFO) << "FV0: Sensitive volume added: " << volSensitive->GetName();
+      LOG(info) << "FV0: Sensitive volume added: " << volSensitive->GetName();
     }
   }
 }
@@ -168,7 +168,7 @@ void Detector::EndOfEvent()
 
 void Detector::createMaterials()
 {
-  LOG(INFO) << "FV0: Creating materials";
+  LOG(info) << "FV0: Creating materials";
 
   // Air mixture
   const Int_t nAir = 4;
@@ -223,7 +223,7 @@ void Detector::createMaterials()
   Int_t fieldType;
   Float_t maxField;
   o2::base::Detector::initFieldTrackingParams(fieldType, maxField);
-  LOG(INFO) << "FV0: createMaterials(): fieldType " << fieldType << ", maxField " << maxField;
+  LOG(info) << "FV0: createMaterials(): fieldType " << fieldType << ", maxField " << maxField;
 
   // TODO: Comment out two lines below once tested that the above function assigns field type and max correctly
   fieldType = 2;
@@ -261,12 +261,12 @@ void Detector::createMaterials()
   o2::base::Detector::Medium(Titanium, "Titanium$", matId, unsens, fieldType, maxField,
                              tmaxfd, stemax, deemax, epsil, stmin);
 
-  LOG(DEBUG) << "FV0 Detector::createMaterials(): matId = " << matId;
+  LOG(debug) << "FV0 Detector::createMaterials(): matId = " << matId;
 }
 
 void Detector::ConstructGeometry()
 {
-  LOG(INFO) << "FV0: Constructing geometry";
+  LOG(info) << "FV0: Constructing geometry";
   createMaterials();
   mGeometry = Geometry::instance(Geometry::eFull);
   // mGeometry->enableComponent(Geometry::eScintillator, false);
@@ -286,10 +286,10 @@ void Detector::addAlignableVolumes() const
   //  First version (mainly ported from AliRoot)
   //
 
-  LOG(INFO) << "Add FV0 alignable volumes";
+  LOG(info) << "Add FV0 alignable volumes";
 
   if (!gGeoManager) {
-    LOG(FATAL) << "TGeoManager doesn't exist !";
+    LOG(fatal) << "TGeoManager doesn't exist !";
     return;
   }
 
@@ -297,9 +297,9 @@ void Detector::addAlignableVolumes() const
   for (int ihalf = 1; ihalf < 3; ihalf++) {
     volPath = Form("/cave_1/barrel_1/FV0_1/FV0CONTAINER_%i", ihalf);
     symName = Form("FV0half_%i", ihalf);
-    LOG(INFO) << symName << " <-> " << volPath;
+    LOG(info) << symName << " <-> " << volPath;
     if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data())) {
-      LOG(FATAL) << "Unable to set alignable entry ! " << symName << " : " << volPath;
+      LOG(fatal) << "Unable to set alignable entry ! " << symName << " : " << volPath;
     }
   }
 }
