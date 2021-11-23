@@ -40,7 +40,7 @@ int gDriverProcess = -1;
 void sigaction_handler(int signal, siginfo_t* signal_info, void*)
 {
   auto pid = getpid();
-  LOG(INFO) << pid << " caught signal " << signal << " from source " << signal_info->si_pid;
+  LOG(info) << pid << " caught signal " << signal << " from source " << signal_info->si_pid;
   auto groupid = getpgrp();
   if (pid == gMasterProcess) {
     killpg(pid, signal); // master kills whole process group
@@ -87,7 +87,7 @@ o2::devices::O2SimDevice* getDevice()
   auto vmc = TVirtualMC::GetMC();
 
   if (app == nullptr) {
-    LOG(WARNING) << "no vmc application found at this stage";
+    LOG(warning) << "no vmc application found at this stage";
   }
   return new o2::devices::O2SimDevice(app, vmc);
 }
@@ -163,7 +163,7 @@ int runSim(KernelSetup setup)
   // the simplified runloop
   while (setup.sim->Kernel(setup.workerID, *setup.primchannel, *setup.datachannel, setup.primstatuschannel)) {
   }
-  LOG(INFO) << "[W" << setup.workerID << "] simulation is done";
+  LOG(info) << "[W" << setup.workerID << "] simulation is done";
   return 0;
 }
 
@@ -184,22 +184,22 @@ void pinToCPU(unsigned int cpuid)
 
     auto s = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
     if (s != 0) {
-      LOG(WARNING) << "FAILED TO SET PTHREAD AFFINITY";
+      LOG(warning) << "FAILED TO SET PTHREAD AFFINITY";
     }
 
     /* Check the actual affinity mask assigned to the thread */
     s = pthread_getaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
     if (s != 0) {
-      LOG(WARNING) << "FAILED TO GET PTHREAD AFFINITY";
+      LOG(warning) << "FAILED TO GET PTHREAD AFFINITY";
     }
 
     for (int j = 0; j < CPU_SETSIZE; j++) {
       if (CPU_ISSET(j, &cpuset)) {
-        LOG(INFO) << "ENABLED CPU " << j;
+        LOG(info) << "ENABLED CPU " << j;
       }
     }
 #else
-    LOG(WARN) << "CPU AFFINITY NOT IMPLEMENTED ON APPLE";
+    LOG(warn) << "CPU AFFINITY NOT IMPLEMENTED ON APPLE";
 #endif
   }
 }
@@ -209,28 +209,28 @@ bool waitForControlInput()
   auto factory = FairMQTransportFactory::CreateTransportFactory("zeromq");
   auto channel = FairMQChannel{"o2sim-control", "sub", factory};
   auto controlsocketname = getenv("ALICE_O2SIMCONTROL");
-  LOG(DEBUG) << "AWAITING CONTROL ON SOCKETNAME " << controlsocketname;
+  LOG(debug) << "AWAITING CONTROL ON SOCKETNAME " << controlsocketname;
   channel.Connect(std::string(controlsocketname));
   channel.Validate();
   std::unique_ptr<FairMQMessage> reply(channel.NewMessage());
 
-  LOG(DEBUG) << "WAITING FOR INPUT";
+  LOG(debug) << "WAITING FOR INPUT";
   if (channel.Receive(reply) > 0) {
     auto data = reply->GetData();
     auto size = reply->GetSize();
 
     std::string command(reinterpret_cast<char const*>(data), size);
-    LOG(INFO) << "message: " << command;
+    LOG(info) << "message: " << command;
 
     o2::conf::SimReconfigData reconfig;
     o2::conf::parseSimReconfigFromString(command, reconfig);
     if (reconfig.stop) {
-      LOG(INFO) << "Stop asked, shutting down";
+      LOG(info) << "Stop asked, shutting down";
       return false;
     }
-    LOG(INFO) << "Processing " << reconfig.nEvents << " new events";
+    LOG(info) << "Processing " << reconfig.nEvents << " new events";
   } else {
-    LOG(INFO) << "NOTHING RECEIVED";
+    LOG(info) << "NOTHING RECEIVED";
   }
   return true;
 }
@@ -247,7 +247,7 @@ int main(int argc, char* argv[])
   // remember that SIGKILL can't be handled
   for (auto s : handledsignals) {
     if (sigaction(s, &act, nullptr)) {
-      LOG(ERROR) << "Could not install signal handler for " << s;
+      LOG(error) << "Could not install signal handler for " << s;
       exit(EXIT_FAILURE);
     }
   }
@@ -327,9 +327,9 @@ int main(int argc, char* argv[])
       }
     }
 
-    LOG(INFO) << "Parsed primary server address " << serveraddress;
-    LOG(INFO) << "Parsed primary server status address " << serverstatus_address;
-    LOG(INFO) << "Parsed merger address " << mergeraddress;
+    LOG(info) << "Parsed primary server address " << serveraddress;
+    LOG(info) << "Parsed primary server status address " << serverstatus_address;
+    LOG(info) << "Parsed merger address " << mergeraddress;
     if (serveraddress.empty() || mergeraddress.empty()) {
       throw std::runtime_error("Could not determine server or merger URLs.");
     }
@@ -342,7 +342,7 @@ int main(int argc, char* argv[])
     std::unique_ptr<FairRunSim> simrun;
     // TODO: take the addresses from somewhere else
     if (!initializeSim("zeromq", serverstatus_address, simrun)) {
-      LOG(ERROR) << "Could not initialize simulation";
+      LOG(error) << "Could not initialize simulation";
       return 1;
     }
 
@@ -352,7 +352,7 @@ int main(int argc, char* argv[])
     if (f) {
       nworkers = static_cast<unsigned int>(std::stoi(f));
     }
-    LOG(INFO) << "Running with " << nworkers << " sim workers ";
+    LOG(info) << "Running with " << nworkers << " sim workers ";
 
     gMasterProcess = getpid();
     gDriverProcess = getppid();
@@ -374,7 +374,7 @@ int main(int argc, char* argv[])
               auto data = msg->GetData();
               auto size = msg->GetSize();
               std::string text(reinterpret_cast<char const*>(data), size);
-              // LOG(INFO) << "Collector message: " << text;
+              // LOG(info) << "Collector message: " << text;
               o2::simpubsub::publishMessage(pubchannel, text);
             }
           }
@@ -405,14 +405,14 @@ int main(int argc, char* argv[])
           runSim(kernelSetup);
 
           if (conf.asService()) {
-            LOG(INFO) << "IN SERVICE MODE WAITING";
+            LOG(info) << "IN SERVICE MODE WAITING";
             o2::simpubsub::publishMessage(pushchannel, o2::simpubsub::simStatusString(worker.str(), "STATUS", "AWAITING INPUT"));
             more = waitForControlInput();
             usleep(100); // --> why?
           } else {
             o2::simpubsub::publishMessage(pushchannel, o2::simpubsub::simStatusString(worker.str(), "STATUS", "TERMINATING"));
 
-            LOG(INFO) << "FINISHING";
+            LOG(info) << "FINISHING";
             more = false;
           }
         }
