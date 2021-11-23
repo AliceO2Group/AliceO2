@@ -268,11 +268,11 @@ void checkTOFMatching(bool batchMode = true)
 
       const auto evIdxTPC = trackITSTPC.getRefTPC();
 #ifdef DEBUG
-      LOG(INFO) << "matched TPCtrack index:", evIdxTPC;
+      LOG(info) << "matched TPCtrack index:", evIdxTPC;
 #endif
       const auto evIdxITS = trackITSTPC.getRefITS();
 #ifdef DEBUG
-      LOG(INFO) << "matched ITStrack index: ", evIdxITS;
+      LOG(info) << "matched ITStrack index: ", evIdxITS;
 #endif
       // getting the TPC labels
       const auto& labelsTPC = (*mcTPC)[evIdxTPC];
