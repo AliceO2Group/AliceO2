@@ -167,7 +167,7 @@ int TPCFastTransform::writeToFile(std::string outFName, std::string name)
   }
   TFile outf(outFName.data(), "recreate");
   if (outf.IsZombie()) {
-    LOG(ERROR) << "Failed to open output file " << outFName;
+    LOG(error) << "Failed to open output file " << outFName;
     return -1;
   }
 
@@ -195,16 +195,16 @@ TPCFastTransform* TPCFastTransform::loadFromFile(std::string inpFName, std::stri
   }
   TFile inpf(inpFName.data());
   if (inpf.IsZombie()) {
-    LOG(ERROR) << "Failed to open input file " << inpFName;
+    LOG(error) << "Failed to open input file " << inpFName;
     return nullptr;
   }
   TPCFastTransform* transform = reinterpret_cast<TPCFastTransform*>(inpf.GetObjectChecked(name.data(), TPCFastTransform::Class()));
   if (!transform) {
-    LOG(ERROR) << "Failed to load " << name << " from " << inpFName;
+    LOG(error) << "Failed to load " << name << " from " << inpFName;
     return nullptr;
   }
   if (transform->mFlatBufferSize > 0 && transform->mFlatBufferContainer == nullptr) {
-    LOG(ERROR) << "Failed to load " << name << " from " << inpFName << ": empty flat buffer container";
+    LOG(error) << "Failed to load " << name << " from " << inpFName << ": empty flat buffer container";
     return nullptr;
   }
   transform->setActualBufferAddress(transform->mFlatBufferContainer);
