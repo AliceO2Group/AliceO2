@@ -71,7 +71,7 @@ struct ConnectionContext {
 void on_connect(uv_connect_t* connection, int status)
 {
   if (status < 0) {
-    LOG(ERROR) << "Unable to connect to driver.";
+    LOG(error) << "Unable to connect to driver.";
     return;
   }
   ConnectionContext* context = (ConnectionContext*)connection->data;
@@ -89,14 +89,14 @@ void on_connect(uv_connect_t* connection, int status)
   client->observe("/shm-offer", [state = context->state](std::string_view cmd) {
     static constexpr int prefixSize = std::string_view{"/shm-offer "}.size();
     if (prefixSize > cmd.size()) {
-      LOG(ERROR) << "Malformed shared memory offer";
+      LOG(error) << "Malformed shared memory offer";
       return;
     }
     cmd.remove_prefix(prefixSize);
     size_t offerSize;
     auto offerSizeError = std::from_chars(cmd.data(), cmd.data() + cmd.size(), offerSize);
     if (offerSizeError.ec != std::errc()) {
-      LOG(ERROR) << "Malformed shared memory offer";
+      LOG(error) << "Malformed shared memory offer";
       return;
     }
     LOGP(info, "Received {}MB shared memory offer", offerSize);

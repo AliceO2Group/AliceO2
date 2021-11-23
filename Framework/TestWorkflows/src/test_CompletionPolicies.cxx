@@ -64,7 +64,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
       {},
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
-          LOG(ERROR) << "Should have not been invoked";
+          LOG(error) << "Should have not been invoked";
           // We deliberately make only out1 to test that
           // the policies for the following dataprocessors are
           // actually respected.

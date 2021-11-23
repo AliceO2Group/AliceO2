@@ -61,7 +61,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
      AlgorithmSpec{[](ProcessingContext& ctx) {
        for (auto const& input : ctx.inputs()) {
          auto const& parallelContext = ctx.services().get<ParallelContext>();
-         LOG(DEBUG) << "instance " << parallelContext.index1D() << " of " << parallelContext.index1DSize() << ": "
+         LOG(debug) << "instance " << parallelContext.index1D() << " of " << parallelContext.index1DSize() << ": "
                     << *input.spec << ": " << *((int*)input.payload);
          auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
          //auto& data = ctx.outputs().make<int>(OutputRef{"output", dataheader->subSpecification});
@@ -79,7 +79,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
      AlgorithmSpec{[](ProcessingContext& ctx) {
        for (auto const& input : ctx.inputs()) {
          auto const& parallelContext = ctx.services().get<ParallelContext>();
-         LOG(DEBUG) << "instance " << parallelContext.index1D() << " of " << parallelContext.index1DSize() << ": "
+         LOG(debug) << "instance " << parallelContext.index1D() << " of " << parallelContext.index1DSize() << ": "
                     << *input.spec << ": " << *((int*)input.payload);
          ASSERT_ERROR(ctx.inputs().get<int>(input.spec->binding.c_str()) == parallelContext.index1D());
          auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
@@ -197,7 +197,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
           if (!DataRefUtils::isValid(input)) {
             continue;
           }
-          LOG(DEBUG) << "consuming : " << *input.spec << ": " << *((int*)input.payload);
+          LOG(debug) << "consuming : " << *input.spec << ": " << *((int*)input.payload);
           auto const* dataheader = DataRefUtils::getHeader<o2::header::DataHeader*>(input);
           if (input.spec->binding.compare(0, 6, "datain") == 0) {
             if (input.spec->binding != bindings.at(dataheader->subSpecification)) {

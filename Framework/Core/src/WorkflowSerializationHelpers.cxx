@@ -293,7 +293,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
           dataProcessors.back().inputs.push_back(InputSpec(binding, {origin, description}, lifetime, inputOptions));
         }
       } else {
-        LOG(ERROR) << "Input w/o description but with subspec is not supported";
+        LOG(error) << "Input w/o description but with subspec is not supported";
       }
 
       inputOptions.clear();
@@ -700,7 +700,7 @@ bool WorkflowSerializationHelpers::import(std::istream& s,
       }
       std::cout << buf << std::endl;
     } else {
-      LOG(ERROR) << buf;
+      LOG(error) << buf;
     }
   }
   if (hasFatalImportError) {
