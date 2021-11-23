@@ -24,7 +24,7 @@ ValueMonitor::~ValueMonitor()
     auto outfile = std::make_unique<TFile>(mFileName.c_str(), "RECREATE");
     // write all histos
     for (auto& h : mHistos) {
-      LOG(INFO) << "ValueMonitor: WRITING HISTO " << h.second->GetName();
+      LOG(info) << "ValueMonitor: WRITING HISTO " << h.second->GetName();
       h.second->Write();
     }
     outfile->Close();
