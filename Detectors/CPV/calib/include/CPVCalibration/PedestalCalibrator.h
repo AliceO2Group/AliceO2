@@ -89,7 +89,7 @@ class PedestalCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
 
   bool hasEnoughData(const TimeSlot& slot) const final
   {
-    LOG(INFO) << "hasEnoughData() is being called";
+    LOG(info) << "hasEnoughData() is being called";
     return slot.getContainer()->mNEvents >= mMinEvents;
   }
   void initOutput() final;
