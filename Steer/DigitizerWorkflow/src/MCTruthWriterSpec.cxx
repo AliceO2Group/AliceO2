@@ -36,7 +36,7 @@ class MCTruthWriterTask : public o2::framework::Task
 
   void init(framework::InitContext& ic) override
   {
-    LOG(INFO) << "Initializing MCTruth consumer " << mID;
+    LOG(info) << "Initializing MCTruth consumer " << mID;
   }
 
   void run(framework::ProcessingContext& pc) override
@@ -44,11 +44,11 @@ class MCTruthWriterTask : public o2::framework::Task
     if (mFinished) {
       return;
     }
-    LOG(INFO) << "Running MCTruth consumer " << mID;
+    LOG(info) << "Running MCTruth consumer " << mID;
     TString labelfilename;
     if (mNew) {
       auto labels = pc.inputs().get<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(mID >= 0 ? "labels" : "labels2");
-      LOG(INFO) << "GOT " << labels.getNElements() << " labels";
+      LOG(info) << "GOT " << labels.getNElements() << " labels";
 
       sleep(1);
 
@@ -66,7 +66,7 @@ class MCTruthWriterTask : public o2::framework::Task
       sleep(1);
     } else {
       auto labels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>(mID >= 0 ? "labels" : "labels2");
-      LOG(INFO) << "GOT " << labels->getNElements() << " labels";
+      LOG(info) << "GOT " << labels->getNElements() << " labels";
 
       sleep(1);
 

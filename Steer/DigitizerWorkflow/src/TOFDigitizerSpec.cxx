@@ -46,7 +46,7 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
-    LOG(INFO) << "Initializing TOF digitization";
+    LOG(info) << "Initializing TOF digitization";
 
     mSimChains = std::move(std::make_unique<std::vector<TChain*>>());
 
@@ -59,10 +59,10 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // init digitizer
     mDigitizer->init();
     const bool isContinuous = ic.options().get<int>("pileup");
-    LOG(INFO) << "CONTINUOUS " << isContinuous;
+    LOG(info) << "CONTINUOUS " << isContinuous;
     mDigitizer->setContinuous(isContinuous);
     mDigitizer->setMCTruthContainer(mLabels.get());
-    LOG(INFO) << "TOF initialization done";
+    LOG(info) << "TOF initialization done";
   }
 
   void run(framework::ProcessingContext& pc)
@@ -77,7 +77,7 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     auto& timesview = context->getEventRecords();
-    LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
+    LOG(debug) << "GOT " << timesview.size() << " COLLISSION TIMES";
 
     context->initSimChains(o2::detectors::DetID::TOF, *mSimChains.get());
 
@@ -89,7 +89,7 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     TStopwatch timer;
     timer.Start();
 
-    LOG(INFO) << " CALLING TOF DIGITIZATION ";
+    LOG(info) << " CALLING TOF DIGITIZATION ";
     o2::dataformats::CalibLHCphaseTOF lhcPhaseObj;
     o2::dataformats::CalibTimeSlewingParamTOF channelCalibObj;
 
@@ -137,7 +137,7 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         hits.clear();
         context->retrieveHits(*mSimChains.get(), "TOFHit", part.sourceID, part.entryID, &hits);
 
-        //        LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
+        //        LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found " << hits.size() << " hits ";
 
         // call actual digitization procedure
         mLabels->clear();
@@ -155,7 +155,7 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     std::vector<ReadoutWindowData>* readoutwindow = mDigitizer->getReadoutWindowData();
     std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>* mcLabVecOfVec = mDigitizer->getMCTruthPerTimeFrame();
 
-    LOG(INFO) << "Post " << digitsVector->size() << " digits in " << readoutwindow->size() << " RO windows";
+    LOG(info) << "Post " << digitsVector->size() << " digits in " << readoutwindow->size() << " RO windows";
 
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *digitsVector);
@@ -171,11 +171,11 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     DigitHeader& digitH = mDigitizer->getDigitHeader();
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe}, digitH);
 
-    LOG(INFO) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
+    LOG(info) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
 
     timer.Stop();
-    LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
+    LOG(info) << "Digitization took " << timer.CpuTime() << "s";
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().endOfStream();
