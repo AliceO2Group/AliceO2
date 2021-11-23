@@ -947,7 +947,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
         LOGP(error, "Header is not a DataHeader?");
         continue;
       }
-      if (dh->payloadSize != parts.At(pi + 1)->GetSize()) {
+      if (dh->payloadSize > parts.At(pi + 1)->GetSize()) {
         insertInputInfo(pi, 0, InputType::Invalid);
         LOGP(error, "DataHeader payloadSize mismatch");
         continue;
@@ -960,7 +960,12 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
         LOGP(error, "Header stack does not contain DataProcessingHeader");
         continue;
       }
-      {
+      if (dh->splitPayloadParts > 0 && dh->splitPayloadParts == dh->splitPayloadIndex) {
+        // this is indicating a sequence of payloads following the header
+        // FIXME: we will probably also set the DataHeader version
+        insertInputInfo(pi, dh->splitPayloadParts + 1, InputType::Data);
+        pi += dh->splitPayloadParts - 1;
+      } else {
         // We can set the type for the next splitPayloadParts
         // because we are guaranteed they are all the same.
         // If splitPayloadParts = 0, we assume that means there is only one (header, payload)
@@ -1001,7 +1006,11 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
           auto headerIndex = input.position;
           auto nMessages = 0;
           auto nPayloadsPerHeader = 0;
-          {
+          if (input.size > 2) {
+            // header and multiple payload sequence
+            nMessages = input.size;
+            nPayloadsPerHeader = nMessages - 1;
+          } else {
             // multiple header-payload pairs
             auto dh = o2::header::get<DataHeader*>(parts.At(headerIndex)->GetData());
             nMessages = dh->splitPayloadParts > 0 ? dh->splitPayloadParts * 2 : 2;
@@ -1213,6 +1222,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   auto cleanTimers = [&currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
     assert(record.size() == currentSetOfInputs.size());
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
+      // assuming that for timer inputs we do have exactly one PartRef object
+      // in the MessageSet, multiple PartRef Objects are only possible for either
+      // split payload messages of wildcard matchers, both for data inputs
       DataRef input = record.getByPos(ii);
       if (input.spec->lifetime != Lifetime::Timer) {
         continue;
@@ -1327,7 +1339,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         }
         // We need to find the forward route only for the first
         // part of a split payload. All the others will use the same.
-        if (fdh->splitPayloadIndex == 0 || fdh->splitPayloadParts <= 1) {
+        // but always check if we have a sequence of multiple payloads
+        if (fdh->splitPayloadIndex == 0 || fdh->splitPayloadParts <= 1 || messageSet.getNumberOfPayloads(pi) > 1) {
           cachedForwardingChoice = -1;
           for (size_t fi = 0; fi < spec->forwards.size(); fi++) {
             auto& forward = spec->forwards[fi];
