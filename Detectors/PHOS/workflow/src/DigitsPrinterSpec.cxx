@@ -29,11 +29,11 @@ void DigitsPrinterSpec::init(framework::InitContext& ctx)
 void DigitsPrinterSpec::run(framework::ProcessingContext& pc)
 {
   // Get the PHOS block header and check whether it contains digits
-  LOG(DEBUG) << "[PHOSDigitsPrinter - process] called";
+  LOG(debug) << "[PHOSDigitsPrinter - process] called";
   auto dataref = pc.inputs().get("digits");
   auto const* phosheader = o2::framework::DataRefUtils::getHeader<o2::phos::PHOSBlockHeader*>(dataref);
   if (!phosheader->mHasPayload) {
-    LOG(DEBUG) << "[PHOSDigitsPrinter - process] No more digits" << std::endl;
+    LOG(debug) << "[PHOSDigitsPrinter - process] No more digits" << std::endl;
     pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
     return;
   }

@@ -31,7 +31,7 @@ using namespace o2::phos::reco_workflow;
 
 void RawToCellConverterSpec::init(framework::InitContext& ctx)
 {
-  LOG(DEBUG) << "Initialize converter ";
+  LOG(debug) << "Initialize converter ";
 
   auto path = ctx.options().get<std::string>("mappingpath");
   Mapping::Instance(path);
@@ -39,9 +39,9 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   if (!mCalibParams) {
     if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
       mCalibParams = std::make_unique<CalibParams>(1); // test default calibration
-      LOG(INFO) << "[RawToCellConverterSpec] No reading calibration from ccdb requested, set default";
+      LOG(info) << "[RawToCellConverterSpec] No reading calibration from ccdb requested, set default";
     } else {
-      LOG(INFO) << "[RawToCellConverterSpec] getting calibration object from ccdb";
+      LOG(info) << "[RawToCellConverterSpec] getting calibration object from ccdb";
       o2::ccdb::CcdbApi ccdb;
       std::map<std::string, std::string> metadata;
       ccdb.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
@@ -52,24 +52,24 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
       // }
       // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, eventTime);
       if (!mCalibParams) {
-        LOG(FATAL) << "[RawToCellConverterSpec] can not get calibration object from ccdb";
+        LOG(fatal) << "[RawToCellConverterSpec] can not get calibration object from ccdb";
       }
     }
   }
 
   auto fitmethod = ctx.options().get<std::string>("fitmethod");
   if (fitmethod == "default") {
-    LOG(INFO) << "Using default raw fitter";
+    LOG(info) << "Using default raw fitter";
     mRawFitter = std::unique_ptr<o2::phos::CaloRawFitter>(new o2::phos::CaloRawFitter);
   }
   if (fitmethod == "semigaus") {
-    LOG(INFO) << "Using SemiGauss raw fitter";
+    LOG(info) << "Using SemiGauss raw fitter";
     mRawFitter = std::unique_ptr<o2::phos::CaloRawFitter>(new o2::phos::CaloRawFitterGS);
   }
 
   mFillChi2 = (ctx.options().get<std::string>("fillchi2").compare("on") == 0);
   if (mFillChi2) {
-    LOG(INFO) << "Fit quality output will be filled";
+    LOG(info) << "Fit quality output will be filled";
   }
 
   mDecoder = std::make_unique<AltroDecoder>();
@@ -78,13 +78,13 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   if (mPedestalRun) {
     mRawFitter->setPedestal();
     mDecoder->setPedestalRun(); //sets also keeping both HG and LG channels
-    LOG(INFO) << "Pedestal run will be processed";
+    LOG(info) << "Pedestal run will be processed";
   }
 
   mCombineGHLG = (ctx.options().get<std::string>("keepHGLG").compare("on") != 0);
   if (!mCombineGHLG) {
     mDecoder->setCombineHGLG(false);
-    LOG(INFO) << "Both HighGain and LowGain will be kept";
+    LOG(info) << "Both HighGain and LowGain will be kept";
   }
 }
 
@@ -145,7 +145,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       try {
         rawreader.next();
       } catch (RawDecodingError::ErrorType_t e) {
-        // LOG(ERROR) << "Raw decoding error " << (int)e;
+        // LOG(error) << "Raw decoding error " << (int)e;
         //add error list
         mOutputHWErrors.emplace_back(14, (int)e, 1); //Put general errors to non-existing DDL14
         //if problem in header, abandon this page
@@ -163,7 +163,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       auto ddl = o2::raw::RDHUtils::getFEEID(header);
 
       if (ddl > o2::phos::Mapping::NDDL || ddl < 0) { //only 14 correct DDLs
-        LOG(ERROR) << "DDL=" << ddl;
+        LOG(error) << "DDL=" << ddl;
         mOutputHWErrors.emplace_back(14, 16, char(ddl)); //Add non-existing DDL as DDL 15
         continue;                                        //skip STU ddl
       }
@@ -265,7 +265,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 
   mLastSize = 1.1 * mOutputCells.size();
 
-  LOG(DEBUG) << "[PHOSRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
+  LOG(debug) << "[PHOSRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);

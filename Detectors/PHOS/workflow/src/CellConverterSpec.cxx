@@ -26,13 +26,13 @@ using namespace o2::phos::reco_workflow;
 
 void CellConverterSpec::init(framework::InitContext& ctx)
 {
-  LOG(INFO) << "[PHOSCellConverter - init] Initialize converter " << (mPropagateMC ? "with" : "without") << " MC truth container";
+  LOG(info) << "[PHOSCellConverter - init] Initialize converter " << (mPropagateMC ? "with" : "without") << " MC truth container";
 }
 
 void CellConverterSpec::run(framework::ProcessingContext& ctx)
 {
-  //  LOG(DEBUG) << "[PHOSCellConverter - run] called";
-  LOG(INFO) << "[PHOSCellConverter - run] called";
+  //  LOG(debug) << "[PHOSCellConverter - run] called";
+  LOG(info) << "[PHOSCellConverter - run] called";
   auto dataref = ctx.inputs().get("digits");
   auto const* phosheader = o2::framework::DataRefUtils::getHeader<o2::phos::PHOSBlockHeader*>(dataref);
   if (!phosheader->mHasPayload) {
@@ -57,25 +57,25 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
     mOutputTruthCont.clear();
   }
   if (mPropagateMC) {
-    LOG(INFO) << "[PHOSCellConverter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords" << truthcont->getNElements() << " MC labels";
+    LOG(info) << "[PHOSCellConverter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords" << truthcont->getNElements() << " MC labels";
   } else {
-    LOG(INFO) << "[PHOSCellConverter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords";
+    LOG(info) << "[PHOSCellConverter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords";
   }
 
   //Get TimeStamp from TriggerRecord
   if (!mBadMap) {
     if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
       mBadMap = new BadChannelsMap(1); // test default map
-      LOG(INFO) << "[PHOSCellConverter - run] No reading BadMap from ccdb requested, set default";
+      LOG(info) << "[PHOSCellConverter - run] No reading BadMap from ccdb requested, set default";
     } else {
-      LOG(INFO) << "[PHOSCellConverter - run] getting BadMap object from ccdb";
+      LOG(info) << "[PHOSCellConverter - run] getting BadMap object from ccdb";
       o2::ccdb::CcdbApi ccdb;
       std::map<std::string, std::string> metadata; // do we want to store any meta data?
       ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
       long bcTime = -1;                            //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
       mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelsMap>("PHOS/BadMap", metadata, bcTime);
       if (!mBadMap) {
-        LOG(FATAL) << "[PHOSCellConverter - run] can not get Bad Map";
+        LOG(fatal) << "[PHOSCellConverter - run] can not get Bad Map";
       }
     }
   }
@@ -126,7 +126,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
     }
     mOutputCellTrigRecs.emplace_back(tr.getBCData(), indexStart, mOutputCells.size() - indexStart);
   }
-  LOG(INFO) << "[PHOSCellConverter - run] Writing " << mOutputCells.size() << " cells, " << mOutputCellTrigRecs.size() << " Trig Records " << mOutputTruthCont.getNElements() << " PHOS labels ";
+  LOG(info) << "[PHOSCellConverter - run] Writing " << mOutputCells.size() << " cells, " << mOutputCellTrigRecs.size() << " Trig Records " << mOutputTruthCont.getNElements() << " PHOS labels ";
   ;
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputCellTrigRecs);

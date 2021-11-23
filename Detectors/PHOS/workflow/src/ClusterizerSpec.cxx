@@ -20,7 +20,7 @@ using namespace o2::phos::reco_workflow;
 
 void ClusterizerSpec::init(framework::InitContext& ctx)
 {
-  LOG(DEBUG) << "[PHOSClusterizer - init] Initialize clusterizer ...";
+  LOG(debug) << "[PHOSClusterizer - init] Initialize clusterizer ...";
 
   //get BadMap and calibration CCDB
   std::unique_ptr<CalibParams> calibParams; ///! Calibration coefficients
@@ -29,9 +29,9 @@ void ClusterizerSpec::init(framework::InitContext& ctx)
   // if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
   badMap.reset(new BadChannelsMap(1));   // test default map
   calibParams.reset(new CalibParams(1)); //test calibration map
-  LOG(INFO) << "No reading BadMap/Calibration from ccdb requested, set default";
+  LOG(info) << "No reading BadMap/Calibration from ccdb requested, set default";
   // } else {
-  //   LOG(INFO) << "Getting BadMap object from ccdb";
+  //   LOG(info) << "Getting BadMap object from ccdb";
   //   o2::ccdb::CcdbApi ccdb;
   //   std::map<std::string, std::string> metadata; // do we want to store any meta data?
   //   ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
@@ -39,10 +39,10 @@ void ClusterizerSpec::init(framework::InitContext& ctx)
   // mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelsMap>("PHOS/BadMap", metadata, bcTime);
   // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, bcTime);
   // if (!mBadMap) {
-  //   LOG(FATAL) << "[PHOSCellConverter - run] can not get Bad Map";
+  //   LOG(fatal) << "[PHOSCellConverter - run] can not get Bad Map";
   // }
   // if (!mCalibParams) {
-  //   LOG(FATAL) << "[PHOSCellConverter - run] can not get CalibParams";
+  //   LOG(fatal) << "[PHOSCellConverter - run] can not get CalibParams";
   // }
   // }
 
@@ -55,7 +55,7 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
 {
 
   if (mUseDigits) {
-    LOG(DEBUG) << "PHOSClusterizer - run on digits called";
+    LOG(debug) << "PHOSClusterizer - run on digits called";
 
     auto dataref = ctx.inputs().get("digits");
     auto const* phosheader = o2::framework::DataRefUtils::getHeader<o2::phos::PHOSBlockHeader*>(dataref);
@@ -77,7 +77,7 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
     // auto digits = ctx.inputs().get<gsl::span<o2::phos::Digit>>("digits");
     auto digits = ctx.inputs().get<std::vector<o2::phos::Digit>>("digits");
     auto digitsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("digitTriggerRecords");
-    LOG(DEBUG) << "[PHOSClusterizer - run]  Received " << digitsTR.size() << " TR, running clusterizer ...";
+    LOG(debug) << "[PHOSClusterizer - run]  Received " << digitsTR.size() << " TR, running clusterizer ...";
     // const o2::dataformats::MCTruthContainer<MCLabel>* truthcont=nullptr;
     if (mPropagateMC) {
       std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>> truthcont(ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("digitsmctr"));
@@ -87,11 +87,11 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
     }
   } else {
 
-    LOG(DEBUG) << "PHOSClusterizer - run run on cells called";
+    LOG(debug) << "PHOSClusterizer - run run on cells called";
 
     auto cells = ctx.inputs().get<std::vector<o2::phos::Cell>>("cells");
     // auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
-    LOG(DEBUG) << "[PHOSClusterizer - run]  Received " << cells.size() << " cells, running clusterizer ...";
+    LOG(debug) << "[PHOSClusterizer - run]  Received " << cells.size() << " cells, running clusterizer ...";
     // auto cellsTR = ctx.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cellTriggerRecords");
     auto cellsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("cellTriggerRecords");
     if (mPropagateMC) {
@@ -104,9 +104,9 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
   }
 
   if (mPropagateMC) {
-    LOG(DEBUG) << "[PHOSClusterizer - run] Writing " << mOutputClusters.size() << " clusters, " << mOutputClusterTrigRecs.size() << "TR and " << mOutputTruthCont.getIndexedSize() << " Labels";
+    LOG(debug) << "[PHOSClusterizer - run] Writing " << mOutputClusters.size() << " clusters, " << mOutputClusterTrigRecs.size() << "TR and " << mOutputTruthCont.getIndexedSize() << " Labels";
   } else {
-    LOG(DEBUG) << "[PHOSClusterizer - run] Writing " << mOutputClusters.size() << " clusters and " << mOutputClusterTrigRecs.size() << " TR";
+    LOG(debug) << "[PHOSClusterizer - run] Writing " << mOutputClusters.size() << " clusters and " << mOutputClusterTrigRecs.size() << " TR";
   }
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusters);
   if (mFullCluOutput) {
