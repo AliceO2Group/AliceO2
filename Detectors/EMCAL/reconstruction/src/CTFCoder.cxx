@@ -61,17 +61,19 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
   };
 
   // just to get types
-  uint16_t bcInc = 0, entries = 0, cellTime = 0, energy = 0, tower = 0;
+  uint16_t bcInc = 0, entries = 0, cellTime = 0, energy = 0, tower = 0, trigger = 0;
   uint32_t orbitInc = 0;
   uint8_t status = 0;
 #define MAKECODER(part, slot) createCoder<decltype(part)>(op, getFreq(slot), getProbBits(slot), int(slot))
   // clang-format off
-  MAKECODER(bcInc,      CTF::BLC_bcIncTrig); 
+  MAKECODER(bcInc,      CTF::BLC_bcIncTrig);
   MAKECODER(orbitInc,   CTF::BLC_orbitIncTrig);
   MAKECODER(entries,    CTF::BLC_entriesTrig);
   MAKECODER(tower,      CTF::BLC_towerID);
   MAKECODER(cellTime,   CTF::BLC_time);
   MAKECODER(energy,     CTF::BLC_energy);
   MAKECODER(status,     CTF::BLC_status);
+  // extra slot was added in the end
+  MAKECODER(trigger,    CTF::BLC_trigger);
   // clang-format on
 }
