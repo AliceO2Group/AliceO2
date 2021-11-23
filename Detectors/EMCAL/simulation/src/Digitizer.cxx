@@ -172,7 +172,7 @@ void Digitizer::setEventTime(double t)
   t *= mCoeffToNanoSecond;
 
   if (t < mEventTime) {
-    LOG(FATAL) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")";
+    LOG(fatal) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")";
   }
 
   if (t - mTriggerTime >= mLiveTime + mBusyTime) {

@@ -61,17 +61,17 @@ int EMCDCSProcessor::process(const gsl::span<const DPCOM> dps)
   mUpdateELMB = false;
 
   if (mVerbose) {
-    LOG(INFO) << "\n\n\nProcessing new TF\n-----------------";
+    LOG(info) << "\n\n\nProcessing new TF\n-----------------";
   }
 
   for (auto& it : dps) {
     const auto& el = mPids.find(it.id);
 
     if (el == mPids.end()) {
-      LOG(DEBUG) << "DP " << it.id << " not found in the map of expected DPs- ignoring...";
+      LOG(debug) << "DP " << it.id << " not found in the map of expected DPs- ignoring...";
       continue;
     } else {
-      LOG(DEBUG) << "DP " << it.id << " found in map";
+      LOG(debug) << "DP " << it.id << " found in map";
     }
 
     processDP(it);
@@ -98,11 +98,11 @@ int EMCDCSProcessor::processDP(const DPCOM& dp)
 
   if (mVerbose) {
     if (type == RAW_DOUBLE) {
-      LOG(INFO) << "Processing DP = " << dp << ", with value = " << o2::dcs::getValue<double>(dp);
+      LOG(info) << "Processing DP = " << dp << ", with value = " << o2::dcs::getValue<double>(dp);
     } else if (type == RAW_INT) {
-      LOG(INFO) << "Processing DP = " << dp << ", with value = " << o2::dcs::getValue<int32_t>(dp);
+      LOG(info) << "Processing DP = " << dp << ", with value = " << o2::dcs::getValue<int32_t>(dp);
     } else if (type == RAW_UINT) {
-      LOG(INFO) << "Processing DP = " << dp << ", with value = " << o2::dcs::getValue<uint32_t>(dp);
+      LOG(info) << "Processing DP = " << dp << ", with value = " << o2::dcs::getValue<uint32_t>(dp);
     }
   }
 
@@ -141,15 +141,15 @@ void EMCDCSProcessor::FillElmbDP(const DPCOM& dpcom)
 
   if ((index = alias.find("EMC_PT")) != std::string::npos) {
     std::sscanf(alias.data(), "EMC_PT_%d.Temperature", &iPT);
-    LOG(DEBUG) << "alias=" << alias.data() << ":  iPT=" << iPT << ", val=" << val;
+    LOG(debug) << "alias=" << alias.data() << ":  iPT=" << iPT << ", val=" << val;
 
     if (iPT < 0 || iPT > 159) {
-      LOG(ERROR) << "Wrong Sensor Index iPT=" << iPT << " for DP " << alias.data();
+      LOG(error) << "Wrong Sensor Index iPT=" << iPT << " for DP " << alias.data();
       return;
     }
     mELMB->addMeasurement(iPT, val);
   } else {
-    LOG(INFO) << "EMC_PT pattern not found for DPype = RAW_DOUBLE: alias = " << alias.data();
+    LOG(info) << "EMC_PT pattern not found for DPype = RAW_DOUBLE: alias = " << alias.data();
   }
   return;
 }
@@ -172,7 +172,7 @@ void EMCDCSProcessor::FillFeeDP(const DPCOM& dpcom)
   int iSM = -1;
 
   //  if (mVerbose) {
-  //    LOG(INFO) << "EMCDCSProcessor::FillFeeDP called";
+  //    LOG(info) << "EMCDCSProcessor::FillFeeDP called";
   //  }
   //
 
@@ -187,14 +187,14 @@ void EMCDCSProcessor::FillFeeDP(const DPCOM& dpcom)
     if ((index = alias.find("FMVER")) != std::string::npos) {
       std::sscanf((std::string(alias.substr(index - 3, 2))).data(), "%02d", &iSM);
       if (iSM < 0 || iSM >= 20) {
-        LOG(ERROR) << "ERROR : iSM = " << iSM << " for" << alias.data();
+        LOG(error) << "ERROR : iSM = " << iSM << " for" << alias.data();
         return;
       }
       mFEECFG->setSRUFWversion(iSM, val);
     } else if ((index = alias.find("CFG")) != std::string::npos) {
       std::sscanf((std::string(alias.substr(index - 3, 2))).data(), "%02d", &iSM);
       if (iSM < 0 || iSM >= 20) {
-        LOG(ERROR) << "ERROR : iSM = " << iSM << " for" << alias.data();
+        LOG(error) << "ERROR : iSM = " << iSM << " for" << alias.data();
         return;
       }
       mFEECFG->setSRUconfig(iSM, val);
@@ -203,7 +203,7 @@ void EMCDCSProcessor::FillFeeDP(const DPCOM& dpcom)
     std::sscanf((std::string(alias.substr(index + 3, 2))).data(), "%02d", &iTRU);
 
     if (iTRU < 0 || iTRU >= kNTRU) {
-      LOG(ERROR) << "ERROR : iTRU = " << iTRU << " for" << alias.data();
+      LOG(error) << "ERROR : iTRU = " << iTRU << " for" << alias.data();
       return;
     }
 
@@ -220,7 +220,7 @@ void EMCDCSProcessor::FillFeeDP(const DPCOM& dpcom)
       std::sscanf((std::string(alias.substr(index + 4, 1))).data(), "%02d", &iMask);
       mTRU.setMaskReg(val, iMask);
       if (iMask < 0 || iMask > 5) {
-        LOG(ERROR) << "ERROR : iMask = " << iMask << " for" << alias.data();
+        LOG(error) << "ERROR : iMask = " << iMask << " for" << alias.data();
         return;
       }
     }
@@ -271,8 +271,8 @@ void EMCDCSProcessor::FillFeeDP(const DPCOM& dpcom)
 void EMCDCSProcessor::updateElmbCCDBinfo()
 {
   if (mVerbose) {
-    LOG(INFO) << "updating Temperture objects in CCDB";
-    //    LOG(INFO) << "Temperture objects to be written in CCDB\n";
+    LOG(info) << "updating Temperture objects in CCDB";
+    //    LOG(info) << "Temperture objects to be written in CCDB\n";
     //              << *mFEECFG.get();
   }
 
@@ -284,8 +284,8 @@ void EMCDCSProcessor::updateElmbCCDBinfo()
 void EMCDCSProcessor::updateFeeCCDBinfo()
 {
   if (mVerbose) {
-    LOG(INFO) << "updating FEE DCS objects  in CCDB";
-    //    LOG(INFO) << "FEE DCS object to be written in CCDB\n"
+    LOG(info) << "updating FEE DCS objects  in CCDB";
+    //    LOG(info) << "FEE DCS object to be written in CCDB\n"
     //              << *mFEECFG.get();
   }
   std::map<std::string, std::string> metadata;

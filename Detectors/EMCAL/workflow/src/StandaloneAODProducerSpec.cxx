@@ -61,8 +61,8 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   auto cellsIn = pc.inputs().get<gsl::span<o2::emcal::Cell>>(getCellBinding());
   auto triggersIn = pc.inputs().get<gsl::span<o2::emcal::TriggerRecord>>(getCellTriggerRecordBinding());
 
-  LOG(INFO) << "FOUND " << cellsIn.size() << " EMC cells in CTF";
-  LOG(INFO) << "FOUND " << triggersIn.size() << " EMC tiggers in CTF";
+  LOG(info) << "FOUND " << cellsIn.size() << " EMC cells in CTF";
+  LOG(info) << "FOUND " << triggersIn.size() << " EMC tiggers in CTF";
 
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
@@ -85,7 +85,7 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
     auto cellsInEvent = inputEvent.mCells;                  // get cells belonging to current event
     auto interactionRecord = inputEvent.mInteractionRecord; // get interaction records belonging to current event
 
-    LOG(INFO) << "Found " << cellsInEvent.size() << " cells in event";
+    LOG(info) << "Found " << cellsInEvent.size() << " cells in event";
 
     auto bcID = interactionRecord.toLong();
     bcCursor(0,
