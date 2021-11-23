@@ -69,6 +69,10 @@ class ITSTreeMaker : public Task
         // Returns the number of charge injections per charge
         const int get_nInj() { return 50; }
 
+        // If true, all charges with hits >= get_nInj() are saved
+        // If false, only the first charge with hits >= get_nInj() is saved
+        const bool disable_max_found = true;
+
         const int NSubStave[NLayer] = { 1, 1, 1, 2, 2, 2, 2 };
         const int NStaves[NLayer] = { 12, 16, 20, 24, 30, 42, 48 };
         const int nHicPerStave[NLayer] = { 1, 1, 1, 8, 8, 14, 14 };

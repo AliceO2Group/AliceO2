@@ -166,10 +166,13 @@ void ITSTreeMaker<Mapping>::run(ProcessingContext& pc)
                         for (int col = 0; col < this->NCols; col++) {
                             this->tree_pixel.col = (short int) col;
                             // Loop over charges in data array
+                            bool max_found = false;
                             for (int charge_i = 0; charge_i < this->get_nInj(); charge_i++) {
                                 this->charge = (char) (charge_i + 1);
                                 this->counts = (char) this->pixelHits[chipID][col][charge_i];
-                                this->tree->Fill();
+                                if ( ((int) this->counts > 0 || (int) this->charge == 1) &&
+                                     (this->disable_max_found || !max_found) ) { this->tree->Fill(); }
+                                if ((int) this->counts >= this->get_nInj()) { max_found = true; }
                             }
                         }
                         // Initialize ROOT output file
