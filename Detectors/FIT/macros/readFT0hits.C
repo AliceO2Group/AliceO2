@@ -33,7 +33,7 @@ void readFT0hits()
 
   o2::dataformats::MCEventHeader* mcHeader = nullptr;
   /*  if (!hitTree->GetBranch("MCEventHeader.")) {
-    LOG(FATAL) << "Did not find MC event header in the input header file." <<
+    LOG(fatal) << "Did not find MC event header in the input header file." <<
     FairLogger::endl;
     }*/
   hitTree->SetBranchAddress("MCEventHeader.", &mcHeader);

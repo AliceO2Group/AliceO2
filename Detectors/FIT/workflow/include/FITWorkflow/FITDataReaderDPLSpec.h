@@ -116,7 +116,7 @@ framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawRea
   std::string dataProcName = rawReader.mDataOrigin.template as<std::string>();
   std::for_each(dataProcName.begin(), dataProcName.end(), [](char& c) { c = ::tolower(c); });
   dataProcName += "-datareader-dpl";
-  LOG(INFO) << dataProcName;
+  LOG(info) << dataProcName;
   return DataProcessorSpec{
     dataProcName,
     inputSpec,

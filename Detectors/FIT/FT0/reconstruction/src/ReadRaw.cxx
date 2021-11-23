@@ -71,7 +71,7 @@ ClassImp(ReadRaw);
 ReadRaw::ReadRaw(const std::string fileRaw, std::string fileDataOut)
 {
 
-  LOG(INFO) << " constructor ReadRaw "
+  LOG(info) << " constructor ReadRaw "
             << "file to read " << fileRaw.data() << " file to write " << fileDataOut.data();
   mFileDest.exceptions(std::ios_base::failbit | std::ios_base::badbit);
   mFileDest.open(fileRaw, std::fstream::in | std::fstream::binary);
@@ -84,7 +84,7 @@ ReadRaw::ReadRaw(const std::string fileRaw, std::string fileDataOut)
 void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lut)
 {
 
-  LOG(INFO) << " readData ";
+  LOG(info) << " readData ";
   o2::header::RAWDataHeader mRDH;
   const char padding[CRUWordSize] = {0};
   int nStored = 0;
@@ -97,16 +97,16 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
   mFileDest.seekg(0, mFileDest.end);
   long sizeFile = mFileDest.tellg();
   mFileDest.seekg(0);
-  LOG(DEBUG) << "SizeFile " << sizeFile;
+  LOG(debug) << "SizeFile " << sizeFile;
 
   for (int ilink = 0; ilink < 8; ilink++) {
     for (int ich = 0; ich < 12; ich++) {
-      LOG(INFO) << " ep 0 " << ilink << " " << ich << " " << lut.getChannel(ilink, ich + 1, int(0));
+      LOG(info) << " ep 0 " << ilink << " " << ich << " " << lut.getChannel(ilink, ich + 1, int(0));
     }
   }
   for (int ilink = 0; ilink < 10; ilink++) {
     for (int ich = 0; ich < 12; ich++) {
-      LOG(INFO) << " ep 1 " << ilink << " " << ich << " " << lut.getChannel(ilink, ich + 1, int(1));
+      LOG(info) << " ep 1 " << ilink << " " << ich << " " << lut.getChannel(ilink, ich + 1, int(1));
     }
   }
 
@@ -126,7 +126,7 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
     int ep = RDHUtils::getEndPointID(mRDH);
     if (nwords <= sizeof(mRDH)) {
       posInFile += RDHUtils::getOffsetToNext(mRDH);
-      LOG(INFO) << " next RDH";
+      LOG(info) << " next RDH";
       pos = 0;
     } else {
       posInFile += offset;
@@ -135,12 +135,12 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
       while (pos < nwords) {
         mFileDest.read(reinterpret_cast<char*>(&mEventHeader), sizeof(mEventHeader));
         pos += sizeof(mEventHeader);
-        LOG(DEBUG) << "read  header for " << link << "word " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile << " endPoint " << int(ep);
+        LOG(debug) << "read  header for " << link << "word " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile << " endPoint " << int(ep);
         o2::InteractionRecord intrec{uint16_t(mEventHeader.bc), uint32_t(mEventHeader.orbit)};
         auto [digitIter, isNew] = mDigitAccum.try_emplace(intrec);
         if (isNew) {
           double eventTime = intrec.bc2ns();
-          LOG(INFO) << "new intrec " << intrec.orbit << " " << intrec.bc << " link " << link << " EP " << ep;
+          LOG(info) << "new intrec " << intrec.orbit << " " << intrec.bc << " link " << link << " EP " << ep;
           o2::ft0::DigitsTemp& digit = digitIter->second;
           digit.setTime(eventTime);
           digit.setInteractionRecord(intrec);
@@ -150,7 +150,7 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
           mFileDest.read(reinterpret_cast<char*>(&mTCMdata), sizeof(mTCMdata));
           pos += sizeof(mTCMdata);
           digitIter->second.setTriggers(Bool_t(mTCMdata.orA), Bool_t(mTCMdata.orC), Bool_t(mTCMdata.vertex), Bool_t(mTCMdata.sCen), Bool_t(mTCMdata.cen), uint8_t(mTCMdata.nChanA), uint8_t(mTCMdata.nChanC), int32_t(mTCMdata.amplA), int32_t(mTCMdata.amplC), int16_t(mTCMdata.timeA), int16_t(mTCMdata.timeC));
-          LOG(INFO) << "read TCM  " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
+          LOG(info) << "read TCM  " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
         } else {
           if (mIsPadded) {
             pos += CRUWordSize - o2::ft0::RawEventData::sPayloadSize;
@@ -163,11 +163,11 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
                                       int(mEventData[2 * i].numberADC));
 
             pos += o2::ft0::RawEventData::sPayloadSizeFirstWord;
-            LOG(INFO) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID), ep) << " pos " << pos;
+            LOG(info) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID), ep) << " pos " << pos;
 
             mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), o2::ft0::RawEventData::sPayloadSizeSecondWord);
             pos += o2::ft0::RawEventData::sPayloadSizeSecondWord;
-            LOG(INFO) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i + 1].channelID), ep) << " pos " << pos;
+            LOG(info) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i + 1].channelID), ep) << " pos " << pos;
             if (mEventData[2 * i + 1].charge <= 0 && mEventData[2 * i + 1].channelID <= 0 && mEventData[2 * i + 1].time <= 0) {
               continue;
             }
@@ -187,7 +187,7 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
 
 void ReadRaw::close()
 {
-  LOG(INFO) << " CLOSE ";
+  LOG(info) << " CLOSE ";
   if (mFileDest.is_open()) {
     mFileDest.close();
   }
@@ -197,14 +197,14 @@ void ReadRaw::writeDigits(std::string fileDataOut)
 {
   TFile* mOutFile = new TFile(fileDataOut.data(), "RECREATE");
   if (!mOutFile || mOutFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open " << fileDataOut << " output file";
+    LOG(error) << "Failed to open " << fileDataOut << " output file";
   } else {
-    LOG(INFO) << "Opened " << fileDataOut << " output file";
+    LOG(info) << "Opened " << fileDataOut << " output file";
   }
   TTree* mOutTree = new TTree("o2sim", "o2sim");
   // retrieve the digits from the input
   auto inDigits = mDigitAccum;
-  LOG(INFO) << "RECEIVED DIGITS SIZE " << inDigits.size();
+  LOG(info) << "RECEIVED DIGITS SIZE " << inDigits.size();
 
   // connect this to a particular branch
 

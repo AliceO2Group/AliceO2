@@ -60,7 +60,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  LOG(INFO) << "WorkflowSpec defineDataProcessing";
+  LOG(info) << "WorkflowSpec defineDataProcessing";
   auto dumpReader = configcontext.options().get<bool>("dump-blocks-reader");
   auto isExtendedMode = configcontext.options().get<bool>("tcm-extended-mode");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
