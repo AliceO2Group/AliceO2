@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
     for (auto& token : tokens) {
       auto keyval = splitString(token, '=');
       if (keyval.size() != 2) {
-        // LOG(FATAL) << "Illegal command-line key/value string: " << token;
+        // LOG(fatal) << "Illegal command-line key/value string: " << token;
         continue;
       }
 
