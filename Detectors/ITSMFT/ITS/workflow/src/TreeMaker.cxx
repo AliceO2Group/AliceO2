@@ -54,6 +54,7 @@ template <class Mapping>
 ITSTreeMaker<Mapping>::~ITSTreeMaker()
 {
     // Clear any necessary dynamic memory
+    delete this->tree;
 }
 
 template <class Mapping>
@@ -75,9 +76,9 @@ void ITSTreeMaker<Mapping>::init(InitContext& ic)
     mChipsBuffer.resize(mGeom->getNumberOfChips());
 
     // Initialize output TTree branches
-    this->tree->Branch("pixel", &(this->tree_pixel), "chipID:row:col");
-    this->tree->Branch("charge", &(this->charge), "charge");
-    this->tree->Branch("counts", &(this->counts), "counts");
+    this->tree->Branch("pixel", &(this->tree_pixel), "chipID/S:row/S:col/S");
+    this->tree->Branch("charge", &(this->charge), "charge/B");
+    this->tree->Branch("counts", &(this->counts), "counts/B");
 }
 
 template <class Mapping>
@@ -160,19 +161,19 @@ void ITSTreeMaker<Mapping>::run(ProcessingContext& pc)
                     if (this->currentRow[chipID] != pixels[0].getRow()) { // if chip is moving on to next row
                         // add something to check that the row switch is for real
                         // Save information to TTree for current row
-                        this->tree_pixel.chipID = chipID;
-                        this->tree_pixel.row = this->currentRow[chipID];
+                        this->tree_pixel.chipID = (short int) chipID;
+                        this->tree_pixel.row = (short int) this->currentRow[chipID];
                         for (int col = 0; col < this->NCols; col++) {
-                            this->tree_pixel.col = col;
+                            this->tree_pixel.col = (short int) col;
                             // Loop over charges in data array
                             for (int charge_i = 0; charge_i < this->get_nInj(); charge_i++) {
-                                this->charge = charge_i + 1;
-                                this->counts = this->pixelHits[chipID][col][charge_i];
+                                this->charge = (char) (charge_i + 1);
+                                this->counts = (char) this->pixelHits[chipID][col][charge_i];
                                 this->tree->Fill();
                             }
                         }
                         // Initialize ROOT output file
-                        TFile* tf = new TFile("threshold_scan.root", "UPDATE");
+                        TFile* tf = new TFile("tree_maker.root", "UPDATE");
 
                         // Update the ROOT file with most recent TTree
                         tf->cd();

@@ -32,7 +32,9 @@ namespace its
 {
 
 // Object for storing chip info in TTree
-typedef struct {int chipID, row, col;} PIXEL;
+typedef struct {
+    short int chipID, row, col;
+} PIXEL;
 
 template <class Mapping>
 class ITSTreeMaker : public Task
@@ -86,7 +88,8 @@ class ITSTreeMaker : public Task
         // Output TTree and variables for the branches
         TTree* tree = new TTree("ITS_calib_tree", "ITS_calib_tree");
         PIXEL tree_pixel;
-        int charge, counts;
+        // Save charge & counts as char (8-bit) to save memory, since values are always < 256
+        char charge, counts;
 
         std::string mSelfName;
         std::string mDictName;
