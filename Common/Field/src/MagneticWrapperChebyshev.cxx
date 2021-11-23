@@ -771,7 +771,7 @@ void MagneticWrapperChebyshev::getTPCIntegralCylindrical(const Double_t* rphiz, 
     return;
   }
   if (id >= mNumberOfParameterizationTPC) {
-    LOG(ERROR) << "MagneticWrapperChebyshev::getTPCIntegralCylindrical: Wrong TPCParam segment " << id;
+    LOG(error) << "MagneticWrapperChebyshev::getTPCIntegralCylindrical: Wrong TPCParam segment " << id;
     b[0] = b[1] = b[2] = 0;
     return;
   }
@@ -792,7 +792,7 @@ void MagneticWrapperChebyshev::getTPCRatIntegralCylindrical(const Double_t* rphi
     return;
   }
   if (id >= mNumberOfParameterizationTPCRat) {
-    LOG(ERROR) << "MagneticWrapperChebyshev::getTPCRatIntegralCylindrical: Wrong TPCRatParam segment " << id;
+    LOG(error) << "MagneticWrapperChebyshev::getTPCRatIntegralCylindrical: Wrong TPCRatParam segment " << id;
     b[0] = b[1] = b[2] = 0;
     return;
   }
@@ -808,7 +808,7 @@ void MagneticWrapperChebyshev::getTPCRatIntegralCylindrical(const Double_t* rphi
 void checkExpected(char const* expected, TString& buffs)
 {
   if (!buffs.BeginsWith(expected)) {
-    LOG(ERROR) << R"(MagneticWrapperChebyshev::loadData: Expected: ")" << expected << R"( <name>", found ")" << buffs.Data() << "\"\nStop\n";
+    LOG(error) << R"(MagneticWrapperChebyshev::loadData: Expected: ")" << expected << R"( <name>", found ")" << buffs.Data() << "\"\nStop\n";
     exit(1);
   }
 }
@@ -903,7 +903,7 @@ void MagneticWrapperChebyshev::loadData(const char* inpfile)
   Chebyshev3DCalc::readLine(buffs, stream);
 
   if (!buffs.BeginsWith("END ") && !buffs.Contains(GetName())) {
-    LOG(ERROR) << R"(MagneticWrapperChebyshev::loadData: Expected: "END )"
+    LOG(error) << R"(MagneticWrapperChebyshev::loadData: Expected: "END )"
                << GetName() << R"( ", found ")" << buffs.Data() << "\"\nStop\n";
     exit(1);
   }

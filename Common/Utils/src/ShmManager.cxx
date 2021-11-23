@@ -52,7 +52,7 @@ void* ShmManager::tryAttach(bool& success)
     mShmID = -1;
     return nullptr;
   }
-  LOG(INFO) << "FOUND ID TO ATTACH " << mShmID;
+  LOG(info) << "FOUND ID TO ATTACH " << mShmID;
 
   // if the segment was not created in the first place ...
   if (mShmID == -1) {
@@ -66,7 +66,7 @@ void* ShmManager::tryAttach(bool& success)
     mShmID = -1;
     return nullptr;
   }
-  LOG(INFO) << "TRYING ADDRESS " << addr_wanted;
+  LOG(info) << "TRYING ADDRESS " << addr_wanted;
   auto addr = shmat(mShmID, addr_wanted, 0);
   if (addr != (void*)-1) {
     // this means success
@@ -80,7 +80,7 @@ void* ShmManager::tryAttach(bool& success)
   // trying without constraints
   addr = shmat(mShmID, nullptr, 0);
   if (addr == (void*)(-1)) {
-    LOG(FATAL) << "SHOULD NOT HAPPEN";
+    LOG(fatal) << "SHOULD NOT HAPPEN";
   }
   // signal failure
   auto info = static_cast<o2::utils::ShmMetaInfo*>(addr);
@@ -97,10 +97,10 @@ void* ShmManager::tryAttach(bool& success)
 void ShmManager::printSegInfo() const
 {
   if (mSegInfoPtr) {
-    LOG(INFO) << "ATTACHED WORKERS " << mSegInfoPtr->counter;
-    LOG(INFO) << "CONNECTION FAILURES " << mSegInfoPtr->failures;
+    LOG(info) << "ATTACHED WORKERS " << mSegInfoPtr->counter;
+    LOG(info) << "CONNECTION FAILURES " << mSegInfoPtr->failures;
   } else {
-    LOG(INFO) << "no segment info to print";
+    LOG(info) << "no segment info to print";
   }
 }
 
@@ -109,19 +109,19 @@ bool ShmManager::createGlobalSegment(int nsegments)
   mIsMaster = true;
   // first of all take a look if we really start from a clean state
   if (mShmID != -1) {
-    LOG(WARN) << "A SEGMENT IS ALREADY INITIALIZED";
+    LOG(warn) << "A SEGMENT IS ALREADY INITIALIZED";
     return false;
   }
   // make sure no one else has created the shm pool
   // TODO: this can be relaxed / generalized
   if (getenv(SHMIDNAME) || getenv(SHMADDRNAME)) {
-    LOG(WARN) << "A SEGMET IS ALREADY PRESENT ON THE SYSTEM";
+    LOG(warn) << "A SEGMET IS ALREADY PRESENT ON THE SYSTEM";
     return false;
   }
 
-  LOG(INFO) << "CREATING SIM SHARED MEM SEGMENT FOR " << nsegments << " WORKERS";
+  LOG(info) << "CREATING SIM SHARED MEM SEGMENT FOR " << nsegments << " WORKERS";
 #ifdef USESHM
-  // LOG(INFO) << "SIZEOF ShmMetaInfo " << sizeof(ShmMetaInfo);
+  // LOG(info) << "SIZEOF ShmMetaInfo " << sizeof(ShmMetaInfo);
   const auto totalsize = sizeof(ShmMetaInfo) + SHMPOOLSIZE * nsegments;
   if ((mShmID = shmget(IPC_PRIVATE, totalsize, IPC_CREAT | 0666)) == -1) {
     perror("shmget: shmget failed");
@@ -130,7 +130,7 @@ bool ShmManager::createGlobalSegment(int nsegments)
     // In this case (if it succeeds) we can also share objects with shm pointers
     auto addr = shmat(mShmID, nullptr, 0);
     mSegPtr = addr;
-    LOG(DEBUG) << "COMMON ADDRESS " << addr << " AS NUMBER " << (unsigned long long)addr;
+    LOG(debug) << "COMMON ADDRESS " << addr << " AS NUMBER " << (unsigned long long)addr;
 
     // initialize the meta information (counter)
     o2::utils::ShmMetaInfo info;
@@ -145,9 +145,9 @@ bool ShmManager::createGlobalSegment(int nsegments)
     setenv(SHMADDRNAME, std::to_string((unsigned long long)(addr)).c_str(), 1);
     return true;
   }
-  LOG(INFO) << "SHARED MEM INITIALIZED AT ID " << mShmID;
+  LOG(info) << "SHARED MEM INITIALIZED AT ID " << mShmID;
   if (mShmID == -1) {
-    LOG(WARN) << "COULD NOT CREATE SHARED MEMORY ... FALLING BACK TO SIMPLE MODE";
+    LOG(warn) << "COULD NOT CREATE SHARED MEMORY ... FALLING BACK TO SIMPLE MODE";
     setenv(SHMIDNAME, std::to_string(mShmID).c_str(), 1);
     setenv(SHMADDRNAME, std::to_string(0).c_str(), 1);
   }
@@ -157,15 +157,15 @@ bool ShmManager::createGlobalSegment(int nsegments)
 
 bool ShmManager::attachToGlobalSegment()
 {
-  LOG(INFO) << "OCCUPYING A SEGMENT IN A SHARED REGION";
+  LOG(info) << "OCCUPYING A SEGMENT IN A SHARED REGION";
   // get information about the global shared mem in which to occupy a region
   if (!(getenv(SHMIDNAME) && getenv(SHMADDRNAME))) {
-    LOG(WARN) << "NO INFORMATION ABOUT SHARED SEGMENT FOUND";
+    LOG(warn) << "NO INFORMATION ABOUT SHARED SEGMENT FOUND";
     return false;
   }
 
   if (mShmID != -1) {
-    LOG(WARN) << "REGION ALREADY OCCUPIED OR CREATED";
+    LOG(warn) << "REGION ALREADY OCCUPIED OR CREATED";
     return false;
   }
 
@@ -176,15 +176,15 @@ bool ShmManager::attachToGlobalSegment()
 
 void ShmManager::occupySegment()
 {
-  LOG(INFO) << "OCCUPYING A SEGMENT IN A SHARED REGION";
+  LOG(info) << "OCCUPYING A SEGMENT IN A SHARED REGION";
   // get information about the global shared mem in which to occupy a region
   if (!(getenv(SHMIDNAME) && getenv(SHMADDRNAME))) {
-    LOG(WARN) << "NO INFORMATION ABOUT SHARED SEGMENT FOUND";
+    LOG(warn) << "NO INFORMATION ABOUT SHARED SEGMENT FOUND";
     return;
   }
 
   if (mShmID != -1) {
-    LOG(WARN) << "REGION ALREADY OCCUPIED OR CREATED";
+    LOG(warn) << "REGION ALREADY OCCUPIED OR CREATED";
     return;
   }
 
@@ -194,7 +194,7 @@ void ShmManager::occupySegment()
     // read meta information in the segment to determine the id of this segment
     auto info = static_cast<o2::utils::ShmMetaInfo*>(addr);
     const int segmentcounter = info->counter.fetch_add(1);
-    LOG(INFO) << "SEGMENTCOUNT " << segmentcounter;
+    LOG(info) << "SEGMENTCOUNT " << segmentcounter;
 
     const auto offset_in_bytes = sizeof(ShmMetaInfo) + segmentcounter * SHMPOOLSIZE;
     mBufferPtr = (void*)(((char*)addr) + offset_in_bytes);
@@ -205,9 +205,9 @@ void ShmManager::occupySegment()
     boostallocator = new boost::interprocess::allocator<char, wmanaged_external_buffer::segment_manager>(
       boostmanagedbuffer->get_segment_manager());
 
-    LOG(INFO) << "SHARED MEM OCCUPIED AT ID " << mShmID << " AND SEGMENT COUNTER " << segmentcounter;
+    LOG(info) << "SHARED MEM OCCUPIED AT ID " << mShmID << " AND SEGMENT COUNTER " << segmentcounter;
   } else {
-    LOG(INFO) << "ATTACH NOT SUCCESSFUL";
+    LOG(info) << "ATTACH NOT SUCCESSFUL";
   }
 }
 
@@ -224,7 +224,7 @@ void* ShmManager::getmemblock(size_t size)
   try {
     addr = (void*)boostallocator->allocate(size).get();
   } catch (const std::exception& e) {
-    LOG(FATAL) << "THROW IN BOOST SHM ALLOCATION";
+    LOG(fatal) << "THROW IN BOOST SHM ALLOCATION";
   };
   return addr;
 }
@@ -238,7 +238,7 @@ void ShmManager::release()
 {
 #ifdef USESHM
   if (mIsMaster) {
-    LOG(DEBUG) << "REMOVING SHARED MEM SEGMENT ID " << mShmID;
+    LOG(debug) << "REMOVING SHARED MEM SEGMENT ID " << mShmID;
     if (mShmID != -1) {
       shmctl(mShmID, IPC_RMID, nullptr);
       mShmID = -1;
