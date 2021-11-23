@@ -50,6 +50,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const BCData>& dig
   cd.header.firstOrbit = dig0.ir.orbit;
   cd.header.firstBC = dig0.ir.bc;
 
+  cd.trigger.resize(cd.header.nTriggers);
   cd.bcInc.resize(cd.header.nTriggers);
   cd.orbitInc.resize(cd.header.nTriggers);
   cd.nChan.resize(cd.header.nTriggers);
@@ -66,6 +67,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const BCData>& dig
     const auto chanels = digit.getBunchChannelData(channelVec); // we assume the channels are sorted
 
     // fill trigger info
+    cd.trigger[idig] = digit.getTriggers().triggerSignals;
     if (prevOrbit == digit.ir.orbit) {
       cd.bcInc[idig] = digit.ir.bc - prevBC;
       cd.orbitInc[idig] = 0;
@@ -127,6 +129,9 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
   MAKECODER(cd.idChan,    CTF::BLC_idChan);
   MAKECODER(cd.time,      CTF::BLC_time);
   MAKECODER(cd.charge,    CTF::BLC_charge);
+  //
+  // extra slot was added in the end
+  MAKECODER(cd.trigger,   CTF::BLC_trigger);
   // clang-format on
 }
 
@@ -139,6 +144,7 @@ size_t CTFCoder::estimateCompressedSize(const CompressedDigits& cd)
 #define VTP(vec) typename std::remove_reference<decltype(vec)>::type::value_type
 #define ESTSIZE(vec, slot) mCoders[int(slot)] ?                         \
   rans::calculateMaxBufferSize(vec.size(), reinterpret_cast<const o2::rans::LiteralEncoder64<VTP(vec)>*>(mCoders[int(slot)].get())->getAlphabetRangeBits(), sizeof(VTP(vec)) ) : vec.size()*sizeof(VTP(vec))
+  sz += ESTSIZE(cd.trigger,   CTF::BLC_trigger);
   sz += ESTSIZE(cd.bcInc,     CTF::BLC_bcInc);
   sz += ESTSIZE(cd.orbitInc,  CTF::BLC_orbitInc);
   sz += ESTSIZE(cd.nChan,     CTF::BLC_nChan);
