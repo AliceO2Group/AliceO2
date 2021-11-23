@@ -33,6 +33,6 @@ using namespace o2::hmpid;
 /// Init :
 void Geo::Init()
 {
-  LOG(INFO) << "hmpid::Geo: Initialization of HMPID parameters";
+  LOG(info) << "hmpid::Geo: Initialization of HMPID parameters";
 }
 

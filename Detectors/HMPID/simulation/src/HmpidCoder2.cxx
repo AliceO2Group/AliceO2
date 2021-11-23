@@ -179,7 +179,7 @@ void HmpidCoder2::writePaginatedEvent(uint32_t orbit, uint16_t bc)
   uint32_t* ptrStartEquipment = mPayloadBufferPtr;
   for (int eq = 0; eq < mNumberOfEquipments; eq++) {
     int EventSize = mEventSizePerEquipment[eq];
-    LOG(DEBUG) << "writePaginatedEvent()  Eq=" << eq << " Size:" << EventSize << " Pads:" << mEventPadsPerEquipment[eq] << " Orbit:" << orbit << " BC:" << bc;
+    LOG(debug) << "writePaginatedEvent()  Eq=" << eq << " Size:" << EventSize << " Pads:" << mEventPadsPerEquipment[eq] << " Orbit:" << orbit << " BC:" << bc;
     if (mEventPadsPerEquipment[eq] > 0 || !mSkipEmptyEvents) { // Skips the Events with 0 Pads
       mWriter.addData(ReadOut::FeeId(eq),
                       ReadOut::CruId(eq),
@@ -214,13 +214,13 @@ void HmpidCoder2::codeEventChunkDigits(std::vector<o2::hmpid::Digit>& digits, In
   uint16_t bc = ir.bc;
 
   int padsCount = 0;
-  LOG(DEBUG) << "Manage chunk Orbit :" << orbit << " BC:" << bc << "  Digits size:" << digits.size();
+  LOG(debug) << "Manage chunk Orbit :" << orbit << " BC:" << bc << "  Digits size:" << digits.size();
   for (o2::hmpid::Digit d : digits) {
     Digit::pad2Equipment(d.getPadID(), &eq, &col, &dil, &cha); // From Digit to Hardware coords
     eq = ReadOut::FeeId(eq);                                   // converts the Equipment Id in Cru/Link position ref
     idx = getEquipmentPadIndex(eq, col, dil, cha);             // finally to the unique padmap index
     if (mPadMap[idx] != 0) {                                   // We already have the pad set
-      LOG(WARNING) << "Duplicated DIGIT =" << d << " (" << eq << "," << col << "," << dil << "," << cha << ")" << idx;
+      LOG(warning) << "Duplicated DIGIT =" << d << " (" << eq << "," << col << "," << dil << "," << cha << ")" << idx;
     } else {
       mPadMap[idx] = d.getCharge();
       padsCount++;
