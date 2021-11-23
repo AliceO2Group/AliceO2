@@ -44,14 +44,14 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   if (mFromFile) {
     auto tmp = pc.inputs().get<CompressedClustersROOT*>("input");
     if (tmp == nullptr) {
-      LOG(ERROR) << "invalid input";
+      LOG(error) << "invalid input";
       return;
     }
     clusters = *tmp;
   } else {
     auto tmp = pc.inputs().get<CompressedClustersFlat*>("input");
     if (tmp == nullptr) {
-      LOG(ERROR) << "invalid input";
+      LOG(error) << "invalid input";
       return;
     }
     clusters = *tmp;
@@ -66,7 +66,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   buffer.resize(encodedBlocks->size());         // shrink buffer to strictly necessary size
   // encodedBlocks->print();
   mTimer.Stop();
-  LOG(INFO) << "Created encoded data of size " << encodedBlocks->size() << " for TPC in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Created encoded data of size " << encodedBlocks->size() << " for TPC in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)

@@ -152,7 +152,7 @@ class TPCMonitorDevice : public o2::framework::Task
     for (auto const& inputRef : InputRecordWalker(inputs)) {
       auto const* sectorHeader = DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(inputRef);
       if (sectorHeader == nullptr) {
-        LOG(ERROR) << "sector header missing on header stack for input on " << inputRef.spec->binding;
+        LOG(error) << "sector header missing on header stack for input on " << inputRef.spec->binding;
         continue;
       }
       const int sector = sectorHeader->sector();

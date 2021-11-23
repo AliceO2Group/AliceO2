@@ -1226,9 +1226,9 @@ void RawReaderCRUManager::writeGBTDataPerLink(const std::string_view inputFileNa
 {
   if (!std::filesystem::exists(outputDirectory)) {
     if (!std::filesystem::create_directories(outputDirectory)) {
-      LOG(FATAL) << "could not create output directory " << outputDirectory;
+      LOG(fatal) << "could not create output directory " << outputDirectory;
     } else {
-      LOG(INFO) << "created output directory " << outputDirectory;
+      LOG(info) << "created output directory " << outputDirectory;
     }
   }
 

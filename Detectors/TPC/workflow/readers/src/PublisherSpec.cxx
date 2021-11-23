@@ -111,7 +111,7 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
           std::string message = std::string("invalid sector range specified, allowed 0-") + std::to_string(NSectors - 1);
           // FIXME should probably be FATAL, but this doesn't seem to be handled in the DPL control flow
           // at least the process is not marked dead in the DebugGUI
-          LOG(ERROR) << message;
+          LOG(error) << message;
           throw std::invalid_argument(message);
         }
         activeSectors |= (uint64_t)0x1 << s;

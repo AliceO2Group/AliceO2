@@ -42,7 +42,7 @@ void RunCompareMode3(TString fileInfo)
   uint64_t checkedAdcValues = 0;
   for (const auto& o : *arrData) {
     const TString& data = static_cast<TObjString*>(o)->String();
-    LOG(INFO) << "Checking file " << data.Data();
+    LOG(info) << "Checking file " << data.Data();
     // get file info: file name, cru, link
     RawReader rawReaderRaw;
     RawReader rawReaderDec;
@@ -55,7 +55,7 @@ void RunCompareMode3(TString fileInfo)
     auto eventInfoVecDec = rawReaderDec.getEventInfo(rawReaderDec.getFirstEvent());
 
     if (eventInfoVecRaw->begin()->header.dataType != 3) {
-      LOG(ERROR) << "Readout mode was " << (int)eventInfoVecRaw->begin()->header.dataType << " instead of 3.";
+      LOG(error) << "Readout mode was " << (int)eventInfoVecRaw->begin()->header.dataType << " instead of 3.";
       return;
     }
     //    std::cout << eventInfoVecRaw->begin()->path << " "
@@ -81,7 +81,7 @@ void RunCompareMode3(TString fileInfo)
 
     for (uint64_t ev = rawReaderRaw.getFirstEvent(); ev <= rawReaderRaw.getLastEvent(); ++ev) {
       if (rawReaderRaw.loadEvent(ev) != rawReaderDec.loadEvent(ev)) {
-        LOG(ERROR) << "Event " << ev << " can't be decoded by both decoders";
+        LOG(error) << "Event " << ev << " can't be decoded by both decoders";
         return;
       }
 
@@ -92,32 +92,32 @@ void RunCompareMode3(TString fileInfo)
           for (int i = 0; i < std::min(dataDec->size(), dataRaw->size()); ++i) {
             ++checkedAdcValues;
             if (dataRaw->at(i) - dataDec->at(i + 1) != 0) {
-              LOG(ERROR) << "Data is not equal in event " << ev
+              LOG(error) << "Data is not equal in event " << ev
                          << " for pad " << (int)padPos.getPad()
                          << " in row " << (int)padPos.getRow()
                          << " in timebin " << i
                          << " RawVec size: " << dataRaw->size()
                          << " DecVec size: " << dataDec->size();
-              LOG(ERROR) << "Raw: " << dataRaw->at(i) << " \tDec: " << dataDec->at(i);
+              LOG(error) << "Raw: " << dataRaw->at(i) << " \tDec: " << dataDec->at(i);
             }
           }
         } else {
           for (int i = 0; i < std::min(dataDec->size(), dataRaw->size()); ++i) {
             ++checkedAdcValues;
             if (dataRaw->at(i) - dataDec->at(i) != 0) {
-              LOG(ERROR) << "Data is not equal in event " << ev
+              LOG(error) << "Data is not equal in event " << ev
                          << " for pad " << (int)padPos.getPad()
                          << " in row " << (int)padPos.getRow()
                          << " in timebin " << i
                          << " RawVec size: " << dataRaw->size()
                          << " DecVec size: " << dataDec->size();
-              LOG(ERROR) << "Raw: " << dataRaw->at(i) << " \tDec: " << dataDec->at(i);
+              LOG(error) << "Raw: " << dataRaw->at(i) << " \tDec: " << dataDec->at(i);
             }
           }
         }
       }
     }
-    LOG(INFO) << "Compared " << (double)checkedAdcValues / 1000000 << "M ADC values in total";
+    LOG(info) << "Compared " << (double)checkedAdcValues / 1000000 << "M ADC values in total";
   }
-  LOG(INFO) << "Compared " << (double)checkedAdcValues / 1000000 << "M ADC values in total";
+  LOG(info) << "Compared " << (double)checkedAdcValues / 1000000 << "M ADC values in total";
 }

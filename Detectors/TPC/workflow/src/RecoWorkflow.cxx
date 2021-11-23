@@ -155,7 +155,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
       auto storedlabels = reinterpret_cast<o2::dataformats::IOMCTruthContainerView const*>(data);
       o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> flatlabels;
       storedlabels->copyandflatten(flatlabels);
-      //LOG(INFO) << "PUBLISHING CONST LABELS " << flatlabels.getNElements();
+      //LOG(info) << "PUBLISHING CONST LABELS " << flatlabels.getNElements();
       context.outputs().snapshot(output, flatlabels);
       return true;
     }
@@ -467,7 +467,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     // a spectator callback which will be invoked by the tree writer with the extracted object
     // we are using it for printing a log message
     auto logger = BranchDefinition<TrackOutputType>::Spectator([](TrackOutputType const& tracks) {
-      LOG(INFO) << "writing " << tracks.size() << " track(s)";
+      LOG(info) << "writing " << tracks.size() << " track(s)";
     });
     auto tracksdef = BranchDefinition<TrackOutputType>{InputSpec{"inputTracks", "TPC", "TRACKS", 0},           //
                                                        "TPCTracks", "track-branch-name",                       //

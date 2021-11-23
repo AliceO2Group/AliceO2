@@ -1403,7 +1403,7 @@ void SpaceCharge<DataT>::init()
     const float omegaTau = -10. * bzField * vDrift / std::abs(getEzField(Side::A));
     setOmegaTauT1T2(omegaTau, t1, t2);
     if (mUseInitialSCDensity) {
-      LOG(WARNING) << "mUseInitialSCDensity" << mUseInitialSCDensity;
+      LOG(warning) << "mUseInitialSCDensity" << mUseInitialSCDensity;
       calculateDistortionsCorrections(Side::A);
       calculateDistortionsCorrections(Side::C);
       mInitLookUpTables = true;
