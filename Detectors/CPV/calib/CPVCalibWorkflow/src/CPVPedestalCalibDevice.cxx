@@ -50,7 +50,7 @@ void CPVPedestalCalibDevice::run(o2::framework::ProcessingContext& ctx)
       try {
         rawreader.next();
       } catch (RawErrorType_t e) {
-        LOG(ERROR) << "Raw decoding error " << (int)e;
+        LOG(error) << "Raw decoding error " << (int)e;
         //if problem in header, abandon this page
         if (e == RawErrorType_t::kRDH_DECODING) {
           break;
@@ -81,7 +81,7 @@ void CPVPedestalCalibDevice::run(o2::framework::ProcessingContext& ctx)
 void CPVPedestalCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
 
-  LOG(INFO) << "[CPVPedestalCalibDevice - endOfStream]";
+  LOG(info) << "[CPVPedestalCalibDevice - endOfStream]";
   //calculate stuff here
   calculatePedestals();
   checkPedestals();
@@ -110,14 +110,14 @@ void CPVPedestalCalibDevice::sendOutput(DataAllocator& output)
     std::map<std::string, std::string> md;
     info.setMetaData(md);
 
-    LOG(INFO) << "Sending object CPV/Calib/Pedestals";
+    LOG(info) << "Sending object CPV/Calib/Pedestals";
 
     header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_PEDESTALS", subSpec}, *image.get());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_PEDESTALS", subSpec}, info);
   }
   //Anyway send change to QC
-  LOG(INFO) << "[CPVPedestalCalibDevice - run] Writing ";
+  LOG(info) << "[CPVPedestalCalibDevice - run] Writing ";
   output.snapshot(o2::framework::Output{"CPV", "PEDDIFF", 0, o2::framework::Lifetime::Timeframe}, mPedDiff);
 
   //Write pedestal distributions to calculate bad map
