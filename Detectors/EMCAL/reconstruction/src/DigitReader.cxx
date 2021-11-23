@@ -26,29 +26,29 @@ void DigitReader<InputType>::openInput(const std::string fileName)
 {
   clear();
   if (!(mInputTree = o2::utils::RootChain::load("o2sim", fileName))) {
-    LOG(FATAL) << "Failed to load cells/digits tree from " << fileName;
+    LOG(fatal) << "Failed to load cells/digits tree from " << fileName;
   }
 
   if constexpr (std::is_same<InputType, Digit>::value) {
     mInputTree->SetBranchAddress("EMCALDigit", &mInputArray);
     if (!mInputArray) {
-      LOG(FATAL) << "Failed to find EMCALDigit branch in the " << mInputTree->GetName()
+      LOG(fatal) << "Failed to find EMCALDigit branch in the " << mInputTree->GetName()
                  << " from file " << fileName;
     }
     mInputTree->SetBranchAddress("EMCALDigitTRGR", &mTriggerArray);
     if (!mTriggerArray) {
-      LOG(FATAL) << "Failed to find TriggerRecords branch in the " << mInputTree->GetName()
+      LOG(fatal) << "Failed to find TriggerRecords branch in the " << mInputTree->GetName()
                  << " from file " << fileName;
     }
   } else if constexpr (std::is_same<InputType, Cell>::value) {
     mInputTree->SetBranchAddress("EMCALCell", &mInputArray);
     if (!mInputArray) {
-      LOG(FATAL) << "Failed to find EMCALCell branch in the " << mInputTree->GetName()
+      LOG(fatal) << "Failed to find EMCALCell branch in the " << mInputTree->GetName()
                  << " from file " << fileName;
     }
     mInputTree->SetBranchAddress("EMCALCellTRGR", &mTriggerArray);
     if (!mTriggerArray) {
-      LOG(FATAL) << "Failed to find TriggerRecords branch in the " << mInputTree->GetName()
+      LOG(fatal) << "Failed to find TriggerRecords branch in the " << mInputTree->GetName()
                  << " from file " << fileName;
     }
   }

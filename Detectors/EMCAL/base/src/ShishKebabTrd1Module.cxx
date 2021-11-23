@@ -49,7 +49,7 @@ ShishKebabTrd1Module::ShishKebabTrd1Module(Double_t theta, Geometry* g)
   }
 
   // DefineName(mTheta);
-  LOG(DEBUG4) << "o2::emcal::ShishKebabTrd1Module - first module key=" << key << ":  theta " << std::setw(1)
+  LOG(debug4) << "o2::emcal::ShishKebabTrd1Module - first module key=" << key << ":  theta " << std::setw(1)
               << std::setprecision(4) << mTheta << " geometry " << g;
 }
 
@@ -198,7 +198,7 @@ void ShishKebabTrd1Module::DefineFirstModule(const Int_t key)
     Double_t yA = sr;
     mB = yA - mA * xA;
   } else {
-    LOG(ERROR) << "key=" << key << " : wrong case \n";
+    LOG(error) << "key=" << key << " : wrong case \n";
     assert(0);
   }
 
@@ -208,7 +208,7 @@ void ShishKebabTrd1Module::DefineFirstModule(const Int_t key)
 Bool_t ShishKebabTrd1Module::SetParameters()
 {
   if (!mGeometry) {
-    LOG(WARNING) << "GetParameters(): << No geometry\n";
+    LOG(warning) << "GetParameters(): << No geometry\n";
     return kFALSE;
   }
 
@@ -298,11 +298,11 @@ Double_t ShishKebabTrd1Module::GetMaxEtaOfModule() const
   Double_t thetaTop = TMath::ATan2(mORT.Y(), mORT.X());
   Double_t etaTop = ThetaToEta(thetaTop);
 
-  LOG(DEBUG) << " Right bottom point of module : eta " << std::setw(5) << std::setprecision(4) << etaBottom
+  LOG(debug) << " Right bottom point of module : eta " << std::setw(5) << std::setprecision(4) << etaBottom
              << " : theta " << std::setw(6) << std::setprecision(4) << thetaBottom << " (" << std::setw(6)
              << std::setprecision(2) << thetaBottom * TMath::RadToDeg() << " ) : x(zglob) " << std::setw(7)
              << std::setprecision(2) << mORB.X() << " y(phi) " << std::setw(5) << std::setprecision(2) << mORB.Y();
-  LOG(DEBUG) << " Right    top point of module : eta " << std::setw(5) << std::setprecision(4) << etaTop << ": theta "
+  LOG(debug) << " Right    top point of module : eta " << std::setw(5) << std::setprecision(4) << etaTop << ": theta "
              << std::setw(6) << std::setprecision(4) << thetaTop << " (" << std::setw(6) << std::setprecision(2)
              << thetaTop * TMath::RadToDeg() << ") : x(zglob) " << std::setw(7) << std::setprecision(2) << mORT.X()
              << "  y(phi) " << std::setw(5) << std::setprecision(2) << mORT.Y();

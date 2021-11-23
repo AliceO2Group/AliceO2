@@ -26,21 +26,21 @@ using namespace o2::emcal::reco_workflow;
 
 void CellConverterSpec::init(framework::InitContext& ctx)
 {
-  LOG(DEBUG) << "[EMCALCellConverter - init] Initialize converter " << (mPropagateMC ? "with" : "without") << " MC truth container";
+  LOG(debug) << "[EMCALCellConverter - init] Initialize converter " << (mPropagateMC ? "with" : "without") << " MC truth container";
 
   if (!mGeometry) {
     mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(223409);
   }
   if (!mGeometry) {
-    LOG(ERROR) << "Failure accessing geometry";
+    LOG(error) << "Failure accessing geometry";
   }
 
   auto fitmethod = ctx.options().get<std::string>("fitmethod");
   if (fitmethod == "standard") {
-    LOG(INFO) << "Using standard raw fitter";
+    LOG(info) << "Using standard raw fitter";
     mRawFitter = std::unique_ptr<o2::emcal::CaloRawFitter>(new o2::emcal::CaloRawFitterStandard);
   } else if (fitmethod == "gamma2") {
-    LOG(INFO) << "Using gamma2 raw fitter";
+    LOG(info) << "Using gamma2 raw fitter";
     mRawFitter = std::unique_ptr<o2::emcal::CaloRawFitter>(new o2::emcal::CaloRawFitterGamma2);
   }
   mRawFitter->setAmpCut(0.);
@@ -49,14 +49,14 @@ void CellConverterSpec::init(framework::InitContext& ctx)
 
 void CellConverterSpec::run(framework::ProcessingContext& ctx)
 {
-  LOG(DEBUG) << "[EMCALCellConverter - run] called";
+  LOG(debug) << "[EMCALCellConverter - run] called";
   const double CONVADCGEV = 0.016; // Conversion from ADC counts to energy: E = 16 MeV / ADC
 
   mOutputCells.clear();
   mOutputTriggers.clear();
   auto digitsAll = ctx.inputs().get<gsl::span<o2::emcal::Digit>>("digits");
   auto triggers = ctx.inputs().get<gsl::span<o2::emcal::TriggerRecord>>("triggers");
-  LOG(DEBUG) << "[EMCALCellConverter - run]  Received " << digitsAll.size() << " digits from " << triggers.size() << " trigger ...";
+  LOG(debug) << "[EMCALCellConverter - run]  Received " << digitsAll.size() << " digits from " << triggers.size() << " trigger ...";
   int currentstart = mOutputCells.size(), ncellsTrigger = 0;
   for (const auto& trg : triggers) {
     if (!trg.getNumberOfObjects()) {
@@ -85,7 +85,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
             fitResults.setTime(0.);
           }
         } catch (CaloRawFitter::RawFitterError_t& fiterror) {
-          LOG(ERROR) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+          LOG(error) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
         }
 
         mOutputCells.emplace_back(tower, fitResults.getAmp() * CONVADCGEV, fitResults.getTime(), channelData.mChanType);
@@ -96,7 +96,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
     currentstart = mOutputCells.size();
     ncellsTrigger = 0;
   }
-  LOG(DEBUG) << "[EMCALCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
+  LOG(debug) << "[EMCALCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
   ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
   ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggers);
   if (mPropagateMC) {
@@ -151,7 +151,7 @@ std::vector<o2::emcal::SRUBunchContainer> CellConverterSpec::digitsToBunches(gsl
     // by the length of the time sample
     auto timesample = int(dig.getTimeStamp() / emcal::constants::EMCAL_TIMESAMPLE);
     if (timesample >= o2::emcal::constants::EMCAL_MAXTIMEBINS) {
-      LOG(ERROR) << "Digit time sample " << timesample << " outside range [0," << o2::emcal::constants::EMCAL_MAXTIMEBINS << "]";
+      LOG(error) << "Digit time sample " << timesample << " outside range [0," << o2::emcal::constants::EMCAL_MAXTIMEBINS << "]";
       continue;
     }
     (*bunchDigits)[timesample] = &dig;
