@@ -3,7 +3,7 @@ name: Current refactorings
 on: [pull_request_target]
 env:
   RATIONALE: "Adapt to new FairLogger API"
-  REFACTORING: "s|LOGP\(ERROR|LOGP(error|g;s|LOGP[(]INFO|LOGP(info|g;s|LOGP[(]WARN|LOGP(warn|g;s|LOGP[(]DEBUG|LOGP(debug|;s|LOG\(ERROR|LOG(error|g;s|LOG[(]INFO|LOG(info|g;s|LOG[(]WARN|LOG(warn|g;s|LOG[(]DEBUG|LOG(debug|g"
+  REFACTORING: "s|LOGP[(]ERROR|LOGP(error|g;s|LOGP[(]INFO|LOGP(info|g;s|LOGP[(]WARN|LOGP(warn|g;s|LOGP[(]DEBUG|LOGP(debug|;s|LOG[(]ERROR|LOG(error|g;s|LOG[(]INFO|LOG(info|g;s|LOG[(]WARN|LOG(warn|g;s|LOG[(]DEBUG|LOG(debug|g"
 
 jobs:
   build:
