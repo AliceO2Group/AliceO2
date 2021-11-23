@@ -87,7 +87,7 @@ bool testMBLUT(const std::string& lutFile)
 
   o2::base::MatLayerCylSet* mbr = o2::base::MatLayerCylSet::loadFromFile(lutFile);
   if (!mbr) {
-    LOG(ERROR) << "Failed to read LUT from " << lutFile;
+    LOG(error) << "Failed to read LUT from " << lutFile;
     return false;
   }
 
@@ -103,7 +103,7 @@ bool testMBLUT(const std::string& lutFile)
     // compare original and built verstions
     auto diff = gSystem->Exec("diff matbudRead.txt matbudBuilt.txt");
     if (diff) {
-      LOG(ERROR) << "Difference between originally built and read from the file LUTs";
+      LOG(error) << "Difference between originally built and read from the file LUTs";
       return false;
     }
   }
@@ -119,7 +119,7 @@ bool testMBLUT(const std::string& lutFile)
   {
     auto diff = gSystem->Exec("diff matbudCloned.txt matbudRead.txt");
     if (diff) {
-      LOG(ERROR) << "Difference between cloned and created at ActuallBuffer LUTs";
+      LOG(error) << "Difference between cloned and created at ActuallBuffer LUTs";
       return false;
     }
   }
@@ -141,7 +141,7 @@ bool testMBLUT(const std::string& lutFile)
     gSystem->RedirectOutput(nullptr);
     auto diff = gSystem->Exec("diff matbudActual.txt matbudCloned.txt");
     if (diff) {
-      LOG(ERROR) << "Difference between Cloned and created at /ActuallBuffer/ LUTs";
+      LOG(error) << "Difference between Cloned and created at /ActuallBuffer/ LUTs";
       return false;
     }
   }
@@ -169,7 +169,7 @@ bool testMBLUT(const std::string& lutFile)
 
     auto diff = gSystem->Exec("diff matbudFuture.txt matbudActual.txt");
     if (diff) {
-      LOG(ERROR) << "Difference between cloned at created at /FutureBuffer/ LUTs";
+      LOG(error) << "Difference between cloned at created at /FutureBuffer/ LUTs";
       return false;
     }
   }

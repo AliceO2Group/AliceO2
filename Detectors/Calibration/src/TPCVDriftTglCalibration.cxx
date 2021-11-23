@@ -65,7 +65,7 @@ void TPCVDriftTglCalibration::finalizeSlot(Slot& slot)
   }
   double det = sS * sXX - sX * sX;
   if (!det || npval < 2) {
-    LOG(ERROR) << "VDrift fit failed for slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd()
+    LOG(error) << "VDrift fit failed for slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd()
                << " with " << cont->entries << " entries";
   }
   det = 1. / det;
@@ -80,7 +80,7 @@ void TPCVDriftTglCalibration::finalizeSlot(Slot& slot)
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   std::map<std::string, std::string> md;
   mCCDBInfoPerSlot.emplace_back("TPC/Calib/VDriftTgl", clName, flName, md, slot.getTFStart(), 99999999999999);
-  LOG(INFO) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with " << cont->entries << " entries :"
+  LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with " << cont->entries << " entries :"
             << " dTgl vs Tgl_ITS offset:" << offs << "+-" << offsErr << " Slope: " << slope << "+-" << slopErr
             << " -> VD corr factor = " << corrFact << "+-" << corrFactErr;
 }

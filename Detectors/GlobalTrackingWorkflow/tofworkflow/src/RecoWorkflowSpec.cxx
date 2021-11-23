@@ -63,9 +63,9 @@ class TOFDPLRecoWorkflowTask
     if (o2::utils::Str::pathExists(matLUTFile)) {
       auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
       o2::base::Propagator::Instance()->setMatLUT(lut);
-      LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+      LOG(info) << "Loaded material LUT from " << matLUTFile;
     } else {
-      LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+      LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
     }
 
     mTimer.Stop();
@@ -84,7 +84,7 @@ class TOFDPLRecoWorkflowTask
       // worker and the underlying memory is valid throughout the whole computation
       auto recPoints = std::move(pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("fitrecpoints"));
       mMatcher.setFITRecPoints(recPoints);
-      LOG(INFO) << "TOF Reco Workflow pulled " << recPoints.size() << " FIT RecPoints";
+      LOG(info) << "TOF Reco Workflow pulled " << recPoints.size() << " FIT RecPoints";
     }
 
     // we do a copy of the input but we are looking for a way to avoid it (current problem in conversion form unique_ptr to *)
@@ -102,7 +102,7 @@ class TOFDPLRecoWorkflowTask
     // in run_match_tof aggiugnere esplicitamente la chiamata a fill del tree (nella classe MatchTOF) e il metodo per leggere i vettori di output
 
     //...
-    // LOG(INFO) << "TOF CLUSTERER : TRANSFORMED " << digits->size()
+    // LOG(info) << "TOF CLUSTERER : TRANSFORMED " << digits->size()
     //           << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";
 
     // send matching-info

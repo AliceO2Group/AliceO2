@@ -79,14 +79,14 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
       payloadCTP = o2::ctp::NClassPayload;
     } else {
-      LOG(ERROR) << "Unxpected  CTP CRU link:" << linkCRU;
+      LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
     }
-    LOG(DEBUG) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit;
+    LOG(debug) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit;
     pldmask = 0;
     for (uint32_t i = 0; i < payloadCTP; i++) {
       pldmask[12 + i] = 1;
     }
-    //LOG(INFO) << "pldmask:" << pldmask;
+    //LOG(info) << "pldmask:" << pldmask;
     // TF in 128 bits words
     gsl::span<const uint8_t> payload(it.data(), it.size());
     gbtword80_t gbtWord = 0;
@@ -98,7 +98,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       orbit0 = triggerOrbit;
     }
     for (auto payloadWord : payload) {
-      //LOG(INFO) << wordCount << " payload:" <<  int(payloadWord);
+      //LOG(info) << wordCount << " payload:" <<  int(payloadWord);
       if (wordCount == 15) {
         wordCount = 0;
       } else if (wordCount > 9) {
@@ -109,17 +109,17 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
         }
         wordCount++;
         diglets.clear();
-        //LOG(INFO) << " gbtword:" << gbtWord;
+        //LOG(info) << " gbtword:" << gbtWord;
         makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
         // save digit in buffer recs
         for (auto diglet : diglets) {
-          //LOG(INFO) << " diglet:" << diglet;
-          //LOG(INFO) << " pldmas:" << pldmask;
+          //LOG(info) << " diglet:" << diglet;
+          //LOG(info) << " pldmas:" << pldmask;
           gbtword80_t pld = (diglet & pldmask);
           if (pld.count() == 0) {
             continue;
           }
-          //LOG(INFO) << "    pld:" << pld;
+          //LOG(info) << "    pld:" << pld;
           pld >>= 12;
           CTPDigit digit;
           uint32_t bcid = (diglet & bcidmask).to_ulong();
@@ -128,37 +128,37 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
           ir.bc = bcid;
           digit.intRecord = ir;
           if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
-            LOG(DEBUG) << "InputMaskCount:" << digits[ir].CTPInputMask.count();
+            LOG(debug) << "InputMaskCount:" << digits[ir].CTPInputMask.count();
             if (digits.count(ir) == 0) {
               digit.setInputMask(pld);
               digits[ir] = digit;
-              LOG(DEBUG) << bcid << " inputs case 0 bcid orbit " << triggerOrbit << " pld:" << pld;
+              LOG(debug) << bcid << " inputs case 0 bcid orbit " << triggerOrbit << " pld:" << pld;
             } else if (digits.count(ir) == 1) {
               if (digits[ir].CTPInputMask.count() == 0) {
                 digits[ir].setInputMask(pld);
-                LOG(DEBUG) << bcid << " inputs bcid vase 1 orbit " << triggerOrbit << " pld:" << pld;
+                LOG(debug) << bcid << " inputs bcid vase 1 orbit " << triggerOrbit << " pld:" << pld;
               } else {
-                LOG(ERROR) << "Two CTP IRs with the same timestamp.";
+                LOG(error) << "Two CTP IRs with the same timestamp.";
               }
             } else {
-              LOG(ERROR) << "Two digits with the same rimestamp.";
+              LOG(error) << "Two digits with the same rimestamp.";
             }
           } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
             if (digits.count(ir) == 0) {
               digit.setClassMask(pld);
               digits[ir] = digit;
-              LOG(DEBUG) << bcid << " class bcid case 0 orbit " << triggerOrbit << " pld:" << pld;
+              LOG(debug) << bcid << " class bcid case 0 orbit " << triggerOrbit << " pld:" << pld;
             } else if (digits.count(ir) == 1) {
               if (digits[ir].CTPClassMask.count() == 0) {
                 digits[ir].setClassMask(pld);
-                LOG(DEBUG) << bcid << " class bcid case 1 orbit " << triggerOrbit << " pld:" << pld;
+                LOG(debug) << bcid << " class bcid case 1 orbit " << triggerOrbit << " pld:" << pld;
               } else {
-                LOG(ERROR) << "Two CTP Class masks for same timestamp";
+                LOG(error) << "Two CTP Class masks for same timestamp";
               }
             } else {
             }
           } else {
-            LOG(ERROR) << "Unxpected  CTP CRU link:" << linkCRU;
+            LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
           }
         }
         gbtWord = 0;
@@ -176,7 +176,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     mOutputDigits.push_back(digmap.second);
   }
 
-  LOG(INFO) << "[CTPRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits ...";
+  LOG(info) << "[CTPRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits ...";
   ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
   //ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
 }

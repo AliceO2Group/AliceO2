@@ -99,7 +99,7 @@ Controller::Controller(DetID::mask_t detmask)
     initDOFs();
   }
   if (!getNDOFs()) {
-    LOG(FATAL) << "No DOFs found, initialization failed";
+    LOG(fatal) << "No DOFs found, initialization failed";
   }
 }
 
@@ -189,7 +189,7 @@ void Controller::initDetectors()
     }
   }
   if (!dofCnt) {
-    LOG(FATAL) << "No DOFs found";
+    LOG(fatal) << "No DOFs found";
   }
   //
   //
@@ -202,7 +202,7 @@ void Controller::initDetectors()
   }
   //
   assignDOFs();
-  LOG(INFO) << "Booked " << dofCnt << " global parameters";
+  LOG(info) << "Booked " << dofCnt << " global parameters";
   //
   setInitGeomDone();
   //
@@ -214,7 +214,7 @@ void Controller::initDOFs()
   // scan all free global parameters, link detectors to array of params
   //
   if (getInitDOFsDone()) {
-    LOG(INFO) << "initDOFs was already done, just reassigning " << getNDOFs() << "DOFs arrays/labels";
+    LOG(info) << "initDOFs was already done, just reassigning " << getNDOFs() << "DOFs arrays/labels";
     assignDOFs();
     return;
   }
@@ -235,10 +235,10 @@ void Controller::initDOFs()
   }
   for (int i = 0; i < NTrackTypes; i++) {
     if (nact < conf.minDetAcc[i]) {
-      LOG(FATAL) << nact << " detectors are active, while " << conf.minDetAcc[i] << " in track are asked";
+      LOG(fatal) << nact << " detectors are active, while " << conf.minDetAcc[i] << " in track are asked";
     }
   }
-  LOG(INFO) << mNDOFs << " global parameters " << mNDet << " detectors, " << ndfAct << " in " << nact << " active detectors";
+  LOG(info) << mNDOFs << " global parameters " << mNDet << " detectors, " << ndfAct << " in " << nact << " active detectors";
   addAutoConstraints();
   setInitDOFsDone();
 }
@@ -284,9 +284,9 @@ void Controller::assignDOFs()
     }
     mNDOFs += det->assignDOFs();
   }
-  LOG(INFO) << "Assigned parameters/labels arrays for " << mNDOFs << " DOFs";
+  LOG(info) << "Assigned parameters/labels arrays for " << mNDOFs << " DOFs";
   if (ndfOld > -1 && ndfOld != mNDOFs) {
-    LOG(ERROR) << "Recalculated NDOFs=" << mNDOFs << " not equal to saved NDOFs=" << ndfOld;
+    LOG(error) << "Recalculated NDOFs=" << mNDOFs << " not equal to saved NDOFs=" << ndfOld;
   }
   //
   // build Lbl <-> parID table
@@ -413,7 +413,7 @@ bool Controller::checkDetectorPoints(const int* npsel) const
 //  if (!(evCount % kProcStatFreq)) {
 //    ProcInfo_t procInfo;
 //    gSystem->GetProcInfo(&procInfo);
-//    LOG(INFO) << "ProcStat: CPUusr:" << int(procInfo.fCpuUser) << " CPUsys:" << int(procInfo.fCpuSys) << " RMem:" << int(procInfo.fMemResident / 1024) << " VMem:" << int(procInfo.fMemVirtual / 1024);
+//    LOG(info) << "ProcStat: CPUusr:" << int(procInfo.fCpuUser) << " CPUsys:" << int(procInfo.fCpuSys) << " RMem:" << int(procInfo.fMemResident / 1024) << " VMem:" << int(procInfo.fMemVirtual / 1024);
 //  }
 //  evCount++;
 //  //
@@ -472,7 +472,7 @@ bool Controller::checkDetectorPoints(const int* npsel) const
 //  fillStatHisto(kTrackAcc, accTr);
 //  //
 //  if (accTr) {
-//    LOG(INFO) << "Processed event " << esdEv->GetEventNumberInFile() << " of ev.specie " << esdEv->GetEventSpecie() << " -> Accepted: " << accTr << " of " << ntr << " tracks";
+//    LOG(info) << "Processed event " << esdEv->GetEventNumberInFile() << " of ev.specie " << esdEv->GetEventSpecie() << " -> Accepted: " << accTr << " of " << ntr << " tracks";
 //  }
 //  return true;
 //}
@@ -538,7 +538,7 @@ bool Controller::checkDetectorPoints(const int* npsel) const
 //  int pntMeas = mAlgTrack->getInnerPointID() - 1;
 //  if (pntMeas < 0) { // this should not happen
 //    mAlgTrack->Print("p meas");
-//    LOG(FATAL) << "AlignmentTrack->getInnerPointID() cannot be 0";
+//    LOG(fatal) << "AlignmentTrack->getInnerPointID() cannot be 0";
 //  }
 //  // do we want to add the vertex as a measured point ?
 //  if (!addVertexConstraint()) { // no constrain, just reference point w/o measurement
@@ -587,13 +587,13 @@ bool Controller::checkDetectorPoints(const int* npsel) const
 //  int ncont = vtx->GetNContributors();
 //  if (mVtxMinCont > 0 && mVtxMinCont > ncont) {
 //#if DEBUG > 2
-//    LOG(INFO) << "Rejecting event with " << % d << " vertex contributors (min " << % d << " asked)", ncont, mVtxMinCont);
+//    LOG(info) << "Rejecting event with " << % d << " vertex contributors (min " << % d << " asked)", ncont, mVtxMinCont);
 //#endif
 //    return false;
 //  }
 //  if (mVtxMaxCont > 0 && ncont > mVtxMaxCont) {
 //#if DEBUG > 2
-//    LOG(INFO) << "Rejecting event with " << % d << " vertex contributors (max " << % d << " asked)", ncont, mVtxMaxCont);
+//    LOG(info) << "Rejecting event with " << % d << " vertex contributors (max " << % d << " asked)", ncont, mVtxMaxCont);
 //#endif
 //    return false;
 //  }
@@ -676,7 +676,7 @@ bool Controller::checkDetectorPoints(const int* npsel) const
 //  int pntMeas = mAlgTrack->getInnerPointID() - 1;
 //  if (pntMeas < 0) { // this should not happen
 //    mAlgTrack->Print("p meas");
-//    LOG(FATAL) << "AlignmentTrack->getInnerPointID() cannot be 0";
+//    LOG(fatal) << "AlignmentTrack->getInnerPointID() cannot be 0";
 //  }
 //  mRefPoint->setAlphaSens(sector2Alpha(mAlgTrack->getPoint(pntMeas)->getAliceSector()));
 //  //
@@ -734,7 +734,7 @@ bool Controller::fillMilleData()
   }
   //
   if (!mAlgTrack->getDerivDone()) {
-    LOG(ERROR) << "Track derivatives are not yet evaluated";
+    LOG(error) << "Track derivatives are not yet evaluated";
     return false;
   }
   int np(mAlgTrack->getNPoints()), nDGloTot(0); // total number global derivatives stored
@@ -815,7 +815,7 @@ bool Controller::fillMilleData()
   }   // loop over points
   //
   if (!nDGloTot) {
-    LOG(INFO) << "Track does not depend on free global parameters, discard";
+    LOG(info) << "Track does not depend on free global parameters, discard";
     mMille->kill();
     return false;
   }
@@ -826,7 +826,7 @@ bool Controller::fillMilleData()
 //_________________________________________________________
 bool Controller::fillMPRecData()
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  LOG(fatal) << __PRETTY_FUNCTION__ << " is disabled";
   //FIXME(milettri): needs AliESDEvent
   //  // store MP2 in MPRecord format
   //  if (!mMPRecord){
@@ -848,7 +848,7 @@ bool Controller::fillMPRecData()
 //_________________________________________________________
 bool Controller::fillControlData()
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  LOG(fatal) << __PRETTY_FUNCTION__ << " is disabled";
   //FIXME(milettri): needs AliESDEvent
   //  // store control residuals
   //  if (!mCResid){
@@ -889,7 +889,7 @@ void Controller::setRunNumber(int run)
 //_________________________________________________________
 void Controller::acknowledgeNewRun(int run)
 {
-  LOG(WARNING) << __PRETTY_FUNCTION__ << " yet incomplete";
+  LOG(warning) << __PRETTY_FUNCTION__ << " yet incomplete";
 
   o2::base::GeometryManager::loadGeometry();
   o2::base::PropagatorImpl<double>::initFieldFromGRP();
@@ -905,7 +905,7 @@ void Controller::acknowledgeNewRun(int run)
   //  if (mRunNumber > 0){
   //    fillStatHisto(kRunDone);}
   //  mRunNumber = run;
-  //  LOG(INFO) << "Processing new run " << mRunNumber;
+  //  LOG(info) << "Processing new run " << mRunNumber;
   //  //
   //  // setup magnetic field
   //  if (fESDEvent &&
@@ -915,7 +915,7 @@ void Controller::acknowledgeNewRun(int run)
   //  }
   //  //
   //  if (!mUseRecoOCDB) {
-  //    LOG(WARNING) << "Reco-time OCDB will NOT be preloaded";
+  //    LOG(warning) << "Reco-time OCDB will NOT be preloaded";
   //    return;
   //  }
   //  LoadRecoTimeOCDB();
@@ -942,21 +942,21 @@ void Controller::acknowledgeNewRun(int run)
 //  // Load OCDB paths used for the reconstruction of data being processed
 //  // In order to avoid unnecessary uploads, the objects are not actually
 //  // loaded/cached but just added as specific paths with version
-//  LOG(INFO) << "Preloading Reco-Time OCDB for run " << mRunNumber << " from ESD UserInfo list";
+//  LOG(info) << "Preloading Reco-Time OCDB for run " << mRunNumber << " from ESD UserInfo list";
 //  //
 //  CleanOCDB();
 //  //
 //  if (!mRecoOCDBConf.IsNull() && !gSystem->AccessPathName(mRecoOCDBConf.c_str(), kFileExists)) {
-//    LOG(INFO) << "Executing reco-time OCDB setup macro " << mRecoOCDBConf.c_str();
+//    LOG(info) << "Executing reco-time OCDB setup macro " << mRecoOCDBConf.c_str();
 //    gROOT->ProcessLine(Form(".x %s(%d)", mRecoOCDBConf.c_str(), mRunNumber));
 //    if (AliCDBManager::Instance()->IsDefaultStorageSet()){
 //      return true;}
-//    LOG(FATAL) << "macro " << mRecoOCDBConf.c_str() << " failed to configure reco-time OCDB";
+//    LOG(fatal) << "macro " << mRecoOCDBConf.c_str() << " failed to configure reco-time OCDB";
 //  } else
-//    LOG(WARNING) << "No reco-time OCDB config macro" << mRecoOCDBConf.c_str() << "  is found, will use ESD:UserInfo";
+//    LOG(warning) << "No reco-time OCDB config macro" << mRecoOCDBConf.c_str() << "  is found, will use ESD:UserInfo";
 //  //
 //  if (!mESDTree){
-//    LOG(FATAL) << "Cannot preload Reco-Time OCDB since the ESD tree is not set";}
+//    LOG(fatal) << "Cannot preload Reco-Time OCDB since the ESD tree is not set";}
 //  const TTree* tr = mESDTree; // go the the real ESD tree
 //  while (tr->GetTree() && tr->GetTree() != tr)
 //    tr = tr->GetTree();
@@ -967,7 +967,7 @@ void Controller::acknowledgeNewRun(int run)
 //  //
 //  if (!cdbMap || !cdbList) {
 //    userInfo->Print();
-//    LOG(FATAL) << "Failed to extract cdbMap and cdbList from UserInfo list";
+//    LOG(fatal) << "Failed to extract cdbMap and cdbList from UserInfo list";
 //  }
 //  //
 //  return PreloadOCDB(mRunNumber, cdbMap, cdbList);
@@ -1051,7 +1051,7 @@ void Controller::resetDetectors()
 //____________________________________________
 bool Controller::testLocalSolution()
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  LOG(fatal) << __PRETTY_FUNCTION__ << " is disabled";
   //FIXME(milettri): needs AliSymMatrix
   //  // test track local solution
   //  TVectorD rhs;
@@ -1182,7 +1182,7 @@ void Controller::closeMPRecOutput()
   if (!mMPRecFile) {
     return;
   }
-  LOG(INFO) << "Closing " << mMPRecFile->GetName();
+  LOG(info) << "Closing " << mMPRecFile->GetName();
   mMPRecFile->cd();
   mMPRecTree->Write();
   mMPRecTree.reset();
@@ -1197,7 +1197,7 @@ void Controller::closeResidOutput()
   if (!mResidFile) {
     return;
   }
-  LOG(INFO) << "Closing " << mResidFile->GetName();
+  LOG(info) << "Closing " << mResidFile->GetName();
   mResidFile->cd();
   mResidTree->Write();
   mResidTree.reset();
@@ -1211,7 +1211,7 @@ void Controller::closeMilleOutput()
 {
   // close output
   if (mMille) {
-    LOG(INFO) << "Closing " << mMPDatFileName.c_str() << sMPDataExt;
+    LOG(info) << "Closing " << mMPDatFileName.c_str() << sMPDataExt;
   }
   mMille.reset();
 }
@@ -1288,7 +1288,7 @@ void Controller::setObligatoryDetector(DetID detID, int trtype, bool v)
   // mark detector presence obligatory in the track of given type
   AlignableDetector* det = getDetector(detID);
   if (!det) {
-    LOG(ERROR) << "Detector " << detID << " is not defined";
+    LOG(error) << "Detector " << detID << " is not defined";
   }
   if (v) {
     mObligatoryDetPattern[trtype] |= detID.getMask();
@@ -1304,7 +1304,7 @@ void Controller::setObligatoryDetector(DetID detID, int trtype, bool v)
 //____________________________________________
 bool Controller::addVertexConstraint()
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  LOG(fatal) << __PRETTY_FUNCTION__ << " is disabled";
   //FIXME(milettri): needs AliESDtrack
   //  // if vertex is set and if particle is primary, add vertex as a meared point
   //  //
@@ -1387,29 +1387,29 @@ bool Controller::addVertexConstraint()
 //  // Detectors which need some reference calibration data must use this one
 //  //
 //  //
-//  LOG(INFO) << "Loading reference OCDB");
+//  LOG(info) << "Loading reference OCDB");
 //  CleanOCDB();
 //  AliCDBManager* man = AliCDBManager::Instance();
 //  //
 //  if (!mRefOCDBConf.IsNull() && !gSystem->AccessPathName(mRefOCDBConf.c_str(), kFileExists)) {
-//    LOG(INFO) << "Executing reference OCDB setup macro %s", mRefOCDBConf.c_str());
+//    LOG(info) << "Executing reference OCDB setup macro %s", mRefOCDBConf.c_str());
 //    if (mRefRunNumber > 0){
 //      gROOT->ProcessLine(Form(".x %s(%d)", mRefOCDBConf.c_str(), mRefRunNumber));}
 //    else
 //      gROOT->ProcessLine(Form(".x %s", mRefOCDBConf.c_str()));
 //  } else {
-//    LOG(WARNING) << "No reference OCDB config macro "<<mRefOCDBConf.c_str()<<" is found, assume raw:// with run " << AliCDBRunRange::Infinity();
+//    LOG(warning) << "No reference OCDB config macro "<<mRefOCDBConf.c_str()<<" is found, assume raw:// with run " << AliCDBRunRange::Infinity();
 //    man->SetRaw(true);
 //    man->SetRun(AliCDBRunRange::Infinity());
 //  }
 //  //
 //  if (AliGeomManager::GetGeometry()) {
-//    LOG(INFO) << "Destroying current geometry before loading reference one");
+//    LOG(info) << "Destroying current geometry before loading reference one");
 //    AliGeomManager::Destroy();
 //  }
 //  AliGeomManager::LoadGeometry("geometry.root");
 //  if (!AliGeomManager::GetGeometry()){
-//    LOG(FATAL) << "Failed to load geometry, cannot run");}
+//    LOG(fatal) << "Failed to load geometry, cannot run");}
 //  //
 //  TString detList = "";
 //  for (int i = 0; i < kNDetectors; i++) {
@@ -1512,7 +1512,7 @@ void Controller::genPedeSteerFile(const Option_t* opt) const
   const float kDefDelta = 0.1; // def. delta to exit
   TString opts = opt;
   opts.ToLower();
-  LOG(INFO) << "Generating MP2 templates:\n "
+  LOG(info) << "Generating MP2 templates:\n "
             << "Steering   :\t" << mMPSteerFileName << "\n"
             << "Parameters :\t" << mMPParFileName << "\n"
             << "Constraints:\t" << mMPConFileName << "\n";
@@ -1573,7 +1573,7 @@ bool Controller::readParameters(const char* parfile, bool useErrors)
 {
   // read parameters file (millepede output)
   if (mNDOFs < 1 || mGloParVal.size() || mGloParErr.size()) {
-    LOG(ERROR) << "Something is wrong in init: mNDOFs=" << mNDOFs << " N GloParVal=" << mGloParVal.size() << " N GloParErr=" << mGloParErr.size();
+    LOG(error) << "Something is wrong in init: mNDOFs=" << mNDOFs << " N GloParVal=" << mGloParVal.size() << " N GloParErr=" << mGloParErr.size();
   }
   ifstream inpf(parfile);
   if (!inpf.good()) {
@@ -1590,7 +1590,7 @@ bool Controller::readParameters(const char* parfile, bool useErrors)
   fline = fline.Strip(TString::kBoth, ' ');
   fline.ToLower();
   if (!fline.BeginsWith("parameter")) {
-    LOG(ERROR) << "First line is not parameter keyword: " << fline.Data();
+    LOG(error) << "First line is not parameter keyword: " << fline.Data();
     return false;
   }
   double v0, v1, v2;
@@ -1603,8 +1603,8 @@ bool Controller::readParameters(const char* parfile, bool useErrors)
     } // ignore comment
     int nr = sscanf(fline.Data(), "%d%lf%lf%lf", &lab, &v0, &v1, &v2);
     if (nr < 3) {
-      LOG(ERROR) << "Expected to read at least 3 numbers, got " << nr << ", this is NOT milleped output";
-      LOG(ERROR) << "line (" << cnt << ") was:\n " << fline.Data();
+      LOG(error) << "Expected to read at least 3 numbers, got " << nr << ", this is NOT milleped output";
+      LOG(error) << "line (" << cnt << ") was:\n " << fline.Data();
       return false;
     }
     if (nr == 3) {
@@ -1612,7 +1612,7 @@ bool Controller::readParameters(const char* parfile, bool useErrors)
     }
     int parID = label2ParID(lab);
     if (parID < 0 || parID >= mNDOFs) {
-      LOG(ERROR) << "Invalid label " << lab << " at line " << cnt << " -> ParID=" << parID;
+      LOG(error) << "Invalid label " << lab << " at line " << cnt << " -> ParID=" << parID;
       return false;
     }
     mGloParVal[parID] = -v0;
@@ -1622,7 +1622,7 @@ bool Controller::readParameters(const char* parfile, bool useErrors)
     asg++;
     //
   };
-  LOG(INFO) << "Read " << cnt << " lines, assigned " << asg << " values, " << asg0 << " dummy";
+  LOG(info) << "Read " << cnt << " lines, assigned " << asg << " values, " << asg0 << " dummy";
   //
   return true;
 }
@@ -1633,7 +1633,7 @@ void Controller::checkConstraints(const char* params)
   // check how the constraints are satisfied with already uploaded or provided params
   //
   if (params && !readParameters(params)) {
-    LOG(ERROR) << "Failed to load parameters from " << params;
+    LOG(error) << "Failed to load parameters from " << params;
     return;
   }
   //
@@ -1651,12 +1651,12 @@ void Controller::mPRec2Mille(const char* mprecfile, const char* millefile, bool 
   // converts MPRecord tree to millepede binary format
   TFile* flmpr = TFile::Open(mprecfile);
   if (!flmpr) {
-    LOG(ERROR) << "Failed to open MPRecord file " << mprecfile;
+    LOG(error) << "Failed to open MPRecord file " << mprecfile;
     return;
   }
   TTree* mprTree = (TTree*)flmpr->Get("mpTree");
   if (!mprTree) {
-    LOG(ERROR) << "No mpTree in xMPRecord file " << mprecfile;
+    LOG(error) << "No mpTree in xMPRecord file " << mprecfile;
     return;
   }
   mPRec2Mille(mprTree, millefile, bindata);
@@ -1672,7 +1672,7 @@ void Controller::mPRec2Mille(TTree* mprTree, const char* millefile, bool bindata
   //
   TBranch* br = mprTree->GetBranch("mprec");
   if (!br) {
-    LOG(ERROR) << "provided tree does not contain branch mprec";
+    LOG(error) << "provided tree does not contain branch mprec";
     return;
   }
   Millepede2Record* rec = new Millepede2Record();
@@ -1776,7 +1776,7 @@ void Controller::addAutoConstraints()
     }
     det->addAutoConstraints();
   }
-  LOG(INFO) << "Added " << getNConstraints() << " automatic constraints";
+  LOG(info) << "Added " << getNConstraints() << " automatic constraints";
 }
 
 //____________________________________________________________
@@ -1799,7 +1799,7 @@ void Controller::fixLowStatFromDOFStat(int thresh)
   // fix DOFs having stat below threshold
   //
   if (mNDOFs != mDOFStat.getNDOFs()) {
-    LOG(ERROR) << "Discrepancy between NDOFs=" << mNDOFs << " of and statistics object: " << mDOFStat.getNDOFs();
+    LOG(error) << "Discrepancy between NDOFs=" << mNDOFs << " of and statistics object: " << mDOFStat.getNDOFs();
     return;
   }
   for (int parID = 0; parID < mNDOFs; parID++) {
@@ -1837,12 +1837,12 @@ void Controller::loadStat(const char* flname)
   if (hstO && (hst = dynamic_cast<TH1F*>(hstO))) {
     hst->SetDirectory(nullptr);
   } else {
-    LOG(WARNING) << "did not find stat histo";
+    LOG(warning) << "did not find stat histo";
   }
   //
   DOFStatistics* dofSt = nullptr;
   if (!hdfO || !(dofSt = dynamic_cast<DOFStatistics*>(hdfO))) {
-    LOG(WARNING) << "did not find DOFstat object";
+    LOG(warning) << "did not find DOFstat object";
   }
   //
   setHistoStat(hst);
@@ -1914,7 +1914,7 @@ bool Controller::checkSol(Millepede2Record* rec,
                           ResidualsControllerFast* rLG, ResidualsControllerFast* rL,
                           bool verbose, bool loc)
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  LOG(fatal) << __PRETTY_FUNCTION__ << " is disabled";
   //FIXME(milettri): needs AliSymMatrix
   //  // Check pede solution using derivates, rather than updated geometry
   //  // If loc==true, also produces residuals for current geometry,
@@ -1937,7 +1937,7 @@ bool Controller::checkSol(Millepede2Record* rec,
   //  for (int irs = 0; irs < nres; irs++) {
   //    if (rec->getNDGlo(irs) > 0) {
   //      if (irs == nres - 1 || rec->getNDGlo(irs + 1) == 0){
-  //        LOG(FATAL) << ("Real coordinate measurements must come in pairs");}
+  //        LOG(fatal) << ("Real coordinate measurements must come in pairs");}
   //      nPoints++;
   //      irs++; // skip 2nd
   //      continue;
@@ -1951,7 +1951,7 @@ bool Controller::checkSol(Millepede2Record* rec,
   //  }
   //  //
   //  if (nMatCorr % 4){
-  //    LOG(WARNING) << "Error? NMatCorr=" << nMatCorr << " is not multiple of 4";}
+  //    LOG(warning) << "Error? NMatCorr=" << nMatCorr << " is not multiple of 4";}
   //  //
   //  if (rLG) {
   //    rLG->Clear();
@@ -1988,7 +1988,7 @@ bool Controller::checkSol(Millepede2Record* rec,
   //      int lbI = recLabGlo[ig];
   //      int idP = label2ParID(lbI);
   //      if (idP < 0){
-  //        LOG(FATAL) << "Did not find parameted for label " << lbI;}
+  //        LOG(fatal) << "Did not find parameted for label " << lbI;}
   //      double parVal = getGloParVal()[idP];
   //      //      resid[irs] -= parVal*recDGlo[ig];
   //      resid[irs] += parVal * recDGlo[ig];
@@ -2034,12 +2034,12 @@ bool Controller::checkSol(Millepede2Record* rec,
   //  TVectorD vecSolG(nvloc);
   //  //
   //  if (!matpG->SolveChol(*vecpG, vecSolG, false)) {
-  //    LOG(INFO) << "Failed to solve track corrected for globals";
+  //    LOG(info) << "Failed to solve track corrected for globals";
   //    delete matpG;
   //    matpG = 0;
   //  } else if (loc) { // solution with local correction only
   //    if (!matpG->SolveChol(*vecp, vecSol, false)) {
-  //      LOG(INFO) << "Failed to solve track corrected for globals";
+  //      LOG(info) << "Failed to solve track corrected for globals";
   //      delete matpG;
   //      matpG = 0;
   //    }
@@ -2178,7 +2178,7 @@ bool Controller::checkSol(Millepede2Record* rec,
 void Controller::applyAlignmentFromMPSol()
 {
   // apply alignment from millepede solution array to reference alignment level
-  LOG(INFO) << "Applying alignment from Millepede solution";
+  LOG(info) << "Applying alignment from Millepede solution";
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     AlignableDetector* det = getDetector(id);
     if (!det || det->isDisabled()) {

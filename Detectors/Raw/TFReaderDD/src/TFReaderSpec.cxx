@@ -81,7 +81,7 @@ void TFReaderSpec::init(o2f::InitContext& ic)
 void TFReaderSpec::run(o2f::ProcessingContext& ctx)
 {
   if (!mTFCounter) { // RS FIXME: this is a temporary hack to avoid late-starting devices to lose the input
-    LOG(WARNING) << "This is a hack, sleeping 10 s at startup";
+    LOG(warning) << "This is a hack, sleeping 10 s at startup";
     usleep(10000000);
   }
   if (!mDevice) {
@@ -108,7 +108,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       auto tfPtr = std::move(mTFQueue.front());
       mTFQueue.pop();
       if (!tfPtr) {
-        LOG(ERROR) << "Builder provided nullptr TF pointer";
+        LOG(error) << "Builder provided nullptr TF pointer";
         continue;
       }
       auto tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
@@ -156,7 +156,7 @@ void TFReaderSpec::endOfStream(o2f::EndOfStreamContext& ec)
 //___________________________________________________________
 void TFReaderSpec::stopProcessing(o2f::ProcessingContext& ctx)
 {
-  LOG(INFO) << mTFCounter << " TFs in " << mFileFetcher->getNLoops() << " loops were sent";
+  LOG(info) << mTFCounter << " TFs in " << mFileFetcher->getNLoops() << " loops were sent";
   mRunning = false;
   mFileFetcher->stop();
   mFileFetcher.reset();
@@ -181,7 +181,7 @@ void TFReaderSpec::TFBuilder()
     tfFileName = mFileFetcher ? mFileFetcher->getNextFileInQueue() : "";
     if (!mRunning || (tfFileName.empty() && !mFileFetcher->isRunning()) || mTFBuilderCounter >= mInput.maxTFs) {
       // stopped or no more files in the queue is expected or needed
-      LOG(INFO) << "TFBuilder stops processing";
+      LOG(info) << "TFBuilder stops processing";
       if (mFileFetcher) {
         mFileFetcher->stop();
       }
@@ -192,7 +192,7 @@ void TFReaderSpec::TFBuilder()
       std::this_thread::sleep_for(10ms); // fait for the files cache to be filled
       continue;
     }
-    LOG(INFO) << "Processing file " << tfFileName;
+    LOG(info) << "Processing file " << tfFileName;
     SubTimeFrameFileReader reader(tfFileName, mInput.detMask);
     size_t locID = 0;
     //try

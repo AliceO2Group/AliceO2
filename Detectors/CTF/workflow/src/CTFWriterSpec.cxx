@@ -219,9 +219,9 @@ void CTFWriterSpec::init(InitContext& ic)
   mMaxCTFPerFile = ic.options().get<int>("max-ctf-per-file");
   if (mWriteCTF) {
     if (mMinSize > 0) {
-      LOG(INFO) << "Multiple CTFs will be accumulated in the tree/file until its size exceeds " << mMinSize << " bytes";
+      LOG(info) << "Multiple CTFs will be accumulated in the tree/file until its size exceeds " << mMinSize << " bytes";
       if (mMaxSize > mMinSize) {
-        LOG(INFO) << "but does not exceed " << mMaxSize << " bytes";
+        LOG(info) << "but does not exceed " << mMaxSize << " bytes";
       }
     }
   }
@@ -381,7 +381,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
       time_t now = time(nullptr);
       auto ltm = gmtime(&now);
       mLHCPeriod = months[ltm->tm_mon];
-      LOG(WARNING) << "LHCPeriod is not available, using current month " << mLHCPeriod;
+      LOG(warning) << "LHCPeriod is not available, using current month " << mLHCPeriod;
     }
     if (mDets.count() <= mFlagMinDet) { // flag participating detectors
       for (auto id = DetID::First; id <= DetID::Last; id++) {
@@ -424,15 +424,15 @@ void CTFWriterSpec::run(ProcessingContext& pc)
     mAccCTFSize += szCTF;
     mCTFTreeOut->SetEntries(++mNAccCTF);
     mTFOrbits.push_back(dh->firstTForbit);
-    LOG(INFO) << "TF#" << mNCTF << ": wrote CTF{" << header << "} of size " << szCTF << " to " << mCurrentCTFFileNameFull << " in " << mTimer.CpuTime() - cput << " s";
+    LOG(info) << "TF#" << mNCTF << ": wrote CTF{" << header << "} of size " << szCTF << " to " << mCurrentCTFFileNameFull << " in " << mTimer.CpuTime() - cput << " s";
     if (mNAccCTF > 1) {
-      LOG(INFO) << "Current CTF tree has " << mNAccCTF << " entries with total size of " << mAccCTFSize << " bytes";
+      LOG(info) << "Current CTF tree has " << mNAccCTF << " entries with total size of " << mAccCTFSize << " bytes";
     }
     if (mLockFD != -1) {
       lseek(mLockFD, 0, SEEK_SET);
       auto nwr = write(mLockFD, &mAccCTFSize, sizeof(size_t));
       if (nwr != sizeof(size_t)) {
-        LOG(ERROR) << "Failed to write current CTF size " << mAccCTFSize << " to lock file, bytes written: " << nwr;
+        LOG(error) << "Failed to write current CTF size " << mAccCTFSize << " to lock file, bytes written: " << nwr;
       }
     }
 
@@ -442,7 +442,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
       mCTFTreeOut->AutoSave("override");
     }
   } else {
-    LOG(INFO) << "TF#" << mNCTF << " CTF writing is disabled, size was " << szCTF << " bytes";
+    LOG(info) << "TF#" << mNCTF << " CTF writing is disabled, size was " << szCTF << " bytes";
   }
 
   mNCTF++;
@@ -494,7 +494,7 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
       auto sz = getAvailableDiskSpace(ctfDir, 0); // check main storage
       if (sz < mChkSize) {
         removeLockFile();
-        LOG(WARNING) << "Primary CTF output device has available size " << sz << " while " << mChkSize << " is requested: will write on secondary one";
+        LOG(warning) << "Primary CTF output device has available size " << sz << " while " << mChkSize << " is requested: will write on secondary one";
         ctfDir = mCTFDirFallBack;
       }
     }
@@ -504,7 +504,7 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
         if (!std::filesystem::create_directories(ctfDir)) {
           throw std::runtime_error(fmt::format("Failed to create {} directory", ctfDir));
         } else {
-          LOG(INFO) << "Created {} directory for CTFs output" << ctfDir;
+          LOG(info) << "Created {} directory for CTFs output" << ctfDir;
         }
       }
     }
@@ -553,12 +553,12 @@ void CTFWriterSpec::closeTFTreeAndFile()
           metaFileOut.close();
           std::filesystem::rename(metaFileNameTmp, metaFileName);
         } catch (std::exception const& e) {
-          LOG(ERROR) << "Failed to store CTF meta data file " << metaFileName << ", reason: " << e.what();
+          LOG(error) << "Failed to store CTF meta data file " << metaFileName << ", reason: " << e.what();
         }
         mCTFFileMetaData.reset();
       }
     } catch (std::exception const& e) {
-      LOG(ERROR) << "Failed to finalize CTF file " << mCurrentCTFFileNameFull << ", reason: " << e.what();
+      LOG(error) << "Failed to finalize CTF file " << mCurrentCTFFileNameFull << ", reason: " << e.what();
     }
     mTFOrbits.clear();
     mNAccCTF = 0;
@@ -622,7 +622,7 @@ void CTFWriterSpec::storeDictionaries()
   if (mDictTreeOut) {
     closeDictionaryTreeAndFile(header);
   }
-  LOG(INFO) << "Saved CTF dictionary after " << mNCTF << " TFs processed";
+  LOG(info) << "Saved CTF dictionary after " << mNCTF << " TFs processed";
 }
 
 //___________________________________________________________________
@@ -723,11 +723,11 @@ size_t CTFWriterSpec::getAvailableDiskSpace(const std::string& path, int level)
 DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, const std::string& outType, int verbosity)
 {
   std::vector<InputSpec> inputs;
-  LOG(DEBUG) << "Detectors list:";
+  LOG(debug) << "Detectors list:";
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (dets[id]) {
       inputs.emplace_back(DetID::getName(id), DetID::getDataOrigin(id), "CTFDATA", 0, Lifetime::Timeframe);
-      LOG(DEBUG) << "Det " << DetID::getName(id) << " added";
+      LOG(debug) << "Det " << DetID::getName(id) << " added";
     }
   }
   return DataProcessorSpec{

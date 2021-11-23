@@ -111,9 +111,9 @@ void fillCollisionAndTrackTable()
   auto tpctracks = fetchTracks<o2::tpc::TrackTPC>("tpctracks.root", "tpcrec", "TPCTracks");
   auto itstracks = fetchTracks<o2::its::TrackITS>("o2trac_its.root", "o2sim", "ITSTrack");
   auto itstpctracks = fetchTracks<o2::dataformats::TrackTPCITS>("o2match_itstpc.root", "matchTPCITS", "TPCITS");
-  LOG(INFO) << "FOUND " << tpctracks->size() << " TPC tracks";
-  LOG(INFO) << "FOUND " << itstracks->size() << " ITS tracks";
-  LOG(INFO) << "FOUND " << itstpctracks->size() << " ITCTPC tracks";
+  LOG(info) << "FOUND " << tpctracks->size() << " TPC tracks";
+  LOG(info) << "FOUND " << itstracks->size() << " ITS tracks";
+  LOG(info) << "FOUND " << itstpctracks->size() << " ITCTPC tracks";
 
   if (t) {
     auto br = t->GetBranch("PrimaryVertex");
@@ -173,7 +173,7 @@ void fillCollisionAndTrackTable()
           } else if (source == o2::dataformats::VtxTrackIndex::Source::ITSTPC) {
             track = &((*itstpctracks)[trackindex.getIndex()]);
           } else {
-            LOG(WARNING) << "Unsupported track source";
+            LOG(warning) << "Unsupported track source";
           }
 
           //DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK:PAR",

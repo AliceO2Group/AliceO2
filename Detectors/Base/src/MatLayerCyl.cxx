@@ -153,7 +153,7 @@ void MatLayerCyl::populateFromTGeo(int ip, int iz, int ntrPerCell)
 bool MatLayerCyl::canMergePhiSlices(int i, int j, float maxRelDiff, int maxDifferent) const
 {
   if (std::abs(i - j) > 1 || i == j || std::max(i, j) >= getNPhiSlices()) {
-    LOG(ERROR) << "Only existing " << getNPhiSlices() << " slices with diff. of 1 can be merged, input is " << i << " and " << j;
+    LOG(error) << "Only existing " << getNPhiSlices() << " slices with diff. of 1 can be merged, input is " << i << " and " << j;
     return false;
   }
   int ndiff = 0; // number of different cells
@@ -189,7 +189,7 @@ void MatLayerCyl::optimizePhiSlices(float maxRelDiff)
 {
   // merge compatible phi slices
   if (getNPhiSlices() < getNPhiBins()) {
-    LOG(ERROR) << getNPhiBins() << " phi bins were already merged to " << getNPhiSlices() << " slices";
+    LOG(error) << getNPhiBins() << " phi bins were already merged to " << getNPhiSlices() << " slices";
     return;
   }
   int newSl = 0;
@@ -199,7 +199,7 @@ void MatLayerCyl::optimizePhiSlices(float maxRelDiff)
     }
     mPhiBin2Slice[is] = newSl;
   }
-  LOG(INFO) << newSl + 1 << " slices out of " << getNPhiBins();
+  LOG(info) << newSl + 1 << " slices out of " << getNPhiBins();
   if (newSl + 1 == getNPhiSlices()) {
     return;
   }
@@ -224,7 +224,7 @@ void MatLayerCyl::optimizePhiSlices(float maxRelDiff)
         }
         mCells[iDest].scale(norm);
       }
-      LOG(INFO) << "mapping " << slMin << ":" << slMax << " to new slice " << newSl;
+      LOG(info) << "mapping " << slMin << ":" << slMax << " to new slice " << newSl;
     }
     newSl++;
     slMin = slMax = is;
@@ -240,7 +240,7 @@ void MatLayerCyl::optimizePhiSlices(float maxRelDiff)
   dst = ((char*)mSliceSin) + offs; // account for alignment
   o2::gpu::resizeArray(mCells, getNPhiBins() * getNZBins(), newSl * getNZBins(), reinterpret_cast<MatCell*>(dst));
   mFlatBufferSize = estimateFlatBufferSize();
-  LOG(INFO) << "Updated Nslices = " << getNPhiSlices();
+  LOG(info) << "Updated Nslices = " << getNPhiSlices();
 }
 
 //________________________________________________________________________________

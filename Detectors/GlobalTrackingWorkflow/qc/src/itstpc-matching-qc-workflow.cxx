@@ -35,7 +35,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2-itstpc-matching-qc.ini");
-  LOG(INFO) << "ITSTPC matching QC: disable-mc = " << configcontext.options().get<std::string>("disable-mc");
+  LOG(info) << "ITSTPC matching QC: disable-mc = " << configcontext.options().get<std::string>("disable-mc");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
 
   WorkflowSpec specs;

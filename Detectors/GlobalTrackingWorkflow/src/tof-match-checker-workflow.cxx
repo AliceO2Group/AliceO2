@@ -67,11 +67,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootIn = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
-  LOG(DEBUG) << "TOF MATCHER WORKFLOW configuration";
-  LOG(DEBUG) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");
-  LOG(DEBUG) << "TOF disable-mc = " << configcontext.options().get<std::string>("disable-mc");
-  LOG(DEBUG) << "TOF disable-root-input = " << disableRootIn;
-  LOG(DEBUG) << "TOF disable-root-output = " << disableRootOut;
+  LOG(debug) << "TOF MATCHER WORKFLOW configuration";
+  LOG(debug) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");
+  LOG(debug) << "TOF disable-mc = " << configcontext.options().get<std::string>("disable-mc");
+  LOG(debug) << "TOF disable-root-input = " << disableRootIn;
+  LOG(debug) << "TOF disable-root-output = " << disableRootOut;
 
   GID::mask_t alowedSources = GID::getSourcesMask("ITS-TPC-TOF,TPC-TOF,ITS-TPC-TRD-TOF,TPC-TRD-TOF");
 
