@@ -75,7 +75,7 @@ jobs:
 
     - name: Exit with error if the PR is not clean
       run: |
-        case ${{ steps.clang_format.outputs.clean }} in
+        case ${{ steps. run_refactoring.outputs.clean }} in
           true) echo "PR clean" ; exit 0 ;;
           false) echo "PR not clean" ; exit 1 ;;
         esac
