@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
       ich += 1 + gRandom->Poisson(10);
     }
     auto end = channels.size();
-
+    trigger.triggerSignals = gRandom->Integer(255);
     digits.emplace_back(start, end - start, ir, trigger);
   }
 
@@ -103,16 +103,21 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   LOG(info) << "  BOOST_CHECK digitsD.size() " << digitsD.size() << " digits.size() " << digits.size() << " BOOST_CHECK(channelsD.size()  " << channelsD.size() << " channels.size()) " << channels.size();
 
   for (int i = digits.size(); i--;) {
-    const auto& dor = digits[i];
-    const auto& ddc = digitsD[i];
-    BOOST_CHECK(dor.ir == ddc.ir);
-    BOOST_CHECK(dor.ref == ddc.ref);
+    //    const auto& dor = digits[i];
+    //    const auto& ddc = digitsD[i];
+    BOOST_CHECK(digits[i] == digitsD[i]);
+    //    BOOST_CHECK(dor.ir == ddc.ir);
+    //    BOOST_CHECK(dor.ref == ddc.ref);
+    //    BOOST_CHECK(dor.mTriggers == ddc.mTriggers);
   }
   for (int i = channels.size(); i--;) {
+    /*
     const auto& cor = channels[i];
     const auto& cdc = channelsD[i];
     BOOST_CHECK(cor.pmtNumber == cdc.pmtNumber);
     BOOST_CHECK(cor.time == cdc.time);
     BOOST_CHECK(cor.chargeAdc == cdc.chargeAdc);
+    */
+    BOOST_CHECK(channels[i] == channelsD[i]);
   }
 }
