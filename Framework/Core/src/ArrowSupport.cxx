@@ -292,14 +292,14 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        for (size_t di = 0; di < specs.size(); di++) {
                          if (availableSharedMemory < possibleOffer) {
                            if (lowSharedMemoryCount == 0) {
-                             LOGP(INFO, "We do not have enough shared memory ({}MB) to offer {}MB", availableSharedMemory, possibleOffer);
+                             LOGP(info, "We do not have enough shared memory ({}MB) to offer {}MB", availableSharedMemory, possibleOffer);
                            }
                            lowSharedMemoryCount++;
                            enoughSharedMemoryCount = 0;
                            break;
                          } else {
                            if (enoughSharedMemoryCount == 0) {
-                             LOGP(INFO, "We are back in a state where we enough shared memory: {}MB", availableSharedMemory);
+                             LOGP(info, "We are back in a state where we enough shared memory: {}MB", availableSharedMemory);
                            }
                            enoughSharedMemoryCount++;
                            lowSharedMemoryCount = 0;
@@ -336,12 +336,12 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static int64_t lastShmOfferConsumed = 0;
                        static int64_t lastUnusedOfferedMemory = 0;
                        if (shmOfferConsumed != lastShmOfferConsumed) {
-                         LOGP(INFO, "Offer consumed so far {}", shmOfferConsumed);
+                         LOGP(info, "Offer consumed so far {}", shmOfferConsumed);
                          lastShmOfferConsumed = shmOfferConsumed;
                        }
                        int unusedOfferedMemory = (offeredSharedMemory - (totalBytesExpired + shmOfferConsumed) / 1000000);
                        if (lastUnusedOfferedMemory != unusedOfferedMemory) {
-                         LOGP(INFO, "unusedOfferedMemory:{} = offered:{} - (expired:{} + consumed:{}) / 1000000", unusedOfferedMemory, offeredSharedMemory, totalBytesExpired / 1000000, shmOfferConsumed / 1000000);
+                         LOGP(info, "unusedOfferedMemory:{} = offered:{} - (expired:{} + consumed:{}) / 1000000", unusedOfferedMemory, offeredSharedMemory, totalBytesExpired / 1000000, shmOfferConsumed / 1000000);
                          lastUnusedOfferedMemory = unusedOfferedMemory;
                        }
                        // availableSharedMemory is the amount of memory which we know is available to be offered.
@@ -363,7 +363,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          }
                          auto dh = o2::header::get<DataHeader*>(input.header);
                          if (dh->serialization != o2::header::gSerializationMethodArrow) {
-                           LOGP(DEBUG, "Message {}/{} is not of kind arrow, therefore we are not accounting its shared memory", dh->dataOrigin, dh->dataDescription);
+                           LOGP(debug, "Message {}/{} is not of kind arrow, therefore we are not accounting its shared memory", dh->dataOrigin, dh->dataDescription);
                            continue;
                          }
                          auto dph = o2::header::get<DataProcessingHeader*>(input.header);
@@ -375,15 +375,15 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            }
                          }
                          if (forwarded) {
-                           LOGP(DEBUG, "Message {}/{} is forwarded so we are not returning its memory.", dh->dataOrigin, dh->dataDescription);
+                           LOGP(debug, "Message {}/{} is forwarded so we are not returning its memory.", dh->dataOrigin, dh->dataDescription);
                            continue;
                          }
-                         LOGP(DEBUG, "Message {}/{} is being deleted. We will return {}MB.", dh->dataOrigin, dh->dataDescription, dh->payloadSize / 1000000.);
+                         LOGP(debug, "Message {}/{} is being deleted. We will return {}MB.", dh->dataOrigin, dh->dataDescription, dh->payloadSize / 1000000.);
                          totalBytes += dh->payloadSize;
                          totalMessages += 1;
                        }
                        arrow->updateBytesDestroyed(totalBytes);
-                       LOGP(DEBUG, "{}MB bytes being given back to reader, totaling {}MB", totalBytes / 1000000., arrow->bytesDestroyed() / 1000000.);
+                       LOGP(debug, "{}MB bytes being given back to reader, totaling {}MB", totalBytes / 1000000., arrow->bytesDestroyed() / 1000000.);
                        arrow->updateMessagesDestroyed(totalMessages);
                        auto& monitoring = ctx.services().get<Monitoring>();
                        monitoring.send(Metric{(uint64_t)arrow->bytesDestroyed(), "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
@@ -405,7 +405,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static bool once = false;
                        // Until we guarantee this is called only once...
                        if (!once) {
-                         LOGP(INFO, "Rate limiting set up at {}MB distributed over {} readers", config->maxMemory, readers);
+                         LOGP(info, "Rate limiting set up at {}MB distributed over {} readers", config->maxMemory, readers);
                          registry.registerService(ServiceRegistryHelpers::handleForService<RateLimitConfig>(config));
                          once = true;
                        } },
