@@ -39,7 +39,7 @@ class MCTruthReaderTask : public o2::framework::Task
 
   void init(framework::InitContext& ic) override
   {
-    LOG(INFO) << "Initializing MCTruth reader ";
+    LOG(info) << "Initializing MCTruth reader ";
   }
 
   void run(framework::ProcessingContext& pc) override
@@ -47,9 +47,9 @@ class MCTruthReaderTask : public o2::framework::Task
     if (mFinished) {
       return;
     }
-    LOG(INFO) << "Running MCTruth reader ";
+    LOG(info) << "Running MCTruth reader ";
     auto labelfilename = pc.inputs().get<TString*>("trigger");
-    LOG(INFO) << "Opening file " << labelfilename->Data();
+    LOG(info) << "Opening file " << labelfilename->Data();
     TFile f(labelfilename->Data(), "OPEN");
     auto tree = (TTree*)f.Get("o2sim");
     auto br = tree->GetBranch("Labels");
@@ -70,8 +70,8 @@ class MCTruthReaderTask : public o2::framework::Task
       br->SetAddress(&mccontainer);
       br->GetEntry(0);
 
-      LOG(INFO) << "MCCONTAINER CHECK" << mccontainer;
-      LOG(INFO) << "MCCONTAINER CHECK" << mccontainer->getNElements();
+      LOG(info) << "MCCONTAINER CHECK" << mccontainer;
+      LOG(info) << "MCCONTAINER CHECK" << mccontainer->getNElements();
 
       // publish the original labels
       pc.outputs().snapshot(Output{"TST", "LABELS2", 0, Lifetime::Timeframe}, *mccontainer);
