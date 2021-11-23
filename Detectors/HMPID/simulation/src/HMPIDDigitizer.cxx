@@ -79,14 +79,14 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
     for (int nx = -1; nx <= 1; ++nx) {
       for (int ny = -1; ny <= 1; ++ny) {
         if ((px + nx) < 0 || (px + nx) > 79 || (py + ny) < 0 || (py + ny) > 47) {
-          LOG(INFO) << ">> Pad out the PhotoCathod boundary. Excluded :" << px << " " << py << " :" << nx << "," << ny;
+          LOG(info) << ">> Pad out the PhotoCathod boundary. Excluded :" << px << " " << py << " :" << nx << "," << ny;
           continue;
         }
         allpads[counter] = o2::hmpid::Digit::abs(chamber, pc, px + nx, py + ny);
         counter++;
       }
     }
-    // LOG(INFO) << "." <<  px << " " << py ;
+    // LOG(info) << "." <<  px << " " << py ;
     for (auto& pad : allpads) {
       auto iter = mIndexForPad.find(pad);
       int index = -1;
@@ -95,7 +95,7 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
       }
       // auto index = mIndexForPad[pad];
       float fraction = o2::hmpid::Digit::getFractionalContributionForPad(hit, (int)pad);
-      // LOG(INFO) << "FRACTION ON PAD " << pad << " IS " << fraction;
+      // LOG(info) << "FRACTION ON PAD " << pad << " IS " << fraction;
       if (index != -1) {
         // digit exists ... reuse
         auto& digit = mDigits[index];
