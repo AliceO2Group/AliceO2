@@ -68,7 +68,7 @@ class GRPDPLUpdatedTask
       semhashedstring = "alice_grp_" + std::to_string(hasher(semname)).substr(0, 16);
       sem = new boost::interprocess::named_semaphore(boost::interprocess::open_or_create_t{}, semhashedstring.c_str(), 1);
     } catch (std::exception e) {
-      LOG(WARN) << "Could not setup GRP semaphore; Continuing without";
+      LOG(warn) << "Could not setup GRP semaphore; Continuing without";
       sem = nullptr;
     }
     try {
@@ -90,7 +90,7 @@ class GRPDPLUpdatedTask
 
       TFile flGRP(mGRPFileName.c_str(), "update");
       if (flGRP.IsZombie()) {
-        LOG(ERROR) << "Failed to open in update mode " << mGRPFileName;
+        LOG(error) << "Failed to open in update mode " << mGRPFileName;
         postSem();
         return;
       }
@@ -98,21 +98,21 @@ class GRPDPLUpdatedTask
       for (auto det : sDetList) { // get readout mode data from different detectors
         auto roMode = pc.inputs().get<o2::parameters::GRPObject::ROMode>(det.getName());
         if (!(roMode & o2::parameters::GRPObject::PRESENT)) {
-          LOG(ERROR) << "Detector " << det.getName() << " is read out while processor set ABSENT";
+          LOG(error) << "Detector " << det.getName() << " is read out while processor set ABSENT";
           continue;
         }
         grp->setDetROMode(det, roMode);
       }
       grp->setFirstOrbit(o2::raw::HBFUtils::Instance().orbitFirst);
       grp->setNHBFPerTF(o2::raw::HBFUtils::Instance().nHBFPerTF);
-      LOG(INFO) << "Updated GRP in " << mGRPFileName << " for detectors RO mode and 1st orbit of the run";
+      LOG(info) << "Updated GRP in " << mGRPFileName << " for detectors RO mode and 1st orbit of the run";
       grp->print();
       flGRP.WriteObjectAny(grp.get(), grp->Class(), grpName.c_str());
       flGRP.Close();
 
       postSem();
     } catch (boost::interprocess::interprocess_exception e) {
-      LOG(ERROR) << "Caught semaphore exception " << e.what();
+      LOG(error) << "Caught semaphore exception " << e.what();
     }
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }

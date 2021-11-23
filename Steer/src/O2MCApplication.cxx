@@ -165,7 +165,7 @@ bool O2MCApplicationBase::MisalignGeometry()
 
 void O2MCApplicationBase::finishEventCommon()
 {
-  LOG(INFO) << "This event/chunk did " << mStepCounter << " steps";
+  LOG(info) << "This event/chunk did " << mStepCounter << " steps";
 
   auto header = static_cast<o2::dataformats::MCEventHeader*>(fMCEventHeader);
   header->getMCEventStats().setNSteps(mStepCounter);
@@ -181,7 +181,7 @@ void O2MCApplicationBase::FinishEvent()
   auto& confref = o2::conf::SimConfig::Instance();
 
   if (confref.isFilterOutNoHitEvents() && header->getMCEventStats().getNHits() == 0) {
-    LOG(INFO) << "Discarding current event due to no hits";
+    LOG(info) << "Discarding current event due to no hits";
     SetSaveCurrentEvent(false);
   }
 
@@ -207,8 +207,8 @@ void O2MCApplicationBase::AddParticles()
   FairMCApplication::AddParticles();
 
   auto& param = o2::conf::SimUserDecay::Instance();
-  LOG(INFO) << "Printing \'SimUserDecay\' parameters";
-  LOG(INFO) << param;
+  LOG(info) << "Printing \'SimUserDecay\' parameters";
+  LOG(info) << param;
 
   // check if there are PDG codes requested for user decay
   if (param.pdglist.empty()) {
@@ -219,7 +219,7 @@ void O2MCApplicationBase::AddParticles()
   std::stringstream ss(param.pdglist);
   int pdg;
   while (ss >> pdg) {
-    LOG(INFO) << "Setting user decay for PDG " << pdg;
+    LOG(info) << "Setting user decay for PDG " << pdg;
     TVirtualMC::GetMC()->SetUserDecay(pdg);
   }
 }
@@ -248,7 +248,7 @@ const T* attachBranch(std::string const& name, FairMQChannel& channel, FairMQPar
   auto mgr = FairRootManager::Instance();
   // check if branch is present
   if (mgr->GetBranchId(name) == -1) {
-    LOG(ERROR) << "Branch " << name << " not found";
+    LOG(error) << "Branch " << name << " not found";
     return nullptr;
   }
   auto data = mgr->InitObjectAs<const T*>(name.c_str());
@@ -283,7 +283,7 @@ void O2MCApplication::SendData()
       ((o2::base::Detector*)det)->attachHits(*mSimDataChannel, simdataparts);
     }
   }
-  LOG(INFO) << "sending message with " << simdataparts.Size() << " parts";
+  LOG(info) << "sending message with " << simdataparts.Size() << " parts";
   mSimDataChannel->Send(simdataparts);
 }
 } // namespace steer

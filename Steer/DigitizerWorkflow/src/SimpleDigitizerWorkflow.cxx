@@ -208,7 +208,7 @@ int getNumTPCLanes(std::vector<int> const& sectors, ConfigContext const& configc
   auto lanes = configcontext.options().get<int>("tpc-lanes");
   if (lanes < 0) {
     if (gIsMaster) {
-      LOG(FATAL) << "tpc-lanes needs to be positive\n";
+      LOG(fatal) << "tpc-lanes needs to be positive\n";
     }
     return 0;
   }
@@ -231,11 +231,11 @@ void initTPC()
   streamthis << "TPCGEMINIT_PID" << getpid();
   streamparent << "TPCGEMINIT_PID" << getppid();
   if (getenv(streamparent.str().c_str())) {
-    LOG(DEBUG) << "GEM ALREADY INITIALIZED ... SKIPPING HERE";
+    LOG(debug) << "GEM ALREADY INITIALIZED ... SKIPPING HERE";
     return;
   }
 
-  LOG(DEBUG) << "INITIALIZING TPC GEMAmplification";
+  LOG(debug) << "INITIALIZING TPC GEMAmplification";
   setenv(streamthis.str().c_str(), "ON", 1);
 
   auto& cdb = o2::tpc::CDBInterface::instance();
@@ -251,7 +251,7 @@ std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP)
 {
   auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
   if (!grp) {
-    LOG(ERROR) << "This workflow needs a valid GRP file to start";
+    LOG(error) << "This workflow needs a valid GRP file to start";
     return nullptr;
   }
   if (gIsMaster) {
@@ -397,7 +397,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto geomfilename = o2::base::NameConf::getGeomFileName(simPrefixes[0]);
   ConfigurableParam::setValue("DigiParams.digitizationgeometry", geomfilename);
   ConfigurableParam::setValue("DigiParams.grpfile", grpfile);
-  LOG(INFO) << "MC-TRUTH " << !configcontext.options().get<bool>("disable-mc");
+  LOG(info) << "MC-TRUTH " << !configcontext.options().get<bool>("disable-mc");
   bool mctruth = !configcontext.options().get<bool>("disable-mc");
   ConfigurableParam::setValue("DigiParams", "mctruth", mctruth);
 
@@ -438,7 +438,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto accepted = accept(id);
     bool is_ingrp = grp->isDetReadOut(id);
     if (gIsMaster) {
-      LOG(INFO) << id.getName()
+      LOG(info) << id.getName()
                 << " is in grp? " << (is_ingrp ? "yes" : "no") << ";"
                 << " is skipped? " << (!accepted ? "yes" : "no");
     }
