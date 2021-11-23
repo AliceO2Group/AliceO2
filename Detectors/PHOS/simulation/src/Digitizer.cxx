@@ -51,32 +51,32 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     if (o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath.compare("default") == 0) {
       //Use default calibration
       mCalibParams.reset(new CalibParams(1)); // test default calibration
-      LOG(INFO) << "Use default calibration";
+      LOG(info) << "Use default calibration";
     } else {
       o2::ccdb::CcdbApi ccdb;
       std::map<std::string, std::string> metadata;
       ccdb.init(o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath);
       mCalibParams.reset(ccdb.retrieveFromTFileAny<CalibParams>("PHS/Calib/CalibParams", metadata, mRunStartTime));
       if (mCalibParams) {
-        LOG(INFO) << "Use calibration from CCDB " << o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath;
+        LOG(info) << "Use calibration from CCDB " << o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath;
       } else {
-        LOG(FATAL) << "Can not get calibration object from ccdb " << o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath;
+        LOG(fatal) << "Can not get calibration object from ccdb " << o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath;
       }
     }
   }
   if (!mTrigUtils) {
     if (o2::phos::PHOSSimParams::Instance().mDigitizationTrigPath.compare("default") == 0) {
       mTrigUtils.reset(new TriggerMap(0)); // test default calibration
-      LOG(INFO) << "Use default trigger map and turn-on curves";
+      LOG(info) << "Use default trigger map and turn-on curves";
     } else {
       o2::ccdb::CcdbApi ccdb;
       std::map<std::string, std::string> metadata;
       ccdb.init(o2::phos::PHOSSimParams::Instance().mDigitizationTrigPath);
       mTrigUtils.reset(ccdb.retrieveFromTFileAny<TriggerMap>("PHS/Calib/Trigger", metadata, mRunStartTime));
       if (mTrigUtils) {
-        LOG(INFO) << "Use trigger map and turn-on curves from " << o2::phos::PHOSSimParams::Instance().mDigitizationTrigPath;
+        LOG(info) << "Use trigger map and turn-on curves from " << o2::phos::PHOSSimParams::Instance().mDigitizationTrigPath;
       } else {
-        LOG(FATAL) << "Can not get trigger object from ccdb " << o2::phos::PHOSSimParams::Instance().mDigitizationTrigPath;
+        LOG(fatal) << "Can not get trigger object from ccdb " << o2::phos::PHOSSimParams::Instance().mDigitizationTrigPath;
       }
     }
   }
