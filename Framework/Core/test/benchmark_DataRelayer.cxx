@@ -281,16 +281,18 @@ static void BM_RelaySplitParts(benchmark::State& state)
   dh1.dataDescription = "CLUSTERS";
   dh1.dataOrigin = "TPC";
   dh1.subSpecification = 0;
+  dh1.payloadSize = 100;
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
   size_t timeslice = 0;
+  const int nSplitParts = state.range(0);
 
   for (auto _ : state) {
     // FIXME: Understand why pausing the timer makes it slower..
     state.PauseTiming();
-    const int nSplitParts = 10;
+    relayer.clear();
     std::vector<std::unique_ptr<FairMQMessage>> splitParts;
-    splitParts.reserve(nSplitParts);
+    splitParts.reserve(2 * nSplitParts);
 
     for (size_t i = 0; i < nSplitParts; ++i) {
       DataProcessingHeader dph1{timeslice, 1};
@@ -299,7 +301,7 @@ static void BM_RelaySplitParts(benchmark::State& state)
       Stack stack1{dh1, dph1};
 
       FairMQMessagePtr header1 = transport->CreateMessage(stack1.size());
-      FairMQMessagePtr payload1 = transport->CreateMessage(100);
+      FairMQMessagePtr payload1 = transport->CreateMessage(dh1.payloadSize);
 
       memcpy(header1->GetData(), stack1.data(), stack1.size());
       splitParts.emplace_back(std::move(header1));
@@ -313,9 +315,64 @@ static void BM_RelaySplitParts(benchmark::State& state)
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
   }
-  // One for the header, one for the payload
 }
 
-BENCHMARK(BM_RelaySplitParts);
+BENCHMARK(BM_RelaySplitParts)->Arg(10)->Arg(100)->Arg(1000);
+
+static void BM_RelayMultiplePayloads(benchmark::State& state)
+{
+  Monitoring metrics;
+  InputSpec spec1{"clusters", "TPC", "CLUSTERS"};
+
+  std::vector<InputRoute> inputs = {
+    InputRoute{spec1, 0, "Fake1", 0},
+  };
+
+  std::vector<ForwardRoute> forwards;
+  TimesliceIndex index{1};
+
+  auto policy = CompletionPolicyHelpers::consumeWhenAny();
+  DataRelayer relayer(policy, inputs, metrics, index);
+  relayer.setPipelineLength(4);
+
+  // DataHeader matching the one provided in the input
+  DataHeader dh;
+  dh.dataDescription = "CLUSTERS";
+  dh.dataOrigin = "TPC";
+  dh.subSpecification = 0;
+  dh.payloadSize = 100;
+
+  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  size_t timeslice = 0;
+  const int nPayloads = state.range(0);
+
+  for (auto _ : state) {
+    // FIXME: Understand why pausing the timer makes it slower..
+    state.PauseTiming();
+    relayer.clear();
+    std::vector<std::unique_ptr<FairMQMessage>> inflightMessages;
+    inflightMessages.reserve(nPayloads + 1);
+
+    DataProcessingHeader dph{timeslice, 1};
+    dh.splitPayloadIndex = nPayloads;
+    dh.splitPayloadParts = nPayloads;
+    Stack stack{dh, dph};
+    FairMQMessagePtr header = transport->CreateMessage(stack.size());
+    memcpy(header->GetData(), stack.data(), stack.size());
+    inflightMessages.emplace_back(std::move(header));
+    for (size_t i = 0; i < nPayloads; ++i) {
+      inflightMessages.emplace_back(transport->CreateMessage(dh.payloadSize));
+    }
+    state.ResumeTiming();
+
+    relayer.relay(inflightMessages[0]->GetData(), inflightMessages.data(), inflightMessages.size(), nPayloads);
+    std::vector<RecordAction> ready;
+    relayer.getReadyToProcess(ready);
+    assert(ready.size() == 1);
+    assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
+  }
+}
+
+BENCHMARK(BM_RelayMultiplePayloads)->Arg(10)->Arg(100)->Arg(1000);
 
 BENCHMARK_MAIN();
