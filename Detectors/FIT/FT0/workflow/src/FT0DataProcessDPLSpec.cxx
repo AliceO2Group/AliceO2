@@ -26,7 +26,7 @@ void FT0DataProcessDPLSpec::init(InitContext& ic)
 
 void FT0DataProcessDPLSpec::run(ProcessingContext& pc)
 {
-  LOG(INFO) << "FT0DataProcessDPLSpec running...";
+  LOG(info) << "FT0DataProcessDPLSpec running...";
   auto vecDigits = pc.inputs().get<std::vector<Digit>>("digits");
   auto vecChannelData = pc.inputs().get<std::vector<ChannelData>>("digch");
   if (mDumpEventBlocks) {
@@ -39,7 +39,7 @@ DataProcessorSpec getFT0DataProcessDPLSpec(bool dumpProcessor)
   std::vector<InputSpec> inputSpec;
   inputSpec.emplace_back("digits", o2::header::gDataOriginFT0, "DIGITSBC", 0, Lifetime::Timeframe);
   inputSpec.emplace_back("digch", o2::header::gDataOriginFT0, "DIGITSCH", 0, Lifetime::Timeframe);
-  LOG(INFO) << "DataProcessorSpec getFT0DataProcessDPLSpec";
+  LOG(info) << "DataProcessorSpec getFT0DataProcessDPLSpec";
   return DataProcessorSpec{
     "ft0-dataprocess-dpl-flp",
     inputSpec,

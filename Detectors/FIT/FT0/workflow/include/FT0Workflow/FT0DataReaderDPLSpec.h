@@ -77,7 +77,7 @@ class FT0DataReaderDPLSpec : public Task
       gsl::span<const uint8_t> payload(it.data(), it.size());
       mRawReader.process(payload, rdhPtr->linkID, rdhPtr->endPointID);
     }
-    LOG(INFO) << "Pages: " << count;
+    LOG(info) << "Pages: " << count;
     mRawReader.accumulateDigits();
     mRawReader.makeSnapshot(pc);
     mRawReader.clear();
@@ -88,7 +88,7 @@ class FT0DataReaderDPLSpec : public Task
 template <typename RawReader>
 framework::DataProcessorSpec getFT0DataReaderDPLSpec(const RawReader& rawReader, bool askSTFDist)
 {
-  LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderFT0";
+  LOG(info) << "DataProcessorSpec initDataProcSpec() for RawReaderFT0";
   std::vector<OutputSpec> outputSpec;
   RawReader::prepareOutputSpec(outputSpec);
   std::vector<InputSpec> inputSpec{{"STF", ConcreteDataTypeMatcher{o2::header::gDataOriginFT0, "RAWDATA"}, Lifetime::Optional}};

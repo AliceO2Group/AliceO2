@@ -63,7 +63,7 @@ class RawWriterFIT
   }
   void convertDigitsToRaw(const std::string& outputDir, const std::string& filenameDigits)
   {
-    LOG(INFO) << "Converting Digits to Raw data...";
+    LOG(info) << "Converting Digits to Raw data...";
     mWriter.setCarryOverCallBack(this);
     LookupTable_t::Instance().printFullMap();
     //Preparing topo2FEEmetadata map
@@ -97,7 +97,7 @@ class RawWriterFIT
     //Processing digits into raw data
     TFile* inputFile = TFile::Open(filenameDigits.c_str());
     assert(inputFile != nullptr);
-    LOG(INFO) << "Source file: " << filenameDigits;
+    LOG(info) << "Source file: " << filenameDigits;
     TTree* inputTree = dynamic_cast<TTree*>(inputFile->Get("o2sim"));
     DigitBlockFIT_t::processDigitBlocks(inputTree, *this);
     delete inputTree;
@@ -117,7 +117,7 @@ class RawWriterFIT
         const auto& dataBlock = dataBlockPair.second;
         const auto itRdh = mMapTopo2FEEmetadata.find(topo);
         if (itRdh == mMapTopo2FEEmetadata.end()) {
-          LOG(WARNING) << "No CRU entry in map! Data block: ";
+          LOG(warning) << "No CRU entry in map! Data block: ";
           dataBlock.print();
           continue;
         }
@@ -134,7 +134,7 @@ class RawWriterFIT
       const auto& dataBlock = dataBlockPair.second;
       const auto itRdh = mMapTopo2FEEmetadata.find(topo);
       if (itRdh == mMapTopo2FEEmetadata.end()) {
-        LOG(WARNING) << "No CRU entry in map! Data block: ";
+        LOG(warning) << "No CRU entry in map! Data block: ";
         dataBlock.print();
         continue;
       }

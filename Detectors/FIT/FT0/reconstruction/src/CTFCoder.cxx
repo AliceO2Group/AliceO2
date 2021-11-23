@@ -160,6 +160,6 @@ size_t CTFCoder::estimateCompressedSize(const CompressedDigits& cd)
   sz += ESTSIZE(cd.qtcAmpl,   CTF::BLC_qtcAmpl);
   // clang-format on
 
-  LOG(INFO) << "Estimated output size is " << sz << " bytes";
+  LOG(info) << "Estimated output size is " << sz << " bytes";
   return sz;
 }
