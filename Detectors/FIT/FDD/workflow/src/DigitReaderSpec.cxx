@@ -63,11 +63,11 @@ void DigitReader::run(ProcessingContext& pc)
 
   mTree->SetBranchAddress(mDigitBCBranchName.c_str(), &digitsBC);
   mTree->SetBranchAddress(mDigitChBranchName.c_str(), &digitsCh);
+  if (mTree->GetBranch(mTriggerBranchName.c_str())) {
+    mTree->SetBranchAddress(mTriggerBranchName.c_str(), &digitsTrig);
+  }
 
   if (mUseMC) {
-    if (mTree->GetBranch(mTriggerBranchName.c_str())) {
-      mTree->SetBranchAddress(mTriggerBranchName.c_str(), &digitsTrig);
-    }
     if (mTree->GetBranch(mDigitMCTruthBranchName.c_str())) {
       mTree->SetBranchAddress(mDigitMCTruthBranchName.c_str(), &mcTruthRootBuffer);
       LOG(INFO) << "Will use MC-truth from " << mDigitMCTruthBranchName;
