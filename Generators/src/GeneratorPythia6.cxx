@@ -61,7 +61,7 @@ Bool_t GeneratorPythia6::Init()
   if (!mConfig.empty()) {
     std::ifstream fin(mConfig.c_str());
     if (!fin.is_open()) {
-      LOG(FATAL) << "cannot open configuration file: " << mConfig;
+      LOG(fatal) << "cannot open configuration file: " << mConfig;
       return kFALSE;
     }
     /** process configuration file **/
