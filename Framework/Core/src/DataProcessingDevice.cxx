@@ -113,7 +113,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
                       &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
       auto& err = error_from_ref(e);
-      LOGP(ERROR, "Exception caught: {} ", err.what);
+      LOGP(error, "Exception caught: {} ", err.what);
       backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       serviceRegistry.get<DataProcessingStats>().exceptionCount++;
       ErrorContext errorContext{record, serviceRegistry, e};
@@ -124,7 +124,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
                       &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
       auto& err = error_from_ref(e);
-      LOGP(ERROR, "Exception caught: {} ", err.what);
+      LOGP(error, "Exception caught: {} ", err.what);
       backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       serviceRegistry.get<DataProcessingStats>().exceptionCount++;
       switch (errorPolicy) {
@@ -150,14 +150,14 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
   int res = uv_async_init(mState.loop, mAwakeHandle, on_communication_requested);
   mAwakeHandle->data = &mState;
   if (res < 0) {
-    LOG(ERROR) << "Unable to initialise subscription";
+    LOG(error) << "Unable to initialise subscription";
   }
 
   /// This should post a message on the queue...
   SubscribeToNewTransition("dpl", [wakeHandle = mAwakeHandle, deviceContext = &mDeviceContext](fair::mq::Transition t) {
     int res = uv_async_send(wakeHandle);
     if (res < 0) {
-      LOG(ERROR) << "Unable to notify subscription";
+      LOG(error) << "Unable to notify subscription";
     }
     LOG(debug) << "State transition requested";
   });
@@ -979,7 +979,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     }
     assert(std::accumulate(results.begin(), results.end(), 0, [](size_t const& count, auto const& element) -> size_t { return count + element.size; }));
     if (results.size() + nTotalPayloads != parts.Size()) {
-      LOG(ERROR) << "inconsistent number of inputs extracted";
+      LOG(error) << "inconsistent number of inputs extracted";
       return std::nullopt;
     }
     return results;
@@ -1057,7 +1057,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     auto r = std::distance(it, parts.fParts.end());
     parts.fParts.erase(it, parts.end());
     if (parts.fParts.size()) {
-      LOG(DEBUG) << parts.fParts.size() << " messages backpressured";
+      LOG(debug) << parts.fParts.size() << " messages backpressured";
     }
   };
 
@@ -1309,12 +1309,12 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
         auto fdph = o2::header::get<DataProcessingHeader*>(header->GetData());
         if (fdph == nullptr) {
-          LOG(ERROR) << "Data is missing DataProcessingHeader";
+          LOG(error) << "Data is missing DataProcessingHeader";
           continue;
         }
         auto fdh = o2::header::get<DataHeader*>(header->GetData());
         if (fdh == nullptr) {
-          LOG(ERROR) << "Data is missing DataHeader";
+          LOG(error) << "Data is missing DataHeader";
           continue;
         }
         // We need to find the forward route only for the first
@@ -1520,7 +1520,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
 void DataProcessingDevice::error(const char* msg)
 {
-  LOG(ERROR) << msg;
+  LOG(error) << msg;
   mServiceRegistry.get<DataProcessingStats>().errorCount++;
 }
 

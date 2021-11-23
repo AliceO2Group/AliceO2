@@ -398,7 +398,7 @@ DataRelayer::RelayChoice
   };
 
   if (input == INVALID_INPUT) {
-    LOG(ERROR) << "Could not match incoming data to any input route: " << DataHeaderInfo();
+    LOG(error) << "Could not match incoming data to any input route: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
     for (size_t pi = 0; pi < nMessages; ++pi) {
@@ -408,7 +408,7 @@ DataRelayer::RelayChoice
   }
 
   if (TimesliceId::isValid(timeslice) == false) {
-    LOG(ERROR) << "Could not determine the timeslice for input: " << DataHeaderInfo();
+    LOG(error) << "Could not determine the timeslice for input: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
     for (size_t pi = 0; pi < nMessages; ++pi) {

@@ -79,11 +79,11 @@ struct RuntimeWatchdog {
 
   void printOut()
   {
-    LOGP(INFO, "RuntimeWatchdog");
-    LOGP(INFO, "  run time limit: {}", runTimeLimit);
-    LOGP(INFO, "  number of time frames: {}", numberTimeFrames);
-    LOGP(INFO, "  estimated run time per time frame: {}", (numberTimeFrames >= 0) ? runTime / (numberTimeFrames + 1) : 0.);
-    LOGP(INFO, "  estimated total run time: {}", (double)(lastTime - startTime) / 1.E9 + ((numberTimeFrames >= 0) ? runTime / (numberTimeFrames + 1) : 0.));
+    LOGP(info, "RuntimeWatchdog");
+    LOGP(info, "  run time limit: {}", runTimeLimit);
+    LOGP(info, "  number of time frames: {}", numberTimeFrames);
+    LOGP(info, "  estimated run time per time frame: {}", (numberTimeFrames >= 0) ? runTime / (numberTimeFrames + 1) : 0.);
+    LOGP(info, "  estimated total run time: {}", (double)(lastTime - startTime) / 1.E9 + ((numberTimeFrames >= 0) ? runTime / (numberTimeFrames + 1) : 0.));
   }
 };
 
@@ -147,7 +147,7 @@ void AODJAlienReaderHelpers::dumpFileMetrics(Monitoring& monitoring, TFile* curr
   }
 #endif
   monitoring.send(Metric{monitoringInfo, "aod-file-read-info"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-  LOGP(INFO, "Read info: {}", monitoringInfo);
+  LOGP(info, "Read info: {}", monitoringInfo);
 }
 
 AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
@@ -174,7 +174,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
     if (options.isSet("aod-reader-json")) {
       auto jsonFile = options.get<std::string>("aod-reader-json");
       if (!didir->readJson(jsonFile)) {
-        LOGP(ERROR, "Check the JSON document! Can not be properly parsed!");
+        LOGP(error, "Check the JSON document! Can not be properly parsed!");
       }
     }
 
@@ -228,8 +228,8 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 
       // check if RuntimeLimit is reached
       if (!watchdog->update()) {
-        LOGP(INFO, "Run time exceeds run time limit of {} seconds. Exiting gracefully...", watchdog->runTimeLimit);
-        LOGP(INFO, "Stopping reader {} after time frame {}.", device.inputTimesliceId, watchdog->numberTimeFrames - 1);
+        LOGP(info, "Run time exceeds run time limit of {} seconds. Exiting gracefully...", watchdog->runTimeLimit);
+        LOGP(info, "Stopping reader {} after time frame {}.", device.inputTimesliceId, watchdog->numberTimeFrames - 1);
         dumpFileMetrics(monitoring, currentFile, currentFileStartedAt, currentFileIOTime, tfCurrentFile, ntf);
         monitoring.flushBuffer();
         didir->closeInputFiles();
@@ -262,7 +262,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
             // check if there is a next file to read
             fcnt += device.maxInputTimeslices;
             if (didir->atEnd(fcnt)) {
-              LOGP(INFO, "No input files left to read for reader {}!", device.inputTimesliceId);
+              LOGP(info, "No input files left to read for reader {}!", device.inputTimesliceId);
               didir->closeInputFiles();
               control.endOfStream();
               control.readyToQuit(QuitRequest::Me);

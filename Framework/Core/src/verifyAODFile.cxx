@@ -35,12 +35,12 @@ void verifyTable(TFile* infile, const char* branchName)
 int main(int argc, char** argv)
 {
   if (argc != 2) {
-    LOG(ERROR) << "Bad number of arguments";
+    LOG(error) << "Bad number of arguments";
     return 1;
   }
   auto infile = std::make_unique<TFile>(argv[1]);
   if (infile.get() == nullptr || infile->IsOpen() == false) {
-    LOG(ERROR) << "File not found: " << argv[1];
+    LOG(error) << "File not found: " << argv[1];
     return 1;
   }
 
