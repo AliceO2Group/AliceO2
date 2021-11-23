@@ -79,7 +79,7 @@ int makeTPCCCDBEntryForDCS(const std::string url = "http://localhost:8080")
   for (size_t i = 0; i < expaliases.size(); ++i) {
     DPID::FILL(dpidtmp, expaliases[i], o2::dcs::DeliveryType::RAW_DOUBLE);
     dpid2DataDesc[dpidtmp] = "TPCDATAPOINTS";
-    LOG(INFO) << expaliases[i];
+    LOG(info) << expaliases[i];
   }
 
   o2::ccdb::CcdbApi api;

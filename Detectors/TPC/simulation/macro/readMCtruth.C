@@ -36,7 +36,7 @@ void readMCtruth(std::string filename)
   int nBranches = 0;
   bool mcPresent = false, perSector = false;
   if (digitTree->GetBranch("TPPCDigit")) {
-    LOG(INFO) << "Joint digit branch is found";
+    LOG(info) << "Joint digit branch is found";
     nBranches = 1;
     digitTree->SetBranchAddress("TPCDigit", &digits[0]);
     if (digitTree->GetBranch("TPCDigitMCTruth")) {

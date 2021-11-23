@@ -47,7 +47,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   }
 
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << buff.size() * sizeof(o2::ctf::BufferType) << " encoded bytes to "
+  LOG(info) << "Decoded " << buff.size() * sizeof(o2::ctf::BufferType) << " encoded bytes to "
             << compclusters.size() << " bytes in " << mTimer.CpuTime() - cput << " s";
 }
 

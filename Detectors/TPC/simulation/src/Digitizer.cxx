@@ -100,7 +100,7 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
         const GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle, driftTime);
         const float eleTime = driftTime + hitTime; /// in us
         if (eleTime > maxEleTime) {
-          LOG(WARNING) << "Skipping electron with driftTime " << driftTime << " from hit at time " << hitTime;
+          LOG(warning) << "Skipping electron with driftTime " << driftTime << " from hit at time " << hitTime;
           continue;
         }
         const float absoluteTime = eleTime + (mEventTime - mOutputDigitTimeOffset); /// in us
