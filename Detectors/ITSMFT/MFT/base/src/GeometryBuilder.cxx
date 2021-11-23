@@ -43,14 +43,14 @@ void GeometryBuilder::buildGeometry()
   auto& mftBaseParam = MFTBaseParam::Instance();
   TGeoVolume* volMFT = new TGeoVolumeAssembly(GeometryTGeo::getMFTVolPattern());
 
-  LOG(INFO) << "GeometryBuilder::buildGeometry volume name = " << GeometryTGeo::getMFTVolPattern();
+  LOG(info) << "GeometryBuilder::buildGeometry volume name = " << GeometryTGeo::getMFTVolPattern();
 
   TGeoVolume* vALIC = gGeoManager->GetVolume("barrel");
   if (!vALIC) {
-    LOG(FATAL) << "Could not find the top volume";
+    LOG(fatal) << "Could not find the top volume";
   }
 
-  LOG(DEBUG) << "buildGeometry: "
+  LOG(debug) << "buildGeometry: "
              << Form("gGeoManager name is %s title is %s", gGeoManager->GetName(), gGeoManager->GetTitle());
 
   Segmentation* seg = mftGeo->getSegmentation();

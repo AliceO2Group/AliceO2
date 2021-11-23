@@ -37,16 +37,16 @@ void NoiseCalibratorSpec::init(InitContext& ic)
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
     mCalibrator->loadDictionary(dictFile);
-    LOG(INFO) << "ITS NoiseCalibrator is running with a provided dictionary: " << dictFile;
+    LOG(info) << "ITS NoiseCalibrator is running with a provided dictionary: " << dictFile;
   } else {
-    LOG(INFO) << "Dictionary " << dictFile
+    LOG(info) << "Dictionary " << dictFile
               << " is absent, ITS NoiseCalibrator expects cluster patterns for all clusters";
   }
 
   auto onepix = ic.options().get<bool>("1pix-only");
-  LOG(INFO) << "Fast 1=pixel calibration: " << onepix;
+  LOG(info) << "Fast 1=pixel calibration: " << onepix;
   auto probT = ic.options().get<float>("prob-threshold");
-  LOG(INFO) << "Setting the probability threshold to " << probT;
+  LOG(info) << "Setting the probability threshold to " << probT;
 
   mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT);
 }
@@ -58,7 +58,7 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
   const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
   if (mCalibrator->processTimeFrame(compClusters, patterns, rofs)) {
-    LOG(INFO) << "Minimum number of noise counts has been reached !";
+    LOG(info) << "Minimum number of noise counts has been reached !";
     sendOutput(pc.outputs());
     pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
   }
@@ -78,7 +78,7 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
   o2::ccdb::CcdbObjectInfo info("ITS/Noise", "NoiseMap", "noise.root", md, tstart, tend);
 
   auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-  LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName()
+  LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
             << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp()
             << " : " << info.getEndValidityTimestamp();

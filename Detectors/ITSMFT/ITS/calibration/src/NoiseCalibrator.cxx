@@ -28,7 +28,7 @@ bool NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClusterEx
                                        gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   static int nTF = 0;
-  LOG(INFO) << "Processing TF# " << nTF++;
+  LOG(info) << "Processing TF# " << nTF++;
 
   auto pattIt = patterns.begin();
   for (const auto& rof : rofs) {
@@ -41,7 +41,7 @@ bool NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClusterEx
           o2::itsmft::ClusterPattern tmp(pattIt);
           patt = tmp;
         } else {
-          LOG(FATAL) << "Clusters contain pattern IDs, but no dictionary is provided...";
+          LOG(fatal) << "Clusters contain pattern IDs, but no dictionary is provided...";
         }
       } else if ((pattID == o2::itsmft::CompCluster::InvalidPatternID) || mDict.isGroup(pattID)) {
         o2::itsmft::ClusterPattern tmp(pattIt);
@@ -96,7 +96,7 @@ bool NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClusterEx
 
 void NoiseCalibrator::finalize()
 {
-  LOG(INFO) << "Number of processed strobes is " << mNumberOfStrobes;
+  LOG(info) << "Number of processed strobes is " << mNumberOfStrobes;
   mNoiseMap.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
 }
 

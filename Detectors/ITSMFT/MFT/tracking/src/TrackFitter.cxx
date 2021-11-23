@@ -526,7 +526,7 @@ Double_t invQPtFromFCF(const T& track, Double_t bFieldZ, Double_t& sigmainvqptsq
     sigmainvqptsq = sigma2R * invpt * invpt * invR * invR;
 
   } else { // the linear regression failed...
-    LOG(WARN) << "LinearRegression failed!";
+    LOG(warn) << "LinearRegression failed!";
     invqpt_fcf = 1. / 100.;
   }
 

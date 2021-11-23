@@ -178,7 +178,7 @@ void GeometryMisAligner::SetXYAngMisAligFactor(Double_t factor)
     fLadderMisAlig[4][0] = fLadderMisAlig[5][0] * factor; // backward
     fLadderMisAlig[4][1] = fLadderMisAlig[5][1] * factor; // compatibility
   } else {
-    LOG(ERROR) << "Invalid XY angular misalign factor, " << factor;
+    LOG(error) << "Invalid XY angular misalign factor, " << factor;
   }
 }
 
@@ -191,7 +191,7 @@ void GeometryMisAligner::SetZCartMisAligFactor(Double_t factor)
     fLadderMisAlig[2][0] = fLadderMisAlig[0][0];
     fLadderMisAlig[2][1] = fLadderMisAlig[0][1] * factor;
   } else {
-    LOG(ERROR) << "Invalid Z cartesian misalign factor, " << factor;
+    LOG(error) << "Invalid Z cartesian misalign factor, " << factor;
   }
 }
 
@@ -258,7 +258,7 @@ TGeoCombiTrans GeometryMisAligner::MisAlignSensor() const
     GetUniMisAlign(cartMisAlig, angMisAlig, fSensorMisAlig);
   } else {
     if (!fUseGaus) {
-      LOG(INFO) << "Neither uniform nor gausian distribution is set! Will use gausian...";
+      LOG(info) << "Neither uniform nor gausian distribution is set! Will use gausian...";
     }
     GetGausMisAlign(cartMisAlig, angMisAlig, fSensorMisAlig);
   }
@@ -293,7 +293,7 @@ TGeoCombiTrans GeometryMisAligner::MisAlignLadder() const
     GetUniMisAlign(cartMisAlig, angMisAlig, fLadderMisAlig);
   } else {
     if (!fUseGaus) {
-      LOG(INFO) << "Neither uniform nor gausian distribution is set! Will use gausian...";
+      LOG(info) << "Neither uniform nor gausian distribution is set! Will use gausian...";
     }
     GetGausMisAlign(cartMisAlig, angMisAlig, fLadderMisAlig);
   }
@@ -329,7 +329,7 @@ TGeoCombiTrans
     GetUniMisAlign(cartMisAlig, angMisAlig, fHalfMisAlig);
   } else {
     if (!fUseGaus) {
-      LOG(INFO) << "Neither uniform nor gausian distribution is set! Will use gausian...";
+      LOG(info) << "Neither uniform nor gausian distribution is set! Will use gausian...";
     }
     GetGausMisAlign(cartMisAlig, angMisAlig, fHalfMisAlig);
   }
@@ -365,7 +365,7 @@ TGeoCombiTrans
     GetUniMisAlign(cartMisAlig, angMisAlig, fDiskMisAlig);
   } else {
     if (!fUseGaus) {
-      LOG(INFO) << "Neither uniform nor gausian distribution is set! Will use gausian...";
+      LOG(info) << "Neither uniform nor gausian distribution is set! Will use gausian...";
     }
     GetGausMisAlign(cartMisAlig, angMisAlig, fDiskMisAlig);
   }
@@ -390,7 +390,7 @@ bool GeometryMisAligner::matrixToAngles(const double* rot, double& psi, double& 
   /// extracted from the matrix
 
   if (std::abs(rot[0]) < 1e-7 || std::abs(rot[8]) < 1e-7) {
-    LOG(ERROR) << "Failed to extract roll-pitch-yall angles!";
+    LOG(error) << "Failed to extract roll-pitch-yall angles!";
     return false;
   }
   psi = std::atan2(-rot[5], rot[8]);
@@ -425,7 +425,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
   mGeometryTGeo = GeometryTGeo::Instance();
   o2::detectors::AlignParam lAP;
   std::vector<o2::detectors::AlignParam> lAPvec;
-  LOG(INFO) << "GeometryMisAligner::MisAlign ";
+  LOG(info) << "GeometryMisAligner::MisAlign ";
 
   double lPsi, lTheta, lPhi = 0.;
   Int_t nAlignID = 0;
@@ -448,7 +448,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
       sname = mGeometryTGeo->composeSymNameDisk(hf, dk);
       lAP.setSymName(sname);
       lAP.setAlignableID(-1);
-      LOG(DEBUG) << "**** LocalDeltaTransform Disk: " << fmt::format("{} : {} | X: {:+f} Y: {:+f} Z: {:+f} | pitch: {:+f} roll: {:+f} yaw: {:+f}\n", lAP.getSymName(), lAP.getAlignableID(), localDeltaTransform.GetTranslation()[0], localDeltaTransform.GetTranslation()[1], localDeltaTransform.GetTranslation()[2], localDeltaTransform.GetRotationMatrix()[0], localDeltaTransform.GetRotationMatrix()[1], localDeltaTransform.GetRotationMatrix()[2]);
+      LOG(debug) << "**** LocalDeltaTransform Disk: " << fmt::format("{} : {} | X: {:+f} Y: {:+f} Z: {:+f} | pitch: {:+f} roll: {:+f} yaw: {:+f}\n", lAP.getSymName(), lAP.getAlignableID(), localDeltaTransform.GetTranslation()[0], localDeltaTransform.GetTranslation()[1], localDeltaTransform.GetTranslation()[2], localDeltaTransform.GetRotationMatrix()[0], localDeltaTransform.GetRotationMatrix()[1], localDeltaTransform.GetRotationMatrix()[2]);
 
       lAP.setLocalParams(localDeltaTransform);
       lAP.applyToGeometry();
@@ -474,7 +474,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
           localDeltaTransform = MisAlignSensor();
           sname = mGeometryTGeo->composeSymNameChip(hf, dk, lr, sr);
           if (!matrixToAngles(localDeltaTransform.GetRotationMatrix(), lPsi, lTheta, lPhi)) {
-            LOG(ERROR) << "Problem extracting angles from sensor";
+            LOG(error) << "Problem extracting angles from sensor";
           }
           lAP.setSymName(sname);
           Int_t uid = o2::base::GeometryManager::getSensID(o2::detectors::DetID::MFT, nChip++);
@@ -483,7 +483,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
           lAP.applyToGeometry();
           lAPvec.emplace_back(lAP);
           if (verbose) {
-            LOG(INFO) << "misaligner: " << sname << ", sensor: " << nChip;
+            LOG(info) << "misaligner: " << sname << ", sensor: " << nChip;
           }
           nChip++;
         }
