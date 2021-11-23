@@ -57,13 +57,13 @@ class DigiReco
   void eor()
   {
     if (mTreeDbg) {
-      LOG(INFO) << "o2::zdc::DigiReco: closing debug output";
+      LOG(info) << "o2::zdc::DigiReco: closing debug output";
       mTDbg->Write();
       mTDbg.reset();
       mDbg->Close();
       mDbg.reset();
     }
-    LOG(INFO) << "Detected " << mNLonely << " lonely bunches and " << mNLastLonely << " at end of orbit";
+    LOG(info) << "Detected " << mNLonely << " lonely bunches and " << mNLastLonely << " at end of orbit";
   }
 
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };

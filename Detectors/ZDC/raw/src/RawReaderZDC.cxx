@@ -33,7 +33,7 @@ void RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkI
     }
   } else {
     //put here code in case of bad rdh.linkID value
-    LOG(INFO) << "WARNING! WRONG LINK ID! " << linkID;
+    LOG(info) << "WARNING! WRONG LINK ID! " << linkID;
     return;
   }
 }
@@ -41,7 +41,7 @@ void RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkI
 int RawReaderZDC::processWord(const uint32_t* word)
 {
   if (word == nullptr) {
-    LOG(ERROR) << "NULL pointer";
+    LOG(error) << "NULL pointer";
     return 1;
   }
   if ((word[0] & 0x3) == Id_w0) {
@@ -54,7 +54,7 @@ int RawReaderZDC::processWord(const uint32_t* word)
         mCh.w[1][iw] = word[iw];
       }
     } else {
-      LOG(ERROR) << "Wrong word sequence";
+      LOG(error) << "Wrong word sequence";
       mCh.f.fixed_0 = Id_wn;
       mCh.f.fixed_1 = Id_wn;
       mCh.f.fixed_2 = Id_wn;
@@ -66,14 +66,14 @@ int RawReaderZDC::processWord(const uint32_t* word)
       }
       process(mCh);
     } else {
-      LOG(ERROR) << "Wrong word sequence";
+      LOG(error) << "Wrong word sequence";
     }
     mCh.f.fixed_0 = Id_wn;
     mCh.f.fixed_1 = Id_wn;
     mCh.f.fixed_2 = Id_wn;
   } else {
     // Word not present in payload
-    LOG(FATAL) << "Event format error";
+    LOG(fatal) << "Event format error";
     return 1;
   }
   return 0;
@@ -96,11 +96,11 @@ void RawReaderZDC::process(const EventChData& ch)
 int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelData>& digitsCh, std::vector<OrbitData>& orbitData)
 {
   if (mModuleConfig == nullptr) {
-    LOG(FATAL) << "Missing ModuleConfig";
+    LOG(fatal) << "Missing ModuleConfig";
     return 0;
   }
   int bcCounter = mMapData.size();
-  LOG(INFO) << "Processing #bc " << bcCounter;
+  LOG(info) << "Processing #bc " << bcCounter;
   for (auto& [ir, ev] : mMapData) {
     // TODO: Error check
     // Pedestal data
@@ -118,7 +118,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
           } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
             // Empty channel
           } else {
-            LOG(ERROR) << "Data format error";
+            LOG(error) << "Data format error";
           }
         }
       }
@@ -204,7 +204,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
         } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
           // Empty channel
         } else {
-          LOG(ERROR) << "Data format error";
+          LOG(error) << "Data format error";
         }
       }
       bcdata.moduleTriggers[im] = mt.w;
@@ -226,7 +226,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
       }
     }
     if (inconsistent_event) {
-      LOG(ERROR) << "Inconsistent event";
+      LOG(error) << "Inconsistent event";
       for (int32_t im = 0; im < NModules; im++) {
         for (int32_t ic = 0; ic < NChPerModule; ic++) {
           if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
