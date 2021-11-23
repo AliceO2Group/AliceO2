@@ -124,7 +124,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           }
         }
 
-        LOG(INFO) << "simpleQcTask - received data is " << (dataGood ? "correct" : "wrong");
+        LOG(info) << "simpleQcTask - received data is " << (dataGood ? "correct" : "wrong");
       }
     }
   };
