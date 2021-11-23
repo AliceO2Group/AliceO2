@@ -50,7 +50,7 @@ void MC2RawEncoder<Mapping>::init()
     }
     mNLinks += nLinks;
     if (!nLinks) {
-      LOG(WARNING) << "No GBT links were defined for RU " << int(ru) << " defining automatically";
+      LOG(warning) << "No GBT links were defined for RU " << int(ru) << " defining automatically";
       ruData.links[0] = addGBTLink();
       auto* link = getGBTLink(ruData.links[0]);
       link->lanes = mMAP.getCablesOnRUType(ruData.ruInfo->ruType);
@@ -239,7 +239,7 @@ RUDecodeData& MC2RawEncoder<Mapping>::getCreateRUDecode(int ruSW)
     mRUEntry[ruSW] = mNRUs++;
     mRUDecodeVec[mRUEntry[ruSW]].ruInfo = mMAP.getRUInfoSW(ruSW); // info on the stave/RU
     mRUDecodeVec[mRUEntry[ruSW]].chipsData.resize(mMAP.getNChipsOnRUType(mMAP.getRUInfoSW(ruSW)->ruType));
-    LOG(INFO) << "Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
+    LOG(info) << "Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
   }
   return mRUDecodeVec[mRUEntry[ruSW]];
 }

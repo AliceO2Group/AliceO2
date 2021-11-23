@@ -45,7 +45,7 @@ Segmentation::Segmentation(const Char_t* nameGeomFile) : mHalves(nullptr)
   delete halfBottom;
   delete halfTop;
 
-  LOG(DEBUG1) << "MFT segmentation set!";
+  LOG(debug1) << "MFT segmentation set!";
 }
 
 //_____________________________________________________________________________
@@ -65,7 +65,7 @@ Segmentation::~Segmentation()
 //_____________________________________________________________________________
 HalfSegmentation* Segmentation::getHalf(Int_t iHalf) const
 {
-  LOG(DEBUG) << Form("Ask for half %d (of %d and %d)", iHalf, Bottom, Top);
+  LOG(debug) << Form("Ask for half %d (of %d and %d)", iHalf, Bottom, Top);
 
   return ((iHalf == Top || iHalf == Bottom) ? ((HalfSegmentation*)mHalves->At(iHalf)) : nullptr);
 }

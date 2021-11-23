@@ -42,7 +42,7 @@ HalfDiskSegmentation::HalfDiskSegmentation(UInt_t uniqueID) : VSegmentation(), m
   // constructor
   SetUniqueID(uniqueID);
 
-  LOG(DEBUG1) << "Start creating half-disk UniqueID = " << GetUniqueID();
+  LOG(debug1) << "Start creating half-disk UniqueID = " << GetUniqueID();
 
   Geometry* mftGeom = Geometry::instance();
 
@@ -106,7 +106,7 @@ void HalfDiskSegmentation::createLadders(TXMLEngine* xml, XMLNodePointer_t node)
       if (!attrName.CompareTo("iladder")) {
         iladder = attrVal.Atoi();
         if (iladder >= getNLadders() || iladder < 0) {
-          LOG(FATAL) << "Wrong ladder number : " << iladder;
+          LOG(fatal) << "Wrong ladder number : " << iladder;
         }
       } else if (!attrName.CompareTo("nsensor")) {
         nsensor = attrVal.Atoi();
@@ -123,7 +123,7 @@ void HalfDiskSegmentation::createLadders(TXMLEngine* xml, XMLNodePointer_t node)
       } else if (!attrName.CompareTo("psi")) {
         ang[2] = attrVal.Atof();
       } else {
-        LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr);
+        LOG(error) << "Unknwon Attribute name " << xml->GetAttrName(attr);
       }
       attr = xml->GetNextAttr(attr);
     }

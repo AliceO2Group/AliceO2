@@ -104,7 +104,7 @@ void CreateDictionaries(bool saveDeltas = false,
       }
     }
     if (nHadro < hitTree->GetEntries()) {
-      LOG(FATAL) << "N=" << nHadro << " hadronic events < "
+      LOG(fatal) << "N=" << nHadro << " hadronic events < "
                  << " N=" << hitTree->GetEntries() << " Hit enties.";
     }
   }
@@ -194,8 +194,8 @@ void CreateDictionaries(bool saveDeltas = false,
       const auto& cluster = (*clusArr)[clEntry];
 
       if (cluster.getPatternID() != CompCluster::InvalidPatternID) {
-        LOG(WARNING) << "Encountered patternID = " << cluster.getPatternID() << " != " << CompCluster::InvalidPatternID;
-        LOG(WARNING) << "Clusters have already been generated with a dictionary! Quitting";
+        LOG(warning) << "Encountered patternID = " << cluster.getPatternID() << " != " << CompCluster::InvalidPatternID;
+        LOG(warning) << "Clusters have already been generated with a dictionary! Quitting";
         return;
       }
 

@@ -75,7 +75,7 @@ void GBTLink::printTrigger(const GBTTrigger* gbtTrg)
 {
   gbtTrg->printX();
   std::bitset<12> trb(gbtTrg->triggerType);
-  LOG(INFO) << "Trigger : Orbit " << gbtTrg->orbit << " BC: " << gbtTrg->bc << " Trigger: " << trb << " noData:" << gbtTrg->noData << " internal:" << gbtTrg->internal;
+  LOG(info) << "Trigger : Orbit " << gbtTrg->orbit << " BC: " << gbtTrg->bc << " Trigger: " << trb << " noData:" << gbtTrg->noData << " internal:" << gbtTrg->internal;
 }
 
 ///_________________________________________________________________
@@ -90,7 +90,7 @@ void GBTLink::printHeader(const GBTDataHeader* gbtH)
 {
   gbtH->printX();
   std::bitset<28> LA(gbtH->activeLanes);
-  LOG(INFO) << "Header : Active Lanes " << LA;
+  LOG(info) << "Header : Active Lanes " << LA;
 }
 
 ///_________________________________________________________________
@@ -98,7 +98,7 @@ void GBTLink::printHeader(const GBTDataHeaderL* gbtH)
 {
   gbtH->printX();
   std::bitset<28> LA(gbtH->activeLanesL);
-  LOG(INFO) << "HeaderL : Active Lanes " << LA;
+  LOG(info) << "HeaderL : Active Lanes " << LA;
 }
 
 ///_________________________________________________________________
@@ -106,14 +106,14 @@ void GBTLink::printTrailer(const GBTDataTrailer* gbtT)
 {
   gbtT->printX();
   std::bitset<28> LT(gbtT->lanesTimeout), LS(gbtT->lanesStops); // RSTODO
-  LOG(INFO) << "Trailer: Done=" << gbtT->packetDone << " Lanes TO: " << LT << " | Lanes ST: " << LS;
+  LOG(info) << "Trailer: Done=" << gbtT->packetDone << " Lanes TO: " << LT << " | Lanes ST: " << LS;
 }
 
 ///_________________________________________________________________
 void GBTLink::printDiagnostic(const GBTDiagnostic* gbtD)
 {
   gbtD->printX();
-  LOG(INFO) << "Diagnostic word";
+  LOG(info) << "Diagnostic word";
 }
 
 ///_________________________________________________________________
