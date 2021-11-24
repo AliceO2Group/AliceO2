@@ -49,7 +49,7 @@ int Diagnostic::fill(ULong64_t pattern, int frequency)
   return frequency;
 }
 
-int Diagnostic::getFrequency(ULong64_t pattern)
+int Diagnostic::getFrequency(ULong64_t pattern) const
 {
   auto pairC = mVector.find(pattern);
   if (pairC != mVector.end()) {
@@ -135,7 +135,7 @@ void Diagnostic::merge(const Diagnostic* prev)
   }
 }
 
-void Diagnostic::getNoisyMap(Bool_t* output)
+void Diagnostic::getNoisyLevelMap(Char_t* output) const
 {
   // set true in output channel array
   for (auto pair : mVector) {
@@ -146,6 +146,23 @@ void Diagnostic::getNoisyMap(Bool_t* output)
       continue;
     }
 
-    output[getChannel(key)] = true;
+    output[getChannel(key)] = getNoisyLevel(key);
+  }
+}
+
+void Diagnostic::getNoisyMap(Bool_t* output, int noisyThr) const
+{
+  // set true in output channel array
+  for (auto pair : mVector) {
+    auto key = pair.first;
+    int slot = getSlot(key);
+
+    if (slot != 14) {
+      continue;
+    }
+
+    if (getNoisyLevel(key) >= noisyThr) {
+      output[getChannel(key)] = true;
+    }
   }
 }
