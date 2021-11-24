@@ -39,7 +39,7 @@ static constexpr o2::header::DataDescription ddMCMatchTOF[4] = {"MCMTC_TPC", "MC
 void TOFMatchedReader::init(InitContext& ic)
 {
   // get the option from the init context
-  LOG(DEBUG) << "Init TOF matching info reader!";
+  LOG(debug) << "Init TOF matching info reader!";
   mInFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                               ic.options().get<std::string>("tof-matched-infile"));
   mInTreeName = ic.options().get<std::string>("treename");
@@ -63,7 +63,7 @@ void TOFMatchedReader::connectTree(const std::string& filename)
   if (mUseMC) {
     mTree->SetBranchAddress("MatchTOFMCTruth", &mLabelTOFPtr);
   }
-  LOG(DEBUG) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(debug) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 void TOFMatchedReader::run(ProcessingContext& pc)
@@ -71,7 +71,7 @@ void TOFMatchedReader::run(ProcessingContext& pc)
   auto currEntry = mTree->GetReadEntry() + 1;
   assert(currEntry < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(currEntry);
-  LOG(DEBUG) << "Pushing " << mMatches.size() << " TOF matchings at entry " << currEntry;
+  LOG(debug) << "Pushing " << mMatches.size() << " TOF matchings at entry " << currEntry;
 
   uint32_t tpcMatchSS = o2::globaltracking::getSubSpec(mSubSpecStrict && (!mMode) ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, ddMatchInfo[mMode], tpcMatchSS, Lifetime::Timeframe}, mMatches);

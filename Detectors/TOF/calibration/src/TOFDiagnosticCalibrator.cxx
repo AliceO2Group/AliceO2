@@ -34,7 +34,7 @@ void TOFDiagnosticCalibrator::finalizeSlot(Slot& slot)
 {
 
   Diagnostic* diag = slot.getContainer();
-  LOG(INFO) << "Finalizing slot";
+  LOG(info) << "Finalizing slot";
   diag->print();
   std::map<std::string, std::string> md;
   auto clName = o2::utils::MemFileHelper::getClassName(*diag);

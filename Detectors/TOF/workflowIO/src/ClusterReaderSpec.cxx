@@ -29,7 +29,7 @@ namespace tof
 
 void ClusterReader::init(InitContext& ic)
 {
-  LOG(DEBUG) << "Init Cluster reader!";
+  LOG(debug) << "Init Cluster reader!";
   mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                             ic.options().get<std::string>("tof-cluster-infile"));
   connectTree(mFileName);
@@ -40,7 +40,7 @@ void ClusterReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(DEBUG) << "Pushing " << mClustersPtr->size() << " TOF clusters at entry " << ent;
+  LOG(debug) << "Pushing " << mClustersPtr->size() << " TOF clusters at entry " << ent;
 
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERS", 0, Lifetime::Timeframe}, mClusters);
   if (mUseMC) {
@@ -64,7 +64,7 @@ void ClusterReader::connectTree(const std::string& filename)
   if (mUseMC) {
     mTree->SetBranchAddress("TOFClusterMCTruth", &mLabelsPtr);
   }
-  LOG(DEBUG) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
+  LOG(debug) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
 DataProcessorSpec getClusterReaderSpec(bool useMC)

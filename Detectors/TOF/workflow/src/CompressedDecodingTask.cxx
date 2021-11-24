@@ -41,7 +41,7 @@ using RDHUtils = o2::raw::RDHUtils;
 
 void CompressedDecodingTask::init(InitContext& ic)
 {
-  LOG(DEBUG) << "CompressedDecoding init";
+  LOG(debug) << "CompressedDecoding init";
 
   mMaskNoise = ic.options().get<bool>("mask-noise");
   mNoiseRate = ic.options().get<int>("noise-counts");
@@ -54,7 +54,7 @@ void CompressedDecodingTask::init(InitContext& ic)
   }
 
   auto finishFunction = [this]() {
-    LOG(DEBUG) << "CompressedDecoding finish";
+    LOG(debug) << "CompressedDecoding finish";
   };
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
   mTimer.Stop();
@@ -100,7 +100,7 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   int n_orbits = n_tof_window / 3;
   int digit_size = alldigits->size();
 
-  // LOG(INFO) << "TOF: N tof window decoded = " << n_tof_window << "(orbits = " << n_orbits << ") with " << digit_size << " digits";
+  // LOG(info) << "TOF: N tof window decoded = " << n_tof_window << "(orbits = " << n_orbits << ") with " << digit_size << " digits";
 
   // add digits in the output snapshot
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *alldigits);
@@ -211,7 +211,7 @@ void CompressedDecodingTask::headerHandler(const CrateHeader_t* crateHeader, con
       mDecoder.setFirstIR({0, mInitOrbit});
     }
 
-    LOG(DEBUG) << "Crate found" << crateHeader->drmID;
+    LOG(debug) << "Crate found" << crateHeader->drmID;
     mNCrateOpenTF++;
   }
 }
@@ -220,7 +220,7 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
                                             const Error_t* errors)
 {
   if (mConetMode) {
-    LOG(DEBUG) << "Crate closed " << crateHeader->drmID;
+    LOG(debug) << "Crate closed " << crateHeader->drmID;
     mNCrateCloseTF++;
   }
 

@@ -228,7 +228,7 @@ void CTFCoder::decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdig
   assert(digCount == cc.header.nDigits);
 
   if (digCount != cc.header.nDigits) {
-    LOG(ERROR) << "expected " << cc.header.nDigits << " but counted " << digCount << " in ROFRecords";
+    LOG(error) << "expected " << cc.header.nDigits << " but counted " << digCount << " in ROFRecords";
     throw std::runtime_error("mismatch between expected and counter number of digits");
   }
 }

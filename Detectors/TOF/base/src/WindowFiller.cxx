@@ -203,7 +203,7 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
       }
 
       if (it->row - initrow < mReadoutWindowCurrent) { // this should not happen
-        LOG(ERROR) << "One pattern skipped because appears to occur early of the current row " << it->row << " < " << mReadoutWindowCurrent << " ?!";
+        LOG(error) << "One pattern skipped because appears to occur early of the current row " << it->row << " < " << mReadoutWindowCurrent << " ?!";
       } else {
         uint32_t cpatt = it->pattern;
         auto dpatt = reinterpret_cast<compressed::Diagnostic_t*>(&cpatt);
@@ -345,7 +345,7 @@ void WindowFiller::checkIfReuseFutureDigits()
     int isnext = Int_t(timestamp * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent + 1);    // to be replaced with uncalibrated time
 
     if (isnext < 0) { // we jump too ahead in future, digit will be not stored
-      LOG(DEBUG) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
+      LOG(debug) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
 
       // remove digit from array in the future
       int labelremoved = digit->getLabel();
@@ -414,7 +414,7 @@ void WindowFiller::checkIfReuseFutureDigitsRO() // the same but using readout in
     int isnext = row - mReadoutWindowCurrent;
 
     if (isnext < 0) { // we jump too ahead in future, digit will be not stored
-      LOG(DEBUG) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
+      LOG(debug) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
 
       // remove digit from array in the future
       int labelremoved = digit->getLabel();

@@ -219,6 +219,6 @@ size_t CTFCoder::estimateCompressedSize(const CompressedInfos& cc)
   sz += ESTSIZE(cc.pattMap,      CTF::BLCpattMap);
   // clang-format on
   sz *= 2. / 3; // if needed, will be autoexpanded
-  LOG(DEBUG) << "Estimated output size is " << sz << " bytes";
+  LOG(debug) << "Estimated output size is " << sz << " bytes";
   return sz;
 }
