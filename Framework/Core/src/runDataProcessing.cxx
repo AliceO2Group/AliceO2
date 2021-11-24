@@ -1082,13 +1082,32 @@ void gui_callback(uv_timer_s* ctx)
   if (gui->plugin == nullptr) {
     return;
   }
+  void* draw_data = nullptr;
+  void* frame = nullptr;
+  int size;
+
   uint64_t frameStart = uv_hrtime();
   uint64_t frameLatency = frameStart - gui->frameLast;
-  *(gui->guiQuitRequested) = (gui->plugin->pollGUI(gui->window, gui->callback) == false);
-  uint64_t frameEnd = uv_hrtime();
-  *(gui->frameCost) = (frameEnd - frameStart) / 1000000.f;
-  *(gui->frameLatency) = frameLatency / 1000000.f;
-  gui->frameLast = frameStart;
+
+  // if less than 15ms have passed reuse old frame
+  if (frameLatency / 1000000 > 15) {
+    if (!gui->plugin->pollGUIPreRender(gui->window, (float)frameLatency / 1000000000.0f)) {
+      *(gui->guiQuitRequested) = true;
+      return;
+    }
+    draw_data = gui->plugin->pollGUIRender(gui->callback);
+  } else {
+    draw_data = gui->lastFrame;
+  }
+
+  gui->plugin->pollGUIPostRender(gui->window, draw_data);
+
+  if (frameLatency / 1000000 > 15) {
+    uint64_t frameEnd = uv_hrtime();
+    *(gui->frameCost) = (frameEnd - frameStart) / 1000000.f;
+    *(gui->frameLatency) = frameLatency / 1000000.f;
+    gui->frameLast = frameStart;
+  }
 }
 
 /// Force single stepping of the children
