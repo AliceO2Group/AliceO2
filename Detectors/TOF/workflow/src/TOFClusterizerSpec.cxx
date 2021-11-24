@@ -125,7 +125,9 @@ class TOFDPLClustererTask
     if (mUseCCDB) {
       calibapi.setURL(mCCDBurl.c_str());
       calibapi.setTimeStamp(0);
+      calibapi.readLHCphase();
       calibapi.readTimeSlewingParam();
+      calibapi.readDiagnosticFrequencies();
     }
 
     mClusterer.setCalibApi(&calibapi);
@@ -187,7 +189,7 @@ class TOFDPLClustererTask
 
   void endOfStream(EndOfStreamContext& ec)
   {
-    LOGF(DEBUG, "TOF Clusterer total timing: Cpu: %.3e Real: %.3e s in %d slots",
+    LOGF(debug, "TOF Clusterer total timing: Cpu: %.3e Real: %.3e s in %d slots",
          mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   }
 

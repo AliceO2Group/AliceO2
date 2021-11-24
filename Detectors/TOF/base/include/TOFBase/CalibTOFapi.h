@@ -20,6 +20,8 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
 #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
+#include "TOFBase/Geo.h"
+#include "DataFormatsTOF/Diagnostic.h"
 
 namespace o2
 {
@@ -35,9 +37,10 @@ class CalibTOFapi
   using CcdbApi = o2::ccdb::CcdbApi;
 
  public:
-  CalibTOFapi() = default;
+  void resetDia();
+  CalibTOFapi();
   CalibTOFapi(const std::string url);
-  CalibTOFapi(long timestamp, o2::dataformats::CalibLHCphaseTOF* phase, o2::dataformats::CalibTimeSlewingParamTOF* slew) : mTimeStamp(timestamp), mLHCphase(phase), mSlewParam(slew) {}
+  CalibTOFapi(long timestamp, o2::dataformats::CalibLHCphaseTOF* phase, o2::dataformats::CalibTimeSlewingParamTOF* slew) : mTimeStamp(timestamp), mLHCphase(phase), mSlewParam(slew) { CalibTOFapi(); }
   ~CalibTOFapi() = default;
   void setTimeStamp(long t)
   {
@@ -50,6 +53,7 @@ class CalibTOFapi
   }
   void readLHCphase();
   void readTimeSlewingParam();
+  void readDiagnosticFrequencies();
   void writeLHCphase(LhcPhase* phase, std::map<std::string, std::string> metadataLHCphase, uint64_t minTimeSTamp, uint64_t maxTimeStamp);
   void writeTimeSlewingParam(SlewParam* param, std::map<std::string, std::string> metadataChannelCalib, uint64_t minTimeSTamp, uint64_t maxTimeStamp = 0);
   float getTimeCalibration(int ich, float tot);
@@ -61,10 +65,27 @@ class CalibTOFapi
   SlewParam& getSlewParamObj() { return *mSlewParam; }
   LhcPhase* getLhcPhase() { return mLHCphase; }
 
+  int getNoisyThreshold() const { return mNoisyThreshold; }
+  void setNoisyThreshold(int val) { mNoisyThreshold = val; }
+  float getEmptyTOFProb() const { return mEmptyTOF; }
+  const float* getEmptyCratesProb() const { return mEmptyCrateProb; }
+  const std::vector<std::pair<int, float>>& getNoisyProb() const { return mNoisy; }
+  const std::vector<std::pair<int, float>>& getTRMerrorProb() const { return mTRMerrorProb; }
+  const std::vector<int>& getTRMmask() const { return mTRMmask; }
+
  private:
   long mTimeStamp;                 ///< timeStamp for queries
   LhcPhase* mLHCphase = nullptr;   ///< object for LHC phase
   SlewParam* mSlewParam = nullptr; ///< object for timeslewing (containing info also for offset and problematic)
+  Diagnostic* mDiaFreq = nullptr;  ///< object for Diagnostic Frequency
+
+  // info from diagnostic
+  int mNoisyThreshold = 1;                          ///< threshold to be noisy
+  float mEmptyTOF = 0;                              ///< probability to have TOF fully empty
+  float mEmptyCrateProb[Geo::kNCrate];              ///< probability to have an empty crate in the current readout window
+  std::vector<std::pair<int, float>> mNoisy;        ///< probTRMerror
+  std::vector<std::pair<int, float>> mTRMerrorProb; ///< probTRMerror
+  std::vector<int> mTRMmask;                        ///< mask error for TRM
 
   ClassDefNV(CalibTOFapi, 1);
 };
