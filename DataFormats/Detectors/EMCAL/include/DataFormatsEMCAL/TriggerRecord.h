@@ -43,6 +43,7 @@ class TriggerRecord
 
   void setBCData(const BCData& data) { mBCData = data; }
   void setTriggerBits(uint32_t triggerbits) { mTriggerBits = triggerbits; }
+  void setTriggerBitsCompressed(uint16_t triggerbits);
   void setDataRange(int firstentry, int nentries) { mDataRange.set(firstentry, nentries); }
   void setIndexFirstObject(int firstentry) { mDataRange.setFirstEntry(firstentry); }
   void setNumberOfObjects(int nentries) { mDataRange.setEntries(nentries); }
@@ -50,12 +51,19 @@ class TriggerRecord
   const BCData& getBCData() const { return mBCData; }
   BCData& getBCData() { return mBCData; }
   uint32_t getTriggerBits() const { return mTriggerBits; }
+  uint16_t getTriggerBitsCompressed() const;
   int getNumberOfObjects() const { return mDataRange.getEntries(); }
   int getFirstEntry() const { return mDataRange.getFirstEntry(); }
 
   void printStream(std::ostream& stream) const;
 
  private:
+  /// \enum TriggerBitsCoded_t
+  /// \brief Position of trigger classes in compressed format
+  enum TriggerBitsCoded_t {
+    PHYSTRIGGER, ///< Physics trigger
+    CALIBTRIGGER ///< Calib trigger
+  };
   BCData mBCData;        /// Bunch crossing data of the trigger
   DataRange mDataRange;  /// Index of the triggering event (event index and first entry in the container)
   uint32_t mTriggerBits; /// Trigger bits as from the Raw Data Header
