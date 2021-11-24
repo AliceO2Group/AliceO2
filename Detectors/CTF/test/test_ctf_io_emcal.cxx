@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
       cells.emplace_back(tower, en, timeCell, (ChannelType_t)stat);
       tower += 1 + gRandom->Integer(100);
     }
-    uint32_t trigBits = gRandom->Integer(0xffff); // we store only 16 bits
+    uint32_t trigBits = gRandom->Integer(0xFFFFFFFF); // will be converted internally to uint16_t by the coder
     triggers.emplace_back(ir, trigBits, start, cells.size() - start);
   }
 
@@ -95,8 +95,8 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   sw.Stop();
   LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
 
-  BOOST_CHECK(triggersD.size() == triggers.size());
-  BOOST_CHECK(cellsD.size() == cells.size());
+  BOOST_CHECK_EQUAL(triggersD.size(), triggers.size());
+  BOOST_CHECK_EQUAL(cellsD.size(), cells.size());
   LOG(info) << " BOOST_CHECK triggersD.size() " << triggersD.size() << " triggers.size() " << triggers.size()
             << " BOOST_CHECK(cellsD.size() " << cellsD.size() << " cells.size()) " << cells.size();
 
@@ -106,18 +106,29 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     LOG(debug) << " Orig.TriggerRecord " << i << " " << dor.getBCData() << " " << dor.getFirstEntry() << " " << dor.getNumberOfObjects();
     LOG(debug) << " Deco.TriggerRecord " << i << " " << ddc.getBCData() << " " << ddc.getFirstEntry() << " " << ddc.getNumberOfObjects();
 
-    BOOST_CHECK(dor.getBCData() == ddc.getBCData());
-    BOOST_CHECK(dor.getNumberOfObjects() == ddc.getNumberOfObjects());
-    BOOST_CHECK(dor.getFirstEntry() == ddc.getFirstEntry());
-    BOOST_CHECK(dor.getTriggerBits() == ddc.getTriggerBits());
+    BOOST_CHECK_EQUAL(dor.getBCData(), ddc.getBCData());
+    BOOST_CHECK_EQUAL(dor.getNumberOfObjects(), ddc.getNumberOfObjects());
+    BOOST_CHECK_EQUAL(dor.getFirstEntry(), ddc.getFirstEntry());
+    BOOST_CHECK_EQUAL(dor.getTriggerBitsCompressed(), ddc.getTriggerBitsCompressed()); // Need to be compared to the filtered trigger bit set
+    // Check for the function getTriggerBits
+    // As the compessed version has trigger bits discarded,
+    // reference must be constructed again from compressed
+    // trigger bits. Otherwise the reconstructed object is
+    // compared to the uncompressed version and the test will
+    // obviously fail due to the bits which are removed.
+    // Therefore a copy is needed to modify the trigger bits
+    // storing only the compressed one
+    auto triggerbittest = triggers[i];
+    triggerbittest.setTriggerBitsCompressed(triggerbittest.getTriggerBitsCompressed());
+    BOOST_CHECK_EQUAL(triggerbittest.getTriggerBits(), ddc.getTriggerBits());
   }
 
   for (size_t i = 0; i < cells.size(); i++) {
     const auto& cor = cells[i];
     const auto& cdc = cellsD[i];
-    BOOST_CHECK(cor.getPackedTowerID() == cdc.getPackedTowerID());
-    BOOST_CHECK(cor.getPackedTime() == cdc.getPackedTime());
-    BOOST_CHECK(cor.getPackedEnergy() == cdc.getPackedEnergy());
-    BOOST_CHECK(cor.getPackedCellStatus() == cdc.getPackedCellStatus());
+    BOOST_CHECK_EQUAL(cor.getPackedTowerID(), cdc.getPackedTowerID());
+    BOOST_CHECK_EQUAL(cor.getPackedTime(), cdc.getPackedTime());
+    BOOST_CHECK_EQUAL(cor.getPackedEnergy(), cdc.getPackedEnergy());
+    BOOST_CHECK_EQUAL(cor.getPackedCellStatus(), cdc.getPackedCellStatus());
   }
 }

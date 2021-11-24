@@ -135,7 +135,7 @@ class CTFHelper
   {
    public:
     using _Iter<Iter_trigger, TriggerRecord, uint16_t>::_Iter;
-    value_type operator*() const { return uint16_t(mData[mIndex].getTriggerBits() & 0xffff); }
+    value_type operator*() const { return mData[mIndex].getTriggerBitsCompressed(); }
   };
 
   //_______________________________________________
