@@ -183,6 +183,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to use/not use CCDB for TOF
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
+  workflowOptions.push_back(ConfigParamSpec{"ccdb-url-tof", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}});
 
   // option to use or not use the Trap Simulator after digitisation (debate of digitization or reconstruction is for others)
   workflowOptions.push_back(ConfigParamSpec{"disable-trd-trapsim", VariantType::Bool, false, {"disable the trap simulation of the TRD"}});
@@ -514,9 +515,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the TOF part
   if (isEnabled(o2::detectors::DetID::TOF)) {
     auto useCCDB = configcontext.options().get<bool>("use-ccdb-tof");
+    auto ccdb_url_tof = configcontext.options().get<std::string>("ccdb-url-tof");
     detList.emplace_back(o2::detectors::DetID::TOF);
     // connect the TOF digitization
-    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth));
+    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str()));
     // add TOF digit writer
     specs.emplace_back(o2::tof::getTOFDigitWriterSpec(mctruth));
   }
