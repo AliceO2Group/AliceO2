@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <memory>
 #include <vector>
 #include <string>
 #include <unordered_map>
@@ -24,12 +25,14 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 
+#include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCBase/Sector.h"
 #include "TPCWorkflow/KryptonRawFilterSpec.h"
 #include "TPCWorkflow/FileWriterSpec.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
+#include "TPCBase/CalDet.h"
 
 using namespace o2::framework;
 using namespace o2::tpc;
@@ -43,7 +46,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-krypton-raw-filter.*", CompletionPolicy::CompletionOp::Consume));
-  //policies.push_back(CompletionPolicyHelpers::defineByName("file-writer", CompletionPolicy::CompletionOp::Consume));
+  // policies.push_back(CompletionPolicyHelpers::defineByName("file-writer", CompletionPolicy::CompletionOp::Consume));
 
   // we customize the pipeline processors to consume data as it comes
   //
@@ -64,6 +67,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"lanes", VariantType::Int, defaultlanes, {"Number of parallel processing lanes."}},
     {"sectors", VariantType::String, sectorDefault.c_str(), {"List of TPC sectors, comma separated ranges, e.g. 0-3,7,9-15"}},
     {"writer-type", VariantType::String, "local", {"Writer type (local, EPN, none)"}},
+    {"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}},
   };
 
   std::swap(workflowOptions, options);
@@ -117,8 +121,23 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   std::vector<int> laneConfiguration = tpcSectors; // Currently just a copy of the tpcSectors, why?
 
+  CalPad* noise = nullptr;
+  const std::string ccdbPath = config.options().get<std::string>("ccdb-path");
+  auto& cdb = o2::ccdb::BasicCCDBManager::instance();
+  cdb.setURL(ccdbPath);
+  if (cdb.isHostReachable()) {
+    noise = cdb.get<CalPad>("TPC/Calib/Noise");
+    if (noise) {
+      LOGP(info, "Loaded noise from {}", ccdbPath);
+    } else {
+      LOGP(error, "Could not load noise from {}", ccdbPath);
+    }
+  } else {
+    LOGP(error, "Could not load noise from {}, host is not reachable", ccdbPath);
+  }
+
   WorkflowSpec parallelProcessors;
-  parallelProcessors.emplace_back(getKryptonRawFilterSpec());
+  parallelProcessors.emplace_back(getKryptonRawFilterSpec(noise));
 
   parallelProcessors = parallelPipeline(
     parallelProcessors, nLanes,
