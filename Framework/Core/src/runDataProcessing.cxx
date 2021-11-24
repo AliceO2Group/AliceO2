@@ -316,7 +316,7 @@ void spawnRemoteDevice(std::string const& forwardedStdin,
                        DeviceExecution& execution,
                        std::vector<DeviceInfo>& deviceInfos)
 {
-  LOG(INFO) << "Starting " << spec.id << " as remote device";
+  LOG(info) << "Starting " << spec.id << " as remote device";
   DeviceInfo info;
   // FIXME: we should make sure we do not sent a kill to pid 0.
   info.pid = 0;
@@ -781,7 +781,7 @@ void spawnDevice(DeviceRef ref,
     }
   }
 
-  LOG(INFO) << "Starting " << spec.id << " on pid " << id;
+  LOG(info) << "Starting " << spec.id << " on pid " << id;
   DeviceInfo info;
   info.pid = id;
   info.active = true;
@@ -978,7 +978,7 @@ void doUnknownException(std::string const& s, char const* processName)
 {
   return AlgorithmSpec{adaptStateless(
     [&routes = spec.outputs](DataAllocator& outputs) {
-      LOG(INFO) << "Dry run enforced. Creating dummy messages to simulate computation happended";
+      LOG(info) << "Dry run enforced. Creating dummy messages to simulate computation happended";
       for (auto& route : routes) {
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
         outputs.make<int>(Output{concrete.origin, concrete.description, concrete.subSpec}, 2);
@@ -988,7 +988,7 @@ void doUnknownException(std::string const& s, char const* processName)
 
 void doDefaultWorkflowTerminationHook()
 {
-  //LOG(INFO) << "Process " << getpid() << " is exiting.";
+  //LOG(info) << "Process " << getpid() << " is exiting.";
 }
 
 int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
@@ -1000,7 +1000,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
 {
   fair::Logger::SetConsoleColor(false);
   DeviceSpec const& spec = runningWorkflow.devices[ref.index];
-  LOG(INFO) << "Spawing new device " << spec.id << " in process with pid " << getpid();
+  LOG(info) << "Spawing new device " << spec.id << " in process with pid " << getpid();
 
   fair::mq::DeviceRunner runner{argc, argv};
 
@@ -1201,7 +1201,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     }
   }
   if (driverInfo.batch == false && window == nullptr && frameworkId.empty()) {
-    LOG(WARN) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
+    LOG(warn) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
     driverInfo.batch = true;
   }
   bool guiQuitRequested = false;
@@ -1319,7 +1319,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       auto currentTime = uv_hrtime();
       uint64_t diff = (currentTime - driverInfo.startTime) / 1000000000LL;
       if ((graceful_exit == false) && (driverInfo.timeout > 0) && (diff > driverInfo.timeout)) {
-        LOG(INFO) << "Timout ellapsed. Requesting to quit.";
+        LOG(info) << "Timout ellapsed. Requesting to quit.";
         graceful_exit = true;
       }
     }
@@ -1371,7 +1371,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         driverInfo.states.push_back(DriverState::RUNNING);
         //        driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
-        LOG(INFO) << "O2 Data Processing Layer initialised. We brake for nobody.";
+        LOG(info) << "O2 Data Processing Layer initialised. We brake for nobody.";
 #ifdef NDEBUG
         LOGF(info, "Optimised build. O2DEBUG / LOG(debug) / LOGF(DEBUG) / assert statement will not be shown.");
 #endif
@@ -1660,7 +1660,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         //        all the devices and we restart them. This is also what DDS does at
         //        a larger scale. In principle one could try to do a delta and only
         //        restart the data processors which need to be restarted.
-        LOG(INFO) << "Redeployment of configuration asked.";
+        LOG(info) << "Redeployment of configuration asked.";
         std::ostringstream forwardedStdin;
         WorkflowSerializationHelpers::dump(forwardedStdin, workflow, dataProcessorInfos, commandInfo);
         infos.reserve(runningWorkflow.devices.size());
@@ -1710,7 +1710,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                          driverInfo.resourcesMonitoringDumpInterval * 1000,
                          driverInfo.resourcesMonitoringDumpInterval * 1000);
         }
-        LOG(INFO) << "Redeployment of configuration done.";
+        LOG(info) << "Redeployment of configuration done.";
       } break;
       case DriverState::RUNNING:
         // Run any pending libUV event loop, block if
@@ -1727,7 +1727,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           // interaction with the GUI or (if --completion-policy=quit)
           // it could mean that the workflow does not have anything else to do.
           // Let's update the GUI one more time and then EXIT.
-          LOG(INFO) << "Quitting";
+          LOG(info) << "Quitting";
           driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
         } else if (infos.size() != runningWorkflow.devices.size()) {
           // If the number of devices is different from
@@ -1739,7 +1739,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::SCHEDULE);
           driverInfo.states.push_back(DriverState::MERGE_CONFIGS);
         } else if (runningWorkflow.devices.empty() && driverInfo.batch == true) {
-          LOG(INFO) << "No device resulting from the workflow. Quitting.";
+          LOG(info) << "No device resulting from the workflow. Quitting.";
           // If there are no deviceSpecs, we exit.
           driverInfo.states.push_back(DriverState::EXIT);
         } else if (runningWorkflow.devices.empty() && driverInfo.batch == false && !guiDeployedOnce) {
@@ -1769,7 +1769,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         break;
       case DriverState::QUIT_REQUESTED:
-        LOG(INFO) << "QUIT_REQUESTED";
+        LOG(info) << "QUIT_REQUESTED";
         guiQuitRequested = true;
         // We send SIGCONT to make sure stopped children are resumed
         killChildren(infos, SIGCONT);
@@ -1792,7 +1792,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         if (forceful_exit == true) {
           static bool forcefulExitMessage = true;
           if (forcefulExitMessage) {
-            LOG(INFO) << "Forceful exit requested.";
+            LOG(info) << "Forceful exit requested.";
             forcefulExitMessage = false;
           }
           killChildren(infos, SIGCONT);
@@ -1828,7 +1828,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (driverInfo.resourcesMonitoringDumpInterval) {
             uv_timer_stop(&metricDumpTimer);
           }
-          LOG(INFO) << "Dumping performance metrics to performanceMetrics.json file";
+          LOG(info) << "Dumping performance metrics to performanceMetrics.json file";
           dumpMetricsCallback(&metricDumpTimer);
         }
         // This is a clean exit. Before we do so, if required,
@@ -1847,7 +1847,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           auto spec = runningWorkflow.devices[di];
           finalConfig.put_child(spec.name, info.currentConfig);
         }
-        LOG(INFO) << "Dumping used configuration in dpl-config.json";
+        LOG(info) << "Dumping used configuration in dpl-config.json";
 
         std::ofstream outDPLConfigFile("dpl-config.json", std::ios::out);
         if (outDPLConfigFile.is_open()) {
