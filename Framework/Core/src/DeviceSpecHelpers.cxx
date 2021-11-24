@@ -1387,4 +1387,10 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
   return forwardedDeviceOptions;
 }
 
+bool DeviceSpecHelpers::hasLabel(DeviceSpec const& spec, char const* label)
+{
+  auto sameLabel = [other = DataProcessorLabel{{label}}](DataProcessorLabel const& label) { return label == other; };
+  return std::find_if(spec.labels.begin(), spec.labels.end(), sameLabel) != spec.labels.end();
+}
+
 } // namespace o2::framework
