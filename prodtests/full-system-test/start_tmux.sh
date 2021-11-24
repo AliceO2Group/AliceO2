@@ -5,7 +5,7 @@ if [ "0$1" == "0" ]; then
   exit 1
 fi
 
-MYDIR="$(dirname $(readlink -f $0))"
+MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh
 
 # This sets up the hardcoded configuration to run the full system workflow on the EPN
