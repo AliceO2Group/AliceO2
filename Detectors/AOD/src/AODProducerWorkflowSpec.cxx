@@ -15,6 +15,7 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsFDD/RecPoint.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsCTP/Digits.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
@@ -1037,6 +1038,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto caloEMCCells = recoData.getEMCALCells();
   auto caloEMCCellsTRGR = recoData.getEMCALTriggers();
 
+  auto ctpDigits = recoData.getCTPDigits();
+
   LOG(debug) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(debug) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
   LOG(debug) << "FOUND " << fv0RecPoints.size() << " FV0 rec. points";
@@ -1396,16 +1399,31 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   mTableTrID = 0;
   mGIDToTableID.clear();
 
+  // helper map for fast search of a corresponding class mask for a bc
+  std::unordered_map<uint64_t, uint64_t> bcToClassMask;
+  for (auto& ctpDigit : ctpDigits) {
+    uint64_t bc = ctpDigit.intRecord.toLong();
+    uint64_t classMask = ctpDigit.CTPClassMask.to_ulong();
+    bcToClassMask[bc] = classMask;
+  }
+
   // filling BC table
-  // TODO: get real triggerMask
-  uint64_t triggerMask = 1;
+  uint64_t triggerMask;
   for (auto& item : bcsMap) {
     uint64_t bc = item.first;
+    auto bcClassPair = bcToClassMask.find(bc);
+    if (bcClassPair != bcToClassMask.end()) {
+      triggerMask = bcClassPair->second;
+    } else {
+      triggerMask = 0;
+    }
     bcCursor(0,
              runNumber,
              bc,
              triggerMask);
   }
+
+  bcToClassMask.clear();
 
   if (mInputSources[GIndex::EMC]) {
     // fill EMC cells to tables
@@ -1456,6 +1474,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
+  dataRequest->requestCTPDigits(useMC);
   if (enableSV) {
     dataRequest->requestSecondaryVertertices(useMC);
   }
