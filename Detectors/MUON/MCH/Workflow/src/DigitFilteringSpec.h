@@ -9,27 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackMCLabelFinderSpec.h
-/// \brief Definition of a data processor to match the reconstructed tracks with the simulated ones
-///
-/// \author Philippe Pillot, Subatech
-
-#ifndef O2_MCH_TRACKMCLABELFINDERSPEC_H_
-#define O2_MCH_TRACKMCLABELFINDERSPEC_H_
+#ifndef O2_MCH_DIGIT_FILTERING_SPEC_H
+#define O2_MCH_DIGIT_FILTERING_SPEC_H
 
 #include "Framework/DataProcessorSpec.h"
 
-namespace o2
-{
-namespace mch
+namespace o2::mch
 {
 
 o2::framework::DataProcessorSpec
-  getTrackMCLabelFinderSpec(const char* specName = "TrackMCLabelFinder",
-                            const char* digitRofDataDescription = "DIGITROFS",
-                            const char* digitLabelDataDescription = "DIGITLABELS");
+  getDigitFilteringSpec(
+    bool useMC,
+    std::string_view specName = "mch-digit-filtering",
+    std::string_view inputDigitDataDescription = "DIGITS",
+    std::string_view outputDigitDataDescription = "F-DIGITS",
+    std::string_view inputDigitRofDataDescription = "DIGITROFS",
+    std::string_view outputDigitRofDataDescription = "F-DIGITROFS",
+    std::string_view inputDigitLabelDataDescription = "DIGITLABELS",
+    std::string_view outputDigitLabelDataDescription = "F-DIGITLABELS");
 
-} // end namespace mch
-} // end namespace o2
-
-#endif // O2_MCH_TRACKMCLABELFINDERSPEC_H_
+}
+#endif
