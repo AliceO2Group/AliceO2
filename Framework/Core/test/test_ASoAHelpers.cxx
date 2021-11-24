@@ -16,6 +16,7 @@
 #include "Framework/ASoAHelpers.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Framework/ExpressionHelpers.h"
 #include <boost/test/unit_test.hpp>
 
 using namespace o2::framework;
@@ -212,7 +213,8 @@ BOOST_AUTO_TEST_CASE(CombinationsGeneratorConstruction)
   BOOST_REQUIRE_EQUAL(static_cast<test::X>(std::get<1>(endCombination)).getIterator().mCurrentChunk, 0);
 
   o2::framework::expressions::Filter filter = test::x > 3;
-  auto filtered = Filtered<TestA>{{testsA.asArrowTable()}, o2::framework::expressions::createSelection(testsA.asArrowTable(), filter)};
+  auto s1 = o2::framework::expressions::createSelection(testsA.asArrowTable(), filter);
+  auto filtered = Filtered<TestA>{{testsA.asArrowTable()}, s1};
 
   CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<Filtered<TestA>, Filtered<TestA>>>::CombinationsIterator combItFiltered(CombinationsStrictlyUpperIndexPolicy(filtered, filtered));
   BOOST_REQUIRE_NE(static_cast<test::X>(std::get<0>(*(combItFiltered))).getIterator().mCurrentPos, nullptr);

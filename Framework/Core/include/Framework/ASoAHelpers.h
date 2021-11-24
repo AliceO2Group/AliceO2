@@ -202,11 +202,24 @@ struct CombinationsIndexPolicyBase {
   using CombinationType = std::tuple<typename Ts::iterator...>;
   using IndicesType = typename NTupleType<uint64_t, sizeof...(Ts)>::type;
 
-  CombinationsIndexPolicyBase(const Ts&... tables) : mIsEnd(false),
+  CombinationsIndexPolicyBase(const Ts&... tables) : mTables(std::tie(tables...)),
+                                                     mIsEnd(false),
                                                      mMaxOffset(tables.end().index...),
                                                      mCurrent(tables.begin()...)
+
   {
     if (((tables.size() == 0) || ...)) {
+      this->mIsEnd = true;
+    }
+  }
+
+  CombinationsIndexPolicyBase(Ts&&... tables) : mTables(std::move(tables)...),
+                                                mIsEnd(false),
+                                                mMaxOffset(std::get<Ts>(mTables).end().index...),
+                                                mCurrent(std::get<Ts>(mTables).begin()...)
+
+  {
+    if (((std::get<Ts>(mTables).size() == 0) || ...)) {
       this->mIsEnd = true;
     }
   }
@@ -222,7 +235,9 @@ struct CombinationsIndexPolicyBase {
 
   void addOne() {}
 
+  std::tuple<Ts const&...> mTables;
   CombinationType mCurrent;
+
   IndicesType mMaxOffset; // one position past maximum acceptable position for each element of combination
   bool mIsEnd;            // whether there are any more tuples available
 };
@@ -991,9 +1006,9 @@ template <typename T1, typename T2, typename... T2s>
 auto combinations(const char* categoryColumnName, int categoryNeighbours, const T1& outsider, const o2::framework::expressions::Filter& filter, const T2& table, const T2s&... tables)
 {
   if constexpr (std::conjunction_v<std::is_same<T2, T2s>...>) {
-    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<T1, Filtered<T2>, Filtered<T2s>...>>(CombinationsBlockStrictlyUpperSameIndexPolicy(categoryColumnName, categoryNeighbours, outsider, Filtered<T2>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)}, Filtered<T2s>{{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
+    return CombinationsGenerator<CombinationsBlockStrictlyUpperSameIndexPolicy<T1, Filtered<T2>, Filtered<T2s>...>>(CombinationsBlockStrictlyUpperSameIndexPolicy(categoryColumnName, categoryNeighbours, outsider, table.select(filter), tables.select(filter)...));
   } else {
-    return CombinationsGenerator<CombinationsBlockUpperIndexPolicy<T1, Filtered<T2>, Filtered<T2s>...>>(CombinationsBlockUpperIndexPolicy(categoryColumnName, categoryNeighbours, outsider, Filtered<T2>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)}, Filtered<T2s>{{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
+    return CombinationsGenerator<CombinationsBlockUpperIndexPolicy<T1, Filtered<T2>, Filtered<T2s>...>>(CombinationsBlockUpperIndexPolicy(categoryColumnName, categoryNeighbours, outsider, table.select(filter), tables.select(filter)...));
   }
 }
 
@@ -1023,16 +1038,16 @@ template <typename T2, typename... T2s>
 auto combinations(const o2::framework::expressions::Filter& filter, const T2& table, const T2s&... tables)
 {
   if constexpr (std::conjunction_v<std::is_same<T2, T2s>...>) {
-    return CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<Filtered<T2>, Filtered<T2s>...>>(CombinationsStrictlyUpperIndexPolicy(Filtered<T2>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)}, Filtered<T2s>{{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
+    return CombinationsGenerator<CombinationsStrictlyUpperIndexPolicy<Filtered<T2>, Filtered<T2s>...>>(CombinationsStrictlyUpperIndexPolicy(table.select(filter), tables.select(filter)...));
   } else {
-    return CombinationsGenerator<CombinationsUpperIndexPolicy<Filtered<T2>, Filtered<T2s>...>>(CombinationsUpperIndexPolicy(Filtered<T2>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)}, Filtered<T2s>{{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
+    return CombinationsGenerator<CombinationsUpperIndexPolicy<Filtered<T2>, Filtered<T2s>...>>(CombinationsUpperIndexPolicy(table.select(filter), tables.select(filter)...));
   }
 }
 
 template <template <typename...> typename P2, typename... T2s>
-CombinationsGenerator<P2<Filtered<T2s>...>> combinations(const P2<T2s...>& policy, const o2::framework::expressions::Filter& filter, const T2s&... tables)
+CombinationsGenerator<P2<Filtered<T2s>...>> combinations(const P2<T2s...>&, const o2::framework::expressions::Filter& filter, const T2s&... tables)
 {
-  return CombinationsGenerator<P2<Filtered<T2s>...>>(P2<Filtered<T2s>...>({{tables.asArrowTable()}, o2::framework::expressions::createSelection(tables.asArrowTable(), filter)}...));
+  return CombinationsGenerator<P2<Filtered<T2s>...>>(P2<Filtered<T2s>...>({o2::soa::select(tables, filter)}...));
 }
 
 // This shortened version cannot be used for Filtered

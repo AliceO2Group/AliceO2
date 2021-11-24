@@ -416,7 +416,7 @@ using Projector = Filter;
 /// Function for creating gandiva selection from our internal filter tree
 gandiva::Selection createSelection(std::shared_ptr<arrow::Table> const& table, Filter const& expression);
 /// Function for creating gandiva selection from prepared gandiva expressions tree
-gandiva::Selection createSelection(std::shared_ptr<arrow::Table> const& table, std::shared_ptr<gandiva::Filter> gfilter);
+gandiva::Selection createSelection(std::shared_ptr<arrow::Table> const& table, std::shared_ptr<gandiva::Filter> const& gfilter);
 
 struct ColumnOperationSpec;
 using Operations = std::vector<ColumnOperationSpec>;

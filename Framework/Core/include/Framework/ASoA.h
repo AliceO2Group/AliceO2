@@ -915,13 +915,20 @@ static constexpr auto extractBindings(framework::pack<Is...>)
 template <typename T>
 class Filtered;
 
-template <typename T>
-auto select(T const& t, framework::expressions::Filter&& f)
+static inline SelectionVector selectionToVector(gandiva::Selection const& sel)
 {
-  auto selection = framework::expressions::createSelection(t.asArrowTable(), framework::expressions::createExpressionTree(
-                                                                               framework::expressions::createOperations(f),
-                                                                               t.asArrowTable()->schema()));
-  return Filtered<T>({t.asArrowTable()}, Filtered<T>::copySelection(selection));
+  SelectionVector rows;
+  rows.resize(sel->GetNumSlots());
+  for (auto i = 0; i < sel->GetNumSlots(); ++i) {
+    rows[i] = sel->GetIndex(i);
+  }
+  return rows;
+}
+
+template <typename T>
+auto select(T const& t, framework::expressions::Filter const& f)
+{
+  return Filtered<T>({t.asArrowTable()}, selectionToVector(framework::expressions::createSelection(t.asArrowTable(), f)));
 }
 
 arrow::Status getSliceFor(int value, char const* key, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset);
@@ -1176,9 +1183,9 @@ class Table
     doCopyIndexBindings(external_index_columns_t{}, dest);
   }
 
-  auto select(framework::expressions::Filter&& f) const
+  auto select(framework::expressions::Filter const& f) const
   {
-    auto t = o2::soa::select(*this, std::forward<framework::expressions::Filter>(f));
+    auto t = o2::soa::select(*this, f);
     copyIndexBindings(t);
     return t;
   }
@@ -1935,10 +1942,10 @@ template <typename T>
 using is_soa_concat_t = typename framework::is_specialization<T, soa::Concat>;
 
 template <typename T>
-class FilteredPolicy : public T
+class FilteredBase : public T
 {
  public:
-  using self_t = FilteredPolicy<T>;
+  using self_t = FilteredBase<T>;
   using originals = originals_pack_t<T>;
   using table_t = typename T::table_t;
   using persistent_columns_t = typename T::persistent_columns_t;
@@ -1949,24 +1956,25 @@ class FilteredPolicy : public T
   {
     return typename table_t::template RowViewFiltered<P, Os...>{};
   }
-  using iterator = decltype(make_it<FilteredPolicy<T>>(originals{}));
+  using iterator = decltype(make_it<FilteredBase<T>>(originals{}));
   using const_iterator = iterator;
 
-  FilteredPolicy(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
+  FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
       mSelectedRows{getSpan(selection)}
   {
     resetRanges();
   }
 
-  FilteredPolicy(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector const& selection, uint64_t offset = 0)
+  FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
-      mSelectedRowsCache{selection}
+      mSelectedRowsCache{std::move(selection)},
+      mCached{true}
   {
     resetRanges();
   }
 
-  FilteredPolicy(std::vector<std::shared_ptr<arrow::Table>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
+  FilteredBase(std::vector<std::shared_ptr<arrow::Table>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
       mSelectedRows{selection}
   {
@@ -2022,15 +2030,6 @@ class FilteredPolicy : public T
     auto start = array->raw_values();
     auto stop = start + array->length();
     return gsl::span{start, stop};
-  }
-
-  static inline SelectionVector copySelection(gandiva::Selection const& sel)
-  {
-    SelectionVector rows;
-    for (auto i = 0; i < sel->GetNumSlots(); ++i) {
-      rows.push_back(sel->GetIndex(i));
-    }
-    return rows;
   }
 
   /// Bind the columns which refer to other tables
@@ -2119,6 +2118,7 @@ class FilteredPolicy : public T
     mCached = true;
     SelectionVector rowsUnion;
     std::set_union(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(rowsUnion));
+    mSelectedRowsCache.clear();
     mSelectedRowsCache = rowsUnion;
     resetRanges();
   }
@@ -2128,6 +2128,7 @@ class FilteredPolicy : public T
     mCached = true;
     SelectionVector intersection;
     std::set_intersection(mSelectedRows.begin(), mSelectedRows.end(), selection.begin(), selection.end(), std::back_inserter(intersection));
+    mSelectedRowsCache.clear();
     mSelectedRowsCache = intersection;
     resetRanges();
   }
@@ -2154,17 +2155,17 @@ class FilteredPolicy : public T
 };
 
 template <typename T>
-class Filtered : public FilteredPolicy<T>
+class Filtered : public FilteredBase<T>
 {
  public:
   Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
-    : FilteredPolicy<T>(std::move(tables), selection, offset) {}
+    : FilteredBase<T>(std::move(tables), selection, offset) {}
 
-  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector const& selection, uint64_t offset = 0)
-    : FilteredPolicy<T>(std::move(tables), selection, offset) {}
+  Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
+    : FilteredBase<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
 
   Filtered(std::vector<std::shared_ptr<arrow::Table>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
-    : FilteredPolicy<T>(std::move(tables), selection, offset) {}
+    : FilteredBase<T>(std::move(tables), selection, offset) {}
 
   Filtered<T> operator+(SelectionVector const& selection)
   {
@@ -2240,21 +2241,21 @@ class Filtered : public FilteredPolicy<T>
 };
 
 template <typename T>
-class Filtered<Filtered<T>> : public FilteredPolicy<typename T::table_t>
+class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 {
  public:
-  using table_t = typename FilteredPolicy<typename T::table_t>::table_t;
+  using table_t = typename FilteredBase<typename T::table_t>::table_t;
 
   Filtered(std::vector<Filtered<T>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
-    : FilteredPolicy<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), selection, offset)
+    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), selection, offset)
   {
     for (auto& table : tables) {
       *this *= table;
     }
   }
 
-  Filtered(std::vector<Filtered<T>>&& tables, SelectionVector const& selection, uint64_t offset = 0)
-    : FilteredPolicy<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), selection, offset)
+  Filtered(std::vector<Filtered<T>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
+    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), std::forward<SelectionVector>(selection), offset)
   {
     for (auto& table : tables) {
       *this *= table;
@@ -2262,7 +2263,7 @@ class Filtered<Filtered<T>> : public FilteredPolicy<typename T::table_t>
   }
 
   Filtered(std::vector<Filtered<T>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
-    : FilteredPolicy<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), selection, offset)
+    : FilteredBase<typename T::table_t>(std::move(extractTablesFromFiltered(std::move(tables))), selection, offset)
   {
     for (auto& table : tables) {
       *this *= table;
@@ -2353,7 +2354,7 @@ class Filtered<Filtered<T>> : public FilteredPolicy<typename T::table_t>
 };
 
 template <typename T>
-using is_soa_filtered_t = typename framework::is_base_of_template<soa::FilteredPolicy, T>;
+using is_soa_filtered_t = typename framework::is_base_of_template<soa::FilteredBase, T>;
 
 /// Template for building an index table to access matching rows from non-
 /// joinable, but compatible tables, e.g. Collisions and ZDCs.
@@ -2389,14 +2390,14 @@ using is_soa_index_table_t = typename framework::is_base_of_template<soa::IndexT
 
 template <typename T>
 struct SmallGroups : Filtered<T> {
+  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
+    : Filtered<T>(std::move(tables), selection, offset) {}
+
   SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), std::forward<SelectionVector>(selection), offset) {}
 
-  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection selection, uint64_t offset = 0)
+  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, gsl::span<int64_t const> const& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), selection, offset) {}
-
-  SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::NodePtr const& tree, uint64_t offset = 0)
-    : Filtered<T>(std::move(tables), tree, offset) {}
 };
 
 } // namespace o2::soa
