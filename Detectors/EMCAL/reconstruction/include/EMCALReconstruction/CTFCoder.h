@@ -141,6 +141,7 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& cellVec)
   o2::InteractionRecord ir(header.firstBC, header.firstOrbit);
 
   Cell cell;
+  TriggerRecord trg;
   for (uint32_t itrig = 0; itrig < header.nTriggers; itrig++) {
     // restore TrigRecord
     if (orbitInc[itrig]) {  // non-0 increment => new orbit
@@ -156,8 +157,10 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& cellVec)
       cellVec.emplace_back(cell);
       cellCount++;
     }
-    uint32_t trigBits = trigger[itrig];
-    trigVec.emplace_back(ir, trigBits, firstEntry, entries[itrig]);
+    trg.setBCData(ir);
+    trg.setDataRange(firstEntry, entries[itrig]);
+    trg.setTriggerBitsCompressed(trigger[itrig]);
+    trigVec.emplace_back(trg);
   }
   assert(cellCount == header.nCells);
 }
