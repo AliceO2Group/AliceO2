@@ -182,13 +182,14 @@ class TrackMCLabelFinderTask
 
 //_________________________________________________________________________________________________
 o2::framework::DataProcessorSpec getTrackMCLabelFinderSpec(const char* specName,
-                                                           const char* digitRofDataDescription)
+                                                           const char* digitRofDataDescription,
+                                                           const char* digitLabelDataDescription)
 {
   std::string input =
-    fmt::format("digitrofs:MCH/{}/0;", digitRofDataDescription);
+    fmt::format("digitrofs:MCH/{}/0;digitlabels:MCH/{}/0", digitRofDataDescription,
+                digitLabelDataDescription);
   input +=
-    "digitlabels:MCH/DIGITLABELS/0;"
-    "trackrofs:MCH/TRACKROFS/0;"
+    ";trackrofs:MCH/TRACKROFS/0;"
     "tracks:MCH/TRACKS/0;"
     "clusters:MCH/TRACKCLUSTERS/0";
   return DataProcessorSpec{

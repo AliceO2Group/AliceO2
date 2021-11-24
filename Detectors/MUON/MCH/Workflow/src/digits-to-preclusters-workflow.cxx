@@ -27,13 +27,17 @@ using namespace o2::framework;
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(ConfigParamSpec{"input-digitrofs-data-description", VariantType::String, "TIMECLUSTERROFS", {"description string for the input ROF data"}});
+  workflowOptions.emplace_back(ConfigParamSpec{"input-digitrofs-data-description", VariantType::String, "TC-F-DIGITROFS", {"description string for the input ROF data"}});
+  workflowOptions.emplace_back(ConfigParamSpec{"input-digits-data-description", VariantType::String, "F-DIGITS", {"description string for the input digits data"}});
 }
 
 #include "Framework/runDataProcessing.h"
 
-WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
+WorkflowSpec defineDataProcessing(const ConfigContext& cc)
 {
-  auto rofDesc = configcontext.options().get<std::string>("input-digitrofs-data-description");
-  return {o2::mch::getPreClusterFinderSpec(rofDesc.c_str())};
+  return {
+    o2::mch::getPreClusterFinderSpec(
+      "mch-preclustering",
+      cc.options().get<std::string>("input-digits-data-description"),
+      cc.options().get<std::string>("input-digitrofs-data-description"))};
 }
