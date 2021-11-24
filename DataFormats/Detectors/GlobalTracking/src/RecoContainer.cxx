@@ -137,6 +137,12 @@ void DataRequest::requestGlobalFwdTracks(bool mc)
   requestMap["fwdtracks"] = mc;
 }
 
+void DataRequest::requestMFTMCHMatches(bool mc)
+{
+  addInput({"matchMFTMCH", "GLO", "MTC_MFTMCH", 0, Lifetime::Timeframe});
+  requestMap["matchMFTMCH"] = mc;
+}
+
 void DataRequest::requestTPCTOFTracks(bool mc)
 {
   auto ss = getMatchingInputSubSpec();
@@ -504,6 +510,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addGlobalFwdTracks(pc, req->second);
   }
 
+  req = reqMap.find("matchMFTMCH");
+  if (req != reqMap.end()) {
+    addMFTMCHMatches(pc, req->second);
+  }
+
   req = reqMap.find("trackITSTPCTRD");
   if (req != reqMap.end()) {
     addITSTPCTRDTracks(pc, req->second);
@@ -759,6 +770,12 @@ void RecoContainer::addGlobalFwdTracks(ProcessingContext& pc, bool mc)
   if (mc) {
     commonPool[GTrackID::MFTMCH].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("MCTruth"), MCLABELS);
   }
+}
+
+//__________________________________________________________
+void RecoContainer::addMFTMCHMatches(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::MFTMCH].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoMFTMCH>>("matchMFTMCH"), MATCHES);
 }
 
 //__________________________________________________________

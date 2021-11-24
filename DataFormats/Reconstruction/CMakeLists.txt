@@ -58,6 +58,7 @@ o2_target_root_dictionary(
           include/ReconstructionDataFormats/TrackTPCTOF.h
           include/ReconstructionDataFormats/TrackCosmics.h
           include/ReconstructionDataFormats/TrackMCHMID.h
+          include/ReconstructionDataFormats/MatchInfoMFTMCH.h
   )
 
 o2_add_test(Vertex

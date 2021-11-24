@@ -48,6 +48,9 @@
 #pragma link C++ class o2::dataformats::TrackMCHMID + ;
 #pragma link C++ class std::vector < o2::dataformats::TrackMCHMID> + ;
 
+#pragma link C++ class o2::dataformats::MatchInfoMFTMCH + ;
+#pragma link C++ class std::vector < o2::dataformats::MatchInfoMFTMCH> + ;
+
 #pragma link C++ class o2::dataformats::GlobalFwdTrack + ;
 #pragma link C++ class std::vector < o2::dataformats::GlobalFwdTrack> + ;
 
