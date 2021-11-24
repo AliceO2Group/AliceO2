@@ -65,9 +65,9 @@ class TOFDPLClustererTask
     mTimer.Reset();
 
     mTimeWin = ic.options().get<int>("cluster-time-window");
-    LOG(DEBUG) << "Is calibration from cluster on? " << mIsCalib;
-    LOG(DEBUG) << "DeltaTime for clusterization = " << mTimeWin << " ps";
-    LOG(DEBUG) << "Is cosmics? " << mIsCosmic;
+    LOG(debug) << "Is calibration from cluster on? " << mIsCalib;
+    LOG(debug) << "DeltaTime for clusterization = " << mTimeWin << " ps";
+    LOG(debug) << "Is cosmics? " << mIsCosmic;
 
     mClusterer.setCalibFromCluster(mIsCalib);
     mClusterer.setDeltaTforClustering(mTimeWin);
@@ -158,7 +158,7 @@ class TOFDPLClustererTask
         mClusterer.process(mReader, mClustersArray, nullptr);
       }
     }
-    LOG(DEBUG) << "TOF CLUSTERER : TRANSFORMED " << digits.size()
+    LOG(debug) << "TOF CLUSTERER : TRANSFORMED " << digits.size()
                << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";
 
     // send clusters

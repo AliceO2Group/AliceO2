@@ -35,7 +35,7 @@ void TOFFEElightReader::loadFEElightConfig(gsl::span<const char> configBuf)
   // load FEElight config from buffer
 
   if (configBuf.size() != sizeof(o2::tof::TOFFEElightConfig)) {
-    LOG(FATAL) << "Incoming message with TOFFEE configuration does not match expected size: " << configBuf.size() << " received, " << sizeof(*mFEElightConfig) << " expected";
+    LOG(fatal) << "Incoming message with TOFFEE configuration does not match expected size: " << configBuf.size() << " received, " << sizeof(*mFEElightConfig) << " expected";
   }
   mFEElightConfig = reinterpret_cast<const TOFFEElightConfig*>(configBuf.data());
 }
@@ -67,7 +67,7 @@ int TOFFEElightReader::parseFEElightConfig(bool verbose)
           for (int channelId = 0; channelId < Geo::kNCh; channelId++) {
             channelConfig = mFEElightConfig->getChannelConfig(crateId, trmId, chainId, tdcId, channelId);
             if (verbose) {
-              LOG(INFO) << "Processing electronic channel with indices: crate = " << crateId << ", trm = " << trmId << ", chain = "
+              LOG(info) << "Processing electronic channel with indices: crate = " << crateId << ", trm = " << trmId << ", chain = "
                         << chainId << ", tdc = " << tdcId << ", tdcChannel = " << channelId << " -> " << channelConfig;
             }
             if (channelConfig) {
@@ -80,7 +80,7 @@ int TOFFEElightReader::parseFEElightConfig(bool verbose)
                 continue;
               }
               nEnabled++;
-              LOG(INFO) << "Enabling channel " << index;
+              LOG(info) << "Enabling channel " << index;
               mFEElightInfo.mChannelEnabled[index] = channelConfig->isEnabled();
               mFEElightInfo.mMatchingWindow[index] = channelConfig->mMatchingWindow;
               mFEElightInfo.mLatencyWindow[index] = channelConfig->mLatencyWindow;
@@ -95,7 +95,7 @@ int TOFFEElightReader::parseFEElightConfig(bool verbose)
   for (Int_t iddl = 0; iddl < TOFFEElightConfig::NTRIGGERMAPS; iddl++) {
     triggerConfig = mFEElightConfig->getTriggerConfig(iddl);
     if (verbose) {
-      LOG(INFO) << "Processing trigger config " << iddl << ": " << triggerConfig;
+      LOG(info) << "Processing trigger config " << iddl << ": " << triggerConfig;
     }
     if (triggerConfig) {
       mFEElightInfo.mTriggerMask[iddl] = triggerConfig->mStatusMap;

@@ -46,7 +46,7 @@ class TOFDCSConfigProcessor : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     mVerbose = ic.options().get<bool>("use-verbose-mode");
-    LOG(INFO) << " ************************* Verbose?" << mVerbose;
+    LOG(info) << " ************************* Verbose?" << mVerbose;
   }
 
   //---------------------------------------------------------
@@ -56,7 +56,7 @@ class TOFDCSConfigProcessor : public o2::framework::Task
     auto configBuff = pc.inputs().get<gsl::span<char>>("inputConfig");
     auto configFileName = pc.inputs().get<std::string>("inputConfigFileName");
     auto timer = std::chrono::duration_cast<std::chrono::milliseconds>(HighResClock::now().time_since_epoch()).count();
-    LOG(INFO) << "got input file " << configFileName << " of size " << configBuff.size();
+    LOG(info) << "got input file " << configFileName << " of size " << configBuff.size();
     mTOFFEElightReader.loadFEElightConfig(configBuff);
     mTOFFEElightReader.parseFEElightConfig(mVerbose);
     //auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().getFirstValid(true).header)->startTime;
@@ -84,7 +84,7 @@ class TOFDCSConfigProcessor : public o2::framework::Task
     md.emplace("created by", "dpl");
     o2::ccdb::CcdbObjectInfo info("TOF/Calib/FEELIGHT", clName, flName, md, tf, INFINITE_TF);
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_FEELIGHT", 0}, *image.get()); // vector<char>
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_FEELIGHT", 0}, info);         // root-serialized

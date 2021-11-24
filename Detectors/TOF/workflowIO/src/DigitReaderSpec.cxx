@@ -32,12 +32,12 @@ namespace tof
 
 void DigitReader::init(InitContext& ic)
 {
-  LOG(DEBUG) << "Init Digit reader!";
+  LOG(debug) << "Init Digit reader!";
   auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                                 ic.options().get<std::string>("tof-digit-infile"));
   mFile = std::make_unique<TFile>(filename.c_str(), "OLD");
   if (!mFile->IsOpen()) {
-    LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
+    LOG(error) << "Cannot open the " << filename.c_str() << " file !";
     mState = 0;
     return;
   }
@@ -83,10 +83,10 @@ void DigitReader::run(ProcessingContext& pc)
 
     static o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::CONTINUOUS;
 
-    LOG(DEBUG) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
+    LOG(debug) << "TOF: Sending ROMode= " << roMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "ROMode", 0, Lifetime::Timeframe}, roMode);
   } else {
-    LOG(ERROR) << "Cannot read the TOF digits !";
+    LOG(error) << "Cannot read the TOF digits !";
     return;
   }
 
