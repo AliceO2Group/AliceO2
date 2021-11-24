@@ -96,7 +96,7 @@ float CalibTOFapi::getTimeCalibration(int ich, float tot)
 
   float corr = 0;
   if (!mLHCphase || !mSlewParam) {
-    LOG(WARNING) << "Either LHC phase or slewing object null: mLHCphase = " << mLHCphase << ", mSlewParam = " << mSlewParam;
+    LOG(warning) << "Either LHC phase or slewing object null: mLHCphase = " << mLHCphase << ", mSlewParam = " << mSlewParam;
     return corr;
   }
   //  printf("LHC phase apply\n");

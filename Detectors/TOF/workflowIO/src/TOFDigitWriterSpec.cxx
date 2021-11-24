@@ -52,16 +52,16 @@ DataProcessorSpec getTOFDigitWriterSpec(bool useMC, bool writeErr)
   auto loggerH = [nCalls](HeaderType const& indata) {
   };
   auto logger = [nCalls](OutputType const& indata) {
-    //    LOG(INFO) << "RECEIVED DIGITS SIZE " << indata.size();
+    //    LOG(info) << "RECEIVED DIGITS SIZE " << indata.size();
   };
   auto loggerROW = [nCalls](ReadoutWinType const& row) {
-    //    LOG(INFO) << "RECEIVED READOUT WINDOWS " << row.size();
+    //    LOG(info) << "RECEIVED READOUT WINDOWS " << row.size();
   };
   auto loggerPatterns = [nCalls](PatternType const& patterns) {
-    //    LOG(INFO) << "RECEIVED PATTERNS " << patterns.size();
+    //    LOG(info) << "RECEIVED PATTERNS " << patterns.size();
   };
   auto loggerErrors = [nCalls](ErrorType const& errors) {
-    //    LOG(INFO) << "RECEIVED PATTERNS " << patterns.size();
+    //    LOG(info) << "RECEIVED PATTERNS " << patterns.size();
   };
   return MakeRootTreeWriterSpec("TOFDigitWriter",
                                 "tofdigits.root",

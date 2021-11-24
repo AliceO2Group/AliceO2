@@ -63,7 +63,7 @@ class TOFChannelData
 
   TOFChannelData()
   {
-    LOG(INFO) << "Default c-tor, not to be used";
+    LOG(info) << "Default c-tor, not to be used";
   }
 
 #ifndef DEBUGGING
@@ -199,7 +199,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
     // Checking if all channels have enough data to do calibration.
     // Delegating this to TOFChannelData
     const o2::tof::TOFChannelData* c = slot.getContainer();
-    LOG(DEBUG) << "Checking statistics";
+    LOG(debug) << "Checking statistics";
     return (mTest ? true : c->hasEnoughData(mMinEntries));
   }
 

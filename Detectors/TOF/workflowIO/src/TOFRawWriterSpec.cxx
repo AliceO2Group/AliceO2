@@ -36,14 +36,14 @@ void RawWriter::init(InitContext& ic)
   mOutFileName = ic.options().get<std::string>("tof-raw-outfile");
   mOutDirName = ic.options().get<std::string>("tof-raw-outdir");
   mFileFor = ic.options().get<std::string>("file-for");
-  LOG(DEBUG) << "Raw output file: " << mOutFileName.c_str();
+  LOG(debug) << "Raw output file: " << mOutFileName.c_str();
 
   // if needed, create output directory
   if (!std::filesystem::exists(mOutDirName)) {
     if (!std::filesystem::create_directories(mOutDirName)) {
-      LOG(FATAL) << "could not create output directory " << mOutDirName;
+      LOG(fatal) << "could not create output directory " << mOutDirName;
     } else {
-      LOG(DEBUG) << "created output directory " << mOutDirName;
+      LOG(debug) << "created output directory " << mOutDirName;
     }
   }
 }
@@ -53,7 +53,7 @@ void RawWriter::run(ProcessingContext& pc)
   auto digits = pc.inputs().get<std::vector<o2::tof::Digit>*>("tofdigits");
   auto row = pc.inputs().get<std::vector<o2::tof::ReadoutWindowData>*>("readoutwin");
   int nwindow = row->size();
-  LOG(DEBUG) << "Encoding " << nwindow << " TOF readout windows";
+  LOG(debug) << "Encoding " << nwindow << " TOF readout windows";
 
   int cache = 1024 * 1024; // 1 MB
   int verbosity = 0;

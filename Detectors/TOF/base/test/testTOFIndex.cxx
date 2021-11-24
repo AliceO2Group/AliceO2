@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(testTOFIndex)
                                                          << " --> out:"
                                                          << indextofTest[4]);
             // if (locError && j == 1 && k == 3) {
-            LOG(INFO) << "in:" << indextof[0] << ", " << indextof[1] << ", "
+            LOG(info) << "in:" << indextof[0] << ", " << indextof[1] << ", "
                       << indextof[2] << ", " << indextof[3] << ", "
                       << indextof[4] << " --> out:" << indextofTest[0] << ", "
                       << indextofTest[1] << ", " << indextofTest[2] << ", "

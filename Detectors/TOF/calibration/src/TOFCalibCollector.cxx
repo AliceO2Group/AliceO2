@@ -32,7 +32,7 @@ void TOFCalibInfoSlot::fill(const gsl::span<const o2::dataformats::CalibInfoTOF>
 
   // we first order the data that arrived, to improve speed when filling
   int nd = data.size();
-  LOG(DEBUG) << "entries in incoming data = " << nd;
+  LOG(debug) << "entries in incoming data = " << nd;
   std::vector<int> ord(nd);
   std::iota(ord.begin(), ord.end(), 0);
   std::sort(ord.begin(), ord.end(), [&data](int i, int j) { return data[i].getTOFChIndex() < data[j].getTOFChIndex(); });
@@ -59,7 +59,7 @@ void TOFCalibInfoSlot::fill(const gsl::span<const o2::tof::CalibInfoCluster> dat
 
   // we first order the data that arrived, to improve speed when filling
   int nd = data.size();
-  LOG(DEBUG) << "entries in incoming data = " << nd;
+  LOG(debug) << "entries in incoming data = " << nd;
   std::vector<int> ord(nd);
   std::iota(ord.begin(), ord.end(), 0);
   std::sort(ord.begin(), ord.end(), [&data](int i, int j) { return data[i].getCH() < data[j].getCH(); });
@@ -100,7 +100,7 @@ void TOFCalibInfoSlot::merge(const TOFCalibInfoSlot* prev)
 {
   // merge data of 2 slots
 
-  LOG(DEBUG) << "Merging two slots with entries: current slot -> " << mTOFCollectedCalibInfoSlot.size() << " , previous slot -> " << prev->mTOFCollectedCalibInfoSlot.size();
+  LOG(debug) << "Merging two slots with entries: current slot -> " << mTOFCollectedCalibInfoSlot.size() << " , previous slot -> " << prev->mTOFCollectedCalibInfoSlot.size();
 
   int offset = 0, offsetPrev = 0;
   std::vector<o2::dataformats::CalibInfoTOFshort> tmpVector;
@@ -120,7 +120,7 @@ void TOFCalibInfoSlot::merge(const TOFCalibInfoSlot* prev)
     }
   }
   mTOFCollectedCalibInfoSlot.swap(tmpVector);
-  LOG(DEBUG) << "After merging the size is " << mTOFCollectedCalibInfoSlot.size();
+  LOG(debug) << "After merging the size is " << mTOFCollectedCalibInfoSlot.size();
   return;
 }
 //_____________________________________________
@@ -128,10 +128,10 @@ void TOFCalibInfoSlot::print() const
 {
   // to print number of entries in the tree and the channel with the max number of entries
 
-  LOG(INFO) << "Total number of entries " << mTOFCollectedCalibInfoSlot.size();
+  LOG(info) << "Total number of entries " << mTOFCollectedCalibInfoSlot.size();
   auto maxElementIndex = std::max_element(mEntriesSlot.begin(), mEntriesSlot.end());
   auto channelIndex = std::distance(mEntriesSlot.begin(), maxElementIndex);
-  LOG(INFO) << "The maximum number of entries per channel in the current mTOFCollectedCalibInfo is " << *maxElementIndex << " for channel " << channelIndex;
+  LOG(info) << "The maximum number of entries per channel in the current mTOFCollectedCalibInfo is " << *maxElementIndex << " for channel " << channelIndex;
   return;
 }
 
@@ -140,10 +140,10 @@ void TOFCalibInfoSlot::printEntries() const
 {
   // to print number of entries in the tree and per channel
 
-  LOG(INFO) << "Total number of entries " << mTOFCollectedCalibInfoSlot.size();
+  LOG(info) << "Total number of entries " << mTOFCollectedCalibInfoSlot.size();
   for (int i = 0; i < mEntriesSlot.size(); ++i) {
     if (mEntriesSlot[i] != 0) {
-      LOG(INFO) << "channel " << i << " has " << mEntriesSlot[i] << " entries";
+      LOG(info) << "channel " << i << " has " << mEntriesSlot[i] << " entries";
     }
   }
   return;
@@ -179,7 +179,7 @@ bool TOFCalibCollector::hasEnoughData(const Slot& slot) const
     return true;
   }
   const o2::tof::TOFCalibInfoSlot* c = slot.getContainer();
-  LOG(INFO) << "we have " << c->getCollectedCalibInfoSlot().size() << " entries";
+  LOG(info) << "we have " << c->getCollectedCalibInfoSlot().size() << " entries";
   int maxNumberOfHits = mAbsMaxNumOfHits ? mMaxNumOfHits : mMaxNumOfHits * o2::tof::Geo::NCHANNELS;
   if (mTFsendingPolicy || c->getCollectedCalibInfoSlot().size() > maxNumberOfHits) {
     return true;
@@ -194,7 +194,7 @@ void TOFCalibCollector::finalizeSlot(Slot& slot)
 
   o2::tof::TOFCalibInfoSlot* c = slot.getContainer();
   mTOFCollectedCalibInfo = c->getCollectedCalibInfoSlot();
-  LOG(DEBUG) << "vector of CalibTOFInfoShort received with size = " << mTOFCollectedCalibInfo.size();
+  LOG(debug) << "vector of CalibTOFInfoShort received with size = " << mTOFCollectedCalibInfo.size();
   mEntries = c->getEntriesPerChannel();
   return;
 }
