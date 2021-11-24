@@ -26,7 +26,7 @@ uint32_t HBFUtils::getHBF(const IR& rec) const
   ///< get HBF ID corresponding to this IR
   auto diff = rec.differenceInBC(getFirstIR());
   if (diff < 0) {
-    LOG(ERROR) << "IR " << rec.bc << '/' << rec.orbit << " is ahead of the reference IR "
+    LOG(error) << "IR " << rec.bc << '/' << rec.orbit << " is ahead of the reference IR "
                << "0/" << orbitFirst;
     throw std::runtime_error("Requested IR is ahead of the reference IR");
   }
@@ -54,7 +54,7 @@ void HBFUtils::checkConsistency() const
 {
   if (orbitFirstSampled < orbitFirst) {
     auto s = fmt::format("1st sampled orbit ({}) < 1st orbit of run ({})", orbitFirstSampled, orbitFirst);
-    LOG(ERROR) << s;
+    LOG(error) << s;
     throw std::runtime_error(s);
   }
 }

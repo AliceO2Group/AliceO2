@@ -151,7 +151,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
         if (!dph) {
           continue;
         }
-        LOGP(DEBUG, "Orbit reset time from data: {} ", dph->creation);
+        LOGP(debug, "Orbit reset time from data: {} ", dph->creation);
         context.orbitResetTime = dph->creation;
         break;
       } },
@@ -518,13 +518,14 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   monitoring.send(Metric{(stats.lastProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{((float)performedComputationsSinceLastUpdate / (float)timeSinceLastUpdate) * 1000, "processing_rate_hz"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(uint64_t)stats.performedComputations, "performed_computations"}.addTag(Key::Subsystem, Value::DPL));
 
   if (stats.availableManagedShm) {
     monitoring.send(Metric{(uint64_t)stats.availableManagedShm, fmt::format("available_managed_shm_{}", runningWorkflow.shmSegmentId)}.addTag(Key::Subsystem, Value::DPL));
   }
 
   if (stats.consumedTimeframes) {
-    monitoring.send(Metric{stats.consumedTimeframes, "consumed-timeframes"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{(uint64_t)stats.consumedTimeframes, "consumed-timeframes"}.addTag(Key::Subsystem, Value::DPL));
   }
 
   stats.lastSlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
@@ -533,10 +534,8 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
 
   auto device = registry.get<RawDeviceService>().device();
 
-  uint64_t lastTotalBytesIn = 0;
-  uint64_t lastTotalBytesOut = 0;
-  stats.totalBytesIn.exchange(lastTotalBytesIn);
-  stats.totalBytesOut.exchange(lastTotalBytesOut);
+  uint64_t lastTotalBytesIn = stats.totalBytesIn.exchange(0);
+  uint64_t lastTotalBytesOut = stats.totalBytesOut.exchange(0);
   uint64_t totalBytesIn = 0;
   uint64_t totalBytesOut = 0;
 
@@ -549,8 +548,8 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
                     .addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(float)(totalBytesIn - lastTotalBytesIn) / 1000000.f / (timeSinceLastUpdate / 1000.f), "total_rate_in_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));
-  stats.totalBytesIn.exchange(totalBytesIn);
-  stats.totalBytesOut.exchange(totalBytesOut);
+  stats.totalBytesIn.store(totalBytesIn);
+  stats.totalBytesOut.store(totalBytesOut);
   // Things which we report every 30s
   if (timeSinceLastLongUpdate < 30000) {
     return;
@@ -562,8 +561,13 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
 auto flushMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
 {
   auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastMetricFlushedTimestamp;
+  static int counter = 0;
   if (timeSinceLastUpdate < 1000) {
-    return;
+    if (counter++ > 10) {
+      return;
+    }
+  } else {
+    counter = 0;
   }
 
   ZoneScopedN("flush metrics");

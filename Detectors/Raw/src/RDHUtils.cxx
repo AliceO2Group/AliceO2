@@ -74,7 +74,7 @@ void RDHUtils::printRDH(const void* rdhP)
       printRDH(*reinterpret_cast<const RAWDataHeaderV6*>(rdhP));
       break;
     default:
-      LOG(ERROR) << "Unexpected RDH version " << version << " from";
+      LOG(error) << "Unexpected RDH version " << version << " from";
       dumpRDH(rdhP);
       throw std::runtime_error("invalid RDH provided");
       break;
@@ -110,7 +110,7 @@ bool RDHUtils::checkRDH(const void* rdhP, bool verbose)
     default:
       ok = false;
       if (verbose) {
-        LOG(ERROR) << "Unexpected RDH version " << version << " from";
+        LOG(error) << "Unexpected RDH version " << version << " from";
       }
       break;
   };
@@ -127,26 +127,26 @@ bool RDHUtils::checkRDH(const RAWDataHeaderV4& rdh, bool verbose)
   bool ok = true;
   if (rdh.version != 4 && rdh.version != 3) {
     if (verbose) {
-      LOG(ERROR) << "RDH version 4 is expected instead of " << int(rdh.version);
+      LOG(error) << "RDH version 4 is expected instead of " << int(rdh.version);
     }
     ok = false;
   }
   if (rdh.headerSize != 64) {
     if (verbose) {
-      LOG(ERROR) << "RDH with header size of 64 B is expected instead of " << int(rdh.headerSize);
+      LOG(error) << "RDH with header size of 64 B is expected instead of " << int(rdh.headerSize);
     }
     ok = false;
   }
   if (rdh.memorySize < 64 || rdh.offsetToNext < 64 || rdh.memorySize > MAXCRUPage || rdh.offsetToNext > MAXCRUPage) {
     if (verbose) {
-      LOG(ERROR) << "RDH expected to have memorySize/offsetToNext in 64 : 8192 bytes range instead of "
+      LOG(error) << "RDH expected to have memorySize/offsetToNext in 64 : 8192 bytes range instead of "
                  << int(rdh.memorySize) << '/' << int(rdh.offsetToNext);
     }
     ok = false;
   }
   if (rdh.zero0 || rdh.word3 || rdh.zero41 || rdh.zero42 || rdh.word5 || rdh.zero6 || rdh.word7) {
     if (verbose) {
-      LOG(ERROR) << "Some reserved fields of RDH v4 are not empty";
+      LOG(error) << "Some reserved fields of RDH v4 are not empty";
     }
     ok = false;
   }
@@ -163,26 +163,26 @@ bool RDHUtils::checkRDH(const RAWDataHeaderV5& rdh, bool verbose)
   bool ok = true;
   if (rdh.version != 5) {
     if (verbose) {
-      LOG(ERROR) << "RDH version 5 is expected instead of " << int(rdh.version);
+      LOG(error) << "RDH version 5 is expected instead of " << int(rdh.version);
     }
     ok = false;
   }
   if (rdh.headerSize != 64) {
     if (verbose) {
-      LOG(ERROR) << "RDH with header size of 64 B is expected instead of " << int(rdh.headerSize);
+      LOG(error) << "RDH with header size of 64 B is expected instead of " << int(rdh.headerSize);
     }
     ok = false;
   }
   if (rdh.memorySize < 64 || rdh.offsetToNext < 64) {
     if (verbose) {
-      LOG(ERROR) << "RDH expected to have memory size and offset to next >= 64 B instead of "
+      LOG(error) << "RDH expected to have memory size and offset to next >= 64 B instead of "
                  << int(rdh.memorySize) << '/' << int(rdh.offsetToNext);
     }
     ok = false;
   }
   if (rdh.zero0 || rdh.word3 || rdh.zero4 || rdh.word5 || rdh.zero6 || rdh.word7) {
     if (verbose) {
-      LOG(ERROR) << "Some reserved fields of RDH v5 are not empty";
+      LOG(error) << "Some reserved fields of RDH v5 are not empty";
     }
     ok = false;
   }
@@ -199,26 +199,26 @@ bool RDHUtils::checkRDH(const RAWDataHeaderV6& rdh, bool verbose)
   bool ok = true;
   if (rdh.version != 6) {
     if (verbose) {
-      LOG(ERROR) << "RDH version 5 is expected instead of " << int(rdh.version);
+      LOG(error) << "RDH version 5 is expected instead of " << int(rdh.version);
     }
     ok = false;
   }
   if (rdh.headerSize != 64) {
     if (verbose) {
-      LOG(ERROR) << "RDH with header size of 64 B is expected instead of " << int(rdh.headerSize);
+      LOG(error) << "RDH with header size of 64 B is expected instead of " << int(rdh.headerSize);
     }
     ok = false;
   }
   if (rdh.memorySize < 64 || rdh.offsetToNext < 64) {
     if (verbose) {
-      LOG(ERROR) << "RDH expected to have memory size and offset to next >= 64 B instead of "
+      LOG(error) << "RDH expected to have memory size and offset to next >= 64 B instead of "
                  << int(rdh.memorySize) << '/' << int(rdh.offsetToNext);
     }
     ok = false;
   }
   if (rdh.zero0 || rdh.word3 || rdh.zero4 || rdh.word5 || rdh.zero6 || rdh.word7) {
     if (verbose) {
-      LOG(ERROR) << "Some reserved fields of RDH v6 are not empty";
+      LOG(error) << "Some reserved fields of RDH v6 are not empty";
     }
     ok = false;
   }
@@ -251,6 +251,6 @@ uint32_t RDHUtils::fletcher32(const uint16_t* data, int len)
 /// process access to non-existing field
 void RDHUtils::processError(int v, const char* field)
 {
-  LOG(ERROR) << "Wrong field " << field << " for RDHv" << v;
+  LOG(error) << "Wrong field " << field << " for RDHv" << v;
   throw std::runtime_error("wrong RDH field accessed");
 }

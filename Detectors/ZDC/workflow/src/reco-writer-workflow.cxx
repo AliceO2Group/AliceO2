@@ -31,7 +31,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   if (useMC) {
-    LOG(WARNING) << "ZDC reconstruction does not support MC labels at the moment";
+    LOG(warning) << "ZDC reconstruction does not support MC labels at the moment";
   }
   WorkflowSpec specs{o2::zdc::getZDCRecoWriterDPLSpec()};
   return std::move(specs);

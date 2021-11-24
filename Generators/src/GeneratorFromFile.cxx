@@ -31,7 +31,7 @@ GeneratorFromFile::GeneratorFromFile(const char* name)
 {
   mEventFile = TFile::Open(name);
   if (mEventFile == nullptr) {
-    LOG(FATAL) << "EventFile " << name << " not found \n";
+    LOG(fatal) << "EventFile " << name << " not found \n";
     return;
   }
   // the kinematics will be stored inside a Tree "TreeK" with branch "Particles"
@@ -49,7 +49,7 @@ GeneratorFromFile::GeneratorFromFile(const char* name)
       mEventsAvailable++;
     }
   } while (object != nullptr);
-  LOG(INFO) << "Found " << mEventsAvailable << " events in this file \n";
+  LOG(info) << "Found " << mEventsAvailable << " events in this file \n";
 }
 
 void GeneratorFromFile::SetStartEvent(int start)
@@ -57,7 +57,7 @@ void GeneratorFromFile::SetStartEvent(int start)
   if (start < mEventsAvailable) {
     mEventCounter = start;
   } else {
-    LOG(ERROR) << "start event bigger than available events\n";
+    LOG(error) << "start event bigger than available events\n";
   }
 }
 
@@ -72,7 +72,7 @@ bool GeneratorFromFile::rejectOrFixKinematics(TParticle& p)
   if (std::abs(nominalmass - calculatedmass) > tol) {
     const auto asgmass = p.GetCalcMass();
     bool fix = mFixOffShell && std::abs(nominalmass - asgmass) < tol;
-    LOG(WARN) << "Particle " << p.GetPdgCode() << " has off-shell mass: M_PDG= " << nominalmass << " (assigned= " << asgmass
+    LOG(warn) << "Particle " << p.GetPdgCode() << " has off-shell mass: M_PDG= " << nominalmass << " (assigned= " << asgmass
               << ") calculated= " << calculatedmass << " -> diff= " << difference << " | " << (fix ? "fixing" : "skipping");
     if (fix) {
       double e = std::sqrt(nominalmass * nominalmass + mom2);
@@ -101,7 +101,7 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
     auto branch = tree->GetBranch("Particles");
     TParticle* particle = nullptr;
     branch->SetAddress(&particle);
-    LOG(INFO) << "Reading " << branch->GetEntries() << " particles from Kinematics file";
+    LOG(info) << "Reading " << branch->GetEntries() << " particles from Kinematics file";
 
     // read the whole kinematics initially
     std::vector<TParticle> particles;
@@ -143,17 +143,17 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
         auto e = p.Energy();
         auto tof = p.T();
         auto weight = p.GetWeight();
-        LOG(DEBUG) << "Putting primary " << pdgid << " " << p.GetStatusCode() << " " << p.GetUniqueID();
+        LOG(debug) << "Putting primary " << pdgid << " " << p.GetStatusCode() << " " << p.GetUniqueID();
         primGen->AddTrack(pdgid, px, py, pz, vx, vy, vz, parent, wanttracking, e, tof, weight);
         particlecounter++;
       }
     }
     mEventCounter++;
 
-    LOG(INFO) << "Event generator put " << particlecounter << " on stack";
+    LOG(info) << "Event generator put " << particlecounter << " on stack";
     return kTRUE;
   } else {
-    LOG(ERROR) << "GeneratorFromFile: Ran out of events\n";
+    LOG(error) << "GeneratorFromFile: Ran out of events\n";
   }
   return kFALSE;
 }
@@ -164,7 +164,7 @@ GeneratorFromO2Kine::GeneratorFromO2Kine(const char* name)
 {
   mEventFile = TFile::Open(name);
   if (mEventFile == nullptr) {
-    LOG(FATAL) << "EventFile " << name << " not found";
+    LOG(fatal) << "EventFile " << name << " not found";
     return;
   }
   // the kinematics will be stored inside a branch MCTrack
@@ -174,11 +174,11 @@ GeneratorFromO2Kine::GeneratorFromO2Kine(const char* name)
     mEventBranch = tree->GetBranch("MCTrack");
     if (mEventBranch) {
       mEventsAvailable = mEventBranch->GetEntries();
-      LOG(INFO) << "Found " << mEventsAvailable << " events in this file";
+      LOG(info) << "Found " << mEventsAvailable << " events in this file";
       return;
     }
   }
-  LOG(ERROR) << "Problem reading events from file " << name;
+  LOG(error) << "Problem reading events from file " << name;
 }
 
 bool GeneratorFromO2Kine::Init()
@@ -186,8 +186,8 @@ bool GeneratorFromO2Kine::Init()
 
   // read and set params
   auto& param = GeneratorFromO2KineParam::Instance();
-  LOG(INFO) << "Init \'FromO2Kine\' generator with following parameters";
-  LOG(INFO) << param;
+  LOG(info) << "Init \'FromO2Kine\' generator with following parameters";
+  LOG(info) << param;
   mSkipNonTrackable = param.skipNonTrackable;
   mContinueMode = param.continueMode;
 
@@ -199,7 +199,7 @@ void GeneratorFromO2Kine::SetStartEvent(int start)
   if (start < mEventsAvailable) {
     mEventCounter = start;
   } else {
-    LOG(ERROR) << "start event bigger than available events\n";
+    LOG(error) << "start event bigger than available events\n";
   }
 }
 
@@ -243,7 +243,7 @@ bool GeneratorFromO2Kine::importParticles()
         wanttracking &= t.getInhibited();
       }
 
-      LOG(DEBUG) << "Putting primary " << pdg;
+      LOG(debug) << "Putting primary " << pdg;
 
       mParticles.push_back(TParticle(pdg, wanttracking, m1, m2, d1, d2, px, py, pz, e, vx, vy, vz, vt));
       mParticles.back().SetUniqueID((unsigned int)t.getProcess()); // we should propagate the process ID
@@ -256,10 +256,10 @@ bool GeneratorFromO2Kine::importParticles()
       delete tracks;
     }
 
-    LOG(INFO) << "Event generator put " << particlecounter << " on stack";
+    LOG(info) << "Event generator put " << particlecounter << " on stack";
     return true;
   } else {
-    LOG(ERROR) << "GeneratorFromO2Kine: Ran out of events\n";
+    LOG(error) << "GeneratorFromO2Kine: Ran out of events\n";
   }
   return false;
 }

@@ -11,6 +11,8 @@
 #ifndef FRAMEWORK_DATAREF_H
 #define FRAMEWORK_DATAREF_H
 
+#include <cstddef> // for size_t
+
 namespace o2
 {
 namespace framework
@@ -24,6 +26,7 @@ struct DataRef {
   const InputSpec* spec = nullptr;
   const char* header = nullptr;
   const char* payload = nullptr;
+  size_t payloadSize = 0;
 };
 
 } // namespace framework

@@ -49,6 +49,10 @@ if [ "0$FST_TMUX_LOGPREFIX" != "0" ]; then
 fi
 
 rm -f /dev/shm/*fmq*
+if [[ `ls /dev/shm/*fmq* 2> /dev/null | wc -l` != "0" ]]; then
+  echo "FMQ SHM files left which cannot be deleted, please clean up!"
+  exit 1
+fi
 
 tmux -L FST \
     new-session  "sleep  0; NUMAID=0 $MYDIR/dpl-workflow.sh $LOGCMD0; $ENDCMD" \; \

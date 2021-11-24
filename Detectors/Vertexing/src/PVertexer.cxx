@@ -105,9 +105,9 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
         if (bestMatch.second == 1) {
           vtx.setIR(bcData[bestMatch.first]);
         }
-        LOG(DEBUG) << "Validated with t0 " << bestMatch.first << " with " << bestMatch.second << " candidates";
+        LOG(debug) << "Validated with t0 " << bestMatch.first << " with " << bestMatch.second << " candidates";
       } else if (vtx.getNContributors() >= mPVParams->minNContributorsForIRcut) {
-        LOG(DEBUG) << "Discarding " << vtx;
+        LOG(debug) << "Discarding " << vtx;
         continue; // reject
       }
     }
@@ -122,7 +122,7 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
       gid.setPVContributor();
     }
     v2tRefs.emplace_back(dest0, v2tRefsLoc[i].getEntries());
-    LOG(DEBUG) << "#" << count++ << " " << vertices.back() << " | " << v2tRefs.back().getEntries() << " indices from " << v2tRefs.back().getFirstEntry(); // RS REM
+    LOG(debug) << "#" << count++ << " " << vertices.back() << " | " << v2tRefs.back().getEntries() << " indices from " << v2tRefs.back().getFirstEntry(); // RS REM
   }
 
   return vertices.size();
@@ -157,7 +157,7 @@ int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& v
     int peakBinT = seedHistoTZ.getXBin(peakBin), peakBinZ = seedHistoTZ.getYBin(peakBin);
     float tv = seedHistoTZ.getBinXCenter(peakBinT);
     float zv = seedHistoTZ.getBinYCenter(peakBinZ);
-    LOG(DEBUG) << "Seeding with T=" << tv << " Z=" << zv << " bin " << peakBin << " on trial " << nTrials << " for vertex " << nfound;
+    LOG(debug) << "Seeding with T=" << tv << " Z=" << zv << " bin " << peakBin << " on trial " << nTrials << " for vertex " << nfound;
 
     PVertex vtx;
     vtx.setXYZ(mMeanVertex.getX(), mMeanVertex.getY(), zv);
@@ -194,7 +194,7 @@ bool PVertexer::findVertex(const VertexingInput& input, PVertex& vtx)
   vtxSeed.setScale(input.scaleSigma2, mTukey2I);
   vtxSeed.scaleSigma2Prev = input.scaleSigma2;
   //  vtxSeed.setTimeStamp( timeEstimate(input) );
-  LOG(DEBUG) << "Start time guess: " << vtxSeed.getTimeStamp();
+  LOG(debug) << "Start time guess: " << vtxSeed.getTimeStamp();
   vtx.setChi2(1.e30);
   //
   FitStatus result = FitStatus::IterateFurther;
@@ -202,7 +202,7 @@ bool PVertexer::findVertex(const VertexingInput& input, PVertex& vtx)
   while (result == FitStatus::IterateFurther) {
     vtxSeed.resetForNewIteration();
     vtxSeed.nIterations++;
-    LOG(DEBUG) << "iter " << vtxSeed.nIterations << " with scale=" << vtxSeed.scaleSigma2 << " prevScale=" << vtxSeed.scaleSigma2Prev
+    LOG(debug) << "iter " << vtxSeed.nIterations << " with scale=" << vtxSeed.scaleSigma2 << " prevScale=" << vtxSeed.scaleSigma2Prev
                << " ntr=" << ntr << " Zv=" << vtxSeed.getZ() << " Tv=" << vtxSeed.getTimeStamp().getTimeStamp();
     result = fitIteration(input, vtxSeed);
 
@@ -210,7 +210,7 @@ bool PVertexer::findVertex(const VertexingInput& input, PVertex& vtx)
       result = evalIterations(vtxSeed, vtx);
     } else if (result == FitStatus::NotEnoughTracks) {
       if (vtxSeed.nIterations <= mPVParams->maxIterations && upscaleSigma(vtxSeed)) {
-        LOG(DEBUG) << "Upscaling scale to " << vtxSeed.scaleSigma2;
+        LOG(debug) << "Upscaling scale to " << vtxSeed.scaleSigma2;
         result = FitStatus::IterateFurther;
         continue; // redo with stronger rescaling
       } else {
@@ -219,10 +219,10 @@ bool PVertexer::findVertex(const VertexingInput& input, PVertex& vtx)
     } else if (result == FitStatus::PoolEmpty || result == FitStatus::Failure) {
       break;
     } else {
-      LOG(FATAL) << "Unknown fit status " << int(result);
+      LOG(fatal) << "Unknown fit status " << int(result);
     }
   }
-  LOG(DEBUG) << "Stopped with scale=" << vtxSeed.scaleSigma2 << " prevScale=" << vtxSeed.scaleSigma2Prev << " result = " << int(result) << " ntr=" << ntr;
+  LOG(debug) << "Stopped with scale=" << vtxSeed.scaleSigma2 << " prevScale=" << vtxSeed.scaleSigma2Prev << " result = " << int(result) << " ntr=" << ntr;
 
   if (result != FitStatus::OK) {
     vtx.setChi2(vtxSeed.maxScaleSigma2Tested);
@@ -333,7 +333,7 @@ bool PVertexer::solveVertex(VertexSeed& vtxSeed) const
   mat(1, 2) = vtxSeed.cyz;
   mat(2, 2) = vtxSeed.czz;
   if (!mat.InvertFast()) {
-    LOG(ERROR) << "Failed to invert matrix" << mat;
+    LOG(error) << "Failed to invert matrix" << mat;
     return false;
   }
   ROOT::Math::SVector<double, 3> rhs(vtxSeed.cx0, vtxSeed.cy0, vtxSeed.cz0);
@@ -354,7 +354,7 @@ bool PVertexer::solveVertex(VertexSeed& vtxSeed) const
 
   vtxSeed.setChi2((vtxSeed.getNContributors() - vtxSeed.wghSum) / vtxSeed.scaleSig2ITuk2I); // calculate chi^2
   auto newScale = vtxSeed.wghChi2 / vtxSeed.wghSum;
-  LOG(DEBUG) << "Solve: wghChi2=" << vtxSeed.wghChi2 << " wghSum=" << vtxSeed.wghSum << " -> scale= " << newScale << " old scale " << vtxSeed.scaleSigma2 << " prevScale: " << vtxSeed.scaleSigma2Prev;
+  LOG(debug) << "Solve: wghChi2=" << vtxSeed.wghChi2 << " wghSum=" << vtxSeed.wghSum << " -> scale= " << newScale << " old scale " << vtxSeed.scaleSigma2 << " prevScale: " << vtxSeed.scaleSigma2Prev;
   vtxSeed.setScale(newScale < mPVParams->minScale2 ? mPVParams->minScale2 : newScale, mTukey2I);
   return true;
 }
@@ -370,15 +370,15 @@ PVertexer::FitStatus PVertexer::evalIterations(VertexSeed& vtxSeed, PVertex& vtx
     result = PVertexer::FitStatus::Failure;
   } else if (vtxSeed.scaleSigma2Prev <= mPVParams->minScale2 + kAlmost0F) {
     result = PVertexer::FitStatus::OK;
-    LOG(DEBUG) << "stop on simga :" << vtxSeed.scaleSigma2 << " prev: " << vtxSeed.scaleSigma2Prev;
+    LOG(debug) << "stop on simga :" << vtxSeed.scaleSigma2 << " prev: " << vtxSeed.scaleSigma2Prev;
   }
   if (fair::Logger::Logging(fair::Severity::debug)) {
     auto dchi = (vtx.getChi2() - vtxSeed.getChi2()) / vtxSeed.getChi2();
     auto dx = vtxSeed.getX() - vtx.getX(), dy = vtxSeed.getY() - vtx.getY(), dz = vtxSeed.getZ() - vtx.getZ();
     auto dst = std::sqrt(dx * dx + dy * dy + dz * dz);
 
-    LOG(DEBUG) << "dChi:" << vtx.getChi2() << "->" << vtxSeed.getChi2() << " :-> " << dchi;
-    LOG(DEBUG) << "dx: " << dx << " dy: " << dy << " dz: " << dz << " -> " << dst;
+    LOG(debug) << "dChi:" << vtx.getChi2() << "->" << vtxSeed.getChi2() << " :-> " << dchi;
+    LOG(debug) << "dx: " << dx << " dy: " << dy << " dz: " << dz << " -> " << dst;
   }
 
   vtx = reinterpret_cast<const PVertex&>(vtxSeed);
@@ -387,7 +387,7 @@ PVertexer::FitStatus PVertexer::evalIterations(VertexSeed& vtxSeed, PVertex& vtx
     auto chi2Mean = vtxSeed.getChi2() / vtxSeed.getNContributors();
     if (chi2Mean > mPVParams->maxChi2Mean) {
       result = PVertexer::FitStatus::Failure;
-      LOG(DEBUG) << "Rejecting at iteration " << vtxSeed.nIterations << " and ScalePrev " << vtxSeed.scaleSigma2Prev << " with meanChi2 = " << chi2Mean;
+      LOG(debug) << "Rejecting at iteration " << vtxSeed.nIterations << " and ScalePrev " << vtxSeed.scaleSigma2Prev << " with meanChi2 = " << chi2Mean;
     } else {
       return result;
     }
@@ -396,17 +396,17 @@ PVertexer::FitStatus PVertexer::evalIterations(VertexSeed& vtxSeed, PVertex& vtx
   if (vtxSeed.scaleSigma2 > vtxSeed.scaleSigma2Prev) {
     if (++vtxSeed.nScaleIncrease > mPVParams->maxNScaleIncreased) {
       result = PVertexer::FitStatus::Failure;
-      LOG(DEBUG) << "Rejecting at iteration " << vtxSeed.nIterations << " with NScaleIncreased " << vtxSeed.nScaleIncrease;
+      LOG(debug) << "Rejecting at iteration " << vtxSeed.nIterations << " with NScaleIncreased " << vtxSeed.nScaleIncrease;
     }
   } else if (vtxSeed.scaleSigma2 > mPVParams->slowConvergenceFactor * vtxSeed.scaleSigma2Prev) {
     if (++vtxSeed.nScaleSlowConvergence > mPVParams->maxNScaleSlowConvergence) {
       if (vtxSeed.scaleSigma2 < mPVParams->acceptableScale2) {
         vtxSeed.setScale(mPVParams->minScale2, mTukey2I);
-        LOG(DEBUG) << "Forcing scale2 to " << mPVParams->minScale2;
+        LOG(debug) << "Forcing scale2 to " << mPVParams->minScale2;
         result = PVertexer::FitStatus::IterateFurther;
       } else {
         result = PVertexer::FitStatus::Failure;
-        LOG(DEBUG) << "Rejecting at iteration " << vtxSeed.nIterations << " with NScaleSlowConvergence " << vtxSeed.nScaleSlowConvergence;
+        LOG(debug) << "Rejecting at iteration " << vtxSeed.nIterations << " with NScaleSlowConvergence " << vtxSeed.nScaleSlowConvergence;
       }
     }
   } else {
@@ -693,7 +693,7 @@ void PVertexer::createMCLabels(gsl::span<const o2::MCCompLabel> lblTracks,
 {
   lblVtx.clear();
   if (!lblTracks.size()) {
-    LOG(ERROR) << "Track labels are not provided";
+    LOG(error) << "Track labels are not provided";
     return;
   }
   std::unordered_map<o2::MCEventLabel, int> labelOccurence;
@@ -777,13 +777,13 @@ bool PVertexer::setCompatibleIR(PVertex& vtx)
   irMax++; // to account for rounding
   // restrict using bunch filling
   int bc = mClosestBunchAbove[irMin.bc];
-  LOG(DEBUG) << "irMin.bc = " << irMin.bc << " bcAbove = " << bc;
+  LOG(debug) << "irMin.bc = " << irMin.bc << " bcAbove = " << bc;
   if (bc < irMin.bc) {
     irMin.orbit++;
   }
   irMin.bc = bc;
   bc = mClosestBunchBelow[irMax.bc];
-  LOG(DEBUG) << "irMax.bc = " << irMax.bc << " bcBelow = " << bc;
+  LOG(debug) << "irMax.bc = " << irMax.bc << " bcBelow = " << bc;
   if (bc > irMax.bc) {
     if (irMax.orbit == 0) {
       return false;
@@ -794,7 +794,7 @@ bool PVertexer::setCompatibleIR(PVertex& vtx)
   vtx.setIRMin(irMin);
   vtx.setIRMax(irMax);
   if (irMin > irMax) {
-    LOG(DEBUG) << "Reject VTX " << vtx.asString() << " trange = " << rangeT;
+    LOG(debug) << "Reject VTX " << vtx.asString() << " trange = " << rangeT;
   }
   return irMax >= irMin;
 }
@@ -874,7 +874,7 @@ void PVertexer::dbscan_clusterize()
       int jt = nbVec[j];
       auto statjt = status[jt];
       if (statjt >= 0) {
-        LOG(ERROR) << "assigned track " << jt << " with status " << statjt << " head is " << it << " clID= " << clID;
+        LOG(error) << "assigned track " << jt << " with status " << statjt << " head is " << it << " clID= " << clID;
         continue;
       }
       status[jt] = clID;
@@ -912,7 +912,7 @@ void PVertexer::dbscan_clusterize()
     clus.timeEst.setTimeStamp(tMean / clus.trackIDs.size());
   }
   timer.Stop();
-  LOG(INFO) << "Found " << mTimeZClusters.size() << " seeding clusters from DBSCAN in " << timer.CpuTime() << " CPU s";
+  LOG(info) << "Found " << mTimeZClusters.size() << " seeding clusters from DBSCAN in " << timer.CpuTime() << " CPU s";
 }
 
 //___________________________________________________________________
@@ -991,6 +991,12 @@ bool PVertexer::relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxEr
 }
 
 //______________________________________________
+bool PVertexer::relateTrackToVertex(o2::track::TrackParCov& trc, const o2d::VertexBase& vtxSeed) const
+{
+  return o2::base::Propagator::Instance()->propagateToDCA(vtxSeed, trc, mBz, 2.0f, o2::base::Propagator::MatCorrType::USEMatCorrLUT);
+}
+
+//______________________________________________
 void PVertexer::doDBScanDump(const VertexingInput& input, gsl::span<const o2::MCCompLabel> lblTracks)
 {
   // dump tracks for T-Z clusters identified by the DBScan
@@ -1039,4 +1045,37 @@ void PVertexer::doVtxDump(std::vector<PVertex>& vertices, std::vector<uint32_t> 
     mDebugDumpVtxTrcMC.clear();
   }
 #endif
+}
+
+//______________________________________________
+PVertex PVertexer::refitVertex(const std::vector<bool> useTrack, const o2d::VertexBase& vtxSeed)
+{
+  // Refit the tracks prepared by the successful prepareVertexRefit, possible skipping those tracks wich have useTrack value false
+  // (useTrack is ignored if empty).
+  // The vtxSeed is the originally found vertex, must be the same as used for the prepareVertexRefit.
+  // Refitted PrimaryVertex is returned, negative chi2 means failure of the refit.
+  // ATTENTION: only the position is refitted, the vertex time and IRMin/IRMax info is dummy.
+
+  if (vtxSeed != mVtxRefitOrig) {
+    throw std::runtime_error("refitVertex must be preceded by successful prepareVertexRefit");
+  }
+  VertexingInput inp;
+  inp.scaleSigma2 = mPVParams->minScale2;
+  inp.idRange = gsl::span<int>(mRefitTrackIDs);
+  if (useTrack.size()) {
+    for (uint32_t i = 0; i < mTracksPool.size(); i++) {
+      mTracksPool[i].vtxID = useTrack[mTracksPool[i].entry] ? TrackVF::kNoVtx : TrackVF::kDiscarded;
+    }
+  }
+  VertexSeed vtxs;
+  vtxs.VertexBase::operator=(vtxSeed);
+  PVertex vtxRes;
+  vtxs.setScale(inp.scaleSigma2, mTukey2I);
+  vtxs.setTimeStamp({0.f, -1.}); // time is not refitter
+  if (fitIteration(inp, vtxs) == FitStatus::OK) {
+    vtxRes = vtxs;
+  } else {
+    vtxRes.setChi2(-1.);
+  }
+  return vtxRes;
 }

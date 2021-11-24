@@ -34,7 +34,9 @@ enum TrackTypeEnum : uint8_t {
   Run2Tracklet = 255
 };
 enum TrackFlags {
-  TrackTimeResIsRange = 0x1 // Gaussian or range
+  TrackTimeResIsRange = 0x1, // Gaussian or range
+  PVContributor = 0x2        // This track has contributed to the collision vertex fit
+  // NOTE Highest 4 (29..32) bits reserved for PID hypothesis
 };
 enum TrackFlagsRun2Enum {
   ITSrefit = 0x1,

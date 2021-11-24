@@ -52,7 +52,7 @@ void dumpCTF(const std::string& fnameIn, int ctfID = 0, const std::string selDet
   std::unique_ptr<TFile> flIn(TFile::Open(fnameIn.c_str()));
   std::unique_ptr<TTree> treeIn((TTree*)flIn->Get(std::string(o2::base::NameConf::CTFTREENAME).c_str()));
   if (treeIn->GetEntries() <= ctfID) {
-    LOG(ERROR) << "File " << fnameIn << " has only " << treeIn->GetEntries() << " entries, requested : " << ctfID;
+    LOG(error) << "File " << fnameIn << " has only " << treeIn->GetEntries() << " entries, requested : " << ctfID;
     treeIn.reset();
     return;
   }
@@ -64,12 +64,12 @@ void dumpCTF(const std::string& fnameIn, int ctfID = 0, const std::string selDet
 
   DetID::mask_t detsTF = ctfHeader.detectors & DetID::getMask(selDet);
   if (detsTF.none()) {
-    LOG(ERROR) << "Nothing is selected with mask " << selDet << " CTF constains " << DetID::getNames(ctfHeader.detectors);
+    LOG(error) << "Nothing is selected with mask " << selDet << " CTF constains " << DetID::getNames(ctfHeader.detectors);
     treeIn.reset();
     return;
   }
 
-  LOG(INFO) << ctfHeader;
+  LOG(info) << ctfHeader;
 
   if (detsTF[DetID::ITS]) {
     dumpDetCTF<o2::itsmft::CTF>(ctfID, DetID::ITS, *treeIn, ncolls);

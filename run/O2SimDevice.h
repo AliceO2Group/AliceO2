@@ -53,9 +53,9 @@ class O2SimDevice final : public FairMQDevice
   {
     FairSystemInfo sysinfo;
     o2::utils::ShmManager::Instance().release();
-    LOG(INFO) << "Shutting down O2SimDevice";
-    LOG(INFO) << "TIME-STAMP " << mTimer.RealTime() << "\t";
-    LOG(INFO) << "MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " " << sysinfo.GetMaxMemory() << " MB\n";
+    LOG(info) << "Shutting down O2SimDevice";
+    LOG(info) << "TIME-STAMP " << mTimer.RealTime() << "\t";
+    LOG(info) << "MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " " << sysinfo.GetMaxMemory() << " MB\n";
   }
 
  protected:
@@ -96,9 +96,9 @@ class O2SimDevice final : public FairMQDevice
 
     int timeoutinMS = 60000; // wait for 60s max --> should be fast reply
     if (channel.Send(request, timeoutinMS) > 0) {
-      LOG(INFO) << "Waiting for configuration answer ";
+      LOG(info) << "Waiting for configuration answer ";
       if (channel.Receive(reply, timeoutinMS) > 0) {
-        LOG(INFO) << "Configuration answer received, containing " << reply->GetSize() << " bytes ";
+        LOG(info) << "Configuration answer received, containing " << reply->GetSize() << " bytes ";
 
         // the answer is a TMessage containing the simulation Configuration
         auto message = std::make_unique<o2::devices::TMessageWrapper>(reply->GetData(), reply->GetSize());
@@ -107,18 +107,18 @@ class O2SimDevice final : public FairMQDevice
           return false;
         }
 
-        LOG(INFO) << "COMMUNICATED ENGINE " << config->mMCEngine;
+        LOG(info) << "COMMUNICATED ENGINE " << config->mMCEngine;
 
         auto& conf = o2::conf::SimConfig::Instance();
         conf.resetFromConfigData(*config);
         FairLogger::GetLogger()->SetLogVerbosityLevel(conf.getLogVerbosity().c_str());
         delete config;
       } else {
-        LOG(ERROR) << "No configuration received within " << timeoutinMS << "ms\n";
+        LOG(error) << "No configuration received within " << timeoutinMS << "ms\n";
         return false;
       }
     } else {
-      LOG(ERROR) << "Could not send configuration request within " << timeoutinMS << "ms\n";
+      LOG(error) << "Could not send configuration request within " << timeoutinMS << "ms\n";
       return false;
     }
     return true;
@@ -131,7 +131,7 @@ class O2SimDevice final : public FairMQDevice
       return false;
     }
 
-    LOG(INFO) << "Setting up the simulation ...";
+    LOG(info) << "Setting up the simulation ...";
     simptr = std::move(std::unique_ptr<FairRunSim>(o2sim_init(true)));
     FairSystemInfo sysinfo;
 
@@ -140,7 +140,7 @@ class O2SimDevice final : public FairMQDevice
     // The goal is to have everything setup before we fork
     TVirtualMC::GetMC()->ProcessRun(0);
 
-    LOG(INFO) << "MEM-STAMP END OF SIM INIT" << sysinfo.GetCurrentMemory() / (1024. * 1024) << " "
+    LOG(info) << "MEM-STAMP END OF SIM INIT" << sysinfo.GetCurrentMemory() / (1024. * 1024) << " "
               << sysinfo.GetMaxMemory() << " MB\n";
 
     return true;
@@ -161,29 +161,29 @@ class O2SimDevice final : public FairMQDevice
       FairMQMessagePtr reply(statuschannel.NewSimpleMessage(i));
       auto sendcode = statuschannel.Send(request, timeoutinMS);
       if (sendcode > 0) {
-        LOG(INFO) << workerStr << " Waiting for status answer ";
+        LOG(info) << workerStr << " Waiting for status answer ";
         auto code = statuschannel.Receive(reply, timeoutinMS);
         if (code > 0) {
           int state(*((int*)(reply->GetData())));
           if (state == (int)o2::O2PrimaryServerState::ReadyToServe) {
-            LOG(INFO) << workerStr << " SERVER IS SERVING";
+            LOG(info) << workerStr << " SERVER IS SERVING";
             return true;
           } else if (state == (int)o2::O2PrimaryServerState::Initializing) {
-            LOG(INFO) << workerStr << " SERVER IS STILL INITIALIZING";
+            LOG(info) << workerStr << " SERVER IS STILL INITIALIZING";
             reprobe = true;
             sleep(1);
           } else if (state == (int)o2::O2PrimaryServerState::WaitingEvent) {
-            LOG(INFO) << workerStr << " SERVER IS WAITING FOR EVENT";
+            LOG(info) << workerStr << " SERVER IS WAITING FOR EVENT";
             reprobe = true;
             sleep(1);
           } else if (state == (int)o2::O2PrimaryServerState::Idle) {
-            LOG(INFO) << workerStr << " SERVER IS IDLE";
+            LOG(info) << workerStr << " SERVER IS IDLE";
             return false;
           } else {
-            LOG(INFO) << workerStr << " SERVER STATE UNKNOWN OR STOPPED";
+            LOG(info) << workerStr << " SERVER STATE UNKNOWN OR STOPPED";
           }
         } else {
-          LOG(ERROR) << workerStr << " STATUS REQUEST UNSUCCESSFUL";
+          LOG(error) << workerStr << " STATUS REQUEST UNSUCCESSFUL";
         }
       }
     }
@@ -206,20 +206,20 @@ class O2SimDevice final : public FairMQDevice
       return str.str();
     };
 
-    LOG(INFO) << workerStr() << " Requesting work chunk";
+    LOG(info) << workerStr() << " Requesting work chunk";
     int timeoutinMS = 2000;
     auto sendcode = requestchannel.Send(request, timeoutinMS);
     if (sendcode > 0) {
-      LOG(INFO) << workerStr() << " Waiting for answer";
+      LOG(info) << workerStr() << " Waiting for answer";
       // asking for primary generation
 
       auto code = requestchannel.Receive(reply);
       if (code > 0) {
-        LOG(INFO) << workerStr() << " Primary chunk received";
+        LOG(info) << workerStr() << " Primary chunk received";
         auto rawmessage = std::move(reply.At(0));
         auto header = *(o2::PrimaryChunkAnswer*)(rawmessage->GetData());
         if (!header.payload_attached) {
-          LOG(INFO) << "No payload; Server in state " << PrimStateToString[(int)header.serverstate];
+          LOG(info) << "No payload; Server in state " << PrimStateToString[(int)header.serverstate];
           // if no payload attached we inspect the server state, to see what to do
           if (header.serverstate == O2PrimaryServerState::Initializing || header.serverstate == O2PrimaryServerState::WaitingEvent) {
             sleep(1); // back-off and retry
@@ -235,7 +235,7 @@ class O2SimDevice final : public FairMQDevice
           bool goon = true;
           // no particles and eventID == -1 --> indication for no more work
           if (chunk->mParticles.size() == 0 && chunk->mSubEventInfo.eventID == -1) {
-            LOG(INFO) << workerStr() << " No particles in reply : quitting kernel";
+            LOG(info) << workerStr() << " No particles in reply : quitting kernel";
             goon = false;
           }
 
@@ -245,7 +245,7 @@ class O2SimDevice final : public FairMQDevice
             auto info = chunk->mSubEventInfo;
             mVMCApp->setSubEventInfo(&info);
 
-            LOG(INFO) << workerStr() << " Processing " << chunk->mParticles.size() << " primary particles "
+            LOG(info) << workerStr() << " Processing " << chunk->mParticles.size() << " primary particles "
                       << "for event " << info.eventID << "/" << info.maxEvents << " "
                       << "part " << info.part << "/" << info.nparts;
             gRandom->SetSeed(chunk->mSubEventInfo.seed);
@@ -263,19 +263,19 @@ class O2SimDevice final : public FairMQDevice
             }
 
             FairSystemInfo sysinfo;
-            LOG(INFO) << workerStr() << " TIME-STAMP " << mTimer.RealTime() << "\t";
+            LOG(info) << workerStr() << " TIME-STAMP " << mTimer.RealTime() << "\t";
             mTimer.Continue();
-            LOG(INFO) << workerStr() << " MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " "
+            LOG(info) << workerStr() << " MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " "
                       << sysinfo.GetMaxMemory() << " MB\n";
           }
           delete message;
           delete chunk;
         }
       } else {
-        LOG(INFO) << workerStr() << " No primary answer received from server (within timeout). Return code " << code;
+        LOG(info) << workerStr() << " No primary answer received from server (within timeout). Return code " << code;
       }
     } else {
-      LOG(INFO) << workerStr() << " Requesting work from server not possible. Return code " << sendcode;
+      LOG(info) << workerStr() << " Requesting work from server not possible. Return code " << sendcode;
       return false;
     }
     return true;
@@ -288,7 +288,7 @@ class O2SimDevice final : public FairMQDevice
     return Kernel(-1, fChannels.at("primary-get").at(0), fChannels.at("simdata").at(0));
   }
 
-  void PostRun() final { LOG(INFO) << "Shutting down "; }
+  void PostRun() final { LOG(info) << "Shutting down "; }
 
  private:
   TStopwatch mTimer;                             //!

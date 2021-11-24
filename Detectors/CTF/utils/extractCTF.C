@@ -81,7 +81,7 @@ void extractCTF(int ctfID,
   std::unique_ptr<TFile> flIn(TFile::Open(fnameIn.c_str()));
   std::unique_ptr<TTree> treeIn((TTree*)flIn->Get(std::string(o2::base::NameConf::CTFTREENAME).c_str()));
   if (treeIn->GetEntries() <= ctfID) {
-    LOG(ERROR) << "File " << fnameIn << " has only " << treeIn->GetEntries() << " entries, requested : " << ctfID;
+    LOG(error) << "File " << fnameIn << " has only " << treeIn->GetEntries() << " entries, requested : " << ctfID;
     treeIn.reset();
     return;
   }
@@ -91,10 +91,10 @@ void extractCTF(int ctfID,
     throw std::runtime_error("did not find CTFHeader");
   }
 
-  LOG(INFO) << ctfHeader;
+  LOG(info) << ctfHeader;
   DetID::mask_t detsTF = ctfHeader.detectors & DetID::getMask(selDet);
   if (detsTF.none()) {
-    LOG(ERROR) << "Nothing is selected with mask " << selDet << " CTF constains " << DetID::getNames(ctfHeader.detectors);
+    LOG(error) << "Nothing is selected with mask " << selDet << " CTF constains " << DetID::getNames(ctfHeader.detectors);
     treeIn.reset();
     return;
   }
@@ -171,7 +171,7 @@ void extractCTF(int ctfID,
 
   treeOut->SetEntries(1);
 
-  LOG(INFO) << "Wrote CTFs of entry " << ctfID << " for " << DetID::getNames(ctfHeader.detectors) << " to " << fnameOut;
+  LOG(info) << "Wrote CTFs of entry " << ctfID << " for " << DetID::getNames(ctfHeader.detectors) << " to " << fnameOut;
 
   treeOut->Write();
   treeOut.reset();

@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 #include "FairLogger.h" // for LOG
 
 using namespace o2::tof;
@@ -99,9 +99,9 @@ float CalibTOFapi::getTimeCalibration(int ich, float tot)
     LOG(WARNING) << "Either LHC phase or slewing object null: mLHCphase = " << mLHCphase << ", mSlewParam = " << mSlewParam;
     return corr;
   }
+  //  printf("LHC phase apply\n");
   // LHCphase
   corr += mLHCphase->getLHCphase(int(mTimeStamp / 1000)); // timestamp that we use in LHCPhase is in seconds, but for CCDB we need it in ms
-
   // time slewing + channel offset
   //printf("eval time sleweing calibration: ch=%d   tot=%f (lhc phase = %f)\n",ich,tot,corr);
   corr += mSlewParam->evalTimeSlewing(ich, tot);

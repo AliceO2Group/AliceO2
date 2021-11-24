@@ -133,7 +133,7 @@ bool FileFetcher::addInputFile(const std::string& fname)
     mInputFiles.emplace_back(FileRef{fname, mNoRemoteCopy ? fname : createCopyName(fname), true, false});
     if (fname.find("alien:") == 0) {
       if (!gGrid && !TGrid::Connect("alien://") && !alienErrorPrinted) {
-        LOG(ERROR) << "File name starts with alien but connection to Grid failed";
+        LOG(error) << "File name starts with alien but connection to Grid failed";
         alienErrorPrinted = true;
       }
     }
@@ -250,9 +250,9 @@ void FileFetcher::fetcher()
     setenv("LC_ALL", "C", 1);
     try {
       std::locale loc("");
-      LOG(INFO) << "Setting locale";
+      LOG(info) << "Setting locale";
     } catch (const std::exception& e) {
-      LOG(INFO) << "Setting locale failed: " << e.what();
+      LOG(info) << "Setting locale failed: " << e.what();
       return;
     }
   }
@@ -270,7 +270,7 @@ void FileFetcher::fetcher()
     }
     fileEntry = (fileEntry + 1) % getNFiles();
     if (fileEntry == 0 && mNLoops > 0) {
-      LOG(INFO) << "Fetcher starts new iteration " << mNLoops;
+      LOG(info) << "Fetcher starts new iteration " << mNLoops;
     }
     mNFilesProc++;
     auto& fileRef = mInputFiles[fileEntry];
@@ -305,7 +305,7 @@ bool FileFetcher::copyFile(size_t id)
   // copy remote file to local setCopyDirName. Adaptation for Gvozden's code from SubTimeFrameFileSource::DataFetcherThread()
   if (mCopyCmd.find("alien") != std::string::npos) {
     if (!gGrid && !TGrid::Connect("alien://")) {
-      LOG(ERROR) << "Copy command refers to alien but connection to Grid failed";
+      LOG(error) << "Copy command refers to alien but connection to Grid failed";
     }
   }
   auto realCmd = std::regex_replace(std::regex_replace(mCopyCmd, std::regex("\\?src"), mInputFiles[id].getOrigName()), std::regex("\\?dst"), mInputFiles[id].getLocalName());

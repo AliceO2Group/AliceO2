@@ -44,10 +44,10 @@ FairRunSim* o2sim_init(bool asservice)
   ccdbmgr.setTimestamp(confref.getConfigData().mTimestamp);
   // try to verify connection
   if (!ccdbmgr.isHostReachable()) {
-    LOG(ERROR) << "Could not setup CCDB connecting";
+    LOG(error) << "Could not setup CCDB connecting";
   } else {
-    LOG(INFO) << "Initialized CCDB Manager at URL: " << ccdbmgr.getURL();
-    LOG(INFO) << "Initialized CCDB Manager with timestamp : " << ccdbmgr.getTimestamp();
+    LOG(info) << "Initialized CCDB Manager at URL: " << ccdbmgr.getURL();
+    LOG(info) << "Initialized CCDB Manager with timestamp : " << ccdbmgr.getTimestamp();
   }
 
   // we can read from CCDB (for the moment faking with a TFile)
@@ -67,7 +67,7 @@ FairRunSim* o2sim_init(bool asservice)
 
   // set seed
   auto seed = o2::utils::RngHelper::setGRandomSeed(confref.getStartSeed());
-  LOG(INFO) << "RNG INITIAL SEED " << seed;
+  LOG(info) << "RNG INITIAL SEED " << seed;
 
   auto genconfig = confref.getGenerator();
   FairRunSim* run = new o2::steer::O2RunSim(asservice);
@@ -178,7 +178,7 @@ FairRunSim* o2sim_init(bool asservice)
     // save
     std::string grpfilename = o2::base::NameConf::getGRPFileName(confref.getOutPrefix());
     TFile grpF(grpfilename.c_str(), "recreate");
-    grpF.WriteObjectAny(&grp, grp.Class(), "GRP");
+    grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
   }
 
   // todo: save beam information in the grp
@@ -194,8 +194,8 @@ FairRunSim* o2sim_init(bool asservice)
 
   // extract max memory usage for init
   FairSystemInfo sysinfo;
-  LOG(INFO) << "Init: Real time " << rtime << " s, CPU time " << ctime << "s";
-  LOG(INFO) << "Init: Memory used " << sysinfo.GetMaxMemory() << " MB";
+  LOG(info) << "Init: Real time " << rtime << " s, CPU time " << ctime << "s";
+  LOG(info) << "Init: Memory used " << sysinfo.GetMaxMemory() << " MB";
 
   return run;
 }
@@ -221,15 +221,15 @@ void o2sim_run(FairRunSim* run, bool asservice)
   // extract max memory usage
   FairSystemInfo sysinfo;
 
-  LOG(INFO) << "Macro finished succesfully.";
-  LOG(INFO) << "Real time " << rtime << " s, CPU time " << ctime << "s";
-  LOG(INFO) << "Memory used " << sysinfo.GetMaxMemory() << " MB";
+  LOG(info) << "Macro finished succesfully.";
+  LOG(info) << "Real time " << rtime << " s, CPU time " << ctime << "s";
+  LOG(info) << "Memory used " << sysinfo.GetMaxMemory() << " MB";
 
   // migrate to file format where hits sit in separate files
   // (Note: The parallel version is doing this intrinsically;
   //  The serial version uses FairRootManager IO which handles a common file IO for all outputs)
   if (!asservice) {
-    LOG(INFO) << "Migrating simulation output to separate hit file format";
+    LOG(info) << "Migrating simulation output to separate hit file format";
     migrateSimFiles(confref.getOutPrefix().c_str());
   }
 }

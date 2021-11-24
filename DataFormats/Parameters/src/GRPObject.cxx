@@ -111,7 +111,7 @@ GRPObject::ROMode GRPObject::getDetROMode(o2::detectors::DetID id) const
 }
 
 //_______________________________________________
-GRPObject* GRPObject::loadFrom(const std::string& grpFileName, const std::string& grpName)
+GRPObject* GRPObject::loadFrom(const std::string& grpFileName)
 {
   // load object from file
   auto fname = o2::base::NameConf::getGRPFileName(grpFileName);
@@ -120,11 +120,9 @@ GRPObject* GRPObject::loadFrom(const std::string& grpFileName, const std::string
     LOG(ERROR) << "Failed to open " << fname;
     throw std::runtime_error("Failed to open GRP file");
   }
-  auto grp = reinterpret_cast<o2::parameters::GRPObject*>(
-    flGRP.GetObjectChecked(grpName.data(), o2::parameters::GRPObject::Class()));
-  if (!grp) {
-    LOG(ERROR) << "Did not find GRP object named " << grpName;
-    throw std::runtime_error("Failed to load GRP object");
+  auto grp = reinterpret_cast<o2::parameters::GRPObject*>(flGRP.GetObjectChecked(o2::base::NameConf::CCDBOBJECT.data(), Class()));
+  if (!grp && !(grp = reinterpret_cast<o2::parameters::GRPObject*>(flGRP.GetObjectChecked("GRP", Class())))) { // for BWD compatibility
+    throw std::runtime_error(fmt::format("Failed to load GRP object from {}", fname));
   }
   return grp;
 }

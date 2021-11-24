@@ -22,6 +22,7 @@ o2_add_library(TPCWorkflow
                        src/ClusterSharingMapSpec.cxx
                        src/CalDetMergerPublisherSpec.cxx
                        src/KryptonClustererSpec.cxx
+                       src/KryptonRawFilterSpec.cxx
                        src/IDCToVectorSpec.cxx
                        src/CalibdEdxSpec.cxx
                        src/CalibratordEdxSpec.cxx
@@ -30,6 +31,8 @@ o2_add_library(TPCWorkflow
                        src/ApplyCCDBCalibSpec.cxx
                        src/MonitorWorkflowSpec.cxx
                        src/ProcessingHelpers.cxx
+                       src/TrackAndClusterFilterSpec.cxx
+                       src/FileWriterSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
@@ -135,6 +138,11 @@ o2_add_executable(krypton-clusterer
                   SOURCES src/tpc-krypton-clusterer.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(krypton-raw-filter
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-krypton-raw-filter.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_executable(idc-to-vector
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-idc-to-vector.cxx
@@ -158,6 +166,11 @@ o2_add_executable(idc-test-ft
 o2_add_executable(miptrack-filter
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-miptrack-filter.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(track-and-cluster-filter
+                  COMPONENT_NAME tpc
+                  SOURCES src/track-and-cluster-filter.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_test(workflow

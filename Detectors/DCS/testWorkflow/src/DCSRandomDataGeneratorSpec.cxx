@@ -48,7 +48,7 @@ std::vector<int> generateIntegers(size_t size, int min, int max)
   }
   std::shuffle(begin(data), end(data), generator);
   for (auto i = 0; i < data.size(); ++i) {
-    LOG(DEBUG) << "Generating randomly DP at index " << data[i];
+    LOG(debug) << "Generating randomly DP at index " << data[i];
   }
   return data;
 }
@@ -136,7 +136,7 @@ void DCSRandomDataGenerator::run(o2::framework::ProcessingContext& pc)
   auto input = pc.inputs().begin();
   uint64_t tfid = o2::header::get<o2::framework::DataProcessingHeader*>((*input).header)->startTime;
   if (tfid >= mMaxTF) {
-    LOG(INFO) << "Data generator reached TF " << tfid << ", stopping";
+    LOG(info) << "Data generator reached TF " << tfid << ", stopping";
     pc.services().get<o2::framework::ControlService>().endOfStream();
     pc.services().get<o2::framework::ControlService>().readyToQuit(o2::framework::QuitRequest::Me);
   }
@@ -148,7 +148,7 @@ void DCSRandomDataGenerator::run(o2::framework::ProcessingContext& pc)
   TDatime d;
   auto dpcoms = generate(mDataPointHints, fraction, tfid);
 
-  LOG(INFO) << "***************** TF " << tfid << " has generated " << dpcoms.size() << " DPs";
+  LOG(info) << "***************** TF " << tfid << " has generated " << dpcoms.size() << " DPs";
   pc.outputs().snapshot(Output{"DCS", mDataDescription, 0, Lifetime::Timeframe}, dpcoms);
   mTFs++;
 }

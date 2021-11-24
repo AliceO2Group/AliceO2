@@ -41,14 +41,14 @@ void run_digi2rawVarPage_its(std::string outPrefix = "rawits",       // prefix o
 
   std::vector<o2::itsmft::Digit> digiVec, *digiVecP = &digiVec;
   if (!digTree.GetBranch(digBranchName.c_str())) {
-    LOG(FATAL) << "Failed to find the branch " << digBranchName << " in the tree " << digTreeName;
+    LOG(fatal) << "Failed to find the branch " << digBranchName << " in the tree " << digTreeName;
   }
   digTree.SetBranchAddress(digBranchName.c_str(), &digiVecP);
 
   // ROF record entries in the digit tree
   ROFRVEC rofRecVec, *rofRecVecP = &rofRecVec;
   if (!digTree.GetBranch(rofRecName.c_str())) {
-    LOG(FATAL) << "Failed to find the branch " << rofRecName << " in the tree " << digTreeName;
+    LOG(fatal) << "Failed to find the branch " << rofRecName << " in the tree " << digTreeName;
   }
   digTree.SetBranchAddress(rofRecName.c_str(), &rofRecVecP);
   ///-------< input
@@ -79,12 +79,12 @@ void run_digi2rawVarPage_its(std::string outPrefix = "rawits",       // prefix o
     for (const auto& rofRec : rofRecVec) {
       int nDigROF = rofRec.getNEntries();
       if (verbosity) {
-        LOG(INFO) << "Processing ROF:" << rofRec.getROFrame() << " with " << nDigROF << " entries";
+        LOG(info) << "Processing ROF:" << rofRec.getROFrame() << " with " << nDigROF << " entries";
         rofRec.print();
       }
       if (!nDigROF) {
         if (verbosity) {
-          LOG(INFO) << "Frame is empty"; // ??
+          LOG(info) << "Frame is empty"; // ??
         }
         continue;
       }
@@ -161,7 +161,7 @@ void setupLinks(o2::itsmft::MC2RawEncoder<o2::itsmft::ChipMappingITS>& m2r, cons
           link->endPointID = 0; // 0 or 1
           accL += lnkAs[il];
           if (m2r.getVerbosity()) {
-            LOG(INFO) << "RU" << ruID << '(' << ir << " on lr " << ilr << ") " << link->describe()
+            LOG(info) << "RU" << ruID << '(' << ir << " on lr " << ilr << ") " << link->describe()
                       << " -> " << outFileLink;
           }
           // register the link in the writer, if not done here, its data will be dumped to common default file
@@ -184,5 +184,5 @@ void setupLinks(o2::itsmft::MC2RawEncoder<o2::itsmft::ChipMappingITS>& m2r, cons
       ++cruID;
     }
   }
-  LOG(INFO) << "Distributed " << nLinks << " links on " << nRU << " RUs in " << nCRU << " CRUs";
+  LOG(info) << "Distributed " << nLinks << " links on " << nRU << " RUs in " << nCRU << " CRUs";
 }

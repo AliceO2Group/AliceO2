@@ -60,7 +60,7 @@ class MFTDCSDataProcessor : public o2::framework::Task
     std::vector<DPID> vect;
     mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
     if (mDPsUpdateInterval == 0) {
-      LOG(ERROR) << "MFT DPs update interval set to zero seconds --> changed to 60";
+      LOG(error) << "MFT DPs update interval set to zero seconds --> changed to 60";
       mDPsUpdateInterval = 60;
     }
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
@@ -69,7 +69,7 @@ class MFTDCSDataProcessor : public o2::framework::Task
     mEnd = ic.options().get<int64_t>("tend");
 
     if (useCCDBtoConfigure) {
-      LOG(INFO) << "Configuring via CCDB";
+      LOG(info) << "Configuring via CCDB";
       std::string ccdbpath = ic.options().get<std::string>("ccdb-path");
       auto& mgr = CcdbManager::instance();
       mgr.setURL(ccdbpath);
@@ -83,7 +83,7 @@ class MFTDCSDataProcessor : public o2::framework::Task
     }
 
     else {
-      LOG(INFO) << "Configuring via hardcoded strings";
+      LOG(info) << "Configuring via hardcoded strings";
       std::vector<std::string> aliases = {"MFT_PSU_ZONE/H[0..1]/D[0..4]/F[0..1]/Z[0..3]/Current/Analog",
                                           "MFT_PSU_ZONE/H[0..1]/D[0..4]/F[0..1]/Z[0..3]/Current/BackBias",
                                           "MFT_PSU_ZONE/H[0..1]/D[0..4]/F[0..1]/Z[0..3]/Current/Digital",
@@ -115,14 +115,14 @@ class MFTDCSDataProcessor : public o2::framework::Task
       }
     }
 
-    LOG(INFO) << "Listing Data Points for MFT:";
+    LOG(info) << "Listing Data Points for MFT:";
     for (auto& i : vect) {
-      LOG(INFO) << i;
+      LOG(info) << i;
     }
 
     mProcessor = std::make_unique<o2::mft::MFTDCSProcessor>();
     bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
-    LOG(INFO) << " ************************* Verbose?" << useVerboseMode;
+    LOG(info) << " ************************* Verbose?" << useVerboseMode;
 
     if (useVerboseMode) {
       mProcessor->useVerboseMode();
@@ -144,7 +144,7 @@ class MFTDCSDataProcessor : public o2::framework::Task
     auto timeNow = HighResClock::now();
     Duration elapsedTime = timeNow - mTimer; // in seconds
 
-    LOG(INFO) << "mDPsUpdateInterval " << mDPsUpdateInterval << "[sec.]";
+    LOG(info) << "mDPsUpdateInterval " << mDPsUpdateInterval << "[sec.]";
 
     if (elapsedTime.count() >= mDPsUpdateInterval) {
       sendDPsoutput(pc.outputs());
@@ -190,7 +190,7 @@ class MFTDCSDataProcessor : public o2::framework::Task
     info.setEndValidityTimestamp(tend);
 
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "MFT_DCSDPs", 0}, *image.get());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "MFT_DCSDPs", 0}, info);

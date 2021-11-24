@@ -19,7 +19,7 @@
 #include "TOFSimulation/Detector.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TOFSimulation/MCLabel.h"
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 
 namespace o2
 {

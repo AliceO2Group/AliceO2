@@ -506,10 +506,10 @@ void CookedTracker::process(gsl::span<const o2::itsmft::CompClusterExt> const& c
   // This is the main tracking function
   //--------------------------------------------------------------------
   if (mVertices == nullptr || mVertices->empty()) {
-    LOG(INFO) << "Not a single primary vertex provided. Skipping...\n";
+    LOG(info) << "Not a single primary vertex provided. Skipping...\n";
     return;
   }
-  LOG(INFO) << "\n CookedTracker::process(), number of threads: " << mNumOfThreads;
+  LOG(info) << "\n CookedTracker::process(), number of threads: " << mNumOfThreads;
 
   auto start = std::chrono::system_clock::now();
 
@@ -550,7 +550,7 @@ void CookedTracker::process(gsl::span<const o2::itsmft::CompClusterExt> const& c
 
   auto end = std::chrono::system_clock::now();
   std::chrono::duration<double> diff = end - start;
-  LOG(INFO) << "Loading clusters: " << nClFrame << " in a single frame : " << diff.count() << " s";
+  LOG(info) << "Loading clusters: " << nClFrame << " in a single frame : " << diff.count() << " s";
 
   start = end;
 
@@ -561,7 +561,7 @@ void CookedTracker::process(gsl::span<const o2::itsmft::CompClusterExt> const& c
   unloadClusters();
   end = std::chrono::system_clock::now();
   diff = end - start;
-  LOG(INFO) << "Processing time/clusters for single frame : " << diff.count() << " / " << nClFrame << " s";
+  LOG(info) << "Processing time/clusters for single frame : " << diff.count() << " / " << nClFrame << " s";
 
   start = end;
 }
@@ -614,8 +614,8 @@ std::tuple<int, int> CookedTracker::processLoadedClusters(TrackInserter& inserte
   }
 
   if (nSeeds) {
-    LOG(INFO) << "Found tracks: " << nTracks;
-    LOG(INFO) << "CookedTracker::processLoadedClusters(), good_tracks:/seeds: " << ngood << '/' << nSeeds << "-> "
+    LOG(info) << "Found tracks: " << nTracks;
+    LOG(info) << "CookedTracker::processLoadedClusters(), good_tracks:/seeds: " << ngood << '/' << nSeeds << "-> "
               << Float_t(ngood) / nSeeds << '\n';
   }
   // returning index of the first track and the number of add tracks

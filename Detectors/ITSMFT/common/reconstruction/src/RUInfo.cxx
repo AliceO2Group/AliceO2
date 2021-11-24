@@ -25,7 +25,7 @@ std::string ChipOnRUInfo::asString() const
 
 void ChipOnRUInfo::print() const
 {
-  LOG(INFO) << asString();
+  LOG(info) << asString();
 }
 
 std::string ChipInfo::asString() const

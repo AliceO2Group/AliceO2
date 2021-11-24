@@ -106,17 +106,17 @@ std::string DataOutputDescriptor::getFilenameBase()
 
 void DataOutputDescriptor::printOut()
 {
-  LOGP(INFO, "DataOutputDescriptor");
-  LOGP(INFO, "  Table name     : {}", tablename);
-  LOGP(INFO, "  File name base : {}", getFilenameBase());
-  LOGP(INFO, "  Tree name      : {}", treename);
+  LOGP(info, "DataOutputDescriptor");
+  LOGP(info, "  Table name     : {}", tablename);
+  LOGP(info, "  File name base : {}", getFilenameBase());
+  LOGP(info, "  Tree name      : {}", treename);
   if (colnames.empty()) {
-    LOGP(INFO, "  Columns        : \"all\"");
+    LOGP(info, "  Columns        : \"all\"");
   } else {
-    LOGP(INFO, "  Columns        : {}", colnames.size());
+    LOGP(info, "  Columns        : {}", colnames.size());
   }
   for (auto cn : colnames) {
-    LOGP(INFO, "    {}", cn);
+    LOGP(info, "    {}", cn);
   }
 }
 
@@ -217,7 +217,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJson(std::stri
   // open the file
   FILE* fjson = fopen(fnjson.c_str(), "r");
   if (!fjson) {
-    LOGP(INFO, "Could not open JSON file \"{}\"", fnjson);
+    LOGP(info, "Could not open JSON file \"{}\"", fnjson);
     return memptyanswer;
   }
 
@@ -259,7 +259,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
 
   // is it a proper json document?
   if (jsonDocument->HasParseError()) {
-    LOGP(ERROR, "Check the JSON document! There is a problem with the format!");
+    LOGP(error, "Check the JSON document! There is a problem with the format!");
     return memptyanswer;
   }
 
@@ -267,7 +267,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
   itemName = "OutputDirector";
   const Value& dodirItem = (*jsonDocument)[itemName];
   if (!dodirItem.IsObject()) {
-    LOGP(INFO, "No \"{}\" object found in the JSON document!", itemName);
+    LOGP(info, "No \"{}\" object found in the JSON document!", itemName);
     return memptyanswer;
   }
 
@@ -277,7 +277,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
     if (dodirItem[itemName].IsBool()) {
       mdebugmode = dodirItem[itemName].GetBool();
     } else {
-      LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a boolean!", itemName);
+      LOGP(error, "Check the JSON document! Item \"{}\" must be a boolean!", itemName);
       return memptyanswer;
     }
   } else {
@@ -289,7 +289,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
     buffer.Clear();
     Writer<rapidjson::StringBuffer> writer(buffer);
     dodirItem.Accept(writer);
-    LOGP(INFO, "OutputDirector object: {}", std::string(buffer.GetString()));
+    LOGP(info, "OutputDirector object: {}", std::string(buffer.GetString()));
   }
 
   itemName = "resfile";
@@ -298,7 +298,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
       dfn = dodirItem[itemName].GetString();
       setFilenameBase(dfn);
     } else {
-      LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a string!", itemName);
+      LOGP(error, "Check the JSON document! Item \"{}\" must be a string!", itemName);
       return memptyanswer;
     }
   }
@@ -309,7 +309,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
       fmode = dodirItem[itemName].GetString();
       setFileMode(fmode);
     } else {
-      LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a string!", itemName);
+      LOGP(error, "Check the JSON document! Item \"{}\" must be a string!", itemName);
       return memptyanswer;
     }
   }
@@ -320,7 +320,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
       ntfm = dodirItem[itemName].GetInt();
       setNumberTimeFramesToMerge(ntfm);
     } else {
-      LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a number!", itemName);
+      LOGP(error, "Check the JSON document! Item \"{}\" must be a number!", itemName);
       return memptyanswer;
     }
   }
@@ -328,14 +328,14 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
   itemName = "OutputDescriptors";
   if (dodirItem.HasMember(itemName)) {
     if (!dodirItem[itemName].IsArray()) {
-      LOGP(ERROR, "Check the JSON document! Item \"{}\" must be an array!", itemName);
+      LOGP(error, "Check the JSON document! Item \"{}\" must be an array!", itemName);
       return memptyanswer;
     }
 
     // loop over DataOutputDescriptors
     for (auto& dodescItem : dodirItem[itemName].GetArray()) {
       if (!dodescItem.IsObject()) {
-        LOGP(ERROR, "Check the JSON document! \"{}\" must be objects!", itemName);
+        LOGP(error, "Check the JSON document! \"{}\" must be objects!", itemName);
         return memptyanswer;
       }
 
@@ -345,7 +345,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
         if (dodescItem[itemName].IsString()) {
           dodString += dodescItem[itemName].GetString();
         } else {
-          LOGP(ERROR, "Check the JSON document! \"{}\" must be a string!", itemName);
+          LOGP(error, "Check the JSON document! \"{}\" must be a string!", itemName);
           return memptyanswer;
         }
       }
@@ -355,7 +355,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
         if (dodescItem[itemName].IsString()) {
           dodString += dodescItem[itemName].GetString();
         } else {
-          LOGP(ERROR, "Check the JSON document! \"{}\" must be a string!", itemName);
+          LOGP(error, "Check the JSON document! \"{}\" must be a string!", itemName);
           return memptyanswer;
         }
       }
@@ -368,7 +368,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
             dodString += (c == columnNames[0]) ? c.GetString() : slh + c.GetString();
           }
         } else {
-          LOGP(ERROR, "Check the JSON document! \"{}\" must be an array!", itemName);
+          LOGP(error, "Check the JSON document! \"{}\" must be an array!", itemName);
           return memptyanswer;
         }
       }
@@ -378,7 +378,7 @@ std::tuple<std::string, std::string, int> DataOutputDirector::readJsonDocument(D
         if (dodescItem[itemName].IsString()) {
           dodString += dodescItem[itemName].GetString();
         } else {
-          LOGP(ERROR, "Check the JSON document! \"{}\" must be a string!", itemName);
+          LOGP(error, "Check the JSON document! \"{}\" must be a string!", itemName);
           return memptyanswer;
         }
       }
@@ -467,18 +467,18 @@ void DataOutputDirector::closeDataFiles()
 
 void DataOutputDirector::printOut()
 {
-  LOGP(INFO, "DataOutputDirector");
-  LOGP(INFO, "  Default file name    : {}", mfilenameBase);
-  LOGP(INFO, "  Number of files      : {}", mfilenameBases.size());
+  LOGP(info, "DataOutputDirector");
+  LOGP(info, "  Default file name    : {}", mfilenameBase);
+  LOGP(info, "  Number of files      : {}", mfilenameBases.size());
 
-  LOGP(INFO, "  DataOutputDescriptors: {}", mDataOutputDescriptors.size());
+  LOGP(info, "  DataOutputDescriptors: {}", mDataOutputDescriptors.size());
   for (auto const& ds : mDataOutputDescriptors) {
     ds->printOut();
   }
 
-  LOGP(INFO, "  File name bases      :");
+  LOGP(info, "  File name bases      :");
   for (auto const& fb : mfilenameBases) {
-    LOGP(INFO, fb);
+    LOGP(info, fb);
   }
 }
 

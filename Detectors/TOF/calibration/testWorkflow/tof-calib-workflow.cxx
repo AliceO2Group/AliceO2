@@ -14,6 +14,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
 #include "DataFormatsTOF/CalibInfoCluster.h"
+#include "TOFBase/Utils.h"
 using namespace o2::framework;
 
 // we need to add workflow options before including Framework/runDataProcessing

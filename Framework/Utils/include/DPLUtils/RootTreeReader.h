@@ -325,7 +325,7 @@ class GenericRootTreeReader
             LOG(INFO) << "branch " << mName << ": publishing binary chunk of " << datasize << " bytes(s)";
             snapshot(mKey, std::move(*buffer));
           } else {
-            LOG(ERROR) << "branch " << mName << ": inconsitent size of binary chunk "
+            LOG(error) << "branch " << mName << ": inconsitent size of binary chunk "
                        << buffer->size() << " vs " << datasize;
             BinaryDataStoreType empty;
             snapshot(mKey, empty);

@@ -113,7 +113,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
                       &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
       auto& err = error_from_ref(e);
-      LOGP(ERROR, "Exception caught: {} ", err.what);
+      LOGP(error, "Exception caught: {} ", err.what);
       backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       serviceRegistry.get<DataProcessingStats>().exceptionCount++;
       ErrorContext errorContext{record, serviceRegistry, e};
@@ -124,7 +124,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
                       &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
       auto& err = error_from_ref(e);
-      LOGP(ERROR, "Exception caught: {} ", err.what);
+      LOGP(error, "Exception caught: {} ", err.what);
       backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
       serviceRegistry.get<DataProcessingStats>().exceptionCount++;
       switch (errorPolicy) {
@@ -150,14 +150,14 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
   int res = uv_async_init(mState.loop, mAwakeHandle, on_communication_requested);
   mAwakeHandle->data = &mState;
   if (res < 0) {
-    LOG(ERROR) << "Unable to initialise subscription";
+    LOG(error) << "Unable to initialise subscription";
   }
 
   /// This should post a message on the queue...
   SubscribeToNewTransition("dpl", [wakeHandle = mAwakeHandle, deviceContext = &mDeviceContext](fair::mq::Transition t) {
     int res = uv_async_send(wakeHandle);
     if (res < 0) {
-      LOG(ERROR) << "Unable to notify subscription";
+      LOG(error) << "Unable to notify subscription";
     }
     LOG(debug) << "State transition requested";
   });
@@ -947,7 +947,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
         LOGP(error, "Header is not a DataHeader?");
         continue;
       }
-      if (dh->payloadSize != parts.At(pi + 1)->GetSize()) {
+      if (dh->payloadSize > parts.At(pi + 1)->GetSize()) {
         insertInputInfo(pi, 0, InputType::Invalid);
         LOGP(error, "DataHeader payloadSize mismatch");
         continue;
@@ -960,7 +960,12 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
         LOGP(error, "Header stack does not contain DataProcessingHeader");
         continue;
       }
-      {
+      if (dh->splitPayloadParts > 0 && dh->splitPayloadParts == dh->splitPayloadIndex) {
+        // this is indicating a sequence of payloads following the header
+        // FIXME: we will probably also set the DataHeader version
+        insertInputInfo(pi, dh->splitPayloadParts + 1, InputType::Data);
+        pi += dh->splitPayloadParts - 1;
+      } else {
         // We can set the type for the next splitPayloadParts
         // because we are guaranteed they are all the same.
         // If splitPayloadParts = 0, we assume that means there is only one (header, payload)
@@ -979,7 +984,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     }
     assert(std::accumulate(results.begin(), results.end(), 0, [](size_t const& count, auto const& element) -> size_t { return count + element.size; }));
     if (results.size() + nTotalPayloads != parts.Size()) {
-      LOG(ERROR) << "inconsistent number of inputs extracted";
+      LOG(error) << "inconsistent number of inputs extracted";
       return std::nullopt;
     }
     return results;
@@ -1001,7 +1006,11 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
           auto headerIndex = input.position;
           auto nMessages = 0;
           auto nPayloadsPerHeader = 0;
-          {
+          if (input.size > 2) {
+            // header and multiple payload sequence
+            nMessages = input.size;
+            nPayloadsPerHeader = nMessages - 1;
+          } else {
             // multiple header-payload pairs
             auto dh = o2::header::get<DataHeader*>(parts.At(headerIndex)->GetData());
             nMessages = dh->splitPayloadParts > 0 ? dh->splitPayloadParts * 2 : 2;
@@ -1057,7 +1066,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     auto r = std::distance(it, parts.fParts.end());
     parts.fParts.erase(it, parts.end());
     if (parts.fParts.size()) {
-      LOG(DEBUG) << parts.fParts.size() << " messages backpressured";
+      LOG(debug) << parts.fParts.size() << " messages backpressured";
     }
   };
 
@@ -1158,22 +1167,31 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   auto getInputSpan = [&relayer = context.relayer,
                        &currentSetOfInputs](TimesliceSlot slot, bool consume = true) {
     if (consume) {
-      currentSetOfInputs = std::move(relayer->consumeAllInputsForTimeslice(slot));
+      currentSetOfInputs = relayer->consumeAllInputsForTimeslice(slot);
     } else {
       currentSetOfInputs = relayer->consumeExistingInputsForTimeslice(slot);
     }
     auto getter = [&currentSetOfInputs](size_t i, size_t partindex) -> DataRef {
-      if (currentSetOfInputs[i].size() > partindex) {
-        auto header = currentSetOfInputs[i].header(partindex).get();
-        auto payload = currentSetOfInputs[i].payload(partindex).get();
-        return DataRef{nullptr,
-                       static_cast<char const*>(header->GetData()),
-                       static_cast<char const*>(payload ? payload->GetData() : nullptr)};
+      if (currentSetOfInputs[i].getNumberOfPairs() > partindex) {
+        const char* headerptr = nullptr;
+        const char* payloadptr = nullptr;
+        size_t payloadSize = 0;
+        // - each input can have multiple parts
+        // - "part" denotes a sequence of messages belonging together, the first message of the
+        //   sequence is the header message
+        // - each part has one or more payload messages
+        // - InputRecord provides all payloads as header-payload pairs
+        auto const& headerMsg = currentSetOfInputs[i].associatedHeader(partindex);
+        auto const& payloadMsg = currentSetOfInputs[i].associatedPayload(partindex);
+        headerptr = static_cast<char const*>(headerMsg->GetData());
+        payloadptr = payloadMsg ? static_cast<char const*>(payloadMsg->GetData()) : nullptr;
+        payloadSize = payloadMsg ? payloadMsg->GetSize() : 0;
+        return DataRef{nullptr, headerptr, payloadptr, payloadSize};
       }
-      return DataRef{nullptr, nullptr, nullptr};
+      return DataRef{};
     };
     auto nofPartsGetter = [&currentSetOfInputs](size_t i) -> size_t {
-      return currentSetOfInputs[i].size();
+      return currentSetOfInputs[i].getNumberOfPairs();
     };
     return InputSpan{getter, nofPartsGetter, currentSetOfInputs.size()};
   };
@@ -1204,6 +1222,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   auto cleanTimers = [&currentSetOfInputs](TimesliceSlot slot, InputRecord& record) {
     assert(record.size() == currentSetOfInputs.size());
     for (size_t ii = 0, ie = record.size(); ii < ie; ++ii) {
+      // assuming that for timer inputs we do have exactly one PartRef object
+      // in the MessageSet, multiple PartRef Objects are only possible for either
+      // split payload messages of wildcard matchers, both for data inputs
       DataRef input = record.getByPos(ii);
       if (input.spec->lifetime != Lifetime::Timer) {
         continue;
@@ -1308,17 +1329,18 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
         auto fdph = o2::header::get<DataProcessingHeader*>(header->GetData());
         if (fdph == nullptr) {
-          LOG(ERROR) << "Data is missing DataProcessingHeader";
+          LOG(error) << "Data is missing DataProcessingHeader";
           continue;
         }
         auto fdh = o2::header::get<DataHeader*>(header->GetData());
         if (fdh == nullptr) {
-          LOG(ERROR) << "Data is missing DataHeader";
+          LOG(error) << "Data is missing DataHeader";
           continue;
         }
         // We need to find the forward route only for the first
         // part of a split payload. All the others will use the same.
-        if (fdh->splitPayloadIndex == 0 || fdh->splitPayloadParts <= 1) {
+        // but always check if we have a sequence of multiple payloads
+        if (fdh->splitPayloadIndex == 0 || fdh->splitPayloadParts <= 1 || messageSet.getNumberOfPayloads(pi) > 1) {
           cachedForwardingChoice = -1;
           for (size_t fi = 0; fi < spec->forwards.size(); fi++) {
             auto& forward = spec->forwards[fi];
@@ -1519,7 +1541,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
 void DataProcessingDevice::error(const char* msg)
 {
-  LOG(ERROR) << msg;
+  LOG(error) << msg;
   mServiceRegistry.get<DataProcessingStats>().errorCount++;
 }
 

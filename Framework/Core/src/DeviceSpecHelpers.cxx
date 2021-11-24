@@ -1338,12 +1338,12 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     std::ostringstream str;
     for (size_t ai = 0; ai < execution.args.size() - 1; ai++) {
       if (execution.args[ai] == nullptr) {
-        LOG(ERROR) << "Bad argument for " << execution.args[ai - 1];
+        LOG(error) << "Bad argument for " << execution.args[ai - 1];
       }
       assert(execution.args[ai]);
       str << " " << execution.args[ai];
     }
-    LOG(DEBUG) << "The following options are being forwarded to " << spec.id << ":" << str.str();
+    LOG(debug) << "The following options are being forwarded to " << spec.id << ":" << str.str();
   }
 }
 

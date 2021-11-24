@@ -369,7 +369,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   auto cState = makeBenchmarkState();
   auto checkerCallback = [cState, loggerCycle](InputRecord& inputs) {
     ActiveGuard g(*cState);
-    LOG(DEBUG) << "got inputs " << inputs.size();
+    LOG(debug) << "got inputs " << inputs.size();
     size_t msgCount = 0;
     size_t msgSize = 0;
     for (auto const& ref : InputRecordWalker(inputs)) {
@@ -439,7 +439,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     // the forwarded SourceInfoHeader created by the output proxy will be skipped here since the
     // input proxy handles this internally
     ASSERT_ERROR(!isData || !channelName.empty());
-    LOG(DEBUG) << "using channel '" << channelName << "' for " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification});
+    LOG(debug) << "using channel '" << channelName << "' for " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification});
     if (channelName.empty()) {
       return;
     }
@@ -453,7 +453,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     FairMQParts output;
     output.AddPart(std::move(outHeaderMessage));
     output.AddPart(std::move(inputs.At(msgidx + 1)));
-    LOG(DEBUG) << "sending " << DataSpecUtils::describe(OutputSpec{odh->dataOrigin, odh->dataDescription, odh->subSpecification});
+    LOG(debug) << "sending " << DataSpecUtils::describe(OutputSpec{odh->dataOrigin, odh->dataDescription, odh->subSpecification});
     o2::framework::sendOnChannel(device, output, channelName);
   };
 

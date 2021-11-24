@@ -41,7 +41,7 @@ inline uint8_t getCrateIdFromGBTUniqueId(uint16_t gbtUniqueId) { return gbtUniqu
 /// Gets the link ID in crate from the RO ID
 inline uint8_t getGBTIdInCrate(uint16_t gbtUniqueId) { return gbtUniqueId % sNGBTsPerCrate; }
 /// Gets the link ID in crate from the board ID
-inline uint8_t getGBTIdFromBoardInCrate(uint16_t locId) { return locId / sMaxNBoardsInLink; }
+inline uint8_t getGBTIdFromBoardInCrate(uint8_t locId) { return locId / sMaxNBoardsInLink; }
 /// Gets the absolute crate ID
 inline uint8_t getCrateId(bool isRightSide, uint8_t crateIdOneSide) { return isRightSide ? crateIdOneSide : crateIdOneSide + sNCratesPerSide; }
 // Gets the locId in crate from the loc position in the GBT

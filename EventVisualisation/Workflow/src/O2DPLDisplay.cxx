@@ -67,7 +67,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h" // main method must be included here (otherwise customize not used)
 void O2DPLDisplaySpec::init(InitContext& ic)
 {
-  LOG(INFO) << "------------------------    O2DPLDisplay::init version " << this->mWorkflowVersion << "    ------------------------------------";
+  LOG(info) << "------------------------    O2DPLDisplay::init version " << this->mWorkflowVersion << "    ------------------------------------";
   const auto grp = o2::parameters::GRPObject::loadFrom();
   o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP();
@@ -86,9 +86,9 @@ void O2DPLDisplaySpec::init(InitContext& ic)
   dictFileITS = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFileITS);
   if (o2::utils::Str::pathExists(dictFileITS)) {
     mITSDict.readFromFile(dictFileITS);
-    LOG(INFO) << "Running with provided ITS clusters dictionary: " << dictFileITS;
+    LOG(info) << "Running with provided ITS clusters dictionary: " << dictFileITS;
   } else {
-    LOG(INFO) << "Dictionary " << dictFileITS << " is absent, ITS expects cluster patterns for all clusters";
+    LOG(info) << "Dictionary " << dictFileITS << " is absent, ITS expects cluster patterns for all clusters";
   }
   mConfig->configCalib.itsPatternDict = &mITSDict;
 
@@ -96,9 +96,9 @@ void O2DPLDisplaySpec::init(InitContext& ic)
   dictFileMFT = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictFileMFT);
   if (o2::utils::Str::pathExists(dictFileMFT)) {
     mMFTDict.readFromFile(dictFileMFT);
-    LOG(INFO) << "Running with provided MFT clusters dictionary: " << dictFileMFT;
+    LOG(info) << "Running with provided MFT clusters dictionary: " << dictFileMFT;
   } else {
-    LOG(INFO) << "Dictionary " << dictFileMFT << " is absent, MFT expects cluster patterns for all clusters";
+    LOG(info) << "Dictionary " << dictFileMFT << " is absent, MFT expects cluster patterns for all clusters";
   }
   mConfig->configCalib.mftPatternDict = &mMFTDict;
 
@@ -118,7 +118,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   if (!this->mEveHostNameMatch) {
     return;
   }
-  LOG(INFO) << "------------------------    O2DPLDisplay::run version " << this->mWorkflowVersion << "    ------------------------------------";
+  LOG(info) << "------------------------    O2DPLDisplay::run version " << this->mWorkflowVersion << "    ------------------------------------";
   // filtering out any run which occur before reaching next time interval
   auto currentTime = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = currentTime - this->mTimeStamp;
@@ -146,7 +146,7 @@ void O2DPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  LOG(INFO) << "------------------------    defineDataProcessing " << O2DPLDisplaySpec::mWorkflowVersion << "    ------------------------------------";
+  LOG(info) << "------------------------    defineDataProcessing " << O2DPLDisplaySpec::mWorkflowVersion << "    ------------------------------------";
 
   WorkflowSpec specs;
 

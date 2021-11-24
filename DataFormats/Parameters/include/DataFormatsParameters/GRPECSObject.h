@@ -102,7 +102,7 @@ class GRPECSObject
   /// print itself
   void print() const;
 
-  static GRPECSObject* loadFrom(const std::string& grpecsFileName = "", const std::string& grpecsName = "GRPECS");
+  static GRPECSObject* loadFrom(const std::string& grpecsFileName = "");
 
  private:
   timePoint mTimeStart = 0; ///< DAQ_time_start entry from DAQ logbook

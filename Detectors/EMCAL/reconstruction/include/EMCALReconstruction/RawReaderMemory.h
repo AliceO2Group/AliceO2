@@ -46,10 +46,20 @@ class RawReaderMemory
   /// \param rawmemory New raw memory chunk
   void setRawMemory(const gsl::span<const char> rawmemory);
 
+  /// \brief Set range for DDLs from SRU (for RCU trailer merging)
+  /// \param minDDL Min DDL of the SRU DDL range
+  /// \param maxDDL Max DDL of the SRU DDL range
+  void setRangeSRUDDLs(uint16_t minDDL, uint16_t maxDDL)
+  {
+    mMinSRUDDL = minDDL;
+    mMaxSRUDDL = maxDDL;
+  }
+
   /// \brief Read next payload from the stream
   ///
   /// Read the next pages until the stop bit is found.
-  void next();
+  void
+    next();
 
   /// \brief Read the next page from the stream (single DMA page)
   /// \param resetPayload If true the raw payload is reset
@@ -93,6 +103,11 @@ class RawReaderMemory
   /// Rewind stream to the first entry
   void init();
 
+  /// \brief Check whether the current page is accepted
+  /// \param page Raw page to check
+  /// \return True if the page is accepted, false otherwise
+  bool acceptPage(const char* page) const;
+
   o2::header::RDHAny decodeRawHeader(const void* headerwords);
 
  private:
@@ -102,6 +117,8 @@ class RawReaderMemory
   RawPayload mRawPayload;                 ///< Raw payload (can consist of multiple pages)
   RCUTrailer mCurrentTrailer;             ///< RCU trailer
   uint64_t mTrailerPayloadWords = 0;      ///< Payload words in common trailer
+  uint16_t mMinSRUDDL = 0;                ///< Min. range of SRU DDLs (for RCU trailer merging)
+  uint16_t mMaxSRUDDL = 39;               ///< Max. range of SRU DDls (for RCU trailer merging)
   int mCurrentPosition = 0;               ///< Current page in file
   int mCurrentFEE = -1;                   ///< Current FEE in the data stream
   bool mRawHeaderInitialized = false;     ///< RDH for current page initialized

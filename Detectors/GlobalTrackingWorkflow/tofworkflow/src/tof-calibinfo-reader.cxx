@@ -77,7 +77,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     specs.emplace_back(o2::tof::getCalibInfoReaderSpec(i, ninstances, stringTBP, toftpc));
   }
 
-  LOG(INFO) << "Number of active devices = " << specs.size();
+  LOG(info) << "Number of active devices = " << specs.size();
 
   return std::move(specs);
 }

@@ -155,7 +155,7 @@ void CTFReaderSpec::openCTFFile(const std::string& flname)
       throw std::runtime_error("failed to load CTF tree from");
     }
   } catch (const std::exception& e) {
-    LOG(ERROR) << "Cannot process " << flname << ", reason: " << e.what();
+    LOG(error) << "Cannot process " << flname << ", reason: " << e.what();
     mCTFTree.reset();
     mCTFFile.reset();
     mNFailedFiles++;
@@ -169,16 +169,22 @@ void CTFReaderSpec::openCTFFile(const std::string& flname)
 ///_______________________________________
 void CTFReaderSpec::run(ProcessingContext& pc)
 {
+
+  if (!mCTFCounter) { // RS FIXME: this is a temporary hack to avoid late-starting devices to lose the input
+    LOG(warning) << "This is a hack, sleeping 5 s at startup";
+    usleep(1000000);
+  }
+
   std::string tfFileName;
   if (mCTFCounter >= mInput.maxTFs || (!mInput.ctfIDs.empty() && mSelIDEntry >= mInput.ctfIDs.size())) { // done
-    LOG(INFO) << "All CTFs from selected range were injected, stopping";
+    LOG(info) << "All CTFs from selected range were injected, stopping";
     mRunning = false;
   }
 
   while (mRunning) {
     if (mCTFTree) { // there is a tree open with multiple CTF
       if (mInput.ctfIDs.empty() || mInput.ctfIDs[mSelIDEntry] == mCTFCounter) { // no selection requested or matching CTF ID is found
-        LOG(DEBUG) << "TF " << mCTFCounter << " of " << mInput.maxTFs << " loop " << mFileFetcher->getNLoops();
+        LOG(debug) << "TF " << mCTFCounter << " of " << mInput.maxTFs << " loop " << mFileFetcher->getNLoops();
         mSelIDEntry++;
         processTF(pc);
         break;
@@ -199,7 +205,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
       usleep(5000); // wait 5ms for the files cache to be filled
       continue;
     }
-    LOG(INFO) << "Reading CTF input " << ' ' << tfFileName;
+    LOG(info) << "Reading CTF input " << ' ' << tfFileName;
     openCTFFile(tfFileName);
   }
 
@@ -224,7 +230,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
     tryToFixCTFHeader(ctfHeader);
   }
 
-  LOG(INFO) << ctfHeader;
+  LOG(info) << ctfHeader;
 
   // send CTF Header
   pc.outputs().snapshot({"header"}, ctfHeader);
@@ -310,7 +316,7 @@ void CTFReaderSpec::processDetector(DetID det, const CTFHeader& ctfHeader, Proce
 {
   if (mInput.detMask[det]) {
     const auto lbl = det.getName();
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({lbl}, sizeof(C));
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({lbl}, ctfHeader.detectors[det] ? sizeof(C) : 0);
     if (ctfHeader.detectors[det]) {
       C::readFromTree(bufVec, *(mCTFTree.get()), lbl, mCurrTreeEntry);
     } else if (!mInput.allowMissingDetectors) {

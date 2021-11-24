@@ -35,8 +35,9 @@
 
 // from TOF
 #include "TOFBase/Geo.h"
+#include "TOFBase/Utils.h"
 #include "DataFormatsTOF/Cluster.h"
-#include "TOFReconstruction/EventTimeMaker.h"
+#include "TOFBase/EventTimeMaker.h"
 //#include "GlobalTracking/MatchTOF.h"
 #include "GlobalTrackingWorkflow/TOFEventTimeChecker.h"
 
@@ -63,19 +64,27 @@ using GID = o2::dataformats::GlobalTrackID;
 
 struct MyTrack : o2::tof::eventTimeTrackTest {
   double tofSignalDouble() const { return mSignalDouble; }
-  float tofExpTimeDe() const { return mExpDe; }
+  float tofExpSignalDe() const { return mExpDe; }
   double mSignalDouble = 0.0;
   float mEta = 0.0;
+  float mPhi = 0.0;
   float mExpDe = 0;
   int mIsProb = 0;
   int mCh = -1;
+  float mChi2 = 0;
+  bool mHasTOF = false;
+  int mSource = -1;
+  double mTrktime = 0;
+  double mTrktimeRes = 0;
+  float mDx = 0;
+  float mDz = 0;
 };
 
 using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;
 
 bool MyFilter(const MyTrack& tr)
 {
-  return (tr.mP < 2.0 && fabs(tr.mEta) < 0.8);
+  return (tr.mP < 2.0 && tr.mEta > o2::tof::Utils::mEtaMin && tr.mEta < o2::tof::Utils::mEtaMax && tr.mHasTOF && tr.mSource == 1);
 } // accept all
 
 namespace o2
@@ -91,7 +100,7 @@ class TOFEventTimeChecker : public Task
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
-  void fillMatching(GID gid);
+  void fillMatching(GID gid, float time0, float time0res);
   void processEvent(std::vector<MyTrack>& tracks);
 
  private:
@@ -131,6 +140,8 @@ class TOFEventTimeChecker : public Task
   float mP = 0;
   float mPt = 0;
   float mEta = 0;
+  float mPhi = 0;
+  float mChi2 = 0;
   float mL = 0;
   float mTof = 0;
   float mT0 = 0;
@@ -139,7 +150,12 @@ class TOFEventTimeChecker : public Task
   float mExpPi = 0;
   float mExpKa = 0;
   float mExpPr = 0;
+  float mDx = 0;
+  float mDz = 0;
   int mIsProb = 0;
+  int mSource = -1;
+  float mTrktime = 0;
+  float mTrktimeRes = 0;
   RecoContainer mRecoData;
   std::shared_ptr<DataRequest> mDataRequest;
   bool mUseMC = true;
@@ -150,12 +166,28 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
 {
   int nBC = int(tracks[0].tofSignalDouble() * o2::tof::Geo::BC_TIME_INPS_INV);
   for (auto& track : tracks) {
-    track.mSignal = float(track.mSignalDouble - double(o2::tof::Geo::BC_TIME_INPS) * nBC);
+    if (!o2::tof::Utils::hasFillScheme()) {
+      track.mSignal = float(track.mSignalDouble - double(o2::tof::Geo::BC_TIME_INPS) * nBC);
+      track.mTrktime = (track.mTrktime - double(o2::tof::Geo::BC_TIME_INPS) * nBC);
+    } else {
+      double localTime = track.mSignalDouble;
+
+      // get into orbit
+      int bcStarOrbit = int(localTime * o2::tof::Geo::BC_TIME_INPS_INV);
+      bcStarOrbit = (bcStarOrbit / o2::constants::lhc::LHCMaxBunches) * o2::constants::lhc::LHCMaxBunches; // truncation
+      localTime -= bcStarOrbit * o2::tof::Geo::BC_TIME_INPS;
+      track.mSignal = o2::tof::Utils::subtractInteractionBC(localTime);
+      localTime = track.mTrktime;
+      bcStarOrbit = int(localTime * o2::tof::Geo::BC_TIME_INPS_INV);
+      bcStarOrbit = (bcStarOrbit / o2::constants::lhc::LHCMaxBunches) * o2::constants::lhc::LHCMaxBunches; // truncation
+      localTime -= bcStarOrbit * o2::tof::Geo::BC_TIME_INPS;
+      track.mTrktime = o2::tof::Utils::subtractInteractionBC(localTime);
+    }
   }
 
   auto evtime = o2::tof::evTimeMaker<std::vector<MyTrack>, MyTrack, MyFilter>(tracks);
 
-  if (evtime.eventTime < -2000 || evtime.eventTime > 2000) {
+  if (evtime.eventTime - o2::tof::Utils::mLHCPhase < -2000 || evtime.eventTime - o2::tof::Utils::mLHCPhase > 2000) {
     return;
   }
   //
@@ -179,13 +211,20 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
     mP = track.mP;
     mPt = track.mPt;
     mEta = track.mEta;
+    mSource = track.mSource;
+    mPhi = track.mPhi;
+    mChi2 = track.mChi2;
     mL = track.mLength;
     mTof = track.tofSignal();
-    mExpDe = track.tofExpTimeDe();
-    mExpPi = track.tofExpTimePi();
-    mExpKa = track.tofExpTimeKa();
-    mExpPr = track.tofExpTimePr();
+    mExpDe = track.tofExpSignalDe();
+    mExpPi = track.tofExpSignalPi();
+    mExpKa = track.tofExpSignalKa();
+    mExpPr = track.tofExpSignalPr();
     mIsProb = track.mIsProb;
+    mTrktime = track.mTrktime;
+    mTrktimeRes = track.mTrktimeRes;
+    mDx = track.mDx;
+    mDz = track.mDz;
 
 #ifdef TDEBUG
     mTree->Fill();
@@ -239,85 +278,154 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
   }
 }
 
-void TOFEventTimeChecker::fillMatching(GID gid)
+void TOFEventTimeChecker::fillMatching(GID gid, float time0, float time0res)
 {
-  if (!gid.includesDet(DetID::TOF)) {
-    return;
-  }
-  const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
-  const o2::track::TrackLTIntegral& info = match.getLTIntegralOut();
-
-  if (info.getL() < 370) {
-    return;
-  }
-
   MyTrack trk;
+  trk.mHasTOF = true;
+
+  if (!gid.includesDet(DetID::TOF)) {
+    trk.mHasTOF = false;
+  }
+
+  trk.mTrktime = time0 * 1E6;
+  trk.mTrktimeRes = time0res * 1E6;
+
+  trk.mDx = 0;
+  trk.mDz = 0;
+
   int trksource = 5;
   if (gid.getSource() == GID::TPCTOF) {
+    const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
     const auto& array = mRecoData.getTPCTracks();
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
     trk.mPt = srctrk.getPt();
     trk.mP = srctrk.getP();
     trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
+    trk.mDx = match.getDXatTOF();
+    trk.mDz = match.getDZatTOF();
+    trksource = 0;
+  } else if (gid.getSource() == GID::TPC) {
+    const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
+    const auto& array = mRecoData.getTPCTracks();
+    GID gTrackId = gid;
+    const auto& srctrk = array[gTrackId.getIndex()];
+    trk.mPt = srctrk.getPt();
+    trk.mP = srctrk.getP();
+    trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
     trksource = 0;
   } else if (gid.getSource() == GID::ITSTPCTOF) {
+    const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
     const auto& array = mRecoData.getTPCITSTracks();
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
     trk.mPt = srctrk.getPt();
     trk.mP = srctrk.getP();
     trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
     trksource = 1;
+    trk.mTrktime = srctrk.getTimeMUS().getTimeStamp() * 1E6;
+    trk.mTrktimeRes = srctrk.getTimeMUS().getTimeStampError() * 1E6;
+    trk.mDx = match.getDXatTOF();
+    trk.mDz = match.getDZatTOF();
+  } else if (gid.getSource() == GID::ITSTPC) {
+    const auto& array = mRecoData.getTPCITSTracks();
+    GID gTrackId = gid; //match.getTrackRef();
+    const auto& srctrk = array[gTrackId.getIndex()];
+    trk.mPt = srctrk.getPt();
+    trk.mP = srctrk.getP();
+    trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
+    trksource = 1;
+    trk.mTrktime = srctrk.getTimeMUS().getTimeStamp() * 1E6;
+    trk.mTrktimeRes = srctrk.getTimeMUS().getTimeStampError() * 1E6;
   } else if (gid.getSource() == GID::TPCTRDTOF) {
+    const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
     const auto& array = mRecoData.getTPCTRDTracks<o2::trd::TrackTRD>();
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
     trk.mPt = srctrk.getPt();
     trk.mP = srctrk.getP();
     trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
     trksource = 2;
+    trk.mDx = match.getDXatTOF();
+    trk.mDz = match.getDZatTOF();
   } else if (gid.getSource() == GID::ITSTPCTRDTOF) {
+    const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
     const auto& array = mRecoData.getITSTPCTRDTracks<o2::trd::TrackTRD>();
     GID gTrackId = match.getTrackRef();
     const auto& srctrk = array[gTrackId.getIndex()];
     trk.mPt = srctrk.getPt();
     trk.mP = srctrk.getP();
     trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
     trksource = 3;
+    trk.mDx = match.getDXatTOF();
+    trk.mDz = match.getDZatTOF();
   }
+
+  trk.mSource = trksource;
 
   const char* sources[5] = {"TPC", "ITS-TPC", "TPC-TRD", "ITS-TPC-TRD", "NONE"};
 
-  trk.mExpDe = info.getTOF(5);      // el
-  trk.expTimes[0] = info.getTOF(2); // pi
-  trk.expTimes[1] = info.getTOF(3); // ka
-  trk.expTimes[2] = info.getTOF(4); // pr
-  trk.expSigma[0] = 120;            // dummy resolution (to be updated)
-  trk.expSigma[1] = 120;            // dummy resolution (to be updated)
-  trk.expSigma[2] = 120;            // dummy resolution (to be updated)
+  if (trk.mHasTOF) {
+    const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
+    const o2::track::TrackLTIntegral& info = match.getLTIntegralOut();
 
-  int tofcl = match.getIdxTOFCl();
-  //  trk.mSignal = mTOFClustersArrayInp[tofcl].getTime();
-  double tofsignal = match.getSignal();
-
-  trk.mSignalDouble = tofsignal;
-
-  //trk.mSignal = match.getSignal();
-  trk.mTOFChi2 = match.getChi2();
-  trk.mLength = info.getL();
-  //  trk.mHypo = 0;
-  trk.mCh = mTOFClustersArrayInp[tofcl].getMainContributingChannel();
-
-  if (mSlewing) { // let's calibrate
-    trk.mIsProb = mSlewing->isProblematic(trk.mCh);
-    if (mSlewing->isProblematic(trk.mCh)) {
-      //      LOG(DEBUG) << "skip channel " << trk.mCh << " since problematic";
-      //      return;
+    if (info.getL() < 370) {
+      //      trk.mHasTOF = false;
     }
-    float tot = mTOFClustersArrayInp[tofcl].getTot();
-    trk.mSignalDouble -= mSlewing->evalTimeSlewing(trk.mCh, tot);
-    LOG(DEBUG) << "calibration -> " << mSlewing->evalTimeSlewing(trk.mCh, tot);
+
+    trk.mExpDe = info.getTOF(5);      // el
+    trk.expTimes[0] = info.getTOF(2); // pi
+    trk.expTimes[1] = info.getTOF(3); // ka
+    trk.expTimes[2] = info.getTOF(4); // pr
+    trk.expSigma[0] = 120;            // dummy resolution (to be updated)
+    trk.expSigma[1] = 120;            // dummy resolution (to be updated)
+    trk.expSigma[2] = 120;            // dummy resolution (to be updated)
+
+    trk.mChi2 = match.getChi2();
+
+    int tofcl = match.getIdxTOFCl();
+    //  trk.mSignal = mTOFClustersArrayInp[tofcl].getTime();
+    double tofsignal = match.getSignal();
+
+    trk.mSignalDouble = tofsignal;
+
+    //trk.mSignal = match.getSignal();
+    trk.mTOFChi2 = match.getChi2();
+    trk.mLength = info.getL();
+    //  trk.mHypo = 0;
+    trk.mCh = mTOFClustersArrayInp[tofcl].getMainContributingChannel();
+
+    if (mSlewing) { // let's calibrate
+      trk.mIsProb = mSlewing->isProblematic(trk.mCh);
+      if (mSlewing->isProblematic(trk.mCh)) {
+        //      LOG(debug) << "skip channel " << trk.mCh << " since problematic";
+        //      return;
+      }
+      float tot = mTOFClustersArrayInp[tofcl].getTot();
+      trk.mSignalDouble -= mSlewing->evalTimeSlewing(trk.mCh, tot);
+      LOG(debug) << "calibration -> " << mSlewing->evalTimeSlewing(trk.mCh, tot);
+    }
+  }
+  if (!trk.mHasTOF) {
+    trk.mExpDe = 0;
+    trk.expTimes[0] = 0;
+    trk.expTimes[1] = 0;
+    trk.expTimes[2] = 0;
+    trk.expSigma[0] = 0; // dummy resolution (to be updated)
+    trk.expSigma[1] = 0; // dummy resolution (to be updated)
+    trk.expSigma[2] = 0; // dummy resolution (to be updated)
+    trk.mSignalDouble = time0 * 1E6;
+    trk.mTOFChi2 = 9999;
+    trk.mLength = 0;
+    trk.mCh = -1;
+    trk.mChi2 = 0;
+    trk.mIsProb = 0;
   }
 
   mMyTracks.push_back(trk);
@@ -379,11 +487,18 @@ void TOFEventTimeChecker::init(InitContext& ic)
   mTree->Branch("isProb", &mIsProb, "isProb/I");
   mTree->Branch("p", &mP, "p/F");
   mTree->Branch("pt", &mPt, "pt/F");
+  mTree->Branch("source", &mSource, "source/I");
   mTree->Branch("eta", &mEta, "eta/F");
+  mTree->Branch("phi", &mPhi, "phi/F");
+  mTree->Branch("chi2", &mChi2, "chi2/F");
   mTree->Branch("l", &mL, "l/F");
   mTree->Branch("tof", &mTof, "tof/F");
   mTree->Branch("t0", &mT0, "t0/F");
   mTree->Branch("t0res", &mT0Res, "t0res/F");
+  mTree->Branch("trkTime", &mTrktime, "trkTime/F");
+  mTree->Branch("trkTimeRes", &mTrktimeRes, "trkTimeRes/F");
+  mTree->Branch("dx", &mDx, "dx/F");
+  mTree->Branch("dz", &mDz, "dz/F");
   mTree->Branch("expDe", &mExpDe, "expDe/F");
   mTree->Branch("expPi", &mExpPi, "expPi/F");
   mTree->Branch("expKa", &mExpKa, "expKa/F");
@@ -405,18 +520,18 @@ void TOFEventTimeChecker::run(ProcessingContext& pc)
 
   mTOFClustersArrayInp = mRecoData.getTOFClusters();
 
-  LOG(DEBUG) << "isTrackSourceLoaded: TPC -> " << mIsTPC << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF) << ")";
-  LOG(DEBUG) << "isTrackSourceLoaded: ITSTPC -> " << mIsITSTPC << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) << ")";
-  LOG(DEBUG) << "isTrackSourceLoaded: TPCTRD -> " << mIsTPCTRD << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF) << ")";
-  LOG(DEBUG) << "isTrackSourceLoaded: ITSTPCTRD -> " << mIsITSTPCTRD << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF) << ")";
-  LOG(DEBUG) << "TOF cluster size = " << mTOFClustersArrayInp.size();
+  LOG(debug) << "isTrackSourceLoaded: TPC -> " << mIsTPC << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF) << ")";
+  LOG(debug) << "isTrackSourceLoaded: ITSTPC -> " << mIsITSTPC << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) << ")";
+  LOG(debug) << "isTrackSourceLoaded: TPCTRD -> " << mIsTPCTRD << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF) << ")";
+  LOG(debug) << "isTrackSourceLoaded: ITSTPCTRD -> " << mIsITSTPCTRD << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF) << ")";
+  LOG(debug) << "TOF cluster size = " << mTOFClustersArrayInp.size();
 
   if (!mTOFClustersArrayInp.size()) {
     return;
   }
 
   auto creator = [this](auto& trk, GID gid, float time0, float terr) {
-    this->fillMatching(gid);
+    this->fillMatching(gid, time0, terr);
     return true;
   };
   mRecoData.createTracksVariadic(creator);
@@ -426,7 +541,7 @@ void TOFEventTimeChecker::run(ProcessingContext& pc)
             [](MyTrack a, MyTrack b) { return a.tofSignalDouble() < b.tofSignalDouble(); });
 
   for (auto& element : mMyTracks) { // loop print
-    LOG(DEBUG) << "Time cluster = " << element.tofSignal() << " ps - pt = " << element.pt();
+    LOG(debug) << "Time cluster = " << element.tofSignal() << " ps - pt = " << element.pt();
   }
 
   std::vector<MyTrack> tracks;
@@ -437,14 +552,14 @@ void TOFEventTimeChecker::run(ProcessingContext& pc)
     tracks.emplace_back(mMyTracks[i]);
     for (; i < mMyTracks.size(); i++) {
       double timeCurrent = mMyTracks[i].tofSignalDouble();
-      if (timeCurrent - time > 25E3) {
+      if (timeCurrent - time > 100E3) {
         i--;
         break;
       }
       tracks.emplace_back(mMyTracks[i]);
       ntrk++;
     }
-    if (ntrk > 2) { // good candidate with time
+    if (ntrk > 0) { // good candidate with time
       processEvent(tracks);
     }
   }

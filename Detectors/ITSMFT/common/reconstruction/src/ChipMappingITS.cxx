@@ -224,11 +224,11 @@ void ChipMappingITS::imposeFEEId2RUSW(uint16_t feeID, uint16_t ruSW)
   uint16_t lr, ruOnLr, link;
   expandFEEId(feeID, lr, ruOnLr, link);
   if (lr >= NLayers || ruOnLr >= NStavesOnLr[lr] || link >= NLinks) {
-    LOG(FATAL) << "Invalid FEE#0x" << std::hex << feeID << std::dec << ": corresponds to Lr#" << lr
+    LOG(fatal) << "Invalid FEE#0x" << std::hex << feeID << std::dec << ": corresponds to Lr#" << lr
                << " StaveOnLr#" << ruOnLr << " GBTLinkOnRU#" << link;
   }
   if (ruSW >= getNRUs()) {
-    LOG(FATAL) << "Invalid SW RUid " << ruSW << " (cannot exceed " << getNRUs() << ")";
+    LOG(fatal) << "Invalid SW RUid " << ruSW << " (cannot exceed " << getNRUs() << ")";
   }
   mFEEId2RUSW[feeID] = ruSW;
 }

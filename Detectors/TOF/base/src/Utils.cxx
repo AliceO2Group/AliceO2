@@ -29,6 +29,10 @@ int Utils::mBCmult[o2::constants::lhc::LHCMaxBunches];
 int Utils::mNautodet = 0;
 int Utils::mMaxBC = 0;
 bool Utils::mIsInit = false;
+float Utils::mEventTimeSpread = 200;
+float Utils::mEtaMin = -0.8;
+float Utils::mEtaMax = 0.8;
+float Utils::mLHCPhase = 0;
 
 void Utils::init()
 {
@@ -48,9 +52,21 @@ int Utils::getNinteractionBC()
   return mFillScheme.size();
 }
 
-double Utils::subtractInteractionBC(double time)
+double Utils::subtractInteractionBC(double time, bool subLatency)
 {
+  static const int deltalat = o2::tof::Geo::BC_IN_ORBIT - o2::tof::Geo::LATENCYWINDOW_IN_BC;
   int bc = int(time * o2::tof::Geo::BC_TIME_INPS_INV + 0.2);
+
+  if (subLatency) {
+    if (bc >= o2::tof::Geo::LATENCYWINDOW_IN_BC) {
+      bc -= o2::tof::Geo::LATENCYWINDOW_IN_BC;
+      time -= o2::tof::Geo::LATENCYWINDOW_IN_BC * o2::tof::Geo::BC_TIME_INPS;
+    } else {
+      bc += deltalat;
+      time += deltalat * o2::tof::Geo::BC_TIME_INPS;
+    }
+  }
+
   int bcOrbit = bc % o2::constants::lhc::LHCMaxBunches;
 
   int dbc = o2::constants::lhc::LHCMaxBunches, bcc = bc;
@@ -73,9 +89,21 @@ double Utils::subtractInteractionBC(double time)
   return time;
 }
 
-float Utils::subtractInteractionBC(float time)
+float Utils::subtractInteractionBC(float time, bool subLatency)
 {
+  static const int deltalat = o2::tof::Geo::BC_IN_ORBIT - o2::tof::Geo::LATENCYWINDOW_IN_BC;
   int bc = int(time * o2::tof::Geo::BC_TIME_INPS_INV + 0.2);
+
+  if (subLatency) {
+    if (bc >= o2::tof::Geo::LATENCYWINDOW_IN_BC) {
+      bc -= o2::tof::Geo::LATENCYWINDOW_IN_BC;
+      time -= o2::tof::Geo::LATENCYWINDOW_IN_BC * o2::tof::Geo::BC_TIME_INPS;
+    } else {
+      bc += deltalat;
+      time += deltalat * o2::tof::Geo::BC_TIME_INPS;
+    }
+  }
+
   int bcOrbit = bc % o2::constants::lhc::LHCMaxBunches;
 
   int dbc = o2::constants::lhc::LHCMaxBunches, bcc = bc;
@@ -84,13 +112,21 @@ float Utils::subtractInteractionBC(float time)
       bcc = bc - bcOrbit + getInteractionBC(k);
       dbc = abs(bcOrbit - getInteractionBC(k));
     }
+    if (abs(bcOrbit - getInteractionBC(k) + o2::constants::lhc::LHCMaxBunches) < dbc) { // in case k is close to the right border (last BC of the orbit)
+      bcc = bc - bcOrbit + getInteractionBC(k) - o2::constants::lhc::LHCMaxBunches;
+      dbc = abs(bcOrbit - getInteractionBC(k) + o2::constants::lhc::LHCMaxBunches);
+    }
+    if (abs(bcOrbit - getInteractionBC(k) - o2::constants::lhc::LHCMaxBunches) < dbc) { // in case k is close to the left border (BC=0)
+      bcc = bc - bcOrbit + getInteractionBC(k) + o2::constants::lhc::LHCMaxBunches;
+      dbc = abs(bcOrbit - getInteractionBC(k) - o2::constants::lhc::LHCMaxBunches);
+    }
   }
   time -= o2::tof::Geo::BC_TIME_INPS * bcc;
 
   return time;
 }
 
-void Utils::addBC(float toftime)
+void Utils::addBC(float toftime, bool subLatency)
 {
   if (!mIsInit) {
     init();
@@ -110,7 +146,18 @@ void Utils::addBC(float toftime)
   }
 
   // just fill
+  static const int deltalat = o2::tof::Geo::BC_IN_ORBIT - o2::tof::Geo::LATENCYWINDOW_IN_BC;
   int bc = int(toftime * o2::tof::Geo::BC_TIME_INPS_INV + 0.2) % o2::constants::lhc::LHCMaxBunches;
+
+  if (subLatency) {
+    if (bc >= o2::tof::Geo::LATENCYWINDOW_IN_BC) {
+      bc -= o2::tof::Geo::LATENCYWINDOW_IN_BC;
+      toftime -= o2::tof::Geo::LATENCYWINDOW_IN_BC * o2::tof::Geo::BC_TIME_INPS;
+    } else {
+      bc += deltalat;
+      toftime += deltalat * o2::tof::Geo::BC_TIME_INPS;
+    }
+  }
 
   mBCmult[bc]++;
 

@@ -60,11 +60,11 @@ void o2::mft::TrackerConfig::initialize(const MFTTrackingParam& trkParam)
   mPhiBins = trkParam.PhiBins;
   mRPhiBins = trkParam.RBins * trkParam.PhiBins;
   if (mRPhiBins > constants::index_table::MaxRPhiBins) {
-    LOG(WARN) << "To many RPhiBins for this configuration!";
+    LOG(warn) << "To many RPhiBins for this configuration!";
     mRPhiBins = constants::index_table::MaxRPhiBins;
     mRBins = sqrt(constants::index_table::MaxRPhiBins);
     mPhiBins = sqrt(constants::index_table::MaxRPhiBins);
-    LOG(WARN) << "Using instead RBins " << mRBins << " and PhiBins " << mPhiBins;
+    LOG(warn) << "Using instead RBins " << mRBins << " and PhiBins " << mPhiBins;
   }
   mRBinSize = (constants::index_table::RMax - constants::index_table::RMin) / mRBins;
   mPhiBinSize = (constants::index_table::PhiMax - constants::index_table::PhiMin) / mPhiBins;

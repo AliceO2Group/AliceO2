@@ -140,7 +140,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       try {
         specs.emplace_back(o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec("digits"));
       } catch (std::runtime_error& e) {
-        LOG(ERROR) << "Cannot create digits printer spec: " << e.what();
+        LOG(error) << "Cannot create digits printer spec: " << e.what();
       }
     }
   } else if (inputType == InputType::Cells) {
@@ -162,7 +162,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
       try {
         specs.emplace_back(o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec("cells"));
       } catch (std::runtime_error& e) {
-        LOG(ERROR) << "Cannot create digits printer spec: " << e.what();
+        LOG(error) << "Cannot create digits printer spec: " << e.what();
       }
     }
   }

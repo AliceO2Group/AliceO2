@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     coder.encode(vecIO, c); // compress
   }
   sw.Stop();
-  LOG(INFO) << "Compressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Compressed in " << sw.CpuTime() << " s";
 
   // writing
   {
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     ctfImage->appendToTree(ctfTree, "TPC");
     ctfTree.Write();
     sw.Stop();
-    LOG(INFO) << "Wrote to tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Wrote to tree in " << sw.CpuTime() << " s";
   }
 
   // reading
@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     BOOST_CHECK(tree);
     o2::tpc::CTF::readFromTree(vecIO, *(tree.get()), "TPC");
     sw.Stop();
-    LOG(INFO) << "Read back from tree in " << sw.CpuTime() << " s";
+    LOG(info) << "Read back from tree in " << sw.CpuTime() << " s";
   }
 
   std::vector<char> vecIn;
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     coder.decode(ctfImage, vecIn); // decompress
   }
   sw.Stop();
-  LOG(INFO) << "Decompressed in " << sw.CpuTime() << " s";
+  LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
   //
   // compare with original flat clusters
   BOOST_CHECK(vecIn.size() == bVec.size());

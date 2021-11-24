@@ -50,7 +50,7 @@ EventManager& EventManager::getInstance()
 
 EventManager::EventManager() : TEveEventManager("Event", "")
 {
-  LOG(INFO) << "Initializing TEveManager";
+  LOG(info) << "Initializing TEveManager";
   for (unsigned int i = 0; i < elemof(dataTypeLists); i++) {
     dataTypeLists[i] = nullptr;
   }
@@ -153,7 +153,7 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
 {
   double eta = 0.1;
   size_t trackCount = event.getTrackCount();
-  LOG(INFO) << "displayVisualisationEvent: " << trackCount << " detector: " << detectorName;
+  LOG(info) << "displayVisualisationEvent: " << trackCount << " detector: " << detectorName;
   // tracks
   auto* list = new TEveTrackList(detectorName.c_str());
   list->IncDenyDestroy();
@@ -214,8 +214,8 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   if (clusterCount != 0) {
     dataTypeLists[EVisualisationDataType::Clusters]->AddElement(point_list);
   }
-  LOG(INFO) << "tracks: " << trackCount << " detector: " << detectorName << ":" << dataTypeLists[EVisualisationDataType::Tracks]->NumChildren();
-  LOG(INFO) << "clusters: " << clusterCount << " detector: " << detectorName << ":" << dataTypeLists[EVisualisationDataType::Clusters]->NumChildren();
+  LOG(info) << "tracks: " << trackCount << " detector: " << detectorName << ":" << dataTypeLists[EVisualisationDataType::Tracks]->NumChildren();
+  LOG(info) << "clusters: " << clusterCount << " detector: " << detectorName << ":" << dataTypeLists[EVisualisationDataType::Clusters]->NumChildren();
 }
 
 } // namespace event_visualisation

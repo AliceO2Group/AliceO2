@@ -62,7 +62,7 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
 
   void finalize()
   {
-    LOG(INFO) << "Number of processed strobes is " << mNumberOfStrobes;
+    LOG(info) << "Number of processed strobes is " << mNumberOfStrobes;
     auto& slot = getSlots().back();
     slot.getContainer()->applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
   }

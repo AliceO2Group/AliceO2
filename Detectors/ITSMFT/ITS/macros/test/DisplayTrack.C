@@ -135,10 +135,10 @@ void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2tr
   o2::itsmft::TopologyDictionary dict;
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
-    LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
+    LOG(info) << "Running with dictionary: " << dictfile.c_str();
     dict.readFromFile(dictfile);
   } else {
-    LOG(INFO) << "Cannot run without the dictionary !";
+    LOG(info) << "Cannot run without the dictionary !";
     return;
   }
 

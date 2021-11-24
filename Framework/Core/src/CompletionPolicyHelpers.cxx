@@ -57,7 +57,7 @@ CompletionPolicy CompletionPolicyHelpers::defineByNameOrigin(std::string const& 
           auto startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->startTime;
           auto it = std::find(originReceived->begin(), originReceived->end(), startTime);
           if (it == originReceived->end()) {
-            LOGP(INFO, "Have to wait until message of origin {} with startTime {} has arrived.", origin, startTime);
+            LOGP(info, "Have to wait until message of origin {} with startTime {} has arrived.", origin, startTime);
             return CompletionPolicy::CompletionOp::Wait;
           }
         }

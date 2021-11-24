@@ -63,7 +63,7 @@ void DigitizerSpec::retrieveHits(const char* brname,
 {
   auto br = mSimChains[sourceID]->GetBranch(brname);
   if (!br) {
-    LOG(ERROR) << "No branch found";
+    LOG(error) << "No branch found";
     return;
   }
   mHits->clear();
@@ -78,7 +78,7 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
   context->initSimChains(o2::detectors::DetID::CPV, mSimChains);
   auto& timesview = context->getEventRecords();
-  LOG(DEBUG) << "GOT " << timesview.size() << " COLLISSION TIMES";
+  LOG(debug) << "GOT " << timesview.size() << " COLLISSION TIMES";
 
   // if there is nothing to do ... return
   int n = timesview.size();
@@ -89,7 +89,7 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   TStopwatch timer;
   timer.Start();
 
-  LOG(INFO) << " CALLING CPV DIGITIZATION ";
+  LOG(info) << " CALLING CPV DIGITIZATION ";
   std::vector<TriggerRecord> triggers;
 
   int indexStart = mDigitsOut.size();
@@ -146,7 +146,7 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
       }
     }
   }
-  LOG(DEBUG) << "Have " << mLabels.getNElements() << " CPV labels ";
+  LOG(debug) << "Have " << mLabels.getNElements() << " CPV labels ";
   // here we have all digits and we can send them to consumer (aka snapshot it onto output)
   pc.outputs().snapshot(Output{"CPV", "DIGITS", 0, Lifetime::Timeframe}, mDigitsOut);
   pc.outputs().snapshot(Output{"CPV", "DIGITTRIGREC", 0, Lifetime::Timeframe}, triggers);
@@ -155,11 +155,11 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   }
   // CPV is always a triggered detector
   const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::TRIGGERING;
-  LOG(DEBUG) << "CPV: Sending ROMode= " << roMode << " to GRPUpdater";
+  LOG(debug) << "CPV: Sending ROMode= " << roMode << " to GRPUpdater";
   pc.outputs().snapshot(Output{"CPV", "ROMode", 0, Lifetime::Timeframe}, roMode);
 
   timer.Stop();
-  LOG(INFO) << "Digitization took " << timer.CpuTime() << "s";
+  LOG(info) << "Digitization took " << timer.CpuTime() << "s";
 
   //  pc.services().get<o2::framework::ControlService>().endOfStream();
   // we should be only called once; tell DPL that this process is ready to exit

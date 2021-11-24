@@ -71,7 +71,7 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
   if (skipped.any()) {
     log += fmt::format(", empty object for [{}]", DetID::getNames(skipped));
   }
-  LOG(INFO) << log;
+  LOG(info) << log;
   gGeoManager->RefreshPhysicalNodes(false);
 }
 

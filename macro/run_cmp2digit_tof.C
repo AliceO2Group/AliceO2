@@ -46,7 +46,7 @@ void run_cmp2digit_tof(std::string inName = "cmptof.bin",             // name of
   int n_orbits = n_tof_window / 3;
   int digit_size = alldigits->size();
 
-  //  LOG(INFO) << "TOF: N tof window decoded = " << n_tof_window << "(orbits = " << n_orbits << ") with " << digit_size<< " digits";
+  //  LOG(info) << "TOF: N tof window decoded = " << n_tof_window << "(orbits = " << n_orbits << ") with " << digit_size<< " digits";
   printf("Write %s\n", inpName.c_str());
   TFile* f = new TFile(inpName.c_str(), "RECREATE");
   TTree* t = new TTree("o2sim", "o2sim");
