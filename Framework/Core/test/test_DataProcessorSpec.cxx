@@ -15,21 +15,29 @@
 
 #include <boost/test/unit_test.hpp>
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataProcessorSpecHelpers.h"
+#include "Framework/ConfigParamSpec.h"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 
 BOOST_AUTO_TEST_CASE(TestServiceRegistry)
 {
   using namespace o2::framework;
-  DataProcessorSpec spec{"test",
-                         {},
-                         {},
-                         AlgorithmSpec{[](ProcessingContext& ctx) {}},
-                         {ConfigParamSpec{
+  DataProcessorSpec spec{.name = "test",
+                         .algorithm = AlgorithmSpec{[](ProcessingContext& ctx) {}},
+                         .options = {ConfigParamSpec{
                            "channel-config",
                            VariantType::String,
                            "name=foo,type=sub,method=connect,address=tcp://localhost:5450,rateLogging=1",
                            {"Out-of-band channel config"}}},
-                         {},
-                         {DataProcessorLabel{"label"}}};
+                         .labels = {DataProcessorLabel{"label"},
+                                    DataProcessorLabel{"label3"}}};
 
-  BOOST_CHECK_EQUAL(spec.labels.size(), 1);
+  BOOST_CHECK_EQUAL(spec.labels.size(), 2);
+  BOOST_CHECK_EQUAL(DataProcessorSpecHelpers::hasLabel(spec, "label"), true);
+  BOOST_CHECK_EQUAL(DataProcessorSpecHelpers::hasLabel(spec, "label2"), false);
+  BOOST_CHECK_EQUAL(DataProcessorSpecHelpers::hasLabel(spec, "label3"), true);
 }
+
+#pragma diagnostic pop
