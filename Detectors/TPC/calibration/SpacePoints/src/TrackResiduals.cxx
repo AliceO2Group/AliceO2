@@ -38,14 +38,6 @@
 
 #include <fairlogger/Logger.h>
 
-//#define TPC_RUN2 // if defined, use run 2 geometry for TPC
-
-//#define LOCAL_RESIDUAL_FORMAT_OLD // if defined, data in compact trees is stored as Double32_t, otherwise as short
-#ifdef LOCAL_RESIDUAL_FORMAT_OLD
-using LocResStruct = AliTPCDcalibRes::dts_t;
-#else
-using LocResStruct = o2::tpc::TrackResiduals::LocalResid;
-#endif
 
 using namespace o2::tpc;
 
@@ -58,14 +50,6 @@ using namespace o2::tpc;
 //______________________________________________________________________________
 void TrackResiduals::init(bool doBinning, float bz)
 {
-#ifdef TPC_RUN2
-  // Run 2 geometry should only be defined for tests with Run 2 data, i.e. not in production so we send an error message here
-  LOG(error) << "Run 2 parameters compiled for the TPC geometry. Will lead to errors in case of processing residuals from O2.";
-#endif
-#ifdef LOCAL_RESIDUAL_FORMAT_OLD
-  LOG(warning) << "Local residuals will be stored in the legacy Run 2 format. Undefine LOCAL_RESIDUAL_FORMAT_OLD in TrackResiduals.cxx if you want to change this";
-#endif
-
   if (doBinning) {
     // initialize binning
     initBinning();
