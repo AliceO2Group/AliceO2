@@ -17,6 +17,8 @@
 #ifndef ALICEO2_TPC_KrBoxClusterFinderParam_H_
 #define ALICEO2_TPC_KrBoxClusterFinderParam_H_
 
+#include <string>
+
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 
@@ -55,6 +57,9 @@ struct KrBoxClusterFinderParam : public o2::conf::ConfigurableParamHelper<KrBoxC
   float CutQtotSizeSlope{0};     ///< Max Qtot over size slope for Qtot vs. size correlation cut
   unsigned char CutMaxSize{255}; ///< Max cluster size in number of digits
   bool ApplyCuts{false};         ///< if to apply cluster cuts above
+
+  std::string GainMapFile{};          ///< gain map file to apply during reconstruction
+  std::string GainMapName{"GainMap"}; ///< gain map file to apply during reconstruction
 
   O2ParamDef(KrBoxClusterFinderParam, "TPCKrBoxClusterFinder");
 };
