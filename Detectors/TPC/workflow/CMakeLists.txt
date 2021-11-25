@@ -98,9 +98,9 @@ o2_add_executable(idc-integrate
                   SOURCES src/tpc-integrate-idc.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
-o2_add_executable(idc-averagegroup
+o2_add_executable(idc-flp
                   COMPONENT_NAME tpc
-                  SOURCES src/tpc-averagegroup-idc.cxx
+                  SOURCES src/tpc-flp-idc.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_executable(idc-distribute
