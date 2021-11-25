@@ -74,14 +74,17 @@ using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<dou
 namespace o2::aodproducer
 {
 
-void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddRecPoints,
-                                        gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
-                                        gsl::span<const o2::fv0::RecPoints>& fv0RecPoints,
-                                        gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
-                                        gsl::span<const o2::emcal::TriggerRecord>& caloEMCCellsTRGR,
+void AODProducerWorkflowDPL::collectBCs(o2::globaltracking::RecoContainer& data,
                                         const std::vector<o2::InteractionTimeRecord>& mcRecords,
                                         std::map<uint64_t, int>& bcsMap)
 {
+  const auto& primVertices = data.getPrimaryVertices();
+  const auto& fddRecPoints = data.getFDDRecPoints();
+  const auto& ft0RecPoints = data.getFT0RecPoints();
+  const auto& fv0RecPoints = data.getFV0RecPoints();
+  const auto& caloEMCCellsTRGR = data.getEMCALTriggers();
+  const auto& ctpDigits = data.getCTPDigits();
+
   // collecting non-empty BCs and enumerating them
   for (auto& rec : mcRecords) {
     uint64_t globalBC = rec.toLong();
@@ -112,6 +115,11 @@ void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::fdd::RecPoint>& fddR
 
   for (auto& emcaltrg : caloEMCCellsTRGR) {
     uint64_t globalBC = emcaltrg.getBCData().toLong();
+    bcsMap[globalBC] = 1;
+  }
+
+  for (auto& ctpDigit : ctpDigits) {
+    uint64_t globalBC = ctpDigit.intRecord.toLong();
     bcsMap[globalBC] = 1;
   }
 
@@ -1103,7 +1111,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   std::map<uint64_t, int> bcsMap;
-  collectBCs(fddRecPoints, ft0RecPoints, fv0RecPoints, primVertices, caloEMCCellsTRGR, mUseMC ? mcReader->getDigitizationContext()->getEventRecords() : std::vector<o2::InteractionTimeRecord>{}, bcsMap);
+  collectBCs(recoData, mUseMC ? mcReader->getDigitizationContext()->getEventRecords() : std::vector<o2::InteractionTimeRecord>{}, bcsMap);
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
 
   uint64_t tfNumber;
