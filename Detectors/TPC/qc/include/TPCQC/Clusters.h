@@ -55,7 +55,7 @@ class Clusters
 
   void reset();
 
-  void merge(const Clusters& clusters);
+  void merge(Clusters& clusters);
 
   void dumpToFile(std::string filename, int type = 0);
 

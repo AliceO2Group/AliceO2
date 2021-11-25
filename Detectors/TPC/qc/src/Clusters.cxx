@@ -134,11 +134,16 @@ void Clusters::reset()
 }
 
 //______________________________________________________________________________
-void Clusters::merge(const Clusters& clusters)
+void Clusters::merge(Clusters& clusters)
 {
-  const bool isNormalized = mIsNormalized;
-  if (isNormalized) {
+  const bool isThisNormalized = mIsNormalized;
+  const bool isOtherNormalized = clusters.mIsNormalized;
+
+  if (isThisNormalized) {
     denormalize();
+  }
+  if (isOtherNormalized) {
+    clusters.denormalize();
   }
 
   mNClusters += clusters.mNClusters;
@@ -148,8 +153,11 @@ void Clusters::merge(const Clusters& clusters)
   mSigmaPad += clusters.mSigmaPad;
   mTimeBin += clusters.mTimeBin;
 
-  if (isNormalized) {
+  if (isThisNormalized) {
     normalize();
+  }
+  if (isOtherNormalized) {
+    clusters.normalize();
   }
 }
 
