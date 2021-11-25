@@ -58,8 +58,8 @@ void TRDKrClustererDevice::run(ProcessingContext& pc)
   mKrClFinder.findClusters();
   timer.Stop();
 
-  LOGF(INFO, "TRD Krypton cluster finder total timing: Cpu: %.3e Real: %.3e s", timer.CpuTime(), timer.RealTime());
-  LOGF(INFO, "Found %lu Kr clusters in %lu input trigger records.", mKrClFinder.getKrClusters().size(), triggerRecords.size());
+  LOGF(info, "TRD Krypton cluster finder total timing: Cpu: %.3e Real: %.3e s", timer.CpuTime(), timer.RealTime());
+  LOGF(info, "Found %lu Kr clusters in %lu input trigger records.", mKrClFinder.getKrClusters().size(), triggerRecords.size());
 
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "KRCLUSTER", 0, Lifetime::Timeframe}, mKrClFinder.getKrClusters());
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRGKRCLS", 0, Lifetime::Timeframe}, mKrClFinder.getKrTrigRecs());
@@ -67,7 +67,7 @@ void TRDKrClustererDevice::run(ProcessingContext& pc)
 
 void TRDKrClustererDevice::endOfStream(EndOfStreamContext& ec)
 {
-  LOG(INFO) << "Done with the cluster finding (EoS received)";
+  LOG(info) << "Done with the cluster finding (EoS received)";
 }
 
 DataProcessorSpec getKrClustererSpec(bool digitTrigRec)
