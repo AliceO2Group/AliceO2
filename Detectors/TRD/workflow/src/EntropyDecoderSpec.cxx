@@ -73,7 +73,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   }
 
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << tracklets.size() << " TRD tracklets and " << digits.size() << " digits in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << tracklets.size() << " TRD tracklets and " << digits.size() << " digits in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)

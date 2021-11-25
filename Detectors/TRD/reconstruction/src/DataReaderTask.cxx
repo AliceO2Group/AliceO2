@@ -155,7 +155,7 @@ void DataReaderTask::buildHistograms()
 }
 void DataReaderTask::init(InitContext& ic)
 {
-  LOG(INFO) << "o2::trd::DataReadTask init";
+  LOG(info) << "o2::trd::DataReadTask init";
 
   auto finishFunction = [this]() {
     mReader.checkSummary();

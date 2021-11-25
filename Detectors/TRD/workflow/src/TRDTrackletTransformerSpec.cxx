@@ -28,13 +28,13 @@ namespace trd
 
 void TRDTrackletTransformerSpec::init(o2::framework::InitContext& ic)
 {
-  LOG(INFO) << "Initializing tracklet transformer";
+  LOG(info) << "Initializing tracklet transformer";
   mTransformer.loadCalibrationParameters(mTimestamp);
 }
 
 void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
 {
-  LOG(INFO) << "Running tracklet transformer";
+  LOG(info) << "Running tracklet transformer";
   if (!mTransformer.hasCalibration()) {
     // ccdb object was not found for specified timestamp
     return;
