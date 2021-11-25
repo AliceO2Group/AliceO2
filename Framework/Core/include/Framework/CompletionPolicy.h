@@ -24,6 +24,7 @@ namespace o2::framework
 struct DeviceSpec;
 struct InputRecord;
 struct InputSpan;
+struct DataRelayer;
 
 /// Policy to describe what to do for a matching DeviceSpec
 /// whenever a new message arrives. The InputRecord being passed to
@@ -57,6 +58,7 @@ struct CompletionPolicy {
   using InputSetElement = DataRef;
   using Callback = std::function<CompletionOp(InputSpan const&)>;
   using CallbackFull = std::function<CompletionOp(InputSpan const&, std::vector<InputSpec> const&)>;
+  using CallbackConfigureRelayer = std::function<void(DataRelayer&)>;
 
   /// Constructor
   CompletionPolicy()
@@ -76,6 +78,9 @@ struct CompletionPolicy {
   Callback callback = nullptr;
   /// Actual policy which decides what to do with a partial InputRecord, extended version
   CallbackFull callbackFull = nullptr;
+  /// A callback which allows you to configure the behavior of the data relayer associated
+  /// to the matching device.
+  CallbackConfigureRelayer configureRelayer = nullptr;
 
   /// Helper to create the default configuration.
   static std::vector<CompletionPolicy> createDefaultPolicies();
