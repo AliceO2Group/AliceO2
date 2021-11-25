@@ -666,12 +666,6 @@ inline float TrackResiduals::getDXI(int ix) const
       // we are in the last OROC
       return 1.f / param::RowDX[param::NROCTypes - 1];
     }
-#ifdef TPC_RUN2
-    else {
-      // we are in OROC1
-      return 1.f / param::RowDX[1];
-    }
-#else
     else if (ix < param::NRowsAccumulated[1]) {
       // OROC1
       return 1.f / param::RowDX[1];
@@ -679,7 +673,6 @@ inline float TrackResiduals::getDXI(int ix) const
       // OROC2
       return 1.f / param::RowDX[2];
     }
-#endif
   }
 }
 
