@@ -69,13 +69,13 @@ void Detector::InitializeParams()
   } else if (CommonParam::instance()->isArgon()) {
     mWion = 27.21; // Ionization energy ArCO2 (82/18)
   } else {
-    LOG(FATAL) << "Wrong gas mixture";
+    LOG(fatal) << "Wrong gas mixture";
     // add hard exit here!
   }
   // Switch on TR simulation as default
   mTRon = TRDSimParams::Instance().doTR;
   if (!mTRon) {
-    LOG(INFO) << "TR simulation off";
+    LOG(info) << "TR simulation off";
   }
   mTR = new TRsim();
   mMaxMCStepDef = TRDSimParams::Instance().maxMCStepSize;
@@ -96,7 +96,7 @@ bool Detector::ProcessHits(FairVolume* v)
   int cIdChamber;
   int r1 = std::sscanf(fMC->CurrentVolName(), "U%c%d", &idRegion, &cIdChamber);
   if (r1 != 2) {
-    LOG(FATAL) << "Something went wrong with the geometry volume name " << fMC->CurrentVolName();
+    LOG(fatal) << "Something went wrong with the geometry volume name " << fMC->CurrentVolName();
   }
   if (idRegion == 'J') {
     drRegion = true;
@@ -108,21 +108,21 @@ bool Detector::ProcessHits(FairVolume* v)
 
   const int idChamber = mGeom->getDetectorSec(cIdChamber);
   if (idChamber < 0 || idChamber > 29) {
-    LOG(FATAL) << "Chamber ID out of bounds";
+    LOG(fatal) << "Chamber ID out of bounds";
   }
 
   int sector;
   int r2 = std::sscanf(fMC->CurrentVolOffName(7), "BTRD%d", &sector);
   if (r2 != 1) {
-    LOG(FATAL) << "Something went wrong with the geometry volume name " << fMC->CurrentVolOffName(7);
+    LOG(fatal) << "Something went wrong with the geometry volume name " << fMC->CurrentVolOffName(7);
   }
   if (sector < 0 || sector >= NSECTOR) {
-    LOG(FATAL) << "Sector out of bounds";
+    LOG(fatal) << "Sector out of bounds";
   }
   // The detector number (0 - 539)
   int det = mGeom->getDetector(mGeom->getLayer(idChamber), mGeom->getStack(idChamber), sector);
   if (det < 0 || det >= MAXCHAMBER) {
-    LOG(FATAL) << "Detector number out of bounds";
+    LOG(fatal) << "Detector number out of bounds";
   }
 
   // 0: InFlight 1: Entering 2: Exiting
@@ -210,7 +210,7 @@ void Detector::createTRhit(int det)
   std::vector<float> photonEnergyContainer;            // energy in keV
   mTR->createPhotons(11, pTot, photonEnergyContainer); // Create TR photons
   if (photonEnergyContainer.size() > mMaxNumberOfTRPhotons) {
-    LOG(ERROR) << "Boundary error: nTR = " << photonEnergyContainer.size() << ", mMaxNumberOfTRPhotons = " << mMaxNumberOfTRPhotons;
+    LOG(error) << "Boundary error: nTR = " << photonEnergyContainer.size() << ", mMaxNumberOfTRPhotons = " << mMaxNumberOfTRPhotons;
   }
 
   // Loop through the TR photons
@@ -363,10 +363,10 @@ void Detector::createMaterials()
   if (CommonParam::instance()->isXenon()) {
     Mixture(53, "XeCO2", aXeCO2, zXeCO2, dgmXe, -3, wXeCO2);
   } else if (CommonParam::instance()->isArgon()) {
-    LOG(INFO) << "Gas mixture: Ar C02 (80/20)";
+    LOG(info) << "Gas mixture: Ar C02 (80/20)";
     Mixture(53, "ArCO2", aArCO2, zArCO2, dgmAr, -3, wArCO2);
   } else {
-    LOG(FATAL) << "Wrong gas mixture";
+    LOG(fatal) << "Wrong gas mixture";
     exit(1);
   }
   // G10
@@ -524,7 +524,7 @@ void Detector::defineSensitiveVolumes()
     if (tgeovol != nullptr) {
       AddSensitiveVolume(tgeovol);
     } else {
-      LOG(ERROR) << "No TGeo volume for TRD vol name " << name << " found\n";
+      LOG(error) << "No TGeo volume for TRD vol name " << name << " found\n";
     }
   }
 }

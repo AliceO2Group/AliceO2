@@ -44,7 +44,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   if (useMC) {
-    LOG(WARNING) << "TRD track reader cannot read MC labels, useMC = false will be enforced";
+    LOG(warning) << "TRD track reader cannot read MC labels, useMC = false will be enforced";
     useMC = false;
   }
 
