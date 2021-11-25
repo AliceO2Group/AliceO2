@@ -109,7 +109,7 @@ void TPCResidualReader::connectTree(const std::string& filename)
   assert(mTreeStats);
   assert(mTreeStats->GetEntries() == 1); // expect exactly one entry for statistics
 
-  LOG(INFO) << "Loaded tree from " << filename << " with " << mTreeResiduals->GetEntries() << " entries";
+  LOG(info) << "Loaded tree from " << filename << " with " << mTreeResiduals->GetEntries() << " entries";
 }
 
 DataProcessorSpec getTPCResidualReaderSpec()

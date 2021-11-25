@@ -30,14 +30,14 @@ ResidualsContainer::~ResidualsContainer()
     fileOut->Close();
     fileOut.reset();
     if (!std::filesystem::remove(fileName)) {
-      LOG(WARNING) << "Tried to delete, but could not find file named " << fileName;
+      LOG(warning) << "Tried to delete, but could not find file named " << fileName;
     }
   }
 }
 
 ResidualsContainer::ResidualsContainer(const ResidualsContainer& rhs)
 {
-  LOG(ERROR) << "Must not call copy constructor of ResidualsContainer";
+  LOG(error) << "Must not call copy constructor of ResidualsContainer";
   // the copy constructor is needed because of ROOT's ClassDef
   // but should never actually be called
 }
@@ -95,7 +95,7 @@ void ResidualsContainer::fill(const gsl::span<const TrackResiduals::UnbinnedResi
 {
   // receives large vector of unbinned residuals and fills the sector-wise vectors
   // with binned residuals and statistics
-  LOG(DEBUG) << "Filling ResidualsContainer with vector of size " << data.size();
+  LOG(debug) << "Filling ResidualsContainer with vector of size " << data.size();
   for (const auto& residIn : data) {
     int sec = residIn.sec;
     auto& residVecOut = residuals[sec];
@@ -105,7 +105,7 @@ void ResidualsContainer::fill(const gsl::span<const TrackResiduals::UnbinnedResi
     float zPos = residIn.z * param::MaxZ / 0x7fff;
     if (!trackResiduals->findVoxelBin(sec, param::RowX[residIn.row], yPos, zPos, bvox)) {
       // we are not inside any voxel
-      LOGF(DEBUG, "Dropping residual in sec(%i), x(%f), y(%f), z(%f)", sec, param::RowX[residIn.row], yPos, zPos);
+      LOGF(debug, "Dropping residual in sec(%i), x(%f), y(%f), z(%f)", sec, param::RowX[residIn.row], yPos, zPos);
       continue;
     }
     residVecOut.emplace_back(residIn.dy, residIn.dz, residIn.tgSlp, bvox);
@@ -158,7 +158,7 @@ void ResidualsContainer::merge(ResidualsContainer* prev)
 
 void ResidualsContainer::print()
 {
-  LOG(INFO) << "There are in total " << nResidualsTotal << " residuals stored in the container";
+  LOG(info) << "There are in total " << nResidualsTotal << " residuals stored in the container";
 }
 
 using Slot = o2::calibration::TimeSlot<ResidualsContainer>;
@@ -171,7 +171,7 @@ ResidualAggregator::~ResidualAggregator()
 
 bool ResidualAggregator::hasEnoughData(const Slot& slot) const
 {
-  LOG(DEBUG) << "There are " << slot.getContainer()->getNEntries() << " entries currently. Min entries prt voxel: " << mMinEntries;
+  LOG(debug) << "There are " << slot.getContainer()->getNEntries() << " entries currently. Min entries prt voxel: " << mMinEntries;
   auto entriesPerVoxel = slot.getContainer()->getNEntries() / (mTrackResiduals.getNVoxelsPerSector() * SECTORSPERSIDE * SIDES);
   return entriesPerVoxel >= mMinEntries;
 }
