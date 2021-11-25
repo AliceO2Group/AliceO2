@@ -15,7 +15,6 @@
 
 #include "TRDWorkflow/TrackBasedCalibSpec.h"
 #include "TRDCalibration/TrackBasedCalib.h"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/Task.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -63,23 +62,32 @@ void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
 
-  mCalibrator.calculateAngResHistos(recoData);
+  mCalibrator.setInput(recoData);
+  mCalibrator.calculateAngResHistos();
 
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe}, mCalibrator.getAngResHistos());
 }
 
 void TRDTrackBasedCalibDevice::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "Added in total %i entries to angular residual histograms",
+  LOGF(info, "Added in total %i entries to angular residual histograms",
        mCalibrator.getAngResHistos().getNEntries());
 }
 
-DataProcessorSpec getTRDTrackBasedCalibSpec()
+DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask_t src)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
 
-  GTrackID::mask_t srcTrk = GTrackID::getSourcesMask("ITS-TPC-TRD"); // possibly also use TPC-TRD?
+  GTrackID::mask_t srcTrk;
+  if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
+    LOGF(info, "Found ITS-TPC tracks as input, loading ITS-TPC-TRD");
+    srcTrk |= GTrackID::getSourcesMask("ITS-TPC-TRD");
+  }
+  if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
+    LOGF(info, "Found TPC tracks as input, loading TPC-TRD");
+    srcTrk |= GTrackID::getSourcesMask("TPC-TRD");
+  }
   GTrackID::mask_t srcClu = GTrackID::getSourcesMask("TRD");         // we don't need all clusters, only TRD tracklets
   dataRequest->requestTracks(srcTrk, false);
   dataRequest->requestClusters(srcClu, false);
