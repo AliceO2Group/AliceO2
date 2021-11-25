@@ -200,9 +200,9 @@ class fitResult
 };
 
 /**
-   * \enum FitGausError_t
-   * \brief Error code for invalid result in the fitGaus process
-   */
+ * \enum FitGausError_t
+ * \brief Error code for invalid result in the fitGaus process
+ */
 enum class FitGausError_t {
   FIT_ERROR, ///< Fit procedure returned invalid result
 };
@@ -313,7 +313,7 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
   Double_t chi2 = 0;
   if (npoints >= 3) {
     if (npoints == 3) {
-      //analytic calculation of the parameters for three points
+      // analytic calculation of the parameters for three points
       A.Invert();
       TMatrixD res(1, 3);
       res.Mult(A, b);
@@ -351,7 +351,7 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
   }
 
   if (npoints == 2) {
-    //use center of gravity for 2 points
+    // use center of gravity for 2 points
     meanCOG /= sumCOG;
     rms2COG /= sumCOG;
     /*
