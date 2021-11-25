@@ -168,6 +168,7 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
       "HTTP/1.1 101 Switching Protocols\r\n"
       "Upgrade: websocket\r\n"
       "Connection: Upgrade\r\n"
+      "Access-Control-Allow-Origin: \"*\"\r\n"
       "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n");
 
     DPLClientParser parser;
@@ -176,7 +177,7 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
     BOOST_REQUIRE_EQUAL(std::string(parser.mReplyCode), std::string("101"));
     BOOST_REQUIRE_EQUAL(std::string(parser.mReplyMessage), std::string("Switching Protocols"));
     BOOST_REQUIRE_EQUAL(std::string(parser.mReplyVersion), std::string("HTTP/1.1"));
-    BOOST_REQUIRE_EQUAL(parser.mHeaders.size(), 3);
+    BOOST_REQUIRE_EQUAL(parser.mHeaders.size(), 4);
     BOOST_REQUIRE_EQUAL(parser.mHeaders["Sec-WebSocket-Accept"], "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=");
     BOOST_REQUIRE_EQUAL(parser.mBody, "");
   }
@@ -329,6 +330,7 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
       "HTTP/1.1 101 Switching Protocols\r\n"
       "Upgrade: websocket\r\n"
       "Connection: Upgrade\r\n"
+      "Access-Control-Allow-Origin: \"*\"\r\n"
       "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n";
     int someSeed = 123;
     std::string result = encode_websocket_handshake_request("/chat", "myprotocol", 13, "dGhlIHNhbXBsZSBub25jZQ==");

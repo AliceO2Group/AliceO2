@@ -25,18 +25,18 @@ class WSDPLHandler;
 
 struct GuiRenderer {
   uv_timer_t drawTimer;
-  WSDPLHandler* handler;
-  GuiCallbackContext* gui;
+  WSDPLHandler* handler = nullptr;
+  GuiCallbackContext* gui = nullptr;
 };
 
 struct GuiCallbackContext {
   uint64_t frameLast;
-  float* frameLatency;
-  float* frameCost;
-  void* lastFrame;
-  DebugGUI* plugin;
-  void* window;
-  bool* guiQuitRequested;
+  float* frameLatency = nullptr;
+  float* frameCost = nullptr;
+  void* lastFrame = nullptr;
+  DebugGUI* plugin = nullptr;
+  void* window = nullptr;
+  bool* guiQuitRequested = nullptr;
   std::function<void(void)> callback;
   std::set<GuiRenderer*> renderers;
 };
