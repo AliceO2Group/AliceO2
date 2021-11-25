@@ -68,7 +68,11 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
-  setPipelineLength(DEFAULT_PIPELINE_LENGTH);
+  if (policy.configureRelayer == nullptr) {
+    setPipelineLength(DEFAULT_PIPELINE_LENGTH);
+  } else {
+    policy.configureRelayer(*this);
+  }
 
   // The queries are all the same, so we only have width 1
   auto numInputTypes = mDistinctRoutesIndex.size();
