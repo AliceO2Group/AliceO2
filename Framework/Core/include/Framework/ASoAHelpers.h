@@ -202,7 +202,7 @@ struct CombinationsIndexPolicyBase {
   using CombinationType = std::tuple<typename Ts::iterator...>;
   using IndicesType = typename NTupleType<uint64_t, sizeof...(Ts)>::type;
 
-  CombinationsIndexPolicyBase(const Ts&... tables) : mTables(std::tie(tables...)),
+  CombinationsIndexPolicyBase(const Ts&... tables) : mTables(tables...),
                                                      mIsEnd(false),
                                                      mMaxOffset(tables.end().index...),
                                                      mCurrent(tables.begin()...)
@@ -235,7 +235,7 @@ struct CombinationsIndexPolicyBase {
 
   void addOne() {}
 
-  std::tuple<Ts const&...> mTables;
+  std::tuple<Ts...> mTables;
   CombinationType mCurrent;
 
   IndicesType mMaxOffset; // one position past maximum acceptable position for each element of combination
@@ -1045,9 +1045,9 @@ auto combinations(const o2::framework::expressions::Filter& filter, const T2& ta
 }
 
 template <template <typename...> typename P2, typename... T2s>
-CombinationsGenerator<P2<Filtered<T2s>...>> combinations(const P2<T2s...>&, const o2::framework::expressions::Filter& filter, const T2s&... tables)
+CombinationsGenerator<P2<Filtered<T2s>...>> combinations(P2<T2s...>&&, const o2::framework::expressions::Filter& filter, const T2s&... tables)
 {
-  return CombinationsGenerator<P2<Filtered<T2s>...>>(P2<Filtered<T2s>...>({o2::soa::select(tables, filter)}...));
+  return CombinationsGenerator<P2<Filtered<T2s>...>>(P2<Filtered<T2s>...>(tables.select(filter)...));
 }
 
 // This shortened version cannot be used for Filtered

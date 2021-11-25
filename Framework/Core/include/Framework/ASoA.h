@@ -915,15 +915,7 @@ static constexpr auto extractBindings(framework::pack<Is...>)
 template <typename T>
 class Filtered;
 
-static inline SelectionVector selectionToVector(gandiva::Selection const& sel)
-{
-  SelectionVector rows;
-  rows.resize(sel->GetNumSlots());
-  for (auto i = 0; i < sel->GetNumSlots(); ++i) {
-    rows[i] = sel->GetIndex(i);
-  }
-  return rows;
-}
+SelectionVector selectionToVector(gandiva::Selection const& sel);
 
 template <typename T>
 auto select(T const& t, framework::expressions::Filter const& f)
