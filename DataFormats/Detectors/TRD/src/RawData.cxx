@@ -253,7 +253,7 @@ void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
   for (int i = 0; i < 15; i++) {
     LOGF(INFO, "Link %d size: %ul eflag: 0x%02x", i, sizes[i], errorflags[i]);
   }
-  LOG(INFO) << "Raw: " << std::hex << halfcru.word0 << " " << halfcru.word12[0] << " " << halfcru.word12[1] << " " << halfcru.word3 << " " << halfcru.word47[0] << " " << halfcru.word47[1] << " " << halfcru.word47[2] << " " << halfcru.word47[3];
+  LOG(info) << "Raw: " << std::hex << halfcru.word0 << " " << halfcru.word12[0] << " " << halfcru.word12[1] << " " << halfcru.word3 << " " << halfcru.word47[0] << " " << halfcru.word47[1] << " " << halfcru.word47[2] << " " << halfcru.word47[3];
   for (int i = 0; i < 15; i++) {
     LOGF(INFO, "Raw: %d word: %ul x", i, sizes[i], errorflags[i]);
   }

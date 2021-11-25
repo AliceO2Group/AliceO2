@@ -71,7 +71,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
   //  eeb->print();
   mTimer.Stop();
-  LOG(INFO) << "Created encoded data of size " << eeb->size() << " for TRD in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Created encoded data of size " << eeb->size() << " for TRD in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)

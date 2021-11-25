@@ -47,7 +47,7 @@ void RecoParam::setBfield(float bz)
       mC2 = 0.1156f;
     }
   } else {
-    LOG(WARNING) << "No error parameterization available for Bz= " << bz << ". Keeping default value (sigma_y = const. = 1cm)";
+    LOG(warning) << "No error parameterization available for Bz= " << bz << ". Keeping default value (sigma_y = const. = 1cm)";
   }
 }
 

@@ -53,7 +53,7 @@ void Digitizer::init()
   } else {
     mNumThreads = std::min(maxthreads, askedthreads);
   }
-  LOG(INFO) << "TRD: Digitizing with " << mNumThreads << " threads ";
+  LOG(info) << "TRD: Digitizing with " << mNumThreads << " threads ";
 #endif
 
   // initialize structures that we need per thread
@@ -91,7 +91,7 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
     if (smc.size() > 0) {
       bool status = convertSignalsToADC(smc, digits);
       if (!status) {
-        LOG(WARN) << "TRD conversion of signals to digits failed";
+        LOG(warn) << "TRD conversion of signals to digits failed";
       }
       dumpLabels(smc, labels);
     }
@@ -101,7 +101,7 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
     for (auto& smc : mSignalsMapCollection) {
       bool status = convertSignalsToADC(smc, digits);
       if (!status) {
-        LOG(WARN) << "TRD conversion of signals to digits failed";
+        LOG(warn) << "TRD conversion of signals to digits failed";
       }
       dumpLabels(smc, labels);
     }
@@ -142,7 +142,7 @@ void Digitizer::clearContainers()
 void Digitizer::process(std::vector<Hit> const& hits)
 {
   if (!mCalib) {
-    LOG(FATAL) << "TRD Calibration database not available";
+    LOG(fatal) << "TRD Calibration database not available";
   }
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
@@ -175,7 +175,7 @@ void Digitizer::process(std::vector<Hit> const& hits)
     }
 
     if (!convertHits(det, hitsPerDetector[det], signalsMap, threadid)) {
-      LOG(WARN) << "TRD conversion of hits failed for detector " << det;
+      LOG(warn) << "TRD conversion of hits failed for detector " << det;
       continue; // go to the next chamber
     }
   }
@@ -441,7 +441,7 @@ bool Digitizer::convertSignalsToADC(SignalContainer& signalMapCont, DigitContain
 
     float padgain = mCalib->getPadGainFactor(det, row, col); // The gain factor
     if (padgain <= 0) {
-      LOG(FATAL) << "Not a valid gain " << padgain << ", " << det << ", " << col << ", " << row;
+      LOG(fatal) << "Not a valid gain " << padgain << ", " << det << ", " << col << ", " << row;
     }
 
     signalMapIter.second.isDigit = true; // flag the signal as digit

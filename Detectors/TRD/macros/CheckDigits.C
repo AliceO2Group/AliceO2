@@ -63,7 +63,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
                                         31, -0.5, 30.5);
   }
 
-  LOG(INFO) << nev << " entries found";
+  LOG(info) << nev << " entries found";
   for (int iev = 0; iev < nev; ++iev) {
     digitTree->GetEvent(iev);
     for (const auto& digit : *digitCont) {
@@ -77,7 +77,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
       for (int tb = 0; tb < o2::trd::constants::TIMEBINS; ++tb) {
         ADC_t adc = adcs[tb];
         if (adc == (ADC_t)SimParam::instance()->getADCoutRange()) {
-          // LOG(INFO) << "Out of range ADC " << adc;
+          // LOG(info) << "Out of range ADC " << adc;
           continue;
         }
         hADC[det]->Fill(adc);
