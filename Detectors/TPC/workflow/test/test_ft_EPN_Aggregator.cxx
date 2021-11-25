@@ -14,7 +14,7 @@
 ///
 /// \author  Matthias Kleiner <mkleiner@ikf.uni-frankfurt.de>
 
-#include "TPCWorkflow/TPCAverageGroupIDCSpec.h"
+#include "TPCWorkflow/TPCFLPIDCSpec.h"
 #include "TPCWorkflow/TPCIntegrateIDCSpec.h"
 #include "TPCWorkflow/TPCFourierTransformEPNSpec.h"
 #include "TPCWorkflow/TPCFourierTransformAggregatorSpec.h"
@@ -30,6 +30,11 @@
 
 using namespace o2::framework;
 
+#define ASSERT_ERROR(condition)                                   \
+  if ((condition) == false) {                                     \
+    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed)"; \
+  }
+
 DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std::vector<uint32_t>& crus, const bool slowgen);
 DataProcessorSpec ftAggregatorIDC(const unsigned int nFourierCoefficients, const unsigned int rangeIDC, const unsigned int maxTFs, const bool debug, const std::vector<uint32_t>& crus);
 DataProcessorSpec receiveFourierCoeffEPN(const unsigned int maxTFs, const unsigned int nFourierCoefficients);
@@ -44,8 +49,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"crus", VariantType::String, cruDefault.c_str(), {"List of CRUs, comma separated ranges, e.g. 0-3,7,9-15"}},
     {"timeframes", VariantType::Int, 20, {"Number of TFs which will be produced"}},
-    {"ion-drift-time", VariantType::Int, 200, {"Ion drift time in ms. (Number of 1D-IDCs which will be used for the calculation of the fourier coefficients.)"}},
-    {"nFourierCoeff", VariantType::Int, 60, {"Number of fourier coefficients per TF (real+imag) which will be compared. The maximum can be 'ion-drift-time + 2'."}},
+    {"ion-drift-time", VariantType::Int, 50, {"Ion drift time in ms. (Number of 1D-IDCs which will be used for the calculation of the fourier coefficients.)"}},
+    {"nFourierCoeff", VariantType::Int, 20, {"Number of fourier coefficients per TF (real+imag) which will be compared. The maximum can be 'ion-drift-time + 2'."}},
     {"use-naive-fft", VariantType::Bool, false, {"using naive fourier transform (true) or FFTW (false)"}},
     {"seed", VariantType::Int, 0, {"Seed for the random IDC generator."}},
     {"only-idc-gen", VariantType::Bool, false, {"Start only the IDC generator device"}},
@@ -101,12 +106,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     return workflow;
   }
 
-  auto workflowTmp = WorkflowSpec{getTPCAverageGroupIDCSpec(0, crus, iondrifttime, sigma, debugFT, false), getTPCFourierTransformEPNSpec(crus, iondrifttime, nFourierCoefficients, debugFT), getTPCDistributeIDCSpec(crus, timeframes, nLanes, firstTF, loadFromFile), ftAggregatorIDC(nFourierCoefficients, iondrifttime, timeframes, debugFT, crus), receiveFourierCoeffEPN(timeframes, nFourierCoefficients), compare_EPN_AGG()};
+  auto workflowTmp = WorkflowSpec{getTPCFLPIDCSpec<TPCFLPIDCDeviceNoGroup>(0, crus, iondrifttime, debugFT, false), getTPCFourierTransformEPNSpec(crus, iondrifttime, nFourierCoefficients, debugFT), getTPCDistributeIDCSpec(crus, timeframes, nLanes, firstTF, loadFromFile), ftAggregatorIDC(nFourierCoefficients, iondrifttime, timeframes, debugFT, crus), receiveFourierCoeffEPN(timeframes, nFourierCoefficients), compare_EPN_AGG()};
   for (auto& spec : workflowTmp) {
     workflow.emplace_back(spec);
   }
 
-  IDCAverageGroup::setNThreads(nthreads);
+  IDCAverageGroup<IDCAverageGroupTPC>::setNThreads(nthreads);
   TPCFourierTransformEPNSpec::IDCFType::setFFT(!fft);
   TPCFourierTransformAggregatorSpec::IDCFType::setNThreads(nthreads);
   TPCFourierTransformAggregatorSpec::IDCFType::setFFT(!fft);
@@ -215,12 +220,7 @@ class TPCCompareFourierCoeffSpec : public o2::framework::Task
         for (int i = 0; i < fourierCoeffEPN[tf].getNCoefficientsPerTF(); ++i) {
           const float epnval = fourierCoeffEPN[tf](side, i);
           const float aggval = (*fourierCoeffAgg)(side, fourierCoeffAgg->getIndex(tf, i));
-          const bool isEqual = (std::abs(std::min(epnval, aggval)) < 1.f) ? isSameZero(epnval, aggval) : isSame(epnval, aggval);
-          if (!isEqual) {
-            ctx.services().get<ControlService>().endOfStream();
-            ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
-            BOOST_THROW_EXCEPTION(std::runtime_error(fmt::format("EPN value: {}   Aggregator value: {}    epn-agg: {}  epn/agg: {} ", epnval, aggval, epnval - aggval, epnval / aggval).data()));
-          }
+          ASSERT_ERROR((std::abs(std::min(epnval, aggval)) < 1.f) ? isSameZero(epnval, aggval) : isSame(epnval, aggval));
         }
       }
     }

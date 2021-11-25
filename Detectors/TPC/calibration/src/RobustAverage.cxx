@@ -57,3 +57,20 @@ float o2::tpc::RobustAverage::getMean(std::vector<float>::const_iterator begin, 
 {
   return std::accumulate(begin, end, decltype(mValues)::value_type(0)) / std::distance(begin, end);
 }
+
+float o2::tpc::RobustAverage::getWeightedMean(std::vector<float>::const_iterator beginValues, std::vector<float>::const_iterator endValues, std::vector<float>::const_iterator beginWeight, std::vector<float>::const_iterator endWeight) const
+{
+  return std::inner_product(beginValues, endValues, beginWeight, decltype(mValues)::value_type(0)) / std::accumulate(beginWeight, endWeight, decltype(mWeights)::value_type(0));
+}
+
+void o2::tpc::RobustAverage::clear()
+{
+  mValues.clear();
+  mWeights.clear();
+}
+
+void o2::tpc::RobustAverage::addValue(const float value, const float weight)
+{
+  mValues.emplace_back(value);
+  mWeights.emplace_back(weight);
+}

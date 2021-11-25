@@ -363,6 +363,9 @@ class Mapper
     return 0;
   }
 
+  /// \return returns number of pads per side of the TPC
+  static constexpr int getNumberOfPadsPerSide() { return getPadsInSector() * SECTORSPERSIDE; }
+
   /// Convert sector, row, pad to global pad row in sector and pad number
   const PadPos getGlobalPadPos(const PadROCPos& padROC) const
   {
@@ -502,15 +505,15 @@ class Mapper
                            float(double(pos.X()) * sn + double(pos.Y() * cs)));
   }
 
-  static constexpr unsigned int NSECTORS{36};                                                                                                                      ///< total number of sectors in the TPC
-  static constexpr unsigned int NREGIONS{10};                                                                                                                      ///< total number of regions in one sector
-  static constexpr unsigned int PADROWS{152};                                                                                                                      ///< total number of pad rows
-  static constexpr unsigned int PADSPERREGION[NREGIONS]{1200, 1200, 1440, 1440, 1440, 1440, 1600, 1600, 1600, 1600};                                               ///< number of pads per CRU
-  static constexpr unsigned int GLOBALPADOFFSET[NREGIONS]{0, 1200, 2400, 3840, 5280, 6720, 8160, 9760, 11360, 12960};                                              ///< offset of number of pads for region
-  static constexpr unsigned int ROWSPERREGION[NREGIONS]{17, 15, 16, 15, 18, 16, 16, 14, 13, 12};                                                                   ///< number of pad rows for region
-  static constexpr unsigned int ROWOFFSET[NREGIONS]{0, 17, 32, 48, 63, 81, 97, 113, 127, 140};                                                                     ///< offset to calculate local row from global row
-  static constexpr float REGIONAREA[NREGIONS]{374.4f, 378.f, 453.6f, 470.88f, 864.f, 864.f, 1167.36f, 1128.96f, 1449.6f, 1456.8f};                                 ///< volume of each region in cm^2
-  static constexpr float PADAREA[NREGIONS]{1 / 0.312f, 1 / 0.315f, 1 / 0.315f, 1 / 0.327f, 1 / 0.6f, 1 / 0.6f, 1 / 0.7296f, 1 / 0.7056f, 1 / 0.906f, 1 / 0.9105f}; ///< inverse size of the pad area padwidth*padLength
+  static constexpr unsigned int NSECTORS{36};                                                                                                                         ///< total number of sectors in the TPC
+  static constexpr unsigned int NREGIONS{10};                                                                                                                         ///< total number of regions in one sector
+  static constexpr unsigned int PADROWS{152};                                                                                                                         ///< total number of pad rows
+  static constexpr unsigned int PADSPERREGION[NREGIONS]{1200, 1200, 1440, 1440, 1440, 1440, 1600, 1600, 1600, 1600};                                                  ///< number of pads per CRU
+  static constexpr unsigned int GLOBALPADOFFSET[NREGIONS]{0, 1200, 2400, 3840, 5280, 6720, 8160, 9760, 11360, 12960};                                                 ///< offset of number of pads for region
+  static constexpr unsigned int ROWSPERREGION[NREGIONS]{17, 15, 16, 15, 18, 16, 16, 14, 13, 12};                                                                      ///< number of pad rows for region
+  static constexpr unsigned int ROWOFFSET[NREGIONS]{0, 17, 32, 48, 63, 81, 97, 113, 127, 140};                                                                        ///< offset to calculate local row from global row
+  static constexpr float REGIONAREA[NREGIONS]{374.4f, 378.f, 453.6f, 470.88f, 864.f, 864.f, 1167.36f, 1128.96f, 1449.6f, 1456.8f};                                    ///< volume of each region in cm^2
+  static constexpr float INVPADAREA[NREGIONS]{1 / 0.312f, 1 / 0.315f, 1 / 0.315f, 1 / 0.327f, 1 / 0.6f, 1 / 0.6f, 1 / 0.7296f, 1 / 0.7056f, 1 / 0.906f, 1 / 0.9105f}; ///< inverse size of the pad area padwidth*padLength
   static constexpr unsigned REGION[PADROWS] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,

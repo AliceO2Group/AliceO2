@@ -33,11 +33,14 @@ class IDCGroupHelperRegion
   /// \param groupLastRowsThreshold minimum number of pads in row direction for the last group in row direction
   /// \param groupLastPadsThreshold minimum number of pads in pad direction for the last group in pad direction
   /// \param region region of the TPC
-  IDCGroupHelperRegion(const unsigned char groupPads = 4, const unsigned char groupRows = 4, const unsigned char groupLastRowsThreshold = 2, const unsigned char groupLastPadsThreshold = 2, const unsigned int region = 0)
+  IDCGroupHelperRegion(const unsigned char groupPads, const unsigned char groupRows, const unsigned char groupLastRowsThreshold, const unsigned char groupLastPadsThreshold, const unsigned int region)
     : mGroupPads{groupPads}, mGroupRows{groupRows}, mGroupLastRowsThreshold{groupLastRowsThreshold}, mGroupLastPadsThreshold{groupLastPadsThreshold}, mRegion{region}
   {
     initIDCGroupHelperRegion();
   }
+
+  /// default constructor for ROOT I/O
+  IDCGroupHelperRegion() = default;
 
   /// \return returns number of grouped rows
   unsigned int getNRows() const { return mRows; }
@@ -102,10 +105,16 @@ class IDCGroupHelperRegion
   unsigned int getIndex(const unsigned int glrow, const unsigned int pad, unsigned int integrationInterval) const { return mNIDCsPerCRU * integrationInterval + mOffsRow[glrow] + pad; }
 
   /// \return returns index to the data
-  /// \param urow local ungrouped row
+  /// \param ulrow local ungrouped row
   /// \param upad ungrouped pad
   /// \param integrationInterval integration interval
   unsigned int getIndexUngrouped(const unsigned int ulrow, const unsigned int upad, unsigned int integrationInterval) const { return getIndex(getGroupedRow(ulrow), getGroupedPad(upad, ulrow), integrationInterval); }
+
+  /// \return returns index to the data
+  /// \param ugrow global ungrouped row
+  /// \param upad ungrouped pad
+  /// \param integrationInterval integration interval
+  unsigned int getIndexUngroupedGlob(const unsigned int ugrow, const unsigned int upad, unsigned int integrationInterval) const;
 
   /// \return returns the global pad number for given local pad row and pad
   /// \param ulrow local ungrouped row in a region
@@ -115,7 +124,7 @@ class IDCGroupHelperRegion
   /// \return returns last ungrouped row
   unsigned int getLastRow() const;
 
-  /// \return returns last ungrouped pad for given global row
+  /// \return returns last ungrouped pad for given local row
   /// \param row local ungrouped row
   unsigned int getLastPad(const unsigned int ulrow) const;
 

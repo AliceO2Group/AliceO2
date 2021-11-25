@@ -832,7 +832,7 @@ float get1DIDCs(const CalPad& calPad, const o2::tpc::Side side)
       const int npads = mapper.getNumberOfPadsInRowROC(roc, irow);
       for (int ipad = 0; ipad < npads; ++ipad) {
         const auto idc = calPad.getValue(roc, irow, ipad);
-        mean += idc * o2::tpc::Mapper::PADAREA[region]; //PADAREA[NREGIONS] = inverse pad area
+        mean += idc * o2::tpc::Mapper::INVPADAREA[region]; //PADAREA[NREGIONS] = inverse pad area
         ++ww;
       }
     }

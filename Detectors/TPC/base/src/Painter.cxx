@@ -750,7 +750,7 @@ TH3F painter::convertCalDetToTH3(const std::vector<CalDet<DataT>>& calDet, const
                 continue;
               }
               const double area = boost::geometry::area(output.front());
-              const double fac = area * Mapper::PADAREA[region];
+              const double fac = area * Mapper::INVPADAREA[region];
 
               for (int iSide = 0; iSide < 2; ++iSide) {
                 const Side side = iSide == 0 ? Side::C : Side::A;
