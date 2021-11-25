@@ -298,8 +298,8 @@ void ColumnToBranch::nextChunk()
 TableToTree::TableToTree(std::shared_ptr<arrow::Table> const& table, TFile* file, const char* treename)
 {
   mTable = table.get();
-  mTree = static_cast<TTree*>(file->Get(treename));
-  if (mTree != nullptr) {
+  mTree.reset(static_cast<TTree*>(file->Get(treename)));
+  if (mTree) {
     return;
   }
   std::string treeName(treename);
@@ -308,7 +308,7 @@ TableToTree::TableToTree(std::shared_ptr<arrow::Table> const& table, TFile* file
     file->cd(treeName.substr(0, pos).c_str());
     treeName = treeName.substr(pos + 1, std::string::npos);
   }
-  mTree = new TTree(treeName.c_str(), treeName.c_str());
+  mTree = std::make_shared<TTree>(treeName.c_str(), treeName.c_str());
 }
 
 void TableToTree::addAllBranches()
@@ -329,10 +329,10 @@ void TableToTree::addBranch(std::shared_ptr<arrow::ChunkedArray> const& column, 
   } else if (mRows != column->length()) {
     throw runtime_error_f("Adding incompatible column with size %d (num rows = %d)", column->length(), mRows);
   }
-  mColumnReaders.emplace_back(new ColumnToBranch{mTree, column, field});
+  mColumnReaders.emplace_back(new ColumnToBranch{mTree.get(), column, field});
 }
 
-TTree* TableToTree::process()
+std::shared_ptr<TTree> TableToTree::process()
 {
   int64_t row = 0;
   if (mTree->GetNbranches() == 0 || mRows == 0) {
