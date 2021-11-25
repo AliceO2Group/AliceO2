@@ -29,10 +29,16 @@ void TrackBasedCalib::init()
   mRecoParam.setBfield(o2::base::Propagator::Instance()->getNominalBz());
 }
 
-void TrackBasedCalib::calculateGainCalibObjs(const o2::globaltracking::RecoContainer& input)
+void TrackBasedCalib::setInput(const o2::globaltracking::RecoContainer& input)
 {
-  mTracksIn = input.getITSTPCTRDTracks<TrackTRD>(); // alternatively use input.getTPCTRDTracks<TrackTRD>() to use TPC-TRD matches
+  mTracksInITSTPCTRD = input.getITSTPCTRDTracks<TrackTRD>();
+  mTracksInTPCTRD = input.getTPCTRDTracks<TrackTRD>();
   mTrackletsRaw = input.getTRDTracklets();
+  mTrackletsCalib = input.getTRDCalibratedTracklets();
+}
+
+void TrackBasedCalib::calculateGainCalibObjs()
+{
   /*
   This method could gather the information required for the gain calibration.
   The global tracks contain dEdx information from the TPC and the TRD tracklets
@@ -43,21 +49,27 @@ void TrackBasedCalib::calculateGainCalibObjs(const o2::globaltracking::RecoConta
   */
 }
 
-void TrackBasedCalib::calculateAngResHistos(const o2::globaltracking::RecoContainer& input)
+void TrackBasedCalib::calculateAngResHistos()
 {
-
-  mTracksIn = input.getITSTPCTRDTracks<TrackTRD>();
-  mTrackletsRaw = input.getTRDTracklets();
-  mTrackletsCalib = input.getTRDCalibratedTracklets();
-
   if (mTrackletsRaw.size() != mTrackletsCalib.size()) {
-    LOG(ERROR) << "TRD raw tracklet container size differs from calibrated tracklet container size";
+    LOG(error) << "TRD raw tracklet container size differs from calibrated tracklet container size";
     return;
   }
 
+  LOGF(info, "As input tracks are available: %lu ITS-TPC-TRD tracks and %lu TPC-TRD tracks", mTracksInITSTPCTRD.size(), mTracksInTPCTRD.size());
+
+  int nTracksSuccessITSTPCTRD = doTrdOnlyTrackFits(mTracksInITSTPCTRD);
+  int nTracksSuccessTPCTRD = doTrdOnlyTrackFits(mTracksInTPCTRD);
+
+  LOGF(info, "Successfully processed %i tracks (%i from ITS-TPC-TRD and %i from TPC-TRD) and collected %lu angular residuals",
+       nTracksSuccessITSTPCTRD + nTracksSuccessTPCTRD, nTracksSuccessITSTPCTRD, nTracksSuccessTPCTRD, mAngResHistos.getNEntries());
+  // mAngResHistos.print();
+}
+
+int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
+{
   int nTracksSuccess = 0;
-  int nAngularResidualsCollected = 0;
-  for (const auto& trkIn : mTracksIn) {
+  for (const auto& trkIn : tracks) {
     if (trkIn.getNtracklets() < 3) {
       // with less than 3 tracklets the TRD-only refit not meaningful
       continue;
@@ -116,14 +128,13 @@ void TrackBasedCalib::calculateAngResHistos(const o2::globaltracking::RecoContai
         // track impact angle out of histogram range
         continue;
       }
-      ++nAngularResidualsCollected;
+      //++nAngularResidualsCollected;
     }
 
     // here we can count the number of successfully processed tracks
     ++nTracksSuccess;
   } // end of track loop
-  LOGF(INFO, "Successfully processed %i tracks and collected %i angular residuals", nTracksSuccess, nAngularResidualsCollected);
-  //mAngResHistos.print();
+  return nTracksSuccess;
 }
 
 bool TrackBasedCalib::propagateAndUpdate(TrackTRD& trk, int iLayer, bool doUpdate) const
@@ -140,13 +151,13 @@ bool TrackBasedCalib::propagateAndUpdate(TrackTRD& trk, int iLayer, bool doUpdat
 
   if (trkltSec != o2::math_utils::angle2Sector(trk.getAlpha())) {
     if (!trk.rotate(o2::math_utils::sector2Angle(trkltSec))) {
-      LOGF(DEBUG, "Track could not be rotated in tracklet coordinate system");
+      LOGF(debug, "Track could not be rotated in tracklet coordinate system");
       return 1;
     }
   }
 
   if (!propagator->PropagateToXBxByBz(trk, mTrackletsCalib[trkltId].getX(), mMaxSnp, mMaxStep, mMatCorr)) {
-    LOGF(DEBUG, "Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", iLayer, trk.getPt(), trk.getX(), mTrackletsCalib[trkltId].getX());
+    LOGF(debug, "Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", iLayer, trk.getPt(), trk.getX(), mTrackletsCalib[trkltId].getX());
     return 1;
   }
 
@@ -169,7 +180,7 @@ bool TrackBasedCalib::propagateAndUpdate(TrackTRD& trk, int iLayer, bool doUpdat
   mRecoParam.recalcTrkltCov(tilt, trk.getSnp(), pad->getRowSize(mTrackletsRaw[trkltId].getPadRow()), trkltCovUp);
 
   if (!trk.update(trkltPosUp, trkltCovUp)) {
-    LOGF(INFO, "Failed to update track with space point in layer %i", iLayer);
+    LOGF(info, "Failed to update track with space point in layer %i", iLayer);
     return 1;
   }
   return 0;

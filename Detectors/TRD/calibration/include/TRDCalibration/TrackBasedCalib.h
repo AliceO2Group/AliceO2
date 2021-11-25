@@ -50,12 +50,18 @@ class TrackBasedCalib
   /// Load geometry and apply magnetic field setting
   void init();
 
+  /// Initialize the input arrays
+  void setInput(const o2::globaltracking::RecoContainer& input);
+
   /// Main processing function for creating angular residual histograms for vDrift and ExB calibration
-  void calculateAngResHistos(const o2::globaltracking::RecoContainer& input);
+  void calculateAngResHistos();
+
+  /// 3-way fit to TRD tracklets
+  int doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks);
 
   /// Main processing function for gathering information needed for gain calibration
   /// i.e. TRD tracklet ADC vs TPC track dEdx for given momentum slice
-  void calculateGainCalibObjs(const o2::globaltracking::RecoContainer& input);
+  void calculateGainCalibObjs();
 
   /// Extrapolate track parameters to given layer and if requested perform update with tracklet
   bool propagateAndUpdate(TrackTRD& trk, int iLayer, bool doUpdate) const;
@@ -69,7 +75,8 @@ class TrackBasedCalib
   RecoParam mRecoParam;                              ///< parameters required for TRD reconstruction
   AngularResidHistos mAngResHistos;                  ///< aggregated data for the track based calibration
   // input arrays which should not be modified since they are provided externally
-  gsl::span<const TrackTRD> mTracksIn;                 ///< TRD tracks reconstructed from TPC or ITS-TPC seeds
+  gsl::span<const TrackTRD> mTracksInITSTPCTRD;        ///< TRD tracks reconstructed from TPC or ITS-TPC seeds
+  gsl::span<const TrackTRD> mTracksInTPCTRD;           ///< TRD tracks reconstructed from TPC or TPC seeds
   gsl::span<const Tracklet64> mTrackletsRaw;           ///< array of raw tracklets needed for TRD refit
   gsl::span<const CalibratedTracklet> mTrackletsCalib; ///< array of calibrated tracklets needed for TRD refit
 
