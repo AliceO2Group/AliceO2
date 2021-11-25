@@ -25,7 +25,7 @@ bool AngularResidHistos::addEntry(float deltaAlpha, float impactAngle, int chamb
   // returns 0 in case of success (impact angle is in valid range)
   int chamberOffset = chamberId * NBINSANGLEDIFF;
   if (std::fabs(impactAngle) >= MAXIMPACTANGLE) {
-    LOG(DEBUG) << "Under-/overflow entry detected for impact angle " << impactAngle;
+    LOG(debug) << "Under-/overflow entry detected for impact angle " << impactAngle;
     return 1;
   } else {
     int iBin = (impactAngle + MAXIMPACTANGLE) * INVBINWIDTH;
@@ -58,10 +58,10 @@ void AngularResidHistos::merge(const AngularResidHistos* prev)
 
 void AngularResidHistos::print()
 {
-  LOG(INFO) << "There are " << mNEntriesTotal << " entries in the container";
+  LOG(info) << "There are " << mNEntriesTotal << " entries in the container";
   for (int i = 0; i < MAXCHAMBER * NBINSANGLEDIFF; ++i) {
     if (mNEntriesPerBin[i] != 0) {
-      LOGF(INFO, "Global bin %i has %i entries. Average angular residual: %f", i, mNEntriesPerBin[i], mHistogramEntries[i]);
+      LOGF(info, "Global bin %i has %i entries. Average angular residual: %f", i, mNEntriesPerBin[i], mHistogramEntries[i] / mNEntriesPerBin[i]);
     }
   }
 }
