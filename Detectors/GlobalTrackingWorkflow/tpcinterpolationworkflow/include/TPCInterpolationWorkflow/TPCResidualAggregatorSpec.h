@@ -55,13 +55,13 @@ class ResidualAggregatorDevice : public o2::framework::Task
   {
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
     auto data = pc.inputs().get<gsl::span<o2::tpc::TrackResiduals::UnbinnedResid>>("input");
-    LOG(DEBUG) << "Processing TF " << tfcounter << " with " << data.size() << " unbinned residuals";
+    LOG(debug) << "Processing TF " << tfcounter << " with " << data.size() << " unbinned residuals";
     mAggregator->process(tfcounter, data);
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    LOG(INFO) << "Finalizing calibration for end of stream";
+    LOG(info) << "Finalizing calibration for end of stream";
     constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
     mAggregator->checkSlotsToFinalize(INFINITE_TF);
     mAggregator.reset(); // must invoke destructor manually here, otherwise we get a segfault
