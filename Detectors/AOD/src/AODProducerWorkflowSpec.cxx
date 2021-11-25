@@ -990,7 +990,9 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   if (!fResFile) {
     LOGF(fatal, "Could not open file %s", mResFile);
   }
-  if (!fResFile->FindObjectAny("metaData")) {
+  if (fResFile->FindObjectAny("metaData")) {
+    LOGF(warning, "Metadata: target file %s already has metadata, preserving it", mResFile);
+  } else {
     // populating metadata map
     TString dataType = mUseMC ? "MC" : "RAW";
     mMetaData.Add(new TObjString("DataType"), new TObjString(dataType));
@@ -1004,9 +1006,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mMetaData.Add(new TObjString("AnchorPassName"), new TObjString(mAnchorPass));
     mMetaData.Add(new TObjString("LPMProductionTag"), new TObjString(mLPMProdTag));
     LOGF(info, "Metadata: writing into %s", mResFile);
-    fResFile->WriteObject(&mMetaData, "metaData");
-  } else {
-    LOGF(fatal, "Metadata: target file %s already has metadata", mResFile);
+    fResFile->WriteObject(&mMetaData, "metaData", "Overwrite");
   }
   fResFile->Close();
 
