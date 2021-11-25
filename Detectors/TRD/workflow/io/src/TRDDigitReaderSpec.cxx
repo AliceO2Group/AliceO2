@@ -43,7 +43,9 @@ void TRDDigitReaderSpec::connectTree()
   mTreeDigits.reset((TTree*)mFile->Get(mDigitTreeName.c_str()));
   assert(mTreeDigits);
   mTreeDigits->SetBranchAddress(mDigitBranchName.c_str(), &mDigitsPtr);
-  mTreeDigits->SetBranchAddress(mTriggerRecordBranchName.c_str(), &mTriggerRecordsPtr);
+  if (mTreeDigits->SetBranchAddress(mTriggerRecordBranchName.c_str(), &mTriggerRecordsPtr) != 0) {
+    LOG(error) << "No trigger records available in TRD digits file";
+  }
   if (mUseMC) {
     mTreeDigits->SetBranchAddress(mMCLabelsBranchName.c_str(), &mLabels);
   }
