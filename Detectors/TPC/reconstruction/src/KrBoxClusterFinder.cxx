@@ -72,7 +72,7 @@ void KrBoxClusterFinder::fillADCValueInLastSlice(int cru, int rowInSector, int p
   int padNum = mMapperInstance.globalPadNumber(PadPos(rowInSector, padInRow));
   float correctionFactor = correctionFactorCalDet->getValue(mSector, padNum);
 
-  if (correctionFactor == 0) {
+  if (correctionFactor <= 0) {
     LOGP(warning, "Encountered correction factor which is zero.");
     LOGP(warning, "Digit will be set to 0!");
     adcValue = 0;
@@ -158,6 +158,11 @@ void KrBoxClusterFinder::init()
   mCutQtotSizeSlope = param.CutQtotSizeSlope;
   mCutMaxSize = param.CutMaxSize;
   mApplyCuts = param.ApplyCuts;
+
+  if (param.GainMapFile.size()) {
+    LOGP(info, "loading gain map '{}' from file {}", param.GainMapName, param.GainMapFile);
+    loadGainMapFromFile(param.GainMapFile, param.GainMapName);
+  }
 }
 
 //#################################################
