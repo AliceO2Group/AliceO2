@@ -341,7 +341,7 @@ DataProcessorSpec
         if (it != tfNumbers.end()) {
           tfNumber = (it->second / dod->getNumberTimeFramesToMerge()) * dod->getNumberTimeFramesToMerge();
         } else {
-          LOGP(FATAL, "No time frame number found for output with start time {}", startTime);
+          LOGP(fatal, "No time frame number found for output with start time {}", startTime);
           throw std::runtime_error("Processing is stopped!");
         }
 

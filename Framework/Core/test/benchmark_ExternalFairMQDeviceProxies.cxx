@@ -66,7 +66,7 @@ using benchclock = std::chrono::high_resolution_clock;
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
-    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed)"; \
+    LOG(fatal) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
 template <typename T>

@@ -218,11 +218,11 @@ void HistFiller::fillHistAny(std::shared_ptr<T> hist, const Ts&... positionAndWe
     if (hist->GetNdimensions() == nArgsMinusOne) {
       weight = tempArray[nArgsMinusOne];
     } else if (hist->GetNdimensions() != nArgs) {
-      LOGF(FATAL, "The number of arguments in fill function called for histogram %s is incompatible with histogram dimensions.", hist->GetName());
+      LOGF(fatal, "The number of arguments in fill function called for histogram %s is incompatible with histogram dimensions.", hist->GetName());
     }
     hist->Fill(tempArray, weight);
   } else {
-    LOGF(FATAL, "The number of arguments in fill function called for histogram %s is incompatible with histogram dimensions.", hist->GetName());
+    LOGF(fatal, "The number of arguments in fill function called for histogram %s is incompatible with histogram dimensions.", hist->GetName());
   }
 }
 
@@ -230,7 +230,7 @@ template <typename... Cs, typename R, typename T>
 void HistFiller::fillHistAny(std::shared_ptr<R> hist, const T& table, const o2::framework::expressions::Filter& filter)
 {
   if constexpr (std::is_base_of_v<StepTHn, T>) {
-    LOGF(FATAL, "Table filling is not (yet?) supported for StepTHn.");
+    LOGF(fatal, "Table filling is not (yet?) supported for StepTHn.");
     return;
   }
   auto filtered = o2::soa::Filtered<T>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)};
@@ -386,7 +386,7 @@ HistPtr HistogramRegistry::insertClone(const HistName& histName, const std::shar
       return mRegistryValue[imask(histName.idx + i)];
     }
   }
-  LOGF(FATAL, R"(Internal array of HistogramRegistry "%s" is full.)", mName);
+  LOGF(fatal, R"(Internal array of HistogramRegistry "%s" is full.)", mName);
   return HistPtr();
 }
 

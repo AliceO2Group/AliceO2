@@ -335,9 +335,9 @@ FairLogger.
 #include "Framework/Logger.h"
 ...
 
-LOG(INFO) << "some message";      // streamer based API
-LOGF(INFO, "%s", "some message"); // printf based API
-LOGP(INFO, "{}", "some message"); // python / fmt based API
+LOG(info) << "some message";      // streamer based API
+LOGF(info, "%s", "some message"); // printf based API
+LOGP(info, "{}", "some message"); // python / fmt based API
 O2INFO("{}", "some message);      // same but with less typing.
 ```
 

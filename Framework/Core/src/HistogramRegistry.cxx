@@ -72,7 +72,7 @@ HistPtr HistogramRegistry::insert(const HistogramSpec& histSpec)
       return mRegistryValue[imask(idx + i)];
     }
   }
-  LOGF(FATAL, R"(Internal array of HistogramRegistry "%s" is full.)", mName);
+  LOGF(fatal, R"(Internal array of HistogramRegistry "%s" is full.)", mName);
   return HistPtr();
 }
 
@@ -85,12 +85,12 @@ void HistogramRegistry::validateHistName(const std::string& name, const uint32_t
     auto idx = it - mRegistryKey.begin();
     std::string collidingName{};
     std::visit([&](const auto& hist) { collidingName = hist->GetName(); }, mRegistryValue[idx]);
-    LOGF(FATAL, R"(Hash collision in HistogramRegistry "%s"! Please rename histogram "%s" or "%s".)", mName, name, collidingName);
+    LOGF(fatal, R"(Hash collision in HistogramRegistry "%s"! Please rename histogram "%s" or "%s".)", mName, name, collidingName);
   }
 
   // validate that name contains only allowed characters
   if (!std::regex_match(name, std::regex("([a-zA-Z0-9])(([\\/_])?[a-zA-Z0-9])*"))) {
-    LOGF(FATAL, R"(Histogram name "%s" contains invalid characters.)", name);
+    LOGF(fatal, R"(Histogram name "%s" contains invalid characters.)", name);
   }
 }
 
@@ -125,7 +125,7 @@ void HistogramRegistry::addClone(const std::string& source, const std::string& t
       }
       // when cloning a single histogram the specified target_ must not be a group name
       if (sourceName.size() == source.size() && target.back() == '/') {
-        LOGF(FATAL, "Cannot turn histogram into folder!");
+        LOGF(fatal, "Cannot turn histogram into folder!");
       }
       std::string targetName{target};
       targetName += sourceName.substr(sourceName.find(source) + source.size());
@@ -205,7 +205,7 @@ void HistogramRegistry::print(bool showAxisDetails)
         sizeInfo = fmt::format("{:.2f} kB", sizes[0] * 1024);
       }
       std::transform(totalSizes.begin(), totalSizes.end(), sizes.begin(), totalSizes.begin(), std::plus<double>());
-      LOGF(INFO, "Hist %03d: %-35s  %-19s [%s]", nHistos, hist->GetName(), hist->IsA()->GetName(), sizeInfo);
+      LOGF(info, "Hist %03d: %-35s  %-19s [%s]", nHistos, hist->GetName(), hist->IsA()->GetName(), sizeInfo);
 
       if (showAxisDetails) {
         int nDim = 0;
@@ -227,16 +227,16 @@ void HistogramRegistry::print(bool showAxisDetails)
               axis = hist->GetZaxis();
             }
           }
-          LOGF(INFO, "- Axis %d: %-20s (%d bins)", d, axis->GetTitle(), axis->GetNbins());
+          LOGF(info, "- Axis %d: %-20s (%d bins)", d, axis->GetTitle(), axis->GetNbins());
         }
       }
     }
   };
 
   std::string titleString{"======================== HistogramRegistry ========================"};
-  LOGF(INFO, "");
-  LOGF(INFO, "%s", titleString);
-  LOGF(INFO, "%s\"%s\"", std::string((int)(0.5 * titleString.size() - (1 + 0.5 * mName.size())), ' '), mName);
+  LOGF(info, "");
+  LOGF(info, "%s", titleString);
+  LOGF(info, "%s\"%s\"", std::string((int)(0.5 * titleString.size() - (1 + 0.5 * mName.size())), ' '), mName);
   for (auto& curHistName : mRegisteredNames) {
     std::visit(printHistInfo, mRegistryValue[getHistIndex(HistName{curHistName.data()})]);
   }
@@ -251,13 +251,13 @@ void HistogramRegistry::print(bool showAxisDetails)
   } else {
     totalSizeInfo = fmt::format("{:.2f} MB", totalSizes[0]);
   }
-  LOGF(INFO, "%s", std::string(titleString.size(), '='), titleString);
-  LOGF(INFO, "Total: %d histograms, ca. %s", nHistos, totalSizeInfo);
+  LOGF(info, "%s", std::string(titleString.size(), '='), titleString);
+  LOGF(info, "Total: %d histograms, ca. %s", nHistos, totalSizeInfo);
   if (lookup) {
-    LOGF(INFO, "Due to index collisions, histograms were shifted by %d registry slots in total.", lookup);
+    LOGF(info, "Due to index collisions, histograms were shifted by %d registry slots in total.", lookup);
   }
-  LOGF(INFO, "%s", std::string(titleString.size(), '='), titleString);
-  LOGF(INFO, "");
+  LOGF(info, "%s", std::string(titleString.size(), '='), titleString);
+  LOGF(info, "");
 }
 
 // create output structure will be propagated to file-sink
@@ -286,7 +286,7 @@ TList* HistogramRegistry::operator*()
         rawPtr->SetName(name.data());
         targetList->Add(rawPtr);
       } else {
-        LOGF(FATAL, "Specified subfolder could not be created.");
+        LOGF(fatal, "Specified subfolder could not be created.");
       }
     }
   }
@@ -359,25 +359,25 @@ std::deque<std::string> HistogramRegistry::splitPath(const std::string& pathAndN
 void HistogramRegistry::registerName(const std::string& name)
 {
   if (name.empty() || name.back() == '/') {
-    LOGF(FATAL, "Invalid name for a histogram.");
+    LOGF(fatal, "Invalid name for a histogram.");
   }
   std::deque<std::string> path = splitPath(name);
   std::string cumulativeName{};
   int depth = path.size();
   for (auto& step : path) {
     if (step.empty()) {
-      LOGF(FATAL, R"(Found empty group name in path for histogram "%s".)", name);
+      LOGF(fatal, R"(Found empty group name in path for histogram "%s".)", name);
     }
     cumulativeName += step;
     for (auto& curName : mRegisteredNames) {
       // there is already a histogram where we want to put a folder or histogram
       if (cumulativeName == curName) {
-        LOGF(FATAL, R"(Histogram name "%s" is not compatible with existing names.)", name);
+        LOGF(fatal, R"(Histogram name "%s" is not compatible with existing names.)", name);
       }
       // for the full new histogram name we need to check that none of the existing histograms already uses this as a group name
       if (depth == 1) {
         if (curName.rfind(cumulativeName, 0) == 0 && curName.size() > cumulativeName.size() && curName.at(cumulativeName.size()) == '/') {
-          LOGF(FATAL, R"(Histogram name "%s" is not compatible with existing names.)", name);
+          LOGF(fatal, R"(Histogram name "%s" is not compatible with existing names.)", name);
         }
       }
     }
