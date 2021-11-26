@@ -9,10 +9,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(calibration)
-add_subdirectory(simulation)
-add_subdirectory(reconstruction)
-add_subdirectory(macros)
-add_subdirectory(qc)
-add_subdirectory(workflow)
+o2_add_library(TRDQC
+               SOURCES src/Tracking.cxx
+               PUBLIC_LINK_LIBRARIES O2::TRDBase
+                                     O2::DataFormatsTRD
+                                     O2::DataFormatsGlobalTracking
+                                     O2::DetectorsBase
+                                     O2::MathUtils
+                                     O2::GPUTracking)
+
+ o2_target_root_dictionary(TRDQC
+                           HEADERS include/TRDQC/Tracking.h)
