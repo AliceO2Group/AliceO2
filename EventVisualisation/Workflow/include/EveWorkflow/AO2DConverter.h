@@ -47,7 +47,7 @@ struct AO2DConverter
 
   void init(o2::framework::InitContext& ic);
 
-  void process(o2::aod::Tracks const& tracks);
+  void process(EveWorkflowHelper::FullTracks const& tracks);
 
   std::shared_ptr<EveWorkflowHelper> mHelper;
   std::size_t mCurrentEvent;

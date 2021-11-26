@@ -89,9 +89,10 @@ void AO2DConverter::init(o2::framework::InitContext& ic)
   mCurrentEvent = 0;
 }
 
-void AO2DConverter::process(o2::aod::Tracks const& tracks)
+void AO2DConverter::process(EveWorkflowHelper::FullTracks const& tracks)
 {
   EveWorkflowHelper helper;
+
   for (auto& track : tracks) {
     helper.drawAOD(track);
   }
