@@ -2072,6 +2072,13 @@ class FilteredBase : public T
     return result;
   }
 
+  auto select(framework::expressions::Filter const& f) const
+  {
+    auto t = o2::soa::select(*this, f);
+    copyIndexBindings(t);
+    return t;
+  }
+
  protected:
   auto slice(uint64_t start, uint64_t end)
   {
