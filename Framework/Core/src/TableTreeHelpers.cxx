@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/Logger.h"
+#include "Framework/Endian.h"
 
 #include "arrow/type_traits.h"
 #include <arrow/util/key_value_metadata.h>
