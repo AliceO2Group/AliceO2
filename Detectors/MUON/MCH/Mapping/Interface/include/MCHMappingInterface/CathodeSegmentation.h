@@ -65,11 +65,15 @@ class CathodeSegmentation
  public:
   /// This ctor throws if detElemId is invalid
   CathodeSegmentation(int detElemId, bool isBendingPlane)
-    : mImpl{mchCathodeSegmentationConstruct(detElemId, isBendingPlane)},
+    : mImpl{nullptr},
       mDualSampaIds{},
       mDetElemId{detElemId},
       mIsBendingPlane{isBendingPlane}
   {
+    if (&mchCathodeSegmentationConstruct == NULL) {
+      throw std::runtime_error("no mch mapping implementaion found : did you forget to link with an actual implementation library (e.g. O2MCHMappingImpl4) ? ");
+    }
+    mImpl = mchCathodeSegmentationConstruct(detElemId, isBendingPlane);
     if (!mImpl) {
       throw std::runtime_error("Can not create segmentation for DE " + std::to_string(detElemId) +
                                (mIsBendingPlane ? " Bending" : " NonBending"));

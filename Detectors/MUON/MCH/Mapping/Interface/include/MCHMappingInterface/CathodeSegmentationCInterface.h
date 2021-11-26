@@ -46,7 +46,7 @@ typedef void (*MchPadHandler)(void* clientData, int catPadIndex);
 ///@{
 
 /// Create a handle to a segmentation for a given plane of a detection element.
-MchCathodeSegmentationHandle mchCathodeSegmentationConstruct(int detElemId, bool isBendingPlane);
+MchCathodeSegmentationHandle mchCathodeSegmentationConstruct(int detElemId, bool isBendingPlane) __attribute__((weak));
 
 /// Delete a segmentation handle.
 void mchCathodeSegmentationDestruct(MchCathodeSegmentationHandle segHandle);
