@@ -37,7 +37,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"matchesFromUpstream", o2::framework::VariantType::Bool, false, {"matching MCH-MFT tracks from uptream (overrides matchFcn and cutFcn)"}},
-    {"enable-match-output", o2::framework::VariantType::Bool, false, {"Stores mftmch matching info on mftmchmatches.root"}},
+    {"useMIDMatch", o2::framework::VariantType::Bool, true, {"use input from MID-MCH matching"}},
+    {"enable-match-output", o2::framework::VariantType::Bool, false, {"stores mftmch matching info on mftmchmatches.root"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -59,12 +60,12 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   bool disableRootOutput = configcontext.options().get<bool>("disable-root-output");
   bool matchInfoFromUpstream = configcontext.options().get<bool>("matchesFromUpstream");
   bool matchRootOutput = configcontext.options().get<bool>("enable-match-output");
-
+  bool useMIDMatch = configcontext.options().get<bool>("useMIDMatch");
   o2::framework::WorkflowSpec specs;
-  specs.emplace_back(o2::globaltracking::getGlobalFwdMatchingSpec(useMC, matchInfoFromUpstream, matchRootOutput));
+  specs.emplace_back(o2::globaltracking::getGlobalFwdMatchingSpec(useMC, matchInfoFromUpstream, matchRootOutput, useMIDMatch));
   auto srcTracks = GID::getSourcesMask("MFT,MCH");
   auto srcClusters = GID::getSourcesMask("MFT");
-  auto matchMask = GID::getSourcesMask("");
+  auto matchMask = GID::MASK_NONE;
 
   if (!disableRootOutput) {
     specs.emplace_back(o2::globaltracking::getGlobalFwdTrackWriterSpec(useMC));
@@ -75,7 +76,11 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   }
 
   if (matchInfoFromUpstream) {
-    matchMask = GID::getSourcesMask("MFT-MCH");
+    matchMask = matchMask | GID::getSourcesMask("MFT-MCH");
+  }
+
+  if (useMIDMatch) {
+    matchMask = matchMask | GID::getSourcesMask("MCH-MID");
   }
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcClusters, matchMask, srcTracks, useMC, srcClusters, srcTracks);

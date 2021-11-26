@@ -38,6 +38,7 @@
 #include "ReconstructionDataFormats/GlobalFwdTrack.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/MatchInfoMFTMCH.h"
+#include "ReconstructionDataFormats/TrackMCHMID.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "TGeoManager.h"
@@ -99,7 +100,7 @@ class MatchGlobalFwd
   ~MatchGlobalFwd() = default;
 
   void run(const o2::globaltracking::RecoContainer& inp);
-  void init(std::string matchFcn, std::string cutFcn, bool MatchInfoFromUpstream);
+  void init(std::string matchFcn, std::string cutFcn, bool MatchInfoFromUpstream, bool UseMIDMCHMatch);
   void finalize();
   void clear();
 
@@ -118,7 +119,7 @@ class MatchGlobalFwd
   ///< set MFT ROFrame duration in BC (continuous mode only)
   void setMFTROFrameLengthInBC(int nbc);
   const std::vector<o2::dataformats::GlobalFwdTrack>& getMatchedFwdTracks() const { return mMatchedTracks; }
-  const std::vector<o2::dataformats::MatchInfoMFTMCH>& getMFTMCHMatchInfo() const { return mMatchingInfo; }
+  const std::vector<o2::dataformats::MatchInfoMFTMCHMID>& getMFTMCHMatchInfo() const { return mMatchingInfo; }
   const std::vector<o2::MCCompLabel>& getMatchLabels() const { return mMatchLabels; }
 
  private:
@@ -126,6 +127,7 @@ class MatchGlobalFwd
 
   bool prepareMCHData();
   bool prepareMFTData();
+  bool processMCHMIDMatches();
 
   void doMatching();
   void doMCMatching();
@@ -264,9 +266,10 @@ class MatchGlobalFwd
   gsl::span<const o2::mch::ROFRecord> mMCHTrackROFRec;                     ///< MCH tracks ROFRecords
   gsl::span<const o2::mft::TrackMFT> mMFTTracks;                           ///< input MFT tracks
   gsl::span<const o2::itsmft::ROFRecord> mMFTTrackROFRec;                  ///< MFT tracks ROFRecords
+  gsl::span<const o2::dataformats::TrackMCHMID> mMCHMIDMatches;            ///< input MCH MID Matches
   gsl::span<const int> mMFTTrackClusIdx;                                   ///< input MFT track cluster indices span
   gsl::span<const o2::itsmft::ROFRecord> mMFTClusterROFRec;                ///< input MFT clusters ROFRecord span
-  gsl::span<const o2::dataformats::MatchInfoMFTMCH> mMatchingInfoUpstream; ///< input MCH Track MC labels
+  gsl::span<const o2::dataformats::MatchInfoMFTMCHMID> mMatchingInfoUpstream; ///< input MCH Track MC labels
   gsl::span<const o2::MCCompLabel> mMFTTrkLabels;                          ///< input MFT Track MC labels
   gsl::span<const o2::MCCompLabel> mMCHTrkLabels;                          ///< input MCH Track MC labels
 
@@ -277,13 +280,14 @@ class MatchGlobalFwd
   std::vector<MFTCluster> mMFTClusters;                        ///< input MFT clusters
   std::vector<o2::dataformats::GlobalFwdTrack> mMatchedTracks; ///< MCH-MFT(-MID) Matched tracks
   std::vector<o2::MCCompLabel> mMatchLabels;                   ///< Output labels
-  std::vector<o2::dataformats::MatchInfoMFTMCH> mMatchingInfo;
+  std::vector<o2::dataformats::MatchInfoMFTMCHMID> mMatchingInfo;
 
   const o2::itsmft::TopologyDictionary* mMFTDict{nullptr}; // cluster patterns dictionary
   o2::itsmft::ChipMappingMFT mMFTMapping;
   bool mMCTruthON = false; ///< flag availability of MC truth
   bool mMatchInfoFromUpstream = false;
-  bool mMCLabelMatching = false;
+  bool mUseMIDMCHMatch = false;  // Flag for using MCHMID matches (TrackMCHMID)
+  bool mMCLabelMatching = false; // Flag for enabling MC Label based matching
   TGeoManager* mGeoManager;
 };
 

@@ -26,7 +26,7 @@ namespace globaltracking
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
-using MatchesType = std::vector<o2::dataformats::MatchInfoMFTMCH>;
+using MatchesType = std::vector<o2::dataformats::MatchInfoMFTMCHMID>;
 using LabelsType = std::vector<o2::MCCompLabel>;
 
 DataProcessorSpec getMFTMCHMatchesWriterSpec(bool useMC)
@@ -37,8 +37,8 @@ DataProcessorSpec getMFTMCHMatchesWriterSpec(bool useMC)
   };
   return MakeRootTreeWriterSpec("mftmch-matches-writer",
                                 "mftmchmatches.root",
-                                "MFTMCHMatches",
-                                BranchDefinition<MatchesType>{InputSpec{"mftmchmatches", "GLO", "MTC_MFTMCH", 0}, "mftmchmatches", logger})();
+                                "o2sim",
+                                BranchDefinition<MatchesType>{InputSpec{"MFTMCHMatches", "GLO", "MTC_MFTMCH", 0}, "matches", logger})();
 }
 
 } // namespace globaltracking

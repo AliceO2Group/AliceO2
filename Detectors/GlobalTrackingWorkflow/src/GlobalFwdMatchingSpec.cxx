@@ -44,8 +44,8 @@ namespace globaltracking
 class GlobalFwdMatchingDPL : public Task
 {
  public:
-  GlobalFwdMatchingDPL(std::shared_ptr<DataRequest> dr, bool useMC, bool matchInfoFromUpstream, bool MatchRootOutput)
-    : mDataRequest(dr), mUseMC(useMC), mMatchInfoFromUpstream(matchInfoFromUpstream), mMatchRootOutput(MatchRootOutput) {}
+  GlobalFwdMatchingDPL(std::shared_ptr<DataRequest> dr, bool useMC, bool matchInfoFromUpstream, bool MatchRootOutput, bool useMIDMatch)
+    : mDataRequest(dr), mUseMC(useMC), mMatchInfoFromUpstream(matchInfoFromUpstream), mMatchRootOutput(MatchRootOutput), mUseMIDMatch(useMIDMatch) {}
   ~GlobalFwdMatchingDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -55,6 +55,7 @@ class GlobalFwdMatchingDPL : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   bool mMatchInfoFromUpstream = false;
   bool mMatchRootOutput = false;
+  bool mUseMIDMatch = false;
   o2::globaltracking::MatchGlobalFwd mMatching; // Forward matching engine
   o2::itsmft::TopologyDictionary mMFTDict;      // cluster patterns dictionary
 
@@ -95,7 +96,7 @@ void GlobalFwdMatchingDPL::init(InitContext& ic)
   std::string matchFcn = ic.options().get<std::string>("matchFcn");
   std::string cutFcn = ic.options().get<std::string>("cutFcn");
 
-  mMatching.init(matchFcn, cutFcn, mMatchInfoFromUpstream);
+  mMatching.init(matchFcn, cutFcn, mMatchInfoFromUpstream, mUseMIDMatch);
 }
 
 void GlobalFwdMatchingDPL::run(ProcessingContext& pc)
@@ -125,7 +126,7 @@ void GlobalFwdMatchingDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC, bool matchInfoFromUpstream, bool matchRootOutput)
+DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC, bool matchInfoFromUpstream, bool matchRootOutput, bool useMIDMatch)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -136,6 +137,10 @@ DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC, bool matchInfoFromUpstrea
   dataRequest->requestTracks(src, useMC);
   if (matchInfoFromUpstream) {
     dataRequest->requestMFTMCHMatches(useMC);
+  }
+
+  if (useMIDMatch) {
+    dataRequest->requestMCHMIDMatches(useMC);
   }
 
   outputs.emplace_back("GLO", "GLFWD", 0, Lifetime::Timeframe);
@@ -152,7 +157,7 @@ DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC, bool matchInfoFromUpstrea
     "globalfwd-track-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<GlobalFwdMatchingDPL>(dataRequest, useMC, matchInfoFromUpstream, matchRootOutput)},
+    AlgorithmSpec{adaptFromTask<GlobalFwdMatchingDPL>(dataRequest, useMC, matchInfoFromUpstream, matchRootOutput, useMIDMatch)},
     Options{
       {"matchFcn", VariantType::String, "matchALL", {"Matching function (matchALL, matchPhiTanlXY, ..., matchMC)"}},
       {"cutFcn", VariantType::String, "cutDisabled", {"matching candicate cut"}},

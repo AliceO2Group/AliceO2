@@ -14,9 +14,10 @@
 using namespace o2::globaltracking;
 
 //_________________________________________________________
-void MatchGlobalFwd::init(std::string matchFcn, std::string cutFcn, Bool_t MatchInfoFromUpstream)
+void MatchGlobalFwd::init(std::string matchFcn, std::string cutFcn, Bool_t MatchInfoFromUpstream, Bool_t UseMIDMCHMatch)
 {
   mMatchInfoFromUpstream = MatchInfoFromUpstream;
+  mUseMIDMCHMatch = UseMIDMCHMatch;
   configMatching(matchFcn, cutFcn);
 }
 
@@ -28,7 +29,7 @@ void MatchGlobalFwd::run(const o2::globaltracking::RecoContainer& inp)
 
   clear();
 
-  if (!prepareMFTData() || !prepareMCHData()) {
+  if (!prepareMFTData() || !prepareMCHData() || !processMCHMIDMatches()) {
     return;
   }
 
@@ -145,6 +146,31 @@ bool MatchGlobalFwd::prepareMCHData()
 }
 
 //_________________________________________________________
+bool MatchGlobalFwd::processMCHMIDMatches()
+{
+  if (mUseMIDMCHMatch) {
+    const auto& inp = *mRecoCont;
+
+    // Load MCHMID matches
+    mMCHMIDMatches = inp.getMCHMIDMatches();
+
+    LOG(info) << "Loaded " << mMCHMIDMatches.size() << " MCHMID matches";
+
+    for (const auto& MIDMatch : mMCHMIDMatches) {
+      const auto& MCHId = MIDMatch.getMCHRef().getIndex();
+      auto& thisMuonTrack = mMCHWork[MCHId];
+      const auto& IR = MIDMatch.getIR();
+      int nBC = IR.differenceInBC(mStartIR);
+      float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
+      float tMax = tMin + o2::constants::lhc::LHCBunchSpacingMUS;
+      thisMuonTrack.tBracket.set(tMin, tMax);
+      thisMuonTrack.setMIDMatchingChi2(MIDMatch.getMatchChi2OverNDF());
+    }
+  }
+  return true;
+}
+
+//_________________________________________________________
 bool MatchGlobalFwd::prepareMFTData()
 {
   const auto& inp = *mRecoCont;
@@ -163,12 +189,12 @@ bool MatchGlobalFwd::prepareMFTData()
 
   // Load MFT tracks
   mMFTTracks = inp.getMFTTracks();
-
   mMFTTrackROFRec = inp.getMFTTracksROFRecords();
   if (mMCTruthON) {
     mMFTTrkLabels = inp.getMFTTracksMCLabels();
   }
   int nROFs = mMFTTrackROFRec.size();
+
   LOG(info) << "Loaded " << mMFTTracks.size() << " MFT Tracks in " << nROFs << " ROFs";
   if (mMFTTracks.empty()) {
     return false;

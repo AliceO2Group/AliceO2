@@ -23,6 +23,7 @@
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/GlobalFwdTrackReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/MatchedMFTMCHReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/MatchedMCHMIDReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackCosmicsReaderSpec.h"
@@ -97,6 +98,9 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   }
   if (maskMatches[GID::MFTMCH]) {
     specs.emplace_back(o2::globaltracking::getMFTMCHMatchedReaderSpec(maskTracksMC[GID::MFTMCH])); // MFTMCH matches does not provide tracks, only matchInfo
+  }
+  if (maskMatches[GID::MCHMID]) {
+    specs.emplace_back(o2::globaltracking::getMCHMIDMatchedReaderSpec(maskTracksMC[GID::MCHMID])); // MCHMID matches does not provide tracks, only matchInfo
   }
   if (maskMatches[GID::ITSTPCTRDTOF] || maskTracks[GID::ITSTPCTRDTOF]) {
     specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::ITSTPCTRDTOF], 3, /*maskTracks[GID::ITSTPCTOF]*/ false)); // ITSTPCTOF does not provide tracks, only matchInfo

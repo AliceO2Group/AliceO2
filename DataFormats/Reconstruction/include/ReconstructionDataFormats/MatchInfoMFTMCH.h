@@ -24,19 +24,19 @@ namespace dataformats
 {
 using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 
-class MatchInfoMFTMCH
+class MatchInfoMFTMCHMID
 {
  public:
-  MatchInfoMFTMCH() = default;
-  MatchInfoMFTMCH(int32_t MCHId, int32_t MFTId, double chi2)
+  MatchInfoMFTMCHMID() = default;
+  MatchInfoMFTMCHMID(int32_t MCHId, int32_t MFTId, double chi2)
     : mMCHTrackID(MCHId), mMFTTrackID(MFTId), mMFTMCHMatchingChi2(chi2) {}
-  ~MatchInfoMFTMCH() = default;
+  ~MatchInfoMFTMCHMID() = default;
 
   void setMatchingChi2(double chi2) { mMFTMCHMatchingChi2 = chi2; }
   const auto& getMatchingChi2() const { return mMFTMCHMatchingChi2; }
 
-  void setMIDMatchingChi2(double chi2) { mMIDMatchingChi2 = chi2; }
-  const auto& getMIDMatchingChi2() const { return mMIDMatchingChi2; }
+  void setMIDMatchingChi2(double chi2) { mMCHMIDMatchingChi2 = chi2; }
+  const auto& getMIDMatchingChi2() const { return mMCHMIDMatchingChi2; }
 
   void countCandidate() { mNMFTCandidates++; }
   const auto& getNMFTCandidates() const { return mNMFTCandidates; }
@@ -73,16 +73,14 @@ class MatchInfoMFTMCH
 
  private:
   double mMFTMCHMatchingChi2 = 1.0E308; ///< MCH-MFT Matching Chi2
-  double mMIDMatchingChi2 = -1.0;       ///< MCH-MID Matching Chi2
+  double mMCHMIDMatchingChi2 = -1.0;    ///< MCH-MID Matching Chi2
   int mMFTTrackID = -1;                 ///< Track ID of best MFT-match
   int mMCHTrackID = -1;                 ///< MCH Track ID
   int mNMFTCandidates = 0;              ///< Number of MFT candidates within search cut
   bool mCloseMatch = false;             ///< Close match = correct MFT pair tested (MC-only)
-  float mTrackTime = 0.f;               ///< Track time
-  float mTrackTimeRes = 0.f;            ///< Track time resolution
   timeEst mTimeMUS;                     ///< time estimate in ns
 
-  ClassDefNV(MatchInfoMFTMCH, 1);
+  ClassDefNV(MatchInfoMFTMCHMID, 1);
 };
 
 } // namespace dataformats
