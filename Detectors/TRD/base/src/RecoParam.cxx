@@ -49,6 +49,7 @@ void RecoParam::setBfield(float bz)
   } else {
     LOG(warning) << "No error parameterization available for Bz= " << bz << ". Keeping default value (sigma_y = const. = 1cm)";
   }
+  LOG(info) << "Loaded error parameterization for Bz = " << bz;
 }
 
 void RecoParam::recalcTrkltCov(const float tilt, const float snp, const float rowSize, std::array<float, 3>& cov) const
