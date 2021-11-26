@@ -321,7 +321,7 @@ class SplineSpec<DataT, XdimT, YdimT, 0> : public SplineContainer<DataT>
     }
     //now start with the interpolation loop:
 
-    auto maxInterpolations = (1 << (2 * maxXdim - 2)) * maxYdim;
+    constexpr auto maxInterpolations = (1 << (2 * maxXdim - 2)) * maxYdim;
 
     DataT S0[maxInterpolations];
     DataT D0[maxInterpolations];
