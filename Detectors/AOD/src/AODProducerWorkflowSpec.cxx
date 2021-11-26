@@ -53,6 +53,7 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "GPUTPCGMMergedTrackHit.h"
+#include "TOFBase/Utils.h"
 #include "O2Version.h"
 #include "TMath.h"
 #include "MathUtils/Utils.h"
@@ -301,6 +302,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           // normal tracks table
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
           const auto& trackPar = data.getTrackParam(trackIndex);
+          extraInfoHolder.flags |= trackPar.getPID() << 28;
           if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
             int nClusters = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getNClusters();
             float chi2 = itsTracks[contributorsGID[GIndex::ITS].getIndex()].getChi2();
@@ -326,10 +328,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             extraInfoHolder.tofChi2 = tofMatch.getChi2();
             const auto& tofInt = tofMatch.getLTIntegralOut();
             const float intLen = tofInt.getL();
+            double timeOrbit = static_cast<int>(tofMatch.getSignal() / o2::constants::lhc::LHCOrbitNS * 1E-3) * o2::constants::lhc::LHCOrbitNS * 1E3;
+            const float tofSignal = static_cast<float>(o2::tof::Utils::subtractInteractionBC(tofMatch.getSignal() - timeOrbit));
             extraInfoHolder.length = intLen;
-            if (interactionTime > 0) {
-              extraInfoHolder.tofSignal = static_cast<float>(tofMatch.getSignal() - interactionTime * 1E3);
-            }
             const float mass = o2::constants::physics::MassPionCharged; // default pid = pion
             if (tofInt.getTOF(o2::track::PID::Pion) > 0.f) {
               const float expBeta = (intLen / (tofInt.getTOF(o2::track::PID::Pion) * cSpeed));
@@ -339,8 +340,8 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             const double massZ = o2::track::PID::getMass2Z(trackPar.getPID());
             const double energy = sqrt((massZ * massZ) + (extraInfoHolder.tofExpMom * extraInfoHolder.tofExpMom));
             const double exp = extraInfoHolder.length * energy / (cSpeed * extraInfoHolder.tofExpMom);
-            extraInfoHolder.trackTime = static_cast<float>((tofMatch.getSignal() - exp) * 1e-3 - interactionTime); // tof time in \mus, FIXME: account for time of flight to R TOF
-            extraInfoHolder.trackTimeRes = 200e-3;                                                                 // FIXME: calculate actual resolution (if possible?)
+            extraInfoHolder.trackTime = static_cast<float>((tofSignal - exp) * 1e-3); // tof time in ns, taken from the definition of Ruben scaled by 1000 to convert from mus to ns to match the collisionTime
+            extraInfoHolder.trackTimeRes = 200e-3;                                    // FIXME: calculate actual resolution (if possible?)
           }
           if (src == GIndex::Source::TPCTRD || src == GIndex::Source::ITSTPCTRD) {
             const auto& trdOrig = data.getTrack<o2::trd::TrackTRD>(src, contributorsGID[src].getIndex());
@@ -1106,11 +1107,17 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto caloCellsCursor = caloCellsBuilder.cursor<o2::aod::Calos>();
   auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
 
-  std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
-  if (mUseMC) {
-    mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+  std::unique_ptr<o2::steer::MCKinematicsReader> mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+  if (!o2::tof::Utils::hasFillScheme()) {
     LOG(debug) << "FOUND " << mcReader->getDigitizationContext()->getEventRecords().size()
                << " records" << mcReader->getDigitizationContext()->getEventParts().size() << " parts";
+    o2::BunchFilling bcf = mcReader->getDigitizationContext()->getBunchFilling();
+    std::bitset<3564> bs = bcf.getBCPattern();
+    for (int i = 0; i < bs.size(); i++) {
+      if (bs.test(i)) {
+        o2::tof::Utils::addInteractionBC(i);
+      }
+    }
   }
 
   std::map<uint64_t, int> bcsMap;
