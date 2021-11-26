@@ -68,7 +68,6 @@ class RawReaderSpecs : public o2f::Task
   uint32_t mDelayUSec = 0;        // Delay in microseconds between TFs
   uint32_t mMinTFID = 0;          // 1st TF to extract
   uint32_t mMaxTFID = 0xffffffff; // last TF to extrct
-  uint64_t mStartTimeMS = 0;      // start time to inject to DPH
   size_t mLoopsDone = 0;
   size_t mSentSize = 0;
   size_t mSentMessages = 0;
@@ -144,6 +143,11 @@ void RawReaderSpecs::init(o2f::InitContext& ic)
   if (mMaxTFID >= mReader->getNTimeFrames()) {
     mMaxTFID = mReader->getNTimeFrames() ? mReader->getNTimeFrames() - 1 : 0;
   }
+  const auto& hbfU = HBFUtils::Instance();
+  if (!hbfU.startTime) {
+    hbfU.setValue("HBFUtils.startTime", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()));
+    LOG(warning) << "Run start time is not provided via HBFUtils.startTime, will use now() = " << hbfU.startTime << " ms.";
+  }
 }
 
 //___________________________________________________________
@@ -208,14 +212,12 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
       return;
     }
   }
-  uint64_t creationTime = mStartTimeMS ? 0UL : std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
   if (tfID < mMinTFID) {
     tfID = mMinTFID;
   }
   mReader->setNextTFToRead(tfID);
   std::vector<RawFileReader::PartStat> partsSP;
-  const auto& hbfU = HBFUtils::Instance();
 
   // read next time frame
   LOG(info) << "Reading TF#" << mTFCounter << " (" << tfID << " at iteration " << mLoopsDone << ')';
@@ -223,6 +225,9 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   auto hstackSize = dummyStack.size();
 
   uint32_t firstOrbit = 0;
+  uint64_t creationTime = 0;
+  const auto& hbfU = HBFUtils::Instance();
+
   for (int il = 0; il < nlinks; il++) {
     auto& link = mReader->getLink(il);
 
@@ -265,9 +270,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
         auto ir = o2::raw::RDHUtils::getHeartBeatIR(plMessage->GetData());
         auto tfid = hbfU.getTF(ir);
         firstOrbit = hdrTmpl.firstTForbit = hbfU.getIRTF(tfid).orbit; // will be picked for the following parts
-        if (!creationTime) {
-          creationTime = mStartTimeMS + std::ceil(firstOrbit * o2::constants::lhc::LHCOrbitMUS * 1e-3);
-        }
+        creationTime = hbfU.getTFTimeStamp({0, firstOrbit});
       }
       o2::header::Stack headerStack{hdrTmpl, o2::framework::DataProcessingHeader{mTFCounter, 1, creationTime}};
       memcpy(hdMessage->GetData(), headerStack.data(), headerStack.size());
@@ -307,8 +310,8 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   }
   mTimer[TimerTotal].Stop();
 
-  LOGF(info, "Sent payload of %zu bytes in %zu parts in %zu messages for TF %d | Timing (total/IO): %.3e / %.3e", tfSize, tfNParts,
-       messagesPerRoute.size(), mTFCounter, mTimer[TimerTotal].CpuTime() - tTotStart, mTimer[TimerIO].CpuTime() - tIOStart);
+  LOGP(info, "Sent payload of {} bytes in {} parts in {} messages for TF#{} firstTForbit={} timeStamp={} | Timing (total/IO): {} / {}", tfSize, tfNParts,
+       messagesPerRoute.size(), mTFCounter, firstOrbit, creationTime, mTimer[TimerTotal].CpuTime() - tTotStart, mTimer[TimerIO].CpuTime() - tIOStart);
 
   mSentSize += tfSize;
   mSentMessages += tfNParts;
