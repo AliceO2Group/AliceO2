@@ -56,7 +56,7 @@ class CTFCoderBase
       CTF::readFromTree(bufVec, *tree.get(), mDet.getName());
       if (bufVec.size()) {
         mExtHeader = static_cast<CTFDictHeader&>(CTF::get(bufVec.data())->getHeader());
-        LOGP(INFO, "Found {} {} in {}", mDet.getName(), mExtHeader.asString(), dictPath);
+        LOGP(info, "Found {} {} in {}", mDet.getName(), mExtHeader.asString(), dictPath);
       }
     }
     return bufVec;

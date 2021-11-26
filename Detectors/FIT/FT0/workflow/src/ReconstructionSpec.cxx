@@ -86,7 +86,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
 
 void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "FT0 reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "FT0 reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

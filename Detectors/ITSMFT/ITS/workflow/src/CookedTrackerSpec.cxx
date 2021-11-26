@@ -214,7 +214,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
 
 void CookedTrackerDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "ITS Cooked-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "ITS Cooked-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

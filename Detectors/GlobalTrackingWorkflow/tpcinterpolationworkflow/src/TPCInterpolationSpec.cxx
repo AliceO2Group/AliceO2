@@ -116,7 +116,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
 
   mInterpolation.process(recoData, gids, gidTables, seeds, trkTimes);
   mTimer.Stop();
-  LOGF(INFO, "TPC insterpolation timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
+  LOGF(info, "TPC insterpolation timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
   mTimer.Start(0);
   //mResidualProcessor.setInputData(mInterpolation.getReferenceTracks(), mInterpolation.getClusterResiduals());
   //mResidualProcessor.convertToLocalResiduals(); // FIXME this will create one output file per TPC sector with local residuals. TODO Add filtering of residuals
@@ -128,7 +128,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
 
 void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "TPC residuals extraction total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "TPC residuals extraction total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

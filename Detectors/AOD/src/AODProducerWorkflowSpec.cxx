@@ -1448,7 +1448,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
 void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "aod producer dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "aod producer dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

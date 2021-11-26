@@ -116,7 +116,7 @@ void GlobalFwdMatchingDPL::run(ProcessingContext& pc)
 
 void GlobalFwdMatchingDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "Forward matcher total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "Forward matcher total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

@@ -147,10 +147,10 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
     auto fitResult = fitter.Result();
     laFitResults[iDet] = fitResult.Parameter(ParamIndex::LA);
     vdFitResults[iDet] = fitResult.Parameter(ParamIndex::VD);
-    LOGF(DEBUG, "Fit result for chamber %i: vd=%f, la=%f", iDet, vdFitResults[iDet], laFitResults[iDet] * TMath::RadToDeg());
+    LOGF(debug, "Fit result for chamber %i: vd=%f, la=%f", iDet, vdFitResults[iDet], laFitResults[iDet] * TMath::RadToDeg());
   }
   timer.Stop();
-  LOGF(INFO, "Done fitting angular residual histograms. CPU time: %f, real time: %f", timer.CpuTime(), timer.RealTime());
+  LOGF(info, "Done fitting angular residual histograms. CPU time: %f, real time: %f", timer.CpuTime(), timer.RealTime());
 
   // write results to CCDB
   o2::ccdb::CcdbApi ccdb;

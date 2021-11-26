@@ -555,10 +555,10 @@ void Digitizer::setTriggerMask()
     }
     printTriggerMask += "]";
     uint32_t mytmask = mTriggerMask >> (im * NChPerModule);
-    LOGF(INFO, "Trigger mask for module %d 0123 %c%c%c%c\n", im,
+    LOGF(info, "Trigger mask for module %d 0123 %c%c%c%c\n", im,
          mytmask & 0x1 ? 'T' : 'N', mytmask & 0x2 ? 'T' : 'N', mytmask & 0x4 ? 'T' : 'N', mytmask & 0x8 ? 'T' : 'N');
   }
-  LOGF(INFO, "TriggerMask=0x%08x %s\n", mTriggerMask, printTriggerMask.c_str());
+  LOGF(info, "TriggerMask=0x%08x %s\n", mTriggerMask, printTriggerMask.c_str());
 }
 
 //______________________________________________________________________________
@@ -584,10 +584,10 @@ void Digitizer::setReadoutMask()
     }
     printReadoutMask += "]";
     uint32_t myrmask = mReadoutMask >> (im * NChPerModule);
-    LOGF(INFO, "Readout mask for module %d 0123 %c%c%c%c\n", im,
+    LOGF(info, "Readout mask for module %d 0123 %c%c%c%c\n", im,
          myrmask & 0x1 ? 'R' : 'N', myrmask & 0x2 ? 'R' : 'N', myrmask & 0x4 ? 'R' : 'N', myrmask & 0x8 ? 'R' : 'N');
   }
-  LOGF(INFO, "ReadoutMask=0x%08x %s\n", mReadoutMask, printReadoutMask.c_str());
+  LOGF(info, "ReadoutMask=0x%08x %s\n", mReadoutMask, printReadoutMask.c_str());
 }
 
 //______________________________________________________________________________
