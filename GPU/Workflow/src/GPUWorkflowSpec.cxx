@@ -252,14 +252,14 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
 
       // load from file
-      if (!confParam.dEdxTopologyCorrFile.empty() || !confParam.dEdxCorrFile.empty() || !confParam.dEdxFile.empty()) {
+      if (!confParam.dEdxPolTopologyCorrFile.empty() || !confParam.dEdxCorrFile.empty() || !confParam.dEdxSplineTopologyCorrFile.empty()) {
         processAttributes->dEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
-        if (!confParam.dEdxTopologyCorrFile.empty()) {
-          LOGP(info, "Loading dE/dx polynomial track topology correction from file: {}", confParam.dEdxTopologyCorrFile);
-          processAttributes->dEdxCalibContainer->loadPolTopologyCorrectionFromFile(confParam.dEdxTopologyCorrFile);
-        } else if (!confParam.dEdxFile.empty()) {
-          LOGP(info, "Loading dE/dx spline track topology correction from file: {}", confParam.dEdxFile);
-          processAttributes->dEdxCalibContainer->loadSplineTopologyCorrectionFromFile(confParam.dEdxFile);
+        if (!confParam.dEdxPolTopologyCorrFile.empty()) {
+          LOGP(info, "Loading dE/dx polynomial track topology correction from file: {}", confParam.dEdxPolTopologyCorrFile);
+          processAttributes->dEdxCalibContainer->loadPolTopologyCorrectionFromFile(confParam.dEdxPolTopologyCorrFile);
+        } else if (!confParam.dEdxSplineTopologyCorrFile.empty()) {
+          LOGP(info, "Loading dE/dx spline track topology correction from file: {}", confParam.dEdxSplineTopologyCorrFile);
+          processAttributes->dEdxCalibContainer->loadSplineTopologyCorrectionFromFile(confParam.dEdxSplineTopologyCorrFile);
         }
         if (!confParam.dEdxCorrFile.empty()) {
           LOGP(info, "Loading dEdx correction from file: {}", confParam.dEdxCorrFile);
