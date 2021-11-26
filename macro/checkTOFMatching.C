@@ -130,7 +130,7 @@ void checkTOFMatching(bool batchMode = true)
       int tofClIndex = infoTOF.getTOFClIndex();
       float chi2 = infoTOF.getChi2();
 #ifdef DEBUG
-      LOGF(INFO, "nentry in tree %d, matching %d, indexITSTPCtrack = %d, tofClIndex = %d, chi2 = %f", ientry, imatch, indexITSTPCtrack, tofClIndex, chi2);
+      LOGF(info, "nentry in tree %d, matching %d, indexITSTPCtrack = %d, tofClIndex = %d, chi2 = %f", ientry, imatch, indexITSTPCtrack, tofClIndex, chi2);
 #endif
 
       float matBud = infoTOF.getLTIntegralOut().getX2X0();
@@ -143,7 +143,7 @@ void checkTOFMatching(bool batchMode = true)
 
       for (uint ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
 #ifdef DEBUG
-        LOGF(INFO, "TOF label %d: trackID = %d, eventID = %d, sourceID = %d", ilabel, labelsTOF[ilabel].getTrackID(), labelsTOF[ilabel].getEventID(), labelsTOF[ilabel].getSourceID());
+        LOGF(info, "TOF label %d: trackID = %d, eventID = %d, sourceID = %d", ilabel, labelsTOF[ilabel].getTrackID(), labelsTOF[ilabel].getEventID(), labelsTOF[ilabel].getSourceID());
 #endif
         if (ilabel == 0) {
           trackIdTOF = labelsTOF[ilabel].getTrackID();
@@ -155,12 +155,12 @@ void checkTOFMatching(bool batchMode = true)
       int nContributingChannels = tofCluster.getNumOfContributingChannels();
       int mainContributingChannel = tofCluster.getMainContributingChannel();
 #ifdef DEBUG
-      LOGF(INFO, "The TOF cluster has %d contributing channels, and the main one is %d", nContributingChannels, mainContributingChannel);
+      LOGF(info, "The TOF cluster has %d contributing channels, and the main one is %d", nContributingChannels, mainContributingChannel);
 #endif
       int indices[5];
       o2::tof::Geo::getVolumeIndices(mainContributingChannel, indices);
 #ifdef DEBUG
-      LOGF(INFO, "Indices of main contributing channel are %d, %d, %d, %d, %d", indices[0], indices[1], indices[2], indices[3], indices[4]);
+      LOGF(info, "Indices of main contributing channel are %d, %d, %d, %d, %d", indices[0], indices[1], indices[2], indices[3], indices[4]);
 #endif
       bool isUpLeft = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kUpLeft);
       bool isUp = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kUp);
@@ -171,7 +171,7 @@ void checkTOFMatching(bool batchMode = true)
       bool isDownLeft = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kDownLeft);
       bool isLeft = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kLeft);
 #ifdef DEBUG
-      LOGF(INFO, "isUpLeft = %d, isUp = %d, isUpRight = %d, isRight = %d, isDownRight = %d, isDown = %d, isDownLeft = %d, isLeft = %d", isUpLeft, isUp, isUpRight, isRight, isDownRight, isDown, isDownLeft, isLeft);
+      LOGF(info, "isUpLeft = %d, isUp = %d, isUpRight = %d, isRight = %d, isDownRight = %d, isDown = %d, isDownLeft = %d, isLeft = %d", isUpLeft, isUp, isUpRight, isRight, isDownRight, isDown, isDownLeft, isLeft);
 #endif
       int indexCont[5];
       indexCont[0] = indices[0];
@@ -186,7 +186,7 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        LOGF(INFO, "secondaryContributingChannel[down] = %d", secondaryContributingChannel);
+        LOGF(info, "secondaryContributingChannel[down] = %d", secondaryContributingChannel);
 #endif
         indexCont[3] = indices[3];
       }
@@ -196,7 +196,7 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        LOGF(INFO, "secondaryContributingChannel[downright] = %d", secondaryContributingChannel);
+        LOGF(info, "secondaryContributingChannel[downright] = %d", secondaryContributingChannel);
 #endif
         indexCont[3] = indices[3];
         indexCont[4] = indices[4];
@@ -207,7 +207,7 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        LOGF(INFO, "secondaryContributingChannel[downleft] = %d", secondaryContributingChannel);
+        LOGF(info, "secondaryContributingChannel[downleft] = %d", secondaryContributingChannel);
 #endif
         indexCont[3] = indices[3];
         indexCont[4] = indices[4];
@@ -217,7 +217,7 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        LOGF(INFO, "secondaryContributingChannel[up] = %d", secondaryContributingChannel);
+        LOGF(info, "secondaryContributingChannel[up] = %d", secondaryContributingChannel);
 #endif
         indexCont[3] = indices[3];
       }
@@ -227,7 +227,7 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        LOGF(INFO, "secondaryContributingChannel[upright] = %d", secondaryContributingChannel);
+        LOGF(info, "secondaryContributingChannel[upright] = %d", secondaryContributingChannel);
 #endif
         indexCont[3] = indices[3];
         indexCont[4] = indices[4];
@@ -238,7 +238,7 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        LOGF(INFO, "secondaryContributingChannel[upleft] = %d", secondaryContributingChannel);
+        LOGF(info, "secondaryContributingChannel[upleft] = %d", secondaryContributingChannel);
 #endif
         indexCont[3] = indices[3];
         indexCont[4] = indices[4];
@@ -248,7 +248,7 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        LOGF(INFO, "secondaryContributingChannel[right] = %d", secondaryContributingChannel);
+        LOGF(info, "secondaryContributingChannel[right] = %d", secondaryContributingChannel);
 #endif
         indexCont[4] = indices[4];
       }
@@ -257,12 +257,12 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        LOGF(INFO, "secondaryContributingChannel[left] = %d", secondaryContributingChannel);
+        LOGF(info, "secondaryContributingChannel[left] = %d", secondaryContributingChannel);
 #endif
         indexCont[4] = indices[4];
       }
 #ifdef DEBUG
-      LOGF(INFO, "Total number of secondary channels= %d", numberOfSecondaryContributingChannels);
+      LOGF(info, "Total number of secondary channels= %d", numberOfSecondaryContributingChannels);
 #endif
       o2::dataformats::TrackTPCITS trackITSTPC = mTracksArrayInp->at(indexITSTPCtrack);
 
@@ -277,13 +277,13 @@ void checkTOFMatching(bool batchMode = true)
       // getting the TPC labels
       const auto& labelsTPC = (*mcTPC)[evIdxTPC];
 #ifdef DEBUG
-      LOGF(INFO, "TPC label: trackID = %d, eventID = %d, sourceID = %d", labelsTPC.getTrackID(), labelsTPC.getEventID(), labelsTPC.getSourceID());
+      LOGF(info, "TPC label: trackID = %d, eventID = %d, sourceID = %d", labelsTPC.getTrackID(), labelsTPC.getEventID(), labelsTPC.getSourceID());
 #endif
 
       // getting the ITS labels
       const auto& labelsITS = (*mcITS)[evIdxITS];
 #ifdef DEBUG
-      LOGF(INFO, "ITS label: trackID = %d, eventID = %d, sourceID = %d", labelsITS.getTrackID(), labelsITS.getEventID(), labelsITS.getSourceID());
+      LOGF(info, "ITS label: trackID = %d, eventID = %d, sourceID = %d", labelsITS.getTrackID(), labelsITS.getEventID(), labelsITS.getSourceID());
 #endif
       bool bMatched = kFALSE;
       for (uint ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
@@ -352,32 +352,32 @@ void checkTOFMatching(bool batchMode = true)
         const auto& labelsTPCcheck = (*mcTPC)[idxTPCcheck.getIndex()];
         if (abs(labelsTPCcheck.getTrackID()) == trackIdTOF && labelsTPCcheck.getEventID() == eventIdTOF && labelsTPCcheck.getSourceID() == sourceIdTOF) {
 #ifdef DEBUG
-          LOGF(INFO, "The TPC track that should have been matched to TOF is number %d", i);
+          LOGF(info, "The TPC track that should have been matched to TOF is number %d", i);
 #endif
           TPCfound = true;
         }
         const auto& labelsITScheck = (*mcITS)[idxITScheck.getIndex()];
         if (labelsITScheck.getTrackID() == trackIdTOF && labelsITScheck.getEventID() == eventIdTOF && labelsITScheck.getSourceID() == sourceIdTOF) {
 #ifdef DEBUG
-          LOGF(INFO, "The ITS track that should have been matched to TOF is number %d", i);
+          LOGF(info, "The ITS track that should have been matched to TOF is number %d", i);
 #endif
           ITSfound = true;
         }
       }
 #ifdef DEBUG
       if (!TPCfound)
-        LOGF(INFO, "There is no TPC track found that should have corresponded to this TOF cluster!");
+        LOGF(info, "There is no TPC track found that should have corresponded to this TOF cluster!");
       if (!ITSfound)
-        LOGF(INFO, "There is no ITS track found that should have corresponded to this TOF cluster!");
+        LOGF(info, "There is no ITS track found that should have corresponded to this TOF cluster!");
 #endif
     }
   }
 
   new TCanvas;
 
-  LOGF(INFO, "Number of      matches = %d", nMatches);
-  LOGF(INFO, "Number of GOOD matches = %d (%.2f)", nGoodMatches, (float)nGoodMatches / nMatches);
-  LOGF(INFO, "Number of BAD  matches = %d (%.2f)", nBadMatches, (float)nBadMatches / nMatches);
+  LOGF(info, "Number of      matches = %d", nMatches);
+  LOGF(info, "Number of GOOD matches = %d (%.2f)", nGoodMatches, (float)nGoodMatches / nMatches);
+  LOGF(info, "Number of BAD  matches = %d (%.2f)", nBadMatches, (float)nBadMatches / nMatches);
 
   TFile* fout = nullptr;
   if (batchMode)
@@ -490,7 +490,7 @@ void checkTOFMatching(bool batchMode = true)
 
   float fraction = hchi2dh->GetEntries() * 1. / hchi2->GetEntries();
   float fractionErr = TMath::Sqrt(fraction * (1 - fraction) / hchi2->GetEntries());
-  LOGF(INFO, "Fraction of multiple hits = (%.1f +/- %.1f)%c", fraction * 100, fractionErr * 100, '%');
+  LOGF(info, "Fraction of multiple hits = (%.1f +/- %.1f)%c", fraction * 100, fractionErr * 100, '%');
 
   htof->Fit("pol0", "", "", 1, 5);
   float effMatch = 0;
@@ -499,7 +499,7 @@ void checkTOFMatching(bool batchMode = true)
   float effMatchErr = 0;
   if (htof->GetListOfFunctions()->At(0))
     effMatchErr = ((TF1*)htof->GetListOfFunctions()->At(0))->GetParError(0);
-  LOGF(INFO, "TOF matching eff (pt > 1) = %f +/- %f", effMatch, effMatchErr);
+  LOGF(info, "TOF matching eff (pt > 1) = %f +/- %f", effMatch, effMatchErr);
 
   htofMism->Fit("pol0", "", "", 1, 5);
   float mismMatch = 0;
@@ -508,7 +508,7 @@ void checkTOFMatching(bool batchMode = true)
   float mismMatchErr = 0;
   if (htofMism->GetListOfFunctions()->At(0))
     mismMatchErr = ((TF1*)htofMism->GetListOfFunctions()->At(0))->GetParError(0);
-  LOGF(INFO, "TOF-track mismatch (pt > 1) = %f +/- %f", mismMatch, mismMatchErr);
+  LOGF(info, "TOF-track mismatch (pt > 1) = %f +/- %f", mismMatch, mismMatchErr);
 
   if (fout)
     fout->Close();
