@@ -20,7 +20,6 @@
 
 #include "TRandom.h"
 #include "TMath.h"
-#include "TOFBase/Utils.h"
 #include "ReconstructionDataFormats/PID.h"
 #include "Framework/Logger.h"
 
@@ -79,7 +78,7 @@ struct eventTimeTrackTest : eventTimeTrack {
   int mHypo = 0;
 };
 
-void generateEvTimeTracks(std::vector<eventTimeTrackTest>& tracks, int ntracks, float evTime = Utils::mLHCPhase);
+void generateEvTimeTracks(std::vector<eventTimeTrackTest>& tracks, int ntracks, float evTime = 0.0);
 
 template <typename trackType>
 bool filterDummy(const trackType& tr)
@@ -88,13 +87,15 @@ bool filterDummy(const trackType& tr)
 } // accept all
 
 void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<int>& trkIndex, eventTimeContainer& evtime);
+void computeEvTimeFast(const std::vector<eventTimeTrack>& tracks, const std::vector<int>& trkIndex, eventTimeContainer& evtime);
 int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb);
+int getStartTimeInSetFast(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb);
 
 template <typename trackTypeContainer,
           typename trackType,
           bool (*trackFilter)(const trackType&)>
 eventTimeContainer evTimeMaker(const trackTypeContainer& tracks,
-                               float diamond = Utils::mEventTimeSpread * 0.029979246 /* spread of primary verdex in cm */)
+                               float diamond = 6.0 /* spread of primary verdex in cm */, bool isFast = false)
 {
   static std::vector<eventTimeTrack> trkWork;
   trkWork.clear();
@@ -127,7 +128,11 @@ eventTimeContainer evTimeMaker(const trackTypeContainer& tracks,
     result.weights.push_back(0.);
     result.tracktime.push_back(0.);
   }
-  computeEvTime(trkWork, trkIndex, result);
+  if (!isFast) {
+    computeEvTime(trkWork, trkIndex, result);
+  } else {
+    computeEvTimeFast(trkWork, trkIndex, result);
+  }
   return result;
 }
 
@@ -138,7 +143,7 @@ template <typename trackTypeContainer,
           typename responseParametersType>
 eventTimeContainer evTimeMakerFromParam(const trackTypeContainer& tracks,
                                         const responseParametersType& responseParameters,
-                                        float diamond = Utils::mEventTimeSpread * 0.029979246 /* spread of primary verdex in cm */)
+                                        float diamond = 6.0 /* spread of primary verdex in cm */, bool isFast = false)
 {
   static std::vector<eventTimeTrack> trkWork;
   trkWork.clear();
@@ -175,7 +180,11 @@ eventTimeContainer evTimeMakerFromParam(const trackTypeContainer& tracks,
     result.weights.push_back(0.);
     result.tracktime.push_back(0.);
   }
-  computeEvTime(trkWork, trkIndex, result);
+  if (!isFast) {
+    computeEvTime(trkWork, trkIndex, result);
+  } else {
+    computeEvTimeFast(trkWork, trkIndex, result);
+  }
   return result;
 }
 } // namespace tof

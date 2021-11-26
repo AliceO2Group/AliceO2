@@ -48,6 +48,11 @@ void CalibTOFapi::readLHCphase()
 
   auto& mgr = CcdbManager::instance();
   mLHCphase = mgr.getForTimeStamp<LhcPhase>("TOF/Calib/LHCphase", mTimeStamp);
+  if (mLHCphase) {
+    LOG(info) << "read LHCphase for TOF " << mLHCphase->getLHCphase(mTimeStamp);
+  } else {
+    LOG(info) << "LHC phase not available in ccdb";
+  }
 }
 
 //______________________________________________________________________
@@ -60,6 +65,11 @@ void CalibTOFapi::readTimeSlewingParam()
 
   auto& mgr = CcdbManager::instance();
   mSlewParam = mgr.getForTimeStamp<SlewParam>("TOF/Calib/ChannelCalib", mTimeStamp);
+  if (mSlewParam) {
+    LOG(info) << "read TimeSlewingParam for TOF";
+  } else {
+    LOG(info) << "TimeSlewingParam for TOF not available in ccdb";
+  }
 }
 
 //______________________________________________________________________
@@ -72,6 +82,8 @@ void CalibTOFapi::readDiagnosticFrequencies()
 
   auto& mgr = CcdbManager::instance();
   mDiaFreq = mgr.getForTimeStamp<Diagnostic>("TOF/Calib/Diagnostic", mTimeStamp);
+
+  //  mDiaFreq->print();
 
   resetDia();
 

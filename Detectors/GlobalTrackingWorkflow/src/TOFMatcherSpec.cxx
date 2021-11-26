@@ -102,6 +102,8 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
 
+  auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+
   LOG(debug) << "isTrackSourceLoaded: TPC -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPC);
   LOG(debug) << "isTrackSourceLoaded: ITSTPC -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPC);
   LOG(debug) << "isTrackSourceLoaded: TPCTRD -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRD);
@@ -113,6 +115,8 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   bool isITSTPCTRDused = recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRD);
   uint32_t ss = o2::globaltracking::getSubSpec(mStrict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   mMatcher.setFIT(mUseFIT);
+
+  mMatcher.setTS(creationTime);
 
   mMatcher.run(recoData);
 

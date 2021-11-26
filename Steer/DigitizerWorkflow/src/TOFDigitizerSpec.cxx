@@ -41,7 +41,7 @@ namespace tof
 class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  TOFDPLDigitizerTask(bool useCCDB, std::string ccdb_url) : mUseCCDB{useCCDB}, mCCDBurl(ccdb_url), o2::base::BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM){};
+  TOFDPLDigitizerTask(bool useCCDB, std::string ccdb_url, int timestamp) : mUseCCDB{useCCDB}, mCCDBurl(ccdb_url), mTimestamp(timestamp), o2::base::BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM){};
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
@@ -122,7 +122,8 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     if (mUseCCDB) {
       calibapi.setURL(mCCDBurl.c_str());
-      calibapi.setTimeStamp(0);
+      long ts = mTimestamp;
+      calibapi.setTimeStamp(ts);
       calibapi.readTimeSlewingParam();
       calibapi.readDiagnosticFrequencies();
     }
@@ -198,9 +199,10 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   std::unique_ptr<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabels;
   bool mUseCCDB = false;
   std::string mCCDBurl;
+  int mTimestamp = 0;
 };
 
-DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth, std::string ccdb_url)
+DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth, std::string ccdb_url, int timestamp)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -226,7 +228,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth, s
     "TOFDigitizer",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFDPLDigitizerTask>(useCCDB, ccdb_url)},
+    AlgorithmSpec{adaptFromTask<TOFDPLDigitizerTask>(useCCDB, ccdb_url, timestamp)},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
     // I can't use VariantType::Bool as it seems to have a problem
   };

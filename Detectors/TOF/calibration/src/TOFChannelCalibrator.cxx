@@ -18,7 +18,6 @@
 #include "Fit/Fitter.h"
 #include "Fit/BinData.h"
 #include "Math/WrappedMultiTF1.h"
-#include "TOFBase/Utils.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -87,7 +86,12 @@ void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> d
       continue;
     }
 
-    dtcorr = Utils::subtractInteractionBC(dtcorr, true);
+    // add calib info for computation of LHC phase
+    Utils::addCalibTrack(dtcorr, true);
+
+    dtcorr = Utils::subtractInteractionBC(dtcorr, true) - Utils::mLHCPhase;
+
+    LOG(debug) << "LHCphase = " << Utils::mLHCPhase;
 
     LOG(debug) << "inserting in channel " << ch << ": dt = " << Utils::subtractInteractionBC(dt, true) << ", tot = " << tot << ", corr = " << corr << ", corrected dt = " << dtcorr;
 
