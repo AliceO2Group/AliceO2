@@ -117,7 +117,7 @@ GRPObject* GRPObject::loadFrom(const std::string& grpFileName)
   auto fname = o2::base::NameConf::getGRPFileName(grpFileName);
   TFile flGRP(fname.c_str());
   if (flGRP.IsZombie()) {
-    LOG(ERROR) << "Failed to open " << fname;
+    LOG(error) << "Failed to open " << fname;
     throw std::runtime_error("Failed to open GRP file");
   }
   auto grp = reinterpret_cast<o2::parameters::GRPObject*>(flGRP.GetObjectChecked(o2::base::NameConf::CCDBOBJECT.data(), Class()));

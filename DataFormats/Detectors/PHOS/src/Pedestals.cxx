@@ -26,18 +26,18 @@ bool Pedestals::setHGPedestals(TH1* h)
 {
   //We assume that histogram if filled vs absId of channels
   if (!h) {
-    LOG(ERROR) << "no input histogam";
+    LOG(error) << "no input histogam";
     return false;
   }
 
   if (h->GetNbinsX() != NCHANNELS + OFFSET) {
-    LOG(ERROR) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << " instead of " << NCHANNELS + OFFSET;
+    LOG(error) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << " instead of " << NCHANNELS + OFFSET;
     return false;
   }
 
   for (short i = 0; i < NCHANNELS; i++) {
     if (h->GetBinContent(i + OFFSET) > 255) {
-      LOG(ERROR) << "pedestal value too large:" << h->GetBinContent(i + OFFSET) << "can not be stored in char";
+      LOG(error) << "pedestal value too large:" << h->GetBinContent(i + OFFSET) << "can not be stored in char";
       continue;
     }
     mHGPedestals[i] = static_cast<unsigned char>(h->GetBinContent(i + OFFSET));
@@ -48,18 +48,18 @@ bool Pedestals::setLGPedestals(TH1* h)
 {
   //We assume that histogram if filled vs absId of channels
   if (!h) {
-    LOG(ERROR) << "no input histogam";
+    LOG(error) << "no input histogam";
     return false;
   }
 
   if (h->GetNbinsX() != NCHANNELS + OFFSET) {
-    LOG(ERROR) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << " instead of " << NCHANNELS + OFFSET;
+    LOG(error) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << " instead of " << NCHANNELS + OFFSET;
     return false;
   }
 
   for (short i = 0; i < NCHANNELS; i++) {
     if (h->GetBinContent(i + OFFSET) > 255) {
-      LOG(ERROR) << "pedestal value too large:" << h->GetBinContent(i + OFFSET) << "can not be stored in char";
+      LOG(error) << "pedestal value too large:" << h->GetBinContent(i + OFFSET) << "can not be stored in char";
       continue;
     }
     mLGPedestals[i] = static_cast<unsigned char>(h->GetBinContent(i + OFFSET));

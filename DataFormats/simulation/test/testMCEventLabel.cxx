@@ -28,12 +28,12 @@ BOOST_AUTO_TEST_CASE(MCEventLabel_test)
     int ev = gRandom->Integer(MCEventLabel::MaxEventID()), src = gRandom->Integer(MCEventLabel::MaxSourceID());
     float w = gRandom->Rndm();
     MCEventLabel lb(ev, src, w);
-    LOG(INFO) << "Input:   [" << src << '/' << ev << '/' << w << ']';
-    LOG(INFO) << "Encoded: " << lb << " (packed: " << uint32_t(lb) << ")";
+    LOG(info) << "Input:   [" << src << '/' << ev << '/' << w << ']';
+    LOG(info) << "Encoded: " << lb << " (packed: " << uint32_t(lb) << ")";
     int evE, srcE;
     float wE;
     lb.get(evE, srcE, wE);
-    LOG(INFO) << "Decoded: [" << srcE << '/' << evE << '/' << wE << ']';
+    LOG(info) << "Decoded: [" << srcE << '/' << evE << '/' << wE << ']';
     BOOST_CHECK(ev == evE && src == srcE && std::abs(w - wE) < MCEventLabel::WeightPrecision());
   }
 }

@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(RangeRef)
   BOOST_CHECK_EQUAL(range4.getFirstEntry(), ent);
   range4.changeEntriesBy(nent);
   BOOST_CHECK_EQUAL(range4.getEntries(), 2 * nent);
-  LOG(INFO) << "MaxEntryID : " << range4.getMaxFirstEntry() << " MaxEntries: " << range4.getMaxEntries();
+  LOG(info) << "MaxEntryID : " << range4.getMaxFirstEntry() << " MaxEntries: " << range4.getMaxEntries();
   BOOST_CHECK_EQUAL(range4.getMaxFirstEntry(), (0x1 << (32 - 4)) - 1);
   BOOST_CHECK_EQUAL(range4.getMaxEntries(), (0x1 << 4) - 1);
 }
