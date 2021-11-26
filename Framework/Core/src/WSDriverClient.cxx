@@ -83,7 +83,7 @@ void on_connect(uv_connect_t* connection, int status)
   std::lock_guard<std::mutex> lock(client->mutex());
   auto handler = std::make_unique<ClientWebSocketHandler>(*client);
   client->observe("/ping", [](std::string_view) {
-    LOG(INFO) << "ping";
+    LOG(info) << "ping";
   });
   /// FIXME: for now we simply take any offer as 1GB of SHM available
   client->observe("/shm-offer", [state = context->state](std::string_view cmd) {
@@ -199,7 +199,7 @@ void WSDriverClient::flushPending()
   if (!mClient) {
     if (mBacklog.size() > 2000) {
       if (!printed1) {
-        LOG(WARNING) << "Unable to communicate with driver because client does not exist. Continuing connection attempts.";
+        LOG(warning) << "Unable to communicate with driver because client does not exist. Continuing connection attempts.";
         printed1 = true;
       }
     }
@@ -208,7 +208,7 @@ void WSDriverClient::flushPending()
   if (!(mClient->isHandshaken())) {
     if (mBacklog.size() > 2000) {
       if (!printed2) {
-        LOG(WARNING) << "Unable to communicate with driver because client is not connected. Continuing connection attempts.";
+        LOG(warning) << "Unable to communicate with driver because client is not connected. Continuing connection attempts.";
         printed2 = true;
       }
     }
