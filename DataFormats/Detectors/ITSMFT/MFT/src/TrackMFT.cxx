@@ -29,7 +29,7 @@ namespace mft
 void TrackMFT::print() const
 {
   /// Printing TrackMFT information
-  LOG(INFO) << "TrackMFT: p =" << std::setw(5) << std::setprecision(3) << getP()
+  LOG(info) << "TrackMFT: p =" << std::setw(5) << std::setprecision(3) << getP()
             << " Tanl = " << std::setw(5) << std::setprecision(3) << getTanl()
             << " phi = " << std::setw(5) << std::setprecision(3) << getPhi()
             << " pz = " << std::setw(5) << std::setprecision(3) << getPz()

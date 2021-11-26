@@ -59,7 +59,7 @@ class LookUpTable
       mInvTopo(mTopoVector.size(), 0)
   {
     if (fillLinearly) {
-      LOG(INFO) << "Mapping of global channel and (PM, PM channel) pair";
+      LOG(info) << "Mapping of global channel and (PM, PM channel) pair";
       for (int link = 0; link < Nmodules; ++link) {
         for (int ch = 0; ch < NChPerMod; ++ch) {
           mTopoVector[link * NChPerMod + ch] = o2::fdd::Topo{link, ch};
@@ -67,7 +67,7 @@ class LookUpTable
       }
     } else {
       // TODO: If needed: implement more realistic splitting: 1 ring -> 1 PM instead of linear
-      LOG(WARNING) << "Don't use it - not implemented yet.";
+      LOG(warning) << "Don't use it - not implemented yet.";
     }
 
     // Fill inverted LUT - matters only if LUT is not linear
@@ -86,13 +86,13 @@ class LookUpTable
   std::size_t getNchannels() const { return mTopoVector.size(); } //get number of global PM channels
   void printFullMap() const
   {
-    LOG(INFO) << "o2::fdd::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  modCh]";
+    LOG(info) << "o2::fdd::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  modCh]";
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
-      LOG(INFO) << "  " << channel << "  " << mTopoVector[channel].modLink << "  " << mTopoVector[channel].modCh;
+      LOG(info) << "  " << channel << "  " << mTopoVector[channel].modLink << "  " << mTopoVector[channel].modCh;
     }
-    LOG(INFO) << "o2::fdd::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  modCh]";
+    LOG(info) << "o2::fdd::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  modCh]";
     for (size_t idx = 0; idx < mInvTopo.size(); ++idx) {
-      LOG(INFO) << "  " << idx << "  " << mInvTopo[idx] << "    " << getLinkFromIdx(mInvTopo[idx]) << "  " << getModChannelFromIdx(mInvTopo[idx]);
+      LOG(info) << "  " << idx << "  " << mInvTopo[idx] << "    " << getLinkFromIdx(mInvTopo[idx]) << "  " << getModChannelFromIdx(mInvTopo[idx]);
     }
   }
 
@@ -192,7 +192,7 @@ class SingleLUT : public LookUpTable
           RDHhelper::setCRUID(&rdhObj, cruID);
         }
       } else {
-        LOG(INFO) << "WARNING! CHECK LUT! TCM METADATA IS INCORRECT!";
+        LOG(info) << "WARNING! CHECK LUT! TCM METADATA IS INCORRECT!";
       }
     }
     assert(mapResult.size() > 0);

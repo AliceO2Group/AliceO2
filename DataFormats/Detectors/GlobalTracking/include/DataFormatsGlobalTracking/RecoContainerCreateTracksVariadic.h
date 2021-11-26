@@ -123,7 +123,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     constexpr int MAXBCDiffErrCount = 5;
     auto bcd = ir.differenceInBC(startIR);
     if (uint64_t(bcd) > o2::constants::lhc::LHCMaxBunches * 256 && BCDiffErrCount < MAXBCDiffErrCount) {
-      LOGP(ERROR, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}", bcd, ir, startIR);
+      LOGP(error, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}", bcd, ir, startIR);
       BCDiffErrCount++;
     }
     return bcd;
@@ -390,7 +390,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   }
 
   auto current_time = std::chrono::high_resolution_clock::now();
-  LOG(INFO) << "RecoContainer::createTracks took " << std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count() * 1e-6 << " CPU s.";
+  LOG(info) << "RecoContainer::createTracks took " << std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count() * 1e-6 << " CPU s.";
 }
 
 template <class T>
