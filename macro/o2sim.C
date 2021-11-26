@@ -133,7 +133,7 @@ FairRunSim* o2sim_init(bool asservice)
   // run init
   run->Init();
 
-  std::time_t runStart = std::time(nullptr);
+  uint64_t runStart = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
 
   // runtime database
   bool kParameterMerged = true;
@@ -158,7 +158,7 @@ FairRunSim* o2sim_init(bool asservice)
     o2::parameters::GRPObject grp;
     grp.setRun(run->GetRunId());
     grp.setTimeStart(runStart);
-    grp.setTimeEnd(std::time(nullptr));
+    grp.setTimeEnd(runStart + 3600000);
     grp.setDetsReadOut(detMask);
     // CTP is not a physical detector, just flag in the GRP if requested
     if (isActivated("CTP")) {
