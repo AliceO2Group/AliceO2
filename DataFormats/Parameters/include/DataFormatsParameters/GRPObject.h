@@ -38,7 +38,7 @@ class GRPObject
   using DetID = o2::detectors::DetID;
 
  public:
-  using timePoint = std::time_t;
+  using timePoint = uint64_t; // std::time_t;
 
   enum ROMode : int { ABSENT = 0,
                       PRESENT = 0x1,
@@ -169,7 +169,7 @@ class GRPObject
   std::string mDataPeriod = ""; ///< name of the period
   std::string mLHCState = "";   ///< machine state
 
-  ClassDefNV(GRPObject, 6);
+  ClassDefNV(GRPObject, 7);
 };
 
 //______________________________________________
