@@ -85,11 +85,9 @@ void AO2DConverter::init(o2::framework::InitContext& ic)
                              o2::math_utils::TransformType::T2G,
                              o2::math_utils::TransformType::L2G,
                              o2::math_utils::TransformType::T2L));
-
-  mCurrentEvent = 0;
 }
 
-void AO2DConverter::process(EveWorkflowHelper::FullTracks const& tracks)
+void AO2DConverter::process(EveWorkflowHelper::AODFullTracks const& tracks)
 {
   EveWorkflowHelper helper;
 
@@ -97,7 +95,6 @@ void AO2DConverter::process(EveWorkflowHelper::FullTracks const& tracks)
     helper.drawAOD(track);
   }
 
-  mCurrentEvent++;
   helper.save(jsonPath, 1, {}, {}, mWorkflowVersion);
 }
 

@@ -273,28 +273,21 @@ void EveWorkflowHelper::drawTPCTOF(GID gid, float trackTime)
   drawTOFClusters(gid, trackTime);
 }
 
-template <typename T>
-o2::track::TrackParCov getTrackParCov(const T& track)
+void EveWorkflowHelper::drawAOD(EveWorkflowHelper::AODFullTrack const& track)
 {
-  std::array<float, 5> arraypar = {track.y(), track.z(), track.snp(),
+  std::array<float, 5> const arraypar = {track.y(), track.z(), track.snp(),
                                    track.tgl(), track.signed1Pt()};
-//  std::array<float, 15> covpar = {track.cYY(), track.cZY(), track.cZZ(),
-//                                  track.cSnpY(), track.cSnpZ(),
-//                                  track.cSnpSnp(), track.cTglY(), track.cTglZ(),
-//                                  track.cTglSnp(), track.cTglTgl(),
-//                                  track.c1PtY(), track.c1PtZ(), track.c1PtSnp(),
-//                                  track.c1PtTgl(), track.c1Pt21Pt2()};
-  return o2::track::TrackParCov(track.x(), track.alpha(), std::move(arraypar));//, std::move(covpar));
-}
-
-void EveWorkflowHelper::drawAOD(EveWorkflowHelper::FullTrack const& t)
-{
-  GID gid = GID::ITSTPCTRD;
+  //  std::array<float, 15> const covpar = {track.cYY(), track.cZY(), track.cZZ(),
+  //                                  track.cSnpY(), track.cSnpZ(),
+  //                                  track.cSnpSnp(), track.cTglY(), track.cTglZ(),
+  //                                  track.cTglSnp(), track.cTglTgl(),
+  //                                  track.c1PtY(), track.c1PtZ(), track.c1PtSnp(),
+  //                                  track.c1PtTgl(), track.c1Pt21Pt2()};
 
   // TODO: obtain also PID for the track
-  auto const tr = getTrackParCov(t);
+  auto const tr = o2::track::TrackParCov(track.x(), track.alpha(), arraypar);//, covpar);
 
-  addTrackToEvent(tr, gid, 0.f, 0.f);
+  addTrackToEvent(tr, GID::ITSTPCTRDTOF, 0.f, 0.f, GID::ITSTPCTRDTOF);
 }
 
 void EveWorkflowHelper::drawTOFClusters(GID gid, float trackTime)

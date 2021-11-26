@@ -101,6 +101,7 @@ void Initializer::setup()
   if (Options::Instance()->online()) {
     frame->StartTimer();
   } else {
+    eventManager.getDataSource()->refresh();
     frame->DoFirstEvent();
   }
   gApplication->Connect("TEveBrowser", "CloseWindow()", "o2::event_visualisation::EventManagerFrame", frame, "DoTerminate()");
