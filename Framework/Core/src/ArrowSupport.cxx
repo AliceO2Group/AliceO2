@@ -509,23 +509,25 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         workflow.erase(writer);
       }
         // replace writer as some outputs may have become dangling and some are now consumed
-        auto [outputsInputs, outputTypes] = WorkflowHelpers::analyzeOutputs(workflow);
+      auto [outputsInputs, isDangling] = WorkflowHelpers::analyzeOutputs(workflow);
 
-        // create DataOutputDescriptor
-        std::shared_ptr<DataOutputDirector> dod = WorkflowHelpers::getDataOutputDirector(ctx.options(), outputsInputs, outputTypes);
+      // create DataOutputDescriptor
+      std::shared_ptr<DataOutputDirector> dod = WorkflowHelpers::getDataOutputDirector(ctx.options(), outputsInputs, isDangling);
 
-        // select outputs of type AOD which need to be saved
-        // ATTENTION: if there are dangling outputs the getGlobalAODSink
-        // has to be created in any case!
-        std::vector<InputSpec> outputsInputsAOD;
-        for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
-          if ((outputTypes[ii] & WorkflowHelpers::ANALYSIS) == WorkflowHelpers::ANALYSIS) {
-            auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
-            if (!ds.empty() || (outputTypes[ii] & WorkflowHelpers::DANGLING) == WorkflowHelpers::DANGLING) {
-              outputsInputsAOD.emplace_back(outputsInputs[ii]);
-            }
+      // select outputs of type AOD which need to be saved
+      // ATTENTION: if there are dangling outputs the getGlobalAODSink
+      // has to be created in any case!
+      std::vector<InputSpec> outputsInputsAOD;
+      auto isAOD = [](InputSpec const& spec) { return DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")); };
+
+      for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
+        if (isAOD(outputsInputs[ii])) {
+          auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
+          if (!ds.empty() || isDangling[ii]) {
+            outputsInputsAOD.emplace_back(outputsInputs[ii]);
           }
         }
+      }
 
         // file sink for any AOD output
         if (!outputsInputsAOD.empty()) {
