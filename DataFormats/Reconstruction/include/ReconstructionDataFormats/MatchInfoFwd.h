@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file MatchInfoMFTMCH.h
+/// \file MatchInfoFwd.h
 
 #ifndef ALICEO2_MATCH_INFO_MFTMCH_H
 #define ALICEO2_MATCH_INFO_MFTMCH_H
@@ -24,28 +24,28 @@ namespace dataformats
 {
 using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 
-class MatchInfoMFTMCHMID
+class MatchInfoFwd
 {
  public:
-  MatchInfoMFTMCHMID() = default;
-  MatchInfoMFTMCHMID(int32_t MCHId, int32_t MFTId, double chi2)
+  MatchInfoFwd() = default;
+  MatchInfoFwd(int32_t MCHId, int32_t MFTId, double chi2)
     : mMCHTrackID(MCHId), mMFTTrackID(MFTId), mMFTMCHMatchingChi2(chi2) {}
-  ~MatchInfoMFTMCHMID() = default;
+  ~MatchInfoFwd() = default;
 
-  void setMatchingChi2(double chi2) { mMFTMCHMatchingChi2 = chi2; }
-  const auto& getMatchingChi2() const { return mMFTMCHMatchingChi2; }
+  void setMFTMCHMatchingChi2(double chi2) { mMFTMCHMatchingChi2 = chi2; }
+  const auto& getMFTMCHMatchingChi2() const { return mMFTMCHMatchingChi2; }
 
   void setMIDMatchingChi2(double chi2) { mMCHMIDMatchingChi2 = chi2; }
   const auto& getMIDMatchingChi2() const { return mMCHMIDMatchingChi2; }
 
-  void countCandidate() { mNMFTCandidates++; }
+  void countMFTCandidate() { mNMFTCandidates++; }
   const auto& getNMFTCandidates() const { return mNMFTCandidates; }
   void setNMFTCandidates(int n) { mNMFTCandidates = n; }
 
   void setCloseMatch(bool v = true) { mCloseMatch = v; }
   const auto& isCloseMatch() const { return mCloseMatch; }
 
-  void setMatch(uint32_t MCHId, uint32_t MFTId, double MFTMCHMatchChi2)
+  void setMFTMCHMatch(uint32_t MCHId, uint32_t MFTId, double MFTMCHMatchChi2)
   {
     mMFTTrackID = MFTId;
     mMCHTrackID = MCHId;
@@ -53,9 +53,9 @@ class MatchInfoMFTMCHMID
   }
 
   /// get the MFT-MCH matching chi2
-  double getMatchChi2() const { return mMFTMCHMatchingChi2; }
+  double getMFTMCHMatchChi2() const { return mMFTMCHMatchingChi2; }
   /// set the MFT-MCH matching chi2
-  void setMatchChi2(double chi2) { mMFTMCHMatchingChi2 = chi2; }
+  void setMFTMCHMatchChi2(double chi2) { mMFTMCHMatchingChi2 = chi2; }
 
   void setMCHTrackID(int ID) { mMCHTrackID = ID; }
   const auto& getMCHTrackID() const { return mMCHTrackID; }
@@ -80,7 +80,7 @@ class MatchInfoMFTMCHMID
   bool mCloseMatch = false;             ///< Close match = correct MFT pair tested (MC-only)
   timeEst mTimeMUS;                     ///< time estimate in ns
 
-  ClassDefNV(MatchInfoMFTMCHMID, 1);
+  ClassDefNV(MatchInfoFwd, 1);
 };
 
 } // namespace dataformats

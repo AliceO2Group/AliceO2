@@ -37,7 +37,7 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/GlobalFwdTrack.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "ReconstructionDataFormats/MatchInfoMFTMCH.h"
+#include "ReconstructionDataFormats/MatchInfoFwd.h"
 #include "ReconstructionDataFormats/TrackMCHMID.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -119,7 +119,7 @@ class MatchGlobalFwd
   ///< set MFT ROFrame duration in BC (continuous mode only)
   void setMFTROFrameLengthInBC(int nbc);
   const std::vector<o2::dataformats::GlobalFwdTrack>& getMatchedFwdTracks() const { return mMatchedTracks; }
-  const std::vector<o2::dataformats::MatchInfoMFTMCHMID>& getMFTMCHMatchInfo() const { return mMatchingInfo; }
+  const std::vector<o2::dataformats::MatchInfoFwd>& getMFTMCHMatchInfo() const { return mMatchingInfo; }
   const std::vector<o2::MCCompLabel>& getMatchLabels() const { return mMatchLabels; }
 
  private:
@@ -269,7 +269,7 @@ class MatchGlobalFwd
   gsl::span<const o2::dataformats::TrackMCHMID> mMCHMIDMatches;            ///< input MCH MID Matches
   gsl::span<const int> mMFTTrackClusIdx;                                   ///< input MFT track cluster indices span
   gsl::span<const o2::itsmft::ROFRecord> mMFTClusterROFRec;                ///< input MFT clusters ROFRecord span
-  gsl::span<const o2::dataformats::MatchInfoMFTMCHMID> mMatchingInfoUpstream; ///< input MCH Track MC labels
+  gsl::span<const o2::dataformats::MatchInfoFwd> mMatchingInfoUpstream;    ///< input MCH Track MC labels
   gsl::span<const o2::MCCompLabel> mMFTTrkLabels;                          ///< input MFT Track MC labels
   gsl::span<const o2::MCCompLabel> mMCHTrkLabels;                          ///< input MCH Track MC labels
 
@@ -280,7 +280,7 @@ class MatchGlobalFwd
   std::vector<MFTCluster> mMFTClusters;                        ///< input MFT clusters
   std::vector<o2::dataformats::GlobalFwdTrack> mMatchedTracks; ///< MCH-MFT(-MID) Matched tracks
   std::vector<o2::MCCompLabel> mMatchLabels;                   ///< Output labels
-  std::vector<o2::dataformats::MatchInfoMFTMCHMID> mMatchingInfo;
+  std::vector<o2::dataformats::MatchInfoFwd> mMatchingInfo;
 
   const o2::itsmft::TopologyDictionary* mMFTDict{nullptr}; // cluster patterns dictionary
   o2::itsmft::ChipMappingMFT mMFTMapping;

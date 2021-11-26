@@ -15,7 +15,7 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "Framework/Task.h"
-#include "ReconstructionDataFormats/MatchInfoMFTMCH.h"
+#include "ReconstructionDataFormats/MatchInfoFwd.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -47,7 +47,7 @@ class MatchMFTMCHReader : public Task
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
   std::string mFileName = "";
-  std::vector<o2::dataformats::MatchInfoMFTMCHMID> mTracks, *mTracksPtr = &mTracks;
+  std::vector<o2::dataformats::MatchInfoFwd> mTracks, *mTracksPtr = &mTracks;
   std::vector<o2::MCCompLabel> mLabels, *mLabelsPtr = &mLabels;
 };
 

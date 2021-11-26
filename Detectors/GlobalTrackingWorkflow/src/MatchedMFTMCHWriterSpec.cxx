@@ -14,7 +14,7 @@
 #include <vector>
 #include "GlobalTrackingWorkflow/MatchedMFTMCHWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "ReconstructionDataFormats/MatchInfoMFTMCH.h"
+#include "ReconstructionDataFormats/MatchInfoFwd.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 using namespace o2::framework;
@@ -26,7 +26,7 @@ namespace globaltracking
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
-using MatchesType = std::vector<o2::dataformats::MatchInfoMFTMCHMID>;
+using MatchesType = std::vector<o2::dataformats::MatchInfoFwd>;
 using LabelsType = std::vector<o2::MCCompLabel>;
 
 DataProcessorSpec getMFTMCHMatchesWriterSpec(bool useMC)

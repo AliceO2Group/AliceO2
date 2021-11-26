@@ -787,7 +787,7 @@ void RecoContainer::addGlobalFwdTracks(ProcessingContext& pc, bool mc)
 //__________________________________________________________
 void RecoContainer::addMFTMCHMatches(ProcessingContext& pc, bool mc)
 {
-  commonPool[GTrackID::MFTMCH].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoMFTMCHMID>>("matchMFTMCH"), MATCHES);
+  commonPool[GTrackID::MFTMCH].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoFwd>>("matchMFTMCH"), MATCHES);
 }
 
 //__________________________________________________________

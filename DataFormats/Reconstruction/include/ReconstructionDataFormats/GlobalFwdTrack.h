@@ -16,7 +16,7 @@
 #define ALICEO2_TRACKGLOBALFWD_H
 
 #include "ReconstructionDataFormats/TrackFwd.h"
-#include "ReconstructionDataFormats/MatchInfoMFTMCH.h"
+#include "ReconstructionDataFormats/MatchInfoFwd.h"
 #include "Math/SMatrix.h"
 
 namespace o2
@@ -26,7 +26,7 @@ namespace dataformats
 using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
 
-class GlobalFwdTrack : public o2::track::TrackParCovFwd, public o2::dataformats::MatchInfoMFTMCHMID
+class GlobalFwdTrack : public o2::track::TrackParCovFwd, public o2::dataformats::MatchInfoFwd
 {
  public:
   GlobalFwdTrack() = default;

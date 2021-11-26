@@ -157,7 +157,7 @@ class V0;
 class Cascade;
 class TrackCosmics;
 class GlobalFwdTrack;
-class MatchInfoMFTMCHMID;
+class MatchInfoFwd;
 class TrackMCHMID;
 class IRFrame;
 } // namespace o2::dataformats
@@ -488,7 +488,7 @@ struct RecoContainer {
   // MFT-MCH
   const o2::dataformats::GlobalFwdTrack& getGlobalFwdTrack(GTrackID gid) const { return getTrack<o2::dataformats::GlobalFwdTrack>(gid); }
   auto getGlobalFwdTracks() const { return getTracks<o2::dataformats::GlobalFwdTrack>(GTrackID::MFTMCH); }
-  auto getMFTMCHMatches() const { return getSpan<o2::dataformats::MatchInfoMFTMCHMID>(GTrackID::MFTMCH, MATCHES); }
+  auto getMFTMCHMatches() const { return getSpan<o2::dataformats::MatchInfoFwd>(GTrackID::MFTMCH, MATCHES); }
   auto getGlobalFwdTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MFTMCH, MCLABELS); }
 
   // MCH

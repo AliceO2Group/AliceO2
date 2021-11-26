@@ -271,7 +271,7 @@ void MatchGlobalFwd::loadMatches()
     thisMCHTrack.setNMFTCandidates(match.getNMFTCandidates());
     thisMCHTrack.setMFTTrackID(match.getMFTTrackID());
     thisMCHTrack.setMCHTrackID(match.getMCHTrackID());
-    thisMCHTrack.setMatchingChi2(match.getMatchingChi2());
+    thisMCHTrack.setMFTMCHMatchingChi2(match.getMFTMCHMatchingChi2());
     mMatchedTracks.emplace_back((thisMCHTrack));
   }
   LOG(info) << " Done matching from upstream " << mMFTWork.size() << " MFT tracks with " << mMCHWork.size() << "  MCH Tracks. nFakes = " << nFakes << " nTrue = " << nTrue;
@@ -361,21 +361,21 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
         thisMFTLabel = &mMFTTrkLabels[MFTid];
       }
       if (matchingCut(thisMCHTrack, thisMFTTrack)) {
-        thisMCHTrack.countCandidate();
+        thisMCHTrack.countMFTCandidate();
         if (mMCTruthON) {
           if ((*thisMFTLabel) == (*thisMCHLabel)) {
             thisMCHTrack.setCloseMatch();
           }
         }
         auto chi2 = matchingEval(thisMCHTrack, thisMFTTrack);
-        if (chi2 < thisMCHTrack.getMatchingChi2()) {
+        if (chi2 < thisMCHTrack.getMFTMCHMatchingChi2()) {
           thisMCHTrack.setMFTTrackID(MFTid);
-          thisMCHTrack.setMatchingChi2(chi2);
+          thisMCHTrack.setMFTMCHMatchingChi2(chi2);
         }
       }
     }
     auto bestMatchID = thisMCHTrack.getMFTTrackID();
-    LOG(debug) << "       Matching MCHid = " << MCHid << " ==> bestMatchID = " << thisMCHTrack.getMFTTrackID() << " ; thisMCHTrack.getMatchingChi2() =  " << thisMCHTrack.getMatchingChi2();
+    LOG(debug) << "       Matching MCHid = " << MCHid << " ==> bestMatchID = " << thisMCHTrack.getMFTTrackID() << " ; thisMCHTrack.getMFTMCHMatchingChi2() =  " << thisMCHTrack.getMFTMCHMatchingChi2();
     LOG(debug) << "         MCH COV<X,X> = " << thisMCHTrack.getSigma2X() << " ; COV<Y,Y> = " << thisMCHTrack.getSigma2Y() << " ; pt = " << thisMCHTrack.getPt();
 
     if (bestMatchID >= 0) { // If there is a match, add to output container
@@ -396,10 +396,10 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
       thisMCHTrack.setMFTTrackID(bestMatchID);
       thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
       LOG(debug) << "    thisMCHTrack.getMFTTrackID() = " << thisMCHTrack.getMFTTrackID()
-                 << "; thisMCHTrack.getMatchingChi2() = " << thisMCHTrack.getMatchingChi2();
+                 << "; thisMCHTrack.getMFTMCHMatchingChi2() = " << thisMCHTrack.getMFTMCHMatchingChi2();
 
       mMatchedTracks.emplace_back((thisMCHTrack));
-      mMatchingInfo.emplace_back(MCHid, bestMatchID, thisMCHTrack.getMatchingChi2());
+      mMatchingInfo.emplace_back(MCHid, bestMatchID, thisMCHTrack.getMFTMCHMatchingChi2());
     }
 
   } // /loop over MCH tracks seeds
@@ -437,13 +437,13 @@ void MatchGlobalFwd::doMCMatching()
         thisMCHTrack.setCloseMatch();
         auto chi2 = matchMFT_MCH_TracksAllParam(thisMCHTrack, thisMFTTrack);
         thisMCHTrack.setMFTTrackID(MFTid);
-        thisMCHTrack.setMatchingChi2(chi2);
+        thisMCHTrack.setMFTMCHMatchingChi2(chi2);
         thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
         mMatchedTracks.emplace_back((thisMCHTrack));
         mMatchingInfo.emplace_back(MCHid, MFTid, chi2);
         mMatchLabels.push_back(matchLabel);
         auto bestMatchID = thisMCHTrack.getMFTTrackID();
-        LOG(debug) << "       Matching MCHid = " << MCHid << " ==> bestMatchID = " << thisMCHTrack.getMFTTrackID() << " ; thisMCHTrack.getMatchingChi2() =  " << thisMCHTrack.getMatchingChi2();
+        LOG(debug) << "       Matching MCHid = " << MCHid << " ==> bestMatchID = " << thisMCHTrack.getMFTTrackID() << " ; thisMCHTrack.getMFTMCHMatchingChi2() =  " << thisMCHTrack.getMFTMCHMatchingChi2();
         LOG(debug) << "         MCH COV<X,X> = " << thisMCHTrack.getSigma2X() << " ; COV<Y,Y> = " << thisMCHTrack.getSigma2Y() << " ; pt = " << thisMCHTrack.getPt();
         LOG(debug) << "   Label: " << matchLabel;
         break;
