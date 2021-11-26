@@ -43,6 +43,15 @@ class CalibInfoTOF
   void setFlags(int flags) { mFlags = flags; }
   float getFlags() const { return mFlags; }
 
+  // for event time maker
+  float tofSignal() const { return mDeltaTimePi; }
+  float tofExpSignalPi() const { return 0.0; }
+  float tofExpSignalKa() const { return 0.0; }
+  float tofExpSignalPr() const { return 0.0; }
+  float tofExpSigmaPi() const { return 500.0; }
+  float tofExpSigmaKa() const { return 500.0; }
+  float tofExpSigmaPr() const { return 500.0; }
+
  private:
   int mTOFChIndex;      // index of the TOF channel
   int mTimestamp;       // timestamp in seconds

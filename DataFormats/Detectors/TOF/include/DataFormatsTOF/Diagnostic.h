@@ -67,8 +67,12 @@ class Diagnostic
 
   const std::map<ULong64_t, uint32_t>& getVector() const { return mVector; }
 
+  int getTimeStamp() const { return mTimestamp; }
+  void setTimeStamp(int val) { mTimestamp = val; }
+
  private:
   std::map<ULong64_t, uint32_t> mVector; // diagnostic frequency vector (key/pattern , frequency)
+  int mTimestamp = 0;                    // timestamp in seconds
 
   ClassDefNV(Diagnostic, 1);
 };

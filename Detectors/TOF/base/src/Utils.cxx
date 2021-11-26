@@ -33,17 +33,78 @@ float Utils::mEventTimeSpread = 200;
 float Utils::mEtaMin = -0.8;
 float Utils::mEtaMax = 0.8;
 float Utils::mLHCPhase = 0;
+int Utils::mNCalibTracks = 0;
+o2::dataformats::CalibInfoTOF Utils::mCalibTracks[NTRACKS_REQUESTED];
+int Utils::mNsample = 0;
+int Utils::mIsample = 0;
+float Utils::mPhases[100];
+
+void Utils::addInteractionBC(int bc, bool fromCollisonCotext)
+{
+  if (fromCollisonCotext) { // align to TOF
+    if (bc + Geo::LATENCY_ADJ_LHC_IN_BC < 0) {
+      mFillScheme.push_back(bc + Geo::LATENCY_ADJ_LHC_IN_BC + Geo::BC_IN_ORBIT);
+    } else if (bc + Geo::LATENCY_ADJ_LHC_IN_BC >= Geo::BC_IN_ORBIT) {
+      mFillScheme.push_back(bc + Geo::LATENCY_ADJ_LHC_IN_BC - Geo::BC_IN_ORBIT);
+    } else {
+      mFillScheme.push_back(bc + Geo::LATENCY_ADJ_LHC_IN_BC);
+    }
+  } else {
+    mFillScheme.push_back(bc);
+  }
+}
 
 void Utils::init()
 {
   memset(mBCmult, 0, o2::constants::lhc::LHCMaxBunches * sizeof(mBCmult[0]));
 }
 
+void Utils::addCalibTrack(float ctime, bool subLatency)
+{
+  if (!hasFillScheme()) { // skip if fill scheme missing
+    return;
+  }
+
+  mCalibTracks[mNCalibTracks].setDeltaTimePi(subtractInteractionBC(ctime, subLatency));
+
+  mNCalibTracks++;
+
+  if (mNCalibTracks >= NTRACKS_REQUESTED) {
+    computeLHCphase();
+    mNCalibTracks = 0;
+  }
+}
+
+void Utils::computeLHCphase()
+{
+  static std::vector<o2::dataformats::CalibInfoTOF> tracks;
+  tracks.clear();
+  for (int i = 0; i < NTRACKS_REQUESTED; i++) {
+    tracks.push_back(mCalibTracks[i]);
+  }
+
+  auto evtime = evTimeMaker<std::vector<o2::dataformats::CalibInfoTOF>, o2::dataformats::CalibInfoTOF, filterCalib<o2::dataformats::CalibInfoTOF>>(tracks, 6.0f, true);
+
+  if (evtime.eventTimeError < 100) { // udpate LHCphase
+    mPhases[mIsample] = evtime.eventTime;
+    mIsample = (mIsample + 1) % 100;
+    if (mNsample < 100) {
+      mNsample++;
+    }
+  }
+
+  mLHCPhase = 0;
+  for (int i = 0; i < mNsample; i++) {
+    mLHCPhase += mPhases[i];
+  }
+  mLHCPhase /= mNsample;
+}
+
 void Utils::printFillScheme()
 {
   printf("FILL SCHEME\n");
   for (int i = 0; i < getNinteractionBC(); i++) {
-    printf("BC(%d) %d\n", i, mFillScheme[i]);
+    printf("BC(%d) LHCref=%d TOFref=%d\n", i, mFillScheme[i] - Geo::LATENCY_ADJ_LHC_IN_BC, mFillScheme[i]);
   }
 }
 

@@ -36,6 +36,8 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 #include <boost/format.hpp>
+#include "TOFBase/Utils.h"
+#include "Steer/MCKinematicsReader.h"
 
 //#define DEBUGGING
 
@@ -190,6 +192,19 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
     mFitCal = new TProfile("fitCal", ";channel;offset (ps)", 157248, 0, 157248);
     mChannelDist = new TH2F("channelDist", ";channel; t - t_{exp}^{#pi} (ps)", 157248, 0, 157248, 1000, -100000, 100000);
 #endif
+
+    // check collision context
+    auto mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+    auto context = mcReader->getDigitizationContext();
+    if (!context) {
+      auto bcf = context->getBunchFilling();
+      std::bitset<3564> isInBC = bcf.getBCPattern();
+      for (int i = 0; i < isInBC.size(); i++) {
+        if (isInBC.test(i)) {
+          o2::tof::Utils::addInteractionBC(i, true);
+        }
+      }
+    }
   }
 
   ~TOFChannelCalibrator() final = default;

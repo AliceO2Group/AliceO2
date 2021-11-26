@@ -124,10 +124,18 @@ class TOFDPLClustererTask
 
     if (mUseCCDB) {
       calibapi.setURL(mCCDBurl.c_str());
-      calibapi.setTimeStamp(0);
+      auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+      calibapi.setTimeStamp(creationTime / 1000);
+      LOG(info) << "CCDB required from TOF clusterizer with timestamp " << creationTime / 1000 << " from URL " << mCCDBurl.c_str();
+
+      LOG(info) << "read LHCphase";
       calibapi.readLHCphase();
+      LOG(info) << "read time slewing";
       calibapi.readTimeSlewingParam();
+      LOG(info) << "read daignostic";
       calibapi.readDiagnosticFrequencies();
+    } else {
+      LOG(info) << "No CCDB requested by TOF";
     }
 
     mClusterer.setCalibApi(&calibapi);
