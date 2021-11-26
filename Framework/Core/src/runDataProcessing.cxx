@@ -1096,11 +1096,11 @@ void gui_callback(uv_timer_s* ctx)
       return;
     }
     draw_data = gui->plugin->pollGUIRender(gui->callback);
+    gui->plugin->pollGUIPostRender(gui->window, draw_data);
   } else {
     draw_data = gui->lastFrame;
   }
 
-  gui->plugin->pollGUIPostRender(gui->window, draw_data);
 
   if (frameLatency / 1000000 > 15) {
     uint64_t frameEnd = uv_hrtime();
