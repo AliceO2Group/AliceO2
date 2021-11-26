@@ -6856,7 +6856,7 @@
           "node": {
             "state": "MERGED",
             "mergedAt": "2021-11-24T10:02:57Z",
-            "title": "Address LOG(WARNING / LOGP(WARNING",
+            "title": "Address LOG(warning / LOGP(warning",
             "number": 7723,
             "author": {
               "login": "ktf"
