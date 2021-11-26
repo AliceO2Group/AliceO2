@@ -198,10 +198,10 @@ BOOST_AUTO_TEST_CASE(VariableLists)
   f->Close();
 
   auto* f2 = TFile::Open("variable_lists.root", "READ");
-  tree = std::make_shared<TTree>(f2->Get("lists;1"));
+  auto* treeptr = static_cast<TTree*>(f2->Get("lists;1"));
   TreeToTable tr2ta;
-  tr2ta.addAllColumns(tree.get());
-  tr2ta.fill(tree.get());
+  tr2ta.addAllColumns(treeptr);
+  tr2ta.fill(treeptr);
   auto ta = tr2ta.finalize();
   o2::aod::Vectors v{ta};
   int i = 1;
