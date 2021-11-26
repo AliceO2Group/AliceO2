@@ -135,7 +135,11 @@ void ResidualsContainer::merge(ResidualsContainer* prev)
     for (int iVox = 0; iVox < trackResiduals->getNVoxelsPerSector(); ++iVox) {
       const auto& statPrev = statVecPrev[iVox];
       auto& stat = statVec[iVox];
-      float norm = 1. / (statPrev.nEntries + stat.nEntries);
+      float norm = 1.f;
+      if (statPrev.nEntries + stat.nEntries > 0.1) {
+        // if there is at least a single entry in either of the containers we need the proper norm
+        norm /= (statPrev.nEntries + stat.nEntries);
+      }
       stat.meanPos[TrackResiduals::VoxF] = (stat.meanPos[TrackResiduals::VoxF] * stat.nEntries + statPrev.meanPos[TrackResiduals::VoxF] * statPrev.nEntries) * norm;
       stat.meanPos[TrackResiduals::VoxZ] = (stat.meanPos[TrackResiduals::VoxZ] * stat.nEntries + statPrev.meanPos[TrackResiduals::VoxZ] * statPrev.nEntries) * norm;
       stat.nEntries += statPrev.nEntries;
