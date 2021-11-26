@@ -48,7 +48,7 @@ void TrackExtrap::setField()
   TGeoGlobalMagField::Instance()->Field(x, b);
   sSimpleBValue = b[0];
   sFieldON = (TMath::Abs(sSimpleBValue) > 1.e-10) ? true : false;
-  LOG(INFO) << "Track extrapolation with magnetic field " << (sFieldON ? "ON" : "OFF");
+  LOG(info) << "Track extrapolation with magnetic field " << (sFieldON ? "ON" : "OFF");
 }
 
 //__________________________________________________________________________
@@ -112,7 +112,7 @@ void TrackExtrap::linearExtrapToZCov(TrackParam& trackParam, double zEnd, bool u
 
   // No need to propagate the covariance matrix if it does not exist
   if (!trackParam.hasCovariances()) {
-    LOG(WARNING) << "Covariance matrix does not exist";
+    LOG(warning) << "Covariance matrix does not exist";
     // Extrapolate linearly track parameters to "zEnd"
     linearExtrapToZ(trackParam, zEnd);
     return;
@@ -175,7 +175,7 @@ bool TrackExtrap::extrapToZCov(TrackParam& trackParam, double zEnd, bool updateP
 
   // No need to propagate the covariance matrix if it does not exist
   if (!trackParam.hasCovariances()) {
-    LOG(WARNING) << "Covariance matrix does not exist";
+    LOG(warning) << "Covariance matrix does not exist";
     // Extrapolate track parameters to "zEnd"
     return extrapToZ(trackParam, zEnd);
   }
@@ -225,7 +225,7 @@ bool TrackExtrap::extrapToZCov(TrackParam& trackParam, double zEnd, bool updateP
 
     // Extrapolate new track parameters to "zEnd"
     if (!extrapToZ(trackParamSave, zEnd)) {
-      LOG(WARNING) << "Bad covariance matrix";
+      LOG(warning) << "Bad covariance matrix";
       return false;
     }
 
@@ -260,7 +260,7 @@ bool TrackExtrap::extrapToMID(TrackParam& trackParam)
 
   // check the track position with respect to the muon filter (spectro z<0)
   if (trackParam.getZ() < SMuonFilterZBeg) {
-    LOG(WARNING) << "The track already passed the beginning of the muon filter";
+    LOG(warning) << "The track already passed the beginning of the muon filter";
     return false;
   }
 
@@ -293,10 +293,10 @@ bool TrackExtrap::extrapToVertex(TrackParam& trackParam, double xVtx, double yVt
   // Check the vertex position with respect to the absorber (spectro z<0)
   if (zVtx < SAbsZBeg) {
     if (zVtx < SAbsZEnd) {
-      LOG(WARNING) << "Ending Z (" << zVtx << ") downstream the front absorber (zAbsorberEnd = " << SAbsZEnd << ")";
+      LOG(warning) << "Ending Z (" << zVtx << ") downstream the front absorber (zAbsorberEnd = " << SAbsZEnd << ")";
       return false;
     } else {
-      LOG(WARNING) << "Ending Z (" << zVtx << ") inside the front absorber (" << SAbsZBeg << ", " << SAbsZEnd << ")";
+      LOG(warning) << "Ending Z (" << zVtx << ") inside the front absorber (" << SAbsZBeg << ", " << SAbsZEnd << ")";
       return false;
     }
   }
@@ -304,13 +304,13 @@ bool TrackExtrap::extrapToVertex(TrackParam& trackParam, double xVtx, double yVt
   // Check the track position with respect to the vertex and the absorber (spectro z<0)
   if (trackParam.getZ() > SAbsZEnd) {
     if (trackParam.getZ() > zVtx) {
-      LOG(WARNING) << "Starting Z (" << trackParam.getZ() << ") upstream the vertex (zVtx = " << zVtx << ")";
+      LOG(warning) << "Starting Z (" << trackParam.getZ() << ") upstream the vertex (zVtx = " << zVtx << ")";
       return false;
     } else if (trackParam.getZ() > SAbsZBeg) {
-      LOG(WARNING) << "Starting Z (" << trackParam.getZ() << ") upstream the front absorber (zAbsorberBegin = " << SAbsZBeg << ")";
+      LOG(warning) << "Starting Z (" << trackParam.getZ() << ") upstream the front absorber (zAbsorberBegin = " << SAbsZBeg << ")";
       return false;
     } else {
-      LOG(WARNING) << "Starting Z (" << trackParam.getZ() << ") inside the front absorber (" << SAbsZBeg << ", " << SAbsZEnd << ")";
+      LOG(warning) << "Starting Z (" << trackParam.getZ() << ") inside the front absorber (" << SAbsZBeg << ", " << SAbsZEnd << ")";
       return false;
     }
   }
@@ -399,7 +399,7 @@ bool TrackExtrap::getAbsorberCorrectionParam(double trackXYZIn[3], double trackX
 
   // Check whether the geometry is available
   if (!gGeoManager) {
-    LOG(WARNING) << "geometry is missing";
+    LOG(warning) << "geometry is missing";
     return false;
   }
 
@@ -408,13 +408,13 @@ bool TrackExtrap::getAbsorberCorrectionParam(double trackXYZIn[3], double trackX
                            (trackXYZOut[1] - trackXYZIn[1]) * (trackXYZOut[1] - trackXYZIn[1]) +
                            (trackXYZOut[2] - trackXYZIn[2]) * (trackXYZOut[2] - trackXYZIn[2]));
   if (pathLength < TGeoShape::Tolerance()) {
-    LOG(WARNING) << "path length is too small";
+    LOG(warning) << "path length is too small";
     return false;
   }
   double b[3] = {(trackXYZOut[0] - trackXYZIn[0]) / pathLength, (trackXYZOut[1] - trackXYZIn[1]) / pathLength, (trackXYZOut[2] - trackXYZIn[2]) / pathLength};
   TGeoNode* currentnode = gGeoManager->InitTrack(trackXYZIn, b);
   if (!currentnode) {
-    LOG(WARNING) << "starting point out of geometry";
+    LOG(warning) << "starting point out of geometry";
     return false;
   }
 
@@ -452,7 +452,7 @@ bool TrackExtrap::getAbsorberCorrectionParam(double trackXYZIn[3], double trackX
     } else {
       currentnode = gGeoManager->Step();
       if (!currentnode) {
-        LOG(WARNING) << "navigation failed";
+        LOG(warning) << "navigation failed";
         return false;
       }
       if (!gGeoManager->IsEntering()) {
@@ -460,7 +460,7 @@ bool TrackExtrap::getAbsorberCorrectionParam(double trackXYZIn[3], double trackX
         gGeoManager->SetStep(0.001);
         currentnode = gGeoManager->Step();
         if (!gGeoManager->IsEntering() || !currentnode) {
-          LOG(WARNING) << "navigation failed";
+          LOG(warning) << "navigation failed";
           return false;
         }
         localPathLength += 0.001;
@@ -889,7 +889,7 @@ bool TrackExtrap::extrapToZRungekutta(TrackParam& trackParam, double zEnd)
 
     do { // reduce step length while zEnd overstepped
       if (++stepNumber > SMaxStepNumber) {
-        LOG(WARNING) << "Too many trials";
+        LOG(warning) << "Too many trials";
         return false;
       }
       step = TMath::Abs(step);
@@ -901,7 +901,7 @@ bool TrackExtrap::extrapToZRungekutta(TrackParam& trackParam, double zEnd)
     } while (residue * dZ < 0 && TMath::Abs(residue) > SRungeKuttaMaxResidue);
 
     if (v3New[5] * v3[5] < 0) { // the track turned around
-      LOG(WARNING) << "The track turned around";
+      LOG(warning) << "The track turned around";
       return false;
     }
 
@@ -939,7 +939,7 @@ bool TrackExtrap::extrapToZRungekuttaV2(TrackParam& trackParam, double zEnd)
   while (true) {
 
     if (++stepNumber > SMaxStepNumber) {
-      LOG(WARNING) << "Too many trials";
+      LOG(warning) << "Too many trials";
       return false;
     }
 
@@ -953,7 +953,7 @@ bool TrackExtrap::extrapToZRungekuttaV2(TrackParam& trackParam, double zEnd)
     }
 
     if (v3New[5] * v3[5] < 0) {
-      LOG(WARNING) << "The track turned around";
+      LOG(warning) << "The track turned around";
       return false;
     }
 
@@ -1209,14 +1209,14 @@ bool TrackExtrap::extrapOneStepRungekutta(double charge, double step, const doub
   } while (1);
 
   // angle too big, use helix
-  LOG(WARNING) << "Ruge-Kutta failed: switch to helix";
+  LOG(warning) << "Ruge-Kutta failed: switch to helix";
 
   f1 = f[0];
   f2 = f[1];
   f3 = f[2];
   f4 = TMath::Sqrt(f1 * f1 + f2 * f2 + f3 * f3);
   if (f4 < 1.e-10) {
-    LOG(WARNING) << "magnetic field at (" << xyzt[0] << ", " << xyzt[1] << ", " << xyzt[2] << ") = " << f4 << ": giving up";
+    LOG(warning) << "magnetic field at (" << xyzt[0] << ", " << xyzt[1] << ", " << xyzt[2] << ") = " << f4 << ": giving up";
     return false;
   }
   rho = -f4 * pinv;
@@ -1259,8 +1259,8 @@ bool TrackExtrap::extrapOneStepRungekutta(double charge, double step, const doub
 void TrackExtrap::printNCalls()
 {
   /// Print the number of times some methods are called
-  LOG(INFO) << "number of times extrapToZCov() is called = " << sNCallExtrapToZCov;
-  LOG(INFO) << "number of times Field() is called = " << sNCallField;
+  LOG(info) << "number of times extrapToZCov() is called = " << sNCallExtrapToZCov;
+  LOG(info) << "number of times Field() is called = " << sNCallField;
 }
 
 } // namespace mch

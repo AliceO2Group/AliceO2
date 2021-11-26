@@ -92,7 +92,7 @@ o2-raw-file-reader-workflow --input-conf MIDraw.cfg | o2-mid-raw-to-digits-workf
 ### Timing
 
 In each device belonging to the reconstruction workflow, the execution time is measured using the `chrono` c++ library.
-At the end of the execution, when the *stop* command is launched, the execution time is written to the `LOG(INFO)`.
+At the end of the execution, when the *stop* command is launched, the execution time is written to the `LOG(info)`.
 An example output is the following:
 
 ```less

@@ -167,7 +167,7 @@ class FileReaderTask
   void init(framework::InitContext& ic)
   {
     /// Get the input file and other options from the context
-    LOG(INFO) << "initializing file reader";
+    LOG(info) << "initializing file reader";
     mFrameMax = ic.options().get<int>("nframes");
     mTimeFrameMax = ic.options().get<int>("max-time-frame");
     mPrint = ic.options().get<bool>("print");
@@ -184,7 +184,7 @@ class FileReaderTask
 
     auto stop = [this]() {
       /// close the input file
-      LOG(INFO) << "stop file reader";
+      LOG(info) << "stop file reader";
       this->mInputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);

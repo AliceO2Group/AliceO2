@@ -121,7 +121,7 @@ class PedestalsTask
 
   void initElec2DetMapper(std::string filename)
   {
-    LOG(INFO) << "[initElec2DetMapper] filename=" << filename;
+    LOG(info) << "[initElec2DetMapper] filename=" << filename;
     if (filename.empty()) {
       mElec2Det = createElec2DetMapper<ElectronicMapperGenerated>();
     } else {
@@ -132,7 +132,7 @@ class PedestalsTask
 
   void initFee2SolarMapper(std::string filename)
   {
-    LOG(INFO) << "[initFee2SolarMapper] filename=" << filename;
+    LOG(info) << "[initFee2SolarMapper] filename=" << filename;
     if (filename.empty()) {
       mFee2Solar = createFeeLink2SolarMapper<ElectronicMapperGenerated>();
     } else {
@@ -153,7 +153,7 @@ class PedestalsTask
     initElec2DetMapper(mMapFECfile);
     auto stop = [this]() {
       if (mTFcount > 0) {
-        LOG(INFO) << "time spent for decoding (ms): min=" << mTimeDecoderMin->count() << ", max="
+        LOG(info) << "time spent for decoding (ms): min=" << mTimeDecoderMin->count() << ", max="
                   << mTimeDecoderMax->count() << ", mean=" << mTimeDecoder.count() / mTFcount;
       }
     };
@@ -311,7 +311,7 @@ class PedestalsTask
     loggerEnd = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> loggerElapsed = loggerEnd - loggerStart;
     if (loggerElapsed.count() > mLoggingInterval) {
-      LOG(INFO) << "Processed " << nDigits << " digits in " << nTF << " time frames";
+      LOG(info) << "Processed " << nDigits << " digits in " << nTF << " time frames";
       nDigits = 0;
       nTF = 0;
       loggerStart = std::chrono::high_resolution_clock::now();

@@ -53,7 +53,7 @@ class TrackFitterTask
   void init(framework::InitContext& ic)
   {
     /// Prepare the track extrapolation tools
-    LOG(INFO) << "initializing track fitter";
+    LOG(info) << "initializing track fitter";
     auto l3Current = ic.options().get<float>("l3Current");
     auto dipoleCurrent = ic.options().get<float>("dipoleCurrent");
     mTrackFitter.initField(l3Current, dipoleCurrent);
@@ -96,14 +96,14 @@ class TrackFitterTask
         try {
           mTrackFitter.fit(track);
         } catch (exception const& e) {
-          LOG(ERROR) << "Track fit failed: " << e.what();
+          LOG(error) << "Track fit failed: " << e.what();
           continue;
         }
 
         // propagate the parameters to the MID
         TrackParam paramAtMID(track.last());
         if (!TrackExtrap::extrapToMID(paramAtMID)) {
-          LOG(ERROR) << "propagation to MID failed --> track discarded";
+          LOG(error) << "propagation to MID failed --> track discarded";
           continue;
         }
 

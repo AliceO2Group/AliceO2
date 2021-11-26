@@ -55,7 +55,7 @@ class TrackMCLabelFinderTask
   /// prepare the task from the context
   void init(framework::InitContext& ic)
   {
-    LOG(INFO) << "initializing track MC label finder";
+    LOG(info) << "initializing track MC label finder";
     if (!mMCReader.initFromDigitContext(ic.options().get<std::string>("incontext").c_str())) {
       throw invalid_argument("initialization of MCKinematicsReader failed");
     }

@@ -53,7 +53,7 @@ class DigitSamplerTask
   void init(framework::InitContext& ic)
   {
     /// Get the input file and other options from the context
-    LOG(INFO) << "initializing digit sampler";
+    LOG(info) << "initializing digit sampler";
 
     auto inputFileName = ic.options().get<std::string>("infile");
     mInputFile.open(inputFileName, ios::binary);
@@ -75,7 +75,7 @@ class DigitSamplerTask
 
     auto stop = [this]() {
       // close the input file
-      LOG(INFO) << "stop digit sampler";
+      LOG(info) << "stop digit sampler";
       this->mInputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
@@ -88,7 +88,7 @@ class DigitSamplerTask
 
     // skip events until the requested one, if any
     while (mCurrentEvent < mEvent && mInputFile.peek() != EOF) {
-      LOG(INFO) << "skipping event " << mCurrentEvent;
+      LOG(info) << "skipping event " << mCurrentEvent;
       skipOneEvent();
       ++mCurrentEvent;
     }
@@ -174,7 +174,7 @@ class DigitSamplerTask
         throw length_error("invalid input");
       }
     } else {
-      LOG(INFO) << "event is empty";
+      LOG(info) << "event is empty";
     }
 
     return nDigits;
