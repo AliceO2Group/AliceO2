@@ -62,14 +62,14 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   }
 
   mTimer.Stop();
-  LOG(INFO) << "Decoded {" << cols[0].size() << ',' << cols[1].size() << ',' << cols[2].size()
+  LOG(info) << "Decoded {" << cols[0].size() << ',' << cols[1].size() << ',' << cols[2].size()
             << "} MID columns for {" << rofs[0].size() << ',' << rofs[1].size() << ',' << rofs[2].size()
             << "} ROFRecords in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "MID Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "MID Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

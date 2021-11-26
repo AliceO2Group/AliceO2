@@ -604,7 +604,7 @@ void ClusterFinderOriginal::findLocalMaxima(std::unique_ptr<TH2D>& histAnode,
       }
     }
     if (localMaxima.size() > 99) {
-      LOG(WARNING) << "Too many local maxima !!!";
+      LOG(warning) << "Too many local maxima !!!";
       break;
     }
   }
@@ -1288,7 +1288,7 @@ void ClusterFinderOriginal::cleanPixelArray(double threshold, std::vector<double
       }
     }
     if (iNeighbour < 0) {
-      LOG(ERROR) << "There is no pixel above the threshold!?";
+      LOG(error) << "There is no pixel above the threshold!?";
       continue;
     }
 

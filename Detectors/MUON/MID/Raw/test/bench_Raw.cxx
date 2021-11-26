@@ -61,7 +61,7 @@ std::vector<uint8_t> generateTestData(size_t nTF, size_t nDataInTF, size_t nColD
   }
 
   auto severity = fair::Logger::GetConsoleSeverity();
-  fair::Logger::SetConsoleSeverity(fair::Severity::WARNING);
+  fair::Logger::SetConsoleSeverity(fair::Severity::warning);
   o2::mid::Encoder encoder;
   encoder.init();
   std::string tmpConfigFilename = "tmp_MIDConfig.cfg";

@@ -1662,22 +1662,22 @@ void TrackFinder::print(Args... args) const
 void TrackFinder::printStats() const
 {
   /// print the timers
-  LOG(INFO) << "number of candidates tracked = " << mNCandidates;
+  LOG(info) << "number of candidates tracked = " << mNCandidates;
   TrackExtrap::printNCalls();
-  LOG(INFO) << "number of times tryOneClusterFast() is called = " << mNCallTryOneClusterFast;
-  LOG(INFO) << "number of times tryOneCluster() is called = " << mNCallTryOneCluster;
+  LOG(info) << "number of times tryOneClusterFast() is called = " << mNCallTryOneClusterFast;
+  LOG(info) << "number of times tryOneCluster() is called = " << mNCallTryOneCluster;
 }
 
 //_________________________________________________________________________________________________
 void TrackFinder::printTimers() const
 {
   /// print the timers
-  LOG(INFO) << "findTrackCandidates duration = " << mTimeFindCandidates.count() << " s";
-  LOG(INFO) << "findMoreTrackCandidates duration = " << mTimeFindMoreCandidates.count() << " s";
-  LOG(INFO) << "followTracks duration = " << mTimeFollowTracks.count() << " s";
-  LOG(INFO) << "improveTracks duration = " << mTimeImproveTracks.count() << " s";
-  LOG(INFO) << "removeConnectedTracks duration = " << mTimeCleanTracks.count() << " s";
-  LOG(INFO) << "refineTracks duration = " << mTimeRefineTracks.count() << " s";
+  LOG(info) << "findTrackCandidates duration = " << mTimeFindCandidates.count() << " s";
+  LOG(info) << "findMoreTrackCandidates duration = " << mTimeFindMoreCandidates.count() << " s";
+  LOG(info) << "followTracks duration = " << mTimeFollowTracks.count() << " s";
+  LOG(info) << "improveTracks duration = " << mTimeImproveTracks.count() << " s";
+  LOG(info) << "removeConnectedTracks duration = " << mTimeCleanTracks.count() << " s";
+  LOG(info) << "refineTracks duration = " << mTimeRefineTracks.count() << " s";
 }
 
 } // namespace mch

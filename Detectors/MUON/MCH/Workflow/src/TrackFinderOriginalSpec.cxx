@@ -58,7 +58,7 @@ class TrackFinderTask
   {
     /// Prepare the track extrapolation tools
 
-    LOG(INFO) << "initializing track finder";
+    LOG(info) << "initializing track finder";
 
     auto l3Current = ic.options().get<float>("l3Current");
     auto dipoleCurrent = ic.options().get<float>("dipoleCurrent");
@@ -74,7 +74,7 @@ class TrackFinderTask
     auto stop = [this]() {
       mTrackFinder.printStats();
       mTrackFinder.printTimers();
-      LOG(INFO) << "tracking duration = " << mElapsedTime.count() << " s";
+      LOG(info) << "tracking duration = " << mElapsedTime.count() << " s";
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
   }
@@ -88,7 +88,7 @@ class TrackFinderTask
     auto clusterROFs = pc.inputs().get<gsl::span<ROFRecord>>("clusterrofs");
     auto clustersIn = pc.inputs().get<gsl::span<Cluster>>("clusters");
 
-    // LOG(INFO) << "received time frame with " << clusterROFs.size() << " interactions";
+    // LOG(info) << "received time frame with " << clusterROFs.size() << " interactions";
 
     // create the output messages for tracks and attached clusters
     auto& trackROFs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"trackrofs"});
@@ -98,7 +98,7 @@ class TrackFinderTask
     trackROFs.reserve(clusterROFs.size());
     for (const auto& clusterROF : clusterROFs) {
 
-      // LOG(INFO) << "processing interaction: " << clusterROF.getBCData() << "...";
+      // LOG(info) << "processing interaction: " << clusterROF.getBCData() << "...";
 
       // sort the input clusters of the current event per chamber
       std::array<std::list<const Cluster*>, 10> clusters{};
@@ -132,7 +132,7 @@ class TrackFinderTask
 
       TrackParam paramAtMID(track.last());
       if (!TrackExtrap::extrapToMID(paramAtMID)) {
-        LOG(WARNING) << "propagation to MID failed --> track discarded";
+        LOG(warning) << "propagation to MID failed --> track discarded";
         continue;
       }
 

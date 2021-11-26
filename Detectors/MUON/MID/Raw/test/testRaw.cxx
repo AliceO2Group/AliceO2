@@ -89,7 +89,7 @@ void doTest(const std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnDat
 std::tuple<std::vector<o2::mid::ColumnData>, std::vector<o2::mid::ROFRecord>> encodeDecode(std::map<o2::InteractionRecord, std::vector<o2::mid::ColumnData>> inData, o2::mid::EventType inEventType = o2::mid::EventType::Standard)
 {
   auto severity = fair::Logger::GetConsoleSeverity();
-  fair::Logger::SetConsoleSeverity(fair::Severity::WARNING);
+  fair::Logger::SetConsoleSeverity(fair::Severity::warning);
   o2::mid::Encoder encoder;
   encoder.init();
   std::string tmpConfigFilename = "tmp_MIDConfig.cfg";

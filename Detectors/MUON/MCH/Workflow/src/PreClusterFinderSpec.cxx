@@ -64,21 +64,21 @@ class PreClusterFinderTask
   void init(framework::InitContext& ic)
   {
     /// Prepare the preclusterizer
-    LOG(INFO) << "initializing preclusterizer";
+    LOG(info) << "initializing preclusterizer";
 
     mPreClusterFinder.init();
 
     auto stop = [this]() {
-      LOG(INFO) << "reset precluster finder duration = " << mTimeResetPreClusterFinder.count() << " ms";
-      LOG(INFO) << "load digits duration = " << mTimeLoadDigits.count() << " ms";
-      LOG(INFO) << "discard high occupancy duration = " << mTimeDiscardHighOccupancy.count() << " ms";
-      LOG(INFO) << "precluster finder duration = " << mTimePreClusterFinder.count() << " ms";
-      LOG(INFO) << "store precluster duration = " << mTimeStorePreClusters.count() << " ms";
+      LOG(info) << "reset precluster finder duration = " << mTimeResetPreClusterFinder.count() << " ms";
+      LOG(info) << "load digits duration = " << mTimeLoadDigits.count() << " ms";
+      LOG(info) << "discard high occupancy duration = " << mTimeDiscardHighOccupancy.count() << " ms";
+      LOG(info) << "precluster finder duration = " << mTimePreClusterFinder.count() << " ms";
+      LOG(info) << "store precluster duration = " << mTimeStorePreClusters.count() << " ms";
       /// Clear the preclusterizer
       auto tStart = std::chrono::high_resolution_clock::now();
       this->mPreClusterFinder.deinit();
       auto tEnd = std::chrono::high_resolution_clock::now();
-      LOG(INFO) << "deinitializing preclusterizer in: "
+      LOG(info) << "deinitializing preclusterizer in: "
                 << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms";
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
@@ -173,7 +173,7 @@ class PreClusterFinderTask
           break;
         case CHECK_NO_LEFTOVER_DIGITS_ERROR:
           if (digitsSizesDiffer) {
-            LOG(ERROR) << "some digits have been lost during the preclustering";
+            LOG(error) << "some digits have been lost during the preclustering";
           }
           break;
         case CHECK_NO_LEFTOVER_DIGITS_FATAL:

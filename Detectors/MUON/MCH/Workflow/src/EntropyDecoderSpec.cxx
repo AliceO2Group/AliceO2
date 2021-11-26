@@ -71,12 +71,12 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mCTFCoder.decode(ctfImage, rofs, digits);
 
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << digits.size() << " MCH digits in " << rofs.size() << " ROFRecords in " << mTimer.CpuTime() - cput << " s.";
+  LOG(info) << "Decoded " << digits.size() << " MCH digits in " << rofs.size() << " ROFRecords in " << mTimer.CpuTime() - cput << " s.";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "MCH Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "MCH Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
