@@ -648,7 +648,7 @@ inline void TrackResiduals::getVoxelCoordinates(int isec, int ix, int ip, int iz
   x = getX(ix);
   p = getY2X(ix, ip);
   z = getZ2X(iz);
-  if (isec < SECTORSPERSIDE) {
+  if (isec >= SECTORSPERSIDE) {
     z = -z;
   }
 }
