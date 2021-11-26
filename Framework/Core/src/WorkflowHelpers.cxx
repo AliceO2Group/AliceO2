@@ -209,8 +209,8 @@ void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec>&& reques
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
 {
   auto fakeCallback = AlgorithmSpec{[](InitContext& ic) {
-    LOG(INFO) << "This is not a real device, merely a placeholder for external inputs";
-    LOG(INFO) << "To be hidden / removed at some point.";
+    LOG(info) << "This is not a real device, merely a placeholder for external inputs";
+    LOG(info) << "To be hidden / removed at some point.";
     // mark this dummy process as ready-to-quit
     ic.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 
@@ -459,7 +459,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     result = uv_dlopen("libO2FrameworkAnalysisSupport.so", &supportLib);
 #endif
     if (result == -1) {
-      LOG(FATAL) << uv_dlerror(&supportLib);
+      LOG(fatal) << uv_dlerror(&supportLib);
       return;
     }
     void* callback = nullptr;
@@ -467,11 +467,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
     result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
     if (result == -1) {
-      LOG(FATAL) << uv_dlerror(&supportLib);
+      LOG(fatal) << uv_dlerror(&supportLib);
       return;
     }
     if (dpl_plugin_callback == nullptr) {
-      LOG(FATAL) << "Could not find the AnalysisSupport plugin.";
+      LOG(fatal) << "Could not find the AnalysisSupport plugin.";
       return;
     }
     DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);

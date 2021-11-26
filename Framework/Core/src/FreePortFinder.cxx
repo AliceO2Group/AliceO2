@@ -44,13 +44,13 @@ void FreePortFinder::scan()
   for (mPort = mInitialPort; mPort < mFinalPort; mPort += mStep) {
     if (!testPort(mPort)) {
       if (mVerbose) {
-        LOG(WARN) << "Port range [" << mPort << ", " << mPort + mStep
+        LOG(warn) << "Port range [" << mPort << ", " << mPort + mStep
                   << "] already taken. Skipping";
       }
       continue;
     }
     if (mVerbose) {
-      LOG(INFO) << "Using port range [" << mPort << ", " << mPort + mStep << "]";
+      LOG(info) << "Using port range [" << mPort << ", " << mPort + mStep << "]";
     }
     break;
   }

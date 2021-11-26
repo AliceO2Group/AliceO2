@@ -75,14 +75,14 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
 
   auto summarizeWhatHappended = [](bool enough, std::vector<int> const& result, ComputingQuotaOffer const& totalOffer, QuotaEvaluatorStats& stats) -> bool {
     if (result.size() == 1 && result[0] == 0) {
-      //      LOG(INFO) << "No particular resource was requested, so we schedule task anyways";
+      //      LOG(info) << "No particular resource was requested, so we schedule task anyways";
       return enough;
     }
     if (enough) {
       LOGP(info, "{} offers were selected for a total of: cpu {}, memory {}, shared memory {}", result.size(), totalOffer.cpu, totalOffer.memory, totalOffer.sharedMemory);
       LOGP(info, "  The following offers were selected for computation: {} ", fmt::join(result, ","));
     } else {
-      LOG(INFO) << "No offer was selected";
+      LOG(info) << "No offer was selected";
       if (result.size()) {
         LOGP(info, "  The following offers were selected for computation but not enough: {} ", fmt::join(result, ","));
       }

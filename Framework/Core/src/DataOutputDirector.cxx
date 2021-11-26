@@ -176,7 +176,7 @@ void DataOutputDirector::readString(std::string const& keepString)
   auto it = std::unique(mtreeFilenames.begin(), mtreeFilenames.end());
   if (it != mtreeFilenames.end()) {
     printOut();
-    LOGP(FATAL, "Dublicate tree names in a file!");
+    LOGP(fatal, "Dublicate tree names in a file!");
   }
 
   // make unique/sorted list of filenameBases
@@ -503,7 +503,7 @@ void DataOutputDirector::setFilenameBase(std::string dfn)
   auto it = std::unique(mtreeFilenames.begin(), mtreeFilenames.end());
   if (it != mtreeFilenames.end()) {
     printOut();
-    LOG(FATAL) << "Duplicate tree names in a file!";
+    LOG(fatal) << "Duplicate tree names in a file!";
   }
 
   // make unique/sorted list of filenameBases

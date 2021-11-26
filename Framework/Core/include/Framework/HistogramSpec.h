@@ -95,7 +95,7 @@ struct AxisSpec {
       name(name_)
   {
     if (binMin_ > binMax_) {
-      LOG(FATAL) << "Defined ill-defined axis";
+      LOG(fatal) << "Defined ill-defined axis";
     }
   }
 

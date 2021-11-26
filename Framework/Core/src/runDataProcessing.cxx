@@ -1373,7 +1373,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         //        driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
         LOG(info) << "O2 Data Processing Layer initialised. We brake for nobody.";
 #ifdef NDEBUG
-        LOGF(info, "Optimised build. O2DEBUG / LOG(debug) / LOGF(DEBUG) / assert statement will not be shown.");
+        LOGF(info, "Optimised build. O2DEBUG / LOG(debug) / LOGF(debug) / assert statement will not be shown.");
 #endif
         break;
       case DriverState::IMPORT_CURRENT_WORKFLOW:
@@ -1427,7 +1427,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           };
           bool altered = false;
           for (auto& device : altered_workflow) {
-            LOGF(DEBUG, "Adjusting device %s", device.name.c_str());
+            LOGF(debug, "Adjusting device %s", device.name.c_str());
             // ignore internal devices
             if (device.name.find("internal") != std::string::npos) {
               continue;
@@ -1468,9 +1468,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               }
             }
             /// FIXME: use commandline arguments as alternative
-            LOGF(DEBUG, "Original inputs: ");
+            LOGF(debug, "Original inputs: ");
             for (auto& input : device.inputs) {
-              LOGF(DEBUG, "-> %s", input.binding);
+              LOGF(debug, "-> %s", input.binding);
             }
             auto end = device.inputs.end();
             auto new_end = std::remove_if(device.inputs.begin(), device.inputs.end(), [](InputSpec& input) {
@@ -1482,9 +1482,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               });
             });
             device.inputs.erase(new_end, end);
-            LOGF(DEBUG, "Adjusted inputs: ");
+            LOGF(debug, "Adjusted inputs: ");
             for (auto& input : device.inputs) {
-              LOGF(DEBUG, "-> %s", input.binding);
+              LOGF(debug, "-> %s", input.binding);
             }
             altered = true;
           }

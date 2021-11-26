@@ -163,7 +163,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
     monitoring.flushBuffer();
 
     if (!options.isSet("aod-file")) {
-      LOGP(FATAL, "No input file defined!");
+      LOGP(fatal, "No input file defined!");
       throw std::runtime_error("Processing is stopped!");
     }
 
@@ -272,11 +272,11 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
             ntf = 0;
             tr = didir->getDataTree(dh, fcnt, ntf);
             if (!tr) {
-              LOGP(FATAL, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin, fcnt, ntf);
+              LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin, fcnt, ntf);
               throw std::runtime_error("Processing is stopped!");
             }
           } else {
-            LOGP(FATAL, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin, fcnt, ntf);
+            LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin, fcnt, ntf);
             throw std::runtime_error("Processing is stopped!");
           }
         }

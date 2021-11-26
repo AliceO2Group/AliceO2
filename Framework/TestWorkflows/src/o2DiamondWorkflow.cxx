@@ -40,7 +40,7 @@ void customize(std::vector<CallbacksPolicy>& policies)
   policies.push_back(CallbacksPolicy{
     .matcher = DeviceMatchers::matchByName("A"),
     .policy = [](CallbackService& service, InitContext&) {
-      service.set(CallbackService::Id::Start, []() { LOG(INFO) << "invoked at start"; });
+      service.set(CallbackService::Id::Start, []() { LOG(info) << "invoked at start"; });
     }});
 }
 
@@ -49,7 +49,7 @@ void customize(std::vector<SendingPolicy>& policies)
   policies.push_back(SendingPolicy{
     .matcher = DeviceMatchers::matchByName("A"),
     .send = [](FairMQDevice& device, FairMQParts& parts, std::string const& channel) {
-      LOG(INFO) << "A custom policy for sending invoked!";
+      LOG(info) << "A custom policy for sending invoked!";
       device.Send(parts, channel, 0);
     }});
 }
@@ -60,7 +60,7 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 {
   return AlgorithmSpec{adaptStateful([what, minDelay](RunningWorkflowInfo const& runningWorkflow) {
     srand(getpid());
-    LOG(INFO) << "There are " << runningWorkflow.devices.size() << "  devices in the workflow";
+    LOG(info) << "There are " << runningWorkflow.devices.size() << "  devices in the workflow";
     return adaptStateless([what, minDelay](DataAllocator& outputs, RawDeviceService& device) {
       device.device()->WaitFor(std::chrono::milliseconds(minDelay));
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
@@ -102,6 +102,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      AlgorithmSpec{adaptStateless([](InputRecord& inputs) {
        auto ref = inputs.get("b");
        auto header = o2::header::get<const DataProcessingHeader*>(ref.header);
-       LOG(INFO) << header->startTime;
+       LOG(info) << header->startTime;
      })}}};
 }

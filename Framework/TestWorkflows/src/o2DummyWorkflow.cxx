@@ -70,7 +70,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
           cluster.q = i;
           i++;
         }
-        //       LOG(INFO) << "Invoked" << std::endl;
+        //       LOG(info) << "Invoked" << std::endl;
       }}};
 
   DataProcessorSpec tpcClusterSummary{
