@@ -48,13 +48,13 @@ class TrackerDeviceDPL
     mTracker = std::make_unique<Tracker>(createTransformationFromManager(gGeoManager));
 
     if (!mTracker->init(true)) {
-      LOG(ERROR) << "Initialization of MID tracker device failed";
+      LOG(error) << "Initialization of MID tracker device failed";
     }
 
     auto stop = [this]() {
-      LOG(INFO) << "Capacities: ROFRecords: " << mTracker->getTrackROFRecords().capacity() << "  tracks: " << mTracker->getTracks().capacity() << "  clusters: " << mTracker->getClusters().capacity();
+      LOG(info) << "Capacities: ROFRecords: " << mTracker->getTrackROFRecords().capacity() << "  tracks: " << mTracker->getTracks().capacity() << "  clusters: " << mTracker->getClusters().capacity();
       double scaleFactor = 1.e6 / mNROFs;
-      LOG(INFO) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  tracking: " << mTimerAlgo.count() * scaleFactor << " us";
+      LOG(info) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  tracking: " << mTimerAlgo.count() * scaleFactor << " us";
     };
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
   }
@@ -74,14 +74,14 @@ class TrackerDeviceDPL
     mTimerAlgo += std::chrono::high_resolution_clock::now() - tAlgoStart;
 
     pc.outputs().snapshot(of::Output{"MID", "TRACKS", 0, of::Lifetime::Timeframe}, mTracker->getTracks());
-    LOG(DEBUG) << "Sent " << mTracker->getTracks().size() << " tracks.";
+    LOG(debug) << "Sent " << mTracker->getTracks().size() << " tracks.";
     pc.outputs().snapshot(of::Output{"MID", "TRACKCLUSTERS", 0, of::Lifetime::Timeframe}, mTracker->getClusters());
-    LOG(DEBUG) << "Sent " << mTracker->getClusters().size() << " track clusters.";
+    LOG(debug) << "Sent " << mTracker->getClusters().size() << " track clusters.";
 
     pc.outputs().snapshot(of::Output{"MID", "TRACKROFS", 0, of::Lifetime::Timeframe}, mTracker->getTrackROFRecords());
-    LOG(DEBUG) << "Sent " << mTracker->getTrackROFRecords().size() << " ROFs.";
+    LOG(debug) << "Sent " << mTracker->getTrackROFRecords().size() << " ROFs.";
     pc.outputs().snapshot(of::Output{"MID", "TRCLUSROFS", 0, of::Lifetime::Timeframe}, mTracker->getClusterROFRecords());
-    LOG(DEBUG) << "Sent " << mTracker->getClusterROFRecords().size() << " ROFs.";
+    LOG(debug) << "Sent " << mTracker->getClusterROFRecords().size() << " ROFs.";
 
     mTimer += std::chrono::high_resolution_clock::now() - tStart;
     mNROFs += inROFRecords.size();

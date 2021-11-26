@@ -65,11 +65,11 @@ class MaskHandlerDeviceDPL
       colToBoard.process(maskVec);
       auto roMasks = colToBoard.getData();
       if (maskVec.empty()) {
-        LOG(INFO) << "No problematic digit found in " << name << " events";
+        LOG(info) << "No problematic digit found in " << name << " events";
       } else {
-        LOG(INFO) << "Problematic digits found in " << name << " events. Corresponding masks:";
+        LOG(info) << "Problematic digits found in " << name << " events. Corresponding masks:";
         for (auto& mask : maskVec) {
-          LOG(INFO) << mask;
+          LOG(info) << mask;
         }
         std::cout << "\nCorresponding boards masks:" << std::endl;
         for (auto& board : roMasks) {

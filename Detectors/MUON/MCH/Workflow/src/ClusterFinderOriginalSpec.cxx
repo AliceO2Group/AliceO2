@@ -56,7 +56,7 @@ class ClusterFinderOriginalTask
   void init(framework::InitContext& ic)
   {
     /// Prepare the clusterizer
-    LOG(INFO) << "initializing cluster finder";
+    LOG(info) << "initializing cluster finder";
 
     auto config = ic.options().get<std::string>("mch-config");
     if (!config.empty()) {
@@ -67,7 +67,7 @@ class ClusterFinderOriginalTask
 
     /// Print the timer and clear the clusterizer when the processing is over
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, [this]() {
-      LOG(INFO) << "cluster finder duration = " << mTimeClusterFinder.count() << " s";
+      LOG(info) << "cluster finder duration = " << mTimeClusterFinder.count() << " s";
       this->mClusterFinder.deinit();
     });
   }
@@ -82,7 +82,7 @@ class ClusterFinderOriginalTask
     auto preClusters = pc.inputs().get<gsl::span<PreCluster>>("preclusters");
     auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
 
-    // LOG(INFO) << "received time frame with " << preClusterROFs.size() << " interactions";
+    // LOG(info) << "received time frame with " << preClusterROFs.size() << " interactions";
 
     // create the output messages for clusters and attached digits
     auto& clusterROFs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"clusterrofs"});
@@ -92,7 +92,7 @@ class ClusterFinderOriginalTask
     clusterROFs.reserve(preClusterROFs.size());
     for (const auto& preClusterROF : preClusterROFs) {
 
-      // LOG(INFO) << "processing interaction: " << preClusterROF.getBCData() << "...";
+      // LOG(info) << "processing interaction: " << preClusterROF.getBCData() << "...";
 
       // clusterize every preclusters
       auto tStart = std::chrono::high_resolution_clock::now();
