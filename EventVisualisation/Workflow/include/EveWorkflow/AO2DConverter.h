@@ -20,6 +20,7 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "EveWorkflow/EveConfiguration.h"
 #include "EveWorkflow/EveWorkflowHelper.h"
+#include "Framework/AnalysisTask.h"
 #include <memory>
 
 using GID = o2::dataformats::GlobalTrackID;
@@ -37,6 +38,25 @@ class TopologyDictionary;
 namespace o2::event_visualisation
 {
 class TPCFastTransform;
+
+struct AO2DConverter
+{
+  o2::framework::Configurable<std::string> jsonPath{"jsons-folder", "./jsons", "name of the folder to store json files"};
+
+  static constexpr float mWorkflowVersion = 1.00;
+
+  void init(o2::framework::InitContext& ic);
+
+  void process(o2::aod::Tracks const& tracks);
+
+  std::shared_ptr<EveWorkflowHelper> mHelper;
+  std::size_t mCurrentEvent;
+
+  o2::itsmft::TopologyDictionary mITSDict;
+  o2::itsmft::TopologyDictionary mMFTDict;
+  std::unique_ptr<EveConfiguration> mConfig;
+  std::unique_ptr<o2::trd::GeometryFlat> mTrdGeo;
+};
 
 } // namespace o2::event_visualisation
 
