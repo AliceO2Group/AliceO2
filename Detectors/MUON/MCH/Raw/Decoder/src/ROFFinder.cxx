@@ -192,7 +192,7 @@ o2::InteractionRecord ROFFinder::digitTime2IR(const RawDigit& digit)
 
   uint32_t orbit = digit.getTime() / BCINORBIT + firstOrbit;
   int32_t bc = time % BCINORBIT;
-  return o2::InteractionRecord(bc, orbit);
+  return {bc, orbit};
 }
 
 //_________________________________________________________________________________________________

@@ -323,7 +323,7 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
   double length, startD[3] = {x0, y0, z0};
   double dir[3] = {x1 - x0, y1 - y0, z1 - z0};
   if ((length = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]) < TGeoShape::Tolerance() * TGeoShape::Tolerance()) {
-    return MatBudgetExt(); // return empty struct
+    return {}; // return empty struct
   }
   length = TMath::Sqrt(length);
   double invlen = 1. / length;
@@ -335,7 +335,7 @@ GeometryManager::MatBudgetExt GeometryManager::meanMaterialBudgetExt(float x0, f
   TGeoNode* currentnode = gGeoManager->InitTrack(startD, dir);
   if (!currentnode) {
     LOG(error) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0;
-    return MatBudgetExt(); // return empty struct
+    return {}; // return empty struct
   }
 
   MatBudgetExt budTotal, budStep;
@@ -415,7 +415,7 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
   double length, startD[3] = {x0, y0, z0};
   double dir[3] = {x1 - x0, y1 - y0, z1 - z0};
   if ((length = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2]) < TGeoShape::Tolerance() * TGeoShape::Tolerance()) {
-    return o2::base::MatBudget(); // return empty struct
+    return {}; // return empty struct
   }
   length = TMath::Sqrt(length);
   double invlen = 1. / length;
@@ -427,7 +427,7 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
   TGeoNode* currentnode = gGeoManager->InitTrack(startD, dir);
   if (!currentnode) {
     LOG(error) << "start point out of geometry: " << x0 << ':' << y0 << ':' << z0;
-    return o2::base::MatBudget(); // return empty struct
+    return {}; // return empty struct
   }
 
   o2::base::MatBudget budTotal, budStep;

@@ -328,13 +328,13 @@ struct DetFilterer {
 // Helper function to define a white listing DetFilterer
 DetFilterer whitelister(std::string optionVal, std::string unsetValue, char separator)
 {
-  return DetFilterer(optionVal, unsetValue, separator, true);
+  return {optionVal, unsetValue, separator, true};
 }
 
 // Helper function to define a black listing DetFilterer
 DetFilterer blacklister(std::string optionVal, std::string unsetValue, char separator)
 {
-  return DetFilterer(optionVal, unsetValue, separator, false);
+  return {optionVal, unsetValue, separator, false};
 }
 
 // Finding out if the current process is the master DPL driver process,

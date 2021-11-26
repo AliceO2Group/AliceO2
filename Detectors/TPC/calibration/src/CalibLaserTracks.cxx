@@ -318,7 +318,7 @@ void CalibLaserTracks::fillCalibData(LtrCalibData& calibData, const std::vector<
 TimePair CalibLaserTracks::fit(const std::vector<TimePair>& trackMatches) const
 {
   if (!trackMatches.size()) {
-    return TimePair();
+    return {};
   }
 
   static TLinearFitter fit(2, "pol1");

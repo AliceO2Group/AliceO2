@@ -1562,7 +1562,7 @@ std::unique_ptr<ConfigParamStore> DeviceConfigurationHelpers::getConfiguration(S
       // No overrides...
     }
   }
-  return std::unique_ptr<ConfigParamStore>(nullptr);
+  return {nullptr};
 }
 
 } // namespace o2::framework

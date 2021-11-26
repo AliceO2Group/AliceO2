@@ -388,7 +388,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
             return route.channel;
           }
         }
-        return std::string("");
+        return {""};
       };
 
       auto checkEos = [&inputs]() -> bool {

@@ -31,7 +31,7 @@ FeeLinkId decodeFeeLinkId(uint32_t x)
 {
   uint16_t feeId = static_cast<uint16_t>((x & 0xFFFF0000) >> 16);
   uint8_t linkId = static_cast<uint8_t>(x & 0xF);
-  return FeeLinkId(feeId, linkId);
+  return {feeId, linkId};
 }
 
 std::ostream& operator<<(std::ostream& os, const FeeLinkId& id)

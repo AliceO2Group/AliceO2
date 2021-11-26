@@ -27,8 +27,8 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
-static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
-static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
+static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return {lhs.x + rhs.x, lhs.y + rhs.y}; }
+static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return {lhs.x - rhs.x, lhs.y - rhs.y}; }
 
 namespace o2::framework::gui
 {
@@ -190,14 +190,14 @@ struct NodePos {
     ImVec2 const& pos = positions[nodeId].pos;
     ImVec2 const& size = infos[nodeId].Size;
     float inputsCount = infos[nodeId].InputsCount;
-    return ImVec2(pos.x, pos.y + size.y * ((float)slot_no + 1) / (inputsCount + 1));
+    return {pos.x, pos.y + size.y * ((float)slot_no + 1) / (inputsCount + 1)};
   }
   static ImVec2 GetOutputSlotPos(ImVector<Node> const& infos, ImVector<NodePos> const& positions, int nodeId, int slot_no)
   {
     ImVec2 const& pos = positions[nodeId].pos;
     ImVec2 const& size = infos[nodeId].Size;
     float outputsCount = infos[nodeId].OutputsCount;
-    return ImVec2(pos.x + size.x, pos.y + size.y * ((float)slot_no + 1) / (outputsCount + 1));
+    return {pos.x + size.x, pos.y + size.y * ((float)slot_no + 1) / (outputsCount + 1)};
   }
 };
 

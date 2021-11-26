@@ -476,7 +476,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     assert(cache.size() >= offset + numInputTypes);
     auto const start = cache.data() + offset;
     auto const end = cache.data() + offset + numInputTypes;
-    return gsl::span<MessageSet const>(start, end);
+    return {start, end};
   };
 
   // These two are trivial, but in principle the whole loop could be parallelised

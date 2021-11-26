@@ -28,7 +28,7 @@ inline static T retriveValue(T val)
 
 inline static std::string retriveValue(const std::reference_wrapper<const StringMetric> val)
 {
-  return std::string(val.get().data);
+  return {val.get().data};
 }
 
 template <typename T>

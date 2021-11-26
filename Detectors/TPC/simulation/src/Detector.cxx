@@ -3172,9 +3172,9 @@ std::string Detector::getHitBranchNames(int probe) const
   if (probe >= 0 && probe < Sector::MAXSECTOR) {
     TString name;
     name.Form("%sHitsShiftedSector%d", GetName(), probe);
-    return std::string(name.Data());
+    return {name.Data()};
   }
-  return std::string();
+  return {};
 }
 
 ClassImp(o2::tpc::Detector);

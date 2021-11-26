@@ -85,7 +85,7 @@ std::string getValue(const DataPointCompositeObject& dpcom)
   if (dpcom.id.get_type() != o2::dcs::DeliveryType::RAW_STRING) {
     throw std::runtime_error("DPCOM is of unexpected type " + o2::dcs::show(dpcom.id.get_type()));
   }
-  return std::string((char*)&dpcom.data.payload_pt1);
+  return {(char*)&dpcom.data.payload_pt1};
 }
 
 } // namespace o2::dcs

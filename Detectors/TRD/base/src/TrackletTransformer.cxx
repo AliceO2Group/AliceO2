@@ -156,7 +156,7 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet)
              << "y: " << sectorSpacePoint[1] << " | "
              << "z: " << sectorSpacePoint[2];
 
-  return CalibratedTracklet(sectorSpacePoint[0], sectorSpacePoint[1], sectorSpacePoint[2], dy);
+  return {sectorSpacePoint[0], sectorSpacePoint[1], sectorSpacePoint[2], dy};
 }
 
 double TrackletTransformer::getTimebin(int detector, double x)

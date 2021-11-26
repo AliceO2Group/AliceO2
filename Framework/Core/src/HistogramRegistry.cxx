@@ -73,7 +73,7 @@ HistPtr HistogramRegistry::insert(const HistogramSpec& histSpec)
     }
   }
   LOGF(fatal, R"(Internal array of HistogramRegistry "%s" is full.)", mName);
-  return HistPtr();
+  return {};
 }
 
 // helper function that checks if histogram name can be used in registry

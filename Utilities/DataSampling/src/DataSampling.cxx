@@ -33,7 +33,7 @@ namespace o2::utilities
 
 std::string DataSampling::createDispatcherName()
 {
-  return std::string("Dispatcher"); //_") + getenv("HOSTNAME");
+  return {"Dispatcher"}; //_") + getenv("HOSTNAME");
 }
 
 void DataSampling::GenerateInfrastructure(WorkflowSpec& workflow, const std::string& policiesSource, size_t threads, const std::string& host)

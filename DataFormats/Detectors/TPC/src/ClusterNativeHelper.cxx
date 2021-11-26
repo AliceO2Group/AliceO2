@@ -66,7 +66,7 @@ std::unique_ptr<ClusterNativeAccess> ClusterNativeHelper::createClusterNativeInd
   for (int i = 0; i < clusters.size(); i++) {
     if (retVal->nClusters[clusters[i].sector][clusters[i].globalPadRow]) {
       LOG(error) << "Received two containers for the same sector / row";
-      return std::unique_ptr<ClusterNativeAccess>();
+      return {};
     }
     retVal->nClusters[clusters[i].sector][clusters[i].globalPadRow] = clusters[i].clusters.size();
     retVal->nClustersTotal += clusters[i].clusters.size();

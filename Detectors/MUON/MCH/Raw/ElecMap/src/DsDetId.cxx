@@ -34,7 +34,7 @@ DsDetId decodeDsDetId(uint32_t x)
 {
   uint16_t deId = static_cast<uint16_t>((x & 0xFFFF0000) >> 16);
   uint16_t dsId = static_cast<uint16_t>(x & 0xFFFF);
-  return DsDetId(deId, dsId);
+  return {deId, dsId};
 }
 
 std::ostream& operator<<(std::ostream& os, const DsDetId& id)

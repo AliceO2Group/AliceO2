@@ -92,5 +92,5 @@ TPCTrackingDigitsPreCheck::precheckModifiedData TPCTrackingDigitsPreCheck::runPr
     }
     return precheckModifiedData(std::move(retVal));
   }
-  return precheckModifiedData();
+  return {};
 }

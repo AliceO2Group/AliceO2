@@ -99,7 +99,7 @@ std::vector<std::string> getColumnNames(header::DataHeader dh)
   auto origin = std::string(dh.dataOrigin.str);
 
   // default: column names = {}
-  return std::vector<std::string>({});
+  return {{}};
 }
 
 using o2::monitoring::Metric;

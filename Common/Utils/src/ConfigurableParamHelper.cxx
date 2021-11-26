@@ -167,13 +167,13 @@ std::string asString(TDataMember const& dm, char* pointer)
         for (int i = 0; i < constantlist->GetEntries(); ++i) {
           const auto e = (TEnumConstant*)(constantlist->At(i));
           if (val == std::to_string((int)e->GetValue())) {
-            return std::string(e->GetName());
+            return {e->GetName()};
           }
         }
       }
     }
 
-    return std::string(val);
+    return {val};
   }
 
   // if data member is a std::string just return

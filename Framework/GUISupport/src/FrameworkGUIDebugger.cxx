@@ -38,8 +38,8 @@
 // Simplify debugging
 template class std::vector<o2::framework::DeviceMetricsInfo>;
 
-static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
-static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
+static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return {lhs.x + rhs.x, lhs.y + rhs.y}; }
+static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return {lhs.x - rhs.x, lhs.y - rhs.y}; }
 
 namespace o2::framework::gui
 {
@@ -68,7 +68,7 @@ ImVec4 colorForLogLevel(LogParsingHelpers::LogLevel logLevel)
     case LogParsingHelpers::LogLevel::Info:
       return PaletteHelpers::GREEN;
     case LogParsingHelpers::LogLevel::Debug:
-      return ImVec4(153. / 255, 61. / 255, 61. / 255, 255. / 255);
+      return {153. / 255, 61. / 255, 61. / 255, 255. / 255};
     case LogParsingHelpers::LogLevel::Warning:
       return PaletteHelpers::DARK_YELLOW;
     case LogParsingHelpers::LogLevel::Error:
@@ -76,9 +76,9 @@ ImVec4 colorForLogLevel(LogParsingHelpers::LogLevel logLevel)
     case LogParsingHelpers::LogLevel::Fatal:
       return PaletteHelpers::RED;
     case LogParsingHelpers::LogLevel::Unknown:
-      return ImVec4(194. / 255, 195. / 255, 199. / 255, 255. / 255);
+      return {194. / 255, 195. / 255, 199. / 255, 255. / 255};
     default:
-      return ImVec4(194. / 255, 195. / 255, 199. / 255, 255. / 255);
+      return {194. / 255, 195. / 255, 199. / 255, 255. / 255};
   };
 }
 
@@ -266,7 +266,7 @@ void displaySparks(
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < 1024);
-            return ImPlotPoint(histoData->time[pos], ((int*)(histoData->points))[pos]);
+            return {histoData->time[pos], ((int*)(histoData->points))[pos]};
           };
           ImPlot::PlotLineG("##plot", getter, &data, data.mod);
         } break;
@@ -277,7 +277,7 @@ void displaySparks(
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < 1024);
-            return ImPlotPoint(histoData->time[pos], ((uint64_t*)histoData->points)[pos]);
+            return {histoData->time[pos], ((uint64_t*)histoData->points)[pos]};
           };
           ImPlot::PlotLineG("##plot", getter, &data, data.mod, 0);
         } break;
@@ -288,7 +288,7 @@ void displaySparks(
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < 1024);
-            return ImPlotPoint(histoData->time[pos], ((float*)histoData->points)[pos]);
+            return {histoData->time[pos], ((float*)histoData->points)[pos]};
           };
           ImPlot::PlotLineG("##plot", getter, &data, data.mod, 0);
         } break;
