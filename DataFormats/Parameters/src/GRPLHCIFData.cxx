@@ -34,14 +34,14 @@ void GRPLHCIFData::setBeamAZ(beamDirection beam)
   if (beam == beamDirection::BeamClockWise) {
     auto atomicNum = mZtoA.find(getAtomicNumberB1());
     if (atomicNum == mZtoA.end()) {
-      LOG(FATAL) << "We don't know the Mass Number for Z = " << getAtomicNumberB1();
+      LOG(fatal) << "We don't know the Mass Number for Z = " << getAtomicNumberB1();
     } else {
       mBeamAZ[static_cast<int>(beam)] = (atomicNum->second << 16) + getAtomicNumberB1();
     }
   } else {
     auto atomicNum = mZtoA.find(getAtomicNumberB2());
     if (atomicNum == mZtoA.end()) {
-      LOG(FATAL) << "We don't know the Mass Number for Z = " << getAtomicNumberB2();
+      LOG(fatal) << "We don't know the Mass Number for Z = " << getAtomicNumberB2();
     } else {
       mBeamAZ[static_cast<int>(beam)] = (atomicNum->second << 16) + getAtomicNumberB2();
     }
@@ -91,7 +91,7 @@ GRPLHCIFData* GRPLHCIFData::loadFrom(const std::string& grpFileName)
   auto fname = o2::base::NameConf::getGRPFileName(grpFileName);
   TFile flGRP(fname.c_str());
   if (flGRP.IsZombie()) {
-    LOG(ERROR) << "Failed to open " << fname;
+    LOG(error) << "Failed to open " << fname;
     throw std::runtime_error("Failed to open GRPLHCIF file");
   }
   auto grp = reinterpret_cast<o2::parameters::GRPLHCIFData*>(flGRP.GetObjectChecked(o2::base::NameConf::CCDBOBJECT.data(), Class()));

@@ -26,13 +26,13 @@ GRPMagField* GRPMagField::loadFrom(const std::string& grpMagFieldFileName, const
   auto fname = o2::base::NameConf::getGRPMagFieldFileName(grpMagFieldFileName);
   TFile flGRPMagField(fname.c_str());
   if (flGRPMagField.IsZombie()) {
-    LOG(ERROR) << "Failed to open " << fname;
+    LOG(error) << "Failed to open " << fname;
     throw std::runtime_error("Failed to open GRP Mag Field file");
   }
   auto grpMagField = reinterpret_cast<o2::parameters::GRPMagField*>(
     flGRPMagField.GetObjectChecked(grpMagFieldName.data(), o2::parameters::GRPMagField::Class()));
   if (!grpMagField) {
-    LOG(ERROR) << "Did not find GRP Mag Field object named " << grpMagFieldName;
+    LOG(error) << "Did not find GRP Mag Field object named " << grpMagFieldName;
     throw std::runtime_error("Failed to load GRP Mag Field object");
   }
   return grpMagField;

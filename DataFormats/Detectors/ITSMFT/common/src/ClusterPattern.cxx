@@ -33,7 +33,7 @@ ClusterPattern::ClusterPattern(int nRow, int nCol, const unsigned char patt[MaxP
 unsigned char ClusterPattern::getByte(int n) const
 {
   if (n < 0 || n > MaxPatternBytes + 1) {
-    LOG(ERROR) << "Invalid element of the pattern";
+    LOG(error) << "Invalid element of the pattern";
     return -1;
   } else {
     return mBitmap[n];

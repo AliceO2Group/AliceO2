@@ -21,5 +21,5 @@ void ChannelData::print() const
 }
 void ChannelData::printLog() const
 {
-  LOG(INFO) << "ChId: " << static_cast<uint16_t>(ChId) << " |  FEE bits:" << static_cast<uint16_t>(ChainQTC) << " | Time: " << CFDTime << " | Charge: " << QTCAmpl;
+  LOG(info) << "ChId: " << static_cast<uint16_t>(ChId) << " |  FEE bits:" << static_cast<uint16_t>(ChainQTC) << " | Time: " << CFDTime << " | Charge: " << QTCAmpl;
 }

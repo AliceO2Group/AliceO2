@@ -61,7 +61,7 @@ int Diagnostic::getFrequency(ULong64_t pattern)
 
 void Diagnostic::print() const
 {
-  LOG(INFO) << "Diagnostic patterns";
+  LOG(info) << "Diagnostic patterns";
   for (const auto& [key, value] : mVector) {
     std::cout << key << " = " << value << "; ";
   }
@@ -120,16 +120,16 @@ int Diagnostic::getNoisyLevel(ULong64_t pattern) const
 
 void Diagnostic::fill(const Diagnostic& diag)
 {
-  LOG(DEBUG) << "Filling diagnostic word";
+  LOG(debug) << "Filling diagnostic word";
   for (auto const& el : diag.mVector) {
-    LOG(DEBUG) << "Filling diagnostic pattern " << el.first << " adding " << el.second << " to " << getFrequency(el.first) << " --> " << el.second + getFrequency(el.first);
+    LOG(debug) << "Filling diagnostic pattern " << el.first << " adding " << el.second << " to " << getFrequency(el.first) << " --> " << el.second + getFrequency(el.first);
     fill(el.first, el.second);
   }
 }
 
 void Diagnostic::merge(const Diagnostic* prev)
 {
-  LOG(DEBUG) << "Merging diagnostic words";
+  LOG(debug) << "Merging diagnostic words";
   for (auto const& el : prev->mVector) {
     fill(el.first, el.second + getFrequency(el.first));
   }

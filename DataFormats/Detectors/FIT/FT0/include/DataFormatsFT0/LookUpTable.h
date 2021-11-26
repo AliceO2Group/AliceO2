@@ -138,7 +138,7 @@ class LookUpTable
   void printFullMap() const
   {
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
-      LOG(INFO) << channel << "\t :  PM \t" << mTopoVector[channel].mPM
+      LOG(info) << channel << "\t :  PM \t" << mTopoVector[channel].mPM
                 << " MCP \t" << mTopoVector[channel].mMCP << " EP \t " << mTopoVector[channel].mEP;
     }
   }
@@ -148,7 +148,7 @@ class LookUpTable
     if ((ep == 0 && (link > 7 && link < 11 && link != 9)) ||
         (ep == 1 && link == 8 && mcp > 8) ||
         (ep == 1 && link == 9 && mcp > 8)) {
-      LOG(INFO) << " channel is not conneted "
+      LOG(info) << " channel is not conneted "
                 << " ep " << ep << " link " << link << " channel " << mcp;
     }
     return mInvTopo[getIdx(link, mcp, ep)];
@@ -227,7 +227,7 @@ class LookUpTable
       o2::ft0::Topo topo = chan.pm;
       lut_data[chan.channel] = topo;
     }
-    LOG(INFO) << "lut_data.size " << lut_data.size();
+    LOG(info) << "lut_data.size " << lut_data.size();
     return o2::ft0::LookUpTable{lut_data};
   }
   bool isTCM(int link, int ep) const { return getChannel(link, 1, ep) == TCM_channel; }
@@ -244,7 +244,7 @@ class LookUpTable
     /* if ((ep == 0 && (link > 7 && link < 11)) || */
     /*     (ep == 1 && link == 8 && mcp > 8) || */
     /*     (ep == 1 && link == 9 && mcp > 8)) { */
-    /*   LOG(INFO)<<" channel is not conneted "<<" ep "<<ep<<" link "<<link<<" channel "<<mcp; */
+    /*   LOG(info)<<" channel is not conneted "<<" ep "<<ep<<" link "<<link<<" channel "<<mcp; */
     /*   return 255; */
     /* } */
     return (link + ep * 16) * NUMBER_OF_MCPs + mcp;
@@ -348,7 +348,7 @@ class SingleLUT : public LookUpTable
           RDHhelper::setCRUID(&rdhObj, cruID);
         }
       } else {
-        LOG(INFO) << "WARNING! CHECK LUT! TCM METADATA IS INCORRECT!";
+        LOG(info) << "WARNING! CHECK LUT! TCM METADATA IS INCORRECT!";
       }
     }
     assert(mapResult.size() > 0);
