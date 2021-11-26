@@ -47,3 +47,32 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2"
           )
   target_include_directories(${targetName} PUBLIC "include")
 endif()
+
+o2_add_executable(aodconverter
+        TARGETVARNAME targetName
+        SOURCES
+              src/AO2DConverter.cxx
+              src/FileProducer.cxx
+              src/EveWorkflowHelper.cxx
+              src/EveConfiguration.cxx
+        PUBLIC_LINK_LIBRARIES
+              O2::DataFormatsGlobalTracking
+              O2::DetectorsRaw
+              O2::DetectorsVertexing
+              O2::EventVisualisationBase
+              O2::EventVisualisationDetectors
+              O2::FrameworkFoundation
+              O2::FT0Workflow
+              O2::GlobalTrackingWorkflowHelpers
+              O2::GlobalTrackingWorkflowReaders
+              O2::ITSMFTWorkflow
+              O2::MFTWorkflow
+              O2::TOFBase
+              O2::TOFWorkflowIO
+              O2::TPCReconstruction
+              O2::TPCWorkflow
+              O2::TRDBase
+              O2::TRDWorkflowIO
+              O2::SpacePoints
+        )
+target_include_directories(${targetName} PUBLIC "include")

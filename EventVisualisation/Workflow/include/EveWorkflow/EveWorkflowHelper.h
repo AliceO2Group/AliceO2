@@ -25,6 +25,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "TPCFastTransform.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "Framework/AnalysisDataModel.h"
 
 namespace o2::itsmft
 {
@@ -114,6 +115,7 @@ class EveWorkflowHelper
   void drawTPCTRDTOF(GID gid, float trackTime);
   void drawTPCTRD(GID gid, float trackTime);
   void drawTPCTOF(GID gid, float trackTime);
+  void drawAOD(o2::aod::Track const& track);
   void drawITSClusters(GID gid, float trackTime);
   void drawTPCClusters(GID gid, float trackTime);
   void drawMFTClusters(GID gid, float trackTime);
@@ -124,6 +126,9 @@ class EveWorkflowHelper
   void drawPoint(float x, float y, float z, float trackTime) { mEvent.addCluster(x, y, z, trackTime); }
   void prepareITSClusters(const o2::itsmft::TopologyDictionary& dict); // fills mITSClustersArray
   void prepareMFTClusters(const o2::itsmft::TopologyDictionary& dict); // fills mMFTClustersArray
+  void save(const std::string& jsonPath, int numberOfFiles,
+            o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask,
+            float workflowVersion);
 
   o2::globaltracking::RecoContainer mRecoCont;
   o2::globaltracking::RecoContainer& getRecoContainer() { return mRecoCont; }

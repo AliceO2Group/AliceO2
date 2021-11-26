@@ -56,11 +56,6 @@ EventManager::EventManager() : TEveEventManager("Event", "")
   }
 }
 
-void EventManager::Open()
-{
-  setDataSource(new DataSourceOnline(Options::Instance()->dataFolder()));
-}
-
 void EventManager::displayCurrentEvent()
 {
   if (getDataSource()->getEventCount() > 0) {

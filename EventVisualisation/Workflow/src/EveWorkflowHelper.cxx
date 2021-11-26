@@ -99,6 +99,13 @@ void EveWorkflowHelper::draw(const std::string& jsonPath, int numberOfFiles, int
         LOG(info) << "Track type " << gid.getSource() << " not handled";
     }
   }
+  save(jsonPath, numberOfFiles, trkMask, clMask, workflowVersion);
+}
+
+void EveWorkflowHelper::save(const std::string& jsonPath, int numberOfFiles,
+                             o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask,
+                             float workflowVersion)
+{
   mEvent.setWorkflowVersion(workflowVersion);
   std::time_t timeStamp = std::time(nullptr);
   std::string asciiTimeStamp = std::asctime(std::localtime(&timeStamp));
@@ -264,6 +271,21 @@ void EveWorkflowHelper::drawTPCTOF(GID gid, float trackTime)
   addTrackToEvent(trTPCTOF, gid, trackTime, 0);
   drawTPCClusters(match.getTrackRef(), trackTime * mMUS2TPCTimeBins);
   drawTOFClusters(gid, trackTime);
+}
+
+void EveWorkflowHelper::drawAOD(o2::aod::Track const& t)
+{
+  GID gid = GID::ITSTPCTRD;
+
+  o2::track::TrackParCov tr;
+  tr.setX(t.x());
+  tr.setY(t.y());
+  tr.setZ(t.z());
+  tr.setSnp(t.snp());
+  tr.setTgl(t.tgl());
+  tr.setQ2Pt(t.sign());
+
+  addTrackToEvent(tr, gid, 0.f, 0.f);
 }
 
 void EveWorkflowHelper::drawTOFClusters(GID gid, float trackTime)

@@ -29,7 +29,7 @@ o2_target_root_dictionary(EventVisualisationView
 
 o2_add_executable(eve
                SOURCES src/main.cxx
-               PUBLIC_LINK_LIBRARIES O2::EventVisualisationView                                     
+               PUBLIC_LINK_LIBRARIES O2::EventVisualisationView
                )
                   
                   

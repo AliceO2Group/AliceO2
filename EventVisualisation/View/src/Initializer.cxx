@@ -26,7 +26,8 @@
 #include "EventVisualisationView/EventManagerFrame.h"
 #include "EventVisualisationView/Options.h"
 #include "EventVisualisationDetectors/DataReaderJSON.h"
-#include <EventVisualisationBase/DataSourceOnline.h>
+#include "EventVisualisationBase/DataSourceOnline.h"
+#include "EventVisualisationBase/DataSourceOffline.h"
 
 #include "FairLogger.h"
 #include <TGTab.h>
@@ -56,7 +57,11 @@ void Initializer::setup()
   auto& eventManager = EventManager::getInstance();
   eventManager.setCdbPath(ocdbStorage);
 
-  eventManager.Open();
+  if(Options::Instance()->online()) {
+    eventManager.setDataSource(new DataSourceOnline(Options::Instance()->dataFolder()));
+  } else {
+    eventManager.setDataSource(new DataSourceOffline(Options::Instance()->dataFolder(), Options::Instance()->fileName()));
+  }
 
   //if (Options::Instance()->json()) {
   //  eventManager.getDataSource()->registerDetectorX(new DataReaderJSON(nullptr), EVisualisationGroup::JSON);
