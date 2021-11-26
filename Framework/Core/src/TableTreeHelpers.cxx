@@ -107,7 +107,7 @@ BranchToColumn::BranchToColumn(TBranch* branch, bool VLA, std::string name, EDat
     mPool{pool}
 
 {
-  if (!mVLA) {
+  if (mType == EDataType::kBool_t) {
     if (mListSize > 1) {
       auto status = arrow::MakeBuilder(mPool, mArrowType->field(0)->type(), &mBuilder);
       if (!status.ok()) {
@@ -181,54 +181,24 @@ void swapCopy(int size, char* source, unsigned char* dest, EDataType type)
 std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> BranchToColumn::read(TBuffer* buffer)
 {
   auto totalEntries = static_cast<int>(mBranch->GetEntries());
-  auto status = reserve(totalEntries);
-  if (!status.ok()) {
-    throw runtime_error("Failed to reserve memory for array builder");
-  }
-
+  arrow::Status status;
   int readEntries = 0;
   buffer->Reset();
   std::shared_ptr<arrow::Array> array;
 
-  if (mVLA) {
-    static TBufferFile offsetBuffer{TBuffer::EMode::kWrite, 4 * 1024 * 1024};
-    auto&& result = arrow::AllocateResizableBuffer(mBranch->GetTotBytes(), mPool);
-    if (!result.ok()) {
-      throw runtime_error("Cannot allocate buffer");
+  if (mType == EDataType::kBool_t) {
+    // boolean array special case: we need to use builder to create the bitmap
+    status = mValueBuilder->Reserve(totalEntries * mListSize);
+    if (mListSize > 1) {
+      status &= mListBuilder->Reserve(totalEntries);
     }
-    std::shared_ptr<arrow::Buffer> arrowValuesBuffer = std::move(result).ValueUnsafe();
-    auto ptr = arrowValuesBuffer->mutable_data();
-
-    result = arrow::AllocateResizableBuffer(mBranch->GetEntries() * sizeof(int), mPool);
-    if (!result.ok()) {
-      throw runtime_error("Cannot allocate buffer");
+    if (!status.ok()) {
+      throw runtime_error("Failed to reserve memory for array builder");
     }
-    std::shared_ptr<arrow::Buffer> arrowOffsetBuffer = std::move(result).ValueUnsafe();
-    auto ptrOffset = arrowOffsetBuffer->mutable_data();
-    auto tPtrOffset = reinterpret_cast<int*>(ptrOffset);
-
-    uint32_t offset = 0;
-    gsl::span<int> offsets{tPtrOffset, tPtrOffset + mBranch->GetEntries()};
-    int count = 0;
-    while (readEntries < totalEntries) {
-      auto readLast = mBranch->GetBulkRead().GetEntriesSerialized(readEntries, *buffer, &offsetBuffer);
-      readEntries += readLast;
-      uint32_t lastOffset = offset;
-      for (auto i = 0; i < readLast; ++i) {
-        offsets[count++] = (int)offset;
-        offset += ntohl(reinterpret_cast<uint32_t*>(offsetBuffer.GetCurrent())[i]);
-      }
-      //manually append to arrow buffer
-      swapCopy(offset - lastOffset, buffer->GetCurrent(), ptr, mType);
-    }
-    auto varray = std::make_shared<arrow::PrimitiveArray>(mArrowType->field(0)->type(), offset, arrowValuesBuffer);
-    array = std::make_shared<arrow::ListArray>(mArrowType, readEntries, arrowOffsetBuffer, varray);
-
-  } else {
     while (readEntries < totalEntries) {
       auto readLast = mBranch->GetBulkRead().GetBulkEntries(readEntries, *buffer);
       readEntries += readLast;
-      status &= appendValues(reinterpret_cast<unsigned char const*>(buffer->GetCurrent()), readLast);
+      status &= static_cast<arrow::BooleanBuilder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint8_t const*>(buffer->GetCurrent()), readLast * mListSize);
     }
     if (mListSize > 1) {
       status &= static_cast<arrow::FixedSizeListBuilder*>(mListBuilder.get())->AppendValues(readEntries);
@@ -236,9 +206,64 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
     if (!status.ok()) {
       throw runtime_error("Failed to append values to array");
     }
-    status &= finish(&array);
+    if (mListSize > 1) {
+      status &= mListBuilder->Finish(&array);
+    } else {
+      status &= mValueBuilder->Finish(&array);
+    }
     if (!status.ok()) {
       throw runtime_error("Failed to create array");
+    }
+  } else {
+    // other types: use serialized read to build arrays directly
+    auto&& result = arrow::AllocateResizableBuffer(mBranch->GetTotBytes(), mPool);
+    if (!result.ok()) {
+      throw runtime_error("Cannot allocate values buffer");
+    }
+    std::shared_ptr<arrow::Buffer> arrowValuesBuffer = std::move(result).ValueUnsafe();
+    auto ptr = arrowValuesBuffer->mutable_data();
+
+    if (mVLA) {
+      static TBufferFile offsetBuffer{TBuffer::EMode::kWrite, 4 * 1024 * 1024};
+
+      result = arrow::AllocateResizableBuffer(totalEntries * sizeof(int), mPool);
+      if (!result.ok()) {
+        throw runtime_error("Cannot allocate offset buffer");
+      }
+      std::shared_ptr<arrow::Buffer> arrowOffsetBuffer = std::move(result).ValueUnsafe();
+      auto ptrOffset = arrowOffsetBuffer->mutable_data();
+      auto tPtrOffset = reinterpret_cast<int*>(ptrOffset);
+
+      uint32_t offset = 0;
+      gsl::span<int> offsets{tPtrOffset, tPtrOffset + mBranch->GetEntries()};
+      int count = 0;
+      while (readEntries < totalEntries) {
+        auto readLast = mBranch->GetBulkRead().GetEntriesSerialized(readEntries, *buffer, &offsetBuffer);
+        readEntries += readLast;
+        uint32_t lastOffset = offset;
+        for (auto i = 0; i < readLast; ++i) {
+          offsets[count++] = (int)offset;
+          offset += ntohl(reinterpret_cast<uint32_t*>(offsetBuffer.GetCurrent())[i]);
+        }
+        //manually append to arrow buffer
+        swapCopy(offset - lastOffset, buffer->GetCurrent(), ptr, mType);
+      }
+      auto varray = std::make_shared<arrow::PrimitiveArray>(mArrowType->field(0)->type(), offset, arrowValuesBuffer);
+      array = std::make_shared<arrow::ListArray>(mArrowType, readEntries, arrowOffsetBuffer, varray);
+    } else {
+      while (readEntries < totalEntries) {
+        auto readLast = mBranch->GetBulkRead().GetEntriesSerialized(readEntries, *buffer, nullptr);
+        readEntries += readLast;
+
+        //manually append to arrow buffer
+        swapCopy(readLast * mListSize, buffer->GetCurrent(), ptr, mType);
+      }
+      if (mListSize == 1) {
+        array = std::make_shared<arrow::PrimitiveArray>(mArrowType, readEntries, arrowValuesBuffer);
+      } else {
+        auto varray = std::make_shared<arrow::PrimitiveArray>(mArrowType->field(0)->type(), readEntries * mListSize, arrowValuesBuffer);
+        array = std::make_shared<arrow::FixedSizeListArray>(mArrowType, readEntries, varray);
+      }
     }
   }
 
@@ -251,56 +276,6 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
   mBranch->GetTransientBuffer(0)->Expand(0);
 
   return std::make_pair(fullArray, field);
-}
-
-arrow::Status BranchToColumn::appendValues(unsigned char const* buffer, int numEntries)
-{
-  switch (mType) {
-    case EDataType::kBool_t:
-      return static_cast<arrow::BooleanBuilder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint8_t const*>(buffer), numEntries * mListSize);
-    case EDataType::kUChar_t:
-      return static_cast<arrow::UInt8Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint8_t const*>(buffer), numEntries * mListSize);
-    case EDataType::kUShort_t:
-      return static_cast<arrow::UInt16Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint16_t const*>(buffer), numEntries * mListSize);
-    case EDataType::kUInt_t:
-      return static_cast<arrow::UInt32Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint32_t const*>(buffer), numEntries * mListSize);
-    case EDataType::kULong64_t:
-      return static_cast<arrow::UInt64Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<uint64_t const*>(buffer), numEntries * mListSize);
-    case EDataType::kChar_t:
-      return static_cast<arrow::Int8Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int8_t const*>(buffer), numEntries * mListSize);
-    case EDataType::kShort_t:
-      return static_cast<arrow::Int16Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int16_t const*>(buffer), numEntries * mListSize);
-    case EDataType::kInt_t:
-      return static_cast<arrow::Int32Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int32_t const*>(buffer), numEntries * mListSize);
-    case EDataType::kLong64_t:
-      return static_cast<arrow::Int64Builder*>(mValueBuilder)->AppendValues(reinterpret_cast<int64_t const*>(buffer), numEntries * mListSize);
-    case EDataType::kFloat_t:
-      return static_cast<arrow::FloatBuilder*>(mValueBuilder)->AppendValues(reinterpret_cast<float const*>(buffer), numEntries * mListSize);
-    case EDataType::kDouble_t:
-      return static_cast<arrow::DoubleBuilder*>(mValueBuilder)->AppendValues(reinterpret_cast<double const*>(buffer), numEntries * mListSize);
-    default:
-      throw runtime_error("Unsupported branch type");
-  }
-}
-
-arrow::Status BranchToColumn::finish(std::shared_ptr<arrow::Array>* array)
-{
-  if (mListSize > 1) {
-    return mListBuilder->Finish(array);
-  }
-  return mValueBuilder->Finish(array);
-}
-
-arrow::Status BranchToColumn::reserve(int numEntries)
-{
-  if (mVLA) {
-    return arrow::Status::OK();
-  }
-  auto status = mValueBuilder->Reserve(numEntries * mListSize);
-  if (mListSize > 1) {
-    status &= mListBuilder->Reserve(numEntries);
-  }
-  return status;
 }
 
 ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field)

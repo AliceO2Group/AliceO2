@@ -69,9 +69,6 @@ class BranchToColumn
   std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> read(TBuffer* buffer);
 
  private:
-  arrow::Status appendValues(unsigned char const* buffer, int numEntries);
-  arrow::Status finish(std::shared_ptr<arrow::Array>* array);
-  arrow::Status reserve(int numEntries);
   TBranch* mBranch = nullptr;
   bool mVLA = false;
   std::string mColumnName;
