@@ -88,9 +88,9 @@ class SubTimeFrameFileReader
     const std::uint64_t lToRead = std::min(pLen, mFileSize - mFileMapOffset);
 
     if (lToRead != pLen) {
-      LOGP(ERROR, "FileReader: request to read beyond the file end. pos={} size={} len={}",
+      LOGP(error, "FileReader: request to read beyond the file end. pos={} size={} len={}",
            mFileMapOffset, mFileSize, pLen);
-      LOGP(ERROR, "Closing the file {}. The read data is invalid.", mFileName);
+      LOGP(error, "Closing the file {}. The read data is invalid.", mFileName);
       mFileMap.close();
       mFileMapOffset = 0;
       mFileSize = 0;
@@ -112,9 +112,9 @@ class SubTimeFrameFileReader
   {
     const std::size_t lToIgnore = std::min(pLen, std::size_t(mFileSize - mFileMapOffset));
     if (pLen != lToIgnore) {
-      LOGP(ERROR, "FileReader: request to ignore bytes beyond the file end. pos={} size={} len={}",
+      LOGP(error, "FileReader: request to ignore bytes beyond the file end. pos={} size={} len={}",
            mFileMapOffset, mFileSize, pLen);
-      LOGP(ERROR, "Closing the file {}. The read data is invalid.", mFileName);
+      LOGP(error, "Closing the file {}. The read data is invalid.", mFileName);
       mFileMap.close();
       mFileMapOffset = 0;
       mFileSize = 0;

@@ -20,7 +20,7 @@ using namespace o2::vertexing;
 void VertexSeed::print() const
 {
   auto terr2 = tMeanAccErr > 0 ? 1. / tMeanAccErr : 0.;
-  LOGF(INFO, "VtxSeed: Scale: %+e ScalePrev: %+e |NScaleIncreased: %d NSlowDecrease: %d| WChi2: %e WSum: %e | TMean: %e TMeanE: %e\n",
+  LOGF(info, "VtxSeed: Scale: %+e ScalePrev: %+e |NScaleIncreased: %d NSlowDecrease: %d| WChi2: %e WSum: %e | TMean: %e TMeanE: %e\n",
        scaleSigma2, scaleSigma2Prev, nScaleIncrease, nScaleSlowConvergence, wghChi2, wghSum, tMeanAcc * terr2, std::sqrt(terr2));
   double dZP, rmsZP, dZN, rmsZN, dTP, rmsTP, dTN, rmsTN;
   double dZ, rmsZ, dT, rmsT;

@@ -78,7 +78,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "TRD Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "TRD Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

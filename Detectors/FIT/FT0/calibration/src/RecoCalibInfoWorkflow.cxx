@@ -88,7 +88,7 @@ void RecoCalibInfoWorkflow::run(o2::framework::ProcessingContext& pc)
 }
 void RecoCalibInfoWorkflow::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "Reco calib info workflow  dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "Reco calib info workflow  dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

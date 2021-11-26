@@ -148,10 +148,10 @@ RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru,
   }
   if (!linkData.fileName.empty()) { // this link was already declared and associated with a file
     if (linkData.fileName == outFileName) {
-      LOGF(INFO, "Link 0x%ux was already declared with same output, do nothing", sspec);
+      LOGF(info, "Link 0x%ux was already declared with same output, do nothing", sspec);
       return linkData;
     } else {
-      LOGF(ERROR, "Link 0x%ux was already connected to different output file %s", sspec, linkData.fileName);
+      LOGF(error, "Link 0x%ux was already connected to different output file %s", sspec, linkData.fileName);
       throw std::runtime_error("redifinition of the link output file");
     }
   }
@@ -169,7 +169,7 @@ RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru,
   linkData.updateIR = mHBFUtils.getFirstIR();
   linkData.buffer.reserve(mSuperPageSize);
   RDHUtils::printRDH(linkData.rdhCopy);
-  LOGF(INFO, "Registered %s with output to %s", linkData.describe(), outFileName);
+  LOGF(info, "Registered %s with output to %s", linkData.describe(), outFileName);
   return linkData;
 }
 
@@ -180,7 +180,7 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
   auto sspec = RDHUtils::getSubSpec(cru, lnk, endpoint, feeid);
   auto& link = getLinkWithSubSpec(sspec);
   if (mVerbosity > 10) {
-    LOGP(INFO, "addData for {}  on IR BCid:{} Orbit: {}, payload: {}, preformatted: {}, trigger: {}, detField: {}", link.describe(), ir.bc, ir.orbit, data.size(), preformatted, trigger, detField);
+    LOGP(info, "addData for {}  on IR BCid:{} Orbit: {}, payload: {}, preformatted: {}, trigger: {}, detField: {}", link.describe(), ir.bc, ir.orbit, data.size(), preformatted, trigger, detField);
   }
   if (isCRUDetector() && (data.size() % RDHUtils::GBTWord)) {
     LOG(error) << "provided payload size " << data.size() << " is not multiple of GBT word size";
@@ -233,7 +233,7 @@ RawFileWriter::LinkData& RawFileWriter::getLinkWithSubSpec(LinkSubSpec_t ss)
 {
   auto lnkIt = mSSpec2Link.find(ss);
   if (lnkIt == mSSpec2Link.end()) {
-    LOGF(ERROR, "The link for SubSpec=0x%u was not registered", ss);
+    LOGF(error, "The link for SubSpec=0x%u was not registered", ss);
     throw std::runtime_error("data for non-registered GBT link supplied");
   }
   return lnkIt->second;
@@ -549,7 +549,7 @@ void RawFileWriter::LinkData::openHBFPage(const RDHAny& rdhn, uint32_t trigger)
   if ((RDHUtils::getTriggerType(rdhn) & o2::trigger::TF) ||
       (writer->isRORCDetector() && writer->mHBFUtils.getTF(updateIR - 1) < writer->mHBFUtils.getTF(RDHUtils::getTriggerIR(rdhn)))) {
     if (writer->mVerbosity > -10) {
-      LOGF(INFO, "Starting new TF for link FEEId 0x%04x", RDHUtils::getFEEID(rdhn));
+      LOGF(info, "Starting new TF for link FEEId 0x%04x", RDHUtils::getFEEID(rdhn));
     }
     if (writer->mStartTFOnNewSPage && nTFWritten) { // don't flush if 1st TF
       forceNewPage = true;
@@ -581,7 +581,7 @@ void RawFileWriter::LinkData::flushSuperPage(bool keepLastPage)
   // write link superpage data to file (if requested, only up to the last page)
   size_t pgSize = (lastRDHoffset < 0 || !keepLastPage) ? buffer.size() : lastRDHoffset;
   if (writer->mVerbosity) {
-    LOGF(INFO, "Flushing super page of %u bytes for %s", pgSize, describe());
+    LOGF(info, "Flushing super page of %u bytes for %s", pgSize, describe());
   }
   writer->mFName2File.find(fileName)->second.write(buffer.data(), pgSize);
   auto toMove = buffer.size() - pgSize;
@@ -669,7 +669,7 @@ std::string RawFileWriter::LinkData::describe() const
 //____________________________________________
 void RawFileWriter::LinkData::print() const
 {
-  LOGF(INFO, "Summary for %s : NTF: %u NRDH: %u Nbytes: %u", describe(), nTFWritten, nRDHWritten, nBytesWritten);
+  LOGF(info, "Summary for %s : NTF: %u NRDH: %u Nbytes: %u", describe(), nTFWritten, nRDHWritten, nBytesWritten);
 }
 
 //____________________________________________
@@ -720,7 +720,7 @@ void RawFileWriter::DetLazinessCheck::completeLinks(RawFileWriter* wr, const IR&
     auto res = linksDone.find(it.first);
     if (res == linksDone.end()) {
       if (wr->mVerbosity > 10) {
-        LOGP(INFO, "Complete {} for IR BCid:{} Orbit: {}", it.second.describe(), ir.bc, ir.orbit);
+        LOGP(info, "Complete {} for IR BCid:{} Orbit: {}", it.second.describe(), ir.bc, ir.orbit);
       }
       completeCount++;
       it.second.addData(ir, gsl::span<char>{}, preformatted, trigger, detField);

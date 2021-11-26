@@ -187,7 +187,7 @@ class TOFDPLClustererTask
 
   void endOfStream(EndOfStreamContext& ec)
   {
-    LOGF(DEBUG, "TOF Clusterer total timing: Cpu: %.3e Real: %.3e s in %d slots",
+    LOGF(debug, "TOF Clusterer total timing: Cpu: %.3e Real: %.3e s in %d slots",
          mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   }
 

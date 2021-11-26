@@ -233,8 +233,8 @@ void STFDecoder<Mapping>::finalize()
     return;
   }
   mFinalizeDone = true;
-  LOGF(INFO, "%s statistics:", mSelfName);
-  LOGF(INFO, "%s Total STF decoding%s timing (w/o disk IO): Cpu: %.3e Real: %.3e s in %d slots", mSelfName,
+  LOGF(info, "%s statistics:", mSelfName);
+  LOGF(info, "%s Total STF decoding%s timing (w/o disk IO): Cpu: %.3e Real: %.3e s in %d slots", mSelfName,
        mDoClusters ? "/clustering" : "", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   if (mDecoder && mAllowReporting) {
     mDecoder->printReport();

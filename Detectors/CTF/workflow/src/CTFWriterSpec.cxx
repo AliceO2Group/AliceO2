@@ -354,7 +354,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
       size_t nc = 0;
       auto runNProp = std::stol(runNStr, &nc);
       if (nc != runNStr.size()) {
-        LOGP(ERROR, "Property runNumber={} is provided but is not a number, ignoring", runNStr);
+        LOGP(error, "Property runNumber={} is provided but is not a number, ignoring", runNStr);
       } else {
         mRun = runNProp;
       }
@@ -368,7 +368,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
     }
   }
   if ((oldRun != 0 && oldRun != mRun) || (!oldEnv.empty() && oldEnv != mEnvironmentID)) {
-    LOGP(WARNING, "RunNumber/Environment changed from {}/{} to {}/{}", oldRun, oldEnv, mRun, mEnvironmentID);
+    LOGP(warning, "RunNumber/Environment changed from {}/{} to {}/{}", oldRun, oldEnv, mRun, mEnvironmentID);
     closeTFTreeAndFile();
   }
   // check for the LHCPeriod
@@ -463,7 +463,7 @@ void CTFWriterSpec::finalize()
   if (mWriteCTF) {
     closeTFTreeAndFile();
   }
-  LOGF(INFO, "CTF writing total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "CTF writing total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   mFinalized = true;
 }
@@ -482,7 +482,7 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
         (mAccCTFSize && mMaxSize > mMinSize && ((mAccCTFSize + mCurrCTFSize) > mMaxSize))) { // this is not the 1st CTF in the file and the new size will exceed allowed max
       needToOpen = true;
     } else {
-      LOGP(INFO, "Will add new CTF of estimated size {} to existing file of size {}", mCurrCTFSize, mAccCTFSize);
+      LOGP(info, "Will add new CTF of estimated size {} to existing file of size {}", mCurrCTFSize, mAccCTFSize);
     }
   }
   if (needToOpen) {
@@ -715,7 +715,7 @@ size_t CTFWriterSpec::getAvailableDiskSpace(const std::string& path, int level)
   }
   const auto si = std::filesystem::space(path, ec);
   int64_t avail = int64_t(si.available) - nLocked * mChkSize + written; // account already written part of unfinished files
-  LOGP(DEBUG, "{} CTF files open (curr.size: {}) -> can use {} of {} bytes", nLocked, written, avail, si.available);
+  LOGP(debug, "{} CTF files open (curr.size: {}) -> can use {} of {} bytes", nLocked, written, avail, si.available);
   return avail > 0 ? avail : 0;
 }
 

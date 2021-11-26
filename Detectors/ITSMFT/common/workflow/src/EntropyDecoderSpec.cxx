@@ -77,7 +77,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "%s Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "%s Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mOrigin.as<std::string>(), mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

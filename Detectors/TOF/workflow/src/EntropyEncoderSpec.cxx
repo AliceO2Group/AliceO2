@@ -60,7 +60,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(DEBUG, "TOF Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(debug, "TOF Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
