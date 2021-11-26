@@ -290,7 +290,6 @@ class AODProducerWorkflowDPL : public Task
     float tofChi2 = -999.f;
     float tpcSignal = -999.f;
     float trdSignal = -999.f;
-    float tofSignal = -999.f;
     float length = -999.f;
     float tofExpMom = -999.f;
     float trackEtaEMCAL = -999.f;
