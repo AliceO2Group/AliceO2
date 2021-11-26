@@ -167,7 +167,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     // TODO: check if reset of covariance matrix is needed here (or, in case TOF point is not available at outermost TRD layer)
     if (!trkWork.update(clTOFYZ, clTOFCov)) {
       LOG(debug) << "Failed to update extrapolated ITS track with TOF cluster";
-      //LOGF(INFO, "trkWork.y=%f, cl.y=%f, trkWork.z=%f, cl.z=%f", trkWork.getY(), clTOFYZ[0], trkWork.getZ(), clTOFYZ[1]);
+      //LOGF(info, "trkWork.y=%f, cl.y=%f, trkWork.z=%f, cl.z=%f", trkWork.getY(), clTOFYZ[0], trkWork.getZ(), clTOFYZ[1]);
       return;
     }
   }

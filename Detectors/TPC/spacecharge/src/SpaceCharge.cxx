@@ -58,7 +58,7 @@ void SpaceCharge<DataT>::calculateDistortionsCorrections(const o2::tpc::Side sid
   using timer = std::chrono::high_resolution_clock;
   using SC = o2::tpc::SpaceCharge<DataT>;
   if (!mIsChargeSet[side]) {
-    LOGP(ERROR, "the charge is not set!");
+    LOGP(error, "the charge is not set!");
   }
 
   const std::array<std::string, 2> sglobalType{"local distortion/correction interpolator", "Electric fields"};
@@ -772,7 +772,7 @@ typename SpaceCharge<DataT>::TH3DataT SpaceCharge<DataT>::rebinDensityHisto(cons
           do {
             zLowBinOrig += 1;
             if (zLowBinOrig > zUpBinOrig) {
-              LOGP(WARNING, "SOMETHING WENT WRONG: SETTING BINS TO: {}", zUpBinOrig);
+              LOGP(warning, "SOMETHING WENT WRONG: SETTING BINS TO: {}", zUpBinOrig);
               zLowBinOrig = zUpBinOrig;
               notequal = false;
             }
@@ -789,7 +789,7 @@ typename SpaceCharge<DataT>::TH3DataT SpaceCharge<DataT>::rebinDensityHisto(cons
           do {
             zUpBinOrig -= 1;
             if (zUpBinOrig < zLowBinOrig) {
-              LOGP(WARNING, "SOMETHING WENT WRONG: SETTING BINS TO: {}", zLowBinOrig);
+              LOGP(warning, "SOMETHING WENT WRONG: SETTING BINS TO: {}", zLowBinOrig);
               zUpBinOrig = zLowBinOrig;
               notequal = false;
             }
@@ -1112,13 +1112,13 @@ void SpaceCharge<DataT>::calcGlobalDistortions(const Fields& formulaStruct, cons
 
         for (;;) {
           if (iter > maxIterations) {
-            LOGP(ERROR, "Aborting calculation of distortions for iZ: {}, iR: {}, iPhi: {} due to iteration '{}' > maxIterations '{}'!", iZ, iR, iPhi, iter, maxIterations);
+            LOGP(error, "Aborting calculation of distortions for iZ: {}, iR: {}, iPhi: {} due to iteration '{}' > maxIterations '{}'!", iZ, iR, iPhi, iter, maxIterations);
             break;
           }
           const DataT z0Tmp = z0 + dzDist + iter * stepSize; // starting z position
 
           if (getSide(z0Tmp) != side) {
-            LOGP(ERROR, "Aborting calculation of distortions for iZ: {}, iR: {}, iPhi: {} due to change in the sides!", iZ, iR, iPhi);
+            LOGP(error, "Aborting calculation of distortions for iZ: {}, iR: {}, iPhi: {} due to change in the sides!", iZ, iR, iPhi);
             break;
           }
 
