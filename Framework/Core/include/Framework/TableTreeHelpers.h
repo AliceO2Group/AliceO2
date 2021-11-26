@@ -111,14 +111,14 @@ class TableToTree
  public:
   TableToTree(std::shared_ptr<arrow::Table> const& table, TFile* file, const char* treename);
 
-  TTree* process();
+  std::shared_ptr<TTree> process();
   void addBranch(std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field);
   void addAllBranches();
 
  private:
   arrow::Table* mTable;
   int64_t mRows = 0;
-  TTree* mTree = nullptr;
+  std::shared_ptr<TTree> mTree;
   std::vector<std::unique_ptr<ColumnToBranch>> mColumnReaders;
 };
 

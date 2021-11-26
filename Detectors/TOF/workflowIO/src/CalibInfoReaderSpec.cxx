@@ -35,11 +35,11 @@ constexpr o2::header::DataDescription ddCalib{"CALIBDATA"}, ddCalib_tpc{"CALIBDA
 
 void CalibInfoReader::init(InitContext& ic)
 {
-  LOG(DEBUG) << "Init CalibInfo reader!";
+  LOG(debug) << "Init CalibInfo reader!";
   auto fname = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")), mFileName);
   mFile = fopen(fname.c_str(), "r");
   if (!mFile) {
-    LOG(ERROR) << "Cannot open the " << fname << " file !";
+    LOG(error) << "Cannot open the " << fname << " file !";
     mState = 0;
     return;
   }
@@ -60,12 +60,12 @@ void CalibInfoReader::run(ProcessingContext& pc)
       mTree = (TTree*)fin->Get("calibTOF");
       mCurrentEntry = 0;
       mTree->SetBranchAddress("TOFCalibInfo", &mPvect);
-      LOG(DEBUG) << "Open " << filename;
+      LOG(debug) << "Open " << filename;
     }
     if ((mGlobalEntry % mNinstances) == mInstance) {
       mTree->GetEvent(mCurrentEntry);
-      LOG(DEBUG) << "Current entry " << mCurrentEntry;
-      LOG(DEBUG) << "Send " << mVect.size() << " calib infos";
+      LOG(debug) << "Current entry " << mCurrentEntry;
+      LOG(debug) << "Send " << mVect.size() << " calib infos";
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTOFTPC ? ddCalib_tpc : ddCalib, 0, Lifetime::Timeframe}, mVect);
       usleep(100);
     }

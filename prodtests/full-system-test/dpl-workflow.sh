@@ -2,8 +2,7 @@
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Get this script's directory and load common settings (use zsh first (e.g. on Mac) and fallback on `readlink -f` if zsh is not there)
-command -v zsh > /dev/null 2>&1 && MYDIR=$(dirname $(zsh -c 'echo ${0:A}' "$0"))
-test -z ${MYDIR+x} && MYDIR="$(dirname $(readlink -f $0))"
+MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh
 
 if [ -z $FILEWORKDIRRUN ]; then FILEWORKDIRRUN=$FILEWORKDIR; fi              # directory where to find the run-related files (grp, collision context)
@@ -20,7 +19,7 @@ if [[ -z $CTF_MAX_PER_FILE ]];         then CTF_MAX_PER_FILE="10000"; fi       #
 if [[ -z $IS_SIMULATED_DATA ]];        then IS_SIMULATED_DATA=1; fi            # processing simulated data
 
 if [[ $SYNCMODE == 1 ]]; then
-  if [[ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]]; then export WORKFLOW_DETECTORS_MATCHING="ITSTPC,ITSTPCTRD,ITSTPCTOF"; fi # Select matchings that are enabled in sync mode
+  if [[ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]]; then export WORKFLOW_DETECTORS_MATCHING="ITSTPC,ITSTPCTRD,ITSTPCTOF,ITSTPCTRDTOF"; fi # Select matchings that are enabled in sync mode
 else
   if [[ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]]; then export WORKFLOW_DETECTORS_MATCHING="ALL"; fi # All matching / vertexing enabled in async mode
 fi
@@ -195,6 +194,7 @@ has_detectors_reco TPC TRD && has_detector_matching TPCTRD && { add_comma_separa
 has_detectors_reco ITS TPC TRD && has_detector_matching ITSTPCTRD && { add_comma_separated TRD_SOURCES ITS-TPC; add_comma_separated TRACK_SOURCES "ITS-TPC-TRD"; }
 has_detectors_reco TPC TOF && has_detector_matching TPCTOF && { add_comma_separated TOF_SOURCES TPC; add_comma_separated TRACK_SOURCES "TPC-TOF"; }
 has_detectors_reco ITS TPC TOF && has_detector_matching ITSTPCTOF && { add_comma_separated TOF_SOURCES ITS-TPC; add_comma_separated TRACK_SOURCES "ITS-TPC-TOF"; }
+has_detectors_reco ITS TPC TRD TOF && has_detector_matching ITSTPCTRDTOF && { add_comma_separated TOF_SOURCES ITS-TPC-TRD; add_comma_separated TRACK_SOURCES "ITS-TPC-TRD-TOF"; }
 has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_comma_separated TRACK_SOURCES "MFT-MCH"
 for det in `echo $LIST_OF_DETECTORS | sed "s/,/ /g"`; do
   if [[ $LIST_OF_ASYNC_RECO_STEPS =~ (^| )${det}( |$) ]]; then
@@ -300,13 +300,13 @@ add_W() # Add binarry to workflow command USAGE: add_W [BINARY] [COMMAND_LINE_OP
 if [[ $CTFINPUT == 1 ]]; then
   GPU_INPUT=compressed-clusters-ctf
   TOF_INPUT=digits
-  CTFName=`ls -t $FILEWORKDIR/o2_ctf_*.root 2> /dev/null | head -n1`
+  CTFName=`ls -t $RAWINPUTDIR/o2_ctf_*.root 2> /dev/null | head -n1`
   [[ -z $CTFName && $WORKFLOWMODE == "print" ]] && CTFName='$CTFName'
   [[ ! -z $INPUT_FILE_LIST ]] && CTFName=$INPUT_FILE_LIST
   if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
   add_W o2-ctf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --ctf-input ${CTFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD} --ctf-dict ${CTF_DICT} --onlyDet $WORKFLOW_DETECTORS --pipeline $(get_N tpc-entropy-decoder TPC REST TPCENTDEC)"
 elif [[ $RAWTFINPUT == 1 ]]; then
-  TFName=`ls -t $FILEWORKDIR/o2_*.tf 2> /dev/null | head -n1`
+  TFName=`ls -t $RAWINPUTDIR/o2_*.tf 2> /dev/null | head -n1`
   [[ -z $TFName && $WORKFLOWMODE == "print" ]] && TFName='$TFName'
   [[ ! -z $INPUT_FILE_LIST ]] && TFName=$INPUT_FILE_LIST
   if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
@@ -353,7 +353,7 @@ elif [[ $DIGITINPUT == 1 ]]; then
   has_detector MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC" ""
 else
   if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--loop $NTIMEFRAMES"; fi
-  add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --max-tf 0 --input-conf $FILEWORKDIR/rawAll.cfg" "HBFUtils.nHBFPerTF=$NHBPERTF"
+  add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --max-tf 0 --input-conf $RAWINPUTDIR/rawAll.cfg" "HBFUtils.nHBFPerTF=$NHBPERTF"
 fi
 
 # if root output is requested, record info of processed TFs DataHeader for replay of root files

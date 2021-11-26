@@ -36,5 +36,5 @@ void ClusterSharingMapSpec::run(ProcessingContext& pc)
   o2::gpu::GPUO2InterfaceRefit::fillSharedClustersMap(&clustersTPC->clusterIndex, tracksTPC, tracksTPCClRefs.data(), bufVec.data());
 
   timer.Stop();
-  LOGF(INFO, "Timing for TPC clusters sharing map creation: Cpu: %.3e Real: %.3e s", timer.CpuTime(), timer.RealTime());
+  LOGF(info, "Timing for TPC clusters sharing map creation: Cpu: %.3e Real: %.3e s", timer.CpuTime(), timer.RealTime());
 }

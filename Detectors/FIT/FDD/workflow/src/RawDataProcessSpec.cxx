@@ -26,7 +26,7 @@ void RawDataProcessSpec::init(InitContext& ic)
 
 void RawDataProcessSpec::run(ProcessingContext& pc)
 {
-  LOG(INFO) << "RawDataProcessSpec running...";
+  LOG(info) << "RawDataProcessSpec running...";
   auto vecDigits = pc.inputs().get<std::vector<Digit>>("digits");
   auto vecChannelData = pc.inputs().get<std::vector<ChannelData>>("digch");
   if (mDumpEventBlocks) {
@@ -39,7 +39,7 @@ DataProcessorSpec getFDDRawDataProcessSpec(bool dumpProcessor)
   std::vector<InputSpec> inputSpec;
   inputSpec.emplace_back("digits", o2::header::gDataOriginFDD, "DIGITSBC", 0, Lifetime::Timeframe);
   inputSpec.emplace_back("digch", o2::header::gDataOriginFDD, "DIGITSCH", 0, Lifetime::Timeframe);
-  LOG(INFO) << "DataProcessorSpec getRawDataProcessSpec";
+  LOG(info) << "DataProcessorSpec getRawDataProcessSpec";
   return DataProcessorSpec{
     "fdd-dataprocess-dpl-flp",
     inputSpec,

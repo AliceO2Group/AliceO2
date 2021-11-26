@@ -31,7 +31,7 @@ void RawWriterSpec::init(framework::InitContext& ctx)
 
   auto rawdir = ctx.options().get<std::string>("rawpath");
 
-  LOG(INFO) << "[PHOSRawWriter - init] Initialize raw writer ";
+  LOG(info) << "[PHOSRawWriter - init] Initialize raw writer ";
   if (!mRawWriter) {
     mRawWriter = new o2::phos::RawWriter();
     mRawWriter->setOutputLocation(rawdir.data());
@@ -41,14 +41,14 @@ void RawWriterSpec::init(framework::InitContext& ctx)
 
 void RawWriterSpec::run(framework::ProcessingContext& ctx)
 {
-  LOG(DEBUG) << "[PHOSRawWriter - run] called";
+  LOG(debug) << "[PHOSRawWriter - run] called";
 
   auto digits = ctx.inputs().get<std::vector<o2::phos::Digit>>("digits");
   auto digitsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("digitTriggerRecords");
-  LOG(INFO) << "[PHOSRawWriter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords";
+  LOG(info) << "[PHOSRawWriter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords";
 
   mRawWriter->digitsToRaw(digits, digitsTR);
-  LOG(INFO) << "[PHOSRawWriter - run]  Finished ";
+  LOG(info) << "[PHOSRawWriter - run]  Finished ";
 
   //flash and close output files
   mRawWriter->getWriter().close();

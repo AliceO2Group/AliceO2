@@ -9,9 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <fmt/core.h>
 #include <iterator>
 #include <memory>
+#include <unordered_map>
 #include <vector>
+#include <gsl/span>
 
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Task.h"
@@ -22,31 +25,39 @@
 
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/Digit.h"
+#include "TPCBase/Mapper.h"
+#include "TPCBase/Sector.h"
 #include "TPCWorkflow/KryptonRawFilterSpec.h"
 
 using namespace o2::framework;
 using namespace o2::header;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 
 class KrRawFilterDevice : public o2::framework::Task
 {
  public:
-  KrRawFilterDevice() = default;
+  KrRawFilterDevice(CalPad* noise) : mNoise(noise) {}
 
   void init(o2::framework::InitContext& ic) final
   {
-    mThreshold = ic.options().get<float>("threshold");
+    mThresholdMax = ic.options().get<float>("threshold-max");
+    mThresholdAbs = ic.options().get<float>("threshold-abs");
+    mThresholdSigma = ic.options().get<float>("threshold-sigma");
     mTimeBinsBefore = ic.options().get<int>("time-bins-before");
     mTimeBinsAfter = ic.options().get<int>("time-bins-after");
+    mSkipIROCTSensors = ic.options().get<bool>("skip-iroc-tsen");
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    const auto& mapper = Mapper::instance();
+    const size_t MAXROWS = 152;
+    const size_t MAXPADS = 138;
+    const size_t MAXTIMEBINS = 450;
+
     for (auto const& inputRef : InputRecordWalker(pc.inputs())) {
       auto const* sectorHeader = DataRefUtils::getHeader<TPCSectorHeader*>(inputRef);
       if (sectorHeader == nullptr) {
@@ -56,76 +67,139 @@ class KrRawFilterDevice : public o2::framework::Task
 
       const int sector = sectorHeader->sector();
       auto inDigitsO = pc.inputs().get<gsl::span<o2::tpc::Digit>>(inputRef);
-      std::vector<Digit> inDigits(inDigitsO.begin(), inDigitsO.end());
+      LOGP(debug, "processing sector {} with {} input digits", sector, inDigitsO.size());
 
-      // sort pad-by-pad time bin increasing
-      std::sort(inDigits.begin(), inDigits.end(), [](const auto& a, const auto& b) {
-        if (a.getRow() < b.getRow()) {
-          return true;
+      // ===| flatten digits for simple access and register interesting digit positions  |===
+      // flat digit structure
+      std::vector<float> inDigits(MAXROWS * MAXPADS * MAXTIMEBINS);
+
+      // counter how often a pad triggered to filter extremely noisy or struck pads
+      std::vector<size_t> nTriggered(MAXROWS * MAXPADS);
+
+      struct DigitInfo {
+        int row{};
+        int pad{};
+        int time{};
+      };
+      std::vector<DigitInfo> maxDigits;
+
+      for (const auto& digit : inDigitsO) {
+        const auto time = digit.getTimeStamp();
+        if (time > MAXTIMEBINS) {
+          continue;
         }
-        if (a.getRow() == b.getRow()) {
-          if (a.getPad() < b.getPad()) {
-            return true;
-          } else if (a.getPad() == b.getPad()) {
-            return a.getTimeStamp() < b.getTimeStamp();
-          }
-        }
-        return false;
-      });
 
-      std::vector<Digit> digits;
-
-      //
-      //filter digits
-      int lastPad = -1;
-      int lastRow = -1;
-      float maxCharge = 0;
-      size_t posFirstTimeBin = 0;
-      size_t posLastTimeBin = 0;
-      size_t posMaxDigit = 0;
-
-      for (size_t iDigit = 0; iDigit < inDigits.size(); ++iDigit) {
-        const auto& digit = inDigits[iDigit];
         const auto pad = digit.getPad();
         const auto row = digit.getRow();
         const auto charge = digit.getChargeFloat();
 
-        if (pad != lastPad || row != lastRow) {
-          // write out last pad
-          if (posMaxDigit > 0) {
-            if (posMaxDigit - mTimeBinsBefore > posFirstTimeBin && posMaxDigit + mTimeBinsAfter < posLastTimeBin) {
-              std::copy(&inDigits[posMaxDigit - mTimeBinsBefore], &inDigits[posMaxDigit + mTimeBinsAfter], std::back_inserter(digits));
+        const size_t offset = row * MAXPADS * MAXTIMEBINS + pad * MAXTIMEBINS;
+        inDigits[offset + time] = charge;
+
+        const auto noiseThreshold = mNoise ? mThresholdSigma * mNoise->getValue(Sector(sector), row, pad) : 0.f;
+        if ((charge > mThresholdMax) && (charge > noiseThreshold)) {
+          if (!(mSkipIROCTSensors && (row == 47) && (pad > 40))) {
+            if ((time > mTimeBinsBefore) && (time < (MAXTIMEBINS - mTimeBinsAfter))) {
+              maxDigits.emplace_back(DigitInfo{row, pad, time});
+              ++nTriggered[row * MAXPADS + pad];
             }
           }
-
-          posFirstTimeBin = iDigit;
-          posMaxDigit = 0;
-          maxCharge = 0;
         }
-
-        // center around max charge
-        if (charge > mThreshold) {
-          if (charge > maxCharge) {
-            maxCharge = charge;
-            posMaxDigit = iDigit;
-          }
-        }
-
-        lastPad = pad;
-        lastRow = row;
-        posLastTimeBin = iDigit;
       }
 
-      // copy also for last processed pad
-      if (posMaxDigit > 0) {
-        if (posMaxDigit - mTimeBinsBefore > posFirstTimeBin && posMaxDigit + mTimeBinsAfter < posLastTimeBin) {
-          std::copy(&inDigits[posMaxDigit - mTimeBinsBefore], &inDigits[posMaxDigit + mTimeBinsAfter], std::back_inserter(digits));
+      // ===| find local maxima |===
+
+      // simple local maximum detection in time and pad direction
+      auto isLocalMaximum = [&inDigits](const int row, const int pad, const int time) {
+        const size_t offset = row * MAXPADS * MAXTIMEBINS + pad * MAXTIMEBINS + time;
+        const auto testCharge = inDigits[offset];
+
+        // look in time direction
+        if (!(testCharge > inDigits[offset + 1])) {
+          return false;
+        }
+        if (testCharge < inDigits[offset - 1]) {
+          return false;
+        }
+
+        // look in pad direction
+        if (!(testCharge > inDigits[offset + MAXTIMEBINS])) {
+          return false;
+        }
+        if (testCharge < inDigits[offset - MAXTIMEBINS]) {
+          return false;
+        }
+
+        // check diagonals
+        if (!(testCharge > inDigits[offset + MAXTIMEBINS + 1])) {
+          return false;
+        }
+        if (!(testCharge > inDigits[offset + MAXTIMEBINS - 1])) {
+          return false;
+        }
+        if (testCharge < inDigits[offset - MAXTIMEBINS + 1]) {
+          return false;
+        }
+        if (testCharge < inDigits[offset - MAXTIMEBINS - 1]) {
+          return false;
+        }
+
+        return true;
+      };
+
+      // digit filter
+      std::vector<Digit> digits;
+
+      // fill digits and return true if the neigbouring pad should be filtered as well
+      auto fillDigits = [&digits, &inDigits, &sector, this](const size_t row, const size_t pad, const size_t time) {
+        int cru = Mapper::REGION[row] + sector * Mapper::NREGIONS;
+        const size_t offset = row * MAXPADS * MAXTIMEBINS + pad * MAXTIMEBINS;
+
+        const auto chargeMax = inDigits[offset + time];
+
+        for (int iTime = time - mTimeBinsBefore; iTime < time + mTimeBinsAfter; ++iTime) {
+          const auto charge = inDigits[offset + iTime];
+          if (charge < -999.f) { // avoid double copy
+            continue;
+          }
+          digits.emplace_back(Digit(cru, charge, row, pad, iTime));
+          inDigits[offset + iTime] = -1000.f;
+        }
+
+        const auto noiseThreshold = mNoise ? mThresholdSigma * mNoise->getValue(Sector(sector), row, pad) : 0.f;
+        return (chargeMax > mThresholdAbs) && (chargeMax > noiseThreshold);
+      };
+
+      // filter digits
+      for (const auto& maxDigit : maxDigits) {
+        const auto row = maxDigit.row;
+        const auto pad = maxDigit.pad;
+        // skip extremely noisy pads
+        if (nTriggered[row * MAXPADS + pad] > MAXTIMEBINS / 4) {
+          continue;
+        }
+        const auto time = maxDigit.time;
+        const int nPads = mapper.getNumberOfPadsInRowSector(row);
+        // skip edge pads
+        if ((pad == 0) || (pad == nPads - 1)) {
+          continue;
+        }
+
+        if (isLocalMaximum(row, pad, time)) {
+          auto padRef = pad;
+          while ((padRef >= 0) && fillDigits(row, padRef, time)) {
+            --padRef;
+          }
+          padRef = pad + 1;
+          while ((padRef < nPads) && fillDigits(row, padRef, time)) {
+            ++padRef;
+          }
         }
       }
 
       snapshot(pc.outputs(), digits, sector);
 
-      LOGP(info, "processed sector {} with {} filtered digits", sector, digits.size());
+      LOGP(info, "processed sector {} with {} input and {} filtered digits", sector, inDigitsO.size(), digits.size());
     }
 
     ++mProcessedTFs;
@@ -133,10 +207,14 @@ class KrRawFilterDevice : public o2::framework::Task
   }
 
  private:
-  float mThreshold{50.f};
+  float mThresholdMax{50.f};
+  float mThresholdAbs{20.f};
+  float mThresholdSigma{10.f};
   int mTimeBinsBefore{10};
   int mTimeBinsAfter{100};
   uint32_t mProcessedTFs{0};
+  bool mSkipIROCTSensors{true};
+  CalPad* mNoise{nullptr};
 
   //____________________________________________________________________________
   void snapshot(DataAllocator& output, std::vector<Digit>& digits, int sector)
@@ -147,7 +225,7 @@ class KrRawFilterDevice : public o2::framework::Task
   }
 };
 
-o2::framework::DataProcessorSpec getKryptonRawFilterSpec()
+o2::framework::DataProcessorSpec getKryptonRawFilterSpec(CalPad* noise)
 {
   using device = o2::tpc::KrRawFilterDevice;
 
@@ -162,13 +240,15 @@ o2::framework::DataProcessorSpec getKryptonRawFilterSpec()
     "tpc-krypton-raw-filter",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>()},
+    AlgorithmSpec{adaptFromTask<device>(noise)},
     Options{
-      {"threshold", VariantType::Float, 50.f, {"threshold above which time sequences will be written out"}},
+      {"threshold-max", VariantType::Float, 50.f, {"threshold in absolute ADC counts for the maximum digit"}},
+      {"threshold-abs", VariantType::Float, 20.f, {"threshold in absolute ADC counts above which time sequences will be written out"}},
+      {"threshold-sigma", VariantType::Float, 10.f, {"threshold in sigma noise above which time sequences will be written out"}},
       {"time-bins-before", VariantType::Int, 10, {"time bins before trigger digit to be written"}},
       {"time-bins-after", VariantType::Int, 100, {"time bins after trigger digit to be written"}},
+      {"skip-iroc-tsen", VariantType::Bool, true, {"skip IROC T-Sensor pads in maxima detection"}},
     } // end Options
   };  // end DataProcessorSpec
 }
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc

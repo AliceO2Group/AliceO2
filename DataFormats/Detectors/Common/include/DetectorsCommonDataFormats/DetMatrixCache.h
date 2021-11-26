@@ -55,7 +55,7 @@ class MatrixCache
   {
     // assign matrix for given sensor. The cache must be booked in advance
     if ((unsigned int)sensID >= mCache.size()) {
-      LOG(FATAL) << "SensID " << sensID << " exceeds cache size of " << mCache.size();
+      LOG(fatal) << "SensID " << sensID << " exceeds cache size of " << mCache.size();
     }
     mCache[sensID] = mat;
   }
@@ -168,7 +168,7 @@ class DetMatrixCacheIndirect : private DetMatrixCache
   int getCacheHelper(int sensID)
   {
     if (sensID >= mIndirectSize) {
-      LOG(FATAL) << "SendID " << sensID << " exceeds indirect cache size of " << mIndirectSize;
+      LOG(fatal) << "SendID " << sensID << " exceeds indirect cache size of " << mIndirectSize;
     }
     if (mIndirection[sensID] >= 0) {
       return mIndirection[sensID];

@@ -51,7 +51,7 @@ constexpr int NCOLMCM = 18;     // the number of pads per MCM
 
 constexpr int NBITSTRKLPOS = 11;                   // number of bits for position in tracklet64 word
 constexpr int NBITSTRKLSLOPE = 8;                  // number of bits for slope in tracklet64 word
-constexpr float PADGRANULARITYTRKLPOS = 80.f;
+constexpr float PADGRANULARITYTRKLPOS = 40.f;      // TODO this should come out of the trapconfig.
 constexpr float PADGRANULARITYTRKLSLOPE = 1000.f;
 constexpr float GRANULARITYTRKLPOS = 1.f / PADGRANULARITYTRKLPOS;     // granularity of position in tracklet64 word in pad-widths
 constexpr float GRANULARITYTRKLSLOPE = 1.f / PADGRANULARITYTRKLSLOPE; // granularity of slope in tracklet64 word in pads/timebin

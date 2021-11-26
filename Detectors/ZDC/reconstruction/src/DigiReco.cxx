@@ -498,7 +498,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
             }
             rec.ezdc[ich] = sum * ropt.energy_calib[ich];
           } else {
-            LOGF(WARN, "%d.%-4d CH %2d %s missing pedestal", rec.ir.orbit, rec.ir.bc, ich, ChannelNames[ich].data());
+            LOGF(warn, "%d.%-4d CH %2d %s missing pedestal", rec.ir.orbit, rec.ir.bc, ich, ChannelNames[ich].data());
           }
         } else {
           LOG(fatal) << "Serious mess in reconstruction code";
@@ -550,10 +550,10 @@ void DigiReco::updateOffsets(int ibun)
 
   for (int ich = 0; ich < NChannels; ich++) {
     if (mSource[ich] == PedND) {
-      LOGF(ERROR, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOffsetOrbit);
+      LOGF(error, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOffsetOrbit);
     }
 #ifdef O2_ZDC_DEBUG
-    LOGF(INFO, "Pedestal for ch %2d %s orbit %u %s: %f", ich, ChannelNames[ich], mOffsetOrbit, mSource[ich] == PedOr ? "OR" : (mSource[ich] == PedQC ? "QC" : "??"), mOffset[ich]);
+    LOGF(info, "Pedestal for ch %2d %s orbit %u %s: %f", ich, ChannelNames[ich], mOffsetOrbit, mSource[ich] == PedOr ? "OR" : (mSource[ich] == PedQC ? "QC" : "??"), mOffset[ich]);
 #endif
   }
 } // updateOffsets
@@ -913,7 +913,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
         if (mSource[ich] != PedND) {
           amp = mOffset[ich] - amp;
         } else {
-          LOGF(ERROR, "%u.%-4d Missing pedestal for TDC %d %s ", mBCData[ibun].ir.orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
+          LOGF(error, "%u.%-4d Missing pedestal for TDC %d %s ", mBCData[ibun].ir.orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
           amp = std::numeric_limits<float>::infinity();
         }
         int tdc = isam_amp % nsbun;
@@ -948,7 +948,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
       if (mSource[ich] != PedND) {
         amp = mOffset[ich] - amp;
       } else {
-        LOGF(ERROR, "%u.%-4d Missing pedestal for TDC %d %s ", mBCData[ibun].ir.orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
+        LOGF(error, "%u.%-4d Missing pedestal for TDC %d %s ", mBCData[ibun].ir.orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
         amp = std::numeric_limits<float>::infinity();
       }
       int tdc = isam_amp % nsbun;

@@ -37,7 +37,7 @@ void Digitizer::clear()
 //_______________________________________________________________________
 void Digitizer::init()
 {
-  LOG(INFO) << "init";
+  LOG(info) << "init";
   mNBins = FV0DigParam::Instance().waveformNbins;      //Will be computed using detector set-up from CDB
   mBinSize = FV0DigParam::Instance().waveformBinWidth; //Will be set-up from CDB
   mNTimeBinsPerBC = std::lround(o2::constants::lhc::LHCBunchSpacingNS / mBinSize); // 1920 bins/BC
@@ -77,7 +77,7 @@ void Digitizer::init()
   }
   mLastBCCache.clear();
   mCfdStartIndex.fill(0);
-  LOG(INFO) << "init -> finished";
+  LOG(info) << "init -> finished";
 }
 
 void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
@@ -86,7 +86,7 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
                         std::vector<o2::fv0::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
 {
-  LOG(DEBUG) << "Begin with " << hits.size() << " hits";
+  LOG(debug) << "Begin with " << hits.size() << " hits";
   flush(digitsBC, digitsCh, digitsTrig, labels); // flush cached signal which cannot be affect by new event
 
   std::vector<int> hitIdx(hits.size());
@@ -119,7 +119,7 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
         }
         // Split signal magnitude to fractions depending on the distance of the hit from the cell center
         hitEdep = (hit.GetHitValue() * 1e3) * getSignalFraction(distanceFromXc, iChannelPerCell == 0);
-        // LOG(INFO) << "  detId: " << detId << "-" << iChannelPerCell << " hitEdep: " << hitEdep << " distanceFromXc: " << distanceFromXc;
+        // LOG(info) << "  detId: " << detId << "-" << iChannelPerCell << " hitEdep: " << hitEdep << " distanceFromXc: " << distanceFromXc;
         ++iChannelPerCell;
       } else {
         iChannelPerCell = 2; // not a ring 5 cell -> don't repeat the loop
@@ -271,7 +271,7 @@ void Digitizer::storeBC(const BCCache& bc,
     return;
   }
   totalChargeAllRing *= DP::INV_CHARGE_PER_ADC;
-  //LOG(INFO)<<"Total charge ADC " <<totalChargeAllRing ;
+  //LOG(info)<<"Total charge ADC " <<totalChargeAllRing ;
   ///Triggers for FV0
   bool isMinBias, isMinBiasInner, isMinBiasOuter, isHighMult, isDummy;
   isMinBias = nStored > 0;
@@ -311,7 +311,7 @@ Float_t Digitizer::IntegrateCharge(const ChannelBCDataF& pulse) const
   int const chargeIntMin = FV0DigParam::Instance().isIntegrateFull ? 0 : (FV0DigParam::Instance().avgCfdTimeForMip - 6.0) / mBinSize;                //Charge integration offset (cfd mean time - 6 ns)
   int const chargeIntMax = FV0DigParam::Instance().isIntegrateFull ? mNTimeBinsPerBC : (FV0DigParam::Instance().avgCfdTimeForMip + 14.0) / mBinSize; //Charge integration offset (cfd mean time + 14 ns)
   if (chargeIntMin < 0 || chargeIntMin > mNTimeBinsPerBC || chargeIntMax > mNTimeBinsPerBC) {
-    LOG(FATAL) << "invalid indicess: chargeInMin=" << chargeIntMin << " chargeIntMax=" << chargeIntMax;
+    LOG(fatal) << "invalid indicess: chargeInMin=" << chargeIntMin << " chargeIntMax=" << chargeIntMax;
   }
   Float_t totalCharge = 0.0f;
   for (int iTimeBin = chargeIntMin; iTimeBin < chargeIntMax; iTimeBin++) {
@@ -345,7 +345,7 @@ Float_t Digitizer::SimulateTimeCfd(int& startIndex, const ChannelBCDataF& pulseL
           startIndex -= mNTimeBinsPerBC;
         }
         if (startIndex > mNTimeBinsPerBC) {
-          LOG(FATAL) << "CFD dead-time was set to > 25 ns";
+          LOG(fatal) << "CFD dead-time was set to > 25 ns";
         }
         break; // only detects the 1st zero-crossing in the BC
       }

@@ -69,4 +69,29 @@ bool Digit::operator==(const Digit& other) const
          mNofSamples == other.mNofSamples;
 }
 
+bool Digit::operator<(const Digit& other) const
+{
+  if (mDetID == other.mDetID) {
+    if (mPadID == other.mPadID) {
+      if (mTFtime == other.mTFtime) {
+        if (mADC == other.mADC) {
+          if (mNofSamples == other.mNofSamples) {
+            return mIsSaturated != other.mIsSaturated;
+          } else {
+            return mNofSamples < other.mNofSamples;
+          }
+        } else {
+          return mADC < other.mADC;
+        }
+      } else {
+        return mTFtime < other.mTFtime;
+      }
+    } else {
+      return mPadID < other.mPadID;
+    }
+  } else {
+    return mDetID < other.mDetID;
+  }
+}
+
 } // namespace o2::mch

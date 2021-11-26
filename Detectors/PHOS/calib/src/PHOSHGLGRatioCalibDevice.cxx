@@ -45,7 +45,7 @@ void PHOSHGLGRatioCalibDevice::run(o2::framework::ProcessingContext& ctx)
   }
 
   auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
-  LOG(DEBUG) << "[PHOSHGLGRatioCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
+  LOG(debug) << "[PHOSHGLGRatioCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
   auto cellsTR = ctx.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cellTriggerRecords");
   for (const auto& tr : cellsTR) {
     int firstCellInEvent = tr.getFirstEntry();
@@ -81,7 +81,7 @@ void PHOSHGLGRatioCalibDevice::run(o2::framework::ProcessingContext& ctx)
 void PHOSHGLGRatioCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
 
-  LOG(INFO) << "[PHOSHGLGRatioCalibDevice - endOfStream]";
+  LOG(info) << "[PHOSHGLGRatioCalibDevice - endOfStream]";
   //calculate stuff here
   calculateRatios();
   checkRatios();
@@ -136,7 +136,7 @@ void PHOSHGLGRatioCalibDevice::checkRatios()
     }
     return;
   }
-  LOG(INFO) << "Retrieving current HG/LG ratio from CCDB";
+  LOG(info) << "Retrieving current HG/LG ratio from CCDB";
   //Read current padestals for comarison
   o2::ccdb::CcdbApi ccdb;
   ccdb.init(mCCDBPath); // or http://localhost:8080 for a local installation
@@ -145,11 +145,11 @@ void PHOSHGLGRatioCalibDevice::checkRatios()
 
   if (!currentCalibParams) { //was not read from CCDB, but expected
     mUpdateCCDB = true;
-    LOG(ERROR) << "Can not read current CalibParams from ccdb";
+    LOG(error) << "Can not read current CalibParams from ccdb";
     return;
   }
 
-  LOG(INFO) << "Got current calibration from CCDB";
+  LOG(info) << "Got current calibration from CCDB";
   //Compare to current
   int nChanged = 0;
   for (short i = o2::phos::Mapping::NCHANNELS; i > 1792; i--) {
@@ -170,11 +170,11 @@ void PHOSHGLGRatioCalibDevice::checkRatios()
     mCalibParams->setHGTimeCalib(i, currentCalibParams->getHGTimeCalib(i));
     mCalibParams->setLGTimeCalib(i, currentCalibParams->getLGTimeCalib(i));
   }
-  LOG(INFO) << nChanged << "channels changed more than 10 %";
+  LOG(info) << nChanged << "channels changed more than 10 %";
   if (nChanged > kMinorChange) { //serious change, do not update CCDB automatically, use "force" option to overwrite
-    LOG(ERROR) << "too many channels changed: " << nChanged << " (threshold " << kMinorChange << ")";
+    LOG(error) << "too many channels changed: " << nChanged << " (threshold " << kMinorChange << ")";
     if (!mForceUpdate) {
-      LOG(ERROR) << "you may use --forceupdate option to force updating ccdb";
+      LOG(error) << "you may use --forceupdate option to force updating ccdb";
     }
     mUpdateCCDB = false;
   } else {
@@ -194,7 +194,7 @@ void PHOSHGLGRatioCalibDevice::sendOutput(DataAllocator& output)
     info.setMetaData(md);
     auto image = o2::ccdb::CcdbApi::createObjectImage(mCalibParams.get(), &info);
 
-    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName()
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
               << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp()
               << " : " << info.getEndValidityTimestamp();
@@ -204,7 +204,7 @@ void PHOSHGLGRatioCalibDevice::sendOutput(DataAllocator& output)
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_HGLGratio", subSpec}, info);
   }
   //Anyway send change to QC
-  LOG(INFO) << "[PHOSHGLGRatioCalibDevice - sendOutput] Sending QC ";
+  LOG(info) << "[PHOSHGLGRatioCalibDevice - sendOutput] Sending QC ";
   output.snapshot(o2::framework::Output{"PHS", "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe}, mRatioDiff);
 }
 

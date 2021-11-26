@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MYDIR="$(dirname $(readlink -f $0))"
+MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh
 
 if [[ `which StfBuilder 2> /dev/null | wc -l` == "0" ]]; then
@@ -16,7 +16,7 @@ if [[ ! -z $DD_STARTUP_DELAY ]]; then
 fi
 
 if [[ -z $INPUT_FILE_LIST ]]; then
-  DD_INPUT_CMD="--data-source-dir ./raw/timeframe"
+  DD_INPUT_CMD="--data-source-dir $RAWINPUTDIR/raw/timeframe"
 else
   DD_INPUT_CMD="--data-source-file-list $INPUT_FILE_LIST"
   if [[ -z $INPUT_FILE_COPY_CMD ]]; then

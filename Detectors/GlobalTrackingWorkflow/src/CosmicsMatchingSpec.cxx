@@ -134,7 +134,7 @@ void CosmicsMatchingSpec::run(ProcessingContext& pc)
 void CosmicsMatchingSpec::endOfStream(EndOfStreamContext& ec)
 {
   mMatching.end();
-  LOGF(INFO, "Cosmics matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "Cosmics matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

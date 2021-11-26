@@ -34,7 +34,7 @@ namespace tof
 template <typename RDH, bool verbose, bool paranoid>
 void CompressorTask<RDH, verbose, paranoid>::init(InitContext& ic)
 {
-  LOG(INFO) << "Compressor init";
+  LOG(info) << "Compressor init";
 
   auto decoderCONET = ic.options().get<bool>("tof-compressor-conet-mode");
   auto decoderVerbose = ic.options().get<bool>("tof-compressor-decoder-verbose");
@@ -57,7 +57,7 @@ void CompressorTask<RDH, verbose, paranoid>::init(InitContext& ic)
 template <typename RDH, bool verbose, bool paranoid>
 void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
 {
-  LOG(DEBUG) << "Compressor run";
+  LOG(debug) << "Compressor run";
 
   auto device = pc.services().get<o2::framework::RawDeviceService>().device();
   auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;

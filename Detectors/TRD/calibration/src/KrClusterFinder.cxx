@@ -104,6 +104,9 @@ void KrClusterFinder::setInput(const gsl::span<const Digit>& digitsIn, const gsl
 
 void KrClusterFinder::findClusters()
 {
+  if (mDigits.size() == 0 || mTriggerRecords.size() == 0) {
+    return;
+  }
   int nClsTotal = 0;
   int nClsDropped = 0;
   int nClsInvalidFit = 0;
@@ -396,9 +399,9 @@ void KrClusterFinder::findClusters()
           } else {
             //mFitResult->Print(std::cout);
             ++nClsDropped;
-            LOG(DEBUG) << "Kr cluster cannot be added because values are out of range";
-            LOGF(DEBUG, "sumOfAllTimeBins(%i), sumAdcA(%f), sumAdcB(%f), clSizeRow(%i), clSizeCol(%i), clSizeTime(%i), maxTbA(%i), maxTbB(%i)", sumOfAllTimeBins, sumAdcA, sumAdcB, clSizeRow, clSizeCol, clSizeTime, maxTbA, maxTbB);
-            LOGF(DEBUG, "rmsAdc(%f), rmsTime(%f), nUsedADCsInCl(%i), sumOfAllTimeBinsAboveThreshold(%i), integralLandauFit(%f), sumOfAdcTrunc(%u)", rmsAdc, rmsTime, nUsedADCsInCl, sumOfAllTimeBinsAboveThreshold, integralLandauFit, sumOfAdcTrunc);
+            LOG(debug) << "Kr cluster cannot be added because values are out of range";
+            LOGF(debug, "sumOfAllTimeBins(%i), sumAdcA(%f), sumAdcB(%f), clSizeRow(%i), clSizeCol(%i), clSizeTime(%i), maxTbA(%i), maxTbB(%i)", sumOfAllTimeBins, sumAdcA, sumAdcB, clSizeRow, clSizeCol, clSizeTime, maxTbA, maxTbB);
+            LOGF(debug, "rmsAdc(%f), rmsTime(%f), nUsedADCsInCl(%i), sumOfAllTimeBinsAboveThreshold(%i), integralLandauFit(%f), sumOfAdcTrunc(%u)", rmsAdc, rmsTime, nUsedADCsInCl, sumOfAllTimeBinsAboveThreshold, integralLandauFit, sumOfAdcTrunc);
           }
         }
       } // end cluster search
@@ -407,5 +410,5 @@ void KrClusterFinder::findClusters()
 
   // we don't need the exact BC time, just use first interaction record within this TF
   mTrigRecs.emplace_back(mTriggerRecords[0].getBCData(), nClsTotal);
-  LOGF(INFO, "Number of Kr clusters with a) invalid fit (%i) b) out-of-range values which were dropped (%i)", nClsInvalidFit, nClsDropped);
+  LOGF(info, "Number of Kr clusters with a) invalid fit (%i) b) out-of-range values which were dropped (%i)", nClsInvalidFit, nClsDropped);
 }

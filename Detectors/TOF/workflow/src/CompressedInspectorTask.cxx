@@ -35,7 +35,7 @@ namespace tof
 template <typename RDH>
 void CompressedInspectorTask<RDH>::init(InitContext& ic)
 {
-  LOG(INFO) << "CompressedInspector init";
+  LOG(info) << "CompressedInspector init";
   auto filename = ic.options().get<std::string>("tof-compressed-inspector-filename");
   auto verbose = ic.options().get<bool>("tof-compressed-inspector-decoder-verbose");
 
@@ -43,13 +43,13 @@ void CompressedInspectorTask<RDH>::init(InitContext& ic)
 
   /** open file **/
   if (mFile && mFile->IsOpen()) {
-    LOG(WARNING) << "a file was already open, closing";
+    LOG(warning) << "a file was already open, closing";
     mFile->Close();
     delete mFile;
   }
   mFile = TFile::Open(filename.c_str(), "RECREATE");
   if (!mFile || !mFile->IsOpen()) {
-    LOG(ERROR) << "cannot open output file: " << filename;
+    LOG(error) << "cannot open output file: " << filename;
     mStatus = true;
     return;
   }
@@ -70,7 +70,7 @@ void CompressedInspectorTask<RDH>::init(InitContext& ic)
   mHistos2D["crateOrbit"] = new TH2F("hCrateOrbit", ";crate;orbit", 72, 0., 72., 4096, 0., 4096.);
 
   auto finishFunction = [this]() {
-    LOG(INFO) << "CompressedInspector finish";
+    LOG(info) << "CompressedInspector finish";
     for (auto& histo : mHistos1D) {
       histo.second->Write();
     }
@@ -85,7 +85,7 @@ void CompressedInspectorTask<RDH>::init(InitContext& ic)
 template <typename RDH>
 void CompressedInspectorTask<RDH>::run(ProcessingContext& pc)
 {
-  LOG(DEBUG) << "CompressedInspector run";
+  LOG(debug) << "CompressedInspector run";
 
   /** check status **/
   if (mStatus) {

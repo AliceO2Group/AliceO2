@@ -17,7 +17,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsMCH/ROFRecord.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "DataFormatsMCH/Digit.h"
 
 using namespace o2::framework;
@@ -34,7 +34,7 @@ DataProcessorSpec getClusterWriterSpec(bool useMC, const char* specName, bool gl
   return MakeRootTreeWriterSpec(specName,
                                 "mchclusters.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree MCH Clusters"},
-                                BranchDefinition<std::vector<ClusterStruct>>{InputSpec{"clusters", "MCH", clusterDescription}, "clusters"},
+                                BranchDefinition<std::vector<Cluster>>{InputSpec{"clusters", "MCH", clusterDescription}, "clusters"},
                                 BranchDefinition<std::vector<ROFRecord>>{InputSpec{"clusterrofs", "MCH", "CLUSTERROFS"}, "clusterrofs"},
                                 BranchDefinition<std::vector<Digit>>{InputSpec{"clusterdigits", "MCH", "CLUSTERDIGITS"}, "clusterdigits", digits ? 1 : 0},
                                 BranchDefinition<dataformats::MCTruthContainer<MCCompLabel>>{InputSpec{"clusterlabels", "MCH", "CLUSTERLABELS"}, "clusterlabels", useMC ? 1 : 0})();

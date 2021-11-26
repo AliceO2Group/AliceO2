@@ -63,7 +63,7 @@ struct FITDigitWriterSpecHelper {
     //auto branchName = std::string{detName + dplName};
     auto branchName = std::string{T::sDigitBranchName};
     auto optionStr = std::string{detNameLower + "-" + dplName + "-branch-name"};
-    //LOG(INFO)<<"Branch: "<<dplLabel.c_str()<< "|" <<detName<<" | "<<T::sChannelNameDPL<<" | "<<branchName<<" | "<<optionStr<<" | "<<(detName+dplName);
+    //LOG(info)<<"Branch: "<<dplLabel.c_str()<< "|" <<detName<<" | "<<T::sChannelNameDPL<<" | "<<branchName<<" | "<<optionStr<<" | "<<(detName+dplName);
     return BranchDefinition<std::vector<T>>{InputSpec{dplLabel.c_str(), dataOrigin, T::sChannelNameDPL}, branchName.c_str(), optionStr.c_str(), std::forward<Args>(args)...};
   }
 
@@ -85,7 +85,7 @@ struct FITDigitWriterSpecHelper {
     std::for_each(detNameLower.begin(), detNameLower.end(), [](char& c) { c = ::tolower(c); });
     // Spectators for logging
     auto logger = [](std::vector<Digit_t> const& vecDigits) {
-      LOG(INFO) << "FITDigitWriter pulled " << vecDigits.size() << " digits";
+      LOG(info) << "FITDigitWriter pulled " << vecDigits.size() << " digits";
     };
     // the callback to be set as hook for custom action when the writer is closed
     auto finishWriting = [](TFile* outputfile, TTree* outputtree) {
@@ -94,7 +94,7 @@ struct FITDigitWriterSpecHelper {
       for (const auto* brc : *brArr) {
         int64_t n = ((const TBranch*)brc)->GetEntries();
         if (nent && (nent != n)) {
-          LOG(ERROR) << "Branches have different number of entries";
+          LOG(error) << "Branches have different number of entries";
         }
         nent = n;
       }

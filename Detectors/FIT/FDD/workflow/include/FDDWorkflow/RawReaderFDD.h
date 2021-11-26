@@ -52,8 +52,8 @@ class RawReaderFDD : public RawReaderFDDBaseNorm
   void accumulateDigits()
   {
     getDigits(mVecDigits, mVecChannelData);
-    LOG(INFO) << "Number of Digits: " << mVecDigits.size();
-    LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
+    LOG(info) << "Number of Digits: " << mVecDigits.size();
+    LOG(info) << "Number of ChannelData: " << mVecChannelData.size();
     if (mDumpData) {
       DigitBlockFDD::print(mVecDigits, mVecChannelData);
     }

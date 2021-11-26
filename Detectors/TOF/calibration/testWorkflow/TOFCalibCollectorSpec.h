@@ -57,7 +57,7 @@ class TOFCalibCollectorDevice : public o2::framework::Task
 
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
     auto data = pc.inputs().get<gsl::span<o2::dataformats::CalibInfoTOF>>("input");
-    LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
+    LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
     mCollector->process(tfcounter, data);
     sendOutput(pc.outputs());
   }
@@ -82,7 +82,7 @@ class TOFCalibCollectorDevice : public o2::framework::Task
   {
     // in output we send the calibration tree
     auto& collectedInfo = mCollector->getCollectedCalibInfo();
-    LOG(DEBUG) << "In CollectorSpec sendOutput: size = " << collectedInfo.size();
+    LOG(debug) << "In CollectorSpec sendOutput: size = " << collectedInfo.size();
     if (collectedInfo.size()) {
       auto entries = collectedInfo.size();
       // this means that we are ready to send the output

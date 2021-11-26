@@ -55,7 +55,7 @@ Mapping::ErrorStatus Mapping::hwToAbsId(short ddl, short hwAddr, short& absId, C
 {
 
   if (!mInitialized) {
-    LOG(ERROR) << "Mapping not initialized";
+    LOG(error) << "Mapping not initialized";
     return kNotInitialized;
   }
 
@@ -105,7 +105,7 @@ Mapping::ErrorStatus Mapping::absIdTohw(short absId, short caloFlag, short& ddl,
   }
 
   if (!mInitialized) {
-    LOG(ERROR) << "Mapping not initialized";
+    LOG(error) << "Mapping not initialized";
     return kNotInitialized;
   }
 
@@ -137,43 +137,43 @@ Mapping::ErrorStatus Mapping::setMapping()
       std::string fname = fmt::format("{:s}/Mod{:d}RCU{:d}.data", p, m, i);
       std::ifstream fIn(fname);
       if (!fIn.is_open()) {
-        LOG(FATAL) << "Missing mapping file " << p << "/Mod" << m << "RCU" << i << ".data";
+        LOG(fatal) << "Missing mapping file " << p << "/Mod" << m << "RCU" << i << ".data";
         return kNotInitialized;
       }
       if (!(fIn >> numberOfChannels)) {
-        LOG(FATAL) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no numberOfChannels";
+        LOG(fatal) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no numberOfChannels";
         return kNotInitialized;
       }
       if (numberOfChannels != NHWPERDDL) {
-        LOG(FATAL) << "Unexpected number of channels: " << numberOfChannels << " expecting " << NHWPERDDL << " file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no numberOfChannels";
+        LOG(fatal) << "Unexpected number of channels: " << numberOfChannels << " expecting " << NHWPERDDL << " file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no numberOfChannels";
         return kNotInitialized;
       }
       if (!(fIn >> maxHWAddress)) {
-        LOG(FATAL) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no maxHWAddress";
+        LOG(fatal) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no maxHWAddress";
         return kNotInitialized;
       }
       if (maxHWAddress > NMaxHWAddress) {
-        LOG(FATAL) << "Maximal HW address in file " << maxHWAddress << "larger than array size " << NMaxHWAddress << "for /Mod" << m << "RCU" << i << ".data is wrong: no maxHWAddress";
+        LOG(fatal) << "Maximal HW address in file " << maxHWAddress << "larger than array size " << NMaxHWAddress << "for /Mod" << m << "RCU" << i << ".data is wrong: no maxHWAddress";
         return kNotInitialized;
       }
       for (short ich = 0; ich < numberOfChannels; ich++) { // 1792 = 2*896 channels connected to each RCU
         int hwAddress;
         if (!(fIn >> hwAddress)) {
-          LOG(FATAL) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no HWadd for ch " << ich;
+          LOG(fatal) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no HWadd for ch " << ich;
           return kNotInitialized;
         }
         if (hwAddress > maxHWAddress) {
-          LOG(FATAL) << "Hardware (ALTRO) adress (" << hwAddress << ") outside the range (0 -> " << maxHWAddress << ") !";
+          LOG(fatal) << "Hardware (ALTRO) adress (" << hwAddress << ") outside the range (0 -> " << maxHWAddress << ") !";
           return kNotInitialized;
         }
         int row, col, caloFlag;
         if (!(fIn >> row >> col >> caloFlag)) {
-          LOG(FATAL) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong:  no (raw col caloFlag)";
+          LOG(fatal) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong:  no (raw col caloFlag)";
           return kNotInitialized;
         }
 
         if (caloFlag < 0 || caloFlag > 2) {
-          LOG(FATAL) << "Wrong CaloFlag value found (" << caloFlag << "). Should be 0, 1, 2 !";
+          LOG(fatal) << "Wrong CaloFlag value found (" << caloFlag << "). Should be 0, 1, 2 !";
           return kNotInitialized;
         }
 
@@ -184,7 +184,7 @@ Mapping::ErrorStatus Mapping::setMapping()
         //  relid[2] = Column number inside a PHOS module (Z coordinate)
         short ddl = 4 * m + i - 2;
         if (ddl < 0 || ddl >= NDDL) {
-          LOG(FATAL) << "Wrong ddl address found (" << ddl << "). Module= " << m << " RCU =" << i;
+          LOG(fatal) << "Wrong ddl address found (" << ddl << "). Module= " << m << " RCU =" << i;
           return kNotInitialized;
         }
 

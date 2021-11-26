@@ -20,7 +20,7 @@
 #include "Framework/Lifetime.h"
 #include "Framework/Logger.h"
 #include "Framework/Task.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include <iostream>
 #include <vector>
 
@@ -42,7 +42,7 @@ RootTreeReader::SpecialPublishHook logging{
       printBranch<ROFRecord>(data, "ROFS");
     }
     if (name == "trackclusters") {
-      printBranch<ClusterStruct>(data, "CLUSTERS");
+      printBranch<Cluster>(data, "CLUSTERS");
     }
     if (name == "tracks") {
       printBranch<TrackMCH>(data, "TRACKS");
@@ -74,7 +74,7 @@ struct TrackReader {
         RootTreeReader::PublishingMode::Single,
         RootTreeReader::BranchDefinition<std::vector<TrackMCH>>{Output{"MCH", "TRACKS", 0}, "tracks"},
         RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "TRACKROFS", 0}, "trackrofs"},
-        RootTreeReader::BranchDefinition<std::vector<ClusterStruct>>{Output{"MCH", "TRACKCLUSTERS", 0}, "trackclusters"},
+        RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MCH", "TRACKCLUSTERS", 0}, "trackclusters"},
         RootTreeReader::BranchDefinition<std::vector<o2::MCCompLabel>>{Output{"MCH", "TRACKLABELS", 0}, "tracklabels"},
         &logging);
     } else {
@@ -85,7 +85,7 @@ struct TrackReader {
         RootTreeReader::PublishingMode::Single,
         RootTreeReader::BranchDefinition<std::vector<TrackMCH>>{Output{"MCH", "TRACKS", 0}, "tracks"},
         RootTreeReader::BranchDefinition<std::vector<ROFRecord>>{Output{"MCH", "TRACKROFS", 0}, "trackrofs"},
-        RootTreeReader::BranchDefinition<std::vector<ClusterStruct>>{Output{"MCH", "TRACKCLUSTERS", 0}, "trackclusters"},
+        RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"MCH", "TRACKCLUSTERS", 0}, "trackclusters"},
         &logging);
     }
   }

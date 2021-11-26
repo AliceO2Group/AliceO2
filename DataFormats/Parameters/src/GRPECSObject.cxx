@@ -85,7 +85,7 @@ GRPECSObject* GRPECSObject::loadFrom(const std::string& grpecsFileName)
   auto fname = o2::base::NameConf::getGRPFileName(grpecsFileName);
   TFile flGRP(fname.c_str());
   if (flGRP.IsZombie()) {
-    LOG(ERROR) << "Failed to open " << fname;
+    LOG(error) << "Failed to open " << fname;
     throw std::runtime_error("Failed to open GRPECS file");
   }
   auto grp = reinterpret_cast<o2::parameters::GRPECSObject*>(flGRP.GetObjectChecked(o2::base::NameConf::CCDBOBJECT.data(), Class()));

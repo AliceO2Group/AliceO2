@@ -106,7 +106,7 @@ std::vector<o2::dataformats::TFIDInfo> HBFUtilsInitializer::readTFIDInfoVector(c
 void HBFUtilsInitializer::assignDataHeader(const std::vector<o2::dataformats::TFIDInfo>& tfinfoVec, o2::header::DataHeader& dh)
 {
   const auto tfinf = tfinfoVec[dh.tfCounter % tfinfoVec.size()];
-  LOGP(DEBUG, "Setting DH for {}/{} from tfCounter={} firstTForbit={} runNumber={} to tfCounter={} firstTForbit={} runNumber={}",
+  LOGP(debug, "Setting DH for {}/{} from tfCounter={} firstTForbit={} runNumber={} to tfCounter={} firstTForbit={} runNumber={}",
        dh.dataOrigin.as<std::string>(), dh.dataDescription.as<std::string>(), dh.tfCounter, dh.firstTForbit, dh.runNumber, tfinf.tfCounter, tfinf.firstTForbit, tfinf.runNumber);
   dh.firstTForbit = tfinf.firstTForbit;
   dh.tfCounter = tfinf.tfCounter;

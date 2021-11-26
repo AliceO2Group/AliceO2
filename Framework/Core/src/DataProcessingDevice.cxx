@@ -1024,7 +1024,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
           switch (relayed) {
             case DataRelayer::Backpressured:
               if (info.normalOpsNotified == true && info.backpressureNotified == false) {
-                LOGP(WARN, "Backpressure on channel {}. Waiting.", info.channel->GetName());
+                LOGP(warn, "Backpressure on channel {}. Waiting.", info.channel->GetName());
                 info.backpressureNotified = true;
                 info.normalOpsNotified = false;
               }

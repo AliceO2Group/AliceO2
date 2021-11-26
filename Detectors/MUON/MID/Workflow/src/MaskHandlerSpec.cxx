@@ -28,8 +28,9 @@
 #include "Framework/Task.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
+#include "MIDRaw/ColumnDataToLocalBoard.h"
+#include "MIDRaw/ROBoardConfigHandler.h"
 #include "MIDFiltering/ChannelMasksHandler.h"
-#include "MIDFiltering/ColumnDataMaskToROMask.h"
 #include "MIDFiltering/MaskMaker.h"
 
 namespace of = o2::framework;
@@ -56,19 +57,21 @@ class MaskHandlerDeviceDPL
   void printSummary()
   {
     std::string name = "calib";
-    o2::mid::ColumnDataMaskToROMask colMasksToRO;
+    o2::mid::ColumnDataToLocalBoard colToBoard;
+    o2::mid::ROBoardConfigHandler roBoardCfgHandler;
 
     for (auto& masks : mMasksHandlers) {
       auto maskVec = masks.getMasks();
+      colToBoard.process(maskVec);
+      auto roMasks = colToBoard.getData();
       if (maskVec.empty()) {
-        LOG(INFO) << "No problematic digit found in " << name << " events";
+        LOG(info) << "No problematic digit found in " << name << " events";
       } else {
-        LOG(INFO) << "Problematic digits found in " << name << " events. Corresponding masks:";
+        LOG(info) << "Problematic digits found in " << name << " events. Corresponding masks:";
         for (auto& mask : maskVec) {
-          LOG(INFO) << mask;
+          LOG(info) << mask;
         }
         std::cout << "\nCorresponding boards masks:" << std::endl;
-        auto roMasks = colMasksToRO.convert(maskVec);
         for (auto& board : roMasks) {
           std::cout << board << std::endl;
         }
@@ -80,7 +83,10 @@ class MaskHandlerDeviceDPL
         std::string outFilename = mOutFilename;
         outFilename.insert(insertIdx, "_");
         outFilename.insert(insertIdx, name.c_str());
-        colMasksToRO.write(masks.getMasksFull(o2::mid::makeDefaultMasks()), outFilename.c_str());
+        auto fullMasks = masks.getMasksFull(o2::mid::makeDefaultMasks());
+        colToBoard.process(fullMasks);
+        roBoardCfgHandler.updateMasks(colToBoard.getData());
+        roBoardCfgHandler.write(outFilename.c_str());
       }
 
       name = "FET";

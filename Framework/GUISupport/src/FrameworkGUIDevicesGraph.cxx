@@ -77,6 +77,7 @@ const static ImColor OUTPUT_SLOT_COLOR = {150, 150, 150, 150};
 const static ImVec4& ERROR_MESSAGE_COLOR = PaletteHelpers::RED;
 const static ImVec4& WARNING_MESSAGE_COLOR = PaletteHelpers::YELLOW;
 const static ImColor ARROW_COLOR = {200, 200, 100};
+const static ImColor ARROW_SELECTED_COLOR = {200, 0, 100};
 const static ImU32 GRID_COLOR = ImColor(200, 200, 200, 40);
 const static ImColor NODE_BORDER_COLOR = {100, 100, 100};
 const static ImColor LEGEND_COLOR = {100, 100, 100};
@@ -459,12 +460,20 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   displayGrid(show_grid, offset, draw_list);
 
   // Display links
-  draw_list->ChannelsSetCurrent(0); // Background
   for (int link_idx = 0; link_idx < links.Size; link_idx++) {
+    draw_list->ChannelsSetCurrent(0); // Background
     NodeLink* link = &links[link_idx];
+    auto color = ARROW_COLOR;
+    auto thickness = ARROW_THICKNESS;
+    if (link->InputIdx == node_selected || link->OutputIdx == node_selected) {
+      auto foregroundLayer = (nodes.Size + 1) * 2 + 1;
+      draw_list->ChannelsSetCurrent(foregroundLayer);
+      color = ARROW_SELECTED_COLOR;
+      thickness = thickness + 2;
+    }
     ImVec2 p1 = offset + NodePos::GetOutputSlotPos(nodes, positions, link->InputIdx, link->InputSlot);
     ImVec2 p2 = ImVec2(-3 * NODE_SLOT_RADIUS, 0) + offset + NodePos::GetInputSlotPos(nodes, positions, link->OutputIdx, link->OutputSlot);
-    draw_list->AddBezierCurve(p1, p1 + ImVec2(+50, 0), p2 + ImVec2(-50, 0), p2, ARROW_COLOR, ARROW_THICKNESS);
+    draw_list->AddBezierCurve(p1, p1 + ImVec2(+50, 0), p2 + ImVec2(-50, 0), p2, color, thickness);
   }
 
   // Display nodes
@@ -567,7 +576,11 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       auto pp1 = p1 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
       auto pp2 = p2 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
       auto pp3 = p3 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
-      draw_list->AddTriangleFilled(pp1, pp2, pp3, ARROW_COLOR);
+      auto color = ARROW_COLOR;
+      if (node_idx == node_selected) {
+        color = ARROW_SELECTED_COLOR;
+      }
+      draw_list->AddTriangleFilled(pp1, pp2, pp3, color);
       draw_list->AddCircleFilled(offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx), NODE_SLOT_RADIUS, INPUT_SLOT_COLOR);
     }
     for (int slot_idx = 0; slot_idx < node->OutputsCount; slot_idx++) {

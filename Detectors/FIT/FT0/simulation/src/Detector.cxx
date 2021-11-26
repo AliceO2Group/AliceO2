@@ -65,20 +65,20 @@ void Detector::InitializeO2Detector()
   // FIXME: we need to register the sensitive volumes with FairRoot
   TGeoVolume* v = gGeoManager->GetVolume("0REG");
   if (v == nullptr) {
-    LOG(WARN) << "@@@@ Sensitive volume 0REG not found!!!!!!!!";
+    LOG(warn) << "@@@@ Sensitive volume 0REG not found!!!!!!!!";
   } else {
     AddSensitiveVolume(v);
   }
 
   TGeoVolume* vrad = gGeoManager->GetVolume("0TOP");
   if (vrad == nullptr) {
-    LOG(WARN) << "@@@@ Sensitive radiator not found!!!!!!!!";
+    LOG(warn) << "@@@@ Sensitive radiator not found!!!!!!!!";
   } else {
     AddSensitiveVolume(vrad);
   }
   TGeoVolume* vmcp = gGeoManager->GetVolume("0MTO");
   if (vmcp == nullptr) {
-    LOG(WARN) << "@@@@ Sensitive MCP glass not found!!!!!!!!";
+    LOG(warn) << "@@@@ Sensitive MCP glass not found!!!!!!!!";
   } else {
     AddSensitiveVolume(vmcp);
   }
@@ -86,7 +86,7 @@ void Detector::InitializeO2Detector()
 
 void Detector::ConstructGeometry()
 {
-  LOG(DEBUG) << "Creating FT0 geometry\n";
+  LOG(debug) << "Creating FT0 geometry\n";
   CreateMaterials();
 
   TGeoVolumeAssembly* stlinA = new TGeoVolumeAssembly("FT0A"); // A side mother
@@ -116,7 +116,7 @@ void Detector::ConstructGeometry()
     tr[itr] = new TGeoTranslation(nameTr.Data(), mPosModuleAx[itr], mPosModuleAy[itr], z);
     tr[itr]->RegisterYourself();
     stlinA->AddNode(ins, itr, tr[itr]);
-    LOG(DEBUG) << " A geom " << itr << " " << mPosModuleAx[itr] << " " << mPosModuleAy[itr];
+    LOG(debug) << " A geom " << itr << " " << mPosModuleAx[itr] << " " << mPosModuleAy[itr];
   }
   SetCablesA(stlinA);
   //Add FT0-A support Structure to the geometry
@@ -137,7 +137,7 @@ void Detector::ConstructGeometry()
     float bc1 = geometry.tiltMCP(ic).Y();
     float gc1 = geometry.tiltMCP(ic).Z();
     rot[ic] = new TGeoRotation(nameRot.Data(), ac1, bc1, gc1);
-    LOG(DEBUG) << " rot geom " << ic << " " << ac1 << " " << bc1 << " " << gc1;
+    LOG(debug) << " rot geom " << ic << " " << ac1 << " " << bc1 << " " << gc1;
     rot[ic]->RegisterYourself();
     mPosModuleCx[ic] = geometry.centerMCP(ic + nCellsA).X();
     mPosModuleCy[ic] = geometry.centerMCP(ic + nCellsA).Y();
@@ -148,7 +148,7 @@ void Detector::ConstructGeometry()
     stlinC->AddNode(ins, itr, ph);
     //cables
     TGeoVolume* cables = SetCablesSize(itr);
-    LOG(DEBUG) << " C " << mPosModuleCx[ic] << " " << mPosModuleCy[ic];
+    LOG(debug) << " C " << mPosModuleCx[ic] << " " << mPosModuleCy[ic];
     //    cables->Print();
     comCable[ic] = new TGeoCombiTrans(mPosModuleCx[ic], mPosModuleCy[ic], mPosModuleCz[ic] + mInStart[2] + 0.2, rot[ic]);
     TGeoHMatrix hmCable = *comCable[ic];
@@ -168,7 +168,7 @@ void Detector::ConstructGeometry()
 
 void Detector::ConstructOpGeometry()
 {
-  LOG(DEBUG) << "Creating FIT optical geometry properties";
+  LOG(debug) << "Creating FIT optical geometry properties";
 
   DefineOpticalProperties();
   DefineSim2LUTindex();
@@ -232,7 +232,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
       z += ptopref[2] + 2. * pmcptopglass[2] + preg[2];
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
-      LOG(INFO) << " n " << ntops << " x " << xin << " y " << yin;
+      LOG(info) << " n " << ntops << " x " << xin << " y " << yin;
     }
   }
   // MCP
@@ -339,7 +339,7 @@ TGeoVolume* Detector::SetCablesSize(int mod)
   const std::string volName = Form("CAB%2.i", mod);
   TVirtualMC::GetMC()->Gsvolu(volName.c_str(), "BOX", getMediumID(kCable), calblesize, 3); // cables
   TGeoVolume* vol = gGeoManager->GetVolume(volName.c_str());
-  LOG(DEBUG) << "C cables " << mod << " " << volName << " " << ic;
+  LOG(debug) << "C cables " << mod << " " << volName << " " << ic;
   return vol;
 }
 
@@ -352,10 +352,10 @@ void Detector::addAlignableVolumes() const
   //  First version (mainly ported from AliRoot)
   //
 
-  LOG(INFO) << "Add FT0 alignable volumes";
+  LOG(info) << "Add FT0 alignable volumes";
 
   if (!gGeoManager) {
-    LOG(FATAL) << "TGeoManager doesn't exist !";
+    LOG(fatal) << "TGeoManager doesn't exist !";
     return;
   }
 
@@ -363,16 +363,16 @@ void Detector::addAlignableVolumes() const
   //set A side
   TString volPathA = volPath + Form("/FT0A_1");
   TString symNameA = "FT0A";
-  LOG(INFO) << symNameA << " <-> " << volPathA;
+  LOG(info) << symNameA << " <-> " << volPathA;
   if (!gGeoManager->SetAlignableEntry(symNameA.Data(), volPathA.Data())) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << symNameA << " : " << volPathA;
+    LOG(fatal) << "Unable to set alignable entry ! " << symNameA << " : " << volPathA;
   }
   //set C side
   TString volPathC = volPath + Form("/FT0C_1");
   TString symNameC = "FT0C";
-  LOG(INFO) << symNameC << " <-> " << volPathC;
+  LOG(info) << symNameC << " <-> " << volPathC;
   if (!gGeoManager->SetAlignableEntry(symNameC.Data(), volPathC.Data())) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << symNameA << " : " << volPathA;
+    LOG(fatal) << "Unable to set alignable entry ! " << symNameA << " : " << volPathA;
   }
   TString volPathMod, symNameMod;
   for (Int_t imod = 0; imod < Geometry::NCellsA + Geometry::NCellsC; imod++) {
@@ -380,7 +380,7 @@ void Detector::addAlignableVolumes() const
     volPathMod = volPath + Form("/0MOD_%d", imod);
     symNameMod = Form("0MOD_%d", imod);
     if (!gGeoManager->SetAlignableEntry(symNameMod.Data(), volPathMod.Data())) {
-      LOG(FATAL) << (Form("Alignable entry %s not created. Volume path %s not valid", symNameMod.Data(), volPathMod.Data()));
+      LOG(fatal) << (Form("Alignable entry %s not created. Volume path %s not valid", symNameMod.Data(), volPathMod.Data()));
     }
   }
 }
@@ -1049,7 +1049,7 @@ void Detector::DefineOpticalProperties()
   Int_t result = ReadOptProperties(optPropPath.Data());
   if (result < 0) {
     // Error reading file
-    LOG(ERROR) << "Could not read FIT optical properties " << result << " " << optPropPath.Data();
+    LOG(error) << "Could not read FIT optical properties " << result << " " << optPropPath.Data();
     return;
   }
   Int_t nBins = mPhotonEnergyD.size();
@@ -1132,7 +1132,7 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
 {
   std::ifstream infile;
   infile.open(filePath.c_str());
-  LOG(INFO) << " file " << filePath.c_str();
+  LOG(info) << " file " << filePath.c_str();
   // Check if file is opened correctly
   if (infile.fail() == true) {
     // AliFatal(Form("Error opening ascii file: %s", filePath.c_str()));
@@ -1141,7 +1141,7 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
 
   std::string comment;             // dummy, used just to read 4 first lines and move the cursor to the 5th, otherwise unused
   if (!getline(infile, comment)) { // first comment line
-    LOG(ERROR) << "Error opening ascii file (it is probably a folder!): " << filePath.c_str();
+    LOG(error) << "Error opening ascii file (it is probably a folder!): " << filePath.c_str();
     return -2;
   }
   getline(infile, comment); // 2nd comment line
@@ -1162,7 +1162,7 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
   getline(infile, sLine);
   while (!infile.eof()) {
     if (iLine >= nLines) {
-      //   LOG(ERROR) << "Line number: " << iLine << " reaches range of declared arraySize:" << kNbins << " Check input file:" << filePath.c_str();
+      //   LOG(error) << "Line number: " << iLine << " reaches range of declared arraySize:" << kNbins << " Check input file:" << filePath.c_str();
       return -5;
     }
     std::stringstream ssLine(sLine);
@@ -1192,12 +1192,12 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
     iLine++;
   }
   if (iLine != mPhotonEnergyD.size()) {
-    //    LOG(ERROR)(Form("Total number of lines %i is different than declared %i. Check input file: %s", iLine, kNbins,
+    //    LOG(error)(Form("Total number of lines %i is different than declared %i. Check input file: %s", iLine, kNbins,
     //    filePath.c_str()));
     return -7;
   }
 
-  LOG(INFO) << "Optical properties taken from the file: " << filePath.c_str() << " Number of lines read: " << iLine;
+  LOG(info) << "Optical properties taken from the file: " << filePath.c_str() << " Number of lines read: " << iLine;
   return 0;
 }
 
@@ -1216,10 +1216,10 @@ void Detector::DefineSim2LUTindex()
 
   std::ifstream infile;
   infile.open(indPath.data());
-  LOG(INFO) << " file  open " << indPath.data();
+  LOG(info) << " file  open " << indPath.data();
   // Check if file is opened correctly
   if (infile.fail() == true) {
-    LOG(ERROR) << "Error opening ascii file (it is probably a folder!): " << indPath.c_str();
+    LOG(error) << "Error opening ascii file (it is probably a folder!): " << indPath.c_str();
   }
   int fromfile;
   for (int iind = 0; iind < Geometry::Nchannels; iind++) {

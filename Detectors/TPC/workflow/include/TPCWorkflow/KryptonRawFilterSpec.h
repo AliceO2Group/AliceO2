@@ -16,17 +16,15 @@
 
 #ifndef TPC_KrRawFilterSpec_H_
 #define TPC_KrRawFilterSpec_H_
+#include "TPCBase/CalDet.h"
 
 #include "Framework/DataProcessorSpec.h"
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 
-o2::framework::DataProcessorSpec getKryptonRawFilterSpec();
+o2::framework::DataProcessorSpec getKryptonRawFilterSpec(CalPad* noise = nullptr);
 
-} // end namespace tpc
-} // end namespace o2
+} // namespace o2::tpc
 
 #endif // TPC_RAWTODIGITSSPEC_H_

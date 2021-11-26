@@ -35,7 +35,7 @@ void PHOSRunbyrunCalibDevice::run(o2::framework::ProcessingContext& pc)
   auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("clusters").header)->startTime; // is this the timestamp of the current TF?
   auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
   auto cluTR = pc.inputs().get<gsl::span<TriggerRecord>>("cluTR");
-  LOG(INFO) << "Processing TF with " << clusters.size() << " clusters and " << cluTR.size() << " TriggerRecords";
+  LOG(info) << "Processing TF with " << clusters.size() << " clusters and " << cluTR.size() << " TriggerRecords";
   mCalibrator->process(tfcounter, clusters, cluTR);
 }
 
@@ -46,7 +46,7 @@ void PHOSRunbyrunCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
   mCalibrator->endOfStream();
   mRunByRun = mCalibrator->getCalibration();
   if (checkFitResult()) {
-    LOG(INFO) << "End of stream reached, sending output to CCDB";
+    LOG(info) << "End of stream reached, sending output to CCDB";
     // prepare all info to be sent to CCDB
     auto flName = o2::ccdb::CcdbApi::generateFileName("Runbyrun");
     std::map<std::string, std::string> md;
@@ -54,7 +54,7 @@ void PHOSRunbyrunCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
     info.setMetaData(md);
     auto image = o2::ccdb::CcdbApi::createObjectImage(&mRunByRun, &info);
 
-    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName()
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
               << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp()
               << " : " << info.getEndValidityTimestamp();
@@ -63,7 +63,7 @@ void PHOSRunbyrunCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
     ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Runbyrun", subSpec}, *image.get());
     ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_Runbyrun", subSpec}, info);
   } else {
-    LOG(ERROR) << "Incorrect fit results: " << mRunByRun[0] << "+-" << mRunByRun[1] << ", "
+    LOG(error) << "Incorrect fit results: " << mRunByRun[0] << "+-" << mRunByRun[1] << ", "
                << mRunByRun[2] << "+-" << mRunByRun[3] << ", "
                << mRunByRun[4] << "+-" << mRunByRun[5] << ", "
                << mRunByRun[6] << "+-" << mRunByRun[7];

@@ -20,6 +20,7 @@
 // output AngularResidHistos object
 
 #include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
 using namespace o2::framework;
 
@@ -28,7 +29,7 @@ namespace o2
 namespace trd
 {
 /// create a processor spec
-framework::DataProcessorSpec getTRDTrackBasedCalibSpec();
+framework::DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask_t src);
 
 } // namespace trd
 } // namespace o2

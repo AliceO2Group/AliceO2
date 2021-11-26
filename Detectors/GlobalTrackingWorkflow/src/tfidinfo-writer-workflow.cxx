@@ -52,7 +52,7 @@ class TFIDInfoWriter : public o2::framework::Task
   {
     TFile fl(mOutFileName.c_str(), "recreate");
     fl.WriteObjectAny(&mData, "std::vector<o2::dataformats::TFIDInfo>", "tfidinfo");
-    LOGP(INFO, "Wrote TFIDInfo vector with {} entries to {}", mData.size(), fl.GetName());
+    LOGP(info, "Wrote TFIDInfo vector with {} entries to {}", mData.size(), fl.GetName());
   }
 
  private:

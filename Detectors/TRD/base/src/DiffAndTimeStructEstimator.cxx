@@ -40,11 +40,11 @@ bool DiffusionAndTimeStructEstimator::sampleTimeStruct(float vdrift)
   constexpr float fVDsmp[8] = {1.032, 1.158, 1.299, 1.450, 1.610, 1.783, 1.959, 2.134};
 
   if (vdrift < fVDsmp[0]) {
-    LOG(DEBUG) << "TRD: Drift Velocity too small " << vdrift << " < " << fVDsmp[0];
+    LOG(debug) << "TRD: Drift Velocity too small " << vdrift << " < " << fVDsmp[0];
     vdrift = fVDsmp[0];
     retVal = false;
   } else if (vdrift > fVDsmp[7]) {
-    LOG(DEBUG) << "TRD: Drift Velocity too large " << vdrift << " > " << fVDsmp[7];
+    LOG(debug) << "TRD: Drift Velocity too large " << vdrift << " > " << fVDsmp[7];
     vdrift = fVDsmp[7];
     retVal = false;
   }
@@ -157,7 +157,7 @@ float DiffusionAndTimeStructEstimator::timeStruct(float vdrift, float dist, floa
   const int kz2 = kz1 + 1;
 
   if ((r1 < 0) || (r1 > 37) || (kz1 < 0) || (kz1 > 10)) {
-    LOG(WARN) << Form("TRD: Time struct indices out of range: dist=%.2f, z=%.2f, r1=%d, kz1=%d", dist, z, r1, kz1);
+    LOG(warn) << Form("TRD: Time struct indices out of range: dist=%.2f, z=%.2f, r1=%d, kz1=%d", dist, z, r1, kz1);
   }
 
   const float ky111 = mTimeStruct1[r1 + 38 * kz1];

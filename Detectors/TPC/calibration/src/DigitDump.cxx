@@ -141,13 +141,13 @@ void DigitDump::endEvent()
 void DigitDump::loadNoiseAndPedestal()
 {
   if (!mPedestalAndNoiseFile.size()) {
-    LOG(WARNING) << "No pedestal and noise file name set";
+    LOG(warning) << "No pedestal and noise file name set";
     return;
   }
 
   std::unique_ptr<TFile> f(TFile::Open(mPedestalAndNoiseFile.data()));
   if (!f || !f->IsOpen() || f->IsZombie()) {
-    LOG(FATAL) << "Could not open pedestal file: " << mPedestalAndNoiseFile;
+    LOG(fatal) << "Could not open pedestal file: " << mPedestalAndNoiseFile;
   }
 
   CalPad* pedestal{nullptr};

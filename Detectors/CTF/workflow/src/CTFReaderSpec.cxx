@@ -117,8 +117,8 @@ void CTFReaderSpec::stopReader()
   if (!mFileFetcher) {
     return;
   }
-  LOGP(INFO, "CTFReader stops processing, {} files read, {} files failed", mFilesRead - mNFailedFiles, mNFailedFiles);
-  LOGP(INFO, "CTF reading total timing: Cpu: {:.3f} Real: {:.3f} s for {} TFs in {} loops",
+  LOGP(info, "CTFReader stops processing, {} files read, {} files failed", mFilesRead - mNFailedFiles, mNFailedFiles);
+  LOGP(info, "CTF reading total timing: Cpu: {:.3f} Real: {:.3f} s for {} TFs in {} loops",
        mTimer.CpuTime(), mTimer.RealTime(), mCTFCounter, mFileFetcher->getNLoops());
   mRunning = false;
   mFileFetcher->stop();
@@ -189,7 +189,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
         processTF(pc);
         break;
       } else { // explict CTF ID selection list was provided and current entry is not selected
-        LOGP(INFO, "Skipping CTF${} ({} of {} in {})", mCTFCounter, mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
+        LOGP(info, "Skipping CTF${} ({} of {} in {})", mCTFCounter, mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
         checkTreeEntries();
         mCTFCounter++;
         continue;
@@ -276,7 +276,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
     mLastSendTime = tNow;
   }
   tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-  LOGP(INFO, "Read CTF#{} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, 1e-6 * (tNow - mLastSendTime));
+  LOGP(info, "Read CTF#{} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, 1e-6 * (tNow - mLastSendTime));
   mLastSendTime = tNow;
   mCTFCounter++;
 }

@@ -130,7 +130,7 @@ class FileWriterDevice : public Task
       }
     }
     if ((oldRun != 0 && oldRun != mRun) || (!oldEnv.empty() && oldEnv != mEnvironmentID)) {
-      LOGP(WARNING, "RunNumber/Environment changed from {}/{} to {}/{}", oldRun, oldEnv, mRun, mEnvironmentID);
+      LOGP(warning, "RunNumber/Environment changed from {}/{} to {}/{}", oldRun, oldEnv, mRun, mEnvironmentID);
       closeTreeAndFile();
     }
 
@@ -144,7 +144,7 @@ class FileWriterDevice : public Task
         time_t now = time(nullptr);
         auto ltm = gmtime(&now);
         mLHCPeriod = months[ltm->tm_mon];
-        LOG(WARNING) << "LHCPeriod is not available, using current month " << mLHCPeriod;
+        LOG(warning) << "LHCPeriod is not available, using current month " << mLHCPeriod;
       }
       mLHCPeriod += fmt::format("_{}", DetID::getName(DetID::TPC));
     }
@@ -238,7 +238,7 @@ void FileWriterDevice::prepareTreeAndFile(const o2::header::DataHeader* dh)
     //auto sz = getAvailableDiskSpace(ctfDir, 0); // check main storage
     //if (sz < mChkSize) {
     //removeLockFile();
-    //LOG(WARNING) << "Primary  output device has available size " << sz << " while " << mChkSize << " is requested: will write on secondary one";
+    //LOG(warning) << "Primary  output device has available size " << sz << " while " << mChkSize << " is requested: will write on secondary one";
     //ctfDir = mDirFallBack;
     //}
     //}
@@ -248,7 +248,7 @@ void FileWriterDevice::prepareTreeAndFile(const o2::header::DataHeader* dh)
         if (!std::filesystem::create_directories(ctfDir)) {
           throw std::runtime_error(fmt::format("Failed to create {} directory", ctfDir));
         } else {
-          LOG(INFO) << "Created {} directory for s output" << ctfDir;
+          LOG(info) << "Created {} directory for s output" << ctfDir;
         }
       }
     }
@@ -304,12 +304,12 @@ void FileWriterDevice::closeTreeAndFile()
         metaFileOut.close();
         std::filesystem::rename(metaFileNameTmp, metaFileName);
       } catch (std::exception const& e) {
-        LOG(ERROR) << "Failed to store  meta data file " << metaFileName << ", reason: " << e.what();
+        LOG(error) << "Failed to store  meta data file " << metaFileName << ", reason: " << e.what();
       }
       mFileMetaData.reset();
     }
   } catch (std::exception const& e) {
-    LOG(ERROR) << "Failed to finalize  file " << mCurrentFileNameFull << ", reason: " << e.what();
+    LOG(error) << "Failed to finalize  file " << mCurrentFileNameFull << ", reason: " << e.what();
   }
   mTFOrbits.clear();
   mInfoBranches.clear();

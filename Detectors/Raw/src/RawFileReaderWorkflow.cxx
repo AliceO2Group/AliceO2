@@ -168,7 +168,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
         }
       }
     }
-    LOGP(ERROR, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin.str, h.dataDescription.str, h.subSpecification, h.tfCounter);
+    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin.str, h.dataDescription.str, h.subSpecification, h.tfCounter);
     return std::string{};
   };
 
@@ -199,9 +199,9 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
       LOG(info) << "Starting new loop " << mLoopsDone << " from the beginning of data";
     } else {
       mTimer[TimerTotal].Stop();
-      LOGF(INFO, "Finished: payload of %zu bytes in %zu messages sent for %d TFs", mSentSize, mSentMessages, mTFCounter);
+      LOGF(info, "Finished: payload of %zu bytes in %zu messages sent for %d TFs", mSentSize, mSentMessages, mTFCounter);
       for (int i = 0; i < NTimers; i++) {
-        LOGF(INFO, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1);
+        LOGF(info, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1);
       }
       ctx.services().get<o2f::ControlService>().endOfStream();
       ctx.services().get<o2f::ControlService>().readyToQuit(o2f::QuitRequest::Me);
@@ -275,7 +275,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
 
       addPart(std::move(hdMessage), std::move(plMessage), fmqChannel);
     }
-    LOGF(DEBUG, "Added %d parts for TF#%d(%d in iteration %d) of %s/%s/0x%u", hdrTmpl.splitPayloadParts, mTFCounter, tfID,
+    LOGF(debug, "Added %d parts for TF#%d(%d in iteration %d) of %s/%s/0x%u", hdrTmpl.splitPayloadParts, mTFCounter, tfID,
          mLoopsDone, link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
   }
 
@@ -307,7 +307,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   }
   mTimer[TimerTotal].Stop();
 
-  LOGF(INFO, "Sent payload of %zu bytes in %zu parts in %zu messages for TF %d | Timing (total/IO): %.3e / %.3e", tfSize, tfNParts,
+  LOGF(info, "Sent payload of %zu bytes in %zu parts in %zu messages for TF %d | Timing (total/IO): %.3e / %.3e", tfSize, tfNParts,
        messagesPerRoute.size(), mTFCounter, mTimer[TimerTotal].CpuTime() - tTotStart, mTimer[TimerIO].CpuTime() - tIOStart);
 
   mSentSize += tfSize;

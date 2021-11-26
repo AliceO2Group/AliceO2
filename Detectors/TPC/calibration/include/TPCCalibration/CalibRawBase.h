@@ -485,9 +485,9 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
     }
   }
 
-  LOG(INFO) << "Present event number : " << mPresentEventNumber << (skipEvent ? " (skipped, incomplete)" : "");
-  LOG(INFO) << "Last event           : " << lastEvent;
-  LOG(INFO) << "Status               : " << int(status);
+  LOG(info) << "Present event number : " << mPresentEventNumber << (skipEvent ? " (skipped, incomplete)" : "");
+  LOG(info) << "Last event           : " << lastEvent;
+  LOG(info) << "Status               : " << int(status);
 
   return status;
 }
@@ -523,7 +523,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int event
       mPresentEventNumber = numberOfEvents - 1;
     }
   }
-  LOG(INFO) << "Processing event number " << mPresentEventNumber << " (" << mNevents << ")";
+  LOG(info) << "Processing event number " << mPresentEventNumber << " (" << mNevents << ")";
 
   // set up branches
   static std::array<std::vector<Digit>*, Sector::MAXSECTOR> digits{};
@@ -538,7 +538,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int event
 
   const bool hasData = fillFromDigits(digits);
 
-  LOG(INFO) << "Found time bins: " << mProcessedTimeBins << "\n";
+  LOG(info) << "Found time bins: " << mProcessedTimeBins << "\n";
   // set status, don't overwrite decision
   if (!hasData) {
     return ProcessStatus::NoMoreData;
@@ -550,9 +550,9 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int event
   endReader();
   ++mNevents;
 
-  LOG(INFO) << "Present event number : " << mPresentEventNumber;
-  LOG(INFO) << "Last event           : " << lastEvent;
-  LOG(INFO) << "Status               : " << int(status);
+  LOG(info) << "Present event number : " << mPresentEventNumber;
+  LOG(info) << "Last event           : " << lastEvent;
+  LOG(info) << "Status               : " << int(status);
 
   return status;
 }
@@ -568,7 +568,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processExternalDigits()
 
   const bool hasData = fillFromDigits(*mExternalDigits);
 
-  LOG(INFO) << "Found time bins: " << mProcessedTimeBins << "\n";
+  LOG(info) << "Found time bins: " << mProcessedTimeBins << "\n";
   // set status, don't overwrite decision
   if (!hasData) {
     return ProcessStatus::NoMoreData;
@@ -584,7 +584,7 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processExternalDigits()
 //______________________________________________________________________________
 inline Int_t CalibRawBase::update(const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data)
 {
-  //LOG(INFO) << "  Found ADC values: " << data.size();
+  //LOG(info) << "  Found ADC values: " << data.size();
   const int row = padROCPos.getRow();
   const int pad = padROCPos.getPad();
   if (row == 255 || pad == 255) {

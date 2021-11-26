@@ -63,7 +63,7 @@ int RecEventFlat::next()
     uint16_t info = mInfo->at(i);
     if (infoState == 0) {
       if (info & 0x8000) {
-        LOGF(ERROR, "Inconsistent info stream at word %d: 0x%4u", i, info);
+        LOGF(error, "Inconsistent info stream at word %d: 0x%4u", i, info);
         break;
       }
       code = info & 0x03ff;
@@ -73,13 +73,13 @@ int RecEventFlat::next()
       } else if (ch < NChannels) {
         decodeInfo(ch, code);
       } else {
-        LOGF(ERROR, "Info about non existing channel: %u", ch);
+        LOGF(error, "Info about non existing channel: %u", ch);
       }
     } else if (infoState == 1) {
       if (info & 0x8000) {
         map = info & 0x7fff;
       } else {
-        LOGF(ERROR, "Inconsistent info stream at word %d: 0x%4u", i, info);
+        LOGF(error, "Inconsistent info stream at word %d: 0x%4u", i, info);
         break;
       }
       infoState = 2;
@@ -89,7 +89,7 @@ int RecEventFlat::next()
         map = (maph << 15) | map;
         decodeMapInfo(map, code);
       } else {
-        LOGF(ERROR, "Inconsistent info stream at word %d: 0x%4u", i, info);
+        LOGF(error, "Inconsistent info stream at word %d: 0x%4u", i, info);
         break;
       }
       infoState = 0;

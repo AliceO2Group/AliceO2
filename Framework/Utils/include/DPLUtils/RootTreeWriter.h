@@ -372,7 +372,7 @@ class RootTreeWriter
       return;
     }
     mTree->SetEntries();
-    LOG(INFO) << "Autosaving " << mTree->GetName() << " at entry " << mTree->GetEntries();
+    LOG(info) << "Autosaving " << mTree->GetName() << " at entry " << mTree->GetEntries();
     mTree->AutoSave("overwrite");
   }
 
@@ -608,7 +608,7 @@ class RootTreeWriter
         if (specs[SpecIndex].branches.at(branchIdx) == nullptr) {
           throw std::runtime_error(std::to_string(SpecIndex) + ": can not create branch " + name + " for type " + typeid(value_type).name() + " - LinkDef entry missing?");
         }
-        LOG(INFO) << SpecIndex << ": branch  " << name << " set up";
+        LOG(info) << SpecIndex << ": branch  " << name << " set up";
         branchIdx++;
       }
     }

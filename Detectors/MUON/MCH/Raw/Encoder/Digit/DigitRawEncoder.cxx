@@ -130,12 +130,12 @@ std::set<o2::mch::raw::LinkInfo> getLinks(Solar2LinkInfo solar2LinkInfo, bool du
   for (auto solarId : solarIds) {
     auto li = solar2LinkInfo(solarId);
     if (!li.has_value()) {
-      LOGP(FATAL, "Could not find information about solarId {:d}", solarId);
+      LOGP(fatal, "Could not find information about solarId {:d}", solarId);
     }
     links.insert(li.value());
   }
 
-  LOGP(INFO, "MCH: registered {:d} links for {:d} solars",
+  LOGP(info, "MCH: registered {:d} links for {:d} solars",
        links.size(),
        solarIds.size());
   return links;
