@@ -23,6 +23,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 // for TPC
 #include "TPCDigitizerSpec.h"
@@ -378,6 +379,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // Note: In the future this should be done only on a dedicated processor managing
   // the parameters and then propagated automatically to all devices
   ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  const auto& hbfu = o2::raw::HBFUtils::Instance();
 
   // which sim productions to overlay and digitize
   auto simPrefixes = splitString(configcontext.options().get<std::string>("sims"), ',');
@@ -387,6 +389,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     grp = readGRP(simPrefixes[0]);
     if (!grp) {
       return WorkflowSpec{};
+    }
+    if (!hbfu.startTime) { // HBFUtils.startTime was not set from the command line, set it from GRP
+      hbfu.setValue("HBFUtils.startTime", std::to_string(grp->getTimeStart()));
     }
   }
   auto grpfile = o2::base::NameConf::getGRPFileName(simPrefixes[0]);
