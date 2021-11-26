@@ -34,7 +34,7 @@ class GRPECSObject
   using DetID = o2::detectors::DetID;
 
  public:
-  using timePoint = std::time_t;
+  using timePoint = uint64_t;
 
   enum ROMode : int { ABSENT = 0,
                       PRESENT = 0x1,
