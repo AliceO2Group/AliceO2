@@ -38,7 +38,7 @@ namespace o2h = o2::header;
 //____________________________________________
 void RawFileReader::LinkBlock::print(const std::string& pref) const
 {
-  LOGF(INFO, "%sfile:%3d offs:%10zu size:%8d newSP:%d newTF:%d newHB:%d endHB:%d | Orbit %u TF %u",
+  LOGF(info, "%sfile:%3d offs:%10zu size:%8d newSP:%d newTF:%d newHB:%d endHB:%d | Orbit %u TF %u",
        pref, fileID, offset, size, testFlag(StartSP), testFlag(StartTF), testFlag(StartHB),
        testFlag(EndHB), ir.orbit, tfID);
 }
@@ -58,7 +58,7 @@ std::string RawFileReader::LinkData::describe() const
 //____________________________________________
 void RawFileReader::LinkData::print(bool verbose, const std::string& pref) const
 {
-  LOGF(INFO, "%s %s FEE:0x%04x CRU:%4d Lnk:%3d EP:%d RDHv%d Src:%s | SPages:%4d Pages:%6d TFs:%6d with %6d HBF in %4d blocks (%d err)",
+  LOGF(info, "%s %s FEE:0x%04x CRU:%4d Lnk:%3d EP:%d RDHv%d Src:%s | SPages:%4d Pages:%6d TFs:%6d with %6d HBF in %4d blocks (%d err)",
        pref, describe(), int(RDHUtils::getFEEID(rdhl)), int(RDHUtils::getCRUID(rdhl)), int(RDHUtils::getLinkID(rdhl)),
        int(RDHUtils::getEndPointID(rdhl)), int(RDHUtils::getVersion(rdhl)),
        RDHUtils::getVersion(rdhl) > 5 ? o2h::DAQID::DAQtoO2(RDHUtils::getSourceID(rdhl)).str : "N/A",
@@ -136,7 +136,7 @@ size_t RawFileReader::LinkData::readNextHBF(char* buff)
     } else {
       auto fl = reader->mFiles[blc.fileID];
       if (fseek(fl, blc.offset, SEEK_SET) || fread(buff + sz, 1, blc.size, fl) != blc.size) {
-        LOGF(ERROR, "Failed to read for the %s a bloc:", describe());
+        LOGF(error, "Failed to read for the %s a bloc:", describe());
         blc.print();
         error = true;
       } else if (reader->mCacheData) { // need to fill the cache at 1st reading
@@ -290,7 +290,7 @@ size_t RawFileReader::LinkData::readNextSuperPage(char* buff, const RawFileReade
     } else {
       auto fl = reader->mFiles[blocks[nextBlock2Read].fileID];
       if (fseek(fl, blocks[nextBlock2Read].offset, SEEK_SET) || fread(buff, 1, sz, fl) != sz) {
-        LOGF(ERROR, "Failed to read for the %s a bloc:", describe());
+        LOGF(error, "Failed to read for the %s a bloc:", describe());
         blocks[nextBlock2Read].print();
         error = true;
       } else if (reader->mCacheData) { // cache after 1st reading
@@ -346,10 +346,10 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
   const auto& HBU = HBFUtils::Instance();
 
   if (RDHUtils::getFEEID(rdh) != RDHUtils::getFEEID(rdhl)) { // make sure links with different FEEID were not assigned same subspec
-    LOGF(ERROR, "Same SubSpec is found for %s with different RDH.feeId", describe());
-    LOGF(ERROR, "old RDH assigned SubSpec=0x%-8d:", subspec);
+    LOGF(error, "Same SubSpec is found for %s with different RDH.feeId", describe());
+    LOGF(error, "old RDH assigned SubSpec=0x%-8d:", subspec);
     RDHUtils::dumpRDH(rdhl);
-    LOGF(ERROR, "new RDH assigned SubSpec=0x%-8d:", subspec);
+    LOGF(error, "new RDH assigned SubSpec=0x%-8d:", subspec);
     RDHUtils::dumpRDH(rdh);
     throw std::runtime_error("Conflicting SubSpecs are provided");
     ok = false;
@@ -616,7 +616,7 @@ bool RawFileReader::preprocessFile(int ifl)
       }
     }
   }
-  LOGF(INFO, "File %3d : %9li bytes scanned, %6d RDH read for %4d links from %s",
+  LOGF(info, "File %3d : %9li bytes scanned, %6d RDH read for %4d links from %s",
        mCurrentFileID, mPosInFile, nRDHread, int(mLinkEntries.size()), mFileNames[mCurrentFileID]);
   return nRDHread > 0;
 }
@@ -692,11 +692,11 @@ bool RawFileReader::init()
 
   for (int i = 0; i < NErrorsDefined; i++) {
     if (mCheckErrors & (0x1 << i)) {
-      LOGF(INFO, "%s check for /%s/", (mCheckErrors & (0x1 << i)) ? "perform" : "ignore ", ErrNames[i].data());
+      LOGF(info, "%s check for /%s/", (mCheckErrors & (0x1 << i)) ? "perform" : "ignore ", ErrNames[i].data());
     }
   }
   if (mMaxTFToRead < 0xffffffff) {
-    LOGF(INFO, "at most %u TF will be processed", mMaxTFToRead);
+    LOGF(info, "at most %u TF will be processed", mMaxTFToRead);
   }
 
   int nf = mFiles.size();
@@ -718,7 +718,7 @@ bool RawFileReader::init()
 
   size_t maxSP = 0, maxTF = 0;
 
-  LOGF(INFO, "Summary of preprocessing:");
+  LOGF(info, "Summary of preprocessing:");
   for (int i = 0; i < int(mLinksData.size()); i++) {
     auto& link = getLink(i);
     auto msp = link.getLargestSuperPage();
@@ -733,7 +733,7 @@ bool RawFileReader::init()
     counts << "Lnk" << std::setw(4) << std::left << i << "| ";
     link.print(mVerbosity, counts.str());
     if (msp > mNominalSPageSize) {
-      LOGF(DEBUG, "       Attention: largest superpage %zu B exceeds expected %d B",
+      LOGF(debug, "       Attention: largest superpage %zu B exceeds expected %d B",
            msp, mNominalSPageSize);
     }
     // min max orbits
@@ -747,14 +747,14 @@ bool RawFileReader::init()
       link.tfStartBlock.emplace_back(0, 0);
     }
     if ((mCheckErrors & (0x1 << ErrWrongNumberOfTF)) && (mNTimeFrames != link.nTimeFrames)) {
-      LOGF(ERROR, "%s for %s: %u TFs while %u were seen for other links", ErrNames[ErrWrongNumberOfTF],
+      LOGF(error, "%s for %s: %u TFs while %u were seen for other links", ErrNames[ErrWrongNumberOfTF],
            link.describe(), link.nTimeFrames, mNTimeFrames);
     }
   }
-  LOGF(INFO, "First orbit: %u, Last orbit: %u", mOrbitMin, mOrbitMax);
-  LOGF(INFO, "Largest super-page: %zu B, largest TF: %zu B", maxSP, maxTF);
+  LOGF(info, "First orbit: %u, Last orbit: %u", mOrbitMin, mOrbitMax);
+  LOGF(info, "Largest super-page: %zu B, largest TF: %zu B", maxSP, maxTF);
   if (!mCheckErrors) {
-    LOGF(INFO, "Detailed data format check was disabled");
+    LOGF(info, "Detailed data format check was disabled");
   }
   mInitDone = true;
 

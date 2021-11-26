@@ -116,7 +116,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
         memcpy(hdMessage->GetData(), headerStack.data(), headerStack.size());
         memcpy(plMessage->GetData(), it.second.data(), hdr.payloadSize);
         if (verbose) {
-          LOGP(INFO, "Pushing {} DPs to output for TimeSlice", it.second.size(), it.first, *timesliceId, hdr);
+          LOGP(info, "Pushing {} DPs to output for TimeSlice", it.second.size(), it.first, *timesliceId, hdr);
         }
         it.second.clear();
         FairMQParts outParts;

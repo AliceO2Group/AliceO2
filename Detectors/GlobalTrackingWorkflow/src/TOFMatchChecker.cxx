@@ -214,7 +214,7 @@ void TOFMatchChecker::run(ProcessingContext& pc)
 
 void TOFMatchChecker::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(DEBUG, "TOF matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(debug, "TOF matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

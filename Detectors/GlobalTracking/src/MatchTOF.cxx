@@ -93,7 +93,7 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
   mTimerTot.Start();
   bool isPrepareTOFClusters = prepareTOFClusters();
   mTimerTot.Stop();
-  LOGF(INFO, "Timing prepareTOFCluster: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
+  LOGF(info, "Timing prepareTOFCluster: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
 
   if (!isPrepareTOFClusters) { // check cluster before of tracks to see also if MC is required
     return;
@@ -104,14 +104,14 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
     return;
   }
   mTimerTot.Stop();
-  LOGF(INFO, "Timing prepare TPC tracks: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
+  LOGF(info, "Timing prepare TPC tracks: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
 
   mTimerTot.Start();
   if (!prepareFITData()) {
     return;
   }
   mTimerTot.Stop();
-  LOGF(INFO, "Timing prepare FIT data: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
+  LOGF(info, "Timing prepare FIT data: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
 
   mTimerTot.Start();
   for (int sec = o2::constants::math::NSectors; sec--;) {
@@ -139,9 +139,9 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
   mIsITSTPCTRDused = false;
 
   mTimerTot.Stop();
-  LOGF(INFO, "Timing Do Matching:             Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
-  LOGF(INFO, "Timing Do Matching Constrained: Cpu: %.3e s Real: %.3e s in %d slots", mTimerMatchITSTPC.CpuTime(), mTimerMatchITSTPC.RealTime(), mTimerMatchITSTPC.Counter() - 1);
-  LOGF(INFO, "Timing Do Matching TPC        : Cpu: %.3e s Real: %.3e s in %d slots", mTimerMatchTPC.CpuTime(), mTimerMatchTPC.RealTime(), mTimerMatchTPC.Counter() - 1);
+  LOGF(info, "Timing Do Matching:             Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
+  LOGF(info, "Timing Do Matching Constrained: Cpu: %.3e s Real: %.3e s in %d slots", mTimerMatchITSTPC.CpuTime(), mTimerMatchITSTPC.RealTime(), mTimerMatchITSTPC.Counter() - 1);
+  LOGF(info, "Timing Do Matching TPC        : Cpu: %.3e s Real: %.3e s in %d slots", mTimerMatchTPC.CpuTime(), mTimerMatchTPC.RealTime(), mTimerMatchTPC.Counter() - 1);
 }
 //______________________________________________
 void MatchTOF::print() const
