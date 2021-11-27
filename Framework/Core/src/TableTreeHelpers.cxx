@@ -244,7 +244,7 @@ std::pair<std::shared_ptr<arrow::ChunkedArray>, std::shared_ptr<arrow::Field>> B
         uint32_t lastOffset = offset;
         for (auto i = 0; i < readLast; ++i) {
           offsets[count++] = (int)offset;
-          offset += ntohl(reinterpret_cast<uint32_t*>(offsetBuffer.GetCurrent())[i]);
+          offset += swap32_(reinterpret_cast<uint32_t*>(offsetBuffer.GetCurrent())[i]);
         }
         //manually append to arrow buffer
         swapCopy(offset - lastOffset, buffer->GetCurrent(), ptr, mType);
