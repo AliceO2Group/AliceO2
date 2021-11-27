@@ -17,6 +17,10 @@
 #include <machine/endian.h>
 #else
 #include <endian.h>
+#define htons htobe16
+#define ntohs be16toh
+#define htonl htobe32
+#define ntohl be32toh
 #define ntohll be64toh
 #define htonll htobe64
 #endif
