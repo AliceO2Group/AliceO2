@@ -52,6 +52,7 @@
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "GPUTPCGMMergedTrackHit.h"
 #include "O2Version.h"
 #include "TMath.h"
 #include "MathUtils/Utils.h"
@@ -828,7 +829,7 @@ void AODProducerWorkflowDPL::countTPCClusters(const o2::tpc::TrackTPC& track,
     o2::tpc::TrackTPC::getClusterReference(tpcClusRefs, i, sectorIndex, rowIndex, clusterIndex, track.getClusterRef());
     unsigned int absoluteIndex = tpcClusAcc.clusterOffset[sectorIndex][rowIndex] + clusterIndex;
     clMap[rowIndex] = true;
-    if (tpcClusShMap[absoluteIndex] > 1) {
+    if (tpcClusShMap[absoluteIndex] & GPUCA_NAMESPACE::gpu::GPUTPCGMMergedTrackHit::flagShared) {
       if (!shMap[rowIndex]) {
         shared++;
       }

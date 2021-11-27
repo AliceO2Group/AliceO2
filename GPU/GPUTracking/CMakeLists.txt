@@ -114,7 +114,7 @@ set(HDRS_INSTALL
     Merger/GPUTPCGMBorderTrack.h
     Merger/GPUTPCGMOfflineStatisticalErrors.h
     Merger/GPUTPCGMMergedTrack.h
-    Merger/GPUTPCGMMergedTrackHit.h
+    DataTypes/GPUTPCGMMergedTrackHit.h
     DataTypes/GPUTRDDef.h
     DataTypes/GPUSettings.h
     TRDTracking/GPUTRDTrackPoint.h
