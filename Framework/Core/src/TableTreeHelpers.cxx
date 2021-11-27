@@ -316,7 +316,7 @@ ColumnToBranch::ColumnToBranch(TTree* tree, std::shared_ptr<arrow::ChunkedArray>
     mBranch = tree->Branch(mBranchName.c_str(), (char*)nullptr, leafList.c_str());
   }
   if (mElementType.type == EDataType::kBool_t) {
-    cache.reserve(mListSize);
+    cache.resize(mListSize);
   }
   accessChunk();
 }
