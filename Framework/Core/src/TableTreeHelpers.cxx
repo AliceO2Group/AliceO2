@@ -136,21 +136,21 @@ void doSwapCopy(int size, char* source, unsigned char* dest)
     auto tdest = reinterpret_cast<uint16_t*>(dest);
     auto tsrc = reinterpret_cast<uint16_t*>(source);
     for (auto i = 0; i < size; ++i) {
-      tdest[i] = ntohs(tsrc[i]);
+      tdest[i] = swap16_(tsrc[i]);
     }
     dest = dest + size * Nbytes;
   } else if constexpr (Nbytes == 4) {
     auto tdest = reinterpret_cast<uint32_t*>(dest);
     auto tsrc = reinterpret_cast<uint32_t*>(source);
     for (auto i = 0; i < size; ++i) {
-      tdest[i] = ntohl(tsrc[i]);
+      tdest[i] = swap32_(tsrc[i]);
     }
     dest = dest + size * Nbytes;
   } else if constexpr (Nbytes == 8) {
     auto tdest = reinterpret_cast<uint64_t*>(dest);
     auto tsrc = reinterpret_cast<uint64_t*>(source);
     for (auto i = 0; i < size; ++i) {
-      tdest[i] = ntohll(tsrc[i]);
+      tdest[i] = swap64_(tsrc[i]);
     }
     dest = dest + size * Nbytes;
   }
