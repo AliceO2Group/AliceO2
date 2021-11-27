@@ -493,7 +493,7 @@ void TreeToTable::addAllColumns(TTree* tree, std::vector<std::string>&& names)
       }
     }
     if (names.size() != mBranchReaders.size()) {
-      LOGF(WARN, "Not all requested columns were found in the tree");
+      LOGF(warn, "Not all requested columns were found in the tree");
     }
   }
   if (mBranchReaders.empty()) {
