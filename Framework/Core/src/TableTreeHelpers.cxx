@@ -423,6 +423,7 @@ std::shared_ptr<TTree> TableToTree::process()
   int64_t row = 0;
   if (mTree->GetNbranches() == 0 || mRows == 0) {
     mTree->Write("", TObject::kOverwrite);
+    mTree->SetDirectory(nullptr);
     return mTree;
   }
 
