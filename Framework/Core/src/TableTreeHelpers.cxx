@@ -434,6 +434,7 @@ std::shared_ptr<TTree> TableToTree::process()
     ++row;
   }
   mTree->Write("", TObject::kOverwrite);
+  mTree->SetDirectory(nullptr);
   return mTree;
 }
 
