@@ -19,5 +19,5 @@ o2_add_library(MCHMappingSegContour
 o2_add_executable(mapping-svg-segmentation3
                   COMPONENT_NAME mch
                   SOURCES src/SVGSegmentation.cxx
-                  PUBLIC_LINK_LIBRARIES O2::MCHMappingSegContour
+                  PUBLIC_LINK_LIBRARIES O2::MCHMappingSegContour O2::MCHMappingImpl3
                                         Boost::program_options)
