@@ -54,16 +54,16 @@ bool Options::processCommandLine(int argc, char* argv[])
 
   bpo::options_description eveOptions("o2Eve options");
 
-  eveOptions.add_options()
-    ("help,h", "produce help message")
-    ("datafolder,d", bpo::value<typeof(this->mDataFolder)>()->default_value("./"), "name of the data folder")
-    ("filename,f", bpo::value<typeof(this->mFileName)>()->default_value("data.root"), "name of the data file")
-    ("json,j", bpo::value<typeof(this->mJSON)>()->zero_tokens()->default_value(false), "use json files as a source")
-    ("memorylimit,m", bpo::value<typeof(this->mMemoryLimit)>()->default_value(-1), "memory usage limit (MB) - app will terminate if it is exceeded (pass -1 for no limit)")
-    ("online,o", bpo::value<typeof(this->mOnline)>()->zero_tokens()->default_value(false), "use online json files as a source")
-    ("optionsfilename,p", bpo::value<std::string>()->default_value("o2eve.json"), "name of the options file")
-    ("randomtracks,r", bpo::value<typeof(this->mRandomTracks)>()->zero_tokens()->default_value(false), "use random tracks")
-    ("saveddatafolder,s", bpo::value<typeof(this->mSavedDataFolder)>()->default_value(""), "name of the saved data folder");
+  eveOptions.add_options()(
+    "help,h", "produce help message")(
+    "datafolder,d", bpo::value<typeof(this->mDataFolder)>()->default_value("./"), "name of the data folder")(
+    "filename,f", bpo::value<typeof(this->mFileName)>()->default_value("data.root"), "name of the data file")(
+    "json,j", bpo::value<typeof(this->mJSON)>()->zero_tokens()->default_value(false), "use json files as a source")(
+    "memorylimit,m", bpo::value<typeof(this->mMemoryLimit)>()->default_value(-1), "memory usage limit (MB) - app will terminate if it is exceeded (pass -1 for no limit)")(
+    "online,o", bpo::value<typeof(this->mOnline)>()->zero_tokens()->default_value(false), "use online json files as a source")(
+    "optionsfilename,p", bpo::value<std::string>()->default_value("o2eve.json"), "name of the options file")(
+    "randomtracks,r", bpo::value<typeof(this->mRandomTracks)>()->zero_tokens()->default_value(false), "use random tracks")(
+    "saveddatafolder,s", bpo::value<typeof(this->mSavedDataFolder)>()->default_value(""), "name of the saved data folder");
 
   using namespace bpo::command_line_style;
   auto style = (allow_short | short_allow_adjacent | short_allow_next | allow_long | long_allow_adjacent | long_allow_next | allow_sticky | allow_dash_for_short);
