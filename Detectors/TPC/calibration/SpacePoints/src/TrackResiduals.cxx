@@ -38,7 +38,6 @@
 
 #include <fairlogger/Logger.h>
 
-
 using namespace o2::tpc;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -357,11 +356,6 @@ void TrackResiduals::doOutlierRejection(bool writeToFile)
     return;
   }
 
-<<<<<<< HEAD
-  if (loadFromFile) {
-    LOG(info) << "Loading TPC cluster residuals (unfiltered) from file.";
-    loadInputFromFile();
-=======
   LOGF(info, "We got %lu tracks and %lu residuals", mTrackDataPtr->size(), mClResPtr->size());
 
   const std::vector<TrackData>& trackData = *mTrackDataPtr;
@@ -369,7 +363,6 @@ void TrackResiduals::doOutlierRejection(bool writeToFile)
 
   if (writeToFile) {
     prepareLocalResidualTrees();
->>>>>>> TPC SCD calibration: outlier filtering and binning
   }
 
   int nTracksValidated = 0;
@@ -560,7 +553,7 @@ bool TrackResiduals::compareToHelix(const TrackData& trk, TrackParams& params) c
   for (int iP = 0; iP < nCl; ++iP) {
     iRow += (*mClResPtr)[clIdxFirst + iP].dRow;
     float yTrk = (*mClResPtr)[clIdxFirst + iP].y;
-    //LOGF(info, "iRow(%i), yTrk(%f)", iRow, yTrk);
+    // LOGF(info, "iRow(%i), yTrk(%f)", iRow, yTrk);
     xLab[iP] = param::RowX[iRow];
     if ((*mClResPtr)[clIdxFirst + iP].sec != secFirst) {
       float phiSectCurrent = ((*mClResPtr)[clIdxFirst + iP].sec + .5f) * o2::constants::math::SectorSpanRad;
@@ -596,7 +589,7 @@ bool TrackResiduals::compareToHelix(const TrackData& trk, TrackParams& params) c
   float ycSec = 0.f;
   float r = 0.f;
   fitCircle(nCl, xLab, yLab, xcSec, ycSec, r, residHelixY);
-  //LOGF(info, "Done with circle fit. nCl(%i), xcSec(%f), ycSec(%f), r(%f).", nCl, xcSec, ycSec, r);
+  // LOGF(info, "Done with circle fit. nCl(%i), xcSec(%f), ycSec(%f), r(%f).", nCl, xcSec, ycSec, r);
   /*
   for (int i=0; i<nCl; ++i) {
     LOGF(info, "i(%i), xLab(%f), yLab(%f).", i, xLab[i], yLab[i]);
@@ -675,8 +668,8 @@ bool TrackResiduals::compareToHelix(const TrackData& trk, TrackParams& params) c
       params.tglArr[iCl] *= -1.f;
     }
   }
-  //LOGF(info, "CompareToHelix: hMaxY(%f), hMinY(%f), hMaxZ(%f), hMinZ(%f). Max deviation allowed: y(%.2f), z(%.2f)", hMaxY, hMinY, hMaxZ, hMinZ, param::MaxDevHelixY, param::MaxDevHelixZ);
-  //LOGF(info, "New pt/Q (%f), old pt/Q (%f)", 1./params.qpt, 1./trk.qPt);
+  // LOGF(info, "CompareToHelix: hMaxY(%f), hMinY(%f), hMaxZ(%f), hMinZ(%f). Max deviation allowed: y(%.2f), z(%.2f)", hMaxY, hMinY, hMaxZ, hMinZ, param::MaxDevHelixY, param::MaxDevHelixZ);
+  // LOGF(info, "New pt/Q (%f), old pt/Q (%f)", 1./params.qpt, 1./trk.qPt);
   return fabsf(hMaxY - hMinY) < param::MaxDevHelixY && fabsf(hMaxZ - hMinZ) < param::MaxDevHelixZ;
 }
 
