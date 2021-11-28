@@ -103,7 +103,7 @@ class MatchGlobalFwd
     MATCHINGUPSTREAM            ///< MFT-MCH track matching loaded from input file
   };
 
-  static constexpr double sLastMFTPlaneZ = o2::mft::constants::mft::LayerZCoordinate()[9];
+  static constexpr Double_t sLastMFTPlaneZ = o2::mft::constants::mft::LayerZCoordinate()[9];
 
   MatchGlobalFwd() = default;
   ~MatchGlobalFwd() = default;
@@ -232,6 +232,7 @@ class MatchGlobalFwd
     mMatchFunc = func;
   }
   bool (MatchGlobalFwd::*mCutFunc)(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack);
+
   void setCutFunction(bool (MatchGlobalFwd::*func)(const TrackLocMCH&, const TrackLocMFT&))
   {
     mCutFunc = func;
@@ -253,6 +254,34 @@ class MatchGlobalFwd
 
   /// Cut functions
   bool cutDisabled(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack) { return true; };
+
+  bool matchCut3Sigma(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack)
+  {
+    auto dx = mchTrack.getX() - mftTrack.getX();
+    auto dy = mchTrack.getY() - mftTrack.getY();
+    auto dPhi = mchTrack.getPhi() - mftTrack.getPhi();
+    auto dTanl = TMath::Abs(mchTrack.getTanl() - mftTrack.getTanl());
+    auto dInvQPt = TMath::Abs(mchTrack.getInvQPt() - mftTrack.getInvQPt());
+    auto distance = TMath::Sqrt(dx * dx + dy * dy);
+    auto cutDistance = 3 * TMath::Sqrt(mchTrack.getSigma2X() + mchTrack.getSigma2Y());
+    auto cutPhi = 3 * TMath::Sqrt(mchTrack.getSigma2Phi() + mftTrack.getSigma2Phi());
+    auto cutTanl = 3 * TMath::Sqrt(mchTrack.getSigma2Tanl() + mftTrack.getSigma2Tanl());
+    auto cutInvQPt = 3 * TMath::Sqrt(mchTrack.getSigma2InvQPt() + mftTrack.getSigma2InvQPt());
+    return (distance < cutDistance) and (dPhi < cutPhi) and (dTanl < cutTanl) and (dInvQPt < cutInvQPt);
+  };
+
+  bool matchCut3SigmaXYAngles(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack)
+  {
+    auto dx = mchTrack.getX() - mftTrack.getX();
+    auto dy = mchTrack.getY() - mftTrack.getY();
+    auto dPhi = mchTrack.getPhi() - mftTrack.getPhi();
+    auto dTanl = TMath::Abs(mchTrack.getTanl() - mftTrack.getTanl());
+    auto distance = TMath::Sqrt(dx * dx + dy * dy);
+    auto cutDistance = 3 * TMath::Sqrt(mchTrack.getSigma2X() + mchTrack.getSigma2Y());
+    auto cutPhi = 3 * TMath::Sqrt(mchTrack.getSigma2Phi() + mftTrack.getSigma2Phi());
+    auto cutTanl = 3 * TMath::Sqrt(mchTrack.getSigma2Tanl() + mftTrack.getSigma2Tanl());
+    return (distance < cutDistance) and (dPhi < cutPhi) and (dTanl < cutTanl);
+  };
 
   /// Converts mchTrack parameters to Forward coordinate system
   o2::dataformats::GlobalFwdTrack MCHtoFwd(const o2::mch::TrackParam& mchTrack);

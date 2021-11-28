@@ -30,7 +30,6 @@ void MatchGlobalFwd::init()
   if (matchingFcn.find("matchMC") < matchingFcn.length()) {
     LOG(info) << "  ==> Setting MC Label matching: " << matchingFcn;
     LOG(info) << "        MC Label matching: Matching scores defaults to matchMFT_MCH_TracksAllParam, unless another function is explictly specified.";
-
     mMatchingType = MATCHINGMCLABEL;
     setMatchingFunction(&MatchGlobalFwd::matchMFT_MCH_TracksAllParam);
     if (!mMCTruthON) {
@@ -39,19 +38,19 @@ void MatchGlobalFwd::init()
   }
 
   if (matchingFcn.find("matchALL") < matchingFcn.length()) {
-    LOG(info) << "  ==> Setting MatchingFunction matchALL: " << matchingFcn;
+    LOG(info) << "  ==> Setting MatchingFunction matchALL.";
     setMatchingFunction(&MatchGlobalFwd::matchMFT_MCH_TracksAllParam);
   } else if (matchingFcn.find("matchPhiTanlXY") < matchingFcn.length()) {
-    LOG(info) << "  ==> Setting MatchingFunction matchPhiTanlXY: " << matchingFcn;
+    LOG(info) << "  ==> Setting MatchingFunction matchPhiTanlXY.";
     setMatchingFunction(&MatchGlobalFwd::matchMFT_MCH_TracksXYPhiTanl);
   } else if (matchingFcn.find("matchXY") < matchingFcn.length()) {
-    LOG(info) << "  ==> Setting MatchingFunction matchXY: " << matchingFcn;
+    LOG(info) << "  ==> Setting MatchingFunction matchXY.";
     setMatchingFunction(&MatchGlobalFwd::matchMFT_MCH_TracksXY);
   } else if (matchingFcn.find("matchHiroshima") < matchingFcn.length()) {
-    LOG(info) << "  ==> Setting MatchingFunction Hiroshima: " << matchingFcn;
+    LOG(info) << "  ==> Setting MatchingFunction Hiroshima.";
     setMatchingFunction(&MatchGlobalFwd::matchHiroshima);
   } else if (matchingParam.isMatchUpstream()) {
-    LOG(info) << "  ==> Setting Upstream matching: " << matchingFcn;
+    LOG(info) << "  ==> Setting Upstream matching.";
     setMatchingFunction(&MatchGlobalFwd::noMatchFcn);
     mMatchingType = MATCHINGUPSTREAM;
   }
@@ -60,8 +59,14 @@ void MatchGlobalFwd::init()
   LOG(info) << "MFTMCH pair candidate cut function string = " << cutFcn;
 
   if (cutFcn.find("cutDisabled") < cutFcn.length()) {
-    LOG(info) << "  ==> Setting CutFunction: " << cutFcn;
+    LOG(info) << "  ==> Setting CutFunction: cutDisabled";
     setCutFunction(&MatchGlobalFwd::cutDisabled);
+  } else if (cutFcn.find("matchCut3Sigma") < cutFcn.length()) {
+    LOG(info) << "  ==> Setting MatchingFunction matchCut3Sigma";
+    setCutFunction(&MatchGlobalFwd::matchCut3Sigma);
+  } else if (cutFcn.find("matchCut3SigmaXYAngles") < cutFcn.length()) {
+    LOG(info) << "  ==> Setting MatchingFunction matchCut3SigmaXYAngles: ";
+    setCutFunction(&MatchGlobalFwd::matchCut3SigmaXYAngles);
   } else {
     throw std::invalid_argument("Invalid cut function! Aborting...");
   }
@@ -431,7 +436,7 @@ o2::MCCompLabel MatchGlobalFwd::computeLabel(const int MCHId, const int MFTId)
   o2::MCCompLabel matchLabel = mchlabel;
   matchLabel.setFakeFlag(mftlabel.compare(mchlabel) != 1);
 
-  LOG(debug) << "     Computing MFTMCH matching label:   MFTTruth = " << mftlabel << "  ;  MCHTruth = " << mchlabel << "  ;   Computed label = " << matchLabel;
+  LOG(info) << "     Computing MFTMCH matching label:   MFTTruth = " << mftlabel << "  ;  MCHTruth = " << mchlabel << "  ;   Computed label = " << matchLabel;
 
   return matchLabel;
 }
