@@ -14,43 +14,15 @@
 using namespace o2::globaltracking;
 
 //_________________________________________________________
-void MatchGlobalFwd::init(std::string matchFcn, std::string cutFcn, Bool_t MatchInfoFromUpstream, Bool_t UseMIDMCHMatch)
+void MatchGlobalFwd::init()
 {
-  mMatchInfoFromUpstream = MatchInfoFromUpstream;
-  mUseMIDMCHMatch = UseMIDMCHMatch;
-  configMatching(matchFcn, cutFcn);
-}
+  auto& matchingParam = GlobalFwdMatchingParam::Instance();
 
-//_________________________________________________________
-void MatchGlobalFwd::run(const o2::globaltracking::RecoContainer& inp)
-{
-  mRecoCont = &inp;
-  mStartIR = inp.startIR;
+  mMatchingPlaneZ = matchingParam.matchPlaneZ;
+  LOG(info) << "MFTMCH matchingPlaneZ = " << mMatchingPlaneZ;
 
-  clear();
-
-  if (!prepareMFTData() || !prepareMCHData() || !processMCHMIDMatches()) {
-    return;
-  }
-
-  if (mMCLabelMatching) {
-    if (!mMCTruthON) {
-      throw std::runtime_error("Label matching requries MC Labels!");
-    }
-    doMCMatching();
-  } else if (mMatchInfoFromUpstream) {
-    loadMatches();
-  } else {
-    doMatching();
-  }
-
-  fitTracks();
-  finalize();
-}
-
-//_________________________________________________________
-void MatchGlobalFwd::configMatching(const std::string& matchingFcn, const std::string& cutFcn)
-{
+  auto& matchingFcn = matchingParam.matchFcn;
+  LOG(info) << "Match function string = " << matchingFcn;
 
   if (matchingFcn.find("matchALL") < matchingFcn.length()) {
     LOG(info) << " Setting MatchingFunction matchALL: " << matchingFcn;
@@ -67,10 +39,20 @@ void MatchGlobalFwd::configMatching(const std::string& matchingFcn, const std::s
   } else if (matchingFcn.find("matchMC") < matchingFcn.length()) {
     LOG(info) << " Setting MC Label matching: " << matchingFcn;
     setMatchingFunction(&MatchGlobalFwd::noMatchFcn);
-    mMCLabelMatching = true;
+    mMatchingType = MATCHINGMCLABEL;
+  } else if (matchingFcn.find("matchUpstream") < matchingFcn.length()) {
+    LOG(info) << " Setting Upstream matching: " << matchingFcn;
+    setMatchingFunction(&MatchGlobalFwd::noMatchFcn);
+    mMatchingType = MATCHINGUPSTREAM;
+    if (!mMCTruthON) {
+      LOG(fatal) << "Label matching requries MC Labels!";
+    }
   } else {
     throw std::invalid_argument("Invalid matching function! Aborting...");
   }
+
+  auto& cutFcn = matchingParam.cutFcn;
+  LOG(info) << "MFTMCH pair candidate cut funtion string = " << cutFcn;
 
   if (cutFcn.find("cutDisabled") < cutFcn.length()) {
     LOG(info) << " Setting CutFunction: " << cutFcn;
@@ -78,6 +60,39 @@ void MatchGlobalFwd::configMatching(const std::string& matchingFcn, const std::s
   } else {
     throw std::invalid_argument("Invalid cut function! Aborting...");
   }
+
+  mUseMIDMCHMatch = matchingParam.useMIDMatch;
+  LOG(info) << "UseMIDMCH Matching = " << (mUseMIDMCHMatch ? "true" : "false");
+}
+
+//_________________________________________________________
+void MatchGlobalFwd::run(const o2::globaltracking::RecoContainer& inp)
+{
+  mRecoCont = &inp;
+  mStartIR = inp.startIR;
+
+  clear();
+
+  if (!prepareMFTData() || !prepareMCHData() || !processMCHMIDMatches()) {
+    return;
+  }
+
+  switch (mMatchingType) {
+    case MATCHINGFUNC:
+      doMatching();
+      break;
+    case MATCHINGUPSTREAM:
+      loadMatches();
+      break;
+    case MATCHINGMCLABEL:
+      doMCMatching();
+      break;
+    default:
+      LOG(fatal) << "Invalid MFTMCH matching mode";
+  }
+
+  fitTracks();
+  finalize();
 }
 
 //_________________________________________________________
@@ -403,7 +418,11 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
     }
 
   } // /loop over MCH tracks seeds
-  LOG(info) << " Done matching MFT ROF " << MFTROFId << " with " << nMFTTracks << " MFT tracks with " << nMCHTracks << "  MCH Tracks. nFakes = " << nFakes << " nTrue = " << nTrue;
+
+  LOG(info) << "Finished matching MFT ROF " << MFTROFId << ": " << nMFTTracks << " MFT tracks and " << nMCHTracks << "  MCH Tracks.";
+  if (mMCTruthON) {
+    LOG(info) << "   nFakes = " << nFakes << " nTrue = " << nTrue;
+  }
 }
 
 //_________________________________________________________

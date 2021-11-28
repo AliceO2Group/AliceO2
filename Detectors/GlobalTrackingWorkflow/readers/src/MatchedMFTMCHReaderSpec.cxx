@@ -80,7 +80,7 @@ void MatchMFTMCHReader::connectTree(const std::string& filename)
   assert(mFile && !mFile->IsZombie());
   mTree.reset((TTree*)mFile->Get("o2sim"));
   assert(mTree);
-  mTree->SetBranchAddress("MFTMCHmatches", &mTracksPtr);
+  mTree->SetBranchAddress("matches", &mTracksPtr);
   LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
