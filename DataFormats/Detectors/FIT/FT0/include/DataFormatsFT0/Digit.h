@@ -47,7 +47,6 @@ struct Triggers {
   int32_t amplC = -5000;      // sum amplitude C side
   int16_t timeA = -5000;      // average time A side
   int16_t timeC = -5000;      // average time C side
-  uint8_t eventFlags = 0;     // event conditions
   Triggers() = default;
   Triggers(uint8_t signals, int8_t chanA, int8_t chanC, int32_t aamplA, int32_t aamplC, int16_t atimeA, int16_t atimeC)
   {
@@ -90,7 +89,7 @@ struct Triggers {
            std::tie(other.triggersignals, other.nChanA, other.nChanC, other.amplA, other.amplC, other.timeA, other.timeC);
   }
   void printLog() const;
-  ClassDefNV(Triggers, 2);
+  ClassDefNV(Triggers, 3);
 };
 
 struct DetTrigInput {
