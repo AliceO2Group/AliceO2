@@ -121,7 +121,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
   mTimer.Start(true);
   mResidualProcessor.setInputData(mInterpolation.getReferenceTracks(), mInterpolation.getClusterResiduals());
   // in the following step one can create one output file per TPC sector with local residuals and statistics
-  mResidualProcessor.doOutlierRejection(true); // if parameter is 'true', then the unbinned filtered residuals will be written to a debug file
+  mResidualProcessor.doOutlierRejection(false); // if parameter is 'true', then the unbinned filtered residuals will be written to a debug file
   mTimer.Stop();
   LOGF(info, "TPC outlier filtering and local residual extraction timing: Cpu: %.3e Real: %.3e s", mTimer.CpuTime(), mTimer.RealTime());
 
