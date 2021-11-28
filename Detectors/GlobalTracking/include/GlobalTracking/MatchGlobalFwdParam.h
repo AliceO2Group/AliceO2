@@ -30,6 +30,7 @@ struct GlobalFwdMatchingParam : public o2::conf::ConfigurableParamHelper<GlobalF
   double matchPlaneZ = -77.5;         ///< MFT-MCH matching plane z coordinate
 
   bool isMatchUpstream() const { return matchFcn.find("matchUpstream") < matchFcn.length(); }
+  bool saveAll = false; ///< Option to save all MFTMCH pair combinations.
 
   O2ParamDef(GlobalFwdMatchingParam, "FwdMatching");
 };

@@ -138,11 +138,15 @@ class MatchGlobalFwd
   bool prepareMFTData();
   bool processMCHMIDMatches();
 
+  template <bool saveAllMode = false>
   void doMatching();
   void doMCMatching();
   void loadMatches();
 
+  o2::MCCompLabel computeLabel(const int MCHId, const int MFTid);
+
   ///< Matches MFT tracks in one MFT ROFrame with all MCH tracks in the overlapping MCH ROFrames
+  template <bool saveAllMode = false>
   void ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId);
   void fitTracks();                                          // Fit all matched tracks
   void fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack&); // Kalman filter fit global Forward track by attaching MFT clusters
@@ -295,6 +299,7 @@ class MatchGlobalFwd
   o2::itsmft::ChipMappingMFT mMFTMapping;
   bool mMCTruthON = false;      ///< Flag availability of MC truth
   bool mUseMIDMCHMatch = false; ///< Flag for using MCHMID matches (TrackMCHMID)
+  bool mSaveAll = false;        ///< Flag to save all MCH-MFT matching pairs
   MatchingType mMatchingType = MATCHINGFUNC;
   TGeoManager* mGeoManager;
 };
