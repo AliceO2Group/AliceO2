@@ -262,12 +262,12 @@ class MatchGlobalFwd
     auto dPhi = mchTrack.getPhi() - mftTrack.getPhi();
     auto dTanl = TMath::Abs(mchTrack.getTanl() - mftTrack.getTanl());
     auto dInvQPt = TMath::Abs(mchTrack.getInvQPt() - mftTrack.getInvQPt());
-    auto distance = TMath::Sqrt(dx * dx + dy * dy);
-    auto cutDistance = 3 * TMath::Sqrt(mchTrack.getSigma2X() + mchTrack.getSigma2Y());
-    auto cutPhi = 3 * TMath::Sqrt(mchTrack.getSigma2Phi() + mftTrack.getSigma2Phi());
-    auto cutTanl = 3 * TMath::Sqrt(mchTrack.getSigma2Tanl() + mftTrack.getSigma2Tanl());
-    auto cutInvQPt = 3 * TMath::Sqrt(mchTrack.getSigma2InvQPt() + mftTrack.getSigma2InvQPt());
-    return (distance < cutDistance) and (dPhi < cutPhi) and (dTanl < cutTanl) and (dInvQPt < cutInvQPt);
+    auto distanceSq = dx * dx + dy * dy;
+    auto cutDistanceSq = 9 * (mchTrack.getSigma2X() + mchTrack.getSigma2Y());
+    auto cutPhiSq = 9 * (mchTrack.getSigma2Phi() + mftTrack.getSigma2Phi());
+    auto cutTanlSq = 9 * (mchTrack.getSigma2Tanl() + mftTrack.getSigma2Tanl());
+    auto cutInvQPtSq = 9 * (mchTrack.getSigma2InvQPt() + mftTrack.getSigma2InvQPt());
+    return (distanceSq < cutDistanceSq) and (dPhi * dPhi < cutPhiSq) and (dTanl * dTanl < cutTanlSq) and (dInvQPt * dInvQPt < cutInvQPtSq);
   };
 
   bool matchCut3SigmaXYAngles(const TrackLocMCH& mchTrack, const TrackLocMFT& mftTrack)
@@ -276,11 +276,11 @@ class MatchGlobalFwd
     auto dy = mchTrack.getY() - mftTrack.getY();
     auto dPhi = mchTrack.getPhi() - mftTrack.getPhi();
     auto dTanl = TMath::Abs(mchTrack.getTanl() - mftTrack.getTanl());
-    auto distance = TMath::Sqrt(dx * dx + dy * dy);
-    auto cutDistance = 3 * TMath::Sqrt(mchTrack.getSigma2X() + mchTrack.getSigma2Y());
-    auto cutPhi = 3 * TMath::Sqrt(mchTrack.getSigma2Phi() + mftTrack.getSigma2Phi());
-    auto cutTanl = 3 * TMath::Sqrt(mchTrack.getSigma2Tanl() + mftTrack.getSigma2Tanl());
-    return (distance < cutDistance) and (dPhi < cutPhi) and (dTanl < cutTanl);
+    auto distanceSq = dx * dx + dy * dy;
+    auto cutDistanceSq = 9 * (mchTrack.getSigma2X() + mchTrack.getSigma2Y());
+    auto cutPhiSq = 9 * (mchTrack.getSigma2Phi() + mftTrack.getSigma2Phi());
+    auto cutTanlSq = 9 * (mchTrack.getSigma2Tanl() + mftTrack.getSigma2Tanl());
+    return (distanceSq < cutDistanceSq) and (dPhi * dPhi < cutPhiSq) and (dTanl * dTanl < cutTanlSq);
   };
 
   /// Converts mchTrack parameters to Forward coordinate system

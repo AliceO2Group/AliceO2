@@ -28,14 +28,14 @@ class MatchInfoFwd
 {
  public:
   MatchInfoFwd() = default;
-  MatchInfoFwd(int32_t MCHId, int32_t MFTId, double chi2)
+  MatchInfoFwd(int32_t MCHId, int32_t MFTId, float chi2)
     : mMCHTrackID(MCHId), mMFTTrackID(MFTId), mMFTMCHMatchingChi2(chi2) {}
   ~MatchInfoFwd() = default;
 
-  void setMFTMCHMatchingChi2(double chi2) { mMFTMCHMatchingChi2 = chi2; }
+  void setMFTMCHMatchingChi2(float chi2) { mMFTMCHMatchingChi2 = chi2; }
   const auto& getMFTMCHMatchingChi2() const { return mMFTMCHMatchingChi2; }
 
-  void setMIDMatchingChi2(double chi2) { mMCHMIDMatchingChi2 = chi2; }
+  void setMIDMatchingChi2(float chi2) { mMCHMIDMatchingChi2 = chi2; }
   const auto& getMIDMatchingChi2() const { return mMCHMIDMatchingChi2; }
 
   void countMFTCandidate() { mNMFTCandidates++; }
@@ -45,17 +45,12 @@ class MatchInfoFwd
   void setCloseMatch(bool v = true) { mCloseMatch = v; }
   const auto& isCloseMatch() const { return mCloseMatch; }
 
-  void setMFTMCHMatch(uint32_t MCHId, uint32_t MFTId, double MFTMCHMatchChi2)
+  void setMFTMCHMatch(uint32_t MCHId, uint32_t MFTId, float MFTMCHMatchChi2)
   {
     mMFTTrackID = MFTId;
     mMCHTrackID = MCHId;
     mMFTMCHMatchingChi2 = MFTMCHMatchChi2;
   }
-
-  /// get the MFT-MCH matching chi2
-  double getMFTMCHMatchChi2() const { return mMFTMCHMatchingChi2; }
-  /// set the MFT-MCH matching chi2
-  void setMFTMCHMatchChi2(double chi2) { mMFTMCHMatchingChi2 = chi2; }
 
   void setMCHTrackID(int ID) { mMCHTrackID = ID; }
   const auto& getMCHTrackID() const { return mMCHTrackID; }
@@ -72,13 +67,13 @@ class MatchInfoFwd
   }
 
  private:
-  double mMFTMCHMatchingChi2 = 1.0E308; ///< MCH-MFT Matching Chi2
-  double mMCHMIDMatchingChi2 = -1.0;    ///< MCH-MID Matching Chi2
-  int mMFTTrackID = -1;                 ///< Track ID of best MFT-match
-  int mMCHTrackID = -1;                 ///< MCH Track ID
-  int mNMFTCandidates = 0;              ///< Number of MFT candidates within search cut
-  bool mCloseMatch = false;             ///< Close match = correct MFT pair tested (MC-only)
-  timeEst mTimeMUS;                     ///< time estimate in ns
+  float mMFTMCHMatchingChi2 = o2::constants::math::VeryBig; ///< MCH-MFT Matching Chi2
+  float mMCHMIDMatchingChi2 = -1.0;                         ///< MCH-MID Matching Chi2
+  int mMFTTrackID = -1;                                     ///< Track ID of best MFT-match
+  int mMCHTrackID = -1;                                     ///< MCH Track ID
+  int mNMFTCandidates = 0;                                  ///< Number of MFT candidates within search cut
+  bool mCloseMatch = false;                                 ///< Close match = correct MFT pair tested (MC-only)
+  timeEst mTimeMUS;                                         ///< time estimate in ns
 
   ClassDefNV(MatchInfoFwd, 1);
 };
