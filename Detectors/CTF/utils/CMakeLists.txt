@@ -15,6 +15,7 @@
 
 install(FILES extractCTF.C
               dumpCTF.C
+              CTFdict2CCDBfiles.C
         DESTINATION share/macro/)
 
 o2_add_test_root_macro(extractCTF.C
@@ -24,3 +25,7 @@ o2_add_test_root_macro(extractCTF.C
 o2_add_test_root_macro(dumpCTF.C
                        PUBLIC_LINK_LIBRARIES O2::CTFWorkflow
                        LABELS ctf)
+
+o2_add_test_root_macro(CTFdict2CCDBfiles.C
+                       PUBLIC_LINK_LIBRARIES O2::CTFWorkflow
+                       LABELS ctf COMPILE_ONLY)
