@@ -18,6 +18,7 @@
 
 #include <Rtypes.h>
 #include <string>
+#include "DetectorsCommonDataFormats/DetID.h"
 
 namespace o2
 {
@@ -26,6 +27,7 @@ namespace ctf
 
 /// Detector header base
 struct CTFDictHeader {
+  o2::detectors::DetID det{};
   uint32_t dictTimeStamp = 0; // dictionary creation time (seconds since epoch) / hash
   uint8_t majorVersion = 1;
   uint8_t minorVersion = 0;
@@ -41,7 +43,7 @@ struct CTFDictHeader {
   }
   std::string asString() const;
 
-  ClassDefNV(CTFDictHeader, 1);
+  ClassDefNV(CTFDictHeader, 2);
 };
 
 } // namespace ctf
