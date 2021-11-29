@@ -14,7 +14,6 @@
 
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/Cluster.h"
-#include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "EMCALWorkflow/AnalysisClusterSpec.h"
 #include "Framework/ControlService.h"
@@ -71,14 +70,6 @@ void AnalysisClusterSpec<InputType>::run(framework::ProcessingContext& ctx)
   } else if constexpr (std::is_same<InputType, o2::emcal::Cell>::value) {
     inputname = "cells";
     TrigName = "cellstrgr";
-  }
-
-  auto dataref = ctx.inputs().get(inputname.c_str());
-  auto const* emcheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(dataref);
-  if (!emcheader->mHasPayload) {
-    LOG(debug) << "[EMCALClusterizer - run] No more cells/digits" << std::endl;
-    ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
-    return;
   }
 
   auto Inputs = ctx.inputs().get<gsl::span<InputType>>(inputname.c_str());
