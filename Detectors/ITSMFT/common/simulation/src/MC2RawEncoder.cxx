@@ -38,7 +38,7 @@ void MC2RawEncoder<Mapping>::init()
       if (link) {
         auto subspec = RDHUtils::getSubSpec(link->cruID, link->idInCRU, link->endPointID, link->feeID);
         if (!mWriter.isLinkRegistered(subspec)) {
-          LOGF(INFO, "RU%3d FEEId 0x%04x Link %02d of CRU=0x%94x will be writing to default sink %s",
+          LOGF(info, "RU%3d FEEId 0x%04x Link %02d of CRU=0x%94x will be writing to default sink %s",
                int(ru), link->feeID, link->idInCRU, link->cruID, mDefaultSinkName);
           mWriter.registerLink(link->feeID, link->cruID, link->idInCRU, link->endPointID, mDefaultSinkName);
         }
@@ -61,7 +61,7 @@ void MC2RawEncoder<Mapping>::init()
       link->endPointID = 0;
       link->packetCounter = 0;
       mWriter.registerLink(link->feeID, link->cruID, link->idInCRU, link->endPointID, mDefaultSinkName);
-      LOGF(INFO, "RU%3d FEEId 0x%04x Link %02d of CRU=0x%04x Lanes: %s -> %s", int(ru), link->feeID,
+      LOGF(info, "RU%3d FEEId 0x%04x Link %02d of CRU=0x%04x Lanes: %s -> %s", int(ru), link->feeID,
            link->idInCRU, link->cruID, std::bitset<28>(link->lanes).to_string(), mDefaultSinkName);
       mNLinks++;
     }
@@ -220,7 +220,7 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
     //    gbtTrailer.lanesStops = link->lanes; // RS CURRENTLY NOT USED
     gbtTrailer.packetDone = true;                                // RS CURRENTLY NOT USED
     link->data.addFast(gbtTrailer.getW8(), GBTPaddedWordLength); // write GBT trailer for the last packet
-    LOGF(DEBUG, "Filled %s with %d GBT words", link->describe(), nPayLoadWordsNeeded + 3);
+    LOGF(debug, "Filled %s with %d GBT words", link->describe(), nPayLoadWordsNeeded + 3);
 
     // flush to writer
     mWriter.addData(link->feeID, link->cruID, link->idInCRU, link->endPointID, mCurrIR, gsl::span((char*)link->data.data(), link->data.getSize()));

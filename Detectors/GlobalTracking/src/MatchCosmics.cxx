@@ -292,7 +292,7 @@ void MatchCosmics::selectWinners()
         continue;
       }
     }
-    LOGF(INFO, "iter %d Validated %d of %d remaining matches", iter, nValidated, nRemaining);
+    LOGF(info, "iter %d Validated %d of %d remaining matches", iter, nValidated, nRemaining);
     iter++;
   } while (nValidated);
 }

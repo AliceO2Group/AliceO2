@@ -106,13 +106,13 @@ void o2::tpc::IDCAverageGroup<Type>::updatePadStatusMapFromFile(const char* file
   CalDet<PadFlags>* padStatus{nullptr};
   inpfile.GetObject(objName, padStatus);
   if (!padStatus) {
-    LOG(FATAL) << "No valid pad flag object was loaded";
+    LOG(fatal) << "No valid pad flag object was loaded";
     return;
   }
 
   const auto type = padStatus->getPadSubset();
   if (type != PadSubset::Region) {
-    LOG(FATAL) << "Wrong pad subset type! Type must be PadSubset::Region";
+    LOG(fatal) << "Wrong pad subset type! Type must be PadSubset::Region";
     return;
   }
   mPadStatus.reset(padStatus);
@@ -363,7 +363,7 @@ bool o2::tpc::IDCAverageGroup<Type>::setFromFile(const char* fileName, const cha
   idcAverageGroupTmp = reinterpret_cast<Temp*>(inpf.GetObjectChecked(name, Temp::Class()));
 
   if (!idcAverageGroupTmp) {
-    LOGP(ERROR, "Failed to load {} from {}", name, inpf.GetName());
+    LOGP(error, "Failed to load {} from {}", name, inpf.GetName());
     return false;
   }
   this->setIDCs(idcAverageGroupTmp->getIDCsUngrouped());

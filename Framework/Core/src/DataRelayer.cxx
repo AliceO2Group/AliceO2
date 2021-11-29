@@ -68,7 +68,11 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
-  setPipelineLength(DEFAULT_PIPELINE_LENGTH);
+  if (policy.configureRelayer == nullptr) {
+    setPipelineLength(DEFAULT_PIPELINE_LENGTH);
+  } else {
+    policy.configureRelayer(*this);
+  }
 
   // The queries are all the same, so we only have width 1
   auto numInputTypes = mDistinctRoutesIndex.size();
@@ -428,14 +432,14 @@ DataRelayer::RelayChoice
       static std::atomic<size_t> obsoleteCount = 0;
       static std::atomic<size_t> mult = 1;
       if ((obsoleteCount++ % (1 * mult)) == 0) {
-        LOGP(WARNING, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount);
+        LOGP(warning, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount);
         if (obsoleteCount > mult * 10) {
           mult = mult * 10;
         }
       }
       return Dropped;
     case TimesliceIndex::ActionTaken::DropInvalid:
-      LOG(WARNING) << "Incoming data is invalid, not relaying.";
+      LOG(warning) << "Incoming data is invalid, not relaying.";
       mStats.malformedInputs++;
       mStats.droppedIncomingMessages++;
       for (size_t pi = 0; pi < nMessages; ++pi) {

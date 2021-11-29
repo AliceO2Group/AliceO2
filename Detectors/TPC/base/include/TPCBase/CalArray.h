@@ -211,7 +211,7 @@ template <class T>
 inline const CalArray<T>& CalArray<T>::operator+=(const CalArray<T>& other)
 {
   if (!((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber))) {
-    LOG(ERROR) << "You are trying to operate on incompatible objects: Pad subset type and number must be the same on both objects";
+    LOG(error) << "You are trying to operate on incompatible objects: Pad subset type and number must be the same on both objects";
     return *this;
   }
   for (size_t i = 0; i < mData.size(); ++i) {
@@ -225,7 +225,7 @@ template <class T>
 inline const CalArray<T>& CalArray<T>::operator-=(const CalArray<T>& other)
 {
   if (!((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber))) {
-    LOG(ERROR) << "You are trying to operate on incompatible objects: Pad subset type and number must be the same on both objects";
+    LOG(error) << "You are trying to operate on incompatible objects: Pad subset type and number must be the same on both objects";
     return *this;
   }
   for (size_t i = 0; i < mData.size(); ++i) {
@@ -239,7 +239,7 @@ template <class T>
 inline const CalArray<T>& CalArray<T>::operator*=(const CalArray<T>& other)
 {
   if (!((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber))) {
-    LOG(ERROR) << "pad subset type of the objects it not compatible";
+    LOG(error) << "pad subset type of the objects it not compatible";
     return *this;
   }
   for (size_t i = 0; i < mData.size(); ++i) {
@@ -253,7 +253,7 @@ template <class T>
 inline const CalArray<T>& CalArray<T>::operator/=(const CalArray<T>& other)
 {
   if (!((mPadSubset == other.mPadSubset) && (mPadSubsetNumber == other.mPadSubsetNumber))) {
-    LOG(ERROR) << "pad subset type of the objects it not compatible";
+    LOG(error) << "pad subset type of the objects it not compatible";
     return *this;
   }
   for (size_t i = 0; i < mData.size(); ++i) {
@@ -261,7 +261,7 @@ inline const CalArray<T>& CalArray<T>::operator/=(const CalArray<T>& other)
       mData[i] /= other.getValue(i);
     } else {
       mData[i] = 0;
-      LOG(DEBUG) << "Division by 0 detected! Value was set to 0.";
+      LOG(debug) << "Division by 0 detected! Value was set to 0.";
     }
   }
   return *this;

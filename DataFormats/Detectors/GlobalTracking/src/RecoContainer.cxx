@@ -351,7 +351,7 @@ void DataRequest::requestCTPDigits(bool mc)
   addInput({"CTPDigits", "CTP", "DIGITS", 0, Lifetime::Timeframe});
   if (mc) {
     LOG(warning) << "MC truth not implemented for CTP";
-    //addInput({"CTPDigitsMC", "CTP", "DIGITSMCTR", 0, Lifetime::Timeframe});
+    // addInput({"CTPDigitsMC", "CTP", "DIGITSMCTR", 0, Lifetime::Timeframe});
   }
   requestMap["CTPDigits"] = false;
 }
@@ -728,7 +728,7 @@ void RecoContainer::addMCHTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::TrackMCH>>("trackMCH"), TRACKS);
   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("trackMCHROF"), TRACKREFS);
-  commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::ClusterStruct>>("trackMCHTRACKCLUSTERS"), CLUSREFS);
+  commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::Cluster>>("trackMCHTRACKCLUSTERS"), CLUSREFS);
   if (mc) {
     commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMCHMCTR"), MCLABELS);
   }
@@ -831,7 +831,7 @@ void RecoContainer::addTPCTOFTracks(ProcessingContext& pc, bool mc)
 //__________________________________________________________
 void RecoContainer::addTOFMatchesITSTPC(ProcessingContext& pc, bool mc)
 {
-  commonPool[GTrackID::ITSTPCTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoTOF>>("matchITSTPCTOF"), MATCHES); //only ITS/TPC : TOF match info, no real tracks
+  commonPool[GTrackID::ITSTPCTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoTOF>>("matchITSTPCTOF"), MATCHES); // only ITS/TPC : TOF match info, no real tracks
   if (mc) {
     commonPool[GTrackID::ITSTPCTOF].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsTOF_GLO_MCTR"), MCLABELS);
   }
@@ -839,7 +839,7 @@ void RecoContainer::addTOFMatchesITSTPC(ProcessingContext& pc, bool mc)
 //__________________________________________________________
 void RecoContainer::addTOFMatchesTPCTRD(ProcessingContext& pc, bool mc)
 {
-  commonPool[GTrackID::TPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoTOF>>("matchTPCTRDTOF"), MATCHES); //only ITS/TPC : TOF match info, no real tracks
+  commonPool[GTrackID::TPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoTOF>>("matchTPCTRDTOF"), MATCHES); // only ITS/TPC : TOF match info, no real tracks
   if (mc) {
     commonPool[GTrackID::TPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsTOF_GLO2_MCTR"), MCLABELS);
   }
@@ -847,7 +847,7 @@ void RecoContainer::addTOFMatchesTPCTRD(ProcessingContext& pc, bool mc)
 //__________________________________________________________
 void RecoContainer::addTOFMatchesITSTPCTRD(ProcessingContext& pc, bool mc)
 {
-  commonPool[GTrackID::ITSTPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoTOF>>("matchITSTPCTRDTOF"), MATCHES); //only ITS/TPC : TOF match info, no real tracks
+  commonPool[GTrackID::ITSTPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoTOF>>("matchITSTPCTRDTOF"), MATCHES); // only ITS/TPC : TOF match info, no real tracks
   if (mc) {
     commonPool[GTrackID::ITSTPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsTOF_GLO3_MCTR"), MCLABELS);
   }
@@ -1111,14 +1111,14 @@ RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) c
     table[GTrackID::TRD] = gidx; // there is no standalone TRD track, so use the index for the ITSTPCTRD track array
   }
   if (src == GTrackID::ITSTPCTOF) {
-    const auto& parent0 = getTOFMatch(gidx); //ITS/TPC : TOF
+    const auto& parent0 = getTOFMatch(gidx); // ITS/TPC : TOF
     const auto& parent1 = getTPCITSTrack(parent0.getTrackRef());
     table[GTrackID::ITSTPC] = parent0.getTrackRef();
     table[GTrackID::TOF] = {unsigned(parent0.getIdxTOFCl()), GTrackID::TOF};
     table[GTrackID::TPC] = parent1.getRefTPC();
     table[parent1.getRefITS().getSource()] = parent1.getRefITS(); // ITS source might be an ITS track or ITSAB tracklet
   } else if (src == GTrackID::ITSTPCTRDTOF) {
-    const auto& parent0 = getTOFMatch(gidx); //ITS/TPC : TOF
+    const auto& parent0 = getTOFMatch(gidx); // ITS/TPC : TOF
     const auto& parent1 = getITSTPCTRDTrack<o2::trd::TrackTRD>(parent0.getTrackRef());
     const auto& parent2 = getTPCITSTrack(parent1.getRefGlobalTrackId());
     table[GTrackID::ITSTPCTRD] = parent0.getTrackRef();
@@ -1127,7 +1127,7 @@ RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) c
     table[GTrackID::TPC] = parent2.getRefTPC();
     table[parent2.getRefITS().getSource()] = parent2.getRefITS(); // ITS source might be an ITS track or ITSAB tracklet
   } else if (src == GTrackID::TPCTOF) {
-    const auto& parent0 = getTPCTOFMatch(gidx); //TPC : TOF
+    const auto& parent0 = getTPCTOFMatch(gidx); // TPC : TOF
     table[GTrackID::TOF] = {unsigned(parent0.getIdxTOFCl()), GTrackID::TOF};
     table[GTrackID::TPC] = parent0.getTrackRef();
   } else if (src == GTrackID::ITSTPC) {
@@ -1149,16 +1149,16 @@ GTrackID RecoContainer::getTPCContributorGID(GTrackID gidx) const
     const auto& parent1 = getTPCITSTrack(parent0.getRefGlobalTrackId());
     return parent1.getRefTPC();
   } else if (src == GTrackID::ITSTPCTOF) {
-    const auto& parent0 = getTOFMatch(gidx); //ITS/TPC : TOF
+    const auto& parent0 = getTOFMatch(gidx); // ITS/TPC : TOF
     const auto& parent1 = getTPCITSTrack(parent0.getTrackRef());
     return parent1.getRefTPC();
   } else if (src == GTrackID::ITSTPCTRDTOF) {
-    const auto& parent0 = getTOFMatch(gidx); //ITS/TPC/TRD : TOF
+    const auto& parent0 = getTOFMatch(gidx); // ITS/TPC/TRD : TOF
     const auto& parent1 = getITSTPCTRDTrack<o2::trd::TrackTRD>(parent0.getTrackRef());
     const auto& parent2 = getTPCITSTrack(parent1.getRefGlobalTrackId());
     return parent2.getRefTPC();
   } else if (src == GTrackID::TPCTOF) {
-    const auto& parent0 = getTPCTOFMatch(gidx); //TPC : TOF
+    const auto& parent0 = getTPCTOFMatch(gidx); // TPC : TOF
     return parent0.getTrackRef();
   } else if (src == GTrackID::ITSTPC) {
     const auto& parent0 = getTPCITSTrack(gidx);
@@ -1178,11 +1178,11 @@ GTrackID RecoContainer::getITSContributorGID(GTrackID gidx) const
     const auto& parent1 = getTPCITSTrack(parent0.getRefGlobalTrackId());
     return parent1.getRefITS();
   } else if (src == GTrackID::ITSTPCTOF) {
-    const auto& parent0 = getTOFMatch(gidx); //ITS/TPC : TOF
+    const auto& parent0 = getTOFMatch(gidx); // ITS/TPC : TOF
     const auto& parent1 = getTPCITSTrack(parent0.getTrackRef());
     return parent1.getRefITS();
   } else if (src == GTrackID::ITSTPCTRDTOF) {
-    const auto& parent0 = getTOFMatch(gidx); //ITS/TPC : TOF
+    const auto& parent0 = getTOFMatch(gidx); // ITS/TPC : TOF
     const auto& parent1 = getITSTPCTRDTrack<o2::trd::TrackTRD>(parent0.getTrackRef());
     const auto& parent2 = getTPCITSTrack(parent1.getRefGlobalTrackId());
     return parent2.getRefITS();

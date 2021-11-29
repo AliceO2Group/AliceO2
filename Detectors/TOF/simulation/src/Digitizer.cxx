@@ -801,26 +801,108 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
   if (mContinuous) {
     digits.clear();
     mMCTruthOutputContainer->clear();
-  }
-
-  //  printf("TOF fill output container\n");
-  // filling the digit container doing a loop on all strips
-  for (auto& strip : *mStripsCurrent) {
-    strip.fillOutputContainer(digits);
-    if (strip.getNumberOfDigits()) {
-      LOG(info) << "strip size = " << strip.getNumberOfDigits() << " - digit size = " << digits.size() << "\n";
+  } else { // for continuos filled below
+    //  printf("TOF fill output container\n");
+    // filling the digit container doing a loop on all strips
+    for (auto& strip : *mStripsCurrent) {
+      strip.fillOutputContainer(digits);
+      if (strip.getNumberOfDigits()) {
+        LOG(debug) << "strip size = " << strip.getNumberOfDigits() << " - digit size = " << digits.size() << "\n";
+      }
     }
   }
 
   if (mContinuous) {
-    //printf("%i) # TOF digits = %lu (%p)\n", mIcurrentReadoutWindow, digits.size(), mStripsCurrent);
     int first = mDigitsPerTimeFrame.size();
-    int ne = digits.size();
-    ReadoutWindowData info(first, ne);
+    //printf("%i) # TOF digits = %lu (%p)\n", mIcurrentReadoutWindow, digits.size(), mStripsCurrent);
+    ReadoutWindowData info(first, first);
     int orbit_shift = mReadoutWindowData.size() / 3;
     int bc_shift = (mReadoutWindowData.size() % 3) * Geo::BC_IN_WINDOW;
     info.setBCData(mFirstIR.orbit + orbit_shift, mFirstIR.bc + bc_shift);
     mDigitsPerTimeFrame.insert(mDigitsPerTimeFrame.end(), digits.begin(), digits.end());
+
+    // fill diagnostics
+    float p = gRandom->Rndm();
+    if (mCalibApi->getEmptyTOFProb() > p) { // check empty TOF
+      for (int i = 0; i < Geo::kNCrate; i++) {
+        info.setEmptyCrate(i);
+      }
+    } else { // check empty crates when TOF is not empty
+      int itrmreached = -1;
+      bool isEmptyCrate[Geo::kNCrate];
+      const float* crateProb = mCalibApi->getEmptyCratesProb();
+      for (int i = 0; i < Geo::kNCrate; i++) {
+        p = gRandom->Rndm();
+        if (crateProb[i] > p) {
+          info.setEmptyCrate(i);
+          isEmptyCrate[i] = true;
+        } else { // check if filling diagnostic (noisy will be masked in clusterization, then skip here)
+          isEmptyCrate[i] = false;
+          int slotreached = -1;
+          const std::vector<std::pair<int, float>>& trmProg = mCalibApi->getTRMerrorProb();
+          const std::vector<int>& trmErr = mCalibApi->getTRMmask();
+          for (int itrm = itrmreached + 1; itrm < trmProg.size(); itrm++) { // trm ordered by crate and slot
+            int crate = trmProg[itrm].first / 100;
+            if (crate == i) {
+              int slot = trmProg[itrm].first % 100;
+              if (slot != slotreached) { // first diagnostic of this TRM, get the random value to be compared with probability
+                p = gRandom->Rndm();
+                slotreached = slot;
+              }
+              // add diagnostic if needed
+              if (trmProg[itrm].second > p) {
+                // fill diagnostic
+                mPatterns.push_back(slot + 28); // add slot
+                info.addedDiagnostic(crate);
+                uint32_t cbit = 1;
+                for (int ibit = 0; ibit < 28; ibit++) {
+                  if (trmErr[itrm] & cbit) {
+                    mPatterns.push_back(ibit); // add bit error
+                    info.addedDiagnostic(crate);
+                  }
+                  cbit <<= 1;
+                }
+
+                p = 10; // no other errors allowed for this slot
+              } else {
+                p -= trmProg[itrm].second; // reduce the error probability for this slot for the next error in the same slot (sum of prob for all errors <= 1)
+              }
+
+              itrmreached = itrm;
+            } else {
+              break; // move to next crate
+            }
+          }
+        }
+      }
+
+      // fill strip of non-empty crates
+      for (auto& strip : *mStripsCurrent) {
+        std::map<ULong64_t, o2::tof::Digit>& dmap = strip.getDigitMap();
+
+        std::vector<ULong64_t> keyToBeRemoved;
+
+        for (auto [key, dig] : dmap) {
+          int crate = Geo::getCrateFromECH(Geo::getECHFromCH(dig.getChannel()));
+
+          if (isEmptyCrate[crate]) {
+            // flag digits to be removed
+            keyToBeRemoved.push_back(key);
+          }
+        }
+        for (auto& key : keyToBeRemoved) {
+          dmap.erase(key);
+        }
+
+        strip.fillOutputContainer(digits);
+      }
+    }
+    info.setNEntries(digits.size());
+
+    if (digits.size()) {
+      mDigitsPerTimeFrame.insert(mDigitsPerTimeFrame.end(), digits.begin(), digits.end());
+    }
+
     mReadoutWindowData.push_back(info);
   }
 

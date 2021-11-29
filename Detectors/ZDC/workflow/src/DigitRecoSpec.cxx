@@ -210,7 +210,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
 void DigitRecoSpec::endOfStream(EndOfStreamContext& ec)
 {
   mDR.eor();
-  LOGF(INFO, "ZDC Reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "ZDC Reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

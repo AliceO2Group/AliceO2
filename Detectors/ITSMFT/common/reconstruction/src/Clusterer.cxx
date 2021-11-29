@@ -42,6 +42,9 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
         break; // on the fly decoding was requested, but there were no data left
       }
     }
+    if (reader.getInteractionRecord().isDummy()) {
+      continue; // No IR info was found
+    }
     // pre-fetch all non-empty chips of current ROF
     ChipPixelData* curChipData = nullptr;
     mFiredChipsPtr.clear();

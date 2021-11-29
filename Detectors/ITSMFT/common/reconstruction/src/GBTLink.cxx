@@ -82,7 +82,7 @@ void GBTLink::printTrigger(const GBTTrigger* gbtTrg)
 void GBTLink::printCalibrationWord(const GBTCalibration* gbtCal)
 {
   gbtCal->printX();
-  LOGF(INFO, "Calibration word %5d | user_data 0x%06lx", gbtCal->calibCounter, gbtCal->calibUserField);
+  LOGF(info, "Calibration word %5d | user_data 0x%06lx", gbtCal->calibCounter, gbtCal->calibUserField);
 }
 
 ///_________________________________________________________________
@@ -120,14 +120,14 @@ void GBTLink::printDiagnostic(const GBTDiagnostic* gbtD)
 void GBTLink::printCableDiagnostic(const GBTCableDiagnostic* gbtD)
 {
   gbtD->printX();
-  LOGF(INFO, "Diagnostic for %s Lane %d | errorID: %d data 0x%016lx", gbtD->isIB() ? "IB" : "OB", gbtD->getCableID(), gbtD->laneErrorID, gbtD->diagnosticData);
+  LOGF(info, "Diagnostic for %s Lane %d | errorID: %d data 0x%016lx", gbtD->isIB() ? "IB" : "OB", gbtD->getCableID(), gbtD->laneErrorID, gbtD->diagnosticData);
 }
 
 ///_________________________________________________________________
 void GBTLink::printCableStatus(const GBTCableStatus* gbtS)
 {
   gbtS->printX();
-  LOGF(INFO, "Status data, not processed at the moment");
+  LOGF(info, "Status data, not processed at the moment");
 }
 
 ///====================================================================

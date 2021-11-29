@@ -185,6 +185,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
   auto* currRawPiece = rawData.currentPiece();
   GBTLink::ErrorType errRes = GBTLink::NoError;
   bool expectPacketDone = false;
+  ir.clear();
   while (currRawPiece) { // we may loop over multiple CRU page
     if (dataOffset >= currRawPiece->size) {
       dataOffset = 0;                              // start of the RDH
@@ -259,6 +260,9 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       }
       lanesStop = 0;
       lanesWithData = 0;
+      ir.bc = gbtTrg->bc;
+      ir.orbit = gbtTrg->orbit;
+      trigger = gbtTrg->triggerType;
     }
     if (format == NewFormat) { // at the moment just check if calibration word is there
       auto gbtC = reinterpret_cast<const o2::itsmft::GBTCalibration*>(&currRawPiece->data[dataOffset]);
@@ -267,7 +271,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
           printCalibrationWord(gbtC);
         }
         dataOffset += GBTPaddedWordLength;
-        LOGP(DEBUG, "SetCalibData for RU:{} at bc:{}/orb:{} : [{}/{}]", ruPtr->ruSWID, gbtTrg->bc, gbtTrg->orbit, gbtC->calibCounter, gbtC->calibUserField);
+        LOGP(debug, "SetCalibData for RU:{} at bc:{}/orb:{} : [{}/{}]", ruPtr->ruSWID, gbtTrg->bc, gbtTrg->orbit, gbtC->calibCounter, gbtC->calibUserField);
         ruPtr->calibData = {gbtC->calibCounter, gbtC->calibUserField};
       }
     }
@@ -310,12 +314,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     }
     // accumulate packet states
     statistics.packetStates[gbtT->getPacketState()]++;
-    // before quitting, store the trigger and IR
-    if (format == NewFormat) {
-      ir.bc = gbtTrg->bc;
-      ir.orbit = gbtTrg->orbit;
-      trigger = gbtTrg->triggerType;
-    } else {
+    if (format != NewFormat) {
       ir = RDHUtils::getTriggerIR(*lastRDH);
       trigger = RDHUtils::getTriggerType(*lastRDH);
     }

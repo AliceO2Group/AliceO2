@@ -198,7 +198,7 @@ for STAGE in $STAGES; do
     echo "walltime_${STAGE},${TAG} value=${walltime}" >> ${METRICFILE}
 
     # GPU reconstruction (also in CPU version) processing time
-    gpurecotime=`grep "gpu-reconstruction" reco_NOGPU.log | grep -e "Total Wall Time:" | awk '//{printf "%f", $6/1000000}'`
+    gpurecotime=`grep -a "gpu-reconstruction" ${logfile} | grep -e "Total Wall Time:" | awk '//{printf "%f", $6/1000000}'`
     echo "gpurecotime_${STAGE},${TAG} value=${gpurecotime}" >> ${METRICFILE}
 
     # memory
@@ -208,9 +208,9 @@ for STAGE in $STAGES; do
     echo "avgmem_${STAGE},${TAG} value=${avgmem}" >> ${METRICFILE}
 
     # some physics quantities
-    tpctracks=`grep "gpu-reconstruction" ${logfile} | grep -e "found.*track" | awk '//{print $4}'`
+    tpctracks=`grep -a "gpu-reconstruction" ${logfile} | grep -e "found.*track" | awk '//{print $4}'`
     echo "tpctracks_${STAGE},${TAG} value=${tpctracks}" >> ${METRICFILE}
-    tpcclusters=`grep -e "Event has.*TPC Clusters" ${logfile} | awk '//{print $5}'`
+    tpcclusters=`grep -a -e "Event has.*TPC Clusters" ${logfile} | awk '//{print $5}'`
     echo "tpcclusters_${STAGE},${TAG} value=${tpcclusters}" >> ${METRICFILE}
   fi
 done

@@ -71,16 +71,16 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
           }
         }
       }
-      LOGF(DEBUG, "ITS IR Frame start: %li, end: %li", irFrame.getMin().toLong(), irFrame.getMax().toLong());
+      LOGF(debug, "ITS IR Frame start: %li, end: %li", irFrame.getMin().toLong(), irFrame.getMax().toLong());
     }
     /*
     // for debugging: print TRD trigger times which are accepted and which are filtered out
     for (int j = 0; j < trigRecs.size(); ++j) {
       const auto& trigRec = trigRecs[j];
       if (!trigRecBitfield[j]) {
-        LOGF(DEBUG, "Could not find ITS info for TRD trigger %i: %li", j, trigRec.getBCData().toLong());
+        LOGF(debug, "Could not find ITS info for TRD trigger %i: %li", j, trigRec.getBCData().toLong());
       } else {
-        LOGF(DEBUG, "Found ITS info for TRD trigger %i: %li", j, trigRec.getBCData().toLong());
+        LOGF(debug, "Found ITS info for TRD trigger %i: %li", j, trigRec.getBCData().toLong());
       }
     }
     */
@@ -110,7 +110,7 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
     }
   }
 
-  LOGF(INFO, "Found %lu tracklets. Applied filter for ITS IR frames: %i. Transformed %i tracklets.", tracklets.size(), mTrigRecFilterActive, nTrackletsTransformed);
+  LOGF(info, "Found %lu tracklets. Applied filter for ITS IR frames: %i. Transformed %i tracklets.", tracklets.size(), mTrigRecFilterActive, nTrackletsTransformed);
 
   pc.outputs().snapshot(Output{"TRD", "CTRACKLETS", 0, Lifetime::Timeframe}, calibratedTracklets);
   pc.outputs().snapshot(Output{"TRD", "TRIGRECMASK", 0, Lifetime::Timeframe}, trigRecBitfield);

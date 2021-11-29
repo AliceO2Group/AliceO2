@@ -49,7 +49,7 @@ int Diagnostic::fill(ULong64_t pattern, int frequency)
   return frequency;
 }
 
-int Diagnostic::getFrequency(ULong64_t pattern)
+int Diagnostic::getFrequency(ULong64_t pattern) const
 {
   auto pairC = mVector.find(pattern);
   if (pairC != mVector.end()) {
@@ -61,7 +61,7 @@ int Diagnostic::getFrequency(ULong64_t pattern)
 
 void Diagnostic::print() const
 {
-  LOG(INFO) << "Diagnostic patterns";
+  LOG(info) << "Diagnostic patterns";
   for (const auto& [key, value] : mVector) {
     std::cout << key << " = " << value << "; ";
   }
@@ -120,22 +120,22 @@ int Diagnostic::getNoisyLevel(ULong64_t pattern) const
 
 void Diagnostic::fill(const Diagnostic& diag)
 {
-  LOG(DEBUG) << "Filling diagnostic word";
+  LOG(debug) << "Filling diagnostic word";
   for (auto const& el : diag.mVector) {
-    LOG(DEBUG) << "Filling diagnostic pattern " << el.first << " adding " << el.second << " to " << getFrequency(el.first) << " --> " << el.second + getFrequency(el.first);
+    LOG(debug) << "Filling diagnostic pattern " << el.first << " adding " << el.second << " to " << getFrequency(el.first) << " --> " << el.second + getFrequency(el.first);
     fill(el.first, el.second);
   }
 }
 
 void Diagnostic::merge(const Diagnostic* prev)
 {
-  LOG(DEBUG) << "Merging diagnostic words";
+  LOG(debug) << "Merging diagnostic words";
   for (auto const& el : prev->mVector) {
     fill(el.first, el.second + getFrequency(el.first));
   }
 }
 
-void Diagnostic::getNoisyMap(Bool_t* output)
+void Diagnostic::getNoisyLevelMap(Char_t* output) const
 {
   // set true in output channel array
   for (auto pair : mVector) {
@@ -146,6 +146,23 @@ void Diagnostic::getNoisyMap(Bool_t* output)
       continue;
     }
 
-    output[getChannel(key)] = true;
+    output[getChannel(key)] = getNoisyLevel(key);
+  }
+}
+
+void Diagnostic::getNoisyMap(Bool_t* output, int noisyThr) const
+{
+  // set true in output channel array
+  for (auto pair : mVector) {
+    auto key = pair.first;
+    int slot = getSlot(key);
+
+    if (slot != 14) {
+      continue;
+    }
+
+    if (getNoisyLevel(key) >= noisyThr) {
+      output[getChannel(key)] = true;
+    }
   }
 }

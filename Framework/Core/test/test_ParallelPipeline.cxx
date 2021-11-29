@@ -39,7 +39,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
-    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed)"; \
+    LOG(fatal) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
 using DataHeader = o2::header::DataHeader;

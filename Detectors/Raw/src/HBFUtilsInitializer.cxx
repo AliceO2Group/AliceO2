@@ -106,7 +106,7 @@ std::vector<o2::dataformats::TFIDInfo> HBFUtilsInitializer::readTFIDInfoVector(c
 void HBFUtilsInitializer::assignDataHeader(const std::vector<o2::dataformats::TFIDInfo>& tfinfoVec, o2::header::DataHeader& dh)
 {
   const auto tfinf = tfinfoVec[dh.tfCounter % tfinfoVec.size()];
-  LOGP(DEBUG, "Setting DH for {}/{} from tfCounter={} firstTForbit={} runNumber={} to tfCounter={} firstTForbit={} runNumber={}",
+  LOGP(debug, "Setting DH for {}/{} from tfCounter={} firstTForbit={} runNumber={} to tfCounter={} firstTForbit={} runNumber={}",
        dh.dataOrigin.as<std::string>(), dh.dataDescription.as<std::string>(), dh.tfCounter, dh.firstTForbit, dh.runNumber, tfinf.tfCounter, tfinf.firstTForbit, tfinf.runNumber);
   dh.firstTForbit = tfinf.firstTForbit;
   dh.tfCounter = tfinf.tfCounter;
@@ -131,9 +131,10 @@ void HBFUtilsInitializer::addNewTimeSliceCallback(std::vector<o2::framework::Cal
       } else { // simple linear enumeration from already updated HBFUtils
         const auto& hbfu = o2::raw::HBFUtils::Instance();
         service.set(o2::framework::CallbackService::Id::NewTimeslice,
-                    [offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit),
-                     increment = int64_t(hbfu.nHBFPerTF)](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader&) {
+                    [offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit), increment = int64_t(hbfu.nHBFPerTF),
+                     startTime = hbfu.startTime, orbitFirst = hbfu.orbitFirst](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
                       dh.firstTForbit = offset + increment * dh.tfCounter;
+                      dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS;
                     });
       }
     }});

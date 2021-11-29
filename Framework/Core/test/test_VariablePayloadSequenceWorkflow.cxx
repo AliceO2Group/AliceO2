@@ -48,7 +48,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
-    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed)"; \
+    LOG(fatal) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
 namespace test
@@ -217,7 +217,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
         ASSERT_ERROR(*reinterpret_cast<size_t const*>(ref.payload) == sd->initialValue + nSequencePayloads);
         ++nSequencePayloads;
       }
-      //LOG(INFO) << "input " << ref.spec->binding << " has data {" << dh->dataOrigin.as<std::string>() << "/" << dh->dataDescription.as<std::string>() << "/" << dh->subSpecification << "}: " << *reinterpret_cast<size_t const*>(ref.payload);
+      //LOG(info) << "input " << ref.spec->binding << " has data {" << dh->dataOrigin.as<std::string>() << "/" << dh->dataDescription.as<std::string>() << "/" << dh->subSpecification << "}: " << *reinterpret_cast<size_t const*>(ref.payload);
     }
     for (auto const& [channel, count] : active) {
       ++counters[channel];
@@ -239,7 +239,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     bool sane = true;
     for (auto const& [channel, count] : *counters) {
       if (count != nRolls) {
-        LOG(FATAL) << "inconsistent event count on input '" << channel << "': " << count << ", expected " << nRolls;
+        LOG(fatal) << "inconsistent event count on input '" << channel << "': " << count << ", expected " << nRolls;
         sane = false;
       }
     }

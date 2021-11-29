@@ -49,7 +49,7 @@ class VertexSamplerSpec
   void init(framework::InitContext& ic)
   {
     /// Get the input file from the context
-    LOG(INFO) << "initializing vertex sampler";
+    LOG(info) << "initializing vertex sampler";
 
     auto inputFileName = ic.options().get<std::string>("infile");
     if (!inputFileName.empty()) {
@@ -61,7 +61,7 @@ class VertexSamplerSpec
 
     auto stop = [this]() {
       /// close the input file
-      LOG(INFO) << "stop vertex sampler";
+      LOG(info) << "stop vertex sampler";
       if (mInputFile.is_open()) {
         this->mInputFile.close();
       }

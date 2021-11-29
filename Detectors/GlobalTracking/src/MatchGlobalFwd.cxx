@@ -436,7 +436,7 @@ o2::MCCompLabel MatchGlobalFwd::computeLabel(const int MCHId, const int MFTId)
   o2::MCCompLabel matchLabel = mchlabel;
   matchLabel.setFakeFlag(mftlabel.compare(mchlabel) != 1);
 
-  LOG(info) << "     Computing MFTMCH matching label:   MFTTruth = " << mftlabel << "  ;  MCHTruth = " << mchlabel << "  ;   Computed label = " << matchLabel;
+  LOG(debug) << "     Computing MFTMCH matching label:   MFTTruth = " << mftlabel << "  ;  MCHTruth = " << mchlabel << "  ;   Computed label = " << matchLabel;
 
   return matchLabel;
 }

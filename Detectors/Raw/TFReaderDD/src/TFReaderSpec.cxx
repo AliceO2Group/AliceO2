@@ -124,7 +124,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       }
       tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       deltaSending = mTFCounter ? tNow - tLastTF : 0;
-      LOGP(INFO, "Sent TF {} of {} parts, {:.4f} s elapsed from previous TF.", mTFCounter, nparts, double(deltaSending) * 1e-6);
+      LOGP(info, "Sent TF {} of {} parts, {:.4f} s elapsed from previous TF.", mTFCounter, nparts, double(deltaSending) * 1e-6);
       deltaSending -= mInput.delay_us;
       if (!mTFCounter || deltaSending < 0) {
         deltaSending = 0; // correction for next delay
@@ -218,7 +218,7 @@ void TFReaderSpec::TFBuilder()
         mFileFetcher->popFromQueue(mFileFetcher->getNLoops() >= mInput.maxLoops);
       }
     } /*catch (...) {
-      LOGP(ERROR, "Error when building {}-th TF from file {}", locID, tfFileName);
+      LOGP(error, "Error when building {}-th TF from file {}", locID, tfFileName);
       mFileFetcher->popFromQueue(mFileFetcher->getNLoops() >= mInput.maxLoops); // remove faile TF file
     } */
   }

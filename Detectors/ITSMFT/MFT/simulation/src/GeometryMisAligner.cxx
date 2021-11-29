@@ -493,7 +493,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
 
   if (!ccdbHost.empty()) {
     std::string path = objectPath.empty() ? o2::base::NameConf::getAlignmentPath(o2::detectors::DetID::MFT) : objectPath;
-    LOGP(INFO, "Storing alignment object on {}/{}", ccdbHost, path);
+    LOGP(info, "Storing alignment object on {}/{}", ccdbHost, path);
     o2::ccdb::CcdbApi api;
     std::map<std::string, std::string> metadata; // can be empty
     api.init(ccdbHost.c_str());                  // or http://localhost:8080 for a local installation
@@ -502,7 +502,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
   }
 
   if (!fileName.empty()) {
-    LOGP(INFO, "Storing MFT alignment in local file {}", fileName);
+    LOGP(info, "Storing MFT alignment in local file {}", fileName);
     TFile algFile(fileName.c_str(), "recreate");
     algFile.WriteObjectAny(&lAPvec, "std::vector<o2::detectors::AlignParam>", "alignment");
     algFile.Close();

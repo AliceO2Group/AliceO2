@@ -9,12 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file ClusterBlock.cxx
+/// \file Cluster.cxx
 /// \brief Implementation of the MCH cluster minimal structure
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 
 namespace o2
 {
@@ -22,7 +22,7 @@ namespace mch
 {
 
 //_________________________________________________________________________
-std::ostream& operator<<(std::ostream& stream, const ClusterStruct& cluster)
+std::ostream& operator<<(std::ostream& stream, const Cluster& cluster)
 {
   auto oldflags = stream.flags();
   stream << "{x = " << cluster.x << ", y = " << cluster.y << ", z = " << cluster.z << ", ex = " << cluster.ex

@@ -129,7 +129,7 @@ double TrackMatcher::match(const mch::TrackMCH& mchTrack, const mid::Track& midT
 
   // compute the chi2
   if (!sumCov.Invert()) {
-    LOG(ERROR) << "Covariance matrix inversion failed: " << sumCov;
+    LOG(error) << "Covariance matrix inversion failed: " << sumCov;
     return mMaxChi2;
   }
   return ROOT::Math::Similarity(paramDiff, sumCov);

@@ -185,7 +185,7 @@ class TPCSectorCompletionPolicy
         // a single multipart message. So it works fine, and we disable the warning below, but there
         // is a potential problem. Need to fix this on the level of the workflow.
         //if (nMaxPartsPerRoute > 1) {
-        //  LOG(WARNING) << "No sector information is provided with the data, data set is complete with data on all input routes. But there are multiple parts on at least one route and this policy might not be complete, no check possible if other parts on some routes are still missing. It is adviced to add a custom policy.";
+        //  LOG(warning) << "No sector information is provided with the data, data set is complete with data on all input routes. But there are multiple parts on at least one route and this policy might not be complete, no check possible if other parts on some routes are still missing. It is adviced to add a custom policy.";
         //}
         return framework::CompletionPolicy::CompletionOp::Consume;
       }

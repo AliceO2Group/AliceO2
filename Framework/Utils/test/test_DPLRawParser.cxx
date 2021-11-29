@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(test_DPLRawParser)
   int count = 0;
   o2::header::DataHeader const* last = nullptr;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it, ++count) {
-    LOG(INFO) << "data " << count << " " << *((int*)it.data());
+    LOG(info) << "data " << count << " " << *((int*)it.data());
     // now check the iterator API
     // retrieving RDH
     auto const* rdh = it.get_if<test::RAWDataHeader>();
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(test_DPLRawParser)
   DPLRawParser filteredparser(inputs, o2::framework::select("its:ITS/RAWDATA"));
   count = 5;
   for (auto it = filteredparser.begin(), end = filteredparser.end(); it != end; ++it, ++count) {
-    LOG(INFO) << "data " << count << " " << *((int*)it.data());
+    LOG(info) << "data " << count << " " << *((int*)it.data());
     BOOST_REQUIRE(*reinterpret_cast<int const*>(it.data()) == dataset.values[count]);
   }
 
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(test_DPLRawParser)
   DPLRawParser nomatchingparser(inputs, o2::framework::select("nmatch:NO/MATCH"));
   count = 0;
   for (auto it = nomatchingparser.begin(), end = nomatchingparser.end(); it != end; ++it, ++count) {
-    LOG(INFO) << "data " << count << " " << *((int*)it.data());
+    LOG(info) << "data " << count << " " << *((int*)it.data());
   }
   BOOST_CHECK(count == 0);
 }

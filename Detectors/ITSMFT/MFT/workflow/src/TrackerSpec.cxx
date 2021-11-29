@@ -237,7 +237,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
 void TrackerDPL::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "MFT Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "MFT Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

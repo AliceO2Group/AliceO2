@@ -117,7 +117,7 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp)
 
   if (mParams->verbosity > 0) {
     for (int i = 0; i < NStopWatches; i++) {
-      LOGF(INFO, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots of TF#%d", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1, mTFCount);
+      LOGF(info, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots of TF#%d", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1, mTFCount);
     }
   }
   mTFCount++;
@@ -268,14 +268,14 @@ void MatchTPCITS::selectBestMatches()
       }
     }
     if (mParams->verbosity > 0) {
-      LOGP(INFO, "iter {}: Validated {} of {} remaining matches", iter, nValidated, nremaining);
+      LOGP(info, "iter {}: Validated {} of {} remaining matches", iter, nValidated, nremaining);
     }
     iter++;
     nValidatedTotal += nValidated;
   } while (nValidated);
 
   mTimer[SWSelectBest].Stop();
-  LOGP(INFO, "Validated {} matches for {} TPC tracks in {} iterations", nValidatedTotal, mTPCWork.size(), iter);
+  LOGP(info, "Validated {} matches for {} TPC tracks in {} iterations", nValidatedTotal, mTPCWork.size(), iter);
 }
 
 //______________________________________________
@@ -1288,8 +1288,8 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     nclRefit++;
   }
   if (nclRefit != ncl) {
-    LOGP(DEBUG, "Refit in ITS failed after ncl={}, match between TPC track #{} and ITS track #{}", nclRefit, tTPC.sourceID, tITS.sourceID);
-    LOGP(DEBUG, "{:s}", trfit.asString());
+    LOGP(debug, "Refit in ITS failed after ncl={}, match between TPC track #{} and ITS track #{}", nclRefit, tTPC.sourceID, tITS.sourceID);
+    LOGP(debug, "{:s}", trfit.asString());
     mMatchedTracks.pop_back(); // destroy failed track
     return false;
   }
@@ -1412,8 +1412,8 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed)
     nclRefit++;
   }
   if (nclRefit != ncl) {
-    LOGP(DEBUG, "AfterBurner refit in ITS failed after ncl={}, match between TPC track #{} and ITS tracklet #{}", nclRefit, tTPC.sourceID, iITSAB);
-    LOGP(DEBUG, "{:s}", tracOut.asString());
+    LOGP(debug, "AfterBurner refit in ITS failed after ncl={}, match between TPC track #{} and ITS tracklet #{}", nclRefit, tTPC.sourceID, iITSAB);
+    LOGP(debug, "{:s}", tracOut.asString());
     mMatchedTracks.pop_back(); // destroy failed track
     return false;
   }
@@ -1596,7 +1596,7 @@ void MatchTPCITS::runAfterBurner()
   mTimer[SWABSeeds].Start(false);
   prepareABSeeds();
   int nIntCand = mInteractions.size(), nABSeeds = mTPCABSeeds.size();
-  LOGP(INFO, "Afterburner will check {} seeds from {} TPC tracks and {} interaction candidates", nABSeeds, mTPCABIndexCache.size(), nIntCand); // TMP
+  LOGP(info, "Afterburner will check {} seeds from {} TPC tracks and {} interaction candidates", nABSeeds, mTPCABIndexCache.size(), nIntCand); // TMP
   mTimer[SWABSeeds].Stop();
   if (!nIntCand || !mTPCABSeeds.size()) {
     return;

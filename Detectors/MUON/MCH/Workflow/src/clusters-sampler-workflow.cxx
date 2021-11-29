@@ -32,7 +32,7 @@
 #include "Framework/ConfigParamSpec.h"
 
 #include "DataFormatsMCH/ROFRecord.h"
-#include "DataFormatsMCH/ClusterBlock.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "DataFormatsMCH/Digit.h"
 
 using namespace o2::framework;
@@ -56,7 +56,7 @@ class ClusterSamplerTask
   void init(InitContext& ic)
   {
     /// Get the input file from the context
-    LOG(INFO) << "initializing cluster sampler";
+    LOG(info) << "initializing cluster sampler";
 
     auto inputFileName = ic.options().get<std::string>("infile");
     mInputFile.open(inputFileName, std::ios::binary);
@@ -74,7 +74,7 @@ class ClusterSamplerTask
 
     auto stop = [this]() {
       /// close the input file
-      LOG(INFO) << "stop cluster sampler";
+      LOG(info) << "stop cluster sampler";
       this->mInputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
@@ -90,13 +90,13 @@ class ClusterSamplerTask
     // reached eof
     if (mInputFile.peek() == EOF) {
       pc.services().get<ControlService>().endOfStream();
-      //pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+      // pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
       return;
     }
 
     // create the output messages
     auto& rofs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"rofs"});
-    auto& clusters = pc.outputs().make<std::vector<ClusterStruct>>(OutputRef{"clusters"});
+    auto& clusters = pc.outputs().make<std::vector<Cluster>>(OutputRef{"clusters"});
 
     // loop over the requested number of events (or until eof) and fill the messages
     for (int iEvt = 0; iEvt < mNEventsPerTF && mInputFile.peek() != EOF; ++iEvt) {
@@ -107,7 +107,7 @@ class ClusterSamplerTask
 
  private:
   //_________________________________________________________________________________________________
-  int readOneEvent(std::vector<ClusterStruct, o2::pmr::polymorphic_allocator<ClusterStruct>>& clusters)
+  int readOneEvent(std::vector<Cluster, o2::pmr::polymorphic_allocator<Cluster>>& clusters)
   {
     /// fill the internal buffer with the clusters of the current event
 
@@ -133,12 +133,12 @@ class ClusterSamplerTask
     if (nClusters > 0) {
       int clusterOffset = clusters.size();
       clusters.resize(clusterOffset + nClusters);
-      mInputFile.read(reinterpret_cast<char*>(&clusters[clusterOffset]), nClusters * sizeof(ClusterStruct));
+      mInputFile.read(reinterpret_cast<char*>(&clusters[clusterOffset]), nClusters * sizeof(Cluster));
       if (mInputFile.fail()) {
         throw std::length_error("invalid input");
       }
     } else {
-      LOG(INFO) << "event is empty";
+      LOG(info) << "event is empty";
     }
 
     // skip the digits if any

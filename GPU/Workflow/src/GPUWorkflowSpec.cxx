@@ -336,7 +336,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
     // the callback to be set as hook at stop of processing for the framework
     auto printTiming = []() {
-      LOGF(INFO, "TPC CATracker total timing: Cpu: %.3e Real: %.3e s in %d slots", timer.CpuTime(), timer.RealTime(), timer.Counter() - 1);
+      LOGF(info, "TPC CATracker total timing: Cpu: %.3e Real: %.3e s in %d slots", timer.CpuTime(), timer.RealTime(), timer.Counter() - 1);
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, printTiming);
 
@@ -458,7 +458,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         }
       } else if (!specconfig.zsOnTheFly) {
         if (verbosity) {
-          LOGF(INFO, "running tracking for sector(s) 0x%09x", processAttributes->tpcSectorMask);
+          LOGF(info, "running tracking for sector(s) 0x%09x", processAttributes->tpcSectorMask);
         }
       }
 

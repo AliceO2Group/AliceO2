@@ -128,7 +128,7 @@ template <typename DataT>
 int DataContainer3D<DataT>::writeToFile(TFile& outf, const char* name) const
 {
   if (outf.IsZombie()) {
-    LOGP(ERROR, "Failed to write to file: {}", outf.GetName());
+    LOGP(error, "Failed to write to file: {}", outf.GetName());
     return -1;
   }
   outf.WriteObjectAny(this, DataContainer3D<DataT>::Class(), name);
@@ -140,20 +140,20 @@ template <typename DataT>
 bool DataContainer3D<DataT>::initFromFile(TFile& inpf, const char* name)
 {
   if (inpf.IsZombie()) {
-    LOGP(ERROR, "Failed to read from file: {}", inpf.GetName());
+    LOGP(error, "Failed to read from file: {}", inpf.GetName());
     return false;
   }
   DataContainer3D<DataT>* dataCont{nullptr};
   dataCont = reinterpret_cast<DataContainer3D<DataT>*>(inpf.GetObjectChecked(name, DataContainer3D<DataT>::Class()));
 
   if (!dataCont) {
-    LOGP(ERROR, "Failed to load {} from {}", name, inpf.GetName());
+    LOGP(error, "Failed to load {} from {}", name, inpf.GetName());
     return false;
   }
 
   if (mZVertices != dataCont->getNZ() || mRVertices != dataCont->getNR() || mPhiVertices != dataCont->getNPhi()) {
-    LOGP(ERROR, "Data from input file has different definition of vertices!");
-    LOGP(ERROR, "set vertices before creating the sc object to: SpaceCharge<>::setGrid({}, {}, {})", dataCont->getNZ(), dataCont->getNR(), dataCont->getNPhi());
+    LOGP(error, "Data from input file has different definition of vertices!");
+    LOGP(error, "set vertices before creating the sc object to: SpaceCharge<>::setGrid({}, {}, {})", dataCont->getNZ(), dataCont->getNR(), dataCont->getNPhi());
     delete dataCont;
     return false;
   }
@@ -167,14 +167,14 @@ template <typename DataT>
 DataContainer3D<DataT>* DataContainer3D<DataT>::loadFromFile(TFile& inpf, const char* name)
 {
   if (inpf.IsZombie()) {
-    LOGP(ERROR, "Failed to read from file {}", inpf.GetName());
+    LOGP(error, "Failed to read from file {}", inpf.GetName());
     return nullptr;
   }
   DataContainer3D<DataT>* dataCont{nullptr};
 
   dataCont = reinterpret_cast<DataContainer3D<DataT>*>(inpf.GetObjectChecked(name, DataContainer3D<DataT>::Class()));
   if (!dataCont) {
-    LOGP(ERROR, "Failed to load {} from {}", name, inpf.GetName());
+    LOGP(error, "Failed to load {} from {}", name, inpf.GetName());
     return nullptr;
   }
   return dataCont;

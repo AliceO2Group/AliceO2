@@ -48,16 +48,16 @@ void TriggerMap::addTurnOnCurvesParams(std::string_view versionName, std::array<
 void TriggerMap::setTurnOnCurvesVestion(int v)
 {
   if (v >= mParamDescr.size()) {
-    LOG(ERROR) << "impossible parameterization " << v;
-    LOG(ERROR) << "Available are:";
+    LOG(error) << "impossible parameterization " << v;
+    LOG(error) << "Available are:";
     for (int i = 0; i < mParamDescr.size(); i++) {
-      LOG(ERROR) << i << " : " << mParamDescr[i];
+      LOG(error) << i << " : " << mParamDescr[i];
     }
-    LOG(ERROR) << " keep current " << mParamDescr[mVersion];
+    LOG(error) << " keep current " << mParamDescr[mVersion];
     return;
   }
   mVersion = v;
-  LOG(INFO) << "Will use parameterization " << mParamDescr[mVersion];
+  LOG(info) << "Will use parameterization " << mParamDescr[mVersion];
   mCurrentSet = mParamSets[mVersion];
 }
 
@@ -71,10 +71,10 @@ bool TriggerMap::selectTurnOnCurvesParams(std::string_view versionName)
     mVersion++;
   }
   mVersion = 0;
-  LOG(ERROR) << "Can not fine parameterization " << versionName;
-  LOG(ERROR) << "Available are:";
+  LOG(error) << "Can not fine parameterization " << versionName;
+  LOG(error) << "Available are:";
   for (int i = 0; i < mParamDescr.size(); i++) {
-    LOG(ERROR) << i << " : " << mParamDescr[i];
+    LOG(error) << i << " : " << mParamDescr[i];
   }
   return false;
 }
@@ -83,7 +83,7 @@ float TriggerMap::L0triggerProbability(float e, short ddl) const
 {
 
   if (mCurrentSet.size() == 0) {
-    LOG(ERROR) << "Parameteriztion not chosen";
+    LOG(error) << "Parameteriztion not chosen";
     return 0;
   }
   if (mVersion == 0) {

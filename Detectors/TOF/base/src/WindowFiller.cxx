@@ -456,27 +456,27 @@ void WindowFiller::fillDiagnosticFrequency()
       int slot = 0;
       if (mReadoutWindowData[j].isEmptyCrate(ic)) {
         mDiagnosticFrequency.fillEmptyCrate(ic);
-      } else {
-        isTOFempty = false;
-      }
-      if (dia) {
-        int fd = mReadoutWindowData[j].firstDia();
-        int lastdia = fd + dia;
+        if (dia) {
+          int fd = mReadoutWindowData[j].firstDia();
+          int lastdia = fd + dia;
 
-        ULong64_t key;
-        for (int dd = fd; dd < lastdia; dd++) {
-          if (mPatterns[dd] >= 28) {
-            slot = mPatterns[dd] - 28;
-            key = mDiagnosticFrequency.getTRMKey(ic, slot);
-            continue;
-          }
+          ULong64_t key;
+          for (int dd = fd; dd < lastdia; dd++) {
+            if (mPatterns[dd] >= 28) {
+              slot = mPatterns[dd] - 28;
+              key = mDiagnosticFrequency.getTRMKey(ic, slot);
+              continue;
+            }
 
-          key += (1 << mPatterns[dd]);
+            key += (1 << mPatterns[dd]);
 
-          if (dd + 1 == lastdia || mPatterns[dd + 1] >= 28) {
-            mDiagnosticFrequency.fill(key);
+            if (dd + 1 == lastdia || mPatterns[dd + 1] >= 28) {
+              mDiagnosticFrequency.fill(key);
+            }
           }
         }
+      } else {
+        isTOFempty = false;
       }
     }
   }

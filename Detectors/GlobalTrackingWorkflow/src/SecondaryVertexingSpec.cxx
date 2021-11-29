@@ -108,7 +108,7 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
 
 void SecondaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "Secondary vertexing total timing: Cpu: %.3e Real: %.3e s in %d slots, nThreads = %d",
+  LOGF(info, "Secondary vertexing total timing: Cpu: %.3e Real: %.3e s in %d slots, nThreads = %d",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1, mVertexer.getNThreads());
 }
 

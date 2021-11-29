@@ -266,10 +266,10 @@ void RawReaderZDC::setTriggerMask()
     }
     printTriggerMask += "]";
     uint32_t mytmask = mTriggerMask >> (im * NChPerModule);
-    LOGF(INFO, "Trigger mask for module %d 0123 %c%c%c%c", im,
+    LOGF(info, "Trigger mask for module %d 0123 %c%c%c%c", im,
          mytmask & 0x1 ? 'T' : 'N', mytmask & 0x2 ? 'T' : 'N', mytmask & 0x4 ? 'T' : 'N', mytmask & 0x8 ? 'T' : 'N');
   }
-  LOGF(INFO, "trigger_mask=0x%08x %s", mTriggerMask, printTriggerMask.c_str());
+  LOGF(info, "trigger_mask=0x%08x %s", mTriggerMask, printTriggerMask.c_str());
 }
 } // namespace zdc
 } // namespace o2

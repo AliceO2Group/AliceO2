@@ -279,13 +279,13 @@ class GenericRootTreeReader
           if (classinfo == nullptr) {
             throw std::runtime_error(std::string("can not find class description for branch ") + mName);
           }
-          LOG(INFO) << "branch set up: " << mName;
+          LOG(info) << "branch set up: " << mName;
         } else {
           if (classinfo == nullptr || classinfo != TClass::GetClass(typeid(BinaryDataStoreType))) {
             throw std::runtime_error("mismatching class type, expecting std::vector<char> for binary branch");
           }
           mSizeBranch = sizebranch;
-          LOG(INFO) << "binary branch set up: " << mName;
+          LOG(info) << "binary branch set up: " << mName;
         }
         mClassInfo = classinfo;
       } else {
@@ -322,7 +322,7 @@ class GenericRootTreeReader
           mSizeBranch->GetEntry(entry);
           auto* buffer = reinterpret_cast<BinaryDataStoreType*>(data);
           if (buffer->size() == datasize) {
-            LOG(INFO) << "branch " << mName << ": publishing binary chunk of " << datasize << " bytes(s)";
+            LOG(info) << "branch " << mName << ": publishing binary chunk of " << datasize << " bytes(s)";
             snapshot(mKey, std::move(*buffer));
           } else {
             LOG(error) << "branch " << mName << ": inconsitent size of binary chunk "

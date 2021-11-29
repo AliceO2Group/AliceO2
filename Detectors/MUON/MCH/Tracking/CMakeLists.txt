@@ -11,7 +11,6 @@
 
 o2_add_library(MCHTracking
         SOURCES
-        src/Cluster.cxx
         src/TrackParam.cxx
         src/Track.cxx
         src/TrackExtrap.cxx

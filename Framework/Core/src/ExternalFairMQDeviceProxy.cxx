@@ -100,7 +100,7 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string cons
   }
   // FIXME: we need a better logic for avoiding message spam
   if (timeout > 1 && timeout <= maxTimeout) {
-    LOG(WARNING) << "dispatching on channel " << channel << " was delayed by " << timeout << " ms";
+    LOG(warning) << "dispatching on channel " << channel << " was delayed by " << timeout << " ms";
   }
   // TODO: feeling this is a bit awkward, but the interface of FairMQParts does not provide a
   // method to clear the content.
@@ -116,7 +116,7 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, OutputSpec const
   // array of channels, the index is 0 in the call
   auto channel = channelRetriever(spec, tslice);
   if (channel.empty()) {
-    LOG(WARNING) << "can not find matching channel for " << DataSpecUtils::describe(spec) << " timeslice " << tslice;
+    LOG(warning) << "can not find matching channel for " << DataSpecUtils::describe(spec) << " timeslice " << tslice;
     return;
   }
   sendOnChannel(device, messages, channel);
@@ -132,7 +132,7 @@ void sendOnChannel(FairMQDevice& device, o2::header::Stack&& headerStack, FairMQ
   auto channelName = channelRetriever(spec, dph->startTime);
   constexpr auto index = 0;
   if (channelName.empty()) {
-    LOG(WARNING) << "can not find matching channel for " << DataSpecUtils::describe(spec);
+    LOG(warning) << "can not find matching channel for " << DataSpecUtils::describe(spec);
     return;
   }
   for (auto& channelInfo : device.fChannels) {
@@ -209,7 +209,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
     void warning() const
     {
       if (not descriptions.empty()) {
-        LOG(WARNING) << "Some input data are not matched by filter rules " << descriptions << "\n"
+        LOG(warning) << "Some input data are not matched by filter rules " << descriptions << "\n"
                      << "DROPPING OF THESE MESSAGES HAS BEEN ENABLED BY CONFIGURATION";
       }
     }
@@ -248,16 +248,16 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
             DataSpecUtils::match(spec, query)) {
           auto channelName = channelRetriever(query, dph->startTime);
           if (channelName.empty()) {
-            LOG(WARNING) << "can not find matching channel, not able to adopt " << DataSpecUtils::describe(query);
+            LOG(warning) << "can not find matching channel, not able to adopt " << DataSpecUtils::describe(query);
             break;
           }
           // the checks for consistency of split payload parts are of informative nature
           // forwarding happens independently
           if (dh->splitPayloadParts > 1 && dh->splitPayloadParts != std::numeric_limits<decltype(dh->splitPayloadParts)>::max()) {
             if (lastSplitPartIndex == -1 && dh->splitPayloadIndex != 0) {
-              LOG(WARNING) << "wrong split part index, expecting the first of " << dh->splitPayloadParts << " part(s)";
+              LOG(warning) << "wrong split part index, expecting the first of " << dh->splitPayloadParts << " part(s)";
             } else if (dh->splitPayloadIndex != lastSplitPartIndex + 1) {
-              LOG(WARNING) << "unordered split parts, expecting part " << lastSplitPartIndex + 1 << ", got " << dh->splitPayloadIndex
+              LOG(warning) << "unordered split parts, expecting part " << lastSplitPartIndex + 1 << ", got " << dh->splitPayloadIndex
                            << " of " << dh->splitPayloadParts;
             } else if (channelNameForSplitParts.empty() == false && channelName != channelNameForSplitParts) {
               LOG(error) << "inconsistent channel for split part " << dh->splitPayloadIndex
@@ -270,7 +270,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
               channelNameForSplitParts = "";
             }
           } else if (lastSplitPartIndex != -1) {
-            LOG(WARNING) << "found incomplete or unordered split parts, expecting part " << lastSplitPartIndex + 1
+            LOG(warning) << "found incomplete or unordered split parts, expecting part " << lastSplitPartIndex + 1
                          << " but got a new data block";
           }
           outputs[channelName].AddPart(std::move(parts.At(msgidx * 2)));
@@ -465,7 +465,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
     // FairMQDevice calls the custom init before the channels have been configured
     // so we do the check before starting in a dedicated callback
     auto channelConfigurationChecker = [inputSpecs = std::move(inputSpecs), device, outputChannelName]() {
-      LOG(INFO) << "checking channel configuration";
+      LOG(info) << "checking channel configuration";
       if (device->fChannels.count(outputChannelName) == 0) {
         throw std::runtime_error("no corresponding output channel found for input '" + outputChannelName + "'");
       }

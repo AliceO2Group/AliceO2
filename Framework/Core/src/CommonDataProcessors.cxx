@@ -276,7 +276,7 @@ DataProcessorSpec
       return [](ProcessingContext&) mutable -> void {
         static bool once = false;
         if (!once) {
-          LOG(INFO) << "No AODs to be saved.";
+          LOG(info) << "No AODs to be saved.";
           once = true;
         }
       };
@@ -341,7 +341,7 @@ DataProcessorSpec
         if (it != tfNumbers.end()) {
           tfNumber = (it->second / dod->getNumberTimeFramesToMerge()) * dod->getNumberTimeFramesToMerge();
         } else {
-          LOGP(FATAL, "No time frame number found for output with start time {}", startTime);
+          LOGP(fatal, "No time frame number found for output with start time {}", startTime);
           throw std::runtime_error("Processing is stopped!");
         }
 
@@ -354,7 +354,7 @@ DataProcessorSpec
         auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
         auto table = s->asArrowTable();
         if (!table->Validate().ok()) {
-          LOGP(WARNING, "The table \"{}\" is not valid and will not be saved!", tableName);
+          LOGP(warning, "The table \"{}\" is not valid and will not be saved!", tableName);
           continue;
         }
         if (table->schema()->fields().empty()) {

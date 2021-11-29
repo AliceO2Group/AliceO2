@@ -50,7 +50,7 @@ void CTFCoder::compress(CompressedInfos& cc,
   const auto& rofRec0 = rofRecVec[0];
   int nrof = rofRecVec.size();
 
-  LOGF(DEBUG, "TOF compress %d ReadoutWindow with %ld digits", nrof, cdigVec.size());
+  LOGF(debug, "TOF compress %d ReadoutWindow with %ld digits", nrof, cdigVec.size());
 
   cc.header.nROFs = nrof;
   cc.header.firstOrbit = rofRec0.getBCData().orbit;
@@ -147,8 +147,8 @@ void CTFCoder::compress(CompressedInfos& cc,
       cc.stripID[idig] = chan / Geo::NPADS;
       cc.chanInStrip[idig] = chan % Geo::NPADS;
       cc.tot[idig] = dig.getTOT();
-      LOGF(DEBUG, "%d) TOFBC = %d, deltaBC = %d, TDC = %d, CH=%d", irof, rofInBC, deltaBC, cTDC, chan);
-      LOGF(DEBUG, "%d) TF=%d, TDC=%d, STRIP=%d, CH=%d, TOT=%d", idig, cc.timeFrameInc[idig], cc.timeTDCInc[idig], cc.stripID[idig], cc.chanInStrip[idig], cc.tot[idig]);
+      LOGF(debug, "%d) TOFBC = %d, deltaBC = %d, TDC = %d, CH=%d", irof, rofInBC, deltaBC, cTDC, chan);
+      LOGF(debug, "%d) TF=%d, TDC=%d, STRIP=%d, CH=%d, TOT=%d", idig, cc.timeFrameInc[idig], cc.timeTDCInc[idig], cc.stripID[idig], cc.chanInStrip[idig], cc.tot[idig]);
     }
   }
   memcpy(cc.pattMap.data(), pattVec.data(), cc.header.nPatternBytes); // RSTODO: do we need this?

@@ -287,7 +287,7 @@ void WSDPLHandler::endHeaders()
       }
     }
   } else {
-    LOG(INFO) << "Connection not bound to a PID";
+    LOG(info) << "Connection not bound to a PID";
   }
 }
 
@@ -440,7 +440,7 @@ void WSDPLClient::header(std::string_view const& k, std::string_view const& v)
 void WSDPLClient::dumpHeaders()
 {
   for (auto [k, v] : mHeaders) {
-    LOG(INFO) << k << ": " << v;
+    LOG(info) << k << ": " << v;
   }
 }
 
@@ -463,7 +463,7 @@ void WSDPLClient::endHeaders()
     throw runtime_error_f(R"(Invalid accept received: "%s", expected "%s")", mHeaders["sec-websocket-accept"].c_str(), expectedAccept.c_str());
   }
 
-  LOG(INFO) << "Correctly handshaken websocket connection.";
+  LOG(info) << "Correctly handshaken websocket connection.";
   /// Create an appropriate reply
   mHandshaken = true;
   mHandshake();

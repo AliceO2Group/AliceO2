@@ -103,7 +103,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   if (strict && (src & ~GID::getSourcesMask("TPC,TPC-TRD")).any()) {
-    LOGP(WARNING, "In strict matching mode only TPC and TPC-TRD sources allowed, {} asked, redefining", GID::getSourcesNames(src));
+    LOGP(warning, "In strict matching mode only TPC and TPC-TRD sources allowed, {} asked, redefining", GID::getSourcesNames(src));
     src &= GID::getSourcesMask("TPC,TPC-TRD");
   }
   GID::mask_t mcmaskcl;

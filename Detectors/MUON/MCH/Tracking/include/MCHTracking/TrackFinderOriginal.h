@@ -19,7 +19,7 @@
 
 #include <chrono>
 
-#include "MCHTracking/Cluster.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFitter.h"
 
@@ -41,7 +41,7 @@ class TrackFinderOriginal
   TrackFinderOriginal& operator=(TrackFinderOriginal&&) = delete;
 
   void init(float l3Current, float dipoleCurrent);
-  const std::list<Track>& findTracks(const std::array<std::list<Cluster>, 10>* clusters);
+  const std::list<Track>& findTracks(const std::array<std::list<const Cluster*>, 10>& clusters);
 
   /// set the debug level defining the verbosity
   void debug(int debugLevel) { mDebugLevel = debugLevel; }
@@ -91,8 +91,9 @@ class TrackFinderOriginal
 
   TrackFitter mTrackFitter{}; /// track fitter
 
-  const std::array<std::list<Cluster>, 10>* mClusters = nullptr; ///< pointer to the lists of clusters
-  std::list<Track> mTracks{};                                    ///< list of reconstructed tracks
+  const std::array<std::list<const Cluster*>, 10>* mClusters = nullptr; ///< pointer to the lists of clusters
+
+  std::list<Track> mTracks{}; ///< list of reconstructed tracks
 
   double mChamberResolutionX2 = 0.;      ///< chamber resolution square (cm^2) in x direction
   double mChamberResolutionY2 = 0.;      ///< chamber resolution square (cm^2) in y direction
