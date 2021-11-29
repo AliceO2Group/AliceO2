@@ -61,6 +61,9 @@ class IDCAverageGroupHelper<IDCAverageGroupCRU>
   /// \return returns grouping parameter
   int getGroupPads() const { return static_cast<int>(mIDCsGrouped.getGroupPads()); }
 
+  /// \return returns the number of pads at the sector edges which are not grouped
+  unsigned int getGroupPadsSectorEdges() const { return mIDCsGrouped.getGroupPadsSectorEdges(); }
+
   /// \return returns last ungrouped row
   int getLastRow() const { return static_cast<int>(mIDCsGrouped.getLastRow()); }
 
@@ -115,6 +118,12 @@ class IDCAverageGroupHelper<IDCAverageGroupCRU>
   /// clearing the object for averaging
   void clearRobustAverage();
 
+  /// setting the IDC value at the edge of the sector
+  /// \param ulrow ungrouped local row
+  /// \param upad ungrouped pad
+  /// \param val value which will be stored
+  void setSectorEdgeIDC(const unsigned int ulrow, const unsigned int upad, const unsigned int padInRegion) { mIDCsGrouped.setValUngrouped(ulrow, upad, mIntegrationInterval, getUngroupedIDCVal(padInRegion) * Mapper::INVPADAREA[getRegion()]); }
+
  private:
   IDCGroup& mIDCsGrouped;                     ///< grouped and averaged IDC values
   const std::vector<float>& mWeightsPad{};    ///< storage of the weights in pad direction used if mOverlapPads>0
@@ -150,6 +159,9 @@ class IDCAverageGroupHelper<IDCAverageGroupTPC>
 
   /// \return returns grouping parameter
   int getGroupPads() const { return static_cast<int>(mIDCGroupHelperSector.getGroupingParameter().getGroupPads(getRegion())); }
+
+  /// \return returns the number of pads at the sector edges which are not grouped
+  unsigned int getGroupPadsSectorEdges() const { return mIDCGroupHelperSector.getGroupingParameter().getGroupPadsSectorEdges(); }
 
   /// \return returns last ungrouped row
   int getLastRow() const { return static_cast<int>(mIDCGroupHelperSector.getLastRow(getRegion())); }
@@ -192,12 +204,6 @@ class IDCAverageGroupHelper<IDCAverageGroupTPC>
   void addValue(const unsigned int padInRegion, const float weight);
 
   /// calculating and setting the grouped IDC value
-  /// \param glrow local row of the grouped IDCs
-  /// \param pad pad of the grouped IDCs
-  /// \param integrationInterval integration interval
-  void setGroupedIDC(const unsigned int glrow, const unsigned int padGrouped, const float val);
-
-  /// calculating and setting the grouped IDC value
   /// \param rowGrouped grouped row index
   /// \param padGrouped grouped pad index
   void setGroupedIDC(const unsigned int rowGrouped, const unsigned int padGrouped);
@@ -214,6 +220,12 @@ class IDCAverageGroupHelper<IDCAverageGroupTPC>
   /// clearing the object for averaging
   void clearRobustAverage();
 
+  /// setting the IDC value at the edge of the sector
+  /// \param ulrow ungrouped local row
+  /// \param upad ungrouped pad
+  /// \param val value which will be stored
+  void setSectorEdgeIDC(const unsigned int ulrow, const unsigned int upad, const unsigned int padInRegion);
+
  private:
   IDCDelta<float>& mIDCsGrouped;                                         ///< grouped and averaged IDC values
   const std::array<std::vector<float>, Mapper::NREGIONS>& mWeightsPad{}; ///< storage of the weights in pad direction used if mOverlapPads>0
@@ -226,6 +238,12 @@ class IDCAverageGroupHelper<IDCAverageGroupTPC>
   unsigned int mIntegrationInterval{};                                   ///< current integration interval
   unsigned int mOffsetUngrouped{};                                       ///< offset to calculate the index for the ungrouped IDCs
   unsigned int mOffsetGrouped{};                                         ///< offset to calculate the index for the grouped IDCs
+
+  /// calculating and setting the grouped IDC value
+  /// \param glrow local row of the grouped IDCs
+  /// \param pad pad of the grouped IDCs
+  /// \param integrationInterval integration interval
+  void setGroupedIDC(const unsigned int glrow, const unsigned int padGrouped, const float val);
 };
 
 /// Helper class for drawing the IDCs
@@ -233,8 +251,8 @@ template <>
 class IDCAverageGroupHelper<IDCAverageGroupDraw> : public IDCGroupHelperRegion
 {
  public:
-  IDCAverageGroupHelper(const unsigned char groupPads, const unsigned char groupRows, const unsigned char groupLastRowsThreshold, const unsigned char groupLastPadsThreshold, const unsigned int region, const unsigned int nPads, const PadRegionInfo& padInf, TH2Poly& poly)
-    : IDCGroupHelperRegion{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, region}, mCountDraw(nPads), mPadInf{padInf}, mPoly{poly} {};
+  IDCAverageGroupHelper(const unsigned char groupPads, const unsigned char groupRows, const unsigned char groupLastRowsThreshold, const unsigned char groupLastPadsThreshold, const unsigned char groupNotnPadsSectorEdges, const unsigned int region, const unsigned int nPads, const PadRegionInfo& padInf, TH2Poly& poly)
+    : IDCGroupHelperRegion{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupNotnPadsSectorEdges, region}, mCountDraw(nPads), mPadInf{padInf}, mPoly{poly} {};
 
   std::vector<int> mCountDraw;                  ///< counter to keep track of the already drawn pads
   const PadRegionInfo& mPadInf;                 ///< object for storing pad region information

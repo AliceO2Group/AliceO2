@@ -42,7 +42,7 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param groupLastPadsThreshold minimum number of pads in pad direction for the last group in pad direction for all regions
   /// \param timeFrames number of time frames which will be stored
   /// \param timeframesDeltaIDC number of time frames stored for each DeltaIDC object
-  IDCFactorization(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned int timeFrames, const unsigned int timeframesDeltaIDC);
+  IDCFactorization(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned char groupNotnPadsSectorEdges, const unsigned int timeFrames, const unsigned int timeframesDeltaIDC);
 
   /// default constructor for ROOT I/O
   IDCFactorization() = default;

@@ -74,7 +74,7 @@ class TPCFLPIDCDevice : public o2::framework::Task
       for (const auto& cru : mCRUs) {
         const CRU cruTmp(cru);
         const unsigned int reg = cruTmp.region();
-        mIDCStruct.mIDCs.emplace(cru, IDCAverageGroup<IDCAverageGroupCRU>(paramIDCGroup.GroupPads[reg], paramIDCGroup.GroupRows[reg], paramIDCGroup.GroupLastRowsThreshold[reg], paramIDCGroup.GroupLastPadsThreshold[reg], reg, cruTmp.sector()));
+        mIDCStruct.mIDCs.emplace(cru, IDCAverageGroup<IDCAverageGroupCRU>(paramIDCGroup.groupPads[reg], paramIDCGroup.groupRows[reg], paramIDCGroup.groupLastRowsThreshold[reg], paramIDCGroup.groupLastPadsThreshold[reg], paramIDCGroup.groupPadsSectorEdges, reg, cruTmp.sector()));
       }
     }
 
