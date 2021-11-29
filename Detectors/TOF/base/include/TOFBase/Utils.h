@@ -30,12 +30,12 @@ class Utils
 
   static bool hasFillScheme();
   static int getNinteractionBC();
-  static void addBC(float toftime);
-  static void addBC(double toftime) { addBC(float(toftime)); }
-  static void addInteractionBC(int bc) { mFillScheme.push_back(bc); }
+  static void addBC(float toftime, bool subLatency = false);
+  static void addBC(double toftime, bool subLatency = false) { addBC(float(toftime), subLatency); }
+  static void addInteractionBC(int bc, bool subLatency = false) { mFillScheme.push_back(bc); }
   static int getInteractionBC(int ibc) { return mFillScheme[ibc]; }
-  static double subtractInteractionBC(double time);
-  static float subtractInteractionBC(float time);
+  static double subtractInteractionBC(double time, bool subLatency = false);
+  static float subtractInteractionBC(float time, bool subLatency = false);
   static void init();
   static void printFillScheme();
 

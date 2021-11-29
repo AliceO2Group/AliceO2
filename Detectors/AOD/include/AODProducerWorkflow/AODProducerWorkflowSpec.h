@@ -315,12 +315,7 @@ class AODProducerWorkflowDPL : public Task
     uint8_t fwdLabelMask = 0;
   };
 
-  void collectBCs(gsl::span<const o2::fdd::RecPoint>& fddRecPoints,
-                  gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
-                  gsl::span<const o2::fv0::RecPoints>& fv0RecPoints,
-                  gsl::span<const o2::zdc::BCRecData>& zdcBCRecData,
-                  gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
-                  gsl::span<const o2::emcal::TriggerRecord>& caloEMCCellsTRGR,
+  void collectBCs(o2::globaltracking::RecoContainer& data,
                   const std::vector<o2::InteractionTimeRecord>& mcRecords,
                   std::map<uint64_t, int>& bcsMap);
 

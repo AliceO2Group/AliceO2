@@ -28,18 +28,18 @@ using namespace o2::cpv;
 //_______________________________________________________________________
 void Digitizer::init()
 {
-  LOG(INFO) << "CPVDigitizer::init() : CCDB Url = " << o2::cpv::CPVSimParams::Instance().mCCDBPath.data();
+  LOG(info) << "CPVDigitizer::init() : CCDB Url = " << o2::cpv::CPVSimParams::Instance().mCCDBPath.data();
   if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
     mCalibParams = new CalibParams(1); // test default calibration
     mPedestals = new Pedestals(1);     // test default pedestals
     mBadMap = new BadChannelMap(1);    // test default bad channels
-    LOG(INFO) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
+    LOG(info) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
   } else {
     auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
     ccdbMgr.setURL(o2::cpv::CPVSimParams::Instance().mCCDBPath.data());
     bool isCcdbReachable = ccdbMgr.isHostReachable(); //if host is not reachable we can use only dummy calibration
     if (!isCcdbReachable) {
-      LOG(FATAL) << "[CPVDigitizer] CCDB Host is not reachable!!!";
+      LOG(fatal) << "[CPVDigitizer] CCDB Host is not reachable!!!";
       return;
     }
     ccdbMgr.setCaching(true);                     //make local cache of remote objects
@@ -48,28 +48,28 @@ void Digitizer::init()
     //TODO: setup timestam according to anchors
     ccdbMgr.setTimestamp(o2::ccdb::getCurrentTimestamp());
 
-    LOG(INFO) << "CCDB: Reading o2::cpv::CalibParams from CPV/Calib/Gains";
+    LOG(info) << "CCDB: Reading o2::cpv::CalibParams from CPV/Calib/Gains";
     mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");
     if (!mCalibParams) {
-      LOG(ERROR) << "Cannot get o2::cpv::CalibParams from CCDB. using dummy calibration!";
+      LOG(error) << "Cannot get o2::cpv::CalibParams from CCDB. using dummy calibration!";
       mCalibParams = new CalibParams(1);
     }
 
-    LOG(INFO) << "CCDB: Reading o2::cpv::Pedestals from CPV/Calib/Pedestals";
+    LOG(info) << "CCDB: Reading o2::cpv::Pedestals from CPV/Calib/Pedestals";
     mPedestals = ccdbMgr.get<o2::cpv::Pedestals>("CPV/Calib/Pedestals");
     if (!mPedestals) {
-      LOG(ERROR) << "Cannot get o2::cpv::Pedestals from CCDB. using dummy calibration!";
+      LOG(error) << "Cannot get o2::cpv::Pedestals from CCDB. using dummy calibration!";
       mPedestals = new Pedestals(1);
     }
 
-    LOG(INFO) << "CCDB: Reading o2::cpv::BadChannelMap from CPV/Calib/BadChannelMap";
+    LOG(info) << "CCDB: Reading o2::cpv::BadChannelMap from CPV/Calib/BadChannelMap";
     mBadMap = ccdbMgr.get<o2::cpv::BadChannelMap>("CPV/Calib/BadChannelMap");
     if (!mBadMap) {
-      LOG(ERROR) << "Cannot get o2::cpv::BadChannelMap from CCDB. using dummy calibration!";
+      LOG(error) << "Cannot get o2::cpv::BadChannelMap from CCDB. using dummy calibration!";
       mBadMap = new BadChannelMap(1);
     }
 
-    LOG(INFO) << "Task configuration is done.";
+    LOG(info) << "Task configuration is done.";
   }
 
   //signal thresolds for digits

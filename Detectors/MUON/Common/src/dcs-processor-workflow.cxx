@@ -101,7 +101,7 @@ void sendOutput(const DPMAP& dpmap, o2::framework::DataAllocator& output, o2::cc
   md["upload reason"] = reason;
   info.setMetaData(md);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&dpmap, &info);
-  LOG(INFO) << "Sending object " << info.getPath() << "/"
+  LOG(info) << "Sending object " << info.getPath() << "/"
             << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp()
             << " : " << info.getEndValidityTimestamp()
@@ -117,7 +117,7 @@ void sendOutput(const DPMAP& dpmap, o2::framework::DataAllocator& output, o2::cc
 */
 void endOfStream(o2::framework::EndOfStreamContext& eosc)
 {
-  LOG(DEBUG) << "This is the end. Must write what we have left ?\n";
+  LOG(debug) << "This is the end. Must write what we have left ?\n";
   for (auto i = 0; i < NOBJECTS; i++) {
     sendOutput(dataPoints[i], eosc.outputs(), info[i], "end of stream");
   }

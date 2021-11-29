@@ -151,7 +151,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
         if (!dph) {
           continue;
         }
-        LOGP(DEBUG, "Orbit reset time from data: {} ", dph->creation);
+        LOGP(debug, "Orbit reset time from data: {} ", dph->creation);
         context.orbitResetTime = dph->creation;
         break;
       } },
@@ -525,7 +525,7 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   }
 
   if (stats.consumedTimeframes) {
-    monitoring.send(Metric{stats.consumedTimeframes, "consumed-timeframes"}.addTag(Key::Subsystem, Value::DPL));
+    monitoring.send(Metric{(uint64_t)stats.consumedTimeframes, "consumed-timeframes"}.addTag(Key::Subsystem, Value::DPL));
   }
 
   stats.lastSlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
@@ -561,8 +561,13 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
 auto flushMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
 {
   auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastMetricFlushedTimestamp;
+  static int counter = 0;
   if (timeSinceLastUpdate < 1000) {
-    return;
+    if (counter++ > 10) {
+      return;
+    }
+  } else {
+    counter = 0;
   }
 
   ZoneScopedN("flush metrics");

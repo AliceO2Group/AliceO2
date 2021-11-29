@@ -41,7 +41,7 @@ o2::header::RDHAny RawReaderMemory::decodeRawHeader(const void* payloadwords)
   } else if (headerversion == 6) {
     return o2::header::RDHAny(*reinterpret_cast<const o2::header::RAWDataHeaderV6*>(payloadwords));
   }
-  LOG(ERROR) << "Wrong header version " << int(headerversion);
+  LOG(error) << "Wrong header version " << int(headerversion);
   throw RawDecodingError::ErrorType_t::HEADER_DECODING;
 }
 
@@ -96,7 +96,7 @@ void RawReaderMemory::next()
     try {
       mCurrentTrailer.constructFromPayloadWords(mRawBuffer.getDataWords());
     } catch (RCUTrailer::Error e) {
-      LOG(ERROR) << "Trailer decoding error: " << e.what();
+      LOG(error) << "Trailer decoding error: " << e.what();
       throw RawDecodingError::ErrorType_t::HEADER_DECODING;
     }
   }
@@ -144,7 +144,7 @@ void RawReaderMemory::nextPage(bool doResetPayload)
 const o2::header::RDHAny& RawReaderMemory::getRawHeader() const
 {
   if (!mRawHeaderInitialized) {
-    LOG(ERROR) << "Raw header not initialized";
+    LOG(error) << "Raw header not initialized";
     throw RawDecodingError::ErrorType_t::HEADER_INVALID;
   }
   return mRawHeader;

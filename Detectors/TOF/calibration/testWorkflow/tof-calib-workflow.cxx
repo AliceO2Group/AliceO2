@@ -14,6 +14,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
 #include "DataFormatsTOF/CalibInfoCluster.h"
+#include "TOFBase/Utils.h"
 using namespace o2::framework;
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -45,21 +46,21 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto safe = configcontext.options().get<bool>("safe-mode");
 
   if (isCosmics) {
-    LOG(INFO) << "Cosmics set!!!! No LHC phase, Yes channel offset";
+    LOG(info) << "Cosmics set!!!! No LHC phase, Yes channel offset";
     doChannelOffsetCalib = true;
     doLHCcalib = false;
   }
 
   if (!doLHCcalib && attachChannelOffsetToLHCphase) {
-    LOG(INFO) << "Over-writing attachChannelOffsetToLHCphase because we are not doing the LHCphase calibration";
+    LOG(info) << "Over-writing attachChannelOffsetToLHCphase because we are not doing the LHCphase calibration";
     attachChannelOffsetToLHCphase = false;
   }
 
-  LOG(INFO) << "TOF Calibration workflow: options";
-  LOG(INFO) << "doLHCcalib = " << doLHCcalib;
-  LOG(INFO) << "doChannelOffsetCalib = " << doChannelOffsetCalib;
-  LOG(INFO) << "useCCDB = " << useCCDB;
-  LOG(INFO) << "attachChannelOffsetToLHCphase = " << attachChannelOffsetToLHCphase;
+  LOG(info) << "TOF Calibration workflow: options";
+  LOG(info) << "doLHCcalib = " << doLHCcalib;
+  LOG(info) << "doChannelOffsetCalib = " << doChannelOffsetCalib;
+  LOG(info) << "useCCDB = " << useCCDB;
+  LOG(info) << "attachChannelOffsetToLHCphase = " << attachChannelOffsetToLHCphase;
   if (doLHCcalib) {
     specs.emplace_back(getLHCClockCalibDeviceSpec());
   }

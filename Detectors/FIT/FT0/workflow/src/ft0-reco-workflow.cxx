@@ -33,7 +33,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -43,10 +43,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  LOG(INFO) << "WorkflowSpec defineDataProcessing";
+  LOG(info) << "WorkflowSpec defineDataProcessing";
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  LOG(INFO) << " ccdbpath " << configcontext.options().get<std::string>("ccdb-path-ft0");
+  LOG(info) << " ccdbpath " << configcontext.options().get<std::string>("ccdb-path-ft0");
 
   // write the configuration used for the digitizer workflow
   o2::conf::ConfigurableParam::writeINI("o2-ft0-recoflow_configuration.ini");
@@ -57,7 +57,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
-  LOG(INFO) << "WorkflowSpec getRecoWorkflow useMC " << useMC << " CCDB  " << ccdbpath;
+  LOG(info) << "WorkflowSpec getRecoWorkflow useMC " << useMC << " CCDB  " << ccdbpath;
   auto wf = o2::fit::getRecoWorkflow(useMC, ccdbpath, disableRootInp, disableRootOut);
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit

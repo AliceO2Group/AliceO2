@@ -1338,12 +1338,12 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     std::ostringstream str;
     for (size_t ai = 0; ai < execution.args.size() - 1; ai++) {
       if (execution.args[ai] == nullptr) {
-        LOG(ERROR) << "Bad argument for " << execution.args[ai - 1];
+        LOG(error) << "Bad argument for " << execution.args[ai - 1];
       }
       assert(execution.args[ai]);
       str << " " << execution.args[ai];
     }
-    LOG(DEBUG) << "The following options are being forwarded to " << spec.id << ":" << str.str();
+    LOG(debug) << "The following options are being forwarded to " << spec.id << ":" << str.str();
   }
 }
 
@@ -1385,6 +1385,12 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");                                                             //
 
   return forwardedDeviceOptions;
+}
+
+bool DeviceSpecHelpers::hasLabel(DeviceSpec const& spec, char const* label)
+{
+  auto sameLabel = [other = DataProcessorLabel{{label}}](DataProcessorLabel const& label) { return label == other; };
+  return std::find_if(spec.labels.begin(), spec.labels.end(), sameLabel) != spec.labels.end();
 }
 
 } // namespace o2::framework

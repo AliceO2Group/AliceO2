@@ -32,7 +32,7 @@ class CalibTimeSlewingParamTOF
 
   CalibTimeSlewingParamTOF();
 
-  CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTOF& source) = default;
+  CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTOF& source);
 
   CalibTimeSlewingParamTOF& operator=(const CalibTimeSlewingParamTOF& source) = default;
 
@@ -84,6 +84,7 @@ class CalibTimeSlewingParamTOF
   }
 
   CalibTimeSlewingParamTOF& operator+=(const CalibTimeSlewingParamTOF& other);
+  void bind();
 
  private:
   std::array<int, NCHANNELXSECTOR> mChannelStartSec0;

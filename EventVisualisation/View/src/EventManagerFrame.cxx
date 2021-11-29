@@ -250,9 +250,9 @@ namespace o2
         fclose(f);
         if (success == 1) {       // properly readed
           size = 4 * size / 1024; // in MB
-          LOG(INFO) << "Memory used: " << size << " memory allowed: " << memoryLimit;
+          LOG(info) << "Memory used: " << size << " memory allowed: " << memoryLimit;
           if (size > memoryLimit) {
-            LOG(ERROR) << "Memory used: " << size << " exceeds memory allowed: "
+            LOG(error) << "Memory used: " << size << " exceeds memory allowed: "
                        << memoryLimit;
             exit(-1);
           }

@@ -36,7 +36,7 @@ Digit& Digit::operator+=(const Digit& other)
   } else {
     if (mLabel != other.mLabel && other.mLabel != -1) {
       //if Label indexes are different, something wrong
-      LOG(ERROR) << "Adding digits with different references to Labels:" << mLabel << " and " << other.mLabel;
+      LOG(error) << "Adding digits with different references to Labels:" << mLabel << " and " << other.mLabel;
     }
   }
 

@@ -66,7 +66,7 @@ void loopReader(std::shared_ptr<RawReader> reader_ptr, std::vector<Result>& resu
       }
     }
   }
-  //  LOG(INFO) << reader->getEventInfo(0)->at(0).path << " done";
+  //  LOG(info) << reader->getEventInfo(0)->at(0).path << " done";
 }
 
 //__________________________________________________________________________
@@ -102,7 +102,7 @@ void RunFindAdcError(int run_min, int run_max)
   // ===========================================================================
   // Preparing the Readers
   // ===========================================================================
-  LOG(INFO) << "Create all Readers...";
+  LOG(info) << "Create all Readers...";
   std::vector<std::shared_ptr<RawReader>> RawReaders;
   for (const auto& s : fileInfos) {
     auto rawReader = new RawReader;
@@ -114,14 +114,14 @@ void RunFindAdcError(int run_min, int run_max)
     if (rawReader->getEventInfo(0)->at(0).header.dataType != 2)
       RawReaders.push_back(std::shared_ptr<RawReader>(rawReader));
     else
-      LOG(INFO) << "\tDrop Reader of file " << rawReader->getEventInfo(0)->at(0).path << " because of readout mode 2.";
+      LOG(info) << "\tDrop Reader of file " << rawReader->getEventInfo(0)->at(0).path << " because of readout mode 2.";
   }
-  LOG(INFO) << "... done";
+  LOG(info) << "... done";
 
   // ===========================================================================
   // Loop through the Readers to find ADC errors
   // ===========================================================================
-  LOG(INFO) << "Loop through Readers...";
+  LOG(info) << "Loop through Readers...";
   std::vector<std::thread> threads;
   std::vector<std::vector<Result>> results(RawReaders.size());
   int i = 0;
@@ -136,7 +136,7 @@ void RunFindAdcError(int run_min, int run_max)
   for (std::thread& t : threads) {
     t.join();
   }
-  LOG(INFO) << "... done";
+  LOG(info) << "... done";
 
   // ===========================================================================
   // Analyse outcome

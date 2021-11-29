@@ -20,7 +20,7 @@
 #include <list>
 #include <memory>
 
-#include "MCHTracking/Cluster.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHTracking/TrackParam.h"
 
 namespace o2

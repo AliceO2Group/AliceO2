@@ -27,8 +27,6 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-track-and-cluster-filter", CompletionPolicy::CompletionOp::Consume));
-
   // the TPC sector completion policy checks when the set of TPC/CLUSTERNATIVE data is complete
   // in addition we require to have input from all other routes
   policies.push_back(o2::tpc::TPCSectorCompletionPolicy("tpc-track-and-cluster-filter",

@@ -17,7 +17,7 @@
 #ifndef ALICEO2_MCH_TRACKFITTER_H_
 #define ALICEO2_MCH_TRACKFITTER_H_
 
-#include "MCHTracking/Cluster.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackParam.h"
 

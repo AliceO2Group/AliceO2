@@ -55,12 +55,12 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
   //  eeb->print();
   mTimer.Stop();
-  LOG(DEBUG) << "Created encoded data of size " << eeb->size() << " for TOF in " << mTimer.CpuTime() - cput << " s";
+  LOG(debug) << "Created encoded data of size " << eeb->size() << " for TOF in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(DEBUG, "TOF Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(debug, "TOF Entropy Encoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

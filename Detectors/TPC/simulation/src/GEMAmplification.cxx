@@ -43,10 +43,10 @@ GEMAmplification::GEMAmplification()
   TFile* outfile;
   auto cacheexists = std::filesystem::exists(polyaFileName);
   if (cacheexists) {
-    LOG(INFO) << "TPC: GEM setup from existing cache";
+    LOG(info) << "TPC: GEM setup from existing cache";
     outfile = TFile::Open(polyaFileName);
   } else {
-    LOG(INFO) << "TPC: GEM setup - initialization from scratch";
+    LOG(info) << "TPC: GEM setup - initialization from scratch";
     outfile = TFile::Open(polyaFileName, "CREATE");
   }
 
@@ -99,7 +99,7 @@ GEMAmplification::GEMAmplification()
     outfile->Close();
   }
   watch.Stop();
-  LOG(INFO) << "TPC: GEM setup (polya) took " << watch.CpuTime();
+  LOG(info) << "TPC: GEM setup (polya) took " << watch.CpuTime();
 }
 
 void GEMAmplification::updateParameters()

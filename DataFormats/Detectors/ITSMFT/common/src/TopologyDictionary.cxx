@@ -96,7 +96,7 @@ int TopologyDictionary::readBinaryFile(const std::string& fname)
   GroupStruct gr;
   int groupID = 0;
   if (!in.is_open()) {
-    LOG(ERROR) << "The file " << fname << " coud not be opened";
+    LOG(error) << "The file " << fname << " coud not be opened";
     throw std::runtime_error("The file coud not be opened");
   } else {
     while (in.read(reinterpret_cast<char*>(&gr.mHash), sizeof(unsigned long))) {

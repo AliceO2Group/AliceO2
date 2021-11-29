@@ -26,12 +26,12 @@ int main(int argc, char* argv[])
   const std::string branchCH{"FT0DIGITSCH"};
 
   if (!std::filesystem::exists(genDigDile)) {
-    LOG(FATAL) << "Generated digits file " << genDigDile << " is absent";
+    LOG(fatal) << "Generated digits file " << genDigDile << " is absent";
   }
   TFile flIn(genDigDile.c_str());
   std::unique_ptr<TTree> tree((TTree*)flIn.Get("o2sim"));
   if (!flIn.IsOpen() || flIn.IsZombie() || !tree) {
-    LOG(FATAL) << "Failed to get tree from generated digits file " << genDigDile;
+    LOG(fatal) << "Failed to get tree from generated digits file " << genDigDile;
   }
   std::vector<o2::ft0::Digit> digitsBC, *ft0BCDataPtr = &digitsBC;
   std::vector<o2::ft0::ChannelData> digitsCh, *ft0ChDataPtr = &digitsCh;
@@ -39,13 +39,13 @@ int main(int argc, char* argv[])
   tree->SetBranchAddress("FT0DIGITSCH", &ft0ChDataPtr);
 
   if (!std::filesystem::exists(decDigDile)) {
-    LOG(FATAL) << "Decoded digits file " << genDigDile << " is absent";
+    LOG(fatal) << "Decoded digits file " << genDigDile << " is absent";
   }
 
   TFile flIn2(decDigDile.c_str());
   std::unique_ptr<TTree> tree2((TTree*)flIn2.Get("o2sim"));
   if (!flIn2.IsOpen() || flIn2.IsZombie() || !tree2) {
-    LOG(FATAL) << "Failed to get tree from decoded digits file " << genDigDile;
+    LOG(fatal) << "Failed to get tree from decoded digits file " << genDigDile;
   }
   std::vector<o2::ft0::Digit> digitsBC2, *ft0BCDataPtr2 = &digitsBC2;
   std::vector<o2::ft0::ChannelData> digitsCh2, *ft0ChDataPtr2 = &digitsCh2;
@@ -76,10 +76,10 @@ int main(int argc, char* argv[])
       nch2 += channels2.size();
     }
   }
-  LOG(INFO) << "FT0 simulated: " << nbc << " triggers with " << nch << " channels";
-  LOG(INFO) << "FT0 decoded  : " << nbc2 << " triggers with " << nch2 << " channels";
+  LOG(info) << "FT0 simulated: " << nbc << " triggers with " << nch << " channels";
+  LOG(info) << "FT0 decoded  : " << nbc2 << " triggers with " << nch2 << " channels";
   if (nbc != nbc2 || nch != nch2) {
-    LOG(FATAL) << "Mismatch between the number of encoded and decoded objects";
+    LOG(fatal) << "Mismatch between the number of encoded and decoded objects";
   }
 
   return 0;

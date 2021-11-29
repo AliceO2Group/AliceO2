@@ -178,7 +178,7 @@ header::DataDescription DataSamplingPolicy::createPolicyDataDescription(std::str
   }
 
   if (policyName.size() > 14) {
-    LOG(WARNING) << "DataSamplingPolicy name '" << policyName << "' is longer than 14 characters, we have to trim it. "
+    LOG(warning) << "DataSamplingPolicy name '" << policyName << "' is longer than 14 characters, we have to trim it. "
                  << "Use a shorter policy name to avoid potential output name conflicts.";
     policyName.resize(14);
   }

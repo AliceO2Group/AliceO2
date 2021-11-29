@@ -9,16 +9,31 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TOFCalibration/CalibTOFapi.h"
+#include "TOFBase/CalibTOFapi.h"
 #include "FairLogger.h" // for LOG
 
 using namespace o2::tof;
 
 ClassImp(o2::tof::CalibTOFapi);
 
+void CalibTOFapi::resetDia()
+{
+  memset(mEmptyCrateProb, 0., Geo::kNCrate * 4);
+  mTRMerrorProb.clear();
+  mTRMmask.clear();
+  mNoisy.clear();
+}
+
+CalibTOFapi::CalibTOFapi()
+{
+  resetDia();
+}
+
+//______________________________________________________________________
+
 CalibTOFapi::CalibTOFapi(const std::string url)
 {
-
+  CalibTOFapi();
   // setting the URL to the CCDB manager
 
   setURL(url);
@@ -45,6 +60,70 @@ void CalibTOFapi::readTimeSlewingParam()
 
   auto& mgr = CcdbManager::instance();
   mSlewParam = mgr.getForTimeStamp<SlewParam>("TOF/Calib/ChannelCalib", mTimeStamp);
+}
+
+//______________________________________________________________________
+
+void CalibTOFapi::readDiagnosticFrequencies()
+{
+  static const int NCH_PER_CRATE = Geo::NSTRIPXSECTOR * Geo::NPADS;
+  // getting the Diagnostic Frequency calibration
+  // needed for simulation
+
+  auto& mgr = CcdbManager::instance();
+  mDiaFreq = mgr.getForTimeStamp<Diagnostic>("TOF/Calib/Diagnostic", mTimeStamp);
+
+  resetDia();
+
+  if (!mDiaFreq->getFrequencyROW()) {
+    return;
+  }
+
+  float nrow = (float)mDiaFreq->getFrequencyROW();
+  mEmptyTOF = mDiaFreq->getFrequencyEmptyTOF() / nrow;
+
+  nrow -= mDiaFreq->getFrequencyEmptyTOF();
+
+  if (nrow < 1) {
+    return;
+  }
+
+  // fill empty crates
+  int ncrate[Geo::kNCrate];
+  for (int i = 0; i < Geo::kNCrate; i++) {
+    ncrate[i] = mDiaFreq->getFrequencyEmptyCrate(i) - mDiaFreq->getFrequencyEmptyTOF(); // counts of empty crate for non-empty event
+    mEmptyCrateProb[i] = ncrate[i] / nrow;
+  }
+
+  const auto vectorDia = mDiaFreq->getVector();
+  // fill TRM errors and noisy
+  for (auto pair : vectorDia) {
+    auto key = pair.first;
+    int slot = mDiaFreq->getSlot(key);
+
+    if (slot < 13 && slot > 2) { // is TRM
+      int icrate = mDiaFreq->getCrate(key);
+      int crateslot = icrate * 100 + slot;
+      mTRMerrorProb.push_back(std::make_pair(crateslot, pair.second / (nrow - ncrate[icrate])));
+      mTRMmask.push_back(key - mDiaFreq->getTRMKey(icrate, slot)); // remove crate and slot from the key (28 bit errors remaining)
+      continue;
+    }
+
+    int channel = mDiaFreq->getChannel(key);
+    if (channel > -1) { // noisy
+      int crate = channel / NCH_PER_CRATE;
+      mNoisy.push_back(std::make_pair(channel, pair.second / (nrow - ncrate[crate])));
+      continue;
+    }
+  }
+
+  std::sort(mTRMerrorProb.begin(), mTRMerrorProb.end(), [](const auto& a, const auto& b) {
+    return a.first < b.first;
+  });
+
+  std::sort(mNoisy.begin(), mNoisy.end(), [](const auto& a, const auto& b) {
+    return a.first < b.first;
+  });
 }
 
 //______________________________________________________________________
@@ -96,7 +175,7 @@ float CalibTOFapi::getTimeCalibration(int ich, float tot)
 
   float corr = 0;
   if (!mLHCphase || !mSlewParam) {
-    LOG(WARNING) << "Either LHC phase or slewing object null: mLHCphase = " << mLHCphase << ", mSlewParam = " << mSlewParam;
+    LOG(warning) << "Either LHC phase or slewing object null: mLHCphase = " << mLHCphase << ", mSlewParam = " << mSlewParam;
     return corr;
   }
   //  printf("LHC phase apply\n");

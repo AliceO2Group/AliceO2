@@ -52,10 +52,10 @@ Metric2DViewIndex::Updater Metric2DViewIndex::getUpdater(std::vector<Metric2DVie
       try {
         idx = std::stoi(extra, nullptr, 10);
       } catch (...) {
-        LOG(ERROR) << "Badly formatted metric";
+        LOG(error) << "Badly formatted metric";
       }
       if (idx < 0) {
-        LOG(ERROR) << "Negative metric";
+        LOG(error) << "Negative metric";
         return;
       }
       if (view.indexes.size() <= idx) {

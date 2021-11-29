@@ -44,7 +44,7 @@ void CreateBCPattern(const std::string& outFileName = "bcPattern.root", const st
 
   if (!outFileName.empty()) {
     std::string nm = !objName.empty() ? objName : o2::BunchFilling::Class()->GetName();
-    LOG(INFO) << "Storing pattern with name " << nm << " in a file " << outFileName;
+    LOG(info) << "Storing pattern with name " << nm << " in a file " << outFileName;
     TFile outf(outFileName.c_str(), "update");
     outf.WriteObjectAny(&pattern, pattern.Class(), nm.c_str());
     outf.Close();

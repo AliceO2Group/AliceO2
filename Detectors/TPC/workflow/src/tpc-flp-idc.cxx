@@ -19,7 +19,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "TPCWorkflow/TPCAverageGroupIDCSpec.h"
+#include "TPCWorkflow/TPCFLPIDCSpec.h"
 #include "TPCBase/CRU.h"
 #include "TPCBase/Mapper.h"
 #include "Framework/Variant.h"
@@ -33,7 +33,7 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-idc-averagegroup.*", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-idc-flp.*", CompletionPolicy::CompletionOp::Consume));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -45,13 +45,13 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
     {"debug", VariantType::Bool, false, {"create debug files"}},
+    {"propagateIDCs", VariantType::Bool, false, {"IDCs will not be grouped and just send out."}},
     {"lanes", VariantType::Int, defaultlanes, {"Number of parallel processing lanes (crus are split per device)."}},
     {"time-lanes", VariantType::Int, 1, {"Number of parallel processing lanes (timeframes are split per device)."}},
     {"nthreads", VariantType::Int, 1, {"Number of threads which will be used during averaging and grouping."}},
     {"crus", VariantType::String, cruDefault.c_str(), {"List of CRUs, comma separated ranges, e.g. 0-3,7,9-15"}},
     {"rangeIDC", VariantType::Int, 200, {"Number of 1D-IDCs which will be used for the calculation of the fourier coefficients."}},
     {"minIDCsPerTF", VariantType::Int, 10, {"minimum number of IDCs per TF (needed for sending to 1D-IDCs to EPNs. Depends on number of orbits per TF. 10 for 128 orbits per TF)."}},
-    {"sigma", VariantType::Float, 3.f, {"maximum accepted standard deviation for filtering outliers"}},
     {"groupPads", VariantType::String, "7,7,7,7,6,6,6,6,5,5", {"number of pads in a row which will be grouped per region"}},
     {"groupRows", VariantType::String, "5,5,5,5,4,4,4,4,3,3", {"number of pads in row direction which will be grouped per region"}},
     {"groupLastRowsThreshold", VariantType::String, "3,3,3,3,2,2,2,2,2,2", {"set threshold in row direction for merging the last group to the previous group per region"}},
@@ -74,12 +74,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto time_lanes = static_cast<unsigned int>(config.options().get<int>("time-lanes"));
   const auto crusPerLane = nCRUs / nLanes + ((nCRUs % nLanes) != 0);
   const auto debug = config.options().get<bool>("debug");
+  const auto propagateIDCs = config.options().get<bool>("propagateIDCs");
   const auto nthreads = static_cast<unsigned long>(config.options().get<int>("nthreads"));
-  IDCAverageGroup::setNThreads(nthreads);
+  IDCAverageGroup<IDCAverageGroupCRU>::setNThreads(nthreads);
   const auto rangeIDC = static_cast<unsigned int>(config.options().get<int>("rangeIDC"));
   const auto minIDCsPerTF = static_cast<unsigned int>(config.options().get<int>("minIDCsPerTF"));
-  const auto sigma = config.options().get<float>("sigma");
-  TPCAverageGroupIDCDevice::setMinIDCsPerTF(minIDCsPerTF);
+  propagateIDCs ? TPCFLPIDCDevice<TPCFLPIDCDeviceNoGroup>::setMinIDCsPerTF(minIDCsPerTF) : TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::setMinIDCsPerTF(minIDCsPerTF);
   const auto loadFromFile = config.options().get<bool>("load-from-file");
 
   const std::string sgroupPads = config.options().get<std::string>("groupPads");
@@ -155,7 +155,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     }
     const auto last = std::min(tpcCRUs.end(), first + crusPerLane);
     const std::vector<uint32_t> rangeCRUs(first, last);
-    workflow.emplace_back(timePipeline(getTPCAverageGroupIDCSpec(ilane, rangeCRUs, rangeIDC, sigma, debug, loadFromFile), time_lanes));
+    propagateIDCs ? workflow.emplace_back(timePipeline(getTPCFLPIDCSpec<TPCFLPIDCDeviceNoGroup>(ilane, rangeCRUs, rangeIDC, debug, loadFromFile), time_lanes)) : workflow.emplace_back(timePipeline(getTPCFLPIDCSpec<TPCFLPIDCDeviceGroup>(ilane, rangeCRUs, rangeIDC, debug, loadFromFile), time_lanes));
   }
 
   return workflow;

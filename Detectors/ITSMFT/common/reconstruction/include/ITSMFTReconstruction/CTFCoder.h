@@ -322,7 +322,7 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VCL
   assert(chipCount == compCl.header.nChips);
 
   if (clCount != compCl.header.nClusters) {
-    LOG(ERROR) << "expected " << compCl.header.nClusters << " but counted " << clCount << " in ROFRecords";
+    LOG(error) << "expected " << compCl.header.nClusters << " but counted " << clCount << " in ROFRecords";
     throw std::runtime_error("mismatch between expected and counter number of clusters");
   }
 }
@@ -358,7 +358,7 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VDI
         col += compCl.colInc[clCount];
 #ifdef _CHECK_INCREMENTES_ // RS FIXME with current clusterization column increment can be slightly negative
 //        if (int16_t(compCl.colInc[clCount])<0) {
-//          LOG(WARNING) << "Negative column increment " << int16_t(compCl.colInc[clCount]) << " -> " << col << " in chip " << chipID;
+//          LOG(warning) << "Negative column increment " << int16_t(compCl.colInc[clCount]) << " -> " << col << " in chip " << chipID;
 //        }
 #endif
       } else { // new chip starts
@@ -372,7 +372,7 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VDI
         chipID += compCl.chipInc[++chipCount];
 #ifdef _CHECK_INCREMENTES_
         if (int16_t(compCl.chipInc[chipCount]) < 0) {
-          LOG(WARNING) << "Negative chip increment " << int16_t(compCl.chipInc[chipCount]) << " -> " << chipID;
+          LOG(warning) << "Negative chip increment " << int16_t(compCl.chipInc[chipCount]) << " -> " << chipID;
         }
 #endif
         inChip = 1;
@@ -420,7 +420,7 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VDI
   assert(chipCount == compCl.header.nChips);
 
   if (clCount != compCl.header.nClusters) {
-    LOG(ERROR) << "expected " << compCl.header.nClusters << " but counted " << clCount << " in ROFRecords";
+    LOG(error) << "expected " << compCl.header.nClusters << " but counted " << clCount << " in ROFRecords";
     throw std::runtime_error("mismatch between expected and counter number of clusters");
   }
 }

@@ -38,12 +38,12 @@ void DigitReader::init(InitContext& ic)
                                                 ic.options().get<std::string>("fv0-digit-infile"));
   mFile = std::make_unique<TFile>(filename.c_str(), "OLD");
   if (!mFile->IsOpen()) {
-    LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
+    LOG(error) << "Cannot open the " << filename.c_str() << " file !";
     throw std::runtime_error("cannot open input digits file");
   }
   mTree.reset((TTree*)mFile->Get("o2sim"));
   if (!mTree) {
-    LOG(ERROR) << "Did not find o2sim tree in " << filename.c_str();
+    LOG(error) << "Did not find o2sim tree in " << filename.c_str();
     throw std::runtime_error("Did not fine o2sim file in FV0 digits tree");
   }
 }
@@ -63,7 +63,7 @@ void DigitReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << "FV0DigitReader pushed " << channels.size() << " channels in " << digits.size() << " digits";
+  LOG(info) << "FV0DigitReader pushed " << channels.size() << " channels in " << digits.size() << " digits";
 
   pc.outputs().snapshot(Output{"FV0", "DIGITSBC", 0, Lifetime::Timeframe}, digits);
   pc.outputs().snapshot(Output{"FV0", "DIGITSCH", 0, Lifetime::Timeframe}, channels);

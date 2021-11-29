@@ -140,7 +140,7 @@ class MatchGlobalFwd
     // clusters at MFT layers positions. The startingLayerID is updated.
 
     if (startingLayerID == newLayerID) { // Same layer, nothing to do.
-      LOG(DEBUG) << " => Propagate to next cluster with MCS : startingLayerID = " << startingLayerID << " = > "
+      LOG(debug) << " => Propagate to next cluster with MCS : startingLayerID = " << startingLayerID << " = > "
                  << " newLayerID = " << newLayerID << " (NLayers = " << std::abs(newLayerID - startingLayerID)
                  << ") ; track.getZ() = " << track.getZ() << " => "
                  << "destination cluster z = " << z << " ; => Same layer: no MCS effects.";
@@ -161,7 +161,7 @@ class MatchGlobalFwd
     int direction = signum(newLayerID - startingLayerID); // takes values +1, 0, -1
     auto currentLayer = startingLayerID;
 
-    LOG(DEBUG) << " => Propagate to next cluster with MCS : startingLayerID = " << startingLayerID << " = > "
+    LOG(debug) << " => Propagate to next cluster with MCS : startingLayerID = " << startingLayerID << " = > "
                << " newLayerID = " << newLayerID << " (NLayers = " << std::abs(newLayerID - startingLayerID)
                << ") ; track.getZ() = " << track.getZ() << " => "
                << "destination cluster z = " << z << " ; ";
@@ -178,7 +178,7 @@ class MatchGlobalFwd
         NDisksMS = (currentLayer % 2 == 0) ? (nextlayer - currentLayer + 1) / 2 : (nextlayer - currentLayer) / 2;
       }
 
-      LOG(DEBUG) << "currentLayer = " << currentLayer << " ; "
+      LOG(debug) << "currentLayer = " << currentLayer << " ; "
                  << "nextlayer = " << nextlayer << " ; "
                  << "track.getZ() = " << track.getZ() << " ; "
                  << "nextZ = " << nextZ << " ; "
@@ -186,11 +186,11 @@ class MatchGlobalFwd
 
       if ((NDisksMS * mMFTDiskThicknessInX0) != 0) {
         track.addMCSEffect(NDisksMS * mMFTDiskThicknessInX0);
-        LOG(DEBUG) << "Track covariances after MCS effects:";
-        LOG(DEBUG) << track.getCovariances() << std::endl;
+        LOG(debug) << "Track covariances after MCS effects:";
+        LOG(debug) << track.getCovariances() << std::endl;
       }
 
-      LOG(DEBUG) << "  BeforeExtrap: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " q/pt = " << track.getInvQPt() << std::endl;
+      LOG(debug) << "  BeforeExtrap: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " q/pt = " << track.getInvQPt() << std::endl;
 
       track.propagateToZ(nextZ, mBz);
 

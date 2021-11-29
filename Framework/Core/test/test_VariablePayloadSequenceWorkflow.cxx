@@ -48,7 +48,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
-    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed)"; \
+    LOG(fatal) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
 namespace test
@@ -107,7 +107,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     outputs.make<int>(OutputRef{"allocator", 0}) = counter;
 
     if (channelName.empty()) {
-      OutputSpec const query{"TST", "PAIR", 0};
+      OutputSpec const query{"TST", "SEQUENCE", 0};
       auto outputRoutes = rds.spec().outputs;
       for (auto& route : outputRoutes) {
         if (DataSpecUtils::match(route.matcher, query)) {
@@ -161,7 +161,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       }
     };
 
-    //createSequence(attributes->distrib(attributes->gen), DataHeader{"SEQUENCE", "TST", 0});
+    createSequence(attributes->distrib(attributes->gen), DataHeader{"SEQUENCE", "TST", 0});
     createPairs(counter + 1, DataHeader{"PAIR", "TST", 0});
 
     // using utility from ExternalFairMQDeviceProxy
@@ -178,6 +178,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   workflow.emplace_back(DataProcessorSpec{"producer",
                                           {InputSpec{"timer", "TST", "TIMER", 0, Lifetime::Timer}},
                                           {OutputSpec{{"pair"}, "TST", "PAIR", 0, Lifetime::Timeframe},
+                                           OutputSpec{{"sequence"}, "TST", "SEQUENCE", 0, Lifetime::Timeframe},
                                            OutputSpec{{"allocator"}, "TST", "ALLOCATOR", 0, Lifetime::Timeframe}},
                                           AlgorithmSpec{adaptStateless(producerCallback)},
                                           {ConfigParamSpec{"period-timer", VariantType::Int, 100000, {"period of timer"}}}});
@@ -216,7 +217,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
         ASSERT_ERROR(*reinterpret_cast<size_t const*>(ref.payload) == sd->initialValue + nSequencePayloads);
         ++nSequencePayloads;
       }
-      //LOG(INFO) << "input " << ref.spec->binding << " has data {" << dh->dataOrigin.as<std::string>() << "/" << dh->dataDescription.as<std::string>() << "/" << dh->subSpecification << "}: " << *reinterpret_cast<size_t const*>(ref.payload);
+      //LOG(info) << "input " << ref.spec->binding << " has data {" << dh->dataOrigin.as<std::string>() << "/" << dh->dataDescription.as<std::string>() << "/" << dh->subSpecification << "}: " << *reinterpret_cast<size_t const*>(ref.payload);
     }
     for (auto const& [channel, count] : active) {
       ++counters[channel];
@@ -238,7 +239,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     bool sane = true;
     for (auto const& [channel, count] : *counters) {
       if (count != nRolls) {
-        LOG(FATAL) << "inconsistent event count on input '" << channel << "': " << count << ", expected " << nRolls;
+        LOG(fatal) << "inconsistent event count on input '" << channel << "': " << count << ", expected " << nRolls;
         sane = false;
       }
     }
@@ -267,6 +268,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
 
   workflow.emplace_back(DataProcessorSpec{"consumer",
                                           {InputSpec{"pairin", "TST", "PAIR", 0, Lifetime::Timeframe},
+                                           InputSpec{"sequencein", "TST", "SEQUENCE", 0, Lifetime::Timeframe},
                                            InputSpec{"dpldefault", "TST", "ALLOCATOR", 0, Lifetime::Timeframe}},
                                           {},
                                           AlgorithmSpec{adaptStateful(consumerInit)}});
@@ -276,6 +278,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   //
   workflow.emplace_back(DataProcessorSpec{"spectator",
                                           {InputSpec{"pairin", "TST", "PAIR", 0, Lifetime::Timeframe},
+                                           InputSpec{"sequencein", "TST", "SEQUENCE", 0, Lifetime::Timeframe},
                                            InputSpec{"dpldefault", "TST", "ALLOCATOR", 0, Lifetime::Timeframe}},
                                           {},
                                           AlgorithmSpec{adaptStateful(consumerInit)}});

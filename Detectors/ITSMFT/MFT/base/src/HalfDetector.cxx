@@ -46,7 +46,7 @@ HalfDetector::HalfDetector(HalfSegmentation* seg) : TNamed(), mHalfVolume(nullpt
 
   SetName(Form("MFT_H_%d", mftGeom->getHalfID(GetUniqueID())));
 
-  LOG(DEBUG) << Form("Creating : %s ", GetName());
+  LOG(debug) << Form("Creating : %s ", GetName());
 
   mHalfVolume = new TGeoVolumeAssembly(GetName());
 
@@ -63,7 +63,7 @@ HalfDetector::~HalfDetector() = default;
 //_____________________________________________________________________________
 void HalfDetector::createHalfDisks()
 {
-  LOG(DEBUG) << "MFT: " << Form("Creating  %d Half-Disk ", mSegmentation->getNHalfDisks());
+  LOG(debug) << "MFT: " << Form("Creating  %d Half-Disk ", mSegmentation->getNHalfDisks());
   auto& mftBaseParam = MFTBaseParam::Instance();
 
   for (Int_t iDisk = 0; iDisk < mSegmentation->getNHalfDisks(); iDisk++) {

@@ -478,7 +478,7 @@ inline int FlatObject::writeToFile(T& obj, TFile& outf, const char* name)
   assert(obj.isConstructed());
 
   if (outf.IsZombie()) {
-    LOG(ERROR) << "Failed to write to file " << outf.GetName();
+    LOG(error) << "Failed to write to file " << outf.GetName();
     return -1;
   }
 
@@ -499,16 +499,16 @@ inline T* FlatObject::readFromFile(TFile& inpf, const char* name)
   /// read from file
 
   if (inpf.IsZombie()) {
-    LOG(ERROR) << "Failed to read from file " << inpf.GetName();
+    LOG(error) << "Failed to read from file " << inpf.GetName();
     return nullptr;
   }
   T* pobj = reinterpret_cast<T*>(inpf.GetObjectChecked(name, T::Class()));
   if (!pobj) {
-    LOG(ERROR) << "Failed to load " << name << " from " << inpf.GetName();
+    LOG(error) << "Failed to load " << name << " from " << inpf.GetName();
     return nullptr;
   }
   if (pobj->mFlatBufferSize > 0 && pobj->mFlatBufferContainer == nullptr) {
-    LOG(ERROR) << "Failed to load " << name << " from " << inpf.GetName() << ": empty flat buffer container";
+    LOG(error) << "Failed to load " << name << " from " << inpf.GetName() << ": empty flat buffer container";
     return nullptr;
   }
   pobj->setActualBufferAddress(pobj->mFlatBufferContainer);

@@ -38,6 +38,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
       {},
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
-          LOG(DEBUG) << ctx.inputs().size();
+          LOG(debug) << ctx.inputs().size();
         }}}};
 }

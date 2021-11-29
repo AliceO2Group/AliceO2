@@ -95,7 +95,7 @@ std::function<size_t(void)> createFreeMemoryGetter(InitContext& ictx)
     }
   }
   if (!sessionID.empty() && sessionID != "default" && channelConfig.find("transport=shmem") != std::string::npos) {
-    LOG(INFO) << "The benchmark is running with shared memory,"
+    LOG(info) << "The benchmark is running with shared memory,"
                  " producing messages will be throttled by looking at available memory in the segment: "
               << sessionID;
     std::string segmentID = "fmq_" + buildShmIdFromSessionIdAndUserId(sessionID) + "_main";
@@ -106,11 +106,11 @@ std::function<size_t(void)> createFreeMemoryGetter(InitContext& ictx)
     };
   } else {
 #if defined(__APPLE__)
-    LOG(WARNING) << "The benchmark is running without shared memory. "
+    LOG(warning) << "The benchmark is running without shared memory. "
                     "The throttling mechanism is not supported on MacOS for the ZeroMQ transport, "
                     "the results might be incorrect for larger payload sizes.";
 #else
-    LOG(INFO) << "The benchmark is running without shared memory,"
+    LOG(info) << "The benchmark is running without shared memory,"
                  " producing messages will be throttled by looking at the global free RAM";
 #endif
 
@@ -178,7 +178,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
           std::function<size_t(void)> getFreeMemory = createFreeMemoryGetter(ictx);
           const size_t maxFreeMemory = getFreeMemory(); // that may vary on the process sync
           size_t maximumAllowedMessages = (maxFreeMemory - throttlingMB * 1000000) / payloadSize / producers;
-          LOG(INFO) << "First cycle, this producer will send " << maximumAllowedMessages << " messages";
+          LOG(info) << "First cycle, this producer will send " << maximumAllowedMessages << " messages";
 
           auto messagesProducedSinceLastCycle = std::make_shared<size_t>(0);
           std::shared_ptr<bool> mightSaturate = nullptr;
@@ -210,13 +210,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
               // so we allow for a continuous message production.
               *messagesProducedSinceLastCycle = 0;
               maximumAllowedMessages = -1;
-              LOG(INFO) << "The memory usage should not reach the limits, we allow to produce as much messages as possible";
+              LOG(info) << "The memory usage should not reach the limits, we allow to produce as much messages as possible";
             } else if (size_t freeMemory = getFreeMemory(); freeMemory > 4 * throttlingMB * 1000000) {
               // if we are here, then the maximumAllowedMessages has been reached and we have waited until
               // the memory usage dropped to the safe level again.
               *messagesProducedSinceLastCycle = 0;
               maximumAllowedMessages = (freeMemory - throttlingMB * 1000000) / payloadSize / producers;
-              LOG(INFO) << "New cycle, this producer will send " << maximumAllowedMessages << " messages";
+              LOG(info) << "New cycle, this producer will send " << maximumAllowedMessages << " messages";
             }
           };
         }

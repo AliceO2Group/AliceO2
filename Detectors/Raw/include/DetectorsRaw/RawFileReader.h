@@ -46,7 +46,6 @@ struct ReaderInp {
   uint32_t errMap = 0xffffffff;
   uint32_t minTF = 0;
   uint32_t maxTF = 0xffffffff;
-  uint32_t startTime = 0;
   bool partPerSP = true;
   bool cache = false;
   bool autodetectTF0 = false;

@@ -282,7 +282,7 @@ DataProcessorSpec getZStoDigitsSpec(std::vector<int> const& tpcSectors)
         }
       }
       for (int i = 0; i < NSectors; i++) {
-        LOG(INFO) << "digits in sector " << i << " : " << outDigits[i].size();
+        LOG(info) << "digits in sector " << i << " : " << outDigits[i].size();
         o2::tpc::TPCSectorHeader sh{i};
         pc.outputs().snapshot(Output{gDataOriginTPC, "DIGITS", (unsigned int)i, Lifetime::Timeframe, sh}, outDigits[i]);
       }

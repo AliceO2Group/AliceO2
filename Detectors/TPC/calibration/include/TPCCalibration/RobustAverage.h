@@ -42,7 +42,11 @@ class RobustAverage
  public:
   /// constructor
   /// \param maxValues maximum number of values which will be averaged. Copy of values will be done.
-  RobustAverage(const unsigned int maxValues) { mValues.reserve(maxValues); }
+  RobustAverage(const unsigned int maxValues)
+  {
+    mValues.reserve(maxValues);
+    mWeights.reserve(maxValues);
+  }
 
   /// default constructor
   RobustAverage() = default;
@@ -56,10 +60,11 @@ class RobustAverage
   void reserve(const unsigned int maxValues) { mValues.reserve(maxValues); }
 
   /// clear the stored values
-  void clear() { mValues.clear(); }
+  void clear();
 
   /// \param value value which will be added to the list of stored values for averaging
-  void addValue(const float value) { mValues.emplace_back(value); }
+  /// \param weight weight of the value
+  void addValue(const float value, const float weight = 1.f);
 
   /// returns the filtered average value
   /// \param sigma maximum accepted standard deviation: sigma*stdev
@@ -68,16 +73,26 @@ class RobustAverage
   /// \return returns mean of stored values
   float getMean() const { return getMean(mValues.begin(), mValues.end()); }
 
+  /// \return returns weighted mean of stored values
+  float getWeightedMean() const { return getWeightedMean(mValues.begin(), mValues.end(), mWeights.begin(), mWeights.end()); }
+
+  /// \return returns standard deviation of stored values
+  float getStdDev() { return getStdDev(getMean()); }
+
   /// values which will be averaged and filtered
   void print() const;
 
  private:
   std::vector<float> mValues{};    ///< values which will be averaged and filtered
+  std::vector<float> mWeights{};   ///< weights of each value
   std::vector<float> mTmpValues{}; ///< tmp vector used for calculation of std dev
 
   float getMean(std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) const;
 
-  /// performing outlier filtering of the stored values
+  float getWeightedMean(std::vector<float>::const_iterator beginValues, std::vector<float>::const_iterator endValues, std::vector<float>::const_iterator beginWeight, std::vector<float>::const_iterator endWeight) const;
+
+  /// \return returns standard deviation of stored values
+  /// \param mean mean of stored values
   float getStdDev(const float mean);
 
   /// performing outlier filtering of the stored values by defining range of included values in terms of standard deviation

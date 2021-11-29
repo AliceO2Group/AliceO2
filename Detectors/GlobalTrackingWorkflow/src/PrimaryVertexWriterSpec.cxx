@@ -37,7 +37,7 @@ using namespace o2::header;
 DataProcessorSpec getPrimaryVertexWriterSpec(bool disableMatching, bool useMC)
 {
   auto logger = [](std::vector<PVertex> const& v) {
-    LOG(INFO) << "PrimaryVertexWriter pulled " << v.size() << " vertices";
+    LOG(info) << "PrimaryVertexWriter pulled " << v.size() << " vertices";
   };
   auto inpID = disableMatching ? InputSpec{"vttrackID", "GLO", "PVTX_CONTID", 0} : InputSpec{"vttrackID", "GLO", "PVTX_TRMTC", 0};
   auto inpIDRef = disableMatching ? InputSpec{"v2tref", "GLO", "PVTX_CONTIDREFS", 0} : InputSpec{"v2tref", "GLO", "PVTX_TRMTCREFS", 0};

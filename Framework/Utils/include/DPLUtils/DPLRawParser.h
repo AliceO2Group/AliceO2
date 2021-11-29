@@ -264,8 +264,8 @@ class DPLRawParser
             raw = mParent.get<gsl::span<char>>(*mPartIterator);
           } catch (const std::runtime_error& e) {
             // TODO: need some better handling to avoid to be spammed by error messages
-            LOG(ERROR) << "failed to read data from " << (*mInputIterator).spec->binding;
-            LOG(ERROR) << e.what();
+            LOG(error) << "failed to read data from " << (*mInputIterator).spec->binding;
+            LOG(error) << e.what();
           }
           if (raw.size() == 0) {
             continue;
@@ -274,8 +274,8 @@ class DPLRawParser
           try {
             mParser = std::make_unique<parser_type>(raw.data(), raw.size());
           } catch (const std::runtime_error& e) {
-            LOG(ERROR) << "can not create raw parser form input data";
-            LOG(ERROR) << e.what();
+            LOG(error) << "can not create raw parser form input data";
+            LOG(error) << e.what();
           }
 
           if (mParser != nullptr) {

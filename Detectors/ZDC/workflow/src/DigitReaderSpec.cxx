@@ -39,12 +39,12 @@ void DigitReader::init(InitContext& ic)
                                                 ic.options().get<std::string>("zdc-digit-infile"));
   mFile = std::make_unique<TFile>(filename.c_str());
   if (!mFile->IsOpen()) {
-    LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
+    LOG(error) << "Cannot open the " << filename.c_str() << " file !";
     throw std::runtime_error("cannot open input digits file");
   }
   mTree.reset((TTree*)mFile->Get("o2sim"));
   if (!mTree) {
-    LOG(ERROR) << "Did not find o2sim tree in " << filename.c_str();
+    LOG(error) << "Did not find o2sim tree in " << filename.c_str();
     throw std::runtime_error("Did not fine o2sim file in ZDC digits tree");
   }
 }
@@ -66,7 +66,7 @@ void DigitReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << "ZDCDigitReader pushed " << zdcOrbitData.size() << " orbits with " << zdcBCData.size() << " bcs and " << zdcChData.size() << " digits";
+  LOG(info) << "ZDCDigitReader pushed " << zdcOrbitData.size() << " orbits with " << zdcBCData.size() << " bcs and " << zdcChData.size() << " digits";
   pc.outputs().snapshot(Output{"ZDC", "DIGITSPD", 0, Lifetime::Timeframe}, zdcOrbitData);
   pc.outputs().snapshot(Output{"ZDC", "DIGITSBC", 0, Lifetime::Timeframe}, zdcBCData);
   pc.outputs().snapshot(Output{"ZDC", "DIGITSCH", 0, Lifetime::Timeframe}, zdcChData);

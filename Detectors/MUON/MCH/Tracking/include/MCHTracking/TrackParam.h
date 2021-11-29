@@ -27,7 +27,7 @@ namespace o2
 namespace mch
 {
 
-class Cluster;
+struct Cluster;
 
 /// track parameters for internal use
 class TrackParam

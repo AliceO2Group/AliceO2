@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <string_view>
 #include <vector>
 #include <string>
 #include "fmt/format.h"
@@ -26,6 +27,7 @@
 #include "DetectorsCalibration/Utils.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "CCDB/BasicCCDBManager.h"
 
 #include "TPCQC/Clusters.h"
 #include "TPCBase/Mapper.h"
@@ -74,10 +76,26 @@ class TPCDigitDumpDevice : public o2::framework::Task
 
     mDigitDump.init();
     mDigitDump.setInMemoryOnly();
-    const auto pedestalFile = ic.options().get<std::string>("pedestal-file");
+    const auto pedestalFile = ic.options().get<std::string>("pedestal-url");
     if (pedestalFile.length()) {
-      LOGP(info, "Setting pedestal file: {}", pedestalFile);
-      mDigitDump.setPedestalAndNoiseFile(pedestalFile);
+      if (pedestalFile.find("ccdb") != std::string::npos) {
+        LOGP(info, "Loading pedestals from ccdb: {}", pedestalFile);
+        auto& cdb = o2::ccdb::BasicCCDBManager::instance();
+        cdb.setURL(pedestalFile);
+        if (cdb.isHostReachable()) {
+          auto pedestal = cdb.get<CalPad>("TPC/Calib/Pedestal");
+          if (pedestal) {
+            mDigitDump.setPedestals(pedestal);
+          } else {
+            LOGP(error, "could not load pedestals from {}", pedestalFile);
+          }
+        } else {
+          LOGP(error, "ccdb access to {} requested, but host is not reachable. Cannot load Pedestals", pedestalFile);
+        }
+      } else {
+        LOGP(info, "Setting pedestal file: {}", pedestalFile);
+        mDigitDump.setPedestalAndNoiseFile(pedestalFile);
+      }
     }
 
     // set up cluster qc if requested
@@ -211,7 +229,7 @@ DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, s
       {"max-events", VariantType::Int, 0, {"maximum number of events to process"}},
       {"use-old-subspec", VariantType::Bool, false, {"use old subsecifiation definition"}},
       {"force-quit", VariantType::Bool, false, {"force quit after max-events have been reached"}},
-      {"pedestal-file", VariantType::String, "", {"file with pedestals and noise for zero suppression"}},
+      {"pedestal-url", VariantType::String, "", {"file with pedestals and noise or ccdb url for zero suppression"}},
       {"create-occupancy-maps", VariantType::Bool, false, {"create occupancy maps and store them to local root file for debugging"}},
       {"check-for-duplicates", VariantType::Bool, false, {"check if duplicate digits exist and only report them"}},
       {"remove-duplicates", VariantType::Bool, false, {"check if duplicate digits exist and remove them"}},

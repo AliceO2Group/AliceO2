@@ -52,7 +52,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"eta-max", o2::framework::VariantType::Float, 0.8f, {"max tof eta"}},
     {"fill-mask", o2::framework::VariantType::String, "", {"fill scheme, collision bunches"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -100,11 +100,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  LOG(DEBUG) << "TOF EVENTTIME CHECKER WORKFLOW configuration";
-  LOG(DEBUG) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");
-  LOG(DEBUG) << "TOF disable-mc = " << configcontext.options().get<std::string>("disable-mc");
-  LOG(DEBUG) << "TOF disable-root-input = " << disableRootIn;
-  LOG(DEBUG) << "TOF disable-root-output = " << disableRootOut;
+  LOG(debug) << "TOF EVENTTIME CHECKER WORKFLOW configuration";
+  LOG(debug) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");
+  LOG(debug) << "TOF disable-mc = " << configcontext.options().get<std::string>("disable-mc");
+  LOG(debug) << "TOF disable-root-input = " << disableRootIn;
+  LOG(debug) << "TOF disable-root-output = " << disableRootOut;
 
   GID::mask_t alowedSources = GID::getSourcesMask("ITS-TPC-TOF,TPC-TOF,ITS-TPC-TRD-TOF,TPC-TRD-TOF,ITS-TPC,TPC,ITS-TPC-TRD,TPC-TRD");
 

@@ -41,9 +41,9 @@ void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile 
   }
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
-    LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
+    LOG(info) << "Running with dictionary: " << dictfile.c_str();
   } else {
-    LOG(INFO) << "Running without dictionary !";
+    LOG(info) << "Running without dictionary !";
   }
   LookUp finder(dictfile.c_str());
   ofstream time_output("time.txt");
@@ -86,7 +86,7 @@ void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile 
       const auto& cluster = (*clusArr)[clEntry];
 
       if (cluster.getPatternID() != CompCluster::InvalidPatternID) {
-        LOG(WARNING) << "Clusters have already been generated with a dictionary! Quitting";
+        LOG(warning) << "Clusters have already been generated with a dictionary! Quitting";
         return;
       }
 

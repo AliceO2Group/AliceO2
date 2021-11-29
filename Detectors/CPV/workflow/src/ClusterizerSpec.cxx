@@ -20,7 +20,7 @@ using namespace o2::cpv::reco_workflow;
 
 void ClusterizerSpec::init(framework::InitContext& ctx)
 {
-  LOG(DEBUG) << "[CPVClusterizer - init] Initialize clusterizer ...";
+  LOG(debug) << "[CPVClusterizer - init] Initialize clusterizer ...";
 
   // Initialize clusterizer and link geometry
   mClusterizer.initialize();
@@ -29,13 +29,13 @@ void ClusterizerSpec::init(framework::InitContext& ctx)
 
 void ClusterizerSpec::run(framework::ProcessingContext& ctx)
 {
-  LOG(INFO) << "Starting ClusterizerSpec::run() ";
-  LOG(DEBUG) << "CPVClusterizer - run on digits called";
+  LOG(info) << "Starting ClusterizerSpec::run() ";
+  LOG(debug) << "CPVClusterizer - run on digits called";
 
   auto digits = ctx.inputs().get<std::vector<Digit>>("digits");
 
   if (!digits.size()) { // nothing to process
-    LOG(INFO) << "ClusterizerSpec::run() : no digits; moving on";
+    LOG(info) << "ClusterizerSpec::run() : no digits; moving on";
     //ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
     mOutputClusters.clear();
     ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusters);
@@ -58,14 +58,14 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
     mClusterizer.process(digits, digitsTR, nullptr, &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters without MC Truth
   }
 
-  LOG(DEBUG) << "CPVClusterizer::run() : Received " << digitsTR.size() << " TR, calling clusterizer ...";
+  LOG(debug) << "CPVClusterizer::run() : Received " << digitsTR.size() << " TR, calling clusterizer ...";
 
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusters);
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRIGRECS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusterTrigRecs);
   if (mPropagateMC) {
     ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
   }
-  LOG(INFO) << "Finished, wrote  " << mOutputClusters.size() << " clusters, " << mOutputClusterTrigRecs.size() << "TR and " << mOutputTruthCont.getIndexedSize() << " Labels";
+  LOG(info) << "Finished, wrote  " << mOutputClusters.size() << " clusters, " << mOutputClusterTrigRecs.size() << "TR and " << mOutputTruthCont.getIndexedSize() << " Labels";
 }
 o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getClusterizerSpec(bool propagateMC)
 {

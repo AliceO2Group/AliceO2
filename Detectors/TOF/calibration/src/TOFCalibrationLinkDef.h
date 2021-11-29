@@ -15,7 +15,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::tof::CalibTOFapi + ;
 #pragma link C++ class o2::globaltracking::CalibTOF + ;
 #pragma link C++ class o2::globaltracking::CollectCalibInfoTOF + ;
 

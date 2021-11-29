@@ -44,7 +44,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"fullclu-output", o2::framework::VariantType::Bool, false, {"compact of full (with contr. digits) clusters output"}},
     {"flpId", o2::framework::VariantType::Int, 0, {"FLP identification: 0,1,..."}},
     {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 

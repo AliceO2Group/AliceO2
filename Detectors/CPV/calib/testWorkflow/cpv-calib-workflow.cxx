@@ -34,7 +34,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   //auto doGain = configcontext.options().get<bool>("gains");
   //auto doBadMap = configcontext.options().get<bool>("badmap");
   //if (doPedestals && doGain) {
-  //  LOG(FATAL) << "Can not run pedestal and gain calibration simulteneously";
+  //  LOG(fatal) << "Can not run pedestal and gain calibration simulteneously";
   //  return specs;
   //}
   //if (doGain) {

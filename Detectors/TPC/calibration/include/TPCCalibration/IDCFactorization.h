@@ -32,12 +32,6 @@
 namespace o2::tpc
 {
 
-/// IDC Delta IDC Compression types
-enum class IDCDeltaCompression { NO = 0,     ///< no compression using floats
-                                 MEDIUM = 1, ///< medium compression using short (data compression ratio 2 when stored in CCDB)
-                                 HIGH = 2    ///< high compression using char (data compression ratio ~5.5 when stored in CCDB)
-};
-
 class IDCFactorization : public IDCGroupHelperSector
 {
  public:
@@ -56,7 +50,8 @@ class IDCFactorization : public IDCGroupHelperSector
   /// calculate I_0(r,\phi) = <I(r,\phi,t)>_t
   /// calculate I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   /// calculate \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
-  void factorizeIDCs();
+  /// \param norm normalize IDCs to pad size
+  void factorizeIDCs(const bool norm);
 
   /// \return returns the stored grouped and integrated IDC
   /// \param sector sector
@@ -122,7 +117,10 @@ class IDCFactorization : public IDCGroupHelperSector
 
   /// \return returns stored IDCDelta \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   /// \param chunk chunk of Delta IDC
-  const auto& getIDCDeltaUncompressed(const unsigned int chunk) const { return mIDCDelta[chunk]; }
+  const auto& getIDCDeltaUncompressed(const unsigned int chunk) const& { return mIDCDelta[chunk]; }
+
+  /// \return returns returns stored IDCDelta \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) ) using move semantics
+  auto getIDCDeltaUncompressed(const unsigned int chunk) && { return std::move(mIDCDelta[chunk]); }
 
   /// \return creates and returns medium compressed IDCDelta \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   /// \param chunk chunk of Delta IDC
@@ -170,37 +168,37 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param sector sector which will be drawn
   /// \param integrationInterval which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCsSector(const unsigned int sector, const unsigned int integrationInterval, const std::string filename = "IDCsSector.pdf") const { drawSector(IDCType::IDC, sector, integrationInterval, filename); }
+  void drawIDCsSector(const unsigned int sector, const unsigned int integrationInterval, const std::string filename = "IDCsSector.pdf") const { drawIDCHelper(false, Sector(sector), integrationInterval, filename); }
 
   /// draw IDC zero I_0(r,\phi) = <I(r,\phi,t)>_t
   /// \param sector sector which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCZeroSector(const unsigned int sector, const std::string filename = "IDCZeroSector.pdf") const { drawSector(IDCType::IDCZero, sector, 0, filename); }
+  void drawIDCZeroSector(const unsigned int sector, const std::string filename = "IDCZeroSector.pdf") const { drawIDCZeroHelper(false, Sector(sector), filename); }
 
   /// draw IDCDelta for one sector for one integration interval
   /// \param sector sector which will be drawn
   /// \param integrationInterval which will be drawn
   /// \param compression compression of Delta IDCs. (setMaxCompressedIDCDelta() should be called first in case of non standard compression parameter)
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCDeltaSector(const unsigned int sector, const unsigned int integrationInterval, const IDCDeltaCompression compression, const std::string filename = "IDCDeltaSector.pdf") const { drawSector(IDCType::IDCDelta, sector, integrationInterval, filename, compression); }
+  void drawIDCDeltaSector(const unsigned int sector, const unsigned int integrationInterval, const IDCDeltaCompression compression, const std::string filename = "IDCDeltaSector.pdf") const { drawIDCDeltaHelper(false, Sector(sector), integrationInterval, compression, filename); }
 
   /// draw IDCs for one side for one integration interval
   /// \param side side which will be drawn
   /// \param integrationInterval which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCsSide(const o2::tpc::Side side, const unsigned int integrationInterval, const std::string filename = "IDCsSide.pdf") const { drawSide(IDCType::IDC, side, integrationInterval, filename); }
+  void drawIDCsSide(const o2::tpc::Side side, const unsigned int integrationInterval, const std::string filename = "IDCsSide.pdf") const { drawIDCHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), integrationInterval, filename); }
 
   /// draw IDC zero I_0(r,\phi) = <I(r,\phi,t)>_t
   /// \param side side which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCZeroSide(const o2::tpc::Side side, const std::string filename = "IDCZeroSide.pdf") const { drawSide(IDCType::IDCZero, side, 0, filename); }
+  void drawIDCZeroSide(const o2::tpc::Side side, const std::string filename = "IDCZeroSide.pdf") const { drawIDCZeroHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename); }
 
   /// draw IDCDelta for one side for one integration interval
   /// \param side side which will be drawn
   /// \param integrationInterval which will be drawn
   /// \param compression compression of Delta IDCs. (setMaxCompressedIDCDelta() should be called first in case of non standard compression parameter)
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCDeltaSide(const o2::tpc::Side side, const unsigned int integrationInterval, const IDCDeltaCompression compression, const std::string filename = "IDCDeltaSide.pdf") const { drawSide(IDCType::IDCDelta, side, integrationInterval, filename, compression); }
+  void drawIDCDeltaSide(const o2::tpc::Side side, const unsigned int integrationInterval, const IDCDeltaCompression compression, const std::string filename = "IDCDeltaSide.pdf") const { drawIDCDeltaHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), integrationInterval, compression, filename); }
 
   /// dump object to disc
   /// \param outFileName name of the output file
@@ -227,7 +225,7 @@ class IDCFactorization : public IDCGroupHelperSector
   inline static int sNThreads{1};                                   ///< number of threads which are used during the calculations
 
   /// calculate I_0(r,\phi) = <I(r,\phi,t)>_t
-  void calcIDCZero();
+  void calcIDCZero(const bool norm);
 
   /// calculate I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   void calcIDCOne();
@@ -235,20 +233,14 @@ class IDCFactorization : public IDCGroupHelperSector
   /// calculate \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   void calcIDCDelta();
 
-  /// draw IDCs for one sector for one integration interval
-  /// \param sector sector which will be drawn
-  /// \param integrationInterval which will be drawn
-  /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawSector(const IDCType type, const unsigned int sector, const unsigned int integrationInterval, const std::string filename, const IDCDeltaCompression compression = IDCDeltaCompression::NO) const;
+  /// helper function for drawing IDCDelta
+  void drawIDCDeltaHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const IDCDeltaCompression compression, const std::string filename) const;
 
-  /// draw IDCs for one side for one integration interval
-  /// \param Side side which will be drawn
-  /// \param integrationInterval which will be drawn
-  /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawSide(const IDCType type, const o2::tpc::Side side, const unsigned int integrationInterval, const std::string filename, const IDCDeltaCompression compression = IDCDeltaCompression::NO) const;
+  /// helper function for drawing IDCs
+  void drawIDCHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename) const;
 
-  /// get z axis title for given IDC type and compression type
-  std::string getZAxisTitle(const IDCType type, const IDCDeltaCompression compression) const;
+  /// helper function for drawing IDCZero
+  void drawIDCZeroHelper(const bool type, const Sector sector, const std::string filename) const;
 
   /// get time frame and index of integrationInterval in the TF
   void getTF(const unsigned int region, unsigned int integrationInterval, unsigned int& timeFrame, unsigned int& interval) const;

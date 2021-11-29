@@ -42,7 +42,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"entropy-encoding", o2::framework::VariantType::Bool, false, {"produce entropy encoded data"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"gpuDevice", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 

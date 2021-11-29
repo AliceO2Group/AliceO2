@@ -33,13 +33,14 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
-    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
-    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
-    {"enable-itsonly", o2::framework::VariantType::Bool, false, {"process tracks without outer point (ITS-TPC only)"}},
+    {"disable-root-input", VariantType::Bool, false, {"disable root-files input readers"}},
+    {"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}},
+    {"disable-mc", VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"enable-itsonly", VariantType::Bool, false, {"process tracks without outer point (ITS-TPC only)"}},
     {"tracking-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use for tracking"}},
+    {"enable-residual-writer", VariantType::Bool, false, {"write unbinned and unfiltered residuals"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -69,11 +70,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   useMC = false; // force disabling MC as long as it is not implemented
   auto processITSTPConly = configcontext.options().get<bool>("enable-itsonly");
+  auto writeResiduals = configcontext.options().get<bool>("enable-residual-writer");
   GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("tracking-sources"));
-  LOG(INFO) << "Data sources: " << GID::getSourcesNames(src);
+  LOG(info) << "Data sources: " << GID::getSourcesNames(src);
 
-  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(src, useMC, processITSTPConly));
-  if (!configcontext.options().get<bool>("disable-root-output")) {
+  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(src, useMC, processITSTPConly, writeResiduals));
+  if (!configcontext.options().get<bool>("disable-root-output") && writeResiduals) {
     specs.emplace_back(o2::tpc::getTPCResidualWriterSpec(useMC));
   }
 
@@ -82,5 +84,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC);
 
-  return std::move(specs);
+  return specs;
 }

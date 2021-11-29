@@ -250,7 +250,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
 #else
     setenv("O2DPLPROFILE", "xterm -hold -e perf record -a -g -p $O2PROFILEDPID > perf-$O2PROFILEDPID.data &", 0);
 #endif
-    LOG(ERROR) << getenv("O2DPLPROFILE");
+    LOG(error) << getenv("O2DPLPROFILE");
     int retVal = system(getenv("O2DPLPROFILE"));
     (void)retVal;
   }

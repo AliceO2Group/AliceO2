@@ -1,5 +1,5 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include "TOFReconstruction/EventTimeMaker.h"
+#include "TOFBase/EventTimeMaker.h"
 #endif
 
 using namespace o2::tof;
@@ -45,10 +45,10 @@ void macroEvTime(bool removebias = true)
       nt++;
 
       float res = sqrt(100 * 100 + erret * erret);
-      hkaon->Fill((track.tofSignal() - track.tofExpTimeKa() - et) / res);
+      hkaon->Fill((track.tofSignal() - track.tofExpSignalKa() - et) / res);
 
       if (track.masshypo() == 1) {
-        hkaonT->Fill((track.tofSignal() - track.tofExpTimeKa() - et) / res);
+        hkaonT->Fill((track.tofSignal() - track.tofExpSignalKa() - et) / res);
       }
     }
   }

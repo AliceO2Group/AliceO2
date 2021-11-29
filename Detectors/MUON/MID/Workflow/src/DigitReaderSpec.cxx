@@ -93,7 +93,7 @@ class DigitsReaderDeviceDPL
         std::vector<ColumnData> digits{};
         digits.insert(digits.end(), inputDigits->begin(), inputDigits->end());
         pc.outputs().snapshot(output, digits);
-        LOG(DEBUG) << "MIDDigitsReader pushed " << digits.size() << " digits";
+        LOG(debug) << "MIDDigitsReader pushed " << digits.size() << " digits";
         return true;
       }
       return false;

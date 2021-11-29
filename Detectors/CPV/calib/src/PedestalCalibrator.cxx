@@ -211,12 +211,12 @@ void PedestalCalibData::merge(const PedestalCalibData* prev)
     mPedestalSpectra[i] += prev->mPedestalSpectra[i];
   }
   mNEvents += prev->mNEvents;
-  LOG(INFO) << "Merged TimeSlot with previous one. Now we have " << mNEvents << " events.";
+  LOG(info) << "Merged TimeSlot with previous one. Now we have " << mNEvents << " events.";
 }
 //___________________________________________________________________
 void PedestalCalibData::print()
 {
-  LOG(INFO) << "PedestalCalibData::mNEvents = " << mNEvents;
+  LOG(info) << "PedestalCalibData::mNEvents = " << mNEvents;
 }
 //___________________________________________________________________
 //=======================PedestalCalibrator==========================
@@ -250,7 +250,7 @@ void PedestalCalibrator::finalizeSlot(TimeSlot& slot)
   auto& nSigmasZS = cpvParams.mZSnSigmas;
 
   PedestalCalibData* calibData = slot.getContainer();
-  LOG(INFO) << "PedestalCalibrator::finalizeSlot() : finalizing slot "
+  LOG(info) << "PedestalCalibrator::finalizeSlot() : finalizing slot "
             << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with " << calibData->mNEvents << " events.";
 
   o2::cpv::Geometry geo; // CPV geometry object

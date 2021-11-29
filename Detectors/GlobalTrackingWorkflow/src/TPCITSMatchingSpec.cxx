@@ -103,9 +103,9 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
   if (o2::utils::Str::pathExists(dictFile)) {
     mITSDict.readFromFile(dictFile);
-    LOG(INFO) << "Matching is running with a provided ITS dictionary: " << dictFile;
+    LOG(info) << "Matching is running with a provided ITS dictionary: " << dictFile;
   } else {
-    LOG(INFO) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
+    LOG(info) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
   }
   mMatching.setITSDictionary(&mITSDict);
 
@@ -115,9 +115,9 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   if (o2::utils::Str::pathExists(matLUTFile)) {
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
-    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+    LOG(info) << "Loaded material LUT from " << matLUTFile;
   } else {
-    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+    LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
 
   int dbgFlags = ic.options().get<int>("debug-tree-flags");
@@ -136,7 +136,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
 void TPCITSMatchingDPL::run(ProcessingContext& pc)
 {
   const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
-  LOG(INFO) << " startOrbit: " << dh->firstTForbit;
+  LOG(info) << " startOrbit: " << dh->firstTForbit;
   mTimer.Start(false);
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
@@ -160,7 +160,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
 void TPCITSMatchingDPL::endOfStream(EndOfStreamContext& ec)
 {
   mMatching.end();
-  LOGF(INFO, "TPC-ITS matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "TPC-ITS matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

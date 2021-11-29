@@ -8,20 +8,16 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#ifndef O2_FRAMEWORK_DATAPROCESSORSPECHELPERS_H_
+#define O2_FRAMEWORK_DATAPROCESSORSPECHELPERS_H_
 
-#ifndef O2_TPC_INTERPOLATION_READER_H
-#define O2_TPC_INTERPOLATION_READER_H
+#include "Framework/DataProcessorSpec.h"
+#include <vector>
 
-/// @file   TrackInterpolationReaderSpec.h
-
-namespace o2
+namespace o2::framework
 {
-namespace tpc
-{
-
-// TODO add specification for reading TPC cluster residuals and reference tracks
-
-} // namespace tpc
-} // namespace o2
-
+struct DataProcessorSpecHelpers {
+  static bool hasLabel(DataProcessorSpec const& spec, char const* name);
+};
+} // namespace o2::framework
 #endif

@@ -21,6 +21,7 @@
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonConstants/Triggers.h"
+#include "CommonConstants/LHCConstants.h"
 
 namespace o2
 {
@@ -79,6 +80,12 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
     return std::pair<int, int>(hbf / nHBFPerTF, hbf);
   }
 
+  ///< calculate TF timestamp in ms
+  uint64_t getTFTimeStamp(const IR& rec) const
+  {
+    return startTime + (getFirstIRofTF(rec).orbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS;
+  }
+
   ///< create RDH for given IR
   template <typename H>
   H createRDH(const IR& rec, bool setHBTF = true) const;
@@ -128,12 +135,13 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
 
   void checkConsistency() const;
 
-  int nHBFPerTF = 256;     ///< number of orbits per BC
+  int nHBFPerTF = 128;     ///< number of orbits per BC
   uint32_t orbitFirst = 0; ///< orbit of 1st TF of the run
 
   // used for MC
   uint32_t orbitFirstSampled = 0;   ///< 1st orbit sampled in the MC
   uint32_t maxNOrbits = 0xffffffff; ///< max number of orbits to accept, used in digit->raw conversion
+  uint64_t startTime = 0;           ///< absolute time corresponding to the start of the MC run
 
   O2ParamDef(HBFUtils, "HBFUtils");
 };

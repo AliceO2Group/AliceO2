@@ -31,7 +31,7 @@ namespace its
 Vertexer::Vertexer(VertexerTraits* traits)
 {
   if (!traits) {
-    LOG(FATAL) << "nullptr passed to ITS vertexer construction.";
+    LOG(fatal) << "nullptr passed to ITS vertexer construction.";
   }
   mTraits = traits;
 }

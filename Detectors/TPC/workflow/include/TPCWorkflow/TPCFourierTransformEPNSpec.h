@@ -26,7 +26,7 @@
 #include "Framework/InputRecordWalker.h"
 #include "Headers/DataHeader.h"
 #include "TPCCalibration/IDCFourierTransform.h"
-#include "TPCWorkflow/TPCAverageGroupIDCSpec.h"
+#include "TPCWorkflow/TPCFLPIDCSpec.h"
 #include "TPCBase/CRU.h"
 
 using namespace o2::framework;
@@ -80,12 +80,12 @@ class TPCFourierTransformEPNSpec : public o2::framework::Task
   static constexpr header::DataDescription getDataDescription() { return header::DataDescription{"FOURIERCOEFF"}; }
 
  private:
-  const std::vector<uint32_t> mCRUs{};                                                                                                                                                     ///< CRUs to process in this instance
-  IDCFourierTransform<IDCFourierTransformBaseEPN> mIDCFourierTransform{};                                                                                                                  ///< object for performing the fourier transform of 1D-IDCs
-  OneDIDCAggregator mOneDIDCAggregator{};                                                                                                                                                  ///< helper class for aggregation of 1D-IDCs
-  const bool mDebug{false};                                                                                                                                                                ///< dump IDCs to tree for debugging
-  int mReceivedCRUs = 0;                                                                                                                                                                   ///< counter to keep track of the number of received data from CRUs
-  const std::vector<InputSpec> mFilter = {{"1didcepn", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCAverageGroupIDCDevice::getDataDescription1DIDCEPN()}, Lifetime::Timeframe}}; ///< filter for looping over input data
+  const std::vector<uint32_t> mCRUs{};                                                                                                                                                                  ///< CRUs to process in this instance
+  IDCFourierTransform<IDCFourierTransformBaseEPN> mIDCFourierTransform{};                                                                                                                               ///< object for performing the fourier transform of 1D-IDCs
+  OneDIDCAggregator mOneDIDCAggregator{};                                                                                                                                                               ///< helper class for aggregation of 1D-IDCs
+  const bool mDebug{false};                                                                                                                                                                             ///< dump IDCs to tree for debugging
+  int mReceivedCRUs = 0;                                                                                                                                                                                ///< counter to keep track of the number of received data from CRUs
+  const std::vector<InputSpec> mFilter = {{"1didcepn", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDCEPN()}, Lifetime::Timeframe}}; ///< filter for looping over input data
 
   void sendOutput(DataAllocator& output)
   {
@@ -96,7 +96,7 @@ class TPCFourierTransformEPNSpec : public o2::framework::Task
 
 DataProcessorSpec getTPCFourierTransformEPNSpec(const std::vector<uint32_t>& crus, const unsigned int rangeIDC, const unsigned int nFourierCoefficientsSend, const bool debug = false)
 {
-  std::vector<InputSpec> inputSpecs{InputSpec{"1didcepn", ConcreteDataTypeMatcher{gDataOriginTPC, TPCAverageGroupIDCDevice::getDataDescription1DIDCEPN()}, Lifetime::Timeframe}};
+  std::vector<InputSpec> inputSpecs{InputSpec{"1didcepn", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDCEPN()}, Lifetime::Timeframe}};
   std::vector<OutputSpec> outputSpecs{ConcreteDataMatcher{gDataOriginTPC, TPCFourierTransformEPNSpec::getDataDescription(), header::DataHeader::SubSpecificationType{o2::tpc::Side::A}},
                                       ConcreteDataMatcher{gDataOriginTPC, TPCFourierTransformEPNSpec::getDataDescription(), header::DataHeader::SubSpecificationType{o2::tpc::Side::C}}};
 

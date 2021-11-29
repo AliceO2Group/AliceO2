@@ -92,7 +92,7 @@ class TrackAtVertexTask
   {
     /// Prepare the track extrapolation tools
 
-    LOG(INFO) << "initializing track extrapolation to vertex";
+    LOG(info) << "initializing track extrapolation to vertex";
 
     auto grpFile = ic.options().get<std::string>("grp-file");
     if (std::filesystem::exists(grpFile)) {
@@ -102,7 +102,7 @@ class TrackAtVertexTask
     }
 
     auto stop = [this]() {
-      LOG(INFO) << "track propagation to vertex duration = " << mElapsedTime.count() << " s";
+      LOG(info) << "track propagation to vertex duration = " << mElapsedTime.count() << " s";
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
   }

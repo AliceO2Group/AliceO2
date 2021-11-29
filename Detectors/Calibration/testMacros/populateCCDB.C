@@ -57,7 +57,7 @@ void populateCCDB(const std::string& fname = "cdbSizeV0.txt", const std::string&
         //pushObject(api, o);
         auto uploadEnd = std::chrono::high_resolution_clock::now();
         DurSec uploadTime = uploadEnd - uploadStart;
-        LOG(INFO) << "Took " << uploadTime.count() << " to load " << o.sz << " bytes object";
+        LOG(info) << "Took " << uploadTime.count() << " to load " << o.sz << " bytes object";
         o.count++;
         o.lastUpdate = timeLoopStart;
         if (minTLeft < 0.9 * o.validity) {
@@ -74,7 +74,7 @@ std::vector<CCDBObj> readObjectsList(const std::string& fname)
   std::vector<CCDBObj> objs;
   std::ifstream inFile(fname);
   if (!inFile.is_open()) {
-    LOG(ERROR) << "Failed to open input file " << fname;
+    LOG(error) << "Failed to open input file " << fname;
     return objs;
   }
   std::string str;
@@ -90,11 +90,11 @@ std::vector<CCDBObj> readObjectsList(const std::string& fname)
     ss >> sz;
     ss >> sec;
     if (sz == 0 || sec == 0) {
-      LOG(ERROR) << "Invalid data for " << path;
+      LOG(error) << "Invalid data for " << path;
       objs.clear();
       break;
     }
-    LOG(INFO) << "Account " << path << " size= " << sz << " validity= " << sec;
+    LOG(info) << "Account " << path << " size= " << sz << " validity= " << sec;
     objs.emplace_back(path, sz, sec);
   }
   return objs;

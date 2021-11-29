@@ -183,6 +183,12 @@ int TrackletsParser::Parse()
         incParsingError(TRDParsingTrackletBit11NotSetInTrackletHCHeader);
         continue; //go back to the start of loop, walk the data till the above code of the tracklet end marker is hit, padding is hit or we get to the end of the data.
       }
+      //fix to missing bit on supermodule 16 and 17, to set the uniquely identifying bit.
+      if (mState == StateTrackletHCHeader) {
+        if ((mFEEID.supermodule > 15) && mOptions[TRDFixSM1617Bit] && mTrackletHCHeaderState == 2) {
+          *word |= 1 << 11; //flip bit eleven for the tracklethcheader for the last 2 supermodules (bug/misconfiguration/broken/other) not sure why its like this yet, but it is.
+        }
+      }
       //now for Tracklet hc header
       if ((((*word) & (0x1 << 11)) != 0) && !mIgnoreTrackletHCHeader && mState == StateTrackletHCHeader) { //TrackletHCHeader has bit 11 set to 1 always. Check for state because raw data can have bit 11 set!
         if (mState != StateTrackletHCHeader) {

@@ -79,20 +79,18 @@ GRPECSObject::ROMode GRPECSObject::getDetROMode(o2::detectors::DetID id) const
 }
 
 //_______________________________________________
-GRPECSObject* GRPECSObject::loadFrom(const std::string& grpecsFileName, const std::string& grpecsName)
+GRPECSObject* GRPECSObject::loadFrom(const std::string& grpecsFileName)
 {
   // load object from file
-  auto fname = o2::base::NameConf::getGRPECSFileName(grpecsFileName);
-  TFile flGRPECS(fname.c_str());
-  if (flGRPECS.IsZombie()) {
-    LOG(ERROR) << "Failed to open " << fname;
-    throw std::runtime_error("Failed to open GRP ECS file");
+  auto fname = o2::base::NameConf::getGRPFileName(grpecsFileName);
+  TFile flGRP(fname.c_str());
+  if (flGRP.IsZombie()) {
+    LOG(error) << "Failed to open " << fname;
+    throw std::runtime_error("Failed to open GRPECS file");
   }
-  auto grpecs = reinterpret_cast<o2::parameters::GRPECSObject*>(
-    flGRPECS.GetObjectChecked(grpecsName.data(), o2::parameters::GRPECSObject::Class()));
-  if (!grpecs) {
-    LOG(ERROR) << "Did not find GRP ECS object named " << grpecsName;
-    throw std::runtime_error("Failed to load GRP ECS object");
+  auto grp = reinterpret_cast<o2::parameters::GRPECSObject*>(flGRP.GetObjectChecked(o2::base::NameConf::CCDBOBJECT.data(), Class()));
+  if (!grp) {
+    throw std::runtime_error(fmt::format("Failed to load GRPECS object from {}", fname));
   }
-  return grpecs;
+  return grp;
 }

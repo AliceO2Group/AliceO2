@@ -37,7 +37,7 @@
 #include "TOFBase/Geo.h"
 #include "TOFBase/Utils.h"
 #include "DataFormatsTOF/Cluster.h"
-#include "TOFReconstruction/EventTimeMaker.h"
+#include "TOFBase/EventTimeMaker.h"
 //#include "GlobalTracking/MatchTOF.h"
 #include "GlobalTrackingWorkflow/TOFEventTimeChecker.h"
 
@@ -64,7 +64,7 @@ using GID = o2::dataformats::GlobalTrackID;
 
 struct MyTrack : o2::tof::eventTimeTrackTest {
   double tofSignalDouble() const { return mSignalDouble; }
-  float tofExpTimeDe() const { return mExpDe; }
+  float tofExpSignalDe() const { return mExpDe; }
   double mSignalDouble = 0.0;
   float mEta = 0.0;
   float mPhi = 0.0;
@@ -84,7 +84,7 @@ using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;
 
 bool MyFilter(const MyTrack& tr)
 {
-  return (tr.mP < 2.0 && tr.mEta > o2::tof::Utils::mEtaMin && tr.mEta < o2::tof::Utils::mEtaMax && tr.mHasTOF);
+  return (tr.mP < 2.0 && tr.mEta > o2::tof::Utils::mEtaMin && tr.mEta < o2::tof::Utils::mEtaMax && tr.mHasTOF && tr.mSource == 1);
 } // accept all
 
 namespace o2
@@ -216,10 +216,10 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
     mChi2 = track.mChi2;
     mL = track.mLength;
     mTof = track.tofSignal();
-    mExpDe = track.tofExpTimeDe();
-    mExpPi = track.tofExpTimePi();
-    mExpKa = track.tofExpTimeKa();
-    mExpPr = track.tofExpTimePr();
+    mExpDe = track.tofExpSignalDe();
+    mExpPi = track.tofExpSignalPi();
+    mExpKa = track.tofExpSignalKa();
+    mExpPr = track.tofExpSignalPr();
     mIsProb = track.mIsProb;
     mTrktime = track.mTrktime;
     mTrktimeRes = track.mTrktimeRes;
@@ -404,12 +404,12 @@ void TOFEventTimeChecker::fillMatching(GID gid, float time0, float time0res)
     if (mSlewing) { // let's calibrate
       trk.mIsProb = mSlewing->isProblematic(trk.mCh);
       if (mSlewing->isProblematic(trk.mCh)) {
-        //      LOG(DEBUG) << "skip channel " << trk.mCh << " since problematic";
+        //      LOG(debug) << "skip channel " << trk.mCh << " since problematic";
         //      return;
       }
       float tot = mTOFClustersArrayInp[tofcl].getTot();
       trk.mSignalDouble -= mSlewing->evalTimeSlewing(trk.mCh, tot);
-      LOG(DEBUG) << "calibration -> " << mSlewing->evalTimeSlewing(trk.mCh, tot);
+      LOG(debug) << "calibration -> " << mSlewing->evalTimeSlewing(trk.mCh, tot);
     }
   }
   if (!trk.mHasTOF) {
@@ -520,11 +520,11 @@ void TOFEventTimeChecker::run(ProcessingContext& pc)
 
   mTOFClustersArrayInp = mRecoData.getTOFClusters();
 
-  LOG(DEBUG) << "isTrackSourceLoaded: TPC -> " << mIsTPC << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF) << ")";
-  LOG(DEBUG) << "isTrackSourceLoaded: ITSTPC -> " << mIsITSTPC << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) << ")";
-  LOG(DEBUG) << "isTrackSourceLoaded: TPCTRD -> " << mIsTPCTRD << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF) << ")";
-  LOG(DEBUG) << "isTrackSourceLoaded: ITSTPCTRD -> " << mIsITSTPCTRD << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF) << ")";
-  LOG(DEBUG) << "TOF cluster size = " << mTOFClustersArrayInp.size();
+  LOG(debug) << "isTrackSourceLoaded: TPC -> " << mIsTPC << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF) << ")";
+  LOG(debug) << "isTrackSourceLoaded: ITSTPC -> " << mIsITSTPC << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) << ")";
+  LOG(debug) << "isTrackSourceLoaded: TPCTRD -> " << mIsTPCTRD << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF) << ")";
+  LOG(debug) << "isTrackSourceLoaded: ITSTPCTRD -> " << mIsITSTPCTRD << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF) << ")";
+  LOG(debug) << "TOF cluster size = " << mTOFClustersArrayInp.size();
 
   if (!mTOFClustersArrayInp.size()) {
     return;
@@ -541,7 +541,7 @@ void TOFEventTimeChecker::run(ProcessingContext& pc)
             [](MyTrack a, MyTrack b) { return a.tofSignalDouble() < b.tofSignalDouble(); });
 
   for (auto& element : mMyTracks) { // loop print
-    LOG(DEBUG) << "Time cluster = " << element.tofSignal() << " ps - pt = " << element.pt();
+    LOG(debug) << "Time cluster = " << element.tofSignal() << " ps - pt = " << element.pt();
   }
 
   std::vector<MyTrack> tracks;
@@ -569,7 +569,7 @@ void TOFEventTimeChecker::run(ProcessingContext& pc)
 
 void TOFEventTimeChecker::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(DEBUG, "TOF matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(debug, "TOF matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 
   mFout->cd();

@@ -17,17 +17,14 @@
 #define ALICEO2_TPC_IDCGROUPHELPERSECTOR_H_
 
 #include <vector>
-#include <numeric>
 #include "Rtypes.h"
 #include "TPCBase/Mapper.h"
-#include "TPCCalibration/IDCGroupHelperRegion.h"
 #include "TPCCalibration/IDCGroupingParameter.h"
 
 namespace o2::tpc
 {
 
 /// Helper class for accessing grouped pads for one sector
-
 class IDCGroupHelperSector
 {
  public:
@@ -47,34 +44,71 @@ class IDCGroupHelperSector
   IDCGroupHelperSector() = default;
 
   /// \return returns index to the data
+  /// \param sector sector
+  /// \param region TPC region
   /// \param glrow grouped local row
   /// \param pad pad of the grouped IDCs
-  unsigned int getIndexGrouped(const unsigned int sector, const unsigned int region, const unsigned int glrow, const unsigned int pad, unsigned int integrationInterval) const { return mNIDCsPerSector * (integrationInterval * SECTORSPERSIDE + sector) + mRegionOffs[region] + mOffsRow[region][glrow] + pad; }
+  /// \param integrationInterval integration interval
+  unsigned int getIndexGrouped(const unsigned int sector, const unsigned int region, const unsigned int glrow, const unsigned int pad, unsigned int integrationInterval) const { return mNIDCsPerSector * (integrationInterval * SECTORSPERSIDE + sector % o2::tpc::SECTORSPERSIDE) + mRegionOffs[region] + mOffsRow[region][glrow] + pad; }
 
   /// \return returns the index to the grouped data with ungrouped inputs
   /// \param sector sector
   /// \param region TPC region
-  /// \param ulrow row of the ungrouped IDCs
+  /// \param ulrow local row of the ungrouped IDCs
   /// \param upad pad number of the ungrouped IDCs
   /// \param integrationInterval integration interval
-  unsigned int getIndexUngrouped(const unsigned int sector, const unsigned int region, unsigned int ulrow, unsigned int upad, unsigned int integrationInterval) const { return getIndexGrouped(sector % o2::tpc::SECTORSPERSIDE, region, getGroupedRow(region, ulrow), getGroupedPad(region, ulrow, upad), integrationInterval); }
+  unsigned int getIndexUngrouped(const unsigned int sector, const unsigned int region, unsigned int ulrow, unsigned int upad, unsigned int integrationInterval) const { return getIndexGrouped(sector, region, getGroupedRow(region, ulrow), getGroupedPad(region, ulrow, upad), integrationInterval); }
+
+  /// \return returns the index to the grouped data with ungrouped inputs
+  /// \param sector sector
+  /// \param region TPC region
+  /// \param ugrow global row of the ungrouped IDCs
+  /// \param upad pad number of the ungrouped IDCs
+  /// \param integrationInterval integration interval
+  unsigned int getIndexUngroupedGlobal(const unsigned int sector, const unsigned int region, unsigned int ugrow, unsigned int upad, unsigned int integrationInterval) const { return getIndexUngrouped(sector, region, ugrow - Mapper::ROWOFFSET[region], upad, integrationInterval); }
 
   /// \return returns grouped pad for ungrouped row and pad
   /// \param region region
   /// \param ulrow local ungrouped row in a region
   /// \param upad ungrouped pad
-  unsigned int getGroupedPad(const unsigned int region, unsigned int ulrow, unsigned int upad) const { return IDCGroupHelperRegion::getGroupedPad(upad, ulrow, region, mGroupingPar.GroupPads[region], mGroupingPar.GroupRows[region], mRows[region], mPadsPerRow[region]); }
+  unsigned int getGroupedPad(const unsigned int region, unsigned int ulrow, unsigned int upad) const;
 
   /// \return returns the row of the group from the local ungrouped row in a region
   /// \param region region
   /// \param ulrow local ungrouped row in a region
-  unsigned int getGroupedRow(const unsigned int region, unsigned int ulrow) const { return IDCGroupHelperRegion::getGroupedRow(ulrow, mGroupingPar.GroupRows[region], mRows[region]); }
+  unsigned int getGroupedRow(const unsigned int region, unsigned int ulrow) const;
 
   /// \returns grouping parameter
   const auto& getGroupingParameter() const { return mGroupingPar; }
 
-  /// \return returns number if IDCs for given region
-  unsigned int getNIDCs(const unsigned int region) { return mNIDCsPerCRU[region]; }
+  /// \return returns number of IDCs for given region
+  unsigned int getNIDCs(const unsigned int region) const { return mNIDCsPerCRU[region]; }
+
+  /// \return returns number of IDCs for a whole sector
+  unsigned int getNIDCsPerSector() const { return mNIDCsPerSector; }
+
+  /// \return returns last ungrouped row
+  unsigned int getLastRow(const unsigned int region) const;
+
+  /// \return returns last ungrouped pad for given global row
+  /// \param ulrow ungrouped local row
+  unsigned int getLastPad(const unsigned int region, const unsigned int ulrow) const;
+
+  /// \return returns offsey to calculate the index
+  /// \param glrow grouped local row
+  unsigned int getOffsRow(const unsigned int region, const unsigned int glrow) const { return mOffsRow[region][glrow]; }
+
+  /// \return returns number of grouped pads per row
+  /// \param glrow grouped local row
+  unsigned getPadsPerRow(const unsigned int region, const unsigned int glrow) const { return mPadsPerRow[region][glrow]; }
+
+  /// \return returns index to ungrouped data from ungrouped pad and row
+  /// \param sector sector
+  /// \param region region
+  /// \param urow row of the ungrouped IDCs
+  /// \param upad pad number of the ungrouped IDCs
+  /// \param integrationInterval integration interval
+  static unsigned int getUngroupedIndexGlobal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int integrationInterval) { return (integrationInterval * SECTORSPERSIDE + sector % SECTORSPERSIDE) * Mapper::getPadsInSector() + Mapper::GLOBALPADOFFSET[region] + Mapper::OFFSETCRULOCAL[region][urow] + upad; }
 
  protected:
   ParameterIDCGroupCCDB mGroupingPar{};                                  ///< struct containg the grouping parameter
@@ -85,21 +119,8 @@ class IDCGroupHelperSector
   std::array<std::vector<unsigned int>, Mapper::NREGIONS> mPadsPerRow{}; ///< number of pads per row per region
   std::array<std::vector<unsigned int>, Mapper::NREGIONS> mOffsRow{};    ///< offset to calculate the index in the data from row and pad per region
 
-  void initIDCGroupHelperSector()
-  {
-    for (unsigned int reg = 0; reg < Mapper::NREGIONS; ++reg) {
-      const IDCGroupHelperRegion groupTmp(mGroupingPar.GroupPads[reg], mGroupingPar.GroupRows[reg], mGroupingPar.GroupLastRowsThreshold[reg], mGroupingPar.GroupLastPadsThreshold[reg], reg);
-      mNIDCsPerCRU[reg] = groupTmp.getNIDCsPerIntegrationInterval();
-      mRows[reg] = groupTmp.getNRows();
-      mPadsPerRow[reg] = groupTmp.getPadsPerRow();
-      mOffsRow[reg] = groupTmp.getRowOffset();
-      if (reg > 0) {
-        const unsigned int lastInd = reg - 1;
-        mRegionOffs[reg] = mRegionOffs[lastInd] + mNIDCsPerCRU[lastInd];
-      }
-    }
-    mNIDCsPerSector = static_cast<unsigned int>(std::accumulate(mNIDCsPerCRU.begin(), mNIDCsPerCRU.end(), decltype(mNIDCsPerCRU)::value_type(0)));
-  }
+  /// init function for setting the members
+  void initIDCGroupHelperSector();
 
   ClassDefNV(IDCGroupHelperSector, 1)
 };

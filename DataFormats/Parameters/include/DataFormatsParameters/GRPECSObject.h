@@ -34,7 +34,7 @@ class GRPECSObject
   using DetID = o2::detectors::DetID;
 
  public:
-  using timePoint = std::time_t;
+  using timePoint = uint64_t;
 
   enum ROMode : int { ABSENT = 0,
                       PRESENT = 0x1,
@@ -102,7 +102,7 @@ class GRPECSObject
   /// print itself
   void print() const;
 
-  static GRPECSObject* loadFrom(const std::string& grpecsFileName = "", const std::string& grpecsName = "GRPECS");
+  static GRPECSObject* loadFrom(const std::string& grpecsFileName = "");
 
  private:
   timePoint mTimeStart = 0; ///< DAQ_time_start entry from DAQ logbook

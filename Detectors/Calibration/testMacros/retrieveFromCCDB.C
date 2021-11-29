@@ -33,7 +33,7 @@ void retrieveFromCCDB(int maxTFs = 8, float procTimeSec = 10.,
 {
   ccdbManPool.resize(1 + maxTFs);
   ccdbManPoolFlag.resize(ccdbManPool.size(), false); // nothig is used at the moment
-  LOG(INFO) << "Caching is " << (allowCaching ? "ON" : "OFF");
+  LOG(info) << "Caching is " << (allowCaching ? "ON" : "OFF");
   for (auto& mgr : ccdbManPool) {
     mgr = std::make_unique<CcdbManager>(ccdbHost.c_str());
     mgr->setCaching(allowCaching);
@@ -54,7 +54,7 @@ void retrieveFromCCDB(int maxTFs = 8, float procTimeSec = 10.,
       }
       std::thread th(retrieve, std::cref(objs), procTimeSec, ccdbID, std::ref(nTFs), tfID++);
       th.detach();
-      LOG(INFO) << nTFs << " TFs currently in processing";
+      LOG(info) << nTFs << " TFs currently in processing";
     } else {
       usleep(long(procTimeSec * (0.01e6)));
     }
@@ -75,7 +75,7 @@ void retrieve(const std::vector<CCDBObj>& objs, float procTimeSec, int ccdbID, s
     auto now_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
     auto timeStamp = now_ms.time_since_epoch();
     std::vector<uint8_t>* ob = mgr->getForTimeStamp<std::vector<uint8_t>>(o.path, timeStamp.count());
-    LOG(DEBUG) << "Retrieved object " << o.path << " of size " << ob->size() << " Bytes"
+    LOG(debug) << "Retrieved object " << o.path << " of size " << ob->size() << " Bytes"
                << " for TF " << tfID;
     if (!mgr->isCachingEnabled()) { // we can delete object only when caching is disabled
       delete ob;
@@ -85,7 +85,7 @@ void retrieve(const std::vector<CCDBObj>& objs, float procTimeSec, int ccdbID, s
   usleep(long(procTimeSec * (1. - tfrac) * 1e6));
   std::chrono::duration<double, std::ratio<1, 1>> elapsedSeconds = std::chrono::high_resolution_clock::now() - startTime;
   std::chrono::duration<double, std::ratio<1, 1>> retTime = ret_end - ret_start;
-  LOG(INFO) << "Finished TF " << tfID << " elapsed time " << elapsedSeconds.count() << " s., CCDB query time: " << retTime.count() << " s.";
+  LOG(info) << "Finished TF " << tfID << " elapsed time " << elapsedSeconds.count() << " s., CCDB query time: " << retTime.count() << " s.";
   n--;
   ccdbManPoolFlag[ccdbID] = false; // release the manager
 }

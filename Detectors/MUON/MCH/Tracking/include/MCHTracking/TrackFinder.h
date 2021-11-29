@@ -25,7 +25,7 @@
 #include <vector>
 #include <utility>
 
-#include "MCHTracking/Cluster.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFitter.h"
 
@@ -48,7 +48,7 @@ class TrackFinder
 
   void init(float l3Current, float dipoleCurrent);
 
-  const std::list<Track>& findTracks(const std::unordered_map<int, std::list<Cluster>>& clusters);
+  const std::list<Track>& findTracks(const std::unordered_map<int, std::list<const Cluster*>>& clusters);
 
   /// set the debug level defining the verbosity
   void debug(int debugLevel) { mDebugLevel = debugLevel; }
@@ -128,7 +128,8 @@ class TrackFinder
 
   TrackFitter mTrackFitter{}; /// track fitter
 
-  std::array<std::vector<std::pair<const int, const std::list<Cluster>*>>, 32> mClusters{}; ///< array of pointers to the lists of clusters per DE
+  /// array of pointers to the lists of clusters per DE
+  std::array<std::vector<std::pair<const int, const std::list<const Cluster*>*>>, 32> mClusters{};
 
   std::list<Track> mTracks{}; ///< list of reconstructed tracks
 

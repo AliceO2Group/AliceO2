@@ -35,9 +35,13 @@
 #include "Framework/WorkflowSpec.h"
 
 #include "DataFormatsMCH/ROFRecord.h"
-#include "DataFormatsMCH/Digit.h"
 #include "MCHBase/PreCluster.h"
 #include "MCHPreClustering/PreClusterFinder.h"
+#include "SanityCheck.h"
+
+#include <iostream>
+#include <chrono>
+#include <vector>
 
 namespace o2
 {
@@ -60,21 +64,21 @@ class PreClusterFinderTask
   void init(framework::InitContext& ic)
   {
     /// Prepare the preclusterizer
-    LOG(INFO) << "initializing preclusterizer";
+    LOG(info) << "initializing preclusterizer";
 
     mPreClusterFinder.init();
 
     auto stop = [this]() {
-      LOG(INFO) << "reset precluster finder duration = " << mTimeResetPreClusterFinder.count() << " ms";
-      LOG(INFO) << "load digits duration = " << mTimeLoadDigits.count() << " ms";
-      LOG(INFO) << "discard high occupancy duration = " << mTimeDiscardHighOccupancy.count() << " ms";
-      LOG(INFO) << "precluster finder duration = " << mTimePreClusterFinder.count() << " ms";
-      LOG(INFO) << "store precluster duration = " << mTimeStorePreClusters.count() << " ms";
+      LOG(info) << "reset precluster finder duration = " << mTimeResetPreClusterFinder.count() << " ms";
+      LOG(info) << "load digits duration = " << mTimeLoadDigits.count() << " ms";
+      LOG(info) << "discard high occupancy duration = " << mTimeDiscardHighOccupancy.count() << " ms";
+      LOG(info) << "precluster finder duration = " << mTimePreClusterFinder.count() << " ms";
+      LOG(info) << "store precluster duration = " << mTimeStorePreClusters.count() << " ms";
       /// Clear the preclusterizer
       auto tStart = std::chrono::high_resolution_clock::now();
       this->mPreClusterFinder.deinit();
       auto tEnd = std::chrono::high_resolution_clock::now();
-      LOG(INFO) << "deinitializing preclusterizer in: "
+      LOG(info) << "deinitializing preclusterizer in: "
                 << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms";
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
@@ -89,6 +93,7 @@ class PreClusterFinderTask
     }
     mDiscardHighOccDEs = ic.options().get<bool>("discard-high-occupancy-des");
     mDiscardHighOccEvents = ic.options().get<bool>("discard-high-occupancy-events");
+    mSanityCheck = ic.options().get<bool>("sanity-check");
   }
 
   //_________________________________________________________________________________________________
@@ -100,74 +105,94 @@ class PreClusterFinderTask
     auto digitROFs = pc.inputs().get<gsl::span<ROFRecord>>("digitrofs");
     auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
 
-    //LOG(INFO) << "received time frame with " << digitROFs.size() << " interactions";
+    bool abort{false};
+    if (mSanityCheck) {
+      auto error = sanityCheck(digitROFs, digits);
+
+      if (!isOK(error)) {
+        if (error.nofOutOfBounds > 0) {
+          // FIXME: replace this error log with a counters' message ?
+          LOGP(error, asString(error));
+          LOGP(error, "in a TF with {} rofs and {} digits", digitROFs.size(), digits.size());
+          abort = true;
+        }
+      }
+    }
 
     // create the output message for precluster ROFs
     auto& preClusterROFs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"preclusterrofs"});
-    preClusterROFs.reserve(digitROFs.size());
 
     // prepare to receive new data
     mPreClusters.clear();
     mUsedDigits.clear();
-    mUsedDigits.reserve(digits.size());
-    int nRemovedDigits(0);
 
-    for (const auto& digitROF : digitROFs) {
+    if (!abort) {
 
-      //LOG(INFO) << "processing interaction: " << digitROF.getBCData() << "...";
+      preClusterROFs.reserve(digitROFs.size());
+      mUsedDigits.reserve(digits.size());
+      int nRemovedDigits(0);
 
-      // prepare to receive new data
-      auto tStart = std::chrono::high_resolution_clock::now();
-      mPreClusterFinder.reset();
-      auto tEnd = std::chrono::high_resolution_clock::now();
-      mTimeResetPreClusterFinder += tEnd - tStart;
+      for (const auto& digitROF : digitROFs) {
 
-      // load the digits to get the fired pads
-      tStart = std::chrono::high_resolution_clock::now();
-      mPreClusterFinder.loadDigits(digits.subspan(digitROF.getFirstIdx(), digitROF.getNEntries()));
-      tEnd = std::chrono::high_resolution_clock::now();
-      mTimeLoadDigits += tEnd - tStart;
+        // prepare to receive new data
+        auto tStart = std::chrono::high_resolution_clock::now();
+        mPreClusterFinder.reset();
+        auto tEnd = std::chrono::high_resolution_clock::now();
+        mTimeResetPreClusterFinder += tEnd - tStart;
 
-      // discard high-occupancy (noisy) DEs and/or events
-      tStart = std::chrono::high_resolution_clock::now();
-      nRemovedDigits += mPreClusterFinder.discardHighOccupancy(mDiscardHighOccDEs, mDiscardHighOccEvents);
-      tEnd = std::chrono::high_resolution_clock::now();
-      mTimeDiscardHighOccupancy += tEnd - tStart;
+        // load the digits to get the fired pads
+        tStart = std::chrono::high_resolution_clock::now();
+        mPreClusterFinder.loadDigits(digits.subspan(digitROF.getFirstIdx(), digitROF.getNEntries()));
+        tEnd = std::chrono::high_resolution_clock::now();
+        mTimeLoadDigits += tEnd - tStart;
 
-      // preclusterize
-      tStart = std::chrono::high_resolution_clock::now();
-      int nPreClusters = mPreClusterFinder.run();
-      tEnd = std::chrono::high_resolution_clock::now();
-      mTimePreClusterFinder += tEnd - tStart;
+        // discard high-occupancy (noisy) DEs and/or events
+        tStart = std::chrono::high_resolution_clock::now();
+        nRemovedDigits += mPreClusterFinder.discardHighOccupancy(mDiscardHighOccDEs, mDiscardHighOccEvents);
+        tEnd = std::chrono::high_resolution_clock::now();
+        mTimeDiscardHighOccupancy += tEnd - tStart;
 
-      // get the preclusters and associated digits
-      tStart = std::chrono::high_resolution_clock::now();
-      preClusterROFs.emplace_back(digitROF.getBCData(), mPreClusters.size(), nPreClusters, digitROF.getBCWidth());
-      mPreClusterFinder.getPreClusters(mPreClusters, mUsedDigits);
-      tEnd = std::chrono::high_resolution_clock::now();
-      mTimeStorePreClusters += tEnd - tStart;
+        // preclusterize
+        tStart = std::chrono::high_resolution_clock::now();
+        int nPreClusters = mPreClusterFinder.run();
+        tEnd = std::chrono::high_resolution_clock::now();
+        mTimePreClusterFinder += tEnd - tStart;
+
+        // get the preclusters and associated digits
+        tStart = std::chrono::high_resolution_clock::now();
+        preClusterROFs.emplace_back(digitROF.getBCData(), mPreClusters.size(), nPreClusters, digitROF.getBCWidth());
+        mPreClusterFinder.getPreClusters(mPreClusters, mUsedDigits);
+        tEnd = std::chrono::high_resolution_clock::now();
+        mTimeStorePreClusters += tEnd - tStart;
+      }
+
+      // check sizes of input and output digits vectors
+      bool digitsSizesDiffer = (nRemovedDigits + mUsedDigits.size() != digits.size());
+      switch (mCheckNoLeftoverDigits) {
+        case CHECK_NO_LEFTOVER_DIGITS_OFF:
+          break;
+        case CHECK_NO_LEFTOVER_DIGITS_ERROR:
+          if (digitsSizesDiffer) {
+            LOG(error) << "some digits have been lost during the preclustering";
+          }
+          break;
+        case CHECK_NO_LEFTOVER_DIGITS_FATAL:
+          if (digitsSizesDiffer) {
+            throw runtime_error("some digits have been lost during the preclustering");
+          }
+          break;
+      };
     }
-
-    // check sizes of input and output digits vectors
-    bool digitsSizesDiffer = (nRemovedDigits + mUsedDigits.size() != digits.size());
-    switch (mCheckNoLeftoverDigits) {
-      case CHECK_NO_LEFTOVER_DIGITS_OFF:
-        break;
-      case CHECK_NO_LEFTOVER_DIGITS_ERROR:
-        if (digitsSizesDiffer) {
-          LOG(ERROR) << "some digits have been lost during the preclustering";
-        }
-        break;
-      case CHECK_NO_LEFTOVER_DIGITS_FATAL:
-        if (digitsSizesDiffer) {
-          throw runtime_error("some digits have been lost during the preclustering");
-        }
-        break;
-    };
 
     // create the output messages for preclusters and associated digits
     pc.outputs().snapshot(OutputRef{"preclusters"}, mPreClusters);
     pc.outputs().snapshot(OutputRef{"preclusterdigits"}, mUsedDigits);
+
+    LOGP(info, "Processed {} digit rofs with {} digits and output {} precluster rofs with {} preclusters and {} digits",
+         digitROFs.size(),
+         digits.size(),
+         preClusterROFs.size(),
+         mPreClusters.size(), mUsedDigits.size());
   }
 
  private:
@@ -175,10 +200,10 @@ class PreClusterFinderTask
   std::vector<PreCluster> mPreClusters{}; ///< vector of preclusters
   std::vector<Digit> mUsedDigits{};       ///< vector of digits in the preclusters
 
-  int mCheckNoLeftoverDigits{CHECK_NO_LEFTOVER_DIGITS_ERROR}; ///< digits vector size check option
-  bool mDiscardHighOccDEs = false;                            ///< discard DEs with occupancy > 20%
-  bool mDiscardHighOccEvents = false;                         ///< discard events with >= 5 DEs above 20% occupancy
-
+  int mCheckNoLeftoverDigits{CHECK_NO_LEFTOVER_DIGITS_ERROR};             ///< digits vector size check option
+  bool mDiscardHighOccDEs = false;                                        ///< discard DEs with occupancy > 20%
+  bool mDiscardHighOccEvents = false;                                     ///< discard events with >= 5 DEs above 20% occupancy
+  bool mSanityCheck = false;                                              ///< perform some input digit sanity checks
   std::chrono::duration<double, std::milli> mTimeResetPreClusterFinder{}; ///< timer
   std::chrono::duration<double, std::milli> mTimeLoadDigits{};            ///< timer
   std::chrono::duration<double, std::milli> mTimeDiscardHighOccupancy{};  ///< timer
@@ -188,12 +213,15 @@ class PreClusterFinderTask
 
 //_________________________________________________________________________________________________
 o2::framework::DataProcessorSpec getPreClusterFinderSpec(const char* specName,
-                                                         const char* digitRofDataDescription)
+                                                         std::string_view inputDigitDataDescription,
+                                                         std::string_view inputDigitRofDataDescription)
 {
-  std::string input = "digits:MCH/DIGITS/0;";
-  input += fmt::format("digitrofs:MCH/{}/0", digitRofDataDescription);
-
+  std::string input =
+    fmt::format("digits:MCH/{}/0;digitrofs:MCH/{}/0",
+                inputDigitDataDescription,
+                inputDigitRofDataDescription);
   std::string helpstr = "[off/error/fatal] check that all digits are included in pre-clusters";
+
   return DataProcessorSpec{
     specName,
     o2::framework::select(input.c_str()),
@@ -202,6 +230,7 @@ o2::framework::DataProcessorSpec getPreClusterFinderSpec(const char* specName,
             OutputSpec{{"preclusterdigits"}, "MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<PreClusterFinderTask>()},
     Options{{"check-no-leftover-digits", VariantType::String, "error", {helpstr}},
+            {{"sanity-check"}, VariantType::Bool, false, {"perform some input digit sanity checks"}},
             {"discard-high-occupancy-des", VariantType::Bool, false, {"discard DEs with occupancy > 20%"}},
             {"discard-high-occupancy-events", VariantType::Bool, false, {"discard events with >= 5 DEs above 20% occupancy"}}}};
 }

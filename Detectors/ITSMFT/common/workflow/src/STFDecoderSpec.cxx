@@ -66,10 +66,10 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mDecoder->setUserDataDescription(dataDesc);
     mDecoder->init();
   } catch (const std::exception& e) {
-    LOG(ERROR) << "exception was thrown in decoder creation: " << e.what();
+    LOG(error) << "exception was thrown in decoder creation: " << e.what();
     throw;
   } catch (...) {
-    LOG(ERROR) << "non-std::exception was thrown in decoder creation";
+    LOG(error) << "non-std::exception was thrown in decoder creation";
     throw;
   }
 
@@ -95,15 +95,15 @@ void STFDecoder<Mapping>::init(InitContext& ic)
       TFile* f = TFile::Open(mNoiseName.data(), "old");
       auto pnoise = (NoiseMap*)f->Get("ccdb_object");
       AlpideCoder::setNoisyPixels(pnoise);
-      LOG(INFO) << mSelfName << " loading noise map file: " << mNoiseName;
+      LOG(info) << mSelfName << " loading noise map file: " << mNoiseName;
     } else {
-      LOG(INFO) << mSelfName << " Noise file " << mNoiseName << " is absent, " << Mapping::getName() << " running without noise suppression";
+      LOG(info) << mSelfName << " Noise file " << mNoiseName << " is absent, " << Mapping::getName() << " running without noise suppression";
     }
   } catch (const std::exception& e) {
-    LOG(ERROR) << "exception was thrown in decoder configuration: " << e.what();
+    LOG(error) << "exception was thrown in decoder configuration: " << e.what();
     throw;
   } catch (...) {
-    LOG(ERROR) << "non-std::exception was thrown in decoder configuration";
+    LOG(error) << "non-std::exception was thrown in decoder configuration";
     throw;
   }
 
@@ -128,16 +128,16 @@ void STFDecoder<Mapping>::init(InitContext& ic)
 
       if (o2::utils::Str::pathExists(mDictName)) {
         mClusterer->loadDictionary(mDictName);
-        LOG(INFO) << mSelfName << " clusterer running with a provided dictionary: " << mDictName;
+        LOG(info) << mSelfName << " clusterer running with a provided dictionary: " << mDictName;
       } else {
-        LOG(INFO) << mSelfName << " Dictionary " << mDictName << " is absent, " << Mapping::getName() << " clusterer expects cluster patterns";
+        LOG(info) << mSelfName << " Dictionary " << mDictName << " is absent, " << Mapping::getName() << " clusterer expects cluster patterns";
       }
       mClusterer->print();
     } catch (const std::exception& e) {
-      LOG(ERROR) << "exception was thrown in clustrizer configuration: " << e.what();
+      LOG(error) << "exception was thrown in clustrizer configuration: " << e.what();
       throw;
     } catch (...) {
-      LOG(ERROR) << "non-std::exception was thrown in clusterizer configuration";
+      LOG(error) << "non-std::exception was thrown in clusterizer configuration";
       throw;
     }
   }
@@ -215,14 +215,14 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   }
 
   if (mDoClusters) {
-    LOG(INFO) << mSelfName << " Built " << clusCompVec.size() << " clusters in " << clusROFVec.size() << " ROFs";
+    LOG(info) << mSelfName << " Built " << clusCompVec.size() << " clusters in " << clusROFVec.size() << " ROFs";
   }
   if (mDoDigits) {
-    LOG(INFO) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs";
+    LOG(info) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs";
   }
   mTimer.Stop();
   auto tfID = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter;
-  LOG(INFO) << mSelfName << " Total time for TF " << tfID << '(' << mTFCounter << ") : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
+  LOG(info) << mSelfName << " Total time for TF " << tfID << '(' << mTFCounter << ") : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
   mTFCounter++;
 }
 ///_______________________________________
@@ -233,8 +233,8 @@ void STFDecoder<Mapping>::finalize()
     return;
   }
   mFinalizeDone = true;
-  LOGF(INFO, "%s statistics:", mSelfName);
-  LOGF(INFO, "%s Total STF decoding%s timing (w/o disk IO): Cpu: %.3e Real: %.3e s in %d slots", mSelfName,
+  LOGF(info, "%s statistics:", mSelfName);
+  LOGF(info, "%s Total STF decoding%s timing (w/o disk IO): Cpu: %.3e Real: %.3e s in %d slots", mSelfName,
        mDoClusters ? "/clustering" : "", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   if (mDecoder && mAllowReporting) {
     mDecoder->printReport();

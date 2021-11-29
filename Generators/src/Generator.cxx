@@ -96,7 +96,7 @@ Bool_t
   auto header = primGen->GetEvent();
   auto o2header = dynamic_cast<o2::dataformats::MCEventHeader*>(header);
   if (!header) {
-    LOG(FATAL) << "MC event header is not a 'o2::dataformats::MCEventHeader' object";
+    LOG(fatal) << "MC event header is not a 'o2::dataformats::MCEventHeader' object";
     return kFALSE;
   }
   updateHeader(o2header);
@@ -114,7 +114,7 @@ Bool_t
 
   auto o2primGen = dynamic_cast<PrimaryGenerator*>(primGen);
   if (!o2primGen) {
-    LOG(FATAL) << "PrimaryGenerator is not a o2::eventgen::PrimaryGenerator";
+    LOG(fatal) << "PrimaryGenerator is not a o2::eventgen::PrimaryGenerator";
     return kFALSE;
   }
 

@@ -96,12 +96,12 @@ inline void TrackLTF::setPoint(const Cluster& cl, const Int_t layer, const Int_t
   auto nPoints = getNumberOfPoints();
   if (nPoints > 0) {
     if (mZ[nPoints - 1] == cl.getZ()) {
-      LOG(WARN) << "MFT TrackLTF: skipping setPoint (1 cluster per layer!)";
+      LOG(warn) << "MFT TrackLTF: skipping setPoint (1 cluster per layer!)";
       return;
     }
   }
   if (nPoints > constants::mft::LayersNumber) {
-    LOG(WARN) << "MFT TrackLTF Overflow";
+    LOG(warn) << "MFT TrackLTF Overflow";
     return;
   }
   mX[nPoints] = cl.getX();

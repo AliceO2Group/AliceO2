@@ -41,7 +41,7 @@ void Config()
 
 void MCReplayConfig()
 {
-  LOG(INFO) << "Setting up MCReplay sim from library code";
+  LOG(info) << "Setting up MCReplay sim from library code";
   Config();
 }
 

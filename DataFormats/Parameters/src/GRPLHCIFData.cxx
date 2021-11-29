@@ -13,6 +13,7 @@
 /// \brief Implementation of the LHC InterFace data
 
 #include "DataFormatsParameters/GRPLHCIFData.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "CommonConstants/PhysicsConstants.h"
 #include <cmath>
 #include <FairLogger.h>
@@ -33,14 +34,14 @@ void GRPLHCIFData::setBeamAZ(beamDirection beam)
   if (beam == beamDirection::BeamClockWise) {
     auto atomicNum = mZtoA.find(getAtomicNumberB1());
     if (atomicNum == mZtoA.end()) {
-      LOG(FATAL) << "We don't know the Mass Number for Z = " << getAtomicNumberB1();
+      LOG(fatal) << "We don't know the Mass Number for Z = " << getAtomicNumberB1();
     } else {
       mBeamAZ[static_cast<int>(beam)] = (atomicNum->second << 16) + getAtomicNumberB1();
     }
   } else {
     auto atomicNum = mZtoA.find(getAtomicNumberB2());
     if (atomicNum == mZtoA.end()) {
-      LOG(FATAL) << "We don't know the Mass Number for Z = " << getAtomicNumberB2();
+      LOG(fatal) << "We don't know the Mass Number for Z = " << getAtomicNumberB2();
     } else {
       mBeamAZ[static_cast<int>(beam)] = (atomicNum->second << 16) + getAtomicNumberB2();
     }
@@ -81,4 +82,21 @@ void GRPLHCIFData::translateBucketsToBCNumbers(std::vector<int32_t>& bcNb, std::
   for (auto i : buckets) {
     bcNb.push_back(i = 0 ? 0 : (i / 10 + o2::constants::lhc::BunchOffsetsP2[beam]) % o2::constants::lhc::LHCMaxBunches);
   }
+}
+
+//_______________________________________________
+GRPLHCIFData* GRPLHCIFData::loadFrom(const std::string& grpFileName)
+{
+  // load object from file
+  auto fname = o2::base::NameConf::getGRPFileName(grpFileName);
+  TFile flGRP(fname.c_str());
+  if (flGRP.IsZombie()) {
+    LOG(error) << "Failed to open " << fname;
+    throw std::runtime_error("Failed to open GRPLHCIF file");
+  }
+  auto grp = reinterpret_cast<o2::parameters::GRPLHCIFData*>(flGRP.GetObjectChecked(o2::base::NameConf::CCDBOBJECT.data(), Class()));
+  if (!grp) {
+    throw std::runtime_error(fmt::format("Failed to load GRPLHCIF object from {}", fname));
+  }
+  return grp;
 }

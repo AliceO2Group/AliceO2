@@ -188,14 +188,14 @@ void CTFCoder::decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdig
     digCopy.resize(cc.ndigROF[irof]);
     for (uint32_t idig = 0; idig < cc.ndigROF[irof]; idig++) {
       auto& digit = digCopy[idig]; //cdigVec[digCount];
-      LOGF(DEBUG, "%d) TF=%d, TDC=%d, STRIP=%d, CH=%d", idig, cc.timeFrameInc[digCount], cc.timeTDCInc[digCount], cc.stripID[digCount], cc.chanInStrip[digCount]);
+      LOGF(debug, "%d) TF=%d, TDC=%d, STRIP=%d, CH=%d", idig, cc.timeFrameInc[digCount], cc.timeTDCInc[digCount], cc.stripID[digCount], cc.chanInStrip[digCount]);
       if (cc.timeFrameInc[digCount]) { // new time frame
         ctdc = cc.timeTDCInc[digCount];
         ctimeframe += cc.timeFrameInc[digCount];
       } else {
         ctdc += cc.timeTDCInc[digCount];
       }
-      LOGF(DEBUG, "BC=%ld, TDC=%d, TOT=%d, CH=%d", uint32_t(ctimeframe) * 64 + ctdc / 1024 + BCrow, ctdc % 1024, cc.tot[digCount], uint32_t(cc.stripID[digCount]) * 96 + cc.chanInStrip[digCount]);
+      LOGF(debug, "BC=%ld, TDC=%d, TOT=%d, CH=%d", uint32_t(ctimeframe) * 64 + ctdc / 1024 + BCrow, ctdc % 1024, cc.tot[digCount], uint32_t(cc.stripID[digCount]) * 96 + cc.chanInStrip[digCount]);
 
       digit.setBC(uint32_t(ctimeframe) * 64 + ctdc / 1024 + BCrow);
       digit.setTDC(ctdc % 1024);
@@ -228,7 +228,7 @@ void CTFCoder::decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdig
   assert(digCount == cc.header.nDigits);
 
   if (digCount != cc.header.nDigits) {
-    LOG(ERROR) << "expected " << cc.header.nDigits << " but counted " << digCount << " in ROFRecords";
+    LOG(error) << "expected " << cc.header.nDigits << " but counted " << digCount << " in ROFRecords";
     throw std::runtime_error("mismatch between expected and counter number of digits");
   }
 }

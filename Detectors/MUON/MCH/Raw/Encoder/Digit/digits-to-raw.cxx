@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
   // first things first : check the input path actually exists
   std::ifstream in(input);
   if (!in) {
-    LOGF(FATAL, "could not open input file {}", input);
+    LOGF(fatal, "could not open input file {}", input);
     exit(2);
   }
 

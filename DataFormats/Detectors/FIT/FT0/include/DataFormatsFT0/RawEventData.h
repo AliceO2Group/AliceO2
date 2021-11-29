@@ -63,17 +63,17 @@ class RawEventData
     if (!tcm) {
       std::memcpy(out, &mEventHeader, sPayloadSize);
       out += sPayloadSize;
-      LOG(DEBUG) << "write header words " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc) << " out " << result.size();
+      LOG(debug) << "write header words " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc) << " out " << result.size();
       if (mIsPadded) {
         out += CRUWordSize - sPayloadSize;
       }
       for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
         std::memcpy(out, &mEventData[2 * i], sPayloadSizeFirstWord);
-        LOG(DEBUG) << " 1st word " << mEventData[2 * i].channelID << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " out " << result.size();
+        LOG(debug) << " 1st word " << mEventData[2 * i].channelID << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " out " << result.size();
         out += sPayloadSizeFirstWord;
         std::memcpy(out, &mEventData[2 * i + 1], sPayloadSizeSecondWord);
         out += sPayloadSizeSecondWord;
-        LOG(DEBUG) << " 2nd word " << mEventData[2 * i + 1].channelID << " charge " << mEventData[2 * i + 1].charge << " time " << mEventData[2 * i + 1].time << " out " << result.size();
+        LOG(debug) << " 2nd word " << mEventData[2 * i + 1].channelID << " charge " << mEventData[2 * i + 1].charge << " time " << mEventData[2 * i + 1].time << " out " << result.size();
         if (mIsPadded) {
           out += CRUWordSize - sPayloadSizeSecondWord - sPayloadSizeFirstWord;
         }
@@ -82,10 +82,10 @@ class RawEventData
       // TCM data
       std::memcpy(out, &mEventHeader, sPayloadSize);
       out += sPayloadSize;
-      LOG(DEBUG) << "write TCM header words " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc) << " out " << result.size();
+      LOG(debug) << "write TCM header words " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc) << " out " << result.size();
       std::memcpy(out, &mTCMdata, sizeof(TCMdata));
       out += sizeof(TCMdata);
-      LOG(DEBUG) << "write TCM words " << sizeof(mTCMdata) << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc) << " out " << result.size() << " sum time A " << mTCMdata.timeA;
+      LOG(debug) << "write TCM words " << sizeof(mTCMdata) << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc) << " out " << result.size() << " sum time A " << mTCMdata.timeA;
     }
 
     return result;
@@ -126,7 +126,7 @@ class DataPageWriter
       str.write(reinterpret_cast<const char*>(&mRDH), sizeof(mRDH));
       str.write(mPages[page].data(), mPages[page].size());
       mRDH.pageCnt++;
-      LOG(INFO) << " header " << mRDH.linkID << " end " << mRDH.endPointID;
+      LOG(info) << " header " << mRDH.linkID << " end " << mRDH.endPointID;
     }
     if (!mPages.empty()) {
       mRDH.memorySize = mRDH.headerSize;
@@ -145,7 +145,7 @@ class DataPageWriter
       return;
     }
     mPages.emplace_back(std::move(mBuffer));
-    LOG(DEBUG) << " writePage " << mBuffer.size();
+    LOG(debug) << " writePage " << mBuffer.size();
     mNpackets.push_back(mNpacketsInBuffer);
     mNpacketsInBuffer = 0;
     mBuffer.clear();
@@ -154,13 +154,13 @@ class DataPageWriter
   void write(std::vector<char> const& new_data)
   {
     if (mBuffer.size() + new_data.size() + mRDH.headerSize > MAX_Page_size) {
-      LOG(DEBUG) << " write rest " << mBuffer.size() << " " << new_data.size() << " " << mRDH.headerSize;
+      LOG(debug) << " write rest " << mBuffer.size() << " " << new_data.size() << " " << mRDH.headerSize;
       writePage();
     }
-    LOG(DEBUG) << "  write vector " << new_data.size() << " buffer " << mBuffer.size() << " RDH " << mRDH.headerSize << " new data " << new_data.data();
+    LOG(debug) << "  write vector " << new_data.size() << " buffer " << mBuffer.size() << " RDH " << mRDH.headerSize << " new data " << new_data.data();
     mBuffer.insert(mBuffer.end(), new_data.begin(), new_data.end());
     mNpacketsInBuffer++;
-    LOG(DEBUG) << "  write vector end mBuffer.size " << mBuffer.size() << " mNpacketsInBuffer " << mNpacketsInBuffer << " newdtata " << new_data.size();
+    LOG(debug) << "  write vector end mBuffer.size " << mBuffer.size() << " mNpacketsInBuffer " << mNpacketsInBuffer << " newdtata " << new_data.size();
   }
 };
 } // namespace ft0

@@ -45,22 +45,22 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto doBadMap = configcontext.options().get<bool>("badmap");
   auto path = configcontext.options().get<std::string>("path");
   if (doPedestals && doGain) {
-    LOG(FATAL) << "Can not run pedestal and gain calibration simulteneously";
+    LOG(fatal) << "Can not run pedestal and gain calibration simulteneously";
   }
 
-  LOG(INFO) << "CPV Calibration workflow: options";
-  LOG(INFO) << "useCCDB = " << useCCDB;
+  LOG(info) << "CPV Calibration workflow: options";
+  LOG(info) << "useCCDB = " << useCCDB;
   if (doPedestals) {
-    LOG(INFO) << "pedestals ";
+    LOG(info) << "pedestals ";
     specs.emplace_back(o2::cpv::getPedestalCalibSpec(useCCDB, forceUpdate, path));
   } else {
     if (doGain) {
-      LOG(INFO) << "gain calculation";
+      LOG(info) << "gain calculation";
       specs.emplace_back(o2::cpv::getGainCalibSpec(useCCDB, forceUpdate, path));
     }
   }
   if (doBadMap) {
-    LOG(INFO) << "bad map calculation ";
+    LOG(info) << "bad map calculation ";
     short m = 0;
     specs.emplace_back(o2::cpv::getBadMapCalibSpec(useCCDB, forceUpdate, path, m));
   }

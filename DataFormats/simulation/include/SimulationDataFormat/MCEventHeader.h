@@ -70,7 +70,7 @@ class MCEventHeader : public FairMCEventHeader
     auto& ref = mEventInfo.getRef<T>(key, state);
     isvalid = (state == o2::utils::RootSerializableKeyValueStore::GetState::kOK);
     if (!isvalid) {
-      LOG(WARNING) << "problem retrieving info '" << key << "': " << o2::utils::RootSerializableKeyValueStore::getStateString(state);
+      LOG(warning) << "problem retrieving info '" << key << "': " << o2::utils::RootSerializableKeyValueStore::getStateString(state);
     }
     return ref;
   };

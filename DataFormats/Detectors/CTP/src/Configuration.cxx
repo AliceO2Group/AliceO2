@@ -70,14 +70,14 @@ void CTPClass::printStream(std::ostream& stream) const
 bool CTPConfiguration::isDetector(const o2::detectors::DetID& det)
 {
   if (det.getID() >= det.getNDetectors()) {
-    LOG(FATAL) << " Detector does not exist: " << det.getName();
+    LOG(fatal) << " Detector does not exist: " << det.getName();
     return false;
   }
   return true;
 }
 int CTPConfiguration::loadConfiguration(const std::string& ctpconfiguration)
 {
-  LOG(INFO) << "Loading CTP configuration.";
+  LOG(info) << "Loading CTP configuration.";
   std::istringstream iss(ctpconfiguration);
   int ret = 0;
   int level = 0;
@@ -134,7 +134,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
       /// INPUTS: name det level indexCTP<0:45>
       {
         if (ntokens != 4) {
-          LOG(FATAL) << "INPUTS syntax error in, wrong number of items, expected 4:" << line;
+          LOG(fatal) << "INPUTS syntax error in, wrong number of items, expected 4:" << line;
           return level;
         }
         CTPInput inp;
@@ -148,7 +148,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
         try {
           inp.inputMask = std::stoull(tokens[3], nullptr, 0);
         } catch (...) {
-          LOG(FATAL) << "INPUTS syntax error in mask:" << line;
+          LOG(fatal) << "INPUTS syntax error in mask:" << line;
           return level;
         }
         mInputs.push_back(inp);
@@ -164,7 +164,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
           //CTPInput *inp = const_cast<CTPInput*> (isInputInConfig(item));
           CTPInput* inp = isInputInConfig(item);
           if (inp == nullptr) {
-            LOG(FATAL) << "DESCRIPTOR: input not in INPUTS:" << item << " LINE:" << line;
+            LOG(fatal) << "DESCRIPTOR: input not in INPUTS:" << item << " LINE:" << line;
           } else {
             desc.inputs.push_back(inp);
           }
@@ -194,14 +194,14 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
       {
         CTPClass cls;
         if (ntokens != 4) {
-          LOG(FATAL) << "CLASSES syntax error, wrong number of items, expected 4:" << line;
+          LOG(fatal) << "CLASSES syntax error, wrong number of items, expected 4:" << line;
           return level;
         }
         cls.name = tokens[0];
         try {
           cls.classMask = std::stoull(tokens[1]);
         } catch (...) {
-          LOG(FATAL) << "CLASSES syntax error in mask:" << line;
+          LOG(fatal) << "CLASSES syntax error in mask:" << line;
           return level;
         }
         std::string token = tokens[2];
@@ -210,7 +210,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
           cls.descriptor = &*it;
         } else {
           ///Internal error
-          LOG(FATAL) << "CLASSES syntax error, descriptor not found:" << token;
+          LOG(fatal) << "CLASSES syntax error, descriptor not found:" << token;
         }
         ///
         token = tokens[3];
@@ -219,13 +219,13 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
           cls.cluster = &*it2;
         } else {
           ///Internal error
-          LOG(FATAL) << "CLASSES syntax error, cluster not found:" << token;
+          LOG(fatal) << "CLASSES syntax error, cluster not found:" << token;
         }
         mCTPClasses.push_back(cls);
         break;
       }
     default: {
-      LOG(FATAL) << "CTP Config parser Unknown level:" << level;
+      LOG(fatal) << "CTP Config parser Unknown level:" << level;
     }
   }
   return 0;

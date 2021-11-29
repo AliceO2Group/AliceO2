@@ -34,12 +34,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           auto ref = inputs.get("somecondition");
           auto payloadSize = DataRefUtils::getPayloadSize(ref);
           if (payloadSize != 2048) {
-            LOGP(ERROR, "Wrong size for condition payload (expected {}, found {}", 2048, payloadSize);
+            LOGP(error, "Wrong size for condition payload (expected {}, found {}", 2048, payloadSize);
           }
           auto condition = inputs.get<o2::dataformats::CalibLHCphaseTOF*>("somecondition");
-          LOG(ERROR) << "Condition size" << condition->size();
+          LOG(error) << "Condition size" << condition->size();
           for (size_t pi = 0; pi < condition->size(); pi++) {
-            LOGP(INFO, "Phase at {} for timestamp {} is {}", pi, condition->timestamp(pi), condition->LHCphase(pi));
+            LOGP(info, "Phase at {} for timestamp {} is {}", pi, condition->timestamp(pi), condition->LHCphase(pi));
           }
           control.readyToQuit(QuitRequest::All);
         })},

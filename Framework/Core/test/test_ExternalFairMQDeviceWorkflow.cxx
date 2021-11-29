@@ -41,7 +41,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
-    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed)"; \
+    LOG(fatal) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
 std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
@@ -113,7 +113,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   // the compute callback of the checker
   auto counter = std::make_shared<int>(0);
   auto checkerCallback = [counter](InputRecord& inputs, ControlService& control) {
-    LOG(DEBUG) << "got inputs " << inputs.size();
+    LOG(debug) << "got inputs " << inputs.size();
     ASSERT_ERROR(inputs.get<int>("datain") == *counter);
     ++(*counter);
   };
@@ -164,7 +164,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     // the forwarded SourceInfoHeader created by the output proxy will be skipped here since the
     // input proxy handles this internally
     ASSERT_ERROR(!isData || !channelName.empty());
-    LOG(DEBUG) << "using channel '" << channelName << "' for " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification});
+    LOG(debug) << "using channel '" << channelName << "' for " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification});
     if (channelName.empty()) {
       return;
     }
@@ -178,7 +178,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     FairMQParts output;
     output.AddPart(std::move(outHeaderMessage));
     output.AddPart(std::move(inputs.At(msgidx + 1)));
-    LOG(DEBUG) << "sending " << DataSpecUtils::describe(OutputSpec{odh->dataOrigin, odh->dataDescription, odh->subSpecification});
+    LOG(debug) << "sending " << DataSpecUtils::describe(OutputSpec{odh->dataOrigin, odh->dataDescription, odh->subSpecification});
     o2::framework::sendOnChannel(device, output, channelName);
   };
 

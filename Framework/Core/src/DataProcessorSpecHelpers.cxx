@@ -9,14 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file  TrackInterpolationReaderSpec.cxx
+#include "Framework/DataProcessorSpecHelpers.h"
+#include <string>
+#include <algorithm>
 
-#include "TPCInterpolationWorkflow/TrackInterpolationReaderSpec.h"
-
-namespace o2
+namespace o2::framework
 {
-namespace tpc
+bool DataProcessorSpecHelpers::hasLabel(DataProcessorSpec const& spec, char const* label)
 {
-
-} // namespace tpc
-} // namespace o2
+  auto sameLabel = [other = DataProcessorLabel{{label}}](DataProcessorLabel const& label) { return label == other; };
+  return std::find_if(spec.labels.begin(), spec.labels.end(), sameLabel) != spec.labels.end();
+}
+} // namespace o2::framework

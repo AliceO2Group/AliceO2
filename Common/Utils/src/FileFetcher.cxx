@@ -46,10 +46,10 @@ FileFetcher::FileFetcher(const std::string& input, const std::string& selRegex, 
   // parse input list
   mCopyDirName = o2::utils::Str::create_unique_path(mCopyDirName, 8);
   processInput(input);
-  LOGP(INFO, "Input contains {} files, {} remote", getNFiles(), mNRemote);
+  LOGP(info, "Input contains {} files, {} remote", getNFiles(), mNRemote);
   if (mNRemote) {
     if (mNoRemoteCopy) { // make sure the copy command is provided, unless copy was explicitly forbidden
-      LOGP(INFO, "... but their local copying is explicitly forbidden");
+      LOGP(info, "... but their local copying is explicitly forbidden");
     } else {
       if (mCopyCmd.find("?src") == std::string::npos || mCopyCmd.find("?dst") == std::string::npos) {
         throw std::runtime_error(fmt::format("remote files asked but copy cmd \"{}\" is not valid", mCopyCmd));
@@ -60,7 +60,7 @@ FileFetcher::FileFetcher(const std::string& input, const std::string& selRegex, 
         throw std::runtime_error(fmt::format("failed to create scratch directory {}", mCopyDirName));
       }
       mCopyCmdLogFile = fmt::format("{}/{}", mCopyDirName, "copy-cmd.log");
-      LOGP(INFO, "FileFetcher tmp scratch directory is set to {}", mCopyDirName);
+      LOGP(info, "FileFetcher tmp scratch directory is set to {}", mCopyDirName);
     }
   }
 }
@@ -90,7 +90,7 @@ void FileFetcher::processInput(const std::vector<std::string>& input)
     } else if (mSelRegex && !std::regex_match(inp, *mSelRegex.get())) { // provided selector does not match, treat as a txt file with list
       std::ifstream listFile(inp);
       if (!listFile.good()) {
-        LOGP(ERROR, "file {} pretends to be a list of inputs but does not exist", inp);
+        LOGP(error, "file {} pretends to be a list of inputs but does not exist", inp);
         continue;
       }
       std::string line;
@@ -133,7 +133,7 @@ bool FileFetcher::addInputFile(const std::string& fname)
     mInputFiles.emplace_back(FileRef{fname, mNoRemoteCopy ? fname : createCopyName(fname), true, false});
     if (fname.find("alien:") == 0) {
       if (!gGrid && !TGrid::Connect("alien://") && !alienErrorPrinted) {
-        LOG(ERROR) << "File name starts with alien but connection to Grid failed";
+        LOG(error) << "File name starts with alien but connection to Grid failed";
         alienErrorPrinted = true;
       }
     }
@@ -141,7 +141,7 @@ bool FileFetcher::addInputFile(const std::string& fname)
   } else if (fs::exists(fname)) { // local file
     mInputFiles.emplace_back(FileRef{fname, "", false, false});
   } else {
-    LOGP(ERROR, "file {} pretends to be local but does not exist", fname);
+    LOGP(error, "file {} pretends to be local but does not exist", fname);
     return false;
   }
   return true;
@@ -227,7 +227,7 @@ void FileFetcher::cleanup()
     try {
       fs::remove_all(mCopyDirName);
     } catch (...) {
-      LOGP(ERROR, "FileFetcher failed to remove sctrach directory {}", mCopyDirName);
+      LOGP(error, "FileFetcher failed to remove sctrach directory {}", mCopyDirName);
     }
   }
 }
@@ -250,9 +250,9 @@ void FileFetcher::fetcher()
     setenv("LC_ALL", "C", 1);
     try {
       std::locale loc("");
-      LOG(INFO) << "Setting locale";
+      LOG(info) << "Setting locale";
     } catch (const std::exception& e) {
-      LOG(INFO) << "Setting locale failed: " << e.what();
+      LOG(info) << "Setting locale failed: " << e.what();
       return;
     }
   }
@@ -260,7 +260,7 @@ void FileFetcher::fetcher()
   while (mRunning) {
     mNLoops = mNFilesProc / getNFiles();
     if (mNLoops > mMaxLoops) {
-      LOGP(INFO, "Finished file fetching: {} of {} files fetched successfully in {} iterations", mNFilesProcOK, mNFilesProc, mMaxLoops);
+      LOGP(info, "Finished file fetching: {} of {} files fetched successfully in {} iterations", mNFilesProcOK, mNFilesProc, mMaxLoops);
       mRunning = false;
       break;
     }
@@ -270,7 +270,7 @@ void FileFetcher::fetcher()
     }
     fileEntry = (fileEntry + 1) % getNFiles();
     if (fileEntry == 0 && mNLoops > 0) {
-      LOG(INFO) << "Fetcher starts new iteration " << mNLoops;
+      LOG(info) << "Fetcher starts new iteration " << mNLoops;
     }
     mNFilesProc++;
     auto& fileRef = mInputFiles[fileEntry];
@@ -305,21 +305,21 @@ bool FileFetcher::copyFile(size_t id)
   // copy remote file to local setCopyDirName. Adaptation for Gvozden's code from SubTimeFrameFileSource::DataFetcherThread()
   if (mCopyCmd.find("alien") != std::string::npos) {
     if (!gGrid && !TGrid::Connect("alien://")) {
-      LOG(ERROR) << "Copy command refers to alien but connection to Grid failed";
+      LOG(error) << "Copy command refers to alien but connection to Grid failed";
     }
   }
   auto realCmd = std::regex_replace(std::regex_replace(mCopyCmd, std::regex("\\?src"), mInputFiles[id].getOrigName()), std::regex("\\?dst"), mInputFiles[id].getLocalName());
   std::vector<std::string> copyParams{"-c", realCmd};
   bp::child copyChild(bp::search_path("sh"), copyParams, bp::std_err > mCopyCmdLogFile, bp::std_out > mCopyCmdLogFile);
   while (!copyChild.wait_for(5s)) {
-    LOGP(INFO, "FileFetcher: waiting for copy command. cmd={}", realCmd);
+    LOGP(info, "FileFetcher: waiting for copy command. cmd={}", realCmd);
   }
   const auto sysRet = copyChild.exit_code();
   if (sysRet != 0) {
-    LOGP(WARNING, "FileFetcher: non-zero exit code {} for cmd={}", sysRet, realCmd);
+    LOGP(warning, "FileFetcher: non-zero exit code {} for cmd={}", sysRet, realCmd);
   }
   if (!fs::is_regular_file(mInputFiles[id].getLocalName()) || fs::is_empty(mInputFiles[id].getLocalName())) {
-    LOGP(ERROR, "FileFetcher: failed for copy command {}", realCmd);
+    LOGP(error, "FileFetcher: failed for copy command {}", realCmd);
     return false;
   }
   mCopied[mInputFiles[id].getLocalName()] = id + 1;

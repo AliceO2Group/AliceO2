@@ -20,10 +20,10 @@ using namespace o2::ft0;
 
 void Triggers::printLog() const
 {
-  LOG(INFO) << "mTrigger: " << static_cast<uint16_t>(triggersignals);
-  LOG(INFO) << "nChanA: " << static_cast<uint16_t>(nChanA) << " | nChanC: " << static_cast<uint16_t>(nChanC);
-  LOG(INFO) << "amplA: " << amplA << " | amplC: " << amplC;
-  LOG(INFO) << "timeA: " << timeA << " | timeC: " << timeC;
+  LOG(info) << "mTrigger: " << static_cast<uint16_t>(triggersignals);
+  LOG(info) << "nChanA: " << static_cast<uint16_t>(nChanA) << " | nChanC: " << static_cast<uint16_t>(nChanC);
+  LOG(info) << "amplA: " << amplA << " | amplC: " << amplC;
+  LOG(info) << "timeA: " << timeA << " | timeC: " << timeC;
 }
 
 gsl::span<const ChannelData> Digit::getBunchChannelData(const gsl::span<const ChannelData> tfdata) const
@@ -45,16 +45,16 @@ std::ostream& operator<<(std::ostream& stream, const Digit& digi)
 }
 void Digit::printLog() const
 {
-  LOG(INFO) << "______________DIGIT DATA____________";
-  LOG(INFO) << "BC: " << mIntRecord.bc << "| ORBIT: " << mIntRecord.orbit;
-  LOG(INFO) << "Ref first: " << ref.getFirstEntry() << "| Ref entries: " << ref.getEntries();
+  LOG(info) << "______________DIGIT DATA____________";
+  LOG(info) << "BC: " << mIntRecord.bc << "| ORBIT: " << mIntRecord.orbit;
+  LOG(info) << "Ref first: " << ref.getFirstEntry() << "| Ref entries: " << ref.getEntries();
   mTriggers.printLog();
 }
 void TriggersExt::printLog() const
 {
-  LOG(INFO) << "______________EXTENDED TRIGGERS____________";
-  LOG(INFO) << "BC: " << mIntRecord.bc << "| ORBIT: " << mIntRecord.orbit;
+  LOG(info) << "______________EXTENDED TRIGGERS____________";
+  LOG(info) << "BC: " << mIntRecord.bc << "| ORBIT: " << mIntRecord.orbit;
   for (int i = 0; i < 20; i++) {
-    LOG(INFO) << "N: " << i + 1 << " | TRG: " << mTriggerWords[i];
+    LOG(info) << "N: " << i + 1 << " | TRG: " << mTriggerWords[i];
   }
 }

@@ -28,7 +28,7 @@ o2::eventgen::GeneratorTGenerator* GenCosmics()
   } else if (cosmParam.param == GenCosmicsParam::ParamTPC) {
     genCosm->setParamTPC();
   } else {
-    LOG(FATAL) << "Unknown cosmics param type " << cosmParam.param;
+    LOG(fatal) << "Unknown cosmics param type " << cosmParam.param;
   }
 
   genCosm->setNPart(cosmParam.nPart);
@@ -63,7 +63,7 @@ o2::eventgen::GeneratorTGenerator* GenCosmics()
       genCosm->requireXZAccepted(cosmParam.customAccX, cosmParam.customAccZ);
       break;
     default:
-      LOG(FATAL) << "Unknown cosmics acceptance type " << cosmParam.accept;
+      LOG(fatal) << "Unknown cosmics acceptance type " << cosmParam.accept;
       break;
   }
 

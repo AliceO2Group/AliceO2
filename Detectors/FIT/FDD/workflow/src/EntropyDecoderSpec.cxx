@@ -55,12 +55,12 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
     mCTFCoder.decode(ctfImage, digits, channels);
   }
   mTimer.Stop();
-  LOG(INFO) << "Decoded " << channels.size() << " FDD channels in " << digits.size() << " digits in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << channels.size() << " FDD channels in " << digits.size() << " digits in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "FDD Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "FDD Entropy Decoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

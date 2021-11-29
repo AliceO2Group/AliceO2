@@ -1,0 +1,81 @@
+name: Current refactorings
+
+on: [pull_request_target]
+env:
+  RATIONALE: "Adapt to new FairLogger API"
+  REFACTORING: "s|LOGP[(]ERROR|LOGP(error|g;s|LOGP[(]INFO|LOGP(info|g;s|LOGP[(]WARNING|LOGP(warning|g;s|LOGP[(]WARN|LOGP(warn|g;s|LOGP[(]DEBUG|LOGP(debug|;s|LOG[(]ERROR|LOG(error|g;s|LOG[(]INFO|LOG(info|g;s|LOG[(]WARNING|LOG(warning|g;s|LOG[(]WARN|LOG(warn|g;s|LOG[(]DEBUG|LOG(debug|g"
+
+jobs:
+  build:
+    # We need at least 20.04 to install clang-format-11.
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        persist-credentials: false
+        # We need the history of the dev branch all the way back to where the PR
+        # diverged. We're fetching everything here, as we don't know how many
+        # commits back that point is.
+        fetch-depth: 0
+
+    - name: Run refactoring 
+      id: run_refactoring
+      env:
+        ALIBUILD_GITHUB_TOKEN: ${{secrets.ALIBUILD_GITHUB_TOKEN}}
+      run: |
+        set -x
+        # We need to fetch the other commit.
+        git fetch origin ${{ github.event.pull_request.base.ref }} \
+                         pull/${{ github.event.pull_request.number }}/head:${{ github.event.pull_request.head.ref }}
+
+        # We create a new branch which we will use for the eventual PR.
+        git config --global user.email "alibuild@cern.ch"
+        git config --global user.name "ALICE Action Bot"
+        git checkout -b alibot-refactor-${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}
+
+        # github.event.pull_request.base.sha is the latest commit on the branch
+        # the PR will be merged into, NOT the commit this PR derives from! For
+        # that, we need to find the latest common ancestor between the PR and
+        # the branch we are merging into.
+        BASE_COMMIT=$(git merge-base HEAD ${{ github.event.pull_request.base.sha }})
+        echo "Running refactoring against branch ${{ github.event.pull_request.base.ref }}, with hash ${{ github.event.pull_request.base.sha }}"
+        COMMIT_FILES=$(git diff --diff-filter d --name-only $BASE_COMMIT)
+        [ "X$COMMIT_FILES" = X ] && { echo "No files to check" ; exit 0; }
+        perl -p -i -e "${{ env.REFACTORING }}" $COMMIT_FILES
+        RESULT_OUTPUT="$(git diff)"
+
+        if git diff --exit-code; then
+          echo "Refactoring not needed."
+          git push --set-upstream https://alibuild:$ALIBUILD_GITHUB_TOKEN@github.com/alibuild/AliceO2.git :alibot-refactoring-${{ github.event.pull_request.number }} -f || true
+          echo ::set-output name=clean::true
+        else
+          git commit -m "${{ env.RATIONALE }}" -a
+          git show | cat
+          git fetch https://github.com/AliceO2Group/AliceO2.git pull/${{ github.event.pull_request.number }}/head
+          git push --set-upstream https://alibuild:$ALIBUILD_GITHUB_TOKEN@github.com/alibuild/AliceO2.git HEAD:refs/heads/alibot-refactoring-${{ github.event.pull_request.number }} -f
+          echo ::set-output name=clean::false
+        fi
+
+    - name: pull-request
+      uses: alisw/pull-request@master
+      with:
+        source_branch: 'alibuild:alibot-refactoring-${{ github.event.pull_request.number }}'
+        destination_branch: '${{ github.event.pull_request.head.label }}'
+        github_token: ${{ secrets.ALIBUILD_GITHUB_TOKEN }}
+        pr_title: "Please consider the refactoring changes to AliceO2Group/AliceO2#${{ github.event.pull_request.number }}"
+        pr_body: | 
+          AliceO2Group/AliceO2#${{ github.event.pull_request.number }}" cannot be merged as is.
+          You should either modify your code according to what is done in this PR, or directly merge this PR in yours.
+          The rationale for this change is:
+          ${{ env.RATIONALE }}
+
+      continue-on-error: true # We do not create PRs if the branch is not there.
+
+    - name: Exit with error if the PR is not clean
+      run: |
+        case ${{ steps.run_refactoring.outputs.clean }} in
+          true) echo "PR clean" ; exit 0 ;;
+          false) echo "PR not clean" ; exit 1 ;;
+        esac

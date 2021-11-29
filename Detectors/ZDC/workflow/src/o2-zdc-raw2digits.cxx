@@ -45,13 +45,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto checkTrigger = true;
   auto notCheckTrigger = configcontext.options().get<bool>("not-check-trigger");
   if (notCheckTrigger) {
-    LOG(INFO) << "Not checking trigger condition during conversion";
+    LOG(info) << "Not checking trigger condition during conversion";
     checkTrigger = false;
   }
   auto askSTFDist = true;
   auto notaskSTFDist = configcontext.options().get<bool>("ignore-dist-stf");
   if (notaskSTFDist) {
-    LOG(INFO) << "Not subscribing to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)";
+    LOG(info) << "Not subscribing to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)";
     askSTFDist = false;
   }
 

@@ -81,7 +81,7 @@ void CaloRawFitter::setTimeConstraint(int min, int max)
 {
 
   if ((min > max) || min > constants::EMCAL_MAXTIMEBINS || max > constants::EMCAL_MAXTIMEBINS) {
-    LOG(WARN) << "Attempt to set Invalid time bin range (Min , Max) = (" << min << ", " << max << "), Ingored";
+    LOG(warn) << "Attempt to set Invalid time bin range (Min , Max) = (" << min << ", " << max << "), Ingored";
   } else {
     mMinTimeIndex = min;
     mMaxTimeIndex = max;

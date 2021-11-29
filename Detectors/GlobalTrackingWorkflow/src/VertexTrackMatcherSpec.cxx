@@ -72,13 +72,13 @@ void VertexTrackMatcherSpec::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe}, vtxRefs);
 
   mTimer.Stop();
-  LOG(INFO) << "Made " << trackIndex.size() << " track associations for " << recoData.getPrimaryVertices().size()
+  LOG(info) << "Made " << trackIndex.size() << " track associations for " << recoData.getPrimaryVertices().size()
             << " vertices, timing: CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0 << " s";
 }
 
 void VertexTrackMatcherSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "Primary vertex - track matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "Primary vertex - track matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

@@ -42,7 +42,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"filter-trigrec", o2::framework::VariantType::Bool, false, {"ignore interaction records without ITS data"}},
     {"strict-matching", o2::framework::VariantType::Bool, false, {"High purity preliminary matching"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -61,7 +61,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto strict = configcontext.options().get<bool>("strict-matching");
   GTrackID::mask_t srcTRD = allowedSources & GTrackID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   if (strict && (srcTRD & ~GTrackID::getSourcesMask("TPC")).any()) {
-    LOGP(WARNING, "In strict matching mode only TPC source allowed, {} asked, redefining", GTrackID::getSourcesNames(srcTRD));
+    LOGP(warning, "In strict matching mode only TPC source allowed, {} asked, redefining", GTrackID::getSourcesNames(srcTRD));
     srcTRD = GTrackID::getSourcesMask("TPC");
   }
   o2::framework::WorkflowSpec specs;
@@ -69,8 +69,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // processing devices
   specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive, strict));
-  if (GTrackID::includesSource(GTrackID::Source::ITSTPC, srcTRD) && configcontext.options().get<bool>("enable-trackbased-calib")) {
-    specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec());
+  if (configcontext.options().get<bool>("enable-trackbased-calib")) {
+    specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec(srcTRD));
   }
 
   // output devices

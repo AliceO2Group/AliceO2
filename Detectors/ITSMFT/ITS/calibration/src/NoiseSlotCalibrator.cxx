@@ -29,7 +29,7 @@ bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClust
                                            gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   calibration::TFType nTF = rofs[0].getBCData().orbit / 256;
-  LOG(INFO) << "Processing TF# " << nTF;
+  LOG(info) << "Processing TF# " << nTF;
 
   auto& slotTF = getSlotForTF(nTF);
   auto& noiseMap = *(slotTF.getContainer());
@@ -45,7 +45,7 @@ bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClust
           o2::itsmft::ClusterPattern tmp(pattIt);
           patt = tmp;
         } else {
-          LOG(FATAL) << "Clusters contain pattern IDs, but no dictionary is provided...";
+          LOG(fatal) << "Clusters contain pattern IDs, but no dictionary is provided...";
         }
       } else if ((pattID == o2::itsmft::CompCluster::InvalidPatternID) || mDict.isGroup(pattID)) {
         o2::itsmft::ClusterPattern tmp(pattIt);
@@ -102,7 +102,7 @@ bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClust
 // Functions overloaded from the calibration framework
 bool NoiseSlotCalibrator::process(calibration::TFType tf, const gsl::span<const o2::itsmft::CompClusterExt> data)
 {
-  LOG(WARNING) << "Only 1-pix noise calibraton is possible !";
+  LOG(warning) << "Only 1-pix noise calibraton is possible !";
   return calibration::TimeSlotCalibration<o2::itsmft::CompClusterExt, o2::itsmft::NoiseMap>::process(tf, data);
 }
 
@@ -123,7 +123,7 @@ bool NoiseSlotCalibrator::hasEnoughData(const Slot&) const
 
 void NoiseSlotCalibrator::finalizeSlot(Slot& slot)
 {
-  LOG(INFO) << "Number of processed strobes is " << mNumberOfStrobes;
+  LOG(info) << "Number of processed strobes is " << mNumberOfStrobes;
   o2::itsmft::NoiseMap* map = slot.getContainer();
   map->applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
 }

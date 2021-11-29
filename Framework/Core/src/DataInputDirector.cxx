@@ -41,16 +41,16 @@ DataInputDescriptor::DataInputDescriptor(bool alienSupport)
 
 void DataInputDescriptor::printOut()
 {
-  LOGP(INFO, "DataInputDescriptor");
-  LOGP(INFO, "  Table name        : {}", tablename);
-  LOGP(INFO, "  Tree name         : {}", treename);
-  LOGP(INFO, "  Input files file  : {}", getInputfilesFilename());
-  LOGP(INFO, "  File name regex   : {}", getFilenamesRegexString());
-  LOGP(INFO, "  Input files       : {}", mfilenames.size());
+  LOGP(info, "DataInputDescriptor");
+  LOGP(info, "  Table name        : {}", tablename);
+  LOGP(info, "  Tree name         : {}", treename);
+  LOGP(info, "  Input files file  : {}", getInputfilesFilename());
+  LOGP(info, "  File name regex   : {}", getFilenamesRegexString());
+  LOGP(info, "  Input files       : {}", mfilenames.size());
   for (auto fn : mfilenames) {
-    LOGP(INFO, "    {} {}", fn->fileName, fn->numberOfTimeFrames);
+    LOGP(info, "    {} {}", fn->fileName, fn->numberOfTimeFrames);
   }
-  LOGP(INFO, "  Total number of TF: {}", getNumberTimeFrames());
+  LOGP(info, "  Total number of TF: {}", getNumberTimeFrames());
 }
 
 std::string DataInputDescriptor::getInputfilesFilename()
@@ -74,7 +74,7 @@ void DataInputDescriptor::addFileNameHolder(FileNameHolder* fn)
   if (fn->fileName.rfind("file://", 0) == 0) {
     fn->fileName.erase(0, 7);
   } else if (!mAlienSupport && fn->fileName.rfind("alien://", 0) == 0) {
-    LOGP(DEBUG, "AliEn file requested. Enabling support.");
+    LOGP(debug, "AliEn file requested. Enabling support.");
     TGrid::Connect("alien://");
     mAlienSupport = true;
   }
@@ -200,7 +200,7 @@ int DataInputDescriptor::fillInputfiles()
         }
       }
     } catch (...) {
-      LOGP(ERROR, "Check the input files file! Unable to process \"{}\"!", getInputfilesFilename());
+      LOGP(error, "Check the input files file! Unable to process \"{}\"!", getInputfilesFilename());
       return 0;
     }
   } else {
@@ -273,7 +273,7 @@ bool DataInputDirector::readJson(std::string const& fnjson)
   // open the file
   FILE* f = fopen(fnjson.c_str(), "r");
   if (!f) {
-    LOGP(ERROR, "Could not open JSON file \"{}\"!", fnjson);
+    LOGP(error, "Could not open JSON file \"{}\"!", fnjson);
     return false;
   }
 
@@ -301,7 +301,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
 
   // is it a proper json document?
   if (jsonDoc->HasParseError()) {
-    LOGP(ERROR, "Check the JSON document! There is a problem with the format!");
+    LOGP(error, "Check the JSON document! There is a problem with the format!");
     return false;
   }
 
@@ -309,7 +309,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
   itemName = "InputDirector";
   const Value& didirItem = (*jsonDoc)[itemName];
   if (!didirItem.IsObject()) {
-    LOGP(INFO, "No \"{}\" object found in the JSON document!", itemName);
+    LOGP(info, "No \"{}\" object found in the JSON document!", itemName);
     return true;
   }
 
@@ -319,7 +319,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
     if (didirItem[itemName].IsBool()) {
       mDebugMode = (didirItem[itemName].GetBool());
     } else {
-      LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a boolean!", itemName);
+      LOGP(error, "Check the JSON document! Item \"{}\" must be a boolean!", itemName);
       return false;
     }
   } else {
@@ -331,7 +331,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
     buffer.Clear();
     PrettyWriter<StringBuffer> writer(buffer);
     didirItem.Accept(writer);
-    LOGP(INFO, "InputDirector object: {}", std::string(buffer.GetString()));
+    LOGP(info, "InputDirector object: {}", std::string(buffer.GetString()));
   }
 
   itemName = "fileregex";
@@ -339,7 +339,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
     if (didirItem[itemName].IsString()) {
       setFilenamesRegex(didirItem[itemName].GetString());
     } else {
-      LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a string!", itemName);
+      LOGP(error, "Check the JSON document! Item \"{}\" must be a string!", itemName);
       return false;
     }
   }
@@ -362,7 +362,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
         mdefaultInputFiles.emplace_back(makeFileNameHolder(fn.GetString()));
       }
     } else {
-      LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a string or an array!", itemName);
+      LOGP(error, "Check the JSON document! Item \"{}\" must be a string or an array!", itemName);
       return false;
     }
   }
@@ -370,14 +370,14 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
   itemName = "InputDescriptors";
   if (didirItem.HasMember(itemName)) {
     if (!didirItem[itemName].IsArray()) {
-      LOGP(ERROR, "Check the JSON document! Item \"{}\" must be an array!", itemName);
+      LOGP(error, "Check the JSON document! Item \"{}\" must be an array!", itemName);
       return false;
     }
 
     // loop over DataInputDescriptors
     for (auto& didescItem : didirItem[itemName].GetArray()) {
       if (!didescItem.IsObject()) {
-        LOGP(ERROR, "Check the JSON document! \"{}\" must be objects!", itemName);
+        LOGP(error, "Check the JSON document! \"{}\" must be objects!", itemName);
         return false;
       }
       // create a new dataInputDescriptor
@@ -390,11 +390,11 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
           didesc->tablename = didescItem[itemName].GetString();
           didesc->matcher = DataDescriptorQueryBuilder::buildNode(didesc->tablename);
         } else {
-          LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a string!", itemName);
+          LOGP(error, "Check the JSON document! Item \"{}\" must be a string!", itemName);
           return false;
         }
       } else {
-        LOGP(ERROR, "Check the JSON document! Item \"{}\" is missing!", itemName);
+        LOGP(error, "Check the JSON document! Item \"{}\" is missing!", itemName);
         return false;
       }
 
@@ -403,7 +403,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
         if (didescItem[itemName].IsString()) {
           didesc->treename = didescItem[itemName].GetString();
         } else {
-          LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a string!", itemName);
+          LOGP(error, "Check the JSON document! Item \"{}\" must be a string!", itemName);
           return false;
         }
       } else {
@@ -418,7 +418,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
             didesc->setFilenamesRegex(didescItem[itemName].GetString());
           }
         } else {
-          LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a string!", itemName);
+          LOGP(error, "Check the JSON document! Item \"{}\" must be a string!", itemName);
           return false;
         }
       } else {
@@ -448,7 +448,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
             }
           }
         } else {
-          LOGP(ERROR, "Check the JSON document! Item \"{}\" must be a string or an array!", itemName);
+          LOGP(error, "Check the JSON document! Item \"{}\" must be a string or an array!", itemName);
           return false;
         }
       } else {
@@ -460,7 +460,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
         mdataInputDescriptors.emplace_back(didesc);
       } else {
         didesc->printOut();
-        LOGP(INFO, "This DataInputDescriptor is ignored because its file list is empty!");
+        LOGP(info, "This DataInputDescriptor is ignored because its file list is empty!");
       }
       mAlienSupport &= didesc->isAlienSupportOn();
     }
@@ -614,16 +614,16 @@ bool DataInputDirector::atEnd(int counter)
 
 void DataInputDirector::printOut()
 {
-  LOGP(INFO, "DataInputDirector");
-  LOGP(INFO, "  Default input files file   : {}", minputfilesFile);
-  LOGP(INFO, "  Default file name regex    : {}", mFilenameRegex);
-  LOGP(INFO, "  Default file names         : {}", mdefaultInputFiles.size());
+  LOGP(info, "DataInputDirector");
+  LOGP(info, "  Default input files file   : {}", minputfilesFile);
+  LOGP(info, "  Default file name regex    : {}", mFilenameRegex);
+  LOGP(info, "  Default file names         : {}", mdefaultInputFiles.size());
   for (auto const& fn : mdefaultInputFiles) {
-    LOGP(INFO, "    {} {}", fn->fileName, fn->numberOfTimeFrames);
+    LOGP(info, "    {} {}", fn->fileName, fn->numberOfTimeFrames);
   }
-  LOGP(INFO, "  Default DataInputDescriptor:");
+  LOGP(info, "  Default DataInputDescriptor:");
   mdefaultDataInputDescriptor->printOut();
-  LOGP(INFO, "  DataInputDescriptors       : {}", getNumberInputDescriptors());
+  LOGP(info, "  DataInputDescriptors       : {}", getNumberInputDescriptors());
   for (auto const& didesc : mdataInputDescriptors) {
     didesc->printOut();
   }

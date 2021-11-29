@@ -28,7 +28,7 @@ for (const auto& element : data) {
 
 #### How do I report failure for a given Algorithm?
 
-Whenever the driver process spots an error message, i.e. an error printed via `LOG(ERROR)` facility, when the driver process quits, it will exit with a exit code of 1. This includes any exception reported by the default exception handler.
+Whenever the driver process spots an error message, i.e. an error printed via `LOG(error)` facility, when the driver process quits, it will exit with a exit code of 1. This includes any exception reported by the default exception handler.
 
 This comes handy, for example in tests.
 
@@ -328,7 +328,7 @@ DataProcessorSpec{
   AlgorithmSpec{[](InitContext &setup) {
      return [](ProcessingContext &ctx) {
   // Create a single output.
-    LOG(DEBUG) << "Invoked" << std::endl;
+    LOG(debug) << "Invoked" << std::endl;
   };
 }
 // ...
@@ -456,6 +456,8 @@ process monitoring metrics described at:
 <https://github.com/AliceO2Group/Monitoring/#process-monitoring>
 
 will be pushed every `<poll-interval>` seconds to the same backend and dumped in the `performanceMetrics.json` file on exit.
+
+One can also specify `--resources-monitoring-dump-interval <interval in seconds>` to regularly dump the file at a give interval.
 
 ### Disabling monitoring
 

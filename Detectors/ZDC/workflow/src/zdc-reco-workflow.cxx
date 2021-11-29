@@ -32,8 +32,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"reco-verbosity", VariantType::Int, 0, {"reco verbosity level"}});
   workflowOptions.push_back(ConfigParamSpec{"enable-debug-output", VariantType::Bool, false, {"enable debug tree output"}});
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
-
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
+  o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
 // ------------------------------------------------------------------
@@ -42,7 +42,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  LOG(INFO) << "WorkflowSpec defineDataProcessing";
+  LOG(info) << "WorkflowSpec defineDataProcessing";
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the digitizer workflow
@@ -54,7 +54,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto verbosity = configcontext.options().get<int>("reco-verbosity");
   auto enableDebugOut = configcontext.options().get<bool>("enable-debug-output");
 
-  LOG(INFO) << "WorkflowSpec getRecoWorkflow useMC " << useMC;
+  LOG(info) << "WorkflowSpec getRecoWorkflow useMC " << useMC;
   auto wf = o2::zdc::getRecoWorkflow(useMC, disableRootInp, disableRootOut, verbosity, enableDebugOut);
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit

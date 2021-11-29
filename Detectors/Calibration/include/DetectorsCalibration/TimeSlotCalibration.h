@@ -117,7 +117,7 @@ bool TimeSlotCalibration<Input, Container>::process(TFType tf, const DATA& data)
                                                                                                  // which is INFINITE_TF wide, then maxDelay
                                                                                                  // does not matter: you won't accept TFs from the past,
                                                                                                  // so the first condition will be used
-      LOG(INFO) << "Ignoring TF " << tf << ", mLastClosedTF = " << mLastClosedTF;
+      LOG(info) << "Ignoring TF " << tf << ", mLastClosedTF = " << mLastClosedTF;
       return false;
     }
   }
@@ -148,7 +148,7 @@ bool TimeSlotCalibration<Input, Container>::process(TFType tf, const gsl::span<c
                                                                                                  // which is INFINITE_TF wide, then maxDelay
                                                                                                  // does not matter: you won't accept TFs from the past,
                                                                                                  // so the first condition will be used
-      LOG(INFO) << "Ignoring TF " << tf << ", mLastClosedTF = " << mLastClosedTF;
+      LOG(info) << "Ignoring TF " << tf << ", mLastClosedTF = " << mLastClosedTF;
       return false;
     }
   }
@@ -185,33 +185,33 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
       checkInterval = mCheckDeltaIntervalInfiniteSlot + mLastCheckedTFInfiniteSlot;
     }
     if (tf >= checkInterval || tf == INFINITE_TF) {
-      LOG(DEBUG) << "mMaxSeenTF = " << mMaxSeenTF << ", mLastCheckedTFInfiniteSlot = " << mLastCheckedTFInfiniteSlot << ", checkInterval = " << checkInterval << ", mSlots[0].getTFStart() = " << mSlots[0].getTFStart();
+      LOG(debug) << "mMaxSeenTF = " << mMaxSeenTF << ", mLastCheckedTFInfiniteSlot = " << mLastCheckedTFInfiniteSlot << ", checkInterval = " << checkInterval << ", mSlots[0].getTFStart() = " << mSlots[0].getTFStart();
       if (tf == INFINITE_TF) {
-        LOG(INFO) << "End of run reached, trying to calibrate what we have, if we have enough statistics";
+        LOG(info) << "End of run reached, trying to calibrate what we have, if we have enough statistics";
       } else {
-        LOG(INFO) << "Calibrating as soon as we have enough statistics:";
-        LOG(INFO) << "Update interval passed (" << checkInterval << "), checking slot for " << mSlots[0].getTFStart() << " <= TF <= " << mSlots[0].getTFEnd();
+        LOG(info) << "Calibrating as soon as we have enough statistics:";
+        LOG(info) << "Update interval passed (" << checkInterval << "), checking slot for " << mSlots[0].getTFStart() << " <= TF <= " << mSlots[0].getTFEnd();
       }
       mLastCheckedTFInfiniteSlot = tf;
       if (hasEnoughData(mSlots[0])) {
         mWasCheckedInfiniteSlot = false;
         mSlots[0].setTFStart(mLastClosedTF);
         mSlots[0].setTFEnd(mMaxSeenTF);
-        LOG(INFO) << "Finalizing slot for " << mSlots[0].getTFStart() << " <= TF <= " << mSlots[0].getTFEnd();
+        LOG(info) << "Finalizing slot for " << mSlots[0].getTFStart() << " <= TF <= " << mSlots[0].getTFEnd();
         finalizeSlot(mSlots[0]);                  // will be removed after finalization
         mLastClosedTF = mSlots[0].getTFEnd() + 1; // will not accept any TF below this
         mSlots.erase(mSlots.begin());
         // creating a new slot if we are not at the end of run
         if (tf != INFINITE_TF) {
-          LOG(INFO) << "Creating new slot for " << mLastClosedTF << " <= TF <= " << INFINITE_TF_int64;
+          LOG(info) << "Creating new slot for " << mLastClosedTF << " <= TF <= " << INFINITE_TF_int64;
           emplaceNewSlot(true, mLastClosedTF, INFINITE_TF_int64);
         }
       } else {
-        LOG(INFO) << "Not enough data to calibrate";
+        LOG(info) << "Not enough data to calibrate";
         mWasCheckedInfiniteSlot = true;
       }
     } else {
-      LOG(DEBUG) << "Not trying to calibrate: either not at EoS, or update interval not passed";
+      LOG(debug) << "Not trying to calibrate: either not at EoS, or update interval not passed";
     }
   } else {
     // check if some slots are done
@@ -219,18 +219,18 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
       //if (maxDelay == 0 || (slot->getTFEnd() + maxDelay) < tf) {
       if ((slot->getTFEnd() + maxDelay) < tf) {
         if (hasEnoughData(*slot)) {
-          LOG(DEBUG) << "Finalizing slot for " << slot->getTFStart() << " <= TF <= " << slot->getTFEnd();
+          LOG(debug) << "Finalizing slot for " << slot->getTFStart() << " <= TF <= " << slot->getTFEnd();
           finalizeSlot(*slot); // will be removed after finalization
         } else if ((slot + 1) != mSlots.end()) {
-          LOG(INFO) << "Merging underpopulated slot " << slot->getTFStart() << " <= TF <= " << slot->getTFEnd()
+          LOG(info) << "Merging underpopulated slot " << slot->getTFStart() << " <= TF <= " << slot->getTFEnd()
                     << " to slot " << (slot + 1)->getTFStart() << " <= TF <= " << (slot + 1)->getTFEnd();
           (slot + 1)->mergeToPrevious(*slot);
         } else {
-          LOG(INFO) << "Discard underpopulated slot " << slot->getTFStart() << " <= TF <= " << slot->getTFEnd();
+          LOG(info) << "Discard underpopulated slot " << slot->getTFStart() << " <= TF <= " << slot->getTFEnd();
           break; // slot has no enough stat. and there is no other slot to merge it to
         }
         mLastClosedTF = slot->getTFEnd() + 1; // will not accept any TF below this
-        LOG(INFO) << "closing slot " << slot->getTFStart() << " <= TF <= " << slot->getTFEnd();
+        LOG(info) << "closing slot " << slot->getTFStart() << " <= TF <= " << slot->getTFEnd();
         slot = mSlots.erase(slot);
       } else {
         break; // all following slots will be even closer to the new TF
@@ -245,7 +245,7 @@ void TimeSlotCalibration<Input, Container>::finalizeOldestSlot()
 {
   // Enforce finalization and removal of the oldest slot
   if (mSlots.empty()) {
-    LOG(WARNING) << "There are no slots defined";
+    LOG(warning) << "There are no slots defined";
     return;
   }
   finalizeSlot(mSlots.front());
@@ -274,7 +274,7 @@ template <typename Input, typename Container>
 TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType tf)
 {
 
-  LOG(DEBUG) << "Getting slot for TF " << tf;
+  LOG(debug) << "Getting slot for TF " << tf;
 
   if (mUpdateAtTheEndOfRunOnly) {
     if (!mSlots.empty() && mSlots.back().getTFEnd() < tf) {
@@ -289,7 +289,7 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
     auto tfmn = tf2SlotMin(mSlots.front().getTFStart() - 1); // min TF of the slot corresponding to a TF smaller than the first seen
     auto tftgt = tf2SlotMin(tf);                             // min TF of the slot to which the TF "tf" would belong
     while (tfmn >= tftgt) {
-      LOG(INFO) << "Adding new slot for " << tfmn << " <= TF <= " << tfmn + mSlotLength - 1;
+      LOG(info) << "Adding new slot for " << tfmn << " <= TF <= " << tfmn + mSlotLength - 1;
       emplaceNewSlot(true, tfmn, tfmn + mSlotLength - 1);
       if (!tfmn) {
         break;
@@ -307,7 +307,7 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
   // need to add in the end
   auto tfmn = mSlots.empty() ? tf2SlotMin(tf) : tf2SlotMin(mSlots.back().getTFEnd() + 1);
   do {
-    LOG(INFO) << "Adding new slot for " << tfmn << " <= TF <= " << tfmn + mSlotLength - 1;
+    LOG(info) << "Adding new slot for " << tfmn << " <= TF <= " << tfmn + mSlotLength - 1;
     emplaceNewSlot(false, tfmn, tfmn + mSlotLength - 1);
     tfmn = tf2SlotMin(mSlots.back().getTFEnd() + 1);
   } while (tf > mSlots.back().getTFEnd());
@@ -320,7 +320,7 @@ template <typename Input, typename Container>
 void TimeSlotCalibration<Input, Container>::print() const
 {
   for (int i = 0; i < getNSlots(); i++) {
-    LOG(INFO) << "Slot #" << i << " of " << getNSlots();
+    LOG(info) << "Slot #" << i << " of " << getNSlots();
     getSlot(i).print();
   }
 }
