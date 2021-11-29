@@ -74,7 +74,6 @@ void DigitReader::run(ProcessingContext& pc)
     } else {
       LOG(info) << "MC-truth is missing";
       mUseMC = false;
-
     }
   }
   auto ent = mTree->GetReadEntry() + 1;
