@@ -18,7 +18,6 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/DataRefUtils.h"
-#include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
