@@ -27,8 +27,7 @@ o2_add_library(FV0Reconstruction
 
 o2_target_root_dictionary(FV0Reconstruction
         HEADERS include/FV0Reconstruction/BaseRecoTask.h
-                include/FV0Reconstruction/ReadRaw.h
-                include/FV0Reconstruction/CTFCoder.h)
+                include/FV0Reconstruction/ReadRaw.h)
 
 o2_add_executable(
   test-raw2digit

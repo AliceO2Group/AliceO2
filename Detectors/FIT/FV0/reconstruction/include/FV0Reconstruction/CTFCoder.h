@@ -38,7 +38,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
   CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::FV0) {}
-  ~CTFCoder() = default;
+  ~CTFCoder() final = default;
 
   /// entropy-encode digits to buffer with CTF
   template <typename VEC>
@@ -48,7 +48,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   template <typename VDIG, typename VCHAN>
   void decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec);
 
-  void createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
+  void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
   /// compres digits clusters to CompressedDigits
@@ -61,8 +61,6 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<BCData>& digitVec, std::vector<ChannelData>& channelVec);
-
-  ClassDefNV(CTFCoder, 1);
 };
 
 /// entropy-encode clusters to buffer with CTF

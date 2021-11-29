@@ -39,7 +39,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
   CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::MCH) {}
-  ~CTFCoder() = default;
+  ~CTFCoder() final = default;
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
@@ -49,7 +49,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   template <typename VROF, typename VCOL>
   void decode(const CTF::base& ec, VROF& rofVec, VCOL& digVec);
 
-  void createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op);
+  void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
   void appendToTree(TTree& tree, CTF& ec);

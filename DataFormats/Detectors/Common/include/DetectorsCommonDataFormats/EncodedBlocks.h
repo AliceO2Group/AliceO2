@@ -358,6 +358,15 @@ class EncodedBlocks
     return mBlocks[i];
   }
 
+  auto getFrequencyTable(int i) const
+  {
+    o2::rans::FrequencyTable ft;
+    const auto& bl = getBlock(i);
+    const auto& md = getMetadata(i);
+    ft.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min, md.max);
+    return ft;
+  }
+
   void setANSHeader(const ANSHeader& h) { mANSHeader = h; }
   const ANSHeader& getANSHeader() const { return mANSHeader; }
   ANSHeader& getANSHeader() { return mANSHeader; }

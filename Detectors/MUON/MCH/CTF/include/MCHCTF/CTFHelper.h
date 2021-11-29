@@ -35,7 +35,7 @@ class CTFHelper
 
   CTFHeader createHeader()
   {
-    CTFHeader h{0, 1, 0, // dummy timestamp, version 1.0
+    CTFHeader h{o2::detectors::DetID::MCH, 0, 1, 0, // dummy timestamp, version 1.0
                 uint32_t(mROFData.size()), uint32_t(mDigData.size()), 0, 0};
     if (mROFData.size()) {
       h.firstOrbit = mROFData[0].getBCData().orbit;
