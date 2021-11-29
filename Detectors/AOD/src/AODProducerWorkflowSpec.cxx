@@ -79,7 +79,6 @@ using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<dou
 namespace o2::aodproducer
 {
 
-
 void AODProducerWorkflowDPL::collectBCs(o2::globaltracking::RecoContainer& data,
                                         const std::vector<o2::InteractionTimeRecord>& mcRecords,
                                         std::map<uint64_t, int>& bcsMap)
@@ -90,6 +89,7 @@ void AODProducerWorkflowDPL::collectBCs(o2::globaltracking::RecoContainer& data,
   const auto& fv0RecPoints = data.getFV0RecPoints();
   const auto& caloEMCCellsTRGR = data.getEMCALTriggers();
   const auto& ctpDigits = data.getCTPDigits();
+  const auto& zdcBCRecData = data.getZDCBCRecData();
 
   // collecting non-empty BCs and enumerating them
   for (auto& rec : mcRecords) {
@@ -112,7 +112,7 @@ void AODProducerWorkflowDPL::collectBCs(o2::globaltracking::RecoContainer& data,
     bcsMap[globalBC] = 1;
   }
 
-  for (auto zdcRecData : zdcBCRecData) {
+  for (auto& zdcRecData : zdcBCRecData) {
     uint64_t globalBC = zdcRecData.ir.toLong();
     bcsMap[globalBC] = 1;
   }
@@ -1004,9 +1004,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   // initialize zdc helper maps
   for (auto& ChannelName : o2::zdc::ChannelNames) {
     mZDCEnergyMap[(string)ChannelName] = 0;
-  }
-  for (int i = 0; i < o2::zdc::NTDCChannels; i++) {
-    mZDCTDCMap[o2::zdc::TDCSignal[i]] = 999;
+    mZDCTDCMap[(string)ChannelName] = 999;
   }
 
   // writing metadata if it's not yet in AOD file
@@ -1214,7 +1212,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     for (int it = 0; it < nt; it++) {
       auto& tdc = zdcTDCData[ft + it];
       float tdcValue = tdc.value();
-      mZDCTDCMap.at(tdc.ch()) = tdcValue;
+      int channelID = o2::zdc::TDCSignal[tdc.ch()];
+      auto channelName = o2::zdc::ChannelNames[channelID];
+      mZDCTDCMap.at((string)channelName) = tdcValue;
     }
     energySectorZNA[0] = mZDCEnergyMap.at("ZNA1");
     energySectorZNA[1] = mZDCEnergyMap.at("ZNA2");
@@ -1244,12 +1244,12 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               energySectorZNC,
               energySectorZPA,
               energySectorZPC,
-              mZDCTDCMap.at(o2::zdc::IdZEM1),
-              mZDCTDCMap.at(o2::zdc::IdZEM2),
-              mZDCTDCMap.at(o2::zdc::IdZNAC),
-              mZDCTDCMap.at(o2::zdc::IdZNCC),
-              mZDCTDCMap.at(o2::zdc::IdZPAC),
-              mZDCTDCMap.at(o2::zdc::IdZPCC));
+              mZDCTDCMap.at("ZEM1"),
+              mZDCTDCMap.at("ZEM2"),
+              mZDCTDCMap.at("ZNAC"),
+              mZDCTDCMap.at("ZNCC"),
+              mZDCTDCMap.at("ZPAC"),
+              mZDCTDCMap.at("ZPCC"));
   }
 
   // keep track event/source id for each mc-collision

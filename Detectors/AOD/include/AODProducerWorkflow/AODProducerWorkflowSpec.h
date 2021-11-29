@@ -237,7 +237,7 @@ class AODProducerWorkflowDPL : public Task
   // zdc helper maps to avoid a number of "if" statements
   // when filling ZDC table
   map<string, float> mZDCEnergyMap; // mapping detector name to a corresponding energy
-  map<int, float> mZDCTDCMap;       // mapping TDC channel to a corresponding TDC value
+  map<string, float> mZDCTDCMap;    // mapping TDC channel to a corresponding TDC value
 
   TripletsMap_t mToStore;
 
